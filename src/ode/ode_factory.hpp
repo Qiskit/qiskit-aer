@@ -14,7 +14,7 @@ namespace AER {
       } else if (ode_type == ABMWrapper<T>::ID) {
         return std::unique_ptr<Ode<T>>(new ABMWrapper<T>(std::forward<Params>(params)...));
       } else {
-        throw std::runtime_error("No suitable constructor for ODE type: " + ode_type);
+        throw std::invalid_argument("No suitable constructor for ODE type: " + ode_type);
       }
     }
 

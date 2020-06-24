@@ -30,8 +30,6 @@ namespace AER {
 
       CvodeWrapper(rhsFuncType<T> f, T&& y0, double t0);
 
-      CvodeWrapper(rhsFuncType<T> f, unsigned int n, double t0);
-
       void setup_sens(perturbFuncType pf, const std::vector<double> &p);
 
       CvodeWrapper(const CvodeWrapper &) = delete;
@@ -96,14 +94,26 @@ namespace AER {
         return 0;
       };
 
-      std::shared_ptr<void> cvode_mem_;
+      using CVodeMemDeleter = std::function<void(void *)>;
+      using NLSDeleter = std::function<int(SUNNonlinearSolver)>;
+      using NVectorDeleter = std::function<void(N_Vector)>;
+      using NVectorArrayDeleter =std::function<void(N_Vector*)>;
 
-      std::shared_ptr<_generic_N_Vector> y_;
+      std::unique_ptr<void, CVodeMemDeleter> cvode_mem_ =
+          std::unique_ptr<void, CVodeMemDeleter>(nullptr,
+                                                 [](void *cvode_mem) { CVodeFree(&cvode_mem);});
+
+      std::unique_ptr<_generic_N_Vector, NVectorDeleter> y_ =
+          std::unique_ptr<_generic_N_Vector, NVectorDeleter>(nullptr, N_VDestroy);
       double t_;
 
-      std::shared_ptr<_generic_SUNNonlinearSolver> NLS_;
-      std::shared_ptr<_generic_N_Vector *> sens_;
-      std::shared_ptr<_generic_SUNNonlinearSolver> NLS_sens_;
+      std::unique_ptr<_generic_SUNNonlinearSolver, NLSDeleter> NLS_ =
+          std::unique_ptr<_generic_SUNNonlinearSolver, NLSDeleter>(nullptr, SUNNonlinSolFree);
+      std::unique_ptr<_generic_N_Vector *, NVectorArrayDeleter> sens_ =
+          std::unique_ptr<_generic_N_Vector *, NVectorArrayDeleter>(nullptr, [](N_Vector*){});
+      std::unique_ptr<_generic_SUNNonlinearSolver, NLSDeleter> NLS_sens_ =
+          std::unique_ptr<_generic_SUNNonlinearSolver, NLSDeleter>(nullptr, SUNNonlinSolFree);
+
 
       std::shared_ptr<user_data_func> udf_;
       int retval_;
@@ -115,14 +125,15 @@ namespace AER {
     const std::string CvodeWrapper<T>::ID = "cvodes-adams";
 
     template<typename T>
-    CvodeWrapper<T>::CvodeWrapper(rhsFuncType<T> f, const T& y0, double t0) {
-      y_ = std::shared_ptr<_generic_N_Vector>(SundialsComplexContent<T>::new_vector(y0), N_VDestroy);
+    CvodeWrapper<T>::CvodeWrapper(rhsFuncType<T> f, const T& y0, double t0)
+    {
+      y_.reset(SundialsComplexContent<T>::new_vector(y0));
       init(f, t0);
     }
 
     template<typename T>
     CvodeWrapper<T>::CvodeWrapper(rhsFuncType<T> f, T&& y0, double t0) {
-      y_ = std::shared_ptr<_generic_N_Vector>(SundialsComplexContent<T>::new_vector(std::move(y0)), N_VDestroy);
+      y_.reset(SundialsComplexContent<T>::new_vector(std::move(y0)));
       init(f, t0);
     }
 
@@ -138,14 +149,13 @@ namespace AER {
     void CvodeWrapper<T>::init(rhsFuncType<T> f, double t0) {
       t_ = t0;
 
-      cvode_mem_ = std::shared_ptr<void>(CVodeCreate(CV_ADAMS),
-                                         [](void *cvode_mem) { CVodeFree(&cvode_mem); });
+      cvode_mem_.reset(CVodeCreate(CV_ADAMS));
       CVodeInit(cvode_mem_.get(), rhs_wrapper, t0, y_.get());
 
       CVodeSetErrHandlerFn(cvode_mem_.get(), error_handler, nullptr);
 
       CVodeSStolerances(cvode_mem_.get(), RTOL, ATOL);
-      NLS_ = std::shared_ptr<_generic_SUNNonlinearSolver>(SUNNonlinSol_FixedPoint(y_.get(), 0), SUNNonlinSolFree);
+      NLS_.reset(SUNNonlinSol_FixedPoint(y_.get(), 0));
 
       /* attach nonlinear solver object to CVode */
       CVodeSetNonlinearSolver(cvode_mem_.get(), NLS_.get());
@@ -162,10 +172,9 @@ namespace AER {
       udf_->p = p;
       udf_->pf = pf;
       auto num_sens = p.size();
-      sens_ = std::shared_ptr<_generic_N_Vector *>(N_VCloneVectorArray(num_sens, y_.get()),
-                                                   [num_sens](_generic_N_Vector **sens) {
-                                                     N_VDestroyVectorArray(sens, num_sens);
-                                                   });
+      sens_ = std::unique_ptr<_generic_N_Vector *, NVectorArrayDeleter>(
+          N_VCloneVectorArray(num_sens, y_.get()),
+          [num_sens](N_Vector *sens) { N_VDestroyVectorArray(sens, num_sens); });
 
       for (int is = 0; is < num_sens; is++) {
         N_VConst(0.0, sens_.get()[is]);
@@ -181,8 +190,7 @@ namespace AER {
       CVodeSetSensParams(cvode_mem_.get(), udf_->p.data(), nullptr, nullptr);
 
       // Assuming SIMULTANEOUS so far
-      NLS_sens_ = std::shared_ptr<_generic_SUNNonlinearSolver>(SUNNonlinSol_FixedPointSens(num_sens + 1, y_.get(), 0),
-                                                               SUNNonlinSolFree);
+      NLS_sens_.reset(SUNNonlinSol_FixedPointSens(num_sens + 1, y_.get(), 0));
       CVodeSetNonlinearSolverSensSim(cvode_mem_.get(), NLS_sens_.get());
     }
 
@@ -203,8 +211,9 @@ namespace AER {
 
     template<typename T>
     const T &CvodeWrapper<T>::get_sens_solution(uint i) {
+
       if (i >= udf_->p.size()) {
-        throw std::runtime_error("Trying to get sensitivity componente outside limits");
+        throw std::range_error("Trying to get sensitivity component outside limits");
       }
       CVodeGetSens(cvode_mem_.get(), &t_, sens_.get());
       return SundialsComplexContent<T>::get_data(sens_.get()[i]);
