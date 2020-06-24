@@ -142,8 +142,7 @@ int main(int argc, char **argv) {
 
     // Initialize simulator
     AER::Simulator::QasmController sim;
-    auto result = sim.execute(qobj);
-    out << result.json().dump(4) << std::endl;
+    out << sim.execute(qobj).to_json().dump(4) << std::endl;
 
     // Check if execution was successful.
     bool success = false;

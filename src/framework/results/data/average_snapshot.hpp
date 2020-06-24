@@ -119,8 +119,8 @@ json_t AverageSnapshot<T>::to_json() {
       // Store mean and variance for snapshot
       json_t datum = inner_pair.second.to_json();
       // Add memory key if there are classical registers
-      auto memory = inner_pair.first;
-      if (memory.empty() == false) datum["memory"] = memory;
+      auto& memory = inner_pair.first;
+      if (!memory.empty()) datum["memory"] = memory;
       // Add to list of output
       js[outer_pair.first].emplace_back(std::move(datum));
     }
