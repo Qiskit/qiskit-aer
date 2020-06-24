@@ -201,16 +201,17 @@ public:
   // Construct an empty matrix
   matrix() = default;
 
-  // Construct a matrix
-  // Note that the values will be uninitialized should should be set manually
-  // or filled with a default value using `fill`.
-  matrix(size_t rows, size_t cols);
+  // Construct a matrix of specified size
+  // If `fill=True` the matrix will be initialized with all values in zero
+  // if `fill=False` the matrix entries will be in an indeterminant state
+  // and should have their values assigned before use.
+  matrix(size_t rows, size_t cols, bool fill = true);
 
   // Copy construct a matrix
-  matrix(const matrix<T> &m);
+  matrix(const matrix<T> &other);
 
   // Move construct a matrix
-  matrix(matrix<T>&& m) noexcept;
+  matrix(matrix<T>&& other) noexcept;
 
   // Destructor
   virtual ~matrix() { free(mat_); }
@@ -220,14 +221,14 @@ public:
   //-----------------------------------------------------------------------
 
   // Copy assignment
-  matrix<T> &operator=(const matrix<T> &m);
+  matrix<T> &operator=(const matrix<T> &other);
 
   // Move assignment
-  matrix<T> &operator=(matrix<T> &&m) noexcept;
+  matrix<T> &operator=(matrix<T> &&other) noexcept;
 
   // Copy and cast assignment
   template <class S>
-  matrix<T> &operator=(const matrix<S> &m);
+  matrix<T> &operator=(const matrix<S> &other);
 
   //-----------------------------------------------------------------------
   // Element access
@@ -311,22 +312,21 @@ protected:
 //-----------------------------------------------------------------------
 
 template <class T>
-matrix<T>::matrix(size_t rows, size_t cols)
+matrix<T>::matrix(size_t rows, size_t cols, bool fill)
     : rows_(rows), cols_(cols), size_(rows * cols), LD_(rows),
-      outputstyle_(Column), mat_(calloc_array<T>(size_)) {}
+      outputstyle_(Column),
+      mat_((fill) ? calloc_array<T>(size_) : malloc_array<T>(size_)) {}
 
 template <class T>
-matrix<T>::matrix(const matrix<T> &rhs)
-    : rows_(rhs.rows_), cols_(rhs.cols_), size_(rhs.size_), LD_(rows_),
-      outputstyle_(rhs.outputstyle_), mat_(malloc_array<T>(size_)) {
-  std::copy(rhs.mat_, rhs.mat_ + rhs.size_, mat_);
+matrix<T>::matrix(const matrix<T> &other) : matrix(other.rows_, other.cols_, false) {
+  std::copy(other.mat_, other.mat_ + other.size_, mat_);
 }
 
 template <class T>
-matrix<T>::matrix(matrix<T>&& rhs) noexcept
-    : rows_(rhs.rows_), cols_(rhs.cols_), size_(rhs.size_), LD_(rows_),
-      outputstyle_(rhs.outputstyle_), mat_(rhs.mat_) {
-  rhs.mat_ = nullptr; // Remove pointer from RHS
+matrix<T>::matrix(matrix<T>&& other) noexcept
+  : rows_(other.rows_), cols_(other.cols_), size_(other.size_), LD_(rows_),
+    outputstyle_(other.outputstyle_), mat_(other.mat_) {
+  other.mat_ = nullptr;
 }
 
 //-----------------------------------------------------------------------
@@ -334,48 +334,48 @@ matrix<T>::matrix(matrix<T>&& rhs) noexcept
 //-----------------------------------------------------------------------
 
 template <class T>
-matrix<T>& matrix<T>::operator=(matrix<T>&& rhs) noexcept {
+matrix<T>& matrix<T>::operator=(matrix<T>&& other) noexcept {
   free(mat_);
-  rows_ = rhs.rows_;
-  cols_ = rhs.cols_;
+  rows_ = other.rows_;
+  cols_ = other.cols_;
   size_ = rows_ * cols_;
-  LD_ = rhs.LD_;
-  mat_ = rhs.mat_;
-  rhs.mat_ = nullptr;
+  LD_ = other.LD_;
+  mat_ = other.mat_;
+  other.mat_ = nullptr;
   return *this;
 }
 
 template <class T>
-matrix<T> &matrix<T>::operator=(const matrix<T> &rhs) {
-  if (rows_ != rhs.rows_ || cols_ != rhs.cols_) { 
+matrix<T> &matrix<T>::operator=(const matrix<T> &other) {
+  if (rows_ != other.rows_ || cols_ != other.cols_) { 
     // size delete re-construct
     // the matrix
     free(mat_);
-    rows_ = rhs.rows_;
-    cols_ = rhs.cols_;
+    rows_ = other.rows_;
+    cols_ = other.cols_;
     size_ = rows_ * cols_;
-    LD_ = rhs.LD_;
+    LD_ = other.LD_;
     mat_ = malloc_array<T>(size_);
   }
-  std::copy(rhs.mat_, rhs.mat_ + size_, mat_);
+  std::copy(other.mat_, other.mat_ + size_, mat_);
   return *this;
 }
 
 template <class T>
 template <class S>
-inline matrix<T> &matrix<T>::operator=(const matrix<S> &rhs) {
+inline matrix<T> &matrix<T>::operator=(const matrix<S> &other) {
 
-  if (rows_ != rhs.GetRows() ||
-      cols_ != rhs.GetColumns()) {
+  if (rows_ != other.GetRows() ||
+      cols_ != other.GetColumns()) {
     free(mat_);
-    rows_ = rhs.GetRows();
-    cols_ = rhs.GetColumns();
+    rows_ = other.GetRows();
+    cols_ = other.GetColumns();
     size_ = rows_ * cols_;
-    LD_ = rhs.GetLD();
+    LD_ = other.GetLD();
     mat_ = malloc_array<T>(size_);
   }
   for (size_t p = 0; p < size_; p++) {
-    mat_[p] = T(rhs[p]);
+    mat_[p] = T(other[p]);
   }
   return *this;
 }
