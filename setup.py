@@ -57,16 +57,8 @@ setup_requirements = common_requirements + [
 
 requirements = common_requirements + ['qiskit-terra>=0.12.0']
 
-if not hasattr(setuptools,
-               'find_namespace_packages') or not inspect.ismethod(
-                    setuptools.find_namespace_packages):
-    print("Your setuptools version:'{}' does not support PEP 420 "
-          "(find_namespace_packages). Upgrade it to version >='40.1.0' and "
-          "repeat install.".format(setuptools.__version__))
-    sys.exit(1)
-
 VERSION_PATH = os.path.join(os.path.dirname(__file__),
-                            "qiskit", "providers", "aer", "VERSION.txt")
+                            "qiskit_aer", "VERSION.txt")
 with open(VERSION_PATH, "r") as version_file:
     VERSION = version_file.read().strip()
 
@@ -78,7 +70,7 @@ with open(README_PATH) as readme_file:
 setup(
     name=PACKAGE_NAME,
     version=VERSION,
-    packages=setuptools.find_namespace_packages(include=['qiskit.*']),
+    packages=setuptools.find_packages(exclude=['test*']),
     cmake_source_dir='.',
     description="Qiskit Aer - High performance simulators for Qiskit",
     long_description=README,

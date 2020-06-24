@@ -30,11 +30,11 @@ target_include_directories(controller_wrappers PRIVATE ${AER_SIMULATOR_CPP_SRC_D
                                                PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 target_link_libraries(controller_wrappers ${AER_LIBRARIES})
 target_compile_definitions(controller_wrappers PRIVATE ${AER_COMPILER_DEFINITIONS})
-install(TARGETS controller_wrappers LIBRARY DESTINATION qiskit/providers/aer/backends)
+install(TARGETS controller_wrappers LIBRARY DESTINATION qiskit_aer/backends)
 
 # Install redistributable dependencies
 if(APPLE)
-    install(FILES "${CONAN_LIB_DIRS_LLVM-OPENMP}/libomp.dylib" DESTINATION qiskit/providers/aer/backends)
+    install(FILES "${CONAN_LIB_DIRS_LLVM-OPENMP}/libomp.dylib" DESTINATION qiskit_aer/backends)
 elseif(WIN32 AND NOT BLAS_LIB_PATH)
-    install(FILES ${OPENBLAS_DLLs} DESTINATION qiskit/providers/aer/backends)
+    install(FILES ${OPENBLAS_DLLs} DESTINATION qiskit_aer/backends)
 endif()

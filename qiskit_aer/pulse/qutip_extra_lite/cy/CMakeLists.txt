@@ -6,5 +6,5 @@ include(cython_utils)
 # shared library.
 string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-set(CYTHON_INSTALL_DIR "qiskit/providers/aer/pulse/qutip_extra_lite/cy")
+set(CYTHON_INSTALL_DIR "qiskit_aer/pulse/qutip_extra_lite/cy")
 add_cython_module(spmath)

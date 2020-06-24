@@ -9,7 +9,7 @@
 # be linked statically per Apple's indications.
 
 cmake_minimum_required(VERSION 3.6)
-file(STRINGS "qiskit/providers/aer/VERSION.txt" VERSION_NUM)
+file(STRINGS "qiskit_aer/VERSION.txt" VERSION_NUM)
 project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -278,8 +278,8 @@ set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
 	set(AER_LIBRARIES ${AER_LIBRARIES} CONAN_PKG::muparserx)
-	add_subdirectory(qiskit/providers/aer/pulse/qutip_extra_lite/cy)
-	add_subdirectory(qiskit/providers/aer/backends/wrappers)
+	add_subdirectory(qiskit_aer/pulse/qutip_extra_lite/cy)
+	add_subdirectory(qiskit_aer/backends/wrappers)
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
 
