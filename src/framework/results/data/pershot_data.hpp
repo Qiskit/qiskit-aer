@@ -23,8 +23,6 @@ namespace AER {
 template <typename T>
 class PershotData {
  public:
-  // Constructor
-  PershotData(size_t num_shots = 0) { data_.reserve(num_shots); }
 
   // Add a new shot of data by appending to data vector
   // Uses copy semantics
