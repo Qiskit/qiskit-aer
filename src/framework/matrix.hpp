@@ -115,8 +115,6 @@ void zgemm_(const char *TransA, const char *TransB, const size_t *M,
  *
  ******************************************************************************/
 
-enum OutputStyle { Column, List, Matrix };
-
 template <class T>
 T* malloc_array(size_t size) {
   return reinterpret_cast<T*>(malloc(sizeof(T) * size));
@@ -302,9 +300,6 @@ public:
   size_t GetColumns() const; // gives the number of columns
   size_t GetRows() const;    // gives the number of rows
   size_t GetLD() const;      // gives the leading dimension -- number of rows
-  
-  void SetOutputStyle(enum OutputStyle outputstyle); // sets the style the
-                                                     // matrix is display by <<
 
 protected:
   size_t rows_ = 0, cols_ = 0, size_ = 0, LD_ = 0;
@@ -312,8 +307,6 @@ protected:
   // size_ = rows*colums dimensions of the vector representation
   // LD is the leading dimeonsion and for Column major order is in general eqaul
   // to rows
-  enum OutputStyle outputstyle_ = Matrix;
-  // outputstyle_ is the output style used by <<
   
   // the ptr to the vector containing the matrix
   T* data_ = nullptr;
@@ -332,7 +325,6 @@ protected:
 template <class T>
 matrix<T>::matrix(size_t rows, size_t cols, bool fill)
     : rows_(rows), cols_(cols), size_(rows * cols), LD_(rows),
-      outputstyle_(Column),
       data_((fill) ? calloc_array<T>(size_) : malloc_array<T>(size_)) {}
 
 template <class T>
@@ -343,7 +335,7 @@ matrix<T>::matrix(const matrix<T> &other) : matrix(other.rows_, other.cols_, fal
 template <class T>
 matrix<T>::matrix(matrix<T>&& other) noexcept
   : rows_(other.rows_), cols_(other.cols_), size_(other.size_), LD_(rows_),
-    outputstyle_(other.outputstyle_), data_(other.data_) {
+    data_(other.data_) {
   other.data_ = nullptr;
 }
 
@@ -552,11 +544,6 @@ template <class T> inline size_t matrix<T>::GetLD() const {
   return LD_;
 }
 
-template <class T>
-inline void matrix<T>::SetOutputStyle(enum OutputStyle outputstyle) {
-  // sets the outputstyle
-  outputstyle_ = outputstyle;
-}
 template <class T> inline matrix<T> matrix<T>::operator+(const matrix<T> &A) {
 // overloads the + for matrix addition, can this be more efficient
 #ifdef DEBUG
@@ -663,37 +650,25 @@ template <class T> inline matrix<T> &matrix<T>::operator-=(const matrix<T> &A) {
  *
  ******************************************************************************/
 template <class T>
-std::ostream &operator<<(std::ostream &output, const matrix<T> &A) {
-  // overloads << and has three output styles
-  // Column is in a column vector
-  // List is a row of the actual column vector
-  // Matrix is the matrix
-  if (A.outputstyle_ == List) {
-    for (size_t p = 0; p < A.size_; p++) {
-      output << A.data_[p] << '\t';
+std::ostream &operator<<(std::ostream &out, const matrix<T> &A) {
+  out << "[";
+  size_t last_row = A.rows_ - 1;
+  size_t last_col = A.cols_ - 1;
+  for (size_t i = 0; i < A.rows_; ++i) {
+    out << "[";
+    for (size_t j = 0; j < A.cols_; ++j) {
+      out << A.data_[i + A.rows_ * j];
+      if (j != last_col)
+        out << ", ";
     }
-  } else if (A.outputstyle_ == Matrix) {
-    for (size_t i = 0; i < A.rows_; i++) {
-      for (size_t j = 0; j < A.cols_; j++) {
-        output << A.data_[j * A.rows_ + i] << "\t";
-      }
-      output << std::endl;
-    }
+    out << "]";
+    if (i != last_row)
+      out << ", ";
   }
-
-  else if (A.outputstyle_ == Column) {
-    for (size_t p = 0; p < A.size_; p++) {
-      output << A.data_[p] << '\n';
-    }
-  } else {
-    std::cerr << "Error: matrix operator << is not assigned with a valid "
-                 "option -- these are Column, List, Matrix"
-              << std::endl;
-    exit(1);
-  }
-
-  return output;
+  out << "]";
+  return out;
 }
+
 template <class T>
 std::istream &operator>>(std::istream &input, const matrix<T> &A) {
   // overloads the >> to read in a row into column format
