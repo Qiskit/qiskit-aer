@@ -245,17 +245,17 @@ template <typename T>
 DataContainer<T> &DataContainer<T>::combine(DataContainer<T> &&other) {
 
   // Additional data
-  for (const auto &pair : other.additional_data_) {
+  for (auto &pair : other.additional_data_) {
     additional_data_[pair.first] = std::move(pair.second);
   }
 
   // Pershot snapshots
-  for (const auto &pair : other.pershot_snapshots_) {
+  for (auto &pair : other.pershot_snapshots_) {
     pershot_snapshots_[pair.first].combine(std::move(pair.second));
   }
 
   // Average snapshots
-  for (const auto &pair : other.average_snapshots_) {
+  for (auto &pair : other.average_snapshots_) {
     average_snapshots_[pair.first].combine(std::move(pair.second));
   }
 
