@@ -5,7 +5,7 @@ macro(setup_conan)
     # Right now every dependency shall be static
     set(CONAN_OPTIONS ${CONAN_OPTIONS} "*:shared=False")
 
-    set(REQUIREMENTS nlohmann_json/3.1.1 spdlog/1.5.0 sundials/5.3.0 boost/1.72.0)
+    set(REQUIREMENTS nlohmann_json/3.1.1 spdlog/1.5.0 sundials/5.2.0 boost/1.72.0)
     set(CONAN_OPTIONS ${CONAN_OPTIONS} "sundials:build_cvode=False")
     set(CONAN_OPTIONS ${CONAN_OPTIONS} "sundials:build_arkode=False")
     set(CONAN_OPTIONS ${CONAN_OPTIONS} "sundials:build_ida=False")
