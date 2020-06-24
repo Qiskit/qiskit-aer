@@ -22,7 +22,6 @@ namespace AER {
 
     template<typename T>
     class CvodeWrapper : public Ode<T> {
-      // TODO: I guess we don't want to allow copies. Change shared_ptr to unique_ptr
     public:
       static const std::string ID;
 
@@ -289,7 +288,6 @@ namespace AER {
     void CvodeWrapper<T>::set_max_nsteps(int max_steps) {
       CVodeSetMaxNumSteps(cvode_mem_.get(), max_steps);
     }
-
   }
 }
 

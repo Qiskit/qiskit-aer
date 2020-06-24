@@ -73,8 +73,10 @@ namespace AER {
         }
 
         CvodeWrapper<std::vector<complex_t>> getODE() {
-          auto f = std::bind(rhs_in_to_bind<std::vector<complex_t>>, std::placeholders::_1,
-                            std::placeholders::_2, std::placeholders::_3, -5.);
+          auto f = [](double t, const std::vector<complex_t> &y_raw,
+                      std::vector<complex_t> &ydot_raw) {
+            rhs_in_to_bind<std::vector<complex_t>>(t, y_raw, ydot_raw, -5.);
+          };
           auto ret = CvodeWrapper<std::vector<complex_t>>(f, y, 0.0);
           ret.set_tolerances(1e-12, 1e-6);
           return ret;
@@ -92,69 +94,48 @@ namespace AER {
         constexpr double finalTime1 = .12;
         constexpr double finalTime2 = 12;
         Catch::StringMaker<double>::precision = 15;
+        std::vector<complex_t> result_t1{{-1.01633508699953, -1.44150979311768},
+                                         {3.78483441012611, 4.18372211652272},
+                                         {1.55496015991325, -0.608921922058043},
+                                         {-0.408859454752513, 5.98761842790629},
+                                         {3.38900655901267, -2.95536026241699}};
+
+        std::vector<complex_t> result_t2{{-475328953679.512, -60947969116.8455},
+                                         {150407152456.807, -10802063608.4835},
+                                         {186111585748.492, 42625869754.6063},
+                                         {304821334341.734, 162985559077.097},
+                                         {-455227510269.729, -152182453837.88}};
+
         SECTION("integrate till finalTime=" + std::to_string(finalTime1)) {
           ode.integrate(finalTime1);
           REQUIRE(
-              compare(ode.get_solution(), std::vector<complex_t>{{-1.01633508699953, -1.44150979311768},
-                                                                 {3.78483441012611, 4.18372211652272},
-                                                                 {1.55496015991325, -0.608921922058043},
-                                                                 {-0.408859454752513, 5.98761842790629},
-                                                                 {3.38900655901267, -2.95536026241699}}));
+              compare(ode.get_solution(), result_t1));
         }
         SECTION("integrate till finalTime=" + std::to_string(finalTime2)) {
           ode.integrate(finalTime2);
           REQUIRE(
-              compare(ode.get_solution(), std::vector<complex_t>{{-475328953679.512, -60947969116.8455},
-                                                                 {150407152456.807, -10802063608.4835},
-                                                                 {186111585748.492, 42625869754.6063},
-                                                                 {304821334341.734, 162985559077.097},
-                                                                 {-455227510269.729, -152182453837.88}}));
+              compare(ode.get_solution(), ));
         }
         SECTION("2 Integrators" + std::to_string(finalTime1)) {
           auto ode2 = CvodeWrapper<std::vector<complex_t>>(rhs_in<std::vector<complex_t>>, y, 0.0);
           ode2.set_tolerances(1e-12, 1e-6);
           ode.integrate(finalTime1);
           ode2.integrate(finalTime1);
-          REQUIRE(
-              compare(ode.get_solution(), std::vector<complex_t>{{-1.01633508699953, -1.44150979311768},
-                                                                 {3.78483441012611, 4.18372211652272},
-                                                                 {1.55496015991325, -0.608921922058043},
-                                                                 {-0.408859454752513, 5.98761842790629},
-                                                                 {3.38900655901267, -2.95536026241699}}));
-          REQUIRE(compare(ode2.get_solution(),
-                          std::vector<complex_t>{{-1.01633508699953, -1.44150979311768},
-                                                 {3.78483441012611, 4.18372211652272},
-                                                 {1.55496015991325, -0.608921922058043},
-                                                 {-0.408859454752513, 5.98761842790629},
-                                                 {3.38900655901267, -2.95536026241699}}));
+          REQUIRE(compare(ode.get_solution(), result_t1));
+          REQUIRE(compare(ode2.get_solution(), result_t1));
         }
         SECTION("Move integrator and integrate to time " + std::to_string(finalTime1)) {
           auto ode2 = std::move(ode);
           ode2.integrate(finalTime1);
-          REQUIRE(compare(ode2.get_solution(),
-                          std::vector<complex_t>{{-1.01633508699953, -1.44150979311768},
-                                                 {3.78483441012611, 4.18372211652272},
-                                                 {1.55496015991325, -0.608921922058043},
-                                                 {-0.408859454752513, 5.98761842790629},
-                                                 {3.38900655901267, -2.95536026241699}}));
+          REQUIRE(compare(ode2.get_solution(), result_t1));
         }
         SECTION("RHS bind and integrate to time" + std::to_string(finalTime1)) {
           auto ode2 = getODE();
           ode2.integrate(finalTime1);
-          REQUIRE(compare(ode2.get_solution(),
-                          std::vector<complex_t>{{-1.01633508699953, -1.44150979311768},
-                                                 {3.78483441012611, 4.18372211652272},
-                                                 {1.55496015991325, -0.608921922058043},
-                                                 {-0.408859454752513, 5.98761842790629},
-                                                 {3.38900655901267, -2.95536026241699}}));
+          REQUIRE(compare(ode2.get_solution(), result_t1));
           auto ode3 = std::move(ode2);
           ode3.integrate(finalTime1);
-          REQUIRE(compare(ode3.get_solution(),
-                          std::vector<complex_t>{{-1.01633508699953, -1.44150979311768},
-                                                 {3.78483441012611, 4.18372211652272},
-                                                 {1.55496015991325, -0.608921922058043},
-                                                 {-0.408859454752513, 5.98761842790629},
-                                                 {3.38900655901267, -2.95536026241699}}));
+          REQUIRE(compare(ode3.get_solution(), result_t1));
         }
         SECTION("Change settings after integrate") {
           ode.integrate(finalTime1);
@@ -163,12 +144,7 @@ namespace AER {
           ode.set_maximum_order(5);
           ode.set_step_limits(10, 0, 0.01);
           ode.integrate(finalTime2);
-          REQUIRE(compare(ode.get_solution(),
-                          std::vector<complex_t>{{-475329282099.096,-60948390836.9868},
-                                                 {150407355457.022,-10801942484.4276},
-                                                 {186111620709.098,42625977257.604},
-                                                 {304820977724.93,162985553748.047},
-                                                 {-455227356653.067,-152182569632.808}}));
+          REQUIRE(compare(ode.get_solution(), result_t2));
         }
       }
 
