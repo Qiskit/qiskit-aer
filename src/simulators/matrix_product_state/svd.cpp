@@ -31,11 +31,11 @@
 namespace AER {
 
 // default values
-static const double mul_factor = 1e2;
-static const long double tiny_factor = 1e30;
-static const auto zero_threshold = 1e-50;  // threshold for comparing FP values
-static const double THRESHOLD = 1e-9; // threshold for cutting values in reduce_zeros
-static const int_t NUM_SVD_TRIES = 15;
+constexpr auto mul_factor = 1e2;
+constexpr long double tiny_factor = 1e30;
+constexpr auto zero_threshold = 1e-50;  // threshold for comparing FP values
+constexpr auto THRESHOLD = 1e-9; // threshold for cutting values in reduce_zeros
+constexpr auto NUM_SVD_TRIES = 15;
 
 cmatrix_t diag(rvector_t S, uint_t m, uint_t n);
 
@@ -142,15 +142,6 @@ void validate_SVD_result(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
   cmatrix_t diag_S = diag(S, nrows, ncols);
   cmatrix_t product = U*diag_S;
   product = product * AER::Utils::dagger(V);
-  std::cout << "matrices after SVD:" <<std::endl;
-  std::cout << "A = " << std::endl << A ;
-  std::cout << "U = " << std::endl << U ;
-  std::cout << "S = " << std::endl;
-  for (uint_t i = 0; i != S.size(); ++i)
-    std::cout << S[i] << " , ";
-  std::cout << std::endl;
-  std::cout << "V* = " << std::endl << V ;
-  std::cout << "product= " << std::endl << product << std::endl;
   for (uint_t ii=0; ii < nrows; ii++)
     for (uint_t jj=0; jj < ncols; jj++)
       if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)), THRESHOLD)) {
