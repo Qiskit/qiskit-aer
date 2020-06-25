@@ -912,24 +912,24 @@ double MPS::expectation_value_internal(const reg_t &qubits,
 
 complex_t MPS::expectation_value_pauli(const reg_t &qubits, const std::string &matrices) const {
     reg_t internal_qubits = get_internal_qubits(qubits);
-    return expectation_value_pauli_internal(internal_qubits, matrices);
-}
-complex_t MPS::expectation_value_pauli2(const reg_t &qubits, const std::string &matrices) const {
-    reg_t internal_qubits = get_internal_qubits(qubits);
-    std::cout << "internal_qubits";
-    for (uint_t i=0; i<internal_qubits.size(); i++)
-        std::cout << internal_qubits[i] << " " ;
-     std::cout  << std::endl;
+
+    // instead of computing the expectation value on the specified qubits, 
+    // we find the min and max of these qubits, and compute the expectation value
+    // on all the qubits in between, inserting I matrices for those qubits 
+    // that were not in the original vector "qubits".
+    // This enhancement was done for performance reasons
     reg_t extended_qubits = internal_qubits;
-    //std::string extended_matrices = matrices;
-    //    std::string extended_matrices = "";
+
     const auto min = std::min_element(begin(internal_qubits), end(internal_qubits));
     const auto max = std::max_element(begin(internal_qubits), end(internal_qubits));
     uint_t min_qubit = *min;
     uint_t max_qubit = *max;
 
-    std::cout << "min qubit = "<< min_qubit << " max_qubit = " << max_qubit << std::endl;
+    // The number of qubits added  to extended_qubits
     uint_t num_Is = 0;
+
+    // Add all the additional qubits at the end of the vector of extended_qubits
+    // The I matrices are added in expectation_value_pauli_internal, after they are reversed
     for (uint_t i=min_qubit; i<=max_qubit; i++) {
         auto itr = std::find(internal_qubits.begin(), internal_qubits.end(), i);
         if (itr == internal_qubits.end()) {
@@ -937,16 +937,14 @@ complex_t MPS::expectation_value_pauli2(const reg_t &qubits, const std::string &
 	    num_Is++;
         }
      }
-    //extended_matrices.append(matrices);
-    std::cout << "extended_qubits = ";
-    for (uint_t i=0; i<extended_qubits.size(); i++)
-        std::cout << extended_qubits[i] << " " ;
-     std::cout  << std::endl;
-     //std::cout << "extended_matrices = " << extended_matrices << std::endl;
      
-     return expectation_value_pauli_internal2(extended_qubits, matrices, min_qubit, max_qubit, num_Is);
+     return expectation_value_pauli_internal(extended_qubits, matrices, min_qubit, max_qubit, num_Is);
 }
-complex_t MPS::expectation_value_pauli_internal2(const reg_t &qubits, const std::string &matrices, uint_t first_index, uint_t last_index, uint_t num_Is) const {
+
+complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, 
+						const std::string &matrices, 
+						uint_t first_index, uint_t last_index, 
+						uint_t num_Is) const {
   reg_t sorted_qubits = qubits;
   reg_t centralized_qubits = qubits;
 
@@ -960,7 +958,7 @@ complex_t MPS::expectation_value_pauli_internal2(const reg_t &qubits, const std:
   reverse(reversed_matrices.begin(), reversed_matrices.end());
   for (uint_t i=0; i<num_Is; i++)
     reversed_matrices.append("I");
-  std::cout << "reversed_matrices = " << reversed_matrices << std::endl;
+
 // sort the paulis according to the initial ordering of the qubits
   auto sorted_matrices = sort_paulis_by_qubits(reversed_matrices, qubits);
 
@@ -1027,96 +1025,6 @@ complex_t MPS::expectation_value_pauli_internal2(const reg_t &qubits, const std:
 
   }
 
-  // Step 10 - contract over final matrix of size aN x aN
-  // We need to contract the final matrix with itself
-  // Compute this by taking the trace of final_contract
-  complex_t result = AER::Utils::trace(final_contract);
-
-  return result;
-}
-complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices) const {
-  reg_t sorted_qubits = qubits;
-  reg_t centralized_qubits = qubits;
-
-  // if the qubits are not ordered, we can sort them, because the order doesn't matter
-  // when computing the expectation value. We only have to sort the pauli matrices
-  // to be in the same ordering as the qubits
-  MPS temp_MPS;
-  MPS_with_new_indices(qubits, sorted_qubits, centralized_qubits, temp_MPS);
-  uint_t first_index = centralized_qubits.front();
-  uint_t last_index = centralized_qubits.back();
-
-  // Preliminary step - reverse the order of the matrices because 
-  // they are ordered in reverse to that of the qubits (in the interface)
-  std::string reversed_matrices = matrices;
-  reverse(reversed_matrices.begin(), reversed_matrices.end());
-// sort the paulis according to the initial ordering of the qubits
-  auto sorted_matrices = sort_paulis_by_qubits(reversed_matrices, qubits);
-
-  char gate = sorted_matrices[0];
-
-  // Step 1 - multiply tensor of q0 by its left lambda
-  MPS_Tensor left_tensor = temp_MPS.q_reg_[first_index];
-
-  if (first_index > 0) {
-    left_tensor.mul_Gamma_by_left_Lambda(temp_MPS.lambda_reg_[first_index-1]);
-  }
-
-  // The last gamma must be multiplied also by its right lambda.
-  // Here we handle the special case that we are calculating exp val 
-  // on a single qubit
-  // we need to mul every gamma by its right lambda
-  if (first_index==last_index && first_index < num_qubits_-1) {
-    left_tensor.mul_Gamma_by_right_Lambda(temp_MPS.lambda_reg_[first_index]);
-  }
-
-
-  // Step 2 - prepare the dagger of left_tensor
-  MPS_Tensor left_tensor_dagger(AER::Utils::dagger(left_tensor.get_data(0)), 
-				AER::Utils::dagger(left_tensor.get_data(1)));
-  // Step 3 - Apply the gate to q0
-  left_tensor.apply_pauli(gate);
-
-  // Step 4 - contract Gamma0' with Gamma0 over dimensions a0 and i
-  // Before contraction, Gamma0' has size a1 x a0 x i, Gamma0 has size i x a0 x a1
-  // result = left_contract is a matrix of size a1 x a1
-  cmatrix_t final_contract;
-  MPS_Tensor::contract_2_dimensions(left_tensor_dagger, left_tensor, omp_threads_,
-				    final_contract);
-  for (uint_t qubit_num=first_index+1; qubit_num<=last_index; qubit_num++) {
-    // Step 5 - multiply next Gamma by its left lambda (same as Step 1)
-    // next gamma has dimensions a0 x a1 x i 
-    MPS_Tensor next_gamma = temp_MPS.q_reg_[qubit_num];
-    next_gamma.mul_Gamma_by_left_Lambda(temp_MPS.lambda_reg_[qubit_num-1]);
-
-    // Last qubit must be multiplied by rightmost lambda
-    if (qubit_num==last_index && qubit_num < num_qubits_-1)
-      next_gamma.mul_Gamma_by_right_Lambda(temp_MPS.lambda_reg_[qubit_num]);
-
-    // Step 6 - prepare the dagger of the next gamma (same as Step 2)
-    // next_gamma_dagger has dimensions a1' x a0' x i
-    MPS_Tensor next_gamma_dagger(AER::Utils::dagger(next_gamma.get_data(0)), 
-				 AER::Utils::dagger(next_gamma.get_data(1)));
-    
-    // Step 7 - apply gate (same as Step 3)
-    gate = sorted_matrices[qubit_num - first_index];
-    next_gamma.apply_pauli(gate);
-    
-    // Step 8 - contract final_contract from previous stage with next gamma over a1
-    // final_contract has dimensions a1 x a1, Gamma1 has dimensions a1 x a2 x i (where i=2)
-    // result is a tensor of size a1 x a2 x i
-    MPS_Tensor next_contract(final_contract * next_gamma.get_data(0), 
-			     final_contract * next_gamma.get_data(1));
-
-    // Step 9 - contract next_contract (a1 x a2 x i) 
-    // with next_gamma_dagger (i x a2 x a1) (same as Step 4)
-    // here we need to contract across two dimensions: a1 and i
-    // result is a matrix of size a2 x a2
-    MPS_Tensor::contract_2_dimensions(next_gamma_dagger, next_contract, omp_threads_,
-				      final_contract); 
-
-  }
- 
   // Step 10 - contract over final matrix of size aN x aN
   // We need to contract the final matrix with itself
   // Compute this by taking the trace of final_contract
