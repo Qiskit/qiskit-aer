@@ -1032,8 +1032,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         drive_pulse = SamplePulse(amp * np.ones(total_samples))
         schedule = Schedule()
         schedule |= Play(drive_pulse, ControlChannel(u_idx))
-        schedule |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << schedule.duration
-        schedule |= Acquire(total_samples, AcquireChannel(1), MemorySlot(1)) << schedule.duration
+        schedule |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << total_samples
+        schedule |= Acquire(total_samples, AcquireChannel(1), MemorySlot(1)) << total_samples
 
         return schedule
 
