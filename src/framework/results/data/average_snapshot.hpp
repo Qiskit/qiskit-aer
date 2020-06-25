@@ -57,6 +57,9 @@ class AverageSnapshot {
   // Return true if snapshot container is empty
   bool empty() const { return data_.empty(); }
 
+  // Convert to json
+  json_t to_json();
+
   // Return data reference
   stringmap_t<stringmap_t<AverageData<T>>> data() { return data_; }
 
@@ -108,23 +111,21 @@ void AverageSnapshot<T>::combine(AverageSnapshot<T> &&other) noexcept {
   other.clear();  
 }
 
-//------------------------------------------------------------------------------
-// JSON serialization
-//------------------------------------------------------------------------------
 template <typename T>
-void to_json(json_t &js, const AverageSnapshot<T> &snapshot) {
-  js = json_t::object();
-  for (const auto &outer_pair : snapshot.data()) {
-    for (const auto &inner_pair : outer_pair.second) {
+json_t AverageSnapshot<T>::to_json() {
+  json_t js = json_t::object();
+  for (auto &outer_pair : data_) {
+    for (auto &inner_pair : outer_pair.second) {
       // Store mean and variance for snapshot
-      json_t datum = inner_pair.second;
+      json_t datum = inner_pair.second.to_json();
       // Add memory key if there are classical registers
-      auto memory = inner_pair.first;
-      if (memory.empty() == false) datum["memory"] = inner_pair.first;
+      auto& memory = inner_pair.first;
+      if (!memory.empty()) datum["memory"] = memory;
       // Add to list of output
-      js[outer_pair.first].push_back(datum);
+      js[outer_pair.first].emplace_back(std::move(datum));
     }
   }
+  return js;
 }
 
 //------------------------------------------------------------------------------

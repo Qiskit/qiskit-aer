@@ -28,12 +28,13 @@
 #include "framework/utils.hpp"
 #include "framework/linalg/almost_equal.hpp"
 
-#define mul_factor 1e2
-#define tiny_factor 1e30
-#define THRESHOLD 1e-9
-#define NUM_SVD_TRIES 15
-
 namespace AER {
+
+// default values
+static const double mul_factor = 1e2;
+static const long double tiny_factor = 1e30;
+static const double THRESHOLD = 1e-9; // threshold for re-normalization after approximation
+static const int_t NUM_SVD_TRIES = 15;
 
 cmatrix_t diag(rvector_t S, uint_t m, uint_t n);
 
@@ -79,7 +80,7 @@ std::vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V)
 //				in S
 // Parameters: rvector_t S - vector of singular values from the
 //			   SVD decomposition
-// Returns: number of elements in S that are greater than 0
+// Returns: number of elements in S whose norm is greater than 0
 //			(actually greater than threshold)
 //-------------------------------------------------------------
 uint_t num_of_SV(rvector_t S, double threshold)
@@ -90,16 +91,49 @@ uint_t num_of_SV(rvector_t S, double threshold)
 	  if(std::norm(S[i]) > threshold)
 		sum++;
 	}
-	if (sum == 0)
-	  std::cout << "SV_Num == 0"<< '\n';
 	return sum;
 }
 
-void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
-  uint_t SV_num = num_of_SV(S, 1e-16);
-  U.resize(U.GetRows(), SV_num);
-  S.resize(SV_num);
-  V.resize(V.GetRows(), SV_num);
+void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
+		  uint_t max_bond_dimension, double truncation_threshold) {
+  uint_t SV_num = num_of_SV(S, CHOP_THRESHOLD);
+  uint_t new_SV_num = SV_num;
+  new_SV_num = SV_num;
+
+  if (max_bond_dimension < SV_num) {
+    // in this case, leave only the first max_bond_dimension
+    // values in S, and discard all the rest
+    new_SV_num = max_bond_dimension;
+  } 
+
+  // Remove the lowest Schmidt coefficients such that the sum of 
+  // their squares is less than trunction_threshold
+  double sum_squares = 0;
+  for (int_t i=new_SV_num-1; i>0; i--) {
+    if (sum_squares + std::norm(S[i]) < truncation_threshold) {
+      sum_squares +=std::norm(S[i]);
+    } else {
+      new_SV_num = i+1;
+      break;
+    }
+  }
+  U.resize(U.GetRows(), new_SV_num);
+  S.resize(new_SV_num);
+  V.resize(V.GetRows(), new_SV_num);
+
+  // After approximation, we may need to re-normalize the values of S
+  if (new_SV_num < SV_num) {
+    double sum=0;
+    for (uint_t i=0; i<S.size(); i++) {
+      sum += std::norm(S[0]);
+    }
+    if (1-sum > THRESHOLD) {
+      for (uint_t i=0; i<S.size(); i++) {
+	  double square_i = std::norm(S[0])/sum;
+	  S[i] = sqrt(square_i);
+      }
+    }
+  }
 }
 
 // added cut-off at the end
@@ -518,8 +552,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	      {
 	    	  equal = false;
 	      }
-	if( ! equal )
-	{
+	if( ! equal ) {
 	  std::stringstream ss;
 	  ss << "error: wrong SVD calc: A != USV*";
 	  throw std::runtime_error(ss.str());
@@ -570,4 +603,6 @@ void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 }
 
 } // namespace AER
+
+
 
