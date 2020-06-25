@@ -88,7 +88,7 @@ complex_t chan_value(
             }
         }
         if(phase != 0.){
-            out *= std::exp(complex_t(0., -1.) * phase);
+            out *= std::exp(complex_t(0., 1.) * phase);
         }
         out *= std::exp(complex_t(0., 1.) * 2. * M_PI * freq_ch * t);
     }

@@ -152,7 +152,8 @@ def pulse_controller(qobj, system_model, backend_options):
 
     # solver options
     allowed_solver_options = ['atol', 'rtol', 'nsteps', 'max_step',
-                              'num_cpus', 'norm_tol', 'norm_steps']
+                              'num_cpus', 'norm_tol', 'norm_steps',
+                              'method']
     solver_options = backend_options.get('solver_options', {})
     for key in solver_options:
         if key not in allowed_solver_options:

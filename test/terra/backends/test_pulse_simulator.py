@@ -21,6 +21,7 @@ from test.terra import common
 import numpy as np
 from scipy.linalg import expm
 from scipy.special import erf
+from scipy.linalg.blas import get_blas_funcs
 
 from qiskit.providers.aer.backends import PulseSimulator
 
@@ -33,6 +34,8 @@ from qiskit.providers.aer.pulse.de.DE_Options import DE_Options
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.models.backendconfiguration import UchannelLO
+
+dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
 class TestPulseSimulator(common.QiskitAerTestCase):
@@ -541,6 +544,61 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         self.assertDictAlmostEqual(iq_prop, exp_prop, delta=0.01)
 
+    def test_oscillator_new(self):
+        total_samples = 100
+        # Set omega_0,omega_d0 (use qubit frequency) -> drive on resonance
+        freq = 5.
+        anharm = -0.33
+
+        # Test pi pulse
+        r = 0.5 / total_samples
+
+        system_model = self._system_model_1_oscillator(freq, anharm, r)
+        schedule = self._1Q_constant_sched(total_samples)
+
+        qobj = assemble([schedule],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[freq],
+                        shots=1)
+        backend_options = {'seed' : 9000}
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        pulse_sim_yf = result.get_statevector()
+
+
+        y0 = np.array([1., 0., 0.])
+        yf = self._independent_oscillator_constant_sched_sim(y0, 1., r, freq, freq, anharm, total_samples)
+
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 0.99)
+
+        # Test some irregular value
+        r = 1.49815 / total_samples
+
+        system_model = self._system_model_1_oscillator(freq, anharm, r)
+        schedule = self._1Q_constant_sched(total_samples)
+
+        qobj = assemble([schedule],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[freq],
+                        shots=1)
+        backend_options = {'seed' : 9000}
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        pulse_sim_yf = result.get_statevector()
+
+
+        y0 = np.array([1., 0., 0.])
+        yf = self._independent_oscillator_constant_sched_sim(y0, 1., r, freq, freq, anharm, total_samples)
+
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 0.99)
+
+
     def test_three_level(self):
         r"""Test 3 level system. Compare statevectors as counts only use bitstrings. Analytic form
         given in _analytic_statevector_3level function docstring.
@@ -923,7 +981,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
             Xrot = np.array([[0, np.exp(1j * phi)], [np.exp(-1j * phi), 0.]])
             return -1j * (2 * np.pi * detuning * np.diag([1, -1]) / 2 + 2 * np.pi * r * chan_val * Xrot / 2) @ y
 
-        de_options = DE_Options(method='RK45', atol=10**-8, rtol=10**-8)
+        de_options = DE_Options(method='RK45')
         ode_method = ScipyODE(t0=0., y0=y0, rhs=rhs, options=de_options)
         ode_method.integrate(T)
         yf = np.exp(np.array([-1j * np.pi * omega_d * T, 1j * np.pi * omega_d * T])) * ode_method.y
@@ -1023,9 +1081,52 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule = Schedule()
         schedule |= Play(drive_pulse, ControlChannel(u_idx))
         for idx in subsystem_list:
-            schedule |= Acquire(total_samples, AcquireChannel(idx), MemorySlot(idx)) << schedule.duration
+            schedule |= Acquire(total_samples,
+                                AcquireChannel(idx),
+                                MemorySlot(idx)) << schedule.duration
 
         return schedule
+
+    def _system_model_1_oscillator(self, freq, anharm, r):
+        """model for 3 level duffing oscillator."""
+        hamiltonian = {}
+        hamiltonian['h_str'] = ['np.pi*(2*v-alpha)*O0',
+                                'np.pi*alpha*O0*O0',
+                                '2*np.pi*r*X0||D0']
+        hamiltonian['vars'] = {'v' : freq, 'alpha': anharm, 'r': r}
+        hamiltonian['qub'] = {'0': 3}
+        ham_model = HamiltonianModel.from_dict(hamiltonian)
+
+        u_channel_lo = []
+        subsystem_list = [0]
+        dt = 1.
+
+        return PulseSystemModel(hamiltonian=ham_model,
+                                u_channel_lo=u_channel_lo,
+                                subsystem_list=subsystem_list,
+                                dt=dt)
+
+    def _independent_oscillator_constant_sched_sim(self, y0, amp, r, omega_d, freq, alpha, T):
+
+        osc_X = np.array([[0., 1., 0.],
+                          [1., 0., np.sqrt(2)],
+                          [np.sqrt(2), 0., 0.]])
+
+        drift_diag = np.pi * (2 * freq - alpha) * np.array([0., 1., 2.]) + np.pi * alpha * np.array([0., 1., 4.])
+
+
+        def rhs(t, y):
+            chan_val = np.real(amp * np.exp(1j * 2 * np.pi * omega_d * t))
+            Xrot = np.diag(np.exp( 1j * drift_diag * t)) @ osc_X @ np.diag(np.exp(-1j * drift_diag * t))
+            return -1j * 2 * np.pi * r * chan_val * Xrot @ y
+
+
+        de_options = DE_Options(method='RK45')
+        ode_method = ScipyODE(t0=0., y0=y0, rhs=rhs, options=de_options)
+        ode_method.integrate(T)
+        yf = np.exp(-1j * drift_diag * T) * ode_method.y
+
+        return yf
 
     ###########
     # Old
