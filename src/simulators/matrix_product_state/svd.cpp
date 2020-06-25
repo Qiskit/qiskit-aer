@@ -33,7 +33,7 @@ namespace AER {
 // default values
 static const double mul_factor = 1e2;
 static const long double tiny_factor = 1e30;
-#define zero_threshold 1e-50  // threshold for comparing FP values
+static const auto zero_threshold = 1e-50;  // threshold for comparing FP values
 static const double THRESHOLD = 1e-9; // threshold for cutting values in reduce_zeros
 static const int_t NUM_SVD_TRIES = 15;
 
@@ -154,10 +154,7 @@ void validate_SVD_result(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
   for (uint_t ii=0; ii < nrows; ii++)
     for (uint_t jj=0; jj < ncols; jj++)
       if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)), THRESHOLD)) {
-	std::stringstream ss;
-	ss << "error: wrong SVD calc: A != USV*";
-	std::cout <<"error: wrong SVD calc: A != USV*"<< std::endl;
-	throw std::runtime_error(ss.str());
+	throw std::runtime_error("Error: Wrong SVD calculations: A != USV*");
       }
 }
 
