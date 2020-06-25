@@ -35,7 +35,6 @@
 #include "simulators/state.hpp"
 #include "matrix_product_state_internal.hpp"
 #include "matrix_product_state_internal.cpp"
-#include "framework/linalg/almost_equal.hpp"
 
 
 namespace AER {

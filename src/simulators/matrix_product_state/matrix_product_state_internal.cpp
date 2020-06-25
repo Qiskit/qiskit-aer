@@ -945,10 +945,6 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits,
 						const std::string &matrices, 
 						uint_t first_index, uint_t last_index, 
 						uint_t num_Is) const {
-  reg_t sorted_qubits = qubits;
-  reg_t centralized_qubits = qubits;
-
-  // if the qubits are not ordered, we can sort them, because the order doesn't matter
   // when computing the expectation value. We only have to sort the pauli matrices
   // to be in the same ordering as the qubits
 
