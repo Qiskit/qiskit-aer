@@ -325,7 +325,7 @@ void StatevectorController::run_circuit_helper(
   state.add_creg_to_data(data);
 
   // Add final state to the data
-  data.add_additional_data("statevector", state.qreg().vector());
+  data.add_additional_data("statevector", state.qreg().move_to_vector());
 }
 
 //-------------------------------------------------------------------------

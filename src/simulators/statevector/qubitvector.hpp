@@ -31,6 +31,7 @@
 #include "simulators/statevector/indexes.hpp"
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
+#include "framework/linalg/vector.hpp"
 
 namespace AER {
 namespace QV {
@@ -100,6 +101,12 @@ public:
 
   // Returns a copy of the underlying data_t data as a complex vector
   cvector_t<data_t> vector() const;
+
+  // Returns a copy of the underlying data_t data as a complex vector
+  AER::Vector<std::complex<data_t>> copy_to_vector() const;
+
+  // Moves the data to a complex vector
+  AER::Vector<std::complex<data_t>> move_to_vector();
 
   // Return JSON serialization of QubitVector;
   json_t json() const;
@@ -611,6 +618,18 @@ cvector_t<data_t> QubitVector<data_t, Derived>::vector() const {
     ret[j] = data_[j];
   }
   return ret;
+}
+
+template <typename data_t, typename Derived>
+AER::Vector<std::complex<data_t>> QubitVector<data_t, Derived>::copy_to_vector() const {
+  return AER::Vector<std::complex<data_t>>::copy_from_buffer(data_size_, data_);
+}
+
+template <typename data_t, typename Derived>
+AER::Vector<std::complex<data_t>> QubitVector<data_t, Derived>::move_to_vector() {
+  const auto vec = AER::Vector<std::complex<data_t>>::move_from_buffer(data_size_, data_);
+  data_ = nullptr;
+  return vec;
 }
 
 //------------------------------------------------------------------------------
