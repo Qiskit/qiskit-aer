@@ -57,6 +57,9 @@ class PershotData {
   // Return true if data is empty
   bool empty() const { return data_.empty(); }
 
+  // Convert to JSON
+  json_t to_json();
+
  protected:
   // Internal Storage
   std::vector<T> data_;
@@ -80,12 +83,10 @@ void PershotData<T>::combine(PershotData<T>&& other) noexcept {
                std::make_move_iterator(other.data_.end()));
 }
 
-//------------------------------------------------------------------------------
-// JSON serialization
-//------------------------------------------------------------------------------
 template <typename T>
-void to_json(json_t& js, const PershotData<T>& data) {
-  js = data.data();
+json_t PershotData<T>::to_json() {
+  json_t js = data_;
+  return js;
 }
 
 //------------------------------------------------------------------------------
