@@ -921,48 +921,46 @@ complex_t MPS::expectation_value_pauli2(const reg_t &qubits, const std::string &
         std::cout << internal_qubits[i] << " " ;
      std::cout  << std::endl;
     reg_t extended_qubits = internal_qubits;
-    std::string extended_matrices = matrices;
+    //std::string extended_matrices = matrices;
+    //    std::string extended_matrices = "";
     const auto min = std::min_element(begin(internal_qubits), end(internal_qubits));
     const auto max = std::max_element(begin(internal_qubits), end(internal_qubits));
-    //std::vector<int>::iterator min_result = std::min_element(internal_qubits.begin(), internal_qubits.end());
     uint_t min_qubit = *min;
     uint_t max_qubit = *max;
-    //std::cout << "min element = "<< min_qubit << std::endl;
-    //std::vector<int>::iterator max_result = std::max_element(internal_qubits.begin(), internal_qubits.end());
-    //uint_t max_qubit = *max_result;
 
     std::cout << "min qubit = "<< min_qubit << " max_qubit = " << max_qubit << std::endl;
+    uint_t num_Is = 0;
     for (uint_t i=min_qubit; i<=max_qubit; i++) {
         auto itr = std::find(internal_qubits.begin(), internal_qubits.end(), i);
         if (itr == internal_qubits.end()) {
             extended_qubits.push_back(i);
-            extended_matrices.append("I");
+	    num_Is++;
         }
      }
+    //extended_matrices.append(matrices);
     std::cout << "extended_qubits = ";
-     for (uint_t i=0; i<extended_qubits.size(); i++)
+    for (uint_t i=0; i<extended_qubits.size(); i++)
         std::cout << extended_qubits[i] << " " ;
      std::cout  << std::endl;
-     std::cout << "extemded_matrices = " << extended_matrices << std::endl;
-
-    return expectation_value_pauli_internal2(extended_qubits, extended_matrices, min_qubit, max_qubit);
+     //std::cout << "extended_matrices = " << extended_matrices << std::endl;
+     
+     return expectation_value_pauli_internal2(extended_qubits, matrices, min_qubit, max_qubit, num_Is);
 }
-complex_t MPS::expectation_value_pauli_internal2(const reg_t &qubits, const std::string &matrices, uint_t first_index, uint_t last_index) const {
+complex_t MPS::expectation_value_pauli_internal2(const reg_t &qubits, const std::string &matrices, uint_t first_index, uint_t last_index, uint_t num_Is) const {
   reg_t sorted_qubits = qubits;
   reg_t centralized_qubits = qubits;
 
   // if the qubits are not ordered, we can sort them, because the order doesn't matter
   // when computing the expectation value. We only have to sort the pauli matrices
   // to be in the same ordering as the qubits
-  //MPS temp_MPS;
-  //MPS_with_new_indices(qubits, sorted_qubits, centralized_qubits, temp_MPS);
-  //uint_t first_index = centralized_qubits.front();
-  //uint_t last_index = centralized_qubits.back();
 
   // Preliminary step - reverse the order of the matrices because
   // they are ordered in reverse to that of the qubits (in the interface)
   std::string reversed_matrices = matrices;
   reverse(reversed_matrices.begin(), reversed_matrices.end());
+  for (uint_t i=0; i<num_Is; i++)
+    reversed_matrices.append("I");
+  std::cout << "reversed_matrices = " << reversed_matrices << std::endl;
 // sort the paulis according to the initial ordering of the qubits
   auto sorted_matrices = sort_paulis_by_qubits(reversed_matrices, qubits);
 
