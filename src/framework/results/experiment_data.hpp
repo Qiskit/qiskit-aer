@@ -148,7 +148,7 @@ public:
   void clear();
 
   // Serialize engine data to JSON
-  json_t json() const;
+  json_t to_json();
 
   // Combine engines for accumulating data
   // Second engine should no longer be used after combining
@@ -474,19 +474,19 @@ ExperimentData &ExperimentData::combine(ExperimentData &&other) {
 // JSON serialization
 //------------------------------------------------------------------------------
 
-json_t ExperimentData::json() const {
+json_t ExperimentData::to_json() {
   // Initialize output as additional data JSON
   json_t js;
 
   // Add all container data
-  to_json(js, static_cast<const DataContainer<json_t>&>(*this));
-  to_json(js, static_cast<const DataContainer<complex_t>&>(*this));
-  to_json(js, static_cast<const DataContainer<std::vector<std::complex<float>>>&>(*this));
-  to_json(js, static_cast<const DataContainer<std::vector<std::complex<double>>>&>(*this));
-  to_json(js, static_cast<const DataContainer<matrix<std::complex<float>>>&>(*this));
-  to_json(js, static_cast<const DataContainer<matrix<std::complex<double>>>&>(*this));
-  to_json(js, static_cast<const DataContainer<std::map<std::string, complex_t>>&>(*this));
-  to_json(js, static_cast<const DataContainer<std::map<std::string, double>>&>(*this));
+  DataContainer<json_t>::add_to_json(js);
+  DataContainer<complex_t>::add_to_json(js);
+  DataContainer<std::vector<std::complex<float>>>::add_to_json(js);
+  DataContainer<std::vector<std::complex<double>>>::add_to_json(js);
+  DataContainer<matrix<std::complex<float>>>::add_to_json(js);
+  DataContainer<matrix<std::complex<double>>>::add_to_json(js);
+  DataContainer<std::map<std::string, complex_t>>::add_to_json(js);
+  DataContainer<std::map<std::string, double>>::add_to_json(js);
 
   // Measure data
   if (return_counts_ && counts_.empty() == false) js["counts"] = counts_;
@@ -497,10 +497,6 @@ json_t ExperimentData::json() const {
   // Check if data is null (empty) and if so return an empty JSON object
   if (js.is_null()) return json_t::object();
   return js;
-}
-
-inline void to_json(json_t &js, const ExperimentData &data) {
-  js = data.json();
 }
 
 //------------------------------------------------------------------------------
