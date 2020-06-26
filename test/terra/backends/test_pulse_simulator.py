@@ -66,6 +66,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # Get pulse simulator backend
         self.backend_sim = PulseSimulator()
 
+        self.X = np.array([[0., 1.], [1., 0.]])
+        self.Y = np.array([[0., -1j], [1j, 0.]])
+        self.Z = np.array([[1., 0.], [0., -1.]])
+
     # ---------------------------------------------------------------------
     # Test single qubit gates
     # ---------------------------------------------------------------------
@@ -74,7 +78,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         """Test a schedule for a pi pulse on a 2 level system."""
 
         # qubit frequency and drive frequency
-        omega_0 = 1.
+        omega_0 = 1.1329824
         omega_d = omega_0
 
         # drive strength and length of pulse
@@ -82,7 +86,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         total_samples = 100
 
         system_model = self._system_model_1Q(omega_0, r)
-        import pdb; pdb.set_trace()
+
         # set up constant pulse for doing a pi pulse
         schedule = self._1Q_constant_sched(total_samples)
 
@@ -109,10 +113,15 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # set up and run independent simulation
         samples = np.ones((total_samples, 1))
 
-        yf = simulate_1q_model(y0, omega_0, r, np.array([omega_0]), samples, 1.)
+        indep_yf = simulate_1q_model(y0, omega_0, r, np.array([omega_0]), samples, 1.)
+
+        # approximate analytic solution
+        phases = np.exp(-1j * 2 * np.pi * omega_0 * total_samples * np.array([1., -1.]) / 2)
+        approx_yf = phases * np.array([0., -1j])
 
         # test final state
-        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1-10**-5)
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, indep_yf), 1-10**-5)
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, approx_yf), 0.99)
 
         # test counts
         counts = result.get_counts()
@@ -157,8 +166,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         pulse_sim_yf = result.get_statevector()
 
         # expected final state
-        X = np.array([[0., 1.], [1., 0.]])
-        yf = expm(-1j * 2 * np. pi * r * (X / 2) * total_samples) @ y0
+        yf = np.array([0., -1j])
 
         # test final state
         self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1-10**-5)
@@ -169,7 +177,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         with half the time."""
 
         # qubit frequency and drive frequency
-        omega_0 = 1.
+        omega_0 = 1.1329824
         omega_d = omega_0
 
         # drive strength and length of pulse
@@ -204,10 +212,15 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # set up and run independent simulation
         samples = np.ones((total_samples, 1))
 
-        yf = simulate_1q_model(y0, omega_0, r, np.array([omega_0]), samples, 1.)
+        indep_yf = simulate_1q_model(y0, omega_0, r, np.array([omega_d]), samples, 1.)
+
+        # approximate analytic solution
+        phases = np.exp(-1j * 2 * np.pi * omega_0 * total_samples * np.array([1., -1.]) / 2)
+        approx_yf = phases * (expm(-1j * (np.pi / 4) * self.X) @ y0)
 
         # test final state
-        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1-10**-5)
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, indep_yf), 1-10**-5)
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, approx_yf), 0.99)
 
         # test counts
         counts = result.get_counts()
@@ -219,7 +232,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         Same setup as test_x_half_gate but with amplitude of pulse 1j."""
 
         # qubit frequency and drive frequency
-        omega_0 = 1.
+        omega_0 = 1.1329824
         omega_d = omega_0
 
         # drive strength and length of pulse
@@ -254,14 +267,19 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # set up and run independent simulation
         samples = 1j * np.ones((total_samples, 1))
 
-        yf = simulate_1q_model(y0, omega_0, r, np.array([omega_0]), samples, 1.)
+        indep_yf = simulate_1q_model(y0, omega_0, r, np.array([omega_d]), samples, 1.)
+
+        # approximate analytic solution
+        phases = np.exp(-1j * 2 * np.pi * omega_0 * total_samples * np.array([1., -1.]) / 2)
+        approx_yf = phases * (expm(-1j * (np.pi / 4) * self.Y) @ y0)
 
         # test final state
-        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1-10**-5)
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, indep_yf), 1-10**-5)
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, approx_yf), 0.99)
 
         # test counts
         counts = result.get_counts()
-        exp_counts = {'1': 132, '0': 124}
+        exp_counts = {'1': 131, '0': 125}
         self.assertDictAlmostEqual(counts, exp_counts)
 
     def test_1Q_noise(self):
@@ -271,7 +289,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         """
 
         # qubit frequency and drive frequency
-        omega_0 = 1.
+        omega_0 = 1.1329824
         omega_d = omega_0
 
         # drive strength and length of pulse
@@ -396,15 +414,18 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
             pulse_sim_yf = result.get_statevector()
 
-
             # set up and run independent simulation
             samples = np.ones((total_samples, 1))
 
-            yf = simulate_1q_model(y0, omega_0, r, np.array([omega_0]), samples, scale)
+            indep_yf = simulate_1q_model(y0, omega_0, r, np.array([omega_0]), samples, scale)
+
+            # approximate analytic solution
+            phases = np.exp(-1j * 2 * np.pi * omega_0 * total_samples * np.array([1., -1.]) / 2)
+            approx_yf = phases * np.array([0., -1j])
 
             # test final state
-            self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1-10**-5)
-
+            self.assertGreaterEqual(state_fidelity(pulse_sim_yf, indep_yf), 1-10**-5)
+            self.assertGreaterEqual(state_fidelity(pulse_sim_yf, approx_yf), 0.99)
 
             counts = result.get_counts()
             exp_counts = {'1': 256}
@@ -429,7 +450,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         for i in range(num_tests):
             with self.subTest(i=i):
 
-                system_model = self._system_model_1Q_new(omega_0, r_vals[i])
+                system_model = self._system_model_1Q(omega_0, r_vals[i])
                 schedule = self._1Q_constant_sched(total_samples, amp=np.exp(-1j * phase_vals[i]))
 
                 qobj = assemble([schedule],
@@ -448,15 +469,21 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
                 pulse_sim_yf = result.get_statevector()
 
-                yf = self._independent_1Q_constant_sched_sim(y0,
-                                                             amp=np.exp(-1j * phase_vals[i]),
-                                                             r=r_vals[i],
-                                                             omega_d=omega_d_vals[i],
-                                                             T=total_samples,
-                                                             detuning=omega_0 - omega_d_vals[i])
+                # set up and run independent simulation
+                samples = np.exp(-1j * phase_vals[i]) * np.ones((total_samples, 1))
+
+                indep_yf = simulate_1q_model(y0, omega_0, r_vals[i], np.array([omega_d_vals[i]]), samples, 1.)
+
+                # approximate analytic solution
+                phases = np.exp(-1j * 2 * np.pi * omega_d_vals[i] * total_samples * np.array([1., -1.]) / 2)
+                detuning = omega_0 - omega_d_vals[i]
+                amp = np.exp(-1j * phase_vals[i])
+                rwa_ham = 2 * np.pi * (detuning * self.Z / 2 + r_vals[i] * np.array([[0, amp.conj()], [amp, 0.]]) / 4)
+                approx_yf = phases * (expm(-1j * rwa_ham * total_samples) @ y0)
 
                 # test final state
-                self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1-10**-5)
+                self.assertGreaterEqual(state_fidelity(pulse_sim_yf, indep_yf), 1-10**-5)
+                self.assertGreaterEqual(state_fidelity(pulse_sim_yf, approx_yf), 0.99)
 
     def test_gaussian_drive(self):
         """Test gaussian drive pulse using meas_level_2. Set omega_d0=omega_0 (drive on resonance),
