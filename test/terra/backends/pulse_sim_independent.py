@@ -88,15 +88,13 @@ def simulate_1q_model(y0, q_freq, r, drive_freqs, drive_samples, dt):
 
 def simulate_3d_oscillator_model(y0, osc_freq, anharm, r, drive_freqs, drive_samples, dt):
 
-    drift_diag = -1j * (2 * np.pi * q_freq * np.array([0., 1., 2.]) +
+    drift_diag = -1j * (2 * np.pi * osc_freq * np.array([0., 1., 2.]) +
                         np.pi * anharm * np.array([0., 0., 2.]))
+    
     drift = np.diag(drift_diag)
     osc_X = np.array([[0., 1., 0.],
                       [1., 0., np.sqrt(2)],
                       [0., np.sqrt(2), 0.]])
     control_ops = -1j * np.array([ 2 * np.pi * r * osc_X ])
-    channel_freqs = np.array([drive_freq])
 
-    frame_op = -1j * 2 * np.pi * drift_diag
-
-    return simulate_system(y0, drift, control_ops, drive_freqs, drive_samples, dt, frame_op)
+    return simulate_system(y0, drift, control_ops, drive_freqs, drive_samples, dt, drift_diag)
