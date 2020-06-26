@@ -42,19 +42,8 @@ dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
 class TestPulseSimulator(common.QiskitAerTestCase):
-    r"""PulseSimulator tests.
-
-    Mathematical expressions are formulated in latex in docstrings for this class.
-
-    # pylint: disable=anomalous backslash in string
-    Uses single qubit Hamiltonian `H = -\frac{1}{2} \omega_0 \sigma_z + \frac{1}{2} \omega_a
-    e^{i(\omega_{d0} t+\phi)} \sigma_x`. We make sure H is Hermitian by taking the complex conjugate
-    of the lower triangular piece (as done by the simulator). To find the closed form, we move
-    to a rotating frame via the unitary `Urot = e^{-i \omega t \sigma_z/2}
-    (\ket{psi_{rot}}=Urot \ket{psi_{rot}})`. In this frame, the Hamiltonian becomes
-    `Hrot = \frac{1}{2} \omega_a (\cos(\phi) \sigma_x - \sin(\phi) \sigma_y)
-    + \frac{\omega_{d0}-\omega_0}{2} \sigma_z`.
-    """
+    r"""PulseSimulator tests."""
+    
     def setUp(self):
         """ Set configuration settings for pulse simulator
         WARNING: We do not support Python 3.5 because the digest algorithm relies on dictionary insertion order.
