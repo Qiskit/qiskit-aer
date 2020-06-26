@@ -7,6 +7,7 @@ from scipy.linalg import expm
 from qiskit.providers.aer.pulse.de.DE_Methods import ScipyODE
 from qiskit.providers.aer.pulse.de.DE_Options import DE_Options
 
+I = np.eye(2, dtype=complex)
 X = np.array([[0., 1.], [1., 0.]])
 Y = np.array([[0., -1j], [1j, 0.]])
 Z = np.array([[1., 0.], [0., -1.]])
@@ -85,12 +86,28 @@ def simulate_1q_model(y0, q_freq, r, drive_freqs, drive_samples, dt):
 
     return simulate_system(y0, drift, control_ops, drive_freqs, drive_samples, dt, frame_op)
 
+def simulate_2q_exchange_model(y0, q_freqs, r, j, drive_freqs, drive_samples, dt):
+
+    ZI_diag = np.kron(np.array([1., -1.]), np.array([1., 1.]))
+    IZ_diag = np.kron(np.array([1., 1.]), np.array([1., -1.]))
+    XI = np.kron(X, I)
+    IX = np.kron(I, X)
+
+    HI = (np.kron(I, I) + np.kron(X, X) + np.kron(Y, Y) + np.kron(Z, Z)) / 2
+
+    drift_diag = -1j * 2 * np.pi * (q_freqs[0] * IZ_diag + q_freqs[1] * ZI_diag) / 2
+    drift_diag = drift_diag - 1j * 2 * np.pi * j * np.diag(HI)
+    drift = np.diag(drift_diag) - 1j * 2 * np.pi * j * (HI - np.diag(np.diag(HI)))
+
+    control_ops = -1j * 2 * np.pi * r * np.array([IX, XI]) / 2
+
+    return simulate_system(y0, drift, control_ops, drive_freqs, drive_samples, dt, drift_diag)
 
 def simulate_3d_oscillator_model(y0, osc_freq, anharm, r, drive_freqs, drive_samples, dt):
 
     drift_diag = -1j * (2 * np.pi * osc_freq * np.array([0., 1., 2.]) +
                         np.pi * anharm * np.array([0., 0., 2.]))
-    
+
     drift = np.diag(drift_diag)
     osc_X = np.array([[0., 1., 0.],
                       [1., 0., np.sqrt(2)],

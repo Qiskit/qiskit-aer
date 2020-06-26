@@ -35,7 +35,8 @@ from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSys
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.models.backendconfiguration import UchannelLO
 
-from .pulse_sim_independent import simulate_1q_model, simulate_3d_oscillator_model
+from .pulse_sim_independent import (simulate_1q_model, simulate_2q_exchange_model,
+                                    simulate_3d_oscillator_model)
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
@@ -779,20 +780,13 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # num of samples gives time
         r = np.pi / total_samples
 
-        phi = 0
-
         # Test gaussian drive results for a few different sigma
         gauss_sigmas = [total_samples / 6, total_samples / 3, total_samples]
 
-        system_model = self._system_model_1Q_new(omega_0, r)
+        system_model = self._system_model_1Q(omega_0, r)
 
         for gauss_sigma in gauss_sigmas:
             with self.subTest(gauss_sigma=gauss_sigma):
-                schedule = self._simple_1Q_schedule(phi,
-                                                    total_samples,
-                                                    "gaussian",
-                                                    gauss_sigma)
-
                 times = 1.0 * np.arange(total_samples)
                 gaussian_samples = np.exp(-times**2 / 2 / gauss_sigma**2)
                 drive_pulse = SamplePulse(gaussian_samples, name='drive_pulse')
@@ -817,104 +811,81 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                 pulse_sim_yf = result.get_statevector()
 
                 # run independent simulation
-                T = total_samples
-                def rhs(t, y):
-                    # handle time edge case
-                    if t >= 100:
-                        t = 99.9
-                    amp = gaussian_samples[int(t)]
-                    chan_val = np.real(amp * np.exp(1j * 2 * np.pi * omega_d * t))
-                    phi = 2 * np.pi * omega_d * t
-                    Xrot = np.array([[0, np.exp(1j * phi)], [np.exp(-1j * phi), 0.]])
-                    return (-1j * 2 * np.pi * r * chan_val * Xrot / 2) @ y
-
-                de_options = DE_Options(method='RK45', atol=10**-8, rtol=10**-8)
-                ode_method = ScipyODE(t0=0., y0=y0, rhs=rhs, options=de_options)
-                ode_method.integrate(T)
-                yf = np.exp(np.array([-1j * np.pi * omega_d * T, 1j * np.pi * omega_d * T])) * ode_method.y
+                yf = simulate_1q_model(y0, omega_0, r, np.array([omega_d]), gaussian_samples, 1.)
 
                 # Check fidelity of statevectors
-                self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 0.99)
+                self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1-(10**-5))
 
-    def test_interaction_old(self):
-        r"""Test 2 qubit interaction via swap gates."""
+    def test_2Q_exchange(self):
+        r"""Test a more complicated 2q simulation"""
 
-        shots = 100000
-        total_samples = 100
-        # Do a standard SWAP gate
+        q_freqs = [5., 5.1]
+        r = 0.02
+        j = 0.02
+        total_samples = 25
 
-        # Interaction amp (any non-zero creates the swap gate)
-        omega_i_swap = np.pi / 2 / total_samples
-        # set omega_d0=omega_0 (resonance)
-        omega_0 = 2 * np.pi
-        omega_d0 = omega_0
+        hamiltonian = {}
+        hamiltonian['h_str'] = ['2*np.pi*v0*0.5*Z0',
+                                '2*np.pi*v1*0.5*Z1',
+                                '2*np.pi*r*0.5*X0||D0',
+                                '2*np.pi*r*0.5*X1||D1',
+                                '2*np.pi*j*0.5*I0*I1',
+                                '2*np.pi*j*0.5*X0*X1',
+                                '2*np.pi*j*0.5*Y0*Y1',
+                                '2*np.pi*j*0.5*Z0*Z1']
+        hamiltonian['vars'] = {'v0': q_freqs[0],
+                               'v1': q_freqs[1],
+                               'r': r,
+                               'j': j}
+        hamiltonian['qub'] = {'0': 2, '1': 2}
+        ham_model = HamiltonianModel.from_dict(hamiltonian)
 
-        # For swapping, set omega_d1 = 0 (drive on Q0 resonance)
-        # Note: confused by this as there is no d1 term
-        omega_d1 = 0
+        # set the U0 to have frequency of drive channel 0
+        u_channel_lo = []
+        subsystem_list = [0, 1]
+        dt = 1.
 
-        # do pi pulse on Q0 and verify state swaps from '01' to '10' (reverse bit order)
+        system_model = PulseSystemModel(hamiltonian=ham_model,
+                                        u_channel_lo=u_channel_lo,
+                                        subsystem_list=subsystem_list,
+                                        dt=dt)
 
-        # Q0 drive amp -> pi pulse
-        omega_a_pi_swap = np.pi / total_samples
+        # try some random schedule
+        schedule = Schedule()
+        drive_pulse = SamplePulse(np.ones(total_samples))
+        schedule += Play(drive_pulse, DriveChannel(0))
+        schedule |= Play(drive_pulse, DriveChannel(1)) << 2 * total_samples
 
+        schedule |= Acquire(total_samples,
+                            AcquireChannel(0),
+                            MemorySlot(0)) << 3 * total_samples
+        schedule |= Acquire(total_samples,
+                            AcquireChannel(1),
+                            MemorySlot(1)) << 3 * total_samples
 
-        system_model = self._system_model_2Q_old(omega_0, omega_a_pi_swap, omega_i_swap)
-
-        schedule = self._schedule_2Q_interaction(total_samples)
         qobj = assemble([schedule],
                         backend=self.backend_sim,
                         meas_level=2,
                         meas_return='single',
-                        meas_map=[[0, 1]],
-                        qubit_lo_freq=[omega_d0 / (2 * np.pi), omega_d1 / (2 * np.pi)],
+                        meas_map=[[0]],
+                        qubit_lo_freq=q_freqs,
                         memory_slots=2,
-                        shots=shots)
-        backend_options = {'seed': 12387}
+                        shots=1000)
+        y0 = np.array([1., 0., 0., 0.])
+        backend_options = {'seed' : 9000, 'initial_state' : y0}
 
-        result_pi_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
-        counts_pi_swap = result_pi_swap.get_counts()
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        pulse_sim_yf = result.get_statevector()
 
-        exp_counts_pi_swap = {
-            '10': shots
-        }  # reverse bit order (qiskit convention)
-        self.assertDictAlmostEqual(counts_pi_swap, exp_counts_pi_swap, delta=2)
+        # set up and run independent simulation
+        d0_samps = np.concatenate((np.ones(total_samples), np.zeros(2 * total_samples)))
+        d1_samps = np.concatenate((np.zeros(2 * total_samples), np.ones(total_samples)))
+        samples = np.array([d0_samps, d1_samps]).transpose()
+        q_freqs = np.array(q_freqs)
+        yf = simulate_2q_exchange_model(y0, q_freqs, r, j, q_freqs, samples, 1.)
 
-        # do pi/2 pulse on Q0 and verify half the counts are '00' and half are swapped state '10'
-
-        # Q0 drive amp -> pi/2 pulse
-        omega_a_pi2_swap = np.pi / 2 / total_samples
-
-        system_model = self._system_model_2Q_old(omega_0, omega_a_pi2_swap, omega_i_swap)
-
-        result_pi2_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
-        counts_pi2_swap = result_pi2_swap.get_counts()
-
-        # compare proportions for improved accuracy
-        prop_pi2_swap = {}
-        for key in counts_pi2_swap.keys():
-            prop_pi2_swap[key] = counts_pi2_swap[key] / shots
-
-        exp_prop_pi2_swap = {'00': 0.5, '10': 0.5}  # reverse bit order
-
-        self.assertDictAlmostEqual(prop_pi2_swap,
-                                   exp_prop_pi2_swap,
-                                   delta=0.01)
-
-        # Test that no SWAP occurs when omega_i=0 (no interaction)
-        omega_i_no_swap = 0
-
-        # Q0 drive amp -> pi pulse
-        omega_a_no_swap = np.pi / total_samples
-        system_model = self._system_model_2Q_old(omega_0, omega_a_no_swap, omega_i_no_swap)
-
-        result_no_swap = self.backend_sim.run(qobj, system_model, backend_options).result()
-        counts_no_swap = result_no_swap.get_counts()
-
-        exp_counts_no_swap = {
-            '01': shots
-        }  # non-swapped state (reverse bit order)
-        self.assertDictAlmostEqual(counts_no_swap, exp_counts_no_swap)
+        # Check fidelity of statevectors
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, yf), 1-(10**-5))
 
 
     def _system_model_1Q(self, omega_0, r):
@@ -1078,106 +1049,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                 u_channel_lo=u_channel_lo,
                                 subsystem_list=subsystem_list,
                                 dt=dt)
-
-    ###########
-    # Old
-    ###########
-
-    def _system_model_2Q_old(self, omega_0, omega_a, omega_i, qubit_dim=2):
-        """Constructs a simple 2 qubit system model.
-
-        Args:
-            omega_0 (float): frequency of qubit
-            omega_a (float): strength of drive term
-            omega_i (float): strength of interaction
-            qubit_dim (int): dimension of qubit
-        Returns:
-            PulseSystemModel: model for qubit system
-        """
-
-        # make Hamiltonian
-        hamiltonian = {}
-        # qubit 0 terms
-        hamiltonian['h_str'] = ['-0.5*omega0*Z0', '0.5*omegaa*X0||D0']
-        # interaction term
-        hamiltonian['h_str'].append('omegai*(Sp0*Sm1+Sm0*Sp1)||U1')
-        hamiltonian['vars'] = {
-            'omega0': omega_0,
-            'omegaa': omega_a,
-            'omegai': omega_i
-        }
-        hamiltonian['qub'] = {'0' : qubit_dim, '1' : qubit_dim}
-        ham_model = HamiltonianModel.from_dict(hamiltonian)
-
-
-        u_channel_lo = [
-            [UchannelLO(0, 1.0+0.0j)],
-            [UchannelLO(0, -1.0+0.0j),
-             UchannelLO(1, 1.0+0.0j)]]
-        subsystem_list = [0, 1]
-        dt = 1.
-
-        return PulseSystemModel(hamiltonian=ham_model,
-                                u_channel_lo=u_channel_lo,
-                                subsystem_list=subsystem_list,
-                                dt=dt)
-
-    def _simple_1Q_schedule(self, phi, total_samples, shape="square", gauss_sigma=0):
-        """Creates schedule for single pulse test
-        Args:
-            phi (float): drive phase (phi in Hamiltonian)
-            total_samples (int): length of pulses
-            shape (str): shape of the pulse; defaults to square pulse
-            gauss_sigma (float): std dev for gaussian pulse if shape=="gaussian"
-        Returns:
-            schedule (pulse schedule): schedule for this test
-        """
-
-        # set up pulse command
-        phase = np.exp(1j * phi)
-        drive_pulse = None
-        if shape == "square":
-            const_pulse = np.ones(total_samples)
-            drive_pulse = SamplePulse(phase * const_pulse, name='drive_pulse')
-        if shape == "gaussian":
-            times = 1.0 * np.arange(total_samples)
-            gaussian = np.exp(-times**2 / 2 / gauss_sigma**2)
-            drive_pulse = SamplePulse(phase * gaussian, name='drive_pulse')
-
-        # add commands into a schedule for first qubit
-        schedule = Schedule(name='drive_pulse')
-        schedule |= Play(drive_pulse, DriveChannel(0))
-        schedule |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << schedule.duration
-
-        return schedule
-
-    def _schedule_2Q_interaction(self, total_samples, drive_idx=0, target_idx=1, U_idx=1):
-        """Creates schedule for testing two qubit interaction. Specifically, do a pi pulse on qub 0
-        so it starts in the `1` state (drive channel) and then apply constant pulses to each
-        qubit (on control channel 1). This will allow us to test a swap gate.
-
-        Args:
-            total_samples (int): length of pulses
-        Returns:
-            schedule (pulse schedule): schedule for 2q experiment
-        """
-
-        # create acquire schedule
-        acq_sched = Schedule(name='acq_sched')
-        acq_sched |= Acquire(total_samples, AcquireChannel(drive_idx), MemorySlot(drive_idx))
-        acq_sched += Acquire(total_samples, AcquireChannel(target_idx), MemorySlot(target_idx))
-
-        # set up const pulse
-        const_pulse = SamplePulse(np.ones(total_samples), name='const_pulse')
-
-        # add commands to schedule
-        schedule = Schedule(name='2q_schedule')
-        schedule |= Play(const_pulse, DriveChannel(drive_idx))
-        schedule += Play(const_pulse, ControlChannel(U_idx)) << schedule.duration
-        schedule |= acq_sched << schedule.duration
-
-        return schedule
-
 
 if __name__ == '__main__':
     unittest.main()
