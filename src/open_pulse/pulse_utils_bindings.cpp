@@ -34,7 +34,8 @@ namespace {
   using Cvode_Wrapper_t = AER::ODE::CvodeWrapper<std::vector<complex_t>>;
   using ABM_Wrapper_t = AER::ODE::ABMWrapper<std::vector<complex_t>>;
 
-  using rhsFuncType = std::function<std::vector<complex_t>(double, const py::array_t <complex_t> &)>;
+//  using rhsFuncType = std::function<std::vector<complex_t>(double, const py::array_t <complex_t> &)>;
+  using rhsFuncType = std::function<py::array_t<complex_t>(double, const py::array_t<complex_t> &)>;
   using pertFuncType = std::function<void(const py::array_t<double> &)>;
 
   std::unique_ptr<Ode_Wrapper_t> create_wrapper_integrator(const std::string &ode_type,
@@ -42,9 +43,15 @@ namespace {
                                                             std::vector<complex_t> &&y0,
                                                             rhsFuncType rhs) {
     auto func = [rhs](double t, const std::vector<complex_t> &y, std::vector<complex_t> &y_dot) {
+      //pass a referece to the vector avoiding destruction on python side
       auto capsule = py::capsule(&y, [](void *y) {});
       auto y_np = py::array_t<complex_t>(y.size(), y.data(), capsule);
-      y_dot = rhs(t, y_np);
+      py::array_t<complex_t> y_tmp = rhs(t, y_np);
+      // Avoid recreation of y_dot
+      auto y_tmp_raw = static_cast<complex_t *>(y_tmp.request().ptr);
+      for(int i = 0; y_tmp.size(); i++){
+        y_dot[i] = y_tmp_raw[i];
+      }
     };
     return AER::ODE::create_ode<std::vector<complex_t>>(ode_type, func, std::move(y0), t0);
   }

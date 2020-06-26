@@ -166,7 +166,11 @@ namespace AER {
         ode_sens.set_tolerances(1e-12, 1e-6);
         constexpr double finalTime1 = .12;
         Catch::StringMaker<double>::precision = 15;
-        SECTION("Intialize for sensitivities computation") { REQUIRE(ode_sens.get_solution() == y_sens); }
+
+        SECTION("Intialize for sensitivities computation") {
+          REQUIRE(ode_sens.get_solution() == y_sens);
+        }
+
         SECTION("Sensitivity ODE integrate till finalTime=" + std::to_string(finalTime1)) {
           ode_sens.integrate(finalTime1);
           REQUIRE(

@@ -23,8 +23,9 @@ namespace AER {
       }
 
       void integrate(double t, bool one_step = false) {
-        // TODO: Ho do we compute step size?
-        double step = std::max(min_step_, std::min(max_step_, (t - t_) / 1500.));
+        double step = first_step_size_ > 0
+                          ? first_step_size_
+                          : std::max(min_step_, std::min(max_step_, (t - t_) / DEFAULT_N_STEPS));
         integrate_adaptive(abm_, rhs_, y_, t_, t, step);
         t_ = t;
       }
@@ -66,6 +67,7 @@ namespace AER {
       bool succesful() { return true; };
 
     private:
+      static constexpr double DEFAULT_N_STEPS = 1500;
       double t_;
       T y_;
 
