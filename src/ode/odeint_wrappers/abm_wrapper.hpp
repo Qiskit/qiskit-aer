@@ -55,14 +55,12 @@ namespace AER {
         first_step_size_ = first_step_size;
       }
 
-      void set_tolerances(double abstol, double reltol) {
-        abstol_ = abstol;
-        reltol_ = reltol;
-      };
+      void set_tolerances(double, double) {};// No effect as no error based convergence
 
-      void set_maximum_order(int order) {};
 
-      void set_max_nsteps(int max_step) {};
+      void set_maximum_order(int) {}; // Order explicitly set by type, cannot change
+
+      void set_max_nsteps(int) {}; // No effect as no error based convergence
 
       bool succesful() { return true; };
 
@@ -75,8 +73,6 @@ namespace AER {
       double max_step_ = 1e6;
       double min_step_ = 1e-12;
       double first_step_size_ = 1e-12;
-      double abstol_ = 1e-6;
-      double reltol_ = 1e-8;
       adams_bashforth_moulton<8, T> abm_;
     };
 

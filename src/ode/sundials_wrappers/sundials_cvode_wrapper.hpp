@@ -16,48 +16,46 @@ namespace AER {
     void error_handler(int error_code, const char *module, const char *function, char *msg,
                        void *eh_data) {
       if (error_code <= 0) {
-        throw std::runtime_error(std::string(msg) + " Sundials error code: " + std::to_string(error_code));
+        throw std::runtime_error(std::string(msg) +
+                                 " Sundials error code: " + std::to_string(error_code));
       }
     }
 
+    // Wrapper for Sundials Adams solver.
     template<typename T>
     class CvodeWrapper : public Ode<T> {
     public:
       static const std::string ID;
 
       CvodeWrapper(rhsFuncType<T> f, const T &y0, double t0);
-
       CvodeWrapper(rhsFuncType<T> f, T&& y0, double t0);
+
+
+      CvodeWrapper(const CvodeWrapper &) = delete;
+      CvodeWrapper operator=(const CvodeWrapper &) = delete;
+      CvodeWrapper(CvodeWrapper &&) = default;
 
       void setup_sens(perturbFuncType pf, const std::vector<double> &p);
 
-      CvodeWrapper(const CvodeWrapper &) = delete;
-
-      CvodeWrapper operator=(const CvodeWrapper &) = delete;
-
-      CvodeWrapper(CvodeWrapper &&) = default;
-
       double get_t() { return t_; };
-
       const T &get_solution() const;
-
       const T &get_sens_solution(uint i);
 
       void set_t(double t);
-
       void set_solution(const T& y0);
       void set_solution(T&& y0);
 
       void set_intial_value(const T& y0, double t0);
       void set_intial_value(T&& y0, double t0);
-
       void set_step_limits(double max_step, double min_step, double first_step_size);
-
       void set_tolerances(double abstol, double reltol);
-
       void set_maximum_order(int order);
-
       void set_max_nsteps(int max_step);
+
+      int get_num_steps();
+      int get_num_rhs_evals();
+      double get_last_step();
+      double get_current_step();
 
       void integrate_n_steps(double at, int n_steps);
 
@@ -76,6 +74,11 @@ namespace AER {
       void reinit_if_run();
 
       struct user_data_func {
+        // This holds:
+        // - RHS function with signature void(double, const T&, T&). Other parameters
+        //   should be captured (by reference if we want to compute sensitivities on them)
+        // - Perturbation function when sensitivities are enabled void(const std::vector<double>&)
+        //   This function change parameters captured in RHS function.
         rhsFuncType<T> rhs;
         std::vector<double> p;
         perturbFuncType pf;
@@ -83,11 +86,12 @@ namespace AER {
 
       static constexpr double ATOL = 1e-12;
       static constexpr double RTOL = 1e-12;
+      static constexpr int MAX_N_CONV_FAILS = 10000;
 
       static int rhs_wrapper(realtype t, N_Vector y, N_Vector ydot, void *user_data) {
         auto data_wrapper = static_cast<user_data_func *>(user_data);
         if (data_wrapper->pf) {
-          data_wrapper->pf(data_wrapper->p);
+          data_wrapper->pf(data_wrapper->p); // Modify parameters on rhs through pf
         }
         data_wrapper->rhs(t, SundialsComplexContent<T>::get_data(y), SundialsComplexContent<T>::get_data(ydot));
         return 0;
@@ -156,14 +160,12 @@ namespace AER {
       CVodeSStolerances(cvode_mem_.get(), RTOL, ATOL);
       NLS_.reset(SUNNonlinSol_FixedPoint(y_.get(), 0));
 
-      /* attach nonlinear solver object to CVode */
       CVodeSetNonlinearSolver(cvode_mem_.get(), NLS_.get());
-      udf_ = std::make_shared<user_data_func>();
+      udf_ = std::make_unique<user_data_func>();
       udf_->rhs = f;
       CVodeSetUserData(cvode_mem_.get(), udf_.get());
 
-      // TODO: Hardcoded value??
-      CVodeSetMaxConvFails(cvode_mem_.get(), 10000);
+      CVodeSetMaxConvFails(cvode_mem_.get(), MAX_N_CONV_FAILS);
     }
 
     template<typename T>
@@ -183,7 +185,6 @@ namespace AER {
 
       CVodeSensEEtolerances(cvode_mem_.get());
 
-      // TODO: Error control hardcoded to true
       CVodeSetSensErrCon(cvode_mem_.get(), true);
       CVodeSetSensDQMethod(cvode_mem_.get(), CV_CENTERED, 0.0);
       CVodeSetSensParams(cvode_mem_.get(), udf_->p.data(), nullptr, nullptr);
@@ -287,6 +288,34 @@ namespace AER {
     template<typename T>
     void CvodeWrapper<T>::set_max_nsteps(int max_steps) {
       CVodeSetMaxNumSteps(cvode_mem_.get(), max_steps);
+    }
+
+    template<typename T>
+    int CvodeWrapper<T>::get_num_steps(){
+      int nsteps;
+      CVodeGetNumSteps(cvode_mem_.get(), &nsteps);
+      return nsteps;
+    }
+
+    template<typename T>
+    int CvodeWrapper<T>::get_num_rhs_evals(){
+      int nevals;
+      CVodeGetNumRhsEvals(cvode_mem_.get(), &nevals);
+      return nevals;
+    }
+
+    template<typename T>
+    double CvodeWrapper<T>::get_last_step(){
+      double last_step;
+      CVodeGetLastStep(cvode_mem_.get(), &last_step);
+      return last_step;
+    }
+
+    template<typename T>
+    double CvodeWrapper<T>::get_current_step(){
+      double current_step;
+      CVodeGetCurrentStep(cvode_mem_.get(), &current_step);
+      return current_step;
     }
   }
 }

@@ -7,6 +7,7 @@
 
 namespace AER {
   namespace ODE {
+    // Very simple factory function
     template<typename T, typename ...Params>
     std::unique_ptr<Ode<T>> create_ode(const std::string &ode_type, Params &&... params) {
       if (ode_type == CvodeWrapper<T>::ID) {
@@ -18,6 +19,7 @@ namespace AER {
       }
     }
 
+    // Get the list of possible c++ ode wrappers. Handy for python integration
     template<typename T>
     std::vector<std::string> get_cpp_wrappers_list() {
       static std::vector<std::string> cpp_wrappers{{CvodeWrapper<T>::ID, ABMWrapper<T>::ID}};
