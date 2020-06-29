@@ -76,6 +76,9 @@ public:
   // Empty engine of stored data
   void clear();
 
+  // Convert and add to json
+  void add_to_json(json_t &js);
+
   // Combine engines for accumulating data
   // Second engine should no longer be used after combining
   // as this function should use move semantics to minimize copying
@@ -245,17 +248,17 @@ template <typename T>
 DataContainer<T> &DataContainer<T>::combine(DataContainer<T> &&other) {
 
   // Additional data
-  for (const auto &pair : other.additional_data_) {
+  for (auto &pair : other.additional_data_) {
     additional_data_[pair.first] = std::move(pair.second);
   }
 
   // Pershot snapshots
-  for (const auto &pair : other.pershot_snapshots_) {
+  for (auto &pair : other.pershot_snapshots_) {
     pershot_snapshots_[pair.first].combine(std::move(pair.second));
   }
 
   // Average snapshots
-  for (const auto &pair : other.average_snapshots_) {
+  for (auto &pair : other.average_snapshots_) {
     average_snapshots_[pair.first].combine(std::move(pair.second));
   }
 
@@ -270,25 +273,25 @@ DataContainer<T> &DataContainer<T>::combine(DataContainer<T> &&other) {
 //============================================================================
 
 template <typename T>
-void to_json(json_t &js, const DataContainer<T>& data) {
+void DataContainer<T>::add_to_json(json_t &js) {
   // Add data to json
   // Note other data types may also be adding to same
   // JSON so we should not re-initialize it
-  if (data.enabled_) {
+  if (enabled_) {
 
     // Add additional data
-    for (const auto &pair : data.additional_data_) {
+    for (auto &pair : additional_data_) {
       js[pair.first] = pair.second;
     }
 
     // Average snapshots
-    for (const auto &pair : data.average_snapshots_) {
-      js["snapshots"][pair.first] = pair.second;
+    for (auto &pair : average_snapshots_) {
+      js["snapshots"][pair.first] = pair.second.to_json();
     }
 
     // Pershot snapshots
-    for (auto &pair : data.pershot_snapshots_) {
-      js["snapshots"][pair.first] = pair.second;
+    for (auto &pair : pershot_snapshots_) {
+      js["snapshots"][pair.first] = pair.second.to_json();
     }
   }
 }

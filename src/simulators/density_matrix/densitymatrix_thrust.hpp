@@ -71,6 +71,10 @@ public:
   // Returns the number of qubits for the superoperator
   virtual uint_t num_qubits() const override {return BaseMatrix::num_qubits_;}
 
+  // Convert qubit indicies to vectorized-density matrix qubitvector indices
+  // For the QubitVector apply matrix function
+  virtual reg_t superop_qubits(const reg_t &qubits) const;
+
   //-----------------------------------------------------------------------
   // Apply Matrices
   //-----------------------------------------------------------------------
@@ -142,10 +146,6 @@ public:
   double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
 
 protected:
-
-  // Convert qubit indicies to vectorized-density matrix qubitvector indices
-  // For the QubitVector apply matrix function
-  virtual reg_t superop_qubits(const reg_t &qubits) const;
 
   // Construct a vectorized superoperator from a vectorized matrix
   // This is equivalent to vec(tensor(conj(A), A))

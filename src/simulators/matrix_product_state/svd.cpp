@@ -28,12 +28,14 @@
 #include "framework/utils.hpp"
 #include "framework/linalg/almost_equal.hpp"
 
-#define mul_factor 1e2
-#define tiny_factor 1e30
-#define THRESHOLD 1e-9
-#define NUM_SVD_TRIES 15
-
 namespace AER {
+
+// default values
+constexpr auto mul_factor = 1e2;
+constexpr long double tiny_factor = 1e30;
+constexpr auto zero_threshold = 1e-50;  // threshold for comparing FP values
+constexpr auto THRESHOLD = 1e-9; // threshold for cutting values in reduce_zeros
+constexpr auto NUM_SVD_TRIES = 15;
 
 cmatrix_t diag(rvector_t S, uint_t m, uint_t n);
 
@@ -79,7 +81,7 @@ std::vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V)
 //				in S
 // Parameters: rvector_t S - vector of singular values from the
 //			   SVD decomposition
-// Returns: number of elements in S that are greater than 0
+// Returns: number of elements in S whose norm is greater than 0
 //			(actually greater than threshold)
 //-------------------------------------------------------------
 uint_t num_of_SV(rvector_t S, double threshold)
@@ -90,16 +92,61 @@ uint_t num_of_SV(rvector_t S, double threshold)
 	  if(std::norm(S[i]) > threshold)
 		sum++;
 	}
-	if (sum == 0)
-	  std::cout << "SV_Num == 0"<< '\n';
 	return sum;
 }
 
-void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
-  uint_t SV_num = num_of_SV(S, 1e-16);
-  U.resize(U.GetRows(), SV_num);
-  S.resize(SV_num);
-  V.resize(V.GetRows(), SV_num);
+void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
+		  uint_t max_bond_dimension, double truncation_threshold) {
+  uint_t SV_num = num_of_SV(S, CHOP_THRESHOLD);
+  uint_t new_SV_num = SV_num;
+  new_SV_num = SV_num;
+
+  if (max_bond_dimension < SV_num) {
+    // in this case, leave only the first max_bond_dimension
+    // values in S, and discard all the rest
+    new_SV_num = max_bond_dimension;
+  } 
+
+  // Remove the lowest Schmidt coefficients such that the sum of 
+  // their squares is less than trunction_threshold
+  double sum_squares = 0;
+  for (int_t i=new_SV_num-1; i>0; i--) {
+    if (sum_squares + std::norm(S[i]) < truncation_threshold) {
+      sum_squares +=std::norm(S[i]);
+    } else {
+      new_SV_num = i+1;
+      break;
+    }
+  }
+  U.resize(U.GetRows(), new_SV_num);
+  S.resize(new_SV_num);
+  V.resize(V.GetRows(), new_SV_num);
+
+  // After approximation, we may need to re-normalize the values of S
+  if (new_SV_num < SV_num) {
+    double sum=0;
+    for (uint_t i=0; i<S.size(); i++) {
+      sum += std::norm(S[0]);
+    }
+    if (1-sum > THRESHOLD) {
+      for (uint_t i=0; i<S.size(); i++) {
+	  double square_i = std::norm(S[0])/sum;
+	  S[i] = sqrt(square_i);
+      }
+    }
+  }
+}
+
+void validate_SVD_result(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
+  const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
+  cmatrix_t diag_S = diag(S, nrows, ncols);
+  cmatrix_t product = U*diag_S;
+  product = product * AER::Utils::dagger(V);
+  for (uint_t ii=0; ii < nrows; ii++)
+    for (uint_t jj=0; jj < ncols; jj++)
+      if (!Linalg::almost_equal(std::abs(A(ii, jj)), std::abs(product(ii, jj)), THRESHOLD)) {
+	throw std::runtime_error("Error: Wrong SVD calculations: A != USV*");
+      }
 }
 
 // added cut-off at the end
@@ -135,12 +182,11 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 			z = std::sqrt( z );
 			b[k] = z;
 			w = std::abs( A(k,k) );
-			if (Linalg::almost_equal(static_cast<long double>(w), 
-						 static_cast<long double>(0.0) )) {
-				q = complex_t( 1.0, 0.0 );
-			}
-			else {
-				q = A(k,k) / w;
+			
+			if (Linalg::almost_equal(w, 0.0, zero_threshold)) {
+			  q = complex_t( 1.0, 0.0 );
+			} else {
+			q = A(k,k) / w;
 			}
 			A(k,k) = q * ( z + w );
 
@@ -184,12 +230,10 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 			c[k1] = z;
 			w = std::abs( A(k,k1) );
 
-			if (Linalg::almost_equal(static_cast<long double>(w), 
-						 static_cast<long double>(0.0) )){
-				q = complex_t( 1.0, 0.0 );
-			}
-			else{
-				q = A(k,k1) / w;
+			if (Linalg::almost_equal(w, 0.0, zero_threshold)) {
+			  q = complex_t( 1.0, 0.0 );
+			} else {
+			  q = A(k,k1) / w;
 			}
 			A(k,k1) = q * ( z + w );
 
@@ -319,8 +363,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				h = sn * g;
 				g = cs * g;
 				w = std::sqrt( h * h + f * f );
-				if (Linalg::almost_equal(static_cast<long double>(w), 
-							 static_cast<long double>(0.0) )) {
+				if (Linalg::almost_equal(w, 0.0, zero_threshold)) {
 #ifdef DEBUG
 				  std::cout << "ERROR 1: w is exactly 0: h = " << h << " , f = " << f << std::endl;
 				  std::cout << " w = " << w << std::endl;
@@ -332,8 +375,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				f = x * cs + g * sn; // might be 0
 
 				long double large_f = 0;
-				if (Linalg::almost_equal(static_cast<long double>(f), 
-							 static_cast<long double>(0.0) )) {
+				if (Linalg::almost_equal(f, 0.0, zero_threshold)) {
 #ifdef DEBUG
 				  std::cout << "f == 0 because " << "x = " << x << ", cs = " << cs << ", g = " << g << ", sn = " << sn  <<std::endl;
 #endif
@@ -367,15 +409,13 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 				std::cout << " h = " << h << " f = " << f << " large_f = " << large_f << std::endl;
 #endif
 				if (std::abs(h) < 1e-13 && std::abs(f) < 1e-13 && 
-				    !Linalg::almost_equal(large_f, 
-							  static_cast<long double>(0.0))) {
+				    !Linalg::almost_equal<long double>(large_f, 0.0, zero_threshold)) {
 				  tiny_w = true;
 				} else {
 				  w = std::sqrt( h * h + f * f );
 				}
 				w = std::sqrt( h * h + f * f );
-				if (Linalg::almost_equal(static_cast<long double>(w), 
-							 static_cast<long double>(0.0)) && !tiny_w) {
+				if (Linalg::almost_equal(w, 0.0, zero_threshold)  && !tiny_w) {
 
 #ifdef DEBUG
 				  std::cout << "ERROR: w is exactly 0: h = " << h << " , f = " << f << std::endl;
@@ -455,81 +495,55 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
         }
     }
 
-    for( k = n-1 ; k >= 0; k--)
-	{
-	  if (!Linalg::almost_equal(static_cast<long double>(b[k]), 
-				    static_cast<long double>(0.0)) )
-		{
-			q = -A(k,k) / std::abs( A(k,k) );
-			for( j = 0; j < m; j++){
-				U(k,j) = q * U(k,j);
-			}
-			for( j = 0; j < m; j++)
-			{
-				q = complex_t( 0.0, 0.0 );
-				for( i = k; i < m; i++){
-					q = q + std::conj( A(i,k) ) * U(i,j);
-				}
-				q = q / ( std::abs( A(k,k) ) * b[k] );
-				for( i = k; i < m; i++){
-					U(i,j) = U(i,j) - q * A(i,k);
-				}
-			}
-		}
+    for( k = n-1 ; k >= 0; k--) {
+      if (!Linalg::almost_equal(b[k], 0.0, zero_threshold)) {
+	q = -A(k,k) / std::abs( A(k,k) );
+	for( j = 0; j < m; j++) {
+	  U(k,j) = q * U(k,j);
 	}
-
-	for( k = n-1 -1; k >= 0; k--)
-	{
-		k1 = k + 1;
-		if ( !Linalg::almost_equal(static_cast<long double>(c[k1]), 
-					   static_cast<long double>(0.0) ))
-		{
-			q = -std::conj( A(k,k1) ) / std::abs( A(k,k1) );
-
-			for( j = 0; j < n; j++){
-				V(k1,j) = q * V(k1,j);
-			}
-
-			for( j = 0; j < n; j++)
-			{
-				q = complex_t( 0.0, 0.0 );
-				for( i = k1 ; i < n; i++){
-					q = q + A(k,i) * V(i,j);
-				}
-				q = q / ( std::abs( A(k,k1) ) * c[k1] );
-				for( i = k1; i < n; i++){
-					V(i,j) = V(i,j) - q * std::conj( A(k,i) );
-				}
-			}
-		}
+	for( j = 0; j < m; j++)	{
+	  q = complex_t( 0.0, 0.0 );
+	  for( i = k; i < m; i++) {
+	    q = q + std::conj( A(i,k) ) * U(i,j);
+	  }
+	  q = q / ( std::abs( A(k,k) ) * b[k] );
+	  for( i = k; i < m; i++) {
+	    U(i,j) = U(i,j) - q * A(i,k);
+	  }
 	}
+      }
+    }
 
-	// Check if SVD output is wrong
-	cmatrix_t diag_S = diag(S,m,n);
-	cmatrix_t temp = U*diag_S;
-	temp = temp * AER::Utils::dagger(V);
-	const auto nrows = temp_A.GetRows();
-	const auto ncols = temp_A.GetColumns();
-	bool equal = true;
-
-	for (uint_t ii=0; ii < nrows; ii++)
-	    for (uint_t jj=0; jj < ncols; jj++)
-	      if (std::real(std::abs(temp_A(ii, jj) - temp(ii, jj))) > THRESHOLD)
-	      {
-	    	  equal = false;
-	      }
-	if( ! equal )
-	{
-	  std::stringstream ss;
-	  ss << "error: wrong SVD calc: A != USV*";
-	  throw std::runtime_error(ss.str());
+    for( k = n-1 -1; k >= 0; k--) {
+      k1 = k + 1;
+      if ( !Linalg::almost_equal(c[k1], 0.0, zero_threshold)) {
+	q = -std::conj( A(k,k1) ) / std::abs( A(k,k1) );
+	
+	for( j = 0; j < n; j++){
+	  V(k1,j) = q * V(k1,j);
 	}
+	
+	for( j = 0; j < n; j++) {
+	  q = complex_t( 0.0, 0.0 );
+	  for( i = k1 ; i < n; i++){
+	    q = q + A(k,i) * V(i,j);
+	  }
+	  q = q / ( std::abs( A(k,k1) ) * c[k1] );
+	  for( i = k1; i < n; i++) {
+	    V(i,j) = V(i,j) - q * std::conj( A(k,i) );
+	  }
+	}
+      }
+    }
+#ifdef DEBUG
+    validate_SVD_result(temp_A, U, S, V);
+#endif
 
-	// Transpose again if m < n
-	if(transposed)
-	  std::swap(U,V);
-
-	return SUCCESS;
+    // Transpose again if m < n
+    if(transposed)
+      std::swap(U,V);
+    
+    return SUCCESS;
 }
 
 
@@ -570,4 +584,6 @@ void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 }
 
 } // namespace AER
+
+
 

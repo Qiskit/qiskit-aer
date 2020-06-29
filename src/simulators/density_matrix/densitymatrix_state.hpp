@@ -21,6 +21,7 @@
 
 #include "framework/utils.hpp"
 #include "framework/json.hpp"
+#include "framework/opset.hpp"
 #include "simulators/state.hpp"
 #include "densitymatrix.hpp"
 #ifdef AER_THRUST_SUPPORTED
@@ -198,6 +199,10 @@ protected:
   // should be left in the pre-snapshot state.
   //-----------------------------------------------------------------------
 
+  // Snapshot reduced density matrix
+  void snapshot_density_matrix(const Operations::Op &op,
+                               ExperimentData &data);
+                          
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
                               ExperimentData &data,
@@ -212,6 +217,11 @@ protected:
   void snapshot_matrix_expval(const Operations::Op &op,
                               ExperimentData &data,
                               bool variance);
+
+  // Return the reduced density matrix for the simulator
+  cmatrix_t reduced_density_matrix(const reg_t &qubits, const reg_t& qubits_sorted);
+  cmatrix_t reduced_density_matrix_cpu(const reg_t &qubits, const reg_t& qubits_sorted);
+  cmatrix_t reduced_density_matrix_thrust(const reg_t &qubits, const reg_t& qubits_sorted);
 
   //-----------------------------------------------------------------------
   // Single-qubit gate helpers
@@ -437,11 +447,7 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
                                 op.name + "\'.");
   switch (it -> second) {
     case Snapshots::densitymatrix:
-      data.add_average_snapshot("density_matrix",
-                                op.string_params[0],
-                                BaseState::creg_.memory_hex(),
-                                BaseState::qreg_.matrix(),
-                                false);
+      snapshot_density_matrix(op, data);
       break;
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);
@@ -516,6 +522,114 @@ void State<densmat_t>::snapshot_pauli_expval(const Operations::Op &op,
                             op.string_params[0],
                             BaseState::creg_.memory_hex(),
                             expval, variance);
+}
+
+
+template <class densmat_t>
+void State<densmat_t>::snapshot_density_matrix(const Operations::Op &op,
+                                               ExperimentData &data) {
+  cmatrix_t reduced_state;
+
+  // Check if tracing over all qubits
+  if (op.qubits.empty()) {
+    reduced_state = cmatrix_t(1, 1);
+    reduced_state[0] = BaseState::qreg_.trace();
+  } else {
+
+    auto qubits_sorted = op.qubits;
+    std::sort(qubits_sorted.begin(), qubits_sorted.end());
+
+    if ((op.qubits.size() == BaseState::qreg_.num_qubits()) && (op.qubits == qubits_sorted)) {
+      reduced_state = BaseState::qreg_.matrix();
+    } else {
+      reduced_state = reduced_density_matrix(op.qubits, qubits_sorted);
+    }
+  }
+
+  data.add_average_snapshot("density_matrix",
+                            op.string_params[0],
+                            BaseState::creg_.memory_hex(),
+                            std::move(reduced_state),
+                            false);
+}
+
+
+template <class statevec_t>
+cmatrix_t State<statevec_t>::reduced_density_matrix(const reg_t &qubits,
+                                                    const reg_t &qubits_sorted) {
+  return reduced_density_matrix_cpu(qubits, qubits_sorted);
+}
+
+#ifdef AER_THRUST_SUPPORTED
+// Thrust specialization must copy memory from device to host
+template <>
+cmatrix_t State<QV::DensityMatrixThrust<float>>::reduced_density_matrix(const reg_t &qubits,
+                                                                       const reg_t &qubits_sorted) {
+  
+  return reduced_density_matrix_thrust(qubits, qubits_sorted);
+}
+
+template <>
+cmatrix_t State<QV::DensityMatrixThrust<double>>::reduced_density_matrix(const reg_t &qubits,
+                                                                       const reg_t &qubits_sorted) {
+  
+  return reduced_density_matrix_thrust(qubits, qubits_sorted);
+}
+#endif
+
+template <class densmat_t>
+cmatrix_t State<densmat_t>::reduced_density_matrix_cpu(const reg_t& qubits, const reg_t& qubits_sorted) {
+
+  // Get superoperator qubits
+  const reg_t squbits = BaseState::qreg_.superop_qubits(qubits);
+  const reg_t squbits_sorted = BaseState::qreg_.superop_qubits(qubits_sorted);
+
+  // Get dimensions
+  const size_t N = qubits.size();
+  const size_t DIM = 1ULL << N;
+  const size_t VDIM = 1ULL << (2 * N);
+  const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);  
+  const size_t SHIFT = END + 1;
+
+  // TODO: If we are not going to apply any additional instructions after
+  //       this function we could move the memory when constructing rather
+  //       than copying
+  const auto& vmat = BaseState::qreg_.data();
+  cmatrix_t reduced_state(DIM, DIM);
+  for (size_t k = 0; k < END; k++) {
+    const auto inds = QV::indexes(squbits, squbits_sorted, k * SHIFT);
+    for (int_t i = 0; i < VDIM; ++i) {
+      reduced_state[i] += complex_t(vmat[inds[i]]);
+    }
+  }
+  return reduced_state;
+}
+  
+
+template <class densmat_t>
+cmatrix_t State<densmat_t>::reduced_density_matrix_thrust(const reg_t& qubits, const reg_t& qubits_sorted) {
+
+  // Get superoperator qubits
+  const reg_t squbits = BaseState::qreg_.superop_qubits(qubits);
+  const reg_t squbits_sorted = BaseState::qreg_.superop_qubits(qubits_sorted);
+
+  // Get dimensions
+  const size_t N = qubits.size();
+  const size_t DIM = 1ULL << N;
+  const size_t VDIM = 1ULL << (2 * N);
+  const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);  
+  const size_t SHIFT = END + 1;
+
+  // Copy vector to host memory
+  auto vmat = BaseState::qreg_.vector();
+  cmatrix_t reduced_state(DIM, DIM);
+  for (size_t k = 0; k < END; k++) {
+    const auto inds = QV::indexes(squbits, squbits_sorted, k * SHIFT);
+    for (int_t i = 0; i < VDIM; ++i) {
+      reduced_state[i] += complex_t(std::move(vmat[inds[i]]));
+    }
+  }
+  return reduced_state;
 }
 
 //=========================================================================
