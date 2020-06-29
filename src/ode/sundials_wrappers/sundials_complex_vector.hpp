@@ -233,7 +233,6 @@ namespace AER {
       auto w_raw = content_t::get_raw_data(w);
       double ret{0.0};
       for (int i = 0; i < len; i++) {
-        //ret += std::norm(w_raw[i]) * std::norm(x_raw[i]);
         ret += std::norm(w_raw[i] * x_raw[i]);
       }
       return std::sqrt(ret / len);

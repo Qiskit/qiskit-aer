@@ -49,7 +49,7 @@ namespace {
       py::array_t<complex_t> y_tmp = rhs(t, y_np);
       // Avoid recreation of y_dot
       auto y_tmp_raw = static_cast<complex_t *>(y_tmp.request().ptr);
-      for(int i = 0; y_tmp.size(); i++){
+      for(int i = 0; i < y_tmp.size(); i++){
         y_dot[i] = y_tmp_raw[i];
       }
     };
