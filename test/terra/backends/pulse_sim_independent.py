@@ -130,7 +130,6 @@ def simulate_2q_exchange_model(y0, q_freqs, r, j, drive_freqs, drive_samples, dt
     where D0(t) and D1(t) are the drive signals given by drive_freqs, drive_samples and dt
     """
 
-
     ZI_diag = np.kron(np.array([1., -1.]), np.array([1., 1.]))
     IZ_diag = np.kron(np.array([1., 1.]), np.array([1., -1.]))
     XI = np.kron(X, I)
@@ -152,7 +151,6 @@ def simulate_3d_oscillator_model(y0, osc_freq, anharm, r, drive_freqs, drive_sam
                + 2 pi r D(t) (a + a^\dagger)
     where D(t) is the drive signal given by drive_freqs, drive_samples and dt
     """
-
 
     drift_diag = -1j * (2 * np.pi * osc_freq * np.array([0., 1., 2.]) +
                         np.pi * anharm * np.array([0., 0., 2.]))

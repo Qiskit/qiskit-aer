@@ -43,7 +43,7 @@ dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 class TestPulseSimulator(common.QiskitAerTestCase):
     r"""PulseSimulator tests."""
-    
+
     def setUp(self):
         """ Set configuration settings for pulse simulator
         WARNING: We do not support Python 3.5 because the digest algorithm relies on dictionary insertion order.
@@ -119,7 +119,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(counts, exp_counts)
 
     def test_x_gate_rwa(self):
-        """Test a schedule for a pi pulse on a 2 level system."""
+        """Test a schedule for a pi pulse on a 2 level system in the rotating frame with a
+        the rotating wave approximation."""
 
         # qubit frequency and drive frequency
         omega_0 = 0.
@@ -273,8 +274,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(counts, exp_counts)
 
     def test_1Q_noise(self):
-        """
-        Tests simulation of noise operators. Uses the same schedule as test_x_gate, but
+        """Tests simulation of noise operators. Uses the same schedule as test_x_gate, but
         with a high level of amplitude damping noise.
         """
 
@@ -317,8 +317,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(counts, exp_counts)
 
     def test_unitary_parallel(self):
-        """
-        Test for parallel solving in unitary simulation. Uses same schedule as test_x_gate but
+        """Test for parallel solving in unitary simulation. Uses same schedule as test_x_gate but
         runs it twice to trigger parallel execution.
         """
         # qubit frequency and drive frequency
@@ -361,9 +360,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
 
     def test_dt_scaling_x_gate(self):
-        """
-        Test that dt is being used correctly by the solver.
-        """
+        """Test that dt is being used correctly by the solver."""
 
         total_samples = 100
         # do the same thing as test_x_gate, but scale dt and all frequency parameters
@@ -429,6 +426,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
     def test_arbitrary_constant_drive(self):
         """Test a few examples w/ arbitary drive, phase and amplitude. """
+
         total_samples = 100
         num_tests = 3
 
@@ -476,6 +474,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                 self.assertGreaterEqual(state_fidelity(pulse_sim_yf, approx_yf), 0.99)
 
     def test_3d_oscillator(self):
+        """Test simulation of a duffing oscillator truncated to 3 dimensions."""
+
         total_samples = 100
 
         freq = 5.
@@ -923,11 +923,11 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         return schedule
 
     def _system_model_2Q(self, j):
-        """Constructs a standard model for a 1 qubit system.
+        """Constructs a model for a 2 qubit system with a U channel controlling coupling and
+        no other Hamiltonian terms.
 
         Args:
-            omega_0 (float): qubit frequency
-            r (float): drive strength
+            j (float): coupling strength
 
         Returns:
             PulseSystemModel: model for qubit system
@@ -951,11 +951,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
 
     def _2Q_constant_sched(self, total_samples, amp=1., u_idx=0):
-        """Creates a runnable schedule for 1Q with a constant drive pulse of a given length.
+        """Creates a runnable schedule with a single pulse on a U channel for two qubits.
 
         Args:
             total_samples (int): length of pulse
             amp (float): amplitude of constant pulse (can be complex)
+            u_idx (int): index of U channel
 
         Returns:
             schedule (pulse schedule): schedule with a drive pulse followed by an acquire
@@ -973,7 +974,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
     def _system_model_3Q(self, j, subsystem_list=[0, 2]):
         """Constructs a model for a 3 qubit system, with the goal that the restriction to
-        [0, 2] and to qubits [1, 2] is the same
+        [0, 2] and to qubits [1, 2] is the same as in _system_model_2Q
 
         Args:
             j (float): coupling strength
@@ -999,11 +1000,14 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                 dt=dt)
 
     def _3Q_constant_sched(self, total_samples, amp=1., u_idx=0, subsystem_list=[0, 2]):
-        """Creates a runnable schedule for 1Q with a constant drive pulse of a given length.
+        """Creates a runnable schedule for the 3Q system after the system is restricted to
+        2 qubits.
 
         Args:
             total_samples (int): length of pulse
             amp (float): amplitude of constant pulse (can be complex)
+            u_idx (int): index of U channel
+            subsystem_list (list): list of qubits to restrict to
 
         Returns:
             schedule (pulse schedule): schedule with a drive pulse followed by an acquire
@@ -1021,7 +1025,16 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         return schedule
 
     def _system_model_3d_oscillator(self, freq, anharm, r):
-        """model for 3 level duffing oscillator."""
+        """Model for a duffing oscillator truncated to 3 dimensions.
+
+        Args:
+            freq (float): frequency of the oscillator
+            anharm (float): anharmonicity of the oscillator
+            r (float): drive strength
+
+        Returns:
+            PulseSystemModel: model for oscillator system
+        """
         hamiltonian = {}
         hamiltonian['h_str'] = ['np.pi*(2*v-alpha)*O0',
                                 'np.pi*alpha*O0*O0',
