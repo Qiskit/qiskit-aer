@@ -1,14 +1,11 @@
 name: Build
-
-on: [push, pull_request]
-
+on:
+  pull_request:
+    branches: [master]
 jobs:
-  build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-18.04]
+  build:
+    name: Build qiskit-aer-gpu wheels
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
