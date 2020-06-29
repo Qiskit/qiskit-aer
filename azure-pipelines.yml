@@ -71,6 +71,7 @@ stages:
 
   - stage: 'Compile'
     dependsOn: []
+    jobs:
       - job: 'Windows_Wheel_Builds'
         pool: {vmImage: 'vs2017-win2016'}
         strategy:
