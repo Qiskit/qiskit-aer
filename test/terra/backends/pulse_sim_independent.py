@@ -13,6 +13,18 @@ Y = np.array([[0., -1j], [1j, 0.]])
 Z = np.array([[1., 0.], [0., -1.]])
 
 def channel_values(channel_freqs, channel_samples, dt, t):
+    """Computes value of channels with given frequencies, samples, sample size and current time.
+
+    Args:
+        channel_freqs (array): 1d array of channel frequencies
+        channel_samples (array): 2d array of channel samples, the first index being time step and
+                                 the second index indexing channel
+        dt (float): size of each sample
+        t (float): current time
+
+    Returns:
+        array: array of channel values at the given time
+    """
 
     sample_idx = int(t // dt)
     if sample_idx >= len(channel_samples):
@@ -23,10 +35,14 @@ def channel_values(channel_freqs, channel_samples, dt, t):
     return np.real(sample_vals * np.exp(1j * 2 * np.pi * channel_freqs * t))
 
 def generator(drift, control_ops, chan_vals):
+    """Compute the generator
+       g = drift + chan_vals[0] * control_ops[0] + ... + chan_vals[0] * control_ops[0]
+    """
+
     return drift +  np.tensordot(chan_vals, control_ops, axes=1)
 
 def generator_in_frame(drift, control_ops, chan_vals, diag_frame, t):
-    """ Get the generator in the frame specified by diag_frame
+    """Get the generator in the frame specified by diag_frame
 
     Args:
         drift (array): 2d drift generator
@@ -35,6 +51,9 @@ def generator_in_frame(drift, control_ops, chan_vals, diag_frame, t):
         diag_frame (array): 1d array representing an already diagonalized frame operator
                             assumed to be purely imaginary
         t (float): time
+
+    Returns:
+        array: generator in the given frame
     """
 
     G = generator(drift - np.diag(diag_frame), control_ops, chan_vals)
@@ -47,8 +66,22 @@ def generator_in_frame(drift, control_ops, chan_vals, diag_frame, t):
 
 def simulate_system(y0, drift, control_ops, channel_freqs, channel_samples, dt, diag_frame):
     """Simulate the DE y' = G(t) @ y, where G(t) = drift + a0(t) * A0 + ... + ak(t) Ak, where
-       control_ops = [A0, ..., Ak], and the aj(t) are the values of the signals specified
-       by channel_freqs and channel_samples
+    control_ops = [A0, ..., Ak], and the aj(t) are the values of the signals specified
+    by channel_freqs, channel_samples, and dt
+
+    Args:
+        y0 (array): initial state
+        drift (array): 2d drift generator
+        control_ops (array): 3d array representing a list of control operators
+        channel_freqs (array): 1d array of channel frequencies
+        channel_samples (array): 2d array of channel samples, the first index being time step and
+                                 the second index indexing channel
+        dt (float): size of each sample
+        diag_frame (array): 1d array representing an already diagonalized frame operator
+                            assumed to be purely imaginary
+
+    Returns:
+        array: final state of the DE
     """
 
     # if all channel freqs are 0 simulate using matrix exponentiation
@@ -78,6 +111,9 @@ def simulate_system(y0, drift, control_ops, channel_freqs, channel_samples, dt, 
         return yf
 
 def simulate_1q_model(y0, q_freq, r, drive_freqs, drive_samples, dt):
+    """Simulate a basic 1 qubit model H(t) = 2 pi q_freq Z / 2 + 2 pi r D(t) * X / 2,
+    where D(t) is the drive signal given by drive_freqs, drive_samples and dt
+    """
 
     drift = -1j * 2 * np.pi * q_freq * Z / 2
     control_ops = -1j * np.array([ 2 * np.pi * r * X / 2 ])
@@ -87,6 +123,13 @@ def simulate_1q_model(y0, q_freq, r, drive_freqs, drive_samples, dt):
     return simulate_system(y0, drift, control_ops, drive_freqs, drive_samples, dt, frame_op)
 
 def simulate_2q_exchange_model(y0, q_freqs, r, j, drive_freqs, drive_samples, dt):
+    """Simulate a basic 2 qubit model
+        H(t) = 2 pi q_freq[0] Z0 / 2 + 2 pi r D0(t) * X0 / 2
+               + 2 pi q_freq[1] Z1 / 2 + 2 pi r D1(t) * X1 / 2
+               + 2 pi j (I0I1 + X0X1 + Y0Y1 + Z0Z1) / 2
+    where D0(t) and D1(t) are the drive signals given by drive_freqs, drive_samples and dt
+    """
+
 
     ZI_diag = np.kron(np.array([1., -1.]), np.array([1., 1.]))
     IZ_diag = np.kron(np.array([1., 1.]), np.array([1., -1.]))
@@ -104,6 +147,12 @@ def simulate_2q_exchange_model(y0, q_freqs, r, j, drive_freqs, drive_samples, dt
     return simulate_system(y0, drift, control_ops, drive_freqs, drive_samples, dt, drift_diag)
 
 def simulate_3d_oscillator_model(y0, osc_freq, anharm, r, drive_freqs, drive_samples, dt):
+    """Simulate a basic duffing odscillator model truncated at 3 dimensions, with
+        H(t) = 2 pi osc_freq[0] a^\dagger a + 2 pi anharm (a^\dagger a)(a^dagger a - 1)
+               + 2 pi r D(t) (a + a^\dagger)
+    where D(t) is the drive signal given by drive_freqs, drive_samples and dt
+    """
+
 
     drift_diag = -1j * (2 * np.pi * osc_freq * np.array([0., 1., 2.]) +
                         np.pi * anharm * np.array([0., 0., 2.]))
