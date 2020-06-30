@@ -29,7 +29,7 @@ from .pulse_utils import (cy_expect_psi_csr, occ_probabilities, write_shots_memo
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
-def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=PulseSimOptions()):
+def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=None):
     """ Runs monte carlo experiments for a given op_system
 
     Parameters:
@@ -43,6 +43,8 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=P
     Raises:
         Exception: if initial state is of incorrect format
     """
+
+    solver_options = PulseSimOptions() if solver_options is None else solver_options
 
     if not pulse_sim_desc.initial_state.isket:
         raise Exception("Initial state must be a state vector.")
@@ -98,7 +100,7 @@ def monte_carlo_evolution(seed,
                           y0,
                           pulse_sim_desc,
                           pulse_de_model,
-                          solver_options=PulseSimOptions()):
+                          solver_options=None):
     """ Performs a single monte carlo run for the given op_system, experiment, and seed
 
     Parameters:
@@ -115,6 +117,8 @@ def monte_carlo_evolution(seed,
     Raises:
         Exception: if ODE solving has errors
     """
+
+    solver_options = PulseSimOptions() if solver_options is None else solver_options
 
     rng = np.random.RandomState(seed)
     tlist = exp['tlist']

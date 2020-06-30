@@ -28,7 +28,7 @@ class StateTypeConverter:
     converting states and rhs functions between representations.
 
     While this class stores exact type specifications, it can be instantiated with a
-    concrete type and a more general type. This is facilitates the situation
+    concrete type and a more general type. This facilitates the situation
     in which a solver requires a 1d array, which is specified by the type:
         - {'type': 'array', 'ndim': 1}
     """

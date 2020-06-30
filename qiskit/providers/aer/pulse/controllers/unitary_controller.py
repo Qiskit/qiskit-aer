@@ -30,11 +30,14 @@ from .pulse_utils import occ_probabilities, write_shots_memory
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 
-def _full_simulation(exp, y0, pulse_sim_desc, pulse_de_model, solver_options=PulseSimOptions()):
+def _full_simulation(exp, y0, pulse_sim_desc, pulse_de_model, solver_options=None):
     """
     Set up full simulation, i.e. combining different (ideally modular) computational
     resources into one function.
     """
+
+    solver_options = PulseSimOptions() if solver_options is None else solver_options
+
     psi, ode_t = unitary_evolution(exp, y0, pulse_de_model, solver_options)
 
     # ###############
@@ -63,7 +66,7 @@ def _full_simulation(exp, y0, pulse_sim_desc, pulse_de_model, solver_options=Pul
     return [memory, psi, ode_t]
 
 
-def run_unitary_experiments(pulse_sim_desc, pulse_de_model, solver_options=PulseSimOptions()):
+def run_unitary_experiments(pulse_sim_desc, pulse_de_model, solver_options=None):
     """ Runs unitary experiments for a given op_system
 
     Parameters:
@@ -77,6 +80,8 @@ def run_unitary_experiments(pulse_sim_desc, pulse_de_model, solver_options=Pulse
     Raises:
         Exception: if initial state is of incorrect format
     """
+
+    solver_options = PulseSimOptions() if solver_options is None else solver_options
 
     if not pulse_sim_desc.initial_state.isket:
         raise Exception("Initial state must be a state vector.")
@@ -109,7 +114,7 @@ def run_unitary_experiments(pulse_sim_desc, pulse_de_model, solver_options=Pulse
     return exp_results, exp_times
 
 
-def unitary_evolution(exp, y0, pulse_de_model, solver_options=PulseSimOptions()):
+def unitary_evolution(exp, y0, pulse_de_model, solver_options=None):
     """
     Calculates evolution when there is no noise, or any measurements that are not at the end
     of the experiment.
@@ -126,6 +131,8 @@ def unitary_evolution(exp, y0, pulse_de_model, solver_options=PulseSimOptions())
     Raises:
         Exception: if ODE solving has errors
     """
+
+    solver_options = PulseSimOptions() if solver_options is None else solver_options
 
     ODE = setup_de_solver(exp, y0, pulse_de_model, solver_options.de_options)
 
