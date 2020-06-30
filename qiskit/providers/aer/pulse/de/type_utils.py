@@ -43,10 +43,7 @@ class StateTypeConverter:
 
         self.inner_type_spec = inner_type_spec
 
-        if outer_type_spec is not None:
-            self.outer_type_spec = outer_type_spec
-        else:
-            self.outer_type_spec = self.inner_type_spec
+        self.outer_type_spec = self.inner_type_spec if outer_type_spec is None else outer_type_spec
 
     @classmethod
     def from_instances(cls, inner_y, outer_y=None):
