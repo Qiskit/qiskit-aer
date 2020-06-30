@@ -47,8 +47,8 @@ namespace AER {
       void set_maximum_order(int order);
       void set_max_nsteps(int max_step);
 
-      int get_num_steps();
-      int get_num_rhs_evals();
+      long int get_num_steps();
+      long int get_num_rhs_evals();
       double get_last_step();
       double get_current_step();
 
