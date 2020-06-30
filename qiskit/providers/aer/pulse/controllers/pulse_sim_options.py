@@ -117,8 +117,6 @@ class PulseSimOptions():
                                norm_tol=self.norm_tol,
                                norm_steps=self.norm_steps,
                                progress_bar=self.progress_bar,
-                               rhs_reuse=self.rhs_reuse,
-                               rhs_filename=self.rhs_filename,
                                shots=self.shots,
                                store_final_state=self.store_final_state,
                                seeds=self.seeds,
