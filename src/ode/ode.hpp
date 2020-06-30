@@ -21,7 +21,7 @@ namespace AER {
 
       virtual double get_t() = 0;
       virtual const T& get_solution() const = 0;
-      virtual const T& get_sens_solution(uint i)  {
+      virtual const T& get_sens_solution(unsigned int i)  {
         throw std::runtime_error("This ODE solver lacks sensitivities computation feature.");
       };
 

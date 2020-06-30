@@ -34,7 +34,6 @@ namespace {
   using Cvode_Wrapper_t = AER::ODE::CvodeWrapper<std::vector<complex_t>>;
   using ABM_Wrapper_t = AER::ODE::ABMWrapper<std::vector<complex_t>>;
 
-//  using rhsFuncType = std::function<std::vector<complex_t>(double, const py::array_t <complex_t> &)>;
   using rhsFuncType = std::function<py::array_t<complex_t>(double, const py::array_t<complex_t> &)>;
   using pertFuncType = std::function<void(const py::array_t<double> &)>;
 
@@ -44,7 +43,7 @@ namespace {
                                                             rhsFuncType rhs) {
     auto func = [rhs](double t, const std::vector<complex_t> &y, std::vector<complex_t> &y_dot) {
       //pass a referece to the vector avoiding destruction on python side
-      auto capsule = py::capsule(&y, [](void *y) {});
+      auto capsule = py::capsule(&y, [](void *y_in) {});
       auto y_np = py::array_t<complex_t>(y.size(), y.data(), capsule);
       py::array_t<complex_t> y_tmp = rhs(t, y_np);
       // Avoid recreation of y_dot
@@ -58,7 +57,7 @@ namespace {
 
   std::function<void(const std::vector<double> &)> adapt_to_cpp(pertFuncType fp){
     auto pert_func = [fp](const std::vector<double> &p) {
-      auto capsule = py::capsule(&p, [](void *p) {});
+      auto capsule = py::capsule(&p, [](void *p_in) {});
       auto p_np = py::array_t<double>(p.size(), p.data(), capsule);
       fp(p_np);
     };

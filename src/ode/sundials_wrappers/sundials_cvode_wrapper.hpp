@@ -14,12 +14,7 @@
 namespace AER {
   namespace ODE {
     void error_handler(int error_code, const char *module, const char *function, char *msg,
-                       void *eh_data) {
-      if (error_code <= 0) {
-        throw std::runtime_error(std::string(msg) +
-                                 " Sundials error code: " + std::to_string(error_code));
-      }
-    }
+                       void *eh_data);
 
     // Wrapper for Sundials Adams solver.
     template<typename T>
@@ -39,7 +34,7 @@ namespace AER {
 
       double get_t() { return t_; };
       const T &get_solution() const;
-      const T &get_sens_solution(uint i);
+      const T &get_sens_solution(unsigned int i);
 
       void set_t(double t);
       void set_solution(const T& y0);
@@ -210,7 +205,7 @@ namespace AER {
     }
 
     template<typename T>
-    const T &CvodeWrapper<T>::get_sens_solution(uint i) {
+    const T &CvodeWrapper<T>::get_sens_solution(unsigned int i) {
 
       if (i >= udf_->p.size()) {
         throw std::range_error("Trying to get sensitivity component outside limits");
@@ -291,15 +286,15 @@ namespace AER {
     }
 
     template<typename T>
-    int CvodeWrapper<T>::get_num_steps(){
-      int nsteps;
+    long int CvodeWrapper<T>::get_num_steps(){
+      long int nsteps;
       CVodeGetNumSteps(cvode_mem_.get(), &nsteps);
       return nsteps;
     }
 
     template<typename T>
-    int CvodeWrapper<T>::get_num_rhs_evals(){
-      int nevals;
+    long int CvodeWrapper<T>::get_num_rhs_evals(){
+      long int nevals;
       CVodeGetNumRhsEvals(cvode_mem_.get(), &nevals);
       return nevals;
     }
@@ -317,7 +312,15 @@ namespace AER {
       CVodeGetCurrentStep(cvode_mem_.get(), &current_step);
       return current_step;
     }
-  }
-}
+
+    void error_handler(int error_code, const char *module, const char *function, char *msg,
+                       void *eh_data) {
+      if (error_code <= 0) {
+        throw std::runtime_error(std::string(msg) +
+                                 " Sundials error code: " + std::to_string(error_code));
+      }
+    }
+  } // End namespace ODE
+} // End namespace AER
 
 #endif //QASM_SIMULATOR_CVODE_WRAPPER_HPP
