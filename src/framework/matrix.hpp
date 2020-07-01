@@ -519,8 +519,8 @@ void matrix<T>::resize(size_t rows, size_t cols) {
     return;
   size_ = rows * cols;
   T *tempmat = malloc_array<T>(size_);
-  for (size_t i = 0; i < rows; i++)
-    for (size_t j = 0; j < cols; j++)
+  for (size_t j = 0; j < cols; j++)
+    for (size_t i = 0; i < rows; i++)
       if (i < rows_ && j < cols_)
         tempmat[j * rows + i] = data_[j * rows_ + i];
       else

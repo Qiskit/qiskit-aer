@@ -595,7 +595,7 @@ cmatrix_t State<densmat_t>::reduced_density_matrix_cpu(const reg_t& qubits, cons
   //       this function we could move the memory when constructing rather
   //       than copying
   const auto& vmat = BaseState::qreg_.data();
-  cmatrix_t reduced_state(DIM, DIM);
+  cmatrix_t reduced_state(DIM, DIM, false);
   {
     // Fill matrix with first iteration
     const auto inds = QV::indexes(squbits, squbits_sorted, 0);
@@ -630,7 +630,7 @@ cmatrix_t State<densmat_t>::reduced_density_matrix_thrust(const reg_t& qubits, c
 
   // Copy vector to host memory
   auto vmat = BaseState::qreg_.vector();
-  cmatrix_t reduced_state(DIM, DIM);
+  cmatrix_t reduced_state(DIM, DIM, false);
   {
     // Fill matrix with first iteration
     const auto inds = QV::indexes(squbits, squbits_sorted, 0);
