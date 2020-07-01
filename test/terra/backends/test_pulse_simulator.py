@@ -175,7 +175,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         counts = result.get_counts()
         exp_counts = {'0': 256}
         self.assertDictAlmostEqual(counts, exp_counts)
-
+    
     def test_dt_scaling_x_gate(self):
         """
         Test that dt is being used correctly by the solver.
