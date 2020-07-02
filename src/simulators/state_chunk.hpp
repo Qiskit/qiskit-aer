@@ -127,6 +127,14 @@ public:
   virtual void set_config(const json_t &config);
 
   //-----------------------------------------------------------------------
+  // Optional: Add information to metadata 
+  //-----------------------------------------------------------------------
+
+  // Every state can add information to the metadata structure
+  virtual void add_metadata(ExperimentData &data) const {
+  }
+
+  //-----------------------------------------------------------------------
   // Optional: measurement sampling
   //
   // This method is only required for a State subclass to be compatible with

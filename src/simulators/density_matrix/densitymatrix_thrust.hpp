@@ -19,6 +19,7 @@
 #include "framework/utils.hpp"
 #include "simulators/unitary/unitarymatrix_thrust.hpp"
 
+
 namespace QV {
 
 //============================================================================
@@ -70,6 +71,10 @@ public:
 
   // Returns the number of qubits for the superoperator
   virtual uint_t num_qubits() const override {return BaseMatrix::num_qubits_;}
+
+  // Convert qubit indicies to vectorized-density matrix qubitvector indices
+  // For the QubitVector apply matrix function
+  virtual reg_t superop_qubits(const reg_t &qubits) const;
 
   //-----------------------------------------------------------------------
   // Apply Matrices
@@ -148,11 +153,6 @@ public:
   double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
 
 protected:
-
-  // Convert qubit indicies to vectorized-density matrix qubitvector indices
-  // For the QubitVector apply matrix function
-  virtual reg_t superop_qubits(const reg_t &qubits) const;
-
   // Construct a vectorized superoperator from a vectorized matrix
   // This is equivalent to vec(tensor(conj(A), A))
   cvector_t<double> vmat2vsuperop(const cvector_t<double> &vmat) const;
@@ -221,8 +221,9 @@ template <typename data_t>
 reg_t DensityMatrixThrust<data_t>::superop_qubits(const reg_t &qubits) const {
   reg_t superop_qubits = qubits;
   // Number of qubits
+  const auto nq = num_qubits();
   for (const auto q: qubits) {
-    superop_qubits.push_back(q + num_qubits());
+    superop_qubits.push_back(q + nq);
   }
   return superop_qubits;
 }
@@ -823,7 +824,13 @@ double DensityMatrixThrust<data_t>::expval_pauli(const reg_t &qubits,
       phase = thrust::complex<data_t>(0, 1);
       break;
   }
-  return BaseVector::chunk_->ExecuteSum(density_expval_pauli_func<data_t>(num_qubits(),x_mask,z_mask,phase),BaseMatrix::num_rows());
+
+  double ret =  BaseVector::chunk_->ExecuteSum(density_expval_pauli_func<data_t>(num_qubits(),x_mask,z_mask,phase),BaseMatrix::num_rows());
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::expval_pauli",ret);
+#endif
+
+  return ret;
 }
 
 

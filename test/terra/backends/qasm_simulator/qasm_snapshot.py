@@ -17,11 +17,13 @@ import logging
 import itertools as it
 import numpy as np
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, execute
+import qiskit.quantum_info as qi
 from qiskit.compiler import assemble
 from qiskit.quantum_info import DensityMatrix, Pauli, Operator
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import AerError
+from qiskit.providers.aer.extensions import Snapshot
 
 from test.terra.reference.ref_snapshot_state import (
     snapshot_state_circuits_deterministic, snapshot_state_counts_deterministic,
@@ -348,154 +350,48 @@ class QasmSnapshotDensityMatrixTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
-        'automatic', 'density_matrix', 'density_matrix_gpu',
+        'automatic',
+        'statevector',
+        'statevector_gpu',
+        'statevector_thrust',
+        'density_matrix',
+        'density_matrix_gpu',
         'density_matrix_thrust'
     ]
     BACKEND_OPTS = {}
 
-    def density_snapshots(self, data, label):
-        """Format snapshots as list of Numpy arrays"""
-        # Check snapshot entry exists in data
-        snaps = data.get("snapshots", {}).get("density_matrix",
-                                              {}).get(label, [])
-        # Convert nested lists to numpy arrays
-        output = {}
-        for snap_dict in snaps:
-            memory = snap_dict['memory']
-            self.assertIsInstance(snap_dict['value'], np.ndarray)
-            output[memory] = snap_dict['value']
-        return output
-
-    def test_snapshot_density_matrix_pre_measure_det(self):
-        """Test snapshot density matrix before deterministic final measurement"""
-        shots = 10
-        label = "snap"
-        counts_targets = snapshot_state_counts_deterministic(shots)
-        statevec_targets = snapshot_state_pre_measure_statevector_deterministic(
-        )
-        circuits = snapshot_state_circuits_deterministic(label,
-                                                         'density_matrix',
-                                                         post_measure=False)
-
-        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
-        result = job.result()
-        success = getattr(result, 'success', False)
+    def test_density_matrix_snapshot_ideal(self):
+        seed = 500
+        op = qi.random_unitary(8, seed=seed)
+        circ = QuantumCircuit(3)
+        circ.append(op, [0, 1, 2])
         method = self.BACKEND_OPTS.get('method', 'automatic')
-        if method not in QasmSnapshotDensityMatrixTests.SUPPORTED_QASM_METHODS:
-            self.assertFalse(success)
-        else:
-            self.assertTrue(success)
-            self.compare_counts(result, circuits, counts_targets, delta=0)
-            # Check snapshots
-            for j, circuit in enumerate(circuits):
-                data = result.data(circuit)
-                snaps = self.density_snapshots(data, label)
-                self.assertTrue(len(snaps), 1)
-                target = np.outer(statevec_targets[j],
-                                  statevec_targets[j].conj())
-                # Pre-measurement all memory bits should be 0
-                value = snaps.get('0x0')
-                self.assertTrue(np.allclose(value, target))
-
-    def test_snapshot_density_matrix_pre_measure_nondet(self):
-        """Test snapshot density matrix before non-deterministic final measurement"""
-        shots = 100
-        label = "snap"
-        counts_targets = snapshot_state_counts_nondeterministic(shots)
-        statevec_targets = snapshot_state_pre_measure_statevector_nondeterministic(
-        )
-        circuits = snapshot_state_circuits_nondeterministic(label,
-                                                            'density_matrix',
-                                                            post_measure=False)
-
-        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
-        result = job.result()
-        success = getattr(result, 'success', False)
-        method = self.BACKEND_OPTS.get('method', 'automatic')
-        if method not in QasmSnapshotDensityMatrixTests.SUPPORTED_QASM_METHODS:
-            self.assertFalse(success)
-        else:
-            self.assertTrue(success)
-            self.compare_counts(result,
-                                circuits,
-                                counts_targets,
-                                delta=0.2 * shots)
-            # Check snapshots
-            for j, circuit in enumerate(circuits):
-                data = result.data(circuit)
-                snaps = self.density_snapshots(data, label)
-                self.assertTrue(len(snaps), 1)
-                target = np.outer(statevec_targets[j],
-                                  statevec_targets[j].conj())
-                value = snaps.get('0x0')
-                self.assertTrue(np.allclose(value, target))
-
-    def test_snapshot_density_matrix_post_measure_det(self):
-        """Test snapshot density matrix after deterministic final measurement"""
-        shots = 10
-        label = "snap"
-        counts_targets = snapshot_state_counts_deterministic(shots)
-        statevec_targets = snapshot_state_post_measure_statevector_deterministic(
-        )
-        circuits = snapshot_state_circuits_deterministic(label,
-                                                         'density_matrix',
-                                                         post_measure=True)
-
-        qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
-        result = job.result()
-        success = getattr(result, 'success', False)
-        method = self.BACKEND_OPTS.get('method', 'automatic')
-        if method not in QasmSnapshotDensityMatrixTests.SUPPORTED_QASM_METHODS:
-            self.assertFalse(success)
-        else:
-            self.assertTrue(success)
-            self.compare_counts(result, circuits, counts_targets, delta=0)
-            # Check snapshots
-            for i, circuit in enumerate(circuits):
-                data = result.data(circuit)
-                snaps = self.density_snapshots(data, label)
-                for j, mem in enumerate(data['memory']):
-                    target = statevec_targets[i].get(mem)
-                    target = np.outer(target, target.conj())
-                    value = snaps.get(mem)
-                    self.assertTrue(np.allclose(value, target))
-
-    def test_snapshot_density_matrix_post_measure_nondet(self):
-        """Test snapshot density matrix after non-deterministic final measurement"""
-        shots = 100
-        label = "snap"
-        counts_targets = snapshot_state_counts_nondeterministic(shots)
-        statevec_targets = snapshot_state_post_measure_statevector_nondeterministic(
-        )
-        circuits = snapshot_state_circuits_nondeterministic(label,
-                                                            'density_matrix',
-                                                            post_measure=True)
-
-        qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
-        result = job.result()
-        success = getattr(result, 'success', False)
-        method = self.BACKEND_OPTS.get('method', 'automatic')
-        if method not in QasmSnapshotDensityMatrixTests.SUPPORTED_QASM_METHODS:
-            self.assertFalse(success)
-        else:
-            self.assertTrue(success)
-            self.compare_counts(result,
-                                circuits,
-                                counts_targets,
-                                delta=0.2 * shots)
-            # Check snapshots
-            for i, circuit in enumerate(circuits):
-                data = result.data(circuit)
-                snaps = self.density_snapshots(data, label)
-                for j, mem in enumerate(data['memory']):
-                    target = statevec_targets[i].get(mem)
-                    target = np.outer(target, target.conj())
-                    value = snaps.get(mem)
-                    self.assertTrue(np.allclose(value, target))
+        label = 'density_matrix'
+        snap_qargs = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0],
+                      [0, 1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1],
+                      [0], [1], [2]]
+        evolve_qargs = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [2, 0, 1], [1, 2, 0], [2, 1, 0],
+                        [0, 1, 2], [1, 0, 2], [0, 2, 1], [1, 2, 0], [2, 0, 1], [2, 1, 0],
+                        [0, 1, 2], [1, 0, 2], [2, 1, 0]]
+        for squbits, equbits in zip(snap_qargs, evolve_qargs):
+            with self.subTest(msg='qubits={}'.format(squbits)):
+                num_qubits = len(squbits)
+                tmp = circ.copy()
+                tmp.append(Snapshot(label, 'density_matrix', num_qubits), squbits)
+                result = execute(tmp, self.SIMULATOR,
+                                 backend_options=self.BACKEND_OPTS).result()
+                if method not in QasmSnapshotDensityMatrixTests.SUPPORTED_QASM_METHODS:
+                    self.assertFalse(result.success)
+                else:
+                    self.assertSuccess(result)
+                    snapshots = result.data(0)['snapshots']['density_matrix']
+                    value = qi.DensityMatrix(snapshots[label][0]['value'])
+                    target = qi.DensityMatrix.from_label(3 * '0').evolve(circ, equbits)
+                    if num_qubits == 2:
+                        target = qi.partial_trace(target, [2])
+                    elif num_qubits == 1:
+                        target = qi.partial_trace(target, [1, 2])
+                    self.assertEqual(value, target)
 
 
 class QasmSnapshotProbabilitiesTests:
