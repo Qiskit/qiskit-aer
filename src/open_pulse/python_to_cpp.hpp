@@ -330,13 +330,6 @@ class NpArray {
         return data[index];
     }
 
-    NpArray& operator=(const NpArray<VecType>& other){
-		data = reinterpret_cast<VecType *>(other.data);
-        size = other.size;
-		shape = other.shape;
-		return *this;
-	}
-
     bool operator==(const NpArray<VecType>& other) const {
         if(other.size != size ||
            other.shape.size() != shape.size())

@@ -25,8 +25,7 @@ from .digest_pulse_qobj import digest_pulse_qobj
 from .pulse_sim_options import PulseSimOptions
 from .unitary_controller import run_unitary_experiments
 from .mc_controller import run_monte_carlo_experiments
-from .pulse_utils import td_ode_rhs_static
-
+from .pulse_utils import get_ode_rhs_functor
 
 def pulse_controller(qobj, system_model, backend_options):
     """ Interprets PulseQobj input, runs simulations, and returns results
@@ -433,8 +432,9 @@ class PulseInternalDEModel:
         # Init register
         register = np.ones(self.n_registers, dtype=np.uint8)
 
+        ode_rhs_obj = get_ode_rhs_functor(self._rhs_dict, exp, self.system, channels, register)
         def rhs(t, y):
-            return td_ode_rhs_static(t, y, self._rhs_dict, exp, self.system, channels, register)
+            return ode_rhs_obj(t, y);
 
         return rhs
 
