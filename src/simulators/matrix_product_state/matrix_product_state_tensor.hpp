@@ -54,7 +54,7 @@ public:
   MPS_Tensor(){}
   explicit MPS_Tensor(complex_t& alpha, complex_t& beta){
     //    matrix<complex_t> A = matrix<complex_t>(1), B = matrix<complex_t>(1);
-    cmatrix_t A = cmatrix_t(1), B = cmatrix_t(1);
+    cmatrix_t A = cmatrix_t(1, 1), B = cmatrix_t(1, 1);
     A(0,0) = alpha;
     B(0,0) = beta;
     data_.push_back(A);
