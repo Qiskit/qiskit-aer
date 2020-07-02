@@ -802,12 +802,7 @@ cmatrix_t NoiseModel::op2superop(const Operations::Op &op) const {
     case Operations::OpType::superop:
       return op.mats[0];
     case Operations::OpType::kraus: {
-      const auto dim = op.mats[0].GetRows();
-      cmatrix_t mat(dim * dim, dim * dim);
-      for (const auto& kraus : op.mats) {
-        mat += Utils::unitary_superop(kraus);
-      }
-      return mat;
+      return Utils::kraus_superop(op.mats);
     }
     case Operations::OpType::reset:
       return Utils::SMatrix::reset(1ULL << op.qubits.size());
