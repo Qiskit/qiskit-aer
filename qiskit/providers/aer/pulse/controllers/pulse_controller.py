@@ -434,7 +434,7 @@ class PulseInternalDEModel:
 
         ode_rhs_obj = get_ode_rhs_functor(self._rhs_dict, exp, self.system, channels, register)
         def rhs(t, y):
-            return ode_rhs_obj(t, y);
+            return ode_rhs_obj(t, y)
 
         return rhs
 
