@@ -5476,8 +5476,8 @@ public:
     q1 = vec[idx ^ x_mask_];
     q0p = q1 * phase_;
     q1p = q0 * phase_;
-    ret =           q0.real()*q0p.real() + q0.imag()*q0p.imag() + 
-          sign_ * q1.real()*q1p.real() + q1.imag()*q1p.imag();
+    ret =         q0.real()*q0p.real() + q0.imag()*q0p.imag() + 
+         sign_ * (q1.real()*q1p.real() + q1.imag()*q1p.imag());
 
     if(z_mask_ != 0){
       uint_t count;
