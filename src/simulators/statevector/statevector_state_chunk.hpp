@@ -608,8 +608,17 @@ uint_t State<statevec_t>::apply_blocking(const std::vector<Operations::Op> &ops,
           case Operations::OpType::sim_op:
             if(ops[iOp].name == "end_blocking"){
               inBlock = false;
+#ifdef MSVC
+#pragma omp critical
+              {
+#else
 #pragma omp atomic write
+#endif
               iEnd = iOp;
+#ifdef MSVC
+              }
+#endif
+              {
             }
             break;
           default:
@@ -625,8 +634,16 @@ uint_t State<statevec_t>::apply_blocking(const std::vector<Operations::Op> &ops,
     }
 
     if(iOp >= nOp){
+#ifdef MSVC
+#pragma omp critical
+              {
+#else
 #pragma omp atomic write
+#endif
       iEnd = iOp;
+#ifdef MSVC
+              }
+#endif
     }
 
     BaseState::qregs_[iChunk].release_chunk();
