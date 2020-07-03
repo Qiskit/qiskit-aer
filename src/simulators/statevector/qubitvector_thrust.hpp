@@ -753,7 +753,7 @@ void DeviceChunkContainer<data_t>::StoreMatrix(const std::vector<std::complex<do
 #else
   uint_t offset;
   if(iChunk >= this->num_chunks_)
-    offset = (num_matrices_ + iChunk - this->num_chunk_) << (matrix_bits_*2);
+    offset = (num_matrices_ + iChunk - this->num_chunks_) << (matrix_bits_*2);
   else
     offset = iChunk << (matrix_bits_*2);
   thrust::copy_n(mat.begin(),mat.size(),matrix_.begin() + offset);
@@ -783,7 +783,7 @@ void DeviceChunkContainer<data_t>::StoreUintParams(const std::vector<uint_t>& pr
 #else
   uint_t offset;
   if(iChunk >= this->num_chunks_)
-    offset = (num_matrices_ + iChunk - this->num_chunk_) << (matrix_bits_ + 2);
+    offset = (num_matrices_ + iChunk - this->num_chunks_) << (matrix_bits_ + 2);
   else
     offset = iChunk << (matrix_bits_ + 2);
   thrust::copy_n(prm.begin(),prm.size(),params_.begin() + offset);
