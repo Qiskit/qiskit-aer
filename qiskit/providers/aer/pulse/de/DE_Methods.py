@@ -27,7 +27,7 @@ from scipy.integrate import ode, solve_ivp
 from scipy.integrate._ode import zvode
 from .DE_Options import DE_Options
 from .type_utils import StateTypeConverter
-
+from ..controllers.pulse_utils import create_wrapper_integrator
 
 class ODE_Method(ABC):
     """Abstract wrapper class for an ODE solving method, providing an expected interface
@@ -122,7 +122,12 @@ class ODE_Method(ABC):
         # set internal state
         self._y = self._state_type_converter.outer_to_inner(new_y)
 
+        self._set_y_impl()
+
         self._reset_method(reset)
+
+    def _set_y_impl(self):
+        pass
 
     def set_rhs(self, rhs=None, reset=True):
         """Set rhs functions.
@@ -149,7 +154,12 @@ class ODE_Method(ABC):
         # transform rhs function into a function that accepts/returns inner state type
         self.rhs = self._state_type_converter.transform_rhs_funcs(rhs)
 
+        self._set_rhs_impl()
+
         self._reset_method(reset)
+
+    def _set_rhs_impl(self):
+        pass
 
     def successful(self):
         """Return if whether method is successful."""
@@ -182,6 +192,13 @@ class ODE_Method(ABC):
         """Setup options for the method."""
         pass
 
+    def setup_sens(self, **kwargs):
+        """Setup sensitivities computation."""
+        raise ValueError("This solver does not support sensitivities computations");
+
+    def get_sensitivities(self):
+        """Get sensitivities"""
+        raise ValueError("This solver does not support sensitivities computations");
 
 class ScipyODE(ODE_Method):
     """Method wrapper for scipy.integrate.solve_ivp.
@@ -279,45 +296,22 @@ class QiskitZVODE(ODE_Method):
         self._ODE.t = new_t
         self._reset_method()
 
-    def set_y(self, new_y, reset=True):
-        """Method for logic of setting internal state of solver with more control
-        """
-        type_spec = self.method_spec.get('inner_state_spec')
-        self._state_type_converter = \
-            StateTypeConverter.from_outer_instance_inner_type_spec(new_y, type_spec)
-
-        self._y = self._state_type_converter.outer_to_inner(new_y)
-
+    def _set_y_impl(self):
         if self._ODE is not None:
             self._ODE._y = self._y
 
-        self._reset_method(reset)
-
-    def set_rhs(self, rhs=None, reset=True):
-        """This set_rhs function fully instantiates the scipy ode object behind the scenes."""
-
-        if rhs is None:
-            rhs = {'rhs': None}
-
-        if callable(rhs):
-            rhs = {'rhs': rhs}
-
-        if 'rhs' not in rhs:
-            raise Exception('ODE_Method requires at minimum a specification of an rhs function.')
-
-        self.rhs = self._state_type_converter.transform_rhs_funcs(rhs)
-
+    def _set_rhs_impl(self):
         self._ODE = ode(self.rhs['rhs'])
 
         self._ODE._integrator = qiskit_zvode(method=self.options.method,
-                                             order=self.options.order,
-                                             atol=self.options.atol,
-                                             rtol=self.options.rtol,
-                                             nsteps=self.options.nsteps,
-                                             first_step=self.options.first_step,
-                                             min_step=self.options.min_step,
-                                             max_step=self.options.max_step
-                                             )
+                                         order=self.options.order,
+                                         atol=self.options.atol,
+                                         rtol=self.options.rtol,
+                                         nsteps=self.options.nsteps,
+                                         first_step=self.options.first_step,
+                                         min_step=self.options.min_step,
+                                         max_step=self.options.max_step
+                                         )
 
         # Forces complex ODE solving
         if not self._ODE._y:
@@ -326,8 +320,6 @@ class QiskitZVODE(ODE_Method):
         self._ODE._integrator.reset(len(self._ODE._y), self._ODE.jac is not None)
 
         self._ODE.set_initial_value(self._y, self._t)
-
-        self._reset_method(reset)
 
     def integrate(self, tf, **kwargs):
         """Integrate up to a time tf.
@@ -428,6 +420,88 @@ class RK4(ODE_Method):
         self._max_dt = options.max_dt
 
 
+class CppWrapperODE(ODE_Method):
+    METHOD_SIG = 'cppode-'
+
+    def __init__(self, t0=None, y0=None, rhs=None, options=None):
+
+        # all de specification arguments are necessary to instantiate CppWrapperOde object
+        if (t0 is None) or (y0 is None) or (rhs is None):
+            raise Exception('CppWrapperODE solver requires t0, y0, and rhs at instantiation.')
+
+        # initialize internal attribute for storing cppwrapperode object
+        self._CPPWrapper = None
+        self._pf = None
+        self._params = None
+
+        super().__init__(t0, y0, rhs, options)
+
+    def _set_y_impl(self):
+        if self._CPPWrapper is not None:
+            self._CPPWrapper._y = self._y
+
+    def _set_rhs_impl(self):
+        self._CPPWrapper = create_wrapper_integrator(self.options.method, 0.0, self._y, self.rhs['rhs'])
+        self._CPPWrapper.set_tolerances(self.options.atol, self.options.rtol)
+        self._CPPWrapper.set_max_nsteps(self.options.nsteps)
+        self._CPPWrapper.set_maximum_order(self.options.order)
+        self._CPPWrapper.set_step_limits(self.options.max_step, self.options.min_step, self.options.first_step)
+
+    def set_options(self, options):
+        # establish method
+        if options is None:
+            options = DE_Options(method='cvodes-adams')
+        else:
+            options = options.copy()
+            if options.method.startswith(self.METHOD_SIG):
+                options.method = options.method[len(self.METHOD_SIG):]
+
+        # handle None-type defaults
+        if options.first_step is None:
+            options.first_step = 0
+
+        if options.max_step is None:
+            options.max_step = 0
+
+        if options.min_step is None:
+            options.min_step = 0
+
+        self.options = options
+
+    def integrate(self, tf, **kwargs):
+        """Integrate up to a time tf.
+
+        Args:
+            tf (float): time to integrate up to
+            kwargs (dict): Supported kwargs:
+                            - 'step': if False, integrates up to tf, if True, only implements a
+                                      single step of the solver
+        """
+
+        step = kwargs.get('step', False)
+
+        self._CPPWrapper.integrate(tf, step=step)
+
+        # update state stored locally
+        self._y = self._CPPWrapper.y
+        self._t = self._CPPWrapper.t
+
+        # update success parameters
+        self._successful = self._CPPWrapper.successful()
+        # TODO: Return code??
+
+    def setup_sens(self, **kwargs):
+        self._pf = kwargs.get('pert_func')
+        self._params = kwargs.get('p0')
+        self._CPPWrapper.setup_sens(self._pf, self._params)
+
+    def get_sensitivities(self):
+        sens = self._CPPWrapper.get_sens(0)
+        for i in range(1, len(self._params)):
+            sens = np.vstack((sens, self._CPPWrapper.get_sens(i)))
+        return sens
+
+
 def method_from_string(method_str):
     """Returns an ODE_Method specified by a string.
 
@@ -443,6 +517,9 @@ def method_from_string(method_str):
 
     if 'zvode-' in method_str:
         return QiskitZVODE
+
+    if method_str.startswith(CppWrapperODE.METHOD_SIG):
+        return CppWrapperODE
 
     method_dict = {'RK4': RK4,
                    'scipy': ScipyODE,
