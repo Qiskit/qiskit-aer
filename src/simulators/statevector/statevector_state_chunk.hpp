@@ -608,14 +608,14 @@ uint_t State<statevec_t>::apply_blocking(const std::vector<Operations::Op> &ops,
           case Operations::OpType::sim_op:
             if(ops[iOp].name == "end_blocking"){
               inBlock = false;
-#ifdef MSVC
+#ifdef _MSC_VER
 #pragma omp critical
               {
 #else
 #pragma omp atomic write
 #endif
               iEnd = iOp;
-#ifdef MSVC
+#ifdef _MSC_VER
               }
 #endif
             }
@@ -633,14 +633,14 @@ uint_t State<statevec_t>::apply_blocking(const std::vector<Operations::Op> &ops,
     }
 
     if(iOp >= nOp){
-#ifdef MSVC
+#ifdef _MSC_VER
 #pragma omp critical
               {
 #else
 #pragma omp atomic write
 #endif
       iEnd = iOp;
-#ifdef MSVC
+#ifdef _MSC_VER
               }
 #endif
     }
@@ -1033,7 +1033,7 @@ rvector_t State<statevec_t>::measure_probs(const reg_t &qubits) const
 
     if(qubits_in_chunk.size() == qubits.size()){
       for(j=0;j<dim;j++){
-#pragma omp atomic update
+#pragma omp atomic 
         sum[j] += chunkSum[j];
       }
     }
@@ -1052,7 +1052,7 @@ rvector_t State<statevec_t>::measure_probs(const reg_t &qubits) const
             }
           }
         }
-#pragma omp atomic update
+#pragma omp atomic 
         sum[idx] += chunkSum[j];
       }
     }

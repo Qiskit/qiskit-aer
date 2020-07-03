@@ -400,8 +400,8 @@ void StateChunk<state_t>::add_creg_to_data(ExperimentData &data) const {
 template <class state_t>
 void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 {
-  uint_t q0,q1,t;
-  uint_t iChunk,nLarge;
+  uint_t q0,q1,t,nLarge;
+  int_t iChunk;
 
   q0 = qubits[qubits.size() - 2];
   q1 = qubits[qubits.size() - 1];
@@ -420,7 +420,8 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
     }
   }
   else{ //swap over chunks
-    uint_t iPair,nPair,mask0,mask1;
+    int_t iPair;
+    uint_t nPair,mask0,mask1;
     uint_t baseChunk,iChunk1,iChunk2;
 
     if(q0 < chunk_bits_)

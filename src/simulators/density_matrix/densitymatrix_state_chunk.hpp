@@ -559,8 +559,16 @@ uint_t State<densmat_t>::apply_blocking(const std::vector<Operations::Op> &ops, 
           case Operations::OpType::sim_op:
             if(ops[iOp].name == "end_blocking"){
               inBlock = false;
+#ifdef _MSC_VER
+#pragma omp critical
+              {
+#else
 #pragma omp atomic write
+#endif
               iEnd = iOp;
+#ifdef _MSC_VER
+              }
+#endif
             }
             break;
           default:
@@ -576,8 +584,16 @@ uint_t State<densmat_t>::apply_blocking(const std::vector<Operations::Op> &ops, 
     }
 
     if(iOp >= nOp){
+#ifdef _MSC_VER
+#pragma omp critical
+              {
+#else
 #pragma omp atomic write
+#endif
       iEnd = iOp;
+#ifdef _MSC_VER
+              }
+#endif
     }
 
     BaseState::qregs_[iChunk].release_chunk();
@@ -846,7 +862,7 @@ rvector_t State<densmat_t>::measure_probs(const reg_t &qubits) const
       auto chunkSum = BaseState::qregs_[i].probabilities(qubits);
       if(qubits_in_chunk.size() == qubits.size()){
         for(j=0;j<dim;j++){
-#pragma omp atomic update
+#pragma omp atomic
           sum[j] += chunkSum[j];
         }
       }
@@ -865,7 +881,7 @@ rvector_t State<densmat_t>::measure_probs(const reg_t &qubits) const
               }
             }
           }
-#pragma omp atomic update
+#pragma omp atomic
           sum[idx] += chunkSum[j];
         }
       }
@@ -1036,7 +1052,7 @@ void State<densmat_t>::measure_reset_update(const reg_t &qubits,
     cvector_t mdiag(dim, 0.);
     mdiag[meas_state] = 1. / std::sqrt(meas_prob);
 
-    uint_t iChunk;
+    int_t iChunk;
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
       BaseState::qregs_[iChunk].apply_diagonal_unitary_matrix(qubits, mdiag);
