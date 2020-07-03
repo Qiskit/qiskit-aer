@@ -198,7 +198,7 @@ template <class data_t>
 matrix<std::complex<data_t>> UnitaryMatrixThrust<data_t>::copy_to_matrix() const 
 {
   const int_t nrows = rows_;
-  AER::cmatrix_t ret(nrows, nrows);
+  matrix<std::complex<data_t>> ret(nrows, nrows);
   uint_t csize = BaseVector::data_size_;
 
   cvector_t<data_t> qreg = BaseVector::vector();
