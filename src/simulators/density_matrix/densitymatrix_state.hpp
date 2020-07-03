@@ -540,7 +540,7 @@ void State<densmat_t>::snapshot_density_matrix(const Operations::Op &op,
     std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
     if ((op.qubits.size() == BaseState::qreg_.num_qubits()) && (op.qubits == qubits_sorted)) {
-      reduced_state = BaseState::qreg_.matrix();
+      reduced_state = BaseState::qreg_.copy_to_matrix();
     } else {
       reduced_state = reduced_density_matrix(op.qubits, qubits_sorted);
     }
@@ -595,8 +595,16 @@ cmatrix_t State<densmat_t>::reduced_density_matrix_cpu(const reg_t& qubits, cons
   //       this function we could move the memory when constructing rather
   //       than copying
   const auto& vmat = BaseState::qreg_.data();
-  cmatrix_t reduced_state(DIM, DIM);
-  for (size_t k = 0; k < END; k++) {
+  cmatrix_t reduced_state(DIM, DIM, false);
+  {
+    // Fill matrix with first iteration
+    const auto inds = QV::indexes(squbits, squbits_sorted, 0);
+    for (int_t i = 0; i < VDIM; ++i) {
+      reduced_state[i] = complex_t(vmat[inds[i]]);
+    }
+  }
+  // Accumulate with remaning blocks
+  for (size_t k = 1; k < END; k++) {
     const auto inds = QV::indexes(squbits, squbits_sorted, k * SHIFT);
     for (int_t i = 0; i < VDIM; ++i) {
       reduced_state[i] += complex_t(vmat[inds[i]]);
@@ -622,8 +630,16 @@ cmatrix_t State<densmat_t>::reduced_density_matrix_thrust(const reg_t& qubits, c
 
   // Copy vector to host memory
   auto vmat = BaseState::qreg_.vector();
-  cmatrix_t reduced_state(DIM, DIM);
-  for (size_t k = 0; k < END; k++) {
+  cmatrix_t reduced_state(DIM, DIM, false);
+  {
+    // Fill matrix with first iteration
+    const auto inds = QV::indexes(squbits, squbits_sorted, 0);
+    for (int_t i = 0; i < VDIM; ++i) {
+      reduced_state[i] = std::move(vmat[inds[i]]);
+    }
+  }
+  // Accumulate with remaning blocks
+  for (size_t k = 1; k < END; k++) {
     const auto inds = QV::indexes(squbits, squbits_sorted, k * SHIFT);
     for (int_t i = 0; i < VDIM; ++i) {
       reduced_state[i] += complex_t(std::move(vmat[inds[i]]));
@@ -849,14 +865,9 @@ void State<densmat_t>::measure_reset_update(const reg_t &qubits,
 
 template <class densmat_t>
 void State<densmat_t>::apply_kraus(const reg_t &qubits,
-                                    const std::vector<cmatrix_t> &kmats) {
-  // Convert to Superoperator
-  const auto nrows = kmats[0].GetRows();
-  cmatrix_t superop(nrows * nrows, nrows * nrows);
-  for (const auto kraus : kmats) {
-    superop += Utils::tensor_product(Utils::conjugate(kraus), kraus);
-  }
-  BaseState::qreg_.apply_superop_matrix(qubits, Utils::vectorize_matrix(superop));
+                                   const std::vector<cmatrix_t> &kmats) {
+  BaseState::qreg_.apply_superop_matrix(qubits,
+    Utils::vectorize_matrix(Utils::kraus_superop(kmats)));
 }
 
 //-------------------------------------------------------------------------

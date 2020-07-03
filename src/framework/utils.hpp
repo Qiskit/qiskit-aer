@@ -257,6 +257,7 @@ template <class T> matrix<T> partial_trace_b(const matrix<T> &rho, size_t dimB);
 // Tensor product
 template <class T> matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B);
 template <class T> matrix<T> unitary_superop(const matrix<T> &mat);
+template <class T> matrix<T> kraus_superop(const std::vector<matrix<T>> &kmats);
 
 // concatenate
 // Returns a matrix that is the concatenation of two matrices A, B
@@ -940,6 +941,16 @@ template <class T> matrix<T> unitary_superop(const matrix<T> &mat) {
   return tensor_product(conjugate(mat), mat);
 }
 
+template <class T> matrix<T> kraus_superop(const std::vector<matrix<T>> &kmats) {
+  if (kmats.empty())
+    return matrix<T>();
+  matrix<T> mat = unitary_superop(kmats[0]);
+  for (size_t i = 1; i < kmats.size(); ++i) {
+    mat += unitary_superop(kmats[i]);
+  }
+  return mat;
+}
+
 template <class T>
 matrix<T> concatenate (const matrix<T> &A, const matrix<T> &B, uint_t axis) {
   if (axis != 0 && axis!= 1) {
@@ -1176,9 +1187,10 @@ bool is_symmetrix(const matrix<T> &mat, double threshold) {
 
 template <class T>
 bool is_cptp_kraus(const std::vector<matrix<T>> &mats, double threshold) {
-  matrix<T> cptp(mats[0].size());
+  const auto dim = mats[0].GetRows();
+  matrix<T> cptp(dim, dim);
   for (const auto &mat : mats) {
-    cptp = cptp + dagger(mat) * mat;
+    cptp += dagger(mat) * mat;
   }
   return is_identity(cptp, threshold);
 }

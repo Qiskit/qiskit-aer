@@ -143,7 +143,7 @@ void Superoperator<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
 // ostream overload for templated qubitvector
 template <typename data_t>
 inline std::ostream &operator<<(std::ostream &out, const QV::Superoperator<data_t>&m) {
-  out << m.matrix();
+  out << m.copy_to_matrix();
   return out;
 }
 
