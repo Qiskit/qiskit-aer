@@ -618,7 +618,6 @@ uint_t State<statevec_t>::apply_blocking(const std::vector<Operations::Op> &ops,
 #ifdef MSVC
               }
 #endif
-              {
             }
             break;
           default:
