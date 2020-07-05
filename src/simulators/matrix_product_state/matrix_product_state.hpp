@@ -147,12 +147,6 @@ public:
 				     uint_t shots,
 				     RngEngine &rng) const;
 
-  // Computes sample_measure by first converting the MPS to a statevector and
-  // invoking sample_measure for it. 
-  std::vector<reg_t> 
-  sample_measure_using_qv(const reg_t &qubits,
-				     uint_t shots,
-				     RngEngine &rng);
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -711,58 +705,15 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   uint_t num_measured_qubits = qubits.size();
   uint_t num_all_qubits = qreg_.num_qubits();
 
-  // There are three alternative algorithms for sample measure
-  // We choose the one that is optimal relative to the total number of qubits,
-  // the number of measured qubits, and the number of shots.
+  // There are two alternative algorithms for sample measure
+  // We choose the one that is optimal relative to the total number 
+  //of qubits,and the number of shots.
   // The parameters used below are based on experimentation.
   if (num_measured_qubits > MPS::get_sample_measure_index_size() || 
       shots < MPS::get_sample_measure_shots_thresh()) {
       return sample_measure_using_apply_measure(qubits, shots, rng);
   }
-  if (num_measured_qubits == num_all_qubits) {
-    return sample_measure_using_qv(qubits, shots, rng);
-  }
-  if ((shots > 100*MPS::get_sample_measure_shots_thresh())         ||
-      (num_measured_qubits <= MPS::get_sample_measure_index_size()-2  
-             && shots > 10*MPS::get_sample_measure_shots_thresh()) ||
-      (num_measured_qubits <= MPS::get_sample_measure_index_size()-4  
-             && shots > MPS::get_sample_measure_shots_thresh())
-	) {
-    return sample_measure_using_probabilities(qubits, shots, rng);
-  }
-  return sample_measure_using_apply_measure(qubits, shots, rng);
-}
-
-std::vector<reg_t> State::
-sample_measure_using_qv(const reg_t &qubits,
-			uint_t shots,
-			RngEngine &rng) {
-				   
-  cvector_t statevector;
-  qreg_.full_state_vector(statevector);
-  QV::QubitVector<double> qubit_vec(qreg_.num_qubits());
-  qubit_vec.initialize_from_vector(statevector);
-
-  // Generate flat register for storing
-  std::vector<double> rnds;
-  rnds.reserve(shots);
-  for (uint_t i = 0; i < shots; ++i)
-    rnds.push_back(rng.rand(0, 1));
-  auto allbit_samples = qubit_vec.sample_measure(rnds);
-
-  // Convert to reg_t format
-  std::vector<reg_t> all_samples;
-  all_samples.reserve(shots);
-  for (int_t val : allbit_samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, qreg_.num_qubits());
-    reg_t sample;
-    sample.reserve(qubits.size());
-    for (uint_t qubit : qubits) {
-      sample.push_back(allbit_sample[qubit]);
-    }
-    all_samples.push_back(sample);
-  }
-  return all_samples;				
+  return sample_measure_using_probabilities(qubits, shots, rng);
 }
 
 std::vector<reg_t> State::

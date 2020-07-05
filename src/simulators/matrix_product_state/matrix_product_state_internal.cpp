@@ -42,7 +42,7 @@ static const cmatrix_t one_measure =
   uint_t MPS::omp_threads_ = 1;     
   uint_t MPS::omp_threshold_ = 14;  
   uint_t MPS::sample_measure_index_size_ = 26; 
-  uint_t MPS::sample_measure_shots_thresh_ = 50; 
+  uint_t MPS::sample_measure_shots_thresh_ = 10; 
   double MPS::json_chop_threshold_ = 1E-8;  
 //------------------------------------------------------------------------
 // local function declarations
@@ -1133,6 +1133,19 @@ void MPS::get_accumulated_probabilities_vector(rvector_t& acc_probvector,
   }
 }
 
+uint binary_search(const rvector_t &acc_probvector, 
+		     uint_t start, uint_t end, 
+		     double rnd) {
+  if (start >= end-1) {
+    return start;
+  }
+  uint mid = (start+end)/2;
+  if (rnd <= acc_probvector[mid])
+    return binary_search(acc_probvector, start, mid, rnd);
+  else 
+    return binary_search(acc_probvector, mid, end, rnd);
+}
+
 //------------------------------------------------------------------------------
 // Sample measure outcomes - this method is similar to QubitVector::sample_measure, 
 // with 2 differences:
@@ -1152,25 +1165,19 @@ reg_t MPS::sample_measure_using_probabilities(const std::vector<double> &rnds,
   rvector_t acc_probvector;
   reg_t index_vec;
   get_accumulated_probabilities_vector(acc_probvector, index_vec, qubits);
-
-  const int INDEX_SIZE = sample_measure_index_size_;
-  const int_t INDEX_END = QV::BITS[INDEX_SIZE];
-
+ uint_t accvec_size = acc_probvector.size();
+ uint_t rnd_index;
   #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
     {
       #pragma omp for
-      for (int_t i = 0; i < SHOTS; ++i) {
-        double rnd = rnds[i];
-        int_t sample;
-	uint_t num = 0;
-	
-        for (sample = 0; sample < acc_probvector.size() - 1; ++sample) {
-          if (rnd < acc_probvector[sample])
-            break;
-        }
-        samples[i] = index_vec[sample];
-	      }
-    } // end omp parallel
+  for (int_t i = 0; i < SHOTS; ++i) {
+    double rnd = rnds[i];
+
+    rnd_index = binary_search(acc_probvector, 
+			       0, accvec_size-1, rnd);
+    samples[i] = index_vec[rnd_index];
+  }
+ }// end omp parallel
 
   return samples;
 }
