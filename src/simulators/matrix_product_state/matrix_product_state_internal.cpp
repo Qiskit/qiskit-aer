@@ -107,6 +107,10 @@ std::string sort_paulis_by_qubits(const std::string &paulis,
 				  const reg_t &qubits);
 
 bool is_ordered(const reg_t &qubits);
+
+uint_t binary_search(const rvector_t &acc_probvector, 
+		     uint_t start, uint_t end, 
+		     double rnd);
 //------------------------------------------------------------------------
 // local function implementations
 //------------------------------------------------------------------------
@@ -1156,7 +1160,7 @@ void MPS::get_accumulated_probabilities_vector(rvector_t& acc_probvector,
   }
 }
 
-uint binary_search(const rvector_t &acc_probvector, 
+uint_t binary_search(const rvector_t &acc_probvector, 
 		     uint_t start, uint_t end, 
 		     double rnd) {
   if (start >= end-1) {
@@ -1181,7 +1185,6 @@ uint binary_search(const rvector_t &acc_probvector,
 reg_t MPS::sample_measure_using_probabilities(const std::vector<double> &rnds, 
 					      const reg_t &qubits) const {
   uint_t num_qubits = qubits.size();
-  const int_t END = 1LL << num_qubits;
   const int_t SHOTS = rnds.size();
   reg_t samples;
   samples.assign(SHOTS, 0);
