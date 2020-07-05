@@ -456,7 +456,7 @@ double DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
 // ostream overload for templated qubitvector
 template <typename data_t>
 inline std::ostream &operator<<(std::ostream &out, const QV::DensityMatrix<data_t>&m) {
-  out << m.matrix();
+  out << m.copy_to_matrix();
   return out;
 }
 

@@ -16,4 +16,4 @@ endfunction()
 numpy_pybind11_add_module(pulse_utils pulse_utils_bindings.cpp pulse_utils.cpp numeric_integrator.cpp zspmv.cpp)
 numpy_pybind11_add_module(test_python_to_cpp test_python_to_cpp.cpp)
 
-install(TARGETS pulse_utils test_python_to_cpp LIBRARY DESTINATION "qiskit/providers/aer/pulse/de_solvers/")
+install(TARGETS pulse_utils test_python_to_cpp LIBRARY DESTINATION "qiskit/providers/aer/pulse/controllers/")
