@@ -84,7 +84,6 @@ class PulseSimOptions():
                                      min_step=min_step,
                                      max_dt=max_dt)
 
-
         self.shots = shots
         self.seeds = seeds
         self.reuse_seeds = reuse_seeds
