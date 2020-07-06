@@ -88,11 +88,11 @@ complex_t chan_value(
             }
         }
         if(phase != 0.){
-            out *= std::exp(complex_t(0.,1.) * phase);
+            out *= std::exp(complex_t(0., 1.) * phase);
         }
-        out *= std::exp(complex_t(0., -1.) * 2. * M_PI * freq_ch * t);
+        out *= std::exp(complex_t(0., 1.) * 2. * M_PI * freq_ch * t);
     }
-    return out;
+    return out.real();
 }
 
 py::array_t<complex_t> td_ode_rhs(double t,
