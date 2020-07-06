@@ -1149,9 +1149,8 @@ void MPS::get_accumulated_probabilities_vector(rvector_t& acc_probvector,
   get_probabilities_vector(probvector, qubits);
   uint_t size = probvector.size();
   uint_t j = 1;
-  acc_probvector.push_back(probvector[0]);
-  index_vec.push_back(0); // represents the number of indices up to the current non-zero probability
-  for (uint_t i=1; i<size; i++) {
+  acc_probvector.push_back(0.0);
+  for (uint_t i=0; i<size; i++) {
     if (!Linalg::almost_equal(probvector[i], 0.0)) {
       index_vec.push_back(i);
       acc_probvector.push_back(acc_probvector[j-1] + probvector[i]);
@@ -1184,13 +1183,13 @@ uint_t binary_search(const rvector_t &acc_probvector,
 //-----------------------------------------------------------------------------
 reg_t MPS::sample_measure_using_probabilities(const std::vector<double> &rnds, 
 					      const reg_t &qubits) const {
-  uint_t num_qubits = qubits.size();
   const int_t SHOTS = rnds.size();
   reg_t samples;
   samples.assign(SHOTS, 0);
   rvector_t acc_probvector;
   reg_t index_vec;
   get_accumulated_probabilities_vector(acc_probvector, index_vec, qubits);
+
  uint_t accvec_size = acc_probvector.size();
  uint_t rnd_index;
   #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
