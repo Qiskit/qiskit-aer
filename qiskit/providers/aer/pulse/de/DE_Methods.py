@@ -27,7 +27,9 @@ from scipy.integrate import ode, solve_ivp
 from scipy.integrate._ode import zvode
 from .DE_Options import DE_Options
 from .type_utils import StateTypeConverter
+# pylint: disable=no-name-in-module, import-error
 from ..controllers.pulse_utils import create_wrapper_integrator
+
 
 class ODE_Method(ABC):
     """Abstract wrapper class for an ODE solving method, providing an expected interface
@@ -194,11 +196,12 @@ class ODE_Method(ABC):
 
     def setup_sens(self, **kwargs):
         """Setup sensitivities computation."""
-        raise ValueError("This solver does not support sensitivities computations");
+        raise ValueError("This solver does not support sensitivities computations")
 
     def get_sensitivities(self):
         """Get sensitivities"""
-        raise ValueError("This solver does not support sensitivities computations");
+        raise ValueError("This solver does not support sensitivities computations")
+
 
 class ScipyODE(ODE_Method):
     """Method wrapper for scipy.integrate.solve_ivp.
@@ -304,14 +307,14 @@ class QiskitZVODE(ODE_Method):
         self._ODE = ode(self.rhs['rhs'])
 
         self._ODE._integrator = qiskit_zvode(method=self.options.method,
-                                         order=self.options.order,
-                                         atol=self.options.atol,
-                                         rtol=self.options.rtol,
-                                         nsteps=self.options.nsteps,
-                                         first_step=self.options.first_step,
-                                         min_step=self.options.min_step,
-                                         max_step=self.options.max_step
-                                         )
+                                             order=self.options.order,
+                                             atol=self.options.atol,
+                                             rtol=self.options.rtol,
+                                             nsteps=self.options.nsteps,
+                                             first_step=self.options.first_step,
+                                             min_step=self.options.min_step,
+                                             max_step=self.options.max_step
+                                             )
 
         # Forces complex ODE solving
         if not self._ODE._y:
@@ -375,6 +378,7 @@ class qiskit_zvode(zvode):
     it always stops at a given time in tlist;
     by default, it over shoots the time.
     """
+
     def step(self, *args):
         itask = self.call_args[2]
         self.rwork[0] = args[4]
@@ -421,6 +425,20 @@ class RK4(ODE_Method):
 
 
 class CppWrapperODE(ODE_Method):
+    """Wrapper for CPP solvers
+
+    To use:
+        - Specify a method acceptable by the keyword argument 'method' scipy.integrate.solve_ivp
+          in DE_Options attribute 'method'. Methods that currently work are:
+            - 'cvodes-adams', 'odeint_adams_moulton'
+            - Default if not specified is 'cvodes-adams'
+
+    Additional notes:
+        - it requires states to be 1d
+        - 'cvode-adams' allow sensitivities computations. To setup sensitivities call
+          'setup_sens(pert_func=pf, p0=params_t0)' with 'pf' a function that modifies the
+          requested parameters and 'p0' the intial values for those parameters.
+    """
     METHOD_SIG = 'cppode-'
 
     def __init__(self, t0=None, y0=None, rhs=None, options=None):
@@ -441,11 +459,17 @@ class CppWrapperODE(ODE_Method):
             self._CPPWrapper._y = self._y
 
     def _set_rhs_impl(self):
-        self._CPPWrapper = create_wrapper_integrator(self.options.method, 0.0, self._y, self.rhs['rhs'])
+        self._CPPWrapper = create_wrapper_integrator(self.options.method,
+                                                     0.0,
+                                                     self._y,
+                                                     self.rhs['rhs'])
+
         self._CPPWrapper.set_tolerances(self.options.atol, self.options.rtol)
         self._CPPWrapper.set_max_nsteps(self.options.nsteps)
         self._CPPWrapper.set_maximum_order(self.options.order)
-        self._CPPWrapper.set_step_limits(self.options.max_step, self.options.min_step, self.options.first_step)
+        self._CPPWrapper.set_step_limits(self.options.max_step,
+                                         self.options.min_step,
+                                         self.options.first_step)
 
     def set_options(self, options):
         # establish method
