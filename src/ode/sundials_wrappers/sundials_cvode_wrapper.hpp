@@ -22,17 +22,10 @@ namespace AER {
         template<typename T>
         class CvodeWrapper : public Ode<T> {
         public:
-            using CVodeMemDeleter = std::function<void(void *)>;
-            typedef std::function<int(SUNNonlinearSolver)> NLSDeleter;
-//            using NLSDeleter = std::function<int(SUNNonlinearSolver)>;
-            using NVectorDeleter = std::function<void(N_Vector)>;
-            using NVectorArrayDeleter = std::function<void(N_Vector *)>;
-
             static const std::string ID;
 
             CvodeWrapper(rhsFuncType<T> f, const T &y0, double t0);
             CvodeWrapper(rhsFuncType<T> f, T &&y0, double t0);
-
 
             CvodeWrapper(const CvodeWrapper &) = delete;
             CvodeWrapper operator=(const CvodeWrapper &) = delete;
@@ -100,16 +93,19 @@ namespace AER {
                 std::unique_ptr<void, std::function<void(void *)>>(nullptr,
                                                                    [](void *cvode_mem) { CVodeFree(&cvode_mem); });
 
-            std::unique_ptr<_generic_N_Vector, NVectorDeleter> y_ =
-                std::unique_ptr<_generic_N_Vector, NVectorDeleter>(nullptr, N_VDestroy);
+            std::unique_ptr<_generic_N_Vector, std::function<void(N_Vector)>> y_ =
+                std::unique_ptr<_generic_N_Vector, std::function<void(N_Vector)>>(nullptr, N_VDestroy);
             double t_;
 
-            std::unique_ptr<_generic_SUNNonlinearSolver, NLSDeleter> NLS_ =
-                std::unique_ptr<_generic_SUNNonlinearSolver, NLSDeleter>(nullptr, SUNNonlinSolFree);
-            std::unique_ptr<_generic_N_Vector *, NVectorArrayDeleter> sens_ =
-                std::unique_ptr<_generic_N_Vector *, NVectorArrayDeleter>(nullptr, [](N_Vector *) {});
-            std::unique_ptr<_generic_SUNNonlinearSolver, NLSDeleter> NLS_sens_ =
-                std::unique_ptr<_generic_SUNNonlinearSolver, NLSDeleter>(nullptr, SUNNonlinSolFree);
+            std::unique_ptr<_generic_SUNNonlinearSolver, std::function<int(SUNNonlinearSolver)>> NLS_ =
+                std::unique_ptr<_generic_SUNNonlinearSolver, std::function<int(SUNNonlinearSolver)>>(nullptr,
+                                                                                                     SUNNonlinSolFree);
+            std::unique_ptr<_generic_N_Vector *, std::function<void(N_Vector *)>> sens_ =
+                std::unique_ptr<_generic_N_Vector *, std::function<void(N_Vector *)>>(nullptr, [](N_Vector *) {});
+
+            std::unique_ptr<_generic_SUNNonlinearSolver, std::function<int(SUNNonlinearSolver)>> NLS_sens_ =
+                std::unique_ptr<_generic_SUNNonlinearSolver, std::function<int(SUNNonlinearSolver)>>(nullptr,
+                                                                                                     SUNNonlinSolFree);
 
 
             std::shared_ptr<user_data_func> udf_;
@@ -166,7 +162,7 @@ namespace AER {
             udf_->p = p;
             udf_->pf = pf;
             auto num_sens = p.size();
-            sens_ = std::unique_ptr<_generic_N_Vector *, NVectorArrayDeleter>(
+            sens_ = std::unique_ptr<_generic_N_Vector *, std::function<void(N_Vector *)>>(
                 N_VCloneVectorArray(num_sens, y_.get()),
                 [num_sens](N_Vector *sens) { N_VDestroyVectorArray(sens, num_sens); });
 
