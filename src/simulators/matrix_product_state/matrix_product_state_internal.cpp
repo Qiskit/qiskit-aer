@@ -1165,7 +1165,7 @@ uint_t binary_search(const rvector_t &acc_probvector,
   if (start >= end-1) {
     return start;
   }
-  uint mid = (start+end)/2;
+  uint_t mid = (start+end)/2;
   if (rnd <= acc_probvector[mid])
     return binary_search(acc_probvector, start, mid, rnd);
   else 
@@ -1181,9 +1181,9 @@ uint_t binary_search(const rvector_t &acc_probvector,
 // sample_measure_using_apply_measure is invoked instead
 //
 //-----------------------------------------------------------------------------
-reg_t MPS::sample_measure_using_probabilities(const std::vector<double> &rnds, 
+reg_t MPS::sample_measure_using_probabilities(const rvector_t &rnds, 
 					      const reg_t &qubits) const {
-  const int_t SHOTS = rnds.size();
+  const uint_t SHOTS = rnds.size();
   reg_t samples;
   samples.assign(SHOTS, 0);
   rvector_t acc_probvector;
@@ -1192,7 +1192,7 @@ reg_t MPS::sample_measure_using_probabilities(const std::vector<double> &rnds,
 
  uint_t accvec_size = acc_probvector.size();
  uint_t rnd_index;
-  #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+  #pragma omp parallel if (SHOTS > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
     {
       #pragma omp for
   for (int_t i = 0; i < SHOTS; ++i) {

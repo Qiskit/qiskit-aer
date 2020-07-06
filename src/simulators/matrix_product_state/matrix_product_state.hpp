@@ -722,7 +722,7 @@ sample_measure_using_probabilities(const reg_t &qubits,
 				   RngEngine &rng) const {
 
   // Generate flat register for storing
-  std::vector<double> rnds;
+  rvector_t rnds;
   rnds.reserve(shots);
   for (uint_t i = 0; i < shots; ++i)
     rnds.push_back(rng.rand(0, 1));

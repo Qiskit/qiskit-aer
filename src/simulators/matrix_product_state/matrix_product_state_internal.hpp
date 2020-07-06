@@ -236,7 +236,7 @@ public:
     return expectation_value(qubits, mat);
   }
 
-  reg_t sample_measure_using_probabilities(const std::vector<double> &rnds, 
+  reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
 					   const reg_t &qubits) const;
 
   reg_t apply_measure(const reg_t &qubits,
