@@ -722,7 +722,16 @@ cmatrix_t State<statevec_t>::vec2density(const reg_t &qubits, const T &vec) {
     }
   } else {
     const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);
-    for (size_t k = 0; k < END; k++) {
+    // Initialize matrix values with first block
+    {
+      const auto inds = QV::indexes(qubits, qubits_sorted, 0);
+      for (size_t row = 0; row < DIM; ++row)
+        for (size_t col = 0; col < DIM; ++col) {
+          densmat(row, col) = complex_t(vec[inds[row]]) * complex_t(std::conj(vec[inds[col]]));
+      }
+    }
+    // Accumulate remaining blocks
+    for (size_t k = 1; k < END; k++) {
       // store entries touched by U
       const auto inds = QV::indexes(qubits, qubits_sorted, k);
       for (size_t row = 0; row < DIM; ++row)

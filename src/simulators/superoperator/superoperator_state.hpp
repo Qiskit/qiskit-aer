@@ -333,13 +333,8 @@ void State<data_t>::apply_reset(const reg_t &qubits) {
 template <class statevec_t>
 void State<statevec_t>::apply_kraus(const reg_t &qubits,
                                     const std::vector<cmatrix_t> &kmats) {
-  // Convert to Superoperator
-  const auto nrows = kmats[0].GetRows();
-  cmatrix_t superop(nrows * nrows, nrows * nrows);
-  for (const auto kraus : kmats) {
-    superop += Utils::tensor_product(Utils::conjugate(kraus), kraus);
-  }
-  BaseState::qreg_.apply_superop_matrix(qubits, Utils::vectorize_matrix(superop));
+  BaseState::qreg_.apply_superop_matrix(qubits,
+    Utils::vectorize_matrix(Utils::kraus_superop(kmats)));
 }
 
 //=========================================================================
