@@ -26,8 +26,8 @@ from qiskit.providers.aer.backends import PulseSimulator
 
 from qiskit.compiler import assemble
 from qiskit.quantum_info import state_fidelity
-from qiskit.pulse import (Schedule, Play, ShiftPhase, Acquire, SamplePulse, DriveChannel,
-                          ControlChannel, AcquireChannel, MemorySlot)
+from qiskit.pulse import (Schedule, Play, ShiftPhase, SetPhase, Delay, Acquire, SamplePulse,
+                          DriveChannel, ControlChannel, AcquireChannel, MemorySlot)
 from qiskit.providers.aer.pulse.de.DE_Methods import ScipyODE
 from qiskit.providers.aer.pulse.de.DE_Options import DE_Options
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
