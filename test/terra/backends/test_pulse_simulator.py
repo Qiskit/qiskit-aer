@@ -141,7 +141,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         meas_map=[[0]],
                         qubit_lo_freq=[omega_d],
                         memory_slots=1,
-                        shots=256)
+                        shots=1)
 
         # set backend backend_options including initial state
         y0 = np.array([1.0, 0.0])
@@ -553,7 +553,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         meas_map=[[0]],
                         qubit_lo_freq=[omega_d0, omega_d1],
                         memory_slots=2,
-                        shots=1.)
+                        shots=1)
 
         y0 = np.kron(np.array([1., 0.]), np.array([0., 1.]))
         backend_options = {'seed' : 9000, 'initial_state': y0}
@@ -600,7 +600,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         meas_map=[[0]],
                         qubit_lo_freq=[omega_d, omega_d, omega_d],
                         memory_slots=2,
-                        shots=1.)
+                        shots=1)
 
         y0 = np.kron(np.array([1., 0.]), np.array([0., 1.]))
         backend_options = {'seed' : 9000, 'initial_state': y0}
@@ -634,7 +634,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         meas_map=[[0]],
                         qubit_lo_freq=[omega_d, omega_d, omega_d],
                         memory_slots=2,
-                        shots=1.)
+                        shots=1)
 
         y0 = np.kron(np.array([1., 0.]), np.array([0., 1.]))
         backend_options = {'seed' : 9000, 'initial_state': y0}
@@ -789,7 +789,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                 meas_map=[[0]],
                                 qubit_lo_freq=[omega_d],
                                 memory_slots=2,
-                                shots=1000)
+                                shots=1)
                 y0 = np.array([1., 0.])
                 backend_options = {'seed' : 9000, 'initial_state' : y0}
 
