@@ -128,7 +128,6 @@ PYBIND11_MODULE(pulse_utils, m) {
 
     m.def("create_wrapper_sens_integrator", &create_wrapper_sens_integrator, "");
     m.def("create_wrapper_integrator", &create_wrapper_integrator, "");
-    m.def("get_cpp_wrappers_list", &AER::ODE::get_cpp_wrappers_list<std::vector<complex_t>>, "");
 
     py::class_<RhsFunctor>(m, "OdeRhsFunctor")
         .def("__call__", &RhsFunctor::operator());

@@ -18,13 +18,6 @@ namespace AER {
         throw std::invalid_argument("No suitable constructor for ODE type: " + ode_type);
       }
     }
-
-    // Get the list of possible c++ ode wrappers. Handy for python integration
-    template<typename T>
-    std::vector<std::string> get_cpp_wrappers_list() {
-      static std::vector<std::string> cpp_wrappers{{CvodeWrapper<T>::ID, ABMWrapper<T>::ID}};
-      return cpp_wrappers;
-    }
   }
 }
 
