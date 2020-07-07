@@ -419,7 +419,7 @@ void State::set_config(const json_t &config) {
   if (JSON::get_value(shots_num, "mps_sample_measure_shots_opt", config))
     MPS::set_sample_measure_shots_thresh(shots_num);
   else
-    MPS::set_sample_measure_shots_thresh(50);    
+    MPS::set_sample_measure_shots_thresh(10);    
 }
 
 void State::add_metadata(ExperimentData &data) const {
@@ -703,7 +703,6 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
                                          RngEngine &rng) {
 
   uint_t num_measured_qubits = qubits.size();
-  uint_t num_all_qubits = qreg_.num_qubits();
 
   // There are two alternative algorithms for sample measure
   // We choose the one that is optimal relative to the total number 

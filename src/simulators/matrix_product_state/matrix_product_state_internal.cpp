@@ -25,7 +25,6 @@
 #include "framework/utils.hpp"
 #include "framework/matrix.hpp"
 #include "framework/linalg/almost_equal.hpp"
-#include "simulators/statevector/qubitvector.hpp"
 
 #include "matrix_product_state_internal.hpp"
 #include "matrix_product_state_tensor.hpp"
@@ -1175,11 +1174,11 @@ uint_t binary_search(const rvector_t &acc_probvector,
 //------------------------------------------------------------------------------
 // Sample measure outcomes - this method is similar to QubitVector::sample_measure, 
 // with 2 differences:
-// 1. We use accumulated probabilities in advance, rather than summing up the 
+// 1. We use accumulated probabilities which we prepare in advance, rather than summing up the 
 // probabilites during the algorithm
-// 2. We do not handle the case of many qubits, because in this case, the method
-// sample_measure_using_apply_measure is invoked instead
-//
+// 2. We use binary search to locate the index of rnd, rather than linear search. This is 
+// possible since the accumulated probabilities vector is increasing
+
 //-----------------------------------------------------------------------------
 reg_t MPS::sample_measure_using_probabilities(const rvector_t &rnds, 
 					      const reg_t &qubits) const {

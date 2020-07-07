@@ -174,9 +174,14 @@ public:
 
   //----------------------------------------------------------------
   // Function name: get_accumulated_probabilities_vector
-  // Description: Computes the accumulated probabilities from 0, for example,
-  // if probabilities vector is: 0.1 (00), 0.4 (01), 0.2 (10), 0.3 (11), then 
-  // accumulated probabilities vector is 0.1 (00), 0.5 (01), 0.7 (10), 1.0 (11)
+  // Description: Computes the accumulated probabilities from 0
+  // Parameters: qubits - the qubits for which we compute probabilities
+  // Returns: acc_probvector - the vector of accumulated probabilities
+  //          index_vec - the base values whose probabilities are not 0
+  // For example:
+  // if probabilities vector is: 0.5 (00), 0.0 (01), 0.2 (10), 0.3 (11), then 
+  // acc_probvector = 0.0,    0.5,    0.7,   1.0
+  // index_vec =      0 (00), 2 (10), 3(11)
   //----------------------------------------------------------------
 
   void get_accumulated_probabilities_vector(rvector_t& acc_probvector, 
