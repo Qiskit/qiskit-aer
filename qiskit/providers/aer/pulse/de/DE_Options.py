@@ -37,7 +37,7 @@ class DE_Options:
         atol (float, 1e-8): Absolute tolerance for variable step solvers.
         rtol (float, 1e-6): Relative tolerance for variable step solvers.
         order (int, 12): Order of integrator.
-        nsteps (int, 50000): Max. number of internal steps per time interval for variable step
+        nsteps (int, 10**6): Max. number of internal steps per time interval for variable step
                              solvers.
         first_step (float, None): Size of initial step for variable step solvers.
         min_step (float, None): Minimum step size for variable step solvers.
@@ -50,29 +50,20 @@ class DE_Options:
                  atol=1e-8,
                  rtol=1e-6,
                  order=12,
-                 nsteps=50000,
+                 nsteps=10**6,
                  first_step=None,
                  max_step=None,
                  min_step=None,
                  max_dt=10**-3):
 
-        # Integration method (default = 'zvode-adams')
         self.method = method
-        # Absolute tolerance (default = 1e-8)
         self.atol = atol
-        # Relative tolerance (default = 1e-6)
         self.rtol = rtol
-        # Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
         self.order = order
-        # Max. number of internal steps/call
         self.nsteps = nsteps
-        # Size of initial step (0 = determined by solver)
         self.first_step = first_step
-        # Max step size (0 = determined by solver)
         self.max_step = max_step
-        # Minimal step size (0 = determined by solver)
         self.min_step = min_step
-        # max step size for fixed step-size solvers
         self.max_dt = max_dt
 
     def copy(self):

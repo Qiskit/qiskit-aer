@@ -36,7 +36,7 @@ class PulseSimOptions():
         atol (float, 1e-8): Absolute tolerance for variable step solvers.
         rtol (float, 1e-6): Relative tolerance for variable step solvers.
         order (int, 12): Order of integrator.
-        nsteps (int, 50000): Max. number of internal steps per time interval for variable step
+        nsteps (int, 10**6): Max. number of internal steps per time interval for variable step
                              solvers.
         first_step (float, None): Size of initial step for variable step solvers.
         min_step (float, None): Minimum step size for variable step solvers.
@@ -59,7 +59,7 @@ class PulseSimOptions():
                  atol=1e-8,
                  rtol=1e-6,
                  order=12,
-                 nsteps=50000,
+                 nsteps=10**6,
                  first_step=None,
                  max_step=None,
                  min_step=None,
@@ -84,22 +84,13 @@ class PulseSimOptions():
                                      min_step=min_step,
                                      max_dt=max_dt)
 
-        # Number of shots to run (default=500)
         self.shots = shots
-        # Holds seeds for rand num gen
         self.seeds = seeds
-        # reuse seeds
         self.reuse_seeds = reuse_seeds
-        # Track progress
         self.progress_bar = progress_bar
-        # Number of processors to use
         self.num_cpus = num_cpus
-        # Tolerance for wavefunction norm (mcsolve only)
         self.norm_tol = norm_tol
-        # Max. number of steps taken to find wavefunction norm to within
-        # norm_tol (mcsolve only)
         self.norm_steps = norm_steps
-        # store final state?
         self.store_final_state = store_final_state
 
     def copy(self):
