@@ -74,13 +74,9 @@ complex_t chan_value(
         // get the index of the phase change
         // this loop will result in finding the index of the phase to use +1
         auto phase_idx = 0;
-        auto found = false;
-        while((found == false) && (phase_idx < num_times)){
-            if(t < fc_array[3 * phase_idx]){
-                found = true;
-            }else{
-                phase_idx++;
-            }
+        while(phase_idx < num_times){
+            if(t < fc_array[3 * phase_idx]) break;
+            phase_idx++;
         }
 
         double phase = 0.;
