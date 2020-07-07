@@ -521,10 +521,12 @@ void DensityMatrixThrust<data_t>::apply_toffoli(const uint_t qctrl0,
 //-----------------------------------------------------------------------
 
 template <typename data_t>
-double DensityMatrixThrust<data_t>::probability(const uint_t outcome) const {
+double DensityMatrixThrust<data_t>::probability(const uint_t outcome) const 
+{
   const auto shift = BaseMatrix::num_rows() + 1;
-
-	return std::real(BaseVector::get_state(outcome * shift));
+  std::complex<data_t> ret;
+  ret = (std::complex<data_t>)BaseVector::chunk_->Get(outcome * shift);
+	return std::real(ret);
 }
 
 
