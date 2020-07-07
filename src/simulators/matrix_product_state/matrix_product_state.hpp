@@ -752,12 +752,15 @@ std::vector<reg_t> State::
   all_samples.resize(shots);
   reg_t single_result;
 
+  #pragma omp parallel if (shots >  MPS::get_omp_threshold() && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads())
+    {
+      #pragma omp for
   for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
     temp.initialize(qreg_);
     single_result = temp.apply_measure(qubits, rng);
     all_samples[i] = single_result;
   }
-
+  } // end omp parallel
   return all_samples;
 }
 
