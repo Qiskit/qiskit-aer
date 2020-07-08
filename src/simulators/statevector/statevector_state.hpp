@@ -46,7 +46,7 @@ const Operations::OpSet StateOpSet(
     "h",   "s",   "sdg",  "t",    "tdg",  "ccx",  "cswap",
     "mcx", "mcy", "mcz",  "mcu1", "mcu2", "mcu3", "mcswap"},
   // Snapshots
-  {"statevector", "memory", "register", "probabilities",
+  {"statevector", "statevector_ket", "memory", "register", "probabilities",
     "probabilities_with_variance", "expectation_value_pauli",
     "density_matrix", "density_matrix_with_variance",
     "expectation_value_pauli_with_variance",
@@ -64,7 +64,7 @@ enum class Gates {
 
 // Allowed snapshots enum class
 enum class Snapshots {
-  statevector, cmemory, cregister,
+  statevector, statevector_ket, cmemory, cregister,
   probs, probs_var, densmat, densmat_var,
   expval_pauli, expval_pauli_var, expval_pauli_shot,
   expval_matrix, expval_matrix_var, expval_matrix_shot
@@ -339,6 +339,7 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
 template <class statevec_t>
 const stringmap_t<Snapshots> State<statevec_t>::snapshotset_({
   {"statevector", Snapshots::statevector},
+  {"statevector_ket", Snapshots::statevector_ket},
   {"probabilities", Snapshots::probs},
   {"expectation_value_pauli", Snapshots::expval_pauli},
   {"expectation_value_matrix", Snapshots::expval_matrix},
@@ -502,6 +503,9 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
   switch (it -> second) {
     case Snapshots::statevector:
       data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.vector());
+      break;
+    case Snapshots::statevector_ket:
+      data.add_pershot_snapshot("statevector", op.string_params[0], Utils::vec2ket(BaseState::qreg_.vector(), json_chop_threshold_, 16));
       break;
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);
