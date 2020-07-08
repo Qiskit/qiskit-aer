@@ -224,6 +224,20 @@ public:
   // for measurement of N-qubits.
   virtual std::vector<double> probabilities(const reg_t &qubits) const;
 
+  //----------------------------------------------------------------
+  // Function name: get_accumulated_probabilities_vector
+  // Description: Computes the accumulated probabilities from 0
+  // Parameters: qubits - the qubits for which we compute probabilities
+  // Returns: acc_probvector - the vector of accumulated probabilities
+  //          index_vec - the base values whose probabilities are not 0
+  // For example:
+  // if probabilities vector is: 0.5 (00), 0.0 (01), 0.2 (10), 0.3 (11), then 
+  // acc_probvector = 0.0,    0.5,    0.7,   1.0
+  // index_vec =      0 (00), 2 (10), 3(11)
+  //----------------------------------------------------------------
+  void get_accumulated_probabilities_vector(std::vector<double>& acc_probvector, 
+					    reg_t& index_vec) const;
+
   // Return M sampled outcomes for Z-basis measurement of all qubits
   // The input is a length M list of random reals between [0, 1) used for
   // generating samples.
@@ -1927,84 +1941,60 @@ std::vector<double> QubitVector<data_t>::probabilities(const reg_t &qubits) cons
   return probs;
 }
 
+template <typename data_t>
+void QubitVector<data_t>::get_accumulated_probabilities_vector(std::vector<double>& acc_probvector, 
+							       reg_t& index_vec) const {
+  uint_t size = 1LL << num_qubits_;
+  uint_t j = 1;
+  acc_probvector.push_back(0.0);
+  for (uint_t i=0; i<size; i++) {
+    if (!AER::Linalg::almost_equal(probability(i), 0.0)) {
+      index_vec.push_back(i);
+      acc_probvector.push_back(acc_probvector[j-1] + probability(i));
+      j++;
+    }
+  }
+}
+
 //------------------------------------------------------------------------------
 // Sample measure outcomes
 //------------------------------------------------------------------------------
+
 template <typename data_t>
 reg_t QubitVector<data_t>::sample_measure(const std::vector<double> &rnds) const {
-
-  const int_t END = 1LL << num_qubits();
-  const int_t SHOTS = rnds.size();
+  const uint_t SHOTS = rnds.size();
   reg_t samples;
   samples.assign(SHOTS, 0);
+  std::vector<double> acc_probvector;
+  reg_t index_vec;
+  get_accumulated_probabilities_vector(acc_probvector, index_vec);
 
-  const int INDEX_SIZE = sample_measure_index_size_;
-  const int_t INDEX_END = BITS[INDEX_SIZE];
-  // Qubit number is below index size, loop over shots
-  if (END < INDEX_END) {
-    #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-    {
-      #pragma omp for
-      for (int_t i = 0; i < SHOTS; ++i) {
-        double rnd = rnds[i];
-        double p = .0;
-        int_t sample;
-        for (sample = 0; sample < END - 1; ++sample) {
-          p += probability(sample);
-          if (rnd < p)
-            break;
-        }
-        samples[i] = sample;
+ uint_t accvec_size = acc_probvector.size();
+ uint_t rnd_index;
+  #pragma omp parallel for if (SHOTS > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+
+  for (int_t i = 0; i < SHOTS; ++i) {
+    double rnd = rnds[i];
+
+    // binary search for which range rnd is in
+    uint_t first = 0;
+    uint_t last = accvec_size-1;
+    uint_t mid = 0;
+    while(true) {
+      if (first >= last-1) {
+	rnd_index = first;
+	break;
       }
-    } // end omp parallel
+      mid = (first+last)/2;
+      if (rnd <= acc_probvector[mid])
+	last = mid;
+      else
+	first = mid;
+    }
+    
+    samples[i] = index_vec[rnd_index];
   }
-  // Qubit number is above index size, loop over index blocks
-  else {
-    // Initialize indexes
-    std::vector<double> idxs;
-    idxs.assign(INDEX_END, 0.0);
-    uint_t loop = (END >> INDEX_SIZE);
-    #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-    {
-      #pragma omp for
-      for (int_t i = 0; i < INDEX_END; ++i) {
-        uint_t base = loop * i;
-        double total = .0;
-        double p = .0;
-        for (uint_t j = 0; j < loop; ++j) {
-          uint_t k = base | j;
-          p = probability(k);
-          total += p;
-        }
-        idxs[i] = total;
-      }
-    } // end omp parallel
 
-    #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-    {
-      #pragma omp for
-      for (int_t i = 0; i < SHOTS; ++i) {
-        double rnd = rnds[i];
-        double p = .0;
-        int_t sample = 0;
-        for (uint_t j = 0; j < idxs.size(); ++j) {
-          if (rnd < (p + idxs[j])) {
-            break;
-          }
-          p += idxs[j];
-          sample += loop;
-        }
-
-        for (; sample < END - 1; ++sample) {
-          p += probability(sample);
-          if (rnd < p){
-            break;
-          }
-        }
-        samples[i] = sample;
-      }
-    } // end omp parallel
-  }
   return samples;
 }
 
