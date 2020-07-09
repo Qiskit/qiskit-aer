@@ -15,6 +15,10 @@ project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
+if(NOT DEFINED BLAS_LIB_PATH AND DEFINED ENV{BLAS_LIB_PATH})
+	set(BLAS_LIB_PATH $ENV{BLAS_LIB_PATH})
+endif()
+
 # Warning: Because of a bug on CMake's FindBLAS or (it's not clear whoes fault is)
 # libopenblas.a for Ubuntu (maybe others) we need to copy the file:
 # cmake/FindBLAS.cmake.fix-static-linking, to the directory were CMake Modules are
