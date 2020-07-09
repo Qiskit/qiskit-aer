@@ -626,6 +626,8 @@ These are the flags:
 
     Tells CMake the directory to look for the BLAS library instead of the usual paths.
     If no BLAS library is found under that directory, CMake will raise an error and stop.
+    
+    It can also be set as an ENV variable with the same name, although the flag takes precedence.
 
     Values: An absolute path.
     Default: No value.
