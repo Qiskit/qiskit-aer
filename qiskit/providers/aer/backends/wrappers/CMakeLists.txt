@@ -7,11 +7,31 @@ find_package(Pybind11 REQUIRED)
 # shared library.
 string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
+set_source_files_properties(bindings.cc PROPERTIES COMPILE_FLAGS "-DQV_AVX_ISOLATION")
+
 # Controllers
 if(CUDA_FOUND)
     set_source_files_properties(bindings.cc PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 endif()
-basic_pybind11_add_module(controller_wrappers bindings.cc)
+
+# We build SIMD filed separately, because they will be reached only if the
+# machine running the code has SIMD support
+set(SIMD_SOURCE_FILE "../../../../../src/simulators/statevector/qvintrin.cpp")
+
+if(APPLE OR UNIX)
+	if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le")
+	    set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-DQV_AVX_ISOLATION")
+	elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
+	    set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-DQV_AVX_ISOLATION")
+	else()
+	    set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2 -DQV_AVX_ISOLATION")
+	endif()
+elseif(MSVC)
+    set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "/arch:AVX2 /DQV_AVX_ISOLATION")
+endif()
+
+basic_pybind11_add_module(controller_wrappers bindings.cc ${SIMD_SOURCE_FILE})
+
 target_include_directories(controller_wrappers PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
                                                PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 target_link_libraries(controller_wrappers ${AER_LIBRARIES})

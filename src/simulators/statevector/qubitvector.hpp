@@ -30,6 +30,8 @@
 
 #include "simulators/statevector/indexes.hpp"
 #include "framework/json.hpp"
+#include "framework/utils.hpp"
+#include "qvintrin.hpp"
 
 namespace QV {
 
@@ -310,6 +312,9 @@ public:
   // Get the sample_measure index size
   int get_sample_measure_index_size() {return sample_measure_index_size_;}
 
+  // Use SIMD instructions
+  void use_intrinsics(bool use) { use_intrinsics_ = use; }
+  
 protected:
 
   //-----------------------------------------------------------------------
@@ -328,6 +333,8 @@ protected:
   int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
   double json_chop_threshold_ = 0;  // Threshold for choping small values
                                     // in JSON serialization
+  bool use_intrinsics_ = is_intrinsics(); // Use intrinsics
+  inline uint_t omp_threads_managed() const { return (num_qubits_ > omp_threshold_ && omp_threads_ > 1) ? omp_threads_: 0; }
 
   //-----------------------------------------------------------------------
   // Error Messages
@@ -446,6 +453,17 @@ protected:
   std::complex<double> apply_reduction_lambda(Lambda&& func,
                                               const list_t &qubits,
                                               const param_t &params) const;
+  // Free allocated memory
+  void free_mem();
+
+  // Free allocated checkpoint
+  void free_checkpoint();
+
+  // Allocates memory for the underlaying quantum state
+  void allocate_mem(size_t data_size);
+
+  // Allocates memory for the checkoiunt
+  void allocate_checkpoint(size_t data_size);
 };
 
 /*******************************************************************************
@@ -647,26 +665,60 @@ cvector_t<data_t> QubitVector<data_t>::convert(const cvector_t<double>& v) const
 template <typename data_t>
 void QubitVector<data_t>::set_num_qubits(size_t num_qubits) {
 
-  size_t prev_num_qubits = num_qubits_;
-  num_qubits_ = num_qubits;
+  free_checkpoint();
+  if(num_qubits != num_qubits_){
+    free_mem();
+  }
   data_size_ = BITS[num_qubits];
+  allocate_mem(data_size_);
 
+  num_qubits_ = num_qubits;
+}
+
+template <typename data_t>
+void QubitVector<data_t>::free_mem(){
+  if (data_) {
+    free(data_);
+    data_ = nullptr;
+  }
+}
+
+
+template<typename data_t>
+void QubitVector<data_t>::free_checkpoint(){
   if (checkpoint_) {
     free(checkpoint_);
     checkpoint_ = nullptr;
   }
+}
 
+template <typename data_t>
+void QubitVector<data_t>::allocate_mem(size_t data_size){
   // Free any currently assigned memory
-  if (data_) {
-    if (prev_num_qubits != num_qubits_) {
-      free(data_);
-      data_ = nullptr;
-    }
-  }
-
+  free_mem();
   // Allocate memory for new vector
-  if (data_ == nullptr)
-    data_ = reinterpret_cast<std::complex<data_t>*>(malloc(sizeof(std::complex<data_t>) * data_size_));
+  if (data_ == nullptr) {
+#ifndef _WIN64
+    void* data = nullptr;
+    posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size);
+    data_ = reinterpret_cast<std::complex<data_t>*>(data);
+#else
+    data_ = reinterpret_cast<std::complex<data_t>*>(malloc(sizeof(std::complex<data_t>) * data_size));
+#endif
+  }
+}
+
+template <typename data_t>
+void QubitVector<data_t>::allocate_checkpoint(size_t data_size){
+  free_checkpoint();
+#ifndef _WIN64
+  void* data;
+  posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size);
+  checkpoint_ = reinterpret_cast<std::complex<data_t>*>(data);
+#else
+  checkpoint_ = reinterpret_cast<std::complex<data_t>*>(malloc(sizeof(std::complex<data_t>) * data_size));
+#endif
+
 }
 
 template <typename data_t>
@@ -701,16 +753,16 @@ void QubitVector<data_t>::revert(bool keep) {
   // If we aren't keeping checkpoint we don't need to copy memory
   // we can simply swap the pointers and free discarded memory
   if (!keep) {
-    free(data_);
+    free_mem();
     data_ = checkpoint_;
     checkpoint_ = nullptr;
-  } else {
-    // Otherwise we need to copy data
-    const int_t END = data_size_;    // end for k loop
-#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-    for (int_t k = 0; k < END; ++k)
-      data_[k] = checkpoint_[k];
+    return;
   }
+  // Otherwise we need to copy data
+  const int_t END = data_size_;    // end for k loop
+#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+  for (int_t k = 0; k < END; ++k)
+    data_[k] = checkpoint_[k];
 }
 
 template <typename data_t>
@@ -974,6 +1026,16 @@ template <typename data_t>
 void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
                                        const cvector_t<double> &mat) {
 
+  if (use_intrinsics_ && apply_matrix_opt(
+                                      reinterpret_cast<data_t *>(data_),
+                                      data_size_,
+                                      qubits.data(),
+                                      qubits.size(),
+                                      reinterpret_cast<data_t *>(convert(mat).data()),
+                                      omp_threads_managed())) {
+    return;
+  }
+  
   const size_t N = qubits.size();
   // Error checking
   #ifdef DEBUG
@@ -1542,6 +1604,15 @@ void QubitVector<data_t>::apply_matrix(const uint_t qubit,
       data_[inds[1]] = _mat[1] * cache;
     };
     apply_lambda(lambda, qubits, convert(mat));
+    return;
+  }
+  if (use_intrinsics_ && apply_matrix_opt(
+                                  reinterpret_cast<data_t *>(data_),
+                                  data_size_,
+                                  reg_t{qubit}.data(),
+                                  1,
+                                  reinterpret_cast<data_t *>(convert(mat).data()),
+                                  omp_threads_managed())) {
     return;
   }
   // Otherwise general single-qubit matrix multiplication

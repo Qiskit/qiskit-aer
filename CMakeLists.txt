@@ -218,6 +218,12 @@ else()
 	message(STATUS "No Thrust support enabled")
 endif()
 
+if(SKBUILD) # Terra Addon build
+	enable_cxx_compiler_flag_if_supported("-DQV_AVX_ISOLATION")
+else() # Standalone build
+	enable_cxx_compiler_flag_if_supported("-mfma")
+	enable_cxx_compiler_flag_if_supported("-mavx2")
+endif()
 
 # Set dependent libraries
 set(AER_LIBRARIES
@@ -236,7 +242,10 @@ if(SKBUILD) # Terra Addon build
 	add_subdirectory(qiskit/providers/aer/pulse/qutip_extra_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 	add_subdirectory(src/open_pulse)
+	enable_cxx_compiler_flag_if_supported("-DQV_AVX_ISOLATION")
 else() # Standalone build
+	enable_cxx_compiler_flag_if_supported("-mfma")
+	enable_cxx_compiler_flag_if_supported("-mavx2")
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 	if(CUDA_FOUND)
 		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
