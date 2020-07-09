@@ -15,6 +15,14 @@ project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
+if(NOT DEFINED AER_BUILD_DIST AND DEFINED ENV{AER_BUILD_DIST})
+	set(AER_BUILD_DIST $ENV{AER_BUILD_DIST})
+endif()
+
+if(AER_BUILD_DIST)
+	set(AER_OPENBLAS_DYNAMIC True)
+endif()
+
 # Warning: Because of a bug on CMake's FindBLAS or (it's not clear whoes fault is)
 # libopenblas.a for Ubuntu (maybe others) we need to copy the file:
 # cmake/FindBLAS.cmake.fix-static-linking, to the directory were CMake Modules are

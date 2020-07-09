@@ -668,6 +668,32 @@ These are the flags:
     Default: Auto
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="5.2; 5.3"``
 
+* AER_OPENBLAS_DYNAMIC
+    
+    This flag instructs the Conan package manager to use the OpenBlas library built with 
+    the option dynamic architecture. It will use a library with builtin support for many
+    CPUs and runtime detection
+    
+    Values: True | False
+    Default: False
+    Example: ``python ./setup.py bdist_wheel -- -DAER_OPENBLAS_DYNAMIC=True``
+
+* AER_BUILD_DIST
+    
+    By setting this we tell the build_system to enable certain options needed
+    for a distributable version. It sets the following options:
+    
+    - AER_OPENBLAS_DYNAMIC=True
+    
+    It can also be set as an ENV variable with the same name, 
+    although the flag takes precedence.
+    
+    Values: True | False
+    Default: False
+    Example: ``python ./setup.py bdist_wheel -- -DAER_BUILD_DIST=True``
+
+    
+
 ## Tests
 
 Code contribution are expected to include tests that provide coverage for the

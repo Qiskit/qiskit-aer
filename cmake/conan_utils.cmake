@@ -5,6 +5,8 @@ macro(setup_conan)
     # Right now every dependency shall be static
     set(CONAN_OPTIONS ${CONAN_OPTIONS} "*:shared=False")
 
+    set(CONAN_FORCE_BUILD "")
+
     set(REQUIREMENTS nlohmann_json/3.1.1 spdlog/1.5.0)
     if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         set(REQUIREMENTS ${REQUIREMENTS} llvm-openmp/8.0.1)
@@ -28,6 +30,15 @@ macro(setup_conan)
 
     if(NOT BLAS_LIB_PATH)
         set(REQUIREMENTS ${REQUIREMENTS} openblas/0.3.7)
+        if(AER_OPENBLAS_DYNAMIC)
+            message(STATUS "Using OpenBlas with dynamic architecture")
+            set(CONAN_OPTIONS ${CONAN_OPTIONS} "openblas:dynamic_arch=True")
+        else()
+            set(CONAN_OPTIONS ${CONAN_OPTIONS} "openblas:dynamic_arch=False")
+            # Temporary we have to force this build as it will
+            # retrieve conan binary compiled for their CI CPU
+            set(CONAN_FORCE_BUILD ${CONAN_FORCE_BUILD} openblas)
+        endif()
     endif()
 
     if(BUILD_TESTS)
@@ -40,5 +51,5 @@ macro(setup_conan)
                     BASIC_SETUP
                     CMAKE_TARGETS
                     KEEP_RPATHS
-                    BUILD missing)
+                    BUILD missing ${CONAN_FORCE_BUILD})
 endmacro()
