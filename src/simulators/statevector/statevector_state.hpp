@@ -220,11 +220,6 @@ protected:
   // should be left in the pre-snapshot state.
   //-----------------------------------------------------------------------
 
-  // Snapshot current amplitudes
-  void snapshot_statevector(const Operations::Op &op,
-                            ExperimentData &data,
-                            SnapshotDataType type);
-
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
                               ExperimentData &data,
