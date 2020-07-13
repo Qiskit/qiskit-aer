@@ -1292,6 +1292,9 @@ double chop(double val, double epsilon) {
   return (std::abs(val) < epsilon) ? 0. : val;
 }
 
+float chop(float val, double epsilon) {
+  return (std::abs(val) < epsilon) ? 0. : val;
+}
 
 template <typename T>
 std::complex<T> chop(std::complex<T> val, double epsilon) {
