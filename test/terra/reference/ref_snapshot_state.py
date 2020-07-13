@@ -78,7 +78,7 @@ def snapshot_state_pre_measure_statevector_deterministic():
     return targets
 
 def snapshot_state_pre_measure_statevector_ket_deterministic():
-    """Snapshot Statevector test circuits reference final statevector"""
+    """Snapshot Statevector_ket test circuits reference final statevector"""
     targets = []
     # Snapshot |000>
     targets.append({'0x0': 1})
@@ -95,6 +95,16 @@ def snapshot_state_post_measure_statevector_deterministic():
     targets.append({'0x0': array([1, 0, 0, 0, 0, 0, 0, 0], dtype=complex)})
     # Snapshot |111>
     targets.append({'0x7': array([0, 0, 0, 0, 0, 0, 0, 1], dtype=complex)})
+    return targets
+
+def snapshot_state_post_measure_statevector_ket_deterministic():
+    """Snapshot Statevector_ket test circuits reference final statevector"""
+
+    targets = []
+    # Snapshot |000>
+    targets.append({'0x0': {'0x0': 1}})
+    # Snapshot |111>
+    targets.append({'0x7': {'0x7': 1}})
     return targets
 
 
@@ -167,6 +177,24 @@ def snapshot_state_pre_measure_statevector_nondeterministic():
     targets.append(array([1, 1, 1, 1, 1, 1, 1, 1], dtype=complex) / sqrt(8))
     return targets
 
+def snapshot_state_pre_measure_statevector_ket_nondeterministic():
+    """Snapshot Statevector test circuits reference final statevector"""
+    targets = []
+    # Snapshot |000> + i|111>
+    targets.append({"0x0": 1 / sqrt(2), "0x7": 1j / sqrt(2)})
+
+    # Snapshot |+++>
+    targets.append({"0x0": 1 / sqrt(8),
+                    "0x1": 1 / sqrt(8),
+                    "0x2": 1 / sqrt(8),
+                    "0x3": 1 / sqrt(8),
+                    "0x4": 1 / sqrt(8),
+                    "0x5": 1 / sqrt(8),
+                    "0x6": 1 / sqrt(8),
+                    "0x7": 1 / sqrt(8)
+                    })
+    return targets
+
 
 def snapshot_state_post_measure_statevector_nondeterministic():
     """Snapshot Statevector test circuits reference final statevector"""
@@ -185,4 +213,25 @@ def snapshot_state_post_measure_statevector_nondeterministic():
                     '0x6': array([0, 0, 0, 0, 0, 0, 1, 0], dtype=complex),
                     '0x7': array([0, 0, 0, 0, 0, 0, 0, 1], dtype=complex)})
     return targets
+
+def snapshot_state_post_measure_statevector_ket_nondeterministic():
+    """Snapshot Statevector test circuits reference final statevector"""
+
+    targets = []
+    # Snapshot |000> + i|111>
+    targets.append({'0x0': {'0x0': 1},
+                    '0x7': {'0x7': 1j},
+                    })
+    # Snapshot |+++>
+    targets.append({'0x0': {'0x0': 1},
+                    '0x1': {'0x1': 1},
+                    '0x2': {'0x2': 1},
+                    '0x3': {'0x3': 1},
+                    '0x4': {'0x4': 1},
+                    '0x5': {'0x5': 1},
+                    '0x6': {'0x6': 1},
+                    '0x7': {'0x7': 1}
+                    })
+    return targets
+
 
