@@ -804,7 +804,7 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
   check_duplicate_qubits(op);
 
   // Parse Pauli operator components
-  const auto threshold = 1e-10; // drop small components
+  const auto threshold = 1e-15; // drop small components
   // Get components
   if (JSON::check_key("params", js) && js["params"].is_array()) {
     for (const auto &comp : js["params"]) {
@@ -832,6 +832,15 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
     } // end component loop
   } else {
     throw std::invalid_argument("Invalid Pauli snapshot \"params\".");
+  }
+  // Check edge case of all coefficients being empty
+  // In this case the operator had all coefficients zero, or sufficiently close
+  // to zero that they were all truncated.
+  if (op.params_expval_pauli.empty()) {
+    // Add a single identity op with zero coefficient
+    std::string pauli(op.qubits.size(), 'I');
+    complex_t coeff(0);
+    op.params_expval_pauli.emplace_back(coeff, pauli);
   }
   return op;
 }
