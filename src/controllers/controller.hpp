@@ -40,7 +40,6 @@
 // Base Controller
 #include "framework/creg.hpp"
 #include "framework/qobj.hpp"
-#include "framework/operations.hpp"
 #include "framework/results/experiment_data.hpp"
 #include "framework/results/result.hpp"
 #include "framework/rng.hpp"
@@ -105,7 +104,7 @@ namespace Base {
 
 class Controller {
 public:
-  Controller() { clear_parallelization(); clear_final_exp_val(); }
+  Controller() { clear_parallelization(); }
 
   //-----------------------------------------------------------------------
   // Execute qobj
@@ -182,14 +181,6 @@ protected:
 
   // Validation threshold for validating states and operators
   double validation_threshold_ = 1e-8;
-
-  // Parameters for final expectation value by measurements
-  bool final_exp_val_;
-  reg_t exp_val_qubits_;
-  std::vector<Operations::pauli_component_t> exp_val_op_;
-
-  // Set parameters for final expectation value to default values
-  void clear_final_exp_val();
 
   //-----------------------------------------------------------------------
   // Parallelization Config
@@ -294,28 +285,10 @@ void Controller::set_config(const json_t &config) {
     parallel_shots_ = std::max<int>({parallel_shots_, 1});
     parallel_state_update_ = std::max<int>({parallel_state_update_, 1});
   }
-
-  // Load parameters not related to parallelization
-  if (JSON::check_key("final_expectation_value_by_measurements", config)) {
-    json_t exp_val_params;
-    JSON::get_value(exp_val_params, "final_expectation_value_by_measurements", config);
-
-    JSON::get_value(exp_val_qubits_, "qubits", exp_val_params);
-    if(Operations::is_duplicate_qubits(exp_val_qubits_)) {
-      throw std::invalid_argument("Duplicate qubits in the final expectation value");
-    }
-
-    json_t unparsed_op;
-    JSON::get_value(unparsed_op, "op", exp_val_params);
-    Operations::parse_pauli_operator(unparsed_op, exp_val_op_, exp_val_qubits_.size());
-    
-    final_exp_val_ = true;
-  }
 }
 
 void Controller::clear_config() {
   clear_parallelization();
-  clear_final_exp_val();
   validation_threshold_ = 1e-8;
 }
 
@@ -330,12 +303,6 @@ void Controller::clear_parallelization() {
 
   explicit_parallelization_ = false;
   max_memory_mb_ = get_system_memory_mb() / 2;
-}
-
-void Controller::clear_final_exp_val() {
-  final_exp_val_ = false;
-  exp_val_qubits_ = reg_t();
-  exp_val_op_ = std::vector<Operations::pauli_component_t>();
 }
 
 void Controller::set_parallelization_experiments(

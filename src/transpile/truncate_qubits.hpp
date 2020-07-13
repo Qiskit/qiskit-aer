@@ -36,10 +36,10 @@ public:
                         ExperimentData &data) const override;
 
 private:
-  // check this optimization can be applied
+  // check if this optimization can be applied
   bool can_apply(const Circuit& circ) const;
 
-  // check this optimization can be applied
+  // check if this optimization can be applied
   bool can_apply(const Operations::Op& op) const;
 
   // Generate a list of qubits that are used in the input circuit and noise model
@@ -105,6 +105,9 @@ void TruncateQubits::optimize_circuit(Circuit& circ,
       remap_qubits(reg, mapping);
     }
   }
+
+  remap_qubits(circ.expval_by_meas_qubits, mapping);
+
   // Update the number of qubits in the circuit 
   circ.num_qubits = active_qubits.size();
 
@@ -124,6 +127,10 @@ reg_t TruncateQubits::get_active_qubits(const Circuit& circ,
 
   size_t not_used = circ.num_qubits + 1;
   reg_t active_qubits = reg_t(circ.num_qubits, not_used);
+
+  for (size_t qubit : circ.expval_by_meas_qubits) {
+    active_qubits[qubit] = qubit;
+  }
 
   for (const Operations::Op& op: circ.ops) {
     for (size_t qubit: op.qubits)
@@ -151,7 +158,7 @@ reg_t TruncateQubits::get_active_qubits(const Circuit& circ,
     }
   }
 
-  // Erase unused qubits for the list
+  // Erase unused qubits from the list
   active_qubits.erase(std::remove(active_qubits.begin(), active_qubits.end(), not_used),
                 active_qubits.end());
   return active_qubits;

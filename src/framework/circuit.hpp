@@ -51,7 +51,10 @@ public:
   uint_t shots = 1;
   uint_t seed;
   json_t header;
-  
+
+  bool has_expval_by_meas;
+  reg_t expval_by_meas_qubits;
+  std::vector<Operations::pauli_component_t> expval_by_meas_op;
 
   // Constructor
   // The constructor automatically calculates the num_qubits, num_memory, num_registers
@@ -73,10 +76,10 @@ public:
   // Return the used qubits for the circuit
   inline const std::set<uint_t>& qubits() const {return qubitset_;}
 
-  // Return the used qubits for the circuit
+  // Return the used memory for the circuit
   inline const std::set<uint_t>& memory() const {return memoryset_;}
 
-  // Return the used qubits for the circuit
+  // Return the used registers for the circuit
   inline const std::set<uint_t>& registers() const {return registerset_;}
 
   //-----------------------------------------------------------------------
@@ -184,6 +187,23 @@ Circuit::Circuit(const json_t &circ, const json_t &qobj_config) : Circuit() {
   // Load metadata
   JSON::get_value(header, "header", circ);
   JSON::get_value(shots, "shots", config);
+
+  if (JSON::check_key("final_expectation_value_by_measurements", config)) {
+    json_t expval_params;
+    JSON::get_value(expval_params, "final_expectation_value_by_measurements", config);
+
+    JSON::get_value(expval_by_meas_qubits, "qubits", expval_params);
+    if(Operations::is_duplicate_qubits(expval_by_meas_qubits)) {
+      throw std::invalid_argument("Duplicate qubits in expectation value by measurements");
+    }
+
+    json_t unparsed_op;
+    JSON::get_value(unparsed_op, "op", expval_params);
+    Operations::parse_pauli_operator(unparsed_op, expval_by_meas_op, 
+				     expval_by_meas_qubits.size());
+    
+    has_expval_by_meas = true;
+  }
 
   // Check for specified memory slots
   uint_t memory_slots = 0;
