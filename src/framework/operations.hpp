@@ -95,6 +95,10 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
 }
 
 
+using pauli_component_t = std::pair<complex_t, std::string>; // Pair (coeff, label_string)
+using matrix_component_t = std::pair<complex_t, std::vector<std::pair<reg_t, cmatrix_t>>>; // vector of Pair(qubits, matrix), combined with coefficient
+
+
 //------------------------------------------------------------------------------
 // Op Class
 //------------------------------------------------------------------------------
@@ -129,8 +133,6 @@ struct Op {
   std::vector<rvector_t> probs;
 
   // Snapshots
-  using pauli_component_t = std::pair<complex_t, std::string>; // Pair (coeff, label_string)
-  using matrix_component_t = std::pair<complex_t, std::vector<std::pair<reg_t, cmatrix_t>>>; // vector of Pair(qubits, matrix), combined with coefficient
   std::vector<pauli_component_t> params_expval_pauli;
   std::vector<matrix_component_t> params_expval_matrix; // note that diagonal matrices are stored as
                                                         // 1 x M row-matrices
@@ -196,10 +198,14 @@ inline void check_length_params(const Op &op, const size_t size) {
 }
 
 // Raise an exception if qubits list contains duplications
-inline void check_duplicate_qubits(const Op &op) {
-  auto cpy = op.qubits;
+inline bool is_duplicate_qubits(const reg_t& qubits) {
+  auto cpy = qubits;
   std::unique(cpy.begin(), cpy.end());
-  if (cpy != op.qubits)
+  return (cpy != qubits);
+}
+
+inline void check_duplicate_qubits(const Op &op) {
+  if (is_duplicate_qubits(op.qubits))
     throw std::invalid_argument(R"(Invalid qobj ")" + op.name +
                                 R"(" instruction ("qubits" are not unique).)");
 }
@@ -342,8 +348,8 @@ inline Op make_roerror(const reg_t &memory, const std::vector<rvector_t> &probs)
 //------------------------------------------------------------------------------
 
 // Main JSON deserialization functions
-Op json_to_op(const json_t &js); // Patial TODO
-json_t op_to_json(const Op &op); // Patial TODO
+Op json_to_op(const json_t &js); // Partial TODO
+json_t op_to_json(const Op &op); // Partial TODO
 inline void from_json(const json_t &js, Op &op) {op = json_to_op(js);}
 inline void to_json(json_t &js, const Op &op) { js = op_to_json(op);}
 
@@ -795,19 +801,11 @@ Op json_to_op_snapshot_default(const json_t &js) {
 }
 
 
-Op json_to_op_snapshot_pauli(const json_t &js) {
-  // Load default snapshot parameters
-  Op op = json_to_op_snapshot_default(js);
-
-  // Check qubits are valid
-  check_empty_qubits(op);
-  check_duplicate_qubits(op);
-
-  // Parse Pauli operator components
+void parse_pauli_operator(const json_t &js, 
+			  std::vector<pauli_component_t>& pauli_op,
+			  int nqubits) {
   const auto threshold = 1e-10; // drop small components
-  // Get components
-  if (JSON::check_key("params", js) && js["params"].is_array()) {
-    for (const auto &comp : js["params"]) {
+  for (const auto &comp : js) {
       // Check component is length-2 array
       if (!comp.is_array() || comp.size() != 2)
         throw std::invalid_argument("Invalid Pauli expval snapshot (param component " + 
@@ -822,14 +820,28 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
       // eg label = "CBA", A is the Pauli for qubit-0, B for qubit-1, C for qubit-2
       if (std::abs(coeff) > threshold) {
         std::string pauli = comp[1];
-        if (pauli.size() != op.qubits.size()) {
+        if (pauli.size() != nqubits) {
           throw std::invalid_argument(std::string("Invalid Pauli expectation value snapshot ") +
                                       "(Pauli label does not match qubit number.).");
         }
         // make tuple and add to components
-        op.params_expval_pauli.emplace_back(coeff, pauli);
+        pauli_op.emplace_back(coeff, pauli);
       } // end if > threshold
     } // end component loop
+}
+
+
+Op json_to_op_snapshot_pauli(const json_t &js) {
+  // Load default snapshot parameters
+  Op op = json_to_op_snapshot_default(js);
+
+  // Check qubits are valid
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
+
+  // Get components
+  if (JSON::check_key("params", js) && js["params"].is_array()) {
+    parse_pauli_operator(js["params"], op.params_expval_pauli, op.qubits.size());
   } else {
     throw std::invalid_argument("Invalid Pauli snapshot \"params\".");
   }

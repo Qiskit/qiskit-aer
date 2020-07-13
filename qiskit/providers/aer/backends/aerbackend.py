@@ -20,13 +20,14 @@ import datetime
 import os
 import time
 import uuid
-from numpy import ndarray
+import numpy as np
 
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendStatus
 from qiskit.qobj import validate_qobj_against_schema
 from qiskit.result import Result
 from qiskit.util import local_hardware_info
+from ..extensions.snapshot_expectation_value import SnapshotExpectationValue as sev
 
 from ..aerjob import AerJob
 
@@ -50,7 +51,7 @@ class AerJSONEncoder(json.JSONEncoder):
 
     # pylint: disable=method-hidden,arguments-differ
     def default(self, obj):
-        if isinstance(obj, ndarray):
+        if isinstance(obj, np.ndarray):
             return obj.tolist()
         if isinstance(obj, complex):
             return [obj.real, obj.imag]
@@ -135,13 +136,23 @@ class AerBackend(BaseBackend):
 
     def _format_qobj(self, qobj, backend_options, noise_model):
         """Format qobj string for qiskit aer controller"""
+
         # Convert qobj to dict so as to avoid editing original
         output = qobj.to_dict()
+
         # Add new parameters to config from backend options
         config = output["config"]
+
         if backend_options is not None:
             for key, val in backend_options.items():
                 config[key] = val if not hasattr(val, 'to_dict') else val.to_dict()
+
+        if 'final_expectation_value_by_measurements' in config:
+            op = config['final_expectation_value_by_measurements']['op']
+            pauli_op = sev._format_pauli_op(op)
+            assert(pauli_op)
+            config['final_expectation_value_by_measurements']['op'] = pauli_op
+
         # Add noise model to config
         if noise_model is not None:
             config["noise_model"] = noise_model
@@ -153,8 +164,13 @@ class AerBackend(BaseBackend):
             max_memory_mb = int(local_hardware_info()['memory'] * 1024 / 2)
             config['max_memory_mb'] = max_memory_mb
 
+        # backend_options is not used from now on,
+        # its data is now stored in config
+        # in the proper format.
+        if 'backend_options' in config:
+            config.pop('backend_options')
+
         self._validate_config(config)
-        # Return output
         return output
 
     def _validate_config(self, config):

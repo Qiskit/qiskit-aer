@@ -163,7 +163,14 @@ class QasmSimulator(AerBackend):
     * ``"statevector_sample_measure_opt"`` (int): Sets the threshold that
       the number of qubits must be greater than to enable a large
       qubit optimized implementation of measurement sampling. Note
-      that setting this two low can reduce performance (Default: 10)
+      that setting this too low can reduce performance (Default: 10)
+
+    * ``"final_expectation_value_by_measurements"`` (dictionary): Returns the final
+      expectation value in the result, for the given observable. Simulation
+      mimics exactly execution on a real device, including addition of gates
+      for switching bases, statistical noise, and noise coming from the noise
+      model. Therefore only a Pauli operator is possible. The dictionary contains
+      the keys "op" and "qubits".
 
     These backend options only apply when using the ``"stabilizer"``
     simulation method:
