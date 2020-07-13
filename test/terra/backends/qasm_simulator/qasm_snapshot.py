@@ -28,6 +28,7 @@ from qiskit.providers.aer.extensions import Snapshot
 from test.terra.reference.ref_snapshot_state import (
     snapshot_state_circuits_deterministic, snapshot_state_counts_deterministic,
     snapshot_state_pre_measure_statevector_deterministic,
+    snapshot_state_pre_measure_statevector_ket_deterministic,
     snapshot_state_post_measure_statevector_deterministic,
     snapshot_state_circuits_nondeterministic,
     snapshot_state_counts_nondeterministic,
@@ -59,6 +60,15 @@ class QasmSnapshotStatevectorTests:
         statevecs = []
         for snap in snaps:
             self.assertIsInstance(snap, np.ndarray)
+            statevecs.append(snap)
+        return statevecs
+
+    def statevector_ket_snapshots(self, data, label):
+        """Format snapshots as list of dictionaries"""
+        snaps = data.get("snapshots", {}).get("statevector", {}).get(label, [])
+        statevecs = []
+        for snap in snaps:
+            self.assertIsInstance(snap, dict)
             statevecs.append(snap)
         return statevecs
 
@@ -747,3 +757,143 @@ class QasmSnapshotExpValMatrixTests:
                         target = value_targets[j].get(label,
                                                       {}).get(memory, {})
                         self.assertAlmostEqual(value, target, delta=1e-7)
+
+
+class QasmSnapshotStatevectorKetTests:
+    """QasmSimulator snapshot statevector_ket tests."""
+
+    SIMULATOR = QasmSimulator()
+    SUPPORTED_QASM_METHODS = [
+        'automatic', 'statevector_ket', 'statevector_gpu', 'statevector_thrust',
+        'matrix_product_state'
+    ]
+    BACKEND_OPTS = {}
+
+    def test_snapshot_statevector_ket_pre_measure_det(self):
+        """Test snapshot statevector_ket before deterministic final measurement"""
+        shots = 10
+        label = "snap"
+        counts_targets = snapshot_state_counts_deterministic(shots)
+        statevec_targets = snapshot_state_pre_measure_statevector_ket_deterministic(
+        )
+        circuits = snapshot_state_circuits_deterministic(label,
+                                                         'statevector_ket',
+                                                         post_measure=False)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        result = job.result()
+        success = getattr(result, 'success', False)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotStatevectorTests.SUPPORTED_QASM_METHODS:
+            self.assertFalse(success)
+            pass
+        else:
+            self.assertTrue(success)
+            self.compare_counts(result, circuits, counts_targets, delta=0)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                snaps = self.statevector_ket_snapshots(data, label)
+                self.assertTrue(len(snaps), 1)
+                target = statevec_targets[j]
+                value = snaps[0]
+                keys = target.keys()
+                value_array = np.array([target[key] for key in keys])
+                target_array = np.array([value[key] for key in keys])
+                self.assertTrue(np.allclose(value_array, target_array))
+
+    def test_snapshot_statevector_pre_measure_nondet(self):
+        """Test snapshot statevector before non-deterministic final measurement"""
+        shots = 100
+        label = "snap"
+        counts_targets = snapshot_state_counts_nondeterministic(shots)
+        statevec_targets = snapshot_state_pre_measure_statevector_nondeterministic(
+        )
+        circuits = snapshot_state_circuits_nondeterministic(label,
+                                                            'statevector',
+                                                            post_measure=False)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        result = job.result()
+        success = getattr(result, 'success', False)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotStatevectorTests.SUPPORTED_QASM_METHODS:
+            self.assertFalse(success)
+        else:
+            self.assertTrue(success)
+            self.compare_counts(result,
+                                circuits,
+                                counts_targets,
+                                delta=0.2 * shots)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                snaps = self.statevector_snapshots(data, label)
+                self.assertTrue(len(snaps), 1)
+                target = statevec_targets[j]
+                value = snaps[0]
+                self.assertTrue(np.allclose(value, target))
+
+    def test_snapshot_statevector_post_measure_det(self):
+        """Test snapshot statevector after deterministic final measurement"""
+        shots = 10
+        label = "snap"
+        counts_targets = snapshot_state_counts_deterministic(shots)
+        statevec_targets = snapshot_state_post_measure_statevector_deterministic(
+        )
+        circuits = snapshot_state_circuits_deterministic(label,
+                                                         'statevector',
+                                                         post_measure=True)
+
+        qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        result = job.result()
+        success = getattr(result, 'success', False)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotStatevectorTests.SUPPORTED_QASM_METHODS:
+            logging.getLogger().setLevel(logging.CRITICAL)
+            self.assertFalse(success)
+        else:
+            self.assertTrue(success)
+            self.compare_counts(result, circuits, counts_targets, delta=0)
+            # Check snapshots
+            for i, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                snaps = self.statevector_snapshots(data, label)
+                for j, mem in enumerate(data['memory']):
+                    target = statevec_targets[i].get(mem)
+                    self.assertTrue(np.allclose(snaps[j], target))
+
+    def test_snapshot_statevector_post_measure_nondet(self):
+        """Test snapshot statevector after non-deterministic final measurement"""
+        shots = 100
+        label = "snap"
+        counts_targets = snapshot_state_counts_nondeterministic(shots)
+        statevec_targets = snapshot_state_post_measure_statevector_nondeterministic(
+        )
+        circuits = snapshot_state_circuits_nondeterministic(label,
+                                                            'statevector',
+                                                            post_measure=True)
+
+        qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        result = job.result()
+        success = getattr(result, 'success', False)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotStatevectorTests.SUPPORTED_QASM_METHODS:
+            self.assertFalse(success)
+        else:
+            self.assertTrue(success)
+            self.compare_counts(result,
+                                circuits,
+                                counts_targets,
+                                delta=0.2 * shots)
+            # Check snapshots
+            for i, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                snaps = self.statevector_snapshots(data, label)
+                for j, mem in enumerate(data['memory']):
+                    target = statevec_targets[i].get(mem)
+                    self.assertTrue(np.allclose(snaps[j], target))

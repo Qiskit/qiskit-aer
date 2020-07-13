@@ -48,6 +48,7 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorKetTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
@@ -96,6 +97,7 @@ class TestQasmSimulator(common.QiskitAerTestCase,
                         QasmKrausNoiseTests,
                         QasmBasicsTests,
                         QasmSnapshotStatevectorTests,
+                        QasmSnapshotStatevectorKetTests,
                         QasmSnapshotDensityMatrixTests,
                         QasmSnapshotProbabilitiesTests,
                         QasmSnapshotExpValPauliTests,

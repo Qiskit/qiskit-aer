@@ -77,6 +77,15 @@ def snapshot_state_pre_measure_statevector_deterministic():
     targets.append(array([0, 0, 0, 0, 0, 0, 0, 1], dtype=complex))
     return targets
 
+def snapshot_state_pre_measure_statevector_ket_deterministic():
+    """Snapshot Statevector test circuits reference final statevector"""
+    targets = []
+    # Snapshot |000>
+    targets.append({'0x0': 1})
+    # Snapshot |111>
+    targets.append({'0x7': 1})
+    return targets
+
 
 def snapshot_state_post_measure_statevector_deterministic():
     """Snapshot Statevector test circuits reference final statevector"""
