@@ -28,7 +28,7 @@ macro(setup_conan)
         set(CONAN_OPTIONS ${CONAN_OPTIONS} "thrust:device_system=${THRUST_BACKEND}")
     endif()
 
-    if(not MSVC)
+    if(NOT MSVC)
         set(AER_OPENBLAS_DYNAMIC 1)
     endif()
 
