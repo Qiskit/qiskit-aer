@@ -20,6 +20,41 @@ stages:
   - stage: 'Wheel_Builds'
     condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
     jobs:
+    - job: 'MacOS_Wheel_Builds'
+      pool: {vmImage: 'macOS-10.15'}
+      strategy:
+          matrix:
+            Python37:
+              python.version: '3.7'
+      variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+          CIBW_BEFORE_BUILD: "pip install -U Cython pip virtualenv pybind11"
+          CIBW_SKIP: "cp27-* cp34-* pp*"
+          CIBW_TEST_COMMAND: "python3 {project}/tools/verify_wheels.py"
+          CIBW_TEST_REQUIRES: "git+https://github.com/Qiskit/qiskit-terra.git"
+      steps:
+        - task: UsePythonVersion@0
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
+        - bash: |
+            set -e
+            pip install -U pip virtualenv twine
+            pip install cibuildwheel==1.5.2
+            cibuildwheel --output-dir wheelhouse
+        - task: PublishBuildArtifacts@1
+          inputs: {pathtoPublish: 'wheelhouse'}
+          condition: succeededOrFailed()
+        - bash: |
+            twine upload wheelhouse/*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'Windows_Wheel_Builds'
       pool: {vmImage: 'vs2017-win2016'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
@@ -75,8 +110,8 @@ stages:
         pool: {vmImage: 'vs2017-win2016'}
         strategy:
           matrix:
-            Python37:
-              python.version: '3.7'
+            Python35:
+              python.version: '3.5'
             Python38:
               python.version: '3.8'
         variables:
@@ -120,6 +155,45 @@ stages:
               python tools/verify_wheels.py
             env:
               CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
+            displayName: Install from sdist and verify
+      - job: 'macOS_sdist_Builds'
+        pool: {vmImage: 'macOS-10.15'}
+        strategy:
+          matrix:
+            Python35:
+              python.version: '3.5'
+            Python38:
+              python.version: '3.8'
+        variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        steps:
+          - checkout: self
+            submodules: true
+          - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+            displayName: Add conda to PATH
+          - task: Cache@2
+            inputs:
+              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                pip | "$(Agent.OS)" | "$(python.version)"
+                pip | "$(Agent.OS)"
+                pip
+              path: $(PIP_CACHE_DIR)
+            displayName: Cache pip
+          - bash: |
+              set -x
+              set -e
+              python setup.py sdist
+            displayName: Build sdist
+          - bash: |
+              set -x
+              set -e
+              mkdir out; cd out; virtualenv aer-test
+              aer-test/bin/pip install -U pip setuptools virtualenv wheel
+              aer-test/bin/pip install dist/*tar.gz
+              aer-test/bin/pip install -C ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
+              aer-test/bin/python tools/verify_wheels.py
+              aer-test/bin/pip check
             displayName: Install from sdist and verify
       - job: 'Standalone'
         pool: {vmImage: 'vs2017-win2016'}
@@ -287,9 +361,71 @@ stages:
               pip install -v dist/qiskit_aer*.whl
               stestr run --slowest
             displayName: 'Install Aer and Run Tests'
+      - job: 'macOS'
+        pool: {vmImage: 'macOS-10.15'}
+        strategy:
+          matrix:
+            Python35:
+              python.version: '3.5'
+            Python36:
+              python.version: '3.6'
+            Python37:
+              python.version: '3.7'
+            Python38:
+              python.version: '3.8'
+        variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        steps:
+          - task: UsePythonVersion@0
+          - task: Cache@2
+            inputs:
+              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                pip | "$(Agent.OS)" | "$(python.version)"
+                pip | "$(Agent.OS)"
+                pip
+              path: $(PIP_CACHE_DIR)
+            displayName: Cache pip
+          - bash: |
+              set -e
+              pip install .
+              pip check
+            displayName: Build and Install aer
+          - bash: |
+              set -e
+              stestr run --slowest
+            displayName: Run Tests
   - stage: "Wheel_build_tests"
     condition: and(succeeded('Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
     jobs:
+    - job: 'MacOS_Wheel_Builds'
+      pool: {vmImage: 'macOS-10.15'}
+      strategy:
+          matrix:
+            Python37:
+              python.version: '3.7'
+      variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+          CIBW_BEFORE_BUILD: "pip install -U Cython pip virtualenv pybind11"
+          CIBW_SKIP: "cp27-* cp34-* pp*"
+          CIBW_TEST_COMMAND: "python3 {project}/tools/verify_wheels.py"
+          CIBW_TEST_REQUIRES: "git+https://github.com/Qiskit/qiskit-terra.git"
+      steps:
+        - task: UsePythonVersion@0
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
+        - bash: |
+            set -e
+            pip install -U pip virtualenv twine
+            pip install cibuildwheel==1.5.2
+            cibuildwheel --output-dir wheelhouse
     - job: 'Windows_Wheel_Builds'
       pool: {vmImage: 'vs2017-win2016'}
       strategy:
