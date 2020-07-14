@@ -111,7 +111,7 @@ stages:
         strategy:
           matrix:
             Python35:
-              python.version: '3.5'
+              python.version: '3.7'
             Python38:
               python.version: '3.8'
         variables:
@@ -161,7 +161,7 @@ stages:
         strategy:
           matrix:
             Python35:
-              python.version: '3.5'
+              python.version: '3.7'
             Python38:
               python.version: '3.8'
         variables:
