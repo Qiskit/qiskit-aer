@@ -183,6 +183,7 @@ stages:
           - bash: |
               set -x
               set -e
+              pip install -U pip setuptools virtualenv wheel
               python setup.py sdist
             displayName: Build sdist
           - bash: |
@@ -388,7 +389,9 @@ stages:
             displayName: Cache pip
           - bash: |
               set -e
+              pip install -U pip setuptools virtualenv wheel
               pip install .
+              pip install -c constraints.txt -r requirements-dev.txt
               pip check
             displayName: Build and Install aer
           - bash: |
