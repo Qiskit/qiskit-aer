@@ -49,11 +49,12 @@ namespace MatrixProductState {
 class MPS_Tensor
 {
 public:
+
   // Constructors of MPS_Tensor class
   MPS_Tensor(){}
   explicit MPS_Tensor(complex_t& alpha, complex_t& beta){
     //    matrix<complex_t> A = matrix<complex_t>(1), B = matrix<complex_t>(1);
-    cmatrix_t A = cmatrix_t(1), B = cmatrix_t(1);
+    cmatrix_t A = cmatrix_t(1, 1), B = cmatrix_t(1, 1);
     A(0,0) = alpha;
     B(0,0) = beta;
     data_.push_back(A);
@@ -99,6 +100,29 @@ public:
   }
   void insert_data(uint_t a1, uint_t a2, cvector_t data);
 
+  static void set_chop_threshold(double chop_threshold) {
+    chop_threshold_ = chop_threshold;
+  }
+
+  static void set_max_bond_dimension(uint_t max_bond_dimension) {
+    max_bond_dimension_ = max_bond_dimension;
+  }
+
+  static void set_truncation_threshold(double truncation_threshold) {
+    truncation_threshold_ = truncation_threshold;
+  }
+
+  static double get_chop_threshold() {
+    return chop_threshold_;
+  }
+
+  static uint_t get_max_bond_dimension() {
+    return max_bond_dimension_;
+  }
+
+  static double get_truncation_threshold() {
+    return truncation_threshold_;
+  }
   //------------------------------------------------------------------
   // function name: get_dim
   // Description: Get the dimension of the physical index of the tensor
@@ -148,11 +172,18 @@ private:
 			   bool mul    /* or div */);
 
   std::vector<cmatrix_t> data_;
+
+  static double chop_threshold_;
+  static uint_t max_bond_dimension_;
+  static double truncation_threshold_;
 };
 
 //=========================================================================
 // Implementation
 //=========================================================================
+double MPS_Tensor::chop_threshold_ = CHOP_THRESHOLD;
+uint_t MPS_Tensor::max_bond_dimension_ = UINT64_MAX;
+double MPS_Tensor::truncation_threshold_ = 1e-16;
 
 const double MPS_Tensor::SQR_HALF = sqrt(0.5);
 
@@ -497,27 +528,14 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
 //---------------------------------------------------------------
 void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma)
 {
-  matrix<complex_t> C;
+  cmatrix_t C;
   C = reshape_before_SVD(temp.data_);
-  matrix<complex_t> U,V;
+  cmatrix_t U, V;
   rvector_t S(std::min(C.GetRows(), C.GetColumns()));
 
-#ifdef DEBUG
-  std::cout << "Input matrix before SVD =" << std::endl << C ;
-#endif
-
   csvd_wrapper(C, U, S, V);
-  reduce_zeros(U, S, V);
-
-#ifdef DEBUG
-  std::cout << "matrices after SVD:" <<std::endl;
-  std::cout << "U = " << std::endl << U ;
-  std::cout << "S = " << std::endl;
-  for (uint_t i = 0; i != S.size(); ++i)
-    std::cout << S[i] << " , ";
-  std::cout << std::endl;
-  std::cout << "V* = " << std::endl << V ;
-#endif
+  reduce_zeros(U, S, V,
+	       max_bond_dimension_, truncation_threshold_);
 
   left_gamma.data_  = reshape_U_after_SVD(U);
   lambda            = S;

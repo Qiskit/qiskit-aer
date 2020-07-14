@@ -69,86 +69,101 @@ complex_t chan_value(
     // TODO floating point comparsion with complex<double> ?!
     // Seems like this is equivalent to: out != complex_t(0., 0.)
     if(out != 0.){
-        double phase = 0.;
         num_times = floor_div(fc_array.shape[0], 3);
-        for(auto i = 0; i < num_times; ++i){
-            // TODO floating point comparison
-            if(t >= fc_array[3 * i]){
-                bool do_fc = true;
-                if(fc_array[3 * i + 2] >= 0){
-                    if(!reg[static_cast<int>(fc_array[3 * i + 2])]){
-                       do_fc = false;
-                    }
-                }
-                if(do_fc){
-                    phase += fc_array[3 * i + 1];
-                }
-            }else{
-                break;
-            }
+
+        // get the index of the phase change
+        // this loop will result in finding the index of the phase to use +1
+        auto phase_idx = 0;
+        while(phase_idx < num_times){
+            if(t < fc_array[3 * phase_idx]) break;
+            phase_idx++;
         }
+
+        double phase = 0.;
+        if(phase_idx > 0){
+            phase = fc_array[3 * (phase_idx - 1) + 1];
+        }
+
         if(phase != 0.){
-            out *= std::exp(complex_t(0.,1.) * phase);
+            out *= std::exp(complex_t(0., 1.) * phase);
         }
-        out *= std::exp(complex_t(0., -1.) * 2. * M_PI * freq_ch * t);
+        out *= std::exp(complex_t(0., 1.) * 2. * M_PI * freq_ch * t);
     }
-    return out;
+    return out.real();
 }
 
-py::array_t<complex_t> td_ode_rhs(double t,
-        py::array_t<complex_t> the_vec,
-        py::object the_global_data,
-        py::object the_exp,
-        py::object the_system,
-        py::object the_channels,
-        py::object the_reg)
-{
-    #ifdef DEBUG
-    CALLGRIND_START_INSTRUMENTATION;
-    #endif
+struct RhsData {
+  RhsData(py::object the_global_data,
+          py::object the_exp,
+          py::object the_system,
+          py::object the_channels,
+          py::object the_reg) {
 
-    // I left this commented on porpose so we can use logging eventually
-    // This is just a RAII for the logger
-    //const Unregister unregister;
-    //auto file_logger = spdlog::basic_logger_mt("basic_logger", "logs/td_ode_rhs.txt");
-    //spdlog::set_default_logger(file_logger);
-    //spdlog::set_level(spdlog::level::debug); // Set global log level to debug
-    //spdlog::flush_on(spdlog::level::debug);
+      PyObject *py_global_data = the_global_data.ptr();
+      PyObject *py_exp = the_exp.ptr();
+      PyObject *py_system = the_system.ptr();
+      PyObject *py_register = the_reg.ptr();
 
-    PyArrayObject * py_vec = reinterpret_cast<PyArrayObject *>(the_vec.ptr());
-    PyObject * py_global_data = the_global_data.ptr();
-    PyObject * py_exp = the_exp.ptr();
-    PyObject * py_system = the_system.ptr();
-    PyObject * py_register = the_reg.ptr();
+      if (py_global_data == nullptr ||
+          py_exp == nullptr ||
+          py_system == nullptr ||
+          py_register == nullptr) {
+          std::string msg = "These arguments cannot be null: ";
+          msg += (py_global_data == nullptr ? "py_global_data " : "");
+          msg += (py_exp == nullptr ? "py_exp " : "");
+          msg += (py_system == nullptr ? "py_system " : "");
+          msg += (py_register == nullptr ? "py_register " : "");
+          throw std::invalid_argument(msg);
+      }
 
-    if(py_vec == nullptr ||
-       py_global_data == nullptr ||
-       py_exp == nullptr ||
-       py_system == nullptr ||
-       py_register == nullptr){
-           std::string msg = "These arguments cannot be null: ";
-           msg += (py_vec == nullptr ? "py_vec " : "" );
-           msg += (py_global_data == nullptr ? "py_global_data " : "" );
-           msg += (py_exp == nullptr ? "py_exp " : "" );
-           msg += (py_system == nullptr ? "py_system " : "" );
-           msg += (py_register == nullptr ? "py_register " : "" );
-           throw std::invalid_argument(msg);
+      pulses = get_ordered_map_from_dict_item<std::string, std::vector<NpArray<double>>>(py_exp, "channels");
+      freqs = get_vec_from_dict_item<double>(py_global_data, "freqs");
+      pulse_array = get_value_from_dict_item<NpArray<complex_t>>(py_global_data, "pulse_array");
+      pulse_indices = get_value_from_dict_item<NpArray<int>>(py_global_data, "pulse_indices");
+      reg = get_value<NpArray<uint8_t>>(py_register);
+
+      systems = get_value<std::vector<TermExpression>>(py_system);
+      vars = get_vec_from_dict_item<double>(py_global_data, "vars");
+      vars_names = get_vec_from_dict_item<std::string>(py_global_data, "vars_names");
+      num_h_terms = get_value_from_dict_item<long>(py_global_data, "num_h_terms");
+      datas = get_vec_from_dict_item<NpArray<complex_t>>(py_global_data, "h_ops_data");
+      idxs = get_vec_from_dict_item<NpArray<int>>(py_global_data, "h_ops_ind");
+      ptrs = get_vec_from_dict_item<NpArray<int>>(py_global_data, "h_ops_ptr");
+      energy = get_value_from_dict_item<NpArray<double>>(py_global_data, "h_diag_elems");
+  }
+
+  ordered_map<std::string, std::vector<NpArray<double>>> pulses;
+  std::vector<double> freqs;
+  NpArray<complex_t> pulse_array;
+  NpArray<int> pulse_indices;
+  NpArray<uint8_t> reg;
+
+  std::vector<TermExpression> systems;
+  std::vector<double> vars;
+  std::vector<std::string> vars_names;
+  long num_h_terms;
+  std::vector<NpArray<complex_t>> datas;
+  std::vector<NpArray<int>> idxs;
+  std::vector<NpArray<int>> ptrs;
+  NpArray<double> energy;
+};
+
+py::array_t <complex_t> inner_ode_rhs(double t,
+                                      py::array_t <complex_t> the_vec,
+                                      const RhsData &rhs_data) {
+    if (the_vec.ptr() == nullptr) {
+        throw std::invalid_argument("py_vec cannot be null");
     }
 
-    auto vec = get_value<NpArray<complex_t>>(py_vec);
-    auto num_rows = vec.shape[0];
-    auto out = static_cast<complex_t *>(PyDataMem_NEW(num_rows * sizeof(complex_t)));
-   	memset(&out[0],0,num_rows * sizeof(complex_t));
-
-    auto pulses = get_ordered_map_from_dict_item<std::string, std::vector<NpArray<double>>>(py_exp, "channels");
-    auto freqs = get_vec_from_dict_item<double>(py_global_data, "freqs");
-    auto pulse_array = get_value_from_dict_item<NpArray<complex_t>>(py_global_data, "pulse_array");
-    auto pulse_indices = get_value_from_dict_item<NpArray<int>>(py_global_data, "pulse_indices");
-    auto reg = get_value<NpArray<uint8_t>>(py_register);
+    auto vec = static_cast<complex_t *>(the_vec.request().ptr);
+    auto num_rows = the_vec.size();
+    py::array_t <complex_t> out_arr(num_rows);
+    auto out = static_cast<complex_t *>(out_arr.request().ptr);
+    memset(&out[0], 0, num_rows * sizeof(complex_t));
 
     std::unordered_map<std::string, complex_t> chan_values;
-    chan_values.reserve(pulses.size());
-    for(const auto& elem : enumerate(pulses)){
+    chan_values.reserve(rhs_data.pulses.size());
+    for (const auto &elem : enumerate(rhs_data.pulses)) {
         /**
          * eleme is map of string as key type, and vector of vectors of doubles.
          * elem["D0"] = [[0.,1.,2.][0.,1.,2.]]
@@ -157,55 +172,78 @@ py::array_t<complex_t> td_ode_rhs(double t,
         auto channel = elem.second.first;
         auto pulse = elem.second.second;
 
-        auto val = chan_value(t, i, freqs[i], pulse[0], pulse_array,
-                              pulse_indices, pulse[1], reg);
+        auto val = chan_value(t, i, rhs_data.freqs[i], pulse[0], rhs_data.pulse_array,
+                              rhs_data.pulse_indices, pulse[1], rhs_data.reg);
         chan_values.emplace(channel, val);
     }
 
     // 4. Eval the time-dependent terms and do SPMV.
-    auto systems = get_value<std::vector<TermExpression>>(py_system);
-    auto vars = get_vec_from_dict_item<double>(py_global_data, "vars");
-    auto vars_names = get_vec_from_dict_item<std::string>(py_global_data, "vars_names");
-    auto num_h_terms = get_value_from_dict_item<long>(py_global_data, "num_h_terms");
-    auto datas = get_vec_from_dict_item<NpArray<complex_t>>(py_global_data, "h_ops_data");
-    auto idxs = get_vec_from_dict_item<NpArray<int>>(py_global_data, "h_ops_ind");
-    auto ptrs = get_vec_from_dict_item<NpArray<int>>(py_global_data, "h_ops_ptr");
-    auto energy = get_value_from_dict_item<NpArray<double>>(py_global_data, "h_diag_elems");
-    for(int h_idx = 0; h_idx < num_h_terms; h_idx++){
+    for (int h_idx = 0; h_idx < rhs_data.num_h_terms; h_idx++) {
         // TODO: Refactor
         std::string term;
-        if(h_idx == systems.size() && num_h_terms > systems.size()){
+        if (h_idx == rhs_data.systems.size() && rhs_data.num_h_terms > rhs_data.systems.size()) {
             term = "1.0";
-        }else if(h_idx < systems.size()){
-            term = systems[h_idx].term;
-        }else{
+        } else if (h_idx < rhs_data.systems.size()) {
+            term = rhs_data.systems[h_idx].term;
+        } else {
             continue;
         }
 
-        auto td = evaluate_hamiltonian_expression(term, vars, vars_names, chan_values);
-        if(std::abs(td) > 1e-15){
-            for(auto i=0; i<num_rows; i++){
+        auto td = evaluate_hamiltonian_expression(term, rhs_data.vars, rhs_data.vars_names, chan_values);
+        if (std::abs(td) > 1e-15) {
+            for (auto i = 0; i < num_rows; i++) {
                 complex_t dot = {0., 0.};
-                auto row_start = ptrs[h_idx][i];
-                auto row_end = ptrs[h_idx][i+1];
-                for(auto j = row_start; j<row_end; ++j){
-                    auto tmp_idx = idxs[h_idx][j];
+                auto row_start = rhs_data.ptrs[h_idx][i];
+                auto row_end = rhs_data.ptrs[h_idx][i + 1];
+                for (auto j = row_start; j < row_end; ++j) {
+                    auto tmp_idx = rhs_data.idxs[h_idx][j];
                     auto osc_term =
                         std::exp(
-                            complex_t(0.,1.) * (energy[i] - energy[tmp_idx]) * t
+                            complex_t(0., 1.) * (rhs_data.energy[i] - rhs_data.energy[tmp_idx]) * t
                         );
                     complex_t coef = (i < tmp_idx ? std::conj(td) : td);
-                    dot += coef * osc_term * datas[h_idx][j] * vec[tmp_idx];
-
+                    dot += coef * osc_term * rhs_data.datas[h_idx][j] * vec[tmp_idx];
                 }
                 out[i] += dot;
             }
         }
     } /* End of systems */
 
-    for(auto i=0; i < num_rows; ++i){
-        out[i] += complex_t(0.,1.) * energy[i] * vec[i];
+    for (auto i = 0; i < num_rows; ++i) {
+        out[i] += complex_t(0., 1.) * rhs_data.energy[i] * vec[i];
     }
 
-    return py::array(num_rows, out);
+    return out_arr;
+}
+
+RhsFunctor::RhsFunctor(py::object the_global_data, py::object the_exp, py::object the_system,
+                       py::object the_channels, py::object the_reg)
+    : rhs_data_(
+    std::make_shared<RhsData>(the_global_data, the_exp, the_system, the_channels, the_reg)) {}
+
+py::array_t <complex_t> RhsFunctor::operator()(double t, py::array_t <complex_t> the_vec) {
+    return inner_ode_rhs(t, the_vec, *rhs_data_);
+}
+
+py::array_t <complex_t> td_ode_rhs(double t,
+                                   py::array_t <complex_t> the_vec,
+                                   py::object the_global_data,
+                                   py::object the_exp,
+                                   py::object the_system,
+                                   py::object the_channels,
+                                   py::object the_reg) {
+#ifdef DEBUG
+    CALLGRIND_START_INSTRUMENTATION;
+#endif
+
+    // I left this commented on porpose so we can use logging eventually
+    // This is just a RAII for the logger
+    // const Unregister unregister;
+    // auto file_logger = spdlog::basic_logger_mt("basic_logger", "logs/td_ode_rhs.txt");
+    // spdlog::set_default_logger(file_logger);
+    // spdlog::set_level(spdlog::level::debug); // Set global log level to debug
+    // spdlog::flush_on(spdlog::level::debug);
+
+    auto rhs_data = RhsData(the_global_data, the_exp, the_system, the_channels, the_reg);
+    return inner_ode_rhs(t, the_vec, rhs_data);
 }

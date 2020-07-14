@@ -45,11 +45,11 @@ stages:
                 source activate qiskit-aer-$version
                 conda update --yes -n base conda
                 conda config --add channels conda-forge
-                conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake virtualenv pip setuptools pybind11 cython
+                conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake virtualenv pip setuptools pybind11 cython scipy
                 python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
                 virtualenv test-$version
-                test-$version/Scripts/pip install dist/*whl
-                test-$version/Scripts/pip install git+https://github.com/Qiskit/qiskit-terra
+                test-$version/Scripts/pip install -c constraints.txt dist/*whl
+                test-$version/Scripts/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
                 test-$version/Scripts/python tools/verify_wheels.py
                 mv dist/*whl wheelhouse/.
                 rm -rf test-$version
@@ -102,7 +102,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake virtualenv pip setuptools pybind11 cython
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake virtualenv pip setuptools pybind11 cython scipy
             displayName: Create Anaconda environments
           - bash: |
               set -x
@@ -114,6 +114,7 @@ stages:
               set -x
               set -e
               source activate qiskit-aer
+              pip install -U pip setuptools virtualenv wheel
               pip install dist/*tar.gz
               pip install git+https://github.com/Qiskit/qiskit-terra
               python tools/verify_wheels.py
@@ -134,7 +135,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer conan numpy cmake
+              conda install --yes --quiet --name qiskit-aer conan numpy cmake scipy
             displayName: Create Anaconda environments
           - bash: |
               set -x
@@ -227,7 +228,7 @@ stages:
               set -x
               set -e
               source activate qiskit-aer-$(Build.BuildNumber)
-              conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python==$(python.version) numpy pip virtualenv
+              conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python==$(python.version) numpy pip virtualenv scipy
               conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python==$(python.version) setuptools
             displayName: Install Anaconda packages
             condition: ne(variables['python.version'], '3.5')
@@ -254,8 +255,8 @@ stages:
           - bash: |
               set -e
               source activate qiskit-aer-$(Build.BuildNumber)
-              pip install 'numpy<1.19.0'
-              pip install -r requirements-dev.txt
+              pip install -U pip setuptools wheel virtualenv
+              pip install -c constraints.txt -r requirements-dev.txt
               if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH == *"master"* || $BUILD_SOURCEBRANCH == *"master"* ]] ; then
                   pip install git+https://github.com/Qiskit/qiskit-terra.git
               else

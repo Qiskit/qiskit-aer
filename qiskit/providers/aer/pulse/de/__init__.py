@@ -12,5 +12,5 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""DE solvers that interface with the different DE models and signals
+"""DE solvers and method interfaces
 """

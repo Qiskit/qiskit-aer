@@ -183,6 +183,7 @@ public:
   static void set_json_chop_threshold(double json_chop_threshold) {
     json_chop_threshold_ = json_chop_threshold;
   }
+
   static void set_sample_measure_index_size(uint_t index_size){
     sample_measure_index_size_ = index_size;
   }
@@ -271,7 +272,9 @@ private:
   rvector_t trace_of_density_matrix(const reg_t &qubits) const;
 
   double expectation_value_internal(const reg_t &qubits, const cmatrix_t &M) const;
-  complex_t expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices) const;
+  complex_t expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices,
+					     uint_t first_index, uint_t last_index,
+					     uint_t num_Is) const;
 
    //----------------------------------------------------------------
    // Function name: get_matrices_sizes
