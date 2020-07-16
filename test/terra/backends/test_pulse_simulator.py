@@ -467,7 +467,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         r = 0.5 / total_samples
 
         T1 = 100.
-        shots=1000
+        shots = 5000
 
         noise_model = {"qubit": {"0": {"Sm": 1/T1}}}
 
@@ -483,14 +483,18 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         shots=shots)
 
         y0 = np.array([0., 0., 1.])
-        backend_options = {'seed' : 9000, 'initial_state': y0, 'noise_model': noise_model}
-
+        #backend_options = {'seed' : 9000, 'initial_state': y0, 'noise_model': noise_model}
+        backend_options = {'initial_state': y0, 'noise_model': noise_model}
+        from time import time
+        start = time()
         result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        time1 = time() - start
         counts = result.get_counts()
 
 
         # set up and run independent simulation
         samples = np.ones((total_samples, 1))
+        start = time()
         indep_yf = simulate_3d_oscillator_noisy_model(np.diag(y0),
                                                       freq,
                                                       anharm,
@@ -499,6 +503,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                                       samples,
                                                       1.,
                                                       T1)
+        time2 = time() - start
         expected_counts = np.real(np.diag(indep_yf)) * shots
 
         import pdb; pdb.set_trace()

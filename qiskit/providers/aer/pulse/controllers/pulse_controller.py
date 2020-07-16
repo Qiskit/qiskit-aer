@@ -198,7 +198,7 @@ def pulse_controller(qobj, system_model, backend_options):
 
         if not exp['can_sample']:
             pulse_sim_desc.can_sample = False
-
+    
     run_experiments = (run_unitary_experiments if pulse_sim_desc.can_sample
                        else run_monte_carlo_experiments)
     exp_results, exp_times = run_experiments(pulse_sim_desc, pulse_de_model, solver_options)
