@@ -270,7 +270,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_counts = {'1': 131, '0': 125}
         self.assertDictAlmostEqual(counts, exp_counts)
 
-    def test_1Q_noise_no_ham(self):
+    def test_1Q_noise_depolarizing_no_drift(self):
         """
         """
         omega_0 = 0
@@ -284,7 +284,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # set up noise
         # noise strength/model is set so that after 100 time units a state starting in
         # [1., 0.] will be 50/50 [1., 0.] or [0., 1.]
-        gamma = -np.log(0.5) / 100
+        gamma = -np.log(0.5) / total_samples
         noise_model = {"qubit": {"0": {"Sp": gamma}}}
 
         # create a schedule with 0 amplitude
@@ -313,6 +313,51 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # test results
         counts = result.get_counts()
         exp_counts = {'0': 519, '1': 481}
+        self.assertDictAlmostEqual(counts, exp_counts)
+
+    def test_1Q_noise_dephazing_no_drift(self):
+        """
+        """
+        omega_0 = 0
+        omega_d = omega_0
+
+        r = 0.01
+        total_samples = 100
+
+        system_model = self._system_model_1Q(omega_0, r)
+
+        # set up noise
+        # noise strength/model is set so that after 100 time units a state starting in
+        # [1., 0.] will be 75/25 [1., 0.] or [0., 1.]
+        gamma = - 0.5 * np.log(0.5) / total_samples
+        noise_model = {"qubit": {"0": {"X": gamma}}}
+
+        # create a schedule with 0 amplitude
+        schedule = self._1Q_constant_sched(total_samples, amp=0.0)
+
+        # here number of shots matters
+        qobj = assemble([schedule],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[omega_d],
+                        memory_slots=2,
+                        shots=1000)
+
+        # set seed for simulation, and set noise
+        y0 = np.array([1., 0.])
+        backend_options = {'seed': 9000,
+                           'initial_state' : y0,
+                           'noise_model': noise_model}
+
+        # run simulation
+        result = self.backend_sim.run(qobj, system_model=system_model,
+                                      backend_options=backend_options).result()
+
+        # test results
+        counts = result.get_counts()
+        exp_counts = {'0': 759, '1': 241}
         self.assertDictAlmostEqual(counts, exp_counts)
 
 
