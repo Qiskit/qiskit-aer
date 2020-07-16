@@ -467,7 +467,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         r = 0.5 / total_samples
 
         T1 = 100.
-        shots = 5000
+        # used 5000 to check statistics but it is way too large to be included in an actual test
+        # setting to 3 temporarily while pushing to WIP PR
+        #shots = 5000
+        shots = 3
 
         noise_model = {"qubit": {"0": {"Sm": 1/T1}}}
 
