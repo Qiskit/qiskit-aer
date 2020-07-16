@@ -34,8 +34,10 @@ from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSys
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.models.backendconfiguration import UchannelLO
 
-from .pulse_sim_independent import (simulate_1q_model, simulate_2q_exchange_model,
-                                    simulate_3d_oscillator_model)
+from .pulse_sim_independent import (simulate_1q_model,
+                                    simulate_2q_exchange_model,
+                                    simulate_3d_oscillator_model,
+                                    simulate_3d_oscillator_noisy_model)
 
 
 class TestPulseSimulator(common.QiskitAerTestCase):
@@ -454,6 +456,56 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         counts = result.get_counts()
         exp_counts = {'0': 10}
         self.assertDictAlmostEqual(counts, exp_counts)
+
+    def test_3d_osc_noise(self):
+        total_samples = 100
+
+        freq = 3.
+        anharm = -0.33
+
+        # Test pi pulse
+        r = 0.5 / total_samples
+
+        T1 = 100.
+        shots=1000
+
+        noise_model = {"qubit": {"0": {"Sm": 1/T1}}}
+
+        system_model = self._system_model_3d_oscillator(freq, anharm, r)
+        schedule = self._1Q_constant_sched(total_samples)
+
+        qobj = assemble([schedule],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[freq],
+                        shots=shots)
+
+        y0 = np.array([0., 0., 1.])
+        backend_options = {'seed' : 9000, 'initial_state': y0, 'noise_model': noise_model}
+
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        counts = result.get_counts()
+
+
+        # set up and run independent simulation
+        samples = np.ones((total_samples, 1))
+        indep_yf = simulate_3d_oscillator_noisy_model(np.diag(y0),
+                                                      freq,
+                                                      anharm,
+                                                      r,
+                                                      np.array([freq]),
+                                                      samples,
+                                                      1.,
+                                                      T1)
+        expected_counts = np.real(np.diag(indep_yf)) * shots
+
+        import pdb; pdb.set_trace()
+        # test final state
+        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, indep_yf), 1-10**-5)
+
+
 
     def test_unitary_parallel(self):
         """Test for parallel solving in unitary simulation. Uses same schedule as test_x_gate but

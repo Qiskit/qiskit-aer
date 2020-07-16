@@ -162,3 +162,38 @@ def simulate_3d_oscillator_model(y0, osc_freq, anharm, r, drive_freqs, drive_sam
     control_ops = -1j * np.array([ 2 * np.pi * r * osc_X ])
 
     return simulate_system(y0, drift, control_ops, drive_freqs, drive_samples, dt, drift_diag)
+
+def simulate_3d_oscillator_noisy_model(y0, osc_freq, anharm, r, drive_freqs, drive_samples, dt, T1=None):
+
+    if T1 is None:
+        return simulate_3d_oscillator_model(y0, osc_freq, anharm, r, drive_freqs, drive_samples, dt)
+
+    drift_diag = drift_diag = -1j * (2 * np.pi * osc_freq * np.array([0., 1., 2.]) +
+                        np.pi * anharm * np.array([0., 0., 2.]))
+
+    # set up hamiltonian parts
+    h_drift = np.diag(drift_diag)
+    h_osc_X = np.array([[0., 1., 0.],
+                      [1., 0., np.sqrt(2)],
+                      [0., np.sqrt(2), 0.]])
+
+    # lindblad version of oscillator X in Hamiltonian
+    L_osc_X = np.kron(h_osc_X, np.eye(3)) - np.kron(np.eye(3), h_osc_X.transpose())
+    L_control_ops = -1j * np.array([ 2 * np.pi * r * L_osc_X ])
+
+    L = np.sqrt(1./T1) * np.array([[0., 1., 0.],
+                                   [0., 0., np.sqrt(2)],
+                                   [0., 0., 0.]])
+    LdL = L.conj().transpose() @ L
+
+    L_frame_diag = np.kron(drift_diag, np.ones(3)) - np.kron(np.ones(3), drift_diag)
+
+    L_drift = np.diag(L_frame_diag) + np.kron(L, L.conj()) - 0.5 * (np.kron(LdL, np.eye(3)) + np.kron(np.eye(3), LdL))
+    
+    return simulate_system(y0.flatten(),
+                           L_drift,
+                           L_control_ops,
+                           drive_freqs,
+                           drive_samples,
+                           dt,
+                           L_frame_diag).reshape((3, 3))
