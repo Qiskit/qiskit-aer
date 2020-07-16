@@ -134,7 +134,7 @@ inline uint64_t index0(const uint64_t* sorted_qubits,
   return retval;
 }
 
-template <size_t num_qubits, typename Lambda, typename param_t>
+template <typename Lambda, typename param_t>
 void avx_apply_lambda(const uint64_t data_size,
                       const uint64_t skip,
                       Lambda&& func,
@@ -142,7 +142,7 @@ void avx_apply_lambda(const uint64_t data_size,
                       const size_t sorted_qubits_size,
                       const size_t omp_threads,
                       const param_t& params) {
-  const int64_t END = data_size >> num_qubits;
+  const int64_t END = data_size >> sorted_qubits_size;
 
 #pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
   for (int64_t k = 0; k < END; k += skip) {
@@ -367,9 +367,12 @@ static inline void _mm_store_twoarray_complex(m256_t<double>& real_ret,
   _mm256_store(cmplx_addr_1, imag_ret);
 }
 
-template <typename FloatType, size_t num_qubits>
-inline void reorder(const uint64_t* qreg_orig, uint64_t* qreg, FloatType* mat) {
-  constexpr auto DIMENSION = (1ULL << num_qubits);
+template <typename FloatType>
+inline void reorder(const uint64_t* qreg_orig,
+                    const size_t qregs_size,
+                    uint64_t* qreg,
+                    FloatType* mat) {
+  const auto DIMENSION = (1ULL << qregs_size);
 
   auto sort = [](uint64_t* unordered, size_t size) {
     for (size_t i = 0; i < size; ++i) {
@@ -382,31 +385,31 @@ inline void reorder(const uint64_t* qreg_orig, uint64_t* qreg, FloatType* mat) {
       }
     }
   };
-  sort(qreg, num_qubits);
+  sort(qreg, qregs_size);
 
   auto build_mask = [&](size_t* masks) {
-    for (size_t i = 0; i < num_qubits; ++i)
-      for (size_t j = 0; j < num_qubits; ++j)
+    for (size_t i = 0; i < qregs_size; ++i)
+      for (size_t j = 0; j < qregs_size; ++j)
         if (qreg_orig[i] == qreg[j])
           masks[i] = 1U << j;
   };
-  size_t masks[num_qubits];
+  size_t masks[qregs_size];
   build_mask(masks);
 
   auto build_index = [&](size_t* indexes) {
     for (size_t i = 0; i < DIMENSION; ++i) {
       size_t index = 0U;
-      for (size_t j = 0; j < num_qubits; ++j) {
+      for (size_t j = 0; j < qregs_size; ++j) {
         if (i & (1U << j))
           index |= masks[j];
       }
       indexes[i] = index;
     }
   };
-  size_t indexes[1U << num_qubits];
+  size_t indexes[1U << qregs_size];
   build_index(indexes);
 
-  FloatType mat_temp[1 << (num_qubits * 2 + 1)];
+  FloatType mat_temp[1 << (qregs_size * 2 + 1)];
   copy(mat_temp, mat, DIMENSION * DIMENSION * 2);
 
   for (size_t i = 0; i < DIMENSION; ++i) {
@@ -423,18 +426,18 @@ inline void reorder(const uint64_t* qreg_orig, uint64_t* qreg, FloatType* mat) {
 
 namespace QV {
 
-template <size_t num_qubits>
 inline void _apply_matrix_float_avx_q0q1q2(RealVectorView<float>& reals,
                                            ImaginaryVectorView<float>& imags,
                                            const float* mat,
                                            const uint64_t* qregs,
+                                           const size_t qregs_size,
                                            const uint64_t index0) {
-  constexpr auto indexes_size = (1ULL << num_qubits);
-  uint64_t indexes[1ULL << num_qubits];
-  fill_indices(index0, indexes, indexes_size, qregs, num_qubits);
+  const auto indexes_size = (1ULL << qregs_size);
+  uint64_t indexes[1ULL << qregs_size];
+  fill_indices(index0, indexes, indexes_size, qregs, qregs_size);
 
   __m256 real_ret, imag_ret, real_ret1, imag_ret1;
-  __m256 vreals[1ULL << num_qubits], vimags[1ULL << num_qubits];
+  __m256 vreals[1ULL << qregs_size], vimags[1ULL << qregs_size];
   __m256 tmp0, tmp1;
 
   const __m256i _MASKS[7] = {_mm256_set_epi32(7, 6, 5, 4, 3, 2, 0, 1),
@@ -458,16 +461,16 @@ inline void _apply_matrix_float_avx_q0q1q2(RealVectorView<float>& reals,
   size_t mindex = 0;
   for (size_t i = 0; i < indexes_size; i += 8) {
     auto index = indexes[i];
-    _mm_complex_inner_product<float>((1ULL << num_qubits), vreals, vimags,
+    _mm_complex_inner_product<float>((1ULL << qregs_size), vreals, vimags,
                                      (&mat[mindex]), real_ret, imag_ret, tmp0,
                                      tmp1);
-    mindex += (1ULL << (num_qubits + 1));
+    mindex += (1ULL << (qregs_size + 1));
 
     for (size_t j = 1; j < 8; ++j) {
-      _mm_complex_inner_product<float>((1ULL << num_qubits), vreals, vimags,
+      _mm_complex_inner_product<float>((1ULL << qregs_size), vreals, vimags,
                                        (&mat[mindex]), real_ret1, imag_ret1,
                                        tmp0, tmp1);
-      mindex += (1ULL << (num_qubits + 1));
+      mindex += (1ULL << (qregs_size + 1));
 
       real_ret1 = _mm256_permutevar8x32_ps(real_ret1, _MASKS[j - 1]);
       imag_ret1 = _mm256_permutevar8x32_ps(imag_ret1, _MASKS[j - 1]);
@@ -507,20 +510,20 @@ inline void _apply_matrix_float_avx_q0q1q2(RealVectorView<float>& reals,
   }
 }
 
-template <size_t num_qubits>
 inline void _apply_matrix_float_avx_qLqL(RealVectorView<float>& reals,
                                          ImaginaryVectorView<float>& imags,
                                          const float* mat,
                                          const uint64_t* qregs,
+                                         const size_t qregs_size,
                                          const uint64_t index0) {
   __m256i masks[3];
   __m256 real_ret, imag_ret, real_ret1, imag_ret1;
-  __m256 vreals[1ULL << num_qubits], vimags[1ULL << num_qubits];
+  __m256 vreals[1ULL << qregs_size], vimags[1ULL << qregs_size];
   __m256 tmp0, tmp1;
 
-  constexpr auto indexes_size = (1ULL << num_qubits);
-  uint64_t indexes[1ULL << num_qubits];
-  fill_indices(index0, indexes, indexes_size, qregs, num_qubits);
+  const auto indexes_size = (1ULL << qregs_size);
+  uint64_t indexes[1ULL << qregs_size];
+  fill_indices(index0, indexes, indexes_size, qregs, qregs_size);
 
   if (qregs[1] == 1) {
     masks[0] = _mm256_set_epi32(7, 6, 4, 5, 3, 2, 0, 1);
@@ -536,7 +539,7 @@ inline void _apply_matrix_float_avx_qLqL(RealVectorView<float>& reals,
     masks[2] = _mm256_set_epi32(1, 0, 5, 4, 3, 2, 7, 6);
   }
 
-  for (size_t i = 0; i < (1ULL << num_qubits); i += 4) {
+  for (size_t i = 0; i < (1ULL << qregs_size); i += 4) {
     auto index = indexes[i];
     _mm_load_twoarray_complex(reals[index], imags[index], vreals[i], vimags[i]);
 
@@ -547,18 +550,18 @@ inline void _apply_matrix_float_avx_qLqL(RealVectorView<float>& reals,
   }
 
   size_t mindex = 0;
-  for (size_t i = 0; i < (1ULL << num_qubits); i += 4) {
+  for (size_t i = 0; i < (1ULL << qregs_size); i += 4) {
     auto index = indexes[i];
-    _mm_complex_inner_product<float>((1ULL << num_qubits), vreals, vimags,
+    _mm_complex_inner_product<float>((1ULL << qregs_size), vreals, vimags,
                                      (&mat[mindex]), real_ret, imag_ret, tmp0,
                                      tmp1);
-    mindex += (1ULL << (num_qubits + 1));
+    mindex += (1ULL << (qregs_size + 1));
 
     for (size_t j = 0; j < 3; ++j) {
-      _mm_complex_inner_product<float>((1ULL << num_qubits), vreals, vimags,
+      _mm_complex_inner_product<float>((1ULL << qregs_size), vreals, vimags,
                                        (&mat[mindex]), real_ret1, imag_ret1,
                                        tmp0, tmp1);
-      mindex += (1ULL << (num_qubits + 1));
+      mindex += (1ULL << (qregs_size + 1));
 
       real_ret1 = _mm256_permutevar8x32_ps(real_ret1, masks[j]);
       imag_ret1 = _mm256_permutevar8x32_ps(imag_ret1, masks[j]);
@@ -624,20 +627,20 @@ inline void _apply_matrix_float_avx_qLqL(RealVectorView<float>& reals,
   }
 }
 
-template <size_t num_qubits>
 inline void _apply_matrix_float_avx_qL(RealVectorView<float>& reals,
                                        ImaginaryVectorView<float>& imags,
                                        const float* mat,
                                        const uint64_t* qregs,
+                                       const size_t qregs_size,
                                        const uint64_t index0) {
   __m256i mask;
   __m256 real_ret, imag_ret, real_ret1, imag_ret1;
-  __m256 vreals[1ULL << num_qubits], vimags[1ULL << num_qubits];
+  __m256 vreals[1ULL << qregs_size], vimags[1ULL << qregs_size];
   __m256 tmp0, tmp1;
 
-  constexpr auto indexes_size = (1ULL << num_qubits);
-  uint64_t indexes[1ULL << num_qubits];
-  fill_indices(index0, indexes, indexes_size, qregs, num_qubits);
+  const auto indexes_size = (1ULL << qregs_size);
+  uint64_t indexes[1ULL << qregs_size];
+  fill_indices(index0, indexes, indexes_size, qregs, qregs_size);
 
   if (qregs[0] == 0) {
     mask = _mm256_set_epi32(6, 7, 4, 5, 2, 3, 0, 1);
@@ -647,7 +650,7 @@ inline void _apply_matrix_float_avx_qL(RealVectorView<float>& reals,
     mask = _mm256_set_epi32(3, 2, 1, 0, 7, 6, 5, 4);
   }
 
-  for (size_t i = 0; i < (1ULL << num_qubits); i += 2) {
+  for (size_t i = 0; i < (1ULL << qregs_size); i += 2) {
     auto index = indexes[i];
     _mm_load_twoarray_complex(reals[index], imags[index], vreals[i], vimags[i]);
 
@@ -656,17 +659,17 @@ inline void _apply_matrix_float_avx_qL(RealVectorView<float>& reals,
   }
 
   size_t mindex = 0;
-  for (size_t i = 0; i < (1ULL << num_qubits); i += 2) {
+  for (size_t i = 0; i < (1ULL << qregs_size); i += 2) {
     auto index = indexes[i];
-    _mm_complex_inner_product<float>((1ULL << num_qubits), vreals, vimags,
+    _mm_complex_inner_product<float>((1ULL << qregs_size), vreals, vimags,
                                      (&mat[mindex]), real_ret, imag_ret, tmp0,
                                      tmp1);
-    mindex += (1ULL << (num_qubits + 1));
+    mindex += (1ULL << (qregs_size + 1));
 
-    _mm_complex_inner_product<float>((1ULL << num_qubits), vreals, vimags,
+    _mm_complex_inner_product<float>((1ULL << qregs_size), vreals, vimags,
                                      (&mat[mindex]), real_ret1, imag_ret1, tmp0,
                                      tmp1);
-    mindex += (1ULL << (num_qubits + 1));
+    mindex += (1ULL << (qregs_size + 1));
 
     real_ret1 = _mm256_permutevar8x32_ps(real_ret1, mask);
     imag_ret1 = _mm256_permutevar8x32_ps(imag_ret1, mask);
@@ -688,55 +691,55 @@ inline void _apply_matrix_float_avx_qL(RealVectorView<float>& reals,
   }
 }
 
-template <size_t num_qubits>
 inline void _apply_matrix_float_avx(RealVectorView<float>& reals,
                                     ImaginaryVectorView<float>& imags,
                                     const float* mat,
                                     const uint64_t* qregs,
+                                    const size_t qregs_size,
                                     const uint64_t index0) {
   __m256 real_ret, imag_ret;
-  __m256 vreals[1ULL << num_qubits], vimags[1ULL << num_qubits];
+  __m256 vreals[1ULL << qregs_size], vimags[1ULL << qregs_size];
   __m256 tmp0, tmp1;
 
-  constexpr auto indexes_size = (1ULL << num_qubits);
-  uint64_t indexes[1ULL << num_qubits];
-  fill_indices(index0, indexes, indexes_size, qregs, num_qubits);
+  const auto indexes_size = (1ULL << qregs_size);
+  uint64_t indexes[1ULL << qregs_size];
+  fill_indices(index0, indexes, indexes_size, qregs, qregs_size);
 
-  for (size_t i = 0; i < (1ULL << num_qubits); ++i) {
+  for (size_t i = 0; i < (1ULL << qregs_size); ++i) {
     auto index = indexes[i];
     _mm_load_twoarray_complex(reals[index], imags[index], vreals[i], vimags[i]);
   }
 
   size_t mindex = 0;
-  for (size_t i = 0; i < (1ULL << num_qubits); ++i) {
+  for (size_t i = 0; i < (1ULL << qregs_size); ++i) {
     auto index = indexes[i];
-    _mm_complex_inner_product<float>((1ULL << num_qubits), vreals, vimags,
+    _mm_complex_inner_product<float>((1ULL << qregs_size), vreals, vimags,
                                      (&mat[mindex]), real_ret, imag_ret, tmp0,
                                      tmp1);
-    mindex += (1ULL << (num_qubits + 1));
+    mindex += (1ULL << (qregs_size + 1));
     _mm_store_twoarray_complex(real_ret, imag_ret, reals[index], imags[index]);
   }
 }
 
-template <size_t num_qubits>
 inline void _apply_matrix_double_avx_q0q1(RealVectorView<double>& reals,
                                           ImaginaryVectorView<double>& imags,
                                           const double* mat,
                                           const uint64_t* qregs,
+                                          const size_t qregs_size,
                                           const uint64_t index0) {
   const int PERM_D_Q0Q1_0 = 3 * 64 + 2 * 16 + 0 * 4 + 1 * 1;
   const int PERM_D_Q0Q1_1 = 3 * 64 + 0 * 16 + 1 * 4 + 2 * 1;
   const int PERM_D_Q0Q1_2 = 0 * 64 + 2 * 16 + 1 * 4 + 3 * 1;
 
   __m256d real_ret, imag_ret, real_ret1, imag_ret1;
-  __m256d vreals[1ULL << num_qubits], vimags[1ULL << num_qubits];
+  __m256d vreals[1ULL << qregs_size], vimags[1ULL << qregs_size];
   __m256d tmp0, tmp1;
 
-  constexpr auto indexes_size = (1ULL << num_qubits);
-  uint64_t indexes[1ULL << num_qubits];
-  fill_indices(index0, indexes, indexes_size, qregs, num_qubits);
+  const auto indexes_size = (1ULL << qregs_size);
+  uint64_t indexes[1ULL << qregs_size];
+  fill_indices(index0, indexes, indexes_size, qregs, qregs_size);
 
-  for (size_t i = 0; i < (1ULL << num_qubits); i += 4) {
+  for (size_t i = 0; i < (1ULL << qregs_size); i += 4) {
     auto index = indexes[i];
     _mm_load_twoarray_complex(reals[index], imags[index], vreals[i], vimags[i]);
     for (size_t j = 1; j < 4; ++j) {
@@ -758,17 +761,17 @@ inline void _apply_matrix_double_avx_q0q1(RealVectorView<double>& reals,
   }
 
   size_t mindex = 0;
-  for (size_t i = 0; i < (1ULL << num_qubits); i += 4) {
+  for (size_t i = 0; i < (1ULL << qregs_size); i += 4) {
     auto index = indexes[i];
-    _mm_complex_inner_product<double>((1ULL << num_qubits), vreals, vimags,
+    _mm_complex_inner_product<double>((1ULL << qregs_size), vreals, vimags,
                                       (&mat[mindex]), real_ret, imag_ret, tmp0,
                                       tmp1);
-    mindex += (1ULL << (num_qubits + 1));
+    mindex += (1ULL << (qregs_size + 1));
     for (size_t j = 1; j < 4; ++j) {
-      _mm_complex_inner_product<double>((1ULL << num_qubits), vreals, vimags,
+      _mm_complex_inner_product<double>((1ULL << qregs_size), vreals, vimags,
                                         (&mat[mindex]), real_ret1, imag_ret1,
                                         tmp0, tmp1);
-      mindex += (1ULL << (num_qubits + 1));
+      mindex += (1ULL << (qregs_size + 1));
       switch (j) {
         case 1:
           real_ret1 = _mm256_permute4x64_pd(real_ret1, PERM_D_Q0Q1_0);
@@ -794,24 +797,24 @@ inline void _apply_matrix_double_avx_q0q1(RealVectorView<double>& reals,
   }
 }
 
-template <size_t num_qubits>
 inline void _apply_matrix_double_avx_qL(RealVectorView<double>& reals,
                                         ImaginaryVectorView<double>& imags,
                                         const double* mat,
                                         const uint64_t* qregs,
+                                        const size_t qregs_size,
                                         const uint64_t index0) {
   const int PERM_D_Q0 = 2 * 64 + 3 * 16 + 0 * 4 + 1 * 1;
   const int PERM_D_Q1 = 1 * 64 + 0 * 16 + 3 * 4 + 2 * 1;
 
   __m256d real_ret, imag_ret, real_ret1, imag_ret1;
-  __m256d vreals[1ULL << num_qubits], vimags[1ULL << num_qubits];
+  __m256d vreals[1ULL << qregs_size], vimags[1ULL << qregs_size];
   __m256d tmp0, tmp1;
 
-  constexpr auto indexes_size = (1ULL << num_qubits);
-  uint64_t indexes[1ULL << num_qubits];
-  fill_indices(index0, indexes, indexes_size, qregs, num_qubits);
+  const auto indexes_size = (1ULL << qregs_size);
+  uint64_t indexes[1ULL << qregs_size];
+  fill_indices(index0, indexes, indexes_size, qregs, qregs_size);
 
-  for (size_t i = 0; i < (1ULL << num_qubits); i += 2) {
+  for (size_t i = 0; i < (1ULL << qregs_size); i += 2) {
     auto index = indexes[i];
     _mm_load_twoarray_complex(reals[index], imags[index], vreals[i], vimags[i]);
     if (qregs[0] == 0) {
@@ -824,17 +827,17 @@ inline void _apply_matrix_double_avx_qL(RealVectorView<double>& reals,
   }
 
   size_t mindex = 0;
-  for (size_t i = 0; i < (1ULL << num_qubits); i += 2) {
+  for (size_t i = 0; i < (1ULL << qregs_size); i += 2) {
     auto index = indexes[i];
-    _mm_complex_inner_product<double>((1ULL << num_qubits), vreals, vimags,
+    _mm_complex_inner_product<double>((1ULL << qregs_size), vreals, vimags,
                                       (&mat[mindex]), real_ret, imag_ret, tmp0,
                                       tmp1);
-    mindex += (1ULL << (num_qubits + 1));
+    mindex += (1ULL << (qregs_size + 1));
 
-    _mm_complex_inner_product<double>((1ULL << num_qubits), vreals, vimags,
+    _mm_complex_inner_product<double>((1ULL << qregs_size), vreals, vimags,
                                       (&mat[mindex]), real_ret1, imag_ret1,
                                       tmp0, tmp1);
-    mindex += (1ULL << (num_qubits + 1));
+    mindex += (1ULL << (qregs_size + 1));
 
     if (qregs[0] == 0) {
       real_ret1 = _mm256_permute4x64_pd(real_ret1, PERM_D_Q0);
@@ -851,37 +854,36 @@ inline void _apply_matrix_double_avx_qL(RealVectorView<double>& reals,
   }
 }
 
-template <size_t num_qubits>
 inline void _apply_matrix_double_avx(RealVectorView<double>& reals,
                                      ImaginaryVectorView<double>& imags,
                                      const double* mat,
                                      const uint64_t* qregs,
+                                     const size_t qregs_size,
                                      const uint64_t index0) {
   __m256d real_ret, imag_ret;
-  __m256d vreals[1ULL << num_qubits], vimags[1ULL << num_qubits];
+  __m256d vreals[1ULL << qregs_size], vimags[1ULL << qregs_size];
   __m256d tmp0, tmp1;
 
-  constexpr auto indexes_size = (1ULL << num_qubits);
-  uint64_t indexes[1ULL << num_qubits];
-  fill_indices(index0, indexes, indexes_size, qregs, num_qubits);
+  const auto indexes_size = (1ULL << qregs_size);
+  uint64_t indexes[1ULL << qregs_size];
+  fill_indices(index0, indexes, indexes_size, qregs, qregs_size);
 
-  for (size_t i = 0; i < (1ULL << num_qubits); ++i) {
+  for (size_t i = 0; i < (1ULL << qregs_size); ++i) {
     auto index = indexes[i];
     _mm_load_twoarray_complex(reals[index], imags[index], vreals[i], vimags[i]);
   }
 
   size_t mindex = 0;
-  for (size_t i = 0; i < (1ULL << num_qubits); ++i) {
+  for (size_t i = 0; i < (1ULL << qregs_size); ++i) {
     auto index = indexes[i];
-    _mm_complex_inner_product<double>((1ULL << num_qubits), vreals, vimags,
+    _mm_complex_inner_product<double>((1ULL << qregs_size), vreals, vimags,
                                       (&mat[mindex]), real_ret, imag_ret, tmp0,
                                       tmp1);
-    mindex += (1ULL << (num_qubits + 1));
+    mindex += (1ULL << (qregs_size + 1));
     _mm_store_twoarray_complex(real_ret, imag_ret, reals[index], imags[index]);
   }
 }
 
-template <size_t num_qubits>
 inline Avx _apply_avx_kernel(const uint64_t* qregs,
                              const size_t qregs_size,
                              float* data,
@@ -893,40 +895,35 @@ inline Avx _apply_avx_kernel(const uint64_t* qregs,
 
   if (qregs_size > 2 && qregs[2] == 2) {
     auto lambda = [&](const uint64_t index0, const float* mat) -> void {
-      _apply_matrix_float_avx_q0q1q2<num_qubits>(real, img, mat, qregs, index0);
+      _apply_matrix_float_avx_q0q1q2(real, img, mat, qregs, qregs_size, index0);
     };
 
-    avx_apply_lambda<num_qubits>(data_size, 1, lambda, qregs, qregs_size,
-                                 omp_threads, mat);
+    avx_apply_lambda(data_size, 1, lambda, qregs, qregs_size, omp_threads, mat);
 
   } else if (qregs_size > 1 && qregs[1] < 3) {
     auto lambda = [&](const uint64_t index0, const float* mat) -> void {
-      _apply_matrix_float_avx_qLqL<num_qubits>(real, img, mat, qregs, index0);
+      _apply_matrix_float_avx_qLqL(real, img, mat, qregs, qregs_size, index0);
     };
 
-    avx_apply_lambda<num_qubits>(data_size, 2, lambda, qregs, qregs_size,
-                                 omp_threads, mat);
+    avx_apply_lambda(data_size, 2, lambda, qregs, qregs_size, omp_threads, mat);
 
   } else if (qregs[0] < 3) {
     auto lambda = [&](const uint64_t index0, const float* mat) -> void {
-      _apply_matrix_float_avx_qL<num_qubits>(real, img, mat, qregs, index0);
+      _apply_matrix_float_avx_qL(real, img, mat, qregs, qregs_size, index0);
     };
 
-    avx_apply_lambda<num_qubits>(data_size, 4, lambda, qregs, qregs_size,
-                                 omp_threads, mat);
+    avx_apply_lambda(data_size, 4, lambda, qregs, qregs_size, omp_threads, mat);
 
   } else {
     auto lambda = [&](const uint64_t index0, const float* mat) -> void {
-      _apply_matrix_float_avx<num_qubits>(real, img, mat, qregs, index0);
+      _apply_matrix_float_avx(real, img, mat, qregs, qregs_size, index0);
     };
 
-    avx_apply_lambda<num_qubits>(data_size, 8, lambda, qregs, qregs_size,
-                                 omp_threads, mat);
+    avx_apply_lambda(data_size, 8, lambda, qregs, qregs_size, omp_threads, mat);
   }
   return Avx::Applied;
 }
 
-template <size_t num_qubits>
 inline Avx _apply_avx_kernel(const uint64_t* qregs,
                              const size_t qregs_size,
                              double* data,
@@ -938,83 +935,42 @@ inline Avx _apply_avx_kernel(const uint64_t* qregs,
 
   if (qregs_size > 1 && qregs[1] == 1) {
     auto lambda = [&](const uint64_t index0, const double* mat) -> void {
-      _apply_matrix_double_avx_q0q1<num_qubits>(real, img, mat, qregs, index0);
+      _apply_matrix_double_avx_q0q1(real, img, mat, qregs, qregs_size, index0);
     };
 
-    avx_apply_lambda<num_qubits>(data_size, 1, lambda, qregs, qregs_size,
-                                 omp_threads, mat);
+    avx_apply_lambda(data_size, 1, lambda, qregs, qregs_size, omp_threads, mat);
 
   } else if (qregs[0] < 2) {
     auto lambda = [&](const uint64_t index0, const double* mat) -> void {
-      _apply_matrix_double_avx_qL<num_qubits>(real, img, mat, qregs, index0);
+      _apply_matrix_double_avx_qL(real, img, mat, qregs, qregs_size, index0);
     };
 
-    avx_apply_lambda<num_qubits>(data_size, 2, lambda, qregs, qregs_size,
-                                 omp_threads, mat);
+    avx_apply_lambda(data_size, 2, lambda, qregs, qregs_size, omp_threads, mat);
 
   } else {
     auto lambda = [&](const uint64_t index0, const double* mat) -> void {
-      _apply_matrix_double_avx<num_qubits>(real, img, mat, qregs, index0);
+      _apply_matrix_double_avx(real, img, mat, qregs, qregs_size, index0);
     };
 
-    avx_apply_lambda<num_qubits>(data_size, 4, lambda, qregs, qregs_size,
-                                 omp_threads, mat);
+    avx_apply_lambda(data_size, 4, lambda, qregs, qregs_size, omp_threads, mat);
   }
   return Avx::Applied;
 }
 
 template <typename FloatType>
 typename std::enable_if<std::is_same<FloatType, double>::value, bool>::type
-is_simd_applicable(uint64_t data_size) {
-  if (data_size <= 4)
+is_simd_applicable(const size_t qregs_size, const uint64_t data_size) {
+  if (data_size <= 4 || qregs_size > 6)
     return false;
   return true;
 }
 
 template <typename FloatType>
 typename std::enable_if<std::is_same<FloatType, float>::value, bool>::type
-is_simd_applicable(uint64_t data_size) {
-  if (data_size <= 8)
+is_simd_applicable(const size_t qregs_size, const uint64_t data_size) {
+  if (data_size <= 8 || qregs_size > 6)
     return false;
   return true;
-}
-
-template <typename FloatType, size_t num_qubits>
-inline Avx apply_matrix_avx(FloatType* data,
-                            const uint64_t data_size,
-                            const uint64_t* qregs,
-                            const size_t qregs_size,
-                            const FloatType* mat,
-                            const size_t omp_threads) {
-  if (!is_simd_applicable<FloatType>(data_size))
-    return Avx::NotApplied;
-
-  auto transpose = [](const FloatType* matrix, FloatType* transposed) {
-    for (size_t i = 0; i < (1U << num_qubits); ++i) {
-      for (size_t j = 0; j < (1U << num_qubits); ++j) {
-        // This is for accessing the real part of the vector of complex numbers,
-        // which complies with this inner format: [r,i,r,i,r,i,r,i,...]
-        transposed[(i * (1U << num_qubits) + j) * 2] =
-            matrix[(j * (1U << num_qubits) + i) * 2];
-        //  And this is for the imaginary part.
-        transposed[(i * (1U << num_qubits) + j) * 2 + 1] =
-            matrix[(j * (1U << num_qubits) + i) * 2 + 1];
-      }
-    }
-  };
-
-  constexpr auto matrix_size = (1 << (num_qubits * 2 + 1));
-  FloatType transposed_mat[matrix_size];
-  copy(&transposed_mat[0], mat, matrix_size);
-  transpose(mat, &transposed_mat[0]);
-
-  uint64_t ordered_qregs[qregs_size];
-  copy(&ordered_qregs[0], qregs, qregs_size);
-
-  reorder<FloatType, num_qubits>(qregs, ordered_qregs, transposed_mat);
-
-  return _apply_avx_kernel<num_qubits>(ordered_qregs, qregs_size, data,
-                                       data_size, transposed_mat, omp_threads);
 }
 
 template <typename FloatType>
@@ -1024,28 +980,35 @@ Avx apply_matrix_avx(FloatType* qv_data,
                      const size_t qregs_size,
                      const FloatType* mat,
                      const size_t omp_threads) {
-  switch (qregs_size) {
-    case 1:
-      return apply_matrix_avx<FloatType, 1>(qv_data, data_size, qregs,
-                                            qregs_size, mat, omp_threads);
-    case 2:
-      return apply_matrix_avx<FloatType, 2>(qv_data, data_size, qregs,
-                                            qregs_size, mat, omp_threads);
-    case 3:
-      return apply_matrix_avx<FloatType, 3>(qv_data, data_size, qregs,
-                                            qregs_size, mat, omp_threads);
-    case 4:
-      return apply_matrix_avx<FloatType, 4>(qv_data, data_size, qregs,
-                                            qregs_size, mat, omp_threads);
-    case 5:
-      return apply_matrix_avx<FloatType, 5>(qv_data, data_size, qregs,
-                                            qregs_size, mat, omp_threads);
-    case 6:
-      return apply_matrix_avx<FloatType, 6>(qv_data, data_size, qregs,
-                                            qregs_size, mat, omp_threads);
-    default:
-      return Avx::NotApplied;
-  }
+  if (!is_simd_applicable<FloatType>(qregs_size, data_size))
+    return Avx::NotApplied;
+
+  auto transpose = [&](const FloatType* matrix, FloatType* transposed) {
+    for (size_t i = 0; i < (1U << qregs_size); ++i) {
+      for (size_t j = 0; j < (1U << qregs_size); ++j) {
+        // This is for accessing the real part of the vector of complex numbers,
+        // which complies with this inner format: [r,i,r,i,r,i,r,i,...]
+        transposed[(i * (1U << qregs_size) + j) * 2] =
+            matrix[(j * (1U << qregs_size) + i) * 2];
+        //  And this is for the imaginary part.
+        transposed[(i * (1U << qregs_size) + j) * 2 + 1] =
+            matrix[(j * (1U << qregs_size) + i) * 2 + 1];
+      }
+    }
+  };
+
+  const auto matrix_size = (1 << (qregs_size * 2 + 1));
+  FloatType transposed_mat[matrix_size];
+  copy(&transposed_mat[0], mat, matrix_size);
+  transpose(mat, &transposed_mat[0]);
+
+  uint64_t ordered_qregs[qregs_size];
+  copy(&ordered_qregs[0], qregs, qregs_size);
+
+  reorder<FloatType>(qregs, qregs_size, ordered_qregs, transposed_mat);
+
+  return _apply_avx_kernel(ordered_qregs, qregs_size, qv_data, data_size,
+                           transposed_mat, omp_threads);
 }
 
 template Avx apply_matrix_avx<double>(double*,
