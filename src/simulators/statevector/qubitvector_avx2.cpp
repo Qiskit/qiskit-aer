@@ -19,7 +19,7 @@
 
 #include "qubitvector_avx2.hpp"
 #include "qubitvector.hpp"
-#include "qvintrin_avx.hpp"
+#include "qv_avx2.hpp"
 
 using namespace QV;
 
@@ -27,11 +27,11 @@ using namespace QV;
 // Constructors & Destructor
 //------------------------------------------------------------------------------
 template <typename data_t>
-QubitVectorAvx2<data_t>::QubitVectorAvx2(size_t num_qubits){
-      Base::num_qubits_ = 0;
-      Base::data_ = nullptr;
-      Base::checkpoint_ = 0;
-      Base::set_num_qubits(num_qubits);
+QubitVectorAvx2<data_t>::QubitVectorAvx2(size_t num_qubits) {
+  Base::num_qubits_ = 0;
+  Base::data_ = nullptr;
+  Base::checkpoint_ = 0;
+  Base::set_num_qubits(num_qubits);
 }
 
 template <typename data_t>
@@ -39,42 +39,39 @@ QubitVectorAvx2<data_t>::QubitVectorAvx2() : QubitVectorAvx2(0) {}
 
 template <typename data_t>
 void QubitVectorAvx2<data_t>::apply_matrix(const uint_t qubit,
-                                          const cvector_t<double>& mat) {
-
+                                           const cvector_t<double>& mat) {
   if ((mat[1] == 0.0 && mat[2] == 0.0) || (mat[0] == 0.0 && mat[3] == 0.0)) {
     Base::apply_matrix(qubit, mat);
     return;
   }
 
-  // Convert qubit to array register for lambda functions
-  areg_t<1> qubits = {{qubit}};
-  if(apply_matrix_avx<data_t>(Base::data_, Base::data_size_, qubits,
-      Base::convert(mat), _calculate_num_threads()) == Avx::NotApplied){
+  reg_t qubits = {qubit};
+  if (apply_matrix_avx<data_t>(reinterpret_cast<data_t*>(Base::data_),
+                               Base::data_size_, qubits.data(), qubits.size(),
+                               reinterpret_cast<data_t *>(Base::convert(mat).data()),
+                               calculate_num_threads()) == Avx::NotApplied) {
     Base::apply_matrix(qubit, mat);
   }
 }
 
 template <typename data_t>
-void QubitVectorAvx2<data_t>::apply_matrix(
-  const reg_t &qubits,
-  const cvector_t<double> &mat
-){
-  if(apply_matrix_avx<data_t>(Base::data_, Base::data_size_, qubits,
-        Base::convert(mat), _calculate_num_threads()) == Avx::NotApplied){
-      Base::apply_matrix(qubits, mat);
-    }
+void QubitVectorAvx2<data_t>::apply_matrix(const reg_t& qubits,
+                                           const cvector_t<double>& mat) {
+  if (apply_matrix_avx<data_t>(reinterpret_cast<data_t*>(Base::data_),
+                               Base::data_size_, qubits.data(), qubits.size(),
+                               reinterpret_cast<data_t *>(Base::convert(mat).data()),
+                               calculate_num_threads()) == Avx::NotApplied) {
+    Base::apply_matrix(qubits, mat);
+  }
 }
 
 template <typename data_t>
-uint_t QubitVectorAvx2<data_t>::_calculate_num_threads(){
-  if(Base::num_qubits_ > Base::omp_threshold_ &&  Base::omp_threads_ > 1){
-       return Base::omp_threads_;
+size_t QubitVectorAvx2<data_t>::calculate_num_threads() {
+  if (Base::num_qubits_ > Base::omp_threshold_ && Base::omp_threads_ > 1) {
+    return Base::omp_threads_;
   }
   return 1;
 }
 
 template class QV::QubitVectorAvx2<double>;
 template class QV::QubitVectorAvx2<float>;
-
-
-

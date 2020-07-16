@@ -73,8 +73,7 @@ public:
   void apply_matrix(const reg_t &qubits, const cvector_t<double> &mat);
 
   protected:
-
-  uint_t _calculate_num_threads();
+  size_t calculate_num_threads();
 };
 
 // ostream overload for templated qubitvector

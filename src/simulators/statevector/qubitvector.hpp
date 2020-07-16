@@ -923,7 +923,6 @@ QubitVector<data_t, Derived>::apply_reduction_lambda(Lambda&& func,
                                             const list_t &qubits,
                                             const param_t &params) const {
 
-  const auto NUM_QUBITS = qubits.size();
   // Error checking
   #ifdef DEBUG
   for (const auto &qubit : qubits)
