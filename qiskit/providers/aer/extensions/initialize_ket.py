@@ -96,7 +96,7 @@ class InitializeKet(Instruction):
             # qubit (we peel away one qubit at a time)
             (remaining_param,
              thetas,
-             phis) = Initialize._rotations_to_disentangle(remaining_param)
+             phis) = InitializeKet._rotations_to_disentangle(remaining_param)
 
             # perform the required rotations to decouple the LSB qubit (so that
             # it can be "factored" out, leaving a shorter amplitude vector to peel away)
@@ -143,7 +143,7 @@ class InitializeKet(Instruction):
             # multiplexor being in state |i>)
             (remains,
              add_theta,
-             add_phi) = Initialize._bloch_angles(local_param[2 * i: 2 * (i + 1)])
+             add_phi) = InitializeKet._bloch_angles(local_param[2 * i: 2 * (i + 1)])
 
             remaining_vector.append(remains)
 
