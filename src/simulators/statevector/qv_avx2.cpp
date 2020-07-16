@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstring>
 #include <type_traits>
+#include <utilities>
 
 /**
  * DISCLAIMER: We want to compile this code in isolation of the rest of the
