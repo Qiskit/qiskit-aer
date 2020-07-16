@@ -42,3 +42,4 @@ from .snapshot_stabilizer import *
 from .snapshot_density_matrix import *
 from .snapshot_probabilities import *
 from .snapshot_expectation_value import *
+from .initialize_ket import *

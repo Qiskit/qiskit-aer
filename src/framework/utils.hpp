@@ -1355,6 +1355,41 @@ std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint
   return ketmap;
 }
 
+template <typename T>
+std::vector<T> ket2vec(const std::map<std::string, T> ketmap, uint_t nint, uint_t base) {
+
+  bool hex_input = false;
+  if (base == 16) {
+    hex_input = true;
+    base = 2; // If hexadecimal strings we convert to bin first
+  }
+
+  // compute vector length
+  std::size_t dim = 1;
+  for (uint_t i = 0; i < nint; ++i){
+    if (dim > (std::numeric_limits<std::size_t>::max() / base)){
+     std::stringstream ss;
+     ss << "ket2vec (qubit number " << nint <<
+     " will result in vector longer than the maximum "
+     << std::numeric_limits<std::size_t>::max() << ")";
+     throw std::invalid_argument(ss.str());
+    }
+    dim *= base;
+  }
+
+  std::vector<T> vec(dim, 0);
+
+  for (size_t k = 0; k < dim; ++k) {
+    std::string key = (hex_input) ? Utils::int2hex(k)
+    : Utils::int2string(k, base, nint);
+    auto it = ketmap.find(key);
+    if (it != ketmap.end()){
+        vec[k] = it->second;
+    }
+  }
+  return vec;
+}
+
 
 //==============================================================================
 // Implementations: Bit conversions

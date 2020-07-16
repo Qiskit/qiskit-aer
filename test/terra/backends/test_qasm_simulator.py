@@ -32,6 +32,7 @@ from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonClifford
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmDiagonalGateTests
 from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
+from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeKetTests
 from test.terra.backends.qasm_simulator.qasm_multiplexer import QasmMultiplexerTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
@@ -69,6 +70,7 @@ class TestQasmSimulator(common.QiskitAerTestCase,
                         QasmMultiQubitMeasureTests,
                         QasmResetTests,
                         QasmInitializeTests,
+                        QasmInitializeKetTests,
                         QasmConditionalGateTests,
                         QasmConditionalUnitaryTests,
                         QasmConditionalKrausTests,

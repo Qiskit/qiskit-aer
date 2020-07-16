@@ -16,6 +16,7 @@ QasmSimulator Integration Tests
 from test.terra.reference import ref_initialize
 from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer.extensions import InitializeKet
 
 import numpy as np
 
@@ -99,6 +100,25 @@ class QasmInitializeTests:
         shots = 4000
         circuits = ref_initialize.initialize_sampling_optimization()
         targets = ref_initialize.initialize_counts_sampling_optimization(shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(
+            qobj, backend_options=self.BACKEND_OPTS).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+class QasmInitializeKetTests:
+    """QasmSimulator initialize_ket tests."""
+
+    SIMULATOR = QasmSimulator()
+    BACKEND_OPTS = {}
+
+    def test_initialize_ket_1(self):
+        """Test QasmSimulator initialize_ket"""
+        # For statevector output we can combine deterministic and non-deterministic
+        # count output circuits
+        shots = 4000
+        circuits = ref_initialize.initialize_ket_circuits_1(final_measure=True)
+        targets = ref_initialize.initialize_ket_counts_1(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()

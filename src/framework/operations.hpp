@@ -354,6 +354,7 @@ Op json_to_op_measure(const json_t &js);
 Op json_to_op_reset(const json_t &js);
 Op json_to_op_bfunc(const json_t &js);
 Op json_to_op_initialize(const json_t &js);
+Op json_to_op_initialize_ket(const json_t &js);
 
 // Snapshots
 Op json_to_op_snapshot(const json_t &js);
@@ -396,6 +397,8 @@ Op json_to_op(const json_t &js) {
     return json_to_op_reset(js);
   if (name == "initialize")
     return json_to_op_initialize(js);
+  if (name == "initialize_ket")
+    return json_to_op_initialize_ket(js);
   // Arbitrary matrix gates
   if (name == "unitary")
     return json_to_op_unitary(js);
@@ -561,6 +564,44 @@ Op json_to_op_initialize(const json_t &js) {
   JSON::get_value(op.qubits, "qubits", js);
   JSON::get_value(op.params, "params", js);
 
+  // Conditional
+  add_condtional(Allowed::No, op, js);
+
+  // Validation
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
+  check_length_params(op, 1ULL << op.qubits.size());
+  return op;
+}
+
+Op json_to_op_initialize_ket(const json_t &js) {
+  // creates a standard statevector-based initialize op
+  // from the input ket; faster than converting in Python
+  Op op;
+  op.type = OpType::initialize;
+  op.name = "initialize";
+  JSON::get_value(op.qubits, "qubits", js);
+
+  uint_t nint = op.qubits.size();
+
+  std::map<std::string, complex_t> ketmap;
+
+  if (JSON::check_key("params", js) && js["params"].is_array()) {
+    for (const auto &comp : js["params"]) {
+      // Check component is length-2 array
+      if (!comp.is_array() || comp.size() != 2)
+        throw std::invalid_argument("Invalid initialize_ket (param component " +
+                                    comp.dump() + " invalid).");
+      // Get amplitude string
+      std::string key = comp[0];
+      // Get complex coefficient
+      complex_t coeff = comp[1];
+      ketmap[key] = coeff;
+    }
+  }
+
+  op.params = Utils::ket2vec(ketmap, nint, 16);
+  
   // Conditional
   add_condtional(Allowed::No, op, js);
 
