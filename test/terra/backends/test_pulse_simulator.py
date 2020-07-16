@@ -271,7 +271,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(counts, exp_counts)
 
     def test_1Q_noise_depolarizing_no_drift(self):
-        """
+        """Test depolarizing noise
         """
         omega_0 = 0
         omega_d = omega_0
@@ -315,8 +315,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         exp_counts = {'0': 519, '1': 481}
         self.assertDictAlmostEqual(counts, exp_counts)
 
-    def test_1Q_noise_dephazing_no_drift(self):
-        """
+    def test_1Q_noise_dephasing_no_drift(self):
+        """Test single qubit dephasing noise with no drift, though with dephasing in the X basis.
+        (If no drift is given measurement defaults to the Z basis, so dephasing in the
+        Z basis is undetectable in this case.)
         """
         omega_0 = 0
         omega_d = omega_0
@@ -358,6 +360,55 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # test results
         counts = result.get_counts()
         exp_counts = {'0': 759, '1': 241}
+        self.assertDictAlmostEqual(counts, exp_counts)
+
+
+    def test_1Q_noise_dephasing_with_drift(self):
+        """Test single qubit dephasing noise with a drift Hamiltonian, though with dephasing in
+        the X basis. This is a variation on test_1Q_noise_dephasing_no_drift - the evolution of
+        the outcome probabilities should be independent of the value of omega_0, however
+        having a non-zero omega_0 will additionally test the frame handling
+        """
+        omega_0 = 1.4224
+        omega_d = omega_0
+
+        r = 0.01
+        total_samples = 100
+
+        system_model = self._system_model_1Q(omega_0, r)
+
+        # set up noise
+        # noise strength/model is set so that after 100 time units a state starting in
+        # [np.sqrt(4/5), np.sqrt(1/5)] will have a 60% chance of being measured in the 0 state
+        gamma = - 0.5 * np.log(1. / 3) / total_samples
+        noise_model = {"qubit": {"0": {"X": gamma}}}
+
+        # create a schedule with 0 amplitude
+        schedule = self._1Q_constant_sched(total_samples, amp=0.0)
+
+        # here number of shots matters
+        qobj = assemble([schedule],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[omega_d],
+                        memory_slots=2,
+                        shots=1000)
+
+        # set seed for simulation, and set noise
+        y0 = np.array([np.sqrt(4./5.), 1j * np.sqrt(1./5.)])
+        backend_options = {'seed': 9000,
+                           'initial_state' : y0,
+                           'noise_model': noise_model}
+
+        # run simulation
+        result = self.backend_sim.run(qobj, system_model=system_model,
+                                      backend_options=backend_options).result()
+
+        # test results
+        counts = result.get_counts()
+        exp_counts = {'0': 623, '1': 377}
         self.assertDictAlmostEqual(counts, exp_counts)
 
 
