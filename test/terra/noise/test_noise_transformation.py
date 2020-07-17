@@ -267,7 +267,14 @@ class TestNoiseTransformer(unittest.TestCase):
         self.assertErrorsAlmostEqual(results_1, expected_results_1)
         self.assertErrorsAlmostEqual(results_2, expected_results_2)
 
-
+    def test_clifford(self):
+        x_p = 0.1
+        y_p = 0.2
+        z_p = 0.3
+        error = pauli_error([('X', x_p), ('Y', y_p), ('Z', z_p),
+                             ('I', 1 - (x_p + y_p + z_p))])
+        results = approximate_quantum_error(error, operator_string="clifford")
+        self.assertErrorsAlmostEqual(error, results, places=1)
 
     def test_errors(self):
         gamma = 0.23
