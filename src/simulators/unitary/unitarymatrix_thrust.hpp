@@ -407,7 +407,7 @@ std::pair<bool, double> UnitaryMatrixThrust<data_t>::check_identity() const {
 
 // ostream overload for templated qubitvector
 template <class data_t>
-inline std::ostream &operator<<(std::ostream &out, const QV::UnitaryMatrixThrust<data_t>&m) {
+inline std::ostream &operator<<(std::ostream &out, const AER::QV::UnitaryMatrixThrust<data_t>&m) {
   out << m.copy_to_matrix();
   return out;
 }

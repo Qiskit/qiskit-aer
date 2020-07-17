@@ -435,7 +435,7 @@ inline void _apply_matrix_float_avx_q0q1q2(RealVectorView<float>& reals,
                                            const size_t qregs_size,
                                            const uint64_t index0) {
   const auto indexes_size = (1ULL << qregs_size);
-  uint64_t indexes[1ULL << qregs_size];
+  uint64_t indexes[indexes_size];
   fill_indices(index0, indexes, indexes_size, qregs, qregs_size);
 
   __m256 real_ret, imag_ret, real_ret1, imag_ret1;
@@ -524,7 +524,7 @@ inline void _apply_matrix_float_avx_qLqL(RealVectorView<float>& reals,
   __m256 tmp0, tmp1;
 
   const auto indexes_size = (1ULL << qregs_size);
-  uint64_t indexes[1ULL << qregs_size];
+  uint64_t indexes[indexes_size];
   fill_indices(index0, indexes, indexes_size, qregs, qregs_size);
 
   if (qregs[1] == 1) {
@@ -641,7 +641,7 @@ inline void _apply_matrix_float_avx_qL(RealVectorView<float>& reals,
   __m256 tmp0, tmp1;
 
   const auto indexes_size = (1ULL << qregs_size);
-  uint64_t indexes[1ULL << qregs_size];
+  uint64_t indexes[indexes_size];
   fill_indices(index0, indexes, indexes_size, qregs, qregs_size);
 
   if (qregs[0] == 0) {
@@ -704,7 +704,7 @@ inline void _apply_matrix_float_avx(RealVectorView<float>& reals,
   __m256 tmp0, tmp1;
 
   const auto indexes_size = (1ULL << qregs_size);
-  uint64_t indexes[1ULL << qregs_size];
+  uint64_t indexes[indexes_size];
   fill_indices(index0, indexes, indexes_size, qregs, qregs_size);
 
   for (size_t i = 0; i < (1ULL << qregs_size); ++i) {
@@ -738,7 +738,7 @@ inline void _apply_matrix_double_avx_q0q1(RealVectorView<double>& reals,
   __m256d tmp0, tmp1;
 
   const auto indexes_size = (1ULL << qregs_size);
-  uint64_t indexes[1ULL << qregs_size];
+  uint64_t indexes[indexes_size];
   fill_indices(index0, indexes, indexes_size, qregs, qregs_size);
 
   for (size_t i = 0; i < (1ULL << qregs_size); i += 4) {
@@ -813,7 +813,7 @@ inline void _apply_matrix_double_avx_qL(RealVectorView<double>& reals,
   __m256d tmp0, tmp1;
 
   const auto indexes_size = (1ULL << qregs_size);
-  uint64_t indexes[1ULL << qregs_size];
+  uint64_t indexes[indexes_size];
   fill_indices(index0, indexes, indexes_size, qregs, qregs_size);
 
   for (size_t i = 0; i < (1ULL << qregs_size); i += 2) {
@@ -867,7 +867,7 @@ inline void _apply_matrix_double_avx(RealVectorView<double>& reals,
   __m256d tmp0, tmp1;
 
   const auto indexes_size = (1ULL << qregs_size);
-  uint64_t indexes[1ULL << qregs_size];
+  uint64_t indexes[indexes_size];
   fill_indices(index0, indexes, indexes_size, qregs, qregs_size);
 
   for (size_t i = 0; i < (1ULL << qregs_size); ++i) {
