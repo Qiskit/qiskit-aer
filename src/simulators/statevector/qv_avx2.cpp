@@ -43,7 +43,7 @@ void copy(T dest, const U orig, size_t size) {
     dest[i] = orig[i];
 }
 
-template <typename num_qubits>
+template <size_t num_qubits>
 inline void fill_indices(uint64_t index0,
                          uint64_t* indexes,
                          const size_t indexes_size,
@@ -53,7 +53,7 @@ inline void fill_indices(uint64_t index0,
 
   for (size_t n = 0; n < num_qubits; ++n)
     for (size_t i = 0; i < indexes_size; i += (1 << (n + 1)))
-      for (size_t j = 0; j < (1U << n); ++j)
+      for (size_t j = 0; j < (1ULL << n); ++j)
         indexes[i + j + (1U << n)] += (1ULL << qregs[n]);
 }
 
@@ -122,11 +122,11 @@ const uint64_t MASKS[] = {0ULL,
                           4611686018427387903ULL,
                           9223372036854775807ULL};
 
+template<size_t num_qubits>
 inline uint64_t index0(const uint64_t* sorted_qubits,
-                       const size_t sorted_qubits_size,
                        const uint64_t k) {
   uint64_t lowbits, retval = k;
-  for (size_t j = 0; j < sorted_qubits_size; j++) {
+  for (size_t j = 0; j < num_qubits; j++) {
     lowbits = retval & MASKS[sorted_qubits[j]];
     retval >>= sorted_qubits[j];
     retval <<= sorted_qubits[j] + 1;
@@ -140,14 +140,13 @@ void avx_apply_lambda(const uint64_t data_size,
                       const uint64_t skip,
                       Lambda&& func,
                       const uint64_t* sorted_qubits,
-                      const size_t sorted_qubits_size,
                       const size_t omp_threads,
                       const param_t& params) {
   const int64_t END = data_size >> num_qubits;
 
 #pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
   for (int64_t k = 0; k < END; k += skip) {
-    const auto index = index0(sorted_qubits, sorted_qubits_size, k);
+    const auto index = index0<num_qubits>(sorted_qubits, k);
     std::forward<Lambda>(func)(index, params);
   }
 }
