@@ -296,17 +296,16 @@ op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
     QubitUnitary::State<> unitary_simulator;
     unitary_simulator.initialize_qreg(qubits.size());
     unitary_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
-    auto unitary = unitary_simulator.qreg().matrix();
-    return Operations::make_unitary(qubits, std::move(unitary), std::string("fusion"));
+    return Operations::make_unitary(qubits, unitary_simulator.qreg().move_to_matrix(),
+                                    std::string("fusion"));
   }
   // For both Kraus and SuperOp method we simulate using superoperator
   // simulator
   QubitSuperoperator::State<> superop_simulator;
   superop_simulator.initialize_qreg(qubits.size());
   superop_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
-  auto superop = superop_simulator.qreg().matrix();
   if (method == Method::superop) {
-    return Operations::make_superop(qubits, std::move(superop));
+    return Operations::make_superop(qubits, superop_simulator.qreg().move_to_matrix());
   }
   
   // TODO: Add support for Kraus method

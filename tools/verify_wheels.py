@@ -15,7 +15,8 @@ from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 
 from qiskit.providers.aer.pulse.system_models.duffing_model_generators import duffing_system_model
-from qiskit.pulse import Schedule, Play, Acquire, Gaussian, DriveChannel, AcquireChannel, MemorySlot
+from qiskit.pulse import (Schedule, Play, Acquire, SamplePulse, DriveChannel, AcquireChannel,
+                          MemorySlot)
 
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import StatevectorSimulator
@@ -417,18 +418,16 @@ def model_and_pi_schedule():
     model = duffing_system_model(dim_oscillators=2,
                                  oscillator_freqs=[5.0],
                                  anharm_freqs=[0],
-                                 drive_strengths=[1.0],
+                                 drive_strengths=[0.01],
                                  coupling_dict={},
                                  dt=1.0)
 
     # note: parameters set so that area under curve is 1/4
-    gauss_pulse = Gaussian(duration=10,
-                amp=(1.0/4)/2.506627719963857,
-                sigma=1)
+    sample_pulse = SamplePulse(np.ones(50))
 
     # construct schedule
     schedule = Schedule(name='test_sched')
-    schedule |= Play(gauss_pulse, DriveChannel(0))
+    schedule |= Play(sample_pulse, DriveChannel(0))
     schedule += Acquire(10, AcquireChannel(0), MemorySlot(0)) << schedule.duration
 
     return model, schedule
@@ -476,5 +475,5 @@ if __name__ == '__main__':
                     shots=1)
     results = backend_sim.run(qobj, system_model).result()
     state = results.get_statevector(0)
-    assertAlmostEqual(state[0], 0, delta=10**-5)
-    assertAlmostEqual(state[1], -1j, delta=10**-5)
+    assertAlmostEqual(state[0], 0, delta=10**-3)
+    assertAlmostEqual(state[1], -1j, delta=10**-3)

@@ -1991,6 +1991,7 @@ double QubitVector<data_t, Derived>::expval_pauli(const reg_t &qubits,
   uint_t x_mask = 0;
   uint_t z_mask = 0;
   uint_t num_y = 0;
+  uint_t x_max = 0;
   for (size_t i = 0; i < N; ++i) {
     const auto bit = BITS[qubits[i]];
     switch (pauli[N - 1 - i]) {
@@ -1998,6 +1999,7 @@ double QubitVector<data_t, Derived>::expval_pauli(const reg_t &qubits,
         break;
       case 'X': {
         x_mask += bit;
+        x_max = std::max(x_max, (qubits[i]));
         break;
       }
       case 'Z': {
@@ -2006,6 +2008,7 @@ double QubitVector<data_t, Derived>::expval_pauli(const reg_t &qubits,
       }
       case 'Y': {
         x_mask += bit;
+        x_max = std::max(x_max, (qubits[i]));
         z_mask += bit;
         num_y++;
         break;
@@ -2041,25 +2044,38 @@ double QubitVector<data_t, Derived>::expval_pauli(const reg_t &qubits,
       break;
   }
 
-  auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
-    (void)val_im; // unused
-    auto val = std::real(phase * data_[i ^ x_mask] * std::conj(data_[i]));
-    if (z_mask) {
-      // Portable implementation of __builtin_popcountll
-      auto count = i & z_mask;
-      count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
-      count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
-      count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
-      count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
-      count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
-      count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
-      if (count & 1) {
+  // specialize x_max == 0
+  if (!x_mask) {
+    auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
+      (void)val_im; // unused
+      auto val = std::real(phase * data_[i] * std::conj(data_[i]));
+      if (z_mask && (AER::Utils::popcount(i & z_mask) & 1)) {
         val = -val;
       }
+      val_re += val;
+    };
+    return std::real(apply_reduction_lambda(std::move(lambda)));
+  }
+
+  const uint_t mask_u = ~MASKS[x_max + 1];
+  const uint_t mask_l = MASKS[x_max];
+  auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
+    (void)val_im; // unused
+    int_t idxs[2];
+    idxs[0] = ((i << 1) & mask_u) | (i & mask_l);
+    idxs[1] = idxs[0] ^ x_mask;
+    double vals[2];
+    vals[0] = std::real(phase * data_[idxs[1]] * std::conj(data_[idxs[0]]));
+    vals[1] = std::real(phase * data_[idxs[0]] * std::conj(data_[idxs[1]]));
+    for (int_t j = 0; j < 2; ++j) {
+      if (z_mask && (AER::Utils::popcount(idxs[j] & z_mask) & 1)) {
+        val_re -= vals[j];
+      } else {
+        val_re += vals[j];
+      }
     }
-    val_re += val;
   };
-  return std::real(apply_reduction_lambda(lambda));
+  return std::real(apply_reduction_lambda(std::move(lambda), (size_t) 0, (data_size_ >> 1)));
 }
 
 //------------------------------------------------------------------------------

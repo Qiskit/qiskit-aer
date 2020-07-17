@@ -15,6 +15,13 @@
 #include "numeric_integrator.hpp"
 #include "pulse_utils.hpp"
 
+#include <pybind11/functional.h>
+
+RhsFunctor get_ode_rhs_functor(py::object the_global_data, py::object the_exp,
+                               py::object the_system, py::object the_channels, py::object the_reg) {
+  return RhsFunctor(the_global_data, the_exp, the_system, the_channels, the_reg);
+}
+
 PYBIND11_MODULE(pulse_utils, m) {
     m.doc() = "Utility functions for pulse simulator"; // optional module docstring
 
@@ -24,4 +31,9 @@ PYBIND11_MODULE(pulse_utils, m) {
     m.def("write_shots_memory", &write_shots_memory, "Converts probabilities back into shots");
     m.def("oplist_to_array", &oplist_to_array, "Insert list of complex numbers into numpy complex array");
     m.def("spmv_csr", &spmv_csr, "Sparse matrix, dense vector multiplication.");
+
+    py::class_<RhsFunctor>(m, "OdeRhsFunctor")
+        .def("__call__", &RhsFunctor::operator());
+
+    m.def("get_ode_rhs_functor", &get_ode_rhs_functor, "Get ode_rhs functor to allow caching of parameters");
 }
