@@ -101,6 +101,7 @@ if(NOT MSVC)
 	enable_cxx_compiler_flag_if_supported("-Woverloaded-virtual")
 else("Windows general compiler flags")
 	enable_cxx_compiler_flag_if_supported("/Oi") # Enable intrinsics instead of functions  (faster code)
+	enable_cxx_compiler_flag_if_supported("/bigobj")
 endif()
 
 if(STATIC_LINKING)
