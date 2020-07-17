@@ -522,12 +522,23 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     if (parallel_shots_ > 1 || parallel_state_update_ > 1)
       omp_set_nested(1);
 #endif
-    #pragma omp parallel for if (parallel_experiments_ > 1) num_threads(parallel_experiments_)
-    for (int j = 0; j < result.results.size(); ++j) {
-      // Make a copy of the noise model for each circuit execution
-      // so that it can be modified if required
-      auto circ_noise_model = noise_model;
-      execute_circuit(circuits[j], circ_noise_model, config, result.results[j]);
+    // then- and else-blocks have intentionally duplication.
+    // Nested omp has significant overheads even though a guard condition exists.
+    if (parallel_experiments_ > 1) {
+      #pragma omp parallel for num_threads(parallel_experiments_)
+      for (int j = 0; j < result.results.size(); ++j) {
+        // Make a copy of the noise model for each circuit execution
+        // so that it can be modified if required
+        auto circ_noise_model = noise_model;
+        execute_circuit(circuits[j], circ_noise_model, config, result.results[j]);
+      }
+    } else {
+      for (int j = 0; j < result.results.size(); ++j) {
+        // Make a copy of the noise model for each circuit execution
+        // so that it can be modified if required
+        auto circ_noise_model = noise_model;
+        execute_circuit(circuits[j], circ_noise_model, config, result.results[j]);
+      }
     }
 
     // Check each experiment result for completed status.
