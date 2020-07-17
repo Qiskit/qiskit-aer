@@ -7,11 +7,24 @@ find_package(Pybind11 REQUIRED)
 # shared library.
 string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-# Controllers
-if(CUDA_FOUND)
-    set_source_files_properties(bindings.cc PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+# We build SIMD filed separately, because they will be reached only if the
+# machine running the code has SIMD support
+set(SIMD_SOURCE_FILE "../../../../../src/simulators/statevector/qv_avx2.cpp")
+if(APPLE OR UNIX)
+    set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
+elseif(MSVC)
+    set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
 endif()
-basic_pybind11_add_module(controller_wrappers bindings.cc)
+
+set(AER_SIMULATOR_SOURCES "bindings.cc"
+     "${SIMD_SOURCE_FILE}")
+
+if(CUDA_FOUND)
+    set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES
+        CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+endif()
+
+basic_pybind11_add_module(controller_wrappers ${AER_SIMULATOR_SOURCES})
 target_include_directories(controller_wrappers PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
                                                PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 target_link_libraries(controller_wrappers ${AER_LIBRARIES})
