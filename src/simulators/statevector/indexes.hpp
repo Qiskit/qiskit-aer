@@ -22,6 +22,7 @@
 #include <vector>
 #include <memory>
 
+namespace AER {
 namespace QV {
 
 // Type aliases
@@ -321,6 +322,7 @@ std::complex<double> apply_reduction_lambda(const size_t start,
 //------------------------------------------------------------------------------
 } // end namespace QV
 //------------------------------------------------------------------------------
+}
 
 //------------------------------------------------------------------------------
 #endif // end module

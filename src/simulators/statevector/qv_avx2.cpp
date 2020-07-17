@@ -17,7 +17,7 @@
 #include <cstdint>
 #include <cstring>
 #include <type_traits>
-#include <utilities>
+#include <utility>
 
 /**
  * DISCLAIMER: We want to compile this code in isolation of the rest of the
@@ -425,6 +425,7 @@ inline void reorder(const uint64_t* qreg_orig,
 
 }  // End anonymous namespace
 
+namespace AER {
 namespace QV {
 
 inline void _apply_matrix_float_avx_q0q1q2(RealVectorView<float>& reals,
@@ -1026,3 +1027,4 @@ template Avx apply_matrix_avx<float>(float* data,
                                      const size_t omp_threads);
 
 } /* End namespace QV */
+} /* End namespace AER */

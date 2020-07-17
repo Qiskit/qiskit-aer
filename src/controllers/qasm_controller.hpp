@@ -401,7 +401,7 @@ void QasmController::run_circuit(const Circuit& circ,
           return run_circuit_helper<
               Statevector::State<QV::QubitVectorAvx2<double>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector);
+              Method::statevector, data);
         }
         // Double-precision Statevector simulation
         return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
@@ -413,7 +413,7 @@ void QasmController::run_circuit(const Circuit& circ,
           return run_circuit_helper<
               Statevector::State<QV::QubitVectorAvx2<float>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector);
+              Method::statevector, data);
         }
         // Single-precision Statevector simulation
         return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(

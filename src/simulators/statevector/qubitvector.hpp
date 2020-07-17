@@ -30,7 +30,9 @@
 
 #include "simulators/statevector/indexes.hpp"
 #include "framework/json.hpp"
+#include "framework/utils.hpp"
 
+namespace AER {
 namespace QV {
 
 template <typename T> using cvector_t = std::vector<std::complex<T>>;
@@ -2080,11 +2082,12 @@ double QubitVector<data_t, Derived>::expval_pauli(const reg_t &qubits,
 
 //------------------------------------------------------------------------------
 } // end namespace QV
+} // end namespace AER
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector
 template <typename data_t, typename Derived>
-inline std::ostream &operator<<(std::ostream &out, const QV::QubitVector<data_t>&qv) {
+inline std::ostream &operator<<(std::ostream &out, const AER::QV::QubitVector<data_t>&qv) {
 
   out << "[";
   size_t last = qv.size() - 1;

@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <cstring>
 
+namespace AER {
 namespace QV {
 
 enum class Avx { NotApplied, Applied };
@@ -30,5 +31,6 @@ Avx apply_matrix_avx(FloatType* data,
                      const FloatType* mat,
                      const size_t omp_threads);
 
-}  // namespace QV
+} // end namespace QV
+} // end namespace AER
 #endif

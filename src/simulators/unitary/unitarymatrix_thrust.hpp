@@ -19,6 +19,7 @@
 #include "framework/utils.hpp"
 #include "simulators/statevector/qubitvector_thrust.hpp"
 
+namespace AER {
 namespace QV {
 
 //============================================================================
@@ -401,6 +402,7 @@ std::pair<bool, double> UnitaryMatrixThrust<data_t>::check_identity() const {
 
 //------------------------------------------------------------------------------
 } // end namespace QV
+} // namespace AER
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector

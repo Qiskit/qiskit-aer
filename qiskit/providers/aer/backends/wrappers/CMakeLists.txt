@@ -15,9 +15,9 @@ if(APPLE OR UNIX)
 elseif(MSVC)
     set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
 endif()
+
 set(AER_SIMULATOR_SOURCES "bindings.cc"
-    "${SIMD_SOURCE_FILE}"
-    "../../../../../src/simulators/statevector/qubitvector_avx2.cpp")
+     "${SIMD_SOURCE_FILE}")
 
 if(CUDA_FOUND)
     set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES

@@ -245,7 +245,6 @@ else() # Standalone build
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
 	endif()
 	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp"
-		"${PROJECT_SOURCE_DIR}/src/simulators/statevector/qubitvector_avx2.cpp"
 		"${SIMD_SOURCE_FILE}")
 	set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 
