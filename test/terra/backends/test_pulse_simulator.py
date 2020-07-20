@@ -475,7 +475,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         noise_model = {"qubit": {"0": {"Sm": 1/T1}}}
 
-        amp = np.exp(1.231*1j)
+        # set amplitude to be some complex number
+        amp = np.exp(1.231 * 1j)
 
         system_model = self._system_model_3d_oscillator(freq, anharm, r)
         schedule = self._1Q_constant_sched(total_samples, amp=amp)
@@ -509,7 +510,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # currently measurement in second excited state is binned with outcome 0
         expected_counts0 = expected_counts[0] + expected_counts[2]
         expected_counts1 = expected_counts[1]
-        
+
         # check counts against expected counts, with a tolerance for sampling error
         self.assertTrue(np.abs(counts['0'] - expected_counts0) < 10)
         self.assertTrue(np.abs(counts['1'] - expected_counts1) < 10)
