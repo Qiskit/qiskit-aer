@@ -76,8 +76,6 @@ def pulse_controller(qobj, system_model, backend_options):
     pulse_de_model.variables = ham_model._variables
     pulse_de_model.channels = ham_model._channels
     pulse_de_model.h_diag = ham_model._h_diag
-    pulse_de_model.evals = ham_model._evals
-    pulse_de_model.estates = ham_model._estates
     dim_qub = ham_model._subsystem_dims
     dim_osc = {}
     # convert estates into a Qutip qobj
@@ -198,7 +196,7 @@ def pulse_controller(qobj, system_model, backend_options):
 
         if not exp['can_sample']:
             pulse_sim_desc.can_sample = False
-    
+
     run_experiments = (run_unitary_experiments if pulse_sim_desc.can_sample
                        else run_monte_carlo_experiments)
     exp_results, exp_times = run_experiments(pulse_sim_desc, pulse_de_model, solver_options)
@@ -335,17 +333,10 @@ class PulseInternalDEModel:
         self.freqs = {}
         # diagonal elements of the hamiltonian
         self.h_diag = None
-        # eigenvalues of the time-independent hamiltonian
-        self.evals = None
-        # eigenstates of the time-independent hamiltonian
-        self.estates = None
 
         self.n_registers = None
 
         # attributes used in RHS function
-        self.vars = None
-        self.vars_names = None
-        self.num_h_terms = None
         self.c_num = None
         self.c_ops_data = None
         self.c_ops_ind = None
@@ -353,7 +344,6 @@ class PulseInternalDEModel:
         self.n_ops_data = None
         self.n_ops_ind = None
         self.n_ops_ptr = None
-        self.h_diag_elems = None
 
         self.h_ops_data = None
         self.h_ops_ind = None
@@ -365,19 +355,18 @@ class PulseInternalDEModel:
         """Preps internal data into format required by RHS function.
         """
 
-        self.vars = list(self.variables.values())
+        vars = list(self.variables.values())
         # Need this info for evaluating the hamiltonian vars in the c++ solver
-        self.vars_names = list(self.variables.keys())
+        vars_names = list(self.variables.keys())
 
         num_h_terms = len(self.system)
         H = [hpart[0] for hpart in self.system]
-        self.num_h_terms = num_h_terms
 
         # take care of collapse operators, if any
         self.c_num = 0
         if self.noise:
             self.c_num = len(self.noise)
-            self.num_h_terms += 1
+            num_h_terms += 1
 
         self.c_ops_data = []
         self.c_ops_ind = []
@@ -385,8 +374,6 @@ class PulseInternalDEModel:
         self.n_ops_data = []
         self.n_ops_ind = []
         self.n_ops_ptr = []
-
-        self.h_diag_elems = self.h_diag
 
         # if there are any collapse operators
         H_noise = 0
@@ -416,13 +403,13 @@ class PulseInternalDEModel:
         self._rhs_dict = {'freqs': list(self.freqs.values()),
                           'pulse_array': self.pulse_array,
                           'pulse_indices': self.pulse_indices,
-                          'vars': self.vars,
-                          'vars_names': self.vars_names,
-                          'num_h_terms': self.num_h_terms,
+                          'vars': vars,
+                          'vars_names': vars_names,
+                          'num_h_terms': num_h_terms,
                           'h_ops_data': self.h_ops_data,
                           'h_ops_ind': self.h_ops_ind,
                           'h_ops_ptr': self.h_ops_ptr,
-                          'h_diag_elems': self.h_diag_elems}
+                          'h_diag_elems': self.h_diag}
 
     def init_rhs(self, exp):
         """Set up and return rhs function corresponding to this model for a given
