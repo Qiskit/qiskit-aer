@@ -46,7 +46,6 @@ def pulse_controller(qobj, system_model, backend_options):
     """
 
     pulse_sim_desc = PulseSimDescription()
-    pulse_de_model = PulseInternalDEModel()
 
     if backend_options is None:
         backend_options = {}
@@ -72,10 +71,6 @@ def pulse_controller(qobj, system_model, backend_options):
     ham_model = system_model.hamiltonian
 
     # Extract DE model information
-    pulse_de_model.system = ham_model._system
-    pulse_de_model.variables = ham_model._variables
-    pulse_de_model.channels = ham_model._channels
-    pulse_de_model.h_diag = ham_model._h_diag
     system_model.h_diag = ham_model._h_diag
     dim_qub = ham_model._subsystem_dims
     dim_osc = {}
@@ -92,16 +87,13 @@ def pulse_controller(qobj, system_model, backend_options):
     if system_model.dt is None:
         raise ValueError('System model must have a dt value to simulate.')
 
-    pulse_de_model.dt = system_model.dt
-
     # Parse noise
     if noise_model:
         noise = NoiseParser(noise_dict=noise_model, dim_osc=dim_osc, dim_qub=dim_qub)
         noise.parse()
 
         system_model.noise = noise.compiled
-        pulse_de_model.noise = noise.compiled
-        if any(pulse_de_model.noise):
+        if any(system_model.noise):
             pulse_sim_desc.can_sample = False
 
     # ###############################
@@ -121,10 +113,6 @@ def pulse_controller(qobj, system_model, backend_options):
     pulse_sim_desc.memory = digested_qobj.memory
 
     # extract model-relevant information
-    pulse_de_model.n_registers = digested_qobj.n_registers
-    pulse_de_model.pulse_array = digested_qobj.pulse_array
-    pulse_de_model.pulse_indices = digested_qobj.pulse_indices
-    pulse_de_model.pulse_to_int = digested_qobj.pulse_to_int
     system_model.n_registers = digested_qobj.n_registers
     system_model.pulse_array = digested_qobj.pulse_array
     system_model.pulse_indices = digested_qobj.pulse_indices
@@ -145,8 +133,7 @@ def pulse_controller(qobj, system_model, backend_options):
         warn('Warning: qubit_lo_freq was not specified in PulseQobj or in PulseSystemModel, ' +
              'so it is beign automatically determined from the drift Hamiltonian.')
 
-    pulse_de_model.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
-    system_model.freqs = pulse_de_model.freqs
+    system_model.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
 
     # ###############################
     # ### Parse backend_options
@@ -311,129 +298,6 @@ def _unsupported_warnings(noise_model):
     warning_str = '{} are an untested feature, and therefore may not behave as expected.'
     if noise_model is not None:
         warn(warning_str.format('Noise models'))
-
-
-class PulseInternalDEModel:
-    """Container of information required for de RHS construction
-    """
-
-    def __init__(self):
-        # The system Hamiltonian in numerical format
-        self.system = None
-        # The noise (if any) in numerical format
-        self.noise = None
-        # System variables
-        self.variables = None
-        # Channels in the Hamiltonian string
-        # these tell the order in which the channels
-        # are evaluated in the RHS solver.
-        self.channels = None
-        # Array containing all pulse samples
-        self.pulse_array = None
-        # Array of indices indicating where a pulse starts in the self.pulse_array
-        self.pulse_indices = None
-        # A dict that translates pulse names to integers for use in self.pulse_indices
-        self.pulse_to_int = None
-        # dt for pulse schedules
-        self.dt = None
-        # holds frequencies for the channels
-        self.freqs = {}
-        # diagonal elements of the hamiltonian
-        self.h_diag = None
-
-        self.n_registers = None
-
-        # attributes used in RHS function
-        self.c_num = None
-        self.c_ops_data = None
-        self.c_ops_ind = None
-        self.c_ops_ptr = None
-        self.n_ops_data = None
-        self.n_ops_ind = None
-        self.n_ops_ptr = None
-
-        self._rhs_dict = None
-
-    def _config_internal_data(self):
-        """Preps internal data into format required by RHS function.
-        """
-
-        vars = list(self.variables.values())
-        # Need this info for evaluating the hamiltonian vars in the c++ solver
-        vars_names = list(self.variables.keys())
-
-        num_h_terms = len(self.system)
-        H = [hpart[0] for hpart in self.system]
-
-        # take care of collapse operators, if any
-        self.c_num = 0
-        if self.noise:
-            self.c_num = len(self.noise)
-            num_h_terms += 1
-
-        self.c_ops_data = []
-        self.c_ops_ind = []
-        self.c_ops_ptr = []
-        self.n_ops_data = []
-        self.n_ops_ind = []
-        self.n_ops_ptr = []
-
-        # if there are any collapse operators
-        H_noise = 0
-        for kk in range(self.c_num):
-            c_op = self.noise[kk]
-            n_op = c_op.dag() * c_op
-            # collapse ops
-            self.c_ops_data.append(c_op.data.data)
-            self.c_ops_ind.append(c_op.data.indices)
-            self.c_ops_ptr.append(c_op.data.indptr)
-            # norm ops
-            self.n_ops_data.append(n_op.data.data)
-            self.n_ops_ind.append(n_op.data.indices)
-            self.n_ops_ptr.append(n_op.data.indptr)
-            # Norm ops added to time-independent part of
-            # Hamiltonian to decrease norm
-            H_noise -= 0.5j * n_op
-
-        if H_noise:
-            H = H + [H_noise]
-
-        # construct data sets
-        h_ops_data = [-1.0j * hpart.data.data for hpart in H]
-        h_ops_ind = [hpart.data.indices for hpart in H]
-        h_ops_ptr = [hpart.data.indptr for hpart in H]
-
-        self._rhs_dict = {'freqs': list(self.freqs.values()),
-                          'pulse_array': self.pulse_array,
-                          'pulse_indices': self.pulse_indices,
-                          'vars': vars,
-                          'vars_names': vars_names,
-                          'num_h_terms': num_h_terms,
-                          'h_ops_data': h_ops_data,
-                          'h_ops_ind': h_ops_ind,
-                          'h_ops_ptr': h_ops_ptr,
-                          'h_diag_elems': self.h_diag}
-
-    def init_rhs(self, exp):
-        """Set up and return rhs function corresponding to this model for a given
-        experiment exp
-        """
-
-        # if _rhs_dict has not been set up, config the internal data
-        if self._rhs_dict is None:
-            self._config_internal_data()
-
-        channels = dict(self.channels)
-
-        # Init register
-        register = np.ones(self.n_registers, dtype=np.uint8)
-
-        ode_rhs_obj = get_ode_rhs_functor(self._rhs_dict, exp, self.system, channels, register)
-
-        def rhs(t, y):
-            return ode_rhs_obj(t, y)
-
-        return rhs
 
 
 class PulseSimDescription:
