@@ -19,6 +19,7 @@
 #include "framework/utils.hpp"
 #include "simulators/unitary/unitarymatrix_thrust.hpp"
 
+namespace AER {
 namespace QV {
 
 //============================================================================
@@ -723,11 +724,12 @@ double DensityMatrixThrust<data_t>::expval_pauli(const reg_t &qubits,
 
 //------------------------------------------------------------------------------
 } // end namespace QV
+} // end namespace AER
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector
 template <typename data_t>
-inline std::ostream &operator<<(std::ostream &out, const QV::DensityMatrixThrust<data_t>&m) {
+inline std::ostream &operator<<(std::ostream &out, const AER::QV::DensityMatrixThrust<data_t>&m) {
   out << m.copy_to_matrix();
   return out;
 }
