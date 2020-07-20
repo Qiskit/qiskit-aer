@@ -95,7 +95,7 @@ class PulseSystemModel():
         self.subsystem_list = subsystem_list
         self.dt = dt
 
-        self.noise = None
+        self._noise = None
         self._rhs_dict = None
 
     @classmethod
@@ -239,7 +239,7 @@ class PulseSystemModel():
             noise = NoiseParser(noise_dict=noise_dict, dim_osc={}, dim_qub=dim_qub)
             noise.parse()
 
-            self.noise = noise.compiled
+            self._noise = noise.compiled
 
 
     def _config_internal_data(self):
@@ -255,31 +255,31 @@ class PulseSystemModel():
         H = [hpart[0] for hpart in ham_model._system]
 
         # take care of collapse operators, if any
-        self.c_num = 0
-        if self.noise:
-            self.c_num = len(self.noise)
+        self._c_num = 0
+        if self._noise is not None:
+            self._c_num = len(self._noise)
             num_h_terms += 1
 
-        self.c_ops_data = []
-        self.c_ops_ind = []
-        self.c_ops_ptr = []
-        self.n_ops_data = []
-        self.n_ops_ind = []
-        self.n_ops_ptr = []
+        self._c_ops_data = []
+        self._c_ops_ind = []
+        self._c_ops_ptr = []
+        self._n_ops_data = []
+        self._n_ops_ind = []
+        self._n_ops_ptr = []
 
         # if there are any collapse operators
         H_noise = 0
-        for kk in range(self.c_num):
-            c_op = self.noise[kk]
+        for kk in range(self._c_num):
+            c_op = self._noise[kk]
             n_op = c_op.dag() * c_op
             # collapse ops
-            self.c_ops_data.append(c_op.data.data)
-            self.c_ops_ind.append(c_op.data.indices)
-            self.c_ops_ptr.append(c_op.data.indptr)
+            self._c_ops_data.append(c_op.data.data)
+            self._c_ops_ind.append(c_op.data.indices)
+            self._c_ops_ptr.append(c_op.data.indptr)
             # norm ops
-            self.n_ops_data.append(n_op.data.data)
-            self.n_ops_ind.append(n_op.data.indices)
-            self.n_ops_ptr.append(n_op.data.indptr)
+            self._n_ops_data.append(n_op.data.data)
+            self._n_ops_ind.append(n_op.data.indices)
+            self._n_ops_ptr.append(n_op.data.indptr)
             # Norm ops added to time-independent part of
             # Hamiltonian to decrease norm
             H_noise -= 0.5j * n_op
@@ -292,16 +292,16 @@ class PulseSystemModel():
         h_ops_ind = [hpart.data.indices for hpart in H]
         h_ops_ptr = [hpart.data.indptr for hpart in H]
 
-        self._rhs_dict = {'freqs': list(self.freqs.values()),
-                          'pulse_array': self.pulse_array,
-                          'pulse_indices': self.pulse_indices,
+        self._rhs_dict = {'freqs': list(self._freqs.values()),
+                          'pulse_array': self._pulse_array,
+                          'pulse_indices': self._pulse_indices,
                           'vars': vars,
                           'vars_names': vars_names,
                           'num_h_terms': num_h_terms,
                           'h_ops_data': h_ops_data,
                           'h_ops_ind': h_ops_ind,
                           'h_ops_ptr': h_ops_ptr,
-                          'h_diag_elems': self.h_diag}
+                          'h_diag_elems': ham_model._h_diag}
 
     def init_rhs(self, exp):
         """Set up and return rhs function corresponding to this model for a given
@@ -315,7 +315,7 @@ class PulseSystemModel():
         channels = dict(self.hamiltonian._channels)
 
         # Init register
-        register = np.ones(self.n_registers, dtype=np.uint8)
+        register = np.ones(self._n_registers, dtype=np.uint8)
 
         ode_rhs_obj = get_ode_rhs_functor(self._rhs_dict, exp, self.hamiltonian._system, channels, register)
 

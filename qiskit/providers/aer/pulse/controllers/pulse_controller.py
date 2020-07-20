@@ -66,7 +66,6 @@ def pulse_controller(qobj, system_model, backend_options):
     ham_model = system_model.hamiltonian
 
     # Extract DE model information
-    system_model.h_diag = ham_model._h_diag
     dim_qub = ham_model._subsystem_dims
     dim_osc = {}
     # convert estates into a Qutip qobj
@@ -88,7 +87,7 @@ def pulse_controller(qobj, system_model, backend_options):
     if noise_model:
         system_model.add_noise_from_dict(noise_model)
 
-    if system_model.noise is not None:
+    if system_model._noise is not None:
         pulse_sim_desc.can_sample = False
 
     # ###############################
@@ -108,10 +107,10 @@ def pulse_controller(qobj, system_model, backend_options):
     pulse_sim_desc.memory = digested_qobj.memory
 
     # extract model-relevant information
-    system_model.n_registers = digested_qobj.n_registers
-    system_model.pulse_array = digested_qobj.pulse_array
-    system_model.pulse_indices = digested_qobj.pulse_indices
-    system_model.pulse_to_int = digested_qobj.pulse_to_int
+    system_model._n_registers = digested_qobj.n_registers
+    system_model._pulse_array = digested_qobj.pulse_array
+    system_model._pulse_indices = digested_qobj.pulse_indices
+    system_model._pulse_to_int = digested_qobj.pulse_to_int
 
     pulse_sim_desc.experiments = digested_qobj.experiments
 
@@ -128,7 +127,7 @@ def pulse_controller(qobj, system_model, backend_options):
         warn('Warning: qubit_lo_freq was not specified in PulseQobj or in PulseSystemModel, ' +
              'so it is beign automatically determined from the drift Hamiltonian.')
 
-    system_model.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
+    system_model._freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
 
     # ###############################
     # ### Parse backend_options
@@ -150,10 +149,10 @@ def pulse_controller(qobj, system_model, backend_options):
     # Set the ODE solver max step to be the half the
     # width of the smallest pulse
     min_width = np.iinfo(np.int32).max
-    for key, val in system_model.pulse_to_int.items():
+    for key, val in system_model._pulse_to_int.items():
         if key != 'pv':
-            stop = system_model.pulse_indices[val + 1]
-            start = system_model.pulse_indices[val]
+            stop = system_model._pulse_indices[val + 1]
+            start = system_model._pulse_indices[val]
             min_width = min(min_width, stop - start)
     solver_options.de_options.max_step = min_width / 2 * system_model.dt
 

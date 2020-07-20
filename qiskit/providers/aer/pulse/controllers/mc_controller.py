@@ -136,8 +136,8 @@ def monte_carlo_evolution(seed,
     rand_vals = rng.rand(2)
 
     # make array for collapse operator inds
-    cinds = np.arange(pulse_de_model.c_num)
-    n_dp = np.zeros(pulse_de_model.c_num, dtype=float)
+    cinds = np.arange(pulse_de_model._c_num)
+    n_dp = np.zeros(pulse_de_model._c_num, dtype=float)
 
     ODE = setup_de_solver(exp, y0, pulse_de_model, solver_options.de_options)
 
@@ -192,9 +192,9 @@ def monte_carlo_evolution(seed,
                 collapse_times.append(ODE.t)
                 # all constant collapse operators.
                 for i in range(n_dp.shape[0]):
-                    n_dp[i] = cy_expect_psi_csr(pulse_de_model.n_ops_data[i],
-                                                pulse_de_model.n_ops_ind[i],
-                                                pulse_de_model.n_ops_ptr[i],
+                    n_dp[i] = cy_expect_psi_csr(pulse_de_model._n_ops_data[i],
+                                                pulse_de_model._n_ops_ind[i],
+                                                pulse_de_model._n_ops_ptr[i],
                                                 ODE.y, True)
 
                 # determine which operator does collapse and store it
@@ -202,9 +202,9 @@ def monte_carlo_evolution(seed,
                 j = cinds[_p >= rand_vals[1]][0]
                 collapse_operators.append(j)
 
-                state = spmv_csr(pulse_de_model.c_ops_data[j],
-                                 pulse_de_model.c_ops_ind[j],
-                                 pulse_de_model.c_ops_ptr[j],
+                state = spmv_csr(pulse_de_model._c_ops_data[j],
+                                 pulse_de_model._c_ops_ind[j],
+                                 pulse_de_model._c_ops_ptr[j],
                                  ODE.y)
 
                 state /= dznrm2(state)
