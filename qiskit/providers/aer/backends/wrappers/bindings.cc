@@ -1,5 +1,11 @@
 #include <iostream>
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#elif defined(__GNUC__)
+#include <cpuid.h>
+#endif
+
 #include <pybind11/pybind11.h>
 
 #include "framework/matrix.hpp"

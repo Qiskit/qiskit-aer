@@ -44,7 +44,7 @@ namespace JSON {
  * @param name: file name to load.
  * @returns: the loaded json.
  */
-json_t load(std::string name);
+inline json_t load(std::string name);
 
 /**
  * Check if a key exists in a json_t object.
@@ -52,7 +52,7 @@ json_t load(std::string name);
  * @param js: the json_t to search for key.
  * @returns: true if the key exists, false otherwise.
  */
-bool check_key(std::string key, const json_t &js);
+inline bool check_key(std::string key, const json_t &js);
 
 /**
  * Check if all keys exists in a json_t object.
@@ -60,7 +60,7 @@ bool check_key(std::string key, const json_t &js);
  * @param js: the json_t to search for keys.
  * @returns: true if all keys exists, false otherwise.
  */
-bool check_keys(std::vector<std::string> keys, const json_t &js);
+inline bool check_keys(std::vector<std::string> keys, const json_t &js);
 
 /**
  * Load a json_t object value into a variable if the key name exists.

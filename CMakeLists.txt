@@ -43,8 +43,6 @@ configure_file("${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp.in"
                "${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp")
 
 set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-set(AER_SIMULATOR_CPP_MAIN
-    "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
 set(AER_SIMULATOR_CPP_EXTERNAL_LIBS "${USER_LIB_PATH}")
 
 set(AER_COMPILER_DEFINITIONS "")
@@ -109,6 +107,9 @@ if(NOT MSVC)
 	enable_cxx_compiler_flag_if_supported("-Wredundant-decls")
 	enable_cxx_compiler_flag_if_supported("-Wshadow")
 	enable_cxx_compiler_flag_if_supported("-Woverloaded-virtual")
+else("Windows general compiler flags")
+	enable_cxx_compiler_flag_if_supported("/Oi") # Enable intrinsics instead of functions  (faster code)
+	enable_cxx_compiler_flag_if_supported("/bigobj")
 endif()
 
 if(STATIC_LINKING)
@@ -196,8 +197,6 @@ if(AER_THRUST_SUPPORTED)
 		endif()
 		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH_FLAGS ${AER_CUDA_ARCH})
 		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH_FLAGS} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
-		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
-			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDANT_LIBS "")
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
@@ -245,12 +244,25 @@ if(SKBUILD) # Terra Addon build
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
+
+	# We build SIMD filed separately, because they will be reached only if the
+	# machine running the code has SIMD support
+	set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+	if(APPLE OR UNIX)
+		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
+	elseif(MSVC)
+		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
+	endif()
+	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp"
+		"${SIMD_SOURCE_FILE}")
+	set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 	if(CUDA_FOUND)
-		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
 	else(CUDA_FOUND)
-		add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES})
 		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
 	endif(CUDA_FOUND)
 	set_target_properties(qasm_simulator PROPERTIES
