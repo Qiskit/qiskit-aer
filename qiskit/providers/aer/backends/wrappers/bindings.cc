@@ -6,7 +6,10 @@
 #include <cpuid.h>
 #endif
 
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #include <pybind11/pybind11.h>
+DISABLE_WARNING_POP
 
 #include "framework/matrix.hpp"
 #include "framework/types.hpp"
