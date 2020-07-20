@@ -15,12 +15,14 @@
 
 "System Model class for system specification for the PulseSimulator"
 
-from warnings import warn
 import numpy as np
+from copy import deepcopy
+from warnings import warn
 from collections import OrderedDict
 from qiskit.providers import BaseBackend
 from qiskit.providers.aer.aererror import AerError
 from .hamiltonian_model import HamiltonianModel
+from .string_model_parser.string_model_parser import NoiseParser
 from ..controllers.pulse_utils import get_ode_rhs_functor
 
 
@@ -230,6 +232,16 @@ class PulseSystemModel():
                 raise ValueError("Channel is not D or U")
         return freqs
 
+    def add_noise_from_dict(self, noise_dict):
+        if noise_dict:
+            dim_qub = self.hamiltonian._subsystem_dims
+
+            noise = NoiseParser(noise_dict=noise_dict, dim_osc={}, dim_qub=dim_qub)
+            noise.parse()
+
+            self.noise = noise.compiled
+
+
     def _config_internal_data(self):
         """Preps internal data into format required by RHS function.
         """
@@ -311,3 +323,6 @@ class PulseSystemModel():
             return ode_rhs_obj(t, y)
 
         return rhs
+
+    def copy(self):
+        return deepcopy(self)

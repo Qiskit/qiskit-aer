@@ -1148,10 +1148,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         shots=1)
 
         backend_options = {'initial_state': np.array([1., 1.]) / np.sqrt(2)}
-        #system_model = PulseSystemModel(hamiltonian=ham_model,
-        #                                u_channel_lo=u_channel_lo,
-        #                                subsystem_list=subsystem_list,
-        #                                dt=dt)
         results = self.backend_sim.run(qobj, system_model, backend_options).result()
 
         statevector = results.get_statevector()

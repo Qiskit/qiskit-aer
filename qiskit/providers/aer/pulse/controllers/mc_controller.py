@@ -34,7 +34,7 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
 
     Parameters:
         pulse_sim_desc (PulseSimDescription): description of pulse simulation
-        pulse_de_model (PulseInternalDEModel): description of de model
+        pulse_de_model (PulseSystemModel): description of de model
         solver_options (PulseSimOptions): options
 
     Returns:
@@ -108,7 +108,7 @@ def monte_carlo_evolution(seed,
         exp (dict): dictionary containing experiment description
         y0 (array): initial state
         pulse_sim_desc (PulseSimDescription): container for simulation description
-        pulse_de_model (PulseInternalDEModel): container for de model
+        pulse_de_model (PulseSystemModel): container for de model
         solver_options (PulseSimOptions): options
 
     Returns:

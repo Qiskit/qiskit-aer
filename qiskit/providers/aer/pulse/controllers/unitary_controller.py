@@ -71,7 +71,7 @@ def run_unitary_experiments(pulse_sim_desc, pulse_de_model, solver_options=None)
 
     Parameters:
         pulse_sim_desc (PulseSimDescription): description of pulse simulation
-        pulse_de_model (PulseInternalDEModel): description of de model
+        pulse_de_model (PulseSystemModel): description of de model
         solver_options (PulseSimOptions): options
 
     Returns:
@@ -124,7 +124,7 @@ def unitary_evolution(exp, y0, pulse_de_model, solver_options=None):
     Parameters:
         exp (dict): dictionary containing experiment description
         y0 (array): initial state
-        pulse_de_model (PulseInternalDEModel): container for de model
+        pulse_de_model (PulseSystemModel): container for de model
         solver_options (PulseSimOptions): options
 
     Returns:

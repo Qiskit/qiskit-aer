@@ -29,7 +29,7 @@ def setup_de_solver(exp, y0, pulse_de_model, de_options):
     Parameters:
         exp (dict): dict containing experiment description
         y0 (array): initial state
-        pulse_de_model (PulseInternalDEModel): container for de model
+        pulse_de_model (PulseSystemModel): container for de model
         de_options (DE_Options): options for DE method
 
     Returns:
