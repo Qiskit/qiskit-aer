@@ -167,6 +167,7 @@ stages:
         variables:
           PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         steps:
+          - task: UsePythonVersion@0
           - checkout: self
             submodules: true
           - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
@@ -183,7 +184,8 @@ stages:
           - bash: |
               set -x
               set -e
-              pip install -U pip setuptools virtualenv wheel
+              pip install -U pip
+              pip install -U setuptools virtualenv wheel
               python setup.py sdist
             displayName: Build sdist
           - bash: |
