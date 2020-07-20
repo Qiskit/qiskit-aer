@@ -414,7 +414,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(counts, exp_counts)
 
 
-    def test_1Q_noise(self):
+    def test_1Q_noise_x_gate(self):
         """Tests simulation of noise operators. Uses the same schedule as test_x_gate, but
         with a high level of amplitude damping noise.
         """
@@ -458,24 +458,27 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(counts, exp_counts)
 
     def test_3d_osc_noise(self):
+        """Test simulation of T1 noise in a 3d model of an anharmonic oscillator. This includes
+        drift and drive.
+        """
         total_samples = 100
 
-        freq = 3.
+        freq = 1.
         anharm = -0.33
 
         # Test pi pulse
         r = 0.5 / total_samples
 
         T1 = 100.
-        # used 5000 to check statistics but it is way too large to be included in an actual test
-        # setting to 3 temporarily while pushing to WIP PR
-        #shots = 5000
-        shots = 3
+
+        shots = 256
 
         noise_model = {"qubit": {"0": {"Sm": 1/T1}}}
 
+        amp = np.exp(1.231*1j)
+
         system_model = self._system_model_3d_oscillator(freq, anharm, r)
-        schedule = self._1Q_constant_sched(total_samples)
+        schedule = self._1Q_constant_sched(total_samples, amp=amp)
 
         qobj = assemble([schedule],
                         backend=self.backend_sim,
@@ -486,18 +489,13 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         shots=shots)
 
         y0 = np.array([0., 0., 1.])
-        #backend_options = {'seed' : 9000, 'initial_state': y0, 'noise_model': noise_model}
-        backend_options = {'initial_state': y0, 'noise_model': noise_model}
-        from time import time
-        start = time()
+        backend_options = {'seed': 1231, 'initial_state': y0, 'noise_model': noise_model}
         result = self.backend_sim.run(qobj, system_model, backend_options).result()
-        time1 = time() - start
         counts = result.get_counts()
 
 
         # set up and run independent simulation
-        samples = np.ones((total_samples, 1))
-        start = time()
+        samples = np.ones((total_samples, 1)) * amp
         indep_yf = simulate_3d_oscillator_noisy_model(np.diag(y0),
                                                       freq,
                                                       anharm,
@@ -506,13 +504,15 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                                       samples,
                                                       1.,
                                                       T1)
-        time2 = time() - start
+
         expected_counts = np.real(np.diag(indep_yf)) * shots
-
-        import pdb; pdb.set_trace()
-        # test final state
-        self.assertGreaterEqual(state_fidelity(pulse_sim_yf, indep_yf), 1-10**-5)
-
+        # currently measurement in second excited state is binned with outcome 0
+        expected_counts0 = expected_counts[0] + expected_counts[2]
+        expected_counts1 = expected_counts[1]
+        
+        # check counts against expected counts, with a tolerance for sampling error
+        self.assertTrue(np.abs(counts['0'] - expected_counts0) < 10)
+        self.assertTrue(np.abs(counts['1'] - expected_counts1) < 10)
 
 
     def test_unitary_parallel(self):
