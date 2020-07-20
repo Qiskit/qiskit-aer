@@ -64,10 +64,6 @@ function(add_cython_module module)
     target_include_directories(${module} PRIVATE ${PYTHON_INCLUDE_DIRS})
     target_include_directories(${module} PRIVATE ${NumPy_INCLUDE_DIRS})
     target_include_directories(${module} PRIVATE ${CYTHON_USER_INCLUDE_DIRS})
-    target_include_directories(${module} SYSTEM INTERFACE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
-    target_include_directories(${module} SYSTEM INTERFACE ${PYTHON_INCLUDE_DIRS})
-    target_include_directories(${module} SYSTEM INTERFACE ${NumPy_INCLUDE_DIRS})
-    target_include_directories(${module} SYSTEM INTERFACE ${CYTHON_USER_INCLUDE_DIRS})
 
     target_link_libraries(${module} ${AER_LIBRARIES} ${CYTHON_USER_LIB_DIRS})
 
