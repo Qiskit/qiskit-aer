@@ -100,6 +100,8 @@ def run_unitary_experiments(pulse_sim_desc, pulse_de_model, solver_options=None)
 
     map_kwargs = {'num_processes': solver_options.num_cpus}
 
+    pulse_de_model._config_internal_data()
+
     # run simulation on each experiment in parallel
     start = time.time()
     exp_results = parallel_map(_full_simulation,

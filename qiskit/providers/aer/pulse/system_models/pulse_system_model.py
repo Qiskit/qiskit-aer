@@ -16,10 +16,12 @@
 "System Model class for system specification for the PulseSimulator"
 
 from warnings import warn
+import numpy as np
 from collections import OrderedDict
 from qiskit.providers import BaseBackend
 from qiskit.providers.aer.aererror import AerError
 from .hamiltonian_model import HamiltonianModel
+from ..controllers.pulse_utils import get_ode_rhs_functor
 
 
 class PulseSystemModel():
@@ -90,6 +92,9 @@ class PulseSystemModel():
         self.control_channel_labels = control_channel_labels or []
         self.subsystem_list = subsystem_list
         self.dt = dt
+
+        self.noise = None
+        self._rhs_dict = None
 
     @classmethod
     def from_backend(cls, backend, subsystem_list=None):
@@ -224,3 +229,85 @@ class PulseSystemModel():
             else:
                 raise ValueError("Channel is not D or U")
         return freqs
+
+    def _config_internal_data(self):
+        """Preps internal data into format required by RHS function.
+        """
+        ham_model = self.hamiltonian
+
+        vars = list(ham_model._variables.values())
+        # Need this info for evaluating the hamiltonian vars in the c++ rhs
+        vars_names = list(ham_model._variables.keys())
+
+        num_h_terms = len(ham_model._system)
+        H = [hpart[0] for hpart in ham_model._system]
+
+        # take care of collapse operators, if any
+        self.c_num = 0
+        if self.noise:
+            self.c_num = len(self.noise)
+            num_h_terms += 1
+
+        self.c_ops_data = []
+        self.c_ops_ind = []
+        self.c_ops_ptr = []
+        self.n_ops_data = []
+        self.n_ops_ind = []
+        self.n_ops_ptr = []
+
+        # if there are any collapse operators
+        H_noise = 0
+        for kk in range(self.c_num):
+            c_op = self.noise[kk]
+            n_op = c_op.dag() * c_op
+            # collapse ops
+            self.c_ops_data.append(c_op.data.data)
+            self.c_ops_ind.append(c_op.data.indices)
+            self.c_ops_ptr.append(c_op.data.indptr)
+            # norm ops
+            self.n_ops_data.append(n_op.data.data)
+            self.n_ops_ind.append(n_op.data.indices)
+            self.n_ops_ptr.append(n_op.data.indptr)
+            # Norm ops added to time-independent part of
+            # Hamiltonian to decrease norm
+            H_noise -= 0.5j * n_op
+
+        if H_noise:
+            H = H + [H_noise]
+
+        # construct data sets
+        h_ops_data = [-1.0j * hpart.data.data for hpart in H]
+        h_ops_ind = [hpart.data.indices for hpart in H]
+        h_ops_ptr = [hpart.data.indptr for hpart in H]
+
+        self._rhs_dict = {'freqs': list(self.freqs.values()),
+                          'pulse_array': self.pulse_array,
+                          'pulse_indices': self.pulse_indices,
+                          'vars': vars,
+                          'vars_names': vars_names,
+                          'num_h_terms': num_h_terms,
+                          'h_ops_data': h_ops_data,
+                          'h_ops_ind': h_ops_ind,
+                          'h_ops_ptr': h_ops_ptr,
+                          'h_diag_elems': self.h_diag}
+
+    def init_rhs(self, exp):
+        """Set up and return rhs function corresponding to this model for a given
+        experiment exp
+        """
+
+        # if _rhs_dict has not been set up, config the internal data
+        if self._rhs_dict is None:
+            self._config_internal_data()
+
+        channels = dict(self.hamiltonian._channels)
+
+        # Init register
+        register = np.ones(self.n_registers, dtype=np.uint8)
+
+        ode_rhs_obj = get_ode_rhs_functor(self._rhs_dict, exp, self.hamiltonian._system, channels, register)
+
+        def rhs(t, y):
+            return ode_rhs_obj(t, y)
+
+        return rhs

@@ -76,6 +76,7 @@ def pulse_controller(qobj, system_model, backend_options):
     pulse_de_model.variables = ham_model._variables
     pulse_de_model.channels = ham_model._channels
     pulse_de_model.h_diag = ham_model._h_diag
+    system_model.h_diag = ham_model._h_diag
     dim_qub = ham_model._subsystem_dims
     dim_osc = {}
     # convert estates into a Qutip qobj
@@ -98,6 +99,7 @@ def pulse_controller(qobj, system_model, backend_options):
         noise = NoiseParser(noise_dict=noise_model, dim_osc=dim_osc, dim_qub=dim_qub)
         noise.parse()
 
+        system_model.noise = noise.compiled
         pulse_de_model.noise = noise.compiled
         if any(pulse_de_model.noise):
             pulse_sim_desc.can_sample = False
@@ -106,7 +108,7 @@ def pulse_controller(qobj, system_model, backend_options):
     # ### Parse qobj_config settings
     # ###############################
     digested_qobj = digest_pulse_qobj(qobj,
-                                      pulse_de_model.channels,
+                                      ham_model._channels,
                                       system_model.dt,
                                       qubit_list,
                                       backend_options)
@@ -123,6 +125,10 @@ def pulse_controller(qobj, system_model, backend_options):
     pulse_de_model.pulse_array = digested_qobj.pulse_array
     pulse_de_model.pulse_indices = digested_qobj.pulse_indices
     pulse_de_model.pulse_to_int = digested_qobj.pulse_to_int
+    system_model.n_registers = digested_qobj.n_registers
+    system_model.pulse_array = digested_qobj.pulse_array
+    system_model.pulse_indices = digested_qobj.pulse_indices
+    system_model.pulse_to_int = digested_qobj.pulse_to_int
 
     pulse_sim_desc.experiments = digested_qobj.experiments
 
@@ -140,6 +146,7 @@ def pulse_controller(qobj, system_model, backend_options):
              'so it is beign automatically determined from the drift Hamiltonian.')
 
     pulse_de_model.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
+    system_model.freqs = pulse_de_model.freqs
 
     # ###############################
     # ### Parse backend_options
@@ -161,12 +168,12 @@ def pulse_controller(qobj, system_model, backend_options):
     # Set the ODE solver max step to be the half the
     # width of the smallest pulse
     min_width = np.iinfo(np.int32).max
-    for key, val in pulse_de_model.pulse_to_int.items():
+    for key, val in system_model.pulse_to_int.items():
         if key != 'pv':
-            stop = pulse_de_model.pulse_indices[val + 1]
-            start = pulse_de_model.pulse_indices[val]
+            stop = system_model.pulse_indices[val + 1]
+            start = system_model.pulse_indices[val]
             min_width = min(min_width, stop - start)
-    solver_options.de_options.max_step = min_width / 2 * pulse_de_model.dt
+    solver_options.de_options.max_step = min_width / 2 * system_model.dt
 
     # ########################################
     # Determination of measurement operators.
@@ -199,7 +206,7 @@ def pulse_controller(qobj, system_model, backend_options):
 
     run_experiments = (run_unitary_experiments if pulse_sim_desc.can_sample
                        else run_monte_carlo_experiments)
-    exp_results, exp_times = run_experiments(pulse_sim_desc, pulse_de_model, solver_options)
+    exp_results, exp_times = run_experiments(pulse_sim_desc, system_model, solver_options)
 
     return format_exp_results(exp_results, exp_times, pulse_sim_desc)
 
@@ -345,10 +352,6 @@ class PulseInternalDEModel:
         self.n_ops_ind = None
         self.n_ops_ptr = None
 
-        self.h_ops_data = None
-        self.h_ops_ind = None
-        self.h_ops_ptr = None
-
         self._rhs_dict = None
 
     def _config_internal_data(self):
@@ -396,9 +399,9 @@ class PulseInternalDEModel:
             H = H + [H_noise]
 
         # construct data sets
-        self.h_ops_data = [-1.0j * hpart.data.data for hpart in H]
-        self.h_ops_ind = [hpart.data.indices for hpart in H]
-        self.h_ops_ptr = [hpart.data.indptr for hpart in H]
+        h_ops_data = [-1.0j * hpart.data.data for hpart in H]
+        h_ops_ind = [hpart.data.indices for hpart in H]
+        h_ops_ptr = [hpart.data.indptr for hpart in H]
 
         self._rhs_dict = {'freqs': list(self.freqs.values()),
                           'pulse_array': self.pulse_array,
@@ -406,9 +409,9 @@ class PulseInternalDEModel:
                           'vars': vars,
                           'vars_names': vars_names,
                           'num_h_terms': num_h_terms,
-                          'h_ops_data': self.h_ops_data,
-                          'h_ops_ind': self.h_ops_ind,
-                          'h_ops_ptr': self.h_ops_ptr,
+                          'h_ops_data': h_ops_data,
+                          'h_ops_ind': h_ops_ind,
+                          'h_ops_ptr': h_ops_ptr,
                           'h_diag_elems': self.h_diag}
 
     def init_rhs(self, exp):
