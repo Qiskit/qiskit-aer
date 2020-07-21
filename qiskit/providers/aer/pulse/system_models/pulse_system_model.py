@@ -64,7 +64,8 @@ class PulseSystemModel():
                  u_channel_lo=None,
                  control_channel_labels=None,
                  subsystem_list=None,
-                 dt=None):
+                 dt=None,
+                 noise_dict=None):
         """Initialize a PulseSystemModel.
 
         Args:
@@ -78,6 +79,7 @@ class PulseSystemModel():
                                            any type.
             subsystem_list (list): list of valid qubit indicies for the model.
             dt (float): pixel size for pulse Instructions.
+            noise_dict (dict): dictionary specifying noise model
         Raises:
             AerError: if hamiltonian is not None or a HamiltonianModel
         """
@@ -94,6 +96,8 @@ class PulseSystemModel():
         self.control_channel_labels = control_channel_labels or []
         self.subsystem_list = subsystem_list
         self.dt = dt
+
+        self.add_noise_from_dict(noise_dict)
 
         self._noise = None
         self._rhs_dict = None

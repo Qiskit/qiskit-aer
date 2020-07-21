@@ -288,6 +288,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # [1., 0.] will be 50/50 [1., 0.] or [0., 1.]
         gamma = -np.log(0.5) / total_samples
         noise_model = {"qubit": {"0": {"Sp": gamma}}}
+        system_model.add_noise_from_dict(noise_model)
 
         # create a schedule with 0 amplitude
         schedule = self._1Q_constant_sched(total_samples, amp=0.0)
@@ -304,9 +305,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # set seed for simulation, and set noise
         y0 = np.array([1., 0.])
-        backend_options = {'seed': 9000,
-                           'initial_state' : y0,
-                           'noise_model': noise_model}
+        backend_options = {'seed': 9000, 'initial_state' : y0}
 
         # run simulation
         result = self.backend_sim.run(qobj, system_model=system_model,
@@ -335,6 +334,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # [1., 0.] will be 75/25 [1., 0.] or [0., 1.]
         gamma = - 0.5 * np.log(0.5) / total_samples
         noise_model = {"qubit": {"0": {"X": gamma}}}
+        system_model.add_noise_from_dict(noise_model)
 
         # create a schedule with 0 amplitude
         schedule = self._1Q_constant_sched(total_samples, amp=0.0)
@@ -351,9 +351,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # set seed for simulation, and set noise
         y0 = np.array([1., 0.])
-        backend_options = {'seed': 9000,
-                           'initial_state' : y0,
-                           'noise_model': noise_model}
+        backend_options = {'seed': 9000, 'initial_state' : y0}
 
         # run simulation
         result = self.backend_sim.run(qobj, system_model=system_model,
@@ -384,6 +382,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # [np.sqrt(4/5), np.sqrt(1/5)] will have a 60% chance of being measured in the 0 state
         gamma = - 0.5 * np.log(1. / 3) / total_samples
         noise_model = {"qubit": {"0": {"X": gamma}}}
+        system_model.add_noise_from_dict(noise_model)
 
         # create a schedule with 0 amplitude
         schedule = self._1Q_constant_sched(total_samples, amp=0.0)
@@ -400,9 +399,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         # set seed for simulation, and set noise
         y0 = np.array([np.sqrt(4./5.), 1j * np.sqrt(1./5.)])
-        backend_options = {'seed': 9000,
-                           'initial_state' : y0,
-                           'noise_model': noise_model}
+        backend_options = {'seed': 9000, 'initial_state' : y0}
 
         # run simulation
         result = self.backend_sim.run(qobj, system_model=system_model,
@@ -428,6 +425,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         total_samples = 100
 
         system_model = self._system_model_1Q(omega_0, r)
+        system_model.add_noise_from_dict({"qubit": {"0": {"Sm": 1.}}})
 
         # set up constant pulse for doing a pi pulse
         schedule = self._1Q_constant_sched(total_samples)
@@ -444,7 +442,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # set seed for simulation, and set noise
         y0 = np.array([1., 0.])
         backend_options = {'seed' : 9000, 'initial_state' : y0}
-        backend_options['noise_model'] = {"qubit": {"0": {"Sm": 1.}}}
 
         # run simulation
         result = self.backend_sim.run(qobj, system_model=system_model,
@@ -465,7 +462,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         freq = 1.
         anharm = -0.33
-
         # Test pi pulse
         r = 0.5 / total_samples
 
@@ -473,12 +469,14 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         shots = 256
 
+        system_model = self._system_model_3d_oscillator(freq, anharm, r)
+
         noise_model = {"qubit": {"0": {"Sm": 1/T1}}}
+        system_model.add_noise_from_dict(noise_model)
 
         # set amplitude to be some complex number
         amp = np.exp(1.231 * 1j)
 
-        system_model = self._system_model_3d_oscillator(freq, anharm, r)
         schedule = self._1Q_constant_sched(total_samples, amp=amp)
 
         qobj = assemble([schedule],
@@ -490,7 +488,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         shots=shots)
 
         y0 = np.array([0., 0., 1.])
-        backend_options = {'seed': 1231, 'initial_state': y0, 'noise_model': noise_model}
+        backend_options = {'seed': 1231, 'initial_state': y0}
         result = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts = result.get_counts()
 
