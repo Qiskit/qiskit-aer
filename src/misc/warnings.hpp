@@ -30,10 +30,10 @@
   DISABLE_WARNING(-Wall)                                                       \
   DISABLE_WARNING(-Wextra)                                                     \
   DISABLE_WARNING(-Wshadow)                                                    \
-  DISABLE_WARNING(-Wfloat - equal)                                             \
+  DISABLE_WARNING(-Wfloat-equal)                                             \
   DISABLE_WARNING(-Wundef)                                                     \
   DISABLE_WARNING(-Wpedantic)                                                  \
-  DISABLE_WARNING(-Wsign - compare)
+  DISABLE_WARNING(-Wsign-compare)
 
 #define DISABLE_WARNING_POP DO_PRAGMA(GCC diagnostic pop)
 
