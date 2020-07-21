@@ -27,7 +27,8 @@ def duffing_system_model(dim_oscillators,
                          anharm_freqs,
                          drive_strengths,
                          coupling_dict,
-                         dt):
+                         dt,
+                         T1_list=None):
     r"""Returns a :class:`PulseSystemModel` representing a physical model for a
     collection of Duffing oscillators.
 
@@ -129,7 +130,7 @@ def duffing_system_model(dim_oscillators,
     # construct coupling graph, and raise warning if coupling_edges contains duplicate edges
     coupling_graph = CouplingGraph(coupling_edges)
     if len(coupling_graph.graph) < len(coupling_edges):
-        warn('Warning: The coupling_dict contains diplicate edges, and the second appearance of \
+        warn('Warning: The coupling_dict contains duplicate edges, and the second appearance of \
               the same edge will be ignored.')
 
     # construct the HamiltonianModel
@@ -170,15 +171,35 @@ def duffing_system_model(dim_oscillators,
     # construct the u_channel_lo list
     u_channel_lo = _cr_lo_list(cr_idx_dict)
 
+    # construct noise_dict
+    noise_dict = _duffing_noise_dict(T1_list)
+
     # construct and return the PulseSystemModel
     return PulseSystemModel(hamiltonian=hamiltonian_model,
                             u_channel_lo=u_channel_lo,
                             control_channel_labels=coupling_graph.sorted_two_way_graph,
                             subsystem_list=oscillators,
-                            dt=dt)
+                            dt=dt,
+                            noise_dict=noise_dict)
 
 
 # Helper functions for creating pieces necessary to construct oscillator system models
+
+
+def _duffing_noise_dict(T1_list=None):
+    """Creates noise dictionary for given noise parameters.
+
+    Args:
+        T1_list (list): list of T1 times
+    """
+
+    qubit_dict = {}
+
+    if T1_list is not None:
+        for idx, T1 in enumerate(T1_list):
+            qubit_dict[str(idx)] = {"Sm": 1/T1}
+
+    return {"qubit": qubit_dict}
 
 
 def _duffing_hamiltonian_dict(oscillators,

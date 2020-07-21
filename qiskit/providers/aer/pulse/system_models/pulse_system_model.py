@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=eval-used, exec-used, invalid-name, no-name-in-module
+# pylint: disable=eval-used, exec-used, invalid-name, no-name-in-module, import-error
 
 "System Model class for system specification for the PulseSimulator"
 
@@ -97,6 +97,8 @@ class PulseSystemModel():
         self.subsystem_list = subsystem_list
         self.dt = dt
 
+        # set up noise, if any
+        self._noise = None
         self.add_noise_from_dict(noise_dict)
 
         # initialize internal variables
@@ -106,7 +108,6 @@ class PulseSystemModel():
         self._pulse_indices = None
         self._pulse_to_int = None
 
-        self._noise = None
         self._rhs_dict = None
         self._c_num = None
         self._c_ops_data = None
@@ -261,8 +262,11 @@ class PulseSystemModel():
 
             noise = NoiseParser(noise_dict=noise_dict, dim_osc={}, dim_qub=dim_qub)
             noise.parse()
+            compiled_noise = noise.compiled
 
-            self._noise = noise.compiled
+            # only add noise if the compiled noise is non-empty
+            if any(compiled_noise):
+                self._noise = compiled_noise
 
 
     def _config_internal_data(self):
