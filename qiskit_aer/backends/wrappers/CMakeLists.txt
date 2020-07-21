@@ -9,7 +9,7 @@ string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
     # We build SIMD file separately, because they will be reached only if the
     # machine running the code has SIMD support
-    set(SIMD_SOURCE_FILE "../../../../../src/simulators/statevector/qv_avx2.cpp")
+    set(SIMD_SOURCE_FILE "../../../src/simulators/statevector/qv_avx2.cpp")
     if(APPLE OR UNIX)
         set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
     elseif(MSVC)
