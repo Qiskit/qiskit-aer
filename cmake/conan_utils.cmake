@@ -26,7 +26,7 @@ macro(setup_conan)
         set(CONAN_OPTIONS ${CONAN_OPTIONS} "thrust:device_system=${THRUST_BACKEND}")
     endif()
 
-    if(NOT BLAS_LIB_PATH)
+    if(NOT AER_BLAS_LIB_PATH)
         set(REQUIREMENTS ${REQUIREMENTS} openblas/0.3.7)
     endif()
 
