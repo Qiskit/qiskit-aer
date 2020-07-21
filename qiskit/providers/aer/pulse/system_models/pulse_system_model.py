@@ -11,14 +11,14 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=eval-used, exec-used, invalid-name
+# pylint: disable=eval-used, exec-used, invalid-name, no-name-in-module
 
 "System Model class for system specification for the PulseSimulator"
 
-import numpy as np
 from copy import deepcopy
 from warnings import warn
 from collections import OrderedDict
+import numpy as np
 from qiskit.providers import BaseBackend
 from qiskit.providers.aer.aererror import AerError
 from .hamiltonian_model import HamiltonianModel
@@ -99,8 +99,22 @@ class PulseSystemModel():
 
         self.add_noise_from_dict(noise_dict)
 
+        # initialize internal variables
+        self._n_registers = None
+        self._freqs = None
+        self._pulse_array = None
+        self._pulse_indices = None
+        self._pulse_to_int = None
+
         self._noise = None
         self._rhs_dict = None
+        self._c_num = None
+        self._c_ops_data = None
+        self._c_ops_ind = None
+        self._c_ops_ptr = None
+        self._n_ops_data = None
+        self._n_ops_ind = None
+        self._n_ops_ptr = None
 
     @classmethod
     def from_backend(cls, backend, subsystem_list=None):
@@ -237,6 +251,11 @@ class PulseSystemModel():
         return freqs
 
     def add_noise_from_dict(self, noise_dict):
+        """Add a noise model to in dict format
+
+        Args:
+            noise_dict (dict): dictionary representation of noise
+        """
         if noise_dict:
             dim_qub = self.hamiltonian._subsystem_dims
 
@@ -251,9 +270,9 @@ class PulseSystemModel():
         """
         ham_model = self.hamiltonian
 
-        vars = list(ham_model._variables.values())
+        var = list(ham_model._variables.values())
         # Need this info for evaluating the hamiltonian vars in the c++ rhs
-        vars_names = list(ham_model._variables.keys())
+        var_names = list(ham_model._variables.keys())
 
         num_h_terms = len(ham_model._system)
         H = [hpart[0] for hpart in ham_model._system]
@@ -299,8 +318,8 @@ class PulseSystemModel():
         self._rhs_dict = {'freqs': list(self._freqs.values()),
                           'pulse_array': self._pulse_array,
                           'pulse_indices': self._pulse_indices,
-                          'vars': vars,
-                          'vars_names': vars_names,
+                          'vars': var,
+                          'vars_names': var_names,
                           'num_h_terms': num_h_terms,
                           'h_ops_data': h_ops_data,
                           'h_ops_ind': h_ops_ind,
@@ -321,7 +340,11 @@ class PulseSystemModel():
         # Init register
         register = np.ones(self._n_registers, dtype=np.uint8)
 
-        ode_rhs_obj = get_ode_rhs_functor(self._rhs_dict, exp, self.hamiltonian._system, channels, register)
+        ode_rhs_obj = get_ode_rhs_functor(self._rhs_dict,
+                                          exp,
+                                          self.hamiltonian._system,
+                                          channels,
+                                          register)
 
         def rhs(t, y):
             return ode_rhs_obj(t, y)
@@ -329,4 +352,9 @@ class PulseSystemModel():
         return rhs
 
     def copy(self):
+        """Get a deep copy.
+
+        Returns:
+            PulseSystemModel: A deep copy of self
+        """
         return deepcopy(self)
