@@ -35,6 +35,7 @@
 namespace QV {
 
 template <typename T> using cvector_t = std::vector<std::complex<T>>;
+template <typename T> using cdict_t = std::map<std::string, std::complex<T>>;
 
 //============================================================================
 // QubitVector class
@@ -101,7 +102,7 @@ public:
   cvector_t<data_t> vector() const;
 
   // Returns a copy of the underlying data_t data as a complex ket dictionary
-  std::map<std::string, std::complex<data_t> > vector_ket(double epsilon = 0) const;
+  cdict_t<data_t> vector_ket(double epsilon = 0) const;
 
   // Return JSON serialization of QubitVector;
   json_t json() const;
@@ -171,7 +172,7 @@ public:
   // Apply a N-qubit diagonal matrix to the state vector.
   // The matrix is input as vector of the matrix diagonal.
   void apply_diagonal_matrix(const reg_t &qubits, const cvector_t<double> &mat);
-  
+
   // Swap pairs of indicies in the underlying vector
   void apply_permutation_matrix(const reg_t &qubits,
                                 const std::vector<std::pair<uint_t, uint_t>> &pairs);
@@ -191,7 +192,7 @@ public:
   // If N=2 this implements an optimized CY gate
   // If N=3 this implements an optimized CCY gate
   void apply_mcy(const reg_t &qubits);
-  
+
   // Apply a general multi-controlled single-qubit phase gate
   // with diagonal [1, ..., 1, phase]
   // If N=1 this implements an optimized single-qubit phase gate
@@ -236,7 +237,7 @@ public:
   //-----------------------------------------------------------------------
   // Norms
   //-----------------------------------------------------------------------
-  
+
   // Returns the norm of the current vector
   double norm() const;
 
@@ -326,7 +327,7 @@ protected:
 
   //-----------------------------------------------------------------------
   // Config settings
-  //----------------------------------------------------------------------- 
+  //-----------------------------------------------------------------------
   uint_t omp_threads_ = 1;     // Disable multithreading by default
   uint_t omp_threshold_ = 14;  // Qubit threshold for multithreading when enabled
   int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
@@ -595,6 +596,11 @@ std::complex<data_t> QubitVector<data_t>::operator[](uint_t element) const {
 }
 
 template <typename data_t>
+cdict_t<data_t> QubitVector<data_t>::vector_ket(double epsilon) const{
+    return AER::Utils::vec2ket(data_, size(), epsilon, 16);
+}
+
+template <typename data_t>
 cvector_t<data_t> QubitVector<data_t>::vector() const {
   cvector_t<data_t> ret(data_size_, 0.);
   const int_t END = data_size_;
@@ -605,10 +611,6 @@ cvector_t<data_t> QubitVector<data_t>::vector() const {
   return ret;
 }
 
-template <typename data_t>
-std::map<std::string, std::complex<data_t> > QubitVector<data_t>::vector_ket(double epsilon) const {
-    return AER::Utils::vec2ket(data_, size(), epsilon, 16);
-}
 
 //------------------------------------------------------------------------------
 // State initialize component
