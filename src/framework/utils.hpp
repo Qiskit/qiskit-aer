@@ -381,6 +381,9 @@ void combine(std::vector<T> &lhs, const std::vector<T> &rhs);
 template <typename T>
 std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint_t base = 2);
 
+template <typename T>
+std::map<std::string, T> vec2ket(const T* vec, uint_t dim, double epsilon, uint_t base = 2);
+
 //------------------------------------------------------------------------------
 // Bit Conversions
 //------------------------------------------------------------------------------
@@ -1359,6 +1362,33 @@ std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint
   return ketmap;
 }
 
+template <typename T>
+std::map<std::string, T> vec2ket(const T* vec, uint_t dim, double epsilon, uint_t base){
+  bool hex_output = false;
+  if (base == 16) {
+    hex_output = true;
+    base = 2; // If hexadecimal strings we convert to bin first
+  }
+
+  double n = std::log(dim) / std::log(base);
+  uint_t nint = std::trunc(n);
+  if (std::abs(nint - n) > 1e-5) {
+    std::stringstream ss;
+    ss << "vec2ket (vector dimension " << dim << " is not of size " << base << "^n)";
+    throw std::invalid_argument(ss.str());
+  }
+
+  std::map<std::string, T> ketmap;
+  for (size_t k = 0; k < dim; ++k) {
+    T val = chop(vec[k], epsilon);
+    if (std::abs(val) > epsilon) {
+      std::string key = (hex_output) ? Utils::int2hex(k)
+                                     : Utils::int2string(k, base, nint);
+      ketmap.insert({key, val});
+    }
+  }
+  return ketmap;
+}
 
 //==============================================================================
 // Implementations: Bit conversions

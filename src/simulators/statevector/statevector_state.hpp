@@ -500,7 +500,7 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
       data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.vector());
       break;
     case Snapshots::statevector_ket:
-      data.add_pershot_snapshot("statevector", op.string_params[0], Utils::vec2ket(BaseState::qreg_.vector(), json_chop_threshold_, 16));
+      data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.vector_ket(json_chop_threshold_));
       break;
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);

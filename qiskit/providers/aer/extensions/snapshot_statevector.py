@@ -70,7 +70,7 @@ def snapshot_statevector(self, label, dict_form=False):
     snapshot_register = Snapshot.define_snapshot_register(self, label)
 
     return self.append(
-        SnapshotStatevector(label, num_qubits=len(snapshot_register)),
+        SnapshotStatevector(label, num_qubits=len(snapshot_register), dict_form=dict_form),
         snapshot_register)
 
 
