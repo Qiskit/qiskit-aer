@@ -355,6 +355,7 @@ double &chop_inplace(double &val, double epsilon);
 std::complex<double> &chop_inplace(std::complex<double> &val, double epsilon);
 
 double chop(double val, double epsilon);
+float chop(float val, double epsilon);
 
 // As above for complex first arguments
 template <typename T>
