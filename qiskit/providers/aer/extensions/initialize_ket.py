@@ -44,7 +44,7 @@ class InitializeKet(Instruction):
     def __init__(self, params, num_qubits):
         """Create new initialize composite.
 
-        params (list): vector of complex amplitudes to initialize to
+        params (dict): dictionary of complex amplitudes to initialize to
         """
 
         # Check if probabilities (amplitudes squared) sum to 1
