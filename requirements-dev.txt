@@ -4,7 +4,7 @@ conan>=1.22.2
 scikit-build
 cython
 asv
-cvxpy>=1.0.0,!=1.0.26,<1.1.0
+cvxpy>=1.0.0
 pylint
 pycodestyle
 Sphinx>=1.8.3
