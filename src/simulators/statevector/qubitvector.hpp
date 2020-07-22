@@ -622,7 +622,6 @@ cdict_t<data_t> QubitVector<data_t>::vector_ket(double epsilon) const{
     return AER::Utils::vec2ket(data_, size(), epsilon, 16);
 }
 
-
 //------------------------------------------------------------------------------
 // State initialize component
 //------------------------------------------------------------------------------
