@@ -63,12 +63,48 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
 
     map_kwargs = {'num_processes': solver_options.num_cpus}
 
-    exp_results = []
-    exp_times = []
-
     # needs to be configured ahead of time
     pulse_de_model._config_internal_data()
 
+    # setup seeds array
+    shots = pulse_sim_desc.shots
+    num_exp = len(pulse_sim_desc.experiments)
+    seeds = np.empty(shots * num_exp)
+    for exp_idx, exp in enumerate(pulse_sim_desc.experiments):
+        rng = np.random.RandomState(exp['seed'])
+        seeds[exp_idx * shots: (exp_idx + 1) * shots] = rng.randint(np.iinfo(np.int32).max - 1,
+                                                                    size=shots)
+    exp_indices = np.repeat(range(num_exp), shots)
+
+    # not sure if this is necessary
+    exp_idx_seed_array = np.array(list(zip(exp_indices, seeds)), dtype=int)
+
+    sim_results = parallel_map(monte_carlo_evolution,
+                               exp_idx_seed_array,
+                               task_args=(y0,
+                                          pulse_sim_desc,
+                                          pulse_de_model,
+                                          solver_options, ),
+                                **map_kwargs)
+
+    # compile results
+    exp_results = []
+    exp_times = []
+
+    for exp_idx in range(num_exp):
+        exp_res = sim_results[exp_idx * shots: (exp_idx + 1) * shots]
+        exp_res2 = []
+        for exp_shot in exp_res:
+            exp_res2.append(exp_shot[0].tolist())
+
+
+        exp_times.append(0)
+        exp_results.append(np.array(exp_res2))
+
+
+    return exp_results, exp_times
+
+    """
     for exp in pulse_sim_desc.experiments:
         start = time.time()
         rng = np.random.RandomState(exp['seed'])
@@ -93,10 +129,9 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
         exp_results.append(np.array(exp_res2))
 
     return exp_results, exp_times
+    """
 
-
-def monte_carlo_evolution(seed,
-                          exp,
+def monte_carlo_evolution(exp_idx_seed,
                           y0,
                           pulse_sim_desc,
                           pulse_de_model,
@@ -117,6 +152,9 @@ def monte_carlo_evolution(seed,
     Raises:
         Exception: if ODE solving has errors
     """
+
+    exp = pulse_sim_desc.experiments[int(exp_idx_seed[0])]
+    seed = exp_idx_seed[1]
 
     solver_options = PulseSimOptions() if solver_options is None else solver_options
 
