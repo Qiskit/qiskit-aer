@@ -25,7 +25,10 @@
 #include <iostream>
 #include <type_traits>
 
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #include <nlohmann/json.hpp>
+DISABLE_WARNING_POP
 #include "framework/matrix.hpp"
 
 namespace nl = nlohmann;

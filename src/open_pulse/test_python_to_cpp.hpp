@@ -15,10 +15,12 @@
 #ifndef _TEST_HELPERS_HPP
 #define _TEST_HELPERS_HPP
 
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #include <numpy/arrayobject.h>
-
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+DISABLE_WARNING_POP
 
 namespace py = pybind11;
 
