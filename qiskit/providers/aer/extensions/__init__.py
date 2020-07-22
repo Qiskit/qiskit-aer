@@ -38,7 +38,6 @@ an operator or the probability of measurement outcomes.
 
 from .snapshot import *
 from .snapshot_statevector import *
-from .snapshot_statevector_ket import *
 from .snapshot_stabilizer import *
 from .snapshot_density_matrix import *
 from .snapshot_probabilities import *

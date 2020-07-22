@@ -21,12 +21,14 @@ from qiskit.providers.aer.extensions import Snapshot
 class SnapshotStatevector(Snapshot):
     """ Snapshot instruction for statevector snapshot type """
 
-    def __init__(self, label, num_qubits=0):
+    def __init__(self, label, num_qubits=0, dict_form=False):
         """Create a statevector state snapshot instruction.
 
         Args:
             label (str): the snapshot label.
             num_qubits (int): the instruction barrier size [Default: 0].
+            dict_form (bool): should the snapshot statevector
+                              be returned in ket dictionary form
 
         Raises:
             ExtensionError: if snapshot is invalid.
@@ -37,14 +39,19 @@ class SnapshotStatevector(Snapshot):
             instruction as a barrier and should be set to the number of
             qubits in the circuit.
         """
-        super().__init__(label, snapshot_type='statevector', num_qubits=num_qubits)
+        snapshot_type = 'statevector'
+        if dict_form:
+            snapshot_type = 'statevector_ket'
+        super().__init__(label, snapshot_type=snapshot_type, num_qubits=num_qubits)
 
 
-def snapshot_statevector(self, label):
+def snapshot_statevector(self, label, dict_form=False):
     """Take a statevector snapshot of the simulator state.
 
     Args:
         label (str): a snapshot label to report the result.
+        dict_form (bool): should the snapshot statevector
+                          be returned in ket dictionary form
 
     Returns:
         QuantumCircuit: with attached instruction.
