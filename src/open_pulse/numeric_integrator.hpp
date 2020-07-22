@@ -19,8 +19,11 @@
 #include <vector>
 #include <complex>
 #include <map>
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+DISABLE_WARNING_POP
 
 #include "types.hpp"
 

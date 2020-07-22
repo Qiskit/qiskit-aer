@@ -15,7 +15,10 @@
 #include "numeric_integrator.hpp"
 #include "pulse_utils.hpp"
 
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #include <pybind11/functional.h>
+DISABLE_WARNING_POP
 
 RhsFunctor get_ode_rhs_functor(py::object the_global_data, py::object the_exp,
                                py::object the_system, py::object the_channels, py::object the_reg) {

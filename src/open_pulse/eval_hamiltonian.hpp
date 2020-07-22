@@ -19,8 +19,11 @@
 #include <vector>
 #include <complex>
 #include <string>
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #include <numpy/arrayobject.h>
 #include <muparserx/mpParser.h>
+DISABLE_WARNING_POP
 
 struct ParserValues {
     ParserValues(std::unique_ptr<mup::ParserX> parser, const std::string& expr):
