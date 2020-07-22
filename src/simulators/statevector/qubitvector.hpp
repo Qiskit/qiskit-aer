@@ -35,7 +35,6 @@
 namespace QV {
 
 template <typename T> using cvector_t = std::vector<std::complex<T>>;
-template <typename T> using cdict_t = std::map<std::string, std::complex<T>>;
 
 //============================================================================
 // QubitVector class
@@ -102,7 +101,7 @@ public:
   cvector_t<data_t> vector() const;
 
   // Returns a copy of the underlying data_t data as a complex ket dictionary
-  cdict_t<data_t> vector_ket(double epsilon = 0) const;
+  std::map<std::string, std::complex<data_t> > vector_ket(double epsilon = 0) const;
 
   // Return JSON serialization of QubitVector;
   json_t json() const;
@@ -607,7 +606,7 @@ cvector_t<data_t> QubitVector<data_t>::vector() const {
 }
 
 template <typename data_t>
-cdict_t<data_t> QubitVector<data_t>::vector_ket(double epsilon) const{
+std::map<std::string, std::complex<data_t> > QubitVector<data_t>::vector_ket(double epsilon) const {
     return AER::Utils::vec2ket(data_, size(), epsilon, 16);
 }
 

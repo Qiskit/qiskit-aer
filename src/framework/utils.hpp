@@ -382,7 +382,7 @@ template <typename T>
 std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint_t base = 2);
 
 template <typename T>
-std::map<std::string, T> vec2ket(const T* vec, uint_t dim, double epsilon, uint_t base = 2);
+std::map<std::string, T> vec2ket(const T* const vec, uint_t dim, double epsilon, uint_t base = 2);
 
 //------------------------------------------------------------------------------
 // Bit Conversions
@@ -1363,7 +1363,7 @@ std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint
 }
 
 template <typename T>
-std::map<std::string, T> vec2ket(const T* vec, uint_t dim, double epsilon, uint_t base){
+std::map<std::string, T> vec2ket(const T* const vec, uint_t dim, double epsilon, uint_t base){
   bool hex_output = false;
   if (base == 16) {
     hex_output = true;
