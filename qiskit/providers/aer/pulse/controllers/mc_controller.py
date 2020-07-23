@@ -65,7 +65,7 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
 
     # needs to be configured ahead of time
     pulse_de_model._config_internal_data()
-
+    
     # setup seeds array
     shots = pulse_sim_desc.shots
     num_exp = len(pulse_sim_desc.experiments)
@@ -76,7 +76,7 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
                                                                     size=shots)
     exp_indices = np.repeat(range(num_exp), shots)
 
-    # not sure if this is necessary
+    # array of seeds for each simulation run, along with
     exp_idx_seed_array = np.array(list(zip(exp_indices, seeds)), dtype=int)
 
     sim_results = parallel_map(monte_carlo_evolution,
