@@ -1489,7 +1489,7 @@ cvector_t<data_t> QubitVectorThrust<data_t>::vector() const
 }
 
 template <typename data_t>
-cdict_t<data_t> vector_ket(double epsilon) const{
+cdict_t<data_t> QubitVectorThrust<data_t>::vector_ket(double epsilon) const{
     // non-optimized version; relies on creating a copy of the statevector first
     return AER::Utils::vec2ket(vector(), epsilon, 16);
 }
