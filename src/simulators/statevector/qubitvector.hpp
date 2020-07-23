@@ -687,7 +687,6 @@ void QubitVector<data_t, Derived>::free_mem(){
   }
 }
 
-
 template<typename data_t, typename Derived>
 void QubitVector<data_t, Derived>::free_checkpoint(){
   if (checkpoint_) {
