@@ -617,8 +617,8 @@ cvector_t<data_t> QubitVector<data_t, Derived>::vector() const {
   return ret;
 }
 
-template <typename data_t>
-cdict_t<data_t> QubitVector<data_t>::vector_ket(double epsilon) const{
+template <typename data_t, typename Derived>
+cdict_t<data_t> QubitVector<data_t, Derived>::vector_ket(double epsilon) const {
     return AER::Utils::vec2ket(data_, size(), epsilon, 16);
 }
 
