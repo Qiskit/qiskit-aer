@@ -89,6 +89,7 @@ using reg_t = std::vector<uint_t>;
 using indexes_t = std::unique_ptr<uint_t[]>;
 template <size_t N> using areg_t = std::array<uint_t, N>;
 template <typename T> using cvector_t = std::vector<std::complex<T>>;
+template <typename T> using cdict_t = std::map<std::string, std::complex<T>>;
 
 //==================================
 // parameters for gate kernels
@@ -888,6 +889,9 @@ public:
   // Returns a copy of the underlying data_t data as a complex vector
   cvector_t<data_t> vector() const;
 
+  // Returns a copy of the underlying data_t data as a complex ket dictionary
+  cdict_t<data_t> vector_ket(double epsilon = 0) const;
+
   // Return JSON serialization of QubitVectorThrust;
   json_t json() const;
 
@@ -1482,6 +1486,12 @@ cvector_t<data_t> QubitVectorThrust<data_t>::vector() const
   }
 
   return ret;
+}
+
+template <typename data_t>
+cdict_t<data_t> vector_ket(double epsilon) const{
+    // non-optimized version; relies on creating a copy of the statevector first
+    return AER::Utils::vec2ket(vector(), epsilon, 16);
 }
 
 //------------------------------------------------------------------------------
