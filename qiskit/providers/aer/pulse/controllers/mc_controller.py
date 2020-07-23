@@ -65,7 +65,7 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
 
     # needs to be configured ahead of time
     pulse_de_model._config_internal_data()
-    
+
     # setup seeds array
     shots = pulse_sim_desc.shots
     num_exp = len(pulse_sim_desc.experiments)
@@ -88,19 +88,24 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
                                 **map_kwargs)
 
     # compile results
+    # exp_results is a list of
     exp_results = []
     exp_times = []
 
     for exp_idx in range(num_exp):
+
         exp_res = sim_results[exp_idx * shots: (exp_idx + 1) * shots]
-        exp_res2 = []
-        for exp_shot in exp_res:
-            exp_res2.append(exp_shot[0].tolist())
+
+        # reformat the results to be a list, and add up the experiment times
+        exp_time = 0.
+        exp_res_reformat = []
+        for exp_shot_res, exp_shot_time in exp_res:
+            exp_res_reformat.append(exp_shot_res[0].tolist())
+            exp_time += exp_shot_time
 
 
-        exp_times.append(0)
-        exp_results.append(np.array(exp_res2))
-
+        exp_times.append(exp_time)
+        exp_results.append(np.array(exp_res_reformat))
 
     return exp_results, exp_times
 
@@ -152,6 +157,7 @@ def monte_carlo_evolution(exp_idx_seed,
     Raises:
         Exception: if ODE solving has errors
     """
+    start_time = time.time()
 
     exp = pulse_sim_desc.experiments[int(exp_idx_seed[0])]
     seed = exp_idx_seed[1]
@@ -262,4 +268,4 @@ def monte_carlo_evolution(exp_idx_seed,
                 write_shots_memory(memory, memory_slots, probs, rand_vals)
                 acq_idx += 1
 
-    return memory
+    return memory, (time.time() - start_time)
