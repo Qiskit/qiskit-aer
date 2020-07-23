@@ -382,11 +382,7 @@ template <typename T>
 std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint_t base = 2);
 
 template <typename T>
-<<<<<<< HEAD
 std::map<std::string, T> vec2ket(const T* const vec, uint_t dim, double epsilon, uint_t base = 2);
-=======
-std::map<std::string, T> vec2ket(const T* vec, uint_t dim, double epsilon, uint_t base = 2);
->>>>>>> vec2ket support directly for QubitVector
 
 //------------------------------------------------------------------------------
 // Bit Conversions
