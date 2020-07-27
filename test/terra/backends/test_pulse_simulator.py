@@ -32,6 +32,7 @@ from qiskit.providers.aer.pulse.de.DE_Methods import ScipyODE
 from qiskit.providers.aer.pulse.de.DE_Options import DE_Options
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
+from qiskit.providers.aer.pulse.system_models.duffing_model_generators import duffing_system_model
 from qiskit.providers.models.backendconfiguration import UchannelLO
 
 from .pulse_sim_independent import (simulate_1q_model,
@@ -471,7 +472,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         system_model = self._system_model_3d_oscillator(freq, anharm, r)
 
-        noise_model = {"qubit": {"0": {"Sm": 1/T1}}}
+        noise_model = {"qubit": {"0": {"Sm": 1/T1}} }
         system_model.add_noise_from_dict(noise_model)
 
         # set amplitude to be some complex number
@@ -514,6 +515,78 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertTrue(np.abs(counts[1]['0'] - expected_counts0) < 10)
         self.assertTrue(np.abs(counts[1]['1'] - expected_counts1) < 10)
 
+    def test_duffing_model_noise(self):
+        """Test T1 and T2 noise for duffing model"""
+
+        total_samples = 100
+
+        dim_oscillators = 3
+        freq = 1.
+        anharm = -0.33
+        r = 0.5 / total_samples
+
+        oscillator_freqs = [freq]
+        anharm_freqs = [anharm]
+        drive_strengths = [r]
+        coupling_dict = {}
+        dt = 1.
+
+        T1 = 100.
+        T2 = 50.
+        T1_list = [T1]
+        T2_list = [T2]
+
+        shots = 128
+
+        system_model = duffing_system_model(dim_oscillators,
+                                            oscillator_freqs,
+                                            anharm_freqs,
+                                            drive_strengths,
+                                            coupling_dict,
+                                            dt,
+                                            T1_list=T1_list,
+                                            T2_list=T2_list)
+
+        # set amplitude to be some complex number
+        amp = np.exp(1.231 * 1j)
+
+        schedule = self._1Q_constant_sched(total_samples, amp=amp)
+
+        qobj = assemble([schedule, schedule],
+                        backend=self.backend_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=[freq],
+                        shots=shots)
+
+        y0 = np.array([0., 0., 1.])
+        backend_options = {'seed': 1231, 'initial_state': y0}
+        result = self.backend_sim.run(qobj, system_model, backend_options).result()
+        counts = result.get_counts()
+
+        # set up and run independent simulation
+        samples = np.ones((total_samples, 1)) * amp
+        indep_yf = simulate_3d_oscillator_noisy_model(np.diag(y0),
+                                                      freq,
+                                                      anharm,
+                                                      r,
+                                                      np.array([freq]),
+                                                      samples,
+                                                      1.,
+                                                      T1,
+                                                      T2)
+        import pdb; pdb.set_trace()
+        expected_counts = np.real(np.diag(indep_yf)) * shots
+        # currently measurement in second excited state is binned with outcome 0
+        expected_counts0 = expected_counts[0] + expected_counts[2]
+        expected_counts1 = expected_counts[1]
+
+        # check counts against expected counts, with a tolerance for sampling error
+        self.assertTrue(np.abs(counts[0]['0'] - expected_counts0) < 10)
+        self.assertTrue(np.abs(counts[0]['1'] - expected_counts1) < 10)
+        self.assertTrue(np.abs(counts[1]['0'] - expected_counts0) < 10)
+        self.assertTrue(np.abs(counts[1]['1'] - expected_counts1) < 10)
 
     def test_unitary_parallel(self):
         """Test for parallel solving in unitary simulation. Uses same schedule as test_x_gate but

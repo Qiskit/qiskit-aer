@@ -163,10 +163,17 @@ def simulate_3d_oscillator_model(y0, osc_freq, anharm, r, drive_freqs, drive_sam
 
     return simulate_system(y0, drift, control_ops, drive_freqs, drive_samples, dt, drift_diag)
 
-def simulate_3d_oscillator_noisy_model(y0, osc_freq, anharm, r, drive_freqs, drive_samples, dt, T1=None):
+def simulate_3d_oscillator_noisy_model(y0, osc_freq, anharm, r, drive_freqs, drive_samples, dt, T1=None, T2=None):
 
-    if T1 is None:
+    if T1 is None and T2 is None:
         return simulate_3d_oscillator_model(y0, osc_freq, anharm, r, drive_freqs, drive_samples, dt)
+
+    # if either of T1 or T2 are unspecified set them to inf
+    if T1 is None:
+        T1 = np.inf
+
+    if T2 is None:
+        T2 = np.inf
 
     drift_diag = drift_diag = -1j * (2 * np.pi * osc_freq * np.array([0., 1., 2.]) +
                         np.pi * anharm * np.array([0., 0., 2.]))
@@ -181,15 +188,22 @@ def simulate_3d_oscillator_noisy_model(y0, osc_freq, anharm, r, drive_freqs, dri
     L_osc_X = np.kron(h_osc_X, np.eye(3)) - np.kron(np.eye(3), h_osc_X.transpose())
     L_control_ops = -1j * np.array([ 2 * np.pi * r * L_osc_X ])
 
-    L = np.sqrt(1./T1) * np.array([[0., 1., 0.],
+    L1 = np.sqrt(1./T1) * np.array([[0., 1., 0.],
                                    [0., 0., np.sqrt(2)],
                                    [0., 0., 0.]])
-    LdL = L.conj().transpose() @ L
+    L2 = np.sqrt(0.5 / T2 + 0.25 / T1) * np.array([[0., 0., 0.],
+                                                   [0., 1., 0.],
+                                                   [0., 0., 2.]])
+
+    L1dL1 = L1.conj().transpose() @ L1
+    L2dL2 = L2.conj().transpose() @ L2
 
     L_frame_diag = np.kron(drift_diag, np.ones(3)) - np.kron(np.ones(3), drift_diag)
 
-    L_drift = np.diag(L_frame_diag) + np.kron(L, L.conj()) - 0.5 * (np.kron(LdL, np.eye(3)) + np.kron(np.eye(3), LdL))
-    
+    L_drift = np.diag(L_frame_diag)
+    L_drift += np.kron(L1, L1.conj()) - 0.5 * (np.kron(L1dL1, np.eye(3)) + np.kron(np.eye(3), L1dL1))
+    L_drift += np.kron(L2, L2.conj()) - 0.5 * (np.kron(L2dL2, np.eye(3)) + np.kron(np.eye(3), L2dL2))
+
     return simulate_system(y0.flatten(),
                            L_drift,
                            L_control_ops,
