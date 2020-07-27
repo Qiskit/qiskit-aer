@@ -165,9 +165,6 @@ def simulate_3d_oscillator_model(y0, osc_freq, anharm, r, drive_freqs, drive_sam
 
 def simulate_3d_oscillator_noisy_model(y0, osc_freq, anharm, r, drive_freqs, drive_samples, dt, T1=None, T2=None):
 
-    if T1 is None and T2 is None:
-        return simulate_3d_oscillator_model(y0, osc_freq, anharm, r, drive_freqs, drive_samples, dt)
-
     # if either of T1 or T2 are unspecified set them to inf
     if T1 is None:
         T1 = np.inf

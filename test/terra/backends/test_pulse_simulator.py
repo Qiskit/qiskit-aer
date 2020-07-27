@@ -523,7 +523,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         dim_oscillators = 3
         freq = 1.
         anharm = -0.33
-        r = 0.5 / total_samples
+        r = 0.25 / total_samples
 
         oscillator_freqs = [freq]
         anharm_freqs = [anharm]
@@ -531,12 +531,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         coupling_dict = {}
         dt = 1.
 
-        T1 = 100.
-        T2 = 50.
+        T1 = 50.
+        T2 = 75.
         T1_list = [T1]
         T2_list = [T2]
 
-        shots = 128
+        shots = 256
 
         system_model = duffing_system_model(dim_oscillators,
                                             oscillator_freqs,
@@ -548,9 +548,14 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                             T2_list=T2_list)
 
         # set amplitude to be some complex number
-        amp = np.exp(1.231 * 1j)
+        amp = 1j# np.exp(1.231 * 1j)
 
-        schedule = self._1Q_constant_sched(total_samples, amp=amp)
+        #schedule = self._1Q_constant_sched(total_samples, amp=amp)
+        drive_pulse = SamplePulse(amp * np.ones(total_samples))
+        schedule = Schedule()
+        schedule += Delay(25, DriveChannel(0))
+        schedule += Play(drive_pulse, DriveChannel(0))
+        schedule |= Acquire(total_samples, AcquireChannel(0), MemorySlot(0)) << schedule.duration
 
         qobj = assemble([schedule, schedule],
                         backend=self.backend_sim,
@@ -560,14 +565,16 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         qubit_lo_freq=[freq],
                         shots=shots)
 
-        y0 = np.array([0., 0., 1.])
-        backend_options = {'seed': 1231, 'initial_state': y0}
+        y0 = np.array([np.sqrt(0.5), np.sqrt(0.5), 0.])
+        backend_options = {'initial_state': y0}#'seed': 9000, 'initial_state': y0}
         result = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts = result.get_counts()
 
         # set up and run independent simulation
-        samples = np.ones((total_samples, 1)) * amp
-        indep_yf = simulate_3d_oscillator_noisy_model(np.diag(y0),
+        samples = np.concatenate((np.zeros((25, 1)), np.ones((total_samples, 1)) * amp))
+        indep_yf = simulate_3d_oscillator_noisy_model(np.array([[0.5, 0.5, 0],
+                                                                [0.5, 0.5, 0],
+                                                                [0, 0, 0]]),
                                                       freq,
                                                       anharm,
                                                       r,
@@ -576,11 +583,12 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                                       1.,
                                                       T1,
                                                       T2)
-        import pdb; pdb.set_trace()
+
         expected_counts = np.real(np.diag(indep_yf)) * shots
         # currently measurement in second excited state is binned with outcome 0
         expected_counts0 = expected_counts[0] + expected_counts[2]
         expected_counts1 = expected_counts[1]
+        import pdb; pdb.set_trace()
 
         # check counts against expected counts, with a tolerance for sampling error
         self.assertTrue(np.abs(counts[0]['0'] - expected_counts0) < 10)
