@@ -467,7 +467,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         T1 = 100.
 
-        shots = 256
+        shots = 128
 
         system_model = self._system_model_3d_oscillator(freq, anharm, r)
 
@@ -479,7 +479,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         schedule = self._1Q_constant_sched(total_samples, amp=amp)
 
-        qobj = assemble([schedule],
+        qobj = assemble([schedule, schedule],
                         backend=self.backend_sim,
                         meas_level=2,
                         meas_return='single',
@@ -491,7 +491,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         backend_options = {'seed': 1231, 'initial_state': y0}
         result = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts = result.get_counts()
-
 
         # set up and run independent simulation
         samples = np.ones((total_samples, 1)) * amp
@@ -510,8 +509,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         expected_counts1 = expected_counts[1]
 
         # check counts against expected counts, with a tolerance for sampling error
-        self.assertTrue(np.abs(counts['0'] - expected_counts0) < 10)
-        self.assertTrue(np.abs(counts['1'] - expected_counts1) < 10)
+        self.assertTrue(np.abs(counts[0]['0'] - expected_counts0) < 10)
+        self.assertTrue(np.abs(counts[0]['1'] - expected_counts1) < 10)
+        self.assertTrue(np.abs(counts[1]['0'] - expected_counts0) < 10)
+        self.assertTrue(np.abs(counts[1]['1'] - expected_counts1) < 10)
 
 
     def test_unitary_parallel(self):

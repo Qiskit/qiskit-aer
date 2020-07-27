@@ -109,32 +109,6 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
 
     return exp_results, exp_times
 
-    """
-    for exp in pulse_sim_desc.experiments:
-        start = time.time()
-        rng = np.random.RandomState(exp['seed'])
-        seeds = rng.randint(np.iinfo(np.int32).max - 1, size=pulse_sim_desc.shots)
-        exp_res = parallel_map(monte_carlo_evolution,
-                               seeds,
-                               task_args=(exp,
-                                          y0,
-                                          pulse_sim_desc,
-                                          pulse_de_model,
-                                          solver_options, ),
-                               **map_kwargs)
-
-        # exp_results is a list for each shot
-        # so transform back to an array of shots
-        exp_res2 = []
-        for exp_shot in exp_res:
-            exp_res2.append(exp_shot[0].tolist())
-
-        end = time.time()
-        exp_times.append(end - start)
-        exp_results.append(np.array(exp_res2))
-
-    return exp_results, exp_times
-    """
 
 def monte_carlo_evolution(exp_idx_seed,
                           y0,

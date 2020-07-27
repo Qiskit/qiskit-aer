@@ -338,7 +338,7 @@ class NoiseParser:
             for opname, coef in config.items():
                 # TODO: support noise in multi-dimensional system
                 # TODO: support noise with math operation
-                if opname in ['X', 'Y', 'Z', 'Sp', 'Sm']:
+                if opname in ['X', 'Y', 'Z', 'Sp', 'Sm', 'O']:
                     opr = gen_oper(opname, int(index), self.dim_osc, self.dim_qub)
                 else:
                     raise Exception('Unsupported noise operator %s is given' % opname)
