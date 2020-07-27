@@ -14,7 +14,7 @@ Tests for pulse system generator functions
 """
 
 import unittest
-from numpy import array, array_equal, kron
+import numpy as np
 from test.terra.common import QiskitAerTestCase
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
@@ -27,6 +27,114 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
 
     def setUp(self):
         pass
+
+    def test_duffing_empty_noise_model(self):
+        """Ensure a noise model of None is returned if T1 and T2 are unspecified"""
+
+        dim_oscillators = 3
+        oscillator_freqs = [5.0, 5.1]
+        anharm_freqs = [-0.33, -0.33]
+        drive_strengths = [1.1, 1.2]
+        coupling_dict = {(0,1): 0.02}
+        dt = 1.3
+
+        system_model = model_gen.duffing_system_model(dim_oscillators,
+                                                      oscillator_freqs,
+                                                      anharm_freqs,
+                                                      drive_strengths,
+                                                      coupling_dict,
+                                                      dt)
+
+        self.assertTrue(system_model._noise is None)
+
+
+    def test_duffing_noise_model_T1_only(self):
+        """Test correct settup of duffing noise model"""
+
+        dim_oscillators = 3
+        oscillator_freqs = [5.0, 5.1]
+        anharm_freqs = [-0.33, -0.33]
+        drive_strengths = [1.1, 1.2]
+        coupling_dict = {(0,1): 0.02}
+        dt = 1.3
+
+        T1_list = [100., 101.]
+
+        system_model = model_gen.duffing_system_model(dim_oscillators,
+                                                      oscillator_freqs,
+                                                      anharm_freqs,
+                                                      drive_strengths,
+                                                      coupling_dict,
+                                                      dt,
+                                                      T1_list=T1_list)
+
+        expected_ops = [np.sqrt(1./ T1_list[0]) * self._operator_array_from_str(3, ['I', 'Sm']),
+                        np.sqrt(0.25 / T1_list[0]) * self._operator_array_from_str(3, ['I', 'O']),
+                        np.sqrt(1./ T1_list[1]) * self._operator_array_from_str(3, ['Sm', 'I']),
+                        np.sqrt(0.25 / T1_list[1]) * self._operator_array_from_str(3, ['O', 'I'])]
+
+        # verify all operators in expected order
+        for expected_op, noise_op in zip(expected_ops, system_model._noise):
+            self.assertTrue(np.array_equal(expected_op, noise_op.full()))
+
+    def test_duffing_noise_model_T2_only(self):
+        """Test correct settup of duffing noise model"""
+
+        dim_oscillators = 3
+        oscillator_freqs = [5.0, 5.1]
+        anharm_freqs = [-0.33, -0.33]
+        drive_strengths = [1.1, 1.2]
+        coupling_dict = {(0,1): 0.02}
+        dt = 1.3
+
+        T2_list = [99., 98.]
+
+        system_model = model_gen.duffing_system_model(dim_oscillators,
+                                                      oscillator_freqs,
+                                                      anharm_freqs,
+                                                      drive_strengths,
+                                                      coupling_dict,
+                                                      dt,
+                                                      T2_list=T2_list)
+
+        expected_ops = [np.sqrt(0.5 / T2_list[0]) * self._operator_array_from_str(3, ['I', 'O']),
+                        np.sqrt(0.5 / T2_list[1]) * self._operator_array_from_str(3, ['O', 'I'])]
+
+        # verify all operators in expected order
+        for expected_op, noise_op in zip(expected_ops, system_model._noise):
+            self.assertTrue(np.array_equal(expected_op, noise_op.full()))
+
+    def test_duffing_noise_model(self):
+        """Test correct settup of duffing noise model"""
+
+        dim_oscillators = 3
+        oscillator_freqs = [5.0, 5.1]
+        anharm_freqs = [-0.33, -0.33]
+        drive_strengths = [1.1, 1.2]
+        coupling_dict = {(0,1): 0.02}
+        dt = 1.3
+
+        T1_list = [100., 101.]
+        T2_list = [99., 98.]
+
+        system_model = model_gen.duffing_system_model(dim_oscillators,
+                                                      oscillator_freqs,
+                                                      anharm_freqs,
+                                                      drive_strengths,
+                                                      coupling_dict,
+                                                      dt,
+                                                      T1_list=T1_list,
+                                                      T2_list=T2_list)
+
+        expected_ops = [np.sqrt(1./ T1_list[0]) * self._operator_array_from_str(3, ['I', 'Sm']),
+                        np.sqrt(0.5 / T2_list[0] + 0.25 / T1_list[0]) * self._operator_array_from_str(3, ['I', 'O']),
+                        np.sqrt(1./ T1_list[1]) * self._operator_array_from_str(3, ['Sm', 'I']),
+                        np.sqrt(0.5 / T2_list[1] + 0.25 / T1_list[1]) * self._operator_array_from_str(3, ['O', 'I'])]
+
+        # verify all operators in expected order
+        for expected_op, noise_op in zip(expected_ops, system_model._noise):
+            self.assertTrue(np.array_equal(expected_op, noise_op.full()))
+
 
     def test_duffing_system_model1(self):
         """First test of duffing_system_model, 2 qubits, 2 dimensional"""
@@ -104,7 +212,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
                 op, string = ham_model._system[idx]
                 if expected_string == string:
                     found = True
-                    self.assertTrue(array_equal(expected_op, op))
+                    self.assertTrue(np.array_equal(expected_op, op))
                 idx += 1
             self.assertTrue(found)
 
@@ -198,7 +306,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
                 op, string = ham_model._system[idx]
                 if expected_string == string:
                     found = True
-                    self.assertTrue(array_equal(expected_op, op))
+                    self.assertTrue(np.array_equal(expected_op, op))
                 idx += 1
             self.assertTrue(found)
 
@@ -317,7 +425,7 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
                 op, string = ham_model._system[idx]
                 if expected_string == string:
                     found = True
-                    self.assertTrue(array_equal(expected_op, op))
+                    self.assertTrue(np.array_equal(expected_op, op))
                 idx += 1
             self.assertTrue(found)
 
@@ -554,8 +662,8 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
 
     def _operator_array_from_str(self, dim, op_str_list):
 
-        op = array([[1.]])
+        op = np.array([[1.]])
         for c in op_str_list:
-            op = kron(op, get_oper(c, dim))
+            op = np.kron(op, get_oper(c, dim))
 
         return op

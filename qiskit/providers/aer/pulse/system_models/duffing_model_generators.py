@@ -17,6 +17,7 @@
 
 from warnings import warn
 from collections.abc import Iterable
+import numpy as np
 from qiskit.providers.models.backendconfiguration import UchannelLO
 from .hamiltonian_model import HamiltonianModel
 from .pulse_system_model import PulseSystemModel
@@ -173,7 +174,7 @@ def duffing_system_model(dim_oscillators,
     u_channel_lo = _cr_lo_list(cr_idx_dict)
 
     # construct noise_dict
-    noise_dict = _duffing_noise_dict(T1_list)
+    noise_dict = _duffing_noise_dict(T1_list, T2_list)
 
     # construct and return the PulseSystemModel
     return PulseSystemModel(hamiltonian=hamiltonian_model,
@@ -194,18 +195,26 @@ def _duffing_noise_dict(T1_list=None, T2_list=None):
         T1_list (list): list of T1 times
     """
 
-    qubit_dict = {}
     if T1_list is None and T2_list is None:
-        return {"qubit": qubit_dict}
+        return None
 
     if T1_list is None:
-        T1_list = np.zeros(len(T2_list))
+        T1_list = np.ones(len(T2_list)) * np.inf
 
     if T2_list is None:
-        T2_list = np.zeros(len(T1_list))
+        T2_list = np.ones(len(T1_list)) * np.inf
 
-    for idx, (T1, T2) in enumerate(zip(T1_list, T2_list)):
-        qubit_dict[str(idx)] = {"Sm": 1/T1}
+    gamma1_list = 1. / np.array(T1_list)
+    gamma2_list = 0.5 / np.array(T2_list) + 0.25 * gamma1_list
+
+    qubit_dict = {}
+    for idx, (gamma1, gamma2) in enumerate(zip(gamma1_list, gamma2_list)):
+        qubit_dict[str(idx)] = {}
+        if gamma1 > 0.:
+            qubit_dict[str(idx)]['Sm'] = gamma1
+
+        if gamma2 > 0.:
+            qubit_dict[str(idx)]['O'] = gamma2
 
     return {"qubit": qubit_dict}
 
