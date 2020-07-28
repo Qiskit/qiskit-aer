@@ -160,7 +160,7 @@ stages:
         pool: {vmImage: 'macOS-10.15'}
         strategy:
           matrix:
-            Python35:
+            Python37:
               python.version: '3.7'
             Python38:
               python.version: '3.8'
