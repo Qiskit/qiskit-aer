@@ -193,7 +193,7 @@ stages:
               set -e
               mkdir out; cd out; virtualenv aer-test
               aer-test/bin/pip install -U pip setuptools virtualenv wheel
-              aer-test/bin/pip install dist/*tar.gz
+              aer-test/bin/pip install ../dist/*tar.gz
               aer-test/bin/pip install -C ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
               aer-test/bin/python tools/verify_wheels.py
               aer-test/bin/pip check
