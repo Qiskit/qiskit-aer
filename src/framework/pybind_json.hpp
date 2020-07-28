@@ -31,7 +31,8 @@
 #include <iostream>
 #include <type_traits>
 
-
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #include <pybind11/pybind11.h>
 #include <pybind11/cast.h>
 #include <pybind11/stl.h>
@@ -39,6 +40,8 @@
 #include <pybind11/numpy.h>
 
 #include <nlohmann/json.hpp>
+DISABLE_WARNING_POP
+
 #include "framework/json.hpp"
 
 namespace py = pybind11;

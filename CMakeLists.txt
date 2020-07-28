@@ -15,6 +15,10 @@ project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
+if(NOT DEFINED AER_BLAS_LIB_PATH AND DEFINED ENV{AER_BLAS_LIB_PATH})
+	set(AER_BLAS_LIB_PATH $ENV{AER_BLAS_LIB_PATH})
+endif()
+
 # Warning: Because of a bug on CMake's FindBLAS or (it's not clear whoes fault is)
 # libopenblas.a for Ubuntu (maybe others) we need to copy the file:
 # cmake/FindBLAS.cmake.fix-static-linking, to the directory were CMake Modules are
@@ -35,8 +39,6 @@ configure_file("${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp.in"
                "${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp")
 
 set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-set(AER_SIMULATOR_CPP_MAIN
-    "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
 set(AER_SIMULATOR_CPP_EXTERNAL_LIBS "${USER_LIB_PATH}")
 
 set(AER_COMPILER_DEFINITIONS "")
@@ -101,6 +103,9 @@ if(NOT MSVC)
 	enable_cxx_compiler_flag_if_supported("-Wredundant-decls")
 	enable_cxx_compiler_flag_if_supported("-Wshadow")
 	enable_cxx_compiler_flag_if_supported("-Woverloaded-virtual")
+else("Windows general compiler flags")
+	enable_cxx_compiler_flag_if_supported("/Oi") # Enable intrinsics instead of functions  (faster code)
+	enable_cxx_compiler_flag_if_supported("/bigobj")
 endif()
 
 if(STATIC_LINKING)
@@ -156,8 +161,8 @@ if(STATIC_LINKING)
 	set(BLA_STATIC TRUE)
 endif()
 
-if(BLAS_LIB_PATH)
-	find_BLAS_in_specific_path(${BLAS_LIB_PATH})
+if(AER_BLAS_LIB_PATH)
+	find_BLAS_in_specific_path(${AER_BLAS_LIB_PATH})
 else()
 	set(BLAS_LIBRARIES CONAN_PKG::openblas)
 endif()
@@ -188,8 +193,11 @@ if(AER_THRUST_SUPPORTED)
 		endif()
 		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH_FLAGS ${AER_CUDA_ARCH})
 		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH_FLAGS} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
-		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
-			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+		# We have to set SIMD flags globally because there seems to be a bug in FindCUDA which doesn't allow us to set per-file compilation flags.
+		# The implications is that users downloading the PyPi wheel package for the GPU, need to have a CPU with AVX2 support otherwise
+		# Aer will crash with: "Unknow instruction" exception.
+		# This will be fixed here: https://github.com/Qiskit/qiskit-aer/
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}; --compiler-options;-mfma,-mavx2")
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDANT_LIBS "")
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
@@ -237,12 +245,25 @@ if(SKBUILD) # Terra Addon build
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
+
+	# We build SIMD filed separately, because they will be reached only if the
+	# machine running the code has SIMD support
+	set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+	if(APPLE OR UNIX)
+		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
+	elseif(MSVC)
+		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
+	endif()
+	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp"
+		"${SIMD_SOURCE_FILE}")
+	set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 	if(CUDA_FOUND)
-		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
 	else(CUDA_FOUND)
-		add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES})
 		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
 	endif(CUDA_FOUND)
 	set_target_properties(qasm_simulator PROPERTIES
