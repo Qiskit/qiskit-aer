@@ -15,6 +15,10 @@ project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
+if(NOT DEFINED AER_BLAS_LIB_PATH AND DEFINED ENV{AER_BLAS_LIB_PATH})
+	set(AER_BLAS_LIB_PATH $ENV{AER_BLAS_LIB_PATH})
+endif()
+
 # Warning: Because of a bug on CMake's FindBLAS or (it's not clear whoes fault is)
 # libopenblas.a for Ubuntu (maybe others) we need to copy the file:
 # cmake/FindBLAS.cmake.fix-static-linking, to the directory were CMake Modules are
@@ -157,8 +161,8 @@ if(STATIC_LINKING)
 	set(BLA_STATIC TRUE)
 endif()
 
-if(BLAS_LIB_PATH)
-	find_BLAS_in_specific_path(${BLAS_LIB_PATH})
+if(AER_BLAS_LIB_PATH)
+	find_BLAS_in_specific_path(${AER_BLAS_LIB_PATH})
 else()
 	set(BLAS_LIBRARIES CONAN_PKG::openblas)
 endif()
@@ -189,6 +193,11 @@ if(AER_THRUST_SUPPORTED)
 		endif()
 		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH_FLAGS ${AER_CUDA_ARCH})
 		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH_FLAGS} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+		# We have to set SIMD flags globally because there seems to be a bug in FindCUDA which doesn't allow us to set per-file compilation flags.
+		# The implications is that users downloading the PyPi wheel package for the GPU, need to have a CPU with AVX2 support otherwise
+		# Aer will crash with: "Unknow instruction" exception.
+		# This will be fixed here: https://github.com/Qiskit/qiskit-aer/
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}; --compiler-options;-mfma,-mavx2")
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDANT_LIBS "")
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
