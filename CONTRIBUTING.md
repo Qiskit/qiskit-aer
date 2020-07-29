@@ -232,36 +232,8 @@ fixes.
 
 ## Install from Source
 
->  Note: The following are prerequisites for all operating systems
-
-We recommend using Python virtual environments to cleanly separate Qiskit from
-other applications and improve your experience.
-
-The simplest way to use environments is by using *Anaconda* in a terminal
-window
-
-    $ conda create -y -n QiskitDevEnv python=3
-    $ conda activate QiskitDevEnv
-
-Clone the `Qiskit Aer` repo via *git*.
-
-    $ git clone https://github.com/Qiskit/qiskit-aer
-
-Most of the required dependencies can be installed via *pip*, using the
-`requirements-dev.txt` file, e.g.:
-
-    $ cd qiskit-aer
-    $ pip install -r requirements-dev.txt
-
-This will also install [**Conan**](https://conan.io/), a C/C++ package manager written in Python. This tool will handle 
-most of the dependencies needed by the C++ source code. Internet connection may be needed for the first build or 
-when dependencies are added/updated, in order to download the required packages if they are not in your **Conan** local 
-repository.
-
-If we are only building the standalone version and do not want to install all Python requirements you can just install
-**Conan**:
-
-    $ pip install conan
+As `Qiskit Aer` is a complex project with a large C++ codebase, we need to make sure that our system
+has preinstalled all the required tools for supporting our development workflow.
 
 ### Linux
 
@@ -294,6 +266,69 @@ Fedora
 Ubuntu
 
     $ apt-get install git
+
+### macOS
+
+There are various methods depending on the compiler we want to use. If we want
+to use the *Clang* compiler, we need to install an extra library for
+supporting *OpenMP*: *libomp*. The *CMake* build system will warn you
+otherwise. To install it manually, in a terminal window, run:
+
+    $ brew install libomp
+
+You further need to have *Xcode Command Line Tools* installed on macOS:
+
+    $ xcode-select --install
+
+### Windows
+
+On Windows, you must have *Anaconda3* installed. We recommend also installing
+*Visual Studio 2017 Community Edition* or *Visual Studio 2019 Community Edition*.
+
+>*Anaconda 3* can be installed from their web:
+>https://www.anaconda.com/distribution/#download-section
+>
+>*Visual Studio 2017/2019 Community Edition* can be installed from:
+>https://visualstudio.microsoft.com/vs/community/
+
+We only support *Visual Studio* compilers on Windows, so if you have others installed in your machine (MinGW, TurboC)
+you have to make sure that the path to the *Visual Studio* tools has precedence over others so that the build system
+can get the correct one.
+There's a (recommended) way to force the build system to use the one you want by using CMake `-G` parameter. Will talk
+about this and other parameters later.
+
+### Setting up development environment
+
+>  Note: The following are prerequisites for all operating systems
+
+We recommend using Python virtual environments to cleanly separate Qiskit from
+other applications and improve your experience.
+
+The simplest way to use environments is by using *Anaconda* in a terminal
+window
+
+    $ conda create -y -n QiskitDevEnv python=3
+    $ conda activate QiskitDevEnv
+
+Clone the `Qiskit Aer` repo via *git*.
+
+    $ git clone https://github.com/Qiskit/qiskit-aer
+
+Most of the required dependencies can be installed via *pip*, using the
+`requirements-dev.txt` file, e.g.:
+
+    $ cd qiskit-aer
+    $ pip install -r requirements-dev.txt
+
+This will also install [**Conan**](https://conan.io/), a C/C++ package manager written in Python. This tool will handle 
+most of the dependencies needed by the C++ source code. Internet connection may be needed for the first build or 
+when dependencies are added/updated, in order to download the required packages if they are not in your **Conan** local 
+repository.
+
+If we are only building the standalone version and do not want to install all Python requirements you can just install
+**Conan**:
+
+    $ pip install conan
 
 
 There are two ways of building `Aer` simulators, depending on your goal:
@@ -372,19 +407,6 @@ options we have on `Aer` to CMake we use it's native mechanism:
     qiskit-aer/out$ cmake -DCMAKE_CXX_COMPILER=g++-9 -DAER_BLAS_LIB_PATH=/path/to/my/blas ..
 
 
-### macOS
-
-There are various methods depending on the compiler we want to use. If we want
-to use the *Clang* compiler, we need to install an extra library for
-supporting *OpenMP*: *libomp*. The *CMake* build system will warn you
-otherwise. To install it manually, in a terminal window, run:
-
-    $ brew install libomp
-
-You further need to have *Xcode Command Line Tools* installed on macOS:
-
-    $ xcode-select --install
-
 There are two ways of building `Aer` simulators, depending on your goal:
 
 1. Build a python extension that works with Terra;
@@ -458,32 +480,6 @@ based on CMake, just like most of other C++ projects. So in order to pass all th
 options we have on `Aer` to CMake we use it's native mechanism:
 
     qiskit-aer/out$ cmake -DCMAKE_CXX_COMPILER=g++-9 -DAER_BLAS_LIB_PATH=/path/to/my/blas ..
-
-
-
-### Windows
-
-On Windows, you must have *Anaconda3* installed. We recommend also installing
-*Visual Studio 2017 Community Edition* or *Visual Studio 2019 Community Edition*.
-
->*Anaconda 3* can be installed from their web:
->https://www.anaconda.com/distribution/#download-section
->
->*Visual Studio 2017/2019 Community Edition* can be installed from:
->https://visualstudio.microsoft.com/vs/community/
-
-Once you have *Anaconda3* and *Visual Studio Community Edition* installed, you have to open a new cmd terminal and
-create an Anaconda virtual environment or activate it if you already have created one:
-
-    > conda create -y -n QiskitDevEnv python=3
-    > conda activate QiskitDevEnv
-    (QiskitDevEnv) >_
-
-We only support *Visual Studio* compilers on Windows, so if you have others installed in your machine (MinGW, TurboC)
-you have to make sure that the path to the *Visual Studio* tools has precedence over others so that the build system
-can get the correct one.
-There's a (recommended) way to force the build system to use the one you want by using CMake `-G` parameter. Will talk
-about this and other parameters later.
 
 **Python extension**
 
@@ -665,7 +661,7 @@ These are the flags:
 
     This flag allows us we to specify the CUDA architecture instead of letting the build systemm auto detect it.
     It can also be set as an ENV variable with the same name, although the flag takes precedence.
-    
+
     Values:  Auto | Common | All | List of valid CUDA architecture(s).
     Default: Auto
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="5.2; 5.3"``
