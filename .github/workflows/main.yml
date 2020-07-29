@@ -1,7 +1,5 @@
 name: Build
-on:
-  pull_request:
-    branches: [master]
+on: [push, pull_request]
 jobs:
   build:
     name: Build qiskit-aer-gpu wheels
