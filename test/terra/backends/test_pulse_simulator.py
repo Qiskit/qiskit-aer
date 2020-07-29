@@ -289,7 +289,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # [1., 0.] will be 50/50 [1., 0.] or [0., 1.]
         gamma = -np.log(0.5) / total_samples
         noise_model = {"qubit": {"0": {"Sp": gamma}}}
-        system_model.add_noise_from_dict(noise_model)
+        system_model._noise_from_dict(noise_model)
 
         # create a schedule with 0 amplitude
         schedule = self._1Q_constant_sched(total_samples, amp=0.0)
@@ -335,7 +335,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # [1., 0.] will be 75/25 [1., 0.] or [0., 1.]
         gamma = - 0.5 * np.log(0.5) / total_samples
         noise_model = {"qubit": {"0": {"X": gamma}}}
-        system_model.add_noise_from_dict(noise_model)
+        system_model._noise_from_dict(noise_model)
 
         # create a schedule with 0 amplitude
         schedule = self._1Q_constant_sched(total_samples, amp=0.0)
@@ -383,7 +383,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # [np.sqrt(4/5), np.sqrt(1/5)] will have a 60% chance of being measured in the 0 state
         gamma = - 0.5 * np.log(1. / 3) / total_samples
         noise_model = {"qubit": {"0": {"X": gamma}}}
-        system_model.add_noise_from_dict(noise_model)
+        system_model._noise_from_dict(noise_model)
 
         # create a schedule with 0 amplitude
         schedule = self._1Q_constant_sched(total_samples, amp=0.0)
@@ -426,7 +426,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         total_samples = 100
 
         system_model = self._system_model_1Q(omega_0, r)
-        system_model.add_noise_from_dict({"qubit": {"0": {"Sm": 1.}}})
+        system_model._noise_from_dict({"qubit": {"0": {"Sm": 1.}}})
 
         # set up constant pulse for doing a pi pulse
         schedule = self._1Q_constant_sched(total_samples)
@@ -473,7 +473,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         system_model = self._system_model_3d_oscillator(freq, anharm, r)
 
         noise_model = {"qubit": {"0": {"Sm": 1/T1}} }
-        system_model.add_noise_from_dict(noise_model)
+        system_model._noise_from_dict(noise_model)
 
         # set amplitude to be some complex number
         amp = np.exp(1.231 * 1j)

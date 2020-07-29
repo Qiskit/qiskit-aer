@@ -99,7 +99,7 @@ class PulseSystemModel():
 
         # set up noise, if any
         self._noise = None
-        self.add_noise_from_dict(noise_dict)
+        self._noise_from_dict(noise_dict)
 
         # initialize internal variables
         self._n_registers = None
@@ -251,7 +251,7 @@ class PulseSystemModel():
                 raise ValueError("Channel is not D or U")
         return freqs
 
-    def add_noise_from_dict(self, noise_dict):
+    def _noise_from_dict(self, noise_dict):
         """Add a noise model to in dict format
 
         Args:
@@ -329,7 +329,7 @@ class PulseSystemModel():
                           'h_ops_ptr': h_ops_ptr,
                           'h_diag_elems': ham_model._h_diag}
 
-    def init_rhs(self, exp):
+    def _init_rhs(self, exp):
         """Set up and return rhs function corresponding to this model for a given
         experiment exp
         """
