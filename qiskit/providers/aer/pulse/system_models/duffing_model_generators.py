@@ -117,6 +117,8 @@ def duffing_system_model(dim_oscillators,
         coupling_dict (dict): Coupling graph with keys being edges, and values
                               the coupling strengths in frequency units.
         dt (float): Sample width for pulse instructions.
+        T1_list (list): List of oscillator T1 values.
+        T2_list (list): List of oscillator T2 values.
 
     Returns:
         PulseSystemModel: The generated Duffing system model
@@ -192,7 +194,11 @@ def _duffing_noise_dict(T1_list=None, T2_list=None):
     """Creates noise dictionary for given noise parameters.
 
     Args:
-        T1_list (list): list of T1 times
+        T1_list (list): list of T1 times.
+        T2_list (list): list of T2 times.
+
+    Returns:
+        dict: dictionary representation of the specified noise model
     """
 
     if T1_list is None and T2_list is None:

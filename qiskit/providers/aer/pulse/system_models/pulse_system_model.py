@@ -268,7 +268,6 @@ class PulseSystemModel():
             if any(compiled_noise):
                 self._noise = compiled_noise
 
-
     def _config_internal_data(self):
         """Preps internal data into format required by RHS function.
         """

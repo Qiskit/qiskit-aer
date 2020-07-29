@@ -85,7 +85,7 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
                                           pulse_sim_desc,
                                           pulse_de_model,
                                           solver_options, ),
-                                **map_kwargs)
+                               **map_kwargs)
 
     # compile results
     # exp_results is a list of
@@ -103,7 +103,6 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
             exp_res_reformat.append(exp_shot_res[0].tolist())
             exp_time += exp_shot_time
 
-
         exp_times.append(exp_time)
         exp_results.append(np.array(exp_res_reformat))
 
@@ -118,8 +117,8 @@ def monte_carlo_evolution(exp_idx_seed,
     """ Performs a single monte carlo run for the given op_system, experiment, and seed
 
     Parameters:
-        seed (int): seed for random number generation
-        exp (dict): dictionary containing experiment description
+        exp_idx_seed (tuple): tuple of the exp index and the seed to use for random number
+                              generation
         y0 (array): initial state
         pulse_sim_desc (PulseSimDescription): container for simulation description
         pulse_de_model (PulseSystemModel): container for de model
