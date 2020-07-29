@@ -237,21 +237,26 @@ fixes.
 We recommend using Python virtual environments to cleanly separate Qiskit from
 other applications and improve your experience.
 
-The simplest way to use environments is by using *Anaconda* in a terminal
+- The simplest way to use environments is by using *Anaconda* in a terminal
 window
-
+```
     $ conda create -y -n QiskitDevEnv python=3
     $ conda activate QiskitDevEnv
+```
 
-Clone the `Qiskit Aer` repo via *git*.
-
+- Clone the `Qiskit Aer` repo via *git*.
+```
     $ git clone https://github.com/Qiskit/qiskit-aer
+```
 
-Most of the required dependencies can be installed via *pip*, using the
+- Next, install the platform-specific dependencies for your operating system [Linux](#linux-dependencies) | [macOS](#mac-dependencies) | [Windows](#win-dependencies). 
+
+- The common dependencies can then be installed via *pip*, using the
 `requirements-dev.txt` file, e.g.:
-
+```
     $ cd qiskit-aer
     $ pip install -r requirements-dev.txt
+```
 
 This will also install [**Conan**](https://conan.io/), a C/C++ package manager written in Python. This tool will handle 
 most of the dependencies needed by the C++ source code. Internet connection may be needed for the first build or 
@@ -263,9 +268,13 @@ If we are only building the standalone version and do not want to install all Py
 
     $ pip install conan
 
+You're now ready to build from source! Follow the instructions for your platform: [Linux](#linux-build) | [macOS](#mac-build) | [Windows](#win-build)
+
 ### Linux
 
 Qiskit is officially supported on Red Hat, CentOS, Fedora and Ubuntu distributions, as long as you can install a GCC version that is C++14 compatible and the few dependencies we need.
+
+#### <a name="linux-dependencies"> Dependencies </a>
 
 To get most of the necessary compilers and libraries, install the *development environment* tools from your Linux distribution by running
 
@@ -295,6 +304,7 @@ Ubuntu
 
     $ apt-get install git
 
+#### <a name="linux-build"> Build </a>
 
 There are two ways of building `Aer` simulators, depending on your goal:
 
@@ -374,6 +384,8 @@ options we have on `Aer` to CMake we use it's native mechanism:
 
 ### macOS
 
+#### <a name="mac-dependencies"> Dependencies </a>
+
 There are various methods depending on the compiler we want to use. If we want
 to use the *Clang* compiler, we need to install an extra library for
 supporting *OpenMP*: *libomp*. The *CMake* build system will warn you
@@ -384,6 +396,8 @@ otherwise. To install it manually, in a terminal window, run:
 You further need to have *Xcode Command Line Tools* installed on macOS:
 
     $ xcode-select --install
+
+#### <a name="mac-build"> Build </a>
 
 There are two ways of building `Aer` simulators, depending on your goal:
 
@@ -463,6 +477,8 @@ options we have on `Aer` to CMake we use it's native mechanism:
 
 ### Windows
 
+#### <a name="win-dependencies"> Dependencies </a>
+
 On Windows, you must have *Anaconda3* installed. We recommend also installing
 *Visual Studio 2017 Community Edition* or *Visual Studio 2019 Community Edition*.
 
@@ -484,6 +500,8 @@ you have to make sure that the path to the *Visual Studio* tools has precedence 
 can get the correct one.
 There's a (recommended) way to force the build system to use the one you want by using CMake `-G` parameter. Will talk
 about this and other parameters later.
+
+#### <a name="win-build"> Build </a>
 
 **Python extension**
 
