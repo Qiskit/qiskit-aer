@@ -536,7 +536,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         T1_list = [T1]
         T2_list = [T2]
 
-        shots = 256
+        shots = 128
 
         system_model = duffing_system_model(dim_oscillators,
                                             oscillator_freqs,
@@ -548,9 +548,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                                             T2_list=T2_list)
 
         # set amplitude to be some complex number
-        amp = 1j# np.exp(1.231 * 1j)
+        amp = 1j
 
-        #schedule = self._1Q_constant_sched(total_samples, amp=amp)
         drive_pulse = SamplePulse(amp * np.ones(total_samples))
         schedule = Schedule()
         schedule += Delay(25, DriveChannel(0))
@@ -566,7 +565,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         shots=shots)
 
         y0 = np.array([np.sqrt(0.5), np.sqrt(0.5), 0.])
-        backend_options = {'initial_state': y0}#'seed': 9000, 'initial_state': y0}
+        backend_options = {'initial_state': y0, 'seed': 9000, 'initial_state': y0}
         result = self.backend_sim.run(qobj, system_model, backend_options).result()
         counts = result.get_counts()
 
@@ -588,7 +587,6 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         # currently measurement in second excited state is binned with outcome 0
         expected_counts0 = expected_counts[0] + expected_counts[2]
         expected_counts1 = expected_counts[1]
-        import pdb; pdb.set_trace()
 
         # check counts against expected counts, with a tolerance for sampling error
         self.assertTrue(np.abs(counts[0]['0'] - expected_counts0) < 10)

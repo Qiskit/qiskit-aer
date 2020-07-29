@@ -164,7 +164,10 @@ def simulate_3d_oscillator_model(y0, osc_freq, anharm, r, drive_freqs, drive_sam
     return simulate_system(y0, drift, control_ops, drive_freqs, drive_samples, dt, drift_diag)
 
 def simulate_3d_oscillator_noisy_model(y0, osc_freq, anharm, r, drive_freqs, drive_samples, dt, T1=None, T2=None):
+    """Simulate a noisy 3d oscillator with T1 and T2
 
+    Note: here y0 presumed to be a density matrix
+    """
     # if either of T1 or T2 are unspecified set them to inf
     if T1 is None:
         T1 = np.inf
