@@ -19,12 +19,17 @@
 #include <vector>
 #include <complex>
 #include <map>
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+DISABLE_WARNING_POP
 
 #include "types.hpp"
 
 namespace py = pybind11;
+
+struct RhsData;
 
 py::array_t<complex_t> td_ode_rhs(double t,
                                   py::array_t<complex_t> vec,
@@ -33,5 +38,19 @@ py::array_t<complex_t> td_ode_rhs(double t,
                                   py::object system,
                                   py::object channels,
                                   py::object reg);
+
+class RhsFunctor {
+public:
+    RhsFunctor(py::object the_global_data,
+               py::object the_exp,
+               py::object the_system,
+               py::object the_channels,
+               py::object the_reg);
+
+    py::array_t <complex_t> operator()(double t, py::array_t <complex_t> the_vec);
+
+private:
+    std::shared_ptr<RhsData> rhs_data_;
+};
 
 #endif // _NUMERIC_INTEGRATOR_HPP

@@ -369,7 +369,7 @@ Because the standalone version of `Aer` doesn't need Python at all, the build sy
 based on CMake, just like most of other C++ projects. So in order to pass all the different
 options we have on `Aer` to CMake we use it's native mechanism:
 
-    qiskit-aer/out$ cmake -DCMAKE_CXX_COMPILER=g++-9 -DBLAS_LIB_PATH=/path/to/my/blas ..
+    qiskit-aer/out$ cmake -DCMAKE_CXX_COMPILER=g++-9 -DAER_BLAS_LIB_PATH=/path/to/my/blas ..
 
 
 ### macOS
@@ -457,7 +457,7 @@ Because the standalone version of `Aer` doesn't need Python at all, the build sy
 based on CMake, just like most of other C++ projects. So in order to pass all the different
 options we have on `Aer` to CMake we use it's native mechanism:
 
-    qiskit-aer/out$ cmake -DCMAKE_CXX_COMPILER=g++-9 -DBLAS_LIB_PATH=/path/to/my/blas ..
+    qiskit-aer/out$ cmake -DCMAKE_CXX_COMPILER=g++-9 -DAER_BLAS_LIB_PATH=/path/to/my/blas ..
 
 
 
@@ -552,7 +552,7 @@ Because the standalone version of `Aer` doesn't need Python at all, the build sy
 based on CMake, just like most of other C++ projects. So in order to pass all the different
 options we have on `Aer` to CMake we use it's native mechanism:
 
-    (QiskitDevEnv) qiskit-aer\out> cmake -G "Visual Studio 15 2017" -DBLAS_LIB_PATH=c:\path\to\my\blas ..
+    (QiskitDevEnv) qiskit-aer\out> cmake -G "Visual Studio 15 2017" -DAER_BLAS_LIB_PATH=c:\path\to\my\blas ..
 
 
 ### Building with GPU support
@@ -622,14 +622,16 @@ These are the flags:
     Default: No value.
     Example: ``python ./setup.py bdist_wheel -- -DUSER_LIB_PATH=C:\path\to\openblas\libopenblas.so``
 
-* BLAS_LIB_PATH
+* AER_BLAS_LIB_PATH
 
     Tells CMake the directory to look for the BLAS library instead of the usual paths.
     If no BLAS library is found under that directory, CMake will raise an error and stop.
+    
+    It can also be set as an ENV variable with the same name, although the flag takes precedence.
 
     Values: An absolute path.
     Default: No value.
-    Example: ``python ./setup.py bdist_wheel -- -DBLAS_LIB_PATH=/path/to/look/for/blas/``
+    Example: ``python ./setup.py bdist_wheel -- -DAER_BLAS_LIB_PATH=/path/to/look/for/blas/``
 
 * BUILD_TESTS
 

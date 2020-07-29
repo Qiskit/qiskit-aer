@@ -29,8 +29,10 @@ except ImportError:
 
 import setuptools
 
-requirements = [
-    'qiskit-terra>=0.12.0',
+# These are requirements that are both runtime/install dependencies and
+# also build time/setup requirements and will be added to both lists
+# of requirements
+common_requirements = [
     'numpy>=1.16.3;python_version>"3.5"',
     'numpy>=1.16.3,<1.19.0;python_version<"3.6"',
     'scipy>=1.0;python_version>"3.5"',
@@ -42,11 +44,13 @@ requirements = [
                      # This should be fixed in the CMake build files.
 ]
 
-setup_requirements = requirements + [
+setup_requirements = common_requirements + [
     'scikit-build',
     'cmake!=3.17,!=3.17.0',
     'conan>=1.22.2'
 ]
+
+requirements = common_requirements + ['qiskit-terra>=0.12.0']
 
 if not hasattr(setuptools,
                'find_namespace_packages') or not inspect.ismethod(
