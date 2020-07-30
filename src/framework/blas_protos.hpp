@@ -35,14 +35,108 @@ include headers and setup flags
 #include <vector>
 #include <array>
 
-#include "openblas/cblas.h"
-#include "openblas/f77blas.h"
+//#include "openblas/cblas.h"
+//#include "openblas/f77blas.h"
 
 #define ALIAS_FUNCTION(OriginalnamE, AliasnamE) \
 template <typename... Args> \
 inline auto AliasnamE(Args&&... args) -> decltype(OriginalnamE(std::forward<Args>(args)...)) { \
   return OriginalnamE(std::forward<Args>(args)...); \
 }
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+//===========================================================================
+// Prototypes for level 3 BLAS
+//===========================================================================
+
+// Single-Precison Real Matrix-Vector Multiplcation
+void sgemv_(const char *TransA, const size_t *M, const size_t *N,
+            const float *alpha, const float *A, const size_t *lda,
+            const float *x, const size_t *incx, const float *beta, float *y,
+            const size_t *lincy);
+// Double-Precison Real Matrix-Vector Multiplcation
+void dgemv_(const char *TransA, const size_t *M, const size_t *N,
+            const double *alpha, const double *A, const size_t *lda,
+            const double *x, const size_t *incx, const double *beta, double *y,
+            const size_t *lincy);
+// Single-Precison Complex Matrix-Vector Multiplcation
+void cgemv_(const char *TransA, const size_t *M, const size_t *N,
+            const std::complex<float> *alpha, const std::complex<float> *A,
+            const size_t *lda, const std::complex<float> *x, const size_t *incx,
+            const std::complex<float> *beta, std::complex<float> *y,
+            const size_t *lincy);
+// Double-Precison Real Matrix-Vector Multiplcation
+void zgemv_(const char *TransA, const size_t *M, const size_t *N,
+            const std::complex<double> *alpha, const std::complex<double> *A,
+            const size_t *lda, const std::complex<double> *x,
+            const size_t *incx, const std::complex<double> *beta,
+            std::complex<double> *y, const size_t *lincy);
+// Single-Precison Real Matrix-Matrix Multiplcation
+void sgemm_(const char *TransA, const char *TransB, const size_t *M,
+            const size_t *N, const size_t *K, const float *alpha,
+            const float *A, const size_t *lda, const float *B,
+            const size_t *lba, const float *beta, float *C, size_t *ldc);
+// Double-Precison Real Matrix-Matrix Multiplcation
+void dgemm_(const char *TransA, const char *TransB, const size_t *M,
+            const size_t *N, const size_t *K, const double *alpha,
+            const double *A, const size_t *lda, const double *B,
+            const size_t *lba, const double *beta, double *C, size_t *ldc);
+// Single-Precison Complex Matrix-Matrix Multiplcation
+void cgemm_(const char *TransA, const char *TransB, const size_t *M,
+            const size_t *N, const size_t *K, const std::complex<float> *alpha,
+            const std::complex<float> *A, const size_t *lda,
+            const std::complex<float> *B, const size_t *ldb,
+            const std::complex<float> *beta, std::complex<float> *C,
+            size_t *ldc);
+// Double-Precison Complex Matrix-Matrix Multiplcation
+void zgemm_(const char *TransA, const char *TransB, const size_t *M,
+            const size_t *N, const size_t *K, const std::complex<double> *alpha,
+            const std::complex<double> *A, const size_t *lda,
+            const std::complex<double> *B, const size_t *ldb,
+            const std::complex<double> *beta, std::complex<double> *C,
+            size_t *ldc);
+
+void chetrd_(char *TRANS, int *N, std::complex<float> *A,
+             int *LDA, float *d, float *e, std::complex<float> *tau,
+             std::complex<float> *work, int *lwork, int *info);
+
+void zhetrd_(char *TRANS, int *N, std::complex<double> *A,
+             int *LDA, double *d, double *e, std::complex<double> *tau,
+             std::complex<double> *work, int *lwork, int *info);
+
+void cpteqr_(char* compz, int *n, float *d, float *e,
+             std::complex<float> *z, int* ldz,
+             std::complex<float> *work, int *info);
+
+void zpteqr_(char* compz, int *n, double *d, double *e,
+             std::complex<double> *z, int* ldz,
+             std::complex<double> *work, int *info);
+
+void cheevx_(char *jobz, char *range, char *uplo, int *n,
+             std::complex<float> *a, int *lda, float *vl,
+             float *vu, int *il, int *iu, float *abstol,
+             int *m, float *w, std::complex<float> *z, int *ldz,
+             std::complex<float> *work, int *lwork, float *rwork,
+             int *iwork, int *ifail, int *info);
+
+void zheevx_(char *jobz, char *range, char *uplo, int *n,
+             std::complex<double> *a, int *lda, double *vl,
+             double *vu, int *il, int *iu, double *abstol,
+             int *m, double *w, std::complex<double> *z, int *ldz,
+             std::complex<double> *work, int *lwork, double *rwork,
+             int *iwork, int *ifail, int *info);
+
+float slamch_(char *cmach);
+
+double dlamch_(char *cmach);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 namespace AerBlas {
 
