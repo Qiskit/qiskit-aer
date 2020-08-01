@@ -8,9 +8,9 @@
 # For Mac, statically linking only happens with user libraries, system libraries cannot
 # be linked statically per Apple's indications.
 
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 file(STRINGS "qiskit/providers/aer/VERSION.txt" VERSION_NUM)
-project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
+project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C CUDA)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -192,12 +192,7 @@ if(AER_THRUST_SUPPORTED)
 			endif()
 		endif()
 		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH_FLAGS ${AER_CUDA_ARCH})
-		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH_FLAGS} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
-		# We have to set SIMD flags globally because there seems to be a bug in FindCUDA which doesn't allow us to set per-file compilation flags.
-		# The implications is that users downloading the PyPi wheel package for the GPU, need to have a CPU with AVX2 support otherwise
-		# Aer will crash with: "Unknow instruction" exception.
-		# This will be fixed here: https://github.com/Qiskit/qiskit-aer/
-		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}; --compiler-options;-mfma,-mavx2")
+		string(REPLACE ";" " "  AER_CUDA_ARCH_FLAGS_EXPAND "${AER_CUDA_ARCH_FLAGS}")
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDANT_LIBS "")
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
@@ -249,30 +244,40 @@ else() # Standalone build
 	# We build SIMD filed separately, because they will be reached only if the
 	# machine running the code has SIMD support
 	set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
-	if(APPLE OR UNIX)
-		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
-	elseif(MSVC)
-		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
-	endif()
-	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp"
-		"${SIMD_SOURCE_FILE}")
-	set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 
+	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 	if(CUDA_FOUND)
-		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES})
+		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
+		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES LANGUAGE CUDA)
+		set(CUDA_NVCC_FLAGS_ALL "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS_ALL}")
+		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS_ALL} --compiler-options -mfma,-mavx2")
+		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
+		set_target_properties(qasm_simulator PROPERTIES
+			LINKER_LANGUAGE CXX
+			CXX_STANDARD 14
+			COMPILE_FLAGS "--compiler-options ${AER_COMPILER_FLAGS}"
+			LINK_FLAGS ${AER_LINKER_FLAGS}
+			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
+			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	else(CUDA_FOUND)
-		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES})
+		if(APPLE OR UNIX)
+			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
+		elseif(MSVC)
+			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
+		endif()
+		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
+		set_target_properties(qasm_simulator PROPERTIES
+			LINKER_LANGUAGE CXX
+			CXX_STANDARD 14
+			COMPILE_FLAGS ${AER_COMPILER_FLAGS}
+			LINK_FLAGS ${AER_LINKER_FLAGS}
+			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
+			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	endif(CUDA_FOUND)
-	set_target_properties(qasm_simulator PROPERTIES
-		LINKER_LANGUAGE CXX
-		CXX_STANDARD 14
-		COMPILE_FLAGS ${AER_COMPILER_FLAGS}
-		LINK_FLAGS ${AER_LINKER_FLAGS}
-		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
-		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	target_include_directories(qasm_simulator
 		PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
 		PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
