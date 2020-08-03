@@ -195,7 +195,7 @@ stages:
               cd ..; virtualenv aer-test; source aer-test/bin/activate
               pip install -U pip setuptools wheel
               pip install $aer_path/dist/*tar.gz
-              pip install -C ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
+              pip install -c ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
               python tools/verify_wheels.py
               pip check
             displayName: Install from sdist and verify
