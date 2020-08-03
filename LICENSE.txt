@@ -8,7 +8,7 @@
 
    1. Definitions.
 
-      "License" shall mean the terms and conditions for use, reproduction
+      "License" shall mean the terms and conditions for use, reproduction,
       and distribution as defined by Sections 1 through 9 of this document.
 
       "Licensor" shall mean the copyright owner or entity authorized by
@@ -124,7 +124,7 @@
 
       You may add Your own copyright statement to Your modifications and
       may provide additional or different license terms and conditions
-      for use, reproduction or distribution of Your modifications, or
+      for use, reproduction, or distribution of Your modifications, or
       for any such Derivative Works as a whole, provided Your use,
       reproduction, and distribution of the Work otherwise complies with
       the conditions stated in this License.
