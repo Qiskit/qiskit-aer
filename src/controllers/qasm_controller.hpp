@@ -696,7 +696,7 @@ QasmController::Method QasmController::simulation_method(
       // times slow than a single shot of statevector due the increased
       // dimension
       if (noise_model.has_quantum_errors() &&
-          circ.shots > (1 << circ.num_qubits) &&
+          circ.shots > (1ULL << circ.num_qubits) &&
           validate_memory_requirements(DensityMatrix::State<>(), circ, false) &&
           validate_state(DensityMatrix::State<>(), circ, noise_model, false) &&
           check_measure_sampling_opt(circ, Method::density_matrix)) {
