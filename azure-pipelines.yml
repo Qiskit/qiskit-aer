@@ -395,6 +395,7 @@ stages:
               pip install -U pip setuptools virtualenv wheel
               pip install .
               pip install -c constraints.txt -r requirements-dev.txt
+              pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
               pip check
             displayName: Build and Install aer
           - bash: |
