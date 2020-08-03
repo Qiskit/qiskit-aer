@@ -193,7 +193,7 @@ stages:
               set -e
               aer_path=$(pwd)
               cd ..; virtualenv aer-test; source aer-test/bin/activate
-              pip install -U pip setuptools virtualenv wheel
+              pip install -U pip setuptools wheel
               pip install $aer_path/dist/*tar.gz
               pip install -C ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
               python tools/verify_wheels.py
