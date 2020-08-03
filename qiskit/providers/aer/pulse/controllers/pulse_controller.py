@@ -81,12 +81,6 @@ def pulse_controller(qobj, system_model, backend_options):
     if system_model.dt is None:
         raise ValueError('System model must have a dt value to simulate.')
 
-    # Parse noise
-    noise_model = backend_options.get('noise_model', None)
-
-    if noise_model:
-        system_model.add_noise_from_dict(noise_model)
-
     if system_model._noise is not None:
         pulse_sim_desc.can_sample = False
 
