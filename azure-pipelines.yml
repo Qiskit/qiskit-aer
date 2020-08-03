@@ -191,12 +191,13 @@ stages:
           - bash: |
               set -x
               set -e
-              mkdir out; cd out; virtualenv aer-test
-              aer-test/bin/pip install -U pip setuptools virtualenv wheel
-              aer-test/bin/pip install ../dist/*tar.gz
-              aer-test/bin/pip install -C ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
-              aer-test/bin/python tools/verify_wheels.py
-              aer-test/bin/pip check
+              aer_path=$(pwd)
+              cd ..; virtualenv aer-test; source aer-test/bin/activate
+              pip install -U pip setuptools virtualenv wheel
+              pip install $aer_path/dist/*tar.gz
+              pip install -C ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
+              python tools/verify_wheels.py
+              pip check
             displayName: Install from sdist and verify
       - job: 'Standalone'
         pool: {vmImage: 'vs2017-win2016'}
