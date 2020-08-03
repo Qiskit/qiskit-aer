@@ -147,7 +147,7 @@ uint_t reorder_qubits(const reg_t qubits, uint_t index) {
   uint_t num_qubits = qubits.size();
   for (uint_t i=0; i<num_qubits; i++) {
     current_pos = num_qubits-1-qubits[i];
-    current_val = 0x1 << current_pos;
+    current_val = 1ULL << current_pos;
     new_pos = num_qubits-1-i;
     shift = new_pos - current_pos;
     if (index & current_val) {
