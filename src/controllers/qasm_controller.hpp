@@ -412,65 +412,33 @@ void QasmController::run_circuit(const Circuit& circ,
     case Method::statevector: {
       bool avx2_enabled = is_avx2_supported();
 
-      if(multiple_qregs_){
-        if (simulation_precision_ == Precision::double_precision) {
-          if (avx2_enabled) {
+      if (simulation_precision_ == Precision::double_precision) {
+        if (avx2_enabled) {
 #ifndef __PPC64__
-            return run_circuit_helper<
-                StatevectorChunk::State<QV::QubitVectorAvx2<double>>>(
-                circ, noise, config, shots, rng_seed, initial_statevector_,
-                Method::statevector, data);
-#endif
-          }
-          // Double-precision Statevector simulation
-          return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<double>>>(
+          return run_circuit_helper<
+              Statevector::State<QV::QubitVectorAvx2<double>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
               Method::statevector, data);
-        } else {
-          if (avx2_enabled) {
-#ifndef __PPC64__
-            // Single-precision Statevector simulation
-            return run_circuit_helper<
-                StatevectorChunk::State<QV::QubitVectorAvx2<float>>>(
-                circ, noise, config, shots, rng_seed, initial_statevector_,
-                Method::statevector, data);
 #endif
-          }
-          // Single-precision Statevector simulation
-          return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<float>>>(
-              circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector, data);
         }
-      }
-      else{
-        if (simulation_precision_ == Precision::double_precision) {
-          if (avx2_enabled) {
+        // Double-precision Statevector simulation
+        return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
+            circ, noise, config, shots, rng_seed, initial_statevector_,
+            Method::statevector, data);
+      } else {
+        if (avx2_enabled) {
 #ifndef __PPC64__
-            return run_circuit_helper<
-                Statevector::State<QV::QubitVectorAvx2<double>>>(
-                circ, noise, config, shots, rng_seed, initial_statevector_,
-                Method::statevector, data);
-#endif
-          }
-          // Double-precision Statevector simulation
-          return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
-              circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector, data);
-        } else {
-          if (avx2_enabled) {
-#ifndef __PPC64__
-            // Single-precision Statevector simulation
-            return run_circuit_helper<
-                Statevector::State<QV::QubitVectorAvx2<float>>>(
-                circ, noise, config, shots, rng_seed, initial_statevector_,
-                Method::statevector, data);
-#endif
-          }
           // Single-precision Statevector simulation
-          return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
+          return run_circuit_helper<
+              Statevector::State<QV::QubitVectorAvx2<float>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
               Method::statevector, data);
+#endif
         }
+        // Single-precision Statevector simulation
+        return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
+            circ, noise, config, shots, rng_seed, initial_statevector_,
+            Method::statevector, data);
       }
     }
     case Method::statevector_thrust_gpu: {

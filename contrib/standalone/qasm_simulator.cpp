@@ -23,7 +23,9 @@
 #ifdef _MSC_VER
 #include <intrin.h>
 #elif defined(__GNUC__)
+#ifndef __PPC64__
 #include <cpuid.h>
+#endif
 #endif
 
 #include "version.hpp"
