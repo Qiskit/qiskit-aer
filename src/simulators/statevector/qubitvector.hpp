@@ -225,7 +225,7 @@ public:
   void apply_mcswap(const reg_t &qubits);
 
   //swap between chunk
-  void apply_chunk_swap(const reg_t &qubits, QubitVector<data_t> &chunk, bool write_back = true);
+  void apply_chunk_swap(const reg_t &qubits, QubitVector<data_t,Derived> &chunk, bool write_back = true);
   void apply_chunk_swap(const reg_t &qubits, uint_t remote_chunk_index);
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
@@ -1678,7 +1678,7 @@ void QubitVector<data_t, Derived>::apply_diagonal_matrix(const uint_t qubit,
 }
 
 template <typename data_t, typename Derived>
-void QubitVector<data_t, Derived>::apply_chunk_swap(const reg_t &qubits, QubitVector<data_t> &src, bool write_back)
+void QubitVector<data_t, Derived>::apply_chunk_swap(const reg_t &qubits, QubitVector<data_t,Derived> &src, bool write_back)
 {
   uint_t q0,q1,t;
 
