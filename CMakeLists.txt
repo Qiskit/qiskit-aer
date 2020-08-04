@@ -132,7 +132,13 @@ setup_conan()
 
 # If we do not set them with a space CMake fails afterwards if nothing is set for this vars!
 set(AER_LINKER_FLAGS " ")
-set(AER_COMPILER_FLAGS " ")
+
+# This limit is hit building the Python plugin for CUDA
+if(APPLE OR UNIX)
+	set(AER_COMPILER_FLAGS " ")
+elseif(MSVC)
+	set(AER_COMPILER_FLAGS " /bigobj ")
+endif()
 
 message(STATUS "Looking for OpenMP support...")
 if(APPLE)
