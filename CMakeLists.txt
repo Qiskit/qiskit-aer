@@ -271,7 +271,7 @@ else() # Standalone build
 			LINK_FLAGS ${AER_LINKER_FLAGS}
 			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
-	else(CUDA_FOUND)
+	else()
 		if(APPLE OR UNIX)
 			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
 		elseif(MSVC)
@@ -286,7 +286,7 @@ else() # Standalone build
 			LINK_FLAGS ${AER_LINKER_FLAGS}
 			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
-	endif(CUDA_FOUND)
+	endif()
 	target_include_directories(qasm_simulator
 		PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
 		PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
