@@ -58,7 +58,7 @@ is that if your code contribution has user facing changes that you will write
 the release documentation for these changes. This documentation must explain
 what was changed, why it was changed, and how users can either use or adapt
 to the change. The idea behind release documentation is that when a naive
-user with limited internal knowledege of the project is upgrading from the
+user with limited internal knowledge of the project is upgrading from the
 previous release to the new one, they should be able to read the release notes,
 understand if they need to update their program which uses qiskit, and how they
 would go about doing that. It ideally should explain why they need to make
@@ -681,7 +681,7 @@ These are the flags:
 
 * AER_CUDA_ARCH
 
-    This flag allows us we to specify the CUDA architecture instead of letting the build systemm auto detect it.
+    This flag allows us we to specify the CUDA architecture instead of letting the build system auto detect it.
     It can also be set as an ENV variable with the same name, although the flag takes precedence.
     
     Values:  Auto | Common | All | List of valid CUDA architecture(s).
@@ -709,7 +709,7 @@ The integration tests for Qiskit python extension are included in: `test/terra`.
 
 ## Platform support
 
-Bare in mind that every new feature/change needs to be compatible with all our
+Bear in mind that every new feature/change needs to be compatible with all our
 supported platforms: Win64, MacOS (API Level >= 19) and Linux-x86_64. The
 Continuous Integration (CI) systems will run builds and pass all the
 corresponding tests to verify this compatibility.

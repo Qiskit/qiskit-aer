@@ -17,7 +17,7 @@ sudo: false
 ###############################################################################
 
 # These are used for avoiding repeating code, and due to problems with
-# overriding some keys (in particular, "os" and "language: ptyhon") when using
+# overriding some keys (in particular, "os" and "language: python") when using
 # the standard travis matrix with stages.
 #
 # This allows re-using different "sets" of configurations in the stages
