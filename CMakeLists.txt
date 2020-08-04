@@ -10,7 +10,15 @@
 
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 file(STRINGS "qiskit/providers/aer/VERSION.txt" VERSION_NUM)
-project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C CUDA)
+
+include(CheckLanguage)
+project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
+if(AER_THRUST_BACKEND STREQUAL "CUDA")
+  enable_language(CUDA)
+else()
+  # idiosyncrasy of CMake that it still creates a reference to this
+  set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION "")
+endif()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -249,7 +257,7 @@ else() # Standalone build
 
 	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-	if(CUDA_FOUND)
+	if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
 		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES LANGUAGE CUDA)
 		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
