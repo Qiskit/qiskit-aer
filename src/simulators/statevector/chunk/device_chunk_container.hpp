@@ -18,6 +18,7 @@
 
 #include "simulators/statevector/chunk/chunk_container.hpp"
 
+namespace AER {
 namespace QV {
 
 //============================================================================
@@ -743,7 +744,10 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
 
 
 
-}
+//------------------------------------------------------------------------------
+} // end namespace QV
+} // end namespace AER
+//------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 #endif // end module

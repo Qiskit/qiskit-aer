@@ -19,6 +19,7 @@
 #include "simulators/statevector/chunk/chunk_container.hpp"
 
 
+namespace AER {
 namespace QV {
 
 
@@ -468,7 +469,10 @@ reg_t HostChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vector
 }
 
 
-}
+//------------------------------------------------------------------------------
+} // end namespace QV
+} // end namespace AER
+//------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 #endif // end module

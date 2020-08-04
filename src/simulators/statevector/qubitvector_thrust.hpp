@@ -54,6 +54,7 @@ double mysecond()
 #endif
 
 
+namespace AER {
 namespace QV {
 
 // Type aliases
@@ -78,7 +79,7 @@ template <typename T> using cvector_t = std::vector<std::complex<T>>;
 // If the template argument does not have these methods then template
 // specialization must be used to override the default implementations.
 
-template <typename data_t = double>
+template <typename data_t = double, typename Derived = void>
 class QubitVectorThrust {
 
 public:
@@ -254,7 +255,7 @@ public:
   void apply_mcswap(const reg_t &qubits);
 
   //swap between chunk
-  void apply_chunk_swap(const reg_t &qubits, QubitVectorThrust<data_t> &chunk, bool write_back = true);
+  void apply_chunk_swap(const reg_t &qubits, QubitVectorThrust<data_t, Derived> &chunk, bool write_back = true);
   void apply_chunk_swap(const reg_t &qubits, uint_t remote_chunk_index);
 
   //-----------------------------------------------------------------------
@@ -426,8 +427,8 @@ protected:
 #endif
 };
 
-template <typename data_t>
-ChunkManager<data_t> QubitVectorThrust<data_t>::chunk_manager_;
+template <typename data_t, typename Derived>
+ChunkManager<data_t> QubitVectorThrust<data_t, Derived>::chunk_manager_;
 
 
 /*******************************************************************************
@@ -440,13 +441,13 @@ ChunkManager<data_t> QubitVectorThrust<data_t>::chunk_manager_;
 // JSON Serialization
 //------------------------------------------------------------------------------
 
-template <typename data_t>
-inline void to_json(json_t &js, const QubitVectorThrust<data_t> &qv) {
+template <typename data_t, typename Derived>
+inline void to_json(json_t &js, const QubitVectorThrust<data_t, Derived> &qv) {
   js = qv.json();
 }
 
-template <typename data_t>
-json_t QubitVectorThrust<data_t>::json() const 
+template <typename data_t, typename Derived>
+json_t QubitVectorThrust<data_t, Derived>::json() const 
 {
   thrust::complex<data_t> t;
   uint_t i;
@@ -470,8 +471,8 @@ json_t QubitVectorThrust<data_t>::json() const
 // Error Handling
 //------------------------------------------------------------------------------
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::check_qubit(const uint_t qubit) const {
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::check_qubit(const uint_t qubit) const {
   if (qubit + 1 > num_qubits_) {
     std::string error = "QubitVectorThrust: qubit index " + std::to_string(qubit) +
                         " > " + std::to_string(num_qubits_);
@@ -479,8 +480,8 @@ void QubitVectorThrust<data_t>::check_qubit(const uint_t qubit) const {
   }
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::check_matrix(const cvector_t<data_t> &vec, uint_t nqubits) const {
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::check_matrix(const cvector_t<data_t> &vec, uint_t nqubits) const {
   const size_t DIM = 1ull << nqubits;
   const auto SIZE = vec.size();
   if (SIZE != DIM * DIM) {
@@ -490,8 +491,8 @@ void QubitVectorThrust<data_t>::check_matrix(const cvector_t<data_t> &vec, uint_
   }
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::check_vector(const cvector_t<data_t> &vec, uint_t nqubits) const {
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::check_vector(const cvector_t<data_t> &vec, uint_t nqubits) const {
   const size_t DIM = 1ull << nqubits;
   const auto SIZE = vec.size();
   if (SIZE != DIM) {
@@ -501,8 +502,8 @@ void QubitVectorThrust<data_t>::check_vector(const cvector_t<data_t> &vec, uint_
   }
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::check_dimension(const QubitVectorThrust &qv) const {
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::check_dimension(const QubitVectorThrust &qv) const {
   if (data_size_ != qv.size_) {
     std::string error = "QubitVectorThrust: vectors are different shape " +
                          std::to_string(data_size_) + " != " +
@@ -511,8 +512,8 @@ void QubitVectorThrust<data_t>::check_dimension(const QubitVectorThrust &qv) con
   }
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::check_checkpoint() const {
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::check_checkpoint() const {
   if (checkpoint_ == NULL) {
     throw std::runtime_error("QubitVectorThrust: checkpoint must exist for inner_product() or revert()");
   }
@@ -522,8 +523,8 @@ void QubitVectorThrust<data_t>::check_checkpoint() const {
 // Constructors & Destructor
 //------------------------------------------------------------------------------
 
-template <typename data_t>
-QubitVectorThrust<data_t>::QubitVectorThrust(size_t num_qubits) : num_qubits_(0)
+template <typename data_t, typename Derived>
+QubitVectorThrust<data_t, Derived>::QubitVectorThrust(size_t num_qubits) : num_qubits_(0)
 {
   chunk_ = NULL;
   chunk_index_ = 0;
@@ -540,14 +541,14 @@ QubitVectorThrust<data_t>::QubitVectorThrust(size_t num_qubits) : num_qubits_(0)
   }
 }
 
-template <typename data_t>
-QubitVectorThrust<data_t>::QubitVectorThrust() : QubitVectorThrust(0)
+template <typename data_t, typename Derived>
+QubitVectorThrust<data_t, Derived>::QubitVectorThrust() : QubitVectorThrust(0)
 {
 
 }
 
-template <typename data_t>
-QubitVectorThrust<data_t>::~QubitVectorThrust() 
+template <typename data_t, typename Derived>
+QubitVectorThrust<data_t, Derived>::~QubitVectorThrust() 
 {
   if(checkpoint_ != NULL){
     chunk_manager_.UnmapCheckpoint(checkpoint_);
@@ -574,8 +575,8 @@ QubitVectorThrust<data_t>::~QubitVectorThrust()
 // Element access operators
 //------------------------------------------------------------------------------
 
-template <typename data_t>
-thrust::complex<data_t> &QubitVectorThrust<data_t>::operator[](uint_t element) {
+template <typename data_t, typename Derived>
+thrust::complex<data_t> &QubitVectorThrust<data_t, Derived>::operator[](uint_t element) {
   // Error checking
   #ifdef DEBUG
   if (element > data_size_) {
@@ -589,8 +590,8 @@ thrust::complex<data_t> &QubitVectorThrust<data_t>::operator[](uint_t element) {
 }
 
 
-template <typename data_t>
-thrust::complex<data_t> QubitVectorThrust<data_t>::operator[](uint_t element) const
+template <typename data_t, typename Derived>
+thrust::complex<data_t> QubitVectorThrust<data_t, Derived>::operator[](uint_t element) const
 {
   // Error checking
   #ifdef DEBUG
@@ -607,8 +608,8 @@ thrust::complex<data_t> QubitVectorThrust<data_t>::operator[](uint_t element) co
   return (*chunk_)[element];
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::set_state(uint_t pos, std::complex<double>& c)
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::set_state(uint_t pos, std::complex<double>& c)
 {
   if(pos < data_size_){
     thrust::complex<data_t> t = c;
@@ -616,8 +617,8 @@ void QubitVectorThrust<data_t>::set_state(uint_t pos, std::complex<double>& c)
   }
 }
 
-template <typename data_t>
-std::complex<data_t> QubitVectorThrust<data_t>::get_state(uint_t pos) const
+template <typename data_t, typename Derived>
+std::complex<data_t> QubitVectorThrust<data_t, Derived>::get_state(uint_t pos) const
 {
   std::complex<data_t> ret = 0.0;
 
@@ -628,8 +629,8 @@ std::complex<data_t> QubitVectorThrust<data_t>::get_state(uint_t pos) const
 }
 
 
-template <typename data_t>
-cvector_t<data_t> QubitVectorThrust<data_t>::vector() const 
+template <typename data_t, typename Derived>
+cvector_t<data_t> QubitVectorThrust<data_t, Derived>::vector() const 
 {
   cvector_t<data_t> ret(data_size_, 0.);
 
@@ -744,8 +745,8 @@ public:
   }
 };
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const cvector_t<double> &state0) 
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::initialize_component(const reg_t &qubits, const cvector_t<double> &state0) 
 {
   if(qubits.size() == 1){
     apply_function(initialize_component_1qubit_func<data_t>(qubits[0],state0[0],state0[1]), qubits);
@@ -770,15 +771,15 @@ void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const 
 // Utility
 //------------------------------------------------------------------------------
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::zero()
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::zero()
 {
   chunk_->Zero();
 }
 
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks)
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks)
 {
   //only first chunk call allocation function
   if(chunk_manager_.chunk_bits() != chunk_bits || chunk_manager_.num_qubits() != num_qubits || chunk_manager_.num_chunks() != num_local_chunks){
@@ -791,8 +792,8 @@ void QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t
   multi_chunk_distribution_ = true;
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::set_num_qubits(size_t num_qubits)
 {
   data_size_ = 1ull << num_qubits;
   char* str;
@@ -846,8 +847,8 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 
 }
 
-template <typename data_t>
-size_t QubitVectorThrust<data_t>::required_memory_mb(uint_t num_qubits) const {
+template <typename data_t, typename Derived>
+size_t QubitVectorThrust<data_t, Derived>::required_memory_mb(uint_t num_qubits) const {
 
   size_t unit = std::log2(sizeof(std::complex<data_t>));
   size_t shift_mb = std::max<int_t>(0, num_qubits + unit - 20);
@@ -864,8 +865,8 @@ size_t QubitVectorThrust<data_t>::required_memory_mb(uint_t num_qubits) const {
 }
 
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::checkpoint()
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::checkpoint()
 {
 #ifdef AER_DEBUG
   DebugMsg("calling checkpoint");
@@ -883,8 +884,8 @@ void QubitVectorThrust<data_t>::checkpoint()
 }
 
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::revert(bool keep) {
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::revert(bool keep) {
 
 #ifdef DEBUG
 check_checkpoint();
@@ -906,8 +907,8 @@ check_checkpoint();
 
 }
 
-template <typename data_t>
-std::complex<double> QubitVectorThrust<data_t>::inner_product() const
+template <typename data_t, typename Derived>
+std::complex<double> QubitVectorThrust<data_t, Derived>::inner_product() const
 {
 
 #ifdef AER_DEBUG
@@ -953,8 +954,8 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const
   return std::complex<double>(dot,0.0);
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::fetch_chunk(void) const
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::fetch_chunk(void) const
 {
   if(chunk_->device() < 0){
     do{
@@ -965,8 +966,8 @@ void QubitVectorThrust<data_t>::fetch_chunk(void) const
   }
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::release_chunk(bool write_back) const
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::release_chunk(bool write_back) const
 {
   if(chunk_->device() < 0){
     buffer_chunk_->CopyOut(chunk_);
@@ -976,8 +977,8 @@ void QubitVectorThrust<data_t>::release_chunk(bool write_back) const
   }
 }
 
-template <typename data_t>
-void* QubitVectorThrust<data_t>::send_buffer(uint_t& size_in_byte)
+template <typename data_t, typename Derived>
+void* QubitVectorThrust<data_t, Derived>::send_buffer(uint_t& size_in_byte)
 {
   void* pRet;
 
@@ -999,8 +1000,8 @@ void* QubitVectorThrust<data_t>::send_buffer(uint_t& size_in_byte)
   return pRet;
 }
 
-template <typename data_t>
-void* QubitVectorThrust<data_t>::recv_buffer(uint_t& size_in_byte)
+template <typename data_t, typename Derived>
+void* QubitVectorThrust<data_t, Derived>::recv_buffer(uint_t& size_in_byte)
 {
 
 #ifdef AER_DISABLE_GDR
@@ -1025,8 +1026,8 @@ void* QubitVectorThrust<data_t>::recv_buffer(uint_t& size_in_byte)
 // Initialization
 //------------------------------------------------------------------------------
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::initialize()
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::initialize()
 {
   zero();
 
@@ -1038,8 +1039,8 @@ void QubitVectorThrust<data_t>::initialize()
   }
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &statevec) 
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::initialize_from_vector(const cvector_t<double> &statevec) 
 {
   uint_t offset = chunk_index_ << num_qubits_;
   if(data_size_ < statevec.size() - offset) {
@@ -1069,8 +1070,8 @@ void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &
 
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::initialize_from_data(const std::complex<data_t>* statevec, const size_t num_states) {
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::initialize_from_data(const std::complex<data_t>* statevec, const size_t num_states) {
   if (data_size_ != num_states) {
     std::string error = "QubitVectorThrust::initialize input vector is incorrect length (" +
                         std::to_string(data_size_) + "!=" + std::to_string(num_states) + ")";
@@ -1094,9 +1095,9 @@ void QubitVectorThrust<data_t>::initialize_from_data(const std::complex<data_t>*
 //  gate kernel execution
 //--------------------------------------------------------------------------------------
 
-template <typename data_t>
+template <typename data_t, typename Derived>
 template <typename Function>
-void QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubits) const
+void QubitVectorThrust<data_t, Derived>::apply_function(Function func,const reg_t &qubits) const
 {
   const size_t N = qubits.size();
   uint_t size;
@@ -1124,9 +1125,9 @@ void QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubits
 #endif
 }
 
-template <typename data_t>
+template <typename data_t, typename Derived>
 template <typename Function>
-double QubitVectorThrust<data_t>::apply_function_sum(Function func,const reg_t &qubits) const
+double QubitVectorThrust<data_t, Derived>::apply_function_sum(Function func,const reg_t &qubits) const
 {
   const size_t N = qubits.size();
   uint_t size;
@@ -1143,9 +1144,9 @@ double QubitVectorThrust<data_t>::apply_function_sum(Function func,const reg_t &
   return ret;
 }
 
-template <typename data_t>
+template <typename data_t, typename Derived>
 template <typename Function>
-std::complex<double> QubitVectorThrust<data_t>::apply_function_complex_sum(Function func,const reg_t &qubits) const
+std::complex<double> QubitVectorThrust<data_t, Derived>::apply_function_complex_sum(Function func,const reg_t &qubits) const
 {
   const size_t N = qubits.size();
   uint_t size;
@@ -1168,20 +1169,20 @@ std::complex<double> QubitVectorThrust<data_t>::apply_function_complex_sum(Funct
  *
  ******************************************************************************/
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::set_omp_threads(int n) {
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::set_omp_threads(int n) {
   if (n > 0)
     omp_threads_ = n;
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::set_omp_threshold(int n) {
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::set_omp_threshold(int n) {
   if (n > 0)
     omp_threshold_ = n;
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::set_json_chop_threshold(double threshold) {
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::set_json_chop_threshold(double threshold) {
   json_chop_threshold_ = threshold;
 }
 
@@ -1795,8 +1796,8 @@ public:
 
 
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::apply_matrix(const reg_t &qubits,
                                        const cvector_t<double> &mat)
 {
   const size_t N = qubits.size();
@@ -1839,8 +1840,8 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
 
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_multiplexer(const reg_t &control_qubits,
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::apply_multiplexer(const reg_t &control_qubits,
                                             const reg_t &target_qubits,
                                             const cvector_t<double>  &mat)
 {
@@ -2030,8 +2031,8 @@ public:
   }
 };
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t<double> &diag)
 {
   const int_t N = qubits.size();
@@ -2135,8 +2136,8 @@ public:
 };
 
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_permutation_matrix(const reg_t& qubits,
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::apply_permutation_matrix(const reg_t& qubits,
              const std::vector<std::pair<uint_t, uint_t>> &pairs)
 {
   const size_t N = qubits.size();
@@ -2220,8 +2221,8 @@ public:
   }
 };
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits) 
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::apply_mcx(const reg_t &qubits) 
 {
 #ifdef AER_TIMING
     TimeStart(QS_GATE_CX);
@@ -2295,8 +2296,8 @@ public:
   }
 };
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_mcy(const reg_t &qubits) 
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::apply_mcy(const reg_t &qubits) 
 {
   apply_function(CY_func<data_t>(qubits), qubits);
 }
@@ -2377,8 +2378,8 @@ public:
   }
 };
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_mcswap(const reg_t &qubits)
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::apply_mcswap(const reg_t &qubits)
 {
   apply_function(CSwap_func<data_t>(qubits), qubits);
 }
@@ -2448,8 +2449,8 @@ public:
 };
 
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVectorThrust<data_t> &src, bool write_back)
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::apply_chunk_swap(const reg_t &qubits, QubitVectorThrust<data_t, Derived> &src, bool write_back)
 {
   int q0,q1,t;
 
@@ -2532,8 +2533,8 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
   }
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, uint_t remote_chunk_index)
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::apply_chunk_swap(const reg_t &qubits, uint_t remote_chunk_index)
 {
   int q0,q1,t;
 
@@ -2648,8 +2649,8 @@ public:
   }
 };
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_mcphase(const reg_t &qubits, const std::complex<double> phase)
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::apply_mcphase(const reg_t &qubits, const std::complex<double> phase)
 {
   apply_function(phase_func<data_t>(qubits,*(thrust::complex<double>*)&phase), qubits );
 }
@@ -2777,8 +2778,8 @@ public:
   }
 };
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::apply_mcu(const reg_t &qubits,
                                     const cvector_t<double> &mat) 
 {
   // Calculate the permutation positions for the last qubit.
@@ -2822,8 +2823,8 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
 // Single-qubit matrices
 //------------------------------------------------------------------------------
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::apply_matrix(const uint_t qubit,
                                        const cvector_t<double>& mat)
 {
   // Check if matrix is diagonal and if so use optimized lambda
@@ -2851,8 +2852,8 @@ void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
 #endif
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_diagonal_matrix(const uint_t qubit,
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::apply_diagonal_matrix(const uint_t qubit,
                                                 const cvector_t<double>& diag) 
 {
 #ifdef AER_TIMING
@@ -2908,8 +2909,8 @@ public:
   }
 };
 
-template <typename data_t>
-double QubitVectorThrust<data_t>::norm() const
+template <typename data_t, typename Derived>
+double QubitVectorThrust<data_t, Derived>::norm() const
 {
   double ret;
   reg_t qubits(1,0);
@@ -2991,8 +2992,8 @@ public:
   }
 };
 
-template <typename data_t>
-double QubitVectorThrust<data_t>::norm(const reg_t &qubits, const cvector_t<double> &mat) const 
+template <typename data_t, typename Derived>
+double QubitVectorThrust<data_t, Derived>::norm(const reg_t &qubits, const cvector_t<double> &mat) const 
 {
   const size_t N = qubits.size();
 
@@ -3058,8 +3059,8 @@ public:
   }
 };
 
-template <typename data_t>
-double QubitVectorThrust<data_t>::norm_diagonal(const reg_t &qubits, const cvector_t<double> &mat) const {
+template <typename data_t, typename Derived>
+double QubitVectorThrust<data_t, Derived>::norm_diagonal(const reg_t &qubits, const cvector_t<double> &mat) const {
 
   const uint_t N = qubits.size();
 
@@ -3128,8 +3129,8 @@ public:
   }
 };
 
-template <typename data_t>
-double QubitVectorThrust<data_t>::norm(const uint_t qubit, const cvector_t<double> &mat) const
+template <typename data_t, typename Derived>
+double QubitVectorThrust<data_t, Derived>::norm(const uint_t qubit, const cvector_t<double> &mat) const
 {
   reg_t qubits = {qubit};
 
@@ -3186,8 +3187,8 @@ public:
   }
 };
 
-template <typename data_t>
-double QubitVectorThrust<data_t>::norm_diagonal(const uint_t qubit, const cvector_t<double> &mat) const
+template <typename data_t, typename Derived>
+double QubitVectorThrust<data_t, Derived>::norm_diagonal(const uint_t qubit, const cvector_t<double> &mat) const
 {
   reg_t qubits = {qubit};
   double ret = apply_function_sum(NormDiagonalMult2x2<data_t>(mat,qubit), qubits);
@@ -3202,8 +3203,8 @@ double QubitVectorThrust<data_t>::norm_diagonal(const uint_t qubit, const cvecto
  * Probabilities
  *
  ******************************************************************************/
-template <typename data_t>
-double QubitVectorThrust<data_t>::probability(const uint_t outcome) const 
+template <typename data_t, typename Derived>
+double QubitVectorThrust<data_t, Derived>::probability(const uint_t outcome) const 
 {
 
   std::complex<data_t> ret;
@@ -3212,8 +3213,8 @@ double QubitVectorThrust<data_t>::probability(const uint_t outcome) const
   return std::real(ret)*std::real(ret) + std::imag(ret) * std::imag(ret);
 }
 
-template <typename data_t>
-std::vector<double> QubitVectorThrust<data_t>::probabilities() const {
+template <typename data_t, typename Derived>
+std::vector<double> QubitVectorThrust<data_t, Derived>::probabilities() const {
   const int_t END = 1LL << num_qubits();
   std::vector<double> probs(END, 0.);
 #ifdef AER_DEBUG
@@ -3283,8 +3284,8 @@ public:
   }
 };
 
-template <typename data_t>
-std::vector<double> QubitVectorThrust<data_t>::probabilities(const reg_t &qubits) const 
+template <typename data_t, typename Derived>
+std::vector<double> QubitVectorThrust<data_t, Derived>::probabilities(const reg_t &qubits) const 
 {
   const size_t N = qubits.size();
   const int_t DIM = 1 << N;
@@ -3311,8 +3312,8 @@ std::vector<double> QubitVectorThrust<data_t>::probabilities(const reg_t &qubits
 //------------------------------------------------------------------------------
 // Sample measure outcomes
 //------------------------------------------------------------------------------
-template <typename data_t>
-reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds) const
+template <typename data_t, typename Derived>
+reg_t QubitVectorThrust<data_t, Derived>::sample_measure(const std::vector<double> &rnds) const
 {
 /*  const int_t SHOTS = rnds.size();
   reg_t samples;
@@ -3473,8 +3474,8 @@ public:
   }
 };
 
-template <typename data_t>
-double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
+template <typename data_t, typename Derived>
+double QubitVectorThrust<data_t, Derived>::expval_pauli(const reg_t &qubits,
                                                const std::string &pauli) const 
 {
   // Break string up into Z and X
@@ -3551,8 +3552,8 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
 
 #ifdef AER_DEBUG
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::DebugMsg(const char* str,const reg_t &qubits) const
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::DebugMsg(const char* str,const reg_t &qubits) const
 {
   if(debug_fp != NULL){
     fprintf(debug_fp," [%d] %s : %d (",debug_count,str,qubits.size());
@@ -3566,8 +3567,8 @@ void QubitVectorThrust<data_t>::DebugMsg(const char* str,const reg_t &qubits) co
   debug_count++;
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::DebugMsg(const char* str,const int qubit) const
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::DebugMsg(const char* str,const int qubit) const
 {
   if(debug_fp != NULL){
     fprintf(debug_fp," [%d] %s : (%d) \n",debug_count,str,qubit);
@@ -3576,8 +3577,8 @@ void QubitVectorThrust<data_t>::DebugMsg(const char* str,const int qubit) const
   debug_count++;
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::DebugMsg(const char* str) const
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::DebugMsg(const char* str) const
 {
   if(debug_fp != NULL){
     fprintf(debug_fp," [%d] %s \n",debug_count,str);
@@ -3586,8 +3587,8 @@ void QubitVectorThrust<data_t>::DebugMsg(const char* str) const
   debug_count++;
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::DebugMsg(const char* str,const std::complex<double> c) const
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::DebugMsg(const char* str,const std::complex<double> c) const
 {
   if(debug_fp != NULL){
     fprintf(debug_fp," [%d] %s : %e, %e \n",debug_count,str,std::real(c),imag(c));
@@ -3596,8 +3597,8 @@ void QubitVectorThrust<data_t>::DebugMsg(const char* str,const std::complex<doub
   debug_count++;
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::DebugMsg(const char* str,const double d) const
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::DebugMsg(const char* str,const double d) const
 {
   if(debug_fp != NULL){
     fprintf(debug_fp," [%d] %s : %e \n",debug_count,str,d);
@@ -3606,8 +3607,8 @@ void QubitVectorThrust<data_t>::DebugMsg(const char* str,const double d) const
   debug_count++;
 }
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::DebugMsg(const char* str,const std::vector<double>& v) const
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::DebugMsg(const char* str,const std::vector<double>& v) const
 {
   if(debug_fp != NULL){
     fprintf(debug_fp," [%d] %s : <",debug_count,str);
@@ -3624,8 +3625,8 @@ void QubitVectorThrust<data_t>::DebugMsg(const char* str,const std::vector<doubl
 }
 
 
-template <typename data_t>
-void QubitVectorThrust<data_t>::DebugDump(void) const
+template <typename data_t, typename Derived>
+void QubitVectorThrust<data_t, Derived>::DebugDump(void) const
 {
   if(debug_fp != NULL){
     if(num_qubits_ < 10){
@@ -3652,11 +3653,12 @@ void QubitVectorThrust<data_t>::DebugDump(void) const
 
 //------------------------------------------------------------------------------
 } // end namespace QV
+} // namespace AER
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector
-template <typename data_t>
-inline std::ostream &operator<<(std::ostream &out, const QV::QubitVectorThrust<data_t>&qv) {
+template <typename data_t, typename Derived>
+inline std::ostream &operator<<(std::ostream &out, const AER::QV::QubitVectorThrust<data_t, Derived>&qv) {
 
   out << "[";
   size_t last = qv.size() - 1;

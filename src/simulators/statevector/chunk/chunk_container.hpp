@@ -66,6 +66,7 @@
 
 #include "framework/utils.hpp"
 
+namespace AER {
 namespace QV {
 
 template <typename data_t> class Chunk;
@@ -371,7 +372,10 @@ void ChunkContainer<data_t>::UnmapCheckpoint(Chunk<data_t>* buf)
 }
 
 
-}
+//------------------------------------------------------------------------------
+} // end namespace QV
+} // end namespace AER
+//------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 #endif // end module

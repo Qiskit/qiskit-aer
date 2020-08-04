@@ -611,7 +611,7 @@ void Print(uint_fast64_t x, unsigned n)
 {
   for (unsigned i=0; i<n; i++)
   {
-    std::cout<<( (x & (1UL << i) ) >0);
+    std::cout<<( (x & (1ULL << i) ) >0);
   }
   std::cout<<std::endl;
 }

@@ -1,9 +1,10 @@
+stestr>=2.5.0
 cmake!=3.17.1,!=3.17.0
 conan>=1.22.2
 scikit-build
 cython
 asv
-cvxpy>=1.0.0,!=1.0.26,<1.1.0
+cvxpy>=1.0.0
 pylint
 pycodestyle
 Sphinx>=1.8.3
@@ -11,5 +12,4 @@ sphinx-rtd-theme>=0.4.0
 sphinx-tabs>=1.1.11
 sphinx-automodapi
 jupyter-sphinx;python_version<'3.8'
-stestr>=2.5.0
 reno>=3.1.0;python_version>'3.5'

@@ -22,10 +22,11 @@ import numpy as np
 from ..system_models.string_model_parser.string_model_parser import NoiseParser
 from ..qutip_extra_lite import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
+from ..qutip_extra_lite.qobj import Qobj
 from .pulse_sim_options import PulseSimOptions
 from .unitary_controller import run_unitary_experiments
 from .mc_controller import run_monte_carlo_experiments
-from .pulse_utils import td_ode_rhs_static
+from .pulse_utils import get_ode_rhs_functor
 
 
 def pulse_controller(qobj, system_model, backend_options):
@@ -83,7 +84,10 @@ def pulse_controller(qobj, system_model, backend_options):
     estates = [qobj_gen.state(state) for state in ham_model._estates.T[:]]
 
     # initial state set here
-    pulse_sim_desc.initial_state = estates[0]
+    if 'initial_state' in backend_options:
+        pulse_sim_desc.initial_state = Qobj(backend_options['initial_state'])
+    else:
+        pulse_sim_desc.initial_state = estates[0]
 
     # Get dt
     if system_model.dt is None:
@@ -148,7 +152,8 @@ def pulse_controller(qobj, system_model, backend_options):
 
     # solver options
     allowed_solver_options = ['atol', 'rtol', 'nsteps', 'max_step',
-                              'num_cpus', 'norm_tol', 'norm_steps']
+                              'num_cpus', 'norm_tol', 'norm_steps',
+                              'method']
     solver_options = backend_options.get('solver_options', {})
     for key in solver_options:
         if key not in allowed_solver_options:
@@ -433,8 +438,10 @@ class PulseInternalDEModel:
         # Init register
         register = np.ones(self.n_registers, dtype=np.uint8)
 
+        ode_rhs_obj = get_ode_rhs_functor(self._rhs_dict, exp, self.system, channels, register)
+
         def rhs(t, y):
-            return td_ode_rhs_static(t, y, self._rhs_dict, exp, self.system, channels, register)
+            return ode_rhs_obj(t, y)
 
         return rhs
 

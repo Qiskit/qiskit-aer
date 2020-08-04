@@ -19,6 +19,7 @@
 #include "simulators/statevector/chunk/device_chunk_container.hpp"
 #include "simulators/statevector/chunk/host_chunk_container.hpp"
 
+namespace AER {
 namespace QV {
 
 
@@ -208,7 +209,10 @@ public:
 };
 
 
-}
+//------------------------------------------------------------------------------
+} // end namespace QV
+} // end namespace AER
+//------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 #endif // end module

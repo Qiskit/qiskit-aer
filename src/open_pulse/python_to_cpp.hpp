@@ -26,7 +26,10 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #endif
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #include <numpy/arrayobject.h>
+DISABLE_WARNING_POP
 #include "ordered_map.hpp"
 #include "types.hpp"
 #include "iterators.hpp"
@@ -329,13 +332,6 @@ class NpArray {
     const VecType& operator[](size_t index) const {
         return data[index];
     }
-
-    NpArray& operator=(const NpArray<VecType>& other){
-		data = reinterpret_cast<VecType *>(other.data);
-        size = other.size;
-		shape = other.shape;
-		return *this;
-	}
 
     bool operator==(const NpArray<VecType>& other) const {
         if(other.size != size ||

@@ -20,6 +20,12 @@
 #include <mpi.h>
 #endif
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#elif defined(__GNUC__)
+#include <cpuid.h>
+#endif
+
 #include "version.hpp"
 // Simulator
 #include "controllers/qasm_controller.hpp"

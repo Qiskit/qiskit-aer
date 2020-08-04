@@ -1,6 +1,17 @@
 #include <iostream>
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#elif defined(__GNUC__)
+#ifndef __PPC64__
+#include <cpuid.h>
+#endif
+#endif
+
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #include <pybind11/pybind11.h>
+DISABLE_WARNING_POP
 
 #include "framework/matrix.hpp"
 #include "framework/types.hpp"
