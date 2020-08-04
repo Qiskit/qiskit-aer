@@ -1081,7 +1081,7 @@ void QubitVector<data_t, Derived>::apply_diagonal_matrix(const reg_t &qubits,
       int_t iv = 0;
       for (int_t j = 0; j < qubits.size(); j++)
         if ((k & (1ULL << qubits[j])) != 0)
-          iv += (1 << j);
+          iv += (1ULL << j);
       if (_diag[iv] != (data_t) 1.0)
         data_[k] *= _diag[iv];
     }
