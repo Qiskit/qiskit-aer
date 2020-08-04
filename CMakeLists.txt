@@ -1,7 +1,7 @@
 # CMake config file to build AER
 #
 # For Linux and Mac, we can build both statically or dynamically. The latter is
-# the default. If you want to build an static executable/library, you need to set
+# the default. If you want to build a static executable/library, you need to set
 # STATIC_LINKING to True, example:
 #     out$ cmake -DSTATIC_LINKING=True ..
 #
@@ -27,7 +27,7 @@ if(NOT DEFINED AER_BLAS_LIB_PATH AND DEFINED ENV{AER_BLAS_LIB_PATH})
 	set(AER_BLAS_LIB_PATH $ENV{AER_BLAS_LIB_PATH})
 endif()
 
-# Warning: Because of a bug on CMake's FindBLAS or (it's not clear whoes fault is)
+# Warning: Because of a bug on CMake's FindBLAS or (it's not clear who's fault is)
 # libopenblas.a for Ubuntu (maybe others) we need to copy the file:
 # cmake/FindBLAS.cmake.fix-static-linking, to the directory were CMake Modules are
 # installed in the system, but with the name: FindBLAS.cmake
