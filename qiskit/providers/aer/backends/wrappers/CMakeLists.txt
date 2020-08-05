@@ -19,9 +19,9 @@ if(CUDA_FOUND)
     set_source_files_properties(bindings.cc PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
     set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} --compiler-options ${SIMD_FLAGS}")
     set_target_properties(controller_wrappers PROPERTIES
-                          COMPILE_FLAGS "--compiler-options ${AER_COMPILER_FLAGS}")
+                          COMPILE_FLAGS "${AER_COMPILER_FLAGS_EXPANDED}")
 else()
-    set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS ${SIMD_FLAGS})
+    set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${SIMD_FLAGS}")
 endif()
 target_include_directories(controller_wrappers PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
                                                PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
