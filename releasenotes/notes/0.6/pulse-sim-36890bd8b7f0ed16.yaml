@@ -3,7 +3,6 @@ features:
   - |
     Add support for ``Delay``, ``Phase`` and ``SetPhase`` pulse instructions
     to the :class:`qiskit.providers.aer.PulseSimulator`.
-upgrade:
   - |
     Improve the performance of the :class:`qiskit.providers.aer.PulseSimulator`
     by caching calls to RHS function

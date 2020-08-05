@@ -1,5 +1,5 @@
 ---
-upgrade:
+features:
   - |
     Improves the performance of the `"statevector"` simulation method of the
     :class:`qiskit.providers.aer.QasmSimulator` and 

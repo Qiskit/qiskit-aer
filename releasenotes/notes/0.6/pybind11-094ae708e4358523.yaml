@@ -1,5 +1,5 @@
 ---
-upgrade:
+features:
   - |
     Improve performance of simulator result classes by using move semantics
     and removing unnecessary copies that were happening when combining results

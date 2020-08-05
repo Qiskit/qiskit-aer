@@ -6,7 +6,6 @@ features:
     Add snapshots to circuits using the
     :class:`qiskit.providers.aer.extensions.SnapshotExpectationValue`
     extension.
-upgrade:
   - |
     Greatly improves performance of the Pauli expectation value snapshot
     algorithm for the `"statevector"`, `"statevector_gpu`, `"density_matrix"`,
