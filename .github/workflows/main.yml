@@ -18,7 +18,7 @@ jobs:
           python -m pip install cibuildwheel==1.5.5
       - name: Build wheels
         env:
-          CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda-repo-rhel6-10-1-local-10.1.105-418.39-1.0-1.x86_64.rpm && rpm -i cuda-repo-rhel6-10-1-local-10.1.105-418.39-1.0-1.x86_64.rpm && yum clean all && yum -y install cuda<10.2"
+          CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda-repo-rhel6-10-1-local-10.1.105-418.39-1.0-1.x86_64.rpm && rpm -i cuda-repo-rhel6-10-1-local-10.1.105-418.39-1.0-1.x86_64.rpm && yum clean all && yum -y install cuda"
           CIBW_BEFORE_BUILD: "pip install -U Cython pip virtualenv pybind11"
           CIBW_SKIP: "cp27-* cp34-* *-manylinux_i686 pp*"
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2010"
