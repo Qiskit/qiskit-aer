@@ -135,9 +135,9 @@ set(AER_LINKER_FLAGS " ")
 
 # This limit is hit building the Python plugin for CUDA
 if(APPLE OR UNIX)
-	set(AER_COMPILER_FLAGS " ")
+	set(AER_COMPILER_FLAGS "")
 elseif(MSVC)
-	set(AER_COMPILER_FLAGS " /bigobj")
+	set(AER_COMPILER_FLAGS "/bigobj")
 endif()
 
 message(STATUS "Looking for OpenMP support...")
@@ -279,7 +279,7 @@ else() # Standalone build
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} \"${SIMD_FLAGS_OUT}\"")
 		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
-                set(L ${AER_COMPILER_FLAGS})
+  		string(REPLACE " " ";" L ${AER_COMPILER_FLAGS})
   		list(TRANSFORM L PREPEND " --compile-options ")
   		string(REPLACE ";" " " AER_COMPILER_FLAGS_OUT ${L})
 		set_target_properties(qasm_simulator PROPERTIES
@@ -290,7 +290,8 @@ else() # Standalone build
 			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	else()
-		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS ${SIMD_FLAGS})
+  		string(REPLACE ";" " " SIMD_FLAGS_OUT ${SIMD_FLAGS})
+		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS ${SIMD_FLAGS_OUT})
 		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
 		set_target_properties(qasm_simulator PROPERTIES
