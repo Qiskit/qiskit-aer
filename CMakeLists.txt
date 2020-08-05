@@ -279,7 +279,8 @@ else() # Standalone build
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} \"${SIMD_FLAGS_OUT}\"")
 		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
-  		string(REPLACE " " ";" L ${AER_COMPILER_FLAGS})
+		string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
+  		string(REPLACE " " ";" L ${AER_COMPILER_FLAGS_STRIPPED})
   		list(TRANSFORM L PREPEND " --compile-options ")
   		string(REPLACE ";" " " AER_COMPILER_FLAGS_OUT ${L})
 		set_target_properties(qasm_simulator PROPERTIES
