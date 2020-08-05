@@ -58,7 +58,7 @@ is that if your code contribution has user facing changes that you will write
 the release documentation for these changes. This documentation must explain
 what was changed, why it was changed, and how users can either use or adapt
 to the change. The idea behind release documentation is that when a naive
-user with limited internal knowledege of the project is upgrading from the
+user with limited internal knowledge of the project is upgrading from the
 previous release to the new one, they should be able to read the release notes,
 understand if they need to update their program which uses qiskit, and how they
 would go about doing that. It ideally should explain why they need to make
@@ -237,21 +237,26 @@ fixes.
 We recommend using Python virtual environments to cleanly separate Qiskit from
 other applications and improve your experience.
 
-The simplest way to use environments is by using *Anaconda* in a terminal
+- The simplest way to use environments is by using *Anaconda* in a terminal
 window
-
+```
     $ conda create -y -n QiskitDevEnv python=3
     $ conda activate QiskitDevEnv
+```
 
-Clone the `Qiskit Aer` repo via *git*.
-
+- Clone the `Qiskit Aer` repo via *git*.
+```
     $ git clone https://github.com/Qiskit/qiskit-aer
+```
 
-Most of the required dependencies can be installed via *pip*, using the
+- Next, install the platform-specific dependencies for your operating system [Linux](#linux-dependencies) | [macOS](#mac-dependencies) | [Windows](#win-dependencies). 
+
+- The common dependencies can then be installed via *pip*, using the
 `requirements-dev.txt` file, e.g.:
-
+```
     $ cd qiskit-aer
     $ pip install -r requirements-dev.txt
+```
 
 This will also install [**Conan**](https://conan.io/), a C/C++ package manager written in Python. This tool will handle 
 most of the dependencies needed by the C++ source code. Internet connection may be needed for the first build or 
@@ -263,9 +268,13 @@ If we are only building the standalone version and do not want to install all Py
 
     $ pip install conan
 
+You're now ready to build from source! Follow the instructions for your platform: [Linux](#linux-build) | [macOS](#mac-build) | [Windows](#win-build)
+
 ### Linux
 
 Qiskit is officially supported on Red Hat, CentOS, Fedora and Ubuntu distributions, as long as you can install a GCC version that is C++14 compatible and the few dependencies we need.
+
+#### <a name="linux-dependencies"> Dependencies </a>
 
 To get most of the necessary compilers and libraries, install the *development environment* tools from your Linux distribution by running
 
@@ -295,6 +304,7 @@ Ubuntu
 
     $ apt-get install git
 
+#### <a name="linux-build"> Build </a>
 
 There are two ways of building `Aer` simulators, depending on your goal:
 
@@ -369,10 +379,12 @@ Because the standalone version of `Aer` doesn't need Python at all, the build sy
 based on CMake, just like most of other C++ projects. So in order to pass all the different
 options we have on `Aer` to CMake we use it's native mechanism:
 
-    qiskit-aer/out$ cmake -DCMAKE_CXX_COMPILER=g++-9 -DBLAS_LIB_PATH=/path/to/my/blas ..
+    qiskit-aer/out$ cmake -DCMAKE_CXX_COMPILER=g++-9 -DAER_BLAS_LIB_PATH=/path/to/my/blas ..
 
 
 ### macOS
+
+#### <a name="mac-dependencies"> Dependencies </a>
 
 There are various methods depending on the compiler we want to use. If we want
 to use the *Clang* compiler, we need to install an extra library for
@@ -384,6 +396,8 @@ otherwise. To install it manually, in a terminal window, run:
 You further need to have *Xcode Command Line Tools* installed on macOS:
 
     $ xcode-select --install
+
+#### <a name="mac-build"> Build </a>
 
 There are two ways of building `Aer` simulators, depending on your goal:
 
@@ -457,11 +471,13 @@ Because the standalone version of `Aer` doesn't need Python at all, the build sy
 based on CMake, just like most of other C++ projects. So in order to pass all the different
 options we have on `Aer` to CMake we use it's native mechanism:
 
-    qiskit-aer/out$ cmake -DCMAKE_CXX_COMPILER=g++-9 -DBLAS_LIB_PATH=/path/to/my/blas ..
+    qiskit-aer/out$ cmake -DCMAKE_CXX_COMPILER=g++-9 -DAER_BLAS_LIB_PATH=/path/to/my/blas ..
 
 
 
 ### Windows
+
+#### <a name="win-dependencies"> Dependencies </a>
 
 On Windows, you must have *Anaconda3* installed. We recommend also installing
 *Visual Studio 2017 Community Edition* or *Visual Studio 2019 Community Edition*.
@@ -484,6 +500,8 @@ you have to make sure that the path to the *Visual Studio* tools has precedence 
 can get the correct one.
 There's a (recommended) way to force the build system to use the one you want by using CMake `-G` parameter. Will talk
 about this and other parameters later.
+
+#### <a name="win-build"> Build </a>
 
 **Python extension**
 
@@ -552,7 +570,7 @@ Because the standalone version of `Aer` doesn't need Python at all, the build sy
 based on CMake, just like most of other C++ projects. So in order to pass all the different
 options we have on `Aer` to CMake we use it's native mechanism:
 
-    (QiskitDevEnv) qiskit-aer\out> cmake -G "Visual Studio 15 2017" -DBLAS_LIB_PATH=c:\path\to\my\blas ..
+    (QiskitDevEnv) qiskit-aer\out> cmake -G "Visual Studio 15 2017" -DAER_BLAS_LIB_PATH=c:\path\to\my\blas ..
 
 
 ### Building with GPU support
@@ -622,14 +640,16 @@ These are the flags:
     Default: No value.
     Example: ``python ./setup.py bdist_wheel -- -DUSER_LIB_PATH=C:\path\to\openblas\libopenblas.so``
 
-* BLAS_LIB_PATH
+* AER_BLAS_LIB_PATH
 
     Tells CMake the directory to look for the BLAS library instead of the usual paths.
     If no BLAS library is found under that directory, CMake will raise an error and stop.
+    
+    It can also be set as an ENV variable with the same name, although the flag takes precedence.
 
     Values: An absolute path.
     Default: No value.
-    Example: ``python ./setup.py bdist_wheel -- -DBLAS_LIB_PATH=/path/to/look/for/blas/``
+    Example: ``python ./setup.py bdist_wheel -- -DAER_BLAS_LIB_PATH=/path/to/look/for/blas/``
 
 * BUILD_TESTS
 
@@ -661,7 +681,7 @@ These are the flags:
 
 * AER_CUDA_ARCH
 
-    This flag allows us we to specify the CUDA architecture instead of letting the build systemm auto detect it.
+    This flag allows us we to specify the CUDA architecture instead of letting the build system auto detect it.
     It can also be set as an ENV variable with the same name, although the flag takes precedence.
     
     Values:  Auto | Common | All | List of valid CUDA architecture(s).
@@ -689,7 +709,7 @@ The integration tests for Qiskit python extension are included in: `test/terra`.
 
 ## Platform support
 
-Bare in mind that every new feature/change needs to be compatible with all our
+Bear in mind that every new feature/change needs to be compatible with all our
 supported platforms: Win64, MacOS (API Level >= 19) and Linux-x86_64. The
 Continuous Integration (CI) systems will run builds and pass all the
 corresponding tests to verify this compatibility.

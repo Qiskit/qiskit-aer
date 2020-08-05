@@ -79,6 +79,7 @@ double mysecond()
 #define AER_CHUNK_BITS        21
 #define AER_MAX_BUFFERS       2
 
+namespace AER {
 namespace QV {
 
 // Type aliases
@@ -4653,11 +4654,12 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
 
 //------------------------------------------------------------------------------
 } // end namespace QV
+} // namespace AER
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector
 template <typename data_t>
-inline std::ostream &operator<<(std::ostream &out, const QV::QubitVectorThrust<data_t>&qv) {
+inline std::ostream &operator<<(std::ostream &out, const AER::QV::QubitVectorThrust<data_t>&qv) {
 
   out << "[";
   size_t last = qv.size() - 1;

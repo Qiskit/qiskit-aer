@@ -1508,7 +1508,7 @@ std::string bin2hex(std::string str, bool prefix) {
     hex += part;
     // Add any additional chunks
     for (size_t j=1; j < chunks; ++j) {
-      ss = std::stringstream(); // clear string stream
+      std::stringstream ss; // clear string stream
       ss << std::hex << std::stoull(str.substr(remain + j * bin_block, bin_block), nullptr, 2);
       part = ss.str();
       part.insert(0, hex_block - part.size(), '0');

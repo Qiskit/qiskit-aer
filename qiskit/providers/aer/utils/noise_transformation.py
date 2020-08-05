@@ -286,7 +286,7 @@ class NoiseTransformer:
         self.named_operators = {
             'pauli': pauli_operators(),
             'reset': reset_operators(),
-            'clifford': [{j: single_qubit_clifford_instructions(j) for j in range(24)}]
+            'clifford': [{j: single_qubit_clifford_instructions(j) for j in range(1, 24)}]
         }
         self.fidelity_data = None
         self.use_honesty_constraint = True
