@@ -191,6 +191,12 @@ if(NOT MSVC)
 	endif()
 endif()
 
+if(APPLE OR UNIX)
+	set(SIMD_FLAGS "-mfma;-mavx2")
+elseif(MSVC)
+	set(SIMD_FLAGS "/arch:AVX2")
+endif()
+
 # GPU support through Thrust library (CPU fallbacks)
 # Defaults to TRUE, but if no Thrust backend has been defined, will set to FALSE
 set(AER_THRUST_SUPPORTED TRUE)
@@ -210,11 +216,6 @@ if(AER_THRUST_SUPPORTED)
 		string(REPLACE ";" " "  AER_CUDA_ARCH_FLAGS_EXPAND "${AER_CUDA_ARCH_FLAGS}")
 		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin \"${CMAKE_CXX_COMPILER}\" ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
 		string(REPLACE "  " " " AER_COMPILER_FLAGS_NOSPACE ${AER_COMPILER_FLAGS})
-		if(APPLE OR UNIX)
-			set(SIMD_FLAGS "-mfma;-mavx2")
-		elseif(MSVC)
-			set(SIMD_FLAGS "/arch:AVX2")
-		endif()
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDANT_LIBS "")
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
@@ -276,7 +277,7 @@ else() # Standalone build
                 set(L ${SIMD_FLAGS})
   		list(TRANSFORM L PREPEND " --compiler-options ")
   		string(REPLACE ";" " " SIMD_FLAGS_OUT ${L})
-		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} \"${SIMD_FLAGS_OUT}\"")
+		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS_OUT}")
 		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
 		string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
@@ -286,13 +287,13 @@ else() # Standalone build
 		set_target_properties(qasm_simulator PROPERTIES
 			LINKER_LANGUAGE CXX
 			CXX_STANDARD 14
-			COMPILE_FLAGS "${AER_COMPILER_FLAGS_OUT}"
+			COMPILE_FLAGS ${AER_COMPILER_FLAGS_OUT}
 			LINK_FLAGS ${AER_LINKER_FLAGS}
 			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
 	else()
-  		string(REPLACE ";" " " SIMD_FLAGS_OUT ${SIMD_FLAGS})
-		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS ${SIMD_FLAGS_OUT})
+  		string(REPLACE ";" " " SIMD_FLAGS_OUT "${SIMD_FLAGS}")
+		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${SIMD_FLAGS_OUT}")
 		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
 		set_target_properties(qasm_simulator PROPERTIES
