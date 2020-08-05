@@ -13,7 +13,7 @@ set(SIMD_SOURCE_FILE "../../../../../src/simulators/statevector/qv_avx2.cpp")
 set(AER_SIMULATOR_SOURCES "bindings.cc" "${SIMD_SOURCE_FILE}")
 basic_pybind11_add_module(controller_wrappers "${AER_SIMULATOR_SOURCES}")
 
-if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
+if(AER_THRUST_BACKEND STREQUAL "CUDA")
     set_source_files_properties(bindings.cc PROPERTIES LANGUAGE CUDA)
     set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
     set_source_files_properties(bindings.cc PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
