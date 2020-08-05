@@ -10,21 +10,29 @@ string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 # We build SIMD filed separately, because they will be reached only if the
 # machine running the code has SIMD support
 set(SIMD_SOURCE_FILE "../../../../../src/simulators/statevector/qv_avx2.cpp")
-if(APPLE OR UNIX)
-    set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
-elseif(MSVC)
-    set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
+set(AER_SIMULATOR_SOURCES "bindings.cc" "${SIMD_SOURCE_FILE}")
+basic_pybind11_add_module(controller_wrappers "${AER_SIMULATOR_SOURCES}")
+
+if(AER_THRUST_BACKEND STREQUAL "CUDA")
+    set_source_files_properties(bindings.cc PROPERTIES LANGUAGE CUDA)
+    set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
+    set_source_files_properties(bindings.cc PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
+
+    set(L ${SIMD_FLAGS_LIST})
+    list(TRANSFORM L PREPEND " --compiler-options ")
+    string(REPLACE ";" " " SIMD_FLAGS_OUT ${L})
+    set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS_OUT}")
+
+    string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
+    string(REPLACE " " ";" L ${AER_COMPILER_FLAGS_STRIPPED})
+    list(TRANSFORM L PREPEND " --compiler-options ")
+    string(REPLACE ";" " " AER_COMPILER_FLAGS_OUT ${L})
+    set_target_properties(controller_wrappers PROPERTIES COMPILE_FLAGS "${AER_COMPILER_FLAGS_OUT}")
+else()
+    string(REPLACE ";" " " SIMD_FLAGS "${SIMD_FLAGS_LIST}")
+    set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${SIMD_FLAGS}")
+    set_target_properties(controller_wrappers PROPERTIES COMPILE_FLAGS "${AER_COMPILER_FLAGS}")
 endif()
-
-set(AER_SIMULATOR_SOURCES "bindings.cc"
-     "${SIMD_SOURCE_FILE}")
-
-if(CUDA_FOUND)
-    set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES
-        CUDA_SOURCE_PROPERTY_FORMAT OBJ)
-endif()
-
-basic_pybind11_add_module(controller_wrappers ${AER_SIMULATOR_SOURCES})
 target_include_directories(controller_wrappers PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
                                                PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 target_link_libraries(controller_wrappers ${AER_LIBRARIES})
