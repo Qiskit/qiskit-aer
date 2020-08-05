@@ -135,9 +135,9 @@ set(AER_LINKER_FLAGS " ")
 
 # This limit is hit building the Python plugin for CUDA
 if(APPLE OR UNIX)
-	set(AER_COMPILER_FLAGS "")
+	set(AER_COMPILER_FLAGS " ")
 elseif(MSVC)
-	set(AER_COMPILER_FLAGS "/bigobj")
+	set(AER_COMPILER_FLAGS " /bigobj")
 endif()
 
 message(STATUS "Looking for OpenMP support...")
