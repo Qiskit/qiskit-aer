@@ -281,7 +281,7 @@ else() # Standalone build
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
 		string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
   		string(REPLACE " " ";" L ${AER_COMPILER_FLAGS_STRIPPED})
-  		list(TRANSFORM L PREPEND " --compile-options ")
+  		list(TRANSFORM L PREPEND " --compiler-options ")
   		string(REPLACE ";" " " AER_COMPILER_FLAGS_OUT ${L})
 		set_target_properties(qasm_simulator PROPERTIES
 			LINKER_LANGUAGE CXX
