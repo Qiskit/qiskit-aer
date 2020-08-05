@@ -24,6 +24,7 @@
 
 #include "framework/utils.hpp"
 #include "framework/matrix.hpp"
+#include "framework/linalg/almost_equal.hpp"
 
 #include "matrix_product_state_internal.hpp"
 #include "matrix_product_state_tensor.hpp"
@@ -39,7 +40,8 @@ static const cmatrix_t one_measure =
 			                 {{0, 0}, {1, 0}}});
   uint_t MPS::omp_threads_ = 1;     
   uint_t MPS::omp_threshold_ = 14;  
-  int MPS::sample_measure_index_size_ = 10; 
+  uint_t MPS::sample_measure_index_size_ = 26; 
+  uint_t MPS::sample_measure_shots_thresh_ = 10; 
   double MPS::json_chop_threshold_ = 1E-8;  
 //------------------------------------------------------------------------
 // local function declarations
@@ -104,6 +106,10 @@ std::string sort_paulis_by_qubits(const std::string &paulis,
 				  const reg_t &qubits);
 
 bool is_ordered(const reg_t &qubits);
+
+uint_t binary_search(const rvector_t &acc_probvector, 
+		     uint_t start, uint_t end, 
+		     double rnd);
 //------------------------------------------------------------------------
 // local function implementations
 //------------------------------------------------------------------------
@@ -1133,6 +1139,73 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
   // reverse to be consistent with qasm ordering
   probvector = reverse_all_bits(temp_probvector, num_qubits);
 }
+
+void MPS::get_accumulated_probabilities_vector(rvector_t& acc_probvector, 
+					       reg_t& index_vec,
+					       const reg_t &qubits) const
+{
+  rvector_t probvector;
+  get_probabilities_vector(probvector, qubits);
+  uint_t size = probvector.size();
+  uint_t j = 1;
+  acc_probvector.push_back(0.0);
+  for (uint_t i=0; i<size; i++) {
+    if (!Linalg::almost_equal(probvector[i], 0.0)) {
+      index_vec.push_back(i);
+      acc_probvector.push_back(acc_probvector[j-1] + probvector[i]);
+      j++;
+    }
+  }
+}
+
+uint_t binary_search(const rvector_t &acc_probvector, 
+		     uint_t start, uint_t end, 
+		     double rnd) {
+  if (start >= end-1) {
+    return start;
+  }
+  uint_t mid = (start+end)/2;
+  if (rnd <= acc_probvector[mid])
+    return binary_search(acc_probvector, start, mid, rnd);
+  else 
+    return binary_search(acc_probvector, mid, end, rnd);
+}
+
+//------------------------------------------------------------------------------
+// Sample measure outcomes - this method is similar to QubitVector::sample_measure, 
+// with 2 differences:
+// 1. We use accumulated probabilities which we prepare in advance, rather than summing up the 
+// probabilites during the algorithm
+// 2. We use binary search to locate the index of rnd, rather than linear search. This is 
+// possible since the accumulated probabilities vector is increasing
+
+//-----------------------------------------------------------------------------
+reg_t MPS::sample_measure_using_probabilities(const rvector_t &rnds, 
+					      const reg_t &qubits) const {
+  const uint_t SHOTS = rnds.size();
+  reg_t samples;
+  samples.assign(SHOTS, 0);
+  rvector_t acc_probvector;
+  reg_t index_vec;
+  get_accumulated_probabilities_vector(acc_probvector, index_vec, qubits);
+
+ uint_t accvec_size = acc_probvector.size();
+ uint_t rnd_index;
+  #pragma omp parallel if (SHOTS > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    {
+      #pragma omp for
+  for (int_t i = 0; i < SHOTS; ++i) {
+    double rnd = rnds[i];
+
+    rnd_index = binary_search(acc_probvector, 
+			       0, accvec_size-1, rnd);
+    samples[i] = index_vec[rnd_index];
+  }
+ }// end omp parallel
+
+  return samples;
+}
+
 
 reg_t MPS::apply_measure(const reg_t &qubits, 
 			 RngEngine &rng) {
