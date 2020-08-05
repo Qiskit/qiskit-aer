@@ -11,7 +11,7 @@ There you'll find a bunch of `*_benchmarks.py` files which represent the differe
 
 
 # How to run the benchmarks
-All prerequistes for building the project need to be installed in the system, take a look at the [CONTRIBUTING guide](.github/CONTRIBUTING.md) if you don't have them already installed.
+All prerequisites for building the project need to be installed in the system, take a look at the [CONTRIBUTING guide](.github/CONTRIBUTING.md) if you don't have them already installed.
 
 Install Airspeed Velocity (`ASV`):
 ```
@@ -23,7 +23,7 @@ Move to the `test` directory:
 $ cd test
 ```
 
-And run `asv` using the correct configuration file, depeding on what O.S. you are executing them:
+And run `asv` using the correct configuration file, depending on what O.S. you are executing them:
 Linux:
 ```
 $ asv run --config asv.linux.conf.json
@@ -41,7 +41,7 @@ After the completion of the tests, you will see the results with a format simila
 ```
 · Creating environments
 · Discovering benchmarks
-· Running 3 total benchmarks (1 commits * 1 environments * 3 benchmarks)
+· Running 3 total benchmarks (1 commit * 1 environment * 3 benchmarks)
 [  0.00%] · For qiskit-aer commit 8b4f4de1 <master>:
 [  0.00%] ·· Benchmarking conda-py3.7
 [ 16.67%] ··· Running (quantum_volume_benchmarks.QuantumVolumeTimeSuite.time_quantum_volume--)..
@@ -83,7 +83,7 @@ After the completion of the tests, you will see the results with a format simila
 
 # Interpreting the data
 
-The output format is pretty self-explanatory, so every row starting with the text: `Num. quits:` repesents all the benchmarks run for this number of quibits configuration, more precisely, we run 4 benchmarks for every number of qubits configuration, and each of the benchmarks are run with a different noise model, so for example, this line:
+The output format is pretty self-explanatory, so every row starting with the text: `Num. quits:` represents all the benchmarks run for this number of qubits configuration, more precisely, we run 4 benchmarks for every number of qubits configuration, and each of the benchmarks are run with a different noise model, so for example, this line:
 ```
   Quantum Volume   No Noise   Mixed Unitary Noise   Reset Noise   Kraus Noise
 ================= ========== ===================== ============= =============
