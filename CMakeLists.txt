@@ -14,6 +14,7 @@ file(STRINGS "qiskit/providers/aer/VERSION.txt" VERSION_NUM)
 include(CheckLanguage)
 project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
+  include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
   enable_language(CUDA)
 else()
   # idiosyncrasy of CMake that it still creates a reference to this
@@ -40,7 +41,6 @@ include(compiler_utils)
 include(Linter)
 include(findBLASInSpecificPath)
 include(conan_utils)
-include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
 
 # Get version information
 get_version(${VERSION_NUM})
