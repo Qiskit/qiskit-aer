@@ -250,6 +250,8 @@ StateChunk<state_t>::StateChunk(const Operations::OpSet &opset) : opset_(opset)
 template <class state_t>
 StateChunk<state_t>::~StateChunk(void)
 {
+  qregs_.clear();
+
   chunk_index_begin_.clear();
   chunk_index_end_.clear();
 }

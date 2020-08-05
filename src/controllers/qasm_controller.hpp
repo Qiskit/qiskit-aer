@@ -23,7 +23,9 @@
 #include "simulators/matrix_product_state/matrix_product_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/statevector/qubitvector.hpp"
+#ifndef __PPC64__
 #include "simulators/statevector/qubitvector_avx2.hpp"
+#endif
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/statevector/statevector_state_chunk.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
@@ -422,6 +424,11 @@ void QasmController::run_circuit(const Circuit& circ,
 #endif
         }
         // Double-precision Statevector simulation
+        if(multiple_qregs_){
+          return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<double>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector, data);
+        }
         return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
             circ, noise, config, shots, rng_seed, initial_statevector_,
             Method::statevector, data);
@@ -436,6 +443,11 @@ void QasmController::run_circuit(const Circuit& circ,
 #endif
         }
         // Single-precision Statevector simulation
+        if(multiple_qregs_){
+          return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<float>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector, data);
+        }
         return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
             circ, noise, config, shots, rng_seed, initial_statevector_,
             Method::statevector, data);
