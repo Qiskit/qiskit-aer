@@ -325,7 +325,7 @@ jobs:
             - openblas
       script:
         - sudo pip2 install -U pip virtualenv
-        - sudo pip2 install cibuildwheel==1.5.5 'twine<2.0'
+        - sudo pip2 install cibuildwheel==1.1.0 'twine<2.0'
         - cibuildwheel --output-dir wheelhouse
 #        - twine upload wheelhouse/*
   # Power tests (currently failing)
