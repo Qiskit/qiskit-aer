@@ -13,6 +13,16 @@ file(STRINGS "qiskit/providers/aer/VERSION.txt" VERSION_NUM)
 
 include(CheckLanguage)
 project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
+
+# GPU support through Thrust library (CPU fallbacks)
+# Defaults to TRUE, but if no Thrust backend has been defined, will set to FALSE
+if(NOT DEFINED AER_THRUST_BACKEND)
+    set(AER_THRUST_BACKEND $ENV{AER_THRUST_BACKEND})
+    if(DEFINED AER_THRUST_BACKEND)
+        set(AER_THRUST_SUPPORTED TRUE)
+    endif()
+endif()
+
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
   include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
   enable_language(CUDA)
@@ -195,15 +205,6 @@ if(APPLE OR UNIX)
 	set(SIMD_FLAGS_LIST "-mfma;-mavx2")
 elseif(MSVC)
 	set(SIMD_FLAGS_LIST "/arch:AVX2")
-endif()
-
-# GPU support through Thrust library (CPU fallbacks)
-# Defaults to TRUE, but if no Thrust backend has been defined, will set to FALSE
-if(NOT DEFINED AER_THRUST_BACKEND)
-    set(AER_THRUST_BACKEND $ENV{AER_THRUST_BACKEND})
-    if(DEFINED AER_THRUST_BACKEND)
-        set(AER_THRUST_SUPPORTED TRUE)
-    endif()
 endif()
 
 if(AER_THRUST_SUPPORTED)
