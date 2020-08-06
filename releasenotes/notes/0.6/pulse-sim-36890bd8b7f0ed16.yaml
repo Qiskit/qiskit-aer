@@ -8,4 +8,8 @@ features:
     by caching calls to RHS function
 fixes:
   - |
-    Fixes several minor bugs in the :class:`qiskit.providers.aer.PulseSimulator`.
+  - |
+    Fixes several minor bugs for Hamiltonian parsing edge cases in 
+    :class:`qiskit.providers.aer.pulse.system_models.hamiltonian_model.HamiltonianModel`.
+  - |
+    Fixes a major bug causing incorrect channel evaluation in :class:`qiskit.providers.aer.PulseSimulator`.
