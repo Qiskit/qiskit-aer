@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Add move constructor and improve memory usage of the C++ matrix class
+    to minimize copies of matrices when moving output of simulators into results.
+  - |
+    Improve performance of unitary simulator.

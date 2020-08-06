@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Improves the performance of the `"statevector"` simulation method of the
+    :class:`qiskit.providers.aer.QasmSimulator` and 
+    :class:`qiskit.providers.aer.StatevectorSimulator` by using SIMD
+    intrinsics on systems that support the AVX2 instruction set. AVX2
+    support is automatically detected and enabled at runtime.
