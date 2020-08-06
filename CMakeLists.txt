@@ -178,7 +178,13 @@ endif()
 
 # GPU support through Thrust library (CPU fallbacks)
 # Defaults to TRUE, but if no Thrust backend has been defined, will set to FALSE
-set(AER_THRUST_SUPPORTED TRUE)
+if(NOT DEFINED AER_THRUST_BACKEND)
+    set(AER_THRUST_BACKEND $ENV{AER_THRUST_BACKEND})
+    if(DEFINED AER_THRUST_BACKEND)
+        set(AER_THRUST_SUPPORTED TRUE)
+    endif()
+endif()
+
 if(AER_THRUST_SUPPORTED)
 	if(AER_THRUST_BACKEND STREQUAL "CUDA")
 		message(STATUS "Thrust library: Looking for CUDA backend...")

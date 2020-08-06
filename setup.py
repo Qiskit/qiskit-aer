@@ -9,6 +9,8 @@ import subprocess
 import sys
 import inspect
 
+PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
+
 try:
     from conans import client
 except ImportError:
@@ -69,7 +71,7 @@ with open(README_PATH) as readme_file:
     README = readme_file.read()
 
 setup(
-    name='qiskit-aer',
+    name=PACKAGE_NAME,
     version=VERSION,
     packages=setuptools.find_namespace_packages(include=['qiskit.*']),
     cmake_source_dir='.',
