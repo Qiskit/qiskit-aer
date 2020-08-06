@@ -7,9 +7,12 @@ find_package(Pybind11 REQUIRED)
 # shared library.
 string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-# We build SIMD filed separately, because they will be reached only if the
-# machine running the code has SIMD support
-set(SIMD_SOURCE_FILE "../../../../../src/simulators/statevector/qv_avx2.cpp")
+if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
+  # We build SIMD filed separately, because they will be reached only if the
+  # machine running the code has SIMD support
+  set(SIMD_SOURCE_FILE "../../../../../src/simulators/statevector/qv_avx2.cpp")
+endif()
+
 set(AER_SIMULATOR_SOURCES "bindings.cc" "${SIMD_SOURCE_FILE}")
 basic_pybind11_add_module(controller_wrappers "${AER_SIMULATOR_SOURCES}")
 

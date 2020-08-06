@@ -225,10 +225,12 @@ if(NOT MSVC)
 	endif()
 endif()
 
-if(APPLE OR UNIX)
-	set(SIMD_FLAGS_LIST "-mfma;-mavx2")
-elseif(MSVC)
-	set(SIMD_FLAGS_LIST "/arch:AVX2")
+if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
+	if(APPLE OR UNIX)
+		set(SIMD_FLAGS_LIST "-mfma;-mavx2")
+	elseif(MSVC)
+		set(SIMD_FLAGS_LIST "/arch:AVX2")
+	endif()
 endif()
 
 if(AER_THRUST_SUPPORTED)
@@ -295,9 +297,11 @@ if(SKBUILD) # Terra Addon build
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
 
-	# We build SIMD filed separately, because they will be reached only if the
-	# machine running the code has SIMD support
-	set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+        if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
+	  # We build SIMD filed separately, because they will be reached only if the
+	  # machine running the code has SIMD support
+	  set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+        endif()
 
 	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
