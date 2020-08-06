@@ -58,7 +58,9 @@ configure_file("${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp.in"
                "${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp")
 
 set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-set(AER_SIMULATOR_CPP_EXTERNAL_LIBS "${USER_LIB_PATH}")
+set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
+	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
+	"${USER_LIB_PATH}")
 
 set(AER_COMPILER_DEFINITIONS "")
 
@@ -186,11 +188,33 @@ if(STATIC_LINKING)
 	set(BLA_STATIC TRUE)
 endif()
 
-if(AER_BLAS_LIB_PATH)
-	find_BLAS_in_specific_path(${AER_BLAS_LIB_PATH})
-else()
-	set(BLAS_LIBRARIES CONAN_PKG::openblas)
+if(STATIC_LINKING)
+	message(STATUS "Setting BLA_STATIC")
+	set(BLA_STATIC TRUE)
 endif()
+
+if(BLAS_LIB_PATH)
+	find_BLAS_in_specific_path(${BLAS_LIB_PATH})
+else()
+	if(APPLE)
+		message(STATUS  "Looking for Apple BLAS library...")
+		set(BLA_VENDOR "Apple")
+	else()
+		message(STATUS "Looking for OpenBLAS library...")
+		set(BLA_VENDOR "OpenBLAS")
+	endif()
+	if(WIN32)
+		message(STATUS "Uncompressing OpenBLAS static library...")
+		execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/openblas.7z" WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/")
+	endif()
+	find_package(BLAS QUIET)
+	if(NOT BLAS_FOUND)
+		message(STATUS "OpenBLAS not found. Looking for any other BLAS library...")
+		unset(BLA_VENDOR)
+		find_package(BLAS REQUIRED)
+	endif()
+endif()
+
 message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
 # Windows don't have a DL library (dlopen, dlclose, etc...)
