@@ -149,7 +149,7 @@ jobs:
         - docker
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y openblas-devel"
-        - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686"
+        - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686 pp*"
         - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
         - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
@@ -284,7 +284,7 @@ jobs:
       env:
         - CIBW_BEFORE_ALL="yum install -y openblas-devel"
         - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11"
-        - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686"
+        - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686 pp*"
         - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
         - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
         - TWINE_USERNAME=qiskit
@@ -315,7 +315,7 @@ jobs:
 #      if: tag IS present
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11"
-        - CIBW_SKIP="cp27-* cp34-*"
+        - CIBW_SKIP="cp27-* cp34-* pp*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
