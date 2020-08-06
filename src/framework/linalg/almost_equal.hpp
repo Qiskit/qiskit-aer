@@ -71,7 +71,9 @@ bool almost_equal(const std::complex<T>& f1, const std::complex<T>& f2,
                   T max_relative_diff = MAXRELATIVEDIFF);
  
 template <typename T>
-bool almost_equal(const matrix<T>& mat1, const matrix<T>& mat2);
+bool almost_equal(const matrix<T>& mat1, const matrix<T>& mat2,
+                  double max_diff = MAXDIFF,
+                  double max_relative_diff = MAXRELATIVEDIFF);
 
 template <typename T>
 bool almost_equal(const std::vector<T>& mat1, const std::vector<T>& mat2);
@@ -96,7 +98,9 @@ bool almost_equal(const std::complex<T>& f1, const std::complex<T>& f2,
 }
 
 template <typename T>
-bool almost_equal(const matrix<T>& mat1, const matrix<T>& mat2) {
+bool almost_equal(const matrix<T>& mat1, const matrix<T>& mat2,
+                  double max_diff,
+                  double max_relative_diff) {
   if(mat1.size() != mat2.size()) {
        std::cout << "Matrix sizes not equal : " << mat1.size() << " != " << mat2.size() << std::endl;
        return false;
@@ -105,12 +109,12 @@ bool almost_equal(const matrix<T>& mat1, const matrix<T>& mat2) {
   matrix<T> diff;
   diff.initialize(mat1.GetRows(), mat1.GetColumns());
   auto average_diff = std::abs(diff(0,0));
-  auto max_diff = std::abs(diff(0,0));
+  auto max_inner_diff = std::abs(diff(0, 0));
   size_t diff_cnt{0};
   for(auto i = 0; i < mat1.size(); ++i){
-    if( ! almost_equal(mat1[i], mat2[i])) {
+    if( ! almost_equal(mat1[i], mat2[i], max_diff, max_relative_diff)) {
       auto d = std::abs(mat1[i] - mat2[i]);
-      max_diff = std::max(max_diff, d);
+      max_inner_diff = std::max(max_inner_diff, d);
       average_diff += d;
       diff[i] = T(d);
       diff_cnt++;
@@ -120,9 +124,9 @@ bool almost_equal(const matrix<T>& mat1, const matrix<T>& mat2) {
   if ( equal ) {
     return true;
   } else { 
-    std::cout << "matrices not exactly equal : " << std::endl << diff << std::endl;
+    std::cout << "matrices not exactly equal : " << std::endl << mat1 << std::endl << mat2 << std::endl;
     average_diff = average_diff / diff_cnt;
-    std::cout << "average diff: " << average_diff << std::endl;
+    std::cout << "max inner diff: " << max_inner_diff << std::endl;
   }
  
   return equal;

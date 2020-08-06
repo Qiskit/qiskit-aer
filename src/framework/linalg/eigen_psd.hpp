@@ -305,7 +305,7 @@ void eigensystem_psd_heevx(const matrix<std::complex<double>>& psd_matrix,
   int                   *ifail{new int[n]{0}};
   double                *w{new double[n]{0.0}};
  
-  AerBlas::f77::zheevx(&jobz, &range, &uplo, &n, a, &lda, &vl, &vu, &il, &iu,
+      AerBlas::f77::zheevx(&jobz, &range, &uplo, &n, a, &lda, &vl, &vu, &il, &iu,
          &abstol, &m, w, z, &ldz, work, &lwork, rwork, iwork, ifail, &info);
 
 #ifdef DEBUG

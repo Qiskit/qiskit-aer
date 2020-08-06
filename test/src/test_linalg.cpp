@@ -85,16 +85,48 @@ matrix<std::complex<T>> herm_mat_2d_2() {
 template<typename T>
 matrix<std::complex<T>> herm_mat_2d_eigenvectors_2() {
     auto mat = matrix<std::complex<T>>(2,2);
-    mat(0,0) = std::complex<T>(0.5, -1.0);
-    mat(1,0) = std::complex<T>(1.0, 0.0);
-    mat(0,1) = std::complex<T>(-0.4, 0.8);
-    mat(1,1) = std::complex<T>(1.0, 0.0);
+    auto den = 3. * std::sqrt(5.);
+    mat(0,0) = std::complex<T>(-2/den, -4/den);
+    mat(1,0) = std::complex<T>(5/den, 0.0);
+    mat(0,1) = std::complex<T>(-1./3.,-2./3.);
+    mat(1,1) = std::complex<T>(-2./3.,0);
     return mat;
 }
 
 template<typename T>
 std::vector<T> herm_mat_2d_eigenvalues_2(){
-    return { -(3.0/2.0), 3.0 };
+    return { -1.5, 3.0 };
+}
+
+template<typename T>
+matrix<std::complex<T>> create_psd_matrix_2d(){
+    auto psd_matrix = matrix<std::complex<T>>(2, 2);
+
+    psd_matrix(0,0) = std::complex<T>(13., 0.);
+    psd_matrix(0,1) = std::complex<T>(0., -5.);
+
+    psd_matrix(1,0) = std::complex<T>(0., +5.);
+    psd_matrix(1,1) = std::complex<T>(2., 0.);
+
+    return psd_matrix;
+}
+
+template<typename T>
+matrix<std::complex<T>> create_expected_eigenvectors_psd_2d(){
+    matrix<std::complex<T>> expected_eigenvectors(2, 2);
+
+    expected_eigenvectors(0,0) = std::complex<T>(0.932721, 0);
+    expected_eigenvectors(0,1) = std::complex<T>(0.36059668, 0);
+
+    expected_eigenvectors(1,0) = std::complex<T>(-0.955925, 0.0745055);
+    expected_eigenvectors(1,1) = std::complex<T>(0.298022, 0.341426);
+
+    return expected_eigenvectors;
+}
+
+template<typename T>
+std::vector<T> create_expected_eigenvalues_psd_2d(){
+    return { 14.93303437, 0.06696563 };
 }
 
 template<typename T>
@@ -160,8 +192,6 @@ TEST_CASE("Basic Matrix Ops", "[matrix]") {
         REQUIRE(AER::Linalg::almost_equal(row0, mat.row_index(0)));
         REQUIRE(AER::Linalg::almost_equal(row1, mat.row_index(1)));
     }
-
-    std::cout << "row/col_index working as expected" << std::endl;
 }
  
 TEST_CASE("Linear Algebra utilities", "[eigen_psd]") {
@@ -176,7 +206,7 @@ TEST_CASE("Linear Algebra utilities", "[eigen_psd]") {
             for (size_t j=0; j < expected_eigenvalues.size(); j++) {
                 sanity_value += expected_eigenvalues[j] * AER::Utils::projector(expected_eigenvectors.col_index(j));
             }
-            REQUIRE(AER::Linalg::almost_equal(herm_mat, sanity_value));
+            REQUIRE(AER::Linalg::almost_equal(herm_mat, sanity_value, 1e-7, 1e-7));
         }
         SECTION("actual check - heevx returns correctly") {
             std::vector<double> eigenvalues;
@@ -210,7 +240,7 @@ TEST_CASE("Linear Algebra utilities", "[eigen_psd]") {
         for (size_t j=0; j < eigenvalues.size(); j++) {
             value += eigenvalues[j] * AER::Utils::projector(eigenvectors.col_index(j));
         }
-        REQUIRE(AER::Linalg::almost_equal(rand_herm_mat, value));
+        REQUIRE(AER::Linalg::almost_equal(rand_herm_mat, value, 1e-13, 1e-13));
     }
 
 /*
@@ -220,7 +250,7 @@ TEST_CASE("Linear Algebra utilities", "[eigen_psd]") {
         matrix<std::complex<double>> eigenvectors = rand_psd_mat;
 
         eigensystem_psd_hetrd(rand_psd_mat, eigenvalues, eigenvectors);
- 
+
         matrix<std::complex<double>> value(rand_psd_mat.size());
 
         for (size_t j=0; j < eigenvalues.size(); j++) {
@@ -229,21 +259,25 @@ TEST_CASE("Linear Algebra utilities", "[eigen_psd]") {
         REQUIRE(AER::Linalg::almost_equal(rand_psd_mat, value));
     }
 */
-/*
-    SECTION("the input matrix of complex of doubles, is a PSD"){
-        auto psd_matrix_double = create_psd_matrix<double>();
 
-        auto expected_eigenvalues = create_expected_eigenvalues<double>();
-        auto expected_eigenvectors = create_expected_eigenvectors<double>();
+    SECTION("the input matrix of complex of doubles, is a PSD"){
+        auto psd_matrix_double = create_psd_matrix_2d<double>();
+
+        auto expected_eigenvalues = create_expected_eigenvalues_psd_2d<double>();
+        auto expected_eigenvectors = create_expected_eigenvectors_psd_2d<double>();
         std::vector<double> eigenvalues;
         matrix<std::complex<double>> eigenvectors = psd_matrix_double;
-        eigensystem_psd(psd_matrix_double, eigenvalues, eigenvectors);
+eigensystem_psd_heevx(psd_matrix_double, eigenvalues, eigenvectors);
 
-        std::cout << expected_eigenvectors << std::endl;
-        std::cout << eigenvectors << std::endl;
+        std::cout << "Expected eigenvectors:" << expected_eigenvectors << std::endl;
+        std::cout << "eigenvectors:" << eigenvectors << std::endl;
+
+        std::cout << "Expected eigenvalues:" << expected_eigenvalues << std::endl;
+        std::cout << "eigenvalues:" << eigenvalues << std::endl;
+
         REQUIRE(AER::Linalg::almost_equal(expected_eigenvectors, eigenvectors));
     }
-*/
+
 /*
     SECTION("the input matrix of complex of floats, is a PSD"){
         auto psd_matrix_float = create_psd_matrix<complexf_t>();
