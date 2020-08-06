@@ -18,10 +18,11 @@ from test.terra import common
 from test.terra.decorators import requires_method
 # Basic circuit instruction tests
 from test.terra.backends.statevector_simulator.statevector_basics import StatevectorSimulatorTests
-
+from test.terra.backends.statevector_simulator.statevector_fusion import StatevectorFusionTests
 
 class TestStatevectorSimulator(common.QiskitAerTestCase,
-                               StatevectorSimulatorTests):
+                               StatevectorSimulatorTests,
+                               StatevectorFusionTests):
     """StatevectorSimulator automatic method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 10598}
@@ -29,7 +30,8 @@ class TestStatevectorSimulator(common.QiskitAerTestCase,
 
 @requires_method("statevector_simulator", "statevector_gpu")
 class TestStatevectorSimulatorThrustGPU(common.QiskitAerTestCase,
-                                        StatevectorSimulatorTests):
+                                        StatevectorSimulatorTests,
+                                        StatevectorFusionTests):
     """StatevectorSimulator automatic method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 10598, "method": "statevector_gpu"}
@@ -37,7 +39,8 @@ class TestStatevectorSimulatorThrustGPU(common.QiskitAerTestCase,
 
 @requires_method("statevector_simulator", "statevector_thrust")
 class TestStatevectorSimulatorThrustCPU(common.QiskitAerTestCase,
-                                        StatevectorSimulatorTests):
+                                        StatevectorSimulatorTests,
+                                        StatevectorFusionTests):
     """StatevectorSimulator automatic method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 10598, "method": "statevector_thrust"}
