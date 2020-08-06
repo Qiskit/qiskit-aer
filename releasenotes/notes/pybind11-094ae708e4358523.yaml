@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    Improve performance of pybind11 conversion of simulator results by moving
-    matrix and vector data to Numpy arrays without copies.
