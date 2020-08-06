@@ -1,0 +1,8 @@
+---
+prelude: >
+    This 0.6.0 release includes numerous performance improvements for all
+    simulators in the Aer provider. The main changes are support for SIMD
+    vectorization, approximation in the matrix product state method via
+    bond-dimension truncation, more efficient Pauli expectation value
+    computation and improved efficiency in Python wrapping of C++ result
+    objects.
