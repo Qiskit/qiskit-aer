@@ -132,6 +132,21 @@ public:
                                             uint_t shots,
                                             RngEngine &rng) override;
 
+  // Computes sample_measure by first computing the probabilities and then
+  // randomly chooses measurement outcomes based on the probability weights
+  std::vector<reg_t> 
+  sample_measure_using_probabilities(const reg_t &qubits,
+				     uint_t shots,
+				     RngEngine &rng) const;
+
+  // Computes sample_measure by copying the MPS to a temporary structure, and
+  // applying a measurement on the temporary MPS. This is done for every shot,
+  // so is not efficient for a large number of shots
+  std::vector<reg_t> 
+  sample_measure_using_apply_measure(const reg_t &qubits,
+				     uint_t shots,
+				     RngEngine &rng) const;
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -362,38 +377,49 @@ size_t State::required_memory_mb(uint_t num_qubits,
 void State::set_config(const json_t &config) {
   // Set threshold for truncating Schmidt coefficients
   double threshold;
-  if (JSON::get_value(threshold, "matrix_product_state_truncation_threshold", config)) {
+  if (JSON::get_value(threshold, "matrix_product_state_truncation_threshold", config))
     MPS_Tensor::set_truncation_threshold(threshold);
-  }
+  else
+    MPS_Tensor::set_truncation_threshold(1e-16);
 
   uint_t max_bond_dimension;
-  if (JSON::get_value(max_bond_dimension, "matrix_product_state_max_bond_dimension", config)) {
+  if (JSON::get_value(max_bond_dimension, "matrix_product_state_max_bond_dimension", config)) 
     MPS_Tensor::set_max_bond_dimension(max_bond_dimension);
-  }
+  else
+    MPS_Tensor::set_max_bond_dimension(UINT64_MAX);
 
   // Set threshold for truncating snapshots
   uint_t json_chop_threshold;
-  if (JSON::get_value(json_chop_threshold, "chop_threshold", config)) {
+  if (JSON::get_value(json_chop_threshold, "chop_threshold", config))
     MPS::set_json_chop_threshold(json_chop_threshold);
-  }
+  else
+    MPS::set_json_chop_threshold(1E-8);
 
   // Set OMP num threshold
   uint_t omp_qubit_threshold;
-  if (JSON::get_value(omp_qubit_threshold, "mps_parallel_threshold", config)) {
+  if (JSON::get_value(omp_qubit_threshold, "mps_parallel_threshold", config))
     MPS::set_omp_threshold(omp_qubit_threshold);
-  }
+  else
+     MPS::set_omp_threshold(14);
 
   // Set OMP threads
   uint_t omp_threads;
-  if (JSON::get_value(omp_threads, "mps_omp_threads", config)) {
+  if (JSON::get_value(omp_threads, "mps_omp_threads", config))
     MPS::set_omp_threads(omp_threads);
-  }
+  else
+    MPS::set_omp_threads(1);
 
-  // Set the sample measure indexing size
-  int index_size;
-  if (JSON::get_value(index_size, "mps_sample_measure_opt", config)) {
+  uint_t index_size;
+  if (JSON::get_value(index_size, "mps_sample_measure_qubits_opt", config)) // Set the sample measure qubit size
     MPS::set_sample_measure_index_size(index_size);
-  }
+  else
+     MPS::set_sample_measure_index_size(26);
+
+  uint_t shots_num;
+  if (JSON::get_value(shots_num, "mps_sample_measure_shots_opt", config))
+    MPS::set_sample_measure_shots_thresh(shots_num);
+  else
+    MPS::set_sample_measure_shots_thresh(10);    
 }
 
 void State::add_metadata(ExperimentData &data) const {
@@ -666,7 +692,7 @@ void State::apply_measure(const reg_t &qubits,
   creg_.store_measure(outcome, cmemory, cregister);
 }
 
-rvector_t State::measure_probs(const reg_t &qubits) const{
+rvector_t State::measure_probs(const reg_t &qubits) const {
   rvector_t probvector;
   qreg_.get_probabilities_vector(probvector, qubits);
   return probvector;
@@ -676,17 +702,65 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
                                          uint_t shots,
                                          RngEngine &rng) {
 
+  uint_t num_measured_qubits = qubits.size();
+
+  // There are two alternative algorithms for sample measure
+  // We choose the one that is optimal relative to the total number 
+  //of qubits,and the number of shots.
+  // The parameters used below are based on experimentation.
+  if (num_measured_qubits > MPS::get_sample_measure_index_size() || 
+      shots < MPS::get_sample_measure_shots_thresh()) {
+      return sample_measure_using_apply_measure(qubits, shots, rng);
+  }
+  return sample_measure_using_probabilities(qubits, shots, rng);
+}
+
+std::vector<reg_t> State::
+sample_measure_using_probabilities(const reg_t &qubits,
+				   uint_t shots,
+				   RngEngine &rng) const {
+
+  // Generate flat register for storing
+  rvector_t rnds;
+  rnds.reserve(shots);
+  for (uint_t i = 0; i < shots; ++i)
+    rnds.push_back(rng.rand(0, 1));
+
+  auto allbit_samples = qreg_.sample_measure_using_probabilities(rnds, qubits);
+
+  // Convert to reg_t format
+  std::vector<reg_t> all_samples;
+  all_samples.reserve(shots);
+  for (int_t val : allbit_samples) {
+    reg_t allbit_sample = Utils::int2reg(val, 2, qreg_.num_qubits());
+    reg_t sample;
+    sample.reserve(qubits.size());
+    for (uint_t qubit : qubits) {
+      sample.push_back(allbit_sample[qubit]);
+    }
+    all_samples.push_back(sample);
+  }
+  return all_samples;
+}
+
+std::vector<reg_t> State::
+  sample_measure_using_apply_measure(const reg_t &qubits, 
+				     uint_t shots, 
+				     RngEngine &rng) const {
   MPS temp;
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
   reg_t single_result;
 
+  #pragma omp parallel if (shots >  MPS::get_omp_threshold() && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads())
+    {
+      #pragma omp for
   for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
     temp.initialize(qreg_);
     single_result = temp.apply_measure(qubits, rng);
     all_samples[i] = single_result;
   }
-
+  } // end omp parallel
   return all_samples;
 }
 
