@@ -30,6 +30,7 @@
 #include <memory>
 #include "qubitvector.hpp"
 #include "qv_avx2.hpp"
+#include "misc/common_macros.hpp"
 
 namespace AER {
 namespace QV {
@@ -76,6 +77,8 @@ public:
   size_t calculate_num_threads();
 };
 
+// We only define this functions
+#if defined(_MSC_VER) || GNUC_AVX2
 // ostream overload for templated qubitvector
 template <typename data_t>
 inline std::ostream &operator<<(std::ostream &out, const QV::QubitVectorAvx2<data_t>&qv) {
@@ -141,6 +144,7 @@ size_t QubitVectorAvx2<data_t>::calculate_num_threads() {
   }
   return 1;
 }
+#endif
 
 template class AER::QV::QubitVectorAvx2<double>;
 template class AER::QV::QubitVectorAvx2<float>;

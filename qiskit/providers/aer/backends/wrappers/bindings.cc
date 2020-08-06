@@ -1,8 +1,8 @@
 #include <iostream>
-
-#ifdef _MSC_VER
+#include "misc/common_macros.hpp"
+#if defined(_MSC_VER)
 #include <intrin.h>
-#elif defined(__GNUC__)
+#elif GNUC_AVX2
 #include <cpuid.h>
 #endif
 
