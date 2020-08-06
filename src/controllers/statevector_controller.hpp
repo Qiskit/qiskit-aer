@@ -303,13 +303,11 @@ void StatevectorController::run_circuit_helper(
   data.set_config(config);
 
   // Optimize circuit
-  const std::vector<Operations::Op>* op_ptr = nullptr;
-  Circuit opt_circ;
-  Transpile::Fusion fusion_pass(5, 20);
+  const std::vector<Operations::Op>* op_ptr = &circ.ops;
+  Transpile::Fusion fusion_pass(5, 20); // 20-qubit default threshold
   fusion_pass.set_config(config);
-  if (circ.num_qubits < fusion_pass.threshold || !fusion_pass.active) {
-    op_ptr = &circ.ops;
-  } else {
+  Circuit opt_circ;
+  if (fusion_pass.active && circ.num_qubits >= fusion_pass.threshold) {
     opt_circ = circ; // copy circuit
     Noise::NoiseModel dummy_noise; // dummy object for transpile pass
     fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
