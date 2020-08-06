@@ -239,7 +239,7 @@ stages:
              python -m pip install --upgrade pip virtualenv
              pip install -U tox
              sudo apt-get update
-             sudo apt-get install -y build-essential
+             sudo apt-get install -y build-essential libopenblas-dev
            displayName: 'Install dependencies'
          - bash: |
              tox -edocs

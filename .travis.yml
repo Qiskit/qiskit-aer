@@ -51,6 +51,7 @@ stage_linux: &stage_linux
   before_install:
     - sudo apt-get -y update
     - sudo apt-get -y install g++-7
+    - sudo apt-get -y install libopenblas-dev
   before_script:
     - |
       if [ ! "$(ls -A .stestr)" ]; then
@@ -147,7 +148,7 @@ jobs:
       services:
         - docker
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11"
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y openblas-devel"
         - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686"
         - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
         - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
@@ -281,7 +282,7 @@ jobs:
       services:
         - docker
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11"
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y openblas-devel"
         - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686"
         - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
         - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
@@ -317,6 +318,10 @@ jobs:
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
+      addons:
+        homebrew:
+          packages:
+            - openblas
       script:
         - sudo pip2 install -U pip virtualenv
         - sudo pip2 install cibuildwheel==1.1.0 'twine<2.0'
