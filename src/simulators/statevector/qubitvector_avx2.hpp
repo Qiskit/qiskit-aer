@@ -77,7 +77,8 @@ public:
   size_t calculate_num_threads();
 };
 
-#if defined(_MSC_VER) || (GNUC_AVX)
+// We only define this functions
+#if defined(_MSC_VER) || GNUC_AVX2
 // ostream overload for templated qubitvector
 template <typename data_t>
 inline std::ostream &operator<<(std::ostream &out, const QV::QubitVectorAvx2<data_t>&qv) {
