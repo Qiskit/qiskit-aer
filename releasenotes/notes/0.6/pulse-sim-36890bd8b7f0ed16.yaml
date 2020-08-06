@@ -6,6 +6,9 @@ features:
   - |
     Improve the performance of the :class:`qiskit.providers.aer.PulseSimulator`
     by caching calls to RHS function
+  - |
+    Introduce alternate DE solving methods, specifiable through `backend_options` in 
+    :class:`qiskit.providers.aer.PulseSimulator`.
 fixes:
   - |
   - |
