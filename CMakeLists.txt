@@ -225,7 +225,7 @@ if(NOT MSVC)
 	endif()
 endif()
 
-if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
+if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
 	if(APPLE OR UNIX)
 		set(SIMD_FLAGS_LIST "-mfma;-mavx2")
 	elseif(MSVC)
@@ -297,7 +297,7 @@ if(SKBUILD) # Terra Addon build
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
 
-        if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
+	if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
 	  # We build SIMD filed separately, because they will be reached only if the
 	  # machine running the code has SIMD support
 	  set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
