@@ -278,7 +278,7 @@ else() # Standalone build
 
 	# We build SIMD filed separately, because they will be reached only if the
 	# machine running the code has SIMD support
-	if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
+	if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
 		set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
 		if(APPLE OR UNIX)
 			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
