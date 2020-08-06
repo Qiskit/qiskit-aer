@@ -19,7 +19,7 @@ jobs:
       - name: Build wheels
         env:
           CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget https://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda-repo-rhel6-10-1-local-10.1.243-418.87.00-1.0-1.x86_64.rpm && rpm -i cuda-repo-rhel6-10-1-local-10.1.243-418.87.00-1.0-1.x86_64.rpm && yum clean all && yum -y install cuda-10-1"
-          CIBW_BEFORE_BUILD: "pip install -U Cython pip virtualenv pybind11"
+          CIBW_BEFORE_BUILD: "pip install -U Cython pip virtualenv pybind11 && yum install -y openblas-devel"
           CIBW_SKIP: "cp27-* cp34-* *-manylinux_i686 pp*"
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2010"
           CIBW_MANYLINUX_I686_IMAGE: "manylinux2010"

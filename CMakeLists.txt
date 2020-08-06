@@ -39,7 +39,9 @@ configure_file("${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp.in"
                "${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp")
 
 set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-set(AER_SIMULATOR_CPP_EXTERNAL_LIBS "${USER_LIB_PATH}")
+set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
+	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
+	"${USER_LIB_PATH}")
 
 set(AER_COMPILER_DEFINITIONS "")
 
