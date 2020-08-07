@@ -47,13 +47,17 @@ function(add_cython_module module)
         set(exclude_from_all EXCLUDE_FROM_ALL)
     endif()
 
-    if(CUDA_FOUND)
-        cuda_add_library(${module} ${lib_type} ${exclude_from_all} ${module} ${ARG_UNPARSED_ARGUMENTS})
-        set_source_files_properties(${module} PROPERTIES
-            CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+    if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
+        set_source_files_properties(${module}.cxx PROPERTIES LANGUAGE CUDA)
+
+	string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
+        string(REPLACE " " ";" L ${AER_COMPILER_FLAGS_STRIPPED})
+        list(TRANSFORM L PREPEND " --compiler-options ")
+        string(REPLACE ";" " " AER_COMPILER_FLAGS_OUT ${L})
     else()
-        add_library(${module} ${lib_type} ${exclude_from_all} ${module} ${ARG_UNPARSED_ARGUMENTS})
+        set(AER_COMPILER_FLAGS_OUT ${AER_COMPILER_FLAGS})
     endif()
+    add_library(${module} ${lib_type} ${exclude_from_all} ${module} ${ARG_UNPARSED_ARGUMENTS})
 
 
     # We only need to pass the linter once, as the codebase is the same for
@@ -107,7 +111,7 @@ function(add_cython_module module)
     # Warning: Do not merge PROPERTIES when one of the variables can be empty, it breaks
     # the rest of the properties so they are not properly added.
     set_target_properties(${module} PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
-    set_target_properties(${module} PROPERTIES COMPILE_FLAGS ${AER_COMPILER_FLAGS})
+    set_target_properties(${module} PROPERTIES COMPILE_FLAGS ${AER_COMPILER_FLAGS_OUT})
     target_compile_definitions(${module} PRIVATE ${AER_COMPILER_DEFINITIONS})
 
     python_extension_module(${module}
