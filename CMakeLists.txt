@@ -207,6 +207,8 @@ if(NOT DEFINED AER_THRUST_BACKEND)
     if(DEFINED AER_THRUST_BACKEND)
         set(AER_THRUST_SUPPORTED TRUE)
     endif()
+else()
+	set(AER_THRUST_SUPPORTED TRUE)
 endif()
 
 if(AER_THRUST_SUPPORTED)
@@ -222,12 +224,18 @@ if(AER_THRUST_SUPPORTED)
 			endif()
 		endif()
 		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH_FLAGS ${AER_CUDA_ARCH})
-		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH_FLAGS} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin \"${CMAKE_CXX_COMPILER}\" ${AER_CUDA_ARCH_FLAGS} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
 		# We have to set SIMD flags globally because there seems to be a bug in FindCUDA which doesn't allow us to set per-file compilation flags.
 		# The implications is that users downloading the PyPi wheel package for the GPU, need to have a CPU with AVX2 support otherwise
 		# Aer will crash with: "Unknow instruction" exception.
 		# This will be fixed here: https://github.com/Qiskit/qiskit-aer/
-		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}; --compiler-options;-mfma,-mavx2")
+		if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
+			if(APPLE OR UNIX)
+				set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}; --compiler-options;-mfma,-mavx2")
+			elseif(MSVC)
+				set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} /arch:AVX2")
+			endif()
+		endif()
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDANT_LIBS "")
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
@@ -278,12 +286,15 @@ else() # Standalone build
 
 	# We build SIMD filed separately, because they will be reached only if the
 	# machine running the code has SIMD support
-	set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
-	if(APPLE OR UNIX)
-		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
-	elseif(MSVC)
-		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
+	if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
+		set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+		if(APPLE OR UNIX)
+			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
+		elseif(MSVC)
+			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
+		endif()
 	endif()
+
 	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp"
 		"${SIMD_SOURCE_FILE}")
 	set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
