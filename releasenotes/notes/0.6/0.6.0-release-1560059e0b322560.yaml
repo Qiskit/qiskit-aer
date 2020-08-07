@@ -19,6 +19,7 @@ upgrade:
     Conan is installed along with common development dependencies:
     
     ```
+    cd qiskit-aer
     pip install -r requirements-dev.txt
     ```
 
