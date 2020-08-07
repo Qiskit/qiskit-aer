@@ -33,6 +33,7 @@ function(add_cython_module module)
 	set(MODULE_COMPILE_FLAGS "/w")
     endif()
 
+    # consider a function to share with FindPybind and toplevel CMakeLists.txt
     if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
 	string(STRIP ${MODULE_COMPILE_FLAGS} MODULE_COMPILE_FLAGS_STRIPPED)
 	string(REPLACE " " ";" L ${MODULE_COMPILE_FLAGS_STRIPPED})
