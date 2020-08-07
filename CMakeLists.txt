@@ -309,16 +309,25 @@ else() # Standalone build
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
 		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES LANGUAGE CUDA)
 		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
+
                 set(L ${SIMD_FLAGS_LIST})
+
+                # refactor into function
   		list(TRANSFORM L PREPEND " --compiler-options ")
   		string(REPLACE ";" " " SIMD_FLAGS ${L})
+
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS}")
+
 		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
+
 		string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
   		string(REPLACE " " ";" L ${AER_COMPILER_FLAGS_STRIPPED})
+
+                # refactor into function
   		list(TRANSFORM L PREPEND " --compiler-options ")
   		string(REPLACE ";" " " AER_COMPILER_FLAGS_OUT ${L})
+
 		set_target_properties(qasm_simulator PROPERTIES
 			LINKER_LANGUAGE CXX
 			CXX_STANDARD 14

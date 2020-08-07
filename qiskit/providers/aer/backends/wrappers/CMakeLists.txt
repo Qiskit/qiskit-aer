@@ -30,8 +30,11 @@ if(AER_THRUST_BACKEND STREQUAL "CUDA")
 
     string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
     string(REPLACE " " ";" L ${AER_COMPILER_FLAGS_STRIPPED})
+
+    # refactor into function
     list(TRANSFORM L PREPEND " --compiler-options ")
     string(REPLACE ";" " " AER_COMPILER_FLAGS_OUT ${L})
+
     set_target_properties(controller_wrappers PROPERTIES COMPILE_FLAGS "${AER_COMPILER_FLAGS_OUT}")
 else()
     if(DEFINED SIMD_SOURCE_FILE)
