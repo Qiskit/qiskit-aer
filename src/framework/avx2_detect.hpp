@@ -24,7 +24,7 @@ namespace {
 inline void ccpuid(int cpu_info[4], int function_id){
 #if defined(_MSC_VER)
   __cpuid(cpu_info, function_id);
-#elif GNUC_AVX2
+#elif defined(GNUC_AVX2)
   __cpuid(function_id,
     cpu_info[0],
     cpu_info[1],
@@ -38,7 +38,7 @@ inline void ccpuid(int cpu_info[4], int function_id){
 inline void cpuidex(int cpu_info[4], int function_id, int subfunction_id){
 #if defined(_MSC_VER)
   __cpuidex(cpu_info, function_id, subfunction_id);
-#elif GNUC_AVX2
+#elif defined(GNUC_AVX2)
   __cpuid_count(function_id, subfunction_id, cpu_info[0], cpu_info[1], cpu_info[2], cpu_info[3]);
 #else // We don't support this platform intrinsics
    cpu_info[0] = cpu_info[1] = cpu_info[2] = cpu_info[3] = 0;
@@ -49,7 +49,7 @@ inline void cpuidex(int cpu_info[4], int function_id, int subfunction_id){
 namespace AER {
 
 inline bool is_avx2_supported(){
-#if GNUC_AVX2 || defined(_MSC_VER)
+#if defined(GNUC_AVX2) || defined(_MSC_VER)
   static bool cached = false;
   static bool is_supported = false;
   if(cached)
