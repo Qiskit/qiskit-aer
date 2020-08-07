@@ -799,8 +799,8 @@ void QubitVectorChunkContainer<data_t>::SetupP2P(int nDev)
       for(i=0;i<nDev;i++){
         if(i != m_iDevice){
           cudaDeviceCanAccessPeer(&m_p2pEnable[i],m_iDevice,i);
-          if(m_p2pEnable[i])
-            cudaDeviceEnablePeerAccess(i,0);
+//          if(m_p2pEnable[i])
+//            cudaDeviceEnablePeerAccess(i,0);
         }
         else{
           m_p2pEnable[i] = 1;
