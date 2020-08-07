@@ -18,6 +18,7 @@
 #include "controller.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/statevector/qubitvector_avx2.hpp"
+#include "transpile/fusion.hpp"
 
 namespace AER {
 namespace Simulator {
@@ -301,13 +302,26 @@ void StatevectorController::run_circuit_helper(
   // Output data container
   data.set_config(config);
 
+  // Optimize circuit
+  const std::vector<Operations::Op>* op_ptr = &circ.ops;
+  Transpile::Fusion fusion_pass(5, 20); // 20-qubit default threshold
+  fusion_pass.set_config(config);
+  Circuit opt_circ;
+  if (fusion_pass.active && circ.num_qubits >= fusion_pass.threshold) {
+    opt_circ = circ; // copy circuit
+    Noise::NoiseModel dummy_noise; // dummy object for transpile pass
+    fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
+    op_ptr = &opt_circ.ops;
+  }
+
   // Run single shot collecting measure data or snapshots
-  if (initial_state_.empty())
+  if (initial_state_.empty()) {
     state.initialize_qreg(circ.num_qubits);
-  else
+  } else {
     state.initialize_qreg(circ.num_qubits, initial_state_);
+  }
   state.initialize_creg(circ.num_memory, circ.num_registers);
-  state.apply_ops(circ.ops, data, rng);
+  state.apply_ops(*op_ptr, data, rng);
   state.add_creg_to_data(data);
 
   // Add final state to the data

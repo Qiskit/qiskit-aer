@@ -49,7 +49,6 @@ stages:
                 python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
                 virtualenv test-$version
                 test-$version/Scripts/pip install -c constraints.txt dist/*whl
-                test-$version/Scripts/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
                 test-$version/Scripts/python tools/verify_wheels.py
                 mv dist/*whl wheelhouse/.
                 rm -rf test-$version
