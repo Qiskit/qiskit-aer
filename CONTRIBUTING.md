@@ -290,6 +290,23 @@ Ubuntu
 
     $ sudo apt install build-essential
 
+Although the *BLAS* and *LAPACK* library implementations included in the
+*build-essential* package are sufficient to build all of the `Aer` simulators, we
+recommend using *OpenBLAS*, which you can install by running
+
+CentOS/Red Hat
+
+    $ yum install openblas-devel
+
+Fedora
+
+    $ dnf install openblas-devel
+
+Ubuntu
+
+    $ sudo apt install libopenblas-dev
+
+
 And of course, `git` is required in order to build from repositories
 
 CentOS/Red Hat
@@ -386,12 +403,12 @@ options we have on `Aer` to CMake we use it's native mechanism:
 
 #### <a name="mac-dependencies"> Dependencies </a>
 
-There are various methods depending on the compiler we want to use. If we want
-to use the *Clang* compiler, we need to install an extra library for
-supporting *OpenMP*: *libomp*. The *CMake* build system will warn you
-otherwise. To install it manually, in a terminal window, run:
+We recommend installing *OpenBLAS*, which is our default choice:
 
-    $ brew install libomp
+    $ brew install openblas
+
+The *CMake* build system will search for other *BLAS* implementation
+alternatives if *OpenBLAS* is not installed in the system.
 
 You further need to have *Xcode Command Line Tools* installed on macOS:
 
