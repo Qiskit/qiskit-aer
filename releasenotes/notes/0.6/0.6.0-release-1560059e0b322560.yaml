@@ -15,16 +15,9 @@ upgrade:
     may be needed for the first build or when dependencies are added/updated,
     in order to download the required packages if they are not in your Conan
     local repository.
-
-    Conan is installed along with common development dependencies:
     
-    ```
-    cd qiskit-aer
-    pip install -r requirements-dev.txt
-    ```
-
-    If we are only building the standalone version and do not want to install all
-    Python requirements you can just install Conan:
+    When building the standalone version of qiskit-aer you must install conan
+    first with:
     ```
     pip install conan
     ```
