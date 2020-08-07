@@ -19,8 +19,8 @@ upgrade:
     Conan is installed along with common development dependencies:
     
     ```
-    pip install -r requirements-dev.txt``
-    ``
+    pip install -r requirements-dev.txt
+    ```
 
     If we are only building the standalone version and do not want to install all
     Python requirements you can just install Conan:
