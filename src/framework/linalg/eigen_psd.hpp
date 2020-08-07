@@ -294,19 +294,18 @@ void eigensystem_psd_heevx(const matrix<std::complex<double>>& psd_matrix,
   int m{0}; // number of eigenvalues found
   int info{0};
 
-  // z is the matrix of eigenvectors to be returned
   eigenvectors.resize(ldz, n);
+  eigenvalues.clear();
+  eigenvalues.resize(n);
   matrix<std::complex<double>> heevx_copy{psd_matrix};
-  std::complex<double>  *z{eigenvectors.GetMat()};
-  std::complex<double>  *a{heevx_copy.GetMat()};
-  std::complex<double>  *work{new std::complex<double>[lwork]{0.0, 0.0}};
-  double                *rwork{new double[7*n]{0.0}};
-  int                   *iwork{new int[5*n]{0}};
-  int                   *ifail{new int[n]{0}};
-  double                *w{new double[n]{0.0}};
- 
-      AerBlas::f77::zheevx(&jobz, &range, &uplo, &n, a, &lda, &vl, &vu, &il, &iu,
-         &abstol, &m, w, z, &ldz, work, &lwork, rwork, iwork, ifail, &info);
+  auto work = std::vector<std::complex<double>>(lwork, {0.0, 0.0});
+  auto rwork = std::vector<double>(7*n, 0.0);
+  auto iwork = std::vector<int>(5*n, 0);
+  auto ifail = std::vector<int>(n, 0);
+
+  AerBlas::f77::zheevx(&jobz, &range, &uplo, &n, heevx_copy.GetMat(), &lda, &vl, &vu, &il, &iu,
+                       &abstol, &m, eigenvalues.data(), eigenvectors.GetMat(), &ldz, work.data(),
+                       &lwork, rwork.data(), iwork.data(), ifail.data(), &info);
 
 #ifdef DEBUG
   std::cout << "zheevx return: " << info << std::endl;
@@ -316,25 +315,6 @@ void eigensystem_psd_heevx(const matrix<std::complex<double>>& psd_matrix,
         exit(1);
   }
 #endif
-
-  // copy w into eigenvalues return
-  // z is already a reference to the matrix
-  //  of eigenvectors to be returned
-  eigenvalues.clear();
-  std::copy(&w[0], &w[n], std::back_inserter(eigenvalues));
-
-  // free working memory
-  a = nullptr;
-  z = nullptr;
-  delete[] w;
-  w = nullptr;
-  delete[] rwork;
-  rwork = nullptr;
-  delete[] iwork;
-  iwork = nullptr;
-  delete[] ifail;
-  ifail = nullptr;
-
 }
 
 template <>
