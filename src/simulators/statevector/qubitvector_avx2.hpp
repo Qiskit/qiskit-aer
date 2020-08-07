@@ -79,7 +79,7 @@ public:
 
 // We do not define this functions in case we don't use AVX2
 // so it can compile, as this class won't be used
-#if defined(_MSC_VER) || GNUC_AVX2
+#if defined(_MSC_VER) || defined(GNUC_AVX2)
 // ostream overload for templated qubitvector
 template <typename data_t>
 inline std::ostream &operator<<(std::ostream &out, const QV::QubitVectorAvx2<data_t>&qv) {
