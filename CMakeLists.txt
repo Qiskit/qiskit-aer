@@ -27,11 +27,17 @@ option(STATIC_LINKING "Specify if we want statically link the executable (for
 						redistribution mainly)" FALSE)
 option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
 
+# Allow disabling conan for downstream package managers. Requires all libraries to be present in path
+option(USE_CONAN "Use Conan package manager to find dependencies.
+					If disabled, you must have all dependencies present on your system." TRUE)
+
 include(CTest)
 include(compiler_utils)
 include(Linter)
 include(findBLASInSpecificPath)
-include(conan_utils)
+if(USE_CONAN)
+	include(conan_utils)
+endif()
 
 # Get version information
 get_version(${VERSION_NUM})
@@ -120,8 +126,20 @@ endif()
 #
 # Looking for external libraries
 #
+if(USE_CONAN)
+	setup_conan()
+else("Searching for required libraries using CMake")
+	find_package(muparserx REQUIRED)
+	find_package(nlohmann_json REQUIRED)
+	find_package(spdlog REQUIRED)
 
-setup_conan()
+	# Multiprocessing/Thrust libraries
+	find_package(llvm-openmp)
+	find_package(tbb)
+
+	# for tests only
+	find_package(catch2)
+endif()
 
 # If we do not set them with a space CMake fails afterwards if nothing is set for this vars!
 set(AER_LINKER_FLAGS " ")
@@ -131,7 +149,11 @@ message(STATUS "Looking for OpenMP support...")
 if(APPLE)
 	set(OPENMP_FOUND TRUE)
 	if(NOT SKBUILD)
-		set(AER_LIBRARIES ${AER_LIBRARIES} CONAN_PKG::llvm-openmp)
+		if(USE_CONAN)
+			set(AER_LIBRARIES ${AER_LIBRARIES} CONAN_PKG::llvm-openmp)
+		else("Using system llvm-openmp")
+			set(AER_LIBRARIES ${AER_LIBRARIES} llvm-openmp)
+		endif()
 	else()
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CONAN_CXX_FLAGS_LLVM-OPENMP}")
 		set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CONAN_INCLUDE_DIRS_LLVM-OPENMP})
@@ -241,7 +263,11 @@ if(AER_THRUST_SUPPORTED)
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
 		message(STATUS "TBB Support found!")
 		set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CONAN_INCLUDE_DIRS_THRUST})
-		set(THRUST_DEPENDANT_LIBS CONAN_PKG::tbb)
+		if(USE_CONAN)
+			set(THRUST_DEPENDANT_LIBS CONAN_PKG::tbb)
+		else("Using System TBB library")
+			set(THRUST_DEPENDANT_LIBS tbb)
+		endif()
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE)
 	elseif(AER_THRUST_BACKEND STREQUAL "OMP")
 		message(STATUS "Thrust library: Setting OMP backend")
@@ -269,16 +295,30 @@ endif()
 set(AER_LIBRARIES
 	${AER_LIBRARIES}
 	${BLAS_LIBRARIES}
-	CONAN_PKG::nlohmann_json
 	Threads::Threads
-	CONAN_PKG::spdlog
 	${DL_LIB}
 	${THRUST_DEPENDANT_LIBS})
+
+if(USE_CONAN)
+	set(AER_LIBRARIES
+		${AER_LIBRARIES}
+		CONAN_PKG::nlohmann_json
+		CONAN_PKG::spdlog)
+else("Using non-Conan libraries")
+	set(AER_LIBRARIES
+		${AER_LIBRARIES}
+		nlohmann_json
+		spdlog)
+endif()
 
 set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
-	set(AER_LIBRARIES ${AER_LIBRARIES} CONAN_PKG::muparserx)
+	if(USE_CONAN)
+		set(AER_LIBRARIES ${AER_LIBRARIES} CONAN_PKG::muparserx)
+	else("Using local muparserx build")
+		set(AER_LIBRARIES ${AER_LIBRARIES} muparserx)
+	endif()
 	add_subdirectory(qiskit/providers/aer/pulse/qutip_extra_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 	add_subdirectory(src/open_pulse)
