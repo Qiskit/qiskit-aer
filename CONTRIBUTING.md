@@ -263,6 +263,8 @@ most of the dependencies needed by the C++ source code. Internet connection may 
 when dependencies are added/updated, in order to download the required packages if they are not in your **Conan** local 
 repository.
 
+NOTE: Conan use can be disabled with the CMake flag ``"-DUSE_CONAN=OFF"``. This is useful for building from source offline, or to reuse the installed package dependencies.
+
 If we are only building the standalone version and do not want to install all Python requirements you can just install
 **Conan**:
 
@@ -704,6 +706,16 @@ These are the flags:
     Values:  Auto | Common | All | List of valid CUDA architecture(s).
     Default: Auto
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="5.2; 5.3"``
+
+* USE_CONAN
+
+    This flag allows disabling the Conan package manager. This will force CMake to look for
+    the libraries in use on your system path. This disables version checking, so you will need
+    to verify the versions of the required libraries manually, or via testing.
+
+    Values: ON | OFF
+    Default: ON
+    Example: ``python ./setup.py bdist_wheel -- -DUSE_CONAN=OFF``
 
 ## Tests
 
