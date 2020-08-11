@@ -3,4 +3,5 @@ features:
   - |
     Add the CMake flag ``USE_CONAN`` (default=``ON``). When installing from source,
     setting this to ``OFF`` allows bypassing the Conan package manager to find libraries
-    that are already installed on your system.
+    that are already installed on your system. This is also available as an environment
+    variable ``USE_CONAN``, which takes precedence over the CMake flag.

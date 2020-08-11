@@ -28,6 +28,10 @@ option(STATIC_LINKING "Specify if we want statically link the executable (for
 option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
 
 # Allow disabling conan for downstream package managers. Requires all libraries to be present in path
+# Precedence given to environment variable USE_CONAN
+if(DEFINED ENV{USE_CONAN})
+	set(USE_CONAN $ENV{USE_CONAN})
+endif()
 option(USE_CONAN "Use Conan package manager to find dependencies.
 					If disabled, you must have all dependencies present on your system." TRUE)
 
