@@ -181,14 +181,11 @@ else()
 	if(WIN32)
 		message(STATUS "Uncompressing OpenBLAS static library...")
 		execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/openblas.7z" WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/")
-		set(AER_LIBRARIES ${AER_LIBRARIES} "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/flang.lib")
-		set(AER_LIBRARIES ${AER_LIBRARIES} "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/flangmain.lib")
-		set(AER_LIBRARIES ${AER_LIBRARIES} "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/flangrti.lib")
-		set(AER_LIBRARIES ${AER_LIBRARIES} "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/ompstub.lib")
 		set(OPENBLAS_DLLs
-				"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/flang.dll"
-				"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/flangrti.dll"
-				"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/libomp.dll")
+			"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/openblas.dll"
+			"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/flang.dll"
+			"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/flangrti.dll"
+			"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/libomp.dll")
 	endif()
 	find_package(BLAS QUIET)
 	if(NOT BLAS_FOUND)
