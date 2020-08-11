@@ -202,7 +202,7 @@ TEST_CASE("Linear Algebra utilities", "[eigen_psd]") {
 
         SECTION("sanity check - eigenvals/vecs should recreate original") {
             // sanity check
-            matrix<std::complex<double>> sanity_value(herm_mat.size());
+            matrix<std::complex<double>> sanity_value(herm_mat.GetRows(), herm_mat.GetColumns());
             for (size_t j=0; j < expected_eigenvalues.size(); j++) {
                 sanity_value += expected_eigenvalues[j] * AER::Utils::projector(expected_eigenvectors.col_index(j));
             }
@@ -218,7 +218,7 @@ TEST_CASE("Linear Algebra utilities", "[eigen_psd]") {
             REQUIRE(AER::Linalg::almost_equal(expected_eigenvalues, eigenvalues));
 
             // test reconstruction
-            matrix<std::complex<double>> value(herm_mat.size());
+            matrix<std::complex<double>> value(herm_mat.GetRows(), herm_mat.GetColumns());
             for (size_t j=0; j < eigenvalues.size(); j++) {
                 value += AER::Utils::projector(eigenvectors.col_index(j)) * eigenvalues[j];
             }
@@ -230,7 +230,7 @@ auto herm_mat = herm_mat_2d_2<float>();
 auto expected_eigenvalues = herm_mat_2d_eigenvalues_2<float>();
 auto expected_eigenvectors = -1.0f * herm_mat_2d_eigenvectors_2<float>();
 std::vector<float> eigenvalues;
-matrix<std::complex<float>> eigenvectors{herm_mat};
+matrix<std::complex<float>> eigenvectors{herm_mat.GetRows(), herm_mat.GetColumns()};
 eigensystem_psd_heevx(herm_mat, eigenvalues, eigenvectors);
 
 // test equality
@@ -238,7 +238,7 @@ REQUIRE(AER::Linalg::almost_equal<std::complex<float>>(expected_eigenvectors, ei
 REQUIRE(AER::Linalg::almost_equal(expected_eigenvalues, eigenvalues));
 
 // test reconstruction
-matrix<std::complex<float>> value(herm_mat.size());
+matrix<std::complex<float>> value(herm_mat.GetRows(), herm_mat.GetColumns());
 for (size_t j=0; j < eigenvalues.size(); j++) {
 value += AER::Utils::projector(eigenvectors.col_index(j)) * eigenvalues[j];
 }

@@ -93,11 +93,11 @@ void eigensystem_psd_hetrd(const matrix<std::complex<double>>& psd_matrix,
   int ldz = lda;
 
   // no allocation here, we return by reference i.e. this space was already allocated
-  std::complex<double> *z = eigenvectors.GetMat(); 
+  std::complex<double> *z = eigenvectors.data();
   // allocation here because hetrd needs 2 copies
   matrix<std::complex<double>> hetrd_copy(psd_matrix);
   // memory pointed to (owned) by a will be deallocated by matrix destructor
-  std::complex<double> *a { hetrd_copy.GetMat() };
+  std::complex<double> *a { hetrd_copy.data() };
   double               *e { new double[n-1]{0.0} }; 
   double               *d { new double[n  ]{0.0} };
 
@@ -187,11 +187,11 @@ void eigensystem_psd_hetrd(const matrix<std::complex<float>>& psd_matrix,
   int ldz = lda;
 
   // no allocation here, we return by reference i.e. this space was already allocated
-  std::complex<float> *z = eigenvectors.GetMat(); 
+  std::complex<float> *z = eigenvectors.data();
   // allocation here because hetrd needs 2 copies
   matrix<std::complex<float>> hetrd_copy(psd_matrix);
   // memory pointed to (owned) by a will be deallocated by matrix destructor
-  std::complex<float> *a { hetrd_copy.GetMat() };
+  std::complex<float> *a { hetrd_copy.data() };
   float               *e { new float[n-1]{0.0} }; 
   float               *d { new float[n  ]{0.0} };
 
@@ -319,8 +319,8 @@ void eigensystem_psd_heevx(const matrix<std::complex<T>>& psd_matrix,
   auto iwork = std::vector<int>(5*n, 0);
   auto ifail = std::vector<int>(n, 0);
 
-  HeevxFuncs<T>::heevx(&AerBlas::Jobz[0], &AerBlas::Range[0], &AerBlas::UpLo[0], &n, heevx_copy.GetMat(), &lda, &vl, &vu, &il, &iu,
-                       &abstol, &m, eigenvalues.data(), eigenvectors.GetMat(), &ldz, work.data(),
+  HeevxFuncs<T>::heevx(&AerBlas::Jobz[0], &AerBlas::Range[0], &AerBlas::UpLo[0], &n, heevx_copy.data(), &lda, &vl, &vu, &il, &iu,
+                       &abstol, &m, eigenvalues.data(), eigenvectors.data(), &ldz, work.data(),
                        &lwork, rwork.data(), iwork.data(), ifail.data(), &info);
 
 #ifdef DEBUG
