@@ -72,8 +72,8 @@ bool almost_equal(const std::complex<T>& f1, const std::complex<T>& f2,
  
 template <typename T>
 bool almost_equal(const matrix<T>& mat1, const matrix<T>& mat2,
-                  double max_diff = MAXDIFF,
-                  double max_relative_diff = MAXRELATIVEDIFF);
+                  typename T::value_type max_diff = MAXDIFF,
+                  typename T::value_type max_relative_diff = MAXRELATIVEDIFF);
 
 template <typename T>
 bool almost_equal(const std::vector<T>& mat1, const std::vector<T>& mat2);
@@ -99,8 +99,8 @@ bool almost_equal(const std::complex<T>& f1, const std::complex<T>& f2,
 
 template <typename T>
 bool almost_equal(const matrix<T>& mat1, const matrix<T>& mat2,
-                  double max_diff,
-                  double max_relative_diff) {
+                  typename T::value_type max_diff,
+                  typename T::value_type max_relative_diff) {
   if(mat1.size() != mat2.size()) {
        std::cout << "Matrix sizes not equal : " << mat1.size() << " != " << mat2.size() << std::endl;
        return false;

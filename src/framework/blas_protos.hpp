@@ -148,17 +148,17 @@ std::array<char, 3> Trans = {'N', 'T', 'C'};
                         = 'T' transpose of A;
                         = 'C' hermitian conjugate of A.
 */
-const std::array<char, 2> UpLo = {'U', 'L'};
+std::array<char, 2> UpLo = {'U', 'L'};
 /*  UpLo    (input) CHARACTER*1
                         = 'U':  Upper triangle of A is stored;
                         = 'L':  Lower triangle of A is stored.
 */
-const std::array<char, 2> Jobz = {'V', 'N'};
+std::array<char, 2> Jobz = {'V', 'N'};
 /*  Jobz    (input) CHARACTER*1
                         = 'N':  Compute eigenvalues only;
                         = 'V':  Compute eigenvalues and eigenvectors.
 */
-const std::array<char, 3> Range = {'A', 'V', 'I'};
+std::array<char, 3> Range = {'A', 'V', 'I'};
 /*  Range   (input) CHARACTER*1
                                 = 'A': all eigenvalues will be found.
                                 = 'V': all eigenvalues in the half-open interval

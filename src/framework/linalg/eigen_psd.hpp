@@ -60,10 +60,6 @@ void eigensystem_psd_hetrd(const matrix<std::complex<T>>& psd_matrix,
                /* out */ std::vector<T>& eigenvalues,
                /* out */ matrix<std::complex<T>>& eigenvectors) {}
 
-template <class T>
-void eigensystem_psd_heevx(const matrix<std::complex<T>>& psd_matrix,
-               /* out */ std::vector<T>& eigenvalues,
-               /* out */ matrix<std::complex<T>>& eigenvectors) {}
 
 /**
  * eigensystem specializations for floats/doubles
@@ -256,10 +252,31 @@ void eigensystem_psd_hetrd(const matrix<std::complex<float>>& psd_matrix,
   e = nullptr;
 }
 
-template <>
-void eigensystem_psd_heevx(const matrix<std::complex<double>>& psd_matrix,
-               std::vector<double>& eigenvalues,
-               matrix<std::complex<double>>& eigenvectors) {
+template<typename T>
+struct HeevxFuncs;
+
+#define STATIC_ALIAS_FUNCTION(OriginalnamE, AliasnamE) \
+template <typename... Args> \
+static auto AliasnamE(Args&&... args) -> decltype(OriginalnamE(std::forward<Args>(args)...)) { \
+  return OriginalnamE(std::forward<Args>(args)...); \
+}
+
+template<>
+struct HeevxFuncs<double>{
+  STATIC_ALIAS_FUNCTION(zheevx_, heevx);
+  STATIC_ALIAS_FUNCTION(AerBlas::f77::dlamch, lamch);
+};
+
+template<>
+struct HeevxFuncs<float>{
+  STATIC_ALIAS_FUNCTION(AerBlas::f77::cheevx, heevx);
+  STATIC_ALIAS_FUNCTION(AerBlas::f77::slamch, lamch);
+};
+
+template <typename T>
+void eigensystem_psd_heevx(const matrix<std::complex<T>>& psd_matrix,
+                           std::vector<T>& eigenvalues,
+                           matrix<std::complex<T>>& eigenvectors) {
 #ifdef DEBUG
   if ( psd_matrix.GetRows() != psd_matrix.GetColumns() ) {
     std::cerr
@@ -284,26 +301,25 @@ void eigensystem_psd_heevx(const matrix<std::complex<double>>& psd_matrix,
   //  = 'V': all eigenvalues in the half-open interval (VL,VU]
   //         will be found.
   //  = 'I': the IL-th through IU-th eigenvalues will be found.
-  char jobz{'V'}, range{'A'}, uplo{'U'};
   int n = static_cast<int>(psd_matrix.GetLD());
   int ldz{n}, lda{n}, lwork{2*n};
   int il{0}, iu{0}; // not referenced if range='A'
-  double vl{0.0}, vu{0.0}; // not referenced if range='A'
+  T vl{0.0}, vu{0.0}; // not referenced if range='A'
   char cmach{'S'};
-  double abstol{2.0*AerBlas::f77::dlamch(&cmach)};
+  T abstol{static_cast<T>(2.0*HeevxFuncs<T>::lamch(&cmach))};
   int m{0}; // number of eigenvalues found
   int info{0};
 
   eigenvectors.resize(ldz, n);
   eigenvalues.clear();
   eigenvalues.resize(n);
-  matrix<std::complex<double>> heevx_copy{psd_matrix};
-  auto work = std::vector<std::complex<double>>(lwork, {0.0, 0.0});
-  auto rwork = std::vector<double>(7*n, 0.0);
+  matrix<std::complex<T>> heevx_copy{psd_matrix};
+  auto work = std::vector<std::complex<T>>(lwork, {0.0, 0.0});
+  auto rwork = std::vector<T>(7*n, 0.0);
   auto iwork = std::vector<int>(5*n, 0);
   auto ifail = std::vector<int>(n, 0);
 
-  AerBlas::f77::zheevx(&jobz, &range, &uplo, &n, heevx_copy.GetMat(), &lda, &vl, &vu, &il, &iu,
+  HeevxFuncs<T>::heevx(&AerBlas::Jobz[0], &AerBlas::Range[0], &AerBlas::UpLo[0], &n, heevx_copy.GetMat(), &lda, &vl, &vu, &il, &iu,
                        &abstol, &m, eigenvalues.data(), eigenvectors.GetMat(), &ldz, work.data(),
                        &lwork, rwork.data(), iwork.data(), ifail.data(), &info);
 
@@ -315,87 +331,6 @@ void eigensystem_psd_heevx(const matrix<std::complex<double>>& psd_matrix,
         exit(1);
   }
 #endif
-}
-
-template <>
-void eigensystem_psd_heevx(const matrix<std::complex<float>>& psd_matrix,
-               std::vector<float>& eigenvalues,
-               matrix<std::complex<float>>& eigenvectors) {
-#ifdef DEBUG
-  if ( psd_matrix.GetRows() != psd_matrix.GetColumns() ) {
-    std::cerr
-        << "error: eig_psd initial conditions not satisified" << std::endl
-        << "mat not square : " << psd_matrix.GetColumns() << " x " << psd_matrix.GetRows() << std::endl
-        << std::endl;
-    exit(1);
-  }
-  if ( psd_matrix.size() != eigenvectors.size() ) {
-    std::cerr
-         << "error: eig_psd initial conditions not satisfied :" << std::endl
-         << "evecs size != mat size (should be a copy)" << std::endl
-         << psd_matrix.size() << " != " << eigenvectors.size() << std::endl;
-    exit(1);
-  }
-#endif
-  //JOBZ is CHARACTER*1
-  //  = 'N':  Compute eigenvalues only;
-  //  = 'V':  Compute eigenvalues and eigenvectors.
-  //RANGE is CHARACTER*1
-  //  = 'A': all eigenvalues will be found.
-  //  = 'V': all eigenvalues in the half-open interval (VL,VU]
-  //         will be found.
-  //  = 'I': the IL-th through IU-th eigenvalues will be found.
-  char jobz{'V'}, range{'A'}, uplo{'U'};
-  int n = static_cast<int>(psd_matrix.GetLD());
-  int ldz{n}, lda{n}, lwork{2*n};
-  int il{0}, iu{0}; // not referenced if range='A'
-  float vl{0.0}, vu{0.0}; // not referenced if range='A'
-  char cmach{'S'};
-  float abstol{static_cast<float>(AerBlas::f77::slamch(&cmach) * 2.0)};
-  int m{0}; // number of eigenvalues found
-  int info{0};
-
-  // z is the matrix of eigenvectors to be returned
-  eigenvectors.resize(ldz, n);
-  matrix<std::complex<float>> heevx_copy{psd_matrix};
-  std::complex<float>  *z{eigenvectors.GetMat()};
-  std::complex<float>  *a{heevx_copy.GetMat()};
-  std::complex<float>  *work{new std::complex<float>[lwork]{0.0, 0.0}};
-  float                *rwork{new float[7*n]{0.0}};
-  int                  *iwork{new int[5*n]{0}};
-  int                  *ifail{new int[n]{0}};
-  float                *w{new float[n]{0.0}};
- 
-  AerBlas::f77::cheevx(&jobz, &range, &uplo, &n, a, &lda, &vl, &vu, &il, &iu,
-         &abstol, &m, w, z, &ldz, work, &lwork, rwork, iwork, ifail, &info);
-
-#ifdef DEBUG
-  std::cout << "zheevx return: " << info << std::endl;
-  if ( info != 0 ) {
-    std::cerr << "error: zheevx returned non-zero exit code : "
-              << info << std::endl;
-        exit(1);
-  }
-#endif
-
-  // copy w into eigenvalues return
-  // z is already a reference to the matrix
-  //  of eigenvectors to be returned
-  eigenvalues.clear();
-  std::copy(&w[0], &w[n], std::back_inserter(eigenvalues));
-
-  // free working memory
-  a = nullptr;
-  z = nullptr;
-  delete[] w;
-  w = nullptr;
-  delete[] rwork;
-  rwork = nullptr;
-  delete[] iwork;
-  iwork = nullptr;
-  delete[] ifail;
-  ifail = nullptr;
-
 }
 
 #endif
