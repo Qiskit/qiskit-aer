@@ -174,7 +174,7 @@ stages:
               set -x
               set -e
               source activate qiskit-aer
-              pip install -U pip setuptools virtualenv wheel
+              pip install -U setuptools virtualenv wheel
               pip install dist/*tar.gz
               pip install git+https://github.com/Qiskit/qiskit-terra
               python tools/verify_wheels.py
