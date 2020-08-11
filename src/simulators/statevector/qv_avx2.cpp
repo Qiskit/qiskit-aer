@@ -22,7 +22,7 @@
 /**
  * DISCLAIMER: We want to compile this code in isolation of the rest of the
  *codebase, because it contains AVX specific instructions, so is very CPU arch
- *dependant. We will detect CPU features at runtime and derive the execution
+ *dependent. We will detect CPU features at runtime and derive the execution
  *path over here if AVX is supported, if it's not supported the QubitVector
  *normal class will be used instead (so no SIMD whatsoever). Because of this, we
  *don't want to depend on any other library, otherwise the linker could take AVX
