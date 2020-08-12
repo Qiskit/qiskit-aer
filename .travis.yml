@@ -2,71 +2,48 @@
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
-
 notifications:
   email: false
-
 cache:
   pip: true
   directories:
     - .stestr
 sudo: false
-
-###############################################################################
-# Anchored and aliased definitions.
-###############################################################################
-
-# These are used for avoiding repeating code, and due to problems with
-# overriding some keys (in particular, "os" and "language: python") when using
-# the standard travis matrix with stages.
-#
-# This allows re-using different "sets" of configurations in the stages
-# matrix, mimicking a hierarchy:
-# * stage_generic
-#   * stage_linux
-#   * stage_osx
-stage_generic: &stage_generic
-  install:
-    - pip install -U 'pip<20.0.0'
-    - pip install cython
-    # Install terra from master on aer master else use the most recent release
-    - |
-      if [[ $TRAVIS_BRANCH == "master" ]] ; then
-          pip install -c constraints.txt https://github.com/Qiskit/qiskit-terra/archive/master.zip
-      else
-          pip install -U -c constraints.txt qiskit-terra
-      fi
-    # Installing qiskit-aer...
-    - pip install -U -c constraints.txt -r requirements-dev.txt
-  env:
-    - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
-
-stage_linux: &stage_linux
-  <<: *stage_generic
-  os: linux
-  dist: bionic
-  language: python
-  python: 3.7
-  sudo: true
-  before_install:
+env:
+  - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
+os: linux
+dist: bionic
+language: python
+python: 3.7
+sudo: true
+before_install:
     - sudo apt-get -y update
     - sudo apt-get -y install g++-7
     - sudo apt-get -y install libopenblas-dev
-  before_script:
-    - |
-      if [ ! "$(ls -A .stestr)" ]; then
-        rm -rf .stestr
-      fi
-    # Build with Thrust OpenMP CPU backend
-    - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -DAER_THRUST_BACKEND=OMP -- -j4
-    - pip install dist/qiskit_aer*whl
-  script:
-    - pip check
-    - stestr run --slowest
+before_script:
+  - |
+    if [ ! "$(ls -A .stestr)" ]; then
+      rm -rf .stestr
+    fi
+  # Build with Thrust OpenMP CPU backend
+  - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -DAER_THRUST_BACKEND=OMP -- -j4
+  - pip install dist/qiskit_aer*whl
+install:
+  - pip install -U pip
+  - pip install cython
+  # Install terra from master on aer master else use the most recent release
+  - |
+    if [[ $TRAVIS_BRANCH == "master" ]] ; then
+        pip install -c constraints.txt https://github.com/Qiskit/qiskit-terra/archive/master.zip
+    else
+        pip install -U -c constraints.txt qiskit-terra
+    fi
+  # Installing qiskit-aer...
+  - pip install -U -c constraints.txt -r requirements-dev.txt
 
-###############################################################################
-# Stage-related definitions
-###############################################################################
+script:
+  - pip check
+  - stestr run --slowest
 
 # Define the order of the stages.
 stages:
@@ -85,7 +62,6 @@ jobs:
     - stage: compile
       name: Python Wheel Build Linux (Power)
       arch: ppc64le
-      <<: *stage_linux
       before_script: true
       script:
         - python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7 -DAER_THRUST_BACKEND=OMP -- -j4
@@ -93,7 +69,6 @@ jobs:
     - stage: compile
       name: Standalone Build Linux (Power)
       arch: ppc64le
-      <<: *stage_linux
       install:
         - pip install conan
       before_script: true
@@ -104,5 +79,4 @@ jobs:
     - stage: test
       arch: ppc64le
       name: Python 3.7 Tests Linux (Power)
-      <<: *stage_linux
       python: 3.7
