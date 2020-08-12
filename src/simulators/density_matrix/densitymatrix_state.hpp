@@ -115,6 +115,8 @@ public:
                                             uint_t shots,
                                             RngEngine &rng) override;
 
+  virtual void allocate(uint_t num_qubits,uint_t shots);
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -305,6 +307,11 @@ const stringmap_t<Snapshots> State<densmat_t>::snapshotset_({
 //-------------------------------------------------------------------------
 // Initialization
 //-------------------------------------------------------------------------
+template <class densmat_t>
+void State<densmat_t>::allocate(uint_t num_qubits,uint_t shots)
+{
+  BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,1);
+}
 
 template <class densmat_t>
 void State<densmat_t>::initialize_qreg(uint_t num_qubits) {

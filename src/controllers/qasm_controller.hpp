@@ -459,7 +459,7 @@ void QasmController::run_circuit(const Circuit& circ,
           "QasmController: method statevector_gpu is not supported on this "
           "system");
 #else
-      if(multiple_qregs_){
+      if(multiple_qregs_ || (parallel_shots_ > 1 || parallel_experiments_ > 1)){
         if (simulation_precision_ == Precision::double_precision) {
           // Double-precision Statevector simulation
           return run_circuit_helper<
@@ -567,7 +567,7 @@ void QasmController::run_circuit(const Circuit& circ,
           "QasmController: method density_matrix_gpu is not supported on this "
           "system");
 #else
-      if(multiple_qregs_){
+      if(multiple_qregs_ || (parallel_shots_ > 1 || parallel_experiments_ > 1)){
         if (simulation_precision_ == Precision::double_precision) {
           // Double-precision density matrix simulation
           return run_circuit_helper<
@@ -1058,7 +1058,8 @@ void QasmController::run_circuit_with_noise(const Circuit& circ,
                                             const Initstate_t& initial_state,
                                             const Method method,
                                             ExperimentData& data,
-                                            RngEngine& rng) const {
+                                            RngEngine& rng) const 
+{
   // Transpile passes
   auto fusion_pass = transpile_fusion(method, config);
   Transpile::DelayMeasure measure_pass;
@@ -1066,6 +1067,11 @@ void QasmController::run_circuit_with_noise(const Circuit& circ,
   measure_pass.set_config(config);
   cache_block_pass.set_config(config);
   Noise::NoiseModel dummy_noise;
+
+//  printf(" test with noise\n");
+
+  //allocate qubit register
+  state.allocate(circ.num_qubits, 1);//shots);
 
   while (shots-- > 0) {
     Circuit noise_circ = noise.sample_noise(circ, rng);
@@ -1122,6 +1128,11 @@ void QasmController::run_circuit_without_noise(const Circuit& circ,
     // Implement measure sampler
     auto pos = opt_circ.first_measure_pos;  // Position of first measurement op
 
+//  printf(" test without noise, sampling\n");
+
+    //allocate qubit register
+    state.allocate(circ.num_qubits, 1);
+
     // Run circuit instructions before first measure
     std::vector<Operations::Op> ops(opt_circ.ops.begin(),
                                     opt_circ.ops.begin() + pos);
@@ -1136,6 +1147,11 @@ void QasmController::run_circuit_without_noise(const Circuit& circ,
     // Add measure sampling metadata
     data.add_metadata("measure_sampling", true);
   } else {
+    //allocate qubit register
+    state.allocate(circ.num_qubits, 1);
+
+//  printf(" test without noise\n");
+
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
     while (shots-- > 0) {

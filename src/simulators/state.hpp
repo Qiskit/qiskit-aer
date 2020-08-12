@@ -121,6 +121,11 @@ public:
                                     const std::vector<Operations::Op> &ops)
                                     const = 0;
 
+  //memory allocation (previously called before inisitalize_qreg)
+  virtual void allocate(uint_t num_qubits,uint_t shots)
+  {
+  }
+
   //-----------------------------------------------------------------------
   // Optional: Load config settings
   //-----------------------------------------------------------------------

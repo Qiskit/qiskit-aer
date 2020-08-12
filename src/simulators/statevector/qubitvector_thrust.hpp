@@ -31,6 +31,8 @@
 
 #include "simulators/statevector/chunk/chunk_manager.hpp"
 
+//#define AER_DEBUG
+
 
 #ifdef AER_TIMING
 
@@ -782,14 +784,16 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks)
 {
   //only first chunk call allocation function
-  if(chunk_manager_.chunk_bits() != chunk_bits || chunk_manager_.num_qubits() != num_qubits || chunk_manager_.num_chunks() != num_local_chunks){
+  if(num_local_chunks > 0){
     chunk_manager_.Allocate(chunk_bits,num_qubits,num_local_chunks);
   }
 
   //set global chunk ID
   chunk_index_ = chunk_index;
 
-  multi_chunk_distribution_ = true;
+  if(chunk_bits < num_qubits){
+    multi_chunk_distribution_ = true;
+  }
 }
 
 template <typename data_t>
@@ -812,15 +816,6 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   }
 
   if(num_qubits_ != num_qubits || chunk_ == NULL){
-    if(!multi_chunk_distribution_){
-#pragma omp barrier
-#pragma omp single
-      {
-        chunk_manager_.Allocate(num_qubits,num_qubits,nid);
-      }
-#pragma omp barrier
-    }
-
     if(chunk_){
       delete chunk_;
     }

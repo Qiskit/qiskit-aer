@@ -76,7 +76,7 @@ public:
 
   // Returns a const reference to the states data structure
   const auto &qreg(uint_t idx=0) const {return qregs_[idx];}
-  const auto &creg() const {return creg_;}
+  const auto &creg() const {return cregs_;}
   const auto &opset() const {return opset_;}
 
   //=======================================================================
@@ -105,6 +105,22 @@ public:
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
                          ExperimentData &data,
                          RngEngine &rng)  = 0;
+
+  //apply one operator
+  virtual void apply_op(const uint_t ishot,const Operations::Op &op,
+                         ExperimentData &data,
+                         RngEngine &rng)
+  {
+    //default implementation
+    std::vector<Operations::Op> ops;
+    ops.push_back(op);
+    apply_ops(ops,data,rng);
+  }
+
+  //memory allocation (previously called before inisitalize_qreg)
+  virtual void allocate(uint_t num_qubits,uint_t shots)
+  {
+  }
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
@@ -177,16 +193,17 @@ public:
 
   // Snapshot the current statevector (single-shot)
   // if type_label is the empty string the operation type will be used for the type
-  void snapshot_state(const Operations::Op &op, ExperimentData &data,
+  void snapshot_state(const int_t ireg, const Operations::Op &op, ExperimentData &data,
                       std::string name = "") const;
 
   // Snapshot the classical memory bits state (single-shot)
-  void snapshot_creg_memory(const Operations::Op &op, ExperimentData &data,
+  void snapshot_creg_memory(const int_t ireg, const Operations::Op &op, ExperimentData &data,
                             std::string name = "memory") const;
 
   // Snapshot the classical register bits state (single-shot)
-  void snapshot_creg_register(const Operations::Op &op, ExperimentData &data,
+  void snapshot_creg_register(const int_t ireg, const Operations::Op &op, ExperimentData &data,
                               std::string name = "register") const;
+
 
   //-----------------------------------------------------------------------
   // OpenMP thread settings
@@ -202,7 +219,7 @@ protected:
   std::vector<state_t> qregs_;
 
   // Classical register data
-  ClassicalRegister creg_;
+  std::vector<ClassicalRegister> cregs_;
 
   // Opset of instructions supported by the state
   Operations::OpSet opset_;
@@ -211,6 +228,7 @@ protected:
   // Default value is single-threaded unless overridden
   int threads_ = 1;
 
+  uint_t num_shots_;            //number of shots to be parallelized
 
   uint_t num_qubits_;           //number of qubits
 
@@ -227,6 +245,8 @@ protected:
   uint_t nprocs_;               //number of processes
 
   bool chunk_omp_parallel_;     //using thread parallel to process loop of chunks or not
+
+  bool multi_shot_parallelization_;
 
   void setup_chunk_bits(uint_t num_qubits, int scale = 1);
   uint_t get_process_by_chunk(uint_t cid);
@@ -245,12 +265,16 @@ StateChunk<state_t>::StateChunk(const Operations::OpSet &opset) : opset_(opset)
   nprocs_ = 1;
 
   chunk_omp_parallel_ = false;
+  multi_shot_parallelization_ = false;
+
+  num_shots_ = 1;
 }
 
 template <class state_t>
 StateChunk<state_t>::~StateChunk(void)
 {
   qregs_.clear();
+  cregs_.clear();
 
   chunk_index_begin_.clear();
   chunk_index_end_.clear();
@@ -282,16 +306,21 @@ void StateChunk<state_t>::setup_chunk_bits(uint_t num_qubits,int scale)
     if(chunk_bits_ > num_qubits_){
       chunk_bits_ = num_qubits_;
     }
+
+    num_global_chunks_ = 1ull << (num_qubits_ - chunk_bits_);
   }
   else{
+    if(omp_get_num_threads() > 1){
+      multi_shot_parallelization_ = true;
+    }
+
     chunk_bits_ = num_qubits_;
+    num_global_chunks_ = num_shots_;
   }
 
   //scale for density matrix
   chunk_bits_ *= scale;
   num_qubits_ *= scale;
-
-  num_global_chunks_ = 1ull << (num_qubits_ - chunk_bits_);
 
   chunk_index_begin_.resize(nprocs_);
   chunk_index_end_.resize(nprocs_);
@@ -303,6 +332,12 @@ void StateChunk<state_t>::setup_chunk_bits(uint_t num_qubits,int scale)
   num_local_chunks_ = chunk_index_end_[myrank_] - chunk_index_begin_[myrank_];
   global_chunk_index_ = chunk_index_begin_[myrank_];
 
+  if(num_shots_ > 1){
+    num_shots_ = num_local_chunks_;
+  }
+
+  qregs_.resize(num_local_chunks_);
+  cregs_.resize(num_shots_);
 }
 
 template <class state_t>
@@ -337,8 +372,12 @@ std::vector<reg_t> StateChunk<state_t>::sample_measure(const reg_t &qubits,
 
 
 template <class state_t>
-void StateChunk<state_t>::initialize_creg(uint_t num_memory, uint_t num_register) {
-  creg_.initialize(num_memory, num_register);
+void StateChunk<state_t>::initialize_creg(uint_t num_memory, uint_t num_register) 
+{
+  int_t ireg,nreg;
+  nreg = cregs_.size();
+  for(ireg=0;ireg<nreg;ireg++)
+    cregs_[ireg].initialize(num_memory, num_register);
 }
 
 
@@ -346,55 +385,92 @@ template <class state_t>
 void StateChunk<state_t>::initialize_creg(uint_t num_memory,
                                      uint_t num_register,
                                      const std::string &memory_hex,
-                                     const std::string &register_hex) {
-  creg_.initialize(num_memory, num_register, memory_hex, register_hex);
+                                     const std::string &register_hex) 
+{
+  int_t ireg,nreg;
+  nreg = cregs_.size();
+  for(ireg=0;ireg<nreg;ireg++)
+    cregs_[ireg].initialize(num_memory, num_register, memory_hex, register_hex);
 }
 
 
 template <class state_t>
-void StateChunk<state_t>::snapshot_state(const Operations::Op &op,
+void StateChunk<state_t>::snapshot_state(const int_t ireg, const Operations::Op &op,
                                     ExperimentData &data,
                                     std::string name) const 
 {
   name = (name.empty()) ? op.name : name;
 
-  uint_t i;
-  for(i=0;i<qregs_.size();i++){
-    data.add_pershot_snapshot(name, op.string_params[0], qregs_[i]);
+  if(ireg < 0){
+    int_t i;
+    for(i=0;i<qregs_.size();i++){
+      data.add_pershot_snapshot(name, op.string_params[0], qregs_[i]);
+    }
+  }
+  else if(ireg < qregs_.size()){
+    data.add_pershot_snapshot(name, op.string_params[0], qregs_[ireg]);
   }
 }
 
 
 template <class state_t>
-void StateChunk<state_t>::snapshot_creg_memory(const Operations::Op &op,
+void StateChunk<state_t>::snapshot_creg_memory(const int_t ireg, const Operations::Op &op,
                                           ExperimentData &data,
-                                          std::string name) const {
-  data.add_pershot_snapshot(name,
-                               op.string_params[0],
-                               creg_.memory_hex());
-}
-
-
-template <class state_t>
-void StateChunk<state_t>::snapshot_creg_register(const Operations::Op &op,
-                                            ExperimentData &data,
-                                            std::string name) const {
-  data.add_pershot_snapshot(name,
-                               op.string_params[0],
-                               creg_.register_hex());
-}
-
-
-template <class state_t>
-void StateChunk<state_t>::add_creg_to_data(ExperimentData &data) const {
-  if (creg_.memory_size() > 0) {
-    std::string memory_hex = creg_.memory_hex();
-    data.add_memory_count(memory_hex);
-    data. add_pershot_memory(memory_hex);
+                                          std::string name) const 
+{
+  if(ireg < 0){
+    int_t i;
+    for(i=0;i<cregs_.size();i++){
+      data.add_pershot_snapshot(name,
+                                   op.string_params[0],
+                                   cregs_[i].memory_hex());
+    }
   }
-  // Register bits value
-  if (creg_.register_size() > 0) {
-    data. add_pershot_register(creg_.register_hex());
+  else if(ireg < cregs_.size()){
+    data.add_pershot_snapshot(name,
+                                 op.string_params[0],
+                                 cregs_[ireg].memory_hex());
+  }
+}
+
+
+template <class state_t>
+void StateChunk<state_t>::snapshot_creg_register(const int_t ireg, const Operations::Op &op,
+                                            ExperimentData &data,
+                                            std::string name) const 
+{
+  if(ireg < 0){
+    int_t i;
+    for(i=0;i<cregs_.size();i++){
+      data.add_pershot_snapshot(name,
+                               op.string_params[0],
+                               cregs_[i].register_hex());
+    }
+  }
+  else if(ireg < cregs_.size()){
+    data.add_pershot_snapshot(name,
+                               op.string_params[0],
+                               cregs_[ireg].register_hex());
+  }
+}
+
+
+template <class state_t>
+void StateChunk<state_t>::add_creg_to_data(ExperimentData &data) const 
+{
+  int_t ireg,nreg;
+  nreg = cregs_.size();
+
+  for(ireg=0;ireg<nreg;ireg++){
+    if (cregs_[ireg].memory_size() > 0) {
+      std::string memory_hex = cregs_[ireg].memory_hex();
+      data.add_memory_count(memory_hex);
+      data.add_pershot_memory(memory_hex);
+    }
+    // Register bits value
+    if (cregs_[ireg].register_size() > 0) {
+      data.add_pershot_register(cregs_[ireg].register_hex());
+    }
   }
 }
 

@@ -135,6 +135,7 @@ ChunkManager<data_t>::~ChunkManager()
   chunks_.clear();
 }
 
+
 template <typename data_t>
 uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
 {
@@ -147,16 +148,24 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
   bool multi_gpu = false;
   bool hybrid = false;
   uint_t num_checkpoint,total_checkpoint = 0;
+  bool multi_shot = false;
+
+#pragma omp barrier
 
   //free previous allocation
-  Free();
+#pragma omp single
+  {
+    Free();
 
-  num_qubits_ = nqubits;
-  chunk_bits_ = chunk_bits;
+    num_qubits_ = nqubits;
+    chunk_bits_ = chunk_bits;
 
-  i_dev_map_ = 0;
+    i_dev_map_ = 0;
+    idev_buffer_map_ = 0;
 
-  idev_buffer_map_ = 0;
+    num_chunks_ = 0;
+  }
+#pragma omp barrier
 
   str = getenv("AER_MULTI_GPU");
   if(str){
@@ -169,96 +178,109 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
   }
 
   nid = omp_get_num_threads();
-  if(nid > 1){
-    //multi-shot parallelization
+
+  if(chunk_bits == nqubits){
+    if(nchunks > 1 || nid > 1){  //multi-shot parallelization
+      //accumulate number of chunks
+#pragma omp atomic update
+      num_chunks_ += nchunks;
+
+      num_buffers = 0;
+      multi_shot = true;
+
 #ifdef AER_THRUST_CPU
-    multi_gpu = false;
-    num_buffers = 0;
-    num_places_ = 1;
+      multi_gpu = false;
+#pragma omp single
+      {
+        num_places_ = 1;
+      }
 #else
-    multi_gpu = true;
-    num_buffers = 0;
-    num_places_ = num_devices_;
+        multi_gpu = true;
+#pragma omp single
+      {
+        num_places_ = num_devices_;
+      }
 #endif
-    omp_set_nested(1);
-  }
-  else{
-    if(chunk_bits == nqubits){    //single chunk
+#pragma omp barrier
+
+    }
+    else{    //single chunk
       num_buffers = 0;
       multi_gpu = false;
       num_places_ = 1;
+      num_chunks_ = nchunks;
     }
-    else{   //multiple-chunks
-      num_buffers = AER_MAX_BUFFERS;
+  }
+  else{   //multiple-chunk parallelization
+    num_buffers = AER_MAX_BUFFERS;
 
 #ifdef AER_THRUST_CUDA
-      num_places_ = num_devices_;
-      if(!multi_gpu){
-        size_t freeMem,totalMem;
-        cudaSetDevice(0);
-        cudaMemGetInfo(&freeMem,&totalMem);
-        if(freeMem > ( ((uint_t)sizeof(thrust::complex<data_t>) * (nchunks + num_buffers + AER_DUMMY_BUFFERS)) << chunk_bits_)){
-          num_places_ = 1;
-        }
+    num_places_ = num_devices_;
+    if(!multi_gpu){
+      size_t freeMem,totalMem;
+      cudaSetDevice(0);
+      cudaMemGetInfo(&freeMem,&totalMem);
+      if(freeMem > ( ((uint_t)sizeof(thrust::complex<data_t>) * (nchunks + num_buffers + AER_DUMMY_BUFFERS)) << chunk_bits_)){
+        num_places_ = 1;
       }
-#else
-      num_places_ = 1;
-#endif
     }
+#else
+    num_places_ = 1;
+#endif
+    num_chunks_ = nchunks;
   }
 
-  num_chunks_ = 0;
-  for(iDev=0;iDev<num_places_;iDev++){
-    is = nchunks * (uint_t)iDev / (uint_t)num_places_;
-    ie = nchunks * (uint_t)(iDev + 1) / (uint_t)num_places_;
-    nc = ie - is;
-    if(hybrid){
-      nc /= 2;
-    }
+#pragma omp single
+  {
+    nchunks = num_chunks_;
+    num_chunks_ = 0;
+    for(iDev=0;iDev<num_places_;iDev++){
+      is = nchunks * (uint_t)iDev / (uint_t)num_places_;
+      ie = nchunks * (uint_t)(iDev + 1) / (uint_t)num_places_;
+      nc = ie - is;
+      if(hybrid){
+        nc /= 2;
+      }
 
-    num_checkpoint = nc;
-#ifdef AER_THRUST_CPU
-    if(nid > 1){
-      //allocate as host mode for serial execution
-      chunks_[iDev] = new HostChunkContainer<data_t>;
-    }
-    else{
-      chunks_[iDev] = new DeviceChunkContainer<data_t>;
-    }
-#else
-    chunks_[iDev] = new DeviceChunkContainer<data_t>;
-#endif
+      num_checkpoint = nc;
+      /*
+      if(multi_shot){
+        chunks_[iDev] = new BatchDeviceChunkContainer<data_t>;
+      }
+      else{*/
+        chunks_[iDev] = new DeviceChunkContainer<data_t>;
+//      }
 
 #ifdef AER_THRUST_CUDA
-    size_t freeMem,totalMem;
-    cudaSetDevice(iDev);
-    cudaMemGetInfo(&freeMem,&totalMem);
-    if(freeMem <= ( ((uint_t)sizeof(thrust::complex<data_t>) * (nc + num_buffers + num_checkpoint + AER_DUMMY_BUFFERS)) << chunk_bits_)){
-      num_checkpoint = 0;
-    }
+      size_t freeMem,totalMem;
+      cudaSetDevice(iDev);
+      cudaMemGetInfo(&freeMem,&totalMem);
+      if(freeMem <= ( ((uint_t)sizeof(thrust::complex<data_t>) * (nc + num_buffers + num_checkpoint + AER_DUMMY_BUFFERS)) << chunk_bits_)){
+        num_checkpoint = 0;
+      }
 #endif
 
-    total_checkpoint += num_checkpoint;
-    num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nc,num_buffers,num_checkpoint);
-  }
-  if(num_chunks_ < nchunks){
-    for(iDev=0;iDev<num_places_;iDev++){
-      chunks_[num_places_ + iDev] = new HostChunkContainer<data_t>;
-      is = (nchunks-num_chunks_) * (uint_t)iDev / (uint_t)num_places_;
-      ie = (nchunks-num_chunks_) * (uint_t)(iDev + 1) / (uint_t)num_places_;
-
-      chunks_[num_places_ + iDev]->Allocate(-1,chunk_bits,ie-is,AER_MAX_BUFFERS);
+      total_checkpoint += num_checkpoint;
+      num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nc,num_buffers,num_checkpoint);
     }
-    num_places_ *= 2;
-    num_chunks_ = nchunks;
+    if(num_chunks_ < nchunks){
+      for(iDev=0;iDev<num_places_;iDev++){
+        chunks_[num_places_ + iDev] = new HostChunkContainer<data_t>;
+        is = (nchunks-num_chunks_) * (uint_t)iDev / (uint_t)num_places_;
+        ie = (nchunks-num_chunks_) * (uint_t)(iDev + 1) / (uint_t)num_places_;
 
-    omp_set_nested(1);
+        chunks_[num_places_ + iDev]->Allocate(-1,chunk_bits,ie-is,AER_MAX_BUFFERS);
+      }
+      num_places_ *= 2;
+      num_chunks_ = nchunks;
+    }
+
+    //additional host buffer
+    iplace_host_ = num_places_;
+    chunks_[iplace_host_] = new HostChunkContainer<data_t>;
+    chunks_[iplace_host_]->Allocate(-1,chunk_bits,0,AER_MAX_BUFFERS);
   }
-
-  //additional host buffer
-  iplace_host_ = num_places_;
-  chunks_[iplace_host_] = new HostChunkContainer<data_t>;
-  chunks_[iplace_host_]->Allocate(-1,chunk_bits,0,AER_MAX_BUFFERS);
+#pragma omp barrier
 
   return num_chunks_;
 }

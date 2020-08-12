@@ -122,6 +122,8 @@ public:
                                             uint_t shots,
                                             RngEngine &rng) override;
 
+  virtual void allocate(uint_t num_qubits,uint_t shots);
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -361,6 +363,11 @@ const stringmap_t<Snapshots> State<statevec_t>::snapshotset_({
 //-------------------------------------------------------------------------
 // Initialization
 //-------------------------------------------------------------------------
+template <class statevec_t>
+void State<statevec_t>::allocate(uint_t num_qubits,uint_t shots)
+{
+  BaseState::qreg_.chunk_setup(num_qubits,num_qubits,0,1);
+}
 
 template <class statevec_t>
 void State<statevec_t>::initialize_qreg(uint_t num_qubits) {

@@ -260,8 +260,70 @@ void DensityMatrixThrust<data_t>::apply_diagonal_superop_matrix(const reg_t &qub
 }
 
 template <typename data_t>
+class DensityDiagMatMult2x2 : public GateFuncBase<data_t>
+{
+protected:
+  uint_t offset;
+  uint_t offset_sp;
+  thrust::complex<double> m0,m1;
+public:
+  DensityDiagMatMult2x2(const cvector_t<double>& mat,uint_t q,uint_t qs)
+  {
+    offset = 1ull << q;
+    offset_sp = 1ull << (q + qs);
+
+    m0 = mat[0];
+    m1 = mat[1];
+  }
+
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    uint_t i0,i1,i2;
+    thrust::complex<data_t>* vec0;
+    thrust::complex<data_t>* vec1;
+    thrust::complex<data_t>* vec2;
+    thrust::complex<data_t>* vec3;
+    thrust::complex<data_t> q0,q1,q2,q3,q0t,q1t,q2t,q3t;
+
+    vec0 = this->data_;
+    vec1 = vec0 + offset;
+    vec2 = vec0 + offset_sp;
+    vec3 = vec2 + offset;
+
+    i0 = i & (offset - 1);
+    i2 = (i - i0) << 1;
+    i1 = i2 & (offset_sp - 1);
+    i2 = (i2 - i1) << 1;
+
+    i0 = i0 + i1 + i2;
+
+    q0 = vec0[i0];
+    q1 = vec1[i0];
+    q2 = vec2[i0];
+    q3 = vec3[i0];
+
+    q0t = m0 * q0;
+    q1t = m1 * q1;
+
+    q2t = m0 * q2;
+    q3t = m1 * q3;
+
+    vec0[i0] = thrust::conj(m0) * q0t;
+    vec2[i0] = thrust::conj(m1) * q2t;
+
+    vec1[i0] = thrust::conj(m0) * q1t;
+    vec3[i0] = thrust::conj(m1) * q3t;
+  }
+  const char* name(void)
+  {
+    return "DensityDiagMatMult2x2";
+  }
+};
+
+template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_unitary_matrix(const reg_t &qubits,
-                                                 const cvector_t<double> &mat) {
+                                                 const cvector_t<double> &mat) 
+{
   // Check if we apply as two N-qubit matrix multiplications or a single 2N-qubit matrix mult.
   if (qubits.size() > apply_unitary_threshold_) {
     // Apply as two N-qubit matrix mults
@@ -284,40 +346,170 @@ void DensityMatrixThrust<data_t>::apply_unitary_matrix(const reg_t &qubits,
 
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_diagonal_unitary_matrix(const reg_t &qubits,
-                                                          const cvector_t<double> &diag) {
-  // Apply as single 2N-qubit matrix mult.
-  apply_diagonal_superop_matrix(qubits, AER::Utils::tensor_product(AER::Utils::conjugate(diag), diag));
+                                                          const cvector_t<double> &diag) 
+{
+  if(qubits.size() == 1){
+    const reg_t qubits_sp = {{qubits[0], qubits[0] + num_qubits()}};
+    BaseVector::apply_function(DensityDiagMatMult2x2<data_t>(diag,qubits[0], num_qubits()), qubits_sp);
+  }
+  else{
+    // Apply as single 2N-qubit matrix mult.
+    apply_diagonal_superop_matrix(qubits, AER::Utils::tensor_product(AER::Utils::conjugate(diag), diag));
+  }
 }
 
 //-----------------------------------------------------------------------
 // Apply Specialized Gates
 //-----------------------------------------------------------------------
+template <typename data_t>
+class DensityCX : public GateFuncBase<data_t>
+{
+protected:
+  uint_t offset;
+  uint_t offset_sp;
+  uint_t cmask;
+  uint_t cmask_sp;
+public:
+  DensityCX(uint_t qc,uint_t qt,uint_t qs)
+  {
+    offset = 1ull << qt;
+    offset_sp = 1ull << (qt + qs);
+    cmask = 1ull << qc;
+    cmask_sp = 1ull << (qc + qs);
+  }
+
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    uint_t i0,i1,i2;
+    thrust::complex<data_t>* vec0;
+    thrust::complex<data_t>* vec1;
+    thrust::complex<data_t>* vec2;
+    thrust::complex<data_t>* vec3;
+    thrust::complex<data_t> q0,q1,q2,q3,t;
+
+    vec0 = this->data_;
+    vec1 = vec0 + offset;
+    vec2 = vec0 + offset_sp;
+    vec3 = vec2 + offset;
+
+    i0 = i & (offset - 1);
+    i2 = (i - i0) << 1;
+    i1 = i2 & (offset_sp - 1);
+    i2 = (i2 - i1) << 1;
+
+    i0 = i0 + i1 + i2;
+
+    q0 = vec0[i0];
+    q1 = vec1[i0];
+    q2 = vec2[i0];
+    q3 = vec3[i0];
+
+    if((i0 & cmask) == cmask){
+      t = q0;
+      q0 = q1;
+      q1 = t;
+
+      t = q2;
+      q2 = q3;
+      q3 = t;
+    }
+
+    if((i0 & cmask_sp) == cmask_sp){
+      vec0[i0] = q2;
+      vec1[i0] = q3;
+      vec2[i0] = q0;
+      vec3[i0] = q1;
+    }
+    else{
+      vec0[i0] = q0;
+      vec1[i0] = q1;
+      vec2[i0] = q2;
+      vec3[i0] = q3;
+    }
+  }
+  const char* name(void)
+  {
+    return "DensityCX";
+  }
+};
 
 template <typename data_t>
-void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qtrgt) {
-  std::vector<std::pair<uint_t, uint_t>> pairs = {
-    {{1, 3}, {4, 12}, {5, 15}, {6, 14}, {7, 13}, {9, 11}}
-  };
-  const reg_t qubits = {{qctrl, qtrgt, qctrl + num_qubits(), qtrgt + num_qubits()}};
-  BaseVector::apply_permutation_matrix(qubits, pairs);
+void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qtrgt) 
+{
+  const reg_t qubits = {{qctrl, qtrgt}};
+
+  BaseVector::apply_function(DensityCX<data_t>(qctrl, qtrgt, num_qubits()), qubits);
+
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_cnot",qubits);
 #endif
 }
 
 template <typename data_t>
-void DensityMatrixThrust<data_t>::apply_cz(const uint_t q0, const uint_t q1) {
-  cvector_t<double> vec;
-  vec.resize(16, 1.0);
-  vec[3] = -1.;
-  vec[7] = -1.;
-  vec[11] = -1.;
-  vec[12] = -1.;
-  vec[13] = -1.;
-  vec[14] = -1.;
+class DensityCZ : public GateFuncBase<data_t>
+{
+protected:
+  uint_t offset;
+  uint_t offset_sp;
+  uint_t cmask;
+  uint_t cmask_sp;
+public:
+  DensityCZ(uint_t qc,uint_t qt,uint_t qs)
+  {
+    offset = 1ull << qt;
+    offset_sp = 1ull << (qt + qs);
+    cmask = 1ull << qc;
+    cmask_sp = 1ull << (qc + qs);
+  }
 
-  const reg_t qubits = {{q0, q1, q0 + num_qubits(), q1 + num_qubits()}};
-  BaseVector::apply_diagonal_matrix(qubits, vec);
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    uint_t i0,i1,i2;
+    thrust::complex<data_t>* vec0;
+    thrust::complex<data_t>* vec1;
+    thrust::complex<data_t>* vec2;
+    thrust::complex<data_t>* vec3;
+    thrust::complex<data_t> q0,q1,q2,q3;
+
+    vec0 = this->data_;
+    vec1 = vec0 + offset;
+    vec2 = vec0 + offset_sp;
+    vec3 = vec2 + offset;
+
+    i0 = i & (offset - 1);
+    i2 = (i - i0) << 1;
+    i1 = i2 & (offset_sp - 1);
+    i2 = (i2 - i1) << 1;
+
+    i0 = i0 + i1 + i2;
+
+    q3 = vec3[i0];
+    if((i0 & cmask) == cmask){
+      q1 = vec1[i0];
+      vec1[i0] = -q1;
+
+      q3 = -q3;
+    }
+    if((i0 & cmask_sp) == cmask_sp){
+      q2 = vec2[i0];
+      vec2[i0] = -q2;
+
+      q3 = -q3;
+    }
+    vec3[i0] = q3;
+  }
+  const char* name(void)
+  {
+    return "DensityCZ";
+  }
+};
+
+template <typename data_t>
+void DensityMatrixThrust<data_t>::apply_cz(const uint_t q0, const uint_t q1) 
+{
+  const reg_t qubits = {{q0, q1}};
+
+  BaseVector::apply_function(DensityCZ<data_t>(q0, q1, num_qubits()), qubits);
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_cz",qubits);
