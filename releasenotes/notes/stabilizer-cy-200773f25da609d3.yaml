@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    Add Controlled-Y ("cy") gate to the Stabilizer simulator methods supported
-    gateset.

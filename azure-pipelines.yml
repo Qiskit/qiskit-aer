@@ -49,7 +49,6 @@ stages:
                 python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
                 virtualenv test-$version
                 test-$version/Scripts/pip install -c constraints.txt dist/*whl
-                test-$version/Scripts/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
                 test-$version/Scripts/python tools/verify_wheels.py
                 mv dist/*whl wheelhouse/.
                 rm -rf test-$version
@@ -175,7 +174,7 @@ stages:
               set -x
               set -e
               source activate qiskit-aer
-              pip install -U pip setuptools virtualenv wheel
+              pip install -U setuptools virtualenv wheel
               pip install dist/*tar.gz
               pip install git+https://github.com/Qiskit/qiskit-terra
               python tools/verify_wheels.py
@@ -239,7 +238,7 @@ stages:
              python -m pip install --upgrade pip virtualenv
              pip install -U tox
              sudo apt-get update
-             sudo apt-get install -y build-essential
+             sudo apt-get install -y build-essential libopenblas-dev
            displayName: 'Install dependencies'
          - bash: |
              tox -edocs

@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fixes issue where memory requirements of simulation were not being checked
-    on the QasmSimulator when using a non-automatic simulation method.

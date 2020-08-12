@@ -67,7 +67,6 @@ using indexes_t = std::unique_ptr<uint_t[]>;
 template <size_t N> using areg_t = std::array<uint_t, N>;
 template <typename T> using cvector_t = std::vector<std::complex<T>>;
 
-
 //============================================================================
 // QubitVectorThrust class
 //============================================================================

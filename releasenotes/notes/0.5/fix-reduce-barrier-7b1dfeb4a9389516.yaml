@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix remove-barrier circuit optimization pass to be applied before qubit
+    trucation. This fixes an issue where barriers inserted by the Terra
+    transpiler across otherwise inactive qubits would prevent them from being
+    truncated.

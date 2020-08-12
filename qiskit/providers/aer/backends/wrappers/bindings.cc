@@ -1,11 +1,9 @@
 #include <iostream>
-
-#ifdef _MSC_VER
+#include "misc/common_macros.hpp"
+#if defined(_MSC_VER)
 #include <intrin.h>
-#elif defined(__GNUC__)
-#ifndef __PPC64__
+#elif defined(GNUC_AVX2)
 #include <cpuid.h>
-#endif
 #endif
 
 #include "misc/warnings.hpp"

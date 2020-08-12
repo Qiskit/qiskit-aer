@@ -1,8 +1,0 @@
----
-upgrade:
-  - |
-    For Aer's backend the jsonschema validation of input qobj objects from
-    terra is now opt-in instead of being enabled by default. If you want
-    to enable jsonschema validation of qobj set the ``validate`` kwarg on
-    the :meth:`qiskit.providers.aer.QasmSimualtor.run` method for the backend
-    object to ``True``.

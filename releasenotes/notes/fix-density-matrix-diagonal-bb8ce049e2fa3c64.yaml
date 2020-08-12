@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fixes the "diagonal" qobj gate instructions being applied incorrectly
-    in the density matrix Qasm Simulator method.
-  - |
-    Fixes bug where conditional gates were not being applied correctly
-    on the density matrix simulation method.

@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Enable the gate-fusion circuit optimization from the 
+    :class:`qiskit.providers.aer.QasmSimulator` in both the
+    :class:`qiskit.providers.aer.StatevectorSimulator` and
+    :class:`qiskit.providers.aer.UnitarySimulator` backends.
