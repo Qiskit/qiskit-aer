@@ -8,14 +8,12 @@ cache:
   pip: true
   directories:
     - .stestr
-sudo: false
 env:
   - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
 os: linux
 dist: bionic
 language: python
 python: 3.7
-sudo: true
 before_install:
     - sudo apt-get -y update
     - sudo apt-get -y install g++-7
@@ -55,9 +53,12 @@ stages:
 # Define the job matrix explicitly, as matrix expansion causes issues when
 # using it with stages and some variables/sections cannot be overridden.
 jobs:
-  include:
-  # Power tests (currently failing)
+  fast_finish: true
   allow_failures:
+    - name: Python Wheel Build Linux (Power)
+    - name: Standalone Build Linux (Power)
+    - name: Python 3.7 Tests Linux (Power)
+  include:
     # Power Build test
     - stage: compile
       name: Python Wheel Build Linux (Power)
