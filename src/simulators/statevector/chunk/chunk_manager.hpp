@@ -150,11 +150,12 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
   uint_t num_checkpoint,total_checkpoint = 0;
   bool multi_shot = false;
 
-#pragma omp barrier
+  nid = omp_get_num_threads();
+  tid = omp_get_thread_num();
 
   //free previous allocation
-#pragma omp single
-  {
+#pragma omp barrier
+  if(tid == 0){
     Free();
 
     num_qubits_ = nqubits;
@@ -177,7 +178,6 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
     hybrid = true;
   }
 
-  nid = omp_get_num_threads();
 
   if(chunk_bits == nqubits){
     if(nchunks > 1 || nid > 1){  //multi-shot parallelization
@@ -194,14 +194,12 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
 
 #ifdef AER_THRUST_CPU
       multi_gpu = false;
-#pragma omp single
-      {
+      if(tid == 0){
         num_places_ = 1;
       }
 #else
-        multi_gpu = true;
-#pragma omp single
-      {
+      multi_gpu = true;
+      if(tid == 0){
         num_places_ = num_devices_;
       }
 #endif
@@ -234,8 +232,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
     num_chunks_ = nchunks;
   }
 
-#pragma omp single
-  {
+  if(tid == 0){
     nchunks = num_chunks_;
     num_chunks_ = 0;
     for(iDev=0;iDev<num_places_;iDev++){
