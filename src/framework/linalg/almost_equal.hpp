@@ -22,8 +22,8 @@
 #include "framework/matrix.hpp"
 #include "framework/linalg/enable_if_numeric.hpp"
 
-#define MAXDIFF 5.0*epsilon<T>::value
-#define MAXRELATIVEDIFF 5.0*epsilon<T>::value
+#define MAXDIFF 5.0*AER::Linalg::epsilon<T>::value
+#define MAXRELATIVEDIFF 5.0*AER::Linalg::epsilon<T>::value
 
 namespace AER {
 namespace Linalg {
@@ -76,7 +76,7 @@ bool almost_equal(const matrix<T>& mat1, const matrix<T>& mat2,
                   typename T::value_type max_relative_diff = MAXRELATIVEDIFF);
 
 template <typename T>
-bool almost_equal(const std::vector<T>& mat1, const std::vector<T>& mat2);
+bool almost_equal(const std::vector<T>& vec1, const std::vector<T>& vec2);
  
 template <typename T, typename >
 bool almost_equal(T f1, T f2,
@@ -84,7 +84,6 @@ bool almost_equal(T f1, T f2,
                   T max_relative_diff) {
   T diff = std::abs(f1 - f2);
   if (diff <= max_diff) return true;
-  std::cout << diff << std::endl;
   return diff <=
          max_relative_diff * std::max(std::abs(f1), std::abs(f2));
 }
@@ -145,7 +144,7 @@ bool almost_equal(const std::vector<T>& vec1, const std::vector<T>& vec2) {
   }
   return true;
 }
- 
+
 //------------------------------------------------------------------------------
 }  // namespace Linalg
 //------------------------------------------------------------------------------

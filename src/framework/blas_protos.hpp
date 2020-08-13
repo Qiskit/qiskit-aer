@@ -99,22 +99,30 @@ void zgemm_(const char *TransA, const char *TransB, const size_t *M,
             const std::complex<double> *beta, std::complex<double> *C,
             size_t *ldc);
 
+// Reduces a Single-Precison Complex Hermitian matrix A to real symmetric tridiagonal form
 void chetrd_(char *TRANS, int *N, std::complex<float> *A,
              int *LDA, float *d, float *e, std::complex<float> *tau,
              std::complex<float> *work, int *lwork, int *info);
 
+// Reduces a Double-Precison Complex Hermitian matrix A to real symmetric tridiagonal form T
 void zhetrd_(char *TRANS, int *N, std::complex<double> *A,
              int *LDA, double *d, double *e, std::complex<double> *tau,
              std::complex<double> *work, int *lwork, int *info);
 
+// Computes all eigenvalues and, optionally, eigenvectors of a
+// Single-Precison Complex symmetric positive definite tridiagonal matrix
 void cpteqr_(char* compz, int *n, float *d, float *e,
              std::complex<float> *z, int* ldz,
              std::complex<float> *work, int *info);
 
+// Computes all eigenvalues and, optionally, eigenvectors of a
+// Double-Precison Complex symmetric positive definite tridiagonal matrix
 void zpteqr_(char* compz, int *n, double *d, double *e,
              std::complex<double> *z, int* ldz,
              std::complex<double> *work, int *info);
 
+// Computes selected eigenvalues and, optionally, eigenvectors
+// of a Single-Precison Complex Hermitian matrix A
 void cheevx_(char *jobz, char *range, char *uplo, int *n,
              std::complex<float> *a, int *lda, float *vl,
              float *vu, int *il, int *iu, float *abstol,
@@ -122,6 +130,8 @@ void cheevx_(char *jobz, char *range, char *uplo, int *n,
              std::complex<float> *work, int *lwork, float *rwork,
              int *iwork, int *ifail, int *info);
 
+// Computes selected eigenvalues and, optionally, eigenvectors
+// of a Double-Precison Complex Hermitian matrix A
 void zheevx_(char *jobz, char *range, char *uplo, int *n,
              std::complex<double> *a, int *lda, double *vl,
              double *vu, int *il, int *iu, double *abstol,
@@ -129,13 +139,22 @@ void zheevx_(char *jobz, char *range, char *uplo, int *n,
              std::complex<double> *work, int *lwork, double *rwork,
              int *iwork, int *ifail, int *info);
 
+// Determines Single-Precision machine parameters.
 float slamch_(char *cmach);
 
+// Determines Double-Precision machine parameters.
 double dlamch_(char *cmach);
 
 #ifdef __cplusplus
 }
 #endif
+
+using heevx_type = void (&)(char *jobz, char *range, char *uplo, int *n,
+                                std::complex<double> *a, int *lda, double *vl,
+                                double *vu, int *il, int *iu, double *abstol,
+                                int *m, double *w, std::complex<double> *z, int *ldz,
+                                std::complex<double> *work, int *lwork, double *rwork,
+                                int *iwork, int *ifail, int *info);
 
 
 namespace AerBlas {
@@ -165,39 +184,6 @@ std::array<char, 3> Range = {'A', 'V', 'I'};
    (VL,VU] will be found.
                                 = 'I': the IL-th through IU-th eigenvalues will
    be found.
-*/
-
-namespace f77 {
-    ALIAS_FUNCTION(sgemv_, sgemv);
-    ALIAS_FUNCTION(dgemv_, dgemv);
-    ALIAS_FUNCTION(cgemv_, cgemv);
-    ALIAS_FUNCTION(zgemv_, zgemv);
-    ALIAS_FUNCTION(sgemm_, sgemm);
-    ALIAS_FUNCTION(dgemm_, dgemm);
-    ALIAS_FUNCTION(cgemm_, cgemm);
-    ALIAS_FUNCTION(zgemm_, zgemm);
- 
-    ALIAS_FUNCTION(chetrd_, chetrd);
-    ALIAS_FUNCTION(zhetrd_, zhetrd);
-    ALIAS_FUNCTION(cpteqr_, cpteqr);
-    ALIAS_FUNCTION(zpteqr_, zpteqr);
-    ALIAS_FUNCTION(cheevx_, cheevx);
-    ALIAS_FUNCTION(zheevx_, zheevx);
-    ALIAS_FUNCTION(slamch_, slamch);
-    ALIAS_FUNCTION(dlamch_, dlamch);
-} // namespace f77
-
-/*
-namespace lapack {
-    ALIAS_FUNCTION(LAPACKE_chetrd, chetrd);
-    ALIAS_FUNCTION(LAPACKE_zhetrd, zhetrd);
-    ALIAS_FUNCTION(LAPACKE_cpteqr, cpteqr);
-    ALIAS_FUNCTION(LAPACKE_zpteqr, zpteqr);
-    ALIAS_FUNCTION(LAPACKE_cheevx, cheevx);
-    ALIAS_FUNCTION(LAPACKE_zheevx, zheevx);
-    ALIAS_FUNCTION(LAPACKE_slamch, slamch);
-    ALIAS_FUNCTION(LAPACKE_dlamch, dlamch);
-} // namespace lapack
 */
 
 } // namespace AerBlas

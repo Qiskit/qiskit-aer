@@ -1,5 +1,4 @@
 #include <map>
-#include <random>
 #include <type_traits>
 
 #include <framework/utils.hpp>
@@ -8,167 +7,47 @@
 
 #include "utils.hpp"
 
-static std::random_device rd;
-static std::default_random_engine rng(rd());
-
 #define CATCH_CONFIG_MAIN
 
 #include <catch2/catch.hpp>
 
+// check if polar coordinates are almost equal
+// r -> (0,inf)
+// angle -> (-PI, PI)
 template <typename T>
-T rand_f(T min = 0.0, T max = 1.0) {
-    std::uniform_real_distribution<T> distr(min, max) ;
-    return distr(rng);
-}
+bool check_polar_coords(T r, T angle, T r_2, T angle_2, T max_diff = MAXDIFF, T max_relative_diff = MAXRELATIVEDIFF);
 
-template<typename T>
-std::complex<T> rand_z(T min = 0.0, T max = 1.0) {
-    std::uniform_real_distribution<T> distr(min, max) ;
-    return { distr(rng), distr(rng) };
-}
+template <typename T>
+bool check_eigenvector(const std::vector<std::complex<T>>& expected_eigen,
+                       const std::vector<std::complex<T>>& actual_eigen,
+                       T max_diff = MAXDIFF,
+                       T max_relative_diff = MAXRELATIVEDIFF);
 
-template<typename T>
-matrix<std::complex<T>> rand_hermitian_mat(size_t n, T range) {
-    // we construct a random N * a matrix
-    matrix<std::complex<T>> mat(n, n);
-    for(size_t r=0; r<n; r++) {
-        for(size_t c=r; c<n; c++) {
-            if (r == c) { 
-                mat(r, c) = std::complex<T>(
-                                rand_f<T>(-1.0 * std::abs(range), std::abs(range)),
-                                0.0); 
-            } else {
-                auto random_z = rand_z<T>(-1.0 * std::abs(range), std::abs(range));
-                mat(r, c) = random_z;
-                mat(c, r) = std::complex<T>(random_z.real(), -1 * random_z.imag());
-            }
-        }
-    }
-    return mat; //* AER::Utils::dagger(mat);
-}
+// Sometimes eigenvectors differ by a factor and/or phase
+// This function compares them taking this into account
+template <typename T>
+bool check_all_eigenvectors(const matrix<std::complex<T>>& expected,
+                            const matrix<std::complex<T>>& actual,
+                            T max_diff = MAXDIFF,
+                            T max_relative_diff = MAXRELATIVEDIFF);
 
-template<typename T>
-matrix<std::complex<T>> herm_mat_2d_1() {
-    auto mat = matrix<std::complex<T>>(2,2);
-    mat(0,0) = std::complex<T>(1.0,0.0);
-    mat(0,1) = std::complex<T>(1.0, -2.0);
-    mat(1,0) = std::complex<T>(1.0, 2.0);
-    mat(1,1) = std::complex<T>(2.0, 0.0);
-    return mat;
-}
+template <typename T>
+using scenarioData = std::tuple<std::string, matrix<std::complex<T>>, matrix<std::complex<T>>, std::vector<T>>;
 
-template<typename T>
-matrix<std::complex<T>> herm_mat_2d_eigenvectors_1() {
-    auto mat = matrix<std::complex<T>>(2,2);
-    mat(0,0) = std::complex<T>(-(std::sqrt(21.0)/10.0) - (1.0/10.0), (1.0/5.0) + (std::sqrt(21.0)/5.0));
-    mat(1,0) = std::complex<T>(1.0, 0.0);
-    mat(0,1) = std::complex<T>((std::sqrt(21.0)/10.0)-(1.0/10.0), (1.0/5.0) - (std::sqrt(21.0)/5.0));
-    mat(1,1) = std::complex<T>(1.0, 0.0);
-    return mat;
-}
+template<typename T> matrix<std::complex<T>> herm_mat_2d();
+template<typename T> matrix<std::complex<T>> herm_mat_2d_eigenvectors();
+template<typename T> std::vector<T> herm_mat_2d_eigenvalues();
+template <typename T> scenarioData<T> get_herm_2d_scen();
 
-template<typename T>
-std::vector<T> herm_mat_2d_eigenvalues_1(){
-    return { 3.0/2.0 - std::sqrt(21.0)/2.0, 3.0/2.0 + std::sqrt(21.0)/2.0 };
-}
+template<typename T> matrix<std::complex<T>> psd_mat_2d();
+template<typename T> matrix<std::complex<T>> psd_mat_2d_eigenvectors();
+template<typename T> std::vector<T> psd_mat_2d_eigenvalues();
+template <typename T> scenarioData<T> get_psd_2d_scen();
 
-template<typename T>
-matrix<std::complex<T>> herm_mat_2d_2() {
-    auto mat = matrix<std::complex<T>>(2,2);
-    mat(0,0) = std::complex<T>(1.0,0.0);
-    mat(0,1) = std::complex<T>(1.0, 2.0);
-    mat(1,0) = std::complex<T>(1.0, -2.0);
-    mat(1,1) = std::complex<T>(0.5, 0.0);
-    return mat;
-}
-
-template<typename T>
-matrix<std::complex<T>> herm_mat_2d_eigenvectors_2() {
-    auto mat = matrix<std::complex<T>>(2,2);
-    auto den = 3. * std::sqrt(5.);
-    mat(0,0) = std::complex<T>(-2/den, -4/den);
-    mat(1,0) = std::complex<T>(5/den, 0.0);
-    mat(0,1) = std::complex<T>(-1./3.,-2./3.);
-    mat(1,1) = std::complex<T>(-2./3.,0);
-    return mat;
-}
-
-template<typename T>
-std::vector<T> herm_mat_2d_eigenvalues_2(){
-    return { -1.5, 3.0 };
-}
-
-template<typename T>
-matrix<std::complex<T>> create_psd_matrix_2d(){
-    auto psd_matrix = matrix<std::complex<T>>(2, 2);
-
-    psd_matrix(0,0) = std::complex<T>(13., 0.);
-    psd_matrix(0,1) = std::complex<T>(0., -5.);
-
-    psd_matrix(1,0) = std::complex<T>(0., +5.);
-    psd_matrix(1,1) = std::complex<T>(2., 0.);
-
-    return psd_matrix;
-}
-
-template<typename T>
-matrix<std::complex<T>> create_expected_eigenvectors_psd_2d(){
-    matrix<std::complex<T>> expected_eigenvectors(2, 2);
-
-    expected_eigenvectors(0,0) = std::complex<T>(0.932721, 0);
-    expected_eigenvectors(0,1) = std::complex<T>(0.36059668, 0);
-
-    expected_eigenvectors(1,0) = std::complex<T>(-0.955925, 0.0745055);
-    expected_eigenvectors(1,1) = std::complex<T>(0.298022, 0.341426);
-
-    return expected_eigenvectors;
-}
-
-template<typename T>
-std::vector<T> create_expected_eigenvalues_psd_2d(){
-    return { 14.93303437, 0.06696563 };
-}
-
-template<typename T>
-matrix<std::complex<T>> create_psd_matrix(){
-    auto psd_matrix = matrix<std::complex<T>>(3,3);
-
-    psd_matrix(0,0) = std::complex<T>(2., 0.);
-    psd_matrix(0,1) = std::complex<T>(2., 1.);
-    psd_matrix(0,2) = std::complex<T>(4., 0.);
-                                     
-    psd_matrix(1,0) = std::complex<T>(2., -1.);
-    psd_matrix(1,1) = std::complex<T>(3., 0.);
-    psd_matrix(1,2) = std::complex<T>(0., 1.);
-                                     
-    psd_matrix(2,0) = std::complex<T>(4., 0.);
-    psd_matrix(2,1) = std::complex<T>(0., -1.);
-    psd_matrix(2,2) = std::complex<T>(1., 0.);
-    return psd_matrix;
-}
-
-template<typename T>
-matrix<std::complex<T>> create_expected_eigenvectors(){
-    matrix<std::complex<T>> expected_eigenvectors(3, 3);
-
-    expected_eigenvectors(0,0) = std::complex<T>(1.31961, 0.215478);
-    expected_eigenvectors(0,1) = std::complex<T>(0.861912, 0.0336195);
-    expected_eigenvectors(0,2) = std::complex<T>(1., 0.);
-
-    expected_eigenvectors(1,0) = std::complex<T>(-0.955925, 0.0745055);
-    expected_eigenvectors(1,1) = std::complex<T>(0.298022, 0.341426);
-    expected_eigenvectors(1,2) = std::complex<T>(1., 0.);
-
-    expected_eigenvectors(2,0) = std::complex<T>(0.309772, 0.390218);
-    expected_eigenvectors(2,1) = std::complex<T>(-1.56087, 0.613993);
-    expected_eigenvectors(2,2) = std::complex<T>(1.,0.);
-    return expected_eigenvectors;
-}
-
-template<typename T>
-std::vector<T> create_expected_eigenvalues(){
-    return { 6.31205, -3.16513, 2.85308 };
-}
+template<typename T> matrix<std::complex<T>> psd_mat_2d_with_zero();
+template<typename T> matrix<std::complex<T>> psd_mat_2d_wiht_zero_eigenvectors();
+template<typename T> std::vector<T> psd_mat_2d_wiht_zero_eigenvalues();
+template <typename T> scenarioData<T> get_psd_mat_2d_wiht_zero_scen();
 
 TEST_CASE("Basic Matrix Ops", "[matrix]") {
     auto mat = matrix<std::complex<double>>(2,2);
@@ -194,153 +73,40 @@ TEST_CASE("Basic Matrix Ops", "[matrix]") {
     }
 }
  
-TEST_CASE("Linear Algebra utilities", "[eigen_psd]") {
-    SECTION("zheevx - deterministic hermitian matrix - 2") {
-        auto herm_mat = herm_mat_2d_2<double>();
-        auto expected_eigenvalues = herm_mat_2d_eigenvalues_2<double>();
-        auto expected_eigenvectors = herm_mat_2d_eigenvectors_2<double>();
+TEMPLATE_TEST_CASE("Linear Algebra utilities", "[eigen_hermitian]", float, double) {
+    std::string scenario_name;
+    matrix<std::complex<TestType>> herm_mat;
+    matrix<std::complex<TestType>> expected_eigenvectors;
+    std::vector<TestType> expected_eigenvalues;
+    std::tie(scenario_name, herm_mat, expected_eigenvectors, expected_eigenvalues) =
+        GENERATE(get_herm_2d_scen<TestType>(), get_psd_2d_scen<TestType>(), get_psd_mat_2d_wiht_zero_scen<TestType>());
 
+    SECTION(scenario_name + ": zheevx") {
         SECTION("sanity check - eigenvals/vecs should recreate original") {
             // sanity check
-            matrix<std::complex<double>> sanity_value(herm_mat.GetRows(), herm_mat.GetColumns());
+            matrix<std::complex<TestType>> sanity_value(herm_mat.GetRows(), herm_mat.GetColumns());
             for (size_t j=0; j < expected_eigenvalues.size(); j++) {
                 sanity_value += expected_eigenvalues[j] * AER::Utils::projector(expected_eigenvectors.col_index(j));
             }
-            REQUIRE(AER::Linalg::almost_equal(herm_mat, sanity_value, 1e-7, 1e-7));
+            REQUIRE(AER::Linalg::almost_equal(herm_mat, sanity_value, 1e-6, 1e-6));
         }
         SECTION("actual check - heevx returns correctly") {
-            std::vector<double> eigenvalues;
-            matrix<std::complex<double>> eigenvectors{herm_mat};
-            eigensystem_psd_heevx(herm_mat, eigenvalues, eigenvectors);
+            std::vector<TestType> eigenvalues;
+            matrix<std::complex<TestType>> eigenvectors{herm_mat};
+            eigensystem_hermitian(herm_mat, eigenvalues, eigenvectors);
 
             // test equality
-            REQUIRE(AER::Linalg::almost_equal(expected_eigenvectors, eigenvectors));
+            REQUIRE(check_all_eigenvectors(expected_eigenvectors, eigenvectors, static_cast<TestType>(1e-7), static_cast<TestType>(1e-7)));
             REQUIRE(AER::Linalg::almost_equal(expected_eigenvalues, eigenvalues));
 
             // test reconstruction
-            matrix<std::complex<double>> value(herm_mat.GetRows(), herm_mat.GetColumns());
+            matrix<std::complex<TestType>> value(herm_mat.GetRows(), herm_mat.GetColumns());
             for (size_t j=0; j < eigenvalues.size(); j++) {
                 value += AER::Utils::projector(eigenvectors.col_index(j)) * eigenvalues[j];
             }
             REQUIRE(AER::Linalg::almost_equal(herm_mat, value));
         }
-
-SECTION("actual check - heevx returns correctly - float") {
-auto herm_mat = herm_mat_2d_2<float>();
-auto expected_eigenvalues = herm_mat_2d_eigenvalues_2<float>();
-auto expected_eigenvectors = -1.0f * herm_mat_2d_eigenvectors_2<float>();
-std::vector<float> eigenvalues;
-matrix<std::complex<float>> eigenvectors{herm_mat.GetRows(), herm_mat.GetColumns()};
-eigensystem_psd_heevx(herm_mat, eigenvalues, eigenvectors);
-
-// test equality
-REQUIRE(AER::Linalg::almost_equal<std::complex<float>>(expected_eigenvectors, eigenvectors));
-REQUIRE(AER::Linalg::almost_equal(expected_eigenvalues, eigenvalues));
-
-// test reconstruction
-matrix<std::complex<float>> value(herm_mat.GetRows(), herm_mat.GetColumns());
-for (size_t j=0; j < eigenvalues.size(); j++) {
-value += AER::Utils::projector(eigenvectors.col_index(j)) * eigenvalues[j];
-}
-//REQUIRE(AER::Linalg::almost_equal(herm_mat, value));
-}
     }
-
-//    SECTION("zheevx - random hermitian matrix") {
-//        auto rand_herm_mat = rand_hermitian_mat<double>(3, 10.0);
-//        //std::cout << "random hermitian matrix:" << std::endl;
-//        //std::cout << rand_herm_mat << std::endl;
-//        std::vector<double> eigenvalues;
-//        matrix<std::complex<double>> eigenvectors = rand_herm_mat;
-//
-//        eigensystem_psd_heevx(rand_herm_mat, eigenvalues, eigenvectors);
-//
-//        matrix<std::complex<double>> value(rand_herm_mat.size());
-//
-//        for (size_t j=0; j < eigenvalues.size(); j++) {
-//            value += eigenvalues[j] * AER::Utils::projector(eigenvectors.col_index(j));
-//        }
-//        REQUIRE(AER::Linalg::almost_equal(rand_herm_mat, value, 1e-13, 1e-13));
-//    }
-
-/*
-    SECTION("zhetrd - random hermitian matrix") {
-        auto rand_psd_mat = rand_hermitian_mat<double>(5, 5);
-        std::vector<double> eigenvalues;
-        matrix<std::complex<double>> eigenvectors = rand_psd_mat;
-
-        eigensystem_psd_hetrd(rand_psd_mat, eigenvalues, eigenvectors);
-
-        matrix<std::complex<double>> value(rand_psd_mat.size());
-
-        for (size_t j=0; j < eigenvalues.size(); j++) {
-            value += eigenvalues[j] * AER::Utils::projector(eigenvectors.row_index(j));
-        }
-        REQUIRE(AER::Linalg::almost_equal(rand_psd_mat, value));
-    }
-*/
-
-//    SECTION("the input matrix of complex of doubles, is a PSD"){
-//        auto psd_matrix_double = create_psd_matrix_2d<double>();
-//
-//        auto expected_eigenvalues = create_expected_eigenvalues_psd_2d<double>();
-//        auto expected_eigenvectors = create_expected_eigenvectors_psd_2d<double>();
-//        std::vector<double> eigenvalues;
-//        matrix<std::complex<double>> eigenvectors = psd_matrix_double;
-//        eigensystem_psd_heevx(psd_matrix_double, eigenvalues, eigenvectors);
-//
-//        std::cout << "Expected eigenvectors:" << expected_eigenvectors << std::endl;
-//        std::cout << "eigenvectors:" << eigenvectors << std::endl;
-//
-//        std::cout << "Expected eigenvalues:" << expected_eigenvalues << std::endl;
-//        std::cout << "eigenvalues:" << eigenvalues << std::endl;
-//
-//        REQUIRE(AER::Linalg::almost_equal(expected_eigenvectors, eigenvectors));
-//    }
-
-/*
-    SECTION("the input matrix of complex of floats, is a PSD"){
-        auto psd_matrix_float = create_psd_matrix<complexf_t>();
-
-        auto expected_eigenvalues = create_expected_eigenvalues<float>();
-        auto expected_eigenvectors = create_expected_eigenvectors<float>();
-        std::vector<complexf_t> eigenvalues;
-        std::vector<std::vector<complexf_t>> eigenvectors(3,3);
-        eigensystem_psd(psd_matrix_float, eigenvalues, eigenvectors);
-
-        for(size_t i = 0; i < expected_eigenvalues.size(); ++i){
-            REQUIRE(Linalg::almost_equal(
-                expected_eigenvalues[i], eigenvalues[i]
-            ));
-        }
-
-        for(size_t i = 0; i < expected_eigenvectors.size(); ++i){
-            for(size_t j = 0; i < expected_eigenvectors.size(); ++j){
-                REQUIRE(Linalg::almost_equal(
-                    expected_eigenvectors[i][j], eigenvectors[i][j]
-                ));
-            }
-        }
-    }
-
-    SECTION("composing from the eigens should give us the original matrix"){
-        std::vector<complex_t> eigenvalues;
-        std::vector<std::vector<std::complex<double>>> eigenvectors;
-
-        eigensystem_psd(psd_matrix_double, eigenvalues, eigenvectors);
-        cmatrix_t expected_eigenvalues{psd_matrix_double.size()};
-
-        for(auto j = 0; j < eigenvalues.size(); ++j){
-            expected_eigenvalues +=
-                eigenvalues[j] * Utils::projector(eigenvectors[j]);
-        }
-
-        for(size_t i = 0; i < expected_eigenvalues.size(); ++i){
-            REQUIRE(Linalg::almost_equal(
-                expected_eigenvalues[i], eigenvalues[i]
-            ));
-        }
-    }*/
 }
 
 
@@ -358,7 +124,7 @@ TEST_CASE( "Framework Utilities", "[almost_equal]" ) {
         REQUIRE(AER::Linalg::almost_equal(first, actual)); //, 1e-323, 1e-323));
     }
 
-    SECTION( "The maximum difference between two complex of doubles over 1.0 is greater than epsilon, so they are amlmost equal" ) {
+    SECTION( "The maximum difference between two complex of doubles over 1.0 is greater than epsilon, so they are almost equal" ) {
         std::complex<double> first = {
             std::numeric_limits<double>::epsilon() + double(1.0),
             std::numeric_limits<double>::epsilon() + double(1.0)
@@ -374,4 +140,195 @@ TEST_CASE( "Framework Utilities", "[almost_equal]" ) {
 
         REQUIRE(AER::Linalg::almost_equal(first, actual)); // 1e-323, 1e-323));
     }
+}
+
+TEST_CASE( "Test_utils", "[check_polar_coords]" ) {
+    auto r = 1.0;
+    auto angle = M_PI_2;
+    auto r_2 = 1.0 + std::numeric_limits<double>::epsilon();
+    auto angle_2 = M_PI_2 + std::numeric_limits<double>::epsilon();
+
+    SECTION("Check 2 numbers that are equal"){
+        REQUIRE(check_polar_coords(r, angle, r_2, angle_2));
+    }
+
+    SECTION("Check 2 numbers that differ in absolute value"){
+        r_2 = r_2 + 1e3 * std::numeric_limits<double>::epsilon();
+        REQUIRE(!check_polar_coords(r, angle, r_2, angle_2));
+    }
+
+    SECTION("Check 2 numbers that differ in absolute value"){
+        angle_2 = angle_2 + 1e3*std::numeric_limits<double>::epsilon();
+        REQUIRE(!check_polar_coords(r, angle, r_2, angle_2));
+    }
+
+    SECTION("Check corner case: close to +/-0 angles"){
+        angle = 0.0 - std::numeric_limits<double>::epsilon();
+        angle_2 = -angle;
+        REQUIRE(check_polar_coords(r, angle, r_2, angle_2));
+    }
+
+    SECTION("Check corner case: angle PI and angle -PI"){
+        angle = M_PI - std::numeric_limits<double>::epsilon();
+        angle_2 = -angle;
+        REQUIRE(check_polar_coords(r, angle, r_2, angle_2));
+    }
+}
+
+template<typename T>
+matrix<std::complex<T>> herm_mat_2d() {
+    auto mat = matrix<std::complex<T>>(2,2);
+    mat(0,0) = std::complex<T>(1.0,0.0);
+    mat(0,1) = std::complex<T>(1.0, 2.0);
+    mat(1,0) = std::complex<T>(1.0, -2.0);
+    mat(1,1) = std::complex<T>(0.5, 0.0);
+    return mat;
+}
+
+template<typename T>
+matrix<std::complex<T>> herm_mat_2d_eigenvectors() {
+    auto mat = matrix<std::complex<T>>(2,2);
+    auto den = 3. * std::sqrt(5.);
+    mat(0,0) = std::complex<T>(-2/den, -4/den);
+    mat(1,0) = std::complex<T>(5/den, 0.0);
+    mat(0,1) = std::complex<T>(-1./3.,-2./3.);
+    mat(1,1) = std::complex<T>(-2./3.,0);
+    return mat;
+}
+
+
+template<typename T>
+std::vector<T> herm_mat_2d_eigenvalues(){
+    return { -1.5, 3.0 };
+}
+
+template <typename T>
+scenarioData<T> get_herm_2d_scen(){
+    return {"Hermitian matrix 2x2", herm_mat_2d<T>(), herm_mat_2d_eigenvectors<T>(), herm_mat_2d_eigenvalues<T>()};
+}
+
+template<typename T>
+matrix<std::complex<T>> psd_mat_2d(){
+    auto psd_matrix = matrix<std::complex<T>>(2, 2);
+
+    psd_matrix(0,0) = std::complex<T>(13., 0.);
+    psd_matrix(0,1) = std::complex<T>(0., 5.);
+
+    psd_matrix(1,0) = std::complex<T>(0., -5.);
+    psd_matrix(1,1) = std::complex<T>(2., 0.);
+
+    return psd_matrix;
+}
+
+template<typename T>
+matrix<std::complex<T>> psd_mat_2d_eigenvectors(){
+    matrix<std::complex<T>> expected_eigenvectors(2, 2);
+
+    expected_eigenvectors(0,0) = std::complex<T>(0,-0.36059668);
+    expected_eigenvectors(0,1) = std::complex<T>(0,-0.93272184);
+
+    expected_eigenvectors(1,0) = std::complex<T>(0.93272184,0);
+    expected_eigenvectors(1,1) = std::complex<T>(-0.36059668,0);
+
+    return expected_eigenvectors;
+}
+
+template<typename T>
+std::vector<T> psd_mat_2d_eigenvalues(){
+    return {0.06696562634074720854471252, 14.93303437365925212532147};
+}
+
+template <typename T>
+scenarioData<T> get_psd_2d_scen(){
+    return {"PSD matrix 2x2", psd_mat_2d<T>(), psd_mat_2d_eigenvectors<T>(), psd_mat_2d_eigenvalues<T>()};
+}
+
+template<typename T>
+matrix<std::complex<T>> psd_mat_2d_with_zero(){
+    auto psd_matrix = matrix<std::complex<T>>(2, 2);
+
+    psd_matrix(0,0) = std::complex<T>(1., 0.);
+    psd_matrix(0,1) = std::complex<T>(2., 0.);
+
+    psd_matrix(1,0) = std::complex<T>(2., 0.);
+    psd_matrix(1,1) = std::complex<T>(4., 0.);
+
+    return psd_matrix;
+}
+
+template<typename T>
+matrix<std::complex<T>> psd_mat_2d_wiht_zero_eigenvectors(){
+    matrix<std::complex<T>> expected_eigenvectors(2, 2);
+
+    expected_eigenvectors(0,0) = std::complex<T>(-2./std::sqrt(5.),0);
+    expected_eigenvectors(0,1) = std::complex<T>(1./std::sqrt(5.),0);
+
+    expected_eigenvectors(1,0) = std::complex<T>(1./std::sqrt(5.),0);
+    expected_eigenvectors(1,1) = std::complex<T>(2./std::sqrt(5.),0);
+
+    return expected_eigenvectors;
+}
+
+template<typename T>
+std::vector<T> psd_mat_2d_wiht_zero_eigenvalues(){
+    return {0.0, 5.0};
+}
+
+template <typename T>
+scenarioData<T> get_psd_mat_2d_wiht_zero_scen(){
+    return {"PSD matrix 2x2 with a zero eigen value", psd_mat_2d_with_zero<T>(), psd_mat_2d_wiht_zero_eigenvectors<T>(), psd_mat_2d_wiht_zero_eigenvalues<T>()};
+}
+
+template <typename T>
+bool check_polar_coords(T r, T angle, T r_2, T angle_2, T max_diff, T max_relative_diff){
+    if(!AER::Linalg::almost_equal(r, r_2, max_diff, max_relative_diff)) return false;
+    if(!AER::Linalg::almost_equal(angle, angle_2, max_diff, max_relative_diff)){
+        // May be corner case with PI and -PI
+        T angle_plus = angle > 0. ? angle : angle + 2*M_PI;
+        T angle_2_plus = angle_2 > 0. ? angle_2 : angle_2 + 2 * M_PI;
+        if(!AER::Linalg::almost_equal(angle_plus, angle_2_plus, max_diff, max_relative_diff)) return false;
+    }
+    return true;
+}
+
+template <typename T>
+bool check_eigenvector(const std::vector<std::complex<T>>& expected_eigen,
+                       const std::vector<std::complex<T>>& actual_eigen,
+                       T max_diff,
+                       T max_relative_diff){
+    auto div = expected_eigen[0] / actual_eigen[0];
+    T r = std::abs(div);
+    T angle = std::arg(div);
+    for (int j = 1; j < expected_eigen.size(); j++) {
+        auto div_2 = expected_eigen[j] / actual_eigen[j];
+        T r_2 = std::abs(div_2);
+        T angle_2 = std::arg(div_2);
+        // Check that factor is consistent across components
+        if (!check_polar_coords(r, angle, r_2, angle_2, max_diff, max_relative_diff)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+template <typename T>
+bool check_all_eigenvectors(const matrix<std::complex<T>>& expected,
+                            const matrix<std::complex<T>>& actual,
+                            T max_diff,
+                            T max_relative_diff) {
+    auto col_num = expected.GetColumns();
+    if (expected.size() != actual.size() || expected.GetColumns() != expected.GetColumns()) {
+        return false;
+    }
+    for (int i = 0; i < col_num; i++) {
+        auto expected_eigen = expected.col_index(i);
+        auto actual_eigen = actual.col_index(i);
+
+        if(!check_eigenvector(expected_eigen, actual_eigen, max_diff, max_relative_diff)){
+            std::cout << "Expected: " << std::setprecision(16) << expected << std::endl;
+            std::cout << "Actual: " << actual << std::endl;
+            return false;
+        }
+    }
+    return true;
 }
