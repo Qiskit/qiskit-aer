@@ -12,20 +12,9 @@
  * that they have been altered from the originals.
  */
 
-/*
-Dependencies: BLAS
-These are the c++ wrappers for the various high-performance matrix routines 
-used by the matrix class. An openblas install is required. An openblas 
-install using conan with lapack extensions enabled is recommended.
-If lapack is enabled in the build process, the following may be used to 
-include headers and setup flags
-
-```
-#define lapack_complex_float std::complex<float>
-#define lapack_complex_double std::complex<double>
-#include "openblas/lapacke.h"
-```
-*/
+// Dependencies: BLAS
+// These are the declarations for the various high-performance matrix routines
+// used by the matrix class. An openblas install is required.
 
 #ifndef _aer_framework_blas_protos_hpp
 #define _aer_framework_blas_protos_hpp
@@ -34,15 +23,6 @@ include headers and setup flags
 #include <iostream>
 #include <vector>
 #include <array>
-
-//#include "openblas/cblas.h"
-//#include "openblas/f77blas.h"
-
-#define ALIAS_FUNCTION(OriginalnamE, AliasnamE) \
-template <typename... Args> \
-inline auto AliasnamE(Args&&... args) -> decltype(OriginalnamE(std::forward<Args>(args)...)) { \
-  return OriginalnamE(std::forward<Args>(args)...); \
-}
 
 #ifdef __cplusplus
 extern "C" {
@@ -148,14 +128,6 @@ double dlamch_(char *cmach);
 #ifdef __cplusplus
 }
 #endif
-
-using heevx_type = void (&)(char *jobz, char *range, char *uplo, int *n,
-                                std::complex<double> *a, int *lda, double *vl,
-                                double *vu, int *il, int *iu, double *abstol,
-                                int *m, double *w, std::complex<double> *z, int *ldz,
-                                std::complex<double> *work, int *lwork, double *rwork,
-                                int *iwork, int *ifail, int *info);
-
 
 namespace AerBlas {
 
