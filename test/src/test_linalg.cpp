@@ -11,6 +11,7 @@
 
 #include <catch2/catch.hpp>
 
+namespace {
 // check if polar coordinates are almost equal
 // r -> (0,inf)
 // angle -> (-PI, PI)
@@ -48,6 +49,8 @@ template<typename T> matrix<std::complex<T>> psd_mat_2d_with_zero();
 template<typename T> matrix<std::complex<T>> psd_mat_2d_wiht_zero_eigenvectors();
 template<typename T> std::vector<T> psd_mat_2d_wiht_zero_eigenvalues();
 template <typename T> scenarioData<T> get_psd_mat_2d_wiht_zero_scen();
+
+}
 
 TEST_CASE("Basic Matrix Ops", "[matrix]") {
     auto mat = matrix<std::complex<double>>(2,2);
@@ -175,6 +178,7 @@ TEST_CASE( "Test_utils", "[check_polar_coords]" ) {
     }
 }
 
+namespace {
 template<typename T>
 matrix<std::complex<T>> herm_mat_2d() {
     auto mat = matrix<std::complex<T>>(2,2);
@@ -331,4 +335,5 @@ bool check_all_eigenvectors(const matrix<std::complex<T>>& expected,
         }
     }
     return true;
+}
 }
