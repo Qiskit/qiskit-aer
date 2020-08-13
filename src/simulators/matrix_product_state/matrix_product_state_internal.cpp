@@ -284,7 +284,7 @@ void MPS::initialize(uint_t num_qubits)
       lambda_reg_.push_back(rvector_t {1.0});
   }
   // need to add one more Gamma tensor, because above loop only initialized up to n-1 
-  q_reg_.push_back(MPS_Tensor(alpha,beta));
+  q_reg_.push_back(MPS_Tensor(alpha, beta));
 
   qubit_ordering_.order_.clear();
   qubit_ordering_.order_.resize(num_qubits);
@@ -382,7 +382,6 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
   }
 
   // when actual_A+1 == actual_B then we can really do the swap
-  MPS_Tensor A = q_reg_[actual_A], B = q_reg_[actual_B];
   rvector_t left_lambda, right_lambda;
   //There is no lambda in the edges of the MPS
   left_lambda  = (actual_A != 0) 	    ? lambda_reg_[actual_A-1] : rvector_t {1.0};
@@ -406,9 +405,9 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
     // we are moving the qubit at index_A one position to the right
     // and the qubit at index_B or index_A+1 is moved one position 
     //to the left
-    std::swap(qubit_ordering_.order_[index_A], qubit_ordering_.order_[index_B]);
-    
+    std::swap(qubit_ordering_.order_[index_A], qubit_ordering_.order_[index_B]);    
   }
+
   // update qubit location after all the swaps
   if (!swap_gate)
     for (uint_t i=0; i<num_qubits_; i++)

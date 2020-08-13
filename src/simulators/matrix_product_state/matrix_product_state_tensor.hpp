@@ -136,7 +136,6 @@ public:
   void apply_x();
   void apply_y();
   void apply_z();
-  void apply_h();
   void apply_s();
   void apply_sdg();
   void apply_t();
@@ -246,7 +245,7 @@ cvector_t MPS_Tensor::get_data(uint_t a1, uint_t a2) const
 {
   cvector_t Res;
   for(uint_t i = 0; i < data_.size(); i++)
-    Res.push_back(data_[i](a1,a2));
+    Res.push_back(data_[i](a1, a2));
   return Res;
 }
 
@@ -290,13 +289,13 @@ void MPS_Tensor::apply_pauli(char gate) {
 //---------------------------------------------------------------
 void MPS_Tensor::apply_x()
 {
-  std::swap(data_[0],data_[1]);
+  std::swap(data_[0], data_[1]);
 }
   void MPS_Tensor::apply_y()
   {
     data_[0] = data_[0] * complex_t(0, 1);
     data_[1] = data_[1] * complex_t(0, -1);
-    std::swap(data_[0],data_[1]);
+    std::swap(data_[0], data_[1]);
   }
 
 void MPS_Tensor::apply_z()
