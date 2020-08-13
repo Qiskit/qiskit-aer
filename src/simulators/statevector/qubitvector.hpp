@@ -947,7 +947,7 @@ void QubitVector<data_t, Derived>::apply_matrix(const reg_t &qubits,
   const size_t N = qubits.size();
   // Error checking
   #ifdef DEBUG
-  //check_vector(mat, 2 * N);
+  check_vector(mat, 2 * N);
   #endif
 
   // Static array optimized lambda functions
@@ -1067,7 +1067,7 @@ void QubitVector<data_t, Derived>::apply_diagonal_matrix(const reg_t &qubits,
 
   // Error checking
   #ifdef DEBUG
-  //check_vector(diag, qubits.size());
+  check_vector(diag, qubits.size());
   #endif
 
   if (qubits.size() == 1) {
@@ -1095,9 +1095,9 @@ void QubitVector<data_t, Derived>::apply_permutation_matrix(const reg_t& qubits,
   const size_t N = qubits.size();
 
   // Error checking
-  //#ifdef DEBUG
-  //check_vector(diag, N);
-  //#endif
+  #ifdef DEBUG
+  check_vector(diag, N);
+  #endif
 
   switch (N) {
     case 1: {
@@ -1648,9 +1648,9 @@ template <typename data_t, typename Derived>
 double QubitVector<data_t, Derived>::norm(const reg_t &qubits, const cvector_t<double> &mat) const {
 
   // Error checking
-  //#ifdef DEBUG
-  //check_vector(mat, 2 * qubits.size());
-  //#endif
+  #ifdef DEBUG
+  check_vector(mat, 2 * qubits.size());
+  #endif
 
   // Static array optimized lambda functions
   switch (qubits.size()) {
@@ -1726,9 +1726,9 @@ double QubitVector<data_t, Derived>::norm_diagonal(const reg_t &qubits, const cv
   const uint_t N = qubits.size();
 
   // Error checking
-  //#ifdef DEBUG
-  //check_vector(mat, N);
-  //#endif
+  #ifdef DEBUG
+  check_vector(mat, N);
+  #endif
 
   // Static array optimized lambda functions
   switch (N) {
@@ -1796,9 +1796,9 @@ double QubitVector<data_t, Derived>::norm_diagonal(const reg_t &qubits, const cv
 template <typename data_t, typename Derived>
 double QubitVector<data_t, Derived>::norm(const uint_t qubit, const cvector_t<double> &mat) const {
   // Error handling
-  //#ifdef DEBUG
-  //check_vector(mat, 2);
-  //#endif
+  #ifdef DEBUG
+  check_vector(mat, 2);
+  #endif
 
   // Check if input matrix is diagonal, and if so use diagonal function.
   if (mat[1] == 0.0 && mat[2] == 0.0) {
@@ -1822,9 +1822,9 @@ double QubitVector<data_t, Derived>::norm(const uint_t qubit, const cvector_t<do
 template <typename data_t, typename Derived>
 double QubitVector<data_t, Derived>::norm_diagonal(const uint_t qubit, const cvector_t<double> &mat) const {
   // Error handling
-  //#ifdef DEBUG
-  //check_vector(mat, 1);
-  //#endif
+  #ifdef DEBUG
+  check_vector(mat, 1);
+  #endif
   // Lambda function for norm reduction to real value.
   auto lambda = [&](const areg_t<2> &inds,
                     const cvector_t<data_t> &_mat,
@@ -1868,10 +1868,10 @@ std::vector<double> QubitVector<data_t, Derived>::probabilities(const reg_t &qub
   const int_t END = BITS[num_qubits() - N];
 
   // Error checking
-  //#ifdef DEBUG
-  //for (const auto &qubit : qubits)
-  //  check_qubit(qubit);
-  //#endif
+  #ifdef DEBUG
+  for (const auto &qubit : qubits)
+    check_qubit(qubit);
+  #endif
 
   auto qubits_sorted = qubits;
   std::sort(qubits_sorted.begin(), qubits_sorted.end());

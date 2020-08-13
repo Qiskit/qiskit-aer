@@ -39,12 +39,6 @@ void eigensystem_hermitian(const matrix<std::complex<T>>& hermitian_matrix,
 template<typename T>
 struct HeevxFuncs;
 
-#define STATIC_ALIAS_FUNCTION(OriginalnamE, AliasnamE) \
-template <typename... Args> \
-static auto AliasnamE(Args&&... args) -> decltype(OriginalnamE(std::forward<Args>(args)...)) { \
-  return OriginalnamE(std::forward<Args>(args)...); \
-}
-
 template<>
 struct HeevxFuncs<double>{
   HeevxFuncs() = delete;

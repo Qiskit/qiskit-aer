@@ -91,7 +91,7 @@ TEMPLATE_TEST_CASE("Linear Algebra utilities", "[eigen_hermitian]", float, doubl
             for (size_t j=0; j < expected_eigenvalues.size(); j++) {
                 sanity_value += expected_eigenvalues[j] * AER::Utils::projector(expected_eigenvectors.col_index(j));
             }
-            REQUIRE(AER::Linalg::almost_equal(herm_mat, sanity_value, 1e-6, 1e-6));
+            REQUIRE(AER::Linalg::almost_equal(herm_mat, sanity_value));
         }
         SECTION("actual check - heevx returns correctly") {
             std::vector<TestType> eigenvalues;
@@ -99,9 +99,8 @@ TEMPLATE_TEST_CASE("Linear Algebra utilities", "[eigen_hermitian]", float, doubl
             eigensystem_hermitian(herm_mat, eigenvalues, eigenvectors);
 
             // test equality
-            REQUIRE(check_all_eigenvectors(expected_eigenvectors, eigenvectors, static_cast<TestType>(1e-7), static_cast<TestType>(1e-7)));
+            REQUIRE(check_all_eigenvectors(expected_eigenvectors, eigenvectors));
             REQUIRE(AER::Linalg::almost_equal(expected_eigenvalues, eigenvalues));
-
             // test reconstruction
             matrix<std::complex<TestType>> value(herm_mat.GetRows(), herm_mat.GetColumns());
             for (size_t j=0; j < eigenvalues.size(); j++) {
@@ -228,11 +227,11 @@ template<typename T>
 matrix<std::complex<T>> psd_mat_2d_eigenvectors(){
     matrix<std::complex<T>> expected_eigenvectors(2, 2);
 
-    expected_eigenvectors(0,0) = std::complex<T>(0,-0.36059668);
-    expected_eigenvectors(0,1) = std::complex<T>(0,-0.93272184);
+    expected_eigenvectors(0,0) = std::complex<T>(0,-0.3605966767761846214491);
+    expected_eigenvectors(0,1) = std::complex<T>(0,-0.9327218431547380506075);
 
-    expected_eigenvectors(1,0) = std::complex<T>(0.93272184,0);
-    expected_eigenvectors(1,1) = std::complex<T>(-0.36059668,0);
+    expected_eigenvectors(1,0) = std::complex<T>(0.9327218431547380506075,0);
+    expected_eigenvectors(1,1) = std::complex<T>(-0.3605966767761846214491,0);
 
     return expected_eigenvectors;
 }
