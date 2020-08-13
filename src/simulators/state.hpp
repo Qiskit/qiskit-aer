@@ -108,6 +108,17 @@ public:
                          ExperimentData &data,
                          RngEngine &rng)  = 0;
 
+  //apply one operator
+  virtual void apply_op(const uint_t ishot,const Operations::Op &op,
+                         ExperimentData &data,
+                         RngEngine &rng)
+  {
+    //default implementation
+    std::vector<Operations::Op> ops;
+    ops.push_back(op);
+    apply_ops(ops,data,rng);
+  }
+
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
   virtual void initialize_qreg(uint_t num_qubits) = 0;

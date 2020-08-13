@@ -277,7 +277,8 @@ void StatevectorController::run_circuit(
 template <class State_t>
 void StatevectorController::run_circuit_helper(
     const Circuit& circ, const Noise::NoiseModel& noise, const json_t& config,
-    uint_t shots, uint_t rng_seed, ExperimentData &data) const {
+    uint_t shots, uint_t rng_seed, ExperimentData &data) const 
+{
   // Initialize  state
   State_t state;
 
@@ -319,6 +320,8 @@ void StatevectorController::run_circuit_helper(
   }
 
   // Run single shot collecting measure data or snapshots
+  state.allocate(circ.num_qubits, 1);
+
   if (initial_state_.empty()) {
     state.initialize_qreg(circ.num_qubits);
   } else {

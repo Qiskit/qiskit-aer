@@ -182,7 +182,11 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
   if(chunk_bits == nqubits){
     if(nchunks > 1 || nid > 1){  //multi-shot parallelization
       //accumulate number of chunks
+#ifdef _MSC_VER
+#pragma omp atomic
+#else
 #pragma omp atomic update
+#endif
       num_chunks_ += nchunks;
 
       num_buffers = 0;

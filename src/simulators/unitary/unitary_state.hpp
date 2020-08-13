@@ -105,6 +105,8 @@ class State : public Base::State<unitary_matrix_t> {
   // Config: {"omp_qubit_threshold": 7}
   virtual void set_config(const json_t &config) override;
 
+  virtual void allocate(uint_t num_qubits,uint_t shots);
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -206,6 +208,12 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"mcu3", Gates::mcu3},     // Multi-controlled-u3
     {"mcswap", Gates::mcswap}  // Multi-controlled-SWAP gate
 });
+
+template <class unitary_matrix_t>
+void State<unitary_matrix_t>::allocate(uint_t num_qubits,uint_t shots)
+{
+  BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,1);
+}
 
 //============================================================================
 // Implementation: Base class method overrides
