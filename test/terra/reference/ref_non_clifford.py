@@ -20,7 +20,6 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 # T-gate
 # ==========================================================================
 
-
 def t_gate_circuits_deterministic(final_measure=True):
     """T-gate test circuits with deterministic counts."""
     circuits = []
@@ -232,7 +231,6 @@ def t_gate_unitary_nondeterministic():
 # T^dagger-gate
 # ==========================================================================
 
-
 def tdg_gate_circuits_deterministic(final_measure=True):
     """Tdg-gate test circuits with deterministic counts."""
     circuits = []
@@ -429,7 +427,6 @@ def tdg_gate_unitary_nondeterministic():
 # ==========================================================================
 # CCX-gate
 # ==========================================================================
-
 
 def ccx_gate_circuits_deterministic(final_measure=True):
     """CCX-gate test circuits with deterministic counts."""
@@ -816,8 +813,93 @@ def ccx_gate_unitary_nondeterministic():
 
 
 # ==========================================================================
+# MCX-gate
+# ==========================================================================
+
+def mcx_gate_circuits_deterministic(final_measure=True):
+    """CCX-gate test circuits with deterministic counts."""
+    circuits = []
+    qr = QuantumRegister(4)
+    if final_measure:
+        cr = ClassicalRegister(4)
+        regs = (qr, cr)
+    else:
+        regs = (qr, )
+
+    # MCX([0,1,2],3)
+    circuit = QuantumCircuit(*regs)
+    circuit.mcx([qr[0], qr[1], qr[2]], qr[3])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # TODO: add circuits
+
+    return circuits
+
+
+def mcx_gate_counts_deterministic(shots, hex_counts=True):
+    """MCX-gate circuits reference counts."""
+    targets = []
+    # TODO
+    return targets
+
+
+def mcx_gate_statevector_deterministic():
+    """MCX-gate circuits reference statevectors."""
+    targets = []
+    # TODO
+    return targets
+
+
+def mcx_gate_unitary_deterministic():
+    """MCX-gate circuits reference unitaries."""
+    targets = []
+    # TODO
+    return targets
+
+
+def mcx_gate_circuits_nondeterministic(final_measure=True):
+    """MCX-gate test circuits with non-deterministic counts."""
+    circuits = []
+    qr = QuantumRegister(4)
+    if final_measure:
+        cr = ClassicalRegister(4)
+        regs = (qr, cr)
+    else:
+        regs = (qr, )
+
+    # TODO
+
+    return circuits
+
+
+def mcx_gate_counts_nondeterministic(shots, hex_counts=True):
+    """MCX-gate circuits reference counts."""
+    targets = []
+    # TODO
+    return targets
+
+
+def mcx_gate_statevector_nondeterministic():
+    """MCX-gate circuits reference statevectors."""
+    targets = []
+    # TODO
+    return targets
+
+
+def mcx_gate_unitary_nondeterministic():
+    """MCX-gate circuits reference unitaries."""
+    targets = []
+    # TODO
+    return targets
+
+
+# ==========================================================================
 # CSWAP-gate (Fredkin)
 # ==========================================================================
+
 def cswap_gate_circuits_deterministic(final_measure):
     """cswap-gate test circuits with deterministic counts."""
     circuits = []
@@ -1344,6 +1426,7 @@ def cswap_gate_unitary_nondeterministic():
 # ==========================================================================
 # CU1
 # ==========================================================================
+
 def cu1_gate_circuits_nondeterministic(final_measure):
     circuits = []
     qr = QuantumRegister(2)
@@ -1578,6 +1661,7 @@ def cu1_gate_unitary_nondeterministic():
 # ==========================================================================
 # CU3
 # ==========================================================================
+
 def cu3_gate_circuits_deterministic(final_measure):
     circuits = []
     qr = QuantumRegister(2)
