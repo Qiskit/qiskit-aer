@@ -834,7 +834,173 @@ def mcx_gate_circuits_deterministic(final_measure=True):
         circuit.measure(qr, cr)
     circuits.append(circuit)
 
-    # TODO: add circuits
+    # (I^X^X^X).MCX([0,1,2],3).(I^X^X^X) -> |1000>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[1])
+    circuit.barrier(qr)
+    circuit.x(qr[2])
+    circuit.barrier(qr)
+    circuit.mcx([qr[0], qr[1], qr[2]], qr[3])
+    circuit.barrier(qr)
+    circuit.x(qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[1])
+    circuit.barrier(qr)
+    circuit.x(qr[2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # (X^I^X^X).MCX([0,1,2],3).(X^I^X^X) -> |0000>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[1])
+    circuit.barrier(qr)
+    circuit.x(qr[3])
+    circuit.barrier(qr)
+    circuit.mcx([qr[0], qr[1], qr[2]], qr[3])
+    circuit.barrier(qr)
+    circuit.x(qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[1])
+    circuit.barrier(qr)
+    circuit.x(qr[3])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # (X^X^I^X).MCX([0,1,2],3).(X^X^I^X) -> |0000>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[2])
+    circuit.barrier(qr)
+    circuit.x(qr[3])
+    circuit.barrier(qr)
+    circuit.mcx([qr[0], qr[1], qr[2]], qr[3])
+    circuit.barrier(qr)
+    circuit.x(qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[2])
+    circuit.barrier(qr)
+    circuit.x(qr[3])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # (X^X^X^I).MCX([0,1,2],3).(X^X^X^I) -> |0000>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[1])
+    circuit.barrier(qr)
+    circuit.x(qr[2])
+    circuit.barrier(qr)
+    circuit.x(qr[3])
+    circuit.barrier(qr)
+    circuit.mcx([qr[0], qr[1], qr[2]], qr[3])
+    circuit.barrier(qr)
+    circuit.x(qr[1])
+    circuit.barrier(qr)
+    circuit.x(qr[2])
+    circuit.barrier(qr)
+    circuit.x(qr[3])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # MCX([3,2,1],0)
+    circuit = QuantumCircuit(*regs)
+    circuit.mcx([qr[3], qr[2], qr[1]], qr[0])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # (I^X^X^X).MCX([3,2,1],0).(I^X^X^X) -> |0000>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[1])
+    circuit.barrier(qr)
+    circuit.x(qr[2])
+    circuit.barrier(qr)
+    circuit.mcx([qr[3], qr[2], qr[1]], qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[1])
+    circuit.barrier(qr)
+    circuit.x(qr[2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # (X^I^X^X).MCX([3,2,1],0).(X^I^X^X) -> |0000>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[1])
+    circuit.barrier(qr)
+    circuit.x(qr[3])
+    circuit.barrier(qr)
+    circuit.mcx([qr[3], qr[2], qr[1]], qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[1])
+    circuit.barrier(qr)
+    circuit.x(qr[3])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # (X^X^I^X).MCX([3,2,1],0).(X^X^I^X) -> |0000>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[2])
+    circuit.barrier(qr)
+    circuit.x(qr[3])
+    circuit.barrier(qr)
+    circuit.mcx([qr[3], qr[2], qr[1]], qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[2])
+    circuit.barrier(qr)
+    circuit.x(qr[3])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # (X^X^X^I).MCX([3,2,1],0).(X^X^X^I) -> |0001>
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr[1])
+    circuit.barrier(qr)
+    circuit.x(qr[2])
+    circuit.barrier(qr)
+    circuit.x(qr[3])
+    circuit.barrier(qr)
+    circuit.mcx([qr[3], qr[2], qr[1]], qr[0])
+    circuit.barrier(qr)
+    circuit.x(qr[1])
+    circuit.barrier(qr)
+    circuit.x(qr[2])
+    circuit.barrier(qr)
+    circuit.x(qr[3])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
 
     return circuits
 
@@ -842,7 +1008,48 @@ def mcx_gate_circuits_deterministic(final_measure=True):
 def mcx_gate_counts_deterministic(shots, hex_counts=True):
     """MCX-gate circuits reference counts."""
     targets = []
-    # TODO
+    if hex_counts:
+        # MCX([0,1,2],3)
+        targets.append({'0x0': shots})
+        # (I^X^X^X).MCX([0,1,2],3).(I^X^X^X) -> |1000>
+        targets.append({'0x8': shots})
+        # (X^I^X^X).MCX([0,1,2],3).(X^I^X^X) -> |0000>
+        targets.append({'0x0': shots})
+        # (X^X^I^X).MCX([0,1,2],3).(X^X^I^X) -> |0000>
+        targets.append({'0x0': shots})
+        # (X^X^X^I).MCX([0,1,2],3).(X^X^X^I) -> |0000>
+        targets.append({'0x0': shots})
+        # MCX([3,2,1],0)
+        targets.append({'0x0': shots})
+        # (I^X^X^X).MCX([3,2,1],0).(I^X^X^X) -> |0000>
+        targets.append({'0x0': shots})
+        # (X^I^X^X).MCX([3,2,1],0).(X^I^X^X) -> |0000>
+        targets.append({'0x0': shots})
+        # (X^X^I^X).MCX([3,2,1],0).(X^X^I^X) -> |0000>
+        targets.append({'0x0': shots})
+        # (X^X^X^I).MCX([3,2,1],0).(X^X^X^I) -> |0001>
+        targets.append({'0x1': shots})
+    else:
+        # MCX([0,1,2],3)
+        targets.append({'0000': shots})
+        # (I^X^X^X).MCX([0,1,2],3).(I^X^X^X) -> |1000>
+        targets.append({'1000': shots})
+        # (X^I^X^X).MCX([0,1,2],3).(X^I^X^X) -> |0000>
+        targets.append({'0000': shots})
+        # (X^X^I^X).MCX([0,1,2],3).(X^X^I^X) -> |0000>
+        targets.append({'0000': shots})
+        # (X^X^X^I).MCX([0,1,2],3).(X^X^X^I) -> |0000>
+        targets.append({'0000': shots})
+        # MCX([3,2,1],0)
+        targets.append({'0000': shots})
+        # (I^X^X^X).MCX([3,2,1],0).(I^X^X^X) -> |0000>
+        targets.append({'0000': shots})
+        # (X^I^X^X).MCX([3,2,1],0).(X^I^X^X) -> |0000>
+        targets.append({'0000': shots})
+        # (X^X^I^X).MCX([3,2,1],0).(X^X^I^X) -> |0000>
+        targets.append({'0000': shots})
+        # (X^X^X^I).MCX([3,2,1],0).(X^X^X^I) -> |0001>
+        targets.append({'0001': shots})
     return targets
 
 

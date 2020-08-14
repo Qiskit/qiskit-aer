@@ -27,6 +27,7 @@ from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsM
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsTGate
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsCCXGate
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsCGates
+from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsMCGates
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsMinimalBasis
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
@@ -70,6 +71,7 @@ class StatevectorTests(
         QasmCliffordTests, QasmCliffordTestsWaltzBasis,
         QasmCliffordTestsMinimalBasis, QasmNonCliffordTestsTGate,
         QasmNonCliffordTestsCCXGate, QasmNonCliffordTestsCGates,
+        QasmNonCliffordTestsMCGates,
         QasmNonCliffordTestsWaltzBasis, QasmNonCliffordTestsMinimalBasis,
         QasmMultiplexerTests, QasmAlgorithmTests, QasmAlgorithmTestsWaltzBasis,
         QasmAlgorithmTestsMinimalBasis, QasmUnitaryGateTests, QasmDiagonalGateTests,

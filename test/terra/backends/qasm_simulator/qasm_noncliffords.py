@@ -173,6 +173,26 @@ class QasmNonCliffordTestsCGates:
         self.compare_counts(result, circuits, targets, delta=0)
 
 
+class QasmNonCliffordTestsMCGates:
+    """QasmSimulator multi-controlled gates tests in default basis."""
+
+    SIMULATOR = QasmSimulator()
+    BACKEND_OPTS = {}
+    # ---------------------------------------------------------------------
+    # Test mcx-gate
+    # ---------------------------------------------------------------------
+    def test_mcx_gate_deterministic_default_basis_gates(self):
+        shots = 100
+        circuits = ref_non_clifford.mcx_gate_circuits_deterministic(
+            final_measure=True)
+        targets = ref_non_clifford.mcx_gate_counts_deterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots,
+                      backend_options=self.BACKEND_OPTS)
+        result = job.result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, delta=0)
+
+
 class QasmNonCliffordTestsWaltzBasis:
     """QasmSimulator non-Clifford gate tests in minimal u1,u2,u3,cx basis."""
 
