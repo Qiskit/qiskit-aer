@@ -112,6 +112,10 @@ public:
   {
     return false;
   }
+  virtual int qubits_count(void)
+  {
+    return 1;
+  }
   virtual int num_control_bits(void)
   {
     return 0;
@@ -125,13 +129,13 @@ public:
   {
     return "base function";
   }
-  virtual uint_t size(int num_qubits,int n)
+  virtual uint_t size(int num_qubits)
   {
     if(is_diagonal()){
       return (1ull << num_qubits);
     }
     else{
-      return (1ull << (num_qubits - (n-num_control_bits())));
+      return (1ull << (num_qubits - (qubits_count() - num_control_bits())));
     }
   }
 };

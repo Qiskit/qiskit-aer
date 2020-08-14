@@ -202,6 +202,8 @@ template <typename data_t>
 template <typename Function>
 void HostChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
 {
+  uint_t size = count * func.size(ChunkContainer<data_t>::chunk_bits_);
+
   func.set_data( (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data()) + (iChunk << ChunkContainer<data_t>::chunk_bits_));
 
   func.set_matrix( matrix_[iChunk]);
@@ -210,7 +212,7 @@ void HostChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t coun
   if(omp_get_num_threads() > 1){  //in parallel region
     auto ci = thrust::counting_iterator<uint_t>(0);
 
-    thrust::for_each_n(thrust::host, ci, count, func);
+    thrust::for_each_n(thrust::host, ci, size, func);
   }
   else{
 #pragma omp parallel 
@@ -221,8 +223,8 @@ void HostChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t coun
 
       auto ci = thrust::counting_iterator<uint_t>(0);
 
-      is = (uint_t)tid * count / (uint_t)nid;
-      ie = (uint_t)(tid + 1) * count / (uint_t)nid;
+      is = (uint_t)tid * size / (uint_t)nid;
+      ie = (uint_t)(tid + 1) * size / (uint_t)nid;
 
       thrust::for_each_n(thrust::host, ci + is, ie-is, func);
     }
@@ -234,6 +236,7 @@ template <typename Function>
 double HostChunkContainer<data_t>::ExecuteSum(Function func,uint_t iChunk,uint_t count) const
 {
   double ret = 0.0;
+  uint_t size = count * func.size(ChunkContainer<data_t>::chunk_bits_);
 
   func.set_data( (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data())  + (iChunk << ChunkContainer<data_t>::chunk_bits_));
 
@@ -243,7 +246,7 @@ double HostChunkContainer<data_t>::ExecuteSum(Function func,uint_t iChunk,uint_t
   if(omp_get_num_threads() > 1){  //in parallel region
     auto ci = thrust::counting_iterator<uint_t>(0);
 
-    ret = thrust::transform_reduce(thrust::host, ci, ci + count, func,0.0,thrust::plus<double>());
+    ret = thrust::transform_reduce(thrust::host, ci, ci + size, func,0.0,thrust::plus<double>());
   }
   else{
 #pragma omp parallel reduction(+:ret)
@@ -254,8 +257,8 @@ double HostChunkContainer<data_t>::ExecuteSum(Function func,uint_t iChunk,uint_t
 
       auto ci = thrust::counting_iterator<uint_t>(0);
 
-      is = (uint_t)tid * count / (uint_t)nid;
-      ie = (uint_t)(tid + 1) * count / (uint_t)nid;
+      is = (uint_t)tid * size / (uint_t)nid;
+      ie = (uint_t)(tid + 1) * size / (uint_t)nid;
 
       ret += thrust::transform_reduce(thrust::host, ci + is, ci + ie, func,0.0,thrust::plus<double>());
     }
@@ -270,6 +273,7 @@ thrust::complex<double> HostChunkContainer<data_t>::ExecuteComplexSum(Function f
 {
   thrust::complex<double> ret = 0.0;
   thrust::complex<double> zero = 0.0;
+  uint_t size = count * func.size(ChunkContainer<data_t>::chunk_bits_);
 
   func.set_data( (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data())  + (iChunk << ChunkContainer<data_t>::chunk_bits_));
 
@@ -279,7 +283,7 @@ thrust::complex<double> HostChunkContainer<data_t>::ExecuteComplexSum(Function f
   if(omp_get_num_threads() > 1){  //in parallel region
     auto ci = thrust::counting_iterator<uint_t>(0);
 
-    ret = thrust::transform_reduce(thrust::host, ci, ci + count, func,zero,thrust::plus<thrust::complex<double>>());
+    ret = thrust::transform_reduce(thrust::host, ci, ci + size, func,zero,thrust::plus<thrust::complex<double>>());
   }
   else{
     double re = 0.0,im = 0.0;
@@ -292,8 +296,8 @@ thrust::complex<double> HostChunkContainer<data_t>::ExecuteComplexSum(Function f
 
       auto ci = thrust::counting_iterator<uint_t>(0);
 
-      is = (uint_t)tid * count / (uint_t)nid;
-      ie = (uint_t)(tid + 1) * count / (uint_t)nid;
+      is = (uint_t)tid * size / (uint_t)nid;
+      ie = (uint_t)(tid + 1) * size / (uint_t)nid;
 
       sum = thrust::transform_reduce(thrust::host, ci + is, ci + ie, func,zero,thrust::plus<thrust::complex<double>>());
       re += sum.real();

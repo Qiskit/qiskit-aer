@@ -318,10 +318,9 @@ public:
     return q;
   }
 
-  uint_t size(int num_qubits,int n)
+  uint_t size(int num_qubits)
   {
     (void)num_qubits;
-    (void)n;
     return rows_;
   }
   const char* name(void)
@@ -333,10 +332,9 @@ public:
 template <class data_t>
 std::complex<double> UnitaryMatrixThrust<data_t>::trace() const 
 {
-  reg_t dummy(1,0);
   std::complex<double> sum;
 
-  sum = BaseVector::apply_function_complex_sum(UnitaryTrace<data_t>(rows_),dummy);
+  sum = BaseVector::apply_function_complex_sum(UnitaryTrace<data_t>(rows_));
 
 #ifdef AER_DEBUG
   BaseVector::DebugMsg("trace",sum);

@@ -409,6 +409,7 @@ template <typename data_t>
 template <typename Function>
 void DeviceChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
 {
+  uint_t size = count * func.size(ChunkContainer<data_t>::chunk_bits_);
   set_device();
   func.set_data( (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data()) + (iChunk << ChunkContainer<data_t>::chunk_bits_));
 
@@ -418,9 +419,9 @@ void DeviceChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t co
   auto ci = thrust::counting_iterator<uint_t>(0);
 
 #ifdef AER_THRUST_CUDA
-  thrust::for_each_n(thrust::cuda::par.on(stream_[iChunk]), ci , count, func);
+  thrust::for_each_n(thrust::cuda::par.on(stream_[iChunk]), ci , size, func);
 #else
-  thrust::for_each_n(thrust::device, ci , count, func);
+  thrust::for_each_n(thrust::device, ci , size, func);
 #endif
 }
 
@@ -429,6 +430,7 @@ template <typename Function>
 double DeviceChunkContainer<data_t>::ExecuteSum(Function func,uint_t iChunk,uint_t count) const
 {
   double ret;
+  uint_t size = count * func.size(ChunkContainer<data_t>::chunk_bits_);
 
   set_device();
   func.set_data( (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data())  + (iChunk << ChunkContainer<data_t>::chunk_bits_));
@@ -439,9 +441,9 @@ double DeviceChunkContainer<data_t>::ExecuteSum(Function func,uint_t iChunk,uint
   auto ci = thrust::counting_iterator<uint_t>(0);
 
 #ifdef AER_THRUST_CUDA
-  ret = thrust::transform_reduce(thrust::cuda::par.on(stream_[iChunk]), ci, ci + count, func,0.0,thrust::plus<double>());
+  ret = thrust::transform_reduce(thrust::cuda::par.on(stream_[iChunk]), ci, ci + size, func,0.0,thrust::plus<double>());
 #else
-  ret = thrust::transform_reduce(thrust::device, ci, ci + count, func,0.0,thrust::plus<double>());
+  ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<double>());
 #endif
   return ret;
 }
@@ -452,6 +454,7 @@ thrust::complex<double> DeviceChunkContainer<data_t>::ExecuteComplexSum(Function
 {
   thrust::complex<double> ret;
   thrust::complex<double> zero = 0.0;
+  uint_t size = count * func.size(ChunkContainer<data_t>::chunk_bits_);
 
   set_device();
   func.set_data( (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data())  + (iChunk << ChunkContainer<data_t>::chunk_bits_));
@@ -462,9 +465,9 @@ thrust::complex<double> DeviceChunkContainer<data_t>::ExecuteComplexSum(Function
   auto ci = thrust::counting_iterator<uint_t>(0);
 
 #ifdef AER_THRUST_CUDA
-  ret = thrust::transform_reduce(thrust::cuda::par.on(stream_[iChunk]), ci, ci + count, func,zero,thrust::plus<thrust::complex<double>>());
+  ret = thrust::transform_reduce(thrust::cuda::par.on(stream_[iChunk]), ci, ci + size, func,zero,thrust::plus<thrust::complex<double>>());
 #else
-  ret = thrust::transform_reduce(thrust::device, ci, ci + count, func,zero,thrust::plus<thrust::complex<double>>());
+  ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,zero,thrust::plus<thrust::complex<double>>());
 #endif
   return ret;
 }
@@ -655,7 +658,7 @@ public:
     return "probability_scan";
   }
 
-  uint_t size(int num_qubits,int n)
+  uint_t size(int num_qubits)
   {
     return (1ull << (num_qubits - qubit_end));
   }

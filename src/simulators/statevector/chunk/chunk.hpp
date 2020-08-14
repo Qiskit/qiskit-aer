@@ -36,6 +36,7 @@ protected:
   Chunk<data_t>* cache_;                //pointer to cache chunk on device
   uint_t chunk_pos_;                    //position in container
   int place_;                           //container ID
+  uint_t num_qubits_;
 public:
   Chunk(ChunkContainer<data_t>* cc,uint_t pos)
   {
@@ -43,6 +44,7 @@ public:
     chunk_pos_ = pos;
     place_ = 0;
     cache_ = NULL;
+    num_qubits_ = 0;
   }
   ~Chunk()
   {
@@ -77,6 +79,11 @@ public:
   void set_cache(Chunk<data_t>* c)
   {
     cache_ = c;
+  }
+
+  void set_num_qubits(uint_t qubits)
+  {
+    num_qubits_ = qubits;
   }
 
   void Set(uint_t i,const thrust::complex<data_t>& t)

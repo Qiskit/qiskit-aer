@@ -275,6 +275,10 @@ public:
     m0 = mat[0];
     m1 = mat[1];
   }
+  int qubits_count(void)
+  {
+    return 2;
+  }
 
   __host__ __device__ void operator()(const uint_t &i) const
   {
@@ -350,7 +354,7 @@ void DensityMatrixThrust<data_t>::apply_diagonal_unitary_matrix(const reg_t &qub
 {
   if(qubits.size() == 1){
     const reg_t qubits_sp = {{qubits[0], qubits[0] + num_qubits()}};
-    BaseVector::apply_function(DensityDiagMatMult2x2<data_t>(diag,qubits[0], num_qubits()), qubits_sp);
+    BaseVector::apply_function(DensityDiagMatMult2x2<data_t>(diag,qubits[0], num_qubits()));
   }
   else{
     // Apply as single 2N-qubit matrix mult.
@@ -376,6 +380,10 @@ public:
     offset_sp = 1ull << (qt + qs);
     cmask = 1ull << qc;
     cmask_sp = 1ull << (qc + qs);
+  }
+  int qubits_count(void)
+  {
+    return 2;
   }
 
   __host__ __device__ void operator()(const uint_t &i) const
@@ -436,9 +444,7 @@ public:
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qtrgt) 
 {
-  const reg_t qubits = {{qctrl, qtrgt}};
-
-  BaseVector::apply_function(DensityCX<data_t>(qctrl, qtrgt, num_qubits()), qubits);
+  BaseVector::apply_function(DensityCX<data_t>(qctrl, qtrgt, num_qubits()));
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_cnot",qubits);
@@ -462,6 +468,10 @@ public:
     cmask_sp = 1ull << (qc + qs);
   }
 
+  int qubits_count(void)
+  {
+    return 2;
+  }
   __host__ __device__ void operator()(const uint_t &i) const
   {
     uint_t i0,i1,i2;
@@ -507,9 +517,7 @@ public:
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_cz(const uint_t q0, const uint_t q1) 
 {
-  const reg_t qubits = {{q0, q1}};
-
-  BaseVector::apply_function(DensityCZ<data_t>(q0, q1, num_qubits()), qubits);
+  BaseVector::apply_function(DensityCZ<data_t>(q0, q1, num_qubits()));
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_cz",qubits);
@@ -550,6 +558,10 @@ public:
       mask0 = (1ull << q1) - 1;
       mask1 = (1ull << q0) - 1;
   	}
+  }
+  int qubits_count(void)
+  {
+    return 2;
   }
 
   __host__ __device__ void operator()(const uint_t &i) const
@@ -594,7 +606,7 @@ void DensityMatrixThrust<data_t>::apply_x(const uint_t qubit) {
   // Use the lambda function
   const reg_t qubits = {{qubit, qubit + num_qubits()}};
 
-	BaseVector::apply_function(DensityX<data_t>(qubits[0], qubits[1]), qubits);
+	BaseVector::apply_function(DensityX<data_t>(qubits[0], qubits[1]) );
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_x",qubits);
@@ -623,6 +635,10 @@ public:
       mask0 = (1ull << q1) - 1;
       mask1 = (1ull << q0) - 1;
   	}
+  }
+  int qubits_count(void)
+  {
+    return 2;
   }
 
   __host__ __device__ void operator()(const uint_t &i) const
@@ -667,7 +683,7 @@ void DensityMatrixThrust<data_t>::apply_y(const uint_t qubit)
 {
   const reg_t qubits = {{qubit, qubit + num_qubits()}};
 
-	BaseVector::apply_function(DensityY<data_t>(qubits[0], qubits[1]), qubits);
+	BaseVector::apply_function(DensityY<data_t>(qubits[0], qubits[1]) );
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_y",qubits);
@@ -770,10 +786,9 @@ public:
     }
     return ret;
   }
-  uint_t size(int num_qubits,int n)
+  uint_t size(int num_qubits)
   {
     (void)num_qubits;
-    (void)n;
     return rows_;
   }
 
@@ -798,7 +813,7 @@ std::vector<double> DensityMatrixThrust<data_t>::probabilities(const reg_t &qubi
 
   int i;
   for(i=0;i<DIM;i++){
-    probs[i] = BaseVector::apply_function_sum(density_probability_func<data_t>(qubits,qubits_sorted,i,BaseMatrix::num_rows()), qubits);
+    probs[i] = BaseVector::apply_function_sum(density_probability_func<data_t>(qubits,qubits_sorted,i,BaseMatrix::num_rows()));
   }
 
   return probs;
@@ -956,6 +971,11 @@ public:
 
     return ret;
   }
+
+  uint_t size(int num_qubits)
+  {
+    return (1ull << (num_qubits/2));
+  }
 };
 
 
@@ -1019,7 +1039,7 @@ double DensityMatrixThrust<data_t>::expval_pauli(const reg_t &qubits,
       break;
   }
 
-  double ret =  BaseVector::chunk_->ExecuteSum(density_expval_pauli_func<data_t>(num_qubits(),x_mask,z_mask,phase),BaseMatrix::num_rows());
+  double ret =  BaseVector::chunk_->ExecuteSum(density_expval_pauli_func<data_t>(num_qubits(),x_mask,z_mask,phase),1);
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::expval_pauli",ret);
 #endif

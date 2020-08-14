@@ -404,13 +404,13 @@ protected:
   // Statevector update with Lambda function
   //-----------------------------------------------------------------------
   template <typename Function>
-  void apply_function(Function func,const reg_t &qubits) const;
+  void apply_function(Function func) const;
 
   template <typename Function>
-  double apply_function_sum(Function func,const reg_t &qubits) const;
+  double apply_function_sum(Function func) const;
 
   template <typename Function>
-  std::complex<double> apply_function_complex_sum(Function func,const reg_t &qubits) const;
+  std::complex<double> apply_function_complex_sum(Function func) const;
 
 
 #ifdef AER_DEBUG
@@ -699,6 +699,10 @@ public:
     matSize = 1ull << nqubits;
   }
 
+  int qubits_count(void)
+  {
+    return nqubits;
+  }
   __host__ __device__ void operator()(const uint_t &i) const
   {
     thrust::complex<data_t>* vec;
@@ -750,7 +754,7 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const cvector_t<double> &state0) 
 {
   if(qubits.size() == 1){
-    apply_function(initialize_component_1qubit_func<data_t>(qubits[0],state0[0],state0[1]), qubits);
+    apply_function(initialize_component_1qubit_func<data_t>(qubits[0],state0[0],state0[1]) );
   }
   else{
     auto qubits_sorted = qubits;
@@ -764,7 +768,7 @@ void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const 
     chunk_->StoreMatrix(state0);
     chunk_->StoreUintParams(qubits_param);
 
-    apply_function(initialize_component_func<data_t>(state0,qubits_sorted), qubits);
+    apply_function(initialize_component_func<data_t>(state0,qubits_sorted) );
   }
 }
 
@@ -775,7 +779,15 @@ void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const 
 template <typename data_t>
 void QubitVectorThrust<data_t>::zero()
 {
+#ifdef AER_DEBUG
+  DebugMsg("zero");
+#endif
+
   chunk_->Zero();
+
+#ifdef AER_DEBUG
+  DebugMsg("zero done");
+#endif
 }
 
 
@@ -814,14 +826,11 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
     checkpoint_ = NULL;
   }
 
-  if(num_qubits_ != num_qubits || chunk_ == NULL){
-    if(chunk_){
-      delete chunk_;
-    }
-
-    num_qubits_ = num_qubits;
+  num_qubits_ = num_qubits;
+  if(chunk_ == NULL){
     chunk_ = chunk_manager_.MapChunk(0);
   }
+  chunk_->set_num_qubits(num_qubits);
 
 #ifdef AER_DEBUG
   //TODO Migrate to SpdLog
@@ -830,13 +839,13 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 //    sprintf(filename,"logs/debug_%d.txt",getpid());
 //    debug_fp = fopen(filename,"a");
     debug_fp = stdout;
-
-    fprintf(debug_fp," ==== Thrust qubit vector initialization %d qubits ====\n",num_qubits_);
-    if(chunk_->device() >= 0)
-      fprintf(debug_fp,"    TEST : device = %d, pos = %d, place = %d / %d\n",chunk_->device(),chunk_->pos(),chunk_->place(),chunk_manager_.num_places());
-    else
-      fprintf(debug_fp,"    TEST : allocated on host (place = %d)\n",chunk_->place());
   }
+
+  fprintf(debug_fp," ==== Thrust qubit vector initialization %d qubits ====\n",num_qubits_);
+  if(chunk_->device() >= 0)
+    fprintf(debug_fp,"    TEST : device = %d, pos = %d, place = %d / %d\n",chunk_->device(),chunk_->pos(),chunk_->place(),chunk_manager_.num_places());
+  else
+    fprintf(debug_fp,"    TEST : allocated on host (place = %d)\n",chunk_->place());
 #endif
 
 }
@@ -1023,6 +1032,10 @@ void* QubitVectorThrust<data_t>::recv_buffer(uint_t& size_in_byte)
 template <typename data_t>
 void QubitVectorThrust<data_t>::initialize()
 {
+#ifdef AER_DEBUG
+  DebugMsg("initialize");
+#endif
+
   zero();
 
   thrust::complex<data_t> t;
@@ -1031,6 +1044,10 @@ void QubitVectorThrust<data_t>::initialize()
   if(chunk_index_ == 0){
     chunk_->Set(0,t);
   }
+
+#ifdef AER_DEBUG
+  DebugMsg("initialize done");
+#endif
 }
 
 template <typename data_t>
@@ -1091,27 +1108,21 @@ void QubitVectorThrust<data_t>::initialize_from_data(const std::complex<data_t>*
 
 template <typename data_t>
 template <typename Function>
-void QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubits) const
+void QubitVectorThrust<data_t>::apply_function(Function func) const
 {
-  const size_t N = qubits.size();
-  uint_t size;
-
 #ifdef AER_DEBUG
-  DebugMsg(func.name(),qubits);
+  DebugMsg(func.name());
 #endif
 
 
   func.set_base_index(chunk_index_ << num_qubits_);
   if(multi_chunk_distribution_ && chunk_->device() >= 0){
     if(chunk_->pos() == 0){   //only first chunk on device calculates all the chunks
-      size = func.size(num_qubits_,N) * chunk_->container()->num_chunks();
-
-      chunk_->Execute(func,size);
+      chunk_->Execute(func,chunk_->container()->num_chunks());
     }
   }
   else{
-    size = func.size(num_qubits_,N);
-    chunk_->Execute(func,size);
+    chunk_->Execute(func,1);
   }
 
 #ifdef AER_DEBUG
@@ -1121,38 +1132,32 @@ void QubitVectorThrust<data_t>::apply_function(Function func,const reg_t &qubits
 
 template <typename data_t>
 template <typename Function>
-double QubitVectorThrust<data_t>::apply_function_sum(Function func,const reg_t &qubits) const
+double QubitVectorThrust<data_t>::apply_function_sum(Function func) const
 {
-  const size_t N = qubits.size();
-  uint_t size;
   double ret = 0.0;
 
 #ifdef AER_DEBUG
-  DebugMsg(func.name(),qubits);
+  DebugMsg(func.name());
 #endif
 
   func.set_base_index(chunk_index_ << num_qubits_);
-  size = func.size(num_qubits_,N);
-  ret = chunk_->ExecuteSum(func,size);
+  ret = chunk_->ExecuteSum(func,1);
 
   return ret;
 }
 
 template <typename data_t>
 template <typename Function>
-std::complex<double> QubitVectorThrust<data_t>::apply_function_complex_sum(Function func,const reg_t &qubits) const
+std::complex<double> QubitVectorThrust<data_t>::apply_function_complex_sum(Function func) const
 {
-  const size_t N = qubits.size();
-  uint_t size;
   thrust::complex<double> ret;
 
 #ifdef AER_DEBUG
-  DebugMsg(func.name(),qubits);
+  DebugMsg(func.name());
 #endif
 
   func.set_base_index(chunk_index_ << num_qubits_);
-  size = func.size(num_qubits_,N);
-  ret = chunk_->ExecuteComplexSum(func,size);
+  ret = chunk_->ExecuteComplexSum(func,1);
 
   return *(std::complex<double>*)&ret;
 }
@@ -1284,6 +1289,10 @@ public:
     }
   }
 
+  int qubits_count(void)
+  {
+    return 2;
+  }
   __host__ __device__ void operator()(const uint_t &i) const
   {
     uint_t i0,i1,i2;
@@ -1345,6 +1354,10 @@ public:
     mask2 = (1ull << qubit_ordered[2]) - 1;
   }
 
+  int qubits_count(void)
+  {
+    return 3;
+  }
 
   __host__ __device__ void operator()(const uint_t &i) const
   {
@@ -1493,6 +1506,11 @@ public:
     mask1 = (1ull << qubit_ordered[1]) - 1;
     mask2 = (1ull << qubit_ordered[2]) - 1;
     mask3 = (1ull << qubit_ordered[3]) - 1;
+  }
+
+  int qubits_count(void)
+  {
+    return 4;
   }
 
   __host__ __device__ void operator()(const uint_t &i) const
@@ -1662,6 +1680,11 @@ public:
     delete[] pSwap;
   }
 
+  int qubits_count(void)
+  {
+    return nqubits;
+  }
+
   __host__ __device__ void operator()(const uint_t &i) const
   {
     thrust::complex<data_t> q,qt;
@@ -1803,18 +1826,18 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
 #endif
 
   if(N == 1){
-    apply_function(MatrixMult2x2<data_t>(mat,qubits[0]), qubits);
+    apply_function(MatrixMult2x2<data_t>(mat,qubits[0]));
   }
   else if(N == 2){
-    apply_function(MatrixMult4x4<data_t>(mat,qubits[0],qubits[1]), qubits);
+    apply_function(MatrixMult4x4<data_t>(mat,qubits[0],qubits[1]));
   }
   else if(N == 3){
     chunk_->StoreMatrix(mat);
-    apply_function(MatrixMult8x8<data_t>(qubits,qubits_sorted), qubits);
+    apply_function(MatrixMult8x8<data_t>(qubits,qubits_sorted));
   }
   else if(N == 4){
     chunk_->StoreMatrix(mat);
-    apply_function(MatrixMult16x16<data_t>(qubits,qubits_sorted), qubits);
+    apply_function(MatrixMult16x16<data_t>(qubits,qubits_sorted));
   }
   else{
     cvector_t<double> matLU;
@@ -1825,7 +1848,7 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
     chunk_->StoreMatrix(matLU);
     chunk_->StoreUintParams(params);
 
-    apply_function(f, qubits);
+    apply_function(f);
   }
 
 #ifdef AER_TIMING
@@ -1938,6 +1961,10 @@ public:
   {
     return true;
   }
+  int qubits_count(void)
+  {
+    return 2;
+  }
 
   __host__ __device__ void operator()(const uint_t &i) const
   {
@@ -1990,6 +2017,10 @@ public:
   {
     return true;
   }
+  int qubits_count(void)
+  {
+    return nqubits;
+  }
 
   __host__ __device__ void operator()(const uint_t &i) const
   {
@@ -2036,16 +2067,16 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
 #endif
 
   if(N == 1){
-    apply_function(DiagonalMult2x2<data_t>(diag,qubits[0]), qubits);
+    apply_function(DiagonalMult2x2<data_t>(diag,qubits[0]));
   }
   else if(N == 2){
-    apply_function(DiagonalMult4x4<data_t>(diag,qubits[0],qubits[1]), qubits);
+    apply_function(DiagonalMult4x4<data_t>(diag,qubits[0],qubits[1]));
   }
   else{
     chunk_->StoreMatrix(diag);
     chunk_->StoreUintParams(qubits);
 
-    apply_function(DiagonalMultNxN<data_t>(qubits), qubits);
+    apply_function(DiagonalMultNxN<data_t>(qubits));
   }
 
 #ifdef AER_TIMING
@@ -2090,6 +2121,10 @@ public:
       params[nqubits + j*2  ] = offset0;
       params[nqubits + j*2+1] = offset1;
     }
+  }
+  int qubits_count(void)
+  {
+    return nqubits;
   }
 
   __host__ __device__ void operator()(const uint_t &i) const
@@ -2142,7 +2177,7 @@ void QubitVectorThrust<data_t>::apply_permutation_matrix(const reg_t& qubits,
   Permutation<data_t> f(qubits_sorted,qubits,pairs,params);
   chunk_->StoreUintParams(params);
 
-  apply_function(f, qubits);
+  apply_function(f);
 }
 
 
@@ -2182,6 +2217,10 @@ public:
     }
   }
 
+  int qubits_count(void)
+  {
+    return nqubits;
+  }
   int num_control_bits(void)
   {
     return nqubits - 1;
@@ -2222,7 +2261,7 @@ void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits)
     TimeStart(QS_GATE_CX);
 #endif
 
-  apply_function(CX_func<data_t>(qubits), qubits);
+  apply_function(CX_func<data_t>(qubits));
 
 #ifdef AER_TIMING
     TimeEnd(QS_GATE_CX);
@@ -2256,6 +2295,10 @@ public:
     }
   }
 
+  int qubits_count(void)
+  {
+    return nqubits;
+  }
   int num_control_bits(void)
   {
     return nqubits - 1;
@@ -2293,7 +2336,7 @@ public:
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcy(const reg_t &qubits) 
 {
-  apply_function(CY_func<data_t>(qubits), qubits);
+  apply_function(CY_func<data_t>(qubits));
 }
 
 template <typename data_t>
@@ -2335,6 +2378,10 @@ public:
     }
   }
 
+  int qubits_count(void)
+  {
+    return nqubits;
+  }
   int num_control_bits(void)
   {
     return nqubits - 2;
@@ -2375,7 +2422,7 @@ public:
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcswap(const reg_t &qubits)
 {
-  apply_function(CSwap_func<data_t>(qubits), qubits);
+  apply_function(CSwap_func<data_t>(qubits));
 }
 
 
@@ -2411,7 +2458,7 @@ public:
     write_back_ = wb;
   }
 
-  uint_t size(int num_qubits,int n)
+  uint_t size(int num_qubits)
   {
     return (1ull << (num_qubits - 1));
   }
@@ -2515,7 +2562,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
     DebugMsg("chunk swap",qubits);
 #endif
 
-    pExec->Execute(CSwapChunk_func<data_t>(qubits,pChunk0,pChunk1,true),data_size_/2);
+    pExec->Execute(CSwapChunk_func<data_t>(qubits,pChunk0,pChunk1,true),1);
 
     if(pBuffer0 != NULL){
       if(pExec == chunk_)
@@ -2576,7 +2623,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, uint_t rem
     DebugMsg("chunk swap (process)",qubits);
 #endif
 
-    chunk_->Execute(CSwapChunk_func<data_t>(qubits,pLocal,pRemote,false),data_size_/2);
+    chunk_->Execute(CSwapChunk_func<data_t>(qubits,pLocal,pRemote,false),1);
 
     if(pBuffer){
       chunk_manager_.UnmapBufferChunk(pBuffer);
@@ -2613,6 +2660,10 @@ public:
       mask |= (1ull << qubits[i]);
     }
   }
+  int qubits_count(void)
+  {
+    return nqubits;
+  }
   int num_control_bits(void)
   {
     return nqubits - 1;
@@ -2646,7 +2697,7 @@ public:
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcphase(const reg_t &qubits, const std::complex<double> phase)
 {
-  apply_function(phase_func<data_t>(qubits,*(thrust::complex<double>*)&phase), qubits );
+  apply_function(phase_func<data_t>(qubits,*(thrust::complex<double>*)&phase) );
 }
 
 template <typename data_t>
@@ -2673,6 +2724,10 @@ public:
     }
   }
 
+  int qubits_count(void)
+  {
+    return nqubits;
+  }
   int num_control_bits(void)
   {
     return nqubits - 1;
@@ -2738,6 +2793,10 @@ public:
     }
   }
 
+  int qubits_count(void)
+  {
+    return nqubits;
+  }
   int num_control_bits(void)
   {
     return nqubits - 1;
@@ -2797,7 +2856,7 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
       return;
     }
     else{
-      apply_function(DiagonalMult2x2Controlled<data_t>(diag,qubits), qubits );
+      apply_function(DiagonalMult2x2Controlled<data_t>(diag,qubits) );
     }
   }
   else{
@@ -2807,7 +2866,7 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
       return;
     }
     else{
-      apply_function(MatrixMult2x2Controlled<data_t>(mat,qubits), qubits );
+      apply_function(MatrixMult2x2Controlled<data_t>(mat,qubits) );
     }
   }
 }
@@ -2838,8 +2897,7 @@ void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
   TimeStart(QS_GATE_MULT);
 #endif
 
-  reg_t qubits = {qubit};
-  apply_function(MatrixMult2x2<data_t>(mat,qubit), qubits);
+  apply_function(MatrixMult2x2<data_t>(mat,qubit));
 
 #ifdef AER_TIMING
   TimeEnd(QS_GATE_MULT);
@@ -2854,7 +2912,7 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const uint_t qubit,
   TimeStart(QS_GATE_DIAG);
 #endif
   reg_t qubits = {qubit};
-  apply_function(DiagonalMult2x2<data_t>(diag,qubits[0]), qubits);
+  apply_function(DiagonalMult2x2<data_t>(diag,qubits[0]));
 
 #ifdef AER_TIMING
   TimeEnd(QS_GATE_DIAG);
@@ -2908,9 +2966,8 @@ double QubitVectorThrust<data_t>::norm() const
 {
   double ret;
   reg_t qubits(1,0);
-  ret = chunk_->ExecuteSum(Norm<data_t>(),data_size_);
-  
-//  ret = apply_function_sum(Norm<data_t>(), qubits);
+  ret = chunk_->ExecuteSum(Norm<data_t>(),1);
+
 
 #ifdef AER_DEBUG
   DebugMsg("norm",ret);
@@ -2980,6 +3037,10 @@ public:
     }
     return sum;
   }
+  int qubits_count(void)
+  {
+    return nqubits;
+  }
   const char* name(void)
   {
     return "Norm_multNxN";
@@ -2999,7 +3060,7 @@ double QubitVectorThrust<data_t>::norm(const reg_t &qubits, const cvector_t<doub
     chunk_->StoreMatrix(mat);
     chunk_->StoreUintParams(qubits);
 
-    double ret = apply_function_sum(NormMatrixMultNxN<data_t>(mat,qubits), qubits);
+    double ret = apply_function_sum(NormMatrixMultNxN<data_t>(mat,qubits));
     return ret;
   }
 }
@@ -3018,6 +3079,10 @@ public:
   bool is_diagonal(void)
   {
     return true;
+  }
+  int qubits_count(void)
+  {
+    return nqubits;
   }
 
   __host__ __device__ double operator()(const uint_t &i) const
@@ -3065,7 +3130,7 @@ double QubitVectorThrust<data_t>::norm_diagonal(const reg_t &qubits, const cvect
     chunk_->StoreMatrix(mat);
     chunk_->StoreUintParams(qubits);
 
-    double ret = apply_function_sum(NormDiagonalMultNxN<data_t>(qubits), qubits );
+    double ret = apply_function_sum(NormDiagonalMultNxN<data_t>(qubits) );
     return ret;
   }
 }
@@ -3126,9 +3191,7 @@ public:
 template <typename data_t>
 double QubitVectorThrust<data_t>::norm(const uint_t qubit, const cvector_t<double> &mat) const
 {
-  reg_t qubits = {qubit};
-
-  double ret = apply_function_sum(NormMatrixMult2x2<data_t>(mat,qubit), qubits);
+  double ret = apply_function_sum(NormMatrixMult2x2<data_t>(mat,qubit));
 
   return ret;
 }
@@ -3184,8 +3247,7 @@ public:
 template <typename data_t>
 double QubitVectorThrust<data_t>::norm_diagonal(const uint_t qubit, const cvector_t<double> &mat) const
 {
-  reg_t qubits = {qubit};
-  double ret = apply_function_sum(NormDiagonalMult2x2<data_t>(mat,qubit), qubits);
+  double ret = apply_function_sum(NormDiagonalMult2x2<data_t>(mat,qubit));
 
   return ret;
 }
@@ -3293,7 +3355,7 @@ std::vector<double> QubitVectorThrust<data_t>::probabilities(const reg_t &qubits
 
   int i;
   for(i=0;i<DIM;i++){
-    probs[i] = apply_function_sum(probability_func<data_t>(qubits,i), qubits);
+    probs[i] = apply_function_sum(probability_func<data_t>(qubits,i));
   }
 
 #ifdef AER_DEBUG
@@ -3536,10 +3598,10 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
 
   // specialize x_max == 0
   if(x_mask == 0) {
-    return chunk_->ExecuteSum(expval_pauli_Z_func<data_t>(z_mask, phase),data_size_);
+    return chunk_->ExecuteSum(expval_pauli_Z_func<data_t>(z_mask, phase),1);
   }
 
-  return chunk_->ExecuteSum(expval_pauli_XYZ_func<data_t>(x_mask, z_mask, x_max, phase),(data_size_ >> 1) );
+  return chunk_->ExecuteSum(expval_pauli_XYZ_func<data_t>(x_mask, z_mask, x_max, phase),1 );
 }
 
 
@@ -3622,6 +3684,7 @@ void QubitVectorThrust<data_t>::DebugMsg(const char* str,const std::vector<doubl
 template <typename data_t>
 void QubitVectorThrust<data_t>::DebugDump(void) const
 {
+    /*
   if(debug_fp != NULL){
     if(num_qubits_ < 10){
       thrust::complex<data_t> t;
@@ -3640,6 +3703,7 @@ void QubitVectorThrust<data_t>::DebugDump(void) const
     }
     fflush(debug_fp);
   }
+  */
 }
 
 
