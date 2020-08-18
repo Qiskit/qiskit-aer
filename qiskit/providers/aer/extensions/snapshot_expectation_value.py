@@ -127,7 +127,7 @@ def snapshot_expectation_value(self, label, op, qubits,
         op (Operator): operator to snapshot
         qubits (list): the qubits to snapshot.
         single_shot (bool): return list for each shot rather than average [Default: False]
-        variance (bool): compute variance of probabilities [Default: False]
+        variance (bool): compute variance of values [Default: False]
 
     Returns:
         QuantumCircuit: with attached instruction.
