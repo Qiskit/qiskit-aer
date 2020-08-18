@@ -33,7 +33,7 @@ class SnapshotExpectationValue(Snapshot):
             label (str): the snapshot label.
             op (Operator): operator to snapshot.
             single_shot (bool): return list for each shot rather than average [Default: False]
-            variance (bool): compute variance of probabilities [Default: False]
+            variance (bool): compute variance of values [Default: False]
 
         Raises:
             ExtensionError: if snapshot is invalid.
