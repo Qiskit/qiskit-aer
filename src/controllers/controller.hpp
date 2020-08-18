@@ -399,7 +399,7 @@ template <class state_t>
 bool Controller::validate_state(const state_t &state, const Circuit &circ,
                                 const Noise::NoiseModel &noise,
                                 bool throw_except) {
-  // First check if a noise model is valid a given state
+  // First check if a noise model is valid for a given state
   bool noise_valid = noise.is_ideal() || state.opset().contains(noise.opset());
   bool circ_valid = state.opset().contains(circ.opset());
   if (noise_valid && circ_valid) {

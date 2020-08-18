@@ -222,7 +222,7 @@ class QasmController : public Base::Controller {
                           const Method method,
                           ExperimentData& data) const;
 
-  // Execute a single shot a circuit by initializing the state vector
+  // Execute a single shot a of circuit by initializing the state vector
   // to initial_state, running all ops in circ, and updating data with
   // simulation output.
   template <class State_t, class Initstate_t>
