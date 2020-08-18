@@ -93,12 +93,10 @@ namespace Base {
  *
  * Config settings from Data class:
  *
- * - "counts" (bool): Return counts objecy in circuit data [Default: True]
+ * - "counts" (bool): Return counts object in circuit data [Default: True]
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
  * - "register" (bool): Return register array in circuit data [Default: False]
- * - "noise_model" (json): A noise model JSON dictionary for the simulator.
- *                         [Default: null]
  **************************************************************************/
 
 class Controller {
@@ -650,7 +648,7 @@ void Controller::execute_circuit(Circuit &circ,
     exp_result.shots = circ.shots;
     exp_result.seed = circ.seed;
     // Move any metadata from the subclass run_circuit data
-    // to the experiment resultmetadata field
+    // to the experiment result metadata field
     for (const auto &pair : exp_result.data.metadata()) {
       exp_result.add_metadata(pair.first, pair.second);
     }

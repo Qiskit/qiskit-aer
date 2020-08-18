@@ -27,7 +27,7 @@ class SnapshotExpectationValue(Snapshot):
     """Snapshot instruction for supported methods of Qasm simulator."""
 
     def __init__(self, label, op, single_shot=False, variance=False):
-        """Create a probability snapshot instruction.
+        """Create an expectation value snapshot instruction.
 
         Args:
             label (str): the snapshot label.
