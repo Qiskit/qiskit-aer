@@ -350,7 +350,7 @@ void MPS::apply_cz(uint_t index_A, uint_t index_B)
 void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
 {
   cmatrix_t u1_matrix = AER::Utils::Matrix::u1(lambda);
-  apply_2_qubit_gate(index_A, index_B, cu1, u1_matrix);
+  apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), cu1, u1_matrix);
 }
 
 void MPS::apply_ccx(const reg_t &qubits)
