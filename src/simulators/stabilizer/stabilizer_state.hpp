@@ -576,6 +576,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
         case 'Y':
 	  BaseState::qreg_.append_s(qubit);
 	  BaseState::qreg_.append_z(qubit);
+	  BaseState::qreg_.append_h(qubit);
 	  measured_qubits.push_back(qubit);
           break;
         case 'Z':
