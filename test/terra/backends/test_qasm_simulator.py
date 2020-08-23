@@ -52,6 +52,7 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensity
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliByMeasTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpvalPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
 # Other tests
@@ -99,6 +100,7 @@ class TestQasmSimulator(common.QiskitAerTestCase,
                         QasmSnapshotDensityMatrixTests,
                         QasmSnapshotProbabilitiesTests,
                         QasmSnapshotExpValPauliTests,
+                        QasmSnapshotExpValPauliByMeasTests,
                         QasmSnapshotExpvalPauliNCTests,
                         QasmSnapshotExpValMatrixTests,
                         QasmSnapshotStabilizerTests):

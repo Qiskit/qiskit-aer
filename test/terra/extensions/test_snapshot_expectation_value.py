@@ -24,12 +24,15 @@ class TestSnapshotExpectationValueExtension(unittest.TestCase):
     """SnapshotExpectationValue extension tests"""
 
     @staticmethod
-    def snapshot_circuit_instr(circ_qubits, label, op, qubits, single_shot=False, variance=False):
+    def snapshot_circuit_instr(circ_qubits, label, op, qubits,
+                               single_shot=False, variance=False,
+                               by_measurements=False):
         """Return QobjInstruction for circuit monkey patch method."""
         circuit = QuantumCircuit(circ_qubits)
         circuit.snapshot_expectation_value(label, op, qubits,
                                            single_shot=single_shot,
-                                           variance=variance)
+                                           variance=variance,
+                                           by_measurements=by_measurements)
         qobj = assemble(circuit)
         instr = qobj.experiments[0].instructions[0]
         return instr
@@ -73,10 +76,12 @@ class TestSnapshotExpectationValueExtension(unittest.TestCase):
             instrs = [
                 SnapshotExpectationValue('snap', op,
                                          single_shot=False,
-                                         variance=False).assemble(),
+                                         variance=False,
+                                         by_measurements=False).assemble(),
                 self.snapshot_circuit_instr(1, 'snap', op, [0],
                                             single_shot=False,
-                                            variance=False)
+                                            variance=False,
+                                            by_measurements=False)
             ]
             for instr in instrs:
                 self.assertTrue(hasattr(instr, 'snapshot_type'))
@@ -85,10 +90,12 @@ class TestSnapshotExpectationValueExtension(unittest.TestCase):
             instrs = [
                 SnapshotExpectationValue('snap', op,
                                          single_shot=True,
-                                         variance=False).assemble(),
+                                         variance=False,
+                                         by_measurements=False).assemble(),
                 self.snapshot_circuit_instr(1, 'snap', op, [0],
                                             single_shot=True,
-                                            variance=False)
+                                            variance=False,
+                                            by_measurements=False)
             ]
             for instr in instrs:
                 self.assertTrue(hasattr(instr, 'snapshot_type'))
@@ -97,14 +104,30 @@ class TestSnapshotExpectationValueExtension(unittest.TestCase):
             instrs = [
                 SnapshotExpectationValue('snap', op,
                                          single_shot=False,
-                                         variance=True).assemble(),
+                                         variance=True,
+                                         by_measurements=False).assemble(),
                 self.snapshot_circuit_instr(1, 'snap', op, [0],
                                             single_shot=False,
-                                            variance=True)
+                                            variance=True,
+                                            by_measurements=False)
             ]
             for instr in instrs:
                 self.assertTrue(hasattr(instr, 'snapshot_type'))
                 self.assertEqual(instr.snapshot_type, 'expectation_value_pauli_with_variance')
+            # By measurements
+            instrs = [
+                SnapshotExpectationValue('snap', op,
+                                         single_shot=False,
+                                         variance=False,
+                                         by_measurements=True).assemble(),
+                self.snapshot_circuit_instr(1, 'snap', op, [0],
+                                            single_shot=False,
+                                            variance=False,
+                                            by_measurements=True)
+            ]
+            for instr in instrs:
+                self.assertTrue(hasattr(instr, 'snapshot_type'))
+                self.assertEqual(instr.snapshot_type, 'expectation_value_pauli_by_measurements')
 
     def test_snapshot_matrix_type(self):
         """Test snapshot instruction has correct type."""

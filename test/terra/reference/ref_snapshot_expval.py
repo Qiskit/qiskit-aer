@@ -73,6 +73,7 @@ def snapshot_expval_params(pauli=False):
 def snapshot_expval_circuits(pauli=False,
                              single_shot=False,
                              variance=False,
+                             by_measurements=False,
                              post_measure=False,
                              skip_measure=False):
     """SnapshotExpectationValue test circuits with deterministic counts"""
@@ -94,7 +95,8 @@ def snapshot_expval_circuits(pauli=False,
                                                params,
                                                qubits,
                                                single_shot=single_shot,
-                                               variance=variance)
+                                               variance=variance,
+                                               by_measurements=by_measurements)
     circuit.barrier(qr)
     if not skip_measure:
         circuit.measure(qr, cr)
@@ -106,7 +108,8 @@ def snapshot_expval_circuits(pauli=False,
                                                params,
                                                qubits,
                                                single_shot=single_shot,
-                                               variance=variance)
+                                               variance=variance,
+                                               by_measurements=by_measurements)
     circuits.append(circuit)
 
     # State |00> + |11>
@@ -120,7 +123,8 @@ def snapshot_expval_circuits(pauli=False,
                                                params,
                                                qubits,
                                                single_shot=single_shot,
-                                               variance=variance)
+                                               variance=variance,
+                                               by_measurements=by_measurements)
     circuit.barrier(qr)
     if not skip_measure:
         circuit.measure(qr, cr)
@@ -132,7 +136,8 @@ def snapshot_expval_circuits(pauli=False,
                                                params,
                                                qubits,
                                                single_shot=single_shot,
-                                               variance=variance)
+                                               variance=variance,
+                                               by_measurements=by_measurements)
     circuits.append(circuit)
 
     # State |10> -i|01>
@@ -148,7 +153,8 @@ def snapshot_expval_circuits(pauli=False,
                                                params,
                                                qubits,
                                                single_shot=single_shot,
-                                               variance=variance)
+                                               variance=variance,
+                                               by_measurements=by_measurements)
     circuit.barrier(qr)
     if not skip_measure:
         circuit.measure(qr, cr)
@@ -160,7 +166,8 @@ def snapshot_expval_circuits(pauli=False,
                                                params,
                                                qubits,
                                                single_shot=single_shot,
-                                               variance=variance)
+                                               variance=variance,
+                                               by_measurements=by_measurements)
     circuits.append(circuit)
     return circuits
 

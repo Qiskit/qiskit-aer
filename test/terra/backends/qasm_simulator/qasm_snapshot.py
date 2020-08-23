@@ -586,6 +586,47 @@ class QasmSnapshotExpValPauliTests:
                                                       {}).get(memory, {})
                         self.assertAlmostEqual(value, target, delta=1e-7)
 
+class QasmSnapshotExpValPauliByMeasTests:
+    """QasmSimulator snapshot pauli expectation value by measurements tests."""
+
+    SIMULATOR = QasmSimulator()
+    SUPPORTED_QASM_METHODS = [
+        # to be filled in as support progresses
+    ]
+    BACKEND_OPTS = {}
+
+    def test_snapshot_expval_pauli_by_meas(self):
+        """Test snapshot expectation value (pauli) by measurements"""
+        shots = 1000
+        labels = snapshot_expval_labels()
+        counts_targets = snapshot_expval_counts(shots)
+        value_targets = snapshot_expval_pre_meas_values()
+
+        circuits = snapshot_expval_circuits(pauli=True,
+                                            skip_measure=True,
+                                            by_measurements=True)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        result = job.result()
+        success = getattr(result, 'success', False)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotExpValPauliByMeasTests.SUPPORTED_QASM_METHODS:
+            self.assertFalse(success)
+        else:
+            self.assertTrue(success)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                all_snapshots = self.expval_snapshots(data, labels)
+                for label in labels:
+                    snaps = all_snapshots.get(label, {})
+                    self.assertTrue(len(snaps), 1)
+                    for memory, value in snaps.items():
+                        target = value_targets[j].get(label,
+                                                      {}).get(memory, {})
+                        self.assertAlmostEqual(value, target, delta=1e-7)
+
 
 class QasmSnapshotExpvalPauliNCTests:
     """QasmSimulator snapshot pauli expectation value tests on random states."""

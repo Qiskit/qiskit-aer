@@ -26,7 +26,10 @@ from qiskit.providers.aer.extensions import Snapshot
 class SnapshotExpectationValue(Snapshot):
     """Snapshot instruction for supported methods of Qasm simulator."""
 
-    def __init__(self, label, op, single_shot=False, variance=False):
+    def __init__(self, label, op,
+                 single_shot=False,
+                 variance=False,
+                 by_measurements=False):
         """Create a probability snapshot instruction.
 
         Args:
@@ -34,10 +37,16 @@ class SnapshotExpectationValue(Snapshot):
             op (Operator): operator to snapshot.
             single_shot (bool): return list for each shot rather than average [Default: False]
             variance (bool): compute variance of probabilities [Default: False]
+            by_measurements (bool): compute by appending measurement gates (possibly after
+              switching bases) and averaging measurement results over shots, rather than by
+              calculating <psi|O|psi> for the statevector |psi>. Allowed only if this is the
+              last instruction in the circuit, and the circuit does not contain measurements or
+              other snapshots [Default: False]
 
         Raises:
             ExtensionError: if snapshot is invalid.
         """
+
         pauli_op = self._format_pauli_op(op)
         if pauli_op:
             # Pauli expectation value
@@ -65,10 +74,20 @@ class SnapshotExpectationValue(Snapshot):
         # in terra
         params = [numpy.array(elt, dtype=object) for elt in params]
 
+        if sum([single_shot, variance, by_measurements]) > 1:
+            raise ExtensionError("At most one of single_shot, variance, \
+            and by_measurements can be set to True")
+
         if single_shot:
             snapshot_type += '_single_shot'
         elif variance:
             snapshot_type += '_with_variance'
+        elif by_measurements:
+            if snapshot_type == 'expectation_value_matrix':
+                raise ExtensionError("Matrix expectation value \
+                must have parameter by_measurements set to False")
+            snapshot_type += '_by_measurements'
+
         super().__init__(label,
                          snapshot_type=snapshot_type,
                          num_qubits=num_qubits,
@@ -119,7 +138,8 @@ class SnapshotExpectationValue(Snapshot):
 
 def snapshot_expectation_value(self, label, op, qubits,
                                single_shot=False,
-                               variance=False):
+                               variance=False,
+                               by_measurements=False):
     """Take a snapshot of expectation value <O> of an Operator.
 
     Args:
@@ -128,6 +148,11 @@ def snapshot_expectation_value(self, label, op, qubits,
         qubits (list): the qubits to snapshot.
         single_shot (bool): return list for each shot rather than average [Default: False]
         variance (bool): compute variance of probabilities [Default: False]
+        by_measurements (bool): compute by appending measurement gates (possibly after
+             switching bases) and averaging measurement results over shots, rather than by
+             calculating <psi|O|psi> for the statevector |psi>. Allowed only if this is the
+             last instruction in the circuit, and the circuit does not contain measurements or
+             other snapshots [Default: False]
 
     Returns:
         QuantumCircuit: with attached instruction.
@@ -141,7 +166,8 @@ def snapshot_expectation_value(self, label, op, qubits,
     return self.append(
         SnapshotExpectationValue(label, op,
                                  single_shot=single_shot,
-                                 variance=variance),
+                                 variance=variance,
+                                 by_measurements=by_measurements),
         snapshot_register)
 
 
