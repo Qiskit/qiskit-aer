@@ -1,5 +1,9 @@
 name: Compile tests
-on: [push, pull_request]
+on:
+  push:
+    branches: [master, 'stable/*']
+  pull_request:
+    branches: [master, 'stable/*']
 jobs:
   standalone:
     name: compile-standalone-${{ matrix.os }}
@@ -124,7 +128,7 @@ jobs:
         uses: microsoft/setup-msbuild@v1.0.1
         if: runner.os == 'Windows'
       - name: Install deps
-        run: python -m pip install -U virtualenv setuptools wheel
+        run: python -m pip install -U virtualenv setuptools wheel numpy
       - name: Build Wheels
         run: python setup.py bdist_wheel -- -G 'Visual Studio 16 2019'
       - name: Install and test wheel
