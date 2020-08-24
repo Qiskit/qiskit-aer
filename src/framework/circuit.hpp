@@ -73,10 +73,10 @@ public:
   // Return the used qubits for the circuit
   inline const std::set<uint_t>& qubits() const {return qubitset_;}
 
-  // Return the used qubits for the circuit
+  // Return the used memory for the circuit
   inline const std::set<uint_t>& memory() const {return memoryset_;}
 
-  // Return the used qubits for the circuit
+  // Return the used registers for the circuit
   inline const std::set<uint_t>& registers() const {return registerset_;}
 
   //-----------------------------------------------------------------------
