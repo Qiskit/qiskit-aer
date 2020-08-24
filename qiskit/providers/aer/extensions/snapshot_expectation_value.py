@@ -40,8 +40,8 @@ class SnapshotExpectationValue(Snapshot):
             by_measurements (bool): compute by appending measurement gates (possibly after
               switching bases) and averaging measurement results over shots, rather than by
               calculating <psi|O|psi> for the statevector |psi>. Allowed only if this is the
-              last instruction in the circuit, and the circuit does not contain measurements or
-              other snapshots [Default: False]
+              last instruction in the circuit, and the circuit does not contain measurements,
+              other snapshots, or the instructions initialize and reset [Default: False]
 
         Raises:
             ExtensionError: if snapshot is invalid.
@@ -151,8 +151,8 @@ def snapshot_expectation_value(self, label, op, qubits,
         by_measurements (bool): compute by appending measurement gates (possibly after
              switching bases) and averaging measurement results over shots, rather than by
              calculating <psi|O|psi> for the statevector |psi>. Allowed only if this is the
-             last instruction in the circuit, and the circuit does not contain measurements or
-             other snapshots [Default: False]
+             last instruction in the circuit, and the circuit does not contain measurements,
+             other snapshots, or the instructions initialize and reset [Default: False]
 
     Returns:
         QuantumCircuit: with attached instruction.
