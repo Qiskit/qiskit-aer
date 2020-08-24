@@ -106,7 +106,7 @@ public:
                                const statevec_t &state) override;
 
   // Returns the required memory for storing an n-qubit state in megabytes.
-  // For this state the memory is indepdentent of the number of ops
+  // For this state the memory is independent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes
   virtual size_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops)
