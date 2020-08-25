@@ -380,43 +380,20 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
     }
     return;
   }
-
-  // when actual_A+1 == actual_B then we can really do the swap
-  MPS_Tensor A = q_reg_[actual_A], B = q_reg_[actual_B];
-  //There is no lambda on the edges of the MPS
-  if (actual_A != 0)
-    q_reg_[actual_A].mul_Gamma_by_left_Lambda(lambda_reg_[actual_A-1]);
-  if (actual_B != num_qubits_-1)
-    q_reg_[actual_B].mul_Gamma_by_right_Lambda(lambda_reg_[actual_B]);
-
-  MPS_Tensor temp = MPS_Tensor::contract(q_reg_[actual_A], lambda_reg_[actual_A], q_reg_[actual_B]);
-
-  temp.apply_swap();
-  MPS_Tensor left_gamma,right_gamma;
-  rvector_t lambda;
-  MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
-
-  //There is no lambda on the edges of the MPS
-  if (actual_A != 0)
-    left_gamma.div_Gamma_by_left_Lambda(lambda_reg_[actual_A-1]);
-  if (actual_B != num_qubits_-1)
-    right_gamma.div_Gamma_by_right_Lambda(lambda_reg_[actual_B]);
-
-  q_reg_[actual_A] = left_gamma;
-  lambda_reg_[actual_A] = lambda;
-  q_reg_[actual_B] = right_gamma;
-  
+  // when actual_A+1 == actual_B then we can really do the swap between A and A+1
+  common_apply_2_qubit_gate(actual_A, Gates::swap, 
+			    cmatrix_t(1, 1) /*dummy matrix*/, false /*swapped*/);
+ 
   if (!swap_gate) {
-    // we are moving the qubit at index_A one position to the right
+    // we move the qubit at index_A one position to the right
     // and the qubit at index_B or index_A+1 is moved one position 
     //to the left
     std::swap(qubit_ordering_.order_[index_A], qubit_ordering_.order_[index_B]);
     
-  }
-  // update qubit location after all the swaps
-  if (!swap_gate)
+  // update qubit locations after all the swaps
     for (uint_t i=0; i<num_qubits_; i++)
       qubit_ordering_.location_[qubit_ordering_.order_[i]] = i;
+  }
 }
 
 //-------------------------------------------------------------------------
@@ -450,6 +427,12 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
     A = index_A - 1;
     swapped = true;
   }
+  common_apply_2_qubit_gate(A, gate_type, mat, swapped);
+}
+
+void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A+1
+				    Gates gate_type, const cmatrix_t &mat,
+				    bool swapped) {
   // After we moved the qubits as necessary, 
   // the operation is always between qubits A and A+1
 
@@ -467,6 +450,9 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
     break;
   case cz:
     temp.apply_cz();
+    break;
+  case swap:
+    temp.apply_swap();
     break;
   case id:
     break;
@@ -772,7 +758,7 @@ void MPS::move_qubits_to_right_end(const reg_t &qubits,
 void MPS::change_position(uint_t src, uint_t dst) {
    if(src == dst)
      return;
-   else if(src < dst)
+   if(src < dst)
      for(uint_t i = src; i < dst; i++) {
        apply_swap_internal(i, i+1, false);
      }
@@ -1082,7 +1068,7 @@ MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
 	  temp.mul_Gamma_by_left_Lambda(lambda_reg_[first_index-1]);
 
 	// special case of a single qubit
-	if (first_index == last_index) {
+	if ((first_index == last_index) && (last_index != num_qubits_-1)) {
 	  temp.mul_Gamma_by_right_Lambda(lambda_reg_[last_index]);
 	  return temp;
 	}
