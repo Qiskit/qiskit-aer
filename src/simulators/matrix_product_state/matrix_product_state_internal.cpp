@@ -1082,7 +1082,7 @@ MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
 	  temp.mul_Gamma_by_left_Lambda(lambda_reg_[first_index-1]);
 
 	// special case of a single qubit
-	if (first_index == last_index) {
+	if ((first_index == last_index) && (last_index != num_qubits_-1)) {
 	  temp.mul_Gamma_by_right_Lambda(lambda_reg_[last_index]);
 	  return temp;
 	}
