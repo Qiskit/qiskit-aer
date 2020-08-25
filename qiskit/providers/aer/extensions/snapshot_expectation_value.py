@@ -30,13 +30,13 @@ class SnapshotExpectationValue(Snapshot):
                  single_shot=False,
                  variance=False,
                  by_measurements=False):
-        """Create a probability snapshot instruction.
+        """Create an expectation value snapshot instruction.
 
         Args:
             label (str): the snapshot label.
             op (Operator): operator to snapshot.
             single_shot (bool): return list for each shot rather than average [Default: False]
-            variance (bool): compute variance of probabilities [Default: False]
+            variance (bool): compute variance of values [Default: False]
             by_measurements (bool): compute by appending measurement gates (possibly after
               switching bases) and averaging measurement results over shots, rather than by
               calculating <psi|O|psi> for the statevector |psi>. Allowed only if this is the
@@ -147,7 +147,7 @@ def snapshot_expectation_value(self, label, op, qubits,
         op (Operator): operator to snapshot
         qubits (list): the qubits to snapshot.
         single_shot (bool): return list for each shot rather than average [Default: False]
-        variance (bool): compute variance of probabilities [Default: False]
+        variance (bool): compute variance of values [Default: False]
         by_measurements (bool): compute by appending measurement gates (possibly after
              switching bases) and averaging measurement results over shots, rather than by
              calculating <psi|O|psi> for the statevector |psi>. Allowed only if this is the

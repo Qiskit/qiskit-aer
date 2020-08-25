@@ -53,7 +53,7 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabili
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliByMeasTests
-from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpvalPauliNCTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
@@ -80,7 +80,7 @@ class StatevectorTests(
         QasmSnapshotStatevectorTests, QasmSnapshotDensityMatrixTests,
         QasmSnapshotProbabilitiesTests, QasmSnapshotExpValPauliTests,
         QasmSnapshotExpValPauliByMeasTests,
-        QasmSnapshotExpvalPauliNCTests, QasmSnapshotExpValMatrixTests,
+        QasmSnapshotExpValPauliNCTests, QasmSnapshotExpValMatrixTests,
         QasmSnapshotStabilizerTests):
     """Container class of statevector method tests."""
     pass

@@ -53,7 +53,7 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabili
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliByMeasTests
-from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpvalPauliNCTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
 
 
@@ -71,7 +71,7 @@ class DensityMatrixTests(
         QasmKrausNoiseTests, QasmSnapshotStatevectorTests,
         QasmSnapshotDensityMatrixTests, QasmSnapshotProbabilitiesTests,
         QasmSnapshotExpValPauliTests, QasmSnapshotExpValPauliByMeasTests,
-        QasmSnapshotExpvalPauliNCTests,
+        QasmSnapshotExpValPauliNCTests,
         QasmSnapshotExpValMatrixTests, QasmSnapshotStabilizerTests):
     """Container class of density_matrix method tests."""
     pass
