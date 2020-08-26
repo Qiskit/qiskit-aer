@@ -196,9 +196,9 @@ protected:
   void apply_matrix(const reg_t &qubits, const cvector_t & vmat);
 
   // Apply a Kraus error operation
-  //void apply_kraus(const reg_t &qubits,
-  //                 const std::vector<cmatrix_t> &krausops,
-  //                 RngEngine &rng);
+  void apply_kraus(const reg_t &qubits,
+                   const std::vector<cmatrix_t> &kmats,
+                   RngEngine &rng);
 
   //-----------------------------------------------------------------------
   // Measurement Helpers
@@ -468,6 +468,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         case Operations::OpType::matrix:
           apply_matrix(op.qubits, op.mats[0]);
           break;
+        case Operations::OpType::kraus:
+          apply_kraus(op.qubits, op.mats, rng);
+          break;
         default:
           throw std::invalid_argument("MatrixProductState::State::invalid instruction \'" +
                                       op.name + "\'.");
@@ -662,6 +665,49 @@ void State::apply_gate(const Operations::Op &op) {
     qreg_.apply_matrix(qubits, vmat);
   }
 }
+
+  void State::apply_kraus(const reg_t &qubits,
+                   const std::vector<cmatrix_t> &kmats,
+                   RngEngine &rng) {
+  // Check edge case for empty Kraus set (this shouldn't happen)
+  if (kmats.empty())
+    return; // end function early
+
+  // Choose a real in [0, 1) to choose the applied kraus operator once
+  // the accumulated probability is greater than r.
+  // We know that the Kraus noise must be normalized
+  // So we only compute probabilities for the first N-1 kraus operators
+  // and infer the probability of the last one from 1 - sum of the previous
+
+  double r = rng.rand(0., 1.);
+  double accum = 0.;
+  bool complete = false;
+
+  // Loop through N-1 kraus operators
+  for (size_t j=0; j < kmats.size() - 1; j++) {
+
+    // Calculate probability
+    double p = qreg_.expectation_value(qubits, kmats[j]);
+    accum += p;
+
+    // check if we need to apply this operator
+    if (accum > r) {
+      // rescale mat so projection is normalized
+      cmatrix_t mat = ( 1 / std::sqrt(p)) * kmats[j];
+      // apply Kraus projection operator
+      apply_matrix(qubits, mat);
+      complete = true;
+      break;
+    }
+  }
+
+  // check if we haven't applied a kraus operator yet
+  if (!complete) {
+    // Compute probability from accumulated
+    complex_t renorm = 1 / std::sqrt(1. - accum);
+    apply_matrix(qubits, renorm * kmats.back());
+  }
+  }
 
 //=========================================================================
 // Implementation: Reset and Measurement Sampling
