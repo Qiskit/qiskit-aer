@@ -129,7 +129,14 @@ class AerBackend(BaseBackend):
         if validate:
             validate_qobj_against_schema(qobj)
             self._validate(qobj, backend_options, noise_model)
-        output = self._controller(self._format_qobj(qobj, backend_options, noise_model))
+        formatted_qobj = self._format_qobj(qobj, backend_options, noise_model)
+        if backend_options is not None and 'qobj_save_dir' in backend_options:
+            save_dir = backend_options['qobj_save_dir']
+            if os.path.isdir(save_dir):
+                file_path = os.path.join(save_dir, datetime.datetime.now().isoformat() + job_id)
+                with open(file_path, mode='w') as qobj_file:
+                    qobj_file.write(json.dumps(formatted_qobj, cls=AerJSONEncoder))
+        output = self._controller(formatted_qobj)
         end = time.time()
         return Result.from_dict(self._format_results(job_id, output, end - start))
 
