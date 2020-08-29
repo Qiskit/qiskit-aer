@@ -97,16 +97,17 @@ Qobj::Qobj(const json_t &js) {
   std::vector<exp_params_t> param_table;
   JSON::get_value(param_table, "parameterizations", config);
 
-  // Validate parameterizations for number of circuis
-  if (!param_table.empty() && param_table.size() != num_circs) {
+  // Validate parameterizations for number of circuits
+  if (!param_table.empty() && param_table.size() < num_circs) {
     throw std::invalid_argument(
-        R"(Invalid parameterized qobj: "parameterizations" length does not match number of circuits.)");
+        R"(Invalid parameterized qobj: "parameterizations" length is less than a number of circuits.)");
   }
 
+  const size_t num_exps = param_table.empty()? num_circs : param_table.size();
   // Load circuits
-  for (size_t i=0; i<num_circs; i++) {
+  for (size_t i=0; i<num_exps; i++) {
     // Get base circuit from qobj
-    Circuit circuit(circs[i], config);
+    Circuit circuit(circs[i % num_circs], config);
     if (param_table.empty() || param_table[i].empty()) {
       // Non parameterized circuit
       circuits.push_back(circuit);
