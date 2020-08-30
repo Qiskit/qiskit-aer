@@ -587,7 +587,7 @@ class QasmSnapshotExpValPauliTests:
                         self.assertAlmostEqual(value, target, delta=1e-7)
 
 
-class QasmSnapshotExpvalPauliNCTests:
+class QasmSnapshotExpValPauliNCTests:
     """QasmSimulator snapshot pauli expectation value tests on random states."""
 
     SIMULATOR = QasmSimulator()
