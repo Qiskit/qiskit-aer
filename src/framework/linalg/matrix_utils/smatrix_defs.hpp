@@ -58,6 +58,18 @@ public:
   static cmatrix_t u2(double phi, double lam);
   static cmatrix_t u3(double theta, double phi, double lam);
 
+  // Single-qubit rotation gates
+  static cmatrix_t r(double phi, double lam);
+  static cmatrix_t rx(double theta);
+  static cmatrix_t ry(double theta);
+  static cmatrix_t rz(double theta);
+
+  // Two-qubit rotation gates
+  static cmatrix_t rxx(double theta);
+  static cmatrix_t ryy(double theta);
+  static cmatrix_t rzz(double theta);
+  static cmatrix_t rzx(double theta); // rotation around Tensor(X, Z)
+
   // Complex arguments are implemented by taking std::real
   // of the input
   static cmatrix_t u1(complex_t lam) { return u1(std::real(lam)); }
@@ -67,6 +79,16 @@ public:
   static cmatrix_t u3(complex_t theta, complex_t phi, complex_t lam) {
     return u3(std::real(theta), std::real(phi), std::real(lam));
   };
+  static cmatrix_t r(complex_t theta, complex_t phi) {
+    return r(std::real(theta), std::real(phi));
+  }
+  static cmatrix_t rx(complex_t theta) { return rx(std::real(theta)); }
+  static cmatrix_t ry(complex_t theta) { return ry(std::real(theta)); }
+  static cmatrix_t rz(complex_t theta) { return rz(std::real(theta)); }
+  static cmatrix_t rxx(complex_t theta) { return rxx(std::real(theta)); }
+  static cmatrix_t ryy(complex_t theta) { return ryy(std::real(theta)); }
+  static cmatrix_t rzz(complex_t theta) { return rzz(std::real(theta)); }
+  static cmatrix_t rzx(complex_t theta) { return rzx(std::real(theta)); }
 
   // Return superoperator matrix for reset instruction
   // on specified dim statespace.
@@ -147,6 +169,46 @@ cmatrix_t SMatrix::u2(double phi, double lambda) {
 cmatrix_t SMatrix::u3(double theta, double phi, double lambda) {
   return Utils::tensor_product(Matrix::u3(theta, -phi, -lambda),
                                Matrix::u3(theta, phi, lambda));
+}
+
+cmatrix_t SMatrix::r(double theta, double phi) {
+  return Utils::tensor_product(Matrix::r(-theta, -phi), Matrix::r(theta, phi));
+}
+
+cmatrix_t SMatrix::rx(double theta) {
+  return Utils::tensor_product(Matrix::rx(-theta), Matrix::rx(theta));
+}
+
+cmatrix_t SMatrix::ry(double theta) {
+  return Utils::tensor_product(Matrix::ry(theta), Matrix::ry(theta));
+}
+
+cmatrix_t SMatrix::rz(double theta) {
+  return Utils::tensor_product(Matrix::rz(-theta), Matrix::rz(theta));
+}
+
+cmatrix_t SMatrix::rxx(double theta) {
+  return Utils::tensor_product(Matrix::rxx(-theta), Matrix::rxx(theta));
+}
+
+cmatrix_t SMatrix::ryy(double theta) {
+  return Utils::tensor_product(Matrix::ryy(-theta), Matrix::ryy(theta));
+}
+
+cmatrix_t SMatrix::rzz(double theta) {
+  return Utils::tensor_product(Matrix::rzz(-theta), Matrix::rzz(theta));
+}
+
+cmatrix_t SMatrix::rzx(double theta) {
+  return Utils::tensor_product(Matrix::rzx(-theta), Matrix::rzx(theta));
+}
+
+cmatrix_t SMatrix::reset(size_t dim) {
+  cmatrix_t mat(dim * dim, dim * dim);
+  for (size_t j = 0; j < dim; j++) {
+    mat(0, j * (dim + 1)) = 1.;
+  }
+  return mat;
 }
 
 //------------------------------------------------------------------------------

@@ -57,6 +57,18 @@ public:
   static cmatrix_t u2(double phi, double lam);
   static cmatrix_t u3(double theta, double phi, double lam);
 
+  // Single-qubit rotation gates
+  static cmatrix_t r(double phi, double lam);
+  static cmatrix_t rx(double theta);
+  static cmatrix_t ry(double theta);
+  static cmatrix_t rz(double theta);
+
+  // Two-qubit rotation gates
+  static cmatrix_t rxx(double theta);
+  static cmatrix_t ryy(double theta);
+  static cmatrix_t rzz(double theta);
+  static cmatrix_t rzx(double theta); // rotation around Tensor(X, Z)
+
   // Complex arguments are implemented by taking std::real
   // of the input
   static cmatrix_t u1(complex_t lam) { return u1(std::real(lam)); }
@@ -66,6 +78,16 @@ public:
   static cmatrix_t u3(complex_t theta, complex_t phi, complex_t lam) {
     return u3(std::real(theta), std::real(phi), std::real(lam));
   };
+  static cmatrix_t r(complex_t theta, complex_t phi) {
+    return r(std::real(theta), std::real(phi));
+  }
+  static cmatrix_t rx(complex_t theta) { return rx(std::real(theta)); }
+  static cmatrix_t ry(complex_t theta) { return ry(std::real(theta)); }
+  static cmatrix_t rz(complex_t theta) { return rz(std::real(theta)); }
+  static cmatrix_t rxx(complex_t theta) { return rxx(std::real(theta)); }
+  static cmatrix_t ryy(complex_t theta) { return ryy(std::real(theta)); }
+  static cmatrix_t rzz(complex_t theta) { return rzz(std::real(theta)); }
+  static cmatrix_t rzx(complex_t theta) { return rzx(std::real(theta)); }
 
   // Return the matrix for a named matrix string
   // Allowed names correspond to all the const static single-qubit
@@ -177,6 +199,103 @@ cmatrix_t Matrix::u3(double theta, double phi, double lambda) {
   mat(0, 1) = -std::exp(i * lambda) * std::sin(0.5 * theta);
   mat(1, 0) = std::exp(i * phi) * std::sin(0.5 * theta);
   mat(1, 1) = std::exp(i * (phi + lambda)) * std::cos(0.5 * theta);
+  return mat;
+}
+
+cmatrix_t Matrix::r(double theta, double phi) {
+  cmatrix_t mat(2, 2);
+  const complex_t i(0., 1.);
+  mat(0, 0) = std::cos(0.5 * theta);
+  mat(0, 1) = -i * std::exp(-i * phi) * std::sin(0.5 * theta);
+  mat(1, 0) = -i * std::exp(i * phi) * std::sin(0.5 * theta);
+  mat(1, 1) = std::cos(0.5 * theta);
+  return mat;
+}
+
+cmatrix_t Matrix::rx(double theta) {
+  cmatrix_t mat(2, 2);
+  const complex_t i(0., 1.);
+  mat(0, 0) = std::cos(0.5 * theta);
+  mat(0, 1) = -i * std::sin(0.5 * theta);
+  mat(1, 0) = mat(0, 1);
+  mat(1, 1) = mat(0, 0);
+  return mat;
+}
+
+cmatrix_t Matrix::ry(double theta) {
+  cmatrix_t mat(2, 2);
+  mat(0, 0) = std::cos(0.5 * theta);
+  mat(0, 1) = -1.0 * std::sin(0.5 * theta);
+  mat(1, 0) = -mat(0, 1);
+  mat(1, 1) = mat(0, 0);
+  return mat;
+}
+
+cmatrix_t Matrix::rz(double theta) {
+  cmatrix_t mat(2, 2);
+  const complex_t i(0., 1.);
+  mat(0, 0) = std::exp(-i * 0.5 * theta);
+  mat(1, 1) = std::exp(i * 0.5 * theta);
+  return mat;
+}
+
+cmatrix_t Matrix::rxx(double theta) {
+  cmatrix_t mat(4, 4);
+  const complex_t i(0., 1.);
+  const double cost = std::cos(0.5 * theta);
+  const double sint = std::sin(0.5 * theta);
+  mat(0, 0) = cost;
+  mat(0, 3) = -i * sint;
+  mat(1, 1) = cost;
+  mat(1, 2) = -i * sint;
+  mat(2, 1) = -i * sint;
+  mat(2, 2) = cost;
+  mat(3, 0) = -i * sint;
+  mat(3, 3) = cost;
+  return mat;
+}
+
+cmatrix_t Matrix::ryy(double theta) {
+  cmatrix_t mat(4, 4);
+  const complex_t i(0., 1.);
+  const double cost = std::cos(0.5 * theta);
+  const double sint = std::sin(0.5 * theta);
+  mat(0, 0) = cost;
+  mat(0, 3) = i * sint;
+  mat(1, 1) = cost;
+  mat(1, 2) = -i * sint;
+  mat(2, 1) = -i * sint;
+  mat(2, 2) = cost;
+  mat(3, 0) = i * sint;
+  mat(3, 3) = cost;
+  return mat;
+}
+
+cmatrix_t Matrix::rzz(double theta) {
+  cmatrix_t mat(4, 4);
+  const complex_t i(0., 1.);
+  const complex_t exp_p = std::exp(i * 0.5 * theta);
+  const complex_t exp_m = std::exp(-i * 0.5 * theta);
+  mat(0, 0) = exp_m;
+  mat(1, 1) = exp_p;
+  mat(2, 2) = exp_p;
+  mat(3, 3) = exp_m;
+  return mat;
+}
+
+cmatrix_t Matrix::rzx(double theta) {
+  cmatrix_t mat(4, 4);
+  const complex_t i(0., 1.);
+  const double cost = std::cos(0.5 * theta);
+  const double sint = std::sin(0.5 * theta);
+  mat(0, 0) = cost;
+  mat(0, 2) = -i * sint;
+  mat(1, 1) = cost;
+  mat(1, 3) = i * sint;
+  mat(2, 0) = -i * sint;
+  mat(2, 2) = cost;
+  mat(3, 1) = i * sint;
+  mat(3, 3) = cost;
   return mat;
 }
 
