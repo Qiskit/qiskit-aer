@@ -1070,7 +1070,7 @@ void QasmController::measure_sampler(
 
   // Get measured qubits from circuit sort and delete duplicates
   std::vector<uint_t> meas_qubits;  // measured qubits
-  for (const auto& op : meas_ops) {
+  for (const auto &op : meas_ops) {
     for (size_t j = 0; j < op.qubits.size(); ++j)
       meas_qubits.push_back(op.qubits[j]);
   }
@@ -1089,7 +1089,7 @@ void QasmController::measure_sampler(
   // Maps of memory and register to qubit position
   std::unordered_map<uint_t, uint_t> memory_map;
   std::unordered_map<uint_t, uint_t> register_map;
-  for (const auto& op : meas_ops) {
+  for (const auto &op : meas_ops) {
     for (size_t j = 0; j < op.qubits.size(); ++j) {
       auto pos = qubit_map[op.qubits[j]];
       if (!op.memory.empty())
@@ -1109,12 +1109,12 @@ void QasmController::measure_sampler(
     creg.initialize(meas_circ.num_memory, meas_circ.num_registers);
 
     // process memory bit measurements
-    for (const auto& pair : memory_map) {
+    for (const auto &pair : memory_map) {
       creg.store_measure(reg_t({sample[pair.second]}), reg_t({pair.first}),
                          reg_t());
     }
     // process register bit measurements
-    for (const auto& pair : register_map) {
+    for (const auto &pair : register_map) {
       creg.store_measure(reg_t({sample[pair.second]}), reg_t(),
                          reg_t({pair.first}));
     }

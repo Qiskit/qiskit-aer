@@ -464,7 +464,7 @@ double Fusion::estimate_cost(const std::vector<op_t>& ops,
 }
 
 void Fusion::add_fusion_qubits(reg_t& fusion_qubits, const op_t& op) const {
-  for (const auto qubit: op.qubits){
+  for (const auto &qubit: op.qubits){
     if (find(fusion_qubits.begin(), fusion_qubits.end(), qubit) == fusion_qubits.end()){
       fusion_qubits.push_back(qubit);
     }

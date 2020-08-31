@@ -216,7 +216,7 @@ void State<unitary_matrix_t>::apply_ops(
     const std::vector<Operations::Op> &ops, ExperimentData &data,
     RngEngine &rng) {
   // Simple loop over vector of input operations
-  for (const auto op : ops) {
+  for (const auto &op : ops) {
     switch (op.type) {
       case Operations::OpType::barrier:
         break;

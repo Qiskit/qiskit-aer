@@ -656,7 +656,7 @@ Op json_to_op_unitary(const json_t &js) {
   if (op.mats.size() != 1) {
     throw std::invalid_argument("\"unitary\" params must be a single matrix.");
   }
-  for (const auto mat : op.mats) {
+  for (const auto &mat : op.mats) {
     if (!Utils::is_unitary(mat, 1e-7)) {
       throw std::invalid_argument("\"unitary\" matrix is not unitary.");
     }
@@ -684,7 +684,7 @@ Op json_to_op_diagonal(const json_t &js) {
   if (op.params.size() != 1ULL << op.qubits.size()) {
     throw std::invalid_argument("\"diagonal\" matrix is wrong size.");
   }
-  for (const auto val : op.params) {
+  for (const auto &val : op.params) {
     if (!Linalg::almost_equal(std::abs(val), 1.0, 1e-7)) {
       throw std::invalid_argument("\"diagonal\" matrix is not unitary.");
     }

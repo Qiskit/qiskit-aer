@@ -91,7 +91,7 @@ ReadoutError::NoiseOps ReadoutError::sample_noise(const reg_t &memory,
 void ReadoutError::set_probabilities(const std::vector<rvector_t> &probs) {
   assignment_probabilities_ = probs;
   set_num_qubits(assignment_probabilities_.size());
-  for (const auto  &ps : assignment_probabilities_) {
+  for (const auto &ps : assignment_probabilities_) {
     double total = 0.0;
     for (const auto &p : ps) {
       if (p < 0 || p > 1) {

@@ -201,7 +201,7 @@ reg_t DensityMatrix<data_t>::superop_qubits(const reg_t &qubits) const {
   reg_t superop_qubits = qubits;
   // Number of qubits
   const auto nq = num_qubits();
-  for (const auto q: qubits) {
+  for (const auto &q: qubits) {
     superop_qubits.push_back(q + nq);
   }
   return superop_qubits;
@@ -240,7 +240,7 @@ void DensityMatrix<data_t>::apply_unitary_matrix(const reg_t &qubits,
     // Apply as two N-qubit matrix mults
     auto nq = num_qubits();
     reg_t conj_qubits;
-    for (const auto q: qubits) {
+    for (const auto &q: qubits) {
       conj_qubits.push_back(q + nq);
     }
     // Apply id \otimes U

@@ -163,7 +163,7 @@ TruncateQubits::generate_mapping(const reg_t& active_qubits,
                                  const Noise::NoiseModel& noise) const {
   // Convert to mapping
   mapping_t mapping;
-  for (const auto & qubit : active_qubits) {
+  for (const auto &qubit : active_qubits) {
     size_t new_qubit = std::distance(active_qubits.begin(),
                                      find(active_qubits.begin(),
                                      active_qubits.end(), qubit));

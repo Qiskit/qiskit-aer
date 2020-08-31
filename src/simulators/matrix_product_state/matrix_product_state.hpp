@@ -439,7 +439,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
                       RngEngine &rng) {
 
   // Simple loop over vector of input operations
-  for (const auto op: ops) {
+  for (const auto &op: ops) {
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
         case Operations::OpType::barrier:
