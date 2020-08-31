@@ -76,7 +76,7 @@ class QasmMeasureTests:
             self.assertEqual(res.metadata["measure_sampling"], True)
 
     def test_measure_nondeterministic_without_sampling(self):
-        """Test QasmSimulator measure with nin-deterministic counts without sampling"""
+        """Test QasmSimulator measure with non-deterministic counts without sampling"""
         shots = 4000
         circuits = ref_measure.measure_circuits_nondeterministic(
             allow_sampling=False)
