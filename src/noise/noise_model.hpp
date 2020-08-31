@@ -22,6 +22,7 @@
 #include "framework/types.hpp"
 #include "framework/rng.hpp"
 #include "framework/circuit.hpp"
+#include "framework/linalg/matrix_utils.hpp"
 #include "noise/quantum_error.hpp"
 #include "noise/readout_error.hpp"
 
@@ -726,7 +727,7 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u3(uint_t qubit,
                                                      complex_t lambda,
                                                      RngEngine &rng) const {
   // sample noise for single X90
-  const auto x90 = Operations::make_unitary({qubit}, Utils::Matrix::X90, "x90");
+  const auto x90 = Operations::make_unitary({qubit}, Linalg::Matrix::X90, "x90");
   switch (method_) {
     case Method::superop: {
       // The first element of the sample should be the superoperator to combine
@@ -737,17 +738,17 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u3(uint_t qubit,
       }
       cmatrix_t& current = sample[0].mats[0];
       // Combine with middle u1 gate with two noisy x90 superops
-      auto mat = Utils::Matrix::u1(theta + M_PI);
+      auto mat = Linalg::Matrix::u1(theta + M_PI);
       auto super = Utils::tensor_product(AER::Utils::conjugate(mat), mat);
       current = current * super * current;
 
       // Prepend with first u1 matrix with superop
-      mat = Utils::Matrix::u1(lambda);
+      mat = Linalg::Matrix::u1(lambda);
       super = Utils::tensor_product(AER::Utils::conjugate(mat),
                                           mat);
       current = current * super;
       // Append third u1 matrix with superop
-      mat = Utils::Matrix::u1(phi + M_PI);
+      mat = Linalg::Matrix::u1(phi + M_PI);
       super = Utils::tensor_product(AER::Utils::conjugate(mat), mat);
       current = super * current;
       return sample;
@@ -782,7 +783,7 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u2(uint_t qubit,
                                                      complex_t lambda,
                                                      RngEngine &rng) const {
   // sample noise for single X90
-  const auto x90 = Operations::make_unitary({qubit}, Utils::Matrix::X90, "x90");
+  const auto x90 = Operations::make_unitary({qubit}, Linalg::Matrix::X90, "x90");
   auto sample = sample_noise_helper(x90, rng); 
   switch (method_) {
     case Method::superop: {
@@ -792,12 +793,12 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u2(uint_t qubit,
       }
       cmatrix_t &current = sample[0].mats[0];
       // Combine first u1 matrix with superop
-      auto mat = Utils::Matrix::u1(lambda - 0.5 * M_PI);
+      auto mat = Linalg::Matrix::u1(lambda - 0.5 * M_PI);
       auto super = Utils::tensor_product(AER::Utils::conjugate(mat),
                                                mat);
       current = current * super;
       // Combine second u1 matrix with superop
-      mat = Utils::Matrix::u1(phi + 0.5 * M_PI);
+      mat = Linalg::Matrix::u1(phi + 0.5 * M_PI);
       super = Utils::tensor_product(AER::Utils::conjugate(mat), mat);
       current = super * current;
       return sample;
@@ -829,23 +830,23 @@ cmatrix_t NoiseModel::op2superop(const Operations::Op &op) const {
       return Utils::kraus_superop(op.mats);
     }
     case Operations::OpType::reset:
-      return Utils::SMatrix::reset(1ULL << op.qubits.size());
+      return Linalg::SMatrix::reset(1ULL << op.qubits.size());
     case  Operations::OpType::matrix:
       return Utils::unitary_superop(op.mats[0]);
     case Operations::OpType::gate: {
       // Check if a parameterized gate
       if (op.name == "u1") {
-        return Utils::SMatrix::u1(op.params[0]);
+        return Linalg::SMatrix::u1(op.params[0]);
       }
       if (op.name == "u2") {
-        return Utils::SMatrix::u2(op.params[0], op.params[1]);
+        return Linalg::SMatrix::u2(op.params[0], op.params[1]);
       }
       if (op.name == "u3") {
-        return Utils::SMatrix::u3(op.params[0], op.params[1], op.params[2]);
-      } 
-      if (Utils::SMatrix::allowed_name(op.name)) {
+        return Linalg::SMatrix::u3(op.params[0], op.params[1], op.params[2]);
+      }
+      if (Linalg::SMatrix::allowed_name(op.name)) {
         // Check if we can convert this gate to a standard superoperator matrix
-        return Utils::SMatrix::from_name(op.name);
+        return Linalg::SMatrix::from_name(op.name);
       }
     }
     default:
@@ -861,17 +862,17 @@ cmatrix_t NoiseModel::op2unitary(const Operations::Op &op) const {
   case Operations::OpType::gate:  {
     // Check if a parameterized gate
     if (op.name == "u1") {
-     return Utils::SMatrix::u1(op.params[0]);
+     return Linalg::SMatrix::u1(op.params[0]);
     }
     if (op.name == "u2") {
-      return Utils::SMatrix::u2(op.params[0], op.params[1]);
+      return Linalg::SMatrix::u2(op.params[0], op.params[1]);
     }
     if (op.name == "u3") {
-      return Utils::SMatrix::u3(op.params[0], op.params[1], op.params[2]);
+      return Linalg::SMatrix::u3(op.params[0], op.params[1], op.params[2]);
     }
-    if (Utils::SMatrix::allowed_name(op.name)) {
+    if (Linalg::SMatrix::allowed_name(op.name)) {
       // Check if we can convert this gate to a standard superoperator matrix
-      return Utils::SMatrix::from_name(op.name);
+      return Linalg::SMatrix::from_name(op.name);
     }
   }
   default:

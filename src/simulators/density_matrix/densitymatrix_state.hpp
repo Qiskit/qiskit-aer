@@ -734,7 +734,7 @@ void State<densmat_t>::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
 
 template <class densmat_t>
 void State<densmat_t>::apply_gate_u3(uint_t qubit, double theta, double phi, double lambda) {
-  BaseState::qreg_.apply_unitary_matrix(reg_t({qubit}), Utils::VMatrix::u3(theta, phi, lambda));
+  BaseState::qreg_.apply_unitary_matrix(reg_t({qubit}), Linalg::VMatrix::u3(theta, phi, lambda));
 }
 
 template <class densmat_t>
@@ -800,7 +800,7 @@ void State<densmat_t>::apply_reset(const reg_t &qubits) {
   // TODO: This can be more efficient by adding reset
   // to base class rather than doing a matrix multiplication
   // where all but 1 row is zeros.
-  const auto reset_op = Utils::SMatrix::reset(1ULL << qubits.size());
+  const auto reset_op = Linalg::SMatrix::reset(1ULL << qubits.size());
   BaseState::qreg_.apply_superop_matrix(qubits, Utils::vectorize_matrix(reset_op));
 }
 
