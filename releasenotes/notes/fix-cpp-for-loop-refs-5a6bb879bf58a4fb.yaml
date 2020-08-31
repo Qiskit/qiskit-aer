@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes bug in C++ code where certain for-loops were iterating over copies
+    rather than references of container elements.
