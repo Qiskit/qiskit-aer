@@ -230,16 +230,17 @@ public:
     return enable_gate_opt_;
   }
 
-  double norm(const uint_t qubit, const cvector_t &vmat) const {
-    cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
-    reg_t qubits = {qubit};
-    return expectation_value(qubits, mat);
-  }
+  //----------------------------------------------------------------
+  // Function name: norm
+  // Description: the normis defined as <psi|A^dagger.A|psi>.
+  // It is equivalent to returning the expectation value of A^\dagger A,
+  // Returns: double (the norm)
+  //----------------------------------------------------------------
+  double norm(const uint_t qubit, const cvector_t &vmat) const;
 
-  double norm(const reg_t &qubits, const cvector_t &vmat) const {
-    cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
-    return expectation_value(qubits, mat);
-  }
+  double norm(const reg_t &qubits, const cvector_t &vmat) const;
+
+  double norm(const reg_t &qubits, const cmatrix_t &mat) const; 
 
   reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
 					   const reg_t &qubits) const;

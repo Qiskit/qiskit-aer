@@ -46,7 +46,7 @@ const Operations::OpSet StateOpSet(
   Operations::OpType::reset, Operations::OpType::initialize,
   Operations::OpType::snapshot, Operations::OpType::barrier,
   Operations::OpType::bfunc, Operations::OpType::roerror,
-  Operations::OpType::matrix},
+  Operations::OpType::matrix, Operations::OpType::kraus},
   // Gates
   {"id", "x", "y", "z", "s", "sdg", "h", "t", "tdg", "u1", "u2", "u3",
     "U", "CX", "cx", "cz", "cu1", "swap", "ccx"},
@@ -682,19 +682,17 @@ void State::apply_gate(const Operations::Op &op) {
   double r = rng.rand(0., 1.);
   double accum = 0.;
   bool complete = false;
-
   // Loop through N-1 kraus operators
   for (size_t j=0; j < kmats.size() - 1; j++) {
-
+    // apply Kraus projection operator
     // Calculate probability
-    double p = qreg_.expectation_value(qubits, kmats[j]);
+    double p = qreg_.norm(qubits, kmats[j]);
     accum += p;
 
     // check if we need to apply this operator
     if (accum > r) {
       // rescale mat so projection is normalized
       cmatrix_t mat = ( 1 / std::sqrt(p)) * kmats[j];
-      // apply Kraus projection operator
       apply_matrix(qubits, mat);
       complete = true;
       break;
@@ -703,6 +701,8 @@ void State::apply_gate(const Operations::Op &op) {
 
   // check if we haven't applied a kraus operator yet
   if (!complete) {
+      double p = qreg_.norm(qubits, kmats.back());
+      
     // Compute probability from accumulated
     complex_t renorm = 1 / std::sqrt(1. - accum);
     apply_matrix(qubits, renorm * kmats.back());
