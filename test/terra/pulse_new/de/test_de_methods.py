@@ -1,14 +1,28 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """tests for DE_Methods.py"""
 
 import unittest
 import numpy as np
 from scipy.linalg import expm
-from qiskit.providers.aer.pulse.de.DE_Options import DE_Options
-from qiskit.providers.aer.pulse.de.DE_Methods import (ODE_Method,
+from qiskit.providers.aer.pulse_new.de.DE_Options import DE_Options
+from qiskit.providers.aer.pulse_new.de.DE_Methods import (ODE_Method,
+                                                      BMDE_Method,
                                                       RK4,
                                                       ScipyODE,
                                                       QiskitZVODE,
+                                                      Expm,
                                                       method_from_string)
+
 
 class TestDE_Methods(unittest.TestCase):
 
@@ -28,7 +42,7 @@ class TestDE_Methods(unittest.TestCase):
         def rhs(t, y):
             return generator(t) @ y
 
-        self.rhs = {'rhs': rhs}
+        self.rhs = {'rhs': rhs, 'generator': generator}
 
     def test_method_from_string(self):
         """Test method_from_string"""
@@ -38,6 +52,9 @@ class TestDE_Methods(unittest.TestCase):
 
         method = method_from_string('zvode-adams')
         self.assertTrue(method == QiskitZVODE)
+
+        method = method_from_string('Expm')
+        self.assertTrue(method == Expm)
 
     def test_ScipyODE_options_and_defaults(self):
         """Test option handling for ScipyODE solver."""
@@ -135,6 +152,40 @@ class TestDE_Methods(unittest.TestCase):
         solver.integrate(1.)
         expected = 1./3
         self.assertAlmostEqual(solver.y, expected, tol=10**-8)
+
+    def test_Expm(self):
+        """Run tests on RK4 fixed-step solver."""
+        ode_method = method_from_string('Expm')
+        options = DE_Options(max_dt=10**-3)
+
+        # run on matrix problem
+        solver = ode_method(t0=self.t0, y0=self.y0, rhs=self.rhs, options=options)
+        solver.integrate(1.)
+        expected = expm(-1j * np.pi * self.X)
+
+        # set the comparison tolerance to be somewhat lenient
+        self.assertAlmostEqual(solver.y, expected, tol=10**-8)
+
+    def test_rhs_y_setting(self):
+        """Test behaviour of setting rhs and state y after instantiation."""
+
+        solver = ScipyODE(options=DE_Options(atol=1e-8, rtol=1e-8))
+
+        rhs = {'rhs': lambda t,y: t * y}
+
+        solver.set_rhs(rhs)
+        solver.t = 3.
+        solver.y = np.array([[1.,2.],[3.,4.]])
+        solver.integrate(4.)
+        state = solver.y
+
+        # set state to one of a different shape (but still valid for this solver/rhs)
+        solver.t = 3.
+        solver.y = np.array([1.,2.])
+        solver.integrate(4.)
+        state2 = solver.y
+
+        self.assertTrue(abs(state[0] - state2).sum() < 1e-6)
 
 
     def assertAlmostEqual(self, A, B, tol=10**-15):

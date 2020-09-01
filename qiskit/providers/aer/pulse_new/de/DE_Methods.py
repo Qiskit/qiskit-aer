@@ -26,8 +26,8 @@ import numpy as np
 from scipy.integrate import ode, solve_ivp
 from scipy.integrate._ode import zvode
 from scipy.linalg import expm
-from DE_Options import DE_Options
-from type_utils import StateTypeConverter
+from .DE_Options import DE_Options
+from .type_utils import StateTypeConverter
 
 
 class ODE_Method(ABC):
@@ -203,7 +203,7 @@ class BMDE_Method(ODE_Method):
 
         if callable(rhs):
             rhs = {'generator': rhs}
-        
+
         if 'generator' not in rhs:
             raise Exception("""BMDE_Method requires at minimum a specification of a BMDE generator
                                function.""")

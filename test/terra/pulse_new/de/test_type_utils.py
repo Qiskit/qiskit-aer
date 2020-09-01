@@ -1,8 +1,20 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """tests for type_utils.py"""
 
 import unittest
 import numpy as np
-from qiskit.providers.aer.pulse.de.type_utils import (convert_state,
+
+from qiskit.providers.aer.pulse_new.de.type_utils import (convert_state,
                                                       type_spec_from_instance,
                                                       StateTypeConverter)
 
@@ -100,11 +112,16 @@ class TestTypeUtils(unittest.TestCase):
         outer_spec = {'type': 'array', 'shape': (2,2)}
         converter = StateTypeConverter(inner_spec, outer_spec)
 
+        X = np.array([[1., 0.], [0., 1.]])
+
         # do matrix multiplication (a truly '2d' operation)
         def rhs(t, y):
             return t * (y @ y)
 
-        rhs_funcs = {'rhs': rhs}
+        def generator(t):
+            return X
+
+        rhs_funcs = {'rhs': rhs, 'generator': generator}
         new_rhs_funcs = converter.transform_rhs_funcs(rhs_funcs)
 
         test_t = np.pi
@@ -113,6 +130,12 @@ class TestTypeUtils(unittest.TestCase):
 
         expected_output = rhs(test_t, y_2d).flatten()
         output = new_rhs_funcs['rhs'](test_t, y_1d)
+
+        self.assertAlmostEqual(output, expected_output)
+
+        # verify generator vectorization
+        expected_output = np.kron(X, np.eye(2))
+        output = new_rhs_funcs['generator'](test_t)
 
         self.assertAlmostEqual(output, expected_output)
 
