@@ -28,7 +28,7 @@ sudo: false
 stage_generic: &stage_generic
   install:
     - pip install -U pip
-    - pip install cython
+    - pip install cython packaging
     # Install terra from master on aer master else use the most recent release
     - |
       if [[ $TRAVIS_BRANCH == "master" ]] ; then
