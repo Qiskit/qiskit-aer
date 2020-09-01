@@ -27,8 +27,8 @@ sudo: false
 #   * stage_osx
 stage_generic: &stage_generic
   install:
-    - pip install -U 'pip<20.0.0'
-    - pip install cython
+    - pip install -U pip
+    - pip install -U cython packaging
     # Install terra from master on aer master else use the most recent release
     - |
       if [[ $TRAVIS_BRANCH == "master" ]] ; then
@@ -149,7 +149,7 @@ jobs:
         - docker
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y openblas-devel"
-        - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686 pp*"
+        - CIBW_SKIP="cp27-* cp34-* cp35-* *-manylinux_i686 pp*"
         - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
         - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
@@ -223,13 +223,6 @@ jobs:
       <<: *stage_linux
       python: 3.6
 
-    # GNU/Linux, Python 3.5
-    - stage: test
-      if: type = cron
-      name: Python 3.5 Tests Linux
-      <<: *stage_linux
-      python: 3.5
-
     # MacOS, Python 3.8 (via pyenv)
     - stage: test
       if: type = cron
@@ -261,16 +254,6 @@ jobs:
         - PYTHON_VERSION=3.6.5
         - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
 
-    # MacOS, Python 3.5 (via pyenv)
-    - stage: test
-      if: type = cron
-      name: Python 3.5 Tests MacOS
-      <<: *stage_osx
-      python: 3.5
-      env:
-        - MPLBACKEND=ps
-        - PYTHON_VERSION=3.5.6
-        - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
     # "deploy" stage
     ##########################################################################
     #
@@ -284,7 +267,7 @@ jobs:
       env:
         - CIBW_BEFORE_ALL="yum install -y openblas-devel"
         - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11"
-        - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686 pp*"
+        - CIBW_SKIP="cp27-* cp34-* cp35-* *-manylinux_i686 pp*"
         - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
         - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
         - TWINE_USERNAME=qiskit
@@ -315,7 +298,7 @@ jobs:
       if: tag IS present
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11"
-        - CIBW_SKIP="cp27-* cp34-* pp*"
+        - CIBW_SKIP="cp27-* cp34-* cp35-* pp*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
