@@ -33,7 +33,7 @@ stages:
         - bash: |
             set -x
             set -e
-            for version in 3.5 3.6 3.7 3.8 ; do
+            for version in 3.6 3.7 3.8 ; do
                 conda create --yes --quiet --name qiskit-aer-$version python=$version
             done
           displayName: Create Anaconda environments
@@ -41,7 +41,7 @@ stages:
             set -x
             set -e
             mkdir wheelhouse
-            for version in 3.5 3.6 3.7 3.8 ; do
+            for version in 3.6 3.7 3.8 ; do
                 source activate qiskit-aer-$version
                 conda update --yes -n base conda
                 conda config --add channels conda-forge
@@ -76,8 +76,6 @@ stages:
         strategy:
           maxParallel: 2
           matrix:
-            Python35:
-              python.version: '3.5'
             Python36:
               python.version: '3.6'
             Python37:
@@ -109,12 +107,6 @@ stages:
               conda config --add channels conda-forge
               conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake virtualenv pip setuptools pybind11 cython scipy
             displayName: Create Anaconda environments
-          - bash: |
-              set -e
-              source activate qiskit-aer
-              pip install -U -c constraints.txt numpy scipy
-            displayName: "Install 3.5 constrained dependencies"
-            condition: eq(variables['python.version'], '3.5')
           - bash: |
               set -x
               set -e
@@ -259,8 +251,6 @@ stages:
         strategy:
           maxParallel: 3
           matrix:
-            Python35:
-              python.version: '3.5'
             Python36:
               python.version: '3.6'
             Python37:
@@ -313,18 +303,6 @@ stages:
               fi
             displayName: "Install dependencies py3.8"
             condition: eq(variables['python.version'], '3.8')
-          - bash: |
-              set -e
-              source activate qiskit-aer-$(Build.BuildNumber)
-              pip install -U pip setuptools wheel virtualenv
-              pip install -c constraints.txt -r requirements-dev.txt
-              if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH == *"master"* || $BUILD_SOURCEBRANCH == *"master"* ]] ; then
-                  pip install git+https://github.com/Qiskit/qiskit-terra.git
-              else
-                  pip install qiskit-terra
-              fi
-            displayName: "Install dependencies"
-            condition: eq(variables['python.version'], '3.5')
           - bash: |
               set -e
               source activate qiskit-aer-$(Build.BuildNumber)
