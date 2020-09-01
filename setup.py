@@ -33,10 +33,8 @@ import setuptools
 # also build time/setup requirements and will be added to both lists
 # of requirements
 common_requirements = [
-    'numpy>=1.16.3;python_version>"3.5"',
-    'numpy>=1.16.3,<1.19.0;python_version<"3.6"',
-    'scipy>=1.0;python_version>"3.5"',
-    'scipy>=1.0,<1.5.0;python_version<"3.6"',
+    'numpy>=1.16.3',
+    'scipy>=1.0',
     'cython>=0.27.1',
     'pybind11>=2.4'  # This isn't really an install requirement,
                      # Pybind11 is required to be pre-installed for
@@ -92,12 +90,12 @@ setup(
         "Operating System :: POSIX :: Linux",
         "Programming Language :: C++",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Topic :: Scientific/Engineering",
     ],
+    python_requires=">=3.6",
     install_requires=requirements,
     setup_requires=setup_requirements,
     include_package_data=True,
