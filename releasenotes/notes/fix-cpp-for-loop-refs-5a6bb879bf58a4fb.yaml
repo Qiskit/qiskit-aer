@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Fixes bug in C++ code where certain for-loops were iterating over copies
+    Fixes some for-loops in C++ code that were iterating over copies
     rather than references of container elements.
