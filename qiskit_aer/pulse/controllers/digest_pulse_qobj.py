@@ -20,7 +20,7 @@ from collections import OrderedDict
 import numpy as np
 from ...aererror import AerError
 # pylint: disable=no-name-in-module
-from .pulse_utils import oplist_to_array
+from qiskit.providers.aer.pulse.controllers.pulse_utils import oplist_to_array
 
 
 class DigestedPulseQobj:

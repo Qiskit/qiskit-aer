@@ -21,10 +21,10 @@ from qiskit.circuit import Instruction
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.qobj import QasmQobjInstruction
 from qiskit.quantum_info.operators import Pauli, Operator
-from .snapshot import Snapshot
+from . import snapshot
 
 
-class SnapshotExpectationValue(Snapshot):
+class SnapshotExpectationValue(snapshot.Snapshot):
     """Snapshot instruction for supported methods of Qasm simulator."""
 
     def __init__(self, label, op, single_shot=False, variance=False):

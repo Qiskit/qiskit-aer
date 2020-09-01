@@ -15,10 +15,10 @@ Simulator command to snapshot internal simulator representation.
 """
 
 from qiskit import QuantumCircuit
-from .snapshot import Snapshot
+from . import snapshot
 
 
-class SnapshotDensityMatrix(Snapshot):
+class SnapshotDensityMatrix(snapshot.Snapshot):
     """Snapshot instruction for density matrix method of Qasm simulator."""
 
     def __init__(self, label, num_qubits):

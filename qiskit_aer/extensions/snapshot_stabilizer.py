@@ -15,10 +15,10 @@ Simulator command to snapshot internal simulator representation.
 """
 
 from qiskit import QuantumCircuit
-from .snapshot import Snapshot
+from . import snapshot
 
 
-class SnapshotStabilizer(Snapshot):
+class SnapshotStabilizer(snapshot.Snapshot):
     """Snapshot instruction for stabilizer method of Qasm simulator."""
 
     def __init__(self, label, num_qubits=0):

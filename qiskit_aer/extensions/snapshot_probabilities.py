@@ -16,10 +16,10 @@ Simulator command to snapshot internal simulator representation.
 
 from warnings import warn
 from qiskit import QuantumCircuit
-from .snapshot import Snapshot
+from . import snapshot
 
 
-class SnapshotProbabilities(Snapshot):
+class SnapshotProbabilities(snapshot.Snapshot):
     """Snapshot instruction for all methods of Qasm simulator."""
 
     def __init__(self, label, num_qubits, variance=False):

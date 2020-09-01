@@ -30,16 +30,15 @@ import fixtures
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.providers.aer import __path__ as main_path
 from qiskit.test import QiskitTestCase
 
 
 class Path(Enum):
     """Helper with paths commonly used during the tests."""
-    MAIN = main_path[0]
     TEST = os.path.dirname(__file__)
-    # Examples path:    examples/
-    EXAMPLES = os.path.join(MAIN, '../examples')
+    # Examples path:    examples
+    EXAMPLES = os.path.join(os.path.dirname(os.path.dirname(
+                            os.path.abspath(__file__))), 'examples')
 
 
 class QiskitAerTestCase(QiskitTestCase):

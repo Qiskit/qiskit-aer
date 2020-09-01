@@ -35,7 +35,7 @@ PYBIND11_MODULE(pulse_utils, m) {
     m.def("oplist_to_array", &oplist_to_array, "Insert list of complex numbers into numpy complex array");
     m.def("spmv_csr", &spmv_csr, "Sparse matrix, dense vector multiplication.");
 
-    py::class_<RhsFunctor>(m, "OdeRhsFunctor")
+    py::class_<RhsFunctor>(m, "OdeRhsFunctor", py::module_local())
         .def("__call__", &RhsFunctor::operator());
 
     m.def("get_ode_rhs_functor", &get_ode_rhs_functor, "Get ode_rhs functor to allow caching of parameters");
