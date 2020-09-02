@@ -682,11 +682,18 @@ void State::apply_gate(const Operations::Op &op) {
   double r = rng.rand(0., 1.);
   double accum = 0.;
   bool complete = false;
+
+  // it is more efficient to compute the density matrix once rather than computing
+  // the expectation value in every iteration of the loop
+  cmatrix_t rho = qreg_.density_matrix(qubits);
+  cmatrix_t sq_kmat;
+  double p = 0;
+
   // Loop through N-1 kraus operators
   for (size_t j=0; j < kmats.size() - 1; j++) {
-    // apply Kraus projection operator
+    sq_kmat = AER::Utils::dagger(kmats[j]) * kmats[j];
     // Calculate probability
-    double p = qreg_.norm(qubits, kmats[j]);
+    p = real(AER::Utils::trace(rho * sq_kmat));
     accum += p;
 
     // check if we need to apply this operator
@@ -701,8 +708,6 @@ void State::apply_gate(const Operations::Op &op) {
 
   // check if we haven't applied a kraus operator yet
   if (!complete) {
-      double p = qreg_.norm(qubits, kmats.back());
-      
     // Compute probability from accumulated
     complex_t renorm = 1 / std::sqrt(1. - accum);
     apply_matrix(qubits, renorm * kmats.back());
