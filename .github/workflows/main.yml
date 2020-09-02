@@ -27,8 +27,11 @@ jobs:
           pylint -j 2 -rn qiskit/providers/aer
   docs:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: Set up Python 3.7
         uses: actions/setup-python@v2
         with:
