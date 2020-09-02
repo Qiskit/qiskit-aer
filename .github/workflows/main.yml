@@ -82,7 +82,7 @@ jobs:
     runs-on: ${{ matrix.platform.os }}
     strategy:
       matrix:
-        python-version: [3.5, 3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8]
         platform: [
           { os: "macOS-latest",   python-architecture: "x64"},
           { os: "ubuntu-latest", python-architecture: "x64" },
@@ -142,7 +142,7 @@ jobs:
         env:
           CIBW_BEFORE_ALL_LINUX: "yum install -y openblas-devel"
           CIBW_BEFORE_BUILD: "pip install -U Cython virtualenv pybind11"
-          CIBW_SKIP: "cp27-* cp34-* *-manylinux_i686 pp*"
+          CIBW_SKIP: "cp27-* cp34-* cp35-* *-manylinux_i686 pp*"
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2010"
           CIBW_MANYLINUX_I686_IMAGE: "manylinux2010"
           CIBW_TEST_COMMAND: "python3 {project}/tools/verify_wheels.py"
@@ -157,7 +157,7 @@ jobs:
 #    strategy:
 #      matrix:
 #        os: ["windows-latest"]
-#        python-version: [3.5, 3.6, 3.7, 3.8]
+#        python-version: [3.6, 3.7, 3.8]
 #    steps:
 #      - uses: actions/checkout@v2
 #      - name: Set up Python Python 3.8
@@ -188,7 +188,7 @@ jobs:
     needs: [standalone, wheel, sdist, wheel-windows]
     strategy:
       matrix:
-        python-version: [3.5, 3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8]
         os: ["macOS-latest", "ubuntu-latest", "windows-latest"]
     steps:
       - uses: actions/checkout@v2
