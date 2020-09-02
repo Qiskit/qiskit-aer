@@ -18,8 +18,6 @@ from signals import Signal
 class BaseTransferFunction(ABC):
     """
     Base class for transforming signals.
-
-    TODO: How does JAX fit into this?
     """
 
     @abstractmethod

@@ -15,8 +15,7 @@
 from typing import List
 import numpy as np
 
-from signals import Signal, Constant
-from transfer_functions import BaseTransferFunction
+from .signals import Signal, Constant
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators import Operator
 

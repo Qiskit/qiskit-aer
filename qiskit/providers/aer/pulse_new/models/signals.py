@@ -177,7 +177,7 @@ def signal_add(sig1, sig2):
     if isinstance(sig1, Constant) and isinstance(sig2, Constant):
         return Constant(sig1._value + sig2._value)
     else:
-        # if carrier freqs are the same we can combine the signals more cleverly
+        # if carrier freqs are the same we can combine the signal envelopes
         if sig1.carrier_freq == sig2.carrier_freq:
             # special cases
             if isinstance(sig1, ConstantSignal) and isinstance(sig2, ConstantSignal):
