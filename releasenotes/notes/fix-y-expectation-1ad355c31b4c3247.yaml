@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix `State::snapshot_pauli_expval` to return correct Y
+    expectation value in stabilizer simulator. Refer to
+    `#895 <https://github.com/Qiskit/qiskit-aer/issues/895>`
+    for more details.
