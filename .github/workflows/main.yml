@@ -223,3 +223,13 @@ jobs:
           pip check
           stestr run --slowest
         shell: bash
+      - name: Run Tests macOS
+        env:
+          QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+          QISKIT_IN_PARALLEL: TRUE
+        run: |
+          set -e
+          pip check
+          stestr run --slowest
+        shell: bash
+        if: runner.os == 'macOS'
