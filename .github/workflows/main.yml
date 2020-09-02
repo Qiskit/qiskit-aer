@@ -185,7 +185,7 @@ jobs:
   tests:
     name: tests-python${{ matrix.python-version }}-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    needs: [standalone, wheel, sdist, wheel-windows]
+    needs: [standalone, wheel, sdist, lint, docs]
     strategy:
       matrix:
         python-version: [3.6, 3.7, 3.8]
