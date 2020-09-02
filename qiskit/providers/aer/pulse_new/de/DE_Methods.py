@@ -433,6 +433,8 @@ class RK4(ODE_Method):
     subclass.
     """
 
+    method_spec = {'inner_state_spec': {'type': 'array'}}
+
     def integrate(self, tf, **kwargs):
         """Integrate up to a time tf.
         """
@@ -466,6 +468,8 @@ class Expm(BMDE_Method):
     """
     Simple single-step matrix exponential solver
     """
+
+    method_spec = {'inner_state_spec': {'type': 'array'}}
 
     def integrate(self, tf):
         """Integrate up to a time tf.
