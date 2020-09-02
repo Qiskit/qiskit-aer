@@ -222,3 +222,4 @@ jobs:
           set -e
           pip check
           stestr run --slowest
+        shell: bash
