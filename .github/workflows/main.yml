@@ -5,6 +5,47 @@ on:
   pull_request:
     branches: [master, 'stable/*']
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install deps
+        run: |
+          set -e
+          pip install -U pip
+          pip install -U -c constraints.txt -r requirements-dev.txt
+        shell: bash
+      - name: Run Lint
+        run: |
+          set -e
+          pycodestyle --ignore=E402,W504 --max-line-length=100 qiskit/providers/aer
+          pylint -j 2 -rn qiskit/providers/aer
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install Deps
+        run: |
+          set -e
+          pip install -U pip virtualenv
+          pip install -U tox
+          sudo apt-get update
+          sudo apt-get install -y build-essential libopenblas-dev
+        shell: bash
+      - name: Run Docs Build
+        run: tox -edocs
+      - uses: actions/upload-artifact@v2
+        with:
+          name: html_docs
+          path: docs/_build/html
   standalone:
     name: compile-standalone-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -45,7 +86,6 @@ jobs:
         platform: [
           { os: "macOS-latest",   python-architecture: "x64"},
           { os: "ubuntu-latest", python-architecture: "x64" },
-          { os: "windows-latest", python-architecture: "x64" }
         ]
     steps:
       - uses: actions/checkout@v2
@@ -74,16 +114,16 @@ jobs:
           aer-test/bin/pip check
         shell: bash
         if: runner.os != 'Windows'
-      - name: Install from sdist and test Windows
-        run: |
-          set -e
-          mkdir out; cp -r dist out/.; cd out; virtualenv aer-test
-          aer-test/Scripts/pip install --find-links=dist qiskit-aer
-          aer-test/Scripts/pip install -c ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
-          aer-test/Scripts/python ../tools/verify_wheels.py
-          aer-test/Scripts/pip check
-        shell: bash
-        if: runner.os == 'Windows'
+#      - name: Install from sdist and test Windows
+#        run: |
+#          set -e
+#          mkdir out; cp -r dist out/.; cd out; virtualenv aer-test
+#          aer-test/Scripts/pip install --find-links=dist qiskit-aer
+#          aer-test/Scripts/pip install -c ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
+#          aer-test/Scripts/python ../tools/verify_wheels.py
+#          aer-test/Scripts/pip check
+#        shell: bash
+#        if: runner.os == 'Windows'
   wheel:
     name: compile-wheel-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -111,37 +151,37 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
-  wheel-windows:
-    name: compile-wheel-${{ matrix.os }}-${{ matrix.python-version }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: ["windows-latest"]
-        python-version: [3.5, 3.6, 3.7, 3.8]
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.0.1
-        if: runner.os == 'Windows'
-      - name: Install deps
-        run: python -m pip install -U virtualenv setuptools wheel numpy
-      - name: Build Wheels
-        run: python setup.py bdist_wheel -- -G 'Visual Studio 16 2019'
-      - name: Install and test wheel
-        run: |
-          set -e
-          virtualenv test-wheel
-          test-wheel/Scripts/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
-          test-wheel/Scripts/pip install -c constraints.txt dist/*whl
-          test-wheel/Scripts/python tools/verify_wheels.py
-        shell: bash
-      - uses: actions/upload-artifact@v2
-        with:
-          path: ./dist/*.whl
+#  wheel-windows:
+#    name: compile-wheel-${{ matrix.os }}-${{ matrix.python-version }}
+#    runs-on: ${{ matrix.os }}
+#    strategy:
+#      matrix:
+#        os: ["windows-latest"]
+#        python-version: [3.5, 3.6, 3.7, 3.8]
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Set up Python Python 3.8
+#        uses: actions/setup-python@v2
+#        with:
+#          python-version: 3.8
+#      - name: Add msbuild to PATH
+#        uses: microsoft/setup-msbuild@v1.0.1
+#        if: runner.os == 'Windows'
+#      - name: Install deps
+#        run: python -m pip install -U virtualenv setuptools wheel numpy
+#      - name: Build Wheels
+#        run: python setup.py bdist_wheel -- -G 'Visual Studio 16 2019'
+#      - name: Install and test wheel
+#        run: |
+#          set -e
+#          virtualenv test-wheel
+#          test-wheel/Scripts/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
+#          test-wheel/Scripts/pip install -c constraints.txt dist/*whl
+#          test-wheel/Scripts/python tools/verify_wheels.py
+#        shell: bash
+#      - uses: actions/upload-artifact@v2
+#        with:
+#          path: ./dist/*.whl
   tests:
     name: tests-python${{ matrix.python-version }}-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
