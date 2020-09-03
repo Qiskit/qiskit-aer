@@ -18,6 +18,7 @@
 #include <chrono>
 
 #include "transpile/circuitopt.hpp"
+#include "framework/avx2_detect.hpp"
 #include "simulators/unitary/unitary_state.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
 
@@ -208,10 +209,9 @@ void Fusion::optimize_circuit(Circuit& circ,
     applied = true;
 
   if (applied) {
-
     size_t idx = 0;
     for (size_t i = 0; i < circ.ops.size(); ++i) {
-      if (circ.ops[i].name != "nop") {
+      if (circ.ops[i].type != optype_t::nop) {
         if (i != idx)
           circ.ops[idx] = circ.ops[i];
         ++idx;
@@ -221,10 +221,13 @@ void Fusion::optimize_circuit(Circuit& circ,
     if (idx != circ.ops.size())
       circ.ops.erase(circ.ops.begin() + idx, circ.ops.end());
     metadata["applied"] = true;
+
+    // Update circuit params for fused circuit
+    circ.set_params();
   }
 
   // Final metadata
-  if (verbose) {
+  if (verbose && applied) {
     metadata["input_ops"] = circ.ops;
     metadata["output_ops"] = circ.ops;
   }
@@ -293,17 +296,16 @@ op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
     QubitUnitary::State<> unitary_simulator;
     unitary_simulator.initialize_qreg(qubits.size());
     unitary_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
-    auto unitary = unitary_simulator.qreg().matrix();
-    return Operations::make_unitary(qubits, std::move(unitary), std::string("fusion"));
+    return Operations::make_unitary(qubits, unitary_simulator.qreg().move_to_matrix(),
+                                    std::string("fusion"));
   }
   // For both Kraus and SuperOp method we simulate using superoperator
   // simulator
   QubitSuperoperator::State<> superop_simulator;
   superop_simulator.initialize_qreg(qubits.size());
   superop_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
-  auto superop = superop_simulator.qreg().matrix();
   if (method == Method::superop) {
-    return Operations::make_superop(qubits, std::move(superop));
+    return Operations::make_superop(qubits, superop_simulator.qreg().move_to_matrix());
   }
   
   // TODO: Add support for Kraus method
@@ -374,7 +376,7 @@ bool Fusion::aggregate_operations(oplist_t& ops,
       for (int j = to; j <= i; ++j) {
         fusioned_ops.push_back(ops[j]);
         fusioned_qubits.insert(ops[j].qubits.cbegin(), ops[j].qubits.cend());
-        ops[j].name = "nop";
+        ops[j].type = optype_t::nop;
       }
       if (!fusioned_ops.empty()) {
         // We need to remap qubits in fusion subcircuits for simulation
@@ -443,6 +445,21 @@ double Fusion::estimate_cost(const std::vector<op_t>& ops,
   reg_t fusion_qubits;
   for (uint_t i = from; i <= until; ++i)
     add_fusion_qubits(fusion_qubits, ops[i]);
+
+  if(is_avx2_supported()){
+    switch (fusion_qubits.size()) {
+      case 1:
+        // [[ falling through :) ]]
+      case 2:
+        return cost_factor;
+      case 3:
+        return cost_factor * 1.1;
+      case 4:
+        return cost_factor * 3;
+      default:
+        return pow(cost_factor, (double) std::max(fusion_qubits.size() - 1, size_t(1)));
+    }
+  }
   return pow(cost_factor, (double) std::max(fusion_qubits.size() - 1, size_t(1)));
 }
 

@@ -16,11 +16,9 @@
 #ifndef _tensor_tensor_hpp_
 #define _tensor_tensor_hpp_
 
-#define SQR_HALF sqrt(0.5)
-#define NUMBER_OF_PRINTED_DIGITS 3
-
 #include <cstdio>
 #include <iostream>
+#include <iomanip>
 #include <complex>
 #include <vector>
 #include <math.h>
@@ -51,11 +49,12 @@ namespace MatrixProductState {
 class MPS_Tensor
 {
 public:
+
   // Constructors of MPS_Tensor class
   MPS_Tensor(){}
   explicit MPS_Tensor(complex_t& alpha, complex_t& beta){
     //    matrix<complex_t> A = matrix<complex_t>(1), B = matrix<complex_t>(1);
-    cmatrix_t A = cmatrix_t(1), B = cmatrix_t(1);
+    cmatrix_t A = cmatrix_t(1, 1), B = cmatrix_t(1, 1);
     A(0,0) = alpha;
     B(0,0) = beta;
     data_.push_back(A);
@@ -101,6 +100,29 @@ public:
   }
   void insert_data(uint_t a1, uint_t a2, cvector_t data);
 
+  static void set_chop_threshold(double chop_threshold) {
+    chop_threshold_ = chop_threshold;
+  }
+
+  static void set_max_bond_dimension(uint_t max_bond_dimension) {
+    max_bond_dimension_ = max_bond_dimension;
+  }
+
+  static void set_truncation_threshold(double truncation_threshold) {
+    truncation_threshold_ = truncation_threshold;
+  }
+
+  static double get_chop_threshold() {
+    return chop_threshold_;
+  }
+
+  static uint_t get_max_bond_dimension() {
+    return max_bond_dimension_;
+  }
+
+  static double get_truncation_threshold() {
+    return truncation_threshold_;
+  }
   //------------------------------------------------------------------
   // function name: get_dim
   // Description: Get the dimension of the physical index of the tensor
@@ -114,7 +136,6 @@ public:
   void apply_x();
   void apply_y();
   void apply_z();
-  void apply_h();
   void apply_s();
   void apply_sdg();
   void apply_t();
@@ -139,17 +160,31 @@ static void contract_2_dimensions(const MPS_Tensor &left_gamma,
 				  uint_t omp_threads,
 				  cmatrix_t &result);
 
+  // public static class members
+static const double SQR_HALF;
+static constexpr uint_t NUMBER_OF_PRINTED_DIGITS = 3;
+static constexpr uint_t MATRIX_OMP_THRESHOLD = 8;
+
 private:
   void mul_Gamma_by_Lambda(const rvector_t &Lambda,
 			   bool right, /* or left */
 			   bool mul    /* or div */);
 
   std::vector<cmatrix_t> data_;
+
+  static double chop_threshold_;
+  static uint_t max_bond_dimension_;
+  static double truncation_threshold_;
 };
 
 //=========================================================================
 // Implementation
 //=========================================================================
+double MPS_Tensor::chop_threshold_ = CHOP_THRESHOLD;
+uint_t MPS_Tensor::max_bond_dimension_ = UINT64_MAX;
+double MPS_Tensor::truncation_threshold_ = 1e-16;
+
+const double MPS_Tensor::SQR_HALF = sqrt(0.5);
 
 //---------------------------------------------------------------
 // function name: print
@@ -210,7 +245,7 @@ cvector_t MPS_Tensor::get_data(uint_t a1, uint_t a2) const
 {
   cvector_t Res;
   for(uint_t i = 0; i < data_.size(); i++)
-    Res.push_back(data_[i](a1,a2));
+    Res.push_back(data_[i](a1, a2));
   return Res;
 }
 
@@ -254,13 +289,13 @@ void MPS_Tensor::apply_pauli(char gate) {
 //---------------------------------------------------------------
 void MPS_Tensor::apply_x()
 {
-  std::swap(data_[0],data_[1]);
+  std::swap(data_[0], data_[1]);
 }
   void MPS_Tensor::apply_y()
   {
     data_[0] = data_[0] * complex_t(0, 1);
     data_[1] = data_[1] * complex_t(0, -1);
-    std::swap(data_[0],data_[1]);
+    std::swap(data_[0], data_[1]);
   }
 
 void MPS_Tensor::apply_z()
@@ -458,18 +493,18 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
   uint_t omp_limit = left_rows*right_columns;
 
 #ifdef _WIN32
-    #pragma omp parallel for if ((omp_limit > 10) && (omp_threads > 1)) num_threads(omp_threads) 
+    #pragma omp parallel for if ((omp_limit > MATRIX_OMP_THRESHOLD) && (omp_threads > 1)) num_threads(omp_threads) 
 #else
-    #pragma omp parallel for collapse(2) if ((omp_limit > 10) && (omp_threads > 1)) num_threads(omp_threads) 
+    #pragma omp parallel for collapse(2) if ((omp_limit > MATRIX_OMP_THRESHOLD) && (omp_threads > 1)) num_threads(omp_threads) 
 #endif 
       for (int_t l_row=0; l_row<left_rows; l_row++)
          for (int_t r_col=0; r_col<right_columns; r_col++)
            result(l_row, r_col) = 0;
 
 #ifdef _WIN32
-    #pragma omp parallel for if ((omp_limit > 10)  && (omp_threads > 1)) num_threads(omp_threads)
+    #pragma omp parallel for if ((omp_limit > MATRIX_OMP_THRESHOLD)  && (omp_threads > 1)) num_threads(omp_threads)
 #else
-    #pragma omp parallel for collapse(2) if ((omp_limit > 10)  && (omp_threads > 1)) num_threads(omp_threads)
+    #pragma omp parallel for collapse(2) if ((omp_limit > MATRIX_OMP_THRESHOLD)  && (omp_threads > 1)) num_threads(omp_threads)
 #endif
       for (int_t l_row=0; l_row<left_rows; l_row++)
         for (int_t r_col=0; r_col<right_columns; r_col++) {
@@ -492,27 +527,14 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
 //---------------------------------------------------------------
 void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma)
 {
-  matrix<complex_t> C;
+  cmatrix_t C;
   C = reshape_before_SVD(temp.data_);
-  matrix<complex_t> U,V;
+  cmatrix_t U, V;
   rvector_t S(std::min(C.GetRows(), C.GetColumns()));
 
-#ifdef DEBUG
-  std::cout << "Input matrix before SVD =" << std::endl << C ;
-#endif
-
   csvd_wrapper(C, U, S, V);
-  reduce_zeros(U, S, V);
-
-#ifdef DEBUG
-  std::cout << "matrices after SVD:" <<std::endl;
-  std::cout << "U = " << std::endl << U ;
-  std::cout << "S = " << std::endl;
-  for (uint_t i = 0; i != S.size(); ++i)
-    std::cout << S[i] << " , ";
-  std::cout << std::endl;
-  std::cout << "V* = " << std::endl << V ;
-#endif
+  reduce_zeros(U, S, V,
+	       max_bond_dimension_, truncation_threshold_);
 
   left_gamma.data_  = reshape_U_after_SVD(U);
   lambda            = S;
@@ -530,7 +552,6 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
             temp2_3 = AER::Utils::concatenate(data[2], data[3], 1),
             temp4_5 = AER::Utils::concatenate(data[4], data[5], 1),
             temp6_7 = AER::Utils::concatenate(data[6], data[7], 1);
-  std::cout << temp0_1 ;
   std::vector<cmatrix_t> new_data_vector;
   new_data_vector.push_back(temp0_1);
   new_data_vector.push_back(temp2_3);

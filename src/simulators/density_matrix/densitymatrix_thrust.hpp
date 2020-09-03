@@ -19,6 +19,7 @@
 #include "framework/utils.hpp"
 #include "simulators/unitary/unitarymatrix_thrust.hpp"
 
+namespace AER {
 namespace QV {
 
 //============================================================================
@@ -70,6 +71,10 @@ public:
 
   // Returns the number of qubits for the superoperator
   virtual uint_t num_qubits() const override {return BaseMatrix::num_qubits_;}
+
+  // Convert qubit indicies to vectorized-density matrix qubitvector indices
+  // For the QubitVector apply matrix function
+  virtual reg_t superop_qubits(const reg_t &qubits) const;
 
   //-----------------------------------------------------------------------
   // Apply Matrices
@@ -129,11 +134,19 @@ public:
   // generating samples.
   virtual reg_t sample_measure(const std::vector<double> &rnds) const override;
 
-protected:
+  //-----------------------------------------------------------------------
+  // Expectation Value
+  //-----------------------------------------------------------------------
 
-  // Convert qubit indicies to vectorized-density matrix qubitvector indices
-  // For the QubitVector apply matrix function
-  virtual reg_t superop_qubits(const reg_t &qubits) const;
+  // These functions return the expectation value <psi|A|psi> for a matrix A.
+  // If A is hermitian these will return real values, if A is non-Hermitian
+  // they in general will return complex values.
+
+  // Return the expectation value of an N-qubit Pauli matrix.
+  // The Pauli is input as a length N string of I,X,Y,Z characters.
+  double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
+
+protected:
 
   // Construct a vectorized superoperator from a vectorized matrix
   // This is equivalent to vec(tensor(conj(A), A))
@@ -290,19 +303,14 @@ void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qt
 
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_cz(const uint_t q0, const uint_t q1) {
-  cvector_t<double> vec;
-  vec.resize(16, 0.);
-
-  vec[3] = -1.;
-  vec[7] = -1.;
-  vec[11] = -1.;
-  vec[12] = -1.;
-  vec[13] = -1.;
-  vec[14] = -1.;
-
+  cvector_t<double> diag({1, 1, 1, -1,
+                          1, 1, 1, -1,
+                          1, 1, 1, -1,
+                          -1, -1, -1, 1});
   const auto nq =  num_qubits();
   const reg_t qubits = {{q0, q1, q0 + nq, q1 + nq}};
-  BaseVector::apply_matrix(qubits, vec);
+  BaseVector::apply_diagonal_matrix(qubits, diag);
+
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_cz",qubits);
 #endif
@@ -390,16 +398,66 @@ void DensityMatrixThrust<data_t>::apply_x(const uint_t qubit) {
 }
 
 template <typename data_t>
+class DensityY : public GateFuncBase
+{
+protected:
+  uint_t mask0;
+  uint_t mask1;
+
+public:
+  DensityY(int q0,int q1)
+  {
+  	if(q0 < q1){
+      mask0 = (1ull << q0) - 1;
+      mask1 = (1ull << q1) - 1;
+  	}
+  	else{
+      mask0 = (1ull << q1) - 1;
+      mask1 = (1ull << q0) - 1;
+  	}
+
+  }
+
+	__host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
+  {
+    uint_t i,i0,i1,i2;
+	thrust::complex<data_t>* pV;
+	uint_t* offsets;
+    thrust::complex<data_t> q0,q1,q2,q3;
+		struct GateParams<data_t> params;
+
+  	i = ExtractIndexFromTuple(iter);
+		params = ExtractParamsFromTuple(iter);
+		pV = params.buf_;
+		offsets = params.offsets_;
+
+    i0 = i & mask0;
+    i2 = (i - i0) << 1;
+    i1 = i2 & mask1;
+    i2 = (i2 - i1) << 1;
+
+    i0 = i0 + i1 + i2;
+
+    q0 = pV[offsets[0]+i0];
+    q1 = pV[offsets[1]+i0];
+    q2 = pV[offsets[2]+i0];
+    q3 = pV[offsets[3]+i0];
+
+    pV[offsets[0]+i0] = q3;
+    pV[offsets[1]+i0] = -q2;
+    pV[offsets[2]+i0] = -q1;
+    pV[offsets[3]+i0] = q0;
+		return 0.0;
+  }
+
+};
+
+
+template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_y(const uint_t qubit) {
-  cvector_t<double> vec;
-  vec.resize(16, 0.);
-  vec[0 * 4 + 3] = 1.;
-  vec[1 * 4 + 2] = -1.;
-  vec[2 * 4 + 1] = -1.;
-  vec[3 * 4 + 0] = 1.;
-  // Use the lambda function
   const reg_t qubits = {{qubit, qubit + num_qubits()}};
-  BaseVector::apply_matrix(qubits, vec);
+
+	BaseVector::apply_function(DensityY<data_t>(qubits[0], qubits[1]), qubits);
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_y",qubits);
@@ -408,16 +466,10 @@ void DensityMatrixThrust<data_t>::apply_y(const uint_t qubit) {
 
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_z(const uint_t qubit) {
-  cvector_t<double> vec;
-  vec.resize(16, 0.);
-  vec[0 * 4 + 0] = 1.;
-  vec[1 * 4 + 1] = -1.;
-  vec[2 * 4 + 2] = -1.;
-  vec[3 * 4 + 3] = 1.;
-
+  cvector_t<double> diag({1, -1, -1, 1});
   // Use the lambda function
   const reg_t qubits = {{qubit, qubit + num_qubits()}};
-  BaseVector::apply_matrix(qubits, vec);
+  BaseVector::apply_diagonal_matrix(qubits, diag);
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_z",qubits);
@@ -535,14 +587,150 @@ reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnd
   return samples;
 }
 
+//-----------------------------------------------------------------------
+// Pauli expectation value
+//-----------------------------------------------------------------------
+
+template <typename data_t>
+class density_expval_pauli_func : public GateFuncBase
+{
+protected:
+  int num_qubits_;
+  uint_t x_mask_;
+  uint_t z_mask_;
+  thrust::complex<data_t> phase_;
+public:
+  density_expval_pauli_func(int nq,uint_t x,uint_t z,thrust::complex<data_t> p)
+  {
+    num_qubits_ = nq;
+    x_mask_ = x;
+    z_mask_ = z;
+    phase_ = p;
+  }
+
+  bool IsDiagonal(void)
+  {
+    return true;
+  }
+  bool Reduction(void)
+  {
+    return true;
+  }
+
+  __host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
+  {
+    uint_t i, gid;
+    thrust::complex<data_t>* pV;
+    thrust::complex<data_t> q0;
+    double ret = 0.0;
+    struct GateParams<data_t> params;
+
+    params = ExtractParamsFromTuple(iter);
+    pV = params.buf_;
+    i = ExtractIndexFromTuple(iter);
+    gid = params.gid_ + i;
+
+    //because matrix is distributed in chunks, we have to decode address
+    uint_t i_row, i_col;
+    i_row = gid >> num_qubits_;
+    i_col = gid - (i_row << num_qubits_);
+    if(i_col != (i_row ^ x_mask_)) {
+      return 0.0;
+    }
+      
+    q0 = pV[i];
+    q0 = q0 * phase_;
+    ret = q0.real();
+
+    if(z_mask_ != 0){
+      //count bits (__builtin_popcountll can not be used on GPU)
+      uint_t count = i_row & z_mask_;
+      count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
+      count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
+      count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
+      count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
+      count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
+      count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
+      if(count & 1)
+        ret = -ret;
+    }
+
+    return ret;
+  }
+};
+
+
+template <typename data_t>
+double DensityMatrixThrust<data_t>::expval_pauli(const reg_t &qubits,
+                                                 const std::string &pauli) const 
+{
+  // Break string up into Z and X
+  // With Y being both Z and X (plus a phase)
+  const size_t N = qubits.size();
+  uint_t x_mask = 0;
+  uint_t z_mask = 0;
+  uint_t num_y = 0;
+  for (size_t i = 0; i < N; ++i) {
+    const auto bit = BITS[qubits[i]];
+    switch (pauli[N - 1 - i]) {
+      case 'I':
+        break;
+      case 'X': {
+        x_mask += bit;
+        break;
+      }
+      case 'Z': {
+        z_mask += bit;
+        break;
+      }
+      case 'Y': {
+        x_mask += bit;
+        z_mask += bit;
+        num_y++;
+        break;
+      }
+      default:
+        throw std::invalid_argument("Invalid Pauli \"" + std::to_string(pauli[N - 1 - i]) + "\".");
+    }
+  }
+
+  // Special case for only I Paulis
+  if (x_mask + z_mask == 0) {
+    std::real(BaseMatrix::trace());
+  }
+
+  // Compute the overall phase of the operator.
+  // This is (-1j) ** number of Y terms modulo 4
+  thrust::complex<data_t> phase(1, 0);
+  switch (num_y & 3) {
+    case 0:
+      // phase = 1
+      break;
+    case 1:
+      // phase = -1j
+      phase = thrust::complex<data_t>(0, -1);
+      break;
+    case 2:
+      // phase = -1
+      phase = thrust::complex<data_t>(-1, 0);
+      break;
+    case 3:
+      // phase = 1j
+      phase = thrust::complex<data_t>(0, 1);
+      break;
+  }
+  return BaseVector::apply_function(density_expval_pauli_func<data_t>(num_qubits(),x_mask,z_mask,phase),qubits);
+}
+
 //------------------------------------------------------------------------------
 } // end namespace QV
+} // end namespace AER
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector
 template <typename data_t>
-inline std::ostream &operator<<(std::ostream &out, const QV::DensityMatrixThrust<data_t>&m) {
-  out << m.matrix();
+inline std::ostream &operator<<(std::ostream &out, const AER::QV::DensityMatrixThrust<data_t>&m) {
+  out << m.copy_to_matrix();
   return out;
 }
 

@@ -27,13 +27,13 @@ class SnapshotExpectationValue(Snapshot):
     """Snapshot instruction for supported methods of Qasm simulator."""
 
     def __init__(self, label, op, single_shot=False, variance=False):
-        """Create a probability snapshot instruction.
+        """Create an expectation value snapshot instruction.
 
         Args:
             label (str): the snapshot label.
             op (Operator): operator to snapshot.
             single_shot (bool): return list for each shot rather than average [Default: False]
-            variance (bool): compute variance of probabilities [Default: False]
+            variance (bool): compute variance of values [Default: False]
 
         Raises:
             ExtensionError: if snapshot is invalid.
@@ -127,7 +127,7 @@ def snapshot_expectation_value(self, label, op, qubits,
         op (Operator): operator to snapshot
         qubits (list): the qubits to snapshot.
         single_shot (bool): return list for each shot rather than average [Default: False]
-        variance (bool): compute variance of probabilities [Default: False]
+        variance (bool): compute variance of values [Default: False]
 
     Returns:
         QuantumCircuit: with attached instruction.

@@ -18,14 +18,14 @@
 
 #include "framework/utils.hpp"
 #include "simulators/statevector/qubitvector.hpp"
-
+namespace AER {
 namespace QV {
 
 //============================================================================
 // UnitaryMatrix class
 //============================================================================
 
-// This class is derived from the QubitVector class and stores an N-qubit 
+// This class is derived from the QubitVector class and stores an N-qubit
 // matrix as a 2*N-qubit vector.
 // The vector is formed using column-stacking vectorization as under this
 // convention left-matrix multiplication on qubit-n is equal to multiplication
@@ -60,8 +60,11 @@ public:
   // Returns the number of qubits for the current vector
   virtual uint_t num_qubits() const override { return num_qubits_;}
 
-  // Returns a copy of the underlying data_t data as a complex vector
-  AER::cmatrix_t matrix() const;
+  // Copy the internal data array to a complex matrix
+  matrix<std::complex<data_t>> copy_to_matrix() const;
+
+  // Move the internal data array to a complex matrix
+  matrix<std::complex<data_t>> move_to_matrix();
 
   // Return the trace of the unitary
   std::complex<double> trace() const;
@@ -184,23 +187,14 @@ UnitaryMatrix<data_t>::UnitaryMatrix(size_t num_qubits) {
 //------------------------------------------------------------------------------
 
 template <class data_t>
-AER::cmatrix_t UnitaryMatrix<data_t>::matrix() const {
+matrix<std::complex<data_t>> UnitaryMatrix<data_t>::copy_to_matrix() const {
+  return matrix<std::complex<data_t>>::copy_from_buffer(rows_, rows_, BaseVector::data_);
+}
 
-  const int_t nrows = rows_;
-  AER::cmatrix_t ret(nrows, nrows);
-
-  #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
-  {
-  #ifdef _WIN32
-    #pragma omp for
-  #else
-    #pragma omp for collapse(2)
-  #endif
-    for (int_t i=0; i < nrows; i++)
-      for (int_t j=0; j < nrows; j++) {
-        ret(i, j) = BaseVector::data_[i + nrows * j];
-      }
-  } // end omp parallel
+template <class data_t>
+matrix<std::complex<data_t>> UnitaryMatrix<data_t>::move_to_matrix() {
+  const auto ret = matrix<std::complex<data_t>>::move_from_buffer(rows_, rows_, BaseVector::data_);
+  BaseVector::data_ = nullptr;
   return ret;
 }
 
@@ -311,12 +305,13 @@ std::pair<bool, double> UnitaryMatrix<data_t>::check_identity() const {
 
 //------------------------------------------------------------------------------
 } // end namespace QV
+} // end namespace AER
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector
 template <class data_t>
-inline std::ostream &operator<<(std::ostream &out, const QV::UnitaryMatrix<data_t>&m) {
-  out << m.matrix();
+inline std::ostream &operator<<(std::ostream &out, const AER::QV::UnitaryMatrix<data_t>&m) {
+  out << m.copy_to_matrix();
   return out;
 }
 

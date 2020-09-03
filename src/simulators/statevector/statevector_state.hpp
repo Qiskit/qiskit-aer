@@ -48,6 +48,7 @@ const Operations::OpSet StateOpSet(
   // Snapshots
   {"statevector", "memory", "register", "probabilities",
     "probabilities_with_variance", "expectation_value_pauli",
+    "density_matrix", "density_matrix_with_variance",
     "expectation_value_pauli_with_variance",
     "expectation_value_matrix_single_shot", "expectation_value_matrix",
     "expectation_value_matrix_with_variance",
@@ -64,7 +65,7 @@ enum class Gates {
 // Allowed snapshots enum class
 enum class Snapshots {
   statevector, cmemory, cregister,
-  probs, probs_var,
+  probs, probs_var, densmat, densmat_var,
   expval_pauli, expval_pauli_var, expval_pauli_shot,
   expval_matrix, expval_matrix_var, expval_matrix_shot
 };
@@ -105,7 +106,7 @@ public:
                                const statevec_t &state) override;
 
   // Returns the required memory for storing an n-qubit state in megabytes.
-  // For this state the memory is indepdentent of the number of ops
+  // For this state the memory is independent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes
   virtual size_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops)
@@ -239,6 +240,18 @@ protected:
                               ExperimentData &data,
                               SnapshotDataType type);
 
+  // Snapshot reduced density matrix
+  void snapshot_density_matrix(const Operations::Op &op,
+                               ExperimentData &data,
+                               SnapshotDataType type);
+  
+  // Return the reduced density matrix for the simulator
+  cmatrix_t density_matrix(const reg_t &qubits);
+
+  // Helper function to convert a vector to a reduced density matrix
+  template <class T>
+  cmatrix_t vec2density(const reg_t &qubits, const T& vec);
+
   //-----------------------------------------------------------------------
   // Single-qubit gate helpers
   //-----------------------------------------------------------------------
@@ -330,6 +343,8 @@ const stringmap_t<Snapshots> State<statevec_t>::snapshotset_({
   {"expectation_value_pauli", Snapshots::expval_pauli},
   {"expectation_value_matrix", Snapshots::expval_matrix},
   {"probabilities_with_variance", Snapshots::probs_var},
+  {"density_matrix", Snapshots::densmat},
+  {"density_matrix_with_variance", Snapshots::densmat_var},
   {"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var},
   {"expectation_value_matrix_with_variance", Snapshots::expval_matrix_var},
   {"expectation_value_pauli_single_shot", Snapshots::expval_pauli_shot},
@@ -392,8 +407,6 @@ template <class statevec_t>
 size_t State<statevec_t>::required_memory_mb(uint_t num_qubits,
                                              const std::vector<Operations::Op> &ops)
                                              const {
-  // An n-qubit state vector as 2^n complex doubles
-  // where each complex double is 16 bytes
   (void)ops; // avoid unused variable compiler warning
   return BaseState::qreg_.required_memory_mb(num_qubits);
 }
@@ -500,6 +513,9 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
       // get probs as hexadecimal
       snapshot_probabilities(op, data, SnapshotDataType::average);
     } break;
+    case Snapshots::densmat: {
+      snapshot_density_matrix(op, data, SnapshotDataType::average);
+    } break;
     case Snapshots::expval_pauli: {
       snapshot_pauli_expval(op, data, SnapshotDataType::average);
     } break;
@@ -509,6 +525,9 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
     case Snapshots::probs_var: {
       // get probs as hexadecimal
       snapshot_probabilities(op, data, SnapshotDataType::average_var);
+    } break;
+    case Snapshots::densmat_var: {
+      snapshot_density_matrix(op, data, SnapshotDataType::average_var);
     } break;
     case Snapshots::expval_pauli_var: {
       snapshot_pauli_expval(op, data, SnapshotDataType::average_var);
@@ -551,50 +570,15 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
     throw std::invalid_argument("Invalid expval snapshot (Pauli components are empty).");
   }
 
-  // Cache the current quantum state
-  BaseState::qreg_.checkpoint();
-  bool first = true; // flag for first pass so we don't unnecessarily revert from checkpoint
-
-  // Compute expval components
+  // Accumulate expval components
   complex_t expval(0., 0.);
   for (const auto &param : op.params_expval_pauli) {
-    // Revert the quantum state to cached checkpoint
-    if (first)
-      first = false;
-    else
-      BaseState::qreg_.revert(true);
-    // Apply each pauli operator as a gate to the corresponding qubit
-    // qubits are stored as a list where position is qubit number:
-    // eq op.qubits = [a, b, c], a is qubit-0, b is qubit-1, c is qubit-2
-    // Pauli string labels are stored in little-endian ordering:
-    // eg label = "CBA", A is the Pauli for qubit-0, B for qubit-1, C for qubit-2
     const auto& coeff = param.first;
     const auto& pauli = param.second;
-    for (uint_t pos=0; pos < op.qubits.size(); ++pos) {
-      switch (pauli[pauli.size() - 1 - pos]) {
-        case 'I':
-          break;
-        case 'X':
-          BaseState::qreg_.apply_mcx({op.qubits[pos]});
-          break;
-        case 'Y':
-          BaseState::qreg_.apply_mcy({op.qubits[pos]});
-          break;
-        case 'Z':
-          BaseState::qreg_.apply_mcphase({op.qubits[pos]}, -1);
-          break;
-        default: {
-          std::stringstream msg;
-          msg << "QubitVectorState::invalid Pauli string \'" << pauli[pos] << "\'.";
-          throw std::invalid_argument(msg.str());
-        }
-      }
-    }
-    // Pauli expecation values should always be real for a valid state
-    // so we truncate the imaginary part
-    expval += coeff * std::real(BaseState::qreg_.inner_product());
+    expval += coeff * BaseState::qreg_.expval_pauli(op.qubits, pauli);
   }
-  // add to snapshot
+
+  // Add to snapshot
   Utils::chop_inplace(expval, json_chop_threshold_);
   switch (type) {
     case SnapshotDataType::average:
@@ -609,8 +593,6 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
       data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
       break;
   }
-  // Revert to original state
-  BaseState::qreg_.revert(false);
 }
 
 template <class statevec_t>
@@ -673,6 +655,93 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
   BaseState::qreg_.revert(false);
 }
 
+template <class statevec_t>
+void State<statevec_t>::snapshot_density_matrix(const Operations::Op &op,
+                                                ExperimentData &data,
+                                                SnapshotDataType type) {
+  cmatrix_t reduced_state;
+
+  // Check if tracing over all qubits
+  if (op.qubits.empty()) {
+    reduced_state = cmatrix_t(1, 1);
+    reduced_state[0] = BaseState::qreg_.norm();
+  } else {
+    reduced_state = density_matrix(op.qubits);
+  }
+
+  // Add density matrix to result data
+  switch (type) {
+    case SnapshotDataType::average:
+      data.add_average_snapshot("density_matrix", op.string_params[0],
+                            BaseState::creg_.memory_hex(), std::move(reduced_state), false);
+      break;
+    case SnapshotDataType::average_var:
+      data.add_average_snapshot("density_matrix", op.string_params[0],
+                            BaseState::creg_.memory_hex(), std::move(reduced_state), true);
+      break;
+    case SnapshotDataType::pershot:
+      data.add_pershot_snapshot("density_matrix", op.string_params[0], std::move(reduced_state));
+      break;
+  }
+}
+
+template <class statevec_t>
+cmatrix_t State<statevec_t>::density_matrix(const reg_t &qubits) {
+  return vec2density(qubits, BaseState::qreg_.data());
+}
+
+#ifdef AER_THRUST_SUPPORTED
+template <>
+cmatrix_t State<QV::QubitVectorThrust<float>>::density_matrix(const reg_t &qubits) {
+  return vec2density(qubits, BaseState::qreg_.vector());
+}
+
+template <>
+cmatrix_t State<QV::QubitVectorThrust<double>>::density_matrix(const reg_t &qubits) {
+  return vec2density(qubits, BaseState::qreg_.vector());
+}
+#endif
+
+template <class statevec_t>
+template <class T>
+cmatrix_t State<statevec_t>::vec2density(const reg_t &qubits, const T &vec) {
+  const size_t N = qubits.size();
+  const size_t DIM = 1ULL << N;
+  auto qubits_sorted = qubits;
+  std::sort(qubits_sorted.begin(), qubits_sorted.end());
+
+  // Return full density matrix
+  cmatrix_t densmat(DIM, DIM);
+  if ((N == BaseState::qreg_.num_qubits()) && (qubits == qubits_sorted)) {
+    const int_t mask = QV::MASKS[N];
+    #pragma omp parallel for if (2*N > omp_qubit_threshold_ && BaseState::threads_ > 1) num_threads(BaseState::threads_)
+    for (int_t rowcol = 0; rowcol < int_t(DIM * DIM); ++rowcol) {
+      const int_t row = rowcol >> N;
+      const int_t col = rowcol & mask;
+      densmat(row, col) = complex_t(vec[row]) * complex_t(std::conj(vec[col]));
+    }
+  } else {
+    const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);
+    // Initialize matrix values with first block
+    {
+      const auto inds = QV::indexes(qubits, qubits_sorted, 0);
+      for (size_t row = 0; row < DIM; ++row)
+        for (size_t col = 0; col < DIM; ++col) {
+          densmat(row, col) = complex_t(vec[inds[row]]) * complex_t(std::conj(vec[inds[col]]));
+      }
+    }
+    // Accumulate remaining blocks
+    for (size_t k = 1; k < END; k++) {
+      // store entries touched by U
+      const auto inds = QV::indexes(qubits, qubits_sorted, k);
+      for (size_t row = 0; row < DIM; ++row)
+        for (size_t col = 0; col < DIM; ++col) {
+          densmat(row, col) += complex_t(vec[inds[row]]) * complex_t(std::conj(vec[inds[col]]));
+      }
+    }
+  }
+  return densmat;
+}
 
 //=========================================================================
 // Implementation: Matrix multiplication

@@ -66,7 +66,7 @@ public:
   void add_metadata(const std::string &key, const T &data);
 
   // Serialize engine data to JSON
-  json_t json() const;
+  json_t to_json();
 };
 
 
@@ -89,39 +89,37 @@ void Result::clear_metadata(const std::string &key) {
 //------------------------------------------------------------------------------
 // JSON serialization
 //------------------------------------------------------------------------------
-json_t Result::json() const {
+json_t Result::to_json() {
   // Initialize output as additional data JSON
-  json_t result;
-  result["qobj_id"] = qobj_id;
+  json_t js;
+  js["qobj_id"] = qobj_id;
   
-  result["backend_name"] = backend_name;
-  result["backend_version"] = backend_version;
-  result["date"] = date;
-  result["job_id"] = job_id;
-  result["results"] = results;
+  js["backend_name"] = backend_name;
+  js["backend_version"] = backend_version;
+  js["date"] = date;
+  js["job_id"] = job_id;
+  for (auto& res : results) {
+    js["results"].push_back(res.to_json());
+  }
   if (header.empty() == false)
-    result["header"] = header;
+    js["header"] = header;
   if (metadata.empty() == false)
-    result["metadata"] = metadata;
-  result["success"] = (status == Status::completed);
+    js["metadata"] = metadata;
+  js["success"] = (status == Status::completed);
   switch (status) {
     case Status::completed:
-      result["status"] = std::string("COMPLETED");
+      js["status"] = std::string("COMPLETED");
       break;
     case Status:: partial_completed:
-      result["status"] = std::string("PARTIAL COMPLETED");
+      js["status"] = std::string("PARTIAL COMPLETED");
       break;
     case Status::error:
-      result["status"] = std::string("ERROR: ") + message;
+      js["status"] = std::string("ERROR: ") + message;
       break;
     case Status::empty:
-      result["status"] = std::string("EMPTY");
+      js["status"] = std::string("EMPTY");
   }
-  return result;
-}
-
-inline void to_json(json_t &js, const Result &result) {
-  js = result.json();
+  return js;
 }
 
 //------------------------------------------------------------------------------

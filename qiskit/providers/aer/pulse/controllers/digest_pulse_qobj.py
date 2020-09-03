@@ -20,7 +20,7 @@ from collections import OrderedDict
 import numpy as np
 from qiskit.providers.aer.aererror import AerError
 # pylint: disable=no-name-in-module
-from ..de_solvers.pulse_utils import oplist_to_array
+from .pulse_utils import oplist_to_array
 
 
 class DigestedPulseQobj:
@@ -269,8 +269,7 @@ def format_pulse_samples(pulse_samples):
     return [[samp.real, samp.imag] for samp in new_samples]
 
 
-def experiment_to_structs(experiment, ham_chans, pulse_inds,
-                          pulse_to_int, dt, qubit_list=None):
+def experiment_to_structs(experiment, ham_chans, pulse_inds, pulse_to_int, dt, qubit_list=None):
     """Converts an experiment to a better formatted structure
 
     Args:
@@ -334,9 +333,22 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds,
                 structs['channels'][chan_name][0].extend([inst['t0'] * dt, None, index, cond])
                 pv_needs_tf[ham_chans[chan_name]] = 1
 
-            # Frame changes
+            # ShiftPhase instructions
             elif inst['name'] == 'fc':
-                structs['channels'][chan_name][1].extend([inst['t0'] * dt, inst['phase'], cond])
+                # get current phase value
+                current_phase = 0
+                if len(structs['channels'][chan_name][1]) > 0:
+                    current_phase = structs['channels'][chan_name][1][-2]
+
+                structs['channels'][chan_name][1].extend([inst['t0'] * dt,
+                                                          current_phase + inst['phase'],
+                                                          cond])
+
+            # SetPhase instruction
+            elif inst['name'] == 'setp':
+                structs['channels'][chan_name][1].extend([inst['t0'] * dt,
+                                                          inst['phase'],
+                                                          cond])
 
             # A standard pulse
             else:

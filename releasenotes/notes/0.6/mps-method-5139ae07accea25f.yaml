@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    Add approximation to the `"matrix_product_state"` simulation method of the
+    :class:`~qiskit.providers.aer.QasmSimulator` to limit the bond-dimension of
+    the MPS.
+
+    There are two modes of approximation. Both discard the smallest 
+    Schmidt coefficients following the SVD algorithm.
+    There are two parameters that control the degree of approximation:
+    ``"matrix_product_state_max_bond_dimension"`` (int): Sets a limit
+    on the number of Schmidt coefficients retained at the end of
+    the svd algorithm. Coefficients beyond this limit will be discarded.
+    (Default: None, i.e., no limit on the bond dimension).
+    ``"matrix_product_state_truncation_threshold"`` (double):
+    Discard the smallest coefficients for which the sum of
+    their squares is smaller than this threshold.
+    (Default: 1e-16).
+  - |
+    Improve the performance of measure sampling when using the
+    `"matrix_product_state"` :class:`~qiskit.providers.aer.QasmSimulator`
+    simulation method.

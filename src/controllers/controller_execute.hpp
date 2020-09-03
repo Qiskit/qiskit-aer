@@ -40,7 +40,7 @@ std::string controller_execute_json(const std::string &qobj_str) {
     Hacks::maybe_load_openmp(path);
   }
 
-  return controller.execute(qobj_js).json().dump(-1);
+  return controller.execute(qobj_js).to_json().dump(-1);
 }
 
 template <class controller_t>

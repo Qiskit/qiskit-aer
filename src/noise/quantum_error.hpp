@@ -222,7 +222,7 @@ void QuantumError::set_from_kraus(const std::vector<cmatrix_t> &mats) {
   size_t mat_dim = mats[0].GetRows();
   auto num_qubits = static_cast<unsigned>(std::log2(mat_dim));
   set_num_qubits(num_qubits);
-  if (mat_dim != 1UL << num_qubits)
+  if (mat_dim != 1ULL << num_qubits)
     throw std::invalid_argument("QuantumError: Kraus channel input is a multi-qubit channel.");
 
   // Check if each matrix is a:
@@ -325,7 +325,7 @@ const cmatrix_t& QuantumError::superoperator() const {
 
 void QuantumError::compute_superoperator() {
   // Initialize superoperator matrix to correct size
-  size_t dim = 1 << (2 * get_num_qubits());
+  size_t dim = 1ULL << (2 * get_num_qubits());
   superoperator_.initialize(dim, dim);
   // We use the superoperator simulator state to do this
   QubitSuperoperator::State<> superop;
@@ -337,7 +337,7 @@ void QuantumError::compute_superoperator() {
     ExperimentData data;
     RngEngine rng;
     superop.apply_ops(circuits_[j], data, rng);
-    superoperator_ += probabilities_[j] * superop.qreg().matrix();
+    superoperator_ += probabilities_[j] * superop.qreg().move_to_matrix();
   }
 }
 

@@ -1,7 +1,7 @@
 # CMake config file to build AER
 #
 # For Linux and Mac, we can build both statically or dynamically. The latter is
-# the default. If you want to build an static executable/library, you need to set
+# the default. If you want to build a static executable/library, you need to set
 # STATIC_LINKING to True, example:
 #     out$ cmake -DSTATIC_LINKING=True ..
 #
@@ -15,7 +15,11 @@ project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
-# Warning: Because of a bug on CMake's FindBLAS or (it's not clear whoes fault is)
+if(NOT DEFINED AER_BLAS_LIB_PATH AND DEFINED ENV{AER_BLAS_LIB_PATH})
+	set(AER_BLAS_LIB_PATH $ENV{AER_BLAS_LIB_PATH})
+endif()
+
+# Warning: Because of a bug on CMake's FindBLAS or (it's not clear who's fault is)
 # libopenblas.a for Ubuntu (maybe others) we need to copy the file:
 # cmake/FindBLAS.cmake.fix-static-linking, to the directory were CMake Modules are
 # installed in the system, but with the name: FindBLAS.cmake
@@ -27,6 +31,7 @@ include(CTest)
 include(compiler_utils)
 include(Linter)
 include(findBLASInSpecificPath)
+include(conan_utils)
 
 # Get version information
 get_version(${VERSION_NUM})
@@ -34,13 +39,8 @@ configure_file("${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp.in"
                "${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp")
 
 set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-set(AER_SIMULATOR_CPP_MAIN
-    "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
 set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
-	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers"
-	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib"
 	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
-	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/linux/lib"
 	"${USER_LIB_PATH}")
 
 set(AER_COMPILER_DEFINITIONS "")
@@ -58,11 +58,11 @@ if(CCACHE_FOUND)
 endif(CCACHE_FOUND)
 
 # Set default build type to Release with Debug Symbols
-IF(NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
 	SET(CMAKE_BUILD_TYPE Release CACHE STRING
 		"Choose the type of build, options are: Debug Release"
 		FORCE)
-ENDIF(NOT CMAKE_BUILD_TYPE)
+endif(NOT CMAKE_BUILD_TYPE)
 
 if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 	# In order to build for MacOSX 10.9 and above with Clang, we need to force the "deployment target" to 10.9
@@ -105,6 +105,9 @@ if(NOT MSVC)
 	enable_cxx_compiler_flag_if_supported("-Wredundant-decls")
 	enable_cxx_compiler_flag_if_supported("-Wshadow")
 	enable_cxx_compiler_flag_if_supported("-Woverloaded-virtual")
+else("Windows general compiler flags")
+	enable_cxx_compiler_flag_if_supported("/Oi") # Enable intrinsics instead of functions  (faster code)
+	enable_cxx_compiler_flag_if_supported("/bigobj")
 endif()
 
 if(STATIC_LINKING)
@@ -117,45 +120,36 @@ endif()
 #
 # Looking for external libraries
 #
+
+setup_conan()
+
+# If we do not set them with a space CMake fails afterwards if nothing is set for this vars!
+set(AER_LINKER_FLAGS " ")
+set(AER_COMPILER_FLAGS " ")
+
 message(STATUS "Looking for OpenMP support...")
-find_package(OpenMP QUIET)
-# This is a hack for building with Apple's LLVM, which doesn't support OpenMP yet
-# so we need to link with an external library: libomp.
-# NOTE: CMake >= 3.12.0 doesn't need this hack. It will just find OpenMP in the
-# first find_package(OpenMP) call
-if(NOT "${OpenMP_FOUND}" OR NOT "${OpenMP_CXX_FOUND}")
-	if(APPLE)
-		set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp")
-		set(OpenMP_CXX_LIB_NAMES "omp")
-		set(OpenMP_omp_LIBRARY "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib/libomp.dylib")
-		include_directories("${AER_SIMULATOR_CPP_SRC_DIR}/third-party/macos/lib")
-		set(OPENMP_FOUND TRUE)
+if(APPLE)
+	set(OPENMP_FOUND TRUE)
+	if(NOT SKBUILD)
+		set(AER_LIBRARIES ${AER_LIBRARIES} CONAN_PKG::llvm-openmp)
+	else()
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CONAN_CXX_FLAGS_LLVM-OPENMP}")
+		set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CONAN_INCLUDE_DIRS_LLVM-OPENMP})
 	endif()
-endif()
-
-if(OPENMP_FOUND)
-	set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} ${OpenMP_CXX_FLAGS}")
-	set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-	if(APPLE)
-		# On Apple and clang, we do need to link against the library unless we are building
-		# the Terra Addon, see issue: https://github.com/Qiskit/qiskit-aer/issues/1
-		if(NOT SKBUILD)
-			set(OPENMP_EXTERNAL_LIB "${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY}")
-			message(STATUS "Adding Clang: ${OPENMP_EXTERNAL_LIB}")
-		endif()
-	endif()
-	message(STATUS "OpenMP found!")
-	message(STATUS "OpenMP_CXX_FLAGS = ${OpenMP_CXX_FLAGS}")
-	message(STATUS "OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
 else()
-	message(STATUS "WARNING: No OpenMP support found!")
+	find_package(OpenMP QUIET)
+	if(OPENMP_FOUND)
+		set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} ${OpenMP_CXX_FLAGS}")
+		set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+		message(STATUS "OpenMP found!")
+		message(STATUS "OpenMP_CXX_FLAGS = ${OpenMP_CXX_FLAGS}")
+		message(STATUS "OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
+	else()
+		message(STATUS "WARNING: No OpenMP support found!")
+	endif()
 endif()
-
-message(STATUS "Looking for NLOHMANN Json library...")
-set(NLOHMANN_JSON_PATH ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
-find_package(nlohmann_json REQUIRED)
 
 if(STATIC_LINKING)
 	message(STATUS "Using static linking with Threads...")
@@ -163,6 +157,11 @@ if(STATIC_LINKING)
 	set(THREADS_PREFER_PTHREAD_FLAG True)
 endif()
 find_package(Threads)
+
+if(STATIC_LINKING)
+	message(STATUS "Setting BLA_STATIC")
+	set(BLA_STATIC TRUE)
+endif()
 
 if(STATIC_LINKING)
 	message(STATUS "Setting BLA_STATIC")
@@ -182,6 +181,11 @@ else()
 	if(WIN32)
 		message(STATUS "Uncompressing OpenBLAS static library...")
 		execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/openblas.7z" WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/")
+		set(OPENBLAS_DLLs
+			"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/openblas.dll"
+			"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/flang.dll"
+			"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/flangrti.dll"
+			"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/libomp.dll")
 	endif()
 	find_package(BLAS QUIET)
 	if(NOT BLAS_FOUND)
@@ -193,16 +197,6 @@ endif()
 
 message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
-message(STATUS "Looking for spdlog library...")
-find_package(spdlog QUIET)
-if(spdlog_FOUND)
-	message(STATUS "spdlog found.")
-	set(SPDLOG_LIB spdlog::spdlog)
-else()
-	message(STATUS "spdlog not found.")
-	set(SPDLOG_LIB "")
-endif()
-
 # Windows don't have a DL library (dlopen, dlclose, etc...)
 if(NOT MSVC)
 	find_library(DL_LIB NAMES dl)
@@ -213,32 +207,54 @@ endif()
 
 # GPU support through Thrust library (CPU fallbacks)
 # Defaults to TRUE, but if no Thrust backend has been defined, will set to FALSE
-set(AER_THRUST_SUPPORTED TRUE)
+if(NOT DEFINED AER_THRUST_BACKEND)
+    set(AER_THRUST_BACKEND $ENV{AER_THRUST_BACKEND})
+    if(DEFINED AER_THRUST_BACKEND)
+        set(AER_THRUST_SUPPORTED TRUE)
+    endif()
+else()
+	set(AER_THRUST_SUPPORTED TRUE)
+endif()
+
 if(AER_THRUST_SUPPORTED)
 	if(AER_THRUST_BACKEND STREQUAL "CUDA")
 		message(STATUS "Thrust library: Looking for CUDA backend...")
 		find_package(CUDA REQUIRED)
 		message(STATUS "Thrust library: CUDA found!")
-		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH Auto)
-		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin ${CMAKE_CXX_COMPILER} ${AER_CUDA_ARCH} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
-		set_source_files_properties(${AER_SIMULATOR_CPP_MAIN} PROPERTIES
-			CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+		if(NOT DEFINED AER_CUDA_ARCH)
+			if(DEFINED ENV{AER_CUDA_ARCH})
+				set(AER_CUDA_ARCH $ENV{AER_CUDA_ARCH})
+			else()
+				set(AER_CUDA_ARCH "Auto")
+			endif()
+		endif()
+		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH_FLAGS ${AER_CUDA_ARCH})
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin \"${CMAKE_CXX_COMPILER}\" ${AER_CUDA_ARCH_FLAGS} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+		# We have to set SIMD flags globally because there seems to be a bug in FindCUDA which doesn't allow us to set per-file compilation flags.
+		# The implications is that users downloading the PyPi wheel package for the GPU, need to have a CPU with AVX2 support otherwise
+		# Aer will crash with: "Unknow instruction" exception.
+		# This will be fixed here: https://github.com/Qiskit/qiskit-aer/
+		if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
+			if(APPLE OR UNIX)
+				set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}; --compiler-options;-mfma,-mavx2")
+			elseif(MSVC)
+				set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} /arch:AVX2")
+			endif()
+		endif()
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDANT_LIBS "")
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
-		message(STATUS "Thrust library: Looking for TBB backend...")
-		find_package(TBB REQUIRED)
 		message(STATUS "TBB Support found!")
-		get_thrust_source_code()
-		set(THRUST_DEPENDANT_LIBS ${TBB_LIBRARIES})
-		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TBB AER_THRUST_CPU=TRUE)
+		set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CONAN_INCLUDE_DIRS_THRUST})
+		set(THRUST_DEPENDANT_LIBS CONAN_PKG::tbb)
+		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE)
 	elseif(AER_THRUST_BACKEND STREQUAL "OMP")
 		message(STATUS "Thrust library: Setting OMP backend")
 		if(NOT OPENMP_FOUND)
 			message(FATAL_ERROR "There's no OMP support. We cannot set Thrust backend to OMP!!")
 		endif()
-		get_thrust_source_code()
-		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_OMP AER_THRUST_CPU=TRUE)
+		set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CONAN_INCLUDE_DIRS_THRUST})
+		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE)
 		# We don't need to add OMP because it's already an AER dependency
 		set(THRUST_DEPENDANT_LIBS "")
 	else()
@@ -254,31 +270,46 @@ else()
 endif()
 
 
-
 # Set dependent libraries
 set(AER_LIBRARIES
-	${OPENMP_EXTERNAL_LIB}
+	${AER_LIBRARIES}
 	${BLAS_LIBRARIES}
-	nlohmann_json
+	CONAN_PKG::nlohmann_json
 	Threads::Threads
-	${SPDLOG_LIB}
+	CONAN_PKG::spdlog
 	${DL_LIB}
 	${THRUST_DEPENDANT_LIBS})
 
+set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
-	add_muparserx_lib()
-
+	set(AER_LIBRARIES ${AER_LIBRARIES} CONAN_PKG::muparserx)
 	add_subdirectory(qiskit/providers/aer/pulse/qutip_extra_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
+
+	# We build SIMD filed separately, because they will be reached only if the
+	# machine running the code has SIMD support
+	if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
+		set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+		if(APPLE OR UNIX)
+			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
+		elseif(MSVC)
+			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
+		endif()
+	endif()
+
+	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp"
+		"${SIMD_SOURCE_FILE}")
+	set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 	if(CUDA_FOUND)
-		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
 	else(CUDA_FOUND)
-		add_executable(qasm_simulator ${AER_SIMULATOR_CPP_MAIN})
+		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES})
 		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
 	endif(CUDA_FOUND)
 	set_target_properties(qasm_simulator PROPERTIES
@@ -293,6 +324,13 @@ else() # Standalone build
 		PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 	target_compile_definitions(qasm_simulator
 		PRIVATE ${AER_COMPILER_DEFINITIONS})
+	if(WIN32 AND NOT BLAS_LIB_PATH)
+		add_custom_command(TARGET qasm_simulator POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+				${OPENBLAS_DLLs}
+				$<TARGET_FILE_DIR:qasm_simulator>)
+		install(FILES ${OPENBLAS_DLLs} DESTINATION bin)
+	endif()
+
 	install(TARGETS qasm_simulator DESTINATION bin)
 
 	# Linter

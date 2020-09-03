@@ -50,24 +50,6 @@ const std::array<char, 3> Trans = {'N', 'T', 'C'};
                         = 'T' transpose of A;
                         = 'C' hermitian conjugate of A.
 */
-const std::array<char, 2> UpLo = {'U', 'L'};
-/*  UpLo    (input) CHARACTER*1
-                        = 'U':  Upper triangle of A is stored;
-                        = 'L':  Lower triangle of A is stored.
-*/
-const std::array<char, 2> Jobz = {'V', 'N'};
-/*  Jobz    (input) CHARACTER*1
-                        = 'N':  Compute eigenvalues only;
-                        = 'V':  Compute eigenvalues and eigenvectors.
-*/
-const std::array<char, 3> Range = {'A', 'V', 'I'};
-/*  Range   (input) CHARACTER*1
-                                = 'A': all eigenvalues will be found.
-                                = 'V': all eigenvalues in the half-open interval
-   (VL,VU] will be found.
-                                = 'I': the IL-th through IU-th eigenvalues will
-   be found.
-*/
 
 #ifdef __cplusplus
 extern "C" {
@@ -133,7 +115,16 @@ void zgemm_(const char *TransA, const char *TransB, const size_t *M,
  *
  ******************************************************************************/
 
-enum OutputStyle { Column, List, Matrix };
+template <class T>
+T* malloc_array(size_t size) {
+  return reinterpret_cast<T*>(malloc(sizeof(T) * size));
+}
+
+template <class T>
+T* calloc_array(size_t size) {
+  return reinterpret_cast<T*>(calloc(size, sizeof(T)));
+}
+
 
 template <class T> // define a class template
 class matrix {
@@ -201,35 +192,97 @@ class matrix {
             const std::vector<std::complex<double>> &v);
 
 public:
-  // Constructors of matrix class
-  matrix();
-  matrix(size_t rows, size_t cols);
-  explicit matrix(size_t size); // Makes a square matrix and rows = sqrt(size) columns =
-                                // sqrt(dims)
-  matrix(const matrix<T> &m);
-  matrix(const matrix<T> &m, const char uplo);
+  //-----------------------------------------------------------------------
+  // Constructors and Destructor
+  //-----------------------------------------------------------------------
 
-  // Initialize an empty matrix() to matrix(size_t  rows, size_t cols)
-  void initialize(size_t rows, size_t cols);
+  // Construct an empty matrix
+  matrix() = default;
+
+  // Construct a matrix of specified size
+  // If `fill=True` the matrix will be initialized with all values in zero
+  // if `fill=False` the matrix entries will be in an indeterminant state
+  // and should have their values assigned before use.
+  matrix(size_t rows, size_t cols, bool fill = true);
+
+  // Copy construct a matrix
+  matrix(const matrix<T> &other);
+
+  // Move construct a matrix
+  matrix(matrix<T>&& other) noexcept;
+
+  // Destructor
+  virtual ~matrix() { free(data_); }
+
+  //-----------------------------------------------------------------------
+  // Assignment
+  //-----------------------------------------------------------------------
+
+  // Copy assignment
+  matrix<T> &operator=(const matrix<T> &other);
+
+  // Move assignment
+  matrix<T> &operator=(matrix<T> &&other) noexcept;
+
+  // Copy and cast assignment
+  template <class S>
+  matrix<T> &operator=(const matrix<S> &other);
+
+  //-----------------------------------------------------------------------
+  // Buffer conversion
+  //-----------------------------------------------------------------------
+
+  // Copy construct a matrix from C-array buffer
+  // The buffer should have size = rows * cols.
+  static matrix<T> copy_from_buffer(size_t rows, size_t cols, const T* buffer);
+
+  // Move construct a matrix from C-array buffer
+  // The buffer should have size = rows * cols.
+  static matrix<T> move_from_buffer(size_t rows, size_t cols, T* buffer);
+
+  // Copy matrix to a new C-array
+  T* copy_to_buffer() const;
+
+  // Move matrix to a C-array
+  T* move_to_buffer();
+
+  //-----------------------------------------------------------------------
+  // Element access
+  //-----------------------------------------------------------------------
+
+  // Addressing elements by vector representation
+  T& operator[](size_t element);
+  const T& operator[](size_t element) const;
+
+  // Addressing elements by matrix representation
+  T& operator()(size_t row, size_t col);
+  const T& operator()(size_t row, size_t col) const;
+
+  // Access the array data pointer
+  const T* data() const noexcept { return data_; }
+  T* data() noexcept { return data_; }
+
+  //-----------------------------------------------------------------------
+  // Other methods
+  //-----------------------------------------------------------------------
+
+  // Return the size of the underlying array
+  size_t size() const { return size_; }
+  
+  // Return True if size == 0
+  bool empty() const { return size_ == 0; }
+
   // Clear used memory
   void clear();
 
-  // Destructor
-  virtual ~matrix();
+  // Fill with constant value
+  void fill(const T& val);
 
-  // Assignment operator
-  matrix<T> &operator=(const matrix<T> &m);
-  template <class S>
-  matrix<T> &operator=(const matrix<S> &m); // Still would like to have real
-                                            // assigend by complex -- take real
-                                            // part
+  // Resize the matrix and reset to zero if different size
+  void initialize(size_t row, size_t col); 
 
-  // Addressing elements by vector representation
-  T &operator[](size_t element);
-  T operator[](size_t element) const;
-  // Addressing elements by matrix representation
-  T &operator()(size_t row, size_t col);
-  T operator()(size_t row, size_t col) const;
+  // Resize the matrix keeping current values
+  void resize(size_t row, size_t col); 
 
   // overloading functions.
   matrix<T> operator+(const matrix<T> &A);
@@ -239,17 +292,14 @@ public:
   matrix<T> &operator+=(const matrix<T> &A);
   matrix<T> &operator-=(const matrix<T> &A);
 
+  //-----------------------------------------------------------------------
+  // Legacy methods
+  //-----------------------------------------------------------------------
+
   // Member Functions
   size_t GetColumns() const; // gives the number of columns
   size_t GetRows() const;    // gives the number of rows
   size_t GetLD() const;      // gives the leading dimension -- number of rows
-  size_t size() const;       // gives the size of the underlying vector
-  bool empty() const;        // Return true if size == 0;
-  void resize(size_t row, size_t col); // sets the size of the underlying vector
-  void SetOutputStyle(enum OutputStyle outputstyle); // sets the style the
-                                                     // matrix is display by <<
-  T *GetMat() const; // gives you the address of element 0 then *(c+i) gives you
-                     // the ith element
 
 protected:
   size_t rows_ = 0, cols_ = 0, size_ = 0, LD_ = 0;
@@ -257,10 +307,9 @@ protected:
   // size_ = rows*colums dimensions of the vector representation
   // LD is the leading dimeonsion and for Column major order is in general eqaul
   // to rows
-  enum OutputStyle outputstyle_ = Matrix;
-  // outputstyle_ is the output style used by <<
-  T *mat_ = nullptr;
+  
   // the ptr to the vector containing the matrix
+  T* data_ = nullptr;
 };
 
 /*******************************************************************************
@@ -269,173 +318,128 @@ protected:
  *
  ******************************************************************************/
 
+//-----------------------------------------------------------------------
+// Constructors
+//-----------------------------------------------------------------------
+
 template <class T>
-inline matrix<T>::matrix(){}
-// constructs an empty matrix using the ....
-template <class T>
-inline matrix<T>::matrix(size_t rows, size_t cols)
+matrix<T>::matrix(size_t rows, size_t cols, bool fill)
     : rows_(rows), cols_(cols), size_(rows * cols), LD_(rows),
-      outputstyle_(Column), mat_(new T[size_]) {}
-// constructs an empty matrix of size rows, cols and sets outputstyle to zero
-template <class T>
-inline matrix<T>::matrix(size_t dim2)
-    : size_(dim2), outputstyle_(Column), mat_(new T[size_]) {
-  // constructs a square matrix of dims sqrt(size)*sqrt(size)
-  // PLEASE DO NOT CHANGE THIS AS IT IS USED BY ODESOLVER
-  //  size_t dim2 = rhovec.GetRows();
-  // size_t dim = (size_t)std::floor(sqrt((double)dim2+1.0));
-  if (size_ == 0)
-    rows_ = size_;
-  else if (size_ == 1)
-    rows_ = size_;
-  else if (size_ == 2) {
-    std::cerr << "Error: matrix constructor matrix(dim): the number you entered "
-                 "does not have a integer sqrt."
-              << std::endl;
-    exit(1);
-  } else
-    for (rows_ = 2; rows_ < size_; ++rows_) {
-      if (size_ == rows_ * rows_)
-        break;
-      if (rows_ * rows_ > size_) {
-        std::cerr << "Error: matrix constructor matrix(dim): the number you "
-                     "enterd does not have a interger sqrt"
-                  << std::endl;
-        exit(1);
-      }
-    }
+      data_((fill) ? calloc_array<T>(size_) : malloc_array<T>(size_)) {}
 
-  cols_ = rows_;
-  LD_ = rows_;
-}
-// constructs an empty matrix of size rows, cols and sets outputstyle to zero
 template <class T>
-inline matrix<T>::matrix(const matrix<T> &rhs)
-    : rows_(rhs.rows_), cols_(rhs.cols_), size_(rhs.size_), LD_(rows_),
-      outputstyle_(rhs.outputstyle_), mat_(new T[size_]) {
-  // Copy constructor, copies the matrix to another matrix
-  for (size_t p = 0; p < size_; p++) {
-    mat_[p] = rhs.mat_[p];
-  }
-}
-template <class T>
-inline matrix<T>::matrix(const matrix<T> &rhs, const char uplo)
-    : rows_(rhs.rows_), cols_(rhs.cols_), size_(rhs.size_), LD_(rows_),
-      outputstyle_(rhs.outputstyle_), mat_(new T[size_]) {
-  // Copy constructor, copies the matric to another matrix but only the upper or
-  // lower triangle
-  if (uplo == 'U') {
-    for (size_t i = 0; i < rows_; i++)
-      for (size_t j = i; j < cols_; j++)
-        mat_[j * rows_ + i] = rhs.mat_[j * rows_ + i];
-  } else if (uplo == 'L') {
-    for (size_t i = 0; i < rows_; i++)
-      for (size_t j = 0; j <= i; j++)
-        mat_[j * rows_ + i] = rhs.mat_[j * rows_ + i];
-  } else {
-    std::cerr << "Error: matrix copy constructor did not have a valid option "
-                 "-- these are Lower, Upper"
-              << std::endl;
-    exit(1);
-  }
-}
-template <class T> inline void matrix<T>::initialize(size_t rows, size_t cols) {
-  if (rows_ != rows || cols_ != cols) { // if the rows are different size delete
-    // re-construct the matrix
-    if (mat_ != 0)
-      delete[](mat_);
-    rows_ = rows;
-    cols_ = cols;
-    size_ = rows_ * cols_;
-    LD_ = rows;
-    mat_ = new T[size_];
-    // std::cout << "Assignement (reassigment), size " << size_ << " rows_ " <<
-    // rows_ << " cols " << cols_ << " LD "<< LD_ <<  std::endl;
-  }
-}
-template <class T> inline void matrix<T>::clear() {
-  if (!mat_ || !size_)
-    return;
-  rows_ = cols_ = size_ = 0;
-  delete[](mat_);
-  mat_ = 0;
+matrix<T>::matrix(const matrix<T> &other) : matrix(other.rows_, other.cols_, false) {
+  std::copy(other.data_, other.data_ + other.size_, data_);
 }
 
-template <class T> inline void matrix<T>::resize(size_t rows, size_t cols) {
-  if (rows_ == rows && cols_ == cols)
-    return;
-  T *tempmat = new T[size_ = rows * cols];
-
-  for (size_t i = 0; i < rows; i++)
-    for (size_t j = 0; j < cols; j++)
-      if (i < rows_ && j < cols_)
-        tempmat[j * rows + i] = mat_[j * rows_ + i];
-      else
-        tempmat[j * rows + i] = 0.0;
-  LD_ = rows_ = rows;
-  cols_ = cols;
-  delete[](mat_);
-  mat_ = tempmat;
-}
-
-template <class T> inline matrix<T>::~matrix() {
-  // destructor, deletes the matrix from memory when we leave the scope
-  if (mat_ != nullptr)
-    delete[](mat_);
-}
 template <class T>
-inline matrix<T> &matrix<T>::operator=(const matrix<T> &rhs) {
-  // overloading the assignement operator
-  // postcondition: normal assignment via copying has been performed;
-  //    if matrix and rhs were different sizes, matrix
-  //    has been resized to match the size of rhs
-  //#ifdef DEBUG
-  if (rows_ != rhs.rows_ || cols_ != rhs.cols_) { // if the rows are different
+matrix<T>::matrix(matrix<T>&& other) noexcept
+  : rows_(other.rows_), cols_(other.cols_), size_(other.size_), LD_(rows_),
+    data_(other.data_) {
+  other.data_ = nullptr;
+}
+
+//-----------------------------------------------------------------------
+// Assignment
+//-----------------------------------------------------------------------
+
+template <class T>
+matrix<T>& matrix<T>::operator=(matrix<T>&& other) noexcept {
+  free(data_);
+  rows_ = other.rows_;
+  cols_ = other.cols_;
+  size_ = rows_ * cols_;
+  LD_ = other.LD_;
+  data_ = other.data_;
+  other.data_ = nullptr;
+  return *this;
+}
+
+template <class T>
+matrix<T> &matrix<T>::operator=(const matrix<T> &other) {
+  if (rows_ != other.rows_ || cols_ != other.cols_) { 
     // size delete re-construct
     // the matrix
-    if (mat_ != 0)
-      delete[](mat_);
-    rows_ = rhs.rows_;
-    cols_ = rhs.cols_;
+    free(data_);
+    rows_ = other.rows_;
+    cols_ = other.cols_;
     size_ = rows_ * cols_;
-    LD_ = rhs.LD_;
-    mat_ = new T[size_];
+    LD_ = other.LD_;
+    data_ = malloc_array<T>(size_);
   }
-  //#endif
-  for (size_t p = 0; p < size_; p++) { // the copying of the matrix
-    // std::cout << p << std::endl;
-    mat_[p] = T(rhs.mat_[p]);
-  }
+  std::copy(other.data_, other.data_ + size_, data_);
   return *this;
 }
+
 template <class T>
 template <class S>
-inline matrix<T> &matrix<T>::operator=(const matrix<S> &rhs) {
-  // overloading the assignement operator
-  // postcondition: normal assignment via copying has been performed;
-  //    if matrix and rhs were different sizes, matrix
-  //    has been resized to match the size of rhs
-  //#ifdef DEBUG
-  if (rows_ != rhs.GetRows() ||
-      cols_ != rhs.GetColumns()) { // if the rows are different size delete
-    // re-construct the matrix
-    if (mat_ != nullptr)
-      delete[](mat_);
-    rows_ = rhs.GetRows();
-    cols_ = rhs.GetColumns();
+inline matrix<T> &matrix<T>::operator=(const matrix<S> &other) {
+
+  if (rows_ != other.GetRows() ||
+      cols_ != other.GetColumns()) {
+    free(data_);
+    rows_ = other.GetRows();
+    cols_ = other.GetColumns();
     size_ = rows_ * cols_;
-    LD_ = rhs.GetLD();
-    mat_ = new T[size_];
+    LD_ = other.GetLD();
+    data_ = malloc_array<T>(size_);
   }
-  //#endif
-  for (size_t p = 0; p < size_; p++) { // the copying of the matrix
-    mat_[p] = T(rhs[p]);
+  for (size_t p = 0; p < size_; p++) {
+    data_[p] = T(other[p]);
   }
   return *this;
 }
-template <class T> inline T &matrix<T>::operator[](size_t p) {
-// returns the pth element of the vector representing the matrix,  remember []
-// is the operator acting on the object matrix (read backwards).
+
+//-----------------------------------------------------------------------
+// Buffer conversion
+//-----------------------------------------------------------------------
+
+template <class T>
+matrix<T> matrix<T>::copy_from_buffer(size_t rows, size_t cols, const T* buffer) {
+  matrix<T> ret;
+  ret.size_ = rows * cols;
+  ret.rows_ = rows;
+  ret.cols_ = cols;
+  ret.LD_ = rows;
+  ret.data_ = calloc_array<T>(ret.size_);
+  std::copy(buffer, buffer + ret.size_, ret.data_);
+  return ret;
+}
+
+template <class T>
+matrix<T> matrix<T>::move_from_buffer(size_t rows, size_t cols, T* buffer) {
+  matrix<T> ret;
+  ret.size_ = rows * cols;
+  ret.rows_ = rows;
+  ret.cols_ = cols;
+  ret.LD_ = rows;
+  ret.data_ = buffer;
+  return ret;
+}
+
+template <class T>
+T* matrix<T>::copy_to_buffer() const {
+  T* buffer = malloc_array<T>(size_);
+  std::copy(data_, data_ + size_, buffer);
+  return buffer;
+}
+
+template <class T>
+T* matrix<T>::move_to_buffer() {
+  T* buffer = data_;
+  data_ = nullptr;
+  size_ = 0;
+  rows_ = 0;
+  cols_ = 0;
+  return buffer;
+}
+
+//-----------------------------------------------------------------------
+// Element access
+//-----------------------------------------------------------------------
+
+template <class T>
+T& matrix<T>::operator[](size_t p) {
 #ifdef DEBUG
   if (p >= size_) {
     std::cerr
@@ -444,11 +448,10 @@ template <class T> inline T &matrix<T>::operator[](size_t p) {
     exit(1);
   }
 #endif
-  return mat_[p];
+  return data_[p];
 }
-template <class T> inline T matrix<T>::operator[](size_t p) const {
-// returns the pth element of the vector representing the matrix if the operator
-// is acting on a const
+template <class T>
+const T& matrix<T>::operator[](size_t p) const {
 #ifdef DEBUG
   if (p >= size_) {
     std::cerr << "Error: matrix class operator [] const: Matrix subscript out "
@@ -457,11 +460,11 @@ template <class T> inline T matrix<T>::operator[](size_t p) const {
     exit(1);
   }
 #endif
-  return mat_[p];
+  return data_[p];
 }
-template <class T> inline T &matrix<T>::operator()(size_t i, size_t j) {
-// return the data at position i,j, remember () is the operator acting on the
-// object matrix (read backwards).
+
+template <class T>
+T& matrix<T>::operator()(size_t i, size_t j) {
 #ifdef DEBUG
   if (i >= rows_ || j >= cols_) {
     std::cerr
@@ -470,10 +473,11 @@ template <class T> inline T &matrix<T>::operator()(size_t i, size_t j) {
     exit(1);
   }
 #endif
-  return mat_[j * rows_ + i];
+  return data_[j * rows_ + i];
 }
-template <class T> inline T matrix<T>::operator()(size_t i, size_t j) const {
-// return the data at i,j if the operator is acting on a const
+
+template <class T>
+const T& matrix<T>::operator()(size_t i, size_t j) const {
 #ifdef DEBUG
   if (i >= rows_ || j >= cols_) {
     std::cerr << "Error: matrix class operator ()   const: Matrices subscript "
@@ -482,8 +486,51 @@ template <class T> inline T matrix<T>::operator()(size_t i, size_t j) const {
     exit(1);
   }
 #endif
-  return mat_[j * rows_ + i];
+  return data_[j * rows_ + i];
 }
+
+template <class T>
+void matrix<T>::clear() {
+  if (!data_ || !size_)
+    return;
+  rows_ = cols_ = size_ = 0;
+  free(data_);
+}
+
+template <class T> inline void matrix<T>::initialize(size_t rows, size_t cols) {
+  if (rows_ != rows || cols_ != cols) {
+    free(data_);
+    rows_ = rows;
+    cols_ = cols;
+    size_ = rows_ * cols_;
+    LD_ = rows;
+    data_ = calloc_array<T>(size_);
+  }
+}
+
+template <class T>
+void matrix<T>::fill(const T& val) {
+  std::fill(data_, data_ + size_, val);
+}
+
+template <class T>
+void matrix<T>::resize(size_t rows, size_t cols) {
+  if (rows_ == rows && cols_ == cols)
+    return;
+  size_ = rows * cols;
+  T *tempmat = malloc_array<T>(size_);
+  for (size_t j = 0; j < cols; j++)
+    for (size_t i = 0; i < rows; i++)
+      if (i < rows_ && j < cols_)
+        tempmat[j * rows + i] = data_[j * rows_ + i];
+      else
+        tempmat[j * rows + i] = 0.0;
+  free(data_);
+  LD_ = rows_ = rows;
+  cols_ = cols;
+  data_ = tempmat;
+}
+
 template <class T> inline size_t matrix<T>::GetRows() const {
   // returns the rows of the matrix
   return rows_;
@@ -496,23 +543,7 @@ template <class T> inline size_t matrix<T>::GetLD() const {
   // returns the leading dimension
   return LD_;
 }
-template <class T> inline size_t matrix<T>::size() const {
-  // returns the size of the underlying vector
-  return size_;
-}
-template <class T> inline bool matrix<T>::empty() const {
-  // returns the size of the underlying vector
-  return (size() == 0);
-}
-template <class T> inline T *matrix<T>::GetMat() const {
-  // returns the ptr for the matrix data
-  return mat_;
-}
-template <class T>
-inline void matrix<T>::SetOutputStyle(enum OutputStyle outputstyle) {
-  // sets the outputstyle
-  outputstyle_ = outputstyle;
-}
+
 template <class T> inline matrix<T> matrix<T>::operator+(const matrix<T> &A) {
 // overloads the + for matrix addition, can this be more efficient
 #ifdef DEBUG
@@ -525,7 +556,7 @@ template <class T> inline matrix<T> matrix<T>::operator+(const matrix<T> &A) {
 #endif
   matrix<T> temp(rows_, cols_);
   for (unsigned int p = 0; p < size_; p++) {
-    temp.mat_[p] = mat_[p] + A.mat_[p];
+    temp.data_[p] = data_[p] + A.data_[p];
   }
   return temp;
 }
@@ -541,7 +572,7 @@ template <class T> inline matrix<T> matrix<T>::operator-(const matrix<T> &A) {
 #endif
   matrix<T> temp(rows_, cols_);
   for (unsigned int p = 0; p < size_; p++) {
-    temp.mat_[p] = mat_[p] - A.mat_[p];
+    temp.data_[p] = data_[p] - A.data_[p];
   }
   return temp;
 }
@@ -559,7 +590,7 @@ inline matrix<T> matrix<T>::operator+(const matrix<T> &A) const {
 #endif
   matrix<T> temp(rows_, cols_);
   for (unsigned int p = 0; p < size_; p++) {
-    temp.mat_[p] = mat_[p] + A.mat_[p];
+    temp.data_[p] = data_[p] + A.data_[p];
   }
   return temp;
 }
@@ -576,7 +607,7 @@ inline matrix<T> matrix<T>::operator-(const matrix<T> &A) const {
 #endif
   matrix<T> temp(rows_, cols_);
   for (unsigned int p = 0; p < size_; p++) {
-    temp.mat_[p] = mat_[p] - A.mat_[p];
+    temp.data_[p] = data_[p] - A.data_[p];
   }
   return temp;
 }
@@ -592,7 +623,7 @@ template <class T> inline matrix<T> &matrix<T>::operator+=(const matrix<T> &A) {
   }
 #endif
   for (size_t p = 0; p < size_; p++) {
-    mat_[p] += A.mat_[p];
+    data_[p] += A.data_[p];
   }
   return *this;
 }
@@ -608,7 +639,7 @@ template <class T> inline matrix<T> &matrix<T>::operator-=(const matrix<T> &A) {
   }
 #endif
   for (size_t p = 0; p < size_; p++) {
-    mat_[p] -= A.mat_[p];
+    data_[p] -= A.data_[p];
   }
   return *this;
 }
@@ -619,43 +650,31 @@ template <class T> inline matrix<T> &matrix<T>::operator-=(const matrix<T> &A) {
  *
  ******************************************************************************/
 template <class T>
-std::ostream &operator<<(std::ostream &output, const matrix<T> &A) {
-  // overloads << and has three output styles
-  // Column is in a column vector
-  // List is a row of the actual column vector
-  // Matrix is the matrix
-  if (A.outputstyle_ == List) {
-    for (size_t p = 0; p < A.size_; p++) {
-      output << A.mat_[p] << '\t';
+std::ostream &operator<<(std::ostream &out, const matrix<T> &A) {
+  out << "[";
+  size_t last_row = A.rows_ - 1;
+  size_t last_col = A.cols_ - 1;
+  for (size_t i = 0; i < A.rows_; ++i) {
+    out << "[";
+    for (size_t j = 0; j < A.cols_; ++j) {
+      out << A.data_[i + A.rows_ * j];
+      if (j != last_col)
+        out << ", ";
     }
-  } else if (A.outputstyle_ == Matrix) {
-    for (size_t i = 0; i < A.rows_; i++) {
-      for (size_t j = 0; j < A.cols_; j++) {
-        output << A.mat_[j * A.rows_ + i] << "\t";
-      }
-      output << std::endl;
-    }
+    out << "]";
+    if (i != last_row)
+      out << ", ";
   }
-
-  else if (A.outputstyle_ == Column) {
-    for (size_t p = 0; p < A.size_; p++) {
-      output << A.mat_[p] << '\n';
-    }
-  } else {
-    std::cerr << "Error: matrix operator << is not assigned with a valid "
-                 "option -- these are Column, List, Matrix"
-              << std::endl;
-    exit(1);
-  }
-
-  return output;
+  out << "]";
+  return out;
 }
+
 template <class T>
 std::istream &operator>>(std::istream &input, const matrix<T> &A) {
   // overloads the >> to read in a row into column format
   for (size_t j = 0; j < A.cols_; j++) {
     for (size_t i = 0; i < A.rows_; i++) {
-      input >> A.mat_[j * A.rows_ + i];
+      input >> A.data_[j * A.rows_ + i];
     }
   }
   return input;
@@ -693,10 +712,10 @@ inline matrix<double> operator*(const matrix<double> &A,
   // C-> alpha*op(A)*op(B) +beta C
   matrix<double> C(A.rows_, B.cols_);
   double alpha = 1.0, beta = 0.0;
-  dgemm_(&Trans[0], &Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.mat_,
-         &A.LD_, B.mat_, &B.LD_, &beta, C.mat_, &C.LD_);
+  dgemm_(&Trans[0], &Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
+         &A.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
   // cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, B.cols_,
-  // A.cols_, 1.0, A.mat_, A.LD_, B.mat_, B.LD_, 0.0, C.mat_, C.LD_);
+  // A.cols_, 1.0, A.data_, A.LD_, B.data_, B.LD_, 0.0, C.data_, C.LD_);
   return C;
 }
 inline matrix<float> operator*(const matrix<float> &A, const matrix<float> &B) {
@@ -705,10 +724,10 @@ inline matrix<float> operator*(const matrix<float> &A, const matrix<float> &B) {
   // C-> alpha*op(A)*op(B) +beta C
   matrix<float> C(A.rows_, B.cols_);
   float alpha = 1.0, beta = 0.0;
-  sgemm_(&Trans[0], &Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.mat_,
-         &A.LD_, B.mat_, &B.LD_, &beta, C.mat_, &C.LD_);
+  sgemm_(&Trans[0], &Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
+         &A.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
   // cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, B.cols_,
-  // A.cols_, 1.0, A.mat_, A.LD_, B.mat_, B.LD_, 0.0, C.mat_, C.LD_);
+  // A.cols_, 1.0, A.data_, A.LD_, B.data_, B.LD_, 0.0, C.data_, C.LD_);
   return C;
 }
 inline matrix<std::complex<float>>
@@ -719,10 +738,10 @@ operator*(const matrix<std::complex<float>> &A,
   // C-> alpha*op(A)*op(B) +beta C
   matrix<std::complex<float>> C(A.rows_, B.cols_);
   std::complex<float> alpha = 1.0, beta = 0.0;
-  cgemm_(&Trans[0], &Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.mat_,
-         &A.LD_, B.mat_, &B.LD_, &beta, C.mat_, &C.LD_);
+  cgemm_(&Trans[0], &Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
+         &A.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
   // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, B.cols_,
-  // A.cols_, &alpha, A.mat_, A.LD_, B.mat_, B.LD_, &beta, C.mat_, C.LD_);
+  // A.cols_, &alpha, A.data_, A.LD_, B.data_, B.LD_, &beta, C.data_, C.LD_);
   return C;
 }
 inline matrix<std::complex<double>>
@@ -733,10 +752,10 @@ operator*(const matrix<std::complex<double>> &A,
   // C-> alpha*op(A)*op(B) +beta C
   matrix<std::complex<double>> C(A.rows_, B.cols_);
   std::complex<double> alpha = 1.0, beta = 0.0;
-  zgemm_(&Trans[0], &Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.mat_,
-         &A.LD_, B.mat_, &B.LD_, &beta, C.mat_, &C.LD_);
+  zgemm_(&Trans[0], &Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
+         &A.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
   // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, B.cols_,
-  // A.cols_, &alpha, A.mat_, A.LD_, B.mat_, B.LD_, &beta, C.mat_, C.LD_);
+  // A.cols_, &alpha, A.data_, A.LD_, B.data_, B.LD_, &beta, C.data_, C.LD_);
   return C;
 }
 inline matrix<std::complex<float>>
@@ -747,10 +766,10 @@ operator*(const matrix<float> &A, const matrix<std::complex<float>> &B) {
   matrix<std::complex<float>> C(A.rows_, B.cols_), Ac(A.rows_, A.cols_);
   Ac = A;
   std::complex<float> alpha = 1.0, beta = 0.0;
-  cgemm_(&Trans[0], &Trans[0], &Ac.rows_, &B.cols_, &Ac.cols_, &alpha, Ac.mat_,
-         &Ac.LD_, B.mat_, &B.LD_, &beta, C.mat_, &C.LD_);
+  cgemm_(&Trans[0], &Trans[0], &Ac.rows_, &B.cols_, &Ac.cols_, &alpha, Ac.data_,
+         &Ac.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
   // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, Ac.rows_, B.cols_,
-  // Ac.cols_, &alpha, Ac.mat_, Ac.LD_, B.mat_, B.LD_, &beta, C.mat_, C.LD_);
+  // Ac.cols_, &alpha, Ac.data_, Ac.LD_, B.data_, B.LD_, &beta, C.data_, C.LD_);
   return C;
 }
 inline matrix<std::complex<double>>
@@ -761,10 +780,10 @@ operator*(const matrix<double> &A, const matrix<std::complex<double>> &B) {
   matrix<std::complex<double>> C(A.rows_, B.cols_), Ac(A.rows_, A.cols_);
   Ac = A;
   std::complex<double> alpha = 1.0, beta = 0.0;
-  zgemm_(&Trans[0], &Trans[0], &Ac.rows_, &B.cols_, &Ac.cols_, &alpha, Ac.mat_,
-         &Ac.LD_, B.mat_, &B.LD_, &beta, C.mat_, &C.LD_);
+  zgemm_(&Trans[0], &Trans[0], &Ac.rows_, &B.cols_, &Ac.cols_, &alpha, Ac.data_,
+         &Ac.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
   // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, Ac.rows_, B.cols_,
-  // Ac.cols_, &alpha, Ac.mat_, Ac.LD_, B.mat_, B.LD_, &beta, C.mat_, C.LD_);
+  // Ac.cols_, &alpha, Ac.data_, Ac.LD_, B.data_, B.LD_, &beta, C.data_, C.LD_);
   return C;
 }
 inline matrix<std::complex<float>>
@@ -775,10 +794,10 @@ operator*(const matrix<std::complex<float>> &A, const matrix<float> &B) {
   matrix<std::complex<float>> C(A.rows_, B.cols_), Bc(B.rows_, B.cols_);
   Bc = B;
   std::complex<float> alpha = 1.0, beta = 0.0;
-  cgemm_(&Trans[0], &Trans[0], &A.rows_, &Bc.cols_, &A.cols_, &alpha, A.mat_,
-         &A.LD_, Bc.mat_, &Bc.LD_, &beta, C.mat_, &C.LD_);
+  cgemm_(&Trans[0], &Trans[0], &A.rows_, &Bc.cols_, &A.cols_, &alpha, A.data_,
+         &A.LD_, Bc.data_, &Bc.LD_, &beta, C.data_, &C.LD_);
   // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, Bc.cols_,
-  // A.cols_, &alpha, A.mat_, A.LD_, Bc.mat_, Bc.LD_, &beta, C.mat_, C.LD_);
+  // A.cols_, &alpha, A.data_, A.LD_, Bc.data_, Bc.LD_, &beta, C.data_, C.LD_);
   return C;
 }
 inline matrix<std::complex<double>>
@@ -789,10 +808,10 @@ operator*(const matrix<std::complex<double>> &A, const matrix<double> &B) {
   matrix<std::complex<double>> C(A.rows_, B.cols_), Bc(B.rows_, B.cols_);
   Bc = B;
   std::complex<double> alpha = 1.0, beta = 0.0;
-  zgemm_(&Trans[0], &Trans[0], &A.rows_, &Bc.cols_, &A.cols_, &alpha, A.mat_,
-         &A.LD_, Bc.mat_, &Bc.LD_, &beta, C.mat_, &C.LD_);
+  zgemm_(&Trans[0], &Trans[0], &A.rows_, &Bc.cols_, &A.cols_, &alpha, A.data_,
+         &A.LD_, Bc.data_, &Bc.LD_, &beta, C.data_, &C.LD_);
   // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, Bc.cols_,
-  // A.cols_, &alpha, A.mat_, A.LD_, Bc.mat_, Bc.LD_, &beta, C.mat_, C.LD_);
+  // A.cols_, &alpha, A.data_, A.LD_, Bc.data_, Bc.LD_, &beta, C.data_, C.LD_);
   return C;
 }
 
@@ -803,7 +822,7 @@ inline std::vector<float> operator*(const matrix<float> &A,
   std::vector<float> y(A.rows_);
   float alpha = 1.0, beta = 0.0;
   const size_t incx = 1, incy = 1;
-  sgemv_(&Trans[0], &A.rows_, &A.cols_, &alpha, A.mat_, &A.LD_, x.data(), &incx,
+  sgemv_(&Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
          &beta, y.data(), &incy);
   return y;
 }
@@ -814,7 +833,7 @@ inline std::vector<double> operator*(const matrix<double> &A,
   std::vector<double> y(A.rows_);
   double alpha = 1.0, beta = 0.0;
   const size_t incx = 1, incy = 1;
-  dgemv_(&Trans[0], &A.rows_, &A.cols_, &alpha, A.mat_, &A.LD_, x.data(), &incx,
+  dgemv_(&Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
          &beta, y.data(), &incy);
   return y;
 }
@@ -826,7 +845,7 @@ operator*(const matrix<std::complex<float>> &A,
   std::vector<std::complex<float>> y(A.rows_);
   std::complex<float> alpha = 1.0, beta = 0.0;
   const size_t incx = 1, incy = 1;
-  cgemv_(&Trans[0], &A.rows_, &A.cols_, &alpha, A.mat_, &A.LD_, x.data(), &incx,
+  cgemv_(&Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
          &beta, y.data(), &incy);
   return y;
 }
@@ -838,7 +857,7 @@ operator*(const matrix<std::complex<double>> &A,
   std::vector<std::complex<double>> y(A.rows_);
   std::complex<double> alpha = 1.0, beta = 0.0;
   const size_t incx = 1, incy = 1;
-  zgemv_(&Trans[0], &A.rows_, &A.cols_, &alpha, A.mat_, &A.LD_, x.data(), &incx,
+  zgemv_(&Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
          &beta, y.data(), &incy);
   return y;
 }

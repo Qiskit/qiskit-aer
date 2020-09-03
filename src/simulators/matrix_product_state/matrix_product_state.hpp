@@ -69,6 +69,7 @@ enum class Snapshots {
 // Enum class for different types of expectation values
 enum class SnapshotDataType {average, average_var, pershot};
 
+
 //=========================================================================
 // Matrix Product State subclass
 //=========================================================================
@@ -123,11 +124,28 @@ public:
   // We currently set the threshold to 1 in qasm_controller.hpp, i.e., no parallelization
   virtual void set_config(const json_t &config) override;
 
+  virtual void add_metadata(ExperimentData &data) const override;
+
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
   virtual std::vector<reg_t> sample_measure(const reg_t& qubits,
                                             uint_t shots,
                                             RngEngine &rng) override;
+
+  // Computes sample_measure by first computing the probabilities and then
+  // randomly chooses measurement outcomes based on the probability weights
+  std::vector<reg_t> 
+  sample_measure_using_probabilities(const reg_t &qubits,
+				     uint_t shots,
+				     RngEngine &rng) const;
+
+  // Computes sample_measure by copying the MPS to a temporary structure, and
+  // applying a measurement on the temporary MPS. This is done for every shot,
+  // so is not efficient for a large number of shots
+  std::vector<reg_t> 
+  sample_measure_using_apply_measure(const reg_t &qubits,
+				     uint_t shots,
+				     RngEngine &rng) const;
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -339,6 +357,11 @@ void State::initialize_qreg(uint_t num_qubits, const cvector_t &statevector) {
   qreg_.initialize_from_statevector(num_qubits, mps_format_state_vector);
 }
 
+void State::initialize_omp() {
+  if (BaseState::threads_ > 0)
+    qreg_.set_omp_threads(BaseState::threads_); // set allowed OMP threads in MPS
+}
+
 size_t State::required_memory_mb(uint_t num_qubits,
 			      const std::vector<Operations::Op> &ops) const {
     // for each qubit we have a tensor structure.
@@ -352,28 +375,60 @@ size_t State::required_memory_mb(uint_t num_qubits,
 }
 
 void State::set_config(const json_t &config) {
+  // Set threshold for truncating Schmidt coefficients
+  double threshold;
+  if (JSON::get_value(threshold, "matrix_product_state_truncation_threshold", config))
+    MPS_Tensor::set_truncation_threshold(threshold);
+  else
+    MPS_Tensor::set_truncation_threshold(1e-16);
+
+  uint_t max_bond_dimension;
+  if (JSON::get_value(max_bond_dimension, "matrix_product_state_max_bond_dimension", config)) 
+    MPS_Tensor::set_max_bond_dimension(max_bond_dimension);
+  else
+    MPS_Tensor::set_max_bond_dimension(UINT64_MAX);
 
   // Set threshold for truncating snapshots
   uint_t json_chop_threshold;
   if (JSON::get_value(json_chop_threshold, "chop_threshold", config))
     MPS::set_json_chop_threshold(json_chop_threshold);
+  else
+    MPS::set_json_chop_threshold(1E-8);
 
-  // Set OMP threshold for state update functions
+  // Set OMP num threshold
   uint_t omp_qubit_threshold;
   if (JSON::get_value(omp_qubit_threshold, "mps_parallel_threshold", config))
     MPS::set_omp_threshold(omp_qubit_threshold);
+  else
+     MPS::set_omp_threshold(14);
 
-  // Set the sample measure indexing size
-  int index_size;
-  if (JSON::get_value(index_size, "mps_sample_measure_opt", config)) {
+  // Set OMP threads
+  uint_t omp_threads;
+  if (JSON::get_value(omp_threads, "mps_omp_threads", config))
+    MPS::set_omp_threads(omp_threads);
+  else
+    MPS::set_omp_threads(1);
+
+  uint_t index_size;
+  if (JSON::get_value(index_size, "mps_sample_measure_qubits_opt", config)) // Set the sample measure qubit size
     MPS::set_sample_measure_index_size(index_size);
-  };
+  else
+     MPS::set_sample_measure_index_size(26);
 
-  // Enable sorted gate optimzations
-  bool gate_opt = false;
-  //  if (JSON::get_value(gate_opt, "mps_gate_opt", config))
-  //    MPS::set_enable_gate_opt(gate_opt);
+  uint_t shots_num;
+  if (JSON::get_value(shots_num, "mps_sample_measure_shots_opt", config))
+    MPS::set_sample_measure_shots_thresh(shots_num);
+  else
+    MPS::set_sample_measure_shots_thresh(10);    
 }
+
+void State::add_metadata(ExperimentData &data) const {
+  data.add_metadata("matrix_product_state_truncation_threshold", 
+		    MPS_Tensor::get_truncation_threshold());
+
+  data.add_metadata("matrix_product_state_max_bond_dimension", 
+		    MPS_Tensor::get_max_bond_dimension());
+} 
 
 //=========================================================================
 // Implementation: apply operations
@@ -481,7 +536,6 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
       expval += coeff * one_expval;
     }
   }
-
   // add to snapshot
   Utils::chop_inplace(expval, MPS::get_json_chop_threshold());
   switch (type) {
@@ -513,6 +567,7 @@ void State::snapshot_probabilities(const Operations::Op &op,
   rvector_t prob_vector;
   qreg_.get_probabilities_vector(prob_vector, op.qubits);
   auto probs = Utils::vec2ket(prob_vector, MPS::get_json_chop_threshold(), 16);
+
   bool variance = type == SnapshotDataType::average_var;
   data.add_average_snapshot("probabilities", op.string_params[0], 
   			    BaseState::creg_.memory_hex(), probs, variance);
@@ -576,7 +631,7 @@ void State::apply_gate(const Operations::Op &op) {
       qreg_.apply_tdg(op.qubits[0]);
       break;
     case Gates::swap:
-      qreg_.apply_swap(op.qubits[0], op.qubits[1]);
+      qreg_.apply_swap(op.qubits[0], op.qubits[1], true);
       break;
     case Gates::cz:
       qreg_.apply_cz(op.qubits[0], op.qubits[1]);
@@ -590,7 +645,6 @@ void State::apply_gate(const Operations::Op &op) {
       throw std::invalid_argument(
         "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
   }
-
 }
 
   void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
@@ -648,17 +702,65 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
                                          uint_t shots,
                                          RngEngine &rng) {
 
+  uint_t num_measured_qubits = qubits.size();
+
+  // There are two alternative algorithms for sample measure
+  // We choose the one that is optimal relative to the total number 
+  //of qubits,and the number of shots.
+  // The parameters used below are based on experimentation.
+  if (num_measured_qubits > MPS::get_sample_measure_index_size() || 
+      shots < MPS::get_sample_measure_shots_thresh()) {
+      return sample_measure_using_apply_measure(qubits, shots, rng);
+  }
+  return sample_measure_using_probabilities(qubits, shots, rng);
+}
+
+std::vector<reg_t> State::
+sample_measure_using_probabilities(const reg_t &qubits,
+				   uint_t shots,
+				   RngEngine &rng) const {
+
+  // Generate flat register for storing
+  rvector_t rnds;
+  rnds.reserve(shots);
+  for (uint_t i = 0; i < shots; ++i)
+    rnds.push_back(rng.rand(0, 1));
+
+  auto allbit_samples = qreg_.sample_measure_using_probabilities(rnds, qubits);
+
+  // Convert to reg_t format
+  std::vector<reg_t> all_samples;
+  all_samples.reserve(shots);
+  for (int_t val : allbit_samples) {
+    reg_t allbit_sample = Utils::int2reg(val, 2, qreg_.num_qubits());
+    reg_t sample;
+    sample.reserve(qubits.size());
+    for (uint_t qubit : qubits) {
+      sample.push_back(allbit_sample[qubit]);
+    }
+    all_samples.push_back(sample);
+  }
+  return all_samples;
+}
+
+std::vector<reg_t> State::
+  sample_measure_using_apply_measure(const reg_t &qubits, 
+				     uint_t shots, 
+				     RngEngine &rng) const {
   MPS temp;
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
   reg_t single_result;
 
+  #pragma omp parallel if (shots >  MPS::get_omp_threshold() && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads())
+    {
+      #pragma omp for
   for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
     temp.initialize(qreg_);
     single_result = temp.apply_measure(qubits, rng);
     all_samples[i] = single_result;
   }
-
+  } // end omp parallel
   return all_samples;
 }
 

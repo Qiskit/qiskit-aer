@@ -1,6 +1,6 @@
 #define CATCH_CONFIG_MAIN
 #include <map>
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 #include <cmath>
 #include <limits>
 #include "framework/linalg/almost_equal.hpp"

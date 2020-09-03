@@ -17,7 +17,7 @@ sudo: false
 ###############################################################################
 
 # These are used for avoiding repeating code, and due to problems with
-# overriding some keys (in particular, "os" and "language: ptyhon") when using
+# overriding some keys (in particular, "os" and "language: python") when using
 # the standard travis matrix with stages.
 #
 # This allows re-using different "sets" of configurations in the stages
@@ -27,8 +27,8 @@ sudo: false
 #   * stage_osx
 stage_generic: &stage_generic
   install:
-    - pip install -U 'pip<20.0.0'
-    - pip install cython
+    - pip install -U pip
+    - pip install -U cython packaging
     # Install terra from master on aer master else use the most recent release
     - |
       if [[ $TRAVIS_BRANCH == "master" ]] ; then
@@ -36,11 +36,10 @@ stage_generic: &stage_generic
       else
           pip install -U -c constraints.txt qiskit-terra
       fi
-    # Installing qiskit-ibmq-provider stable branch
-    # This is only needed to suppress warnings when importing Qiskit
-    - pip install https://github.com/Qiskit/qiskit-ibmq-provider/archive/stable.zip
     # Installing qiskit-aer...
     - pip install -U -c constraints.txt -r requirements-dev.txt
+  env:
+    - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
 
 stage_linux: &stage_linux
   <<: *stage_generic
@@ -72,6 +71,7 @@ stage_osx: &stage_osx
   language: generic
   python: 3.7
   env:
+        - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
   cache:
@@ -149,14 +149,14 @@ jobs:
         - docker
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y openblas-devel"
-        - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686"
+        - CIBW_SKIP="cp27-* cp34-* cp35-* *-manylinux_i686 pp*"
         - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
         - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
       script:
         - pip install -U pip virtualenv twine
-        - pip install cibuildwheel==1.1.0
+        - pip install cibuildwheel==1.5.5
         - cibuildwheel --output-dir wheelhouse
     - stage: compile
       name: Python sdist Build Linux
@@ -166,7 +166,7 @@ jobs:
       script:
         - python setup.py sdist
         - mkdir out; cd out; virtualenv aer-test
-        - aer-test/bin/pip install git+https://github.com/Qiskit/qiskit-terra
+        - aer-test/bin/pip install -c ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
         - aer-test/bin/pip install ../dist/*tar.gz
         - aer-test/bin/python ../tools/verify_wheels.py
         - aer-test/bin/pip check
@@ -185,7 +185,7 @@ jobs:
       script:
         - python setup.py sdist
         - mkdir out; cd out; virtualenv aer-test
-        - aer-test/bin/pip install git+https://github.com/Qiskit/qiskit-terra
+        - aer-test/bin/pip install -c ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
         - aer-test/bin/pip install ../dist/*tar.gz
         - aer-test/bin/python ../tools/verify_wheels.py
         - aer-test/bin/pip check
@@ -194,7 +194,8 @@ jobs:
       name: Standalone Build Linux
       <<: *stage_linux
       language: cpp
-      install: true
+      install:
+        - pip install conan
       before_script: true
       script:
         - mkdir out; cd out; cmake ..
@@ -222,13 +223,6 @@ jobs:
       <<: *stage_linux
       python: 3.6
 
-    # GNU/Linux, Python 3.5
-    - stage: test
-      if: type = cron
-      name: Python 3.5 Tests Linux
-      <<: *stage_linux
-      python: 3.5
-
     # MacOS, Python 3.8 (via pyenv)
     - stage: test
       if: type = cron
@@ -236,6 +230,7 @@ jobs:
       <<: *stage_osx
       python: 3.8
       env:
+        - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
         - PYTHON_VERSION=3.8.1
 
     # MacOS, Python 3.7 (via pyenv)
@@ -246,6 +241,7 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
+        - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
 
     # MacOS, Python 3.6 (via pyenv)
     - stage: test
@@ -256,16 +252,8 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.6.5
+        - QISKIT_SUPPRESS_PACKAGING_WARNINGS=Y
 
-    # MacOS, Python 3.5 (via pyenv)
-    - stage: test
-      if: type = cron
-      name: Python 3.5 Tests MacOS
-      <<: *stage_osx
-      python: 3.5
-      env:
-        - MPLBACKEND=ps
-        - PYTHON_VERSION=3.5.6
     # "deploy" stage
     ##########################################################################
     #
@@ -277,8 +265,9 @@ jobs:
       services:
         - docker
       env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11 && yum install -y openblas-devel"
-        - CIBW_SKIP="cp27-* cp34-* *-manylinux_i686"
+        - CIBW_BEFORE_ALL="yum install -y openblas-devel"
+        - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11"
+        - CIBW_SKIP="cp27-* cp34-* cp35-* *-manylinux_i686 pp*"
         - CIBW_MANYLINUX_X86_64_IMAGE="manylinux2010"
         - CIBW_MANYLINUX_I686_IMAGE="manylinux2010"
         - TWINE_USERNAME=qiskit
@@ -287,7 +276,7 @@ jobs:
       if: tag IS present
       script:
         - pip install -U pip virtualenv twine
-        - pip install cibuildwheel==1.1.0
+        - pip install cibuildwheel==1.5.5
         - cibuildwheel --output-dir wheelhouse
         - twine upload wheelhouse/*
     - name: sdist Build and Upload
@@ -309,14 +298,14 @@ jobs:
       if: tag IS present
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython pip virtualenv pybind11"
-        - CIBW_SKIP="cp27-* cp34-*"
+        - CIBW_SKIP="cp27-* cp34-* cp35-* pp*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/tools/verify_wheels.py"
         - CIBW_TEST_REQUIRES="git+https://github.com/Qiskit/qiskit-terra.git"
       addons:
         homebrew:
           packages:
-          - openblas
+            - openblas
       script:
         - sudo pip2 install -U pip virtualenv
         - sudo pip2 install cibuildwheel==1.1.0 'twine<2.0'
@@ -337,7 +326,8 @@ jobs:
       name: Standalone Build Linux (Power)
       arch: ppc64le
       <<: *stage_linux
-      install: true
+      install:
+        - pip install conan
       before_script: true
       script:
         - mkdir out; cd out; cmake ..
