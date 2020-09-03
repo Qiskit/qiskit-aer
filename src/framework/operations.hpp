@@ -354,6 +354,7 @@ Op json_to_op_measure(const json_t &js);
 Op json_to_op_reset(const json_t &js);
 Op json_to_op_bfunc(const json_t &js);
 Op json_to_op_initialize(const json_t &js);
+Op json_to_op_multi_pauli(const json_t &js);
 
 // Snapshots
 Op json_to_op_snapshot(const json_t &js);
@@ -418,6 +419,8 @@ Op json_to_op(const json_t &js) {
     return json_to_op_kraus(js);
   if (name == "roerror")
     return json_to_op_roerror(js);
+   if (name == "multi_pauli")
+    return json_to_op_multi_pauli(js);
   // Default assume gate
   return json_to_op_gate(js);
 }
@@ -571,6 +574,31 @@ Op json_to_op_initialize(const json_t &js) {
   return op;
 }
 
+Op json_to_op_multi_pauli(const json_t &js){
+  Op op;
+  op.type = OpType::gate;
+  op.name = "multi_pauli";
+  JSON::get_value(op.qubits, "qubits", js);
+  JSON::get_value(op.string_params, "params", js);
+
+  // Check for optional label
+  // If label is not specified record the gate name as the label
+  std::string label;
+  JSON::get_value(label, "label", js);
+  if  (label != "")
+    op.string_params.push_back(label);
+  else
+    op.string_params.push_back(op.name);
+
+  // Conditional
+  add_condtional(Allowed::No, op, js);
+
+  // Validation
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
+
+  return op;
+}
 
 //------------------------------------------------------------------------------
 // Implementation: Boolean Functions

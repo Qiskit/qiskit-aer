@@ -24,7 +24,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <iostream>
+
 #include <sstream>
 #include <stdexcept>
 
@@ -208,6 +208,8 @@ public:
   // If N=2 this implements an optimized SWAP  gate
   // If N=3 this implements an optimized Fredkin gate
   void apply_mcswap(const reg_t &qubits);
+
+  void apply_multipauli(const reg_t &qubits, std::string ops);
 
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
@@ -1454,6 +1456,49 @@ void QubitVector<data_t, Derived>::apply_mcu(const reg_t &qubits,
     }
   } // end switch
 }
+
+template <typename data_t, typename Derived>
+void QubitVector<data_t, Derived>::apply_multipauli(const reg_t &qubits, std::string ops){
+    const std::complex<data_t> I(0., 1.);
+    const std::complex<data_t> minus_one(-1., 0);
+    unsigned num_qubits = qubits.size();
+    unsigned n = (1 << num_qubits);
+    complex_t global_coeff = 1;
+    for (unsigned i = 0; i < num_qubits; ++i){
+        if (ops[i] == 'Y'){
+            global_coeff *= I;
+        }
+    }
+    auto lambda = [&](const indexes_t &inds)->void {
+        for (size_t k = 0; k < n; ++k){
+            size_t k_bits = k;
+            size_t swap_with = 0;
+            size_t power_2 = 1;
+            complex_t coeff = 1;
+            for (unsigned i = 0; i < num_qubits; ++i){
+                unsigned bit = k_bits % 2;
+                k_bits /= 2;
+                char op = ops[(num_qubits - 1) - i];
+                if (bit == 0 && (op == 'X' || op == 'Y')){
+                    swap_with += power_2;
+                }
+                if (bit == 1 && (op == 'Z' || op == 'Y')){
+                    coeff *= minus_one;
+                    if (op == 'Z'){
+                        swap_with += power_2;
+                    }
+                }
+                power_2 *= 2;
+            }
+            data_[inds[k]] *= (coeff * global_coeff);
+            if (swap_with < k){
+                std::swap(data_[inds[k]], data_[inds[swap_with]]);
+            }
+        }
+    };
+    apply_lambda(lambda, qubits);
+}
+
 
 //------------------------------------------------------------------------------
 // Single-qubit matrices

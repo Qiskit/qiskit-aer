@@ -237,6 +237,22 @@ class QasmCliffordTests:
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
+    # ---------------------------------------------------------------------
+    # Test multipauli-gate
+    # ---------------------------------------------------------------------
+    def test_multi_pauli_gate_deterministic_default_basis_gates(self):
+        """Test multipauli-gate circuits compiling to backend default basis_gates."""
+        shots = 100
+        circuits = ref_1q_clifford.multi_pauli_gate_circuits_deterministic(
+            final_measure=True)
+        targets = ref_1q_clifford.multi_pauli_gate_counts_deterministic(shots)
+        job = execute(circuits, self.SIMULATOR, shots=shots,
+                      basis_gates=['multi_pauli'],
+                      backend_options=self.BACKEND_OPTS)
+        result = job.result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, delta=0)
+
 
 class QasmCliffordTestsWaltzBasis:
     """QasmSimulator Clifford gate tests in Waltz u1,u2,u3,cx basis."""
