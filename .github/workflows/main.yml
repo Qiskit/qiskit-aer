@@ -223,7 +223,8 @@ jobs:
           pip check
           stestr run --slowest
         shell: bash
-      - name: Run Tests macOS
+        if: !(runner.os == 'macOS' && matrix.python-version == '3.8')
+      - name: Run Tests macOS 3.8
         env:
           QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
           QISKIT_IN_PARALLEL: TRUE
@@ -232,4 +233,4 @@ jobs:
           pip check
           stestr run --slowest
         shell: bash
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && matrix.python-version == '3.8'
