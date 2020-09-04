@@ -53,7 +53,7 @@ public:
         const stringset_t &_snapshots)
     : optypes(_optypes), gates(_gates), snapshots(_snapshots) {}
   
-  OpSet(const std::vector<Op> &ops) { for (const auto& op : ops) {insert(op);} }
+  OpSet(const std::vector<Op> &ops) { for (const auto &op : ops) {insert(op);} }
 
   //-----------------------------------------------------------------------
   // Insert operations to the OpSet
@@ -157,7 +157,7 @@ bool OpSet::contains(const Op &_op) const {
 }
 
 bool OpSet::contains(const std::vector<Op> &_ops) const {
-  for (const auto& op: _ops) {
+  for (const auto &op: _ops) {
     if (!contains(op))
       return false;
   }
