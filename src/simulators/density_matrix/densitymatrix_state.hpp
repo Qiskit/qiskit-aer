@@ -387,7 +387,7 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
                                  ExperimentData &data,
                                  RngEngine &rng) {
   // Simple loop over vector of input operations
-  for (const auto op: ops) {
+  for (const auto &op: ops) {
     // If conditional op check conditional
     if (BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
@@ -511,8 +511,8 @@ void State<densmat_t>::snapshot_pauli_expval(const Operations::Op &op,
   // Accumulate expval components
   complex_t expval(0., 0.);
   for (const auto &param : op.params_expval_pauli) {
-    const auto& coeff = param.first;
-    const auto& pauli = param.second;
+    const auto &coeff = param.first;
+    const auto &pauli = param.second;
     expval += coeff * BaseState::qreg_.expval_pauli(op.qubits, pauli);
   }
 
@@ -594,7 +594,7 @@ cmatrix_t State<densmat_t>::reduced_density_matrix_cpu(const reg_t& qubits, cons
   // TODO: If we are not going to apply any additional instructions after
   //       this function we could move the memory when constructing rather
   //       than copying
-  const auto& vmat = BaseState::qreg_.data();
+  const auto &vmat = BaseState::qreg_.data();
   cmatrix_t reduced_state(DIM, DIM, false);
   {
     // Fill matrix with first iteration

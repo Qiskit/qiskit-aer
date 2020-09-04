@@ -275,7 +275,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
                       ExperimentData &data,
                       RngEngine &rng) {
   // Simple loop over vector of input operations
-  for (const auto op: ops) {
+  for (const auto &op: ops) {
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
         case Operations::OpType::barrier:
@@ -400,7 +400,7 @@ reg_t State::apply_measure_and_update(const reg_t &qubits,
   const rvector_t dist = {0.5, 0.5};
   reg_t outcome;
   // Measure each qubit
-  for (const auto q : qubits) {
+  for (const auto &q : qubits) {
     uint_t r = rng.rand_int(dist);
     outcome.push_back(qreg_.measure_and_update(q, r));
   }
@@ -560,7 +560,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   // Compute expval components
   auto copy_of_qreg = BaseState::qreg_;
   complex_t expval(0., 0.);
-  for (const auto &param: op.params_expval_pauli) {
+  for (const auto &param : op.params_expval_pauli) {
     const auto &coeff = param.first;
     const auto &pauli = param.second;
     std::vector<uint64_t> measured_qubits;
