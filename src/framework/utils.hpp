@@ -1215,7 +1215,7 @@ std::vector<std::complex<T>> conjugate(const std::vector<std::complex<T>> &v) {
 template <typename T>
 double norm(const std::vector<T> &vec) {
   double val = 0.0;
-  for (const auto v : vec) {
+  for (const auto &v : vec) {
     val += std::real(v * std::conj(v));
   }
   return std::sqrt(val);
@@ -1498,14 +1498,17 @@ std::string bin2hex(std::string str, bool prefix) {
 
   // Add > 64 bit chunks
   if (chunks > 0) {
+    std::string part;
     // Add last 64-bit chunk
-    std::stringstream ss;
-    ss << std::hex << std::stoull(str.substr(remain, bin_block), nullptr, 2);
-    std::string part = ss.str();
-    if (remain > 0) {
-      part.insert(0, hex_block - part.size(), '0'); // pad out zeros
+    {
+      std::stringstream ss;
+      ss << std::hex << std::stoull(str.substr(remain, bin_block), nullptr, 2);
+      part = ss.str();
+      if (remain > 0) {
+        part.insert(0, hex_block - part.size(), '0'); // pad out zeros
+      }
+      hex += part;
     }
-    hex += part;
     // Add any additional chunks
     for (size_t j=1; j < chunks; ++j) {
       std::stringstream ss; // clear string stream
