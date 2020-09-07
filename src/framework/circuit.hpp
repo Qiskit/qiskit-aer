@@ -73,10 +73,10 @@ public:
   // Return the used qubits for the circuit
   inline const std::set<uint_t>& qubits() const {return qubitset_;}
 
-  // Return the used qubits for the circuit
+  // Return the used memory for the circuit
   inline const std::set<uint_t>& memory() const {return memoryset_;}
 
-  // Return the used qubits for the circuit
+  // Return the used registers for the circuit
   inline const std::set<uint_t>& registers() const {return registerset_;}
 
   //-----------------------------------------------------------------------
@@ -120,7 +120,7 @@ void Circuit::set_params() {
   // Also check if measure sampling is in principle possible
   bool first_measure = true;
   for (size_t i = 0; i < ops.size(); ++i) {
-    const auto& op = ops[i];
+    const auto &op = ops[i];
     has_conditional |= op.conditional;
     opset_.insert(op);
     qubitset_.insert(op.qubits.begin(), op.qubits.end());

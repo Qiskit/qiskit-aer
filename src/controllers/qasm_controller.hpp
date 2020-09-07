@@ -103,7 +103,7 @@ namespace Simulator {
  * - "max_parallel_shots" (int): Set number of shots that maybe be executed
  *      in parallel for each circuit. Sset to 0 to use the number of max
  *      parallel threads [Default: 1].
- * - "counts" (bool): Return counts objecy in circuit data [Default: True]
+ * - "counts" (bool): Return counts object in circuit data [Default: True]
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
  * - "register" (bool): Return register array in circuit data [Default: False]
@@ -222,7 +222,7 @@ class QasmController : public Base::Controller {
                           const Method method,
                           ExperimentData& data) const;
 
-  // Execute a single shot a circuit by initializing the state vector
+  // Execute a single shot a of circuit by initializing the state vector
   // to initial_state, running all ops in circ, and updating data with
   // simulation output.
   template <class State_t, class Initstate_t>
@@ -693,7 +693,7 @@ QasmController::Method QasmController::simulation_method(
       // For noisy simulations we enable the density matrix method if
       // shots > 2 ** num_qubits. This is based on a rough estimate that
       // a single shot of the density matrix simulator is approx 2 ** nq
-      // times slow than a single shot of statevector due the increased
+      // times slower than a single shot of statevector due the increased
       // dimension
       if (noise_model.has_quantum_errors() &&
           circ.shots > (1ULL << circ.num_qubits) &&
@@ -1070,7 +1070,7 @@ void QasmController::measure_sampler(
 
   // Get measured qubits from circuit sort and delete duplicates
   std::vector<uint_t> meas_qubits;  // measured qubits
-  for (const auto& op : meas_ops) {
+  for (const auto &op : meas_ops) {
     for (size_t j = 0; j < op.qubits.size(); ++j)
       meas_qubits.push_back(op.qubits[j]);
   }
@@ -1089,7 +1089,7 @@ void QasmController::measure_sampler(
   // Maps of memory and register to qubit position
   std::unordered_map<uint_t, uint_t> memory_map;
   std::unordered_map<uint_t, uint_t> register_map;
-  for (const auto& op : meas_ops) {
+  for (const auto &op : meas_ops) {
     for (size_t j = 0; j < op.qubits.size(); ++j) {
       auto pos = qubit_map[op.qubits[j]];
       if (!op.memory.empty())
@@ -1109,12 +1109,12 @@ void QasmController::measure_sampler(
     creg.initialize(meas_circ.num_memory, meas_circ.num_registers);
 
     // process memory bit measurements
-    for (const auto& pair : memory_map) {
+    for (const auto &pair : memory_map) {
       creg.store_measure(reg_t({sample[pair.second]}), reg_t({pair.first}),
                          reg_t());
     }
     // process register bit measurements
-    for (const auto& pair : register_map) {
+    for (const auto &pair : register_map) {
       creg.store_measure(reg_t({sample[pair.second]}), reg_t(),
                          reg_t({pair.first}));
     }

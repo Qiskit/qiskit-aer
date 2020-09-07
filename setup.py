@@ -9,6 +9,15 @@ import subprocess
 import sys
 import inspect
 
+PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
+
+try:
+    from Cython.Build import cythonize
+except ImportError:
+    import subprocess
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'Cython>=0.27.1'])
+    from Cython.Build import cythonize
+
 try:
     from conans import client
 except ImportError:
@@ -31,10 +40,8 @@ import setuptools
 # also build time/setup requirements and will be added to both lists
 # of requirements
 common_requirements = [
-    'numpy>=1.16.3;python_version>"3.5"',
-    'numpy>=1.16.3,<1.19.0;python_version<"3.6"',
-    'scipy>=1.0;python_version>"3.5"',
-    'scipy>=1.0,<1.5.0;python_version<"3.6"',
+    'numpy>=1.16.3',
+    'scipy>=1.0',
     'cython>=0.27.1',
     'pybind11>=2.4'  # This isn't really an install requirement,
                      # Pybind11 is required to be pre-installed for
@@ -69,7 +76,7 @@ with open(README_PATH) as readme_file:
     README = readme_file.read()
 
 setup(
-    name='qiskit-aer',
+    name=PACKAGE_NAME,
     version=VERSION,
     packages=setuptools.find_namespace_packages(include=['qiskit.*']),
     cmake_source_dir='.',
@@ -90,12 +97,12 @@ setup(
         "Operating System :: POSIX :: Linux",
         "Programming Language :: C++",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Topic :: Scientific/Engineering",
     ],
+    python_requires=">=3.6",
     install_requires=requirements,
     setup_requires=setup_requirements,
     include_package_data=True,

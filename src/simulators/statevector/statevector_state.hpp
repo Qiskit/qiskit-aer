@@ -106,7 +106,7 @@ public:
                                const statevec_t &state) override;
 
   // Returns the required memory for storing an n-qubit state in megabytes.
-  // For this state the memory is indepdentent of the number of ops
+  // For this state the memory is independent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes
   virtual size_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops)
@@ -439,7 +439,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
                                  RngEngine &rng) {
 
   // Simple loop over vector of input operations
-  for (const auto & op: ops) {
+  for (const auto &op: ops) {
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
         case Operations::OpType::barrier:
@@ -573,8 +573,8 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
   // Accumulate expval components
   complex_t expval(0., 0.);
   for (const auto &param : op.params_expval_pauli) {
-    const auto& coeff = param.first;
-    const auto& pauli = param.second;
+    const auto &coeff = param.first;
+    const auto &pauli = param.second;
     expval += coeff * BaseState::qreg_.expval_pauli(op.qubits, pauli);
   }
 
@@ -620,7 +620,7 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
     // Apply each matrix component
     for (const auto &pair: param.second) {
       reg_t sub_qubits;
-      for (const auto pos : pair.first) {
+      for (const auto &pos : pair.first) {
         sub_qubits.push_back(qubits[pos]);
       }
       const cmatrix_t &mat = pair.second;

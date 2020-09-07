@@ -58,7 +58,7 @@ is that if your code contribution has user facing changes that you will write
 the release documentation for these changes. This documentation must explain
 what was changed, why it was changed, and how users can either use or adapt
 to the change. The idea behind release documentation is that when a naive
-user with limited internal knowledege of the project is upgrading from the
+user with limited internal knowledge of the project is upgrading from the
 previous release to the new one, they should be able to read the release notes,
 understand if they need to update their program which uses qiskit, and how they
 would go about doing that. It ideally should explain why they need to make
@@ -290,6 +290,23 @@ Ubuntu
 
     $ sudo apt install build-essential
 
+Although the *BLAS* and *LAPACK* library implementations included in the
+*build-essential* package are sufficient to build all of the `Aer` simulators, we
+recommend using *OpenBLAS*, which you can install by running
+
+CentOS/Red Hat
+
+    $ yum install openblas-devel
+
+Fedora
+
+    $ dnf install openblas-devel
+
+Ubuntu
+
+    $ sudo apt install libopenblas-dev
+
+
 And of course, `git` is required in order to build from repositories
 
 CentOS/Red Hat
@@ -386,12 +403,12 @@ options we have on `Aer` to CMake we use it's native mechanism:
 
 #### <a name="mac-dependencies"> Dependencies </a>
 
-There are various methods depending on the compiler we want to use. If we want
-to use the *Clang* compiler, we need to install an extra library for
-supporting *OpenMP*: *libomp*. The *CMake* build system will warn you
-otherwise. To install it manually, in a terminal window, run:
+We recommend installing *OpenBLAS*, which is our default choice:
 
-    $ brew install libomp
+    $ brew install openblas
+
+The *CMake* build system will search for other *BLAS* implementation
+alternatives if *OpenBLAS* is not installed in the system.
 
 You further need to have *Xcode Command Line Tools* installed on macOS:
 
@@ -681,7 +698,7 @@ These are the flags:
 
 * AER_CUDA_ARCH
 
-    This flag allows us we to specify the CUDA architecture instead of letting the build systemm auto detect it.
+    This flag allows us we to specify the CUDA architecture instead of letting the build system auto detect it.
     It can also be set as an ENV variable with the same name, although the flag takes precedence.
     
     Values:  Auto | Common | All | List of valid CUDA architecture(s).
@@ -709,7 +726,7 @@ The integration tests for Qiskit python extension are included in: `test/terra`.
 
 ## Platform support
 
-Bare in mind that every new feature/change needs to be compatible with all our
+Bear in mind that every new feature/change needs to be compatible with all our
 supported platforms: Win64, MacOS (API Level >= 19) and Linux-x86_64. The
 Continuous Integration (CI) systems will run builds and pass all the
 corresponding tests to verify this compatibility.

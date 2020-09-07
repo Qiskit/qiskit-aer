@@ -172,6 +172,22 @@ public:
 
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
+  //----------------------------------------------------------------
+  // Function name: get_accumulated_probabilities_vector
+  // Description: Computes the accumulated probabilities from 0
+  // Parameters: qubits - the qubits for which we compute probabilities
+  // Returns: acc_probvector - the vector of accumulated probabilities
+  //          index_vec - the base values whose probabilities are not 0
+  // For example:
+  // if probabilities vector is: 0.5 (00), 0.0 (01), 0.2 (10), 0.3 (11), then 
+  // acc_probvector = 0.0,    0.5,    0.7,   1.0
+  // index_vec =      0 (00), 2 (10), 3(11)
+  //----------------------------------------------------------------
+
+  void get_accumulated_probabilities_vector(rvector_t& acc_probvector, 
+					    reg_t& index_vec,
+					    const reg_t &qubits) const;
+
   static void set_omp_threads(uint_t threads) {
     if (threads > 0)
       omp_threads_ = threads;
@@ -187,6 +203,9 @@ public:
   static void set_sample_measure_index_size(uint_t index_size){
     sample_measure_index_size_ = index_size;
   }
+  static void set_sample_measure_shots_thresh(uint_t index_size){
+    sample_measure_shots_thresh_ = index_size;
+  }
   static void set_enable_gate_opt(bool enable_gate_opt) {
     enable_gate_opt_ = enable_gate_opt;
   }
@@ -200,8 +219,11 @@ public:
   static double get_json_chop_threshold() {
     return json_chop_threshold_;
   }
-  static uint_t get_sample_measure_index_size(){
+  static uint_t get_sample_measure_index_size() {
     return sample_measure_index_size_;
+  }
+  static uint_t get_sample_measure_shots_thresh() {
+    return sample_measure_shots_thresh_;
   }
 
   static bool get_enable_gate_opt() {
@@ -218,6 +240,9 @@ public:
     cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
     return expectation_value(qubits, mat);
   }
+
+  reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
+					   const reg_t &qubits) const;
 
   reg_t apply_measure(const reg_t &qubits,
 		      RngEngine &rng);
@@ -399,7 +424,8 @@ private:
   //-----------------------------------------------------------------------
   static uint_t omp_threads_;     // Disable multithreading by default
   static uint_t omp_threshold_;  // Qubit threshold for multithreading when enabled
-  static int sample_measure_index_size_; // Sample measure indexing qubit size
+  static uint_t sample_measure_index_size_; // Qubit threshold for computing sample_measure using probabilities
+  static uint_t sample_measure_shots_thresh_; // Shots threshold for computing sample_measure using probablities
   static double json_chop_threshold_;  // Threshold for choping small values
                                     // in JSON serialization
   static bool enable_gate_opt_;      // allow optimizations on gates
