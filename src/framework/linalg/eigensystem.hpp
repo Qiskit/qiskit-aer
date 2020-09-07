@@ -25,8 +25,8 @@
  * of a Hermitian matrix.
  * Uses the blas function ?heevx
  * @param hermitian_matrix: The Hermitian matrix.
- * @param eigenvalues: On output: the eignevalues of the matrix (input is overwritten)
- * @param eigenvectors: On input: a copy of psd_matrix, on output: the eigenvectors of the matrix.
+ * @param eigenvalues: On output: vector with the eignevalues of the matrix (input is overwritten)
+ * @param eigenvectors: On output: matrix with the eigenvectors stored as columns.
  *
  * @returns: void
  */

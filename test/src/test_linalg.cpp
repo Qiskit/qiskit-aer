@@ -95,7 +95,7 @@ TEMPLATE_TEST_CASE("Linear Algebra utilities", "[eigen_hermitian]", float, doubl
         }
         SECTION("actual check - heevx returns correctly") {
             std::vector<TestType> eigenvalues;
-            matrix<std::complex<TestType>> eigenvectors{herm_mat};
+            matrix<std::complex<TestType>> eigenvectors;
             eigensystem_hermitian(herm_mat, eigenvalues, eigenvectors);
 
             // test equality
