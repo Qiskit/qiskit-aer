@@ -33,17 +33,15 @@
     "install_command": [
         "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit', True)\"",
         "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit_aer.egg-info', True)\"",
-        "python -mpip install {wheel_file}",
-        "python -mpip install qiskit-ignis==0.2.0"
+        "pip install git+https://github.com/Qiskit/qiskit-terra",
+        "python -mpip install {wheel_file}"
     ],
     "uninstall_command": [
         "return-code=any python -mpip uninstall -y qiskit-terra",
-        "return-code=any python -mpip uninstall -y {project}",
-        "return-code=any python -mpip uninstall -y qiskit-ignis"
+        "return-code=any python -mpip uninstall -y {project}"
     ],
     "build_command": [
         "python -mpip install -U scikit-build cython",
-        "python -mpip install qiskit-terra",
         "python setup.py bdist_wheel --dist-dir={build_cache_dir} -- -DCMAKE_CXX_COMPILER=g++ -- -j"
     ],
 
@@ -135,7 +133,7 @@
 
     // The directory (relative to the current directory) that benchmarks are
     // stored in.  If not provided, defaults to "benchmarks"
-    "benchmark_dir": "benchmark",
+    "benchmark_dir": "benchmark2",
 
 
     // The directory (relative to the current directory) to cache the Python
