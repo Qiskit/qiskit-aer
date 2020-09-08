@@ -30,59 +30,6 @@ from .controller_wrappers import unitary_controller_execute
 # Logger
 logger = logging.getLogger(__name__)
 
-BASIS_GATES = [
-    'u1',
-    'u2',
-    'u3',
-    'cx',
-    'cz',
-    'id',
-    'x',
-    'y',
-    'z',
-    'h',
-    's',
-    'sdg',
-    't',
-    'tdg',
-    'swap',
-    'ccx',
-    'unitary',
-    'cu1',
-    'cu2',
-    'cu3',
-    'cswap',
-    'mcx',
-    'mcy',
-    'mcz',
-    'mcu1',
-    'mcu2',
-    'mcu3',
-    'mcswap',
-    'multiplexer',
-]
-
-DEFAULT_CONFIGURATION = {
-    'backend_name': 'unitary_simulator',
-    'backend_version': __version__,
-    'n_qubits': MAX_QUBITS_STATEVECTOR // 2,
-    'url': 'https://github.com/Qiskit/qiskit-aer',
-    'simulator': True,
-    'local': True,
-    'conditional': False,
-    'open_pulse': False,
-    'memory': False,
-    'max_shots': int(1e6),  # Note that this backend will only ever
-    # perform a single shot. This value is just
-    # so that the default shot value for execute
-    # will not raise an error when trying to run
-    # a simulation
-    'description': 'A C++ unitary simulator for QASM Qobj files',
-    'coupling_map': None,
-    'basis_gates': BASIS_GATES,
-    'gates': []
-}
-
 
 class UnitarySimulator(AerBackend):
     """Ideal quantum circuit unitary simulator.
@@ -151,6 +98,34 @@ class UnitarySimulator(AerBackend):
       performance (Default: 14).
     """
 
+    _DEFAULT_CONFIGURATION = {
+        'backend_name': 'unitary_simulator',
+        'backend_version': __version__,
+        'n_qubits': MAX_QUBITS_STATEVECTOR // 2,
+        'url': 'https://github.com/Qiskit/qiskit-aer',
+        'simulator': True,
+        'local': True,
+        'conditional': False,
+        'open_pulse': False,
+        'memory': False,
+        'max_shots': int(1e6),  # Note that this backend will only ever
+                                # perform a single shot. This value is just
+                                # so that the default shot value for execute
+                                # will not raise an error when trying to run
+                                # a simulation
+        'description': 'A C++ unitary simulator for QASM Qobj files',
+        'coupling_map': None,
+        'basis_gates': [
+            'u1', 'u2', 'u3', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+            'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
+            'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
+            'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
+            'mcp', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
+            'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay'
+        ],
+        'gates': []
+    }
+
     _AVAILABLE_METHODS = None
 
     def __init__(self,
@@ -163,11 +138,12 @@ class UnitarySimulator(AerBackend):
 
         if UnitarySimulator._AVAILABLE_METHODS is None:
             UnitarySimulator._AVAILABLE_METHODS = available_methods(
-                self._controller, [
+                self._controller,
                 ['automatic', 'unitary', 'unitary_gpu', 'unitary_thrust'])
+
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
-                DEFAULT_CONFIGURATION)
+                UnitarySimulator._DEFAULT_CONFIGURATION)
 
         super().__init__(configuration,
                          properties=properties,

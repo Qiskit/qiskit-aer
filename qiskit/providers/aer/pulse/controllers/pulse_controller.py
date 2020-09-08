@@ -51,7 +51,7 @@ def pulse_controller(qobj):
     # ### Extract model parameters
     # ###############################
 
-    system_model = getattr(config, 'system_model')
+    system_model = config.system_model
 
     # Get qubit list and number
     qubit_list = system_model.subsystem_list

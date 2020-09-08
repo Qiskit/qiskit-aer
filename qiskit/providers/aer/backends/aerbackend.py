@@ -96,10 +96,7 @@ class AerBackend(BaseBackend, ABC):
         self._custom_defaults = None
 
         # Set available methods
-        if available_methods is None:
-            self._available_methods = []
-        else:
-            self._available_methods = available_methods
+        self._available_methods = [] if available_methods is None else available_methods
 
         # Set custom configured options from backend_options dictionary
         self._options = {}
@@ -148,7 +145,7 @@ class AerBackend(BaseBackend, ABC):
                 stacklevel=3)
 
         # Add backend options to the Job qobj
-        qobj = self._run_qobj(
+        qobj = self._format_qobj(
             qobj, backend_options=backend_options, **run_options)
 
         # Optional validation
@@ -331,9 +328,9 @@ class AerBackend(BaseBackend, ABC):
             self._custom_defaults = copy.copy(self._defaults)
         setattr(self._custom_defaults, key, value)
 
-    def _run_qobj(self, qobj,
-                  backend_options=None,  # DEPRECATED
-                  **run_options):
+    def _format_qobj(self, qobj,
+                     backend_options=None,  # DEPRECATED
+                     **run_options):
         """Return execution sim config dict from backend options."""
         # Add options to qobj config overriding any existing fields
         config = qobj.config

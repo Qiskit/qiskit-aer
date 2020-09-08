@@ -62,6 +62,7 @@ class PulseSimulator(AerBackend):
     setting the backend option before calling ``run``, e.g.:
 
     .. code-block:: python
+
         backend_sim = qiskit.providers.aer.PulseSimulator()
 
         # Set the pulse system model for the simulator

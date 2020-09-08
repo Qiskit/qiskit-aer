@@ -22,6 +22,7 @@ from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendProperties
 
 from ..backends.aerbackend import AerJSONEncoder
+from ..backends.qasm_simulator import QasmSimulator
 from .noiseerror import NoiseError
 from .errors.quantum_error import QuantumError
 from .errors.readout_error import ReadoutError
@@ -88,18 +89,14 @@ class NoiseModel:
     # this is used to decide what are instructions for a noise model
     # and what are labels for other named instructions
     # NOTE: we exclude kraus, roerror, and initialize instructions here
-    _QASMSIMULATOR_BASIS_GATES = [
-        'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
-        't', 'tdg', 'swap', 'ccx', 'cu1', 'cu2', 'cu3', 'cswap',
-        'mcx', 'mcy', 'mcz', 'mcu1', 'mcu2', 'mcu3', 'mcswap', 'unitary',
-    ]
+    _QASMSIMULATOR_BASIS_GATES = QasmSimulator._DEFAULT_CONFIGURATION['basis_gates']
 
     # Checks for standard 1-3 qubit instructions
     _1qubit_instructions = set([
         "x90", "u1", "u2", "u3", "U", "id", "x", "y", "z", "h", "s", "sdg",
         "t", "tdg", "r", "rx", "ry", "rz", "p"
     ])
-    _2qubit_instructions = set(["cx", "cz", "swap", "rxx", "ryy", "rzz",
+    _2qubit_instructions = set(["cx", "cy", "cz", "swap", "rxx", "ryy", "rzz",
                                 "rzx", "cu1", "cu2", "cu3", "cp"])
     _3qubit_instructions = set(["ccx", "cswap"])
 
@@ -416,7 +413,8 @@ class NoiseModel:
             # If the instruction is in the default basis gates for the
             # QasmSimulator we add it to the basis gates.
             if name in self._QASMSIMULATOR_BASIS_GATES:
-                if name not in ['measure', 'reset']:
+                if name not in ['measure', 'reset', 'initialize',
+                                'kraus', 'superop', 'roerror']:
                     self._basis_gates.add(name)
             elif warnings:
                 logger.warning(
