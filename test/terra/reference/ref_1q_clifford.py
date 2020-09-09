@@ -742,6 +742,19 @@ def multi_pauli_gate_circuits_deterministic(final_measure=True):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
     circuits.append(circuit)
+
+    # HZH = X
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[0])
+    circuit.h(qr[2])
+    circuit.multi_pauli([qr[0], qr[2]], 'ZZ')
+    circuit.h(qr[0])
+    circuit.h(qr[2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
     return circuits
 
 def multi_pauli_gate_counts_deterministic(shots, hex_counts=True):
@@ -749,6 +762,8 @@ def multi_pauli_gate_counts_deterministic(shots, hex_counts=True):
     targets = []
     if hex_counts:
         targets.append({'0x6': shots})
+        targets.append({'0x5': shots})
     else:
         targets.append({'110': shots})
+        targets.append({'101': shots})
     return targets

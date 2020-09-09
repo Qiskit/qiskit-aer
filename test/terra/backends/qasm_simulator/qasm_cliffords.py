@@ -247,7 +247,7 @@ class QasmCliffordTests:
             final_measure=True)
         targets = ref_1q_clifford.multi_pauli_gate_counts_deterministic(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots,
-                      basis_gates=['multi_pauli'],
+                      basis_gates=['multi_pauli', 'h', 'z'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
