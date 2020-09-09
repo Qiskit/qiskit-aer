@@ -277,14 +277,11 @@ endif()
 set(AER_LIBRARIES
 	${AER_LIBRARIES}
 	${BLAS_LIBRARIES}
+	AER_DEPENDENCY_PKG::nlohmann_json
+	AER_DEPENDENCY_PKG::spdlog
 	Threads::Threads
 	${DL_LIB}
 	${THRUST_DEPENDENT_LIBS})
-
-set(AER_LIBRARIES
-	${AER_LIBRARIES}
-	AER_DEPENDENCY_PKG::nlohmann_json
-	AER_DEPENDENCY_PKG::spdlog)
 
 set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 # Cython build is only enabled if building through scikit-build.
