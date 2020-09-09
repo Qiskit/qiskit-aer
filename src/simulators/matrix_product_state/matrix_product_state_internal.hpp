@@ -232,11 +232,10 @@ public:
 
   //----------------------------------------------------------------
   // Function name: norm
-  // Description: the normis defined as <psi|A^dagger.A|psi>.
+  // Description: the norm is defined as <psi|A^dagger . A|psi>.
   // It is equivalent to returning the expectation value of A^\dagger A,
   // Returns: double (the norm)
   //----------------------------------------------------------------
-  double norm(const uint_t qubit, const cvector_t &vmat) const;
 
   double norm(const reg_t &qubits, const cvector_t &vmat) const;
 

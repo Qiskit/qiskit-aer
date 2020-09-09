@@ -1178,22 +1178,14 @@ uint_t binary_search(const rvector_t &acc_probvector,
     return binary_search(acc_probvector, mid, end, rnd);
 }
 
-double MPS:: norm(const uint_t qubit, const cvector_t &vmat) const {
-    cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
-    reg_t qubits = {qubit};
-    cmatrix_t norm_mat = AER::Utils::dagger(mat) * mat;
-    return expectation_value(qubits, norm_mat);
-  }
 double MPS::norm(const reg_t &qubits, const cvector_t &vmat) const {
-    cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
-    cmatrix_t norm_mat = AER::Utils::dagger(mat) * mat;
-    return expectation_value(qubits, norm_mat);
-  }
+    return norm(qubits, AER::Utils::devectorize_matrix(vmat));
+}
 
 double MPS::norm(const reg_t &qubits, const cmatrix_t &mat) const {
     cmatrix_t norm_mat = AER::Utils::dagger(mat) * mat;
     return expectation_value(qubits, norm_mat);
-  }
+}
 
 //------------------------------------------------------------------------------
 // Sample measure outcomes - this method is similar to QubitVector::sample_measure, 
