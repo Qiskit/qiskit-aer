@@ -342,8 +342,8 @@ inline Op make_roerror(const reg_t &memory, const std::vector<rvector_t> &probs)
 //------------------------------------------------------------------------------
 
 // Main JSON deserialization functions
-Op json_to_op(const json_t &js); // Patial TODO
-json_t op_to_json(const Op &op); // Patial TODO
+Op json_to_op(const json_t &js); // Partial TODO
+json_t op_to_json(const Op &op); // Partial TODO
 inline void from_json(const json_t &js, Op &op) {op = json_to_op(js);}
 inline void to_json(json_t &js, const Op &op) { js = op_to_json(op);}
 
@@ -656,7 +656,7 @@ Op json_to_op_unitary(const json_t &js) {
   if (op.mats.size() != 1) {
     throw std::invalid_argument("\"unitary\" params must be a single matrix.");
   }
-  for (const auto mat : op.mats) {
+  for (const auto &mat : op.mats) {
     if (!Utils::is_unitary(mat, 1e-7)) {
       throw std::invalid_argument("\"unitary\" matrix is not unitary.");
     }
@@ -684,7 +684,7 @@ Op json_to_op_diagonal(const json_t &js) {
   if (op.params.size() != 1ULL << op.qubits.size()) {
     throw std::invalid_argument("\"diagonal\" matrix is wrong size.");
   }
-  for (const auto val : op.params) {
+  for (const auto &val : op.params) {
     if (!Linalg::almost_equal(std::abs(val), 1.0, 1e-7)) {
       throw std::invalid_argument("\"diagonal\" matrix is not unitary.");
     }

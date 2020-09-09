@@ -892,7 +892,7 @@ std::set<uint_t> NoiseModel::nonlocal_noise_qubits(const std::string label,
       const auto inner_table = it->second;
       for (const auto &pair : inner_table) {
         auto noise_qubits = string2reg(pair.first);
-        for (const auto& qubit : noise_qubits) {
+        for (const auto &qubit : noise_qubits) {
           all_noise_qubits.insert(qubit);
         }
       }
@@ -931,7 +931,7 @@ void NoiseModel::remap_qubits(const std::unordered_map<uint_t, uint_t> &mapping)
   // Check mapping is valid
   std::set<uint_t> qubits_in;
   std::set<uint_t> qubits_out;
-  for (const auto& pair: full_mapping) {
+  for (const auto &pair: full_mapping) {
     qubits_in.insert(pair.first);
     qubits_out.insert(pair.second);
   }
@@ -944,7 +944,7 @@ void NoiseModel::remap_qubits(const std::unordered_map<uint_t, uint_t> &mapping)
   // Remap readout error
   if (has_readout_errors()) {
     inner_table_t new_readout_error_table;
-    for (const auto& pair : readout_error_table_) {
+    for (const auto &pair : readout_error_table_) {
       new_readout_error_table[remap_string(pair.first, full_mapping)] = pair.second;
     }
     readout_error_table_ = new_readout_error_table;
@@ -958,7 +958,7 @@ void NoiseModel::remap_qubits(const std::unordered_map<uint_t, uint_t> &mapping)
       auto& inner_table = outer_pair.second;
       // Make a temporary table to store remapped table
       inner_table_t new_table;
-      for (const auto& inner_pair : inner_table) {
+      for (const auto &inner_pair : inner_table) {
         new_table[remap_string(inner_pair.first, full_mapping)] = inner_pair.second;
       }
       // Replace inner table with the remapped table
@@ -977,7 +977,7 @@ void NoiseModel::remap_qubits(const std::unordered_map<uint_t, uint_t> &mapping)
         // Remap inner table
         auto& inner_table = outer_pair.second;
         inner_table_t new_inner_table;
-        for (const auto& inner_pair : inner_table) {
+        for (const auto &inner_pair : inner_table) {
           new_inner_table[remap_string(inner_pair.first, full_mapping)] = inner_pair.second;
         }
         // Update outer table with remapped inner table
