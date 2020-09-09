@@ -15,7 +15,8 @@ Simulator command to perform multiple pauli gates in a single pass
 """
 import numpy as np
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import XGate, YGate, ZGate
 from qiskit.circuit.gate import Gate
 
 
@@ -33,7 +34,19 @@ class MultiPauliGate(Gate):
 
     def __init__(self, pauli_string=None):
         self.pauli_string = pauli_string
-        super().__init__('multi_pauli', len(pauli_string), [pauli_string])
+        super().__init__('multi_pauli', len(pauli_string), [pauli_string[::-1]])
+
+    def _define(self):
+        """
+        gate multi_pauli (p1 a1,...,pn an) { p1 a1; ... ; pn an; }
+        """
+        gates = {'X': XGate, 'Y': YGate, 'Z': ZGate}
+        q = QuantumRegister(len(self.pauli_string), 'q')
+        qc = QuantumCircuit(q, name=self.name)
+
+        rules = [(gates[p](), [q[i]], []) for (i, p) in enumerate(self.pauli_string)]
+        qc._data = rules
+        self.definition = qc
 
     def inverse(self):
         r"""Return inverted multi-pauli gate (itself)."""

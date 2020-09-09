@@ -761,7 +761,7 @@ def multi_pauli_gate_counts_deterministic(shots, hex_counts=True):
     """multipauli-gate circuits reference counts."""
     targets = []
     if hex_counts:
-        targets.append({'0x6': shots})
+        targets.append({'0x3': shots})
         targets.append({'0x5': shots})
     else:
         targets.append({'110': shots})
