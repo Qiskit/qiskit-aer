@@ -57,7 +57,7 @@ bool cpp_test_py_ordered_map(PyObject * val){
     std::vector<std::string> order = {"D0", "U0", "D1", "U1"};
     auto ordered = get_value<ordered_map<std::string, long>>(val);
     size_t i = 0;
-    for(const auto& elem: ordered) {
+    for(const auto &elem: ordered) {
         auto key = elem.first;
         if(key != order[i++])
             return false;
