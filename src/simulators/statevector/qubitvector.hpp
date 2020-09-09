@@ -2043,7 +2043,7 @@ pauli_mask_data pauli_masks_and_phase(const reg_t &qubits, const std::string &pa
 }
 
 template <typename data_t>
-void compute_phase(uint num_y, std::complex<data_t>& phase){
+void compute_phase(uint_t num_y, std::complex<data_t>& phase){
   // Compute the overall phase of the operator.
   // This is (-1j) ** number of Y terms modulo 4
   switch (num_y & 3) {
@@ -2070,7 +2070,8 @@ template <typename data_t, typename Derived>
 double QubitVector<data_t, Derived>::expval_pauli(const reg_t &qubits,
                                          const std::string &pauli) const {
 
-  auto [ x_mask, z_mask, num_y, x_max] = pauli_masks_and_phase(qubits, pauli);
+  uint_t x_mask, z_mask, num_y, x_max;
+  std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
 
   // Special case for only I Paulis
   if (x_mask + z_mask == 0) {
@@ -2120,7 +2121,8 @@ double QubitVector<data_t, Derived>::expval_pauli(const reg_t &qubits,
  ******************************************************************************/
 template <typename data_t, typename Derived>
 void QubitVector<data_t, Derived>::apply_multipauli(const reg_t &qubits, const std::string &pauli){
-  auto [ x_mask, z_mask, num_y, x_max] = pauli_masks_and_phase(qubits, pauli);
+  uint_t x_mask, z_mask, num_y, x_max;
+  std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
 
   // Special case for only I Paulis
   if (x_mask + z_mask == 0) {
