@@ -12,39 +12,45 @@
 
 
 macro(setup_dependencies)
-    # Defines AER_DEPENDENCY_PKG alias which refers to either conan-provided or system libraries.
-    if(USE_CONAN)
-        include(conan_utils)
-        setup_conan()
+	# Defines AER_DEPENDENCY_PKG alias which refers to either conan-provided or system libraries.
+	if(USE_CONAN)
+		include(conan_utils)
+		setup_conan()
 
-        # NOTE: this assumes CONAN_PKG is static.
-        # Might need to change to import CONAN_PKG if they need changed
-        add_library(AER_DEPENDENCY_PKG ALIAS CONAN_PKG)
-    else()
-        # Use system libraries
-        find_package(nlohmann_json 3.1.1 REQUIRED)
-        add_library(AER_DEPENDENCY_PKG::nlohmann_json ALIAS nlohmann_json)
-        find_package(spdlog 1.5.0 REQUIRED)
-        add_library(AER_DEPENDENCY_PKG::spdlog ALIAS spdlog::spdlog)
-        if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-            find_package(llvm-openmp 8.0.1 REQUIRED)
-            add_library(AER_DEPENDENCY_PKG::llvm-openmp ALIAS llvm-openmp)
-        endif()
+		# NOTE: this assumes CONAN_PKG is static.
+		# Might need to change to import CONAN_PKG if they need changed
+		add_library(AER_DEPENDENCY_PKG ALIAS CONAN_PKG)
+	else()
+		# Use system libraries
+		find_package(nlohmann_json 3.1.1 REQUIRED)
+		add_library(AER_DEPENDENCY_PKG::nlohmann_json INTERFACE IMPORTED)
+		target_link_libraries(AER_DEPENDENCY_PKG::nlohmann_json PUBLIC INTERFACE nlohmann_json)
+		find_package(spdlog 1.5.0 REQUIRED)
+		add_library(AER_DEPENDENCY_PKG::spdlog INTERFACE IMPORTED)
+		target_link_libraries(AER_DEPENDENCY_PKG::spdlog PUBLIC INTERFACE spdlog::spdlog)
+		if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+			find_package(llvm-openmp 8.0.1 REQUIRED)
+			add_library(AER_DEPENDENCY_PKG::llvm-openmp INTERFACE IMPORTED)
+			target_link_libraries(AER_DEPENDENCY_PKG::llvm-openmp PUBLIC INTERFACE llvm-openmp)
+		endif()
 
-        if(SKBUILD)
-            find_package(muparserx 4.0.8 REQUIRED)
-            add_library(AER_DEPENDENCY_PKG::muparserx ALIAS muparserx)
-        endif()
+		if(SKBUILD)
+			find_package(muparserx 4.0.8 REQUIRED)
+			add_library(AER_DEPENDENCY_PKG::muparserx INTERFACE IMPORTED)
+			target_link_libraries(AER_DEPENDENCY_PKG::muparserx PUBLIC INTERFACE muparserx)
+		endif()
 
-        if(AER_THRUST_BACKEND AND NOT AER_THRUST_BACKEND STREQUAL "CUDA")
-            find_package(thrust 1.9.5 REQUIRED)
-            string(TOLOWER ${AER_THRUST_BACKEND} THRUST_BACKEND)
-            add_library(AER_DEPENDENCY_PKG::thrust ALIAS thrust)
-        endif()
+		if(AER_THRUST_BACKEND AND NOT AER_THRUST_BACKEND STREQUAL "CUDA")
+			find_package(thrust 1.9.5 REQUIRED)
+			string(TOLOWER ${AER_THRUST_BACKEND} THRUST_BACKEND)
+			add_library(AER_DEPENDENCY_PKG::thrust INTERFACE IMPORTED)
+			target_link_libraries(AER_DEPENDENCY_PKG::thrust PUBLIC INTERFACE thrust)
+		endif()
 
-        if(BUILD_TESTS)
-            find_package(catch2 2.12.1 REQUIRED)
-            add_library(AER_DEPENDENCY_PKG::catch2 ALIAS catch2)
-        endif()
-    endif()
+		if(BUILD_TESTS)
+			find_package(catch2 2.12.1 REQUIRED)
+			add_library(AER_DEPENDENCY_PKG::catch2 INTERFACE IMPORTED)
+			target_link_libraries(AER_DEPENDENCY_PKG::catch2 PUBLIC INTERFACE catch2)
+		endif()
+	endif()
 endmacro()
