@@ -247,7 +247,7 @@ class QasmCliffordTests:
             final_measure=True)
         targets = ref_1q_clifford.multi_pauli_gate_counts_deterministic(shots)
         basis_gates = None
-        if 'method' in self.BACKEND_OPTS and self.BACKEND_OPTS['method'] != 'statevector':
+        if 'method' not in self.BACKEND_OPTS or self.BACKEND_OPTS['method'] == 'statevector':
             basis_gates = ['multi_pauli', 'h', 'z'] # implemented only for statevector for now
         job = execute(circuits, self.SIMULATOR, shots=shots,
                       basis_gates=basis_gates,
