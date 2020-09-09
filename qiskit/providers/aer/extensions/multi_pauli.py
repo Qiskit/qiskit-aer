@@ -13,16 +13,50 @@
 """
 Simulator command to perform multiple pauli gates in a single pass
 """
+import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.gate import Gate
 
+
 class MultiPauliGate(Gate):
-    def __init__(self, pauli_string):
+    r"""A multi-qubit Pauli gate.
+
+        This gate exists for optimization purposes for the
+        quantum statevector simulation, since applying multiple
+        pauli gates to different qubits at once can be done via
+        a single pass on the statevector.
+
+        The functionality is equivalent to applying
+        the pauli gates sequentially using standard Qiskit gates
+        """
+
+    def __init__(self, pauli_string=None):
+        self.pauli_string = pauli_string
         super().__init__('multi_pauli', len(pauli_string), [pauli_string])
 
+    def inverse(self):
+        r"""Return inverted multi-pauli gate (itself)."""
+        return MultiPauliGate()  # self-inverse
+
+    def to_matrix(self):
+        """Return a Numpy.array for the multi-pauli gate.
+        i.e. tensor product of the paulis"""
+        pauli_matrices = {
+            'X': np.array([[0, 1], [1, 0]], dtype=complex),
+            'Y': np.array([[0, -1j], [1j, 0]], dtype=complex),
+            'Z': np.array([[1, 0], [0, -1]], dtype=complex)
+        }
+        mat = np.eye(1, dtype=complex)
+        for pauli in self.pauli_string:
+            mat = np.kron(mat, pauli_matrices[pauli])
+        return mat
+
+
 def multi_pauli(self, qubits, pauli_string):
+    """Adds a multi pauli instruction to the circuit"""
     return self.append(MultiPauliGate(pauli_string), qubits)
+
 
 # Add to QuantumCircuit class
 QuantumCircuit.multi_pauli = multi_pauli
