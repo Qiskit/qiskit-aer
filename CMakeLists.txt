@@ -40,9 +40,7 @@ include(CTest)
 include(compiler_utils)
 include(Linter)
 include(findBLASInSpecificPath)
-if(USE_CONAN)
-	include(conan_utils)
-endif()
+include(dependency_utils)
 
 # Get version information
 get_version(${VERSION_NUM})
@@ -131,20 +129,7 @@ endif()
 #
 # Looking for external libraries
 #
-if(USE_CONAN)
-	setup_conan()
-else("Searching for required libraries using CMake")
-	find_package(muparserx REQUIRED)
-	find_package(nlohmann_json REQUIRED)
-	find_package(spdlog REQUIRED)
-
-	# Multiprocessing/Thrust libraries
-	find_package(llvm-openmp)
-	find_package(tbb)
-
-	# for tests only
-	find_package(catch2)
-endif()
+setup_dependencies()
 
 # If we do not set them with a space CMake fails afterwards if nothing is set for this vars!
 set(AER_LINKER_FLAGS " ")
@@ -154,11 +139,7 @@ message(STATUS "Looking for OpenMP support...")
 if(APPLE)
 	set(OPENMP_FOUND TRUE)
 	if(NOT SKBUILD)
-		if(USE_CONAN)
-			set(AER_LIBRARIES ${AER_LIBRARIES} CONAN_PKG::llvm-openmp)
-		else("Using system llvm-openmp")
-			set(AER_LIBRARIES ${AER_LIBRARIES} llvm-openmp)
-		endif()
+		set(AER_LIBRARIES ${AER_LIBRARIES} AER_DEPENDENCY_PKG::llvm-openmp)
 	else()
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CONAN_CXX_FLAGS_LLVM-OPENMP}")
 		set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CONAN_INCLUDE_DIRS_LLVM-OPENMP})
@@ -268,11 +249,7 @@ if(AER_THRUST_SUPPORTED)
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
 		message(STATUS "TBB Support found!")
 		set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CONAN_INCLUDE_DIRS_THRUST})
-		if(USE_CONAN)
-			set(THRUST_DEPENDENT_LIBS CONAN_PKG::tbb)
-		else("Using System TBB library")
-			set(THRUST_DEPENDENT_LIBS tbb)
-		endif()
+		set(THRUST_DEPENDENT_LIBS AER_DEPENDENCY_PKG::tbb)
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE)
 	elseif(AER_THRUST_BACKEND STREQUAL "OMP")
 		message(STATUS "Thrust library: Setting OMP backend")
@@ -304,26 +281,15 @@ set(AER_LIBRARIES
 	${DL_LIB}
 	${THRUST_DEPENDENT_LIBS})
 
-if(USE_CONAN)
-	set(AER_LIBRARIES
-		${AER_LIBRARIES}
-		CONAN_PKG::nlohmann_json
-		CONAN_PKG::spdlog)
-else("Using non-Conan libraries")
-	set(AER_LIBRARIES
-		${AER_LIBRARIES}
-		nlohmann_json
-		spdlog)
-endif()
+set(AER_LIBRARIES
+	${AER_LIBRARIES}
+	AER_DEPENDENCY_PKG::nlohmann_json
+	AER_DEPENDENCY_PKG::spdlog)
 
 set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
-	if(USE_CONAN)
-		set(AER_LIBRARIES ${AER_LIBRARIES} CONAN_PKG::muparserx)
-	else("Using local muparserx build")
-		set(AER_LIBRARIES ${AER_LIBRARIES} muparserx)
-	endif()
+	set(AER_LIBRARIES ${AER_LIBRARIES} AER_DEPENDENCY_PKG::muparserx)
 	add_subdirectory(qiskit/providers/aer/pulse/qutip_extra_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 	add_subdirectory(src/open_pulse)
