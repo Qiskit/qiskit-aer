@@ -4,33 +4,35 @@
 Main setup file for qiskit-aer
 """
 import distutils.util
+import importlib
+import inspect
 import os
+import setuptools
 import subprocess
 import sys
-import inspect
 
 
 PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
 _USE_CONAN = distutils.util.strtobool(os.getenv("USE_CONAN", "ON").lower())
 
-if _USE_CONAN:
+def check_setup_requirement_exists(module: str, pypi_package: str = None):
+    """Error if ``module`` is not importable, and suggest pypi install."""
+    pypi_package = pypi_package or module
     try:
-        from conans import client
-    except ImportError:
-        subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan'])
-        from conans import client
+        importlib.import_module(module)
+    except ImportError as err:
+        raise ModuleNotFoundError(
+            "'{}' package not found. "
+            "Please install it with 'pip install {}'".format(module, pypi_package)
+        )
 
-try:
-    from skbuild import setup
-except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build'])
-    from skbuild import setup
-try:
-    import pybind11
-except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.4'])
+if _USE_CONAN:
+    check_setup_requirement_exists("conans", "conan")
+check_setup_requirement_exists("pybind11")
+check_setup_requirement_exists("skbuild")
 
-import setuptools
+from skbuild import setup
+
 
 # These are requirements that are both runtime/install dependencies and
 # also build time/setup requirements and will be added to both lists
