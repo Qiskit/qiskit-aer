@@ -3,19 +3,22 @@
 """
 Main setup file for qiskit-aer
 """
-
+import distutils.util
 import os
 import subprocess
 import sys
 import inspect
 
-PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
 
-try:
-    from conans import client
-except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan'])
-    from conans import client
+PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
+_USE_CONAN = distutils.util.strtobool(os.getenv("USE_CONAN", "ON").lower())
+
+if _USE_CONAN:
+    try:
+        from conans import client
+    except ImportError:
+        subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan'])
+        from conans import client
 
 try:
     from skbuild import setup
@@ -47,8 +50,9 @@ common_requirements = [
 setup_requirements = common_requirements + [
     'scikit-build',
     'cmake!=3.17,!=3.17.0',
-    'conan>=1.22.2'
 ]
+if _USE_CONAN:
+    setup_requirements.append('conan>=1.22.2')
 
 requirements = common_requirements + ['qiskit-terra>=0.12.0']
 
