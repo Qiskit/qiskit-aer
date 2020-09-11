@@ -1,55 +1,63 @@
+#include <framework/stl_ostream.hpp>
 #include <map>
 #include <type_traits>
 
-#include <framework/utils.hpp>
 #include <framework/linalg/linalg.hpp>
 #include <framework/types.hpp>
+#include <framework/utils.hpp>
 
-#include "utils.hpp"
 
 #define CATCH_CONFIG_MAIN
 
 #include <catch2/catch.hpp>
+
+#include "utils.hpp"
+
+using namespace AER::Test::Utilities;
 
 namespace {
 // check if polar coordinates are almost equal
 // r -> (0,inf)
 // angle -> (-PI, PI)
 template <typename T>
-bool check_polar_coords(T r, T angle, T r_2, T angle_2, T max_diff = MAXDIFF, T max_relative_diff = MAXRELATIVEDIFF);
+T eps() {
+    return std::numeric_limits<T>::epsilon();
+}
 
-template <typename T>
-bool check_eigenvector(const std::vector<std::complex<T>>& expected_eigen,
-                       const std::vector<std::complex<T>>& actual_eigen,
-                       T max_diff = MAXDIFF,
-                       T max_relative_diff = MAXRELATIVEDIFF);
+template<typename T>
+bool check_polar_coords(T r, T angle, T r_2, T angle_2, T max_diff = eps<T>(), T max_relative_diff = eps<T>());
+
+template<typename T>
+bool check_eigenvector(const std::vector<std::complex<T>> &expected_eigen,
+                       const std::vector<std::complex<T>> &actual_eigen,
+                       T max_diff = eps<T>(),
+                       T max_relative_diff = eps<T>());
 
 // Sometimes eigenvectors differ by a factor and/or phase
 // This function compares them taking this into account
-template <typename T>
-bool check_all_eigenvectors(const matrix<std::complex<T>>& expected,
-                            const matrix<std::complex<T>>& actual,
-                            T max_diff = MAXDIFF,
-                            T max_relative_diff = MAXRELATIVEDIFF);
+template<typename T>
+bool check_all_eigenvectors(const matrix<std::complex<T>> &expected,
+                            const matrix<std::complex<T>> &actual,
+                            T max_diff = eps<T>(),
+                            T max_relative_diff = eps<T>());
 
-template <typename T>
+template<typename T>
 using scenarioData = std::tuple<std::string, matrix<std::complex<T>>, matrix<std::complex<T>>, std::vector<T>>;
 
 template<typename T> matrix<std::complex<T>> herm_mat_2d();
 template<typename T> matrix<std::complex<T>> herm_mat_2d_eigenvectors();
 template<typename T> std::vector<T> herm_mat_2d_eigenvalues();
-template <typename T> scenarioData<T> get_herm_2d_scen();
+template<typename T> scenarioData<T> get_herm_2d_scen();
 
 template<typename T> matrix<std::complex<T>> psd_mat_2d();
 template<typename T> matrix<std::complex<T>> psd_mat_2d_eigenvectors();
 template<typename T> std::vector<T> psd_mat_2d_eigenvalues();
-template <typename T> scenarioData<T> get_psd_2d_scen();
+template<typename T> scenarioData<T> get_psd_2d_scen();
 
 template<typename T> matrix<std::complex<T>> psd_mat_2d_with_zero();
 template<typename T> matrix<std::complex<T>> psd_mat_2d_wiht_zero_eigenvectors();
 template<typename T> std::vector<T> psd_mat_2d_wiht_zero_eigenvalues();
-template <typename T> scenarioData<T> get_psd_mat_2d_wiht_zero_scen();
-
+template<typename T> scenarioData<T> get_psd_mat_2d_wiht_zero_scen();
 }
 
 TEST_CASE("Basic Matrix Ops", "[matrix]") {
@@ -63,16 +71,16 @@ TEST_CASE("Basic Matrix Ops", "[matrix]") {
         std::vector<std::complex<double>> col0{ {1.0, 0.0}, {1.0, 2.0} };
         std::vector<std::complex<double>> col1{ {1.0, -2.0}, {0.5, 0.0} };
 
-        REQUIRE(AER::Linalg::almost_equal(col0, mat.col_index(0)));
-        REQUIRE(AER::Linalg::almost_equal(col1, mat.col_index(1)));
+        REQUIRE(compare(col0, mat.col_index(0)));
+        REQUIRE(compare(col1, mat.col_index(1)));
     }
 
     SECTION("matrix - col_index") {
         std::vector<std::complex<double>> row0{ {1.0, 0.0}, {1.0, -2.0} };
         std::vector<std::complex<double>> row1{ {1.0, 2.0}, {0.5, 0.0} };
 
-        REQUIRE(AER::Linalg::almost_equal(row0, mat.row_index(0)));
-        REQUIRE(AER::Linalg::almost_equal(row1, mat.row_index(1)));
+        REQUIRE(compare(row0, mat.row_index(0)));
+        REQUIRE(compare(row1, mat.row_index(1)));
     }
 }
  
@@ -84,6 +92,9 @@ TEMPLATE_TEST_CASE("Linear Algebra utilities", "[eigen_hermitian]", float, doubl
     std::tie(scenario_name, herm_mat, expected_eigenvectors, expected_eigenvalues) =
         GENERATE(get_herm_2d_scen<TestType>(), get_psd_2d_scen<TestType>(), get_psd_mat_2d_wiht_zero_scen<TestType>());
 
+    // We are checking results from a numerical method so we allow for some room in comparisons
+    TestType eps_threshold = 5 * eps<TestType>();
+
     SECTION(scenario_name + ": zheevx") {
         SECTION("sanity check - eigenvals/vecs should recreate original") {
             // sanity check
@@ -91,7 +102,7 @@ TEMPLATE_TEST_CASE("Linear Algebra utilities", "[eigen_hermitian]", float, doubl
             for (size_t j=0; j < expected_eigenvalues.size(); j++) {
                 sanity_value += expected_eigenvalues[j] * AER::Utils::projector(expected_eigenvectors.col_index(j));
             }
-            REQUIRE(AER::Linalg::almost_equal(herm_mat, sanity_value));
+            REQUIRE(compare(herm_mat, sanity_value, eps_threshold, eps_threshold));
         }
         SECTION("actual check - heevx returns correctly") {
             std::vector<TestType> eigenvalues;
@@ -99,14 +110,15 @@ TEMPLATE_TEST_CASE("Linear Algebra utilities", "[eigen_hermitian]", float, doubl
             eigensystem_hermitian(herm_mat, eigenvalues, eigenvectors);
 
             // test equality
-            REQUIRE(check_all_eigenvectors(expected_eigenvectors, eigenvectors));
-            REQUIRE(AER::Linalg::almost_equal(expected_eigenvalues, eigenvalues));
+            REQUIRE(check_all_eigenvectors(expected_eigenvectors, eigenvectors,
+                                           eps_threshold, eps_threshold));
+            REQUIRE(compare(expected_eigenvalues, eigenvalues, eps_threshold, eps_threshold));
             // test reconstruction
             matrix<std::complex<TestType>> value(herm_mat.GetRows(), herm_mat.GetColumns());
             for (size_t j=0; j < eigenvalues.size(); j++) {
                 value += AER::Utils::projector(eigenvectors.col_index(j)) * eigenvalues[j];
             }
-            REQUIRE(AER::Linalg::almost_equal(herm_mat, value));
+            REQUIRE(compare(herm_mat, value, eps_threshold, eps_threshold));
         }
     }
 }
@@ -114,7 +126,7 @@ TEMPLATE_TEST_CASE("Linear Algebra utilities", "[eigen_hermitian]", float, doubl
 
 TEST_CASE( "Framework Utilities", "[almost_equal]" ) {
     SECTION( "The maximum difference between two scalars over 1.0 is greater than epsilon, so they are amlmost equal" ) {
-        double first = 1.0 + std::numeric_limits<double>::epsilon();
+        double first = 1.0 + eps<double>();
         double actual = 1.0;
         // Because the max_diff param is bigger than epsilon, this should be almost equal
         REQUIRE(AER::Linalg::almost_equal(first, actual)); //, 1e-15, 1e-15));
@@ -127,10 +139,7 @@ TEST_CASE( "Framework Utilities", "[almost_equal]" ) {
     }
 
     SECTION( "The maximum difference between two complex of doubles over 1.0 is greater than epsilon, so they are almost equal" ) {
-        std::complex<double> first = {
-            std::numeric_limits<double>::epsilon() + double(1.0),
-            std::numeric_limits<double>::epsilon() + double(1.0)
-        };
+        std::complex<double> first = { eps<double>() + double(1.0), eps<double>() + double(1.0)};
         std::complex<double> actual {1.0, 1.0};
         // Because the max_diff param is bigger than epsilon, this should be almost equal
         REQUIRE(AER::Linalg::almost_equal(first, actual)); //, 1e-15, 1e-15));
@@ -147,31 +156,31 @@ TEST_CASE( "Framework Utilities", "[almost_equal]" ) {
 TEST_CASE( "Test_utils", "[check_polar_coords]" ) {
     auto r = 1.0;
     auto angle = M_PI_2;
-    auto r_2 = 1.0 + std::numeric_limits<double>::epsilon();
-    auto angle_2 = M_PI_2 + std::numeric_limits<double>::epsilon();
+    auto r_2 = 1.0 + eps<double>();
+    auto angle_2 = M_PI_2 + eps<double>();
 
     SECTION("Check 2 numbers that are equal"){
         REQUIRE(check_polar_coords(r, angle, r_2, angle_2));
     }
 
     SECTION("Check 2 numbers that differ in absolute value"){
-        r_2 = r_2 + 1e3 * std::numeric_limits<double>::epsilon();
+        r_2 = r_2 + 1e3 * eps<double>();
         REQUIRE(!check_polar_coords(r, angle, r_2, angle_2));
     }
 
     SECTION("Check 2 numbers that differ in absolute value"){
-        angle_2 = angle_2 + 1e3*std::numeric_limits<double>::epsilon();
+        angle_2 = angle_2 + 1e3 * eps<double>();
         REQUIRE(!check_polar_coords(r, angle, r_2, angle_2));
     }
 
     SECTION("Check corner case: close to +/-0 angles"){
-        angle = 0.0 - std::numeric_limits<double>::epsilon();
+        angle = 0.0 - eps<double>()/2.;
         angle_2 = -angle;
         REQUIRE(check_polar_coords(r, angle, r_2, angle_2));
     }
 
     SECTION("Check corner case: angle PI and angle -PI"){
-        angle = M_PI - std::numeric_limits<double>::epsilon();
+        angle = M_PI - eps<double>();
         angle_2 = -angle;
         REQUIRE(check_polar_coords(r, angle, r_2, angle_2));
     }
