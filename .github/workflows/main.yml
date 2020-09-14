@@ -64,6 +64,13 @@ jobs:
           python-version: 3.7
       - name: Install deps
         run: pip install conan
+      - name: Install openblas
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev
+        shell: bash
+        if: runner.os == 'Linux'
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.1
         if: runner.os == 'Windows'
@@ -99,6 +106,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install Deps
         run: python -m pip install -U setuptools wheel virtualenv
+      - name: Install openblas
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev
+        shell: bash
+        if: runner.os == 'Linux'
       - name: Build Sdist
         run: python setup.py sdist
       - name: Install from sdist and test
@@ -156,6 +170,13 @@ jobs:
         if: runner.os == 'Windows'
       - name: Install Deps
         run: python -m pip install -U -r requirements-dev.txt git+https://github.com/Qiskit/qiskit-terra
+      - name: Install openblas
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev
+        shell: bash
+        if: runner.os == 'Linux'
       - name: Install Aer
         run: python -m pip install -U .
         if: runner.os != 'Windows'
