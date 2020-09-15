@@ -275,6 +275,9 @@ protected:
   // Config Settings
   //-----------------------------------------------------------------------
 
+  // Apply the global phase
+  void apply_global_phase();
+
   // OpenMP qubit threshold
   int omp_qubit_threshold_ = 14;
 
@@ -367,6 +370,7 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits) {
   initialize_omp();
   BaseState::qreg_.set_num_qubits(num_qubits);
   BaseState::qreg_.initialize();
+  apply_global_phase();
 }
 
 template <class statevec_t>
@@ -379,6 +383,7 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
   initialize_omp();
   BaseState::qreg_.set_num_qubits(num_qubits);
   BaseState::qreg_.initialize_from_data(state.data(), 1ULL << num_qubits);
+  apply_global_phase();
 }
 
 template <class statevec_t>
@@ -390,6 +395,7 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
   initialize_omp();
   BaseState::qreg_.set_num_qubits(num_qubits);
   BaseState::qreg_.initialize_from_vector(state);
+  apply_global_phase();
 }
 
 template <class statevec_t>
@@ -404,6 +410,13 @@ void State<statevec_t>::initialize_omp() {
 //-------------------------------------------------------------------------
 
 template <class statevec_t>
+void State<statevec_t>::apply_global_phase() {
+  if (BaseState::has_global_phase_) {
+    BaseState::qreg_.apply_diagonal_matrix(0, {BaseState::global_phase_, BaseState::global_phase_});
+  }
+}
+
+template <class statevec_t>
 size_t State<statevec_t>::required_memory_mb(uint_t num_qubits,
                                              const std::vector<Operations::Op> &ops)
                                              const {
@@ -413,6 +426,7 @@ size_t State<statevec_t>::required_memory_mb(uint_t num_qubits,
 
 template <class statevec_t>
 void State<statevec_t>::set_config(const json_t &config) {
+  BaseState::set_config(config);
 
   // Set threshold for truncating snapshots
   JSON::get_value(json_chop_threshold_, "zero_threshold", config);

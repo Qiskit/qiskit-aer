@@ -156,6 +156,9 @@ class State : public Base::State<unitary_matrix_t> {
   // Config Settings
   //-----------------------------------------------------------------------
 
+  // Apply the global phase
+  void apply_global_phase();
+
   // OpenMP qubit threshold
   int omp_qubit_threshold_ = 6;
 
@@ -253,6 +256,8 @@ size_t State<unitary_matrix_t>::required_memory_mb(
 
 template <class unitary_matrix_t>
 void State<unitary_matrix_t>::set_config(const json_t &config) {
+  BaseState::set_config(config);
+
   // Set OMP threshold for state update functions
   JSON::get_value(omp_qubit_threshold_, "unitary_parallel_threshold", config);
 
@@ -266,6 +271,7 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits) {
   initialize_omp();
   BaseState::qreg_.set_num_qubits(num_qubits);
   BaseState::qreg_.initialize();
+  apply_global_phase();
 }
 
 template <class unitary_matrix_t>
@@ -281,6 +287,7 @@ void State<unitary_matrix_t>::initialize_qreg(
   BaseState::qreg_.set_num_qubits(num_qubits);
   const size_t sz = 1ULL << BaseState::qreg_.size();
   BaseState::qreg_.initialize_from_data(unitary.data(), sz);
+  apply_global_phase();
 }
 
 template <class unitary_matrix_t>
@@ -295,6 +302,7 @@ void State<unitary_matrix_t>::initialize_qreg(
   initialize_omp();
   BaseState::qreg_.set_num_qubits(num_qubits);
   BaseState::qreg_.initialize_from_matrix(unitary);
+  apply_global_phase();
 }
 
 template <class unitary_matrix_t>
@@ -422,6 +430,15 @@ void State<unitary_matrix_t>::apply_snapshot(const Operations::Op &op,
   } else {
     throw std::invalid_argument(
         "Unitary::State::invalid snapshot instruction \'" + op.name + "\'.");
+  }
+}
+
+template <class unitary_matrix_t>
+void State<unitary_matrix_t>::apply_global_phase() {
+  if (BaseState::has_global_phase_) {
+    BaseState::qreg_.apply_diagonal_matrix(
+      {0}, {BaseState::global_phase_, BaseState::global_phase_}
+    );
   }
 }
 
