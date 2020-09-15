@@ -281,6 +281,9 @@ private:
   void apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate=false);
   void apply_2_qubit_gate(uint_t index_A, uint_t index_B, 
 			  Gates gate_type, const cmatrix_t &mat);
+  void common_apply_2_qubit_gate(uint_t index_A,
+				 Gates gate_type, const cmatrix_t &mat,
+				 bool swapped);
   void apply_3_qubit_gate(const reg_t &qubits, Gates gate_type, const cmatrix_t &mat);
   void apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat);
   // apply_matrix for more than 2 qubits
