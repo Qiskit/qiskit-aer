@@ -104,7 +104,9 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exception will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentData &data, RngEngine &rng) override;
+                         ExperimentData &data,
+                         RngEngine &rng,
+                         bool final_ops = false) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -466,7 +468,9 @@ void State<statevec_t>::set_config(const json_t &config) {
 
 template <class statevec_t>
 void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
-                                  ExperimentData &data, RngEngine &rng) {
+                                  ExperimentData &data,
+                                  RngEngine &rng,
+                                  bool final_ops) {
 
   // Simple loop over vector of input operations
   for (const auto &op: ops) {
