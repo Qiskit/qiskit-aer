@@ -110,9 +110,9 @@ choi2kraus(const matrix<std::complex<T>>& choi, size_t dim, double threshold) {
     if (eval > 0.0 && !Linalg::almost_equal(eval, 0.0, threshold)) {
       std::complex<T> coeff(std::sqrt(eval), 0.0); 
       matrix<std::complex<T>> kmat(dim, dim);
-      for (size_t j = 0; j < dim; j++)
-        for (size_t k = 0; k < dim; k++) {
-          kmat(j, k) = coeff * evecs(j + dim * k, idx);
+      for (size_t col = 0; col < dim; col++)
+        for (size_t row = 0; row < dim; row++) {
+          kmat(row, col) = coeff * evecs(row + dim * col, idx);
         }
       kraus.push_back(kmat);
     }
