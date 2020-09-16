@@ -340,8 +340,5 @@ endif()
 
 # Tests
 if(BUILD_TESTS)
-	# These tests were meant to be as an example, or template for C++ specific
-	# code, but they're not being maintained, so we are disabling them until we
-	# have real C++ tests in the codebase.
-	# add_subdirectory(test)
+	add_subdirectory(test)
 endif()

@@ -340,7 +340,7 @@ void State::initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state
     throw std::invalid_argument("MatrixProductState::State::initialize: initial state does not match qubit number");
   }
 #ifdef DEBUG
-  cout << "initialize with state not supported yet";
+  std::cout << "initialize with state not supported yet";
 #endif
 }
 

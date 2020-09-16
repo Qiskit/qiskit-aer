@@ -46,6 +46,7 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
+from test.terra.backends.qasm_simulator.qasm_fusion import QasmFusionTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
@@ -57,7 +58,7 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValM
 
 
 class DensityMatrixTests(
-        QasmMethodTests, QasmMeasureTests, QasmMultiQubitMeasureTests,
+        QasmMethodTests, QasmFusionTests, QasmMeasureTests, QasmMultiQubitMeasureTests,
         QasmResetTests, QasmConditionalGateTests, QasmConditionalUnitaryTests,
         QasmConditionalKrausTests, QasmConditionalSuperOpTests,
         QasmCliffordTests, QasmCliffordTestsWaltzBasis,
