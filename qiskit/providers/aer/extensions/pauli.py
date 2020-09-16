@@ -50,7 +50,7 @@ class PauliGate(Gate):
 
     def inverse(self):
         r"""Return inverted multi-pauli gate (itself)."""
-        return MultiPauliGate()  # self-inverse
+        return PauliGate()  # self-inverse
 
     def to_matrix(self):
         """Return a Numpy.array for the multi-pauli gate.
@@ -67,10 +67,10 @@ class PauliGate(Gate):
         return mat
 
 
-def pauli(self, qubits, pauli_string):
+def pauli_gate(self, qubits, pauli_string):
     """Adds a multi pauli instruction to the circuit"""
     return self.append(PauliGate(pauli_string), qubits)
 
 
 # Add to QuantumCircuit class
-QuantumCircuit.pauli = pauli
+QuantumCircuit.pauli = pauli_gate
