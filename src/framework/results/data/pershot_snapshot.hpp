@@ -55,6 +55,9 @@ class PershotSnapshot {
   // Return true if snapshot container is empty
   bool empty() const { return data_.empty(); }
 
+  // Convert to json
+  json_t to_json();
+
   // Return data reference
   stringmap_t<PershotData<T>> data() { return data_; }
 
@@ -97,15 +100,13 @@ void PershotSnapshot<T>::combine(PershotSnapshot<T> &&other) noexcept {
   other.clear();
 }
 
-//------------------------------------------------------------------------------
-// JSON serialization
-//------------------------------------------------------------------------------
 template <typename T>
-void to_json(json_t &js, const PershotSnapshot<T> &snapshot) {
-  js = json_t::object();
-  for (const auto &pair : snapshot.data()) {
-    js[pair.first] = pair.second;
+json_t PershotSnapshot<T>::to_json() {
+  json_t js = json_t::object();
+  for (auto &pair : data_) {
+    js[pair.first] = pair.second.to_json();
   }
+  return js;
 }
 
 //------------------------------------------------------------------------------

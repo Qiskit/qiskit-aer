@@ -39,18 +39,24 @@ void ReduceBarrier::optimize_circuit(Circuit& circ,
                                      Noise::NoiseModel& noise,
                                      const opset_t &allowed_opset,
                                      ExperimentData &data) const {
-
+  // Position of first sampling op
   size_t idx = 0;
+  size_t new_measure_pos = circ.first_measure_pos;
   for (size_t i = 0; i < circ.ops.size(); ++i) {
     if (circ.ops[i].type != optype_t::barrier) {
-      if (idx != i)
+      if (idx != i) {
         circ.ops[idx] = circ.ops[i];
+      }
       ++idx;
+    } else if (i < circ.first_measure_pos) {
+      // Lower sample position by 1 for removed barrier
+      new_measure_pos--;
     }
   }
-
   if (idx != circ.ops.size())
     circ.ops.erase(circ.ops.begin() + idx, circ.ops.end());
+  // Update position of first measurement instruction
+  circ.first_measure_pos = new_measure_pos;
 }
 
 class Debug : public CircuitOptimization {

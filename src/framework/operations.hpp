@@ -37,7 +37,8 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 // Enum class for operation types
 enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
-  matrix, diagonal_matrix, multiplexer, kraus, superop, roerror, noise_switch, initialize
+  matrix, diagonal_matrix, multiplexer, kraus, superop, roerror,
+  noise_switch, initialize, nop
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -83,6 +84,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::initialize:
     stream << "initialize";
+    break;
+  case OpType::nop:
+    stream << "nop";
     break;
   default:
     stream << "unknown";
@@ -215,12 +219,70 @@ inline Op make_unitary(const reg_t &qubits, const cmatrix_t &mat, std::string la
   return op;
 }
 
+inline Op make_unitary(const reg_t &qubits, cmatrix_t &&mat, std::string label = "") {
+  Op op;
+  op.type = OpType::matrix;
+  op.name = "unitary";
+  op.qubits = qubits;
+  op.mats.resize(1);
+  op.mats[0] = std::move(mat);
+  if (label != "")
+    op.string_params = {label};
+  return op;
+}
+
 inline Op make_superop(const reg_t &qubits, const cmatrix_t &mat) {
   Op op;
   op.type = OpType::superop;
   op.name = "superop";
   op.qubits = qubits;
   op.mats = {mat};
+  return op;
+}
+
+inline Op make_superop(const reg_t &qubits, cmatrix_t &&mat) {
+  Op op;
+  op.type = OpType::superop;
+  op.name = "superop";
+  op.qubits = qubits;
+  op.mats.resize(1);
+  op.mats[0] = std::move(mat);
+  return op;
+}
+
+inline Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats) {
+  Op op;
+  op.type = OpType::kraus;
+  op.name = "kraus";
+  op.qubits = qubits;
+  op.mats = mats;
+  return op;
+}
+
+inline Op make_kraus(const reg_t &qubits, std::vector<cmatrix_t> &&mats) {
+  Op op;
+  op.type = OpType::kraus;
+  op.name = "kraus";
+  op.qubits = qubits;
+  op.mats = std::move(mats);
+  return op;
+}
+
+inline Op make_roerror(const reg_t &memory, const std::vector<rvector_t> &probs) {
+  Op op;
+  op.type = OpType::roerror;
+  op.name = "roerror";
+  op.memory = memory;
+  op.probs = probs;
+  return op;
+}
+
+inline Op make_roerror(const reg_t &memory, std::vector<rvector_t> &&probs) {
+  Op op;
+  op.type = OpType::roerror;
+  op.name = "roerror";
+  op.memory = memory;
+  op.probs = std::move(probs);
   return op;
 }
 
@@ -315,31 +377,13 @@ inline Op make_multiplexer(const reg_t &qubits,
   return op;
 }
 
-inline Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats) {
-  Op op;
-  op.type = OpType::kraus;
-  op.name = "kraus";
-  op.qubits = qubits;
-  op.mats = mats;
-  return op;
-}
-
-inline Op make_roerror(const reg_t &memory, const std::vector<rvector_t> &probs) {
-  Op op;
-  op.type = OpType::roerror;
-  op.name = "roerror";
-  op.memory = memory;
-  op.probs = probs;
-  return op;
-}
-
 //------------------------------------------------------------------------------
 // JSON conversion
 //------------------------------------------------------------------------------
 
 // Main JSON deserialization functions
-Op json_to_op(const json_t &js); // Patial TODO
-json_t op_to_json(const Op &op); // Patial TODO
+Op json_to_op(const json_t &js); // Partial TODO
+json_t op_to_json(const Op &op); // Partial TODO
 inline void from_json(const json_t &js, Op &op) {op = json_to_op(js);}
 inline void to_json(json_t &js, const Op &op) { js = op_to_json(op);}
 
@@ -652,7 +696,7 @@ Op json_to_op_unitary(const json_t &js) {
   if (op.mats.size() != 1) {
     throw std::invalid_argument("\"unitary\" params must be a single matrix.");
   }
-  for (const auto mat : op.mats) {
+  for (const auto &mat : op.mats) {
     if (!Utils::is_unitary(mat, 1e-7)) {
       throw std::invalid_argument("\"unitary\" matrix is not unitary.");
     }
@@ -680,7 +724,7 @@ Op json_to_op_diagonal(const json_t &js) {
   if (op.params.size() != 1ULL << op.qubits.size()) {
     throw std::invalid_argument("\"diagonal\" matrix is wrong size.");
   }
-  for (const auto val : op.params) {
+  for (const auto &val : op.params) {
     if (!Linalg::almost_equal(std::abs(val), 1.0, 1e-7)) {
       throw std::invalid_argument("\"diagonal\" matrix is not unitary.");
     }
@@ -800,7 +844,7 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
   check_duplicate_qubits(op);
 
   // Parse Pauli operator components
-  const auto threshold = 1e-10; // drop small components
+  const auto threshold = 1e-15; // drop small components
   // Get components
   if (JSON::check_key("params", js) && js["params"].is_array()) {
     for (const auto &comp : js["params"]) {
@@ -828,6 +872,15 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
     } // end component loop
   } else {
     throw std::invalid_argument("Invalid Pauli snapshot \"params\".");
+  }
+  // Check edge case of all coefficients being empty
+  // In this case the operator had all coefficients zero, or sufficiently close
+  // to zero that they were all truncated.
+  if (op.params_expval_pauli.empty()) {
+    // Add a single identity op with zero coefficient
+    std::string pauli(op.qubits.size(), 'I');
+    complex_t coeff(0);
+    op.params_expval_pauli.emplace_back(coeff, pauli);
   }
   return op;
 }

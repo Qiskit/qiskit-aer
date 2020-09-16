@@ -44,7 +44,7 @@ class StatevectorSimulatorTests:
         qobj = assemble(circuits, shots=1)
         sim_job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
         result = sim_job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_initialize_2(self):
@@ -54,7 +54,7 @@ class StatevectorSimulatorTests:
         qobj = assemble(circuits, shots=1)
         sim_job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
         result = sim_job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -71,7 +71,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_reset_nondeterministic(self):
@@ -86,7 +86,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -102,7 +102,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -118,7 +118,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_conditional_unitary_1bit(self):
@@ -131,7 +131,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_conditional_gate_2bit(self):
@@ -144,7 +144,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_conditional_unitary_2bit(self):
@@ -157,7 +157,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -173,7 +173,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_h_gate_deterministic_waltz_basis_gates(self):
@@ -187,7 +187,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_h_gate_deterministic_minimal_basis_gates(self):
@@ -201,7 +201,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_h_gate_nondeterministic_default_basis_gates(self):
@@ -214,7 +214,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_h_gate_nondeterministic_waltz_basis_gates(self):
@@ -228,7 +228,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_h_gate_nondeterministic_minimal_basis_gates(self):
@@ -242,7 +242,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -258,7 +258,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_x_gate_deterministic_waltz_basis_gates(self):
@@ -272,7 +272,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_x_gate_deterministic_minimal_basis_gates(self):
@@ -286,7 +286,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -302,7 +302,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_z_gate_deterministic_waltz_basis_gates(self):
@@ -316,7 +316,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_z_gate_deterministic_minimal_basis_gates(self):
@@ -330,7 +330,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -346,7 +346,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_y_gate_deterministic_waltz_basis_gates(self):
@@ -360,7 +360,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_y_gate_deterministic_minimal_basis_gates(self):
@@ -374,7 +374,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -390,7 +390,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_s_gate_deterministic_waltz_basis_gates(self):
@@ -404,7 +404,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_s_gate_deterministic_minimal_basis_gates(self):
@@ -418,7 +418,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_s_gate_nondeterministic_default_basis_gates(self):
@@ -431,7 +431,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_s_gate_nondeterministic_waltz_basis_gates(self):
@@ -445,7 +445,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_s_gate_nondeterministic_minimal_basis_gates(self):
@@ -459,7 +459,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -475,7 +475,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_sdg_gate_deterministic_waltz_basis_gates(self):
@@ -489,7 +489,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_sdg_gate_deterministic_minimal_basis_gates(self):
@@ -503,7 +503,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_sdg_gate_nondeterministic_default_basis_gates(self):
@@ -516,7 +516,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_sdg_gate_nondeterministic_waltz_basis_gates(self):
@@ -530,7 +530,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_sdg_gate_nondeterministic_minimal_basis_gates(self):
@@ -544,7 +544,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -560,7 +560,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cx_gate_deterministic_waltz_basis_gates(self):
@@ -574,7 +574,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cx_gate_deterministic_minimal_basis_gates(self):
@@ -588,7 +588,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cx_gate_nondeterministic_default_basis_gates(self):
@@ -601,7 +601,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cx_gate_nondeterministic_waltz_basis_gates(self):
@@ -615,7 +615,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cx_gate_nondeterministic_minimal_basis_gates(self):
@@ -629,7 +629,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -645,7 +645,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cz_gate_deterministic_waltz_basis_gates(self):
@@ -659,7 +659,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cz_gate_deterministic_minimal_basis_gates(self):
@@ -673,7 +673,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cz_gate_nondeterministic_default_basis_gates(self):
@@ -686,7 +686,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cz_gate_nondeterministic_waltz_basis_gates(self):
@@ -700,7 +700,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cz_gate_nondeterministic_minimal_basis_gates(self):
@@ -714,7 +714,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -730,7 +730,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_swap_gate_deterministic_waltz_basis_gates(self):
@@ -744,7 +744,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_swap_gate_deterministic_minimal_basis_gates(self):
@@ -758,7 +758,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_swap_gate_nondeterministic_default_basis_gates(self):
@@ -771,7 +771,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_swap_gate_nondeterministic_waltz_basis_gates(self):
@@ -785,7 +785,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_swap_gate_nondeterministic_minimal_basis_gates(self):
@@ -799,7 +799,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -815,7 +815,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_t_gate_deterministic_waltz_basis_gates(self):
@@ -829,7 +829,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_t_gate_deterministic_minimal_basis_gates(self):
@@ -843,7 +843,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_t_gate_nondeterministic_default_basis_gates(self):
@@ -856,7 +856,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_t_gate_nondeterministic_waltz_basis_gates(self):
@@ -870,7 +870,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_t_gate_nondeterministic_minimal_basis_gates(self):
@@ -884,7 +884,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -900,7 +900,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_tdg_gate_deterministic_waltz_basis_gates(self):
@@ -914,7 +914,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_tdg_gate_deterministic_minimal_basis_gates(self):
@@ -928,7 +928,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_tdg_gate_nondeterministic_default_basis_gates(self):
@@ -941,7 +941,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_tdg_gate_nondeterministic_waltz_basis_gates(self):
@@ -955,7 +955,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_tdg_gate_nondeterministic_minimal_basis_gates(self):
@@ -969,7 +969,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -985,7 +985,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_ccx_gate_deterministic_waltz_basis_gates(self):
@@ -999,7 +999,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_ccx_gate_deterministic_minimal_basis_gates(self):
@@ -1013,7 +1013,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_ccx_gate_nondeterministic_default_basis_gates(self):
@@ -1026,7 +1026,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_ccx_gate_nondeterministic_waltz_basis_gates(self):
@@ -1040,7 +1040,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_ccx_gate_nondeterministic_minimal_basis_gates(self):
@@ -1054,7 +1054,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -1070,7 +1070,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_diagonal_gate(self):
@@ -1083,7 +1083,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -1099,7 +1099,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cu1_gate_nondeterministic_waltz_basis_gates(self):
@@ -1113,7 +1113,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cu1_gate_nondeterministic_minimal_basis_gates(self):
@@ -1127,7 +1127,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -1144,7 +1144,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cswap_gate_deterministic_minimal_basis_gates(self):
@@ -1158,7 +1158,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cswap_gate_deterministic_waltz_basis_gates(self):
@@ -1172,7 +1172,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cswap_gate_nondeterministic_default_basis_gates(self):
@@ -1185,7 +1185,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cswap_gate_nondeterministic_minimal_basis_gates(self):
@@ -1199,7 +1199,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cswap_gate_nondeterministic_waltz_basis_gates(self):
@@ -1213,7 +1213,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
@@ -1230,7 +1230,7 @@ class StatevectorSimulatorTests:
                       shots=1,
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cu3_gate_deterministic_minimal_basis_gates(self):
@@ -1244,7 +1244,7 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
     def test_cu3_gate_deterministic_waltz_basis_gates(self):
@@ -1258,5 +1258,5 @@ class StatevectorSimulatorTests:
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)

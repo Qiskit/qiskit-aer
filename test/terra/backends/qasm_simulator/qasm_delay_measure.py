@@ -54,7 +54,7 @@ class QasmDelayMeasureTests:
         result = self.SIMULATOR.run(
             qobj,
             backend_options=backend_options).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         metadata = result.results[0].metadata
         self.assertTrue(metadata.get('measure_sampling'))
 
@@ -65,7 +65,7 @@ class QasmDelayMeasureTests:
         result = self.SIMULATOR.run(
             qobj,
             backend_options=backend_options).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         metadata = result.results[0].metadata
         self.assertTrue(metadata.get('measure_sampling'))
 
@@ -76,7 +76,7 @@ class QasmDelayMeasureTests:
         result = self.SIMULATOR.run(
             qobj,
             backend_options=backend_options).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         metadata = result.results[0].metadata
         self.assertFalse(metadata.get('measure_sampling'))
 
@@ -95,7 +95,7 @@ class QasmDelayMeasureTests:
         result = self.SIMULATOR.run(
             qobj,
             backend_options=backend_options).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         metadata = result.results[0].metadata
         self.assertIn('delay_measure_verbose', metadata)
 
@@ -108,7 +108,7 @@ class QasmDelayMeasureTests:
         result = self.SIMULATOR.run(
             qobj,
             backend_options=backend_options).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         metadata = result.results[0].metadata
         self.assertNotIn('delay_measure_verbose', metadata)
 
@@ -121,6 +121,6 @@ class QasmDelayMeasureTests:
         result = self.SIMULATOR.run(
             qobj,
             backend_options=backend_options).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         metadata = result.results[0].metadata
         self.assertNotIn('delay_measure_verbose', metadata)

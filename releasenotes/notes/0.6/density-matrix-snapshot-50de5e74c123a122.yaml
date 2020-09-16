@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Add density matrix snapshot support to "statevector" and "statevector_gpu"
+    methods of the QasmSimulator.
+  - |
+    Allow density matrix snapshots on specific qubits, not just all qubits.
+    This computes the partial trace of the state over the remaining qubits.

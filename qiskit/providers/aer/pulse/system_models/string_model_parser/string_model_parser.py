@@ -98,6 +98,10 @@ class HamiltonianParser:
                 if token is None:
                     continue
                 token = self._shunting_yard(token)
+
+                if (coef == '') or (coef is None):
+                    coef = '1.'
+
                 _tc = self._token2qobj(token), coef
 
                 self.__tc_hams.append(_tc)

@@ -69,10 +69,17 @@ public:
   // Data accessors
   //-----------------------------------------------------------------------
 
-  // Returns a const reference to the states data structure
-  const auto &qreg() const {return qreg_;}
-  const auto &creg() const {return creg_;}
-  const auto &opset() const {return opset_;}
+  // Return the state qreg object
+  auto &qreg() { return qreg_; }
+  const auto &qreg() const { return qreg_; }
+
+  // Return the state creg object
+  auto &creg() { return creg_; }
+  const auto &creg() const { return creg_; }
+
+  // Return the state opset object
+  auto &opset() { return opset_; }
+  const auto &opset() const { return opset_; }
 
   //=======================================================================
   // Subclass Override Methods
@@ -120,6 +127,14 @@ public:
 
   // Load any settings for the State class from a config JSON
   virtual void set_config(const json_t &config);
+
+    //-----------------------------------------------------------------------
+  // Optional: Add information to metadata 
+  //-----------------------------------------------------------------------
+
+  // Every state can add information to the metadata structure
+  virtual void add_metadata(ExperimentData &data) const {
+  }
 
   //-----------------------------------------------------------------------
   // Optional: measurement sampling

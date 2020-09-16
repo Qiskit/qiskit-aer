@@ -26,11 +26,13 @@ class AverageData {
  public:
   // Return the mean of the accumulated data:
   // mean = accum / count
-  T mean() const;
+  // Calling this method normalizes the data and returns a reference
+  T& mean();
 
   // Return the unbiased sample variance of the accumulated data:
   // var = (1 / (n - 1)) * (sum_i (data[i]^2 / n) - mean^2) for n > 1
-  T variance() const;
+  // Calling this method normalizes the data and returns a reference
+  T& variance();
 
   // Add a new datum to the snapshot at the specified key
   // Uses copy semantics
@@ -70,6 +72,15 @@ class AverageData {
   // Return bool for in the container can compute variance
   bool has_variance() const { return variance_; }
 
+  // Noramlize data by dividing the accumulator by the number of
+  // shots to compute the mean, and computing the variance
+  void normalize();
+
+  // Convert container to JSON
+  // note that this method is not const Once it is converted it will 
+  // renormalized the data to compute the mean and variance
+  json_t to_json();
+
  protected:
   // Accumulated data
   T accum_;
@@ -82,39 +93,48 @@ class AverageData {
 
   // Number of datum that have been accumulated
   size_t count_ = 0;
+
+  // Flag for whether the data has been normalized by the counts
+  // to conver the accum and accum squared to mean and variance
+  // Once it is normalized no new data can be added
+  bool normalized_ = false;
 };
 
 //------------------------------------------------------------------------------
 // Implementation
 //------------------------------------------------------------------------------
-
 template <typename T>
-T AverageData<T>::mean() const {
-  return (count_ > 1) ? Linalg::div(T(accum_), double(count_)) : accum_;
+void AverageData<T>::normalize() {
+  if (!normalized_ && count_ >= 1) {
+    if (count_ > 1) {
+      // Compute mean
+      Linalg::idiv(accum_, double(count_));
+      // Compute variance
+      if (variance_) {
+        // var = (count / (count - 1)) * (accum_squared ** 2 / count - mean ** 2) for
+        // n > 1
+        Linalg::idiv(accum_squared_, double(count_));      // squared mean
+        Linalg::isub(accum_squared_, Linalg::square(accum_)); // squared mean - mean squared
+        // Apply sample bias correction of counts / (counts - 1)
+        Linalg::imul(accum_squared_, double(count_) / double(count_ - 1));
+      } 
+    } else if (count_ == 1 && variance_) {
+      Linalg::imul(accum_squared_, 0);
+    }
+    normalized_ = true;
+  }
 }
 
 template <typename T>
-T AverageData<T>::variance() const {
-  // If no counts zero or we haven't been computing variance
-  // we return default value
-  if (count_ == 0 || variance_ == false) {
-    return T();
-  }
+T& AverageData<T>::mean() {
+  normalize();
+  return accum_;
+}
 
-  // If counts is 1 variance is zero
-  if (count_ == 1) {
-    return Linalg::mul(accum_squared_, 0);
-  }
-
-  // var = (count / (count - 1)) * (accum_squared ** 2 / count - mean ** 2) for
-  // n > 1
-  T mean_squared = mean();
-  Linalg::isquare(mean_squared);                // mean_squared
-  T var = Linalg::div(accum_squared_, double(count_));  // squared mean
-  Linalg::isub(var, mean_squared);              // squared mean - mean squared
-  // Apply sample bias correction of counts / (counts - 1)
-  Linalg::idiv(var, double(count_) / double(count_ - 1));
-  return var;
+template <typename T>
+T& AverageData<T>::variance() {
+  normalize();
+  return accum_squared_;
 }
 
 template <typename T>
@@ -215,16 +235,14 @@ void AverageData<T>::add_data(T &&datum, bool compute_variance) noexcept {
   count_ += 1;
 }
 
-//------------------------------------------------------------------------------
-// JSON serialization
-//------------------------------------------------------------------------------
 template <typename T>
-void to_json(json_t &js, const AverageData<T> &data) {
-  js = json_t::object();
-  js["value"] = data.mean();
-  if (data.has_variance()) {
-    js["variance"] = data.variance();
+json_t AverageData<T>::to_json() {
+  json_t js = json_t::object();
+  js["value"] = mean();
+  if (variance_) {
+    js["variance"] = variance();
   }
+  return js;
 }
 
 //------------------------------------------------------------------------------

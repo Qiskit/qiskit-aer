@@ -50,7 +50,7 @@ public:
   void add_metadata(const std::string &key, T &&data);
 
   // Serialize engine data to JSON
-  json_t json() const;
+  json_t to_json();
 };
 
 
@@ -97,10 +97,10 @@ void ExperimentResult::add_metadata(const std::string &key, json_t &meta) {
 //------------------------------------------------------------------------------
 // JSON serialization
 //------------------------------------------------------------------------------
-json_t ExperimentResult::json() const {
+json_t ExperimentResult::to_json() {
   // Initialize output as additional data JSON
   json_t result;
-  result["data"] = data;
+  result["data"] = data.to_json();
   result["shots"] = shots;
   result["seed_simulator"] = seed;
   result["success"] = (status == Status::completed);
@@ -120,10 +120,6 @@ json_t ExperimentResult::json() const {
   if (metadata.empty() == false)
     result["metadata"] = metadata;
   return result;
-}
-
-inline void to_json(json_t &js, const ExperimentResult &result) {
-  js = result.json();
 }
 
 //------------------------------------------------------------------------------

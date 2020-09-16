@@ -76,12 +76,11 @@ Qobj::Qobj(const json_t &js) {
   JSON::get_value(header, "header", js);
 
   // Check for fixed simulator seed
-  // If seed is negative a random seed will be chosen for each
-  // experiment. Otherwise each experiment will be set to a fixed
-  // (but different) seed.
+  // If simulator seed is set, each experiment will be set to a fixed (but different) seed
+  // Otherwise a random seed will be chosen for each experiment
   int_t seed = -1;
   uint_t seed_shift = 0;
-  JSON::get_value(seed, "seed_simulator", config);
+  bool has_simulator_seed = JSON::get_value(seed, "seed_simulator", config);
   const json_t &circs = js["experiments"];
   const size_t num_circs = circs.size();
 
@@ -143,7 +142,7 @@ Qobj::Qobj(const json_t &js) {
   // Override random seed with fixed seed if set
   // We shift the seed for each successive experiment
   // So that results aren't correlated between experiments
-  if (seed >= 0) {
+  if (has_simulator_seed) {
     for (auto& circuit : circuits) {
       circuit.seed = seed + seed_shift;
       seed_shift += 2113;  // Shift the seed

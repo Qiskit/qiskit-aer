@@ -730,6 +730,7 @@ class Qobj():
         self._isherm = bool(zcsr_isherm(self.data))
 
         return self._isherm
+
     # breaks if removed due to tensor
     @isherm.setter
     def isherm(self, isherm):

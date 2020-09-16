@@ -17,6 +17,12 @@
 #include <iostream>
 #include <string>
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#elif defined(__GNUC__)
+#include <cpuid.h>
+#endif
+
 #include "version.hpp"
 // Simulator
 #include "controllers/qasm_controller.hpp"
@@ -142,8 +148,8 @@ int main(int argc, char **argv) {
 
     // Initialize simulator
     AER::Simulator::QasmController sim;
-    auto result = sim.execute(qobj);
-    out << result.json().dump(4) << std::endl;
+    auto result = sim.execute(qobj).to_json();
+    out << result.dump(4) << std::endl;
 
     // Check if execution was successful.
     bool success = false;

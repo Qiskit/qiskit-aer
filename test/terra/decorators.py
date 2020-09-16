@@ -38,10 +38,12 @@ def is_method_available(backend, method):
     try:
         job = backend.run(qobj, backend_options=backend_options)
         result = job.result()
-        return result.success
+        error_msg = 'not supported on this system'
+        if not result.success and error_msg in result.results[0].status:
+            return False
+        return True
     except AerError:
-        return False
-    return True
+        return True
 
 
 def requires_method(backend, method):

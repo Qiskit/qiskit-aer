@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    Change the RNG engine for simulators from 32-bit Mersenne twister to
-    64-bit Mersenne twister engine.

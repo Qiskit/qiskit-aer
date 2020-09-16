@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, no-name-in-module, import-error
 
 """
 Entry/exit point for pulse simulation specified through PulseSimulator backend
@@ -22,9 +22,11 @@ import numpy as np
 from ..system_models.string_model_parser.string_model_parser import NoiseParser
 from ..qutip_extra_lite import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
-from ..de_solvers.pulse_de_options import OPoptions
+from ..qutip_extra_lite.qobj import Qobj
+from .pulse_sim_options import PulseSimOptions
 from .unitary_controller import run_unitary_experiments
 from .mc_controller import run_monte_carlo_experiments
+from .pulse_utils import get_ode_rhs_functor
 
 
 def pulse_controller(qobj, system_model, backend_options):
@@ -44,6 +46,7 @@ def pulse_controller(qobj, system_model, backend_options):
     """
 
     pulse_sim_desc = PulseSimDescription()
+    pulse_de_model = PulseInternalDEModel()
 
     if backend_options is None:
         backend_options = {}
@@ -68,57 +71,60 @@ def pulse_controller(qobj, system_model, backend_options):
         raise ValueError('Model must have a Hamiltonian to simulate.')
     ham_model = system_model.hamiltonian
 
-    # For now we dump this into OpSystem, though that should be refactored
-    pulse_sim_desc.system = ham_model._system
-    pulse_sim_desc.vars = ham_model._variables
-    pulse_sim_desc.channels = ham_model._channels
-    pulse_sim_desc.h_diag = ham_model._h_diag
-    pulse_sim_desc.evals = ham_model._evals
-    pulse_sim_desc.estates = ham_model._estates
+    # Extract DE model information
+    pulse_de_model.system = ham_model._system
+    pulse_de_model.variables = ham_model._variables
+    pulse_de_model.channels = ham_model._channels
+    pulse_de_model.h_diag = ham_model._h_diag
+    pulse_de_model.evals = ham_model._evals
+    pulse_de_model.estates = ham_model._estates
     dim_qub = ham_model._subsystem_dims
     dim_osc = {}
     # convert estates into a Qutip qobj
     estates = [qobj_gen.state(state) for state in ham_model._estates.T[:]]
-    pulse_sim_desc.initial_state = estates[0]
-    pulse_sim_desc.global_data['vars'] = list(pulse_sim_desc.vars.values())
-    # Need this info for evaluating the hamiltonian vars in the c++ solver
-    pulse_sim_desc.global_data['vars_names'] = list(pulse_sim_desc.vars.keys())
+
+    # initial state set here
+    if 'initial_state' in backend_options:
+        pulse_sim_desc.initial_state = Qobj(backend_options['initial_state'])
+    else:
+        pulse_sim_desc.initial_state = estates[0]
 
     # Get dt
     if system_model.dt is None:
-        raise ValueError('Qobj must have a dt value to simulate.')
-    pulse_sim_desc.dt = system_model.dt
+        raise ValueError('System model must have a dt value to simulate.')
+
+    pulse_de_model.dt = system_model.dt
 
     # Parse noise
     if noise_model:
         noise = NoiseParser(noise_dict=noise_model, dim_osc=dim_osc, dim_qub=dim_qub)
         noise.parse()
 
-        pulse_sim_desc.noise = noise.compiled
-        if any(pulse_sim_desc.noise):
+        pulse_de_model.noise = noise.compiled
+        if any(pulse_de_model.noise):
             pulse_sim_desc.can_sample = False
 
     # ###############################
     # ### Parse qobj_config settings
     # ###############################
-
     digested_qobj = digest_pulse_qobj(qobj,
-                                      pulse_sim_desc.channels,
-                                      pulse_sim_desc.dt,
+                                      pulse_de_model.channels,
+                                      system_model.dt,
                                       qubit_list,
                                       backend_options)
 
-    # does this even need to be extracted here, or can the relevant info just be passed to the
-    # relevant functions?
-    pulse_sim_desc.global_data['shots'] = digested_qobj.shots
-    pulse_sim_desc.global_data['meas_level'] = digested_qobj.meas_level
-    pulse_sim_desc.global_data['meas_return'] = digested_qobj.meas_return
-    pulse_sim_desc.global_data['memory_slots'] = digested_qobj.memory_slots
-    pulse_sim_desc.global_data['memory'] = digested_qobj.memory
-    pulse_sim_desc.global_data['n_registers'] = digested_qobj.n_registers
-    pulse_sim_desc.global_data['pulse_array'] = digested_qobj.pulse_array
-    pulse_sim_desc.global_data['pulse_indices'] = digested_qobj.pulse_indices
-    pulse_sim_desc.pulse_to_int = digested_qobj.pulse_to_int
+    # extract simulation-description level qobj content
+    pulse_sim_desc.shots = digested_qobj.shots
+    pulse_sim_desc.meas_level = digested_qobj.meas_level
+    pulse_sim_desc.meas_return = digested_qobj.meas_return
+    pulse_sim_desc.memory_slots = digested_qobj.memory_slots
+    pulse_sim_desc.memory = digested_qobj.memory
+
+    # extract model-relevant information
+    pulse_de_model.n_registers = digested_qobj.n_registers
+    pulse_de_model.pulse_array = digested_qobj.pulse_array
+    pulse_de_model.pulse_indices = digested_qobj.pulse_indices
+    pulse_de_model.pulse_to_int = digested_qobj.pulse_to_int
 
     pulse_sim_desc.experiments = digested_qobj.experiments
 
@@ -135,56 +141,54 @@ def pulse_controller(qobj, system_model, backend_options):
         warn('Warning: qubit_lo_freq was not specified in PulseQobj or in PulseSystemModel, ' +
              'so it is beign automatically determined from the drift Hamiltonian.')
 
-    pulse_sim_desc.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
-    pulse_sim_desc.global_data['freqs'] = list(pulse_sim_desc.freqs.values())
+    pulse_de_model.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
 
     # ###############################
     # ### Parse backend_options
     # # solver-specific information should be extracted in the solver
     # ###############################
-    pulse_sim_desc.global_data['seed'] = (int(backend_options['seed']) if 'seed' in backend_options
-                                          else None)
-    pulse_sim_desc.global_data['q_level_meas'] = int(backend_options.get('q_level_meas', 1))
+    pulse_sim_desc.seed = int(backend_options['seed']) if 'seed' in backend_options else None
+    pulse_sim_desc.q_level_meas = int(backend_options.get('q_level_meas', 1))
 
     # solver options
-    allowed_ode_options = ['atol', 'rtol', 'nsteps', 'max_step',
-                           'num_cpus', 'norm_tol', 'norm_steps',
-                           'rhs_reuse', 'rhs_filename']
-    ode_options = backend_options.get('ode_options', {})
-    for key in ode_options:
-        if key not in allowed_ode_options:
-            raise Exception('Invalid ode_option: {}'.format(key))
-    pulse_sim_desc.ode_options = OPoptions(**ode_options)
+    allowed_solver_options = ['atol', 'rtol', 'nsteps', 'max_step',
+                              'num_cpus', 'norm_tol', 'norm_steps',
+                              'method']
+    solver_options = backend_options.get('solver_options', {})
+    for key in solver_options:
+        if key not in allowed_solver_options:
+            raise Exception('Invalid solver_option: {}'.format(key))
+    solver_options = PulseSimOptions(**solver_options)
 
     # Set the ODE solver max step to be the half the
     # width of the smallest pulse
     min_width = np.iinfo(np.int32).max
-    for key, val in pulse_sim_desc.pulse_to_int.items():
+    for key, val in pulse_de_model.pulse_to_int.items():
         if key != 'pv':
-            stop = pulse_sim_desc.global_data['pulse_indices'][val + 1]
-            start = pulse_sim_desc.global_data['pulse_indices'][val]
+            stop = pulse_de_model.pulse_indices[val + 1]
+            start = pulse_de_model.pulse_indices[val]
             min_width = min(min_width, stop - start)
-    pulse_sim_desc.ode_options.max_step = min_width / 2 * pulse_sim_desc.dt
+    solver_options.de_options.max_step = min_width / 2 * pulse_de_model.dt
 
     # ########################################
     # Determination of measurement operators.
     # ########################################
-    pulse_sim_desc.global_data['measurement_ops'] = [None] * n_qubits
+    pulse_sim_desc.measurement_ops = [None] * n_qubits
 
     for exp in pulse_sim_desc.experiments:
 
         # Add in measurement operators
         # Not sure if this will work for multiple measurements
-        # Note: the extraction of multiple measurements works, but the simulator itself
-        # implicitly assumes there is only one measurement at the end
+        # Note: the extraction of multiple measurements works, but the simulation routines
+        # themselves implicitly assume there is only one measurement at the end
         if any(exp['acquire']):
             for acq in exp['acquire']:
                 for jj in acq[1]:
                     if jj > qubit_list[-1]:
                         continue
-                    if not pulse_sim_desc.global_data['measurement_ops'][qubit_list.index(jj)]:
-                        q_level_meas = pulse_sim_desc.global_data['q_level_meas']
-                        pulse_sim_desc.global_data['measurement_ops'][qubit_list.index(jj)] = \
+                    if not pulse_sim_desc.measurement_ops[qubit_list.index(jj)]:
+                        q_level_meas = pulse_sim_desc.q_level_meas
+                        pulse_sim_desc.measurement_ops[qubit_list.index(jj)] = \
                             qobj_gen.qubit_occ_oper_dressed(jj,
                                                             estates,
                                                             h_osc=dim_osc,
@@ -195,84 +199,20 @@ def pulse_controller(qobj, system_model, backend_options):
         if not exp['can_sample']:
             pulse_sim_desc.can_sample = False
 
-    op_data_config(pulse_sim_desc)
-
     run_experiments = (run_unitary_experiments if pulse_sim_desc.can_sample
                        else run_monte_carlo_experiments)
-    exp_results, exp_times = run_experiments(pulse_sim_desc)
+    exp_results, exp_times = run_experiments(pulse_sim_desc, pulse_de_model, solver_options)
 
     return format_exp_results(exp_results, exp_times, pulse_sim_desc)
 
 
-def op_data_config(op_system):
-    """ Preps the data for the opsolver.
-
-    This should eventually be replaced by functions that construct different types of DEs
-    in standard formats
-
-    Everything is stored in the passed op_system.
-
-    Args:
-        op_system (OPSystem): An openpulse system.
-    """
-
-    num_h_terms = len(op_system.system)
-    H = [hpart[0] for hpart in op_system.system]
-    op_system.global_data['num_h_terms'] = num_h_terms
-
-    # take care of collapse operators, if any
-    op_system.global_data['c_num'] = 0
-    if op_system.noise:
-        op_system.global_data['c_num'] = len(op_system.noise)
-        op_system.global_data['num_h_terms'] += 1
-
-    op_system.global_data['c_ops_data'] = []
-    op_system.global_data['c_ops_ind'] = []
-    op_system.global_data['c_ops_ptr'] = []
-    op_system.global_data['n_ops_data'] = []
-    op_system.global_data['n_ops_ind'] = []
-    op_system.global_data['n_ops_ptr'] = []
-
-    op_system.global_data['h_diag_elems'] = op_system.h_diag
-
-    # if there are any collapse operators
-    H_noise = 0
-    for kk in range(op_system.global_data['c_num']):
-        c_op = op_system.noise[kk]
-        n_op = c_op.dag() * c_op
-        # collapse ops
-        op_system.global_data['c_ops_data'].append(c_op.data.data)
-        op_system.global_data['c_ops_ind'].append(c_op.data.indices)
-        op_system.global_data['c_ops_ptr'].append(c_op.data.indptr)
-        # norm ops
-        op_system.global_data['n_ops_data'].append(n_op.data.data)
-        op_system.global_data['n_ops_ind'].append(n_op.data.indices)
-        op_system.global_data['n_ops_ptr'].append(n_op.data.indptr)
-        # Norm ops added to time-independent part of
-        # Hamiltonian to decrease norm
-        H_noise -= 0.5j * n_op
-
-    if H_noise:
-        H = H + [H_noise]
-
-    # construct data sets
-    op_system.global_data['h_ops_data'] = [-1.0j * hpart.data.data
-                                           for hpart in H]
-    op_system.global_data['h_ops_ind'] = [hpart.data.indices for hpart in H]
-    op_system.global_data['h_ops_ptr'] = [hpart.data.indptr for hpart in H]
-
-    # Convert inital state to flat array in global_data
-    op_system.global_data['initial_state'] = \
-        op_system.initial_state.full().ravel()
-
-
-def format_exp_results(exp_results, exp_times, op_system):
+def format_exp_results(exp_results, exp_times, pulse_sim_desc):
     """ format simulation results
 
     Parameters:
         exp_results (list): simulation results
         exp_times (list): simulation times
-        op_system (PulseSimDescription): object containing all simulation information
+        pulse_sim_desc (PulseSimDescription): object containing all simulation information
 
     Returns:
         list: formatted simulation results
@@ -280,14 +220,14 @@ def format_exp_results(exp_results, exp_times, op_system):
 
     # format the data into the proper output
     all_results = []
-    for idx_exp, exp in enumerate(op_system.experiments):
+    for idx_exp, exp in enumerate(pulse_sim_desc.experiments):
 
-        m_lev = op_system.global_data['meas_level']
-        m_ret = op_system.global_data['meas_return']
+        m_lev = pulse_sim_desc.meas_level
+        m_ret = pulse_sim_desc.meas_return
 
         # populate the results dictionary
         results = {'seed_simulator': exp['seed'],
-                   'shots': op_system.global_data['shots'],
+                   'shots': pulse_sim_desc.shots,
                    'status': 'DONE',
                    'success': True,
                    'time_taken': exp_times[idx_exp],
@@ -296,7 +236,7 @@ def format_exp_results(exp_results, exp_times, op_system):
                    'meas_return': m_ret,
                    'data': {}}
 
-        if op_system.can_sample:
+        if pulse_sim_desc.can_sample:
             memory = exp_results[idx_exp][0]
             results['data']['statevector'] = []
             for coef in exp_results[idx_exp][1]:
@@ -315,7 +255,7 @@ def format_exp_results(exp_results, exp_times, op_system):
                                           np.arange(memory.shape[1]))).astype(int)
 
             # if the memory flag is set return each shot
-            if op_system.global_data['memory']:
+            if pulse_sim_desc.memory:
                 hex_mem = [hex(val) for val in int_mem]
                 results['data']['memory'] = hex_mem
 
@@ -368,39 +308,29 @@ def _unsupported_warnings(noise_model):
         warn(warning_str.format('Noise models'))
 
 
-class PulseSimDescription():
-    """ Object for holding any/all information required for simulation.
-    Needs to be refactored into different pieces.
+class PulseInternalDEModel:
+    """Container of information required for de RHS construction
     """
+
     def __init__(self):
         # The system Hamiltonian in numerical format
         self.system = None
         # The noise (if any) in numerical format
         self.noise = None
         # System variables
-        self.vars = None
-        # The initial state of the system
-        self.initial_state = None
+        self.variables = None
         # Channels in the Hamiltonian string
         # these tell the order in which the channels
         # are evaluated in the RHS solver.
         self.channels = None
-        # options of the ODE solver
-        self.ode_options = None
-        # time between pulse sample points.
-        self.dt = None
         # Array containing all pulse samples
         self.pulse_array = None
         # Array of indices indicating where a pulse starts in the self.pulse_array
         self.pulse_indices = None
         # A dict that translates pulse names to integers for use in self.pulse_indices
         self.pulse_to_int = None
-        # Holds the parsed experiments
-        self.experiments = []
-        # Can experiments be simulated once then sampled
-        self.can_sample = True
-        # holds global data
-        self.global_data = {}
+        # dt for pulse schedules
+        self.dt = None
         # holds frequencies for the channels
         self.freqs = {}
         # diagonal elements of the hamiltonian
@@ -409,3 +339,132 @@ class PulseSimDescription():
         self.evals = None
         # eigenstates of the time-independent hamiltonian
         self.estates = None
+
+        self.n_registers = None
+
+        # attributes used in RHS function
+        self.vars = None
+        self.vars_names = None
+        self.num_h_terms = None
+        self.c_num = None
+        self.c_ops_data = None
+        self.c_ops_ind = None
+        self.c_ops_ptr = None
+        self.n_ops_data = None
+        self.n_ops_ind = None
+        self.n_ops_ptr = None
+        self.h_diag_elems = None
+
+        self.h_ops_data = None
+        self.h_ops_ind = None
+        self.h_ops_ptr = None
+
+        self._rhs_dict = None
+
+    def _config_internal_data(self):
+        """Preps internal data into format required by RHS function.
+        """
+
+        self.vars = list(self.variables.values())
+        # Need this info for evaluating the hamiltonian vars in the c++ solver
+        self.vars_names = list(self.variables.keys())
+
+        num_h_terms = len(self.system)
+        H = [hpart[0] for hpart in self.system]
+        self.num_h_terms = num_h_terms
+
+        # take care of collapse operators, if any
+        self.c_num = 0
+        if self.noise:
+            self.c_num = len(self.noise)
+            self.num_h_terms += 1
+
+        self.c_ops_data = []
+        self.c_ops_ind = []
+        self.c_ops_ptr = []
+        self.n_ops_data = []
+        self.n_ops_ind = []
+        self.n_ops_ptr = []
+
+        self.h_diag_elems = self.h_diag
+
+        # if there are any collapse operators
+        H_noise = 0
+        for kk in range(self.c_num):
+            c_op = self.noise[kk]
+            n_op = c_op.dag() * c_op
+            # collapse ops
+            self.c_ops_data.append(c_op.data.data)
+            self.c_ops_ind.append(c_op.data.indices)
+            self.c_ops_ptr.append(c_op.data.indptr)
+            # norm ops
+            self.n_ops_data.append(n_op.data.data)
+            self.n_ops_ind.append(n_op.data.indices)
+            self.n_ops_ptr.append(n_op.data.indptr)
+            # Norm ops added to time-independent part of
+            # Hamiltonian to decrease norm
+            H_noise -= 0.5j * n_op
+
+        if H_noise:
+            H = H + [H_noise]
+
+        # construct data sets
+        self.h_ops_data = [-1.0j * hpart.data.data for hpart in H]
+        self.h_ops_ind = [hpart.data.indices for hpart in H]
+        self.h_ops_ptr = [hpart.data.indptr for hpart in H]
+
+        self._rhs_dict = {'freqs': list(self.freqs.values()),
+                          'pulse_array': self.pulse_array,
+                          'pulse_indices': self.pulse_indices,
+                          'vars': self.vars,
+                          'vars_names': self.vars_names,
+                          'num_h_terms': self.num_h_terms,
+                          'h_ops_data': self.h_ops_data,
+                          'h_ops_ind': self.h_ops_ind,
+                          'h_ops_ptr': self.h_ops_ptr,
+                          'h_diag_elems': self.h_diag_elems}
+
+    def init_rhs(self, exp):
+        """Set up and return rhs function corresponding to this model for a given
+        experiment exp
+        """
+
+        # if _rhs_dict has not been set up, config the internal data
+        if self._rhs_dict is None:
+            self._config_internal_data()
+
+        channels = dict(self.channels)
+
+        # Init register
+        register = np.ones(self.n_registers, dtype=np.uint8)
+
+        ode_rhs_obj = get_ode_rhs_functor(self._rhs_dict, exp, self.system, channels, register)
+
+        def rhs(t, y):
+            return ode_rhs_obj(t, y)
+
+        return rhs
+
+
+class PulseSimDescription:
+    """ Object for holding any/all information required for simulation.
+    Needs to be refactored into different pieces.
+    """
+    def __init__(self):
+        self.initial_state = None
+        # Channels in the Hamiltonian string
+        # these tell the order in which the channels
+        # are evaluated in the RHS solver.
+        self.experiments = []
+        # Can experiments be simulated once then sampled
+        self.can_sample = True
+
+        self.shots = None
+        self.meas_level = None
+        self.meas_return = None
+        self.memory_slots = None
+        self.memory = None
+
+        self.seed = None
+        self.q_level_meas = None
+        self.measurement_ops = None

@@ -257,6 +257,7 @@ template <class T> matrix<T> partial_trace_b(const matrix<T> &rho, size_t dimB);
 // Tensor product
 template <class T> matrix<T> tensor_product(const matrix<T> &A, const matrix<T> &B);
 template <class T> matrix<T> unitary_superop(const matrix<T> &mat);
+template <class T> matrix<T> kraus_superop(const std::vector<matrix<T>> &kmats);
 
 // concatenate
 // Returns a matrix that is the concatenation of two matrices A, B
@@ -940,6 +941,16 @@ template <class T> matrix<T> unitary_superop(const matrix<T> &mat) {
   return tensor_product(conjugate(mat), mat);
 }
 
+template <class T> matrix<T> kraus_superop(const std::vector<matrix<T>> &kmats) {
+  if (kmats.empty())
+    return matrix<T>();
+  matrix<T> mat = unitary_superop(kmats[0]);
+  for (size_t i = 1; i < kmats.size(); ++i) {
+    mat += unitary_superop(kmats[i]);
+  }
+  return mat;
+}
+
 template <class T>
 matrix<T> concatenate (const matrix<T> &A, const matrix<T> &B, uint_t axis) {
   if (axis != 0 && axis!= 1) {
@@ -1176,9 +1187,10 @@ bool is_symmetrix(const matrix<T> &mat, double threshold) {
 
 template <class T>
 bool is_cptp_kraus(const std::vector<matrix<T>> &mats, double threshold) {
-  matrix<T> cptp(mats[0].size());
+  const auto dim = mats[0].GetRows();
+  matrix<T> cptp(dim, dim);
   for (const auto &mat : mats) {
-    cptp = cptp + dagger(mat) * mat;
+    cptp += dagger(mat) * mat;
   }
   return is_identity(cptp, threshold);
 }
@@ -1203,7 +1215,7 @@ std::vector<std::complex<T>> conjugate(const std::vector<std::complex<T>> &v) {
 template <typename T>
 double norm(const std::vector<T> &vec) {
   double val = 0.0;
-  for (const auto v : vec) {
+  for (const auto &v : vec) {
     val += std::real(v * std::conj(v));
   }
   return std::sqrt(val);
@@ -1486,17 +1498,20 @@ std::string bin2hex(std::string str, bool prefix) {
 
   // Add > 64 bit chunks
   if (chunks > 0) {
+    std::string part;
     // Add last 64-bit chunk
-    std::stringstream ss;
-    ss << std::hex << std::stoull(str.substr(remain, bin_block), nullptr, 2);
-    std::string part = ss.str();
-    if (remain > 0) {
-      part.insert(0, hex_block - part.size(), '0'); // pad out zeros
+    {
+      std::stringstream ss;
+      ss << std::hex << std::stoull(str.substr(remain, bin_block), nullptr, 2);
+      part = ss.str();
+      if (remain > 0) {
+        part.insert(0, hex_block - part.size(), '0'); // pad out zeros
+      }
+      hex += part;
     }
-    hex += part;
     // Add any additional chunks
     for (size_t j=1; j < chunks; ++j) {
-      ss = std::stringstream(); // clear string stream
+      std::stringstream ss; // clear string stream
       ss << std::hex << std::stoull(str.substr(remain + j * bin_block, bin_block), nullptr, 2);
       part = ss.str();
       part.insert(0, hex_block - part.size(), '0');
@@ -1538,6 +1553,17 @@ std::string int2string(uint_t n, uint_t base) {
 std::string int2string(uint_t n, uint_t base, uint_t minlen) {
   std::string tmp = int2string(n, base);
   return padleft_inplace(tmp, '0', minlen);
+}
+
+uint_t popcount(const uint_t count_) {
+  auto count = count_;
+  count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
+  count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
+  count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
+  count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
+  count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
+  count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
+  return count;
 }
 
 

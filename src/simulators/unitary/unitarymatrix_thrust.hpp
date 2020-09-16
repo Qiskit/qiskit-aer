@@ -19,6 +19,7 @@
 #include "framework/utils.hpp"
 #include "simulators/statevector/qubitvector_thrust.hpp"
 
+namespace AER {
 namespace QV {
 
 //============================================================================
@@ -67,8 +68,13 @@ public:
   // Returns the number of qubits for the current vector
   virtual uint_t num_qubits() const override { return num_qubits_;}
 
-  // Returns a copy of the underlying data_t data as a complex vector
-  AER::cmatrix_t matrix() const;
+  // Copy the internal data array to a complex matrix
+  matrix<std::complex<data_t>> copy_to_matrix() const;
+
+  // Move the internal data array to a complex matrix
+  // Note that this is technically still a copy as it must be copied
+  // from device to host memory
+  matrix<std::complex<data_t>> move_to_matrix() { return copy_to_matrix(); }
 
   // Return the trace of the unitary
   std::complex<double> trace() const;
@@ -138,7 +144,8 @@ json_t UnitaryMatrixThrust<data_t>::json() const
 {
   const int_t nrows = rows_;
   int iPlace;
-  uint_t i, irow, icol, ic, nc;
+  int_t i;
+  uint_t irow, icol, ic, nc;
   uint_t pos = 0;
   uint_t csize = 1ull << BaseVector::m_maxChunkBits;
   cvector_t<data_t> tmp(csize);
@@ -202,10 +209,10 @@ UnitaryMatrixThrust<data_t>::UnitaryMatrixThrust(size_t num_qubits) {
 //------------------------------------------------------------------------------
 
 template <class data_t>
-AER::cmatrix_t UnitaryMatrixThrust<data_t>::matrix() const 
+matrix<std::complex<data_t>> UnitaryMatrixThrust<data_t>::copy_to_matrix() const 
 {
   const int_t nrows = rows_;
-  AER::cmatrix_t ret(nrows, nrows);
+  matrix<std::complex<data_t>> ret(nrows, nrows);
   cvector_t<data_t> qreg = BaseVector::vector();
 
   int iPlace;
@@ -272,7 +279,8 @@ void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &m
   }
 
 	int iPlace;
-	uint_t i,irow,icol,ic,nc;
+  int_t i;
+	uint_t irow,icol,ic,nc;
 	uint_t pos = 0;
 	uint_t csize = 1ull << BaseVector::m_maxChunkBits;
 	cvector_t<data_t> tmp(csize);
@@ -316,7 +324,7 @@ std::complex<double> UnitaryMatrixThrust<data_t>::trace() const {
   {
 #pragma omp for
   for (int_t k = 0; k < NROWS; ++k) {
-  	d = BaseVector::get_state(k * DIAG,BaseVector::m_maxChunkBits);
+  	d = BaseVector::get_state(k * DIAG);
     val_re += std::real(d);
     val_im += std::imag(d);
   }
@@ -347,7 +355,8 @@ std::pair<bool, double> UnitaryMatrixThrust<data_t>::check_identity() const {
   // Check conditions 2 and 3
   double delta = 0.;
 	int iPlace;
-	uint_t i,irow,icol,ic,nc;
+  int_t i;
+	uint_t irow,icol,ic,nc;
 	uint_t pos = 0;
 	uint_t csize = 1ull << BaseVector::m_maxChunkBits;
 	cvector_t<data_t> tmp(csize);
@@ -393,12 +402,13 @@ std::pair<bool, double> UnitaryMatrixThrust<data_t>::check_identity() const {
 
 //------------------------------------------------------------------------------
 } // end namespace QV
+} // namespace AER
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector
 template <class data_t>
-inline std::ostream &operator<<(std::ostream &out, const QV::UnitaryMatrixThrust<data_t>&m) {
-  out << m.matrix();
+inline std::ostream &operator<<(std::ostream &out, const AER::QV::UnitaryMatrixThrust<data_t>&m) {
+  out << m.copy_to_matrix();
   return out;
 }
 

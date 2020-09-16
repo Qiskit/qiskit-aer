@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Improve the performance of average snapshot data in simulator results.
+    This effects probability, Pauli expectation value, and density matrix snapshots
+    using the following extensions:
+
+    * :class:`qiskit.providers.aer.extensions.SnapshotExpectationValue`
+    * :class:`qiskit.providers.aer.extensions.SnapshotProbabilities`
+    * :class:`qiskit.providers.aer.extensions.SnapshotDensityMatrix`

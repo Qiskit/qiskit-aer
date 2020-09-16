@@ -29,7 +29,6 @@ from qiskit.result import Result
 from qiskit.util import local_hardware_info
 
 from ..aerjob import AerJob
-from ..aererror import AerError
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -131,9 +130,8 @@ class AerBackend(BaseBackend):
             validate_qobj_against_schema(qobj)
             self._validate(qobj, backend_options, noise_model)
         output = self._controller(self._format_qobj(qobj, backend_options, noise_model))
-        self._validate_controller_output(output)
         end = time.time()
-        return self._format_results(job_id, output, end - start)
+        return Result.from_dict(self._format_results(job_id, output, end - start))
 
     def _format_qobj(self, qobj, backend_options, noise_model):
         """Format qobj string for qiskit aer controller"""
@@ -182,15 +180,7 @@ class AerBackend(BaseBackend):
         output["backend_name"] = self.name()
         output["backend_version"] = self.configuration().backend_version
         output["time_taken"] = time_taken
-        return Result.from_dict(output)
-
-    def _validate_controller_output(self, output):
-        """Validate output from the controller wrapper."""
-        if not isinstance(output, dict):
-            logger.error("%s: simulation failed.", self.name())
-            if output:
-                logger.error('Output: %s', output)
-            raise AerError("simulation terminated without returning valid output.")
+        return output
 
     def _validate(self, qobj, backend_options, noise_model):
         """Validate the qobj, backend_options, noise_model for the backend"""

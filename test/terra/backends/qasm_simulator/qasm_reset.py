@@ -37,32 +37,32 @@ class QasmResetTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_reset_nondeterministic(self):
         """Test QasmSimulator reset with for circuits with non-deterministic counts"""
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
-        shots = 2000
+        shots = 4000
         circuits = ref_reset.reset_circuits_nondeterministic(
             final_measure=True)
         targets = ref_reset.reset_counts_nondeterministic(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_reset_sampling_opt(self):
         """Test sampling optimization"""
-        shots = 2000
+        shots = 4000
         circuits = ref_reset.reset_circuits_sampling_optimization()
         targets = ref_reset.reset_counts_sampling_optimization(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_repeated_resets(self):
@@ -73,5 +73,5 @@ class QasmResetTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
             qobj, backend_options=self.BACKEND_OPTS).result()
-        self.assertTrue(getattr(result, 'success', False))
+        self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)

@@ -80,7 +80,7 @@ class PulseSimulator(AerBackend):
     :meth:`PulseSimulator.run` takes an additional ``dict`` argument ``backend_options`` for
     customization. Accepted keys:
 
-    * ``'ode_options'``: A ``dict`` for ``zvode`` solver options. Accepted keys
+    * ``'solver_options'``: A ``dict`` for solver options. Accepted keys
       are ``'atol'``, ``'rtol'``, ``'nsteps'``, ``'max_step'``, ``'num_cpus'``, ``'norm_tol'``,
       and ``'norm_steps'``.
     """
