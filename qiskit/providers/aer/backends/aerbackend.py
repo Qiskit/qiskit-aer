@@ -131,7 +131,20 @@ class AerBackend(BaseBackend):
             self._validate(qobj, backend_options, noise_model)
         output = self._controller(self._format_qobj(qobj, backend_options, noise_model))
         end = time.time()
-        return Result.from_dict(self._format_results(job_id, output, end - start))
+        result = Result.from_dict(self._format_results(job_id, output, end - start))
+
+        if "path_to_save" in backend_options:
+            path_to_save = backend_options["path_to_save"]
+            if not path_to_save.endswith("/"):
+                path_to_save += "/"
+            filename = path_to_save + "_".join([str(job_id), str(int(time.time()))])
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            with open(filename, "wb") as file:
+                pickle.dump(result, file, 0)
+            with open(filename, "rb") as file:
+                result = pickle.load(file)
+
+        return result
 
     def _format_qobj(self, qobj, backend_options, noise_model):
         """Format qobj string for qiskit aer controller"""
@@ -193,3 +206,7 @@ class AerBackend(BaseBackend):
         if provider is not None:
             display = display + " from {}()".format(provider)
         return "<" + display + ">"
+
+    def _serialize_result(self, result):
+        for k,v in result:
+            print("key: {k}, value: {v}")
