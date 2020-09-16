@@ -16,11 +16,11 @@ Simulator command to perform multiple pauli gates in a single pass
 import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import XGate, YGate, ZGate
+from qiskit.circuit.library import IGate, XGate, YGate, ZGate
 from qiskit.circuit.gate import Gate
 
 
-class MultiPauliGate(Gate):
+class PauliGate(Gate):
     r"""A multi-qubit Pauli gate.
 
         This gate exists for optimization purposes for the
@@ -34,13 +34,13 @@ class MultiPauliGate(Gate):
 
     def __init__(self, pauli_string=None):
         self.pauli_string = pauli_string
-        super().__init__('multi_pauli', len(pauli_string), [pauli_string[::-1]])
+        super().__init__('pauli', len(pauli_string), [pauli_string[::-1]])
 
     def _define(self):
         """
-        gate multi_pauli (p1 a1,...,pn an) { p1 a1; ... ; pn an; }
+        gate pauli (p1 a1,...,pn an) { p1 a1; ... ; pn an; }
         """
-        gates = {'X': XGate, 'Y': YGate, 'Z': ZGate}
+        gates = {'I': IGate, 'X': XGate, 'Y': YGate, 'Z': ZGate}
         q = QuantumRegister(len(self.pauli_string), 'q')
         qc = QuantumCircuit(q, name=self.name)
 
@@ -56,6 +56,7 @@ class MultiPauliGate(Gate):
         """Return a Numpy.array for the multi-pauli gate.
         i.e. tensor product of the paulis"""
         pauli_matrices = {
+            'I': np.array([[1, 0], [0, 1]], dtype=complex),
             'X': np.array([[0, 1], [1, 0]], dtype=complex),
             'Y': np.array([[0, -1j], [1j, 0]], dtype=complex),
             'Z': np.array([[1, 0], [0, -1]], dtype=complex)
@@ -66,10 +67,10 @@ class MultiPauliGate(Gate):
         return mat
 
 
-def multi_pauli(self, qubits, pauli_string):
+def pauli(self, qubits, pauli_string):
     """Adds a multi pauli instruction to the circuit"""
-    return self.append(MultiPauliGate(pauli_string), qubits)
+    return self.append(PauliGate(pauli_string), qubits)
 
 
 # Add to QuantumCircuit class
-QuantumCircuit.multi_pauli = multi_pauli
+QuantumCircuit.pauli = pauli

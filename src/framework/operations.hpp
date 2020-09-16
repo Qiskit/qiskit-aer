@@ -354,7 +354,7 @@ Op json_to_op_measure(const json_t &js);
 Op json_to_op_reset(const json_t &js);
 Op json_to_op_bfunc(const json_t &js);
 Op json_to_op_initialize(const json_t &js);
-Op json_to_op_multi_pauli(const json_t &js);
+Op json_to_op_pauli(const json_t &js);
 
 // Snapshots
 Op json_to_op_snapshot(const json_t &js);
@@ -419,8 +419,8 @@ Op json_to_op(const json_t &js) {
     return json_to_op_kraus(js);
   if (name == "roerror")
     return json_to_op_roerror(js);
-   if (name == "multi_pauli")
-    return json_to_op_multi_pauli(js);
+   if (name == "pauli")
+    return json_to_op_pauli(js);
   // Default assume gate
   return json_to_op_gate(js);
 }
@@ -574,10 +574,10 @@ Op json_to_op_initialize(const json_t &js) {
   return op;
 }
 
-Op json_to_op_multi_pauli(const json_t &js){
+Op json_to_op_pauli(const json_t &js){
   Op op;
   op.type = OpType::gate;
-  op.name = "multi_pauli";
+  op.name = "pauli";
   JSON::get_value(op.qubits, "qubits", js);
   JSON::get_value(op.string_params, "params", js);
 

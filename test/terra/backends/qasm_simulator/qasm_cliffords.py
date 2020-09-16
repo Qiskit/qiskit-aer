@@ -240,15 +240,15 @@ class QasmCliffordTests:
     # ---------------------------------------------------------------------
     # Test multipauli-gate
     # ---------------------------------------------------------------------
-    def test_multi_pauli_gate_deterministic_default_basis_gates(self):
+    def test_pauli_gate_deterministic_default_basis_gates(self):
         """Test multipauli-gate circuits compiling to backend default basis_gates."""
         shots = 100
-        circuits = ref_1q_clifford.multi_pauli_gate_circuits_deterministic(
+        circuits = ref_1q_clifford.pauli_gate_circuits_deterministic(
             final_measure=True)
-        targets = ref_1q_clifford.multi_pauli_gate_counts_deterministic(shots)
+        targets = ref_1q_clifford.pauli_gate_counts_deterministic(shots)
         basis_gates = None
         if 'method' not in self.BACKEND_OPTS or self.BACKEND_OPTS['method'] == 'statevector':
-            basis_gates = ['multi_pauli', 'h', 'z'] # implemented only for statevector for now
+            basis_gates = ['pauli', 'h', 'z'] # implemented only for statevector for now
         job = execute(circuits, self.SIMULATOR, shots=shots,
                       basis_gates=basis_gates,
                       backend_options=self.BACKEND_OPTS)

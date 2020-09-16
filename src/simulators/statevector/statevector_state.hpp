@@ -43,7 +43,7 @@ const Operations::OpSet StateOpSet(
   // Gates
   {"u1",  "u2",  "u3",   "cx",   "cz",   "cy",   "cu1",
     "cu2", "cu3", "swap", "id",   "x",    "y",    "z",
-    "h",   "s",   "sdg", "multi_pauli", "t",    "tdg",
+    "h",   "s",   "sdg", "pauli", "t",    "tdg",
     "ccx",  "cswap", "mcx", "mcy", "mcz",
     "mcu1", "mcu2", "mcu3", "mcswap"},
   // Snapshots
@@ -60,7 +60,7 @@ const Operations::OpSet StateOpSet(
 enum class Gates {
   id, h, s, sdg, t, tdg, // single qubit
   // multi-qubit controlled (including single-qubit non-controlled)
-  mcx, mcy, mcz, mcu1, mcu2, mcu3, mcswap, multi_pauli
+  mcx, mcy, mcz, mcu1, mcu2, mcu3, mcswap, pauli
 };
 
 // Allowed snapshots enum class
@@ -333,7 +333,7 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
   {"mcu2", Gates::mcu2},    // Multi-controlled-u2
   {"mcu3", Gates::mcu3},    // Multi-controlled-u3
   {"mcswap", Gates::mcswap}, // Multi-controlled SWAP gate
-  {"multi_pauli", Gates::multi_pauli} // Multi-qubit Pauli gates
+  {"pauli", Gates::pauli} // Multi-qubit Pauli gates
 
 });
 
@@ -810,7 +810,7 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
       // Includes u1, cu1, etc
       BaseState::qreg_.apply_mcphase(op.qubits, std::exp(complex_t(0, 1) * op.params[0]));
       break;
-    case Gates::multi_pauli:
+    case Gates::pauli:
         BaseState::qreg_.apply_multipauli(op.qubits, op.string_params[0]);
         break;
     default:

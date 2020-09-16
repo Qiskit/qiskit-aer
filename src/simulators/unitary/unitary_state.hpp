@@ -41,7 +41,7 @@ const Operations::OpSet StateOpSet(
     "cu2", "cu3", "swap", "id",   "x",    "y",    "z",
     "h",   "s",   "sdg",  "t",    "tdg",  "ccx",  "cswap",
     "mcx", "mcy", "mcz",  "mcu1", "mcu2", "mcu3", "mcswap",
-    "multi_pauli"},
+    "pauli"},
   // Snapshots
   {"unitary"}
 );
@@ -62,7 +62,7 @@ enum class Gates {
   mcu2,
   mcu3,
   mcswap,
-  multi_pauli,
+  pauli,
 };
 
 //=========================================================================
@@ -207,7 +207,7 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"mcu2", Gates::mcu2},     // Multi-controlled-u2
     {"mcu3", Gates::mcu3},     // Multi-controlled-u3
     {"mcswap", Gates::mcswap},  // Multi-controlled-SWAP gate
-    {"multi_pauli", Gates::multi_pauli}  // Multiple pauli operations at once
+    {"pauli", Gates::pauli}  // Multiple pauli operations at once
 });
 
 //============================================================================
@@ -344,7 +344,7 @@ void State<unitary_matrix_t>::apply_gate(const Operations::Op &op) {
     case Gates::sdg:
       apply_gate_phase(op.qubits[0], complex_t(0., -1.));
       break;
-    case Gates::multi_pauli:
+    case Gates::pauli:
         BaseState::qreg_.apply_multipauli(op.qubits, op.string_params[0]);
         break;
     case Gates::t: {
