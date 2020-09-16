@@ -768,52 +768,33 @@ void MPS::change_position(uint_t src, uint_t dst) {
      }
 }
 
-cmatrix_t MPS::density_matrix(const reg_t &qubits) const {
+cmatrix_t MPS::density_matrix(const reg_t &qubits) {
   reg_t internal_qubits = get_internal_qubits(qubits);
   return density_matrix_internal(internal_qubits);
 }
 
-cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
-  reg_t new_qubits;
-  bool ordered = true;
-  
-  MPS temp_MPS;
-  temp_MPS.initialize(*this);
-  temp_MPS.centralize_qubits(qubits, new_qubits, ordered);
-
-  MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_qubits.front(), new_qubits.back());
-  uint_t size = psi.get_dim();
-  cmatrix_t rho(size,size);
-
-#ifdef _WIN32
-    #pragma omp parallel for if (size > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-#else
-    #pragma omp parallel for collapse(2) if (size > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-#endif
+cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) {
+  cvector_t statevector;
+  full_state_vector_internal(statevector, qubits);
+  uint_t size = statevector.size();
+  cmatrix_t rho(size, size);
   for(int_t i = 0; i < static_cast<int_t>(size); i++) {
     for(int_t j = 0; j < static_cast<int_t>(size); j++) {
-      rho(i,j) = AER::Utils::sum( AER::Utils::elementwise_multiplication(psi.get_data(i), AER::Utils::conjugate(psi.get_data(j))) );
+      rho(i,j) = statevector[i] * std::conj(statevector[j]);
     }
   }
   return rho;
 }
 
-rvector_t MPS::trace_of_density_matrix(const reg_t &qubits) const
+rvector_t MPS::diagonal_of_density_matrix(const reg_t &qubits)
 {
-  bool ordered = true;
-  reg_t new_qubits;
-
-  MPS temp_MPS;
-  temp_MPS.initialize(*this);
-  temp_MPS.centralize_qubits(qubits, new_qubits, ordered);
-
-  MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_qubits.front(), new_qubits.back());
-
-  uint_t size = psi.get_dim();
+  cvector_t statevector;
+  full_state_vector_internal(statevector, qubits);
+  uint_t size = statevector.size();
   rvector_t trace_rho(size);
 
   for(int_t i = 0; i < static_cast<int_t>(size); i++) {
-    trace_rho[i] = real(AER::Utils::sum( AER::Utils::elementwise_multiplication(psi.get_data(i), AER::Utils::conjugate(psi.get_data(i))) ));
+    trace_rho[i] = real(statevector[i] * std::conj(statevector[i]));
   }
   return trace_rho;
 }
@@ -830,20 +811,21 @@ void MPS::MPS_with_new_indices(const reg_t &qubits,
 }
 
 double MPS::expectation_value(const reg_t &qubits, 
-			      const cmatrix_t &M) const {
+			      const cmatrix_t &M) {
    reg_t internal_qubits = get_internal_qubits(qubits);
    double expval = expectation_value_internal(internal_qubits, M);
    return expval;
 }
 
 double MPS::expectation_value_internal(const reg_t &qubits, 
-				       const cmatrix_t &M) const {
+				       const cmatrix_t &M) {
   // need to reverse qubits because that is the way they
   // are defined in the Qiskit interface
-  reg_t reversed_qubits = qubits;
-  std::reverse(reversed_qubits.begin(), reversed_qubits.end()); 
+  //  reg_t reversed_qubits = qubits;
+  //  std::reverse(reversed_qubits.begin(), reversed_qubits.end()); 
 
-  bool are_qubits_ordered = is_ordered(reversed_qubits);
+  //  bool are_qubits_ordered = is_ordered(reversed_qubits);
+  bool are_qubits_ordered = is_ordered(qubits);
 
   cmatrix_t rho;
 
@@ -851,13 +833,14 @@ double MPS::expectation_value_internal(const reg_t &qubits,
   // without moving them, for performance reasons
   reg_t target_qubits(qubits.size());
   if (are_qubits_ordered) {
-    rho = density_matrix(reversed_qubits);
+    //rho = density_matrix(qubits);
   } else {
     reg_t actual_indices(num_qubits_);
     std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
     MPS temp_MPS;
     temp_MPS.initialize(*this);
-    temp_MPS.move_qubits_to_right_end(reversed_qubits, target_qubits, actual_indices);
+    //temp_MPS.move_qubits_to_right_end(reversed_qubits, target_qubits, actual_indices);
+    temp_MPS.move_qubits_to_right_end(qubits, target_qubits, actual_indices);
 
     rho = temp_MPS.density_matrix(target_qubits);
   }
@@ -1109,13 +1092,13 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
   statevector = reverse_all_bits(temp_statevector, num_qubits);
 }
 
-void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const {
+void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) {
   reg_t internal_qubits = get_internal_qubits(qubits);
   get_probabilities_vector_internal(probvector, internal_qubits);
 }
 
 void MPS::get_probabilities_vector_internal(rvector_t& probvector, 
-					    const reg_t &qubits) const
+					    const reg_t &qubits)
 {
   cvector_t state_vec;
   uint_t num_qubits = qubits.size();
@@ -1123,7 +1106,7 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
   probvector.resize(length);
 
   // compute the probability vector assuming the qubits are in ascending order
-  rvector_t ordered_probvector = trace_of_density_matrix(qubits);
+  rvector_t ordered_probvector = diagonal_of_density_matrix(qubits);
 
   // reorder the probabilities according to the specification in 'qubits'
   rvector_t temp_probvector(ordered_probvector.size()); 
@@ -1135,7 +1118,7 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
 
 void MPS::get_accumulated_probabilities_vector(rvector_t& acc_probvector, 
 					       reg_t& index_vec,
-					       const reg_t &qubits) const
+					       const reg_t &qubits)
 {
   rvector_t probvector;
   get_probabilities_vector(probvector, qubits);
@@ -1164,6 +1147,16 @@ uint_t binary_search(const rvector_t &acc_probvector,
     return binary_search(acc_probvector, mid, end, rnd);
 }
 
+double MPS::norm() {
+    reg_t qubits(num_qubits_);
+    std::iota( std::begin(qubits), std::end(qubits), 0);
+    double trace = 0;
+    rvector_t vec = diagonal_of_density_matrix(qubits);
+    for (uint_t i=0; i<vec.size(); i++)
+      trace += vec[i];
+    return trace;
+}
+
 //------------------------------------------------------------------------------
 // Sample measure outcomes - this method is similar to QubitVector::sample_measure, 
 // with 2 differences:
@@ -1174,7 +1167,7 @@ uint_t binary_search(const rvector_t &acc_probvector,
 
 //-----------------------------------------------------------------------------
 reg_t MPS::sample_measure_using_probabilities(const rvector_t &rnds, 
-					      const reg_t &qubits) const {
+					      const reg_t &qubits) {
   const uint_t SHOTS = rnds.size();
   reg_t samples;
   samples.assign(SHOTS, 0);

@@ -126,7 +126,7 @@ public:
 
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat);
 
-  cmatrix_t density_matrix(const reg_t &qubits) const;
+  cmatrix_t density_matrix(const reg_t &qubits) ;
 
   //---------------------------------------------------------------
   // Function: expectation_value
@@ -135,7 +135,7 @@ public:
   //             M - the matrix
   // Returns: The expectation value. 
   //------------------------------------------------------------------
-  double expectation_value(const reg_t &qubits, const cmatrix_t &M) const;
+  double expectation_value(const reg_t &qubits, const cmatrix_t &M);
 
   //---------------------------------------------------------------
   // Function: expectation_value_pauli
@@ -170,7 +170,7 @@ public:
 
   void full_state_vector(cvector_t &state_vector);
 
-  void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
+  void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits);
 
   //----------------------------------------------------------------
   // Function name: get_accumulated_probabilities_vector
@@ -186,7 +186,7 @@ public:
 
   void get_accumulated_probabilities_vector(rvector_t& acc_probvector, 
 					    reg_t& index_vec,
-					    const reg_t &qubits) const;
+					    const reg_t &qubits);
 
   static void set_omp_threads(uint_t threads) {
     if (threads > 0)
@@ -230,19 +230,21 @@ public:
     return enable_gate_opt_;
   }
 
-  double norm(const uint_t qubit, const cvector_t &vmat) const {
+  double norm();
+
+  double norm(const uint_t qubit, const cvector_t &vmat) {
     cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
     reg_t qubits = {qubit};
     return expectation_value(qubits, mat);
   }
 
-  double norm(const reg_t &qubits, const cvector_t &vmat) const {
+  double norm(const reg_t &qubits, const cvector_t &vmat) {
     cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
     return expectation_value(qubits, mat);
   }
 
   reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
-					   const reg_t &qubits) const;
+					   const reg_t &qubits);
 
   reg_t apply_measure(const reg_t &qubits,
 		      RngEngine &rng);
@@ -295,11 +297,11 @@ private:
 			      const cmatrix_t &mat);
   void apply_matrix_to_target_qubits(const reg_t &target_qubits,
 				     const cmatrix_t &mat);
-  cmatrix_t density_matrix_internal(const reg_t &qubits) const;
+  cmatrix_t density_matrix_internal(const reg_t &qubits);
 
-  rvector_t trace_of_density_matrix(const reg_t &qubits) const;
+  rvector_t diagonal_of_density_matrix(const reg_t &qubits);
 
-  double expectation_value_internal(const reg_t &qubits, const cmatrix_t &M) const;
+  double expectation_value_internal(const reg_t &qubits, const cmatrix_t &M);
   complex_t expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices,
 					     uint_t first_index, uint_t last_index,
 					     uint_t num_Is) const;
@@ -328,7 +330,7 @@ private:
   MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
   void full_state_vector_internal(cvector_t &state_vector, const reg_t &qubits) ;
 
-  void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
+  void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits);
 
   void apply_measure_internal(const reg_t &qubits,
 			      RngEngine &rng, reg_t &outcome_vector_internal);
