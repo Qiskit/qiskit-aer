@@ -1,6 +1,7 @@
 find_package(PythonExtensions REQUIRED)
 find_package(Cython REQUIRED)
 find_package(PythonLibs REQUIRED)
+set(Python_EXECUTABLE ${PYTHON_EXECUTABLE})
 find_package(Python COMPONENTS NumPy)
 if(NOT Python_NumPy_FOUND)
     find_package(NumPy)

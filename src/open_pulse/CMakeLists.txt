@@ -1,4 +1,5 @@
 find_package(Pybind11 REQUIRED)
+set(Python_EXECUTABLE ${PYTHON_EXECUTABLE})
 find_package(Python COMPONENTS NumPy)
 if(NOT Python_NumPy_FOUND)
     find_package(NumPy)
