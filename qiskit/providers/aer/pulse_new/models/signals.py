@@ -118,14 +118,28 @@ class PiecewiseConstant(Signal):
         else:
             self._samples = [0] * duration
 
-        self._duration = len(self._samples)
-
         if start_time is None:
             self._start_time = 0
         else:
             self._start_time = start_time
 
         self.carrier_freq = carrier_freq
+
+    @property
+    def duration(self) -> int:
+        """
+        Returns:
+            duration: The duration of the signal in samples.
+        """
+        return len(self._samples)
+
+    @property
+    def dt(self) -> float:
+        """
+        Returns:
+             dt: the duration of each sample.
+        """
+        return self._dt
 
     def envelope_value(self, t):
         if t < self._start_time * self._dt:
@@ -134,7 +148,7 @@ class PiecewiseConstant(Signal):
         idx = int(t // self._dt)
 
         # if the index is beyond the final time, return 0
-        if idx >= self._duration:
+        if idx >= self.duration:
             return 0.0j
 
         return self._samples[idx]
@@ -143,7 +157,7 @@ class PiecewiseConstant(Signal):
         return PiecewiseConstant(dt=self._dt,
                                  samples=np.conjugate(self._samples),
                                  start_time=self._start_time,
-                                 duration=self._duration,
+                                 duration=self.duration,
                                  carrier_freq=self.carrier_freq)
 
 
@@ -183,11 +197,11 @@ def signal_add(sig1, sig2):
             if isinstance(sig1, ConstantSignal) and isinstance(sig2, ConstantSignal):
                 return ConstantSignal(sig1._value + sig2._value, sig1.carrier_freq)
             elif isinstance(sig1, PiecewiseConstant) and isinstance(sig2, PiecewiseConstant):
-                if sig1._dt == sig2._dt and sig1._start_time == sig2._start_time and sig1._duration == sig2._duration:
+                if sig1._dt == sig2._dt and sig1._start_time == sig2._start_time and sig1.duration == sig2.duration:
                     return PiecewiseConstant(dt=sig1._dt,
                                              samples=(sig1._samples + sig2._samples),
                                              start_time=sig1._start_time,
-                                             duration=sig1._duration,
+                                             duration=sig1.duration,
                                              carrier_freq=sig1.carrier_freq)
             # could add - ConstantSignal and PiecewiseConstant
 

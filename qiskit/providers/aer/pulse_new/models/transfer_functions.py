@@ -13,7 +13,11 @@
 # that they have been altered from the originals.
 
 from abc import ABC, abstractmethod
-from signals import Signal
+from typing import Callable, Union
+from .signals import Signal, ConstantSignal, PiecewiseConstant
+
+from numpy import convolve
+
 
 class BaseTransferFunction(ABC):
     """
@@ -26,7 +30,65 @@ class BaseTransferFunction(ABC):
         Applies a transformation on a signal, such as a convolution,
         low pass filter, etc.
 
+        Args:
+            signal: A signal to which the transfer function will be applied.
+
         Returns:
             BaseSignal: The transformed signal.
         """
+        raise NotImplementedError
+
+
+class Convolution(BaseTransferFunction):
+    """
+    Applies a convolution as a sum
+
+        (f*g)(n) = sum_k f(k)g(n-k)
+
+    The implementation is quadratic in the number of samples in the signal.
+    """
+
+    def __init__(self, func: Callable):
+        """
+        Args:
+            func: The convolution function specified in time.
+        """
+        self._func = func
+
+    def apply(self, signal: Signal) -> Union[Signal, PiecewiseConstant]:
+        """
+        Applies a transformation on a signal, such as a convolution,
+        low pass filter, etc. Once a convolution is applied the signal
+        can longer have a carrier as the carrier is part of the signal
+        value and gets convolved.
+
+        Args:
+            signal: A signal to which the transfer function will be applied.
+
+        Returns:
+            signal: The transformed signal.
+        """
+        if isinstance(signal, ConstantSignal):
+            return signal
+
+        if isinstance(signal, PiecewiseConstant):
+            # Perform a discrete time convolution.
+            dt = signal.dt
+            func_samples = [self._func(dt*i) for i in range(signal.duration)]
+            sig_samples = [signal.value(dt*i) for i in range(signal.duration)]
+
+            convoluted_samples = convolve(func_samples, sig_samples)
+
+            return PiecewiseConstant(dt, convoluted_samples, carrier_freq=0.)
+
+
+class FFTConvolution(BaseTransferFunction):
+    """
+    Applies a convolution by moving into the fourier domain.
+    """
+
+    def __init__(self, func: Callable):
+        self._func = func
+
+    def apply(self, signal: Signal) -> Signal:
         raise NotImplementedError
