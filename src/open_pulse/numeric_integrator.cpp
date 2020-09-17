@@ -156,19 +156,10 @@ struct RhsData {
   NpArray<double> energy;
 };
 
-py::array_t <complex_t> inner_ode_rhs(double t,
-                                      py::array_t <complex_t> the_vec,
-                                      const RhsData &rhs_data) {
-    if (the_vec.ptr() == nullptr) {
-        throw std::invalid_argument("py_vec cannot be null");
-    }
 
-    auto vec = static_cast<complex_t *>(the_vec.request().ptr);
-    auto num_rows = the_vec.size();
-    py::array_t <complex_t> out_arr(num_rows);
-    auto out = static_cast<complex_t *>(out_arr.request().ptr);
-    memset(&out[0], 0, num_rows * sizeof(complex_t));
 
+void raw_ode_rhs(double t, const complex_t* const vec, complex_t* out, int  num_rows,
+                 const RhsData &rhs_data){
     std::unordered_map<std::string, complex_t> chan_values;
     chan_values.reserve(rhs_data.pulses.size());
     for (const auto &elem : enumerate(rhs_data.pulses)) {
@@ -220,7 +211,22 @@ py::array_t <complex_t> inner_ode_rhs(double t,
     for (auto i = 0; i < num_rows; ++i) {
         out[i] += complex_t(0., 1.) * rhs_data.energy[i] * vec[i];
     }
+}
 
+py::array_t <complex_t> inner_ode_rhs(double t,
+                                      py::array_t <complex_t> the_vec,
+                                      const RhsData &rhs_data) {
+    if (the_vec.ptr() == nullptr) {
+        throw std::invalid_argument("py_vec cannot be null");
+    }
+
+    auto vec = static_cast<complex_t *>(the_vec.request().ptr);
+    auto num_rows = the_vec.size();
+    py::array_t<complex_t> out_arr(num_rows);
+    auto out = static_cast<complex_t *>(out_arr.request().ptr);
+    memset(&out[0], 0, num_rows * sizeof(complex_t));
+
+    raw_ode_rhs(t, vec, out, num_rows, rhs_data);
     return out_arr;
 }
 
@@ -256,3 +262,12 @@ py::array_t <complex_t> td_ode_rhs(double t,
     return inner_ode_rhs(t, the_vec, rhs_data);
 }
 
+void td_ode_rhs_vec(double t, const std::vector<complex_t>& y, std::vector<complex_t>& y_dot,
+                    py::object the_global_data,
+                    py::object the_exp,
+                    py::object the_system,
+                    py::object the_channels,
+                    py::object the_reg){
+    auto rhs_data = RhsData(the_global_data, the_exp, the_system, the_channels, the_reg);
+    raw_ode_rhs(t, y.data(),y_dot.data(), y.size(), rhs_data);
+}

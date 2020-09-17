@@ -15,6 +15,9 @@
 
 #include <string>
 #include "framework/json.hpp"
+#include "framework/stl_ostream.hpp"
+#include "framework/types.hpp"
+#include "framework/linalg/almost_equal.hpp"
 
 #include <catch2/catch.hpp>
 

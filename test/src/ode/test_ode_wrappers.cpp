@@ -1,29 +1,17 @@
-#define CATCH_CONFIG_MAIN
 
-#include <catch2/catch.hpp>
 #include <vector>
 #include <framework/types.hpp>
 #include <framework/linalg/almost_equal.hpp>
 #include <ode/sundials_wrappers/sundials_cvode_wrapper.hpp>
 #include <ode/odeint_wrappers/abm_wrapper.hpp>
 
-namespace Catch {
-  std::string convertMyTypeToString(const std::vector<AER::complex_t> &value) {
-    std::ostringstream oss;
-    oss << "{ " << std::setprecision(15);
-    for (const auto &elem : value) {
-      oss << elem;
-    }
-    oss << " }\n";
-    return oss.str();
-  }
+#define CATCH_CONFIG_MAIN
 
-  template <> struct StringMaker<std::vector<AER::complex_t>> {
-    static std::string convert(const std::vector<AER::complex_t> &value) {
-      return convertMyTypeToString(value);
-    }
-  };
-} // namespace Catch
+#include <catch2/catch.hpp>
+
+#include "../utils.hpp"
+
+using namespace AER::Test::Utilities;
 
 namespace AER {
   namespace ODE {
@@ -49,22 +37,6 @@ namespace AER {
         }
         std::vector<complex_t> y{{1, 1}, {3, 4}, {1, -1}, {0, 5}, {3, -2.6}};
         std::vector<complex_t> y_sens{{1, 0}, {3, 0}, {1, 0}, {0, 0}, {3, -0}};
-
-        inline bool compare(const std::vector<complex_t> &lhs, const std::vector<complex_t> &rhs,
-                            double prec = 1e-5) {
-          if (lhs.size() != rhs.size())
-            return false;
-          for (size_t i = 0; i < lhs.size(); ++i) {
-            if (!(Linalg::almost_equal(lhs[i], rhs[i], prec, prec))) {
-              std::cout << "Vectors differ at element: " << i << std::setprecision(22) << ". [" << lhs[i]
-                        << "] != [" << rhs[i] << "]\n";
-              std::cout << "Vectors differ: " << Catch::convertMyTypeToString(lhs)
-                        << " != " << Catch::convertMyTypeToString(rhs) << std::endl;
-              return false;
-            }
-          }
-          return true;
-        }
 
         template <typename T>
         T getODE() {

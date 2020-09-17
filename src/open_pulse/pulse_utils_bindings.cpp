@@ -17,7 +17,12 @@
 #include "ode/sundials_wrappers/sundials_cvode_wrapper.hpp"
 #include "ode/odeint_wrappers/abm_wrapper.hpp"
 #include "ode/ode_factory.hpp"
+
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #include <pybind11/functional.h>
+DISABLE_WARNING_POP
+
 
 namespace AER {
   template<>
@@ -77,12 +82,6 @@ namespace {
     return ode;
   }
 }
-
-
-#include "misc/warnings.hpp"
-DISABLE_WARNING_PUSH
-#include <pybind11/functional.h>
-DISABLE_WARNING_POP
 
 RhsFunctor get_ode_rhs_functor(py::object the_global_data, py::object the_exp,
                                py::object the_system, py::object the_channels, py::object the_reg) {

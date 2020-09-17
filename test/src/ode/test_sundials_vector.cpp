@@ -2,7 +2,8 @@
 #include <catch2/catch.hpp>
 #include <valarray>
 
-#include <ode/sundials_wrappers/sundials_complex_vector.hpp>
+#include "ode/sundials_wrappers/sundials_complex_vector.hpp"
+#include "framework/linalg/almost_equal.hpp"
 
 namespace AER {
   namespace Test {
@@ -74,6 +75,7 @@ namespace AER {
       auto sun_vector_cloned = SundialsOps<SunComplexContent_t>::SundialsComplexContent_CloneEmpty(sun_vector_v);
 
       REQUIRE(SunComplexContent_t::get_data(sun_vector_v) == vec_v);
+      REQUIRE(SunComplexContent_t::get_data(sun_vector_cloned).size() == 0);
     }
 
     TEST_CASE( "Sundials Vector destruction", "[sundials vector]" ) {
@@ -105,7 +107,7 @@ namespace AER {
 
       SECTION("Sundials min real part"){
         auto min_real = SundialsOps<SunComplexContent_t>::SundialsComplexContent_Min(sun_vector_v);
-        REQUIRE(min_real == 1);
+        REQUIRE(AER::Linalg::almost_equal(min_real, 1.));
       }
     }
 
