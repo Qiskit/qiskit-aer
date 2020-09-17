@@ -133,18 +133,9 @@ class AerBackend(BaseBackend):
         end = time.time()
         result = Result.from_dict(self._format_results(job_id, output, end - start))
 
-        if "path_to_save" in backend_options:
-            path_to_save = backend_options["path_to_save"]
-            if not path_to_save.endswith("/"):
-                path_to_save += "/"
-            filename = path_to_save + "_".join([str(job_id), str(int(time.time()))])
-            os.makedirs(os.path.dirname(filename), exist_ok=True)
-            with open(filename, "wb") as file:
-                pickle.dump(result, file, 0)
-            with open(filename, "rb") as file:
-                result = pickle.load(file)
+        self._save_job(result, backend_options)
 
-        return result
+        retuen result
 
     def _format_qobj(self, qobj, backend_options, noise_model):
         """Format qobj string for qiskit aer controller"""
@@ -199,6 +190,16 @@ class AerBackend(BaseBackend):
         """Validate the qobj, backend_options, noise_model for the backend"""
         pass
 
+    def _save_job(self, result, backend_options):
+        if (backend_options is not None) and ("path_to_save" in backend_options):
+            path_to_save = backend_options["path_to_save"]
+            if not path_to_save.endswith("/"):
+                path_to_save += "/"
+            filename = path_to_save + "_".join([self.name(), str(result.job_id), str(int(time.time()))])
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            with open(filename, "wb") as file:
+                pickle.dump(result, file, 0)
+
     def __repr__(self):
         """Official string representation of an AerBackend."""
         display = "{}('{}')".format(self.__class__.__name__, self.name())
@@ -206,7 +207,3 @@ class AerBackend(BaseBackend):
         if provider is not None:
             display = display + " from {}()".format(provider)
         return "<" + display + ">"
-
-    def _serialize_result(self, result):
-        for k,v in result:
-            print("key: {k}, value: {v}")
