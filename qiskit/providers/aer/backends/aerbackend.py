@@ -135,7 +135,7 @@ class AerBackend(BaseBackend):
 
         self._save_job(result, backend_options)
 
-        retuen result
+        return result
 
     def _format_qobj(self, qobj, backend_options, noise_model):
         """Format qobj string for qiskit aer controller"""
