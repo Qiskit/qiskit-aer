@@ -195,7 +195,9 @@ class AerBackend(BaseBackend):
             path_to_save = backend_options["path_to_save"]
             if not path_to_save.endswith("/"):
                 path_to_save += "/"
-            filename = path_to_save + "_".join([self.name(), str(result.job_id), str(int(time.time()))])
+            filename = path_to_save + "_".join(
+                [self.name(), str(result.job_id), str(int(time.time()))]
+            )
             os.makedirs(os.path.dirname(filename), exist_ok=True)
             with open(filename, "wb") as file:
                 pickle.dump(result, file, 0)
