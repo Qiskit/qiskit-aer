@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Adds Pauli expectation value snapshot support to the `"density_matrix"`
+    simulation method of the :class:`qiskit.providers.aer.QasmSimulator`.
+    Add snapshots to circuits using the
+    :class:`qiskit.providers.aer.extensions.SnapshotExpectationValue`
+    extension.
+  - |
+    Greatly improves performance of the Pauli expectation value snapshot
+    algorithm for the `"statevector"`, `"statevector_gpu`, `"density_matrix"`,
+    and `"density_matrix_gpu"` simulation methods of the
+    :class:`qiskit.providers.aer.QasmSimulator`.

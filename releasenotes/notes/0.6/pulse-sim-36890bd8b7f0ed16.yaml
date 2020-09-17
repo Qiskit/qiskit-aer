@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Add support for ``Delay``, ``Phase`` and ``SetPhase`` pulse instructions
+    to the :class:`qiskit.providers.aer.PulseSimulator`.
+  - |
+    Improve the performance of the :class:`qiskit.providers.aer.PulseSimulator`
+    by caching calls to RHS function
+  - |
+    Introduce alternate DE solving methods, specifiable through ``backend_options``
+    in the :class:`qiskit.providers.aer.PulseSimulator`.
+fixes:
+  - |
+    Fixes a bug causing incorrect channel evaluation in the
+    :class:`qiskit.providers.aer.PulseSimulator`.
+  - |
+    Fixes several minor bugs for Hamiltonian parsing edge cases in the
+    :class:`qiskit.providers.aer.pulse.system_models.hamiltonian_model.HamiltonianModel`
+    class.

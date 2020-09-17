@@ -17,6 +17,7 @@
 
 #include "controller.hpp"
 #include "simulators/unitary/unitary_state.hpp"
+#include "transpile/fusion.hpp"
 
 namespace AER {
 namespace Simulator {
@@ -290,13 +291,26 @@ void UnitaryController::run_circuit_helper(
   data.set_config(config);
   data.add_metadata("method", state.name());
 
+  // Optimize circuit
+  const std::vector<Operations::Op>* op_ptr = &circ.ops;
+  Transpile::Fusion fusion_pass(5, 10); // 10-qubit default threshold
+  fusion_pass.set_config(config);
+  Circuit opt_circ;
+  if (fusion_pass.active && circ.num_qubits >= fusion_pass.threshold) {
+    opt_circ = circ; // copy circuit
+    Noise::NoiseModel dummy_noise; // dummy object for transpile pass
+    fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
+    op_ptr = &opt_circ.ops;
+  }
+
   // Run single shot collecting measure data or snapshots
-  if (initial_unitary_.empty())
+  if (initial_unitary_.empty()) {
     state.initialize_qreg(circ.num_qubits);
-  else
+  } else {
     state.initialize_qreg(circ.num_qubits, initial_unitary_);
+  }
   state.initialize_creg(circ.num_memory, circ.num_registers);
-  state.apply_ops(circ.ops, data, rng);
+  state.apply_ops(*op_ptr, data, rng);
   state.add_creg_to_data(data);
 
   // Add final state unitary to the data

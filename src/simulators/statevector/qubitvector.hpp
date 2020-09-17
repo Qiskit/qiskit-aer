@@ -1081,7 +1081,7 @@ void QubitVector<data_t, Derived>::apply_diagonal_matrix(const reg_t &qubits,
       int_t iv = 0;
       for (int_t j = 0; j < qubits.size(); j++)
         if ((k & (1ULL << qubits[j])) != 0)
-          iv += (1 << j);
+          iv += (1ULL << j);
       if (_diag[iv] != (data_t) 1.0)
         data_[k] *= _diag[iv];
     }
@@ -1103,7 +1103,7 @@ void QubitVector<data_t, Derived>::apply_permutation_matrix(const reg_t& qubits,
     case 1: {
       // Lambda function for permutation matrix
       auto lambda = [&](const areg_t<2> &inds)->void {
-        for (const auto& p : pairs) {
+        for (const auto &p : pairs) {
           std::swap(data_[inds[p.first]], data_[inds[p.second]]);
         }
       };
@@ -1113,7 +1113,7 @@ void QubitVector<data_t, Derived>::apply_permutation_matrix(const reg_t& qubits,
     case 2: {
       // Lambda function for permutation matrix
       auto lambda = [&](const areg_t<4> &inds)->void {
-        for (const auto& p : pairs) {
+        for (const auto &p : pairs) {
           std::swap(data_[inds[p.first]], data_[inds[p.second]]);
         }
       };
@@ -1123,7 +1123,7 @@ void QubitVector<data_t, Derived>::apply_permutation_matrix(const reg_t& qubits,
     case 3: {
       // Lambda function for permutation matrix
       auto lambda = [&](const areg_t<8> &inds)->void {
-        for (const auto& p : pairs) {
+        for (const auto &p : pairs) {
           std::swap(data_[inds[p.first]], data_[inds[p.second]]);
         }
       };
@@ -1133,7 +1133,7 @@ void QubitVector<data_t, Derived>::apply_permutation_matrix(const reg_t& qubits,
     case 4: {
       // Lambda function for permutation matrix
       auto lambda = [&](const areg_t<16> &inds)->void {
-        for (const auto& p : pairs) {
+        for (const auto &p : pairs) {
           std::swap(data_[inds[p.first]], data_[inds[p.second]]);
         }
       };
@@ -1143,7 +1143,7 @@ void QubitVector<data_t, Derived>::apply_permutation_matrix(const reg_t& qubits,
     case 5: {
       // Lambda function for permutation matrix
       auto lambda = [&](const areg_t<32> &inds)->void {
-        for (const auto& p : pairs) {
+        for (const auto &p : pairs) {
           std::swap(data_[inds[p.first]], data_[inds[p.second]]);
         }
       };
@@ -1154,7 +1154,7 @@ void QubitVector<data_t, Derived>::apply_permutation_matrix(const reg_t& qubits,
     case 6: {
       // Lambda function for permutation matrix
       auto lambda = [&](const areg_t<64> &inds)->void {
-        for (const auto& p : pairs) {
+        for (const auto &p : pairs) {
           std::swap(data_[inds[p.first]], data_[inds[p.second]]);
         }
       };
@@ -1165,7 +1165,7 @@ void QubitVector<data_t, Derived>::apply_permutation_matrix(const reg_t& qubits,
     default: {
       // Lambda function for permutation matrix
       auto lambda = [&](const indexes_t &inds)->void {
-        for (const auto& p : pairs) {
+        for (const auto &p : pairs) {
           std::swap(data_[inds[p.first]], data_[inds[p.second]]);
         }
       };
