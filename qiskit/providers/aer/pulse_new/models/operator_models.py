@@ -195,72 +195,52 @@ class OperatorModel:
         return drift
 
 
-"""
-This class is meant to help with two things:
-- Working with a model in a rotating frame
-- Handling carrier frequencies of signals
-Both of these things need to be dealt with together when making the RWA:
-- The steps necessary to make the rotating wave approximation involve a combination of
- frame information and channel frequency information
-
-I am imagining this class to be:
-- A helper class used by a model for handling/compartmentalizing the computations related to the
-  above two pieces
-- It should be helpful:
-    - From the perspective of the model class, e.g. "enter a frame" and be able to evaluate the
-      generator in that frame
-    - From the perspective of the solvers - functionality for directly working in the basis
-      in which the frame is diagonal (functions for getting the generator in that basis)
-
-behavior:
-- attributes
-    - frame_operator
-    - _frame_basis (basis in which frame_operator is diagonal)
-    - _frame_basis_adj (adjoint of _frame_basis)
-    - _frame_diag (diagonal of diagonalized frame_operator)
-    - _operators_in_frame_basis (copy of operators in the basis _frame_basis)
-    - _signal_freqs (frequencies of signals)
-    - _S, _M (matrices for doing computations)
-- initiall required methods
-    - constructor - diagonalizes frame_operator, and sets everything up
-    - generator_in_frame(t, signal_vals, in_frame_basis)
-
-
-Note:
-- for now we will store everything internally with numpy arrays, but maybe should move to pure
-Operator usage - needs DiagonalOperator
-"""
 class FrameFreqHelper:
+    """Contains some technical calculations for evaluating an operator model
+    in a rotating frame, potentially with a cutoff frequency.
+    """
 
     def __init__(self,
                  operators,
+                 carrier_freqs=None,
                  frame_operator=None,
-                 signal_freqs=None,
                  cutoff_freq=None):
         """
-        Set stuff up - if signal_freqs is None, take them all to be 0.
+        Initailize.
 
-        Assume frame_op is anti-hermitian
+        Args:
+            operators (list): List of Operator objects.
+            carrier_freqs (array): List of carrier frequencies for the
+                                   coefficients of the operators.
+            frame_operator (Operator): frame operator - either an Operator
+                                       object or a 1d array (in which case it
+                                       is assumed to already be diagonalized.)
+
+                                       the frame_operator is assumed to be
+                                       anti-hermitian.
+            cutoff_freq (float): Cutoff frequency when evaluating generator.
+                                 If None, no cutoff is performed.
         """
 
-        # if None, initialize as the zero diagonal operator
+        # initial setup of frame operator
+
+        # if None, set to a 1d array of zeros
         if frame_operator is None:
             frame_operator = np.zeros(operators[0].dim[0])
 
-        # diagonalize frame
-
+        # if frame_operator is a 1d array, assume already diagonalized
         if isinstance(frame_operator, np.ndarray) and frame_operator.ndim == 1:
-            # set up if frame_op is already set as the diagonal of the operator
 
-            # check anti-hermitian
+            # verify that it is anti-hermitian (i.e. purely imaginary)
             if np.linalg.norm(frame_operator + frame_operator.conj()) > 10**-10:
                 raise Exception('frame_op must correspond to an anti-Hermitian matrix.')
 
-            self._frame_diag = frame_operator
-            self._frame_basis = np.eye(len(frame_operator))
-            self._frame_basis_adjoint = self._frame_basis
+            self.frame_diag = frame_operator
+            self.frame_basis = np.eye(len(frame_operator))
+            self.frame_basis_adjoint = self.frame_basis
+        # if not, diagonalize it
         else:
-            # should add diagonal operator
+            # Ensure that it is an Operator object
             frame_operator = Operator(frame_operator)
 
             # verify anti-hermitian
@@ -271,81 +251,117 @@ class FrameFreqHelper:
             # diagonalize with eigh, utilizing assumption of anti-hermiticity
             frame_diag, frame_basis = np.linalg.eigh(1j * frame_operator.data)
 
-            self._frame_diag = -1j * frame_diag
-            self._frame_basis = frame_basis
-            self._frame_basis_adjoint = frame_basis.conj().transpose()
+            self.frame_diag = -1j * frame_diag
+            self.frame_basis = frame_basis
+            self.frame_basis_adjoint = frame_basis.conj().transpose()
 
         # rotate operators into frame_basis
-        self._operators_in_frame_basis = np.array([self._frame_basis_adjoint @ op.data @ self._frame_basis for op in operators])
+        self._operators_in_frame_basis = np.array([self.frame_basis_adjoint @ op.data @ self.frame_basis for op in operators])
 
-        # set up signal frequencies
-        if signal_freqs is None:
-            signal_freqs = np.zeros(len(operators))
+        # set up carrier frequencies and cutoff
+        if carrier_freqs is None:
+            carrier_freqs = np.zeros(len(operators))
+        self.carrier_freqs = carrier_freqs
 
-        self._signal_freqs = signal_freqs
-
-        # set up helper matrices
-
-        self._cutoff_freq = cutoff_freq
+        self.cutoff_freq = cutoff_freq
 
         # create difference matrix for diagonal elements
-        dim = len(self._frame_diag)
-        D_diff = np.ones((dim, dim)) * self._frame_diag #* np.ones((dim, 1))
+        dim = len(self.frame_diag)
+        D_diff = np.ones((dim, dim)) * self.frame_diag
         D_diff = D_diff - D_diff.transpose()
 
         # set up matrix encoding frequencies
-        im_angular_freqs = 1j * 2 * np.pi * self._signal_freqs
+        im_angular_freqs = 1j * 2 * np.pi * self.carrier_freqs
         self._S = np.array([w + D_diff for w in im_angular_freqs])
 
         self._M_cutoff = None
         if cutoff_freq is not None:
             self._M_cutoff = ((np.abs(self._S.imag) / (2 * np.pi)) <
-                                            self._cutoff_freq).astype(int)
+                                            self.cutoff_freq).astype(int)
 
-    def generator_in_frame(self, t, signal_vals, in_frame_diag_basis=False):
-        """Return the generator in the frame.
+    def evaluate(self, t, coefficients, in_frame_basis=False):
+        """Evaluate the operator in the frame at a given time, for a given
+        array of coefficients for each operator.
+
+        Args:
+            t (float): time
+            coefficients (array): coefficients for each operator
+            in_frame_basis (bool): whether to return in the basis in which
+                                        the frame operator is diagonal or not
+
+        Returns:
+            array
         """
         # get operators in diagonal frame with signal coefficients applied
         op_list = vector_apply_diag_frame(t,
                                           self._operators_in_frame_basis,
-                                          signal_vals,
+                                          coefficients,
                                           self._S,
                                           self._M_cutoff)
         # generator in diagonal frame_basis
-        gen_in_frame_diag = np.sum(op_list, axis=0) - np.diag(self._frame_diag)
+        op_in_frame_basis = np.sum(op_list, axis=0) - np.diag(self.frame_diag)
 
-        if in_frame_diag_basis:
-            return gen_in_frame_diag
+        if in_frame_basis:
+            return op_in_frame_basis
         else:
-            return self._frame_basis @ gen_in_frame_diag @ self._frame_basis_adjoint
+            return self.frame_basis @ op_in_frame_basis @ self.frame_basis_adjoint
 
-    def state_into_frame(self, t, y, in_frame_diag_basis=False):
-        """Take a state into the frame."""
+    def state_into_frame(self, t, y, y_in_frame_basis=False,
+                                     return_in_frame_basis=False):
+        """Take a state into the frame, i.e. return exp(-Ft) @ y.
 
-        y_in_diag_basis = np.exp(- t * self._frame_diag) * (self._frame_basis_adjoint @ y)
+        Args:
+            t (float): time
+            y (array): state (array of appropriate size)
+            y_in_frame_basis (bool): whether or not the array y is already in
+                                     the frame basis
+            return_in_frame_basis (bool): whether or not to return the result
+                                          in the frame basis
+        """
 
-        if in_frame_diag_basis:
-            return y_in_diag_basis
+        out_in_fb = None
+        if y_in_frame_basis:
+            out_in_fb = np.exp(- t * self.frame_diag) * y
         else:
-            return self._frame_basis @ y_in_diag_basis
+            out_in_fb = (np.exp(- t * self.frame_diag) *
+                               (self.frame_basis_adjoint @ y))
 
-    def state_out_of_frame(self, t, y, in_frame_diag_basis=False):
-        """Bring a state out of the frame."""
-
-        if in_frame_diag_basis:
-            return self._frame_basis @ (np.exp(t * self._frame_diag) * y)
+        if return_in_frame_basis:
+            return out_in_fb
         else:
-            return self._frame_basis @ np.diag(np.exp(t * self._frame_diag)) @ self._frame_basis_adjoint @ y
+            return self.frame_basis @ out_in_fb
 
+    def state_out_of_frame(self, t, y, y_in_frame_basis=False,
+                                       return_in_frame_basis=False):
+        """Bring a state out of the frame, i.e. return exp(Ft) @ y.
+
+        Args:
+            t (float): time
+            y (array): state (array of appropriate size)
+            y_in_frame_basis (bool): whether or not the array y is already in
+                                     the frame basis
+            return_in_frame_basis (bool): whether or not to return the result
+                                          in the frame basis
+        """
+
+        out_in_fb = None
+        if y_in_frame_basis:
+            out_in_fb = np.exp(t * self.frame_diag) * y
+        else:
+            out_in_fb = np.diag(np.exp(t * self.frame_diag)) @ self.frame_basis_adjoint @ y
+
+        if return_in_frame_basis:
+            return out_in_fb
+        else:
+            return self.frame_basis @ out_in_fb
 
 
 def vector_apply_diag_frame(t, mats_in_frame_basis, coeffs, S, M_cutoff=None):
-    """
-    Vectorized application of rotating frame with cutoffs
+    """Given a list of matrices specified in the frame_basis for a
     """
 
-    # entrywise exponential of S * t, and multiply each coeff by the corresponding
-    # matrix in the 3d array
+    # entrywise exponential of S * t, and multiply each coeff by the
+    # corresponding matrix in the 3d array
     Q = coeffs[:, np.newaxis, np.newaxis] * np.exp(S * t)
 
     if M_cutoff is not None:
