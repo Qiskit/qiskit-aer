@@ -25,6 +25,69 @@ class Test_FrameFreqHelper(unittest.TestCase):
         self.Y = Operator(np.array([[0., -1j], [1j, 0.]], dtype=complex))
         self.Z = Operator(np.array([[1., 0.], [0., -1.]], dtype=complex))
 
+
+    def test_evaluate_no_cutoff(self):
+        """test evaluate with a non-diagonal frame and no cutoff freq."""
+
+        frame_op = -1j * np.pi * self.X.data
+        operators = [Operator(-1j * np.pi * self.Z), Operator(-1j * self.X / 2)]
+        carrier_freqs = np.array([0., 1.])
+
+        helper = FrameFreqHelper(operators, carrier_freqs, frame_op)
+
+        t = np.pi * 0.02
+        coeffs = np.array([1., 1.])
+        val = helper.evaluate(t, coeffs)
+        U = expm(frame_op * t)
+        U_adj = U.conj().transpose()
+        expected = (U_adj @ (-1j * np.pi * self.Z.data +
+                             1j * np.pi * self.X.data +
+                            -1j * np.cos(2 * np.pi * t) * self.X.data / 2) @ U)
+
+        self.assertAlmostEqual(val, expected)
+
+        # with complex envelope
+        t = np.pi * 0.02
+        coeffs = np.array([1., 1. + 2 * 1j])
+        val = helper.evaluate(t, coeffs)
+        U = expm(frame_op * t)
+        U_adj = U.conj().transpose()
+        expected = (U_adj @ (-1j * np.pi * self.Z.data +
+                             1j * np.pi * self.X.data +
+                            -1j * np.cos(2 * np.pi * t) * self.X.data / 2 +
+                            1j * 2 * np.sin(2 * np.pi * t) * self.X.data / 2) @ U)
+
+        self.assertAlmostEqual(val, expected)
+
+    def test_evaluate_diag_frame_no_cutoff(self):
+        """test evaluate with a diagonal frame and no cutoff freq."""
+
+        frame_op = -1j * np.pi * np.array([1., -1.])
+        operators = [Operator(-1j * np.pi * self.Z), Operator(-1j * self.X / 2)]
+        carrier_freqs = np.array([0., 1.])
+
+        helper = FrameFreqHelper(operators, carrier_freqs, frame_op)
+
+        t = np.pi * 0.02
+        coeffs = np.array([1., 1.])
+        val = helper.evaluate(t, coeffs)
+        U = np.diag(np.exp(frame_op * t))
+        U_adj = U.conj().transpose()
+        expected = -1j * np.cos(2 * np.pi * t) * U_adj @ self.X.data @ U / 2
+
+        self.assertAlmostEqual(val, expected)
+
+        # with complex envelope
+        t = np.pi * 0.02
+        coeffs = np.array([1., 1. + 2 * 1j])
+        val = helper.evaluate(t, coeffs)
+        U = np.diag(np.exp(frame_op * t))
+        U_adj = U.conj().transpose()
+        expected = -1j * (np.cos(2 * np.pi * t) * U_adj @ self.X.data @ U -
+                    2 * np.sin(2 * np.pi * t) * U_adj @ self.X.data @ U ) / 2
+
+        self.assertAlmostEqual(val, expected)
+
     def test_evaluate_no_frame(self):
         """Test FrameFreqHelper.evaluate with no frame or cutoff."""
 
@@ -76,7 +139,7 @@ class Test_FrameFreqHelper(unittest.TestCase):
         self.assertAlmostEqual(out, y)
 
     def test_internal_helper_mats_no_cutoff(self):
-        """Test internal setup steps for helper matrices with no freq cutoff"""
+        """Test internal setup steps for helper matrices with no cutoff freq."""
 
         # no cutoff with already diagonal frame
         frame_op = -1j * np.pi * np.array([1., -1.])
@@ -111,7 +174,7 @@ class Test_FrameFreqHelper(unittest.TestCase):
         self.assertAlmostEqual(helper._S, S_expect)
 
     def test_internal_helper_mats_with_cutoff(self):
-        """Test internal setup steps for helper matrices with rwa freq cutoff"""
+        """Test internal setup steps for helper matrices with cutoff freq."""
 
         # cutoff test
         frame_op = -1j * np.pi * np.array([1., -1.])
