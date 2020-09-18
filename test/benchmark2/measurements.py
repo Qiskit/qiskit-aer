@@ -1,14 +1,13 @@
 from benchmark2.simulator_benchmark import SimulatorBenchmarkSuite
-from benchmark2.particular_quantum_circuits import ParticularQuantumCircuits
 
-DEFAULT_APPS = [
+DEFAULT_APPS = {
 #    'fourier_checking',
 #    'graph_state',
 #    'hidden_linear_function',
 #    'iqp',
-    'quantum_volume',
+    'quantum_volume': 1,
 #    'phase_estimation'
-    ]
+    }
 
 DEFAULT_QUBITS = SimulatorBenchmarkSuite.DEFAULT_QUBITS
 
@@ -18,34 +17,49 @@ DEFAULT_RUNTIME = [
     SimulatorBenchmarkSuite.RUNTIME_MPS_CPU,
     ]
 
-DEFAULT_MEASUREMENT_METHODS = [
-    SimulatorBenchmarkSuite.MEASUREMENT_SAMPLING,
-    SimulatorBenchmarkSuite.MEASUREMENT_EXPVAL
-    ]
-
 DEFAULT_MEASUREMENT_COUNTS = [ 1, 10, 100, 1000, 10000 ]
 
 DEFAULT_NOISE_MODELS = [
     SimulatorBenchmarkSuite.NOISE_IDEAL
     ]
 
-class VariousSamplingParticularQuantumCircuits(ParticularQuantumCircuits):
+class Sampling(SimulatorBenchmarkSuite):
 
     def __init__(self,
                  apps = DEFAULT_APPS,
                  qubits = DEFAULT_QUBITS,
                  runtime_names = DEFAULT_RUNTIME,
-                 measures = DEFAULT_MEASUREMENT_METHODS,
+                 measures = [SimulatorBenchmarkSuite.MEASUREMENT_SAMPLING],
                  measure_counts = DEFAULT_MEASUREMENT_COUNTS,
                  noise_model_names = DEFAULT_NOISE_MODELS):
-        super().__init__( apps, 
+        super().__init__( 'sampling', 
+                          apps, 
                           qubits=qubits, 
                           runtime_names=runtime_names, 
                           measures=measures, 
                           measure_counts=measure_counts, 
                           noise_model_names=noise_model_names)
-        self.__name__ = 'various_sampling_particular_quantum_circuits'
-        
+        self.__name__ = 'sampling'
+
+class ExpVal(SimulatorBenchmarkSuite):
+
+    def __init__(self,
+                 apps = DEFAULT_APPS,
+                 qubits = DEFAULT_QUBITS,
+                 runtime_names = DEFAULT_RUNTIME,
+                 measures = [SimulatorBenchmarkSuite.MEASUREMENT_EXPVAL],
+                 measure_counts = DEFAULT_MEASUREMENT_COUNTS,
+                 noise_model_names = DEFAULT_NOISE_MODELS):
+        super().__init__( 'expval',
+                          apps, 
+                          qubits=qubits, 
+                          runtime_names=runtime_names, 
+                          measures=measures, 
+                          measure_counts=measure_counts, 
+                          noise_model_names=noise_model_names)
+        self.__name__ = 'expval'
+
     
 if __name__ == "__main__":
-    VariousSamplingParticularQuantumCircuits().run_manual()
+    Sampling().run_manual()
+    ExpVal().run_manual()

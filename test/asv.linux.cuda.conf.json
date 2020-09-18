@@ -43,7 +43,7 @@
     "build_command": [
         "python -mpip install -U scikit-build cython",
         "pip install git+https://github.com/Qiskit/qiskit-terra",
-        "python setup.py bdist_wheel --dist-dir={build_cache_dir} -- -DCMAKE_CXX_COMPILER=g++ -- -j"
+        "python setup.py bdist_wheel --dist-dir={build_cache_dir} -- -DCMAKE_CXX_COMPILER=g++ -DAER_THRUST_BACKEND=CUDA -- -j"
     ],
 
     // List of branches to benchmark. If not provided, defaults to "master"

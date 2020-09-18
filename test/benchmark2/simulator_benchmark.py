@@ -5,10 +5,12 @@ from qiskit.compiler import transpile, assemble
 from qiskit.providers.aer import QasmSimulator, UnitarySimulator
 from qiskit.providers.aer.noise import NoiseModel, amplitude_damping_error, depolarizing_error
 
+from benchmark2.circuit_library_circuits import CircuitLibraryCircuits
+
 QOBJS = {}
 QASM_SIMULATOR = QasmSimulator()
 
-class SimulatorBenchmarkSuite:
+class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
 
     RUNTIME_STATEVECTOR_CPU = 'statevector'
     RUNTIME_STATEVECTOR_GPU = 'statevector_gpu'
@@ -62,7 +64,6 @@ class SimulatorBenchmarkSuite:
                  measures = DEFAULT_MEASUREMENT_METHODS,
                  measure_counts = DEFAULT_MEASUREMENT_COUNTS,
                  noise_model_names = DEFAULT_NOISE_MODELS):
-        
         self.timeout = 60 * 10
         self.__name__ = name
         
@@ -75,7 +76,7 @@ class SimulatorBenchmarkSuite:
         self.noise_model_names = noise_model_names 
 
         self.params = (self.apps, self.measures, self.measure_counts, self.noise_model_names, self.qubits)
-        self.param_names = ["application", "measure_method", "measure_counts" "noise", "qubit"]
+        self.param_names = ["application", "measure_method", "measure_counts", "noise", "qubit", "repeats"]
         
         all_simulators = [ QASM_SIMULATOR ]
         
@@ -174,7 +175,7 @@ class SimulatorBenchmarkSuite:
                         
                     elif measure == self.MEASUREMENT_EXPVAL:
                         for measure_count in self.measure_counts:
-                            circuit = add_expval(base_circuit, qubit * measure_count)
+                            circuit = add_expval(base_circuit, measure_count)
                             for simulator in all_simulators:
                                 QOBJS[(simulator, app, measure, measure_count, qubit)] = assemble(circuit, simulator, shots=1)
 

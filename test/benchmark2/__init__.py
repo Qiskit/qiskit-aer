@@ -1,2 +1,2 @@
 from .simulator_benchmark import SimulatorBenchmarkSuite
-from .particular_quantum_circuits import ParticularQuantumCircuits
+from .circuit_library_circuits import CircuitLibraryCircuits
