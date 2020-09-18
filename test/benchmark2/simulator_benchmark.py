@@ -41,7 +41,6 @@ class SimulatorBenchmarkSuite:
         ]
     
     DEFAULT_QUBITS = [10, 15, 20, 25]
-    #DEFAULT_QUBITS = [10, 11]
     
     MEASUREMENT_SAMPLING = 'sampling'
     MEASUREMENT_EXPVAL = 'expval'
@@ -217,7 +216,15 @@ class SimulatorBenchmarkSuite:
         result = simulator.run(qobj, backend_options=backend_options, noise_model=noise_model).result()
         if result.status != 'COMPLETED':
             try:
-                reason = result.to_dict()['results'][0]['status']
+                reason = None
+                ret_dict = result.to_dict()
+                if 'results' in ret_dict:
+                    if len (ret_dict['results']) > 0 and 'status' in ret_dict['results'][0]:
+                        reason = ret_dict['results'][0]['status']
+                if reason is None and 'status' in ret_dict:
+                    reason = ret_dict['status']
+                if reason is None:
+                    reason = 'unknown'
             except:
                 reason = 'unknown'
             raise ValueError('simulation error ({0})'.format(reason))

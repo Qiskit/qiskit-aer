@@ -4,14 +4,14 @@ from qiskit.circuit.library import FourierChecking, GraphState, HiddenLinearFunc
 
 from benchmark2.simulator_benchmark import SimulatorBenchmarkSuite
 
-DEFAULT_APPS = [
-    'fourier_checking',
-    'graph_state',
-    'hidden_linear_function',
-    'iqp',
-    'quantum_volume',
-    'phase_estimation'
-    ]
+DEFAULT_APPS = {
+    'fourier_checking': 10,
+    'graph_state': 10,
+    'hidden_linear_function': 10,
+    'iqp': 10,
+    'quantum_volume': 1,
+    'phase_estimation': 1
+    }
 
 DEFAULT_QUBITS = SimulatorBenchmarkSuite.DEFAULT_QUBITS
 
@@ -58,110 +58,6 @@ class PhaseEstimation(QuantumCircuit):
                 self._data += u._data
         self.append(iqft.decompose(), qr_eval[:])  # final QFT
 
-def new_diagonal_init(self, diag):
-        """Check types"""
-        # Check if diag has type "list"
-        if not isinstance(diag, list):
-            raise QiskitError("The diagonal entries are not provided in a list.")
-        # Check if the right number of diagonal entries is provided and if the diagonal entries
-        # have absolute value one.
-        num_action_qubits = math.log2(len(diag))
-        if num_action_qubits < 1 or not num_action_qubits.is_integer():
-            raise QiskitError("The number of diagonal entries is not a positive power of 2.")
-        for z in diag:
-            if np.isscalar(z):
-                continue
-            try:
-                complex(z)
-            except TypeError:
-                raise QiskitError("Not all of the diagonal entries can be converted to "
-                                  "complex numbers.")
-            if not np.abs(z) - 1 < _EPS:
-                raise QiskitError("A diagonal entry has not absolute value one.")
-        # Create new gate.
-        super().__init__("diagonal", int(num_action_qubits), diag)    
-
-from qiskit.circuit import Gate
-from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
-from qiskit.exceptions import QiskitError
-
-_EPS = 1e-10  # global variable used to chop very small numbers to zero
-class NewDiagonalGate(Gate):
-    def __init__(self, diag):
-        if not isinstance(diag, list):
-            raise QiskitError("The diagonal entries are not provided in a list.")
-        num_action_qubits = math.log2(len(diag))
-        if num_action_qubits < 1 or not num_action_qubits.is_integer():
-            raise QiskitError("The number of diagonal entries is not a positive power of 2.")
-        for z in diag:
-            if np.isscalar(z):
-                continue
-            try:
-                complex(z)
-            except TypeError:
-                raise QiskitError("Not all of the diagonal entries can be converted to "
-                                  "complex numbers.")
-            if not np.abs(z) - 1 < _EPS:
-                raise QiskitError("A diagonal entry has not absolute value one.")
-        super().__init__("diagonal", int(num_action_qubits), [])
-        self._params.append(diag)
-
-    def _define(self):
-        diag_circuit = self._dec_diag()
-        gate = diag_circuit.to_instruction()
-        q = QuantumRegister(self.num_qubits)
-        diag_circuit = QuantumCircuit(q)
-        diag_circuit.append(gate, q[:])
-        self.definition = diag_circuit
-
-    def validate_parameter(self, parameter):
-        if isinstance(parameter, complex):
-            return complex(parameter)
-        else:
-            return complex(super().validate_parameter(parameter))
-
-    def inverse(self):
-        return DiagonalGate([np.conj(entry) for entry in self.params])
-
-    def _dec_diag(self):
-        q = QuantumRegister(self.num_qubits)
-        circuit = QuantumCircuit(q)
-        diag_phases = [cmath.phase(z) for z in self.params]
-        n = len(self.params)
-        while n >= 2:
-            angles_rz = []
-            for i in range(0, n, 2):
-                diag_phases[i // 2], rz_angle = _extract_rz(diag_phases[i], diag_phases[i + 1])
-                angles_rz.append(rz_angle)
-            num_act_qubits = int(np.log2(n))
-            contr_qubits = q[self.num_qubits - num_act_qubits + 1:self.num_qubits]
-            target_qubit = q[self.num_qubits - num_act_qubits]
-            circuit.ucrz(angles_rz, contr_qubits, target_qubit)
-            n //= 2
-        return circuit
-
-def _extract_rz(phi1, phi2):
-    phase = (phi1 + phi2) / 2.0
-    z_angle = phi2 - phi1
-    return phase, z_angle
-
-def new_diagonal(self, diag, qubit):
-    if isinstance(qubit, QuantumRegister):
-        qubit = qubit[:]
-    if not isinstance(qubit, list):
-        raise QiskitError("The qubits must be provided as a list "
-                          "(also if there is only one qubit).")
-    if not isinstance(diag, list):
-        raise QiskitError("The diagonal entries are not provided in a list.")
-    num_action_qubits = math.log2(len(diag))
-    if not len(qubit) == num_action_qubits:
-        raise QiskitError("The number of diagonal entries does not correspond to"
-                          " the number of qubits.")
-    return self.append(NewDiagonalGate(diag), qubit)
-
-from qiskit.extensions.quantum_initializer import DiagonalGate
-QuantumCircuit.diagonal = new_diagonal
-
 class ParticularQuantumCircuits(SimulatorBenchmarkSuite):
 
     def __init__(self,
@@ -177,13 +73,20 @@ class ParticularQuantumCircuits(SimulatorBenchmarkSuite):
                          measures=measures, 
                          measure_counts=measure_counts, 
                          noise_model_names=noise_model_names)
-
-    def fourier_checking(self, qubit, repetition):
+    
+    def repeat(self, circ, repeats):
+        if repeats is not None and repeats > 1:
+            circ = circ.repeat(repeats).decompose()
+        return circ
+    
+    def fourier_checking(self, qubit, repeats):
+        if qubit > 20:
+            raise ValueError('qubit is too small: {0}'.format(qubit))
         f = [-1, 1] * (2 ** (qubit - 1))
         g = [1, -1] * (2 ** (qubit - 1))
-        return FourierChecking(f, g)
+        return self.repeat(FourierChecking(f, g), repeats)
     
-    def graph_state(self, qubit, repetition):
+    def graph_state(self, qubit, repeats):
         a = np.reshape([0] * (qubit ** 2), [qubit] * 2)
         for _ in range(qubit):
             while True:
@@ -193,9 +96,9 @@ class ParticularQuantumCircuits(SimulatorBenchmarkSuite):
                     a[i][j] = 1
                     a[j][i] = 1
                     break
-        return  GraphState(a)
+        return self.repeat(GraphState(a), repeats)
     
-    def hidden_linear_function(self, qubit, repetition):
+    def hidden_linear_function(self, qubit, repeats):
         a = np.reshape([0] * (qubit ** 2), [qubit] * 2)
         for _ in range(qubit):
             while True:
@@ -205,22 +108,22 @@ class ParticularQuantumCircuits(SimulatorBenchmarkSuite):
                     a[i][j] = 1
                     a[j][i] = 1
                     break
-        return HiddenLinearFunction(a)
+        return self.repeat(HiddenLinearFunction(a), repeats)
 
-    def iqp(self, qubit, repetition):
+    def iqp(self, qubit, repeats):
         interactions = np.random.randint(-1024, 1024, (qubit, qubit))
         for i in range(qubit):
             for j in range(i + 1, qubit):
                 interactions[j][i] = interactions[i][j]
-        return IQP(interactions).decompose()
+        return self.repeat(IQP(interactions).decompose(), repeats)
 
-    def quantum_volume(self, qubit, repetition):
-        return QuantumVolume(qubit).decompose()
+    def quantum_volume(self, qubit, repeats):
+        return self.repeat(QuantumVolume(qubit).decompose(), repeats)
 
-    def phase_estimation(self, qubit, repetition):
+    def phase_estimation(self, qubit, repeats):
         if qubit < 6:
             raise ValueError('qubit is too small: {0}'.format(qubit))
-        return PhaseEstimation(2, QuantumVolume(qubit - 2).decompose()).decompose()
+        return self.repeat(PhaseEstimation(2, QuantumVolume(qubit - 2).decompose()).decompose(), repeats)
     
 if __name__ == "__main__":
     ParticularQuantumCircuits().run_manual()
