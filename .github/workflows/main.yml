@@ -159,6 +159,9 @@ jobs:
       matrix:
         python-version: [3.6, 3.7, 3.8]
         os: ["macOS-latest", "ubuntu-latest", "windows-latest"]
+    env:
+      AER_THRUST_BACKEND: OMP
+      QISKIT_TEST_CAPTURE_STREAMS: 1
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
