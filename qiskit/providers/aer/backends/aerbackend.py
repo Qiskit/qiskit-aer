@@ -196,9 +196,9 @@ class AerBackend(BaseBackend):
             path_to_save = backend_options["path_to_save"]
             if not path_to_save.endswith("/"):
                 path_to_save += "/"
-            now = datetime.now()
+            datetime_now = datetime.now().strftime("%H-%M-%S-%d-%m-%y")
             filename = path_to_save + \
-                        "_".join([now.strftime("%H-%M-%S-%d-%m-%y"), self.name(), str(result.job_id)]) + \
+                        "_".join([datetime_now, self.name(), str(result.job_id)]) + \
                          ".job"
             os.makedirs(os.path.dirname(filename), exist_ok=True)
             with open(filename, "w") as file:
