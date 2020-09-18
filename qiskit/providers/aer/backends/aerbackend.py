@@ -16,9 +16,9 @@ Qiskit Aer qasm simulator backend.
 
 import json
 import logging
-import datetime
 import os
 import time
+from datetime import datetime
 import uuid
 from numpy import ndarray
 
@@ -133,7 +133,7 @@ class AerBackend(BaseBackend):
         end = time.time()
         result = Result.from_dict(self._format_results(job_id, output, end - start))
 
-        self._save_job(result, backend_options)
+        self._post_process_result(result, backend_options)
 
         return result
 
@@ -180,7 +180,7 @@ class AerBackend(BaseBackend):
     def _format_results(self, job_id, output, time_taken):
         """Construct Result object from simulator output."""
         output["job_id"] = job_id
-        output["date"] = datetime.datetime.now().isoformat()
+        output["date"] = datetime.now().isoformat()
         output["backend_name"] = self.name()
         output["backend_version"] = self.configuration().backend_version
         output["time_taken"] = time_taken
@@ -190,17 +190,19 @@ class AerBackend(BaseBackend):
         """Validate the qobj, backend_options, noise_model for the backend"""
         pass
 
-    def _save_job(self, result, backend_options):
+    def _post_process_result(self, result, backend_options):
+        """Perform any post-processsing on the Result object"""
         if (backend_options is not None) and ("path_to_save" in backend_options):
             path_to_save = backend_options["path_to_save"]
             if not path_to_save.endswith("/"):
                 path_to_save += "/"
-            filename = path_to_save + "_".join(
-                [self.name(), str(result.job_id), str(int(time.time()))]
-            )
+            now = datetime.now()
+            filename = path_to_save + \
+                        "_".join([now.strftime("%H-%M-%S-%d-%m-%y"), self.name(), str(result.job_id)]) + \
+                         ".job"
             os.makedirs(os.path.dirname(filename), exist_ok=True)
-            with open(filename, "wb") as file:
-                pickle.dump(result, file, 0)
+            with open(filename, "w") as file:
+                json.dump(result, file, cls=AerJSONEncoder, indent=4)
 
     def __repr__(self):
         """Official string representation of an AerBackend."""
