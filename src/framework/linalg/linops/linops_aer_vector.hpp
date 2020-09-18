@@ -57,16 +57,6 @@ Vector<T>& isub(Vector<T>& lhs, const Vector<T>& rhs) {
 //----------------------------------------------------------------------------
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-Vector<T> add(const Vector<T>& data, const Scalar& val) {
-  Vector<T> result(data.size(), false);
-  const T cast_val(val);
-  std::transform(data.data(), data.data() + data.size(), result.data(),
-                 [&cast_val](const T& a)->T{ return a + cast_val; });
-  return result;
-}
-
-template <class T, class Scalar, typename = enable_if_numeric_t<T>,
-          typename = enable_if_numeric_t<Scalar>>
 Vector<T>& iadd(Vector<T>& data, const Scalar& val) {
   const T cast_val(val);
   std::for_each(data.data(), data.data() + data.size(),
@@ -76,35 +66,27 @@ Vector<T>& iadd(Vector<T>& data, const Scalar& val) {
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
+Vector<T> add(const Vector<T>& data, const Scalar& val) {
+  auto ret = data;
+  return iadd(data, val);
+}
+
+
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
 Vector<T> sub(const Vector<T>& data, const Scalar& val) {
-  Vector<T> result(data.size(), false);
-  const T cast_val(val);
-  std::transform(data.data(), data.data() + data.size(), result.data(),
-                 [&cast_val](const T& a)->T{ return a - cast_val; });
-  return result;
+  return add(data, -val);
 }
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
 Vector<T>& isub(Vector<T>& data, const Scalar& val) {
-  const T cast_val(val);
-  std::for_each(data.data(), data.data() + data.size(),
-                [&cast_val](T& a)->T{ a -= cast_val; });
-  return data;
+  return iadd(data, -val);
 }
 
 //----------------------------------------------------------------------------
 // Scalar operations
 //----------------------------------------------------------------------------
-template <class T, class Scalar, typename = enable_if_numeric_t<T>,
-          typename = enable_if_numeric_t<Scalar>>
-Vector<T> mul(const Vector<T>& data, const Scalar& val) {
-  if (almost_equal<Scalar>(val, 1)) {
-    return data;
-  }
-  return data * T(val);
-}
-
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
 Vector<T>& imul(Vector<T>& data, const Scalar& val) {
@@ -117,11 +99,9 @@ Vector<T>& imul(Vector<T>& data, const Scalar& val) {
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
           typename = enable_if_numeric_t<Scalar>>
-Vector<T> div(const Vector<T>& data, const Scalar& val) {
-  if (almost_equal<Scalar>(val, 1)) {
-    return data;
-  }
-  return data / T(val);
+Vector<T> mul(const Vector<T>& data, const Scalar& val) {
+  auto ret = data;
+  return imul(ret, val);
 }
 
 template <class T, class Scalar, typename = enable_if_numeric_t<T>,
@@ -132,6 +112,14 @@ Vector<T>& idiv(Vector<T>& data, const Scalar& val) {
   }
   data /= T(val);
   return data;
+}
+
+
+template <class T, class Scalar, typename = enable_if_numeric_t<T>,
+          typename = enable_if_numeric_t<Scalar>>
+Vector<T> div(const Vector<T>& data, const Scalar& val) {
+  auto ret = data;
+  return idiv(ret, val);
 }
 
 //------------------------------------------------------------------------------
