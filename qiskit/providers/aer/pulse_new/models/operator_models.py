@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2020.
@@ -19,14 +17,53 @@ from .signals import Signal, Constant
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators import Operator
 
-class BaseModel:
+class OperatorModel:
+    """OperatorModel representing a sum of :class:`Operator` with
+    time dependent coefficients.
+
+    Specifically, this object represents a time dependent matrix of
+    the form:
+
+    .. math::
+
+        G(t) = \sum_{i=0}^{k-1} s_i(t) G_i,
+
+    for :math:`G_i` matrices (represented by :class:`Operator` objects),
+    and the :math:`s_i(t)` given by signals represented by a
+    class:`VectorSignal` object. (remains to be seen)
+
+    This object contains functionality to evaluate :math:`G(t)` for a given
+    :math:`t`, or to compute products :math:`G(t)A` and :math:`AG(t)` for
+    :math:`A` an :class:`Operator` or array of suitable dimension.
+
+    Additionally, this class has functionality for representing :math:`G(t)`
+    in a rotating frame, and doing a rotating wave approximation in that frame.
+    Specifically, given an anti-Hermitian frame operator :math:`F` (i.e.
+    :math:`F^\dagger = -F`), entering the frame of :math:`F` results in
+    the object representing the operator :math:`e^{-Ft}G(t)e^{Ft} - F`.
+
+    Further, if an RWA frequency cutoff is set, when evaluating the
+    `OperatorModel`, any terms with a frequency above the cutoff
+    (which combines both signal frequency information and frame frequency
+    information) will be set to :math:`0`.
+    """
 
     def __init__(self,
-                 signals: List[Signal],
-                 operators: List[BaseOperator],
-                 transfer_functions: List[List[BaseTransferFunction]] = None,
-                 transformations=None):
+                 operators,
+                 signals,
+                 signal_mapping,
+                 frame_operator=None,
+                 cutoff_freq=None):
         """
+        *** Fix this***!!!!!!!!!
+        Currently:
+        - operators are a list of Operator objects
+        - signals are a list of Signal objects, but this should be changed to
+          be either a VectorSignal or literally anything (the inputs to
+          signal_mapping)
+        - frame_operator (for now an Operator or an np array)
+        - cutoff_freq (float)
+
         Args:
             signals: The signals of the model. Each signal is the coefficient (potentially
                 time-dependent) to an operator. There should be as many signals in the model
@@ -39,12 +76,8 @@ class BaseModel:
 
         self._operators = operators
 
-        if isinstance(transformations, dict):
-            self.frame_operator = transformations.get('frame')
-            self.rwa_freq_cutoff = transformations.get('rwa_freq_cutoff')
-        else:
-            self.frame_operator = None
-            self.rwa_freq_cutoff = None
+        self.frame_operator = frame_operator
+        self.cutoff_freq = cutoff_freq
 
         # initialize signals
         self._signals = None
@@ -54,14 +87,19 @@ class BaseModel:
             # note: setting signals includes a call to enter_frame
             self.signals = signals
         else:
-            self.enter_frame(self.frame_operator, self.rwa_freq_cutoff)
+            self.enter_frame(self.frame_operator, self.cutoff_freq)
 
-        if transfer_functions is not None:
-            if len(signals) != len(transfer_functions):
-                raise
-        else:
-            self._transfer_functions = None
+        """
+        To do: add in handling of signal_mapping or whatever it ends up being
+        called
+        """
 
+        self._signal_mapping = None
+
+
+    """
+    To do: update signal handling
+    """
 
     @property
     def signals(self) -> List[Signal]:
@@ -85,7 +123,7 @@ class BaseModel:
             # information
             if any(new_freqs != self._carrier_freqs):
                 self._carrier_freqs = new_freqs
-                self.enter_frame(self.frame_operator, self.rwa_freq_cutoff)
+                self.enter_frame(self.frame_operator, self.cutoff_freq)
 
     def evaluate(self, time: float, in_frame_diag_basis: bool = False) -> np.array:
         """
@@ -99,13 +137,13 @@ class BaseModel:
 
         sig_envelope_vals = np.array([sig.envelope_value(time) for sig in self.signals])
 
-        return self._model_frame_signal_helper.generator_in_frame(time,
-                                                                  sig_envelope_vals,
-                                                                  in_frame_diag_basis)
+        return self._frame_signal_helper.generator_in_frame(time,
+                                                            sig_envelope_vals,
+                                                             in_frame_diag_basis)
 
     def lmult(self, time: float, y: np.array, in_frame_diag_basis: bool = False) -> np.array:
         """
-        Return the dot product generator(t) * y.
+        Return the product generator(t) * y.
 
         Args:
             time: Time at which to create the generator.
@@ -120,15 +158,26 @@ class BaseModel:
         generator = self.evaluate(time, in_frame_diag_basis)
         return np.dot(y, generator)
 
-    def enter_frame(self, frame_operator=None, rwa_freq_cutoff=None):
-        """Enters frame given by frame_operator potentially with rwa cutoff."""
-        self.frame_operator = frame_operator
-        self.rwa_freq_cutoff = rwa_freq_cutoff
+    """
+    To do: maybe make frame_operator and cutoff_freq properties, each of which
+    can individually be changed
+    """
 
-        self._model_frame_signal_helper = ModelFrameSignalHelper(self._operators,
-                                                                 frame_operator,
-                                                                 self._carrier_freqs,
-                                                                 rwa_freq_cutoff)
+    def enter_frame(self, frame_operator=None, cutoff_freq=None):
+        """Enters frame given by frame_operator potentially with rwa cutoff.
+
+        Note: this will undo any existing frame transformations
+        """
+        self.frame_operator = frame_operator
+        self.cutoff_freq = cutoff_freq
+
+        self._frame_freq_helper = ModelFrameSignalHelper(self._operators,
+                                                         frame_operator,
+                                                         self._carrier_freqs,
+                                                         cutoff_freq)
+
+    """Make this a property?
+    """
 
     def drift(self):
         """Return the part of the model with only Constant coefficients as a numpy array."""
@@ -181,9 +230,13 @@ Note:
 - for now we will store everything internally with numpy arrays, but maybe should move to pure
 Operator usage - needs DiagonalOperator
 """
-class ModelFrameSignalHelper:
+class FrameSignalHelper:
 
-    def __init__(self, operators, frame_operator=None, signal_freqs=None, rwa_freq_cutoff=None):
+    def __init__(self,
+                 operators,
+                 frame_operator=None,
+                 signal_freqs=None,
+                 cutoff_freq=None):
         """
         Set stuff up - if signal_freqs is None, take them all to be 0.
 
@@ -233,7 +286,7 @@ class ModelFrameSignalHelper:
 
         # set up helper matrices
 
-        self._rwa_freq_cutoff = rwa_freq_cutoff
+        self._cutoff_freq = cutoff_freq
 
         # create difference matrix for diagonal elements
         dim = len(self._frame_diag)
@@ -245,9 +298,9 @@ class ModelFrameSignalHelper:
         self._S = np.array([w + D_diff for w in im_angular_freqs])
 
         self._M_cutoff = None
-        if rwa_freq_cutoff is not None:
+        if cutoff_freq is not None:
             self._M_cutoff = ((np.abs(self._S.imag) / (2 * np.pi)) <
-                                            self._rwa_freq_cutoff).astype(int)
+                                            self._cutoff_freq).astype(int)
 
     def generator_in_frame(self, t, signal_vals, in_frame_diag_basis=False):
         """Return the generator in the frame.
