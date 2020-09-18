@@ -1,7 +1,7 @@
 include(conan)
 
 macro(setup_conan)
-
+    set(CONAN_CMAKE_COMMAND "\"${CMAKE_COMMAND}\"") # Avoid windows problems with spaces
     # Right now every dependency shall be static
     set(CONAN_OPTIONS ${CONAN_OPTIONS} "*:shared=False")
 
@@ -41,7 +41,7 @@ macro(setup_conan)
 
     conan_cmake_run(REQUIRES ${REQUIREMENTS}
                     OPTIONS ${CONAN_OPTIONS}
-                    ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
+                    ENV CONAN_CMAKE_PROGRAM=${CONAN_CMAKE_COMMAND}
                     BASIC_SETUP
                     CMAKE_TARGETS
                     KEEP_RPATHS
