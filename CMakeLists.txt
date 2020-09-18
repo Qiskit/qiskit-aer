@@ -19,6 +19,11 @@ if(NOT DEFINED AER_BLAS_LIB_PATH AND DEFINED ENV{AER_BLAS_LIB_PATH})
 	set(AER_BLAS_LIB_PATH $ENV{AER_BLAS_LIB_PATH})
 endif()
 
+if(NOT DEFINED AER_THRUST_BACKEND AND DEFINED ENV{AER_THRUST_BACKEND})
+	set(AER_THRUST_BACKEND $ENV{AER_THRUST_BACKEND})
+endif()
+
+
 # Warning: Because of a bug on CMake's FindBLAS or (it's not clear who's fault is)
 # libopenblas.a for Ubuntu (maybe others) we need to copy the file:
 # cmake/FindBLAS.cmake.fix-static-linking, to the directory were CMake Modules are
@@ -163,11 +168,6 @@ if(STATIC_LINKING)
 	set(BLA_STATIC TRUE)
 endif()
 
-if(STATIC_LINKING)
-	message(STATUS "Setting BLA_STATIC")
-	set(BLA_STATIC TRUE)
-endif()
-
 if(BLAS_LIB_PATH)
 	find_BLAS_in_specific_path(${BLAS_LIB_PATH})
 else()
@@ -205,17 +205,7 @@ if(NOT MSVC)
 	endif()
 endif()
 
-# GPU support through Thrust library (CPU fallbacks)
-# Defaults to TRUE, but if no Thrust backend has been defined, will set to FALSE
-if(NOT DEFINED AER_THRUST_BACKEND)
-    set(AER_THRUST_BACKEND $ENV{AER_THRUST_BACKEND})
-    if(DEFINED AER_THRUST_BACKEND)
-        set(AER_THRUST_SUPPORTED TRUE)
-    endif()
-else()
-	set(AER_THRUST_SUPPORTED TRUE)
-endif()
-
+set(AER_THRUST_SUPPORTED TRUE)
 if(AER_THRUST_SUPPORTED)
 	if(AER_THRUST_BACKEND STREQUAL "CUDA")
 		message(STATUS "Thrust library: Looking for CUDA backend...")
