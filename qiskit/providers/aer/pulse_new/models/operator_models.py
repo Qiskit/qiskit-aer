@@ -171,10 +171,10 @@ class OperatorModel:
         self.frame_operator = frame_operator
         self.cutoff_freq = cutoff_freq
 
-        self._frame_freq_helper = ModelFrameSignalHelper(self._operators,
-                                                         frame_operator,
-                                                         self._carrier_freqs,
-                                                         cutoff_freq)
+        self._frame_freq_helper = FrameFreqHelper(self._operators,
+                                                  frame_operator,
+                                                  self._carrier_freqs,
+                                                  cutoff_freq)
 
     """Make this a property?
     """
@@ -230,7 +230,7 @@ Note:
 - for now we will store everything internally with numpy arrays, but maybe should move to pure
 Operator usage - needs DiagonalOperator
 """
-class FrameSignalHelper:
+class FrameFreqHelper:
 
     def __init__(self,
                  operators,
