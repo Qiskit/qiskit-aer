@@ -56,11 +56,22 @@ public:
   Circuit sample_noise(const Circuit &circ,
                        RngEngine &rng) const;
 
+  // Set sample mode to circuit
+  // This is the default method for noise sampling that can work for
+  // any simulator that supports the sampled noise instructions
+  void activate_circuit_method();
+
   // Set sample mode to superoperator
   // This will cause all QuantumErrors stored in the noise model
   // to calculate their superoperator representations and raise
   // an exception if they cannot be converted.
   void activate_superop_method();
+
+  // Set sample mode to kraus
+  // This will cause all QuantumErrors stored in the noise model
+  // to calculate their canonical Kraus representations and raise
+  // an exception if they cannot be converted.
+  void activate_kraus_method();
 
   //-----------------------------------------------------------------------
   // Checking if errors types are in noise model
@@ -235,7 +246,7 @@ private:
   Operations::OpSet opset_;
 
   // Sampling method
-  Method method_ = Method::standard;
+  Method method_ = Method::circuit;
 };
 
 
@@ -331,6 +342,9 @@ Circuit NoiseModel::sample_noise(const Circuit &circ,
     return noisy_circ;
 }
 
+void NoiseModel::activate_circuit_method() {
+  method_ = Method::circuit;
+}
 
 void NoiseModel::activate_superop_method() {
   // Set internal sampling method
@@ -338,6 +352,16 @@ void NoiseModel::activate_superop_method() {
   // Compute superoperators
   for (auto& qerror : quantum_errors_) {
     qerror.compute_superoperator();
+  }
+}
+
+
+void NoiseModel::activate_kraus_method() {
+  // Set internal sampling method
+  method_ = Method::kraus;
+  // Compute kraus
+  for (auto& qerror : quantum_errors_) {
+    qerror.compute_kraus();
   }
 }
 

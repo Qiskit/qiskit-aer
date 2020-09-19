@@ -38,6 +38,11 @@ if(NOT DEFINED AER_BLAS_LIB_PATH AND DEFINED ENV{AER_BLAS_LIB_PATH})
 	set(AER_BLAS_LIB_PATH $ENV{AER_BLAS_LIB_PATH})
 endif()
 
+if(NOT DEFINED AER_THRUST_BACKEND AND DEFINED ENV{AER_THRUST_BACKEND})
+	set(AER_THRUST_BACKEND $ENV{AER_THRUST_BACKEND})
+endif()
+
+
 # Warning: Because of a bug on CMake's FindBLAS or (it's not clear who's fault is)
 # libopenblas.a for Ubuntu (maybe others) we need to copy the file:
 # cmake/FindBLAS.cmake.fix-static-linking, to the directory were CMake Modules are
@@ -188,16 +193,11 @@ if(STATIC_LINKING)
 	set(BLA_STATIC TRUE)
 endif()
 
-if(STATIC_LINKING)
-	message(STATUS "Setting BLA_STATIC")
-	set(BLA_STATIC TRUE)
-endif()
-
 if(BLAS_LIB_PATH)
 	find_BLAS_in_specific_path(${BLAS_LIB_PATH})
 else()
 	if(APPLE)
-		message(STATUS  "Looking for Apple BLAS library...")
+		message(STATUS  "Looking for Apple BLAS & Lapack library...")
 		set(BLA_VENDOR "Apple")
 	else()
 		message(STATUS "Looking for OpenBLAS library...")
@@ -214,9 +214,11 @@ else()
 	endif()
 	find_package(BLAS QUIET)
 	if(NOT BLAS_FOUND)
-		message(STATUS "OpenBLAS not found. Looking for any other BLAS library...")
+		message(STATUS "OpenBLAS not found. Looking for any other BLAS & Lapack libraries...")
 		unset(BLA_VENDOR)
 		find_package(BLAS REQUIRED)
+		find_package(LAPACK REQUIRED)
+		set(BLAS_LIBRARIES "${BLAS_LIBRARIES};${LAPACK_LIBRARIES}")
 	endif()
 endif()
 
@@ -238,6 +240,7 @@ if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR 
 	endif()
 endif()
 
+set(AER_THRUST_SUPPORTED TRUE)
 if(AER_THRUST_SUPPORTED)
 	if(AER_THRUST_BACKEND STREQUAL "CUDA")
 		message(STATUS "Thrust library: Looking for CUDA backend...")
@@ -367,8 +370,5 @@ endif()
 
 # Tests
 if(BUILD_TESTS)
-	# These tests were meant to be as an example, or template for C++ specific
-	# code, but they're not being maintained, so we are disabling them until we
-	# have real C++ tests in the codebase.
-	# add_subdirectory(test)
+	add_subdirectory(test)
 endif()

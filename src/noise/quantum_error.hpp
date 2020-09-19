@@ -17,6 +17,7 @@
 
 #include "framework/opset.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
+#include "framework/noise_utils.hpp"
 
 namespace AER {
 namespace Noise {
@@ -32,7 +33,7 @@ class QuantumError {
 public:
 
   // Methods for sampling
-  enum class Method {standard, superop};
+  enum class Method {circuit, superop, kraus};
 
   // Alias for return type
   using NoiseOps = std::vector<Operations::Op>;
@@ -44,15 +45,20 @@ public:
   // Sample a noisy implementation of op
   NoiseOps sample_noise(const reg_t &qubits,
                         RngEngine &rng,
-                        Method method = Method::standard) const;
+                        Method method = Method::circuit) const;
 
   // Return the opset for the quantum error
   const Operations::OpSet& opset() const {return opset_;}
 
   // Return the superoperator matrix representation of the error.
-  // If the error cannot be converted to a superoperator and error
+  // If the error cannot be converted to a superoperator an error
   // will be raised.
   const cmatrix_t& superoperator() const;
+
+  // Return the canonical Kraus representation of the error.
+  // If the error cannot be converted to a Kraus an error
+  // will be raised.
+  const std::vector<cmatrix_t>& kraus() const;
 
   //-----------------------------------------------------------------------
   // Initialization
@@ -74,6 +80,9 @@ public:
   // Compute the superoperator representation of the quantum error
   void compute_superoperator();
   
+  // Compute canonical Kraus representation of the quantum error
+  void compute_kraus();
+
   //-----------------------------------------------------------------------
   // Utility
   //-----------------------------------------------------------------------
@@ -115,8 +124,10 @@ protected:
   // Superoperator matrix representation of the error
   cmatrix_t superoperator_;
 
+  std::vector<cmatrix_t> canonical_kraus_;
+
   // flag for where errors should be applied relative to the sampled op
-  bool errors_after_op_ = true;  
+  bool errors_after_op_ = true;
 };
 
 //-------------------------------------------------------------------------
@@ -139,6 +150,13 @@ QuantumError::NoiseOps QuantumError::sample_noise(const reg_t &qubits,
       reg_t op_qubits = qubits;
       op_qubits.resize(get_num_qubits());
       auto op = Operations::make_superop(op_qubits, superoperator());
+      return NoiseOps({op});
+    }
+    case Method::kraus: {
+      // Truncate qubits to size of the actual error
+      reg_t op_qubits = qubits;
+      op_qubits.resize(get_num_qubits());
+      auto op = Operations::make_kraus(op_qubits, kraus());
       return NoiseOps({op});
     }
     default: {
@@ -307,7 +325,7 @@ void QuantumError::set_from_kraus(const std::vector<cmatrix_t> &mats) {
     // Add kraus error prob
     probs.push_back(p_kraus);
   }
-  
+
   // Add the circuits
   set_circuits(circuits, probs);
 }
@@ -320,6 +338,16 @@ const cmatrix_t& QuantumError::superoperator() const {
     throw std::runtime_error("QuantumError: superoperator is empty.");
   }
   return superoperator_;
+}
+
+
+const std::vector<cmatrix_t>& QuantumError::kraus() const {
+  // Check the canonical Kraus method is actually computed
+  // If not raise an exception
+  if (canonical_kraus_.empty()) {
+    throw std::runtime_error("QuantumError: Kraus is empty.");
+  }
+  return canonical_kraus_;
 }
 
 
@@ -341,6 +369,15 @@ void QuantumError::compute_superoperator() {
   }
 }
 
+void QuantumError::compute_kraus() {
+  // Check superoperator representation is computed
+  if (superoperator_.empty()) {
+    compute_superoperator();
+  }
+  // Conver to Kraus
+  size_t dim = 1 << get_num_qubits();
+  canonical_kraus_ = Utils::superop2kraus(superoperator_, dim);
+}
 
 void QuantumError::load_from_json(const json_t &js) {
   rvector_t probs;
