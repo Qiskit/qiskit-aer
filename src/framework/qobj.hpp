@@ -102,41 +102,48 @@ Qobj::Qobj(const json_t &js) {
     throw std::invalid_argument(
         R"(Invalid parameterized qobj: "parameterizations" length is less than a number of circuits.)");
   }
+  if (param_table.size() % num_circs != 0) {
+    throw std::invalid_argument(
+        R"(Invalid parameterized qobj: "parameterizations" length must be divisible with a number of circuits.)");
+  }
 
   const size_t num_exps = param_table.empty()? num_circs : param_table.size();
+  const size_t num_repeats = param_table.empty()? 1 : param_table.size() / num_circs;
   // Load circuits
-  for (size_t i=0; i<num_exps; i++) {
-    // Get base circuit from qobj
-    Circuit circuit(circs[i % num_circs], config);
-    if (param_table.empty() || param_table[i].empty()) {
-      // Non parameterized circuit
-      circuits.push_back(circuit);
-    } else {
-      // Load different parameterizations of the initial circuit
-      const auto circ_params = param_table[i];
-      const size_t num_params = circ_params[0].second.size();
-      const size_t num_instr = circuit.ops.size();
-      for (size_t j=0; j<num_params; j++) {
-        // Make a copy of the initial circuit
-        Circuit param_circuit = circuit;
-        for (const auto &params : circ_params) {
-          const auto instr_pos = params.first.first;
-          const auto param_pos = params.first.second;
-          // Validation
-          if (instr_pos >= num_instr) {
-            throw std::invalid_argument(R"(Invalid parameterized qobj: instruction position out of range)");
+  for (size_t i = 0; i < num_circs; ++i) {
+    Circuit circuit(circs[i], config);
+    for (size_t j = 0; j < num_repeats; ++j) {
+      size_t param_idx = i * num_repeats + j;
+      if (param_table.empty() || param_table[param_idx].empty()) {
+        // Non parameterized circuit
+        circuits.push_back(circuit);
+      } else {
+        // Load different parameterizations of the initial circuit
+        const auto circ_params = param_table[param_idx];
+        const size_t num_params = circ_params[0].second.size();
+        const size_t num_instr = circuit.ops.size();
+        for (size_t k=0; k<num_params; k++) {
+          // Make a copy of the initial circuit
+          Circuit param_circuit = circuit;
+          for (const auto &params : circ_params) {
+            const auto instr_pos = params.first.first;
+            const auto param_pos = params.first.second;
+            // Validation
+            if (instr_pos >= num_instr) {
+              throw std::invalid_argument(R"(Invalid parameterized qobj: instruction position out of range)");
+            }
+            auto &op = param_circuit.ops[instr_pos];
+            if (param_pos >= op.params.size()) {
+              throw std::invalid_argument(R"(Invalid parameterized qobj: instruction param position out of range)");
+            }
+            if (k >= params.second.size()) {
+              throw std::invalid_argument(R"(Invalid parameterized qobj: parameterization value out of range)");
+            }
+            // Update the param
+            op.params[param_pos] = params.second[k];
           }
-          auto &op = param_circuit.ops[instr_pos];
-          if (param_pos >= op.params.size()) {
-            throw std::invalid_argument(R"(Invalid parameterized qobj: instruction param position out of range)");
-          }
-          if (j >= params.second.size()) {
-            throw std::invalid_argument(R"(Invalid parameterized qobj: parameterization value out of range)");
-          }
-          // Update the param
-          op.params[param_pos] = params.second[j];
+          circuits.push_back(param_circuit);
         }
-        circuits.push_back(param_circuit);
       }
     }
   }
