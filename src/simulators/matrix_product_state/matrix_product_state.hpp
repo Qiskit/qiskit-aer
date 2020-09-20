@@ -340,7 +340,7 @@ void State::initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state
     throw std::invalid_argument("MatrixProductState::State::initialize: initial state does not match qubit number");
   }
 #ifdef DEBUG
-  cout << "initialize with state not supported yet";
+  std::cout << "initialize with state not supported yet";
 #endif
 }
 
@@ -439,7 +439,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
                       RngEngine &rng) {
 
   // Simple loop over vector of input operations
-  for (const auto op: ops) {
+  for (const auto &op: ops) {
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
         case Operations::OpType::barrier:

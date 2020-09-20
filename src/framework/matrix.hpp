@@ -36,78 +36,8 @@ Multiplication is done with the C wrapper of the fortran blas library.
 #include <vector>
 #include <array>
 
-/*******************************************************************************
- *
- * BLAS headers
- *
- ******************************************************************************/
-
-const std::array<char, 3> Trans = {'N', 'T', 'C'};
-/*  Trans (input) CHARACTER*1.
-                On entry, TRANSA specifies the form of op( A ) to be used in the
-   matrix multiplication as follows:
-                        = 'N' no transpose;
-                        = 'T' transpose of A;
-                        = 'C' hermitian conjugate of A.
-*/
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-//===========================================================================
-// Prototypes for level 3 BLAS
-//===========================================================================
-
-// Single-Precison Real Matrix-Vector Multiplcation
-void sgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const float *alpha, const float *A, const size_t *lda,
-            const float *x, const size_t *incx, const float *beta, float *y,
-            const size_t *lincy);
-// Double-Precison Real Matrix-Vector Multiplcation
-void dgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const double *alpha, const double *A, const size_t *lda,
-            const double *x, const size_t *incx, const double *beta, double *y,
-            const size_t *lincy);
-// Single-Precison Complex Matrix-Vector Multiplcation
-void cgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const std::complex<float> *alpha, const std::complex<float> *A,
-            const size_t *lda, const std::complex<float> *x, const size_t *incx,
-            const std::complex<float> *beta, std::complex<float> *y,
-            const size_t *lincy);
-// Double-Precison Real Matrix-Vector Multiplcation
-void zgemv_(const char *TransA, const size_t *M, const size_t *N,
-            const std::complex<double> *alpha, const std::complex<double> *A,
-            const size_t *lda, const std::complex<double> *x,
-            const size_t *incx, const std::complex<double> *beta,
-            std::complex<double> *y, const size_t *lincy);
-// Single-Precison Real Matrix-Matrix Multiplcation
-void sgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const float *alpha,
-            const float *A, const size_t *lda, const float *B,
-            const size_t *lba, const float *beta, float *C, size_t *ldc);
-// Double-Precison Real Matrix-Matrix Multiplcation
-void dgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const double *alpha,
-            const double *A, const size_t *lda, const double *B,
-            const size_t *lba, const double *beta, double *C, size_t *ldc);
-// Single-Precison Complex Matrix-Matrix Multiplcation
-void cgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const std::complex<float> *alpha,
-            const std::complex<float> *A, const size_t *lda,
-            const std::complex<float> *B, const size_t *ldb,
-            const std::complex<float> *beta, std::complex<float> *C,
-            size_t *ldc);
-// Double-Precison Complex Matrix-Matrix Multiplcation
-void zgemm_(const char *TransA, const char *TransB, const size_t *M,
-            const size_t *N, const size_t *K, const std::complex<double> *alpha,
-            const std::complex<double> *A, const size_t *lda,
-            const std::complex<double> *B, const size_t *ldb,
-            const std::complex<double> *beta, std::complex<double> *C,
-            size_t *ldc);
-#ifdef __cplusplus
-}
-#endif
+#include "framework/blas_protos.hpp"
+#include "framework/linalg/enable_if_numeric.hpp"
 
 /*******************************************************************************
  *
@@ -268,7 +198,7 @@ public:
 
   // Return the size of the underlying array
   size_t size() const { return size_; }
-  
+
   // Return True if size == 0
   bool empty() const { return size_ == 0; }
 
@@ -279,10 +209,13 @@ public:
   void fill(const T& val);
 
   // Resize the matrix and reset to zero if different size
-  void initialize(size_t row, size_t col); 
+  void initialize(size_t row, size_t col);
 
   // Resize the matrix keeping current values
-  void resize(size_t row, size_t col); 
+  void resize(size_t row, size_t col);
+  // Addressing elements by row or column
+  std::vector<T> row_index(size_t row) const;
+  std::vector<T> col_index(size_t col) const;
 
   // overloading functions.
   matrix<T> operator+(const matrix<T> &A);
@@ -307,7 +240,7 @@ protected:
   // size_ = rows*colums dimensions of the vector representation
   // LD is the leading dimeonsion and for Column major order is in general eqaul
   // to rows
-  
+
   // the ptr to the vector containing the matrix
   T* data_ = nullptr;
 };
@@ -357,7 +290,7 @@ matrix<T>& matrix<T>::operator=(matrix<T>&& other) noexcept {
 
 template <class T>
 matrix<T> &matrix<T>::operator=(const matrix<T> &other) {
-  if (rows_ != other.rows_ || cols_ != other.cols_) { 
+  if (rows_ != other.rows_ || cols_ != other.cols_) {
     // size delete re-construct
     // the matrix
     free(data_);
@@ -529,6 +462,37 @@ void matrix<T>::resize(size_t rows, size_t cols) {
   LD_ = rows_ = rows;
   cols_ = cols;
   data_ = tempmat;
+}
+
+// Addressing elements by row or column
+template <class T> inline std::vector<T> matrix<T>::row_index(size_t row) const {
+#ifdef DEBUG
+  if (row >= rows_) {
+    std::cerr << "Error: matrix class operator row_index out of bounds "
+              << row << " >= " << rows_ << std::endl;
+    exit(1);
+  }
+#endif
+  std::vector<T> ret;
+  ret.reserve(cols_);
+  for(size_t i = 0; i < cols_; i++)
+    ret.emplace_back(data_[i * rows_ + row]);
+  return std::move(ret);
+}
+template <class T> inline std::vector<T> matrix<T>::col_index(size_t col) const {
+#ifdef DEBUG
+  if (col >= cols_) {
+    std::cerr << "Error: matrix class operator col_index out of bounds "
+              << col << " >= " << cols_ << std::endl;
+    exit(1);
+  }
+#endif
+  std::vector<T> ret;
+  ret.reserve(rows_);
+  // we want the elements for all rows i..rows_ and column col
+  for(size_t i = 0; i < rows_; i++)
+    ret.emplace_back(data_[col * rows_ + i]);
+  return std::move(ret);
 }
 
 template <class T> inline size_t matrix<T>::GetRows() const {
@@ -712,7 +676,7 @@ inline matrix<double> operator*(const matrix<double> &A,
   // C-> alpha*op(A)*op(B) +beta C
   matrix<double> C(A.rows_, B.cols_);
   double alpha = 1.0, beta = 0.0;
-  dgemm_(&Trans[0], &Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
+  dgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
          &A.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
   // cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, B.cols_,
   // A.cols_, 1.0, A.data_, A.LD_, B.data_, B.LD_, 0.0, C.data_, C.LD_);
@@ -724,7 +688,7 @@ inline matrix<float> operator*(const matrix<float> &A, const matrix<float> &B) {
   // C-> alpha*op(A)*op(B) +beta C
   matrix<float> C(A.rows_, B.cols_);
   float alpha = 1.0, beta = 0.0;
-  sgemm_(&Trans[0], &Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
+  sgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
          &A.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
   // cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, B.cols_,
   // A.cols_, 1.0, A.data_, A.LD_, B.data_, B.LD_, 0.0, C.data_, C.LD_);
@@ -738,7 +702,7 @@ operator*(const matrix<std::complex<float>> &A,
   // C-> alpha*op(A)*op(B) +beta C
   matrix<std::complex<float>> C(A.rows_, B.cols_);
   std::complex<float> alpha = 1.0, beta = 0.0;
-  cgemm_(&Trans[0], &Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
+  cgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
          &A.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
   // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, B.cols_,
   // A.cols_, &alpha, A.data_, A.LD_, B.data_, B.LD_, &beta, C.data_, C.LD_);
@@ -752,7 +716,7 @@ operator*(const matrix<std::complex<double>> &A,
   // C-> alpha*op(A)*op(B) +beta C
   matrix<std::complex<double>> C(A.rows_, B.cols_);
   std::complex<double> alpha = 1.0, beta = 0.0;
-  zgemm_(&Trans[0], &Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
+  zgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
          &A.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
   // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, B.cols_,
   // A.cols_, &alpha, A.data_, A.LD_, B.data_, B.LD_, &beta, C.data_, C.LD_);
@@ -766,7 +730,7 @@ operator*(const matrix<float> &A, const matrix<std::complex<float>> &B) {
   matrix<std::complex<float>> C(A.rows_, B.cols_), Ac(A.rows_, A.cols_);
   Ac = A;
   std::complex<float> alpha = 1.0, beta = 0.0;
-  cgemm_(&Trans[0], &Trans[0], &Ac.rows_, &B.cols_, &Ac.cols_, &alpha, Ac.data_,
+  cgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &Ac.rows_, &B.cols_, &Ac.cols_, &alpha, Ac.data_,
          &Ac.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
   // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, Ac.rows_, B.cols_,
   // Ac.cols_, &alpha, Ac.data_, Ac.LD_, B.data_, B.LD_, &beta, C.data_, C.LD_);
@@ -780,7 +744,7 @@ operator*(const matrix<double> &A, const matrix<std::complex<double>> &B) {
   matrix<std::complex<double>> C(A.rows_, B.cols_), Ac(A.rows_, A.cols_);
   Ac = A;
   std::complex<double> alpha = 1.0, beta = 0.0;
-  zgemm_(&Trans[0], &Trans[0], &Ac.rows_, &B.cols_, &Ac.cols_, &alpha, Ac.data_,
+  zgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &Ac.rows_, &B.cols_, &Ac.cols_, &alpha, Ac.data_,
          &Ac.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
   // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, Ac.rows_, B.cols_,
   // Ac.cols_, &alpha, Ac.data_, Ac.LD_, B.data_, B.LD_, &beta, C.data_, C.LD_);
@@ -794,7 +758,7 @@ operator*(const matrix<std::complex<float>> &A, const matrix<float> &B) {
   matrix<std::complex<float>> C(A.rows_, B.cols_), Bc(B.rows_, B.cols_);
   Bc = B;
   std::complex<float> alpha = 1.0, beta = 0.0;
-  cgemm_(&Trans[0], &Trans[0], &A.rows_, &Bc.cols_, &A.cols_, &alpha, A.data_,
+  cgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &A.rows_, &Bc.cols_, &A.cols_, &alpha, A.data_,
          &A.LD_, Bc.data_, &Bc.LD_, &beta, C.data_, &C.LD_);
   // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, Bc.cols_,
   // A.cols_, &alpha, A.data_, A.LD_, Bc.data_, Bc.LD_, &beta, C.data_, C.LD_);
@@ -808,7 +772,7 @@ operator*(const matrix<std::complex<double>> &A, const matrix<double> &B) {
   matrix<std::complex<double>> C(A.rows_, B.cols_), Bc(B.rows_, B.cols_);
   Bc = B;
   std::complex<double> alpha = 1.0, beta = 0.0;
-  zgemm_(&Trans[0], &Trans[0], &A.rows_, &Bc.cols_, &A.cols_, &alpha, A.data_,
+  zgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &A.rows_, &Bc.cols_, &A.cols_, &alpha, A.data_,
          &A.LD_, Bc.data_, &Bc.LD_, &beta, C.data_, &C.LD_);
   // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, Bc.cols_,
   // A.cols_, &alpha, A.data_, A.LD_, Bc.data_, Bc.LD_, &beta, C.data_, C.LD_);
@@ -822,7 +786,7 @@ inline std::vector<float> operator*(const matrix<float> &A,
   std::vector<float> y(A.rows_);
   float alpha = 1.0, beta = 0.0;
   const size_t incx = 1, incy = 1;
-  sgemv_(&Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
+  sgemv_(&AerBlas::Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
          &beta, y.data(), &incy);
   return y;
 }
@@ -833,7 +797,7 @@ inline std::vector<double> operator*(const matrix<double> &A,
   std::vector<double> y(A.rows_);
   double alpha = 1.0, beta = 0.0;
   const size_t incx = 1, incy = 1;
-  dgemv_(&Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
+  dgemv_(&AerBlas::Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
          &beta, y.data(), &incy);
   return y;
 }
@@ -845,7 +809,7 @@ operator*(const matrix<std::complex<float>> &A,
   std::vector<std::complex<float>> y(A.rows_);
   std::complex<float> alpha = 1.0, beta = 0.0;
   const size_t incx = 1, incy = 1;
-  cgemv_(&Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
+  cgemv_(&AerBlas::Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
          &beta, y.data(), &incy);
   return y;
 }
@@ -857,7 +821,7 @@ operator*(const matrix<std::complex<double>> &A,
   std::vector<std::complex<double>> y(A.rows_);
   std::complex<double> alpha = 1.0, beta = 0.0;
   const size_t incx = 1, incy = 1;
-  zgemv_(&Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
+  zgemv_(&AerBlas::Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
          &beta, y.data(), &incy);
   return y;
 }
