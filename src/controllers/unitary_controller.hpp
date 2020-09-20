@@ -196,16 +196,32 @@ void UnitaryController::run_circuit(const Circuit &circ,
   switch (method_) {
     case Method::automatic:
     case Method::unitary_cpu: {
-      if (precision_ == Precision::double_precision) {
-        // Double-precision unitary simulation
-        return run_circuit_helper<
-            QubitUnitary::State<QV::UnitaryMatrix<double>>>(circ, noise, config,
-                                                            shots, rng_seed, data);
+      bool avx2_enabled = is_avx2_supported();
+
+      if (avx2_enabled) {
+        if (precision_ == Precision::double_precision) {
+          // Double-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitary::State<QV::UnitaryMatrixAvx2<double>>>(circ, noise, config,
+                                                              shots, rng_seed, data);
+        } else {
+          // Single-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitary::State<QV::UnitaryMatrixAvx2<float>>>(circ, noise, config,
+                                                             shots, rng_seed, data);
+        }
       } else {
-        // Single-precision unitary simulation
-        return run_circuit_helper<
-            QubitUnitary::State<QV::UnitaryMatrix<float>>>(circ, noise, config,
-                                                           shots, rng_seed, data);
+        if (precision_ == Precision::double_precision) {
+          // Double-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitary::State<QV::UnitaryMatrix<double>>>(circ, noise, config,
+                                                              shots, rng_seed, data);
+        } else {
+          // Single-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitary::State<QV::UnitaryMatrix<float>>>(circ, noise, config,
+                                                             shots, rng_seed, data);
+        }
       }
     }
     case Method::unitary_thrust_gpu: {

@@ -31,12 +31,12 @@ namespace QV {
 // convention left-matrix multiplication on qubit-n is equal to multiplication
 // of the vectorized 2*N qubit vector also on qubit-n.
 
-template <class data_t = double>
-class UnitaryMatrix : public QubitVector<data_t> {
+template <typename data_t, typename Derived = void>
+class UnitaryMatrix : public QubitVector<data_t, Derived> {
 
 public:
   // Type aliases
-  using BaseVector = QubitVector<data_t>;
+  using BaseVector = QubitVector<data_t, Derived>;
 
   //-----------------------------------------------------------------------
   // Constructors and Destructor
@@ -124,13 +124,13 @@ protected:
 // JSON Serialization
 //------------------------------------------------------------------------------
 
-template <class data_t>
-inline void to_json(json_t &js, const UnitaryMatrix<data_t> &qmat) {
+template <typename data_t, typename Derived>
+inline void to_json(json_t &js, const UnitaryMatrix<data_t, Derived> &qmat) {
   js = qmat.json();
 }
 
-template <class data_t>
-json_t UnitaryMatrix<data_t>::json() const {
+template <typename data_t, typename Derived>
+json_t UnitaryMatrix<data_t, Derived>::json() const {
   const int_t nrows = rows_;
   // Initialize empty matrix
   const json_t ZERO = std::complex<double>(0.0, 0.0);
@@ -177,8 +177,8 @@ json_t UnitaryMatrix<data_t>::json() const {
 // Constructors & Destructor
 //------------------------------------------------------------------------------
 
-template <class data_t>
-UnitaryMatrix<data_t>::UnitaryMatrix(size_t num_qubits) {
+template <typename data_t, typename Derived>
+UnitaryMatrix<data_t, Derived>::UnitaryMatrix(size_t num_qubits) {
   set_num_qubits(num_qubits);
 }
 
@@ -186,13 +186,13 @@ UnitaryMatrix<data_t>::UnitaryMatrix(size_t num_qubits) {
 // Convert data vector to matrix
 //------------------------------------------------------------------------------
 
-template <class data_t>
-matrix<std::complex<data_t>> UnitaryMatrix<data_t>::copy_to_matrix() const {
+template <typename data_t, typename Derived>
+matrix<std::complex<data_t>> UnitaryMatrix<data_t, Derived>::copy_to_matrix() const {
   return matrix<std::complex<data_t>>::copy_from_buffer(rows_, rows_, BaseVector::data_);
 }
 
-template <class data_t>
-matrix<std::complex<data_t>> UnitaryMatrix<data_t>::move_to_matrix() {
+template <typename data_t, typename Derived>
+matrix<std::complex<data_t>> UnitaryMatrix<data_t, Derived>::move_to_matrix() {
   const auto ret = matrix<std::complex<data_t>>::move_from_buffer(rows_, rows_, BaseVector::data_);
   BaseVector::data_ = nullptr;
   return ret;
@@ -202,8 +202,8 @@ matrix<std::complex<data_t>> UnitaryMatrix<data_t>::move_to_matrix() {
 // Utility
 //------------------------------------------------------------------------------
 
-template <class data_t>
-void UnitaryMatrix<data_t>::initialize() {
+template <typename data_t, typename Derived>
+void UnitaryMatrix<data_t, Derived>::initialize() {
   // Zero the underlying vector
   BaseVector::zero();
   // Set to be identity matrix
@@ -214,8 +214,8 @@ void UnitaryMatrix<data_t>::initialize() {
   }
 }
 
-template <class data_t>
-void UnitaryMatrix<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
+template <typename data_t, typename Derived>
+void UnitaryMatrix<data_t, Derived>::initialize_from_matrix(const AER::cmatrix_t &mat) {
   const int_t nrows = rows_;    // end for k loop
   if (nrows != static_cast<int_t>(mat.GetRows()) ||
       nrows != static_cast<int_t>(mat.GetColumns())) {
@@ -237,8 +237,8 @@ void UnitaryMatrix<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
     }
 }
 
-template <class data_t>
-void UnitaryMatrix<data_t>::set_num_qubits(size_t num_qubits) {
+template <typename data_t, typename Derived>
+void UnitaryMatrix<data_t, Derived>::set_num_qubits(size_t num_qubits) {
   // Set the number of rows for the matrix
   num_qubits_ = num_qubits;
   rows_ = 1ULL << num_qubits;
@@ -246,8 +246,8 @@ void UnitaryMatrix<data_t>::set_num_qubits(size_t num_qubits) {
   BaseVector::set_num_qubits(2 * num_qubits);
 }
 
-template <class data_t>
-std::complex<double> UnitaryMatrix<data_t>::trace() const {
+template <typename data_t, typename Derived>
+std::complex<double> UnitaryMatrix<data_t, Derived>::trace() const {
   const int_t NROWS = rows_;
   const int_t DIAG = NROWS + 1;
   double val_re = 0.;
@@ -268,8 +268,8 @@ std::complex<double> UnitaryMatrix<data_t>::trace() const {
 // Check Identity
 //------------------------------------------------------------------------------
 
-template <class data_t>
-std::pair<bool, double> UnitaryMatrix<data_t>::check_identity() const {
+template <typename data_t, typename Derived>
+std::pair<bool, double> UnitaryMatrix<data_t, Derived>::check_identity() const {
   // To check if identity we first check we check that:
   // 1. U(0, 0) = exp(i * theta)
   // 2. U(i, i) = U(0, 0)
@@ -309,8 +309,8 @@ std::pair<bool, double> UnitaryMatrix<data_t>::check_identity() const {
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector
-template <class data_t>
-inline std::ostream &operator<<(std::ostream &out, const AER::QV::UnitaryMatrix<data_t>&m) {
+template <typename data_t, typename Derived>
+inline std::ostream &operator<<(std::ostream &out, const AER::QV::UnitaryMatrix<data_t, Derived>&m) {
   out << m.copy_to_matrix();
   return out;
 }

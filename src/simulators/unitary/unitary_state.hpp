@@ -23,6 +23,7 @@
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
 #include "unitarymatrix.hpp"
+#include "unitarymatrix_avx2.hpp"
 #ifdef AER_THRUST_SUPPORTED
 #include "unitarymatrix_thrust.hpp"
 #endif
