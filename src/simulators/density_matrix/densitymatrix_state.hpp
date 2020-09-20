@@ -24,6 +24,7 @@
 #include "framework/opset.hpp"
 #include "simulators/state.hpp"
 #include "densitymatrix.hpp"
+#include "densitymatrix_avx2.hpp"
 #ifdef AER_THRUST_SUPPORTED
 #include "densitymatrix_thrust.hpp"
 #endif

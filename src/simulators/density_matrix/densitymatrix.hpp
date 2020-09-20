@@ -32,13 +32,13 @@ namespace QV {
 // convention left-matrix multiplication on qubit-n is equal to multiplication
 // of the vectorized 2*N qubit vector also on qubit-n.
 
-template <typename data_t = double>
-class DensityMatrix : public UnitaryMatrix<data_t> {
+template <typename data_t = double, typename Derived = void>
+class DensityMatrix : public UnitaryMatrix<data_t, Derived> {
 
 public:
   // Parent class aliases
-  using BaseVector = QubitVector<data_t>;
-  using BaseMatrix = UnitaryMatrix<data_t>;
+  using BaseVector = QubitVector<data_t, Derived>;
+  using BaseMatrix = UnitaryMatrix<data_t, Derived>;
 
   //-----------------------------------------------------------------------
   // Constructors and Destructor
@@ -159,24 +159,24 @@ protected:
 // Constructors & Destructor
 //------------------------------------------------------------------------------
 
-template <typename data_t>
-DensityMatrix<data_t>::DensityMatrix(size_t num_qubits)
-  : UnitaryMatrix<data_t>(num_qubits) {};
+template <typename data_t, typename Derived>
+DensityMatrix<data_t, Derived>::DensityMatrix(size_t num_qubits)
+  : UnitaryMatrix<data_t, Derived>(num_qubits) {};
 
 //------------------------------------------------------------------------------
 // Utility
 //------------------------------------------------------------------------------
 
-template <typename data_t>
-void DensityMatrix<data_t>::initialize() {
+template <typename data_t, typename Derived>
+void DensityMatrix<data_t, Derived>::initialize() {
   // Zero the underlying vector
   BaseVector::zero();
   // Set to be all |0> sate
   BaseVector::data_[0] = 1.0;
 }
 
-template <typename data_t>
-void DensityMatrix<data_t>::initialize_from_vector(const cvector_t<double> &statevec) {
+template <typename data_t, typename Derived>
+void DensityMatrix<data_t, Derived>::initialize_from_vector(const cvector_t<double> &statevec) {
   if (BaseVector::data_size_ == statevec.size()) {
     // Use base class initialize for already vectorized matrix
     BaseVector::initialize_from_vector(statevec);
@@ -196,8 +196,8 @@ void DensityMatrix<data_t>::initialize_from_vector(const cvector_t<double> &stat
 // Apply matrix functions
 //------------------------------------------------------------------------------
 
-template <typename data_t>
-reg_t DensityMatrix<data_t>::superop_qubits(const reg_t &qubits) const {
+template <typename data_t, typename Derived>
+reg_t DensityMatrix<data_t, Derived>::superop_qubits(const reg_t &qubits) const {
   reg_t superop_qubits = qubits;
   // Number of qubits
   const auto nq = num_qubits();
@@ -207,8 +207,8 @@ reg_t DensityMatrix<data_t>::superop_qubits(const reg_t &qubits) const {
   return superop_qubits;
 }
 
-template <typename data_t>
-cvector_t<double> DensityMatrix<data_t>::vmat2vsuperop(const cvector_t<double> &vmat) const {
+template <typename data_t, typename Derived>
+cvector_t<double> DensityMatrix<data_t, Derived>::vmat2vsuperop(const cvector_t<double> &vmat) const {
   // Get dimension of unvectorized matrix
   size_t dim = size_t(std::sqrt(vmat.size()));
   cvector_t<double> ret(dim * dim * dim * dim, 0.);
@@ -220,20 +220,20 @@ cvector_t<double> DensityMatrix<data_t>::vmat2vsuperop(const cvector_t<double> &
   return ret;
 }
 
-template <typename data_t>
-void DensityMatrix<data_t>::apply_superop_matrix(const reg_t &qubits,
+template <typename data_t, typename Derived>
+void DensityMatrix<data_t, Derived>::apply_superop_matrix(const reg_t &qubits,
                                                  const cvector_t<double> &mat) {
   BaseVector::apply_matrix(superop_qubits(qubits), mat);
 }
 
-template <typename data_t>
-void DensityMatrix<data_t>::apply_diagonal_superop_matrix(const reg_t &qubits,
+template <typename data_t, typename Derived>
+void DensityMatrix<data_t, Derived>::apply_diagonal_superop_matrix(const reg_t &qubits,
                                                           const cvector_t<double> &diag) {
   BaseVector::apply_diagonal_matrix(superop_qubits(qubits), diag);
 }
 
-template <typename data_t>
-void DensityMatrix<data_t>::apply_unitary_matrix(const reg_t &qubits,
+template <typename data_t, typename Derived>
+void DensityMatrix<data_t, Derived>::apply_unitary_matrix(const reg_t &qubits,
                                                  const cvector_t<double> &mat) {
   // Check if we apply as two N-qubit matrix multiplications or a single 2N-qubit matrix mult.
   if (qubits.size() > apply_unitary_threshold_) {
@@ -253,8 +253,8 @@ void DensityMatrix<data_t>::apply_unitary_matrix(const reg_t &qubits,
   }
 }
 
-template <typename data_t>
-void DensityMatrix<data_t>::apply_diagonal_unitary_matrix(const reg_t &qubits,
+template <typename data_t, typename Derived>
+void DensityMatrix<data_t, Derived>::apply_diagonal_unitary_matrix(const reg_t &qubits,
                                                           const cvector_t<double> &diag) {
   // Apply as single 2N-qubit matrix mult.
   apply_diagonal_superop_matrix(qubits, AER::Utils::tensor_product(AER::Utils::conjugate(diag), diag));
@@ -264,8 +264,8 @@ void DensityMatrix<data_t>::apply_diagonal_unitary_matrix(const reg_t &qubits,
 // Apply Specialized Gates
 //-----------------------------------------------------------------------
 
-template <typename data_t>
-void DensityMatrix<data_t>::apply_cnot(const uint_t qctrl, const uint_t qtrgt) {
+template <typename data_t, typename Derived>
+void DensityMatrix<data_t, Derived>::apply_cnot(const uint_t qctrl, const uint_t qtrgt) {
   std::vector<std::pair<uint_t, uint_t>> pairs = {
     {{1, 3}, {4, 12}, {5, 15}, {6, 14}, {7, 13}, {9, 11}}
   };
@@ -274,8 +274,8 @@ void DensityMatrix<data_t>::apply_cnot(const uint_t qctrl, const uint_t qtrgt) {
   BaseVector::apply_permutation_matrix(qubits, pairs);
 }
 
-template <typename data_t>
-void DensityMatrix<data_t>::apply_cz(const uint_t q0, const uint_t q1) {
+template <typename data_t, typename Derived>
+void DensityMatrix<data_t, Derived>::apply_cz(const uint_t q0, const uint_t q1) {
   // Lambda function for CZ gate
   auto lambda = [&](const areg_t<1ULL << 4> &inds)->void {
     BaseVector::data_[inds[3]] *= -1.;
@@ -290,8 +290,8 @@ void DensityMatrix<data_t>::apply_cz(const uint_t q0, const uint_t q1) {
   BaseVector::apply_lambda(lambda, qubits);
 }
 
-template <typename data_t>
-void DensityMatrix<data_t>::apply_swap(const uint_t q0, const uint_t q1) {
+template <typename data_t, typename Derived>
+void DensityMatrix<data_t, Derived>::apply_swap(const uint_t q0, const uint_t q1) {
   std::vector<std::pair<uint_t, uint_t>> pairs = {
    {{1, 2}, {4, 8}, {5, 10}, {6, 9}, {7, 11}, {13, 14}}
   };
@@ -300,8 +300,8 @@ void DensityMatrix<data_t>::apply_swap(const uint_t q0, const uint_t q1) {
   BaseVector::apply_permutation_matrix(qubits, pairs);
 }
 
-template <typename data_t>
-void DensityMatrix<data_t>::apply_x(const uint_t qubit) {
+template <typename data_t, typename Derived>
+void DensityMatrix<data_t, Derived>::apply_x(const uint_t qubit) {
   // Lambda function for X gate superoperator
   auto lambda = [&](const areg_t<1ULL << 2> &inds)->void {
     std::swap(BaseVector::data_[inds[0]], BaseVector::data_[inds[3]]);
@@ -313,8 +313,8 @@ void DensityMatrix<data_t>::apply_x(const uint_t qubit) {
 
 }
 
-template <typename data_t>
-void DensityMatrix<data_t>::apply_y(const uint_t qubit) {
+template <typename data_t, typename Derived>
+void DensityMatrix<data_t, Derived>::apply_y(const uint_t qubit) {
   // Lambda function for Y gate superoperator
   auto lambda = [&](const areg_t<1ULL << 2> &inds)->void {
     std::swap(BaseVector::data_[inds[0]], BaseVector::data_[inds[3]]);
@@ -327,8 +327,8 @@ void DensityMatrix<data_t>::apply_y(const uint_t qubit) {
   BaseVector::apply_lambda(lambda, qubits);
 }
 
-template <typename data_t>
-void DensityMatrix<data_t>::apply_z(const uint_t qubit) {
+template <typename data_t, typename Derived>
+void DensityMatrix<data_t, Derived>::apply_z(const uint_t qubit) {
   // Lambda function for Z gate superoperator
   auto lambda = [&](const areg_t<1ULL << 2> &inds)->void {
     BaseVector::data_[inds[1]] *= -1;
@@ -339,8 +339,8 @@ void DensityMatrix<data_t>::apply_z(const uint_t qubit) {
   BaseVector::apply_lambda(lambda, qubits);
 }
 
-template <typename data_t>
-void DensityMatrix<data_t>::apply_toffoli(const uint_t qctrl0,
+template <typename data_t, typename Derived>
+void DensityMatrix<data_t, Derived>::apply_toffoli(const uint_t qctrl0,
                                           const uint_t qctrl1,
                                           const uint_t qtrgt) {
   std::vector<std::pair<uint_t, uint_t>> pairs = {
@@ -357,8 +357,8 @@ void DensityMatrix<data_t>::apply_toffoli(const uint_t qctrl0,
 // Z-measurement outcome probabilities
 //-----------------------------------------------------------------------
 
-template <typename data_t>
-double DensityMatrix<data_t>::probability(const uint_t outcome) const {
+template <typename data_t, typename Derived>
+double DensityMatrix<data_t, Derived>::probability(const uint_t outcome) const {
   const auto shift = BaseMatrix::num_rows() + 1;
   return std::real(BaseVector::data_[outcome * shift]);
 }
@@ -367,8 +367,8 @@ double DensityMatrix<data_t>::probability(const uint_t outcome) const {
 // Pauli expectation value
 //-----------------------------------------------------------------------
 
-template <typename data_t>
-double DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
+template <typename data_t, typename Derived>
+double DensityMatrix<data_t, Derived>::expval_pauli(const reg_t &qubits,
                                            const std::string &pauli) const {
 
   // Break string up into Z and X
@@ -456,8 +456,8 @@ double DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector
-template <typename data_t>
-inline std::ostream &operator<<(std::ostream &out, const AER::QV::DensityMatrix<data_t>&m) {
+template <typename data_t, typename Derived>
+inline std::ostream &operator<<(std::ostream &out, const AER::QV::DensityMatrix<data_t, Derived>&m) {
   out << m.copy_to_matrix();
   return out;
 }

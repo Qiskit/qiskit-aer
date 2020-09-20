@@ -465,18 +465,35 @@ void QasmController::run_circuit(const Circuit& circ,
 #endif
     }
     case Method::density_matrix: {
+      bool avx2_enabled = is_avx2_supported();
       if (simulation_precision_ == Precision::double_precision) {
-        // Double-precision density matrix simulation
-        return run_circuit_helper<
-            DensityMatrix::State<QV::DensityMatrix<double>>>(
-            circ, noise, config, shots, rng_seed, cvector_t(),
-            Method::density_matrix, data);
+        if (avx2_enabled) {
+          // Double-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrix::State<QV::DensityMatrixAvx2<double>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix, data);
+        } else {
+          // Double-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrix::State<QV::DensityMatrix<double>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix, data);
+        }
       } else {
-        // Single-precision density matrix simulation
-        return run_circuit_helper<
-            DensityMatrix::State<QV::DensityMatrix<float>>>(
-            circ, noise, config, shots, rng_seed, cvector_t(),
-            Method::density_matrix, data);
+        if (avx2_enabled) {
+          // Single-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrix::State<QV::DensityMatrixAvx2<float>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix, data);
+        } else {
+          // Single-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrix::State<QV::DensityMatrix<float>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix, data);
+        }
       }
     }
     case Method::density_matrix_thrust_gpu: {
