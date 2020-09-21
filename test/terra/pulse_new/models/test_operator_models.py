@@ -21,15 +21,15 @@ from qiskit.providers.aer.pulse_new.models.operator_models import FrameFreqHelpe
 class Test_FrameFreqHelper(unittest.TestCase):
 
     def setUp(self):
-        self.X = Operator(np.array([[0., 1.], [1., 0.]], dtype=complex))
-        self.Y = Operator(np.array([[0., -1j], [1j, 0.]], dtype=complex))
-        self.Z = Operator(np.array([[1., 0.], [0., -1.]], dtype=complex))
+        self.X = Operator.from_label('X')
+        self.Y = Operator.from_label('Y')
+        self.Z = Operator.from_label('Z')
 
 
     def test_evaluate_no_cutoff(self):
         """test evaluate with a non-diagonal frame and no cutoff freq."""
 
-        frame_op = -1j * np.pi * self.X.data
+        frame_op = -1j * np.pi * self.X
         operators = [Operator(-1j * np.pi * self.Z), Operator(-1j * self.X / 2)]
         carrier_freqs = np.array([0., 1.])
 
@@ -38,7 +38,7 @@ class Test_FrameFreqHelper(unittest.TestCase):
         t = np.pi * 0.02
         coeffs = np.array([1., 1.])
         val = helper.evaluate(t, coeffs)
-        U = expm(frame_op * t)
+        U = expm(frame_op.data * t)
         U_adj = U.conj().transpose()
         expected = (U_adj @ (-1j * np.pi * self.Z.data +
                              1j * np.pi * self.X.data +
@@ -50,7 +50,7 @@ class Test_FrameFreqHelper(unittest.TestCase):
         t = np.pi * 0.02
         coeffs = np.array([1., 1. + 2 * 1j])
         val = helper.evaluate(t, coeffs)
-        U = expm(frame_op * t)
+        U = expm(frame_op.data * t)
         U_adj = U.conj().transpose()
         expected = (U_adj @ (-1j * np.pi * self.Z.data +
                              1j * np.pi * self.X.data +

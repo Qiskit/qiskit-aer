@@ -137,26 +137,31 @@ class OperatorModel:
 
         sig_envelope_vals = np.array([sig.envelope_value(time) for sig in self.signals])
 
-        return self._frame_signal_helper.generator_in_frame(time,
-                                                            sig_envelope_vals,
-                                                             in_frame_diag_basis)
+        return self._frame_freq_helper.generator_in_frame(time,
+                                                          sig_envelope_vals,
+                                                          in_frame_diag_basis)
 
     def lmult(self, time: float, y: np.array, in_frame_diag_basis: bool = False) -> np.array:
         """
-        Return the product generator(t) * y.
+        Return the product evaluate(t) @ y.
 
         Args:
             time: Time at which to create the generator.
             y: operator or vector to apply the model to.
             in_frame_diag_basis: whether to evaluate the frame in the frame basis
         """
-        generator = self.evaluate(time, in_frame_diag_basis)
-
-        return np.dot(generator, y)
+        return np.dot(self.evaluate(time, in_frame_diag_basis), y)
 
     def rmult(self, time: float, y: np.array, in_frame_diag_basis: bool = False) -> np.array:
-        generator = self.evaluate(time, in_frame_diag_basis)
-        return np.dot(y, generator)
+        """
+        Return the product y @ evaluate(t).
+
+        Args:
+            time: Time at which to create the generator.
+            y: operator or vector to apply the model to.
+            in_frame_diag_basis: whether to evaluate the frame in the frame basis
+        """
+        return np.dot(y, self.evaluate(time, in_frame_diag_basis))
 
     """
     To do: maybe make frame_operator and cutoff_freq properties, each of which
