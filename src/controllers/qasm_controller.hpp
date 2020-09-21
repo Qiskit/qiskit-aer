@@ -298,6 +298,9 @@ class QasmController : public Base::Controller {
 
   // Controller-level parameter for CH method
   bool extended_stabilizer_measure_sampling_ = false;
+
+  // Disable SIMD optimization for testing
+  bool enable_simd_ = true;
 };
 
 //=========================================================================
@@ -374,6 +377,9 @@ void QasmController::set_config(const json_t& config) {
           "QasmController: initial_statevector is not a unit vector");
     }
   }
+
+  // Check to test enable/disable simd optimization
+  JSON::get_value(enable_simd_, "enable_simd", config);
 }
 
 void QasmController::clear_config() {
@@ -395,8 +401,7 @@ void QasmController::run_circuit(const Circuit& circ,
   // Validate circuit for simulation method
   switch (simulation_method(circ, noise, true)) {
     case Method::statevector: {
-      bool avx2_enabled = is_avx2_supported();
-
+      bool avx2_enabled = is_avx2_supported() && enable_simd_;
       if (simulation_precision_ == Precision::double_precision) {
         if (avx2_enabled) {
           return run_circuit_helper<
@@ -465,7 +470,7 @@ void QasmController::run_circuit(const Circuit& circ,
 #endif
     }
     case Method::density_matrix: {
-      bool avx2_enabled = is_avx2_supported();
+      bool avx2_enabled = is_avx2_supported() &&  enable_simd_;
       if (simulation_precision_ == Precision::double_precision) {
         if (avx2_enabled) {
           // Double-precision density matrix simulation
