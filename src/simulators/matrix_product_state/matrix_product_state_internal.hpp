@@ -126,7 +126,7 @@ public:
 
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat);
 
-  cmatrix_t density_matrix(const reg_t &qubits) ;
+  cmatrix_t density_matrix(const reg_t &qubits);
 
   //---------------------------------------------------------------
   // Function: expectation_value
@@ -297,7 +297,7 @@ private:
 			      const cmatrix_t &mat);
   void apply_matrix_to_target_qubits(const reg_t &target_qubits,
 				     const cmatrix_t &mat);
-  cmatrix_t density_matrix_internal(const reg_t &qubits);
+  cmatrix_t density_matrix_internal(const reg_t &qubits, bool reverse_order=true);
 
   rvector_t diagonal_of_density_matrix(const reg_t &qubits);
 
@@ -328,7 +328,7 @@ private:
   // This function computes the state vector for all the consecutive qubits 
   // between first_index and last_index
   MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
-  void full_state_vector_internal(cvector_t &state_vector, const reg_t &qubits) ;
+  void full_state_vector_internal(cvector_t &state_vector, const reg_t &qubits, bool reverse_order=true) ;
 
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits);
 

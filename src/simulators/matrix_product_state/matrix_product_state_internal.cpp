@@ -773,9 +773,9 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) {
   return density_matrix_internal(internal_qubits);
 }
 
-cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) {
+cmatrix_t MPS::density_matrix_internal(const reg_t &qubits, bool reverse_order) {
   cvector_t statevector;
-  full_state_vector_internal(statevector, qubits);
+  full_state_vector_internal(statevector, qubits, reverse_order);
   uint_t size = statevector.size();
   cmatrix_t rho(size, size);
   for(int_t i = 0; i < static_cast<int_t>(size); i++) {
@@ -821,11 +821,10 @@ double MPS::expectation_value_internal(const reg_t &qubits,
 				       const cmatrix_t &M) {
   // need to reverse qubits because that is the way they
   // are defined in the Qiskit interface
-  //  reg_t reversed_qubits = qubits;
-  //  std::reverse(reversed_qubits.begin(), reversed_qubits.end()); 
+  reg_t reversed_qubits = qubits;
+  std::reverse(reversed_qubits.begin(), reversed_qubits.end()); 
 
-  //  bool are_qubits_ordered = is_ordered(reversed_qubits);
-  bool are_qubits_ordered = is_ordered(qubits);
+  bool are_qubits_ordered = is_ordered(reversed_qubits);
 
   cmatrix_t rho;
 
@@ -833,23 +832,21 @@ double MPS::expectation_value_internal(const reg_t &qubits,
   // without moving them, for performance reasons
   reg_t target_qubits(qubits.size());
   if (are_qubits_ordered) {
-    //rho = density_matrix(qubits);
+    rho = density_matrix(reversed_qubits);
   } else {
     reg_t actual_indices(num_qubits_);
     std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
     MPS temp_MPS;
     temp_MPS.initialize(*this);
-    //temp_MPS.move_qubits_to_right_end(reversed_qubits, target_qubits, actual_indices);
-    temp_MPS.move_qubits_to_right_end(qubits, target_qubits, actual_indices);
+    temp_MPS.move_qubits_to_right_end(reversed_qubits, target_qubits, actual_indices);
 
-    rho = temp_MPS.density_matrix(target_qubits);
-  }
-  // Trace(rho*M). not using methods for efficiency
+    rho = temp_MPS.density_matrix_internal(target_qubits, false);
+  }  
   complex_t res = 0;
   for (uint_t i = 0; i < M.GetRows(); i++)
     for (uint_t j = 0; j < M.GetRows(); j++)
       res += M(i,j)*rho(j,i);
-  // Trace(rho*M). not using methods for efficiency
+
   return real(res);
 }
 
@@ -1073,7 +1070,8 @@ void MPS::full_state_vector(cvector_t& statevector) {
 }
 
 void MPS::full_state_vector_internal(cvector_t& statevector,
-				     const reg_t &qubits) {
+				     const reg_t &qubits,
+				     bool reverse_order) {
   // mps_vec contains the state vector with the qubits in ascending order
   MPS_Tensor mps_vec = state_vec_as_MPS(qubits);
 
@@ -1089,7 +1087,8 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
   //temp_statevector will contain the statevector in the ordering defined in "qubits"
   reorder_all_qubits(statevector, qubits, temp_statevector);
   // reverse to be consistent with qasm ordering
-  statevector = reverse_all_bits(temp_statevector, num_qubits);
+  if (reverse_order)
+    statevector = reverse_all_bits(temp_statevector, num_qubits);
 }
 
 void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) {
