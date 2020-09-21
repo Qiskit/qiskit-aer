@@ -111,6 +111,9 @@ class UnitaryController : public Base::Controller {
 
   // Precision of a unitary matrix
   Precision precision_ = Precision::double_precision;
+
+  // Disable SIMD optimization for testing
+  bool enable_simd_ = true;
 };
 
 //=========================================================================
@@ -166,6 +169,9 @@ void UnitaryController::set_config(const json_t &config) {
       precision_ = Precision::single_precision;
     }
   }
+
+  // Check to test enable/disable simd optimization
+  JSON::get_value(enable_simd_, "enable_simd", config);
 }
 
 void UnitaryController::clear_config() {
@@ -196,7 +202,7 @@ void UnitaryController::run_circuit(const Circuit &circ,
   switch (method_) {
     case Method::automatic:
     case Method::unitary_cpu: {
-      bool avx2_enabled = is_avx2_supported();
+      bool avx2_enabled = is_avx2_supported() && enable_simd_;
 
       if (avx2_enabled) {
         if (precision_ == Precision::double_precision) {

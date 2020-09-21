@@ -15,6 +15,7 @@
 #ifndef _qv_density_matrix_avx2_hpp_
 #define _qv_density_matrix_avx2_hpp_
 
+#include <cmath>
 #include "densitymatrix.hpp"
 #include "simulators/statevector/qv_avx2.hpp"
 #include "misc/common_macros.hpp"
@@ -53,11 +54,11 @@ public:
 
   // Apply a 1-qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized 1-qubit matrix.
-  void apply_matrix_to_base_vector(const uint_t qubit, const cvector_t<double> &mat);
+  void apply_matrix(const uint_t qubit, const cvector_t<double> &mat);
 
   // Apply a N-qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized N-qubit matrix.
-  void apply_matrix_to_base_vector(const reg_t &qubits, const cvector_t<double> &mat);
+  void apply_matrix(const reg_t &qubits, const cvector_t<double> &mat);
 
   protected:
   size_t calculate_num_threads();
@@ -97,9 +98,9 @@ template <typename data_t>
 DensityMatrixAvx2<data_t>::DensityMatrixAvx2() : DensityMatrixAvx2(0) {}
 
 template <typename data_t>
-void DensityMatrixAvx2<data_t>::apply_matrix_to_base_vector(const uint_t qubit,
+void DensityMatrixAvx2<data_t>::apply_matrix(const uint_t qubit,
                                            const cvector_t<double>& mat) {
-  if ((mat[1] == 0.0 && mat[2] == 0.0) || (mat[0] == 0.0 && mat[3] == 0.0)) {
+if ((mat[1] == 0.0 && mat[2] == 0.0) || (mat[0] == 0.0 && mat[3] == 0.0)) {
     Base::apply_matrix(qubit, mat);
     return;
   }
@@ -114,7 +115,7 @@ void DensityMatrixAvx2<data_t>::apply_matrix_to_base_vector(const uint_t qubit,
 }
 
 template <typename data_t>
-void DensityMatrixAvx2<data_t>::apply_matrix_to_base_vector(const reg_t& qubits,
+void DensityMatrixAvx2<data_t>::apply_matrix(const reg_t& qubits,
                                            const cvector_t<double>& mat) {
   if (apply_matrix_avx<data_t>(reinterpret_cast<data_t*>(Base::data_),
                                Base::data_size_, qubits.data(), qubits.size(),
@@ -126,7 +127,7 @@ void DensityMatrixAvx2<data_t>::apply_matrix_to_base_vector(const reg_t& qubits,
 
 template <typename data_t>
 size_t DensityMatrixAvx2<data_t>::calculate_num_threads() {
-  if (Base::num_qubits_ > Base::omp_threshold_ && Base::omp_threads_ > 1) {
+  if ((Base::num_qubits_ << 1UL ) > Base::omp_threshold_ && Base::omp_threads_ > 1) {
     return Base::omp_threads_;
   }
   return 1;

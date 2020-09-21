@@ -123,11 +123,11 @@ public:
 
   // Apply a 1-qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized 1-qubit matrix.
-  virtual void apply_matrix_to_base_vector(const uint_t qubit, const cvector_t<double> &mat);
+  virtual void apply_matrix(const uint_t qubit, const cvector_t<double> &mat);
 
   // Apply a N-qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized N-qubit matrix.
-  virtual void apply_matrix_to_base_vector(const reg_t &qubits, const cvector_t<double> &mat);
+  virtual void apply_matrix(const reg_t &qubits, const cvector_t<double> &mat);
 
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
@@ -235,7 +235,7 @@ cvector_t<double> DensityMatrix<data_t, Derived>::vmat2vsuperop(const cvector_t<
 template <typename data_t, typename Derived>
 void DensityMatrix<data_t, Derived>::apply_superop_matrix(const reg_t &qubits,
                                                  const cvector_t<double> &mat) {
-  apply_matrix_to_base_vector(superop_qubits(qubits), mat);
+  apply_matrix(superop_qubits(qubits), mat);
 }
 
 template <typename data_t, typename Derived>
@@ -256,9 +256,9 @@ void DensityMatrix<data_t, Derived>::apply_unitary_matrix(const reg_t &qubits,
       conj_qubits.push_back(q + nq);
     }
     // Apply id \otimes U
-    apply_matrix_to_base_vector(qubits, mat);
+    apply_matrix(qubits, mat);
     // Apply conj(U) \otimes id
-    apply_matrix_to_base_vector(conj_qubits, AER::Utils::conjugate(mat));
+    apply_matrix(conj_qubits, AER::Utils::conjugate(mat));
   } else {
     // Apply as single 2N-qubit matrix mult.
     apply_superop_matrix(qubits, vmat2vsuperop(mat));
@@ -467,13 +467,13 @@ double DensityMatrix<data_t, Derived>::expval_pauli(const reg_t &qubits,
 //-----------------------------------------------------------------------
 
 template <typename data_t, typename Derived>
-void DensityMatrix<data_t, Derived>::apply_matrix_to_base_vector(const uint_t qubit,
+void DensityMatrix<data_t, Derived>::apply_matrix(const uint_t qubit,
                                                                  const cvector_t<double>& mat) {
   BaseVector::apply_matrix(qubit, mat);
 }
 
 template <typename data_t, typename Derived>
-void DensityMatrix<data_t, Derived>::apply_matrix_to_base_vector(const reg_t& qubits,
+void DensityMatrix<data_t, Derived>::apply_matrix(const reg_t& qubits,
                                                                  const cvector_t<double>& mat) {
   BaseVector::apply_matrix(qubits, mat);
 }

@@ -97,6 +97,20 @@ public:
   // Get the threshold for verify_identity
   double get_check_identity_threshold() {return identity_threshold_;}
 
+
+  //-----------------------------------------------------------------------
+  // Apply Matrices
+  //-----------------------------------------------------------------------
+
+  // Apply a 1-qubit matrix to the state vector.
+  // The matrix is input as vector of the column-major vectorized 1-qubit matrix.
+  void apply_matrix(const uint_t qubit, const cvector_t<double> &mat);
+
+  // Apply a N-qubit matrix to the state vector.
+  // The matrix is input as vector of the column-major vectorized N-qubit matrix.
+  void apply_matrix(const reg_t &qubits, const cvector_t<double> &mat);
+
+
 protected:
 
   //-----------------------------------------------------------------------
@@ -301,6 +315,18 @@ std::pair<bool, double> UnitaryMatrix<data_t, Derived>::check_identity() const {
   }
   // Otherwise we pass
   return std::make_pair(true, theta);
+}
+
+template <typename data_t, typename Derived>
+void UnitaryMatrix<data_t, Derived>::apply_matrix(const uint_t qubit,
+                                         const cvector_t<double>& mat) {
+  BaseVector::apply_matrix(qubit, mat);
+}
+
+template <typename data_t, typename Derived>
+void UnitaryMatrix<data_t, Derived>::apply_matrix(const reg_t& qubits,
+                                         const cvector_t<double>& mat) {
+  BaseVector::apply_matrix(qubits, mat);
 }
 
 //------------------------------------------------------------------------------

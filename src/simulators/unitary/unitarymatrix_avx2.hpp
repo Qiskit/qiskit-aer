@@ -53,11 +53,11 @@ public:
 
   // Apply a 1-qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized 1-qubit matrix.
-  void apply_matrix(const uint_t qubit, const cvector_t<double> &mat);
+  virtual void apply_matrix(const uint_t qubit, const cvector_t<double> &mat);
 
   // Apply a N-qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized N-qubit matrix.
-  void apply_matrix(const reg_t &qubits, const cvector_t<double> &mat);
+  virtual void apply_matrix(const reg_t &qubits, const cvector_t<double> &mat);
 
   protected:
   size_t calculate_num_threads();
@@ -126,7 +126,7 @@ void UnitaryMatrixAvx2<data_t>::apply_matrix(const reg_t& qubits,
 
 template <typename data_t>
 size_t UnitaryMatrixAvx2<data_t>::calculate_num_threads() {
-  if (Base::num_qubits_ > Base::omp_threshold_ && Base::omp_threads_ > 1) {
+  if ((Base::num_qubits_ << 1UL) > Base::omp_threshold_ && Base::omp_threads_ > 1) {
     return Base::omp_threads_;
   }
   return 1;
