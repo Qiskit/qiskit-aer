@@ -211,7 +211,7 @@ class FrameFreqHelper:
                  frame_operator=None,
                  cutoff_freq=None):
         """
-        Initailize.
+        Initialize.
 
         Args:
             operators (list): List of Operator objects.

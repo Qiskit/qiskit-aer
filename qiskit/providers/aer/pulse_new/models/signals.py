@@ -18,6 +18,14 @@ from typing import List, Callable, Union
 import numpy as np
 from matplotlib import pyplot as plt
 
+<<<<<<< HEAD
+=======
+
+class Signal:
+    """The most general mixed signal type, represented by a callable envelope function and a
+    carrier frequency.
+    """
+>>>>>>> adding VectorSignal class
 
 class BaseSignal(ABC):
 
@@ -329,6 +337,7 @@ def signal_add(sig1: Union[BaseSignal, float, int, complex],
         if sig1.carrier_freq == sig2.carrier_freq:
             return Signal(lambda t: sig1.envelope_value(t) + sig2.envelope_value(t), sig1.carrier_freq)
         else:
+<<<<<<< HEAD
             return Signal(lambda t: sig1.value(t) + sig2.value(t), carrier_freq=0.)
 
     elif isinstance(sig1, Signal) and isinstance(sig2, PiecewiseConstant):
@@ -374,3 +383,66 @@ def signal_add(sig1: Union[BaseSignal, float, int, complex],
 
     # Other symmetric cases
     return signal_add(sig2, sig1)
+=======
+            return Signal(lambda t: sig1.value(t) + sig2.value(t))
+
+
+class VectorSignal:
+    """The vector version of Signal
+    """
+
+    def __init__(self,
+                 envelope,
+                 carrier_freqs,
+                 drift_array=None):
+        """
+        Note: drift_array is supposed to be the array with Constant
+        entries taking their values and the rest being 0.
+        """
+        self.envelope = envelope
+        self.carrier_freqs = carrier_freqs
+
+        # if not supplied nothing is assumed, constant array is taken as all
+        # zeros
+        if drift_array is None:
+            self.drift_array = np.zeros(len(self.carrier_freqs))
+        else:
+            self.drift_array = drift_array
+
+    @classmethod
+    def from_signal_list(self, signal_list):
+        """Define a VectorSignal from a list of signals
+        """
+
+        # define the envelope
+        def env_func(t):
+            return np.array([sig.envelope_value(t) for sig in signal_list])
+
+        # construct carrier frequency list
+        carrier_freqs = np.array([signal.carrier_freq for sig in signal_list])
+
+        # construct drift_array
+        drift_array = []
+        for sig in signal_list:
+            if isinstance(sig, Constant):
+                drift_array.append(sig.value())
+            else:
+                drift_array.append(0.)
+
+        return cls(envelope=env_func,
+                   carrier_freqs=carrier_freqs,
+                   drift_array=np.array(drift_array))
+
+
+    def envelope_value(self, t):
+        return self.envelope(t)
+
+    def value(self, t):
+        return self.envelope_value(t) * np.exp(1j * 2 * np.pi * self.carrier_freqs * t)
+
+    def conjugate(self):
+        """Return a new signal that is the complex conjugate of this one"""
+        return VectorSignal(lambda t: np.conjugate(self.envelope_value(t)),
+                            -self.carrier_freqs,
+                            np.conjugate(self.drift_array))
+>>>>>>> adding VectorSignal class
