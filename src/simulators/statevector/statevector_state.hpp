@@ -515,7 +515,7 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
                                 op.name + "\'.");
   switch (it -> second) {
     case Snapshots::statevector:
-      data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.vector());
+      data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.copy_to_vector());
       break;
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);
@@ -707,12 +707,12 @@ cmatrix_t State<statevec_t>::density_matrix(const reg_t &qubits) {
 #ifdef AER_THRUST_SUPPORTED
 template <>
 cmatrix_t State<QV::QubitVectorThrust<float>>::density_matrix(const reg_t &qubits) {
-  return vec2density(qubits, BaseState::qreg_.vector());
+  return vec2density(qubits, BaseState::qreg_.copy_to_vector());
 }
 
 template <>
 cmatrix_t State<QV::QubitVectorThrust<double>>::density_matrix(const reg_t &qubits) {
-  return vec2density(qubits, BaseState::qreg_.vector());
+  return vec2density(qubits, BaseState::qreg_.copy_to_vector());
 }
 #endif
 
