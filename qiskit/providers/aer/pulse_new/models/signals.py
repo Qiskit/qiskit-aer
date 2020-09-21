@@ -410,7 +410,7 @@ class VectorSignal:
             self.drift_array = drift_array
 
     @classmethod
-    def from_signal_list(self, signal_list):
+    def from_signal_list(cls, signal_list):
         """Define a VectorSignal from a list of signals
         """
 
@@ -419,7 +419,7 @@ class VectorSignal:
             return np.array([sig.envelope_value(t) for sig in signal_list])
 
         # construct carrier frequency list
-        carrier_freqs = np.array([signal.carrier_freq for sig in signal_list])
+        carrier_freqs = np.array([sig.carrier_freq for sig in signal_list])
 
         # construct drift_array
         drift_array = []
@@ -438,10 +438,12 @@ class VectorSignal:
         return self.envelope(t)
 
     def value(self, t):
-        return self.envelope_value(t) * np.exp(1j * 2 * np.pi * self.carrier_freqs * t)
+        carrier_val = np.exp(1j * 2 * np.pi * self.carrier_freqs * t)
+        return self.envelope_value(t) * carrier_val
 
     def conjugate(self):
-        """Return a new signal that is the complex conjugate of this one"""
+        """Return a new VectorSignal that is the complex conjugate of self.
+        """
         return VectorSignal(lambda t: np.conjugate(self.envelope_value(t)),
                             -self.carrier_freqs,
                             np.conjugate(self.drift_array))

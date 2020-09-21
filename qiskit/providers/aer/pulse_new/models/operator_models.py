@@ -13,12 +13,12 @@
 from typing import List
 import numpy as np
 
-from .signals import Signal, Constant
+from .signals import VectorSignal, Signal, Constant
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators import Operator
 
 class OperatorModel:
-    """OperatorModel representing a sum of :class:`Operator` with
+    """OperatorModel representing a sum of :class:`Operator` objects with
     time dependent coefficients.
 
     Specifically, this object represents a time dependent matrix of
@@ -51,7 +51,7 @@ class OperatorModel:
     def __init__(self,
                  operators,
                  signals,
-                 signal_mapping,
+                 signal_mapping=None,
                  frame_operator=None,
                  cutoff_freq=None):
         """
@@ -76,56 +76,76 @@ class OperatorModel:
 
         self._operators = operators
 
-        self.frame_operator = frame_operator
-        self.cutoff_freq = cutoff_freq
+        self._frame_operator = frame_operator
+        self._cutoff_freq = cutoff_freq
 
         # initialize signals
-        self._signals = None
+        self._signal_params = None
+        self._vector_signal = None
         self._carrier_freqs = None
+        self._signal_mapping = signal_mapping
 
         if signals is not None:
-            # note: setting signals includes a call to enter_frame
+            # note: setting signals includes a call to _construct_frame_helper()
             self.signals = signals
         else:
-            self.enter_frame(self.frame_operator, self.cutoff_freq)
-
-        """
-        To do: add in handling of signal_mapping or whatever it ends up being
-        called
-        """
-
-        self._signal_mapping = None
-
-
-    """
-    To do: update signal handling
-    """
+            self._construct_frame_helper()
 
     @property
-    def signals(self) -> List[Signal]:
+    def signals(self) -> VectorSignal:
         """Return the signals in the model"""
         return self._signals
 
     @signals.setter
-    def signals(self, signals: List[Signal]):
+    def signals(self, signals):
         """Set the signals"""
         if signals is None:
-            self._signals = None
+            self._signal_params = None
+            self._vector_signal = None
             self._carrier_freqs = None
         else:
-            if len(signals) != len(self._operators):
+
+            # if there is a signal_mapping, take the input as the parameters
+            # to the function
+            if self._signal_mapping is not None:
+                self._signal_params = signals
+                signals = self._signal_mapping(signals)
+
+            # if signals given as a list, transform it into a VectorSignal
+            if isinstance(signals, list):
+                signals = VectorSignal.from_signal_list(signals)
+
+            # if it isn't a VectorSignal by now, raise an error
+            if not isinstance(signals, VectorSignal):
                 raise
 
+            new_freqs = signals.carrier_freqs
+
+            if any(signals.carrier_freqs != self._carrier_freqs):
+                self._carrier_freqs = signals.carrier_freqs
+                self._construct_frame_helper()
+
             self._signals = signals
-            new_freqs = np.array([sig.carrier_freq for sig in signals])
 
-            # if the new frequencies are different, recompile the frame/signal
-            # information
-            if any(new_freqs != self._carrier_freqs):
-                self._carrier_freqs = new_freqs
-                self.enter_frame(self.frame_operator, self.cutoff_freq)
+    @property
+    def frame_operator(self):
+        return self._frame_operator
 
-    def evaluate(self, time: float, in_frame_diag_basis: bool = False) -> np.array:
+    @frame_operator.setter
+    def frame_operator(self, frame_operator):
+        self._frame_operator = frame_operator
+        self._construct_frame_helper()
+
+    @property
+    def cutoff_freq(self):
+        return self._cutoff_freq
+
+    @cutoff_freq.setter
+    def cutoff_freq(self, cutoff_freq):
+        self._cutoff_freq = cutoff_freq
+        self._construct_frame_helper()
+
+    def evaluate(self, time: float, in_frame_basis: bool = False) -> np.array:
         """
         Return the generator of the model in matrix format
 
@@ -135,13 +155,13 @@ class OperatorModel:
                                  operator is diagonal
         """
 
-        sig_envelope_vals = np.array([sig.envelope_value(time) for sig in self.signals])
+        sig_envelope_vals = self.signals.envelope_value(time)
 
-        return self._frame_freq_helper.generator_in_frame(time,
-                                                          sig_envelope_vals,
-                                                          in_frame_diag_basis)
+        return self._frame_freq_helper.evaluate(time,
+                                                sig_envelope_vals,
+                                                in_frame_basis)
 
-    def lmult(self, time: float, y: np.array, in_frame_diag_basis: bool = False) -> np.array:
+    def lmult(self, time: float, y: np.array, in_frame_basis: bool = False) -> np.array:
         """
         Return the product evaluate(t) @ y.
 
@@ -150,9 +170,9 @@ class OperatorModel:
             y: operator or vector to apply the model to.
             in_frame_diag_basis: whether to evaluate the frame in the frame basis
         """
-        return np.dot(self.evaluate(time, in_frame_diag_basis), y)
+        return np.dot(self.evaluate(time, in_frame_basis), y)
 
-    def rmult(self, time: float, y: np.array, in_frame_diag_basis: bool = False) -> np.array:
+    def rmult(self, time: float, y: np.array, in_frame_basis: bool = False) -> np.array:
         """
         Return the product y @ evaluate(t).
 
@@ -161,43 +181,28 @@ class OperatorModel:
             y: operator or vector to apply the model to.
             in_frame_diag_basis: whether to evaluate the frame in the frame basis
         """
-        return np.dot(y, self.evaluate(time, in_frame_diag_basis))
+        return np.dot(y, self.evaluate(time, in_frame_basis))
 
-    """
-    To do: maybe make frame_operator and cutoff_freq properties, each of which
-    can individually be changed
-    """
-
-    def enter_frame(self, frame_operator=None, cutoff_freq=None):
-        """Enters frame given by frame_operator potentially with rwa cutoff.
-
-        Note: this will undo any existing frame transformations
-        """
-        self.frame_operator = frame_operator
-        self.cutoff_freq = cutoff_freq
-
-        self._frame_freq_helper = FrameFreqHelper(self._operators,
-                                                  frame_operator,
-                                                  self._carrier_freqs,
-                                                  cutoff_freq)
-
-    """Make this a property?
-    """
-
+    @property
     def drift(self):
         """Return the part of the model with only Constant coefficients as a numpy array."""
 
         # for now if the frame operator is not None raise an error
         if self.frame_operator is not None:
-            raise Exception('For now, the drift is ill-defined if the frame_operator is not None.')
+            raise Exception('The drift is currently ill-defined if frame_operator is not None.')
 
-        drift = np.zeros_like(self._operators[0].data)
+        drift_env_vals = self.signals.drift_array
 
-        for sig, op in zip(self.signals, self._operators):
-            if isinstance(sig, Constant):
-                drift += sig.value() * op.data
+        return self._frame_freq_helper.generator_in_frame(0, drift_env_vals)
 
-        return drift
+    def _construct_frame_helper(self):
+        """Helper function for constructing frame helper from relevant
+        attributes.
+        """
+        self._frame_freq_helper = FrameFreqHelper(self._operators,
+                                                  self._carrier_freqs,
+                                                  self.frame_operator,
+                                                  self.cutoff_freq)
 
 
 class FrameFreqHelper:
