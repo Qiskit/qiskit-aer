@@ -886,6 +886,7 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   // Set state config
   state.set_config(config);
   state.set_parallalization(parallel_state_update_);
+  state.set_global_phase(circ.global_phase_angle);
 
   // Rng engine
   RngEngine rng;

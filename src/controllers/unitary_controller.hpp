@@ -282,6 +282,7 @@ void UnitaryController::run_circuit_helper(
   // Set state config
   state.set_config(config);
   state.set_parallalization(parallel_state_update_);
+  state.set_global_phase(circ.global_phase_angle);
 
   // Rng engine (not actually needed for unitary controller)
   RngEngine rng;
