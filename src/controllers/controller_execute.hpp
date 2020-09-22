@@ -24,6 +24,8 @@
 // Controller Execute interface
 //=========================================================================
 
+namespace AER {
+
 template <class controller_t>
 Result controller_execute(const json_t &qobj_js) {
   controller_t controller;

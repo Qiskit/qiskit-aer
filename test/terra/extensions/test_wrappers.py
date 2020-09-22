@@ -17,10 +17,12 @@ import pickle
 import os
 from multiprocessing import Pool
 
+from qiskit import assemble, transpile
+from qiskit.providers.aer.backends import QasmSimulator, StatevectorSimulator, UnitarySimulator
 from qiskit.providers.aer.backends.controller_wrappers import (qasm_controller_execute,
                                                                statevector_controller_execute,
                                                                unitary_controller_execute)
-from test.terra.reference import ref_cache
+from test.terra.reference import ref_algorithms, ref_measure, ref_1q_clifford
 
 
 class TestControllerExecuteWrappers(unittest.TestCase):
@@ -39,20 +41,46 @@ class TestControllerExecuteWrappers(unittest.TestCase):
             bites = pickle.dumps(cfunc)
             cahpy = pickle.loads(bites)
 
-    def test_mappable(self):
-        """Test that the functors can be used in a multiprocessing.pool.map call."""
-        qobjs = [ref_cache.get_obj(fn) for fn in ['qobj_qasm', 'qobj_statevector', 'qobj_unitary']]
-        n = max(os.cpu_count(), 2)
-        results = []
-        with Pool(processes=n) as p:
-            for qobj, cfunc in zip(qobjs, self.CFUNCS):
-                rs = p.map(cfunc, [copy.deepcopy(qobj) for _ in range(n)])
-                results.append(rs)
+    def _create_qobj(self, circs, backend, backend_options=None, noise_model=None):
+        circs = transpile(circs, backend)
+        qobj = assemble(circs, backend)
+        fqobj = backend._format_qobj(qobj, backend_options=backend_options, noise_model=noise_model)
+        return fqobj 
 
-        for res in results:
-            self.assertEqual(len(res), n)
-            for r in res:
-                self.assertTrue(r['success'])
+    def _map_and_test(self, cfunc, qobj):
+        n = max(os.cpu_count(), 2)
+        with Pool(processes=n) as p:
+            rs = p.map(cfunc, [copy.deepcopy(qobj) for _ in range(n)])
+
+        self.assertEqual(len(rs), n)
+        for r in rs:
+            self.assertTrue(r['success'])
+
+    def test_mappable_qasm(self):
+        """Test that the qasm controller can be mapped."""
+        cfunc = qasm_controller_execute()
+        sim = QasmSimulator()
+        circs = ref_algorithms.teleport_circuit()
+        fqobj = self._create_qobj(circs, sim)
+        self._map_and_test(cfunc, fqobj)
+
+    def test_mappable_statevector(self):
+        """Test that the statevector controller can be mapped."""
+        cfunc = statevector_controller_execute()
+        sim = StatevectorSimulator()
+        circs = ref_measure.measure_circuits_deterministic()
+        fqobj = self._create_qobj(circs, sim)
+        self._map_and_test(cfunc, fqobj)
+
+    def test_mappable_unitary(self):
+        """Test that the unitary controller can be mapped."""
+        cfunc = unitary_controller_execute()
+        sim = UnitarySimulator()
+        circs = ref_1q_clifford.h_gate_circuits_deterministic(
+            final_measure=False)
+        fqobj = self._create_qobj(circs, sim)
+        self._map_and_test(cfunc, fqobj)
+
 
 if __name__ == '__main__':
     unittest.main()
