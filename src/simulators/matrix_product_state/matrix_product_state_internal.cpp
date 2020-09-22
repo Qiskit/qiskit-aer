@@ -786,7 +786,7 @@ cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
   cmatrix_t rho(size,size);
 
   // We do the reordering of qubits on a dummy vector in order to not do the reordering on psi, 
-  // since psi is a vector of matrices
+  // since psi is a vector of matrices and this would be more costly in performance
   reg_t ordered_vector(size), temp_vector(size), actual_vec(size); 
   std::iota( std::begin(ordered_vector), std::end(ordered_vector), 0);
   reorder_all_qubits(ordered_vector, qubits, temp_vector);
@@ -1088,8 +1088,7 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
   // statevector is constructed in ascending order
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
-    for (uint_t j=0; j<mps_vec.get_data(i).GetRows(); j++)
-      statevector[i] = mps_vec.get_data(i)(0,0);
+    statevector[i] = mps_vec.get_data(i)(0,0);
   }
   cvector_t temp_statevector(length);
   //temp_statevector will contain the statevector in the ordering defined in "qubits"
@@ -1115,8 +1114,7 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
   rvector_t ordered_probvector = diagonal_of_density_matrix(qubits);
 
   // reorder the probabilities according to the specification in 'qubits'
-  rvector_t temp_probvector(ordered_probvector.size()); 
-
+  rvector_t temp_probvector(size); 
   reorder_all_qubits(ordered_probvector, qubits, temp_probvector);
 
   // reverse to be consistent with qasm ordering

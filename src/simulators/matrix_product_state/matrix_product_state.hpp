@@ -258,10 +258,6 @@ protected:
 		      ExperimentData &data,
 		      std::string name = "");
 
-
-// Return the reduced density matrix for the simulator
-  //cmatrix_t density_matrix(const reg_t &qubits);
-
   //-----------------------------------------------------------------------
   // Single-qubit gate helpers
   //-----------------------------------------------------------------------
