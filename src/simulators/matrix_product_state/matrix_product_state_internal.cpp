@@ -785,6 +785,19 @@ cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
 
+  reg_t ordered_vector(size), temp_vector(size), actual_vec(size); 
+  std::iota( std::begin(ordered_vector), std::end(ordered_vector), 0);
+  reorder_all_qubits(ordered_vector, qubits, temp_vector);
+  actual_vec = reverse_all_bits(temp_vector, qubits.size());
+  
+  std::cout << "actual_vec = " << std::endl;
+    for (uint_t i=0; i<size; i++)
+      std::cout <<actual_vec[i]<<" ";
+    std::cout << std::endl;
+std::cout << "qubits = " << std::endl;
+ for (uint_t i=0; i<qubits.size(); i++)
+      std::cout <<qubits[i]<<" ";
+    std::cout << std::endl;
 #ifdef _WIN32
     #pragma omp parallel for if (size > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
 #else
@@ -792,17 +805,18 @@ cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
 #endif
   for(int_t i = 0; i < static_cast<int_t>(size); i++) {
     for(int_t j = 0; j < static_cast<int_t>(size); j++) {
-      rho(i,j) = AER::Utils::sum( AER::Utils::elementwise_multiplication(psi.get_data(i), AER::Utils::conjugate(psi.get_data(j))) );
+      rho(i,j) = AER::Utils::sum( AER::Utils::elementwise_multiplication(
+					psi.get_data(actual_vec[i]), 
+					AER::Utils::conjugate(psi.get_data(actual_vec[j]))) );
     }
   }
   return rho;
 }
 
-rvector_t MPS::trace_of_density_matrix(const reg_t &qubits) const
+rvector_t MPS::diagonal_of_density_matrix(const reg_t &qubits) const
 {
   bool ordered = true;
   reg_t new_qubits;
-
   MPS temp_MPS;
   temp_MPS.initialize(*this);
   temp_MPS.centralize_qubits(qubits, new_qubits, ordered);
@@ -810,12 +824,12 @@ rvector_t MPS::trace_of_density_matrix(const reg_t &qubits) const
   MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_qubits.front(), new_qubits.back());
 
   uint_t size = psi.get_dim();
-  rvector_t trace_rho(size);
+  rvector_t diagonal_rho(size);
 
   for(int_t i = 0; i < static_cast<int_t>(size); i++) {
-    trace_rho[i] = real(AER::Utils::sum( AER::Utils::elementwise_multiplication(psi.get_data(i), AER::Utils::conjugate(psi.get_data(i))) ));
+    diagonal_rho[i] = real(AER::Utils::sum( AER::Utils::elementwise_multiplication(psi.get_data(i), AER::Utils::conjugate(psi.get_data(i))) ));
   }
-  return trace_rho;
+  return diagonal_rho;
 }
 
 void MPS::MPS_with_new_indices(const reg_t &qubits, 
@@ -1100,7 +1114,8 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
   // statevector is constructed in ascending order
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
-    statevector[i] = mps_vec.get_data(i)(0,0);
+    for (uint_t j=0; j<mps_vec.get_data(i).GetRows(); j++)
+      statevector[i] = mps_vec.get_data(i)(0,0);
   }
   cvector_t temp_statevector(length);
   //temp_statevector will contain the statevector in the ordering defined in "qubits"
@@ -1119,16 +1134,17 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
 {
   cvector_t state_vec;
   uint_t num_qubits = qubits.size();
-  uint_t length = 1ULL << num_qubits;   // length = pow(2, num_qubits)
-  probvector.resize(length);
+  uint_t size = 1ULL << num_qubits;   // length = pow(2, num_qubits)
+  probvector.resize(size);
 
   // compute the probability vector assuming the qubits are in ascending order
-  rvector_t ordered_probvector = trace_of_density_matrix(qubits);
+  rvector_t ordered_probvector = diagonal_of_density_matrix(qubits);
 
   // reorder the probabilities according to the specification in 'qubits'
   rvector_t temp_probvector(ordered_probvector.size()); 
 
   reorder_all_qubits(ordered_probvector, qubits, temp_probvector);
+
   // reverse to be consistent with qasm ordering
   probvector = reverse_all_bits(temp_probvector, num_qubits);
 }
@@ -1164,6 +1180,15 @@ uint_t binary_search(const rvector_t &acc_probvector,
     return binary_search(acc_probvector, mid, end, rnd);
 }
 
+double MPS::norm() {
+    reg_t qubits(num_qubits_);
+    std::iota( std::begin(qubits), std::end(qubits), 0);
+    double trace = 0;
+    rvector_t vec = diagonal_of_density_matrix(qubits);
+    for (uint_t i=0; i<vec.size(); i++)
+      trace += vec[i];
+    return trace;
+}
 //------------------------------------------------------------------------------
 // Sample measure outcomes - this method is similar to QubitVector::sample_measure, 
 // with 2 differences:

@@ -127,6 +127,7 @@ public:
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat);
 
   cmatrix_t density_matrix(const reg_t &qubits) const;
+  cmatrix_t density_matrix_snapshot(const reg_t &qubits) const;
 
   //---------------------------------------------------------------
   // Function: expectation_value
@@ -230,6 +231,8 @@ public:
     return enable_gate_opt_;
   }
 
+  double norm();
+
   double norm(const uint_t qubit, const cvector_t &vmat) const {
     cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
     reg_t qubits = {qubit};
@@ -296,8 +299,9 @@ private:
   void apply_matrix_to_target_qubits(const reg_t &target_qubits,
 				     const cmatrix_t &mat);
   cmatrix_t density_matrix_internal(const reg_t &qubits) const;
+  cmatrix_t density_matrix_snapshot_internal(const reg_t &qubits) const;
 
-  rvector_t trace_of_density_matrix(const reg_t &qubits) const;
+  rvector_t diagonal_of_density_matrix(const reg_t &qubits) const;
 
   double expectation_value_internal(const reg_t &qubits, const cmatrix_t &M) const;
   complex_t expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices,
