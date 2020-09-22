@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Improve performance of simulator result classes by using move semantics
+    and removing unnecessary copies that were happening when combining results
+    from separate experiments into the final result object.
+  - |
+    Greatly improve performance of pybind11 conversion of simulator results by
+    using move semantics where possible, and by moving vector and matrix results
+    to Numpy arrays without copies.

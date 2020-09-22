@@ -51,6 +51,7 @@
 #include <stdexcept>
 
 #include "framework/json.hpp"
+#include "framework/linalg/vector.hpp"
 
 #ifdef AER_TIMING
 
@@ -800,8 +801,6 @@ void QubitVectorChunkContainer<data_t>::SetupP2P(int nDev)
       for(i=0;i<nDev;i++){
         if(i != m_iDevice){
           cudaDeviceCanAccessPeer(&m_p2pEnable[i],m_iDevice,i);
-          if(m_p2pEnable[i])
-            cudaDeviceEnablePeerAccess(i,0);
         }
         else{
           m_p2pEnable[i] = 1;
@@ -891,6 +890,12 @@ public:
 
   // Returns a copy of the underlying data_t data as a complex ket dictionary
   cdict_t<data_t> vector_ket(double epsilon = 0) const;
+
+  // Returns a copy of the underlying data_t data as a complex vector
+  AER::Vector<std::complex<data_t>> copy_to_vector() const;
+
+  // Moves the data to a complex vector
+  AER::Vector<std::complex<data_t>> move_to_vector();
 
   // Return JSON serialization of QubitVectorThrust;
   json_t json() const;
@@ -1489,10 +1494,42 @@ cvector_t<data_t> QubitVectorThrust<data_t>::vector() const
 }
 
 template <typename data_t>
+
 cdict_t<data_t> QubitVectorThrust<data_t>::vector_ket(double epsilon) const{
     // non-optimized version; relies on creating a copy of the statevector first
     return AER::Utils::vec2ket(vector(), epsilon, 16);
 }
+
+
+AER::Vector<std::complex<data_t>> QubitVectorThrust<data_t>::copy_to_vector() const {
+  AER::Vector<std::complex<data_t>> ret(data_size_);
+
+  int iPlace;
+  uint_t ic,nc;
+  uint_t pos = 0;
+  uint_t csize = 1ull << m_maxChunkBits;
+
+#ifdef AER_DEBUG
+  DebugMsg("vector");
+#endif
+
+  UpdateReferencedValue();
+
+  for(iPlace=0;iPlace<m_nPlaces;iPlace++){
+    nc = m_Chunks[iPlace].NumChunks(m_maxChunkBits);
+    for(ic=0;ic<nc;ic++){
+      m_Chunks[iPlace].CopyOut((thrust::complex<data_t>*)&ret[0],pos,ic,m_maxChunkBits);
+      pos += csize;
+    }
+  }
+  return ret;
+}
+
+template <typename data_t>
+AER::Vector<std::complex<data_t>> QubitVectorThrust<data_t>::move_to_vector() {
+  return copy_to_vector();
+}
+
 
 //------------------------------------------------------------------------------
 // State initialize component

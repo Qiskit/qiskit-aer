@@ -174,7 +174,7 @@ def thermal_relaxation_values(properties):
             if hasattr(t2_params, 'unit'):
                 # Convert to nanoseconds
                 t2 *= _NANOSECOND_UNITS.get(t2_params.unit, 1)
-        if hasattr(t2_params, 'value'):
+        if hasattr(freq_params, 'value'):
             freq = freq_params.value
             if hasattr(freq_params, 'unit'):
                 # Convert to Gigahertz

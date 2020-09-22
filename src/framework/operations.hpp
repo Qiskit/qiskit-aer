@@ -219,12 +219,70 @@ inline Op make_unitary(const reg_t &qubits, const cmatrix_t &mat, std::string la
   return op;
 }
 
+inline Op make_unitary(const reg_t &qubits, cmatrix_t &&mat, std::string label = "") {
+  Op op;
+  op.type = OpType::matrix;
+  op.name = "unitary";
+  op.qubits = qubits;
+  op.mats.resize(1);
+  op.mats[0] = std::move(mat);
+  if (label != "")
+    op.string_params = {label};
+  return op;
+}
+
 inline Op make_superop(const reg_t &qubits, const cmatrix_t &mat) {
   Op op;
   op.type = OpType::superop;
   op.name = "superop";
   op.qubits = qubits;
   op.mats = {mat};
+  return op;
+}
+
+inline Op make_superop(const reg_t &qubits, cmatrix_t &&mat) {
+  Op op;
+  op.type = OpType::superop;
+  op.name = "superop";
+  op.qubits = qubits;
+  op.mats.resize(1);
+  op.mats[0] = std::move(mat);
+  return op;
+}
+
+inline Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats) {
+  Op op;
+  op.type = OpType::kraus;
+  op.name = "kraus";
+  op.qubits = qubits;
+  op.mats = mats;
+  return op;
+}
+
+inline Op make_kraus(const reg_t &qubits, std::vector<cmatrix_t> &&mats) {
+  Op op;
+  op.type = OpType::kraus;
+  op.name = "kraus";
+  op.qubits = qubits;
+  op.mats = std::move(mats);
+  return op;
+}
+
+inline Op make_roerror(const reg_t &memory, const std::vector<rvector_t> &probs) {
+  Op op;
+  op.type = OpType::roerror;
+  op.name = "roerror";
+  op.memory = memory;
+  op.probs = probs;
+  return op;
+}
+
+inline Op make_roerror(const reg_t &memory, std::vector<rvector_t> &&probs) {
+  Op op;
+  op.type = OpType::roerror;
+  op.name = "roerror";
+  op.memory = memory;
+  op.probs = std::move(probs);
   return op;
 }
 
@@ -319,31 +377,13 @@ inline Op make_multiplexer(const reg_t &qubits,
   return op;
 }
 
-inline Op make_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &mats) {
-  Op op;
-  op.type = OpType::kraus;
-  op.name = "kraus";
-  op.qubits = qubits;
-  op.mats = mats;
-  return op;
-}
-
-inline Op make_roerror(const reg_t &memory, const std::vector<rvector_t> &probs) {
-  Op op;
-  op.type = OpType::roerror;
-  op.name = "roerror";
-  op.memory = memory;
-  op.probs = probs;
-  return op;
-}
-
 //------------------------------------------------------------------------------
 // JSON conversion
 //------------------------------------------------------------------------------
 
 // Main JSON deserialization functions
-Op json_to_op(const json_t &js); // Patial TODO
-json_t op_to_json(const Op &op); // Patial TODO
+Op json_to_op(const json_t &js); // Partial TODO
+json_t op_to_json(const Op &op); // Partial TODO
 inline void from_json(const json_t &js, Op &op) {op = json_to_op(js);}
 inline void to_json(json_t &js, const Op &op) { js = op_to_json(op);}
 
@@ -656,7 +696,7 @@ Op json_to_op_unitary(const json_t &js) {
   if (op.mats.size() != 1) {
     throw std::invalid_argument("\"unitary\" params must be a single matrix.");
   }
-  for (const auto mat : op.mats) {
+  for (const auto &mat : op.mats) {
     if (!Utils::is_unitary(mat, 1e-7)) {
       throw std::invalid_argument("\"unitary\" matrix is not unitary.");
     }
@@ -684,7 +724,7 @@ Op json_to_op_diagonal(const json_t &js) {
   if (op.params.size() != 1ULL << op.qubits.size()) {
     throw std::invalid_argument("\"diagonal\" matrix is wrong size.");
   }
-  for (const auto val : op.params) {
+  for (const auto &val : op.params) {
     if (!Linalg::almost_equal(std::abs(val), 1.0, 1e-7)) {
       throw std::invalid_argument("\"diagonal\" matrix is not unitary.");
     }

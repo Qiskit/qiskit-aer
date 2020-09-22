@@ -52,9 +52,9 @@ inline void fill_indices(uint64_t index0,
     indexes[i] = index0;
 
   for (size_t n = 0; n < num_qubits; ++n)
-    for (size_t i = 0; i < indexes_size; i += (1 << (n + 1)))
+    for (size_t i = 0; i < indexes_size; i += (1ULL << (n + 1)))
       for (size_t j = 0; j < (1ULL << n); ++j)
-        indexes[i + j + (1U << n)] += (1ULL << qregs[n]);
+        indexes[i + j + (1ULL << n)] += (1ULL << qregs[n]);
 }
 
 const uint64_t MASKS[] = {0ULL,
@@ -388,7 +388,7 @@ inline void reorder(const uint64_t* qreg_orig, uint64_t* qreg, FloatType* mat) {
     for (size_t i = 0; i < num_qubits; ++i)
       for (size_t j = 0; j < num_qubits; ++j)
         if (qreg_orig[i] == qreg[j])
-          masks[i] = 1U << j;
+          masks[i] = 1ULL << j;
   };
   size_t masks[num_qubits];
   build_mask(masks);
@@ -397,7 +397,7 @@ inline void reorder(const uint64_t* qreg_orig, uint64_t* qreg, FloatType* mat) {
     for (size_t i = 0; i < DIMENSION; ++i) {
       size_t index = 0U;
       for (size_t j = 0; j < num_qubits; ++j) {
-        if (i & (1U << j))
+        if (i & (1ULL << j))
           index |= masks[j];
       }
       indexes[i] = index;

@@ -46,18 +46,19 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
+from test.terra.backends.qasm_simulator.qasm_fusion import QasmFusionTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
-from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpvalPauliNCTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
 
 
 class DensityMatrixTests(
-        QasmMethodTests, QasmMeasureTests, QasmMultiQubitMeasureTests,
+        QasmMethodTests, QasmFusionTests, QasmMeasureTests, QasmMultiQubitMeasureTests,
         QasmResetTests, QasmConditionalGateTests, QasmConditionalUnitaryTests,
         QasmConditionalKrausTests, QasmConditionalSuperOpTests,
         QasmCliffordTests, QasmCliffordTestsWaltzBasis,
@@ -69,7 +70,7 @@ class DensityMatrixTests(
         QasmReadoutNoiseTests, QasmPauliNoiseTests, QasmResetNoiseTests,
         QasmKrausNoiseTests, QasmSnapshotStatevectorTests,
         QasmSnapshotDensityMatrixTests, QasmSnapshotProbabilitiesTests,
-        QasmSnapshotExpValPauliTests, QasmSnapshotExpvalPauliNCTests,
+        QasmSnapshotExpValPauliTests, QasmSnapshotExpValPauliNCTests,
         QasmSnapshotExpValMatrixTests, QasmSnapshotStabilizerTests):
     """Container class of density_matrix method tests."""
     pass

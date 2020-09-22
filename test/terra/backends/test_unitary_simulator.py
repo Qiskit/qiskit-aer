@@ -16,11 +16,15 @@ UnitarySimulator Integration Tests
 import unittest
 from test.terra import common
 from test.terra.decorators import requires_method
-# Basic circuit instruction tests
+
 from test.terra.backends.unitary_simulator.unitary_basics import UnitarySimulatorTests
 from test.terra.backends.unitary_simulator.unitary_snapshot import UnitarySnapshotTests
+from test.terra.backends.unitary_simulator.unitary_fusion import UnitaryFusionTests
 
-class TestUnitarySimulator(common.QiskitAerTestCase, UnitarySimulatorTests, UnitarySnapshotTests):
+class TestUnitarySimulator(common.QiskitAerTestCase,
+                           UnitarySimulatorTests,
+                           UnitarySnapshotTests,
+                           UnitaryFusionTests):
     """UnitarySimulator automatic method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 2113}
@@ -28,7 +32,8 @@ class TestUnitarySimulator(common.QiskitAerTestCase, UnitarySimulatorTests, Unit
 
 @requires_method("unitary_simulator", "unitary_gpu")
 class TestUnitarySimulatorThrustGPU(common.QiskitAerTestCase,
-                                    UnitarySimulatorTests):
+                                    UnitarySimulatorTests,
+                                    UnitaryFusionTests):
     """UnitarySimulator unitary_gpu method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 2113, "method": "unitary_gpu"}
@@ -36,7 +41,8 @@ class TestUnitarySimulatorThrustGPU(common.QiskitAerTestCase,
 
 @requires_method("unitary_simulator", "unitary_thrust")
 class TestUnitarySimulatorThrustCPU(common.QiskitAerTestCase,
-                                    UnitarySimulatorTests):
+                                    UnitarySimulatorTests,
+                                    UnitaryFusionTests):
     """UnitarySimulator unitary_thrust method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 2113, "method": "unitary_thrust"}
