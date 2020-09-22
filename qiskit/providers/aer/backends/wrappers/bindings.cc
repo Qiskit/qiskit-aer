@@ -35,6 +35,7 @@ PYBIND11_MODULE(controller_wrappers, m) {
     qasm_ctrl.def("__reduce__", [qasm_ctrl](const ControllerExecutor<AER::Simulator::QasmController> &self) {
         return py::make_tuple(qasm_ctrl, py::tuple());
     });
+
     py::class_<ControllerExecutor<AER::Simulator::StatevectorController> > statevec_ctrl (m, "statevector_controller_execute");
     statevec_ctrl.def(py::init<>());
     statevec_ctrl.def("__call__", &ControllerExecutor<AER::Simulator::StatevectorController>::operator());
