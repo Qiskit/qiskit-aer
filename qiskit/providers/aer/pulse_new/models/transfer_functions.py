@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 from abc import ABC, abstractmethod
-from typing import Callable, Union
+from typing import Callable, Union, List
 from .signals import Signal, ConstantSignal, PiecewiseConstant
 
 from numpy import convolve
@@ -25,7 +25,7 @@ class BaseTransferFunction(ABC):
     """
 
     @abstractmethod
-    def apply(self, signal: Signal) -> Signal:
+    def apply(self, signal: Union[Signal, List[Signal]]) -> Union[Signal, List[Signal]]:
         """
         Applies a transformation on a signal, such as a convolution,
         low pass filter, etc.
@@ -55,7 +55,7 @@ class Convolution(BaseTransferFunction):
         """
         self._func = func
 
-    def apply(self, signal: Signal) -> Union[Signal, PiecewiseConstant]:
+    def apply(self, signal: Union[Signal, List[Signal]]) -> Union[Signal, List[Signal]]:
         """
         Applies a transformation on a signal, such as a convolution,
         low pass filter, etc. Once a convolution is applied the signal
@@ -63,7 +63,27 @@ class Convolution(BaseTransferFunction):
         value and gets convolved.
 
         Args:
-            signal: A signal to which the transfer function will be applied.
+            signal: A signal or list of signals to which the transfer function will be applied.
+
+        Returns:
+            signal: The transformed signal or list of signals.
+        """
+
+        if isinstance(signal, List):
+            convolved = []
+            for sig in signal:
+                convolved.append(self._convolve(sig))
+
+            return convolved
+        else:
+            return self._convolve(signal)
+
+    def _convolve(self, signal: Signal) -> Signal:
+        """
+        Helper function that applies the convolution to a single signal.
+
+        Args:
+            signal: The signal to convolve.
 
         Returns:
             signal: The transformed signal.

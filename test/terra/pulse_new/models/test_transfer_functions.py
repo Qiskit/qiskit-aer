@@ -47,4 +47,16 @@ class TestTransferFunctions(QiskitAerTestCase):
 
         self.assertLess(convolved.value(21.0), 1.0)
         self.assertGreater(convolved.value(81.0), 0.0)
-        self.assertEquals(convolved.duration, 2*len(ts)-1)
+
+        if isinstance(convolved, PiecewiseConstant):
+            self.assertEquals(convolved.duration, 2*len(ts)-1)
+        else:
+            self.fail()
+
+        # Test that we can convolve list of signals.
+        pwc1 = PiecewiseConstant(dt=ts[1] - ts[0], samples=samples, carrier_freq=0.0, start_time=0)
+        pwc2 = PiecewiseConstant(dt=ts[1] - ts[0], samples=samples, carrier_freq=0.0, start_time=0)
+        signals = [pwc1, pwc2]
+
+        convolved = convolution.apply(signals)
+        self.assertEquals(len(convolved), 2)
