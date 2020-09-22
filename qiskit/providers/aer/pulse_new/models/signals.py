@@ -433,7 +433,6 @@ class VectorSignal:
                    carrier_freqs=carrier_freqs,
                    drift_array=np.array(drift_array))
 
-
     def envelope_value(self, t):
         return self.envelope(t)
 
