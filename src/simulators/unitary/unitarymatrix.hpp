@@ -18,14 +18,14 @@
 
 #include "framework/utils.hpp"
 #include "simulators/statevector/qubitvector.hpp"
-
+namespace AER {
 namespace QV {
 
 //============================================================================
 // UnitaryMatrix class
 //============================================================================
 
-// This class is derived from the QubitVector class and stores an N-qubit 
+// This class is derived from the QubitVector class and stores an N-qubit
 // matrix as a 2*N-qubit vector.
 // The vector is formed using column-stacking vectorization as under this
 // convention left-matrix multiplication on qubit-n is equal to multiplication
@@ -305,11 +305,12 @@ std::pair<bool, double> UnitaryMatrix<data_t>::check_identity() const {
 
 //------------------------------------------------------------------------------
 } // end namespace QV
+} // end namespace AER
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector
 template <class data_t>
-inline std::ostream &operator<<(std::ostream &out, const QV::UnitaryMatrix<data_t>&m) {
+inline std::ostream &operator<<(std::ostream &out, const AER::QV::UnitaryMatrix<data_t>&m) {
   out << m.copy_to_matrix();
   return out;
 }

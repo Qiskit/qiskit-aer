@@ -19,6 +19,7 @@
 #include "framework/utils.hpp"
 #include "simulators/unitary/unitarymatrix_thrust.hpp"
 
+namespace AER {
 namespace QV {
 
 //============================================================================
@@ -215,7 +216,7 @@ reg_t DensityMatrixThrust<data_t>::superop_qubits(const reg_t &qubits) const {
   reg_t superop_qubits = qubits;
   // Number of qubits
   const auto nq = num_qubits();
-  for (const auto q: qubits) {
+  for (const auto &q: qubits) {
     superop_qubits.push_back(q + nq);
   }
   return superop_qubits;
@@ -260,7 +261,7 @@ void DensityMatrixThrust<data_t>::apply_unitary_matrix(const reg_t &qubits,
     // Apply as two N-qubit matrix mults
     auto nq = num_qubits();
     reg_t conj_qubits;
-    for (const auto q: qubits) {
+    for (const auto &q: qubits) {
       conj_qubits.push_back(q + nq);
     }
     // Apply id \otimes U
@@ -723,11 +724,12 @@ double DensityMatrixThrust<data_t>::expval_pauli(const reg_t &qubits,
 
 //------------------------------------------------------------------------------
 } // end namespace QV
+} // end namespace AER
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector
 template <typename data_t>
-inline std::ostream &operator<<(std::ostream &out, const QV::DensityMatrixThrust<data_t>&m) {
+inline std::ostream &operator<<(std::ostream &out, const AER::QV::DensityMatrixThrust<data_t>&m) {
   out << m.copy_to_matrix();
   return out;
 }

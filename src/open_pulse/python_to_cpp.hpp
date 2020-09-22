@@ -26,7 +26,10 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #endif
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #include <numpy/arrayobject.h>
+DISABLE_WARNING_POP
 #include "ordered_map.hpp"
 #include "types.hpp"
 #include "iterators.hpp"

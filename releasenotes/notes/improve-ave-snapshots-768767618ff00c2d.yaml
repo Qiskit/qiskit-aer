@@ -1,4 +1,0 @@
----
-upgrade:
-  - |
-    Improve the performance of average snapshot data in simulator results.

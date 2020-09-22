@@ -43,7 +43,7 @@ extension-pkg-whitelist=
 confidence=
 
 # Enable the message, report, category or checker with the given id(s). You can
-# either give multiple identifier separated by comma (,) or put this option
+# either give multiple identifiers separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once). See also the "--disable" option for examples.
 #enable=
@@ -70,7 +70,7 @@ disable=no-self-use,        # disabled as it is too verbose
     unnecessary-pass,   # allow for methods with just "pass", for clarity
     no-else-return,     # relax "elif" after a clause with a return
     docstring-first-line-empty, # relax docstring style
-    unsubscriptable-object # pylint can't determin this for numpy types
+    unsubscriptable-object # pylint can't determine this for numpy types
 
 
 

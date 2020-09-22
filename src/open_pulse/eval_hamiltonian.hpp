@@ -19,8 +19,11 @@
 #include <vector>
 #include <complex>
 #include <string>
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #include <numpy/arrayobject.h>
 #include <muparserx/mpParser.h>
+DISABLE_WARNING_POP
 
 struct ParserValues {
     ParserValues(std::unique_ptr<mup::ParserX> parser, const std::string& expr):
@@ -82,13 +85,13 @@ complex_t evaluate_hamiltonian_expression(const std::string& expr_string,
         }
     };
 
-    for(const auto& idx_var : enumerate(vars)){
+    for(const auto &idx_var : enumerate(vars)){
         size_t index = idx_var.first;
         auto var_value = static_cast<complex_t>(idx_var.second);
         maybe_update_value(vars_names[index], var_value);
     }
 
-    for(const auto& idx_channel : chan_values){
+    for(const auto &idx_channel : chan_values){
         auto channel = idx_channel.first; // The string of the channel
         auto var_value = idx_channel.second; // The complex_t of the map
         maybe_update_value(channel, var_value);

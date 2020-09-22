@@ -19,13 +19,14 @@
 #include "framework/utils.hpp"
 #include "simulators/unitary/unitarymatrix.hpp"
 
+namespace AER {
 namespace QV {
 
 //============================================================================
 // DensityMatrix class
 //============================================================================
 
-// This class is derived from the UnitaryMatrix class and stores an N-qubit 
+// This class is derived from the UnitaryMatrix class and stores an N-qubit
 // matrix as a 2*N-qubit vector.
 // The vector is formed using column-stacking vectorization as under this
 // convention left-matrix multiplication on qubit-n is equal to multiplication
@@ -200,7 +201,7 @@ reg_t DensityMatrix<data_t>::superop_qubits(const reg_t &qubits) const {
   reg_t superop_qubits = qubits;
   // Number of qubits
   const auto nq = num_qubits();
-  for (const auto q: qubits) {
+  for (const auto &q: qubits) {
     superop_qubits.push_back(q + nq);
   }
   return superop_qubits;
@@ -239,7 +240,7 @@ void DensityMatrix<data_t>::apply_unitary_matrix(const reg_t &qubits,
     // Apply as two N-qubit matrix mults
     auto nq = num_qubits();
     reg_t conj_qubits;
-    for (const auto q: qubits) {
+    for (const auto &q: qubits) {
       conj_qubits.push_back(q + nq);
     }
     // Apply id \otimes U
@@ -451,11 +452,12 @@ double DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
 
 //------------------------------------------------------------------------------
 } // end namespace QV
+} // end namespace AER
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector
 template <typename data_t>
-inline std::ostream &operator<<(std::ostream &out, const QV::DensityMatrix<data_t>&m) {
+inline std::ostream &operator<<(std::ostream &out, const AER::QV::DensityMatrix<data_t>&m) {
   out << m.copy_to_matrix();
   return out;
 }

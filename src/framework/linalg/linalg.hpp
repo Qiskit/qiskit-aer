@@ -16,13 +16,15 @@
 #define _aer_framework_linalg_hpp_
 
 #include "framework/linalg/almost_equal.hpp"
+#include "framework/linalg/eigensystem.hpp"
+#include "framework/linalg/linops/linops_aer_vector.hpp"
 #include "framework/linalg/linops/linops_array.hpp"
+#include "framework/linalg/linops/linops_generic.hpp"
 #include "framework/linalg/linops/linops_json.hpp"
 #include "framework/linalg/linops/linops_map.hpp"
 #include "framework/linalg/linops/linops_matrix.hpp"
 #include "framework/linalg/linops/linops_unordered_map.hpp"
 #include "framework/linalg/linops/linops_vector.hpp"
-#include "framework/linalg/linops/linops_generic.hpp"
 #include "framework/linalg/square.hpp"
 
 #endif

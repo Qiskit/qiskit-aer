@@ -24,6 +24,7 @@
 
 #include "framework/utils.hpp"
 #include "framework/matrix.hpp"
+#include "framework/linalg/almost_equal.hpp"
 
 #include "matrix_product_state_internal.hpp"
 #include "matrix_product_state_tensor.hpp"
@@ -39,7 +40,8 @@ static const cmatrix_t one_measure =
 			                 {{0, 0}, {1, 0}}});
   uint_t MPS::omp_threads_ = 1;     
   uint_t MPS::omp_threshold_ = 14;  
-  int MPS::sample_measure_index_size_ = 10; 
+  uint_t MPS::sample_measure_index_size_ = 26; 
+  uint_t MPS::sample_measure_shots_thresh_ = 10; 
   double MPS::json_chop_threshold_ = 1E-8;  
 //------------------------------------------------------------------------
 // local function declarations
@@ -104,6 +106,10 @@ std::string sort_paulis_by_qubits(const std::string &paulis,
 				  const reg_t &qubits);
 
 bool is_ordered(const reg_t &qubits);
+
+uint_t binary_search(const rvector_t &acc_probvector, 
+		     uint_t start, uint_t end, 
+		     double rnd);
 //------------------------------------------------------------------------
 // local function implementations
 //------------------------------------------------------------------------
@@ -147,7 +153,7 @@ uint_t reorder_qubits(const reg_t qubits, uint_t index) {
   uint_t num_qubits = qubits.size();
   for (uint_t i=0; i<num_qubits; i++) {
     current_pos = num_qubits-1-qubits[i];
-    current_val = 0x1 << current_pos;
+    current_val = 1ULL << current_pos;
     new_pos = num_qubits-1-i;
     shift = new_pos - current_pos;
     if (index & current_val) {
@@ -278,7 +284,7 @@ void MPS::initialize(uint_t num_qubits)
       lambda_reg_.push_back(rvector_t {1.0});
   }
   // need to add one more Gamma tensor, because above loop only initialized up to n-1 
-  q_reg_.push_back(MPS_Tensor(alpha,beta));
+  q_reg_.push_back(MPS_Tensor(alpha, beta));
 
   qubit_ordering_.order_.clear();
   qubit_ordering_.order_.resize(num_qubits);
@@ -344,7 +350,7 @@ void MPS::apply_cz(uint_t index_A, uint_t index_B)
 void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
 {
   cmatrix_t u1_matrix = AER::Utils::Matrix::u1(lambda);
-  apply_2_qubit_gate(index_A, index_B, cu1, u1_matrix);
+  apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), cu1, u1_matrix);
 }
 
 void MPS::apply_ccx(const reg_t &qubits)
@@ -374,39 +380,20 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
     }
     return;
   }
-
-  // when actual_A+1 == actual_B then we can really do the swap
-  MPS_Tensor A = q_reg_[actual_A], B = q_reg_[actual_B];
-  rvector_t left_lambda, right_lambda;
-  //There is no lambda in the edges of the MPS
-  left_lambda  = (actual_A != 0) 	    ? lambda_reg_[actual_A-1] : rvector_t {1.0};
-  right_lambda = (actual_B != num_qubits_-1) ? lambda_reg_[actual_B  ] : rvector_t {1.0};
-
-  q_reg_[actual_A].mul_Gamma_by_left_Lambda(left_lambda);
-  q_reg_[actual_B].mul_Gamma_by_right_Lambda(right_lambda);
-  MPS_Tensor temp = MPS_Tensor::contract(q_reg_[actual_A], lambda_reg_[actual_A], q_reg_[actual_B]);
-
-  temp.apply_swap();
-  MPS_Tensor left_gamma,right_gamma;
-  rvector_t lambda;
-  MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
-  left_gamma.div_Gamma_by_left_Lambda(left_lambda);
-  right_gamma.div_Gamma_by_right_Lambda(right_lambda);
-  q_reg_[actual_A] = left_gamma;
-  lambda_reg_[actual_A] = lambda;
-  q_reg_[actual_B] = right_gamma;
-  
+  // when actual_A+1 == actual_B then we can really do the swap between A and A+1
+  common_apply_2_qubit_gate(actual_A, Gates::swap, 
+			                      cmatrix_t(1, 1) /*dummy matrix*/, false /*swapped*/);
+ 
   if (!swap_gate) {
-    // we are moving the qubit at index_A one position to the right
-    // and the qubit at index_B or index_A+1 is moved one position 
+    // we move the qubit at index_A one position to the right
+    // and the qubit at index_B (or index_A+1) is moved one position 
     //to the left
-    std::swap(qubit_ordering_.order_[index_A], qubit_ordering_.order_[index_B]);
-    
-  }
-  // update qubit location after all the swaps
-  if (!swap_gate)
+    std::swap(qubit_ordering_.order_[index_A], qubit_ordering_.order_[index_B]);    
+
+  // update qubit locations after all the swaps
     for (uint_t i=0; i<num_qubits_; i++)
       qubit_ordering_.location_[qubit_ordering_.order_[i]] = i;
+  }
 }
 
 //-------------------------------------------------------------------------
@@ -440,15 +427,21 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
     A = index_A - 1;
     swapped = true;
   }
+  common_apply_2_qubit_gate(A, gate_type, mat, swapped);
+}
+
+void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A+1
+				    Gates gate_type, const cmatrix_t &mat,
+				    bool swapped) {
   // After we moved the qubits as necessary, 
   // the operation is always between qubits A and A+1
-  rvector_t left_lambda, right_lambda;
+
   //There is no lambda on the edges of the MPS
-  left_lambda  = (A != 0) 	    ? lambda_reg_[A-1] : rvector_t {1.0};
-  right_lambda = (A+1 != num_qubits_-1) ? lambda_reg_[A+1] : rvector_t {1.0};
-  
-  q_reg_[A].mul_Gamma_by_left_Lambda(left_lambda);
-  q_reg_[A+1].mul_Gamma_by_right_Lambda(right_lambda);
+  if (A != 0)
+    q_reg_[A].mul_Gamma_by_left_Lambda(lambda_reg_[A-1]);
+  if (A+1 != num_qubits_-1)
+    q_reg_[A+1].mul_Gamma_by_right_Lambda(lambda_reg_[A+1]);
+
   MPS_Tensor temp = MPS_Tensor::contract(q_reg_[A], lambda_reg_[A], q_reg_[A+1]);
   
   switch (gate_type) {
@@ -457,6 +450,9 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
     break;
   case cz:
     temp.apply_cz();
+    break;
+  case swap:
+    temp.apply_swap();
     break;
   case id:
     break;
@@ -481,8 +477,11 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
   MPS_Tensor left_gamma,right_gamma;
   rvector_t lambda;
   MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
-  left_gamma.div_Gamma_by_left_Lambda(left_lambda);
-  right_gamma.div_Gamma_by_right_Lambda(right_lambda);
+
+  if (A != 0)
+    left_gamma.div_Gamma_by_left_Lambda(lambda_reg_[A-1]);
+  if (A+1 != num_qubits_-1)
+    right_gamma.div_Gamma_by_right_Lambda(lambda_reg_[A+1]);
   q_reg_[A] = left_gamma;
   lambda_reg_[A] = lambda;
   q_reg_[A+1] = right_gamma;
@@ -759,7 +758,7 @@ void MPS::move_qubits_to_right_end(const reg_t &qubits,
 void MPS::change_position(uint_t src, uint_t dst) {
    if(src == dst)
      return;
-   else if(src < dst)
+   if(src < dst)
      for(uint_t i = src; i < dst; i++) {
        apply_swap_internal(i, i+1, false);
      }
@@ -1064,14 +1063,13 @@ MPS_Tensor MPS::state_vec_as_MPS(const reg_t &qubits) {
 MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
 {
 	MPS_Tensor temp = q_reg_[first_index];
-	rvector_t left_lambda, right_lambda;
-	left_lambda  = (first_index != 0) ? lambda_reg_[first_index-1] : rvector_t {1.0};
-	right_lambda = (last_index != num_qubits_-1) ? lambda_reg_[last_index] : rvector_t {1.0};
 
-	temp.mul_Gamma_by_left_Lambda(left_lambda);
+	if (first_index != 0)
+	  temp.mul_Gamma_by_left_Lambda(lambda_reg_[first_index-1]);
+
 	// special case of a single qubit
-	if (first_index == last_index) {
-	  temp.mul_Gamma_by_right_Lambda(right_lambda);
+	if ((first_index == last_index) && (last_index != num_qubits_-1)) {
+	  temp.mul_Gamma_by_right_Lambda(lambda_reg_[last_index]);
 	  return temp;
 	}
 	  
@@ -1079,7 +1077,8 @@ MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
 	  temp = MPS_Tensor::contract(temp, lambda_reg_[i-1], q_reg_[i]);
 	}
 	// now temp is a tensor of 2^n matrices of size 1X1
-	temp.mul_Gamma_by_right_Lambda(right_lambda);
+	if (last_index != num_qubits_-1)
+	  temp.mul_Gamma_by_right_Lambda(lambda_reg_[last_index]);
 	return temp;
 }
 
@@ -1133,6 +1132,73 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
   // reverse to be consistent with qasm ordering
   probvector = reverse_all_bits(temp_probvector, num_qubits);
 }
+
+void MPS::get_accumulated_probabilities_vector(rvector_t& acc_probvector, 
+					       reg_t& index_vec,
+					       const reg_t &qubits) const
+{
+  rvector_t probvector;
+  get_probabilities_vector(probvector, qubits);
+  uint_t size = probvector.size();
+  uint_t j = 1;
+  acc_probvector.push_back(0.0);
+  for (uint_t i=0; i<size; i++) {
+    if (!Linalg::almost_equal(probvector[i], 0.0)) {
+      index_vec.push_back(i);
+      acc_probvector.push_back(acc_probvector[j-1] + probvector[i]);
+      j++;
+    }
+  }
+}
+
+uint_t binary_search(const rvector_t &acc_probvector, 
+		     uint_t start, uint_t end, 
+		     double rnd) {
+  if (start >= end-1) {
+    return start;
+  }
+  uint_t mid = (start+end)/2;
+  if (rnd <= acc_probvector[mid])
+    return binary_search(acc_probvector, start, mid, rnd);
+  else 
+    return binary_search(acc_probvector, mid, end, rnd);
+}
+
+//------------------------------------------------------------------------------
+// Sample measure outcomes - this method is similar to QubitVector::sample_measure, 
+// with 2 differences:
+// 1. We use accumulated probabilities which we prepare in advance, rather than summing up the 
+// probabilites during the algorithm
+// 2. We use binary search to locate the index of rnd, rather than linear search. This is 
+// possible since the accumulated probabilities vector is increasing
+
+//-----------------------------------------------------------------------------
+reg_t MPS::sample_measure_using_probabilities(const rvector_t &rnds, 
+					      const reg_t &qubits) const {
+  const uint_t SHOTS = rnds.size();
+  reg_t samples;
+  samples.assign(SHOTS, 0);
+  rvector_t acc_probvector;
+  reg_t index_vec;
+  get_accumulated_probabilities_vector(acc_probvector, index_vec, qubits);
+
+ uint_t accvec_size = acc_probvector.size();
+ uint_t rnd_index;
+  #pragma omp parallel if (SHOTS > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    {
+      #pragma omp for
+  for (int_t i = 0; i < SHOTS; ++i) {
+    double rnd = rnds[i];
+
+    rnd_index = binary_search(acc_probvector, 
+			       0, accvec_size-1, rnd);
+    samples[i] = index_vec[rnd_index];
+  }
+ }// end omp parallel
+
+  return samples;
+}
+
 
 reg_t MPS::apply_measure(const reg_t &qubits, 
 			 RngEngine &rng) {

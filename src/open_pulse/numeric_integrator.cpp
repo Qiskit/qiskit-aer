@@ -5,12 +5,20 @@
 #include <memory>
 #define _USE_MATH_DEFINES
 #include <math.h>
+
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #include <Python.h>
 #include <numpy/arrayobject.h>
+DISABLE_WARNING_POP
+
 #ifdef DEBUG
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <callgrind/callgrind.h>
+DISABLE_WARNING_POP
 #endif
 #include "numeric_integrator.hpp"
 #include "python_to_cpp.hpp"
