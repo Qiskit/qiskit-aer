@@ -785,19 +785,13 @@ cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
 
+  // We do the reordering of qubits on a dummy vector in order to not do the reordering on psi, 
+  // since psi is a vector of matrices
   reg_t ordered_vector(size), temp_vector(size), actual_vec(size); 
   std::iota( std::begin(ordered_vector), std::end(ordered_vector), 0);
   reorder_all_qubits(ordered_vector, qubits, temp_vector);
   actual_vec = reverse_all_bits(temp_vector, qubits.size());
-  
-  std::cout << "actual_vec = " << std::endl;
-    for (uint_t i=0; i<size; i++)
-      std::cout <<actual_vec[i]<<" ";
-    std::cout << std::endl;
-std::cout << "qubits = " << std::endl;
- for (uint_t i=0; i<qubits.size(); i++)
-      std::cout <<qubits[i]<<" ";
-    std::cout << std::endl;
+
 #ifdef _WIN32
     #pragma omp parallel for if (size > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
 #else
@@ -852,29 +846,9 @@ double MPS::expectation_value(const reg_t &qubits,
 
 double MPS::expectation_value_internal(const reg_t &qubits, 
 				       const cmatrix_t &M) const {
-  // need to reverse qubits because that is the way they
-  // are defined in the Qiskit interface
-  reg_t reversed_qubits = qubits;
-  std::reverse(reversed_qubits.begin(), reversed_qubits.end()); 
-
-  bool are_qubits_ordered = is_ordered(reversed_qubits);
-
   cmatrix_t rho;
+  rho = density_matrix(qubits);
 
-  // if qubits are in consecutive order, can extract the density matrix
-  // without moving them, for performance reasons
-  reg_t target_qubits(qubits.size());
-  if (are_qubits_ordered) {
-    rho = density_matrix(reversed_qubits);
-  } else {
-    reg_t actual_indices(num_qubits_);
-    std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
-    MPS temp_MPS;
-    temp_MPS.initialize(*this);
-    temp_MPS.move_qubits_to_right_end(reversed_qubits, target_qubits, actual_indices);
-
-    rho = temp_MPS.density_matrix(target_qubits);
-  }
   // Trace(rho*M). not using methods for efficiency
   complex_t res = 0;
   for (uint_t i = 0; i < M.GetRows(); i++)
