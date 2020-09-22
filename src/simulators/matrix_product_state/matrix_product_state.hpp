@@ -340,7 +340,7 @@ void State::initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state
     throw std::invalid_argument("MatrixProductState::State::initialize: initial state does not match qubit number");
   }
 #ifdef DEBUG
-  cout << "initialize with state not supported yet";
+  std::cout << "initialize with state not supported yet";
 #endif
 }
 
@@ -440,6 +440,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 
   // Simple loop over vector of input operations
   for (const auto &op: ops) {
+    std::cout << "applying op = " << op.name << std::endl;
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
         case Operations::OpType::barrier:
@@ -476,6 +477,8 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
                                       op.name + "\'.");
       }
     }
+    qreg_.print(std::cout);
+    std::cout <<"------------------" << std::endl<<std::endl;
   }
 }
 
@@ -672,13 +675,15 @@ void State::apply_gate(const Operations::Op &op) {
   // Check edge case for empty Kraus set (this shouldn't happen)
   if (kmats.empty())
     return; // end function early
-
+  std::cout << "qubit = " << qubits[0]<<std::endl;
   // Choose a real in [0, 1) to choose the applied kraus operator once
   // the accumulated probability is greater than r.
   // We know that the Kraus noise must be normalized
   // So we only compute probabilities for the first N-1 kraus operators
   // and infer the probability of the last one from 1 - sum of the previous
-
+  std::cout << "kmats: " << std::endl;
+  for (uint_t i; i<kmats.size(); i++)
+    std::cout << kmats[i] <<std::endl;
   double r = rng.rand(0., 1.);
   double accum = 0.;
   bool complete = false;
@@ -686,21 +691,29 @@ void State::apply_gate(const Operations::Op &op) {
   // it is more efficient to compute the density matrix once rather than computing
   // the expectation value in every iteration of the loop
   cmatrix_t rho = qreg_.density_matrix(qubits);
+  std::cout <<"rho = " <<std::endl;
+  std::cout << rho << std::endl;
   cmatrix_t sq_kmat;
   double p = 0;
 
   // Loop through N-1 kraus operators
   for (size_t j=0; j < kmats.size() - 1; j++) {
     sq_kmat = AER::Utils::dagger(kmats[j]) * kmats[j];
+    std::cout << "sq_kmat = " << std::endl;
+    std::cout << sq_kmat << std::endl;
     // Calculate probability
+    std::cout << "mul mat = " << std::endl;
+    std::cout << rho * sq_kmat << std::endl;
     p = real(AER::Utils::trace(rho * sq_kmat));
+    std::cout <<"prob "<< j << " = " << p << std::endl;
     accum += p;
 
     // check if we need to apply this operator
     if (accum > r) {
+      std::cout << "chose " << j << std::endl;
       // rescale mat so projection is normalized
-      cmatrix_t mat = ( 1 / std::sqrt(p)) * kmats[j];
-      apply_matrix(qubits, mat);
+      qreg_.apply_matrix_and_normalize(qubits, kmats[j], p);
+
       complete = true;
       break;
     }
@@ -709,8 +722,10 @@ void State::apply_gate(const Operations::Op &op) {
   // check if we haven't applied a kraus operator yet
   if (!complete) {
     // Compute probability from accumulated
-    complex_t renorm = 1 / std::sqrt(1. - accum);
-    apply_matrix(qubits, renorm * kmats.back());
+    //double renorm = 1 / std::sqrt(1. - accum);
+      std::cout << "chose last" << std::endl;
+    qreg_.apply_matrix_and_normalize(qubits, kmats.back(), 1. - accum);
+
   }
   }
 
