@@ -17,12 +17,9 @@ import pickle
 import os
 from multiprocessing import Pool
 
-from qiskit import execute
-from qiskit.providers.aer import QasmSimulator, StatevectorSimulator, UnitarySimulator
 from qiskit.providers.aer.backends.controller_wrappers import (qasm_controller_execute,
                                                                statevector_controller_execute,
                                                                unitary_controller_execute)
-from test.terra.reference import ref_1q_clifford
 from test.terra.reference import ref_cache
 
 
@@ -43,6 +40,7 @@ class TestControllerExecuteWrappers(unittest.TestCase):
             cahpy = pickle.loads(bites)
 
     def test_mappable(self):
+        """Test that the functors can be used in a multiprocessing.pool.map call."""
         qobjs = [ref_cache.get_obj(fn) for fn in ['qobj_qasm', 'qobj_statevector', 'qobj_unitary']]
         n = max(os.cpu_count(), 2)
         results = []
