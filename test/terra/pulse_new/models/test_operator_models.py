@@ -16,7 +16,7 @@ import numpy as np
 from scipy.linalg import expm
 from qiskit.quantum_info.operators import Operator
 from qiskit.providers.aer.pulse_new.models.operator_models import FrameFreqHelper, OperatorModel, vector_apply_diag_frame
-from qiskit.providers.aer.pulse_new.models.signals import Constant, ConstantSignal, VectorSignal
+from qiskit.providers.aer.pulse_new.models.signals import Constant, ConstantSignal, Signal, VectorSignal
 
 
 class TestOperatorModel(unittest.TestCase):
@@ -69,7 +69,7 @@ class TestOperatorModel(unittest.TestCase):
     def test_non_diag_frame_operator(self):
         """Test setting a diagonal frame operator."""
         self._frame_operator_test(-1j * (self.Y + self.Z), 1.123)
-        self._frame_operator_test(-1j * (self.Y + self.Z), np.pi)
+        self._frame_operator_test(-1j * (self.Y - self.Z), np.pi)
 
 
     def _frame_operator_test(self, frame_operator, t):
@@ -98,6 +98,102 @@ class TestOperatorModel(unittest.TestCase):
                     frame_operator)
 
         self.assertAlmostEqual(value, expected)
+
+    def test_evaluate_no_frame(self):
+        """Test evaluation with no frame."""
+
+        t = 3.21412
+        value = self.basic_model.evaluate(t)
+        i2pi = -1j * 2 * np.pi
+        d_coeff = self.r * np.cos(2 * np.pi * self.w * t)
+        expected =  (i2pi * self.w * self.Z.data / 2 +
+                     i2pi * d_coeff * self.X.data / 2)
+
+        self.assertAlmostEqual(value, expected)
+
+    def test_lmult_rmult_no_frame(self):
+        """Test evaluation with no frame."""
+
+        y0 = np.array([[1., 2.], [0., 4.]])
+        t = 3.21412
+        value = self.basic_model.lmult(t, y0)
+        i2pi = -1j * 2 * np.pi
+        d_coeff = self.r * np.cos(2 * np.pi * self.w * t)
+        model_expected =  (i2pi * self.w * self.Z.data / 2 +
+                           i2pi * d_coeff * self.X.data / 2)
+
+        self.assertAlmostEqual(self.basic_model.lmult(t, y0),
+                               model_expected @ y0)
+        self.assertAlmostEqual(self.basic_model.rmult(t, y0),
+                               y0 @ model_expected)
+
+    def test_signal_setting(self):
+        """Test updating the signals."""
+        signals = VectorSignal(lambda t: np.array([2 * t, t**2]),
+                               np.array([1., 2.]),
+                               np.array([0., 0.]))
+
+        self.basic_model.signals = signals
+
+
+        t = 0.1
+        value = self.basic_model.evaluate(t)
+        i2pi = -1j * 2 * np.pi
+        Z_coeff = (2 * t) * np.cos(2 * np.pi * 1 * t)
+        X_coeff = self.r * (t**2) * np.cos(2 * np.pi * 2 * t)
+        expected =  (i2pi * Z_coeff * self.Z.data / 2 +
+                     i2pi * X_coeff * self.X.data / 2)
+        self.assertAlmostEqual(value, expected)
+
+    def test_signal_setting_None(self):
+        """Test setting signals to None"""
+
+        self.basic_model.signals = None
+        self.assertTrue(self.basic_model.signals is None)
+
+    def test_drift(self):
+        """Test drift evaluation."""
+
+        self.assertAlmostEqual(self.basic_model.drift,
+                               -1j * 2 * np.pi * self.w * self.Z.data / 2)
+
+    def test_drift_error_in_frame(self):
+        """Test raising of error if drift is requested in a frame."""
+        self.basic_model.frame_operator = self.basic_model.drift
+
+        try:
+            self.basic_model.drift
+        except Exception as e:
+            self.assertTrue('ill-defined' in str(e))
+
+
+    def test_cutoff_freq(self):
+        """Test cutoff_freq"""
+
+        # enter frame of drift
+        self.basic_model.frame_operator = self.basic_model.drift
+
+        # set cutoff freq to 2 * drive freq (standard RWA)
+        self.basic_model.cutoff_freq = 2 * self.w
+
+        # result should just be the X term halved
+        eval_rwa = self.basic_model.evaluate(2.)
+        expected = -1j * 2 * np.pi * (self.r / 2) * self.X.data / 2
+        self.assertAlmostEqual(eval_rwa, expected)
+
+        drive_func = lambda t: t**2 + t**3 * 1j
+        self.basic_model.signals = [Constant(self.w),
+                                    Signal(drive_func, self.w)]
+
+        # result should now contain both X and Y terms halved
+        t = 2.1231 * np.pi
+        dRe = np.real(drive_func(t))
+        dIm = np.imag(drive_func(t))
+        eval_rwa = self.basic_model.evaluate(t)
+        expected = (-1j * 2 * np.pi * (self.r / 2) * dRe * self.X.data / 2 +
+                    -1j * 2 * np.pi * (self.r / 2) * dIm * self.Y.data / 2)
+        self.assertAlmostEqual(eval_rwa, expected)
+
 
 
     def assertAlmostEqual(self, A, B, tol=10**-12):

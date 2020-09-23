@@ -81,7 +81,7 @@ class OperatorModel:
 
         # initialize signals
         self._signal_params = None
-        self._vector_signal = None
+        self._signals = None
         self._carrier_freqs = None
         self._signal_mapping = signal_mapping
 
@@ -101,7 +101,7 @@ class OperatorModel:
         """Set the signals"""
         if signals is None:
             self._signal_params = None
-            self._vector_signal = None
+            self._signals = None
             self._carrier_freqs = None
         else:
 
