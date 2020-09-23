@@ -133,6 +133,21 @@ class OperatorModel:
 
     @frame_operator.setter
     def frame_operator(self, frame_operator):
+
+        # checks to ensure frame_operator corresponds to an antihermitian matrix
+        if isinstance(frame_operator, np.ndarray) and frame_operator.ndim == 1:
+            # verify that it is anti-hermitian (i.e. purely imaginary)
+            if np.linalg.norm(frame_operator + frame_operator.conj()) > 10**-10:
+                raise Exception('frame_op must correspond to an anti-Hermitian matrix.')
+        else:
+            # Ensure that it is an Operator object
+            frame_operator = Operator(frame_operator)
+
+            # verify anti-hermitian
+            herm_part = frame_operator + frame_operator.adjoint()
+            if herm_part != Operator(np.zeros(frame_operator.dim)):
+                raise Exception('frame_op must be an anti-Hermitian matrix.')
+
         self._frame_operator = frame_operator
         self._construct_frame_helper()
 
@@ -154,6 +169,9 @@ class OperatorModel:
             in_frame_diag_basis: Whether or not to evaluate in the basis in which the frame
                                  operator is diagonal
         """
+
+        if self.signals is None:
+            raise Exception('OperatorModel cannot be evaluated without signals.')
 
         sig_envelope_vals = self.signals.envelope_value(time)
 
@@ -193,7 +211,7 @@ class OperatorModel:
 
         drift_env_vals = self.signals.drift_array
 
-        return self._frame_freq_helper.generator_in_frame(0, drift_env_vals)
+        return self._frame_freq_helper.evaluate(0, drift_env_vals)
 
     def _construct_frame_helper(self):
         """Helper function for constructing frame helper from relevant

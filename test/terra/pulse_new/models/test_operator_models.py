@@ -16,9 +16,95 @@ import numpy as np
 from scipy.linalg import expm
 from qiskit.quantum_info.operators import Operator
 from qiskit.providers.aer.pulse_new.models.operator_models import FrameFreqHelper, OperatorModel, vector_apply_diag_frame
+from qiskit.providers.aer.pulse_new.models.signals import Constant, ConstantSignal, VectorSignal
 
 
-class Test_FrameFreqHelper(unittest.TestCase):
+class TestOperatorModel(unittest.TestCase):
+    """Tests for OperatorModel."""
+
+    def setUp(self):
+        self.X = Operator.from_label('X')
+        self.Y = Operator.from_label('Y')
+        self.Z = Operator.from_label('Z')
+
+        # define a basic model
+        w = 2.
+        r = 0.5
+        operators = [-1j * 2 * np.pi * self.Z / 2,
+                     -1j * 2 * np.pi *  r * self.X / 2]
+        signals = [Constant(w), ConstantSignal(1., w)]
+
+        self.w = 2
+        self.r = r
+        self.basic_model = OperatorModel(operators=operators, signals=signals)
+
+    def test_frame_operator_errors(self):
+        """Check different modes of error raising for frame setting."""
+
+        # 1d array
+        try:
+            self.basic_model.frame_operator = np.array([1., 1.])
+        except Exception as e:
+            self.assertTrue('anti-Hermitian' in str(e))
+
+        # 2d array
+        try:
+            self.basic_model.frame_operator = np.array([[1., 0.], [0., 1.]])
+        except Exception as e:
+            self.assertTrue('anti-Hermitian' in str(e))
+
+        # Operator
+        try:
+            self.basic_model.frame_operator = self.Z
+        except Exception as e:
+            self.assertTrue('anti-Hermitian' in str(e))
+
+    def test_diag_frame_operator(self):
+        """Test setting a diagonal frame operator."""
+
+        self._frame_operator_test(np.array([1j, -1j]), 1.123)
+        self._frame_operator_test(np.array([1j, -1j]), np.pi)
+
+
+    def test_non_diag_frame_operator(self):
+        """Test setting a diagonal frame operator."""
+        self._frame_operator_test(-1j * (self.Y + self.Z), 1.123)
+        self._frame_operator_test(-1j * (self.Y + self.Z), np.pi)
+
+
+    def _frame_operator_test(self, frame_operator, t):
+        """Routine for testing setting of valid frame operators."""
+
+        self.basic_model.frame_operator = frame_operator
+
+        # convert to 2d array
+        if isinstance(frame_operator, Operator):
+            frame_operator = frame_operator.data
+        if isinstance(frame_operator, np.ndarray) and frame_operator.ndim == 1:
+            frame_operator = np.diag(frame_operator)
+
+        value = self.basic_model.evaluate(t)
+
+        i2pi = -1j * 2 * np.pi
+
+        U = expm(- frame_operator * t)
+
+        # drive coefficient
+        d_coeff = self.r * np.cos(2 * np.pi * self.w * t)
+
+        # manually evaluate frame
+        expected = (i2pi * self.w * U @ self.Z.data @ U.conj().transpose() / 2 +
+                    d_coeff * i2pi * U @ self.X.data @ U.conj().transpose() / 2 -
+                    frame_operator)
+
+        self.assertAlmostEqual(value, expected)
+
+
+    def assertAlmostEqual(self, A, B, tol=10**-12):
+        self.assertTrue(np.abs(A - B).max() < tol)
+
+
+class TestFrameFreqHelper(unittest.TestCase):
 
     def setUp(self):
         self.X = Operator.from_label('X')
