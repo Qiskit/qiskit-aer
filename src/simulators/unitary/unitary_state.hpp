@@ -49,7 +49,7 @@ const Operations::OpSet StateOpSet(
 // Allowed gates enum class
 enum class Gates {
   id, h, s, sdg, t, tdg, rxx, ryy, rzz, rzx,
-  mcx, mcy, mcz, mcr, mcrx, mcry, mcrz, mcu1, mcu2, mcu3, mcp, mcswap
+  mcx, mcy, mcz, mcr, mcrx, mcry, mcrz, mcp, mcu2, mcu3, mcswap
 };
 
 //=========================================================================
@@ -182,14 +182,16 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"ry", Gates::mcry}, // Pauli-Y rotation gate
     {"rz", Gates::mcrz}, // Pauli-Z rotation gate
     // Waltz Gates
-    {"u1", Gates::mcu1}, // zero-X90 pulse waltz gate
+    {"p", Gates::mcp},   // Parameterized phase gate 
+    {"u1", Gates::mcp}, // zero-X90 pulse waltz gate
     {"u2", Gates::mcu2}, // single-X90 pulse waltz gate
     {"u3", Gates::mcu3}, // two X90 pulse waltz gate
     // Two-qubit gates
     {"cx", Gates::mcx},      // Controlled-X gate (CNOT)
     {"cy", Gates::mcy},      // Controlled-Z gate
     {"cz", Gates::mcz},      // Controlled-Z gate
-    {"cu1", Gates::mcu1},    // Controlled-u1 gate
+    {"cp", Gates::mcp},      // Controlled-Phase gate 
+    {"cu1", Gates::mcp},    // Controlled-u1 gate
     {"cu2", Gates::mcu2},    // Controlled-u2
     {"cu3", Gates::mcu3},    // Controlled-u3 gate
     {"cp", Gates::mcp},      // Controlled-Phase gate 
@@ -209,7 +211,8 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"mcrx", Gates::mcrx},    // Multi-controlled X-rotation gate
     {"mcry", Gates::mcry},    // Multi-controlled Y-rotation gate
     {"mcrz", Gates::mcrz},    // Multi-controlled Z-rotation gate
-    {"mcu1", Gates::mcu1},    // Multi-controlled-u1
+    {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
+    {"mcu1", Gates::mcp},    // Multi-controlled-u1
     {"mcu2", Gates::mcu2},    // Multi-controlled-u2
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
     {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
@@ -405,10 +408,10 @@ void State<unitary_matrix_t>::apply_gate(const Operations::Op &op) {
       apply_gate_mcu3(op.qubits, M_PI / 2., std::real(op.params[0]),
                       std::real(op.params[1]));
       break;
-    case Gates::mcu1:
-      // Includes u1, cu1, etc
+    case Gates::mcp:
+      // Includes u1, cu1, p, cp, mcp, etc
       BaseState::qreg_.apply_mcphase(op.qubits,
-                                    std::exp(complex_t(0, 1) * op.params[0]));
+                                     std::exp(complex_t(0, 1) * op.params[0]));
       break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
