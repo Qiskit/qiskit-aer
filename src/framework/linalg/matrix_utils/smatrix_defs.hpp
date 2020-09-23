@@ -47,6 +47,7 @@ public:
 
   // Two-qubit gates
   const static cmatrix_t CX;   // name: "cx"
+  const static cmatrix_t CY;   // name: "cy"
   const static cmatrix_t CZ;   // name: "cz"
   const static cmatrix_t SWAP; // name: "swap"
 
@@ -138,6 +139,8 @@ const cmatrix_t SMatrix::X90 = Utils::unitary_superop(Matrix::X90);
 
 const cmatrix_t SMatrix::CX = Utils::unitary_superop(Matrix::CX);
 
+const cmatrix_t SMatrix::CY = Utils::unitary_superop(Matrix::CY);
+
 const cmatrix_t SMatrix::CZ = Utils::unitary_superop(Matrix::CZ);
 
 const cmatrix_t SMatrix::SWAP = Utils::unitary_superop(Matrix::SWAP);
@@ -147,8 +150,8 @@ const stringmap_t<const cmatrix_t *> SMatrix::label_map_ = {
     {"id", &SMatrix::I},     {"x", &SMatrix::X},   {"y", &SMatrix::Y},
     {"z", &SMatrix::Z},      {"h", &SMatrix::H},   {"s", &SMatrix::S},
     {"sdg", &SMatrix::SDG},  {"t", &SMatrix::T},   {"tdg", &SMatrix::TDG},
-    {"x90", &SMatrix::X90},  {"cx", &SMatrix::CX}, {"cz", &SMatrix::CZ},
-    {"swap", &SMatrix::SWAP}};
+    {"x90", &SMatrix::X90},  {"cx", &SMatrix::CX}, {"cy", &SMatrix::CY},
+    {"cz", &SMatrix::CZ},    {"swap", &SMatrix::SWAP}};
 
 cmatrix_t SMatrix::identity(size_t dim) { return Matrix::identity(dim * dim); }
 

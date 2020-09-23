@@ -46,6 +46,7 @@ public:
 
   // Two-qubit gates
   const static cmatrix_t CX;   // name: "cx"
+  const static cmatrix_t CY;   // name: "cy"
   const static cmatrix_t CZ;   // name: "cz"
   const static cmatrix_t SWAP; // name: "swap"
 
@@ -147,6 +148,12 @@ const cmatrix_t Matrix::CX =
                                    {{0, 0}, {0, 0}, {1, 0}, {0, 0}},
                                    {{0, 0}, {1, 0}, {0, 0}, {0, 0}}});
 
+const cmatrix_t Matrix::CY =
+    Utils::make_matrix<complex_t>({{{1, 0}, {0, 0}, {0, 0}, {0, 0}},
+                                   {{0, 0}, {0, 0}, {0, 0}, {0, -1}},
+                                   {{0, 0}, {0, 0}, {1, 0}, {0, 0}},
+                                   {{0, 0}, {0, 1}, {0, 0}, {0, 0}}});
+                     
 const cmatrix_t Matrix::CZ =
     Utils::make_matrix<complex_t>({{{1, 0}, {0, 0}, {0, 0}, {0, 0}},
                                    {{0, 0}, {1, 0}, {0, 0}, {0, 0}},
@@ -164,8 +171,8 @@ const stringmap_t<const cmatrix_t *> Matrix::label_map_ = {
     {"id", &Matrix::I},     {"x", &Matrix::X},   {"y", &Matrix::Y},
     {"z", &Matrix::Z},      {"h", &Matrix::H},   {"s", &Matrix::S},
     {"sdg", &Matrix::SDG},  {"t", &Matrix::T},   {"tdg", &Matrix::TDG},
-    {"x90", &Matrix::X90},  {"cx", &Matrix::CX}, {"cz", &Matrix::CZ},
-    {"swap", &Matrix::SWAP}};
+    {"x90", &Matrix::X90},  {"cx", &Matrix::CX}, {"cy", &Matrix::CY},
+    {"cz", &Matrix::CZ},    {"swap", &Matrix::SWAP}};
 
 cmatrix_t Matrix::identity(size_t dim) {
   cmatrix_t mat(dim, dim);

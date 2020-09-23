@@ -258,7 +258,7 @@ class QasmSimulator(AerBackend):
         'coupling_map':
         None,
         'basis_gates': [
-            'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
+            'u1', 'u2', 'u3', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
             't', 'tdg', 'swap', 'ccx', 'r', 'rx', 'ry', 'rz', 'rxx', 'ryy',
             'rzz', 'rzx', 'unitary', 'diagonal', 'initialize', 'cu1', 'cu2',
             'cu3', 'cswap', 'mcx', 'mcy', 'mcz', 'mcrx', 'mcry', 'mcrz', 'mcr',
