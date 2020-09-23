@@ -94,10 +94,10 @@ class NoiseModel:
     # Checks for standard 1-3 qubit instructions
     _1qubit_instructions = set([
         "x90", "u1", "u2", "u3", "U", "id", "x", "y", "z", "h", "s", "sdg",
-        "t", "tdg", "r", "rx", "ry", "rz"
+        "t", "tdg", "r", "rx", "ry", "rz", "p"
     ])
     _2qubit_instructions = set(["cx", "cz", "swap", "rxx", "ryy", "rzz",
-                                "rzx", "cu1", "cu2", "cu3"])
+                                "rzx", "cu1", "cu2", "cu3", "cp"])
     _3qubit_instructions = set(["ccx", "cswap"])
 
     def __init__(self, basis_gates=None):

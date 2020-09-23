@@ -71,9 +71,15 @@ public:
   static cmatrix_t rzz(double theta);
   static cmatrix_t rzx(double theta); // rotation around Tensor(X, Z)
 
+  // Phase Gates
+  static cmatrix_t phase(double theta);
+  static cmatrix_t phase_diag(double theta);
+  static cmatrix_t cphase_diag(double theta);
+  static cmatrix_t cphase(double theta);
+
   // Complex arguments are implemented by taking std::real
   // of the input
-  static cmatrix_t u1(complex_t lam) { return u1(std::real(lam)); }
+  static cmatrix_t u1(complex_t lam) { return phase(std::real(lam)); }
   static cmatrix_t u2(complex_t phi, complex_t lam) {
     return u2(std::real(phi), std::real(lam));
   }
@@ -90,6 +96,10 @@ public:
   static cmatrix_t ryy(complex_t theta) { return ryy(std::real(theta)); }
   static cmatrix_t rzz(complex_t theta) { return rzz(std::real(theta)); }
   static cmatrix_t rzx(complex_t theta) { return rzx(std::real(theta)); }
+  static cmatrix_t phase(complex_t theta) { return phase(std::real(theta)); }
+  static cmatrix_t phase_diag(complex_t theta) { return phase_diag(std::real(theta)); }
+  static cmatrix_t cphase(complex_t theta) { return cphase(std::real(theta)); }
+  static cmatrix_t cphase_diag(complex_t theta) { return cphase_diag(std::real(theta)); }
 
   // Return superoperator matrix for reset instruction
   // on specified dim statespace.
@@ -156,12 +166,7 @@ const stringmap_t<const cmatrix_t *> SMatrix::label_map_ = {
 cmatrix_t SMatrix::identity(size_t dim) { return Matrix::identity(dim * dim); }
 
 cmatrix_t SMatrix::u1(double lambda) {
-  cmatrix_t mat(4, 4);
-  mat(0, 0) = {1., 0.};
-  mat(1, 1) = std::exp(complex_t(0., lambda));
-  mat(2, 2) = std::exp(complex_t(0., -lambda));
-  mat(3, 3) = {1., 0.};
-  return mat;
+  return phase(lambda);
 }
 
 cmatrix_t SMatrix::u2(double phi, double lambda) {
@@ -204,6 +209,70 @@ cmatrix_t SMatrix::rzz(double theta) {
 
 cmatrix_t SMatrix::rzx(double theta) {
   return Utils::tensor_product(Matrix::rzx(-theta), Matrix::rzx(theta));
+}
+
+cmatrix_t SMatrix::phase(double theta) {
+  cmatrix_t mat(4, 4);
+  mat(0, 0) = {1., 0.};
+  mat(1, 1) = std::exp(complex_t(0., theta));
+  mat(2, 2) = std::exp(complex_t(0., -theta));
+  mat(3, 3) = {1., 0.};
+  return mat;
+}
+
+cmatrix_t SMatrix::phase_diag(double theta) {
+  cmatrix_t mat(1, 4);
+  mat(0, 0) = {1., 0.};
+  mat(0, 1) = std::exp(complex_t(0., theta));
+  mat(0, 2) = std::exp(complex_t(0., -theta));
+  mat(0, 3) = {1., 0.};
+  return mat;
+}
+
+cmatrix_t SMatrix::cphase(double theta) {
+  const auto exp_p = std::exp(complex_t(0., theta));
+  const auto exp_m = std::exp(complex_t(0., -theta));
+  cmatrix_t mat(16, 16);
+  mat(0, 0) = {1., 0.};
+  mat(1, 1) = {1., 0.};
+  mat(2, 2) = {1., 0.};
+  mat(3, 3) = exp_p;
+  mat(4, 4) = {1., 0.};
+  mat(5, 5) = {1., 0.};
+  mat(6, 6) = {1., 0.};
+  mat(7, 7) = exp_p;
+  mat(8, 8) = {1., 0.};
+  mat(9, 9) = {1., 0.};
+  mat(10, 10) = {1., 0.};
+  mat(11, 11) = exp_p;
+  mat(12, 12) = exp_m;
+  mat(13, 13) = exp_m;
+  mat(14, 14) = exp_m;
+  mat(15, 15) = {1., 0.};
+  return mat;
+}
+
+cmatrix_t SMatrix::cphase_diag(double theta) {
+  const auto exp_p = std::exp(complex_t(0., theta));
+  const auto exp_m = std::exp(complex_t(0., -theta));
+  cmatrix_t mat(1, 16);
+  mat(0, 0) = {1., 0.};
+  mat(0, 1) = {1., 0.};
+  mat(0, 2) = {1., 0.};
+  mat(0, 3) = exp_p;
+  mat(0, 4) = {1., 0.};
+  mat(0, 5) = {1., 0.};
+  mat(0, 6) = {1., 0.};
+  mat(0, 7) = exp_p;
+  mat(0, 8) = {1., 0.};
+  mat(0, 9) = {1., 0.};
+  mat(0, 10) = {1., 0.};
+  mat(0, 11) = exp_p;
+  mat(0, 12) = exp_m;
+  mat(0, 13) = exp_m;
+  mat(0, 14) = exp_m;
+  mat(0, 15) = {1., 0.};
+  return mat;
 }
 
 cmatrix_t SMatrix::reset(size_t dim) {

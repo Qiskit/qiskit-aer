@@ -73,9 +73,15 @@ public:
   static cvector_t rzx(double theta); // rotation around Tensor(X, Z)
   static cvector_t rzz_diag(double theta); // return the matrix diagonal
 
+  // Phase Gates
+  static cvector_t phase(double theta);
+  static cvector_t phase_diag(double theta);
+  static cvector_t cphase(double theta);
+  static cvector_t cphase_diag(double theta);
+
   // Complex arguments are implemented by taking std::real
   // of the input
-  static cvector_t u1(complex_t lam) { return u1(std::real(lam)); }
+  static cvector_t u1(complex_t lam) { return phase(std::real(lam)); }
   static cvector_t u2(complex_t phi, complex_t lam) {
     return u2(std::real(phi), std::real(lam));
   }
@@ -94,6 +100,10 @@ public:
   static cvector_t rzz(complex_t theta) { return rzz(std::real(theta)); }
   static cvector_t rzz_diag(complex_t theta) { return rzz_diag(std::real(theta)); }
   static cvector_t rzx(complex_t theta) { return rzx(std::real(theta)); }
+  static cvector_t phase(complex_t theta) { return phase(std::real(theta)); }
+  static cvector_t phase_diag(complex_t theta) { return phase_diag(std::real(theta)); }
+  static cvector_t cphase(complex_t theta) { return cphase(std::real(theta)); }
+  static cvector_t cphase_diag(complex_t theta) { return cphase_diag(std::real(theta)); }
 
   // Return the matrix for a named matrix string
   // Allowed names correspond to all the const static single-qubit
@@ -160,10 +170,7 @@ cvector_t VMatrix::identity(size_t dim) {
 }
 
 cvector_t VMatrix::u1(double lambda) {
-  cvector_t mat(2 * 2);
-  mat[0 + 0 * 2] = {1., 0.};
-  mat[1 + 1 * 2] = std::exp(complex_t(0., lambda));
-  return mat;
+  return phase(lambda);
 }
 
 cvector_t VMatrix::u2(double phi, double lambda) {
@@ -295,6 +302,30 @@ cvector_t VMatrix::rzx(double theta) {
   mat[3 + 1 * 4] = i * sint;
   mat[3 + 3 * 4] = cost;
   return mat;
+}
+
+cvector_t VMatrix::phase(double theta) {
+  cvector_t mat(2 * 2);
+  mat[0] = 1;
+  mat[3] = std::exp(complex_t(0.0, theta));
+  return mat;
+}
+
+cvector_t VMatrix::phase_diag(double theta) {
+  return {{1, std::exp(complex_t(0.0, theta))}};
+}
+
+cvector_t VMatrix::cphase(double theta) {
+  cvector_t mat(4 * 4);
+  mat[0] = 1;
+  mat[5] = 1;
+  mat[10] = 1;
+  mat[15] = std::exp(complex_t(0.0, theta));
+  return mat;
+}
+
+cvector_t VMatrix::cphase_diag(double theta) {
+  return {{1, 1, 1, std::exp(complex_t(0.0, theta))}};
 }
 
 //------------------------------------------------------------------------------
