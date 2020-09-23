@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from typing import Callable, Union, List
 from .signals import Signal, ConstantSignal, PiecewiseConstant
 
-from numpy import convolve
+from numpy import convolve, array
 
 
 class BaseTransferFunction(ABC):
@@ -51,7 +51,8 @@ class Convolution(BaseTransferFunction):
     def __init__(self, func: Callable):
         """
         Args:
-            func: The convolution function specified in time.
+            func: The convolution function specified in time. This function will be normalized
+                  to one before doing the convolution. To scale signals multiply them by a float.
         """
         self._func = func
 
@@ -94,7 +95,8 @@ class Convolution(BaseTransferFunction):
         if isinstance(signal, PiecewiseConstant):
             # Perform a discrete time convolution.
             dt = signal.dt
-            func_samples = [self._func(dt*i) for i in range(signal.duration)]
+            func_samples = array([self._func(dt*i) for i in range(signal.duration)])
+            func_samples = func_samples / sum(func_samples)
             sig_samples = [signal.value(dt*i) for i in range(signal.duration)]
 
             convoluted_samples = convolve(func_samples, sig_samples)

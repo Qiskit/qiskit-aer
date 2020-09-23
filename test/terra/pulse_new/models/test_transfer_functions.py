@@ -29,12 +29,12 @@ class TestTransferFunctions(QiskitAerTestCase):
         """Test of convolution function."""
         ts = np.linspace(0, 100, 200)
 
-        def gaus(t):
+        def gaussian(t):
             sigma = 4
             return 2. * ts[1] / np.sqrt(2. * np.pi * sigma ** 2) * np.exp(-t ** 2 / (2 * sigma ** 2))
 
         # Test the simple convolution of a signal without a carrier
-        convolution = Convolution(gaus)
+        convolution = Convolution(gaussian)
 
         samples = [0. if t < 20. or t > 80. else 1. for t in ts]  # Defines a square pulse.
         piecewise_const = PiecewiseConstant(dt=ts[1] - ts[0], samples=samples, carrier_freq=0.0, start_time=0)
@@ -60,3 +60,17 @@ class TestTransferFunctions(QiskitAerTestCase):
 
         convolved = convolution.apply(signals)
         self.assertEquals(len(convolved), 2)
+
+        # Test that the normalization happens properly
+        def non_normalized_gaussian(t):
+            sigma = 4
+            return 20. * np.exp(-t ** 2 / (2 * sigma ** 2))
+
+        convolution = Convolution(non_normalized_gaussian)
+
+        convolved2 = convolution.apply(piecewise_const)
+
+        self.assertAlmostEquals(convolved[0].value(15.0), convolved2.value(15.0), places=6)
+        self.assertAlmostEquals(convolved[0].value(20.0), convolved2.value(20.0), places=6)
+        self.assertAlmostEquals(convolved[0].value(25.0), convolved2.value(25.0), places=6)
+        self.assertAlmostEquals(convolved[0].value(30.0), convolved2.value(30.0), places=6)
