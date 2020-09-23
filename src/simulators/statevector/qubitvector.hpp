@@ -627,11 +627,11 @@ cvector_t<data_t> QubitVector<data_t, Derived>::vector() const {
 }
 
 template <typename data_t, typename Derived>
-
 cdict_t<data_t> QubitVector<data_t, Derived>::vector_ket(double epsilon) const {
     return AER::Utils::vec2ket(data_, size(), epsilon, 16);
 }
 
+template <typename data_t, typename Derived>
 AER::Vector<std::complex<data_t>> QubitVector<data_t, Derived>::copy_to_vector() const {
   return AER::Vector<std::complex<data_t>>::copy_from_buffer(data_size_, data_);
 }
