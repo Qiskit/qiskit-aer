@@ -30,19 +30,20 @@ class OperatorModel:
 
     for :math:`G_i` matrices (represented by :class:`Operator` objects),
     and the :math:`s_i(t)` given by signals represented by a
-    class:`VectorSignal` object. (remains to be seen)
+    :class:`VectorSignal` object, or a list of :class:`Signal` objects.
 
     This object contains functionality to evaluate :math:`G(t)` for a given
     :math:`t`, or to compute products :math:`G(t)A` and :math:`AG(t)` for
     :math:`A` an :class:`Operator` or array of suitable dimension.
 
     Additionally, this class has functionality for representing :math:`G(t)`
-    in a rotating frame, and doing a rotating wave approximation in that frame.
+    in a rotating frame, and setting frequency cutoffs
+    (e.g. for the rotating wave approximation).
     Specifically, given an anti-Hermitian frame operator :math:`F` (i.e.
     :math:`F^\dagger = -F`), entering the frame of :math:`F` results in
     the object representing the operator :math:`e^{-Ft}G(t)e^{Ft} - F`.
 
-    Further, if an RWA frequency cutoff is set, when evaluating the
+    Further, if a frequency cutoff is set, when evaluating the
     `OperatorModel`, any terms with a frequency above the cutoff
     (which combines both signal frequency information and frame frequency
     information) will be set to :math:`0`.

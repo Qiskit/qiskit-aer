@@ -389,7 +389,7 @@ def signal_add(sig1: Union[BaseSignal, float, int, complex],
 
 class VectorSignal:
     """The vector version of the Signal class - the envelope is an array-valued
-    function, and carrier_freqs is an array of carrir frequencies.
+    function, and carrier_freqs is an array of carrier frequencies.
 
     In addition, a drift_array is set to correspond to the value of the
     VectorSignal when all "time-dependent terms" are off. E.g. if it is
