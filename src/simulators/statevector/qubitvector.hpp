@@ -643,7 +643,6 @@ AER::Vector<std::complex<data_t>> QubitVector<data_t, Derived>::move_to_vector()
   return vec;
 }
 
-
 //------------------------------------------------------------------------------
 // State initialize component
 //------------------------------------------------------------------------------
