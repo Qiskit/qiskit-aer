@@ -388,16 +388,25 @@ def signal_add(sig1: Union[BaseSignal, float, int, complex],
 
 
 class VectorSignal:
-    """The vector version of Signal
+    """The vector version of the Signal class - the envelope is an array-valued
+    function, and carrier_freqs is an array of carrir frequencies.
+
+    In addition, a drift_array is set to correspond to the value of the
+    VectorSignal when all "time-dependent terms" are off. E.g. if it is
+    composed of a list of Signal objects, this corresponds to the output when
+    all non-Constant signal objects are zero.
     """
 
     def __init__(self,
                  envelope,
                  carrier_freqs,
                  drift_array=None):
-        """
-        Note: drift_array is supposed to be the array with Constant
-        entries taking their values and the rest being 0.
+        """Initialize.
+
+        Args:
+            envelope (Callable): function of a single float returning an array.
+            carrier_freqs (array): list of carrier frequences
+            drift_array (array): the drift array
         """
         self.envelope = envelope
         self.carrier_freqs = carrier_freqs
@@ -411,10 +420,14 @@ class VectorSignal:
 
     @classmethod
     def from_signal_list(cls, signal_list):
-        """Define a VectorSignal from a list of signals
+        """Instantiate from a list of Signal objects. The drift_array will
+        correspond to the Constant objects.
+
+        Args:
+            signal_list (list): list of Signal objects.
         """
 
-        # define the envelope
+        # define the envelope as iteratively evaluating the envelopes
         def env_func(t):
             return np.array([sig.envelope_value(t) for sig in signal_list])
 
@@ -434,14 +447,33 @@ class VectorSignal:
                    drift_array=np.array(drift_array))
 
     def envelope_value(self, t):
+        """Evaluate the envelope.
+
+        Args:
+            t (float): time
+
+        Returns:
+            array
+        """
         return self.envelope(t)
 
     def value(self, t):
-        carrier_val = np.exp(1j * 2 * np.pi * self.carrier_freqs * t)
+        """Evaluate the full value of the VectorSignal.
+
+        Args:
+            t (float): time
+
+        Returns:
+            array
+        """
+        carrier_val = np.exp( (1j * 2 * np.pi * t) * self.carrier_freqs)
         return self.envelope_value(t) * carrier_val
 
     def conjugate(self):
         """Return a new VectorSignal that is the complex conjugate of self.
+
+        Returns:
+            VectorSignal
         """
         return VectorSignal(lambda t: np.conjugate(self.envelope_value(t)),
                             -self.carrier_freqs,

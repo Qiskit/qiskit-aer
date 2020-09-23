@@ -54,24 +54,17 @@ class OperatorModel:
                  signal_mapping=None,
                  frame_operator=None,
                  cutoff_freq=None):
-        """
-        *** Fix this***!!!!!!!!!
-        Currently:
-        - operators are a list of Operator objects
-        - signals are a list of Signal objects, but this should be changed to
-          be either a VectorSignal or literally anything (the inputs to
-          signal_mapping)
-        - frame_operator (for now an Operator or an np array)
-        - cutoff_freq (float)
+        """Initialize.
 
         Args:
-            signals: The signals of the model. Each signal is the coefficient (potentially
-                time-dependent) to an operator. There should be as many signals in the model
-                as there are operators.
-            operators: The list of operators.
-            transfer_functions: List of list of transfer functions applied to the signals.
-                The outer list must have the same length as the list of signals.
-            transformations: specification of transformations on the model
+            operators (list): list of Operator objects.
+            signals (list): Specifiable as either a VectorSignal, a list of
+                            Signal objects, or as the inputs to signal_mapping.
+            signal_mapping (Callable): a function returning wither a
+                                       VectorSignal or a list of Signal objects.
+
+            frame_operator (Operator): Rotating frame operator.
+            cutoff_freq (float): Frequency cutoff when evaluating the model.
         """
 
         self._operators = operators
@@ -98,29 +91,39 @@ class OperatorModel:
 
     @signals.setter
     def signals(self, signals):
-        """Set the signals"""
+        """Set the signals.
+
+        Behavior:
+            - If no signal_mapping is specified, the argument signals is
+              assumed to be either a list of Signal objects, or a VectorSignal,
+              and is saved in self._signals.
+            - If a signal_mapping is specified, signals is assumed to be a valid
+              input of signal_mapping. The argument signals is set to
+              self._signal_params, and the output of signal_mapping is saved in
+              self._signals.
+        """
         if signals is None:
             self._signal_params = None
             self._signals = None
             self._carrier_freqs = None
         else:
 
-            # if there is a signal_mapping, take the input as the parameters
-            # to the function
+            # if a signal_mapping is specified, take signals as the input
             if self._signal_mapping is not None:
                 self._signal_params = signals
                 signals = self._signal_mapping(signals)
 
-            # if signals given as a list, transform it into a VectorSignal
+            # if signals is a list, instantiate a VectorSignal
             if isinstance(signals, list):
                 signals = VectorSignal.from_signal_list(signals)
 
             # if it isn't a VectorSignal by now, raise an error
             if not isinstance(signals, VectorSignal):
-                raise
+                raise Exception('signals specified in unaccepted format.')
 
+            # check if the new carrier frequencies are different from the old.
+            # if yes, update them and reinstantiate the frame helper.
             new_freqs = signals.carrier_freqs
-
             if any(signals.carrier_freqs != self._carrier_freqs):
                 self._carrier_freqs = signals.carrier_freqs
                 self._construct_frame_helper()
@@ -129,21 +132,28 @@ class OperatorModel:
 
     @property
     def frame_operator(self):
+        """Return the frame operator."""
         return self._frame_operator
 
     @frame_operator.setter
     def frame_operator(self, frame_operator):
+        """Set the frame operator; must be anti-Hermitian.
 
-        # checks to ensure frame_operator corresponds to an antihermitian matrix
+        Accepts frame_operator as:
+            - An Operator object
+            - A 2d array
+            - A 1d array - in which case it is assumed the frame operator is a
+              diagonal matrix, and the array gives the diagonal elements.
+        """
+
         if isinstance(frame_operator, np.ndarray) and frame_operator.ndim == 1:
-            # verify that it is anti-hermitian (i.e. purely imaginary)
+            # if 1d array check purely imaginary
             if np.linalg.norm(frame_operator + frame_operator.conj()) > 10**-10:
                 raise Exception('frame_op must correspond to an anti-Hermitian matrix.')
         else:
-            # Ensure that it is an Operator object
+            # otherwise, cast as Operator and verify anti-Hermitian
             frame_operator = Operator(frame_operator)
 
-            # verify anti-hermitian
             herm_part = frame_operator + frame_operator.adjoint()
             if herm_part != Operator(np.zeros(frame_operator.dim)):
                 raise Exception('frame_op must be an anti-Hermitian matrix.')
