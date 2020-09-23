@@ -233,30 +233,18 @@ class QasmSimulator(AerBackend):
         log2(local_hardware_info()['memory'] * (1024**3) / 16))
 
     DEFAULT_CONFIGURATION = {
-        'backend_name':
-        'qasm_simulator',
-        'backend_version':
-        __version__,
-        'n_qubits':
-        MAX_QUBIT_MEMORY,
-        'url':
-        'https://github.com/Qiskit/qiskit-aer',
-        'simulator':
-        True,
-        'local':
-        True,
-        'conditional':
-        True,
-        'open_pulse':
-        False,
-        'memory':
-        True,
-        'max_shots':
-        int(1e6),
-        'description':
-        'A C++ simulator with realistic noise for QASM Qobj files',
-        'coupling_map':
-        None,
+        'backend_name': 'qasm_simulator',
+        'backend_version': __version__,
+        'n_qubits': MAX_QUBIT_MEMORY,
+        'url': 'https://github.com/Qiskit/qiskit-aer',
+        'simulator': True,
+        'local': True,
+        'conditional': True,
+        'open_pulse': False,
+        'memory': True,
+        'max_shots': int(1e6),
+        'description': 'A C++ simulator with realistic noise for QASM Qobj files',
+        'coupling_map': None,
         'basis_gates': [
             'u1', 'u2', 'u3', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
             't', 'tdg', 'swap', 'ccx', 'r', 'rx', 'ry', 'rz', 'rxx', 'ryy',

@@ -78,34 +78,23 @@ class UnitarySimulator(AerBackend):
         log2(sqrt(local_hardware_info()['memory'] * (1024**3) / 16)))
 
     DEFAULT_CONFIGURATION = {
-        'backend_name':
-        'unitary_simulator',
-        'backend_version':
-        __version__,
-        'n_qubits':
-        MAX_QUBIT_MEMORY,
+        'backend_name': 'unitary_simulator',
+        'backend_version': __version__,
+        'n_qubits': MAX_QUBIT_MEMORY,
         'url':
         'https://github.com/Qiskit/qiskit-aer',
-        'simulator':
-        True,
-        'local':
-        True,
-        'conditional':
-        False,
-        'open_pulse':
-        False,
-        'memory':
-        False,
-        'max_shots':
-        int(1e6),  # Note that this backend will only ever
-        # perform a single shot. This value is just
-        # so that the default shot value for execute
-        # will not raise an error when trying to run
-        # a simulation
-        'description':
-        'A C++ unitary simulator for QASM Qobj files',
-        'coupling_map':
-        None,
+        'simulator': True,
+        'local': True,
+        'conditional': False,
+        'open_pulse': False,
+        'memory': False,
+        'max_shots': int(1e6),  # Note that this backend will only ever
+                                # perform a single shot. This value is just
+                                # so that the default shot value for execute
+                                # will not raise an error when trying to run
+                                # a simulation
+        'description': 'A C++ unitary simulator for QASM Qobj files',
+        'coupling_map': None,
         'basis_gates': [
             'u1', 'u2', 'u3', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
             't', 'tdg', 'swap', 'ccx', 'r', 'rx', 'ry', 'rz', 'rxx', 'ryy',

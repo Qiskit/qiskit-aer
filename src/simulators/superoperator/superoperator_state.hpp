@@ -43,30 +43,8 @@ const Operations::OpSet StateOpSet(
 
 // Allowed gates enum class
 enum class Gates {
-  u1,
-  u2,
-  u3,
-  id,
-  x,
-  y,
-  z,
-  h,
-  s,
-  sdg,
-  t,
-  tdg,
-  r,
-  rx,
-  ry,
-  rz, // single qubit
-  cx,
-  cz,
-  swap,
-  rxx,
-  ryy,
-  rzz,
-  rzx, // two qubit
-  ccx  // three qubit
+  u2, u1, u3, id, x, y, z, h, s, sdg, t, tdg, r, rx, ry, rz,
+  cx, cz, swap, rxx, ryy, rzz, rzx, ccx
 };
 
 // Allowed snapshots enum class
@@ -232,36 +210,36 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
   // Simple loop over vector of input operations
   for (const auto &op: ops) {
     switch (op.type) {
-    case Operations::OpType::barrier:
-      break;
-    case Operations::OpType::gate:
-      // Note conditionals will always fail since no classical registers
-      if (BaseState::creg_.check_conditional(op))
-        apply_gate(op);
-      break;
-    case Operations::OpType::reset:
-      apply_reset(op.qubits);
-      break;
-    case Operations::OpType::matrix:
-      apply_matrix(op.qubits, op.mats[0]);
-      break;
-    case Operations::OpType::diagonal_matrix:
-      BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
-      break;
-    case Operations::OpType::kraus:
-      apply_kraus(op.qubits, op.mats);
-      break;
-    case Operations::OpType::superop:
-      BaseState::qreg_.apply_superop_matrix(
-          op.qubits, Utils::vectorize_matrix(op.mats[0]));
-      break;
-    case Operations::OpType::snapshot:
-      apply_snapshot(op, data);
-      break;
-    default:
-      throw std::invalid_argument(
-          "QubitSuperoperator::State::invalid instruction \'" + op.name +
-          "\'.");
+      case Operations::OpType::barrier:
+        break;
+      case Operations::OpType::gate:
+        // Note conditionals will always fail since no classical registers
+        if (BaseState::creg_.check_conditional(op))
+          apply_gate(op);
+        break;
+      case Operations::OpType::reset:
+        apply_reset(op.qubits);
+        break;
+      case Operations::OpType::matrix:
+        apply_matrix(op.qubits, op.mats[0]);
+        break;
+      case Operations::OpType::diagonal_matrix:
+        BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
+        break;
+      case Operations::OpType::kraus:
+        apply_kraus(op.qubits, op.mats);
+        break;
+      case Operations::OpType::superop:
+        BaseState::qreg_.apply_superop_matrix(
+            op.qubits, Utils::vectorize_matrix(op.mats[0]));
+        break;
+      case Operations::OpType::snapshot:
+        apply_snapshot(op, data);
+        break;
+      default:
+        throw std::invalid_argument(
+            "QubitSuperoperator::State::invalid instruction \'" + op.name +
+            "\'.");
     }
   }
 }
@@ -364,85 +342,85 @@ void State<data_t>::apply_gate(const Operations::Op &op) {
     throw std::invalid_argument("Unitary::State::invalid gate instruction \'" +
                                 op.name + "\'.");
   switch (it->second) {
-  case Gates::u3:
-    apply_gate_u3(op.qubits[0], std::real(op.params[0]),
-                  std::real(op.params[1]), std::real(op.params[2]));
-    break;
-  case Gates::u2:
-    apply_gate_u3(op.qubits[0], M_PI / 2., std::real(op.params[0]),
-                  std::real(op.params[1]));
-    break;
-  case Gates::u1:
-    apply_gate_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
-    break;
-  case Gates::r:
-    apply_matrix(op.qubits, Linalg::VMatrix::r(op.params[0], op.params[1]));
-    break;
-  case Gates::rx:
-    apply_matrix(op.qubits, Linalg::VMatrix::rx(op.params[0]));
-    break;
-  case Gates::ry:
-    apply_matrix(op.qubits, Linalg::VMatrix::ry(op.params[0]));
-    break;
-  case Gates::rz:
-    apply_matrix(op.qubits, Linalg::VMatrix::rz_diag(op.params[0]));
-    break;
-  case Gates::rxx:
-    apply_matrix(op.qubits, Linalg::VMatrix::rxx(op.params[0]));
-    break;
-  case Gates::ryy:
-    apply_matrix(op.qubits, Linalg::VMatrix::ryy(op.params[0]));
-    break;
-  case Gates::rzz:
-    apply_matrix(op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
-    break;
-  case Gates::rzx:
-    apply_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
-    break;
-  case Gates::cx:
-    BaseState::qreg_.apply_cnot(op.qubits[0], op.qubits[1]);
-    break;
-  case Gates::cz:
-    BaseState::qreg_.apply_cz(op.qubits[0], op.qubits[1]);
-    break;
-  case Gates::id:
-    break;
-  case Gates::x:
-    BaseState::qreg_.apply_x(op.qubits[0]);
-    break;
-  case Gates::y:
-    BaseState::qreg_.apply_y(op.qubits[0]);
-    break;
-  case Gates::z:
-    BaseState::qreg_.apply_z(op.qubits[0]);
-    break;
-  case Gates::h:
-    apply_gate_u3(op.qubits[0], M_PI / 2., 0., M_PI);
-    break;
-  case Gates::s:
-    apply_gate_phase(op.qubits[0], complex_t(0., 1.));
-    break;
-  case Gates::sdg:
-    apply_gate_phase(op.qubits[0], complex_t(0., -1.));
-    break;
-  case Gates::t: {
-    const double isqrt2{1. / std::sqrt(2)};
-    apply_gate_phase(op.qubits[0], complex_t(isqrt2, isqrt2));
-  } break;
-  case Gates::tdg: {
-    const double isqrt2{1. / std::sqrt(2)};
-    apply_gate_phase(op.qubits[0], complex_t(isqrt2, -isqrt2));
-  } break;
-  case Gates::swap: {
-    BaseState::qreg_.apply_swap(op.qubits[0], op.qubits[1]);
-  } break;
-  case Gates::ccx:
-    BaseState::qreg_.apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
-    break;
-  default:
-    // We shouldn't reach here unless there is a bug in gateset
-    throw std::invalid_argument(
-        "Superoperator::State::invalid gate instruction \'" + op.name + "\'.");
+    case Gates::u3:
+      apply_gate_u3(op.qubits[0], std::real(op.params[0]),
+                    std::real(op.params[1]), std::real(op.params[2]));
+      break;
+    case Gates::u2:
+      apply_gate_u3(op.qubits[0], M_PI / 2., std::real(op.params[0]),
+                    std::real(op.params[1]));
+      break;
+    case Gates::u1:
+      apply_gate_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
+      break;
+    case Gates::r:
+      apply_matrix(op.qubits, Linalg::VMatrix::r(op.params[0], op.params[1]));
+      break;
+    case Gates::rx:
+      apply_matrix(op.qubits, Linalg::VMatrix::rx(op.params[0]));
+      break;
+    case Gates::ry:
+      apply_matrix(op.qubits, Linalg::VMatrix::ry(op.params[0]));
+      break;
+    case Gates::rz:
+      apply_matrix(op.qubits, Linalg::VMatrix::rz_diag(op.params[0]));
+      break;
+    case Gates::rxx:
+      apply_matrix(op.qubits, Linalg::VMatrix::rxx(op.params[0]));
+      break;
+    case Gates::ryy:
+      apply_matrix(op.qubits, Linalg::VMatrix::ryy(op.params[0]));
+      break;
+    case Gates::rzz:
+      apply_matrix(op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
+      break;
+    case Gates::rzx:
+      apply_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
+      break;
+    case Gates::cx:
+      BaseState::qreg_.apply_cnot(op.qubits[0], op.qubits[1]);
+      break;
+    case Gates::cz:
+      BaseState::qreg_.apply_cz(op.qubits[0], op.qubits[1]);
+      break;
+    case Gates::id:
+      break;
+    case Gates::x:
+      BaseState::qreg_.apply_x(op.qubits[0]);
+      break;
+    case Gates::y:
+      BaseState::qreg_.apply_y(op.qubits[0]);
+      break;
+    case Gates::z:
+      BaseState::qreg_.apply_z(op.qubits[0]);
+      break;
+    case Gates::h:
+      apply_gate_u3(op.qubits[0], M_PI / 2., 0., M_PI);
+      break;
+    case Gates::s:
+      apply_gate_phase(op.qubits[0], complex_t(0., 1.));
+      break;
+    case Gates::sdg:
+      apply_gate_phase(op.qubits[0], complex_t(0., -1.));
+      break;
+    case Gates::t: {
+      const double isqrt2{1. / std::sqrt(2)};
+      apply_gate_phase(op.qubits[0], complex_t(isqrt2, isqrt2));
+    } break;
+    case Gates::tdg: {
+      const double isqrt2{1. / std::sqrt(2)};
+      apply_gate_phase(op.qubits[0], complex_t(isqrt2, -isqrt2));
+    } break;
+    case Gates::swap: {
+      BaseState::qreg_.apply_swap(op.qubits[0], op.qubits[1]);
+    } break;
+    case Gates::ccx:
+      BaseState::qreg_.apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
+      break;
+    default:
+      // We shouldn't reach here unless there is a bug in gateset
+      throw std::invalid_argument(
+          "Superoperator::State::invalid gate instruction \'" + op.name + "\'.");
   }
 }
 

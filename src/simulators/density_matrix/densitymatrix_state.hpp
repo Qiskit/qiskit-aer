@@ -51,41 +51,16 @@ const Operations::OpSet StateOpSet(
 
 // Allowed gates enum class
 enum class Gates {
-  u1,
-  u2,
-  u3,
-  r,
-  rx,
-  ry,
-  rz,
-  id,
-  x,
-  y,
-  z,
-  h,
-  s,
-  sdg,
-  t,
-  tdg, // single qubit
-  cx,
-  cz,
-  swap,
-  rxx,
-  ryy,
-  rzz,
-  rzx, // two qubit
-  ccx  // three qubit
+  u1, u2, u3, r, rx,ry, rz, id, x, y, z, h, s,sdg, t, tdg,
+  cx, cz, swap, rxx, ryy, rzz, rzx, ccx
 };
 
 // Allowed snapshots enum class
 enum class Snapshots {
-  cmemory,
-  cregister,
+  cmemory, cregister,
   densitymatrix,
-  probs,
-  probs_var,
-  expval_pauli,
-  expval_pauli_var
+  probs, probs_var,
+  expval_pauli, expval_pauli_var
   /* TODO: The following expectation value snapshots still need to be
      implemented */
   //,expval_matrix, expval_matrix_var
@@ -468,40 +443,40 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
         "DensityMatrixState::invalid snapshot instruction \'" + op.name +
         "\'.");
   switch (it->second) {
-  case Snapshots::densitymatrix:
-    snapshot_density_matrix(op, data);
-    break;
-  case Snapshots::cmemory:
-    BaseState::snapshot_creg_memory(op, data);
-    break;
-  case Snapshots::cregister:
-    BaseState::snapshot_creg_register(op, data);
-    break;
-  case Snapshots::probs:
-    // get probs as hexadecimal
-    snapshot_probabilities(op, data, false);
-    break;
-  case Snapshots::probs_var:
-    // get probs as hexadecimal
-    snapshot_probabilities(op, data, true);
-    break;
-  case Snapshots::expval_pauli: {
-    snapshot_pauli_expval(op, data, false);
-  } break;
-  case Snapshots::expval_pauli_var: {
-    snapshot_pauli_expval(op, data, true);
-  } break;
-  /* TODO
-  case Snapshots::expval_matrix: {
-    snapshot_matrix_expval(op, data, false);
-  }  break;
-  case Snapshots::expval_matrix_var: {
-    snapshot_matrix_expval(op, data, true);
-  }  break;
-  */
-  default:
-    // We shouldn't get here unless there is a bug in the snapshotset
-    throw std::invalid_argument(
+    case Snapshots::densitymatrix:
+      snapshot_density_matrix(op, data);
+      break;
+    case Snapshots::cmemory:
+      BaseState::snapshot_creg_memory(op, data);
+      break;
+    case Snapshots::cregister:
+      BaseState::snapshot_creg_register(op, data);
+      break;
+    case Snapshots::probs:
+      // get probs as hexadecimal
+      snapshot_probabilities(op, data, false);
+      break;
+    case Snapshots::probs_var:
+      // get probs as hexadecimal
+      snapshot_probabilities(op, data, true);
+      break;
+    case Snapshots::expval_pauli: {
+      snapshot_pauli_expval(op, data, false);
+    } break;
+    case Snapshots::expval_pauli_var: {
+      snapshot_pauli_expval(op, data, true);
+    } break;
+    /* TODO
+    case Snapshots::expval_matrix: {
+      snapshot_matrix_expval(op, data, false);
+    }  break;
+    case Snapshots::expval_matrix_var: {
+      snapshot_matrix_expval(op, data, true);
+    }  break;
+    */
+    default:
+      // We shouldn't get here unless there is a bug in the snapshotset
+      throw std::invalid_argument(
         "DensityMatrix::State::invalid snapshot instruction \'" + op.name +
         "\'.");
   }
@@ -679,84 +654,84 @@ void State<densmat_t>::apply_gate(const Operations::Op &op) {
     throw std::invalid_argument(
         "DensityMatrixState::invalid gate instruction \'" + op.name + "\'.");
   switch (it->second) {
-  case Gates::u3:
-    apply_gate_u3(op.qubits[0], std::real(op.params[0]),
-                  std::real(op.params[1]), std::real(op.params[2]));
-    break;
-  case Gates::u2:
-    apply_gate_u3(op.qubits[0], M_PI / 2., std::real(op.params[0]),
-                  std::real(op.params[1]));
-    break;
-  case Gates::u1:
-    apply_gate_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
-    break;
-  case Gates::cx:
-    BaseState::qreg_.apply_cnot(op.qubits[0], op.qubits[1]);
-    break;
-  case Gates::cz:
-    BaseState::qreg_.apply_cz(op.qubits[0], op.qubits[1]);
-    break;
-  case Gates::id:
-    break;
-  case Gates::x:
-    BaseState::qreg_.apply_x(op.qubits[0]);
-    break;
-  case Gates::y:
-    BaseState::qreg_.apply_y(op.qubits[0]);
-    break;
-  case Gates::z:
-    BaseState::qreg_.apply_z(op.qubits[0]);
-    break;
-  case Gates::h:
-    apply_gate_u3(op.qubits[0], M_PI / 2., 0., M_PI);
-    break;
-  case Gates::s:
-    apply_gate_phase(op.qubits[0], complex_t(0., 1.));
-    break;
-  case Gates::sdg:
-    apply_gate_phase(op.qubits[0], complex_t(0., -1.));
-    break;
-  case Gates::t: {
-    const double isqrt2{1. / std::sqrt(2)};
-    apply_gate_phase(op.qubits[0], complex_t(isqrt2, isqrt2));
-  } break;
-  case Gates::tdg: {
-    const double isqrt2{1. / std::sqrt(2)};
-    apply_gate_phase(op.qubits[0], complex_t(isqrt2, -isqrt2));
-  } break;
-  case Gates::swap: {
-    BaseState::qreg_.apply_swap(op.qubits[0], op.qubits[1]);
-  } break;
-  case Gates::ccx:
-    BaseState::qreg_.apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
-    break;
-  case Gates::r:
-    BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::r(op.params[0], op.params[1]));
-    break;
-  case Gates::rx:
-    BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::rx(op.params[0]));
-    break;
-  case Gates::ry:
-    BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::ry(op.params[0]));
-    break;
-  case Gates::rz:
-    BaseState::qreg_.apply_diagonal_unitary_matrix(op.qubits, Linalg::VMatrix::rz_diag(op.params[0]));
-    break;
-  case Gates::rxx:
-    BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::rxx(op.params[0]));
-    break;
-  case Gates::ryy:
-    BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::ryy(op.params[0]));
-    break;
-  case Gates::rzz:
-    BaseState::qreg_.apply_diagonal_unitary_matrix(op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
-    break;
-  case Gates::rzx:
-    BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
-    break;
-  default:
-    // We shouldn't reach here unless there is a bug in gateset
-    throw std::invalid_argument(
+    case Gates::u3:
+      apply_gate_u3(op.qubits[0], std::real(op.params[0]),
+                    std::real(op.params[1]), std::real(op.params[2]));
+      break;
+    case Gates::u2:
+      apply_gate_u3(op.qubits[0], M_PI / 2., std::real(op.params[0]),
+                    std::real(op.params[1]));
+      break;
+    case Gates::u1:
+      apply_gate_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
+      break;
+    case Gates::cx:
+      BaseState::qreg_.apply_cnot(op.qubits[0], op.qubits[1]);
+      break;
+    case Gates::cz:
+      BaseState::qreg_.apply_cz(op.qubits[0], op.qubits[1]);
+      break;
+    case Gates::id:
+      break;
+    case Gates::x:
+      BaseState::qreg_.apply_x(op.qubits[0]);
+      break;
+    case Gates::y:
+      BaseState::qreg_.apply_y(op.qubits[0]);
+      break;
+    case Gates::z:
+      BaseState::qreg_.apply_z(op.qubits[0]);
+      break;
+    case Gates::h:
+      apply_gate_u3(op.qubits[0], M_PI / 2., 0., M_PI);
+      break;
+    case Gates::s:
+      apply_gate_phase(op.qubits[0], complex_t(0., 1.));
+      break;
+    case Gates::sdg:
+      apply_gate_phase(op.qubits[0], complex_t(0., -1.));
+      break;
+    case Gates::t: {
+      const double isqrt2{1. / std::sqrt(2)};
+      apply_gate_phase(op.qubits[0], complex_t(isqrt2, isqrt2));
+    } break;
+    case Gates::tdg: {
+      const double isqrt2{1. / std::sqrt(2)};
+      apply_gate_phase(op.qubits[0], complex_t(isqrt2, -isqrt2));
+    } break;
+    case Gates::swap: {
+      BaseState::qreg_.apply_swap(op.qubits[0], op.qubits[1]);
+    } break;
+    case Gates::ccx:
+      BaseState::qreg_.apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
+      break;
+    case Gates::r:
+      BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::r(op.params[0], op.params[1]));
+      break;
+    case Gates::rx:
+      BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::rx(op.params[0]));
+      break;
+    case Gates::ry:
+      BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::ry(op.params[0]));
+      break;
+    case Gates::rz:
+      BaseState::qreg_.apply_diagonal_unitary_matrix(op.qubits, Linalg::VMatrix::rz_diag(op.params[0]));
+      break;
+    case Gates::rxx:
+      BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::rxx(op.params[0]));
+      break;
+    case Gates::ryy:
+      BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::ryy(op.params[0]));
+      break;
+    case Gates::rzz:
+      BaseState::qreg_.apply_diagonal_unitary_matrix(op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
+      break;
+    case Gates::rzx:
+      BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
+      break;
+    default:
+      // We shouldn't reach here unless there is a bug in gateset
+      throw std::invalid_argument(
         "DensityMatrix::State::invalid gate instruction \'" + op.name + "\'.");
   }
 }
