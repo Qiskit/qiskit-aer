@@ -16,5 +16,5 @@
 Models.
 """
 
-from .signals import Signal, PiecewiseConstant, Constant, ConstantSignal
+from .signals import Signal, PiecewiseConstant, Constant
 from .transfer_functions import Convolution

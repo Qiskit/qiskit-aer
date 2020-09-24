@@ -26,11 +26,11 @@ class BaseSignal(ABC):
         """Return a new signal that is the complex conjugate of self."""
 
     @abstractmethod
-    def envelope_value(self, t: float) -> complex:
+    def envelope_value(self, t: float = 0.) -> complex:
         """Evaluates the envelope at time t."""
 
     @abstractmethod
-    def value(self, t: float) -> complex:
+    def value(self, t: float = 0.) -> complex:
         """Return the value of the signal at time t."""
 
     def __mul__(self, other):
@@ -44,6 +44,26 @@ class BaseSignal(ABC):
 
     def __radd__(self, other):
         return signal_add(self, other)
+
+    def plot(self, t0: float, tf: float, n: int):
+        x_vals = np.linspace(t0, tf, n)
+
+        sig_vals = []
+        for x in x_vals:
+            sig_vals.append(self.value(x))
+
+        plt.plot(x_vals, np.real(sig_vals))
+        plt.plot(x_vals, np.imag(sig_vals))
+
+    def plot_envelope(self, t0: float, tf: float, n: int):
+        x_vals = np.linspace(t0, tf, n)
+
+        sig_vals = []
+        for x in x_vals:
+            sig_vals.append(self.envelope_value(x))
+
+        plt.plot(x_vals, np.real(sig_vals))
+        plt.plot(x_vals, np.imag(sig_vals))
 
 
 class Signal(BaseSignal):
@@ -63,42 +83,23 @@ class Signal(BaseSignal):
             envelope = complex(envelope)
 
         if isinstance(envelope, complex):
-            envelope = lambda t: envelope
+            self.envelope = lambda t: envelope
+        else:
+            self.envelope = envelope
 
-        self.envelope = envelope
         self.carrier_freq = carrier_freq
 
-    def envelope_value(self, t: float) -> complex:
+    def envelope_value(self, t: float = 0.) -> complex:
         """Evaluates the envelope at time t."""
         return self.envelope(t)
 
-    def value(self, t: float) -> complex:
+    def value(self, t: float = 0.) -> complex:
         """Return the value of the signal at time t."""
         return self.envelope_value(t) * np.exp(1j * 2 * np.pi * self.carrier_freq * t)
 
     def conjugate(self):
         """Return a new signal that is the complex conjugate of this one"""
         return Signal(lambda t: self.envelope_value(t).conjugate(), -self.carrier_freq)
-
-    def plot(self, t0, tf, N):
-        x_vals = np.linspace(t0, tf, N)
-
-        sig_vals = []
-        for x in x_vals:
-            sig_vals.append(self.value(x))
-
-        plt.plot(x_vals, np.real(sig_vals))
-        plt.plot(x_vals, np.imag(sig_vals))
-
-    def plot_envelope(self, t0, tf, N):
-        x_vals = np.linspace(t0, tf, N)
-
-        sig_vals = []
-        for x in x_vals:
-            sig_vals.append(self.envelope_value(x))
-
-        plt.plot(x_vals, np.real(sig_vals))
-        plt.plot(x_vals, np.imag(sig_vals))
 
 
 class Constant(BaseSignal):
@@ -178,9 +179,7 @@ class PiecewiseConstant(BaseSignal):
         """
         return self._start_time
 
-    def envelope_value(self, t: float) -> complex:
-        if t < self._start_time * self._dt:
-            return 0.0j
+    def envelope_value(self, t: float = 0.) -> complex:
 
         idx = int((t - self._start_time) // self._dt)
 
@@ -190,7 +189,7 @@ class PiecewiseConstant(BaseSignal):
 
         return self._samples[idx]
 
-    def value(self, t: float) -> complex:
+    def value(self, t: float = 0.) -> complex:
         """Return the value of the signal at time t."""
         return self.envelope_value(t) * np.exp(1j * 2 * np.pi * self.carrier_freq * t)
 
@@ -233,14 +232,17 @@ def signal_multiply(sig1: Union[BaseSignal, float, int, complex],
         sig2 = Constant(sig2)
 
     # Multiplications with Constant
-    if isinstance(sig1, Constant) and isinstance(sig1, Constant):
+    if isinstance(sig1, Constant) and isinstance(sig2, Constant):
         return Constant(sig1.value() * sig2.value())
 
     elif isinstance(sig1, Constant) and isinstance(sig2, Signal):
         return Signal(lambda t: sig1.value() * sig2.envelope_value(t), sig2.carrier_freq)
 
     elif isinstance(sig1, Constant) and isinstance(sig2, PiecewiseConstant):
-        return PiecewiseConstant(sig1.value()*sig2.samples, sig2.carrier_freq)
+        return PiecewiseConstant(sig2.dt,
+                                 sig1.value()*sig2.samples,
+                                 carrier_freq=sig2.carrier_freq,
+                                 start_time=sig2.start_time)
 
     # Multiplications with Signal
     elif isinstance(sig1, Signal) and isinstance(sig2, Signal):
@@ -251,7 +253,11 @@ def signal_multiply(sig1: Union[BaseSignal, float, int, complex],
         for idx, sample in enumerate(sig2.samples):
             new_samples.append(sample * sig1.envelope_value(sig2.dt*idx + sig2.start_time))
 
-        return PiecewiseConstant(sig2.dt, new_samples, sig1.carrier_freq + sig2.carrier_freq)
+        freq = sig1.carrier_freq + sig2.carrier_freq
+        return PiecewiseConstant(sig2.dt,
+                                 new_samples,
+                                 carrier_freq=freq,
+                                 start_time=sig2.start_time)
 
     # Multiplications with PiecewiseConstant
     elif isinstance(sig1, PiecewiseConstant) and isinstance(sig2, PiecewiseConstant):
@@ -263,7 +269,9 @@ def signal_multiply(sig1: Union[BaseSignal, float, int, complex],
         for idx, sample in enumerate(sig1.samples):
             new_samples.append(sample * sig2.envelope_value(sig1.dt*idx + sig1.start_time))
 
-        return PiecewiseConstant(sig1.dt, new_samples, sig1.carrier_freq + sig2.carrier_freq)
+        return PiecewiseConstant(sig1.dt,
+                                 new_samples,
+                                 carrier_freq=sig1.carrier_freq + sig2.carrier_freq)
 
     # Other symmetric cases
     return signal_multiply(sig2, sig1)
@@ -299,7 +307,7 @@ def signal_add(sig1: Union[BaseSignal, float, int, complex],
         sig2 = Constant(sig2)
 
     # Multiplications with Constant
-    if isinstance(sig1, Constant) and isinstance(sig1, Constant):
+    if isinstance(sig1, Constant) and isinstance(sig2, Constant):
         return Constant(sig1.value() + sig2.value())
 
     elif isinstance(sig1, Constant) and isinstance(sig2, Signal):
@@ -311,7 +319,10 @@ def signal_add(sig1: Union[BaseSignal, float, int, complex],
             t = sig2.dt*idx + sig2.start_time
             new_samples.append(sig1.value() + sig2.value(t))
 
-        return PiecewiseConstant(sig2.dt, new_samples, carrier_freq=0.)
+        return PiecewiseConstant(sig2.dt,
+                                 new_samples,
+                                 start_time=sig2.start_time,
+                                 carrier_freq=0.)
 
     # Multiplications with Signal
     elif isinstance(sig1, Signal) and isinstance(sig2, Signal):
@@ -333,7 +344,7 @@ def signal_add(sig1: Union[BaseSignal, float, int, complex],
                 t = sig2.dt*idx + sig2.start_time
                 new_samples.append(sig1.value(t) + sig2.value(t))
 
-        return PiecewiseConstant(sig2.dt, new_samples, carrier_freq=carrier_freq)
+        return PiecewiseConstant(sig2.dt, new_samples, start_time=sig2.start_time, carrier_freq=carrier_freq)
 
     # Multiplications with PiecewiseConstant
     elif isinstance(sig1, PiecewiseConstant) and isinstance(sig2, PiecewiseConstant):
