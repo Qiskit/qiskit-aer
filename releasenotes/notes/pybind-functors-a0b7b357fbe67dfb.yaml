@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The controller_execute wrappers have been adjusted to be functors (objects)
+    rather than free functions. Among other things, this allows them to be used
+    in multiprocessing.pool.map calls.
