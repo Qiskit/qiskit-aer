@@ -100,7 +100,7 @@ stages:
                 source activate qiskit-aer-$version
                 conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake virtualenv pip setuptools pybind11 cython scipy
                 python -m pip install -U setuptools wheel
-                python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win32"
+                python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64" -A "Win32"
                 virtualenv test-$version
                 test-$version/Scripts/pip install -c constraints.txt dist/*whl
                 test-$version/Scripts/python tools/verify_wheels.py
@@ -218,7 +218,7 @@ stages:
               set -e
               source activate qiskit-aer
               pip install -U setuptools wheel
-              python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win32"
+              python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64" -A "Win32"
             displayName: Build wheels
             env:
               CONDA_FORCE_32BIT: 1
