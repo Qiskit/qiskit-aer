@@ -120,18 +120,6 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   S.resize(new_SV_num);
   V.resize(V.GetRows(), new_SV_num);
 
-    double sum=0;
-    for (uint_t i=0; i<S.size(); i++) {
-      sum += std::norm(S[0]);
-    }
-    if (1-sum > THRESHOLD) {
-
-    std::cout << "sum = " << sum <<"  != 1.0" << std::endl;
-    for (uint_t i=0; i<S.size(); i++)
-      std::cout << S[i] <<" ";
-    std::cout << std::endl;
-    }
-
   // After approximation, we may need to re-normalize the values of S
   if (new_SV_num < SV_num) {
     double sum=0;
@@ -148,7 +136,6 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
 }
 
 void validate_SVD_result(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
-   
   const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
   cmatrix_t diag_S = diag(S, nrows, ncols);
   cmatrix_t product = U*diag_S;
