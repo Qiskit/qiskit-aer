@@ -117,13 +117,27 @@ class Constant(BaseSignal):
 
 
 class ConstantSignal(BaseSignal):
-    """A signal with constant envelope value but potentially non-zero carrier frequency."""
+    """
+    A signal with constant envelope value but potentially non-zero carrier frequency.
+    This class therefore implements a signal of the form
+    .. math::
+
+        A*exp(2\pi i \nu t)
+
+    TODO Consider removing this class as a Signal with a constant lambda is just as good.
+    """
 
     def __init__(self, value: complex, carrier_freq: float = 0.):
+        """
+        Args:
+            value: The constant value of the signal.
+            carrier_freq: The frequency of the carrier.
+        """
         self._value = value
         self.carrier_freq = carrier_freq
 
     def envelope_value(self, t: float = 0.):
+        """Return the constant value of the signal."""
         return self._value
 
     def value(self, t: float) -> complex:
@@ -131,6 +145,7 @@ class ConstantSignal(BaseSignal):
         return self.envelope_value() * np.exp(1j * 2 * np.pi * self.carrier_freq * t)
 
     def conjugate(self):
+        """Conjugate the signal."""
         return ConstantSignal(self._value.conjugate(), -self.carrier_freq)
 
     def __repr__(self):
@@ -139,10 +154,18 @@ class ConstantSignal(BaseSignal):
 
 
 class PiecewiseConstant(BaseSignal):
+    """A piecewise constant signal implemented as an array of samples."""
 
     def __init__(self, dt: float, samples: Union[np.array, List], start_time: float = 0.,
                  duration: int = None, carrier_freq: float = 0):
-
+        """
+        Args:
+            dt: The duration of each sample.
+            samples: The array of samples.
+            start_time: The time at which the signal starts.
+            duration: The duration of the signal in samples.
+            carrier_freq: The frequency of the carrier.
+        """
         self._dt = dt
 
         if samples is not None:
@@ -172,10 +195,18 @@ class PiecewiseConstant(BaseSignal):
 
     @property
     def samples(self) -> np.array:
+        """
+        Returns:
+            samples: the samples of the piecewise constant signal.
+        """
         return np.array([_ for _ in self._samples])
 
     @property
     def start_time(self) -> float:
+        """
+        Returns:
+            start_time: The time at which the list of samples start.
+        """
         return self._start_time
 
     def envelope_value(self, t: float) -> complex:
@@ -202,8 +233,28 @@ class PiecewiseConstant(BaseSignal):
                                  carrier_freq=self.carrier_freq)
 
 
-def signal_multiply(sig1: Union[BaseSignal, float, int, complex], sig2: Union[BaseSignal, float, int, complex]):
-    """helper function for multiplying two signals together."""
+def signal_multiply(sig1: Union[BaseSignal, float, int, complex],
+                    sig2: Union[BaseSignal, float, int, complex]) -> BaseSignal:
+    """
+    Implements mathematical multiplication between two signals.
+    Since a signal is represented by
+    .. math::
+
+        \Omega(t)*exp(2\pi i \nu t)
+
+    addition of two signals implements
+    .. math::
+
+        \Omega_1(t)*\Omega_2(t)*exp(2\pi i (\nu_1+\nu_2) t)
+
+
+    Args:
+        sig1: A child of base signal or a constant.
+        sig2: A child of base signal or a constant.
+
+    Returns:
+        signal: The type will depend on the given base class.
+    """
 
     # ensure both arguments are signals
     if type(sig1) in [int, float, complex]:
@@ -267,7 +318,28 @@ def signal_multiply(sig1: Union[BaseSignal, float, int, complex], sig2: Union[Ba
     return signal_multiply(sig2, sig1)
 
 
-def signal_add(sig1, sig2):
+def signal_add(sig1: Union[BaseSignal, float, int, complex],
+               sig2: Union[BaseSignal, float, int, complex]) -> BaseSignal:
+    """
+    Implements mathematical addition between two signals.
+    Since a signal is represented by
+    .. math::
+
+        \Omega(t)*exp(2\pi i \nu t)
+
+    addition of two signals implements
+    .. math::
+
+        \Omega_1(t)*exp(2\pi i \nu_1 t) + \Omega_2(t)*exp(2\pi i \nu_2 t)
+
+
+    Args:
+        sig1: A child of base signal or a constant.
+        sig2: A child of base signal or a constant.
+
+    Returns:
+        signal: The type will depend on the given base class.
+    """
 
     # ensure both arguments are signals
     if type(sig1) in [int, float, complex]:
@@ -280,35 +352,71 @@ def signal_add(sig1, sig2):
         return Constant(sig1.value() + sig2.value())
 
     elif isinstance(sig1, Constant) and isinstance(sig2, ConstantSignal):
-        raise NotImplementedError
+        return Signal(lambda t: sig1.value() + sig2.value(t), carrier_freq=0.)
 
     elif isinstance(sig1, Constant) and isinstance(sig2, Signal):
-        raise NotImplementedError
+        return Signal(lambda t: sig1.value() + sig2.value(t), carrier_freq=0.)
 
     elif isinstance(sig1, Constant) and isinstance(sig2, PiecewiseConstant):
-        raise NotImplementedError
+        new_samples = []
+        for idx in range(len(sig2.samples)):
+            t = sig2.dt*idx + sig2.start_time
+            new_samples.append(sig1.value() + sig2.value(t))
+
+        return PiecewiseConstant(sig2.dt, new_samples, carrier_freq=0.)
 
     # Multiplications with ConstantSignal
     elif isinstance(sig1, ConstantSignal) and isinstance(sig2, ConstantSignal):
-        raise NotImplementedError
+        if sig1.carrier_freq == sig2.carrier_freq:
+            return Signal(lambda t: sig1.envelope_value(t) + sig2.envelope_value(t), sig1.carrier_freq)
+        else:
+            return Signal(lambda t: sig1.value(t) + sig2.value(t), carrier_freq=0.)
 
     elif isinstance(sig1, ConstantSignal) and isinstance(sig2, Signal):
-        raise NotImplementedError
+        if sig1.carrier_freq == sig2.carrier_freq:
+            return Signal(lambda t: sig1.envelope_value(t) + sig2.envelope_value(t), sig1.carrier_freq)
+        else:
+            return Signal(lambda t: sig1.value(t) + sig2.value(t), carrier_freq=0.)
 
     elif isinstance(sig1, ConstantSignal) and isinstance(sig2, PiecewiseConstant):
-        raise NotImplementedError
+        new_samples = []
+        if sig1.carrier_freq == sig2.carrier_freq:
+            carrier_freq = sig1.carrier_freq
+            for idx, sample in enumerate(sig2.samples):
+                new_samples.append(sig1.envelope_value() + sample)
+        else:
+            carrier_freq = 0.0
+            for idx in range(len(sig2.samples)):
+                t = sig2.dt*idx + sig2.start_time
+                new_samples.append(sig1.value(t) + sig2.value(t))
+
+        return PiecewiseConstant(sig2.dt, new_samples, carrier_freq=carrier_freq)
 
     # Multiplications with Signal
     elif isinstance(sig1, Signal) and isinstance(sig2, Signal):
-        raise NotImplementedError
+        if sig1.carrier_freq == sig2.carrier_freq:
+            return Signal(lambda t: sig1.envelope_value(t) + sig2.envelope_value(t), sig1.carrier_freq)
+        else:
+            return Signal(lambda t: sig1.value(t) + sig2.value(t), carrier_freq=0.)
 
     elif isinstance(sig1, Signal) and isinstance(sig2, PiecewiseConstant):
-        raise NotImplementedError
+        new_samples = []
+        if sig1.carrier_freq == sig2.carrier_freq:
+            carrier_freq = sig1.carrier_freq
+            for idx, sample in enumerate(sig2.samples):
+                t = sig2.dt * idx + sig2.start_time
+                new_samples.append(sig1.envelope_value(t) + sample)
+        else:
+            carrier_freq = 0.0
+            for idx in range(len(sig2.samples)):
+                t = sig2.dt*idx + sig2.start_time
+                new_samples.append(sig1.value(t) + sig2.value(t))
+
+        return PiecewiseConstant(sig2.dt, new_samples, carrier_freq=carrier_freq)
 
     # Multiplications with PiecewiseConstant
     elif isinstance(sig1, PiecewiseConstant) and isinstance(sig2, PiecewiseConstant):
         raise NotImplementedError
 
     # Other symmetric cases
-    return signal_multiply(sig2, sig1)
-
+    return signal_add(sig2, sig1)
