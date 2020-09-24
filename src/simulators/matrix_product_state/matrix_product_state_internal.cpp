@@ -569,41 +569,6 @@ void MPS::apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat)
   }
 }
 
-void MPS::apply_matrix_and_normalize(const AER::reg_t &qubits, 
-				     cmatrix_t mat, double prob) {
-  //  switch (qubits.size()) {
-  //  case 1: 
-    uint_t index = qubits[0];
-    if (index > 0)
-      q_reg_[index].mul_Gamma_by_left_Lambda(lambda_reg_[index-1]);
-    if (index <num_qubits_-1)
-      q_reg_[index].mul_Gamma_by_right_Lambda(lambda_reg_[index]);
-
-    q_reg_[index].apply_matrix(mat);
-    std::cout << "tensor before mul" << std::endl;
-    q_reg_[index].print(std::cout);
-    std::cout << "prob = " << prob<< std::endl;
-    std::cout << "1/sqrt(prob) =  " << 1/std::sqrt(prob)<< std::endl;
-    q_reg_[index].get_data(0) = q_reg_[index].get_data(0) * (1/std::sqrt(prob));
-    q_reg_[index].get_data(1) = q_reg_[index].get_data(1) * (1/std::sqrt(prob));
-
-    std::cout << "tensor after mul" << std::endl;
-    q_reg_[index].print(std::cout);
-
-    if (index > 0)
-      q_reg_[index].div_Gamma_by_left_Lambda(lambda_reg_[index-1]);
-    if (index <num_qubits_-1)
-      q_reg_[index].div_Gamma_by_right_Lambda(lambda_reg_[index]);
-
-    std::cout << "tensor after div" << std::endl;
-    q_reg_[index].print(std::cout);
-
-    //break;
-    //  default:
-    //    throw std::invalid_argument("illegal gate for apply_matrix_and_normalize");
-    //  }
-}
-
 void MPS::apply_multi_qubit_gate(const reg_t &qubits,
 				 const cmatrix_t &mat) {
   // need to reverse qubits because that is the way they

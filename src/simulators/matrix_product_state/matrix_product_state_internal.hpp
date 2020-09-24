@@ -126,9 +126,6 @@ public:
 
   void apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat);
 
-  void apply_matrix_and_normalize(const AER::reg_t &qubits, 
-				  cmatrix_t mat, double prob);
-
   cmatrix_t density_matrix(const reg_t &qubits) const;
 
   //---------------------------------------------------------------
@@ -260,6 +257,7 @@ public:
   //----------------------------------------------------------------
 
   void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector);
+
 
 private:
 
