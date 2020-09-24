@@ -213,7 +213,7 @@ class OperatorModel:
         return np.dot(y, self.evaluate(time, in_frame_basis))
 
     @property
-    def drift(self):
+    def drift(self) -> np.array:
         """Return the part of the model with only Constant coefficients as a numpy array."""
 
         # for now if the frame operator is not None raise an error
