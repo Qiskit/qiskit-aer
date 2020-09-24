@@ -279,7 +279,7 @@ class FrameFreqHelper:
     input/output is specified in. E.g., when solving the DE y'(t) = G(t)y(t)
     in some frame F, it is convenient to solve the DE fully in the basis in
     which F is diagonal (avoiding basis change operations when evaluating
-    G(t)), and only convert back to the original basis at the end.
+    G(t)), and only convert back to the original basis when necessary.
     """
 
     def __init__(self,
@@ -356,22 +356,22 @@ class FrameFreqHelper:
 
         # set up matrix encoding frequencies
         im_angular_freqs = 1j * 2 * np.pi * self.carrier_freqs
-        self._S = np.array([w + D_diff for w in im_angular_freqs])
+        self._freq_array = np.array([w + D_diff for w in im_angular_freqs])
 
         # set up frequency cutoff matrix - i.e. same shape as self._S - with
         # each entry a 1 if the corresponding entry of self._S has a frequency
-        # below the cutoff, and 0 otherwise 
-        self._M_cutoff = None
+        # below the cutoff, and 0 otherwise
+        self._cutoff_array = None
         if cutoff_freq is not None:
-            self._M_cutoff = ((np.abs(self._S.imag) / (2 * np.pi)) <
-                                            self.cutoff_freq).astype(int)
+            self._cutoff_array = ((np.abs(self._freq_array.imag) / (2 * np.pi))
+                                    < self.cutoff_freq).astype(int)
 
     def evaluate(self,
                  t: float,
                  coefficients: np.array,
                  in_frame_basis: bool = False) -> np.array:
         """Evaluate the operator in the frame at a given time, for a given
-        array of coefficients for each operator.
+        array of coefficients.
 
         Args:
             t: time
@@ -382,13 +382,23 @@ class FrameFreqHelper:
         Returns:
             np.array the evaluated operator
         """
-        # get operators in diagonal frame with signal coefficients applied
-        op_list = vector_apply_diag_frame(t,
-                                          self._operators_in_frame_basis,
-                                          coefficients,
-                                          self._S,
-                                          self._M_cutoff)
-        # generator in diagonal frame_basis
+
+        # first evaluate the unconjugated coefficients for each matrix element,
+        # given by the coefficient for the full matrix multiplied by the
+        # exponentiated frequency term for each entry
+        Q = (coefficients[:, np.newaxis, np.newaxis] *
+                np.exp(self._freq_array * t))
+
+        # apply cutoff if present
+        if self._cutoff_array is not None:
+            Q = self._cutoff_array * Q
+
+        # multiplying the operators by the average of the "unconjugated" and
+        # "conjugated" coefficients
+        op_list = (0.5 * (Q + Q.conj().transpose(0, 2, 1)) *
+                   self._operators_in_frame_basis)
+
+        # sum the operators and subtract the frame operator
         op_in_frame_basis = np.sum(op_list, axis=0) - np.diag(self.frame_diag)
 
         if in_frame_basis:
@@ -452,47 +462,3 @@ class FrameFreqHelper:
             return out_in_fb
         else:
             return self.frame_basis @ out_in_fb
-
-
-def vector_apply_diag_frame(t: float,
-                            mats_in_frame_basis: np.array,
-                            coeffs: np.array,
-                            S: np.array,
-                            M_cutoff: Optional[float] = None):
-    """Given a list of matrices (as a 3d array), coefficients for each matrix,
-    a 3d array S corresponding to the frequencies of each matrix element,
-    and a 3d array M_cutoff of 1s and 0s indicating which matrix elements to
-    set to 0, multiplies each matrix by its corresponding cofficient,
-    expenentiates each frequency * t and multiplies by the corresponding
-    matrix element, and multiplies by M_cutoff to cutoff any frequency above
-    the cutoff.
-
-    Note that the handling of S and M_cutoff is specific to the assumption
-    that the frame is defined by an anti-hermitian frame_operator.
-
-    I.e. the k, i ,j entry of the returned 2d array is:
-        0.5*(coeffs[k]*M_cutoff*np.exp(S[k, i, j] * t) + h.c.) * mats[k, i, j].
-    where h.c. is the hermitian conjugate along the 1 and 2nd axes.
-
-
-    Args:
-        t: time
-        mats_in_frame_basis: list of operators in the frame basis given as a
-                             3d array
-        coeffs: coefficients for the matrices (same len as
-                mats_in_frame_basis)
-        S: 3d array of frequencies for each matrix element in
-           mats_in_frame_basis - combining both the frame_operator and
-           the carrier frequencies of each signal
-        M_cutoff: 3d array taking only values 1 or 0, describing which
-                  frequencies are too high and should be set to 0
-    """
-
-    # entrywise exponential of S * t, and multiply each coeff by the
-    # corresponding matrix in the 3d array
-    Q = coeffs[:, np.newaxis, np.newaxis] * np.exp(S * t)
-
-    if M_cutoff is not None:
-        Q = M_cutoff * Q
-
-    return 0.5 * (Q + Q.conj().transpose(0, 2, 1)) * mats_in_frame_basis

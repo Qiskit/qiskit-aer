@@ -15,7 +15,7 @@ import unittest
 import numpy as np
 from scipy.linalg import expm
 from qiskit.quantum_info.operators import Operator
-from qiskit.providers.aer.pulse_new.models.operator_models import FrameFreqHelper, OperatorModel, vector_apply_diag_frame
+from qiskit.providers.aer.pulse_new.models.operator_models import FrameFreqHelper, OperatorModel
 from qiskit.providers.aer.pulse_new.models.signals import Constant, ConstantSignal, Signal, VectorSignal
 
 
@@ -335,8 +335,8 @@ class TestFrameFreqHelper(unittest.TestCase):
         S_expect = np.array([w + D_diff for w in im_freqs])
         M_expect = None
 
-        self.assertTrue(helper._M_cutoff == M_expect)
-        self.assertAlmostEqual(helper._S, S_expect)
+        self.assertTrue(helper._cutoff_array == M_expect)
+        self.assertAlmostEqual(helper._freq_array, S_expect)
 
         # same test but with frame given as a 2d array
         # in this case diagonalization will occur, causing eigenvalues to
@@ -352,8 +352,8 @@ class TestFrameFreqHelper(unittest.TestCase):
         S_expect = np.array([w + D_diff for w in im_freqs])
         M_expect = None
 
-        self.assertTrue(helper._M_cutoff == M_expect)
-        self.assertAlmostEqual(helper._S, S_expect)
+        self.assertTrue(helper._cutoff_array == M_expect)
+        self.assertAlmostEqual(helper._freq_array, S_expect)
 
     def test_internal_helper_mats_with_cutoff(self):
         """Test internal setup steps for helper matrices with cutoff freq."""
@@ -380,8 +380,8 @@ class TestFrameFreqHelper(unittest.TestCase):
                               [1, 0]]
                              ])
 
-        self.assertAlmostEqual(helper._M_cutoff, M_expect)
-        self.assertAlmostEqual(helper._S, S_expect)
+        self.assertAlmostEqual(helper._cutoff_array, M_expect)
+        self.assertAlmostEqual(helper._freq_array, S_expect)
 
         # same test with lower cutoff
         cutoff_freq = 2.
@@ -402,8 +402,8 @@ class TestFrameFreqHelper(unittest.TestCase):
                               [0, 0]]
                              ])
 
-        self.assertAlmostEqual(helper._M_cutoff, M_expect)
-        self.assertAlmostEqual(helper._S, S_expect)
+        self.assertAlmostEqual(helper._cutoff_array, M_expect)
+        self.assertAlmostEqual(helper._freq_array, S_expect)
 
     def assertAlmostEqual(self, A, B, tol=10**-15):
         self.assertTrue(np.abs(A - B).max() < tol)
