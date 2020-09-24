@@ -467,7 +467,7 @@ void DensityMatrixThrust<data_t>::apply_y(const uint_t qubit) {
 }
 
 template <typename data_t>
-void DensityMatrixThrust<data_t>::apply_phase(const uint_t q, const complex_t &phase) {
+void DensityMatrixThrust<data_t>::apply_phase(const uint_t qubit, const complex_t &phase) {
   cvector_t<double> diag({1, phase, std::conj(phase), 1});
   // Use the lambda function
   const reg_t qubits = {{qubit, qubit + num_qubits()}};
