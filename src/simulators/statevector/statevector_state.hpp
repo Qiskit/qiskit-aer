@@ -45,7 +45,7 @@ const Operations::OpSet StateOpSet(
      "h",    "s",    "sdg",  "t",    "tdg",  "r",      "rx",      "ry",
      "rz",   "rxx",  "ryy",  "rzz",  "rzx",  "ccx",    "cswap",   "mcx",
      "mcy",  "mcz",  "mcu1", "mcu2", "mcu3", "mcswap", "mcphase", "mcr",
-     "mcrx", "mcry", "mcry"},
+     "mcrx", "mcry", "mcry", "sx",   "csx",  "mcsx"},
     // Snapshots
     {"statevector", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli", "density_matrix",
@@ -59,7 +59,7 @@ enum class Gates {
   id, h, s, sdg, t, tdg,
   rxx, ryy, rzz, rzx,
   mcx, mcy, mcz, mcr, mcrx, mcry,
-  mcrz, mcp, mcu2, mcu3, mcswap
+  mcrz, mcp, mcu2, mcu3, mcswap, mcsx
 };
 
 // Allowed snapshots enum class
@@ -309,6 +309,7 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"t", Gates::t},     // T-gate (sqrt(S))
     {"tdg", Gates::tdg}, // Conjguate-transpose of T gate
     {"p", Gates::mcp},   // Parameterized phase gate 
+    {"sx", Gates::mcsx}, // Sqrt(X) gate
     // 1-qubit rotation Gates
     {"r", Gates::mcr},   // R rotation gate
     {"rx", Gates::mcrx}, // Pauli-X rotation gate
@@ -333,6 +334,7 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"ryy", Gates::ryy},     // Pauli-YY rotation gate
     {"rzz", Gates::rzz},     // Pauli-ZZ rotation gate
     {"rzx", Gates::rzx},     // Pauli-ZX rotation gate
+    {"csx", Gates::mcsx},    // Controlled-Sqrt(X) gate
     // 3-qubit gates
     {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
     {"cswap", Gates::mcswap}, // Controlled SWAP gate (Fredkin)
@@ -349,8 +351,8 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"mcu2", Gates::mcu2},    // Multi-controlled-u2
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
     {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
-    {"mcswap", Gates::mcswap} // Multi-controlled SWAP gate
-
+    {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
+    {"mcsx", Gates::mcsx}     // Multi-controlled-Sqrt(X) gate
 });
 
 template <class statevec_t>
@@ -808,10 +810,6 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
       // Includes Z, CZ, CCZ, etc
       BaseState::qreg_.apply_mcphase(op.qubits, -1);
       break;
-    case Gates::mcp:
-      // Includes Phase, CPhase, MCPhase, etc
-      BaseState::qreg_.apply_mcphase(op.qubits, op.params[0]);
-      break;
     case Gates::mcr:
       BaseState::qreg_.apply_mcu(op.qubits, Linalg::VMatrix::r(op.params[0], op.params[1]));
       break;
@@ -873,6 +871,10 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
       // Includes u1, cu1, p, cp, mcp etc
       BaseState::qreg_.apply_mcphase(op.qubits,
                                      std::exp(complex_t(0, 1) * op.params[0]));
+      break;
+    case Gates::mcsx:
+      // Includes sx, csx, mcsx etc
+      BaseState::qreg_.apply_mcu(op.qubits, Linalg::VMatrix::SX);
       break;
     default:
       // We shouldn't reach here unless there is a bug in gateset

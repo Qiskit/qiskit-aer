@@ -42,6 +42,7 @@ public:
   const static cmatrix_t SDG; // name: "sdg"
   const static cmatrix_t T;   // name: "t"
   const static cmatrix_t TDG; // name: "tdg"
+  const static cmatrix_t SX;  // name: "sx"
   const static cmatrix_t X90; // name: "x90"
 
   // Two-qubit gates
@@ -147,6 +148,9 @@ const cmatrix_t Matrix::TDG = Utils::make_matrix<complex_t>(
 const cmatrix_t Matrix::H = Utils::make_matrix<complex_t>(
     {{{1 / std::sqrt(2.), 0}, {1 / std::sqrt(2.), 0}},
      {{1 / std::sqrt(2.), 0}, {-1 / std::sqrt(2.), 0}}});
+
+const cmatrix_t Matrix::SX = Utils::make_matrix<complex_t>(
+    {{{0.5, 0.5}, {0.5, -0.5}}, {{0.5, -0.5}, {0.5, 0.5}}});
 
 const cmatrix_t Matrix::X90 = Utils::make_matrix<complex_t>(
     {{{1. / std::sqrt(2.), 0}, {0, -1. / std::sqrt(2.)}},

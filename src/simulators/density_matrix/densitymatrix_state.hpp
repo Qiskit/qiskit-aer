@@ -43,7 +43,8 @@ const Operations::OpSet StateOpSet(
     // Gates
     {"U", "CX", "u1", "u2", "u3",  "cx",  "cz",  "swap", "id",
      "x", "y",  "z",  "h",  "s",   "sdg", "t",   "tdg",  "ccx",
-     "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx", "p", "cp", "cu1"},
+     "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx",  "p",
+     "cp","cu1", "sx", "x90"},
     // Snapshots
     {"density_matrix", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli",
@@ -51,7 +52,7 @@ const Operations::OpSet StateOpSet(
 
 // Allowed gates enum class
 enum class Gates {
-  u1, u2, u3, r, rx,ry, rz, id, x, y, z, h, s,sdg, t, tdg,
+  u1, u2, u3, r, rx,ry, rz, id, x, y, z, h, s, sdg, sx, t, tdg,
   cx, cz, swap, rxx, ryy, rzz, rzx, ccx, cp
 };
 
@@ -258,6 +259,8 @@ const stringmap_t<Gates> State<densmat_t>::gateset_({
     {"h", Gates::h},     // Hadamard gate (X + Z / sqrt(2))
     {"t", Gates::t},     // T-gate (sqrt(S))
     {"tdg", Gates::tdg}, // Conjguate-transpose of T gate
+    {"x90", Gates::sx},  // Pi/2 X (equiv to Sqrt(X) gate)
+    {"sx", Gates::sx},   // Sqrt(X) gate
     {"r", Gates::r},     // R rotation gate
     {"rx", Gates::rx},   // Pauli-X rotation gate
     {"ry", Gates::ry},   // Pauli-Y rotation gate
@@ -694,6 +697,9 @@ void State<densmat_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::sdg:
       BaseState::qreg_.apply_phase(op.qubits[0], complex_t(0., -1.));
+      break;
+    case Gates::sx:
+      BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::SX);
       break;
     case Gates::t: {
       const double isqrt2{1. / std::sqrt(2)};

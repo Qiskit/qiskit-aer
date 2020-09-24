@@ -43,6 +43,7 @@ public:
   const static cvector_t SDG; // name: "sdg"
   const static cvector_t T;   // name: "t"
   const static cvector_t TDG; // name: "tdg"
+  const static cvector_t SX;  // name: "sx"
   const static cvector_t X90; // name: "x90"
 
   // Two-qubit gates
@@ -144,6 +145,8 @@ const cvector_t VMatrix::TDG = Utils::vectorize_matrix(Matrix::TDG);
 
 const cvector_t VMatrix::H = Utils::vectorize_matrix(Matrix::H);
 
+const cvector_t VMatrix::SX = Utils::vectorize_matrix(Matrix::SX);
+
 const cvector_t VMatrix::X90 = Utils::vectorize_matrix(Matrix::X90);
 
 const cvector_t VMatrix::CX = Utils::vectorize_matrix(Matrix::CX);
@@ -160,7 +163,7 @@ const stringmap_t<const cvector_t *> VMatrix::label_map_ = {
     {"z", &VMatrix::Z},      {"h", &VMatrix::H},   {"s", &VMatrix::S},
     {"sdg", &VMatrix::SDG},  {"t", &VMatrix::T},   {"tdg", &VMatrix::TDG},
     {"x90", &VMatrix::X90},  {"cx", &VMatrix::CX}, {"cy", &VMatrix::CY},
-    {"cz", &VMatrix::CZ},    {"swap", &VMatrix::SWAP}};
+    {"cz", &VMatrix::CZ},    {"swap", &VMatrix::SWAP}, {"sx", &VMatrix::SX}};
 
 cvector_t VMatrix::identity(size_t dim) {
   cvector_t mat(dim * dim);
