@@ -382,7 +382,7 @@ def cx_gate_unitary_deterministic():
     return targets
 
 
-def compare_statevector(self, result, circuits, targets,
+def compare_statevector(result, circuits, targets,
                         ignore_phase=False, atol=1e-8, rtol=1e-5):
     """Compare final statevectors to targets."""
     for pos, test_case in enumerate(zip(circuits, targets)):
@@ -399,7 +399,7 @@ def compare_statevector(self, result, circuits, targets,
         raise Exception(msg)
 
 
-def compare_unitary(self, result, circuits, targets,
+def compare_unitary(result, circuits, targets,
                     ignore_phase=False, atol=1e-8, rtol=1e-5):
     """Compare final unitary matrices to targets."""
     for pos, test_case in enumerate(zip(circuits, targets)):
