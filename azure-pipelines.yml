@@ -18,7 +18,7 @@ pr:
     - '*'
 stages:
   - stage: 'Wheel_Builds'
-#    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
     jobs:
     - job: 'Windows_Wheel_Builds'
       pool: {vmImage: 'vs2017-win2016'}
@@ -69,7 +69,7 @@ stages:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'Windows_win32_Wheel_Builds'
       pool: {vmImage: 'vs2017-win2016'}
-#      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         TWINE_USERNAME: qiskit
       steps:
@@ -117,11 +117,13 @@ stages:
         - task: PublishBuildArtifacts@1
           inputs: {pathtoPublish: 'wheelhouse'}
           condition: succeededOrFailed()
-#        - bash: |
-#            pip install -U twine
-#            twine upload wheelhouse/*
-#          env:
-#            TWINE_PASSWORD: $(TWINE_PASSWORD)
+        - bash: |
+            pip install -U twine
+            twine upload wheelhouse/*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
+
+
   - stage: 'Compile'
     dependsOn: []
     jobs:
