@@ -24,3 +24,10 @@ features:
     :class:`~qiskit.providers.aer.UnitarySimulator`, and the
     ``"statevector"`` and ``"density_matrix"`` methods of the
     :class:`~qiskit.providers.aer.QasmSimulator`.
+deprecations:
+  - |
+    :meth:`qiskit.providers.aer.noise.NoiseModel.set_x90_single_qubit_gates` has
+    been deprecated as unrolling to custom basis gates has been added to the
+    qiskit transpiler. The correct way to use an X90 based noise model is to
+    define noise on the Sqrt(X) "sx" or "rx" gate and one of the single-qubit
+    phase gates "u1", "rx", "p" in the noise model.
