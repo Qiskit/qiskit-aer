@@ -314,25 +314,25 @@ reg_t MPS::get_internal_qubits(const reg_t &qubits) const {
  
 void MPS::apply_h(uint_t index) 
 {
-  cmatrix_t h_matrix = AER::Utils::Matrix::H;
+  cmatrix_t h_matrix = AER::Linalg::Matrix::H;
   get_qubit(index).apply_matrix(h_matrix);
 }
 
 void MPS::apply_u1(uint_t index, double lambda)
 {
-  cmatrix_t u1_matrix = AER::Utils::Matrix::u1(lambda);
+  cmatrix_t u1_matrix = AER::Linalg::Matrix::u1(lambda);
   get_qubit(index).apply_matrix(u1_matrix);
 }
 
 void MPS::apply_u2(uint_t index, double phi, double lambda)
 {
-  cmatrix_t u2_matrix = AER::Utils::Matrix::u2(phi, lambda);
+  cmatrix_t u2_matrix = AER::Linalg::Matrix::u2(phi, lambda);
   get_qubit(index).apply_matrix(u2_matrix);
 }
 
 void MPS::apply_u3(uint_t index, double theta, double phi, double lambda)
 {
-  cmatrix_t u3_matrix = AER::Utils::Matrix::u3(theta, phi, lambda);
+  cmatrix_t u3_matrix = AER::Linalg::Matrix::u3(theta, phi, lambda);
   get_qubit(index).apply_matrix(u3_matrix);
 }
 
@@ -349,7 +349,7 @@ void MPS::apply_cz(uint_t index_A, uint_t index_B)
 }
 void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
 {
-  cmatrix_t u1_matrix = AER::Utils::Matrix::u1(lambda);
+  cmatrix_t u1_matrix = AER::Linalg::Matrix::u1(lambda);
   apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), cu1, u1_matrix);
 }
 
@@ -458,8 +458,8 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
     break;
   case cu1:
     {
-      cmatrix_t Zeros = AER::Utils::Matrix::I-AER::Utils::Matrix::I;
-      cmatrix_t temp1 = AER::Utils::concatenate(AER::Utils::Matrix::I, Zeros , 1),
+      cmatrix_t Zeros = AER::Linalg::Matrix::I-AER::Linalg::Matrix::I;
+      cmatrix_t temp1 = AER::Utils::concatenate(AER::Linalg::Matrix::I, Zeros , 1),
 	temp2 = AER::Utils::concatenate(Zeros, mat, 1);
       cmatrix_t cu = AER::Utils::concatenate(temp1, temp2 ,0) ;
       temp.apply_matrix(cu);
