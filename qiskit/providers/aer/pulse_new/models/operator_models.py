@@ -13,8 +13,7 @@
 from typing import Callable, Union, List, Optional
 import numpy as np
 
-from .signals import VectorSignal, Signal, Constant
-from qiskit.quantum_info.operators.base_operator import BaseOperator
+from .signals import VectorSignal, Signal
 from qiskit.quantum_info.operators import Operator
 
 class OperatorModel:
@@ -53,7 +52,7 @@ class OperatorModel:
                  operators: List[Operator],
                  signals: Union[VectorSignal, List[Signal]],
                  signal_mapping: Optional[Callable] = None,
-                 frame_operator: Optional[Union[Operator, List[np.array]]] = None,
+                 frame_operator: Optional[Union[Operator, np.array]] = None,
                  cutoff_freq: Optional[float] = None):
         """Initialize.
 
@@ -359,6 +358,9 @@ class FrameFreqHelper:
         im_angular_freqs = 1j * 2 * np.pi * self.carrier_freqs
         self._S = np.array([w + D_diff for w in im_angular_freqs])
 
+        # set up frequency cutoff matrix - i.e. same shape as self._S - with
+        # each entry a 1 if the corresponding entry of self._S has a frequency
+        # below the cutoff, and 0 otherwise 
         self._M_cutoff = None
         if cutoff_freq is not None:
             self._M_cutoff = ((np.abs(self._S.imag) / (2 * np.pi)) <
@@ -456,8 +458,22 @@ def vector_apply_diag_frame(t: float,
                             mats_in_frame_basis: np.array,
                             coeffs: np.array,
                             S: np.array,
-                            M_cutoff: Optional[np.array] = None):
-    """Given a list of matrices specified in the frame_basis for a
+                            M_cutoff: Optional[float] = None):
+    """Given a list of matrices (as a 3d array), coefficients for each matrix,
+    a 3d array S corresponding to the frequencies of each matrix element,
+    and a 3d array M_cutoff of 1s and 0s indicating which matrix elements to
+    set to 0, multiplies each matrix by its corresponding cofficient,
+    expenentiates each frequency * t and multiplies by the corresponding
+    matrix element, and multiplies by M_cutoff to cutoff any frequency above
+    the cutoff.
+
+    Note that the handling of S and M_cutoff is specific to the assumption
+    that the frame is defined by an anti-hermitian frame_operator.
+
+    I.e. the k, i ,j entry of the returned 2d array is:
+        0.5*(coeffs[k]*M_cutoff*np.exp(S[k, i, j] * t) + h.c.) * mats[k, i, j].
+    where h.c. is the hermitian conjugate along the 1 and 2nd axes.
+
 
     Args:
         t: time
