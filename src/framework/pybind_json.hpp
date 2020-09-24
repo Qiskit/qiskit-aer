@@ -629,8 +629,7 @@ py::object AerToPy::from_pershot_snap(AER::PershotSnapshot<T> &&snap) {
 
 template<typename T>
 py::object AerToPy::from_pershot_data(AER::PershotData<T> &&data) {
-  py::object obj = py::cast(data.data(), py::return_value_policy::move);
-  return std::move(obj);
+  return py::cast(data.data(), py::return_value_policy::move);
 }
 
 template<typename T>
@@ -642,7 +641,7 @@ template<>
 py::object AerToPy::from_pershot_data(AER::PershotData<json_t> &&data) {
   py::object tmp;
   from_json(data.data(), tmp);
-  return std::move(tmp);
+  return tmp;
 }
 
 template<typename T>

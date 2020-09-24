@@ -98,7 +98,23 @@ class QiskitAerTestCase(unittest.TestCase):
                     msg += ', (Circuit {}) {}'.format(i, res.status)
         self.assertTrue(success, msg=msg)
 
-    def check_position(self, obj, items, precision=15):
+    @staticmethod
+    def gate_circuit(gate_cls, num_params=0, rng=None):
+        """Construct a circuit from a gate class."""
+        if num_params:
+            if rng is None:
+                rng = np.random.default_rng()
+            params = rng.random(num_params)
+            gate = gate_cls(*params)
+        else:
+            gate = gate_cls()
+
+        circ = QuantumCircuit(gate.num_qubits)
+        circ.append(gate, range(gate.num_qubits))
+        return circ
+
+    @staticmethod
+    def check_position(obj, items, precision=15):
         """Return position of numeric object in a list."""
         for pos, item in enumerate(items):
             # Try numeric difference first
@@ -116,9 +132,10 @@ class QiskitAerTestCase(unittest.TestCase):
                     return None
         return None
 
-    def remove_if_found(self, obj, items, precision=15):
+    @staticmethod
+    def remove_if_found(obj, items, precision=15):
         """If obj is in list of items, remove first instance"""
-        pos = self.check_position(obj, items)
+        pos = QiskitAerTestCase.check_position(obj, items)
         if pos is not None:
             items.pop(pos)
 
