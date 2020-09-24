@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds support for qobj global phase to the
+    :class:`~qiskit.providers.aer.StatevectorSimulator`,
+    :class:`~qiskit.providers.aer.UnitarySimulator`, and statevector
+    methods of the :class:`~qiskit.providers.aer.QasmSimulator`.
