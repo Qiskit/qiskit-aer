@@ -95,11 +95,11 @@ class OperatorModel:
         self._frame_operator = frame_operator
         self._cutoff_freq = cutoff_freq
 
-        # initialize signals
+        # initialize signal-related attributes
         self._signal_params = None
         self._signals = None
         self._carrier_freqs = None
-        self._signal_mapping = signal_mapping
+        self.signal_mapping = signal_mapping
 
         if signals is not None:
             # note: setting signals includes a call to _construct_frame_helper()
@@ -132,9 +132,9 @@ class OperatorModel:
         else:
 
             # if a signal_mapping is specified, take signals as the input
-            if self._signal_mapping is not None:
+            if self.signal_mapping is not None:
                 self._signal_params = signals
-                signals = self._signal_mapping(signals)
+                signals = self.signal_mapping(signals)
 
             # if signals is a list, instantiate a VectorSignal
             if isinstance(signals, list):
@@ -143,6 +143,11 @@ class OperatorModel:
             # if it isn't a VectorSignal by now, raise an error
             if not isinstance(signals, VectorSignal):
                 raise Exception('signals specified in unaccepted format.')
+
+            # verify signal length is same as operators
+            if len(signals.carrier_freqs) != len(self._operators):
+                raise Exception("""signals needs to have the same length as
+                                    operators.""")
 
             # check if the new carrier frequencies are different from the old.
             # if yes, update them and reinstantiate the frame helper.
