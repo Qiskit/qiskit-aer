@@ -451,10 +451,10 @@ class FrameFreqHelper:
 
         out_in_fb = None
         if y_in_frame_basis:
-            out_in_fb = np.exp(- t * self.frame_diag) * y
+            out_in_fb = np.diag(np.exp(- t * self.frame_diag)) @ y
         else:
-            out_in_fb = (np.exp(- t * self.frame_diag) *
-                               (self.frame_basis_adjoint @ y))
+            out_in_fb = (np.diag(np.exp(- t * self.frame_diag)) @
+                               self.frame_basis_adjoint @ y)
 
         if return_in_frame_basis:
             return out_in_fb
@@ -479,7 +479,7 @@ class FrameFreqHelper:
 
         out_in_fb = None
         if y_in_frame_basis:
-            out_in_fb = np.exp(t * self.frame_diag) * y
+            out_in_fb = np.diag(np.exp(t * self.frame_diag)) @ y
         else:
             out_in_fb = (np.diag(np.exp(t * self.frame_diag)) @
                          self.frame_basis_adjoint @ y)
