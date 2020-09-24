@@ -42,7 +42,7 @@ const Operations::OpSet StateOpSet(
      "h",    "s",    "sdg",  "t",    "tdg",  "r",      "rx",      "ry",
      "rz",   "rxx",  "ryy",  "rzz",  "rzx",  "ccx",    "cswap",   "mcx",
      "mcy",  "mcz",  "mcu1", "mcu2", "mcu3", "mcswap", "mcphase", "mcr",
-     "mcrx", "mcry", "mcry", "sx",   "csx",  "mcsx"},
+     "mcrx", "mcry", "mcry", "sx",   "csx",  "mcsx", "delay"},
     // Snapshots
     {"unitary"});
 
@@ -166,6 +166,7 @@ protected:
 template <class unitary_matrix_t>
 const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     // Single qubit gates
+    {"delay", Gates::id},// Delay gate
     {"id", Gates::id},   // Pauli-Identity gate
     {"x", Gates::mcx},   // Pauli-X gate
     {"y", Gates::mcy},   // Pauli-Y gate

@@ -38,7 +38,7 @@ const Operations::OpSet StateOpSet(
     {"U", "CX", "u1", "u2", "u3",  "cx",  "cz",  "swap", "id",
      "x", "y",  "z",  "h",  "s",   "sdg", "t",   "tdg",  "ccx",
      "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx",  "p",
-     "cp", "cu1", "sx", "x90"},
+     "cp", "cu1", "sx", "x90", "delay"},
     // Snapshots
     {"superoperator"});
 
@@ -163,6 +163,7 @@ protected:
 template <class data_t>
 const stringmap_t<Gates> State<data_t>::gateset_({
     // Single qubit gates
+    {"delay", Gates::id},// Delay gate
     {"id", Gates::id},   // Pauli-Identity gate
     {"x", Gates::x},     // Pauli-X gate
     {"y", Gates::y},     // Pauli-Y gate

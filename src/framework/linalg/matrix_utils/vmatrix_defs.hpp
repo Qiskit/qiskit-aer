@@ -163,7 +163,8 @@ const stringmap_t<const cvector_t *> VMatrix::label_map_ = {
     {"z", &VMatrix::Z},      {"h", &VMatrix::H},   {"s", &VMatrix::S},
     {"sdg", &VMatrix::SDG},  {"t", &VMatrix::T},   {"tdg", &VMatrix::TDG},
     {"x90", &VMatrix::X90},  {"cx", &VMatrix::CX}, {"cy", &VMatrix::CY},
-    {"cz", &VMatrix::CZ},    {"swap", &VMatrix::SWAP}, {"sx", &VMatrix::SX}};
+    {"cz", &VMatrix::CZ},    {"swap", &VMatrix::SWAP}, {"sx", &VMatrix::SX},
+    {"delay", &VMatrix::I}};
 
 cvector_t VMatrix::identity(size_t dim) {
   cvector_t mat(dim * dim);

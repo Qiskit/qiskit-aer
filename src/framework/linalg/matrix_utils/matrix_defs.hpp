@@ -186,7 +186,8 @@ const stringmap_t<const cmatrix_t *> Matrix::label_map_ = {
     {"z", &Matrix::Z},      {"h", &Matrix::H},   {"s", &Matrix::S},
     {"sdg", &Matrix::SDG},  {"t", &Matrix::T},   {"tdg", &Matrix::TDG},
     {"x90", &Matrix::X90},  {"cx", &Matrix::CX}, {"cy", &Matrix::CY},
-    {"cz", &Matrix::CZ},    {"swap", &Matrix::SWAP}};
+    {"cz", &Matrix::CZ},    {"swap", &Matrix::SWAP}, {"sx", &Matrix::SX},
+    {"delay", &Matrix::I}};
 
 cmatrix_t Matrix::identity(size_t dim) {
   cmatrix_t mat(dim, dim);
