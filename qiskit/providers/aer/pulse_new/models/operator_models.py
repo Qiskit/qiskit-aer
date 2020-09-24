@@ -46,11 +46,30 @@ class OperatorModel:
     `OperatorModel`, any terms with a frequency above the cutoff
     (which combines both signal frequency information and frame frequency
     information) will be set to :math:`0`.
+
+    The signals in the model can be specified either directly (by giving a
+    list of Signal objects or a VectorSignal), or by specifying a
+    signal_mapping, defined as any function with return type
+    `Union[List[Signal], VectorSignal]`. In this mode, assignments to the
+    signal attribute will be treated as inputs to the signal_mapping. E.g.
+
+    .. code-block:: python
+
+        signal_map = lambda a: [Signal(lambda t: a * t, 1.)]
+        model = OperatorModel(operators=[op], signal_mapping=signal_map)
+
+        # setting signals now will pass the value into the signal_map function
+        model.signals = 2.
+
+        # the stored signals (retrivable with model.signals) is now
+        # the output of signal_map(2.), converted to a VectorSignal
+
+    See the signals property setter for a more detailed description.
     """
 
     def __init__(self,
                  operators: List[Operator],
-                 signals: Union[VectorSignal, List[Signal]],
+                 signals: Optional[Union[VectorSignal, List[Signal]]] = None,
                  signal_mapping: Optional[Callable] = None,
                  frame_operator: Optional[Union[Operator, np.array]] = None,
                  cutoff_freq: Optional[float] = None):
@@ -60,6 +79,8 @@ class OperatorModel:
             operators: list of Operator objects.
             signals: Specifiable as either a VectorSignal, a list of
                      Signal objects, or as the inputs to signal_mapping.
+                     OperatorModel can be instantiated without specifying
+                     signals, but it can not perform any actions without them.
             signal_mapping: a function returning either a
                             VectorSignal or a list of Signal objects.
 
