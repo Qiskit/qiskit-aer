@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 from abc import ABC, abstractmethod
-from typing import Optional, List, Callable, Union
+from typing import List, Callable, Union
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -51,7 +51,7 @@ class Signal(BaseSignal):
     carrier frequency.
     """
 
-    def __init__(self, envelope: Callable, carrier_freq: float = 0.):
+    def __init__(self, envelope: Union[Callable, complex, float, int], carrier_freq: float = 0.):
         """
         Initializes a signal given by an envelop and an optional carrier.
 
@@ -59,6 +59,12 @@ class Signal(BaseSignal):
             envelope: Envelope function of the signal.
             carrier_freq: Frequency of the carrier.
         """
+        if isinstance(envelope, float) or isinstance(envelope, int):
+            envelope = complex(envelope)
+
+        if isinstance(envelope, complex):
+            envelope = lambda t: envelope
+
         self.envelope = envelope
         self.carrier_freq = carrier_freq
 
@@ -66,7 +72,7 @@ class Signal(BaseSignal):
         """Evaluates the envelope at time t."""
         return self.envelope(t)
 
-    def value(self, t) -> complex:
+    def value(self, t: float) -> complex:
         """Return the value of the signal at time t."""
         return self.envelope_value(t) * np.exp(1j * 2 * np.pi * self.carrier_freq * t)
 
@@ -103,10 +109,10 @@ class Constant(BaseSignal):
     def __init__(self, value: complex):
         self._value = value
 
-    def envelope_value(self, t=0.) -> complex:
+    def envelope_value(self, t: float = 0.) -> complex:
         return self._value
 
-    def value(self, t=0.) -> complex:
+    def value(self, t: float = 0.) -> complex:
         return self._value
 
     def conjugate(self):
@@ -114,43 +120,6 @@ class Constant(BaseSignal):
 
     def __repr__(self):
         return 'Constant(' + repr(self._value) + ')'
-
-
-class ConstantSignal(BaseSignal):
-    """
-    A signal with constant envelope value but potentially non-zero carrier frequency.
-    This class therefore implements a signal of the form
-    .. math::
-
-        A*exp(2\pi i \nu t)
-
-    TODO Consider removing this class as a Signal with a constant lambda is just as good.
-    """
-
-    def __init__(self, value: complex, carrier_freq: float = 0.):
-        """
-        Args:
-            value: The constant value of the signal.
-            carrier_freq: The frequency of the carrier.
-        """
-        self._value = value
-        self.carrier_freq = carrier_freq
-
-    def envelope_value(self, t: float = 0.):
-        """Return the constant value of the signal."""
-        return self._value
-
-    def value(self, t: float) -> complex:
-        """Return the value of the signal at time t."""
-        return self.envelope_value() * np.exp(1j * 2 * np.pi * self.carrier_freq * t)
-
-    def conjugate(self):
-        """Conjugate the signal."""
-        return ConstantSignal(self._value.conjugate(), -self.carrier_freq)
-
-    def __repr__(self):
-        return ('ConstantSignal(value=' + repr(self._value) + ', carrier_freq=' +
-                repr(self.carrier_freq) + ')')
 
 
 class PiecewiseConstant(BaseSignal):
@@ -221,7 +190,7 @@ class PiecewiseConstant(BaseSignal):
 
         return self._samples[idx]
 
-    def value(self, t) -> complex:
+    def value(self, t: float) -> complex:
         """Return the value of the signal at time t."""
         return self.envelope_value(t) * np.exp(1j * 2 * np.pi * self.carrier_freq * t)
 
@@ -267,29 +236,11 @@ def signal_multiply(sig1: Union[BaseSignal, float, int, complex],
     if isinstance(sig1, Constant) and isinstance(sig1, Constant):
         return Constant(sig1.value() * sig2.value())
 
-    elif isinstance(sig1, Constant) and isinstance(sig2, ConstantSignal):
-        return ConstantSignal(sig1.value() * sig2.envelope_value(), sig2.carrier_freq)
-
     elif isinstance(sig1, Constant) and isinstance(sig2, Signal):
         return Signal(lambda t: sig1.value() * sig2.envelope_value(t), sig2.carrier_freq)
 
     elif isinstance(sig1, Constant) and isinstance(sig2, PiecewiseConstant):
         return PiecewiseConstant(sig1.value()*sig2.samples, sig2.carrier_freq)
-
-    # Multiplications with ConstantSignal
-    elif isinstance(sig1, ConstantSignal) and isinstance(sig2, ConstantSignal):
-        return ConstantSignal(sig1.envelope_value() * sig2.envelope_value(),
-                              sig1.carrier_freq + sig2.carrier_freq)
-
-    elif isinstance(sig1, ConstantSignal) and isinstance(sig2, Signal):
-        return Signal(lambda t: sig1.value() * sig2.envelope_value(t), sig1.carrier_freq + sig2.carrier_freq)
-
-    elif isinstance(sig1, ConstantSignal) and isinstance(sig2, PiecewiseConstant):
-        new_samples = []
-        for idx, sample in enumerate(sig2.samples):
-            new_samples.append(sample * sig1.envelope_value(sig2.dt*idx + sig2.start_time))
-
-        return PiecewiseConstant(sig2.dt, new_samples, sig1.carrier_freq + sig2.carrier_freq)
 
     # Multiplications with Signal
     elif isinstance(sig1, Signal) and isinstance(sig2, Signal):
@@ -351,9 +302,6 @@ def signal_add(sig1: Union[BaseSignal, float, int, complex],
     if isinstance(sig1, Constant) and isinstance(sig1, Constant):
         return Constant(sig1.value() + sig2.value())
 
-    elif isinstance(sig1, Constant) and isinstance(sig2, ConstantSignal):
-        return Signal(lambda t: sig1.value() + sig2.value(t), carrier_freq=0.)
-
     elif isinstance(sig1, Constant) and isinstance(sig2, Signal):
         return Signal(lambda t: sig1.value() + sig2.value(t), carrier_freq=0.)
 
@@ -364,33 +312,6 @@ def signal_add(sig1: Union[BaseSignal, float, int, complex],
             new_samples.append(sig1.value() + sig2.value(t))
 
         return PiecewiseConstant(sig2.dt, new_samples, carrier_freq=0.)
-
-    # Multiplications with ConstantSignal
-    elif isinstance(sig1, ConstantSignal) and isinstance(sig2, ConstantSignal):
-        if sig1.carrier_freq == sig2.carrier_freq:
-            return Signal(lambda t: sig1.envelope_value(t) + sig2.envelope_value(t), sig1.carrier_freq)
-        else:
-            return Signal(lambda t: sig1.value(t) + sig2.value(t), carrier_freq=0.)
-
-    elif isinstance(sig1, ConstantSignal) and isinstance(sig2, Signal):
-        if sig1.carrier_freq == sig2.carrier_freq:
-            return Signal(lambda t: sig1.envelope_value(t) + sig2.envelope_value(t), sig1.carrier_freq)
-        else:
-            return Signal(lambda t: sig1.value(t) + sig2.value(t), carrier_freq=0.)
-
-    elif isinstance(sig1, ConstantSignal) and isinstance(sig2, PiecewiseConstant):
-        new_samples = []
-        if sig1.carrier_freq == sig2.carrier_freq:
-            carrier_freq = sig1.carrier_freq
-            for idx, sample in enumerate(sig2.samples):
-                new_samples.append(sig1.envelope_value() + sample)
-        else:
-            carrier_freq = 0.0
-            for idx in range(len(sig2.samples)):
-                t = sig2.dt*idx + sig2.start_time
-                new_samples.append(sig1.value(t) + sig2.value(t))
-
-        return PiecewiseConstant(sig2.dt, new_samples, carrier_freq=carrier_freq)
 
     # Multiplications with Signal
     elif isinstance(sig1, Signal) and isinstance(sig2, Signal):
