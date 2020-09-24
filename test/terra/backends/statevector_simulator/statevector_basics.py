@@ -133,7 +133,10 @@ class StatevectorSimulatorTests:
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
-        self.compare_statevector(result, circuits, targets)
+        # TODO: check phase when terra fixes global phase bug
+        #       See Terra issue #5125 for details
+        #       https://github.com/Qiskit/qiskit-terra/issues/5125
+        self.compare_statevector(result, circuits, targets, ignore_phase=True)
 
     def test_conditional_gate_2bit(self):
         """Test conditional gates on 2-bit conditional register."""
@@ -146,6 +149,7 @@ class StatevectorSimulatorTests:
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
+        
         self.compare_statevector(result, circuits, targets)
 
     def test_conditional_unitary_2bit(self):
@@ -159,7 +163,10 @@ class StatevectorSimulatorTests:
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
-        self.compare_statevector(result, circuits, targets)
+        # TODO: check phase when terra fixes global phase bug
+        #       See Terra issue #5125 for details
+        #       https://github.com/Qiskit/qiskit-terra/issues/5125
+        self.compare_statevector(result, circuits, targets, ignore_phase=True)
 
     # ---------------------------------------------------------------------
     # Test h-gate
@@ -1072,7 +1079,10 @@ class StatevectorSimulatorTests:
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
-        self.compare_statevector(result, circuits, targets)
+        # TODO: check phase when terra fixes global phase bug
+        #       See Terra issue #5125 for details
+        #       https://github.com/Qiskit/qiskit-terra/issues/5125
+        self.compare_statevector(result, circuits, targets, ignore_phase=True)
 
     def test_diagonal_gate(self):
         """Test simulation with diagonal gate circuit instructions."""
@@ -1282,4 +1292,4 @@ class StatevectorSimulatorTests:
             targets[i] = exp(1j * global_phase) * targets[i]
         result = self.SIMULATOR.run(qobj).result()
         self.assertSuccess(result)
-        self.compare_statevector(result, circuits, targets, global_phase=True)
+        self.compare_statevector(result, circuits, targets, ignore_phase=False)
