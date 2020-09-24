@@ -29,6 +29,7 @@ from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonClifford
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsWaltzBasis
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsMinimalBasis
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
+from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardGateStatevectorTests
 # from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
@@ -77,6 +78,7 @@ class TestQasmMatrixProductStateSimulator(
         QasmSnapshotExpValPauliTests,
         QasmSnapshotExpValPauliNCTests,
         QasmSnapshotExpValMatrixTests,
+        QasmStandardGateStatevectorTests
 ):
     """QasmSimulator matrix product state method tests."""
 
