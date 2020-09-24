@@ -107,9 +107,8 @@ class UnitarySimulator(AerBackend):
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(unitary_controller_execute,
-                         QasmBackendConfiguration.from_dict(
-                             self.DEFAULT_CONFIGURATION),
+        super().__init__(unitary_controller_execute(),
+                         QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 
     def _validate(self, qobj, backend_options, noise_model):

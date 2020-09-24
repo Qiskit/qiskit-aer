@@ -99,7 +99,7 @@ class StatevectorSimulator(AerBackend):
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(statevector_controller_execute,
+        super().__init__(statevector_controller_execute(),
                          QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
                          provider=provider)
 

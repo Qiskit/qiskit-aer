@@ -257,10 +257,10 @@ class QasmSimulator(AerBackend):
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(qasm_controller_execute,
-                         QasmBackendConfiguration.from_dict(
-                             self.DEFAULT_CONFIGURATION),
-                         provider=provider)
+        super().__init__(
+            qasm_controller_execute(),
+            QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
+            provider=provider)
 
     def _validate(self, qobj, backend_options, noise_model):
         """Semantic validations of the qobj which cannot be done via schemas.
