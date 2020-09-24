@@ -185,7 +185,7 @@ class PiecewiseConstant(BaseSignal):
         idx = int((t - self._start_time) // self._dt)
 
         # if the index is beyond the final time, return 0
-        if idx >= self.duration:
+        if idx >= self.duration or idx < 0:
             return 0.0j
 
         return self._samples[idx]
