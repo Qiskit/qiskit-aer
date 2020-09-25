@@ -892,7 +892,7 @@ cmatrix_t NoiseModel::op2superop(const Operations::Op &op) const {
           case ParamGate::rzx:
             return Linalg::SMatrix::rzx(op.params[0]);
           case ParamGate::cp:
-          return Linalg::SMatrix::cphase(op.params[0]);
+            return Linalg::SMatrix::cphase(op.params[0]);
         }
       } else {
         // Check if we can convert this gate to a standard superoperator matrix
