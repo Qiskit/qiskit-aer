@@ -136,6 +136,9 @@ class AerBackend(BaseBackend):
                 file_path = os.path.join(save_dir, datetime.datetime.now().isoformat() + job_id)
                 with open(file_path, mode='w') as qobj_file:
                     qobj_file.write(json.dumps(formatted_qobj, cls=AerJSONEncoder))
+            else:
+                logger.warning(
+                    "WARNING: qobj_save_dir in backend options %s is not a directory", save_dir)
         output = self._controller(formatted_qobj)
         end = time.time()
         return Result.from_dict(self._format_results(job_id, output, end - start))
