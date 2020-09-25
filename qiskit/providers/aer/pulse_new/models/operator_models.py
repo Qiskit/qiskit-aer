@@ -449,17 +449,18 @@ class FrameFreqHelper:
                                    in the frame basis
         """
 
-        out_in_fb = None
-        if y_in_frame_basis:
-            out_in_fb = np.diag(np.exp(- t * self.frame_diag)) @ y
-        else:
-            out_in_fb = (np.diag(np.exp(- t * self.frame_diag)) @
-                               self.frame_basis_adjoint @ y)
+        out = y
 
-        if return_in_frame_basis:
-            return out_in_fb
-        else:
-            return self.frame_basis @ out_in_fb
+        # if not in frame basis convert it
+        if not y_in_frame_basis:
+            out = self.frame_basis_adjoint @ out
+
+        out = np.diag(np.exp(- t * self.frame_diag)) @ out
+
+        if not return_in_frame_basis:
+            out = self.frame_basis @ out
+
+        return out
 
     def state_out_of_frame(self,
                            t: float,
@@ -476,15 +477,8 @@ class FrameFreqHelper:
             return_in_frame_basis: whether or not to return the result
                                    in the frame basis
         """
-
-        out_in_fb = None
-        if y_in_frame_basis:
-            out_in_fb = np.diag(np.exp(t * self.frame_diag)) @ y
-        else:
-            out_in_fb = (np.diag(np.exp(t * self.frame_diag)) @
-                         self.frame_basis_adjoint @ y)
-
-        if return_in_frame_basis:
-            return out_in_fb
-        else:
-            return self.frame_basis @ out_in_fb
+        # same calculation as state_into_frame, just with -time
+        return self.state_into_frame(-t,
+                                     y,
+                                     y_in_frame_basis,
+                                     return_in_frame_basis)
