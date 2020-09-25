@@ -210,7 +210,7 @@ def signal_multiply(sig1: Union[BaseSignal, float, int, complex],
 
         \Omega(t)*exp(2\pi i \nu t)
 
-    addition of two signals implements
+    multiplication of two signals implements
     .. math::
 
         \Omega_1(t)*\Omega_2(t)*exp(2\pi i (\nu_1+\nu_2) t)
