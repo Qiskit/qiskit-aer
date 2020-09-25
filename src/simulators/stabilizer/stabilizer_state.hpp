@@ -35,7 +35,7 @@ const Operations::OpSet StateOpSet(
     Operations::OpType::barrier, Operations::OpType::bfunc,
     Operations::OpType::roerror},
   // Gates
-  {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg"},
+  {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg", "delay"},
   // Snapshots
   {"stabilizer", "memory", "register", "probabilities",
     "probabilities_with_variance", "expectation_value_pauli",
@@ -191,6 +191,7 @@ protected:
 
 const stringmap_t<Gates> State::gateset_({
   // Single qubit gates
+  {"delay", Gates::id},// Delay gate
   {"id", Gates::id},   // Pauli-Identity gate
   {"x", Gates::x},    // Pauli-X gate
   {"y", Gates::y},    // Pauli-Y gate
