@@ -348,7 +348,29 @@ def signal_add(sig1: Union[BaseSignal, float, int, complex],
 
     # Multiplications with PiecewiseConstant
     elif isinstance(sig1, PiecewiseConstant) and isinstance(sig2, PiecewiseConstant):
-        raise NotImplementedError
+        if sig1.dt != sig2.dt:
+            raise Exception('Cannot sum signals with different dt.')
+
+        start_time = min(sig1.start_time, sig2.start_time)
+        end_time1 = sig1.dt * sig1.duration + sig1.start_time
+        end_time2 = sig2.dt * sig2.duration + sig2.start_time
+        end_time = max(end_time1, end_time2)
+
+        duration = int((end_time - start_time) // sig1.dt)
+
+        new_samples = []
+        if sig1.carrier_freq == sig2.carrier_freq:
+            carrier_freq = sig1.carrier_freq
+            for idx in range(duration):
+                t = start_time + idx * sig1.dt
+                new_samples.append(sig1.envelope_value(t) + sig2.envelope_value(t))
+        else:
+            carrier_freq = 0.0
+            for idx in range(duration):
+                t = start_time + idx * sig1.dt
+                new_samples.append(sig1.value(t) + sig2.value(t))
+
+        return PiecewiseConstant(sig1.dt, new_samples, start_time=start_time, carrier_freq=carrier_freq)
 
     # Other symmetric cases
     return signal_add(sig2, sig1)
