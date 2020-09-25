@@ -35,17 +35,17 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::kraus, Operations::OpType::superop},
     // Gates
-    {"U", "CX", "u1", "u2", "u3",  "cx",  "cz",  "swap", "id",
-     "x", "y",  "z",  "h",  "s",   "sdg", "t",   "tdg",  "ccx",
-     "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx",  "p",
-     "cp", "cu1", "sx", "x90", "delay"},
+    {"U",   "CX", "u1",  "u2", "u3",  "cx",   "cy",  "cz",  "swap",
+     "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",   "tdg",
+     "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz", "rzx",
+     "p",   "cp", "cu1", "sx", "x90", "delay"},
     // Snapshots
     {"superoperator"});
 
 // Allowed gates enum class
 enum class Gates {
   u2, u1, u3, id, x, y, z, h, s, sdg, sx, t, tdg, r, rx, ry, rz,
-  cx, cz, cp, swap, rxx, ryy, rzz, rzx, ccx
+  cx, cy, cz, cp, swap, rxx, ryy, rzz, rzx, ccx
 };
 
 // Allowed snapshots enum class
@@ -188,6 +188,7 @@ const stringmap_t<Gates> State<data_t>::gateset_({
     // Two-qubit gates
     {"CX", Gates::cx},     // Controlled-X gate (CNOT)
     {"cx", Gates::cx},     // Controlled-X gate (CNOT)
+    {"cy", Gates::cy},     // Controlled-Y gate
     {"cz", Gates::cz},     // Controlled-Z gate
     {"cp", Gates::cp},     // Controlled-Phase gate
     {"cu1", Gates::cp},    // Controlled-Phase gate
@@ -379,6 +380,9 @@ void State<data_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::cx:
       BaseState::qreg_.apply_cnot(op.qubits[0], op.qubits[1]);
+      break;
+    case Gates::cy:
+      apply_matrix(op.qubits, Linalg::VMatrix::CY);
       break;
     case Gates::cz:
       BaseState::qreg_.apply_cphase(op.qubits[0], op.qubits[1], -1);
