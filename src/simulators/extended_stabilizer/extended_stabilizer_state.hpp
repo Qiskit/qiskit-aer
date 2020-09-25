@@ -39,7 +39,7 @@ const Operations::OpSet StateOpSet(
     Operations::OpType::snapshot},
   // Gates
   {"CX", "u0", "u1", "cx", "cz", "swap", "id", "x", "y", "z", "h",
-    "s", "sdg", "t", "tdg", "ccx", "ccz"},
+    "s", "sdg", "t", "tdg", "ccx", "ccz", "delay"},
   // Snapshots
   {"statevector", "probabilities", "memory", "register"}
 );
@@ -179,6 +179,7 @@ protected:
 
 const stringmap_t<Gates> State::gateset_({
   // Single qubit gates
+  {"delay", Gates::id},  // Delay gate
   {"id", Gates::id},     // Pauli-Identity gate
   {"x", Gates::x},       // Pauli-X gate
   {"y", Gates::y},       // Pauli-Y gate

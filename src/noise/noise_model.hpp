@@ -241,7 +241,7 @@ private:
   const static stringmap_t<WaltzGate> waltz_gate_table_;
 
   // Parameterized Gates
-  enum class ParamGate {u1, u2, u3, r, rx, ry, rz, rxx, ryy, rzz, rzx};
+  enum class ParamGate {u1, u2, u3, r, rx, ry, rz, rxx, ryy, rzz, rzx, cp};
   const static stringmap_t<ParamGate> param_gate_table_;
 
   // waltz threshold for applying u1 rotations if |theta - 2n*pi | > threshold
@@ -270,7 +270,10 @@ NoiseModel::param_gate_table_ = {
   {"rxx", ParamGate::rxx},
   {"ryy", ParamGate::ryy},
   {"rzz", ParamGate::rzz},
-  {"rzx", ParamGate::rzx}
+  {"rzx", ParamGate::rzx},
+  {"p", ParamGate::u1},
+  {"cp", ParamGate::cp},
+  {"cu1", ParamGate::cp}
 };
 
 
@@ -888,6 +891,8 @@ cmatrix_t NoiseModel::op2superop(const Operations::Op &op) const {
             return Linalg::SMatrix::rzz(op.params[0]);
           case ParamGate::rzx:
             return Linalg::SMatrix::rzx(op.params[0]);
+          case ParamGate::cp:
+            return Linalg::SMatrix::cphase(op.params[0]);
         }
       } else {
         // Check if we can convert this gate to a standard superoperator matrix
@@ -932,6 +937,8 @@ cmatrix_t NoiseModel::op2unitary(const Operations::Op &op) const {
           return Linalg::Matrix::rzz(op.params[0]);
         case ParamGate::rzx:
           return Linalg::Matrix::rzx(op.params[0]);
+        case ParamGate::cp:
+          return Linalg::Matrix::cphase(op.params[0]);
       }
     } else {
       // Check if we can convert this gate to a standard superoperator matrix
