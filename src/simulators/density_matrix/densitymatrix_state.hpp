@@ -43,7 +43,7 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::diagonal_matrix, Operations::OpType::kraus,
      Operations::OpType::superop},
     // Gates
-    {"U", "CX", "u1", "u2", "u3",  "cx",  "cz",  "swap", "id",
+    {"U", "CX", "u1", "u2", "u3",  "cx",  "cy", "cz",  "swap", "id",
      "x", "y",  "z",  "h",  "s",   "sdg", "t",   "tdg",  "ccx",
      "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx",  "p",
      "cp","cu1", "sx", "x90", "delay"},
@@ -55,7 +55,7 @@ const Operations::OpSet StateOpSet(
 // Allowed gates enum class
 enum class Gates {
   u1, u2, u3, r, rx,ry, rz, id, x, y, z, h, s, sdg, sx, t, tdg,
-  cx, cz, swap, rxx, ryy, rzz, rzx, ccx, cp
+  cx, cy, cz, swap, rxx, ryy, rzz, rzx, ccx, cp
 };
 
 // Allowed snapshots enum class
@@ -277,6 +277,7 @@ const stringmap_t<Gates> State<densmat_t>::gateset_({
     // Two-qubit gates
     {"CX", Gates::cx},     // Controlled-X gate (CNOT)
     {"cx", Gates::cx},     // Controlled-X gate (CNOT)
+    {"cy", Gates::cy},     // Controlled-Y gate
     {"cz", Gates::cz},     // Controlled-Z gate
     {"cp", Gates::cp},     // Controlled-Phase gate
     {"cu1", Gates::cp},    // Controlled-Phase gate
@@ -673,6 +674,9 @@ void State<densmat_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::cx:
       BaseState::qreg_.apply_cnot(op.qubits[0], op.qubits[1]);
+      break;
+    case Gates::cy:
+      BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::CY);
       break;
     case Gates::cz:
       BaseState::qreg_.apply_cphase(op.qubits[0], op.qubits[1], -1);
