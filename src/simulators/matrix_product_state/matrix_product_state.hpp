@@ -55,13 +55,14 @@ const Operations::OpSet StateOpSet(
     "expectation_value_pauli", "expectation_value_pauli_with_variance",
     "expectation_value_pauli_single_shot", "expectation_value_matrix",
     "expectation_value_matrix_with_variance",
-    "expectation_value_matrix_single_shot"}
+      "expectation_value_matrix_single_shot",
+      "density_matrix", "density_matrix_with_variance"}
 );
 
 // Allowed snapshots enum class
 enum class Snapshots {
   statevector, cmemory, cregister,
-    probs, probs_var,
+    probs, probs_var, densmat, densmat_var,
     expval_pauli, expval_pauli_var, expval_pauli_shot,
     expval_matrix, expval_matrix_var, expval_matrix_shot
 };
@@ -238,6 +239,10 @@ protected:
                               ExperimentData &data,
                               SnapshotDataType type);
 
+ void snapshot_density_matrix(const Operations::Op &op,
+			     ExperimentData &data,
+	     		     SnapshotDataType type);
+
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const Operations::Op &op,
                              ExperimentData &data,
@@ -313,6 +318,8 @@ const stringmap_t<Snapshots> State::snapshotset_({
   {"expectation_value_pauli", Snapshots::expval_pauli},
   {"expectation_value_matrix", Snapshots::expval_matrix},
   {"probabilities_with_variance", Snapshots::probs_var},
+  {"density_matrix", Snapshots::densmat},
+  {"density_matrix_with_variance", Snapshots::densmat_var},
   {"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var},
   {"expectation_value_matrix_with_variance", Snapshots::expval_matrix_var},
   {"expectation_value_pauli_single_shot", Snapshots::expval_pauli_shot},
@@ -574,6 +581,33 @@ void State::snapshot_probabilities(const Operations::Op &op,
 
 }
 
+void State::snapshot_density_matrix(const Operations::Op &op,
+			     ExperimentData &data,
+			     SnapshotDataType type) {
+  cmatrix_t reduced_state;
+  if (op.qubits.empty()) {
+    reduced_state = cmatrix_t(1, 1);
+    reduced_state[0] = qreg_.norm();
+  } else {
+    reduced_state = qreg_.density_matrix(op.qubits);
+  }
+
+  // Add density matrix to result data
+  switch (type) {
+    case SnapshotDataType::average:
+      data.add_average_snapshot("density_matrix", op.string_params[0],
+                            BaseState::creg_.memory_hex(), std::move(reduced_state), false);
+      break;
+    case SnapshotDataType::average_var:
+      data.add_average_snapshot("density_matrix", op.string_params[0],
+                            BaseState::creg_.memory_hex(), std::move(reduced_state), true);
+      break;
+    case SnapshotDataType::pershot:
+      data.add_pershot_snapshot("density_matrix", op.string_params[0], std::move(reduced_state));
+      break;
+  }
+}
+
 void State::apply_gate(const Operations::Op &op) {
   // Look for gate name in gateset
   auto it = gateset_.find(op.name);
@@ -786,6 +820,9 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentData &data) {
       snapshot_probabilities(op, data, SnapshotDataType::average);
       break;
   }
+  case Snapshots::densmat: {
+      snapshot_density_matrix(op, data, SnapshotDataType::average);
+  } break;
   case Snapshots::expval_pauli: {
     snapshot_pauli_expval(op, data, SnapshotDataType::average);
   } break;
@@ -795,6 +832,9 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentData &data) {
   case Snapshots::probs_var: {
     // get probs as hexadecimal
     snapshot_probabilities(op, data, SnapshotDataType::average_var);
+  } break;
+  case Snapshots::densmat_var: {
+      snapshot_density_matrix(op, data, SnapshotDataType::average_var);
   } break;
   case Snapshots::expval_pauli_var: {
     snapshot_pauli_expval(op, data, SnapshotDataType::average_var);

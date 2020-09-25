@@ -64,7 +64,6 @@ configure_file("${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp.in"
 
 set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
-	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
 	"${USER_LIB_PATH}")
 
 set(AER_COMPILER_DEFINITIONS "")
@@ -205,14 +204,17 @@ else()
 	endif()
 	if(WIN32)
 		message(STATUS "Uncompressing OpenBLAS static library...")
-		execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/openblas.7z" WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/")
-		set(OPENBLAS_DLLs
-			"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/openblas.dll"
-			"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/flang.dll"
-			"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/flangrti.dll"
-			"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/libomp.dll")
+		set(WIN_ARCH "win64" )
+		if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4") # Checking if win32 build
+			set(WIN_ARCH "win32")
+		endif()
+		execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/openblas.7z" WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/")
+		set(OPENBLAS_DLLs "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll")
+		set(BLAS_LIBRARIES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll.a") # Seems CMake is unable to find it on its own
+		set(BLAS_FOUND True)
+	else()
+		find_package(BLAS QUIET)
 	endif()
-	find_package(BLAS QUIET)
 	if(NOT BLAS_FOUND)
 		message(STATUS "OpenBLAS not found. Looking for any other BLAS & Lapack libraries...")
 		unset(BLA_VENDOR)

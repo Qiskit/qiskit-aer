@@ -51,7 +51,7 @@ public:
   uint_t shots = 1;
   uint_t seed;
   json_t header;
-  
+  double global_phase_angle = 0;
 
   // Constructor
   // The constructor automatically calculates the num_qubits, num_memory, num_registers
@@ -184,6 +184,7 @@ Circuit::Circuit(const json_t &circ, const json_t &qobj_config) : Circuit() {
   // Load metadata
   JSON::get_value(header, "header", circ);
   JSON::get_value(shots, "shots", config);
+  JSON::get_value(global_phase_angle, "global_phase", header);
 
   // Check for specified memory slots
   uint_t memory_slots = 0;
