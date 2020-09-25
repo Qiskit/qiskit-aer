@@ -356,7 +356,8 @@ class QasmSnapshotDensityMatrixTests:
         'statevector_thrust',
         'density_matrix',
         'density_matrix_gpu',
-        'density_matrix_thrust'
+        'density_matrix_thrust',
+        'matrix_product_state'
     ]
     BACKEND_OPTS = {}
 
