@@ -82,7 +82,7 @@ GATES = [
 
 STATEVECTOR_BG = QasmSimulator().configuration().basis_gates
 DENSITY_MATRIX_BG = [
-    "u1", "u2", "u3", "cx", "cz", "swap", "id", "x", "y", "z", "h", "s",
+    "u1", "u2", "u3", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s",
     "sdg", "t", "tdg", "ccx", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz",
     "rzx", "p", "cp", "cu1", "sx", "delay",
 ]
