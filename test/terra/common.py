@@ -25,9 +25,9 @@ from itertools import repeat
 from random import choice, sample
 from math import pi
 import numpy as np
+from numpy.linalg import norm
 
-from qiskit.quantum_info import Operator, Statevector
-from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info import state_fidelity
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.providers.aer import __path__ as main_path
 
@@ -140,34 +140,44 @@ class QiskitAerTestCase(unittest.TestCase):
             items.pop(pos)
 
     def compare_statevector(self, result, circuits, targets,
-                            ignore_phase=False, atol=1e-8, rtol=1e-5):
+                            global_phase=True, places=None):
         """Compare final statevectors to targets."""
         for pos, test_case in enumerate(zip(circuits, targets)):
             circuit, target = test_case
-            target = Statevector(target)
-            output = Statevector(result.get_statevector(circuit))
+            output = result.get_statevector(circuit)
             test_msg = "Circuit ({}/{}):".format(pos + 1, len(circuits))
             with self.subTest(msg=test_msg):
                 msg = " {} != {}".format(output, target)
-                delta = matrix_equal(output.data, target.data,
-                                     ignore_phase=ignore_phase,
-                                     atol=atol, rtol=rtol)
-                self.assertTrue(delta, msg=msg)
+                if global_phase:
+                    # Test equal including global phase
+                    self.assertAlmostEqual(
+                        norm(output - target), 0, places=places,
+                        msg=msg)
+                else:
+                    # Test equal ignorning global phase
+                    self.assertAlmostEqual(
+                        state_fidelity(output, target) - 1, 0, places=places,
+                        msg=msg + " up to global phase")
 
     def compare_unitary(self, result, circuits, targets,
-                        ignore_phase=False, atol=1e-8, rtol=1e-5):
+                        global_phase=True, places=None):
         """Compare final unitary matrices to targets."""
         for pos, test_case in enumerate(zip(circuits, targets)):
             circuit, target = test_case
-            target = Operator(target)
-            output = Operator(result.get_unitary(circuit))
+            output = result.get_unitary(circuit)
             test_msg = "Circuit ({}/{}):".format(pos + 1, len(circuits))
             with self.subTest(msg=test_msg):
-                msg = test_msg + " {} != {}".format(output.data, target.data)
-                delta = matrix_equal(output.data, target.data,
-                                     ignore_phase=ignore_phase,
-                                     atol=atol, rtol=rtol)
-                self.assertTrue(delta, msg=msg)
+                msg = "\n{}\n {} != {}".format(circuit, output, target)
+                if global_phase:
+                    # Test equal including global phase
+                    self.assertAlmostEqual(
+                        norm(output - target), 0, places=places, msg=msg)
+                else:
+                    # Test equal ignorning global phase
+                    delta = np.trace(np.dot(
+                        np.conj(np.transpose(output)), target)) - len(output)
+                    self.assertAlmostEqual(
+                        delta, 0, places=places, msg=msg + " up to global phase")
 
     def compare_counts(self, result, circuits, targets, hex_counts=True, delta=0):
         """Compare counts dictionary to targets."""
@@ -181,7 +191,7 @@ class QiskitAerTestCase(unittest.TestCase):
                 output = result.get_counts(circuit)
             test_msg = "Circuit ({}/{}):".format(pos + 1, len(circuits))
             with self.subTest(msg=test_msg):
-                msg = test_msg + " {} != {}".format(output, target)
+                msg = " {} != {}".format(output, target)
                 self.assertDictAlmostEqual(
                     output, target, delta=delta, msg=msg)
 

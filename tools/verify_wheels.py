@@ -6,14 +6,13 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 import numpy as np
+from numpy.linalg import norm
 
 from qiskit import ClassicalRegister
 from qiskit.compiler import assemble, transpile
 from qiskit import execute
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
-from qiskit.quantum_info import Operator, Statevector
-from qiskit.quantum_info.operators.predicates import matrix_equal
 
 from qiskit.providers.aer.pulse.system_models.duffing_model_generators import duffing_system_model
 from qiskit.pulse import (Schedule, Play, Acquire, SamplePulse, DriveChannel, AcquireChannel,
@@ -383,38 +382,34 @@ def cx_gate_unitary_deterministic():
 
 
 def compare_statevector(result, circuits, targets,
-                        ignore_phase=False, atol=1e-8, rtol=1e-5):
+                        global_phase=True, places=None):
     """Compare final statevectors to targets."""
     for pos, test_case in enumerate(zip(circuits, targets)):
         circuit, target = test_case
-        target = Statevector(target)
-        output = Statevector(result.get_statevector(circuit))
-        equiv = matrix_equal(output.data, target.data,
-                             ignore_phase=ignore_phase,
-                             atol=atol, rtol=rtol)
-        if equiv:
-            return
-        msg = "Circuit ({}/{}): {} != {}".format(
-            pos + 1, len(circuits), output.data, target.data)
-        raise Exception(msg)
+        output = result.get_statevector(circuit)
+        msg = ("Circuit ({}/{}):".format(pos + 1, len(circuits)) +
+               " {} != {}".format(output, target))
+        assertAlmostEqual(norm(output - target), 0, places=places,
+                          msg=msg)
 
 
 def compare_unitary(result, circuits, targets,
-                    ignore_phase=False, atol=1e-8, rtol=1e-5):
+                    global_phase=True, places=None):
     """Compare final unitary matrices to targets."""
     for pos, test_case in enumerate(zip(circuits, targets)):
         circuit, target = test_case
-        target = Operator(target)
-        output = Operator(result.get_unitary(circuit))
-        equiv = matrix_equal(output.data, target.data,
-                             ignore_phase=ignore_phase,
-                             atol=atol, rtol=rtol)
-        if equiv:
-            return
-        msg = "Circuit ({}/{}): {} != {}".format(
-            pos + 1, len(circuits), output.data, target.data)
-        raise Exception(msg)
-
+        output = result.get_unitary(circuit)
+        msg = ("Circuit ({}/{}):".format(pos + 1, len(circuits)) +
+               " {} != {}".format(output, target))
+        if (global_phase):
+            # Test equal including global phase
+            assertAlmostEqual(norm(output - target), 0,
+                              places=places, msg=msg)
+        else:
+            # Test equal ignorning global phase
+            delta = np.trace(
+                np.dot(np.conj(np.transpose(output)), target)) - len(output)
+            assertAlmostEqual(delta, 0, places=places)
 
 def model_and_pi_schedule():
     """Return a simple model and schedule for pulse simulation"""

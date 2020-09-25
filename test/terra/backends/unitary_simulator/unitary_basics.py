@@ -1048,10 +1048,7 @@ class UnitarySimulatorTests:
                       backend_options=self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
-        # TODO: check phase when terra fixes global phase bug
-        #       See Terra issue #5125 for details
-        #       https://github.com/Qiskit/qiskit-terra/issues/5125
-        self.compare_unitary(result, circuits, targets, ignore_phase=True)
+        self.compare_unitary(result, circuits, targets)
 
     def test_diagonal_gate(self):
         """Test simulation with diagonal gate circuit instructions."""
@@ -1155,4 +1152,4 @@ class UnitarySimulatorTests:
             targets[i] = exp(1j * global_phase) * targets[i]
         result = self.SIMULATOR.run(qobj).result()
         self.assertSuccess(result)
-        self.compare_unitary(result, circuits, targets, ignore_phase=False)
+        self.compare_unitary(result, circuits, targets, global_phase=True)
