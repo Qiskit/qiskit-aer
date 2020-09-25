@@ -104,7 +104,7 @@ class Signal(BaseSignal):
 
 class Constant(BaseSignal):
     """
-    Constant that can appear in the Hamiltonian.
+    Constant signal that has no carrier and may appear in a model.
     """
 
     def __init__(self, value: complex):
