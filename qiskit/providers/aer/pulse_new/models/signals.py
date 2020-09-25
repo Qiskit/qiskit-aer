@@ -428,7 +428,9 @@ class VectorSignal:
             return np.array([sig.envelope_value(t) for sig in signal_list])
 
         # construct carrier frequency list
-        carrier_freqs = np.array([sig.carrier_freq for sig in signal_list])
+        # if signal doesn't have a carrier, set to 0.
+        carrier_freqs = np.array([getattr(sig, 'carrier_freq', 0.)
+                                    for sig in signal_list])
 
         # construct drift_array
         drift_array = []

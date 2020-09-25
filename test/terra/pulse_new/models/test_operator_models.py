@@ -16,7 +16,7 @@ import numpy as np
 from scipy.linalg import expm
 from qiskit.quantum_info.operators import Operator
 from qiskit.providers.aer.pulse_new.models.operator_models import FrameFreqHelper, OperatorModel
-from qiskit.providers.aer.pulse_new.models.signals import Constant, ConstantSignal, Signal, VectorSignal
+from qiskit.providers.aer.pulse_new.models.signals import Constant, Signal, VectorSignal
 
 
 class TestOperatorModel(unittest.TestCase):
@@ -32,7 +32,7 @@ class TestOperatorModel(unittest.TestCase):
         r = 0.5
         operators = [-1j * 2 * np.pi * self.Z / 2,
                      -1j * 2 * np.pi *  r * self.X / 2]
-        signals = [Constant(w), ConstantSignal(1., w)]
+        signals = [Constant(w), Signal(1., w)]
 
         self.w = 2
         self.r = r
