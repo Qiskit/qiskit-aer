@@ -374,3 +374,104 @@ def signal_add(sig1: Union[BaseSignal, float, int, complex],
 
     # Other symmetric cases
     return signal_add(sig2, sig1)
+
+
+class VectorSignal:
+    """The vector version of the Signal class - the envelope is an array-valued
+    function, and carrier_freqs is an array of carrier frequencies.
+
+    In addition, a drift_array is set to correspond to the value of the
+    VectorSignal when all "time-dependent terms" are off. E.g. if it is
+    composed of a list of Signal objects, this corresponds to the output when
+    all non-Constant signal objects are zero.
+    """
+
+    def __init__(self,
+                 envelope: Callable,
+                 carrier_freqs: np.array,
+                 drift_array: np.array = None):
+        """Initialize with vector-valued envelope, carrier frequencies for
+        each entry, and a drift_array, which corresponds to the value of the
+        signal when the "time-dependent terms" are "off".
+
+        Args:
+            envelope: function of a single float returning an array.
+            carrier_freqs: list of carrier frequences for each component of the
+                           envelope.
+            drift_array: a default array meant to be the value of the envelope
+                         when all "time-dependent terms" are off.
+        """
+        self.envelope = envelope
+        self.carrier_freqs = carrier_freqs
+
+        # if not supplied nothing is assumed, constant array is taken as all
+        # zeros
+        if drift_array is None:
+            self.drift_array = np.zeros(len(self.carrier_freqs))
+        else:
+            self.drift_array = drift_array
+
+    @classmethod
+    def from_signal_list(cls, signal_list: List[Signal]):
+        """Instantiate from a list of Signal objects. The drift_array will
+        correspond to the Constant objects.
+
+        Args:
+            signal_list: list of Signal objects.
+
+        Returns:
+            VectorSignal that evaluates the signal list
+        """
+
+        # define the envelope as iteratively evaluating the envelopes
+        def env_func(t):
+            return np.array([sig.envelope_value(t) for sig in signal_list])
+
+        # construct carrier frequency list
+        carrier_freqs = np.array([sig.carrier_freq for sig in signal_list])
+
+        # construct drift_array
+        drift_array = []
+        for sig in signal_list:
+            if isinstance(sig, Constant):
+                drift_array.append(sig.value())
+            else:
+                drift_array.append(0.)
+
+        return cls(envelope=env_func,
+                   carrier_freqs=carrier_freqs,
+                   drift_array=np.array(drift_array))
+
+    def envelope_value(self, t: float) -> np.array:
+        """Evaluate the envelope.
+
+        Args:
+            t: time
+
+        Returns:
+            np.array: the signal envelope at time t
+        """
+        return self.envelope(t)
+
+    def value(self, t: float) -> np.array:
+        """Evaluate the full value of the VectorSignal.
+
+        Args:
+            t (float): time
+
+        Returns:
+            np.array: the value of the signal (including carrier frequencies)
+                      at time t
+        """
+        carrier_val = np.exp( (1j * 2 * np.pi * t) * self.carrier_freqs)
+        return self.envelope_value(t) * carrier_val
+
+    def conjugate(self):
+        """Return a new VectorSignal that is the complex conjugate of self.
+
+        Returns:
+            VectorSignal: the complex conjugate of self
+        """
+        return VectorSignal(lambda t: np.conjugate(self.envelope_value(t)),
+                            -self.carrier_freqs,
+                            np.conjugate(self.drift_array))
