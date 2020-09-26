@@ -1,15 +1,15 @@
 """tests for type_utils.py"""
 
-import unittest
 import numpy as np
 from qiskit.providers.aer.pulse.de.type_utils import (convert_state,
                                                       type_spec_from_instance,
                                                       StateTypeConverter)
 
-class TestTypeUtils(unittest.TestCase):
+from ...common import QiskitAerTestCase
 
-    def setUp(self):
-        pass
+
+class TestTypeUtils(QiskitAerTestCase):
+
 
     def test_convert_state(self):
         """Test convert_state"""

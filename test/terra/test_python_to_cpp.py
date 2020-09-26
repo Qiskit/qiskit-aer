@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-import sys
 import unittest
 import numpy as np
 from qiskit.providers.aer.pulse.qutip_extra_lite.qobj import Qobj
@@ -20,17 +19,12 @@ from qiskit.providers.aer.pulse.controllers.test_python_to_cpp import \
     test_py_dict_string_list_of_list_of_doubles_to_cpp_map_string_vec_of_vecs_of_doubles,\
     test_np_array_of_doubles, test_evaluate_hamiltonians, test_py_ordered_map
 
+from .common import QiskitAerTestCase
 
-class TestPythonToCpp(unittest.TestCase):
+
+class TestPythonToCpp(QiskitAerTestCase):
     """ Test Pyhton C API wrappers we have for dealing with Python data structures
         in C++ code. """
-    def setUp(self):
-        """ WARNING: We do not support Python 3.5 because the digest algorithm relies on dictionary insertion order.
-        This "feature" was introduced later on Python 3.6 and there's no official support for OrderedDict in the C API so
-        Python 3.5 support has been disabled while looking for a propper fix. """
-        if sys.version_info.major == 3 and sys.version_info.minor == 5:
-           self.skipTest("We don't support Python 3.5 for Pulse simulator")
-        pass
 
     def test_py_list_to_cpp_vec(self):
         arg = [1., 2., 3.]
