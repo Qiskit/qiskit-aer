@@ -18,6 +18,7 @@
 #include "framework/opset.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
 #include "framework/noise_utils.hpp"
+#include "framework/avx2_detect.hpp"
 
 namespace AER {
 namespace Noise {
@@ -128,6 +129,10 @@ protected:
 
   // flag for where errors should be applied relative to the sampled op
   bool errors_after_op_ = true;
+
+  template<typename SuperOpStateClass>
+  void compute_superoperator_();
+
 };
 
 //-------------------------------------------------------------------------
@@ -350,13 +355,20 @@ const std::vector<cmatrix_t>& QuantumError::kraus() const {
   return canonical_kraus_;
 }
 
-
 void QuantumError::compute_superoperator() {
+  if (is_avx2_supported())
+    compute_superoperator_<QubitSuperoperator::State<QV::SuperoperatorAvx2<double>>>();
+  else
+    compute_superoperator_<QubitSuperoperator::State<QV::Superoperator<double>>>();
+}
+
+template<typename SuperOpStateClass>
+void QuantumError::compute_superoperator_() {
   // Initialize superoperator matrix to correct size
   size_t dim = 1ULL << (2 * get_num_qubits());
   superoperator_.initialize(dim, dim);
   // We use the superoperator simulator state to do this
-  QubitSuperoperator::State<> superop;
+  SuperOpStateClass superop;
   for (size_t j=0; j<circuits_.size(); j++ ){
     // Initialize identity superoperator
     superop.initialize_qreg(get_num_qubits());

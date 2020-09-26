@@ -20,6 +20,9 @@
 #include <cmath>
 #include <limits>
 
+#include <immintrin.h>
+#include <type_traits>
+
 #include "framework/types.hpp"
 
 namespace AER {
@@ -1131,7 +1134,6 @@ uint_t popcount(const uint_t count_) {
   count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
   return count;
 }
-
 
 //------------------------------------------------------------------------------
 } // end namespace Utils

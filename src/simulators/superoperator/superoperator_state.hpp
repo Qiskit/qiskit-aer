@@ -23,6 +23,7 @@
 #include "framework/utils.hpp"
 #include "simulators/state.hpp"
 #include "superoperator.hpp"
+#include "superoperator_avx2.hpp"
 
 namespace AER {
 namespace QubitSuperoperator {
@@ -55,10 +56,10 @@ enum class Snapshots { superop };
 // QubitUnitary State subclass
 //=========================================================================
 
-template <class data_t = QV::Superoperator<double>>
-class State : public Base::State<data_t> {
+template <typename superop_t = QV::Superoperator<double>>
+class State : public Base::State<superop_t> {
 public:
-  using BaseState = Base::State<data_t>;
+  using BaseState = Base::State<superop_t>;
 
   State() : BaseState(StateOpSet) {}
   virtual ~State() = default;
@@ -80,7 +81,7 @@ public:
 
   // Initializes to a specific n-qubit unitary superop
   virtual void initialize_qreg(uint_t num_qubits,
-                               const data_t &unitary) override;
+                               const superop_t &unitary) override;
 
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
@@ -160,8 +161,8 @@ protected:
 // Implementation: Allowed ops and gateset
 //============================================================================
 
-template <class data_t>
-const stringmap_t<Gates> State<data_t>::gateset_({
+template <typename superop_t>
+const stringmap_t<Gates> State<superop_t>::gateset_({
     // Single qubit gates
     {"delay", Gates::id},// Delay gate
     {"id", Gates::id},   // Pauli-Identity gate
@@ -205,8 +206,8 @@ const stringmap_t<Gates> State<data_t>::gateset_({
 // Implementation: Base class method overrides
 //============================================================================
 
-template <class data_t>
-void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
+template <typename superop_t>
+void State<superop_t>::apply_ops(const std::vector<Operations::Op> &ops,
                               ExperimentData &data, RngEngine &rng) {
   // Simple loop over vector of input operations
   for (const auto &op: ops) {
@@ -245,8 +246,8 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
   }
 }
 
-template <class data_t>
-size_t State<data_t>::required_memory_mb(
+template <typename superop_t>
+size_t State<superop_t>::required_memory_mb(
     uint_t num_qubits, const std::vector<Operations::Op> &ops) const {
   // An n-qubit unitary as 2^4n complex doubles
   // where each complex double is 16 bytes
@@ -256,7 +257,8 @@ size_t State<data_t>::required_memory_mb(
   return mem_mb;
 }
 
-template <class data_t> void State<data_t>::set_config(const json_t &config) {
+template <typename superop_t>
+void State<superop_t>::set_config(const json_t &config) {
   // Set OMP threshold for state update functions
   JSON::get_value(omp_qubit_threshold_, "superoperator_parallel_threshold",
                   config);
@@ -266,14 +268,15 @@ template <class data_t> void State<data_t>::set_config(const json_t &config) {
   BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
 }
 
-template <class data_t> void State<data_t>::initialize_qreg(uint_t num_qubits) {
+template <typename superop_t>
+void State<superop_t>::initialize_qreg(uint_t num_qubits) {
   initialize_omp();
   BaseState::qreg_.set_num_qubits(num_qubits);
   BaseState::qreg_.initialize();
 }
 
-template <class data_t>
-void State<data_t>::initialize_qreg(uint_t num_qubits, const data_t &supermat) {
+template <typename superop_t>
+void State<superop_t>::initialize_qreg(uint_t num_qubits, const superop_t &supermat) {
   // Check dimension of state
   if (supermat.num_qubits() != num_qubits) {
     throw std::invalid_argument("QubitSuperoperator::State::initialize: "
@@ -285,8 +288,8 @@ void State<data_t>::initialize_qreg(uint_t num_qubits, const data_t &supermat) {
   BaseState::qreg_.initialize_from_data(supermat.data(), sz);
 }
 
-template <class data_t>
-void State<data_t>::initialize_qreg(uint_t num_qubits, const cmatrix_t &mat) {
+template <typename superop_t>
+void State<superop_t>::initialize_qreg(uint_t num_qubits, const cmatrix_t &mat) {
 
   // Check dimension of unitary
   const auto sz_uni = 1ULL << (2 * num_qubits);
@@ -300,7 +303,8 @@ void State<data_t>::initialize_qreg(uint_t num_qubits, const cmatrix_t &mat) {
   BaseState::qreg_.initialize_from_matrix(mat);
 }
 
-template <class data_t> void State<data_t>::initialize_omp() {
+template <typename superop_t>
+void State<superop_t>::initialize_omp() {
   BaseState::qreg_.set_omp_threshold(omp_qubit_threshold_);
   if (BaseState::threads_ > 0)
     BaseState::qreg_.set_omp_threads(
@@ -311,7 +315,8 @@ template <class data_t> void State<data_t>::initialize_omp() {
 // Implementation: Reset
 //=========================================================================
 
-template <class data_t> void State<data_t>::apply_reset(const reg_t &qubits) {
+template <typename superop_t>
+void State<superop_t>::apply_reset(const reg_t &qubits) {
   // TODO: This can be more efficient by adding reset
   // to base class rather than doing a matrix multiplication
   // where all but 1 row is zeros.
@@ -335,8 +340,8 @@ void State<statevec_t>::apply_kraus(const reg_t &qubits,
 // Implementation: Gates
 //=========================================================================
 
-template <class data_t>
-void State<data_t>::apply_gate(const Operations::Op &op) {
+template <typename superop_t>
+void State<superop_t>::apply_gate(const Operations::Op &op) {
   // Look for gate name in gateset
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
@@ -435,15 +440,15 @@ void State<data_t>::apply_gate(const Operations::Op &op) {
   }
 }
 
-template <class data_t>
-void State<data_t>::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
+template <typename superop_t>
+void State<superop_t>::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
   if (qubits.empty() == false && mat.size() > 0) {
     BaseState::qreg_.apply_unitary_matrix(qubits, Utils::vectorize_matrix(mat));
   }
 }
 
-template <class data_t>
-void State<data_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
+template <typename superop_t>
+void State<superop_t>::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
   // Check if diagonal matrix
   if (vmat.size() == 1ULL << qubits.size()) {
     BaseState::qreg_.apply_diagonal_unitary_matrix(qubits, vmat);
@@ -459,8 +464,8 @@ void State<statevec_t>::apply_gate_u3(const uint_t qubit, double theta,
   BaseState::qreg_.apply_unitary_matrix(reg_t({qubit}), u3);
 }
 
-template <class data_t>
-void State<data_t>::apply_snapshot(const Operations::Op &op,
+template <typename superop_t>
+void State<superop_t>::apply_snapshot(const Operations::Op &op,
                                    ExperimentData &data) {
   // Look for snapshot type in snapshotset
   if (op.name == "superopertor" || op.name == "state") {

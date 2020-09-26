@@ -31,14 +31,14 @@ namespace QV {
 // The vector is formed using column-stacking vectorization of the
 // superoperator (itself with respect to column-stacking vectorization).
 
-template <typename data_t = double>
-class Superoperator : public DensityMatrix<data_t> {
+template <typename data_t = double, typename Derived = void>
+class Superoperator : public DensityMatrix<data_t, Derived> {
 
 public:
   // Parent class aliases
-  using BaseVector = QubitVector<data_t>;
-  using BaseDensity = DensityMatrix<data_t>;
-  using BaseUnitary = UnitaryMatrix<data_t>;
+  using BaseVector = QubitVector<data_t, Derived>;
+  using BaseDensity = DensityMatrix<data_t, Derived>;
+  using BaseUnitary = UnitaryMatrix<data_t, Derived>;
 
   //-----------------------------------------------------------------------
   // Constructors and Destructor
@@ -83,8 +83,8 @@ protected:
 // Constructors & Destructor
 //------------------------------------------------------------------------------
 
-template <typename data_t>
-Superoperator<data_t>::Superoperator(size_t num_qubits) {
+template <typename data_t, typename Derived>
+Superoperator<data_t, Derived>::Superoperator(size_t num_qubits) {
   set_num_qubits(num_qubits);
 }
 
@@ -92,8 +92,8 @@ Superoperator<data_t>::Superoperator(size_t num_qubits) {
 // Utility
 //------------------------------------------------------------------------------
 
-template <class data_t>
-void Superoperator<data_t>::set_num_qubits(size_t num_qubits) {
+template <typename data_t, typename Derived>
+void Superoperator<data_t, Derived>::set_num_qubits(size_t num_qubits) {
   num_qubits_ = num_qubits;
   // Superoperator is same size matrix as a unitary matrix
   // of twice as many qubits
@@ -101,15 +101,15 @@ void Superoperator<data_t>::set_num_qubits(size_t num_qubits) {
 }
 
 
-template <typename data_t>
-void Superoperator<data_t>::initialize() {
+template <typename data_t, typename Derived>
+void Superoperator<data_t, Derived>::initialize() {
   // Set underlying unitary matrix to identity
   BaseUnitary::initialize();
 }
 
 
-template <class data_t>
-void Superoperator<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
+template <typename data_t, typename Derived>
+void Superoperator<data_t, Derived>::initialize_from_matrix(const AER::cmatrix_t &mat) {
   if (AER::Utils::is_square(mat)) {
     const size_t nrows = mat.GetRows();
     if (nrows == BaseUnitary::rows_) {
@@ -143,7 +143,7 @@ void Superoperator<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
 //------------------------------------------------------------------------------
 
 // ostream overload for templated qubitvector
-template <typename data_t>
+template <typename data_t, typename Derived>
 inline std::ostream &operator<<(std::ostream &out, const AER::QV::Superoperator<data_t>&m) {
   out << m.copy_to_matrix();
   return out;
