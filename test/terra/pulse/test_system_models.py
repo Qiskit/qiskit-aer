@@ -33,6 +33,7 @@ class BaseTestPulseSystemModel(QiskitAerTestCase):
     """Tests for PulseSystemModel"""
 
     def setUp(self):
+        super().setUp()
         self._default_qubit_lo_freq = [4.9, 5.0]
         self._u_channel_lo = []
         self._u_channel_lo.append([UchannelLO(0, 1.0+0.0j)])

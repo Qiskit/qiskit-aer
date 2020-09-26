@@ -17,8 +17,10 @@ from qiskit import QuantumCircuit, assemble
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.providers.aer.extensions.snapshot_probabilities import SnapshotProbabilities
 
+from ..common import QiskitAerTestCase
 
-class TestSnapshotProbabilitiesExtension(unittest.TestCase):
+
+class TestSnapshotProbabilitiesExtension(QiskitAerTestCase):
     """SnapshotProbabilities extension tests"""
 
     @staticmethod

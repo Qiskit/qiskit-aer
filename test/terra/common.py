@@ -25,11 +25,13 @@ from itertools import repeat
 from random import choice, sample
 from math import pi
 import numpy as np
+import fixtures
 
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.providers.aer import __path__ as main_path
+from qiskit.test import QiskitTestCase
 
 
 class Path(Enum):
@@ -40,8 +42,12 @@ class Path(Enum):
     EXAMPLES = os.path.join(MAIN, '../examples')
 
 
-class QiskitAerTestCase(unittest.TestCase):
+class QiskitAerTestCase(QiskitTestCase):
     """Helper class that contains common functionality."""
+
+    def setUp(self):
+        super().setUp()
+        self.useFixture(fixtures.Timeout(120, gentle=True))
 
     @classmethod
     def setUpClass(cls):

@@ -25,9 +25,6 @@ from qiskit.providers.models.backendconfiguration import UchannelLO
 class TestDuffingModelGenerators(QiskitAerTestCase):
     """Tests for functions in duffing_model_generators.py"""
 
-    def setUp(self):
-        pass
-
     def test_duffing_system_model1(self):
         """First test of duffing_system_model, 2 qubits, 2 dimensional"""
 
