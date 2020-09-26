@@ -48,3 +48,10 @@ class AerProvider(BaseProvider):
 
     def __str__(self):
         return 'AerProvider'
+
+    @staticmethod
+    def optimize_backend_options(min_qubits=10, max_qubits=20, ntrials=10):
+        """Set optimal OpenMP and fusion options for backend."""
+        from .profile import optimize_backend_options
+        return optimize_backend_options(
+            min_qubits=min_qubits, max_qubits=max_qubits, ntrials=ntrials)

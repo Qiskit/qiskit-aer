@@ -139,9 +139,25 @@ class AerBackend(BaseBackend):
         output = qobj.to_dict()
         # Add new parameters to config from backend options
         config = output["config"]
+
         if backend_options is not None:
             for key, val in backend_options.items():
                 config[key] = val if not hasattr(val, 'to_dict') else val.to_dict()
+
+        # Add default OpenMP options
+        if 'statevector_parallel_threshold' not in config and hasattr(
+                self, '_statevector_parallel_threshold'):
+            config['statevector_parallel_threshold'] = self._statevector_parallel_threshold
+
+        # Add default fusion options
+        if 'fusion_threshold' not in config:
+            if 'gpu' in config.get('method', '') and hasattr(self, '_fusion_threshold_gpu'):
+                # Set GPU fusion threshold
+                config['fusion_threshold'] = self._fusion_threshold_gpu
+            elif hasattr(self, '_fusion_threshold'):
+                # Set CPU fusion threshold
+                config['fusion_threshold'] = self._fusion_threshold
+
         # Add noise model to config
         if noise_model is not None:
             config["noise_model"] = noise_model
