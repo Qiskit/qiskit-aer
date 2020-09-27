@@ -1152,15 +1152,6 @@ uint_t binary_search(const rvector_t &acc_probvector,
     return binary_search(acc_probvector, mid, end, rnd);
 }
 
-double MPS::norm(const reg_t &qubits, const cvector_t &vmat) const {
-    return norm(qubits, AER::Utils::devectorize_matrix(vmat));
-}
-
-double MPS::norm(const reg_t &qubits, const cmatrix_t &mat) const {
-    cmatrix_t norm_mat = AER::Utils::dagger(mat) * mat;
-    return expectation_value(qubits, norm_mat);
-}
-
 double MPS::norm() {
     reg_t qubits(num_qubits_);
     std::iota( std::begin(qubits), std::end(qubits), 0);
@@ -1169,6 +1160,15 @@ double MPS::norm() {
     for (uint_t i=0; i<vec.size(); i++)
       trace += vec[i];
     return trace;
+}
+
+double MPS::norm(const reg_t &qubits, const cvector_t &vmat) const {
+    return norm(qubits, AER::Utils::devectorize_matrix(vmat));
+}
+
+double MPS::norm(const reg_t &qubits, const cmatrix_t &mat) const {
+    cmatrix_t norm_mat = AER::Utils::dagger(mat) * mat;
+    return expectation_value(qubits, norm_mat);
 }
 
 //------------------------------------------------------------------------------

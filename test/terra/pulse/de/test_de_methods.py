@@ -10,9 +10,13 @@ from qiskit.providers.aer.pulse.de.DE_Methods import (ODE_Method,
                                                       QiskitZVODE,
                                                       method_from_string)
 
-class TestDE_Methods(unittest.TestCase):
+from ...common import QiskitAerTestCase
+
+
+class TestDE_Methods(QiskitAerTestCase):
 
     def setUp(self):
+        super().setUp()
         # set up a 2d test problem
         self.t0 = 0.
         self.y0 = np.eye(2)

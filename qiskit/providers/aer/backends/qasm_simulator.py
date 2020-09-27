@@ -246,20 +246,22 @@ class QasmSimulator(AerBackend):
         'description': 'A C++ simulator with realistic noise for QASM Qobj files',
         'coupling_map': None,
         'basis_gates': [
-            'u1', 'u2', 'u3', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
-            't', 'tdg', 'swap', 'ccx', 'r', 'rx', 'ry', 'rz', 'rxx', 'ryy',
-            'rzz', 'rzx', 'unitary', 'diagonal', 'initialize', 'cu1', 'cu2',
-            'cu3', 'cswap', 'mcx', 'mcy', 'mcz', 'mcrx', 'mcry', 'mcrz', 'mcr',
-            'mcu1', 'mcu2', 'mcu3', 'mcswap', 'multiplexer', 'kraus', 'roerror'
+            'u1', 'u2', 'u3', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x', 'y',
+            'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx', 'cy',
+            'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy', 'rzz',
+            'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx', 'mcp',
+            'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz', 'mcr',
+            'mcswap', 'unitary', 'diagonal', 'multiplexer', 'initialize',
+            'kraus', 'superop', 'roerror', 'delay'
         ],
         'gates': []
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(qasm_controller_execute,
-                         QasmBackendConfiguration.from_dict(
-                             self.DEFAULT_CONFIGURATION),
-                         provider=provider)
+        super().__init__(
+            qasm_controller_execute(),
+            QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
+            provider=provider)
 
     def _validate(self, qobj, backend_options, noise_model):
         """Semantic validations of the qobj which cannot be done via schemas.

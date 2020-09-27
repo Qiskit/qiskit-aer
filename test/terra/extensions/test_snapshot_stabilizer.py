@@ -17,8 +17,10 @@ from qiskit import QuantumCircuit, assemble
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.providers.aer.extensions.snapshot_stabilizer import SnapshotStabilizer
 
+from ..common import QiskitAerTestCase
 
-class TestSnapshotStabilizerExtension(unittest.TestCase):
+
+class TestSnapshotStabilizerExtension(QiskitAerTestCase):
     """SnapshotStbilizer extension tests"""
 
     @staticmethod

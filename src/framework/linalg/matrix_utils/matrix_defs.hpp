@@ -42,6 +42,7 @@ public:
   const static cmatrix_t SDG; // name: "sdg"
   const static cmatrix_t T;   // name: "t"
   const static cmatrix_t TDG; // name: "tdg"
+  const static cmatrix_t SX;  // name: "sx"
   const static cmatrix_t X90; // name: "x90"
 
   // Two-qubit gates
@@ -70,9 +71,15 @@ public:
   static cmatrix_t rzz(double theta);
   static cmatrix_t rzx(double theta); // rotation around Tensor(X, Z)
 
+  // Phase Gates
+  static cmatrix_t phase(double theta);
+  static cmatrix_t phase_diag(double theta);
+  static cmatrix_t cphase(double theta);
+  static cmatrix_t cphase_diag(double theta);
+
   // Complex arguments are implemented by taking std::real
   // of the input
-  static cmatrix_t u1(complex_t lam) { return u1(std::real(lam)); }
+  static cmatrix_t u1(complex_t lam) { return phase(std::real(lam)); }
   static cmatrix_t u2(complex_t phi, complex_t lam) {
     return u2(std::real(phi), std::real(lam));
   }
@@ -89,6 +96,10 @@ public:
   static cmatrix_t ryy(complex_t theta) { return ryy(std::real(theta)); }
   static cmatrix_t rzz(complex_t theta) { return rzz(std::real(theta)); }
   static cmatrix_t rzx(complex_t theta) { return rzx(std::real(theta)); }
+  static cmatrix_t phase(complex_t theta) { return phase(std::real(theta)); }
+  static cmatrix_t phase_diag(complex_t theta) { return phase_diag(std::real(theta)); }
+  static cmatrix_t cphase(complex_t theta) { return cphase(std::real(theta)); }
+  static cmatrix_t cphase_diag(complex_t theta) { return cphase_diag(std::real(theta)); }
 
   // Return the matrix for a named matrix string
   // Allowed names correspond to all the const static single-qubit
@@ -138,6 +149,9 @@ const cmatrix_t Matrix::H = Utils::make_matrix<complex_t>(
     {{{1 / std::sqrt(2.), 0}, {1 / std::sqrt(2.), 0}},
      {{1 / std::sqrt(2.), 0}, {-1 / std::sqrt(2.), 0}}});
 
+const cmatrix_t Matrix::SX = Utils::make_matrix<complex_t>(
+    {{{0.5, 0.5}, {0.5, -0.5}}, {{0.5, -0.5}, {0.5, 0.5}}});
+
 const cmatrix_t Matrix::X90 = Utils::make_matrix<complex_t>(
     {{{1. / std::sqrt(2.), 0}, {0, -1. / std::sqrt(2.)}},
      {{0, -1. / std::sqrt(2.)}, {1. / std::sqrt(2.), 0}}});
@@ -172,7 +186,8 @@ const stringmap_t<const cmatrix_t *> Matrix::label_map_ = {
     {"z", &Matrix::Z},      {"h", &Matrix::H},   {"s", &Matrix::S},
     {"sdg", &Matrix::SDG},  {"t", &Matrix::T},   {"tdg", &Matrix::TDG},
     {"x90", &Matrix::X90},  {"cx", &Matrix::CX}, {"cy", &Matrix::CY},
-    {"cz", &Matrix::CZ},    {"swap", &Matrix::SWAP}};
+    {"cz", &Matrix::CZ},    {"swap", &Matrix::SWAP}, {"sx", &Matrix::SX},
+    {"delay", &Matrix::I}};
 
 cmatrix_t Matrix::identity(size_t dim) {
   cmatrix_t mat(dim, dim);
@@ -182,10 +197,7 @@ cmatrix_t Matrix::identity(size_t dim) {
 }
 
 cmatrix_t Matrix::u1(double lambda) {
-  cmatrix_t mat(2, 2);
-  mat(0, 0) = {1., 0.};
-  mat(1, 1) = std::exp(complex_t(0., lambda));
-  return mat;
+  return phase(lambda);
 }
 
 cmatrix_t Matrix::u2(double phi, double lambda) {
@@ -303,6 +315,38 @@ cmatrix_t Matrix::rzx(double theta) {
   mat(2, 2) = cost;
   mat(3, 1) = i * sint;
   mat(3, 3) = cost;
+  return mat;
+}
+
+cmatrix_t Matrix::phase(double theta) {
+  cmatrix_t mat(2, 2);
+  mat(0, 0) = 1;
+  mat(1, 1) = std::exp(complex_t(0.0, theta));
+  return mat;
+}
+
+cmatrix_t Matrix::phase_diag(double theta) {
+  cmatrix_t mat(1, 2);
+  mat(0, 0) = 1;
+  mat(0, 1) = std::exp(complex_t(0.0, theta));
+  return mat;
+}
+
+cmatrix_t Matrix::cphase(double theta) {
+  cmatrix_t mat(4, 4);
+  mat(0, 0) = 1;
+  mat(1, 1) = 1;
+  mat(2, 2) = 1;
+  mat(3, 3) = std::exp(complex_t(0.0, theta));
+  return mat;
+}
+
+cmatrix_t Matrix::cphase_diag(double theta) {
+  cmatrix_t mat(1, 4);
+  mat(0, 0) = 1;
+  mat(0, 1) = 1;
+  mat(0, 2) = 1;
+  mat(0, 3) = std::exp(complex_t(0.0, theta));
   return mat;
 }
 
