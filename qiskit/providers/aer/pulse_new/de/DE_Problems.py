@@ -1,0 +1,92 @@
+# -*- coding: utf-8 -*-
+
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+import numpy as np
+from typing import Callable, Union, List, Optional
+
+from qiskit.quantum_info.operators import Operator
+from qiskit.providers.aer.pulse_new.models.operator_models import OperatorModel
+from qiskit.providers.aer.pulse_new.de.type_utils import StateTypeConverter
+
+class BMDE_Problem:
+    """Class for representing Bilinear Matrix Differential Equations.
+    """
+
+    def __init__(self,
+                 generator: OperatorModel,
+                 y0: Optional[np.ndarray] = None,
+                 t0: Optional[float] = None,
+                 interval: Optional[List[float]] = None,
+                 solver_frame_operator: Optional[Union[str, Operator, np.ndarray]] = 'auto',
+                 solver_cutoff_freq: Optional[float] = None,
+                 state_type_converter: Optional[StateTypeConverter] = None):
+        """fill in
+        """
+
+        # set state parameters
+        self._state_type_converter = state_type_converter
+        self.y0 = y0
+
+        # set initial time or interval
+        if (interval is not None) and (t0 is not None):
+            raise Exception('Only specify one of t0 or interval.')
+
+        self.t0 = t0
+        self.interval = interval
+
+        # set up frame
+        frame_operator = None
+        if generator.frame_operator is not None:
+            # if the generator has a frame specified, leave it as
+            frame_operator = generator.frame_operator
+            self._frame_from_model = True
+        else:
+            # if auto, go into the drift part of the generator, otherwise
+            # set it to whatever as passed
+            if solver_frame_operator == 'auto':
+                frame_operator = anti_herm_part(generator.drift)
+            else:
+                frame_operator = solver_frame_operator
+
+            self._frame_from_model = False
+
+        # set up cutoff freq
+        cutoff_freq = None
+        if generator.cutoff_freq is not None and solver_cutoff_freq is not None:
+            raise Exception("""Cutoff frequency specified in generator and in
+                                solver settings.""")
+
+        if generator.cutoff_freq is not None:
+            cutoff_freq = generator.cutoff_freq
+        else:
+            cutoff_freq = solver_cutoff_freq
+
+        # set up signals
+        if generator._signal_params is not None:
+            signals = generator._signal_params
+        else:
+            signals = generator._signals
+
+        # construct new internal generator for solving
+        self._generator = OperatorModel(operators=generator._operators,
+                                        signals=signals,
+                                        signal_mapping=generator.signal_mapping,
+                                        frame_operator=frame_operator,
+                                        cutoff_freq=cutoff_freq)
+
+
+def anti_herm_part(A: Union[np.ndarray, Operator]):
+    """Get the anti-hermitian part of an operator.
+    """
+    return 0.5 * (A - A.conj().transpose())

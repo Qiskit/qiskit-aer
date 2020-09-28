@@ -453,12 +453,12 @@ class FrameFreqHelper:
 
         # if not in frame basis convert it
         if not y_in_frame_basis:
-            out = self.frame_basis_adjoint @ out
+            out = self.state_into_frame_basis(out)
 
         out = np.diag(np.exp(- t * self.frame_diag)) @ out
 
         if not return_in_frame_basis:
-            out = self.frame_basis @ out
+            out = self.state_out_of_frame_basis(out)
 
         return out
 
@@ -482,3 +482,9 @@ class FrameFreqHelper:
                                      y,
                                      y_in_frame_basis,
                                      return_in_frame_basis)
+
+    def state_into_frame_basis(self, y: np.array):
+        return self.frame_basis_adjoint @ y
+
+    def state_out_of_frame_basis(self, y: np.array):
+        return self.frame_basis @ y
