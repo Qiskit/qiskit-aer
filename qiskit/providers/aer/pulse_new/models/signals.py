@@ -412,7 +412,7 @@ class VectorSignal:
             self.drift_array = drift_array
 
     @classmethod
-    def from_signal_list(cls, signal_list: List[Signal]):
+    def from_signal_list(cls, signal_list: List[BaseSignal]):
         """Instantiate from a list of Signal objects. The drift_array will
         correspond to the Constant objects.
 
