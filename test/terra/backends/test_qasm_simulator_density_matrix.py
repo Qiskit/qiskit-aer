@@ -81,14 +81,22 @@ class DensityMatrixTests(
 class TestQasmSimulatorDensityMatrix(common.QiskitAerTestCase,
                                      DensityMatrixTests):
     """QasmSimulator density_matrix method tests."""
-    BACKEND_OPTS = {"seed_simulator": 314159, "method": "density_matrix"}
+    BACKEND_OPTS = {
+        "seed_simulator": 314159,
+        "method": "density_matrix",
+        "max_parallel_threads": 1
+    }
 
 
 @requires_method("qasm_simulator", "density_matrix_gpu")
 class TestQasmSimulatorDensityMatrixThrustGPU(common.QiskitAerTestCase,
                                               DensityMatrixTests):
     """QasmSimulator density_matrix_gpu method tests."""
-    BACKEND_OPTS = {"seed_simulator": 314159, "method": "density_matrix_gpu"}
+    BACKEND_OPTS = {
+        "seed_simulator": 314159,
+        "method": "density_matrix_gpu",
+        "max_parallel_threads": 1
+    }
 
 
 @requires_method("qasm_simulator", "density_matrix_thrust")
@@ -97,7 +105,8 @@ class TestQasmSimulatorDensityMatrixThrustCPU(common.QiskitAerTestCase,
     """QasmSimulator density_matrix_thrust method tests."""
     BACKEND_OPTS = {
         "seed_simulator": 314159,
-        "method": "density_matrix_thrust"
+        "method": "density_matrix_thrust",
+        "max_parallel_threads": 1
     }
 
 
