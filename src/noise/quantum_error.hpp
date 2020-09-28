@@ -373,9 +373,11 @@ const std::vector<cmatrix_t>& QuantumError::kraus() const {
 }
 
 void QuantumError::compute_superoperator() {
+#if defined(_MSC_VER) || defined(GNUC_AVX2)
   if (is_avx2_supported() && !disable_simd_)
     compute_superoperator_<QubitSuperoperator::State<QV::SuperoperatorAvx2<double>>>();
   else
+#endif
     compute_superoperator_<QubitSuperoperator::State<QV::Superoperator<double>>>();
 }
 
