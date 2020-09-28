@@ -15,6 +15,7 @@ Noise model class for Qiskit Aer simulators.
 
 import json
 import logging
+from warnings import warn
 
 from qiskit.circuit import Instruction
 from qiskit.providers import BaseBackend
@@ -94,9 +95,10 @@ class NoiseModel:
     # Checks for standard 1-3 qubit instructions
     _1qubit_instructions = set([
         "x90", "u1", "u2", "u3", "U", "id", "x", "y", "z", "h", "s", "sdg",
-        "t", "tdg"
+        "t", "tdg", "r", "rx", "ry", "rz", "p"
     ])
-    _2qubit_instructions = set(["CX", "cx", "cz", "cu1", "cu2", "cu3", "swap"])
+    _2qubit_instructions = set(["cx", "cz", "swap", "rxx", "ryy", "rzz",
+                                "rzx", "cu1", "cu2", "cu3", "cp"])
     _3qubit_instructions = set(["ccx", "cswap"])
 
     def __init__(self, basis_gates=None):
@@ -414,6 +416,11 @@ class NoiseModel:
         Raises:
             NoiseError: if the input instructions are not valid.
         """
+        warn('This function is deprecated and will be removed in a future release. '
+             'To use an X90 based noise model use the Sqrt(X) "sx" gate and one of '
+             ' the single-qubit phase gates "u1", "rx", "p" in the noise model and '
+             ' basis gates to decompose into this gateset for noise simulations.',
+             DeprecationWarning)
         for name, label in self._instruction_names_labels(instructions):
             # Add X-90 based gate to noisy gates
             self._noise_instructions.add(label)

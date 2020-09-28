@@ -30,6 +30,7 @@ from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonClifford
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsMinimalBasis
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmDiagonalGateTests
+from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardGateDensityMatrixTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
@@ -46,6 +47,7 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
+from test.terra.backends.qasm_simulator.qasm_fusion import QasmFusionTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
@@ -57,7 +59,7 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValM
 
 
 class DensityMatrixTests(
-        QasmMethodTests, QasmMeasureTests, QasmMultiQubitMeasureTests,
+        QasmMethodTests, QasmFusionTests, QasmMeasureTests, QasmMultiQubitMeasureTests,
         QasmResetTests, QasmConditionalGateTests, QasmConditionalUnitaryTests,
         QasmConditionalKrausTests, QasmConditionalSuperOpTests,
         QasmCliffordTests, QasmCliffordTestsWaltzBasis,
@@ -70,7 +72,8 @@ class DensityMatrixTests(
         QasmKrausNoiseTests, QasmSnapshotStatevectorTests,
         QasmSnapshotDensityMatrixTests, QasmSnapshotProbabilitiesTests,
         QasmSnapshotExpValPauliTests, QasmSnapshotExpValPauliNCTests,
-        QasmSnapshotExpValMatrixTests, QasmSnapshotStabilizerTests):
+        QasmSnapshotExpValMatrixTests, QasmSnapshotStabilizerTests,
+        QasmStandardGateDensityMatrixTests):
     """Container class of density_matrix method tests."""
     pass
 

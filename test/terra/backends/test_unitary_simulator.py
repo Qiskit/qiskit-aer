@@ -20,8 +20,11 @@ from test.terra.decorators import requires_method
 from test.terra.backends.unitary_simulator.unitary_basics import UnitarySimulatorTests
 from test.terra.backends.unitary_simulator.unitary_snapshot import UnitarySnapshotTests
 from test.terra.backends.unitary_simulator.unitary_fusion import UnitaryFusionTests
+from test.terra.backends.unitary_simulator.unitary_gates import UnitaryGateTests
+
 
 class TestUnitarySimulator(common.QiskitAerTestCase,
+                           UnitaryGateTests,
                            UnitarySimulatorTests,
                            UnitarySnapshotTests,
                            UnitaryFusionTests):
@@ -32,6 +35,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase,
 
 @requires_method("unitary_simulator", "unitary_gpu")
 class TestUnitarySimulatorThrustGPU(common.QiskitAerTestCase,
+                                    UnitaryGateTests,
                                     UnitarySimulatorTests,
                                     UnitaryFusionTests):
     """UnitarySimulator unitary_gpu method tests."""
@@ -41,6 +45,7 @@ class TestUnitarySimulatorThrustGPU(common.QiskitAerTestCase,
 
 @requires_method("unitary_simulator", "unitary_thrust")
 class TestUnitarySimulatorThrustCPU(common.QiskitAerTestCase,
+                                    UnitaryGateTests,
                                     UnitarySimulatorTests,
                                     UnitaryFusionTests):
     """UnitarySimulator unitary_thrust method tests."""

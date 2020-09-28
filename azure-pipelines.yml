@@ -67,6 +67,62 @@ stages:
             twine upload wheelhouse/*
           env:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
+    - job: 'Windows_win32_Wheel_Builds'
+      pool: {vmImage: 'vs2017-win2016'}
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+      variables:
+        TWINE_USERNAME: qiskit
+      steps:
+        - checkout: self
+          submodules: true
+        - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+          displayName: Add conda to PATH
+        - bash: |
+            set -x
+            set -e
+            conda update --yes -n base conda
+            conda config --add channels conda-forge
+          displayName: Update Conda
+        - bash: |
+            set -x
+            set -e
+            for version in 3.6 3.7 3.8 ; do
+                conda create --yes --quiet --name qiskit-aer-$version python=$version
+            done
+          displayName: Create Anaconda environments
+          env:
+            CONDA_FORCE_32BIT: 1
+        - bash: |
+            set -x
+            set -e
+            mkdir wheelhouse
+            for version in 3.6 3.7 3.8 ; do
+                source activate qiskit-aer-$version
+                conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake virtualenv pip setuptools pybind11 cython scipy
+                python -m pip install -U setuptools wheel
+                python setup.py bdist_wheel -- -G "Visual Studio 15 2017"
+                virtualenv test-$version
+                test-$version/Scripts/pip install -c constraints.txt dist/*whl
+                test-$version/Scripts/python tools/verify_wheels.py
+                mv dist/*whl wheelhouse/.
+                rm -rf test-$version
+                rm -rf _skbuild
+                rm -rf .eggs
+                rm -rf qiskit_aer.egg-info
+                rm -rf contrib/standalone/version.hpp
+            done
+          displayName: Build wheels
+          env:
+            CONDA_FORCE_32BIT: 1
+        - task: PublishBuildArtifacts@1
+          inputs: {pathtoPublish: 'wheelhouse'}
+          condition: succeededOrFailed()
+        - bash: |
+            pip install -U twine
+            twine upload wheelhouse/*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
+
 
   - stage: 'Compile'
     dependsOn: []
@@ -122,6 +178,64 @@ stages:
               test-wheel/Scripts/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
               test-wheel/Scripts/python tools/verify_wheels.py
             displayName: Verify wheels
+      - job: 'Windows_win32_Wheel_Builds'
+        pool: {vmImage: 'vs2017-win2016'}
+        strategy:
+          matrix:
+            Python37:
+              python.version: '3.7'
+        variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        steps:
+          - checkout: self
+            submodules: true
+          - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+            displayName: Add conda to PATH
+          - task: Cache@2
+            inputs:
+              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                pip | "$(Agent.OS)" | "$(python.version)"
+                pip | "$(Agent.OS)"
+                pip
+              path: $(PIP_CACHE_DIR)
+            displayName: Cache pip
+          - bash: |
+              set -x
+              set -e
+              conda update --yes -n base conda
+              conda config --add channels conda-forge
+            displayName: Update Conda
+          - bash: |
+              set -x
+              set -e
+              conda create --yes --quiet --name qiskit-aer python=$(python.version)
+              source activate qiskit-aer
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake virtualenv pip setuptools pybind11 cython scipy
+            displayName: Create Anaconda environments
+            env:
+              CONDA_FORCE_32BIT: 1
+          - bash: |
+              set -x
+              set -e
+              source activate qiskit-aer
+              pip install -U setuptools wheel
+              python setup.py bdist_wheel -- -G "Visual Studio 15 2017"
+            displayName: Build wheels
+            env:
+              CONDA_FORCE_32BIT: 1
+          - bash: |
+              set -x
+              set -e
+              source activate qiskit-aer
+              virtualenv test-wheel
+              test-wheel/Scripts/pip install -c constraints.txt dist/*whl
+              test-wheel/Scripts/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
+              test-wheel/Scripts/python tools/verify_wheels.py
+            displayName: Verify wheels
+            env:
+              CONDA_FORCE_32BIT: 1
+
       - job: 'Windows_sdist_Builds'
         pool: {vmImage: 'vs2017-win2016'}
         strategy:
