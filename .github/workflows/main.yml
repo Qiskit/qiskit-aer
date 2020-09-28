@@ -157,6 +157,7 @@ jobs:
     name: tests-python${{ matrix.python-version }}-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     needs: [standalone, sdist, lint, docs]
+    timeout-minutes: 25
     strategy:
       matrix:
         python-version: [3.6, 3.7, 3.8]
