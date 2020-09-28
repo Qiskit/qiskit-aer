@@ -40,6 +40,12 @@ public:
   using NoiseOps = std::vector<Operations::Op>;
 
   //-----------------------------------------------------------------------
+  // Configuration
+  //-----------------------------------------------------------------------
+
+  void set_config(const json_t &config);
+
+  //-----------------------------------------------------------------------
   // Sampling method
   //-----------------------------------------------------------------------
 
@@ -130,10 +136,21 @@ protected:
   // flag for where errors should be applied relative to the sampled op
   bool errors_after_op_ = true;
 
+  // flag to disable SIMD
+  bool disable_simd_ = false;
+
   template<typename SuperOpStateClass>
   void compute_superoperator_();
 
 };
+
+//=========================================================================
+// Configuration
+//=========================================================================
+void QuantumError::set_config(const json_t &config) {
+  if (JSON::check_key("disable_simd_", config))
+    JSON::get_value(disable_simd_, "disable_simd", config);
+}
 
 //-------------------------------------------------------------------------
 // Implementation: Mixed unitary error subclass
@@ -356,7 +373,7 @@ const std::vector<cmatrix_t>& QuantumError::kraus() const {
 }
 
 void QuantumError::compute_superoperator() {
-  if (is_avx2_supported())
+  if (is_avx2_supported() && !disable_simd_)
     compute_superoperator_<QubitSuperoperator::State<QV::SuperoperatorAvx2<double>>>();
   else
     compute_superoperator_<QubitSuperoperator::State<QV::Superoperator<double>>>();

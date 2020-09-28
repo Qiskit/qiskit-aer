@@ -466,6 +466,8 @@ Result Controller::execute(const json_t &qobj_js) {
       set_config(config);
       // Load noise model
       JSON::get_value(noise_model, "noise_model", config);
+      // Apply qobj config to noise model
+      noise_model.set_config(config);
     }
     auto result = execute(qobj.circuits, noise_model, config);
     // Get QOBJ id and pass through header to result
