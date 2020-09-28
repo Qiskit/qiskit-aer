@@ -14,7 +14,6 @@
 import unittest
 import copy
 import pickle
-import os
 from multiprocessing import Pool
 
 from qiskit import assemble, transpile
@@ -49,8 +48,8 @@ class TestControllerExecuteWrappers(QiskitAerTestCase):
         return fqobj 
 
     def _map_and_test(self, cfunc, qobj):
-        n = max(os.cpu_count(), 2)
-        with Pool(processes=n) as p:
+        n = 2
+        with Pool(processes=1) as p:
             rs = p.map(cfunc, [copy.deepcopy(qobj) for _ in range(n)])
 
         self.assertEqual(len(rs), n)
