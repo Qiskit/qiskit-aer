@@ -110,7 +110,8 @@ class TestQasmSimulator(common.QiskitAerTestCase,
     """QasmSimulator automatic method tests."""
 
     BACKEND_OPTS = {
-        "seed_simulator": 2113
+        "seed_simulator": 2113,
+        "max_parallel_threads": 1
     }
 
 
