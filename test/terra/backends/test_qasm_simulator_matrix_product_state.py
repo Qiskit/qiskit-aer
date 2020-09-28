@@ -51,6 +51,7 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValP
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
 
+
 class TestQasmMatrixProductStateSimulator(
         common.QiskitAerTestCase,
         QasmMeasureTests,
@@ -89,6 +90,7 @@ class TestQasmMatrixProductStateSimulator(
         "method": "matrix_product_state",
         "max_parallel_threads": 1
     }
+
 
 if __name__ == '__main__':
     unittest.main()

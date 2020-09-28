@@ -15,11 +15,12 @@ QasmSimulator Integration Tests
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit.library import QFT, QuantumVolume
 from qiskit.compiler import assemble, transpile
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import ReadoutError, depolarizing_error
-from test.benchmark.tools import quantum_volume_circuit, qft_circuit
+
 
 class QasmDelayMeasureTests:
     """QasmSimulator delay measure sampling optimization tests."""

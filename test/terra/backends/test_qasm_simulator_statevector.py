@@ -89,7 +89,11 @@ class StatevectorTests(
 class TestQasmSimulatorStatevector(common.QiskitAerTestCase, StatevectorTests):
     """QasmSimulator statevector method tests."""
 
-    BACKEND_OPTS = {"seed_simulator": 271828, "method": "statevector"}
+    BACKEND_OPTS = {
+        "seed_simulator": 271828,
+        "method": "statevector",
+        "max_parallel_threads": 1
+    }
 
 
 @requires_method("qasm_simulator", "statevector_gpu")
@@ -97,7 +101,11 @@ class TestQasmSimulatorStatevectorThrustGPU(common.QiskitAerTestCase,
                                             StatevectorTests):
     """QasmSimulator statevector_gpu method tests."""
 
-    BACKEND_OPTS = {"seed_simulator": 271828, "method": "statevector_gpu"}
+    BACKEND_OPTS = {
+        "seed_simulator": 271828,
+        "method": "statevector_gpu",
+        "max_parallel_threads": 1
+    }
 
 
 @requires_method("qasm_simulator", "statevector_thrust")
@@ -105,7 +113,11 @@ class TestQasmSimulatorStatevectorThrustCPU(common.QiskitAerTestCase,
                                             StatevectorTests):
     """QasmSimulator statevector_thrust method tests."""
 
-    BACKEND_OPTS = {"seed_simulator": 271828, "method": "statevector_thrust"}
+    BACKEND_OPTS = {
+        "seed_simulator": 271828,
+        "method": "statevector_thrust",
+        "max_parallel_threads": 1
+    }
 
 
 if __name__ == '__main__':
