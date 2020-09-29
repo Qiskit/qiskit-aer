@@ -28,9 +28,9 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "misc/common_macros.hpp"
 #include "simulators/statevector/indexes.hpp"
-#include "simulators/statevector/qv_avx2.hpp"
+#include "simulators/statevector/transformer.hpp"
+#include "simulators/statevector/transformer_avx2.hpp"
 #include "framework/avx2_detect.hpp"
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
@@ -160,10 +160,6 @@ public:
   // Apply Matrices
   //-----------------------------------------------------------------------
 
-  // Apply a 1-qubit matrix to the state vector.
-  // The matrix is input as vector of the column-major vectorized 1-qubit matrix.
-  void apply_matrix(const uint_t qubit, const cvector_t<double> &mat);
-
   // Apply a N-qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized N-qubit matrix.
   void apply_matrix(const reg_t &qubits, const cvector_t<double> &mat);
@@ -171,10 +167,6 @@ public:
   // Apply a stacked set of 2^control_count target_count--qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized N-qubit matrix.
   void apply_multiplexer(const reg_t &control_qubits, const reg_t &target_qubits, const cvector_t<double> &mat);
-
-  // Apply a 1-qubit diagonal matrix to the state vector.
-  // The matrix is input as vector of the matrix diagonal.
-  void apply_diagonal_matrix(const uint_t qubit, const cvector_t<double> &mat);
 
   // Apply a N-qubit diagonal matrix to the state vector.
   // The matrix is input as vector of the matrix diagonal.
@@ -335,14 +327,14 @@ protected:
   //-----------------------------------------------------------------------
   // Config settings
   //-----------------------------------------------------------------------
-  bool avx2_supported_ = false; // Does CPU support AVX2.
   uint_t omp_threads_ = 1;     // Disable multithreading by default
   uint_t omp_threshold_ = 14;  // Qubit threshold for multithreading when enabled
   int sample_measure_index_size_ = 10; // Sample measure indexing qubit size
   double json_chop_threshold_ = 0;  // Threshold for choping small values
                                     // in JSON serialization
-  inline uint_t omp_threads_managed() const { return (num_qubits_ > omp_threshold_ && omp_threads_ > 1) ? omp_threads_: 0; }
-  size_t calculate_num_threads();
+  inline uint_t omp_threads_managed() const {
+    return (num_qubits_ > omp_threshold_ && omp_threads_ > 1) ? omp_threads_: 1;
+  }
 
   //-----------------------------------------------------------------------
   // Error Messages
@@ -572,7 +564,7 @@ void QubitVector<data_t>::check_checkpoint() const {
 
 template <typename data_t>
 QubitVector<data_t>::QubitVector(size_t num_qubits)
-  : num_qubits_(0), data_(nullptr), checkpoint_(0), avx2_supported_(is_avx2_supported()) {
+  : num_qubits_(0), data_(nullptr), checkpoint_(0) {
     set_num_qubits(num_qubits);
   }
 
@@ -799,13 +791,6 @@ std::complex<double> QubitVector<data_t>::inner_product() const {
   return apply_reduction_lambda(lambda);
 }
 
-template <typename data_t>
-size_t QubitVector<data_t>::calculate_num_threads() {
-  if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) {
-    return omp_threads_;
-  }
-  return 1;
-}
 
 //------------------------------------------------------------------------------
 // Initialization
@@ -976,96 +961,14 @@ QubitVector<data_t>::apply_reduction_lambda(Lambda&& func,
 template <typename data_t>
 void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
                                        const cvector_t<double> &mat) {
-  
-  if (avx2_supported_ &&
-      apply_matrix_avx<data_t>(reinterpret_cast<data_t*>(data_),
-                               data_size_, qubits.data(), qubits.size(),
-                               reinterpret_cast<data_t *>(convert(mat).data()),
-                               calculate_num_threads()) == Avx::Applied) {
-    return;
+  // TODO: Move transformer initialization somewhere else
+  if (is_avx2_supported()) {
+    TransformerAVX2<std::complex<data_t>*, data_t> transformer(data_, data_size_, omp_threads_managed());
+    transformer.apply_matrix(qubits, mat);
+  } else {
+    Transformer<std::complex<data_t>*, data_t> transformer(data_, data_size_, omp_threads_managed());
+    transformer.apply_matrix(qubits, mat);
   }
-
-  const size_t N = qubits.size();
-  // Error checking
-  #ifdef DEBUG
-  check_vector(mat, 2 * N);
-  #endif
-
-  // Static array optimized lambda functions
-  switch (N) {
-    case 1:
-      apply_matrix(qubits[0], mat);
-      return;
-    case 2: {
-      // Lambda function for 2-qubit matrix multiplication
-      auto lambda = [&](const areg_t<4> &inds, const cvector_t<data_t> &_mat)->void {
-        std::array<std::complex<data_t>, 4> cache;
-        for (size_t i = 0; i < 4; i++) {
-          const auto ii = inds[i];
-          cache[i] = data_[ii];
-          data_[ii] = 0.;
-        }
-        // update state vector
-        for (size_t i = 0; i < 4; i++)
-          for (size_t j = 0; j < 4; j++)
-            data_[inds[i]] += _mat[i + 4 * j] * cache[j];
-      };
-      apply_lambda(lambda, areg_t<2>({{qubits[0], qubits[1]}}), convert(mat));
-      return;
-    }
-    case 3: {
-      // Lambda function for 3-qubit matrix multiplication
-      auto lambda = [&](const areg_t<8> &inds, const cvector_t<data_t> &_mat)->void {
-        std::array<std::complex<data_t>, 8> cache;
-        for (size_t i = 0; i < 8; i++) {
-          const auto ii = inds[i];
-          cache[i] = data_[ii];
-          data_[ii] = 0.;
-        }
-        // update state vector
-        for (size_t i = 0; i < 8; i++) {
-          for (size_t j = 0; j < 8; j++)
-            data_[inds[i]] += _mat[i + 8 * j] * cache[j];
-        }
-      };
-      apply_lambda(lambda, areg_t<3>({{qubits[0], qubits[1], qubits[2]}}), convert(mat));
-      return;
-    }
-    case 4: {
-      // Lambda function for 4-qubit matrix multiplication
-      auto lambda = [&](const areg_t<16> &inds, const cvector_t<data_t> &_mat)->void {
-        std::array<std::complex<data_t>, 16> cache;
-        for (size_t i = 0; i < 16; i++) {
-          const auto ii = inds[i];
-          cache[i] = data_[ii];
-          data_[ii] = 0.;
-        }
-        // update state vector
-        for (size_t i = 0; i < 16; i++)
-          for (size_t j = 0; j < 16; j++)
-            data_[inds[i]] += _mat[i + 16 * j] * cache[j];
-      };
-      apply_lambda(lambda, areg_t<4>({{qubits[0], qubits[1], qubits[2], qubits[3]}}), convert(mat));
-      return;
-    }
-    default: {
-      // Lambda function for N-qubit matrix multiplication
-      auto lambda = [&](const indexes_t &inds, const cvector_t<data_t> &_mat)->void {
-        const uint_t DIM = BITS[N];
-        auto cache = std::make_unique<std::complex<data_t>[]>(DIM);
-        for (size_t i = 0; i < DIM; i++) {
-          const auto ii = inds[i];
-          cache[i] = data_[ii];
-          data_[ii] = 0.;
-        }
-        // update state vector
-        for (size_t i = 0; i < DIM; i++)
-          for (size_t j = 0; j < DIM; j++)
-            data_[inds[i]] += _mat[i + DIM * j] * cache[j];
-      };
-      apply_lambda(lambda, qubits, convert(mat));
-    }
-  } // end switch
 }
 
 template <typename data_t>
@@ -1105,29 +1008,8 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
 template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t<double> &diag) {
-
-  // Error checking
-  #ifdef DEBUG
-  check_vector(diag, qubits.size());
-  #endif
-
-  if (qubits.size() == 1) {
-    apply_diagonal_matrix(qubits[0], diag);
-    return;
-  }
-
-  auto lambda = [&](const areg_t<2> &inds, const cvector_t<data_t> &_diag)->void {
-    for (int_t i = 0; i < 2; ++i) {
-      const int_t k = inds[i];
-      int_t iv = 0;
-      for (int_t j = 0; j < qubits.size(); j++)
-        if ((k & (1ULL << qubits[j])) != 0)
-          iv += (1ULL << j);
-      if (_diag[iv] != (data_t) 1.0)
-        data_[k] *= _diag[iv];
-    }
-  };
-  apply_lambda(lambda, areg_t<1>({{qubits[0]}}), convert(diag));
+  Transformer<std::complex<data_t>*, data_t> transformer(data_, data_size_, omp_threads_managed());
+  transformer.apply_diagonal_matrix(qubits, diag);
 }
 
 template <typename data_t>
@@ -1417,7 +1299,7 @@ void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
     switch (N) {
       case 1: {
         // If N=1 this is just a single-qubit matrix
-        apply_diagonal_matrix(qubits[0], diag);
+        apply_diagonal_matrix(qubits, diag);
         return;
       }
       case 2: {
@@ -1457,7 +1339,7 @@ void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
   switch (N) {
     case 1: {
       // If N=1 this is just a single-qubit matrix
-      apply_matrix(qubits[0], mat);
+      apply_matrix(qubits, mat);
       return;
     }
     case 2: {
@@ -1494,189 +1376,6 @@ void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
       return;
     }
   } // end switch
-}
-
-//------------------------------------------------------------------------------
-// Single-qubit matrices
-//------------------------------------------------------------------------------
-
-template <typename data_t>
-void QubitVector<data_t>::apply_matrix(const uint_t qubit,
-                                       const cvector_t<double>& mat) {
-
-  // Check if matrix is diagonal and if so use optimized lambda
-  if (mat[1] == 0.0 && mat[2] == 0.0) {
-    const cvector_t<double> diag = {{mat[0], mat[3]}};
-    apply_diagonal_matrix(qubit, diag);
-    return;
-  }
-
-  // Convert qubit to array register for lambda functions
-  areg_t<1> qubits = {{qubit}};
-
-  // Check if anti-diagonal matrix and if so use optimized lambda
-  if(mat[0] == 0.0 && mat[3] == 0.0) {
-    if (mat[1] == 1.0 && mat[2] == 1.0) {
-      // X-matrix
-      auto lambda = [&](const areg_t<2> &inds)->void {
-        std::swap(data_[inds[0]], data_[inds[1]]);
-      };
-      apply_lambda(lambda, qubits);
-      return;
-    }
-    if (mat[2] == 0.0) {
-      // Non-unitary projector
-      // possibly used in measure/reset/kraus update
-      auto lambda = [&](const areg_t<2> &inds,
-                        const cvector_t<data_t> &_mat)->void {
-        data_[inds[1]] = _mat[1] * data_[inds[0]];
-        data_[inds[0]] = 0.0;
-      };
-      apply_lambda(lambda, qubits, convert(mat));
-      return;
-    }
-    if (mat[1] == 0.0) {
-      // Non-unitary projector
-      // possibly used in measure/reset/kraus update
-      auto lambda = [&](const areg_t<2> &inds,
-                        const cvector_t<data_t> &_mat)->void {
-        data_[inds[0]] = _mat[2] * data_[inds[1]];
-        data_[inds[1]] = 0.0;
-      };
-      apply_lambda(lambda, qubits, convert(mat));
-      return;
-    }
-    // else we have a general anti-diagonal matrix
-    auto lambda = [&](const areg_t<2> &inds,
-                      const cvector_t<data_t> &_mat)->void {
-      const std::complex<data_t> cache = data_[inds[0]];
-      data_[inds[0]] = _mat[2] * data_[inds[1]];
-      data_[inds[1]] = _mat[1] * cache;
-    };
-    apply_lambda(lambda, qubits, convert(mat));
-    return;
-  }
-  
-  // Otherwise general single-qubit matrix multiplication
-  if (avx2_supported_ &&
-      apply_matrix_avx<data_t>(reinterpret_cast<data_t*>(data_),
-                               data_size_, qubits.data(), qubits.size(),
-                               reinterpret_cast<data_t *>(convert(mat).data()),
-                               calculate_num_threads()) == Avx::Applied) {
-    return;
-  }
-
-  auto lambda = [&](const areg_t<2> &inds, const cvector_t<data_t> &_mat)->void {
-    const auto cache = data_[inds[0]];
-    data_[inds[0]] = _mat[0] * cache + _mat[2] * data_[inds[1]];
-    data_[inds[1]] = _mat[1] * cache + _mat[3] * data_[inds[1]];
-  };
-  apply_lambda(lambda, qubits, convert(mat));
-}
-
-template <typename data_t>
-void QubitVector<data_t>::apply_diagonal_matrix(const uint_t qubit,
-                                                const cvector_t<double>& diag) {
-
-  // TODO: This should be changed so it isn't checking doubles with ==
-  if (diag[0] == 1.0) {  // [[1, 0], [0, z]] matrix
-    if (diag[1] == 1.0)
-      return; // Identity
-
-    if (diag[1] == std::complex<double>(0., -1.)) { // [[1, 0], [0, -i]]
-      auto lambda = [&](const areg_t<2> &inds,
-                        const cvector_t<data_t> &_mat)->void {
-        const auto k = inds[1];
-        double cache = data_[k].imag();
-        data_[k].imag(data_[k].real() * -1.);
-        data_[k].real(cache);
-      };
-      apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
-      return;
-    }
-    if (diag[1] == std::complex<double>(0., 1.)) {
-      // [[1, 0], [0, i]]
-      auto lambda = [&](const areg_t<2> &inds,
-                        const cvector_t<data_t> &_mat)->void {
-        const auto k = inds[1];
-        double cache = data_[k].imag();
-        data_[k].imag(data_[k].real());
-        data_[k].real(cache * -1.);
-      };
-      apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
-      return;
-    }
-    if (diag[0] == 0.0) {
-      // [[1, 0], [0, 0]]
-      auto lambda = [&](const areg_t<2> &inds,
-                        const cvector_t<data_t> &_mat)->void {
-        data_[inds[1]] = 0.0;
-      };
-      apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
-      return;
-    }
-    // general [[1, 0], [0, z]]
-    auto lambda = [&](const areg_t<2> &inds,
-                      const cvector_t<data_t> &_mat)->void {
-      const auto k = inds[1];
-      data_[k] *= _mat[1];
-    };
-    apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
-    return;
-  } else if (diag[1] == 1.0) {
-    // [[z, 0], [0, 1]] matrix
-    if (diag[0] == std::complex<double>(0., -1.)) {
-      // [[-i, 0], [0, 1]]
-      auto lambda = [&](const areg_t<2> &inds,
-                        const cvector_t<data_t> &_mat)->void {
-        const auto k = inds[1];
-        double cache = data_[k].imag();
-        data_[k].imag(data_[k].real() * -1.);
-        data_[k].real(cache);
-      };
-      apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
-      return;
-    }
-    if (diag[0] == std::complex<double>(0., 1.)) {
-      // [[i, 0], [0, 1]]
-      auto lambda = [&](const areg_t<2> &inds,
-                        const cvector_t<data_t> &_mat)->void {
-        const auto k = inds[1];
-        double cache = data_[k].imag();
-        data_[k].imag(data_[k].real());
-        data_[k].real(cache * -1.);
-      };
-      apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
-      return;
-    }
-    if (diag[0] == 0.0) {
-      // [[0, 0], [0, 1]]
-      auto lambda = [&](const areg_t<2> &inds,
-                        const cvector_t<data_t> &_mat)->void {
-        data_[inds[0]] = 0.0;
-      };
-      apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
-      return;
-    }
-    // general [[z, 0], [0, 1]]
-    auto lambda = [&](const areg_t<2> &inds,
-                      const cvector_t<data_t> &_mat)->void {
-      const auto k = inds[0];
-      data_[k] *= _mat[0];
-    };
-    apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
-    return;
-  } else {
-    // Lambda function for diagonal matrix multiplication
-    auto lambda = [&](const areg_t<2> &inds,
-                      const cvector_t<data_t> &_mat)->void {
-      const auto k0 = inds[0];
-      const auto k1 = inds[1];
-      data_[k0] *= _mat[0];
-      data_[k1] *= _mat[1];
-    };
-    apply_lambda(lambda, areg_t<1>({{qubit}}), convert(diag));
-  }
 }
 
 /*******************************************************************************
