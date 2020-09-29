@@ -28,6 +28,9 @@ public:
     using BaseAvx2<DensityMatrix<data_t, BaseAvx2<data_t>>, data_t>::BaseAvx2;
 
     size_t calculate_num_threads();
+
+private:
+    using DensityMatrixAvx2Base = BaseAvx2<DensityMatrix<data_t, BaseAvx2<data_t>>, data_t>;
 };
 
 // We do not define this functions in case we don't use AVX2
@@ -36,8 +39,9 @@ public:
 
 template <typename data_t>
 size_t DensityMatrixAvx2<data_t>::calculate_num_threads() {
-  if ((BaseAvx2<DensityMatrix<data_t, BaseAvx2<data_t>>, data_t>::Base::num_qubits_ << 1UL ) > BaseAvx2<DensityMatrix<data_t, BaseAvx2<data_t>>, data_t>::Base::omp_threshold_ && BaseAvx2<DensityMatrix<data_t, BaseAvx2<data_t>>, data_t>::Base::omp_threads_ > 1) {
-    return BaseAvx2<DensityMatrix<data_t, BaseAvx2<data_t>>, data_t>::Base::omp_threads_;
+  if ((DensityMatrixAvx2Base::Base::num_qubits_ << 1UL ) > DensityMatrixAvx2Base::Base::omp_threshold_
+       && DensityMatrixAvx2Base::Base::omp_threads_ > 1) {
+    return DensityMatrixAvx2Base::Base::omp_threads_;
   }
   return 1;
 }

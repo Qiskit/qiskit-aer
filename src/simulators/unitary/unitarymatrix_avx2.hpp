@@ -27,6 +27,9 @@ class UnitaryMatrixAvx2 : public BaseAvx2<UnitaryMatrix<data_t, BaseAvx2<data_t>
     using BaseAvx2<UnitaryMatrix<data_t, BaseAvx2<data_t>>, data_t>::BaseAvx2;
 
     size_t calculate_num_threads();
+
+private:
+    using UnitaryMatrixAvx2Base = BaseAvx2<UnitaryMatrix<data_t, BaseAvx2<data_t>>, data_t>;
 };
 
 // We do not define this functions in case we don't use AVX2
@@ -35,8 +38,9 @@ class UnitaryMatrixAvx2 : public BaseAvx2<UnitaryMatrix<data_t, BaseAvx2<data_t>
 
 template <typename data_t>
 size_t UnitaryMatrixAvx2<data_t>::calculate_num_threads() {
-    if ((BaseAvx2<UnitaryMatrix<data_t, BaseAvx2<data_t>>, data_t>::Base::num_qubits_ << 1UL ) > BaseAvx2<UnitaryMatrix<data_t, BaseAvx2<data_t>>, data_t>::Base::omp_threshold_ && BaseAvx2<UnitaryMatrix<data_t, BaseAvx2<data_t>>, data_t>::Base::omp_threads_ > 1) {
-        return BaseAvx2<UnitaryMatrix<data_t, BaseAvx2<data_t>>, data_t>::Base::omp_threads_;
+    if ((UnitaryMatrixAvx2Base::Base::num_qubits_ << 1UL ) > UnitaryMatrixAvx2Base::Base::omp_threshold_
+        && UnitaryMatrixAvx2Base::Base::omp_threads_ > 1) {
+        return UnitaryMatrixAvx2Base::Base::omp_threads_;
     }
     return 1;
 }
