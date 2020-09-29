@@ -1161,6 +1161,16 @@ double MPS::norm() {
       trace += vec[i];
     return trace;
 }
+
+double MPS::norm(const reg_t &qubits, const cvector_t &vmat) const {
+    return norm(qubits, AER::Utils::devectorize_matrix(vmat));
+}
+
+double MPS::norm(const reg_t &qubits, const cmatrix_t &mat) const {
+    cmatrix_t norm_mat = AER::Utils::dagger(mat) * mat;
+    return expectation_value(qubits, norm_mat);
+}
+
 //------------------------------------------------------------------------------
 // Sample measure outcomes - this method is similar to QubitVector::sample_measure, 
 // with 2 differences:
