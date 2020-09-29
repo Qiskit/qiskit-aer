@@ -130,9 +130,6 @@ protected:
   // flag for where errors should be applied relative to the sampled op
   bool errors_after_op_ = true;
 
-  // flag to disable SIMD
-  bool disable_simd_ = false;
-
   template<typename SuperOpStateClass>
   void compute_superoperator_();
 
@@ -359,7 +356,7 @@ const std::vector<cmatrix_t>& QuantumError::kraus() const {
 }
 
 void QuantumError::compute_superoperator() {
-  if (is_avx2_supported() && !disable_simd_) {
+  if (is_avx2_supported()) {
     compute_superoperator_<QubitSuperoperator::State<QV::SuperoperatorAvx2<double>>>();
   } else {
       compute_superoperator_<QubitSuperoperator::State<QV::Superoperator<double>>>();

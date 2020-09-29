@@ -105,8 +105,6 @@ private:
 
   void add_fusion_qubits(reg_t& fusion_qubits, const op_t& op) const;
 
-  bool disable_simd_ = false;
-
 #ifdef DEBUG
   void dump(const Circuit& circuit) const;
 #endif
@@ -148,9 +146,6 @@ void Fusion::set_config(const json_t &config) {
 
   if (JSON::check_key("fusion_allow_superop", config))
     JSON::get_value(allow_superop, "fusion_allow_superop", config);
-
-  if (JSON::check_key("disable_simd_", config))
-    JSON::get_value(disable_simd_, "disable_simd", config);
 }
 
 
@@ -312,7 +307,7 @@ op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
 
   // Unitary simulation
   if (method == Method::unitary) {
-    if (is_avx2_supported() && !disable_simd_) {
+    if (is_avx2_supported()) {
       return make_unitary_operation(QubitUnitary::State<QV::UnitaryMatrixAvx2<>>());
     } else {
       return make_unitary_operation(QubitUnitary::State<>());
@@ -335,7 +330,7 @@ op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
 
   // For both Kraus and SuperOp method we simulate using superoperator
   // simulator
-  if (is_avx2_supported() && !disable_simd_) {
+  if (is_avx2_supported()) {
     return make_superop_operation(QubitSuperoperator::State<QV::SuperoperatorAvx2<>>());
   } else {
     return make_superop_operation(QubitSuperoperator::State<>());
