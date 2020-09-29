@@ -64,7 +64,7 @@ class BMDE_Solver:
         if bmde_problem.y0 is not None:
             self.y = bmde_problem.y0
 
-        # set RHS functions to evaluate in frame basis
+        # set RHS functions to evaluate in frame and frame basis
         rhs_dict = {'rhs': lambda t, y: self.generator.lmult(t, y,
                                                              in_frame_basis=True),
                     'generator': lambda t: self.generator.evaluate(t,
