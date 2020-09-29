@@ -20,9 +20,6 @@
 #include <cmath>
 #include <limits>
 
-#include <immintrin.h>
-#include <type_traits>
-
 #include "framework/types.hpp"
 
 namespace AER {

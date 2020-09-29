@@ -48,9 +48,6 @@ public:
   NoiseModel() = default;
   NoiseModel(const json_t &js) {load_from_json(js);}
 
-  // Load config from a JSON
-  void set_config(const json_t &config);
-
   // Sample a noisy implementation of a full circuit
   // An RngEngine is passed in as a reference so that sampling
   // can be done in a thread-safe manner.
@@ -278,15 +275,6 @@ NoiseModel::param_gate_table_ = {
   {"cp", ParamGate::cp},
   {"cu1", ParamGate::cp}
 };
-
-
-//=========================================================================
-// Configuration
-//=========================================================================
-void NoiseModel::set_config(const json_t &config) {
-  for (QuantumError& qe : quantum_errors_)
-    qe.set_config(config);
-}
 
 
 //=========================================================================

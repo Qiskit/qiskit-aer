@@ -303,60 +303,42 @@ op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
   RngEngine dummy_rng;
   ExperimentData dummy_data;
 
+  auto make_unitary_operation = [&qubits, &fusioned_ops, &dummy_data, &dummy_rng](auto&& unitary_simulator){
+    unitary_simulator.initialize_qreg(qubits.size());
+    unitary_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
+    return Operations::make_unitary(qubits, unitary_simulator.qreg().move_to_matrix(),
+                                    std::string("fusion"));
+  };
+
+  // Unitary simulation
   if (method == Method::unitary) {
-#if defined(_MSC_VER) || defined(GNUC_AVX2)
-    if (!disable_simd_) {
-      // Unitary simulation
-      QubitUnitary::State<QV::UnitaryMatrixAvx2<>> unitary_simulator;
-      unitary_simulator.initialize_qreg(qubits.size());
-      unitary_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
-      return Operations::make_unitary(qubits, unitary_simulator.qreg().move_to_matrix(),
-                                      std::string("fusion"));
-    } else
-#endif
-    {
-      // Unitary simulation
-      QubitUnitary::State<> unitary_simulator;
-      unitary_simulator.initialize_qreg(qubits.size());
-      unitary_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
-      return Operations::make_unitary(qubits, unitary_simulator.qreg().move_to_matrix(),
-                                      std::string("fusion"));
+    if (is_avx2_supported() && !disable_simd_) {
+      return make_unitary_operation(QubitUnitary::State<QV::UnitaryMatrixAvx2<>>());
+    } else {
+      return make_unitary_operation(QubitUnitary::State<>());
     }
   }
 
-#if defined(_MSC_VER) || defined(GNUC_AVX2)
-  if (!disable_simd_) {
-    // For both Kraus and SuperOp method we simulate using superoperator
-    // simulator
-    QubitSuperoperator::State<QV::SuperoperatorAvx2<>> superop_simulator;
+  auto make_superop_operation = [&qubits, &fusioned_ops, &dummy_data, &dummy_rng, &method](auto&& superop_simulator) {
     superop_simulator.initialize_qreg(qubits.size());
     superop_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
     auto superop = superop_simulator.qreg().move_to_matrix();
 
     if (method == Method::superop) {
-      return Operations::make_superop(qubits, std::move(superop));
+        return Operations::make_superop(qubits, std::move(superop));
     }
 
     // If Kraus method we convert superop to canonical Kraus representation
     size_t dim = 1 << qubits.size();
     return Operations::make_kraus(qubits, Utils::superop2kraus(superop, dim));
-  } else
-#endif
-  {
-    // For both Kraus and SuperOp method we simulate using superoperator
-    // simulator
-    QubitSuperoperator::State<> superop_simulator;
-    superop_simulator.initialize_qreg(qubits.size());
-    superop_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
-    auto superop = superop_simulator.qreg().move_to_matrix();
+  };
 
-    if (method == Method::superop) {
-      return Operations::make_superop(qubits, std::move(superop));
-    }
-
-    // If Kraus method we convert superop to canonical Kraus representation
-    size_t dim = 1 << qubits.size();
-    return Operations::make_kraus(qubits, Utils::superop2kraus(superop, dim));
+  // For both Kraus and SuperOp method we simulate using superoperator
+  // simulator
+  if (is_avx2_supported() && !disable_simd_) {
+    return make_superop_operation(QubitSuperoperator::State<QV::SuperoperatorAvx2<>>());
+  } else {
+    return make_superop_operation(QubitSuperoperator::State<>());
   }
 }
 
