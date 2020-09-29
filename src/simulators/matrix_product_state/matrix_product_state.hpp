@@ -32,6 +32,7 @@
 #include <math.h>
 
 #include "framework/json.hpp"
+#include "framework/utils.hpp"
 #include "simulators/state.hpp"
 #include "matrix_product_state_internal.hpp"
 #include "matrix_product_state_internal.cpp"
@@ -46,7 +47,7 @@ const Operations::OpSet StateOpSet(
   Operations::OpType::reset, Operations::OpType::initialize,
   Operations::OpType::snapshot, Operations::OpType::barrier,
   Operations::OpType::bfunc, Operations::OpType::roerror,
-  Operations::OpType::matrix},
+  Operations::OpType::matrix, Operations::OpType::kraus},
   // Gates
   {"id", "x", "y", "z", "s", "sdg", "h", "t", "tdg", "u1", "u2", "u3",
     "U", "CX", "cx", "cz", "cu1", "swap", "ccx"},
@@ -197,9 +198,9 @@ protected:
   void apply_matrix(const reg_t &qubits, const cvector_t & vmat);
 
   // Apply a Kraus error operation
-  //void apply_kraus(const reg_t &qubits,
-  //                 const std::vector<cmatrix_t> &krausops,
-  //                 RngEngine &rng);
+  void apply_kraus(const reg_t &qubits,
+                   const std::vector<cmatrix_t> &kmats,
+                   RngEngine &rng);
 
   //-----------------------------------------------------------------------
   // Measurement Helpers
@@ -475,6 +476,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         case Operations::OpType::matrix:
           apply_matrix(op.qubits, op.mats[0]);
           break;
+        case Operations::OpType::kraus:
+          apply_kraus(op.qubits, op.mats, rng);
+          break;
         default:
           throw std::invalid_argument("MatrixProductState::State::invalid instruction \'" +
                                       op.name + "\'.");
@@ -688,12 +692,58 @@ void State::apply_gate(const Operations::Op &op) {
    }
   }
 
-  void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
+void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
   // Check if diagonal matrix
   if (vmat.size() == 1ULL << qubits.size()) {
     qreg_.apply_diagonal_matrix(qubits, vmat);
   } else {
     qreg_.apply_matrix(qubits, vmat);
+  }
+}
+
+void State::apply_kraus(const reg_t &qubits,
+                   const std::vector<cmatrix_t> &kmats,
+                   RngEngine &rng) {
+  // Check edge case for empty Kraus set (this shouldn't happen)
+  if (kmats.empty())
+    return; // end function early
+  // Choose a real in [0, 1) to choose the applied kraus operator once
+  // the accumulated probability is greater than r.
+  // We know that the Kraus noise must be normalized
+  // So we only compute probabilities for the first N-1 kraus operators
+  // and infer the probability of the last one from 1 - sum of the previous
+
+  double r = rng.rand(0., 1.);
+  double accum = 0.;
+  bool complete = false;
+
+  cmatrix_t rho = qreg_.density_matrix(qubits);
+
+  cmatrix_t sq_kmat;
+  double p = 0;
+
+  // Loop through N-1 kraus operators
+  for (size_t j=0; j < kmats.size() - 1; j++) {
+    sq_kmat = AER::Utils::dagger(kmats[j]) * kmats[j];
+    // Calculate probability
+    p = real(AER::Utils::trace(rho * sq_kmat));
+    accum += p;
+
+    // check if we need to apply this operator
+    if (accum > r) {
+      // rescale mat so projection is normalized
+      cmatrix_t temp_mat =  kmats[j] * (1 / std::sqrt(p));
+      apply_matrix(qubits, temp_mat);
+      complete = true;
+      break;
+    }
+  }
+  // check if we haven't applied a kraus operator yet
+  if (!complete) {
+    // Compute probability from accumulated
+    double renorm = 1 / std::sqrt(1. - accum);
+    cmatrix_t temp_mat = kmats.back()* renorm;
+    apply_matrix(qubits, temp_mat);
   }
 }
 

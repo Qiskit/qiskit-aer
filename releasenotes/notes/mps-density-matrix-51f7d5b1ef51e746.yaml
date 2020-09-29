@@ -1,0 +1,7 @@
+---
+
+features:
+  - |
+    Adds support for ``snapshot_density_matrix`` in the ``matrix_product_state 
+    simulation method``.
+
