@@ -50,11 +50,11 @@ class DE_Options:
                  atol=1e-8,
                  rtol=1e-6,
                  order=12,
-                 nsteps=10**6,
+                 nsteps=1e6,
                  first_step=None,
                  max_step=None,
                  min_step=None,
-                 max_dt=10**-3):
+                 max_dt=1e-3):
 
         self.method = method
         self.atol = atol

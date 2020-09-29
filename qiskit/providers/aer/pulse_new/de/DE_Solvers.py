@@ -15,17 +15,17 @@
 import numpy as np
 from typing import Callable, Union, List, Optional
 
-from DE_Methods import ODE_Method, method_from_string
-from DE_Problems import BMDE_Problem
-from DE_Options import DE_Options
-from type_utils import StateTypeConverter
+from .DE_Methods import ODE_Method, method_from_string
+from .DE_Problems import BMDE_Problem
+from .DE_Options import DE_Options
+from .type_utils import StateTypeConverter
 
 class BMDE_Solver:
     """An intermediate interface to underlying DE solver methods."""
 
     def __init__(self,
                  bmde_problem: BMDE_Problem,
-                 method: Optional[ODE_Method],
+                 method: Optional[ODE_Method] = None,
                  options: Optional[DE_Options] = None):
         """fill in
         """
@@ -57,10 +57,12 @@ class BMDE_Solver:
         self._method = Method(t0, y0=None, rhs=None, options=options)
 
         # flag signifying whether to return results in frame or not
-        self._return_in_frame = self._frame_from_model
+        # (i.e. whether the user wants to interact with the solver in the
+        # frame or not)
+        self._user_in_frame = bmde_problem._user_in_frame
 
         self._state_type_converter = bmde_problem._state_type_converter
-        if bmde_problem._y0 is not None:
+        if bmde_problem.y0 is not None:
             self.y = bmde_problem.y0
 
         # set RHS functions to evaluate in frame basis
@@ -93,16 +95,17 @@ class BMDE_Solver:
         State is internally represented in the frame of the internal generator,
         and in the basis in which the frame operator is diagonal.
 
+        Needs to:
+            - convert y to inner type of state
+            - apply frame transformation if necessary
+            - apply basis transformation to frame basis
+
+        Latter two points are done simultaneously
+
         Args:
             y: new state
             y_in_frame: whether or not y is specified in the rotating frame
         """
-
-        # if frame of y is not specified, assume it's specified in
-        # the return frame
-        if y_in_frame is None:
-            y_in_frame = self._return_in_frame
-
 
         # convert y into internal representation
         new_y = None
@@ -111,6 +114,11 @@ class BMDE_Solver:
         else:
             new_y = self._state_type_converter.outer_to_inner(y)
 
+
+        # if frame of y is not specified, assume it's specified in
+        # the user frame
+        if y_in_frame is None:
+            y_in_frame = self._user_in_frame
 
         # convert y into the frame for the bmde, and also into the frame basis
         if y_in_frame:
@@ -131,18 +139,50 @@ class BMDE_Solver:
     def get_y(self, return_in_frame: Optional[bool] = None):
         """Return the state of the BMDE.
 
+        Needs to:
+            - take state out of frame basis
+            - take state out of frame if necessary
+            - convert to outer type
+
+        The first two points are done simultaneously
+
         Args:
             return_in_frame: whether or not to return in the solver frame
         """
 
-        solver_state = self._method.y
+        return_y = self._method.y
 
         if return_in_frame is None:
-            return_in_frame = self._return_in_frame
+            return_in_frame = self._user_in_frame
 
         if return_in_frame:
-            y = solver_state
+            # if the result is to be returned in frame, simply take the state out
+            # of the frame basis
+            return_y = self.generator._frame_freq_helper.state_out_of_frame_basis(return_y)
         else:
-            y = self.generator._frame_freq_helper.state_out_of_frame(self.t,
-                                                                     solver_state,
-                                                                     True)
+            # if the result is to be returned out of the frame, apply the
+            # state_out_of_frame function and specify that the input is in
+            # the frame basis, but the return value should not be in the frame
+            # basis
+            return_y = self.generator._frame_freq_helper.state_out_of_frame(self.t,
+                                                                            return_y,
+                                                                            y_in_frame_basis=True,
+                                                                            return_in_frame_basis=False)
+
+        if self._state_type_converter is None:
+            return return_y
+        else:
+            return self._state_type_converter.inner_to_outer(return_y)
+
+    def integrate(self, tf):
+        """Integrate up to a time tf.
+        """
+        self._method.integrate(tf)
+
+    def integrate_over_interval(self, y0, interval):
+        """
+        Integrate over an interval=[t0,tf] with a given initial state
+        """
+        self.t = interval[0]
+        self.y = y0
+        self.integrate(interval[1])

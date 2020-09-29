@@ -28,8 +28,8 @@ class BMDE_Problem:
                  y0: Optional[np.ndarray] = None,
                  t0: Optional[float] = None,
                  interval: Optional[List[float]] = None,
-                 solver_frame_operator: Optional[Union[str, Operator, np.ndarray]] = 'auto',
-                 solver_cutoff_freq: Optional[float] = None,
+                 frame_operator: Optional[Union[str, Operator, np.ndarray]] = 'auto',
+                 cutoff_freq: Optional[float] = None,
                  state_type_converter: Optional[StateTypeConverter] = None):
         """fill in
         """
@@ -46,31 +46,31 @@ class BMDE_Problem:
         self.interval = interval
 
         # set up frame
-        frame_operator = None
+        solver_frame_operator = None
         if generator.frame_operator is not None:
             # if the generator has a frame specified, leave it as
-            frame_operator = generator.frame_operator
-            self._frame_from_model = True
+            solver_frame_operator = generator.frame_operator
+            self._user_in_frame = True
         else:
             # if auto, go into the drift part of the generator, otherwise
             # set it to whatever as passed
-            if solver_frame_operator == 'auto':
-                frame_operator = anti_herm_part(generator.drift)
+            if frame_operator == 'auto':
+                solver_frame_operator = anti_herm_part(generator.drift)
             else:
-                frame_operator = solver_frame_operator
+                solver_frame_operator = frame_operator
 
-            self._frame_from_model = False
+            self._user_in_frame = False
 
         # set up cutoff freq
-        cutoff_freq = None
-        if generator.cutoff_freq is not None and solver_cutoff_freq is not None:
+        solver_cutoff_freq = None
+        if generator.cutoff_freq is not None and cutoff_freq is not None:
             raise Exception("""Cutoff frequency specified in generator and in
                                 solver settings.""")
 
         if generator.cutoff_freq is not None:
-            cutoff_freq = generator.cutoff_freq
+            solver_cutoff_freq = generator.cutoff_freq
         else:
-            cutoff_freq = solver_cutoff_freq
+            solver_cutoff_freq = cutoff_freq
 
         # set up signals
         if generator._signal_params is not None:
@@ -82,8 +82,8 @@ class BMDE_Problem:
         self._generator = OperatorModel(operators=generator._operators,
                                         signals=signals,
                                         signal_mapping=generator.signal_mapping,
-                                        frame_operator=frame_operator,
-                                        cutoff_freq=cutoff_freq)
+                                        frame_operator=solver_frame_operator,
+                                        cutoff_freq=solver_cutoff_freq)
 
 
 def anti_herm_part(A: Union[np.ndarray, Operator]):
