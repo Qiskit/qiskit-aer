@@ -44,7 +44,7 @@ class BMDE_Problem:
 
         self.t0 = t0
         self.interval = interval
-
+        
         # set up frame
         solver_frame_operator = None
         if generator.frame_operator is not None:

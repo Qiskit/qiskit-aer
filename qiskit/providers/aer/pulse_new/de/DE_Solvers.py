@@ -53,12 +53,11 @@ class BMDE_Solver:
         elif issubclass(method, ODE_Method):
             Method = method
 
-        # instantiate method with minimal parameters
+        # set up method
         self._method = Method(t0, y0=None, rhs=None, options=options)
 
-        # flag signifying whether to return results in frame or not
-        # (i.e. whether the user wants to interact with the solver in the
-        # frame or not)
+        # flag signifying whether the user is themselves working in the frame
+        # or not
         self._user_in_frame = bmde_problem._user_in_frame
 
         self._state_type_converter = bmde_problem._state_type_converter
