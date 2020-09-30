@@ -70,7 +70,7 @@ template <typename Container, typename data_t>
 void TransformerAVX2<Container, data_t>::apply_matrix(const reg_t &qubits,
                                                       const cvector_t<double> &mat) {
   
-  if ((mat[1] == 0.0 && mat[2] == 0.0) || (mat[0] == 0.0 && mat[3] == 0.0)) {
+  if (qubits.size() == 1 && ((mat[1] == 0.0 && mat[2] == 0.0) || (mat[0] == 0.0 && mat[3] == 0.0))) {
     return Base::apply_matrix_1(qubits[0], mat);
   }
 
