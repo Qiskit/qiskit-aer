@@ -24,17 +24,9 @@ namespace QV {
 
 template <typename data_t = double>
 class TransformerAVX2 : public Transformer<data_t> {
-
   using Base = Transformer<data_t>;
 
 public:
-  //-----------------------------------------------------------------------
-  // Constructors and Destructor
-  //-----------------------------------------------------------------------
-  TransformerAVX2(size_t omp_threads = 1);
-
-  virtual ~TransformerAVX2() = default;
-
   //-----------------------------------------------------------------------
   // Apply Matrices
   //-----------------------------------------------------------------------
@@ -43,8 +35,8 @@ public:
   // The matrix is input as vector of the column-major vectorized N-qubit
   // matrix.
   template <typename Container>
-  void apply_matrix(Container &data, size_t data_size, const reg_t &qubits,
-                    const cvector_t<double> &mat) const;
+  static void apply_matrix(Container &data, size_t data_size, int threads,
+                           const reg_t &qubits, const cvector_t<double> &mat);
 };
 
 /*******************************************************************************
@@ -58,28 +50,24 @@ public:
 #if defined(_MSC_VER) || defined(GNUC_AVX2)
 
 template <typename data_t>
-TransformerAVX2<data_t>::TransformerAVX2(size_t omp_threads)
-    : Transformer<data_t>(omp_threads) {}
-
-template <typename data_t>
 template <typename Container>
 void TransformerAVX2<data_t>::apply_matrix(Container &data, size_t data_size,
-                                           const reg_t &qubits,
-                                           const cvector_t<double> &mat) const {
+                                           int threads, const reg_t &qubits,
+                                           const cvector_t<double> &mat) {
 
   if (qubits.size() == 1 &&
       ((mat[1] == 0.0 && mat[2] == 0.0) || (mat[0] == 0.0 && mat[3] == 0.0))) {
-    return Base::apply_matrix_1(data, data_size, qubits[0], mat);
+    return Base::apply_matrix_1(data, data_size, threads, qubits[0], mat);
   }
 
   if (apply_matrix_avx<data_t>(
           reinterpret_cast<data_t *>(data), data_size, qubits.data(),
           qubits.size(), reinterpret_cast<data_t *>(Base::convert(mat).data()),
-          Base::omp_threads_) == Avx::Applied) {
+          threads) == Avx::Applied) {
     return;
   }
 
-  Base::apply_matrix(data, data_size, qubits, mat);
+  Base::apply_matrix(data, data_size, threads, qubits, mat);
 }
 
 #endif // AVX2 Code

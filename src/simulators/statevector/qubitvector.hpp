@@ -963,11 +963,9 @@ void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
                                        const cvector_t<double> &mat) {
   // TODO: Move transformer initialization somewhere else
   if (is_avx2_supported()) {
-    TransformerAVX2<data_t> transformer(omp_threads_managed());
-    transformer.apply_matrix(data_, data_size_, qubits, mat);
+    TransformerAVX2<data_t>::apply_matrix(data_, data_size_, omp_threads_managed(), qubits, mat);
   } else {
-    Transformer<data_t> transformer(omp_threads_managed());
-    transformer.apply_matrix(data_, data_size_, qubits, mat);
+    Transformer<data_t>::apply_matrix(data_, data_size_, omp_threads_managed(), qubits, mat);
   }
 }
 
@@ -1008,8 +1006,7 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
 template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t<double> &diag) {
-  Transformer<data_t> transformer(omp_threads_managed());
-  transformer.apply_diagonal_matrix(data_, data_size_, qubits, diag);
+  Transformer<data_t>::apply_diagonal_matrix(data_, data_size_, omp_threads_managed(), qubits, diag);
 }
 
 template <typename data_t>

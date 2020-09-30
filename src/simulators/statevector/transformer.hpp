@@ -29,14 +29,6 @@ template <typename data_t = double> class Transformer {
 
 public:
   //-----------------------------------------------------------------------
-  // Constructors and Destructor
-  //-----------------------------------------------------------------------
-
-  Transformer(size_t omp_threads = 1) : omp_threads_(omp_threads) {}
-
-  virtual ~Transformer() = default;
-
-  //-----------------------------------------------------------------------
   // Apply Matrices
   //-----------------------------------------------------------------------
 
@@ -44,51 +36,38 @@ public:
   // The matrix is input as vector of the column-major vectorized N-qubit
   // matrix.
   template <typename Container>
-  void apply_matrix(Container &data, size_t data_size, const reg_t &qubits,
-                    const cvector_t<double> &mat) const;
+  static void apply_matrix(Container &data, size_t data_size, int threads,
+                           const reg_t &qubits, const cvector_t<double> &mat);
 
   // Apply a N-qubit diagonal matrix to a array container
   // The matrix is input as vector of the matrix diagonal.
   template <typename Container>
-  void apply_diagonal_matrix(Container &data, size_t data_size,
-                             const reg_t &qubits,
-                             const cvector_t<double> &diag) const;
-
-  // Set number of threads to n >= 1
-  void set_threads(uint_t n) { omp_threads_ = (n > 0) ? n : 1; }
+  static void apply_diagonal_matrix(Container &data, size_t data_size,
+                                    int threads, const reg_t &qubits,
+                                    const cvector_t<double> &diag);
 
 protected:
   // Apply a N-qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized N-qubit
   // matrix.
   template <size_t N, typename Container>
-  void apply_matrix_n(Container &data, size_t data_size, const reg_t &qubits,
-                      const cvector_t<double> &mat) const;
+  static void apply_matrix_n(Container &data, size_t data_size, int threads,
+                             const reg_t &qubits, const cvector_t<double> &mat);
 
   // Specialized single qubit apply matrix function
   template <typename Container>
-  void apply_matrix_1(Container &data, size_t data_size, const uint_t qubit,
-                      const cvector_t<double> &mat) const;
+  static void apply_matrix_1(Container &data, size_t data_size, int threads,
+                             const uint_t qubit, const cvector_t<double> &mat);
 
   // Specialized single qubit apply matrix function
   template <typename Container>
-  void apply_diagonal_matrix_1(Container &data, size_t data_size,
-                               const uint_t qubit,
-                               const cvector_t<double> &mat) const;
-
-  //-----------------------------------------------------------------------
-  // Config settings
-  //-----------------------------------------------------------------------
-  uint_t omp_threads_ = 1; // Number of threads used by OpenMP
+  static void apply_diagonal_matrix_1(Container &data, size_t data_size,
+                                      int threads, const uint_t qubit,
+                                      const cvector_t<double> &mat);
 
   // Convert a matrix to a different type
   // TODO: this makes an unnecessary copy when data_t = double.
-  inline cvector_t<data_t> convert(const cvector_t<double> &v) const {
-    cvector_t<data_t> ret(v.size());
-    for (size_t i = 0; i < v.size(); ++i)
-      ret[i] = v[i];
-    return ret;
-  }
+  static cvector_t<data_t> convert(const cvector_t<double> &v);
 };
 
 /*******************************************************************************
@@ -96,65 +75,74 @@ protected:
  * MATRIX MULTIPLICATION
  *
  ******************************************************************************/
+
+template <typename data_t>
+cvector_t<data_t> Transformer<data_t>::convert(const cvector_t<double> &v) {
+  cvector_t<data_t> ret(v.size());
+  for (size_t i = 0; i < v.size(); ++i)
+    ret[i] = v[i];
+  return ret;
+}
+
 template <typename data_t>
 template <typename Container>
 void Transformer<data_t>::apply_matrix(Container &data, size_t data_size,
-                                       const reg_t &qubits,
-                                       const cvector_t<double> &mat) const {
+                                       int threads, const reg_t &qubits,
+                                       const cvector_t<double> &mat) {
   // Static array optimized lambda functions
   switch (qubits.size()) {
-  case 1:
-    return apply_matrix_1(data, data_size, qubits[0], mat);
-  case 2:
-    return apply_matrix_n<2>(data, data_size, qubits, mat);
-  case 3:
-    return apply_matrix_n<3>(data, data_size, qubits, mat);
-  case 4:
-    return apply_matrix_n<4>(data, data_size, qubits, mat);
-  case 5:
-    return apply_matrix_n<5>(data, data_size, qubits, mat);
-  case 6:
-    return apply_matrix_n<6>(data, data_size, qubits, mat);
-  case 7:
-    return apply_matrix_n<7>(data, data_size, qubits, mat);
-  case 8:
-    return apply_matrix_n<8>(data, data_size, qubits, mat);
-  case 9:
-    return apply_matrix_n<9>(data, data_size, qubits, mat);
-  case 10:
-    return apply_matrix_n<10>(data, data_size, qubits, mat);
-  case 11:
-    return apply_matrix_n<11>(data, data_size, qubits, mat);
-  case 12:
-    return apply_matrix_n<12>(data, data_size, qubits, mat);
-  case 13:
-    return apply_matrix_n<13>(data, data_size, qubits, mat);
-  case 14:
-    return apply_matrix_n<14>(data, data_size, qubits, mat);
-  case 15:
-    return apply_matrix_n<15>(data, data_size, qubits, mat);
-  case 16:
-    return apply_matrix_n<16>(data, data_size, qubits, mat);
-  case 17:
-    return apply_matrix_n<17>(data, data_size, qubits, mat);
-  case 18:
-    return apply_matrix_n<18>(data, data_size, qubits, mat);
-  case 19:
-    return apply_matrix_n<19>(data, data_size, qubits, mat);
-  case 20:
-    return apply_matrix_n<20>(data, data_size, qubits, mat);
-  default: {
-    throw std::runtime_error(
-        "Maximum size of apply matrix is a 20-qubit matrix.");
-  }
+    case 1:
+      return apply_matrix_1(data, data_size, threads, qubits[0], mat);
+    case 2:
+      return apply_matrix_n<2>(data, data_size, threads, qubits, mat);
+    case 3:
+      return apply_matrix_n<3>(data, data_size, threads, qubits, mat);
+    case 4:
+      return apply_matrix_n<4>(data, data_size, threads, qubits, mat);
+    case 5:
+      return apply_matrix_n<5>(data, data_size, threads, qubits, mat);
+    case 6:
+      return apply_matrix_n<6>(data, data_size, threads, qubits, mat);
+    case 7:
+      return apply_matrix_n<7>(data, data_size, threads, qubits, mat);
+    case 8:
+      return apply_matrix_n<8>(data, data_size, threads, qubits, mat);
+    case 9:
+      return apply_matrix_n<9>(data, data_size, threads, qubits, mat);
+    case 10:
+      return apply_matrix_n<10>(data, data_size, threads, qubits, mat);
+    case 11:
+      return apply_matrix_n<11>(data, data_size, threads, qubits, mat);
+    case 12:
+      return apply_matrix_n<12>(data, data_size, threads, qubits, mat);
+    case 13:
+      return apply_matrix_n<13>(data, data_size, threads, qubits, mat);
+    case 14:
+      return apply_matrix_n<14>(data, data_size, threads, qubits, mat);
+    case 15:
+      return apply_matrix_n<15>(data, data_size, threads, qubits, mat);
+    case 16:
+      return apply_matrix_n<16>(data, data_size, threads, qubits, mat);
+    case 17:
+      return apply_matrix_n<17>(data, data_size, threads, qubits, mat);
+    case 18:
+      return apply_matrix_n<18>(data, data_size, threads, qubits, mat);
+    case 19:
+      return apply_matrix_n<19>(data, data_size, threads, qubits, mat);
+    case 20:
+      return apply_matrix_n<20>(data, data_size, threads, qubits, mat);
+    default: {
+      throw std::runtime_error(
+          "Maximum size of apply matrix is a 20-qubit matrix.");
+    }
   }
 }
 
 template <typename data_t>
 template <size_t N, typename Container>
 void Transformer<data_t>::apply_matrix_n(Container &data, size_t data_size,
-                                         const reg_t &qs,
-                                         const cvector_t<double> &mat) const {
+                                         int threads, const reg_t &qs,
+                                         const cvector_t<double> &mat) {
   const size_t DIM = 1ULL << N;
   auto func = [&](const areg_t<1UL << N> &inds,
                   const cvector_t<data_t> &_mat) -> void {
@@ -171,19 +159,19 @@ void Transformer<data_t>::apply_matrix_n(Container &data, size_t data_size,
   };
   areg_t<N> qubits;
   std::copy_n(qs.begin(), N, qubits.begin());
-  apply_lambda(0, data_size, omp_threads_, func, qubits, convert(mat));
+  apply_lambda(0, data_size, threads, func, qubits, convert(mat));
 }
 
 template <typename data_t>
 template <typename Container>
 void Transformer<data_t>::apply_matrix_1(Container &data, size_t data_size,
-                                         const uint_t qubit,
-                                         const cvector_t<double> &mat) const {
+                                         int threads, const uint_t qubit,
+                                         const cvector_t<double> &mat) {
 
   // Check if matrix is diagonal and if so use optimized lambda
   if (mat[1] == 0.0 && mat[2] == 0.0) {
     const cvector_t<double> diag = {{mat[0], mat[3]}};
-    apply_diagonal_matrix_1(data, data_size, qubit, diag);
+    apply_diagonal_matrix_1(data, data_size, threads, qubit, diag);
     return;
   }
 
@@ -197,7 +185,7 @@ void Transformer<data_t>::apply_matrix_1(Container &data, size_t data_size,
       auto func = [&](const areg_t<2> &inds) -> void {
         std::swap(data[inds[0]], data[inds[1]]);
       };
-      apply_lambda(0, data_size, omp_threads_, func, qubits);
+      apply_lambda(0, data_size, threads, func, qubits);
       return;
     }
     if (mat[2] == 0.0) {
@@ -208,7 +196,7 @@ void Transformer<data_t>::apply_matrix_1(Container &data, size_t data_size,
         data[inds[1]] = _mat[1] * data[inds[0]];
         data[inds[0]] = 0.0;
       };
-      apply_lambda(0, data_size, omp_threads_, func, qubits, convert(mat));
+      apply_lambda(0, data_size, threads, func, qubits, convert(mat));
       return;
     }
     if (mat[1] == 0.0) {
@@ -219,7 +207,7 @@ void Transformer<data_t>::apply_matrix_1(Container &data, size_t data_size,
         data[inds[0]] = _mat[2] * data[inds[1]];
         data[inds[1]] = 0.0;
       };
-      apply_lambda(0, data_size, omp_threads_, func, qubits, convert(mat));
+      apply_lambda(0, data_size, threads, func, qubits, convert(mat));
       return;
     }
     // else we have a general anti-diagonal matrix
@@ -229,7 +217,7 @@ void Transformer<data_t>::apply_matrix_1(Container &data, size_t data_size,
       data[inds[0]] = _mat[2] * data[inds[1]];
       data[inds[1]] = _mat[1] * cache;
     };
-    apply_lambda(0, data_size, omp_threads_, func, qubits, convert(mat));
+    apply_lambda(0, data_size, threads, func, qubits, convert(mat));
     return;
   }
 
@@ -240,16 +228,17 @@ void Transformer<data_t>::apply_matrix_1(Container &data, size_t data_size,
     data[inds[1]] = _mat[1] * cache + _mat[3] * data[inds[1]];
   };
 
-  apply_lambda(0, data_size, omp_threads_, func, qubits, convert(mat));
+  apply_lambda(0, data_size, threads, func, qubits, convert(mat));
 }
 
 template <typename data_t>
 template <typename Container>
-void Transformer<data_t>::apply_diagonal_matrix(
-    Container &data, size_t data_size, const reg_t &qubits,
-    const cvector_t<double> &diag) const {
+void Transformer<data_t>::apply_diagonal_matrix(Container &data,
+                                                size_t data_size, int threads,
+                                                const reg_t &qubits,
+                                                const cvector_t<double> &diag) {
   if (qubits.size() == 1) {
-    apply_diagonal_matrix_1(data, data_size, qubits[0], diag);
+    apply_diagonal_matrix_1(data, data_size, threads, qubits[0], diag);
     return;
   }
 
@@ -266,15 +255,15 @@ void Transformer<data_t>::apply_diagonal_matrix(
         data[k] *= _diag[iv];
     }
   };
-  apply_lambda(0, data_size, omp_threads_, func, areg_t<1>({{qubits[0]}}),
+  apply_lambda(0, data_size, threads, func, areg_t<1>({{qubits[0]}}),
                convert(diag));
 }
 
 template <typename data_t>
 template <typename Container>
 void Transformer<data_t>::apply_diagonal_matrix_1(
-    Container &data, size_t data_size, const uint_t qubit,
-    const cvector_t<double> &diag) const {
+    Container &data, size_t data_size, int threads, const uint_t qubit,
+    const cvector_t<double> &diag) {
   // TODO: This should be changed so it isn't checking doubles with ==
   if (diag[0] == 1.0) { // [[1, 0], [0, z]] matrix
     if (diag[1] == 1.0)
@@ -288,7 +277,7 @@ void Transformer<data_t>::apply_diagonal_matrix_1(
         data[k].imag(data[k].real() * -1.);
         data[k].real(cache);
       };
-      apply_lambda(0, data_size, omp_threads_, func, areg_t<1>({{qubit}}),
+      apply_lambda(0, data_size, threads, func, areg_t<1>({{qubit}}),
                    convert(diag));
       return;
     }
@@ -301,7 +290,7 @@ void Transformer<data_t>::apply_diagonal_matrix_1(
         data[k].imag(data[k].real());
         data[k].real(cache * -1.);
       };
-      apply_lambda(0, data_size, omp_threads_, func, areg_t<1>({{qubit}}),
+      apply_lambda(0, data_size, threads, func, areg_t<1>({{qubit}}),
                    convert(diag));
       return;
     }
@@ -311,7 +300,7 @@ void Transformer<data_t>::apply_diagonal_matrix_1(
                       const cvector_t<data_t> &_mat) -> void {
         data[inds[1]] = 0.0;
       };
-      apply_lambda(0, data_size, omp_threads_, func, areg_t<1>({{qubit}}),
+      apply_lambda(0, data_size, threads, func, areg_t<1>({{qubit}}),
                    convert(diag));
       return;
     }
@@ -321,7 +310,7 @@ void Transformer<data_t>::apply_diagonal_matrix_1(
       const auto k = inds[1];
       data[k] *= _mat[1];
     };
-    apply_lambda(0, data_size, omp_threads_, func, areg_t<1>({{qubit}}),
+    apply_lambda(0, data_size, threads, func, areg_t<1>({{qubit}}),
                  convert(diag));
     return;
   } else if (diag[1] == 1.0) {
@@ -335,7 +324,7 @@ void Transformer<data_t>::apply_diagonal_matrix_1(
         data[k].imag(data[k].real() * -1.);
         data[k].real(cache);
       };
-      apply_lambda(0, data_size, omp_threads_, func, areg_t<1>({{qubit}}),
+      apply_lambda(0, data_size, threads, func, areg_t<1>({{qubit}}),
                    convert(diag));
       return;
     }
@@ -348,7 +337,7 @@ void Transformer<data_t>::apply_diagonal_matrix_1(
         data[k].imag(data[k].real());
         data[k].real(cache * -1.);
       };
-      apply_lambda(0, data_size, omp_threads_, func, areg_t<1>({{qubit}}),
+      apply_lambda(0, data_size, threads, func, areg_t<1>({{qubit}}),
                    convert(diag));
       return;
     }
@@ -358,7 +347,7 @@ void Transformer<data_t>::apply_diagonal_matrix_1(
                       const cvector_t<data_t> &_mat) -> void {
         data[inds[0]] = 0.0;
       };
-      apply_lambda(0, data_size, omp_threads_, func, areg_t<1>({{qubit}}),
+      apply_lambda(0, data_size, threads, func, areg_t<1>({{qubit}}),
                    convert(diag));
       return;
     }
@@ -368,7 +357,7 @@ void Transformer<data_t>::apply_diagonal_matrix_1(
       const auto k = inds[0];
       data[k] *= _mat[0];
     };
-    apply_lambda(0, data_size, omp_threads_, func, areg_t<1>({{qubit}}),
+    apply_lambda(0, data_size, threads, func, areg_t<1>({{qubit}}),
                  convert(diag));
     return;
   } else {
@@ -380,7 +369,7 @@ void Transformer<data_t>::apply_diagonal_matrix_1(
       data[k0] *= _mat[0];
       data[k1] *= _mat[1];
     };
-    apply_lambda(0, data_size, omp_threads_, func, areg_t<1>({{qubit}}),
+    apply_lambda(0, data_size, threads, func, areg_t<1>({{qubit}}),
                  convert(diag));
   }
 }
