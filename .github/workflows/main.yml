@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: 3.8
       - name: Pip cache
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-lint-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -46,7 +46,7 @@ jobs:
         with:
           python-version: 3.7
       - name: Pip cache
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-docs-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -124,7 +124,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-sdist-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -199,7 +199,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Pip cache
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -209,7 +209,7 @@ jobs:
             ${{ runner.os }}-${{ matrix.python-version}}-
         if: runner.os != 'Windows'
       - name: Pip cache
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
@@ -270,7 +270,7 @@ jobs:
         with:
           python-version: 3.7
       - name: Pip cache
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-pip-tutorials-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
