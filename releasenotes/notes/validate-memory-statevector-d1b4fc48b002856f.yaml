@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Add missing available memory checks for the
+    :class:`~qiskit.providers.aer.StatevectorSimulator` and
+    :class:`~qiskit.providers.aer.UnitarySimulator`. This throws an exception if
+    the memory required to simulate the number of qubits in a circuit exceeds the
+    available memory of the system.
