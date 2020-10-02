@@ -38,7 +38,6 @@
 
 namespace AER {
 namespace QV {
-
 template <typename T> using cvector_t = std::vector<std::complex<T>>;
 
 //============================================================================
@@ -56,6 +55,7 @@ template <typename T> using cvector_t = std::vector<std::complex<T>>;
 
 template <typename data_t = double>
 class QubitVector {
+    std::unique_ptr<Transformer<std::complex<data_t>*, data_t>> transformer_;
 
 public:
 
@@ -336,7 +336,12 @@ protected:
     return (num_qubits_ > omp_threshold_ && omp_threads_ > 1) ? omp_threads_: 1;
   }
 
-  //-----------------------------------------------------------------------
+  void set_transformer_method(){
+    transformer_ = is_avx2_supported() ? std::make_unique<TransformerAVX2<std::complex<data_t>*, data_t>>()
+                                       : std::make_unique<Transformer<std::complex<data_t>*, data_t>>();
+  }
+
+    //-----------------------------------------------------------------------
   // Error Messages
   //-----------------------------------------------------------------------
 
@@ -566,6 +571,7 @@ template <typename data_t>
 QubitVector<data_t>::QubitVector(size_t num_qubits)
   : num_qubits_(0), data_(nullptr), checkpoint_(0) {
     set_num_qubits(num_qubits);
+    set_transformer_method();
   }
 
 template <typename data_t>
@@ -961,12 +967,7 @@ QubitVector<data_t>::apply_reduction_lambda(Lambda&& func,
 template <typename data_t>
 void QubitVector<data_t>::apply_matrix(const reg_t &qubits,
                                        const cvector_t<double> &mat) {
-  // TODO: Move transformer initialization somewhere else
-  if (is_avx2_supported()) {
-    TransformerAVX2<data_t>::apply_matrix(data_, data_size_, omp_threads_managed(), qubits, mat);
-  } else {
-    Transformer<data_t>::apply_matrix(data_, data_size_, omp_threads_managed(), qubits, mat);
-  }
+    transformer_->apply_matrix(data_, data_size_, omp_threads_managed(), qubits, mat);
 }
 
 template <typename data_t>
@@ -1006,7 +1007,7 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
 template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t<double> &diag) {
-  Transformer<data_t>::apply_diagonal_matrix(data_, data_size_, omp_threads_managed(), qubits, diag);
+    transformer_->apply_diagonal_matrix(data_, data_size_, omp_threads_managed(), qubits, diag);
 }
 
 template <typename data_t>
