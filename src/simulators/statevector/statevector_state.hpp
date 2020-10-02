@@ -429,7 +429,7 @@ template <class statevec_t> void State<statevec_t>::initialize_omp() {
 template <class statevec_t>
 void State<statevec_t>::apply_global_phase() {
   if (BaseState::has_global_phase_) {
-    BaseState::qreg_.apply_diagonal_matrix(0, {BaseState::global_phase_, BaseState::global_phase_});
+    BaseState::qreg_.apply_diagonal_matrix({0}, {BaseState::global_phase_, BaseState::global_phase_});
   }
 }
 

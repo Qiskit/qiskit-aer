@@ -177,7 +177,7 @@ inline void apply_lambda(const size_t start,
                          const uint_t omp_threads,
                          Lambda&& func) {
 
-#pragma omp parallel if (omp_threads > 0) num_threads(omp_threads)
+#pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
   {
 #pragma omp for
     for (int_t k = int_t(start); k < int_t(stop); k++) {
@@ -197,7 +197,7 @@ inline void apply_lambda(const size_t start,
   const int_t END = stop >> NUM_QUBITS;
   auto qubits_sorted = qubits;
   std::sort(qubits_sorted.begin(), qubits_sorted.end());
-#pragma omp parallel if (omp_threads > 0) num_threads(omp_threads)
+#pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
   {
 #pragma omp for
     for (int_t k = int_t(start); k < END; k++) {
@@ -222,7 +222,7 @@ inline void apply_lambda(const size_t start,
   auto qubits_sorted = qubits;
   std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
-#pragma omp parallel if (omp_threads > 0) num_threads(omp_threads)
+#pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
   {
 #pragma omp for
     for (int_t k = int_t(start); k < END; k+=gap) {
@@ -254,7 +254,7 @@ inline std::complex<double> apply_reduction_lambda(const size_t start,
   // Reduction variables
   double val_re = 0.;
   double val_im = 0.;
-#pragma omp parallel reduction(+:val_re, val_im) if (omp_threads > 0) num_threads(omp_threads)
+#pragma omp parallel reduction(+:val_re, val_im) if (omp_threads > 1) num_threads(omp_threads)
   {
 #pragma omp for
     for (int_t k = int_t(start); k < int_t(stop); k++) {
@@ -279,7 +279,7 @@ std::complex<double> apply_reduction_lambda(const size_t start,
   // Reduction variables
   double val_re = 0.;
   double val_im = 0.;
-#pragma omp parallel reduction(+:val_re, val_im) if (omp_threads > 0) num_threads(omp_threads)
+#pragma omp parallel reduction(+:val_re, val_im) if (omp_threads > 1) num_threads(omp_threads)
   {
 #pragma omp for
     for (int_t k = int_t(start); k < END; k++) {
@@ -308,7 +308,7 @@ std::complex<double> apply_reduction_lambda(const size_t start,
   // Reduction variables
   double val_re = 0.;
   double val_im = 0.;
-#pragma omp parallel reduction(+:val_re, val_im) if (omp_threads > 0) num_threads(omp_threads)
+#pragma omp parallel reduction(+:val_re, val_im) if (omp_threads > 1) num_threads(omp_threads)
   {
 #pragma omp for
     for (int_t k = int_t(start); k < END; k++) {
