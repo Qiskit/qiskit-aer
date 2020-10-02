@@ -256,7 +256,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
       size_t freeMem,totalMem;
       cudaSetDevice(iDev);
       cudaMemGetInfo(&freeMem,&totalMem);
-      if(freeMem <= ( ((uint_t)sizeof(thrust::complex<data_t>) * (nc + num_buffers + num_checkpoint + AER_DUMMY_BUFFERS)) << chunk_bits_)){
+      if(freeMem <= ( ((uint_t)sizeof(thrust::complex<data_t>) * (nc + num_buffers + num_checkpoint)) << chunk_bits_)){
         num_checkpoint = 0;
       }
 #endif

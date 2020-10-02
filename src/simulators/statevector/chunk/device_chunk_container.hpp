@@ -217,7 +217,7 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
 
     size_t freeMem,totalMem;
     cudaMemGetInfo(&freeMem,&totalMem);
-    while(freeMem < ((((nc+buffers+checkpoint + (uint_t)AER_DUMMY_BUFFERS)*(uint_t)sizeof(thrust::complex<data_t>)) << bits) + param_size* (num_matrices_ + buffers)) ){
+    while(freeMem < ((((nc+buffers+checkpoint)*(uint_t)sizeof(thrust::complex<data_t>)) << bits) + param_size* (num_matrices_ + buffers)) ){
       if(checkpoint > 0){
         checkpoint--;
       }
@@ -706,14 +706,15 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
     thrust::transform_inclusive_scan(thrust::cuda::par.on(stream_[iChunk]),pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
   }
 
-  if(SHOTS < (1 << (matrix_bits_ + 2))){
+  if(num_matrices_ >= this->num_chunks_ && SHOTS < (1 << (matrix_bits_ + 2))){
     //matrix and parameter buffers can be used
     double* pRnd = (double*)matrix_pointer(iChunk);
     uint_t* pSmp = param_pointer(iChunk);
+    thrust::device_ptr<double> rnd_dev_ptr = thrust::device_pointer_cast(pRnd);
 
     cudaMemcpyAsync(pRnd,&rnds[0],SHOTS*sizeof(double),cudaMemcpyHostToDevice,stream_[iChunk]);
 
-    thrust::lower_bound(thrust::cuda::par.on(stream_[iChunk]), pVec, pVec + size, pRnd, pRnd + SHOTS, params_.begin() + (iChunk << (matrix_bits_+2)) );
+    thrust::lower_bound(thrust::cuda::par.on(stream_[iChunk]), pVec, pVec + size, rnd_dev_ptr, rnd_dev_ptr + SHOTS, params_.begin() + (iChunk << (matrix_bits_+2)) );
 
     cudaMemcpyAsync(thrust::raw_pointer_cast(vSmp.data()),pSmp,SHOTS*sizeof(uint_t),cudaMemcpyDeviceToHost,stream_[iChunk]);
     cudaStreamSynchronize(stream_[iChunk]);

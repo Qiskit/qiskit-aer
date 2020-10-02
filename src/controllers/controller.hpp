@@ -392,13 +392,24 @@ size_t Controller::get_system_memory_mb() {
 #endif
 
 #ifdef AER_THRUST_CUDA
-  int iDev,nDev;
+  int iDev,nDev,j;
   cudaGetDeviceCount(&nDev);
   for(iDev=0;iDev<nDev;iDev++){
     size_t freeMem,totalMem;
     cudaSetDevice(iDev);
     cudaMemGetInfo(&freeMem,&totalMem);
     total_physical_memory += totalMem;
+
+    for(j=0;j<nDev;j++){
+      if(iDev != j){
+        int ip;
+        cudaDeviceCanAccessPeer(&ip,iDev,j);
+        if(ip){
+          if(cudaDeviceEnablePeerAccess(j,0) != cudaSuccess)
+            cudaGetLastError();
+        }
+      }
+    }
   }
 #endif
   return total_physical_memory >> 20;

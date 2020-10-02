@@ -31,7 +31,7 @@
 
 #include "simulators/statevector/chunk/chunk_manager.hpp"
 
-//#define AER_DEBUG
+#define AER_DEBUG
 
 
 #ifdef AER_TIMING
