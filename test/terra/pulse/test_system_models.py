@@ -33,6 +33,7 @@ class BaseTestPulseSystemModel(QiskitAerTestCase):
     """Tests for PulseSystemModel"""
 
     def setUp(self):
+        super().setUp()
         self._default_qubit_lo_freq = [4.9, 5.0]
         self._u_channel_lo = []
         self._u_channel_lo.append([UchannelLO(0, 1.0+0.0j)])
@@ -159,7 +160,7 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
         qubit_lo_from_hamiltonian = test_model.hamiltonian.get_qubit_lo_from_drift()
         freqs = test_model.calculate_channel_frequencies(qubit_lo_from_hamiltonian)
         expected = getattr(backend.configuration(), 'hamiltonian')['vars']['wq0'] / (2 * np. pi)
-        self.assertAlmostEqual(freqs['D0'], expected, places=6)
+        self.assertAlmostEqual(freqs['D0'], expected, places=4)
 
     def _compute_u_lo_freqs(self, qubit_lo_freq):
         """

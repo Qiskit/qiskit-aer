@@ -13,7 +13,8 @@
 NoiseTransformer class tests
 """
 
-import unittest
+from ..common import QiskitAerTestCase
+
 import numpy
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 from qiskit.providers.aer.noise import NoiseModel
@@ -26,8 +27,9 @@ from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.providers.aer.noise.errors.quantum_error import QuantumError
 
 
-class TestNoiseTransformer(unittest.TestCase):
+class TestNoiseTransformer(QiskitAerTestCase):
     def setUp(self):
+        super().setUp()
         self.ops = {
             'X': standard_gate_unitary('x'),
             'Y': standard_gate_unitary('y'),

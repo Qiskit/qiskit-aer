@@ -39,8 +39,11 @@ namespace AER {
   using int_t = int_fast64_t;
   using uint_t = uint_fast64_t; 
   using complex_t = std::complex<double>;
+  using complexf_t = std::complex<float>;
   using cvector_t = std::vector<complex_t>;
+  using cvectorf_t = std::vector<complexf_t>;
   using cmatrix_t = matrix<complex_t>;
+  using cmatrixf_t = matrix<complexf_t>;
   using rvector_t = std::vector<double>;
   using rmatrix_t = matrix<double>;
   using reg_t = std::vector<uint_t>;

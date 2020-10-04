@@ -275,7 +275,7 @@ void StatevectorController::run_circuit_helper(
     const Circuit& circ, const Noise::NoiseModel& noise, const json_t& config,
     uint_t shots, uint_t rng_seed, ExperimentData &data) const {
   // Initialize  state
-  Statevector::State<> state;
+  State_t state;
 
   // Validate circuit and throw exception if invalid operations exist
   validate_state(state, circ, noise, true);
@@ -294,6 +294,7 @@ void StatevectorController::run_circuit_helper(
   // Set config
   state.set_config(config);
   state.set_parallalization(parallel_state_update_);
+  state.set_global_phase(circ.global_phase_angle);
 
   // Rng engine
   RngEngine rng;
@@ -325,7 +326,7 @@ void StatevectorController::run_circuit_helper(
   state.add_creg_to_data(data);
 
   // Add final state to the data
-  data.add_additional_data("statevector", state.qreg().vector());
+  data.add_additional_data("statevector", state.qreg().move_to_vector());
 }
 
 //-------------------------------------------------------------------------

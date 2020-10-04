@@ -38,11 +38,11 @@ template<typename T>
 void jlog(const std::string& msg, const NpArray<T>& values){
     spdlog::debug("{}", msg);
     spdlog::debug(".shape: ");
-    for(const auto& shape : values.shape)
+    for(const auto &shape : values.shape)
         spdlog::debug("{} ", shape);
 
     spdlog::debug("\n.data: ");
-    for(const auto& val : values.data){
+    for(const auto &val : values.data){
         jlog("", val);
     }
 }
@@ -50,7 +50,7 @@ void jlog(const std::string& msg, const NpArray<T>& values){
 template<typename T>
 void jlog(const std::string& msg, const std::vector<T>& values){
     spdlog::debug("{}", msg);
-    for(const auto& val : values){
+    for(const auto &val : values){
         jlog("", val);
     }
 }
@@ -58,9 +58,9 @@ void jlog(const std::string& msg, const std::vector<T>& values){
 template<>
 void jlog(const std::string& msg, const std::unordered_map<std::string, std::vector<std::vector<double>>>& values){
     spdlog::debug("{}", msg);
-    for(const auto& val : values){
-        for(const auto& inner: val.second){
-            for(const auto& inner2: inner){
+    for(const auto &val : values){
+        for(const auto &inner: val.second){
+            for(const auto &inner2: inner){
                 spdlog::debug("{}:{} ", val.first, inner2);
             }
         }
@@ -70,7 +70,7 @@ void jlog(const std::string& msg, const std::unordered_map<std::string, std::vec
 template<>
 void jlog(const std::string& msg, const std::unordered_map<std::string, double>& values){
     spdlog::debug("{}", msg);
-    for(const auto& val : values){
+    for(const auto &val : values){
         spdlog::debug("{}:{} ", val.first, val.second);
     }
 }
@@ -78,8 +78,8 @@ void jlog(const std::string& msg, const std::unordered_map<std::string, double>&
 template<>
 void jlog(const std::string& msg, const std::unordered_map<std::string, std::vector<NpArray<double>>>& values){
     spdlog::debug("{}", msg);
-    for(const auto& val : values){
-        for(const auto& inner: val.second){
+    for(const auto &val : values){
+        for(const auto &inner: val.second){
             jlog(val.first, inner);
         }
     }
@@ -89,8 +89,8 @@ template<>
 void jlog(const std::string& msg, const ordered_map<std::string, std::vector<NpArray<double>>>& values){
     spdlog::debug("{}", msg);
     using order_map_t = ordered_map<std::string, std::vector<NpArray<double>>>;
-    for(const auto& val : const_cast<order_map_t&>(values)){
-        for(const auto& inner: val.second){
+    for(const auto &val : const_cast<order_map_t&>(values)){
+        for(const auto &inner: val.second){
             jlog(val.first, inner);
         }
     }

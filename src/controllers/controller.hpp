@@ -26,7 +26,7 @@
 
 #if defined(__linux__) || defined(__APPLE__)
 #include <unistd.h>
-#elif defined(_WIN64)
+#elif defined(_WIN64) || defined(_WIN32)
 // This is needed because windows.h redefine min()/max() so interferes with
 // std::min/max
 #define NOMINMAX
@@ -93,12 +93,10 @@ namespace Base {
  *
  * Config settings from Data class:
  *
- * - "counts" (bool): Return counts objecy in circuit data [Default: True]
+ * - "counts" (bool): Return counts object in circuit data [Default: True]
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
  * - "register" (bool): Return register array in circuit data [Default: False]
- * - "noise_model" (json): A noise model JSON dictionary for the simulator.
- *                         [Default: null]
  **************************************************************************/
 
 class Controller {
@@ -384,7 +382,7 @@ size_t Controller::get_system_memory_mb() {
   auto pages = sysconf(_SC_PHYS_PAGES);
   auto page_size = sysconf(_SC_PAGE_SIZE);
   total_physical_memory = pages * page_size;
-#elif defined(_WIN64)
+#elif defined(_WIN64)  || defined(_WIN32)
   MEMORYSTATUSEX status;
   status.dwLength = sizeof(status);
   GlobalMemoryStatusEx(&status);
@@ -401,7 +399,7 @@ template <class state_t>
 bool Controller::validate_state(const state_t &state, const Circuit &circ,
                                 const Noise::NoiseModel &noise,
                                 bool throw_except) {
-  // First check if a noise model is valid a given state
+  // First check if a noise model is valid for a given state
   bool noise_valid = noise.is_ideal() || state.opset().contains(noise.opset());
   bool circ_valid = state.opset().contains(circ.opset());
   if (noise_valid && circ_valid) {
@@ -650,7 +648,7 @@ void Controller::execute_circuit(Circuit &circ,
     exp_result.shots = circ.shots;
     exp_result.seed = circ.seed;
     // Move any metadata from the subclass run_circuit data
-    // to the experiment resultmetadata field
+    // to the experiment result metadata field
     for (const auto &pair : exp_result.data.metadata()) {
       exp_result.add_metadata(pair.first, pair.second);
     }

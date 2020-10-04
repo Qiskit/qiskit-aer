@@ -96,13 +96,21 @@ class QasmThreadManagementTests:
         self.assertEqual(max_mem_result, max_mem_target,
                          msg="Custom 'max_memory_mb' is not being set correctly.")
 
+    def available_threads(self):
+        """"Return the threads reported by the simulator"""
+        result = execute(self.dummy_circuit(1),
+                         self.SIMULATOR,
+                         shots=1,
+                         backend_options=self.BACKEND_OPTS).result()
+        return self.threads_used(result)[0]['total']
+
     @requires_omp
     @requires_multiprocessing
     def test_parallel_thread_defaults(self):
         """Test parallel thread assignment defaults"""
 
         opts = self.BACKEND_OPTS
-        max_threads = multiprocessing.cpu_count()
+        max_threads = self.available_threads()
 
         # Test single circuit, no noise
         # Parallel experiments and shots should always be 1
@@ -217,7 +225,7 @@ class QasmThreadManagementTests:
             opts['max_parallel_shots'] = 2 * custom_max_threads
 
             # Calculate actual max threads from custom max and CPU number
-            max_threads = multiprocessing.cpu_count()
+            max_threads = self.available_threads()
             if custom_max_threads > 0:
                 max_threads = min(max_threads, custom_max_threads)
 
@@ -324,7 +332,7 @@ class QasmThreadManagementTests:
     def test_parallel_experiment_thread_assignment(self):
         """Test parallel experiment thread assignment"""
 
-        max_threads = multiprocessing.cpu_count()
+        max_threads = self.available_threads()
         opts = self.BACKEND_OPTS.copy()
         opts['max_parallel_experiments'] = max_threads
 
@@ -412,7 +420,7 @@ class QasmThreadManagementTests:
     def test_parallel_shot_thread_assignment(self):
         """Test parallel shot thread assignment"""
 
-        max_threads = multiprocessing.cpu_count()
+        max_threads = self.available_threads()
         opts = self.BACKEND_OPTS.copy()
         opts['max_parallel_shots'] = max_threads
 

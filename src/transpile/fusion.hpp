@@ -71,7 +71,8 @@ public:
   double cost_factor;
   bool verbose = false;
   bool active = true;
-  bool allow_noise = true;
+  bool allow_superop = false;
+  bool allow_kraus = false;
 
 private:
   bool can_ignore(const op_t& op) const;
@@ -140,8 +141,11 @@ void Fusion::set_config(const json_t &config) {
   if (JSON::check_key("fusion_cost_factor", config))
     JSON::get_value(cost_factor, "fusion_cost_factor", config);
   
-  if (JSON::check_key("fusion_allow_noise", config))
-    JSON::get_value(allow_noise, "fusion_allow_noise", config);
+  if (JSON::check_key("fusion_allow_kraus", config))
+    JSON::get_value(allow_kraus, "fusion_allow_kraus", config);
+
+  if (JSON::check_key("fusion_allow_superop", config))
+    JSON::get_value(allow_superop, "fusion_allow_superop", config);
 }
 
 
@@ -160,11 +164,15 @@ void Fusion::optimize_circuit(Circuit& circ,
   // Determine fusion method
   // TODO: Support Kraus fusion method
   Method method = Method::unitary;
-  if (allow_noise && allowed_opset.contains(optype_t::superop) &&
+  if (allow_superop && allowed_opset.contains(optype_t::superop) &&
       (circ.opset().contains(optype_t::kraus)
        || circ.opset().contains(optype_t::superop)
        || circ.opset().contains(optype_t::reset))) {
     method = Method::superop;
+  } else if (allow_kraus && allowed_opset.contains(optype_t::kraus) &&
+      (circ.opset().contains(optype_t::kraus)
+       || circ.opset().contains(optype_t::superop))) {
+    method = Method::kraus;
   }
   uint_t qubit_threshold = (method==Method::unitary) ? threshold : threshold / 2;
   uint_t max_fused_qubits = (method==Method::unitary) ? max_qubit : max_qubit / 2;
@@ -256,8 +264,7 @@ bool Fusion::can_apply_fusion(const op_t& op, uint_t max_fused_qubits, Method me
     case optype_t::kraus:
     case optype_t::reset:
     case optype_t::superop: {
-      // TODO: Add support for Method::kraus
-      return method == Method::superop && op.qubits.size() <= max_fused_qubits;
+      return method != Method::unitary && op.qubits.size() <= max_fused_qubits;
     }
     case optype_t::gate: {
       if (op.qubits.size() > max_fused_qubits)
@@ -299,18 +306,21 @@ op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
     return Operations::make_unitary(qubits, unitary_simulator.qreg().move_to_matrix(),
                                     std::string("fusion"));
   }
+
   // For both Kraus and SuperOp method we simulate using superoperator
   // simulator
   QubitSuperoperator::State<> superop_simulator;
   superop_simulator.initialize_qreg(qubits.size());
   superop_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
+  auto superop = superop_simulator.qreg().move_to_matrix();
+
   if (method == Method::superop) {
-    return Operations::make_superop(qubits, superop_simulator.qreg().move_to_matrix());
+    return Operations::make_superop(qubits, std::move(superop));
   }
-  
-  // TODO: Add support for Kraus method
-  // For Kraus method we must convert superoperator to a Kraus op
-  throw std::runtime_error("Kraus fusion method is not supported yet");
+
+  // If Kraus method we convert superop to canonical Kraus representation
+  size_t dim = 1 << qubits.size();
+  return Operations::make_kraus(qubits, Utils::superop2kraus(superop, dim));
 }
 
 
@@ -464,7 +474,7 @@ double Fusion::estimate_cost(const std::vector<op_t>& ops,
 }
 
 void Fusion::add_fusion_qubits(reg_t& fusion_qubits, const op_t& op) const {
-  for (const auto qubit: op.qubits){
+  for (const auto &qubit: op.qubits){
     if (find(fusion_qubits.begin(), fusion_qubits.end(), qubit) == fusion_qubits.end()){
       fusion_qubits.push_back(qubit);
     }

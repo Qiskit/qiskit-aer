@@ -33,7 +33,7 @@ stages:
         - bash: |
             set -x
             set -e
-            for version in 3.5 3.6 3.7 3.8 ; do
+            for version in 3.6 3.7 3.8 ; do
                 conda create --yes --quiet --name qiskit-aer-$version python=$version
             done
           displayName: Create Anaconda environments
@@ -41,7 +41,7 @@ stages:
             set -x
             set -e
             mkdir wheelhouse
-            for version in 3.5 3.6 3.7 3.8 ; do
+            for version in 3.6 3.7 3.8 ; do
                 source activate qiskit-aer-$version
                 conda update --yes -n base conda
                 conda config --add channels conda-forge
@@ -67,6 +67,62 @@ stages:
             twine upload wheelhouse/*
           env:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
+    - job: 'Windows_win32_Wheel_Builds'
+      pool: {vmImage: 'vs2017-win2016'}
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+      variables:
+        TWINE_USERNAME: qiskit
+      steps:
+        - checkout: self
+          submodules: true
+        - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+          displayName: Add conda to PATH
+        - bash: |
+            set -x
+            set -e
+            conda update --yes -n base conda
+            conda config --add channels conda-forge
+          displayName: Update Conda
+        - bash: |
+            set -x
+            set -e
+            for version in 3.6 3.7 3.8 ; do
+                conda create --yes --quiet --name qiskit-aer-$version python=$version
+            done
+          displayName: Create Anaconda environments
+          env:
+            CONDA_FORCE_32BIT: 1
+        - bash: |
+            set -x
+            set -e
+            mkdir wheelhouse
+            for version in 3.6 3.7 3.8 ; do
+                source activate qiskit-aer-$version
+                conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake virtualenv pip setuptools pybind11 cython scipy
+                python -m pip install -U setuptools wheel
+                python setup.py bdist_wheel -- -G "Visual Studio 15 2017"
+                virtualenv test-$version
+                test-$version/Scripts/pip install -c constraints.txt dist/*whl
+                test-$version/Scripts/python tools/verify_wheels.py
+                mv dist/*whl wheelhouse/.
+                rm -rf test-$version
+                rm -rf _skbuild
+                rm -rf .eggs
+                rm -rf qiskit_aer.egg-info
+                rm -rf contrib/standalone/version.hpp
+            done
+          displayName: Build wheels
+          env:
+            CONDA_FORCE_32BIT: 1
+        - task: PublishBuildArtifacts@1
+          inputs: {pathtoPublish: 'wheelhouse'}
+          condition: succeededOrFailed()
+        - bash: |
+            pip install -U twine
+            twine upload wheelhouse/*
+          env:
+            TWINE_PASSWORD: $(TWINE_PASSWORD)
+
 
   - stage: 'Compile'
     dependsOn: []
@@ -76,8 +132,6 @@ stages:
         strategy:
           maxParallel: 2
           matrix:
-            Python35:
-              python.version: '3.5'
             Python36:
               python.version: '3.6'
             Python37:
@@ -110,12 +164,6 @@ stages:
               conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake virtualenv pip setuptools pybind11 cython scipy
             displayName: Create Anaconda environments
           - bash: |
-              set -e
-              source activate qiskit-aer
-              pip install -U -c constraints.txt numpy scipy
-            displayName: "Install 3.5 constrained dependencies"
-            condition: eq(variables['python.version'], '3.5')
-          - bash: |
               set -x
               set -e
               source activate qiskit-aer
@@ -130,6 +178,64 @@ stages:
               test-wheel/Scripts/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
               test-wheel/Scripts/python tools/verify_wheels.py
             displayName: Verify wheels
+      - job: 'Windows_win32_Wheel_Builds'
+        pool: {vmImage: 'vs2017-win2016'}
+        strategy:
+          matrix:
+            Python37:
+              python.version: '3.7'
+        variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        steps:
+          - checkout: self
+            submodules: true
+          - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
+            displayName: Add conda to PATH
+          - task: Cache@2
+            inputs:
+              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
+              restoreKeys: |
+                pip | "$(Agent.OS)" | "$(python.version)"
+                pip | "$(Agent.OS)"
+                pip
+              path: $(PIP_CACHE_DIR)
+            displayName: Cache pip
+          - bash: |
+              set -x
+              set -e
+              conda update --yes -n base conda
+              conda config --add channels conda-forge
+            displayName: Update Conda
+          - bash: |
+              set -x
+              set -e
+              conda create --yes --quiet --name qiskit-aer python=$(python.version)
+              source activate qiskit-aer
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake virtualenv pip setuptools pybind11 cython scipy
+            displayName: Create Anaconda environments
+            env:
+              CONDA_FORCE_32BIT: 1
+          - bash: |
+              set -x
+              set -e
+              source activate qiskit-aer
+              pip install -U setuptools wheel
+              python setup.py bdist_wheel -- -G "Visual Studio 15 2017"
+            displayName: Build wheels
+            env:
+              CONDA_FORCE_32BIT: 1
+          - bash: |
+              set -x
+              set -e
+              source activate qiskit-aer
+              virtualenv test-wheel
+              test-wheel/Scripts/pip install -c constraints.txt dist/*whl
+              test-wheel/Scripts/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
+              test-wheel/Scripts/python tools/verify_wheels.py
+            displayName: Verify wheels
+            env:
+              CONDA_FORCE_32BIT: 1
+
       - job: 'Windows_sdist_Builds'
         pool: {vmImage: 'vs2017-win2016'}
         strategy:
@@ -174,177 +280,10 @@ stages:
               set -x
               set -e
               source activate qiskit-aer
-              pip install -U pip setuptools virtualenv wheel
+              pip install -U setuptools virtualenv wheel
               pip install dist/*tar.gz
               pip install git+https://github.com/Qiskit/qiskit-terra
               python tools/verify_wheels.py
             env:
               CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
             displayName: Install from sdist and verify
-      - job: 'Standalone'
-        pool: {vmImage: 'vs2017-win2016'}
-        steps:
-          - checkout: self
-            submodules: true
-          - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
-            displayName: Add conda to PATH
-          - bash: |
-              set -x
-              set -e
-              conda create --yes --quiet --name qiskit-aer
-              source activate qiskit-aer
-              conda update --yes -n base conda
-              conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer conan numpy cmake scipy
-            displayName: Create Anaconda environments
-          - bash: |
-              set -x
-              set -e
-              source activate qiskit-aer
-              mkdir out
-              cd out
-              cmake .. -G "Visual Studio 15 2017 Win64"
-              cmake --build . --config Release
-
-  - stage: 'Tests'
-    condition: and(succeeded('Compile'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
-    jobs:
-      - job: 'Docs'
-        pool: {vmImage: 'ubuntu-16.04'}
-        strategy:
-          matrix:
-            Python37:
-              python.version: '3.7'
-        variables:
-          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
-        steps:
-         - checkout: self
-           submodules: true
-         - task: UsePythonVersion@0
-           inputs:
-             versionSpec: '$(python.version)'
-           displayName: 'Use Python $(python.version)'
-         - task: Cache@2
-           inputs:
-             key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
-             restoreKeys: |
-               pip | "$(Agent.OS)" | "$(python.version)"
-               pip | "$(Agent.OS)"
-               pip
-             path: $(PIP_CACHE_DIR)
-           displayName: Cache pip
-         - bash: |
-             set -e
-             python -m pip install --upgrade pip virtualenv
-             pip install -U tox
-             sudo apt-get update
-             sudo apt-get install -y build-essential libopenblas-dev
-           displayName: 'Install dependencies'
-         - bash: |
-             tox -edocs
-           displayName: 'Run Docs build'
-         - task: ArchiveFiles@2
-           inputs:
-             rootFolderOrFile: 'docs/_build/html'
-             archiveType: tar
-             archiveFile: '$(Build.ArtifactStagingDirectory)/html_docs.tar.gz'
-             verbose: true
-         - task: PublishBuildArtifacts@1
-           displayName: 'Publish docs'
-           inputs:
-             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-             artifactName: 'html_docs'
-      - job: 'Windows'
-        pool: {vmImage: 'vs2017-win2016'}
-        strategy:
-          maxParallel: 3
-          matrix:
-            Python35:
-              python.version: '3.5'
-            Python36:
-              python.version: '3.6'
-            Python37:
-              python.version: '3.7'
-            Python38:
-              python.version: '3.8'
-        variables:
-          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
-        steps:
-          - checkout: self
-            submodules: true
-          - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
-            displayName: Add conda to PATH
-          - task: Cache@2
-            inputs:
-              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
-              restoreKeys: |
-                pip | "$(Agent.OS)" | "$(python.version)"
-                pip | "$(Agent.OS)"
-                pip
-              path: $(PIP_CACHE_DIR)
-            displayName: Cache pip
-          - script: conda create --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=%PYTHON_VERSION%
-            displayName: Create Anaconda environment
-          - bash: |
-              set -x
-              set -e
-              source activate qiskit-aer-$(Build.BuildNumber)
-              conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python==$(python.version) numpy pip virtualenv scipy
-              conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python==$(python.version) setuptools
-            displayName: Install Anaconda packages
-            condition: ne(variables['python.version'], '3.5')
-          - bash: |
-              set -x
-              set -e
-              source activate qiskit-aer-$(Build.BuildNumber)
-              conda install --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) mkl
-              conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) pip setuptools
-            displayName: Install Anaconda packages
-            condition: or(eq(variables['python.version'], '3.5'), eq(variables['python.version'], '3.8'))
-          - bash: |
-              set -e
-              source activate qiskit-aer-$(Build.BuildNumber)
-              conda install -c conda-forge --yes --quiet --name qiskit-aer-$(Build.BuildNumber) python=$(python.version) osqp
-              pip install -r requirements-dev.txt
-              if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH == *"master"* || $BUILD_SOURCEBRANCH == *"refs/heads/master"* ]] ; then
-                  pip install git+https://github.com/Qiskit/qiskit-terra.git
-              else
-                  pip install qiskit-terra
-              fi
-            displayName: "Install dependencies py3.8"
-            condition: eq(variables['python.version'], '3.8')
-          - bash: |
-              set -e
-              source activate qiskit-aer-$(Build.BuildNumber)
-              pip install -U pip setuptools wheel virtualenv
-              pip install -c constraints.txt -r requirements-dev.txt
-              if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH == *"master"* || $BUILD_SOURCEBRANCH == *"master"* ]] ; then
-                  pip install git+https://github.com/Qiskit/qiskit-terra.git
-              else
-                  pip install qiskit-terra
-              fi
-            displayName: "Install dependencies"
-            condition: eq(variables['python.version'], '3.5')
-          - bash: |
-              set -e
-              source activate qiskit-aer-$(Build.BuildNumber)
-              pip install -r requirements-dev.txt
-              if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH == *"master"* || $BUILD_SOURCEBRANCH == *"master"* ]] ; then
-                  pip install git+https://github.com/Qiskit/qiskit-terra.git
-              else
-                  pip install qiskit-terra
-              fi
-            displayName: "Install dependencies"
-            condition: and(ne(variables['python.version'], '3.5'), ne(variables['python.version'], '3.8'))
-          - bash: |
-              set -e
-              source activate qiskit-aer-$(Build.BuildNumber)
-              git clean -fdX
-              python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
-            displayName: 'Build Aer'
-          - bash: |
-              set -e
-              source activate qiskit-aer-$(Build.BuildNumber)
-              pip install -v dist/qiskit_aer*.whl
-              stestr run --slowest
-            displayName: 'Install Aer and Run Tests'
