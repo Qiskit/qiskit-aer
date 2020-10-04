@@ -1,5 +1,4 @@
 include(Linter)
-include(nvcc_add_compiler_options)
 find_package(Pybind11 REQUIRED)
 
 # We need to remove the -static flag, because Python Extension system only supports
@@ -18,6 +17,7 @@ set(AER_SIMULATOR_SOURCES "bindings.cc" "${SIMD_SOURCE_FILE}")
 basic_pybind11_add_module(controller_wrappers "${AER_SIMULATOR_SOURCES}")
 
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
+    include(nvcc_add_compiler_options)
     set_source_files_properties(bindings.cc PROPERTIES LANGUAGE CUDA)
     set_source_files_properties(bindings.cc PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
 
