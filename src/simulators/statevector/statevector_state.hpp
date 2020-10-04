@@ -460,6 +460,11 @@ void State<statevec_t>::set_config(const json_t &config) {
   if (JSON::get_value(index_size, "statevector_sample_measure_opt", config)) {
     BaseState::qreg_.set_sample_measure_index_size(index_size);
   };
+
+  bool simd_enable;
+  if (JSON::get_value(simd_enable, "simd_enable", config)) {
+    BaseState::qreg_.set_simd_enable(simd_enable);
+  }
 }
 
 //=========================================================================

@@ -385,6 +385,12 @@ void State<densmat_t>::set_config(const json_t &config) {
   // Set OMP threshold for state update functions
   JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold",
                   config);
+
+  // Set simd enable
+  bool simd_enable;
+  if (JSON::get_value(simd_enable, "simd_enable", config)) {
+    BaseState::qreg_.set_simd_enable(simd_enable);
+  }
 }
 
 //=========================================================================

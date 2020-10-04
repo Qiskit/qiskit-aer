@@ -1102,6 +1102,8 @@ public:
   // Get the sample_measure index size
   int get_sample_measure_index_size() {return sample_measure_index_size_;}
 
+  void set_simd_enable(bool simd_enable) {}
+
 protected:
 
   //-----------------------------------------------------------------------

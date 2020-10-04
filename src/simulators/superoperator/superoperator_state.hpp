@@ -269,6 +269,12 @@ template <class data_t> void State<data_t>::set_config(const json_t &config) {
   // Set threshold for truncating snapshots
   JSON::get_value(json_chop_threshold_, "zero_threshold", config);
   BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
+
+  // Set simd enable
+  bool simd_enable;
+  if (JSON::get_value(simd_enable, "simd_enable", config)) {
+    BaseState::qreg_.set_simd_enable(simd_enable);
+  }
 }
 
 template <class data_t> void State<data_t>::initialize_qreg(uint_t num_qubits) {
