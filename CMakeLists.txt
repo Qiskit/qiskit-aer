@@ -12,7 +12,6 @@ cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 file(STRINGS "qiskit/providers/aer/VERSION.txt" VERSION_NUM)
 
 include(CheckLanguage)
-include(nvcc_add_compiler_options)
 project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -27,6 +26,7 @@ if(NOT DEFINED AER_THRUST_BACKEND AND DEFINED ENV{AER_THRUST_BACKEND})
 endif()
 
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
+  include(nvcc_add_compiler_options)
   include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
   enable_language(CUDA)
 else()
