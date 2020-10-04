@@ -14,9 +14,8 @@ QasmSimulator Integration Tests
 """
 # pylint: disable=no-member
 
-from test.benchmark.tools import quantum_volume_circuit, qft_circuit
-
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit.library import QuantumVolume, QFT
 from qiskit.compiler import assemble, transpile
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
@@ -93,13 +92,14 @@ class QasmFusionTests:
     def test_fusion_theshold(self):
         """Test fusion threhsold"""
         shots = 100
-        threshold = 10
+        threshold = 6
         backend_options = self.fusion_options(enabled=True, threshold=threshold)
 
         with self.subTest(msg='below fusion threshold'):
-            circuit = transpile(qft_circuit(threshold - 1, measure=True),
+            circuit = transpile(QFT(threshold - 1),
                                 self.SIMULATOR, basis_gates=['u1', 'u2', 'u3', 'cx', 'cz'],
                                 optimization_level=0)
+            circuit.measure_all()
             qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
                 qobj, backend_options=backend_options).result()
@@ -108,9 +108,10 @@ class QasmFusionTests:
             self.assertFalse(meta.get('applied', False))
 
         with self.subTest(msg='at fusion threshold'):
-            circuit = transpile(qft_circuit(threshold, measure=True),
+            circuit = transpile(QFT(threshold),
                                 self.SIMULATOR, basis_gates=['u1', 'u2', 'u3', 'cx', 'cz'],
                                 optimization_level=0)
+            circuit.measure_all()
             qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
                 qobj, backend_options=backend_options).result()
@@ -119,9 +120,10 @@ class QasmFusionTests:
             self.assertTrue(meta.get('applied', False))
 
         with self.subTest(msg='above fusion threshold'):
-            circuit = transpile(qft_circuit(threshold + 1, measure=True),
+            circuit = transpile(QFT(threshold + 1),
                                 self.SIMULATOR, basis_gates=['u1', 'u2', 'u3', 'cx', 'cz'],
                                 optimization_level=0)
+            circuit.measure_all()
             qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
                 qobj, backend_options=backend_options).result()
@@ -275,14 +277,14 @@ class QasmFusionTests:
     def test_fusion_operations(self):
         """Test Fusion enable/disable option"""
         shots = 100
+        num_qubits = 8
 
-        qr = QuantumRegister(10)
-        cr = ClassicalRegister(10)
+        qr = QuantumRegister(num_qubits)
+        cr = ClassicalRegister(num_qubits)
         circuit = QuantumCircuit(qr, cr)
 
-        for i in range(10):
-            circuit.h(qr[i])
-            circuit.barrier(qr)
+        circuit.h(qr)
+        circuit.barrier(qr)
 
         circuit.u3(0.1, 0.1, 0.1, qr[0])
         circuit.barrier(qr)
@@ -359,10 +361,12 @@ class QasmFusionTests:
     def test_fusion_qv(self):
         """Test Fusion with quantum volume"""
         shots = 100
-
-        circuit = transpile(quantum_volume_circuit(10, 2, measure=True, seed=0),
+        num_qubits = 8
+        depth = 2
+        circuit = transpile(QuantumVolume(num_qubits, depth, seed=0),
                             backend=self.SIMULATOR,
                             optimization_level=0)
+        circuit.measure_all()
         qobj = assemble([circuit],
                         self.SIMULATOR,
                         shots=shots,
@@ -390,11 +394,12 @@ class QasmFusionTests:
     def test_fusion_qft(self):
         """Test Fusion with qft"""
         shots = 100
-
-        circuit = transpile(qft_circuit(10, measure=True),
+        num_qubits = 8
+        circuit = transpile(QFT(num_qubits),
                             backend=self.SIMULATOR,
                             basis_gates=['u1', 'u2', 'u3', 'cx', 'cz'],
                             optimization_level=0)
+        circuit.measure_all()
         qobj = assemble([circuit],
                         self.SIMULATOR,
                         shots=shots,

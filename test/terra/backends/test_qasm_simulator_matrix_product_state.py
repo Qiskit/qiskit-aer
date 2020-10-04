@@ -34,6 +34,7 @@ from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardG
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
+from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalKrausTests
 # Algorithm circuit tests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsWaltzBasis
@@ -42,6 +43,7 @@ from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTest
 from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
@@ -51,6 +53,7 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValP
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
 
+
 class TestQasmMatrixProductStateSimulator(
         common.QiskitAerTestCase,
         QasmMeasureTests,
@@ -58,6 +61,7 @@ class TestQasmMatrixProductStateSimulator(
         QasmResetTests,
         QasmConditionalGateTests,
         QasmConditionalUnitaryTests,
+        QasmConditionalKrausTests,
         QasmCliffordTests,
         QasmCliffordTestsWaltzBasis,
         QasmCliffordTestsMinimalBasis,
@@ -73,6 +77,7 @@ class TestQasmMatrixProductStateSimulator(
         QasmReadoutNoiseTests,
         QasmPauliNoiseTests,
         QasmResetNoiseTests,
+        QasmKrausNoiseTests,
         QasmSnapshotStatevectorTests,
         QasmSnapshotDensityMatrixTests,
         QasmSnapshotProbabilitiesTests,
@@ -89,6 +94,7 @@ class TestQasmMatrixProductStateSimulator(
         "method": "matrix_product_state",
         "max_parallel_threads": 1
     }
+
 
 if __name__ == '__main__':
     unittest.main()
