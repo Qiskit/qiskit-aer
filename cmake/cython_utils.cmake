@@ -42,7 +42,7 @@ function(add_cython_module module)
 
     if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
 	string(STRIP ${MODULE_COMPILE_FLAGS} MODULE_COMPILE_FLAGS_STRIPPED)
-	nvcc_add_compiler_options(MODULE_COMPILE_FLAGS_STRIPPED MODULE_COMPILER_FLAGS_OUT)
+	nvcc_add_compiler_options(MODULE_COMPILE_FLAGS_STRIPPED MODULE_COMPILE_FLAGS_OUT)
 	set_source_files_properties(${module}.cxx PROPERTIES COMPILE_FLAGS ${MODULE_COMPILE_FLAGS_OUT})
     else()
 	set_source_files_properties(${module}.cxx PROPERTIES COMPILE_FLAGS ${MODULE_COMPILE_FLAGS})
