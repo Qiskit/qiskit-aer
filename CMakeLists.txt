@@ -139,6 +139,7 @@ setup_conan()
 
 # If we do not set them with a space CMake fails afterwards if nothing is set for this vars!
 set(AER_LINKER_FLAGS " ")
+set(AER_COMPILER_FLAGS " ")
 
 message(STATUS "Looking for OpenMP support...")
 if(APPLE)
