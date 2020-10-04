@@ -322,6 +322,13 @@ public:
   // Get the sample_measure index size
   int get_sample_measure_index_size() {return sample_measure_index_size_;}
 
+  void set_simd_enable(bool simd_enable) {
+    if (!simd_enable)
+      transformer_ = std::make_unique<Transformer<std::complex<data_t>*, data_t>>();
+    else
+      set_transformer_method();
+  }
+
 protected:
 
   //-----------------------------------------------------------------------
@@ -349,7 +356,7 @@ protected:
                                        : std::make_unique<Transformer<std::complex<data_t>*, data_t>>();
   }
 
-    //-----------------------------------------------------------------------
+  //-----------------------------------------------------------------------
   // Error Messages
   //-----------------------------------------------------------------------
 
