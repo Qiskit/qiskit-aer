@@ -14,23 +14,6 @@ file(STRINGS "qiskit/providers/aer/VERSION.txt" VERSION_NUM)
 include(CheckLanguage)
 project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
 
-# GPU support through Thrust library (CPU fallbacks)
-# Defaults to TRUE, but if no Thrust backend has been defined, will set to FALSE
-if(NOT DEFINED AER_THRUST_BACKEND)
-    set(AER_THRUST_BACKEND $ENV{AER_THRUST_BACKEND})
-    if(DEFINED AER_THRUST_BACKEND)
-        set(AER_THRUST_SUPPORTED TRUE)
-    endif()
-endif()
-
-if(AER_THRUST_BACKEND STREQUAL "CUDA")
-  include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
-  enable_language(CUDA)
-else()
-  # idiosyncrasy of CMake that it still creates a reference to this
-  set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION "")
-endif()
-
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
@@ -40,6 +23,14 @@ endif()
 
 if(NOT DEFINED AER_THRUST_BACKEND AND DEFINED ENV{AER_THRUST_BACKEND})
 	set(AER_THRUST_BACKEND $ENV{AER_THRUST_BACKEND})
+endif()
+
+if(AER_THRUST_BACKEND STREQUAL "CUDA")
+  include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
+  enable_language(CUDA)
+else()
+  # idiosyncrasy of CMake that it still creates a reference to this
+  set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION "")
 endif()
 
 
@@ -149,13 +140,6 @@ setup_conan()
 # If we do not set them with a space CMake fails afterwards if nothing is set for this vars!
 set(AER_LINKER_FLAGS " ")
 
-# This limit is hit building the Python plugin for CUDA
-if(APPLE OR UNIX)
-	set(AER_COMPILER_FLAGS " ")
-elseif(MSVC)
-	set(AER_COMPILER_FLAGS " /bigobj")
-endif()
-
 message(STATUS "Looking for OpenMP support...")
 if(APPLE)
 	set(OPENMP_FOUND TRUE)
@@ -259,7 +243,6 @@ if(AER_THRUST_SUPPORTED)
 
 		string(REPLACE ";" " "  AER_CUDA_ARCH_FLAGS_EXPAND "${AER_CUDA_ARCH_FLAGS}")
 		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin \"${CMAKE_CXX_COMPILER}\" ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
-		string(REPLACE "  " " " AER_COMPILER_FLAGS_NOSPACE ${AER_COMPILER_FLAGS})
 
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDANT_LIBS "")
