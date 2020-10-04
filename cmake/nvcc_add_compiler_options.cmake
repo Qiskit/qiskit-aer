@@ -1,0 +1,11 @@
+function(nvcc_add_compiler_options_list inVarName outVarName)
+        set(L ${inVarName})
+        list(TRANSFORM L PREPEND " --compiler-options ")
+        string(REPLACE ";" " " ${outVarName} ${L} PARENT_SCOPE)
+endfunction()
+
+function(nvcc_add_compiler_options inVarName outVarName)
+        string(REPLACE " " ";" L ${inVarName})
+        list(TRANSFORM L PREPEND " --compiler-options ")
+        string(REPLACE ";" " " ${outVarName} ${L} PARENT_SCOPE)
+endfunction()
