@@ -1,4 +1,5 @@
 include(Linter)
+include(nvcc_add_compiler_options)
 find_package(Pybind11 REQUIRED)
 
 # We need to remove the -static flag, because Python Extension system only supports
@@ -22,19 +23,12 @@ if(AER_THRUST_BACKEND STREQUAL "CUDA")
 
     if(DEFINED SIMD_SOURCE_FILE)
        set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
-       set(L ${SIMD_FLAGS_LIST})
-       list(TRANSFORM L PREPEND " --compiler-options ")
-       string(REPLACE ";" " " SIMD_FLAGS_OUT ${L})
+       nvcc_add_compiler_options_list(SIMD_FLAGS_LIST SIMD_FLAGS_OUT)
        set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS_OUT}")
     endif()
 
     string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
-    string(REPLACE " " ";" L ${AER_COMPILER_FLAGS_STRIPPED})
-
-    # refactor into function
-    list(TRANSFORM L PREPEND " --compiler-options ")
-    string(REPLACE ";" " " AER_COMPILER_FLAGS_OUT ${L})
-
+    nvcc_add_compiler_options(AER_COMPILER_FLAGS_STRIPPED AER_COMPILER_FLAGS_OUT)
     set_target_properties(controller_wrappers PROPERTIES COMPILE_FLAGS "${AER_COMPILER_FLAGS_OUT}")
 else()
     if(DEFINED SIMD_SOURCE_FILE)
