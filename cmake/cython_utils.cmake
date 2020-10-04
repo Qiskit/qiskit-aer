@@ -1,5 +1,3 @@
-include(nvcc_add_compiler_options)
-
 find_package(PythonExtensions REQUIRED)
 find_package(Cython REQUIRED)
 find_package(PythonLibs REQUIRED)
@@ -27,6 +25,8 @@ endif()
 set(CYTHON_USER_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
 unset(CYTHON_USER_LIB_DIRS)
 set(CYTHON_INSTALL_DIR "qiskit/providers/aer/backends")
+
+include(nvcc_add_compiler_options)
 
 function(add_cython_module module)
     add_cython_target(${module} ${module}.pyx CXX)
