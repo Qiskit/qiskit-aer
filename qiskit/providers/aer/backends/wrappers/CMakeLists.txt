@@ -23,7 +23,7 @@ if(AER_THRUST_BACKEND STREQUAL "CUDA")
 
     if(DEFINED SIMD_SOURCE_FILE)
        set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
-       nvcc_add_compiler_options_list(${SIMD_FLAGS_LIST} SIMD_FLAGS_OUT)
+       nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS_OUT)
        set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS_OUT}")
     endif()
 
