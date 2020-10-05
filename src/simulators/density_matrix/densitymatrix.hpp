@@ -99,8 +99,8 @@ public:
   // Apply a 2-qubit Controlled-NOT gate to the state vector
   void apply_cnot(const uint_t qctrl, const uint_t qtrgt);
 
-  // Apply a 2-qubit Controlled-Z gate to the state vector
-  void apply_cz(const uint_t q0, const uint_t q1);
+  // Apply 2-qubit controlled-phase gate
+  void apply_cphase(const uint_t q0, const uint_t q1, const complex_t &phase);
 
   // Apply a 2-qubit SWAP gate to the state vector
   void apply_swap(const uint_t q0, const uint_t q1);
@@ -111,8 +111,8 @@ public:
   // Apply a single-qubit Pauli-Y gate to the state vector
   void apply_y(const uint_t qubit);
 
-  // Apply a single-qubit Pauli-Z gate to the state vector
-  void apply_z(const uint_t qubit);
+  // Apply 1-qubit phase gate
+  void apply_phase(const uint_t q, const complex_t &phase);
 
   // Apply a 3-qubit toffoli gate
   void apply_toffoli(const uint_t qctrl0, const uint_t qctrl1, const uint_t qtrgt);
@@ -201,7 +201,7 @@ reg_t DensityMatrix<data_t>::superop_qubits(const reg_t &qubits) const {
   reg_t superop_qubits = qubits;
   // Number of qubits
   const auto nq = num_qubits();
-  for (const auto q: qubits) {
+  for (const auto &q: qubits) {
     superop_qubits.push_back(q + nq);
   }
   return superop_qubits;
@@ -240,7 +240,7 @@ void DensityMatrix<data_t>::apply_unitary_matrix(const reg_t &qubits,
     // Apply as two N-qubit matrix mults
     auto nq = num_qubits();
     reg_t conj_qubits;
-    for (const auto q: qubits) {
+    for (const auto &q: qubits) {
       conj_qubits.push_back(q + nq);
     }
     // Apply id \otimes U
@@ -275,17 +275,32 @@ void DensityMatrix<data_t>::apply_cnot(const uint_t qctrl, const uint_t qtrgt) {
 }
 
 template <typename data_t>
-void DensityMatrix<data_t>::apply_cz(const uint_t q0, const uint_t q1) {
+void DensityMatrix<data_t>::apply_phase(const uint_t q, const complex_t &phase) {
+  const complex_t iphase = std::conj(phase);
+  // Lambda function for CZ gate
+  auto lambda = [&](const areg_t<1ULL << 2> &inds)->void {
+    BaseVector::data_[inds[1]] *= phase;
+    BaseVector::data_[inds[2]] *= iphase;
+  };
+  const auto nq = num_qubits();
+  const areg_t<2> qubits = {{q, q + nq}};
+  BaseVector::apply_lambda(lambda, qubits);
+}
+
+template <typename data_t>
+void DensityMatrix<data_t>::apply_cphase(const uint_t q0, const uint_t q1,
+                                         const complex_t &phase) {
+  const complex_t iphase = std::conj(phase);
   // Lambda function for CZ gate
   auto lambda = [&](const areg_t<1ULL << 4> &inds)->void {
-    BaseVector::data_[inds[3]] *= -1.;
-    BaseVector::data_[inds[7]] *= -1.;
-    BaseVector::data_[inds[11]] *= -1.;
-    BaseVector::data_[inds[12]] *= -1.;
-    BaseVector::data_[inds[13]] *= -1.;
-    BaseVector::data_[inds[14]] *= -1.;
+    BaseVector::data_[inds[3]] *= phase;
+    BaseVector::data_[inds[7]] *= phase;
+    BaseVector::data_[inds[11]] *= phase;
+    BaseVector::data_[inds[12]] *= iphase;
+    BaseVector::data_[inds[13]] *= iphase;
+    BaseVector::data_[inds[14]] *= iphase;
   };
-  const auto nq =  num_qubits();
+  const auto nq = num_qubits();
   const areg_t<4> qubits = {{q0, q1, q0 + nq, q1 + nq}};
   BaseVector::apply_lambda(lambda, qubits);
 }
@@ -321,18 +336,6 @@ void DensityMatrix<data_t>::apply_y(const uint_t qubit) {
     const std::complex<data_t> cache = std::complex<data_t>(-1) * BaseVector::data_[inds[1]];
     BaseVector::data_[inds[1]] = std::complex<data_t>(-1) * BaseVector::data_[inds[2]];
     BaseVector::data_[inds[2]] = cache;
-  };
-  // Use the lambda function
-  const areg_t<2> qubits = {{qubit, qubit + num_qubits()}};
-  BaseVector::apply_lambda(lambda, qubits);
-}
-
-template <typename data_t>
-void DensityMatrix<data_t>::apply_z(const uint_t qubit) {
-  // Lambda function for Z gate superoperator
-  auto lambda = [&](const areg_t<1ULL << 2> &inds)->void {
-    BaseVector::data_[inds[1]] *= -1;
-    BaseVector::data_[inds[2]] *= -1;
   };
   // Use the lambda function
   const areg_t<2> qubits = {{qubit, qubit + num_qubits()}};

@@ -261,6 +261,9 @@ void UnitaryController::run_circuit_helper(
   // Validate circuit and throw exception if invalid operations exist
   validate_state(state, circ, noise, true);
 
+  // Validate memory requirements and throw exception if not enough memory
+  validate_memory_requirements(state, circ, true);
+
   // Check for custom initial state, and if so check it matches num qubits
   if (!initial_unitary_.empty()) {
     auto nrows = initial_unitary_.GetRows();
@@ -282,6 +285,7 @@ void UnitaryController::run_circuit_helper(
   // Set state config
   state.set_config(config);
   state.set_parallalization(parallel_state_update_);
+  state.set_global_phase(circ.global_phase_angle);
 
   // Rng engine (not actually needed for unitary controller)
   RngEngine rng;

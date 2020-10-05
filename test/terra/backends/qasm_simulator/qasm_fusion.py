@@ -14,14 +14,14 @@ QasmSimulator Integration Tests
 """
 # pylint: disable=no-member
 
-from test.terra.reference import ref_2q_clifford
-from test.benchmark.tools import quantum_volume_circuit, qft_circuit
-
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit.library import QuantumVolume, QFT
 from qiskit.compiler import assemble, transpile
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.noise.errors import ReadoutError, depolarizing_error
+from qiskit.providers.aer.noise.errors import (ReadoutError,
+                                               depolarizing_error,
+                                               amplitude_damping_error)
 
 
 class QasmFusionTests:
@@ -47,17 +47,30 @@ class QasmFusionTests:
         circuit.measure(qr, cr)
         return circuit
 
-    def noise_model(self):
+    def noise_model_depol(self):
         """ Creates a new noise model for testing purposes """
         readout_error = [0.01, 0.1]
-        depolarizing = {'u3': (1, 0.001), 'cx': (2, 0.02)}
+        params = {'u3': (1, 0.001), 'cx': (2, 0.02)}
         noise = NoiseModel()
         readout = [[1.0 - readout_error[0], readout_error[0]],
                    [readout_error[1], 1.0 - readout_error[1]]]
         noise.add_all_qubit_readout_error(ReadoutError(readout))
-        for gate, (num_qubits, gate_error) in depolarizing.items():
+        for gate, (num_qubits, gate_error) in params.items():
             noise.add_all_qubit_quantum_error(
                 depolarizing_error(gate_error, num_qubits), gate)
+            return noise
+
+    def noise_model_kraus(self):
+        """ Creates a new noise model for testing purposes """
+        readout_error = [0.01, 0.1]
+        params = {'u3': (1, 0.001), 'cx': (2, 0.02)}
+        noise = NoiseModel()
+        readout = [[1.0 - readout_error[0], readout_error[0]],
+                   [readout_error[1], 1.0 - readout_error[1]]]
+        noise.add_all_qubit_readout_error(ReadoutError(readout))
+        for gate, (num_qubits, gate_error) in params.items():
+            noise.add_all_qubit_quantum_error(
+                amplitude_damping_error(gate_error, num_qubits), gate)
             return noise
 
     def fusion_options(self, enabled=None, threshold=None, verbose=None):
@@ -79,59 +92,59 @@ class QasmFusionTests:
     def test_fusion_theshold(self):
         """Test fusion threhsold"""
         shots = 100
-        threshold = 10
+        threshold = 6
         backend_options = self.fusion_options(enabled=True, threshold=threshold)
 
         with self.subTest(msg='below fusion threshold'):
-            circuit = qft_circuit(threshold - 1, measure=True)
-            qobj = assemble([circuit],
-                            self.SIMULATOR,
-                            shots=shots)
+            circuit = transpile(QFT(threshold - 1),
+                                self.SIMULATOR, basis_gates=['u1', 'u2', 'u3', 'cx', 'cz'],
+                                optimization_level=0)
+            circuit.measure_all()
+            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
                 qobj, backend_options=backend_options).result()
-            meta = self.fusion_metadata(result)
-
             self.assertSuccess(result)
+            meta = self.fusion_metadata(result)
             self.assertFalse(meta.get('applied', False))
 
         with self.subTest(msg='at fusion threshold'):
-            circuit = qft_circuit(threshold, measure=True)
-            qobj = assemble([circuit],
-                            self.SIMULATOR,
-                            shots=shots)
+            circuit = transpile(QFT(threshold),
+                                self.SIMULATOR, basis_gates=['u1', 'u2', 'u3', 'cx', 'cz'],
+                                optimization_level=0)
+            circuit.measure_all()
+            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
                 qobj, backend_options=backend_options).result()
-            meta = self.fusion_metadata(result)
-
             self.assertSuccess(result)
+            meta = self.fusion_metadata(result)
             self.assertTrue(meta.get('applied', False))
 
         with self.subTest(msg='above fusion threshold'):
-            circuit = qft_circuit(threshold + 1, measure=True)
-            qobj = assemble([circuit],
-                            self.SIMULATOR,
-                            shots=shots)
+            circuit = transpile(QFT(threshold + 1),
+                                self.SIMULATOR, basis_gates=['u1', 'u2', 'u3', 'cx', 'cz'],
+                                optimization_level=0)
+            circuit.measure_all()
+            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
                 qobj, backend_options=backend_options).result()
-            meta = self.fusion_metadata(result)
-
             self.assertSuccess(result)
+            meta = self.fusion_metadata(result)
             self.assertTrue(meta.get('applied', False))
 
     def test_fusion_verbose(self):
         """Test Fusion with verbose option"""
         circuit = self.create_statevector_circuit()
         shots = 100
-        qobj = assemble([circuit], self.SIMULATOR, shots=shots)
+        qobj = assemble(transpile([circuit], self.SIMULATOR, optimization_level=0),
+                        shots=shots)
 
         with self.subTest(msg='verbose enabled'):
             backend_options = self.fusion_options(enabled=True, verbose=True, threshold=1)
             result = self.SIMULATOR.run(
                 qobj, backend_options=backend_options).result()
-            meta = self.fusion_metadata(result)
-
             # Assert fusion applied succesfully
             self.assertSuccess(result)
+            meta = self.fusion_metadata(result)
             self.assertTrue(meta.get('applied', False))
             # Assert verbose meta data in output
             self.assertIn('input_ops', meta)
@@ -141,10 +154,9 @@ class QasmFusionTests:
             backend_options = self.fusion_options(enabled=True, verbose=False, threshold=1)
             result = self.SIMULATOR.run(
                 qobj, backend_options=backend_options).result()
-            meta = self.fusion_metadata(result)
-
             # Assert fusion applied succesfully
             self.assertSuccess(result)
+            meta = self.fusion_metadata(result)
             self.assertTrue(meta.get('applied', False))
             # Assert verbose meta data not in output
             self.assertNotIn('input_ops', meta)
@@ -154,23 +166,24 @@ class QasmFusionTests:
             backend_options = self.fusion_options(enabled=True, threshold=1)
             result = self.SIMULATOR.run(
                 qobj, backend_options=backend_options).result()
-            meta = self.fusion_metadata(result)
 
             # Assert fusion applied succesfully
             self.assertSuccess(result)
+            meta = self.fusion_metadata(result)
             self.assertTrue(meta.get('applied', False))
             # Assert verbose meta data not in output
             self.assertNotIn('input_ops', meta)
             self.assertNotIn('output_ops', meta)
 
-    def test_noise_fusion(self):
-        """Test Fusion with noise model option"""
+    def test_kraus_noise_fusion(self):
+        """Test Fusion with kraus noise model option"""
         shots = 100
         circuit = self.create_statevector_circuit()
-        noise_model = self.noise_model()
+        noise_model = self.noise_model_kraus()
         circuit = transpile([circuit],
                             backend=self.SIMULATOR,
-                            basis_gates=noise_model.basis_gates)
+                            basis_gates=noise_model.basis_gates,
+                            optimization_level=0)
         qobj = assemble([circuit],
                         self.SIMULATOR,
                         shots=shots,
@@ -180,15 +193,54 @@ class QasmFusionTests:
                                     noise_model=noise_model,
                                     backend_options=backend_options).result()
         meta = self.fusion_metadata(result)
+        if backend_options.get('method') in ['density_matrix',
+                                             'density_matrix_thrust',
+                                             'density_matrix_gpu']:
+            target_method = 'superop'
+        else:
+            target_method = 'kraus'
 
         self.assertSuccess(result)
         self.assertTrue(meta.get('applied', False),
                         msg='fusion should have been applied.')
+        self.assertEqual(meta.get('method', None), target_method)
+
+    def test_non_kraus_noise_fusion(self):
+        """Test Fusion with non-kraus noise model option"""
+        shots = 100
+        circuit = self.create_statevector_circuit()
+        noise_model = self.noise_model_depol()
+        circuit = transpile([circuit],
+                            backend=self.SIMULATOR,
+                            basis_gates=noise_model.basis_gates,
+                            optimization_level=0)
+        qobj = assemble([circuit],
+                        self.SIMULATOR,
+                        shots=shots,
+                        seed_simulator=1)
+        backend_options = self.fusion_options(enabled=True, threshold=1)
+        result = self.SIMULATOR.run(qobj,
+                                    noise_model=noise_model,
+                                    backend_options=backend_options).result()
+        meta = self.fusion_metadata(result)
+        if backend_options.get('method') in ['density_matrix',
+                                             'density_matrix_thrust',
+                                             'density_matrix_gpu']:
+            target_method = 'superop'
+        else:
+            target_method = 'unitary'
+
+        self.assertSuccess(result)
+        self.assertTrue(meta.get('applied', False),
+                        msg='fusion should have been applied.')
+        self.assertEqual(meta.get('method', None), target_method)
 
     def test_control_fusion(self):
         """Test Fusion enable/disable option"""
         shots = 100
-        circuit = self.create_statevector_circuit()
+        circuit = transpile(self.create_statevector_circuit(),
+                            backend=self.SIMULATOR,
+                            optimization_level=0)
         qobj = assemble([circuit],
                         self.SIMULATOR,
                         shots=shots,
@@ -225,14 +277,14 @@ class QasmFusionTests:
     def test_fusion_operations(self):
         """Test Fusion enable/disable option"""
         shots = 100
+        num_qubits = 8
 
-        qr = QuantumRegister(10)
-        cr = ClassicalRegister(10)
+        qr = QuantumRegister(num_qubits)
+        cr = ClassicalRegister(num_qubits)
         circuit = QuantumCircuit(qr, cr)
 
-        for i in range(10):
-            circuit.h(qr[i])
-            circuit.barrier(qr)
+        circuit.h(qr)
+        circuit.barrier(qr)
 
         circuit.u3(0.1, 0.1, 0.1, qr[0])
         circuit.barrier(qr)
@@ -279,6 +331,9 @@ class QasmFusionTests:
 
         circuit.measure(qr, cr)
 
+        circuit = transpile(circuit,
+                            backend=self.SIMULATOR,
+                            optimization_level=0)
         qobj = assemble([circuit],
                         self.SIMULATOR,
                         shots=shots,
@@ -306,8 +361,12 @@ class QasmFusionTests:
     def test_fusion_qv(self):
         """Test Fusion with quantum volume"""
         shots = 100
-
-        circuit = quantum_volume_circuit(10, 2, measure=True, seed=0)
+        num_qubits = 8
+        depth = 2
+        circuit = transpile(QuantumVolume(num_qubits, depth, seed=0),
+                            backend=self.SIMULATOR,
+                            optimization_level=0)
+        circuit.measure_all()
         qobj = assemble([circuit],
                         self.SIMULATOR,
                         shots=shots,
@@ -335,8 +394,12 @@ class QasmFusionTests:
     def test_fusion_qft(self):
         """Test Fusion with qft"""
         shots = 100
-
-        circuit = qft_circuit(10, measure=True)
+        num_qubits = 8
+        circuit = transpile(QFT(num_qubits),
+                            backend=self.SIMULATOR,
+                            basis_gates=['u1', 'u2', 'u3', 'cx', 'cz'],
+                            optimization_level=0)
+        circuit.measure_all()
         qobj = assemble([circuit],
                         self.SIMULATOR,
                         shots=shots,

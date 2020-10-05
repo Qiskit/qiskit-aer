@@ -213,6 +213,8 @@ public:
   // If negative there is no restriction on the backend
   inline void set_parallalization(int n) {threads_ = n;}
 
+  // Set a complex global phase value exp(1j * theta) for the state
+  void set_global_phase(const double &phase);
 protected:
 
   // The quantum state data structure
@@ -253,6 +255,10 @@ protected:
 
   //swap between chunks
   void apply_chunk_swap(const reg_t &qubits);
+
+  // Set a global phase exp(1j * theta) for the state
+  bool has_global_phase_ = false;
+  complex_t global_phase_ = 1;
 };
 
 template <class state_t>
@@ -283,6 +289,18 @@ StateChunk<state_t>::~StateChunk(void)
 //=========================================================================
 // Implementations
 //=========================================================================
+template <class state_t>
+void StateChunk<state_t>::set_global_phase(const double &phase_angle) {
+  if (Linalg::almost_equal(phase_angle, 0.0)) {
+    has_global_phase_ = false;
+    global_phase_ = 1;
+  }
+  else {
+    has_global_phase_ = true;
+    global_phase_ = std::exp(complex_t(0.0, phase_angle));
+  }
+}
+
 template <class state_t>
 void StateChunk<state_t>::setup_chunk_bits(uint_t num_qubits,int scale)
 {

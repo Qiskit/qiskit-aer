@@ -103,8 +103,8 @@ public:
   // Apply a 2-qubit Controlled-NOT gate to the state vector
   void apply_cnot(const uint_t qctrl, const uint_t qtrgt);
 
-  // Apply a 2-qubit Controlled-Z gate to the state vector
-  void apply_cz(const uint_t q0, const uint_t q1);
+  // Apply 2-qubit controlled-phase gate
+  void apply_cphase(const uint_t q0, const uint_t q1, const complex_t &phase);
 
   // Apply a 2-qubit SWAP gate to the state vector
   void apply_swap(const uint_t q0, const uint_t q1);
@@ -115,8 +115,8 @@ public:
   // Apply a single-qubit Pauli-Y gate to the state vector
   void apply_y(const uint_t qubit);
 
-  // Apply a single-qubit Pauli-Z gate to the state vector
-  void apply_z(const uint_t qubit);
+  // Apply 1-qubit phase gate
+  void apply_phase(const uint_t q, const complex_t &phase);
 
   // Apply a 3-qubit toffoli gate
   void apply_toffoli(const uint_t qctrl0, const uint_t qctrl1, const uint_t qtrgt);
@@ -222,7 +222,7 @@ reg_t DensityMatrixThrust<data_t>::superop_qubits(const reg_t &qubits) const {
   reg_t superop_qubits = qubits;
   // Number of qubits
   const auto nq = num_qubits();
-  for (const auto q: qubits) {
+  for (const auto &q: qubits) {
     superop_qubits.push_back(q + nq);
   }
   return superop_qubits;
@@ -447,25 +447,89 @@ void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qt
   BaseVector::apply_function(DensityCX<data_t>(qctrl, qtrgt, num_qubits()));
 
 #ifdef AER_DEBUG
-	BaseVector::DebugMsg(" density::apply_cnot",qubits);
+	BaseVector::DebugMsg(" density::apply_cnot");
 #endif
 }
 
 template <typename data_t>
-class DensityCZ : public GateFuncBase<data_t>
+class DensityPhase : public GateFuncBase<data_t>
+{
+protected:
+  uint_t offset;
+  uint_t offset_sp;
+  thrust::complex<double> phase_;
+public:
+  DensityPhase(uint_t qt,uint_t qs,thrust::complex<double>* phase)
+  {
+    offset = 1ull << qt;
+    offset_sp = 1ull << (qt + qs);
+    phase_ = *phase;
+  }
+
+  int qubits_count(void)
+  {
+    return 2;
+  }
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    uint_t i0,i1,i2;
+    thrust::complex<data_t>* vec0;
+    thrust::complex<data_t>* vec1;
+    thrust::complex<data_t>* vec2;
+    thrust::complex<data_t>* vec3;
+    thrust::complex<data_t> q0,q1,q2,q3;
+
+    vec0 = this->data_;
+    vec1 = vec0 + offset;
+    vec2 = vec0 + offset_sp;
+    vec3 = vec2 + offset;
+
+    i0 = i & (offset - 1);
+    i2 = (i - i0) << 1;
+    i1 = i2 & (offset_sp - 1);
+    i2 = (i2 - i1) << 1;
+
+    i0 = i0 + i1 + i2;
+
+    q1 = vec1[i0];
+    vec1[i0] = phase_*q1;
+
+    q2 = vec2[i0];
+    vec2[i0] = thrust::conj(phase_)*q2;
+  }
+  const char* name(void)
+  {
+    return "DensityPhase";
+  }
+};
+
+template <typename data_t>
+void DensityMatrixThrust<data_t>::apply_phase(const uint_t q,const complex_t &phase) 
+{
+  BaseVector::apply_function(DensityPhase<data_t>(q, num_qubits(), (thrust::complex<double>*)&phase ));
+
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_phase");
+#endif
+}
+
+template <typename data_t>
+class DensityCPhase : public GateFuncBase<data_t>
 {
 protected:
   uint_t offset;
   uint_t offset_sp;
   uint_t cmask;
   uint_t cmask_sp;
+  thrust::complex<double> phase_;
 public:
-  DensityCZ(uint_t qc,uint_t qt,uint_t qs)
+  DensityCPhase(uint_t qc,uint_t qt,uint_t qs,thrust::complex<double>* phase)
   {
     offset = 1ull << qt;
     offset_sp = 1ull << (qt + qs);
     cmask = 1ull << qc;
     cmask_sp = 1ull << (qc + qs);
+    phase_ = *phase;
   }
 
   int qubits_count(void)
@@ -496,31 +560,32 @@ public:
     q3 = vec3[i0];
     if((i0 & cmask) == cmask){
       q1 = vec1[i0];
-      vec1[i0] = -q1;
+      vec1[i0] = phase_*q1;
 
-      q3 = -q3;
+      q3 = phase_*q3;
     }
     if((i0 & cmask_sp) == cmask_sp){
       q2 = vec2[i0];
-      vec2[i0] = -q2;
+      vec2[i0] = thrust::conj(phase_)*q2;
 
-      q3 = -q3;
+      q3 = thrust::conj(phase_)*q3;
     }
     vec3[i0] = q3;
   }
   const char* name(void)
   {
-    return "DensityCZ";
+    return "DensityCPhase";
   }
 };
 
 template <typename data_t>
-void DensityMatrixThrust<data_t>::apply_cz(const uint_t q0, const uint_t q1) 
+void DensityMatrixThrust<data_t>::apply_cphase(const uint_t q0, const uint_t q1,
+                                         const complex_t &phase) 
 {
-  BaseVector::apply_function(DensityCZ<data_t>(q0, q1, num_qubits()));
+  BaseVector::apply_function(DensityCPhase<data_t>(q0, q1, num_qubits(), (thrust::complex<double>*)&phase ));
 
 #ifdef AER_DEBUG
-	BaseVector::DebugMsg(" density::apply_cz",qubits);
+	BaseVector::DebugMsg(" density::apply_cphase");
 #endif
 }
 
@@ -687,22 +752,6 @@ void DensityMatrixThrust<data_t>::apply_y(const uint_t qubit)
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_y",qubits);
-#endif
-}
-
-template <typename data_t>
-void DensityMatrixThrust<data_t>::apply_z(const uint_t qubit) {
-  cvector_t<double> vec;
-  vec.resize(4, 1.);
-  vec[1] = -1.;
-  vec[2] = -1.;
-
-  // Use the lambda function
-  const reg_t qubits = {{qubit, qubit + num_qubits()}};
-  BaseVector::apply_diagonal_matrix(qubits, vec);
-
-#ifdef AER_DEBUG
-	BaseVector::DebugMsg(" density::apply_z",qubits);
 #endif
 }
 

@@ -285,6 +285,9 @@ void StatevectorController::run_circuit_helper(
   // Validate circuit and throw exception if invalid operations exist
   validate_state(state, circ, noise, true);
 
+  // Validate memory requirements and throw exception if not enough memory
+  validate_memory_requirements(state, circ, true);
+
   // Check for custom initial state, and if so check it matches num qubits
   if (!initial_state_.empty()) {
     if (initial_state_.size() != 1ULL << circ.num_qubits) {
@@ -299,6 +302,7 @@ void StatevectorController::run_circuit_helper(
   // Set config
   state.set_config(config);
   state.set_parallalization(parallel_state_update_);
+  state.set_global_phase(circ.global_phase_angle);
 
   // Rng engine
   RngEngine rng;
@@ -332,7 +336,7 @@ void StatevectorController::run_circuit_helper(
   state.add_creg_to_data(data);
 
   // Add final state to the data
-  data.add_additional_data("statevector", state.qreg().vector());
+  data.add_additional_data("statevector", state.qreg().move_to_vector());
 }
 
 //-------------------------------------------------------------------------

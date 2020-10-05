@@ -41,8 +41,10 @@ const Operations::OpSet StateOpSet(
     Operations::OpType::diagonal_matrix, Operations::OpType::kraus,
     Operations::OpType::superop, Operations::OpType::sim_op},
   // Gates
-  {"U", "CX", "u1", "u2", "u3", "cx", "cz", "swap", "id", "x", "y",
-    "z", "h", "s", "sdg", "t", "tdg", "ccx", "swap_chunk"},
+  {"U", "CX", "u1", "u2", "u3",  "cx",  "cy", "cz",  "swap", "id",
+     "x", "y",  "z",  "h",  "s",   "sdg", "t",   "tdg",  "ccx",
+     "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx",  "p",
+     "cp","cu1", "sx", "x90", "delay", "swap_chunk"},
   // Snapshots
   {"density_matrix", "memory", "register", "probabilities",
     "probabilities_with_variance", "expectation_value_pauli",
@@ -51,17 +53,18 @@ const Operations::OpSet StateOpSet(
 
 // Allowed gates enum class
 enum class Gates {
-  u1, u2, u3, id, x, y, z, h, s, sdg, t, tdg, // single qubit
-  cx, cz, swap, // two qubit
-  ccx // three qubit
+  u1, u2, u3, r, rx,ry, rz, id, x, y, z, h, s, sdg, sx, t, tdg,
+  cx, cy, cz, swap, rxx, ryy, rzz, rzx, ccx, cp
 };
 
 // Allowed snapshots enum class
 enum class Snapshots {
-  cmemory, cregister, densitymatrix,
+  cmemory, cregister,
+  densitymatrix,
   probs, probs_var,
   expval_pauli, expval_pauli_var
-  /* TODO: The following expectation value snapshots still need to be implemented */
+  /* TODO: The following expectation value snapshots still need to be
+     implemented */
   //,expval_matrix, expval_matrix_var
 };
 
@@ -233,9 +236,6 @@ protected:
   void apply_gate_u3(const int_t iChunk, const uint_t qubit, const double theta, const double phi,
                      const double lambda);
 
-  // Optimize phase gate with diagonal [1, phase]
-  void apply_gate_phase(const int_t iChunk, const uint_t qubit, const complex_t phase);
-
   //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------
@@ -262,28 +262,43 @@ protected:
 
 template <class densmat_t>
 const stringmap_t<Gates> State<densmat_t>::gateset_({
-  // Single qubit gates
-  {"id", Gates::id},     // Pauli-Identity gate
-  {"x", Gates::x},       // Pauli-X gate
-  {"y", Gates::y},       // Pauli-Y gate
-  {"z", Gates::z},       // Pauli-Z gate
-  {"s", Gates::s},       // Phase gate (aka sqrt(Z) gate)
-  {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
-  {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
-  {"t", Gates::t},       // T-gate (sqrt(S))
-  {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
-  // Waltz Gates
-  {"u1", Gates::u1},     // zero-X90 pulse waltz gate
-  {"u2", Gates::u2},     // single-X90 pulse waltz gate
-  {"u3", Gates::u3},     // two X90 pulse waltz gate
-  {"U", Gates::u3},      // two X90 pulse waltz gate
-  // Two-qubit gates
-  {"CX", Gates::cx},     // Controlled-X gate (CNOT)
-  {"cx", Gates::cx},     // Controlled-X gate (CNOT)
-  {"cz", Gates::cz},     // Controlled-Z gate
-  {"swap", Gates::swap}, // SWAP gate
-  // Three-qubit gates
-  {"ccx", Gates::ccx}    // Controlled-CX gate (Toffoli)
+    // Single qubit gates
+    {"delay", Gates::id},// Delay gate
+    {"id", Gates::id},   // Pauli-Identity gate
+    {"x", Gates::x},     // Pauli-X gate
+    {"y", Gates::y},     // Pauli-Y gate
+    {"z", Gates::z},     // Pauli-Z gate
+    {"s", Gates::s},     // Phase gate (aka sqrt(Z) gate)
+    {"sdg", Gates::sdg}, // Conjugate-transpose of Phase gate
+    {"h", Gates::h},     // Hadamard gate (X + Z / sqrt(2))
+    {"t", Gates::t},     // T-gate (sqrt(S))
+    {"tdg", Gates::tdg}, // Conjguate-transpose of T gate
+    {"x90", Gates::sx},  // Pi/2 X (equiv to Sqrt(X) gate)
+    {"sx", Gates::sx},   // Sqrt(X) gate
+    {"r", Gates::r},     // R rotation gate
+    {"rx", Gates::rx},   // Pauli-X rotation gate
+    {"ry", Gates::ry},   // Pauli-Y rotation gate
+    {"rz", Gates::rz},   // Pauli-Z rotation gate
+    // Waltz Gates
+    {"p", Gates::u1},  // Phase gate
+    {"u1", Gates::u1}, // zero-X90 pulse waltz gate
+    {"u2", Gates::u2}, // single-X90 pulse waltz gate
+    {"u3", Gates::u3}, // two X90 pulse waltz gate
+    {"U", Gates::u3},  // two X90 pulse waltz gate
+    // Two-qubit gates
+    {"CX", Gates::cx},     // Controlled-X gate (CNOT)
+    {"cx", Gates::cx},     // Controlled-X gate (CNOT)
+    {"cy", Gates::cy},     // Controlled-Y gate
+    {"cz", Gates::cz},     // Controlled-Z gate
+    {"cp", Gates::cp},     // Controlled-Phase gate
+    {"cu1", Gates::cp},    // Controlled-Phase gate
+    {"swap", Gates::swap}, // SWAP gate
+    {"rxx", Gates::rxx},   // Pauli-XX rotation gate
+    {"ryy", Gates::ryy},   // Pauli-YY rotation gate
+    {"rzz", Gates::rzz},   // Pauli-ZZ rotation gate
+    {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
+    // Three-qubit gates
+    {"ccx", Gates::ccx} // Controlled-CX gate (Toffoli)
 });
 
 
@@ -946,13 +961,20 @@ void State<densmat_t>::apply_gate(const uint_t iChunk, const Operations::Op &op)
                     std::real(op.params[1]));
       break;
     case Gates::u1:
-      apply_gate_phase(iChunk, op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
+      BaseState::qregs_[iChunk].apply_phase(op.qubits[0], std::exp(complex_t(0., 1.) * op.params[0]));
       break;
     case Gates::cx:
       BaseState::qregs_[iChunk].apply_cnot(op.qubits[0], op.qubits[1]);
       break;
+    case Gates::cy:
+      BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::CY);
+      break;
     case Gates::cz:
-      BaseState::qregs_[iChunk].apply_cz(op.qubits[0], op.qubits[1]);
+      BaseState::qregs_[iChunk].apply_cphase(op.qubits[0], op.qubits[1], -1);
+      break;
+    case Gates::cp:
+      BaseState::qregs_[iChunk].apply_cphase(op.qubits[0], op.qubits[1],
+                                    std::exp(complex_t(0., 1.) * op.params[0]));
       break;
     case Gates::id:
       break;
@@ -963,30 +985,57 @@ void State<densmat_t>::apply_gate(const uint_t iChunk, const Operations::Op &op)
       BaseState::qregs_[iChunk].apply_y(op.qubits[0]);
       break;
     case Gates::z:
-      BaseState::qregs_[iChunk].apply_z(op.qubits[0]);
+      BaseState::qregs_[iChunk].apply_phase(op.qubits[0], -1);
       break;
     case Gates::h:
       apply_gate_u3(iChunk, op.qubits[0], M_PI / 2., 0., M_PI);
       break;
     case Gates::s:
-      apply_gate_phase(iChunk, op.qubits[0], complex_t(0., 1.));
+      BaseState::qregs_[iChunk].apply_phase(op.qubits[0], complex_t(0., 1.));
       break;
     case Gates::sdg:
-      apply_gate_phase(iChunk, op.qubits[0], complex_t(0., -1.));
+      BaseState::qregs_[iChunk].apply_phase(op.qubits[0], complex_t(0., -1.));
+      break;
+    case Gates::sx:
+      BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::SX);
       break;
     case Gates::t: {
       const double isqrt2{1. / std::sqrt(2)};
-      apply_gate_phase(iChunk, op.qubits[0], complex_t(isqrt2, isqrt2));
+      BaseState::qregs_[iChunk].apply_phase(op.qubits[0], complex_t(isqrt2, isqrt2));
     } break;
     case Gates::tdg: {
       const double isqrt2{1. / std::sqrt(2)};
-      apply_gate_phase(iChunk, op.qubits[0], complex_t(isqrt2, -isqrt2));
+      BaseState::qregs_[iChunk].apply_phase(op.qubits[0], complex_t(isqrt2, -isqrt2));
     } break;
     case Gates::swap: {
       BaseState::qregs_[iChunk].apply_swap(op.qubits[0], op.qubits[1]);
     } break;
     case Gates::ccx:
       BaseState::qregs_[iChunk].apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
+      break;
+    case Gates::r:
+      BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::r(op.params[0], op.params[1]));
+      break;
+    case Gates::rx:
+      BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::rx(op.params[0]));
+      break;
+    case Gates::ry:
+      BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::ry(op.params[0]));
+      break;
+    case Gates::rz:
+      BaseState::qregs_[iChunk].apply_diagonal_unitary_matrix(op.qubits, Linalg::VMatrix::rz_diag(op.params[0]));
+      break;
+    case Gates::rxx:
+      BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::rxx(op.params[0]));
+      break;
+    case Gates::ryy:
+      BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::ryy(op.params[0]));
+      break;
+    case Gates::rzz:
+      BaseState::qregs_[iChunk].apply_diagonal_unitary_matrix(op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
+      break;
+    case Gates::rzx:
+      BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
       break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
@@ -1007,14 +1056,9 @@ void State<densmat_t>::apply_matrix(const int_t iChunk, const reg_t &qubits, con
 
 template <class densmat_t>
 void State<densmat_t>::apply_gate_u3(const int_t iChunk, uint_t qubit, double theta, double phi, double lambda) {
-  BaseState::qregs_[iChunk].apply_unitary_matrix(reg_t({qubit}), Utils::VMatrix::u3(theta, phi, lambda));
+  BaseState::qregs_[iChunk].apply_unitary_matrix(reg_t({qubit}), Linalg::VMatrix::u3(theta, phi, lambda));
 }
 
-template <class densmat_t>
-void State<densmat_t>::apply_gate_phase(const int_t iChunk, uint_t qubit, complex_t phase) {
-  cvector_t diag = {{1., phase}};
-  BaseState::qregs_[iChunk].apply_diagonal_unitary_matrix(reg_t({qubit}), diag);
-}
 
 
 //=========================================================================
@@ -1225,7 +1269,7 @@ void State<densmat_t>::apply_reset(const int_t iChunk, const reg_t &qubits)
   // TODO: This can be more efficient by adding reset
   // to base class rather than doing a matrix multiplication
   // where all but 1 row is zeros.
-  const auto reset_op = Utils::SMatrix::reset(1ULL << qubits.size());
+  const auto reset_op = Linalg::SMatrix::reset(1ULL << qubits.size());
 
   if(iChunk < 0){
     int_t i;

@@ -356,7 +356,8 @@ class QasmSnapshotDensityMatrixTests:
         'statevector_thrust',
         'density_matrix',
         'density_matrix_gpu',
-        'density_matrix_thrust'
+        'density_matrix_thrust',
+        'matrix_product_state'
     ]
     BACKEND_OPTS = {}
 
@@ -587,7 +588,7 @@ class QasmSnapshotExpValPauliTests:
                         self.assertAlmostEqual(value, target, delta=1e-7)
 
 
-class QasmSnapshotExpvalPauliNCTests:
+class QasmSnapshotExpValPauliNCTests:
     """QasmSimulator snapshot pauli expectation value tests on random states."""
 
     SIMULATOR = QasmSimulator()

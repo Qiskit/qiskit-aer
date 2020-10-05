@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds a custom vector class to C++ code that has better integration with
+    Pybind11. This haves the memory requirement of the
+    :class:`~qiskit.providers.aer.StatevectorSimulator` by avoiding an
+    memory copy during Python binding of the final simulator state.

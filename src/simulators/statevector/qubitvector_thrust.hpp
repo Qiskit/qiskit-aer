@@ -31,7 +31,6 @@
 
 #include "simulators/statevector/chunk/chunk_manager.hpp"
 
-#define AER_DEBUG
 
 
 #ifdef AER_TIMING
@@ -137,6 +136,12 @@ public:
 
   // Returns a copy of the underlying data_t data as a complex vector
   cvector_t<data_t> vector() const;
+
+  // Returns a copy of the underlying data_t data as a complex vector
+  AER::Vector<std::complex<data_t>> copy_to_vector() const;
+
+  // Moves the data to a complex vector
+  AER::Vector<std::complex<data_t>> move_to_vector();
 
   // Return JSON serialization of QubitVectorThrust;
   json_t json() const;
@@ -638,6 +643,27 @@ cvector_t<data_t> QubitVectorThrust<data_t>::vector() const
   chunk_->CopyOut((thrust::complex<data_t>*)&ret[0]);
 
   return ret;
+}
+
+template <typename data_t>
+AER::Vector<std::complex<data_t>> QubitVectorThrust<data_t>::copy_to_vector() const 
+{
+  cvector_t<data_t> ret(data_size_, 0.);
+  chunk_->CopyOut((thrust::complex<data_t>*)&ret[0]);
+
+  return AER::Vector<std::complex<data_t>>::copy_from_buffer(data_size_, &ret[0]);
+}
+
+template <typename data_t>
+AER::Vector<std::complex<data_t>> QubitVectorThrust<data_t>::move_to_vector() 
+{
+  std::complex<data_t>* pRet;
+  pRet = reinterpret_cast<std::complex<data_t>*>(malloc(sizeof(std::complex<data_t>) * data_size_));
+
+  chunk_->CopyOut((thrust::complex<data_t>*)pRet);
+
+  const auto vec = AER::Vector<std::complex<data_t>>::move_from_buffer(data_size_, pRet);
+  return vec;
 }
 
 //------------------------------------------------------------------------------
