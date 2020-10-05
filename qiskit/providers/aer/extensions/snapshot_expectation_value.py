@@ -40,8 +40,10 @@ class SnapshotExpectationValue(Snapshot):
             ExtensionError: if snapshot is invalid.
         """
         if variance:
-            warn('The snapshot `variance` kwarg has been deprecated and will be removed'
-                 ' in qiskit-aer 0.8.', DeprecationWarning)
+            warn('The snapshot `variance` kwarg has been deprecated and will'
+                 ' be removed in qiskit-aer 0.8. To compute variance use'
+                 ' `single_shot=True` and compute manually in post-processing',
+                 DeprecationWarning)
         pauli_op = self._format_pauli_op(op)
         if pauli_op:
             # Pauli expectation value
