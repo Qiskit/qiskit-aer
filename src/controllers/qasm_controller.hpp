@@ -1122,10 +1122,10 @@ void QasmController::measure_sampler(
     }
 
     auto memory = creg.memory_hex();
-    result.data.add_memory_count(memory);
-    result.data.add_pershot_memory(memory);
+    result.legacy_data.add_memory_count(memory);
+    result.legacy_data.add_pershot_memory(memory);
 
-    result.data.add_pershot_register(creg.register_hex());
+    result.legacy_data.add_pershot_register(creg.register_hex());
 
     // pop off processed sample
     all_samples.pop_back();

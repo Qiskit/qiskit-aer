@@ -539,9 +539,11 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
   switch (it->second) {
     case Snapshots::statevector:
       if (last_op) {
-        result.data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.move_to_vector());
+        result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0],
+                                         BaseState::qreg_.move_to_vector());
       } else {
-        result.data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.copy_to_vector());
+        result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0],
+                                         BaseState::qreg_.copy_to_vector());
       }
       break;
     case Snapshots::cmemory:
@@ -598,8 +600,9 @@ void State<statevec_t>::snapshot_probabilities(const Operations::Op &op,
   auto probs =
       Utils::vec2ket(measure_probs(op.qubits), json_chop_threshold_, 16);
   bool variance = type == SnapshotDataType::average_var;
-  result.data.add_average_snapshot("probabilities", op.string_params[0],
-                            BaseState::creg_.memory_hex(), probs, variance);
+  result.legacy_data.add_average_snapshot("probabilities", op.string_params[0],
+                                   BaseState::creg_.memory_hex(),
+                                   std::move(probs), variance);
 }
 
 template <class statevec_t>
@@ -624,15 +627,15 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
   Utils::chop_inplace(expval, json_chop_threshold_);
   switch (type) {
   case SnapshotDataType::average:
-    result.data.add_average_snapshot("expectation_value", op.string_params[0],
+    result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                               BaseState::creg_.memory_hex(), expval, false);
     break;
   case SnapshotDataType::average_var:
-    result.data.add_average_snapshot("expectation_value", op.string_params[0],
+    result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                               BaseState::creg_.memory_hex(), expval, true);
     break;
   case SnapshotDataType::pershot:
-    result.data.add_pershot_snapshot("expectation_values", op.string_params[0],
+    result.legacy_data.add_pershot_snapshot("expectation_values", op.string_params[0],
                               expval);
     break;
   }
@@ -686,15 +689,15 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
   Utils::chop_inplace(expval, json_chop_threshold_);
   switch (type) {
   case SnapshotDataType::average:
-    result.data.add_average_snapshot("expectation_value", op.string_params[0],
+    result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                               BaseState::creg_.memory_hex(), expval, false);
     break;
   case SnapshotDataType::average_var:
-    result.data.add_average_snapshot("expectation_value", op.string_params[0],
+    result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                               BaseState::creg_.memory_hex(), expval, true);
     break;
   case SnapshotDataType::pershot:
-    result.data.add_pershot_snapshot("expectation_values", op.string_params[0],
+    result.legacy_data.add_pershot_snapshot("expectation_values", op.string_params[0],
                               expval);
     break;
   }
@@ -719,17 +722,17 @@ void State<statevec_t>::snapshot_density_matrix(const Operations::Op &op,
   // Add density matrix to result data
   switch (type) {
   case SnapshotDataType::average:
-    result.data.add_average_snapshot("density_matrix", op.string_params[0],
+    result.legacy_data.add_average_snapshot("density_matrix", op.string_params[0],
                               BaseState::creg_.memory_hex(),
                               std::move(reduced_state), false);
     break;
   case SnapshotDataType::average_var:
-    result.data.add_average_snapshot("density_matrix", op.string_params[0],
+    result.legacy_data.add_average_snapshot("density_matrix", op.string_params[0],
                               BaseState::creg_.memory_hex(),
                               std::move(reduced_state), true);
     break;
   case SnapshotDataType::pershot:
-    result.data.add_pershot_snapshot("density_matrix", op.string_params[0],
+    result.legacy_data.add_pershot_snapshot("density_matrix", op.string_params[0],
                               std::move(reduced_state));
     break;
   }

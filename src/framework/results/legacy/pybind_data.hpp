@@ -12,11 +12,11 @@
  * that they have been altered from the originals.
  */
 
-#ifndef _aer_framework_result_pybind_data_hpp_
-#define _aer_framework_result_pybind_data_hpp_
+#ifndef _aer_framework_result_legacy_pybind_data_hpp_
+#define _aer_framework_result_legacy_pybind_data_hpp_
 
 #include "framework/pybind_basics.hpp"
-#include "framework/results/experiment_data.hpp"
+#include "framework/results/legacy/experiment_data.hpp"
 
 //------------------------------------------------------------------------------
 // Aer C++ -> Python Conversion
@@ -25,49 +25,49 @@
 namespace AerToPy {
 
 /**
- * Convert a AverageData to a python object
- * @param avg_data is an AverageData
+ * Convert a LegacyAverageData to a python object
+ * @param avg_data is an LegacyAverageData
  * @returns a py::dict
  */
 template<typename T>
-py::object from_avg_data(AER::AverageData<T> &&avg_data);
+py::object from_avg_data(AER::LegacyAverageData<T> &&avg_data);
 template<typename T>
-py::object from_avg_data(AER::AverageData<T> &avg_data);
+py::object from_avg_data(AER::LegacyAverageData<T> &avg_data);
 
 // JSON specialization
 template<>
-py::object from_avg_data(AER::AverageData<json_t> &&avg_data);
+py::object from_avg_data(AER::LegacyAverageData<json_t> &&avg_data);
 
 /**
- * Convert a AverageData to a python object
- * @param avg_data is an AverageData
+ * Convert a LegacyAverageData to a python object
+ * @param avg_data is an LegacyAverageData
  * @returns a py::dict
  */
 template<typename T>
-py::object from_avg_data(AER::AverageData<matrix<T>> &&avg_data);
+py::object from_avg_data(AER::LegacyAverageData<matrix<T>> &&avg_data);
 template<typename T>
-py::object from_avg_data(AER::AverageData<matrix<T>> &avg_data);
+py::object from_avg_data(AER::LegacyAverageData<matrix<T>> &avg_data);
 
 
 /**
- * Convert a AverageData to a python object
- * @param avg_data is an AverageData
+ * Convert a LegacyAverageData to a python object
+ * @param avg_data is an LegacyAverageData
  * @returns a py::dict
  */
 template<typename T>
-py::object from_avg_data(AER::AverageData<AER::Vector<T>> &&avg_data);
+py::object from_avg_data(AER::LegacyAverageData<AER::Vector<T>> &&avg_data);
 template<typename T>
-py::object from_avg_data(AER::AverageData<AER::Vector<T>> &avg_data);
+py::object from_avg_data(AER::LegacyAverageData<AER::Vector<T>> &avg_data);
 
 /**
- * Convert a AverageData to a python object
- * @param avg_data is an AverageData
+ * Convert a LegacyAverageData to a python object
+ * @param avg_data is an LegacyAverageData
  * @returns a py::dict
  */
 template<typename T>
-py::object from_avg_data(AER::AverageData<std::vector<T>> &&avg_data);
+py::object from_avg_data(AER::LegacyAverageData<std::vector<T>> &&avg_data);
 template<typename T>
-py::object from_avg_data(AER::AverageData<std::vector<T>> &avg_data);
+py::object from_avg_data(AER::LegacyAverageData<std::vector<T>> &avg_data);
 
 /**
  * Convert a AverageSnapshot to a python object
@@ -156,12 +156,12 @@ py::object from_data(AER::ExperimentData &result);
 //============================================================================
 
 template<typename T> 
-py::object AerToPy::from_avg_data(AER::AverageData<T> &avg_data) {
+py::object AerToPy::from_avg_data(AER::LegacyAverageData<T> &avg_data) {
   return AerToPy::from_avg_data(std::move(avg_data));
 }
 
 template<typename T> 
-py::object AerToPy::from_avg_data(AER::AverageData<T> &&avg_data) {
+py::object AerToPy::from_avg_data(AER::LegacyAverageData<T> &&avg_data) {
   py::dict d;
   d["value"] = std::move(avg_data.mean());
   if (avg_data.has_variance()) {
@@ -171,7 +171,7 @@ py::object AerToPy::from_avg_data(AER::AverageData<T> &&avg_data) {
 }
 
 template <> 
-py::object AerToPy::from_avg_data(AER::AverageData<json_t> &&avg_data) {
+py::object AerToPy::from_avg_data(AER::LegacyAverageData<json_t> &&avg_data) {
   py::dict d;
   py::object py_mean;
   from_json(avg_data.mean(), py_mean);
@@ -185,12 +185,12 @@ py::object AerToPy::from_avg_data(AER::AverageData<json_t> &&avg_data) {
 }
 
 template<typename T> 
-py::object AerToPy::from_avg_data(AER::AverageData<AER::Vector<T>> &avg_data) {
+py::object AerToPy::from_avg_data(AER::LegacyAverageData<AER::Vector<T>> &avg_data) {
   return AerToPy::from_avg_data(std::move(avg_data));
 }
 
 template<typename T> 
-py::object AerToPy::from_avg_data(AER::AverageData<AER::Vector<T>> &&avg_data) {
+py::object AerToPy::from_avg_data(AER::LegacyAverageData<AER::Vector<T>> &&avg_data) {
   py::dict d;
   d["value"] = AerToPy::to_numpy(std::move(avg_data.mean()));
   if (avg_data.has_variance()) {
@@ -200,12 +200,12 @@ py::object AerToPy::from_avg_data(AER::AverageData<AER::Vector<T>> &&avg_data) {
 }
 
 template<typename T> 
-py::object AerToPy::from_avg_data(AER::AverageData<matrix<T>> &avg_data) {
+py::object AerToPy::from_avg_data(AER::LegacyAverageData<matrix<T>> &avg_data) {
   return AerToPy::from_avg_data(std::move(avg_data));
 }
 
 template<typename T> 
-py::object AerToPy::from_avg_data(AER::AverageData<matrix<T>> &&avg_data) {
+py::object AerToPy::from_avg_data(AER::LegacyAverageData<matrix<T>> &&avg_data) {
   py::dict d;
   d["value"] = AerToPy::to_numpy(std::move(avg_data.mean()));
   if (avg_data.has_variance()) {
@@ -215,12 +215,12 @@ py::object AerToPy::from_avg_data(AER::AverageData<matrix<T>> &&avg_data) {
 }
 
 template<typename T> 
-py::object AerToPy::from_avg_data(AER::AverageData<std::vector<T>> &avg_data) {
+py::object AerToPy::from_avg_data(AER::LegacyAverageData<std::vector<T>> &avg_data) {
   return AerToPy::from_avg_data(std::move(avg_data));
 }
 
 template<typename T> 
-py::object AerToPy::from_avg_data(AER::AverageData<std::vector<T>> &&avg_data) {
+py::object AerToPy::from_avg_data(AER::LegacyAverageData<std::vector<T>> &&avg_data) {
   py::dict d;
   d["value"] = AerToPy::to_numpy(std::move(avg_data.mean()));
   if (avg_data.has_variance()) {

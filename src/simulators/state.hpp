@@ -277,7 +277,7 @@ void State<state_t>::snapshot_state(const Operations::Op &op,
                                     ExperimentResult &result,
                                     std::string name) const {
   name = (name.empty()) ? op.name : name;
-  result.data.add_pershot_snapshot(name, op.string_params[0], qreg_);
+  result.legacy_data.add_pershot_snapshot(name, op.string_params[0], qreg_);
 }
 
 
@@ -285,7 +285,7 @@ template <class state_t>
 void State<state_t>::snapshot_creg_memory(const Operations::Op &op,
                                           ExperimentResult &result,
                                           std::string name) const {
-  result.data.add_pershot_snapshot(name,
+  result.legacy_data.add_pershot_snapshot(name,
                                op.string_params[0],
                                creg_.memory_hex());
 }
@@ -295,7 +295,7 @@ template <class state_t>
 void State<state_t>::snapshot_creg_register(const Operations::Op &op,
                                             ExperimentResult &result,
                                             std::string name) const {
-  result.data.add_pershot_snapshot(name,
+  result.legacy_data.add_pershot_snapshot(name,
                                op.string_params[0],
                                creg_.register_hex());
 }
@@ -305,12 +305,12 @@ template <class state_t>
 void State<state_t>::add_creg_to_data(ExperimentResult &result) const {
   if (creg_.memory_size() > 0) {
     std::string memory_hex = creg_.memory_hex();
-    result.data.add_memory_count(memory_hex);
-    result.data.add_pershot_memory(memory_hex);
+    result.legacy_data.add_memory_count(memory_hex);
+    result.legacy_data.add_pershot_memory(memory_hex);
   }
   // Register bits value
   if (creg_.register_size() > 0) {
-    result.data.add_pershot_register(creg_.register_hex());
+    result.legacy_data.add_pershot_register(creg_.register_hex());
   }
 }
 //-------------------------------------------------------------------------

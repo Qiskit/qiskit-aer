@@ -624,7 +624,7 @@ void Controller::execute_circuit(Circuit &circ,
   auto timer_start = myclock_t::now(); // state circuit timer
 
   // Initialize circuit json return
-  result.data.set_config(config);
+  result.legacy_data.set_config(config);
 
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.

@@ -12,13 +12,13 @@
  * that they have been altered from the originals.
  */
 
-#ifndef _aer_framework_experiment_data_hpp_
-#define _aer_framework_experiment_data_hpp_
+#ifndef _aer_framework_results_experiment_data_hpp_
+#define _aer_framework_results_experiment_data_hpp_
 
 #include "framework/json.hpp"
 #include "framework/linalg/vector.hpp"
 #include "framework/linalg/vector_json.hpp"
-#include "framework/results/data/data_container.hpp"
+#include "framework/results/legacy/data_container.hpp"
 #include "framework/utils.hpp"
 
 namespace AER {
@@ -296,6 +296,7 @@ void ExperimentData::add_additional_data(const std::string &key, T &&data) {
     DataContainer<json_t>::add_additional_data(key, std::move(jdata));
   }
 }
+
 
 //------------------------------------------------------------------
 // Access Data

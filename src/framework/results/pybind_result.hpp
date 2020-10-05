@@ -16,8 +16,7 @@
 #define _aer_framework_result_pybind_result_hpp_
 
 #include "framework/pybind_basics.hpp"
-#include "framework/results/pybind_data.hpp"
-#include "framework/results/experiment_result.hpp"
+#include "framework/results/legacy/pybind_data.hpp"
 #include "framework/results/result.hpp"
 
 //------------------------------------------------------------------------------
@@ -25,9 +24,6 @@
 //------------------------------------------------------------------------------
 
 namespace AerToPy {
-
-// Move an ExperimentData object to a Python dict
-template <> py::object to_python(AER::ExperimentData &&result);
 
 // Move an ExperimentResult object to a Python dict
 template <> py::object to_python(AER::ExperimentResult &&result);
@@ -43,19 +39,13 @@ template <> py::object to_python(AER::Result &&result);
 //============================================================================
 
 template <>
-py::object AerToPy::to_python(AER::ExperimentData &&datum) {
-  return AerToPy::from_data(std::move(datum));
-}
-
-
-template <>
 py::object AerToPy::to_python(AER::ExperimentResult &&result) {
   py::dict pyexperiment;
 
   pyexperiment["shots"] = result.shots;
   pyexperiment["seed_simulator"] = result.seed;
 
-  pyexperiment["data"] = AerToPy::to_python(std::move(result.data));
+  pyexperiment["data"] = AerToPy::from_data(std::move(result.legacy_data));
 
   pyexperiment["success"] = (result.status == AER::ExperimentResult::Status::completed);
   switch (result.status) {

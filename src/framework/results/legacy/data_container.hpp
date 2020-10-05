@@ -12,19 +12,20 @@
  * that they have been altered from the originals.
  */
 
-#ifndef _aer_framework_data_container_hpp_
-#define _aer_framework_data_container_hpp_
+#ifndef _aer_framework_results_data_container_hpp_
+#define _aer_framework_results_data_container_hpp_
 
 #include "framework/json.hpp"
 
-#include "framework/results/data/average_snapshot.hpp"
-#include "framework/results/data/pershot_snapshot.hpp"
+#include "framework/results/legacy/average_snapshot.hpp"
+#include "framework/results/legacy/pershot_snapshot.hpp"
 
 namespace AER {
 
 //============================================================================
-// DataContainer DataContainer Data class for Qiskit-Aer
+// DEPRECATED DataContainer Data class for Qiskit-Aer
 //============================================================================
+
 
 template <typename T>
 class DataContainer {
