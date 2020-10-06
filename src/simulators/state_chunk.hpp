@@ -25,6 +25,7 @@
 #include <mpi.h>
 #endif
 
+#include <omp.h>
 
 namespace AER {
 namespace Base {
