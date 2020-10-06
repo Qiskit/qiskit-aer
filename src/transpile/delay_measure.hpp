@@ -94,7 +94,7 @@ void DelayMeasure::optimize_circuit(Circuit& circ,
         return;
       }
       default: {
-        for (const auto& qubit : qubits) {
+        for (const auto &qubit : qubits) {
           if (meas_qubits.find(qubit) != meas_qubits.end()) {
             return;
           }

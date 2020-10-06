@@ -16,13 +16,11 @@
 #define _aer_qasm_controller_hpp_
 
 #include "controller.hpp"
-#include "framework/avx2_detect.hpp"
 #include "simulators/density_matrix/densitymatrix_state.hpp"
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/matrix_product_state/matrix_product_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/statevector/qubitvector.hpp"
-#include "simulators/statevector/qubitvector_avx2.hpp"
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
 #include "transpile/delay_measure.hpp"
@@ -103,7 +101,7 @@ namespace Simulator {
  * - "max_parallel_shots" (int): Set number of shots that maybe be executed
  *      in parallel for each circuit. Sset to 0 to use the number of max
  *      parallel threads [Default: 1].
- * - "counts" (bool): Return counts objecy in circuit data [Default: True]
+ * - "counts" (bool): Return counts object in circuit data [Default: True]
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
  * - "register" (bool): Return register array in circuit data [Default: False]
@@ -166,6 +164,9 @@ class QasmController : public Base::Controller {
   // Simulation precision
   enum class Precision { double_precision, single_precision };
 
+  // Fusion method
+  using FusionMethod = Transpile::Fusion::Method;
+
   //-----------------------------------------------------------------------
   // Base class abstract method override
   //-----------------------------------------------------------------------
@@ -205,7 +206,9 @@ class QasmController : public Base::Controller {
 
   // Return a fusion transpilation pass configured for the current
   // method, circuit and config
-  Transpile::Fusion transpile_fusion(Method method, const json_t& config) const;
+  Transpile::Fusion transpile_fusion(Method method,
+                                     const json_t& config,
+                                     FusionMethod fusion_method = FusionMethod::unitary) const;
 
   //----------------------------------------------------------------
   // Run circuit helpers
@@ -222,7 +225,7 @@ class QasmController : public Base::Controller {
                           const Method method,
                           ExperimentData& data) const;
 
-  // Execute a single shot a circuit by initializing the state vector
+  // Execute a single shot a of circuit by initializing the state vector
   // to initial_state, running all ops in circ, and updating data with
   // simulation output.
   template <class State_t, class Initstate_t>
@@ -232,32 +235,28 @@ class QasmController : public Base::Controller {
                        ExperimentData& data,
                        RngEngine& rng) const;
 
-  // Execute a n-shots of a circuit without noise.
-  // If possible this is done using measure sampling to only simulate
-  // a single shot up to the first measurement, then sampling measure
-  // outcomes for each shot.
+  // Execute multiple shots a of circuit by initializing the state vector
+  // to initial_state, running all ops in circ, and updating data with
+  // simulation output. Will use measurement sampling if possible
   template <class State_t, class Initstate_t>
-  void run_circuit_without_noise(const Circuit& circ,
-                                 const json_t& config,
-                                 uint_t shots,
-                                 State_t& state,
-                                 const Initstate_t& initial_state,
-                                 const Method method,
-                                 ExperimentData& data,
-                                 RngEngine& rng) const;
+  void run_multi_shot(const Circuit& circ,
+                      uint_t shots,
+                      State_t& state,
+                      const Initstate_t& initial_state,
+                      const Method method,
+                      ExperimentData& data,
+                      RngEngine& rng) const;
 
-  // Execute n-shots of a circuit with noise by sampling a new noisy
-  // instance of the circuit for each shot.
   template <class State_t, class Initstate_t>
-  void run_circuit_with_noise(const Circuit& circ,
-                              const Noise::NoiseModel& noise,
-                              const json_t& config,
-                              uint_t shots,
-                              State_t& state,
-                              const Initstate_t& initial_state,
-                              const Method method,
-                              ExperimentData& data,
-                              RngEngine& rng) const;
+  void run_circuit_with_sampled_noise(const Circuit& circ,
+                                      const Noise::NoiseModel& noise,
+                                      const json_t& config,
+                                      uint_t shots,
+                                      State_t& state,
+                                      const Initstate_t& initial_state,
+                                      const Method method,
+                                      ExperimentData& data,
+                                      RngEngine& rng) const;
 
   //----------------------------------------------------------------
   // Measure sampling optimization
@@ -394,27 +393,12 @@ void QasmController::run_circuit(const Circuit& circ,
   // Validate circuit for simulation method
   switch (simulation_method(circ, noise, true)) {
     case Method::statevector: {
-      bool avx2_enabled = is_avx2_supported();
-
       if (simulation_precision_ == Precision::double_precision) {
-        if (avx2_enabled) {
-          return run_circuit_helper<
-              Statevector::State<QV::QubitVectorAvx2<double>>>(
-              circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector, data);
-        }
         // Double-precision Statevector simulation
         return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
             circ, noise, config, shots, rng_seed, initial_statevector_,
             Method::statevector, data);
       } else {
-        if (avx2_enabled) {
-          // Single-precision Statevector simulation
-          return run_circuit_helper<
-              Statevector::State<QV::QubitVectorAvx2<float>>>(
-              circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector, data);
-        }
         // Single-precision Statevector simulation
         return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
             circ, noise, config, shots, rng_seed, initial_statevector_,
@@ -693,7 +677,7 @@ QasmController::Method QasmController::simulation_method(
       // For noisy simulations we enable the density matrix method if
       // shots > 2 ** num_qubits. This is based on a rough estimate that
       // a single shot of the density matrix simulator is approx 2 ** nq
-      // times slow than a single shot of statevector due the increased
+      // times slower than a single shot of statevector due the increased
       // dimension
       if (noise_model.has_quantum_errors() &&
           circ.shots > (1ULL << circ.num_qubits) &&
@@ -797,7 +781,8 @@ size_t QasmController::required_memory_mb(
 }
 
 Transpile::Fusion QasmController::transpile_fusion(Method method,
-                                                   const json_t& config) const {
+                                                   const json_t& config,
+                                                   FusionMethod fusion_method) const {
   Transpile::Fusion fusion_pass;
   switch (method) {
     case Method::statevector:
@@ -806,6 +791,11 @@ Transpile::Fusion QasmController::transpile_fusion(Method method,
     case Method::density_matrix:
     case Method::density_matrix_thrust_gpu:
     case Method::density_matrix_thrust_cpu: {
+      if (fusion_method == FusionMethod::superop) {
+        fusion_pass.allow_superop = true;
+      } else if (fusion_method == FusionMethod::kraus) {
+        fusion_pass.allow_kraus = true;
+      }
       fusion_pass.set_config(config);
       break;
     }
@@ -879,6 +869,7 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   // Set state config
   state.set_config(config);
   state.set_parallalization(parallel_state_update_);
+  state.set_global_phase(circ.global_phase_angle);
 
   // Rng engine
   RngEngine rng;
@@ -894,31 +885,54 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   data.add_metadata("measure_sampling", false);
 
   // Choose execution method based on noise and method
+
+  Circuit opt_circ;
+  FusionMethod fusion_method = FusionMethod::unitary;
+
+  // Ideal circuit
   if (noise.is_ideal()) {
-    run_circuit_without_noise(circ, config, shots, state, initial_state, method,
-                              data, rng);
-  } else if ((method == Method::density_matrix ||
-              method == Method::density_matrix_thrust_gpu ||
-              method == Method::density_matrix_thrust_cpu) &&
-             noise.has_quantum_errors()) {
-    // We can sample the noise model using superoperator method
-    // and then execute the resulting circuit containing superoperators
-    Noise::NoiseModel noise_cpy = noise;
-    noise_cpy.activate_superop_method();
-    Circuit noise_circ = noise_cpy.sample_noise(circ, rng);
-    run_circuit_without_noise(noise_circ, config, shots, state, initial_state,
-                              method, data, rng);
-  } else if (noise.has_quantum_errors() == false) {
-    // We can insert the readout errors from the noise model and then
-    // execute the resulting circuit
-    Circuit noise_circ = noise.sample_noise(circ, rng);
-    run_circuit_without_noise(noise_circ, config, shots, state, initial_state,
-                              method, data, rng);
-  } else {
-    // Run sampling a noisy instance of the circuit for each shot
-    run_circuit_with_noise(circ, noise, config, shots, state, initial_state,
-                           method, data, rng);
+    opt_circ = circ;
   }
+  // Readout error only
+  else if (noise.has_quantum_errors() == false) {
+    opt_circ = noise.sample_noise(circ, rng);
+  }
+  // Superop noise sampling
+  else if (method == Method::density_matrix ||
+           method == Method::density_matrix_thrust_gpu ||
+           method == Method::density_matrix_thrust_cpu) {
+    // Sample noise using SuperOp method
+    auto noise_superop = noise;
+    noise_superop.activate_superop_method();
+    fusion_method = FusionMethod::superop;
+    opt_circ = noise_superop.sample_noise(circ, rng);
+  }
+  // Kraus noise sampling
+  else if (noise.opset().contains(Operations::OpType::kraus) ||
+           noise.opset().contains(Operations::OpType::superop)) {
+    auto noise_kraus = noise;
+    noise_kraus.activate_kraus_method();
+    fusion_method = FusionMethod::kraus;
+    opt_circ = noise_kraus.sample_noise(circ, rng);
+  }
+  // General circuit noise sampling
+  else {
+    run_circuit_with_sampled_noise(circ, noise, config, shots, state,
+                                   initial_state, method, data, rng);
+    return;
+  }
+
+  // Optimize circuit
+  Noise::NoiseModel dummy_noise;
+  Transpile::DelayMeasure measure_pass;
+  measure_pass.set_config(config);
+  measure_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
+
+  auto fusion_pass = transpile_fusion(method, config, fusion_method);
+  fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
+
+  // Run simulation
+  run_multi_shot(opt_circ, shots, state, initial_state, method, data, rng);
 }
 
 template <class State_t, class Initstate_t>
@@ -933,68 +947,27 @@ void QasmController::run_single_shot(const Circuit& circ,
 }
 
 template <class State_t, class Initstate_t>
-void QasmController::run_circuit_with_noise(const Circuit& circ,
-                                            const Noise::NoiseModel& noise,
-                                            const json_t& config,
-                                            uint_t shots,
-                                            State_t& state,
-                                            const Initstate_t& initial_state,
-                                            const Method method,
-                                            ExperimentData& data,
-                                            RngEngine& rng) const {
-  // Transpile passes
-  auto fusion_pass = transpile_fusion(method, config);
-  Transpile::DelayMeasure measure_pass;
-  measure_pass.set_config(config);
-  Noise::NoiseModel dummy_noise;
-
-  while (shots-- > 0) {
-    Circuit noise_circ = noise.sample_noise(circ, rng);
-    noise_circ.shots = 1;
-    fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), data);
-    measure_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), data);
-    run_single_shot(noise_circ, state, initial_state, data, rng);
-  }
-}
-
-template <class State_t, class Initstate_t>
-void QasmController::run_circuit_without_noise(const Circuit& circ,
-                                               const json_t& config,
-                                               uint_t shots,
-                                               State_t& state,
-                                               const Initstate_t& initial_state,
-                                               const Method method,
-                                               ExperimentData& data,
-                                               RngEngine& rng) const {
-  // Optimize circuit for state type
-  Circuit opt_circ = circ;
-
-  // Dummy noise model for transpiler passes
-  Noise::NoiseModel dummy_noise;
-
-  // Apply fusion transpilation pass
-  auto fusion_pass = transpile_fusion(method, config);
-  fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
-
-  // Apply delay measure transpilation pass
-  Transpile::DelayMeasure measure_pass;
-  measure_pass.set_config(config);
-  measure_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
-
+void QasmController::run_multi_shot(const Circuit& circ,
+                                    uint_t shots,
+                                    State_t& state,
+                                    const Initstate_t& initial_state,
+                                    const Method method,
+                                    ExperimentData& data,
+                                    RngEngine& rng) const {
   // Check if measure sampler and optimization are valid
-  if (check_measure_sampling_opt(opt_circ, method)) {
+  if (check_measure_sampling_opt(circ, method)) {
     // Implement measure sampler
-    auto pos = opt_circ.first_measure_pos;  // Position of first measurement op
+    auto pos = circ.first_measure_pos;  // Position of first measurement op
 
     // Run circuit instructions before first measure
-    std::vector<Operations::Op> ops(opt_circ.ops.begin(),
-                                    opt_circ.ops.begin() + pos);
-    initialize_state(opt_circ, state, initial_state);
+    std::vector<Operations::Op> ops(circ.ops.begin(),
+                                    circ.ops.begin() + pos);
+    initialize_state(circ, state, initial_state);
     state.apply_ops(ops, data, rng);
 
     // Get measurement operations and set of measured qubits
-    ops = std::vector<Operations::Op>(opt_circ.ops.begin() + pos,
-                                      opt_circ.ops.end());
+    ops = std::vector<Operations::Op>(circ.ops.begin() + pos,
+                                      circ.ops.end());
     measure_sampler(ops, shots, state, data, rng);
 
     // Add measure sampling metadata
@@ -1003,8 +976,36 @@ void QasmController::run_circuit_without_noise(const Circuit& circ,
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
     while (shots-- > 0) {
-      run_single_shot(opt_circ, state, initial_state, data, rng);
+      run_single_shot(circ, state, initial_state, data, rng);
     }
+  }
+}
+
+
+template <class State_t, class Initstate_t>
+void QasmController::run_circuit_with_sampled_noise(const Circuit& circ,
+                                                    const Noise::NoiseModel& noise,
+                                                    const json_t& config,
+                                                    uint_t shots,
+                                                    State_t& state,
+                                                    const Initstate_t& initial_state,
+                                                    const Method method,
+                                                    ExperimentData& data,
+                                                    RngEngine& rng) const {
+
+  // Transpilation for circuit noise method
+  auto fusion_pass = transpile_fusion(method, config, FusionMethod::unitary);
+  Transpile::DelayMeasure measure_pass;
+  measure_pass.set_config(config);
+  Noise::NoiseModel dummy_noise;
+
+  // Sample noise using circuit method
+  while (shots-- > 0) {
+    Circuit noise_circ = noise.sample_noise(circ, rng);
+    noise_circ.shots = 1;
+    measure_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), data);
+    fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), data);
+    run_single_shot(noise_circ, state, initial_state, data, rng);
   }
 }
 
@@ -1070,7 +1071,7 @@ void QasmController::measure_sampler(
 
   // Get measured qubits from circuit sort and delete duplicates
   std::vector<uint_t> meas_qubits;  // measured qubits
-  for (const auto& op : meas_ops) {
+  for (const auto &op : meas_ops) {
     for (size_t j = 0; j < op.qubits.size(); ++j)
       meas_qubits.push_back(op.qubits[j]);
   }
@@ -1089,7 +1090,7 @@ void QasmController::measure_sampler(
   // Maps of memory and register to qubit position
   std::unordered_map<uint_t, uint_t> memory_map;
   std::unordered_map<uint_t, uint_t> register_map;
-  for (const auto& op : meas_ops) {
+  for (const auto &op : meas_ops) {
     for (size_t j = 0; j < op.qubits.size(); ++j) {
       auto pos = qubit_map[op.qubits[j]];
       if (!op.memory.empty())
@@ -1109,12 +1110,12 @@ void QasmController::measure_sampler(
     creg.initialize(meas_circ.num_memory, meas_circ.num_registers);
 
     // process memory bit measurements
-    for (const auto& pair : memory_map) {
+    for (const auto &pair : memory_map) {
       creg.store_measure(reg_t({sample[pair.second]}), reg_t({pair.first}),
                          reg_t());
     }
     // process register bit measurements
-    for (const auto& pair : register_map) {
+    for (const auto &pair : register_map) {
       creg.store_measure(reg_t({sample[pair.second]}), reg_t(),
                          reg_t({pair.first}));
     }

@@ -11,12 +11,12 @@
 * @chriseclectic @atilag
 
 # Individual folders on root directory
-/qiskit         @chriseclectic @atilag
-/cmake          @atilag
-/doc            @chriseclectic @atilag
-/examples       @chriseclectic @atilag
-/contrib        @chriseclectic @atilag
-/test           @chriseclectic @atilag
-/src            @chriseclectic @atilag
+/qiskit         @chriseclectic @atilag @vvilpas
+/cmake          @atilag @vvilpas
+/doc            @chriseclectic @atilag @vvilpas
+/examples       @chriseclectic @atilag @vvilpas
+/contrib        @chriseclectic @atilag @vvilpas
+/test           @chriseclectic @atilag @vvilpas
+/src            @chriseclectic @atilag @vvilpas
 
 # AER specific folders
