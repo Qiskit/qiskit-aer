@@ -13,7 +13,7 @@ DISABLE_WARNING_POP
 
 #include "framework/matrix.hpp"
 #include "framework/types.hpp"
-#include "framework/pybind_json.hpp"
+#include "framework/results/pybind_result.hpp"
 
 #include "controllers/qasm_controller.hpp"
 #include "controllers/statevector_controller.hpp"
@@ -24,7 +24,7 @@ template<typename T>
 class ControllerExecutor {
 public:
     ControllerExecutor() = default;
-    py::object operator()(const py::object &qobj) { return AerToPy::from_result(AER::controller_execute<T>(qobj)); }
+    py::object operator()(const py::object &qobj) { return AerToPy::to_python(AER::controller_execute<T>(qobj)); }
 };
 
 PYBIND11_MODULE(controller_wrappers, m) {
