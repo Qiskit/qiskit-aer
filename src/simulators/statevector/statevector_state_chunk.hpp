@@ -547,7 +547,7 @@ void State<statevec_t>::apply_global_phase()
     int_t i;
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
     for(i=0;i<BaseState::num_local_chunks_;i++){
-      BaseState::qregs_[i].apply_diagonal_matrix(0, {BaseState::global_phase_, BaseState::global_phase_});
+      BaseState::qregs_[i].apply_diagonal_matrix({0}, {BaseState::global_phase_, BaseState::global_phase_});
     }
   }
 }

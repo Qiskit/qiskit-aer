@@ -59,7 +59,7 @@ class PershotSnapshot {
   json_t to_json();
 
   // Return data reference
-  stringmap_t<PershotData<T>> data() { return data_; }
+  stringmap_t<PershotData<T>> &data() { return data_; }
 
   // Return const data reference
   const stringmap_t<PershotData<T>> &data() const { return data_; }

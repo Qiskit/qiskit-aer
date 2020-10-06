@@ -16,16 +16,12 @@
 #define _aer_qasm_controller_hpp_
 
 #include "controller.hpp"
-#include "framework/avx2_detect.hpp"
 #include "simulators/density_matrix/densitymatrix_state.hpp"
 #include "simulators/density_matrix/densitymatrix_state_chunk.hpp"
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/matrix_product_state/matrix_product_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/statevector/qubitvector.hpp"
-#ifndef __PPC64__
-#include "simulators/statevector/qubitvector_avx2.hpp"
-#endif
 #include "simulators/statevector/statevector_state.hpp"
 #include "simulators/statevector/statevector_state_chunk.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
@@ -413,32 +409,14 @@ void QasmController::run_circuit(const Circuit& circ,
   // Validate circuit for simulation method
   switch (simulation_method(circ, noise, true)) {
     case Method::statevector: {
-      bool avx2_enabled = is_avx2_supported();
-
       if(multiple_qregs_){
         if (simulation_precision_ == Precision::double_precision) {
           // Double-precision Statevector simulation
-          if (avx2_enabled) {
-#ifndef __PPC64__
-            return run_circuit_helper<
-                StatevectorChunk::State<QV::QubitVectorAvx2<double>>>(
-                circ, noise, config, shots, rng_seed, initial_statevector_,
-                Method::statevector, data);
-#endif
-          }
           return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<double>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
               Method::statevector, data);
         } else {
-          if (avx2_enabled) {
-#ifndef __PPC64__
-            // Single-precision Statevector simulation
-            return run_circuit_helper<
-                StatevectorChunk::State<QV::QubitVectorAvx2<float>>>(
-                circ, noise, config, shots, rng_seed, initial_statevector_,
-                Method::statevector, data);
-#endif
-          }
+          // Single-precision Statevector simulation
           return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<float>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
               Method::statevector, data);
@@ -447,27 +425,11 @@ void QasmController::run_circuit(const Circuit& circ,
       else{
         if (simulation_precision_ == Precision::double_precision) {
           // Double-precision Statevector simulation
-          if (avx2_enabled) {
-#ifndef __PPC64__
-            return run_circuit_helper<
-                Statevector::State<QV::QubitVectorAvx2<double>>>(
-                circ, noise, config, shots, rng_seed, initial_statevector_,
-                Method::statevector, data);
-#endif
-          }
           return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
               Method::statevector, data);
         } else {
-          if (avx2_enabled) {
-#ifndef __PPC64__
-            // Single-precision Statevector simulation
-            return run_circuit_helper<
-                Statevector::State<QV::QubitVectorAvx2<float>>>(
-                circ, noise, config, shots, rng_seed, initial_statevector_,
-                Method::statevector, data);
-#endif
-          }
+          // Single-precision Statevector simulation
           return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
               Method::statevector, data);
