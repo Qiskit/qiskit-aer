@@ -43,7 +43,7 @@ protected:
 
   uint_t add_ops(std::vector<Operations::Op>& ops,std::vector<Operations::Op>& out,std::vector<Operations::Op>& queue) const;
 
-  bool isCrossQubitsOp(Operations::Op& op) const;
+  bool isCrossQubitsOp(Operations::Op& op, reg_t& qubits) const;
 
   bool is_diagonal_op(Operations::Op& op) const;
 };
@@ -224,25 +224,35 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
   }
   else{
     for(i=0;i<ops.size();i++){
-      if(isCrossQubitsOp(ops[i])){
-        for(iq=0;iq<ops[i].qubits.size();iq++){
-          exist = false;
-          nq = blockedQubits.size();
-          for(j=0;j<nq;j++){
-            if(ops[i].qubits[iq] == blockedQubits[j]){
-              exist = true;
-              break;
+      reg_t cross_bits;
+      if(isCrossQubitsOp(ops[i],cross_bits)){
+        if(cross_bits.size() > 0){
+          if(cross_bits.size() > block_bits_){
+            std::string error = "CacheBlocking operation " + ops[i].name + " has " + 
+                                std::to_string(cross_bits.size()) + " bits that can not be fit in cache block " +
+                                std::to_string(block_bits_) + " bits";
+            throw std::runtime_error(error);
+            break;
+          }
+          for(iq=0;iq<cross_bits.size();iq++){
+            exist = false;
+            nq = blockedQubits.size();
+            for(j=0;j<nq;j++){
+              if(cross_bits[iq] == blockedQubits[j]){
+                exist = true;
+                break;
+              }
+            }
+            if(!exist){
+              blockedQubits.push_back(cross_bits[iq]);
             }
           }
-          if(!exist){
-            blockedQubits.push_back(ops[i].qubits[iq]);
+          while(blockedQubits.size() > block_bits_){
+            blockedQubits.pop_back();
           }
-        }
-        while(blockedQubits.size() > block_bits_){
-          blockedQubits.pop_back();
-        }
-        if(blockedQubits.size() >= block_bits_){
-          break;
+          if(blockedQubits.size() >= block_bits_){
+            break;
+          }
         }
       }
     }
@@ -405,44 +415,106 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
 
 }
 
-bool CacheBlocking::isCrossQubitsOp(Operations::Op& op) const
+bool CacheBlocking::isCrossQubitsOp(Operations::Op& op, reg_t& qubits) const
 {
+  bool is_cross_qubits = false;
+  bool is_pauli_str = false;
+
   if(op.type == Operations::OpType::gate){
-    if(op.name == "cx")
-      return true;
-    if(op.name == "cy")
-      return true;
     if(op.name == "swap")
-      return true;
+      is_cross_qubits = true;
+    else if(op.name == "pauli"){
+      is_cross_qubits = true;
+      is_pauli_str = true;
+    }
+    else if(op.qubits.size() > 1){
+      is_cross_qubits = true;
+    }
   }
   else if(op.type == Operations::OpType::matrix){ //fusion
     if(op.qubits.size() > 1){
-      if (Utils::is_diagonal(op.mats[0], .0)){
-        return false;   //diagonal matrix is not cross qubit gate
+      if(!Utils::is_diagonal(op.mats[0], .0)){
+        is_cross_qubits = true;
       }
-      return true;
     }
   }
   else if(op.type == Operations::OpType::snapshot){
     //block Pauli expectation
     if(op.name == "expectation_value_pauli" || op.name == "expectation_value_pauli_with_variance" || op.name == "expectation_value_pauli_single_shot"){
-      return true;
+      is_cross_qubits = true;
+      is_pauli_str = true;
     }
   }
-  return false;
+
+  if(is_cross_qubits){
+    int i;
+    qubits.clear();
+    if(is_pauli_str){
+      for(i=0;i<op.qubits.size();i++){
+        switch(op.string_params[0][op.qubits.size() - 1 - i]){
+          case 'X':
+          case 'Y':
+            qubits.push_back(op.qubits[i]);
+            break;
+          default:
+            break;
+        }
+      }
+    }
+    else{
+      for(i=0;i<op.qubits.size();i++){
+        qubits.push_back(op.qubits[i]);
+      }
+    }
+  }
+
+  return is_cross_qubits;
 }
 
 bool CacheBlocking::is_diagonal_op(Operations::Op& op) const
 {
+  bool is_pauli_str = false;
   if(op.type == Operations::OpType::gate){
     if(op.name == "u1")
       return true;
+    else if(op.name == "z")
+      return true;
+    else if(op.name == "s" || op.name == "sdg")
+      return true;
+    else if(op.name == "t" || op.name == "tdg")
+      return true;
+    else if(op.name == "pauli"){
+      is_pauli_str = true;
+    }
   }
   else if(op.type == Operations::OpType::matrix){
     if (Utils::is_diagonal(op.mats[0], .0)){
       return true;
     }
   }
+  else if(op.type == Operations::OpType::snapshot){
+    //block Pauli expectation
+    if(op.name == "expectation_value_pauli" || op.name == "expectation_value_pauli_with_variance" || op.name == "expectation_value_pauli_single_shot"){
+      is_pauli_str = true;
+    }
+  }
+
+  if(is_pauli_str){
+    int i;
+    bool is_diag = true;
+    for(i=0;i<op.qubits.size();i++){
+      switch(op.string_params[0][op.qubits.size() - 1 - i]){
+        case 'X':
+        case 'Y':
+          is_diag = false;
+          break;
+        default:
+          break;
+      }
+    }
+    return is_diag;
+  }
+
   return false;
 }
 
