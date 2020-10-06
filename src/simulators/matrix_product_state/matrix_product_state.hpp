@@ -104,7 +104,8 @@ public:
   // If the input is not in allowed_ops an exception will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
                          ExperimentData &data,
-                         RngEngine &rng) override;
+                         RngEngine &rng,
+                         bool final_ops = false) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -444,7 +445,7 @@ void State::add_metadata(ExperimentData &data) const {
 
 void State::apply_ops(const std::vector<Operations::Op> &ops,
                       ExperimentData &data,
-                      RngEngine &rng) {
+                      RngEngine &rng, bool final_ops) {
 
   // Simple loop over vector of input operations
   for (const auto &op: ops) {
