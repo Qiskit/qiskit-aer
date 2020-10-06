@@ -104,9 +104,13 @@ public:
   // executed (ie in sequence, or some other execution strategy.)
   // If this sequence contains operations not in the supported opset
   // an exeption will be thrown.
+  // The `final_ops` flag indicates no more instructions will be applied
+  // to the state after this sequence, so the state can be modified at the
+  // end of the instructions.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
                          ExperimentData &data,
-                         RngEngine &rng)  = 0;
+                         RngEngine &rng,
+                         bool final_ops = false)  = 0;
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
