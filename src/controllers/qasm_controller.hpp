@@ -966,15 +966,13 @@ void QasmController::run_multi_shot(const Circuit& circ,
     initialize_state(circ, state, initial_state);
     state.apply_ops(ops, data, rng, final_ops);
 
-    if (!final_ops) {
-      // Get measurement operations and set of measured qubits
-      ops = std::vector<Operations::Op>(circ.ops.begin() + pos,
-                                        circ.ops.end());
-      measure_sampler(ops, shots, state, data, rng);
+    // Get measurement operations and set of measured qubits
+    ops = std::vector<Operations::Op>(circ.ops.begin() + pos,
+                                      circ.ops.end());
+    measure_sampler(ops, shots, state, data, rng);
 
-      // Add measure sampling metadata
-      data.add_metadata("measure_sampling", true);
-    }
+    // Add measure sampling metadata
+    data.add_metadata("measure_sampling", true);
   } else {
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
