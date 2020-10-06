@@ -74,7 +74,8 @@ public:
   //we loop over the terms in the decomposition in parallel
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
                          ExperimentData &data,
-                         RngEngine &rng) override;
+                         RngEngine &rng,
+                         bool final_ops = false) override;
 
   virtual void initialize_qreg(uint_t num_qubits) override;
 
@@ -316,7 +317,7 @@ bool State::check_measurement_opt(const std::vector<Operations::Op> &ops) const
 //-------------------------------------------------------------------------
 
 void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentData &data,
-                         RngEngine &rng)
+                         RngEngine &rng, bool final_ops)
 {
   std::pair<bool, size_t> stabilizer_opts = check_stabilizer_opt(ops);
   bool is_stabilizer = stabilizer_opts.first;
