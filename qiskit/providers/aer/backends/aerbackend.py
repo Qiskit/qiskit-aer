@@ -18,6 +18,7 @@ import json
 import logging
 import datetime
 import time
+import uuid
 import warnings
 from abc import ABC, abstractmethod
 from numpy import ndarray
@@ -153,7 +154,8 @@ class AerBackend(BaseBackend, ABC):
             self._validate(qobj)
 
         # Submit job
-        aer_job = AerJob(self, self._run, qobj)
+        job_id = str(uuid.uuid4())
+        aer_job = AerJob(self, job_id, self._run, qobj)
         aer_job.submit()
         return aer_job
 
@@ -222,6 +224,22 @@ class AerBackend(BaseBackend, ABC):
             operational=True,
             pending_jobs=0,
             status_msg='')
+
+    def _run_job(self, job_id, qobj, backend_options, noise_model, validate):
+        """Run a qobj job"""
+        warnings.warn(
+            'The `_run_job` method has been deprecated. Use `_run` instead.',
+            DeprecationWarning)
+
+        # The new function swaps positional args qobj and job id so we do a
+        # type check to swap them back
+        if not isinstance(job_id, str) and isinstance(qobj, str):
+            tmp_id = qobj
+            qobj = job_id
+            job_id = tmp_id
+        run_qobj = self._format_qobj(qobj, backend_options=backend_options,
+                                     noise_model=noise_model)
+        return self._run(run_qobj, job_id)
 
     def _run(self, qobj, job_id=''):
         """Run a job"""
