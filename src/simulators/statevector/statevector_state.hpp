@@ -104,7 +104,9 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exception will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentData &data, RngEngine &rng) override;
+                         ExperimentData &data,
+                         RngEngine &rng,
+                         bool final_ops = false) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -169,7 +171,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, ExperimentData &data);
+  virtual void apply_snapshot(const Operations::Op &op, ExperimentData &data, bool last_op = false);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const Operations::Op &op);
@@ -225,10 +227,6 @@ protected:
   // during snapshot, but after the snapshot is applied the simulator
   // should be left in the pre-snapshot state.
   //-----------------------------------------------------------------------
-
-  // Snapshot current amplitudes
-  void snapshot_statevector(const Operations::Op &op, ExperimentData &data,
-                            SnapshotDataType type);
 
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op, ExperimentData &data,
@@ -429,7 +427,7 @@ template <class statevec_t> void State<statevec_t>::initialize_omp() {
 template <class statevec_t>
 void State<statevec_t>::apply_global_phase() {
   if (BaseState::has_global_phase_) {
-    BaseState::qreg_.apply_diagonal_matrix(0, {BaseState::global_phase_, BaseState::global_phase_});
+    BaseState::qreg_.apply_diagonal_matrix({0}, {BaseState::global_phase_, BaseState::global_phase_});
   }
 }
 
@@ -466,10 +464,13 @@ void State<statevec_t>::set_config(const json_t &config) {
 
 template <class statevec_t>
 void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
-                                  ExperimentData &data, RngEngine &rng) {
+                                  ExperimentData &data,
+                                  RngEngine &rng,
+                                  bool final_ops) {
 
   // Simple loop over vector of input operations
-  for (const auto &op: ops) {
+  for (size_t i = 0; i < ops.size(); ++i) {
+    const auto& op = ops[i];
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
         case Operations::OpType::barrier:
@@ -493,7 +494,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
           apply_gate(op);
           break;
         case Operations::OpType::snapshot:
-          apply_snapshot(op, data);
+          apply_snapshot(op, data, final_ops && ops.size() == i + 1);
           break;
         case Operations::OpType::matrix:
           apply_matrix(op);
@@ -522,7 +523,8 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
 
 template <class statevec_t>
 void State<statevec_t>::apply_snapshot(const Operations::Op &op,
-                                       ExperimentData &data) {
+                                       ExperimentData &data,
+                                       bool last_op) {
 
   // Look for snapshot type in snapshotset
   auto it = snapshotset_.find(op.name);
@@ -531,8 +533,11 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
         "QubitVectorState::invalid snapshot instruction \'" + op.name + "\'.");
   switch (it->second) {
     case Snapshots::statevector:
-      data.add_pershot_snapshot("statevector", op.string_params[0],
-                                BaseState::qreg_.vector());
+      if (last_op) {
+        data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.move_to_vector());
+      } else {
+        data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.copy_to_vector());
+      }
       break;
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, data);

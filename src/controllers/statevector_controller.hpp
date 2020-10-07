@@ -17,7 +17,6 @@
 
 #include "controller.hpp"
 #include "simulators/statevector/statevector_state.hpp"
-#include "simulators/statevector/qubitvector_avx2.hpp"
 #include "transpile/fusion.hpp"
 
 namespace AER {
@@ -205,21 +204,12 @@ void StatevectorController::run_circuit(
   switch (method_) {
     case Method::automatic:
     case Method::statevector_cpu: {
-      bool avx2_enabled = is_avx2_supported();
       if (precision_ == Precision::double_precision) {
-        if(avx2_enabled){
-          return run_circuit_helper<Statevector::State<QV::QubitVectorAvx2<double>>>(
-            circ, noise, config, shots, rng_seed, data);
-        }
         // Double-precision Statevector simulation
         return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
             circ, noise, config, shots, rng_seed, data);
       } else {
         // Single-precision Statevector simulation
-        if(avx2_enabled){
-          return run_circuit_helper<Statevector::State<QV::QubitVectorAvx2<float>>>(
-            circ, noise, config, shots, rng_seed, data);
-        }
         return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
             circ, noise, config, shots, rng_seed, data);
       }
@@ -279,6 +269,9 @@ void StatevectorController::run_circuit_helper(
 
   // Validate circuit and throw exception if invalid operations exist
   validate_state(state, circ, noise, true);
+
+  // Validate memory requirements and throw exception if not enough memory
+  validate_memory_requirements(state, circ, true);
 
   // Check for custom initial state, and if so check it matches num qubits
   if (!initial_state_.empty()) {

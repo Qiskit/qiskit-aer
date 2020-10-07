@@ -61,7 +61,7 @@ class AverageSnapshot {
   json_t to_json();
 
   // Return data reference
-  stringmap_t<stringmap_t<AverageData<T>>> data() { return data_; }
+  stringmap_t<stringmap_t<AverageData<T>>> &data() { return data_; }
 
   // Return const data reference
   const stringmap_t<stringmap_t<AverageData<T>>> &data() const { return data_; }
