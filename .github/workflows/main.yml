@@ -28,6 +28,7 @@ jobs:
           pip install -U pip wheel
           pip install -U -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
           pip install -U -c constraints.txt -r requirements-dev.txt
+          pip install -U .
         shell: bash
       - name: Run Lint
         run: |
