@@ -40,7 +40,7 @@
 // Base Controller
 #include "framework/creg.hpp"
 #include "framework/qobj.hpp"
-#include "framework/results/experiment_data.hpp"
+#include "framework/results/experiment_result.hpp"
 #include "framework/results/result.hpp"
 #include "framework/rng.hpp"
 #include "noise/noise_model.hpp"
@@ -144,7 +144,7 @@ protected:
   // the required number of shots.
   virtual void run_circuit(const Circuit &circ, const Noise::NoiseModel &noise,
                            const json_t &config, uint_t shots, uint_t rng_seed,
-                           ExperimentData &data) const = 0;
+                           ExperimentResult &data) const = 0;
 
   //-------------------------------------------------------------------------
   // State validation
@@ -587,14 +587,14 @@ void Controller::execute_circuit(Circuit &circ,
   try {
     // Remove barriers from circuit
     Transpile::ReduceBarrier barrier_pass;
-    barrier_pass.optimize_circuit(circ, noise, circ.opset(), exp_result.data);
+    barrier_pass.optimize_circuit(circ, noise, circ.opset(), exp_result);
 
     // Truncate unused qubits from circuit and noise model
     if (truncate_qubits_) {
       Transpile::TruncateQubits truncate_pass;
       truncate_pass.set_config(config);
       truncate_pass.optimize_circuit(circ, noise, circ.opset(),
-                                     exp_result.data);
+                                     exp_result);
     }
 
     // set parallelization for this circuit
@@ -604,7 +604,7 @@ void Controller::execute_circuit(Circuit &circ,
 
     // Single shot thread execution
     if (parallel_shots_ <= 1) {
-      run_circuit(circ, noise, config, circ.shots, circ.seed, exp_result.data);
+      run_circuit(circ, noise, config, circ.shots, circ.seed, exp_result);
       // Parallel shot thread execution
     } else {
       // Calculate shots per thread
@@ -618,13 +618,13 @@ void Controller::execute_circuit(Circuit &circ,
       }
 
       // Vector to store parallel thread output data
-      std::vector<ExperimentData> par_data(parallel_shots_);
+      std::vector<ExperimentResult> par_results(parallel_shots_);
       std::vector<std::string> error_msgs(parallel_shots_);
 #pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
       for (int i = 0; i < parallel_shots_; i++) {
         try {
           run_circuit(circ, noise, config, subshots[i], circ.seed + i,
-                      par_data[i]);
+                      par_results[i]);
         } catch (std::runtime_error &error) {
           error_msgs[i] = error.what();
         }
@@ -636,8 +636,8 @@ void Controller::execute_circuit(Circuit &circ,
 
       // Accumulate results across shots
       // Use move semantics to avoid copying data
-      for (auto &datum : par_data) {
-        exp_result.data.combine(std::move(datum));
+      for (auto &res : par_results) {
+        exp_result.combine(std::move(res));
       }
     }
     // Report success
@@ -647,13 +647,6 @@ void Controller::execute_circuit(Circuit &circ,
     exp_result.header = circ.header;
     exp_result.shots = circ.shots;
     exp_result.seed = circ.seed;
-    // Move any metadata from the subclass run_circuit data
-    // to the experiment result metadata field
-    for (const auto &pair : exp_result.data.metadata()) {
-      exp_result.add_metadata(pair.first, pair.second);
-    }
-    // Remove the metatdata field from data
-    exp_result.data.metadata().clear();
     exp_result.metadata["parallel_shots"] = parallel_shots_;
     exp_result.metadata["parallel_state_update"] = parallel_state_update_;
     // Add timer data

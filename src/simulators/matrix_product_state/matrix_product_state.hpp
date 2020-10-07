@@ -103,7 +103,7 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exception will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentData &data,
+                         ExperimentResult &data,
                          RngEngine &rng,
                          bool final_ops = false) override;
 
@@ -127,7 +127,7 @@ public:
   // We currently set the threshold to 1 in qasm_controller.hpp, i.e., no parallelization
   virtual void set_config(const json_t &config) override;
 
-  virtual void add_metadata(ExperimentData &data) const override;
+  virtual void add_metadata(ExperimentResult &data) const override;
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
@@ -189,7 +189,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exception will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, ExperimentData &data);
+  virtual void apply_snapshot(const Operations::Op &op, ExperimentResult &data);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   // We assume matrix to be 2x2
@@ -238,26 +238,26 @@ protected:
 
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
-                              ExperimentData &data,
+                              ExperimentResult &data,
                               SnapshotDataType type);
 
  void snapshot_density_matrix(const Operations::Op &op,
-			     ExperimentData &data,
+			     ExperimentResult &data,
 	     		     SnapshotDataType type);
 
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const Operations::Op &op,
-                             ExperimentData &data,
+                             ExperimentResult &data,
                              SnapshotDataType type);
 
   // Snapshot the expectation value of a matrix operator
   void snapshot_matrix_expval(const Operations::Op &op,
-                              ExperimentData &data,
+                              ExperimentResult &data,
                               SnapshotDataType type);
 
   // Snapshot the state vector
   void snapshot_state(const Operations::Op &op,
-		      ExperimentData &data,
+		      ExperimentResult &data,
 		      std::string name = "");
 
   //-----------------------------------------------------------------------
@@ -431,7 +431,7 @@ void State::set_config(const json_t &config) {
     MPS::set_sample_measure_shots_thresh(10);    
 }
 
-void State::add_metadata(ExperimentData &data) const {
+void State::add_metadata(ExperimentResult &data) const {
   data.add_metadata("matrix_product_state_truncation_threshold", 
 		    MPS_Tensor::get_truncation_threshold());
 
@@ -444,7 +444,7 @@ void State::add_metadata(ExperimentData &data) const {
 //=========================================================================
 
 void State::apply_ops(const std::vector<Operations::Op> &ops,
-                      ExperimentData &data,
+                      ExperimentResult &data,
                       RngEngine &rng, bool final_ops) {
 
   // Simple loop over vector of input operations
@@ -493,7 +493,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 //=========================================================================
 
 void State::snapshot_pauli_expval(const Operations::Op &op,
-				  ExperimentData &data,
+				  ExperimentResult &data,
 				  SnapshotDataType type){
   if (op.params_expval_pauli.empty()) {
     throw std::invalid_argument("Invalid expval snapshot (Pauli components are empty).");
@@ -513,21 +513,21 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   Utils::chop_inplace(expval, MPS::get_json_chop_threshold());
   switch (type) {
     case SnapshotDataType::average:
-      data.add_average_snapshot("expectation_value", op.string_params[0],
+      data.data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, false);
       break;
     case SnapshotDataType::average_var:
-      data.add_average_snapshot("expectation_value", op.string_params[0],
+      data.data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, true);
       break;
     case SnapshotDataType::pershot:
-      data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
+      data.data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
       break;
   }
 }
 
 void State::snapshot_matrix_expval(const Operations::Op &op,
-				   ExperimentData &data,
+				   ExperimentResult &data,
 				   SnapshotDataType type){
   if (op.params_expval_matrix.empty()) {
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
@@ -552,42 +552,42 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
   Utils::chop_inplace(expval, MPS::get_json_chop_threshold());
   switch (type) {
     case SnapshotDataType::average:
-      data.add_average_snapshot("expectation_value", op.string_params[0],
+      data.data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, false);
       break;
     case SnapshotDataType::average_var:
-      data.add_average_snapshot("expectation_value", op.string_params[0],
+      data.data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, true);
       break;
     case SnapshotDataType::pershot:
-      data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
+      data.data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
       break;
   }
 }
 
 void State::snapshot_state(const Operations::Op &op,
-			   ExperimentData &data,
+			   ExperimentResult &data,
 			   std::string name) {
   cvector_t statevector;
   qreg_.full_state_vector(statevector);
-  data.add_pershot_snapshot("statevector", op.string_params[0], statevector);
+  data.data.add_pershot_snapshot("statevector", op.string_params[0], statevector);
 }
 
 void State::snapshot_probabilities(const Operations::Op &op,
-				   ExperimentData &data,
+				   ExperimentResult &data,
 				   SnapshotDataType type) {
   rvector_t prob_vector;
   qreg_.get_probabilities_vector(prob_vector, op.qubits);
   auto probs = Utils::vec2ket(prob_vector, MPS::get_json_chop_threshold(), 16);
 
   bool variance = type == SnapshotDataType::average_var;
-  data.add_average_snapshot("probabilities", op.string_params[0], 
+  data.data.add_average_snapshot("probabilities", op.string_params[0], 
   			    BaseState::creg_.memory_hex(), probs, variance);
 
 }
 
 void State::snapshot_density_matrix(const Operations::Op &op,
-			     ExperimentData &data,
+			     ExperimentResult &data,
 			     SnapshotDataType type) {
   cmatrix_t reduced_state;
   if (op.qubits.empty()) {
@@ -600,15 +600,15 @@ void State::snapshot_density_matrix(const Operations::Op &op,
   // Add density matrix to result data
   switch (type) {
     case SnapshotDataType::average:
-      data.add_average_snapshot("density_matrix", op.string_params[0],
+      data.data.add_average_snapshot("density_matrix", op.string_params[0],
                             BaseState::creg_.memory_hex(), std::move(reduced_state), false);
       break;
     case SnapshotDataType::average_var:
-      data.add_average_snapshot("density_matrix", op.string_params[0],
+      data.data.add_average_snapshot("density_matrix", op.string_params[0],
                             BaseState::creg_.memory_hex(), std::move(reduced_state), true);
       break;
     case SnapshotDataType::pershot:
-      data.add_pershot_snapshot("density_matrix", op.string_params[0], std::move(reduced_state));
+      data.data.add_pershot_snapshot("density_matrix", op.string_params[0], std::move(reduced_state));
       break;
   }
 }
@@ -849,7 +849,7 @@ std::vector<reg_t> State::
   return all_samples;
 }
 
-void State::apply_snapshot(const Operations::Op &op, ExperimentData &data) {
+void State::apply_snapshot(const Operations::Op &op, ExperimentResult &data) {
   // Look for snapshot type in snapshotset
   auto it = snapshotset_.find(op.name);
   if (it == snapshotset_.end())

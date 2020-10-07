@@ -102,7 +102,7 @@ class StatevectorController : public Base::Controller {
                            const Noise::NoiseModel& noise,
                            const json_t& config, uint_t shots,
                            uint_t rng_seed,
-                           ExperimentData &data) const override;
+                           ExperimentResult &data) const override;
 
   // Execute n-shots of a circuit on the input state
   template <class State_t>
@@ -110,7 +110,7 @@ class StatevectorController : public Base::Controller {
                           const Noise::NoiseModel& noise,
                           const json_t& config, uint_t shots,
                           uint_t rng_seed,
-                          ExperimentData &data) const;
+                          ExperimentResult &data) const;
   //-----------------------------------------------------------------------
   // Custom initial state
   //-----------------------------------------------------------------------
@@ -200,7 +200,7 @@ size_t StatevectorController::required_memory_mb(
 
 void StatevectorController::run_circuit(
     const Circuit& circ, const Noise::NoiseModel& noise, const json_t& config,
-    uint_t shots, uint_t rng_seed, ExperimentData &data) const {
+    uint_t shots, uint_t rng_seed, ExperimentResult &data) const {
   switch (method_) {
     case Method::automatic:
     case Method::statevector_cpu: {
@@ -263,7 +263,7 @@ void StatevectorController::run_circuit(
 template <class State_t>
 void StatevectorController::run_circuit_helper(
     const Circuit& circ, const Noise::NoiseModel& noise, const json_t& config,
-    uint_t shots, uint_t rng_seed, ExperimentData &data) const {
+    uint_t shots, uint_t rng_seed, ExperimentResult &data) const {
   // Initialize  state
   State_t state;
 
@@ -319,7 +319,7 @@ void StatevectorController::run_circuit_helper(
   state.add_creg_to_data(data);
 
   // Add final state to the data
-  data.add_additional_data("statevector", state.qreg().move_to_vector());
+  data.data.add_additional_data("statevector", state.qreg().move_to_vector());
 }
 
 //-------------------------------------------------------------------------

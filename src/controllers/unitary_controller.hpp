@@ -93,13 +93,13 @@ class UnitaryController : public Base::Controller {
   virtual void run_circuit(const Circuit &circ,
                            const Noise::NoiseModel &noise,
                            const json_t &config, uint_t shots,
-                           uint_t rng_seed, ExperimentData &data) const override;
+                           uint_t rng_seed, ExperimentResult &data) const override;
 
   template <class State_t>
   void run_circuit_helper(const Circuit &circ,
                           const Noise::NoiseModel &noise,
                           const json_t &config, uint_t shots,
-                          uint_t rng_seed, ExperimentData &data) const;
+                          uint_t rng_seed, ExperimentResult &data) const;
 
   //-----------------------------------------------------------------------
   // Custom initial state
@@ -192,7 +192,7 @@ void UnitaryController::run_circuit(const Circuit &circ,
                                     const Noise::NoiseModel &noise,
                                     const json_t &config,
                                     uint_t shots,
-                                    uint_t rng_seed, ExperimentData &data) const {
+                                    uint_t rng_seed, ExperimentResult &data) const {
   switch (method_) {
     case Method::automatic:
     case Method::unitary_cpu: {
@@ -254,7 +254,7 @@ void UnitaryController::run_circuit(const Circuit &circ,
 template <class State_t>
 void UnitaryController::run_circuit_helper(
     const Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
-    uint_t shots, uint_t rng_seed, ExperimentData &data) const {
+    uint_t shots, uint_t rng_seed, ExperimentResult &data) const {
   // Initialize state
   State_t state;
 
@@ -318,7 +318,7 @@ void UnitaryController::run_circuit_helper(
   state.add_creg_to_data(data);
 
   // Add final state unitary to the data
-  data.add_additional_data("unitary", state.qreg().move_to_matrix());
+  data.data.add_additional_data("unitary", state.qreg().move_to_matrix());
 }
 
 //-------------------------------------------------------------------------

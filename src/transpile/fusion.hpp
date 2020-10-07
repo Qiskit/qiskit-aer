@@ -63,7 +63,7 @@ public:
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
                         const opset_t &allowed_opset,
-                        ExperimentData &data) const override;
+                        ExperimentResult &data) const override;
 
   // Qubit threshold for activating fusion pass
   uint_t max_qubit;
@@ -87,7 +87,7 @@ private:
                             const int fusion_start,
                             const int fusion_end,
                             uint_t max_fused_qubits,
-                            ExperimentData &data,
+                            ExperimentResult &data,
                             Method method) const;
 
   // Aggregate a subcircuit of operations into a single operation
@@ -152,7 +152,7 @@ void Fusion::set_config(const json_t &config) {
 void Fusion::optimize_circuit(Circuit& circ,
                               Noise::NoiseModel& noise,
                               const opset_t &allowed_opset,
-                              ExperimentData &data) const {
+                              ExperimentResult &data) const {
   // Check if fusion should be skipped
   if (!active || !allowed_opset.contains(optype_t::matrix))
     return;
@@ -296,7 +296,7 @@ op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
                                        Method method) const {
   // Run simulation
   RngEngine dummy_rng;
-  ExperimentData dummy_data;
+  ExperimentResult dummy_data;
 
   if (method == Method::unitary) {
     // Unitary simulation
@@ -328,7 +328,7 @@ bool Fusion::aggregate_operations(oplist_t& ops,
                                   const int fusion_start,
                                   const int fusion_end,
                                   uint_t max_fused_qubits,
-                                  ExperimentData &data,
+                                  ExperimentResult &data,
                                   Method method) const {
 
   // costs[i]: estimated cost to execute from 0-th to i-th in original.ops

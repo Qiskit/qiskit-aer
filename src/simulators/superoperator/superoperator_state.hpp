@@ -73,7 +73,7 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentData &data,
+                         ExperimentResult &data,
                          RngEngine &rng,
                          bool final_ops = false) override;
 
@@ -118,7 +118,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, ExperimentData &data);
+  virtual void apply_snapshot(const Operations::Op &op, ExperimentResult &data);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const reg_t &qubits, const cmatrix_t &mat);
@@ -209,7 +209,7 @@ const stringmap_t<Gates> State<data_t>::gateset_({
 
 template <class data_t>
 void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
-                              ExperimentData &data,
+                              ExperimentResult &data,
                               RngEngine &rng,
                               bool final_ops) {
   // Simple loop over vector of input operations
@@ -465,7 +465,7 @@ void State<statevec_t>::apply_gate_u3(const uint_t qubit, double theta,
 
 template <class data_t>
 void State<data_t>::apply_snapshot(const Operations::Op &op,
-                                   ExperimentData &data) {
+                                   ExperimentResult &data) {
   // Look for snapshot type in snapshotset
   if (op.name == "superopertor" || op.name == "state") {
     BaseState::snapshot_state(op, data, "superoperator");

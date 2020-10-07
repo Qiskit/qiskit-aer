@@ -179,7 +179,7 @@ class QasmController : public Base::Controller {
                            const json_t& config,
                            uint_t shots,
                            uint_t rng_seed,
-                           ExperimentData& data) const override;
+                           ExperimentResult& data) const override;
 
   //----------------------------------------------------------------
   // Utility functions
@@ -223,7 +223,7 @@ class QasmController : public Base::Controller {
                           uint_t rng_seed,
                           const Initstate_t& initial_state,
                           const Method method,
-                          ExperimentData& data) const;
+                          ExperimentResult& data) const;
 
   // Execute a single shot a of circuit by initializing the state vector
   // to initial_state, running all ops in circ, and updating data with
@@ -232,7 +232,7 @@ class QasmController : public Base::Controller {
   void run_single_shot(const Circuit& circ,
                        State_t& state,
                        const Initstate_t& initial_state,
-                       ExperimentData& data,
+                       ExperimentResult& data,
                        RngEngine& rng) const;
 
   // Execute multiple shots a of circuit by initializing the state vector
@@ -244,7 +244,7 @@ class QasmController : public Base::Controller {
                       State_t& state,
                       const Initstate_t& initial_state,
                       const Method method,
-                      ExperimentData& data,
+                      ExperimentResult& data,
                       RngEngine& rng) const;
 
   template <class State_t, class Initstate_t>
@@ -255,7 +255,7 @@ class QasmController : public Base::Controller {
                                       State_t& state,
                                       const Initstate_t& initial_state,
                                       const Method method,
-                                      ExperimentData& data,
+                                      ExperimentResult& data,
                                       RngEngine& rng) const;
 
   //----------------------------------------------------------------
@@ -268,7 +268,7 @@ class QasmController : public Base::Controller {
   void measure_sampler(const std::vector<Operations::Op>& meas_ops,
                        uint_t shots,
                        State_t& state,
-                       ExperimentData& data,
+                       ExperimentResult& data,
                        RngEngine& rng) const;
 
   // Check if measure sampling optimization is valid for the input circuit
@@ -389,7 +389,7 @@ void QasmController::run_circuit(const Circuit& circ,
                                  const json_t& config,
                                  uint_t shots,
                                  uint_t rng_seed,
-                                 ExperimentData& data) const {
+                                 ExperimentResult& data) const {
   // Validate circuit for simulation method
   switch (simulation_method(circ, noise, true)) {
     case Method::statevector: {
@@ -859,7 +859,7 @@ void QasmController::run_circuit_helper(const Circuit& circ,
                                         uint_t rng_seed,
                                         const Initstate_t& initial_state,
                                         const Method method,
-                                        ExperimentData& data) const {
+                                        ExperimentResult& data) const {
   // Initialize new state object
   State_t state;
 
@@ -939,7 +939,7 @@ template <class State_t, class Initstate_t>
 void QasmController::run_single_shot(const Circuit& circ,
                                      State_t& state,
                                      const Initstate_t& initial_state,
-                                     ExperimentData& data,
+                                     ExperimentResult& data,
                                      RngEngine& rng) const {
   initialize_state(circ, state, initial_state);
   state.apply_ops(circ.ops, data, rng, true);
@@ -952,7 +952,7 @@ void QasmController::run_multi_shot(const Circuit& circ,
                                     State_t& state,
                                     const Initstate_t& initial_state,
                                     const Method method,
-                                    ExperimentData& data,
+                                    ExperimentResult& data,
                                     RngEngine& rng) const {
   // Check if measure sampler and optimization are valid
   if (check_measure_sampling_opt(circ, method)) {
@@ -991,7 +991,7 @@ void QasmController::run_circuit_with_sampled_noise(const Circuit& circ,
                                                     State_t& state,
                                                     const Initstate_t& initial_state,
                                                     const Method method,
-                                                    ExperimentData& data,
+                                                    ExperimentResult& data,
                                                     RngEngine& rng) const {
 
   // Transpilation for circuit noise method
@@ -1052,7 +1052,7 @@ void QasmController::measure_sampler(
     const std::vector<Operations::Op>& meas_roerror_ops,
     uint_t shots,
     State_t& state,
-    ExperimentData& data,
+    ExperimentResult& data,
     RngEngine& rng) const {
   // Check if meas_circ is empty, and if so return initial creg
   if (meas_roerror_ops.empty()) {
@@ -1127,10 +1127,10 @@ void QasmController::measure_sampler(
     }
 
     auto memory = creg.memory_hex();
-    data.add_memory_count(memory);
-    data.add_pershot_memory(memory);
+    data.data.add_memory_count(memory);
+    data.data.add_pershot_memory(memory);
 
-    data.add_pershot_register(creg.register_hex());
+    data.data.add_pershot_register(creg.register_hex());
 
     // pop off processed sample
     all_samples.pop_back();
