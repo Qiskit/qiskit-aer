@@ -1007,7 +1007,8 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
 template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t<double> &diag) {
-    transformer_->apply_diagonal_matrix(data_, data_size_, omp_threads_managed(), qubits, diag);
+
+  transformer_->apply_diagonal_matrix(data_, data_size_, omp_threads_managed(), qubits, diag);
 }
 
 template <typename data_t>
