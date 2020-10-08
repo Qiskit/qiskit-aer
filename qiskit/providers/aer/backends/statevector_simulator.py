@@ -19,10 +19,10 @@ from math import log2
 from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from .aerbackend import AerBackend
-# pylint: disable=import-error
-from .controller_wrappers import statevector_controller_execute
 from ..aererror import AerError
 from ..version import __version__
+# pylint: disable=import-error,no-name-in-module
+from .controller_wrappers import statevector_controller_execute
 
 # Logger
 logger = logging.getLogger(__name__)
