@@ -26,7 +26,7 @@ from ..qutip_extra_lite.qobj import Qobj
 from .pulse_sim_options import PulseSimOptions
 from .unitary_controller import run_unitary_experiments
 from .mc_controller import run_monte_carlo_experiments
-from qiskit.providers.aer.pulse.controllers.pulse_utils import get_ode_rhs_functor
+from .pulse_utils import get_ode_rhs_functor
 
 
 def pulse_controller(qobj, system_model, backend_options):

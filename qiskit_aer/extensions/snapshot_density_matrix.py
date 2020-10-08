@@ -51,7 +51,7 @@ def snapshot_density_matrix(self, label, qubits=None):
         ExtensionError: if snapshot is invalid.
     """
 
-    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
+    snapshot_register = snapshot.Snapshot.define_snapshot_register(self, label, qubits)
 
     return self.append(
         SnapshotDensityMatrix(label, num_qubits=len(snapshot_register)),
