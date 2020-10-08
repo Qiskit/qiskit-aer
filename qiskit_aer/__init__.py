@@ -61,14 +61,14 @@ if platform.system() == "Darwin":
 # ... ¯\_(ツ)_/¯
 
 # pylint: disable=wrong-import-position
-from .aerprovider import AerProvider
-from .aerjob import AerJob
-from .aererror import AerError
-from .backends import *
-from . import pulse
-from . import noise
-from . import utils
-from .version import __version__
+from qiskit_aer.aerprovider import AerProvider
+from qiskit_aer.aerjob import AerJob
+from qiskit_aer.aererror import AerError
+from qiskit_aer.backends import *
+from qiskit_aer import pulse
+from qiskit_aer import noise
+from qiskit_aer import utils
+from qiskit_aer.version import __version__
 
 # Global instance to be used as the entry point for convenience.
 Aer = AerProvider()  # pylint: disable=invalid-name

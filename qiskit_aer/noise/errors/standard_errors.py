@@ -23,10 +23,10 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 
 from qiskit_aer.noise.noiseerror import NoiseError
-from .errorutils import make_unitary_instruction
-from .errorutils import qubits_from_mat
-from .errorutils import standard_gate_unitary
-from .quantum_error import QuantumError
+from qiskit_aer.noise.errors.errorutils import make_unitary_instruction
+from qiskit_aer.noise.errors.errorutils import qubits_from_mat
+from qiskit_aer.noise.errors.errorutils import standard_gate_unitary
+from qiskit_aer.noise.errors.quantum_error import QuantumError
 
 
 def kraus_error(noise_ops, standard_gates=True, canonical_kraus=False):

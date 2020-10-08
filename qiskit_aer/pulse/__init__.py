@@ -47,10 +47,10 @@ of systems.
 # pylint: disable=import-error
 import distutils.sysconfig  # noqa
 import numpy as np
-from .qutip_extra_lite.cy import pyxbuilder as pbldr
+from qiskit_aer.pulse.qutip_extra_lite.cy import pyxbuilder as pbldr
 
-from .system_models.duffing_model_generators import duffing_system_model
-from .system_models.pulse_system_model import PulseSystemModel
+from qiskit_aer.pulse.system_models.duffing_model_generators import duffing_system_model
+from qiskit_aer.pulse.system_models.pulse_system_model import PulseSystemModel
 
 # Remove -Wstrict-prototypes from cflags
 CFG_VARS = distutils.sysconfig.get_config_vars()

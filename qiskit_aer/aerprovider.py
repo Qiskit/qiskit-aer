@@ -17,10 +17,10 @@
 from qiskit.providers import BaseProvider
 from qiskit.providers.providerutils import filter_backends
 
-from .backends.qasm_simulator import QasmSimulator
-from .backends.statevector_simulator import StatevectorSimulator
-from .backends.unitary_simulator import UnitarySimulator
-from .backends.pulse_simulator import PulseSimulator
+from qiskit_aer.backends.qasm_simulator import QasmSimulator
+from qiskit_aer.backends.statevector_simulator import StatevectorSimulator
+from qiskit_aer.backends.unitary_simulator import UnitarySimulator
+from qiskit_aer.backends.pulse_simulator import PulseSimulator
 
 
 class AerProvider(BaseProvider):

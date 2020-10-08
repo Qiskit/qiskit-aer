@@ -176,23 +176,23 @@ parameters and error objects from device `BackendProperties`.
 """
 
 # Noise and Error classes
-from .noise_model import NoiseModel
-from .errors import QuantumError
-from .errors import ReadoutError
+from qiskit_aer.noise.noise_model import NoiseModel
+from qiskit_aer.noise.errors import QuantumError
+from qiskit_aer.noise.errors import ReadoutError
 
 # Error generating functions
-from .errors import kraus_error
-from .errors import mixed_unitary_error
-from .errors import coherent_unitary_error
-from .errors import pauli_error
-from .errors import depolarizing_error
-from .errors import reset_error
-from .errors import thermal_relaxation_error
-from .errors import phase_amplitude_damping_error
-from .errors import amplitude_damping_error
-from .errors import phase_damping_error
+from qiskit_aer.noise.errors import kraus_error
+from qiskit_aer.noise.errors import mixed_unitary_error
+from qiskit_aer.noise.errors import coherent_unitary_error
+from qiskit_aer.noise.errors import pauli_error
+from qiskit_aer.noise.errors import depolarizing_error
+from qiskit_aer.noise.errors import reset_error
+from qiskit_aer.noise.errors import thermal_relaxation_error
+from qiskit_aer.noise.errors import phase_amplitude_damping_error
+from qiskit_aer.noise.errors import amplitude_damping_error
+from qiskit_aer.noise.errors import phase_damping_error
 
 # Submodules
-from . import errors
-from . import device
-from . import utils
+from qiskit_aer.noise import errors
+from qiskit_aer.noise import device
+from qiskit_aer.noise import utils

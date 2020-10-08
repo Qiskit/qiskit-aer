@@ -43,10 +43,8 @@ Functions
     approximate_noise_model
 """
 
-from .noise_remapper import remap_noise_model
-from .noise_transformation import NoiseTransformer
-from .noise_transformation import approximate_quantum_error
-from .noise_transformation import approximate_noise_model
-from .noise_model_inserter import insert_noise
-
-from . import qobj_utils
+from qiskit_aer.utils.noise_remapper import remap_noise_model
+from qiskit_aer.utils.noise_transformation import NoiseTransformer
+from qiskit_aer.utils.noise_transformation import approximate_quantum_error
+from qiskit_aer.utils.noise_transformation import approximate_noise_model
+from qiskit_aer.utils.noise_model_inserter import insert_noise

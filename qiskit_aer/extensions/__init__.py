@@ -36,9 +36,9 @@ an operator or the probability of measurement outcomes.
     SnapshotStabilizer
 """
 
-from .snapshot import *
-from .snapshot_statevector import *
-from .snapshot_stabilizer import *
-from .snapshot_density_matrix import *
-from .snapshot_probabilities import *
-from .snapshot_expectation_value import *
+from qiskit_aer.extensions.snapshot import *
+from qiskit_aer.extensions.snapshot_statevector import *
+from qiskit_aer.extensions.snapshot_stabilizer import *
+from qiskit_aer.extensions.snapshot_density_matrix import *
+from qiskit_aer.extensions.snapshot_probabilities import *
+from qiskit_aer.extensions.snapshot_expectation_value import *
