@@ -56,7 +56,7 @@ class AerJob(BaseJob):
         super().__init__(backend, job_id)
         self._fn = fn
         self._qobj = qobj
-        if (args):
+        if args:
             warnings.warn('Using *args for AerJob is deprecated, pass '
                           'additional arguments via **kwargs instead.',
                           DeprecationWarning)

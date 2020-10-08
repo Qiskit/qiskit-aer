@@ -27,8 +27,8 @@ from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendStatus
 from qiskit.result import Result
 
-from qiskit.providers.aer.aerjob import AerJob
-from qiskit.providers.aer.aererror import AerError
+from ..aerjob import AerJob
+from ..aererror import AerError
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -230,13 +230,16 @@ class AerBackend(BaseBackend, ABC):
         warnings.warn(
             'The `_run_job` method has been deprecated. Use `_run` instead.',
             DeprecationWarning)
+        if validate:
+            warnings.warn(
+                'The validate arg of `_run_job` has been removed. Use '
+                'validate=True in the `run` method instead.',
+                DeprecationWarning)
 
         # The new function swaps positional args qobj and job id so we do a
         # type check to swap them back
         if not isinstance(job_id, str) and isinstance(qobj, str):
-            tmp_id = qobj
-            qobj = job_id
-            job_id = tmp_id
+            job_id, qobj = qobj, job_id
         run_qobj = self._format_qobj(qobj, backend_options=backend_options,
                                      noise_model=noise_model)
         return self._run(run_qobj, job_id)

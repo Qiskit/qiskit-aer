@@ -20,11 +20,12 @@ from warnings import warn
 from numpy import inf
 
 from qiskit.providers.models import BackendConfiguration, PulseDefaults
-from qiskit.providers.aer.backends.aerbackend import AerBackend
-from qiskit.providers.aer.pulse.controllers.pulse_controller import pulse_controller
-from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
-from qiskit.providers.aer.version import __version__
-from qiskit.providers.aer.aererror import AerError
+
+from ..version import __version__
+from ..aererror import AerError
+from ..pulse.controllers.pulse_controller import pulse_controller
+from ..pulse.system_models.pulse_system_model import PulseSystemModel
+from .aerbackend import AerBackend
 
 logger = logging.getLogger(__name__)
 
