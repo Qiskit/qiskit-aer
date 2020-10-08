@@ -42,13 +42,6 @@ Job Class
    :toctree: ../stubs/
 
    AerJob
-
-Exceptions
-==========
-.. autosummary::
-   :toctree: ../stubs/
-
-   AerError
 """
 
 # https://github.com/Qiskit/qiskit-aer/issues/1
