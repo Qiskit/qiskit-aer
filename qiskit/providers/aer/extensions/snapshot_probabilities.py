@@ -16,7 +16,7 @@ Simulator command to snapshot internal simulator representation.
 
 from warnings import warn
 from qiskit import QuantumCircuit
-from qiskit.providers.aer.extensions import Snapshot
+from .snapshot import Snapshot
 
 
 class SnapshotProbabilities(Snapshot):

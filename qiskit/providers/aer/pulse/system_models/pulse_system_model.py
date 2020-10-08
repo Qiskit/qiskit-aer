@@ -18,7 +18,7 @@
 from warnings import warn
 from collections import OrderedDict
 from qiskit.providers import BaseBackend
-from qiskit.providers.aer.aererror import AerError
+from ...aererror import AerError
 from .hamiltonian_model import HamiltonianModel
 
 
