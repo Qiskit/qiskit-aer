@@ -137,14 +137,14 @@ protected:
   virtual void execute_circuit(Circuit &circ,
                                Noise::NoiseModel &noise,
                                const json_t &config,
-                               ExperimentResult &exp_result);
+                               ExperimentResult &result);
 
   // Abstract method for executing a circuit.
   // This method must initialize a state and return output data for
   // the required number of shots.
   virtual void run_circuit(const Circuit &circ, const Noise::NoiseModel &noise,
                            const json_t &config, uint_t shots, uint_t rng_seed,
-                           ExperimentResult &data) const = 0;
+                           ExperimentResult &result) const = 0;
 
   //-------------------------------------------------------------------------
   // State validation
@@ -574,27 +574,27 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 void Controller::execute_circuit(Circuit &circ,
                                  Noise::NoiseModel &noise,
                                  const json_t &config,
-                                 ExperimentResult &exp_result) {
+                                 ExperimentResult &result) {
 
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
 
   // Initialize circuit json return
-  exp_result.data.set_config(config);
+  result.data.set_config(config);
 
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
   try {
     // Remove barriers from circuit
     Transpile::ReduceBarrier barrier_pass;
-    barrier_pass.optimize_circuit(circ, noise, circ.opset(), exp_result);
+    barrier_pass.optimize_circuit(circ, noise, circ.opset(), result);
 
     // Truncate unused qubits from circuit and noise model
     if (truncate_qubits_) {
       Transpile::TruncateQubits truncate_pass;
       truncate_pass.set_config(config);
       truncate_pass.optimize_circuit(circ, noise, circ.opset(),
-                                     exp_result);
+                                     result);
     }
 
     // set parallelization for this circuit
@@ -604,7 +604,7 @@ void Controller::execute_circuit(Circuit &circ,
 
     // Single shot thread execution
     if (parallel_shots_ <= 1) {
-      run_circuit(circ, noise, config, circ.shots, circ.seed, exp_result);
+      run_circuit(circ, noise, config, circ.shots, circ.seed, result);
       // Parallel shot thread execution
     } else {
       // Calculate shots per thread
@@ -637,28 +637,28 @@ void Controller::execute_circuit(Circuit &circ,
       // Accumulate results across shots
       // Use move semantics to avoid copying data
       for (auto &res : par_results) {
-        exp_result.combine(std::move(res));
+        result.combine(std::move(res));
       }
     }
     // Report success
-    exp_result.status = ExperimentResult::Status::completed;
+    result.status = ExperimentResult::Status::completed;
 
     // Pass through circuit header and add metadata
-    exp_result.header = circ.header;
-    exp_result.shots = circ.shots;
-    exp_result.seed = circ.seed;
-    exp_result.metadata["parallel_shots"] = parallel_shots_;
-    exp_result.metadata["parallel_state_update"] = parallel_state_update_;
+    result.header = circ.header;
+    result.shots = circ.shots;
+    result.seed = circ.seed;
+    result.metadata["parallel_shots"] = parallel_shots_;
+    result.metadata["parallel_state_update"] = parallel_state_update_;
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
     double time_taken =
         std::chrono::duration<double>(timer_stop - timer_start).count();
-    exp_result.time_taken = time_taken;
+    result.time_taken = time_taken;
   }
   // If an exception occurs during execution, catch it and pass it to the output
   catch (std::exception &e) {
-    exp_result.status = ExperimentResult::Status::error;
-    exp_result.message = e.what();
+    result.status = ExperimentResult::Status::error;
+    result.message = e.what();
   }
 }
 

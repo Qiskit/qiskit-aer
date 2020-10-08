@@ -63,7 +63,7 @@ public:
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
                         const opset_t &allowed_opset,
-                        ExperimentResult &data) const override;
+                        ExperimentResult &result) const override;
 
   // Qubit threshold for activating fusion pass
   uint_t max_qubit;
@@ -87,7 +87,7 @@ private:
                             const int fusion_start,
                             const int fusion_end,
                             uint_t max_fused_qubits,
-                            ExperimentResult &data,
+                            ExperimentResult &result,
                             Method method) const;
 
   // Aggregate a subcircuit of operations into a single operation
@@ -152,7 +152,7 @@ void Fusion::set_config(const json_t &config) {
 void Fusion::optimize_circuit(Circuit& circ,
                               Noise::NoiseModel& noise,
                               const opset_t &allowed_opset,
-                              ExperimentResult &data) const {
+                              ExperimentResult &result) const {
   // Check if fusion should be skipped
   if (!active || !allowed_opset.contains(optype_t::matrix))
     return;
@@ -195,7 +195,7 @@ void Fusion::optimize_circuit(Circuit& circ,
   // for the density matrix simulator
   // Check if circuit size is above threshold
   if (circ.num_qubits < qubit_threshold) {
-    data.add_metadata("fusion", metadata);
+    result.add_metadata("fusion", metadata);
     return;
   }
   // Apply fusion
@@ -207,13 +207,13 @@ void Fusion::optimize_circuit(Circuit& circ,
       continue;
     if (!can_apply_fusion(circ.ops[op_idx], max_fused_qubits, method)) {
       applied |= fusion_start != op_idx && aggregate_operations(
-        circ.ops, fusion_start, op_idx, max_fused_qubits, data, method);
+        circ.ops, fusion_start, op_idx, max_fused_qubits, result, method);
       fusion_start = op_idx + 1;
     }
   }
 
   if (fusion_start < circ.ops.size() &&
-      aggregate_operations(circ.ops, fusion_start, circ.ops.size(), max_fused_qubits, data, method))
+      aggregate_operations(circ.ops, fusion_start, circ.ops.size(), max_fused_qubits, result, method))
     applied = true;
 
   if (applied) {
@@ -241,7 +241,7 @@ void Fusion::optimize_circuit(Circuit& circ,
   }
   auto timer_stop = clock_t::now();
   metadata["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
-  data.add_metadata("fusion", metadata);
+  result.add_metadata("fusion", metadata);
 }
 
 bool Fusion::can_ignore(const op_t& op) const {
@@ -296,13 +296,13 @@ op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
                                        Method method) const {
   // Run simulation
   RngEngine dummy_rng;
-  ExperimentResult dummy_data;
+  ExperimentResult dummy_result;
 
   if (method == Method::unitary) {
     // Unitary simulation
     QubitUnitary::State<> unitary_simulator;
     unitary_simulator.initialize_qreg(qubits.size());
-    unitary_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
+    unitary_simulator.apply_ops(fusioned_ops, dummy_result, dummy_rng);
     return Operations::make_unitary(qubits, unitary_simulator.qreg().move_to_matrix(),
                                     std::string("fusion"));
   }
@@ -311,7 +311,7 @@ op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
   // simulator
   QubitSuperoperator::State<> superop_simulator;
   superop_simulator.initialize_qreg(qubits.size());
-  superop_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
+  superop_simulator.apply_ops(fusioned_ops, dummy_result, dummy_rng);
   auto superop = superop_simulator.qreg().move_to_matrix();
 
   if (method == Method::superop) {
@@ -328,7 +328,7 @@ bool Fusion::aggregate_operations(oplist_t& ops,
                                   const int fusion_start,
                                   const int fusion_end,
                                   uint_t max_fused_qubits,
-                                  ExperimentResult &data,
+                                  ExperimentResult &result,
                                   Method method) const {
 
   // costs[i]: estimated cost to execute from 0-th to i-th in original.ops

@@ -79,7 +79,7 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &data,
+                         ExperimentResult &result,
                          RngEngine &rng,
                          bool final_ops = false) override;
 
@@ -131,7 +131,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, ExperimentResult &data);
+  virtual void apply_snapshot(const Operations::Op &op, ExperimentResult &result);
 
   //-----------------------------------------------------------------------
   // Measurement Helpers
@@ -150,11 +150,11 @@ protected:
 
   // Snapshot the stabilizer state of the simulator.
   // This returns a list of stabilizer generators
-  void snapshot_stabilizer(const Operations::Op &op, ExperimentResult &data);
+  void snapshot_stabilizer(const Operations::Op &op, ExperimentResult &result);
                             
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
-                              ExperimentResult &data,
+                              ExperimentResult &result,
                               bool variance);
 
   void snapshot_probabilities_auxiliary(const reg_t& qubits,
@@ -164,7 +164,7 @@ protected:
 
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const Operations::Op &op,
-                             ExperimentResult &data,
+                             ExperimentResult &result,
                              SnapshotDataType type);
 
   //-----------------------------------------------------------------------
@@ -276,7 +276,7 @@ void State::set_config(const json_t &config) {
 //=========================================================================
 
 void State::apply_ops(const std::vector<Operations::Op> &ops,
-                      ExperimentResult &data,
+                      ExperimentResult &result,
                       RngEngine &rng, bool final_ops) {
   // Simple loop over vector of input operations
   for (const auto &op: ops) {
@@ -300,7 +300,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
           apply_gate(op);
           break;
         case Operations::OpType::snapshot:
-          apply_snapshot(op, data);
+          apply_snapshot(op, result);
           break;
         default:
           throw std::invalid_argument("Stabilizer::State::invalid instruction \'" +
@@ -437,7 +437,7 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
 //=========================================================================
 
 void State::apply_snapshot(const Operations::Op &op,
-                           ExperimentResult &data) {
+                           ExperimentResult &result) {
 
 // Look for snapshot type in snapshotset
   auto it = snapshotset_.find(op.name);
@@ -446,28 +446,28 @@ void State::apply_snapshot(const Operations::Op &op,
                                 op.name + "\'.");
   switch (it->second) {
     case Snapshots::stabilizer:
-      snapshot_stabilizer(op, data);
+      snapshot_stabilizer(op, result);
       break;
     case Snapshots::cmemory:
-      BaseState::snapshot_creg_memory(op, data);
+      BaseState::snapshot_creg_memory(op, result);
       break;
     case Snapshots::cregister:
-      BaseState::snapshot_creg_register(op, data);
+      BaseState::snapshot_creg_register(op, result);
       break;
     case Snapshots::probs: {
-      snapshot_probabilities(op, data, false);
+      snapshot_probabilities(op, result, false);
     } break;
     case Snapshots::probs_var: {
-      snapshot_probabilities(op, data, true);
+      snapshot_probabilities(op, result, true);
     } break;
     case Snapshots::expval_pauli: {
-      snapshot_pauli_expval(op, data, SnapshotDataType::average);
+      snapshot_pauli_expval(op, result, SnapshotDataType::average);
     } break;
     case Snapshots::expval_pauli_var: {
-      snapshot_pauli_expval(op, data, SnapshotDataType::average_var);
+      snapshot_pauli_expval(op, result, SnapshotDataType::average_var);
     } break;
     case Snapshots::expval_pauli_shot: {
-      snapshot_pauli_expval(op, data, SnapshotDataType::pershot);
+      snapshot_pauli_expval(op, result, SnapshotDataType::pershot);
     } break;
     default:
       // We shouldn't get here unless there is a bug in the snapshotset
@@ -477,19 +477,19 @@ void State::apply_snapshot(const Operations::Op &op,
 }
 
 
-void State::snapshot_stabilizer(const Operations::Op &op, ExperimentResult &data) {
+void State::snapshot_stabilizer(const Operations::Op &op, ExperimentResult &result) {
   // We don't want to snapshot the full Clifford table, only the
   // stabilizer part. First Convert simulator clifford table to JSON
   json_t clifford = BaseState::qreg_;
   // Then extract the stabilizer generator list
-  data.data.add_pershot_snapshot("stabilizer",
+  result.data.add_pershot_snapshot("stabilizer",
                                op.string_params[0],
                                clifford["stabilizers"]);
 }
 
 
 void State::snapshot_probabilities(const Operations::Op &op,
-                                   ExperimentResult &data,
+                                   ExperimentResult &result,
                                    bool variance) {
   // Check number of qubits being measured is less than 64.
   // otherwise we cant use 64-bit int logic.
@@ -511,7 +511,7 @@ void State::snapshot_probabilities(const Operations::Op &op,
       op.qubits, std::string(op.qubits.size(), 'X'), 1, probs);
 
   // Add snapshot to data
-  data.data.add_average_snapshot("probabilities", op.string_params[0],
+  result.data.add_average_snapshot("probabilities", op.string_params[0],
                             BaseState::creg_.memory_hex(), probs, variance);
 }
 
@@ -561,7 +561,7 @@ void State::snapshot_probabilities_auxiliary(const reg_t &qubits,
 }
 
 void State::snapshot_pauli_expval(const Operations::Op &op,
-                                  ExperimentResult &data, SnapshotDataType type) {
+                                  ExperimentResult &result, SnapshotDataType type) {
   // Check empty edge case
   if (op.params_expval_pauli.empty()) {
     throw std::invalid_argument(
@@ -611,15 +611,15 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   Utils::chop_inplace(expval, json_chop_threshold_);
   switch (type) {
     case SnapshotDataType::average:
-      data.data.add_average_snapshot("expectation_value", op.string_params[0],
+      result.data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, false);
       break;
     case SnapshotDataType::average_var:
-      data.data.add_average_snapshot("expectation_value", op.string_params[0],
+      result.data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, true);
       break;
     case SnapshotDataType::pershot:
-      data.data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
+      result.data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
       break;
   }
 }
