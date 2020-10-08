@@ -21,7 +21,7 @@ from math import log2, sqrt
 from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 
-from qiskit_aer.aererror import AerError
+from qiskit_aer.exceptions import AerError
 from qiskit_aer.version import __version__
 from qiskit_aer.backends.aerbackend import AerBackend
 # pylint: disable=import-error,no-name-in-module

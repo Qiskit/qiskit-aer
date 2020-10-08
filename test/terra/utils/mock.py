@@ -38,7 +38,7 @@ from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
 from qiskit.providers.jobstatus import JobStatus
 from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
-from qiskit.providers.aer import AerError
+from qiskit.providers.aer.exceptions import AerError
 
 
 logger = logging.getLogger(__name__)

@@ -63,7 +63,6 @@ if platform.system() == "Darwin":
 # pylint: disable=wrong-import-position
 from qiskit_aer.aerprovider import AerProvider
 from qiskit_aer.aerjob import AerJob
-from qiskit_aer.aererror import AerError
 from qiskit_aer.backends import *
 from qiskit_aer import pulse
 from qiskit_aer import noise

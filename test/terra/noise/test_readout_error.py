@@ -18,7 +18,7 @@ from test.terra import common
 
 import numpy as np
 
-from qiskit.providers.aer.noise.noiseerror import NoiseError
+from qiskit.providers.aer.exceptions import NoiseError
 from qiskit.providers.aer.noise.errors.readout_error import ReadoutError
 
 

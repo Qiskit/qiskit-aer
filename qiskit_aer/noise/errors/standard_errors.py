@@ -22,7 +22,7 @@ from qiskit.quantum_info.operators.channel import Choi, Kraus
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 
-from qiskit_aer.noise.noiseerror import NoiseError
+from qiskit_aer.exceptions import NoiseError
 from qiskit_aer.noise.errors.errorutils import make_unitary_instruction
 from qiskit_aer.noise.errors.errorutils import qubits_from_mat
 from qiskit_aer.noise.errors.errorutils import standard_gate_unitary

@@ -19,7 +19,7 @@ from test.terra import common
 import numpy as np
 
 from qiskit.quantum_info.operators.pauli import Pauli
-from qiskit.providers.aer.noise.noiseerror import NoiseError
+from qiskit.providers.aer.exceptions import NoiseError
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 from qiskit.providers.aer.noise.errors.standard_errors import kraus_error
 from qiskit.providers.aer.noise.errors.standard_errors import mixed_unitary_error

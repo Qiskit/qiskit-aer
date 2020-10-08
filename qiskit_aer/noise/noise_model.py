@@ -24,7 +24,7 @@ from qiskit.providers.models import BackendProperties
 from qiskit_aer.backends.aerbackend import AerJSONEncoder
 from qiskit_aer.backends.qasm_simulator import QasmSimulator
 
-from qiskit_aer.noise.noiseerror import NoiseError
+from qiskit_aer.exceptions import NoiseError
 from qiskit_aer.noise.errors.quantum_error import QuantumError
 from qiskit_aer.noise.errors.readout_error import ReadoutError
 from qiskit_aer.noise.device.models import basic_device_gate_errors

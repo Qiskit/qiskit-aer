@@ -21,7 +21,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators import Kraus, SuperOp, Choi, Operator
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
-from qiskit_aer.noise.noiseerror import NoiseError
+from qiskit_aer.exceptions import NoiseError
 from qiskit_aer.noise.errors.errorutils import kraus2instructions
 from qiskit_aer.noise.errors.errorutils import circuit2superop
 from qiskit_aer.noise.errors.errorutils import standard_instruction_channel

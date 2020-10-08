@@ -21,7 +21,7 @@ from numpy.linalg import norm
 from qiskit.circuit import Instruction
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
-from qiskit_aer.noise.noiseerror import NoiseError
+from qiskit_aer.exceptions import NoiseError
 from qiskit_aer.noise.errors.errorutils import qubits_from_mat
 
 

@@ -19,7 +19,7 @@ import multiprocessing
 
 from qiskit import QuantumCircuit, assemble, execute
 from qiskit.providers.aer import AerProvider, QasmSimulator
-from qiskit.providers.aer import AerError
+from qiskit.providers.aer.exceptions import AerError
 
 # Backwards compatibility for Terra <= 0.13
 if not hasattr(QuantumCircuit, 'i'):
