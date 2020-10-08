@@ -116,7 +116,7 @@ def basic_device_noise_model(properties,
     # This wrapper is for the deprecated function
     # We need to import noise model here to avoid cyclic import errors
     # pylint: disable=import-outside-toplevel
-    from qiskit.providers.aer.noise.noise_model import NoiseModel
+    from ..noise_model import NoiseModel
     return NoiseModel.from_backend(properties,
                                    gate_error=gate_error,
                                    readout_error=readout_error,
