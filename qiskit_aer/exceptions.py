@@ -14,5 +14,6 @@
 Exception for errors raised by Qiskit Aer simulators backends.
 """
 
+# pylint: disable=unused-import
 from qiskit_aer.aererror import AerError
 from qiskit_aer.noise.noiseerror import NoiseError
