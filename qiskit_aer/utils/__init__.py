@@ -12,13 +12,13 @@
 
 """
 =============================================
-Utilities (:mod:`qiskit.providers.aer.utils`)
+Utilities (:mod:`qiskit_aer.utils`)
 =============================================
 
-.. currentmodule:: qiskit.providers.aer.utils
+.. currentmodule:: qiskit_aer.utils
 
 This module contains utility functions for modifying
-:class:`~qiskit.providers.aer.noise.NoiseModel` objects and ``QuantumCircuits``
+:class:`~qiskit_aer.noise.NoiseModel` objects and ``QuantumCircuits``
 using noise models.
 
 

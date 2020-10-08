@@ -60,7 +60,7 @@ import builtins
 import numpy as np
 import scipy.sparse as sp
 import scipy.linalg as la
-from qiskit.providers.aer.version import __version__
+from qiskit_aer.version import __version__
 
 from .dimensions import type_from_dims
 

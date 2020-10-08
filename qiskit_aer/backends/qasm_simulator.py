@@ -15,10 +15,12 @@ Qiskit Aer qasm simulator backend.
 
 import logging
 from math import log2
+
 from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
+
+from qiskit_aer.version import __version__
 from .aerbackend import AerBackend
-from ..version import __version__
 # pylint: disable=import-error,no-name-in-module
 from .controller_wrappers import qasm_controller_execute
 
@@ -169,7 +171,7 @@ class QasmSimulator(AerBackend):
 
     * ``"stabilizer_max_snapshot_probabilities"`` (int): set the maximum
       qubit number for the
-      `~qiskit.providers.aer.extensions.SnapshotProbabilities`
+      `~qiskit_aer.extensions.SnapshotProbabilities`
       instruction (Default: 32).
 
     These backend options only apply when using the ``"extended_stabilizer"``

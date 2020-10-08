@@ -9,7 +9,7 @@
 QasmSimulator Integration Tests
 """
 import json
-from qiskit import execute, QuantumRegister, ClassicalRegister, QuantumCircuit, Aer
+from qiskit import execute, QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import noise
 from qiskit.providers.aer.noise import NoiseModel
@@ -152,7 +152,7 @@ class QasmQubitsTruncateTests:
         circuit.measure(20, 1)
 
 
-        qasm_sim = Aer.get_backend('qasm_simulator')
+        qasm_sim = QasmSimulator()
         backend_options = self.BACKEND_OPTS.copy()
         backend_options["truncate_verbose"] = True
         backend_options['optimize_ideal_threshold'] = 1
@@ -183,7 +183,7 @@ class QasmQubitsTruncateTests:
         error = depolarizing_error(0.1, 2)
         noise_model.add_nonlocal_quantum_error(error, ['x'], [5], [4, 6])
 
-        qasm_sim = Aer.get_backend('qasm_simulator')
+        qasm_sim = QasmSimulator()
         backend_options = self.BACKEND_OPTS.copy()
         backend_options["truncate_verbose"] = True
         backend_options['optimize_ideal_threshold'] = 1
@@ -206,7 +206,7 @@ class QasmQubitsTruncateTests:
         """Test truncation with noise model option"""
         circuit = self.create_circuit_for_truncate()
         
-        qasm_sim = Aer.get_backend('qasm_simulator')
+        qasm_sim = QasmSimulator()
         backend_options = self.BACKEND_OPTS.copy()
         backend_options["truncate_verbose"] = True
         backend_options['optimize_ideal_threshold'] = 1
@@ -225,7 +225,7 @@ class QasmQubitsTruncateTests:
         """Test truncation with noise model option"""
         circuit = self.create_circuit_for_truncate()
         
-        qasm_sim = Aer.get_backend('qasm_simulator')
+        qasm_sim = QasmSimulator()
         backend_options = self.BACKEND_OPTS.copy()
         backend_options["truncate_verbose"] = True
         backend_options['optimize_ideal_threshold'] = 1
@@ -245,7 +245,7 @@ class QasmQubitsTruncateTests:
         """Test explicitly disabling truncation with noise model option"""
         circuit = self.create_circuit_for_truncate()
         
-        qasm_sim = Aer.get_backend('qasm_simulator')
+        qasm_sim = QasmSimulator()
         backend_options = self.BACKEND_OPTS.copy()
         backend_options["truncate_verbose"] = True
         backend_options["truncate_enable"] = False

@@ -12,10 +12,10 @@
 
 """
 ==========================================
-Aer Provider (:mod:`qiskit.providers.aer`)
+Aer Provider (:mod:`qiskit_aer`)
 ==========================================
 
-.. currentmodule:: qiskit.providers.aer
+.. currentmodule:: qiskit_aer
 
 Simulator Provider
 ==================

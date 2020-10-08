@@ -14,7 +14,7 @@
 
 """Pulse solver options"""
 
-from ..de.DE_Options import DE_Options
+from qiskit_aer.pulse.de.DE_Options import DE_Options
 
 
 class PulseSimOptions():

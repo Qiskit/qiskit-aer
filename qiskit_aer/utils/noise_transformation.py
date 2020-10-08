@@ -33,10 +33,10 @@ import numpy
 
 from qiskit.quantum_info.operators.channel import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
-from ..noise.errors import QuantumError
-from ..noise.noise_model import NoiseModel
-from ..noise.noiseerror import NoiseError
-from ..noise.errors.errorutils import single_qubit_clifford_instructions
+from qiskit_aer.noise.errors import QuantumError
+from qiskit_aer.noise.noise_model import NoiseModel
+from qiskit_aer.noise.noiseerror import NoiseError
+from qiskit_aer.noise.errors.errorutils import single_qubit_clifford_instructions
 
 logger = logging.getLogger(__name__)
 

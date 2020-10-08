@@ -12,10 +12,10 @@
 
 r"""
 ================================================
-Noise Models (:mod:`qiskit.providers.aer.noise`)
+Noise Models (:mod:`qiskit_aer.noise`)
 ================================================
 
-.. currentmodule:: qiskit.providers.aer.noise
+.. currentmodule:: qiskit_aer.noise
 
 This module contains classes and functions to build a noise model for
 simulating a Qiskit quantum circuit in the presence of errors.
@@ -25,7 +25,7 @@ Building Noise Models
 =====================
 
 The :class:`NoiseModel` class is used to represent noise model for the
-:class:`~qiskit.providers.aer.QasmSimulator`. It can be used to construct
+:class:`~qiskit_aer.QasmSimulator`. It can be used to construct
 custom noise models for simulator, to to automatically generate a basic
 device noise model for an IBMQ backend.
 

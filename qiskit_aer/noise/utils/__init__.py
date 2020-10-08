@@ -10,17 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-The functions here have been moved to `qiskit.providers.aer.utils`.
+The functions here have been moved to `qiskit_aer.utils`.
 """
 
 import warnings as warn
 
 # DEPRECATED: these functions have been moved
-from ...utils import remap_noise_model as _remap_noise_model
-from ...utils import NoiseTransformer as _NoiseTransformer
-from ...utils import approximate_quantum_error as _approximate_quantum_error
-from ...utils import approximate_noise_model as _approximate_noise_model
-from ...utils import insert_noise as _insert_noise
+from qiskit_aer.utils import remap_noise_model as _remap_noise_model
+from qiskit_aer.utils import NoiseTransformer as _NoiseTransformer
+from qiskit_aer.utils import approximate_quantum_error as _approximate_quantum_error
+from qiskit_aer.utils import approximate_noise_model as _approximate_noise_model
+from qiskit_aer.utils import insert_noise as _insert_noise
 
 
 def remap_noise_model(noise_model,
@@ -86,7 +86,7 @@ def insert_noise(circuits, noise_model, transpile=False):
         original circuit with ``Kraus`` instructions inserted after all
         instructions referenced in the ``noise_model``. The resulting circuit
         cannot be ran on a quantum computer but can be executed on the
-        :class:`~qiskit.providers.aer.QasmSimulator`.
+        :class:`~qiskit_aer.QasmSimulator`.
     """
     warn.warn(
         'This function is been moved to `qiskit.providers.aer.utils.insert_noise`.'

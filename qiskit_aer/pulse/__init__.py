@@ -14,10 +14,10 @@
 
 """
 =======================================================
-Pulse System Models (:mod:`qiskit.providers.aer.pulse`)
+Pulse System Models (:mod:`qiskit_aer.pulse`)
 =======================================================
 
-.. currentmodule:: qiskit.providers.aer.pulse
+.. currentmodule:: qiskit_aer.pulse
 
 This module contains classes and functions to build a pulse system model
 for simulating a Qiskit pulse schedule.

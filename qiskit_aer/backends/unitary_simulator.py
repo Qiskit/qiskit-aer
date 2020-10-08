@@ -17,12 +17,13 @@ Qiskit Aer Unitary Simulator Backend.
 
 import logging
 from math import log2, sqrt
+
 from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 
+from qiskit_aer.aererror import AerError
+from qiskit_aer.version import __version__
 from .aerbackend import AerBackend
-from ..aererror import AerError
-from ..version import __version__
 # pylint: disable=import-error,no-name-in-module
 from .controller_wrappers import unitary_controller_execute
 

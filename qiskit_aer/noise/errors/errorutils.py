@@ -23,7 +23,7 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT
 
-from ..noiseerror import NoiseError
+from qiskit_aer.noise.noiseerror import NoiseError
 
 
 def standard_gates_instructions(instructions):

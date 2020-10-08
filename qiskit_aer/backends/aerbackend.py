@@ -28,7 +28,7 @@ from qiskit.qobj import validate_qobj_against_schema
 from qiskit.result import Result
 from qiskit.util import local_hardware_info
 
-from ..aerjob import AerJob
+from qiskit_aer.aerjob import AerJob
 
 # Logger
 logger = logging.getLogger(__name__)

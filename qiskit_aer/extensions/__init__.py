@@ -12,10 +12,10 @@
 
 """
 ===========================================================
-Circuit Extensions (:mod:`qiskit.providers.aer.extensions`)
+Circuit Extensions (:mod:`qiskit_aer.extensions`)
 ===========================================================
 
-.. currentmodule:: qiskit.providers.aer.extensions
+.. currentmodule:: qiskit_aer.extensions
 
 Snapshots
 =========

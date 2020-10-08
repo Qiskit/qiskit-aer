@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit import assemble
 from qiskit import transpile
-from qiskit import Aer
+from qiskit.providers.aer import QasmSimulator
 import qiskit.ignis.verification.randomized_benchmarking as rb
 
 from .tools import kraus_noise_model, no_noise, mixed_unitary_noise_model, \
@@ -76,7 +76,7 @@ class RandomizedBenchmarkingQasmSimBenchmark:
                                          length_vector=length_vector,
                                          rb_pattern=rb_pattern,
                                          seed=self.seed)
-        self.sim_backend = Aer.get_backend('qasm_simulator')
+        self.sim_backend = QasmSimulator()
         trans_circ = transpile(self.circuits, backend=self.sim_backend,
                                seed_transpiler=self.seed)
         self.qobj = assemble(trans_circ, backend=self.sim_backend)

@@ -21,8 +21,8 @@ from qiskit.circuit import Instruction
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendProperties
 
-from ..backends.aerbackend import AerJSONEncoder
-from ..backends.qasm_simulator import QasmSimulator
+from qiskit_aer.backends.aerbackend import AerJSONEncoder
+from qiskit_aer.backends.qasm_simulator import QasmSimulator
 
 from .noiseerror import NoiseError
 from .errors.quantum_error import QuantumError
@@ -37,10 +37,10 @@ class NoiseModel:
     """Noise model class for Qiskit Aer simulators.
 
     This class is used to represent noise model for the
-    :class:`~qiskit.providers.aer.QasmSimulator`. It can be used to construct
+    :class:`~qiskit_aer.QasmSimulator`. It can be used to construct
     custom noise models for simulator, or to automatically generate a basic
     device noise model for an IBMQ backend. See the
-    :mod:`~qiskit.providers.aer.noise` module documentation for additional
+    :mod:`~qiskit_aer.noise` module documentation for additional
     information.
 
     **Example: Basic device noise model**
@@ -112,9 +112,9 @@ class NoiseModel:
         Additional Information:
         Errors added to the noise model will have their instruction
         appended to the noise model basis_gates if the instruction is in
-        the :class:`~qiskit.providers.aer.QasmSimulator` basis_gates. If
+        the :class:`~qiskit_aer.QasmSimulator` basis_gates. If
         the instruction is not in the
-        :class:`~qiskit.providers.aer.QasmSimulator` basis_gates it is
+        :class:`~qiskit_aer.QasmSimulator` basis_gates it is
         assumed to be a label for a standard gate, and that gate should be
         added to the `NoiseModel` basis_gates either using the init method,
         or the :meth:`add_basis_gates` method.
