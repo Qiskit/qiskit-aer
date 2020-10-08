@@ -18,7 +18,7 @@ import logging
 from warnings import warn
 
 from qiskit.circuit import Instruction
-from qiskit.providers import BaseBackend
+from qiskit.providers.basebackend import BaseBackend
 from qiskit.providers.models import BackendProperties
 
 from qiskit_aer.backends.aerbackend import AerJSONEncoder

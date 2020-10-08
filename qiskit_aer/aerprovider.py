@@ -14,7 +14,7 @@
 
 """Provider for Qiskit Aer backends."""
 
-from qiskit.providers import BaseProvider
+from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.providerutils import filter_backends
 
 from qiskit_aer.backends.qasm_simulator import QasmSimulator

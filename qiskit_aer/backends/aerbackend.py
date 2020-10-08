@@ -22,7 +22,7 @@ import time
 import uuid
 from numpy import ndarray
 
-from qiskit.providers import BaseBackend
+from qiskit.providers.basebackend import BaseBackend
 from qiskit.providers.models import BackendStatus
 from qiskit.qobj import validate_qobj_against_schema
 from qiskit.result import Result
