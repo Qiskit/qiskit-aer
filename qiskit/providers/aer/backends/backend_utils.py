@@ -37,9 +37,11 @@ def cpp_execute(controller, qobj):
     # Convert qobj to dict
     qobj_dict = qobj.to_dict()
 
-    if 'noise_model' in qobj_dict['config']:
-        # Convert noise model to dict
-        noise_model = qobj_dict['config']['noise_model'].to_dict()
+    # Convert noise model to dict
+    noise_model = qobj_dict['config'].pop('noise_model', None)
+    if noise_model is not None:
+        if not isinstance(noise_model, dict):
+            noise_model = qobj_dict['config']['noise_model'].to_dict()
         qobj_dict['config']['noise_model'] = noise_model
 
     # Location where we put external libraries that will be
