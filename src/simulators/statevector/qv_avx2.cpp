@@ -1125,7 +1125,7 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
   inputs = reinterpret_cast<std::complex<double>**>(malloc(sizeof(std::complex<double*>) * omp_threads));
 
 #pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
-  for (size_t i = 0; i < omp_threads; ++i) {
+  for (int i = 0; i < omp_threads; ++i) {
 #if !defined(_WIN64) && !defined(_WIN32)
     void* data;
     posix_memalign(&data, 64, sizeof(std::complex<double>) * 2);
@@ -1136,7 +1136,7 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
   }
 
   size_t q0_mask_ = 0;
-  for (size_t i = 0; i < qregs_size; ++i) {
+  for (int i = 0; i < qregs_size; ++i) {
     if (qregs[i] == 0) {
       q0_mask_ = 1UL << i;
       break;
@@ -1166,7 +1166,7 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
   avx_apply_lambda(data_size >> (batch + 1), 1, lambda, omp_threads, input_vec);
 
 #pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
-  for (size_t i = 0; i < omp_threads; ++i) {
+  for (int i = 0; i < omp_threads; ++i) {
     free(inputs[omp_get_thread_num()]);
   }
 
@@ -1193,7 +1193,7 @@ Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
   inputs = reinterpret_cast<std::complex<float>**>(malloc(sizeof(std::complex<float*>) * omp_threads));
 
 #pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
-  for (size_t i = 0; i < omp_threads; ++i) {
+  for (int i = 0; i < omp_threads; ++i) {
 #if !defined(_WIN64) && !defined(_WIN32)
     void* data;
     posix_memalign(&data, 64, sizeof(std::complex<float>) * 4);
@@ -1240,7 +1240,7 @@ Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
   avx_apply_lambda(data_size >> (batch + 2), 1, lambda, omp_threads, input_vec);
 
 #pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
-  for (size_t i = 0; i < omp_threads; ++i) {
+  for (int i = 0; i < omp_threads; ++i) {
     free(inputs[omp_get_thread_num()]);
   }
 
