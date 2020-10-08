@@ -18,8 +18,8 @@
 from warnings import warn
 from collections.abc import Iterable
 from qiskit.providers.models.backendconfiguration import UchannelLO
-from .hamiltonian_model import HamiltonianModel
-from .pulse_system_model import PulseSystemModel
+from qiskit_aer.pulse.system_models.hamiltonian_model import HamiltonianModel
+from qiskit_aer.pulse.system_models.pulse_system_model import PulseSystemModel
 
 
 def duffing_system_model(dim_oscillators,

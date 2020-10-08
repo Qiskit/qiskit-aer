@@ -22,11 +22,11 @@ import numpy as np
 from qiskit_aer.pulse.system_models.string_model_parser.string_model_parser import NoiseParser
 from qiskit_aer.pulse.qutip_extra_lite import qobj_generators as qobj_gen
 from qiskit_aer.pulse.qutip_extra_lite.qobj import Qobj
-from .digest_pulse_qobj import digest_pulse_qobj
-from .pulse_sim_options import PulseSimOptions
-from .unitary_controller import run_unitary_experiments
-from .mc_controller import run_monte_carlo_experiments
-from .pulse_utils import get_ode_rhs_functor
+from qiskit_aer.pulse.controllers.digest_pulse_qobj import digest_pulse_qobj
+from qiskit_aer.pulse.controllers.pulse_sim_options import PulseSimOptions
+from qiskit_aer.pulse.controllers.unitary_controller import run_unitary_experiments
+from qiskit_aer.pulse.controllers.mc_controller import run_monte_carlo_experiments
+from qiskit_aer.pulse.controllers.pulse_utils import get_ode_rhs_functor
 
 
 def pulse_controller(qobj, system_model, backend_options):

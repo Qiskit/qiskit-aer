@@ -14,3 +14,7 @@
 
 """Models for objects built around tensor product systems.
 """
+
+from qiskit_aer.pulse.system_models.pulse_system_model import PulseSystemModel
+from qiskit_aer.pulse.system_models.hamiltonian_model import HamiltonianModel
+from qiskit_aer.pulse.system_models.duffing_model_generators import duffing_system_model

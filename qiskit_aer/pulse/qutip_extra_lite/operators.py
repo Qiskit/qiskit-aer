@@ -53,8 +53,8 @@ of commonly occuring quantum operators.
 """
 
 import numpy as np
-from .fastsparse import fast_csr_matrix, fast_identity
-from .qobj import Qobj
+from qiskit_aer.pulse.qutip_extra_lite.fastsparse import fast_csr_matrix, fast_identity
+from qiskit_aer.pulse.qutip_extra_lite.qobj import Qobj
 
 
 # Spin operators

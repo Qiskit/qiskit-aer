@@ -16,10 +16,10 @@
 """Operators to use in simulator"""
 
 import numpy as np
-from . import operators as ops
-from . import states as st
-from . import tensor as ten
-from .qobj import Qobj
+from qiskit_aer.pulse.qutip_extra_lite import operators as ops
+from qiskit_aer.pulse.qutip_extra_lite import states as st
+from qiskit_aer.pulse.qutip_extra_lite import tensor as ten
+from qiskit_aer.pulse.qutip_extra_lite.qobj import Qobj
 
 
 def sigmax(dim=2):
