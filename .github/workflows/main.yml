@@ -148,7 +148,7 @@ jobs:
           set -e
           mkdir out; cd out; virtualenv aer-test
           aer-test/bin/pip install ../dist/*tar.gz
-          aer-test/bin/pip install -c ../constraints.txt git+https://github.com/mtreinisht/qiskit-core@namespace-no-more
+          aer-test/bin/pip install -c ../constraints.txt git+https://github.com/mtreinish/qiskit-core@namespace-no-more
           aer-test/bin/python ../tools/verify_wheels.py
           aer-test/bin/pip check
         shell: bash
@@ -284,7 +284,7 @@ jobs:
           git clone https://github.com/Qiskit/qiskit-tutorials --depth=1
           python -m pip install --upgrade pip wheel
           pip install -U -r requirements-dev.txt -c constraints.txt
-          pip install -c constraints.txt git+https://github.com/mtreinish/qiskit-core@@namespace-no-more
+          pip install -c constraints.txt git+https://github.com/mtreinish/qiskit-core@namespace-no-more
           pip install -c constraints.txt .
           pip install -U "qiskit-ibmq-provider" "z3-solver" "qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" jupyter pylatexenc sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
           python setup.py build_ext --inplace
