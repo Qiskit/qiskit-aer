@@ -100,7 +100,14 @@ void ExperimentResult::add_metadata(const std::string &key, json_t &meta) {
 }
 
 ExperimentResult& ExperimentResult::combine(ExperimentResult &&other) {
+  // Combine data
   data.combine(std::move(other.data));
+
+  // Combine metadata
+  for (const auto &pair : other.metadata) {
+    metadata[pair.first] = pair.second;
+  }
+
   return *this;
 }
 
