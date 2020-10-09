@@ -319,7 +319,7 @@ void StatevectorController::run_circuit_helper(
   state.add_creg_to_data(result);
 
   // Add final state to the data
-  result.legacy_data.add_additional_data("statevector", state.qreg().move_to_vector());
+  result.data.add_single(state.qreg().move_to_vector(), "statevector");
 }
 
 //-------------------------------------------------------------------------

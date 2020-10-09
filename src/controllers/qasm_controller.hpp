@@ -883,13 +883,12 @@ void QasmController::run_circuit_helper(const Circuit& circ,
 
   // Output data container
   result.set_config(config);
-  result.add_metadata("method", state.name());
+  result.metadata.add(state.name(), "method");
   state.add_metadata(result);
 
   // Add measure sampling to metadata
   // Note: this will set to `true` if sampling is enabled for the circuit
-  result.add_metadata("measure_sampling", false);
-
+  result.metadata.add(false, "measure_sampling");
   // Choose execution method based on noise and method
   Circuit opt_circ;
 
@@ -973,7 +972,7 @@ void QasmController::run_multi_shot(const Circuit& circ,
     measure_sampler(ops, shots, state, result, rng);
 
     // Add measure sampling metadata
-    result.add_metadata("measure_sampling", true);
+    result.metadata.add(true, "measure_sampling");
   } else {
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
@@ -1122,10 +1121,8 @@ void QasmController::measure_sampler(
     }
 
     auto memory = creg.memory_hex();
-    result.legacy_data.add_memory_count(memory);
-    result.legacy_data.add_pershot_memory(memory);
-
-    result.legacy_data.add_pershot_register(creg.register_hex());
+    result.data.add_count(memory);
+    result.data.add_memory(std::move(memory));
 
     // pop off processed sample
     all_samples.pop_back();

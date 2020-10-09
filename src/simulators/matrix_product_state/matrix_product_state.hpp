@@ -452,14 +452,15 @@ void State::set_config(const json_t &config) {
 }
 
 void State::add_metadata(ExperimentResult &result) const {
-  result.add_metadata("matrix_product_state_truncation_threshold", 
-		    MPS_Tensor::get_truncation_threshold());
-
-  result.add_metadata("matrix_product_state_max_bond_dimension", 
-		    MPS_Tensor::get_max_bond_dimension());
-
-  result.add_metadata("matrix_product_state_sample_measure_algorithm", 
-         	    MPS::get_sample_measure_alg());
+  result.metadata.add(
+    MPS_Tensor::get_truncation_threshold(),
+    "matrix_product_state_truncation_threshold");
+  result.metadata.add(
+    MPS_Tensor::get_max_bond_dimension(),
+    "matrix_product_state_max_bond_dimension");
+  result.metadata.add(
+    MPS::get_sample_measure_alg(),
+    "matrix_product_state_sample_measure_algorithm");
 } 
 
 //=========================================================================

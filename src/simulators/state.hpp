@@ -305,12 +305,8 @@ template <class state_t>
 void State<state_t>::add_creg_to_data(ExperimentResult &result) const {
   if (creg_.memory_size() > 0) {
     std::string memory_hex = creg_.memory_hex();
-    result.legacy_data.add_memory_count(memory_hex);
-    result.legacy_data.add_pershot_memory(memory_hex);
-  }
-  // Register bits value
-  if (creg_.register_size() > 0) {
-    result.legacy_data.add_pershot_register(creg_.register_hex());
+    result.data.add_count(memory_hex);
+    result.data.add_memory(std::move(memory_hex));
   }
 }
 //-------------------------------------------------------------------------

@@ -503,8 +503,8 @@ Result Controller::execute(const json_t &qobj_js) {
     }
     // Stop the timer and add total timing data including qobj parsing
     auto timer_stop = myclock_t::now();
-    result.metadata["time_taken"] =
-        std::chrono::duration<double>(timer_stop - timer_start).count();
+    auto time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();
+    result.metadata.add(time_taken, "time_taken");
     return result;
   } catch (std::exception &e) {
     // qobj was invalid, return valid output containing error message
@@ -537,12 +537,12 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     }
 
 #ifdef _OPENMP
-    result.metadata["omp_enabled"] = true;
+    result.metadata.add(true, "omp_enabled");
 #else
-    result.metadata["omp_enabled"] = false;
+    result.metadata.add(false, "omp_enabled");
 #endif
-    result.metadata["parallel_experiments"] = parallel_experiments_;
-    result.metadata["max_memory_mb"] = max_memory_mb_;
+    result.metadata.add(parallel_experiments_, "parallel_experiments");
+    result.metadata.add(max_memory_mb_, "max_memory_mb");
 
 #ifdef _OPENMP
     // Check if circuit parallelism is nested with one of the others
@@ -554,7 +554,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       #else
       omp_set_max_active_levels(3);
       #endif
-      result.metadata["omp_nested"] = parallel_nested_;
+      result.metadata.add(parallel_nested_, "omp_nested");
     } else {
       parallel_nested_ = false;
       #ifdef _WIN32
@@ -604,8 +604,8 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 
     // Stop the timer and add total timing data
     auto timer_stop = myclock_t::now();
-    result.metadata["time_taken"] =
-        std::chrono::duration<double>(timer_stop - timer_start).count();
+    auto time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();
+    result.metadata.add(time_taken, "time_taken");
   }
   // If execution failed return valid output reporting error
   catch (std::exception &e) {
@@ -674,7 +674,7 @@ void Controller::execute_circuit(Circuit &circ,
         #else
         omp_set_max_active_levels(2);
         #endif
-        result.metadata["omp_nested"] = true;
+        result.metadata.add(true, "omp_nested");
       } else {
         #ifdef _WIN32
         omp_set_nested(0);
@@ -712,8 +712,8 @@ void Controller::execute_circuit(Circuit &circ,
     result.header = circ.header;
     result.shots = circ.shots;
     result.seed = circ.seed;
-    result.metadata["parallel_shots"] = parallel_shots_;
-    result.metadata["parallel_state_update"] = parallel_state_update_;
+    result.metadata.add(parallel_shots_, "parallel_shots");
+    result.metadata.add(parallel_state_update_, "parallel_state_update");
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
     double time_taken =

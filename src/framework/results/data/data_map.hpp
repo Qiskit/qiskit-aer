@@ -52,8 +52,10 @@ public:
   // Add to existing JSON
   void add_to_json(json_t &js);
 
-protected:
+  // Enable or disable storing datamap
+  bool enabled = true;
 
+protected:
   stringmap_t<DataMap<Data, T, N - 1>> data_;
 };
 
@@ -83,67 +85,13 @@ public:
   // Add to existing JSON
   void add_to_json(json_t &js);
 
+  // Enable or disable storing datamap
+  bool enabled = true;
+
 protected:
   stringmap_t<Data<T>> data_;
 };
 
-// Mixing class for using with derived class with multiple DataMap
-// parent classes
-template <typename Dervied> class DataMapInserter {
-public:
-  //----------------------------------------------------------------
-  // Add general data
-  //
-  // These functions allow adding general data types however the
-  // corresponding DataMap type must be a parent class of the same
-  // subclass of the DataAdder.
-  //----------------------------------------------------------------
-
-  template <template <class> class Data, class T, typename... Args>
-  void add(const T &data, const std::string &outer_key,
-           const Args &... inner_keys);
-
-  template <template <class> class Data, class T, typename... Args>
-  void add(T &data, const std::string &outer_key,
-           const Args &... inner_keys);
-
-  template <template <class> class Data, class T, typename... Args>
-  void add(T &&data, const std::string &outer_key,
-           const Args &... inner_keys);
-};
-
-
-//------------------------------------------------------------------------------
-// Implementation
-//------------------------------------------------------------------------------
-
-template <typename Derived>
-template <template <class> class Data, class T, typename... Args>
-void DataMapInserter<Derived>::add(const T &data,
-                                   const std::string &outer_key,
-                                   const Args &... inner_keys) {
-  static_cast<DataMap<Data, T, sizeof...(Args) + 1> &>(
-      static_cast<Derived &>(*this))
-      .add(data, outer_key, inner_keys...);
-}
-
-template <typename Derived>
-template <template <class> class Data, class T, typename... Args>
-void DataMapInserter<Derived>::add(T &data, const std::string &outer_key,
-                                   const Args &... inner_keys) {
-  static_cast<DataMap<Data, T, sizeof...(Args) + 1> &>(
-      static_cast<Derived &>(*this))
-      .add(data, outer_key, inner_keys...);
-}
-
-template <typename Derived>
-template <template <class> class Data, class T, typename... Args>
-void DataMapInserter<Derived>::add(T &&data, const std::string &outer_key,
-                                   const Args &... inner_keys) {
-  static_cast<DataMap<Data, T, sizeof...(Args) + 1> &>(
-      static_cast<Derived &>(*this))
-      .add(std::move(data), outer_key, inner_keys...);
-}
 
 //------------------------------------------------------------------------------
 // Implementation N
@@ -153,25 +101,31 @@ template <template <class> class Data, class T, size_t N>
 template <typename... Args, typename>
 void DataMap<Data, T, N>::add(const T &data, const std::string &key,
                               const Args &... inner_keys) {
-  data_[key].add(data, inner_keys...);
+  if (enabled) {
+    data_[key].add(data, inner_keys...);
+  }
 }
 
 template <template <class> class Data, class T, size_t N>
 template <typename... Args, typename>
 void DataMap<Data, T, N>::add(T &&data, const std::string &key,
                               const Args &... inner_keys) {
-  data_[key].add(std::move(data), inner_keys...);
+  if (enabled) {
+    data_[key].add(std::move(data), inner_keys...);
+  }
 }
 
 template <template <class> class Data, class T, size_t N>
 void DataMap<Data, T, N>::combine(DataMap<Data, T, N>&& other) {
-  for (auto& pair: other.data_) {
-    const auto& key = pair.first;
-    // If empty we copy data without accumulating
-    if (data_.find(pair.first) == data_.end()) {
-      data_[key].combine(std::move(pair.second));
-    } else {
-      data_[key] = std::move(pair.second);
+  if (enabled) {
+    for (auto& pair: other.data_) {
+      const auto& key = pair.first;
+      // If empty we copy data without accumulating
+      if (data_.find(pair.first) == data_.end()) {
+        data_[key] = std::move(pair.second);
+      } else {
+        data_[key].combine(std::move(pair.second));
+      }
     }
   }
 }
@@ -183,17 +137,21 @@ void DataMap<Data, T, N>::clear() {
 
 template <template <class> class Data, class T, size_t N>
 json_t DataMap<Data, T, N>::to_json() {
-  json_t jsdata;
-  for (auto &pair : data_) {
-    jsdata[pair.first] = pair.second.to_json();
+  json_t jsdata = json_t::object();
+  if (enabled) {
+    for (auto &pair : data_) {
+      jsdata[pair.first] = pair.second.to_json();
+    }
   }
   return jsdata;
 }
 
 template <template <class> class Data, class T, size_t N>
 void DataMap<Data, T, N>::add_to_json(json_t &jsdata) {
-  for (auto &pair : data_) {
-    pair.second.add_to_json(jsdata[pair.first]);
+  if (enabled) {
+    for (auto &pair : data_) {
+      pair.second.add_to_json(jsdata[pair.first]);
+    }
   }
 }
 
@@ -203,24 +161,30 @@ void DataMap<Data, T, N>::add_to_json(json_t &jsdata) {
 
 template <template <class> class Data, class T>
 void DataMap<Data, T, 1>::add(const T &data, const std::string &key) {
-  data_[key].add(data);
+  if (enabled) {
+    data_[key].add(data);
+    }
 }
 
 template <template <class> class Data, class T>
 void DataMap<Data, T, 1>::add(T &&data, const std::string &key) {
-  data_[key].add(std::move(data));
+  if (enabled) {
+    data_[key].add(std::move(data));
+  }
 }
 
 
 template <template <class> class Data, class T>
 void DataMap<Data, T, 1>::combine(DataMap<Data, T, 1>&& other) {
-  for (auto& pair: other.data_) {
-    const auto& key = pair.first;
-    // If empty we copy data without accumulating
-    if (data_.find(pair.first) == data_.end()) {
-      data_[key].combine(std::move(pair.second));
-    } else {
-      data_[key] = std::move(pair.second);
+  if (enabled) {
+    for (auto& pair: other.data_) {
+      const auto& key = pair.first;
+      // If empty we copy data without accumulating
+      if (data_.find(pair.first) == data_.end()) {
+        data_[key] = std::move(pair.second);
+      } else {
+        data_[key].combine(std::move(pair.second));
+      }
     }
   }
 }
@@ -232,17 +196,21 @@ void DataMap<Data, T, 1>::clear() {
 
 template <template <class> class Data, class T>
 json_t DataMap<Data, T, 1>::to_json() {
-  json_t jsdata;
-  for (auto &pair : data_) {
-    jsdata[pair.first] = pair.second.to_json();
+  json_t jsdata = json_t::object();
+  if (enabled) {
+    for (auto &pair : data_) {
+      jsdata[pair.first] = pair.second.to_json();
+    }
   }
   return jsdata;
 }
 
 template <template <class> class Data, class T>
 void DataMap<Data, T, 1>::add_to_json(json_t &jsdata) {
-  for (auto &pair : data_) {
-    jsdata[pair.first] = pair.second.to_json();
+  if (enabled) {
+    for (auto &pair : data_) {
+      jsdata[pair.first] = pair.second.to_json();
+    }
   }
 }
 
