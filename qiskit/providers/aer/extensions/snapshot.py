@@ -65,9 +65,14 @@ class Snapshot(Instruction):
 
     @staticmethod
     def define_snapshot_register(circuit,
-                                 label,
+                                 label=None,
                                  qubits=None):
         """Defines qubits to snapshot for all snapshot methods"""
+        # Convert label to string for backwards compatibility
+        if label is not None:
+            warnings.warn(
+                "The 'label' arg of `define_snapshot_register` has been deprecated"
+                "as of qiskit-aer 0.7.0.", DeprecationWarning)
         # If no qubits are specified we add all qubits so it acts as a barrier
         # This is needed for full register snapshots like statevector
         if isinstance(qubits, QuantumRegister):
@@ -130,7 +135,7 @@ def snapshot(self,
     Raises:
         ExtensionError: malformed command
     """
-    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
+    snapshot_register = Snapshot.define_snapshot_register(self, qubits=qubits)
 
     return self.append(
         Snapshot(
