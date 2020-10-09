@@ -61,6 +61,7 @@ from qiskit_aer import pulse
 from qiskit_aer import noise
 from qiskit_aer import utils
 from qiskit_aer.version import __version__
+from qiskit_aer.exceptions import AerError  # Deprecated
 
 # Global instance to be used as the entry point for convenience.
 Aer = AerProvider()  # pylint: disable=invalid-name
