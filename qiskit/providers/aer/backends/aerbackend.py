@@ -106,19 +106,18 @@ class AerBackend(BaseBackend, ABC):
                 self._set_option(key, val)
 
     # pylint: disable=arguments-differ
-    def run(
-            self,
+    def run(self,
             qobj,
-            validate=True,
             backend_options=None,  # DEPRECATED
+            validate=True,
             **run_options):
         """Run a qobj on the backend.
 
         Args:
             qobj (QasmQobj): The Qobj to be executed.
-            validate (bool): validate the Qobj before running (default: True).
             backend_options (dict or None): DEPRECATED dictionary of backend options
                                             for the execution (default: None).
+            validate (bool): validate the Qobj before running (default: True).
             run_options (kwargs): additional run time backend options.
 
         Returns:

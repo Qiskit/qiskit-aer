@@ -166,6 +166,58 @@ class PulseSimulator(AerBackend):
                     configuration, subsystem_list)
                 self._set_system_model(system_model)
 
+    # pylint: disable=arguments-differ
+    def run(self,
+            qobj,
+            *args,
+            backend_options=None,  # DEPRECATED
+            validate=True,
+            **run_options):
+        """Run a qobj on the backend.
+
+        Args:
+            qobj (QasmQobj): The Qobj to be executed.
+            backend_options (dict or None): DEPRECATED dictionary of backend options
+                                            for the execution (default: None).
+            validate (bool): validate the Qobj before running (default: True).
+            run_options (kwargs): additional run time backend options.
+
+        Returns:
+            AerJob: The simulation job.
+
+        Additional Information:
+            * kwarg options specified in ``run_options`` will override options
+              of the same kwarg specified in the simulator options, the
+              ``backend_options`` and the ``Qobj.config``.
+
+            * The entries in the ``backend_options`` will be combined with
+              the ``Qobj.config`` dictionary with the values of entries in
+              ``backend_options`` taking precedence. This kwarg is deprecated
+              and direct kwarg's should be used for options to pass them to
+              ``run_options``.
+        """
+        if args:
+            if isinstance(args[0], PulseSystemModel):
+                warn(
+                    'Passing `system_model` as a positional argument to'
+                    ' `PulseSimulator.run` has been deprecated as of'
+                    ' qiskit-aer 0.7.0 and will be removed no earlier than 3'
+                    ' months from that release date. Pass `system_model` as a kwarg'
+                    ' `system_model=model` instead.',
+                    DeprecationWarning,
+                    stacklevel=3)
+                run_options['system_model'] = args[0]
+                if len(args) > 1:
+                    backend_options = args[1]
+                if len(args) > 2:
+                    validate = args[3]
+            elif isinstance(args[0], bool):
+                validate = args[0]
+                if len(args) > 1:
+                    backend_options = args[1]
+        return super().run(qobj, backend_options=backend_options, validate=validate,
+                           **run_options)
+
     @property
     def _system_model(self):
         return self._options.get('system_model')
