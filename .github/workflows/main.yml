@@ -295,7 +295,7 @@ jobs:
         run: |
           set -e
           cd qiskit-tutorials
-          rm -rf tutorials/circuits tutorials/circuits_advanced
+          rm -rf tutorials/chemistry tutorials/circuits tutorials/circuits_advanced tutorials/finance tutorials/optimization tutorials/noise
           sphinx-build -b html . _build/html
       - uses: actions/upload-artifact@v2
         with:
