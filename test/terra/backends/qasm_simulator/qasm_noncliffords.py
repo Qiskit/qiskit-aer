@@ -34,7 +34,7 @@ class QasmNonCliffordTestsTGate:
             final_measure=True)
         targets = ref_non_clifford.t_gate_counts_deterministic(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -46,7 +46,7 @@ class QasmNonCliffordTestsTGate:
             final_measure=True)
         targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -61,7 +61,7 @@ class QasmNonCliffordTestsTGate:
             final_measure=True)
         targets = ref_non_clifford.tdg_gate_counts_deterministic(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -73,7 +73,7 @@ class QasmNonCliffordTestsTGate:
             final_measure=True)
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -94,7 +94,7 @@ class QasmNonCliffordTestsCCXGate:
             final_measure=True)
         targets = ref_non_clifford.ccx_gate_counts_deterministic(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -106,7 +106,7 @@ class QasmNonCliffordTestsCCXGate:
             final_measure=True)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -126,7 +126,7 @@ class QasmNonCliffordTestsCGates:
             final_measure=True)
         targets = ref_non_clifford.cswap_gate_counts_deterministic(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -137,7 +137,7 @@ class QasmNonCliffordTestsCGates:
             final_measure=True)
         targets = ref_non_clifford.cswap_gate_counts_nondeterministic(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -152,7 +152,7 @@ class QasmNonCliffordTestsCGates:
             final_measure=True)
         targets = ref_non_clifford.cu1_gate_counts_nondeterministic(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -167,7 +167,7 @@ class QasmNonCliffordTestsCGates:
             final_measure=True)
         targets = ref_non_clifford.cu3_gate_counts_deterministic(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -192,7 +192,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -207,7 +207,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -225,7 +225,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -240,7 +240,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -258,7 +258,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -273,7 +273,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -291,7 +291,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -306,7 +306,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -324,7 +324,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -342,7 +342,7 @@ class QasmNonCliffordTestsWaltzBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -381,7 +381,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -399,7 +399,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -414,7 +414,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -432,7 +432,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -447,7 +447,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
@@ -465,7 +465,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
@@ -483,7 +483,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -498,7 +498,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.1 * shots)
@@ -516,7 +516,7 @@ class QasmNonCliffordTestsMinimalBasis:
                       self.SIMULATOR,
                       shots=shots,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)

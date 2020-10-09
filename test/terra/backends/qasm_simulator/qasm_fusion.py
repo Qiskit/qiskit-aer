@@ -102,7 +102,7 @@ class QasmFusionTests:
             circuit.measure_all()
             qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             self.assertSuccess(result)
             meta = self.fusion_metadata(result)
             self.assertFalse(meta.get('applied', False))
@@ -114,7 +114,7 @@ class QasmFusionTests:
             circuit.measure_all()
             qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             self.assertSuccess(result)
             meta = self.fusion_metadata(result)
             self.assertTrue(meta.get('applied', False))
@@ -126,7 +126,7 @@ class QasmFusionTests:
             circuit.measure_all()
             qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             self.assertSuccess(result)
             meta = self.fusion_metadata(result)
             self.assertTrue(meta.get('applied', False))
@@ -141,7 +141,7 @@ class QasmFusionTests:
         with self.subTest(msg='verbose enabled'):
             backend_options = self.fusion_options(enabled=True, verbose=True, threshold=1)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             # Assert fusion applied succesfully
             self.assertSuccess(result)
             meta = self.fusion_metadata(result)
@@ -153,7 +153,7 @@ class QasmFusionTests:
         with self.subTest(msg='verbose disabled'):
             backend_options = self.fusion_options(enabled=True, verbose=False, threshold=1)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             # Assert fusion applied succesfully
             self.assertSuccess(result)
             meta = self.fusion_metadata(result)
@@ -165,7 +165,7 @@ class QasmFusionTests:
         with self.subTest(msg='verbose default'):
             backend_options = self.fusion_options(enabled=True, threshold=1)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
 
             # Assert fusion applied succesfully
             self.assertSuccess(result)
@@ -191,7 +191,7 @@ class QasmFusionTests:
         backend_options = self.fusion_options(enabled=True, threshold=1)
         result = self.SIMULATOR.run(qobj,
                                     noise_model=noise_model,
-                                    backend_options=backend_options).result()
+                                    **backend_options).result()
         meta = self.fusion_metadata(result)
         if backend_options.get('method') in ['density_matrix',
                                              'density_matrix_thrust',
@@ -221,7 +221,7 @@ class QasmFusionTests:
         backend_options = self.fusion_options(enabled=True, threshold=1)
         result = self.SIMULATOR.run(qobj,
                                     noise_model=noise_model,
-                                    backend_options=backend_options).result()
+                                    **backend_options).result()
         meta = self.fusion_metadata(result)
         if backend_options.get('method') in ['density_matrix',
                                              'density_matrix_thrust',
@@ -249,7 +249,7 @@ class QasmFusionTests:
         with self.subTest(msg='fusion enabled'):
             backend_options = self.fusion_options(enabled=True, threshold=1)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             meta = self.fusion_metadata(result)
 
             self.assertSuccess(result)
@@ -258,7 +258,7 @@ class QasmFusionTests:
         with self.subTest(msg='fusion disabled'):
             backend_options = backend_options = self.fusion_options(enabled=False, threshold=1)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             meta = self.fusion_metadata(result)
 
             self.assertSuccess(result)
@@ -268,7 +268,7 @@ class QasmFusionTests:
             backend_options = self.fusion_options()
 
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             meta = self.fusion_metadata(result)
 
             self.assertSuccess(result)
@@ -341,12 +341,12 @@ class QasmFusionTests:
 
         backend_options = self.fusion_options(enabled=False, threshold=1)
         result_disabled = self.SIMULATOR.run(
-            qobj, backend_options=backend_options).result()
+            qobj, **backend_options).result()
         meta_disabled = self.fusion_metadata(result_disabled)
 
         backend_options = self.fusion_options(enabled=True, threshold=1)
         result_enabled = self.SIMULATOR.run(
-            qobj, backend_options=backend_options).result()
+            qobj, **backend_options).result()
         meta_enabled = self.fusion_metadata(result_enabled)
 
         self.assertTrue(getattr(result_disabled, 'success', 'False'))
@@ -374,12 +374,12 @@ class QasmFusionTests:
 
         backend_options = self.fusion_options(enabled=False, threshold=1)
         result_disabled = self.SIMULATOR.run(
-            qobj, backend_options=backend_options).result()
+            qobj, **backend_options).result()
         meta_disabled = self.fusion_metadata(result_disabled)
 
         backend_options = self.fusion_options(enabled=True, threshold=1)
         result_enabled = self.SIMULATOR.run(
-            qobj, backend_options=backend_options).result()
+            qobj, **backend_options).result()
         meta_enabled = self.fusion_metadata(result_enabled)
 
         self.assertTrue(getattr(result_disabled, 'success', 'False'))
@@ -407,12 +407,12 @@ class QasmFusionTests:
 
         backend_options = self.fusion_options(enabled=False, threshold=1)
         result_disabled = self.SIMULATOR.run(
-            qobj, backend_options=backend_options).result()
+            qobj, **backend_options).result()
         meta_disabled = self.fusion_metadata(result_disabled)
 
         backend_options = self.fusion_options(enabled=True, threshold=1)
         result_enabled = self.SIMULATOR.run(
-            qobj, backend_options=backend_options).result()
+            qobj, **backend_options).result()
         meta_enabled = self.fusion_metadata(result_enabled)
 
         self.assertTrue(getattr(result_disabled, 'success', 'False'))

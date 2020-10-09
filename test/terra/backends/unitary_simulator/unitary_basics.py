@@ -42,7 +42,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -56,7 +56,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -70,7 +70,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -83,7 +83,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -97,7 +97,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -111,7 +111,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -127,7 +127,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -141,7 +141,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -155,7 +155,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -171,7 +171,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -185,7 +185,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -199,7 +199,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -215,7 +215,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -229,7 +229,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -243,7 +243,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -259,7 +259,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -273,7 +273,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -287,7 +287,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -300,7 +300,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -314,7 +314,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -328,7 +328,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -344,7 +344,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -358,7 +358,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -372,7 +372,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -385,7 +385,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -399,7 +399,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -413,7 +413,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -429,7 +429,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -443,7 +443,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -457,7 +457,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -470,7 +470,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -484,7 +484,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -498,7 +498,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -514,7 +514,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -528,7 +528,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -542,7 +542,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -555,7 +555,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -569,7 +569,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -583,7 +583,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -600,7 +600,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -614,7 +614,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -628,7 +628,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -644,7 +644,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -658,7 +658,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -672,7 +672,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -688,7 +688,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(
@@ -705,7 +705,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -719,7 +719,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -733,7 +733,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -746,7 +746,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -760,7 +760,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -774,7 +774,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -790,7 +790,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -804,7 +804,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -818,7 +818,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -831,7 +831,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -845,7 +845,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -859,7 +859,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -875,7 +875,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -889,7 +889,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -903,7 +903,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -916,7 +916,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -930,7 +930,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -944,7 +944,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -960,7 +960,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -974,7 +974,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -988,7 +988,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -1001,7 +1001,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -1015,7 +1015,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -1029,7 +1029,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -1045,7 +1045,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -1058,7 +1058,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -1072,7 +1072,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -1086,7 +1086,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -1099,7 +1099,7 @@ class UnitarySimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -1113,7 +1113,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -1127,7 +1127,7 @@ class UnitarySimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
@@ -1144,7 +1144,7 @@ class UnitarySimulatorTests:
         targets = ref_1q_clifford.h_gate_unitary_nondeterministic()
 
         qobj = assemble(transpile(circuits, self.SIMULATOR),
-                        shots=1, backend_options=self.BACKEND_OPTS)
+                        shots=1, **self.BACKEND_OPTS)
         # Set global phases
         for i, _ in enumerate(circuits):
             global_phase = (-1) ** i * (pi / 4)
