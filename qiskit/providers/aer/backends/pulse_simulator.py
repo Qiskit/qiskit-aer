@@ -166,7 +166,7 @@ class PulseSimulator(AerBackend):
                     configuration, subsystem_list)
                 self._set_system_model(system_model)
 
-    # pylint: disable=arguments-differ
+    # pylint: disable=arguments-differ, missing-param-doc
     def run(self,
             qobj,
             *args,
