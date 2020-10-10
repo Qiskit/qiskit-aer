@@ -25,6 +25,15 @@ RhsFunctor get_ode_rhs_functor(py::object the_global_data, py::object the_exp,
   return RhsFunctor(the_global_data, the_exp, the_system, the_channels, the_reg);
 }
 
+
+class OccProbabilitiesFunctor {
+public:
+    OccProbabilitiesFunctor() = default;
+    py::array_t<double> operator()(py::array_t<int> qubits,
+                                   py::array_t<complex_t> state,
+                                   py::list meas_ops) { return occ_probabilities(qubits, state, meas_ops); }
+};
+
 PYBIND11_MODULE(pulse_utils, m) {
     m.doc() = "Utility functions for pulse simulator"; // optional module docstring
 
@@ -35,8 +44,9 @@ PYBIND11_MODULE(pulse_utils, m) {
     m.def("oplist_to_array", &oplist_to_array, "Insert list of complex numbers into numpy complex array");
     m.def("spmv_csr", &spmv_csr, "Sparse matrix, dense vector multiplication.");
 
-    py::class_<RhsFunctor>(m, "OdeRhsFunctor")
-        .def("__call__", &RhsFunctor::operator());
+    py::class_<RhsFunctor> ode_rhs_func(m, "OdeRhsFunctor");
+    ode_rhs_func.def("__call__", &RhsFunctor::operator());
+    ode_rhs_func.def("__reduce__", [ode_rhs_func](const RhsFunctor& self) { return py::make_tuple(ode_rhs_func, py::tuple());});
 
     m.def("get_ode_rhs_functor", &get_ode_rhs_functor, "Get ode_rhs functor to allow caching of parameters");
 }

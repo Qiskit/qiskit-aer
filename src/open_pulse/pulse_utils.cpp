@@ -23,6 +23,26 @@ complex_t internal_expect_psi_csr(const py::array_t<complex_t>& data,
     }
     return expt;
 }
+#include <iostream>
+complex_t internal_expect_psi(const py::array_t<complex_t>& data,
+                              const py::array_t<complex_t>& vec) {
+    auto data_raw = data.unchecked<2>();
+    auto vec_raw = vec.unchecked<1>();
+    
+    auto nrows = data.shape(0);
+    auto ncols = data.shape(1);
+    complex_t temp, expt = 0;
+    
+    for (decltype(nrows) i = 0; i < nrows; i++) {
+        temp = 0;
+        auto vec_conj = std::conj(vec_raw[i]);
+        for (auto j = 0; j < ncols; j++) {
+            temp += data_raw(i, j) * vec_raw[j];
+        }
+        expt += vec_conj * temp;
+    }
+    return expt;
+}
 
 
 py::object expect_psi_csr(py::array_t<complex_t> data,
@@ -38,6 +58,23 @@ py::object expect_psi_csr(py::array_t<complex_t> data,
 }
 
 
+//py::array_t<double> occ_probabilities(py::array_t<int> qubits,
+//                                      py::array_t<complex_t> state,
+//                                      py::list meas_ops){
+//    auto meas_size = meas_ops.size();
+//    py::array_t<double> probs(meas_size);
+//    auto probs_raw = probs.mutable_unchecked<1>();
+//    for(decltype(meas_size) i=0; i < meas_size; i++){
+//        auto data = meas_ops[i].attr("data").attr("data").cast<py::array_t<complex_t>>();
+//        auto ind = meas_ops[i].attr("data").attr("indices").cast<py::array_t<int>>();
+//        auto ptr = meas_ops[i].attr("data").attr("indptr").cast<py::array_t<int>>();
+//
+//        probs_raw[i] = std::real(internal_expect_psi_csr(data, ind, ptr, state));
+//    }
+//
+//    return probs;
+//}
+
 py::array_t<double> occ_probabilities(py::array_t<int> qubits,
                                       py::array_t<complex_t> state,
                                       py::list meas_ops){
@@ -46,14 +83,13 @@ py::array_t<double> occ_probabilities(py::array_t<int> qubits,
     auto probs_raw = probs.mutable_unchecked<1>();
     for(decltype(meas_size) i=0; i < meas_size; i++){
         auto data = meas_ops[i].attr("data").attr("data").cast<py::array_t<complex_t>>();
-        auto ind = meas_ops[i].attr("data").attr("indices").cast<py::array_t<int>>();
-        auto ptr = meas_ops[i].attr("data").attr("indptr").cast<py::array_t<int>>();
-
-        probs_raw[i] = std::real(internal_expect_psi_csr(data, ind, ptr, state));
+        probs_raw[i] = std::real(internal_expect_psi(data, state));
     }
-
+    
     return probs;
 }
+
+
 
 void write_shots_memory(py::array_t<unsigned char> mem,
                         py::array_t<unsigned int> mem_slots,

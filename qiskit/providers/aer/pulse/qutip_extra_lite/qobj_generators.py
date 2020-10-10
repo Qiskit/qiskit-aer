@@ -16,17 +16,13 @@
 """Operators to use in simulator"""
 
 import numpy as np
-from . import operators as ops
-from . import states as st
-from . import tensor as ten
-from .qobj import Qobj
-
+from ..system_models.string_model_parser import gen_operator as ops2
 
 def sigmax(dim=2):
     """Qiskit wrapper of sigma-X operator.
     """
     if dim == 2:
-        return ops.sigmax()
+        return ops2.sigmax()
     else:
         raise Exception('Invalid level specification of the qubit subspace')
 
@@ -35,7 +31,7 @@ def sigmay(dim=2):
     """Qiskit wrapper of sigma-Y operator.
     """
     if dim == 2:
-        return ops.sigmay()
+        return ops2.sigmay()
     else:
         raise Exception('Invalid level specification of the qubit subspace')
 
@@ -44,7 +40,7 @@ def sigmaz(dim=2):
     """Qiskit wrapper of sigma-Z operator.
     """
     if dim == 2:
-        return ops.sigmaz()
+        return ops2.sigmaz()
     else:
         raise Exception('Invalid level specification of the qubit subspace')
 
@@ -52,37 +48,37 @@ def sigmaz(dim=2):
 def sigmap(dim=2):
     """Qiskit wrapper of sigma-plus operator.
     """
-    return ops.create(dim)
+    return ops2.create(dim)
 
 
 def sigmam(dim=2):
     """Qiskit wrapper of sigma-minus operator.
     """
-    return ops.destroy(dim)
+    return ops2.destroy(dim)
 
 
 def create(dim):
     """Qiskit wrapper of creation operator.
     """
-    return ops.create(dim)
+    return ops2.create(dim)
 
 
 def destroy(dim):
     """Qiskit wrapper of annihilation operator.
     """
-    return ops.destroy(dim)
+    return ops2.destroy(dim)
 
 
 def num(dim):
     """Qiskit wrapper of number operator.
     """
-    return ops.num(dim)
+    return ops2.num(dim)
 
 
 def qeye(dim):
     """Qiskit wrapper of identity operator.
     """
-    return ops.qeye(dim)
+    return ops2.qeye(dim)
 
 
 def project(dim, states):
@@ -90,7 +86,8 @@ def project(dim, states):
     """
     ket, bra = states
     if ket in range(dim) and bra in range(dim):
-        return st.basis(dim, ket) * st.basis(dim, bra).dag()
+        #return st.basis(dim, ket) * st.basis(dim, bra).dag()
+        return ops2.basis(dim, ket) * ops2.basis(dim, bra).dag()
     else:
         raise Exception('States are specified on the outside of Hilbert space %s' % states)
 
@@ -98,25 +95,29 @@ def project(dim, states):
 def tensor(list_qobj):
     """ Qiskit wrapper of tensor product
     """
-    return ten.tensor(list_qobj)
+    #return ten.tensor(list_qobj)
+    return ops2.tensor(list_qobj)
 
 
 def basis(level, pos):
     """ Qiskit wrapper of basis
     """
-    return st.basis(level, pos)
+    #return st.basis(level, pos)
+    return ops2.basis(level, pos)
 
 
 def state(state_vec):
     """ Qiskit wrapper of qobj
     """
-    return Qobj(state_vec)
+    #return Qobj(state_vec)
+    return ops2.state(state_vec)
 
 
 def fock_dm(level, eigv):
     """ Qiskit wrapper of fock_dm
     """
-    return st.fock_dm(level, eigv)
+    #return st.fock_dm(level, eigv)
+    return ops2.fock_dm(level, eigv)
 
 
 def qubit_occ_oper_dressed(target_qubit, estates, h_osc, h_qub, level=0):
@@ -153,8 +154,8 @@ def qubit_occ_oper_dressed(target_qubit, estates, h_osc, h_qub, level=0):
     out_state = tensor(states)
 
     for ii, estate in enumerate(estates):
-        if out_state[ii] == 1:
-            proj_op += estate * estate.dag()
+        if out_state.data.flatten()[ii] == 1:
+            proj_op += estate @ estate.adjoint()
 
     return proj_op
 

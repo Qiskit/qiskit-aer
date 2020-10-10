@@ -21,6 +21,7 @@ from qiskit.providers.aer.pulse.system_models.hamiltonian_model import Hamiltoni
 from qiskit.providers.aer.pulse.system_models import duffing_model_generators as model_gen
 from qiskit.providers.aer.pulse.qutip_extra_lite.qobj_generators import get_oper
 from qiskit.providers.models.backendconfiguration import UchannelLO
+from qiskit.quantum_info.operators.operator import Operator
 
 class TestDuffingModelGenerators(QiskitAerTestCase):
     """Tests for functions in duffing_model_generators.py"""
@@ -551,8 +552,8 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
 
     def _operator_array_from_str(self, dim, op_str_list):
 
-        op = array([[1.]])
+        op = Operator(array([[1.]]))
         for c in op_str_list:
-            op = kron(op, get_oper(c, dim))
+            op = op.tensor(get_oper(c, dim).data)
 
         return op
