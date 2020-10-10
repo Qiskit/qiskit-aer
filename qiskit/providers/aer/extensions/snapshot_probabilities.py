@@ -55,7 +55,7 @@ def snapshot_probabilities(self, label, qubits, variance=False):
     Raises:
         ExtensionError: if snapshot is invalid.
     """
-    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
+    snapshot_register = Snapshot.define_snapshot_register(self, qubits=qubits)
 
     return self.append(
         SnapshotProbabilities(label,
