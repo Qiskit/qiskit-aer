@@ -21,8 +21,8 @@ from qiskit.circuit import Instruction
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendProperties
 
-from qiskit.providers.aer.backends.aerbackend import AerJSONEncoder
-from qiskit.providers.aer.backends.qasm_simulator import QasmSimulator
+from ..backends.aerbackend import AerJSONEncoder
+from ..backends.qasm_simulator import QasmSimulator
 
 from .noiseerror import NoiseError
 from .errors.quantum_error import QuantumError

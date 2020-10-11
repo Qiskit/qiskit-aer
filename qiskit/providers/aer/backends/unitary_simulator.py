@@ -22,9 +22,9 @@ from qiskit.providers.models import QasmBackendConfiguration
 
 from .aerbackend import AerBackend
 from ..aererror import AerError
-# pylint: disable=import-error
-from .controller_wrappers import unitary_controller_execute
 from ..version import __version__
+# pylint: disable=import-error,no-name-in-module
+from .controller_wrappers import unitary_controller_execute
 
 # Logger
 logger = logging.getLogger(__name__)
