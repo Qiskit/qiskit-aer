@@ -164,9 +164,6 @@ class QasmController : public Base::Controller {
   // Simulation precision
   enum class Precision { double_precision, single_precision };
 
-  // Fusion method
-  using FusionMethod = Transpile::Fusion::Method;
-
   //-----------------------------------------------------------------------
   // Base class abstract method override
   //-----------------------------------------------------------------------
@@ -207,8 +204,13 @@ class QasmController : public Base::Controller {
   // Return a fusion transpilation pass configured for the current
   // method, circuit and config
   Transpile::Fusion transpile_fusion(Method method,
-                                     const json_t& config,
-                                     FusionMethod fusion_method = FusionMethod::unitary) const;
+                              const json_t& config,
+                              const Noise::NoiseModel& noise = Noise::NoiseModel()) const;
+
+  // Return a fusion method for a fusion transpilation pass
+  std::shared_ptr<Transpile::FusionMethod> get_fusion_method(Method method,
+                                                             const json_t& config,
+                                                             const Noise::NoiseModel& noise = Noise::NoiseModel()) const;
 
   //----------------------------------------------------------------
   // Run circuit helpers
@@ -780,31 +782,33 @@ size_t QasmController::required_memory_mb(
   }
 }
 
-Transpile::Fusion QasmController::transpile_fusion(Method method,
-                                                   const json_t& config,
-                                                   FusionMethod fusion_method) const {
-  Transpile::Fusion fusion_pass;
-  switch (method) {
-    case Method::statevector:
-    case Method::statevector_thrust_gpu:
-    case Method::statevector_thrust_cpu:
-    case Method::density_matrix:
-    case Method::density_matrix_thrust_gpu:
-    case Method::density_matrix_thrust_cpu: {
-      if (fusion_method == FusionMethod::superop) {
-        fusion_pass.allow_superop = true;
-      } else if (fusion_method == FusionMethod::kraus) {
-        fusion_pass.allow_kraus = true;
-      }
-      fusion_pass.set_config(config);
-      break;
-    }
-    default: {
-      fusion_pass.active = false;
-      break;
-    }
+// Return a fusion method for a fusion transpilation pass
+std::shared_ptr<Transpile::FusionMethod> QasmController::get_fusion_method(Method method,
+                                                          const json_t& config,
+                                                          const Noise::NoiseModel& noise) const {
+  if (noise.is_ideal() || noise.has_quantum_errors() == false) {
+    return std::make_shared<Transpile::FusionMethod>();
+  } else if (method == Method::density_matrix ||
+             method == Method::density_matrix_thrust_gpu ||
+             method == Method::density_matrix_thrust_cpu) {
+    return std::make_shared<Transpile::SuperopFusionMethod>();
+  } else if (noise.opset().contains(Operations::OpType::kraus) ||
+           noise.opset().contains(Operations::OpType::superop)) {
+    return std::make_shared<Transpile::KrausFusionMethod>();
+  } else {
+    return std::make_shared<Transpile::FusionMethod>();
   }
-  return fusion_pass;
+}
+
+Transpile::Fusion QasmController::transpile_fusion(Method method,
+                                                       const json_t& config,
+                                                       const Noise::NoiseModel& noise) const {
+
+  auto fusion_pass = Transpile::Fusion(get_fusion_method(method, config, noise));
+  fusion_pass.set_config(config);
+  fusion_pass.set_parallelization(parallel_state_update_);
+  return std::move(fusion_pass);
+
 }
 
 void QasmController::set_parallelization_circuit(
@@ -887,7 +891,6 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   // Choose execution method based on noise and method
 
   Circuit opt_circ;
-  FusionMethod fusion_method = FusionMethod::unitary;
 
   // Ideal circuit
   if (noise.is_ideal()) {
@@ -904,7 +907,6 @@ void QasmController::run_circuit_helper(const Circuit& circ,
     // Sample noise using SuperOp method
     auto noise_superop = noise;
     noise_superop.activate_superop_method();
-    fusion_method = FusionMethod::superop;
     opt_circ = noise_superop.sample_noise(circ, rng);
   }
   // Kraus noise sampling
@@ -912,7 +914,6 @@ void QasmController::run_circuit_helper(const Circuit& circ,
            noise.opset().contains(Operations::OpType::superop)) {
     auto noise_kraus = noise;
     noise_kraus.activate_kraus_method();
-    fusion_method = FusionMethod::kraus;
     opt_circ = noise_kraus.sample_noise(circ, rng);
   }
   // General circuit noise sampling
@@ -928,7 +929,7 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   measure_pass.set_config(config);
   measure_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
 
-  auto fusion_pass = transpile_fusion(method, config, fusion_method);
+  auto fusion_pass = transpile_fusion(method, config, noise);
   fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
 
   // Run simulation
@@ -995,7 +996,8 @@ void QasmController::run_circuit_with_sampled_noise(const Circuit& circ,
                                                     RngEngine& rng) const {
 
   // Transpilation for circuit noise method
-  auto fusion_pass = transpile_fusion(method, config, FusionMethod::unitary);
+  auto fusion_pass = transpile_fusion(method, config);
+
   Transpile::DelayMeasure measure_pass;
   measure_pass.set_config(config);
   Noise::NoiseModel dummy_noise;

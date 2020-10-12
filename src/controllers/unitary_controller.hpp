@@ -297,15 +297,12 @@ void UnitaryController::run_circuit_helper(
 
   // Optimize circuit
   const std::vector<Operations::Op>* op_ptr = &circ.ops;
-  Transpile::Fusion fusion_pass(5, 10); // 10-qubit default threshold
+  Transpile::Fusion fusion_pass(std::make_shared<Transpile::UnitaryMatrixFusionMethod>());
   fusion_pass.set_config(config);
-  Circuit opt_circ;
-  if (fusion_pass.active && circ.num_qubits >= fusion_pass.threshold) {
-    opt_circ = circ; // copy circuit
-    Noise::NoiseModel dummy_noise; // dummy object for transpile pass
-    fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
-    op_ptr = &opt_circ.ops;
-  }
+  Circuit opt_circ = circ;
+  Noise::NoiseModel dummy;
+  fusion_pass.optimize_circuit(opt_circ, dummy, state.opset(), data);
+  op_ptr = &opt_circ.ops;
 
   // Run single shot collecting measure data or snapshots
   if (initial_unitary_.empty()) {
