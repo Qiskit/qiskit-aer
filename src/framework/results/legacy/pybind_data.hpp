@@ -16,7 +16,7 @@
 #define _aer_framework_result_legacy_pybind_data_hpp_
 
 #include "framework/pybind_basics.hpp"
-#include "framework/results/legacy/experiment_data.hpp"
+#include "framework/results/legacy/snapshot_data.hpp"
 
 //------------------------------------------------------------------------------
 // Aer C++ -> Python Conversion
@@ -135,12 +135,12 @@ template<typename T>
 py::object from_pershot_data(AER::PershotData<std::vector<T>> &data);
 
 /**
- * Convert an ExperimentData to a python object
- * @param result is an ExperimentData
+ * Convert an SnapshotData to a python object
+ * @param result is an SnapshotData
  * @returns a py::dict
  */
-py::object from_data(AER::ExperimentData &&result);
-py::object from_data(AER::ExperimentData &result);
+py::dict from_snapshot(AER::SnapshotData &&result);
+py::dict from_snapshot(AER::SnapshotData &result);
 
 } //end namespace AerToPy
 
@@ -332,62 +332,16 @@ py::object AerToPy::from_pershot_data(AER::PershotData<std::vector<T>> &data) {
 }
 
 
-py::object AerToPy::from_data(AER::ExperimentData &datum) {
-  return AerToPy::from_data(std::move(datum));
+py::dict AerToPy::from_snapshot(AER::SnapshotData &datum) {
+  return AerToPy::from_snapshot(std::move(datum));
 }
 
-py::object AerToPy::from_data(AER::ExperimentData &&datum) {
-  py::dict pydata;
-
-  // Measure data
-  if (datum.return_counts_ && ! datum.counts_.empty()) {
-    pydata["counts"] = std::move(datum.counts_);
-  }
-  if (datum.return_memory_ && ! datum.memory_.empty()) {
-    pydata["memory"] = std::move(datum.memory_);
-  }
-  if (datum.return_register_ && ! datum.register_.empty()) {
-    pydata["register"] = std::move(datum.register_);
-  }
-
-  // Add additional data
-  for (auto &pair : datum.additional_data<json_t>()) {
-    py::object tmp;
-    from_json(pair.second, tmp);
-    pydata[pair.first.data()] = std::move(tmp);
-  }
-  for (auto &pair : datum.additional_data<std::complex<double>>()) {
-    pydata[pair.first.data()] = pair.second;
-  }
-  for (auto &pair : datum.additional_data<std::vector<std::complex<float>>>()) {
-    pydata[pair.first.data()] = AerToPy::to_numpy(std::move(pair.second));
-  }
-  for (auto &pair : datum.additional_data<std::vector<std::complex<double>>>()) {
-    pydata[pair.first.data()] = AerToPy::to_numpy(std::move(pair.second));
-  }
-  for (auto &pair : datum.additional_data<AER::Vector<std::complex<float>>>()) {
-    pydata[pair.first.data()] = AerToPy::to_numpy(std::move(pair.second));
-  }
-  for (auto &pair : datum.additional_data<AER::Vector<std::complex<double>>>()) {
-    pydata[pair.first.data()] = AerToPy::to_numpy(std::move(pair.second));
-  }
-  for (auto &pair : datum.additional_data<matrix<std::complex<float>>>()) {
-    pydata[pair.first.data()] = AerToPy::to_numpy(std::move(pair.second));    
-  }
-  for (auto &pair : datum.additional_data<matrix<std::complex<double>>>()) {
-    pydata[pair.first.data()] = AerToPy::to_numpy(std::move(pair.second));    
-  }
-  for (auto &pair : datum.additional_data<std::map<std::string, std::complex<double>>>()) {
-    pydata[pair.first.data()] = pair.second;
-  }
-  for (auto &pair : datum.additional_data<std::map<std::string, double>>()) {
-    pydata[pair.first.data()] = pair.second;
-  }
+py::dict AerToPy::from_snapshot(AER::SnapshotData &&datum) {
+  py::dict snapshots;
 
   // Snapshot data
   if (datum.return_snapshots_) {
-    py::dict snapshots;
-  
+
     // Average snapshots
     for (auto &pair : datum.average_snapshots<json_t>()) {
       snapshots[pair.first.data()] = AerToPy::from_avg_snap(pair.second);
@@ -453,13 +407,8 @@ py::object AerToPy::from_data(AER::ExperimentData &&datum) {
     for (auto &pair : datum.pershot_snapshots<std::map<std::string, double>>()) {
       snapshots[pair.first.data()] = AerToPy::from_pershot_snap(pair.second);
     }
-
-    if ( py::len(snapshots) != 0 )
-        pydata["snapshots"] = std::move(snapshots);
   }
-  //for (auto item : pydatum)
-  //  py::print("    {}:, {}"_s.format(item.first, item.second));
-  return std::move(pydata);
+  return snapshots;
 }
 
 #endif

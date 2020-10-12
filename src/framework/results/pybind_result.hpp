@@ -48,9 +48,9 @@ py::object AerToPy::to_python(AER::ExperimentResult &&result) {
 
   pyexperiment["data"] =  AerToPy::to_python(std::move(result.data));
   // Add legacy snapshot data
-  py::dict legacy = AerToPy::from_data(std::move(result.legacy_data));
-  if (legacy.contains("snapshots")) {
-    pyexperiment["data"]["snapshots"] = std::move(legacy["snapshots"]);
+  py::dict legacy_snapshots = AerToPy::from_snapshot(std::move(result.legacy_data));
+  if (!legacy_snapshots.empty()) {
+    pyexperiment["data"]["snapshots"] = std::move(legacy_snapshots);
   }
 
   pyexperiment["metadata"] = AerToPy::to_python(std::move(result.metadata));

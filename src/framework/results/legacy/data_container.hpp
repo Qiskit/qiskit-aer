@@ -32,13 +32,6 @@ class DataContainer {
 public:
 
   //----------------------------------------------------------------
-  // Additional data
-  //----------------------------------------------------------------
-  void add_additional_data(const std::string &key, T &&data);
-  void add_additional_data(const std::string &key, T &data);
-  void add_additional_data(const std::string &key, const T &data);
-
-  //----------------------------------------------------------------
   // Snapshot data
   //----------------------------------------------------------------
   
@@ -99,9 +92,6 @@ public:
   // Data containers
   //----------------------------------------------------------------
 
-  // Additional data
-  stringmap_t<T> additional_data_;
-
   // Pershot snapshots
   stringmap_t<PershotSnapshot<T>> pershot_snapshots_;
 
@@ -115,34 +105,6 @@ public:
 //============================================================================
 // Implementations
 //============================================================================
-
-//------------------------------------------------------------------
-// Add additional data
-//------------------------------------------------------------------
-
-template <typename T>
-void DataContainer<T>::add_additional_data(const std::string &key,
-                                           T &&data) {
-  if (enabled_) {
-    additional_data_[key] = std::move(data);
-  }
-}
-
-template <typename T>
-void DataContainer<T>::add_additional_data(const std::string &key,
-                                           const T &data) {
-  if (enabled_) {
-    additional_data_[key] = data;
-  }
-}
-
-template <typename T>
-void DataContainer<T>::add_additional_data(const std::string &key,
-                                           T &data) {
-  if (enabled_) {
-    additional_data_[key] = data;
-  }
-}
 
 //------------------------------------------------------------------
 // Add pershot snapshot data
@@ -215,7 +177,6 @@ void DataContainer<T>::add_average_snapshot(const std::string &type,
 
 template <typename T>
 void DataContainer<T>::clear() {
-  additional_data_.clear();
   average_snapshots_.clear();
   pershot_snapshots_.clear();
 }
@@ -226,11 +187,6 @@ void DataContainer<T>::clear() {
 
 template <typename T>
 DataContainer<T> &DataContainer<T>::combine(const DataContainer<T> &other) {
-
-  // Additional data
-  for (const auto &pair : other.additional_data_) {
-    additional_data_[pair.first] = pair.second;
-  }
 
   // Pershot snapshots
   for (const auto &pair : other.pershot_snapshots_) {
@@ -247,11 +203,6 @@ DataContainer<T> &DataContainer<T>::combine(const DataContainer<T> &other) {
 
 template <typename T>
 DataContainer<T> &DataContainer<T>::combine(DataContainer<T> &&other) {
-
-  // Additional data
-  for (auto &pair : other.additional_data_) {
-    additional_data_[pair.first] = std::move(pair.second);
-  }
 
   // Pershot snapshots
   for (auto &pair : other.pershot_snapshots_) {
@@ -280,19 +231,14 @@ void DataContainer<T>::add_to_json(json_t &js) {
   // JSON so we should not re-initialize it
   if (enabled_) {
 
-    // Add additional data
-    for (auto &pair : additional_data_) {
-      js[pair.first] = pair.second;
-    }
-
     // Average snapshots
     for (auto &pair : average_snapshots_) {
-      js["snapshots"][pair.first] = pair.second.to_json();
+      js[pair.first] = pair.second.to_json();
     }
 
     // Pershot snapshots
     for (auto &pair : pershot_snapshots_) {
-      js["snapshots"][pair.first] = pair.second.to_json();
+      js[pair.first] = pair.second.to_json();
     }
   }
 }

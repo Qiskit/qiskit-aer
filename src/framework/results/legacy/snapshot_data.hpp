@@ -12,8 +12,8 @@
  * that they have been altered from the originals.
  */
 
-#ifndef _aer_framework_results_experiment_data_hpp_
-#define _aer_framework_results_experiment_data_hpp_
+#ifndef _aer_framework_results_legacy_snapshot_data_hpp_
+#define _aer_framework_results_legacy_snapshot_data_hpp_
 
 #include "framework/json.hpp"
 #include "framework/linalg/vector.hpp"
@@ -36,30 +36,17 @@ namespace AER {
  * - "register" (bool): Return register array in circuit data [Default: False]
  **************************************************************************/
 
-class ExperimentData : public DataContainer<json_t>,
-                       public DataContainer<complex_t>,
-                       public DataContainer<std::vector<std::complex<float>>>,
-                       public DataContainer<std::vector<std::complex<double>>>,
-                       public DataContainer<Vector<std::complex<float>>>,
-                       public DataContainer<Vector<std::complex<double>>>,
-                       public DataContainer<matrix<std::complex<float>>>,
-                       public DataContainer<matrix<std::complex<double>>>,
-                       public DataContainer<std::map<std::string, complex_t>>,
-                       public DataContainer<std::map<std::string, double>> {
+class SnapshotData : public DataContainer<json_t>,
+                     public DataContainer<complex_t>,
+                     public DataContainer<std::vector<std::complex<float>>>,
+                     public DataContainer<std::vector<std::complex<double>>>,
+                     public DataContainer<Vector<std::complex<float>>>,
+                     public DataContainer<Vector<std::complex<double>>>,
+                     public DataContainer<matrix<std::complex<float>>>,
+                     public DataContainer<matrix<std::complex<double>>>,
+                     public DataContainer<std::map<std::string, complex_t>>,
+                     public DataContainer<std::map<std::string, double>> {
 public:
-  //----------------------------------------------------------------
-  // Measurement
-  //----------------------------------------------------------------
-
-  // Add a single memory value to the counts map
-  void add_memory_count(const std::string &memory);
-
-  // Add a single memory value to the memory vector
-  void add_pershot_memory(const std::string &memory);
-
-  // Add a single register value to the register vector
-  void add_pershot_register(const std::string &reg);
-
   //----------------------------------------------------------------
   // Pershot snapshots
   //----------------------------------------------------------------
@@ -110,29 +97,6 @@ public:
   using DataContainer<std::map<std::string, double>>::add_average_snapshot;
 
   //----------------------------------------------------------------
-  // Additional data
-  //----------------------------------------------------------------
-
-  // Add new data at the specified key.
-  // If they key already exists this will override the stored data
-  // This will use the json conversion method `to_json` for data type T
-  // data type T unless T is one of the parent container types.
-  template <typename T>
-  void add_additional_data(const std::string &key, T &&data);
-
-  // Using aliases so we don't shadow parent class methods
-  using DataContainer<json_t>::add_additional_data;
-  using DataContainer<complex_t>::add_additional_data;
-  using DataContainer<std::vector<std::complex<float>>>::add_additional_data;
-  using DataContainer<std::vector<std::complex<double>>>::add_additional_data;
-  using DataContainer<Vector<std::complex<float>>>::add_additional_data;
-  using DataContainer<Vector<std::complex<double>>>::add_additional_data;
-  using DataContainer<matrix<std::complex<float>>>::add_additional_data;
-  using DataContainer<matrix<std::complex<double>>>::add_additional_data;
-  using DataContainer<std::map<std::string, complex_t>>::add_additional_data;
-  using DataContainer<std::map<std::string, double>>::add_additional_data;
-
-  //----------------------------------------------------------------
   // Config
   //----------------------------------------------------------------
 
@@ -148,40 +112,21 @@ public:
   // Combine engines for accumulating data
   // Second engine should no longer be used after combining
   // as this function should use move semantics to minimize copying
-  ExperimentData &combine(ExperimentData &&eng); // Move semantics
-  ExperimentData &combine(const ExperimentData &eng); // Copy semantics
+  SnapshotData &combine(SnapshotData &&eng); // Move semantics
+  SnapshotData &combine(const SnapshotData &eng); // Copy semantics
 
   // Operator overload for combine
   // Note this operator is not defined to be const on the input argument
-  inline ExperimentData &operator+=(const ExperimentData &eng) {
+  inline SnapshotData &operator+=(const SnapshotData &eng) {
     return combine(eng);
   }
-  inline ExperimentData &operator+=(ExperimentData &&eng) {
+  inline SnapshotData &operator+=(SnapshotData &&eng) {
     return combine(std::move(eng));
   }
 
   //----------------------------------------------------------------
-  // Measurement data
-  //----------------------------------------------------------------
-
-  // Histogram of memory counts over shots
-  std::map<std::string, uint_t> counts_;
-
-  // Memory state for each shot as hex string
-  std::vector<std::string> memory_;
-
-  // Register state for each shot as hex string
-  std::vector<std::string> register_;
-
-  //----------------------------------------------------------------
   // Access Templated DataContainers
   //----------------------------------------------------------------
-
-  template <typename T>
-  stringmap_t<T>& additional_data();
-
-  template <typename T>
-  const stringmap_t<T>& additional_data() const;
 
   template <typename T>
   stringmap_t<PershotSnapshot<T>>& pershot_snapshots();
@@ -195,27 +140,18 @@ public:
   template <typename T>
   const stringmap_t<AverageSnapshot<T>>& average_snapshots() const;
 
-
   //----------------------------------------------------------------
   // Config
   //----------------------------------------------------------------
 
-  bool return_counts_ = true;
-  bool return_memory_ = false;
-  bool return_register_ = false;
   bool return_snapshots_ = true;
-  bool return_additional_data_ = true;
 };
 
 //============================================================================
 // Implementations
 //============================================================================
 
-void ExperimentData::set_config(const json_t &config) {
-  JSON::get_value(return_counts_, "counts", config);
-  JSON::get_value(return_memory_, "memory", config);
-  JSON::get_value(return_register_, "register", config);
-
+void SnapshotData::set_config(const json_t &config) {
   // Snapshots enabled
   bool enabled = true;
   JSON::get_value(enabled, "snapshots", config);
@@ -232,36 +168,12 @@ void ExperimentData::set_config(const json_t &config) {
 }
 
 //------------------------------------------------------------------
-// Classical data
-//------------------------------------------------------------------
-
-void ExperimentData::add_memory_count(const std::string &memory) {
-  // Memory bits value
-  if (return_counts_ && !memory.empty()) {
-    counts_[memory] += 1;
-  }
-}
-
-void ExperimentData::add_pershot_memory(const std::string &memory) {
-  // Memory bits value
-  if (return_memory_ && !memory.empty()) {
-    memory_.push_back(memory);
-  }
-}
-
-void ExperimentData::add_pershot_register(const std::string &reg) {
-  if (return_register_ && !reg.empty()) {
-    register_.push_back(reg);
-  }
-}
-
-//------------------------------------------------------------------
 // Pershot Snapshots
 //------------------------------------------------------------------
 
 // Generic
 template <typename T>
-void ExperimentData::add_pershot_snapshot(const std::string &type,
+void SnapshotData::add_pershot_snapshot(const std::string &type,
                                           const std::string &label, T &&datum) {
   if (return_snapshots_) {
     // use implicit to_json conversion function for T
@@ -275,7 +187,7 @@ void ExperimentData::add_pershot_snapshot(const std::string &type,
 //------------------------------------------------------------------
 
 template <typename T>
-void ExperimentData::add_average_snapshot(const std::string &type,
+void SnapshotData::add_average_snapshot(const std::string &type,
                                           const std::string &label,
                                           const std::string &memory, T &&datum,
                                           bool variance) {
@@ -286,48 +198,26 @@ void ExperimentData::add_average_snapshot(const std::string &type,
 }
 
 //------------------------------------------------------------------
-// Additional Data
-//------------------------------------------------------------------
-
-template <typename T>
-void ExperimentData::add_additional_data(const std::string &key, T &&data) {
-  if (return_additional_data_) {
-    json_t jdata = data;
-    DataContainer<json_t>::add_additional_data(key, std::move(jdata));
-  }
-}
-
-
-//------------------------------------------------------------------
 // Access Data
 //------------------------------------------------------------------
-template <typename T>
-stringmap_t<T>& ExperimentData::additional_data() {
-  return DataContainer<T>::additional_data_;
-}
 
 template <typename T>
-const stringmap_t<T>& ExperimentData::additional_data() const {
-  return DataContainer<T>::additional_data_;
-}
-
-template <typename T>
-stringmap_t<PershotSnapshot<T>>& ExperimentData::pershot_snapshots() {
+stringmap_t<PershotSnapshot<T>>& SnapshotData::pershot_snapshots() {
   return DataContainer<T>::pershot_snapshots_;
 }
 
 template <typename T>
-const stringmap_t<PershotSnapshot<T>>& ExperimentData::pershot_snapshots() const {
+const stringmap_t<PershotSnapshot<T>>& SnapshotData::pershot_snapshots() const {
   return DataContainer<T>::pershot_snapshots_;
 }
 
 template <typename T>
-stringmap_t<AverageSnapshot<T>>& ExperimentData::average_snapshots() {
+stringmap_t<AverageSnapshot<T>>& SnapshotData::average_snapshots() {
   return DataContainer<T>::average_snapshots_;
 }
 
 template <typename T>
-const stringmap_t<AverageSnapshot<T>>& ExperimentData::average_snapshots() const {
+const stringmap_t<AverageSnapshot<T>>& SnapshotData::average_snapshots() const {
   return DataContainer<T>::average_snapshots_;
 }
 
@@ -335,7 +225,7 @@ const stringmap_t<AverageSnapshot<T>>& ExperimentData::average_snapshots() const
 // Clear and combine
 //------------------------------------------------------------------
 
-void ExperimentData::clear() {
+void SnapshotData::clear() {
 
   DataContainer<json_t>::clear();
   DataContainer<complex_t>::clear();
@@ -348,13 +238,9 @@ void ExperimentData::clear() {
   DataContainer<std::map<std::string, complex_t>>::clear();
   DataContainer<std::map<std::string, double>>::clear();
 
-  // Clear measurement data
-  counts_.clear();
-  memory_.clear();
-  register_.clear();
 }
 
-ExperimentData &ExperimentData::combine(const ExperimentData &other) {
+SnapshotData &SnapshotData::combine(const SnapshotData &other) {
 
   // Combine containers
   DataContainer<json_t>::combine(other);
@@ -368,21 +254,10 @@ ExperimentData &ExperimentData::combine(const ExperimentData &other) {
   DataContainer<std::map<std::string, complex_t>>::combine(other);
   DataContainer<std::map<std::string, double>>::combine(other);
 
-  // Combine measure
-  std::copy(other.memory_.begin(), other.memory_.end(),
-            std::back_inserter(memory_));
-  std::copy(other.register_.begin(), other.register_.end(),
-            std::back_inserter(register_));
-
-  // Combine counts
-  for (auto pair : other.counts_) {
-    counts_[pair.first] += pair.second;
-  }
-
   return *this;
 }
 
-ExperimentData &ExperimentData::combine(ExperimentData &&other) {
+SnapshotData &SnapshotData::combine(SnapshotData &&other) {
 
   DataContainer<json_t>::combine(std::move(other));
   DataContainer<complex_t>::combine(std::move(other));
@@ -395,17 +270,6 @@ ExperimentData &ExperimentData::combine(ExperimentData &&other) {
   DataContainer<std::map<std::string, complex_t>>::combine(std::move(other));
   DataContainer<std::map<std::string, double>>::combine(std::move(other));
 
-  // Combine measure
-  std::move(other.memory_.begin(), other.memory_.end(),
-            std::back_inserter(memory_));
-  std::move(other.register_.begin(), other.register_.end(),
-            std::back_inserter(register_));
-
-  // Combine counts
-  for (auto pair : other.counts_) {
-    counts_[pair.first] += pair.second;
-  }
-
   // Clear any remaining data from other container
   other.clear();
 
@@ -416,8 +280,7 @@ ExperimentData &ExperimentData::combine(ExperimentData &&other) {
 // JSON serialization
 //------------------------------------------------------------------------------
 
-json_t ExperimentData::to_json() {
-  // Initialize output as additional data JSON
+json_t SnapshotData::to_json() {
   json_t js;
 
   // Add all container data
@@ -432,14 +295,6 @@ json_t ExperimentData::to_json() {
   DataContainer<std::map<std::string, complex_t>>::add_to_json(js);
   DataContainer<std::map<std::string, double>>::add_to_json(js);
 
-  // Measure data
-  if (return_counts_ && counts_.empty() == false) js["counts"] = counts_;
-  if (return_memory_ && memory_.empty() == false) js["memory"] = memory_;
-  if (return_register_ && register_.empty() == false)
-    js["register"] = register_;
-
-  // Check if data is null (empty) and if so return an empty JSON object
-  if (js.is_null()) return json_t::object();
   return js;
 }
 
