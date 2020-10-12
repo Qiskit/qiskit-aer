@@ -78,7 +78,7 @@ class StatevectorTests(
         QasmResetNoiseTests, QasmKrausNoiseTests, QasmBasicsTests,
         QasmSnapshotStatevectorTests, QasmSnapshotDensityMatrixTests,
         QasmSnapshotProbabilitiesTests, QasmSnapshotExpValPauliTests,
-        QasmSnapshotExpValPauliNCTests, QasmSnapshotExpValMatrixTests,
+        QasmSnapshotExpvalPauliNCTests, QasmSnapshotExpValMatrixTests,
         QasmSnapshotStabilizerTests):
     """Container class of statevector method tests."""
     pass

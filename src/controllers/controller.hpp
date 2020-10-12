@@ -209,6 +209,7 @@ protected:
   int max_parallel_experiments_;
   int max_parallel_shots_;
   size_t max_memory_mb_;
+  size_t max_gpu_memory_mb_;
 
   // use explicit parallelization
   bool explicit_parallelization_;
@@ -388,6 +389,30 @@ size_t Controller::get_system_memory_mb() {
   GlobalMemoryStatusEx(&status);
   total_physical_memory = status.ullTotalPhys;
 #endif
+#ifdef AER_THRUST_CUDA
+  int iDev,nDev,j;
+  cudaGetDeviceCount(&nDev);
+  for(iDev=0;iDev<nDev;iDev++){
+    size_t freeMem,totalMem;
+    cudaSetDevice(iDev);
+    cudaMemGetInfo(&freeMem,&totalMem);
+    max_gpu_memory_mb_ += totalMem;
+
+    for(j=0;j<nDev;j++){
+      if(iDev != j){
+        int ip;
+        cudaDeviceCanAccessPeer(&ip,iDev,j);
+        if(ip){
+          if(cudaDeviceEnablePeerAccess(j,0) != cudaSuccess)
+            cudaGetLastError();
+        }
+      }
+    }
+  }
+  total_physical_memory += max_gpu_memory_mb_;
+  max_gpu_memory_mb_ >>= 20;
+#endif
+
   return total_physical_memory >> 20;
 }
 
