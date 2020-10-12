@@ -16,15 +16,15 @@ Simulator command to snapshot internal simulator representation.
 from warnings import warn
 import math
 import numpy
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import Instruction
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.qobj import QasmQobjInstruction
 from qiskit.quantum_info.operators import Pauli, Operator
-from . import snapshot
+from qiskit_aer.extensions.snapshot import Snapshot
 
 
-class SnapshotExpectationValue(snapshot.Snapshot):
+class SnapshotExpectationValue(Snapshot):
     """Snapshot instruction for supported methods of Qasm simulator."""
 
     def __init__(self, label, op, single_shot=False, variance=False):
@@ -142,7 +142,7 @@ def snapshot_expectation_value(self, label, op, qubits,
         ExtensionError: if snapshot is invalid.
     """
 
-    snapshot_register = snapshot.Snapshot.define_snapshot_register(self, label, qubits)
+    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
 
     return self.append(
         SnapshotExpectationValue(label, op,

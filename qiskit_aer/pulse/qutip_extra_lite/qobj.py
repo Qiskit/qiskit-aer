@@ -60,13 +60,13 @@ import builtins
 import numpy as np
 import scipy.sparse as sp
 import scipy.linalg as la
-from qiskit.providers.aer.version import __version__
+from qiskit_aer.version import __version__
 
-from .dimensions import type_from_dims
+from qiskit_aer.pulse.qutip_extra_lite.dimensions import type_from_dims
 
 # used in existing functions that break if removed
-from .cy.spmath import (zcsr_adjoint, zcsr_isherm)
-from .fastsparse import fast_csr_matrix, fast_identity
+from qiskit_aer.pulse.qutip_extra_lite.cy.spmath import (zcsr_adjoint, zcsr_isherm)
+from qiskit_aer.pulse.qutip_extra_lite.fastsparse import fast_csr_matrix, fast_identity
 
 # general absolute tolerance
 atol = 1e-12

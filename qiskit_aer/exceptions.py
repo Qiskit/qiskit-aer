@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019, 2020.
+# (C) Copyright IBM 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,9 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Models for objects built around tensor product systems.
+"""
+Exception for errors raised by Qiskit Aer simulators backends.
 """
 
-from qiskit_aer.pulse.system_models.pulse_system_model import PulseSystemModel
-from qiskit_aer.pulse.system_models.hamiltonian_model import HamiltonianModel
-from qiskit_aer.pulse.system_models.duffing_model_generators import duffing_system_model
+# pylint: disable=unused-import
+from qiskit_aer.aererror import AerError
+from qiskit_aer.noise.noiseerror import NoiseError

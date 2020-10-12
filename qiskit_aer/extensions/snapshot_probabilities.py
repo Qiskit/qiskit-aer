@@ -15,11 +15,11 @@ Simulator command to snapshot internal simulator representation.
 """
 
 from warnings import warn
-from qiskit import QuantumCircuit
-from . import snapshot
+from qiskit.circuit import QuantumCircuit
+from qiskit_aer.extensions.snapshot import Snapshot
 
 
-class SnapshotProbabilities(snapshot.Snapshot):
+class SnapshotProbabilities(Snapshot):
     """Snapshot instruction for all methods of Qasm simulator."""
 
     def __init__(self, label, num_qubits, variance=False):
@@ -55,7 +55,7 @@ def snapshot_probabilities(self, label, qubits, variance=False):
     Raises:
         ExtensionError: if snapshot is invalid.
     """
-    snapshot_register = snapshot.Snapshot.define_snapshot_register(self, label, qubits)
+    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
 
     return self.append(
         SnapshotProbabilities(label,

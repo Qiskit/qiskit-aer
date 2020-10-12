@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.quantum_info.operators import SuperOp, Kraus
 from qiskit.providers.aer.noise import QuantumError
-from qiskit.providers.aer.noise.noiseerror import NoiseError
+from qiskit.providers.aer.exceptions import NoiseError
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 
 

@@ -16,13 +16,15 @@ Qiskit Aer statevector simulator backend.
 
 import logging
 from math import log2
+
 from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
-from .aerbackend import AerBackend
-from ..aererror import AerError
-from ..version import __version__
+
+from qiskit_aer.aererror import AerError
+from qiskit_aer.version import __version__
+from qiskit_aer.backends.aerbackend import AerBackend
 # pylint: disable=import-error,no-name-in-module
-from .controller_wrappers import statevector_controller_execute
+from qiskit_aer.backends.controller_wrappers import statevector_controller_execute
 
 # Logger
 logger = logging.getLogger(__name__)

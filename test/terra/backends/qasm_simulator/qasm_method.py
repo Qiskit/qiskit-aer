@@ -17,7 +17,7 @@ from test.terra.reference import ref_2q_clifford
 from test.terra.reference import ref_non_clifford
 from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
-from qiskit.providers.aer import AerError
+from qiskit.providers.aer.exceptions import AerError
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import QuantumError
 from qiskit.providers.aer.noise.errors import pauli_error

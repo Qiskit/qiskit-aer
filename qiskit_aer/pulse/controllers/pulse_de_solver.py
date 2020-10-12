@@ -20,7 +20,7 @@
 
 """Set up DE solver for problems in qutip format."""
 
-from ..de.DE_Methods import method_from_string
+from qiskit_aer.pulse.de.DE_Methods import method_from_string
 
 
 def setup_de_solver(exp, y0, pulse_de_model, de_options):

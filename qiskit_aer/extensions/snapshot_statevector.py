@@ -14,11 +14,11 @@
 Simulator command to snapshot internal simulator representation.
 """
 
-from qiskit import QuantumCircuit
-from . import snapshot
+from qiskit.circuit import QuantumCircuit
+from qiskit_aer.extensions.snapshot import Snapshot
 
 
-class SnapshotStatevector(snapshot.Snapshot):
+class SnapshotStatevector(Snapshot):
     """ Snapshot instruction for statevector snapshot type """
 
     def __init__(self, label, num_qubits=0):
@@ -60,7 +60,7 @@ def snapshot_statevector(self, label):
     """
     # Statevector snapshot acts as a barrier across all qubits in the
     # circuit
-    snapshot_register = snapshot.Snapshot.define_snapshot_register(self, label)
+    snapshot_register = Snapshot.define_snapshot_register(self, label)
 
     return self.append(
         SnapshotStatevector(label, num_qubits=len(snapshot_register)),

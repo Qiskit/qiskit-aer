@@ -17,16 +17,16 @@
 
 from warnings import warn
 from collections import OrderedDict
-from qiskit.providers import BaseBackend
-from ...aererror import AerError
-from .hamiltonian_model import HamiltonianModel
+from qiskit.providers.basebackend import BaseBackend
+from qiskit_aer.aererror import AerError
+from qiskit_aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 
 
 class PulseSystemModel():
     r"""Physical model object for pulse simulator.
 
     This class contains model information required by the
-    :class:`~qiskit.providers.aer.PulseSimulator`. It contains:
+    :class:`~qiskit_aer.PulseSimulator`. It contains:
 
         * ``"hamiltonian"``: a :class:`HamiltonianModel` object representing the
           Hamiltonian of the system.

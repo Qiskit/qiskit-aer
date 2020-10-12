@@ -22,7 +22,7 @@ import qiskit.quantum_info as qi
 from qiskit.compiler import assemble
 from qiskit.quantum_info import DensityMatrix, Pauli, Operator
 from qiskit.providers.aer import QasmSimulator
-from qiskit.providers.aer import AerError
+from qiskit.providers.aer.exceptions import AerError
 from qiskit.providers.aer.extensions import Snapshot
 
 from test.terra.reference.ref_snapshot_state import (

@@ -33,7 +33,7 @@ def insert_noise(circuits, noise_model, transpile=False):
         original circuit with ``Kraus`` instructions inserted after all
         instructions referenced in the ``noise_model``. The resulting circuit
         cannot be ran on a quantum computer but can be executed on the
-        :class:`~qiskit.providers.aer.QasmSimulator`.
+        :class:`~qiskit_aer.QasmSimulator`.
     """
     is_circuits_list = isinstance(circuits, (list, tuple))
     circuits = circuits if is_circuits_list else [circuits]

@@ -25,8 +25,8 @@ import warnings
 import numpy as np
 from scipy.integrate import ode, solve_ivp
 from scipy.integrate._ode import zvode
-from .DE_Options import DE_Options
-from .type_utils import StateTypeConverter
+from qiskit_aer.pulse.de.DE_Options import DE_Options
+from qiskit_aer.pulse.de.type_utils import StateTypeConverter
 
 
 class ODE_Method(ABC):

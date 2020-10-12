@@ -14,7 +14,7 @@
 Exception for errors raised by Qiskit Aer noise module.
 """
 
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 class NoiseError(QiskitError):

@@ -14,13 +14,13 @@
 Functions for building noise models from backend properties.
 """
 
-from .basic_device_model import basic_device_noise_model
-from .models import basic_device_readout_errors
-from .models import basic_device_gate_errors
-from .parameters import gate_param_values
-from .parameters import gate_error_values
-from .parameters import gate_length_values
-from .parameters import readout_error_values
-from .parameters import thermal_relaxation_values
+from qiskit_aer.noise.device.basic_device_model import basic_device_noise_model
+from qiskit_aer.noise.device.models import basic_device_readout_errors
+from qiskit_aer.noise.device.models import basic_device_gate_errors
+from qiskit_aer.noise.device.parameters import gate_param_values
+from qiskit_aer.noise.device.parameters import gate_error_values
+from qiskit_aer.noise.device.parameters import gate_length_values
+from qiskit_aer.noise.device.parameters import readout_error_values
+from qiskit_aer.noise.device.parameters import thermal_relaxation_values
 
-from . import parameters
+from qiskit_aer.noise.device import parameters

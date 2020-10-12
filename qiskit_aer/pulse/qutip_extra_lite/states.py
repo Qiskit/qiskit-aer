@@ -50,8 +50,8 @@
 """
 
 import numpy as np
-from .qobj import Qobj
-from .fastsparse import fast_csr_matrix
+from qiskit_aer.pulse.qutip_extra_lite.qobj import Qobj
+from qiskit_aer.pulse.qutip_extra_lite.fastsparse import fast_csr_matrix
 
 
 # used by qobj_generators

@@ -50,8 +50,8 @@ Module for the creation of composite quantum objects via the tensor product.
 
 import numpy as np
 # pylint: disable=no-name-in-module, import-error
-from .cy.spmath import zcsr_kron
-from .qobj import Qobj
+from qiskit_aer.pulse.qutip_extra_lite.cy.spmath import zcsr_kron
+from qiskit_aer.pulse.qutip_extra_lite.qobj import Qobj
 
 
 def tensor(*args):

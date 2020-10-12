@@ -12,10 +12,10 @@
 
 """
 ==========================================
-Aer Provider (:mod:`qiskit.providers.aer`)
+Aer Provider (:mod:`qiskit_aer`)
 ==========================================
 
-.. currentmodule:: qiskit.providers.aer
+.. currentmodule:: qiskit_aer
 
 Simulator Provider
 ==================
@@ -42,13 +42,6 @@ Job Class
    :toctree: ../stubs/
 
    AerJob
-
-Exceptions
-==========
-.. autosummary::
-   :toctree: ../stubs/
-
-   AerError
 """
 
 # https://github.com/Qiskit/qiskit-aer/issues/1
@@ -61,14 +54,14 @@ if platform.system() == "Darwin":
 # ... ¯\_(ツ)_/¯
 
 # pylint: disable=wrong-import-position
-from .aerprovider import AerProvider
-from .aerjob import AerJob
-from .aererror import AerError
-from .backends import *
-from . import pulse
-from . import noise
-from . import utils
-from .version import __version__
+from qiskit_aer.aerprovider import AerProvider
+from qiskit_aer.aerjob import AerJob
+from qiskit_aer.backends import *
+from qiskit_aer import pulse
+from qiskit_aer import noise
+from qiskit_aer import utils
+from qiskit_aer.version import __version__
+from qiskit_aer.exceptions import AerError  # Deprecated
 
 # Global instance to be used as the entry point for convenience.
 Aer = AerProvider()  # pylint: disable=invalid-name

@@ -18,7 +18,8 @@ from concurrent import futures
 import logging
 import functools
 
-from qiskit.providers import BaseJob, JobStatus, JobError
+from qiskit.providers.basejob import BaseJob, JobStatus
+from qiskit.providers.exceptions import JobError
 
 logger = logging.getLogger(__name__)
 

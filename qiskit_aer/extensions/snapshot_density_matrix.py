@@ -14,11 +14,11 @@
 Simulator command to snapshot internal simulator representation.
 """
 
-from qiskit import QuantumCircuit
-from . import snapshot
+from qiskit.circuit import QuantumCircuit
+from qiskit_aer.extensions.snapshot import Snapshot
 
 
-class SnapshotDensityMatrix(snapshot.Snapshot):
+class SnapshotDensityMatrix(Snapshot):
     """Snapshot instruction for density matrix method of Qasm simulator."""
 
     def __init__(self, label, num_qubits):
@@ -51,7 +51,7 @@ def snapshot_density_matrix(self, label, qubits=None):
         ExtensionError: if snapshot is invalid.
     """
 
-    snapshot_register = snapshot.Snapshot.define_snapshot_register(self, label, qubits)
+    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
 
     return self.append(
         SnapshotDensityMatrix(label, num_qubits=len(snapshot_register)),

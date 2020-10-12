@@ -16,7 +16,7 @@ Simulator command to snapshot internal simulator representation.
 
 import warnings
 
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction
 from qiskit.extensions.exceptions import ExtensionError

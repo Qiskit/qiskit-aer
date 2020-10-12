@@ -20,14 +20,13 @@ import logging
 from numpy import inf, exp, allclose
 
 import qiskit.quantum_info as qi
-from .parameters import readout_error_values
-from .parameters import gate_param_values
-from .parameters import thermal_relaxation_values
-from .parameters import _NANOSECOND_UNITS
-
-from ..errors.readout_error import ReadoutError
-from ..errors.standard_errors import depolarizing_error
-from ..errors.standard_errors import thermal_relaxation_error
+from qiskit_aer.noise.errors.readout_error import ReadoutError
+from qiskit_aer.noise.errors.standard_errors import (depolarizing_error,
+                                                     thermal_relaxation_error)
+from qiskit_aer.noise.device.parameters import readout_error_values
+from qiskit_aer.noise.device.parameters import gate_param_values
+from qiskit_aer.noise.device.parameters import thermal_relaxation_values
+from qiskit_aer.noise.device.parameters import _NANOSECOND_UNITS
 
 logger = logging.getLogger(__name__)
 

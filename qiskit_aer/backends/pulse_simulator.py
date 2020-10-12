@@ -20,12 +20,14 @@ import time
 import datetime
 import logging
 from numpy import inf
+
 from qiskit.result import Result
 from qiskit.providers.models import BackendConfiguration, PulseDefaults
-from .aerbackend import AerBackend
-from ..aerjob import AerJob
-from ..version import __version__
-from ..pulse.controllers.pulse_controller import pulse_controller
+
+from qiskit_aer.aerjob import AerJob
+from qiskit_aer.version import __version__
+from qiskit_aer.pulse.controllers.pulse_controller import pulse_controller
+from qiskit_aer.backends.aerbackend import AerBackend
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,7 @@ class PulseSimulator(AerBackend):
 
     The ``PulseSimulator`` simulates continuous time Hamiltonian dynamics of a quantum system,
     with controls specified by pulse :class:`~qiskit.Schedule` objects, and the model of the
-    physical system specified by :class:`~qiskit.providers.aer.pulse.PulseSystemModel` objects.
+    physical system specified by :class:`~qiskit_aer.pulse.PulseSystemModel` objects.
     Results are returned in the same format as when jobs are submitted to actual devices.
 
     **Example**
@@ -43,11 +45,11 @@ class PulseSimulator(AerBackend):
     To use the simulator, first :func:`~qiskit.assemble` a :class:`PulseQobj` object
     from a list of pulse :class:`~qiskit.Schedule` objects, using ``backend=PulseSimulator()``.
     Call the simulator with the :class:`PulseQobj` and a
-    :class:`~qiskit.providers.aer.pulse.PulseSystemModel` object representing the physical system.
+    :class:`~qiskit_aer.pulse.PulseSystemModel` object representing the physical system.
 
     .. code-block:: python
 
-        backend_sim = qiskit.providers.aer.PulseSimulator()
+        backend_sim = qiskit_aer.PulseSimulator()
 
         # Assemble schedules using PulseSimulator as the backend
         pulse_qobj = assemble(schedules, backend=backend_sim)
@@ -59,7 +61,7 @@ class PulseSimulator(AerBackend):
 
     * ``qubit_lo_freq``: Local oscillator frequencies for each :class:`DriveChannel`.
       Defaults to either the value given in the
-      :class:`~qiskit.providers.aer.pulse.PulseSystemModel`, or is calculated directly
+      :class:`~qiskit_aer.pulse.PulseSystemModel`, or is calculated directly
       from the Hamiltonian.
     * ``meas_level``: Type of desired measurement output, in ``[1, 2]``.
       ``1`` gives complex numbers (IQ values), and ``2`` gives discriminated states ``|0>`` and
@@ -72,7 +74,7 @@ class PulseSimulator(AerBackend):
 
     The simulator uses the ``zvode`` differential equation solver method through ``scipy``.
     Simulation is performed in the rotating frame of the diagonal of the drift Hamiltonian
-    contained in the :class:`~qiskit.providers.aer.pulse.PulseSystemModel`. Measurements
+    contained in the :class:`~qiskit_aer.pulse.PulseSystemModel`. Measurements
     are performed in the `dressed basis` of the drift Hamiltonian.
 
     **Other options**
