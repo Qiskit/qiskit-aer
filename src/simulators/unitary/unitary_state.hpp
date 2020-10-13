@@ -37,12 +37,13 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::snapshot},
     // Gates
-    {"u1",   "u2",   "u3",   "cx",   "cz",   "cy",     "cp",      "cu1",
-     "cu2",  "cu3",  "swap", "id",   "p",    "x",      "y",       "z",
-     "h",    "s",    "sdg",  "t",    "tdg",  "r",      "rx",      "ry",
-     "rz",   "rxx",  "ryy",  "rzz",  "rzx",  "ccx",    "cswap",   "mcx",
-     "mcy",  "mcz",  "mcu1", "mcu2", "mcu3", "mcswap", "mcphase", "mcr",
-     "mcrx", "mcry", "mcry", "sx",   "csx",  "mcsx", "delay"},
+    {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
+     "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
+     "x",      "y",       "z",   "h",    "s",    "sdg",  "t",    "tdg",
+     "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
+     "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
+     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
+     "mcsx",   "delay"},
     // Snapshots
     {"unitary"});
 
@@ -189,7 +190,10 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"u1", Gates::mcp}, // zero-X90 pulse waltz gate
     {"u2", Gates::mcu2}, // single-X90 pulse waltz gate
     {"u3", Gates::mcu3}, // two X90 pulse waltz gate
+    {"u", Gates::mcu3}, // two X90 pulse waltz gate
+    {"U", Gates::mcu3}, // two X90 pulse waltz gate
     // Two-qubit gates
+    {"CX", Gates::mcx},      // Controlled-X gate (CNOT)
     {"cx", Gates::mcx},      // Controlled-X gate (CNOT)
     {"cy", Gates::mcy},      // Controlled-Z gate
     {"cz", Gates::mcz},      // Controlled-Z gate

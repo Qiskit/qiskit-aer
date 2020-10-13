@@ -49,8 +49,8 @@ const Operations::OpSet StateOpSet(
   Operations::OpType::bfunc, Operations::OpType::roerror,
   Operations::OpType::matrix, Operations::OpType::kraus},
   // Gates
-  {"id", "x", "y", "z", "s", "sdg", "h", "t", "tdg", "u1", "u2", "u3",
-    "U", "CX", "cx", "cz", "cu1", "swap", "ccx"},
+  {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "u1",
+   "u2", "u3", "u", "U", "CX", "cx",  "cz", "cu1", "swap", "ccx"},
   // Snapshots
   {"statevector", "memory", "register", "probabilities",
     "expectation_value_pauli", "expectation_value_pauli_with_variance",
@@ -303,6 +303,7 @@ const stringmap_t<Gates> State::gateset_({
   {"u1", Gates::u1},     // zero-X90 pulse waltz gate
   {"u2", Gates::u2},     // single-X90 pulse waltz gate
   {"u3", Gates::u3},     // two X90 pulse waltz gate
+  {"u", Gates::u3},     // two X90 pulse waltz gate
   {"U", Gates::u3},      // two X90 pulse waltz gate
   // Two-qubit gates
   {"CX", Gates::cx},     // Controlled-X gate (CNOT)
