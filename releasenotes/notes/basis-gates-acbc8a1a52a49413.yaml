@@ -30,7 +30,8 @@ features:
     :class:`~qiskit.providers.aer.StatevectorSimulator`,
     :class:`~qiskit.providers.aer.StatevectorSimulator`,
     :class:`~qiskit.providers.aer.UnitarySimulator`, and the 
-    ``"statevector"`` and ``"density_matrix"`` methods of the
+    ``"statevector"``, ``"density_matrix"``, and
+    ``"matrix_product_state"`` methods of the
     :class:`~qiskit.providers.aer.QasmSimulator`.
   - |
     Adds support for the multi-controlled phase gate

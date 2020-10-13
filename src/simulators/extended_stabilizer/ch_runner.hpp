@@ -258,7 +258,7 @@ void Runner::apply_sdag(uint_t qubit, uint_t rank)
 void Runner::apply_sx(uint_t qubit, uint_t rank)
 {
   states_[rank].Sdag(qubit);
-  states_[rank].Z(qubit);
+  states_[rank].H(qubit);
   states_[rank].Sdag(qubit);
 }
 
