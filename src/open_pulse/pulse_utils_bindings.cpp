@@ -39,10 +39,12 @@ PYBIND11_MODULE(pulse_utils, m) {
 
     m.def("td_ode_rhs_static", &td_ode_rhs, "Compute rhs for ODE");
     m.def("cy_expect_psi_csr", &expect_psi_csr, "Expected value for a operator");
+    m.def("cy_expect_psi", &expect_psi, "Expected value for a operator");
     m.def("occ_probabilities", &occ_probabilities, "Computes the occupation probabilities of the specifed qubits for the given state");
     m.def("write_shots_memory", &write_shots_memory, "Converts probabilities back into shots");
     m.def("oplist_to_array", &oplist_to_array, "Insert list of complex numbers into numpy complex array");
     m.def("spmv_csr", &spmv_csr, "Sparse matrix, dense vector multiplication.");
+    m.def("spmv", &spmv, "Matrix vector multiplication.");
 
     py::class_<RhsFunctor> ode_rhs_func(m, "OdeRhsFunctor");
     ode_rhs_func.def("__call__", &RhsFunctor::operator());

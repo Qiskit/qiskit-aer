@@ -195,17 +195,12 @@ def monte_carlo_evolution(seed,
                 for i in range(n_dp.shape[0]):
                     n_dp[i] = cy_expect_psi(pulse_de_model.n_ops_data[i], ODE.y, True)
                 # determine which operator does collapse and store it
-
-                file_out = open("dum_1Q.txt", "a")
-                file_out.write("t: {}  n_dp: {}   rand_vals: {}\n".format(stop_time, n_dp[0], rand_vals[0]))
-
                 _p = np.cumsum(n_dp / np.sum(n_dp))
                 j = cinds[_p >= rand_vals[1]][0]
                 collapse_operators.append(j)
 
                 state = spmv(pulse_de_model.c_ops_data[j], ODE.y)
                 state /= dznrm2(state)
-                file_out.write("t: {}  state:-dzrnm {}   rand_vals: {}\n".format(stop_time, state, rand_vals[0]))
                 ODE.y = state
                 rand_vals = rng.rand(2)
 

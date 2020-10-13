@@ -58,6 +58,17 @@ py::object expect_psi_csr(py::array_t<complex_t> data,
 }
 
 
+py::object expect_psi(py::array_t<complex_t> data,
+                      py::array_t<complex_t> vec,
+                      bool isherm){
+    complex_t expt = internal_expect_psi(data, vec);
+    if(isherm){
+        return py::cast(std::real(expt));
+    }
+    return py::cast(expt);
+}
+
+
 //py::array_t<double> occ_probabilities(py::array_t<int> qubits,
 //                                      py::array_t<complex_t> state,
 //                                      py::list meas_ops){
@@ -154,5 +165,28 @@ py::array_t<complex_t> spmv_csr(py::array_t<complex_t> data,
     memset(&out_raw[0], 0, num_rows * sizeof(complex_t));
     zspmvpy(data_raw, ind_raw, ptr_raw, vec_raw, 1.0, out_raw, num_rows);
 
+    return out;
+}
+
+py::array_t<complex_t> spmv(py::array_t<complex_t> data,
+                            py::array_t<complex_t> vec)
+{
+    auto data_raw = get_raw_data(data);
+    auto vec_raw = get_raw_data(vec);
+    
+    auto num_columns = data.shape(0);
+    auto num_rows = data.shape(1);
+    
+    py::array_t<complex_t> out(num_rows);
+    auto out_raw = get_raw_data(out);
+    memset(&out_raw[0], 0, num_rows * sizeof(complex_t));
+    for (auto row=0; row < num_rows; row++)
+    {
+        for (auto jj=0; jj <num_columns; jj++)
+        {
+            out_raw[row] += data_raw[row*num_columns + jj]*vec_raw[jj];
+        }
+    }
+    
     return out;
 }
