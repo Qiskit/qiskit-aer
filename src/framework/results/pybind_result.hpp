@@ -17,7 +17,7 @@
 
 #include "framework/pybind_basics.hpp"
 #include "framework/results/pybind_data.hpp"
-#include "framework/results/experiment_data.hpp"
+#include "framework/results/experiment_result.hpp"
 #include "framework/results/result.hpp"
 
 //------------------------------------------------------------------------------
