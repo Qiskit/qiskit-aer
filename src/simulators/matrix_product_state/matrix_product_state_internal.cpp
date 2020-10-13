@@ -318,6 +318,12 @@ void MPS::apply_h(uint_t index)
   get_qubit(index).apply_matrix(h_matrix);
 }
 
+void MPS::apply_sx(uint_t index)
+{
+  cmatrix_t sx_matrix = AER::Linalg::Matrix::SX;
+  get_qubit(index).apply_matrix(sx_matrix);
+}
+
 void MPS::apply_u1(uint_t index, double lambda)
 {
   cmatrix_t u1_matrix = AER::Linalg::Matrix::u1(lambda);
@@ -335,6 +341,8 @@ void MPS::apply_u3(uint_t index, double theta, double phi, double lambda)
   cmatrix_t u3_matrix = AER::Linalg::Matrix::u3(theta, phi, lambda);
   get_qubit(index).apply_matrix(u3_matrix);
 }
+
+
 
 void MPS::apply_cnot(uint_t index_A, uint_t index_B)
 {
