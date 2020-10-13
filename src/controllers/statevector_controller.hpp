@@ -102,7 +102,7 @@ class StatevectorController : public Base::Controller {
                            const Noise::NoiseModel& noise,
                            const json_t& config, uint_t shots,
                            uint_t rng_seed,
-                           ExperimentData &data) const override;
+                           ExperimentResult &result) const override;
 
   // Execute n-shots of a circuit on the input state
   template <class State_t>
@@ -110,7 +110,7 @@ class StatevectorController : public Base::Controller {
                           const Noise::NoiseModel& noise,
                           const json_t& config, uint_t shots,
                           uint_t rng_seed,
-                          ExperimentData &data) const;
+                          ExperimentResult &result) const;
   //-----------------------------------------------------------------------
   // Custom initial state
   //-----------------------------------------------------------------------
@@ -200,18 +200,18 @@ size_t StatevectorController::required_memory_mb(
 
 void StatevectorController::run_circuit(
     const Circuit& circ, const Noise::NoiseModel& noise, const json_t& config,
-    uint_t shots, uint_t rng_seed, ExperimentData &data) const {
+    uint_t shots, uint_t rng_seed, ExperimentResult &result) const {
   switch (method_) {
     case Method::automatic:
     case Method::statevector_cpu: {
       if (precision_ == Precision::double_precision) {
         // Double-precision Statevector simulation
         return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
-            circ, noise, config, shots, rng_seed, data);
+            circ, noise, config, shots, rng_seed, result);
       } else {
         // Single-precision Statevector simulation
         return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
-            circ, noise, config, shots, rng_seed, data);
+            circ, noise, config, shots, rng_seed, result);
       }
     }
     case Method::statevector_thrust_gpu: {
@@ -220,12 +220,12 @@ void StatevectorController::run_circuit(
         // Double-precision Statevector simulation
         return run_circuit_helper<
             Statevector::State<QV::QubitVectorThrust<double>>>(
-            circ, noise, config, shots, rng_seed, data);
+            circ, noise, config, shots, rng_seed, result);
       } else {
         // Single-precision Statevector simulation
         return run_circuit_helper<
             Statevector::State<QV::QubitVectorThrust<float>>>(
-            circ, noise, config, shots, rng_seed, data);
+            circ, noise, config, shots, rng_seed, result);
       }
 #else
       throw std::runtime_error(
@@ -240,12 +240,12 @@ void StatevectorController::run_circuit(
         // Double-precision Statevector simulation
         return run_circuit_helper<
             Statevector::State<QV::QubitVectorThrust<double>>>(
-            circ, noise, config, shots, rng_seed, data);
+            circ, noise, config, shots, rng_seed, result);
       } else {
         // Single-precision Statevector simulation
         return run_circuit_helper<
             Statevector::State<QV::QubitVectorThrust<float>>>(
-            circ, noise, config, shots, rng_seed, data);
+            circ, noise, config, shots, rng_seed, result);
       }
 #else
       throw std::runtime_error(
@@ -263,7 +263,7 @@ void StatevectorController::run_circuit(
 template <class State_t>
 void StatevectorController::run_circuit_helper(
     const Circuit& circ, const Noise::NoiseModel& noise, const json_t& config,
-    uint_t shots, uint_t rng_seed, ExperimentData &data) const {
+    uint_t shots, uint_t rng_seed, ExperimentResult &result) const {
   // Initialize  state
   State_t state;
 
@@ -294,7 +294,7 @@ void StatevectorController::run_circuit_helper(
   rng.set_seed(rng_seed);
 
   // Output data container
-  data.set_config(config);
+  result.set_config(config);
 
   // Optimize circuit
   const std::vector<Operations::Op>* op_ptr = &circ.ops;
@@ -304,7 +304,7 @@ void StatevectorController::run_circuit_helper(
   if (fusion_pass.active && circ.num_qubits >= fusion_pass.threshold) {
     opt_circ = circ; // copy circuit
     Noise::NoiseModel dummy_noise; // dummy object for transpile pass
-    fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
+    fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
     op_ptr = &opt_circ.ops;
   }
 
@@ -315,11 +315,11 @@ void StatevectorController::run_circuit_helper(
     state.initialize_qreg(circ.num_qubits, initial_state_);
   }
   state.initialize_creg(circ.num_memory, circ.num_registers);
-  state.apply_ops(*op_ptr, data, rng);
-  state.add_creg_to_data(data);
+  state.apply_ops(*op_ptr, result, rng);
+  state.add_creg_to_data(result);
 
   // Add final state to the data
-  data.add_additional_data("statevector", state.qreg().move_to_vector());
+  result.data.add_additional_data("statevector", state.qreg().move_to_vector());
 }
 
 //-------------------------------------------------------------------------

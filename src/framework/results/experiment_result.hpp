@@ -51,8 +51,13 @@ public:
 
   // Serialize engine data to JSON
   json_t to_json();
-};
 
+  // Set the output data config options
+  void set_config(const json_t &config) { data.set_config(config); }
+
+  // Combine stored data
+  ExperimentResult& combine(ExperimentResult &&other);
+};
 
 //------------------------------------------------------------------------------
 // Add metadata
@@ -92,6 +97,18 @@ template <>
 void ExperimentResult::add_metadata(const std::string &key, json_t &meta) {
   const json_t &const_meta = meta;
   add_metadata(key, const_meta);
+}
+
+ExperimentResult& ExperimentResult::combine(ExperimentResult &&other) {
+  // Combine data
+  data.combine(std::move(other.data));
+
+  // Combine metadata
+  for (const auto &pair : other.metadata) {
+    metadata[pair.first] = pair.second;
+  }
+
+  return *this;
 }
 
 //------------------------------------------------------------------------------
