@@ -42,7 +42,7 @@ class QasmMethodTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         success = getattr(result, 'success', False)
         self.assertTrue(success)
         # Check simulation method
@@ -76,8 +76,8 @@ class QasmMethodTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         result = self.SIMULATOR.run(qobj,
-                                    backend_options=self.BACKEND_OPTS,
-                                    noise_model=noise_model).result()
+                                    noise_model=noise_model,
+                                    **self.BACKEND_OPTS).result()
         success = getattr(result, 'success', False)
         self.assertTrue(success)
         # Check simulation method
@@ -101,7 +101,7 @@ class QasmMethodTests:
             final_measure=True)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         success = getattr(result, 'success', False)
         self.assertTrue(success)
         # Check simulation method
@@ -125,8 +125,8 @@ class QasmMethodTests:
             final_measure=True)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(qobj,
-                                    backend_options=self.BACKEND_OPTS,
-                                    noise_model=noise_model).result()
+                                    noise_model=noise_model,
+                                    **self.BACKEND_OPTS).result()
         success = getattr(result, 'success', False)
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -156,8 +156,8 @@ class QasmMethodTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         result = self.SIMULATOR.run(qobj,
-                                    backend_options=self.BACKEND_OPTS,
-                                    noise_model=noise_model).result()
+                                    noise_model=noise_model,
+                                    **self.BACKEND_OPTS).result()
         success = getattr(result, 'success', False)
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -184,7 +184,7 @@ class QasmMethodTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         success = getattr(result, 'success', False)
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -222,8 +222,8 @@ class QasmMethodTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         result = self.SIMULATOR.run(qobj,
-                                    backend_options=self.BACKEND_OPTS,
-                                    noise_model=noise_model).result()
+                                    noise_model=noise_model,
+                                    **self.BACKEND_OPTS).result()
         success = getattr(result, 'success', False)
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -253,8 +253,8 @@ class QasmMethodTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         result = self.SIMULATOR.run(qobj,
-                                    backend_options=self.BACKEND_OPTS,
-                                    noise_model=noise_model).result()
+                                    noise_model=noise_model,
+                                    **self.BACKEND_OPTS).result()
         success = getattr(result, 'success', False)
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -283,8 +283,8 @@ class QasmMethodTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         result = self.SIMULATOR.run(qobj,
-                                    backend_options=self.BACKEND_OPTS,
-                                    noise_model=noise_model).result()
+                                    noise_model=noise_model,
+                                    **self.BACKEND_OPTS).result()
         success = getattr(result, 'success', False)
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -314,8 +314,8 @@ class QasmMethodTests:
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
 
         result = self.SIMULATOR.run(qobj,
-                                    backend_options=self.BACKEND_OPTS,
-                                    noise_model=noise_model).result()
+                                    noise_model=noise_model,
+                                    **self.BACKEND_OPTS).result()
         success = getattr(result, 'success', False)
         # Check simulation method
         method = self.BACKEND_OPTS.get('method', 'automatic')
