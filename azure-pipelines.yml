@@ -47,6 +47,7 @@ stages:
                 conda config --add channels conda-forge
                 conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake virtualenv pip setuptools pybind11 cython scipy
                 python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
+                pip install -U virtualenv
                 virtualenv test-$version
                 test-$version/Scripts/pip install -c constraints.txt dist/*whl
                 test-$version/Scripts/python tools/verify_wheels.py
@@ -101,6 +102,7 @@ stages:
                 conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake virtualenv pip setuptools pybind11 cython scipy
                 python -m pip install -U setuptools wheel
                 python setup.py bdist_wheel -- -G "Visual Studio 15 2017"
+                pip install -U virtualenv
                 virtualenv test-$version
                 test-$version/Scripts/pip install -c constraints.txt dist/*whl
                 test-$version/Scripts/python tools/verify_wheels.py
@@ -173,6 +175,7 @@ stages:
               set -x
               set -e
               source activate qiskit-aer
+              pip install -U virtualenv
               virtualenv test-wheel
               test-wheel/Scripts/pip install -c constraints.txt dist/*whl
               test-wheel/Scripts/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
@@ -228,6 +231,7 @@ stages:
               set -x
               set -e
               source activate qiskit-aer
+              pip install -U virtualenv
               virtualenv test-wheel
               test-wheel/Scripts/pip install -c constraints.txt dist/*whl
               test-wheel/Scripts/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
