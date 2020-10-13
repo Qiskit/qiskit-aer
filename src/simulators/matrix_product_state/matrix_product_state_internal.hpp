@@ -230,16 +230,16 @@ public:
     return enable_gate_opt_;
   }
 
-  double norm(const uint_t qubit, const cvector_t &vmat) const {
-    cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
-    reg_t qubits = {qubit};
-    return expectation_value(qubits, mat);
-  }
+  //----------------------------------------------------------------
+  // Function name: norm
+  // Description: the norm is defined as <psi|A^dagger . A|psi>.
+  // It is equivalent to returning the expectation value of A^\dagger A,
+  // Returns: double (the norm)
+  //----------------------------------------------------------------
 
-  double norm(const reg_t &qubits, const cvector_t &vmat) const {
-    cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
-    return expectation_value(qubits, mat);
-  }
+  double norm();
+  double norm(const reg_t &qubits, const cvector_t &vmat) const;
+  double norm(const reg_t &qubits, const cmatrix_t &mat) const; 
 
   reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
 					   const reg_t &qubits) const;
@@ -257,6 +257,7 @@ public:
   //----------------------------------------------------------------
 
   void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector);
+
 
 private:
 
@@ -281,6 +282,9 @@ private:
   void apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate=false);
   void apply_2_qubit_gate(uint_t index_A, uint_t index_B, 
 			  Gates gate_type, const cmatrix_t &mat);
+  void common_apply_2_qubit_gate(uint_t index_A,
+				 Gates gate_type, const cmatrix_t &mat,
+				 bool swapped);
   void apply_3_qubit_gate(const reg_t &qubits, Gates gate_type, const cmatrix_t &mat);
   void apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat);
   // apply_matrix for more than 2 qubits
@@ -293,8 +297,7 @@ private:
   void apply_matrix_to_target_qubits(const reg_t &target_qubits,
 				     const cmatrix_t &mat);
   cmatrix_t density_matrix_internal(const reg_t &qubits) const;
-
-  rvector_t trace_of_density_matrix(const reg_t &qubits) const;
+  rvector_t diagonal_of_density_matrix(const reg_t &qubits) const;
 
   double expectation_value_internal(const reg_t &qubits, const cmatrix_t &M) const;
   complex_t expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices,

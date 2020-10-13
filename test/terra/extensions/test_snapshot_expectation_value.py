@@ -10,17 +10,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-
 import unittest
 
+
 import numpy
+
 from qiskit import QuantumCircuit, assemble
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.providers.aer.extensions.snapshot_expectation_value import SnapshotExpectationValue
 from qiskit.quantum_info.operators import Pauli, Operator
 
+from ..common import QiskitAerTestCase
 
-class TestSnapshotExpectationValueExtension(unittest.TestCase):
+
+class TestSnapshotExpectationValueExtension(QiskitAerTestCase):
     """SnapshotExpectationValue extension tests"""
 
     @staticmethod

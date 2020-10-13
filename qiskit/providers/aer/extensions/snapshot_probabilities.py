@@ -14,8 +14,9 @@
 Simulator command to snapshot internal simulator representation.
 """
 
+from warnings import warn
 from qiskit import QuantumCircuit
-from qiskit.providers.aer.extensions import Snapshot
+from .snapshot import Snapshot
 
 
 class SnapshotProbabilities(Snapshot):
@@ -32,6 +33,9 @@ class SnapshotProbabilities(Snapshot):
         Raises:
             ExtensionError: if snapshot is invalid.
         """
+        if variance:
+            warn('The snapshot `variance` kwarg has been deprecated and will be removed'
+                 ' in qiskit-aer 0.8.', DeprecationWarning)
         snapshot_type = 'probabilities_with_variance' if variance else 'probabilities'
         super().__init__(label, snapshot_type=snapshot_type,
                          num_qubits=num_qubits)
@@ -51,7 +55,7 @@ def snapshot_probabilities(self, label, qubits, variance=False):
     Raises:
         ExtensionError: if snapshot is invalid.
     """
-    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
+    snapshot_register = Snapshot.define_snapshot_register(self, qubits=qubits)
 
     return self.append(
         SnapshotProbabilities(label,

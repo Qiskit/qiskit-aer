@@ -103,8 +103,8 @@ public:
   // Apply a 2-qubit Controlled-NOT gate to the state vector
   void apply_cnot(const uint_t qctrl, const uint_t qtrgt);
 
-  // Apply a 2-qubit Controlled-Z gate to the state vector
-  void apply_cz(const uint_t q0, const uint_t q1);
+  // Apply 2-qubit controlled-phase gate
+  void apply_cphase(const uint_t q0, const uint_t q1, const complex_t &phase);
 
   // Apply a 2-qubit SWAP gate to the state vector
   void apply_swap(const uint_t q0, const uint_t q1);
@@ -115,8 +115,8 @@ public:
   // Apply a single-qubit Pauli-Y gate to the state vector
   void apply_y(const uint_t qubit);
 
-  // Apply a single-qubit Pauli-Z gate to the state vector
-  void apply_z(const uint_t qubit);
+  // Apply 1-qubit phase gate
+  void apply_phase(const uint_t q, const complex_t &phase);
 
   // Apply a 3-qubit toffoli gate
   void apply_toffoli(const uint_t qctrl0, const uint_t qctrl1, const uint_t qtrgt);
@@ -216,7 +216,7 @@ reg_t DensityMatrixThrust<data_t>::superop_qubits(const reg_t &qubits) const {
   reg_t superop_qubits = qubits;
   // Number of qubits
   const auto nq = num_qubits();
-  for (const auto q: qubits) {
+  for (const auto &q: qubits) {
     superop_qubits.push_back(q + nq);
   }
   return superop_qubits;
@@ -261,7 +261,7 @@ void DensityMatrixThrust<data_t>::apply_unitary_matrix(const reg_t &qubits,
     // Apply as two N-qubit matrix mults
     auto nq = num_qubits();
     reg_t conj_qubits;
-    for (const auto q: qubits) {
+    for (const auto &q: qubits) {
       conj_qubits.push_back(q + nq);
     }
     // Apply id \otimes U
@@ -302,17 +302,19 @@ void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qt
 }
 
 template <typename data_t>
-void DensityMatrixThrust<data_t>::apply_cz(const uint_t q0, const uint_t q1) {
-  cvector_t<double> diag({1, 1, 1, -1,
-                          1, 1, 1, -1,
-                          1, 1, 1, -1,
-                          -1, -1, -1, 1});
+void DensityMatrixThrust<data_t>::apply_cphase(const uint_t q0, const uint_t q1,
+                                               const complex_t &phase) {
+  const complex_t iphase = std::conj(phase);
+  cvector_t<double> diag({1, 1, 1, phase,
+                          1, 1, 1, phase,
+                          1, 1, 1, phase,
+                          iphase, iphase, iphase, 1});
   const auto nq =  num_qubits();
   const reg_t qubits = {{q0, q1, q0 + nq, q1 + nq}};
   BaseVector::apply_diagonal_matrix(qubits, diag);
 
 #ifdef AER_DEBUG
-	BaseVector::DebugMsg(" density::apply_cz",qubits);
+	BaseVector::DebugMsg(" density::apply_cphase",qubits);
 #endif
 }
 
@@ -465,14 +467,14 @@ void DensityMatrixThrust<data_t>::apply_y(const uint_t qubit) {
 }
 
 template <typename data_t>
-void DensityMatrixThrust<data_t>::apply_z(const uint_t qubit) {
-  cvector_t<double> diag({1, -1, -1, 1});
+void DensityMatrixThrust<data_t>::apply_phase(const uint_t qubit, const complex_t &phase) {
+  cvector_t<double> diag({1, phase, std::conj(phase), 1});
   // Use the lambda function
   const reg_t qubits = {{qubit, qubit + num_qubits()}};
   BaseVector::apply_diagonal_matrix(qubits, diag);
 
 #ifdef AER_DEBUG
-	BaseVector::DebugMsg(" density::apply_z",qubits);
+	BaseVector::DebugMsg(" density::apply_phase",qubits);
 #endif
 }
 

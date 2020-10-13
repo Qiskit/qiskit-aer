@@ -23,6 +23,7 @@
 
 #include "framework/json.hpp"
 #include "framework/matrix.hpp"
+#include "framework/linalg/vector.hpp"
 #include "framework/types.hpp"
 #include "framework/linalg/enable_if_numeric.hpp"
 
@@ -132,6 +133,24 @@ template <class T, typename = enable_if_numeric_t<T>>
 matrix<T> square(const matrix<T>& data) {
   matrix<T> result = data;
   return isquare(result);
+}
+
+//----------------------------------------------------------------------------
+// Entrywise square of AER::Vector
+//----------------------------------------------------------------------------
+
+template <class T, typename = enable_if_numeric_t<T>>
+Vector<T>& isquare(Vector<T>& vec) {
+  std::for_each(vec.data(), vec.data() + vec.size(), [](T&val) { val *= val; });
+  return vec;
+}
+
+template <class T, typename = enable_if_numeric_t<T>>
+Vector<T> square(const Vector<T>& vec) {
+  Vector<T> ret(vec.size(), false);
+  std::transform(vec.data(), vec.data() + vec.size(), ret.data(),
+                 [](const T&val) { return val * val; });
+  return ret;
 }
 
 //----------------------------------------------------------------------------

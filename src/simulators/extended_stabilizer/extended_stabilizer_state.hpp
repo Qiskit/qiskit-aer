@@ -39,7 +39,7 @@ const Operations::OpSet StateOpSet(
     Operations::OpType::snapshot},
   // Gates
   {"CX", "u0", "u1", "cx", "cz", "swap", "id", "x", "y", "z", "h",
-    "s", "sdg", "t", "tdg", "ccx", "ccz"},
+    "s", "sdg", "t", "tdg", "ccx", "ccz", "delay"},
   // Snapshots
   {"statevector", "probabilities", "memory", "register"}
 );
@@ -74,7 +74,8 @@ public:
   //we loop over the terms in the decomposition in parallel
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
                          ExperimentData &data,
-                         RngEngine &rng) override;
+                         RngEngine &rng,
+                         bool final_ops = false) override;
 
   virtual void initialize_qreg(uint_t num_qubits) override;
 
@@ -179,6 +180,7 @@ protected:
 
 const stringmap_t<Gates> State::gateset_({
   // Single qubit gates
+  {"delay", Gates::id},  // Delay gate
   {"id", Gates::id},     // Pauli-Identity gate
   {"x", Gates::x},       // Pauli-X gate
   {"y", Gates::y},       // Pauli-Y gate
@@ -250,7 +252,7 @@ std::pair<uint_t, uint_t> State::decomposition_parameters(const std::vector<Oper
 {
   double xi=1.;
   unsigned three_qubit_gate_count = 0;
-  for (const auto op: ops)
+  for (const auto &op: ops)
   {
     if (op.type == Operations::OpType::gate)
     {
@@ -295,7 +297,7 @@ std::pair<bool, size_t> State::check_stabilizer_opt(const std::vector<Operations
 
 bool State::check_measurement_opt(const std::vector<Operations::Op> &ops) const
 {
-  for (const auto op: ops)
+  for (const auto &op: ops)
   {
     if (op.conditional || op.old_conditional)
     {
@@ -315,7 +317,7 @@ bool State::check_measurement_opt(const std::vector<Operations::Op> &ops) const
 //-------------------------------------------------------------------------
 
 void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentData &data,
-                         RngEngine &rng)
+                         RngEngine &rng, bool final_ops)
 {
   std::pair<bool, size_t> stabilizer_opts = check_stabilizer_opt(ops);
   bool is_stabilizer = stabilizer_opts.first;
@@ -345,7 +347,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentData &da
     }
     else
     {
-      for (const auto op: non_stabilizer_circuit)
+      for (const auto &op: non_stabilizer_circuit)
       {
         if(BaseState::creg_.check_conditional(op)) {
           switch (op.type) {
@@ -427,7 +429,7 @@ void State::apply_ops_parallel(const std::vector<Operations::Op> &ops, RngEngine
     {
       continue;
     }
-    for(const auto op: ops)
+    for(const auto &op: ops)
     {
       switch (op.type)
       {
@@ -448,7 +450,7 @@ void State::apply_ops_parallel(const std::vector<Operations::Op> &ops, RngEngine
 void State::apply_stabilizer_circuit(const std::vector<Operations::Op> &ops,
                                       ExperimentData &data, RngEngine &rng)
 {
-  for (const auto op: ops)
+  for (const auto &op: ops)
   {
     switch (op.type)
     {
@@ -738,7 +740,7 @@ inline void to_json(json_t &js, cvector_t vec)
 uint_t State::compute_chi(const std::vector<Operations::Op> &ops) const
 {
   double xi = 1;
-  for (const auto op: ops)
+  for (const auto &op: ops)
   {
     compute_extent(op, xi);
   }
