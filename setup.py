@@ -12,6 +12,13 @@ import inspect
 PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
 
 try:
+    from Cython.Build import cythonize
+except ImportError:
+    import subprocess
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'Cython>=0.27.1'])
+    from Cython.Build import cythonize
+
+try:
     from conans import client
 except ImportError:
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan'])
@@ -78,7 +85,7 @@ setup(
     long_description_content_type='text/markdown',
     url="https://github.com/Qiskit/qiskit-aer",
     author="AER Development Team",
-    author_email="qiskit@us.ibm.com",
+    author_email="hello@qiskit.org",
     license="Apache 2.0",
     classifiers=[
         "Environment :: Console",

@@ -16,6 +16,8 @@
 #define _aer_framework_experiment_data_hpp_
 
 #include "framework/json.hpp"
+#include "framework/linalg/vector.hpp"
+#include "framework/linalg/vector_json.hpp"
 #include "framework/results/data/data_container.hpp"
 #include "framework/utils.hpp"
 
@@ -38,6 +40,8 @@ class ExperimentData : public DataContainer<json_t>,
                        public DataContainer<complex_t>,
                        public DataContainer<std::vector<std::complex<float>>>,
                        public DataContainer<std::vector<std::complex<double>>>,
+                       public DataContainer<Vector<std::complex<float>>>,
+                       public DataContainer<Vector<std::complex<double>>>,
                        public DataContainer<matrix<std::complex<float>>>,
                        public DataContainer<matrix<std::complex<double>>>,
                        public DataContainer<std::map<std::string, complex_t>>,
@@ -72,6 +76,8 @@ public:
   using DataContainer<complex_t>::add_pershot_snapshot;
   using DataContainer<std::vector<std::complex<float>>>::add_pershot_snapshot;
   using DataContainer<std::vector<std::complex<double>>>::add_pershot_snapshot;
+  using DataContainer<Vector<std::complex<float>>>::add_pershot_snapshot;
+  using DataContainer<Vector<std::complex<double>>>::add_pershot_snapshot;
   using DataContainer<matrix<std::complex<float>>>::add_pershot_snapshot;
   using DataContainer<matrix<std::complex<double>>>::add_pershot_snapshot;
   using DataContainer<std::map<std::string, complex_t>>::add_pershot_snapshot;
@@ -96,6 +102,8 @@ public:
   using DataContainer<complex_t>::add_average_snapshot;
   using DataContainer<std::vector<std::complex<float>>>::add_average_snapshot;
   using DataContainer<std::vector<std::complex<double>>>::add_average_snapshot;
+  using DataContainer<Vector<std::complex<float>>>::add_average_snapshot;
+  using DataContainer<Vector<std::complex<double>>>::add_average_snapshot;
   using DataContainer<matrix<std::complex<float>>>::add_average_snapshot;
   using DataContainer<matrix<std::complex<double>>>::add_average_snapshot;
   using DataContainer<std::map<std::string, complex_t>>::add_average_snapshot;
@@ -117,6 +125,8 @@ public:
   using DataContainer<complex_t>::add_additional_data;
   using DataContainer<std::vector<std::complex<float>>>::add_additional_data;
   using DataContainer<std::vector<std::complex<double>>>::add_additional_data;
+  using DataContainer<Vector<std::complex<float>>>::add_additional_data;
+  using DataContainer<Vector<std::complex<double>>>::add_additional_data;
   using DataContainer<matrix<std::complex<float>>>::add_additional_data;
   using DataContainer<matrix<std::complex<double>>>::add_additional_data;
   using DataContainer<std::map<std::string, complex_t>>::add_additional_data;
@@ -236,6 +246,8 @@ void ExperimentData::set_config(const json_t &config) {
   DataContainer<complex_t>::enable(enabled);
   DataContainer<std::vector<std::complex<float>>>::enable(enabled);
   DataContainer<std::vector<std::complex<double>>>::enable(enabled);
+  DataContainer<Vector<std::complex<float>>>::enable(enabled);
+  DataContainer<Vector<std::complex<double>>>::enable(enabled);
   DataContainer<matrix<std::complex<float>>>::enable(enabled);
   DataContainer<matrix<std::complex<double>>>::enable(enabled);
   DataContainer<std::map<std::string, complex_t>>::enable(enabled);
@@ -392,6 +404,8 @@ void ExperimentData::clear() {
   DataContainer<complex_t>::clear();
   DataContainer<std::vector<std::complex<float>>>::clear();
   DataContainer<std::vector<std::complex<double>>>::clear();
+  DataContainer<Vector<std::complex<float>>>::clear();
+  DataContainer<Vector<std::complex<double>>>::clear();
   DataContainer<matrix<std::complex<float>>>::clear();
   DataContainer<matrix<std::complex<double>>>::clear();
   DataContainer<std::map<std::string, complex_t>>::clear();
@@ -413,6 +427,8 @@ ExperimentData &ExperimentData::combine(const ExperimentData &other) {
   DataContainer<complex_t>::combine(other);
   DataContainer<std::vector<std::complex<float>>>::combine(other);
   DataContainer<std::vector<std::complex<double>>>::combine(other);
+  DataContainer<Vector<std::complex<float>>>::combine(other);
+  DataContainer<Vector<std::complex<double>>>::combine(other);
   DataContainer<matrix<std::complex<float>>>::combine(other);
   DataContainer<matrix<std::complex<double>>>::combine(other);
   DataContainer<std::map<std::string, complex_t>>::combine(other);
@@ -443,6 +459,8 @@ ExperimentData &ExperimentData::combine(ExperimentData &&other) {
   DataContainer<complex_t>::combine(std::move(other));
   DataContainer<std::vector<std::complex<float>>>::combine(std::move(other));
   DataContainer<std::vector<std::complex<double>>>::combine(std::move(other));
+  DataContainer<Vector<std::complex<float>>>::combine(std::move(other));
+  DataContainer<Vector<std::complex<double>>>::combine(std::move(other));
   DataContainer<matrix<std::complex<float>>>::combine(std::move(other));
   DataContainer<matrix<std::complex<double>>>::combine(std::move(other));
   DataContainer<std::map<std::string, complex_t>>::combine(std::move(other));
@@ -483,6 +501,8 @@ json_t ExperimentData::to_json() {
   DataContainer<complex_t>::add_to_json(js);
   DataContainer<std::vector<std::complex<float>>>::add_to_json(js);
   DataContainer<std::vector<std::complex<double>>>::add_to_json(js);
+  DataContainer<Vector<std::complex<float>>>::add_to_json(js);
+  DataContainer<Vector<std::complex<double>>>::add_to_json(js);
   DataContainer<matrix<std::complex<float>>>::add_to_json(js);
   DataContainer<matrix<std::complex<double>>>::add_to_json(js);
   DataContainer<std::map<std::string, complex_t>>::add_to_json(js);

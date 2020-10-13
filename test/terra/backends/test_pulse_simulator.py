@@ -42,14 +42,8 @@ class TestPulseSimulator(common.QiskitAerTestCase):
     r"""PulseSimulator tests."""
 
     def setUp(self):
-        """ Set configuration settings for pulse simulator
-        WARNING: We do not support Python 3.5 because the digest algorithm relies on dictionary insertion order.
-        This "feature" was introduced later on Python 3.6 and there's no official support for OrderedDict in the C API so
-        Python 3.5 support has been disabled while looking for a propper fix.
-        """
-        if sys.version_info.major == 3 and sys.version_info.minor == 5:
-           self.skipTest("We don't support Python 3.5 for Pulse simulator")
-
+        """ Set configuration settings for pulse simulator"""
+        super().setUp()
         # Get pulse simulator backend
         self.backend_sim = PulseSimulator()
 

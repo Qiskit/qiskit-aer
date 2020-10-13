@@ -104,9 +104,13 @@ public:
   // executed (ie in sequence, or some other execution strategy.)
   // If this sequence contains operations not in the supported opset
   // an exeption will be thrown.
+  // The `final_ops` flag indicates no more instructions will be applied
+  // to the state after this sequence, so the state can be modified at the
+  // end of the instructions.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
                          ExperimentData &data,
-                         RngEngine &rng)  = 0;
+                         RngEngine &rng,
+                         bool final_ops = false)  = 0;
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
@@ -128,7 +132,7 @@ public:
   // Load any settings for the State class from a config JSON
   virtual void set_config(const json_t &config);
 
-    //-----------------------------------------------------------------------
+  //-----------------------------------------------------------------------
   // Optional: Add information to metadata 
   //-----------------------------------------------------------------------
 
@@ -191,12 +195,15 @@ public:
                               std::string name = "register") const;
 
   //-----------------------------------------------------------------------
-  // OpenMP thread settings
+  // Config Settings
   //-----------------------------------------------------------------------
 
   // Sets the number of threads available to the State implementation
   // If negative there is no restriction on the backend
   inline void set_parallalization(int n) {threads_ = n;}
+
+  // Set a complex global phase value exp(1j * theta) for the state
+  void set_global_phase(const double &phase);
 
 protected:
 
@@ -212,6 +219,10 @@ protected:
   // Maximum threads which may be used by the backend for OpenMP multithreading
   // Default value is single-threaded unless overridden
   int threads_ = 1;
+
+  // Set a global phase exp(1j * theta) for the state
+  bool has_global_phase_ = false;
+  complex_t global_phase_ = 1;
 };
 
 
@@ -224,6 +235,17 @@ void State<state_t>::set_config(const json_t &config) {
   (ignore_argument)config;
 }
 
+template <class state_t>
+void State<state_t>::set_global_phase(const double &phase_angle) {
+  if (Linalg::almost_equal(phase_angle, 0.0)) {
+    has_global_phase_ = false;
+    global_phase_ = 1;
+  }
+  else {
+    has_global_phase_ = true;
+    global_phase_ = std::exp(complex_t(0.0, phase_angle));
+  }
+}
 
 template <class state_t>
 std::vector<reg_t> State<state_t>::sample_measure(const reg_t &qubits,

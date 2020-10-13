@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Use move semantics for statevector and density matrix snapshots for the
+    `"statevector"` and `"density_matrix"` methods of the
+    :class:`~qiskit.providers.aer.QasmSimulator` if they are the final
+    instruction in a circuit. This reduces the memory usage of the
+    simulator improves the performance by avoiding copying a large array in 
+    the results.

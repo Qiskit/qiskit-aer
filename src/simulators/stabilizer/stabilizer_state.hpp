@@ -35,7 +35,8 @@ const Operations::OpSet StateOpSet(
     Operations::OpType::barrier, Operations::OpType::bfunc,
     Operations::OpType::roerror},
   // Gates
-  {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg"},
+  {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg",
+   "sx", "delay"},
   // Snapshots
   {"stabilizer", "memory", "register", "probabilities",
     "probabilities_with_variance", "expectation_value_pauli",
@@ -43,7 +44,7 @@ const Operations::OpSet StateOpSet(
     "expectation_value_pauli_single_shot"}
 );
 
-enum class Gates {id, x, y, z, h, s, sdg, cx, cy, cz, swap};
+enum class Gates {id, x, y, z, h, s, sdg, sx, cx, cy, cz, swap};
 
 // Allowed snapshots enum class
 enum class Snapshots {
@@ -79,7 +80,8 @@ public:
   // If the input is not in allowed_ops an exeption will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
                          ExperimentData &data,
-                         RngEngine &rng) override;
+                         RngEngine &rng,
+                         bool final_ops = false) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -191,18 +193,20 @@ protected:
 
 const stringmap_t<Gates> State::gateset_({
   // Single qubit gates
+  {"delay", Gates::id},// Delay gate
   {"id", Gates::id},   // Pauli-Identity gate
-  {"x", Gates::x},    // Pauli-X gate
-  {"y", Gates::y},    // Pauli-Y gate
-  {"z", Gates::z},    // Pauli-Z gate
-  {"s", Gates::s},    // Phase gate (aka sqrt(Z) gate)
+  {"x", Gates::x},     // Pauli-X gate
+  {"y", Gates::y},     // Pauli-Y gate
+  {"z", Gates::z},     // Pauli-Z gate
+  {"s", Gates::s},     // Phase gate (aka sqrt(Z) gate)
   {"sdg", Gates::sdg}, // Conjugate-transpose of Phase gate
-  {"h", Gates::h},    // Hadamard gate (X + Z / sqrt(2))
+  {"h", Gates::h},     // Hadamard gate (X + Z / sqrt(2))
+  {"sx", Gates::sx},   // Sqrt X gate.
   // Two-qubit gates
-  {"CX", Gates::cx},  // Controlled-X gate (CNOT)
-  {"cx", Gates::cx},  // Controlled-X gate (CNOT),
-  {"cy", Gates::cy},   // Controlled-Y gate
-  {"cz", Gates::cz},   // Controlled-Z gate
+  {"CX", Gates::cx},    // Controlled-X gate (CNOT)
+  {"cx", Gates::cx},    // Controlled-X gate (CNOT),
+  {"cy", Gates::cy},    // Controlled-Y gate
+  {"cz", Gates::cz},    // Controlled-Z gate
   {"swap", Gates::swap} // SWAP gate
 });
 
@@ -273,9 +277,9 @@ void State::set_config(const json_t &config) {
 
 void State::apply_ops(const std::vector<Operations::Op> &ops,
                       ExperimentData &data,
-                      RngEngine &rng) {
+                      RngEngine &rng, bool final_ops) {
   // Simple loop over vector of input operations
-  for (const auto op: ops) {
+  for (const auto &op: ops) {
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
         case Operations::OpType::barrier:
@@ -331,6 +335,13 @@ void State::apply_gate(const Operations::Op &op) {
       BaseState::qreg_.append_s(op.qubits[0]);
       break;
     case Gates::sdg:
+      BaseState::qreg_.append_z(op.qubits[0]);
+      BaseState::qreg_.append_s(op.qubits[0]);
+      break;
+    case Gates::sx:
+      BaseState::qreg_.append_z(op.qubits[0]);
+      BaseState::qreg_.append_s(op.qubits[0]);
+      BaseState::qreg_.append_h(op.qubits[0]);
       BaseState::qreg_.append_z(op.qubits[0]);
       BaseState::qreg_.append_s(op.qubits[0]);
       break;
@@ -400,7 +411,7 @@ reg_t State::apply_measure_and_update(const reg_t &qubits,
   const rvector_t dist = {0.5, 0.5};
   reg_t outcome;
   // Measure each qubit
-  for (const auto q : qubits) {
+  for (const auto &q : qubits) {
     uint_t r = rng.rand_int(dist);
     outcome.push_back(qreg_.measure_and_update(q, r));
   }
@@ -560,7 +571,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   // Compute expval components
   auto copy_of_qreg = BaseState::qreg_;
   complex_t expval(0., 0.);
-  for (const auto &param: op.params_expval_pauli) {
+  for (const auto &param : op.params_expval_pauli) {
     const auto &coeff = param.first;
     const auto &pauli = param.second;
     std::vector<uint64_t> measured_qubits;
