@@ -134,7 +134,7 @@ class QasmStandardGateStatevectorTests:
                          self.SIMULATOR,
                          basis_gates=basis_gates,
                          shots=1,
-                         backend_options=backend_options).result()
+                         **backend_options).result()
 
         # Check results
         success = getattr(result, 'success', False)
@@ -181,7 +181,7 @@ class QasmStandardGateDensityMatrixTests:
                          self.SIMULATOR,
                          basis_gates=basis_gates,
                          shots=1,
-                         backend_options=backend_options).result()
+                         **backend_options).result()
 
         # Check results
         success = getattr(result, 'success', False)

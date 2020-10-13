@@ -33,7 +33,7 @@ class QasmMultiplexerTests:
         circuits = ref_multiplexer.multiplexer_cx_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_multiplexer.multiplexer_cx_gate_counts_deterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, backend_options=self.BACKEND_OPTS)
+        job = execute(circuits, self.SIMULATOR, shots=shots, **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -44,7 +44,7 @@ class QasmMultiplexerTests:
         circuits = ref_multiplexer.multiplexer_cx_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_multiplexer.multiplexer_cx_gate_counts_nondeterministic(shots)
-        job = execute(circuits, self.SIMULATOR, shots=shots, backend_options=self.BACKEND_OPTS)
+        job = execute(circuits, self.SIMULATOR, shots=shots, **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -60,7 +60,7 @@ class QasmMultiplexerTests:
         targets = ref_multiplexer.multiplexer_ccx_gate_counts_deterministic(
             shots)
         job = execute(circuits, self.SIMULATOR, shots=shots,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -73,7 +73,7 @@ class QasmMultiplexerTests:
         targets = ref_multiplexer.multiplexer_ccx_gate_counts_nondeterministic(
             shots)
         job = execute(circuits, self.SIMULATOR, shots=shots,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
