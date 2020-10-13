@@ -142,7 +142,7 @@ def snapshot_expectation_value(self, label, op, qubits,
         ExtensionError: if snapshot is invalid.
     """
 
-    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
+    snapshot_register = Snapshot.define_snapshot_register(self, qubits=qubits)
 
     return self.append(
         SnapshotExpectationValue(label, op,
