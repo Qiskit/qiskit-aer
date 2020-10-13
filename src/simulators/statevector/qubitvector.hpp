@@ -924,9 +924,9 @@ void QubitVector<data_t>::apply_lambda(Lambda&& func,
   QV::apply_lambda(0, data_size_, omp_threads_managed(), func, qubits, params);
 }
 
-template <typename data_t, typename Derived>
+template <typename data_t>
 template<typename Lambda>
-void QubitVector<data_t, Derived>::apply_lambda(Lambda&& func, size_t start, size_t stop){
+void QubitVector<data_t>::apply_lambda(Lambda&& func, size_t start, size_t stop){
     QV::apply_lambda(start, stop, omp_threads_managed(), func);
 }
 
@@ -1813,8 +1813,8 @@ void compute_phase(uint_t num_y, std::complex<data_t>& phase){
   }
 }
 
-template <typename data_t, typename Derived>
-double QubitVector<data_t, Derived>::expval_pauli(const reg_t &qubits,
+template <typename data_t>
+double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
                                          const std::string &pauli) const {
 
   uint_t x_mask, z_mask, num_y, x_max;
@@ -1863,11 +1863,11 @@ double QubitVector<data_t, Derived>::expval_pauli(const reg_t &qubits,
 
 /*******************************************************************************
  *
- * MULTI-PAULI
+ * PAULI
  *
  ******************************************************************************/
-template <typename data_t, typename Derived>
-void QubitVector<data_t, Derived>::apply_multipauli(const reg_t &qubits, const std::string &pauli){
+template <typename data_t>
+void QubitVector<data_t>::apply_multipauli(const reg_t &qubits, const std::string &pauli){
   uint_t x_mask, z_mask, num_y, x_max;
   std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
 

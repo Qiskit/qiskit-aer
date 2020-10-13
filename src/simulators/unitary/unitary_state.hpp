@@ -221,7 +221,7 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
     {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
-    {"mcsx", Gates::mcsx}     // Multi-controlled-Sqrt(X) gate
+    {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
     {"pauli", Gates::pauli}  // Multiple pauli operations at once
 });
 
