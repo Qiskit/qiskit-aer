@@ -229,7 +229,7 @@ stages:
           - bash: |
               set -x
               set -e
-              conda create --yes --quiet --name qiskit-aer python=$(python.version)
+              conda create --yes --quiet --name test-wheel python=$(python.version)
               source activate test-wheel
               pip install -c constraints.txt dist/*whl
               pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
