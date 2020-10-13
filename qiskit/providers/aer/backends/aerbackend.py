@@ -124,9 +124,8 @@ class AerBackend(BaseBackend, ABC):
             AerJob: The simulation job.
 
         Additional Information:
-            * kwarg options specified in ``run_options`` will override options
-              of the same kwarg specified in the simulator options, the
-              ``backend_options`` and the ``Qobj.config``.
+            * kwarg options specified in ``run_options`` will temporarily override
+              any set options of the same name for the current run.
 
             * The entries in the ``backend_options`` will be combined with
               the ``Qobj.config`` dictionary with the values of entries in

@@ -52,16 +52,15 @@ class AerJob(BaseJob):
 
     _executor = futures.ThreadPoolExecutor(max_workers=1)
 
-    def __init__(self, backend, job_id, fn, qobj, *args, **kwargs):
+    def __init__(self, backend, job_id, fn, qobj, *args):
         super().__init__(backend, job_id)
         self._fn = fn
         self._qobj = qobj
         if args:
-            warnings.warn('Using *args for AerJob is deprecated, pass '
-                          'additional arguments via **kwargs instead.',
+            warnings.warn('Using *args for AerJob is deprecated. All backend'
+                          ' options should be contained in the assembled Qobj.',
                           DeprecationWarning)
         self._args = args
-        self._kwargs = kwargs
         self._future = None
 
     def submit(self):
@@ -79,8 +78,7 @@ class AerJob(BaseJob):
         self._future = self._executor.submit(self._fn,
                                              self._qobj,
                                              self._job_id,
-                                             *self._args,
-                                             **self._kwargs)
+                                             *self._args)
 
     @requires_submit
     def result(self, timeout=None):
