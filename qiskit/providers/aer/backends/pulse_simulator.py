@@ -171,7 +171,7 @@ class PulseSimulator(AerBackend):
             qobj,
             *args,
             backend_options=None,  # DEPRECATED
-            validate=True,
+            validate=False,
             **run_options):
         """Run a qobj on the backend.
 
@@ -179,7 +179,7 @@ class PulseSimulator(AerBackend):
             qobj (QasmQobj): The Qobj to be executed.
             backend_options (dict or None): DEPRECATED dictionary of backend options
                                             for the execution (default: None).
-            validate (bool): validate the Qobj before running (default: True).
+            validate (bool): validate the Qobj before running (default: False).
             run_options (kwargs): additional run time backend options.
 
         Returns:
