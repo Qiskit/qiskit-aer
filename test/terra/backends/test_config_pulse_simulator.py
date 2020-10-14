@@ -236,7 +236,7 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
                         shots=256)
 
         try:
-            test_sim.run(qobj).result()
+            test_sim.run(qobj, validate=True).result()
         except AerError as error:
             self.assertTrue('does not support multiple Acquire' in error.message)
 
@@ -249,7 +249,7 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
                         shots=256)
 
         try:
-            test_sim.run(qobj).result()
+            test_sim.run(qobj, validate=True).result()
         except AerError as error:
             self.assertTrue('requires at least one Acquire' in error.message)
 
