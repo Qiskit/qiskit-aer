@@ -44,10 +44,11 @@ namespace MatrixProductState {
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
   {Operations::OpType::gate, Operations::OpType::measure,
-  Operations::OpType::reset, Operations::OpType::initialize,
-  Operations::OpType::snapshot, Operations::OpType::barrier,
-  Operations::OpType::bfunc, Operations::OpType::roerror,
-  Operations::OpType::matrix, Operations::OpType::kraus},
+   Operations::OpType::reset, Operations::OpType::initialize,
+   Operations::OpType::snapshot, Operations::OpType::barrier,
+   Operations::OpType::bfunc, Operations::OpType::roerror,
+   Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
+   Operations::OpType::kraus},
   // Gates
   {"id", "x", "y", "z", "s", "sdg", "h", "t", "tdg", "u1", "u2", "u3",
     "U", "CX", "cx", "cz", "cu1", "swap", "ccx"},
@@ -476,6 +477,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
           break;
         case Operations::OpType::matrix:
           apply_matrix(op.qubits, op.mats[0]);
+          break;
+        case Operations::OpType::diagonal_matrix:
+          BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
           break;
         case Operations::OpType::kraus:
           apply_kraus(op.qubits, op.mats, rng);
