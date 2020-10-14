@@ -104,6 +104,7 @@ public:
   void apply_cz(uint_t control, uint_t target, uint_t rank);
   void apply_swap(uint_t qubit_1, uint_t qubit_2, uint_t rank);
   void apply_h(uint_t qubit, uint_t rank);
+  void apply_sx(uint_t qubit, uint_t rank);
   void apply_s(uint_t qubit, uint_t rank);
   void apply_sdag(uint_t qubit, uint_t rank);
   void apply_x(uint_t qubit, uint_t rank);
@@ -251,6 +252,13 @@ void Runner::apply_s(uint_t qubit, uint_t rank)
 
 void Runner::apply_sdag(uint_t qubit, uint_t rank)
 {
+  states_[rank].Sdag(qubit);
+}
+
+void Runner::apply_sx(uint_t qubit, uint_t rank)
+{
+  states_[rank].Sdag(qubit);
+  states_[rank].H(qubit);
   states_[rank].Sdag(qubit);
 }
 
