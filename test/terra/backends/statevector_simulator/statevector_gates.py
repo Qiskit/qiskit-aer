@@ -89,8 +89,14 @@ class StatevectorGateTests:
         (U3Gate, 3),
         (UGate, 3)
     ]
-    BASIS_GATES = [None, ['id', 'u3', 'cx'], ['id', 'r', 'cz'],
-                   ['id', 'rz', 'rx', 'cz'], ['id', 'p', 'sx', 'cx']]
+    BASIS_GATES = [
+        None,
+        ['id', 'u1', 'u2', 'u3', 'cx'],
+        ['id', 'u', 'cx'],
+        ['id', 'r', 'cz'],
+        ['id', 'rz', 'rx', 'cz'],
+        ['id', 'p', 'sx', 'cx']
+    ]
 
     @data(*[(gate_params[0], gate_params[1], basis_gates)
             for gate_params, basis_gates in product(GATES, BASIS_GATES)])

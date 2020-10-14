@@ -248,7 +248,7 @@ class QasmSimulator(AerBackend):
         'description': 'A C++ QasmQobj simulator with noise',
         'coupling_map': None,
         'basis_gates': [
-            'u1', 'u2', 'u3', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
             'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
             'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
             'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
@@ -400,7 +400,7 @@ class QasmSimulator(AerBackend):
             config.n_qubits = config.n_qubits // 2
             config.description = 'A C++ QasmQobj density matrix simulator with noise'
             config.basis_gates = [
-                'u1', 'u2', 'u3', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+                'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
                 'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
                 'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
                 'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'kraus', 'superop'
@@ -411,8 +411,8 @@ class QasmSimulator(AerBackend):
         elif method == 'matrix_product_state':
             config.description = 'A C++ QasmQobj matrix product state simulator with noise'
             config.basis_gates = [
-                'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
-                'sdg', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay'
+                'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
+                'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay'
             ]
 
         # Stabilizer method
@@ -420,7 +420,7 @@ class QasmSimulator(AerBackend):
             config.n_qubits = 5000  # TODO: estimate from memory
             config.description = 'A C++ QasmQobj Clifford stabilizer simulator with noise'
             config.basis_gates = [
-                'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'cx', 'cy', 'cz',
+                'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'cx', 'cy', 'cz',
                 'swap', 'roerror', 'delay'
             ]
 
@@ -429,8 +429,8 @@ class QasmSimulator(AerBackend):
             config.n_qubits = 63  # TODO: estimate from memory
             config.description = 'A C++ QasmQobj ranked stabilizer simulator with noise'
             config.basis_gates = [
-                'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'swap',
-                'u0', 'u1', 'ccx', 'ccz', 'roerror', 'delay'
+                'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'swap',
+                'u0', 'u1', 'p', 'ccx', 'ccz', 'roerror', 'delay'
             ]
 
         return config

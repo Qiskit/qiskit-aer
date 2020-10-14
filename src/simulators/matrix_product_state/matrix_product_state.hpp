@@ -49,8 +49,8 @@ const Operations::OpSet StateOpSet(
   Operations::OpType::bfunc, Operations::OpType::roerror,
   Operations::OpType::matrix, Operations::OpType::kraus},
   // Gates
-  {"id", "x", "y", "z", "s", "sdg", "h", "t", "tdg", "u1", "u2", "u3",
-    "U", "CX", "cx", "cz", "cu1", "swap", "ccx"},
+  {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
+   "u2", "u3", "u", "U", "CX", "cx",  "cz", "cp", "cu1", "swap", "ccx"},
   // Snapshots
   {"statevector", "memory", "register", "probabilities",
     "expectation_value_pauli", "expectation_value_pauli_with_variance",
@@ -297,21 +297,25 @@ const stringmap_t<Gates> State::gateset_({
   {"s", Gates::s},       // Phase gate (aka sqrt(Z) gate)
   {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
   {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
+  {"sx", Gates::sx},     // Sqrt(X) gate
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   // Waltz Gates
+  {"p", Gates::u1},      // zero-X90 pulse waltz gate
   {"u1", Gates::u1},     // zero-X90 pulse waltz gate
   {"u2", Gates::u2},     // single-X90 pulse waltz gate
   {"u3", Gates::u3},     // two X90 pulse waltz gate
+  {"u", Gates::u3},      // two X90 pulse waltz gate
   {"U", Gates::u3},      // two X90 pulse waltz gate
   // Two-qubit gates
   {"CX", Gates::cx},     // Controlled-X gate (CNOT)
   {"cx", Gates::cx},     // Controlled-X gate (CNOT)
   {"cz", Gates::cz},     // Controlled-Z gate
-  {"cu1", Gates::cu1},     // Controlled-U1 gate
+  {"cu1", Gates::cu1},   // Controlled-U1 gate
+  {"cp", Gates::cu1},    // Controlled-U1 gate
   {"swap", Gates::swap}, // SWAP gate
   // Three-qubit gates
-   {"ccx", Gates::mcx}    // Controlled-CX gate (Toffoli)
+   {"ccx", Gates::mcx}   // Controlled-CX gate (Toffoli)
 });
 
 const stringmap_t<Snapshots> State::snapshotset_({
@@ -662,6 +666,9 @@ void State::apply_gate(const Operations::Op &op) {
       break;
     case Gates::sdg:
       qreg_.apply_sdg(op.qubits[0]);
+      break;
+    case Gates::sx:
+      qreg_.apply_sx(op.qubits[0]);
       break;
     case Gates::t:
       qreg_.apply_t(op.qubits[0]);
