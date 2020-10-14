@@ -48,7 +48,7 @@ namespace Simulator {
  *      zero in result data [Default: 1e-10]
  * - "statevector_parallel_threshold" (int): Threshold that number of qubits
  *      must be greater than to enable OpenMP parallelization at State
- *      level [Default: 13]
+ *      level [Default: 14]
  * - "statevector_sample_measure_opt" (int): Threshold that number of qubits
  *      must be greater than to enable indexing optimization during
  *      measure sampling [Default: 10]
@@ -117,7 +117,7 @@ namespace Simulator {
  * - fusion_max_qubit (int): Maximum number of qubits for a operation generated
  *       in a fusion optimization [Default: 5]
  * - fusion_threshold (int): Threshold that number of qubits must be greater
- *       than or equal to enable fusion optimization [Default: 20]
+ *       than or equal to enable fusion optimization [Default: 14]
  *
  **************************************************************************/
 
@@ -164,9 +164,6 @@ class QasmController : public Base::Controller {
   // Simulation precision
   enum class Precision { double_precision, single_precision };
 
-  // Fusion method
-  using FusionMethod = Transpile::Fusion::Method;
-
   //-----------------------------------------------------------------------
   // Base class abstract method override
   //-----------------------------------------------------------------------
@@ -207,8 +204,8 @@ class QasmController : public Base::Controller {
   // Return a fusion transpilation pass configured for the current
   // method, circuit and config
   Transpile::Fusion transpile_fusion(Method method,
-                                     const json_t& config,
-                                     FusionMethod fusion_method = FusionMethod::unitary) const;
+                                     const Operations::OpSet &opset,
+                                     const json_t& config) const;
 
   //----------------------------------------------------------------
   // Run circuit helpers
@@ -781,29 +778,44 @@ size_t QasmController::required_memory_mb(
 }
 
 Transpile::Fusion QasmController::transpile_fusion(Method method,
-                                                   const json_t& config,
-                                                   FusionMethod fusion_method) const {
+                                                   const Operations::OpSet &opset,
+                                                   const json_t& config) const {
   Transpile::Fusion fusion_pass;
+  if (opset.contains(Operations::OpType::superop)) {
+    fusion_pass.allow_superop = true;
+  }
+  if (opset.contains(Operations::OpType::kraus)) {
+    fusion_pass.allow_kraus = true;
+  }
   switch (method) {
-    case Method::statevector:
-    case Method::statevector_thrust_gpu:
-    case Method::statevector_thrust_cpu:
     case Method::density_matrix:
     case Method::density_matrix_thrust_gpu:
     case Method::density_matrix_thrust_cpu: {
-      if (fusion_method == FusionMethod::superop) {
-        fusion_pass.allow_superop = true;
-      } else if (fusion_method == FusionMethod::kraus) {
-        fusion_pass.allow_kraus = true;
+      // Halve the default threshold and max fused qubits for density matrix
+      fusion_pass.threshold /= 2;
+      fusion_pass.max_qubit /= 2;
+      break;
+    }
+    case Method::matrix_product_state: {
+      // Disable fusion by default, but allow it to be enabled by config settings
+      fusion_pass.active = false;
+    }
+    case Method::statevector:
+    case Method::statevector_thrust_gpu:
+    case Method::statevector_thrust_cpu: {
+      if (fusion_pass.allow_kraus) {
+        // Halve default max fused qubits for Kraus noise fusion
+        fusion_pass.max_qubit /= 2;
       }
-      fusion_pass.set_config(config);
       break;
     }
     default: {
       fusion_pass.active = false;
-      break;
+      return fusion_pass;
     }
   }
+  // Override default fusion settings with custom config
+  fusion_pass.set_config(config);
   return fusion_pass;
 }
 
@@ -885,9 +897,7 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   result.add_metadata("measure_sampling", false);
 
   // Choose execution method based on noise and method
-
   Circuit opt_circ;
-  FusionMethod fusion_method = FusionMethod::unitary;
 
   // Ideal circuit
   if (noise.is_ideal()) {
@@ -904,7 +914,6 @@ void QasmController::run_circuit_helper(const Circuit& circ,
     // Sample noise using SuperOp method
     auto noise_superop = noise;
     noise_superop.activate_superop_method();
-    fusion_method = FusionMethod::superop;
     opt_circ = noise_superop.sample_noise(circ, rng);
   }
   // Kraus noise sampling
@@ -912,7 +921,6 @@ void QasmController::run_circuit_helper(const Circuit& circ,
            noise.opset().contains(Operations::OpType::superop)) {
     auto noise_kraus = noise;
     noise_kraus.activate_kraus_method();
-    fusion_method = FusionMethod::kraus;
     opt_circ = noise_kraus.sample_noise(circ, rng);
   }
   // General circuit noise sampling
@@ -927,8 +935,7 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   Transpile::DelayMeasure measure_pass;
   measure_pass.set_config(config);
   measure_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
-
-  auto fusion_pass = transpile_fusion(method, config, fusion_method);
+  auto fusion_pass = transpile_fusion(method, opt_circ.opset(), config);
   fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
 
   // Run simulation
@@ -995,7 +1002,7 @@ void QasmController::run_circuit_with_sampled_noise(const Circuit& circ,
                                                     RngEngine& rng) const {
 
   // Transpilation for circuit noise method
-  auto fusion_pass = transpile_fusion(method, config, FusionMethod::unitary);
+  auto fusion_pass = transpile_fusion(method, circ.opset(), config);
   Transpile::DelayMeasure measure_pass;
   measure_pass.set_config(config);
   Noise::NoiseModel dummy_noise;

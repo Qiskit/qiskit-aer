@@ -231,7 +231,7 @@ class QasmSimulator(AerBackend):
     * ``fusion_max_qubit`` (int): Maximum number of qubits for a operation generated
       in a fusion optimization [Default: 5]
     * ``fusion_threshold`` (int): Threshold that number of qubits must be greater
-      than or equal to enable fusion optimization [Default: 20]
+      than or equal to enable fusion optimization [Default: 14]
     """
 
     _DEFAULT_CONFIGURATION = {
