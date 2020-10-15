@@ -313,27 +313,30 @@ reg_t MPS::get_internal_qubits(const reg_t &qubits) const {
  
 void MPS::apply_h(uint_t index) 
 {
-  cmatrix_t h_matrix = AER::Linalg::Matrix::H;
-  get_qubit(index).apply_matrix(h_matrix);
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::H);
+}
+
+void MPS::apply_sx(uint_t index)
+{
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::SX);
 }
 
 void MPS::apply_u1(uint_t index, double lambda)
 {
-  cmatrix_t u1_matrix = AER::Linalg::Matrix::u1(lambda);
-  get_qubit(index).apply_matrix(u1_matrix);
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::u1(lambda));
 }
 
 void MPS::apply_u2(uint_t index, double phi, double lambda)
 {
-  cmatrix_t u2_matrix = AER::Linalg::Matrix::u2(phi, lambda);
-  get_qubit(index).apply_matrix(u2_matrix);
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::u2(phi, lambda));
 }
 
 void MPS::apply_u3(uint_t index, double theta, double phi, double lambda)
 {
-  cmatrix_t u3_matrix = AER::Linalg::Matrix::u3(theta, phi, lambda);
-  get_qubit(index).apply_matrix(u3_matrix);
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::u3(theta, phi, lambda));
 }
+
+
 
 void MPS::apply_cnot(uint_t index_A, uint_t index_B)
 {

@@ -50,7 +50,8 @@ class QuantumFourierTransformFusionSuite:
 
     def time_quantum_fourier_transform(self, num_qubit, fusion_enable, use_cu1):
         """ Benchmark QFT """
-        result = self.backend.run(self.circuit[(num_qubit, use_cu1)], backend_options={'fusion_enable': fusion_enable}).result()
+        result = self.backend.run(self.circuit[(num_qubit, use_cu1)],
+                                  fusion_enable=fusion_enable).result()
         if result.status != 'COMPLETED':
             raise QiskitError("Simulation failed. Status: " + result.status)
 
@@ -105,6 +106,6 @@ class RandomFusionSuite:
     def time_random_transform(self, num_qubits, fusion_enable):
         circ = self.build_model_circuit_kak(num_qubits, num_qubits, 1)
         qobj = assemble(circ)
-        result = self.backend.run(qobj, backend_options={'fusion_enable': fusion_enable}).result()
+        result = self.backend.run(qobj, fusion_enable=fusion_enable).result()
         if result.status != 'COMPLETED':
             raise QiskitError("Simulation failed. Status: " + result.status)

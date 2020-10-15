@@ -93,13 +93,13 @@ class UnitaryController : public Base::Controller {
   virtual void run_circuit(const Circuit &circ,
                            const Noise::NoiseModel &noise,
                            const json_t &config, uint_t shots,
-                           uint_t rng_seed, ExperimentData &data) const override;
+                           uint_t rng_seed, ExperimentResult &result) const override;
 
   template <class State_t>
   void run_circuit_helper(const Circuit &circ,
                           const Noise::NoiseModel &noise,
                           const json_t &config, uint_t shots,
-                          uint_t rng_seed, ExperimentData &data) const;
+                          uint_t rng_seed, ExperimentResult &result) const;
 
   //-----------------------------------------------------------------------
   // Custom initial state
@@ -192,7 +192,7 @@ void UnitaryController::run_circuit(const Circuit &circ,
                                     const Noise::NoiseModel &noise,
                                     const json_t &config,
                                     uint_t shots,
-                                    uint_t rng_seed, ExperimentData &data) const {
+                                    uint_t rng_seed, ExperimentResult &result) const {
   switch (method_) {
     case Method::automatic:
     case Method::unitary_cpu: {
@@ -200,12 +200,12 @@ void UnitaryController::run_circuit(const Circuit &circ,
         // Double-precision unitary simulation
         return run_circuit_helper<
             QubitUnitary::State<QV::UnitaryMatrix<double>>>(circ, noise, config,
-                                                            shots, rng_seed, data);
+                                                            shots, rng_seed, result);
       } else {
         // Single-precision unitary simulation
         return run_circuit_helper<
             QubitUnitary::State<QV::UnitaryMatrix<float>>>(circ, noise, config,
-                                                           shots, rng_seed, data);
+                                                           shots, rng_seed, result);
       }
     }
     case Method::unitary_thrust_gpu: {
@@ -214,12 +214,12 @@ void UnitaryController::run_circuit(const Circuit &circ,
         // Double-precision unitary simulation
         return run_circuit_helper<
             QubitUnitary::State<QV::UnitaryMatrixThrust<double>>>(
-            circ, noise, config, shots, rng_seed, data);
+            circ, noise, config, shots, rng_seed, result);
       } else {
         // Single-precision unitary simulation
         return run_circuit_helper<
             QubitUnitary::State<QV::UnitaryMatrixThrust<float>>>(
-            circ, noise, config, shots, rng_seed, data);
+            circ, noise, config, shots, rng_seed, result);
       }
 #else
       throw std::runtime_error(
@@ -233,12 +233,12 @@ void UnitaryController::run_circuit(const Circuit &circ,
         // Double-precision unitary simulation
         return run_circuit_helper<
             QubitUnitary::State<QV::UnitaryMatrixThrust<double>>>(
-            circ, noise, config, shots, rng_seed, data);
+            circ, noise, config, shots, rng_seed, result);
       } else {
         // Single-precision unitary simulation
         return run_circuit_helper<
             QubitUnitary::State<QV::UnitaryMatrixThrust<float>>>(
-            circ, noise, config, shots, rng_seed, data);
+            circ, noise, config, shots, rng_seed, result);
       }
 #else
       throw std::runtime_error(
@@ -254,12 +254,15 @@ void UnitaryController::run_circuit(const Circuit &circ,
 template <class State_t>
 void UnitaryController::run_circuit_helper(
     const Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
-    uint_t shots, uint_t rng_seed, ExperimentData &data) const {
+    uint_t shots, uint_t rng_seed, ExperimentResult &result) const {
   // Initialize state
   State_t state;
 
   // Validate circuit and throw exception if invalid operations exist
   validate_state(state, circ, noise, true);
+
+  // Validate memory requirements and throw exception if not enough memory
+  validate_memory_requirements(state, circ, true);
 
   // Check for custom initial state, and if so check it matches num qubits
   if (!initial_unitary_.empty()) {
@@ -289,18 +292,19 @@ void UnitaryController::run_circuit_helper(
   rng.set_seed(rng_seed);
 
   // Output data container
-  data.set_config(config);
-  data.add_metadata("method", state.name());
+  result.set_config(config);
+  result.add_metadata("method", state.name());
 
   // Optimize circuit
   const std::vector<Operations::Op>* op_ptr = &circ.ops;
-  Transpile::Fusion fusion_pass(5, 10); // 10-qubit default threshold
+  Transpile::Fusion fusion_pass;
+  fusion_pass.threshold /= 2;  // Halve default threshold for unitary simulator
   fusion_pass.set_config(config);
   Circuit opt_circ;
   if (fusion_pass.active && circ.num_qubits >= fusion_pass.threshold) {
     opt_circ = circ; // copy circuit
     Noise::NoiseModel dummy_noise; // dummy object for transpile pass
-    fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
+    fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
     op_ptr = &opt_circ.ops;
   }
 
@@ -311,11 +315,11 @@ void UnitaryController::run_circuit_helper(
     state.initialize_qreg(circ.num_qubits, initial_unitary_);
   }
   state.initialize_creg(circ.num_memory, circ.num_registers);
-  state.apply_ops(*op_ptr, data, rng);
-  state.add_creg_to_data(data);
+  state.apply_ops(*op_ptr, result, rng);
+  state.add_creg_to_data(result);
 
   // Add final state unitary to the data
-  data.add_additional_data("unitary", state.qreg().move_to_matrix());
+  result.data.add_additional_data("unitary", state.qreg().move_to_matrix());
 }
 
 //-------------------------------------------------------------------------
