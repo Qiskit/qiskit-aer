@@ -222,7 +222,7 @@ class QasmSimulator(AerBackend):
       their squares is smaller than this threshold.
       (Default: 1e-16).
 
-    * ``mps_sample_measure_algorithm`` (double):
+    * ``mps_sample_measure_algorithm`` (str):
       Choose which algorithm to use for ``"sample_measure"``. ``"mps_probabilities"``
       means all state probabilities are computed and measurements are based on them.
       It is more efficient for a large number of shots, small number of qubits and low
