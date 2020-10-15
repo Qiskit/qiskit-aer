@@ -222,6 +222,16 @@ class QasmSimulator(AerBackend):
       their squares is smaller than this threshold.
       (Default: 1e-16).
 
+    * ``mps_sample_measure_algorithm`` (str):
+      Choose which algorithm to use for ``"sample_measure"``. ``"mps_probabilities"``
+      means all state probabilities are computed and measurements are based on them.
+      It is more efficient for a large number of shots, small number of qubits and low
+      entanglement. ``"mps_apply_measure"`` creates a copy of the mps structure and
+      makes a measurement on it. It is more effients for a small number of shots, high
+      number of qubits, and low entanglement. If the user does not specify the algorithm,
+      a heuristic algorithm is used to select between the two algorithms.
+      (Default: "mps_heuristic").
+
     These backend options apply in circuit optimization passes:
 
     * ``fusion_enable`` (bool): Enable fusion optimization in circuit

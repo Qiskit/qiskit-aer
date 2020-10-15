@@ -40,8 +40,7 @@ static const cmatrix_t one_measure =
 			                 {{0, 0}, {1, 0}}});
   uint_t MPS::omp_threads_ = 1;     
   uint_t MPS::omp_threshold_ = 14;  
-  uint_t MPS::sample_measure_index_size_ = 26; 
-  uint_t MPS::sample_measure_shots_thresh_ = 10; 
+  enum Sample_measure_alg MPS::sample_measure_alg_ = Sample_measure_alg::HEURISTIC; 
   double MPS::json_chop_threshold_ = 1E-8;  
 //------------------------------------------------------------------------
 // local function declarations
@@ -1042,6 +1041,24 @@ std::vector<reg_t> MPS::get_matrices_sizes() const
       result.push_back(q_reg_[i].get_size());
     }
   return result;
+}
+
+reg_t MPS::get_bond_dimensions() const {
+  reg_t result;
+  for(uint_t i=0; i<num_qubits_-1; i++)
+    {
+      result.push_back(lambda_reg_[i].size());
+    }
+  return result;
+}
+
+uint_t MPS::get_max_bond_dimensions() const {
+  uint_t max = 0;
+  for (uint_t i=0; i<num_qubits_-1; i++) {
+    if (lambda_reg_[i].size() > max)
+      max = lambda_reg_[i].size();
+  }
+  return max;
 }
 
 MPS_Tensor MPS::state_vec_as_MPS(const reg_t &qubits) {
