@@ -1,0 +1,9 @@
+---
+
+features:
+  - |
+    Adds support for density matrix snapshot instruction
+    :class:`qiskit.providers.aer.extensions.SnapshotDensityMatrix` to the
+    ``"matrix_product_state"`` method of the
+    :class:`~qiskit.providers.aer.QasmSimulator`.
+
