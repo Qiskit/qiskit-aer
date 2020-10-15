@@ -232,7 +232,6 @@ class QasmSimulator(AerBackend):
       a heuristic algorithm is used to select between the two algorithms.
       (Default: "mps_heuristic").
 
-    """
     These backend options apply in circuit optimization passes:
 
     * ``fusion_enable`` (bool): Enable fusion optimization in circuit
