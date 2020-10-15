@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Changes ``"fusion_threshold"`` backend option to apply fusion when the
+    number of qubits is above the threshold, not equal or above the threshold,
+    to match the behaviour of the OpenMP qubit threshold parameter.
+  - |
+    Changes the default value of ``"fusion_threshold"`` from 20 to 14 for the
+    :class:`~qiskit.providers.aer.QasmSimulator` and
+    :class:`~qiskit.providers.aer.StatevectorSimulator`, and from 10 to 7 for
+    the :class:`~qiskit.providers.aer.UnitarySimulator`.

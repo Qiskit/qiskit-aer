@@ -65,7 +65,7 @@ class UnitaryFusionTests:
             meta = self.fusion_metadata(result)
 
             self.assertSuccess(result)
-            self.assertTrue(meta.get('applied'))
+            self.assertFalse(meta.get('applied'))
 
         with self.subTest(msg='above fusion threshold'):
             circuit = QuantumVolume(threshold + 1, seed=seed)
