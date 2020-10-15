@@ -1,5 +1,5 @@
 ---
-features:
+upgrade:
   - |
     Updates gate fusion default thresholds so that gate fusion will be applied
     to circuits with of more than 14 qubits for statevector simulations on the
@@ -17,6 +17,3 @@ features:
     Changes ``fusion_threshold`` backend option to apply fusion when the
     number of qubits is above the threshold, not equal or above the threshold,
     to match the behavior of the OpenMP qubit threshold parameter.
-  - | 
-    Improves reporting of gate fusion metadata in result metadata.
-
