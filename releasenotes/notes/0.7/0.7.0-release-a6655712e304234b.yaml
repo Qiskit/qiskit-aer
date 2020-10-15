@@ -3,7 +3,7 @@ prelude: >
     This 0.7.0 release includes numerous performance improvements and
     significant enhancements to the simulator interface, and drops support
     for Python 3.5.
-    The main interface change sis allowing for configurable simulator backends,
+    The main interface changes are configurable simulator backends,
     and constructing preconfigured simulators from IBMQ backends.
     Noise model an basis gate support has also been extended for most of the
     Qiskit circuit library standard gates, including new support for 1 and 2-qubit
