@@ -55,7 +55,7 @@ features:
     to the :class:`~qiskit.providers.aer.StatevectorSimulator`,
     :class:`~qiskit.providers.aer.UnitarySimulator`, and the 
     ``"statevector"`` and ``"density_matrix"`` methods of the
-    :class:`~qiskit.providers.aer.StatevectorSimulator`.
+    :class:`~qiskit.providers.aer.QasmSimulator`.
   - |
     Adds support for multi-controlled rotation gates ``"mcr"``, ``"mcrx"``,
     ``"mcry"``, ``"mcrz"``
