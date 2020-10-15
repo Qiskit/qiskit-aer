@@ -1058,6 +1058,7 @@ uint_t MPS::get_max_bond_dimensions() const {
     if (lambda_reg_[i].size() > max)
       max = lambda_reg_[i].size();
   }
+  return max;
 }
 
 MPS_Tensor MPS::state_vec_as_MPS(const reg_t &qubits) {
