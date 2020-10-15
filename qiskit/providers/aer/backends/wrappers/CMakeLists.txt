@@ -34,7 +34,12 @@ install(TARGETS controller_wrappers LIBRARY DESTINATION qiskit/providers/aer/bac
 
 # Install redistributable dependencies
 if(APPLE)
-    install(FILES "${CONAN_LIB_DIRS_LLVM-OPENMP}/libomp.dylib" DESTINATION qiskit/providers/aer/backends)
+    # TODO: Remvoe this branching
+    if(USE_CONAN)
+        install(FILES "${CONAN_LIB_DIRS_LLVM-OPENMP}/libomp.dylib" DESTINATION qiskit/providers/aer/backends)
+    else()
+        install(FILES "${OpenMP_libomp_LIBRARY}" DESTINATION qiskit/providers/aer/backends)
+    endif()
 elseif(WIN32 AND NOT BLAS_LIB_PATH)
     install(FILES ${OPENBLAS_DLLs} DESTINATION qiskit/providers/aer/backends)
 endif()

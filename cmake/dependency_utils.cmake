@@ -16,18 +16,10 @@ macro(setup_dependencies)
 	if(USE_CONAN)
 		include(conan_utils)
 		setup_conan()
-
-		# NOTE: this assumes CONAN_PKG is static.
-		# Might need to change to import CONAN_PKG if they need changed
-		add_library(AER_DEPENDENCY_PKG ALIAS CONAN_PKG)
 	else()
 		# Use system libraries
 		_import_aer_system_dependency(nlohmann_json 3.1.1)
 		_import_aer_system_dependency(spdlog 1.5.0)
-
-		if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-			_import_aer_system_dependency(llvm-openmp 8.0.1)
-		endif()
 
 		if(SKBUILD)
 			_import_aer_system_dependency(muparserx 4.0.8)
@@ -50,7 +42,8 @@ macro(_import_aer_system_dependency package version)
 		# version: version of package to search for
 
 	find_package(${package} ${version} REQUIRED)
-	add_library(AER_DEPENDENCY_PKG::${package} INTERFACE IMPORTED)
-	target_link_libraries(AER_DEPENDENCY_PKG::${package} PUBLIC INTERFACE ${package})
-	message(STATUS "Using system-provided ${package} library")
+	string(TOLOWER ${package} PACKAGE_LOWER) # Conan use lowercase for every lib
+	add_library(AER_DEPENDENCY_PKG::${PACKAGE_LOWER} INTERFACE IMPORTED)
+	target_link_libraries(AER_DEPENDENCY_PKG::${PACKAGE_LOWER} PUBLIC INTERFACE ${package})
+	message(STATUS "Using system-provided ${PACKAGE_LOWER} library")
 endmacro()
