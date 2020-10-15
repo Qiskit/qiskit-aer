@@ -2,7 +2,8 @@
 
 features:
   - |
-    Added support for ``apply_kraus``in ``matrix_product_state.hpp``. This
-    enables running the ``matrix_product_state`` simulation method with all 
-    types of Kraus noise.
-
+    Adds support for general Kraus
+    :class:`~qiskit.providers.aer.noise.QauntumError` gate errors in the
+    :class:`~qiskit.providers.aer.noise.NoiseModel` to the 
+    ``"matrix_product_state"`` method of the
+    :class:`~qiskit.providers.aer.QasmSimulator`.
