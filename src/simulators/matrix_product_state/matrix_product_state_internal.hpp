@@ -31,7 +31,9 @@ enum Gates {
   mcx // three qubit
 };
 
-enum class Direction {RIGHT, LEFT};
+  //enum class Direction {RIGHT, LEFT};
+
+  enum class Sample_measure_alg {APPLY_MEASURE, PROB, HEURISTIC};
 
 //=========================================================================
 // MPS class
@@ -200,12 +202,10 @@ public:
     json_chop_threshold_ = json_chop_threshold;
   }
 
-  static void set_sample_measure_index_size(uint_t index_size){
-    sample_measure_index_size_ = index_size;
+  static void set_sample_measure_alg(Sample_measure_alg alg) {
+    sample_measure_alg_ = alg;
   }
-  static void set_sample_measure_shots_thresh(uint_t index_size){
-    sample_measure_shots_thresh_ = index_size;
-  }
+
   static void set_enable_gate_opt(bool enable_gate_opt) {
     enable_gate_opt_ = enable_gate_opt;
   }
@@ -219,11 +219,8 @@ public:
   static double get_json_chop_threshold() {
     return json_chop_threshold_;
   }
-  static uint_t get_sample_measure_index_size() {
-    return sample_measure_index_size_;
-  }
-  static uint_t get_sample_measure_shots_thresh() {
-    return sample_measure_shots_thresh_;
+  static Sample_measure_alg get_sample_measure_alg() {
+    return sample_measure_alg_;
   }
 
   static bool get_enable_gate_opt() {
@@ -257,7 +254,8 @@ public:
   //----------------------------------------------------------------
 
   void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector);
-
+  reg_t get_bond_dimensions() const;
+  uint_t get_max_bond_dimensions() const;
 
 private:
 
@@ -427,8 +425,8 @@ private:
   //-----------------------------------------------------------------------
   static uint_t omp_threads_;     // Disable multithreading by default
   static uint_t omp_threshold_;  // Qubit threshold for multithreading when enabled
-  static uint_t sample_measure_index_size_; // Qubit threshold for computing sample_measure using probabilities
-  static uint_t sample_measure_shots_thresh_; // Shots threshold for computing sample_measure using probablities
+  static Sample_measure_alg sample_measure_alg_; // Algorithm for computing sample_measure 
+
   static double json_chop_threshold_;  // Threshold for choping small values
                                     // in JSON serialization
   static bool enable_gate_opt_;      // allow optimizations on gates
