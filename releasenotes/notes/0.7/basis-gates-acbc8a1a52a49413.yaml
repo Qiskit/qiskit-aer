@@ -62,7 +62,7 @@ features:
     to the :class:`~qiskit.providers.aer.StatevectorSimulator`,
     :class:`~qiskit.providers.aer.UnitarySimulator`, and the 
     ``"statevector"`` method of the
-    :class:`~qiskit.providers.aer.StatevectorSimulator`.
+    :class:`~qiskit.providers.aer.QasmSimulator`.
 deprecations:
   - |
     :meth:`qiskit.providers.aer.noise.NoiseModel.set_x90_single_qubit_gates` has
