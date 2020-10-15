@@ -90,6 +90,17 @@ class StatevectorSimulator(AerBackend):
       this will only use unallocated CPU cores up to
       max_parallel_threads. Note that setting this too low can reduce
       performance (Default: 14).
+
+    These backend options apply in circuit optimization passes:
+
+    * ``fusion_enable`` (bool): Enable fusion optimization in circuit
+      optimization passes [Default: True]
+    * ``fusion_verbose`` (bool): Output gates generated in fusion optimization
+      into metadata [Default: False]
+    * ``fusion_max_qubit`` (int): Maximum number of qubits for a operation generated
+      in a fusion optimization [Default: 5]
+    * ``fusion_threshold`` (int): Threshold that number of qubits must be greater
+      than or equal to enable fusion optimization [Default: 14]
     """
 
     _DEFAULT_CONFIGURATION = {
