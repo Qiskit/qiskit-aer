@@ -14,6 +14,10 @@ features:
     and defaults will be configured automatically from the backend configuration, properties and
     defaults.
 
+    For example a noisy density matrix simulator backend can be constructed as
+    ``QasmSimulator(method='density_matrix', noise_model=noise_model)``, or an ideal
+    matrix product state simulator as ``QasmSimulator(method='matrix_product_state')``.
+
     A benefit is that a :class:`~qiskit.providers.aer.PulseSimulator` instance configured from
     a backend better serves as a drop-in replacement to the original backend, making it easier to
     swap in and out a simulator and real backend, e.g. when testing code on a simulator before
