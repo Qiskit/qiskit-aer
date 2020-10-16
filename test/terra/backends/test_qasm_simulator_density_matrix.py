@@ -30,6 +30,7 @@ from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonClifford
 from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsMinimalBasis
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmDiagonalGateTests
+from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardGateDensityMatrixTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
@@ -46,18 +47,19 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
+from test.terra.backends.qasm_simulator.qasm_fusion import QasmFusionTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
-from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpvalPauliNCTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
 
 
 class DensityMatrixTests(
-        QasmMethodTests, QasmMeasureTests, QasmMultiQubitMeasureTests,
+        QasmMethodTests, QasmFusionTests, QasmMeasureTests, QasmMultiQubitMeasureTests,
         QasmResetTests, QasmConditionalGateTests, QasmConditionalUnitaryTests,
         QasmConditionalKrausTests, QasmConditionalSuperOpTests,
         QasmCliffordTests, QasmCliffordTestsWaltzBasis,
@@ -69,8 +71,9 @@ class DensityMatrixTests(
         QasmReadoutNoiseTests, QasmPauliNoiseTests, QasmResetNoiseTests,
         QasmKrausNoiseTests, QasmSnapshotStatevectorTests,
         QasmSnapshotDensityMatrixTests, QasmSnapshotProbabilitiesTests,
-        QasmSnapshotExpValPauliTests, QasmSnapshotExpvalPauliNCTests,
-        QasmSnapshotExpValMatrixTests, QasmSnapshotStabilizerTests):
+        QasmSnapshotExpValPauliTests, QasmSnapshotExpValPauliNCTests,
+        QasmSnapshotExpValMatrixTests, QasmSnapshotStabilizerTests,
+        QasmStandardGateDensityMatrixTests):
     """Container class of density_matrix method tests."""
     pass
 
@@ -78,14 +81,22 @@ class DensityMatrixTests(
 class TestQasmSimulatorDensityMatrix(common.QiskitAerTestCase,
                                      DensityMatrixTests):
     """QasmSimulator density_matrix method tests."""
-    BACKEND_OPTS = {"seed_simulator": 314159, "method": "density_matrix"}
+    BACKEND_OPTS = {
+        "seed_simulator": 314159,
+        "method": "density_matrix",
+        "max_parallel_threads": 1
+    }
 
 
 @requires_method("qasm_simulator", "density_matrix_gpu")
 class TestQasmSimulatorDensityMatrixThrustGPU(common.QiskitAerTestCase,
                                               DensityMatrixTests):
     """QasmSimulator density_matrix_gpu method tests."""
-    BACKEND_OPTS = {"seed_simulator": 314159, "method": "density_matrix_gpu"}
+    BACKEND_OPTS = {
+        "seed_simulator": 314159,
+        "method": "density_matrix_gpu",
+        "max_parallel_threads": 1
+    }
 
 
 @requires_method("qasm_simulator", "density_matrix_thrust")
@@ -94,7 +105,8 @@ class TestQasmSimulatorDensityMatrixThrustCPU(common.QiskitAerTestCase,
     """QasmSimulator density_matrix_thrust method tests."""
     BACKEND_OPTS = {
         "seed_simulator": 314159,
-        "method": "density_matrix_thrust"
+        "method": "density_matrix_thrust",
+        "max_parallel_threads": 1
     }
 
 

@@ -739,6 +739,22 @@ Manual for `stestr` can be found [here](https://stestr.readthedocs.io/en/latest/
 
 The integration tests for Qiskit python extension are included in: `test/terra`.
 
+## C++ Tests
+
+Our C++ unit tests use the Catch2 framework, an include-only C++ unit-testing framework. 
+Catch2 framework documentation can be found [here](https://github.com/catchorg/Catch2).
+Then, in any case, build Aer with the extra cmake argument BUILD_TESTS set to true:
+
+```
+python ./setup.py bdist_wheel --build-type=Debug -- -DBUILD_TESTS=True -- -j4 2>&1 |tee build.log
+```
+
+The test executable will be placed into the source test directory and can be run by:
+
+```
+qiskit-aer$ ./test/unitc_tests [Catch2-options]
+```
+
 ## Platform support
 
 Bear in mind that every new feature/change needs to be compatible with all our

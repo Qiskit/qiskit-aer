@@ -26,6 +26,7 @@ def check_setup_requirement_exists(module: str, pypi_package: str = None):
             "Please install it with 'pip install {}'".format(module, pypi_package)
         )
 
+check_setup_requirement_exists("Cython.Build")
 if _USE_CONAN:
     check_setup_requirement_exists("conans", "conan")
 check_setup_requirement_exists("pybind11")
@@ -38,10 +39,8 @@ from skbuild import setup
 # also build time/setup requirements and will be added to both lists
 # of requirements
 common_requirements = [
-    'numpy>=1.16.3;python_version>"3.5"',
-    'numpy>=1.16.3,<1.19.0;python_version<"3.6"',
-    'scipy>=1.0;python_version>"3.5"',
-    'scipy>=1.0,<1.5.0;python_version<"3.6"',
+    'numpy>=1.16.3',
+    'scipy>=1.0',
     'cython>=0.27.1',
     'pybind11>=2.4'  # This isn't really an install requirement,
                      # Pybind11 is required to be pre-installed for
@@ -86,7 +85,7 @@ setup(
     long_description_content_type='text/markdown',
     url="https://github.com/Qiskit/qiskit-aer",
     author="AER Development Team",
-    author_email="qiskit@us.ibm.com",
+    author_email="hello@qiskit.org",
     license="Apache 2.0",
     classifiers=[
         "Environment :: Console",
@@ -98,12 +97,12 @@ setup(
         "Operating System :: POSIX :: Linux",
         "Programming Language :: C++",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Topic :: Scientific/Engineering",
     ],
+    python_requires=">=3.6",
     install_requires=requirements,
     setup_requires=setup_requirements,
     include_package_data=True,

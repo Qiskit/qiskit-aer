@@ -10,24 +10,42 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 # pylint: disable=arguments-differ, missing-return-type-doc
-
 """
 Qiskit Aer pulse simulator backend.
 """
 
-import uuid
-import time
-import datetime
+import copy
 import logging
+from warnings import warn
 from numpy import inf
-from qiskit.result import Result
+
 from qiskit.providers.models import BackendConfiguration, PulseDefaults
-from .aerbackend import AerBackend
-from ..aerjob import AerJob
+
 from ..version import __version__
+from ..aererror import AerError
 from ..pulse.controllers.pulse_controller import pulse_controller
+from ..pulse.system_models.pulse_system_model import PulseSystemModel
+from .aerbackend import AerBackend
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_CONFIGURATION = {
+    'backend_name': 'pulse_simulator',
+    'backend_version': __version__,
+    'n_qubits': 20,
+    'coupling_map': None,
+    'url': 'https://github.com/Qiskit/qiskit-aer',
+    'simulator': True,
+    'meas_levels': [1, 2],
+    'local': True,
+    'conditional': True,
+    'open_pulse': True,
+    'memory': False,
+    'max_shots': int(1e6),
+    'description': 'A Pulse-based Hamiltonian simulator for Pulse Qobj files',
+    'gates': [],
+    'basis_gates': []
+}
 
 
 class PulseSimulator(AerBackend):
@@ -38,12 +56,26 @@ class PulseSimulator(AerBackend):
     physical system specified by :class:`~qiskit.providers.aer.pulse.PulseSystemModel` objects.
     Results are returned in the same format as when jobs are submitted to actual devices.
 
-    **Example**
+    **Examples**
 
-    To use the simulator, first :func:`~qiskit.assemble` a :class:`PulseQobj` object
-    from a list of pulse :class:`~qiskit.Schedule` objects, using ``backend=PulseSimulator()``.
-    Call the simulator with the :class:`PulseQobj` and a
-    :class:`~qiskit.providers.aer.pulse.PulseSystemModel` object representing the physical system.
+    The minimal information a ``PulseSimulator`` needs to simulate is a
+    :class:`~qiskit.providers.aer.pulse.PulseSystemModel`, which can be supplied either by
+    setting the backend option before calling ``run``, e.g.:
+
+    .. code-block:: python
+
+        backend_sim = qiskit.providers.aer.PulseSimulator()
+
+        # Set the pulse system model for the simulator
+        backend_sim.set_options(system_model=system_model)
+
+        # Assemble schedules using PulseSimulator as the backend
+        pulse_qobj = assemble(schedules, backend=backend_sim)
+
+        # Run simulation
+        results = backend_sim.run(pulse_qobj)
+
+    or by supplying the system model at runtime, e.g.:
 
     .. code-block:: python
 
@@ -53,7 +85,23 @@ class PulseSimulator(AerBackend):
         pulse_qobj = assemble(schedules, backend=backend_sim)
 
         # Run simulation on a PulseSystemModel object
-        results = backend_sim.run(pulse_qobj, system_model)
+        results = backend_sim.run(pulse_qobj, system_model=system_model)
+
+    Alternatively, an instance of the ``PulseSimulator`` may be further configured to contain more
+    information present in a real backend. The simplest way to do this is to instantiate the
+    ``PulseSimulator`` from a real backend:
+
+    .. code-block:: python
+
+        armonk_sim = qiskit.providers.aer.PulseSimulator.from_backend(FakeArmonk())
+        pulse_qobj = assemble(schedules, backend=armonk_sim)
+        armonk_sim.run(pulse_qobj)
+
+    In the above example, the ``PulseSimulator`` copies all configuration and default data from
+    ``FakeArmonk()``, and as such has the same affect as ``FakeArmonk()`` when passed as an
+    argument to ``assemble``. Furthermore it constructs a
+    :class:`~qiskit.providers.aer.pulse.PulseSystemModel` from the model details in the supplied
+    backend, which is then used in simulation.
 
     **Supported PulseQobj parameters**
 
@@ -77,91 +125,205 @@ class PulseSimulator(AerBackend):
 
     **Other options**
 
-    :meth:`PulseSimulator.run` takes an additional ``dict`` argument ``backend_options`` for
-    customization. Accepted keys:
+    Additional valid keyword arguments for ``run()``:
 
     * ``'solver_options'``: A ``dict`` for solver options. Accepted keys
       are ``'atol'``, ``'rtol'``, ``'nsteps'``, ``'max_step'``, ``'num_cpus'``, ``'norm_tol'``,
       and ``'norm_steps'``.
     """
+    def __init__(self,
+                 configuration=None,
+                 properties=None,
+                 defaults=None,
+                 provider=None,
+                 **backend_options):
 
-    DEFAULT_CONFIGURATION = {
-        'backend_name': 'pulse_simulator',
-        'backend_version': __version__,
-        'n_qubits': 20,
-        'coupling_map': None,
-        'url': 'https://github.com/Qiskit/qiskit-aer',
-        'simulator': True,
-        'meas_levels': [0, 1, 2],
-        'local': True,
-        'conditional': True,
-        'open_pulse': True,
-        'memory': False,
-        'max_shots': int(1e6),
-        'description': 'A pulse-based Hamiltonian simulator for Pulse Qobj files',
-        'gates': [],
-        'basis_gates': []
-    }
+        if configuration is None:
+            configuration = BackendConfiguration.from_dict(
+                DEFAULT_CONFIGURATION)
+        else:
+            configuration = copy.copy(configuration)
+            configuration.meas_levels = self._meas_levels(configuration.meas_levels)
 
-    def __init__(self, configuration=None, provider=None):
+        if defaults is None:
+            defaults = PulseDefaults(qubit_freq_est=[inf],
+                                     meas_freq_est=[inf],
+                                     buffer=0,
+                                     cmd_def=[],
+                                     pulse_library=[])
 
-        # purpose of defaults is to pass assemble checks
-        self._defaults = PulseDefaults(qubit_freq_est=[inf],
-                                       meas_freq_est=[inf],
-                                       buffer=0,
-                                       cmd_def=[],
-                                       pulse_library=[])
-        super().__init__(self,
-                         BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION),
-                         provider=provider)
+        super().__init__(configuration,
+                         properties=properties,
+                         defaults=defaults,
+                         provider=provider,
+                         backend_options=backend_options)
 
-    def run(self, qobj, system_model, backend_options=None, validate=False):
-        """Run a qobj on system_model.
+        # Set up default system model
+        subsystem_list = backend_options.get('subsystem_list', None)
+        if backend_options.get('system_model') is None:
+            if hasattr(configuration, 'hamiltonian'):
+                system_model = PulseSystemModel.from_config(
+                    configuration, subsystem_list)
+                self._set_system_model(system_model)
+
+    # pylint: disable=arguments-differ, missing-param-doc
+    def run(self,
+            qobj,
+            *args,
+            backend_options=None,  # DEPRECATED
+            validate=True,
+            **run_options):
+        """Run a qobj on the backend.
 
         Args:
-            qobj (PulseQobj): Qobj for pulse Schedules to run
-            system_model (PulseSystemModel): Physical model to run simulation on
-            backend_options (dict): Other options
-            validate (bool): Flag for validation checks
+            qobj (QasmQobj): The Qobj to be executed.
+            backend_options (dict or None): DEPRECATED dictionary of backend options
+                                            for the execution (default: None).
+            validate (bool): validate the Qobj before running (default: True).
+            run_options (kwargs): additional run time backend options.
 
         Returns:
-            Result: results of simulation
+            AerJob: The simulation job.
+
+        Additional Information:
+            * kwarg options specified in ``run_options`` will override options
+              of the same kwarg specified in the simulator options, the
+              ``backend_options`` and the ``Qobj.config``.
+
+            * The entries in the ``backend_options`` will be combined with
+              the ``Qobj.config`` dictionary with the values of entries in
+              ``backend_options`` taking precedence. This kwarg is deprecated
+              and direct kwarg's should be used for options to pass them to
+              ``run_options``.
         """
-        # Submit job
-        job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_job, qobj, system_model,
-                         backend_options, validate)
-        aer_job.submit()
-        return aer_job
+        if args:
+            if isinstance(args[0], PulseSystemModel):
+                warn(
+                    'Passing `system_model` as a positional argument to'
+                    ' `PulseSimulator.run` has been deprecated as of'
+                    ' qiskit-aer 0.7.0 and will be removed no earlier than 3'
+                    ' months from that release date. Pass `system_model` as a kwarg'
+                    ' `system_model=model` instead.',
+                    DeprecationWarning,
+                    stacklevel=3)
+                run_options['system_model'] = args[0]
+                if len(args) > 1:
+                    backend_options = args[1]
+                if len(args) > 2:
+                    validate = args[3]
+            elif isinstance(args[0], bool):
+                validate = args[0]
+                if len(args) > 1:
+                    backend_options = args[1]
+        return super().run(qobj, backend_options=backend_options, validate=validate,
+                           **run_options)
 
-    def _run_job(self, job_id, qobj, system_model, backend_options, validate):
-        """Run a qobj job"""
-        start = time.time()
-        if validate:
-            self._validate(qobj, backend_options, noise_model=None)
-        # Send problem specification to pulse_controller and get results
-        results = pulse_controller(qobj, system_model, backend_options)
-        end = time.time()
-        return self._format_results(job_id, results, end - start, qobj.qobj_id)
+    @property
+    def _system_model(self):
+        return self._options.get('system_model')
 
-    def _format_results(self, job_id, results, time_taken, qobj_id):
-        """Construct Result object from simulator output."""
-        # Add result metadata
-        output = {}
-        output['qobj_id'] = qobj_id
-        output['results'] = results
-        output['success'] = True
-        output["job_id"] = job_id
-        output["date"] = datetime.datetime.now().isoformat()
-        output["backend_name"] = self.name()
-        output["backend_version"] = self.configuration().backend_version
-        output["time_taken"] = time_taken
-        return Result.from_dict(output)
+    @classmethod
+    def from_backend(cls, backend, **options):
+        """Initialize simulator from backend."""
+        configuration = copy.copy(backend.configuration())
+        defaults = copy.copy(backend.defaults())
+        properties = copy.copy(backend.properties())
 
-    def defaults(self):
-        """Return defaults.
+        backend_name = 'pulse_simulator({})'.format(configuration.backend_name)
+        description = 'A Pulse-based simulator configured from the backend: '
+        description += configuration.backend_name
+
+        sim = cls(configuration=configuration,
+                  properties=properties,
+                  defaults=defaults,
+                  backend_name=backend_name,
+                  description=description,
+                  **options)
+        return sim
+
+    def _execute(self, qobj):
+        """Execute a qobj on the backend.
+
+        Args:
+            qobj (PulseQobj): simulator input.
 
         Returns:
-            PulseDefaults: object for passing assemble.
+            dict: return a dictionary of results.
         """
-        return self._defaults
+        qobj.config.qubit_freq_est = self.defaults().qubit_freq_est
+        return pulse_controller(qobj)
+
+    def _set_option(self, key, value):
+        """Set pulse simulation options and update backend."""
+        if key == 'meas_levels':
+            self._set_configuration_option(key, self._meas_levels(value))
+            return
+
+        # Handle cases that require updating two places
+        if key in ['dt', 'u_channel_lo']:
+            self._set_configuration_option(key, value)
+            if self._system_model is not None:
+                setattr(self._system_model, key, value)
+            return
+
+        if key == 'hamiltonian':
+            # if option is hamiltonian, set in configuration and reconstruct pulse system model
+            subsystem_list = self._options.get('subsystem_list', None)
+            system_model = PulseSystemModel.from_config(self.configuration(),
+                                                        subsystem_list)
+            super()._set_option('system_model', system_model)
+            self._set_configuration_option(key, value)
+            return
+
+        # if system model is specified directly
+        if key == 'system_model':
+            if hasattr(self.configuration(), 'hamiltonian'):
+                warn('Specifying both a configuration with a Hamiltonian and a '
+                     'system model may result in inconsistencies.')
+            # Set config dt and u_channel_lo to system model values
+            self._set_system_model(value)
+            return
+
+        # Set all other options from AerBackend
+        super()._set_option(key, value)
+
+    def _set_system_model(self, system_model):
+        """Set system model option"""
+        self._set_configuration_option(
+            'dt', getattr(system_model, 'dt', []))
+        self._set_configuration_option(
+            'u_channel_lo', getattr(system_model, 'u_channel_lo', []))
+        super()._set_option('system_model', system_model)
+
+    def _validate(self, qobj):
+        """Validation of qobj.
+
+        Ensures that exactly one Acquire instruction is present in each
+        schedule. Checks SystemModel is in qobj config
+        """
+        if getattr(qobj.config, 'system_model', None) is None:
+            raise AerError("PulseSimulator requires a system model to run.")
+
+        for exp in qobj.experiments:
+            num_acquires = 0
+            for instruction in exp.instructions:
+                if instruction.name == 'acquire':
+                    num_acquires += 1
+
+                if num_acquires > 1:
+                    raise AerError("PulseSimulator does not support multiple Acquire "
+                                   "instructions in a single schedule.")
+
+            if num_acquires == 0:
+                raise AerError("PulseSimulator requires at least one Acquire "
+                               "instruction per schedule.")
+
+    @staticmethod
+    def _meas_levels(meas_levels):
+        """Function for setting meas_levels in a pulse simulator configuration."""
+        if 0 in meas_levels:
+            warn('Measurement level 0 not supported in pulse simulator.')
+            tmp = copy.copy(meas_levels)
+            tmp.remove(0)
+            return tmp
+        return meas_levels

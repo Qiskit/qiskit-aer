@@ -20,7 +20,10 @@ from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.qasm import pi
 import unittest
 
-class TestNoiseInserter(unittest.TestCase):
+from ..common import QiskitAerTestCase
+
+
+class TestNoiseInserter(QiskitAerTestCase):
     def test_no_noise(self):
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)

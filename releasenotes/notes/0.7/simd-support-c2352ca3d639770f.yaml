@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Extends the SIMD vectorization of the statevector simulation method to the
+    unitary matrix, superoperator matrix, and density matrix simulation methods.
+    This gives roughtly a 2x performance increase general simulation using the
+    :class:`~qiskit.providers.aer.UnitarySimulator`, the ``"density_matrix"``
+    method of the :class:`~qiskit.providers.aer.QasmSimulator`, gate
+    fusion, and noise simulation.

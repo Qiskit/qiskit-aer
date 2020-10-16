@@ -26,7 +26,7 @@
 
 #if defined(__linux__) || defined(__APPLE__)
 #include <unistd.h>
-#elif defined(_WIN64)
+#elif defined(_WIN64) || defined(_WIN32)
 // This is needed because windows.h redefine min()/max() so interferes with
 // std::min/max
 #define NOMINMAX
@@ -40,7 +40,7 @@
 // Base Controller
 #include "framework/creg.hpp"
 #include "framework/qobj.hpp"
-#include "framework/results/experiment_data.hpp"
+#include "framework/results/experiment_result.hpp"
 #include "framework/results/result.hpp"
 #include "framework/rng.hpp"
 #include "noise/noise_model.hpp"
@@ -93,12 +93,10 @@ namespace Base {
  *
  * Config settings from Data class:
  *
- * - "counts" (bool): Return counts objecy in circuit data [Default: True]
+ * - "counts" (bool): Return counts object in circuit data [Default: True]
  * - "snapshots" (bool): Return snapshots object in circuit data [Default: True]
  * - "memory" (bool): Return memory array in circuit data [Default: False]
  * - "register" (bool): Return register array in circuit data [Default: False]
- * - "noise_model" (json): A noise model JSON dictionary for the simulator.
- *                         [Default: null]
  **************************************************************************/
 
 class Controller {
@@ -139,14 +137,14 @@ protected:
   virtual void execute_circuit(Circuit &circ,
                                Noise::NoiseModel &noise,
                                const json_t &config,
-                               ExperimentResult &exp_result);
+                               ExperimentResult &result);
 
   // Abstract method for executing a circuit.
   // This method must initialize a state and return output data for
   // the required number of shots.
   virtual void run_circuit(const Circuit &circ, const Noise::NoiseModel &noise,
                            const json_t &config, uint_t shots, uint_t rng_seed,
-                           ExperimentData &data) const = 0;
+                           ExperimentResult &result) const = 0;
 
   //-------------------------------------------------------------------------
   // State validation
@@ -384,7 +382,7 @@ size_t Controller::get_system_memory_mb() {
   auto pages = sysconf(_SC_PHYS_PAGES);
   auto page_size = sysconf(_SC_PAGE_SIZE);
   total_physical_memory = pages * page_size;
-#elif defined(_WIN64)
+#elif defined(_WIN64)  || defined(_WIN32)
   MEMORYSTATUSEX status;
   status.dwLength = sizeof(status);
   GlobalMemoryStatusEx(&status);
@@ -401,7 +399,7 @@ template <class state_t>
 bool Controller::validate_state(const state_t &state, const Circuit &circ,
                                 const Noise::NoiseModel &noise,
                                 bool throw_except) {
-  // First check if a noise model is valid a given state
+  // First check if a noise model is valid for a given state
   bool noise_valid = noise.is_ideal() || state.opset().contains(noise.opset());
   bool circ_valid = state.opset().contains(circ.opset());
   if (noise_valid && circ_valid) {
@@ -576,27 +574,27 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 void Controller::execute_circuit(Circuit &circ,
                                  Noise::NoiseModel &noise,
                                  const json_t &config,
-                                 ExperimentResult &exp_result) {
+                                 ExperimentResult &result) {
 
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
 
   // Initialize circuit json return
-  exp_result.data.set_config(config);
+  result.data.set_config(config);
 
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
   try {
     // Remove barriers from circuit
     Transpile::ReduceBarrier barrier_pass;
-    barrier_pass.optimize_circuit(circ, noise, circ.opset(), exp_result.data);
+    barrier_pass.optimize_circuit(circ, noise, circ.opset(), result);
 
     // Truncate unused qubits from circuit and noise model
     if (truncate_qubits_) {
       Transpile::TruncateQubits truncate_pass;
       truncate_pass.set_config(config);
       truncate_pass.optimize_circuit(circ, noise, circ.opset(),
-                                     exp_result.data);
+                                     result);
     }
 
     // set parallelization for this circuit
@@ -606,7 +604,7 @@ void Controller::execute_circuit(Circuit &circ,
 
     // Single shot thread execution
     if (parallel_shots_ <= 1) {
-      run_circuit(circ, noise, config, circ.shots, circ.seed, exp_result.data);
+      run_circuit(circ, noise, config, circ.shots, circ.seed, result);
       // Parallel shot thread execution
     } else {
       // Calculate shots per thread
@@ -620,13 +618,13 @@ void Controller::execute_circuit(Circuit &circ,
       }
 
       // Vector to store parallel thread output data
-      std::vector<ExperimentData> par_data(parallel_shots_);
+      std::vector<ExperimentResult> par_results(parallel_shots_);
       std::vector<std::string> error_msgs(parallel_shots_);
 #pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
       for (int i = 0; i < parallel_shots_; i++) {
         try {
           run_circuit(circ, noise, config, subshots[i], circ.seed + i,
-                      par_data[i]);
+                      par_results[i]);
         } catch (std::runtime_error &error) {
           error_msgs[i] = error.what();
         }
@@ -638,36 +636,29 @@ void Controller::execute_circuit(Circuit &circ,
 
       // Accumulate results across shots
       // Use move semantics to avoid copying data
-      for (auto &datum : par_data) {
-        exp_result.data.combine(std::move(datum));
+      for (auto &res : par_results) {
+        result.combine(std::move(res));
       }
     }
     // Report success
-    exp_result.status = ExperimentResult::Status::completed;
+    result.status = ExperimentResult::Status::completed;
 
     // Pass through circuit header and add metadata
-    exp_result.header = circ.header;
-    exp_result.shots = circ.shots;
-    exp_result.seed = circ.seed;
-    // Move any metadata from the subclass run_circuit data
-    // to the experiment resultmetadata field
-    for (const auto &pair : exp_result.data.metadata()) {
-      exp_result.add_metadata(pair.first, pair.second);
-    }
-    // Remove the metatdata field from data
-    exp_result.data.metadata().clear();
-    exp_result.metadata["parallel_shots"] = parallel_shots_;
-    exp_result.metadata["parallel_state_update"] = parallel_state_update_;
+    result.header = circ.header;
+    result.shots = circ.shots;
+    result.seed = circ.seed;
+    result.metadata["parallel_shots"] = parallel_shots_;
+    result.metadata["parallel_state_update"] = parallel_state_update_;
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
     double time_taken =
         std::chrono::duration<double>(timer_stop - timer_start).count();
-    exp_result.time_taken = time_taken;
+    result.time_taken = time_taken;
   }
   // If an exception occurs during execution, catch it and pass it to the output
   catch (std::exception &e) {
-    exp_result.status = ExperimentResult::Status::error;
-    exp_result.message = e.what();
+    result.status = ExperimentResult::Status::error;
+    result.message = e.what();
   }
 }
 

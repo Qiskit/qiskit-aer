@@ -29,7 +29,6 @@
 #include "framework/linalg/almost_equal.hpp"
 
 namespace AER {
-
 // default values
 constexpr auto mul_factor = 1e2;
 constexpr long double tiny_factor = 1e30;
@@ -99,7 +98,6 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
 		  uint_t max_bond_dimension, double truncation_threshold) {
   uint_t SV_num = num_of_SV(S, CHOP_THRESHOLD);
   uint_t new_SV_num = SV_num;
-  new_SV_num = SV_num;
 
   if (max_bond_dimension < SV_num) {
     // in this case, leave only the first max_bond_dimension
@@ -137,7 +135,7 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   }
 }
 
-void validate_SVD_result(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
+void validate_SVD_result(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
   const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
   cmatrix_t diag_S = diag(S, nrows, ncols);
   cmatrix_t product = U*diag_S;
@@ -150,10 +148,9 @@ void validate_SVD_result(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V) {
 }
 
 // added cut-off at the end
-status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
-{
-  int m = A.GetRows(), n = A.GetColumns(), size = std::max(m,n);
-  rvector_t b(size,0.0), c(size,0.0), t(size,0.0);
+status csvd(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
+  int m = A.GetRows(), n = A.GetColumns(), size = std::max(m, n);
+  rvector_t b(size, 0.0), c(size, 0.0), t(size, 0.0);
   double cs = 0.0, eps = 0.0, f = 0.0 ,g = 0.0, h = 0.0, sn = 0.0 , w = 0.0, x = 0.0, y = 0.0, z = 0.0;
   double eta = 1e-10, tol = 1.5e-34;
   // using int and not uint_t because uint_t caused bugs in loops with condition of >= 0
@@ -165,7 +162,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
     {
     	transposed = true;
     	A = AER::Utils::dagger(A);
-	std::swap(m,n);
+	std::swap(m, n);
     }
 	cmatrix_t temp_A = A;
 	c[0] = 0;
@@ -173,54 +170,54 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 	{
 		k1 = k + 1;
 		z = 0.0;
-		for( i = k; i < m; i++){
-			z = z + norm(A(i,k));
+		for(i = k; i < m; i++){
+			z = z + norm(A(i, k));
 		}
 		b[k] = 0.0;
 		if ( tol < z )
 		{
-			z = std::sqrt( z );
+			z = std::sqrt(z);
 			b[k] = z;
-			w = std::abs( A(k,k) );
+			w = std::abs(A(k, k));
 			
 			if (Linalg::almost_equal(w, 0.0, zero_threshold)) {
-			  q = complex_t( 1.0, 0.0 );
+			  q = complex_t(1.0, 0.0);
 			} else {
 			q = A(k,k) / w;
 			}
-			A(k,k) = q * ( z + w );
+			A(k, k) = q * (z + w);
 
-			if ( k != n - 1 )
+			if (k != n - 1)
 			{
-				for( j = k1; j < n ; j++)
+				for(j = k1; j < n ; j++)
 				{
 
-					q = complex_t( 0.0, 0.0 );
-					for( i = k; i < m; i++){
-						q = q + std::conj( A(i,k) ) * A(i,j);
+					q = complex_t(0.0, 0.0);
+					for(i = k; i < m; i++){
+						q = q + std::conj(A(i,k)) * A(i,j);
 					}
 					q = q / ( z * ( z + w ) );
 
-					for( i = k; i < m; i++){
-					  A(i,j) = A(i,j) - q * A(i,k);
+					for(i = k; i < m; i++){
+					  A(i,j) = A(i, j) - q * A(i, k);
 					}
 
 				}
 //
 // Phase transformation.
 //
-				q = -std::conj(A(k,k))/std::abs(A(k,k));
+				q = -std::conj(A(k, k))/std::abs(A(k, k));
 
-				for( j = k1; j < n; j++){
-					A(k,j) = q * A(k,j);
+				for(j = k1; j < n; j++){
+					A(k,j) = q * A(k, j);
 				}
 			}
         }
 		if ( k == n - 1 ) break;
 
 		z = 0.0;
-		for( j = k1; j < n; j++){
-			z = z + norm(A(k,j));
+		for(j = k1; j < n; j++){
+			z = z + norm(A(k, j));
 		}
 		c[k1] = 0.0;
 
@@ -228,7 +225,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 		{
 			z = std::sqrt( z );
 			c[k1] = z;
-			w = std::abs( A(k,k1) );
+			w = std::abs( A(k, k1) );
 
 			if (Linalg::almost_equal(w, 0.0, zero_threshold)) {
 			  q = complex_t( 1.0, 0.0 );
@@ -237,17 +234,17 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 			}
 			A(k,k1) = q * ( z + w );
 
-			for( i = k1; i < m; i++)
+			for(i = k1; i < m; i++)
 			{
 				q = complex_t( 0.0, 0.0 );
 
-				for( j = k1; j < n; j++){
-					q = q + std::conj( A(k,j) ) * A(i,j);
+				for(j = k1; j < n; j++){
+					q = q + std::conj( A(k, j) ) * A(i, j);
 				}
 				q = q / ( z * ( z + w ) );
 
 				for( j = k1; j < n; j++){
-					A(i,j) = A(i,j) - q * A(k,j);
+					A(i, j) = A(i, j) - q * A(k, j);
 				}
 			}
 //
@@ -547,7 +544,7 @@ status csvd(cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
 }
 
 
-void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
+void csvd_wrapper(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V)
 {
   cmatrix_t copied_A = A;
   int times = 0;
@@ -562,7 +559,7 @@ void csvd_wrapper (cmatrix_t &A, cmatrix_t &U,rvector_t &S,cmatrix_t &V)
   while(times <= NUM_SVD_TRIES && current_status == FAILURE)
     {
       times++;
-      copied_A = copied_A*mul_factor;
+      copied_A = copied_A * mul_factor;
       A = copied_A;
 
 #ifdef DEBUG

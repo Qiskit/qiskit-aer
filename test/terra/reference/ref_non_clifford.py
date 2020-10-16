@@ -39,39 +39,11 @@ def t_gate_circuits_deterministic(final_measure=True):
         circuit.measure(qr, cr)
     circuits.append(circuit)
 
-    # T.T = S
-    circuit = QuantumCircuit(*regs)
-    circuit.t(qr)
-    circuit.barrier(qr)
-    circuit.t(qr)
-    if final_measure:
-        circuit.barrier(qr)
-        circuit.measure(qr, cr)
-    circuits.append(circuit)
-
     # T.X
     circuit = QuantumCircuit(*regs)
     circuit.x(qr)
     circuit.barrier(qr)
     circuit.t(qr)
-    if final_measure:
-        circuit.barrier(qr)
-        circuit.measure(qr, cr)
-    circuits.append(circuit)
-
-    # H.T.T.T.T.H = H.Z.H = X
-    circuit = QuantumCircuit(*regs)
-    circuit.h(qr)
-    circuit.barrier(qr)
-    circuit.t(qr)
-    circuit.barrier(qr)
-    circuit.t(qr)
-    circuit.barrier(qr)
-    circuit.t(qr)
-    circuit.barrier(qr)
-    circuit.t(qr)
-    circuit.barrier(qr)
-    circuit.h(qr)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -86,20 +58,12 @@ def t_gate_counts_deterministic(shots, hex_counts=True):
     if hex_counts:
         # T
         targets.append({'0x0': shots})
-        # T.T = S
-        targets.append({'0x0': shots})
         # T.X
-        targets.append({'0x1': shots})
-        # H.T.T.T.TH = H.Z.H = X
         targets.append({'0x1': shots})
     else:
         # T
         targets.append({'0': shots})
-        # T.T = S
-        targets.append({'0': shots})
         # T.X
-        targets.append({'1': shots})
-        # H.T.T.T.TH = H.Z.H = X
         targets.append({'1': shots})
     return targets
 
@@ -109,12 +73,8 @@ def t_gate_statevector_deterministic():
     targets = []
     # T
     targets.append(np.array([1, 0]))
-    # T.T = S
-    targets.append(np.array([1, 0]))
     # T.X
     targets.append(np.array([0, 1 + 1j]) / np.sqrt(2))
-    # H.T.T.T.T.H = H.Z.H = X
-    targets.append(np.array([0, 1]))
     return targets
 
 
@@ -123,12 +83,8 @@ def t_gate_unitary_deterministic():
     targets = []
     # T
     targets.append(np.diag([1, (1 + 1j) / np.sqrt(2)]))
-    # T.T = S
-    targets.append(np.diag([1, 1j]))
     # T.X
     targets.append(np.array([[0, 1], [(1 + 1j) / np.sqrt(2), 0]]))
-    # H.T.T.T.TH = H.Z.H = X
-    targets.append(np.array([[0, 1], [1, 0]]))
     return targets
 
 
@@ -265,23 +221,6 @@ def tdg_gate_circuits_deterministic(final_measure=True):
         circuit.measure(qr, cr)
     circuits.append(circuit)
 
-    # H.Tdg.Tdg.Tdg.Tdg.H = H.Z.H = X
-    circuit = QuantumCircuit(*regs)
-    circuit.h(qr)
-    circuit.barrier(qr)
-    circuit.tdg(qr)
-    circuit.barrier(qr)
-    circuit.tdg(qr)
-    circuit.barrier(qr)
-    circuit.tdg(qr)
-    circuit.barrier(qr)
-    circuit.tdg(qr)
-    circuit.barrier(qr)
-    circuit.h(qr)
-    if final_measure:
-        circuit.barrier(qr)
-        circuit.measure(qr, cr)
-    circuits.append(circuit)
     return circuits
 
 
@@ -293,15 +232,11 @@ def tdg_gate_counts_deterministic(shots, hex_counts=True):
         targets.append({'0x0': shots})
         # H.Tdg.T.H = I
         targets.append({'0x0': shots})
-        # H.Tdg.Tdg.Tdg.Tdg.H = H.Z.H = X
-        targets.append({'0x1': shots})
     else:
         # Tdg
         targets.append({'0': shots})
         # H.Tdg.T.H = I
         targets.append({'0': shots})
-        # H.Tdg.Tdg.Tdg.Tdg.H = H.Z.H = X
-        targets.append({'1': shots})
     return targets
 
 
@@ -312,8 +247,6 @@ def tdg_gate_statevector_deterministic():
     targets.append(np.array([1, 0]))
     # H.Tdg.T.H = I
     targets.append(np.array([1, 0]))
-    # H.Tdg.Tdg.Tdg.Tdg.H = H.Z.H = X
-    targets.append(np.array([0, 1]))
     return targets
 
 
@@ -324,8 +257,6 @@ def tdg_gate_unitary_deterministic():
     targets.append(np.diag([1, (1 - 1j) / np.sqrt(2)]))
     # H.Tdg.T.H = I
     targets.append(np.eye(2))
-    # H.Tdg.Tdg.Tdg.Tdg.H = H.Z.H = X
-    targets.append(np.array([[0, 1], [1, 0]]))
     return targets
 
 
@@ -465,73 +396,9 @@ def ccx_gate_circuits_deterministic(final_measure=True):
         circuit.measure(qr, cr)
     circuits.append(circuit)
 
-    # (X^I^X).CCX(0,1,2).(X^I^X) -> |000>
-    circuit = QuantumCircuit(*regs)
-    circuit.x(qr[0])
-    circuit.barrier(qr)
-    circuit.x(qr[2])
-    circuit.barrier(qr)
-    circuit.ccx(qr[0], qr[1], qr[2])
-    circuit.barrier(qr)
-    circuit.x(qr[0])
-    circuit.barrier(qr)
-    circuit.x(qr[2])
-    if final_measure:
-        circuit.barrier(qr)
-        circuit.measure(qr, cr)
-    circuits.append(circuit)
-
-    # (X^X^I).CCX(0,1,2).(X^X^I) -> |000>
-    circuit = QuantumCircuit(*regs)
-    circuit.x(qr[1])
-    circuit.barrier(qr)
-    circuit.x(qr[2])
-    circuit.barrier(qr)
-    circuit.ccx(qr[0], qr[1], qr[2])
-    circuit.barrier(qr)
-    circuit.x(qr[1])
-    circuit.barrier(qr)
-    circuit.x(qr[2])
-    if final_measure:
-        circuit.barrier(qr)
-        circuit.measure(qr, cr)
-    circuits.append(circuit)
-
     # CCX(2,1,0)
     circuit = QuantumCircuit(*regs)
     circuit.ccx(qr[2], qr[1], qr[0])
-    if final_measure:
-        circuit.barrier(qr)
-        circuit.measure(qr, cr)
-    circuits.append(circuit)
-
-    # (I^X^X).CCX(2,1,0).(I^X^X) -> |000>
-    circuit = QuantumCircuit(*regs)
-    circuit.x(qr[0])
-    circuit.barrier(qr)
-    circuit.x(qr[1])
-    circuit.barrier(qr)
-    circuit.ccx(qr[2], qr[1], qr[0])
-    circuit.barrier(qr)
-    circuit.x(qr[0])
-    circuit.barrier(qr)
-    circuit.x(qr[1])
-    if final_measure:
-        circuit.barrier(qr)
-        circuit.measure(qr, cr)
-    circuits.append(circuit)
-
-    # (X^I^X).CCX(2,1,0).(X^I^X) -> |000>
-    circuit = QuantumCircuit(*regs)
-    circuit.x(qr[0])
-    circuit.barrier(qr)
-    circuit.x(qr[2])
-    circuit.barrier(qr)
-    circuit.ccx(qr[2], qr[1], qr[0])
-    circuit.barrier(qr)
-    circuit.x(qr[0])
-    circuit.barrier(qr)
-    circuit.x(qr[2])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -564,15 +431,7 @@ def ccx_gate_counts_deterministic(shots, hex_counts=True):
         targets.append({'0x0': shots})
         # (I^X^X).CCX(0,1,2).(I^X^X) -> |100>
         targets.append({'0x4': shots})
-        # (X^I^X).CCX(0,1,2).(X^I^X) -> |000>
-        targets.append({'0x0': shots})
-        # (X^X^I).CCX(0,1,2).(X^X^I) -> |000>
-        targets.append({'0x0': shots})
         # CCX(2,1,0)
-        targets.append({'0x0': shots})
-        # (I^X^X).CCX(2,1,0).(I^X^X) -> |000>
-        targets.append({'0x0': shots})
-        # (X^I^X).CCX(2,1,0).(X^I^X) -> |000>
         targets.append({'0x0': shots})
         # (X^X^I).CCX(2,1,0).(X^X^I) -> |001>
         targets.append({'0x1': shots})
@@ -580,16 +439,8 @@ def ccx_gate_counts_deterministic(shots, hex_counts=True):
         # CCX(0,1,2)
         targets.append({'000': shots})
         # (I^X^X).CCX(0,1,2).(I^X^X) -> |100>
-        targets.append({'100': shots})
-        # (X^I^X).CCX(0,1,2).(X^I^X) -> |000>
-        targets.append({'000': shots})
-        # (X^X^I).CCX(0,1,2).(X^X^I) -> |000>
         targets.append({'000': shots})
         # CCX(2,1,0)
-        targets.append({'000': shots})
-        # (I^X^X).CCX(2,1,0).(I^X^X) -> |000>
-        targets.append({'000': shots})
-        # (X^I^X).CCX(2,1,0).(X^I^X) -> |000>
         targets.append({'000': shots})
         # (X^X^I).CCX(2,1,0).(X^X^I) -> |001>
         targets.append({'001': shots})
@@ -604,15 +455,7 @@ def ccx_gate_statevector_deterministic():
     targets.append(zero_state)
     # (I^X^X).CCX(0,1,2).(I^X^X) -> |100>
     targets.append(np.array([0, 0, 0, 0, 1, 0, 0, 0]))
-    # (X^I^X).CCX(0,1,2).(X^I^X) -> |000>
-    targets.append(zero_state)
-    # (X^X^I).CCX(0,1,2).(X^X^I) -> |000>
-    targets.append(zero_state)
     # CCX(2,1,0)
-    targets.append(zero_state)
-    # (I^X^X).CCX(2,1,0).(I^X^X) -> |000>
-    targets.append(zero_state)
-    # (X^I^X).CCX(2,1,0).(X^I^X) -> |000>
     targets.append(zero_state)
     # (X^X^I).CCX(2,1,0).(X^X^I) -> |001>
     targets.append(np.array([0, 1, 0, 0, 0, 0, 0, 0]))
@@ -635,36 +478,12 @@ def ccx_gate_unitary_deterministic():
                   [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0],
                   [1, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
                   [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 0, 0, 1]]))
-    # (X^I^X).CCX(0,1,2).(X^I^X) -> |000>
-    targets.append(
-        np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 1, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
-                  [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1]]))
-    # (X^X^I).CCX(0,1,2).(X^X^I) -> |000>
-    targets.append(
-        np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
-                  [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 1, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 0, 0, 1]]))
     # CCX(2,1,0)
     targets.append(
         np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
                   [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0],
                   [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
                   [0, 0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 1, 0]]))
-    # (I^X^X).CCX(2,1,0).(I^X^X) -> |000>
-    targets.append(
-        np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 0, 0, 1]]))
-    # (X^I^X).CCX(2,1,0).(X^I^X) -> |000>
-    targets.append(
-        np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 1, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 0, 0, 1]]))
     # (X^X^I).CCX(2,1,0).(X^X^I) -> |001>
     targets.append(
         np.array([[0, 1, 0, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0, 0, 0],
@@ -698,34 +517,6 @@ def ccx_gate_circuits_nondeterministic(final_measure=True):
         circuit.measure(qr, cr)
     circuits.append(circuit)
 
-    # (I^I^X).CCX(0,1,2).(I^H^X) -> |000> + |110>
-    circuit = QuantumCircuit(*regs)
-    circuit.h(qr[1])
-    circuit.barrier(qr)
-    circuit.x(qr[0])
-    circuit.barrier(qr)
-    circuit.ccx(qr[0], qr[1], qr[2])
-    circuit.barrier(qr)
-    circuit.x(qr[0])
-    if final_measure:
-        circuit.barrier(qr)
-        circuit.measure(qr, cr)
-    circuits.append(circuit)
-
-    # (I^X^I).CCX(2,1,0).(H^X^I) -> |000> + |101>
-    circuit = QuantumCircuit(*regs)
-    circuit.h(qr[2])
-    circuit.barrier(qr)
-    circuit.x(qr[1])
-    circuit.barrier(qr)
-    circuit.ccx(qr[2], qr[1], qr[0])
-    circuit.barrier(qr)
-    circuit.x(qr[1])
-    if final_measure:
-        circuit.barrier(qr)
-        circuit.measure(qr, cr)
-    circuits.append(circuit)
-
     # (X^I^I).CCX(2,1,0).(X^H^I) -> |000> + |011>
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[1])
@@ -749,18 +540,10 @@ def ccx_gate_counts_nondeterministic(shots, hex_counts=True):
     if hex_counts:
         # (I^X^I).CCX(0,1,2).(I^X^H) -> |000> + |101>
         targets.append({'0x0': shots / 2, '0x5': shots / 2})
-        # (I^I^X).CCX(0,1,2).(I^H^X) -> |000> + |110>
-        targets.append({'0x0': shots / 2, '0x6': shots / 2})
-        # (I^X^I).CCX(2,1,0).(H^X^I) -> |000> + |101>
-        targets.append({'0x0': shots / 2, '0x5': shots / 2})
         # (X^I^I).CCX(2,1,0).(X^H^I) -> |000> + |011>
         targets.append({'0x0': shots / 2, '0x3': shots / 2})
     else:
         # (I^X^I).CCX(0,1,2).(I^X^H) -> |000> + |101>
-        targets.append({'000': shots / 2, '101': shots / 2})
-        # (I^I^X).CCX(0,1,2).(I^H^X) -> |000> + |110>
-        targets.append({'000': shots / 2, '110': shots / 2})
-        # (I^X^I).CCX(2,1,0).(H^X^I) -> |000> + |101>
         targets.append({'000': shots / 2, '101': shots / 2})
         # (X^I^I).CCX(2,1,0).(X^H^I) -> |000> + |011>
         targets.append({'000': shots / 2, '011': shots / 2})
@@ -771,10 +554,6 @@ def ccx_gate_statevector_nondeterministic():
     """CCX-gate circuits reference statevectors."""
     targets = []
     # (I^X^I).CCX(0,1,2).(I^X^H) -> |000> + |101>
-    targets.append(np.array([1, 0, 0, 0, 0, 1, 0, 0]) / np.sqrt(2))
-    # (I^I^X).CCX(0,1,2).(I^H^X) -> |000> + |110>
-    targets.append(np.array([1, 0, 0, 0, 0, 0, 1, 0]) / np.sqrt(2))
-    # (I^X^I).CCX(2,1,0).(H^X^I) -> |000> + |101>
     targets.append(np.array([1, 0, 0, 0, 0, 1, 0, 0]) / np.sqrt(2))
     # (X^I^I).CCX(2,1,0).(X^H^I) -> |000> + |011>
     targets.append(np.array([1, 0, 0, 1, 0, 0, 0, 0]) / np.sqrt(2))
@@ -790,20 +569,6 @@ def ccx_gate_unitary_nondeterministic():
                   [0, 0, 1, 1, 0, 0, 0, 0], [0, 0, 1, -1, 0, 0, 0, 0],
                   [0, 0, 0, 0, 1, 1, 0, 0], [1, -1, 0, 0, 0, 0, 0, 0],
                   [0, 0, 0, 0, 0, 0, 1, 1], [0, 0, 0, 0, 0, 0, 1, -1]]) /
-        np.sqrt(2))
-    # (I^I^X).CCX(0,1,2).(I^H^X) -> |000> + |110>
-    targets.append(
-        np.array([[1, 0, 1, 0, 0, 0, 0, 0], [0, 1, 0, 1, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 1, 0, -1, 0], [0, 1, 0, -1, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 1, 0, 1, 0], [0, 0, 0, 0, 0, 1, 0, 1],
-                  [1, 0, -1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, -1]]) /
-        np.sqrt(2))
-    # (I^X^I).CCX(2,1,0).(H^X^I) -> |000> + |101>
-    targets.append(
-        np.array([[1, 0, 0, 0, 1, 0, 0, 0], [0, 1, 0, 0, 0, 1, 0, 0],
-                  [0, 0, 1, 0, 0, 0, 1, 0], [0, 0, 0, 1, 0, 0, 0, 1],
-                  [0, 1, 0, 0, 0, -1, 0, 0], [1, 0, 0, 0, -1, 0, 0, 0],
-                  [0, 0, 1, 0, 0, 0, -1, 0], [0, 0, 0, 1, 0, 0, 0, -1]]) /
         np.sqrt(2))
     # (X^I^I).CCX(2,1,0).(X^H^I) -> |000> + |011>
     targets.append(

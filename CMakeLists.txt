@@ -19,6 +19,11 @@ if(NOT DEFINED AER_BLAS_LIB_PATH AND DEFINED ENV{AER_BLAS_LIB_PATH})
 	set(AER_BLAS_LIB_PATH $ENV{AER_BLAS_LIB_PATH})
 endif()
 
+if(NOT DEFINED AER_THRUST_BACKEND AND DEFINED ENV{AER_THRUST_BACKEND})
+	set(AER_THRUST_BACKEND $ENV{AER_THRUST_BACKEND})
+endif()
+
+
 # Warning: Because of a bug on CMake's FindBLAS or (it's not clear who's fault is)
 # libopenblas.a for Ubuntu (maybe others) we need to copy the file:
 # cmake/FindBLAS.cmake.fix-static-linking, to the directory were CMake Modules are
@@ -49,7 +54,6 @@ configure_file("${PROJECT_SOURCE_DIR}/contrib/standalone/version.hpp.in"
 
 set(AER_SIMULATOR_CPP_SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(AER_SIMULATOR_CPP_EXTERNAL_LIBS
-	"${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib"
 	"${USER_LIB_PATH}")
 
 set(AER_COMPILER_DEFINITIONS "")
@@ -171,16 +175,11 @@ if(STATIC_LINKING)
 	set(BLA_STATIC TRUE)
 endif()
 
-if(STATIC_LINKING)
-	message(STATUS "Setting BLA_STATIC")
-	set(BLA_STATIC TRUE)
-endif()
-
 if(BLAS_LIB_PATH)
 	find_BLAS_in_specific_path(${BLAS_LIB_PATH})
 else()
 	if(APPLE)
-		message(STATUS  "Looking for Apple BLAS library...")
+		message(STATUS  "Looking for Apple BLAS & Lapack library...")
 		set(BLA_VENDOR "Apple")
 	else()
 		message(STATUS "Looking for OpenBLAS library...")
@@ -188,13 +187,23 @@ else()
 	endif()
 	if(WIN32)
 		message(STATUS "Uncompressing OpenBLAS static library...")
-		execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/openblas.7z" WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/win64/lib/")
+		set(WIN_ARCH "win64" )
+		if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4") # Checking if win32 build
+			set(WIN_ARCH "win32")
+		endif()
+		execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/openblas.7z" WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/")
+		set(OPENBLAS_DLLs "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll")
+		set(BLAS_LIBRARIES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll.a") # Seems CMake is unable to find it on its own
+		set(BLAS_FOUND True)
+	else()
+		find_package(BLAS QUIET)
 	endif()
-	find_package(BLAS QUIET)
 	if(NOT BLAS_FOUND)
-		message(STATUS "OpenBLAS not found. Looking for any other BLAS library...")
+		message(STATUS "OpenBLAS not found. Looking for any other BLAS & Lapack libraries...")
 		unset(BLA_VENDOR)
 		find_package(BLAS REQUIRED)
+		find_package(LAPACK REQUIRED)
+		set(BLAS_LIBRARIES "${BLAS_LIBRARIES};${LAPACK_LIBRARIES}")
 	endif()
 endif()
 
@@ -208,17 +217,7 @@ if(NOT MSVC)
 	endif()
 endif()
 
-# GPU support through Thrust library (CPU fallbacks)
-# Defaults to TRUE, but if no Thrust backend has been defined, will set to FALSE
-if(NOT DEFINED AER_THRUST_BACKEND)
-    set(AER_THRUST_BACKEND $ENV{AER_THRUST_BACKEND})
-    if(DEFINED AER_THRUST_BACKEND)
-        set(AER_THRUST_SUPPORTED TRUE)
-    endif()
-else()
-	set(AER_THRUST_SUPPORTED TRUE)
-endif()
-
+set(AER_THRUST_SUPPORTED TRUE)
 if(AER_THRUST_SUPPORTED)
 	if(AER_THRUST_BACKEND STREQUAL "CUDA")
 		message(STATUS "Thrust library: Looking for CUDA backend...")
@@ -327,6 +326,13 @@ else() # Standalone build
 		PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 	target_compile_definitions(qasm_simulator
 		PRIVATE ${AER_COMPILER_DEFINITIONS})
+	if(WIN32 AND NOT BLAS_LIB_PATH)
+		add_custom_command(TARGET qasm_simulator POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+				${OPENBLAS_DLLs}
+				$<TARGET_FILE_DIR:qasm_simulator>)
+		install(FILES ${OPENBLAS_DLLs} DESTINATION bin)
+	endif()
+
 	install(TARGETS qasm_simulator DESTINATION bin)
 
 	# Linter
@@ -336,8 +342,5 @@ endif()
 
 # Tests
 if(BUILD_TESTS)
-	# These tests were meant to be as an example, or template for C++ specific
-	# code, but they're not being maintained, so we are disabling them until we
-	# have real C++ tests in the codebase.
-	# add_subdirectory(test)
+	add_subdirectory(test)
 endif()

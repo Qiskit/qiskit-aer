@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes a bug where snapshot data was always copied from C++ to Python rather
+    than moved where possible. This will halve memory usage and improve simulation
+    time when using large statevector or density matrix snapshots.
