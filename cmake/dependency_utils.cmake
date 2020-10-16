@@ -27,7 +27,7 @@ macro(setup_dependencies)
 
 		if(AER_THRUST_BACKEND AND NOT AER_THRUST_BACKEND STREQUAL "CUDA")
 			string(TOLOWER ${AER_THRUST_BACKEND} THRUST_BACKEND)
-			_import_aer_system_dependency(thrust 1.9.5)
+			_import_aer_system_dependency(Thrust 1.9.5)
 		endif()
 
 		if(BUILD_TESTS)
