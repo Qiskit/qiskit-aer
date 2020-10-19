@@ -62,7 +62,7 @@ jobs:
           CIBW_TEST_COMMAND: "python3 {project}/tools/verify_wheels.py"
           CIBW_TEST_REQUIRES: "git+https://github.com/Qiskit/qiskit-terra.git"
         run: |
-          python -m cibuildwheel --output-dir wheelhouse
+          PATH=/usr/local/cuda/bin:$PATH python -m cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
