@@ -27,7 +27,9 @@ endif()
 
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
   include(nvcc_add_compiler_options)
-  include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
+  set(CUDA_FOUND TRUE)
+  # include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
+  include(FindCUDA/select_compute_arch)
   enable_language(CUDA)
 else()
   # idiosyncrasy of CMake that it still creates a reference to this
@@ -238,13 +240,13 @@ if(AER_THRUST_SUPPORTED)
 			if(DEFINED ENV{AER_CUDA_ARCH})
 				set(AER_CUDA_ARCH $ENV{AER_CUDA_ARCH})
 			else()
-				set(AER_CUDA_ARCH "Auto")
+				set(AER_CUDA_ARCH "5.0 5.2 5.3 6.0 6.2 7.0 7.2 7.5")
 			endif()
 		endif()
 		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH_FLAGS ${AER_CUDA_ARCH})
 
 		string(REPLACE ";" " "  AER_CUDA_ARCH_FLAGS_EXPAND "${AER_CUDA_ARCH_FLAGS}")
-		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin \"${CMAKE_CXX_COMPILER}\" ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin \"${CMAKE_CXX_COMPILER}\" ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
 
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDANT_LIBS "")
