@@ -15,7 +15,7 @@
 
 """Module for creating quantum operators."""
 
-from ...qutip_extra_lite import qobj_generators
+from . import qobj_generators
 
 
 def gen_oper(opname, index, h_osc, h_qub, states=None):

@@ -278,7 +278,6 @@ set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
 	set(AER_LIBRARIES ${AER_LIBRARIES} CONAN_PKG::muparserx)
-	#add_subdirectory(qiskit/providers/aer/pulse/qutip_extra_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
