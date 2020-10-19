@@ -36,7 +36,7 @@ def is_method_available(backend, method):
     qobj = assemble(dummy_circ, optimization_level=0)
     backend_options = {"method": method}
     try:
-        job = backend.run(qobj, backend_options=backend_options)
+        job = backend.run(qobj, **backend_options)
         result = job.result()
         error_msg = 'not supported on this system'
         if not result.success and error_msg in result.results[0].status:

@@ -195,4 +195,3 @@ from .errors import phase_damping_error
 # Submodules
 from . import errors
 from . import device
-from . import utils

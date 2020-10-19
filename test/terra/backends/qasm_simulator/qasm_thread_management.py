@@ -101,7 +101,7 @@ class QasmThreadManagementTests:
         # Test defaults
         opts = self.backend_options_parallel()
         result = execute(circuit, self.SIMULATOR, shots=shots,
-                         backend_options=opts).result()
+                         **opts).result()
         max_mem_result = result.metadata.get('max_memory_mb')
         self.assertGreaterEqual(max_mem_result, int(system_memory / 2),
                                 msg="Default 'max_memory_mb' is too small.")
@@ -113,7 +113,7 @@ class QasmThreadManagementTests:
         opts = self.backend_options_parallel()
         opts['max_memory_mb'] = max_mem_target
         result = execute(circuit, self.SIMULATOR, shots=shots,
-                         backend_options=opts).result()
+                         **opts).result()
         max_mem_result = result.metadata.get('max_memory_mb')
         self.assertEqual(max_mem_result, max_mem_target,
                          msg="Custom 'max_memory_mb' is not being set correctly.")
@@ -124,7 +124,7 @@ class QasmThreadManagementTests:
         result = execute(self.dummy_circuit(1),
                          self.SIMULATOR,
                          shots=1,
-                         backend_options=opts).result()
+                         **opts).result()
         return self.threads_used(result)[0]['total']
 
     @requires_omp
@@ -140,7 +140,7 @@ class QasmThreadManagementTests:
         result = execute(self.dummy_circuit(1),
                          self.SIMULATOR,
                          shots=10*max_threads,
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': 1,
@@ -157,7 +157,7 @@ class QasmThreadManagementTests:
                          self.SIMULATOR,
                          shots=10*max_threads,
                          noise_model=self.dummy_noise_model(),
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': 1,
@@ -173,7 +173,7 @@ class QasmThreadManagementTests:
         result = execute(self.measure_in_middle_circuit(1),
                          self.SIMULATOR,
                          shots=10*max_threads,
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': 1,
@@ -189,7 +189,7 @@ class QasmThreadManagementTests:
         result = execute(max_threads*[self.dummy_circuit(1)],
                          self.SIMULATOR,
                          shots=10*max_threads,
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': 1,
@@ -206,7 +206,7 @@ class QasmThreadManagementTests:
                          self.SIMULATOR,
                          shots=10*max_threads,
                          noise_model=self.dummy_noise_model(),
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': 1,
@@ -223,7 +223,7 @@ class QasmThreadManagementTests:
                          self.SIMULATOR,
                          shots=10*max_threads,
                          noise_model=self.dummy_noise_model(),
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': 1,
@@ -257,7 +257,7 @@ class QasmThreadManagementTests:
             result = execute(self.dummy_circuit(1),
                              self.SIMULATOR,
                              shots=10*max_threads,
-                             backend_options=opts).result()
+                             **opts).result()
             for threads in self.threads_used(result):
                 target = {
                     'experiments': 1,
@@ -274,7 +274,7 @@ class QasmThreadManagementTests:
                              self.SIMULATOR,
                              shots=10*max_threads,
                              noise_model=self.dummy_noise_model(),
-                             backend_options=opts).result()
+                             **opts).result()
             for threads in self.threads_used(result):
                 target = {
                     'experiments': 1,
@@ -290,7 +290,7 @@ class QasmThreadManagementTests:
             result = execute(self.measure_in_middle_circuit(1),
                              self.SIMULATOR,
                              shots=10*max_threads,
-                             backend_options=opts).result()
+                             **opts).result()
             for threads in self.threads_used(result):
                 target = {
                     'experiments': 1,
@@ -306,7 +306,7 @@ class QasmThreadManagementTests:
             result = execute(max_threads*[self.dummy_circuit(1)],
                              self.SIMULATOR,
                              shots=10*max_threads,
-                             backend_options=opts).result()
+                             **opts).result()
             for threads in self.threads_used(result):
                 target = {
                     'experiments': max_threads,
@@ -323,7 +323,7 @@ class QasmThreadManagementTests:
                              self.SIMULATOR,
                              shots=10*max_threads,
                              noise_model=self.dummy_noise_model(),
-                             backend_options=opts).result()
+                             **opts).result()
             for threads in self.threads_used(result):
                 target = {
                     'experiments': max_threads,
@@ -340,7 +340,7 @@ class QasmThreadManagementTests:
                              self.SIMULATOR,
                              shots=10*max_threads,
                              noise_model=self.dummy_noise_model(),
-                             backend_options=opts).result()
+                             **opts).result()
             for threads in self.threads_used(result):
                 target = {
                     'experiments': max_threads,
@@ -363,7 +363,7 @@ class QasmThreadManagementTests:
         result = execute(self.dummy_circuit(1),
                          self.SIMULATOR,
                          shots=10*max_threads,
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': 1,
@@ -378,7 +378,7 @@ class QasmThreadManagementTests:
         result = execute(max_threads*[self.dummy_circuit(1)],
                          self.SIMULATOR,
                          shots=10*max_threads,
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': max_threads,
@@ -394,7 +394,7 @@ class QasmThreadManagementTests:
                          self.SIMULATOR,
                          shots=10*max_threads,
                          noise_model=self.dummy_noise_model(),
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': max_threads,
@@ -410,7 +410,7 @@ class QasmThreadManagementTests:
                          self.SIMULATOR,
                          shots=10*max_threads,
                          noise_model=self.dummy_noise_model(),
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': max_threads,
@@ -429,7 +429,7 @@ class QasmThreadManagementTests:
         result = execute(2 * [circuit],
                          self.SIMULATOR,
                          shots=10*max_threads,
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': 1,
@@ -452,7 +452,7 @@ class QasmThreadManagementTests:
         result = execute(self.dummy_circuit(1),
                          self.SIMULATOR,
                          shots=10*max_threads,
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': 1,
@@ -467,7 +467,7 @@ class QasmThreadManagementTests:
         result = execute(max_threads*[self.dummy_circuit(1)],
                          self.SIMULATOR,
                          shots=10*max_threads,
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': 1,
@@ -483,7 +483,7 @@ class QasmThreadManagementTests:
                          self.SIMULATOR,
                          shots=10*max_threads,
                          noise_model=self.dummy_noise_model(),
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': 1,
@@ -499,7 +499,7 @@ class QasmThreadManagementTests:
                          self.SIMULATOR,
                          shots=10*max_threads,
                          noise_model=self.dummy_noise_model(),
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': 1,
@@ -518,7 +518,7 @@ class QasmThreadManagementTests:
         result = execute(2 * [circuit],
                          self.SIMULATOR,
                          shots=10*max_threads,
-                         backend_options=opts).result()
+                         **opts).result()
         for threads in self.threads_used(result):
             target = {
                 'experiments': 1,
@@ -545,7 +545,7 @@ class QasmThreadManagementTests:
 
         result = execute(
             circuit, self.SIMULATOR, shots=shots,
-            backend_options=backend_opts).result()
+            **backend_opts).result()
         if result.metadata['omp_enabled']:
             self.assertEqual(
                 result.metadata['parallel_experiments'],

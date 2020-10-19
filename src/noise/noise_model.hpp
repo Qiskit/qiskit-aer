@@ -260,6 +260,7 @@ private:
 
 const stringmap_t<NoiseModel::ParamGate>
 NoiseModel::param_gate_table_ = {
+  {"u", ParamGate::u3},
   {"u3", ParamGate::u3},
   {"u2", ParamGate::u2},
   {"u1", ParamGate::u1},

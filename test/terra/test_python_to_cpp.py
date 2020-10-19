@@ -25,7 +25,6 @@ from .common import QiskitAerTestCase
 class TestPythonToCpp(QiskitAerTestCase):
     """ Test Pyhton C API wrappers we have for dealing with Python data structures
         in C++ code. """
-
     def test_py_list_to_cpp_vec(self):
         arg = [1., 2., 3.]
         self.assertTrue(test_py_list_to_cpp_vec(arg))

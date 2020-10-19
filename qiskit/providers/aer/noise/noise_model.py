@@ -21,9 +21,8 @@ from qiskit.circuit import Instruction
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendProperties
 
-from qiskit.providers.aer.backends.aerbackend import AerJSONEncoder
-from qiskit.providers.aer.backends.qasm_simulator import QasmSimulator
-
+from ..backends.aerbackend import AerJSONEncoder
+from ..backends.qasm_simulator import QasmSimulator
 from .noiseerror import NoiseError
 from .errors.quantum_error import QuantumError
 from .errors.readout_error import ReadoutError
@@ -89,15 +88,15 @@ class NoiseModel:
     # Get the default basis gates for the Qiskit Aer Qasm Simulator
     # this is used to decide what are instructions for a noise model
     # and what are labels for other named instructions
-    _QASMSIMULATOR_BASIS_GATES = QasmSimulator.DEFAULT_CONFIGURATION[
-        'basis_gates']
+    # NOTE: we exclude kraus, roerror, and initialize instructions here
+    _QASMSIMULATOR_BASIS_GATES = QasmSimulator._DEFAULT_CONFIGURATION['basis_gates']
 
     # Checks for standard 1-3 qubit instructions
     _1qubit_instructions = set([
         "x90", "u1", "u2", "u3", "U", "id", "x", "y", "z", "h", "s", "sdg",
         "t", "tdg", "r", "rx", "ry", "rz", "p"
     ])
-    _2qubit_instructions = set(["cx", "cz", "swap", "rxx", "ryy", "rzz",
+    _2qubit_instructions = set(["cx", "cy", "cz", "swap", "rxx", "ryy", "rzz",
                                 "rzx", "cu1", "cu2", "cu3", "cp"])
     _3qubit_instructions = set(["ccx", "cswap"])
 
@@ -301,8 +300,27 @@ class NoiseModel:
             noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
         return noise_model
 
-    def __repr__(self):
-        """Display noise model"""
+    def is_ideal(self):
+        """Return True if the noise model has no noise terms."""
+        # Get default errors
+        if self._default_quantum_errors:
+            return False
+        if self._default_readout_error:
+            return False
+        if self._local_quantum_errors:
+            return False
+        if self._local_readout_errors:
+            return False
+        if self._nonlocal_quantum_errors:
+            return False
+        return True
+
+    def __str__(self):
+        """Noise model string representation"""
+
+        # Check if noise model is ideal
+        if self.is_ideal():
+            return "NoiseModel: Ideal"
 
         # Get default errors
         default_error_ops = []
@@ -331,27 +349,24 @@ class NoiseModel:
                                                self._str2qubits(nq_str)))
 
         output = "NoiseModel:"
-        if default_error_ops == [] and local_error_ops == [] and nonlocal_error_ops == []:
-            output += " Ideal"
-        else:
-            output += "\n  Basis gates: {}".format(self.basis_gates)
-            if self._noise_instructions:
-                output += "\n  Instructions with noise: {}".format(
-                    list(self._noise_instructions))
-            if self._noise_qubits:
-                output += "\n  Qubits with noise: {}".format(
-                    list(self._noise_qubits))
-            if self._x90_gates:
-                output += "\n  X-90 based single qubit gates: {}".format(
-                    list(self._x90_gates))
-            if default_error_ops != []:
-                output += "\n  All-qubits errors: {}".format(default_error_ops)
-            if local_error_ops != []:
-                output += "\n  Specific qubit errors: {}".format(
-                    local_error_ops)
-            if nonlocal_error_ops != []:
-                output += "\n  Non-local specific qubit errors: {}".format(
-                    nonlocal_error_ops)
+        output += "\n  Basis gates: {}".format(self.basis_gates)
+        if self._noise_instructions:
+            output += "\n  Instructions with noise: {}".format(
+                list(self._noise_instructions))
+        if self._noise_qubits:
+            output += "\n  Qubits with noise: {}".format(
+                list(self._noise_qubits))
+        if self._x90_gates:
+            output += "\n  X-90 based single qubit gates: {}".format(
+                list(self._x90_gates))
+        if default_error_ops != []:
+            output += "\n  All-qubits errors: {}".format(default_error_ops)
+        if local_error_ops != []:
+            output += "\n  Specific qubit errors: {}".format(
+                local_error_ops)
+        if nonlocal_error_ops != []:
+            output += "\n  Non-local specific qubit errors: {}".format(
+                nonlocal_error_ops)
         return output
 
     def __eq__(self, other):
@@ -398,7 +413,8 @@ class NoiseModel:
             # If the instruction is in the default basis gates for the
             # QasmSimulator we add it to the basis gates.
             if name in self._QASMSIMULATOR_BASIS_GATES:
-                if name not in ['measure', 'reset']:
+                if name not in ['measure', 'reset', 'initialize',
+                                'kraus', 'superop', 'roerror']:
                     self._basis_gates.add(name)
             elif warnings:
                 logger.warning(

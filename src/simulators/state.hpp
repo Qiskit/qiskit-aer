@@ -19,7 +19,7 @@
 #include "framework/opset.hpp"
 #include "framework/types.hpp"
 #include "framework/creg.hpp"
-#include "framework/results/experiment_data.hpp"
+#include "framework/results/experiment_result.hpp"
 
 namespace AER {
 namespace Base {
@@ -104,9 +104,13 @@ public:
   // executed (ie in sequence, or some other execution strategy.)
   // If this sequence contains operations not in the supported opset
   // an exeption will be thrown.
+  // The `final_ops` flag indicates no more instructions will be applied
+  // to the state after this sequence, so the state can be modified at the
+  // end of the instructions.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentData &data,
-                         RngEngine &rng)  = 0;
+                         ExperimentResult &result,
+                         RngEngine &rng,
+                         bool final_ops = false)  = 0;
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
@@ -133,7 +137,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Every state can add information to the metadata structure
-  virtual void add_metadata(ExperimentData &data) const {
+  virtual void add_metadata(ExperimentResult &result) const {
   }
 
   //-----------------------------------------------------------------------
@@ -170,8 +174,8 @@ public:
                        const std::string &memory_hex,
                        const std::string &register_hex);
 
-  // Add current creg classical bit values to a ExperimentData container
-  void add_creg_to_data(ExperimentData &data) const;
+  // Add current creg classical bit values to a ExperimentResult container
+  void add_creg_to_data(ExperimentResult &result) const;
 
   //-----------------------------------------------------------------------
   // Standard snapshots
@@ -179,15 +183,15 @@ public:
 
   // Snapshot the current statevector (single-shot)
   // if type_label is the empty string the operation type will be used for the type
-  void snapshot_state(const Operations::Op &op, ExperimentData &data,
+  void snapshot_state(const Operations::Op &op, ExperimentResult &result,
                       std::string name = "") const;
 
   // Snapshot the classical memory bits state (single-shot)
-  void snapshot_creg_memory(const Operations::Op &op, ExperimentData &data,
+  void snapshot_creg_memory(const Operations::Op &op, ExperimentResult &result,
                             std::string name = "memory") const;
 
   // Snapshot the classical register bits state (single-shot)
-  void snapshot_creg_register(const Operations::Op &op, ExperimentData &data,
+  void snapshot_creg_register(const Operations::Op &op, ExperimentResult &result,
                               std::string name = "register") const;
 
   //-----------------------------------------------------------------------
@@ -270,18 +274,18 @@ void State<state_t>::initialize_creg(uint_t num_memory,
 
 template <class state_t>
 void State<state_t>::snapshot_state(const Operations::Op &op,
-                                    ExperimentData &data,
+                                    ExperimentResult &result,
                                     std::string name) const {
   name = (name.empty()) ? op.name : name;
-  data.add_pershot_snapshot(name, op.string_params[0], qreg_);
+  result.data.add_pershot_snapshot(name, op.string_params[0], qreg_);
 }
 
 
 template <class state_t>
 void State<state_t>::snapshot_creg_memory(const Operations::Op &op,
-                                          ExperimentData &data,
+                                          ExperimentResult &result,
                                           std::string name) const {
-  data.add_pershot_snapshot(name,
+  result.data.add_pershot_snapshot(name,
                                op.string_params[0],
                                creg_.memory_hex());
 }
@@ -289,24 +293,24 @@ void State<state_t>::snapshot_creg_memory(const Operations::Op &op,
 
 template <class state_t>
 void State<state_t>::snapshot_creg_register(const Operations::Op &op,
-                                            ExperimentData &data,
+                                            ExperimentResult &result,
                                             std::string name) const {
-  data.add_pershot_snapshot(name,
+  result.data.add_pershot_snapshot(name,
                                op.string_params[0],
                                creg_.register_hex());
 }
 
 
 template <class state_t>
-void State<state_t>::add_creg_to_data(ExperimentData &data) const {
+void State<state_t>::add_creg_to_data(ExperimentResult &result) const {
   if (creg_.memory_size() > 0) {
     std::string memory_hex = creg_.memory_hex();
-    data.add_memory_count(memory_hex);
-    data. add_pershot_memory(memory_hex);
+    result.data.add_memory_count(memory_hex);
+    result.data.add_pershot_memory(memory_hex);
   }
   // Register bits value
   if (creg_.register_size() > 0) {
-    data. add_pershot_register(creg_.register_hex());
+    result.data.add_pershot_register(creg_.register_hex());
   }
 }
 //-------------------------------------------------------------------------

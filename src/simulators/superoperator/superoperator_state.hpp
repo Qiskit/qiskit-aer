@@ -35,10 +35,10 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::kraus, Operations::OpType::superop},
     // Gates
-    {"U",   "CX", "u1",  "u2", "u3",  "cx",   "cy",  "cz",  "swap",
-     "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",   "tdg",
-     "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz", "rzx",
-     "p",   "cp", "cu1", "sx", "x90", "delay"},
+    {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
+     "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
+     "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
+     "rzx",  "p",   "cp", "cu1", "sx", "x90", "delay"},
     // Snapshots
     {"superoperator"});
 
@@ -73,7 +73,9 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentData &data, RngEngine &rng) override;
+                         ExperimentResult &result,
+                         RngEngine &rng,
+                         bool final_ops = false) override;
 
   // Initializes an n-qubit unitary to the identity matrix
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -116,7 +118,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, ExperimentData &data);
+  virtual void apply_snapshot(const Operations::Op &op, ExperimentResult &result);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const reg_t &qubits, const cmatrix_t &mat);
@@ -184,6 +186,7 @@ const stringmap_t<Gates> State<data_t>::gateset_({
     {"u1", Gates::u1}, // zero-X90 pulse waltz gate
     {"u2", Gates::u2}, // single-X90 pulse waltz gate
     {"u3", Gates::u3}, // two X90 pulse waltz gate
+    {"u", Gates::u3}, // two X90 pulse waltz gate
     {"U", Gates::u3},  // two X90 pulse waltz gate
     // Two-qubit gates
     {"CX", Gates::cx},     // Controlled-X gate (CNOT)
@@ -207,7 +210,9 @@ const stringmap_t<Gates> State<data_t>::gateset_({
 
 template <class data_t>
 void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
-                              ExperimentData &data, RngEngine &rng) {
+                              ExperimentResult &result,
+                              RngEngine &rng,
+                              bool final_ops) {
   // Simple loop over vector of input operations
   for (const auto &op: ops) {
     switch (op.type) {
@@ -235,7 +240,7 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
             op.qubits, Utils::vectorize_matrix(op.mats[0]));
         break;
       case Operations::OpType::snapshot:
-        apply_snapshot(op, data);
+        apply_snapshot(op, result);
         break;
       default:
         throw std::invalid_argument(
@@ -461,10 +466,10 @@ void State<statevec_t>::apply_gate_u3(const uint_t qubit, double theta,
 
 template <class data_t>
 void State<data_t>::apply_snapshot(const Operations::Op &op,
-                                   ExperimentData &data) {
+                                   ExperimentResult &result) {
   // Look for snapshot type in snapshotset
   if (op.name == "superopertor" || op.name == "state") {
-    BaseState::snapshot_state(op, data, "superoperator");
+    BaseState::snapshot_state(op, result, "superoperator");
   } else {
     throw std::invalid_argument(
         "QubitSuperoperator::State::invalid snapshot instruction \'" + op.name +
