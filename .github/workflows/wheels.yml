@@ -62,7 +62,7 @@ jobs:
           CIBW_TEST_COMMAND: "python3 {project}/tools/verify_wheels.py"
           CIBW_TEST_REQUIRES: "git+https://github.com/Qiskit/qiskit-terra.git"
         run: |
-          CUDACXX=/usr/local/cuda/bin/nvcc python -m cibuildwheel --output-dir wheelhouse
+          python -m cibuildwheel --output-dir wheelhouse -- -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
