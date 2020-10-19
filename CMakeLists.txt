@@ -28,8 +28,8 @@ endif()
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
   include(nvcc_add_compiler_options)
   set(CUDA_FOUND TRUE)
-  set(CMAKE_CUDA_COMPILER nvcc)
-  # include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
+  #include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
+  set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
   include(FindCUDA/select_compute_arch)
   enable_language(CUDA)
 else()
