@@ -18,6 +18,7 @@
 import numpy as np
 from . import gen_operator
 
+
 def sigmax(dim=2):
     """Qiskit wrapper of sigma-X operator.
     """
@@ -78,7 +79,7 @@ def num(dim):
 def qeye(dim):
     """Qiskit wrapper of identity operator.
     """
-    return gen_operator.qeye(dim)
+    return gen_operator.identity(dim)
 
 
 def project(dim, states):
@@ -86,7 +87,7 @@ def project(dim, states):
     """
     ket, bra = states
     if ket in range(dim) and bra in range(dim):
-        return gen_operator.basis(dim, ket) * gen_operator.basis(dim, bra).dag()
+        return gen_operator.basis(dim, ket) * gen_operator.basis(dim, bra).adjoint()
     else:
         raise Exception('States are specified on the outside of Hilbert space %s' % states)
 

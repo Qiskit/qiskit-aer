@@ -19,6 +19,7 @@ Entry/exit point for pulse simulation specified through PulseSimulator backend
 
 from warnings import warn
 import numpy as np
+from qiskit.quantum_info.operators.operator import Operator
 from ..system_models.string_model_parser.string_model_parser import NoiseParser
 from ..system_models.string_model_parser import qobj_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
@@ -26,7 +27,7 @@ from .pulse_sim_options import PulseSimOptions
 from .unitary_controller import run_unitary_experiments
 from .mc_controller import run_monte_carlo_experiments
 from .pulse_utils import get_ode_rhs_functor
-from qiskit.quantum_info.operators.operator import Operator
+
 
 def pulse_controller(qobj):
     """ Interprets PulseQobj input, runs simulations, and returns results
@@ -370,11 +371,6 @@ class PulseInternalDEModel:
         H = [hpart[0] for hpart in self.system]
         self.num_h_terms = num_h_terms
 
-        # take care of collapse operators, if any
-        self.c_num = 0
-        if self.noise:
-            self.c_num = len(self.noise)
-            self.num_h_terms += 1
 
         self.c_ops_data = []
         self.n_ops_data = []
@@ -382,19 +378,23 @@ class PulseInternalDEModel:
         self.h_diag_elems = self.h_diag
 
         # if there are any collapse operators
-        H_noise = Operator(np.zeros(self.noise[0].data.shape)) if self.noise else 0.
-        for kk in range(self.c_num):
-            c_op = self.noise[kk]
-            n_op = c_op.adjoint() @ c_op
-            # collapse ops
-            self.c_ops_data.append(c_op.data)
-            # norm ops
-            self.n_ops_data.append(n_op.data)
-            # Norm ops added to time-independent part of
-            # Hamiltonian to decrease norm
-            H_noise = Operator(H_noise.data - 0.5j * n_op.data)
+        self.c_num = 0
 
-        if H_noise:
+        if self.noise:
+            self.c_num = len(self.noise)
+            self.num_h_terms += 1
+            H_noise = Operator(np.zeros(self.noise[0].data.shape))
+            for kk in range(self.c_num):
+                c_op = self.noise[kk]
+                n_op = c_op.adjoint() @ c_op
+                # collapse ops
+                self.c_ops_data.append(c_op.data)
+                # norm ops
+                self.n_ops_data.append(n_op.data)
+                # Norm ops added to time-independent part of
+                # Hamiltonian to decrease norm
+                H_noise = Operator(H_noise.data - 0.5j * n_op.data)
+
             H = H + [H_noise]
 
         # construct data sets

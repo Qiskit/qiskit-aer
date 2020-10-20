@@ -213,7 +213,6 @@ def monte_carlo_evolution(seed,
         # ------------------------------------------------
         out_psi = ODE.y / dznrm2(ODE.y)
 
-
         for aind in range(acq_idx, num_acq):
             if exp['acquire'][aind][0] == stop_time:
                 current_acq = exp['acquire'][aind]

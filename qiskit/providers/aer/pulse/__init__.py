@@ -55,4 +55,3 @@ from .system_models.pulse_system_model import PulseSystemModel
 CFG_VARS = distutils.sysconfig.get_config_vars()
 if "CFLAGS" in CFG_VARS:
     CFG_VARS["CFLAGS"] = CFG_VARS["CFLAGS"].replace("-Wstrict-prototypes", "")
-
