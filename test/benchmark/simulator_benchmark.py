@@ -17,8 +17,8 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
     RUNTIME_MPS_CPU = 'matrix_product_state'
     RUNTIME_DENSITY_MATRIX_CPU = 'density_matrix'
     RUNTIME_DENSITY_MATRIX_GPU = 'density_matrix_gpu'
-    RUNTIME_STABILIZER_CPU = 'stabilizer'
-    RUNTIME_EXTENDED_STABILIZER_CPU = 'extended_stabilizer'
+    #RUNTIME_STABILIZER_CPU = 'stabilizer'
+    #RUNTIME_EXTENDED_STABILIZER_CPU = 'extended_stabilizer'
     #RUNTIME_UNITARY_MATRIX_CPU = 'unitary_matrix'
     #RUNTIME_UNITARY_MATRIX_GPU = 'unitary_matrix_gpu'
     
@@ -26,8 +26,8 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         RUNTIME_STATEVECTOR_CPU,
         RUNTIME_MPS_CPU,
         RUNTIME_DENSITY_MATRIX_CPU,
-        RUNTIME_STABILIZER_CPU,
-        RUNTIME_EXTENDED_STABILIZER_CPU #,RUNTIME_UNITARY_MATRIX_CPU
+        #RUNTIME_STABILIZER_CPU,
+        #RUNTIME_EXTENDED_STABILIZER_CPU #,RUNTIME_UNITARY_MATRIX_CPU
         ]
     
     RUNTIME_GPU = [
@@ -122,15 +122,15 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             self.backend_options_list[self.RUNTIME_DENSITY_MATRIX_GPU] = { 'method': self.RUNTIME_DENSITY_MATRIX_GPU }
             self.backend_qubits[self.RUNTIME_DENSITY_MATRIX_GPU] = [qubit for qubit in qubits if qubit <= 15]
         
-        if self.RUNTIME_STABILIZER_CPU in runtime_names:
-            self.simulators[self.RUNTIME_STABILIZER_CPU] = QASM_SIMULATOR
-            self.backend_options_list[self.RUNTIME_STABILIZER_CPU] = { 'method': self.RUNTIME_STABILIZER_CPU }
-            self.backend_qubits[self.RUNTIME_STABILIZER_CPU] = self.qubits
+        #if self.RUNTIME_STABILIZER_CPU in runtime_names:
+        #    self.simulators[self.RUNTIME_STABILIZER_CPU] = QASM_SIMULATOR
+        #    self.backend_options_list[self.RUNTIME_STABILIZER_CPU] = { 'method': self.RUNTIME_STABILIZER_CPU }
+        #    self.backend_qubits[self.RUNTIME_STABILIZER_CPU] = self.qubits
         
-        if self.RUNTIME_EXTENDED_STABILIZER_CPU in runtime_names:
-            self.simulators[self.RUNTIME_EXTENDED_STABILIZER_CPU] = QASM_SIMULATOR
-            self.backend_options_list[self.RUNTIME_EXTENDED_STABILIZER_CPU] = { 'method': self.RUNTIME_EXTENDED_STABILIZER_CPU }
-            self.backend_qubits[self.RUNTIME_EXTENDED_STABILIZER_CPU] = self.qubits
+        #if self.RUNTIME_EXTENDED_STABILIZER_CPU in runtime_names:
+        #    self.simulators[self.RUNTIME_EXTENDED_STABILIZER_CPU] = QASM_SIMULATOR
+        #    self.backend_options_list[self.RUNTIME_EXTENDED_STABILIZER_CPU] = { 'method': self.RUNTIME_EXTENDED_STABILIZER_CPU }
+        #    self.backend_qubits[self.RUNTIME_EXTENDED_STABILIZER_CPU] = self.qubits
         
         def add_measure_all(base):
             circuit = base.copy()
@@ -245,11 +245,11 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
     #def time_density_matrix_gpu(self, app, qubit):
     #    self._run(self.RUNTIME_DENSITY_MATRIX_GPU, app, qubit)
         
-    def time_stabilizer(self, app, measure, measure_count, qubit):
-        self._run(self.RUNTIME_STABILIZER_CPU, app, measure, measure_count, noise_name, qubit)
+    #def time_stabilizer(self, app, measure, measure_count, qubit):
+    #    self._run(self.RUNTIME_STABILIZER_CPU, app, measure, measure_count, noise_name, qubit)
         
-    def time_extended_stabilizer(self, app, measure, measure_count, noise_name, qubit):
-        self._run(self.RUNTIME_EXTENDED_STABILIZER_CPU, app, measure, measure_count, noise_name, qubit)
+    #def time_extended_stabilizer(self, app, measure, measure_count, noise_name, qubit):
+    #    self._run(self.RUNTIME_EXTENDED_STABILIZER_CPU, app, measure, measure_count, noise_name, qubit)
         
     #def time_unitary_matrix(self, app, qubit):
     #    self._run(self.RUNTIME_UNITARY_MATRIX_CPU, app, qubit)
