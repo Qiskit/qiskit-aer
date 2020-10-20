@@ -14,7 +14,6 @@
 Functions for building noise models from backend properties.
 """
 
-from .basic_device_model import basic_device_noise_model
 from .models import basic_device_readout_errors
 from .models import basic_device_gate_errors
 from .parameters import gate_param_values

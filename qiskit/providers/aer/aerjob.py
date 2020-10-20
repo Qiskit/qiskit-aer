@@ -14,6 +14,7 @@
 
 """This module implements the job class used for AerBackend objects."""
 
+import warnings
 from concurrent import futures
 import logging
 import functools
@@ -55,6 +56,10 @@ class AerJob(BaseJob):
         super().__init__(backend, job_id)
         self._fn = fn
         self._qobj = qobj
+        if args:
+            warnings.warn('Using *args for AerJob is deprecated. All backend'
+                          ' options should be contained in the assembled Qobj.',
+                          DeprecationWarning)
         self._args = args
         self._future = None
 
@@ -70,7 +75,9 @@ class AerJob(BaseJob):
         if self._future is not None:
             raise JobError("We have already submitted the job!")
 
-        self._future = self._executor.submit(self._fn, self._job_id, self._qobj,
+        self._future = self._executor.submit(self._fn,
+                                             self._qobj,
+                                             self._job_id,
                                              *self._args)
 
     @requires_submit

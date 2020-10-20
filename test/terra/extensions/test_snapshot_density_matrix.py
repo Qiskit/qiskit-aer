@@ -10,15 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-
 import unittest
 
 from qiskit import QuantumCircuit, assemble
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.providers.aer.extensions.snapshot_density_matrix import SnapshotDensityMatrix
 
+from ..common import QiskitAerTestCase
 
-class TestSnapshotDensityMatrixExtension(unittest.TestCase):
+
+class TestSnapshotDensityMatrixExtension(QiskitAerTestCase):
     """SnapshotDensityMatrix extension tests"""
 
     @staticmethod

@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    AER now uses Lapack to perform some matrix related computations.
+    It uses the Lapack library bundled with OpenBlas (already available
+    in Linux and Macos typical OpenBlas dsitributions; Windows version
+    distributed with AER) or with the accelerate framework in MacOS.
