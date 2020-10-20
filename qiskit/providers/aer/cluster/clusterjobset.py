@@ -19,12 +19,10 @@ from concurrent import futures
 import time
 import logging
 import uuid
-import functools
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.pulse import Schedule
 from qiskit.qobj import QasmQobj
-from qiskit.providers import JobError
 from qiskit.providers.jobstatus import JobStatus
 
 from ..backends.aerbackend import AerBackend
@@ -46,9 +44,6 @@ class JobSet:
     for all of the jobs using :meth:`results()` and cancel all jobs using
     :meth:`cancel()`.
     """
-
-    _id_prefix = "cluster_jobset_"
-    _id_suffix = "_"
 
     def __init__(self, experiments: List[QasmQobj], name: Optional[str] = None):
         """JobSet constructor.
@@ -89,7 +84,6 @@ class JobSet:
         self._future = True
         total_jobs = len(self._experiments)
         for i, exp in enumerate(self._experiments):
-            job_name = f'{self._name}_{i}'
             cjob = CJob(backend, exp, *run_args, **run_kwargs)
             cjob.submit(executor=executor)
             logger.debug("Job %s submitted", i + 1)
@@ -142,7 +136,7 @@ class JobSet:
             try:
                 result = cjob.result(timeout=timeout, raises=raises)
                 if result is None or not result.success:
-                    logger.warning('ClusterJob {} failed.'.format(cjob.name()))
+                    logger.warning('ClusterJob %s failed.', cjob.name())
                     success = False
             except AerClusterTimeoutError as ex:
                 raise AerClusterTimeoutError(

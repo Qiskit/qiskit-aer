@@ -16,6 +16,7 @@ from typing import Optional, List
 from functools import singledispatch, update_wrapper, wraps
 
 from qiskit.qobj import QasmQobj, QasmQobjConfig
+from qiskit.providers import JobError
 
 
 def requires_submit(func):
