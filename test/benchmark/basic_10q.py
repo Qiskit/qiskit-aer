@@ -67,8 +67,9 @@ class NLocalCircuits(SimulatorBenchmarkSuite):
                      'real_amplitudes_linear': 10,
                      'efficient_su2': 10,
                      'efficient_su2_linear': 10,
-                     'excitation_preserving': 10,
-                     'excitation_preserving_linear': 10 },
+                     #'excitation_preserving': 10,
+                     #'excitation_preserving_linear': 10 
+                     },
                  qubits = DEFAULT_QUBITS,
                  runtime_names = DEFAULT_RUNTIME,
                  measures = DEFAULT_MEASUREMENT_METHODS,
