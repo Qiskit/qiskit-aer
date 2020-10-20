@@ -24,7 +24,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.pulse import Schedule
 
 from qiskit.providers import JobError
-from .exceptions import AerClusterResultDataNotAvailable, AerClusterResultDataNotAvailable
+from .exceptions import AerClusterResultDataNotAvailable
 
 
 class CResults:

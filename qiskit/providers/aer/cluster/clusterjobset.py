@@ -31,6 +31,7 @@ from ..backends.aerbackend import AerBackend
 from .clusterjob import CJob
 from .clusterresults import CResults
 from .exceptions import AerClusterTimeoutError, AerClusterJobNotFound
+from .utils import requires_submit
 
 logger = logging.getLogger(__name__)
 
@@ -60,27 +61,10 @@ class JobSet:
         self._experiments = experiments
 
         # Used for caching
+        self._future = None
         self._futures = []
         self._results = None
         self._error_msg = None
-
-    def requires_submit(func):
-        """
-        Decorator to ensure that a submit has been performed before
-        calling the method.
-
-        Args:
-            func (callable): test function to be decorated.
-
-        Returns:
-            callable: the decorated function.
-        """
-        @functools.wraps(func)
-        def _wrapper(self, *args, **kwargs):
-            if not self._futures:
-                raise JobError("JobSet not submitted yet!. You have to .run() first!")
-            return func(self, *args, **kwargs)
-        return _wrapper
 
     def run(self,
             executor: futures.Executor,
@@ -102,6 +86,7 @@ class JobSet:
             raise RuntimeError(
                 'The jobs for this managed job set have already been submitted.')
 
+        self._future = True
         total_jobs = len(self._experiments)
         for i, exp in enumerate(self._experiments):
             job_name = f'{self._name}_{i}'

@@ -16,7 +16,6 @@
 
 import warnings
 import logging
-import functools
 from typing import Optional, Any
 from concurrent import futures
 
@@ -24,6 +23,7 @@ from qiskit.providers.aer.backends.aerbackend import AerBackend
 from qiskit.qobj import QasmQobj
 from qiskit.result import Result
 from qiskit.providers import JobStatus, JobError
+from .utils import requires_submit
 
 logger = logging.getLogger(__name__)
 
@@ -72,24 +72,6 @@ class CJob:
             self._future = self._executor.submit(self._backend._run_job, self._id, self._qobj,
                                                  *self._run_args, **self._run_kwargs)
         logger.debug("Job %s future obtained", self._id)
-
-    def requires_submit(func):
-        """
-        Decorator to ensure that a submit has been performed before
-        calling the method.
-
-        Args:
-            func (callable): test function to be decorated.
-
-        Returns:
-            callable: the decorated function.
-        """
-        @functools.wraps(func)
-        def _wrapper(self, *args, **kwargs):
-            if self._future is None:
-                raise JobError("Job not submitted yet!. You have to .submit() first!")
-            return func(self, *args, **kwargs)
-        return _wrapper
 
     @property
     @requires_submit

@@ -10,12 +10,31 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Disassemble function for a qobj into a list of circuits and its config"""
+"""Utility functions for AerClusterManager."""
 import uuid
 from typing import Optional, List
-from functools import singledispatch, update_wrapper
+from functools import singledispatch, update_wrapper, wraps
 
 from qiskit.qobj import QasmQobj, QasmQobjConfig
+
+
+def requires_submit(func):
+    """
+    Decorator to ensure that a submit has been performed before
+    calling the method.
+
+    Args:
+        func (callable): test function to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+    @wraps(func)
+    def _wrapper(self, *args, **kwargs):
+        if self._future is None:
+            raise JobError("Job not submitted yet!. You have to .submit() first!")
+        return func(self, *args, **kwargs)
+    return _wrapper
 
 
 def methdispatch(func):
