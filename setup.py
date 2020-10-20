@@ -15,22 +15,29 @@ import sys
 PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
 _USE_CONAN = distutils.util.strtobool(os.getenv("USE_CONAN", "ON").lower())
 
-def check_setup_requirement_exists(module: str, pypi_package: str = None):
-    """Error if ``module`` is not importable, and suggest pypi install."""
-    pypi_package = pypi_package or module
-    try:
-        importlib.import_module(module)
-    except ImportError as err:
-        raise ModuleNotFoundError(
-            "'{}' package not found. "
-            "Please install it with 'pip install {}'".format(module, pypi_package)
-        )
+try:
+    from Cython.Build import cythonize
+except ImportError:
+    import subprocess
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'Cython>=0.27.1'])
+    from Cython.Build import cythonize
 
-check_setup_requirement_exists("Cython.Build")
 if _USE_CONAN:
-    check_setup_requirement_exists("conans", "conan")
-check_setup_requirement_exists("pybind11")
-check_setup_requirement_exists("skbuild")
+    try:
+        from conans import client
+    except ImportError:
+        subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan'])
+        from conans import client
+
+try:
+    from skbuild import setup
+except ImportError:
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build'])
+    from skbuild import setup
+try:
+    import pybind11
+except ImportError:
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.4'])
 
 from skbuild import setup
 
