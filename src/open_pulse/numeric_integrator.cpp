@@ -135,8 +135,6 @@ struct RhsData {
       vars_names = get_vec_from_dict_item<std::string>(py_global_data, "vars_names");
       num_h_terms = get_value_from_dict_item<long>(py_global_data, "num_h_terms");
       datas = get_vec_from_dict_item<NpArray<complex_t>>(py_global_data, "h_ops_data");
-      idxs = get_value_from_dict_item<NpArray<long>>(py_global_data, "h_ops_ind");
-      ptrs = get_value_from_dict_item<NpArray<long>>(py_global_data, "h_ops_ptr");
       energy = get_value_from_dict_item<NpArray<double>>(py_global_data, "h_diag_elems");
   }
 
@@ -151,8 +149,6 @@ struct RhsData {
   std::vector<std::string> vars_names;
   long num_h_terms;
   std::vector<NpArray<complex_t>> datas;
-  NpArray<long> idxs;
-  NpArray<long> ptrs;
   NpArray<double> energy;
 };
 
@@ -199,30 +195,15 @@ py::array_t <complex_t> inner_ode_rhs(double t,
 
         auto td = evaluate_hamiltonian_expression(term, rhs_data.vars, rhs_data.vars_names, chan_values);
         if (std::abs(td) > 1e-15) {
-//            for (auto i = 0; i < num_rows; i++) {
-//                complex_t dot = {0., 0.};
-//                auto row_start = rhs_data.ptrs[h_idx][i];
-//                auto row_end = rhs_data.ptrs[h_idx][i + 1];
-//                for (auto j = row_start; j < row_end; ++j) {
-//                    auto tmp_idx = rhs_data.idxs[h_idx][j];
-//                    auto osc_term =
-//                        std::exp(
-//                            complex_t(0., 1.) * (rhs_data.energy[i] - rhs_data.energy[tmp_idx]) * t
-//                        );
-//                    complex_t coef = (i < tmp_idx ? std::conj(td) : td);
-//                    dot += coef * osc_term * rhs_data.datas[h_idx][j] * vec[tmp_idx];
-//                }
-//                out[i] += dot;
-//            }
-            for (auto i = 0; i < rhs_data.idxs[h_idx]; i++) {
+            for (auto i = 0; i < rhs_data.datas[h_idx].shape[0]; i++) {
                 complex_t dot = {0., 0.};
-                for (auto j = 0; j < rhs_data.ptrs[h_idx]; j++) {
+                for (auto j = 0; j < rhs_data.datas[h_idx].shape[1]; j++) {
                     auto osc_term =
                             std::exp(
                                     complex_t(0., 1.) * (rhs_data.energy[i] - rhs_data.energy[j]) * t
                             );
                     complex_t coef = (i < j ? std::conj(td) : td);
-                    dot += coef * osc_term * rhs_data.datas[h_idx][i*rhs_data.ptrs[h_idx] + j] * vec[j];
+                    dot += coef * osc_term * rhs_data.datas[h_idx](i, j) * vec[j];
                 }
                 out[i] += dot;
             }

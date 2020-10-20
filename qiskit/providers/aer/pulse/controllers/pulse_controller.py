@@ -351,16 +351,10 @@ class PulseInternalDEModel:
         self.num_h_terms = None
         self.c_num = None
         self.c_ops_data = None
-        self.c_ops_ind = None
-        self.c_ops_ptr = None
         self.n_ops_data = None
-        self.n_ops_ind = None
-        self.n_ops_ptr = None
         self.h_diag_elems = None
 
         self.h_ops_data = None
-        self.h_ops_ind = None
-        self.h_ops_ptr = None
 
         self._rhs_dict = None
 
@@ -383,11 +377,7 @@ class PulseInternalDEModel:
             self.num_h_terms += 1
 
         self.c_ops_data = []
-        self.c_ops_ind = []
-        self.c_ops_ptr = []
         self.n_ops_data = []
-        self.n_ops_ind = []
-        self.n_ops_ptr = []
 
         self.h_diag_elems = self.h_diag
 
@@ -398,12 +388,8 @@ class PulseInternalDEModel:
             n_op = c_op.adjoint() @ c_op
             # collapse ops
             self.c_ops_data.append(c_op.data)
-            self.c_ops_ind.append(c_op.data.shape[0])
-            self.c_ops_ptr.append(c_op.data.shape[1])
             # norm ops
             self.n_ops_data.append(n_op.data)
-            self.n_ops_ind.append(n_op.data.shape[0])
-            self.n_ops_ptr.append(n_op.data.shape[1])
             # Norm ops added to time-independent part of
             # Hamiltonian to decrease norm
             H_noise = Operator(H_noise.data - 0.5j * n_op.data)
@@ -412,10 +398,7 @@ class PulseInternalDEModel:
             H = H + [H_noise]
 
         # construct data sets
-        # TODO: Pass just the array
-        self.h_ops_data = [-1.0j * hpart.data.flatten() for hpart in H]
-        self.h_ops_ind = np.array([hpart.data.shape[0] for hpart in H])
-        self.h_ops_ptr = np.array([hpart.data.shape[1] for hpart in H])
+        self.h_ops_data = [-1.0j * hpart.data for hpart in H]
 
         self._rhs_dict = {'freqs': list(self.freqs.values()),
                           'pulse_array': self.pulse_array,
@@ -424,8 +407,6 @@ class PulseInternalDEModel:
                           'vars_names': self.vars_names,
                           'num_h_terms': self.num_h_terms,
                           'h_ops_data': self.h_ops_data,
-                          'h_ops_ind': self.h_ops_ind,
-                          'h_ops_ptr': self.h_ops_ptr,
                           'h_diag_elems': self.h_diag_elems}
 
     def init_rhs(self, exp):
