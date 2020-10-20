@@ -231,6 +231,19 @@ inline Op make_unitary(const reg_t &qubits, cmatrix_t &&mat, std::string label =
   return op;
 }
 
+inline Op make_diagonal(const reg_t &qubits, const std::vector<complex_t> &vec, std::string label = "") {
+  Op op;
+  op.type = OpType::diagonal_matrix;
+  op.name = "diagonal";
+  op.qubits = qubits;
+  op.params = vec;
+
+  if (label != "")
+    op.string_params = {label};
+
+  return op;
+}
+
 inline Op make_superop(const reg_t &qubits, const cmatrix_t &mat) {
   Op op;
   op.type = OpType::superop;

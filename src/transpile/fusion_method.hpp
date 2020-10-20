@@ -43,9 +43,14 @@ public:
   virtual op_t generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
                                          const reg_t &qubits) const;
 
+  virtual op_t generate_diagonal_fusion_operation(const std::vector<op_t>& fusioned_ops,
+                                                  const reg_t &qubits) const;
+
   uint_t get_default_max_qubit() const { return max_qubit; }
 
   uint_t get_default_threshold_qubit() const { return threshold; }
+
+  virtual bool support_diagonal() const { return true; }
 
 protected:
 
@@ -102,6 +107,28 @@ op_t FusionMethod::generate_fusion_operation(const std::vector<op_t>& fusioned_o
   return ret;
 }
 
+op_t FusionMethod::generate_diagonal_fusion_operation(const std::vector<op_t>& fusioned_ops,
+                                                      const reg_t &qubits) const {
+  // Run simulation
+  RngEngine dummy_rng;
+  ExperimentData dummy_data;
+
+  // Unitary simulation
+  QubitUnitary::State<> unitary_simulator;
+  unitary_simulator.initialize_qreg(qubits.size());
+  unitary_simulator.apply_ops(remap_qubits(fusioned_ops, qubits), dummy_data, dummy_rng);
+
+  auto mat = unitary_simulator.qreg().move_to_matrix();
+  std::vector<complex_t> vec;
+  vec.assign(1UL << qubits.size(), 0);
+  for (size_t i = 0; i < vec.size(); ++i)
+    vec[i] = mat(i, i);
+
+  auto ret = Operations::make_diagonal(qubits, vec, std::string("fusion"));
+  return ret;
+}
+
+
 class UnitaryMatrixFusionMethod : public FusionMethod {
 public:
   UnitaryMatrixFusionMethod(uint_t max_qubit = 3, uint_t threshold = 8): FusionMethod(max_qubit, threshold) {}
@@ -123,6 +150,8 @@ public:
 
   virtual op_t generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
                                          const reg_t &qubits) const override;
+
+  virtual bool support_diagonal() const override { return false; }
 
 private:
   virtual op_t generate_noise_operation(const reg_t &qubits,

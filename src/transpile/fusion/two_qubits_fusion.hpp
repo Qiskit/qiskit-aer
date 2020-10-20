@@ -27,13 +27,15 @@ namespace Transpile {
 class TwoQubitFusion {
 public:
   TwoQubitFusion(std::shared_ptr<FusionMethod> method_ = std::make_shared<FusionMethod>())
-    : method(method_) { }
+    : method(method_), threshold(method_->get_default_threshold_qubit()) { }
 
   virtual ~TwoQubitFusion() {}
 
   void set_config(const json_t &config);
 
   std::string name() const { return "two_qubit_fusion"; };
+
+  uint_t get_threshold() const { return threshold; }
 
   bool aggregate_operations(oplist_t& ops, const int fusion_start, const int fusion_end) const;
 
@@ -45,10 +47,14 @@ public:
 
 private:
   const std::shared_ptr<FusionMethod> method;
+  uint_t threshold;
   bool active = true;
 };
 
 void TwoQubitFusion::set_config(const json_t &config) {
+  if (JSON::check_key("fusion_enable", config))
+    JSON::get_value(active, "fusion_enable", config);
+
   if (JSON::check_key("fusion_enable.two_qubits", config))
     JSON::get_value(active, "fusion_enable.two_qubits", config);
 }

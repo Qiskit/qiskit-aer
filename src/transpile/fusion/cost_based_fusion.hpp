@@ -36,13 +36,15 @@ public:
       std::shared_ptr<FusionMethod> method_ = std::make_shared<FusionMethod>(),
       uint_t max_fused_qubits_ = 5,
       double cost_factor_ = 1.8):
-        method(method_), max_fused_qubits(max_fused_qubits_), cost_factor(cost_factor_){ }
+        method(method_), max_fused_qubits(max_fused_qubits_), threshold(method_->get_default_threshold_qubit()), cost_factor(cost_factor_){ }
 
   virtual ~CostBasedFusion() {}
 
   void set_config(const json_t &config);
 
   std::string name() const { return "fusion"; };
+
+  uint_t get_threshold() const { return threshold; }
 
   bool aggregate_operations(oplist_t& ops, const int fusion_start, const int fusion_end) const;
 
@@ -72,6 +74,7 @@ private:
 private:
   const std::shared_ptr<FusionMethod> method;
   uint_t max_fused_qubits;
+  uint_t threshold;
   double cost_factor;
   bool active = true;
 };
@@ -82,6 +85,9 @@ void CostBasedFusion::set_config(const json_t &config) {
 
   if (JSON::check_key("fusion_cost_factor", config))
     JSON::get_value(cost_factor, "fusion_cost_factor", config);
+
+  if (JSON::check_key("fusion_enable", config))
+    JSON::get_value(active, "fusion_enable", config);
 
   if (JSON::check_key("fusion_enable.cost_based", config))
     JSON::get_value(active, "fusion_enable.cost_based", config);

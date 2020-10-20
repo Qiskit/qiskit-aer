@@ -20,6 +20,7 @@
 #include "transpile/circuitopt.hpp"
 #include "framework/avx2_detect.hpp"
 #include "fusion_method.hpp"
+#include "fusion/diagonal.hpp"
 #include "fusion/two_qubits_fusion.hpp"
 #include "fusion/cost_based_fusion.hpp"
 
@@ -44,7 +45,7 @@ public:
    *       than to enable parallelization [Default: 100000]
    */
   FusionOptimization(std::shared_ptr<FusionMethod> method_ = std::make_shared<FusionMethod>())
-    : method(method_), fuser(Fuser(method_)), threshold(method_->get_default_threshold_qubit()) { }
+    : method(method_), fuser(Fuser(method_)) { }
   
   virtual ~FusionOptimization() {}
 
@@ -53,8 +54,6 @@ public:
   void set_parallelization(uint_t num) { parallelization = num; };
 
   void set_active(const bool active_) { active = active_; }
-
-  void set_threshold(const uint_t threshold_) { threshold = threshold_; }
 
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
@@ -66,8 +65,6 @@ private:
 private:
   const std::shared_ptr<FusionMethod> method;
   Fuser fuser;
-  // Qubit threshold for activating fusion pass
-  uint_t threshold;
   bool verbose = false;
   bool active = true;
   uint_t parallelization = 1;
@@ -85,9 +82,6 @@ void FusionOptimization<Fuser>::set_config(const json_t &config) {
 
   if (JSON::check_key("fusion_enable", config_))
     JSON::get_value(active, "fusion_enable", config_);
-
-  if (JSON::check_key("fusion_threshold", config_))
-    JSON::get_value(threshold, "fusion_threshold", config_);
 
   if (JSON::check_key("fusion_parallel_threshold", config))
     JSON::get_value(parallel_threshold, "fusion_parallel_threshold", config);
@@ -112,9 +106,9 @@ void FusionOptimization<Fuser>::optimize_circuit(Circuit& circ,
   json_t metadata;
   metadata["applied"] = false;
   metadata["method"] = method->name();
-  metadata["threshold"] = threshold;
+  metadata["threshold"] = fuser.get_threshold();
 
-  if (circ.num_qubits < threshold) {
+  if (circ.num_qubits < fuser.get_threshold()) {
     data.add_metadata(fuser.name(), metadata);
     return;
   }
@@ -181,11 +175,13 @@ public:
                         ExperimentData &data) const override;
 
 private:
+  Transpile::FusionOptimization<Transpile::DiagonalFusion> diagonal_fusion;
   Transpile::FusionOptimization<Transpile::TwoQubitFusion> two_qubit_fusion;
   Transpile::FusionOptimization<Transpile::CostBasedFusion> cost_based_fusion;
 };
 
 void Fusion::set_config(const json_t &config) {
+  diagonal_fusion.set_config(config);
   two_qubit_fusion.set_config(config);
   cost_based_fusion.set_config(config);
 }
@@ -201,6 +197,7 @@ void Fusion::optimize_circuit(Circuit& circ,
                                   ExperimentData &data) const {
 
   Noise::NoiseModel dummy_noise; //ignore noise
+  diagonal_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
   two_qubit_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
   cost_based_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
 }
