@@ -42,7 +42,7 @@
         "return-code=any python -mpip uninstall -y qiskit-ignis"
     ],
     "build_command": [
-        "python -mpip install -U scikit-build cython",
+        "python -mpip install -U scikit-build",
         "python -mpip install qiskit-terra",
         "VERBOSE=1 python setup.py bdist_wheel --dist-dir={build_cache_dir} -- -- -j"
     ],
