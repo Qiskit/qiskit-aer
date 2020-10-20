@@ -1,4 +1,4 @@
-from benchmark2.simulator_benchmark import SimulatorBenchmarkSuite
+from benchmark.simulator_benchmark import SimulatorBenchmarkSuite
 
 DEFAULT_APPS = {
 #    'fourier_checking',
@@ -9,20 +9,20 @@ DEFAULT_APPS = {
 #    'phase_estimation'
     }
 
-DEFAULT_QUBITS = [10, 11, 12, 13, 14]
+DEFAULT_QUBITS = [16]
 
 DEFAULT_RUNTIME = [
     SimulatorBenchmarkSuite.RUNTIME_STATEVECTOR_CPU,
     SimulatorBenchmarkSuite.RUNTIME_STATEVECTOR_GPU,
-    SimulatorBenchmarkSuite.RUNTIME_DENSITY_MATRIX_CPU,
-    SimulatorBenchmarkSuite.RUNTIME_DENSITY_MATRIX_GPU
+    #SimulatorBenchmarkSuite.RUNTIME_DENSITY_MATRIX_CPU,
+    #SimulatorBenchmarkSuite.RUNTIME_DENSITY_MATRIX_GPU
     ]
 
 DEFAULT_MEASUREMENT_METHODS = [
     SimulatorBenchmarkSuite.MEASUREMENT_SAMPLING
     ]
 
-DEFAULT_MEASUREMENT_COUNTS = [ 1, 10, 100, 1000, 10000 ]
+DEFAULT_MEASUREMENT_COUNTS = [ 1000 ]
 
 DEFAULT_NOISE_MODELS = [
     SimulatorBenchmarkSuite.NOISE_DAMPING,
@@ -38,7 +38,7 @@ class DampingError(SimulatorBenchmarkSuite):
                  measures = DEFAULT_MEASUREMENT_METHODS,
                  measure_counts = DEFAULT_MEASUREMENT_COUNTS,
                  noise_model_names = [SimulatorBenchmarkSuite.NOISE_DAMPING] ):
-        super().__init__('depolarizing_error',
+        super().__init__('damping_error',
                          apps, 
                          qubits=qubits, 
                          runtime_names=runtime_names, 

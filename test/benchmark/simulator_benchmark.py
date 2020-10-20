@@ -5,7 +5,7 @@ from qiskit.compiler import transpile, assemble
 from qiskit.providers.aer import QasmSimulator, UnitarySimulator
 from qiskit.providers.aer.noise import NoiseModel, amplitude_damping_error, depolarizing_error
 
-from benchmark2.circuit_library_circuits import CircuitLibraryCircuits
+from benchmark.circuit_library_circuits import CircuitLibraryCircuits
 
 QOBJS = {}
 QASM_SIMULATOR = QasmSimulator()

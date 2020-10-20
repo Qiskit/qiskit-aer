@@ -135,7 +135,7 @@
 
     // The directory (relative to the current directory) that benchmarks are
     // stored in.  If not provided, defaults to "benchmarks"
-    "benchmark_dir": "benchmark2",
+    "benchmark_dir": "benchmark",
 
 
     // The directory (relative to the current directory) to cache the Python

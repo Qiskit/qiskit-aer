@@ -1,4 +1,4 @@
-from benchmark2.simulator_benchmark import SimulatorBenchmarkSuite
+from benchmark.simulator_benchmark import SimulatorBenchmarkSuite
 
 DEFAULT_APPS = {
 #    'fourier_checking',
@@ -9,7 +9,7 @@ DEFAULT_APPS = {
 #    'phase_estimation'
     }
 
-DEFAULT_QUBITS = SimulatorBenchmarkSuite.DEFAULT_QUBITS
+DEFAULT_QUBITS = [ 10 ]
 
 DEFAULT_RUNTIME = [
     SimulatorBenchmarkSuite.RUNTIME_STATEVECTOR_CPU,

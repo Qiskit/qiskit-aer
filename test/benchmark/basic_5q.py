@@ -1,8 +1,8 @@
 from qiskit.circuit.library import IntegerComparator, WeightedAdder, QuadraticForm
 
-from benchmark2.simulator_benchmark import SimulatorBenchmarkSuite
+from benchmark.simulator_benchmark import SimulatorBenchmarkSuite
 
-DEFAULT_QUBITS = SimulatorBenchmarkSuite.DEFAULT_QUBITS
+DEFAULT_QUBITS = [ 5 ]
 
 DEFAULT_RUNTIME = [
     SimulatorBenchmarkSuite.RUNTIME_STATEVECTOR_CPU,
