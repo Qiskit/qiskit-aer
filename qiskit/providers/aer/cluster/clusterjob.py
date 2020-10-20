@@ -19,10 +19,10 @@ import logging
 from typing import Optional, Any
 from concurrent import futures
 
-from qiskit.providers.aer.backends.aerbackend import AerBackend
 from qiskit.qobj import QasmQobj
 from qiskit.result import Result
 from qiskit.providers import JobStatus, JobError
+from ..backends.aerbackend import AerBackend
 from .utils import requires_submit
 
 logger = logging.getLogger(__name__)
