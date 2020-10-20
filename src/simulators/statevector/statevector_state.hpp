@@ -887,7 +887,7 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
       BaseState::qreg_.apply_mcu(op.qubits, Linalg::VMatrix::SX);
       break;
     case Gates::pauli:
-        BaseState::qreg_.apply_multipauli(op.qubits, op.string_params[0]);
+        BaseState::qreg_.apply_pauli(op.qubits, op.string_params[0]);
         break;
     default:
       // We shouldn't reach here unless there is a bug in gateset

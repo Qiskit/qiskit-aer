@@ -723,9 +723,9 @@ def sdg_gate_unitary_nondeterministic():
     return targets
 
 # ==========================================================================
-# Multipauli-gate
+# Pauli gate
 # ==========================================================================
-from qiskit.providers.aer.extensions import pauli
+
 def pauli_gate_circuits_deterministic(final_measure=True):
     """multipauli-gate test circuits with deterministic counts."""
     circuits = []
@@ -737,7 +737,7 @@ def pauli_gate_circuits_deterministic(final_measure=True):
         regs = (qr, )
 
     circuit = QuantumCircuit(*regs)
-    circuit.pauli(qr, 'XYZ')
+    circuit.pauli('ZYX', qr)
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -747,7 +747,7 @@ def pauli_gate_circuits_deterministic(final_measure=True):
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[0])
     circuit.h(qr[2])
-    circuit.pauli([qr[0], qr[2]], 'ZZ')
+    circuit.pauli('ZZ', [qr[0], qr[2]])
     circuit.h(qr[0])
     circuit.h(qr[2])
     if final_measure:

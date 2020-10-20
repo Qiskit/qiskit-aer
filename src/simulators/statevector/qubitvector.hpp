@@ -212,7 +212,7 @@ public:
   // If N=3 this implements an optimized Fredkin gate
   void apply_mcswap(const reg_t &qubits);
 
-  void apply_multipauli(const reg_t &qubits, const std::string &pauli);
+  void apply_pauli(const reg_t &qubits, const std::string &pauli);
 
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
@@ -1867,7 +1867,7 @@ double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
  *
  ******************************************************************************/
 template <typename data_t>
-void QubitVector<data_t>::apply_multipauli(const reg_t &qubits, const std::string &pauli){
+void QubitVector<data_t>::apply_pauli(const reg_t &qubits, const std::string &pauli){
   uint_t x_mask, z_mask, num_y, x_max;
   std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
 

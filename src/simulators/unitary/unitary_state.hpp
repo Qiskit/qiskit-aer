@@ -390,7 +390,7 @@ void State<unitary_matrix_t>::apply_gate(const Operations::Op &op) {
       apply_gate_phase(op.qubits[0], complex_t(0., -1.));
       break;
     case Gates::pauli:
-        BaseState::qreg_.apply_multipauli(op.qubits, op.string_params[0]);
+        BaseState::qreg_.apply_pauli(op.qubits, op.string_params[0]);
         break;
     case Gates::t: {
       const double isqrt2{1. / std::sqrt(2)};
