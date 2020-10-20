@@ -45,11 +45,11 @@ public:
    * - fusion_max_qubit (int): Maximum number of qubits for a operation generated
    *       in a fusion optimization [Default: 5]
    * - fusion_threshold (int): Threshold that number of qubits must be greater
-   *       than to enable fusion optimization [Default: 20]
+   *       than to enable fusion optimization [Default: 14]
    * - fusion_cost_factor (double): a cost function to estimate an aggregate
    *       gate [Default: 1.8]
    */
-  Fusion(uint_t _max_qubit = 5, uint_t _threshold = 20, double _cost_factor = 1.8)
+  Fusion(uint_t _max_qubit = 5, uint_t _threshold = 14, double _cost_factor = 1.8)
     : max_qubit(_max_qubit), threshold(_threshold), cost_factor(_cost_factor) {}
   
   // Allowed fusion methods:
@@ -63,7 +63,7 @@ public:
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
                         const opset_t &allowed_opset,
-                        ExperimentData &data) const override;
+                        ExperimentResult &result) const override;
 
   // Qubit threshold for activating fusion pass
   uint_t max_qubit;
@@ -87,7 +87,7 @@ private:
                             const int fusion_start,
                             const int fusion_end,
                             uint_t max_fused_qubits,
-                            ExperimentData &data,
+                            ExperimentResult &result,
                             Method method) const;
 
   // Aggregate a subcircuit of operations into a single operation
@@ -152,14 +152,22 @@ void Fusion::set_config(const json_t &config) {
 void Fusion::optimize_circuit(Circuit& circ,
                               Noise::NoiseModel& noise,
                               const opset_t &allowed_opset,
-                              ExperimentData &data) const {
-  // Check if fusion should be skipped
-  if (!active || !allowed_opset.contains(optype_t::matrix))
-    return;
-
+                              ExperimentResult &result) const {
   // Start timer
   using clock_t = std::chrono::high_resolution_clock;
   auto timer_start = clock_t::now();
+
+  // Fusion metadata container
+  json_t metadata;
+                
+  // Check if fusion should be skipped
+  if (!active || !allowed_opset.contains(optype_t::matrix)) {
+    metadata["enabled"] = false;
+    result.add_metadata("fusion", metadata);
+    return;
+  }
+  metadata["enabled"] = true;
+  metadata["applied"] = false;
 
   // Determine fusion method
   // TODO: Support Kraus fusion method
@@ -174,12 +182,8 @@ void Fusion::optimize_circuit(Circuit& circ,
        || circ.opset().contains(optype_t::superop))) {
     method = Method::kraus;
   }
-  uint_t qubit_threshold = (method==Method::unitary) ? threshold : threshold / 2;
-  uint_t max_fused_qubits = (method==Method::unitary) ? max_qubit : max_qubit / 2;
 
-  // Fusion metadata container
-  json_t metadata;
-  metadata["applied"] = false;
+  // Calculate thresholds based on method
   if (method == Method::unitary) {
     metadata["method"] = "unitary";
   } else if (method == Method::superop) {
@@ -187,17 +191,15 @@ void Fusion::optimize_circuit(Circuit& circ,
   } else if (method == Method::kraus) {
     metadata["method"] = "kraus";
   }
-  metadata["threshold"] = qubit_threshold;
-  metadata["cost_factor"] = cost_factor;
-  metadata["max_fused_qubits"] = max_fused_qubits;
-
-  // If we are doing superoperator fusion we have the threshold
-  // for the density matrix simulator
-  // Check if circuit size is above threshold
-  if (circ.num_qubits < qubit_threshold) {
-    data.add_metadata("fusion", metadata);
+  // Check qubit threshold
+  metadata["threshold"] = threshold;
+  if (circ.num_qubits <= threshold || circ.ops.size() < 2) {
+    result.add_metadata("fusion", metadata);
     return;
   }
+  metadata["cost_factor"] = cost_factor;
+  metadata["max_fused_qubits"] = max_qubit;
+
   // Apply fusion
   bool applied = false;
 
@@ -205,15 +207,15 @@ void Fusion::optimize_circuit(Circuit& circ,
   for (uint_t op_idx = 0; op_idx < circ.ops.size(); ++op_idx) {
     if (can_ignore(circ.ops[op_idx]))
       continue;
-    if (!can_apply_fusion(circ.ops[op_idx], max_fused_qubits, method)) {
+    if (!can_apply_fusion(circ.ops[op_idx], max_qubit, method)) {
       applied |= fusion_start != op_idx && aggregate_operations(
-        circ.ops, fusion_start, op_idx, max_fused_qubits, data, method);
+        circ.ops, fusion_start, op_idx, max_qubit, result, method);
       fusion_start = op_idx + 1;
     }
   }
 
   if (fusion_start < circ.ops.size() &&
-      aggregate_operations(circ.ops, fusion_start, circ.ops.size(), max_fused_qubits, data, method))
+      aggregate_operations(circ.ops, fusion_start, circ.ops.size(), max_qubit, result, method))
     applied = true;
 
   if (applied) {
@@ -241,7 +243,7 @@ void Fusion::optimize_circuit(Circuit& circ,
   }
   auto timer_stop = clock_t::now();
   metadata["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
-  data.add_metadata("fusion", metadata);
+  result.add_metadata("fusion", metadata);
 }
 
 bool Fusion::can_ignore(const op_t& op) const {
@@ -296,13 +298,13 @@ op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
                                        Method method) const {
   // Run simulation
   RngEngine dummy_rng;
-  ExperimentData dummy_data;
+  ExperimentResult dummy_result;
 
   if (method == Method::unitary) {
     // Unitary simulation
     QubitUnitary::State<> unitary_simulator;
     unitary_simulator.initialize_qreg(qubits.size());
-    unitary_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
+    unitary_simulator.apply_ops(fusioned_ops, dummy_result, dummy_rng);
     return Operations::make_unitary(qubits, unitary_simulator.qreg().move_to_matrix(),
                                     std::string("fusion"));
   }
@@ -311,7 +313,7 @@ op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
   // simulator
   QubitSuperoperator::State<> superop_simulator;
   superop_simulator.initialize_qreg(qubits.size());
-  superop_simulator.apply_ops(fusioned_ops, dummy_data, dummy_rng);
+  superop_simulator.apply_ops(fusioned_ops, dummy_result, dummy_rng);
   auto superop = superop_simulator.qreg().move_to_matrix();
 
   if (method == Method::superop) {
@@ -328,7 +330,7 @@ bool Fusion::aggregate_operations(oplist_t& ops,
                                   const int fusion_start,
                                   const int fusion_end,
                                   uint_t max_fused_qubits,
-                                  ExperimentData &data,
+                                  ExperimentResult &result,
                                   Method method) const {
 
   // costs[i]: estimated cost to execute from 0-th to i-th in original.ops

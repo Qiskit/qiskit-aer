@@ -42,8 +42,7 @@ class QasmReadoutNoiseTests:
             qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
                 qobj,
-                backend_options=self.BACKEND_OPTS,
-                noise_model=noise_model).result()
+                noise_model=noise_model, **self.BACKEND_OPTS).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
@@ -66,8 +65,7 @@ class QasmPauliNoiseTests:
             qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
                 qobj,
-                backend_options=self.BACKEND_OPTS,
-                noise_model=noise_model).result()
+                noise_model=noise_model, **self.BACKEND_OPTS).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
@@ -83,8 +81,7 @@ class QasmPauliNoiseTests:
             qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
                 qobj,
-                backend_options=self.BACKEND_OPTS,
-                noise_model=noise_model).result()
+                noise_model=noise_model, **self.BACKEND_OPTS).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
@@ -100,8 +97,7 @@ class QasmPauliNoiseTests:
             qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
                 qobj,
-                backend_options=self.BACKEND_OPTS,
-                noise_model=noise_model).result()
+                noise_model=noise_model, **self.BACKEND_OPTS).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
@@ -124,8 +120,8 @@ class QasmResetNoiseTests:
             qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
                 qobj,
-                backend_options=self.BACKEND_OPTS,
-                noise_model=noise_model).result()
+                noise_model=noise_model,
+                **self.BACKEND_OPTS).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
@@ -148,7 +144,7 @@ class QasmKrausNoiseTests:
             qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
                 qobj,
-                backend_options=self.BACKEND_OPTS,
-                noise_model=noise_model).result()
+                noise_model=noise_model,
+                **self.BACKEND_OPTS).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
