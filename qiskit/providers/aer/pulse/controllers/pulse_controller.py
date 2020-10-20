@@ -21,7 +21,7 @@ from warnings import warn
 import numpy as np
 from qiskit.quantum_info.operators.operator import Operator
 from ..system_models.string_model_parser.string_model_parser import NoiseParser
-from ..system_models.string_model_parser import qobj_generators as qobj_gen
+from ..system_models.string_model_parser import operator_generators as qobj_gen
 from .digest_pulse_qobj import digest_pulse_qobj
 from .pulse_sim_options import PulseSimOptions
 from .unitary_controller import run_unitary_experiments
