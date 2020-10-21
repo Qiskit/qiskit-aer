@@ -54,6 +54,11 @@ macro(setup_conan)
                     KEEP_RPATHS
                     BUILD missing)
 
+    # Headers includes
+    if(AER_THRUST_BACKEND AND NOT AER_THRUST_BACKEND STREQUAL "CUDA")
+        set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CONAN_INCLUDE_DIRS_THRUST})
+    endif()
+
     # Reassign targets from CONAN_PKG to AER_DEPENDENCY_PKG
     foreach(CONAN_LIB ${AER_CONAN_LIBS})
         _rename_conan_lib(${CONAN_LIB})
