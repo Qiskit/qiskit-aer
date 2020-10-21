@@ -41,7 +41,12 @@ macro(_import_aer_system_dependency package version)
 		# package: name of package to search for using find_package()
 		# version: version of package to search for
 
-	find_package(${package} ${version} REQUIRED)
+	find_package(${package} ${version} EXACT QUIET)
+	if(NOT ${package}_FOUND)
+		message(STATUS "${package} ${version} NOT found! Looking for any other version available.")
+		find_package(${package} ${version} REQUIRED)
+		message(STATUS "${package} version found: ${${package}_VERSION}. WARNING: This version may not work!!!")
+	endif()
 	string(TOLOWER ${package} PACKAGE_LOWER) # Conan use lowercase for every lib
 	add_library(AER_DEPENDENCY_PKG::${PACKAGE_LOWER} INTERFACE IMPORTED)
 	target_link_libraries(AER_DEPENDENCY_PKG::${PACKAGE_LOWER} PUBLIC INTERFACE ${package})
