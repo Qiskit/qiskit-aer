@@ -44,7 +44,7 @@ macro(_import_aer_system_dependency package version)
 	find_package(${package} ${version} EXACT QUIET)
 	if(NOT ${package}_FOUND)
 		message(STATUS "${package} ${version} NOT found! Looking for any other version available.")
-		find_package(${package} ${version} REQUIRED)
+		find_package(${package} REQUIRED)
 		message(STATUS "${package} version found: ${${package}_VERSION}. WARNING: This version may not work!!!")
 	endif()
 	string(TOLOWER ${package} PACKAGE_LOWER) # Conan use lowercase for every lib
