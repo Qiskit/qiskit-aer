@@ -6,7 +6,7 @@ DEFAULT_QUBITS = [ 25 ]
 
 DEFAULT_RUNTIME = [
     SimulatorBenchmarkSuite.RUNTIME_STATEVECTOR_CPU,
-    SimulatorBenchmarkSuite.RUNTIME_MPS_CPU,
+    #SimulatorBenchmarkSuite.RUNTIME_MPS_CPU,
     SimulatorBenchmarkSuite.RUNTIME_STATEVECTOR_GPU
     ]
 

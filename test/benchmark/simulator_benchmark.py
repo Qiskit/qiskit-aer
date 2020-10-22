@@ -14,7 +14,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
 
     RUNTIME_STATEVECTOR_CPU = 'statevector'
     RUNTIME_STATEVECTOR_GPU = 'statevector_gpu'
-    RUNTIME_MPS_CPU = 'matrix_product_state'
+    #RUNTIME_MPS_CPU = 'matrix_product_state'
     RUNTIME_DENSITY_MATRIX_CPU = 'density_matrix'
     RUNTIME_DENSITY_MATRIX_GPU = 'density_matrix_gpu'
     #RUNTIME_STABILIZER_CPU = 'stabilizer'
@@ -24,7 +24,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
     
     RUNTIME_CPU = [
         RUNTIME_STATEVECTOR_CPU,
-        RUNTIME_MPS_CPU,
+        #RUNTIME_MPS_CPU,
         RUNTIME_DENSITY_MATRIX_CPU,
         #RUNTIME_STABILIZER_CPU,
         #RUNTIME_EXTENDED_STABILIZER_CPU #,RUNTIME_UNITARY_MATRIX_CPU
@@ -37,7 +37,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
     
     DEFAULT_RUNTIME = [
         RUNTIME_STATEVECTOR_CPU,
-        RUNTIME_MPS_CPU,
+        #RUNTIME_MPS_CPU,
         RUNTIME_DENSITY_MATRIX_CPU,
         RUNTIME_STATEVECTOR_GPU
         ]
@@ -107,10 +107,10 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             self.backend_options_list[self.RUNTIME_STATEVECTOR_GPU] = { 'method': self.RUNTIME_STATEVECTOR_GPU }
             self.backend_qubits[self.RUNTIME_STATEVECTOR_GPU] = self.qubits
         
-        if self.RUNTIME_MPS_CPU in runtime_names:
-            self.simulators[self.RUNTIME_MPS_CPU] = QASM_SIMULATOR
-            self.backend_options_list[self.RUNTIME_MPS_CPU] = { 'method': self.RUNTIME_MPS_CPU }
-            self.backend_qubits[self.RUNTIME_MPS_CPU] = self.qubits
+        #if self.RUNTIME_MPS_CPU in runtime_names:
+        #    self.simulators[self.RUNTIME_MPS_CPU] = QASM_SIMULATOR
+        #    self.backend_options_list[self.RUNTIME_MPS_CPU] = { 'method': self.RUNTIME_MPS_CPU }
+        #    self.backend_qubits[self.RUNTIME_MPS_CPU] = self.qubits
         
         if self.RUNTIME_DENSITY_MATRIX_CPU in runtime_names:
             self.simulators[self.RUNTIME_DENSITY_MATRIX_CPU] = QASM_SIMULATOR
@@ -236,25 +236,25 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
     def time_statevector_gpu(self, app, measure, measure_count, noise_name, qubit):
         self._run(self.RUNTIME_STATEVECTOR_GPU, app, measure, measure_count, noise_name, qubit)
 
-    def time_matrix_product_state(self, app, measure, measure_count, noise_name, qubit):
-        self._run(self.RUNTIME_MPS_CPU, app, measure, measure_count, noise_name, qubit)
+    #def time_matrix_product_state(self, app, measure, measure_count, noise_name, qubit):
+    #    self._run(self.RUNTIME_MPS_CPU, app, measure, measure_count, noise_name, qubit)
         
     def time_density_matrix(self, app, measure, measure_count, noise_name, qubit):
         self._run(self.RUNTIME_DENSITY_MATRIX_CPU, app, measure, measure_count, noise_name, qubit)
         
-    #def time_density_matrix_gpu(self, app, qubit):
+    #def time_density_matrix_gpu(self, app, measure, measure_count, noise_name, qubit):
     #    self._run(self.RUNTIME_DENSITY_MATRIX_GPU, app, qubit)
         
-    #def time_stabilizer(self, app, measure, measure_count, qubit):
+    #def time_stabilizer(self, app, measure, measure_count, noise_name, qubit):
     #    self._run(self.RUNTIME_STABILIZER_CPU, app, measure, measure_count, noise_name, qubit)
         
     #def time_extended_stabilizer(self, app, measure, measure_count, noise_name, qubit):
     #    self._run(self.RUNTIME_EXTENDED_STABILIZER_CPU, app, measure, measure_count, noise_name, qubit)
         
-    #def time_unitary_matrix(self, app, qubit):
+    #def time_unitary_matrix(self, app, measure, measure_count, noise_name, qubit):
     #    self._run(self.RUNTIME_UNITARY_MATRIX_CPU, app, qubit)
         
-    #def time_unitary_matrix_gpu(self, app, qubit):
+    #def time_unitary_matrix_gpu(self, app, measure, measure_count, noise_name, qubit):
     #    self._run(self.RUNTIME_UNITARY_MATRIX_GPU, app, qubit)
 
     

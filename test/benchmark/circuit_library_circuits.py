@@ -48,7 +48,7 @@ class CircuitLibraryCircuits():
 
     def fourier_checking(self, qubit, repeats):
         if qubit > 20:
-            raise ValueError('qubit is too small: {0}'.format(qubit))
+            raise ValueError('qubit is too big: {0}'.format(qubit))
         f = [-1, 1] * (2 ** (qubit - 1))
         g = [1, -1] * (2 ** (qubit - 1))
         return self._repeat(FourierChecking(f, g), repeats)
