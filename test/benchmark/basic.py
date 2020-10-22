@@ -19,13 +19,13 @@ from benchmark.simulator_benchmark import SimulatorBenchmarkSuite
 class BasicSimulatorBenchmarkSuite(SimulatorBenchmarkSuite):
 
     def __init__(self,
-                 name,
-                 apps,
-                 qubits,
-                 runtime_names,
-                 measures,
-                 measure_counts,
-                 noise_model_names):
+                 name = 'basic',
+                 apps = [],
+                 qubits = [],
+                 runtime_names = [],
+                 measures = [],
+                 measure_counts = [],
+                 noise_model_names = []):
         super().__init__(name,
                           apps, 
                           qubits=qubits, 

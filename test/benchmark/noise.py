@@ -19,13 +19,13 @@ from benchmark.simulator_benchmark import SimulatorBenchmarkSuite
 class NoiseSimulatorBenchmarkSuite(SimulatorBenchmarkSuite):
 
     def __init__(self,
-                 name,
-                 apps,
-                 qubits,
-                 runtime_names,
-                 measures,
-                 measure_counts,
-                 noise_model_names):
+                 name = 'noise',
+                 apps = [],
+                 qubits = [],
+                 runtime_names = [],
+                 measures = [],
+                 measure_counts = [],
+                 noise_model_names = []):
         super().__init__(name,
                           apps, 
                           qubits=qubits, 
@@ -47,7 +47,7 @@ class NoiseSimulatorBenchmarkSuite(SimulatorBenchmarkSuite):
         self._run(self.RUNTIME_DENSITY_MATRIX_CPU, app, measure, measure_count, noise_name, qubit)
         
     def time_density_matrix_gpu(self, app, measure, measure_count, noise_name, qubit):
-        self._run(self.RUNTIME_DENSITY_MATRIX_GPU, app, qubit)
+        self._run(self.RUNTIME_DENSITY_MATRIX_GPU, app, measure, measure_count, noise_name, qubit)
         
     #def time_stabilizer(self, app, measure, measure_count, noise_name, qubit):
     #    self._run(self.RUNTIME_STABILIZER_CPU, app, measure, measure_count, noise_name, qubit)
