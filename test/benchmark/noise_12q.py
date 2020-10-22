@@ -1,4 +1,19 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2018, 2019, 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+"""
+Noise Benchmarking with 12 qubits
+"""
 from benchmark.simulator_benchmark import SimulatorBenchmarkSuite
+from benchmark.noise import NoiseSimulatorBenchmarkSuite
 
 DEFAULT_APPS = {
 #    'fourier_checking',
@@ -29,7 +44,7 @@ DEFAULT_NOISE_MODELS = [
     SimulatorBenchmarkSuite.NOISE_DEPOLARIZING
     ]
 
-class DampingError(SimulatorBenchmarkSuite):
+class DampingError(NoiseSimulatorBenchmarkSuite):
 
     def __init__(self,
                  apps = DEFAULT_APPS,
@@ -47,7 +62,7 @@ class DampingError(SimulatorBenchmarkSuite):
                          noise_model_names=noise_model_names)
         self.__name__ = 'damping_error'
         
-class DepolarizingError(SimulatorBenchmarkSuite):
+class DepolarizingError(NoiseSimulatorBenchmarkSuite):
 
     def __init__(self,
                  apps = DEFAULT_APPS,

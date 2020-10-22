@@ -1,3 +1,17 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2018, 2019, 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+"""
+Circuit Generator
+"""
 import numpy as np
 
 from qiskit.circuit.library import *
@@ -18,12 +32,12 @@ class CircuitLibraryCircuits():
     def weighted_adder(self, qubit, repeats):
         if qubit > 20:
             raise ValueError('qubit is too big: {0}'.format(qubit))
-        return self._repeat(WeightedAdder(num_state_qubits=qubit), repeats)
+        return self._repeat(WeightedAdder(num_state_qubits=qubit).decompose(), repeats)
     
     def quadratic_form(self, qubit, repeats):
         if qubit < 6:
             raise ValueError('qubit is too small: {0}'.format(qubit))
-        return self._repeat(QuadraticForm(num_result_qubits=(qubit - 6), linear=[1, 1, 1], little_endian=True), repeats)
+        return self._repeat(QuadraticForm(num_result_qubits=(qubit - 6), linear=[1, 1, 1], little_endian=True).decompose(), repeats)
 
     def qft(self, qubit, repeats):
         return self._repeat(QFT(qubit), repeats)

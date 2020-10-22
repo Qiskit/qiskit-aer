@@ -1,3 +1,17 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2018, 2019, 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+"""
+Base class of Qiskit Aer Benchmarking
+"""
 import sys
 import numpy as np
 from time import time
@@ -14,30 +28,32 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
 
     RUNTIME_STATEVECTOR_CPU = 'statevector'
     RUNTIME_STATEVECTOR_GPU = 'statevector_gpu'
-    #RUNTIME_MPS_CPU = 'matrix_product_state'
+    RUNTIME_MPS_CPU = 'matrix_product_state'
     RUNTIME_DENSITY_MATRIX_CPU = 'density_matrix'
     RUNTIME_DENSITY_MATRIX_GPU = 'density_matrix_gpu'
-    #RUNTIME_STABILIZER_CPU = 'stabilizer'
-    #RUNTIME_EXTENDED_STABILIZER_CPU = 'extended_stabilizer'
-    #RUNTIME_UNITARY_MATRIX_CPU = 'unitary_matrix'
-    #RUNTIME_UNITARY_MATRIX_GPU = 'unitary_matrix_gpu'
+    RUNTIME_STABILIZER_CPU = 'stabilizer'
+    RUNTIME_EXTENDED_STABILIZER_CPU = 'extended_stabilizer'
+    RUNTIME_UNITARY_MATRIX_CPU = 'unitary_matrix'
+    RUNTIME_UNITARY_MATRIX_GPU = 'unitary_matrix_gpu'
     
     RUNTIME_CPU = [
         RUNTIME_STATEVECTOR_CPU,
-        #RUNTIME_MPS_CPU,
+        RUNTIME_MPS_CPU,
         RUNTIME_DENSITY_MATRIX_CPU,
-        #RUNTIME_STABILIZER_CPU,
-        #RUNTIME_EXTENDED_STABILIZER_CPU #,RUNTIME_UNITARY_MATRIX_CPU
+        RUNTIME_STABILIZER_CPU,
+        RUNTIME_EXTENDED_STABILIZER_CPU,
+        RUNTIME_UNITARY_MATRIX_CPU
         ]
     
     RUNTIME_GPU = [
         RUNTIME_STATEVECTOR_GPU,
-        RUNTIME_DENSITY_MATRIX_GPU #, RUNTIME_UNITARY_MATRIX_GPU
+        RUNTIME_DENSITY_MATRIX_GPU,
+        RUNTIME_UNITARY_MATRIX_GPU
         ]
     
     DEFAULT_RUNTIME = [
         RUNTIME_STATEVECTOR_CPU,
-        #RUNTIME_MPS_CPU,
+        RUNTIME_MPS_CPU,
         RUNTIME_DENSITY_MATRIX_CPU,
         RUNTIME_STATEVECTOR_GPU
         ]
@@ -107,10 +123,10 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             self.backend_options_list[self.RUNTIME_STATEVECTOR_GPU] = { 'method': self.RUNTIME_STATEVECTOR_GPU }
             self.backend_qubits[self.RUNTIME_STATEVECTOR_GPU] = self.qubits
         
-        #if self.RUNTIME_MPS_CPU in runtime_names:
-        #    self.simulators[self.RUNTIME_MPS_CPU] = QASM_SIMULATOR
-        #    self.backend_options_list[self.RUNTIME_MPS_CPU] = { 'method': self.RUNTIME_MPS_CPU }
-        #    self.backend_qubits[self.RUNTIME_MPS_CPU] = self.qubits
+        if self.RUNTIME_MPS_CPU in runtime_names:
+            self.simulators[self.RUNTIME_MPS_CPU] = QASM_SIMULATOR
+            self.backend_options_list[self.RUNTIME_MPS_CPU] = { 'method': self.RUNTIME_MPS_CPU }
+            self.backend_qubits[self.RUNTIME_MPS_CPU] = self.qubits
         
         if self.RUNTIME_DENSITY_MATRIX_CPU in runtime_names:
             self.simulators[self.RUNTIME_DENSITY_MATRIX_CPU] = QASM_SIMULATOR

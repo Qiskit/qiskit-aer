@@ -1,3 +1,17 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2018, 2019, 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+"""
+Output Benchmarking with 15 qubits
+"""
 from benchmark.simulator_benchmark import SimulatorBenchmarkSuite
 
 DEFAULT_APPS = {
@@ -23,7 +37,7 @@ DEFAULT_NOISE_MODELS = [
     SimulatorBenchmarkSuite.NOISE_IDEAL
     ]
 
-class Sampling(SimulatorBenchmarkSuite):
+class Sampling(OutputSimulatorBenchmarkSuite):
 
     def __init__(self,
                  apps = DEFAULT_APPS,
@@ -41,7 +55,7 @@ class Sampling(SimulatorBenchmarkSuite):
                           noise_model_names=noise_model_names)
         self.__name__ = 'sampling'
 
-class ExpVal(SimulatorBenchmarkSuite):
+class ExpVal(OutputSimulatorBenchmarkSuite):
 
     def __init__(self,
                  apps = DEFAULT_APPS,

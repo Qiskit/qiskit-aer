@@ -1,6 +1,21 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2018, 2019, 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+"""
+Basic Circuit Benchmarking with 15 qubits
+"""
 from qiskit.circuit.library import IntegerComparator, WeightedAdder, QuadraticForm
 
 from benchmark.simulator_benchmark import SimulatorBenchmarkSuite
+from benchmark.basic import BasicSimulatorBenchmarkSuite
 
 DEFAULT_QUBITS = [ 15 ]
 
@@ -20,7 +35,7 @@ DEFAULT_NOISE_MODELS = [
     SimulatorBenchmarkSuite.NOISE_IDEAL
 ]
 
-class ArithmeticCircuits(SimulatorBenchmarkSuite):
+class ArithmeticCircuits(BasicSimulatorBenchmarkSuite):
 
     def __init__(self,
                  apps = {
@@ -41,7 +56,7 @@ class ArithmeticCircuits(SimulatorBenchmarkSuite):
                           measure_counts=measure_counts, 
                           noise_model_names=noise_model_names)
 
-class BasicChangeCircuits(SimulatorBenchmarkSuite):
+class BasicChangeCircuits(BasicSimulatorBenchmarkSuite):
 
     def __init__(self,
                  apps = {'qft':1 },
@@ -59,7 +74,7 @@ class BasicChangeCircuits(SimulatorBenchmarkSuite):
                          measure_counts=measure_counts, 
                          noise_model_names=noise_model_names)
 
-class NLocalCircuits(SimulatorBenchmarkSuite):
+class NLocalCircuits(BasicSimulatorBenchmarkSuite):
 
     def __init__(self,
                  apps = {
@@ -83,7 +98,7 @@ class NLocalCircuits(SimulatorBenchmarkSuite):
                          measure_counts=measure_counts, 
                          noise_model_names=noise_model_names)
 
-class ParticularQuantumCircuits(SimulatorBenchmarkSuite):
+class ParticularQuantumCircuits(BasicSimulatorBenchmarkSuite):
 
     def __init__(self,
                  apps = {
