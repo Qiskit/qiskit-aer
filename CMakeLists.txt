@@ -331,9 +331,9 @@ else() # Standalone build
 		PRIVATE ${AER_COMPILER_DEFINITIONS})
 	if(WIN32 AND NOT BLAS_LIB_PATH)
 		add_custom_command(TARGET qasm_simulator POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
-				${OPENBLAS_DLLs}
+				${BACKEND_REDIST_DEPS}
 				$<TARGET_FILE_DIR:qasm_simulator>)
-		install(FILES ${OPENBLAS_DLLs} DESTINATION bin)
+		install(FILES ${BACKEND_REDIST_DEPS} DESTINATION bin)
 	endif()
 
 	install(TARGETS qasm_simulator DESTINATION bin)
