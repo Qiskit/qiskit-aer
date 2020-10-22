@@ -1,8 +1,0 @@
----
-
-features:
-  - |
-    Added support for ``apply_kraus``in ``matrix_product_state.hpp``. This
-    enables running the ``matrix_product_state`` simulation method with all 
-    types of Kraus noise.
-

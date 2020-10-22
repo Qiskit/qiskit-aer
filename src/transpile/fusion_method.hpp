@@ -96,7 +96,7 @@ op_t FusionMethod::generate_fusion_operation(const std::vector<op_t>& fusioned_o
                                                     const reg_t &qubits) const {
   // Run simulation
   RngEngine dummy_rng;
-  ExperimentData dummy_data;
+  ExperimentResult dummy_data;
 
   // Unitary simulation
   QubitUnitary::State<> unitary_simulator;
@@ -111,7 +111,7 @@ op_t FusionMethod::generate_diagonal_fusion_operation(const std::vector<op_t>& f
                                                       const reg_t &qubits) const {
   // Run simulation
   RngEngine dummy_rng;
-  ExperimentData dummy_data;
+  ExperimentResult dummy_data;
 
   // Unitary simulation
   QubitUnitary::State<> unitary_simulator;
@@ -192,7 +192,7 @@ op_t SuperopFusionMethod::generate_fusion_operation(const std::vector<op_t>& fus
 
   // Run simulation
   RngEngine dummy_rng;
-  ExperimentData dummy_data;
+  ExperimentResult dummy_data;
 
   QubitSuperoperator::State<> superop_simulator;
   superop_simulator.initialize_qreg(qubits.size());

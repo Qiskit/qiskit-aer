@@ -58,7 +58,7 @@ public:
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
                         const opset_t &allowed_opset,
-                        ExperimentData &data) const override;
+                        ExperimentResult &data) const override;
 
 private:
 
@@ -93,7 +93,7 @@ template<typename Fuser>
 void FusionOptimization<Fuser>::optimize_circuit(Circuit& circ,
                               Noise::NoiseModel& noise,
                               const opset_t &allowed_opset,
-                              ExperimentData &data) const {
+                              ExperimentResult &data) const {
   // Check if fusion should be skipped
   if (!active || !allowed_opset.contains(optype_t::diagonal_matrix))
     return;
@@ -172,7 +172,7 @@ public:
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
                         const opset_t &allowed_opset,
-                        ExperimentData &data) const override;
+                        ExperimentResult &data) const override;
 
 private:
   Transpile::FusionOptimization<Transpile::DiagonalFusion> diagonal_fusion;
@@ -194,7 +194,7 @@ void Fusion::set_parallelization(uint_t num) {
 void Fusion::optimize_circuit(Circuit& circ,
                                   Noise::NoiseModel& noise,
                                   const opset_t &allowed_opset,
-                                  ExperimentData &data) const {
+                                  ExperimentResult &data) const {
 
   Noise::NoiseModel dummy_noise; //ignore noise
   diagonal_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);

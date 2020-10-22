@@ -133,21 +133,6 @@ public:
   using DataContainer<std::map<std::string, double>>::add_additional_data;
 
   //----------------------------------------------------------------
-  // Metadata
-  //----------------------------------------------------------------
-
-  // Access metadata map
-  stringmap_t<json_t> &metadata() { return metadata_; }
-  const stringmap_t<json_t> &metadata() const { return metadata_; }
-
-  // Add new data to metadata at the specified key.
-  // This will use the json conversion method `to_json` for data type T.
-  // If they key already exists this will update the current data
-  // with the new data.
-  template <typename T>
-  void add_metadata(const std::string &key, T &&data);
-
-  //----------------------------------------------------------------
   // Config
   //----------------------------------------------------------------
 
@@ -187,14 +172,6 @@ public:
 
   // Register state for each shot as hex string
   std::vector<std::string> register_;
-
-  //----------------------------------------------------------------
-  // Metadata
-  //----------------------------------------------------------------
-
-  // This will be passed up to the experiment_result level
-  // metadata field
-  stringmap_t<json_t> metadata_;
 
   //----------------------------------------------------------------
   // Access Templated DataContainers
@@ -321,47 +298,6 @@ void ExperimentData::add_additional_data(const std::string &key, T &&data) {
 }
 
 //------------------------------------------------------------------
-// Metadata
-//------------------------------------------------------------------
-
-template <typename T>
-void ExperimentData::add_metadata(const std::string &key, T &&data) {
-  // Use implicit to_json conversion function for T
-  json_t jdata = data;
-  add_metadata(key, std::move(jdata));
-}
-
-template <>
-void ExperimentData::add_metadata(const std::string &key, json_t &&data) {
-  auto elt = metadata_.find("key");
-  if (elt == metadata_.end()) {
-    // If key doesn't already exist add new data
-    metadata_[key] = std::move(data);
-  } else {
-    // If key already exists append with additional data
-    elt->second.update(data.begin(), data.end());
-  }
-}
-
-template <>
-void ExperimentData::add_metadata(const std::string &key, const json_t &data) {
-  auto elt = metadata_.find("key");
-  if (elt == metadata_.end()) {
-    // If key doesn't already exist add new data
-    metadata_[key] = data;
-  } else {
-    // If key already exists append with additional data
-    elt->second.update(data.begin(), data.end());
-  }
-}
-
-template <>
-void ExperimentData::add_metadata(const std::string &key, json_t &data) {
-  const json_t &const_data = data;
-  add_metadata(key, const_data);
-}
-
-//------------------------------------------------------------------
 // Access Data
 //------------------------------------------------------------------
 template <typename T>
@@ -415,9 +351,6 @@ void ExperimentData::clear() {
   counts_.clear();
   memory_.clear();
   register_.clear();
-
-  // Clear metadata
-  metadata_.clear();
 }
 
 ExperimentData &ExperimentData::combine(const ExperimentData &other) {
@@ -445,11 +378,6 @@ ExperimentData &ExperimentData::combine(const ExperimentData &other) {
     counts_[pair.first] += pair.second;
   }
 
-  // Combine metadata
-  for (const auto &pair : other.metadata_) {
-    metadata_[pair.first] = pair.second;
-  }
-
   return *this;
 }
 
@@ -475,11 +403,6 @@ ExperimentData &ExperimentData::combine(ExperimentData &&other) {
   // Combine counts
   for (auto pair : other.counts_) {
     counts_[pair.first] += pair.second;
-  }
-
-  // Combine metadata
-  for (auto &pair : other.metadata_) {
-    metadata_[pair.first] = std::move(pair.second);
   }
 
   // Clear any remaining data from other container
