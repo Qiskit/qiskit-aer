@@ -133,28 +133,33 @@ endif()
 #
 # Looking for external libraries
 #
+set(BACKEND_REDIST_DEPS "") # List of redistributable dependencies
 setup_dependencies()
 
 # If we do not set them with a space CMake fails afterwards if nothing is set for this vars!
 set(AER_LINKER_FLAGS " ")
 set(AER_COMPILER_FLAGS " ")
 
-message(STATUS "Looking for OpenMP support...")
-if(APPLE AND USE_CONAN) # TODO: Remvoe this CONAN branching
-	set(OPENMP_FOUND TRUE)
-	if(NOT SKBUILD)
-		set(AER_LIBRARIES ${AER_LIBRARIES} AER_DEPENDENCY_PKG::llvm-openmp)
-	else()
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CONAN_CXX_FLAGS_LLVM-OPENMP}")
-		set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CONAN_INCLUDE_DIRS_LLVM-OPENMP})
-	endif()
-else()
+if(NOT OPENMP_FOUND) # Could already be setup for macos with conan
+	message(STATUS "Looking for OpenMP support...")
 	find_package(OpenMP QUIET)
 	if(OPENMP_FOUND)
 		set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} ${OpenMP_CXX_FLAGS}")
 		set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+		if(APPLE)
+			set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${OpenMP_CXX_INCLUDE_DIRS})
+			# On Apple and clang, we do need to link against the library unless we are building
+			# the Terra Addon, see issue: https://github.com/Qiskit/qiskit-aer/issues/1
+			if(NOT SKBUILD)
+				set(AER_LIBRARIES "${AER_LIBRARIES}" "${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY}")
+				message(STATUS "Adding Clang: ${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY}")
+			else()
+				get_filename_component(OPENMP_LIB_TO_COPY ${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY} REALPATH) #Needed to follow symlinks
+				set(BACKEND_REDIST_DEPS ${BACKEND_REDIST_DEPS} ${OPENMP_LIB_TO_COPY})
+			endif()
+		endif()
 		message(STATUS "OpenMP found!")
 		message(STATUS "OpenMP_CXX_FLAGS = ${OpenMP_CXX_FLAGS}")
 		message(STATUS "OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
@@ -192,7 +197,7 @@ else()
 			set(WIN_ARCH "win32")
 		endif()
 		execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/openblas.7z" WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/")
-		set(OPENBLAS_DLLs "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll")
+		set(BACKEND_REDIST_DEPS ${BACKEND_REDIST_DEPS} "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll")
 		set(BLAS_LIBRARIES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll.a") # Seems CMake is unable to find it on its own
 		set(BLAS_FOUND True)
 	else()

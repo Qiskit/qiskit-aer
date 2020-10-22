@@ -33,6 +33,12 @@ macro(setup_dependencies)
 		if(BUILD_TESTS)
 			_import_aer_system_dependency(Catch2 2.12.1)
 		endif()
+
+		if(APPLE)
+			# Fix linking. See https://stackoverflow.com/questions/54068035
+			link_directories(/usr/local/lib) #brew
+			link_directories(/opt/local/lib) #ports
+		endif()
 	endif()
 endmacro()
 
