@@ -36,6 +36,7 @@
 #include "simulators/state.hpp"
 #include "matrix_product_state_internal.hpp"
 #include "matrix_product_state_internal.cpp"
+#include "framework/linalg/almost_equal.hpp"
 
 
 namespace AER {
@@ -485,6 +486,17 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
                                       op.name + "\'.");
       }
     }
+
+    rvector_t probvec;
+    reg_t qubits(qreg_.num_qubits());
+    std::iota( std::begin(qubits), std::end(qubits), 0);
+    
+    qreg_.get_probabilities_vector(probvec, qubits);
+    double sum = 0;
+    for (uint_t i=0; i<probvec.size(); i++)
+      sum = sum + probvec[i];
+    if (!Linalg::almost_equal(sum, 1.0, 10E-5))
+      std::cout <<"Error: sum = " << sum <<"  != 1"<<std::endl;
   }
 }
 
@@ -705,48 +717,9 @@ void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
 void State::apply_kraus(const reg_t &qubits,
                    const std::vector<cmatrix_t> &kmats,
                    RngEngine &rng) {
-  // Check edge case for empty Kraus set (this shouldn't happen)
-  if (kmats.empty())
-    return; // end function early
-  // Choose a real in [0, 1) to choose the applied kraus operator once
-  // the accumulated probability is greater than r.
-  // We know that the Kraus noise must be normalized
-  // So we only compute probabilities for the first N-1 kraus operators
-  // and infer the probability of the last one from 1 - sum of the previous
-
-  double r = rng.rand(0., 1.);
-  double accum = 0.;
-  bool complete = false;
-
-  cmatrix_t rho = qreg_.density_matrix(qubits);
-
-  cmatrix_t sq_kmat;
-  double p = 0;
-
-  // Loop through N-1 kraus operators
-  for (size_t j=0; j < kmats.size() - 1; j++) {
-    sq_kmat = AER::Utils::dagger(kmats[j]) * kmats[j];
-    // Calculate probability
-    p = real(AER::Utils::trace(rho * sq_kmat));
-    accum += p;
-
-    // check if we need to apply this operator
-    if (accum > r) {
-      // rescale mat so projection is normalized
-      cmatrix_t temp_mat =  kmats[j] * (1 / std::sqrt(p));
-      apply_matrix(qubits, temp_mat);
-      complete = true;
-      break;
-    }
-  }
-  // check if we haven't applied a kraus operator yet
-  if (!complete) {
-    // Compute probability from accumulated
-    double renorm = 1 / std::sqrt(1. - accum);
-    cmatrix_t temp_mat = kmats.back()* renorm;
-    apply_matrix(qubits, temp_mat);
-  }
+  qreg_.apply_kraus(qubits, kmats, rng);
 }
+
 
 //=========================================================================
 // Implementation: Reset and Measurement Sampling

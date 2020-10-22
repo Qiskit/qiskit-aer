@@ -646,6 +646,59 @@ void MPS::apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat)
   apply_matrix(qubits, diag_mat);
 }
 
+void MPS::apply_kraus(const reg_t &qubits,
+                   const std::vector<cmatrix_t> &kmats,
+                   RngEngine &rng) {
+  reg_t internal_qubits = get_internal_qubits(qubits);
+  apply_kraus_internal(qubits, kmats, rng);
+
+}
+void MPS::apply_kraus_internal(const reg_t &qubits,
+                   const std::vector<cmatrix_t> &kmats,
+                   RngEngine &rng) {
+  // Check edge case for empty Kraus set (this shouldn't happen)
+  if (kmats.empty())
+    return; // end function early
+  // Choose a real in [0, 1) to choose the applied kraus operator once
+  // the accumulated probability is greater than r.
+  // We know that the Kraus noise must be normalized
+  // So we only compute probabilities for the first N-1 kraus operators
+  // and infer the probability of the last one from 1 - sum of the previous
+
+  double r = rng.rand(0., 1.);
+  double accum = 0.;
+  bool complete = false;
+  
+  cmatrix_t rho = density_matrix_internal(qubits);
+  
+  cmatrix_t sq_kmat;
+  double p = 0;
+
+  // Loop through N-1 kraus operators
+  for (size_t j=0; j < kmats.size() - 1; j++) {
+    sq_kmat = AER::Utils::dagger(kmats[j]) * kmats[j];
+    // Calculate probability
+    p = real(AER::Utils::trace(rho * sq_kmat));
+    accum += p;
+
+    // check if we need to apply this operator
+    if (accum > r) {
+      // rescale mat so projection is normalized
+      cmatrix_t temp_mat =  kmats[j] * (1 / std::sqrt(p));
+      apply_matrix_internal(qubits, temp_mat);
+      complete = true;
+      break;
+    }
+  }
+  // check if we haven't applied a kraus operator yet
+  if (!complete) {
+    // Compute probability from accumulated
+    double renorm = 1 / std::sqrt(1. - accum);
+    cmatrix_t temp_mat = kmats.back()* renorm;
+    apply_matrix_internal(qubits, temp_mat);
+  }
+}
+
 void MPS::centralize_qubits(const reg_t &qubits,
 			    reg_t &new_indices, bool & ordered) {
   reg_t sorted_indices;
@@ -769,6 +822,8 @@ void MPS::change_position(uint_t src, uint_t dst) {
 }
 
 cmatrix_t MPS::density_matrix(const reg_t &qubits) const {
+
+  
   reg_t internal_qubits = get_internal_qubits(qubits);
   return density_matrix_internal(internal_qubits);
 }
@@ -779,31 +834,35 @@ cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
   
   MPS temp_MPS;
   temp_MPS.initialize(*this);
-  temp_MPS.centralize_qubits(qubits, new_qubits, ordered);
 
-  MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_qubits.front(), new_qubits.back());
+  MPS_Tensor psi = temp_MPS.state_vec_as_MPS(qubits);
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
-
+ 
   // We do the reordering of qubits on a dummy vector in order to not do the reordering on psi, 
   // since psi is a vector of matrices and this would be more costly in performance
   reg_t ordered_vector(size), temp_vector(size), actual_vec(size); 
   std::iota( std::begin(ordered_vector), std::end(ordered_vector), 0);
   reorder_all_qubits(ordered_vector, qubits, temp_vector);
   actual_vec = reverse_all_bits(temp_vector, qubits.size());
+  reg_t indices(size);
+  for (uint_t i=0; i<size; i++)
+    indices[actual_vec[i]] = i;
 
 #ifdef _WIN32
     #pragma omp parallel for if (size > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
 #else
     #pragma omp parallel for collapse(2) if (size > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
 #endif
+  
   for(int_t i = 0; i < static_cast<int_t>(size); i++) {
     for(int_t j = 0; j < static_cast<int_t>(size); j++) {
       rho(i,j) = AER::Utils::sum( AER::Utils::elementwise_multiplication(
-					psi.get_data(actual_vec[i]), 
-					AER::Utils::conjugate(psi.get_data(actual_vec[j]))) );
+					psi.get_data(indices[i]), 
+					AER::Utils::conjugate(psi.get_data(indices[j]))) );
     }
   }
+
   return rho;
 }
 
@@ -847,7 +906,7 @@ double MPS::expectation_value(const reg_t &qubits,
 double MPS::expectation_value_internal(const reg_t &qubits, 
 				       const cmatrix_t &M) const {
   cmatrix_t rho;
-  rho = density_matrix(qubits);
+  rho = density_matrix_internal(qubits);
 
   // Trace(rho*M). not using methods for efficiency
   complex_t res = 0;
@@ -1051,10 +1110,8 @@ MPS_Tensor MPS::state_vec_as_MPS(const reg_t &qubits) {
 MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
 {
 	MPS_Tensor temp = q_reg_[first_index];
-
 	if (first_index != 0)
 	  temp.mul_Gamma_by_left_Lambda(lambda_reg_[first_index-1]);
-
 	// special case of a single qubit
 	if ((first_index == last_index) && (last_index != num_qubits_-1)) {
 	  temp.mul_Gamma_by_right_Lambda(lambda_reg_[last_index]);
@@ -1064,7 +1121,8 @@ MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
 	for(uint_t i = first_index+1; i < last_index+1; i++) {
 	  temp = MPS_Tensor::contract(temp, lambda_reg_[i-1], q_reg_[i]);
 	}
-	// now temp is a tensor of 2^n matrices of size 1X1
+
+	// now temp is a tensor of 2^n matrices
 	if (last_index != num_qubits_-1)
 	  temp.mul_Gamma_by_right_Lambda(lambda_reg_[last_index]);
 	return temp;
