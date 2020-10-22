@@ -45,11 +45,11 @@ public:
    * - fusion_max_qubit (int): Maximum number of qubits for a operation generated
    *       in a fusion optimization [Default: 5]
    * - fusion_threshold (int): Threshold that number of qubits must be greater
-   *       than to enable fusion optimization [Default: 20]
+   *       than to enable fusion optimization [Default: 14]
    * - fusion_cost_factor (double): a cost function to estimate an aggregate
    *       gate [Default: 1.8]
    */
-  Fusion(uint_t _max_qubit = 5, uint_t _threshold = 20, double _cost_factor = 1.8)
+  Fusion(uint_t _max_qubit = 5, uint_t _threshold = 14, double _cost_factor = 1.8)
     : max_qubit(_max_qubit), threshold(_threshold), cost_factor(_cost_factor) {}
   
   // Allowed fusion methods:
@@ -153,13 +153,21 @@ void Fusion::optimize_circuit(Circuit& circ,
                               Noise::NoiseModel& noise,
                               const opset_t &allowed_opset,
                               ExperimentResult &result) const {
-  // Check if fusion should be skipped
-  if (!active || !allowed_opset.contains(optype_t::matrix))
-    return;
-
   // Start timer
   using clock_t = std::chrono::high_resolution_clock;
   auto timer_start = clock_t::now();
+
+  // Fusion metadata container
+  json_t metadata;
+                
+  // Check if fusion should be skipped
+  if (!active || !allowed_opset.contains(optype_t::matrix)) {
+    metadata["enabled"] = false;
+    result.add_metadata("fusion", metadata);
+    return;
+  }
+  metadata["enabled"] = true;
+  metadata["applied"] = false;
 
   // Determine fusion method
   // TODO: Support Kraus fusion method
@@ -174,12 +182,8 @@ void Fusion::optimize_circuit(Circuit& circ,
        || circ.opset().contains(optype_t::superop))) {
     method = Method::kraus;
   }
-  uint_t qubit_threshold = (method==Method::unitary) ? threshold : threshold / 2;
-  uint_t max_fused_qubits = (method==Method::unitary) ? max_qubit : max_qubit / 2;
 
-  // Fusion metadata container
-  json_t metadata;
-  metadata["applied"] = false;
+  // Calculate thresholds based on method
   if (method == Method::unitary) {
     metadata["method"] = "unitary";
   } else if (method == Method::superop) {
@@ -187,17 +191,15 @@ void Fusion::optimize_circuit(Circuit& circ,
   } else if (method == Method::kraus) {
     metadata["method"] = "kraus";
   }
-  metadata["threshold"] = qubit_threshold;
-  metadata["cost_factor"] = cost_factor;
-  metadata["max_fused_qubits"] = max_fused_qubits;
-
-  // If we are doing superoperator fusion we have the threshold
-  // for the density matrix simulator
-  // Check if circuit size is above threshold
-  if (circ.num_qubits < qubit_threshold) {
+  // Check qubit threshold
+  metadata["threshold"] = threshold;
+  if (circ.num_qubits <= threshold || circ.ops.size() < 2) {
     result.add_metadata("fusion", metadata);
     return;
   }
+  metadata["cost_factor"] = cost_factor;
+  metadata["max_fused_qubits"] = max_qubit;
+
   // Apply fusion
   bool applied = false;
 
@@ -205,15 +207,15 @@ void Fusion::optimize_circuit(Circuit& circ,
   for (uint_t op_idx = 0; op_idx < circ.ops.size(); ++op_idx) {
     if (can_ignore(circ.ops[op_idx]))
       continue;
-    if (!can_apply_fusion(circ.ops[op_idx], max_fused_qubits, method)) {
+    if (!can_apply_fusion(circ.ops[op_idx], max_qubit, method)) {
       applied |= fusion_start != op_idx && aggregate_operations(
-        circ.ops, fusion_start, op_idx, max_fused_qubits, result, method);
+        circ.ops, fusion_start, op_idx, max_qubit, result, method);
       fusion_start = op_idx + 1;
     }
   }
 
   if (fusion_start < circ.ops.size() &&
-      aggregate_operations(circ.ops, fusion_start, circ.ops.size(), max_fused_qubits, result, method))
+      aggregate_operations(circ.ops, fusion_start, circ.ops.size(), max_qubit, result, method))
     applied = true;
 
   if (applied) {

@@ -1,0 +1,72 @@
+---
+features:
+  - |
+    Adds basis gate support for the :class:`qiskit.circuit.Delay`
+    instruction to the :class:`~qiskit.providers.aer.StatevectorSimulator`,
+    :class:`~qiskit.providers.aer.UnitarySimulator`, and
+    :class:`~qiskit.providers.aer.QasmSimulator`.
+    Note that this gate is treated as an identity gate during simulation
+    and the delay length parameter is ignored.
+  - |
+    Adds basis gate support for the single-qubit gate
+    :class:`qiskit.circuit.library.UGate` to the
+    :class:`~qiskit.providers.aer.StatevectorSimulator`,
+    :class:`~qiskit.providers.aer.UnitarySimulator`, and the 
+    ``"statevector"``, ``"density_matrix"``, ``"matrix_product_state"``,
+    and ``"extended_stabilizer"`` methods of the
+    :class:`~qiskit.providers.aer.QasmSimulator`.
+  - |
+    Adds basis gate support for the phase gate
+    :class:`qiskit.circuit.library.PhaseGate` to the
+    :class:`~qiskit.providers.aer.StatevectorSimulator`,
+    :class:`~qiskit.providers.aer.StatevectorSimulator`,
+    :class:`~qiskit.providers.aer.UnitarySimulator`, and the 
+    ``"statevector"``, ``"density_matrix"``, ``"matrix_product_state"``,
+    and ``"extended_stabilizer"`` methods of the
+    :class:`~qiskit.providers.aer.QasmSimulator`.
+  - |
+    Adds basis gate support for the controlled-phase gate
+    :class:`qiskit.circuit.library.CPhaseGate` to the
+    :class:`~qiskit.providers.aer.StatevectorSimulator`,
+    :class:`~qiskit.providers.aer.StatevectorSimulator`,
+    :class:`~qiskit.providers.aer.UnitarySimulator`, and the 
+    ``"statevector"``, ``"density_matrix"``, and
+    ``"matrix_product_state"`` methods of the
+    :class:`~qiskit.providers.aer.QasmSimulator`.
+  - |
+    Adds support for the multi-controlled phase gate
+    :class:`qiskit.circuit.library.MCPhaseGate` to the
+    :class:`~qiskit.providers.aer.StatevectorSimulator`,
+    :class:`~qiskit.providers.aer.UnitarySimulator`, and the 
+    ``"statevector"`` method of the
+    :class:`~qiskit.providers.aer.QasmSimulator`.
+  - |
+    Adds support for the :math:`\sqrt(X)` gate
+    :class:`qiskit.circuit.library.SXGate` to the
+    class:`~qiskit.providers.aer.StatevectorSimulator`,
+    :class:`~qiskit.providers.aer.UnitarySimulator`, and
+    :class:`~qiskit.providers.aer.QasmSimulator`.
+  - |
+    Adds support for 1 and 2-qubit Qiskit circuit library rotation gates
+    :class:`~qiskit.circuit.library.RXGate`, :class:`~qiskit.circuit.library.RYGate`,
+    :class:`~qiskit.circuit.library.RZGate`, :class:`~qiskit.circuit.library.RGate`,
+    :class:`~qiskit.circuit.library.RXXGate`, :class:`~qiskit.circuit.library.RYYGate`,
+    :class:`~qiskit.circuit.library.RZZGate`, :class:`~qiskit.circuit.library.RZXGate`
+    to the :class:`~qiskit.providers.aer.StatevectorSimulator`,
+    :class:`~qiskit.providers.aer.UnitarySimulator`, and the 
+    ``"statevector"`` and ``"density_matrix"`` methods of the
+    :class:`~qiskit.providers.aer.QasmSimulator`.
+  - |
+    Adds support for multi-controlled rotation gates ``"mcr"``, ``"mcrx"``,
+    ``"mcry"``, ``"mcrz"``
+    to the :class:`~qiskit.providers.aer.StatevectorSimulator`,
+    :class:`~qiskit.providers.aer.UnitarySimulator`, and the 
+    ``"statevector"`` method of the
+    :class:`~qiskit.providers.aer.QasmSimulator`.
+deprecations:
+  - |
+    :meth:`qiskit.providers.aer.noise.NoiseModel.set_x90_single_qubit_gates` has
+    been deprecated as unrolling to custom basis gates has been added to the
+    qiskit transpiler. The correct way to use an X90 based noise model is to
+    define noise on the Sqrt(X) ``"sx"`` or ``"rx"`` gate and one of the single-qubit
+    phase gates ``"u1"``, ``"rx"``, or ``"p"`` in the noise model.

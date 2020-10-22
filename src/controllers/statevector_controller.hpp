@@ -37,7 +37,7 @@ namespace Simulator {
  *      zero in result data [Default: 1e-10]
  * - "statevector_parallel_threshold" (int): Threshold that number of qubits
  *      must be greater than to enable OpenMP parallelization at State
- *      level [Default: 13]
+ *      level [Default: 14]
  * - "statevector_sample_measure_opt" (int): Threshold that number of qubits
  *      must be greater than to enable indexing optimization during
  *      measure sampling [Default: 10]
@@ -298,7 +298,7 @@ void StatevectorController::run_circuit_helper(
 
   // Optimize circuit
   const std::vector<Operations::Op>* op_ptr = &circ.ops;
-  Transpile::Fusion fusion_pass(5, 20); // 20-qubit default threshold
+  Transpile::Fusion fusion_pass;
   fusion_pass.set_config(config);
   Circuit opt_circ;
   if (fusion_pass.active && circ.num_qubits >= fusion_pass.threshold) {
