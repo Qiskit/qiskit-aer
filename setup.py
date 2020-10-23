@@ -13,7 +13,7 @@ import sys
 
 
 PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
-_USE_CONAN = distutils.util.strtobool(os.getenv("USE_CONAN", "ON").lower())
+_DISABLE_CONAN = distutils.util.strtobool(os.getenv("DISABLE_CONAN", "OFF").lower())
 
 try:
     from Cython.Build import cythonize
@@ -22,7 +22,7 @@ except ImportError:
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'Cython>=0.27.1'])
     from Cython.Build import cythonize
 
-if _USE_CONAN:
+if not _DISABLE_CONAN:
     try:
         from conans import client
     except ImportError:
@@ -59,7 +59,7 @@ setup_requirements = common_requirements + [
     'scikit-build',
     'cmake!=3.17,!=3.17.0',
 ]
-if _USE_CONAN:
+if not _DISABLE_CONAN:
     setup_requirements.append('conan>=1.22.2')
 
 requirements = common_requirements + ['qiskit-terra>=0.12.0']

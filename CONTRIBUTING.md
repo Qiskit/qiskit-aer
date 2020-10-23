@@ -263,7 +263,7 @@ most of the dependencies needed by the C++ source code. Internet connection may 
 when dependencies are added/updated, in order to download the required packages if they are not in your **Conan** local
 repository.
 
->  Note: Conan use can be disabled with the environment variable ``USE_CONAN=OFF``.
+>  Note: Conan use can be disabled with the flag or environment variable ``DISABLE_CONAN=ON`` .
 This is useful for building from source offline, or to reuse the installed package dependencies.
 
 If we are only building the standalone version and do not want to install all Python requirements you can just install
@@ -708,17 +708,23 @@ These are the flags:
     Default: Auto
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="5.2; 5.3"``
 
-* USE_CONAN
+* DISABLE_CONAN
 
     This flag allows disabling the Conan package manager. This will force CMake to look for
-    the libraries in use on your system path. This disables version checking, so you will need
-    to verify the versions of the required libraries manually, or via testing.
-    This is also available as the environment variable ``USE_CONAN``, which overrides
+    the libraries in use on your system path, relying on FindPackage CMake mechanism and
+    the appropriate configuration of libraries in order to use it.
+    If a specific version is not found, the build system will look for any version available,
+    although this may produce build errors or incorrect behaviour.
+
+    __WARNING__: This is not the official procedure to build AER. Thus, the user is responsible
+    of providing all needed libraries and corresponding files to make them findable to CMake.
+
+    This is also available as the environment variable ``DISABLE_CONAN``, which overrides
     the CMake flag of the same name.
 
     Values: ON | OFF
-    Default: ON
-    Example: ``python ./setup.py bdist_wheel -- -DUSE_CONAN=OFF``
+    Default: OFF
+    Example: ``python ./setup.py bdist_wheel -- -DDISABLE_CONAN=ON``
 
 ## Tests
 

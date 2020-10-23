@@ -13,32 +13,36 @@
 
 macro(setup_dependencies)
 	# Defines AER_DEPENDENCY_PKG alias which refers to either conan-provided or system libraries.
-	if(USE_CONAN)
+	if(DISABLE_CONAN)
+		_use_system_libraries()
+	else()
 		include(conan_utils)
 		setup_conan()
-	else()
-		# Use system libraries
-		_import_aer_system_dependency(nlohmann_json 3.1.1)
-		_import_aer_system_dependency(spdlog 1.5.0)
+	endif()
+endmacro()
 
-		if(SKBUILD)
-			_import_aer_system_dependency(muparserx 4.0.8)
-		endif()
+macro(_use_system_libraries)
+	# Use system libraries
+	_import_aer_system_dependency(nlohmann_json 3.1.1)
+	_import_aer_system_dependency(spdlog 1.5.0)
 
-		if(AER_THRUST_BACKEND AND NOT AER_THRUST_BACKEND STREQUAL "CUDA")
-			string(TOLOWER ${AER_THRUST_BACKEND} THRUST_BACKEND)
-			_import_aer_system_dependency(Thrust 1.9.5)
-		endif()
+	if(SKBUILD)
+		_import_aer_system_dependency(muparserx 4.0.8)
+	endif()
 
-		if(BUILD_TESTS)
-			_import_aer_system_dependency(Catch2 2.12.1)
-		endif()
+	if(AER_THRUST_BACKEND AND NOT AER_THRUST_BACKEND STREQUAL "CUDA")
+		string(TOLOWER ${AER_THRUST_BACKEND} THRUST_BACKEND)
+		_import_aer_system_dependency(Thrust 1.9.5)
+	endif()
 
-		if(APPLE)
-			# Fix linking. See https://stackoverflow.com/questions/54068035
-			link_directories(/usr/local/lib) #brew
-			link_directories(/opt/local/lib) #ports
-		endif()
+	if(BUILD_TESTS)
+		_import_aer_system_dependency(Catch2 2.12.1)
+	endif()
+
+	if(APPLE)
+		# Fix linking. See https://stackoverflow.com/questions/54068035
+		link_directories(/usr/local/lib) #brew
+		link_directories(/opt/local/lib) #ports
 	endif()
 endmacro()
 

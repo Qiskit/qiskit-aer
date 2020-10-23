@@ -34,12 +34,12 @@ option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
 
 # Allow disabling conan for downstream package managers. Requires all libraries to be present in path
 # Default is value of environment variable if defined or ON
-if(DEFINED ENV{USE_CONAN})
-	set(_USE_CONAN_DEFAULT ENV{USE_CONAN})
+if(DEFINED ENV{DISABLE_CONAN})
+	set(_DISABLE_CONAN_DEFAULT ENV{DISABLE_CONAN})
 else()
-	set(_USE_CONAN_DEFAULT ON)
+	set(_DISABLE_CONAN_DEFAULT OFF)
 endif()
-option(USE_CONAN "Use Conan package manager to find dependencies. If disabled, you must have all dependencies present on your system." ${_USE_CONAN_DEFAULT})
+option(DISABLE_CONAN "Disable Conan package manager to find dependencies. If disabled, you must have all dependencies present on your system." ${_DISABLE_CONAN_DEFAULT})
 
 include(CTest)
 include(compiler_utils)
