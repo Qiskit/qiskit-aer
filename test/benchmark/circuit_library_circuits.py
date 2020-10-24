@@ -35,9 +35,9 @@ class CircuitLibraryCircuits():
         return self._repeat(WeightedAdder(num_state_qubits=qubit).decompose(), repeats)
     
     def quadratic_form(self, qubit, repeats):
-        if qubit < 6:
+        if qubit < 4:
             raise ValueError('qubit is too small: {0}'.format(qubit))
-        return self._repeat(QuadraticForm(num_result_qubits=(qubit - 6), linear=[1, 1, 1], little_endian=True).decompose(), repeats)
+        return self._repeat(QuadraticForm(num_result_qubits=(qubit - 3), linear=[1, 1, 1], little_endian=True).decompose(), repeats)
 
     def qft(self, qubit, repeats):
         return self._repeat(QFT(qubit), repeats)
@@ -102,6 +102,6 @@ class CircuitLibraryCircuits():
         return self._repeat(QuantumVolume(qubit).decompose(), repeats)
 
     def phase_estimation(self, qubit, repeats):
-        if qubit < 6:
+        if qubit < 5:
             raise ValueError('qubit is too small: {0}'.format(qubit))
         return self._repeat(PhaseEstimation(2, QuantumVolume(qubit - 2).decompose()).decompose(), repeats)

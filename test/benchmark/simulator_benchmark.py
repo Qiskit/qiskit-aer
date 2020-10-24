@@ -58,6 +58,10 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         RUNTIME_STATEVECTOR_GPU
         ]
     
+    TRANSPLIERS = {
+        RUNTIME_MPS_CPU: 'self.transpile_for_mps'
+        }
+    
     DEFAULT_QUBITS = [10, 15, 20, 25]
     
     MEASUREMENT_SAMPLING = 'sampling'
@@ -171,7 +175,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
                 base_circuit = None
                 try:
                     base_circuit = eval('self.{0}'.format(app))(qubit, rep)
-                    print('circuit construction: circ={0}, qubit={1}'.format(app, qubit), file=sys.stderr)
+                    #print('circuit construction: circ={0}, qubit={1}'.format(app, qubit), file=sys.stderr)
                 except ValueError as e:
                     print('circuit construction error: circ={0}, qubit={1}, info={2}'.format(app, qubit, e), file=sys.stderr)
                     continue
@@ -186,14 +190,31 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
                     if measure == self.MEASUREMENT_SAMPLING:
                         circuit = add_measure_all(base_circuit)
                         for measure_count in self.measure_counts:
-                            for simulator in all_simulators:
-                                QOBJS[(simulator, app, measure, measure_count, qubit)] = assemble(circuit, simulator, shots=measure_count)
+                            for runtime in runtime_names:
+                                simulator = self.simulators[runtime]
+                                if runtime in self.TRANSPLIERS:
+                                    runtime_circuit = eval(self.TRANSPLIERS[runtime])(circuit)
+                                    if (runtime, app, measure, measure_count, qubit) not in QOBJS:
+                                        QOBJS[(runtime, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=measure_count)
+                                else:
+                                    runtime_circuit = circuit
+                                    if (simulator, app, measure, measure_count, qubit) not in QOBJS:
+                                        QOBJS[(simulator, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=measure_count)
                         
                     elif measure == self.MEASUREMENT_EXPVAL:
                         for measure_count in self.measure_counts:
                             circuit = add_expval(base_circuit, measure_count)
-                            for simulator in all_simulators:
-                                QOBJS[(simulator, app, measure, measure_count, qubit)] = assemble(circuit, simulator, shots=1)
+                            for runtime in runtime_names:
+                                simulator = self.simulators[runtime]
+                                if runtime in self.TRANSPLIERS:
+                                    runtime_circuit = eval(self.TRANSPLIERS[runtime])(circuit)
+                                    if (runtime, app, measure, measure_count, qubit) not in QOBJS:
+                                        QOBJS[(runtime, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=1)
+                                        print('circuit transpilation: circ={0}, qubit={1}, runtime={2}'.format(app, qubit, runtime), file=sys.stderr)
+                                else:
+                                    runtime_circuit = circuit
+                                    if (simulator, app, measure, measure_count, qubit) not in QOBJS:
+                                        QOBJS[(simulator, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=1)
 
     def _transpile(self, circuit, basis_gates):
         from qiskit import transpile
@@ -206,14 +227,14 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             'cu1', 'cu2', 'cu3', 'cswap', 'mcx', 'mcy', 'mcz',
             'mcu1', 'mcu2', 'mcu3', 'mcswap', 'multiplexer', 'kraus', 'roerror'])
     
-#     def transpile_for_mps(self, circuit):
-#         return self.transpile([
-#             'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
-#             't', 'tdg', 'swap', 'ccx'#, 'unitary', 'diagonal', 'initialize',
-#             'cu1', #'cu2', 'cu3', 'cswap', 'mcx', 'mcy', 'mcz',
-#             #'mcu1', 'mcu2', 'mcu3', 'mcswap', 'multiplexer', 'kraus', 
-#             'roerror'
-#             ])
+    def transpile_for_mps(self, circuit):
+        return self._transpile(circuit, [
+            'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
+            't', 'tdg', 'swap', 'ccx'#, 'unitary', 'diagonal', 'initialize',
+            'cu1', #'cu2', 'cu3', 'cswap', 'mcx', 'mcy', 'mcz',
+            #'mcu1', 'mcu2', 'mcu3', 'mcswap', 'multiplexer', 'kraus', 
+            'roerror'
+            ])
 
     def _run(self, runtime, app, measure, measure_count, noise_name, qubit):
         if runtime not in self.simulators or runtime not in self.backend_options_list:
@@ -225,10 +246,12 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         if qubit not in self.backend_qubits[runtime]:
             raise ValueError('out of qubit range: qubit={0}, list={1}'.format(qubit, self.backend_qubits[runtime]))
         
-        if (simulator, app, measure, measure_count, qubit) not in QOBJS:
+        if (runtime, app, measure, measure_count, qubit) in QOBJS:
+            qobj = QOBJS[(runtime, app, measure, measure_count, qubit)]
+        elif (simulator, app, measure, measure_count, qubit) in QOBJS:
+            qobj = QOBJS[(simulator, app, measure, measure_count, qubit)]
+        else:
             raise ValueError('no qobj: measure={0}:{1}, qubit={2}'.format(measure, measure_count, qubit))
-        
-        qobj = QOBJS[(simulator, app, measure, measure_count, qubit)]
         
         result = simulator.run(qobj, backend_options=backend_options, noise_model=noise_model).result()
         if result.status != 'COMPLETED':
