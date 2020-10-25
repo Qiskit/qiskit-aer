@@ -40,6 +40,29 @@ jobs:
         run : |
           pip install -U twine
           twine upload wheelhouse/*
+  sdist:
+    name: Publish qiskit-aer sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.8'
+      - name: Install Deps
+        run: pip install -U twine wheel
+      - name: Build Artifacts
+        run: |
+          python setup.py sdist
+        shell: bash
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./dist/qiskit*
+      - name: Publish to PyPi
+        env:
+          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+          TWINE_USERNAME: qiskit
+        run: twine upload dist/qiskit*
   gpu-build:
     name: Build qiskit-aer-gpu wheels
     runs-on: ubuntu-latest

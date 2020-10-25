@@ -41,10 +41,10 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::diagonal_matrix, Operations::OpType::kraus,
      Operations::OpType::superop},
     // Gates
-    {"U", "CX", "u1", "u2", "u3",  "cx",  "cy", "cz",  "swap", "id",
-     "x", "y",  "z",  "h",  "s",   "sdg", "t",   "tdg",  "ccx",
-     "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx",  "p",
-     "cp","cu1", "sx", "x90", "delay"},
+    {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
+     "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
+     "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
+     "rzx",  "p",   "cp", "cu1", "sx", "x90", "delay"},
     // Snapshots
     {"density_matrix", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli",
@@ -89,7 +89,7 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentData &data,
+                         ExperimentResult &result,
                          RngEngine &rng,
                          bool final_ops = false) override;
 
@@ -151,7 +151,7 @@ protected:
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
   virtual void apply_snapshot(const Operations::Op &op,
-                              ExperimentData &data,
+                              ExperimentResult &result,
                               bool last_op = false);
 
   // Apply a matrix to given qubits (identity on all other qubits)
@@ -199,19 +199,19 @@ protected:
 
   // Snapshot reduced density matrix
   void snapshot_density_matrix(const Operations::Op &op,
-                               ExperimentData &data,
+                               ExperimentResult &result,
                                bool last_op = false);
                           
   // Snapshot current qubit probabilities for a measurement (average)
-  void snapshot_probabilities(const Operations::Op &op, ExperimentData &data,
+  void snapshot_probabilities(const Operations::Op &op, ExperimentResult &result,
                               bool variance);
 
   // Snapshot the expectation value of a Pauli operator
-  void snapshot_pauli_expval(const Operations::Op &op, ExperimentData &data,
+  void snapshot_pauli_expval(const Operations::Op &op, ExperimentResult &result,
                              bool variance);
 
   // Snapshot the expectation value of a matrix operator
-  void snapshot_matrix_expval(const Operations::Op &op, ExperimentData &data,
+  void snapshot_matrix_expval(const Operations::Op &op, ExperimentResult &result,
                               bool variance);
 
   // Return the reduced density matrix for the simulator
@@ -277,6 +277,7 @@ const stringmap_t<Gates> State<densmat_t>::gateset_({
     {"u1", Gates::u1}, // zero-X90 pulse waltz gate
     {"u2", Gates::u2}, // single-X90 pulse waltz gate
     {"u3", Gates::u3}, // two X90 pulse waltz gate
+    {"u", Gates::u3}, // two X90 pulse waltz gate
     {"U", Gates::u3},  // two X90 pulse waltz gate
     // Two-qubit gates
     {"CX", Gates::cx},     // Controlled-X gate (CNOT)
@@ -392,7 +393,7 @@ void State<densmat_t>::set_config(const json_t &config) {
 
 template <class densmat_t>
 void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
-                                 ExperimentData &data,
+                                 ExperimentResult &result,
                                  RngEngine &rng,
                                  bool final_ops) {
   // Simple loop over vector of input operations
@@ -419,7 +420,7 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
           apply_gate(op);
           break;
         case Operations::OpType::snapshot:
-          apply_snapshot(op, data, final_ops && ops.size() == i + 1);
+          apply_snapshot(op, result, final_ops && ops.size() == i + 1);
           break;
         case Operations::OpType::matrix:
           apply_matrix(op.qubits, op.mats[0]);
@@ -447,7 +448,7 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
 
 template <class densmat_t>
 void State<densmat_t>::apply_snapshot(const Operations::Op &op,
-                                      ExperimentData &data,
+                                      ExperimentResult &result,
                                       bool last_op) {
 
   // Look for snapshot type in snapshotset
@@ -458,34 +459,34 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
         "\'.");
   switch (it->second) {
     case Snapshots::densitymatrix:
-      snapshot_density_matrix(op, data, last_op);
+      snapshot_density_matrix(op, result, last_op);
       break;
     case Snapshots::cmemory:
-      BaseState::snapshot_creg_memory(op, data);
+      BaseState::snapshot_creg_memory(op, result);
       break;
     case Snapshots::cregister:
-      BaseState::snapshot_creg_register(op, data);
+      BaseState::snapshot_creg_register(op, result);
       break;
     case Snapshots::probs:
       // get probs as hexadecimal
-      snapshot_probabilities(op, data, false);
+      snapshot_probabilities(op, result, false);
       break;
     case Snapshots::probs_var:
       // get probs as hexadecimal
-      snapshot_probabilities(op, data, true);
+      snapshot_probabilities(op, result, true);
       break;
     case Snapshots::expval_pauli: {
-      snapshot_pauli_expval(op, data, false);
+      snapshot_pauli_expval(op, result, false);
     } break;
     case Snapshots::expval_pauli_var: {
-      snapshot_pauli_expval(op, data, true);
+      snapshot_pauli_expval(op, result, true);
     } break;
     /* TODO
     case Snapshots::expval_matrix: {
-      snapshot_matrix_expval(op, data, false);
+      snapshot_matrix_expval(op, result, false);
     }  break;
     case Snapshots::expval_matrix_var: {
-      snapshot_matrix_expval(op, data, true);
+      snapshot_matrix_expval(op, result, true);
     }  break;
     */
     default:
@@ -498,12 +499,12 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
 
 template <class densmat_t>
 void State<densmat_t>::snapshot_probabilities(const Operations::Op &op,
-                                              ExperimentData &data,
+                                              ExperimentResult &result,
                                               bool variance) {
   // get probs as hexadecimal
   auto probs = Utils::vec2ket(measure_probs(op.qubits),
                               json_chop_threshold_, 16);
-  data.add_average_snapshot("probabilities",
+  result.data.add_average_snapshot("probabilities",
                             op.string_params[0],
                             BaseState::creg_.memory_hex(),
                             std::move(probs),
@@ -512,7 +513,7 @@ void State<densmat_t>::snapshot_probabilities(const Operations::Op &op,
 
 template <class densmat_t>
 void State<densmat_t>::snapshot_pauli_expval(const Operations::Op &op,
-                                             ExperimentData &data,
+                                             ExperimentResult &result,
                                              bool variance) {
   // Check empty edge case
   if (op.params_expval_pauli.empty()) {
@@ -530,13 +531,13 @@ void State<densmat_t>::snapshot_pauli_expval(const Operations::Op &op,
 
   // Add to snapshot
   Utils::chop_inplace(expval, json_chop_threshold_);
-  data.add_average_snapshot("expectation_value", op.string_params[0],
+  result.data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, variance);
 }
 
 template <class densmat_t>
 void State<densmat_t>::snapshot_density_matrix(const Operations::Op &op,
-                                               ExperimentData &data,
+                                               ExperimentResult &result,
                                                bool last_op) {
   cmatrix_t reduced_state;
 
@@ -560,7 +561,7 @@ void State<densmat_t>::snapshot_density_matrix(const Operations::Op &op,
     }
   }
 
-  data.add_average_snapshot("density_matrix", op.string_params[0],
+  result.data.add_average_snapshot("density_matrix", op.string_params[0],
                             BaseState::creg_.memory_hex(),
                             std::move(reduced_state), false);
 }

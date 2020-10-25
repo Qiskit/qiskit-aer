@@ -30,7 +30,7 @@ namespace CHSimulator
   using complex_t = std::complex<double>;
 
   enum class Gates {
-    u0, u1, id, x, y, z, h, s, sdg, t, tdg,
+    u0, u1, id, x, y, z, h, s, sdg, sx, t, tdg,
     cx, cz, swap,
     ccx, ccz
   };
@@ -48,12 +48,14 @@ namespace CHSimulator
     {"z", Gatetypes::pauli},       // Pauli-Z gate
     {"s", Gatetypes::clifford},       // Phase gate (aka sqrt(Z) gate)
     {"sdg", Gatetypes::clifford},   // Conjugate-transpose of Phase gate
+    {"sx", Gatetypes::clifford},    // Sqrt(X) gate
     {"h", Gatetypes::clifford},       // Hadamard gate (X + Z / sqrt(2))
     {"t", Gatetypes::non_clifford},       // T-gate (sqrt(S))
     {"tdg", Gatetypes::non_clifford},   // Conjguate-transpose of T gate
     // Waltz Gates
     {"u0", Gatetypes::pauli},     // idle gate in multiples of X90
     {"u1", Gatetypes::non_clifford},     // zero-X90 pulse waltz gate
+    {"p", Gatetypes::non_clifford},     // zero-X90 pulse waltz gate
     // Two-qubit gates
     {"CX", Gatetypes::clifford},     // Controlled-X gate (CNOT)
     {"cx", Gatetypes::clifford},     // Controlled-X gate (CNOT)

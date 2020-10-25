@@ -32,13 +32,13 @@ public:
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
                         const opset_t &opset,
-                        ExperimentData &data) const override;
+                        ExperimentResult &result) const override;
 };
 
 void ReduceBarrier::optimize_circuit(Circuit& circ,
                                      Noise::NoiseModel& noise,
                                      const opset_t &allowed_opset,
-                                     ExperimentData &data) const {
+                                     ExperimentResult &result) const {
   // Position of first sampling op
   size_t idx = 0;
   size_t new_measure_pos = circ.first_measure_pos;
@@ -64,13 +64,13 @@ public:
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
                         const opset_t &opset,
-                        ExperimentData &data) const override;
+                        ExperimentResult &result) const override;
 };
 
 void Debug::optimize_circuit(Circuit& circ,
                              Noise::NoiseModel& noise,
                              const opset_t &allowed_opset,
-                             ExperimentData &data) const {
+                             ExperimentResult &result) const {
 
   oplist_t::iterator it = circ.ops.begin();
   while (it != circ.ops.end()) {
