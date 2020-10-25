@@ -28,6 +28,7 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 
+#include <algorithm>
 #include <cstdint>
 #include <complex>
 #include <vector>
@@ -123,21 +124,21 @@ public:
   void apply_pauli_projector(const std::vector<pauli_t> &generators, uint_t rank);
   //Routine for Norm Estimation, thin wrapper for the CHSimulator method that uses AER::RngEngine
   //to set up the estimation routine.
-  auto norm_estimation(uint_t n_samples, AER::RngEngine &rng) -> double;
-  auto norm_estimation(uint_t n_samples, std::vector<pauli_t> generators, AER::RngEngine &rng) -> double;
+  auto norm_estimation(uint_t n_samples, uint_t n_repetitions, AER::RngEngine &rng) -> double;
+  auto norm_estimation(uint_t n_samples, uint_t n_repetitions, std::vector<pauli_t> generators, AER::RngEngine &rng) -> double;
 
   //Metropolis Estimation for sampling from the output distribution
   auto metropolis_estimation(uint_t n_steps, AER::RngEngine &rng) -> uint_t;
   auto metropolis_estimation(uint_t n_steps, uint_t n_shots, AER::RngEngine &rng) -> std::vector<uint_t>;
   // NE Sampling Routines
-  auto ne_single_sample(uint_t n_samples, const AER::reg_t &qubits,
-                        AER::RngEngine &rng) -> uint_t;
+  auto ne_single_sample(uint_t default_samples, uint_t repetitions, bool preserve_states,
+                        const AER::reg_t &qubits, AER::RngEngine &rng) -> uint_t;
   //Efficient Sampler for the output distribution of a stabilizer state
   auto stabilizer_sampler(AER::RngEngine &rng) -> uint_t;
   auto stabilizer_sampler(uint_t n_shots, AER::RngEngine &rng) -> std::vector<uint_t>;
   //Utilities for the state-vector snapshot.
   auto amplitude(uint_t x_measure) -> complex_t;
-  void state_vector(std::vector<complex_t> &svector, AER::RngEngine &rng);
+  void state_vector(std::vector<complex_t> &svector, uint_t default_samples, uint_t repetitions, AER::RngEngine &rng);
 
 };
 
@@ -430,54 +431,79 @@ void Runner::apply_ccz(uint_t control_1, uint_t control_2, uint_t target, uint_t
 //Measurement
 //-------------------------------------------------------------------------
 
-auto Runner::norm_estimation(uint_t n_samples, AER::RngEngine &rng) -> double
+auto Runner::norm_estimation(uint_t n_samples, uint_t repetitions, AER::RngEngine &rng) -> double
 {
+
+  const int_t NSAMPLES = n_samples;
+  const int_t NQUBITS = n_qubits_;
+  std::vector<double> xi_samples(repetitions, 0.);
   std::vector<uint_t> adiag_1(n_samples, 0ULL);
   std::vector<uint_t> adiag_2(n_samples, 0ULL);
   std::vector< std::vector<uint_t> > a(n_samples, std::vector<uint_t>(n_qubits_, 0ULL));
-  const int_t NSAMPLES = n_samples;
-  const int_t NQUBITS = n_qubits_;
-  #pragma omp parallel if (num_threads_ > 1) num_threads(num_threads_)
-  {
-  #ifdef _WIN32
-    #pragma omp for
-  #else
-    #pragma omp for collapse(2)
-  #endif
-  for (int_t l=0; l<NSAMPLES; l++)
-  {
-    for (int_t i=0; i<NQUBITS; i++)
+  // for(uint_t m=0; m < repetitions; m++)
+  // {
+
+    #pragma omp parallel if (num_threads_ > 1) num_threads(num_threads_)
     {
-      for (int_t j=i; j<NQUBITS; j++)
+    #ifdef _WIN32
+      #pragma omp for
+    #else
+      #pragma omp for collapse(2)
+    #endif
+    for (int_t l=0; l<NSAMPLES; l++)
+    {
+      for (int_t i=0; i<NQUBITS; i++)
       {
-          if(rng.rand() < 0.5)
-          {
-              a[l][i] |= (1ULL << j);
-              a[l][j] |= (1ULL << i);
-          }
-      }
-      adiag_1[l] |= (a[l][i] & (1ULL << i));
-      if (rng.rand() < 0.5)
-      {
-          adiag_2[l] |= (1ULL << i);
+        for (int_t j=i; j<NQUBITS; j++)
+        {
+            if(rng.rand() < 0.5)
+            {
+                a[l][i] |= (1ULL << j);
+                a[l][j] |= (1ULL << i);
+            }
+        }
+        adiag_1[l] |= (a[l][i] & (1ULL << i));
+        if (rng.rand() < 0.5)
+        {
+            adiag_2[l] |= (1ULL << i);
+        }
       }
     }
-  }
-  } // end omp parallel
-  return ParallelNormEstimate(states_, coefficients_, adiag_1, adiag_2, a, num_threads_);
+    } // end omp parallel
+    return ParallelNormEstimate(states_, coefficients_, adiag_1, adiag_2, a, num_threads_);
+  // }
+  // Get median of the xi samples
+  // std::sort(xi_samples.begin(), xi_samples.end());
+  // uint_t len = xi_samples.size();
+  // if(len % 2 == 0)
+  // {
+  // 	return (xi_samples[len/2] + xi_samples[len/2 - 1]) / 2.;
+  // }
+  // else
+  // {
+  // 	uint_t index = std::floor(len / 2.);
+  // 	return xi_samples[index];
+  // }
 }
 
-auto Runner::norm_estimation(uint_t n_samples, std::vector<pauli_t> generators, AER::RngEngine &rng) -> double
+auto Runner::norm_estimation(uint_t n_samples, uint_t repetitions, std::vector<pauli_t> generators, AER::RngEngine &rng) -> double
 {
   apply_pauli_projector(generators);
-  return norm_estimation(n_samples, rng);
+  return norm_estimation(n_samples, repetitions, rng);
 }
 
-auto Runner::ne_single_sample(uint_t n_samples,
+auto Runner::ne_single_sample(uint_t default_samples,
+		                          uint_t repetitions,
+                              bool preserve_states,
                               const AER::reg_t &qubits,
                               AER::RngEngine &rng) -> uint_t
 {
-  double denominator = norm_estimation(n_samples, rng);
+  uint_t n_samples = std::llrint(0.5 * std::pow(qubits.size(), 2));
+  if (default_samples > n_samples)
+  {
+    n_samples = default_samples;
+  }
+  double denominator = norm_estimation(n_samples, repetitions, rng);
   std::vector<pauli_t> generators;
   std::vector<chstabilizer_t> states_cache(states_);
   uint_t out_string = ZERO;
@@ -487,7 +513,7 @@ auto Runner::ne_single_sample(uint_t n_samples,
     generator.Z = (1ULL << qubits[i]);
     apply_pauli(generator);
   // Compute probability this bit is 0, given the previous assignemnts
-    double numerator = norm_estimation(n_samples, rng);
+    double numerator = norm_estimation(n_samples, repetitions, rng);
     if (rng.rand() < (numerator / denominator))
     {
       // We sample a 0 for this bit
@@ -503,6 +529,9 @@ auto Runner::ne_single_sample(uint_t n_samples,
       apply_pauli_projector(generators);
       out_string ^= (1ULL << qubits[i]);
     }
+  }
+  if (preserve_states) {
+    states_ = states_cache;
   }
   return out_string;
 }
@@ -656,9 +685,14 @@ auto Runner::amplitude(uint_t x_measure) -> complex_t
   return {real_part, imag_part};
 }
 
-void Runner::state_vector(std::vector<complex_t> &svector, AER::RngEngine &rng)
+void Runner::state_vector(std::vector<complex_t> &svector, uint_t default_samples, uint_t repetitions, AER::RngEngine &rng)
 {
   uint_t ceil = 1ULL << n_qubits_;
+  uint_t n_samples = std::llrint(0.5 * std::pow(n_qubits_, 2));
+  if (n_samples < default_samples)
+  {
+    n_samples = default_samples;
+  }
   if (!svector.empty())
   {
     svector.clear();
@@ -668,7 +702,7 @@ void Runner::state_vector(std::vector<complex_t> &svector, AER::RngEngine &rng)
   double norm = 1;
   if(num_states_ > 1)
   {
-    norm = norm_estimation(40, rng);
+    norm = norm_estimation(n_samples, repetitions, rng);
   }
   for(uint_t i=0; i<ceil; i++)
   {

@@ -51,13 +51,19 @@ using Gates = CHSimulator::Gates;
 uint_t zero = 0ULL;
 uint_t toff_branch_max = 7ULL;
 
+enum class SamplingMethod {
+  metropolis,
+  resampled_metropolis,
+  norm_estimation
+};
+
 enum class Snapshots {
   state, 
-  statevector,
-  probabilities,
+  // statevector,
+  // probabilities,
   cmemory,
   cregister,
-  probs
+  // probs
 };
 
 class State: public Base::State<chstate_t>
@@ -129,10 +135,10 @@ protected:
   //TODO: Improve the CHSimulator::to_json method.
   void apply_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
   //Convert a decomposition to a state-vector
-  void statevector_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
-  //Compute probabilities from a stabilizer rank decomposition
-  //TODO: Check ordering/output format...
-  void probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
+  // void statevector_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
+  // //Compute probabilities from a stabilizer rank decomposition
+  // //TODO: Check ordering/output format...
+  // void probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
 
   const static stringmap_t<Gates> gateset_;
   const static stringmap_t<Snapshots> snapshotset_;
@@ -159,7 +165,7 @@ protected:
 
   double probabilities_snapshot_samples_ = 3000.;
 
-  bool use_metropolis_ = false;  
+  SamplingMethod sampling_method_ = SamplingMethod::resampled_metropolis;
 
   // Compute the required stabilizer rank of the circuit
   auto compute_chi(const std::vector<Operations::Op> &ops) const -> uint_t;
@@ -209,8 +215,8 @@ const stringmap_t<Gates> State::gateset_({
 
 const stringmap_t<Snapshots> State::snapshotset_({
   {"state", Snapshots::state},
-  {"statevector", Snapshots::statevector},
-  {"probabilities", Snapshots::probabilities},
+  // {"statevector", Snapshots::statevector},
+  // {"probabilities", Snapshots::probabilities},
   {"memory", Snapshots::cmemory},
   {"register", Snapshots::cregister}
 });
@@ -251,7 +257,24 @@ void State::set_config(const json_t &config)
   //Set the number of samples for the probabilities snapshot
   JSON::get_value(probabilities_snapshot_samples_, "probabilities_snapshot_samples", config);
   //Set the measurement strategy
-  JSON::get_value(use_metropolis_, "extended_stabilizer_use_metropolis", config);
+  std::string sampling_method_str;
+  JSON::get_value(sampling_method_str, "extended_stabilizer_sampling_method", config);
+  if (sampling_method_str == "metropolis") {
+    sampling_method_ = SamplingMethod::metropolis;
+  }
+  else if (sampling_method_str == "resampled_metropolis")
+  {
+    sampling_method_ = SamplingMethod::resampled_metropolis;
+  }
+  else if (sampling_method_str == "norm_estimation") {
+    sampling_method_ = SamplingMethod::norm_estimation;
+  }
+  else {
+    throw std::runtime_error(
+      std::string("Unrecognised sampling method ") + sampling_method_str +
+      std::string("for the extended stabilizer simulator.")
+    );
+  }
 }
 
 auto State::decomposition_parameters(const std::vector<Operations::Op> &ops) -> std::pair<uint_t, uint_t>
@@ -400,17 +423,28 @@ auto State::sample_measure(const reg_t& qubits,
   }
   else
   {
-    if(use_metropolis_)
+    if (sampling_method_ == SamplingMethod::metropolis)
     {
         output_samples = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, shots, rng);
+    }
+    else if (sampling_method_ == SamplingMethod::resampled_metropolis)
+    {
+      output_samples.reserve(shots);
+      for (uint_t i=0; i<shots; i++)
+      {
+        output_samples.push_back(
+          BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, rng)
+        );
+      }
     }
     else
     {
       output_samples.reserve(shots);
       for(uint_t i=0; i<shots; i++)
       {
-        output_samples.push_back(BaseState::qreg_.ne_single_sample(
-                                 norm_estimation_samples_, qubits, rng));
+        output_samples.push_back(
+          BaseState::qreg_.ne_single_sample(norm_estimation_samples_, 3, true, qubits, rng)
+        );
       }
     }
   }
@@ -505,8 +539,11 @@ void State::apply_stabilizer_circuit(const std::vector<Operations::Op> &ops,
 
 void State::apply_measure(const reg_t &qubits, const reg_t &cmemory, const reg_t &cregister, RngEngine &rng)
 {
-  uint_t out_string;;
-  bool used_ne = false;
+  uint_t out_string;
+  // Flag if the Pauli projector is applied already as part of the sampling
+  bool do_projector_correction = true;
+  // Prepare an output register for the qubits we are measurig
+  reg_t outcome(qubits.size(), 0ULL);
   if(BaseState::qreg_.get_num_states() == 1)
   {
     //For a single state, we use the efficient sampler defined in Sec IV.A ofarxiv:1808.00128
@@ -514,23 +551,22 @@ void State::apply_measure(const reg_t &qubits, const reg_t &cmemory, const reg_t
   }
   else
   {
-    if (use_metropolis_)
+    if (sampling_method_ == SamplingMethod::norm_estimation)
     {
-        //We use the metropolis algorithm to sample an output string non-destructively
-        out_string = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_,
-                                   rng);
+      do_projector_correction = false;
+      //Run the norm estimation routine
+      out_string = BaseState::qreg_.ne_single_sample(
+        norm_estimation_samples_, 3, false, qubits, rng
+      );
     }
     else
     {
-      used_ne = true;
-      //Run the norm estimation routine
-      out_string = BaseState::qreg_.ne_single_sample(norm_estimation_samples_,
-                                                     qubits, rng);
+      // We use the metropolis algorithm to sample an output string non-destructively
+      // This is a single measure step so we do the same for metropolis or resampled_metropolis
+      out_string = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, rng);
     }
   }
-  // Prepare an output register for the qubits we are measurig
-  reg_t outcome(qubits.size(), 0ULL);
-  if (!used_ne) 
+  if (do_projector_correction)
   {
     //We prepare the Pauli projector corresponding to the measurement result
     std::vector<chpauli_t>paulis(qubits.size(), chpauli_t());
@@ -690,12 +726,12 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result, R
     case Snapshots::cregister:
       BaseState::snapshot_creg_register(op, result);
       break;
-    case Snapshots::statevector:
-      statevector_snapshot(op, result, rng);
-      break;
-    case Snapshots::probabilities:
-      probabilities_snapshot(op, result, rng);
-      break;
+    // case Snapshots::statevector:
+    //   statevector_snapshot(op, result, rng);
+    //   break;
+    // case Snapshots::probabilities:
+    //   probabilities_snapshot(op, result, rng);
+    //   break;
     default:
       throw std::invalid_argument("CH::State::invlaid snapshot instruction \'"+
                               op.name + "\'.");
@@ -703,70 +739,70 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result, R
   }
 }
 
-void State::statevector_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
-{
-  cvector_t statevector;
-  BaseState::qreg_.state_vector(statevector, rng);
-  double sum = 0.;
-  for(uint_t i=0; i<statevector.size(); i++)
-  {
-    sum += std::pow(std::abs(statevector[i]), 2);
-  }
-  result.data.add_pershot_snapshot("statevector", op.string_params[0], statevector);
-}
+// void State::statevector_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
+// {
+//   cvector_t statevector;
+//   BaseState::qreg_.state_vector(statevector,  norm_estimation_samples_, 3, rng);
+//   double sum = 0.;
+//   for(uint_t i=0; i<statevector.size(); i++)
+//   {
+//     sum += std::pow(std::abs(statevector[i]), 2);
+//   }
+//   result.data.add_pershot_snapshot("statevector", op.string_params[0], statevector);
+// }
 
-void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
-{
-  rvector_t probs;
-  if (op.qubits.size() == 0)
-  {
-    probs.push_back(BaseState::qreg_.norm_estimation(norm_estimation_samples_, rng));
-  }
-  else
-  {
-    probs = rvector_t(1ULL<<op.qubits.size(), 0.);
-    int_t dim = probs.size();
-    uint_t mask = 0ULL;
-    for(auto qubit: op.qubits)
-    {
-      mask ^= (1ULL << qubit);
-    }
-    std::vector<uint_t> samples;
-    if(BaseState::qreg_.get_num_states() == 1)
-    {
-      samples = BaseState::qreg_.stabilizer_sampler(probabilities_snapshot_samples_, rng);
-    }
-    else
-    {
-      samples = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, probabilities_snapshot_samples_,
-                                                      rng);
-    }
-    #pragma omp parallel for if(BaseState::qreg_.check_omp_threshold() && BaseState::threads_>1) num_threads(BaseState::threads_)
-    for(int_t i=0; i < dim; i++)
-    {
-      uint_t target = 0ULL;
-      for(uint_t j=0; j<op.qubits.size(); j++)
-      {
-        if((dim >> j) & 1ULL)
-        {
-          target ^= (1ULL << op.qubits[j]);
-        }
-      }
-      for(uint_t j=0; j<probabilities_snapshot_samples_; j++)
-      {
-        if((samples[j] & mask) == target)
-        {
-          probs[i] += 1;
-        }
-      }
-      probs[i] /= probabilities_snapshot_samples_;
-    }
-  }
-  result.data.add_average_snapshot("probabilities", op.string_params[0],
-                            BaseState::creg_.memory_hex(),
-                            Utils::vec2ket(probs, snapshot_chop_threshold_, 16),
-                            false);
-}
+// void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
+// {
+//   rvector_t probs;
+//   if (op.qubits.size() == 0)
+//   {
+//     probs.push_back(BaseState::qreg_.norm_estimation(norm_estimation_samples_, rng));
+//   }
+//   else
+//   {
+//     probs = rvector_t(1ULL<<op.qubits.size(), 0.);
+//     int_t dim = probs.size();
+//     uint_t mask = 0ULL;
+//     for(auto qubit: op.qubits)
+//     {
+//       mask ^= (1ULL << qubit);
+//     }
+//     std::vector<uint_t> samples;
+//     if(BaseState::qreg_.get_num_states() == 1)
+//     {
+//       samples = BaseState::qreg_.stabilizer_sampler(probabilities_snapshot_samples_, rng);
+//     }
+//     else
+//     {
+//       samples = BaseState::qreg_.metropolis_estimation(metropolis_mixing_steps_, probabilities_snapshot_samples_,
+//                                                       rng);
+//     }
+//     #pragma omp parallel for if(BaseState::qreg_.check_omp_threshold() && BaseState::threads_>1) num_threads(BaseState::threads_)
+//     for(int_t i=0; i < dim; i++)
+//     {
+//       uint_t target = 0ULL;
+//       for(uint_t j=0; j<op.qubits.size(); j++)
+//       {
+//         if((dim >> j) & 1ULL)
+//         {
+//           target ^= (1ULL << op.qubits[j]);
+//         }
+//       }
+//       for(uint_t j=0; j<probabilities_snapshot_samples_; j++)
+//       {
+//         if((samples[j] & mask) == target)
+//         {
+//           probs[i] += 1;
+//         }
+//       }
+//       probs[i] /= probabilities_snapshot_samples_;
+//     }
+//   }
+//   result.data.add_average_snapshot("probabilities", op.string_params[0],
+//                             BaseState::creg_.memory_hex(),
+//                             Utils::vec2ket(probs, snapshot_chop_threshold_, 16),
+//                             false);
+// }
 
 //-------------------------------------------------------------------------
 // Implementation: Utility
