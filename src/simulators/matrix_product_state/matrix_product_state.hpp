@@ -50,8 +50,8 @@ const Operations::OpSet StateOpSet(
    Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
    Operations::OpType::kraus},
   // Gates
-  {"id", "x", "y", "z", "s", "sdg", "h", "t", "tdg", "u1", "u2", "u3",
-    "U", "CX", "cx", "cz", "cu1", "swap", "ccx"},
+  {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
+   "u2", "u3", "u", "U", "CX", "cx",  "cz", "cp", "cu1", "swap", "ccx"},
   // Snapshots
   {"statevector", "memory", "register", "probabilities",
     "expectation_value_pauli", "expectation_value_pauli_with_variance",
@@ -298,21 +298,25 @@ const stringmap_t<Gates> State::gateset_({
   {"s", Gates::s},       // Phase gate (aka sqrt(Z) gate)
   {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
   {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
+  {"sx", Gates::sx},     // Sqrt(X) gate
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   // Waltz Gates
+  {"p", Gates::u1},      // zero-X90 pulse waltz gate
   {"u1", Gates::u1},     // zero-X90 pulse waltz gate
   {"u2", Gates::u2},     // single-X90 pulse waltz gate
   {"u3", Gates::u3},     // two X90 pulse waltz gate
+  {"u", Gates::u3},      // two X90 pulse waltz gate
   {"U", Gates::u3},      // two X90 pulse waltz gate
   // Two-qubit gates
   {"CX", Gates::cx},     // Controlled-X gate (CNOT)
   {"cx", Gates::cx},     // Controlled-X gate (CNOT)
   {"cz", Gates::cz},     // Controlled-Z gate
-  {"cu1", Gates::cu1},     // Controlled-U1 gate
+  {"cu1", Gates::cu1},   // Controlled-U1 gate
+  {"cp", Gates::cu1},    // Controlled-U1 gate
   {"swap", Gates::swap}, // SWAP gate
   // Three-qubit gates
-   {"ccx", Gates::mcx}    // Controlled-CX gate (Toffoli)
+   {"ccx", Gates::mcx}   // Controlled-CX gate (Toffoli)
 });
 
 const stringmap_t<Snapshots> State::snapshotset_({
@@ -419,17 +423,17 @@ void State::set_config(const json_t &config) {
   else
     MPS::set_omp_threads(1);
 
-  uint_t index_size;
-  if (JSON::get_value(index_size, "mps_sample_measure_qubits_opt", config)) // Set the sample measure qubit size
-    MPS::set_sample_measure_index_size(index_size);
-  else
-     MPS::set_sample_measure_index_size(26);
-
-  uint_t shots_num;
-  if (JSON::get_value(shots_num, "mps_sample_measure_shots_opt", config))
-    MPS::set_sample_measure_shots_thresh(shots_num);
-  else
-    MPS::set_sample_measure_shots_thresh(10);    
+// Set the algorithm for sample measure
+  std::string alg;
+  if (JSON::get_value(alg, "mps_sample_measure_algorithm", config)) {
+    if (alg.compare("mps_probabilities") == 0) {
+      MPS::set_sample_measure_alg(Sample_measure_alg::PROB);
+    } else if (alg.compare("mps_apply_measure") == 0) {
+      MPS::set_sample_measure_alg(Sample_measure_alg::APPLY_MEASURE);
+    }
+  } else {
+    MPS::set_sample_measure_alg(Sample_measure_alg::HEURISTIC);
+  }
 }
 
 void State::add_metadata(ExperimentResult &result) const {
@@ -438,6 +442,9 @@ void State::add_metadata(ExperimentResult &result) const {
 
   result.add_metadata("matrix_product_state_max_bond_dimension", 
 		    MPS_Tensor::get_max_bond_dimension());
+
+  result.add_metadata("matrix_product_state_sample_measure_algorithm", 
+         	    MPS::get_sample_measure_alg());
 } 
 
 //=========================================================================
@@ -667,6 +674,9 @@ void State::apply_gate(const Operations::Op &op) {
     case Gates::sdg:
       qreg_.apply_sdg(op.qubits[0]);
       break;
+    case Gates::sx:
+      qreg_.apply_sx(op.qubits[0]);
+      break;
     case Gates::t:
       qreg_.apply_t(op.qubits[0]);
       break;
@@ -791,19 +801,49 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
                                          uint_t shots,
                                          RngEngine &rng) {
 
-  uint_t num_measured_qubits = qubits.size();
-
   // There are two alternative algorithms for sample measure
   // We choose the one that is optimal relative to the total number 
-  //of qubits,and the number of shots.
+  // of qubits,and the number of shots.
   // The parameters used below are based on experimentation.
-  if (num_measured_qubits > MPS::get_sample_measure_index_size() || 
-      shots < MPS::get_sample_measure_shots_thresh()) {
-      return sample_measure_using_apply_measure(qubits, shots, rng);
-  }
+  // The user can override this by setting the parameter "mps_sample_measure_algorithm"
+  uint_t num_qubits = qubits.size();
+
+  if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB || num_qubits < 10)
+    return sample_measure_using_probabilities(qubits, shots, rng);
+  if (MPS::get_sample_measure_alg() == Sample_measure_alg::APPLY_MEASURE ||
+      num_qubits >26 )
+     return sample_measure_using_apply_measure(qubits, shots, rng);
+
+  double num_qubits_dbl = static_cast<double>(num_qubits);
+  double shots_dbl = static_cast<double>(shots);
+
+  // Sample_measure_alg::HEURISTIC
+  uint_t max_bond_dim = qreg_.get_max_bond_dimensions();
+
+  if (max_bond_dim <= 2) {
+    if (shots_dbl < 12.0 * pow(1.85, (num_qubits_dbl-10.0)))
+       return sample_measure_using_apply_measure(qubits, shots, rng);
+    else
+      return sample_measure_using_probabilities(qubits, shots, rng);
+  } else if (max_bond_dim <= 4) {
+    if (shots_dbl < 3.0 * pow(1.75, (num_qubits_dbl-10.0)))
+       return sample_measure_using_apply_measure(qubits, shots, rng);
+    else
+      return sample_measure_using_probabilities(qubits, shots, rng);
+  } else if (max_bond_dim <= 8) {
+    if (shots_dbl < 2.5 * pow(1.65, (num_qubits_dbl-10.0)))
+       return sample_measure_using_apply_measure(qubits, shots, rng);
+    else
+      return sample_measure_using_probabilities(qubits, shots, rng);
+  } else if (max_bond_dim <= 16) {
+    if (shots_dbl < 0.5 * pow(1.75, (num_qubits_dbl-10.0)))
+       return sample_measure_using_apply_measure(qubits, shots, rng);
+    else
+      return sample_measure_using_probabilities(qubits, shots, rng);
+  } 
   return sample_measure_using_probabilities(qubits, shots, rng);
 }
-
+	     
 std::vector<reg_t> State::
 sample_measure_using_probabilities(const reg_t &qubits,
 				   uint_t shots,
@@ -841,15 +881,11 @@ std::vector<reg_t> State::
   all_samples.resize(shots);
   reg_t single_result;
 
-  #pragma omp parallel if (shots >  MPS::get_omp_threshold() && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads())
-    {
-      #pragma omp for
   for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
     temp.initialize(qreg_);
     single_result = temp.apply_measure(qubits, rng);
     all_samples[i] = single_result;
   }
-  } // end omp parallel
   return all_samples;
 }
 

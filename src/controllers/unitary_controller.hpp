@@ -297,7 +297,8 @@ void UnitaryController::run_circuit_helper(
 
   // Optimize circuit
   const std::vector<Operations::Op>* op_ptr = &circ.ops;
-  Transpile::Fusion fusion_pass(5, 10); // 10-qubit default threshold
+  Transpile::Fusion fusion_pass;
+  fusion_pass.threshold /= 2;  // Halve default threshold for unitary simulator
   fusion_pass.set_config(config);
   Circuit opt_circ;
   if (fusion_pass.active && circ.num_qubits >= fusion_pass.threshold) {

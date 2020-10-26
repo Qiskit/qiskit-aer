@@ -96,6 +96,17 @@ class UnitarySimulator(AerBackend):
       this will only use unallocated CPU cores up to
       max_parallel_threads. Note that setting this too low can reduce
       performance (Default: 14).
+
+    These backend options apply in circuit optimization passes:
+
+    * ``fusion_enable`` (bool): Enable fusion optimization in circuit
+      optimization passes [Default: True]
+    * ``fusion_verbose`` (bool): Output gates generated in fusion optimization
+      into metadata [Default: False]
+    * ``fusion_max_qubit`` (int): Maximum number of qubits for a operation generated
+      in a fusion optimization [Default: 5]
+    * ``fusion_threshold`` (int): Threshold that number of qubits must be greater
+      than or equal to enable fusion optimization [Default: 7]
     """
 
     _DEFAULT_CONFIGURATION = {
@@ -116,7 +127,7 @@ class UnitarySimulator(AerBackend):
         'description': 'A C++ unitary simulator for QASM Qobj files',
         'coupling_map': None,
         'basis_gates': [
-            'u1', 'u2', 'u3', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
             'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
             'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
             'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',

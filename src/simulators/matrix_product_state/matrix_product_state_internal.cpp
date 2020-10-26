@@ -40,8 +40,7 @@ static const cmatrix_t one_measure =
 			                 {{0, 0}, {1, 0}}});
   uint_t MPS::omp_threads_ = 1;     
   uint_t MPS::omp_threshold_ = 14;  
-  uint_t MPS::sample_measure_index_size_ = 26; 
-  uint_t MPS::sample_measure_shots_thresh_ = 10; 
+  enum Sample_measure_alg MPS::sample_measure_alg_ = Sample_measure_alg::HEURISTIC; 
   double MPS::json_chop_threshold_ = 1E-8;  
 //------------------------------------------------------------------------
 // local function declarations
@@ -314,27 +313,30 @@ reg_t MPS::get_internal_qubits(const reg_t &qubits) const {
  
 void MPS::apply_h(uint_t index) 
 {
-  cmatrix_t h_matrix = AER::Linalg::Matrix::H;
-  get_qubit(index).apply_matrix(h_matrix);
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::H);
+}
+
+void MPS::apply_sx(uint_t index)
+{
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::SX);
 }
 
 void MPS::apply_u1(uint_t index, double lambda)
 {
-  cmatrix_t u1_matrix = AER::Linalg::Matrix::u1(lambda);
-  get_qubit(index).apply_matrix(u1_matrix);
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::u1(lambda));
 }
 
 void MPS::apply_u2(uint_t index, double phi, double lambda)
 {
-  cmatrix_t u2_matrix = AER::Linalg::Matrix::u2(phi, lambda);
-  get_qubit(index).apply_matrix(u2_matrix);
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::u2(phi, lambda));
 }
 
 void MPS::apply_u3(uint_t index, double theta, double phi, double lambda)
 {
-  cmatrix_t u3_matrix = AER::Linalg::Matrix::u3(theta, phi, lambda);
-  get_qubit(index).apply_matrix(u3_matrix);
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::u3(theta, phi, lambda));
 }
+
+
 
 void MPS::apply_cnot(uint_t index_A, uint_t index_B)
 {
@@ -1039,6 +1041,24 @@ std::vector<reg_t> MPS::get_matrices_sizes() const
       result.push_back(q_reg_[i].get_size());
     }
   return result;
+}
+
+reg_t MPS::get_bond_dimensions() const {
+  reg_t result;
+  for(uint_t i=0; i<num_qubits_-1; i++)
+    {
+      result.push_back(lambda_reg_[i].size());
+    }
+  return result;
+}
+
+uint_t MPS::get_max_bond_dimensions() const {
+  uint_t max = 0;
+  for (uint_t i=0; i<num_qubits_-1; i++) {
+    if (lambda_reg_[i].size() > max)
+      max = lambda_reg_[i].size();
+  }
+  return max;
 }
 
 MPS_Tensor MPS::state_vec_as_MPS(const reg_t &qubits) {

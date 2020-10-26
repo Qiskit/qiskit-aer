@@ -38,7 +38,7 @@ const Operations::OpSet StateOpSet(
     Operations::OpType::roerror, Operations::OpType::bfunc,
     Operations::OpType::snapshot},
   // Gates
-  {"CX", "u0", "u1", "cx", "cz", "swap", "id", "x", "y", "z", "h",
+  {"CX", "u0", "u1", "p", "cx", "cz", "swap", "id", "x", "y", "z", "h",
     "s", "sdg", "t", "tdg", "ccx", "ccz", "delay"},
   // Snapshots
   {"statevector", "probabilities", "memory", "register"}
@@ -188,11 +188,13 @@ const stringmap_t<Gates> State::gateset_({
   {"s", Gates::s},       // Phase gate (aka sqrt(Z) gate)
   {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
   {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
+  {"sx", Gates::sx},     // sqrt(X) gate
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   // Waltz Gates
   {"u0", Gates::u0},     // idle gate in multiples of X90
   {"u1", Gates::u1},     // zero-X90 pulse waltz gate
+  {"p", Gates::u1},      // zero-X90 pulse waltz gate
   // Two-qubit gates
   {"CX", Gates::cx},     // Controlled-X gate (CNOT)
   {"cx", Gates::cx},     // Controlled-X gate (CNOT)
@@ -597,6 +599,9 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank)
       break;
     case Gates::h:
       BaseState::qreg_.apply_h(op.qubits[0], rank);
+      break;
+    case Gates::sx:
+      BaseState::qreg_.apply_sx(op.qubits[0], rank);
       break;
     case Gates::cx:
       BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);

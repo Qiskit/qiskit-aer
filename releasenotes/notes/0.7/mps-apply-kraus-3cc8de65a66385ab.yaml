@@ -1,0 +1,9 @@
+---
+
+features:
+  - |
+    Adds support for general Kraus
+    :class:`~qiskit.providers.aer.noise.QauntumError` gate errors in the
+    :class:`~qiskit.providers.aer.noise.NoiseModel` to the 
+    ``"matrix_product_state"`` method of the
+    :class:`~qiskit.providers.aer.QasmSimulator`.
