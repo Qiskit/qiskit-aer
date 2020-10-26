@@ -35,7 +35,7 @@ class QasmConditionalGateTests:
         targets = ref_conditionals.conditional_counts_1bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -47,7 +47,7 @@ class QasmConditionalGateTests:
         targets = ref_conditionals.conditional_counts_2bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -69,7 +69,7 @@ class QasmConditionalUnitaryTests:
         targets = ref_conditionals.conditional_counts_1bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -81,7 +81,7 @@ class QasmConditionalUnitaryTests:
         targets = ref_conditionals.conditional_counts_2bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -103,7 +103,7 @@ class QasmConditionalKrausTests:
         targets = ref_conditionals.conditional_counts_1bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -115,7 +115,7 @@ class QasmConditionalKrausTests:
         targets = ref_conditionals.conditional_counts_2bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -137,7 +137,7 @@ class QasmConditionalSuperOpTests:
         targets = ref_conditionals.conditional_counts_1bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -149,6 +149,6 @@ class QasmConditionalSuperOpTests:
         targets = ref_conditionals.conditional_counts_2bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)

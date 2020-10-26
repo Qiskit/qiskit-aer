@@ -37,12 +37,13 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::snapshot},
     // Gates
-    {"u1",   "u2",   "u3",   "cx",   "cz",   "cy",     "cp",      "cu1",
-     "cu2",  "cu3",  "swap", "id",   "p",    "x",      "y",       "z",
-     "h",    "s",    "sdg",  "t",    "tdg",  "r",      "rx",      "ry",
-     "rz",   "rxx",  "ryy",  "rzz",  "rzx",  "ccx",    "cswap",   "mcx",
-     "mcy",  "mcz",  "mcu1", "mcu2", "mcu3", "mcswap", "mcphase", "mcr",
-     "mcrx", "mcry", "mcry", "sx",   "csx",  "mcsx", "delay"},
+    {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
+     "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
+     "x",      "y",       "z",   "h",    "s",    "sdg",  "t",    "tdg",
+     "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
+     "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
+     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
+     "mcsx",   "delay"},
     // Snapshots
     {"unitary"});
 
@@ -74,7 +75,8 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentData &data, RngEngine &rng) override;
+                         ExperimentResult &result, RngEngine &rng,
+                         bool final_ops = false) override;
 
   // Initializes an n-qubit unitary to the identity matrix
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -119,7 +121,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, ExperimentData &data);
+  virtual void apply_snapshot(const Operations::Op &op, ExperimentResult &result);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const reg_t &qubits, const cmatrix_t &mat);
@@ -190,7 +192,10 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"u1", Gates::mcp}, // zero-X90 pulse waltz gate
     {"u2", Gates::mcu2}, // single-X90 pulse waltz gate
     {"u3", Gates::mcu3}, // two X90 pulse waltz gate
+    {"u", Gates::mcu3}, // two X90 pulse waltz gate
+    {"U", Gates::mcu3}, // two X90 pulse waltz gate
     // Two-qubit gates
+    {"CX", Gates::mcx},      // Controlled-X gate (CNOT)
     {"cx", Gates::mcx},      // Controlled-X gate (CNOT)
     {"cy", Gates::mcy},      // Controlled-Z gate
     {"cz", Gates::mcz},      // Controlled-Z gate
@@ -236,8 +241,9 @@ void State<unitary_matrix_t>::allocate(uint_t num_qubits,uint_t shots)
 //============================================================================
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_ops(const std::vector<Operations::Op> &ops,
-                                        ExperimentData &data, RngEngine &rng) {
+void State<unitary_matrix_t>::apply_ops(
+    const std::vector<Operations::Op> &ops, ExperimentResult &result,
+    RngEngine &rng, bool final_ops) {
   // Simple loop over vector of input operations
   for (const auto &op : ops) {
     switch (op.type) {
@@ -249,7 +255,7 @@ void State<unitary_matrix_t>::apply_ops(const std::vector<Operations::Op> &ops,
           apply_gate(op);
         break;
       case Operations::OpType::snapshot:
-        apply_snapshot(op, data);
+        apply_snapshot(op, result);
         break;
       case Operations::OpType::matrix:
         apply_matrix(op.qubits, op.mats[0]);
@@ -468,12 +474,12 @@ void State<unitary_matrix_t>::apply_gate_mcu3(const reg_t &qubits, double theta,
 
 template <class unitary_matrix_t>
 void State<unitary_matrix_t>::apply_snapshot(const Operations::Op &op,
-                                             ExperimentData &data) {
+                                             ExperimentResult &result) {
   // Look for snapshot type in snapshotset
   if (op.name == "unitary" || op.name == "state") {
-    data.add_pershot_snapshot("unitary", op.string_params[0],
+    result.data.add_pershot_snapshot("unitary", op.string_params[0],
                               BaseState::qreg_.copy_to_matrix());
-    BaseState::snapshot_state(op, data);
+    BaseState::snapshot_state(op, result);
   } else {
     throw std::invalid_argument(
         "Unitary::State::invalid snapshot instruction \'" + op.name + "\'.");

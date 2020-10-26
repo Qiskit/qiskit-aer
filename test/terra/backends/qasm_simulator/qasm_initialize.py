@@ -42,7 +42,7 @@ class QasmInitializeTests:
         [ circuits.extend(ref_initialize.initialize_circuits_w_1(init_state)) for init_state in init_states ]
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
  
     # ---------------------------------------------------------------------
@@ -62,7 +62,7 @@ class QasmInitializeTests:
         [ circuits.extend(ref_initialize.initialize_circuits_w_2(init_state)) for init_state in init_states ]
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
 
     # ---------------------------------------------------------------------
@@ -77,7 +77,7 @@ class QasmInitializeTests:
         targets = ref_initialize.initialize_counts_1(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         opts = self.BACKEND_OPTS.copy()
-        result = self.SIMULATOR.run(qobj, backend_options=opts).result()
+        result = self.SIMULATOR.run(qobj, **opts).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -90,7 +90,7 @@ class QasmInitializeTests:
         targets = ref_initialize.initialize_counts_2(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         opts = self.BACKEND_OPTS.copy()
-        result = self.SIMULATOR.run(qobj, backend_options=opts).result()
+        result = self.SIMULATOR.run(qobj, **opts).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
@@ -101,6 +101,6 @@ class QasmInitializeTests:
         targets = ref_initialize.initialize_counts_sampling_optimization(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         opts = self.BACKEND_OPTS.copy()
-        result = self.SIMULATOR.run(qobj, backend_options=opts).result()
+        result = self.SIMULATOR.run(qobj, **opts).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)

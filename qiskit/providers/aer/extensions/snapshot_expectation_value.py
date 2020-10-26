@@ -21,7 +21,7 @@ from qiskit.circuit import Instruction
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.qobj import QasmQobjInstruction
 from qiskit.quantum_info.operators import Pauli, Operator
-from qiskit.providers.aer.extensions import Snapshot
+from .snapshot import Snapshot
 
 
 class SnapshotExpectationValue(Snapshot):
@@ -142,7 +142,7 @@ def snapshot_expectation_value(self, label, op, qubits,
         ExtensionError: if snapshot is invalid.
     """
 
-    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
+    snapshot_register = Snapshot.define_snapshot_register(self, qubits=qubits)
 
     return self.append(
         SnapshotExpectationValue(label, op,
