@@ -34,11 +34,11 @@ class OutputSimulatorBenchmarkSuite(SimulatorBenchmarkSuite):
                           measure_counts=measure_counts, 
                           noise_model_names=noise_model_names)
 
-    def time_statevector(self, app, measure, measure_count, noise_name, qubit):
-        self._run(self.RUNTIME_STATEVECTOR_CPU, app, measure, measure_count, noise_name, qubit)
+    def track_statevector(self, app, measure, measure_count, noise_name, qubit):
+        return self._run(self.RUNTIME_STATEVECTOR_CPU, app, measure, measure_count, noise_name, qubit)
 
-    def time_statevector_gpu(self, app, measure, measure_count, noise_name, qubit):
-        self._run(self.RUNTIME_STATEVECTOR_GPU, app, measure, measure_count, noise_name, qubit)
+    def track_statevector_gpu(self, app, measure, measure_count, noise_name, qubit):
+        return self._run(self.RUNTIME_STATEVECTOR_GPU, app, measure, measure_count, noise_name, qubit)
 
     #def time_matrix_product_state(self, app, measure, measure_count, noise_name, qubit):
     #    self._run(self.RUNTIME_MPS_CPU, app, measure, measure_count, noise_name, qubit)

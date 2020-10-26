@@ -88,7 +88,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         self.__name__ = name
         
         self.apps = apps if isinstance(apps, list) else [app for app in apps]
-        self.reps = [None] * len(apps) if isinstance(apps, list) else [apps[app] for app in apps]
+        self.app2rep = {} if isinstance(apps, list) else apps
         self.qubits = qubits
         self.runtime_names = runtime_names
         self.measures = measures
@@ -96,7 +96,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         self.noise_model_names = noise_model_names 
 
         self.params = (self.apps, self.measures, self.measure_counts, self.noise_model_names, self.qubits)
-        self.param_names = ["application", "measure_method", "measure_counts", "noise", "qubit", "repeats"]
+        self.param_names = ["application", "measure_method", "measure_counts", "noise", "qubit"]
         
         all_simulators = [ QASM_SIMULATOR ]
         
@@ -152,6 +152,9 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         #    self.backend_options_list[self.RUNTIME_EXTENDED_STABILIZER_CPU] = { 'method': self.RUNTIME_EXTENDED_STABILIZER_CPU }
         #    self.backend_qubits[self.RUNTIME_EXTENDED_STABILIZER_CPU] = self.qubits
         
+
+    def gen_qobj(self, runtime, app, measure, measure_count, qubit):
+        
         def add_measure_all(base):
             circuit = base.copy()
             circuit.measure_all()
@@ -165,57 +168,39 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             paulis = [''.join(s) for s in 
                       rng.choice(['I', 'X', 'Y', 'Z'], size=(num_terms, qubit))]
             pauli_op = [(1 / num_terms, pauli) for pauli in paulis]
-            circuit.snapshot_expectation_value('expval', pauli_op, range(qubit))
-            return circuit
-
-        for app, rep in zip(self.apps, self.reps):
-            for qubit in self.qubits:
-                if (all_simulators[0], app, self.measures[0], self.measure_counts[0], qubit) in QOBJS:
-                    continue
-                base_circuit = None
-                try:
-                    base_circuit = eval('self.{0}'.format(app))(qubit, rep)
-                    #print('circuit construction: circ={0}, qubit={1}'.format(app, qubit), file=sys.stderr)
-                except ValueError as e:
-                    print('circuit construction error: circ={0}, qubit={1}, info={2}'.format(app, qubit, e), file=sys.stderr)
-                    continue
-                
-                if len(base_circuit.parameters) > 0:
-                    param_binds = {}
-                    for param in base_circuit.parameters:
-                        param_binds[param] = np.random.random()
-                    base_circuit = base_circuit.bind_parameters(param_binds)
-
-                for measure in self.measures:
-                    if measure == self.MEASUREMENT_SAMPLING:
-                        circuit = add_measure_all(base_circuit)
-                        for measure_count in self.measure_counts:
-                            for runtime in runtime_names:
-                                simulator = self.simulators[runtime]
-                                if runtime in self.TRANSPLIERS:
-                                    runtime_circuit = eval(self.TRANSPLIERS[runtime])(circuit)
-                                    if (runtime, app, measure, measure_count, qubit) not in QOBJS:
-                                        QOBJS[(runtime, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=measure_count)
-                                else:
-                                    runtime_circuit = circuit
-                                    if (simulator, app, measure, measure_count, qubit) not in QOBJS:
-                                        QOBJS[(simulator, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=measure_count)
-                        
-                    elif measure == self.MEASUREMENT_EXPVAL:
-                        for measure_count in self.measure_counts:
-                            circuit = add_expval(base_circuit, measure_count)
-                            for runtime in runtime_names:
-                                simulator = self.simulators[runtime]
-                                if runtime in self.TRANSPLIERS:
-                                    runtime_circuit = eval(self.TRANSPLIERS[runtime])(circuit)
-                                    if (runtime, app, measure, measure_count, qubit) not in QOBJS:
-                                        QOBJS[(runtime, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=1)
-                                        print('circuit transpilation: circ={0}, qubit={1}, runtime={2}'.format(app, qubit, runtime), file=sys.stderr)
-                                else:
-                                    runtime_circuit = circuit
-                                    if (simulator, app, measure, measure_count, qubit) not in QOBJS:
-                                        QOBJS[(simulator, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=1)
-
+            circuit.snapshot_expectation_value('expval', pauli_op, range(qubit))        
+        
+        circuit = eval('self.{0}'.format(app))(qubit, None if app not in self.app2rep else self.app2rep[app])
+        if len(circuit.parameters) > 0:
+            param_binds = {}
+            for param in circuit.parameters:
+                param_binds[param] = np.random.random()
+            circuit = circuit.bind_parameters(param_binds)
+        
+        simulator = self.simulators[runtime]
+        if measure == self.MEASUREMENT_SAMPLING:
+            if runtime in self.TRANSPLIERS:
+                runtime_circuit = eval(self.TRANSPLIERS[runtime])(circuit)
+                if (runtime, app, measure, measure_count, qubit) not in QOBJS:
+                    QOBJS[(runtime, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=measure_count)
+                return QOBJS[(runtime, app, measure, measure_count, qubit)]
+            else:
+                runtime_circuit = circuit
+                if (simulator, app, measure, measure_count, qubit) not in QOBJS:
+                    QOBJS[(simulator, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=measure_count)
+                return QOBJS[(simulator, app, measure, measure_count, qubit)]
+        elif measure == self.MEASUREMENT_EXPVAL:
+            if runtime in self.TRANSPLIERS:
+                runtime_circuit = eval(self.TRANSPLIERS[runtime])(circuit)
+                if (runtime, app, measure, measure_count, qubit) not in QOBJS:
+                    QOBJS[(runtime, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=1)
+                return QOBJS[(runtime, app, measure, measure_count, qubit)]
+            else:
+                runtime_circuit = circuit
+                if (simulator, app, measure, measure_count, qubit) not in QOBJS:
+                    QOBJS[(simulator, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=1)
+                return QOBJS[(simulator, app, measure, measure_count, qubit)]
+        
     def _transpile(self, circuit, basis_gates):
         from qiskit import transpile
         return transpile(circuit, basis_gates=basis_gates)
@@ -246,13 +231,11 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         if qubit not in self.backend_qubits[runtime]:
             raise ValueError('out of qubit range: qubit={0}, list={1}'.format(qubit, self.backend_qubits[runtime]))
         
-        if (runtime, app, measure, measure_count, qubit) in QOBJS:
-            qobj = QOBJS[(runtime, app, measure, measure_count, qubit)]
-        elif (simulator, app, measure, measure_count, qubit) in QOBJS:
-            qobj = QOBJS[(simulator, app, measure, measure_count, qubit)]
-        else:
+        qobj = self.gen_qobj(runtime, app, measure, measure_count, qubit)
+        if qobj is None:
             raise ValueError('no qobj: measure={0}:{1}, qubit={2}'.format(measure, measure_count, qubit))
-        
+
+        start = time()
         result = simulator.run(qobj, backend_options=backend_options, noise_model=noise_model).result()
         if result.status != 'COMPLETED':
             try:
@@ -268,47 +251,20 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             except:
                 reason = 'unknown'
             raise ValueError('simulation error ({0})'.format(reason))
-    
-    #def time_statevector(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_STATEVECTOR_CPU, app, measure, measure_count, noise_name, qubit)
-
-    #def time_statevector_gpu(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_STATEVECTOR_GPU, app, measure, measure_count, noise_name, qubit)
-
-    #def time_matrix_product_state(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_MPS_CPU, app, measure, measure_count, noise_name, qubit)
-        
-    #def time_density_matrix(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_DENSITY_MATRIX_CPU, app, measure, measure_count, noise_name, qubit)
-        
-    #def time_density_matrix_gpu(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_DENSITY_MATRIX_GPU, app, qubit)
-        
-    #def time_stabilizer(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_STABILIZER_CPU, app, measure, measure_count, noise_name, qubit)
-        
-    #def time_extended_stabilizer(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_EXTENDED_STABILIZER_CPU, app, measure, measure_count, noise_name, qubit)
-        
-    #def time_unitary_matrix(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_UNITARY_MATRIX_CPU, app, qubit)
-        
-    #def time_unitary_matrix_gpu(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_UNITARY_MATRIX_GPU, app, qubit)
-
+        return time() - start
     
     def run_manual(self):
         import timeout_decorator
         @timeout_decorator.timeout(self.timeout)
         def run_with_timeout (suite, runtime, app, measure, measure_count, noise_name, qubit):
             start = time()
-            eval('suite.time_{0}'.format(runtime))(app, measure, measure_count, noise_name, qubit)
-            return time() - start
+            return eval('suite.track_{0}'.format(runtime))(app, measure, measure_count, noise_name, qubit)
         
         #for runtime in self.runtime_names:
         for noise_name in self.noise_model_names:
             for runtime in self.runtime_names:
-                for app, repeats in zip(self.apps, self.reps):
+                for app in self.apps:
+                    repeats = None if app not in self.app2rep else self.app2rep[app]
                     app_name = app if repeats is None else '{0}:{1}'.format(app, repeats)
                     for qubit in self.qubits:
                         for measure in self.measures:
