@@ -138,6 +138,14 @@ public:
   {
   }
 
+  //blocking
+  void enter_register_blocking(const reg_t& qubits)
+  {
+  }
+  void leave_register_blocking(void)
+  {
+  }
+
   //prepare buffer for MPI send/recv
   void* send_buffer(uint_t& size_in_byte);
   void* recv_buffer(uint_t& size_in_byte);

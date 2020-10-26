@@ -31,7 +31,7 @@
 
 #include "simulators/statevector/chunk/chunk_manager.hpp"
 
-
+//#define AER_DEBUG
 
 #ifdef AER_TIMING
 
@@ -163,6 +163,10 @@ public:
   //cache control for chunks on host
   void fetch_chunk(void) const;
   void release_chunk(bool write_back = true) const;
+
+  //blocking
+  void enter_register_blocking(const reg_t& qubits);
+  void leave_register_blocking(void);
 
   //prepare buffer for MPI send/recv
   void* send_buffer(uint_t& size_in_byte);
@@ -386,6 +390,8 @@ protected:
   uint_t chunk_index_;
   bool multi_chunk_distribution_;
 
+  bool register_blocking_;
+
   //-----------------------------------------------------------------------
   // Config settings
   //----------------------------------------------------------------------- 
@@ -545,6 +551,7 @@ QubitVectorThrust<data_t>::QubitVectorThrust(size_t num_qubits) : num_qubits_(0)
   if(num_qubits != 0){
     set_num_qubits(num_qubits);
   }
+  register_blocking_ = false;
 }
 
 template <typename data_t>
@@ -857,6 +864,9 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
     chunk_ = chunk_manager_.MapChunk(0);
   }
   chunk_->set_num_qubits(num_qubits);
+  chunk_->set_chunk_index(chunk_index_);
+
+  register_blocking_ = false;
 
 #ifdef AER_DEBUG
   //TODO Migrate to SpdLog
@@ -1005,6 +1015,22 @@ void QubitVectorThrust<data_t>::release_chunk(bool write_back) const
     buffer_chunk_ = NULL;
   }
 }
+
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::enter_register_blocking(const reg_t& qubits)
+{
+  register_blocking_ = true;
+  chunk_->set_blocked_qubits(qubits);
+}
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::leave_register_blocking(void)
+{
+  chunk_->apply_blocked_gates();
+  register_blocking_ = false;
+}
+
 
 template <typename data_t>
 void* QubitVectorThrust<data_t>::send_buffer(uint_t& size_in_byte)
@@ -1545,8 +1571,7 @@ public:
     thrust::complex<data_t>* vec;
     thrust::complex<data_t> q0,q1,q2,q3,q4,q5,q6,q7;
     thrust::complex<data_t> q8,q9,q10,q11,q12,q13,q14,q15;
-    thrust::complex<double> m0,m1,m2,m3,m4,m5,m6,m7;
-    thrust::complex<double> m8,m9,m10,m11,m12,m13,m14,m15;
+    thrust::complex<double> r;
     thrust::complex<double>* pMat;
     int j;
 
@@ -1586,30 +1611,29 @@ public:
     f1 = 0;
     f2 = 0;
     for(j=0;j<16;j++){
-      m0 = pMat[0+j];
-      m1 = pMat[16+j];
-      m2 = pMat[32+j];
-      m3 = pMat[48+j];
-      m4 = pMat[64+j];
-      m5 = pMat[80+j];
-      m6 = pMat[96+j];
-      m7 = pMat[112+j];
-      m8 = pMat[128+j];
-      m9 = pMat[144+j];
-      m10= pMat[160+j];
-      m11= pMat[176+j];
-      m12= pMat[192+j];
-      m13= pMat[208+j];
-      m14= pMat[224+j];
-      m15= pMat[240+j];
+      r = pMat[0+j]*q0;
+      r += pMat[16+j]*q1;
+      r += pMat[32+j]*q2;
+      r += pMat[48+j]*q3;
+      r += pMat[64+j]*q4;
+      r += pMat[80+j]*q5;
+      r += pMat[96+j]*q6;
+      r += pMat[112+j]*q7;
+      r += pMat[128+j]*q8;
+      r += pMat[144+j]*q9;
+      r += pMat[160+j]*q10;
+      r += pMat[176+j]*q11;
+      r += pMat[192+j]*q12;
+      r += pMat[208+j]*q13;
+      r += pMat[224+j]*q14;
+      r += pMat[240+j]*q15;
 
       offset = offset3 * (((uint_t)j >> 3) & 1) + 
                offset2 * (((uint_t)j >> 2) & 1) + 
                offset1 * (((uint_t)j >> 1) & 1) + 
                offset0 *  ((uint_t)j & 1);
 
-      vec[i0 + offset] =   m0 * q0 + m1 * q1 + m2 * q2 + m3 * q3 + m4 * q4 + m5 * q5 + m6 * q6 + m7 * q7 +
-              m8 * q8 + m9 * q9 + m10* q10+ m11* q11+ m12* q12+ m13* q13+ m14* q14+ m15* q15;
+      vec[i0 + offset] = r;
     }
   }
   const char* name(void)
@@ -1852,7 +1876,12 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
 #endif
 
   if(N == 1){
-    apply_function(MatrixMult2x2<data_t>(mat,qubits[0]));
+    if(register_blocking_){
+      chunk_->queue_blocked_gate('u',qubits[0],0,&mat[0]);
+    }
+    else{
+      apply_function(MatrixMult2x2<data_t>(mat,qubits[0]));
+    }
   }
   else if(N == 2){
     apply_function(MatrixMult4x4<data_t>(mat,qubits[0],qubits[1]));
@@ -2093,7 +2122,12 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
 #endif
 
   if(N == 1){
-    apply_function(DiagonalMult2x2<data_t>(diag,qubits[0]));
+    if(register_blocking_){
+      chunk_->queue_blocked_gate('d',qubits[0],0,&diag[0]);
+    }
+    else{
+      apply_function(DiagonalMult2x2<data_t>(diag,qubits[0]));
+    }
   }
   else if(N == 2){
     apply_function(DiagonalMult4x4<data_t>(diag,qubits[0],qubits[1]));
@@ -2287,7 +2321,17 @@ void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits)
     TimeStart(QS_GATE_CX);
 #endif
 
-  apply_function(CX_func<data_t>(qubits));
+  if(register_blocking_){
+    int i;
+    uint_t mask = 0;
+    for(i=0;i<qubits.size()-1;i++){
+      mask |= (1ull << qubits[i]);
+    }
+    chunk_->queue_blocked_gate('x',qubits[qubits.size()-1],mask);
+  }
+  else{
+    apply_function(CX_func<data_t>(qubits));
+  }
 
 #ifdef AER_TIMING
     TimeEnd(QS_GATE_CX);
@@ -2362,7 +2406,17 @@ public:
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcy(const reg_t &qubits) 
 {
-  apply_function(CY_func<data_t>(qubits));
+  if(register_blocking_){
+    int i;
+    uint_t mask = 0;
+    for(i=0;i<qubits.size()-1;i++){
+      mask |= (1ull << qubits[i]);
+    }
+    chunk_->queue_blocked_gate('y',qubits[qubits.size()-1],mask);
+  }
+  else{
+    apply_function(CY_func<data_t>(qubits));
+  }
 }
 
 template <typename data_t>
@@ -2723,7 +2777,17 @@ public:
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcphase(const reg_t &qubits, const std::complex<double> phase)
 {
-  apply_function(phase_func<data_t>(qubits,*(thrust::complex<double>*)&phase) );
+  if(register_blocking_){
+    int i;
+    uint_t mask = 0;
+    for(i=0;i<qubits.size()-1;i++){
+      mask |= (1ull << qubits[i]);
+    }
+    chunk_->queue_blocked_gate('p',qubits[qubits.size()-1],mask,&phase);
+  }
+  else{
+    apply_function(phase_func<data_t>(qubits,*(thrust::complex<double>*)&phase) );
+  }
 }
 
 template <typename data_t>
@@ -2853,7 +2917,7 @@ public:
   }
   const char* name(void)
   {
-    return "diagonal_CmultNxN";
+    return "matrix_Cmult2x2";
   }
 };
 
@@ -2882,7 +2946,17 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
       return;
     }
     else{
-      apply_function(DiagonalMult2x2Controlled<data_t>(diag,qubits) );
+      if(register_blocking_){
+        int i;
+        uint_t mask = 0;
+        for(i=0;i<qubits.size()-1;i++){
+          mask |= (1ull << qubits[i]);
+        }
+        chunk_->queue_blocked_gate('d',qubits[qubits.size()-1],mask,&diag[0]);
+      }
+      else{
+        apply_function(DiagonalMult2x2Controlled<data_t>(diag,qubits) );
+      }
     }
   }
   else{
@@ -2892,7 +2966,17 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
       return;
     }
     else{
-      apply_function(MatrixMult2x2Controlled<data_t>(mat,qubits) );
+      if(register_blocking_){
+        int i;
+        uint_t mask = 0;
+        for(i=0;i<qubits.size()-1;i++){
+          mask |= (1ull << qubits[i]);
+        }
+        chunk_->queue_blocked_gate('u',qubits[qubits.size()-1],mask,&mat[0]);
+      }
+      else{
+        apply_function(MatrixMult2x2Controlled<data_t>(mat,qubits) );
+      }
     }
   }
 }
@@ -2923,7 +3007,12 @@ void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
   TimeStart(QS_GATE_MULT);
 #endif
 
-  apply_function(MatrixMult2x2<data_t>(mat,qubit));
+  if(register_blocking_){
+    chunk_->queue_blocked_gate('u',qubit,0,&mat[0]);
+  }
+  else{
+    apply_function(MatrixMult2x2<data_t>(mat,qubit));
+  }
 
 #ifdef AER_TIMING
   TimeEnd(QS_GATE_MULT);
@@ -2937,8 +3026,14 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const uint_t qubit,
 #ifdef AER_TIMING
   TimeStart(QS_GATE_DIAG);
 #endif
-  reg_t qubits = {qubit};
-  apply_function(DiagonalMult2x2<data_t>(diag,qubits[0]));
+
+  if(register_blocking_){
+    chunk_->queue_blocked_gate('d',qubit,0,&diag[0]);
+  }
+  else{
+    reg_t qubits = {qubit};
+    apply_function(DiagonalMult2x2<data_t>(diag,qubits[0]));
+  }
 
 #ifdef AER_TIMING
   TimeEnd(QS_GATE_DIAG);
@@ -3408,6 +3503,8 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 
 #ifdef AER_DEBUG
   reg_t samples;
+
+  DebugMsg("sample_measure begin");
 
   samples = chunk_->sample_measure(rnds);
   DebugMsg("sample_measure",samples);

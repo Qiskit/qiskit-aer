@@ -40,8 +40,11 @@ protected:
   mutable reg_t qubitMap_;
   mutable reg_t qubitSwapped_;
   bool blocking_enabled_;
+  int gpu_blocking_bits_;
 
   uint_t add_ops(std::vector<Operations::Op>& ops,std::vector<Operations::Op>& out,std::vector<Operations::Op>& queue) const;
+
+  uint_t add_gpu_blocking(std::vector<Operations::Op>& ops,std::vector<Operations::Op>& out,std::vector<Operations::Op>& queue) const;
 
   bool isCrossQubitsOp(Operations::Op& op, reg_t& qubits) const;
 
@@ -52,6 +55,7 @@ CacheBlocking::CacheBlocking(void)
 {
   block_bits_ = 22;
   blocking_enabled_ = false;
+  gpu_blocking_bits_ = 0;
 }
 
 CacheBlocking::~CacheBlocking()
@@ -68,6 +72,14 @@ void CacheBlocking::set_config(const json_t &config)
 
   if (JSON::check_key("blocking_qubits", config_))
     JSON::get_value(block_bits_, "blocking_qubits", config_);
+
+  if (JSON::check_key("gpu_blocking_bits", config_)){
+    JSON::get_value(gpu_blocking_bits_, "gpu_blocking_bits", config_);
+    if(gpu_blocking_bits_ >= 10){   //blocking qubit should be <=10
+      gpu_blocking_bits_ = 10;
+    }
+  }
+
 }
 
 
@@ -79,128 +91,163 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
   uint_t i,j,k,t;
   uint_t qt,n;
 
-  if(!blocking_enabled_)
+  if(!blocking_enabled_ && gpu_blocking_bits_ == 0)
     return;
 
-  std::vector<Operations::Op> optOps;
-  std::vector<Operations::Op> queue1;
-  std::vector<Operations::Op> queue2;
+  if(blocking_enabled_){
+    std::vector<Operations::Op> optOps;
+    std::vector<Operations::Op> queue1;
+    std::vector<Operations::Op> queue2;
 
-  qubits_ = circ.num_qubits;
-  if(block_bits_ >= qubits_){
-    return;
-  }
-
-  qubitMap_.resize(qubits_);
-  qubitSwapped_.resize(qubits_);
-
-  for(i=0;i<qubits_;i++){
-    qubitMap_[i] = i;
-    qubitSwapped_[i] = i;
-  }
-
-  n = add_ops(circ.ops,optOps,queue1);
-  while(queue1.size() > 0 && n != 0){
-    n = add_ops(queue1,optOps,queue2);
-    queue1.clear();
-
-    if(queue2.size() == 0 || n == 0){
-      break;
+    qubits_ = circ.num_qubits;
+    if(block_bits_ >= qubits_){
+      return;
     }
-    n = add_ops(queue2,optOps,queue1);
-    queue2.clear();
-  }
 
-  //insert swap gates to restore original qubit order
-  int nInBlock = 0;
-  for(i=0;i<block_bits_;i++){  //at first swap qubits in the blocking region
-    if(qubitMap_[i] != i && qubitMap_[i] < block_bits_){
-      if(nInBlock == 0){
-        uint_t last = optOps.size() - 1;
-        if(optOps[last].type == Operations::OpType::sim_op && optOps[last].name == "end_blocking"){
-          optOps.pop_back();
-          nInBlock = 1;
-        }
-        else{
-          Operations::Op blk_begin;
-          blk_begin.type = Operations::OpType::sim_op;
-          blk_begin.name = "begin_blocking";
-          optOps.push_back(blk_begin);
-        }
-      }
-      Operations::Op sgate;
-      sgate.type = Operations::OpType::gate;
-      sgate.name = "swap";
-      sgate.qubits = {i,qubitMap_[i]};
-      sgate.string_params = {sgate.name};
-      optOps.push_back(sgate);
+    qubitMap_.resize(qubits_);
+    qubitSwapped_.resize(qubits_);
 
-      j = qubitMap_[i];
-      qubitMap_[qubitSwapped_[i]] = j;
+    for(i=0;i<qubits_;i++){
       qubitMap_[i] = i;
-
-      qubitSwapped_[j] = qubitSwapped_[i];
       qubitSwapped_[i] = i;
-
-      nInBlock++;
     }
-  }
 
-  for(i=0;i<block_bits_;i++){   //second round, swap 
-    if(qubitMap_[i] != i){
-      j = qubitMap_[qubitMap_[i]];
-      if(j != i && j < block_bits_){
+    n = add_ops(circ.ops,optOps,queue1);
+    while(queue1.size() > 0 && n != 0){
+      n = add_ops(queue1,optOps,queue2);
+      queue1.clear();
+
+      if(queue2.size() == 0 || n == 0){
+        break;
+      }
+      n = add_ops(queue2,optOps,queue1);
+      queue2.clear();
+    }
+
+    //insert swap gates to restore original qubit order
+    int nInBlock = 0;
+    for(i=0;i<block_bits_;i++){  //at first swap qubits in the blocking region
+      if(qubitMap_[i] != i && qubitMap_[i] < block_bits_){
+        if(nInBlock == 0){
+          uint_t last = optOps.size() - 1;
+          if(optOps[last].type == Operations::OpType::sim_op && optOps[last].name == "end_blocking"){
+            optOps.pop_back();
+            nInBlock = 1;
+          }
+          else{
+            Operations::Op blk_begin;
+            blk_begin.type = Operations::OpType::sim_op;
+            blk_begin.name = "begin_blocking";
+            optOps.push_back(blk_begin);
+          }
+        }
         Operations::Op sgate;
         sgate.type = Operations::OpType::gate;
         sgate.name = "swap";
-        sgate.qubits = {i,j};
+        sgate.qubits = {i,qubitMap_[i]};
         sgate.string_params = {sgate.name};
         optOps.push_back(sgate);
 
+        j = qubitMap_[i];
         qubitMap_[qubitSwapped_[i]] = j;
-        qubitMap_[qubitSwapped_[j]] = i;
+        qubitMap_[i] = i;
 
-        t = qubitSwapped_[j];
         qubitSwapped_[j] = qubitSwapped_[i];
-        qubitSwapped_[i] = t;
+        qubitSwapped_[i] = i;
 
         nInBlock++;
       }
     }
-  }
-  if(nInBlock > 0){
-    Operations::Op blk_end;
-    blk_end.type = Operations::OpType::sim_op;
-    blk_end.name = "end_blocking";
-    optOps.push_back(blk_end);
-  }
 
-  for(i=0;i<qubits_;i++){  //final round swap remaining qubits
-    if(qubitMap_[i] != i){
-      Operations::Op sgate;
-      sgate.type = Operations::OpType::gate;
-      sgate.name = "swap_chunk";
-      sgate.qubits = {i,qubitMap_[i]};
-      sgate.string_params = {sgate.name};
-      optOps.push_back(sgate);
+    for(i=0;i<block_bits_;i++){   //second round, swap 
+      if(qubitMap_[i] != i){
+        j = qubitMap_[qubitMap_[i]];
+        if(j != i && j < block_bits_){
+          Operations::Op sgate;
+          sgate.type = Operations::OpType::gate;
+          sgate.name = "swap";
+          sgate.qubits = {i,j};
+          sgate.string_params = {sgate.name};
+          optOps.push_back(sgate);
 
-      j = qubitMap_[i];
-      qubitMap_[qubitSwapped_[i]] = j;
-      qubitMap_[i] = i;
+          qubitMap_[qubitSwapped_[i]] = j;
+          qubitMap_[qubitSwapped_[j]] = i;
 
-      qubitSwapped_[j] = qubitSwapped_[i];
-      qubitSwapped_[i] = i;
+          t = qubitSwapped_[j];
+          qubitSwapped_[j] = qubitSwapped_[i];
+          qubitSwapped_[i] = t;
+
+          nInBlock++;
+        }
+      }
     }
-  }
-  //add non-gate operations
-  for(i=0;i<queue1.size();i++){
-    optOps.push_back(queue1[i]);
-  }
-  for(i=0;i<queue2.size();i++){
-    optOps.push_back(queue2[i]);
+    if(nInBlock > 0){
+      Operations::Op blk_end;
+      blk_end.type = Operations::OpType::sim_op;
+      blk_end.name = "end_blocking";
+      optOps.push_back(blk_end);
+    }
+
+    for(i=0;i<qubits_;i++){  //final round swap remaining qubits
+      if(qubitMap_[i] != i){
+        Operations::Op sgate;
+        sgate.type = Operations::OpType::gate;
+        sgate.name = "swap_chunk";
+        sgate.qubits = {i,qubitMap_[i]};
+        sgate.string_params = {sgate.name};
+        optOps.push_back(sgate);
+
+        j = qubitMap_[i];
+        qubitMap_[qubitSwapped_[i]] = j;
+        qubitMap_[i] = i;
+
+        qubitSwapped_[j] = qubitSwapped_[i];
+        qubitSwapped_[i] = i;
+      }
+    }
+    //add non-gate operations
+    for(i=0;i<queue1.size();i++){
+      optOps.push_back(queue1[i]);
+    }
+    for(i=0;i<queue2.size();i++){
+      optOps.push_back(queue2[i]);
+    }
+    circ.ops = optOps;
   }
 
-  circ.ops = optOps;
+  if(gpu_blocking_bits_ > 0){
+    std::vector<Operations::Op> optOps;
+    std::vector<Operations::Op> queue1;
+    std::vector<Operations::Op> queue2;
+
+    n = add_gpu_blocking(circ.ops,optOps,queue1);
+    while(queue1.size() > 0 && n != 0){
+      n = add_gpu_blocking(queue1,optOps,queue2);
+      queue1.clear();
+
+      if(queue2.size() == 0 || n == 0){
+        break;
+      }
+      n = add_gpu_blocking(queue2,optOps,queue1);
+      queue2.clear();
+    }
+    //add non-gate operations
+    for(i=0;i<queue1.size();i++){
+      optOps.push_back(queue1[i]);
+    }
+    for(i=0;i<queue2.size();i++){
+      optOps.push_back(queue2[i]);
+    }
+    circ.ops = optOps;
+
+    /*
+    std::cout << "++++++++++++++ test cache blocking ++++++++++++++++" << std::endl;
+    for(i=0;i<circ.ops.size();i++){
+      std::cout << circ.ops[i] << std::endl;
+    }
+    */
+  }
+
   circ.set_params();
 
 }
@@ -411,8 +458,120 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
   }
 
   return num_gates_added;
+}
 
+uint_t CacheBlocking::add_gpu_blocking(std::vector<Operations::Op>& ops,std::vector<Operations::Op>& out,std::vector<Operations::Op>& queue) const
+{
+  uint_t i,j,iq,jq;
+  uint_t qt;
 
+  int nqubitUsed = 0;
+  reg_t blockedQubits;
+  int nq,nb;
+  bool exist;
+  uint_t pos_begin,num_gates_added;
+
+  pos_begin = out.size();
+  num_gates_added = 0;
+
+  i = 0;
+  //add chunk swap and block ops (if blocking is enabled)
+  if(blocking_enabled_){
+    while(i <ops.size()){
+      if(ops[i].type == Operations::OpType::sim_op){
+        out.push_back(ops[i]);
+      }
+      else if(ops[i].type == Operations::OpType::gate && ops[i].name == "swap_chunk"){
+        out.push_back(ops[i]);
+      }
+      else{
+        break;
+      }
+    }
+  }
+
+  //gather blocked gates
+  Operations::Op blk_begin;
+  blk_begin.type = Operations::OpType::sim_op;
+  blk_begin.name = "begin_register_blocking";
+  out.push_back(blk_begin);
+
+  while(i < ops.size()){
+    if(ops[i].type == Operations::OpType::gate || ops[i].type == Operations::OpType::matrix){
+      if((ops[i].qubits.size() > 1 && ops[i].type == Operations::OpType::matrix) || ops[i].name == "pauli"){
+        queue.push_back(ops[i]);
+      }
+      else{
+        //check if qubits of operation is included in the queued operations
+        exist = false;
+        for(j=0;j<queue.size();j++){
+          for(iq=0;iq<ops[i].qubits.size();iq++){
+            for(jq=0;jq<queue[j].qubits.size();jq++){
+              if(ops[i].qubits[iq] == queue[j].qubits[jq]){
+                exist = true;
+                break;
+              }
+            }
+          }
+          if(exist)
+            break;
+        }
+        if(exist){
+          queue.push_back(ops[i]);
+        }
+        else{
+          if(is_diagonal_op(ops[i])){
+            //diagonal gate can be applied
+            out.push_back(ops[i]);
+            num_gates_added++;
+          }
+          else{
+            exist = false;
+            iq = ops[i].qubits[ops[i].qubits.size()-1]; //block target bit
+            nq = blockedQubits.size();
+            for(j=0;j<nq;j++){
+              if(iq == blockedQubits[j]){
+                exist = true;
+                break;
+              }
+            }
+            if(exist){
+              out.push_back(ops[i]);
+              num_gates_added++;
+            }
+            else{
+              if(nq == gpu_blocking_bits_){
+                queue.push_back(ops[i]);
+              }
+              else{
+                blockedQubits.push_back(iq);
+                out.push_back(ops[i]);
+                num_gates_added++;
+              }
+            }
+          }
+        }
+      }
+    }
+    else{
+      queue.push_back(ops[i]);
+    }
+    i++;
+  }
+
+  if(out.size() > pos_begin + 1){
+    out[pos_begin].qubits = blockedQubits;
+
+    Operations::Op blk_end;
+    blk_end.type = Operations::OpType::sim_op;
+    blk_end.name = "end_register_blocking";
+    out.push_back(blk_end);
+  }
+  else{
+    out.pop_back();
+  }
+
+  return num_gates_added;
 }
 
 bool CacheBlocking::isCrossQubitsOp(Operations::Op& op, reg_t& qubits) const

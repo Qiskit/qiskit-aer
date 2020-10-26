@@ -73,6 +73,13 @@ template <typename data_t> class Chunk;
 template <typename data_t> class DeviceChunkContainer;
 template <typename data_t> class HostChunkContainer;
 
+typedef struct _blocked_gate_params_ 
+{
+  uint_t mask_;
+  char gate_;
+  unsigned char qubit_;
+}BlockedGateParams;
+
 //========================================
 //  base class of gate functions
 //========================================
@@ -156,6 +163,7 @@ protected:
   std::vector<bool> chunk_mapped_;    //which chunk is mapped
   std::vector<bool> buffer_mapped_;   //which buffer is mapped
   std::vector<bool> checkpoint_mapped_;   //which checkpoint buffer is mapped
+  reg_t blocked_qubits_;
 public:
   ChunkContainer()
   {
@@ -270,6 +278,35 @@ public:
     return 0;
   }
 
+  //set qubits to be blocked
+  virtual void set_blocked_qubits(uint_t iChunk,const reg_t& qubits)
+  {
+    ;
+  }
+
+  //do all gates stored in queue
+  virtual void apply_blocked_gates(uint_t iChunk)
+  {
+    ;
+  }
+
+  //queue gate for blocked execution
+  virtual void queue_blocked_gate(uint_t iChunk,char gate,uint_t qubit,uint_t mask,const std::complex<double>* pMat = NULL)
+  {
+    ;
+  }
+
+protected:
+  int convert_blocked_qubit(int qubit)
+  {
+    int i;
+    for(i=0;i<blocked_qubits_.size();i++){
+      if(blocked_qubits_[i] == qubit){
+        return i;
+      }
+    }
+    return -1;
+  }
 };
 
 template <typename data_t>

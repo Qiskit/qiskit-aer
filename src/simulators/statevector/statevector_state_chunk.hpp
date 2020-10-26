@@ -45,7 +45,7 @@ const Operations::OpSet StateOpSet(
     Operations::OpType::snapshot, Operations::OpType::barrier,
     Operations::OpType::bfunc, Operations::OpType::roerror,
     Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-    Operations::OpType::multiplexer, Operations::OpType::kraus},
+    Operations::OpType::multiplexer, Operations::OpType::kraus, Operations::OpType::sim_op},
     // Gates
     {"u1",   "u2",   "u3",   "cx",   "cz",   "cy",     "cp",      "cu1",
      "cu2",  "cu3",  "swap", "id",   "p",    "x",      "y",       "z",
@@ -654,6 +654,16 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
         case Operations::OpType::sim_op:
           if(ops[iOp].name == "begin_blocking"){
             iOp = apply_blocking(ops,iOp + 1);
+          }
+          else if(ops[iOp].name == "begin_register_blocking"){
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
+            for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++)
+              BaseState::qregs_[iChunk].enter_register_blocking(ops[iOp].qubits);
+          }
+          else if(ops[iOp].name == "end_register_blocking"){
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
+            for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++)
+              BaseState::qregs_[iChunk].leave_register_blocking();
           }
           break;
         default:

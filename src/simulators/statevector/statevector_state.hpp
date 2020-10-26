@@ -38,7 +38,7 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::snapshot, Operations::OpType::barrier,
      Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-     Operations::OpType::multiplexer, Operations::OpType::kraus},
+     Operations::OpType::multiplexer, Operations::OpType::kraus, Operations::OpType::sim_op},
     // Gates
     {"u1",   "u2",   "u3",   "cx",   "cz",   "cy",     "cp",      "cu1",
      "cu2",  "cu3",  "swap", "id",   "p",    "x",      "y",       "z",
@@ -514,6 +514,14 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
           break;
         case Operations::OpType::kraus:
           apply_kraus(op.qubits, op.mats, rng);
+          break;
+        case Operations::OpType::sim_op:
+          if(op.name == "begin_register_blocking"){
+            BaseState::qreg_.enter_register_blocking(op.qubits);
+          }
+          else if(op.name == "end_register_blocking"){
+            BaseState::qreg_.leave_register_blocking();
+          }
           break;
         default:
           throw std::invalid_argument(

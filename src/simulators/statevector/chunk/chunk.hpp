@@ -36,7 +36,8 @@ protected:
   Chunk<data_t>* cache_;                //pointer to cache chunk on device
   uint_t chunk_pos_;                    //position in container
   int place_;                           //container ID
-  uint_t num_qubits_;
+  uint_t num_qubits_;                   //total number of qubits
+  uint_t chunk_index_;                  //global chunk index
 public:
   Chunk(ChunkContainer<data_t>* cc,uint_t pos)
   {
@@ -45,6 +46,7 @@ public:
     place_ = 0;
     cache_ = NULL;
     num_qubits_ = 0;
+    chunk_index_ = 0;
   }
   ~Chunk()
   {
@@ -84,6 +86,10 @@ public:
   void set_num_qubits(uint_t qubits)
   {
     num_qubits_ = qubits;
+  }
+  void set_chunk_index(uint_t id)
+  {
+    chunk_index_ = id;
   }
 
   void Set(uint_t i,const thrust::complex<data_t>& t)
@@ -213,6 +219,25 @@ public:
   {
     return chunk_container_->matrix_bits();
   }
+
+  //set qubits to be blocked
+  void set_blocked_qubits(const reg_t& qubits)
+  {
+    chunk_container_->set_blocked_qubits(chunk_pos_,qubits);
+  }
+
+  //do all gates stored in queue
+  void apply_blocked_gates(void)
+  {
+    chunk_container_->apply_blocked_gates(chunk_pos_);
+  }
+
+  //queue gate for blocked execution
+  void queue_blocked_gate(char gate,uint_t qubit,uint_t mask,const std::complex<double>* pMat = NULL)
+  {
+    chunk_container_->queue_blocked_gate(chunk_pos_,gate,qubit,mask,pMat);
+  }
+
 };
 
 
