@@ -241,7 +241,7 @@ class QasmCliffordTests:
     # Test pauli gate
     # ---------------------------------------------------------------------
     def test_pauli_gate_deterministic_default_basis_gates(self):
-        """Test multipauli-gate circuits compiling to backend default basis_gates."""
+        """Test pauli gate circuits compiling to backend default basis_gates."""
         if 'method' in self.BACKEND_OPTS:
             conf = self.SIMULATOR._method_configuration(self.BACKEND_OPTS['method'])
             basis_gates = conf.basis_gates

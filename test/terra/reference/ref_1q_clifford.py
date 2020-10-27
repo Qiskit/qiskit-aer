@@ -727,7 +727,7 @@ def sdg_gate_unitary_nondeterministic():
 # ==========================================================================
 
 def pauli_gate_circuits_deterministic(final_measure=True):
-    """multipauli-gate test circuits with deterministic counts."""
+    """pauli gate test circuits with deterministic counts."""
     circuits = []
     qr = QuantumRegister(3)
     if final_measure:
