@@ -836,7 +836,6 @@ cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
   
   MPS temp_MPS;
   temp_MPS.initialize(*this);
-
   MPS_Tensor psi = temp_MPS.state_vec_as_MPS(qubits);
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
@@ -847,9 +846,6 @@ cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
   std::iota( std::begin(ordered_vector), std::end(ordered_vector), 0);
   reorder_all_qubits(ordered_vector, qubits, temp_vector);
   actual_vec = reverse_all_bits(temp_vector, qubits.size());
-  reg_t indices(size);
-  for (uint_t i=0; i<size; i++)
-    indices[actual_vec[i]] = i;
 
 #ifdef _WIN32
     #pragma omp parallel for if (size > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
@@ -860,8 +856,8 @@ cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
   for(int_t i = 0; i < static_cast<int_t>(size); i++) {
     for(int_t j = 0; j < static_cast<int_t>(size); j++) {
       rho(i,j) = AER::Utils::sum( AER::Utils::elementwise_multiplication(
-					psi.get_data(indices[i]), 
-					AER::Utils::conjugate(psi.get_data(indices[j]))) );
+					psi.get_data(actual_vec[i]), 
+					AER::Utils::conjugate(psi.get_data(actual_vec[j]))) );
     }
   }
 
@@ -1130,8 +1126,10 @@ MPS_Tensor MPS::state_vec_as_MPS(const reg_t &qubits) {
 MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
 {
 	MPS_Tensor temp = q_reg_[first_index];
+
 	if (first_index != 0)
 	  temp.mul_Gamma_by_left_Lambda(lambda_reg_[first_index-1]);
+
 	// special case of a single qubit
 	if ((first_index == last_index) && (last_index != num_qubits_-1)) {
 	  temp.mul_Gamma_by_right_Lambda(lambda_reg_[last_index]);
