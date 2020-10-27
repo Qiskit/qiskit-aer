@@ -11,7 +11,6 @@
  * copyright notice, and modified files need to carry a notice indicating
  * that they have been altered from the originals.
  */
-#include <iostream>
 #include "qv_avx2.hpp"
 #include <immintrin.h>
 #include <cstdint>
@@ -19,7 +18,10 @@
 #include <type_traits>
 #include <utility>
 #include <complex>
+
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 /**
  * DISCLAIMER: We want to compile this code in isolation of the rest of the
@@ -1110,6 +1112,57 @@ template Avx apply_matrix_avx<float>(float* data,
                                      const float* mat,
                                      const size_t omp_threads);
 
+template <typename data_t>
+std::complex<data_t>* _to_complex(data_t* vec) {
+  return reinterpret_cast<std::complex<data_t>*>(vec);
+}
+
+template <typename data_t>
+const std::complex<data_t>* _to_complex(const data_t* vec) {
+  return reinterpret_cast<const std::complex<data_t>*>(vec);
+}
+
+inline int _omp_get_thread_num() {
+#ifdef _OPENMP
+  return omp_get_thread_num();
+#else
+  return 0;
+#endif
+}
+
+m256_t<double> _load_diagonal_input(const std::complex<double>* input_vec,
+                                    std::complex<double>* tmp,
+                                    const uint64_t i,
+                                    const uint64_t* qregs,
+                                    const size_t qregs_size,
+                                    const size_t q0_mask) {
+  uint64_t vec_idx0 = 0;
+  for (size_t j = 0; j < qregs_size; ++j)
+    if (i & (MASKS[qregs[j]] + 1UL))
+      vec_idx0 += (MASKS[j] + 1UL);
+  tmp[0] = input_vec[vec_idx0];
+  tmp[1] = input_vec[vec_idx0 | q0_mask];
+  return _mm256_load(reinterpret_cast<double*>(tmp));
+}
+
+m256_t<float> _load_diagonal_input(const std::complex<float>* input_vec,
+                                   std::complex<float>* tmp,
+                                   const uint64_t i,
+                                   const uint64_t* qregs,
+                                   const size_t qregs_size,
+                                   const size_t q0_mask,
+                                   const size_t q1_mask) {
+  uint64_t vec_idx0 = 0;
+  for (size_t j = 0; j < qregs_size; ++j)
+    if (i & (MASKS[qregs[j]] + 1UL))
+      vec_idx0 += (MASKS[j] + 1UL);
+  tmp[0] = input_vec[vec_idx0];
+  tmp[1] = input_vec[vec_idx0 | q0_mask];
+  tmp[2] = input_vec[vec_idx0 | q1_mask];
+  tmp[3] = input_vec[vec_idx0 | q0_mask | q1_mask];
+  return _mm256_load(reinterpret_cast<float*>(tmp));
+}
+
 template <>
 Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
                                       const uint64_t data_size,
@@ -1118,21 +1171,24 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
                                       const double* vec_,
                                       const size_t omp_threads) {
 
-  std::complex<double>* qv_data = reinterpret_cast<std::complex<double>*>(qv_data_);
-  const std::complex<double>* input_vec = reinterpret_cast<const std::complex<double>*>(vec_);
+  auto qv_data = _to_complex(qv_data_);
+  const auto input_vec = _to_complex(vec_);
 
-  std::complex<double>** inputs;
-  inputs = reinterpret_cast<std::complex<double>**>(malloc(sizeof(std::complex<double*>) * omp_threads));
+  std::complex<double>** tmps;
+  tmps = reinterpret_cast<std::complex<double>**>(malloc(sizeof(std::complex<double>*) * omp_threads));
 
-#pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
-  for (int i = 0; i < omp_threads; ++i) {
+#pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
+  {
+#pragma omp for
+    for (int i = 0; i < omp_threads; ++i) {
+      void* data;
 #if !defined(_WIN64) && !defined(_WIN32)
-    void* data;
-    posix_memalign(&data, 64, sizeof(std::complex<double>) * 2);
-    inputs[omp_get_thread_num()] = reinterpret_cast<std::complex<double>*>(data);
+      posix_memalign(&data, 64, sizeof(std::complex<double>) * 2);
 #else
-    inputs[omp_get_thread_num()] = reinterpret_cast<std::complex<double>*>(malloc(sizeof(std::complex<double>) * 2));
+      data = reinterpret_cast<std::complex<double>*>(malloc(sizeof(std::complex<double>) * 2));
 #endif
+      tmps[_omp_get_thread_num()] = reinterpret_cast<std::complex<double>*>(data);
+    }
   }
 
   size_t q0_mask_ = 0;
@@ -1148,16 +1204,10 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
   auto lambda = [&](const uint64_t i_, const std::complex<double>* input_vec) -> void {
     const auto base = i_ << (batch + 1);
     const auto until = base + (1UL << (batch + 1));
-    std::complex<double>* input = inputs[omp_get_thread_num()];
+    std::complex<double>* tmp = tmps[_omp_get_thread_num()];
     for (auto i = base; i < until; i+=2) {
-      m256_t<double> tgt_qv_data = _mm256_load(reinterpret_cast<double*>(&(qv_data[i])));
-      uint64_t vec_idx0 = 0;
-      for (size_t j = 0; j < qregs_size; ++j)
-        if (i & (MASKS[qregs[j]] + 1UL))
-          vec_idx0 += (MASKS[j] + 1UL);
-      input[0] = input_vec[vec_idx0];
-      input[1] = input_vec[vec_idx0 | q0_mask];
-      m256_t<double> input_data = _mm256_load(reinterpret_cast<double*>(input));
+      auto tgt_qv_data = _mm256_load(reinterpret_cast<double*>(&(qv_data[i])));
+      auto input_data = _load_diagonal_input(input_vec, tmp, i, qregs, qregs_size, q0_mask);
       _mm_complex_multiply<double>(tgt_qv_data, input_data);
       _mm256_store(reinterpret_cast<double*>(&(qv_data[i])), tgt_qv_data);
     }
@@ -1167,10 +1217,10 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
 
 #pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
   for (int i = 0; i < omp_threads; ++i) {
-    free(inputs[omp_get_thread_num()]);
+    free(tmps[_omp_get_thread_num()]);
   }
 
-  free(inputs);
+  free(tmps);
 
   return Avx::Applied;
 }
@@ -1186,21 +1236,23 @@ Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
   if (data_size < (1UL << 2))
     return Avx::NotApplied;
 
-  std::complex<float>* qv_data = reinterpret_cast<std::complex<float>*>(qv_data_);
-  const std::complex<float>* input_vec = reinterpret_cast<const std::complex<float>*>(vec_);
+  auto qv_data = _to_complex(qv_data_);
+  const auto input_vec = _to_complex(vec_);
 
-  std::complex<float>** inputs;
-  inputs = reinterpret_cast<std::complex<float>**>(malloc(sizeof(std::complex<float*>) * omp_threads));
+  auto tmps = reinterpret_cast<std::complex<float>**>(malloc(sizeof(std::complex<float>*) * omp_threads));
 
-#pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
-  for (int i = 0; i < omp_threads; ++i) {
-#if !defined(_WIN64) && !defined(_WIN32)
-    void* data;
-    posix_memalign(&data, 64, sizeof(std::complex<float>) * 4);
-    inputs[omp_get_thread_num()] = reinterpret_cast<std::complex<float>*>(data);
-#else
-    inputs[omp_get_thread_num()] = reinterpret_cast<std::complex<float>*>(malloc(sizeof(std::complex<float>) * 4));
-#endif
+#pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
+  {
+#pragma omp for
+    for (int i = 0; i < omp_threads; ++i) {
+  #if !defined(_WIN64) && !defined(_WIN32)
+      void* data;
+      posix_memalign(&data, 64, sizeof(std::complex<float>) * 4);
+      tmps[_omp_get_thread_num()] = reinterpret_cast<std::complex<float>*>(data);
+  #else
+      tmps[_omp_get_thread_num()] = reinterpret_cast<std::complex<float>*>(malloc(sizeof(std::complex<float>) * 4));
+  #endif
+    }
   }
 
   size_t q0_mask_ = 0;
@@ -1220,18 +1272,10 @@ Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
   auto lambda = [&](const uint64_t i_, const std::complex<float>* input_vec) -> void {
     const auto base = i_ << (batch + 2);
     const auto until = base + (1UL << (batch + 2));
-    std::complex<float>* input = inputs[omp_get_thread_num()];
+    std::complex<float>* tmp = tmps[_omp_get_thread_num()];
     for (auto i = base; i < until; i+=4) {
       m256_t<float> tgt_qv_data = _mm256_load(reinterpret_cast<float*>(&(qv_data[i])));
-      uint64_t vec_idx0 = 0;
-      for (size_t j = 0; j < qregs_size; ++j)
-        if (i & (MASKS[qregs[j]] + 1UL))
-          vec_idx0 += (MASKS[j] + 1UL);
-      input[0] = input_vec[vec_idx0];
-      input[1] = input_vec[vec_idx0 | q0_mask];
-      input[2] = input_vec[vec_idx0 | q1_mask];
-      input[3] = input_vec[vec_idx0 | q0_mask | q1_mask];
-      m256_t<float> input_data = _mm256_load(reinterpret_cast<float*>(input));
+      auto input_data = _load_diagonal_input(input_vec, tmp, i, qregs, qregs_size, q0_mask, q1_mask);
       _mm_complex_multiply<float>(tgt_qv_data, input_data);
       _mm256_store(reinterpret_cast<float*>(&(qv_data[i])), tgt_qv_data);
     }
@@ -1241,8 +1285,10 @@ Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
 
 #pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
   for (int i = 0; i < omp_threads; ++i) {
-    free(inputs[omp_get_thread_num()]);
+    free(tmps[_omp_get_thread_num()]);
   }
+
+  free(tmps);
 
   return Avx::Applied;
 }
