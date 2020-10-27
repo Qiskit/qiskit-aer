@@ -114,8 +114,9 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exception will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentData &data,
-                         RngEngine &rng) override;
+                         ExperimentResult &result,
+                         RngEngine &rng,
+                         bool final_ops = false) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -186,7 +187,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(int_t iChunk, const Operations::Op &op, ExperimentData &data);
+  virtual void apply_snapshot(const int_t iChunk,const Operations::Op &op, ExperimentResult &result, bool last_op = false);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const int_t iChunk, const Operations::Op &op);
@@ -249,28 +250,20 @@ protected:
   // should be left in the pre-snapshot state.
   //-----------------------------------------------------------------------
 
-  // Snapshot current amplitudes
-  void snapshot_statevector(int_t iChunk, const Operations::Op &op,
-                            ExperimentData &data,
-                            SnapshotDataType type);
-
   // Snapshot current qubit probabilities for a measurement (average)
-  void snapshot_probabilities(int_t iChunk, const Operations::Op &op,
-                              ExperimentData &data,
+  void snapshot_probabilities(int_t iChunk, const Operations::Op &op, ExperimentResult &result,
                               SnapshotDataType type);
 
   // Snapshot the expectation value of a Pauli operator
-  void snapshot_pauli_expval(int_t iChunk, const Operations::Op &op,
-                             ExperimentData &data,
+  void snapshot_pauli_expval(int_t iChunk, const Operations::Op &op, ExperimentResult &result,
                              SnapshotDataType type);
 
   // Snapshot the expectation value of a matrix operator
-  void snapshot_matrix_expval(int_t iChunk, const Operations::Op &op,
-                              ExperimentData &data,
+  void snapshot_matrix_expval(int_t iChunk, const Operations::Op &op, ExperimentResult &result,
                               SnapshotDataType type);
 
   // Snapshot reduced density matrix
-  void snapshot_density_matrix(int_t iChunk, const Operations::Op &op, ExperimentData &data,
+  void snapshot_density_matrix(int_t iChunk, const Operations::Op &op, ExperimentResult &result,
                                SnapshotDataType type);
 
   // Return the reduced density matrix for the simulator
@@ -590,8 +583,9 @@ void State<statevec_t>::set_config(const json_t &config)
 
 template <class statevec_t>
 void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
-                                 ExperimentData &data,
-                                 RngEngine &rng) 
+                                 ExperimentResult &result,
+                                 RngEngine &rng,
+                                 bool final_ops)
 {
   uint_t iOp,nOp;
   int_t iChunk;
@@ -634,7 +628,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
           }
           break;
         case Operations::OpType::snapshot:
-          apply_snapshot(-1,ops[iOp], data);
+          apply_snapshot(-1, ops[iOp], result, final_ops && nOp == iOp + 1);
           break;
         case Operations::OpType::matrix:
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
@@ -757,73 +751,84 @@ uint_t State<statevec_t>::apply_blocking(const std::vector<Operations::Op> &ops,
 
 template <class statevec_t>
 void State<statevec_t>::apply_snapshot(const int_t iChunk, const Operations::Op &op,
-                                       ExperimentData &data) 
+                                       ExperimentResult &result,
+                                       bool last_op) 
 {
-  uint_t i;
+  int_t i;
   // Look for snapshot type in snapshotset
   auto it = snapshotset_.find(op.name);
   if (it == snapshotset_.end())
-    throw std::invalid_argument("QubitVectorState::invalid snapshot instruction \'" + 
-                                op.name + "\'.");
-  switch (it -> second) {
+    throw std::invalid_argument(
+        "QubitVectorState::invalid snapshot instruction \'" + op.name + "\'.");
+  switch (it->second) {
     case Snapshots::statevector:
-      if(iChunk < 0){
-        for(i=0;i<BaseState::num_local_chunks_;i++){
-          data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qregs_[i].vector());
+      if (last_op) {
+        if(iChunk < 0){
+          for(i=0;i<BaseState::num_local_chunks_;i++)
+            result.data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qregs_[i].move_to_vector());
         }
-      }
-      else{
-        data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qregs_[iChunk].vector());
+        else{
+          result.data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qregs_[iChunk].move_to_vector());
+        }
+      } else {
+        if(iChunk < 0){
+          for(i=0;i<BaseState::num_local_chunks_;i++)
+            result.data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qregs_[i].copy_to_vector());
+        }
+        else{
+          result.data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qregs_[iChunk].copy_to_vector());
+        }
       }
       break;
     case Snapshots::cmemory:
-      BaseState::snapshot_creg_memory(iChunk,op, data);
+      BaseState::snapshot_creg_memory(iChunk,op, result);
       break;
     case Snapshots::cregister:
-      BaseState::snapshot_creg_register(iChunk,op, data);
+      BaseState::snapshot_creg_register(iChunk,op, result);
       break;
     case Snapshots::probs: {
       // get probs as hexadecimal
-      snapshot_probabilities(iChunk, op, data, SnapshotDataType::average);
-    } break;
+      snapshot_probabilities(iChunk,op, result, SnapshotDataType::average);
+    }break;
     case Snapshots::densmat: {
-      snapshot_density_matrix(iChunk,op, data, SnapshotDataType::average);
+      snapshot_density_matrix(iChunk,op, result, SnapshotDataType::average);
     } break;
     case Snapshots::expval_pauli: {
-      snapshot_pauli_expval(iChunk, op, data, SnapshotDataType::average);
+      snapshot_pauli_expval(iChunk,op, result, SnapshotDataType::average);
     } break;
     case Snapshots::expval_matrix: {
-      snapshot_matrix_expval(iChunk, op, data, SnapshotDataType::average);
-    }  break;
+      snapshot_matrix_expval(iChunk,op, result, SnapshotDataType::average);
+    } break;
     case Snapshots::probs_var: {
       // get probs as hexadecimal
-      snapshot_probabilities(iChunk, op, data, SnapshotDataType::average_var);
+      snapshot_probabilities(iChunk,op, result, SnapshotDataType::average_var);
     } break;
     case Snapshots::densmat_var: {
-      snapshot_density_matrix(iChunk,op, data, SnapshotDataType::average_var);
+      snapshot_density_matrix(iChunk,op, result, SnapshotDataType::average_var);
     } break;
     case Snapshots::expval_pauli_var: {
-      snapshot_pauli_expval(iChunk, op, data, SnapshotDataType::average_var);
+      snapshot_pauli_expval(iChunk,op, result, SnapshotDataType::average_var);
     } break;
     case Snapshots::expval_matrix_var: {
-      snapshot_matrix_expval(iChunk, op, data, SnapshotDataType::average_var);
-    }  break;
+      snapshot_matrix_expval(iChunk,op, result, SnapshotDataType::average_var);
+    } break;
     case Snapshots::expval_pauli_shot: {
-      snapshot_pauli_expval(iChunk, op, data, SnapshotDataType::pershot);
+      snapshot_pauli_expval(iChunk,op, result, SnapshotDataType::pershot);
     } break;
     case Snapshots::expval_matrix_shot: {
-      snapshot_matrix_expval(iChunk, op, data, SnapshotDataType::pershot);
-    }  break;
+      snapshot_matrix_expval(iChunk,op, result, SnapshotDataType::pershot);
+    } break;
     default:
       // We shouldn't get here unless there is a bug in the snapshotset
-      throw std::invalid_argument("QubitVector::State::invalid snapshot instruction \'" +
-                                  op.name + "\'.");
+      throw std::invalid_argument(
+          "QubitVector::State::invalid snapshot instruction \'" + op.name +
+          "\'.");
   }
 }
 
 template <class statevec_t>
 void State<statevec_t>::snapshot_probabilities(const int_t iChunk, const Operations::Op &op,
-                                               ExperimentData &data,
+                                               ExperimentResult &result,
                                                SnapshotDataType type) 
 {
   // get probs as hexadecimal
@@ -832,11 +837,11 @@ void State<statevec_t>::snapshot_probabilities(const int_t iChunk, const Operati
   bool variance = type == SnapshotDataType::average_var;
 
   if(iChunk < 0){
-    data.add_average_snapshot("probabilities", op.string_params[0],
+    result.data.add_average_snapshot("probabilities", op.string_params[0],
                               BaseState::cregs_[0].memory_hex(), probs, variance);
   }
   else{
-    data.add_average_snapshot("probabilities", op.string_params[0],
+    result.data.add_average_snapshot("probabilities", op.string_params[0],
                               BaseState::cregs_[iChunk].memory_hex(), probs, variance);
   }
 }
@@ -844,8 +849,8 @@ void State<statevec_t>::snapshot_probabilities(const int_t iChunk, const Operati
 
 template <class statevec_t>
 void State<statevec_t>::snapshot_pauli_expval(const int_t iChunk, const Operations::Op &op,
-                                              ExperimentData &data,
-                                              SnapshotDataType type) 
+                                               ExperimentResult &result,
+                                               SnapshotDataType type) 
 {
   int_t i,ireg;
 
@@ -896,22 +901,22 @@ void State<statevec_t>::snapshot_pauli_expval(const int_t iChunk, const Operatio
   Utils::chop_inplace(expval, json_chop_threshold_);
   switch (type) {
     case SnapshotDataType::average:
-      data.add_average_snapshot("expectation_value", op.string_params[0],
+      result.data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::cregs_[ireg].memory_hex(), expval, false);
       break;
     case SnapshotDataType::average_var:
-      data.add_average_snapshot("expectation_value", op.string_params[0],
+      result.data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::cregs_[ireg].memory_hex(), expval, true);
       break;
     case SnapshotDataType::pershot:
-      data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
+      result.data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
       break;
   }
 }
 
 template <class statevec_t>
 void State<statevec_t>::snapshot_matrix_expval(const int_t iChunk, const Operations::Op &op,
-                                               ExperimentData &data,
+                                               ExperimentResult &result,
                                                SnapshotDataType type) 
 {
   int_t i,ireg;
@@ -1016,15 +1021,15 @@ void State<statevec_t>::snapshot_matrix_expval(const int_t iChunk, const Operati
   Utils::chop_inplace(expval, json_chop_threshold_);
   switch (type) {
     case SnapshotDataType::average:
-      data.add_average_snapshot("expectation_value", op.string_params[0],
+      result.data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::cregs_[ireg].memory_hex(), expval, false);
       break;
     case SnapshotDataType::average_var:
-      data.add_average_snapshot("expectation_value", op.string_params[0],
+      result.data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::cregs_[ireg].memory_hex(), expval, true);
       break;
     case SnapshotDataType::pershot:
-      data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
+      result.data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
       break;
   }
   // Revert to original state
@@ -1039,9 +1044,9 @@ void State<statevec_t>::snapshot_matrix_expval(const int_t iChunk, const Operati
 }
 
 template <class statevec_t>
-void State<statevec_t>::snapshot_density_matrix(int_t iChunk, const Operations::Op &op,
-                                                ExperimentData &data,
-                                                SnapshotDataType type) 
+void State<statevec_t>::snapshot_density_matrix(int_t iChunk, const const Operations::Op &op,
+                                               ExperimentResult &result,
+                                               SnapshotDataType type) 
 {
   int_t i;
 
@@ -1061,17 +1066,17 @@ void State<statevec_t>::snapshot_density_matrix(int_t iChunk, const Operations::
       // Add density matrix to result data
       switch (type) {
       case SnapshotDataType::average:
-        data.add_average_snapshot("density_matrix", op.string_params[0],
+        result.data.add_average_snapshot("density_matrix", op.string_params[0],
                                   BaseState::cregs_[0].memory_hex(),
                                   std::move(reduced_state), false);
         break;
       case SnapshotDataType::average_var:
-        data.add_average_snapshot("density_matrix", op.string_params[0],
+        result.data.add_average_snapshot("density_matrix", op.string_params[0],
                                   BaseState::cregs_[0].memory_hex(),
                                   std::move(reduced_state), true);
         break;
       case SnapshotDataType::pershot:
-        data.add_pershot_snapshot("density_matrix", op.string_params[0],
+        result.data.add_pershot_snapshot("density_matrix", op.string_params[0],
                                   std::move(reduced_state));
         break;
       }
@@ -1090,17 +1095,17 @@ void State<statevec_t>::snapshot_density_matrix(int_t iChunk, const Operations::
     // Add density matrix to result data
     switch (type) {
     case SnapshotDataType::average:
-      data.add_average_snapshot("density_matrix", op.string_params[0],
+      result.data.add_average_snapshot("density_matrix", op.string_params[0],
                                 BaseState::cregs_[iChunk].memory_hex(),
                                 std::move(reduced_state), false);
       break;
     case SnapshotDataType::average_var:
-      data.add_average_snapshot("density_matrix", op.string_params[0],
+      result.data.add_average_snapshot("density_matrix", op.string_params[0],
                                 BaseState::cregs_[iChunk].memory_hex(),
                                 std::move(reduced_state), true);
       break;
     case SnapshotDataType::pershot:
-      data.add_pershot_snapshot("density_matrix", op.string_params[0],
+      result.data.add_pershot_snapshot("density_matrix", op.string_params[0],
                                 std::move(reduced_state));
       break;
     }

@@ -114,13 +114,14 @@ public:
 
   //apply one operator
   virtual void apply_op(const uint_t ishot,const Operations::Op &op,
-                         ExperimentData &data,
-                         RngEngine &rng)
+                         ExperimentResult &result,
+                         RngEngine &rng,
+                         bool final_ops = false)
   {
     //default implementation
     std::vector<Operations::Op> ops;
     ops.push_back(op);
-    apply_ops(ops,data,rng);
+    apply_ops(ops,result,rng,final_ops);
   }
 
   // Initializes the State to the default state.

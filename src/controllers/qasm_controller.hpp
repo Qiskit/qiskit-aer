@@ -411,12 +411,12 @@ void QasmController::run_circuit(const Circuit& circ,
           // Double-precision Statevector simulation
           return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<double>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector, data);
+              Method::statevector, result);
         } else {
           // Single-precision Statevector simulation
           return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<float>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector, data);
+              Method::statevector, result);
         }
       }
       else{
@@ -424,12 +424,12 @@ void QasmController::run_circuit(const Circuit& circ,
           // Double-precision Statevector simulation
           return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector, data);
+              Method::statevector, result);
         } else {
           // Single-precision Statevector simulation
           return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector, data);
+              Method::statevector, result);
         }
       }
     }
@@ -445,13 +445,13 @@ void QasmController::run_circuit(const Circuit& circ,
           return run_circuit_helper<
               StatevectorChunk::State<QV::QubitVectorThrust<double>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector_thrust_gpu,data);
+              Method::statevector_thrust_gpu,result);
         } else {
           // Single-precision Statevector simulation
           return run_circuit_helper<
               StatevectorChunk::State<QV::QubitVectorThrust<float>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector_thrust_gpu,data);
+              Method::statevector_thrust_gpu,result);
         }
       }
       else{ 
@@ -460,13 +460,13 @@ void QasmController::run_circuit(const Circuit& circ,
           return run_circuit_helper<
               Statevector::State<QV::QubitVectorThrust<double>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector_thrust_gpu,data);
+              Method::statevector_thrust_gpu,result);
         } else {
           // Single-precision Statevector simulation
           return run_circuit_helper<
               Statevector::State<QV::QubitVectorThrust<float>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector_thrust_gpu,data);
+              Method::statevector_thrust_gpu,result);
         }
       }
 #endif
@@ -483,13 +483,13 @@ void QasmController::run_circuit(const Circuit& circ,
           return run_circuit_helper<
               StatevectorChunk::State<QV::QubitVectorThrust<double>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector_thrust_cpu,data);
+              Method::statevector_thrust_cpu,result);
         } else {
           // Single-precision Statevector simulation
           return run_circuit_helper<
               StatevectorChunk::State<QV::QubitVectorThrust<float>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector_thrust_cpu,data);
+              Method::statevector_thrust_cpu,result);
         }
       }
       else{
@@ -498,13 +498,13 @@ void QasmController::run_circuit(const Circuit& circ,
           return run_circuit_helper<
               Statevector::State<QV::QubitVectorThrust<double>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector_thrust_cpu,data);
+              Method::statevector_thrust_cpu,result);
         } else {
           // Single-precision Statevector simulation
           return run_circuit_helper<
               Statevector::State<QV::QubitVectorThrust<float>>>(
               circ, noise, config, shots, rng_seed, initial_statevector_,
-              Method::statevector_thrust_cpu,data);
+              Method::statevector_thrust_cpu,result);
         }
       }
 #endif
@@ -516,13 +516,13 @@ void QasmController::run_circuit(const Circuit& circ,
           return run_circuit_helper<
               DensityMatrixChunk::State<QV::DensityMatrix<double>>>(
               circ, noise, config, shots, rng_seed, cvector_t(),
-              Method::density_matrix, data);
+              Method::density_matrix, result);
         } else {
           // Single-precision density matrix simulation
           return run_circuit_helper<
               DensityMatrixChunk::State<QV::DensityMatrix<float>>>(
               circ, noise, config, shots, rng_seed, cvector_t(),
-              Method::density_matrix, data);
+              Method::density_matrix, result);
         }
       }
       else{
@@ -531,13 +531,13 @@ void QasmController::run_circuit(const Circuit& circ,
           return run_circuit_helper<
               DensityMatrix::State<QV::DensityMatrix<double>>>(
               circ, noise, config, shots, rng_seed, cvector_t(),
-              Method::density_matrix, data);
+              Method::density_matrix, result);
         } else {
           // Single-precision density matrix simulation
           return run_circuit_helper<
               DensityMatrix::State<QV::DensityMatrix<float>>>(
               circ, noise, config, shots, rng_seed, cvector_t(),
-              Method::density_matrix, data);
+              Method::density_matrix, result);
         }
       }
     }
@@ -553,13 +553,13 @@ void QasmController::run_circuit(const Circuit& circ,
           return run_circuit_helper<
               DensityMatrixChunk::State<QV::DensityMatrixThrust<double>>>(
               circ, noise, config, shots, rng_seed, cvector_t(),
-              Method::density_matrix_thrust_gpu,data);
+              Method::density_matrix_thrust_gpu,result);
         } else {
           // Single-precision density matrix simulation
           return run_circuit_helper<
               DensityMatrixChunk::State<QV::DensityMatrixThrust<float>>>(
               circ, noise, config, shots, rng_seed, cvector_t(),
-              Method::density_matrix_thrust_gpu,data);
+              Method::density_matrix_thrust_gpu,result);
         }
       }
       else{
@@ -568,13 +568,13 @@ void QasmController::run_circuit(const Circuit& circ,
           return run_circuit_helper<
               DensityMatrix::State<QV::DensityMatrixThrust<double>>>(
               circ, noise, config, shots, rng_seed, cvector_t(),
-              Method::density_matrix_thrust_gpu,data);
+              Method::density_matrix_thrust_gpu,result);
         } else {
           // Single-precision density matrix simulation
           return run_circuit_helper<
               DensityMatrix::State<QV::DensityMatrixThrust<float>>>(
               circ, noise, config, shots, rng_seed, cvector_t(),
-              Method::density_matrix_thrust_gpu,data);
+              Method::density_matrix_thrust_gpu,result);
         }
       }
 #endif
@@ -591,13 +591,13 @@ void QasmController::run_circuit(const Circuit& circ,
           return run_circuit_helper<
               DensityMatrixChunk::State<QV::DensityMatrixThrust<double>>>(
               circ, noise, config, shots, rng_seed, cvector_t(),
-              Method::density_matrix_thrust_cpu,data);
+              Method::density_matrix_thrust_cpu,result);
         } else {
           // Single-precision density matrix simulation
           return run_circuit_helper<
               DensityMatrixChunk::State<QV::DensityMatrixThrust<float>>>(
               circ, noise, config, shots, rng_seed, cvector_t(),
-              Method::density_matrix_thrust_cpu,data);
+              Method::density_matrix_thrust_cpu,result);
         }
       }
       else{
@@ -1054,13 +1054,13 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   measure_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
   cache_block_pass.set_config(config);
   if(cache_block_before_fusion_){
-    cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
+    cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
   }
   auto fusion_pass = transpile_fusion(method, opt_circ.opset(), config);
   fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
 
   if(!cache_block_before_fusion_){
-    cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), data);
+    cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
   }
 
   // Run simulation
@@ -1147,12 +1147,12 @@ void QasmController::run_circuit_with_sampled_noise(const Circuit& circ,
     Circuit noise_circ = noise.sample_noise(circ, rng);
     noise_circ.shots = 1;
     if(cache_block_before_fusion_){
-      cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), data);
+      cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), result);
     }
     measure_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), result);
     fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), result);
     if(!cache_block_before_fusion_){
-      cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), data);
+      cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), result);
     }
     run_single_shot(noise_circ, state, initial_state, result, rng);
   }

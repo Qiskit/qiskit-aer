@@ -28,9 +28,9 @@ public:
   ~CacheBlocking();
 
   void optimize_circuit(Circuit& circ,
-                                Noise::NoiseModel& noise,
-                                const Operations::OpSet &opset,
-                                ExperimentData &data) const;
+                        Noise::NoiseModel& noise,
+                        const opset_t &allowed_opset,
+                        ExperimentResult &result) const override;
 
   void set_config(const json_t &config);
 
@@ -85,8 +85,8 @@ void CacheBlocking::set_config(const json_t &config)
 
 void CacheBlocking::optimize_circuit(Circuit& circ,
                                 Noise::NoiseModel& noise,
-                                const Operations::OpSet &opset,
-                                ExperimentData &data) const
+                                const opset_t &allowed_opset,
+                                ExperimentResult &result) const 
 {
   uint_t i,j,k,t;
   uint_t qt,n;

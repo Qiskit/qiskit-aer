@@ -90,8 +90,9 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentData &data,
-                         RngEngine &rng) override;
+                         ExperimentResult &result,
+                         RngEngine &rng,
+                         bool final_ops = false) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -157,7 +158,9 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const int_t iChunk, const Operations::Op &op, ExperimentData &data);
+  virtual void apply_snapshot(const int_t iChunk, const Operations::Op &op,
+                              ExperimentResult &result,
+                              bool last_op = false);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const int_t iChunk, const reg_t &qubits, const cmatrix_t & mat);
@@ -206,21 +209,21 @@ protected:
 
   // Snapshot reduced density matrix
   void snapshot_density_matrix(const int_t iChunk, const Operations::Op &op,
-                               ExperimentData &data);
+                               ExperimentResult &result);
 
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const int_t iChunk, const Operations::Op &op,
-                              ExperimentData &data,
+                              ExperimentResult &result,
                               bool variance);
 
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const int_t iChunk, const Operations::Op &op,
-                             ExperimentData &data,
+                             ExperimentResult &result,
                              bool variance);
 
   // Snapshot the expectation value of a matrix operator
   void snapshot_matrix_expval(const int_t iChunk, const Operations::Op &op,
-                              ExperimentData &data,
+                              ExperimentResult &result,
                               bool variance);
 
   // Return the reduced density matrix for the simulator
@@ -476,8 +479,8 @@ void State<densmat_t>::set_config(const json_t &config)
 
 template <class densmat_t>
 void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
-                                 ExperimentData &data,
-                                 RngEngine &rng) 
+                                 ExperimentResult &result,
+                                 RngEngine &rng,bool final_ops) 
 {
   uint_t iOp,nOp;
   int_t iChunk;
@@ -544,7 +547,7 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
           }
           break;
         case Operations::OpType::snapshot:
-          apply_snapshot(-1,ops[iOp], data);
+          apply_snapshot(-1,ops[iOp], result, final_ops && nOp == iOp + 1);
           break;
         case Operations::OpType::matrix:
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
@@ -663,7 +666,8 @@ uint_t State<densmat_t>::apply_blocking(const std::vector<Operations::Op> &ops, 
 
 template <class densmat_t>
 void State<densmat_t>::apply_snapshot(const int_t iChunk, const Operations::Op &op,
-                                       ExperimentData &data) 
+                                      ExperimentResult &result,
+                                      bool last_op) 
 {
   int_t i;
   // Look for snapshot type in snapshotset
@@ -673,27 +677,27 @@ void State<densmat_t>::apply_snapshot(const int_t iChunk, const Operations::Op &
                                 op.name + "\'.");
   switch (it -> second) {
     case Snapshots::densitymatrix:
-      snapshot_density_matrix(iChunk, op, data);
+      snapshot_density_matrix(iChunk, op, result);
       break;
     case Snapshots::cmemory:
-      BaseState::snapshot_creg_memory(iChunk,op, data);
+      BaseState::snapshot_creg_memory(iChunk,op, result);
       break;
     case Snapshots::cregister:
-      BaseState::snapshot_creg_register(iChunk,op, data);
+      BaseState::snapshot_creg_register(iChunk,op, result);
       break;
     case Snapshots::probs:
       // get probs as hexadecimal
-      snapshot_probabilities(iChunk, op, data, false);
+      snapshot_probabilities(iChunk, op, result, false);
       break;
     case Snapshots::probs_var:
       // get probs as hexadecimal
-      snapshot_probabilities(iChunk, op, data, true);
+      snapshot_probabilities(iChunk, op, result, true);
       break;
     case Snapshots::expval_pauli: {
-      snapshot_pauli_expval(iChunk, op, data, false);
+      snapshot_pauli_expval(iChunk, op, result, false);
     } break;
     case Snapshots::expval_pauli_var: {
-      snapshot_pauli_expval(iChunk, op, data, true);
+      snapshot_pauli_expval(iChunk, op, result, true);
     } break;
     /* TODO
     case Snapshots::expval_matrix: {
@@ -712,21 +716,21 @@ void State<densmat_t>::apply_snapshot(const int_t iChunk, const Operations::Op &
 
 template <class densmat_t>
 void State<densmat_t>::snapshot_probabilities(const int_t iChunk, const Operations::Op &op,
-                                              ExperimentData &data,
+                                              ExperimentResult &result,
                                               bool variance) 
 {
   // get probs as hexadecimal
   auto probs = Utils::vec2ket(measure_probs(iChunk,op.qubits),
                               json_chop_threshold_, 16);
   if(iChunk < 0){
-    data.add_average_snapshot("probabilities",
+    result.data.add_average_snapshot("probabilities",
                             op.string_params[0],
                             BaseState::cregs_[0].memory_hex(),
                             probs,
                             variance);
   }
   else{
-    data.add_average_snapshot("probabilities",
+    result.data.add_average_snapshot("probabilities",
                             op.string_params[0],
                             BaseState::cregs_[iChunk].memory_hex(),
                             probs,
@@ -737,7 +741,7 @@ void State<densmat_t>::snapshot_probabilities(const int_t iChunk, const Operatio
 
 template <class densmat_t>
 void State<densmat_t>::snapshot_pauli_expval(const int_t iChunk, const Operations::Op &op,
-                                             ExperimentData &data,
+                                             ExperimentResult &result,
                                              bool variance) 
 {
   int_t i,ireg;
@@ -789,7 +793,7 @@ void State<densmat_t>::snapshot_pauli_expval(const int_t iChunk, const Operation
 
   // Add to snapshot
   Utils::chop_inplace(expval, json_chop_threshold_);
-  data.add_average_snapshot("expectation_value",
+  result.data.add_average_snapshot("expectation_value",
                             op.string_params[0],
                             BaseState::cregs_[ireg].memory_hex(),
                             expval, variance);
@@ -797,7 +801,7 @@ void State<densmat_t>::snapshot_pauli_expval(const int_t iChunk, const Operation
 
 template <class densmat_t>
 void State<densmat_t>::snapshot_density_matrix(const int_t iChunkIn, const Operations::Op &op,
-                                               ExperimentData &data) 
+                                               ExperimentResult &result) 
 {
   int_t iChunk,nChunk;
   if(iChunkIn < 0){
@@ -831,7 +835,7 @@ void State<densmat_t>::snapshot_density_matrix(const int_t iChunkIn, const Opera
     if(BaseState::cregs_.size() == 1){
       ireg = 0;
     }
-    data.add_average_snapshot("density_matrix",
+    result.data.add_average_snapshot("density_matrix",
                               op.string_params[0],
                               BaseState::cregs_[ireg].memory_hex(),
                               std::move(reduced_state),
