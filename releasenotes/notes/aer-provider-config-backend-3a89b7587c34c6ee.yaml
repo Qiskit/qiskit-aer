@@ -1,0 +1,43 @@
+---
+upgrade:
+  - |
+    Allows setting configurable backend options when using
+    :meth:`~qiskit.providers.aer.AerProvider.get_backend` to return a backend
+    object. This is done via
+    ``provider.get_backend('qasm_simulator', **backend_options)``.
+    
+    For example returning a matrix product state method
+    :class:`~qiskit.providers.aer.QasmSimulator` from the Aer provider can now be
+    done using
+
+    Using the `Aer` provider
+
+    .. code-block:: python
+
+      from qiskit import Aer
+      backend = Aer.get_backend('qasm_simulator', method='matrix_product_state')
+
+    or 
+
+    .. code-block:: python
+
+      from qiskit import Aer
+      backend = Aer.get_backend('qasm_simulator')
+      backend.set_options(method='matrix_product_state')
+
+    This is equivalent to generating a configured simulator backend object directly
+
+    .. code-block:: python
+
+      from qiskit.providers.aer import QasmSimulator
+
+      backend = QasmSimulator(method='matrix_product_state')
+
+    or
+
+    .. code-block:: python
+
+      from qiskit.providers.aer import QasmSimulator
+
+      backend = QasmSimulator()
+      backend.set_options(method='matrix_product_state')

@@ -35,8 +35,24 @@ class AerProvider(BaseProvider):
                           UnitarySimulator(provider=self),
                           PulseSimulator(provider=self)]
 
-    def get_backend(self, name=None, **kwargs):
-        return super().get_backend(name=name, **kwargs)
+    def get_backend(self, name=None, **backend_options):
+        """Return a configured simulator backend with the specified options.
+
+        Args:
+            name (str): name of the backend.
+            **backend_options: dict of options for backend ``set_options``.
+
+        Returns:
+            AerBackend: a configured backend.
+
+        Raises:
+            QiskitBackendNotFoundError: if no backend could be found or
+                more than one backend matches the filtering criteria.
+        """
+        backend = super().get_backend(name=name)
+        if backend_options:
+            backend.set_options(**backend_options)
+        return backend
 
     def backends(self, name=None, filters=None, **kwargs):
         # pylint: disable=arguments-differ
