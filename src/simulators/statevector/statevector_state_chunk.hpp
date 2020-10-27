@@ -1044,7 +1044,7 @@ void State<statevec_t>::snapshot_matrix_expval(const int_t iChunk, const Operati
 }
 
 template <class statevec_t>
-void State<statevec_t>::snapshot_density_matrix(int_t iChunk, const const Operations::Op &op,
+void State<statevec_t>::snapshot_density_matrix(int_t iChunk, const Operations::Op &op,
                                                ExperimentResult &result,
                                                SnapshotDataType type) 
 {
