@@ -80,26 +80,6 @@ GATES = [
     (UGate, 3)
 ]
 
-STATEVECTOR_BG = QasmSimulator().configuration().basis_gates
-DENSITY_MATRIX_BG = [
-    "u1", "u2", "u3", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s",
-    "sdg", "t", "tdg", "ccx", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz",
-    "rzx", "p", "cp", "cu1", "sx", "delay",
-]
-MATRIX_PRODUCT_STATE_BG = [
-    "id", "x", "y", "z", "s", "sdg", "h", "t", "tdg", "u1", "u2", "u3",
-    "cx", "cz", "cu1", "swap", "ccx", "delay",
-]
-BASIS_GATES = {
-    'statevector': STATEVECTOR_BG,
-    'statevector_gpu': STATEVECTOR_BG,
-    'statevector_thrust': STATEVECTOR_BG,
-    'density_matrix': DENSITY_MATRIX_BG,
-    'density_matrix_gpu': DENSITY_MATRIX_BG,
-    'density_matrix_thrust': DENSITY_MATRIX_BG,
-    'matrix_product_state': MATRIX_PRODUCT_STATE_BG
-}
-
 
 @ddt
 class QasmStandardGateStatevectorTests:
@@ -128,13 +108,10 @@ class QasmStandardGateStatevectorTests:
         # Add snapshot and execute
         circuit.snapshot_statevector('final')
         backend_options = self.BACKEND_OPTS
-        method = backend_options.get('method', 'automatic')
-        basis_gates = BASIS_GATES.get(method)
-        result = execute(circuit,
-                         self.SIMULATOR,
-                         basis_gates=basis_gates,
-                         shots=1,
-                         backend_options=backend_options).result()
+        method = backend_options.pop('method', 'automatic')
+        backend = self.SIMULATOR
+        backend.set_options(method=method)
+        result = execute(circuit, backend, shots=1, **backend_options).result()
 
         # Check results
         success = getattr(result, 'success', False)
@@ -175,13 +152,10 @@ class QasmStandardGateDensityMatrixTests:
         # Add snapshot and execute
         circuit.snapshot_density_matrix('final')
         backend_options = self.BACKEND_OPTS
-        method = backend_options.get('method', 'automatic')
-        basis_gates = BASIS_GATES.get(method)
-        result = execute(circuit,
-                         self.SIMULATOR,
-                         basis_gates=basis_gates,
-                         shots=1,
-                         backend_options=backend_options).result()
+        method = backend_options.pop('method', 'automatic')
+        backend = self.SIMULATOR
+        backend.set_options(method=method)
+        result = execute(circuit, backend, shots=1, **backend_options).result()
 
         # Check results
         success = getattr(result, 'success', False)

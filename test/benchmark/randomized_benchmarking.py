@@ -87,7 +87,7 @@ class RandomizedBenchmarkingQasmSimBenchmark:
             'noise_model': noise_model(),
         }
         job = self.sim_backend.run(self.qobj,
-                                   backend_options=backend_options)
+                                   **backend_options)
         job.result()
 
     def peakmem_run_rb_circuit(self, _, simulator_method, noise_model):
@@ -96,5 +96,5 @@ class RandomizedBenchmarkingQasmSimBenchmark:
             'noise_model': noise_model(),
         }
         job = self.sim_backend.run(self.qobj,
-                                   backend_options=backend_options)
+                                   **backend_options)
         job.result()
