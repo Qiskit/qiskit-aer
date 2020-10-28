@@ -408,7 +408,7 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
 //    V is split by columns to yield two MPS_Tensors representing qubit B (in reshape_V_after_SVD),
 //    the diagonal of S becomes the Lambda-vector in between A and B.
 //-------------------------------------------------------------------------
-void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, const cmatrix_t &mat)
+void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, const cmatrix_t &mat, bool is_diagonal)
 {
   // We first move the two qubits to be in consecutive positions
   // If index_B > index_A, we move the qubit at index_B to index_A+1
@@ -432,7 +432,8 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
 
 void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A+1
 				    Gates gate_type, const cmatrix_t &mat,
-				    bool swapped) {
+				    bool swapped,
+				    bool is_diagonal) {
   // After we moved the qubits as necessary, 
   // the operation is always between qubits A and A+1
 
@@ -468,7 +469,7 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
   case su4:
     // We reverse the order of the qubits, according to the Qiskit convention.
     // Effectively, this reverses swap for 2-qubit gates
-    temp.apply_matrix(mat, !swapped);
+    temp.apply_matrix(mat, !swapped, is_diagonal);
     break;
     
   default:
@@ -488,7 +489,8 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
 }
 
 void MPS::apply_3_qubit_gate(const reg_t &qubits,
-			     Gates gate_type, const cmatrix_t &mat)
+			     Gates gate_type, const cmatrix_t &mat,
+			     bool is_diagonal)
 {
   if (qubits.size() != 3) {
     std::stringstream ss;
@@ -550,40 +552,44 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
     q_reg_[first+2].div_Gamma_by_right_Lambda(lambda_reg_[first+2]);
 }
 
-void MPS::apply_matrix(const reg_t & qubits, const cmatrix_t &mat) {
+void MPS::apply_matrix(const reg_t & qubits, const cmatrix_t &mat, 
+		       bool is_diagonal) {
   reg_t internal_qubits = get_internal_qubits(qubits);
-  apply_matrix_internal(internal_qubits, mat);
+  apply_matrix_internal(internal_qubits, mat, is_diagonal);
 }
 
-void MPS::apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat) 
+void MPS::apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat,
+				bool is_diagonal) 
 {
   switch (qubits.size()) {
   case 1: 
-    q_reg_[qubits[0]].apply_matrix(mat);
+    q_reg_[qubits[0]].apply_matrix(mat, is_diagonal);
     break;
   case 2:
-    apply_2_qubit_gate(qubits[0], qubits[1], su4, mat);
+    apply_2_qubit_gate(qubits[0], qubits[1], su4, mat, is_diagonal);
     break;
   default:
-    apply_multi_qubit_gate(qubits, mat);
+    apply_multi_qubit_gate(qubits, mat, is_diagonal);
   }
 }
 
 void MPS::apply_multi_qubit_gate(const reg_t &qubits,
-				 const cmatrix_t &mat) {
+				 const cmatrix_t &mat,
+				 bool is_diagonal) {
   // need to reverse qubits because that is the way they
   // are defined in the Qiskit interface
   reg_t reversed_qubits = qubits;
   std::reverse(reversed_qubits.begin(), reversed_qubits.end()); 
 
   if (is_ordered(reversed_qubits))
-    apply_matrix_to_target_qubits(reversed_qubits, mat);
+    apply_matrix_to_target_qubits(reversed_qubits, mat, is_diagonal);
   else
-    apply_unordered_multi_qubit_gate(reversed_qubits, mat);
+    apply_unordered_multi_qubit_gate(reversed_qubits, mat, is_diagonal);
 }
 
 void MPS::apply_unordered_multi_qubit_gate(const reg_t &qubits,
-					const cmatrix_t &mat){
+					   const cmatrix_t &mat, 
+					   bool is_diagonal){
   reg_t actual_indices(num_qubits_);
   std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
   reg_t target_qubits(qubits.size());
@@ -591,16 +597,17 @@ void MPS::apply_unordered_multi_qubit_gate(const reg_t &qubits,
   move_qubits_to_right_end(qubits, target_qubits, 
 			   actual_indices);
 
-  apply_matrix_to_target_qubits(target_qubits, mat);
+  apply_matrix_to_target_qubits(target_qubits, mat, is_diagonal);
 }
 
 void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
-					  const cmatrix_t &mat) {
+					const cmatrix_t &mat,
+					bool is_diagonal) {
   uint_t num_qubits = target_qubits.size();
   uint_t first = target_qubits.front();
   MPS_Tensor sub_tensor(state_vec_as_MPS(first, first+num_qubits-1));
 
-  sub_tensor.apply_matrix(mat);
+  sub_tensor.apply_matrix(mat, is_diagonal);
 
   // state_mat is a matrix containing the flattened representation of the sub-tensor 
   // into a single matrix. E.g., sub_tensor will contain 8 matrices for 3-qubit
@@ -635,15 +642,13 @@ void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
 }
 
 void MPS::apply_diagonal_matrix(const AER::reg_t &qubits, const cvector_t &vmat) {
-  //temporarily support by converting the vector to a full matrix whose diagonal is vmat
+  // converting the vector to a 1xn matrix whose first (and single) row is vmat
   uint_t dim = vmat.size();
-  cmatrix_t diag_mat(dim, dim);
+  cmatrix_t diag_mat(1, dim);
   for (uint_t i=0; i<dim; i++) {
-    for (uint_t j=0; j<dim; j++){
-      diag_mat(i, i) = ( i==j ? vmat[i] : 0.0);
-    }
+      diag_mat(0, i) = vmat[i];
   }
-  apply_matrix(qubits, diag_mat);
+  apply_matrix(qubits, diag_mat, true /*is_diagonal*/);
 }
 
 void MPS::centralize_qubits(const reg_t &qubits,
