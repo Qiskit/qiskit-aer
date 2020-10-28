@@ -46,7 +46,7 @@ const Operations::OpSet StateOpSet(
      "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
      "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
      "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
-     "mcsx",   "delay"},
+     "mcsx",   "delay", "pauli"},
     // Snapshots
     {"statevector", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli", "density_matrix",
@@ -60,7 +60,7 @@ enum class Gates {
   id, h, s, sdg, t, tdg,
   rxx, ryy, rzz, rzx,
   mcx, mcy, mcz, mcr, mcrx, mcry,
-  mcrz, mcp, mcu2, mcu3, mcswap, mcsx
+  mcrz, mcp, mcu2, mcu3, mcswap, mcsx, pauli
 };
 
 // Allowed snapshots enum class
@@ -355,7 +355,8 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
     {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
-    {"mcsx", Gates::mcsx}     // Multi-controlled-Sqrt(X) gate
+    {"mcsx", Gates::mcsx},     // Multi-controlled-Sqrt(X) gate
+    {"pauli", Gates::pauli} // Multi-qubit Pauli gates
 });
 
 template <class statevec_t>
@@ -886,6 +887,9 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
       // Includes sx, csx, mcsx etc
       BaseState::qreg_.apply_mcu(op.qubits, Linalg::VMatrix::SX);
       break;
+    case Gates::pauli:
+        BaseState::qreg_.apply_pauli(op.qubits, op.string_params[0]);
+        break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument(
