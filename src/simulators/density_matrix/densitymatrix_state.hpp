@@ -41,10 +41,10 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::diagonal_matrix, Operations::OpType::kraus,
      Operations::OpType::superop},
     // Gates
-    {"U", "CX", "u1", "u2", "u3",  "cx",  "cy", "cz",  "swap", "id",
-     "x", "y",  "z",  "h",  "s",   "sdg", "t",   "tdg",  "ccx",
-     "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx",  "p",
-     "cp","cu1", "sx", "x90", "delay"},
+    {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
+     "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
+     "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
+     "rzx",  "p",   "cp", "cu1", "sx", "x90", "delay"},
     // Snapshots
     {"density_matrix", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli",
@@ -277,6 +277,7 @@ const stringmap_t<Gates> State<densmat_t>::gateset_({
     {"u1", Gates::u1}, // zero-X90 pulse waltz gate
     {"u2", Gates::u2}, // single-X90 pulse waltz gate
     {"u3", Gates::u3}, // two X90 pulse waltz gate
+    {"u", Gates::u3}, // two X90 pulse waltz gate
     {"U", Gates::u3},  // two X90 pulse waltz gate
     // Two-qubit gates
     {"CX", Gates::cx},     // Controlled-X gate (CNOT)
