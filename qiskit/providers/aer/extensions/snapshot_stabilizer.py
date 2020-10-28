@@ -15,7 +15,7 @@ Simulator command to snapshot internal simulator representation.
 """
 
 from qiskit import QuantumCircuit
-from qiskit.providers.aer.extensions import Snapshot
+from .snapshot import Snapshot
 
 
 class SnapshotStabilizer(Snapshot):
@@ -59,7 +59,7 @@ def snapshot_stabilizer(self, label):
         qubits in the circuit.
     """
 
-    snapshot_register = Snapshot.define_snapshot_register(self, label)
+    snapshot_register = Snapshot.define_snapshot_register(self)
 
     return self.append(
         SnapshotStabilizer(label, num_qubits=len(snapshot_register)),

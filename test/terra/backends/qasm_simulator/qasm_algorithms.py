@@ -34,7 +34,7 @@ class QasmAlgorithmTests:
             final_measure=True, allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -45,7 +45,7 @@ class QasmAlgorithmTests:
         circuits = ref_algorithms.teleport_circuit()
         targets = ref_algorithms.teleport_counts(shots)
         job = execute(circuits, self.SIMULATOR, shots=shots,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -72,7 +72,7 @@ class QasmAlgorithmTestsWaltzBasis:
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'],
-            backend_options=self.BACKEND_OPTS)
+            **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -87,7 +87,7 @@ class QasmAlgorithmTestsWaltzBasis:
             self.SIMULATOR,
             shots=shots,
             basis_gates=['u1', 'u2', 'u3', 'cx'],
-            backend_options=self.BACKEND_OPTS)
+            **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -110,7 +110,7 @@ class QasmAlgorithmTestsMinimalBasis:
         targets = ref_algorithms.grovers_counts(shots)
         job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'],
-            backend_options=self.BACKEND_OPTS)
+            **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
@@ -122,7 +122,7 @@ class QasmAlgorithmTestsMinimalBasis:
         targets = ref_algorithms.teleport_counts(shots)
         job = execute(
             circuits, self.SIMULATOR, shots=shots, basis_gates=['u3', 'cx'],
-            backend_options=self.BACKEND_OPTS)
+            **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)

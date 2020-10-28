@@ -1,0 +1,19 @@
+---
+upgrade:
+  - |
+    Updates gate fusion default thresholds so that gate fusion will be applied
+    to circuits with of more than 14 qubits for statevector simulations on the
+    :class:`~qiskit.providers.aer.StatevectorSimulator` and 
+    :class:`~qiskit.providers.aer.QasmSimulator`.
+    
+    For the ``"density_matrix"``
+    method of the :class:`~qiskit.providers.aer.QasmSimulator` and for the
+    :class:`~qiskit.providers.aer.UnitarySimulator` gate fusion will be applied
+    to circuits with more than 7 qubits.
+    
+    Custom qubit threshold values can be set using the ``fusion_threshold``
+    backend option ie ``backend.set_options(fusion_threshold=10)``
+  - |
+    Changes ``fusion_threshold`` backend option to apply fusion when the
+    number of qubits is above the threshold, not equal or above the threshold,
+    to match the behavior of the OpenMP qubit threshold parameter.

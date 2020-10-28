@@ -43,7 +43,7 @@ class StatevectorSimulatorTests:
         circuits = ref_initialize.initialize_circuits_1(final_measure=False)
         targets = ref_initialize.initialize_statevector_1()
         qobj = assemble(circuits, shots=1)
-        sim_job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        sim_job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = sim_job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -53,7 +53,7 @@ class StatevectorSimulatorTests:
         circuits = ref_initialize.initialize_circuits_2(final_measure=False)
         targets = ref_initialize.initialize_statevector_2()
         qobj = assemble(circuits, shots=1)
-        sim_job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        sim_job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = sim_job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -70,7 +70,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -85,7 +85,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -101,7 +101,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -117,7 +117,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -130,7 +130,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -143,9 +143,10 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
+        
         self.compare_statevector(result, circuits, targets)
 
     def test_conditional_unitary_2bit(self):
@@ -156,7 +157,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -172,7 +173,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -186,7 +187,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -200,7 +201,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -213,7 +214,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -227,7 +228,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -241,7 +242,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -257,7 +258,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -271,7 +272,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -285,7 +286,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -301,7 +302,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -315,7 +316,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -329,7 +330,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -345,7 +346,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -359,7 +360,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -373,7 +374,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -389,7 +390,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -403,7 +404,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -417,7 +418,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -430,7 +431,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -444,7 +445,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -458,7 +459,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -474,7 +475,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -488,7 +489,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -502,7 +503,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -515,7 +516,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -529,7 +530,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -543,7 +544,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -559,7 +560,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -573,7 +574,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -587,7 +588,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -600,7 +601,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -614,7 +615,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -628,7 +629,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -644,7 +645,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -658,7 +659,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -672,7 +673,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -685,7 +686,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -699,7 +700,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -713,7 +714,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -729,7 +730,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -743,7 +744,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -757,7 +758,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -770,7 +771,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -784,7 +785,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -798,7 +799,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -814,7 +815,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -828,7 +829,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -842,7 +843,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -855,7 +856,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -869,7 +870,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -883,7 +884,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -899,7 +900,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -913,7 +914,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -927,7 +928,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -940,7 +941,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -954,7 +955,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -968,7 +969,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -984,7 +985,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -998,7 +999,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1012,7 +1013,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1025,7 +1026,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1039,7 +1040,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1053,7 +1054,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1069,7 +1070,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1082,7 +1083,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1098,7 +1099,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1112,7 +1113,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1126,7 +1127,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1143,7 +1144,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1157,7 +1158,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1171,7 +1172,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1184,7 +1185,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1198,7 +1199,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1212,7 +1213,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1229,7 +1230,7 @@ class StatevectorSimulatorTests:
         job = execute(circuits,
                       self.SIMULATOR,
                       shots=1,
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1243,7 +1244,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1257,7 +1258,7 @@ class StatevectorSimulatorTests:
                       self.SIMULATOR,
                       shots=1,
                       basis_gates=['u1', 'u2', 'u3', 'cx'],
-                      backend_options=self.BACKEND_OPTS)
+                      **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
@@ -1274,7 +1275,7 @@ class StatevectorSimulatorTests:
         targets = ref_1q_clifford.h_gate_statevector_nondeterministic()
 
         qobj = assemble(transpile(circuits, self.SIMULATOR),
-                        shots=1, backend_options=self.BACKEND_OPTS)
+                        shots=1, **self.BACKEND_OPTS)
         # Set global phases
         for i, _ in enumerate(circuits):
             global_phase = (-1) ** i * (pi / 4)
@@ -1282,4 +1283,4 @@ class StatevectorSimulatorTests:
             targets[i] = exp(1j * global_phase) * targets[i]
         result = self.SIMULATOR.run(qobj).result()
         self.assertSuccess(result)
-        self.compare_statevector(result, circuits, targets, global_phase=True)
+        self.compare_statevector(result, circuits, targets, ignore_phase=False)

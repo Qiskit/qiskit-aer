@@ -26,12 +26,14 @@ namespace MatrixProductState {
 
 // Allowed gates enum class
 enum Gates {
-  id, h, x, y, z, s, sdg, t, tdg, u1, u2, u3, // single qubit
+  id, h, x, y, z, s, sdg, sx, t, tdg, u1, u2, u3, // single qubit
   cx, cz, cu1, swap, su4, // two qubit
   mcx // three qubit
 };
 
-enum class Direction {RIGHT, LEFT};
+  //enum class Direction {RIGHT, LEFT};
+
+  enum class Sample_measure_alg {APPLY_MEASURE, PROB, HEURISTIC};
 
 //=========================================================================
 // MPS class
@@ -98,6 +100,7 @@ public:
   // Returns: none.
   //----------------------------------------------------------------
   void apply_h(uint_t index);
+  void apply_sx(uint_t index);
   void apply_x(uint_t index){ get_qubit(index).apply_x();}
   void apply_y(uint_t index){ get_qubit(index).apply_y();}
   void apply_z(uint_t index){ get_qubit(index).apply_z();}
@@ -200,12 +203,10 @@ public:
     json_chop_threshold_ = json_chop_threshold;
   }
 
-  static void set_sample_measure_index_size(uint_t index_size){
-    sample_measure_index_size_ = index_size;
+  static void set_sample_measure_alg(Sample_measure_alg alg) {
+    sample_measure_alg_ = alg;
   }
-  static void set_sample_measure_shots_thresh(uint_t index_size){
-    sample_measure_shots_thresh_ = index_size;
-  }
+
   static void set_enable_gate_opt(bool enable_gate_opt) {
     enable_gate_opt_ = enable_gate_opt;
   }
@@ -219,27 +220,24 @@ public:
   static double get_json_chop_threshold() {
     return json_chop_threshold_;
   }
-  static uint_t get_sample_measure_index_size() {
-    return sample_measure_index_size_;
-  }
-  static uint_t get_sample_measure_shots_thresh() {
-    return sample_measure_shots_thresh_;
+  static Sample_measure_alg get_sample_measure_alg() {
+    return sample_measure_alg_;
   }
 
   static bool get_enable_gate_opt() {
     return enable_gate_opt_;
   }
 
-  double norm(const uint_t qubit, const cvector_t &vmat) const {
-    cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
-    reg_t qubits = {qubit};
-    return expectation_value(qubits, mat);
-  }
+  //----------------------------------------------------------------
+  // Function name: norm
+  // Description: the norm is defined as <psi|A^dagger . A|psi>.
+  // It is equivalent to returning the expectation value of A^\dagger A,
+  // Returns: double (the norm)
+  //----------------------------------------------------------------
 
-  double norm(const reg_t &qubits, const cvector_t &vmat) const {
-    cmatrix_t mat = AER::Utils::devectorize_matrix(vmat);
-    return expectation_value(qubits, mat);
-  }
+  double norm();
+  double norm(const reg_t &qubits, const cvector_t &vmat) const;
+  double norm(const reg_t &qubits, const cmatrix_t &mat) const; 
 
   reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
 					   const reg_t &qubits) const;
@@ -257,6 +255,8 @@ public:
   //----------------------------------------------------------------
 
   void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector);
+  reg_t get_bond_dimensions() const;
+  uint_t get_max_bond_dimensions() const;
 
 private:
 
@@ -296,8 +296,7 @@ private:
   void apply_matrix_to_target_qubits(const reg_t &target_qubits,
 				     const cmatrix_t &mat);
   cmatrix_t density_matrix_internal(const reg_t &qubits) const;
-
-  rvector_t trace_of_density_matrix(const reg_t &qubits) const;
+  rvector_t diagonal_of_density_matrix(const reg_t &qubits) const;
 
   double expectation_value_internal(const reg_t &qubits, const cmatrix_t &M) const;
   complex_t expectation_value_pauli_internal(const reg_t &qubits, const std::string &matrices,
@@ -427,8 +426,8 @@ private:
   //-----------------------------------------------------------------------
   static uint_t omp_threads_;     // Disable multithreading by default
   static uint_t omp_threshold_;  // Qubit threshold for multithreading when enabled
-  static uint_t sample_measure_index_size_; // Qubit threshold for computing sample_measure using probabilities
-  static uint_t sample_measure_shots_thresh_; // Shots threshold for computing sample_measure using probablities
+  static Sample_measure_alg sample_measure_alg_; // Algorithm for computing sample_measure 
+
   static double json_chop_threshold_;  // Threshold for choping small values
                                     // in JSON serialization
   static bool enable_gate_opt_;      // allow optimizations on gates

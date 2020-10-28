@@ -1,0 +1,39 @@
+---
+features:
+  - |
+    Make simulator backends configurable. This allows setting persistant options
+    such as simulation method and noise model for each simulator backend object.
+
+    The :class:`~qiskit.providers.aer.QasmSimulator` and
+    :class:`~qiskit.providers.aer.PulseSimulator` can also be configured from
+    an :class:`~qiskit.providers.ibmq.IBMQBackend` backend object using the
+    `:meth:`~qiskit.providers.aer.QasmSimulator.from_backend` method.
+    For the :class:`~qiskit.providers.aer.QasmSimulator` this will configure the coupling map,
+    basis gates, and basic device noise model based on the backend configuration and
+    properties. For the :class:`~qiskit.providers.aer.PulseSimulator` the system model
+    and defaults will be configured automatically from the backend configuration, properties and
+    defaults.
+
+    For example a noisy density matrix simulator backend can be constructed as
+    ``QasmSimulator(method='density_matrix', noise_model=noise_model)``, or an ideal
+    matrix product state simulator as ``QasmSimulator(method='matrix_product_state')``.
+
+    A benefit is that a :class:`~qiskit.providers.aer.PulseSimulator` instance configured from
+    a backend better serves as a drop-in replacement to the original backend, making it easier to
+    swap in and out a simulator and real backend, e.g. when testing code on a simulator before
+    using a real backend.
+    For example, in the following code-block, the :class:`~qiskit.providers.aer.PulseSimulator` is
+    instantiated from the ``FakeArmonk()`` backend. All configuration and default data is copied
+    into the simulator instance, and so when it is passed as an argument to ``assemble``,
+    it behaves as if the original backend was supplied (e.g. defaults from ``FakeArmonk`` will be
+    present and used by ``assemble``).
+
+    .. code-block:: python
+
+        armonk_sim = qiskit.providers.aer.PulseSimulator.from_backend(FakeArmonk())
+        pulse_qobj = assemble(schedules, backend=armonk_sim)
+        armonk_sim.run(pulse_qobj)
+
+    While the above example is small, the demonstrated 'drop-in replacement' behavior should
+    greatly improve the usability in more complicated work-flows, e.g. when calibration experiments
+    are constructed using backend attributes.

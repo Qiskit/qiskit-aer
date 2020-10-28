@@ -17,8 +17,10 @@ from qiskit import QuantumCircuit, assemble
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.providers.aer.extensions.snapshot_statevector import SnapshotStatevector
 
+from ..common import QiskitAerTestCase
 
-class TestSnapshotStatevectorExtension(unittest.TestCase):
+
+class TestSnapshotStatevectorExtension(QiskitAerTestCase):
     """SnapshotStatevector extension tests"""
 
     @staticmethod

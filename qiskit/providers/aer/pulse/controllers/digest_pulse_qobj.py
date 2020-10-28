@@ -18,7 +18,7 @@
 
 from collections import OrderedDict
 import numpy as np
-from qiskit.providers.aer.aererror import AerError
+from ...aererror import AerError
 # pylint: disable=no-name-in-module
 from .pulse_utils import oplist_to_array
 
@@ -64,7 +64,7 @@ class DigestedPulseQobj:
         self.experiments = None
 
 
-def digest_pulse_qobj(qobj, channels, dt, qubit_list, backend_options=None):
+def digest_pulse_qobj(qobj, channels, dt, qubit_list):
     """ Given a PulseQobj (and other parameters), returns a DigestedPulseQobj
     containing relevant extracted information
 
@@ -73,7 +73,6 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list, backend_options=None):
         channels (OrderedDict): channel dictionary
         dt (float): pulse sample width
         qubit_list (list): list of qubits to include
-        backend_options (dict): dict with options that can override all other parameters
 
     Returns:
         DigestedPulseQobj: digested pulse qobj
@@ -83,10 +82,6 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list, backend_options=None):
         AerError: for unsupported features or invalid qobj
         TypeError: for arguments of invalid type
     """
-
-    if backend_options is None:
-        backend_options = {}
-
     digested_qobj = DigestedPulseQobj()
 
     qobj_dict = qobj.to_dict()
@@ -94,10 +89,6 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list, backend_options=None):
 
     # raises errors for unsupported features
     _unsupported_errors(qobj_dict)
-
-    # override anything in qobj_config that is present in backend_options
-    for key in backend_options.keys():
-        qobj_config[key] = backend_options[key]
 
     if 'memory_slots' not in qobj_config:
         raise ValueError('Number of memory_slots must be specific in Qobj config')

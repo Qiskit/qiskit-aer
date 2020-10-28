@@ -13,10 +13,10 @@
 QasmSimulator Integration Tests
 """
 # pylint: disable=no-member
-
-from test.benchmark.tools import quantum_volume_circuit, qft_circuit
+import copy
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit.library import QuantumVolume, QFT
 from qiskit.compiler import assemble, transpile
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
@@ -32,8 +32,8 @@ class QasmFusionTests:
 
     def create_statevector_circuit(self):
         """ Creates a simple circuit for running in the statevector """
-        qr = QuantumRegister(10)
-        cr = ClassicalRegister(10)
+        qr = QuantumRegister(5)
+        cr = ClassicalRegister(5)
         circuit = QuantumCircuit(qr, cr)
         circuit.u3(0.1, 0.1, 0.1, qr[0])
         circuit.barrier(qr)
@@ -93,41 +93,47 @@ class QasmFusionTests:
     def test_fusion_theshold(self):
         """Test fusion threhsold"""
         shots = 100
-        threshold = 10
+        threshold = 6
         backend_options = self.fusion_options(enabled=True, threshold=threshold)
 
         with self.subTest(msg='below fusion threshold'):
-            circuit = transpile(qft_circuit(threshold - 1, measure=True),
+            circuit = transpile(QFT(threshold - 1),
                                 self.SIMULATOR, basis_gates=['u1', 'u2', 'u3', 'cx', 'cz'],
                                 optimization_level=0)
+            circuit.measure_all()
             qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             self.assertSuccess(result)
             meta = self.fusion_metadata(result)
-            self.assertFalse(meta.get('applied', False))
+            self.assertTrue(meta.get('enabled'))
+            self.assertFalse(meta.get('applied'))
 
         with self.subTest(msg='at fusion threshold'):
-            circuit = transpile(qft_circuit(threshold, measure=True),
+            circuit = transpile(QFT(threshold),
                                 self.SIMULATOR, basis_gates=['u1', 'u2', 'u3', 'cx', 'cz'],
                                 optimization_level=0)
+            circuit.measure_all()
             qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             self.assertSuccess(result)
             meta = self.fusion_metadata(result)
-            self.assertTrue(meta.get('applied', False))
+            self.assertTrue(meta.get('enabled'))
+            self.assertFalse(meta.get('applied'))
 
         with self.subTest(msg='above fusion threshold'):
-            circuit = transpile(qft_circuit(threshold + 1, measure=True),
+            circuit = transpile(QFT(threshold + 1),
                                 self.SIMULATOR, basis_gates=['u1', 'u2', 'u3', 'cx', 'cz'],
                                 optimization_level=0)
+            circuit.measure_all()
             qobj = assemble(circuit, self.SIMULATOR, shots=shots)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             self.assertSuccess(result)
             meta = self.fusion_metadata(result)
-            self.assertTrue(meta.get('applied', False))
+            self.assertTrue(meta.get('enabled'))
+            self.assertTrue(meta.get('applied'))
 
     def test_fusion_verbose(self):
         """Test Fusion with verbose option"""
@@ -139,7 +145,7 @@ class QasmFusionTests:
         with self.subTest(msg='verbose enabled'):
             backend_options = self.fusion_options(enabled=True, verbose=True, threshold=1)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             # Assert fusion applied succesfully
             self.assertSuccess(result)
             meta = self.fusion_metadata(result)
@@ -151,7 +157,7 @@ class QasmFusionTests:
         with self.subTest(msg='verbose disabled'):
             backend_options = self.fusion_options(enabled=True, verbose=False, threshold=1)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             # Assert fusion applied succesfully
             self.assertSuccess(result)
             meta = self.fusion_metadata(result)
@@ -163,7 +169,7 @@ class QasmFusionTests:
         with self.subTest(msg='verbose default'):
             backend_options = self.fusion_options(enabled=True, threshold=1)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
 
             # Assert fusion applied succesfully
             self.assertSuccess(result)
@@ -189,11 +195,10 @@ class QasmFusionTests:
         backend_options = self.fusion_options(enabled=True, threshold=1)
         result = self.SIMULATOR.run(qobj,
                                     noise_model=noise_model,
-                                    backend_options=backend_options).result()
+                                    **backend_options).result()
+        method = result.results[0].metadata.get('method')
         meta = self.fusion_metadata(result)
-        if backend_options.get('method') in ['density_matrix',
-                                             'density_matrix_thrust',
-                                             'density_matrix_gpu']:
+        if method in ['density_matrix', 'density_matrix_thrust', 'density_matrix_gpu']:
             target_method = 'superop'
         else:
             target_method = 'kraus'
@@ -219,11 +224,10 @@ class QasmFusionTests:
         backend_options = self.fusion_options(enabled=True, threshold=1)
         result = self.SIMULATOR.run(qobj,
                                     noise_model=noise_model,
-                                    backend_options=backend_options).result()
+                                    **backend_options).result()
         meta = self.fusion_metadata(result)
-        if backend_options.get('method') in ['density_matrix',
-                                             'density_matrix_thrust',
-                                             'density_matrix_gpu']:
+        method = result.results[0].metadata.get('method')
+        if method in ['density_matrix', 'density_matrix_thrust', 'density_matrix_gpu']:
             target_method = 'superop'
         else:
             target_method = 'unitary'
@@ -247,42 +251,44 @@ class QasmFusionTests:
         with self.subTest(msg='fusion enabled'):
             backend_options = self.fusion_options(enabled=True, threshold=1)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                copy.deepcopy(qobj), **backend_options).result()
             meta = self.fusion_metadata(result)
 
             self.assertSuccess(result)
+            self.assertTrue(meta.get('enabled'))
             self.assertTrue(meta.get('applied', False))
 
         with self.subTest(msg='fusion disabled'):
             backend_options = backend_options = self.fusion_options(enabled=False, threshold=1)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                copy.deepcopy(qobj), **backend_options).result()
             meta = self.fusion_metadata(result)
 
             self.assertSuccess(result)
-            self.assertFalse(meta.get('applied', False))
+            self.assertFalse(meta.get('enabled'))
 
         with self.subTest(msg='fusion default'):
             backend_options = self.fusion_options()
 
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                copy.deepcopy(qobj), **backend_options).result()
             meta = self.fusion_metadata(result)
 
             self.assertSuccess(result)
-            self.assertFalse(meta.get('applied', False))
+            self.assertTrue(meta.get('enabled'))
+            self.assertFalse(meta.get('applied', False), msg=meta)
 
     def test_fusion_operations(self):
         """Test Fusion enable/disable option"""
         shots = 100
+        num_qubits = 8
 
-        qr = QuantumRegister(10)
-        cr = ClassicalRegister(10)
+        qr = QuantumRegister(num_qubits)
+        cr = ClassicalRegister(num_qubits)
         circuit = QuantumCircuit(qr, cr)
 
-        for i in range(10):
-            circuit.h(qr[i])
-            circuit.barrier(qr)
+        circuit.h(qr)
+        circuit.barrier(qr)
 
         circuit.u3(0.1, 0.1, 0.1, qr[0])
         circuit.barrier(qr)
@@ -339,18 +345,19 @@ class QasmFusionTests:
 
         backend_options = self.fusion_options(enabled=False, threshold=1)
         result_disabled = self.SIMULATOR.run(
-            qobj, backend_options=backend_options).result()
+            qobj, **backend_options).result()
         meta_disabled = self.fusion_metadata(result_disabled)
 
         backend_options = self.fusion_options(enabled=True, threshold=1)
         result_enabled = self.SIMULATOR.run(
-            qobj, backend_options=backend_options).result()
+            qobj, **backend_options).result()
         meta_enabled = self.fusion_metadata(result_enabled)
 
         self.assertTrue(getattr(result_disabled, 'success', 'False'))
         self.assertTrue(getattr(result_enabled, 'success', 'False'))
-        self.assertEqual(meta_disabled, {})
-        self.assertTrue(meta_enabled.get('applied', False))
+        self.assertFalse(meta_disabled.get('enabled'))
+        self.assertTrue(meta_enabled.get('enabled'))
+        self.assertTrue(meta_enabled.get('applied'))
         self.assertDictAlmostEqual(result_enabled.get_counts(circuit),
                                    result_disabled.get_counts(circuit),
                                    delta=0.0,
@@ -359,28 +366,25 @@ class QasmFusionTests:
     def test_fusion_qv(self):
         """Test Fusion with quantum volume"""
         shots = 100
-
-        circuit = transpile(quantum_volume_circuit(10, 2, measure=True, seed=0),
+        num_qubits = 6
+        depth = 2
+        circuit = transpile(QuantumVolume(num_qubits, depth, seed=0),
                             backend=self.SIMULATOR,
                             optimization_level=0)
-        qobj = assemble([circuit],
-                        self.SIMULATOR,
-                        shots=shots,
-                        seed_simulator=1)
-
-        backend_options = self.fusion_options(enabled=False, threshold=1)
-        result_disabled = self.SIMULATOR.run(
-            qobj, backend_options=backend_options).result()
+        circuit.measure_all()
+        qobj_disabled = assemble([circuit], self.SIMULATOR, shots=shots,
+                                 **self.fusion_options(enabled=False, threshold=1, verbose=True))
+        result_disabled = self.SIMULATOR.run(qobj_disabled).result()
         meta_disabled = self.fusion_metadata(result_disabled)
 
-        backend_options = self.fusion_options(enabled=True, threshold=1)
-        result_enabled = self.SIMULATOR.run(
-            qobj, backend_options=backend_options).result()
+        qobj_enabled = assemble([circuit], self.SIMULATOR, shots=shots,
+                                **self.fusion_options(enabled=True, threshold=1, verbose=True))
+        result_enabled = self.SIMULATOR.run(qobj_enabled).result()
         meta_enabled = self.fusion_metadata(result_enabled)
 
         self.assertTrue(getattr(result_disabled, 'success', 'False'))
         self.assertTrue(getattr(result_enabled, 'success', 'False'))
-        self.assertEqual(meta_disabled, {})
+        self.assertFalse(meta_disabled.get('applied', False))
         self.assertTrue(meta_enabled.get('applied', False))
         self.assertDictAlmostEqual(result_enabled.get_counts(circuit),
                                    result_disabled.get_counts(circuit),
@@ -390,11 +394,12 @@ class QasmFusionTests:
     def test_fusion_qft(self):
         """Test Fusion with qft"""
         shots = 100
-
-        circuit = transpile(qft_circuit(10, measure=True),
+        num_qubits = 8
+        circuit = transpile(QFT(num_qubits),
                             backend=self.SIMULATOR,
                             basis_gates=['u1', 'u2', 'u3', 'cx', 'cz'],
                             optimization_level=0)
+        circuit.measure_all()
         qobj = assemble([circuit],
                         self.SIMULATOR,
                         shots=shots,
@@ -402,18 +407,19 @@ class QasmFusionTests:
 
         backend_options = self.fusion_options(enabled=False, threshold=1)
         result_disabled = self.SIMULATOR.run(
-            qobj, backend_options=backend_options).result()
+            qobj, **backend_options).result()
         meta_disabled = self.fusion_metadata(result_disabled)
 
         backend_options = self.fusion_options(enabled=True, threshold=1)
         result_enabled = self.SIMULATOR.run(
-            qobj, backend_options=backend_options).result()
+            qobj, **backend_options).result()
         meta_enabled = self.fusion_metadata(result_enabled)
 
         self.assertTrue(getattr(result_disabled, 'success', 'False'))
         self.assertTrue(getattr(result_enabled, 'success', 'False'))
-        self.assertEqual(meta_disabled, {})
-        self.assertTrue(meta_enabled.get('applied', False))
+        self.assertFalse(meta_disabled.get('enabled'))
+        self.assertTrue(meta_enabled.get('enabled'))
+        self.assertTrue(meta_enabled.get('applied'))
         self.assertDictAlmostEqual(result_enabled.get_counts(circuit),
                                    result_disabled.get_counts(circuit),
                                    delta=0.0,

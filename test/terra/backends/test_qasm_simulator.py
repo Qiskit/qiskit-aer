@@ -34,6 +34,8 @@ from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmDiagonalGat
 from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
 from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeKetTests
 from test.terra.backends.qasm_simulator.qasm_multiplexer import QasmMultiplexerTests
+from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardGateStatevectorTests
+from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardGateDensityMatrixTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
@@ -97,17 +99,21 @@ class TestQasmSimulator(common.QiskitAerTestCase,
                         QasmResetNoiseTests,
                         QasmKrausNoiseTests,
                         QasmBasicsTests,
+                        QasmStandardGateStatevectorTests,
+                        QasmStandardGateDensityMatrixTests,
                         QasmSnapshotStatevectorTests,
                         QasmSnapshotDensityMatrixTests,
                         QasmSnapshotProbabilitiesTests,
                         QasmSnapshotExpValPauliTests,
                         QasmSnapshotExpValPauliNCTests,
                         QasmSnapshotExpValMatrixTests,
-                        QasmSnapshotStabilizerTests):
+                        QasmSnapshotStabilizerTests
+                        ):
     """QasmSimulator automatic method tests."""
 
     BACKEND_OPTS = {
-        "seed_simulator": 2113
+        "seed_simulator": 2113,
+        "max_parallel_threads": 1
     }
 
 

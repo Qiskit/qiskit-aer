@@ -40,8 +40,7 @@ static const cmatrix_t one_measure =
 			                 {{0, 0}, {1, 0}}});
   uint_t MPS::omp_threads_ = 1;     
   uint_t MPS::omp_threshold_ = 14;  
-  uint_t MPS::sample_measure_index_size_ = 26; 
-  uint_t MPS::sample_measure_shots_thresh_ = 10; 
+  enum Sample_measure_alg MPS::sample_measure_alg_ = Sample_measure_alg::HEURISTIC; 
   double MPS::json_chop_threshold_ = 1E-8;  
 //------------------------------------------------------------------------
 // local function declarations
@@ -314,27 +313,30 @@ reg_t MPS::get_internal_qubits(const reg_t &qubits) const {
  
 void MPS::apply_h(uint_t index) 
 {
-  cmatrix_t h_matrix = AER::Utils::Matrix::H;
-  get_qubit(index).apply_matrix(h_matrix);
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::H);
+}
+
+void MPS::apply_sx(uint_t index)
+{
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::SX);
 }
 
 void MPS::apply_u1(uint_t index, double lambda)
 {
-  cmatrix_t u1_matrix = AER::Utils::Matrix::u1(lambda);
-  get_qubit(index).apply_matrix(u1_matrix);
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::u1(lambda));
 }
 
 void MPS::apply_u2(uint_t index, double phi, double lambda)
 {
-  cmatrix_t u2_matrix = AER::Utils::Matrix::u2(phi, lambda);
-  get_qubit(index).apply_matrix(u2_matrix);
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::u2(phi, lambda));
 }
 
 void MPS::apply_u3(uint_t index, double theta, double phi, double lambda)
 {
-  cmatrix_t u3_matrix = AER::Utils::Matrix::u3(theta, phi, lambda);
-  get_qubit(index).apply_matrix(u3_matrix);
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::u3(theta, phi, lambda));
 }
+
+
 
 void MPS::apply_cnot(uint_t index_A, uint_t index_B)
 {
@@ -349,7 +351,7 @@ void MPS::apply_cz(uint_t index_A, uint_t index_B)
 }
 void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
 {
-  cmatrix_t u1_matrix = AER::Utils::Matrix::u1(lambda);
+  cmatrix_t u1_matrix = AER::Linalg::Matrix::u1(lambda);
   apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), cu1, u1_matrix);
 }
 
@@ -458,8 +460,8 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
     break;
   case cu1:
     {
-      cmatrix_t Zeros = AER::Utils::Matrix::I-AER::Utils::Matrix::I;
-      cmatrix_t temp1 = AER::Utils::concatenate(AER::Utils::Matrix::I, Zeros , 1),
+      cmatrix_t Zeros = AER::Linalg::Matrix::I-AER::Linalg::Matrix::I;
+      cmatrix_t temp1 = AER::Utils::concatenate(AER::Linalg::Matrix::I, Zeros , 1),
 	temp2 = AER::Utils::concatenate(Zeros, mat, 1);
       cmatrix_t cu = AER::Utils::concatenate(temp1, temp2 ,0) ;
       temp.apply_matrix(cu);
@@ -785,6 +787,13 @@ cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
   uint_t size = psi.get_dim();
   cmatrix_t rho(size,size);
 
+  // We do the reordering of qubits on a dummy vector in order to not do the reordering on psi, 
+  // since psi is a vector of matrices and this would be more costly in performance
+  reg_t ordered_vector(size), temp_vector(size), actual_vec(size); 
+  std::iota( std::begin(ordered_vector), std::end(ordered_vector), 0);
+  reorder_all_qubits(ordered_vector, qubits, temp_vector);
+  actual_vec = reverse_all_bits(temp_vector, qubits.size());
+
 #ifdef _WIN32
     #pragma omp parallel for if (size > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
 #else
@@ -792,17 +801,18 @@ cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
 #endif
   for(int_t i = 0; i < static_cast<int_t>(size); i++) {
     for(int_t j = 0; j < static_cast<int_t>(size); j++) {
-      rho(i,j) = AER::Utils::sum( AER::Utils::elementwise_multiplication(psi.get_data(i), AER::Utils::conjugate(psi.get_data(j))) );
+      rho(i,j) = AER::Utils::sum( AER::Utils::elementwise_multiplication(
+					psi.get_data(actual_vec[i]), 
+					AER::Utils::conjugate(psi.get_data(actual_vec[j]))) );
     }
   }
   return rho;
 }
 
-rvector_t MPS::trace_of_density_matrix(const reg_t &qubits) const
+rvector_t MPS::diagonal_of_density_matrix(const reg_t &qubits) const
 {
   bool ordered = true;
   reg_t new_qubits;
-
   MPS temp_MPS;
   temp_MPS.initialize(*this);
   temp_MPS.centralize_qubits(qubits, new_qubits, ordered);
@@ -810,12 +820,12 @@ rvector_t MPS::trace_of_density_matrix(const reg_t &qubits) const
   MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_qubits.front(), new_qubits.back());
 
   uint_t size = psi.get_dim();
-  rvector_t trace_rho(size);
+  rvector_t diagonal_rho(size);
 
   for(int_t i = 0; i < static_cast<int_t>(size); i++) {
-    trace_rho[i] = real(AER::Utils::sum( AER::Utils::elementwise_multiplication(psi.get_data(i), AER::Utils::conjugate(psi.get_data(i))) ));
+    diagonal_rho[i] = real(AER::Utils::sum( AER::Utils::elementwise_multiplication(psi.get_data(i), AER::Utils::conjugate(psi.get_data(i))) ));
   }
-  return trace_rho;
+  return diagonal_rho;
 }
 
 void MPS::MPS_with_new_indices(const reg_t &qubits, 
@@ -838,29 +848,9 @@ double MPS::expectation_value(const reg_t &qubits,
 
 double MPS::expectation_value_internal(const reg_t &qubits, 
 				       const cmatrix_t &M) const {
-  // need to reverse qubits because that is the way they
-  // are defined in the Qiskit interface
-  reg_t reversed_qubits = qubits;
-  std::reverse(reversed_qubits.begin(), reversed_qubits.end()); 
-
-  bool are_qubits_ordered = is_ordered(reversed_qubits);
-
   cmatrix_t rho;
+  rho = density_matrix(qubits);
 
-  // if qubits are in consecutive order, can extract the density matrix
-  // without moving them, for performance reasons
-  reg_t target_qubits(qubits.size());
-  if (are_qubits_ordered) {
-    rho = density_matrix(reversed_qubits);
-  } else {
-    reg_t actual_indices(num_qubits_);
-    std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
-    MPS temp_MPS;
-    temp_MPS.initialize(*this);
-    temp_MPS.move_qubits_to_right_end(reversed_qubits, target_qubits, actual_indices);
-
-    rho = temp_MPS.density_matrix(target_qubits);
-  }
   // Trace(rho*M). not using methods for efficiency
   complex_t res = 0;
   for (uint_t i = 0; i < M.GetRows(); i++)
@@ -1053,6 +1043,24 @@ std::vector<reg_t> MPS::get_matrices_sizes() const
   return result;
 }
 
+reg_t MPS::get_bond_dimensions() const {
+  reg_t result;
+  for(uint_t i=0; i<num_qubits_-1; i++)
+    {
+      result.push_back(lambda_reg_[i].size());
+    }
+  return result;
+}
+
+uint_t MPS::get_max_bond_dimensions() const {
+  uint_t max = 0;
+  for (uint_t i=0; i<num_qubits_-1; i++) {
+    if (lambda_reg_[i].size() > max)
+      max = lambda_reg_[i].size();
+  }
+  return max;
+}
+
 MPS_Tensor MPS::state_vec_as_MPS(const reg_t &qubits) {
   bool ordered = true;
   reg_t new_qubits;
@@ -1119,16 +1127,16 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
 {
   cvector_t state_vec;
   uint_t num_qubits = qubits.size();
-  uint_t length = 1ULL << num_qubits;   // length = pow(2, num_qubits)
-  probvector.resize(length);
+  uint_t size = 1ULL << num_qubits;   // length = pow(2, num_qubits)
+  probvector.resize(size);
 
   // compute the probability vector assuming the qubits are in ascending order
-  rvector_t ordered_probvector = trace_of_density_matrix(qubits);
+  rvector_t ordered_probvector = diagonal_of_density_matrix(qubits);
 
   // reorder the probabilities according to the specification in 'qubits'
-  rvector_t temp_probvector(ordered_probvector.size()); 
-
+  rvector_t temp_probvector(size); 
   reorder_all_qubits(ordered_probvector, qubits, temp_probvector);
+
   // reverse to be consistent with qasm ordering
   probvector = reverse_all_bits(temp_probvector, num_qubits);
 }
@@ -1162,6 +1170,25 @@ uint_t binary_search(const rvector_t &acc_probvector,
     return binary_search(acc_probvector, start, mid, rnd);
   else 
     return binary_search(acc_probvector, mid, end, rnd);
+}
+
+double MPS::norm() {
+    reg_t qubits(num_qubits_);
+    std::iota( std::begin(qubits), std::end(qubits), 0);
+    double trace = 0;
+    rvector_t vec = diagonal_of_density_matrix(qubits);
+    for (uint_t i=0; i<vec.size(); i++)
+      trace += vec[i];
+    return trace;
+}
+
+double MPS::norm(const reg_t &qubits, const cvector_t &vmat) const {
+    return norm(qubits, AER::Utils::devectorize_matrix(vmat));
+}
+
+double MPS::norm(const reg_t &qubits, const cmatrix_t &mat) const {
+    cmatrix_t norm_mat = AER::Utils::dagger(mat) * mat;
+    return expectation_value(qubits, norm_mat);
 }
 
 //------------------------------------------------------------------------------

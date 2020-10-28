@@ -184,16 +184,21 @@ void Print(std::vector<uint_fast64_t> A, unsigned n);// print a binary matrix
 //---------------------------------------//
 
 #ifdef _MSC_VER
+  #ifdef _WIN64
+    #define POPCNT __popcnt64
+  #else
+    #define POPCNT __popcnt
+  #endif
   #define INTRINSIC_PARITY 1
   #include <intrin.h>
   inline bool _msc_parity(word x)
   {
-    return (__popcnt64(x) & one);
+    return (POPCNT(x) & one);
   }
   bool (*hamming_parity) (word) = &_msc_parity;
   inline unsigned _msc_weight(word x)
   {
-    return (__popcnt64(x));
+    return (POPCNT(x));
   }
   unsigned (*hamming_weight) (word)= &_msc_weight;
 #endif
