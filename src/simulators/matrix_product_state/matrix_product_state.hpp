@@ -140,7 +140,7 @@ public:
   std::vector<reg_t> 
   sample_measure_using_probabilities(const reg_t &qubits,
 				     uint_t shots,
-				     RngEngine &rng) const;
+				     RngEngine &rng);
 
   // Computes sample_measure by copying the MPS to a temporary structure, and
   // applying a measurement on the temporary MPS. This is done for every shot,
@@ -803,9 +803,9 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   // The parameters used below are based on experimentation.
   // The user can override this by setting the parameter "mps_sample_measure_algorithm"
   uint_t num_qubits = qubits.size();
-
-  if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB || num_qubits < 10)
+  if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB){
     return sample_measure_using_probabilities(qubits, shots, rng);
+  }
   if (MPS::get_sample_measure_alg() == Sample_measure_alg::APPLY_MEASURE ||
       num_qubits >26 )
      return sample_measure_using_apply_measure(qubits, shots, rng);
@@ -816,6 +816,8 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   // Sample_measure_alg::HEURISTIC
   uint_t max_bond_dim = qreg_.get_max_bond_dimensions();
 
+  if (num_qubits <10)
+    return sample_measure_using_probabilities(qubits, shots, rng);
   if (max_bond_dim <= 2) {
     if (shots_dbl < 12.0 * pow(1.85, (num_qubits_dbl-10.0)))
        return sample_measure_using_apply_measure(qubits, shots, rng);
@@ -843,7 +845,7 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
 std::vector<reg_t> State::
 sample_measure_using_probabilities(const reg_t &qubits,
 				   uint_t shots,
-				   RngEngine &rng) const {
+				   RngEngine &rng) {
 
   // Generate flat register for storing
   rvector_t rnds;

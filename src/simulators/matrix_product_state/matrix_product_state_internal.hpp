@@ -240,7 +240,7 @@ public:
   double norm(const reg_t &qubits, const cmatrix_t &mat) const; 
 
   reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
-					   const reg_t &qubits) const;
+					   const reg_t &qubits);
 
   reg_t apply_measure(const reg_t &qubits,
 		      RngEngine &rng);
@@ -333,6 +333,10 @@ private:
 			      RngEngine &rng, reg_t &outcome_vector_internal);
    uint_t apply_measure(uint_t qubit, 
 			  RngEngine &rng);
+
+  reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
+						    const reg_t &qubits) const;
+
 
   void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
   //----------------------------------------------------------------
