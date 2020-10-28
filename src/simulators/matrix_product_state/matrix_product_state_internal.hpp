@@ -337,7 +337,6 @@ private:
   reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
 						    const reg_t &qubits) const;
 
-
   void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
   //----------------------------------------------------------------
   // Function name: centralize_qubits

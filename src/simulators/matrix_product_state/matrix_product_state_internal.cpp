@@ -1205,7 +1205,6 @@ reg_t MPS::sample_measure_using_probabilities(const rvector_t &rnds,
   // since input is always sorted in qasm_controller, therefore, we must return the qubits 
   // to their original location (sorted)
   move_all_qubits_to_sorted_ordering();
-
   return sample_measure_using_probabilities_internal(rnds, qubits);
 }
 
