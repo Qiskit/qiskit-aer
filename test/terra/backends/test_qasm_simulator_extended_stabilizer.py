@@ -33,14 +33,19 @@ logger = logging.getLogger(__name__)
 class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
     """QasmSimulator extended_stabilizer method tests."""
 
+    def setUp(self):
+        super(common.QiskitAerTestCase, self).setUp()
+
     BACKEND_OPTS = {
         "seed_simulator": 1984,
-        "method": "extended_stabilizer"
+        "method": "extended_stabilizer",
+        "extended_stabilizer_sampling_method": "resampled_metropolis",
     }
 
     BACKEND_OPTS_SAMPLING = {
         "seed_simulator": 1984,
         "method": "extended_stabilizer",
+        "extended_stabilizer_sampling_method": "metropolis",
         "extended_stabilizer_measure_sampling": True
     }
 

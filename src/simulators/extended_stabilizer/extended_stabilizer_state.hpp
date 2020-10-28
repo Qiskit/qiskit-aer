@@ -153,6 +153,9 @@ protected:
   double approximation_error_ = 0.05;
 
   uint_t norm_estimation_samples_ = 100;
+
+  uint_t norm_estimation_repetitions_ = 3;
+
   // How long the metropolis algorithm runs before
   // we consider it to be well mixed and sample form the
   // output distribution
@@ -246,10 +249,14 @@ void State::set_config(const json_t &config)
   // Set the error upper bound in the stabilizer rank approximation
   JSON::get_value(approximation_error_, "extended_stabilizer_approximation_error", config);
   // Set the number of samples used in the norm estimation routine
-  JSON::get_value(norm_estimation_samples_, "extended_stabilizer_norm_estimation_samples", config);
+  JSON::get_value(norm_estimation_samples_, "extended_stabilizer_norm_estimation_default_samples", config);
+  // Set the desired number of repetitions of the norm estimation step. If not explicitly set, we
+  // compute a default basd on the approximation error
+  norm_estimation_repetitions_ = std::llrint(std::log2(1. / approximation_error_));
+  JSON::get_value(norm_estimation_repetitions_, "extended_stabilizer_norm_estimation_repetitions", config);
   // Set the number of steps used in the metropolis sampler before we
   // consider the distribution as approximating the output
-  JSON::get_value(metropolis_mixing_steps_, "extended_stabilizer_mixing_time", config);
+  JSON::get_value(metropolis_mixing_steps_, "extended_stabilizer_metropolis_mixing_time", config);
   //Set the threshold of the decomposition before we use omp
   JSON::get_value(omp_threshold_rank_, "extended_stabilizer_parallel_threshold", config);
   //Set the truncation threshold for the probabilities snapshot.
@@ -257,7 +264,7 @@ void State::set_config(const json_t &config)
   //Set the number of samples for the probabilities snapshot
   JSON::get_value(probabilities_snapshot_samples_, "probabilities_snapshot_samples", config);
   //Set the measurement strategy
-  std::string sampling_method_str;
+  std::string sampling_method_str = "resampled_metropolis";
   JSON::get_value(sampling_method_str, "extended_stabilizer_sampling_method", config);
   if (sampling_method_str == "metropolis") {
     sampling_method_ = SamplingMethod::metropolis;
@@ -274,6 +281,13 @@ void State::set_config(const json_t &config)
       std::string("Unrecognised sampling method ") + sampling_method_str +
       std::string("for the extended stabilizer simulator.")
     );
+  }
+  #pragma omp critical
+  {
+    std::cout << "approximation_error_: " << approximation_error_ << std::endl;
+    std::cout << "Default samples_: " << norm_estimation_samples_ << std::endl;
+    std::cout << "Repetitions_: " << norm_estimation_repetitions_ << std::endl;
+    std::cout << "sampling_method_str: " << sampling_method_str << std::endl;
   }
 }
 
@@ -443,7 +457,7 @@ auto State::sample_measure(const reg_t& qubits,
       for(uint_t i=0; i<shots; i++)
       {
         output_samples.push_back(
-          BaseState::qreg_.ne_single_sample(norm_estimation_samples_, 3, true, qubits, rng)
+          BaseState::qreg_.ne_single_sample(norm_estimation_samples_, norm_estimation_repetitions_, true, qubits, rng)
         );
       }
     }
@@ -556,7 +570,7 @@ void State::apply_measure(const reg_t &qubits, const reg_t &cmemory, const reg_t
       do_projector_correction = false;
       //Run the norm estimation routine
       out_string = BaseState::qreg_.ne_single_sample(
-        norm_estimation_samples_, 3, false, qubits, rng
+        norm_estimation_samples_, norm_estimation_repetitions_, false, qubits, rng
       );
     }
     else
@@ -870,6 +884,11 @@ auto State::required_memory_mb(uint_t num_qubits,
   // Plus 2*CHSimulator::pauli_t which has 2 8 byte words and one 4 byte word;
   double mb_per_state = 5e-5*num_qubits;//
   size_t required_mb = std::llrint(std::ceil(mb_per_state*required_chi));
+
+  if (sampling_method_ == SamplingMethod::norm_estimation)
+  {
+    required_mb *= 2;
+  }
   return required_mb;
   //Todo: Update this function to account for snapshots
 }

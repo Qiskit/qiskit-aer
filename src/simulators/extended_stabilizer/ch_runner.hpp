@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <complex>
 #include <vector>
 
@@ -437,53 +438,57 @@ auto Runner::norm_estimation(uint_t n_samples, uint_t repetitions, AER::RngEngin
   const int_t NSAMPLES = n_samples;
   const int_t NQUBITS = n_qubits_;
   std::vector<double> xi_samples(repetitions, 0.);
-  std::vector<uint_t> adiag_1(n_samples, 0ULL);
-  std::vector<uint_t> adiag_2(n_samples, 0ULL);
-  std::vector< std::vector<uint_t> > a(n_samples, std::vector<uint_t>(n_qubits_, 0ULL));
-  // for(uint_t m=0; m < repetitions; m++)
-  // {
-
+  for(uint_t m=0; m < repetitions; m++)
+  {
+    std::vector<uint_t> adiag_1(n_samples, 0ULL);
+    std::vector<uint_t> adiag_2(n_samples, 0ULL);
+    std::vector< std::vector<uint_t> > a(n_samples, std::vector<uint_t>(n_qubits_, 0ULL));
     #pragma omp parallel if (num_threads_ > 1) num_threads(num_threads_)
     {
-    #ifdef _WIN32
-      #pragma omp for
-    #else
-      #pragma omp for collapse(2)
-    #endif
-    for (int_t l=0; l<NSAMPLES; l++)
-    {
-      for (int_t i=0; i<NQUBITS; i++)
+      #ifdef _WIN32
+        #pragma omp for
+      #else
+        #pragma omp for collapse(2)
+      #endif
+      for (int_t l=0; l<NSAMPLES; l++)
       {
-        for (int_t j=i; j<NQUBITS; j++)
+        for (int_t i=0; i<NQUBITS; i++)
         {
-            if(rng.rand() < 0.5)
-            {
-                a[l][i] |= (1ULL << j);
-                a[l][j] |= (1ULL << i);
-            }
-        }
-        adiag_1[l] |= (a[l][i] & (1ULL << i));
-        if (rng.rand() < 0.5)
-        {
-            adiag_2[l] |= (1ULL << i);
+          for (int_t j=i; j<NQUBITS; j++)
+          {
+              if(rng.rand() < 0.5)
+              {
+                  a[l][i] |= (1ULL << j);
+                  a[l][j] |= (1ULL << i);
+              }
+          }
+          adiag_1[l] |= (a[l][i] & (1ULL << i));
+          if (rng.rand() < 0.5)
+          {
+              adiag_2[l] |= (1ULL << i);
+          }
         }
       }
-    }
     } // end omp parallel
-    return ParallelNormEstimate(states_, coefficients_, adiag_1, adiag_2, a, num_threads_);
-  // }
+    // return ParallelNormEstimate(states_, coefficients_, adiag_1, adiag_2, a, num_threads_);
+    double xi = ParallelNormEstimate(states_, coefficients_, adiag_1, adiag_2, a, num_threads_);
+    xi_samples.push_back(xi);
+  }
   // Get median of the xi samples
-  // std::sort(xi_samples.begin(), xi_samples.end());
-  // uint_t len = xi_samples.size();
-  // if(len % 2 == 0)
-  // {
-  // 	return (xi_samples[len/2] + xi_samples[len/2 - 1]) / 2.;
-  // }
-  // else
-  // {
-  // 	uint_t index = std::floor(len / 2.);
-  // 	return xi_samples[index];
-  // }
+  if (repetitions == 1)
+  {
+    return xi_samples[0];
+  }
+  std::sort(xi_samples.begin(), xi_samples.end(), std::greater<double>());
+  if(repetitions % 2 == 0)
+  {
+  	return (xi_samples[repetitions/2] + xi_samples[repetitions/2 - 1]) / 2.;
+  }
+  else
+  {
+  	uint_t index = std::floor(repetitions / 2.);
+  	return xi_samples[index];
+  }
 }
 
 auto Runner::norm_estimation(uint_t n_samples, uint_t repetitions, std::vector<pauli_t> generators, AER::RngEngine &rng) -> double
@@ -498,7 +503,7 @@ auto Runner::ne_single_sample(uint_t default_samples,
                               const AER::reg_t &qubits,
                               AER::RngEngine &rng) -> uint_t
 {
-  uint_t n_samples = std::llrint(0.5 * std::pow(qubits.size(), 2));
+  uint_t n_samples = std::llrint(4 * std::pow(qubits.size(), 2));
   if (default_samples > n_samples)
   {
     n_samples = default_samples;
@@ -512,9 +517,10 @@ auto Runner::ne_single_sample(uint_t default_samples,
     pauli_t generator;
     generator.Z = (1ULL << qubits[i]);
     apply_pauli(generator);
-  // Compute probability this bit is 0, given the previous assignemnts
+    // Compute probability this bit is 0, given the previous assignemnts
     double numerator = norm_estimation(n_samples, repetitions, rng);
-    if (rng.rand() < (numerator / denominator))
+    double p_zero_given_observations = numerator / denominator;
+    if (rng.rand() < p_zero_given_observations)
     {
       // We sample a 0 for this bit
       generators.push_back(generator);
@@ -528,6 +534,7 @@ auto Runner::ne_single_sample(uint_t default_samples,
       states_ = states_cache;
       apply_pauli_projector(generators);
       out_string ^= (1ULL << qubits[i]);
+      denominator = (1 - p_zero_given_observations) * denominator;
     }
   }
   if (preserve_states) {
