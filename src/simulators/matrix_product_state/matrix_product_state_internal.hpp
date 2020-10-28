@@ -298,7 +298,6 @@ private:
 			    const std::vector<cmatrix_t> &kmats,
 			    RngEngine &rng);
 
-
   // The following two are helper functions for apply_multi_qubit_gate
   void apply_unordered_multi_qubit_gate(const reg_t &qubits,
 			      const cmatrix_t &mat);

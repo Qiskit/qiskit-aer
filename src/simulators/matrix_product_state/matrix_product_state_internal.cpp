@@ -824,8 +824,6 @@ void MPS::change_position(uint_t src, uint_t dst) {
 }
 
 cmatrix_t MPS::density_matrix(const reg_t &qubits) const {
-
-  
   reg_t internal_qubits = get_internal_qubits(qubits);
   return density_matrix_internal(internal_qubits);
 }
@@ -1139,7 +1137,6 @@ MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
 	for(uint_t i = first_index+1; i < last_index+1; i++) {
 	  temp = MPS_Tensor::contract(temp, lambda_reg_[i-1], q_reg_[i]);
 	}
-
 	// now temp is a tensor of 2^n matrices
 	if (last_index != num_qubits_-1)
 	  temp.mul_Gamma_by_right_Lambda(lambda_reg_[last_index]);

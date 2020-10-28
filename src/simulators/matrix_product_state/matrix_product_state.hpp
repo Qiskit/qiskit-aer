@@ -493,17 +493,6 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
                                       op.name + "\'.");
       }
     }
-
-    rvector_t probvec;
-    reg_t qubits(qreg_.num_qubits());
-    std::iota( std::begin(qubits), std::end(qubits), 0);
-    
-    qreg_.get_probabilities_vector(probvec, qubits);
-    double sum = 0;
-    for (uint_t i=0; i<probvec.size(); i++)
-      sum = sum + probvec[i];
-    if (!Linalg::almost_equal(sum, 1.0, 10E-5))
-      std::cout <<"Error: sum = " << sum <<"  != 1"<<std::endl;
   }
 }
 
