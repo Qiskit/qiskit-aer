@@ -42,7 +42,7 @@ public:
 
   void set_config(const json_t &config);
 
-  std::string name() const { return "fusion"; };
+  std::string name() const { return "cost_based"; };
 
   uint_t get_threshold() const { return threshold; }
 
@@ -120,7 +120,7 @@ bool CostBasedFusion::aggregate_operations(oplist_t& ops,
 
   int fusion_start = fusion_start_;
   bool applied = false;
-  for (uint_t op_idx = 0; op_idx < fusion_end; ++op_idx) {
+  for (uint_t op_idx = fusion_start; op_idx < fusion_end; ++op_idx) {
     if (can_ignore(ops[op_idx]))
       continue;
     if (ops[op_idx].qubits.size() > max_fused_qubits
