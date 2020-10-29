@@ -108,7 +108,7 @@ public:
 
   thrust::complex<data_t>* pointer(void)
   {
-    return chunk_container_->chunk_pointer() + (chunk_pos_ << chunk_container_->chunk_bits());
+    return chunk_container_->chunk_pointer(chunk_pos_);
   }
 
   void StoreMatrix(const std::vector<std::complex<double>>& mat)
@@ -214,10 +214,6 @@ public:
   uint_t* param_pointer(void)
   {
     return chunk_container_->param_pointer(chunk_pos_);
-  }
-  int matrix_bits(void)
-  {
-    return chunk_container_->matrix_bits();
   }
 
   //set qubits to be blocked

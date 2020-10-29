@@ -649,6 +649,10 @@ cvector_t<data_t> QubitVectorThrust<data_t>::vector() const
 
   chunk_->CopyOut((thrust::complex<data_t>*)&ret[0]);
 
+#ifdef AER_DEBUG
+  DebugMsg("vector");
+#endif
+
   return ret;
 }
 
@@ -657,6 +661,10 @@ AER::Vector<std::complex<data_t>> QubitVectorThrust<data_t>::copy_to_vector() co
 {
   cvector_t<data_t> ret(data_size_, 0.);
   chunk_->CopyOut((thrust::complex<data_t>*)&ret[0]);
+
+#ifdef AER_DEBUG
+  DebugMsg("copy_to_vector");
+#endif
 
   return AER::Vector<std::complex<data_t>>::copy_from_buffer(data_size_, &ret[0]);
 }
@@ -670,6 +678,11 @@ AER::Vector<std::complex<data_t>> QubitVectorThrust<data_t>::move_to_vector()
   chunk_->CopyOut((thrust::complex<data_t>*)pRet);
 
   const auto vec = AER::Vector<std::complex<data_t>>::move_from_buffer(data_size_, pRet);
+
+#ifdef AER_DEBUG
+  DebugMsg("move_to_vector");
+#endif
+
   return vec;
 }
 
@@ -1642,6 +1655,48 @@ public:
   }
 };
 
+template <typename data_t>
+class MatrixMultNxN : public GateFuncWithCache<data_t>
+{
+protected:
+public:
+  MatrixMultNxN(uint_t nq) : GateFuncWithCache<data_t>(nq)
+  {
+    ;
+  }
+
+
+  __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
+  {
+    uint_t j,threadID;
+    thrust::complex<data_t> q,r;
+    thrust::complex<double> m;
+    uint_t mat_size,irow;
+    thrust::complex<data_t>* vec;
+    thrust::complex<double>* pMat;
+
+    vec = this->data_;
+    pMat = this->matrix_;
+
+    mat_size = 1ull << this->nqubits_;
+    irow = _tid & (mat_size - 1);
+
+    r = 0.0;
+    for(j=0;j<mat_size;j++){
+      m = pMat[irow + mat_size*j];
+      q = _cache[_tid - irow + j];
+
+      r += m*q;
+    }
+
+    vec[_idx] = r;
+  }
+  const char* name(void)
+  {
+    return "multNxN";
+  }
+
+};
 
 //in-place NxN matrix multiplication using LU factorization
 template <typename data_t>
@@ -1886,18 +1941,18 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
   else if(N == 2){
     apply_function(MatrixMult4x4<data_t>(mat,qubits[0],qubits[1]));
   }
-  else if(N == 3){
+  else if(N <= 10){
+    int i;
+    for(i=0;i<N;i++){
+      qubits_sorted.push_back(qubits[i]);
+    }
     chunk_->StoreMatrix(mat);
-    apply_function(MatrixMult8x8<data_t>(qubits,qubits_sorted));
-  }
-  else if(N == 4){
-    chunk_->StoreMatrix(mat);
-    apply_function(MatrixMult16x16<data_t>(qubits,qubits_sorted));
+    chunk_->StoreUintParams(qubits_sorted);
+    apply_function(MatrixMultNxN<data_t>(N));
   }
   else{
     cvector_t<double> matLU;
     reg_t params;
-    ///TODO : swap matrix to fit sorted qubits
     MatrixMultNxN_LU<data_t> f(mat,qubits_sorted,matLU,params);
 
     chunk_->StoreMatrix(matLU);

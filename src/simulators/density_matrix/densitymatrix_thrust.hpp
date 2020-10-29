@@ -328,21 +328,16 @@ template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_unitary_matrix(const reg_t &qubits,
                                                  const cvector_t<double> &mat) 
 {
-  // Check if we apply as two N-qubit matrix multiplications or a single 2N-qubit matrix mult.
-  if (qubits.size() > apply_unitary_threshold_) {
-    // Apply as two N-qubit matrix mults
-    reg_t conj_qubits;
-    for (const auto q: qubits) {
-      conj_qubits.push_back(q + num_qubits());
-    }
-    // Apply id \otimes U
-    BaseVector::apply_matrix(qubits, mat);
-    // Apply conj(U) \otimes id
-    BaseVector::apply_matrix(conj_qubits, AER::Utils::conjugate(mat));
-  } else {
-    // Apply as single 2N-qubit matrix mult.
-    apply_superop_matrix(qubits, vmat2vsuperop(mat));
+  // Apply as two N-qubit matrix mults
+  reg_t conj_qubits;
+  for (const auto q: qubits) {
+    conj_qubits.push_back(q + num_qubits());
   }
+  // Apply id \otimes U
+  BaseVector::apply_matrix(qubits, mat);
+  // Apply conj(U) \otimes id
+  BaseVector::apply_matrix(conj_qubits, AER::Utils::conjugate(mat));
+
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_unitary_matrix",qubits);
 #endif

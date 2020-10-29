@@ -79,9 +79,9 @@ public:
     return data_[i];
   }
 
-  thrust::complex<data_t>* chunk_pointer(void)
+  thrust::complex<data_t>* chunk_pointer(uint_t iChunk) const
   {
-    return (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data());
+    return (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data()) + (iChunk << this->chunk_bits_);
   }
 
   bool peer_access(int i_dest)

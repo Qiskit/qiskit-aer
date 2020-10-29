@@ -827,7 +827,7 @@ void State<statevec_t>::apply_snapshot(const int_t iChunk, const Operations::Op 
 }
 
 template <class statevec_t>
-void State<statevec_t>::snapshot_probabilities(const int_t iChunk, const Operations::Op &op,
+void State<statevec_t>::snapshot_probabilities(int_t iChunk, const Operations::Op &op,
                                                ExperimentResult &result,
                                                SnapshotDataType type) 
 {
@@ -848,7 +848,7 @@ void State<statevec_t>::snapshot_probabilities(const int_t iChunk, const Operati
 
 
 template <class statevec_t>
-void State<statevec_t>::snapshot_pauli_expval(const int_t iChunk, const Operations::Op &op,
+void State<statevec_t>::snapshot_pauli_expval(int_t iChunk, const Operations::Op &op,
                                                ExperimentResult &result,
                                                SnapshotDataType type) 
 {
@@ -915,7 +915,7 @@ void State<statevec_t>::snapshot_pauli_expval(const int_t iChunk, const Operatio
 }
 
 template <class statevec_t>
-void State<statevec_t>::snapshot_matrix_expval(const int_t iChunk, const Operations::Op &op,
+void State<statevec_t>::snapshot_matrix_expval(int_t iChunk, const Operations::Op &op,
                                                ExperimentResult &result,
                                                SnapshotDataType type) 
 {

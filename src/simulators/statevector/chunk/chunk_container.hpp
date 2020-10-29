@@ -51,11 +51,12 @@
 #include <sstream>
 #include <stdexcept>
 
-#define AER_DEFAULT_MATRIX_BITS   5
+#define AER_DEFAULT_MATRIX_BITS   6
 
 #define AER_CHUNK_BITS        21
 #define AER_MAX_BUFFERS       4
 #define AER_DUMMY_BUFFERS     4     //reserved storage for parameters
+
 
 #ifdef AER_THRUST_CUDA
 #define AERDeviceVector thrust::device_vector
@@ -114,6 +115,10 @@ public:
   {
     base_index_ = i;
   }
+  __host__ __device__ thrust::complex<data_t>* data(void)
+  {
+    return data_;
+  }
 
   virtual bool is_diagonal(void)
   {
@@ -131,6 +136,10 @@ public:
   {
     return 1;
   }
+  virtual bool use_cache(void)
+  {
+    return false;
+  }
 
   virtual const char* name(void)
   {
@@ -145,7 +154,85 @@ public:
       return (1ull << (num_qubits - (qubits_count() - num_control_bits())));
     }
   }
+
+  virtual __host__ __device__ uint_t thread_to_index(uint_t _tid) const
+  {
+    return _tid;
+  }
+  virtual __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
+  {
+    //implemente this in the kernel class
+  }
 };
+
+//========================================
+  //  gate functions with cache
+//========================================
+template <typename data_t>
+class GateFuncWithCache : public GateFuncBase<data_t>
+{
+protected:
+  int nqubits_;
+public:
+  GateFuncWithCache(uint_t nq)
+  {
+    nqubits_ = nq;
+  }
+
+  bool use_cache(void)
+  {
+    return true;
+  }
+
+  __host__ __device__ uint_t thread_to_index(uint_t _tid) const
+  {
+    uint_t idx,ii,t,j;
+    uint_t* qubits;
+    uint_t* qubits_sorted;
+
+    qubits_sorted = this->params_;
+    qubits = qubits_sorted + nqubits_;
+
+    idx = 0;
+    ii = _tid >> nqubits_;
+    for(j=0;j<nqubits_;j++){
+      t = ii & ((1ull << qubits_sorted[j]) - 1);
+      idx += t;
+      ii = (ii - t) << 1;
+
+      if(((_tid >> j) & 1) != 0){
+        idx += (1ull << qubits[j]);
+      }
+    }
+    idx += ii;
+    return idx;
+  }
+
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    thrust::complex<data_t> cache[1024];
+    uint_t j,idx;
+    uint_t matSize = 1ull << nqubits_;
+
+    //load data to cache
+    for(j=0;j<matSize;j++){
+      idx = thread_to_index((i << nqubits_) + j);
+      cache[j] = this->data_[idx];
+    }
+
+    //execute using cache
+    for(j=0;j<matSize;j++){
+      idx = thread_to_index((i << nqubits_) + j);
+      this->run_with_cache(j,idx,cache);
+    }
+  }
+
+  virtual int qubits_count(void)
+  {
+    return nqubits_;
+  }
+};
+
 
 //============================================================================
 // chunk container base class
@@ -238,8 +325,6 @@ public:
   virtual void Set(uint_t i,const thrust::complex<data_t>& t) = 0;
   virtual thrust::complex<data_t> Get(uint_t i) const = 0;
 
-  virtual thrust::complex<data_t>* chunk_pointer(void) = 0;
-
   virtual void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk) = 0;
   virtual void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk) = 0;
 
@@ -265,17 +350,17 @@ public:
   void UnmapBuffer(Chunk<data_t>* buf);
   void UnmapCheckpoint(Chunk<data_t>* buf);
 
-  virtual thrust::complex<double>* matrix_pointer(uint_t iChunk)
+  virtual thrust::complex<data_t>* chunk_pointer(uint_t iChunk) const
   {
     return NULL;
   }
-  virtual uint_t* param_pointer(uint_t iChunk)
+  virtual thrust::complex<double>* matrix_pointer(uint_t iChunk) const
   {
     return NULL;
   }
-  virtual int matrix_bits(void)
+  virtual uint_t* param_pointer(uint_t iChunk) const
   {
-    return 0;
+    return NULL;
   }
 
   //set qubits to be blocked

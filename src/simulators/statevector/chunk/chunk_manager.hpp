@@ -244,13 +244,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
       }
 
       num_checkpoint = nc;
-      /*
-      if(multi_shot){
-        chunks_[iDev] = new BatchDeviceChunkContainer<data_t>;
-      }
-      else{*/
-        chunks_[iDev] = new DeviceChunkContainer<data_t>;
-//      }
+      chunks_[iDev] = new DeviceChunkContainer<data_t>;
 
 #ifdef AER_THRUST_CUDA
       size_t freeMem,totalMem;
