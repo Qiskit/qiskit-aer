@@ -41,7 +41,8 @@ def gen_oper(opname, index, h_osc, h_qub, states=None):
 
         if opname in ['X', 'Y', 'Z'] and dim > 2:
             if opname == 'X':
-                opr_tmp = operator_generators.get_oper('A', dim) + operator_generators.get_oper('C', dim)
+                opr_tmp = (operator_generators.get_oper('A', dim) +
+                           operator_generators.get_oper('C', dim))
             elif opname == 'Y':
                 opr_tmp = (-1j * operator_generators.get_oper('A', dim) +
                            1j * operator_generators.get_oper('C', dim))

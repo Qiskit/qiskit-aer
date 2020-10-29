@@ -371,7 +371,6 @@ class PulseInternalDEModel:
         H = [hpart[0] for hpart in self.system]
         self.num_h_terms = num_h_terms
 
-
         self.c_ops_data = []
         self.n_ops_data = []
 
