@@ -79,22 +79,11 @@ class AerClusterManager:
         self._assemble_config = assemble_config
         return self
 
-    @methdispatch
     def run(self,
             backend: AerBackend,
             exp: Union[List[Union[QuantumCircuit, Schedule]], QasmQobj],
             *run_args: Any,
             **run_kwargs: Any) -> JobSet:
-        """Execute a qobj on a backend."""
-        raise NotImplementedError(
-            "run() is not implemented for this type of experiment ({})".format(str(type(exp))))
-
-    @run.register(QasmQobj)
-    def _run_qobj(self,
-                  backend: AerBackend,
-                  qobj: QasmQobj,
-                  *run_args: Any,
-                  **run_kwargs: Any) -> JobSet:
         """Execute a qobj on a backend.
 
         Args:
@@ -114,47 +103,20 @@ class AerClusterManager:
                 "AerClusterManager only supports AerBackends. "
                 "{} is not an AerBackend.".format(backend))
 
-        experiments = split(qobj)
+        if isinstance(exp, QasmQobj):
+            experiments = split(exp)
+        elif isinstance(exp, (QuantumCircuit, Schedule)):
+            experiments = [assemble(exp, backend, **self._assemble_config)]
+        elif (
+            isinstance(exp, list) and all(isinstance(e, QuantumCircuit) for e in exp) or
+            isinstance(exp, list) and all(isinstance(e, Schedule) for e in exp)
+        ):
+            experiments = [assemble(e, backend, **self._assemble_config) for e in exp]
+        else:
+            raise ValueError(
+                "run() is not implemented for this type of experiment ({})".format(str(type(exp))))
 
         job_set = JobSet(experiments)
-        job_set.run(self._exec, backend, *run_args, **run_kwargs)
-        self._job_sets.append(job_set)
-
-        return job_set
-
-    @run.register(list)
-    def _run_multi(self,
-                   backend: AerBackend,
-                   experiments: List[QuantumCircuit],
-                   *run_args: Any,
-                   **run_kwargs: Any) -> JobSet:
-        """Execute a list of circuits on a backend.
-
-        Args:
-            backend: Backend to execute the experiments on.
-            experiments: List of QuantumCircuits to be executed
-            *run_args: Positional arguments passed through to the backend.run
-            **run_kwargs: Keyword arguments to be passed through to the backend.run
-
-        Returns:
-            A :class:`JobSet` instance representing the set of simulation jobs.
-
-        Raises:
-            ValueError: If the backend/experiments are incompatible
-        """
-        if not isinstance(backend, AerBackend):
-            raise ValueError(
-                "AerClusterManager only supports AerBackends. "
-                "{} is not an AerBackend.".format(backend))
-
-        if (any(isinstance(exp, Schedule) for exp in experiments) and
-                not backend.configuration().open_pulse):
-            raise ValueError(
-                'Pulse schedules found, but the backend does not support pulse schedules.')
-
-        exps = [assemble(exp, backend, **self._assemble_config) for exp in experiments]
-
-        job_set = JobSet(exps)
         job_set.run(self._exec, backend, *run_args, **run_kwargs)
         self._job_sets.append(job_set)
 
