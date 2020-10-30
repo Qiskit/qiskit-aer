@@ -21,6 +21,7 @@ from qiskit.providers.aer.backends import QasmSimulator, StatevectorSimulator, U
 from qiskit.providers.aer.backends.controller_wrappers import (qasm_controller_execute,
                                                                statevector_controller_execute,
                                                                unitary_controller_execute)
+from qiskit.providers.aer.backends.backend_utils import LIBRARY_DIR
 from test.terra.reference import ref_algorithms, ref_measure, ref_1q_clifford
 from test.terra.common import QiskitAerTestCase
 
@@ -48,7 +49,8 @@ class TestControllerExecuteWrappers(QiskitAerTestCase):
         circuit = QuantumCircuit(num_qubits)
         circuit.x(list(range(num_qubits)))
         qobj = assemble(transpile(circuit, backend), backend)
-        opts = {'max_parallel_threads': 1}
+        opts = {'max_parallel_threads': 1,
+                'library_dir': LIBRARY_DIR}
         fqobj = backend._format_qobj(qobj, **opts, noise_model=noise_model)
         return fqobj.to_dict()
 
