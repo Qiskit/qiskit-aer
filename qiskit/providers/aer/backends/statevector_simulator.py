@@ -127,7 +127,7 @@ class StatevectorSimulator(AerBackend):
             'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
             'mcp', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
             'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-            'initialize', 'kraus', 'roerror', 'delay'
+            'initialize', 'kraus', 'roerror', 'delay', 'pauli'
         ],
         'gates': []
     }
