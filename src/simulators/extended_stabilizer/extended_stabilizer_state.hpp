@@ -282,13 +282,6 @@ void State::set_config(const json_t &config)
       std::string("for the extended stabilizer simulator.")
     );
   }
-  #pragma omp critical
-  {
-    std::cout << "approximation_error_: " << approximation_error_ << std::endl;
-    std::cout << "Default samples_: " << norm_estimation_samples_ << std::endl;
-    std::cout << "Repetitions_: " << norm_estimation_repetitions_ << std::endl;
-    std::cout << "sampling_method_str: " << sampling_method_str << std::endl;
-  }
 }
 
 auto State::decomposition_parameters(const std::vector<Operations::Op> &ops) -> std::pair<uint_t, uint_t>

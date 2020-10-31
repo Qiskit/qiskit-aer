@@ -15,6 +15,7 @@ ExtendedStabilizer Integration Tests
 
 import unittest
 import logging
+from math import sqrt
 from test.terra import common
 from test.terra.reference import ref_measure
 from test.terra.reference import ref_reset
@@ -24,6 +25,7 @@ from test.terra.reference import ref_2q_clifford
 from test.terra.reference import ref_non_clifford
 from test.terra.reference import ref_algorithms
 
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
 
@@ -46,7 +48,14 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         "seed_simulator": 1984,
         "method": "extended_stabilizer",
         "extended_stabilizer_sampling_method": "metropolis",
-        "extended_stabilizer_measure_sampling": True
+    }
+
+    BACKEND_OPTS_NE = {
+        "seed_simulator": 1984,
+        "method": "extended_stabilizer",
+        "extended_stabilizer_sampling_method": "norm_estimation",
+        "extended_stabilizer_norm_estimation_default_samples": 100,
+        "extended_stabilizer_norm_estimation_repetitions": 3
     }
 
     # ---------------------------------------------------------------------
@@ -532,6 +541,32 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    def test_sparse_output_probabilities(self):
+        """
+        Test a circuit for which the metropolis method fails.
+        See Issue #306 for details.
+        """
+        shots = 100
+        nqubits = 5
+        qreg = QuantumRegister(nqubits)
+        creg = ClassicalRegister(nqubits)
+        circ = QuantumCircuit(qreg, creg)
+        circ.h(qreg[0])
+        circ.t(qreg[0])
+        circ.h(qreg[0])
+        for i in range(nqubits-1):
+            circ.cx(qreg[0], qreg[i+1])
+        circ.measure(qreg, creg)
+        target = {
+            '0x0': shots * (0.5 + sqrt(2)/4.),
+            '0x1f': shots * (0.5 - sqrt(2)/4.)
+        }
+        qobj = assemble([circ], QasmSimulator(), shots=shots)
+        job = QasmSimulator().run(qobj, **self.BACKEND_OPTS_NE)
+        result = job.result()
+        self.assertSuccess(result)
+        self.compare_counts(result, [circ], [target], delta=0.05 * shots)
 
 
 if __name__ == '__main__':
