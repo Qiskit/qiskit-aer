@@ -134,6 +134,9 @@ public:
   // NE Sampling Routines
   auto ne_single_sample(uint_t default_samples, uint_t repetitions, bool preserve_states,
                         const AER::reg_t &qubits, AER::RngEngine &rng) -> uint_t;
+
+  auto ne_probabilities(uint_t default_samples, uint_t repetitions,
+                        const AER::reg_t &qubits, AER::RngEngine &rng) -> std::vector<double>;
   //Efficient Sampler for the output distribution of a stabilizer state
   auto stabilizer_sampler(AER::RngEngine &rng) -> uint_t;
   auto stabilizer_sampler(uint_t n_shots, AER::RngEngine &rng) -> std::vector<uint_t>;
@@ -541,6 +544,40 @@ auto Runner::ne_single_sample(uint_t default_samples,
     states_ = states_cache;
   }
   return out_string;
+}
+
+auto Runner::ne_probabilities(uint_t default_samples, uint_t repetitions,
+                              const AER::reg_t &qubits, AER::RngEngine &rng) -> std::vector<double>
+{
+  uint_t n_probs = 1ULL << qubits.size();
+  std::vector<double> probs(n_probs, 0.);
+  std::vector<chstabilizer_t> states_cache(states_);
+  std::vector<pauli_t> generators;
+  for (uint_t i=0; i<qubits.size(); i++)
+  {
+    pauli_t generator;
+    generator.Z = 1ULL << qubits[i];
+    generators.push_back(generator);
+  }
+  double norm = norm_estimation(default_samples, repetitions, rng);
+  for (uint_t i=0; i<n_probs; i++)
+  {
+    // Setup the generators to compute this output probability
+    for (uint_t j=0; j<qubits.size(); j++)
+    {
+      if ((i >> j) & 1ULL) {
+        generators[j].e = 2;
+      }
+      else
+      {
+        generators[j].e = 0;
+      }
+    }
+    double p_estimate = norm_estimation(default_samples, repetitions, generators, rng);
+    probs[i] = p_estimate / norm;
+    states_ = states_cache;
+  }
+  return probs;
 }
 
 auto Runner::metropolis_estimation(uint_t n_steps, AER::RngEngine &rng) -> uint_t
