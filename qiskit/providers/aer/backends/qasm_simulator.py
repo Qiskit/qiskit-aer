@@ -185,25 +185,26 @@ class QasmSimulator(AerBackend):
       measurements on qubits. The performance of the simulator depends
       significantly on this choice. In the following, let n be the number of
       qubits in the circuit, m the number of qubits measured, and S be the
-      number of shots.
-      + ``"metropolis"``: Use a Monte-Carlo method to sample many output
+      number of shots. (Default: resampled_metropolis)
+
+      * ``"metropolis"``: Use a Monte-Carlo method to sample many output
         strings from the simulator at once. To be accurate, this method
         requires that all the possible output strings have a non-zero
         probability. It will give inaccurate results on cases where
         the circuit has many zero-probability outcomes.
         This method has an overall runtime that scales as n^{2} + (S-1)n.
-      + ``"resampled_metropolis"``: A variant of the metropolis method,
+
+      * ``"resampled_metropolis"``: A variant of the metropolis method,
         where the Monte-Carlo method is reinitialised for every shot. This
         gives better results for circuits where some outcomes have zero
         probability, but will still fail if the output distribution
-        is sparse.
-        The overall runtime scales as Sn^{2}.
-      + ``"norm_estimation"``: An alternative sampling method using
+        is sparse. The overall runtime scales as Sn^{2}.
+
+      * ``"norm_estimation"``: An alternative sampling method using
         random state inner products to estimate outcome probabilites. This
         method requires twice as much memory, and significantly longer
         runtimes, but gives accurate results on circuits with sparse
-        output distributions.
-      (Default: resampled_metropolis)
+        output distributions. The overall runtime scales as Sn^{3}m^{3}.
 
     * ``extended_stabilizer_mixing_time`` (int): Set how long the
       monte-carlo method runs before performing measurements. If the
