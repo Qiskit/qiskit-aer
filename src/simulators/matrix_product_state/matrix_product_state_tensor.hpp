@@ -145,7 +145,6 @@ public:
   void apply_u3(double theta, double phi, double lambda);
   void apply_matrix(const cmatrix_t &mat, bool swapped=false, 
 		    bool is_diagonal=false);
-  void apply_diagonal_matrix(const cvector_t &diag);
   void apply_cnot(bool swapped = false);
   void apply_swap();
   void apply_cz();
@@ -350,12 +349,6 @@ void MPS_Tensor::apply_tdg()
    
   if (swapped)
     swap(data_[1], data_[2]);
-}
-
-void MPS_Tensor::apply_diagonal_matrix(const cvector_t &diag) {
-  for (uint_t i=0; i<diag.size(); i++) {
-     data_[i] = diag[i] * data_[i];
-  }
 }
 
 void MPS_Tensor::apply_cnot(bool swapped)
