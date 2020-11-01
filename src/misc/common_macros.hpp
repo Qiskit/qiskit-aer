@@ -17,7 +17,7 @@
 
 #if defined(_MSC_VER)
  #include <intrin.h>
-#elif defined(__GNUC__)
+#elif defined(__GNUC__) && defined(__x86_64__)
   #ifndef __PPC64__
      #define GNUC_AVX2
      #include <cpuid.h>
