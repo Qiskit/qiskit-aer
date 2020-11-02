@@ -33,14 +33,6 @@ class UCCSDBenchmarkSuite:
             'H2': ('H .0 .0 .0; H .0 .0 0.735', 2),                    # qubits: 2
             'LiH': ('H .0 .0 .0; Li .0 .0 2.5', 10),                   # qubits: 10
             'HF': ('H .0 .0 .0; F .0 .0 1.25', 10),                    # qubits: 10
-            #'BeH2': ('H .0 .0 -2.25; Be .0 .0 .0; H .0 .0 2.25', 12),  # qubits: 12
-            #'HCl': 'H .0 .0 .0; Cl .0 .0 2.0',                    # qubits: 18
-            #'Li2': 'Li .0 .0 .0; Li .0 .0 3.0',                   # qubits: 18
-            #'N2': 'Li .0 .0 .0; Li .0 .0 1.8',                    # qubits: 18
-            #'MgH2': 'H .0 .0 -2.3; Mg .0 .0 .0; H .0 .0 2.3',     # qubits: 20
-            #'H2S': 'H .0 .0 -3.4; S .0 .0 .0; H .0 .0 3.4',       # qubits: ...
-            #'Li2S': 'Li .0 .0 -3.0; S .0 .0 .0; Li .0 .0 3.0',    # qubits: ...
-            #'Li2O': 'Li .0 .0 -3.0; O .0 .0 .0; Li .0 .0 3.0',    # qubits: ...
             }
         
         self.timeout = 60 * 60

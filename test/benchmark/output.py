@@ -39,24 +39,3 @@ class OutputSimulatorBenchmarkSuite(SimulatorBenchmarkSuite):
 
     def track_statevector_gpu(self, app, measure, measure_count, noise_name, qubit):
         return self._run(self.RUNTIME_STATEVECTOR_GPU, app, measure, measure_count, noise_name, qubit)
-
-    #def time_matrix_product_state(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_MPS_CPU, app, measure, measure_count, noise_name, qubit)
-        
-    #def time_density_matrix(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_DENSITY_MATRIX_CPU, app, measure, measure_count, noise_name, qubit)
-        
-    #def time_density_matrix_gpu(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_DENSITY_MATRIX_GPU, app, qubit)
-        
-    #def time_stabilizer(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_STABILIZER_CPU, app, measure, measure_count, noise_name, qubit)
-        
-    #def time_extended_stabilizer(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_EXTENDED_STABILIZER_CPU, app, measure, measure_count, noise_name, qubit)
-        
-    #def time_unitary_matrix(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_UNITARY_MATRIX_CPU, app, qubit)
-        
-    #def time_unitary_matrix_gpu(self, app, measure, measure_count, noise_name, qubit):
-    #    self._run(self.RUNTIME_UNITARY_MATRIX_GPU, app, qubit)

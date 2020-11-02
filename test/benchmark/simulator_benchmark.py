@@ -142,17 +142,6 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             self.backend_options_list[self.RUNTIME_DENSITY_MATRIX_GPU] = { 'method': self.RUNTIME_DENSITY_MATRIX_GPU }
             self.backend_qubits[self.RUNTIME_DENSITY_MATRIX_GPU] = [qubit for qubit in qubits if qubit <= 15]
         
-        #if self.RUNTIME_STABILIZER_CPU in runtime_names:
-        #    self.simulators[self.RUNTIME_STABILIZER_CPU] = QASM_SIMULATOR
-        #    self.backend_options_list[self.RUNTIME_STABILIZER_CPU] = { 'method': self.RUNTIME_STABILIZER_CPU }
-        #    self.backend_qubits[self.RUNTIME_STABILIZER_CPU] = self.qubits
-        
-        #if self.RUNTIME_EXTENDED_STABILIZER_CPU in runtime_names:
-        #    self.simulators[self.RUNTIME_EXTENDED_STABILIZER_CPU] = QASM_SIMULATOR
-        #    self.backend_options_list[self.RUNTIME_EXTENDED_STABILIZER_CPU] = { 'method': self.RUNTIME_EXTENDED_STABILIZER_CPU }
-        #    self.backend_qubits[self.RUNTIME_EXTENDED_STABILIZER_CPU] = self.qubits
-        
-
     def gen_qobj(self, runtime, app, measure, measure_count, qubit):
         
         def add_measure_all(base):
