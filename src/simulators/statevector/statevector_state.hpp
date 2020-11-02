@@ -355,8 +355,8 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
     {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
-    {"mcsx", Gates::mcsx},     // Multi-controlled-Sqrt(X) gate
-    {"pauli", Gates::pauli} // Multi-qubit Pauli gates
+    {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
+    {"pauli", Gates::pauli}   // Multi-qubit Pauli gate
 });
 
 template <class statevec_t>
