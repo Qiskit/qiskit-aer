@@ -112,7 +112,7 @@ jobs:
     needs: ["lint"]
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8, 3.9]
         platform: [
           { os: "macOS-latest",   python-architecture: "x64"},
           { os: "ubuntu-latest", python-architecture: "x64" },
