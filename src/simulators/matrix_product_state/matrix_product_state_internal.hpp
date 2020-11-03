@@ -131,6 +131,10 @@ public:
 
   cmatrix_t density_matrix(const reg_t &qubits) const;
 
+  void apply_kraus(const reg_t &qubits,
+		   const std::vector<cmatrix_t> &kmats,
+		   RngEngine &rng);
+
   //---------------------------------------------------------------
   // Function: expectation_value
   // Description: Computes expectation value of the given qubits on the given matrix.
@@ -240,7 +244,7 @@ public:
   double norm(const reg_t &qubits, const cmatrix_t &mat) const; 
 
   reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
-					   const reg_t &qubits) const;
+					   const reg_t &qubits);
 
   reg_t apply_measure(const reg_t &qubits,
 		      RngEngine &rng);
@@ -290,6 +294,10 @@ private:
   void apply_multi_qubit_gate(const reg_t &qubits,
 			      const cmatrix_t &mat);
 
+  void apply_kraus_internal(const reg_t &qubits,
+			    const std::vector<cmatrix_t> &kmats,
+			    RngEngine &rng);
+
   // The following two are helper functions for apply_multi_qubit_gate
   void apply_unordered_multi_qubit_gate(const reg_t &qubits,
 			      const cmatrix_t &mat);
@@ -333,6 +341,9 @@ private:
 			      RngEngine &rng, reg_t &outcome_vector_internal);
    uint_t apply_measure(uint_t qubit, 
 			  RngEngine &rng);
+
+  reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
+						    const reg_t &qubits) const;
 
   void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
   //----------------------------------------------------------------
