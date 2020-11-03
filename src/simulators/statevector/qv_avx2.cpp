@@ -1179,16 +1179,13 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
 
 #pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
   {
-#pragma omp for
-    for (int i = 0; i < omp_threads; ++i) {
-      void* data;
 #if !defined(_WIN64) && !defined(_WIN32)
-      posix_memalign(&data, 64, sizeof(std::complex<double>) * 2);
+    void* data;
+    posix_memalign(&data, 64, sizeof(std::complex<double>) * 2);
+    tmps[_omp_get_thread_num()] = reinterpret_cast<std::complex<double>*>(data);
 #else
-      data = reinterpret_cast<std::complex<double>*>(malloc(sizeof(std::complex<double>) * 2));
+    tmps[_omp_get_thread_num()] = reinterpret_cast<std::complex<double>*>(malloc(sizeof(std::complex<double>) * 2));
 #endif
-      tmps[_omp_get_thread_num()] = reinterpret_cast<std::complex<double>*>(data);
-    }
   }
 
   size_t q0_mask_ = 0;
@@ -1243,16 +1240,13 @@ Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
 
 #pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
   {
-#pragma omp for
-    for (int i = 0; i < omp_threads; ++i) {
   #if !defined(_WIN64) && !defined(_WIN32)
-      void* data;
-      posix_memalign(&data, 64, sizeof(std::complex<float>) * 4);
-      tmps[_omp_get_thread_num()] = reinterpret_cast<std::complex<float>*>(data);
+    void* data;
+    posix_memalign(&data, 64, sizeof(std::complex<float>) * 4);
+    tmps[_omp_get_thread_num()] = reinterpret_cast<std::complex<float>*>(data);
   #else
-      tmps[_omp_get_thread_num()] = reinterpret_cast<std::complex<float>*>(malloc(sizeof(std::complex<float>) * 4));
+    tmps[_omp_get_thread_num()] = reinterpret_cast<std::complex<float>*>(malloc(sizeof(std::complex<float>) * 4));
   #endif
-    }
   }
 
   size_t q0_mask_ = 0;
