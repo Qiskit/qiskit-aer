@@ -44,7 +44,7 @@ const Operations::OpSet StateOpSet(
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
      "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
-     "rzx",  "p",   "cp", "cu1", "sx", "x90", "delay"},
+     "rzx",  "p",   "cp", "cu1", "sx", "x90", "delay", "pauli"},
     // Snapshots
     {"density_matrix", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli",
@@ -53,7 +53,7 @@ const Operations::OpSet StateOpSet(
 // Allowed gates enum class
 enum class Gates {
   u1, u2, u3, r, rx,ry, rz, id, x, y, z, h, s, sdg, sx, t, tdg,
-  cx, cy, cz, swap, rxx, ryy, rzz, rzx, ccx, cp
+  cx, cy, cz, swap, rxx, ryy, rzz, rzx, ccx, cp, pauli
 };
 
 // Allowed snapshots enum class
@@ -162,6 +162,9 @@ protected:
 
   // Apply a Kraus error operation
   void apply_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &kraus);
+
+  // Apply an N-qubit Pauli gate
+  void apply_pauli(const reg_t &qubits, const std::string &pauli);
 
   //-----------------------------------------------------------------------
   // Measurement Helpers
@@ -292,7 +295,9 @@ const stringmap_t<Gates> State<densmat_t>::gateset_({
     {"rzz", Gates::rzz},   // Pauli-ZZ rotation gate
     {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
     // Three-qubit gates
-    {"ccx", Gates::ccx} // Controlled-CX gate (Toffoli)
+    {"ccx", Gates::ccx},   // Controlled-CX gate (Toffoli)
+    // Pauli gate
+    {"pauli", Gates::pauli} // Multi-qubit Pauli gate
 });
 
 template <class densmat_t>
@@ -761,6 +766,9 @@ void State<densmat_t>::apply_gate(const Operations::Op &op) {
     case Gates::rzx:
       BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
       break;
+    case Gates::pauli:
+      apply_pauli(op.qubits, op.string_params[0]);
+      break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument(
@@ -783,6 +791,15 @@ void State<densmat_t>::apply_gate_u3(uint_t qubit, double theta, double phi,
                                      double lambda) {
   BaseState::qreg_.apply_unitary_matrix(
       reg_t({qubit}), Linalg::VMatrix::u3(theta, phi, lambda));
+}
+
+template <class densmat_t>
+void State<densmat_t>::apply_pauli(const reg_t &qubits,
+                                   const std::string &pauli) {
+  // Pauli as a superoperator is (-1)^num_y P\otimes P
+  complex_t coeff = (std::count(pauli.begin(), pauli.end(), 'Y') % 2) ? -1 : 1;
+  BaseState::qreg_.apply_pauli(
+      BaseState::qreg_.superop_qubits(qubits), pauli + pauli, coeff);
 }
 
 //=========================================================================
