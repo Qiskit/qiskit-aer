@@ -24,7 +24,8 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <iostream>
+#include <tuple>
+
 #include <sstream>
 #include <stdexcept>
 
@@ -211,6 +212,9 @@ public:
   // If N=3 this implements an optimized Fredkin gate
   void apply_mcswap(const reg_t &qubits);
 
+  void apply_pauli(const reg_t &qubits, const std::string &pauli,
+                   const complex_t &coeff = 1);
+
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
   //-----------------------------------------------------------------------
@@ -275,7 +279,8 @@ public:
 
   // Return the expectation value of an N-qubit Pauli matrix.
   // The Pauli is input as a length N string of I,X,Y,Z characters.
-  double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
+  double expval_pauli(const reg_t &qubits, const std::string &pauli,
+                      const complex_t &coeff = 1) const;
 
   //-----------------------------------------------------------------------
   // JSON configuration settings
@@ -362,6 +367,19 @@ protected:
   // where k is the index of the vector
   template <typename Lambda>
   void apply_lambda(Lambda&& func);
+
+  //-----------------------------------------------------------------------
+  // Statevector update with Lambda function on a range of entries
+  //-----------------------------------------------------------------------
+  // Apply a lambda function to all entries of the statevector
+  // between start and stop
+  // The function signature should be:
+  //
+  // [&](const int_t k)->void
+  //
+  // where k is the index of the vector
+  template <typename Lambda>
+  void apply_lambda(Lambda&& func, size_t start, size_t stop);
 
   //-----------------------------------------------------------------------
   // Statevector block update with Lambda function
@@ -906,6 +924,12 @@ void QubitVector<data_t>::apply_lambda(Lambda&& func,
   #endif
 
   QV::apply_lambda(0, data_size_, omp_threads_managed(), func, qubits, params);
+}
+
+template <typename data_t>
+template<typename Lambda>
+void QubitVector<data_t>::apply_lambda(Lambda&& func, size_t start, size_t stop){
+    QV::apply_lambda(start, stop, omp_threads_managed(), func);
 }
 
 
@@ -1730,12 +1754,10 @@ reg_t QubitVector<data_t>::sample_measure(const std::vector<double> &rnds) const
  * EXPECTATION VALUES
  *
  ******************************************************************************/
-
-template <typename data_t>
-double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
-                                         const std::string &pauli) const {
-  // Break string up into Z and X
-  // With Y being both Z and X (plus a phase)
+using pauli_mask_data = std::tuple<uint_t, uint_t, uint_t, uint_t>;
+pauli_mask_data pauli_masks_and_phase(const reg_t &qubits, const std::string &pauli){
+ // Break string up into Z and X
+ // With Y being both Z and X (plus a phase)
   const size_t N = qubits.size();
   uint_t x_mask = 0;
   uint_t z_mask = 0;
@@ -1766,32 +1788,48 @@ double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
         throw std::invalid_argument("Invalid Pauli \"" + std::to_string(pauli[N - 1 - i]) + "\".");
     }
   }
+  return std::make_tuple(x_mask, z_mask, num_y, x_max);
+}
 
-  // Special case for only I Paulis
-  if (x_mask + z_mask == 0) {
-    return norm();
-  }
+template <typename data_t>
+void add_y_phase(uint_t num_y, std::complex<data_t>& coeff){
+  // Add overall phase to the input coefficient
 
   // Compute the overall phase of the operator.
   // This is (-1j) ** number of Y terms modulo 4
-  std::complex<data_t> phase(1, 0);
   switch (num_y & 3) {
     case 0:
       // phase = 1
       break;
     case 1:
       // phase = -1j
-      phase = std::complex<data_t>(0, -1);
+      coeff = std::complex<data_t>(coeff.imag(), -coeff.real());
       break;
     case 2:
       // phase = -1
-      phase = std::complex<data_t>(-1, 0);
+      coeff = std::complex<data_t>(-coeff.real(), -coeff.imag());
       break;
     case 3:
       // phase = 1j
-      phase = std::complex<data_t>(0, 1);
+      coeff = std::complex<data_t>(-coeff.imag(), coeff.real());
       break;
   }
+}
+
+template <typename data_t>
+double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
+                                         const std::string &pauli,
+                                         const complex_t &coeff) const {
+
+  uint_t x_mask, z_mask, num_y, x_max;
+  std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
+
+  // Special case for only I Paulis
+  if (x_mask + z_mask == 0) {
+    return norm();
+  }
+  auto phase = std::complex<data_t>(coeff);
+  add_y_phase(num_y, phase);
 
   // specialize x_max == 0
   if (!x_mask) {
@@ -1825,6 +1863,54 @@ double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
     }
   };
   return std::real(apply_reduction_lambda(std::move(lambda), (size_t) 0, (data_size_ >> 1)));
+}
+
+/*******************************************************************************
+ *
+ * PAULI
+ *
+ ******************************************************************************/
+template <typename data_t>
+void QubitVector<data_t>::apply_pauli(const reg_t &qubits, const std::string &pauli,
+                                      const complex_t &coeff){
+  uint_t x_mask, z_mask, num_y, x_max;
+  std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
+
+  // Special case for only I Paulis
+  if (x_mask + z_mask == 0) {
+    return;
+  }
+  auto phase = std::complex<data_t>(coeff);
+  add_y_phase(num_y, phase);
+  const uint_t DIM = 1ULL << qubits.size();
+
+  // specialize x_max == 0
+  if (!x_mask) {
+    auto lambda = [&](const int_t i)->void {
+        if (z_mask && (AER::Utils::popcount(i & z_mask) & 1)) {
+             data_[i] *= -1;
+        }
+        data_[i] *= phase;
+    };
+    apply_lambda(lambda);
+    return;
+  }
+
+  const uint_t mask_u = ~MASKS[x_max + 1];
+  const uint_t mask_l = MASKS[x_max];
+  auto lambda = [&](const int_t i)->void {
+    int_t idxs[2];
+    idxs[0] = ((i << 1) & mask_u) | (i & mask_l);
+    idxs[1] = idxs[0] ^ x_mask;
+    for (int_t j = 0; j < 2; ++j) {
+      if (z_mask && (AER::Utils::popcount(idxs[j] & z_mask) & 1)) {
+        data_[idxs[j]] *= -1;
+      }
+      data_[idxs[j]] *= phase;
+    }
+    std::swap(data_[idxs[0]], data_[idxs[1]]);
+  };
+  apply_lambda(lambda, (size_t) 0, (data_size_ >> 1));
 }
 
 //------------------------------------------------------------------------------

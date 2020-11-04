@@ -8,7 +8,7 @@ macro(add_test_executable target_name)
 			PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
 			PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 	target_link_libraries(${target_name}
-			PRIVATE CONAN_PKG::catch2
+			PRIVATE AER_DEPENDENCY_PKG::catch2
 			PRIVATE ${AER_LIBRARIES})
 	add_test(${target_name} ${target_name})
 endmacro()
