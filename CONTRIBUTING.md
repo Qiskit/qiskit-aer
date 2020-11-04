@@ -249,7 +249,7 @@ window
     $ git clone https://github.com/Qiskit/qiskit-aer
 ```
 
-- Next, install the platform-specific dependencies for your operating system [Linux](#linux-dependencies) | [macOS](#mac-dependencies) | [Windows](#win-dependencies). 
+- Next, install the platform-specific dependencies for your operating system [Linux](#linux-dependencies) | [macOS](#mac-dependencies) | [Windows](#win-dependencies).
 
 - The common dependencies can then be installed via *pip*, using the
 `requirements-dev.txt` file, e.g.:
@@ -258,10 +258,13 @@ window
     $ pip install -r requirements-dev.txt
 ```
 
-This will also install [**Conan**](https://conan.io/), a C/C++ package manager written in Python. This tool will handle 
-most of the dependencies needed by the C++ source code. Internet connection may be needed for the first build or 
-when dependencies are added/updated, in order to download the required packages if they are not in your **Conan** local 
+This will also install [**Conan**](https://conan.io/), a C/C++ package manager written in Python. This tool will handle
+most of the dependencies needed by the C++ source code. Internet connection may be needed for the first build or
+when dependencies are added/updated, in order to download the required packages if they are not in your **Conan** local
 repository.
+
+>  Note: Conan use can be disabled with the flag or environment variable ``DISABLE_CONAN=ON`` .
+This is useful for building from source offline, or to reuse the installed package dependencies.
 
 If we are only building the standalone version and do not want to install all Python requirements you can just install
 **Conan**:
@@ -607,7 +610,7 @@ For example,
 
     qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA
 
-If we want to specify the CUDA® architecture instead of letting the build system 
+If we want to specify the CUDA® architecture instead of letting the build system
 auto detect it, we can use the AER_CUDA_ARCH flag (can also be set as an ENV variable
 with the same name, although the flag takes precedence). For example:
 
@@ -661,7 +664,7 @@ These are the flags:
 
     Tells CMake the directory to look for the BLAS library instead of the usual paths.
     If no BLAS library is found under that directory, CMake will raise an error and stop.
-    
+
     It can also be set as an ENV variable with the same name, although the flag takes precedence.
 
     Values: An absolute path.
@@ -700,10 +703,28 @@ These are the flags:
 
     This flag allows us we to specify the CUDA architecture instead of letting the build system auto detect it.
     It can also be set as an ENV variable with the same name, although the flag takes precedence.
-    
+
     Values:  Auto | Common | All | List of valid CUDA architecture(s).
     Default: Auto
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="5.2; 5.3"``
+
+* DISABLE_CONAN
+
+    This flag allows disabling the Conan package manager. This will force CMake to look for
+    the libraries in use on your system path, relying on FindPackage CMake mechanism and
+    the appropriate configuration of libraries in order to use it.
+    If a specific version is not found, the build system will look for any version available,
+    although this may produce build errors or incorrect behaviour.
+
+    __WARNING__: This is not the official procedure to build AER. Thus, the user is responsible
+    of providing all needed libraries and corresponding files to make them findable to CMake.
+
+    This is also available as the environment variable ``DISABLE_CONAN``, which overrides
+    the CMake flag of the same name.
+
+    Values: ON | OFF
+    Default: OFF
+    Example: ``python ./setup.py bdist_wheel -- -DDISABLE_CONAN=ON``
 
 ## Tests
 
