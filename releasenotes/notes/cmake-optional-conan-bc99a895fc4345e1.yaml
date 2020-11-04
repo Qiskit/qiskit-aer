@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Add the CMake flag ``DISABLE_CONAN`` (default=``OFF``)s. When installing from source,
+    setting this to ``ON`` allows bypassing the Conan package manager to find libraries
+    that are already installed on your system. This is also available as an environment
+    variable ``DISABLE_CONAN``, which takes precedence over the CMake flag.
+    This is not the official procedure to build AER. Thus, the user is responsible
+    of providing all needed libraries and corresponding files to make them findable to CMake.
