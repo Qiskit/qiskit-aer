@@ -1,10 +1,4 @@
 #include <iostream>
-#include "misc/common_macros.hpp"
-#if defined(_MSC_VER)
-#include <intrin.h>
-#elif defined(GNUC_AVX2)
-#include <cpuid.h>
-#endif
 
 #include "misc/warnings.hpp"
 DISABLE_WARNING_PUSH
