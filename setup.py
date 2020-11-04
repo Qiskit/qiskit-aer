@@ -3,13 +3,17 @@
 """
 Main setup file for qiskit-aer
 """
-
+import distutils.util
+import importlib
+import inspect
 import os
+import setuptools
 import subprocess
 import sys
-import inspect
+
 
 PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
+_DISABLE_CONAN = distutils.util.strtobool(os.getenv("DISABLE_CONAN", "OFF").lower())
 
 try:
     from Cython.Build import cythonize
@@ -18,11 +22,12 @@ except ImportError:
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'Cython>=0.27.1'])
     from Cython.Build import cythonize
 
-try:
-    from conans import client
-except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan'])
-    from conans import client
+if not _DISABLE_CONAN:
+    try:
+        from conans import client
+    except ImportError:
+        subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan'])
+        from conans import client
 
 try:
     from skbuild import setup
@@ -34,7 +39,8 @@ try:
 except ImportError:
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.4'])
 
-import setuptools
+from skbuild import setup
+
 
 # These are requirements that are both runtime/install dependencies and
 # also build time/setup requirements and will be added to both lists
@@ -52,8 +58,9 @@ common_requirements = [
 setup_requirements = common_requirements + [
     'scikit-build',
     'cmake!=3.17,!=3.17.0',
-    'conan>=1.22.2'
 ]
+if not _DISABLE_CONAN:
+    setup_requirements.append('conan>=1.22.2')
 
 requirements = common_requirements + ['qiskit-terra>=0.12.0']
 
