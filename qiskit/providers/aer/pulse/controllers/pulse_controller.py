@@ -21,7 +21,7 @@ from warnings import warn
 import numpy as np
 from qiskit.quantum_info.operators.operator import Operator
 from ..system_models.string_model_parser.string_model_parser import NoiseParser
-from ..system_models.string_model_parser import operator_generators as qobj_gen
+from ..system_models.string_model_parser import operator_generators as op_gen
 from .digest_pulse_qobj import digest_pulse_qobj
 from .pulse_sim_options import PulseSimOptions
 from .unitary_controller import run_unitary_experiments
@@ -74,11 +74,11 @@ def pulse_controller(qobj):
     dim_qub = ham_model._subsystem_dims
     dim_osc = {}
     # convert estates into a Qutip qobj
-    estates = [qobj_gen.state(state) for state in ham_model._estates.T[:]]
+    estates = [op_gen.state(state) for state in ham_model._estates.T[:]]
 
     # initial state set here
     if hasattr(config, 'initial_state'):
-        pulse_sim_desc.initial_state = qobj_gen.state(config.initial_state)
+        pulse_sim_desc.initial_state = op_gen.state(config.initial_state)
     else:
         pulse_sim_desc.initial_state = estates[0]
 
@@ -189,12 +189,12 @@ def pulse_controller(qobj):
                     if not pulse_sim_desc.measurement_ops[qubit_list.index(jj)]:
                         q_level_meas = pulse_sim_desc.q_level_meas
                         pulse_sim_desc.measurement_ops[qubit_list.index(jj)] = \
-                            qobj_gen.qubit_occ_oper_dressed(jj,
-                                                            estates,
-                                                            h_osc=dim_osc,
-                                                            h_qub=dim_qub,
-                                                            level=q_level_meas
-                                                            )
+                            op_gen.qubit_occ_oper_dressed(jj,
+                                                          estates,
+                                                          h_osc=dim_osc,
+                                                          h_qub=dim_qub,
+                                                          level=q_level_meas
+                                                          )
 
         if not exp['can_sample']:
             pulse_sim_desc.can_sample = False
