@@ -36,6 +36,10 @@ public:
   // matrix.
   void apply_matrix(Container &data, size_t data_size, int threads,
                            const reg_t &qubits, const cvector_t<double> &mat) const override;
+
+  void apply_diagonal_matrix(Container &data, size_t data_size, int threads,
+                            const reg_t &qubits, const cvector_t<double> &diag) const override;
+
 };
 
 /*******************************************************************************
@@ -67,6 +71,25 @@ void TransformerAVX2<Container, data_t>::apply_matrix(Container &data, size_t da
 
   Base::apply_matrix(data, data_size, threads, qubits, mat);
 }
+
+
+template <typename Container, typename data_t>
+void TransformerAVX2<Container, data_t>::apply_diagonal_matrix(Container &data,
+                                                               size_t data_size,
+                                                               int threads,
+                                                               const reg_t &qubits,
+                                                               const cvector_t<double> &diag) const {
+
+  if (apply_diagonal_matrix_avx<data_t>(
+          reinterpret_cast<data_t *>(data), data_size, qubits.data(),
+          qubits.size(), reinterpret_cast<data_t *>(Base::convert(diag).data()),
+          threads) == Avx::Applied) {
+    return;
+  }
+
+  Base::apply_diagonal_matrix(data, data_size, threads, qubits, diag);
+}
+
 
 #endif // AVX2 Code
 
