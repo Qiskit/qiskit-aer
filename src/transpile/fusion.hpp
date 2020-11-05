@@ -21,7 +21,7 @@
 #include "framework/avx2_detect.hpp"
 #include "fusion_method.hpp"
 #include "fusion/diagonal.hpp"
-#include "fusion/two_qubits_fusion.hpp"
+#include "fusion/n_qubits_fusion.hpp"
 #include "fusion/cost_based_fusion.hpp"
 
 namespace AER {
@@ -161,7 +161,7 @@ void FusionOptimization<Fuser>::optimize_circuit(Circuit& circ,
 class Fusion : public CircuitOptimization {
 public:
   Fusion(std::shared_ptr<FusionMethod> method = std::make_shared<FusionMethod>())
-    : two_qubit_fusion(method), cost_based_fusion(method) { }
+    : two_qubit_fusion(method), three_qubit_fusion(method), cost_based_fusion(method) { }
 
   virtual ~Fusion() {}
 
@@ -176,18 +176,21 @@ public:
 
 private:
   Transpile::FusionOptimization<Transpile::DiagonalFusion> diagonal_fusion;
-  Transpile::FusionOptimization<Transpile::TwoQubitFusion> two_qubit_fusion;
+  Transpile::FusionOptimization<Transpile::NQubitFusion<2>> two_qubit_fusion;
+  Transpile::FusionOptimization<Transpile::NQubitFusion<3>> three_qubit_fusion;
   Transpile::FusionOptimization<Transpile::CostBasedFusion> cost_based_fusion;
 };
 
 void Fusion::set_config(const json_t &config) {
   diagonal_fusion.set_config(config);
   two_qubit_fusion.set_config(config);
+  three_qubit_fusion.set_config(config);
   cost_based_fusion.set_config(config);
 }
 
 void Fusion::set_parallelization(uint_t num) {
   two_qubit_fusion.set_parallelization(num);
+  three_qubit_fusion.set_parallelization(num);
   cost_based_fusion.set_parallelization(num);
 }
 
@@ -198,6 +201,7 @@ void Fusion::optimize_circuit(Circuit& circ,
 
   Noise::NoiseModel dummy_noise; //ignore noise
   diagonal_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
+  three_qubit_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
   two_qubit_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
   cost_based_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
 }
