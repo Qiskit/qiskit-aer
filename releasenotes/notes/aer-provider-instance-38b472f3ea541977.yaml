@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes bug with :class:`~qiskit.providers.aer.AerProvider` where options set
+    on the returned backends using
+    :meth:`~qiskit.providers.aer.QasmSimulator.set_options` were stored in the
+    provider and would persist for subsequent calls to
+    :meth:`~qiskit.providers.aer.AerProvider.get_backend` for the same named
+    backend. Now every call to 
+    and :meth:`~qiskit.providers.aer.AerProvider.backends` returns a new
+    instance of the simulator backend that can be configured.
