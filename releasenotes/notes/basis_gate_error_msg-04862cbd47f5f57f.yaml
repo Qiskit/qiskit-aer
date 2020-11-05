@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes bug in the error message returned when a circuit contains unsupported
+    simulator instructions. Previously some supported instructions were also
+    being listed in the error message along with the unsupported instructions.
