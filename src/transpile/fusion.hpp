@@ -121,7 +121,6 @@ void FusionOptimization<Fuser>::optimize_circuit(Circuit& circ,
     auto unit = circ.ops.size() / parallelization;
     if (circ.ops.size() % parallelization)
       ++unit;
-    uint_t applied = 0;
 #pragma omp parallel for num_threads(parallelization) reduction(+:applied)
     for(int_t fusion_start0 = 0; fusion_start0 < circ.ops.size(); fusion_start0 += unit) {
       auto fusion_end0 = (fusion_start0 + unit) < circ.ops.size()? fusion_start0 + unit: circ.ops.size();
