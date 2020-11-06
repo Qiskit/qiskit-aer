@@ -363,6 +363,11 @@ public:
     return NULL;
   }
 
+  virtual void synchronize(uint_t iChunk)
+  {
+    ;
+  }
+
   //set qubits to be blocked
   virtual void set_blocked_qubits(uint_t iChunk,const reg_t& qubits)
   {

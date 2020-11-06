@@ -259,6 +259,17 @@ protected:
   //swap between chunks
   void apply_chunk_swap(const reg_t &qubits);
 
+  //reduce values over processes
+  void reduce_sum(rvector_t& sum) const;
+  void reduce_sum(complex_t& sum) const;
+  void reduce_sum(double& sum) const;
+
+  //gather values on each process
+  void gather_value(rvector_t& val) const;
+
+  //barrier all processes
+  void sync_process(void) const;
+
   // Set a global phase exp(1j * theta) for the state
   bool has_global_phase_ = false;
   complex_t global_phase_ = 1;
@@ -314,9 +325,9 @@ void StateChunk<state_t>::setup_chunk_bits(uint_t num_qubits,int scale)
   nprocs_ = 1;
 #ifdef AER_MPI
   int t;
-	MPI_Comm_size(MPI_COMM_WORLD,&t);
+  MPI_Comm_size(MPI_COMM_WORLD,&t);
   nprocs_ = t;
-	MPI_Comm_rank(MPI_COMM_WORLD,&t);
+  MPI_Comm_rank(MPI_COMM_WORLD,&t);
   myrank_ = t;
 #endif
 
@@ -327,21 +338,20 @@ void StateChunk<state_t>::setup_chunk_bits(uint_t num_qubits,int scale)
     if(chunk_bits_ > num_qubits_){
       chunk_bits_ = num_qubits_;
     }
-
-    num_global_chunks_ = 1ull << (num_qubits_ - chunk_bits_);
   }
   else{
     if(omp_get_num_threads() > 1){
       multi_shot_parallelization_ = true;
     }
-
     chunk_bits_ = num_qubits_;
-    num_global_chunks_ = num_shots_;
   }
 
   //scale for density matrix
   chunk_bits_ *= scale;
   num_qubits_ *= scale;
+
+  num_global_chunks_ = num_shots_ << (num_qubits_ - chunk_bits_);
+
 
   chunk_index_begin_.resize(nprocs_);
   chunk_index_end_.resize(nprocs_);
@@ -612,17 +622,17 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
       for(iPair=0;iPair<nPair;iPair++){
         //calculate index of pair of chunks
         baseChunk = 0;
-  			add = 1;
-  			for(i=nLarge;i>=0;i--){
-  				baseChunk += (iu[i] << ub[i]);
-  				//update for next
-  				iu[i] += add;
-  				add = 0;
-  				if(iu[i] >= nu[i]){
-  					iu[i] = 0;
-  					add = 1;
-  				}
-  			}
+        add = 1;
+        for(i=nLarge;i>=0;i--){
+          baseChunk += (iu[i] << ub[i]);
+          //update for next
+          iu[i] += add;
+          add = 0;
+          if(iu[i] >= nu[i]){
+            iu[i] = 0;
+            add = 1;
+          }
+        }
 
         iChunk1 = baseChunk | mask0;
         iChunk2 = baseChunk | mask1;
@@ -653,11 +663,11 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
         MPI_Status st;
         uint_t sizeRecv,sizeSend;
 
-        void* pRecv = qregs_[iLocalChunk - global_chunk_index_].recv_buffer(sizeRecv);
-        MPI_Irecv(pRecv,sizeRecv,MPI_BYTE,iProc,iPair % 256,MPI_COMM_WORLD,&reqRecv);
-
         void* pSend = qregs_[iLocalChunk - global_chunk_index_].send_buffer(sizeSend);
-        MPI_Isend(pSend,sizeSend,MPI_BYTE,iProc,iPair % 256,MPI_COMM_WORLD,&reqSend);
+        MPI_Isend(pSend,sizeSend,MPI_BYTE,iProc,iPair,MPI_COMM_WORLD,&reqSend);
+
+        void* pRecv = qregs_[iLocalChunk - global_chunk_index_].recv_buffer(sizeRecv);
+        MPI_Irecv(pRecv,sizeRecv,MPI_BYTE,iProc,iPair,MPI_COMM_WORLD,&reqRecv);
 
         MPI_Wait(&reqSend,&st);
         MPI_Wait(&reqRecv,&st);
@@ -672,6 +682,54 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
   }
 }
 
+template <class state_t>
+void StateChunk<state_t>::reduce_sum(rvector_t& sum) const
+{
+#ifdef AER_MPI
+  uint_t i,n = sum.size();
+  rvector_t tmp(n);
+  MPI_Allreduce(&sum[0],&tmp[0],n,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
+  for(i=0;i<n;i++){
+    sum[i] = tmp[i];
+  }
+#endif
+}
+
+template <class state_t>
+void StateChunk<state_t>::reduce_sum(complex_t& sum) const
+{
+#ifdef AER_MPI
+  complex_t tmp;
+  MPI_Allreduce(&sum,&tmp,2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
+  sum = tmp;
+#endif
+}
+
+template <class state_t>
+void StateChunk<state_t>::reduce_sum(double& sum) const
+{
+#ifdef AER_MPI
+  double tmp;
+  MPI_Allreduce(&sum,&tmp,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
+  sum = tmp;
+#endif
+}
+
+template <class state_t>
+void StateChunk<state_t>::gather_value(rvector_t& val) const
+{
+#ifdef AER_MPI
+  MPI_Alltoall(&val[0],1,MPI_DOUBLE_PRECISION,&val[0],1,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD);
+#endif
+}
+
+template <class state_t>
+void StateChunk<state_t>::sync_process(void) const
+{
+#ifdef AER_MPI
+  MPI_Barrier(MPI_COMM_WORLD);
+#endif
+}
   
 //-------------------------------------------------------------------------
 } // end namespace Base

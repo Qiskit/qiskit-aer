@@ -334,8 +334,6 @@ void State<densmat_t>::allocate(uint_t num_qubits,uint_t shots)
 
   BaseState::setup_chunk_bits(num_qubits,2);
 
-//  printf("  TEST chunk_bits = %d, num_qubits = %d (%d), shots = %d, num_chunks = %d\n",this->chunk_bits_,this->num_qubits_,num_qubits,shots,BaseState::num_local_chunks_);
-
   BaseState::chunk_omp_parallel_ = false;
   if(BaseState::chunk_bits_ < BaseState::num_qubits_){
     if(BaseState::qregs_[0].name() == "density_matrix_gpu"){
@@ -778,11 +776,7 @@ void State<densmat_t>::snapshot_pauli_expval(const int_t iChunk, const Operation
     }
   }
 
-#ifdef AER_MPI
-  complex_t sum;
-  MPI_Allreduce(&expval,&sum,2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
-  expval = sum;
-#endif
+  BaseState::reduce_sum(expval);
 
   if(iChunk < 0){
     ireg = 0;
@@ -1161,9 +1155,7 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
   // Generate flat register for storing
   std::vector<double> rnds;
   rnds.reserve(shots);
-  reg_t allbit_samples(shots,0);
-
-  printf(" TEST: smapling\n");
+  rvector_t allbit_samples(shots,0);
 
   for (i = 0; i < shots; ++i)
     rnds.push_back(rng.rand(0, 1));
@@ -1198,23 +1190,20 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
     chunkSum[BaseState::num_local_chunks_] = localSum;
 
     double globalSum = 0.0;
-#ifdef AER_MPI
     if(BaseState::nprocs_ > 1){// && isMultiShot_ == false){
       std::vector<double> procTotal(BaseState::nprocs_);
 
       for(i=0;i<BaseState::nprocs_;i++){
         procTotal[i] = localSum;
       }
-
-      MPI_Alltoall(&procTotal[0],1,MPI_DOUBLE_PRECISION,&procTotal[0],1,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD);
+      BaseState::gather_value(procTotal);
 
       for(i=0;i<BaseState::myrank_;i++){
         globalSum += procTotal[i];
       }
     }
-#endif
 
-    reg_t local_samples(shots,0);
+    rvector_t local_samples(shots,0);
 
     //get rnds positions for each chunk
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i,j) 
@@ -1244,11 +1233,8 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
       }
     }
 
-#ifdef AER_MPI
-    MPI_Allreduce(&local_samples[0],&allbit_samples[0],shots,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
-#else
+    BaseState::reduce_sum(local_samples);
     allbit_samples = local_samples;
-#endif
   }
 
   // Convert to reg_t format

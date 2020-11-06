@@ -33,27 +33,6 @@
 
 //#define AER_DEBUG
 
-#ifdef AER_TIMING
-
-#include <sys/time.h>
-double mysecond()
-{
-  struct timeval tp;
-  struct timezone tzp;
-  int i;
-
-  i = gettimeofday(&tp,&tzp);
-  return ( (double) tp.tv_sec + (double) tp.tv_usec * 1.e-6 );
-}
-
-#define QS_NUM_GATES          5
-#define QS_GATE_INIT          0
-#define QS_GATE_MULT          1
-#define QS_GATE_CX            2
-#define QS_GATE_DIAG          3
-#define QS_GATE_MEASURE         4
-#endif
-
 
 namespace AER {
 namespace QV {
@@ -1016,6 +995,11 @@ void QubitVectorThrust<data_t>::fetch_chunk(void) const
     chunk_->set_cache(buffer_chunk_);
     buffer_chunk_->CopyIn(chunk_);
   }
+  else if(multi_chunk_distribution_){
+    if(chunk_->pos() == 0){
+      chunk_->synchronize();    //synchronize stream before chunk exchange
+    }
+  }
 }
 
 template <typename data_t>
@@ -1027,6 +1011,12 @@ void QubitVectorThrust<data_t>::release_chunk(bool write_back) const
     chunk_->set_cache(NULL);
     buffer_chunk_ = NULL;
   }
+  else if(multi_chunk_distribution_){
+    if(chunk_->pos() == 0){
+      chunk_->synchronize();    //synchronize stream before chunk exchange
+    }
+  }
+
 }
 
 
@@ -1056,7 +1046,7 @@ void* QubitVectorThrust<data_t>::send_buffer(uint_t& size_in_byte)
     pRet = chunk_->pointer();
   }
   else{   //if there is no GPUDirectRDMA support, copy chunk on CPU before using MPI
-    send_chunk_ = chunk_manager_.MapBufferChunk(chunk_manager_.num_devices_());
+    send_chunk_ = chunk_manager_.MapBufferChunk(chunk_manager_.num_devices());
     chunk_->CopyOut(send_chunk_);
     pRet = send_chunk_->pointer();
   }
@@ -1077,7 +1067,7 @@ void* QubitVectorThrust<data_t>::recv_buffer(uint_t& size_in_byte)
     recv_chunk_ = chunk_manager_.MapBufferChunk(chunk_->place());
   }
   else{   //if there is no GPUDirectRDMA support, receive in CPU memory
-    recv_chunk_ = chunk_manager_.MapBufferChunk(chunk_manager_.num_devices_());
+    recv_chunk_ = chunk_manager_.MapBufferChunk(chunk_manager_.num_devices());
   }
 #else
     recv_chunk_ = chunk_manager_.MapBufferChunk(chunk_->place());
@@ -2640,6 +2630,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
     q1 = t;
   }
 
+
   if(q0 >= num_qubits_){  //exchange whole of chunk each other
 #ifdef AER_DEBUG
     DebugMsg("SWAP chunks",qubits);
@@ -2698,6 +2689,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
 #endif
 
     pExec->Execute(CSwapChunk_func<data_t>(qubits,pChunk0,pChunk1,true),1);
+    pExec->synchronize();    //should be synchronized here
 
     if(pBuffer0 != NULL){
       if(pExec == chunk_)
@@ -2759,6 +2751,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, uint_t rem
 #endif
 
     chunk_->Execute(CSwapChunk_func<data_t>(qubits,pLocal,pRemote,false),1);
+    chunk_->synchronize();    //should be synchronized here
 
     if(pBuffer){
       chunk_manager_.UnmapBufferChunk(pBuffer);
@@ -3862,9 +3855,8 @@ void QubitVectorThrust<data_t>::DebugMsg(const char* str,const std::vector<doubl
 template <typename data_t>
 void QubitVectorThrust<data_t>::DebugDump(void) const
 {
-    /*
   if(debug_fp != NULL){
-    if(num_qubits_ < 10){
+    if(num_qubits_ < 6){
       thrust::complex<data_t> t;
       uint_t i,j;
       char bin[64];
@@ -3881,7 +3873,6 @@ void QubitVectorThrust<data_t>::DebugDump(void) const
     }
     fflush(debug_fp);
   }
-  */
 }
 
 

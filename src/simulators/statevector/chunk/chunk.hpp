@@ -216,6 +216,16 @@ public:
     return chunk_container_->param_pointer(chunk_pos_);
   }
 
+  void synchronize(void)
+  {
+    if(cache_){
+      cache_->synchronize();
+    }
+    else{
+      chunk_container_->synchronize(chunk_pos_);
+    }
+  }
+
   //set qubits to be blocked
   void set_blocked_qubits(const reg_t& qubits)
   {

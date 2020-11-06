@@ -29,11 +29,6 @@
 #undef AER_QUBITVECTOR_THRUST_FIRST_DEF
 #endif
 
-#ifdef AER_MPI
-#include <mpi.h>
-#endif
-
-
 namespace AER {
 namespace StatevectorChunk {
 
@@ -1406,13 +1401,8 @@ rvector_t State<statevec_t>::measure_probs(const int_t iChunk, const reg_t &qubi
       }
     }
 
-#ifdef AER_MPI
-    rvector_t tmp(dim);
-    MPI_Allreduce(&sum[0],&tmp[0],dim,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
-    for(i=0;i<dim;i++){
-      sum[i] = tmp[i];
-    }
-#endif
+    BaseState::reduce_sum(sum);
+
     return sum;
   }
   else{
@@ -1429,34 +1419,12 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
   // Generate flat register for storing
   std::vector<double> rnds;
   rnds.reserve(shots);
-  reg_t allbit_samples(shots,0);
+  rvector_t allbit_samples(shots,0);
 
   for (i = 0; i < shots; ++i)
     rnds.push_back(rng.rand(0, 1));
 
   if(this->multi_shot_parallelization_){
-    /*
-    //multi-shot parallelization
-    reg_t local_samples(BaseState::num_local_chunks_,0);
-
-    //step 0: store rnds
-    for(i=0;i<BaseState::num_local_chunks_;i++){
-      std::vector<double> vRnd(1);
-      vRnd[0] = rnds[i];
-      auto samples = BaseState::qregs_[i].sample_measure(vRnd);
-    }
-#pragma omp barrier
-
-    //step 1: do sample measure
-    for(i=0;i<BaseState::num_local_chunks_;i++){
-      std::vector<double> vRnd(1);
-      vRnd[0] = rnds[i];
-      auto samples = BaseState::qregs_[i].sample_measure(vRnd);
-    }
-#pragma omp barrier
-
-    //step 2: get results
-    */
     for(i=0;i<BaseState::num_local_chunks_;i++){
       std::vector<double> vRnd(1);
       vRnd[0] = rnds[i];
@@ -1482,7 +1450,6 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
     chunkSum[BaseState::num_local_chunks_] = localSum;
 
     double globalSum = 0.0;
-#ifdef AER_MPI
     if(BaseState::nprocs_ > 1){// && isMultiShot_ == false){
       std::vector<double> procTotal(BaseState::nprocs_);
 
@@ -1490,15 +1457,14 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
         procTotal[i] = localSum;
       }
 
-      MPI_Alltoall(&procTotal[0],1,MPI_DOUBLE_PRECISION,&procTotal[0],1,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD);
+      BaseState::gather_value(procTotal);
 
       for(i=0;i<BaseState::myrank_;i++){
         globalSum += procTotal[i];
       }
     }
-#endif
 
-    reg_t local_samples(shots,0);
+    rvector_t local_samples(shots,0);
 
     //get rnds positions for each chunk
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i,j) 
@@ -1526,11 +1492,8 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
       }
     }
 
-#ifdef AER_MPI
-    MPI_Allreduce(&local_samples[0],&allbit_samples[0],shots,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
-#else
+    BaseState::reduce_sum(local_samples);
     allbit_samples = local_samples;
-#endif
   }
 
   // Convert to reg_t format
@@ -1677,29 +1640,16 @@ void State<statevec_t>::apply_initialize(const int_t iChunk, const reg_t &qubits
     }
   }
 
-  /*
-  //disable batched execution
-  if(iChunk < 0){
-    for(i=0;i<BaseState::num_local_chunks_;i++)
-      BaseState::qregs_[i].set_batch_bits(0);
-  }
-  else{
-    BaseState::qregs_[iChunk].set_batch_bits(0);
-  }
-  */
-
   // Apply reset to qubits
   apply_reset(iChunk,qubits, rng);
   // Apply initialize_component
   if(iChunk < 0){
     for(i=0;i<BaseState::num_local_chunks_;i++){
       BaseState::qregs_[i].initialize_component(qubits, params);
-//      BaseState::qregs_[i].set_batch_bits(1);
     }
   }
   else{
     BaseState::qregs_[iChunk].initialize_component(qubits, params);
-//    BaseState::qregs_[iChunk].set_batch_bits(1);
   }
 }
 
@@ -1756,11 +1706,7 @@ void State<statevec_t>::apply_kraus(const int_t iChunk, const reg_t &qubits,
         local_accum += BaseState::qregs_[i].norm(qubits, vmat);
       }
 
-#ifdef AER_MPI
-      double global_accum;
-      MPI_Allreduce(&local_accum,&global_accum,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
-      local_accum = global_accum;
-#endif
+      BaseState::reduce_sum(local_accum);
     }
     else{
       local_accum = BaseState::qregs_[iChunk].norm(qubits, vmat);

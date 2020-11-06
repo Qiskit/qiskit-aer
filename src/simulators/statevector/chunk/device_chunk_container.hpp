@@ -178,6 +178,13 @@ public:
     }
   }
 
+  void synchronize(uint_t iChunk)
+  {
+#ifdef AER_THRUST_CUDA
+    cudaStreamSynchronize(stream_[iChunk]);
+#endif
+  }
+
   //set qubits to be blocked
   void set_blocked_qubits(uint_t iChunk,const reg_t& qubits);
 

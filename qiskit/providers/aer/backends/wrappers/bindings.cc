@@ -6,6 +6,10 @@
 #include <cpuid.h>
 #endif
 
+#ifdef AER_MPI
+#include <mpi.h>
+#endif
+
 #include "misc/warnings.hpp"
 DISABLE_WARNING_PUSH
 #include <pybind11/pybind11.h>
@@ -28,6 +32,15 @@ public:
 };
 
 PYBIND11_MODULE(controller_wrappers, m) {
+
+#ifdef AER_MPI
+  int prov;
+  int myrank=0,nprocs=1;
+  MPI_Init_thread(NULL,NULL,MPI_THREAD_MULTIPLE,&prov);
+  MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
+  MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+  printf(" test : myrank = %d, nprocs = %d\n",myrank,nprocs);
+#endif
 
     py::class_<ControllerExecutor<AER::Simulator::QasmController> > qasm_ctrl (m, "qasm_controller_execute");
     qasm_ctrl.def(py::init<>());
