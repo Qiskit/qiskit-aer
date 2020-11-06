@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    In MPS, apply_kraus was operating directly on the input bits in the 
+    parameter qubits, instead of on the internal qubits. In the MPS algorithm, 
+    the qubits are constantly moving around so all operations should be applied
+    to the internal qubits.

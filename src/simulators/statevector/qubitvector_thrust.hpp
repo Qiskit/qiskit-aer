@@ -246,6 +246,8 @@ public:
   //swap between chunk
   void apply_chunk_swap(const reg_t &qubits, QubitVectorThrust<data_t> &chunk, bool write_back = true);
   void apply_chunk_swap(const reg_t &qubits, uint_t remote_chunk_index);
+  void apply_pauli(const reg_t &qubits, const std::string &pauli,
+                   const complex_t &coeff = 1);
 
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
@@ -311,7 +313,8 @@ public:
 
   // Return the expectation value of an N-qubit Pauli matrix.
   // The Pauli is input as a length N string of I,X,Y,Z characters.
-  double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
+  double expval_pauli(const reg_t &qubits, const std::string &pauli,
+                      const complex_t &coeff = 1) const;
 
 
   //-----------------------------------------------------------------------
@@ -3570,8 +3573,34 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
  *
  ******************************************************************************/
 
+template <typename T>
+void add_y_phase(uint_t num_y, T& coeff){
+  // Add overall phase to the input coefficient
+
+  // Compute the overall phase of the operator.
+  // This is (-1j) ** number of Y terms modulo 4
+  switch (num_y & 3) {
+    case 0:
+      // phase = 1
+      break;
+    case 1:
+      // phase = -1j
+      coeff = T(coeff.imag(), -coeff.real());
+      break;
+    case 2:
+      // phase = -1
+      coeff = T(-coeff.real(), -coeff.imag());
+      break;
+    case 3:
+      // phase = 1j
+      coeff = T(-coeff.imag(), coeff.real());
+      break;
+  }
+}
+
+//special case Z only
 template <typename data_t>
-class expval_pauli_Z_func : public GateFuncBase<data_t>
+class expval_pauli_Z_func : public GateFuncBase
 {
 protected:
   uint_t z_mask_;
@@ -3613,6 +3642,7 @@ public:
       if(count & 1)
         ret = -ret;
     }
+
     return ret;
   }
   const char* name(void)
@@ -3703,10 +3733,9 @@ public:
 
 template <typename data_t>
 double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
-                                               const std::string &pauli) const 
+                                               const std::string &pauli,
+                                               const complex_t &coeff) const 
 {
-  // Break string up into Z and X
-  // With Y being both Z and X (plus a phase)
   const size_t N = qubits.size();
   uint_t x_mask = 0;
   uint_t z_mask = 0;
@@ -3717,6 +3746,7 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
       continue;
     }
     const auto bit = 1ull << qubits[i];
+
     switch (pauli[N - 1 - i]) {
       case 'I':
         break;
@@ -3748,24 +3778,8 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
 
   // Compute the overall phase of the operator.
   // This is (-1j) ** number of Y terms modulo 4
-  thrust::complex<data_t> phase(1,0);
-  switch (num_y & 3) {
-    case 0:
-      // phase = 1
-      break;
-    case 1:
-      // phase = -1j
-      phase = thrust::complex<data_t>(0, -1);
-      break;
-    case 2:
-      // phase = -1
-      phase = thrust::complex<data_t>(-1, 0);
-      break;
-    case 3:
-      // phase = 1j
-      phase = thrust::complex<data_t>(0, 1);
-      break;
-  }
+  auto phase = thrust::complex<data_t>(coeff);
+  add_y_phase(num_y, phase);
 
   // specialize x_max == 0
   if(x_mask == 0) {
@@ -3773,6 +3787,187 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
   }
 
   return chunk_->ExecuteSum(expval_pauli_XYZ_func<data_t>(x_mask, z_mask, x_max, phase),1 );
+}
+
+/*******************************************************************************
+ *
+ * PAULI
+ *
+ ******************************************************************************/
+
+template <typename data_t>
+class multi_pauli_func : public GateFuncBase
+{
+protected:
+  uint_t x_mask_;
+  uint_t z_mask_;
+  uint_t mask_l_;
+  uint_t mask_u_;
+  thrust::complex<data_t> phase_;
+  uint_t nqubits_;
+public:
+  multi_pauli_func(uint_t x,uint_t z,uint_t x_max,thrust::complex<data_t> p)
+  {
+    x_mask_ = x;
+    z_mask_ = z;
+    phase_ = p;
+
+    mask_u_ = ~((1ull << (x_max+1)) - 1);
+    mask_l_ = (1ull << x_max) - 1;
+  }
+
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    thrust::complex<data_t>* vec;
+    thrust::complex<data_t> q0;
+    thrust::complex<data_t> q1;
+    thrust::complex<data_t> q0p;
+    thrust::complex<data_t> q1p;
+    double d0,d1,ret = 0.0;
+    uint_t idx;
+
+    vec = this->data_;
+
+    idx = ((i << 1) & mask_u_) | (i & mask_l_);
+
+    q0 = vec[idx];
+    q1 = vec[idx ^ x_mask_];
+
+    if(z_mask_ != 0){
+      uint_t count;
+      //count bits (__builtin_popcountll can not be used on GPU)
+      count = idx & z_mask_;
+      count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
+      count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
+      count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
+      count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
+      count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
+      count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
+      if(count & 1)
+        q0 = -q0;
+
+      count = (idx ^ x_mask_) & z_mask_;
+      count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
+      count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
+      count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
+      count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
+      count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
+      count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
+      if(count & 1)
+        q1 = -q1;
+    }
+    vec[idx] = q1 * phase_;
+    vec[idx ^ x_mask_] = q0 * phase_;
+  }
+  const char* Name(void)
+  {
+    return "multi_pauli";
+  }
+};
+
+//special case Z only
+template <typename data_t>
+class multi_pauli_Z_func : public GateFuncBase
+{
+protected:
+  uint_t z_mask_;
+  thrust::complex<data_t> phase_;
+public:
+  multi_pauli_Z_func(uint_t z,thrust::complex<data_t> p)
+  {
+    z_mask_ = z;
+    phase_ = p;
+  }
+
+  bool IsDiagonal(void)
+  {
+    return true;
+  }
+
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    thrust::complex<data_t>* vec;
+    thrust::complex<data_t> q0;
+    double ret = 0.0;
+
+    vec = this->data_;
+
+    q0 = vec[i];
+
+    if(z_mask_ != 0){
+      uint_t count;
+      //count bits (__builtin_popcountll can not be used on GPU)
+      count = i & z_mask_;
+      count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
+      count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
+      count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
+      count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
+      count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
+      count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
+      if(count & 1)
+        q0 = -q0;
+    }
+    vec[i] = phase_ * q0;
+  }
+  const char* Name(void)
+  {
+    return "multi_pauli_Z";
+  }
+};
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::apply_pauli(const reg_t &qubits,
+                                            const std::string &pauli,
+                                            const complex_t &coeff)
+{
+  const size_t N = qubits.size();
+  uint_t x_mask = 0;
+  uint_t z_mask = 0;
+  uint_t num_y = 0;
+  reg_t x_qubits;
+
+  for (size_t i = 0; i < N; ++i) {
+    uint_t bit = 1ull << qubits[i];
+    switch (pauli[N - 1 - i]) {
+      case 'I':
+        break;
+      case 'X': {
+        x_qubits.push_back(qubits[i]);
+        x_mask += bit;
+        break;
+      }
+      case 'Z': {
+        z_mask += bit;
+        break;
+      }
+      case 'Y': {
+        x_qubits.push_back(qubits[i]);
+        x_mask += bit;
+        z_mask += bit;
+        num_y++;
+        break;
+      }
+      default:
+        throw std::invalid_argument("Invalid Pauli \"" + std::to_string(pauli[N - 1 - i]) + "\".");
+    }
+  }
+
+  // Special case for only I Paulis
+  if (x_mask + z_mask == 0) {
+    return;
+  }
+
+  // Compute the overall phase of the operator.
+  // This is (-1j) ** number of Y terms modulo 4
+  auto phase = thrust::complex<data_t>(coeff);
+  add_y_phase(num_y, phase);
+
+  if(x_mask == 0){
+    apply_function(multi_pauli_Z_func<data_t>(z_mask, phase));
+  }
+  else{
+    apply_function(multi_pauli_func<data_t>(x_mask, z_mask, x_max, phase) );
+  }
 }
 
 

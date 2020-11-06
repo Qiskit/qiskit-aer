@@ -18,7 +18,7 @@
 #include <algorithm>
 #define _USE_MATH_DEFINES
 #include <math.h>
-
+#include "simulators/state.hpp"
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
 #include "simulators/state.hpp"
@@ -43,14 +43,14 @@ const Operations::OpSet StateOpSet(
      "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
      "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
      "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
-     "mcsx",   "delay"},
+     "mcsx",   "delay", "pauli"},
     // Snapshots
     {"unitary"});
 
 // Allowed gates enum class
 enum class Gates {
   id, h, s, sdg, t, tdg, rxx, ryy, rzz, rzx,
-  mcx, mcy, mcz, mcr, mcrx, mcry, mcrz, mcp, mcu2, mcu3, mcswap, mcsx
+  mcx, mcy, mcz, mcr, mcrx, mcry, mcrz, mcp, mcu2, mcu3, mcswap, mcsx, pauli,
 };
 
 //=========================================================================
@@ -227,7 +227,8 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
     {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
-    {"mcsx", Gates::mcsx}     // Multi-controlled-Sqrt(X) gate
+    {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
+    {"pauli", Gates::pauli}  // Multiple pauli operations at once
 });
 
 template <class unitary_matrix_t>
@@ -400,6 +401,9 @@ void State<unitary_matrix_t>::apply_gate(const Operations::Op &op) {
     case Gates::sdg:
       apply_gate_phase(op.qubits[0], complex_t(0., -1.));
       break;
+    case Gates::pauli:
+        BaseState::qreg_.apply_pauli(op.qubits, op.string_params[0]);
+        break;
     case Gates::t: {
       const double isqrt2{1. / std::sqrt(2)};
       apply_gate_phase(op.qubits[0], complex_t(isqrt2, isqrt2));
