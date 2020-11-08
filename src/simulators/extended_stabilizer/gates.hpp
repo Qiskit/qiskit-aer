@@ -174,8 +174,8 @@ U1Sample::U1Sample(double lambda)
       gates[1] = Gates::s;
     }
   }
-  phase_0 = coeff_0/std::abs(coeff_0);
-  phase_1 = coeff_1/std::abs(coeff_1);
+  phase_0 = std::polar(1.0, std::arg(coeff_0));
+  phase_1 = std::polar(1.0, std::arg(coeff_1));
   branches =
   {
     sample_branch_t(phase_0, gates[0]),
