@@ -15,13 +15,8 @@
 #ifndef QASM_SIMULATOR_COMMON_MACROS_HPP
 #define QASM_SIMULATOR_COMMON_MACROS_HPP
 
-#if defined(_MSC_VER)
- #include <intrin.h>
-#elif defined(__GNUC__) && defined(__x86_64__)
-  #ifndef __PPC64__
-     #define GNUC_AVX2
-     #include <cpuid.h>
-  #endif
+#if defined(__GNUC__) && defined(__x86_64__)
+ #define GNUC_AVX2
 #endif
 
 #endif //QASM_SIMULATOR_COMMON_MACROS_HPP

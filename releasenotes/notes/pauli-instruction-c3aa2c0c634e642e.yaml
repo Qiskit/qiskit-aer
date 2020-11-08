@@ -2,7 +2,9 @@
 
 features:
   - |
-    Adds a new gate, ``PauliGate`` which allows applying several pauli gates
-    to different qubits at the same time (allowing more efficient implementation
-    by simulators)
-
+    Adds support for optimized N-qubit Pauli gate (
+    :class:`qiskit.circuit.library.generalized_gates.PauliGate`) to the
+    :class:`~qiskit.providers.aer.StatevectorSimulator`,
+    :class:`~qiskit.providers.aer.UnitarySimulator`, and the
+    statevector and density matrix methods of the
+    :class:`~qiskit.providers.aer.QasmSimulator`.

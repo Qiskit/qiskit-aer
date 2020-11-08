@@ -442,7 +442,7 @@ class QasmSimulator(AerBackend):
                 'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
                 'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
                 'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'kraus', 'superop'
-                'roerror', 'delay'
+                'roerror', 'delay', 'pauli'
             ]
 
         # Matrix product state method

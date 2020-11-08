@@ -1,5 +1,5 @@
 // To use this configuration for running the benchmarks, we have to run asv like this:
-// $ asv --connfig asv.macos.conf.json run
+// $ asv --connfig asv.linux.conf.json
 {
     // The version of the config file format.  Do not change, unless
     // you know what you are doing.
@@ -31,20 +31,24 @@
     // ],
 
     "install_command": [
-        "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit')\"",
-        "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit_aer.egg-info')\"",
-        "python -mpip install {wheel_file}",
-        "python -mpip install qiskit-ignis==0.2.0"
+        "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit', True)\"",
+        "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit_aer.egg-info', True)\"",
+        "pip install git+https://github.com/Qiskit/qiskit-terra",
+        "pip install git+https://github.com/Qiskit/qiskit-aqua",
+        "python -mpip install {wheel_file}"
     ],
     "uninstall_command": [
         "return-code=any python -mpip uninstall -y qiskit-terra",
-        "return-code=any python -mpip uninstall -y {project}",
-        "return-code=any python -mpip uninstall -y qiskit-ignis"
+        "return-code=any python -mpip uninstall -y qiskit-aqua",
+        "return-code=any python -mpip uninstall -y {project}"
     ],
     "build_command": [
         "python -mpip install -U scikit-build cython",
-        "python -mpip install qiskit-terra",
-        "VERBOSE=1 python setup.py bdist_wheel --dist-dir={build_cache_dir} -- -- -j"
+        "pip install git+https://github.com/Qiskit/qiskit-terra",
+        "pip install git+https://github.com/Qiskit/qiskit-aqua",
+        "pip install pyscf",
+        "pip install matplotlib",
+        "python setup.py bdist_wheel --dist-dir={build_cache_dir} -- -DCMAKE_CXX_COMPILER=g++ -DAER_THRUST_BACKEND=CUDA -- -j"
     ],
 
     // List of branches to benchmark. If not provided, defaults to "master"

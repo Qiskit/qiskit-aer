@@ -212,7 +212,8 @@ public:
   // If N=3 this implements an optimized Fredkin gate
   void apply_mcswap(const reg_t &qubits);
 
-  void apply_pauli(const reg_t &qubits, const std::string &pauli);
+  void apply_pauli(const reg_t &qubits, const std::string &pauli,
+                   const complex_t &coeff = 1);
 
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
@@ -278,7 +279,8 @@ public:
 
   // Return the expectation value of an N-qubit Pauli matrix.
   // The Pauli is input as a length N string of I,X,Y,Z characters.
-  double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
+  double expval_pauli(const reg_t &qubits, const std::string &pauli,
+                      const complex_t &coeff = 1) const;
 
   //-----------------------------------------------------------------------
   // JSON configuration settings
@@ -1029,7 +1031,8 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
 template <typename data_t>
 void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
                                                 const cvector_t<double> &diag) {
-    transformer_->apply_diagonal_matrix(data_, data_size_, omp_threads_managed(), qubits, diag);
+
+  transformer_->apply_diagonal_matrix(data_, data_size_, omp_threads_managed(), qubits, diag);
 }
 
 template <typename data_t>
@@ -1790,32 +1793,34 @@ pauli_mask_data pauli_masks_and_phase(const reg_t &qubits, const std::string &pa
 }
 
 template <typename data_t>
-void compute_phase(uint_t num_y, std::complex<data_t>& phase){
+void add_y_phase(uint_t num_y, std::complex<data_t>& coeff){
+  // Add overall phase to the input coefficient
+
   // Compute the overall phase of the operator.
   // This is (-1j) ** number of Y terms modulo 4
   switch (num_y & 3) {
     case 0:
       // phase = 1
-      phase = std::complex<data_t>(1, 0);
       break;
     case 1:
       // phase = -1j
-      phase = std::complex<data_t>(0, -1);
+      coeff = std::complex<data_t>(coeff.imag(), -coeff.real());
       break;
     case 2:
       // phase = -1
-      phase = std::complex<data_t>(-1, 0);
+      coeff = std::complex<data_t>(-coeff.real(), -coeff.imag());
       break;
     case 3:
       // phase = 1j
-      phase = std::complex<data_t>(0, 1);
+      coeff = std::complex<data_t>(-coeff.imag(), coeff.real());
       break;
   }
 }
 
 template <typename data_t>
 double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
-                                         const std::string &pauli) const {
+                                         const std::string &pauli,
+                                         const complex_t &coeff) const {
 
   uint_t x_mask, z_mask, num_y, x_max;
   std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
@@ -1824,8 +1829,8 @@ double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
   if (x_mask + z_mask == 0) {
     return norm();
   }
-  std::complex<data_t> phase;
-  compute_phase(num_y, phase);
+  auto phase = std::complex<data_t>(coeff);
+  add_y_phase(num_y, phase);
 
   // specialize x_max == 0
   if (!x_mask) {
@@ -1867,7 +1872,8 @@ double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
  *
  ******************************************************************************/
 template <typename data_t>
-void QubitVector<data_t>::apply_pauli(const reg_t &qubits, const std::string &pauli){
+void QubitVector<data_t>::apply_pauli(const reg_t &qubits, const std::string &pauli,
+                                      const complex_t &coeff){
   uint_t x_mask, z_mask, num_y, x_max;
   std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
 
@@ -1875,8 +1881,8 @@ void QubitVector<data_t>::apply_pauli(const reg_t &qubits, const std::string &pa
   if (x_mask + z_mask == 0) {
     return;
   }
-  std::complex<data_t> phase;
-  compute_phase(num_y, phase);
+  auto phase = std::complex<data_t>(coeff);
+  add_y_phase(num_y, phase);
   const uint_t DIM = 1ULL << qubits.size();
 
   // specialize x_max == 0

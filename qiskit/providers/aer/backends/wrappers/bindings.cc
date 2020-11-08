@@ -1,5 +1,4 @@
 #include <iostream>
-#include "misc/common_macros.hpp"
 
 #include "misc/warnings.hpp"
 DISABLE_WARNING_PUSH
