@@ -35,9 +35,6 @@ logger = logging.getLogger(__name__)
 class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
     """QasmSimulator extended_stabilizer method tests."""
 
-    def setUp(self):
-        super(common.QiskitAerTestCase, self).setUp()
-
     BACKEND_OPTS = {
         "seed_simulator": 1984,
         "method": "extended_stabilizer",
@@ -447,7 +444,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.t_gate_counts_nondeterministic(shots)
         opts = self.BACKEND_OPTS.copy()
-        opts["extended_stabilizer_mixing_time"] = 50
+        opts["extended_stabilizer_metropolis_mixing_time"] = 50
         job = QasmSimulator().run(qobj, **opts)
         result = job.result()
         self.assertSuccess(result)
@@ -477,7 +474,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.tdg_gate_counts_nondeterministic(shots)
         opts = self.BACKEND_OPTS.copy()
-        opts["extended_stabilizer_mixing_time"] = 50
+        opts["extended_stabilizer_metropolis_mixing_time"] = 50
         job = QasmSimulator().run(qobj, **opts)
         result = job.result()
         self.assertSuccess(result)
@@ -494,7 +491,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.ccx_gate_counts_deterministic(shots)
         opts = self.BACKEND_OPTS.copy()
-        opts["extended_stabilizer_mixing_time"] = 100
+        opts["extended_stabilizer_metropolis_mixing_time"] = 100
         job = QasmSimulator().run(qobj, **opts)
         result = job.result()
         self.assertSuccess(result)
@@ -508,7 +505,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_non_clifford.ccx_gate_counts_nondeterministic(shots)
         opts = self.BACKEND_OPTS.copy()
-        opts["extended_stabilizer_mixing_time"] = 100
+        opts["extended_stabilizer_metropolis_mixing_time"] = 100
         job = QasmSimulator().run(qobj, **opts)
         result = job.result()
         self.assertSuccess(result)
@@ -524,8 +521,8 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
             final_measure=True, allow_sampling=True)
         qobj = assemble(circuits, QasmSimulator(), shots=shots)
         targets = ref_algorithms.grovers_counts(shots)
-        opts = self.BACKEND_OPTS.copy()
-        opts["extended_stabilizer_mixing_time"] = 100
+        opts = self.BACKEND_OPTS_SAMPLING.copy()
+        opts["extended_stabilizer_metropolis_mixing_time"] = 100
         job = QasmSimulator().run(qobj, **opts)
         result = job.result()
         self.assertSuccess(result)

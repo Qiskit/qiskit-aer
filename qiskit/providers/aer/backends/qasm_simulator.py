@@ -206,7 +206,7 @@ class QasmSimulator(AerBackend):
         runtimes, but gives accurate results on circuits with sparse
         output distributions. The overall runtime scales as Sn^{3}m^{3}.
 
-    * ``extended_stabilizer_mixing_time`` (int): Set how long the
+    * ``extended_stabilizer_metropolis_mixing_time`` (int): Set how long the
       monte-carlo method runs before performing measurements. If the
       output distribution is strongly peaked, this can be decreased
       alongside setting extended_stabilizer_disable_measurement_opt
