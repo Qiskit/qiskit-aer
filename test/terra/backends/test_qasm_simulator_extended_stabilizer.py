@@ -113,7 +113,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_measure_nondeterministic_with_sampling(self):
-        """Test CHimulator measure with non-deterministic counts with sampling"""
+        """Test ExtendedStabilizer measure with non-deterministic counts with sampling"""
         shots = 4000
         circuits = ref_measure.measure_circuits_nondeterministic(
             allow_sampling=True)
@@ -125,7 +125,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_measure_nondeterministic_without_sampling(self):
-        """Test CHimulator measure with non-deterministic counts without sampling"""
+        """Test ExtendedStabilizer measure with non-deterministic counts without sampling"""
         shots = 4000
         circuits = ref_measure.measure_circuits_nondeterministic(
             allow_sampling=False)
@@ -164,7 +164,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         self.compare_counts(result, circuits, targets, delta=0)
 
     def test_measure_nondeterministic_multi_qubit_with_sampling(self):
-        """Test CHimulator reset with non-deterministic counts"""
+        """Test ExtendedStabilizer reset with non-deterministic counts"""
         shots = 4000
         circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(
             allow_sampling=True)
@@ -176,7 +176,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_measure_nondeterministic_multi_qubit_without_sampling(self):
-        """Test CHimulator reset with non-deterministic counts"""
+        """Test ExtendedStabilizer reset with non-deterministic counts"""
         shots = 4000
         circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(
             allow_sampling=False)
