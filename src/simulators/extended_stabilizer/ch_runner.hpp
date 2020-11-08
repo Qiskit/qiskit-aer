@@ -478,19 +478,9 @@ auto Runner::norm_estimation(uint_t n_samples, uint_t repetitions, AER::RngEngin
     xi_samples[m] = xi;
   }
   // Get median of the xi samples
-  if (repetitions == 1)
-  {
-    return xi_samples[0];
-  }
-  std::sort(xi_samples.begin(), xi_samples.end(), std::greater<double>());
-  if(repetitions % 2 == 0)
-  {
-  	return (xi_samples[repetitions/2] + xi_samples[repetitions/2 - 1]) / 2.;
-  }
-  else
-  {
-  	uint_t index = std::floor(repetitions / 2.);
-  	return xi_samples[index];
+std::sort(xi_samples.begin(), xi_samples.end());
+int mid_point = repetitions / 2;
+return repetitions % 2 == 0 ? xi_samples[mid_point] + xi_samples[mid_point - 1]) / 2. : xi_samples[mid_point]
   }
 }
 
