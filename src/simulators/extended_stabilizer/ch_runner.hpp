@@ -475,7 +475,7 @@ auto Runner::norm_estimation(uint_t n_samples, uint_t repetitions, AER::RngEngin
     } // end omp parallel
     // return ParallelNormEstimate(states_, coefficients_, adiag_1, adiag_2, a, num_threads_);
     double xi = ParallelNormEstimate(states_, coefficients_, adiag_1, adiag_2, a, num_threads_);
-    xi_samples.push_back(xi);
+    xi_samples[m] = xi;
   }
   // Get median of the xi samples
   if (repetitions == 1)

@@ -161,7 +161,7 @@ protected:
 
   double snapshot_chop_threshold_ = 1e-10;
 
-  double probabilities_snapshot_samples_ = 3000.;
+  uint_t probabilities_snapshot_samples_ = 3000;
 
   SamplingMethod sampling_method_ = SamplingMethod::resampled_metropolis;
 
@@ -768,6 +768,7 @@ void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &r
     if (BaseState::qreg_.get_num_states() == 1 || sampling_method_ != SamplingMethod::norm_estimation)
     {
       std::vector<uint_t> samples;
+      samples.reserve(probabilities_snapshot_samples_);
       if(BaseState::qreg_.get_num_states() == 1)
       {
         samples = BaseState::qreg_.stabilizer_sampler(probabilities_snapshot_samples_, rng);
