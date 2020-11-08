@@ -176,10 +176,6 @@ using cdouble =  std::complex<double>;
 // Implementation                //
 //-------------------------------//
 
-//Lookup table for e^(i pi m / 4)
-static const std::array<int, 8> RE_PHASE = {1, 1, 0, -1, -1, -1, 0, 1};
-static const std::array<int, 8> IM_PHASE = {0, 1, 1, 1, 0, -1, -1, -1};
-
 // Clifford simulator based on the CH-form for for n<=64 qubits
 
 StabilizerState::StabilizerState(const unsigned n_qubits):

@@ -501,7 +501,7 @@ auto Runner::norm_estimation(uint_t n_samples, uint_t repetitions, std::vector<p
 }
 
 auto Runner::ne_single_sample(uint_t default_samples,
-		                          uint_t repetitions,
+                              uint_t repetitions,
                               bool preserve_states,
                               const AER::reg_t &qubits,
                               AER::RngEngine &rng) -> uint_t

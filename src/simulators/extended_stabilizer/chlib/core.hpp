@@ -22,12 +22,13 @@
 #include <iostream>
 #include <vector>
 
-static const std::array<int, 8> RE_PHASE = {1, 1, 0, -1, -1, -1, 0, 1};
-static const std::array<int, 8> IM_PHASE = {0, 1, 1, 1, 0, -1, -1, -1};
 
 namespace CHSimulator 
 {
-    
+
+static const std::array<int, 8> RE_PHASE = {1, 1, 0, -1, -1, -1, 0, 1};
+static const std::array<int, 8> IM_PHASE = {0, 1, 1, 1, 0, -1, -1, -1};
+
 using complex_t = std::complex<double>;
 using uint_t = uint_fast64_t;
 using int_t = int_fast64_t;
