@@ -107,10 +107,11 @@ class QasmStandardGateStatevectorTests:
 
         # Add snapshot and execute
         circuit.snapshot_statevector('final')
-        backend_options = self.BACKEND_OPTS
+        backend_options = self.BACKEND_OPTS.copy()
         method = backend_options.pop('method', 'automatic')
         backend = self.SIMULATOR
         backend.set_options(method=method)
+        #print(circuit.qasm())
         result = execute(circuit, backend, shots=1, **backend_options).result()
 
         # Check results
