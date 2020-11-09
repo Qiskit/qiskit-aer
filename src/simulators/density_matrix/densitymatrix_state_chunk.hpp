@@ -362,12 +362,10 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits)
   initialize_omp();
 
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
-//#pragma omp barrier
     for(i=0;i<BaseState::num_local_chunks_;i++){
       BaseState::qregs_[i].set_num_qubits(BaseState::chunk_bits_/2);
       BaseState::qregs_[i].zero();
     }
-//#pragma omp barrier
     for(i=0;i<BaseState::num_local_chunks_;i++){
       BaseState::qregs_[i].initialize();
     }

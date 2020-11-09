@@ -34,35 +34,35 @@ namespace StatevectorChunk {
 
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
-  // Op types
-  {Operations::OpType::gate, Operations::OpType::measure,
-    Operations::OpType::reset, Operations::OpType::initialize,
-    Operations::OpType::snapshot, Operations::OpType::barrier,
-    Operations::OpType::bfunc, Operations::OpType::roerror,
-    Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-    Operations::OpType::multiplexer, Operations::OpType::kraus, Operations::OpType::sim_op},
+    // Op types
+    {Operations::OpType::gate, Operations::OpType::measure,
+     Operations::OpType::reset, Operations::OpType::initialize,
+     Operations::OpType::snapshot, Operations::OpType::barrier,
+     Operations::OpType::bfunc, Operations::OpType::roerror,
+     Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
+     Operations::OpType::multiplexer, Operations::OpType::kraus, Operations::OpType::sim_op},
     // Gates
-    {"u1",   "u2",   "u3",   "cx",   "cz",   "cy",     "cp",      "cu1",
-     "cu2",  "cu3",  "swap", "id",   "p",    "x",      "y",       "z",
-     "h",    "s",    "sdg",  "t",    "tdg",  "r",      "rx",      "ry",
-     "rz",   "rxx",  "ryy",  "rzz",  "rzx",  "ccx",    "cswap",   "mcx",
-     "mcy",  "mcz",  "mcu1", "mcu2", "mcu3", "mcswap", "mcphase", "mcr",
-     "mcrx", "mcry", "mcry", "sx",   "csx",  "mcsx", "delay"},
-  // Snapshots
+    {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
+     "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
+     "x",      "y",       "z",   "h",    "s",    "sdg",  "t",    "tdg",
+     "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
+     "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
+     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
+     "mcsx",   "delay", "pauli"},
+    // Snapshots
     {"statevector", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli", "density_matrix",
      "density_matrix_with_variance", "expectation_value_pauli_with_variance",
      "expectation_value_matrix_single_shot", "expectation_value_matrix",
      "expectation_value_matrix_with_variance",
-     "expectation_value_pauli_single_shot"}
-);
+     "expectation_value_pauli_single_shot"});
 
 // Allowed gates enum class
 enum class Gates {
   id, h, s, sdg, t, tdg,
   rxx, ryy, rzz, rzx,
   mcx, mcy, mcz, mcr, mcrx, mcry,
-  mcrz, mcp, mcu2, mcu3, mcswap, mcsx
+  mcrz, mcp, mcu2, mcu3, mcswap, mcsx, pauli
 };
 
 // Allowed snapshots enum class
@@ -345,7 +345,10 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"u1", Gates::mcp},  // zero-X90 pulse waltz gate
     {"u2", Gates::mcu2}, // single-X90 pulse waltz gate
     {"u3", Gates::mcu3}, // two X90 pulse waltz gate
+    {"u", Gates::mcu3}, // two X90 pulse waltz gate
+    {"U", Gates::mcu3}, // two X90 pulse waltz gate
     // 2-qubit gates
+    {"CX", Gates::mcx},      // Controlled-X gate (CNOT)
     {"cx", Gates::mcx},      // Controlled-X gate (CNOT)
     {"cy", Gates::mcy},      // Controlled-Y gate
     {"cz", Gates::mcz},      // Controlled-Z gate
@@ -377,9 +380,9 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
     {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
-    {"mcsx", Gates::mcsx}     // Multi-controlled-Sqrt(X) gate
+    {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
+    {"pauli", Gates::pauli}   // Multi-qubit Pauli gate
 });
-
 
 template <class statevec_t>
 const stringmap_t<Snapshots> State<statevec_t>::snapshotset_(
@@ -630,6 +633,11 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
           for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++)
             apply_matrix(iChunk,ops[iOp]);
           break;
+        case Operations::OpType::diagonal_matrix:
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
+          for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++)
+            BaseState::qregs_[iChunk].apply_diagonal_matrix(ops[iOp].qubits, ops[iOp].params);
+          break;
         case Operations::OpType::multiplexer:
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
           for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++)
@@ -690,6 +698,9 @@ uint_t State<statevec_t>::apply_blocking(const std::vector<Operations::Op> &ops,
             break;
           case Operations::OpType::matrix:
             apply_matrix(iChunk,ops[iOp]);
+            break;
+          case Operations::OpType::diagonal_matrix:
+            BaseState::qregs_[iChunk].apply_diagonal_matrix(ops[iOp].qubits, ops[iOp].params);
             break;
           case Operations::OpType::multiplexer:
             apply_multiplexer(iChunk,ops[iOp].regs[0], ops[iOp].regs[1], ops[iOp].mats); // control qubits ([0]) & target qubits([1])
@@ -1265,6 +1276,9 @@ void State<statevec_t>::apply_gate(const uint_t iChunk, const Operations::Op &op
       // Includes sx, csx, mcsx etc
       BaseState::qregs_[iChunk].apply_mcu(op.qubits, Linalg::VMatrix::SX);
       break;
+    case Gates::pauli:
+        BaseState::qregs_[iChunk].apply_pauli(op.qubits, op.string_params[0]);
+        break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument("QubitVector::State::invalid gate instruction \'" +

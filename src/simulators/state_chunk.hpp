@@ -76,9 +76,18 @@ public:
   //-----------------------------------------------------------------------
 
   // Returns a const reference to the states data structure
-  const auto &qreg(uint_t idx=0) const {return qregs_[idx];}
-  const auto &creg() const {return cregs_;}
-  const auto &opset() const {return opset_;}
+  // Return the state qreg object
+  auto &qreg(uint_t idx=0) { return qregs_[idx]; }
+  const auto &qreg(uint_t idx=0) const { return qregs_[idx]; }
+
+  // Return the state creg object
+  auto &creg() { return cregs_; }
+  const auto &creg() const { return cregs_; }
+
+  // Return the state opset object
+  auto &opset() { return opset_; }
+  const auto &opset() const { return opset_; }
+
 
   //=======================================================================
   // Subclass Override Methods

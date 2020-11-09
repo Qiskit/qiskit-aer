@@ -3600,7 +3600,7 @@ void add_y_phase(uint_t num_y, T& coeff){
 
 //special case Z only
 template <typename data_t>
-class expval_pauli_Z_func : public GateFuncBase
+class expval_pauli_Z_func : public GateFuncBase<data_t>
 {
 protected:
   uint_t z_mask_;
@@ -3796,7 +3796,7 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
  ******************************************************************************/
 
 template <typename data_t>
-class multi_pauli_func : public GateFuncBase
+class multi_pauli_func : public GateFuncBase<data_t>
 {
 protected:
   uint_t x_mask_;
@@ -3867,7 +3867,7 @@ public:
 
 //special case Z only
 template <typename data_t>
-class multi_pauli_Z_func : public GateFuncBase
+class multi_pauli_Z_func : public GateFuncBase<data_t>
 {
 protected:
   uint_t z_mask_;
@@ -3924,7 +3924,7 @@ void QubitVectorThrust<data_t>::apply_pauli(const reg_t &qubits,
   uint_t x_mask = 0;
   uint_t z_mask = 0;
   uint_t num_y = 0;
-  reg_t x_qubits;
+  uint_t x_max = 0;
 
   for (size_t i = 0; i < N; ++i) {
     uint_t bit = 1ull << qubits[i];
@@ -3932,8 +3932,9 @@ void QubitVectorThrust<data_t>::apply_pauli(const reg_t &qubits,
       case 'I':
         break;
       case 'X': {
-        x_qubits.push_back(qubits[i]);
         x_mask += bit;
+        if(qubits[i] > x_max)
+          x_max = qubits[i];
         break;
       }
       case 'Z': {
@@ -3941,9 +3942,10 @@ void QubitVectorThrust<data_t>::apply_pauli(const reg_t &qubits,
         break;
       }
       case 'Y': {
-        x_qubits.push_back(qubits[i]);
         x_mask += bit;
         z_mask += bit;
+        if(qubits[i] > x_max)
+          x_max = qubits[i];
         num_y++;
         break;
       }

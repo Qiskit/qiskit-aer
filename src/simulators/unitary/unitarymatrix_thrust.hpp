@@ -45,8 +45,8 @@ public:
 
   UnitaryMatrixThrust() : UnitaryMatrixThrust(0) {};
   explicit UnitaryMatrixThrust(size_t num_qubits);
-  UnitaryMatrixThrust(const UnitaryMatrixThrust& obj) = delete;
-  UnitaryMatrixThrust &operator=(const UnitaryMatrixThrust& obj) = delete;
+  UnitaryMatrixThrust(const UnitaryMatrixThrust& obj){}
+  UnitaryMatrixThrust &operator=(const UnitaryMatrixThrust& obj){}
 
   //-----------------------------------------------------------------------
   // Utility functions

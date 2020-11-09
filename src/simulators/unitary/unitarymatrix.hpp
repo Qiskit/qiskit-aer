@@ -44,8 +44,8 @@ public:
 
   UnitaryMatrix() : UnitaryMatrix(0) {};
   explicit UnitaryMatrix(size_t num_qubits);
-  UnitaryMatrix(const UnitaryMatrix& obj) = delete;
-  UnitaryMatrix &operator=(const UnitaryMatrix& obj) = delete;
+  UnitaryMatrix(const UnitaryMatrix& obj){}
+  UnitaryMatrix &operator=(const UnitaryMatrix& obj){}
 
   //-----------------------------------------------------------------------
   // Utility functions

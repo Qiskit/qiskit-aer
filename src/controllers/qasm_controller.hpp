@@ -380,8 +380,9 @@ void QasmController::set_config(const json_t& config) {
   }
 
   //enable multiple qregs if cache blocking is enabled
-  if (JSON::check_key("blocking_qubits", config))
-    multiple_qregs_ = true;
+  if(JSON::check_key("blocking_enable", config)){
+    JSON::get_value(multiple_qregs_,"blocking_enable", config);
+  }
 
   JSON::get_value(cache_block_before_fusion_,
                   "cache_block_before_fusion", config);
