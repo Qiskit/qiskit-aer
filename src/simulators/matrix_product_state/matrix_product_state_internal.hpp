@@ -176,6 +176,7 @@ public:
   virtual std::ostream&  print(std::ostream& out) const;
 
   void full_state_vector(cvector_t &state_vector);
+  complex_t get_single_amplitude(std::string amplitude);
 
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 

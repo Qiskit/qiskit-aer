@@ -577,6 +577,8 @@ void State::snapshot_state(const Operations::Op &op,
 			   ExperimentResult &result,
 			   std::string name) {
   cvector_t statevector;
+  complex_t a = qreg_.get_single_amplitude("0000");
+  std::cout << "amplitude = " << a << std::endl;
   qreg_.full_state_vector(statevector);
   result.data.add_pershot_snapshot("statevector", op.string_params[0], statevector);
 }

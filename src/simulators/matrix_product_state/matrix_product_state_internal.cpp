@@ -1170,6 +1170,23 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
   statevector = reverse_all_bits(temp_statevector, num_qubits);
 }
 
+complex_t MPS::get_single_amplitude(std::string amplitude) {
+  move_all_qubits_to_sorted_ordering();
+  print(std::cout);
+  uint_t bit = amplitude[0]=='0' ? 0 : 1;
+  cmatrix_t temp = q_reg_[0].get_data(bit);
+
+  for (uint_t i=1; i<num_qubits_; i++) {
+    bit = amplitude[i]=='0' ? 0 : 1;
+    for (uint_t row=0; row<temp.GetRows(); row++)
+      for (uint_t col=0; col<temp.GetColumns(); col++)
+	temp(row, col) *= lambda_reg_[i-1][col];
+    temp = temp * q_reg_[i].get_data(bit);
+  }
+  std::cout << " temp rows =" << temp.GetRows() << " temp columns = " <<temp.GetColumns() << std::endl;
+  return temp(0, 0); //-> check that matrix is 1x1 to complex_t 
+}
+
 void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const {
   reg_t internal_qubits = get_internal_qubits(qubits);
   get_probabilities_vector_internal(probvector, internal_qubits);
