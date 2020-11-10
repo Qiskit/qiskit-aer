@@ -54,7 +54,7 @@ const Operations::OpSet StateOpSet(
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cz", "cp", "cu1", "swap", "ccx"},
   // Snapshots
-  {"statevector", "memory", "register", "probabilities",
+  {"statevector", "amplitudes", "memory", "register", "probabilities",
     "expectation_value_pauli", "expectation_value_pauli_with_variance",
     "expectation_value_pauli_single_shot", "expectation_value_matrix",
     "expectation_value_matrix_with_variance",
@@ -64,7 +64,7 @@ const Operations::OpSet StateOpSet(
 
 // Allowed snapshots enum class
 enum class Snapshots {
-  statevector, cmemory, cregister,
+  statevector, amplitudes, cmemory, cregister,
     probs, probs_var, densmat, densmat_var,
     expval_pauli, expval_pauli_var, expval_pauli_shot,
     expval_matrix, expval_matrix_var, expval_matrix_shot
@@ -262,6 +262,10 @@ protected:
 		      ExperimentResult &result,
 		      std::string name = "");
 
+  void snapshot_amplitudes(const Operations::Op &op,
+			   ExperimentResult &result,
+			   std::string name = "");
+
   //-----------------------------------------------------------------------
   // Single-qubit gate helpers
   //-----------------------------------------------------------------------
@@ -322,6 +326,7 @@ const stringmap_t<Gates> State::gateset_({
 
 const stringmap_t<Snapshots> State::snapshotset_({
   {"statevector", Snapshots::statevector},
+  {"amplitudes", Snapshots::amplitudes},
   {"probabilities", Snapshots::probs},
   {"expectation_value_pauli", Snapshots::expval_pauli},
   {"expectation_value_matrix", Snapshots::expval_matrix},
@@ -458,6 +463,8 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 
   // Simple loop over vector of input operations
   for (const auto &op: ops) {
+    std::cout <<"in apply op, op = " << op << std::endl;
+    std::cout << op.params[0] << std::endl;
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
         case Operations::OpType::barrier:
@@ -546,7 +553,6 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
   }
   complex_t expval(0., 0.);
   double one_expval = 0;
-
   for (const auto &param : op.params_expval_matrix) {
     complex_t coeff = param.first;
 
@@ -581,10 +587,27 @@ void State::snapshot_state(const Operations::Op &op,
 			   ExperimentResult &result,
 			   std::string name) {
   cvector_t statevector;
-  complex_t a = qreg_.get_single_amplitude("0000");
-  std::cout << "amplitude = " << a << std::endl;
   qreg_.full_state_vector(statevector);
   result.data.add_pershot_snapshot("statevector", op.string_params[0], statevector);
+}
+
+void State::snapshot_amplitudes(const Operations::Op &op,
+				ExperimentResult &result,
+				std::string name) {
+  std::cout << op << std::endl;
+  uint_t num_amplitudes = op.params.size();
+  std::cout << "num amplitudes =" << num_amplitudes << std::endl;
+  cvector_t amplitude_vector(num_amplitudes);
+  reg_t base_values(num_amplitudes);
+  for (uint_t i=0; i<num_amplitudes; i++)
+    base_values[i] = static_cast<uint_t>(real(op.params[i]));
+  qreg_.get_amplitude_vector(base_values, op.qubits, amplitude_vector);
+  std::cout << "amplitudes = ";
+  for (uint_t i=0; i< amplitude_vector.size(); i++)
+    std::cout << amplitude_vector[i] << " ";
+  std::cout<<std::endl;
+  //  qreg_.full_state_vector(statevector);
+  result.data.add_pershot_snapshot("amplitudes", op.string_params[0], amplitude_vector);
 }
 
 void State::snapshot_probabilities(const Operations::Op &op,
@@ -864,6 +887,10 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result) {
   switch (it -> second) {
   case Snapshots::statevector: {
       snapshot_state(op, result, "statevector");
+      break;
+  }
+  case Snapshots::amplitudes: {
+      snapshot_amplitudes(op, result, "amplitudes");
       break;
   }
   case Snapshots::cmemory:

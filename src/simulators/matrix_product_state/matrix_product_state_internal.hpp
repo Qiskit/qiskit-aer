@@ -177,7 +177,10 @@ public:
   virtual std::ostream&  print(std::ostream& out) const;
 
   void full_state_vector(cvector_t &state_vector);
-  complex_t get_single_amplitude(std::string amplitude);
+
+  void get_amplitude_vector(const reg_t base_values, const reg_t qubits, 
+			     cvector_t amplitude_vector);
+  complex_t get_single_amplitude(std::string base_value);
 
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
@@ -343,6 +346,9 @@ private:
   // between first_index and last_index
   MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
   void full_state_vector_internal(cvector_t &state_vector, const reg_t &qubits) ;
+
+  void get_amplitude_vector_internal(const reg_t base_values, const reg_t qubits, 
+				      cvector_t amplitude_vector);
 
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 
