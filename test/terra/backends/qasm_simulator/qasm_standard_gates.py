@@ -112,7 +112,6 @@ class QasmStandardGateStatevectorTests:
         method = backend_options.pop('method', 'automatic')
         backend = self.SIMULATOR
         backend.set_options(method=method)
-        #print(circuit.qasm())
         result = execute(circuit, backend, shots=1, **backend_options).result()
 
         # Check results
