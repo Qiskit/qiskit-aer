@@ -701,12 +701,10 @@ void State::apply_gate(const Operations::Op &op) {
   }
 }
 
-  void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
-   if (!qubits.empty() && mat.size() > 0) {
-     qreg_.apply_matrix(qubits, mat);
-     return;
-   }
-  }
+void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
+  if (!qubits.empty() && mat.size() > 0)
+    qreg_.apply_matrix(qubits, mat);
+}
 
 void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
   // Check if diagonal matrix

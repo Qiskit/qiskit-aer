@@ -330,8 +330,8 @@ void MPS_Tensor::apply_tdg()
     swap(data_[1], data_[2]);
 
   if (is_diagonal) {  // diagonal matrix - the diagonal is contained in row 0
-      for (uint_t i=0; i<mat.GetColumns(); i++)
-	data_[i] = mat(0, i) * data_[i];
+    for (uint_t i=0; i<mat.GetColumns(); i++)
+      data_[i] = mat(0, i) * data_[i];
   } else {            // full matrix
     MPS_Tensor new_tensor;
     // initialize by multiplying first column of mat by data_[0]
@@ -344,9 +344,9 @@ void MPS_Tensor::apply_tdg()
 	new_tensor.data_[i] += mat(i, j) * data_[j];
       }
     }
-  *this = new_tensor;
+    *this = new_tensor;
   }
-   
+
   if (swapped)
     swap(data_[1], data_[2]);
 }
