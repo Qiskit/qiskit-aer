@@ -194,6 +194,12 @@ public:
   void snapshot_creg_register(const Operations::Op &op, ExperimentResult &result,
                               std::string name = "register") const;
 
+  //add final state to result
+  virtual void add_state_to_data(ExperimentResult &result)
+  {
+    ;
+  }
+
   //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------

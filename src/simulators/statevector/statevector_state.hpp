@@ -132,6 +132,12 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
 
+  //add final state to result
+  void add_state_to_data(ExperimentResult &result)
+  {
+    result.data.add_additional_data("statevector", BaseState::qreg_.move_to_vector());
+  }
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
