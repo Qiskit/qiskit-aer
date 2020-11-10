@@ -44,4 +44,8 @@ target_compile_definitions(controller_wrappers PRIVATE ${AER_COMPILER_DEFINITION
 install(TARGETS controller_wrappers LIBRARY DESTINATION qiskit/providers/aer/backends)
 
 # Install redistributable dependencies
-install(FILES ${BACKEND_REDIST_DEPS} DESTINATION qiskit/providers/aer/backends)
+if(APPLE)
+    install(FILES "${CONAN_LIB_DIRS_LLVM-OPENMP}/libomp.dylib" DESTINATION qiskit/providers/aer/backends)
+elseif(WIN32 AND NOT BLAS_LIB_PATH)
+    install(FILES ${OPENBLAS_DLLs} DESTINATION qiskit/providers/aer/backends)
+endif()

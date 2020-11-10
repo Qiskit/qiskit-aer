@@ -45,20 +45,11 @@ option(STATIC_LINKING "Specify if we want statically link the executable (for
 						redistribution mainly)" FALSE)
 option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
 
-# Allow disabling conan for downstream package managers. Requires all libraries to be present in path
-# Default is value of environment variable if defined or ON
-if(DEFINED ENV{DISABLE_CONAN})
-	set(_DISABLE_CONAN_DEFAULT ENV{DISABLE_CONAN})
-else()
-	set(_DISABLE_CONAN_DEFAULT OFF)
-endif()
-option(DISABLE_CONAN "Disable Conan package manager to find dependencies. If disabled, you must have all dependencies present on your system." ${_DISABLE_CONAN_DEFAULT})
-
 include(CTest)
 include(compiler_utils)
 include(Linter)
 include(findBLASInSpecificPath)
-include(dependency_utils)
+include(conan_utils)
 
 # Get version information
 get_version(${VERSION_NUM})
@@ -146,33 +137,29 @@ endif()
 #
 # Looking for external libraries
 #
-set(BACKEND_REDIST_DEPS "") # List of redistributable dependencies
-setup_dependencies()
+
+setup_conan()
 
 # If we do not set them with a space CMake fails afterwards if nothing is set for this vars!
 set(AER_LINKER_FLAGS " ")
 set(AER_COMPILER_FLAGS " ")
 
-if(NOT OPENMP_FOUND) # Could already be setup for macos with conan
-	message(STATUS "Looking for OpenMP support...")
+message(STATUS "Looking for OpenMP support...")
+if(APPLE)
+	set(OPENMP_FOUND TRUE)
+	if(NOT SKBUILD)
+		set(AER_LIBRARIES ${AER_LIBRARIES} CONAN_PKG::llvm-openmp)
+	else()
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CONAN_CXX_FLAGS_LLVM-OPENMP}")
+		set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CONAN_INCLUDE_DIRS_LLVM-OPENMP})
+	endif()
+else()
 	find_package(OpenMP QUIET)
 	if(OPENMP_FOUND)
 		set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} ${OpenMP_CXX_FLAGS}")
 		set(AER_LINKER_FLAGS "${AER_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-		if(APPLE)
-			set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${OpenMP_CXX_INCLUDE_DIRS})
-			# On Apple and clang, we do need to link against the library unless we are building
-			# the Terra Addon, see issue: https://github.com/Qiskit/qiskit-aer/issues/1
-			if(NOT SKBUILD)
-				set(AER_LIBRARIES "${AER_LIBRARIES}" "${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY}")
-				message(STATUS "Adding Clang: ${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY}")
-			else()
-				get_filename_component(OPENMP_LIB_TO_COPY ${OpenMP_${OpenMP_CXX_LIB_NAMES}_LIBRARY} REALPATH) #Needed to follow symlinks
-				set(BACKEND_REDIST_DEPS ${BACKEND_REDIST_DEPS} ${OPENMP_LIB_TO_COPY})
-			endif()
-		endif()
 		message(STATUS "OpenMP found!")
 		message(STATUS "OpenMP_CXX_FLAGS = ${OpenMP_CXX_FLAGS}")
 		message(STATUS "OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
@@ -210,7 +197,7 @@ else()
 			set(WIN_ARCH "win32")
 		endif()
 		execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/openblas.7z" WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/")
-		set(BACKEND_REDIST_DEPS ${BACKEND_REDIST_DEPS} "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll")
+		set(OPENBLAS_DLLs "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll")
 		set(BLAS_LIBRARIES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll.a") # Seems CMake is unable to find it on its own
 		set(BLAS_FOUND True)
 	else()
@@ -262,19 +249,21 @@ if(AER_THRUST_SUPPORTED)
 		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin \"${CMAKE_CXX_COMPILER}\" ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
 
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
-		set(THRUST_DEPENDENT_LIBS "")
+		set(THRUST_DEPENDANT_LIBS "")
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
 		message(STATUS "TBB Support found!")
-		set(THRUST_DEPENDENT_LIBS AER_DEPENDENCY_PKG::tbb)
+		set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CONAN_INCLUDE_DIRS_THRUST})
+		set(THRUST_DEPENDANT_LIBS CONAN_PKG::tbb)
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE)
 	elseif(AER_THRUST_BACKEND STREQUAL "OMP")
 		message(STATUS "Thrust library: Setting OMP backend")
 		if(NOT OPENMP_FOUND)
 			message(FATAL_ERROR "There's no OMP support. We cannot set Thrust backend to OMP!!")
 		endif()
+		set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${CONAN_INCLUDE_DIRS_THRUST})
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE)
 		# We don't need to add OMP because it's already an AER dependency
-		set(THRUST_DEPENDENT_LIBS "")
+		set(THRUST_DEPENDANT_LIBS "")
 	else()
 		message(STATUS "No Thrust supported backend")
 		set(AER_THRUST_SUPPORTED FALSE)
@@ -292,16 +281,16 @@ endif()
 set(AER_LIBRARIES
 	${AER_LIBRARIES}
 	${BLAS_LIBRARIES}
-	AER_DEPENDENCY_PKG::nlohmann_json
-	AER_DEPENDENCY_PKG::spdlog
+	CONAN_PKG::nlohmann_json
 	Threads::Threads
+	CONAN_PKG::spdlog
 	${DL_LIB}
-	${THRUST_DEPENDENT_LIBS})
+	${THRUST_DEPENDANT_LIBS})
 
 set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 # Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
-	set(AER_LIBRARIES ${AER_LIBRARIES} AER_DEPENDENCY_PKG::muparserx)
+	set(AER_LIBRARIES ${AER_LIBRARIES} CONAN_PKG::muparserx)
 	add_subdirectory(qiskit/providers/aer/pulse/qutip_extra_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 	add_subdirectory(src/open_pulse)
@@ -354,9 +343,9 @@ else() # Standalone build
 		PRIVATE ${AER_COMPILER_DEFINITIONS})
 	if(WIN32 AND NOT BLAS_LIB_PATH)
 		add_custom_command(TARGET qasm_simulator POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
-				${BACKEND_REDIST_DEPS}
+				${OPENBLAS_DLLs}
 				$<TARGET_FILE_DIR:qasm_simulator>)
-		install(FILES ${BACKEND_REDIST_DEPS} DESTINATION bin)
+		install(FILES ${OPENBLAS_DLLs} DESTINATION bin)
 	endif()
 
 	install(TARGETS qasm_simulator DESTINATION bin)
