@@ -324,7 +324,7 @@ void MPS_Tensor::apply_tdg()
   data_[1] = data_[1] * complex_t(SQR_HALF, -SQR_HALF);
 }
 
- void MPS_Tensor::apply_matrix(const cmatrix_t &mat, bool is_diagonal, bool swapped)
+void MPS_Tensor::apply_matrix(const cmatrix_t &mat, bool swapped, bool is_diagonal)
 {
   if (swapped)
     swap(data_[1], data_[2]);
