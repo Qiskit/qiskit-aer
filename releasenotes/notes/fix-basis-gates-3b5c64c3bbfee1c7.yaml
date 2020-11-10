@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fix bug where the `"sx"`` gate :class:`~qiskit.circuit.library.SXGate` was
+    not listed as a supported basis gate for the ``"matrix_product_state"``
+    method of the :class:`~qiskit.providers.aer.QasmSimulator`.
+  - |
+    Fix bug where ``"csx"``, ``"cu2"``, ``"cu3"`` were incorrectly listed as
+    supported basis gates for the ``"density_matrix"`` method of the
+    :class:`~qiskit.providers.aer.QasmSimulator`.
