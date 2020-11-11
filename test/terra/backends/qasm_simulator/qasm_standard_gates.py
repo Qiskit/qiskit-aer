@@ -103,11 +103,12 @@ class QasmStandardGateStatevectorTests:
         circuit = self.gate_circuit(gate_cls,
                                     num_params=num_params,
                                     rng=self.RNG)
+        print(circuit.qasm())
         target = Statevector.from_instruction(circuit)
 
         # Add snapshot and execute
         circuit.snapshot_statevector('final')
-        backend_options = self.BACKEND_OPTS
+        backend_options = self.BACKEND_OPTS.copy()
         method = backend_options.pop('method', 'automatic')
         backend = self.SIMULATOR
         backend.set_options(method=method)
@@ -151,7 +152,7 @@ class QasmStandardGateDensityMatrixTests:
 
         # Add snapshot and execute
         circuit.snapshot_density_matrix('final')
-        backend_options = self.BACKEND_OPTS
+        backend_options = self.BACKEND_OPTS.copy()
         method = backend_options.pop('method', 'automatic')
         backend = self.SIMULATOR
         backend.set_options(method=method)

@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Fix bug where the `"sx"`` gate :class:`~qiskit.circuit.library.SXGate` was
+    not listed as a supported gate in the C++ code, in `StateOpSet` of
+    `matrix_product_state.hp`.
+  - |
+    Fix bug where ``"csx"``, ``"cu2"``, ``"cu3"`` were incorrectly listed as
+    supported basis gates for the ``"density_matrix"`` method of the
+    :class:`~qiskit.providers.aer.QasmSimulator`.
+  - |
+    Fix bug where parameters were passed incorrectly between functions in
+    `matrix_product_state_internal.cpp`, causing wrong simulation, as well
+    as reaching invalid states, which in turn caused an infinite loop.
