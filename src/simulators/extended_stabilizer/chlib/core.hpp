@@ -180,12 +180,12 @@ void Print(std::vector<uint_fast64_t> A, unsigned n);// print a binary matrix
   #endif
   #define INTRINSIC_PARITY 1
   #include <intrin.h>
-  inline auto _msc_parity(uint_t x)bool
+  inline bool _msc_parity(uint_t x)
   {
     return (POPCNT(x) & one);
   }
   bool (*hamming_parity) (uint_t) = &_msc_parity;
-  inline auto _msc_weight(uint_t x)unsigned
+  inline unsigned _msc_weight(uint_t x)
   {
     return (POPCNT(x));
   }
