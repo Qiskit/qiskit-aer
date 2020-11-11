@@ -51,7 +51,8 @@ const Operations::OpSet StateOpSet(
   Operations::OpType::matrix, Operations::OpType::kraus},
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
-   "u2", "u3", "u", "U", "CX", "cx",  "cz", "cp", "cu1", "swap", "ccx"},
+   "u2", "u3", "u", "U", "CX", "cx",  "cz", "cp", "cu1", "swap", "ccx",
+   "sx"},
   // Snapshots
   {"statevector", "memory", "register", "probabilities",
     "expectation_value_pauli", "expectation_value_pauli_with_variance",
@@ -697,12 +698,10 @@ void State::apply_gate(const Operations::Op &op) {
   }
 }
 
-  void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
-   if (!qubits.empty() && mat.size() > 0) {
-     qreg_.apply_matrix(qubits, mat);
-     return;
-   }
-  }
+void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
+  if (!qubits.empty() && mat.size() > 0)
+    qreg_.apply_matrix(qubits, mat);
+}
 
 void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
   // Check if diagonal matrix
