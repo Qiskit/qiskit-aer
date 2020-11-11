@@ -1176,7 +1176,7 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
 }
 
 void MPS::get_amplitude_vector(const reg_t base_values, const reg_t qubits, 
-				cvector_t amplitude_vector) {
+				cvector_t &amplitude_vector) {
   // For now we ignore the qubits parameter and compute for all qubits
   reg_t all_qubits(num_qubits_);
   std::iota( std::begin(all_qubits), std::end(all_qubits), 0);
@@ -1185,31 +1185,38 @@ void MPS::get_amplitude_vector(const reg_t base_values, const reg_t qubits,
 }
 
 void MPS::get_amplitude_vector_internal(const reg_t base_values, const reg_t qubits, 
-					 cvector_t amplitude_vector) {
-  std::cout << "base_values 0 = " <<base_values[0] << std::endl;
+					 cvector_t &amplitude_vector) {
   move_all_qubits_to_sorted_ordering();
-  print(std::cout);
   std::string base_value;
   for (uint_t i=0; i<base_values.size(); i++) {
     base_value = AER::Utils::int2string(base_values[i]);
-    std::cout << "base value = " << base_value << std::endl;
-    amplitude_vector.push_back(get_single_amplitude(base_value));
+    amplitude_vector[i] = get_single_amplitude(base_value);
   }
 }
-  
 complex_t MPS::get_single_amplitude(std::string base_value) {
+  // We take the bits of the base value from right to left in order not to expand the 
+  // base values to the full width of 2^n
+  // We contract from left to right because the representation in Qiskit is from left 
+  // to right, i.e., 1=1000, 2=0100, ...
 
-  uint_t bit = base_value[0]=='0' ? 0 : 1;
+  int_t pos = base_value.length()-1;
+  uint_t bit = base_value[pos]=='0' ? 0 : 1;
+  pos--;
   cmatrix_t temp = q_reg_[0].get_data(bit);
 
-  for (uint_t i=1; i<num_qubits_; i++) {
-    bit = base_value[i]=='0' ? 0 : 1;
+  for (int_t qubit=0; qubit<num_qubits_-1; qubit++) {
+    if (pos >=0)
+      bit = base_value[pos]=='0' ? 0 : 1;
+    else
+      bit = 0;
     for (uint_t row=0; row<temp.GetRows(); row++)
-      for (uint_t col=0; col<temp.GetColumns(); col++)
-	temp(row, col) *= lambda_reg_[i-1][col];
-    temp = temp * q_reg_[i].get_data(bit);
+      for (uint_t col=0; col<temp.GetColumns(); col++){
+	temp(row, col) *= lambda_reg_[qubit][col];
+      }
+    temp = temp * q_reg_[qubit+1].get_data(bit);
+    pos--;
   }
-  std::cout << " temp rows =" << temp.GetRows() << " temp columns = " <<temp.GetColumns() << std::endl;
+
   return temp(0, 0); //-> check that matrix is 1x1 to complex_t 
 }
 

@@ -463,8 +463,6 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 
   // Simple loop over vector of input operations
   for (const auto &op: ops) {
-    std::cout <<"in apply op, op = " << op << std::endl;
-    std::cout << op.params[0] << std::endl;
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
         case Operations::OpType::barrier:
@@ -594,19 +592,16 @@ void State::snapshot_state(const Operations::Op &op,
 void State::snapshot_amplitudes(const Operations::Op &op,
 				ExperimentResult &result,
 				std::string name) {
-  std::cout << op << std::endl;
-  uint_t num_amplitudes = op.params.size();
-  std::cout << "num amplitudes =" << num_amplitudes << std::endl;
+  if (op.params_amplitudes.empty()) {
+    throw std::invalid_argument("Invalid amplitudes snapshot (No base value given).");
+  }
+  reg_t base_values;
+  for (const auto &param : op.params_amplitudes) {
+    base_values.push_back(param);
+  }
+  uint_t num_amplitudes = base_values.size();
   cvector_t amplitude_vector(num_amplitudes);
-  reg_t base_values(num_amplitudes);
-  for (uint_t i=0; i<num_amplitudes; i++)
-    base_values[i] = static_cast<uint_t>(real(op.params[i]));
   qreg_.get_amplitude_vector(base_values, op.qubits, amplitude_vector);
-  std::cout << "amplitudes = ";
-  for (uint_t i=0; i< amplitude_vector.size(); i++)
-    std::cout << amplitude_vector[i] << " ";
-  std::cout<<std::endl;
-  //  qreg_.full_state_vector(statevector);
   result.data.add_pershot_snapshot("amplitudes", op.string_params[0], amplitude_vector);
 }
 
