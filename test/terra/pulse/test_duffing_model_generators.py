@@ -552,8 +552,8 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
 
     def _operator_array_from_str(self, dim, op_str_list):
 
-        op = Operator(array([[1.]]))
-        for c in op_str_list:
-            op = op.tensor(get_oper(c, dim).data)
+        op = get_oper(op_str_list[0], dim)
+        for c in op_str_list[1:]:
+            op = op.tensor(get_oper(c, dim))
 
         return op
