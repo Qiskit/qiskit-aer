@@ -216,6 +216,11 @@ public:
   void snapshot_creg_register(const int_t ireg, const Operations::Op &op, ExperimentResult &result,
                               std::string name = "register") const;
 
+  //add final state to result
+  virtual void add_state_to_data(ExperimentResult &result)
+  {
+    ;
+  }
 
   //-----------------------------------------------------------------------
   // OpenMP thread settings
@@ -278,6 +283,10 @@ protected:
 
   //barrier all processes
   void sync_process(void) const;
+
+  //gather distributed state into vector (if memory is enough)
+  void gather_state(std::vector<std::complex<double>>& state);
+  void gather_state(std::vector<std::complex<float>>& state);
 
   // Set a global phase exp(1j * theta) for the state
   bool has_global_phase_ = false;
@@ -739,7 +748,80 @@ void StateChunk<state_t>::sync_process(void) const
   MPI_Barrier(MPI_COMM_WORLD);
 #endif
 }
-  
+
+//gather distributed state into vector (if memory is enough)
+template <class state_t>
+void StateChunk<state_t>::gather_state(std::vector<std::complex<double>>& state)
+{
+#ifdef AER_MPI
+  uint_t size,local_size,global_size,offset;
+  int i;
+  MPI_Status st;
+  MPI_Request reqSend,reqRecv;
+
+  local_size = state.size();
+  MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
+
+  //TO DO check memory availability
+
+  if(myrank_ == 0){
+    state.resize(global_size);
+
+    offset = 0;
+    for(i=1;i<nprocs_;i++){
+      MPI_Irecv(&size,1,MPI_UINT64_T,i,i*2,MPI_COMM_WORLD,&reqRecv);
+      MPI_Wait(&reqRecv,&st);
+      MPI_Irecv(&state[offset],size*2,MPI_DOUBLE_PRECISION,i,i*2+1,MPI_COMM_WORLD,&reqRecv);
+      MPI_Wait(&reqRecv,&st);
+      offset += size;
+    }
+  }
+  else{
+    MPI_Isend(&local_size,1,MPI_UINT64_T,0,i*2,MPI_COMM_WORLD,&reqSend);
+    MPI_Wait(&reqSend,&st);
+    MPI_Isend(&state[0],local_size*2,MPI_DOUBLE_PRECISION,0,i*2+1,MPI_COMM_WORLD,&reqSend);
+    MPI_Wait(&reqSend,&st);
+  }
+
+#endif
+}
+
+template <class state_t>
+void StateChunk<state_t>::gather_state(std::vector<std::complex<float>>& state)
+{
+#ifdef AER_MPI
+  uint_t size,local_size,global_size,offset;
+  int i;
+  MPI_Status st;
+  MPI_Request reqSend,reqRecv;
+
+  local_size = state.size();
+  MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
+
+  //TO DO check memory availability
+
+  if(myrank_ == 0){
+    state.resize(global_size);
+
+    offset = 0;
+    for(i=1;i<nprocs_;i++){
+      MPI_Irecv(&size,1,MPI_UINT64_T,i,i*2,MPI_COMM_WORLD,&reqRecv);
+      MPI_Wait(&reqRecv,&st);
+      MPI_Irecv(&state[offset],size*2,MPI_FLOAT,i,i*2+1,MPI_COMM_WORLD,&reqRecv);
+      MPI_Wait(&reqRecv,&st);
+      offset += size;
+    }
+  }
+  else{
+    MPI_Isend(&local_size,1,MPI_UINT64_T,0,i*2,MPI_COMM_WORLD,&reqSend);
+    MPI_Wait(&reqSend,&st);
+    MPI_Isend(&state[0],local_size*2,MPI_FLOAT,0,i*2+1,MPI_COMM_WORLD,&reqSend);
+    MPI_Wait(&reqSend,&st);
+  }
+
+#endif
+}
+
 //-------------------------------------------------------------------------
 } // end namespace Base
 //-------------------------------------------------------------------------

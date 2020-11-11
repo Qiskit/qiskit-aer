@@ -78,7 +78,7 @@ public:
   // Initializes the vector to a custom initial state.
   // If the length of the statevector does not match the number of qubits
   // an exception is raised.
-  void initialize_from_matrix(const AER::cmatrix_t &mat);
+  void initialize_from_matrix(const AER::cmatrix_t &mat, const uint_t row_offset = 0, const uint_t col_offset = 0, const uint_t pitch = 0);
 
   //-----------------------------------------------------------------------
   // Identity checking
@@ -215,10 +215,11 @@ void UnitaryMatrix<data_t>::initialize() {
 }
 
 template <class data_t>
-void UnitaryMatrix<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
+void UnitaryMatrix<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat, const uint_t row_offset, const uint_t col_offset, const uint_t pitch) 
+{
   const int_t nrows = rows_;    // end for k loop
-  if (nrows != static_cast<int_t>(mat.GetRows()) ||
-      nrows != static_cast<int_t>(mat.GetColumns())) {
+  if (row_offset + nrows > static_cast<int_t>(mat.GetRows()) ||
+      col_offset + nrows > static_cast<int_t>(mat.GetColumns())) {
     throw std::runtime_error(
       "UnitaryMatrix::initialize input matrix is incorrect shape (" +
       std::to_string(nrows) + "," + std::to_string(nrows) + ")!=(" +
@@ -230,10 +231,16 @@ void UnitaryMatrix<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
       "UnitaryMatrix::initialize input matrix is not unitary."
     );
   }
+
+  uint_t col_pitch = pitch;
+  if(col_pitch == 0){
+    col_pitch = mat.GetRows();
+  }
+
 #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
   for (int_t row = 0; row < nrows; ++row)
     for  (int_t col = 0; col < nrows; ++col) {
-      BaseVector::data_[row + nrows * col] = mat(row, col);
+      BaseVector::data_[row + nrows * col] = mat[row_offset + row + (col_offset + col) * col_pitch];
     }
 }
 

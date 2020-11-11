@@ -99,6 +99,12 @@ public:
 
   virtual void allocate(uint_t num_qubits,uint_t shots);
 
+  //add final state to result
+  void add_state_to_data(ExperimentResult &result)
+  {
+    result.data.add_additional_data("unitary", BaseState::qreg_.move_to_matrix());
+  }
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------

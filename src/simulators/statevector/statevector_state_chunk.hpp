@@ -99,6 +99,9 @@ public:
   }
   virtual ~State();
 
+  //add final state to result
+  void add_state_to_data(ExperimentResult &result);
+
   //-----------------------------------------------------------------------
   // Base class overrides
   //-----------------------------------------------------------------------
@@ -446,12 +449,10 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits)
   initialize_omp();
 
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
-//#pragma omp barrier
     for(i=0;i<BaseState::num_local_chunks_;i++){
       BaseState::qregs_[i].set_num_qubits(BaseState::chunk_bits_);
       BaseState::qregs_[i].zero();
     }
-//#pragma omp barrier
     for(i=0;i<BaseState::num_local_chunks_;i++){
       BaseState::qregs_[i].initialize();
     }
@@ -479,10 +480,26 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
   if (state.num_qubits() != num_qubits) {
     throw std::invalid_argument("QubitVector::State::initialize: initial state does not match qubit number");
   }
+  initialize_omp();
 
-  printf(" TEST init statevec\n");
+  int_t iChunk;
+  if(BaseState::chunk_bits_ == BaseState::num_qubits_){
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
+    }
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      BaseState::qregs_[iChunk].initialize_from_data(state.data(), 1ull << BaseState::chunk_bits_);
+    }
+  }
+  else{   //multi-chunk distribution
+    uint_t local_offset = BaseState::global_chunk_index_ << BaseState::chunk_bits_;
 
-  //TO DO : need multiple states to initialize ...
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
+      BaseState::qregs_[iChunk].initialize_from_data(state.data() + local_offset + (iChunk << BaseState::chunk_bits_), 1ull << BaseState::chunk_bits_);
+    }
+  }
 
   apply_global_phase();
 }
@@ -496,20 +513,25 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
     throw std::invalid_argument("QubitVector::State::initialize: initial state does not match qubit number");
   }
 
-  uint_t i,chunk_offset;
-
   initialize_omp();
 
-  for(i=0;i<BaseState::num_local_chunks_;i++){
-    BaseState::qregs_[i].set_num_qubits(BaseState::chunk_bits_);
-
-    if(this->num_qubits_ == this->chunk_bits_){
-      BaseState::qregs_[i].initialize_from_vector(state);
+  int_t iChunk;
+  if(BaseState::chunk_bits_ == BaseState::num_qubits_){
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
     }
-    else{
-      chunk_offset = (i + BaseState::global_chunk_index_) << BaseState::chunk_bits_;
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      BaseState::qregs_[iChunk].initialize_from_vector(state);
+    }
+  }
+  else{   //multi-chunk distribution
+    uint_t local_offset = BaseState::global_chunk_index_ << BaseState::chunk_bits_;
+    int_t iChunk;
 
-      BaseState::qregs_[i].initialize_from_vector(state);
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
+      BaseState::qregs_[iChunk].initialize_from_vector(state, local_offset + (iChunk << BaseState::chunk_bits_) );
     }
   }
 
@@ -559,21 +581,58 @@ size_t State<statevec_t>::required_memory_mb(uint_t num_qubits,
 template <class statevec_t>
 void State<statevec_t>::set_config(const json_t &config) 
 {
+  uint_t i;
   BaseState::set_config(config);
 
   // Set threshold for truncating snapshots
   JSON::get_value(json_chop_threshold_, "zero_threshold", config);
-//  BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
+  for(i=0;i<BaseState::num_local_chunks_;i++){
+    BaseState::qregs_[i].set_json_chop_threshold(json_chop_threshold_);
+  }
 
   // Set OMP threshold for state update functions
   JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold", config);
 
   // Set the sample measure indexing size
-  JSON::get_value(sample_measure_index_size_, "statevector_sample_measure_opt", config);
-//    BaseState::qreg_.set_sample_measure_index_size(index_size);
-
+  int index_size;
+  if (JSON::get_value(index_size, "statevector_sample_measure_opt", config)) {
+    for(i=0;i<BaseState::num_local_chunks_;i++){
+      BaseState::qregs_[i].set_sample_measure_index_size(index_size);
+    }
+  }
 }
 
+template <class statevec_t>
+void State<statevec_t>::add_state_to_data(ExperimentResult &result)
+{
+  int_t iChunk;
+
+  if(BaseState::multi_shot_parallelization_){
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      result.data.add_additional_data("statevector", BaseState::qregs_[iChunk].move_to_vector());
+    }
+  }
+  else{
+    auto state = BaseState::qregs_[0].vector();
+
+    //TO DO check memory availability
+    state.resize(BaseState::num_local_chunks_ << BaseState::chunk_bits_);
+
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk)
+    for(iChunk=1;iChunk<BaseState::num_local_chunks_;iChunk++){
+      auto tmp = BaseState::qregs_[iChunk].vector();
+      uint_t j,offset = iChunk << BaseState::chunk_bits_;
+      for(j=0;j<tmp.size();j++){
+        state[offset + j] = tmp[j];
+      }
+    }
+
+    BaseState::gather_state(state);
+    if(BaseState::myrank_ == 0){
+      result.data.add_additional_data("statevector",  state);
+    }
+  }
+}
 
 //=========================================================================
 // Implementation: apply operations

@@ -88,7 +88,7 @@ public:
   // Initializes the vector to a custom initial state.
   // If the length of the statevector does not match the number of qubits
   // an exception is raised.
-  void initialize_from_matrix(const AER::cmatrix_t &mat);
+  void initialize_from_matrix(const AER::cmatrix_t &mat, const uint_t row_offset = 0, const uint_t col_offset = 0, const uint_t pitch = 0);
 
   //-----------------------------------------------------------------------
   // Identity checking
@@ -244,37 +244,36 @@ void UnitaryMatrixThrust<data_t>::initialize()
 }
 
 template <class data_t>
-void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
+void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat, const uint_t row_offset, const uint_t col_offset, const uint_t pitch)
+{
   const int_t nrows = rows_;    // end for k loop
-  if (nrows != static_cast<int_t>(mat.GetRows()) ||
-      nrows != static_cast<int_t>(mat.GetColumns())) {
+  if (row_offset + nrows > static_cast<int_t>(mat.GetRows()) ||
+      col_offset + nrows > static_cast<int_t>(mat.GetColumns())) {
     throw std::runtime_error(
-      "UnitaryMatrixThrust::initialize input matrix is incorrect shape (" +
+      "UnitaryMatrix::initialize input matrix is incorrect shape (" +
       std::to_string(nrows) + "," + std::to_string(nrows) + ")!=(" +
       std::to_string(mat.GetRows()) + "," + std::to_string(mat.GetColumns()) + ")."
     );
   }
   if (AER::Utils::is_unitary(mat, 1e-10) == false) {
     throw std::runtime_error(
-      "UnitaryMatrixThrust::initialize input matrix is not unitary."
+      "UnitaryMatrix::initialize input matrix is not unitary."
     );
   }
 
+  uint_t col_pitch = pitch;
+  if(col_pitch == 0){
+    col_pitch = mat.GetRows();
+  }
+
   cvector_t<data_t> tmp(BaseVector::data_size_);
-  uint_t n_chunks_in_row = mat.GetRows() >> num_qubits_;
-  uint_t base_row = (BaseVector::chunk_index_ / n_chunks_in_row) << num_qubits_;
-  uint_t base_col = (BaseVector::chunk_index_ % n_chunks_in_row) << num_qubits_;
+  int_t i;
 
-  int_t i,irow,icol;
-#pragma omp parallel for private(i,irow,icol) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
-  for(i=0;i<BaseVector::data_size_;i++){
-    std::complex<double> t;
-    irow = (i >> num_qubits_);
-    icol = i - (irow << num_qubits_);
-
-    t = mat(base_row + irow,base_col + icol);
-    tmp[i] = t;
-	}
+#pragma omp parallel for
+  for (int_t row = 0; row < nrows; ++row)
+    for  (int_t col = 0; col < nrows; ++col) {
+      tmp[row + nrows * col] = mat[row_offset + row + (col_offset + col) * col_pitch];
+    }
 
   BaseVector::chunk_->CopyIn((thrust::complex<data_t>*)&tmp[0]);
 }

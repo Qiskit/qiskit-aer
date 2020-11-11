@@ -174,7 +174,7 @@ public:
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
   // an exception is raised.
-  void initialize_from_vector(const cvector_t<double> &data);
+  void initialize_from_vector(const cvector_t<double> &data,const uint_t offset = 0);
 
   // Initializes the vector to a custom initial state.
   // If num_states does not match the number of qubits an exception is raised.
@@ -1109,10 +1109,9 @@ void QubitVectorThrust<data_t>::initialize()
 }
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &statevec) 
+void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &statevec,const uint_t offset) 
 {
-  uint_t offset = chunk_index_ << num_qubits_;
-  if(data_size_ < statevec.size() - offset) {
+  if(data_size_ + offset > statevec.size()) {
     std::string error = "QubitVectorThrust::initialize input vector is incorrect length (" + 
                         std::to_string(data_size_) + "!=" +
                         std::to_string(statevec.size() - offset) + ")";
@@ -1151,7 +1150,7 @@ void QubitVectorThrust<data_t>::initialize_from_data(const std::complex<data_t>*
   DebugMsg("calling initialize_from_data");
 #endif
 
-  chunk_->CopyIn((thrust::complex<data_t>*)statevec);
+  chunk_->CopyIn((thrust::complex<data_t>*)(statevec));
 
 #ifdef AER_DEBUG
   DebugMsg("initialize_from_data");
