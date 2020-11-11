@@ -1176,6 +1176,51 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
   statevector = reverse_all_bits(temp_statevector, num_qubits);
 }
 
+void MPS::get_amplitude_vector(const reg_t base_values, const reg_t qubits, 
+				cvector_t &amplitude_vector) {
+  // For now we ignore the qubits parameter and compute for all qubits
+  reg_t all_qubits(num_qubits_);
+  std::iota( std::begin(all_qubits), std::end(all_qubits), 0);
+  reg_t internal_qubits = get_internal_qubits(all_qubits);
+  get_amplitude_vector_internal(base_values, internal_qubits, amplitude_vector);
+}
+
+void MPS::get_amplitude_vector_internal(const reg_t base_values, const reg_t qubits, 
+					 cvector_t &amplitude_vector) {
+  move_all_qubits_to_sorted_ordering();
+  std::string base_value;
+  for (uint_t i=0; i<base_values.size(); i++) {
+    base_value = AER::Utils::int2string(base_values[i]);
+    amplitude_vector[i] = get_single_amplitude(base_value);
+  }
+}
+complex_t MPS::get_single_amplitude(std::string base_value) {
+  // We take the bits of the base value from right to left in order not to expand the 
+  // base values to the full width of 2^n
+  // We contract from left to right because the representation in Qiskit is from left 
+  // to right, i.e., 1=1000, 2=0100, ...
+
+  int_t pos = base_value.length()-1;
+  uint_t bit = base_value[pos]=='0' ? 0 : 1;
+  pos--;
+  cmatrix_t temp = q_reg_[0].get_data(bit);
+
+  for (int_t qubit=0; qubit<num_qubits_-1; qubit++) {
+    if (pos >=0)
+      bit = base_value[pos]=='0' ? 0 : 1;
+    else
+      bit = 0;
+    for (uint_t row=0; row<temp.GetRows(); row++)
+      for (uint_t col=0; col<temp.GetColumns(); col++){
+	temp(row, col) *= lambda_reg_[qubit][col];
+      }
+    temp = temp * q_reg_[qubit+1].get_data(bit);
+    pos--;
+  }
+
+  return temp(0, 0); //-> check that matrix is 1x1 to complex_t 
+}
+
 void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const {
   reg_t internal_qubits = get_internal_qubits(qubits);
   get_probabilities_vector_internal(probvector, internal_qubits);

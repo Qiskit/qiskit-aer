@@ -136,6 +136,7 @@ struct Op {
                                                         // 1 x M row-matrices
                                                         // Projector vectors are stored as
                                                         // M x 1 column-matrices
+  std::vector<uint_t> params_amplitudes; // Vector of base values
 };
 
 inline std::ostream& operator<<(std::ostream& s, const Op& op) {
@@ -401,6 +402,7 @@ Op json_to_op_snapshot(const json_t &js);
 Op json_to_op_snapshot_default(const json_t &js);
 Op json_to_op_snapshot_matrix(const json_t &js);
 Op json_to_op_snapshot_pauli(const json_t &js);
+Op json_to_op_snapshot_amplitudes(const json_t &js);
 
 // Matrices
 Op json_to_op_unitary(const json_t &js);
@@ -839,6 +841,8 @@ Op json_to_op_snapshot(const json_t &js) {
     return json_to_op_snapshot_pauli(js);
   if (snapshot_type.find("expectation_value_matrix") != std::string::npos)
     return json_to_op_snapshot_matrix(js);
+  if (snapshot_type.find("amplitudes") != std::string::npos)
+    return json_to_op_snapshot_amplitudes(js);
   // Default snapshot: has "type", "label", "qubits"
   auto op = json_to_op_snapshot_default(js);
   // Conditional
@@ -859,6 +863,25 @@ Op json_to_op_snapshot_default(const json_t &js) {
   JSON::get_value(op.qubits, "qubits", js);
   // If qubits is not empty, check for duplicates
   check_duplicate_qubits(op);
+  return op;
+}
+
+Op json_to_op_snapshot_amplitudes(const json_t &js) {
+  // Load default snapshot parameters
+  Op op = json_to_op_snapshot_default(js);
+
+  // Check qubits are valid
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
+
+  // Get components
+  if (JSON::check_key("params", js) && js["params"].is_array()) {
+    for (complex_t base_value : js["params"]) {
+      op.params_amplitudes.emplace_back(static_cast<uint_t>(real(base_value)));
+    } 
+  }else {
+    throw std::invalid_argument("Invalid amplitudes snapshot (param component invalid");
+  }
   return op;
 }
 
