@@ -81,7 +81,7 @@ jobs:
         with:
           python-version: 3.7
       - name: Install deps
-        run: pip install conan
+        run: pip install urllib3<1.26 conan
       - name: Install openblas
         run: |
           set -e
