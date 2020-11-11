@@ -166,18 +166,18 @@ protected:
   SamplingMethod sampling_method_ = SamplingMethod::resampled_metropolis;
 
   // Compute the required stabilizer rank of the circuit
-  auto compute_chi(const std::vector<Operations::Op> &ops) const -> uint_t;
+  uint_t compute_chi(const std::vector<Operations::Op> &ops) const;
   // Add the given operation to the extent
   void compute_extent(const Operations::Op &op, double &xi) const;
 
   //Compute the required chi, and count the number of three qubit gates
-  auto decomposition_parameters(const std::vector<Operations::Op> &ops) -> std::pair<uint_t, uint_t>;
+  std::pair<uint_t, uint_t> decomposition_parameters(const std::vector<Operations::Op> &ops);
   
   //Check if this is a stabilizer circuit, for the locaiton of the first non-CLifford gate
-  auto check_stabilizer_opt(const std::vector<Operations::Op> &ops) const -> std::pair<bool, size_t>;
+  std::pair<bool, size_t> check_stabilizer_opt(const std::vector<Operations::Op> &ops) const;
 
   //Check if we can use the sample_measure optimisation
-  auto check_measurement_opt(const std::vector<Operations::Op> &ops) const -> bool;
+  bool check_measurement_opt(const std::vector<Operations::Op> &ops) const;
 };
 
 //=========================================================================
@@ -278,7 +278,7 @@ void State::set_config(const json_t &config)
   }
 }
 
-auto State::decomposition_parameters(const std::vector<Operations::Op> &ops) -> std::pair<uint_t, uint_t>
+std::pair<uint_t, uint_t> State::decomposition_parameters(const std::vector<Operations::Op> &ops)
 {
   double xi=1.;
   unsigned three_qubit_gate_count = 0;
@@ -303,7 +303,7 @@ auto State::decomposition_parameters(const std::vector<Operations::Op> &ops) -> 
   return std::pair<uint_t, uint_t>({chi, three_qubit_gate_count});
 }
 
-auto State::check_stabilizer_opt(const std::vector<Operations::Op> &ops) const -> std::pair<bool, size_t>
+std::pair<bool, size_t> State::check_stabilizer_opt(const std::vector<Operations::Op> &ops) const
 {
   for(auto op = ops.cbegin(); op != ops.cend(); op++)
   {
@@ -325,7 +325,7 @@ auto State::check_stabilizer_opt(const std::vector<Operations::Op> &ops) const -
   return std::pair<bool, size_t>({true, 0});
 }
 
-auto State::check_measurement_opt(const std::vector<Operations::Op> &ops) const -> bool
+bool State::check_measurement_opt(const std::vector<Operations::Op> &ops) const
 {
   for (const auto &op: ops)
   {
@@ -413,9 +413,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &
   
 }
 
-auto State::sample_measure(const reg_t& qubits,
+std::vector<reg_t> State::sample_measure(const reg_t& qubits,
                            uint_t shots,
-                           RngEngine &rng) -> std::vector<reg_t>
+                           RngEngine &rng)
 {
   std::vector<uint_t> output_samples;
   if(BaseState::qreg_.get_num_states() == 1)
@@ -833,7 +833,7 @@ inline void to_json(json_t &js, cvector_t vec)
 }
 
 //
-auto State::compute_chi(const std::vector<Operations::Op> &ops) const -> uint_t
+uint_t State::compute_chi(const std::vector<Operations::Op> &ops) const
 {
   double xi = 1;
   for (const auto &op: ops)
@@ -877,8 +877,8 @@ void State::compute_extent(const Operations::Op &op, double &xi) const
   }
 }
 
-auto State::required_memory_mb(uint_t num_qubits,
-                                 const std::vector<Operations::Op> &ops) const -> size_t
+size_t State::required_memory_mb(uint_t num_qubits,
+                                 const std::vector<Operations::Op> &ops) const
 {
   size_t required_chi = compute_chi(ops);
   // 5 vectors of num_qubits*8byte words

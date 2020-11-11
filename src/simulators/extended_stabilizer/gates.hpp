@@ -86,7 +86,7 @@ namespace CHSimulator
     Sample(const Sample& other) : branches(other.branches) {};
     std::vector<sample_branch_t> branches;
 
-    virtual auto sample(double r) const -> sample_branch_t = 0;
+    virtual sample_branch_t sample(double r) const = 0;
   };
 
   //Functor class that defines how to sample branches over a U1 operation
@@ -105,7 +105,7 @@ struct U1Sample : public Sample
 
   ~U1Sample() override = default;
 
-  auto sample(double r) const -> sample_branch_t override;
+  sample_branch_t sample(double r) const override;
 };
 
 U1Sample::U1Sample(double lambda)
@@ -203,7 +203,7 @@ sample_branch_t U1Sample::sample(double r) const
   const double ccx_extent = 16./9.;
   const double ccx_coeff = 1./6.;
   //General result for z rotations, Eq. 28 in arXiv 1809.00128
-  inline auto u1_extent(double lambda) -> double
+  inline double u1_extent(double lambda)
   {
     // Shift parameter into +- 2 Pi
     uint_t shift_factor = std::floor(std::abs(lambda)/(2*M_PI));
@@ -238,7 +238,5 @@ sample_branch_t U1Sample::sample(double r) const
   }
 
 }
-
-
 
 #endif

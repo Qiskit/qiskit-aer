@@ -81,17 +81,17 @@ public:
   void initialize(uint_t n_qubits);
   void initialize_omp(uint_t n_threads, uint_t threshold_rank);
 
-  auto empty() const -> bool
+  bool empty() const
   {
     return (n_qubits_ == 0 || num_states_ == 0);
   }
 
-  auto get_num_states() const -> uint_t;
-  auto get_n_qubits() const -> uint_t;
-  auto check_omp_threshold() -> bool;
+  uint_t get_num_states() const;
+  uint_t get_n_qubits() const;
+  bool check_omp_threshold();
 
   //Convert each state to a json object and return it.
-  auto serialize_decomposition() const -> std::vector<std::string>;
+  std::vector<std::string> serialize_decomposition() const;
 
   //Creates num_states_ copies of the 'base state' in the runner
   //This will be either the |0>^n state, or a stabilizer state
@@ -99,7 +99,7 @@ public:
   //circuit. 
   void initialize_decomposition(uint_t n_states);
   //Check if the coefficient omega is 0
-  auto check_eps(uint_t rank) -> bool;
+  bool check_eps(uint_t rank);
 
   //Methods for applying gates
   void apply_cx(uint_t control, uint_t target, uint_t rank);
@@ -125,23 +125,23 @@ public:
   void apply_pauli_projector(const std::vector<pauli_t> &generators, uint_t rank);
   //Routine for Norm Estimation, thin wrapper for the CHSimulator method that uses AER::RngEngine
   //to set up the estimation routine.
-  auto norm_estimation(uint_t n_samples, uint_t n_repetitions, AER::RngEngine &rng) -> double;
-  auto norm_estimation(uint_t n_samples, uint_t n_repetitions, std::vector<pauli_t> generators, AER::RngEngine &rng) -> double;
+  double norm_estimation(uint_t n_samples, uint_t n_repetitions, AER::RngEngine &rng);
+  double norm_estimation(uint_t n_samples, uint_t n_repetitions, std::vector<pauli_t> generators, AER::RngEngine &rng);
 
   //Metropolis Estimation for sampling from the output distribution
-  auto metropolis_estimation(uint_t n_steps, AER::RngEngine &rng) -> uint_t;
-  auto metropolis_estimation(uint_t n_steps, uint_t n_shots, AER::RngEngine &rng) -> std::vector<uint_t>;
+  uint_t metropolis_estimation(uint_t n_steps, AER::RngEngine &rng);
+  std::vector<uint_t> metropolis_estimation(uint_t n_steps, uint_t n_shots, AER::RngEngine &rng);
   // NE Sampling Routines
-  auto ne_single_sample(uint_t default_samples, uint_t repetitions, bool preserve_states,
-                        const AER::reg_t &qubits, AER::RngEngine &rng) -> uint_t;
+  uint_t ne_single_sample(uint_t default_samples, uint_t repetitions, bool preserve_states,
+                        const AER::reg_t &qubits, AER::RngEngine &rng);
 
-  auto ne_probabilities(uint_t default_samples, uint_t repetitions,
-                        const AER::reg_t &qubits, AER::RngEngine &rng) -> std::vector<double>;
+  std::vector<double> ne_probabilities(uint_t default_samples, uint_t repetitions,
+                        const AER::reg_t &qubits, AER::RngEngine &rng);
   //Efficient Sampler for the output distribution of a stabilizer state
-  auto stabilizer_sampler(AER::RngEngine &rng) -> uint_t;
-  auto stabilizer_sampler(uint_t n_shots, AER::RngEngine &rng) -> std::vector<uint_t>;
+  uint_t stabilizer_sampler(AER::RngEngine &rng);
+  std::vector<uint_t> stabilizer_sampler(uint_t n_shots, AER::RngEngine &rng);
   //Utilities for the state-vector snapshot.
-  auto amplitude(uint_t x_measure) -> complex_t;
+  complex_t amplitude(uint_t x_measure);
   void state_vector(std::vector<complex_t> &svector, uint_t default_samples, uint_t repetitions, AER::RngEngine &rng);
 
 };
@@ -192,17 +192,17 @@ void Runner::initialize_omp(uint_t n_threads, uint_t threshold_rank)
   omp_threshold_ = threshold_rank;
 }
 
-auto Runner::get_num_states() const -> uint_t
+uint_t Runner::get_num_states() const
 {
   return num_states_;
 }
 
-auto Runner::get_n_qubits() const -> uint_t
+uint_t Runner::get_n_qubits() const
 {
   return n_qubits_;
 }
 
-auto Runner::check_omp_threshold() -> bool
+bool Runner::check_omp_threshold()
 {
   return num_states_ > omp_threshold_;
 }
@@ -236,7 +236,7 @@ void Runner::apply_pauli_projector(const std::vector<pauli_t> &generators, uint_
   states_[rank].MeasurePauliProjector(generators);
 }
 
-auto Runner::check_eps(uint_t rank) -> bool
+bool Runner::check_eps(uint_t rank)
 {
   return (states_[rank].Omega().eps == 1);
 }
@@ -435,7 +435,7 @@ void Runner::apply_ccz(uint_t control_1, uint_t control_2, uint_t target, uint_t
 //Measurement
 //-------------------------------------------------------------------------
 
-auto Runner::norm_estimation(uint_t n_samples, uint_t repetitions, AER::RngEngine &rng) -> double
+double Runner::norm_estimation(uint_t n_samples, uint_t repetitions, AER::RngEngine &rng)
 {
 
   const int_t NSAMPLES = n_samples;
@@ -484,17 +484,17 @@ auto Runner::norm_estimation(uint_t n_samples, uint_t repetitions, AER::RngEngin
 
 }
 
-auto Runner::norm_estimation(uint_t n_samples, uint_t repetitions, std::vector<pauli_t> generators, AER::RngEngine &rng) -> double
+double Runner::norm_estimation(uint_t n_samples, uint_t repetitions, std::vector<pauli_t> generators, AER::RngEngine &rng)
 {
   apply_pauli_projector(generators);
   return norm_estimation(n_samples, repetitions, rng);
 }
 
-auto Runner::ne_single_sample(uint_t default_samples,
+uint_t Runner::ne_single_sample(uint_t default_samples,
                               uint_t repetitions,
                               bool preserve_states,
                               const AER::reg_t &qubits,
-                              AER::RngEngine &rng) -> uint_t
+                              AER::RngEngine &rng)
 {
   uint_t n_samples = std::llrint(4 * std::pow(qubits.size(), 2));
   if (default_samples > n_samples)
@@ -536,8 +536,8 @@ auto Runner::ne_single_sample(uint_t default_samples,
   return out_string;
 }
 
-auto Runner::ne_probabilities(uint_t default_samples, uint_t repetitions,
-                              const AER::reg_t &qubits, AER::RngEngine &rng) -> std::vector<double>
+std::vector<double> Runner::ne_probabilities(uint_t default_samples, uint_t repetitions,
+                              const AER::reg_t &qubits, AER::RngEngine &rng)
 {
   uint_t n_probs = 1ULL << qubits.size();
   std::vector<double> probs(n_probs, 0.);
@@ -570,7 +570,7 @@ auto Runner::ne_probabilities(uint_t default_samples, uint_t repetitions,
   return probs;
 }
 
-auto Runner::metropolis_estimation(uint_t n_steps, AER::RngEngine &rng) -> uint_t
+uint_t Runner::metropolis_estimation(uint_t n_steps, AER::RngEngine &rng)
 {
   init_metropolis(rng);
   for (uint_t i=0; i<n_steps; i++)
@@ -580,7 +580,7 @@ auto Runner::metropolis_estimation(uint_t n_steps, AER::RngEngine &rng) -> uint_
   return x_string_;
 }
 
-auto Runner::metropolis_estimation(uint_t n_steps, uint_t n_shots, AER::RngEngine &rng) -> std::vector<uint_t>
+std::vector<uint_t> Runner::metropolis_estimation(uint_t n_steps, uint_t n_shots, AER::RngEngine &rng)
 {
   std::vector<uint_t> shots(n_shots, zer);
   shots[0] = metropolis_estimation(n_steps, rng);
@@ -682,13 +682,13 @@ void Runner::metropolis_step(AER::RngEngine &rng)
   }
 }
 
-auto Runner::stabilizer_sampler(AER::RngEngine &rng) -> uint_t
+uint_t Runner::stabilizer_sampler(AER::RngEngine &rng)
 {
   uint_t max = (1ULL << n_qubits_) -1;
   return states_[0].Sample(rng.rand_int(ZERO, max));
 }
 
-auto Runner::stabilizer_sampler(uint_t n_shots, AER::RngEngine &rng) -> std::vector<uint_t>
+std::vector<uint_t> Runner::stabilizer_sampler(uint_t n_shots, AER::RngEngine &rng)
 {
   if(num_states_ > 1)
   {
@@ -703,7 +703,7 @@ auto Runner::stabilizer_sampler(uint_t n_shots, AER::RngEngine &rng) -> std::vec
   return shots;
 }
 
-auto Runner::amplitude(uint_t x_measure) -> complex_t
+complex_t Runner::amplitude(uint_t x_measure)
 {
   double real_part=0., imag_part=0.;
   //Splitting the reduction guarantees support on more OMP versions.
@@ -755,7 +755,7 @@ inline void to_json(json_t &js, const Runner &rn)
   js["decomposition"] = rn.serialize_decomposition();
 }
 
-auto Runner::serialize_decomposition() const -> std::vector<std::string>
+std::vector<std::string> Runner::serialize_decomposition() const
 {
   std::vector<std::string> serialized_states(num_states_);
   const int_t END = num_states_;

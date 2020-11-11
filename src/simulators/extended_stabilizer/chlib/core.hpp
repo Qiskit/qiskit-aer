@@ -110,10 +110,10 @@ struct scalar_t {
     e=0;
   }
 
-  auto operator*=(const scalar_t& rhs) -> scalar_t&;
-  auto operator*(const scalar_t& rhs) const -> scalar_t;
+  scalar_t& operator*=(const scalar_t& rhs);
+  scalar_t operator*(const scalar_t& rhs) const;
 
-  auto to_complex() const -> std::complex<double> 
+  std::complex<double> to_complex() const 
   {
     if (eps==0)
     {
@@ -143,7 +143,7 @@ struct pauli_t {
   pauli_t(const pauli_t& p) = default;
 
   // multiplication of Pauli operators
-  auto operator*=( const pauli_t& rhs ) -> pauli_t&;
+  pauli_t& operator*=( const pauli_t& rhs );
 
 };
 
@@ -153,16 +153,16 @@ struct QuadraticForm {
   uint_fast64_t D1;
   uint_fast64_t D2;
   std::vector<uint_fast64_t> J;
-  auto ExponentialSum() -> scalar_t;
+  scalar_t ExponentialSum();
   QuadraticForm(unsigned n_qubits);
   QuadraticForm(const QuadraticForm& rhs);
-  auto operator -=(const QuadraticForm& rhs) -> QuadraticForm&;
+  QuadraticForm& operator -=(const QuadraticForm& rhs);
   // ~QuadraticForm();
 };
 
-auto operator==(const QuadraticForm& lhs, const QuadraticForm& rhs) -> bool;
+bool operator==(const QuadraticForm& lhs, const QuadraticForm& rhs);
 
-auto operator<<(std::ostream& os, const QuadraticForm& q) -> std::ostream&;
+std::ostream& operator<<(std::ostream& os, const QuadraticForm& q);
 
 void Print(uint_fast64_t x, unsigned n);// print a bit string 
 void Print(std::vector<uint_fast64_t> A, unsigned n);// print a binary matrix
@@ -180,12 +180,12 @@ void Print(std::vector<uint_fast64_t> A, unsigned n);// print a binary matrix
   #endif
   #define INTRINSIC_PARITY 1
   #include <intrin.h>
-  inline auto _msc_parity(uint_t x) -> bool
+  inline auto _msc_parity(uint_t x)bool
   {
     return (POPCNT(x) & one);
   }
   bool (*hamming_parity) (uint_t) = &_msc_parity;
-  inline auto _msc_weight(uint_t x) -> unsigned
+  inline auto _msc_weight(uint_t x)unsigned
   {
     return (POPCNT(x));
   }
@@ -193,12 +193,12 @@ void Print(std::vector<uint_fast64_t> A, unsigned n);// print a binary matrix
 #endif
 #ifdef __GNUC__
   #define INTRINSIC_PARITY 1
-  inline auto _gcc_parity(uint_t x) -> bool
+  inline bool _gcc_parity(uint_t x)
   {
     return (__builtin_popcountll(x) & one);
   }
   bool (*hamming_parity) (uint_t) = &_gcc_parity;
-  inline auto _gcc_weight(uint_t x) -> unsigned
+  inline unsigned _gcc_weight(uint_t x)
   {
     return (__builtin_popcountll(x));
   }
@@ -207,12 +207,12 @@ void Print(std::vector<uint_fast64_t> A, unsigned n);// print a binary matrix
 #ifdef _CLANG_
   #if __has__builtin(__builtin_popcount)
   #define INTRINSIC_PARITY 1
-    inline auto _clang_parity(uint_t x) -> bool
+    inline bool _clang_parity(uint_t x)
     {
       return (__builtin_popcountll(x) & one);
     }
     bool (*hamming_parity) (uint_t) = &_clang_parity;
-    inline auto _clang_weight(uint_t x) -> unsigned
+    inline unsigned _clang_weight(uint_t x)
     {
       return (__builtin_popcountll(x));
     }
@@ -221,7 +221,7 @@ void Print(std::vector<uint_fast64_t> A, unsigned n);// print a binary matrix
 #endif
 #ifndef INTRINSIC_PARITY
   // Implementation from http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetKernighan
-  auto _naive_parity(uint_t x) -> bool
+  bool _naive_parity(uint_t x)
   {
     uint_t c; // c accumulates the total bits set in x
     for (c = 0; x; c++)
@@ -230,7 +230,7 @@ void Print(std::vector<uint_fast64_t> A, unsigned n);// print a binary matrix
     }
     return (c&one);
   }
-  auto _naive_weight(uint_t x) -> unsigned
+  unsigned _naive_weight(uint_t x)
   {
     uint_t c; // c accumulates the total bits set in x
     for (c = 0; x; c++)
@@ -244,7 +244,7 @@ void Print(std::vector<uint_fast64_t> A, unsigned n);// print a binary matrix
   unsigned (*hamming_weight) (uint_t) = &_naive_weight;
 #endif
 
-auto scalar_t::operator*=(const scalar_t& rhs) -> scalar_t&
+scalar_t& scalar_t::operator*=(const scalar_t& rhs)
 {
   p += (rhs.p);
   e += (rhs.e);
@@ -253,7 +253,7 @@ auto scalar_t::operator*=(const scalar_t& rhs) -> scalar_t&
   return *this;
 }
 
-auto scalar_t::operator*(const scalar_t& rhs) const -> scalar_t
+scalar_t scalar_t::operator*(const scalar_t& rhs) const
 {
   scalar_t out;
   out.p = (p+rhs.p);
@@ -265,7 +265,7 @@ auto scalar_t::operator*(const scalar_t& rhs) const -> scalar_t
 
 pauli_t::pauli_t(): X(zer), Z(zer) {}
 
-auto pauli_t::operator*=( const pauli_t& rhs ) -> pauli_t&
+pauli_t& pauli_t::operator*=( const pauli_t& rhs )
 {
     unsigned overlap=hamming_weight(Z & rhs.X);// commute rhs.X to the left
     X^=rhs.X;
@@ -276,7 +276,7 @@ auto pauli_t::operator*=( const pauli_t& rhs ) -> pauli_t&
 
 class QubitException: public std::exception
 {
-  virtual auto what() const throw() -> const char*
+  virtual const char* what() const throw()
   {
     return "Length error: We cannot compute a quadratic form with more that 63 dimensions.";
   }
@@ -303,7 +303,7 @@ QuadraticForm::QuadraticForm(const QuadraticForm &rhs) : J(rhs.n, zer)
   }
 }
 
-auto QuadraticForm::operator-=(const QuadraticForm& rhs) -> QuadraticForm&
+QuadraticForm& QuadraticForm::operator-=(const QuadraticForm& rhs)
 {
   Q = (Q-rhs.Q)%8;
   if (Q<0)
@@ -318,7 +318,7 @@ auto QuadraticForm::operator-=(const QuadraticForm& rhs) -> QuadraticForm&
   return *this;
 }
 
-auto operator==(const QuadraticForm& lhs, const QuadraticForm& rhs) -> bool
+bool operator==(const QuadraticForm& lhs, const QuadraticForm& rhs)
 {
   if (lhs.Q != rhs.Q)
   {
@@ -339,7 +339,7 @@ auto operator==(const QuadraticForm& lhs, const QuadraticForm& rhs) -> bool
   return true;
 }
 
-auto operator<<(std::ostream& os, const QuadraticForm& q) -> std::ostream&
+std::ostream& operator<<(std::ostream& os, const QuadraticForm& q)
 {
   os << "Q: " << q.Q << std::endl;
   os << "D:";
@@ -381,7 +381,7 @@ auto operator<<(std::ostream& os, const QuadraticForm& q) -> std::ostream&
 // Output: integers p>=0, m=0,1,2,..,7, and eps=0,1  such that
 // Z = sum_x exp(j*(pi/4)*q(x)) = eps*2^(p/2)*exp(j*pi*m/4)
 // if eps=0 then p and m can be ignored
-auto QuadraticForm::ExponentialSum() -> scalar_t
+scalar_t QuadraticForm::ExponentialSum()
 {
   
   // Variables for Z2-valued exponential sums
