@@ -412,7 +412,7 @@ class QasmSimulator(AerBackend):
             config.basis_gates = [
                 'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
                 'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
-                'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
+                'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy',
                 'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'kraus', 'superop'
                 'roerror', 'delay', 'pauli'
             ]
