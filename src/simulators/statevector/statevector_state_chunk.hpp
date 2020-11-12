@@ -530,8 +530,14 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      //copy part of state for this chunk
+      cvector_t tmp(1ull << BaseState::chunk_bits_);
+      std::copy(state.begin() + local_offset + (iChunk << BaseState::chunk_bits_),
+                state.begin() + local_offset + ((iChunk+1) << BaseState::chunk_bits_),
+                tmp.begin());
+
       BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
-      BaseState::qregs_[iChunk].initialize_from_vector(state, local_offset + (iChunk << BaseState::chunk_bits_) );
+      BaseState::qregs_[iChunk].initialize_from_vector(tmp);
     }
   }
 

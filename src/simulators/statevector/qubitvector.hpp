@@ -174,7 +174,7 @@ public:
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
   // an exception is raised.
-  void initialize_from_vector(const cvector_t<double> &data,const uint_t offset = 0);
+  void initialize_from_vector(const cvector_t<double> &data);
 
   // Initializes the vector to a custom initial state.
   // If num_states does not match the number of qubits an exception is raised.
@@ -880,8 +880,8 @@ void QubitVector<data_t>::initialize() {
 }
 
 template <typename data_t>
-void QubitVector<data_t>::initialize_from_vector(const cvector_t<double> &statevec,const uint_t offset) {
-  if (data_size_ + offset > statevec.size()) {
+void QubitVector<data_t>::initialize_from_vector(const cvector_t<double> &statevec) {
+  if (data_size_ < statevec.size()) {
     std::string error = "QubitVector::initialize input vector is incorrect length (" +
                         std::to_string(data_size_) + "!=" +
                         std::to_string(statevec.size()) + ")";
@@ -892,7 +892,7 @@ void QubitVector<data_t>::initialize_from_vector(const cvector_t<double> &statev
 
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t k = 0; k < END; ++k)
-    data_[k] = statevec[offset + k];
+    data_[k] = statevec[k];
 }
 
 template <typename data_t>

@@ -178,7 +178,6 @@ void DensityMatrixThrust<data_t>::initialize_from_vector(const cvector_t<double>
     // Convert statevector into density matrix
     cvector_t<double> densitymat = AER::Utils::tensor_product(AER::Utils::conjugate(statevec),
                                                       statevec);
-//    std::move(densitymat.begin(), densitymat.end(), BaseVector::data_);
     BaseVector::initialize_from_vector(densitymat);
 
   } else {

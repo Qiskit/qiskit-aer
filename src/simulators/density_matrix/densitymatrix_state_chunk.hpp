@@ -387,41 +387,132 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits)
 
 template <class densmat_t>
 void State<densmat_t>::initialize_qreg(uint_t num_qubits,
-                                   const densmat_t &state) {
+                                   const densmat_t &state) 
+{
   // Check dimension of state
   if (state.num_qubits() != num_qubits) {
     throw std::invalid_argument("DensityMatrix::State::initialize: initial state does not match qubit number");
   }
-  //TO DO : need multiple states to initialize ...
-                                          printf("  TEST density init qreg from state\n");
+  initialize_omp();
+
+  int_t iChunk;
+  if(BaseState::chunk_bits_ == BaseState::num_qubits_){
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
+    }
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      BaseState::qregs_[iChunk].initialize_from_data(state.data(), 1ULL << 2 * num_qubits);
+    }
+  }
+  else{   //multi-chunk distribution
+    auto input = state.copy_to_matrix();
+
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      uint_t local_row_offset = (BaseState::global_chunk_index_ + iChunk) & ((1ull << (BaseState::num_qubits_/2 - BaseState::chunk_bits_/2))-1);
+      uint_t local_col_offset = (BaseState::global_chunk_index_ + iChunk) >> (BaseState::num_qubits_/2 - BaseState::chunk_bits_/2);
+      local_row_offset <<= (BaseState::chunk_bits_/2);
+      local_col_offset <<= (BaseState::chunk_bits_/2);
+
+      //copy part of state for this chunk
+      uint_t i,row,col;
+      cvector_t tmp(1ull << BaseState::chunk_bits_);
+      for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
+        uint_t row = i & ((1ull << (BaseState::chunk_bits_/2))-1);
+        uint_t col = i >> (BaseState::chunk_bits_/2);
+        tmp[i] = input[local_row_offset + row + ((local_col_offset + col) << (BaseState::num_qubits_/2))];
+      }
+
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[iChunk].initialize_from_vector(tmp);
+    }
+  }
 }
 
 template <class densmat_t>
 void State<densmat_t>::initialize_qreg(uint_t num_qubits,
-                                        const cmatrix_t &state) {
+                                        const cmatrix_t &state) 
+{
   if (state.size() != 1ULL << 2 * num_qubits) {
     throw std::invalid_argument("DensityMatrix::State::initialize: initial state does not match qubit number");
   }
-  //TO DO : need multiple states to initialize ...
-                                          printf("  TEST density init qreg from matrix\n");
+  initialize_omp();
+
+  int_t iChunk;
+  if(BaseState::chunk_bits_ == BaseState::num_qubits_){
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
+    }
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      BaseState::qregs_[iChunk].initialize_from_matrix(state);
+    }
+  }
+  else{   //multi-chunk distribution
+
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      uint_t local_row_offset = (BaseState::global_chunk_index_ + iChunk) & ((1ull << (BaseState::num_qubits_/2 - BaseState::chunk_bits_/2))-1);
+      uint_t local_col_offset = (BaseState::global_chunk_index_ + iChunk) >> (BaseState::num_qubits_/2 - BaseState::chunk_bits_/2);
+      local_row_offset <<= (BaseState::chunk_bits_/2);
+      local_col_offset <<= (BaseState::chunk_bits_/2);
+
+      //copy part of state for this chunk
+      uint_t i,row,col;
+      cvector_t tmp(1ull << BaseState::chunk_bits_);
+      for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
+        uint_t row = i & ((1ull << (BaseState::chunk_bits_/2))-1);
+        uint_t col = i >> (BaseState::chunk_bits_/2);
+        tmp[i] = state[local_row_offset + row + ((local_col_offset + col) << (BaseState::num_qubits_/2))];
+      }
+
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[iChunk].initialize_from_vector(tmp);
+    }
+  }
 }
 
 template <class densmat_t>
 void State<densmat_t>::initialize_qreg(uint_t num_qubits,
-                                        const cvector_t &state) {
+                                        const cvector_t &state) 
+{
   if (state.size() != 1ULL << 2 * num_qubits) {
     throw std::invalid_argument("DensityMatrix::State::initialize: initial state does not match qubit number");
   }
-
-  uint_t i;
 
   initialize_omp();
 
-  for(i=0;i<BaseState::num_local_chunks_;i++){
-    BaseState::qregs_[i].set_num_qubits(BaseState::chunk_bits_/2);
-
-    BaseState::qregs_[i].initialize_from_vector(state);
+  int_t iChunk;
+  if(BaseState::chunk_bits_ == BaseState::num_qubits_){
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
+    }
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      BaseState::qregs_[iChunk].initialize_from_vector(state);
+    }
   }
+  else{   //multi-chunk distribution
+
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      uint_t local_row_offset = (BaseState::global_chunk_index_ + iChunk) & ((1ull << (BaseState::num_qubits_/2 - BaseState::chunk_bits_/2))-1);
+      uint_t local_col_offset = (BaseState::global_chunk_index_ + iChunk) >> (BaseState::num_qubits_/2 - BaseState::chunk_bits_/2);
+      local_row_offset <<= (BaseState::chunk_bits_/2);
+      local_col_offset <<= (BaseState::chunk_bits_/2);
+
+      //copy part of state for this chunk
+      uint_t i,row,col;
+      cvector_t tmp(1ull << BaseState::chunk_bits_);
+      for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
+        uint_t row = i & ((1ull << (BaseState::chunk_bits_/2))-1);
+        uint_t col = i >> (BaseState::chunk_bits_/2);
+        tmp[i] = state[local_row_offset + row + ((local_col_offset + col) << (BaseState::num_qubits_/2))];
+      }
+
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[iChunk].initialize_from_vector(tmp);
+    }
+  }
+
 }
 
 template <class densmat_t>

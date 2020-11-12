@@ -174,7 +174,7 @@ public:
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
   // an exception is raised.
-  void initialize_from_vector(const cvector_t<double> &data,const uint_t offset = 0);
+  void initialize_from_vector(const cvector_t<double> &data);
 
   // Initializes the vector to a custom initial state.
   // If num_states does not match the number of qubits an exception is raised.
@@ -1109,12 +1109,12 @@ void QubitVectorThrust<data_t>::initialize()
 }
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &statevec,const uint_t offset) 
+void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &statevec) 
 {
-  if(data_size_ + offset > statevec.size()) {
+  if(data_size_ < statevec.size()) {
     std::string error = "QubitVectorThrust::initialize input vector is incorrect length (" + 
                         std::to_string(data_size_) + "!=" +
-                        std::to_string(statevec.size() - offset) + ")";
+                        std::to_string(statevec.size()) + ")";
     throw std::runtime_error(error);
   }
 #ifdef AER_DEBUG
@@ -1126,7 +1126,7 @@ void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &
 
 #pragma omp parallel for
   for(i=0;i<data_size_;i++){
-    tmp[i] = statevec[offset + i];
+    tmp[i] = statevec[i];
   }
 
   chunk_->CopyIn((thrust::complex<data_t>*)&tmp[0]);

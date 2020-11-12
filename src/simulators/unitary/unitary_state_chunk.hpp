@@ -472,8 +472,15 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      //copy part of state for this chunk
+      uint_t i;
+      cvector_t tmp(1ull << BaseState::chunk_bits_);
+      for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
+        tmp[i] = unitary[local_offset + (iChunk << BaseState::chunk_bits_) + i];
+      }
+
       BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
-      BaseState::qregs_[iChunk].initialize_from_matrix(unitary, local_offset + (iChunk << BaseState::chunk_bits_), 0, 1ull << (BaseState::chunk_bits_/2) );
+      BaseState::qregs_[iChunk].initialize_from_vector(tmp);
     }
   }
 
