@@ -1682,7 +1682,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   tid = omp_get_thread_num();
   m_nDev = 1;
 #ifdef AER_THRUST_CUDA
-  if(cudaGetDeviceCount(&m_nDev) != cudaSuccess) throw std::runtime_error("No CUDA device available");
+  if(cudaGetDeviceCount(&m_nDev) != cudaSuccess) m_nDev = 0;
 #endif
 
   m_iDev = 0;
