@@ -89,7 +89,7 @@ void DiagonalFusion::dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) cons
 bool DiagonalFusion::is_diagonal_op(const op_t& op) const {
 
   if (op.type == Operations::OpType::gate) {
-    if (op.name == "u1" || op.name == "cu1" || op.name == "mcu1")
+    if (op.name == "p" || op.name == "cp" || op.name == "u1" || op.name == "cu1" || op.name == "mcu1")
       return true;
     if (op.name == "u3")
       return op.params[0] == std::complex<double>(0.) && op.params[1] == std::complex<double>(0.);

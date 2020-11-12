@@ -16,6 +16,7 @@
 #define _aer_transpile_fusion_method_hpp_
 
 #include <string>
+#include <bitset>
 
 #include "transpile/circuitopt.hpp"
 #include "simulators/unitary/unitary_state.hpp"
@@ -113,17 +114,79 @@ op_t FusionMethod::generate_diagonal_fusion_operation(const std::vector<op_t>& f
   RngEngine dummy_rng;
   ExperimentResult dummy_data;
 
-  // Unitary simulation
-  QubitUnitary::State<> unitary_simulator;
-  unitary_simulator.initialize_qreg(qubits.size());
-  unitary_simulator.apply_ops(remap_qubits(fusioned_ops, qubits), dummy_data, dummy_rng);
+  // check simple case
+  bool simple_case = true;
+  for (const auto& op: fusioned_ops) {
+    if (op.type == Operations::OpType::gate) {
+      if (op.name == "u1" || op.name == "cu1" ||
+          op.name == "p" || op.name == "cp" ||
+          op.name == "cx" || op.name == "CX" //||
+          //op.name == "z" || op.name == "rz" || op.name == "cz" ||
+          //op.name == "s" || op.name == "sdg" ||
+          //op.name == "t" || op.name == "tdg"
+          ) {
+        continue;
+      }
+    } else if (op.type == Operations::OpType::diagonal_matrix) {
+      continue;
+    }
+    simple_case = false;
+    break;
+  }
 
-  auto mat = unitary_simulator.qreg().move_to_matrix();
+  int_t vec_size = 1UL << qubits.size();
   std::vector<complex_t> vec;
-  vec.assign(1UL << qubits.size(), 0);
-  for (size_t i = 0; i < vec.size(); ++i)
-    vec[i] = mat(i, i);
+  vec.assign(vec_size, 0);
+  if (simple_case) {
+    std::vector<complex_t> phases;
+    std::vector<uint_t> tgt_masks;
+    std::vector<uint_t> ctrl_masks;
+    for (const auto& fusioned_op: fusioned_ops) {
+      if (fusioned_op.name == "u1" || fusioned_op.name == "p" || fusioned_op.name == "cp" || fusioned_op.name == "cu1")
+        phases.push_back(std::exp(complex_t(0, 1) * fusioned_op.params[0]));
+      else
+        phases.push_back(complex_t(1, 0));
+      if (fusioned_op.qubits.size() == 1) {
+        ctrl_masks.push_back(0);
+        tgt_masks.push_back(1UL << std::find(qubits.begin(), qubits.end(), fusioned_op.qubits[0]) - qubits.begin());
+      } else {
+        ctrl_masks.push_back(1UL << std::find(qubits.begin(), qubits.end(), fusioned_op.qubits[0]) - qubits.begin());
+        tgt_masks.push_back(1UL << std::find(qubits.begin(), qubits.end(), fusioned_op.qubits[1]) - qubits.begin());
+      }
+    }
 
+    for (uint_t i = 0; i < vec_size; ++i) {
+      complex_t v = 1.;
+      uint_t idx = i;
+      for (int_t j = fusioned_ops.size() - 1; j >= 0; --j) {
+        const auto& fusioned_op = fusioned_ops[j];
+        if (fusioned_op.name == "u1" || fusioned_op.name == "p") {
+          if (idx & tgt_masks[j]) {
+            v *= phases[j];
+          }
+        } else if (fusioned_op.name == "cu1" || fusioned_op.name == "cp") {
+          if ((idx & ctrl_masks[j]) && (idx & tgt_masks[j])) {
+            v *= phases[j];
+          }
+        } else if (fusioned_op.name == "cx" || fusioned_op.name == "CX") {
+          if (idx & ctrl_masks[j]) {
+            idx ^= tgt_masks[j];
+          }
+        }
+      }
+      vec[i] = v;
+    }
+  } else {
+    // Unitary simulation
+    QubitUnitary::State<> unitary_simulator;
+    unitary_simulator.initialize_qreg(qubits.size());
+    unitary_simulator.apply_ops(remap_qubits(fusioned_ops, qubits), dummy_data, dummy_rng);
+
+    auto mat = unitary_simulator.qreg().move_to_matrix();
+    for (size_t i = 0; i < vec.size(); ++i)
+      vec[i] = mat(i, i);
+
+  }
   auto ret = Operations::make_diagonal(qubits, vec, std::string("fusion"));
   return ret;
 }
