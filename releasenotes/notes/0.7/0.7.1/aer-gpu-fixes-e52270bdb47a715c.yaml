@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    The minimum cmake version to build qiskit-aer has increased from 3.6 to
+    3.8. This change was necessary to enable fixing GPU version builds that
+    support running on x86_64 CPUs lacking AVX2 instructions.
+fixes:
+  - |
+    qiskit-aer with GPU support will now work on systems with x86_64 CPUs
+    lacking AVX2 instructions. Previously, the GPU package would only run if
+    the AVX2 instructions were available. Fixes
+    `#1023 <https://github.com/Qiskit/qiskit-aer/issues/1023>`__
