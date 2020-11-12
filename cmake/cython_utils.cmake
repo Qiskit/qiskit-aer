@@ -26,16 +26,26 @@ set(CYTHON_USER_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
 unset(CYTHON_USER_LIB_DIRS)
 set(CYTHON_INSTALL_DIR "qiskit/providers/aer/backends")
 
+include(nvcc_add_compiler_options)
+
 function(add_cython_module module)
     add_cython_target(${module} ${module}.pyx CXX)
 
     # Avoid warnings in cython cpp generated code
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set_source_files_properties(${module}.cxx PROPERTIES COMPILE_FLAGS -Wno-everything)
+        set(MODULE_COMPILE_FLAGS "-Wno-everything")
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-        set_source_files_properties(${module}.cxx PROPERTIES COMPILE_FLAGS -w)
+	set(MODULE_COMPILE_FLAGS "-w")
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-        set_source_files_properties(${module}.cxx PROPERTIES COMPILE_FLAGS /w)
+	set(MODULE_COMPILE_FLAGS "/w")
+    endif()
+
+    if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
+	string(STRIP ${MODULE_COMPILE_FLAGS} MODULE_COMPILE_FLAGS_STRIPPED)
+	nvcc_add_compiler_options(${MODULE_COMPILE_FLAGS_STRIPPED} MODULE_COMPILE_FLAGS_OUT)
+	set_source_files_properties(${module}.cxx PROPERTIES COMPILE_FLAGS ${MODULE_COMPILE_FLAGS_OUT})
+    else()
+	set_source_files_properties(${module}.cxx PROPERTIES COMPILE_FLAGS ${MODULE_COMPILE_FLAGS})
     endif()
 
     set(options MODULE SHARED EXCLUDE_FROM_ALL NO_EXTRAS SYSTEM THIN_LTO)
@@ -52,13 +62,15 @@ function(add_cython_module module)
         set(exclude_from_all EXCLUDE_FROM_ALL)
     endif()
 
-    if(CUDA_FOUND)
-        cuda_add_library(${module} ${lib_type} ${exclude_from_all} ${module} ${ARG_UNPARSED_ARGUMENTS})
-        set_source_files_properties(${module} PROPERTIES
-            CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+    if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
+        set_source_files_properties(${module}.cxx PROPERTIES LANGUAGE CUDA)
+
+	string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
+        nvcc_add_compiler_options(${AER_COMPILER_FLAGS_STRIPPED} AER_COMPILER_FLAGS_OUT)
     else()
-        add_library(${module} ${lib_type} ${exclude_from_all} ${module} ${ARG_UNPARSED_ARGUMENTS})
+        set(AER_COMPILER_FLAGS_OUT ${AER_COMPILER_FLAGS})
     endif()
+    add_library(${module} ${lib_type} ${exclude_from_all} ${module} ${ARG_UNPARSED_ARGUMENTS})
 
 
     # We only need to pass the linter once, as the codebase is the same for
@@ -112,7 +124,7 @@ function(add_cython_module module)
     # Warning: Do not merge PROPERTIES when one of the variables can be empty, it breaks
     # the rest of the properties so they are not properly added.
     set_target_properties(${module} PROPERTIES LINK_FLAGS ${AER_LINKER_FLAGS})
-    set_target_properties(${module} PROPERTIES COMPILE_FLAGS ${AER_COMPILER_FLAGS})
+    set_target_properties(${module} PROPERTIES COMPILE_FLAGS ${AER_COMPILER_FLAGS_OUT})
     target_compile_definitions(${module} PRIVATE ${AER_COMPILER_DEFINITIONS})
 
     python_extension_module(${module}
