@@ -391,7 +391,8 @@ size_t Controller::get_system_memory_mb() {
 #endif
 #ifdef AER_THRUST_CUDA
   int iDev,nDev,j;
-  cudaGetDeviceCount(&nDev);
+  if(cudaGetDeviceCount(&nDev) != cudaSuccess)
+    cudaGetLastError();
   for(iDev=0;iDev<nDev;iDev++){
     size_t freeMem,totalMem;
     cudaSetDevice(iDev);

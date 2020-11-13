@@ -714,7 +714,7 @@ void State<unitary_matrix_t>::apply_snapshot(const uint_t iChunk,const Operation
   if (op.name == "unitary" || op.name == "state") {
     if(iChunk < 0){
       auto state = BaseState::qregs_[0].vector();
-      uint_t i;
+      int_t i;
 
       //TO DO check memory availability
       state.resize(BaseState::num_local_chunks_ << BaseState::chunk_bits_);
