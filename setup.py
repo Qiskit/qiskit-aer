@@ -26,6 +26,9 @@ if not _DISABLE_CONAN:
     try:
         from conans import client
     except ImportError:
+        # Problem with Conan and urllib3 1.26
+        subprocess.call([sys.executable, '-m', 'pip', 'install', 'urllib3<1.26'])
+
         subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan'])
         from conans import client
 
@@ -60,6 +63,7 @@ setup_requirements = common_requirements + [
     'cmake!=3.17,!=3.17.0',
 ]
 if not _DISABLE_CONAN:
+    setup_requirements.append('urllib3<1.26')
     setup_requirements.append('conan>=1.22.2')
 
 requirements = common_requirements + ['qiskit-terra>=0.12.0']
