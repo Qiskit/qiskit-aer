@@ -188,7 +188,7 @@ class QasmFusionTests:
                             backend=self.SIMULATOR,
                             basis_gates=noise_model.basis_gates,
                             optimization_level=0)
-        qobj = assemble([circuit],
+        qobj = assemble(circuit,
                         self.SIMULATOR,
                         shots=shots,
                         seed_simulator=1)
@@ -217,7 +217,7 @@ class QasmFusionTests:
                             backend=self.SIMULATOR,
                             basis_gates=noise_model.basis_gates,
                             optimization_level=0)
-        qobj = assemble([circuit],
+        qobj = assemble(circuit,
                         self.SIMULATOR,
                         shots=shots,
                         seed_simulator=1)
