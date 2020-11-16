@@ -478,7 +478,7 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
     throw std::invalid_argument("illegal gate for apply_2_qubit_gate"); 
   }
 
-  MPS_Tensor left_gamma,right_gamma;
+  MPS_Tensor left_gamma, right_gamma;
   rvector_t lambda;
   MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
 
@@ -486,6 +486,7 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
     left_gamma.div_Gamma_by_left_Lambda(lambda_reg_[A-1]);
   if (A+1 != num_qubits_-1)
     right_gamma.div_Gamma_by_right_Lambda(lambda_reg_[A+1]);
+
   q_reg_[A] = left_gamma;
   lambda_reg_[A] = lambda;
   q_reg_[A+1] = right_gamma;
@@ -576,31 +577,56 @@ void MPS::apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat,
   }
 }
 
+// with 5 qubits, the number 2 in binary is 00010,
+// when reversed it is 01000, which is the number 8
+static uint reverse_number(uint num, uint nqubits) {
+  // num in binary
+  std::string str(nqubits, 'x');
+  for (uint k=0; k<nqubits; ++k) {
+    str[nqubits-k-1] = num%2 + '0';
+    num = num/2;
+  }
+
+  // reverse binary
+  reverse(str.begin(), str.end());
+
+  // back to decimal
+  return std::stoi(str, NULL, 2);
+}
+
 void MPS::apply_multi_qubit_gate(const reg_t &qubits,
 				 const cmatrix_t &mat,
 				 bool is_diagonal) {
-  // need to reverse qubits because that is the way they
-  // are defined in the Qiskit interface
-  reg_t reversed_qubits = qubits;
-  std::reverse(reversed_qubits.begin(), reversed_qubits.end()); 
+  // change qubit order in the matrix
+  uint nqubits = qubits.size();
+  uint sidelen = 1 << nqubits;
+  cmatrix_t new_mat(sidelen, sidelen);
+  for (uint i=0; i<sidelen; ++i)
+    for (uint j=0; j<sidelen; ++j) {
+      uint new_i = reverse_number(i, nqubits);
+      if (i==j)
+	new_mat(new_i, new_i) = mat(i, i);
+      else {
+	uint new_j = reverse_number(j, nqubits);
+	new_mat(new_i, new_j) = mat(i, j);
+      }
+    }
 
-  if (is_ordered(reversed_qubits))
-    apply_matrix_to_target_qubits(reversed_qubits, mat, is_diagonal);
+  if (is_ordered(qubits))
+    apply_matrix_to_target_qubits(qubits, new_mat, is_diagonal);
   else
-    apply_unordered_multi_qubit_gate(reversed_qubits, mat, is_diagonal);
+    apply_unordered_multi_qubit_gate(qubits, new_mat, is_diagonal);
 }
 
 void MPS::apply_unordered_multi_qubit_gate(const reg_t &qubits,
-					   const cmatrix_t &mat, 
+					   const cmatrix_t &mat,
 					   bool is_diagonal){
-  reg_t actual_indices(num_qubits_);
-  std::iota( std::begin(actual_indices), std::end(actual_indices), 0);
-  reg_t target_qubits(qubits.size());
-  // need to move all target qubits to be consecutive at the right end
-  move_qubits_to_right_end(qubits, target_qubits, 
-			   actual_indices);
+  bool ordered = true;
+  reg_t new_qubits(qubits.size());
+  reg_t sorted_qubits(qubits.size());
 
-  apply_matrix_to_target_qubits(target_qubits, mat, is_diagonal);
+  centralize_and_sort_qubits(qubits, sorted_qubits, new_qubits, ordered);
+  apply_matrix_to_target_qubits(new_qubits, mat, is_diagonal);
 }
 
 void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
@@ -632,13 +658,11 @@ void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
     for (uint_t i=0; i<sub_MPS.num_qubits(); i++) {
       q_reg_[first+i] = sub_MPS.q_reg_[i];
     }
-    lambda_reg_[first] = sub_MPS.lambda_reg_[0];
+    for (uint_t i=0; i<num_qubits-1; i++) {
+      lambda_reg_[first+i] = sub_MPS.lambda_reg_[i];       
+    }
     if (first > 0)
       q_reg_[first].div_Gamma_by_left_Lambda(lambda_reg_[first-1]);
-
-    for (uint_t i=1; i<num_qubits-1; i++) {
-      lambda_reg_[first+i] = sub_MPS.lambda_reg_[i]; 
-    }
     if (first+num_qubits-1 < num_qubits_-1)
 	q_reg_[first+num_qubits-1].div_Gamma_by_right_Lambda(lambda_reg_[first+num_qubits-1]);
   }
@@ -776,45 +800,6 @@ void MPS::move_all_qubits_to_sorted_ordering() {
     }
   }
 }  
-
-void MPS::move_qubits_to_right_end(const reg_t &qubits, 
-				   reg_t &target_qubits,
-				   reg_t &actual_indices) {
-  // actual_qubits is a temporary structure that stores the current ordering of the 
-  // qubits in the MPS structure. It is necessary, because when we perform swaps, 
-  // the positions of the qubits change. We need to move the qubits from their 
-  // current position (as in actual_qubits), not from the original position
-  
-  uint_t num_target_qubits = qubits.size();
-  uint_t num_moved = 0;
-  // We define the right_end as the position of the largest qubit in 
-  // 'qubits`. We will move all `qubits` to be consecutive with the 
-  // rightmost being at right_end.
-  uint_t right_end = qubits[0];
-  for (uint_t i=1; i<num_target_qubits; i++)
-    right_end = std::max(qubits[i], right_end);
-    
-  // This is similar to bubble sort - move the qubits to the right end
-  for (int_t right_index=qubits.size()-1; right_index>=0; right_index--) {
-    // find "largest" element and move it to the right end
-    uint_t next_right = qubits[right_index];
-    for (uint_t i=0; i<actual_indices.size(); i++) {
-      if (actual_indices[i] == next_right) {
-	for (uint_t j=i; j<right_end-num_moved; j++) {
-	  //swap the qubits until next_right reaches right_end
-	  apply_swap_internal(j, j+1);
-	  // swap actual_indices to keep track of the new qubit positions
-	  std::swap(actual_indices[j], actual_indices[j+1]);
-	}
-	num_moved++;
-	break;
-      }
-    }
-  }
-  // the target qubits are simply the rightmost qubits ending at right_end
-  std::iota( std::begin(target_qubits), std::end(target_qubits), 
-	     right_end+1-num_target_qubits);
-}
 
 void MPS::change_position(uint_t src, uint_t dst) {
    if(src == dst)
