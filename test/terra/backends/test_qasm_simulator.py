@@ -56,6 +56,7 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabi
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotAmplitudesTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 from test.terra.backends.qasm_simulator.qasm_thread_management import QasmThreadManagementTests
@@ -105,6 +106,7 @@ class TestQasmSimulator(common.QiskitAerTestCase,
                         QasmSnapshotExpValPauliTests,
                         QasmSnapshotExpValPauliNCTests,
                         QasmSnapshotExpValMatrixTests,
+                        QasmSnapshotAmplitudesTests,
                         QasmSnapshotStabilizerTests
                         ):
     """QasmSimulator automatic method tests."""

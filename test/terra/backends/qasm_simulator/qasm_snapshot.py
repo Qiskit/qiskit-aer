@@ -41,6 +41,14 @@ from test.terra.reference.ref_snapshot_probabilities import (
 from test.terra.reference.ref_snapshot_expval import (
     snapshot_expval_circuits, snapshot_expval_counts, snapshot_expval_labels,
     snapshot_expval_post_meas_values, snapshot_expval_pre_meas_values)
+from test.terra.reference.ref_snapshot_amplitudes import (
+    snapshot_amplitudes_circuits_deterministic, snapshot_amplitudes_counts_deterministic,
+    snapshot_amplitudes_pre_measure_amplitudes_deterministic,
+    snapshot_amplitudes_post_measure_amplitudes_deterministic,
+    snapshot_amplitudes_circuits_nondeterministic,
+    snapshot_amplitudes_counts_nondeterministic,
+    snapshot_amplitudes_pre_measure_amplitudes_nondeterministic,
+    snapshot_amplitudes_post_measure_amplitudes_nondeterministic)
 
 
 class QasmSnapshotStatevectorTests:
@@ -748,3 +756,148 @@ class QasmSnapshotExpValMatrixTests:
                         target = value_targets[j].get(label,
                                                       {}).get(memory, {})
                         self.assertAlmostEqual(value, target, delta=1e-7)
+
+
+class QasmSnapshotAmplitudesTests:
+    """QasmSimulator snapshot amplitudes tests."""
+
+    SIMULATOR = QasmSimulator()
+    SUPPORTED_QASM_METHODS = [
+        'matrix_product_state'
+    ]
+    BACKEND_OPTS = {}
+
+    def amplitudes_snapshots(self, data, label):
+        """Format snapshots as list of Numpy arrays"""
+        snaps = data.get("snapshots", {}).get("amplitudes", {}).get(label, [])
+        amplitudes = []
+        for snap in snaps:
+            self.assertIsInstance(snap, np.ndarray)
+            amplitudes.append(snap)
+        return amplitudes
+
+    def test_snapshot_amplitudes_pre_measure_det(self):
+        """Test snapshot amplitudes before deterministic final measurement"""
+        shots = 10
+        label = "snap"
+        counts_targets = snapshot_amplitudes_counts_deterministic(shots)
+        amplitude_targets = snapshot_amplitudes_pre_measure_amplitudes_deterministic(
+        )
+        circuits = snapshot_amplitudes_circuits_deterministic(label,
+                                                         'amplitudes',
+                                                         post_measure=False)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
+        result = job.result()
+        success = getattr(result, 'success', False)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotAmplitudesTests.SUPPORTED_QASM_METHODS:
+            self.assertFalse(success)
+        else:
+            self.assertTrue(success)
+            self.compare_counts(result, circuits, counts_targets, delta=0)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                snaps = self.amplitudes_snapshots(data, label)
+                self.assertTrue(len(snaps), 1)
+                target = amplitude_targets[j]
+                value = snaps[0]
+                self.assertTrue(np.allclose(value, target))
+
+    def test_snapshot_amplitudes_pre_measure_nondet(self):
+        """Test snapshot amplitudes before non-deterministic final measurement"""
+        shots = 100
+        label = "snap"
+        counts_targets = snapshot_amplitudes_counts_nondeterministic(shots)
+        amplitude_targets = snapshot_amplitudes_pre_measure_amplitudes_nondeterministic(
+        )
+        circuits = snapshot_state_circuits_nondeterministic(label,
+                                                            'amplitudes',
+                                                            post_measure=False)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
+        result = job.result()
+        success = getattr(result, 'success', False)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotAmplitudesTests.SUPPORTED_QASM_METHODS:
+            self.assertFalse(success)
+        else:
+            self.assertTrue(success)
+            self.compare_counts(result,
+                                circuits,
+                                counts_targets,
+                                delta=0.2 * shots)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                snaps = self.amplitudes_snapshots(data, label)
+                self.assertTrue(len(snaps), 1)
+                target = amplitude_targets[j]
+                value = snaps[0]
+                self.assertTrue(np.allclose(value, target))
+
+    def test_snapshot_amplitudes_post_measure_det(self):
+        """Test snapshot amplitudes after deterministic final measurement"""
+        shots = 10
+        label = "snap"
+        counts_targets = snapshot_state_counts_deterministic(shots)
+        amplitude_targets = snapshot_amplitudes_post_measure_amplitudes_deterministic(
+        )
+        circuits = snapshot_amplitudes_circuits_deterministic(label,
+                                                         'amplitudes',
+                                                         post_measure=True)
+
+        qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
+        result = job.result()
+        success = getattr(result, 'success', False)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotAmplitudesTests.SUPPORTED_QASM_METHODS:
+            logging.getLogger().setLevel(logging.CRITICAL)
+            self.assertFalse(success)
+        else:
+            self.assertTrue(success)
+            self.compare_counts(result, circuits, counts_targets, delta=0)
+            # Check snapshots
+            for i, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                snaps = self.amplitudes_snapshots(data, label)
+                for j, mem in enumerate(data['memory']):
+                    target = amplitude_targets[i].get(mem)
+                    self.assertTrue(np.allclose(snaps[j], target))
+
+    def test_snapshot_amplitudes_post_measure_nondet(self):
+        """Test snapshot amplitudes after non-deterministic final measurement"""
+        shots = 100
+        label = "snap"
+        counts_targets = snapshot_amplitudes_counts_nondeterministic(shots)
+        amplitude_targets = snapshot_amplitudes_post_measure_amplitudes_nondeterministic(
+        )
+        circuits = snapshot_amplitudes_circuits_nondeterministic(label,
+                                                            'amplitudes',
+                                                            post_measure=True)
+
+        qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
+        result = job.result()
+        success = getattr(result, 'success', False)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        if method not in QasmSnapshotAmplitudesTests.SUPPORTED_QASM_METHODS:
+            self.assertFalse(success)
+        else:
+            self.assertTrue(success)
+            self.compare_counts(result,
+                                circuits,
+                                counts_targets,
+                                delta=0.2 * shots)
+            # Check snapshots
+            for i, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                snaps = self.amplitudes_snapshots(data, label)
+                for j, mem in enumerate(data['memory']):
+                    target = amplitude_targets[i].get(mem)
+                    self.assertTrue(np.allclose(snaps[j], target))
+

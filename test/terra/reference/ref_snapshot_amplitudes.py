@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Test circuits and reference outputs for snapshot state instructions.
+Test circuits and reference outputs for snapshot amplitude instructions.
 """
 
 from numpy import array, sqrt
@@ -32,7 +32,7 @@ def snapshot_amplitudes_circuits_deterministic(snapshot_label='snap',
     cr = ClassicalRegister(num_qubits)
     regs = (qr, cr)
 
-    # State snapshot instruction acting on all qubits
+    # Amplitudes snapshot instruction acting on all qubits
     snapshot = Snapshot(snapshot_label, snapshot_type, num_qubits, params=params)
 
     # Snapshot |000>
@@ -59,7 +59,7 @@ def snapshot_amplitudes_circuits_deterministic(snapshot_label='snap',
     return circuits
 
 
-def snapshot_state_counts_deterministic(shots):
+def snapshot_amplitudes_counts_deterministic(shots):
     """Snapshot Amplitudes test circuits reference counts."""
     targets = []
     # Snapshot |000>
@@ -69,7 +69,7 @@ def snapshot_state_counts_deterministic(shots):
     return targets
 
 
-def snapshot_state_pre_measure_amplitudes_deterministic():
+def snapshot_amplitudes_pre_measure_amplitudes_deterministic():
     """Snapshot Amplitudes test circuits reference final amplitudes"""
     targets = []
     # Snapshot |000>
@@ -79,7 +79,7 @@ def snapshot_state_pre_measure_amplitudes_deterministic():
     return targets
 
 
-def snapshot_state_post_measure_amplitudes_deterministic():
+def snapshot_amplitudes_post_measure_amplitudes_deterministic():
     """Snapshot Amplitudes test circuits reference final amplitudes"""
 
     targets = []
@@ -90,7 +90,7 @@ def snapshot_state_post_measure_amplitudes_deterministic():
     return targets
 
 
-def snapshot_state_circuits_nondeterministic(snapshot_label='snap',
+def snapshot_amplitudes_circuits_nondeterministic(snapshot_label='snap',
                                              snapshot_type='amplitudes',
                                              post_measure=False):
     """Snapshot Amplitudes test circuits"""
@@ -102,7 +102,7 @@ def snapshot_state_circuits_nondeterministic(snapshot_label='snap',
     cr = ClassicalRegister(num_qubits)
     regs = (qr, cr)
 
-    # State snapshot instruction acting on all qubits
+    # Amplitudes snapshot instruction acting on all qubits
     snapshot = Snapshot(snapshot_label, snapshot_type, num_qubits, params=params)
 
     # Snapshot |000> + i|111>
@@ -133,7 +133,7 @@ def snapshot_state_circuits_nondeterministic(snapshot_label='snap',
     return circuits
 
 
-def snapshot_state_counts_nondeterministic(shots):
+def snapshot_amplitudes_counts_nondeterministic(shots):
     """Snapshot Amplitudes test circuits reference counts."""
     targets = []
     # Snapshot |000> + i|111>
@@ -151,7 +151,7 @@ def snapshot_state_counts_nondeterministic(shots):
     return targets
 
 
-def snapshot_state_pre_measure_amplitudes_nondeterministic():
+def snapshot_amplitudes_pre_measure_amplitudes_nondeterministic():
     """Snapshot Amplitudes test circuits reference final amplitudes"""
     targets = []
     # Snapshot |000> + i|111>
@@ -161,7 +161,7 @@ def snapshot_state_pre_measure_amplitudes_nondeterministic():
     return targets
 
 
-def snapshot_state_post_measure_amplitudes_nondeterministic():
+def snapshot_amplitudes_post_measure_amplitudes_nondeterministic():
     """Snapshot Amplitudes test circuits reference final amplitudes"""
 
     targets = []
