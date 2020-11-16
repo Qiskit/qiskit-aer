@@ -423,7 +423,7 @@ class QasmSimulator(AerBackend):
             config.basis_gates = [
                 'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
                 'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay',
-                'rx', 'ry', 'rz'
+                'r', 'rx', 'ry', 'rz'
             ]
 
         # Stabilizer method

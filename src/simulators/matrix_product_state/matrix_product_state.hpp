@@ -53,7 +53,7 @@ const Operations::OpSet StateOpSet(
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cz", "cp", "cu1", "swap", "ccx",
-   "sx", "rx", "ry", "rz"},
+   "sx", "r", "rx", "ry", "rz"},
   // Snapshots
   {"statevector", "memory", "register", "probabilities",
     "expectation_value_pauli", "expectation_value_pauli_with_variance",
@@ -303,6 +303,7 @@ const stringmap_t<Gates> State::gateset_({
   {"sx", Gates::sx},     // Sqrt(X) gate
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
+  {"r", Gates::r},       // R rotation gate
   {"rx", Gates::rx},     // Pauli-X rotation gate
   {"ry", Gates::ry},     // Pauli-Y rotation gate
   {"rz", Gates::rz},     // Pauli-Z rotation gate
@@ -687,6 +688,11 @@ void State::apply_gate(const Operations::Op &op) {
       break;
     case Gates::tdg:
       qreg_.apply_tdg(op.qubits[0]);
+      break;
+    case Gates::r:
+      qreg_.apply_r(op.qubits[0], 
+		    std::real(op.params[0]),
+		    std::real(op.params[1]));
       break;
     case Gates::rx:
       qreg_.apply_rx(op.qubits[0], 
