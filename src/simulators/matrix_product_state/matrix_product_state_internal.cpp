@@ -369,10 +369,17 @@ void MPS::apply_cz(uint_t index_A, uint_t index_B)
   apply_2_qubit_gate(get_qubit_index(index_A), 
 		     get_qubit_index(index_B), cz, cmatrix_t(1, 1));
 }
+
 void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
 {
   cmatrix_t u1_matrix = AER::Linalg::Matrix::u1(lambda);
   apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), cu1, u1_matrix);
+}
+
+void MPS::apply_rxx(uint_t index_A, uint_t index_B, double theta)
+{
+  cmatrix_t rxx_matrix = AER::Linalg::Matrix::rxx(theta);
+  apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), su4, rxx_matrix);
 }
 
 void MPS::apply_ccx(const reg_t &qubits)
