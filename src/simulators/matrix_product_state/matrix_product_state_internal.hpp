@@ -27,7 +27,7 @@ namespace MatrixProductState {
 // Allowed gates enum class
 enum Gates {
   id, h, x, y, z, s, sdg, sx, t, tdg, u1, u2, u3, r, rx, ry, rz, // single qubit
-  cx, cz, cu1, swap, su4, rxx, // two qubit
+  cx, cz, cu1, swap, su4, rxx, ryy, rzz, rzx, // two qubit
   mcx // three qubit
 };
 
@@ -121,6 +121,9 @@ public:
   void apply_cz(uint_t index_A, uint_t index_B);
   void apply_cu1(uint_t index_A, uint_t index_B, double lambda);
   void apply_rxx(uint_t index_A, uint_t index_B, double theta);
+  void apply_ryy(uint_t index_A, uint_t index_B, double theta);
+  void apply_rzz(uint_t index_A, uint_t index_B, double theta);
+  void apply_rzx(uint_t index_A, uint_t index_B, double theta);
 
   void apply_ccx(const reg_t &qubits);  
 

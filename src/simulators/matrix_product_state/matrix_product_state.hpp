@@ -53,7 +53,7 @@ const Operations::OpSet StateOpSet(
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cz", "cp", "cu1", "swap", "ccx",
-      "sx", "r", "rx", "ry", "rz", "rxx"},
+   "sx", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx"},
   // Snapshots
   {"statevector", "memory", "register", "probabilities",
     "expectation_value_pauli", "expectation_value_pauli_with_variance",
@@ -321,7 +321,10 @@ const stringmap_t<Gates> State::gateset_({
   {"cu1", Gates::cu1},   // Controlled-U1 gate
   {"cp", Gates::cu1},    // Controlled-U1 gate
   {"swap", Gates::swap}, // SWAP gate
-  {"rxx", Gates::rxx},     // Pauli-XX rotation gate
+  {"rxx", Gates::rxx},   // Pauli-XX rotation gate
+  {"ryy", Gates::ryy},   // Pauli-YY rotation gate
+  {"rzz", Gates::rzz},   // Pauli-ZZ rotation gate
+  {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
   // Three-qubit gates
    {"ccx", Gates::mcx}   // Controlled-CX gate (Toffoli)
 });
@@ -719,6 +722,18 @@ void State::apply_gate(const Operations::Op &op) {
       break;
     case Gates::rxx:
       qreg_.apply_rxx(op.qubits[0], op.qubits[1],
+    		      std::real(op.params[0]));
+      break;
+    case Gates::ryy:
+      qreg_.apply_ryy(op.qubits[0], op.qubits[1],
+    		      std::real(op.params[0]));
+      break;
+    case Gates::rzz:
+      qreg_.apply_rzz(op.qubits[0], op.qubits[1],
+    		      std::real(op.params[0]));
+      break;
+    case Gates::rzx:
+      qreg_.apply_rzx(op.qubits[0], op.qubits[1],
     		      std::real(op.params[0]));
       break;
     default:
