@@ -59,6 +59,10 @@ void DiagonalFusion::set_config(const json_t &config) {
     JSON::get_value(active, "fusion_enable", config);
   if (JSON::check_key("fusion_enable.diagonal", config))
     JSON::get_value(active, "fusion_enable.diagonal", config);
+  if (JSON::check_key("fusion_threshold.diagonal", config))
+    JSON::get_value(threshold, "fusion_threshold.diagonal", config);
+  if (JSON::check_key("fusion_max_qubit.diagonal", config))
+    JSON::get_value(max_qubit, "fusion_max_qubit.diagonal", config);
 }
 
 #ifdef DEBUG

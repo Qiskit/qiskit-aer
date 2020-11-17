@@ -198,9 +198,14 @@ bool CostBasedFusion::aggregate_operations_kernel(oplist_t& ops,
         ops[j].type = optype_t::nop;
       }
       if (!fusioned_ops.empty()) {
-        ops[i] = method->generate_fusion_operation(
-            fusioned_ops,
-            reg_t(fusioned_qubits.begin(), fusioned_qubits.end()));
+        if (method->support_diagonal() && is_diagonal(fusioned_ops, 0, fusioned_ops.size() - 1))
+          ops[i] = method->generate_diagonal_fusion_operation(
+              fusioned_ops,
+              reg_t(fusioned_qubits.begin(), fusioned_qubits.end()));
+        else
+          ops[i] = method->generate_fusion_operation(
+              fusioned_ops,
+              reg_t(fusioned_qubits.begin(), fusioned_qubits.end()));
       }
     }
     i = to - 1;
