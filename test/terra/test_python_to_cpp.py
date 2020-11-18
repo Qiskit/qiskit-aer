@@ -12,12 +12,12 @@
 
 import unittest
 import numpy as np
-from qiskit.providers.aer.pulse.qutip_extra_lite.qobj import Qobj
 from qiskit.providers.aer.pulse.controllers.test_python_to_cpp import \
     test_py_list_to_cpp_vec, test_py_list_of_lists_to_cpp_vector_of_vectors,\
     test_py_dict_string_numeric_to_cpp_map_string_numeric,\
     test_py_dict_string_list_of_list_of_doubles_to_cpp_map_string_vec_of_vecs_of_doubles,\
-    test_np_array_of_doubles, test_evaluate_hamiltonians, test_py_ordered_map
+    test_np_array_of_doubles, test_np_2D_array_of_doubles, test_evaluate_hamiltonians,\
+    test_py_ordered_map
 
 from .common import QiskitAerTestCase
 
@@ -44,6 +44,10 @@ class TestPythonToCpp(QiskitAerTestCase):
     def test_np_array_of_doubles(self):
         arg = np.array([0., 1., 2., 3.])
         self.assertTrue(test_np_array_of_doubles(arg))
+
+    def test_np_2D_array_of_doubles(self):
+        arg = np.array([[0., 1., 2., 3.], [10., 20., 30., 40.]])
+        self.assertTrue(test_np_2D_array_of_doubles(arg))
 
     def test_evaluate_hamiltonians(self):
         """ TODO: Evaluate different hamiltoninan expressions?"""
