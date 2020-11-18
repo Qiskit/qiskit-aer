@@ -38,7 +38,7 @@ class SnapshotAmplitudes(Snapshot):
             instruction as a barrier and should be set to the number of
             qubits in the circuit.
         """
-        super().__init__(label, snapshot_type='amplitudes', num_qubits=num_qubits)
+        super().__init__(label, snapshot_type='amplitudes', num_qubits=num_qubits, params=params)
 
 
 def snapshot_amplitudes(self, label, params, qubits):

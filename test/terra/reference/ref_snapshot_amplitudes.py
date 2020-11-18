@@ -19,41 +19,51 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.providers.aer.extensions.snapshot import Snapshot
 from qiskit.providers.aer.extensions.snapshot_amplitudes import *
 
+def snapshot_amplitudes_labels_params():
+    """Dictionary of labels and params for 3-qubit amplitude snapshots"""
+    return {
+        "[0]": [0],
+        "[7]": [7],
+        "all": [0,1,2,3,4,5,6,7]
+    }
 
-def snapshot_amplitudes_circuits_deterministic(snapshot_label='snap',
-                                          snapshot_type='amplitudes',
-                                          post_measure=False):
+
+def snapshot_amplitudes_circuits_deterministic(post_measure=False):
     """Snapshot Amplitudes test circuits"""
 
     circuits = []
     num_qubits = 3
-    params = [0, 1, 2]
+    qubits = list(range(3))
     qr = QuantumRegister(num_qubits)
     cr = ClassicalRegister(num_qubits)
     regs = (qr, cr)
 
     # Amplitudes snapshot instruction acting on all qubits
-    snapshot = Snapshot(snapshot_label, snapshot_type, num_qubits, params=params)
+    #snapshot = []
 
     # Snapshot |000>
     circuit = QuantumCircuit(*regs)
     if not post_measure:
-        circuit.append(snapshot, qr)
+        for label, params in snapshot_amplitudes_labels_params().items():
+            circuit.snapshot_amplitudes(label, params, qubits)
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     if post_measure:
-        circuit.append(snapshot, qr)
+        for label, params in snapshot_amplitudes_labels_params().items():
+            circuit.snapshot_amplitudes(label, params, qubits)
     circuits.append(circuit)
 
     # Snapshot |111>
     circuit = QuantumCircuit(*regs)
     circuit.x(qr)
     if not post_measure:
-        circuit.append(snapshot, qr)
+        for label, params in snapshot_amplitudes_labels_params().items():
+            circuit.snapshot_amplitudes(label, params, qubits)
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     if post_measure:
-        circuit.append(snapshot, qr)
+        for label, params in snapshot_amplitudes_labels_params().items():
+            circuit.snapshot_amplitudes(label, params, qubits)
     circuits.append(circuit)
 
     return circuits
@@ -72,10 +82,25 @@ def snapshot_amplitudes_counts_deterministic(shots):
 def snapshot_amplitudes_pre_measure_amplitudes_deterministic():
     """Snapshot Amplitudes test circuits reference final amplitudes"""
     targets = []
-    # Snapshot |000>
-    targets.append(array([1, 0, 0, 0, 0, 0, 0, 0], dtype=complex))
-    # Snapshot |111>
-    targets.append(array([0, 0, 0, 0, 0, 0, 0, 1], dtype=complex))
+    amplitudes = {  #amplitudes for circuit 1
+    # Amplitude |0> = |000>
+    '[0]': array([1], dtype=complex),
+    # Amplitude |7> = |111>
+    '[7]':array([0], dtype=complex),
+    # All amplitudes
+    'all':array([1, 0, 0, 0, 0, 0, 0, 0], dtype=complex)
+        }
+    targets.append(amplitudes)
+
+    amplitudes = {  #amplitudes for circuit 2
+    # Amplitude |0> = |000>
+    '[0]':array([0], dtype=complex),
+     # Amplitude |7> =|111>
+    '[7]':array([1], dtype=complex),
+    # All amplitudes
+    'all':array([0, 0, 0, 0, 0, 0, 0, 1], dtype=complex)
+        }
+    targets.append(amplitudes)
     return targets
 
 
@@ -83,10 +108,14 @@ def snapshot_amplitudes_post_measure_amplitudes_deterministic():
     """Snapshot Amplitudes test circuits reference final amplitudes"""
 
     targets = []
-    # Snapshot |000>
-    targets.append({'0x0': array([1, 0, 0, 0, 0, 0, 0, 0], dtype=complex)})
-    # Snapshot |111>
-    targets.append({'0x7': array([0, 0, 0, 0, 0, 0, 0, 1], dtype=complex)})
+    # Amplitude |000>
+    targets.append(array([1], dtype=complex))
+    # All amplitudes
+    targets.append(array([1, 0, 0, 0, 0, 0, 0, 0], dtype=complex))
+    # Amplitude |000>
+    targets.append(array([0], dtype=complex))
+    # All amplitudes
+    targets.append(array([0, 0, 0, 0, 0, 0, 0, 1], dtype=complex))
     return targets
 
 
