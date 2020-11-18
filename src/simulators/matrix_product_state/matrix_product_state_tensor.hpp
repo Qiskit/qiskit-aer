@@ -140,9 +140,6 @@ public:
   void apply_sdg();
   void apply_t();
   void apply_tdg();
-  void apply_u1(double lambda);
-  void apply_u2(double phi, double lambda);
-  void apply_u3(double theta, double phi, double lambda);
   void apply_matrix(const cmatrix_t &mat, bool swapped=false, 
 		    bool is_diagonal=false);
   void apply_cnot(bool swapped = false);
@@ -324,14 +321,14 @@ void MPS_Tensor::apply_tdg()
   data_[1] = data_[1] * complex_t(SQR_HALF, -SQR_HALF);
 }
 
- void MPS_Tensor::apply_matrix(const cmatrix_t &mat, bool is_diagonal, bool swapped)
+void MPS_Tensor::apply_matrix(const cmatrix_t &mat, bool swapped, bool is_diagonal)
 {
   if (swapped)
     swap(data_[1], data_[2]);
 
   if (is_diagonal) {  // diagonal matrix - the diagonal is contained in row 0
-      for (uint_t i=0; i<mat.GetColumns(); i++)
-	data_[i] = mat(0, i) * data_[i];
+    for (uint_t i=0; i<mat.GetColumns(); i++)
+      data_[i] = mat(0, i) * data_[i];
   } else {            // full matrix
     MPS_Tensor new_tensor;
     // initialize by multiplying first column of mat by data_[0]
@@ -344,9 +341,9 @@ void MPS_Tensor::apply_tdg()
 	new_tensor.data_[i] += mat(i, j) * data_[j];
       }
     }
-  *this = new_tensor;
+    *this = new_tensor;
   }
-   
+
   if (swapped)
     swap(data_[1], data_[2]);
 }

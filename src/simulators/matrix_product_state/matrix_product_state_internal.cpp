@@ -321,6 +321,26 @@ void MPS::apply_sx(uint_t index)
   get_qubit(index).apply_matrix(AER::Linalg::Matrix::SX);
 }
 
+void MPS::apply_r(uint_t index, double phi, double lam)
+{
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::r(phi, lam));
+}
+
+void MPS::apply_rx(uint_t index, double theta)
+{
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::rx(theta));
+}
+
+void MPS::apply_ry(uint_t index, double theta)
+{
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::ry(theta));
+}
+
+void MPS::apply_rz(uint_t index, double theta)
+{
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::rz(theta));
+}
+
 void MPS::apply_u1(uint_t index, double lambda)
 {
   get_qubit(index).apply_matrix(AER::Linalg::Matrix::u1(lambda));
@@ -349,10 +369,35 @@ void MPS::apply_cz(uint_t index_A, uint_t index_B)
   apply_2_qubit_gate(get_qubit_index(index_A), 
 		     get_qubit_index(index_B), cz, cmatrix_t(1, 1));
 }
+
 void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
 {
   cmatrix_t u1_matrix = AER::Linalg::Matrix::u1(lambda);
   apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), cu1, u1_matrix);
+}
+
+void MPS::apply_rxx(uint_t index_A, uint_t index_B, double theta)
+{
+  cmatrix_t rxx_matrix = AER::Linalg::Matrix::rxx(theta);
+  apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), su4, rxx_matrix);
+}
+
+void MPS::apply_ryy(uint_t index_A, uint_t index_B, double theta)
+{
+  cmatrix_t ryy_matrix = AER::Linalg::Matrix::ryy(theta);
+  apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), su4, ryy_matrix);
+}
+
+void MPS::apply_rzz(uint_t index_A, uint_t index_B, double theta)
+{
+  cmatrix_t rzz_matrix = AER::Linalg::Matrix::rzz(theta);
+  apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), su4, rzz_matrix);
+}
+
+void MPS::apply_rzx(uint_t index_A, uint_t index_B, double theta)
+{
+  cmatrix_t rzx_matrix = AER::Linalg::Matrix::rzx(theta);
+  apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), su4, rzx_matrix);
 }
 
 void MPS::apply_ccx(const reg_t &qubits)
@@ -384,7 +429,7 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
   }
   // when actual_A+1 == actual_B then we can really do the swap between A and A+1
   common_apply_2_qubit_gate(actual_A, Gates::swap, 
-			                      cmatrix_t(1, 1) /*dummy matrix*/, false /*swapped*/);
+			    cmatrix_t(1, 1) /*dummy matrix*/, false /*swapped*/);
  
   if (!swap_gate) {
     // we move the qubit at index_A one position to the right
@@ -392,7 +437,7 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
     //to the left
     std::swap(qubit_ordering_.order_[index_A], qubit_ordering_.order_[index_B]);    
 
-  // update qubit locations after all the swaps
+    // update qubit locations after all the swaps
     for (uint_t i=0; i<num_qubits_; i++)
       qubit_ordering_.location_[qubit_ordering_.order_[i]] = i;
   }
@@ -429,7 +474,7 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
     A = index_A - 1;
     swapped = true;
   }
-  common_apply_2_qubit_gate(A, gate_type, mat, swapped);
+  common_apply_2_qubit_gate(A, gate_type, mat, swapped, is_diagonal);
 }
 
 void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A+1
@@ -477,6 +522,7 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
   default:
     throw std::invalid_argument("illegal gate for apply_2_qubit_gate"); 
   }
+
   MPS_Tensor left_gamma,right_gamma;
   rvector_t lambda;
   MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
@@ -565,7 +611,7 @@ void MPS::apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat,
 {
   switch (qubits.size()) {
   case 1: 
-    q_reg_[qubits[0]].apply_matrix(mat, is_diagonal);
+    q_reg_[qubits[0]].apply_matrix(mat, false, is_diagonal);
     break;
   case 2:
     apply_2_qubit_gate(qubits[0], qubits[1], su4, mat, is_diagonal);
@@ -609,7 +655,7 @@ void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
   uint_t first = target_qubits.front();
   MPS_Tensor sub_tensor(state_vec_as_MPS(first, first+num_qubits-1));
 
-  sub_tensor.apply_matrix(mat, is_diagonal);
+  sub_tensor.apply_matrix(mat, false, is_diagonal);
 
   // state_mat is a matrix containing the flattened representation of the sub-tensor 
   // into a single matrix. E.g., sub_tensor will contain 8 matrices for 3-qubit

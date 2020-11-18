@@ -52,7 +52,8 @@ const Operations::OpSet StateOpSet(
    Operations::OpType::kraus},
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
-   "u2", "u3", "u", "U", "CX", "cx",  "cz", "cp", "cu1", "swap", "ccx"},
+   "u2", "u3", "u", "U", "CX", "cx",  "cz", "cp", "cu1", "swap", "ccx",
+   "sx", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx"},
   // Snapshots
   {"statevector", "memory", "register", "probabilities",
     "expectation_value_pauli", "expectation_value_pauli_with_variance",
@@ -302,6 +303,10 @@ const stringmap_t<Gates> State::gateset_({
   {"sx", Gates::sx},     // Sqrt(X) gate
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
+  {"r", Gates::r},       // R rotation gate
+  {"rx", Gates::rx},     // Pauli-X rotation gate
+  {"ry", Gates::ry},     // Pauli-Y rotation gate
+  {"rz", Gates::rz},     // Pauli-Z rotation gate
   // Waltz Gates
   {"p", Gates::u1},      // zero-X90 pulse waltz gate
   {"u1", Gates::u1},     // zero-X90 pulse waltz gate
@@ -316,6 +321,10 @@ const stringmap_t<Gates> State::gateset_({
   {"cu1", Gates::cu1},   // Controlled-U1 gate
   {"cp", Gates::cu1},    // Controlled-U1 gate
   {"swap", Gates::swap}, // SWAP gate
+  {"rxx", Gates::rxx},   // Pauli-XX rotation gate
+  {"ryy", Gates::ryy},   // Pauli-YY rotation gate
+  {"rzz", Gates::rzz},   // Pauli-ZZ rotation gate
+  {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
   // Three-qubit gates
    {"ccx", Gates::mcx}   // Controlled-CX gate (Toffoli)
 });
@@ -684,6 +693,23 @@ void State::apply_gate(const Operations::Op &op) {
     case Gates::tdg:
       qreg_.apply_tdg(op.qubits[0]);
       break;
+    case Gates::r:
+      qreg_.apply_r(op.qubits[0], 
+		    std::real(op.params[0]),
+		    std::real(op.params[1]));
+      break;
+    case Gates::rx:
+      qreg_.apply_rx(op.qubits[0], 
+		     std::real(op.params[0]));
+      break;
+    case Gates::ry:
+      qreg_.apply_ry(op.qubits[0], 
+		     std::real(op.params[0]));
+      break;
+    case Gates::rz:
+      qreg_.apply_rz(op.qubits[0], 
+		     std::real(op.params[0]));
+      break;
     case Gates::swap:
       qreg_.apply_swap(op.qubits[0], op.qubits[1], true);
       break;
@@ -694,6 +720,22 @@ void State::apply_gate(const Operations::Op &op) {
       qreg_.apply_cu1(op.qubits[0], op.qubits[1],
     		      std::real(op.params[0]));
       break;
+    case Gates::rxx:
+      qreg_.apply_rxx(op.qubits[0], op.qubits[1],
+    		      std::real(op.params[0]));
+      break;
+    case Gates::ryy:
+      qreg_.apply_ryy(op.qubits[0], op.qubits[1],
+    		      std::real(op.params[0]));
+      break;
+    case Gates::rzz:
+      qreg_.apply_rzz(op.qubits[0], op.qubits[1],
+    		      std::real(op.params[0]));
+      break;
+    case Gates::rzx:
+      qreg_.apply_rzx(op.qubits[0], op.qubits[1],
+    		      std::real(op.params[0]));
+      break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument(
@@ -701,12 +743,10 @@ void State::apply_gate(const Operations::Op &op) {
   }
 }
 
-  void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
-   if (!qubits.empty() && mat.size() > 0) {
-     qreg_.apply_matrix(qubits, mat);
-     return;
-   }
-  }
+void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
+  if (!qubits.empty() && mat.size() > 0)
+    qreg_.apply_matrix(qubits, mat);
+}
 
 void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
   // Check if diagonal matrix

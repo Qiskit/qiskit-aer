@@ -45,7 +45,7 @@ stages:
                 source activate qiskit-aer-$version
                 conda update --yes -n base conda
                 conda config --add channels conda-forge
-                conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake pip setuptools pybind11 cython scipy
+                conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake pip setuptools pybind11 scipy
                 python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
                 conda create --yes --quiet python=$version --name test-$version
                 source activate test-$version
@@ -147,15 +147,6 @@ stages:
             submodules: true
           - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
             displayName: Add conda to PATH
-          - task: Cache@2
-            inputs:
-              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
-              restoreKeys: |
-                pip | "$(Agent.OS)" | "$(python.version)"
-                pip | "$(Agent.OS)"
-                pip
-              path: $(PIP_CACHE_DIR)
-            displayName: Cache pip
           - bash: |
               set -x
               set -e
@@ -163,7 +154,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake pip setuptools pybind11 cython scipy
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake pip setuptools pybind11 scipy
             displayName: Create Anaconda environments
           - bash: |
               set -x
@@ -193,15 +184,6 @@ stages:
             submodules: true
           - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
             displayName: Add conda to PATH
-          - task: Cache@2
-            inputs:
-              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
-              restoreKeys: |
-                pip | "$(Agent.OS)" | "$(python.version)"
-                pip | "$(Agent.OS)"
-                pip
-              path: $(PIP_CACHE_DIR)
-            displayName: Cache pip
           - bash: |
               set -x
               set -e
@@ -213,7 +195,7 @@ stages:
               set -e
               conda create --yes --quiet --name qiskit-aer python=$(python.version)
               source activate qiskit-aer
-              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake pip setuptools pybind11 cython scipy
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake pip setuptools pybind11 scipy
             displayName: Create Anaconda environments
             env:
               CONDA_FORCE_32BIT: 1
@@ -254,15 +236,6 @@ stages:
             submodules: true
           - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
             displayName: Add conda to PATH
-          - task: Cache@2
-            inputs:
-              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
-              restoreKeys: |
-                pip | "$(Agent.OS)" | "$(python.version)"
-                pip | "$(Agent.OS)"
-                pip
-              path: $(PIP_CACHE_DIR)
-            displayName: Cache pip
           - bash: |
               set -x
               set -e
