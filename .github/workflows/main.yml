@@ -6,7 +6,7 @@ on:
     branches: [master, 'stable/*']
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.8
@@ -35,7 +35,7 @@ jobs:
           pycodestyle --ignore=E402,W504 --max-line-length=100 qiskit/providers/aer
           pylint -j 2 -rn qiskit/providers/aer
   docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v2
@@ -73,7 +73,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ["macOS-latest", "ubuntu-latest", "windows-latest"]
+        os: ["macOS-latest", "ubuntu-20.04", "windows-latest"]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.7
@@ -115,7 +115,7 @@ jobs:
         python-version: [3.6, 3.7, 3.8]
         platform: [
           { os: "macOS-latest",   python-architecture: "x64"},
-          { os: "ubuntu-latest", python-architecture: "x64" },
+          { os: "ubuntu-20.04", python-architecture: "x64" },
         ]
     steps:
       - uses: actions/checkout@v2
@@ -158,7 +158,7 @@ jobs:
     needs: ["lint"]
     strategy:
       matrix:
-        os: ["macOS-latest", "ubuntu-latest"]
+        os: ["macOS-latest", "ubuntu-20.04"]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python Python 3.8
@@ -188,7 +188,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.6, 3.7, 3.8]
-        os: ["macOS-latest", "ubuntu-latest", "windows-latest"]
+        os: ["macOS-latest", "ubuntu-20.04", "windows-latest"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
@@ -261,7 +261,7 @@ jobs:
         if: runner.os == 'macOS' && matrix.python-version == '3.8'
   tutorials:
     name: Tutorials
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [standalone, sdist, lint, docs]
     steps:
       - uses: actions/checkout@v2
