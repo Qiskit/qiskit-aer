@@ -2,7 +2,6 @@ stestr>=2.5.0
 cmake!=3.17.1,!=3.17.0
 conan>=1.22.2
 scikit-build
-cython
 asv
 cvxpy>=1.0.0
 pylint
