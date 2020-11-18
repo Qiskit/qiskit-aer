@@ -15,7 +15,8 @@
 #ifndef CH_STABILIZER_HPP
 #define CH_STABILIZER_HPP
 
-#include <limits.h>
+#include <array>
+#include <climits>
 #include <complex>
 #include <cstdlib>
 #include <ctime>
@@ -169,15 +170,11 @@ private:
   
 };
 
-typedef std::complex<double> cdouble;
+using cdouble =  std::complex<double>;
 
 //-------------------------------//
 // Implementation                //
 //-------------------------------//
-
-//Lookup table for e^(i pi m / 4)
-static const int RE_PHASE[8] = {1, 1, 0, -1, -1, -1, 0, 1};
-static const int IM_PHASE[8] = {0, 1, 1, 1, 0, -1, -1, -1};
 
 // Clifford simulator based on the CH-form for for n<=64 qubits
 

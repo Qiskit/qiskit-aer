@@ -33,6 +33,14 @@ from test.terra.reference.ref_snapshot_state import (
     snapshot_state_counts_nondeterministic,
     snapshot_state_pre_measure_statevector_nondeterministic,
     snapshot_state_post_measure_statevector_nondeterministic)
+from test.terra.reference.ref_snapshot_amplitudes import (
+    snapshot_amplitudes_circuits_deterministic, snapshot_amplitudes_counts_deterministic,
+    snapshot_amplitudes_pre_measure_amplitudes_deterministic,
+    snapshot_amplitudes_post_measure_amplitudes_deterministic,
+    snapshot_amplitudes_circuits_nondeterministic,
+    snapshot_amplitudes_counts_nondeterministic,
+    snapshot_amplitudes_pre_measure_amplitudes_nondeterministic,
+    snapshot_amplitudes_post_measure_amplitudes_nondeterministic)
 from test.terra.reference.ref_snapshot_probabilities import (
     snapshot_probabilities_circuits, snapshot_probabilities_counts,
     snapshot_probabilities_labels_qubits,
@@ -788,7 +796,7 @@ class QasmSnapshotAmplitudesTests:
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
-        
+
         if method not in QasmSnapshotAmplitudesTests.SUPPORTED_QASM_METHODS:
             self.assertFalse(success)
         else:

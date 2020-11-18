@@ -181,14 +181,32 @@ class QasmSimulator(AerBackend):
     These backend options only apply when using the ``"extended_stabilizer"``
     simulation method:
 
-    * ``extended_stabilizer_measure_sampling`` (bool): Enable measure
-      sampling optimization on supported circuits. This prevents the
-      simulator from re-running the measure monte-carlo step for each
-      shot. Enabling measure sampling may reduce accuracy of the
-      measurement counts if the output distribution is strongly
-      peaked (Default: False).
+    * ``extended_stabilizer_sampling_methid`` (string): Choose how to simulate
+      measurements on qubits. The performance of the simulator depends
+      significantly on this choice. In the following, let n be the number of
+      qubits in the circuit, m the number of qubits measured, and S be the
+      number of shots. (Default: resampled_metropolis)
 
-    * ``extended_stabilizer_mixing_time`` (int): Set how long the
+      * ``"metropolis"``: Use a Monte-Carlo method to sample many output
+        strings from the simulator at once. To be accurate, this method
+        requires that all the possible output strings have a non-zero
+        probability. It will give inaccurate results on cases where
+        the circuit has many zero-probability outcomes.
+        This method has an overall runtime that scales as n^{2} + (S-1)n.
+
+      * ``"resampled_metropolis"``: A variant of the metropolis method,
+        where the Monte-Carlo method is reinitialised for every shot. This
+        gives better results for circuits where some outcomes have zero
+        probability, but will still fail if the output distribution
+        is sparse. The overall runtime scales as Sn^{2}.
+
+      * ``"norm_estimation"``: An alternative sampling method using
+        random state inner products to estimate outcome probabilites. This
+        method requires twice as much memory, and significantly longer
+        runtimes, but gives accurate results on circuits with sparse
+        output distributions. The overall runtime scales as Sn^{3}m^{3}.
+
+    * ``extended_stabilizer_metropolis_mixing_time`` (int): Set how long the
       monte-carlo method runs before performing measurements. If the
       output distribution is strongly peaked, this can be decreased
       alongside setting extended_stabilizer_disable_measurement_opt
@@ -199,15 +217,25 @@ class QasmSimulator(AerBackend):
       smaller error needs more memory and computational time
       (Default: 0.05).
 
-    * ``extended_stabilizer_norm_estimation_samples`` (int): Number of
-      samples used to compute the correct normalization for a
-      statevector snapshot (Default: 100).
+    * ``extended_stabilizer_norm_estimation_samples`` (int): The default number
+      of samples for the norm estimation sampler. The method will use the
+      default, or 4m^{2} samples where m is the number of qubits to be
+      measured, whichever is larger (Default: 100).
+
+    * ``extended_stabilizer_norm_estimation_repetitions`` (int): The number
+      of times to repeat the norm estimation. The median of these reptitions
+      is used to estimate and sample output strings (Default: 3).
 
     * ``extended_stabilizer_parallel_threshold`` (int): Set the minimum
       size of the extended stabilizer decomposition before we enable
       OpenMP parallelization. If parallel circuit or shot execution
       is enabled this will only use unallocated CPU cores up to
       max_parallel_threads (Default: 100).
+
+    * ``extended_stabilizer_probabilities_snapshot_samples`` (int): If using
+      the metropolis or resampled_metropolis sampling method, set the number of
+      samples used to estimate probabilities in a probabilities snapshot
+      (Default: 3000).
 
     These backend options only apply when using the ``"matrix_product_state"``
     simulation method:
@@ -422,7 +450,8 @@ class QasmSimulator(AerBackend):
             config.description = 'A C++ QasmQobj matrix product state simulator with noise'
             config.basis_gates = [
                 'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
-                'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay'
+                'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay',
+                'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx'
             ]
 
         # Stabilizer method

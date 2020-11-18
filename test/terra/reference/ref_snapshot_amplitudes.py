@@ -39,7 +39,6 @@ def snapshot_amplitudes_circuits_deterministic(post_measure=False):
     regs = (qr, cr)
 
     # Amplitudes snapshot instruction acting on all qubits
-    #snapshot = []
 
     # Snapshot |000>
     circuit = QuantumCircuit(*regs)
@@ -51,6 +50,7 @@ def snapshot_amplitudes_circuits_deterministic(post_measure=False):
     if post_measure:
         for label, params in snapshot_amplitudes_labels_params().items():
             circuit.snapshot_amplitudes(label, params, qubits)
+
     circuits.append(circuit)
 
     # Snapshot |111>
@@ -64,6 +64,7 @@ def snapshot_amplitudes_circuits_deterministic(post_measure=False):
     if post_measure:
         for label, params in snapshot_amplitudes_labels_params().items():
             circuit.snapshot_amplitudes(label, params, qubits)
+
     circuits.append(circuit)
 
     return circuits
@@ -126,7 +127,7 @@ def snapshot_amplitudes_circuits_nondeterministic(snapshot_label='snap',
 
     circuits = []
     num_qubits = 3
-    params = [0, 1, 2]
+
     qr = QuantumRegister(num_qubits)
     cr = ClassicalRegister(num_qubits)
     regs = (qr, cr)

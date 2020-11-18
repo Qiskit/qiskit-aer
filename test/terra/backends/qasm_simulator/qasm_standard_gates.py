@@ -103,7 +103,6 @@ class QasmStandardGateStatevectorTests:
         circuit = self.gate_circuit(gate_cls,
                                     num_params=num_params,
                                     rng=self.RNG)
-        print(circuit.qasm())
         target = Statevector.from_instruction(circuit)
 
         # Add snapshot and execute

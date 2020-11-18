@@ -441,7 +441,7 @@ bool Fusion::is_diagonal(const std::vector<op_t>& ops,
       i += 2;
       continue;
     }
-    if (ops[i].name == "u1" || ops[i].name == "cu1")
+    if (ops[i].name == "u1" || ops[i].name == "cu1" || ops[i].name == "cp")
       continue;
     return false;
   }

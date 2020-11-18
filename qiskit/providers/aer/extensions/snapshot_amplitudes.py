@@ -47,7 +47,7 @@ def snapshot_amplitudes(self, label, params, qubits):
     Args:
         label (str): a snapshot label to report the result.
         params (List[int]): the basis values whose amplitudes to return
-        qubits (list): the qubits whose basis values are specified. 
+        qubits (list): the qubits whose basis values are specified.
 
     Returns:
         QuantumCircuit: with attached instruction.
