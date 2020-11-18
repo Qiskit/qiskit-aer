@@ -26,8 +26,8 @@ namespace MatrixProductState {
 
 // Allowed gates enum class
 enum Gates {
-  id, h, x, y, z, s, sdg, sx, t, tdg, u1, u2, u3, // single qubit
-  cx, cz, cu1, swap, su4, // two qubit
+  id, h, x, y, z, s, sdg, sx, t, tdg, u1, u2, u3, r, rx, ry, rz, // single qubit
+  cx, cz, cu1, swap, su4, rxx, ryy, rzz, rzx, // two qubit
   mcx // three qubit
 };
 
@@ -101,6 +101,10 @@ public:
   //----------------------------------------------------------------
   void apply_h(uint_t index);
   void apply_sx(uint_t index);
+  void apply_r(uint_t index, double phi, double lam);
+  void apply_rx(uint_t index, double theta);
+  void apply_ry(uint_t index, double theta);
+  void apply_rz(uint_t index, double theta);
   void apply_x(uint_t index){ get_qubit(index).apply_x();}
   void apply_y(uint_t index){ get_qubit(index).apply_y();}
   void apply_z(uint_t index){ get_qubit(index).apply_z();}
@@ -114,9 +118,12 @@ public:
   void apply_cnot(uint_t index_A, uint_t index_B);
   void apply_swap(uint_t index_A, uint_t index_B, bool swap_gate);
 
-
   void apply_cz(uint_t index_A, uint_t index_B);
   void apply_cu1(uint_t index_A, uint_t index_B, double lambda);
+  void apply_rxx(uint_t index_A, uint_t index_B, double theta);
+  void apply_ryy(uint_t index_A, uint_t index_B, double theta);
+  void apply_rzz(uint_t index_A, uint_t index_B, double theta);
+  void apply_rzx(uint_t index_A, uint_t index_B, double theta);
 
   void apply_ccx(const reg_t &qubits);  
 

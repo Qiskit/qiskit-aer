@@ -321,6 +321,26 @@ void MPS::apply_sx(uint_t index)
   get_qubit(index).apply_matrix(AER::Linalg::Matrix::SX);
 }
 
+void MPS::apply_r(uint_t index, double phi, double lam)
+{
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::r(phi, lam));
+}
+
+void MPS::apply_rx(uint_t index, double theta)
+{
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::rx(theta));
+}
+
+void MPS::apply_ry(uint_t index, double theta)
+{
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::ry(theta));
+}
+
+void MPS::apply_rz(uint_t index, double theta)
+{
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::rz(theta));
+}
+
 void MPS::apply_u1(uint_t index, double lambda)
 {
   get_qubit(index).apply_matrix(AER::Linalg::Matrix::u1(lambda));
@@ -349,10 +369,35 @@ void MPS::apply_cz(uint_t index_A, uint_t index_B)
   apply_2_qubit_gate(get_qubit_index(index_A), 
 		     get_qubit_index(index_B), cz, cmatrix_t(1, 1));
 }
+
 void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
 {
   cmatrix_t u1_matrix = AER::Linalg::Matrix::u1(lambda);
   apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), cu1, u1_matrix);
+}
+
+void MPS::apply_rxx(uint_t index_A, uint_t index_B, double theta)
+{
+  cmatrix_t rxx_matrix = AER::Linalg::Matrix::rxx(theta);
+  apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), su4, rxx_matrix);
+}
+
+void MPS::apply_ryy(uint_t index_A, uint_t index_B, double theta)
+{
+  cmatrix_t ryy_matrix = AER::Linalg::Matrix::ryy(theta);
+  apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), su4, ryy_matrix);
+}
+
+void MPS::apply_rzz(uint_t index_A, uint_t index_B, double theta)
+{
+  cmatrix_t rzz_matrix = AER::Linalg::Matrix::rzz(theta);
+  apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), su4, rzz_matrix);
+}
+
+void MPS::apply_rzx(uint_t index_A, uint_t index_B, double theta)
+{
+  cmatrix_t rzx_matrix = AER::Linalg::Matrix::rzx(theta);
+  apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), su4, rzx_matrix);
 }
 
 void MPS::apply_ccx(const reg_t &qubits)

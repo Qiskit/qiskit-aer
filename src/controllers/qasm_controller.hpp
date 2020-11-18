@@ -291,8 +291,6 @@ class QasmController : public Base::Controller {
 
   // TODO: initial stabilizer state
 
-  // Controller-level parameter for CH method
-  bool extended_stabilizer_measure_sampling_ = false;
 };
 
 //=========================================================================
@@ -343,10 +341,6 @@ void QasmController::set_config(const json_t& config) {
       simulation_precision_ = Precision::single_precision;
     }
   }
-
-  // Check for extended stabilizer measure sampling
-  JSON::get_value(extended_stabilizer_measure_sampling_,
-                  "extended_stabilizer_measure_sampling", config);
 
   // DEPRECATED: Add custom initial state
   if (JSON::get_value(initial_statevector_, "initial_statevector", config)) {
@@ -1025,12 +1019,6 @@ bool QasmController::check_measure_sampling_opt(const Circuit& circ,
                                                 const Method method) const {
   // Check if circuit has sampling flag disabled
   if (circ.can_sample == false) {
-    return false;
-  }
-
-  // Check if stabilizer measure sampling has been disabled
-  if (method == Method::extended_stabilizer &&
-      !extended_stabilizer_measure_sampling_) {
     return false;
   }
 

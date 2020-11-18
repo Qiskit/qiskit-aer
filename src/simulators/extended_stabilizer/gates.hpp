@@ -16,7 +16,7 @@
 #define _aer_chsimulator_gates_hpp
 
 #define _USE_MATH_DEFINES
-#include <math.h>
+#include <cmath>
 
 #include <complex>
 #include <cstdint>
@@ -103,7 +103,7 @@ struct U1Sample : public Sample
     p_threshold = other.p_threshold;
   }
 
-  ~U1Sample() = default;
+  ~U1Sample() override = default;
 
   sample_branch_t sample(double r) const override;
 };
@@ -142,25 +142,21 @@ U1Sample::U1Sample(double lambda)
   angle /= 2;
   complex_t coeff_0 = std::cos(angle)-std::sin(angle);
   complex_t coeff_1 = root2*std::sin(angle);
+  complex_t phase_0, phase_1;
+  std::array<Gates, 2> gates;
   if(lambda < 0)
   {
     coeff_0 *= root_omega_star;
     coeff_1 = coeff_1 * root_omega;
     if(s_z_quadrant)
     {
-      branches = 
-      {
-        sample_branch_t(coeff_0, Gates::sdg),
-        sample_branch_t(coeff_1, Gates::z)
-      };
+      gates[0] = Gates::sdg;
+      gates[1] = Gates::z;
     }
     else
     {
-      branches = 
-      {
-        sample_branch_t(coeff_0, Gates::id),
-        sample_branch_t(coeff_1, Gates::sdg)
-      };
+      gates[0] = Gates::id;
+      gates[1] = Gates::sdg;
     }
   }
   else
@@ -169,21 +165,22 @@ U1Sample::U1Sample(double lambda)
     coeff_1 = coeff_1 * root_omega_star;
     if(s_z_quadrant)
     {
-      branches = 
-      {
-        sample_branch_t(coeff_0, Gates::s),
-        sample_branch_t(coeff_1, Gates::z)
-      };
+      gates[0] = Gates::s;
+      gates[1] = Gates::z;
     }
     else
     {
-      branches = 
-      {
-        sample_branch_t(coeff_0, Gates::id),
-        sample_branch_t(coeff_1, Gates::s)
-      };
+      gates[0] = Gates::id;
+      gates[1] = Gates::s;
     }
   }
+  phase_0 = std::polar(1.0, std::arg(coeff_0));
+  phase_1 = std::polar(1.0, std::arg(coeff_1));
+  branches =
+  {
+    sample_branch_t(phase_0, gates[0]),
+    sample_branch_t(phase_1, gates[1])
+  };
   p_threshold = std::abs(coeff_0) / (std::abs(coeff_0)+std::abs(coeff_1));
 }
 
@@ -241,7 +238,5 @@ sample_branch_t U1Sample::sample(double r) const
   }
 
 }
-
-
 
 #endif
