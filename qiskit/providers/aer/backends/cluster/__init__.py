@@ -28,4 +28,12 @@ Classes
    ClusterBackend
 """
 
+<<<<<<< HEAD
 from .aerjobset import AerJobSet
+=======
+from .cluster_backend import ClusterBackend
+from .clusterjobset import JobSet
+from .clusterjob import CJob
+from .clusterresults import CResults
+from .exceptions import *
+>>>>>>> Add ClusterBackend and related utilities
