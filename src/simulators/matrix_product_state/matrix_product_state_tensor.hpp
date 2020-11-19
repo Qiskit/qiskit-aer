@@ -140,9 +140,6 @@ public:
   void apply_sdg();
   void apply_t();
   void apply_tdg();
-  void apply_u1(double lambda);
-  void apply_u2(double phi, double lambda);
-  void apply_u3(double theta, double phi, double lambda);
   void apply_matrix(const cmatrix_t &mat, bool swapped=false, 
 		    bool is_diagonal=false);
   void apply_cnot(bool swapped = false);

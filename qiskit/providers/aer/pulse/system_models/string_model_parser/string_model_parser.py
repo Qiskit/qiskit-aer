@@ -20,7 +20,7 @@ import copy
 from collections import namedtuple, OrderedDict
 import numpy as np
 from .apply_str_func_to_qobj import apply_func
-from .qobj_from_string import gen_oper
+from .operator_from_string import gen_oper
 
 
 Token = namedtuple('Token', ('type', 'name'))
