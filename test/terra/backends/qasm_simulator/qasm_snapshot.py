@@ -44,9 +44,7 @@ from test.terra.reference.ref_snapshot_expval import (
 from test.terra.reference.ref_snapshot_amplitudes import (
     snapshot_amplitudes_labels_params,
     snapshot_amplitudes_circuits,
-    snapshot_amplitudes_counts,
-    snapshot_amplitudes_pre_measure_amplitudes,
-    snapshot_amplitudes_post_measure_amplitudes)
+    snapshot_amplitudes_counts)
 
 
 class QasmSnapshotStatevectorTests:

@@ -105,7 +105,6 @@ class TestQasmSimulator(common.QiskitAerTestCase,
                         QasmSnapshotExpValPauliTests,
                         QasmSnapshotExpValPauliNCTests,
                         QasmSnapshotExpValMatrixTests,
-                        QasmSnapshotAmplitudesTests,
                         QasmSnapshotStabilizerTests
                         ):
     """QasmSimulator automatic method tests."""

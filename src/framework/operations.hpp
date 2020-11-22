@@ -879,7 +879,7 @@ Op json_to_op_snapshot_amplitudes(const json_t &js) {
     for (complex_t base_value : js["params"]) {
       op.params_amplitudes.emplace_back(static_cast<uint_t>(real(base_value)));
     } 
-  }else {
+  } else {
     throw std::invalid_argument("Invalid amplitudes snapshot (param component invalid");
   }
   return op;
