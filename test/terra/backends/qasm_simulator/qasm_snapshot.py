@@ -33,14 +33,6 @@ from test.terra.reference.ref_snapshot_state import (
     snapshot_state_counts_nondeterministic,
     snapshot_state_pre_measure_statevector_nondeterministic,
     snapshot_state_post_measure_statevector_nondeterministic)
-from test.terra.reference.ref_snapshot_amplitudes import (
-    snapshot_amplitudes_circuits_deterministic, snapshot_amplitudes_counts_deterministic,
-    snapshot_amplitudes_pre_measure_amplitudes_deterministic,
-    snapshot_amplitudes_post_measure_amplitudes_deterministic,
-    snapshot_amplitudes_circuits_nondeterministic,
-    snapshot_amplitudes_counts_nondeterministic,
-    snapshot_amplitudes_pre_measure_amplitudes_nondeterministic,
-    snapshot_amplitudes_post_measure_amplitudes_nondeterministic)
 from test.terra.reference.ref_snapshot_probabilities import (
     snapshot_probabilities_circuits, snapshot_probabilities_counts,
     snapshot_probabilities_labels_qubits,
@@ -51,13 +43,10 @@ from test.terra.reference.ref_snapshot_expval import (
     snapshot_expval_post_meas_values, snapshot_expval_pre_meas_values)
 from test.terra.reference.ref_snapshot_amplitudes import (
     snapshot_amplitudes_labels_params,
-    snapshot_amplitudes_circuits_deterministic, snapshot_amplitudes_counts_deterministic,
-    snapshot_amplitudes_pre_measure_amplitudes_deterministic,
-    snapshot_amplitudes_post_measure_amplitudes_deterministic,
-    snapshot_amplitudes_circuits_nondeterministic,
-    snapshot_amplitudes_counts_nondeterministic,
-    snapshot_amplitudes_pre_measure_amplitudes_nondeterministic,
-    snapshot_amplitudes_post_measure_amplitudes_nondeterministic)
+    snapshot_amplitudes_circuits,
+    snapshot_amplitudes_counts,
+    snapshot_amplitudes_pre_measure_amplitudes,
+    snapshot_amplitudes_post_measure_amplitudes)
 
 
 class QasmSnapshotStatevectorTests:
@@ -776,20 +765,22 @@ class QasmSnapshotAmplitudesTests:
     ]
     BACKEND_OPTS = {}
 
-    def amplitudes_snapshots(self, data, labels):
+    def amplitudes_snapshots(self, data, label):
         """Format snapshots as list of Numpy arrays"""
-        output = {}
-        output = data.get("snapshots", {}).get("amplitudes")
-        return output
+        output_amplitudes = {}
+        output_statevector = {}
+        output_amplitudes = data.get("snapshots", {}).get("amplitudes")[label]
+        output_statevector = data.get("snapshots", {}).get("statevector")[label]
+        return output_amplitudes, output_statevector
 
-    def test_snapshot_amplitudes_pre_measure_det(self):
-        """Test snapshot amplitudes before deterministic final measurement"""
-        shots = 10
+    # Verify the snapshot_amplitudes by comparing with the corresponding amplitudes
+    # in snapshot_statevector
+    def test_snapshot_amplitudes_pre_measure(self):
+        """Test snapshot amplitudes before final measurement"""
+        shots = 100
         labels = list(snapshot_amplitudes_labels_params().keys())
-        counts_targets = snapshot_amplitudes_counts_deterministic(shots)
-        amplitude_targets = snapshot_amplitudes_pre_measure_amplitudes_deterministic(
-        )
-        circuits = snapshot_amplitudes_circuits_deterministic(post_measure=False)
+        counts_targets = snapshot_amplitudes_counts(shots)
+        circuits = snapshot_amplitudes_circuits(post_measure=False)
                                                          
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
@@ -801,15 +792,41 @@ class QasmSnapshotAmplitudesTests:
             self.assertFalse(success)
         else:
             self.assertTrue(success)
-            self.compare_counts(result, circuits, counts_targets, delta=0)
+            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
             # Check snapshots
             for j, circuit in enumerate(circuits):
                 data = result.data(circuit)
-                all_snapshots = self.amplitudes_snapshots(data, labels)
-                target = amplitude_targets[j]
                 for label in labels:
-                    snaps = all_snapshots.get(label, {})
-                    value = snaps[0]
-                    self.assertTrue(len(snaps), 1)
-                    single_target = target.get(label, {})
-                    self.assertTrue(np.allclose(value, single_target))
+                    amplitudes, statevector = self.amplitudes_snapshots(data, label)
+                    indices = snapshot_amplitudes_labels_params()[label]
+                    for index in range(len(indices)):
+                        self.assertAlmostEqual(amplitudes[0][index], statevector[0][indices[index]])
+
+    def test_snapshot_amplitudes_post_measure(self):
+        """Test snapshot amplitudes before final measurement"""
+        shots = 100
+        labels = list(snapshot_amplitudes_labels_params().keys())
+        counts_targets = snapshot_amplitudes_counts(shots)
+        circuits = snapshot_amplitudes_circuits(post_measure=True)
+                                                         
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
+        result = job.result()
+        success = getattr(result, 'success', False)
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+
+        if method not in QasmSnapshotAmplitudesTests.SUPPORTED_QASM_METHODS:
+            self.assertFalse(success)
+        else:
+            self.assertTrue(success)
+            self.compare_counts(result, circuits, counts_targets, delta=0.1 * shots)
+            # Check snapshots
+            for j, circuit in enumerate(circuits):
+                data = result.data(circuit)
+                for label in labels:
+                    amplitudes, statevector = self.amplitudes_snapshots(data, label)
+                    indices = snapshot_amplitudes_labels_params()[label]
+                    for index in range(len(indices)):
+                        self.assertAlmostEqual(amplitudes[0][index], statevector[0][indices[index]])
+               
+
