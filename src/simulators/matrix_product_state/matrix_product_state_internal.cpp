@@ -1234,6 +1234,7 @@ void MPS::get_amplitude_vector_internal(const reg_t base_values, const reg_t qub
 					 cvector_t &amplitude_vector) {
   move_all_qubits_to_sorted_ordering();
   std::string base_value;
+#pragma omp parallel for if (base_values.size() > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (uint_t i=0; i<base_values.size(); i++) {
     base_value = AER::Utils::int2string(base_values[i]);
     amplitude_vector[i] = get_single_amplitude(base_value);
