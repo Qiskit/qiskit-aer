@@ -1454,7 +1454,7 @@ uint_t MPS::apply_measure(uint_t qubit,
 void MPS::initialize_from_statevector(uint_t num_qubits, cvector_t state_vector) {
   cmatrix_t statevector_as_matrix(1, state_vector.size());
 
-#pragma omp parallel for if (num_qubits_ > MPS::get_omp_threshold() && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
+#pragma omp parallel for if (base_values.size() > MPS::get_omp_threshold() && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
   for (int_t i=0; i<static_cast<int_t>(state_vector.size()); i++) {
     statevector_as_matrix(0, i) = state_vector[i];
   }
