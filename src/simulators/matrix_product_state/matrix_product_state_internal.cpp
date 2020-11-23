@@ -1221,7 +1221,7 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
   statevector = reverse_all_bits(temp_statevector, num_qubits);
 }
 
-void MPS::get_amplitude_vector(const reg_t base_values, const reg_t qubits, 
+void MPS::get_amplitude_vector(const reg_t &base_values, const reg_t &qubits, 
 				cvector_t &amplitude_vector) {
   // For now we ignore the qubits parameter and compute for all qubits
   reg_t all_qubits(num_qubits_);
@@ -1230,17 +1230,18 @@ void MPS::get_amplitude_vector(const reg_t base_values, const reg_t qubits,
   get_amplitude_vector_internal(base_values, internal_qubits, amplitude_vector);
 }
 
-void MPS::get_amplitude_vector_internal(const reg_t base_values, const reg_t qubits, 
+void MPS::get_amplitude_vector_internal(const reg_t &base_values, const reg_t &qubits, 
 					 cvector_t &amplitude_vector) {
   move_all_qubits_to_sorted_ordering();
+  uint_t num_values = base_values.size();
   std::string base_value;
-#pragma omp parallel for if (base_values.size() > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  for (int_t i=0; i<base_values.size(); i++) {
+#pragma omp parallel for if (num_values > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+  for (int_t i=0; i<static_cast<int_t>(num_values); i++) {
     base_value = AER::Utils::int2string(base_values[i]);
     amplitude_vector[i] = get_single_amplitude(base_value);
   }
 }
-complex_t MPS::get_single_amplitude(std::string base_value) {
+complex_t MPS::get_single_amplitude(const std::string &base_value) {
   // We take the bits of the base value from right to left in order not to expand the 
   // base values to the full width of 2^n
   // We contract from left to right because the representation in Qiskit is from left 
@@ -1454,7 +1455,7 @@ uint_t MPS::apply_measure(uint_t qubit,
 void MPS::initialize_from_statevector(uint_t num_qubits, cvector_t state_vector) {
   cmatrix_t statevector_as_matrix(1, state_vector.size());
 
-#pragma omp parallel for if (base_values.size() > MPS::get_omp_threshold() && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
+#pragma omp parallel for if (num_qubits_ > MPS::get_omp_threshold() && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
   for (int_t i=0; i<static_cast<int_t>(state_vector.size()); i++) {
     statevector_as_matrix(0, i) = state_vector[i];
   }
