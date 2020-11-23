@@ -777,7 +777,7 @@ class QasmSnapshotAmplitudesTests:
     # in snapshot_statevector
     def test_snapshot_amplitudes_pre_measure(self):
         """Test snapshot amplitudes before final measurement"""
-        shots = 100
+        shots = 1000
         labels = list(snapshot_amplitudes_labels_params().keys())
         counts_targets = snapshot_amplitudes_counts(shots)
         circuits = snapshot_amplitudes_circuits(post_measure=False)
@@ -804,7 +804,7 @@ class QasmSnapshotAmplitudesTests:
 
     def test_snapshot_amplitudes_post_measure(self):
         """Test snapshot amplitudes before final measurement"""
-        shots = 100
+        shots = 1000
         labels = list(snapshot_amplitudes_labels_params().keys())
         counts_targets = snapshot_amplitudes_counts(shots)
         circuits = snapshot_amplitudes_circuits(post_measure=True)
