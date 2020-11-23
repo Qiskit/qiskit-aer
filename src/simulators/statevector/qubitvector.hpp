@@ -215,6 +215,9 @@ public:
   void apply_pauli(const reg_t &qubits, const std::string &pauli,
                    const complex_t &coeff = 1);
 
+  void get_amplitude_vector(cvector_t<double> &amplitude_vector, 
+			    const reg_t &base_values) const;
+
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
   //-----------------------------------------------------------------------
@@ -1610,6 +1613,12 @@ double QubitVector<data_t>::norm_diagonal(const uint_t qubit, const cvector_t<do
   return std::real(apply_reduction_lambda(lambda, areg_t<1>({{qubit}}), convert(mat)));
 }
 
+template <typename data_t>
+void QubitVector<data_t>::get_amplitude_vector(cvector_t<double> &amplitude_vector, 
+					       const reg_t &base_values) const {
+    for (uint_t i=0; i<base_values.size(); i++)
+      amplitude_vector[i] = data_[base_values[i]];
+  }
 
 /*******************************************************************************
  *

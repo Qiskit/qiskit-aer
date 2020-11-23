@@ -48,7 +48,7 @@ const Operations::OpSet StateOpSet(
      "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
      "mcsx",   "delay", "pauli"},
     // Snapshots
-    {"statevector", "memory", "register", "probabilities",
+    {"statevector", "amplitudes", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli", "density_matrix",
      "density_matrix_with_variance", "expectation_value_pauli_with_variance",
      "expectation_value_matrix_single_shot", "expectation_value_matrix",
@@ -66,6 +66,7 @@ enum class Gates {
 // Allowed snapshots enum class
 enum class Snapshots {
   statevector,
+  amplitudes,
   cmemory,
   cregister,
   probs,
@@ -229,6 +230,10 @@ protected:
   // should be left in the pre-snapshot state.
   //-----------------------------------------------------------------------
 
+void snapshot_amplitudes(const Operations::Op &op,
+			 ExperimentResult &result,
+			 std::string name) const;
+
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op, ExperimentResult &result,
                               SnapshotDataType type);
@@ -362,6 +367,7 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
 template <class statevec_t>
 const stringmap_t<Snapshots> State<statevec_t>::snapshotset_(
     {{"statevector", Snapshots::statevector},
+     {"amplitudes", Snapshots::amplitudes},
      {"probabilities", Snapshots::probs},
      {"expectation_value_pauli", Snapshots::expval_pauli},
      {"expectation_value_matrix", Snapshots::expval_matrix},
@@ -544,6 +550,10 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
         result.data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.copy_to_vector());
       }
       break;
+    case Snapshots::amplitudes: {
+      snapshot_amplitudes(op, result, "amplitudes");
+      break;
+    }
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, result);
       break;
@@ -588,6 +598,22 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
           "QubitVector::State::invalid snapshot instruction \'" + op.name +
           "\'.");
   }
+}
+
+template <class statevec_t>
+void State<statevec_t>::snapshot_amplitudes(const Operations::Op &op,
+				ExperimentResult &result,
+				std::string name) const {
+  if (op.params_amplitudes.empty()) {
+    throw std::invalid_argument("Invalid amplitudes snapshot (No base value given).");
+  }
+  reg_t base_values;
+  for (const auto &param : op.params_amplitudes) {
+    base_values.push_back(param);
+  }
+  cvector_t amplitude_vector(base_values.size());
+  BaseState::qreg_.get_amplitude_vector(amplitude_vector, base_values);
+  result.data.add_pershot_snapshot("amplitudes", op.string_params[0], amplitude_vector);
 }
 
 template <class statevec_t>

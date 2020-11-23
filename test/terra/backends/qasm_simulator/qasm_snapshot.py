@@ -759,6 +759,8 @@ class QasmSnapshotAmplitudesTests:
 
     SIMULATOR = QasmSimulator()
     SUPPORTED_QASM_METHODS = [
+        'automatic',
+        'statevector',
         'matrix_product_state'
     ]
     BACKEND_OPTS = {}
