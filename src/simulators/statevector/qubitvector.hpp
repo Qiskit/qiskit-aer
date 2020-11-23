@@ -1616,9 +1616,10 @@ double QubitVector<data_t>::norm_diagonal(const uint_t qubit, const cvector_t<do
 template <typename data_t>
 void QubitVector<data_t>::get_amplitude_vector(cvector_t<double> &amplitude_vector, 
 					       const reg_t &base_values) const {
+#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
     for (uint_t i=0; i<base_values.size(); i++)
       amplitude_vector[i] = data_[base_values[i]];
-  }
+}
 
 /*******************************************************************************
  *
