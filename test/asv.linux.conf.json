@@ -43,7 +43,7 @@
         "return-code=any python -mpip uninstall -y {project}"
     ],
     "build_command": [
-        "python -mpip install -U scikit-build cython",
+        "python -mpip install -U scikit-build",
         "pip install git+https://github.com/Qiskit/qiskit-terra",
         "pip install git+https://github.com/Qiskit/qiskit-aqua",
         "pip install pyscf",
