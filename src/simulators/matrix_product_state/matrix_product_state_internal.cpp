@@ -92,7 +92,11 @@ uint_t reorder_qubits(const reg_t qubits, uint_t index);
 //----------------------------------------------------------------	
 template <class T>
 std::vector<T> reverse_all_bits(const std::vector<T>& statevector, uint_t num_qubits);
+
+// with 5 qubits, the number 2 in binary is 00010,
+// when reversed it is 01000, which is the number 8
 uint_t reverse_bits(uint_t num, uint_t len);
+
 std::vector<uint_t> calc_new_indices(const reg_t &indices);
 
 // The following two functions are helper functions used by 
@@ -169,6 +173,8 @@ uint_t reorder_qubits(const reg_t qubits, uint_t index) {
   return new_index;
 }
 
+// with 5 qubits, the number 2 in binary is 00010,
+// when reversed it is 01000, which is the number 8
 uint_t reverse_bits(uint_t num, uint_t len) {
   uint_t sum = 0;
   for (uint_t i=0; i<len; ++i) {
@@ -622,23 +628,6 @@ void MPS::apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat,
   }
 }
 
-// with 5 qubits, the number 2 in binary is 00010,
-// when reversed it is 01000, which is the number 8
-static uint reverse_number(uint num, uint nqubits) {
-  // num in binary
-  std::string str(nqubits, 'x');
-  for (uint k=0; k<nqubits; ++k) {
-    str[nqubits-k-1] = num%2 + '0';
-    num = num/2;
-  }
-
-  // reverse binary
-  reverse(str.begin(), str.end());
-
-  // back to decimal
-  return std::stoi(str, NULL, 2);
-}
-
 void MPS::apply_multi_qubit_gate(const reg_t &qubits,
 				 const cmatrix_t &mat,
 				 bool is_diagonal) {
@@ -648,11 +637,11 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits,
   cmatrix_t new_mat(sidelen, sidelen);
   for (uint i=0; i<sidelen; ++i)
     for (uint j=0; j<sidelen; ++j) {
-      uint new_i = reverse_number(i, nqubits);
+      uint new_i = reverse_bits(i, nqubits);
       if (i==j)
 	new_mat(new_i, new_i) = mat(i, i);
       else {
-	uint new_j = reverse_number(j, nqubits);
+	uint new_j = reverse_bits(j, nqubits);
 	new_mat(new_i, new_j) = mat(i, j);
       }
     }
