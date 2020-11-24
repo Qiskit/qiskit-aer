@@ -18,7 +18,14 @@
 #include <array>
 #include <vector>
 #include <bitset>
+
 #include "misc/common_macros.hpp"
+#if defined(_MSC_VER)
+    #include <intrin.h>
+#elif defined(GNUC_AVX2)
+    #include <cpuid.h>
+#endif
+
 
 namespace {
 inline void ccpuid(int cpu_info[4], int function_id){

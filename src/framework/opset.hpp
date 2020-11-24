@@ -36,24 +36,30 @@ private:
     }
   };
 
-
 public:
   // Alias for set of OpTypes
   using optypeset_t = std::unordered_set<Operations::OpType, EnumClassHash>;
 
   // Public data members
-  optypeset_t optypes;     // A set of op types
-  stringset_t gates;      // A set of names for OpType::gates
-  stringset_t snapshots;  // set of types for OpType::snapshot
+  optypeset_t optypes;   // A set of op types
+  stringset_t gates;     // A set of names for OpType::gates
+  stringset_t snapshots; // set of types for OpType::snapshot
 
   OpSet() = default;
 
-  OpSet(const optypeset_t &_optypes,
-        const stringset_t &_gates,
+  OpSet(const optypeset_t &_optypes, const stringset_t &_gates,
         const stringset_t &_snapshots)
-    : optypes(_optypes), gates(_gates), snapshots(_snapshots) {}
-  
-  OpSet(const std::vector<Op> &ops) { for (const auto &op : ops) {insert(op);} }
+      : optypes(_optypes), gates(_gates), snapshots(_snapshots) {}
+
+  OpSet(optypeset_t &&_optypes, stringset_t &&_gates, stringset_t &&_snapshots)
+      : optypes(std::move(_optypes)), gates(std::move(_gates)),
+        snapshots(std::move(_snapshots)) {}
+
+  OpSet(const std::vector<Op> &ops) {
+    for (const auto &op : ops) {
+      insert(op);
+    }
+  }
 
   //-----------------------------------------------------------------------
   // Insert operations to the OpSet
@@ -64,7 +70,7 @@ public:
 
   // Add additional op to the opset
   void insert(const Op &_op);
-  
+
   //-----------------------------------------------------------------------
   // Check if operations are in the OpSet
   //-----------------------------------------------------------------------
@@ -111,12 +117,16 @@ public:
 
   // Return a set of all gates in a set not contained in the OpSet
   stringset_t difference_gates(const stringset_t &_gates) const;
-  
+
   // Return a set of all snapshots in a set not contained in the OpSet
   stringset_t difference_snapshots(const stringset_t &_snapshots) const;
 
+  // Return the difference between two unordered sets
+  template <typename T1, typename T2>
+  static std::unordered_set<T1, T2>
+  unorderedset_difference(const std::unordered_set<T1, T2> &first,
+                          const std::unordered_set<T1, T2> &second);
 };
-
 
 //------------------------------------------------------------------------------
 // OpSet class methods
@@ -131,18 +141,14 @@ void OpSet::insert(const Op &op) {
 }
 
 void OpSet::insert(const OpSet &opset) {
-  optypes.insert(opset.optypes.begin(),
-                  opset.optypes.end());
-  gates.insert(opset.gates.begin(),
-                opset.gates.end());
-  snapshots.insert(opset.snapshots.begin(),
-                    opset.snapshots.end());
+  optypes.insert(opset.optypes.begin(), opset.optypes.end());
+  gates.insert(opset.gates.begin(), opset.gates.end());
+  snapshots.insert(opset.snapshots.begin(), opset.snapshots.end());
 }
 
 bool OpSet::contains(const OpSet &_opset) const {
-  return (contains(_opset.optypes)
-          && contains_gates(_opset.gates)
-          && contains_snapshots(_opset.snapshots));
+  return (contains(_opset.optypes) && contains_gates(_opset.gates) &&
+          contains_snapshots(_opset.snapshots));
 }
 
 bool OpSet::contains(const Op &_op) const {
@@ -157,7 +163,7 @@ bool OpSet::contains(const Op &_op) const {
 }
 
 bool OpSet::contains(const std::vector<Op> &_ops) const {
-  for (const auto &op: _ops) {
+  for (const auto &op : _ops) {
     if (!contains(op))
       return false;
   }
@@ -165,7 +171,7 @@ bool OpSet::contains(const std::vector<Op> &_ops) const {
 }
 
 bool OpSet::contains(const OpType &_optype) const {
-  return !(optypes.find(_optype) == optypes.end());
+  return optypes.count(_optype) == 1;
 }
 
 bool OpSet::contains(const optypeset_t &_optypes) const {
@@ -177,7 +183,7 @@ bool OpSet::contains(const optypeset_t &_optypes) const {
 }
 
 bool OpSet::contains_gates(const std::string &_gate) const {
-  return !(gates.find(_gate) == gates.end());
+  return gates.count(_gate) == 1;
 }
 
 bool OpSet::contains_gates(const stringset_t &_gates) const {
@@ -189,7 +195,7 @@ bool OpSet::contains_gates(const stringset_t &_gates) const {
 }
 
 bool OpSet::contains_snapshots(const std::string &_snapshot) const {
-  return !(snapshots.find(_snapshot) == snapshots.end());
+  return snapshots.count(_snapshot) == 1;
 }
 
 bool OpSet::contains_snapshots(const stringset_t &_snapshots) const {
@@ -209,34 +215,35 @@ OpSet OpSet::difference(const OpSet &_opset) const {
   OpSet ret;
   ret.optypes = difference(_opset.optypes);
   ret.gates = difference_gates(_opset.gates);
-  ret.snapshots = difference_gates(_opset.snapshots);
+  ret.snapshots = difference_snapshots(_opset.snapshots);
   return ret;
 }
 
 // Return a set of all optypes in set not contained in the OpSet
 OpSet::optypeset_t OpSet::difference(const optypeset_t &_optypes) const {
-  optypeset_t ret;
-  std::set_difference(_optypes.begin(), _optypes.end(),
-                      optypes.begin(), optypes.end(),
-                      std::inserter(ret, ret.begin()));
-  return ret;
+  return unorderedset_difference(optypes, _optypes);
 }
 
 // Return a set of all gates in a set not contained in the OpSet
 stringset_t OpSet::difference_gates(const stringset_t &_gates) const {
-  stringset_t ret;
-  std::set_difference(_gates.begin(), _gates.end(),
-                      gates.begin(), gates.end(),
-                      std::inserter(ret, ret.begin()));
-  return ret;
+  return unorderedset_difference(gates, _gates);
 }
 
 // Return a set of all snapshots in a set not contained in the OpSet
 stringset_t OpSet::difference_snapshots(const stringset_t &_snapshots) const {
-  stringset_t ret;
-  std::set_difference(_snapshots.begin(), _snapshots.end(),
-                      snapshots.begin(), snapshots.end(),
-                      std::inserter(ret, ret.begin()));
+  return unorderedset_difference(snapshots, _snapshots);
+}
+
+template <typename T1, typename T2>
+std::unordered_set<T1, T2>
+OpSet::unorderedset_difference(const std::unordered_set<T1, T2> &first,
+                               const std::unordered_set<T1, T2> &second) {
+  std::unordered_set<T1, T2> ret;
+  for (const auto &item : second) {
+    if (first.count(item) == 0) {
+      ret.insert(item);
+    }
+  }
   return ret;
 }
 
@@ -249,12 +256,12 @@ stringset_t OpSet::difference_snapshots(const stringset_t &_snapshots) const {
 // Ostream overload for opset
 //-------------------------------------------------------------------------
 
-inline std::ostream& operator<<(std::ostream& out,
-                                const AER::Operations::OpSet& opset) {
+inline std::ostream &operator<<(std::ostream &out,
+                                const AER::Operations::OpSet &opset) {
   bool first = true;
   out << "{";
   if (!opset.optypes.empty()) {
-    out << "\"optypes\": " << opset.optypes;
+    out << "\"instructions\": " << opset.optypes;
     first = false;
   }
   if (!opset.gates.empty()) {

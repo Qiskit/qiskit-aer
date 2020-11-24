@@ -407,6 +407,7 @@ Op json_to_op_measure(const json_t &js);
 Op json_to_op_reset(const json_t &js);
 Op json_to_op_bfunc(const json_t &js);
 Op json_to_op_initialize(const json_t &js);
+Op json_to_op_pauli(const json_t &js);
 
 // Snapshots
 Op json_to_op_snapshot(const json_t &js);
@@ -427,7 +428,7 @@ Op json_to_op_roerror(const json_t &js);
 
 // Optional instruction parameters
 enum class Allowed {Yes, No};
-void add_condtional(const Allowed val, Op& op, const json_t &js);
+void add_conditional(const Allowed val, Op& op, const json_t &js);
 
 
 //------------------------------------------------------------------------------
@@ -471,6 +472,8 @@ Op json_to_op(const json_t &js) {
     return json_to_op_kraus(js);
   if (name == "roerror")
     return json_to_op_roerror(js);
+   if (name == "pauli")
+    return json_to_op_pauli(js);
   // Default assume gate
   return json_to_op_gate(js);
 }
@@ -501,7 +504,7 @@ json_t op_to_json(const Op &op) {
 //------------------------------------------------------------------------------
 
 
-void add_condtional(const Allowed allowed, Op& op, const json_t &js) {
+void add_conditional(const Allowed allowed, Op& op, const json_t &js) {
   // Check conditional
   if (JSON::check_key("conditional", js)) {
     // If instruction isn't allow to be conditional throw an exception
@@ -540,7 +543,7 @@ Op json_to_op_gate(const json_t &js) {
     op.string_params = {op.name};
 
   // Conditional
-  add_condtional(Allowed::Yes, op, js);
+  add_conditional(Allowed::Yes, op, js);
 
   // Validation
   check_empty_name(op);
@@ -562,7 +565,7 @@ Op json_to_op_barrier(const json_t &js) {
   op.name = "barrier";
   JSON::get_value(op.qubits, "qubits", js);
   // Check conditional
-  add_condtional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, js);
   return op;
 }
 
@@ -576,7 +579,7 @@ Op json_to_op_measure(const json_t &js) {
   JSON::get_value(op.registers, "register", js);
 
   // Conditional
-  add_condtional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, js);
 
   // Validation
   check_empty_qubits(op);
@@ -598,7 +601,7 @@ Op json_to_op_reset(const json_t &js) {
   JSON::get_value(op.qubits, "qubits", js);
 
   // Conditional
-  add_condtional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, js);
 
   // Validation
   check_empty_qubits(op);
@@ -615,7 +618,7 @@ Op json_to_op_initialize(const json_t &js) {
   JSON::get_value(op.params, "params", js);
 
   // Conditional
-  add_condtional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, js);
 
   // Validation
   check_empty_qubits(op);
@@ -624,6 +627,31 @@ Op json_to_op_initialize(const json_t &js) {
   return op;
 }
 
+Op json_to_op_pauli(const json_t &js){
+  Op op;
+  op.type = OpType::gate;
+  op.name = "pauli";
+  JSON::get_value(op.qubits, "qubits", js);
+  JSON::get_value(op.string_params, "params", js);
+
+  // Check for optional label
+  // If label is not specified record the gate name as the label
+  std::string label;
+  JSON::get_value(label, "label", js);
+  if  (label != "")
+    op.string_params.push_back(label);
+  else
+    op.string_params.push_back(op.name);
+
+  // Conditional
+  add_conditional(Allowed::No, op, js);
+
+  // Validation
+  check_empty_qubits(op);
+  check_duplicate_qubits(op);
+
+  return op;
+}
 
 //------------------------------------------------------------------------------
 // Implementation: Boolean Functions
@@ -670,7 +698,7 @@ Op json_to_op_bfunc(const json_t &js) {
   }
 
   // Conditional
-  add_condtional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, js);
 
   // Validation
   if (op.registers.empty()) {
@@ -689,7 +717,7 @@ Op json_to_op_roerror(const json_t &js) {
   JSON::get_value(op.probs, "probabilities", js); // DEPRECATED: Remove in 0.4
   JSON::get_value(op.probs, "params", js);
   // Conditional
-  add_condtional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, js);
   return op;
 }
 
@@ -720,7 +748,7 @@ Op json_to_op_unitary(const json_t &js) {
   op.string_params.push_back(label);
 
   // Conditional
-  add_condtional(Allowed::Yes, op, js);
+  add_conditional(Allowed::Yes, op, js);
   return op;
 }
 
@@ -749,7 +777,7 @@ Op json_to_op_diagonal(const json_t &js) {
   op.string_params.push_back(label);
 
   // Conditional
-  add_condtional(Allowed::Yes, op, js);
+  add_conditional(Allowed::Yes, op, js);
   return op;
 }
 
@@ -761,7 +789,7 @@ Op json_to_op_superop(const json_t &js) {
   JSON::get_value(op.qubits, "qubits", js);
   JSON::get_value(op.mats, "params", js);
   // Check conditional
-  add_condtional(Allowed::Yes, op, js);
+  add_conditional(Allowed::Yes, op, js);
   // Validation
   check_empty_qubits(op);
   check_duplicate_qubits(op);
@@ -782,7 +810,7 @@ Op json_to_op_multiplexer(const json_t &js) {
   // Construct op
   auto op = make_multiplexer(qubits, mats, label);
   // Conditional
-  add_condtional(Allowed::Yes, op, js);
+  add_conditional(Allowed::Yes, op, js);
   return op;
 }
 
@@ -797,7 +825,7 @@ Op json_to_op_kraus(const json_t &js) {
   check_empty_qubits(op);
   check_duplicate_qubits(op);
   // Conditional
-  add_condtional(Allowed::Yes, op, js);
+  add_conditional(Allowed::Yes, op, js);
   return op;
 }
 
@@ -808,7 +836,7 @@ Op json_to_op_noise_switch(const json_t &js) {
   op.name = "noise_switch";
   JSON::get_value(op.params, "params", js);
   // Conditional
-  add_condtional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, js);
   return op;
 }
 
@@ -827,7 +855,7 @@ Op json_to_op_snapshot(const json_t &js) {
   // Default snapshot: has "type", "label", "qubits"
   auto op = json_to_op_snapshot_default(js);
   // Conditional
-  add_condtional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, js);
   return op;
 }
 

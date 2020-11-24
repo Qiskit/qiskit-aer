@@ -999,6 +999,9 @@ public:
   // If N=3 this implements an optimized Fredkin gate
   void apply_mcswap(const reg_t &qubits);
 
+  void apply_pauli(const reg_t &qubits, const std::string &pauli,
+                   const complex_t &coeff = 1);
+
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
   //-----------------------------------------------------------------------
@@ -1063,7 +1066,8 @@ public:
 
   // Return the expectation value of an N-qubit Pauli matrix.
   // The Pauli is input as a length N string of I,X,Y,Z characters.
-  double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
+  double expval_pauli(const reg_t &qubits, const std::string &pauli,
+                      const complex_t &coeff = 1) const;
 
   //-----------------------------------------------------------------------
   // JSON configuration settings
@@ -1678,7 +1682,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   tid = omp_get_thread_num();
   m_nDev = 1;
 #ifdef AER_THRUST_CUDA
-  cudaGetDeviceCount(&m_nDev);
+  if(cudaGetDeviceCount(&m_nDev) != cudaSuccess) m_nDev = 0;
 #endif
 
   m_iDev = 0;
@@ -4563,6 +4567,31 @@ void QubitVectorThrust<data_t>::DebugDump(void) const
  *
  ******************************************************************************/
 
+template <typename T>
+void add_y_phase(uint_t num_y, T& coeff){
+  // Add overall phase to the input coefficient
+
+  // Compute the overall phase of the operator.
+  // This is (-1j) ** number of Y terms modulo 4
+  switch (num_y & 3) {
+    case 0:
+      // phase = 1
+      break;
+    case 1:
+      // phase = -1j
+      coeff = T(coeff.imag(), -coeff.real());
+      break;
+    case 2:
+      // phase = -1
+      coeff = T(-coeff.real(), -coeff.imag());
+      break;
+    case 3:
+      // phase = 1j
+      coeff = T(-coeff.imag(), coeff.real());
+      break;
+  }
+}
+
 template <typename data_t>
 class expval_pauli_func : public GateFuncBase
 {
@@ -4570,10 +4599,136 @@ protected:
   uint_t x_mask_;
   uint_t z_mask_;
   thrust::complex<data_t> phase_;
+  uint_t nqubits_;
 public:
-  expval_pauli_func(uint_t x,uint_t z,thrust::complex<data_t> p)
+  expval_pauli_func(uint_t x,uint_t z,thrust::complex<data_t> p,int nq)
   {
     x_mask_ = x;
+    z_mask_ = z;
+    phase_ = p;
+    nqubits_ = nq;
+  }
+
+  bool Reduction(void)
+  {
+    return true;
+  }
+
+  __host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
+  {
+    uint_t i,j,localMask,iChunk,iPair,nPair,gid;
+    uint_t idx,ii,mask,t;
+    thrust::complex<data_t>* pV;
+    uint_t* offsets;
+    uint_t* qubits;
+    thrust::complex<data_t> q0;
+    thrust::complex<data_t> q1;
+    thrust::complex<data_t> q0p;
+    thrust::complex<data_t> q1p;
+    double d0,d1,ret = 0.0;
+    struct GateParams<data_t> params;
+
+    i = ExtractIndexFromTuple(iter);
+    params = ExtractParamsFromTuple(iter);
+    pV = params.buf_;
+    offsets = params.offsets_;
+    qubits = params.params_;
+    localMask = params.lmask_;
+    gid = params.gid_;
+
+    i = ExtractIndexFromTuple(iter);
+    params = ExtractParamsFromTuple(iter);
+    pV = params.buf_;
+    offsets = params.offsets_;
+    qubits = params.params_;
+    localMask = params.lmask_;
+    gid = params.gid_;
+
+    idx = 0;
+    ii = i;
+    for(j=0;j<nqubits_;j++){
+      mask = (1ull << qubits[j]) - 1;
+
+      t = ii & mask;
+      idx += t;
+      ii = (ii - t) << 1;
+    }
+    idx += ii;
+
+    nPair = 1ull << (nqubits_ - 1);
+    for(iChunk=0;iChunk<nPair;iChunk++){
+      iPair = iChunk ^ ((1ull << nqubits_) - 1);
+
+      q0 = pV[offsets[iChunk] + idx];
+      q1 = pV[offsets[iPair] + idx];
+
+      q0p = phase_ * q0;
+      q1p = phase_ * q1;
+
+      d0 = q0.real()*q1p.real() + q0.imag()*q1p.imag();
+      d1 = q0p.real()*q1.real() + q0p.imag()*q1.imag();
+
+      if(z_mask_ != 0){
+        uint_t count,gidChunk;
+        gidChunk = gid + idx;
+        for(j=0;j<nqubits_;j++){
+          if(((iChunk >> j) & 1) == 1){
+            gidChunk += (1ull << qubits[j]);
+          }
+        }
+
+        //count bits (__builtin_popcountll can not be used on GPU)
+        count = gidChunk & z_mask_;
+        count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
+        count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
+        count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
+        count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
+        count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
+        count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
+
+        if(count & 1){
+          d0 = -d0;
+        }
+
+        count = (gidChunk ^ x_mask_) & z_mask_;
+        count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
+        count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
+        count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
+        count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
+        count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
+        count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
+
+        if(count & 1){
+          d1 = -d1;
+        }
+      }
+
+      if((localMask >> iChunk) & 1){
+        ret += d0;
+      }
+      if((localMask >> iPair) & 1){
+        ret += d1;
+      }
+    }
+
+    return ret;
+  }
+  const char* Name(void)
+  {
+    return "expval_pauli";
+  }
+};
+
+//special case Z only
+template <typename data_t>
+class expval_pauli_Z_func : public GateFuncBase
+{
+protected:
+  uint_t z_mask_;
+  thrust::complex<data_t> phase_;
+public:
+  expval_pauli_Z_func(uint_t z,thrust::complex<data_t> p)
+  {
     z_mask_ = z;
     phase_ = p;
   }
@@ -4589,59 +4744,61 @@ public:
 
   __host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
   {
-    uint_t i;
+    uint_t i,gid;
     thrust::complex<data_t>* pV;
     thrust::complex<data_t> q0;
-    thrust::complex<data_t> q1;
     double ret = 0.0;
     struct GateParams<data_t> params;
+    uint_t count;
 
     i = ExtractIndexFromTuple(iter);
     params = ExtractParamsFromTuple(iter);
     pV = params.buf_;
+    gid = params.gid_;
 
     q0 = pV[i];
-    q1 = pV[i ^ x_mask_];
-    q1 = q1 * phase_;
-    ret = q0.real()*q1.real() + q0.imag()*q1.imag();
+    q0 = phase_ * q0;
+    ret = q0.real()*q0.real() + q0.imag()*q0.imag();
 
-    if(z_mask_ != 0){
-      uint_t count;
-      //count bits (__builtin_popcountll can not be used on GPU)
-      count = i & z_mask_;
-      count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
-      count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
-      count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
-      count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
-      count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
-      count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
-      if(count & 1)
-        ret = -ret;
+    //count bits (__builtin_popcountll can not be used on GPU)
+    count = (i + gid) & z_mask_;
+    count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
+    count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
+    count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
+    count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
+    count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
+    count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
+
+    if(count & 1){
+      ret = -ret;
     }
+
     return ret;
   }
   const char* Name(void)
   {
-    return "expval_pauli";
+    return "expval_pauli_Z";
   }
 };
 
 template <typename data_t>
 double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
-                                               const std::string &pauli) const 
+                                               const std::string &pauli,
+                                               const complex_t &coeff) const 
 {
-  // Break string up into Z and X
-  // With Y being both Z and X (plus a phase)
   const size_t N = qubits.size();
   uint_t x_mask = 0;
   uint_t z_mask = 0;
   uint_t num_y = 0;
+  reg_t x_qubits;
+
   for (size_t i = 0; i < N; ++i) {
-    const auto bit = BITS[qubits[i]];
+    uint_t bit = 1ull << qubits[i];
     switch (pauli[N - 1 - i]) {
       case 'I':
         break;
       case 'X': {
+        x_qubits.push_back(qubits[i]);
         x_mask += bit;
         break;
       }
@@ -4650,6 +4807,7 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
         break;
       }
       case 'Y': {
+        x_qubits.push_back(qubits[i]);
         x_mask += bit;
         z_mask += bit;
         num_y++;
@@ -4667,25 +4825,246 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
 
   // Compute the overall phase of the operator.
   // This is (-1j) ** number of Y terms modulo 4
-  thrust::complex<data_t> phase(1,0);
-  switch (num_y & 3) {
-    case 0:
-      // phase = 1
-      break;
-    case 1:
-      // phase = -1j
-      phase = thrust::complex<data_t>(0, -1);
-      break;
-    case 2:
-      // phase = -1
-      phase = thrust::complex<data_t>(-1, 0);
-      break;
-    case 3:
-      // phase = 1j
-      phase = thrust::complex<data_t>(0, 1);
-      break;
+  auto phase = thrust::complex<data_t>(coeff);
+  add_y_phase(num_y, phase);
+
+  if(x_mask == 0){
+    return apply_function(expval_pauli_Z_func<data_t>(z_mask, phase),qubits);
   }
-  return apply_function(expval_pauli_func<data_t>(x_mask, z_mask, phase),qubits);
+  else{
+    auto qubits_sorted = x_qubits;
+    std::sort(qubits_sorted.begin(), qubits_sorted.end());
+
+    set_params(qubits_sorted);
+    return apply_function(expval_pauli_func<data_t>(x_mask, z_mask, phase,qubits_sorted.size()),qubits_sorted);
+  }
+}
+
+/*******************************************************************************
+ *
+ * PAULI
+ *
+ ******************************************************************************/
+
+template <typename data_t>
+class multi_pauli_func : public GateFuncBase
+{
+protected:
+  uint_t x_mask_;
+  uint_t z_mask_;
+  thrust::complex<data_t> phase_;
+  uint_t nqubits_;
+public:
+  multi_pauli_func(uint_t x,uint_t z,thrust::complex<data_t> p,int nq)
+  {
+    x_mask_ = x;
+    z_mask_ = z;
+    phase_ = p;
+    nqubits_ = nq;
+  }
+
+  __host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
+  {
+    uint_t i,j,localMask,iChunk,iPair,nPair,gid;
+    uint_t idx,ii,mask,t;
+    thrust::complex<data_t>* pV;
+    uint_t* offsets;
+    uint_t* qubits;
+    thrust::complex<data_t> q0;
+    thrust::complex<data_t> q1;
+    struct GateParams<data_t> params;
+
+    i = ExtractIndexFromTuple(iter);
+    params = ExtractParamsFromTuple(iter);
+    pV = params.buf_;
+    offsets = params.offsets_;
+    qubits = params.params_;
+    localMask = params.lmask_;
+    gid = params.gid_;
+
+    idx = 0;
+    ii = i;
+    for(j=0;j<nqubits_;j++){
+      mask = (1ull << qubits[j]) - 1;
+
+      t = ii & mask;
+      idx += t;
+      ii = (ii - t) << 1;
+    }
+    idx += ii;
+
+    nPair = 1ull << (nqubits_ - 1);
+    for(iChunk=0;iChunk<nPair;iChunk++){
+      iPair = iChunk ^ ((1ull << nqubits_) - 1);
+
+      q0 = pV[offsets[iChunk] + idx];
+      q1 = pV[offsets[iPair] + idx];
+
+      if(z_mask_ != 0){
+        uint_t count,gidChunk;
+        gidChunk = gid + idx;
+        for(j=0;j<nqubits_;j++){
+          if(((iChunk >> j) & 1) == 1){
+            gidChunk += (1ull << qubits[j]);
+          }
+        }
+
+        //count bits (__builtin_popcountll can not be used on GPU)
+        count = gidChunk & z_mask_;
+        count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
+        count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
+        count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
+        count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
+        count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
+        count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
+
+        if(count & 1){
+          q0 = -q0;
+        }
+
+        count = (gidChunk ^ x_mask_) & z_mask_;
+        count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
+        count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
+        count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
+        count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
+        count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
+        count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
+
+        if(count & 1){
+          q1 = -q1;
+        }
+      }
+
+      if((localMask >> iChunk) & 1){
+        pV[offsets[iChunk] + idx] = q1 * phase_;
+      }
+      if((localMask >> iPair) & 1){
+        pV[offsets[iPair] + idx] = q0 * phase_;
+      }
+    }
+
+    return 0.0;
+  }
+  const char* Name(void)
+  {
+    return "multi_pauli";
+  }
+};
+
+//special case Z only
+template <typename data_t>
+class multi_pauli_Z_func : public GateFuncBase
+{
+protected:
+  uint_t z_mask_;
+  thrust::complex<data_t> phase_;
+public:
+  multi_pauli_Z_func(uint_t z,thrust::complex<data_t> p)
+  {
+    z_mask_ = z;
+    phase_ = p;
+  }
+
+  bool IsDiagonal(void)
+  {
+    return true;
+  }
+
+  __host__ __device__ double operator()(const thrust::tuple<uint_t,struct GateParams<data_t>> &iter) const
+  {
+    uint_t i,gid;
+    uint_t count;
+    thrust::complex<data_t>* pV;
+    thrust::complex<data_t> q0;
+    double ret = 0.0;
+    struct GateParams<data_t> params;
+
+    i = ExtractIndexFromTuple(iter);
+    params = ExtractParamsFromTuple(iter);
+    pV = params.buf_;
+    gid = params.gid_;
+
+    q0 = pV[i];
+
+    //count bits (__builtin_popcountll can not be used on GPU)
+    count = (i + gid) & z_mask_;
+    count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
+    count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
+    count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
+    count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
+    count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
+    count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
+
+    if(count & 1){
+      q0 = -q0;
+    }
+    pV[i] = phase_ * q0;
+
+    return 0.0;
+  }
+  const char* Name(void)
+  {
+    return "multi_pauli_Z";
+  }
+};
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::apply_pauli(const reg_t &qubits,
+                                            const std::string &pauli,
+                                            const complex_t &coeff)
+{
+  const size_t N = qubits.size();
+  uint_t x_mask = 0;
+  uint_t z_mask = 0;
+  uint_t num_y = 0;
+  reg_t x_qubits;
+
+  for (size_t i = 0; i < N; ++i) {
+    uint_t bit = 1ull << qubits[i];
+    switch (pauli[N - 1 - i]) {
+      case 'I':
+        break;
+      case 'X': {
+        x_qubits.push_back(qubits[i]);
+        x_mask += bit;
+        break;
+      }
+      case 'Z': {
+        z_mask += bit;
+        break;
+      }
+      case 'Y': {
+        x_qubits.push_back(qubits[i]);
+        x_mask += bit;
+        z_mask += bit;
+        num_y++;
+        break;
+      }
+      default:
+        throw std::invalid_argument("Invalid Pauli \"" + std::to_string(pauli[N - 1 - i]) + "\".");
+    }
+  }
+
+  // Special case for only I Paulis
+  if (x_mask + z_mask == 0) {
+    return;
+  }
+
+  // Compute the overall phase of the operator.
+  // This is (-1j) ** number of Y terms modulo 4
+  auto phase = thrust::complex<data_t>(coeff);
+  add_y_phase(num_y, phase);
+
+  if(x_mask == 0){
+    apply_function(multi_pauli_Z_func<data_t>(z_mask, phase),qubits);
+  }
+  else{
+    auto qubits_sorted = x_qubits;
+    std::sort(qubits_sorted.begin(), qubits_sorted.end());
+
+    set_params(qubits_sorted);
+    apply_function(multi_pauli_func<data_t>(x_mask, z_mask, phase,qubits_sorted.size()),qubits_sorted);
+  }
 }
 
 //------------------------------------------------------------------------------
