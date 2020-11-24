@@ -542,8 +542,21 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     result.metadata["max_memory_mb"] = max_memory_mb_;
 
 #ifdef _OPENMP
-    if (parallel_shots_ > 1 || parallel_state_update_ > 1)
-      omp_set_nested(1);
+    if (parallel_shots_ > 1 || parallel_experiments_ > 1) {
+      #ifdef _WIN32
+        omp_set_nested(1);
+      #else:
+        omp_set_max_active_levels(2);
+      #endif
+      result.metadata["omp_nested"] = true;
+    } else {
+      #ifdef _WIN32
+        omp_set_nested(0);
+      #else
+        omp_set_max_active_levels(1);
+      #endif
+      result.metadata["omp_nested"] = false;
+    }
 #endif
     // then- and else-blocks have intentionally duplication.
     // Nested omp has significant overheads even though a guard condition exists.
