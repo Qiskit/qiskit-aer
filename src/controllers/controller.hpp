@@ -543,18 +543,10 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 
 #ifdef _OPENMP
     if (parallel_shots_ > 1 || parallel_experiments_ > 1) {
-      #ifdef _WIN32
-        omp_set_nested(1);
-      #else:
-        omp_set_max_active_levels(2);
-      #endif
+      omp_set_nested(1);
       result.metadata["omp_nested"] = true;
     } else {
-      #ifdef _WIN32
-        omp_set_nested(0);
-      #else
-        omp_set_max_active_levels(1);
-      #endif
+      omp_set_nested(0);
       result.metadata["omp_nested"] = false;
     }
 #endif
