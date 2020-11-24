@@ -24,10 +24,10 @@ class TestSnapshotAmplitudesExtension(QiskitAerTestCase):
     """SnapshotAmplitudes extension tests"""
 
     @staticmethod
-    def snapshot_circuit_instr(circ_qubits, label, params, qubits):
+    def snapshot_circuit_instr(circ_qubits, label, params):
         """Return QobjInstruction for circuit monkey patch method."""
         circuit = QuantumCircuit(circ_qubits)
-        circuit.snapshot_amplitudes(label, params, list(range(qubits)))
+        circuit.snapshot_amplitudes(label, params)
         qobj = assemble(circuit)
         instr = qobj.experiments[0].instructions[0]
         return instr
@@ -41,7 +41,7 @@ class TestSnapshotAmplitudesExtension(QiskitAerTestCase):
         qubits = 2
         instrs = [
             SnapshotAmplitudes('snap', [0], 1).assemble(),
-            self.snapshot_circuit_instr(qubits, 'snap', [0], qubits)
+            self.snapshot_circuit_instr(qubits, 'snap', [0])
         ]
         for instr in instrs:
             self.assertTrue(hasattr(instr, 'name'))
@@ -52,7 +52,7 @@ class TestSnapshotAmplitudesExtension(QiskitAerTestCase):
         qubits = 2
         instrs = [
             SnapshotAmplitudes('snap', [0], 1).assemble(),
-            self.snapshot_circuit_instr(qubits, 'snap', [0], qubits)
+            self.snapshot_circuit_instr(qubits, 'snap', [0])
         ]
         for instr in instrs:
             self.assertTrue(hasattr(instr, 'snapshot_type'))
@@ -63,24 +63,12 @@ class TestSnapshotAmplitudesExtension(QiskitAerTestCase):
         """Test snapshot instruction has correct label"""
         for label in ['snap0', 'snap1']:
             instrs = [
-                SnapshotAmplitudes(label,[0], 2).assemble(),
-                self.snapshot_circuit_instr(2, label, [0], 2)
+                SnapshotAmplitudes(label,[0]).assemble(),
+                self.snapshot_circuit_instr(2, label, [0])
             ]
             for instr in instrs:
                 self.assertTrue(hasattr(instr, 'label'))
                 self.assertEqual(instr.label, label)
-
-    def test_snapshot_all_qubits(self):
-        """Test snapshot instruction has correct qubits."""
-        for j in range(1, 5):
-            instrs = [
-                SnapshotAmplitudes('snap', list(range(j)), j).assemble(),
-                self.snapshot_circuit_instr(j, 'snap', range(j), j)
-            ]
-            for instr in instrs:
-                self.assertTrue(hasattr(instr, 'qubits'))
-                self.assertEqual(instr.qubits, list(range(j)))
-
 
 if __name__ == '__main__':
     unittest.main()
