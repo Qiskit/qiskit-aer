@@ -24,7 +24,6 @@ from qiskit.tools.parallel import parallel_map, CPU_COUNT
 from .pulse_sim_options import PulseSimOptions
 from .pulse_de_solver import setup_de_solver
 
-# Imports from qutip_extra_lite
 from .pulse_utils import occ_probabilities, write_shots_memory
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
@@ -83,10 +82,10 @@ def run_unitary_experiments(pulse_sim_desc, pulse_de_model, solver_options=None)
 
     solver_options = PulseSimOptions() if solver_options is None else solver_options
 
-    if not pulse_sim_desc.initial_state.isket:
+    if not pulse_sim_desc.initial_state.data.ndim != 1:
         raise Exception("Initial state must be a state vector.")
 
-    y0 = pulse_sim_desc.initial_state.full().ravel()
+    y0 = pulse_sim_desc.initial_state.data.ravel()
 
     # set num_cpus to the value given in settings if none in Options
     if not solver_options.num_cpus:

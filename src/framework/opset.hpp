@@ -215,7 +215,7 @@ OpSet OpSet::difference(const OpSet &_opset) const {
   OpSet ret;
   ret.optypes = difference(_opset.optypes);
   ret.gates = difference_gates(_opset.gates);
-  ret.snapshots = difference_gates(_opset.snapshots);
+  ret.snapshots = difference_snapshots(_opset.snapshots);
   return ret;
 }
 

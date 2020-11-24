@@ -999,7 +999,8 @@ public:
   // If N=3 this implements an optimized Fredkin gate
   void apply_mcswap(const reg_t &qubits);
 
-  void apply_pauli(const reg_t &qubits, const std::string &pauli);
+  void apply_pauli(const reg_t &qubits, const std::string &pauli,
+                   const complex_t &coeff = 1);
 
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
@@ -1065,7 +1066,8 @@ public:
 
   // Return the expectation value of an N-qubit Pauli matrix.
   // The Pauli is input as a length N string of I,X,Y,Z characters.
-  double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
+  double expval_pauli(const reg_t &qubits, const std::string &pauli,
+                      const complex_t &coeff = 1) const;
 
   //-----------------------------------------------------------------------
   // JSON configuration settings
@@ -1680,7 +1682,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   tid = omp_get_thread_num();
   m_nDev = 1;
 #ifdef AER_THRUST_CUDA
-  cudaGetDeviceCount(&m_nDev);
+  if(cudaGetDeviceCount(&m_nDev) != cudaSuccess) m_nDev = 0;
 #endif
 
   m_iDev = 0;
@@ -4565,6 +4567,31 @@ void QubitVectorThrust<data_t>::DebugDump(void) const
  *
  ******************************************************************************/
 
+template <typename T>
+void add_y_phase(uint_t num_y, T& coeff){
+  // Add overall phase to the input coefficient
+
+  // Compute the overall phase of the operator.
+  // This is (-1j) ** number of Y terms modulo 4
+  switch (num_y & 3) {
+    case 0:
+      // phase = 1
+      break;
+    case 1:
+      // phase = -1j
+      coeff = T(coeff.imag(), -coeff.real());
+      break;
+    case 2:
+      // phase = -1
+      coeff = T(-coeff.real(), -coeff.imag());
+      break;
+    case 3:
+      // phase = 1j
+      coeff = T(-coeff.imag(), coeff.real());
+      break;
+  }
+}
+
 template <typename data_t>
 class expval_pauli_func : public GateFuncBase
 {
@@ -4756,7 +4783,8 @@ public:
 
 template <typename data_t>
 double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
-                                               const std::string &pauli) const 
+                                               const std::string &pauli,
+                                               const complex_t &coeff) const 
 {
   const size_t N = qubits.size();
   uint_t x_mask = 0;
@@ -4797,24 +4825,8 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
 
   // Compute the overall phase of the operator.
   // This is (-1j) ** number of Y terms modulo 4
-  thrust::complex<data_t> phase(1,0);
-  switch (num_y & 3) {
-    case 0:
-      // phase = 1
-      break;
-    case 1:
-      // phase = -1j
-      phase = thrust::complex<data_t>(0, -1);
-      break;
-    case 2:
-      // phase = -1
-      phase = thrust::complex<data_t>(-1, 0);
-      break;
-    case 3:
-      // phase = 1j
-      phase = thrust::complex<data_t>(0, 1);
-      break;
-  }
+  auto phase = thrust::complex<data_t>(coeff);
+  add_y_phase(num_y, phase);
 
   if(x_mask == 0){
     return apply_function(expval_pauli_Z_func<data_t>(z_mask, phase),qubits);
@@ -4997,7 +5009,9 @@ public:
 };
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::apply_pauli(const reg_t &qubits, const std::string &pauli)
+void QubitVectorThrust<data_t>::apply_pauli(const reg_t &qubits,
+                                            const std::string &pauli,
+                                            const complex_t &coeff)
 {
   const size_t N = qubits.size();
   uint_t x_mask = 0;
@@ -5038,24 +5052,8 @@ void QubitVectorThrust<data_t>::apply_pauli(const reg_t &qubits, const std::stri
 
   // Compute the overall phase of the operator.
   // This is (-1j) ** number of Y terms modulo 4
-  thrust::complex<data_t> phase(1,0);
-  switch (num_y & 3) {
-    case 0:
-      // phase = 1
-      break;
-    case 1:
-      // phase = -1j
-      phase = thrust::complex<data_t>(0, -1);
-      break;
-    case 2:
-      // phase = -1
-      phase = thrust::complex<data_t>(-1, 0);
-      break;
-    case 3:
-      // phase = 1j
-      phase = thrust::complex<data_t>(0, 1);
-      break;
-  }
+  auto phase = thrust::complex<data_t>(coeff);
+  add_y_phase(num_y, phase);
 
   if(x_mask == 0){
     apply_function(multi_pauli_Z_func<data_t>(z_mask, phase),qubits);

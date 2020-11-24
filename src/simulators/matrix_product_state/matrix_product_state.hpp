@@ -36,6 +36,7 @@
 #include "simulators/state.hpp"
 #include "matrix_product_state_internal.hpp"
 #include "matrix_product_state_internal.cpp"
+#include "framework/linalg/almost_equal.hpp"
 
 
 namespace AER {
@@ -44,13 +45,15 @@ namespace MatrixProductState {
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
   {Operations::OpType::gate, Operations::OpType::measure,
-  Operations::OpType::reset, Operations::OpType::initialize,
-  Operations::OpType::snapshot, Operations::OpType::barrier,
-  Operations::OpType::bfunc, Operations::OpType::roerror,
-  Operations::OpType::matrix, Operations::OpType::kraus},
+   Operations::OpType::reset, Operations::OpType::initialize,
+   Operations::OpType::snapshot, Operations::OpType::barrier,
+   Operations::OpType::bfunc, Operations::OpType::roerror,
+   Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
+   Operations::OpType::kraus},
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
-   "u2", "u3", "u", "U", "CX", "cx",  "cz", "cp", "cu1", "swap", "ccx"},
+   "u2", "u3", "u", "U", "CX", "cx",  "cz", "cp", "cu1", "swap", "ccx",
+   "sx", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx"},
   // Snapshots
   {"statevector", "memory", "register", "probabilities",
     "expectation_value_pauli", "expectation_value_pauli_with_variance",
@@ -140,7 +143,7 @@ public:
   std::vector<reg_t> 
   sample_measure_using_probabilities(const reg_t &qubits,
 				     uint_t shots,
-				     RngEngine &rng) const;
+				     RngEngine &rng);
 
   // Computes sample_measure by copying the MPS to a temporary structure, and
   // applying a measurement on the temporary MPS. This is done for every shot,
@@ -300,6 +303,10 @@ const stringmap_t<Gates> State::gateset_({
   {"sx", Gates::sx},     // Sqrt(X) gate
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
+  {"r", Gates::r},       // R rotation gate
+  {"rx", Gates::rx},     // Pauli-X rotation gate
+  {"ry", Gates::ry},     // Pauli-Y rotation gate
+  {"rz", Gates::rz},     // Pauli-Z rotation gate
   // Waltz Gates
   {"p", Gates::u1},      // zero-X90 pulse waltz gate
   {"u1", Gates::u1},     // zero-X90 pulse waltz gate
@@ -314,6 +321,10 @@ const stringmap_t<Gates> State::gateset_({
   {"cu1", Gates::cu1},   // Controlled-U1 gate
   {"cp", Gates::cu1},    // Controlled-U1 gate
   {"swap", Gates::swap}, // SWAP gate
+  {"rxx", Gates::rxx},   // Pauli-XX rotation gate
+  {"ryy", Gates::ryy},   // Pauli-YY rotation gate
+  {"rzz", Gates::rzz},   // Pauli-ZZ rotation gate
+  {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
   // Three-qubit gates
    {"ccx", Gates::mcx}   // Controlled-CX gate (Toffoli)
 });
@@ -483,6 +494,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
           break;
         case Operations::OpType::matrix:
           apply_matrix(op.qubits, op.mats[0]);
+          break;
+        case Operations::OpType::diagonal_matrix:
+          BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
           break;
         case Operations::OpType::kraus:
           apply_kraus(op.qubits, op.mats, rng);
@@ -679,6 +693,23 @@ void State::apply_gate(const Operations::Op &op) {
     case Gates::tdg:
       qreg_.apply_tdg(op.qubits[0]);
       break;
+    case Gates::r:
+      qreg_.apply_r(op.qubits[0], 
+		    std::real(op.params[0]),
+		    std::real(op.params[1]));
+      break;
+    case Gates::rx:
+      qreg_.apply_rx(op.qubits[0], 
+		     std::real(op.params[0]));
+      break;
+    case Gates::ry:
+      qreg_.apply_ry(op.qubits[0], 
+		     std::real(op.params[0]));
+      break;
+    case Gates::rz:
+      qreg_.apply_rz(op.qubits[0], 
+		     std::real(op.params[0]));
+      break;
     case Gates::swap:
       qreg_.apply_swap(op.qubits[0], op.qubits[1], true);
       break;
@@ -689,6 +720,22 @@ void State::apply_gate(const Operations::Op &op) {
       qreg_.apply_cu1(op.qubits[0], op.qubits[1],
     		      std::real(op.params[0]));
       break;
+    case Gates::rxx:
+      qreg_.apply_rxx(op.qubits[0], op.qubits[1],
+    		      std::real(op.params[0]));
+      break;
+    case Gates::ryy:
+      qreg_.apply_ryy(op.qubits[0], op.qubits[1],
+    		      std::real(op.params[0]));
+      break;
+    case Gates::rzz:
+      qreg_.apply_rzz(op.qubits[0], op.qubits[1],
+    		      std::real(op.params[0]));
+      break;
+    case Gates::rzx:
+      qreg_.apply_rzx(op.qubits[0], op.qubits[1],
+    		      std::real(op.params[0]));
+      break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument(
@@ -696,12 +743,10 @@ void State::apply_gate(const Operations::Op &op) {
   }
 }
 
-  void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
-   if (!qubits.empty() && mat.size() > 0) {
-     qreg_.apply_matrix(qubits, mat);
-     return;
-   }
-  }
+void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
+  if (!qubits.empty() && mat.size() > 0)
+    qreg_.apply_matrix(qubits, mat);
+}
 
 void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
   // Check if diagonal matrix
@@ -715,48 +760,9 @@ void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
 void State::apply_kraus(const reg_t &qubits,
                    const std::vector<cmatrix_t> &kmats,
                    RngEngine &rng) {
-  // Check edge case for empty Kraus set (this shouldn't happen)
-  if (kmats.empty())
-    return; // end function early
-  // Choose a real in [0, 1) to choose the applied kraus operator once
-  // the accumulated probability is greater than r.
-  // We know that the Kraus noise must be normalized
-  // So we only compute probabilities for the first N-1 kraus operators
-  // and infer the probability of the last one from 1 - sum of the previous
-
-  double r = rng.rand(0., 1.);
-  double accum = 0.;
-  bool complete = false;
-
-  cmatrix_t rho = qreg_.density_matrix(qubits);
-
-  cmatrix_t sq_kmat;
-  double p = 0;
-
-  // Loop through N-1 kraus operators
-  for (size_t j=0; j < kmats.size() - 1; j++) {
-    sq_kmat = AER::Utils::dagger(kmats[j]) * kmats[j];
-    // Calculate probability
-    p = real(AER::Utils::trace(rho * sq_kmat));
-    accum += p;
-
-    // check if we need to apply this operator
-    if (accum > r) {
-      // rescale mat so projection is normalized
-      cmatrix_t temp_mat =  kmats[j] * (1 / std::sqrt(p));
-      apply_matrix(qubits, temp_mat);
-      complete = true;
-      break;
-    }
-  }
-  // check if we haven't applied a kraus operator yet
-  if (!complete) {
-    // Compute probability from accumulated
-    double renorm = 1 / std::sqrt(1. - accum);
-    cmatrix_t temp_mat = kmats.back()* renorm;
-    apply_matrix(qubits, temp_mat);
-  }
+  qreg_.apply_kraus(qubits, kmats, rng);
 }
+
 
 //=========================================================================
 // Implementation: Reset and Measurement Sampling
@@ -803,9 +809,9 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   // The parameters used below are based on experimentation.
   // The user can override this by setting the parameter "mps_sample_measure_algorithm"
   uint_t num_qubits = qubits.size();
-
-  if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB || num_qubits < 10)
+  if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB){
     return sample_measure_using_probabilities(qubits, shots, rng);
+  }
   if (MPS::get_sample_measure_alg() == Sample_measure_alg::APPLY_MEASURE ||
       num_qubits >26 )
      return sample_measure_using_apply_measure(qubits, shots, rng);
@@ -816,6 +822,8 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   // Sample_measure_alg::HEURISTIC
   uint_t max_bond_dim = qreg_.get_max_bond_dimensions();
 
+  if (num_qubits <10)
+    return sample_measure_using_probabilities(qubits, shots, rng);
   if (max_bond_dim <= 2) {
     if (shots_dbl < 12.0 * pow(1.85, (num_qubits_dbl-10.0)))
        return sample_measure_using_apply_measure(qubits, shots, rng);
@@ -843,7 +851,7 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
 std::vector<reg_t> State::
 sample_measure_using_probabilities(const reg_t &qubits,
 				   uint_t shots,
-				   RngEngine &rng) const {
+				   RngEngine &rng) {
 
   // Generate flat register for storing
   rvector_t rnds;

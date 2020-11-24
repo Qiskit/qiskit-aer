@@ -24,7 +24,7 @@ from scipy.linalg.blas import get_blas_funcs
 from qiskit.tools.parallel import parallel_map, CPU_COUNT
 from .pulse_sim_options import PulseSimOptions
 from .pulse_de_solver import setup_de_solver
-from .pulse_utils import (cy_expect_psi_csr, occ_probabilities, write_shots_memory, spmv_csr)
+from .pulse_utils import (occ_probabilities, write_shots_memory, spmv, cy_expect_psi)
 
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
@@ -46,10 +46,10 @@ def run_monte_carlo_experiments(pulse_sim_desc, pulse_de_model, solver_options=N
 
     solver_options = PulseSimOptions() if solver_options is None else solver_options
 
-    if not pulse_sim_desc.initial_state.isket:
+    if not pulse_sim_desc.initial_state.data.ndim != 1:
         raise Exception("Initial state must be a state vector.")
 
-    y0 = pulse_sim_desc.initial_state.full().ravel()
+    y0 = pulse_sim_desc.initial_state.data.ravel()
 
     # set num_cpus to the value given in settings if none in Options
     if not solver_options.num_cpus:
@@ -153,6 +153,7 @@ def monte_carlo_evolution(seed,
             if not ODE.successful():
                 raise Exception("Integration step failed!")
             norm2_psi = dznrm2(ODE.y) ** 2
+
             if norm2_psi <= rand_vals[0]:
                 # collapse has occured:
                 # find collapse time to within specified tolerance
@@ -192,21 +193,13 @@ def monte_carlo_evolution(seed,
                 collapse_times.append(ODE.t)
                 # all constant collapse operators.
                 for i in range(n_dp.shape[0]):
-                    n_dp[i] = cy_expect_psi_csr(pulse_de_model.n_ops_data[i],
-                                                pulse_de_model.n_ops_ind[i],
-                                                pulse_de_model.n_ops_ptr[i],
-                                                ODE.y, True)
-
+                    n_dp[i] = cy_expect_psi(pulse_de_model.n_ops_data[i], ODE.y, True)
                 # determine which operator does collapse and store it
                 _p = np.cumsum(n_dp / np.sum(n_dp))
                 j = cinds[_p >= rand_vals[1]][0]
                 collapse_operators.append(j)
 
-                state = spmv_csr(pulse_de_model.c_ops_data[j],
-                                 pulse_de_model.c_ops_ind[j],
-                                 pulse_de_model.c_ops_ptr[j],
-                                 ODE.y)
-
+                state = spmv(pulse_de_model.c_ops_data[j], ODE.y)
                 state /= dznrm2(state)
                 ODE.y = state
                 rand_vals = rng.rand(2)
@@ -214,6 +207,7 @@ def monte_carlo_evolution(seed,
         # after while loop (Do measurement or conditional)
         # ------------------------------------------------
         out_psi = ODE.y / dznrm2(ODE.y)
+
         for aind in range(acq_idx, num_acq):
             if exp['acquire'][aind][0] == stop_time:
                 current_acq = exp['acquire'][aind]
