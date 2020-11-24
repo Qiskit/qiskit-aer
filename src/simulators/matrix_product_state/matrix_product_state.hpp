@@ -610,7 +610,7 @@ void State::snapshot_amplitudes(const Operations::Op &op,
   }
   uint_t num_amplitudes = base_values.size();
   cvector_t amplitude_vector(num_amplitudes);
-  qreg_.get_amplitude_vector(base_values, op.qubits, amplitude_vector);
+  qreg_.get_amplitude_vector(base_values, amplitude_vector);
   result.data.add_pershot_snapshot("amplitudes", op.string_params[0], amplitude_vector);
 }
 

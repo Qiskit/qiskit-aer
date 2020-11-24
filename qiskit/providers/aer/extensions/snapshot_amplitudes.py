@@ -38,16 +38,15 @@ class SnapshotAmplitudes(Snapshot):
             instruction as a barrier and should be set to the number of
             qubits in the circuit.
         """
-        super().__init__(label, snapshot_type='amplitudes', num_qubits=num_qubits, params=params)
+        super().__init__(label, snapshot_type='amplitudes', params=params, num_qubits=num_qubits)
 
 
-def snapshot_amplitudes(self, label, params, qubits):
+def snapshot_amplitudes(self, label, params):
     """Take a snapshot of a subset of the amplitudes of the simulator state.
 
     Args:
         label (str): a snapshot label to report the result.
         params (List[int]): the basis values whose amplitudes to return
-        qubits (list): the qubits whose basis values are specified.
 
     Returns:
         QuantumCircuit: with attached instruction.
@@ -57,10 +56,8 @@ def snapshot_amplitudes(self, label, params, qubits):
 
     Additional Information:
         This snapshot is always performed on all qubits in a circuit.
-        The qubits parameter specifies the qubits for which the basis state is specified.
-        For each of the remaining qubits, we give both states.
     """
-    snapshot_register = Snapshot.define_snapshot_register(self, qubits=qubits)
+    snapshot_register = Snapshot.define_snapshot_register(self)
 
     return self.append(
         SnapshotAmplitudes(label, params, num_qubits=len(snapshot_register)),

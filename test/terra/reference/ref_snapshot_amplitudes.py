@@ -39,7 +39,6 @@ def snapshot_amplitudes_circuits(post_measure=False):
 
     circuits = []
     num_qubits = 3
-    qubits = list(range(num_qubits))
     qr = QuantumRegister(num_qubits)
     cr = ClassicalRegister(num_qubits)
     regs = (qr, cr)
@@ -50,13 +49,13 @@ def snapshot_amplitudes_circuits(post_measure=False):
     circuit = QuantumCircuit(*regs)
     if not post_measure:
         for label, params in snapshot_amplitudes_labels_params().items():
-            circuit.snapshot_amplitudes(label, params, qubits)
+            circuit.snapshot_amplitudes(label, params)
             circuit.snapshot_statevector(label)
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     if post_measure:
         for label, params in snapshot_amplitudes_labels_params().items():
-            circuit.snapshot_amplitudes(label, params, qubits)
+            circuit.snapshot_amplitudes(label, params)
             circuit.snapshot_statevector(label)
 
     circuits.append(circuit)
@@ -66,13 +65,13 @@ def snapshot_amplitudes_circuits(post_measure=False):
     circuit.x(qr)
     if not post_measure:
         for label, params in snapshot_amplitudes_labels_params().items():
-            circuit.snapshot_amplitudes(label, params, qubits)
+            circuit.snapshot_amplitudes(label, params)
             circuit.snapshot_statevector(label)
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     if post_measure:
         for label, params in snapshot_amplitudes_labels_params().items():
-            circuit.snapshot_amplitudes(label, params, qubits)
+            circuit.snapshot_amplitudes(label, params)
             circuit.snapshot_statevector(label)
 
     circuits.append(circuit)
@@ -83,13 +82,13 @@ def snapshot_amplitudes_circuits(post_measure=False):
     circuit.h(2)
     if not post_measure:
         for label, params in snapshot_amplitudes_labels_params().items():
-            circuit.snapshot_amplitudes(label, params, qubits)
+            circuit.snapshot_amplitudes(label, params)
             circuit.snapshot_statevector(label)
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     if post_measure:
         for label, params in snapshot_amplitudes_labels_params().items():
-            circuit.snapshot_amplitudes(label, params, qubits)
+            circuit.snapshot_amplitudes(label, params)
             circuit.snapshot_statevector(label)
 
     circuits.append(circuit)
