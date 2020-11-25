@@ -95,17 +95,32 @@ jobs:
       - name: Compile Standalone Windows
         run: |
           set -e
-          mkdir out; cd out; cmake ..
+          mkdir out; cd out; cmake .. -DBUILD_TESTS=1
           cmake --build . --config Release
         shell: bash
         if: runner.os == 'Windows'
       - name: Compile Standalone
         run: |
           set -e
-          mkdir out; cd out; cmake ..
+          mkdir out; cd out; cmake .. -DBUILD_TESTS=1
           make
         shell: bash
         if: runner.os != 'Windows'
+      - name: Run Unit Tests
+        run: |
+          cd out/bin
+          for test in test*
+          do echo $test
+            if ! ./$test
+            then
+              ERR=1
+            fi
+          done
+          if [ ! -z "$ERR" ]
+          then
+            exit 1
+          fi
+        shell: bash
   sdist:
     name: compile-sdist-python${{ matrix.python-version }}-${{ matrix.platform.os }}
     runs-on: ${{ matrix.platform.os }}
@@ -170,7 +185,7 @@ jobs:
       - name: Build Wheels
         env:
           CIBW_BEFORE_ALL_LINUX: "yum install -y openblas-devel"
-          CIBW_BEFORE_BUILD: "pip install -U Cython virtualenv pybind11"
+          CIBW_BEFORE_BUILD: "pip install -U virtualenv pybind11"
           CIBW_SKIP: "cp27-* cp34-* cp35-* pp*"
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2010"
           CIBW_MANYLINUX_I686_IMAGE: "manylinux2010"
