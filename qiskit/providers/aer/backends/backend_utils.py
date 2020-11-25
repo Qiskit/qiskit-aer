@@ -61,6 +61,7 @@ def available_methods(controller, methods):
     for method in methods:
         qobj = assemble(dummy_circ,
                         optimization_level=0,
+                        shots=1,
                         method=method)
         result = cpp_execute(controller, qobj)
         if result.get('success', False):
