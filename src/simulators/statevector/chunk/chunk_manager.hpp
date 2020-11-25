@@ -43,6 +43,7 @@ protected:
   int idev_buffer_map_;        //device index buffer to be mapped
 
   int iplace_host_;            //chunk container for host memory
+
 public:
   ChunkManager();
 
@@ -106,14 +107,22 @@ ChunkManager<data_t>::ChunkManager()
   num_chunks_ = 0;
   num_qubits_ = 0;
 
+  idev_buffer_map_ = 0;
+
 #ifdef AER_THRUST_CPU
   num_devices_ = 0;
   num_places_ = 1;
 #else
 
 #ifdef AER_THRUST_CUDA
-  cudaGetDeviceCount(&num_devices_);
-  num_places_ = num_devices_;
+  if(cudaGetDeviceCount(&num_devices_) == cudaSuccess){
+    num_places_ = num_devices_;
+  }
+  else{
+    cudaGetLastError();
+    num_devices_ = 1;
+    num_places_ = 1;
+  }
 #else
   num_devices_ = 1;
   num_places_ = 1;
@@ -124,7 +133,6 @@ ChunkManager<data_t>::ChunkManager()
   chunks_.resize(num_places_*2 + 1);
 
   iplace_host_ = num_places_ ;
-
 }
 
 template <typename data_t>
@@ -134,7 +142,6 @@ ChunkManager<data_t>::~ChunkManager()
 
   chunks_.clear();
 }
-
 
 template <typename data_t>
 uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
@@ -150,24 +157,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
   uint_t num_checkpoint,total_checkpoint = 0;
   bool multi_shot = false;
 
-  nid = omp_get_num_threads();
-  tid = omp_get_thread_num();
-
-  //free previous allocation
-#pragma omp barrier
-  if(tid == 0){
-    Free();
-
-    num_qubits_ = nqubits;
-    chunk_bits_ = chunk_bits;
-
-    i_dev_map_ = 0;
-    idev_buffer_map_ = 0;
-
-    num_chunks_ = 0;
-  }
-#pragma omp barrier
-
+  //--- for test
   str = getenv("AER_MULTI_GPU");
   if(str){
     multi_gpu = true;
@@ -177,105 +167,106 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
   if(str){
     hybrid = true;
   }
+  //---
 
+  nid = omp_get_num_threads();
+  tid = omp_get_thread_num();
 
-  if(chunk_bits == nqubits){
-    if(nchunks > 1 || nid > 1){  //multi-shot parallelization
-      //accumulate number of chunks
-#ifdef _MSC_VER
-#pragma omp atomic
-#else
-#pragma omp atomic update
-#endif
-      num_chunks_ += nchunks;
+#pragma omp critical
+  {
+    if(num_qubits_ != nqubits || chunk_bits_ != chunk_bits || nchunks*nid > num_chunks_){
+      //free previous allocation
+      Free();
+      num_qubits_ = nqubits;
+      chunk_bits_ = chunk_bits;
 
-      num_buffers = 0;
-      multi_shot = true;
+      num_chunks_ = 0;
+
+      if(chunk_bits == nqubits){
+        if(nchunks > 1 || nid > 1){  //multi-shot parallelization
+          //accumulate number of chunks
+          num_chunks_ = nid*nchunks;
+
+          num_buffers = 0;
+          multi_shot = true;
 
 #ifdef AER_THRUST_CPU
-      multi_gpu = false;
-      if(tid == 0){
-        num_places_ = 1;
-      }
+          multi_gpu = false;
+          num_places_ = 1;
 #else
-      multi_gpu = true;
-      if(tid == 0){
+          multi_gpu = true;
+          num_places_ = num_devices_;
+#endif
+        }
+        else{    //single chunk
+          num_buffers = 0;
+          multi_gpu = false;
+          num_places_ = 1;
+          num_chunks_ = nchunks;
+        }
+      }
+      else{   //multiple-chunk parallelization
+        num_buffers = AER_MAX_BUFFERS;
+
+#ifdef AER_THRUST_CUDA
         num_places_ = num_devices_;
-      }
-#endif
-#pragma omp barrier
-
-    }
-    else{    //single chunk
-      num_buffers = 0;
-      multi_gpu = false;
-      num_places_ = 1;
-      num_chunks_ = nchunks;
-    }
-  }
-  else{   //multiple-chunk parallelization
-    num_buffers = AER_MAX_BUFFERS;
-
-#ifdef AER_THRUST_CUDA
-    num_places_ = num_devices_;
-    if(!multi_gpu){
-      size_t freeMem,totalMem;
-      cudaSetDevice(0);
-      cudaMemGetInfo(&freeMem,&totalMem);
-      if(freeMem > ( ((uint_t)sizeof(thrust::complex<data_t>) * (nchunks + num_buffers + AER_DUMMY_BUFFERS)) << chunk_bits_)){
-        num_places_ = 1;
-      }
-    }
+        if(!multi_gpu){
+          size_t freeMem,totalMem;
+          cudaSetDevice(0);
+          cudaMemGetInfo(&freeMem,&totalMem);
+          if(freeMem > ( ((uint_t)sizeof(thrust::complex<data_t>) * (nchunks + num_buffers + AER_DUMMY_BUFFERS)) << chunk_bits_)){
+            num_places_ = 1;
+          }
+        }
 #else
-    num_places_ = 1;
+        num_places_ = 1;
 #endif
-    num_chunks_ = nchunks;
-  }
-
-  if(tid == 0){
-    nchunks = num_chunks_;
-    num_chunks_ = 0;
-    for(iDev=0;iDev<num_places_;iDev++){
-      is = nchunks * (uint_t)iDev / (uint_t)num_places_;
-      ie = nchunks * (uint_t)(iDev + 1) / (uint_t)num_places_;
-      nc = ie - is;
-      if(hybrid){
-        nc /= 2;
+        num_chunks_ = nchunks;
       }
 
-      num_checkpoint = nc;
-      chunks_[iDev] = new DeviceChunkContainer<data_t>;
+      nchunks = num_chunks_;
+      num_chunks_ = 0;
+      for(iDev=0;iDev<num_places_;iDev++){
+        is = nchunks * (uint_t)iDev / (uint_t)num_places_;
+        ie = nchunks * (uint_t)(iDev + 1) / (uint_t)num_places_;
+        nc = ie - is;
+        if(hybrid){
+          nc /= 2;
+        }
+
+        num_checkpoint = nc;
+        chunks_[iDev] = new DeviceChunkContainer<data_t>;
 
 #ifdef AER_THRUST_CUDA
-      size_t freeMem,totalMem;
-      cudaSetDevice(iDev);
-      cudaMemGetInfo(&freeMem,&totalMem);
-      if(freeMem <= ( ((uint_t)sizeof(thrust::complex<data_t>) * (nc + num_buffers + num_checkpoint)) << chunk_bits_)){
-        num_checkpoint = 0;
-      }
+        size_t freeMem,totalMem;
+        cudaSetDevice(iDev);
+        cudaMemGetInfo(&freeMem,&totalMem);
+        if(freeMem <= ( ((uint_t)sizeof(thrust::complex<data_t>) * (nc + num_buffers + num_checkpoint)) << chunk_bits_)){
+          num_checkpoint = 0;
+        }
 #endif
 
-      total_checkpoint += num_checkpoint;
-      num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nc,num_buffers,num_checkpoint);
-    }
-    if(num_chunks_ < nchunks){
-      for(iDev=0;iDev<num_places_;iDev++){
-        chunks_[num_places_ + iDev] = new HostChunkContainer<data_t>;
-        is = (nchunks-num_chunks_) * (uint_t)iDev / (uint_t)num_places_;
-        ie = (nchunks-num_chunks_) * (uint_t)(iDev + 1) / (uint_t)num_places_;
-
-        chunks_[num_places_ + iDev]->Allocate(-1,chunk_bits,ie-is,AER_MAX_BUFFERS);
+        total_checkpoint += num_checkpoint;
+        num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nc,num_buffers,num_checkpoint);
       }
-      num_places_ *= 2;
-      num_chunks_ = nchunks;
-    }
+      if(num_chunks_ < nchunks){
+        for(iDev=0;iDev<num_places_;iDev++){
+          chunks_[num_places_ + iDev] = new HostChunkContainer<data_t>;
+          is = (nchunks-num_chunks_) * (uint_t)iDev / (uint_t)num_places_;
+          ie = (nchunks-num_chunks_) * (uint_t)(iDev + 1) / (uint_t)num_places_;
 
-    //additional host buffer
-    iplace_host_ = num_places_;
-    chunks_[iplace_host_] = new HostChunkContainer<data_t>;
-    chunks_[iplace_host_]->Allocate(-1,chunk_bits,0,AER_MAX_BUFFERS);
+          chunks_[num_places_ + iDev]->Allocate(-1,chunk_bits,ie-is,AER_MAX_BUFFERS);
+        }
+        num_places_ *= 2;
+        num_chunks_ = nchunks;
+      }
+
+      //additional host buffer
+      iplace_host_ = num_places_;
+      chunks_[iplace_host_] = new HostChunkContainer<data_t>;
+      chunks_[iplace_host_]->Allocate(-1,chunk_bits,0,AER_MAX_BUFFERS);
+    }
   }
-#pragma omp barrier
 
   return num_chunks_;
 }
@@ -294,6 +285,8 @@ void ChunkManager<data_t>::Free(void)
   chunk_bits_ = 0;
   num_qubits_ = 0;
   num_chunks_ = 0;
+
+  idev_buffer_map_ = 0;
 }
 
 template <typename data_t>
@@ -381,15 +374,15 @@ void ChunkManager<data_t>::UnmapChunk(Chunk<data_t>* chunk)
 {
   int iPlace = chunk->place();
 
-#pragma omp barrier
-
 #pragma omp critical
   {
     chunks_[iPlace]->UnmapChunk(chunk);
+    /*
     if(chunks_[iPlace]->num_chunk_mapped() == 0){   //last one
       delete chunks_[iPlace];
       chunks_[iPlace] = NULL;
     }
+    */
   }
 }
 

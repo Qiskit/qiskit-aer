@@ -955,9 +955,7 @@ void State<statevec_t>::snapshot_pauli_expval(int_t iChunk, const Operations::Op
 
 #ifdef AER_MPI
   if(iChunk < 0){
-    complex_t sum;
-    MPI_Allreduce(&expval,&sum,2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
-    expval = sum;
+    BaseState::reduce_sum(expval);
   }
 #endif
 
@@ -1075,9 +1073,7 @@ void State<statevec_t>::snapshot_matrix_expval(int_t iChunk, const Operations::O
 
 #ifdef AER_MPI
   if(iChunk < 0){
-    complex_t sum;
-    MPI_Allreduce(&expval,&sum,2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
-    expval = sum;
+    BaseState::reduce_sum(expval);
   }
 #endif
 

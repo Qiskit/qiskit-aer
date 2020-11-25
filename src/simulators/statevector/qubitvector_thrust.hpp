@@ -888,13 +888,6 @@ size_t QubitVectorThrust<data_t>::required_memory_mb(uint_t num_qubits) const {
   size_t shift_mb = std::max<int_t>(0, num_qubits + unit - 20);
   size_t mem_mb = 1ULL << shift_mb;
 
-  int np = 1;
-#ifdef AER_MPI
-  MPI_Comm_size(MPI_COMM_WORLD,&np);
-#endif
-
-  mem_mb /= np;
-
   return mem_mb;
 }
 

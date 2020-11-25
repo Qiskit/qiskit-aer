@@ -232,6 +232,10 @@ public:
 
   // Set a complex global phase value exp(1j * theta) for the state
   void set_global_phase(const double &phase);
+
+  //set number of processes to be distributed
+  void set_distribution(uint_t nprocs);
+
 protected:
 
   // The quantum state data structure
@@ -262,6 +266,9 @@ protected:
 
   uint_t myrank_;               //process ID
   uint_t nprocs_;               //number of processes
+  uint_t distributed_rank_;     //process ID in communicator group
+  uint_t distributed_procs_;    //number of processes in communicator group
+  uint_t distributed_group_;    //group id of distribution
 
   bool chunk_omp_parallel_;     //using thread parallel to process loop of chunks or not
 
@@ -291,6 +298,12 @@ protected:
   // Set a global phase exp(1j * theta) for the state
   bool has_global_phase_ = false;
   complex_t global_phase_ = 1;
+
+#ifdef AER_MPI
+  //communicator group to simulate a circuit (for multi-experiments)
+  MPI_Comm distributed_comm_;
+#endif
+
 };
 
 template <class state_t>
@@ -302,10 +315,18 @@ StateChunk<state_t>::StateChunk(const Operations::OpSet &opset) : opset_(opset)
   myrank_ = 0;
   nprocs_ = 1;
 
+  distributed_procs_ = 1;
+  distributed_rank_ = 0;
+  distributed_group_ = 0;
+
   chunk_omp_parallel_ = false;
   multi_shot_parallelization_ = false;
 
   num_shots_ = 1;
+
+#ifdef AER_MPI
+  distributed_comm_ = MPI_COMM_WORLD;
+#endif
 }
 
 template <class state_t>
@@ -316,6 +337,12 @@ StateChunk<state_t>::~StateChunk(void)
 
   chunk_index_begin_.clear();
   chunk_index_end_.clear();
+
+#ifdef AER_MPI
+  if(distributed_comm_ != MPI_COMM_WORLD){
+    MPI_Comm_free(&distributed_comm_);
+  }
+#endif
 }
 
 //=========================================================================
@@ -333,12 +360,10 @@ void StateChunk<state_t>::set_global_phase(const double &phase_angle) {
   }
 }
 
-template <class state_t>
-void StateChunk<state_t>::setup_chunk_bits(uint_t num_qubits,int scale)
-{
-  int max_bits = num_qubits;
-  uint_t i;
 
+template <class state_t>
+void StateChunk<state_t>::set_distribution(uint_t nprocs)
+{
   myrank_ = 0;
   nprocs_ = 1;
 #ifdef AER_MPI
@@ -348,6 +373,27 @@ void StateChunk<state_t>::setup_chunk_bits(uint_t num_qubits,int scale)
   MPI_Comm_rank(MPI_COMM_WORLD,&t);
   myrank_ = t;
 #endif
+
+  distributed_procs_ = nprocs;
+  distributed_rank_ = myrank_ % nprocs;
+  distributed_group_ = myrank_ / nprocs;
+
+#ifdef AER_MPI
+  if(nprocs != nprocs_){
+    MPI_Comm_split(MPI_COMM_WORLD,(int)distributed_group_,(int)distributed_rank_,&distributed_comm_);
+  }
+  else{
+    distributed_comm_ = MPI_COMM_WORLD;
+  }
+#endif
+
+}
+
+template <class state_t>
+void StateChunk<state_t>::setup_chunk_bits(uint_t num_qubits,int scale)
+{
+  int max_bits = num_qubits;
+  uint_t i;
 
   num_qubits_ = num_qubits;
 
@@ -371,15 +417,15 @@ void StateChunk<state_t>::setup_chunk_bits(uint_t num_qubits,int scale)
   num_global_chunks_ = num_shots_ << (num_qubits_ - chunk_bits_);
 
 
-  chunk_index_begin_.resize(nprocs_);
-  chunk_index_end_.resize(nprocs_);
-  for(i=0;i<nprocs_;i++){
-    chunk_index_begin_[i] = num_global_chunks_*i / nprocs_;
-    chunk_index_end_[i] = num_global_chunks_*(i+1) / nprocs_;
+  chunk_index_begin_.resize(distributed_procs_);
+  chunk_index_end_.resize(distributed_procs_);
+  for(i=0;i<distributed_procs_;i++){
+    chunk_index_begin_[i] = num_global_chunks_*i / distributed_procs_;
+    chunk_index_end_[i] = num_global_chunks_*(i+1) / distributed_procs_;
   }
 
-  num_local_chunks_ = chunk_index_end_[myrank_] - chunk_index_begin_[myrank_];
-  global_chunk_index_ = chunk_index_begin_[myrank_];
+  num_local_chunks_ = chunk_index_end_[distributed_rank_] - chunk_index_begin_[distributed_rank_];
+  global_chunk_index_ = chunk_index_begin_[distributed_rank_];
 
   if(num_shots_ > 1){
     num_shots_ = num_local_chunks_;
@@ -393,12 +439,12 @@ template <class state_t>
 uint_t StateChunk<state_t>::get_process_by_chunk(uint_t cid)
 {
   uint_t i;
-  for(i=0;i<nprocs_;i++){
+  for(i=0;i<distributed_procs_;i++){
     if(cid >= chunk_index_begin_[i] && cid < chunk_index_end_[i]){
       return i;
     }
   }
-  return nprocs_;
+  return distributed_procs_;
 }
 
 template <class state_t>
@@ -562,7 +608,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
     mask1 >>= chunk_bits_;
 
     int proc_bits = 0;
-    uint_t procs = nprocs_;
+    uint_t procs = distributed_procs_;
     while(procs > 1){
       if((procs & 1) != 0){
         proc_bits = -1;
@@ -572,7 +618,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
       procs >>= 1;
     }
 
-    if(nprocs_ == 1 || (proc_bits >= 0 && q1 < (num_qubits_ - proc_bits))){   //no data transfer between processes is needed
+    if(distributed_procs_ == 1 || (proc_bits >= 0 && q1 < (num_qubits_ - proc_bits))){   //no data transfer between processes is needed
       if(q0 < chunk_bits_){
         nPair = num_local_chunks_ >> 1;
       }
@@ -655,8 +701,8 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
         iChunk1 = baseChunk | mask0;
         iChunk2 = baseChunk | mask1;
 
-        if(iChunk1 >= chunk_index_begin_[myrank_] && iChunk1 < chunk_index_end_[myrank_]){    //chunk1 is on this process
-          if(iChunk2 >= chunk_index_begin_[myrank_] && iChunk2 < chunk_index_end_[myrank_]){    //chunk2 is on this process
+        if(iChunk1 >= chunk_index_begin_[distributed_rank_] && iChunk1 < chunk_index_end_[distributed_rank_]){    //chunk1 is on this process
+          if(iChunk2 >= chunk_index_begin_[distributed_rank_] && iChunk2 < chunk_index_end_[distributed_rank_]){    //chunk2 is on this process
             qregs_[iChunk1 - global_chunk_index_].apply_chunk_swap(qubits,qregs_[iChunk2 - global_chunk_index_],true);
             continue;
           }
@@ -667,7 +713,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
           }
         }
         else{
-          if(iChunk2 >= chunk_index_begin_[myrank_] && iChunk2 < chunk_index_end_[myrank_]){    //chunk2 is on this process
+          if(iChunk2 >= chunk_index_begin_[distributed_rank_] && iChunk2 < chunk_index_end_[distributed_rank_]){    //chunk2 is on this process
             iLocalChunk = iChunk2;
             iRemoteChunk = iChunk1;
             iProc = get_process_by_chunk(iChunk1);
@@ -682,15 +728,15 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
         uint_t sizeRecv,sizeSend;
 
         void* pSend = qregs_[iLocalChunk - global_chunk_index_].send_buffer(sizeSend);
-        MPI_Isend(pSend,sizeSend,MPI_BYTE,iProc,iPair,MPI_COMM_WORLD,&reqSend);
+        MPI_Isend(pSend,sizeSend,MPI_BYTE,iProc,iPair,distributed_comm_,&reqSend);
 
         void* pRecv = qregs_[iLocalChunk - global_chunk_index_].recv_buffer(sizeRecv);
-        MPI_Irecv(pRecv,sizeRecv,MPI_BYTE,iProc,iPair,MPI_COMM_WORLD,&reqRecv);
+        MPI_Irecv(pRecv,sizeRecv,MPI_BYTE,iProc,iPair,distributed_comm_,&reqRecv);
 
         MPI_Wait(&reqSend,&st);
         MPI_Wait(&reqRecv,&st);
         //MPI_Sendrecv can be used if number of processes = 2^m
-        //MPI_Sendrecv(pSend,sizeSend,MPI_BYTE,iProc,myrank_,pRecv,sizeRecv,MPI_BYTE,iProc,iProc,MPI_COMM_WORLD,&st);
+        //MPI_Sendrecv(pSend,sizeSend,MPI_BYTE,iProc,distributed_rank_,pRecv,sizeRecv,MPI_BYTE,iProc,iProc,MPI_COMM_WORLD,&st);
 
         qregs_[iLocalChunk - global_chunk_index_].apply_chunk_swap(qubits,iRemoteChunk);
       }
@@ -704,11 +750,13 @@ template <class state_t>
 void StateChunk<state_t>::reduce_sum(rvector_t& sum) const
 {
 #ifdef AER_MPI
-  uint_t i,n = sum.size();
-  rvector_t tmp(n);
-  MPI_Allreduce(&sum[0],&tmp[0],n,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
-  for(i=0;i<n;i++){
-    sum[i] = tmp[i];
+  if(distributed_procs_ > 1){
+    uint_t i,n = sum.size();
+    rvector_t tmp(n);
+    MPI_Allreduce(&sum[0],&tmp[0],n,MPI_DOUBLE_PRECISION,MPI_SUM,distributed_comm_);
+    for(i=0;i<n;i++){
+      sum[i] = tmp[i];
+    }
   }
 #endif
 }
@@ -717,9 +765,11 @@ template <class state_t>
 void StateChunk<state_t>::reduce_sum(complex_t& sum) const
 {
 #ifdef AER_MPI
-  complex_t tmp;
-  MPI_Allreduce(&sum,&tmp,2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
-  sum = tmp;
+  if(distributed_procs_ > 1){
+    complex_t tmp;
+    MPI_Allreduce(&sum,&tmp,2,MPI_DOUBLE_PRECISION,MPI_SUM,distributed_comm_);
+    sum = tmp;
+  }
 #endif
 }
 
@@ -727,9 +777,11 @@ template <class state_t>
 void StateChunk<state_t>::reduce_sum(double& sum) const
 {
 #ifdef AER_MPI
-  double tmp;
-  MPI_Allreduce(&sum,&tmp,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD);
-  sum = tmp;
+  if(distributed_procs_ > 1){
+    double tmp;
+    MPI_Allreduce(&sum,&tmp,1,MPI_DOUBLE_PRECISION,MPI_SUM,distributed_comm_);
+    sum = tmp;
+  }
 #endif
 }
 
@@ -737,7 +789,9 @@ template <class state_t>
 void StateChunk<state_t>::gather_value(rvector_t& val) const
 {
 #ifdef AER_MPI
-  MPI_Alltoall(&val[0],1,MPI_DOUBLE_PRECISION,&val[0],1,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD);
+  if(distributed_procs_ > 1){
+    MPI_Alltoall(&val[0],1,MPI_DOUBLE_PRECISION,&val[0],1,MPI_DOUBLE_PRECISION,distributed_comm_);
+  }
 #endif
 }
 
@@ -745,7 +799,9 @@ template <class state_t>
 void StateChunk<state_t>::sync_process(void) const
 {
 #ifdef AER_MPI
-  MPI_Barrier(MPI_COMM_WORLD);
+  if(distributed_procs_ > 1){
+    MPI_Barrier(distributed_comm_);
+  }
 #endif
 }
 
@@ -754,35 +810,36 @@ template <class state_t>
 void StateChunk<state_t>::gather_state(std::vector<std::complex<double>>& state)
 {
 #ifdef AER_MPI
-  uint_t size,local_size,global_size,offset;
-  int i;
-  MPI_Status st;
-  MPI_Request reqSend,reqRecv;
+  if(distributed_procs_ > 1){
+    uint_t size,local_size,global_size,offset;
+    int i;
+    MPI_Status st;
+    MPI_Request reqSend,reqRecv;
 
-  local_size = state.size();
-  MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
+    local_size = state.size();
+    MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,distributed_comm_);
 
-  //TO DO check memory availability
+    //TO DO check memory availability
 
-  if(myrank_ == 0){
-    state.resize(global_size);
+    if(distributed_rank_ == 0){
+      state.resize(global_size);
 
-    offset = 0;
-    for(i=1;i<nprocs_;i++){
-      MPI_Irecv(&size,1,MPI_UINT64_T,i,i*2,MPI_COMM_WORLD,&reqRecv);
-      MPI_Wait(&reqRecv,&st);
-      MPI_Irecv(&state[offset],size*2,MPI_DOUBLE_PRECISION,i,i*2+1,MPI_COMM_WORLD,&reqRecv);
-      MPI_Wait(&reqRecv,&st);
-      offset += size;
+      offset = 0;
+      for(i=1;i<distributed_procs_;i++){
+        MPI_Irecv(&size,1,MPI_UINT64_T,i,i*2,distributed_comm_,&reqRecv);
+        MPI_Wait(&reqRecv,&st);
+        MPI_Irecv(&state[offset],size*2,MPI_DOUBLE_PRECISION,i,i*2+1,distributed_comm_,&reqRecv);
+        MPI_Wait(&reqRecv,&st);
+        offset += size;
+      }
+    }
+    else{
+      MPI_Isend(&local_size,1,MPI_UINT64_T,0,i*2,distributed_comm_,&reqSend);
+      MPI_Wait(&reqSend,&st);
+      MPI_Isend(&state[0],local_size*2,MPI_DOUBLE_PRECISION,0,i*2+1,distributed_comm_,&reqSend);
+      MPI_Wait(&reqSend,&st);
     }
   }
-  else{
-    MPI_Isend(&local_size,1,MPI_UINT64_T,0,i*2,MPI_COMM_WORLD,&reqSend);
-    MPI_Wait(&reqSend,&st);
-    MPI_Isend(&state[0],local_size*2,MPI_DOUBLE_PRECISION,0,i*2+1,MPI_COMM_WORLD,&reqSend);
-    MPI_Wait(&reqSend,&st);
-  }
-
 #endif
 }
 
@@ -790,35 +847,36 @@ template <class state_t>
 void StateChunk<state_t>::gather_state(std::vector<std::complex<float>>& state)
 {
 #ifdef AER_MPI
-  uint_t size,local_size,global_size,offset;
-  int i;
-  MPI_Status st;
-  MPI_Request reqSend,reqRecv;
+  if(distributed_procs_ > 1){
+    uint_t size,local_size,global_size,offset;
+    int i;
+    MPI_Status st;
+    MPI_Request reqSend,reqRecv;
 
-  local_size = state.size();
-  MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
+    local_size = state.size();
+    MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,distributed_comm_);
 
-  //TO DO check memory availability
+    //TO DO check memory availability
 
-  if(myrank_ == 0){
-    state.resize(global_size);
+    if(distributed_rank_ == 0){
+      state.resize(global_size);
 
-    offset = 0;
-    for(i=1;i<nprocs_;i++){
-      MPI_Irecv(&size,1,MPI_UINT64_T,i,i*2,MPI_COMM_WORLD,&reqRecv);
-      MPI_Wait(&reqRecv,&st);
-      MPI_Irecv(&state[offset],size*2,MPI_FLOAT,i,i*2+1,MPI_COMM_WORLD,&reqRecv);
-      MPI_Wait(&reqRecv,&st);
-      offset += size;
+      offset = 0;
+      for(i=1;i<distributed_procs_;i++){
+        MPI_Irecv(&size,1,MPI_UINT64_T,i,i*2,distributed_comm_,&reqRecv);
+        MPI_Wait(&reqRecv,&st);
+        MPI_Irecv(&state[offset],size*2,MPI_FLOAT,i,i*2+1,distributed_comm_,&reqRecv);
+        MPI_Wait(&reqRecv,&st);
+        offset += size;
+      }
+    }
+    else{
+      MPI_Isend(&local_size,1,MPI_UINT64_T,0,i*2,distributed_comm_,&reqSend);
+      MPI_Wait(&reqSend,&st);
+      MPI_Isend(&state[0],local_size*2,MPI_FLOAT,0,i*2+1,distributed_comm_,&reqSend);
+      MPI_Wait(&reqSend,&st);
     }
   }
-  else{
-    MPI_Isend(&local_size,1,MPI_UINT64_T,0,i*2,MPI_COMM_WORLD,&reqSend);
-    MPI_Wait(&reqSend,&st);
-    MPI_Isend(&state[0],local_size*2,MPI_FLOAT,0,i*2+1,MPI_COMM_WORLD,&reqSend);
-    MPI_Wait(&reqSend,&st);
-  }
-
 #endif
 }
 

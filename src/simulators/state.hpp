@@ -228,6 +228,9 @@ public:
   // Set a complex global phase value exp(1j * theta) for the state
   void set_global_phase(const double &phase);
 
+  //set number of processes to be distributed
+  void set_distribution(uint_t nprocs){}
+
 protected:
 
   // The quantum state data structure

@@ -317,7 +317,8 @@ void StatevectorController::run_circuit(
 template <class State_t>
 void StatevectorController::run_circuit_helper(
     const Circuit& circ, const Noise::NoiseModel& noise, const json_t& config,
-    uint_t shots, uint_t rng_seed, ExperimentResult &result) const {
+    uint_t shots, uint_t rng_seed, ExperimentResult &result) const 
+{
   // Initialize  state
   State_t state;
 
@@ -341,6 +342,7 @@ void StatevectorController::run_circuit_helper(
   // Set config
   state.set_config(config);
   state.set_parallalization(parallel_state_update_);
+  state.set_distribution(Base::Controller::num_process_per_experiment_);
   state.set_global_phase(circ.global_phase_angle);
 
   // Rng engine
@@ -368,7 +370,7 @@ void StatevectorController::run_circuit_helper(
   }
 
   // Run single shot collecting measure data or snapshots
-  state.allocate(circ.num_qubits, 1);
+  state.allocate(BaseState::max_qubits_, 1);
 
   if (initial_state_.empty()) {
     state.initialize_qreg(circ.num_qubits);

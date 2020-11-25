@@ -100,8 +100,8 @@ int main(int argc, char **argv) {
 #ifdef AER_MPI
   int prov;
   MPI_Init_thread(&argc,&argv,MPI_THREAD_MULTIPLE,&prov);
-	MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
-	MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+  MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
+  MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
 #endif
 
   if(argc == 1){ // NOLINT
