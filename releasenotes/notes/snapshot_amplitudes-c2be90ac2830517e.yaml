@@ -2,28 +2,28 @@
 
 features:
   - |
-    Added a new snapshot: snapshot_amplitudes. The user can request a subset of
+    Added a new snapshot: `snapshot_amplitudes`. See PR #1034. 
+    The user can request a subset of
     the amplitudes appearing in the full statevector. The user provides as input
     the base values, as an array of hexa or integers. This instruction outputs
     the corresponding array of amplitudes, in the same order as the given base values.
     This snapshot is supported in simulation methods: `statevector` and `matrix_product_state`.
     Usage example:
-    ``
-    n = 3
-    qr = QuantumRegister(n)
-    cr = ClassicalRegister(n)
-    circ = QuantumCircuit(qr, cr)
-    circ.h(0)
-    circ.x(1)
-    circ.snapshot('my_sv', snapshot_type='statevector')
-    circ.snapshot('my_amp', snapshot_type='amplitudes', params=[0x0, 0x2])
-    print("sv = " + str(result_TN.data(0)['snapshots']['statevector']['my_sv']))
-    print("amp = " + str(result_TN.data(0)['snapshots']['amplitudes']['my_amp']))
-    ``
-    Result:
-    ``
-    sv   = [array([0.        +0.j, 0.        +0.j, 0.70710678+0.j, 0.70710678+0.j,
-       0.        +0.j, 0.        +0.j, 0.        +0.j, 0.        +0.j])]
 
-    amp = [array([0.        +0.j, 0.70710678+0.j])]
+    .. code-block:: python
+
+        n = 3
+        qr = QuantumRegister(n)
+        cr = ClassicalRegister(n)
+        circ = QuantumCircuit(qr, cr)
+        circ.h(0)
+        circ.x(1)
+        circ.snapshot('my_sv', snapshot_type='statevector')
+        circ.snapshot('my_amp', snapshot_type='amplitudes', params=[0x0, 0x2])
+        print("sv = " + str(result_TN.data(0)['snapshots']['statevector']['my_sv']))
+        print("amp = " + str(result_TN.data(0)['snapshots']['amplitudes']['my_amp']))
     ``
+        Result:
+        sv   = [array([0.   +0.j, 0.   +0.j, 0.70710678+0.j, 0.70710678+0.j,
+       0.   +0.j, 0.   +0.j, 0.   +0.j, 0.   +0.j])]
+        amp = [array([0.   +0.j, 0.70710678+0.j])]
