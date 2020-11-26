@@ -27,7 +27,7 @@ namespace Transpile {
 class DiagonalFusion {
 public:
   DiagonalFusion(std::shared_ptr<FusionMethod> method_ = std::make_shared<FusionMethod>())
-    : method(method_), max_qubit(method_->get_default_max_qubit() * 2), threshold(method_->get_default_threshold_qubit() + 5), active(method_->support_diagonal()) { }
+    : method(method_), max_qubit(method_->get_default_max_qubit() * 2), min_qubit(10), threshold(method_->get_default_threshold_qubit() + 5), active(method_->support_diagonal()) { }
 
   virtual ~DiagonalFusion() {}
 
@@ -50,6 +50,7 @@ private:
 
   const std::shared_ptr<FusionMethod> method;
   uint_t max_qubit;
+  uint_t min_qubit;
   uint_t threshold;
   bool active;
 };
@@ -63,6 +64,8 @@ void DiagonalFusion::set_config(const json_t &config) {
     JSON::get_value(threshold, "fusion_threshold.diagonal", config);
   if (JSON::check_key("fusion_max_qubit.diagonal", config))
     JSON::get_value(max_qubit, "fusion_max_qubit.diagonal", config);
+  if (JSON::check_key("fusion_min_qubit.diagonal", config))
+    JSON::get_value(min_qubit, "fusion_min_qubit.diagonal", config);
 }
 
 #ifdef DEBUG
@@ -197,6 +200,9 @@ bool DiagonalFusion::aggregate_operations(oplist_t& ops,
       continue;
 
     if (checking_qubits_set.size() > max_qubit)
+      continue;
+
+    if (checking_qubits_set.size() < min_qubit)
       continue;
 
     std::set<uint_t> fusing_qubits_set = checking_qubits_set;
