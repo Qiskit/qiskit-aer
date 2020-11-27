@@ -479,6 +479,9 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
   // Simple loop over vector of input operations
   for (size_t i = 0; i < ops.size(); ++i) {
     const auto& op = ops[i];
+#ifdef DEBUG
+    auto start_ts = std::chrono::high_resolution_clock::now();
+#endif
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
         case Operations::OpType::barrier:
@@ -522,6 +525,10 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
               "QubitVector::State::invalid instruction \'" + op.name + "\'.");
         }
     }
+#ifdef DEBUG
+    auto end_ts = std::chrono::high_resolution_clock::now();
+    std::cout << op << ": " << (std::chrono::duration<double>(end_ts - start_ts).count()) << std::endl;
+#endif DEBUG
   }
 }
 

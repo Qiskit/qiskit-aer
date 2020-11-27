@@ -1303,8 +1303,8 @@ Avx apply_diagonal_matrices_avx<double>(double* qv_data_,
   auto qv_data = _to_complex(qv_data_);
   std::vector<const std::complex<double>*> input_vec_list_;
   for (uint64_t i = 0; i < mat_size; ++i)
-    input_vec_list.push_back(_to_complex(vec_list[i]));
-  const std::vector<const std::complex<double>*> input_vec_list = input_vec_list_;
+    input_vec_list_.push_back(_to_complex(vec_list[i]));
+  const std::complex<double>** input_vec_list = input_vec_list_.data();
 
   std::complex<double>** tmps;
   tmps = reinterpret_cast<std::complex<double>**>(malloc(sizeof(std::complex<double>*) * omp_threads));
@@ -1320,19 +1320,19 @@ Avx apply_diagonal_matrices_avx<double>(double* qv_data_,
 #endif
   }
 
-  std::vector<const size_t> q0_masks_;
+  std::vector<size_t> q0_masks_;
 
   for (uint64_t i = 0; i < mat_size; ++i) {
     size_t q0_mask = 0;
-    for (int i = 0; i < qregs_size; ++i) {
-      if (qregs[i] == 0) {
-        q0_mask = 1UL << i;
+    for (int j = 0; j < qregs_size_list[i]; ++j) {
+      if (qregs_list[i][j] == 0) {
+        q0_mask = 1UL << j;
         break;
       }
     }
     q0_masks_.push_back(q0_mask);
   }
-  const std::vector<const size_t> q0_masks = q0_masks_;
+  const std::vector<size_t> q0_masks = q0_masks_;
 
   const auto batch = (data_size <= (1UL << 5) ? 0 : 4);
 
@@ -1343,14 +1343,14 @@ Avx apply_diagonal_matrices_avx<double>(double* qv_data_,
     for (auto i = base; i < until; i+=2) {
       auto tgt_qv_data = _mm256_load(reinterpret_cast<double*>(&(qv_data[i])));
       for (auto j = 0; j < mat_size; ++j) {
-        auto input_data = _load_diagonal_input(input_vec_list[j], tmp, i, qregs, qregs_size, q0_masks[j]);
+        auto input_data = _load_diagonal_input(input_vec_list[j], tmp, i, qregs_list[j], qregs_size_list[j], q0_masks[j]);
         _mm_complex_multiply<double>(tgt_qv_data, input_data);
       }
       _mm256_store(reinterpret_cast<double*>(&(qv_data[i])), tgt_qv_data);
     }
   };
 
-  avx_apply_lambda(data_size >> (batch + 1), 1, lambda, omp_threads, input_vec_list.data());
+  avx_apply_lambda(data_size >> (batch + 1), 1, lambda, omp_threads, input_vec_list);
 
 #pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
   for (int i = 0; i < omp_threads; ++i) {

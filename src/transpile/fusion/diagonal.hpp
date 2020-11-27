@@ -114,7 +114,7 @@ bool DiagonalFusion::aggregate_operations(oplist_t& ops,
     for (int i = op_idx - qubits_list.size(); i < op_idx; ++i)
       ops[i].type = optype_t::nop;
 
-    ops[op_idx] = Operations::make_multi_diagonal(qubits_list, params_list, std::string("fusion"));
+    ops[op_idx - qubits_list.size()] = Operations::make_multi_diagonal(qubits_list, params_list, std::string("fusion"));
   }
 
 #ifdef DEBUG
