@@ -40,6 +40,11 @@ public:
   void apply_diagonal_matrix(Container &data, size_t data_size, int threads,
                             const reg_t &qubits, const cvector_t<double> &diag) const override;
 
+  void apply_diagonal_matrices(Container &data, size_t data_size, int threads,
+                               const std::vector<reg_t> &qubits_list,
+                               const std::vector<cvector_t<double>> &diags) const;
+
+
 };
 
 /*******************************************************************************
@@ -90,6 +95,38 @@ void TransformerAVX2<Container, data_t>::apply_diagonal_matrix(Container &data,
   Base::apply_diagonal_matrix(data, data_size, threads, qubits, diag);
 }
 
+
+template <typename Container, typename data_t>
+void TransformerAVX2<Container, data_t>::apply_diagonal_matrices(Container &data,
+                                                                 size_t data_size,
+                                                                 int threads,
+                                                                 const std::vector<reg_t> &qubits_list,
+                                                                 const std::vector<cvector_t<double>> &diags) const {
+
+  std::vector<const uint64_t*> qregs_list;
+  std::vector<size_t> qregs_size_list;
+  std::vector<const data_t*> vec_list;
+
+  for (auto i = 0; i < qubits_list.size(); ++i) {
+    qregs_list.push_back(qubits_list[i].data());
+    qregs_size_list.push_back(qubits_list[i].size());
+    vec_list.push_back(reinterpret_cast<data_t *>(Base::convert(diags[i]).data()));
+  }
+
+  uint64_t mat_size_ = qubits_list.size();
+  const uint64_t** qregs_list_ = qregs_list.data();
+  size_t* qregs_size_list_ = qregs_size_list.data();
+  const data_t** vec_list_ = vec_list.data();
+
+  if (apply_diagonal_matrices_avx<data_t>(
+          reinterpret_cast<data_t *>(data), data_size, mat_size_,
+          qregs_list_, qregs_size_list_, vec_list_, threads) == Avx::Applied) {
+    return;
+  }
+
+  for (int i = 0; i < qubits_list.size(); ++i)
+    apply_diagonal_matrix(data, data_size, threads, qubits_list[i], diags[i]);
+}
 
 #endif // AVX2 Code
 

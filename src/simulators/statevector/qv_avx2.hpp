@@ -40,6 +40,15 @@ Avx apply_diagonal_matrix_avx(FloatType* data,
                               const FloatType* vec,
                               const size_t omp_threads);
 
+template <typename FloatType>
+Avx apply_diagonal_matrices_avx(FloatType* data,
+                              const uint64_t data_size,
+                              const uint64_t mat_size,
+                              const uint64_t** qregs_list,
+                              const size_t* qregs_size_list,
+                              const FloatType** vec_list,
+                              const size_t omp_threads);
+
 } // end namespace QV
 } // end namespace AER
 #endif

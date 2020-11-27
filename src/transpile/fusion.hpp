@@ -199,10 +199,10 @@ void Fusion::optimize_circuit(Circuit& circ,
                                   ExperimentResult &data) const {
 
   Noise::NoiseModel dummy_noise; //ignore noise
-  diagonal_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
   three_qubit_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
   two_qubit_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
   cost_based_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
+  diagonal_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
 }
 
 

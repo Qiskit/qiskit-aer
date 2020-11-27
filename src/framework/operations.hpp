@@ -105,7 +105,8 @@ struct Op {
   std::string name;               // operation name
   reg_t qubits;                   //  qubits operation acts on
   std::vector<reg_t> regs;        //  list of qubits for matrixes
-  std::vector<complex_t> params;  // real or complex params for gates
+  cvector_t params;               // real or complex params for gates
+  std::vector<cvector_t> params_list; // list of real or complex params for gates
   std::vector<std::string> string_params; // used or snapshot label, and boolean functions
 
   // Conditional Operations
@@ -231,12 +232,29 @@ inline Op make_unitary(const reg_t &qubits, cmatrix_t &&mat, std::string label =
   return op;
 }
 
-inline Op make_diagonal(const reg_t &qubits, const std::vector<complex_t> &vec, std::string label = "") {
+inline Op make_diagonal(const reg_t &qubits, const cvector_t &vec, std::string label = "") {
   Op op;
   op.type = OpType::diagonal_matrix;
   op.name = "diagonal";
   op.qubits = qubits;
   op.params = vec;
+
+  if (label != "")
+    op.string_params = {label};
+
+  return op;
+}
+
+inline Op make_multi_diagonal(const std::vector<reg_t> &qubits_list, const std::vector<cvector_t> &params_list, std::string label = "") {
+  Op op;
+  op.type = OpType::diagonal_matrix;
+  op.name = "diagonal-m";
+  op.regs = qubits_list;
+  for (auto& qubits: qubits_list)
+    for (auto qubit: qubits)
+      if (std::find(op.qubits.begin(), op.qubits.end(), qubit) == op.qubits.end())
+        op.qubits.push_back(qubit);
+  op.params_list = params_list;
 
   if (label != "")
     op.string_params = {label};

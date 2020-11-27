@@ -47,6 +47,11 @@ public:
                                     int threads, const reg_t &qubits,
                                     const cvector_t<double> &diag) const;
 
+  // Apply N-qubit diagonal matrices to a array container
+  virtual void apply_diagonal_matrices(Container &data, size_t data_size,
+                                       int threads, const std::vector<reg_t> &qubits_list,
+                                       const std::vector<cvector_t<double>> &diags) const;
+
 protected:
   // Apply a N-qubit matrix to the state vector.
   // The matrix is input as vector of the column-major vectorized N-qubit
@@ -254,6 +259,16 @@ void Transformer<Container, data_t>::apply_diagonal_matrix(Container &data,
   apply_lambda(0, data_size, threads, func, areg_t<1>({{qubits[0]}}),
                convert(diag));
 }
+
+template <typename Container, typename data_t>
+void Transformer<Container, data_t>::apply_diagonal_matrices(Container &data, size_t data_size,
+                                     int threads, const std::vector<reg_t> &qubits_list,
+                                     const std::vector<cvector_t<double>> &diags) const {
+
+  for (int i = 0; i < qubits_list.size(); ++i)
+    apply_diagonal_matrix(data, data_size, threads, qubits_list[i], diags[i]);
+}
+
 
 template <typename Container, typename data_t>
 void Transformer<Container, data_t>::apply_diagonal_matrix_1 (

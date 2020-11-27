@@ -151,6 +151,9 @@ protected:
   // If the input is not in allowed_gates an exeption will be raised.
   void apply_gate(const Operations::Op &op);
 
+  // Applies a diagonal Gate operation to the state class.
+  void apply_diagonal_gate(const Operations::Op &op);
+
   // Measure qubits and return a list of outcomes [q0, q1, ...]
   // If a state subclass supports this function it then "measure"
   // should be contained in the set returned by the 'allowed_ops'
@@ -505,7 +508,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
           apply_matrix(op);
           break;
         case Operations::OpType::diagonal_matrix:
-          BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
+          apply_diagonal_gate(op);
           break;
         case Operations::OpType::multiplexer:
           apply_multiplexer(op.regs[0], op.regs[1],
@@ -896,6 +899,15 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
           "QubitVector::State::invalid gate instruction \'" + op.name + "\'.");
   }
 }
+
+template <class statevec_t>
+void State<statevec_t>::apply_diagonal_gate(const Operations::Op &op) {
+  if (op.name == "diagonal")
+    BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
+  else if (op.name == "diagonal-m")
+    BaseState::qreg_.apply_diagonal_matrices(op.regs, op.params_list);
+}
+
 
 template <class statevec_t>
 void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits,

@@ -173,6 +173,9 @@ public:
   // The matrix is input as vector of the matrix diagonal.
   void apply_diagonal_matrix(const reg_t &qubits, const cvector_t<double> &mat);
 
+  // Apply N-qubit diagonal matrices to the state vector.
+  void apply_diagonal_matrices(const std::vector<reg_t> &qubits_list, const std::vector<cvector_t<double>> &mat_list);
+
   // Swap pairs of indicies in the underlying vector
   void apply_permutation_matrix(const reg_t &qubits,
                                 const std::vector<std::pair<uint_t, uint_t>> &pairs);
@@ -1034,6 +1037,16 @@ void QubitVector<data_t>::apply_diagonal_matrix(const reg_t &qubits,
 
   transformer_->apply_diagonal_matrix(data_, data_size_, omp_threads_managed(), qubits, diag);
 }
+
+template <typename data_t>
+void QubitVector<data_t>::apply_diagonal_matrices(const std::vector<reg_t> &qubits_list, const std::vector<cvector_t<double>> &mat_list) {
+
+  for (auto i = 0; i < qubits_list.size(); ++i) {
+    apply_diagonal_matrix(qubits_list[i], mat_list[i]);
+  }
+
+}
+
 
 template <typename data_t>
 void QubitVector<data_t>::apply_permutation_matrix(const reg_t& qubits,
