@@ -174,14 +174,14 @@ public:
                         ExperimentResult &data) const override;
 
 private:
-  Transpile::FusionOptimization<Transpile::DiagonalFusion> diagonal_fusion;
+  //Transpile::FusionOptimization<Transpile::DiagonalFusion> diagonal_fusion;
   Transpile::FusionOptimization<Transpile::NQubitFusion<2>> two_qubit_fusion;
   Transpile::FusionOptimization<Transpile::NQubitFusion<3>> three_qubit_fusion;
   Transpile::FusionOptimization<Transpile::CostBasedFusion> cost_based_fusion;
 };
 
 void Fusion::set_config(const json_t &config) {
-  diagonal_fusion.set_config(config);
+  //diagonal_fusion.set_config(config);
   two_qubit_fusion.set_config(config);
   three_qubit_fusion.set_config(config);
   cost_based_fusion.set_config(config);
@@ -202,7 +202,7 @@ void Fusion::optimize_circuit(Circuit& circ,
   three_qubit_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
   two_qubit_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
   cost_based_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
-  diagonal_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
+  //diagonal_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
 }
 
 
