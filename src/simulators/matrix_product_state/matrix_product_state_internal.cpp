@@ -1540,13 +1540,14 @@ void MPS::initialize_component(reg_t qubits, cvector_t statevector) {
 std::cout << "mat = " << mat << std::endl;
   MPS qubits_mps;
   qubits_mps.initialize_from_matrix(num_qubits, mat);
+  std::cout << "after initialize_from_matrix, mps = " << std::endl;
   qubits_mps.print(std::cout);
   
   for (uint_t i=first; i<=last; i++) {
     q_reg_[i] = qubits_mps.q_reg_[i];
     if (i<last) {
       lambda_reg_[i].clear();
-      lambda_reg_[i] = lambda_reg_[i];
+      lambda_reg_[i] = qubits_mps.lambda_reg_[i];
     }
   }
   if (first > 0) {
