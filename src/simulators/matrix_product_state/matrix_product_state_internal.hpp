@@ -65,7 +65,6 @@ public:
   //----------------------------------------------------------------
   virtual void initialize(uint_t num_qubits=0);
   void initialize(const MPS &other);
-  //void initialize(uint_t num_qubits, const cvector_t &vecState);
 
   //----------------------------------------------------------------
   // Function name: num_qubits
@@ -248,6 +247,7 @@ public:
   //----------------------------------------------------------------
 
   double norm();
+  double norm(reg_t qubits);
   double norm(const reg_t &qubits, const cvector_t &vmat) const;
   double norm(const reg_t &qubits, const cmatrix_t &mat) const; 
 
@@ -266,7 +266,9 @@ public:
   // Returns: none.
   //----------------------------------------------------------------
 
-  void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector);
+  void initialize_from_statevector(uint_t num_qubits, const cvector_t &state_vector);
+  void initialize_component(reg_t qubits, cvector_t statevector);
+
   reg_t get_bond_dimensions() const;
   uint_t get_max_bond_dimensions() const;
 
@@ -361,6 +363,7 @@ private:
 						    const reg_t &qubits) const;
 
   void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
+
   //----------------------------------------------------------------
   // Function name: centralize_qubits
   // Description: Creates a new MPS where a subset of the qubits is

@@ -1278,6 +1278,10 @@ uint_t binary_search(const rvector_t &acc_probvector,
 
 double MPS::norm() {
     reg_t qubits(num_qubits_);
+    return norm(qubits);
+}
+
+double MPS::norm(reg_t qubits) {
     std::iota( std::begin(qubits), std::end(qubits), 0);
     double trace = 0;
     rvector_t vec = diagonal_of_density_matrix(qubits);
@@ -1326,7 +1330,7 @@ reg_t MPS::sample_measure_using_probabilities_internal(const rvector_t &rnds,
   #pragma omp parallel if (SHOTS > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
     {
       #pragma omp for
-  for (int_t i = 0; i < SHOTS; ++i) {
+      for (int_t i = 0; i < static_cast<int_t>(SHOTS); ++i) {
     double rnd = rnds[i];
 
     rnd_index = binary_search(acc_probvector, 
@@ -1405,18 +1409,24 @@ uint_t MPS::apply_measure(uint_t qubit,
   return measurement;
 }
 
-void MPS::initialize_from_statevector(uint_t num_qubits, cvector_t state_vector) {
-  cmatrix_t statevector_as_matrix(1, state_vector.size());
+void MPS::initialize_from_statevector(uint_t num_qubits, const cvector_t &statevector) {
+  cmatrix_t statevector_as_matrix(1, statevector.size());
 
 #pragma omp parallel for if (num_qubits_ > MPS::get_omp_threshold() && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
-  for (int_t i=0; i<static_cast<int_t>(state_vector.size()); i++) {
-    statevector_as_matrix(0, i) = state_vector[i];
+  for (int_t i=0; i<static_cast<int_t>(statevector.size()); i++) {
+    statevector_as_matrix(0, i) = statevector[i];
   }
-    
+  //  uint_t num_qubits = static_cast<uint_t>(log2(statevector.size())); 
+  if ((1ULL << num_qubits)  != statevector.size()) {
+    std::stringstream ss;
+    ss << "error: length of statevector should be 2^num_qubits";
+    throw std::runtime_error(ss.str());
+  }
   initialize_from_matrix(num_qubits, statevector_as_matrix);
 }
 
 void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t mat) {
+  std::cout << " in initialize_from_matrix" <<std::endl;
   if (!q_reg_.empty())
     q_reg_.clear();
   if (!lambda_reg_.empty())
@@ -1429,19 +1439,29 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t mat) {
   std::iota(qubit_ordering_.location_.begin(), qubit_ordering_.location_.end(), 0);
   num_qubits_ = 0;
 
+  if (num_qubits == 1) {
+    num_qubits_ = 1;
+    complex_t a = mat(0,0);
+    complex_t b = mat(0,1);
+    q_reg_.push_back(MPS_Tensor(a, b));
+    return;
+  }
+
+
   // remaining_matrix is the matrix that remains after each iteration
   // It is initialized to the input statevector after reshaping
   cmatrix_t remaining_matrix, reshaped_matrix; 
   cmatrix_t U, V;
   rvector_t S(1.0);
   bool first_iter = true;
-
+  std::cout << " in initialize_from_matrix, before loop" <<std::endl;
   for (uint_t i=0; i<num_qubits-1; i++) {
-
+    std::cout << "in loop, i = " << i << std::endl;
     // step 1 - prepare matrix for next iteration (except for first iteration):
     //    (i) mul remaining matrix by left lambda 
     //    (ii) dagger and reshape
     if (first_iter) {
+      std::cout << "rem mat = " <<remaining_matrix <<std::endl;
       remaining_matrix = mat;
     } else {
       cmatrix_t temp = mul_matrix_by_lambda(V, S); 
@@ -1463,13 +1483,15 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t mat) {
     MPS_Tensor left_gamma(left_data[0], left_data[1]); 
     if (!first_iter)
       left_gamma.div_Gamma_by_left_Lambda(lambda_reg_.back()); 
+
+    std::cout << "left_gamma = ";
+    left_gamma.print(std::cout);
     q_reg_.push_back(left_gamma);
     lambda_reg_.push_back(S);
     num_qubits_++;
 
     first_iter = false;
   }
-
   // step 4 - create the rightmost gamma and update q_reg_
   std::vector<cmatrix_t> right_data = reshape_V_after_SVD(V);
   
@@ -1478,7 +1500,66 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t mat) {
   num_qubits_++;
 }
  
+// Algorithm for initialize_compent:
+// 1. Reverse_all_bits
+// 2. Centralize 'qubits'
+// 3. Compute the norm of 'qubits'
+// 4. Normalize 'statevector' to the norm computed in (3)
+// 3. Create a new MPS consisting of 'qubits'
+// 4. Initialize it to 'statevector'
+// 5. cut out the old section of 'qubits'
+// 6. Stick in the new section of 'qubits'
+// 7. Contract to the left and to the right 
 
+void MPS::initialize_component(reg_t qubits, cvector_t statevector) {
+  std::cout << " in init_component" << std::endl;
+  reg_t internal_qubits = get_internal_qubits(qubits);
+  uint_t num_qubits = qubits.size();
+  uint_t num_amplitudes = statevector.size();
+
+  cvector_t  reversed_statevector = reverse_all_bits(statevector, num_qubits);
+  bool ordered = true;
+  reg_t new_qubits(num_qubits);
+  centralize_qubits(internal_qubits, new_qubits, ordered);
+  //double prev_norm = norm(new_qubits);
+  //std::cout << "prev norm = " << prev_norm << std::endl;
+  uint_t first = new_qubits.front();
+  uint_t last = new_qubits.back();
+  MPS_Tensor qubits_tensor = state_vec_as_MPS(first, last);
+  double qubits_norm = norm(qubits);
+
+  std::cout << "sum norms = " << qubits_norm << std::endl;
+
+  cmatrix_t mat(1, num_amplitudes);
+  for (uint_t i=0; i<num_amplitudes; i++) {
+    std::cout <<reversed_statevector[i] << std::endl;
+    complex_t normalized_i = reversed_statevector[i]/qubits_norm;
+    std::cout << "norm_i = " << normalized_i << std::endl;
+    mat(0, i) = normalized_i;   
+  }
+std::cout << "mat = " << mat << std::endl;
+  MPS qubits_mps;
+  qubits_mps.initialize_from_matrix(num_qubits, mat);
+  qubits_mps.print(std::cout);
+  
+  for (uint_t i=first; i<=last; i++) {
+    q_reg_[i] = qubits_mps.q_reg_[i];
+    if (i<last) {
+      lambda_reg_[i].clear();
+      lambda_reg_[i] = lambda_reg_[i];
+    }
+  }
+  if (first > 0) {
+    lambda_reg_[first].clear();
+    lambda_reg_[first].push_back(1.0);
+  }
+  if (last < num_qubits_-1) {
+    lambda_reg_[last].clear();
+    lambda_reg_[last].push_back(1.0);
+  }
+
+
+}
 //-------------------------------------------------------------------------
 } // end namespace MPS
 //-------------------------------------------------------------------------
