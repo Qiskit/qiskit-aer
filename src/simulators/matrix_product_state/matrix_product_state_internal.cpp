@@ -632,16 +632,16 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits,
 				 const cmatrix_t &mat,
 				 bool is_diagonal) {
   // change qubit order in the matrix
-  uint nqubits = qubits.size();
-  uint sidelen = 1 << nqubits;
+  uint_t nqubits = qubits.size();
+  uint_t sidelen = 1 << nqubits;
   cmatrix_t new_mat(sidelen, sidelen);
-  for (uint i=0; i<sidelen; ++i)
-    for (uint j=0; j<sidelen; ++j) {
-      uint new_i = reverse_bits(i, nqubits);
+  for (uint_t i=0; i<sidelen; ++i)
+    for (uint_t j=0; j<sidelen; ++j) {
+      uint_t new_i = reverse_bits(i, nqubits);
       if (i==j)
 	new_mat(new_i, new_i) = mat(i, i);
       else {
-	uint new_j = reverse_bits(j, nqubits);
+	uint_t new_j = reverse_bits(j, nqubits);
 	new_mat(new_i, new_j) = mat(i, j);
       }
     }
