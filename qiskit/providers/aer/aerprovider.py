@@ -21,7 +21,8 @@ from .backends.qasm_simulator import QasmSimulator
 from .backends.statevector_simulator import StatevectorSimulator
 from .backends.unitary_simulator import UnitarySimulator
 from .backends.pulse_simulator import PulseSimulator
-#from .backends.cluster_backend import ClusterBackend
+# from .backends.cluster_backend import ClusterBackend
+
 
 class AerProvider(BaseProvider):
     """Provider for Qiskit Aer backends."""
@@ -35,7 +36,7 @@ class AerProvider(BaseProvider):
             ('statevector_simulator', StatevectorSimulator),
             ('unitary_simulator', UnitarySimulator),
             ('pulse_simulator', PulseSimulator)
-            #('cluster_backend', ClusterBackend)
+            # ('cluster_backend', ClusterBackend)
         ]
 
     def get_backend(self, name=None, **kwargs):

@@ -39,8 +39,10 @@ def requires_submit(func):
 
 
 def methdispatch(func):
-    """returns a wrapper function that selects which registered function
-    to call based on the type of args[2]"""
+    """
+    Returns a wrapper function that selects which registered function
+    to call based on the type of args[2]
+    """
     dispatcher = singledispatch(func)
 
     def wrapper(*args, **kw):

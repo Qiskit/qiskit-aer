@@ -223,7 +223,7 @@ class AerBackend(BaseBackend, ABC):
             pending_jobs=0,
             status_msg='')
 
-    def _run_job(self, job_id, qobj, backend_options, noise_model, validate=False):
+    def _run_job(self, job_id, qobj, backend_options=None, noise_model=None, validate=False):
         """Run a qobj job"""
         warnings.warn(
             'The `_run_job` method has been deprecated. Use `_run` instead.',
