@@ -50,7 +50,7 @@ const Operations::OpSet StateOpSet(
 // Allowed gates enum class
 enum class Gates {
   id, h, s, sdg, t, tdg, rxx, ryy, rzz, rzx,
-  mcx, mcy, mcz, mcr, mcrx, mcry, mcrz, mcp, mcu2, mcu3, mcswap, mcsx, pauli,
+  mcx, mcy, mcz, mcr, mcrx, mcry, mcrz, mcp, mcu2, mcu3, mcswap, mcsx, pauli, cxlist,
 };
 
 //=========================================================================
@@ -226,7 +226,8 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
     {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
-    {"pauli", Gates::pauli}  // Multiple pauli operations at once
+    {"pauli", Gates::pauli},  // Multiple pauli operations at once
+    {"cxlist", Gates::cxlist} // CX list
 });
 
 //============================================================================
@@ -400,8 +401,12 @@ void State<unitary_matrix_t>::apply_gate(const Operations::Op &op) {
       apply_gate_phase(op.qubits[0], complex_t(0., -1.));
       break;
     case Gates::pauli:
-        BaseState::qreg_.apply_pauli(op.qubits, op.string_params[0]);
-        break;
+      BaseState::qreg_.apply_pauli(op.qubits, op.string_params[0]);
+      break;
+    case Gates::cxlist:
+      for (auto i = 0; i < op.regs[0].size(); ++i)
+         BaseState::qreg_.apply_mcx({op.regs[0][i], op.regs[1][i]});
+      break;
     case Gates::t: {
       const double isqrt2{1. / std::sqrt(2)};
       apply_gate_phase(op.qubits[0], complex_t(isqrt2, isqrt2));

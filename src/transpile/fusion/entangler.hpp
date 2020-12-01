@@ -12,28 +12,27 @@
  * that they have been altered from the originals.
  */
 
-#ifndef _aer_transpile_fusion_diagonal_hpp_
-#define _aer_transpile_fusion_diagonal_hpp_
+#ifndef _aer_transpile_fusion_entangler_hpp_
+#define _aer_transpile_fusion_entangler_hpp_
 
 #include <chrono>
 
 #include "transpile/circuitopt.hpp"
-#include "framework/avx2_detect.hpp"
 #include "../fusion_method.hpp"
 
 namespace AER {
 namespace Transpile {
 
-class DiagonalFusion {
+class EntanglerFusion {
 public:
-  DiagonalFusion(std::shared_ptr<FusionMethod> method_ = std::make_shared<FusionMethod>())
-    : method(method_), threshold(method_->get_default_threshold_qubit() + 5), active(false) { }
+  EntanglerFusion(std::shared_ptr<FusionMethod> method_ = std::make_shared<FusionMethod>())
+    : method(method_), max_qubit(64), threshold(method_->get_default_threshold_qubit()), active(true) { }
 
-  virtual ~DiagonalFusion() {}
+  virtual ~EntanglerFusion() {}
 
   void set_config(const json_t &config);
 
-  std::string name() const { return "diagonal"; };
+  std::string name() const { return "entangler"; };
 
   uint_t get_threshold() const { return threshold; }
 
@@ -45,21 +44,20 @@ public:
 
 private:
   const std::shared_ptr<FusionMethod> method;
+  uint_t max_qubit;
   uint_t threshold;
   bool active;
 };
 
-void DiagonalFusion::set_config(const json_t &config) {
-  //if (JSON::check_key("fusion_enable", config))
-  //  JSON::get_value(active, "fusion_enable", config);
-  if (JSON::check_key("fusion_enable.diagonal", config))
-    JSON::get_value(active, "fusion_enable.diagonal", config);
-  if (JSON::check_key("fusion_threshold.diagonal", config))
-    JSON::get_value(threshold, "fusion_threshold.diagonal", config);
+void EntanglerFusion::set_config(const json_t &config) {
+  if (JSON::check_key("fusion_enable", config))
+    JSON::get_value(active, "fusion_enable", config);
+  if (JSON::check_key("fusion_enable.entangler", config))
+    JSON::get_value(active, "fusion_enable.entangler", config);
 }
 
 #ifdef DEBUG
-void DiagonalFusion::dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const {
+void EntanglerFusion::dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const {
   std::cout << std::setw(3) << op_idx << ": ";
   if (ops[op_idx].type == optype_t::nop) {
     std::cout << std::setw(10) << "nop" << ": ";
@@ -83,16 +81,16 @@ void DiagonalFusion::dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) cons
 }
 #endif
 
-bool DiagonalFusion::aggregate_operations(uint_t num_qubits,
-                                          oplist_t& ops,
-                                          const int fusion_start,
-                                          const int fusion_end) const {
+bool EntanglerFusion::aggregate_operations(uint_t num_qubits,
+                                           oplist_t& ops,
+                                           const int fusion_start,
+                                           const int fusion_end) const {
 
   if (!active)
     return false;
 
 #ifdef DEBUG
-  std::cout << "before diagonal: " << std::endl;
+  std::cout << "before entangler: " << std::endl;
   for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx)
     dump_op_in_circuit(ops, op_idx);
 #endif
@@ -100,26 +98,35 @@ bool DiagonalFusion::aggregate_operations(uint_t num_qubits,
   // current impl is sensitive to ordering of gates
   for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx) {
 
-    std::vector<reg_t> qubits_list;
-    std::vector<cvector_t> params_list;
-
-    while(ops[op_idx].type == Operations::OpType::diagonal_matrix) {
-      qubits_list.push_back(ops[op_idx].qubits);
-      params_list.push_back(ops[op_idx].params);
-      ++op_idx;
-    }
-
-    if (qubits_list.size() < 2)
+    if (ops[op_idx].name != "CX" && ops[op_idx].name != "cx")
       continue;
 
-    for (int i = op_idx - qubits_list.size(); i < op_idx; ++i)
-      ops[i].type = optype_t::nop;
+    auto start_op_idx = op_idx;
+    uint_t num_of_cx = 1;
+    ++op_idx;
+    for (; op_idx < fusion_end; ++op_idx) {
+      if (ops[op_idx].name != "CX" && ops[op_idx].name != "cx")
+        break;
+      ++num_of_cx;
+    }
 
-    ops[op_idx - qubits_list.size()] = Operations::make_multi_diagonal(qubits_list, params_list, std::string("fusion"));
+    if (num_of_cx < (num_qubits * 2))
+      continue;
+
+    auto end_op_idx = op_idx;
+    std::vector<uint_t> ctrl_qubits;
+    std::vector<uint_t> tgt_qubits;
+    std::vector<op_t> fusing_ops;
+    for (op_idx = start_op_idx ; op_idx < end_op_idx; ++op_idx) {
+      ctrl_qubits.push_back(ops[op_idx].qubits[0]);
+      tgt_qubits.push_back(ops[op_idx].qubits[1]);
+      ops[op_idx].type = optype_t::nop;
+    }
+    ops[start_op_idx] = Operations::make_cxlist(ctrl_qubits, tgt_qubits);
   }
 
 #ifdef DEBUG
-  std::cout << "after diagonal: " << std::endl;
+  std::cout << "after entangler: " << std::endl;
   for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx)
     dump_op_in_circuit(ops, op_idx);
 #endif

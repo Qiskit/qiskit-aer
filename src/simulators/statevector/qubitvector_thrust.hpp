@@ -1005,6 +1005,8 @@ public:
   void apply_pauli(const reg_t &qubits, const std::string &pauli,
                    const complex_t &coeff = 1);
 
+  void apply_cx_list(const reg_t &ctrl_qubits, const reg_t &tgt_qubits);
+
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
   //-----------------------------------------------------------------------
@@ -5079,6 +5081,13 @@ void QubitVectorThrust<data_t>::apply_pauli(const reg_t &qubits,
     apply_function(multi_pauli_func<data_t>(x_mask, z_mask, phase,qubits_sorted.size()),qubits_sorted);
   }
 }
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::apply_cx_list(const reg_t &ctrl_qubits, const reg_t &tgt_qubits) {
+  for (auto i = 0; i < ctrl_qubits.size(); ++i)
+    apply_mcx({ctrl_qubits[i], tgt_qubits[i]});
+}
+
 
 //------------------------------------------------------------------------------
 } // end namespace QV

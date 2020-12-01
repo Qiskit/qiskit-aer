@@ -53,7 +53,7 @@ const Operations::OpSet StateOpSet(
 // Allowed gates enum class
 enum class Gates {
   u1, u2, u3, r, rx,ry, rz, id, x, y, z, h, s, sdg, sx, t, tdg,
-  cx, cy, cz, swap, rxx, ryy, rzz, rzx, ccx, cp, pauli
+  cx, cy, cz, swap, rxx, ryy, rzz, rzx, ccx, cp, pauli, cxlist
 };
 
 // Allowed snapshots enum class
@@ -297,7 +297,8 @@ const stringmap_t<Gates> State<densmat_t>::gateset_({
     // Three-qubit gates
     {"ccx", Gates::ccx},   // Controlled-CX gate (Toffoli)
     // Pauli gate
-    {"pauli", Gates::pauli} // Multi-qubit Pauli gate
+    {"pauli", Gates::pauli},// Multi-qubit Pauli gate
+    {"cxlist", Gates::cxlist} // cx list
 });
 
 template <class densmat_t>
@@ -774,6 +775,10 @@ void State<densmat_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::pauli:
       apply_pauli(op.qubits, op.string_params[0]);
+      break;
+    case Gates::cxlist:
+      for (auto i = 0; i < op.regs[0].size(); ++i)
+        BaseState::qreg_.apply_mcx({op.regs[0][i], op.regs[1][i]});
       break;
     default:
       // We shouldn't reach here unless there is a bug in gateset

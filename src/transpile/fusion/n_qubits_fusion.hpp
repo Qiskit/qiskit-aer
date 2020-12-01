@@ -41,7 +41,7 @@ public:
 
   uint_t get_threshold() const { return qubit_threshold; }
 
-  bool aggregate_operations(oplist_t& ops, const int fusion_start, const int fusion_end) const;
+  bool aggregate_operations(uint_t num_qubits, oplist_t& ops, const int fusion_start, const int fusion_end) const;
 
 #ifdef DEBUG
   void dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const;
@@ -108,9 +108,10 @@ void NQubitFusion<N>::dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) con
 #endif
 
 template<size_t N>
-bool NQubitFusion<N>::aggregate_operations(oplist_t& ops,
-                                         const int fusion_start,
-                                         const int fusion_end) const {
+bool NQubitFusion<N>::aggregate_operations(uint_t num_qubits,
+                                           oplist_t& ops,
+                                           const int fusion_start,
+                                           const int fusion_end) const {
 
   if (!active)
     return false;

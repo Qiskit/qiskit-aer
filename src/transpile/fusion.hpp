@@ -21,6 +21,7 @@
 #include "framework/avx2_detect.hpp"
 #include "fusion_method.hpp"
 #include "fusion/diagonal.hpp"
+#include "fusion/entangler.hpp"
 #include "fusion/n_qubits_fusion.hpp"
 #include "fusion/cost_based_fusion.hpp"
 
@@ -116,7 +117,7 @@ void FusionOptimization<Fuser>::optimize_circuit(Circuit& circ,
   int applied = 0;
 
   if (circ.ops.size() < parallel_threshold) {
-    applied = fuser.aggregate_operations(circ.ops, 0, circ.ops.size())? 1:0;
+    applied = fuser.aggregate_operations(circ.num_qubits, circ.ops, 0, circ.ops.size())? 1:0;
   } else {
     auto unit = circ.ops.size() / parallelization;
     if (circ.ops.size() % parallelization)
@@ -124,7 +125,7 @@ void FusionOptimization<Fuser>::optimize_circuit(Circuit& circ,
 #pragma omp parallel for num_threads(parallelization) reduction(+:applied)
     for(int_t fusion_start0 = 0; fusion_start0 < circ.ops.size(); fusion_start0 += unit) {
       auto fusion_end0 = (fusion_start0 + unit) < circ.ops.size()? fusion_start0 + unit: circ.ops.size();
-      if (fuser.aggregate_operations(circ.ops, fusion_start0, fusion_end0))
+      if (fuser.aggregate_operations(circ.num_qubits, circ.ops, fusion_start0, fusion_end0))
         applied += 1;
     }
   }
@@ -174,20 +175,24 @@ public:
                         ExperimentResult &data) const override;
 
 private:
-  //Transpile::FusionOptimization<Transpile::DiagonalFusion> diagonal_fusion;
+  Transpile::FusionOptimization<Transpile::DiagonalFusion> diagonal_fusion;
+  Transpile::FusionOptimization<Transpile::EntanglerFusion> entangler_fusion;
   Transpile::FusionOptimization<Transpile::NQubitFusion<2>> two_qubit_fusion;
   Transpile::FusionOptimization<Transpile::NQubitFusion<3>> three_qubit_fusion;
   Transpile::FusionOptimization<Transpile::CostBasedFusion> cost_based_fusion;
 };
 
 void Fusion::set_config(const json_t &config) {
-  //diagonal_fusion.set_config(config);
+  diagonal_fusion.set_config(config);
+  entangler_fusion.set_config(config);
   two_qubit_fusion.set_config(config);
   three_qubit_fusion.set_config(config);
   cost_based_fusion.set_config(config);
 }
 
 void Fusion::set_parallelization(uint_t num) {
+  diagonal_fusion.set_parallelization(num);
+  entangler_fusion.set_parallelization(num);
   two_qubit_fusion.set_parallelization(num);
   three_qubit_fusion.set_parallelization(num);
   cost_based_fusion.set_parallelization(num);
@@ -199,10 +204,11 @@ void Fusion::optimize_circuit(Circuit& circ,
                                   ExperimentResult &data) const {
 
   Noise::NoiseModel dummy_noise; //ignore noise
+  entangler_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
   three_qubit_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
   two_qubit_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
   cost_based_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
-  //diagonal_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
+  diagonal_fusion.optimize_circuit(circ, dummy_noise, allowed_opset, data);
 }
 
 

@@ -46,7 +46,7 @@ public:
 
   uint_t get_threshold() const { return threshold; }
 
-  bool aggregate_operations(oplist_t& ops, const int fusion_start, const int fusion_end) const;
+  bool aggregate_operations(uint_t num_qubits, oplist_t& ops, const int fusion_start, const int fusion_end) const;
 
 private:
   bool can_ignore(const op_t& op) const;
@@ -111,7 +111,8 @@ double CostBasedFusion::get_cost(const op_t& op) const {
     return cost_factor;
 }
 
-bool CostBasedFusion::aggregate_operations(oplist_t& ops,
+bool CostBasedFusion::aggregate_operations(uint_t num_qubits,
+                                  oplist_t& ops,
                                   const int fusion_start_,
                                   const int fusion_end) const {
 

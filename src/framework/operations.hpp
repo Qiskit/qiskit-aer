@@ -262,6 +262,22 @@ inline Op make_multi_diagonal(const std::vector<reg_t> &qubits_list, const std::
   return op;
 }
 
+inline Op make_cxlist(const reg_t& ctrl_qubits, reg_t& tgt_qubits, std::string label = "") {
+  Op op;
+  op.type = OpType::gate;
+  op.name = "cxlist";
+  op.regs = { ctrl_qubits,  tgt_qubits };
+  for (auto& qubits: {ctrl_qubits, tgt_qubits})
+    for (auto qubit: qubits)
+      if (std::find(op.qubits.begin(), op.qubits.end(), qubit) == op.qubits.end())
+        op.qubits.push_back(qubit);
+
+  if (label != "")
+    op.string_params = {label};
+
+  return op;
+}
+
 inline Op make_superop(const reg_t &qubits, const cmatrix_t &mat) {
   Op op;
   op.type = OpType::superop;

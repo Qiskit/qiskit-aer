@@ -218,6 +218,8 @@ public:
   void apply_pauli(const reg_t &qubits, const std::string &pauli,
                    const complex_t &coeff = 1);
 
+  void apply_cx_list(const reg_t &ctrl_qubits, const reg_t &tgt_qubits);
+
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
   //-----------------------------------------------------------------------
@@ -338,6 +340,7 @@ protected:
   size_t data_size_;
   std::complex<data_t>* data_;
   std::complex<data_t>* checkpoint_;
+  std::complex<data_t>* copy_ = 0;
 
   //-----------------------------------------------------------------------
   // Config settings
@@ -725,6 +728,10 @@ void QubitVector<data_t>::free_mem(){
   if (data_) {
     free(data_);
     data_ = nullptr;
+  }
+  if (copy_) {
+    free(copy_);
+    copy_ = nullptr;
   }
 }
 
@@ -1933,6 +1940,42 @@ void QubitVector<data_t>::apply_pauli(const reg_t &qubits, const std::string &pa
   };
   apply_lambda(lambda, (size_t) 0, (data_size_ >> 1));
 }
+
+template <typename data_t>
+void QubitVector<data_t>::apply_cx_list(const reg_t &ctrl_qubits, const reg_t &tgt_qubits) {
+
+  if (!copy_) {
+#if !defined(_WIN64) && !defined(_WIN32)
+    void* data;
+    posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size_);
+    copy_ = reinterpret_cast<std::complex<data_t>*>(data);
+#else
+    copy_ = reinterpret_cast<std::complex<data_t>*>(malloc(sizeof(std::complex<data_t>) * data_size));
+#endif
+  }
+
+  std::vector<uint_t> ctrl_masks;
+  for (auto q: ctrl_qubits)
+    ctrl_masks.push_back(1UL << q);
+
+  std::vector<uint_t> tgt_masks;
+  for (auto q: tgt_qubits)
+    tgt_masks.push_back(1UL << q);
+
+  auto lambda = [&](const int_t i)->void {
+    int_t idx = i;
+    for (int_t j = ctrl_qubits.size() - 1; j >= 0; --j)
+      if (idx & ctrl_masks[j])
+        idx ^= tgt_masks[j];
+    copy_[i] = data_[idx];
+  };
+  apply_lambda(lambda, (size_t) 0, data_size_);
+
+  auto tmp = data_;
+  data_ = copy_;
+  copy_ = tmp;
+}
+
 
 //------------------------------------------------------------------------------
 } // end namespace QV

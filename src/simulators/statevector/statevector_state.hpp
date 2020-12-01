@@ -60,7 +60,7 @@ enum class Gates {
   id, h, s, sdg, t, tdg,
   rxx, ryy, rzz, rzx,
   mcx, mcy, mcz, mcr, mcrx, mcry,
-  mcrz, mcp, mcu2, mcu3, mcswap, mcsx, pauli
+  mcrz, mcp, mcu2, mcu3, mcswap, mcsx, pauli, cxlist
 };
 
 // Allowed snapshots enum class
@@ -359,7 +359,8 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
     {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
-    {"pauli", Gates::pauli}   // Multi-qubit Pauli gate
+    {"pauli", Gates::pauli},  // Multi-qubit Pauli gate
+    {"cxlist", Gates::cxlist} // Multiple CX gates
 });
 
 template <class statevec_t>
@@ -903,8 +904,11 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
       BaseState::qreg_.apply_mcu(op.qubits, Linalg::VMatrix::SX);
       break;
     case Gates::pauli:
-        BaseState::qreg_.apply_pauli(op.qubits, op.string_params[0]);
-        break;
+      BaseState::qreg_.apply_pauli(op.qubits, op.string_params[0]);
+      break;
+    case Gates::cxlist:
+      BaseState::qreg_.apply_cx_list(op.regs[0], op.regs[1]);
+      break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument(
