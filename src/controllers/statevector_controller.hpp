@@ -370,7 +370,7 @@ void StatevectorController::run_circuit_helper(
   }
 
   // Run single shot collecting measure data or snapshots
-  state.allocate(BaseState::max_qubits_, 1);
+  state.allocate(Base::Controller::max_qubits_, 1);
 
   if (initial_state_.empty()) {
     state.initialize_qreg(circ.num_qubits);
