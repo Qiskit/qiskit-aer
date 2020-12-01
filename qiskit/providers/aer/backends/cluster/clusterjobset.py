@@ -24,6 +24,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.pulse import Schedule
 from qiskit.qobj import QasmQobj
 from qiskit.providers.jobstatus import JobStatus
+from qiskit.result import Result
 
 from ..aerbackend import AerBackend
 from .clusterjob import CJob
@@ -99,6 +100,30 @@ class JobSet:
         return [cjob.status() for cjob in self._futures]
 
     @requires_submit
+    def result(self,
+               timeout: Optional[float] = None,
+               raises: Optional[bool] = False
+    ) -> Result:
+        """Return the results of the jobs as a single Result object.
+
+        This call will block until all job results become available or
+        the timeout is reached.
+
+        Args:
+           timeout: Number of seconds to wait for job results.
+           raises: whether or not to re-raise exceptions thrown by jobs
+
+        Returns:
+            qiskit.Result: Result object
+
+        Raises:
+            AerClusterTimeoutError: if unable to retrieve all job results before the
+                specified timeout.
+
+        """
+        return self.results(timeout, raises).combine_results()
+
+    @requires_submit
     def results(
             self,
             timeout: Optional[float] = None,
@@ -132,12 +157,14 @@ class JobSet:
         # We'd like to use futures.as_completed or futures.wait
         #   however this excludes the use of dask as executor
         #   because dask's futures are not ~exactly~ the same.
+        res = []
         for cjob in self._futures:
             try:
                 result = cjob.result(timeout=timeout, raises=raises)
                 if result is None or not result.success:
                     logger.warning('ClusterJob %s failed.', cjob.name())
                     success = False
+                res.append(result)
             except AerClusterTimeoutError as ex:
                 raise AerClusterTimeoutError(
                     'Timeout while waiting for the results of experiment {}'.format(
@@ -148,7 +175,7 @@ class JobSet:
                     raise AerClusterTimeoutError(
                         "Timeout while waiting for JobSet results")
 
-        self._results = CResults(self, success)
+        self._results = CResults(self, res)
 
         return self._results
 
@@ -205,11 +232,3 @@ class JobSet:
             Name of this job set.
         """
         return self._name
-
-    def managed_jobs(self) -> List[CJob]:
-        """Return the managed jobs in this set.
-
-        Returns:
-            A list of managed jobs.
-        """
-        return self._futures

@@ -284,11 +284,7 @@ class AerBackend(Backend, ABC):
             pending_jobs=0,
             status_msg='')
 
-<<<<<<< HEAD
     def _run_job(self, job_id, qobj, backend_options=None, noise_model=None, validate=False):
-=======
-    def _run_job(self, job_id, qobj, backend_options, noise_model, validate=False):
->>>>>>> Add ClusterBackend and related utilities
         """Run a qobj job"""
         warnings.warn(
             'The `_run_job` method has been deprecated. Use `_run` instead.',

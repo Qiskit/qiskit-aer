@@ -38,7 +38,7 @@ class CResults:
     def __init__(
             self,
             job_set: 'clusterjobset.JobSet',
-            success: bool
+            results: List[Union[Result, None]]
     ):
         """ClusterResults constructor.
 
@@ -51,8 +51,47 @@ class CResults:
             success: Whether all experiments were successful.
         """
         self._job_set = job_set
-        self.success = success
-        self._combined_results = None  # type: Result
+        self._results = results
+        self.success = all([r is not None and r.success for r in self._results])
+        self._combined_result = None  # type: Result
+
+    def combine_results(self) -> Result:
+        """Combine results from all jobs into a single `Result`.
+
+        Note:
+            Since the order of the results must match the order of the initial
+            experiments, job results can only be combined if all jobs succeeded.
+
+        Returns:
+            A :class:`~qiskit.result.Result` object that contains results from
+                all jobs.
+        Raises:
+            AerClusterResultDataNotAvailable: If results cannot be combined
+                because some jobs failed.
+        """
+        if self._combined_result:
+            return self._combined_result
+
+        if not self._results:
+            raise AerClusterResultDataNotAvailable(
+                "Results cannot be combined - no results.")
+
+        # find first non-null result and copy it's config
+        _result = next((r for r in self._results if r is not None), None)
+        if not _result:
+            raise AerClusterResultDataNotAvailable(
+                "Results cannot be combined - no results.")
+        else:
+            combined_result = copy.deepcopy(_result)
+            combined_result.results = []
+            combined_result.success = self.success
+
+        for r in self._results:
+            if r is not None:
+                combined_result.results.extend(r.results)
+
+        self._combined_result = combined_result
+        return combined_result
 
     def data(self, experiment: Union[str, QuantumCircuit, Schedule, int]) -> Dict:
         """Get the raw data for an experiment.
@@ -169,35 +208,6 @@ class CResults:
         """
         result, exp_index = self._get_result(experiment)
         return result.get_unitary(experiment=exp_index, decimals=decimals)
-
-    def combine_results(self) -> Result:
-        """Combine results from all jobs into a single `Result`.
-
-        Note:
-            Since the order of the results must match the order of the initial
-            experiments, job results can only be combined if all jobs succeeded.
-
-        Returns:
-            A :class:`~qiskit.result.Result` object that contains results from
-                all jobs.
-        Raises:
-            AerClusterResultDataNotAvailable: If results cannot be combined
-                because some jobs failed.
-        """
-        if self._combined_results:
-            return self._combined_results
-
-        if not self.success:
-            raise AerClusterResultDataNotAvailable(
-                "Results cannot be combined since one or more jobs failed.")
-
-        jobs = self._job_set.jobs()
-        combined_result = copy.deepcopy(jobs[0].result())
-        for idx in range(1, len(jobs)):
-            combined_result.results.extend(jobs[idx].result().results)
-
-        self._combined_results = combined_result
-        return combined_result
 
     def _get_result(
             self,

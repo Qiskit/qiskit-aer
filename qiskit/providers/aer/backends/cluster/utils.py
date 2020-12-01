@@ -43,15 +43,10 @@ def requires_submit(func):
 
 
 def methdispatch(func):
-<<<<<<< HEAD
     """
     Returns a wrapper function that selects which registered function
     to call based on the type of args[2]
     """
-=======
-    """returns a wrapper function that selects which registered function
-    to call based on the type of args[2]"""
->>>>>>> Add ClusterBackend and related utilities
     dispatcher = singledispatch(func)
 
     def wrapper(*args, **kw):
@@ -72,16 +67,11 @@ def split(qobj: QasmQobj, _id: Optional[str] = None) -> List[QasmQobj]:
         A list of qobjs.
     """
     if qobj.type == 'PULSE':
-<<<<<<< HEAD
         return _split_pulse_qobj(qobj, _id)
-=======
-        return None
->>>>>>> Add ClusterBackend and related utilities
     else:
         return _split_qasm_qobj(qobj, _id)
 
 
-<<<<<<< HEAD
 def _split_pulse_qobj(qobj: PulseQobj, _id: Optional[str] = None):
     qobjs = []
     if len(qobj.experiments) <= 1:
@@ -92,8 +82,6 @@ def _split_pulse_qobj(qobj: PulseQobj, _id: Optional[str] = None):
     return qobjs
 
 
-=======
->>>>>>> Add ClusterBackend and related utilities
 def _split_qasm_qobj(qobj: QasmQobj, _id: Optional[str] = None):
     qobjs = []
     if len(qobj.experiments) <= 1:
