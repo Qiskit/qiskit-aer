@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes a bug with nested OpenMP flag was being set to true when it
+    shouldn't be.

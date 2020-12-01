@@ -229,6 +229,8 @@ protected:
   int parallel_shots_;
   int parallel_state_update_;
 
+  bool parallel_nested_ = false;
+
   //max number of qubits in given circuits
   int max_qubits_;
 
@@ -283,6 +285,7 @@ void Controller::set_config(const json_t &config) {
   max_parallel_threads_ = 1;
   max_parallel_shots_ = 1;
   max_parallel_experiments_ = 1;
+  parallel_nested_ = false;
 #endif
 
   // Load configurations for parallelization
@@ -334,6 +337,7 @@ void Controller::clear_parallelization() {
   parallel_experiments_ = 1;
   parallel_shots_ = 1;
   parallel_state_update_ = 1;
+  parallel_nested_ = false;
 
   num_process_per_experiment_ = 1;
   distributed_experiments_ = 1;
@@ -661,8 +665,16 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     result.metadata["distributed_experiments_rank_in_group"] = distributed_experiments_rank_;
 
 #ifdef _OPENMP
-    if (parallel_shots_ > 1 || parallel_state_update_ > 1)
+    // Check if circuit parallelism is nested with one of the others
+    if (parallel_experiments_ > 1 && parallel_experiments_ < max_parallel_threads_) {
+      // Nested parallel experiments
+      parallel_nested_ = true;
       omp_set_nested(1);
+      result.metadata["omp_nested"] = parallel_nested_;
+    } else {
+      parallel_nested_ = false;
+      omp_set_nested(0);
+    }
 #endif
     // then- and else-blocks have intentionally duplication.
     // Nested omp has significant overheads even though a guard condition exists.
@@ -765,6 +777,19 @@ void Controller::execute_circuit(Circuit &circ,
       // Vector to store parallel thread output data
       std::vector<ExperimentResult> par_results(parallel_shots_);
       std::vector<std::string> error_msgs(parallel_shots_);
+
+    #ifdef _OPENMP
+    if (!parallel_nested_) {
+      if (parallel_shots_ > 1 && parallel_state_update_ > 1) {
+        // Nested parallel shots + state update
+        omp_set_nested(1);
+        result.metadata["omp_nested"] = true;
+      } else {
+        omp_set_nested(0);
+      }
+    }
+    #endif
+
 #pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
       for (int i = 0; i < parallel_shots_; i++) {
         try {
