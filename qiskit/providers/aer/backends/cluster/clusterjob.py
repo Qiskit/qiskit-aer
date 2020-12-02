@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class CJob:
-    """Job managed by the Cluster Manager.
+    """Job managed by the ClusterBackend.
 
     Attributes:
        _executor (futures.Executor): default executor to handle asynchronous jobs
@@ -65,6 +65,8 @@ class CJob:
 
         # Submit the job in its own future.
         logger.debug("Submitting job %s in future", self._id)
+        #self._future = executor.submit(self._backend._run_job, self._id, self._qobj,
+        #                               *self._run_args, **self._run_kwargs)
         if executor:
             self._future = executor.submit(self._backend._run_job, self._id, self._qobj,
                                            *self._run_args, **self._run_kwargs)

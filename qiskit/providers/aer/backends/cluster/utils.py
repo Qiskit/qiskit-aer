@@ -15,7 +15,7 @@ import uuid
 from typing import Optional, List
 from functools import singledispatch, update_wrapper, wraps
 
-from qiskit.qobj import QasmQobj, QasmQobjConfig
+from qiskit.qobj import QasmQobj, PulseQobj, QasmQobjConfig
 from qiskit.providers import JobError
 
 
@@ -63,10 +63,18 @@ def split(qobj: QasmQobj, _id: Optional[str] = None) -> List[QasmQobj]:
         A list of qobjs.
     """
     if qobj.type == 'PULSE':
-        return None
+        return _split_pulse_qobj(qobj, _id)
     else:
         return _split_qasm_qobj(qobj, _id)
 
+def _split_pulse_qobj(qobj: PulseQobj, _id: Optional[str] = None):
+    qobjs = []
+    if len(qobj.experiments) <= 1:
+        return [qobj]
+    for exp in qobj.experiments:
+        _qid = _id or str(uuid.uuid4())
+        qobjs.append(QasmQobj(_qid, qobj.config, [exp], qobj.header))
+    return qobjs
 
 def _split_qasm_qobj(qobj: QasmQobj, _id: Optional[str] = None):
     qobjs = []

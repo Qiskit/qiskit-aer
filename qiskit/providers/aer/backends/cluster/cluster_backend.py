@@ -17,7 +17,7 @@ import logging
 from typing import Any, Union, List
 
 from qiskit import assemble, QuantumCircuit
-from qiskit.qobj import QasmQobj
+from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.pulse import Schedule
 from qiskit.providers.aer import AerProvider
 from .clusterjobset import JobSet
@@ -126,7 +126,7 @@ class ClusterBackend(AerBackend):
         Raises:
             ValueError: If the qobj/backend are incompatible
         """
-        if isinstance(exp, QasmQobj):
+        if isinstance(exp, (QasmQobj, PulseQobj)):
             experiments = split(exp)
         elif isinstance(exp, (QuantumCircuit, Schedule)):
             experiments = [assemble(exp, self.backend, **self._assemble_config)]

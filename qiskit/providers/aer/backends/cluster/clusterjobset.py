@@ -162,8 +162,11 @@ class JobSet:
             try:
                 result = cjob.result(timeout=timeout, raises=raises)
                 if result is None or not result.success:
-                    logger.warning('ClusterJob %s failed.', cjob.name())
                     success = False
+                    if result:
+                        logger.warning('ClusterJob %s Error: %s', cjob.name(), result.header)
+                    else:
+                        logger.warning('ClusterJob %s did not return a result', cjob.name())
                 res.append(result)
             except AerClusterTimeoutError as ex:
                 raise AerClusterTimeoutError(
