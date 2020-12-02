@@ -20,6 +20,8 @@
 #include "transpile/circuitopt.hpp"
 #include "../fusion_method.hpp"
 
+//#define DEBUG
+
 namespace AER {
 namespace Transpile {
 
@@ -95,34 +97,94 @@ bool EntanglerFusion::aggregate_operations(uint_t num_qubits,
     dump_op_in_circuit(ops, op_idx);
 #endif
 
+  uint_t num_of_cx = 0;
+
+  for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx)
+    if (ops[op_idx].name == "CX" || ops[op_idx].name == "cx")
+      ++num_of_cx;
+
+  if (num_of_cx < (fusion_end - fusion_start) /4)
+    return false;
+
+  std::vector<int> searched;
+
   // current impl is sensitive to ordering of gates
   for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx) {
+
+    if (ops[op_idx].type == optype_t::nop)
+      continue;
 
     if (ops[op_idx].name != "CX" && ops[op_idx].name != "cx")
       continue;
 
-    auto start_op_idx = op_idx;
-    uint_t num_of_cx = 1;
-    ++op_idx;
-    for (; op_idx < fusion_end; ++op_idx) {
-      if (ops[op_idx].name != "CX" && ops[op_idx].name != "cx")
-        break;
-      ++num_of_cx;
-    }
-
-    if (num_of_cx < (num_qubits * 2))
+    if (std::find(searched.begin(), searched.end(), op_idx) != searched.end())
       continue;
 
-    auto end_op_idx = op_idx;
-    std::vector<uint_t> ctrl_qubits;
-    std::vector<uint_t> tgt_qubits;
-    std::vector<op_t> fusing_ops;
-    for (op_idx = start_op_idx ; op_idx < end_op_idx; ++op_idx) {
-      ctrl_qubits.push_back(ops[op_idx].qubits[0]);
-      tgt_qubits.push_back(ops[op_idx].qubits[1]);
-      ops[op_idx].type = optype_t::nop;
+    auto start_op_idx = op_idx;
+    std::vector<uint_t> idx_list;
+    std::vector<uint_t> entangled_qubits;
+    std::vector<uint_t> opened_qubits;
+
+    idx_list.push_back(op_idx);
+    entangled_qubits.push_back(ops[op_idx].qubits[0]);
+    entangled_qubits.push_back(ops[op_idx].qubits[1]);
+
+    ++op_idx;
+
+    for (; op_idx < fusion_end; ++op_idx) {
+      if (ops[op_idx].type == optype_t::nop)
+        continue;
+
+      if (ops[op_idx].type != optype_t::gate
+          && ops[op_idx].type != optype_t::matrix
+          && ops[op_idx].type != optype_t::diagonal_matrix) {
+        break;
+      }
+
+      if (ops[op_idx].name == "CX" || ops[op_idx].name == "cx") {
+        bool direct_dependency_ctrl = std::find(opened_qubits.begin(), opened_qubits.end(), ops[op_idx].qubits[0]) == opened_qubits.end();
+        bool direct_dependency_tgt = std::find(opened_qubits.begin(), opened_qubits.end(), ops[op_idx].qubits[1]) == opened_qubits.end();
+        if (direct_dependency_ctrl && direct_dependency_tgt) {
+          idx_list.push_back(op_idx);
+          entangled_qubits.push_back(ops[op_idx].qubits[0]);
+          entangled_qubits.push_back(ops[op_idx].qubits[1]);
+        } else if (direct_dependency_ctrl) {
+          opened_qubits.push_back(ops[op_idx].qubits[0]);
+        } else if (direct_dependency_tgt) {
+          opened_qubits.push_back(ops[op_idx].qubits[1]);
+        }
+      } else {
+        bool dependency = false;
+        for (auto qubit : ops[op_idx].qubits) {
+          if (std::find(entangled_qubits.begin(), entangled_qubits.end(), qubit) != entangled_qubits.end()) {
+            dependency = true;
+            break;
+          }
+        }
+        if (dependency)
+          for (auto qubit : ops[op_idx].qubits)
+            if (std::find(opened_qubits.begin(), opened_qubits.end(), qubit) == opened_qubits.end())
+              opened_qubits.push_back(qubit);
+      }
+
+      if (opened_qubits.size() == num_qubits)
+        break;
     }
-    ops[start_op_idx] = Operations::make_cxlist(ctrl_qubits, tgt_qubits);
+
+    if (idx_list.size() < (num_qubits * 2)) {
+      searched.insert(searched.end(), idx_list.begin(), idx_list.end());
+    } else {
+      std::vector<uint_t> ctrl_qubits;
+      std::vector<uint_t> tgt_qubits;
+      std::vector<op_t> fusing_ops;
+      for (auto op_idx : idx_list) {
+        ctrl_qubits.push_back(ops[op_idx].qubits[0]);
+        tgt_qubits.push_back(ops[op_idx].qubits[1]);
+        ops[op_idx].type = optype_t::nop;
+      }
+      ops[start_op_idx] = Operations::make_cxlist(ctrl_qubits, tgt_qubits);
+    }
+    op_idx = start_op_idx;
   }
 
 #ifdef DEBUG
@@ -132,6 +194,8 @@ bool EntanglerFusion::aggregate_operations(uint_t num_qubits,
 #endif
   return true;
 }
+
+#undef DEBUG
 
 //-------------------------------------------------------------------------
 } // end namespace Transpile
