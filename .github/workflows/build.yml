@@ -76,9 +76,8 @@ jobs:
           CIBW_BEFORE_ALL_LINUX: "yum install -y openblas-devel"
           CIBW_BEFORE_BUILD: "pip install -U virtualenv pybind11"
           CIBW_SKIP: "cp27-* cp34-* cp35-* cp39-* pp*"
-          # Switch back to manylinux2010 after pypa/manylinux#836 is fixed
-          CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2014"
-          CIBW_MANYLINUX_I686_IMAGE: "manylinux2014"
+          CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2010"
+          CIBW_MANYLINUX_I686_IMAGE: "manylinux2010"
           CIBW_TEST_COMMAND: "python3 {project}/tools/verify_wheels.py"
           CIBW_TEST_REQUIRES: "git+https://github.com/Qiskit/qiskit-terra.git"
         run: cibuildwheel --output-dir wheelhouse
