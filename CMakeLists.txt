@@ -153,6 +153,10 @@ setup_dependencies()
 set(AER_LINKER_FLAGS " ")
 set(AER_COMPILER_FLAGS " ")
 
+if(MSVC)
+  set(AER_COMPILER_FLAGS " /bigobj")
+endif ()
+
 if(NOT OPENMP_FOUND) # Could already be setup for macos with conan
 	message(STATUS "Looking for OpenMP support...")
 	find_package(OpenMP QUIET)
