@@ -635,7 +635,7 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits,
   uint_t nqubits = qubits.size();
   uint_t sidelen = 1 << nqubits;
   cmatrix_t new_mat(sidelen, sidelen);
-  for (uint_t i=0; i<sidelen; ++i)
+  for (uint_t i=0; i<sidelen; ++i) {
     for (uint_t j=0; j<sidelen; ++j) {
       uint_t new_i = reverse_bits(i, nqubits);
       if (i==j)
@@ -645,6 +645,7 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits,
 	new_mat(new_i, new_j) = mat(i, j);
       }
     }
+  }
 
   if (is_ordered(qubits))
     apply_matrix_to_target_qubits(qubits, new_mat, is_diagonal);
