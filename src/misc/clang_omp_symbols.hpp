@@ -218,6 +218,11 @@ extern "C" {
     void __KAI_KMPC_CONVENTION omp_set_nested(int foo){
         _hook_omp_set_nested(foo);
     }
+    using omp_set_max_active_levels_t = void(*)(int);
+    omp_set_max_active_levels_t _hook_omp_set_max_active_levels;
+    void __KAI_KMPC_CONVENTION omp_set_max_active_levels(int foo){
+        _hook_omp_set_max_active_levels(foo);
+    }
     using omp_get_num_procs_t = int(*)(void);
     omp_get_num_procs_t _hook_omp_get_num_procs;
     int __KAI_KMPC_CONVENTION omp_get_num_procs(void) {
@@ -325,6 +330,7 @@ void populate_hooks(void * handle){
     _hook_omp_get_num_threads = reinterpret_cast<decltype(&omp_get_num_threads)>(dlsym(handle, "omp_get_num_threads"));
     _hook_omp_get_thread_num = reinterpret_cast<decltype(&omp_get_thread_num)>(dlsym(handle, "omp_get_thread_num"));
     _hook_omp_set_nested = reinterpret_cast<decltype(&omp_set_nested)>(dlsym(handle, "omp_set_nested"));
+    _hook_omp_set_max_active_levels = reinterpret_cast<decltype(&omp_set_max_active_levels)>(dlsym(handle, "omp_set_max_active_levels"));
     _hook_omp_get_num_procs = reinterpret_cast<decltype(&omp_get_num_procs)>(dlsym(handle, "omp_get_num_procs"));
 }
 
