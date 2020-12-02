@@ -12,3 +12,5 @@ Qiskit Aer API Reference
     aer_noise
     aer_pulse
     aer_utils
+
+.. test
