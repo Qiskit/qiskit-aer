@@ -62,7 +62,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ matrix.python-version}}-pip-tutorials-
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
-            ${{ runner.os }-${{ matrix.python-version}}}-
+            ${{ runner.os }}-${{ matrix.python-version}}}-
       - name: Setup tutorials job
         run: |
           set -e
