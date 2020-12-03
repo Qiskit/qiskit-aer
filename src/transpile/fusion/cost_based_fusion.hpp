@@ -125,7 +125,8 @@ bool CostBasedFusion::aggregate_operations(uint_t num_qubits,
     if (can_ignore(ops[op_idx]))
       continue;
     if (ops[op_idx].qubits.size() > max_fused_qubits
-        || !method->can_apply_fusion(ops[op_idx])) {
+        || !method->can_apply_fusion(ops[op_idx])
+        || op_idx == (fusion_end - 1)) {
       applied |= fusion_start != op_idx &&
           aggregate_operations_kernel(ops, fusion_start, op_idx);
       fusion_start = op_idx + 1;

@@ -70,7 +70,9 @@ bool FusionMethod::can_apply_fusion(const op_t& op) const {
 
   switch (op.type) {
     case optype_t::matrix:
-      return op.mats.size() == 1;
+      return true;
+    case optype_t::diagonal_matrix:
+      return true;
     case optype_t::gate:
       return QubitUnitary::StateOpSet.contains_gates(op.name);
     default:
