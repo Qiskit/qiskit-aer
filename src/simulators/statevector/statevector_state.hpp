@@ -12,6 +12,8 @@
  * that they have been altered from the originals.
  */
 
+#define AER_THRUST_SUPPORTED
+
 #ifndef _statevector_state_hpp
 #define _statevector_state_hpp
 

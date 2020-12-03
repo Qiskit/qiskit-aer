@@ -12,7 +12,6 @@
  * that they have been altered from the originals.
  */
 
-
 #ifndef _qv_chunk_hpp_
 #define _qv_chunk_hpp_
 
@@ -32,19 +31,18 @@ template <typename data_t>
 class Chunk 
 {
 protected:
-  mutable ChunkContainer<data_t>* chunk_container_;   //pointer to chunk container
-  Chunk<data_t>* cache_;                //pointer to cache chunk on device
+  mutable std::shared_ptr<ChunkContainer<data_t>> chunk_container_;   //pointer to chunk container
+  std::shared_ptr<Chunk<data_t>> cache_;                //pointer to cache chunk on device
   uint_t chunk_pos_;                    //position in container
   int place_;                           //container ID
   uint_t num_qubits_;                   //total number of qubits
   uint_t chunk_index_;                  //global chunk index
 public:
-  Chunk(ChunkContainer<data_t>* cc,uint_t pos)
+  Chunk(std::shared_ptr<ChunkContainer<data_t>> cc,uint_t pos)
   {
     chunk_container_ = cc;
     chunk_pos_ = pos;
     place_ = 0;
-    cache_ = NULL;
     num_qubits_ = 0;
     chunk_index_ = 0;
   }
@@ -61,7 +59,7 @@ public:
     return chunk_container_->device();
   }
 
-  ChunkContainer<data_t>* container(void)
+  std::shared_ptr<ChunkContainer<data_t>> container()
   {
     return chunk_container_;
   }
@@ -78,7 +76,7 @@ public:
   {
     place_ = ip;
   }
-  void set_cache(Chunk<data_t>* c)
+  void set_cache(const std::shared_ptr<Chunk<data_t>>& c)
   {
     cache_ = c;
   }
@@ -130,11 +128,11 @@ public:
     }
   }
 
-  void CopyIn(Chunk<data_t>* src)
+  void CopyIn(std::shared_ptr<Chunk<data_t>> src)
   {
     chunk_container_->CopyIn(src,chunk_pos_);
   }
-  void CopyOut(Chunk<data_t>* dest)
+  void CopyOut(std::shared_ptr<Chunk<data_t>> dest)
   {
     chunk_container_->CopyOut(dest,chunk_pos_);
   }
@@ -146,7 +144,7 @@ public:
   {
     chunk_container_->CopyOut(dest,chunk_pos_);
   }
-  void Swap(Chunk<data_t>* src)
+  void Swap(std::shared_ptr<Chunk<data_t>> src)
   {
     chunk_container_->Swap(src,chunk_pos_);
   }
@@ -159,9 +157,9 @@ public:
     }
     else{
       if(chunk_container_->device() >= 0)
-        ((DeviceChunkContainer<data_t>*)chunk_container_)->Execute(func,chunk_pos_,count);
+        static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->Execute(func,chunk_pos_,count);
       else
-        ((HostChunkContainer<data_t>*)chunk_container_)->Execute(func,chunk_pos_,count);
+        static_pointer_cast<HostChunkContainer<data_t>>(chunk_container_)->Execute(func,chunk_pos_,count);
     }
   }
   template <typename Function>
@@ -171,10 +169,10 @@ public:
       return cache_->ExecuteSum(func,count);
     }
     else{
-      if(chunk_container_->device() >= 0)
-        return ((DeviceChunkContainer<data_t>*)chunk_container_)->ExecuteSum(func,chunk_pos_,count);
-      else
-        return ((HostChunkContainer<data_t>*)chunk_container_)->ExecuteSum(func,chunk_pos_,count);
+        if(chunk_container_->device() >= 0)
+            static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->ExecuteSum(func,chunk_pos_,count);
+        else
+            static_pointer_cast<HostChunkContainer<data_t>>(chunk_container_)->ExecuteSum(func,chunk_pos_,count);
     }
   }
   template <typename Function>
@@ -184,10 +182,10 @@ public:
       return cache_->ExecuteComplexSum(func,count);
     }
     else{
-      if(chunk_container_->device() >= 0)
-        return ((DeviceChunkContainer<data_t>*)chunk_container_)->ExecuteComplexSum(func,chunk_pos_,count);
-      else
-        return ((HostChunkContainer<data_t>*)chunk_container_)->ExecuteComplexSum(func,chunk_pos_,count);
+        if(chunk_container_->device() >= 0)
+            static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->ExecuteComplexSum(func,chunk_pos_,count);
+        else
+            static_pointer_cast<HostChunkContainer<data_t>>(chunk_container_)->ExecuteComplexSum(func,chunk_pos_,count);
     }
   }
   void Zero(void)
@@ -203,7 +201,7 @@ public:
 #ifdef AER_THRUST_CUDA
   cudaStream_t stream(void)
   {
-    return ((DeviceChunkContainer<data_t>*)chunk_container_)->stream(chunk_pos_);
+    return static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->stream(chunk_pos_);
   }
 #endif
 
@@ -245,7 +243,6 @@ public:
   }
 
 };
-
 
 //------------------------------------------------------------------------------
 } // end namespace QV

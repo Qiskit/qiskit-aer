@@ -362,11 +362,11 @@ protected:
   size_t num_qubits_;
   size_t data_size_;
 
-  mutable Chunk<data_t>* chunk_;
-  mutable Chunk<data_t>* buffer_chunk_;
-  Chunk<data_t>* checkpoint_;
-  Chunk<data_t>* send_chunk_;
-  Chunk<data_t>* recv_chunk_;
+  mutable std::shared_ptr<Chunk<data_t>> chunk_;
+  mutable std::shared_ptr<Chunk<data_t>> buffer_chunk_;
+  std::shared_ptr<Chunk<data_t>> checkpoint_;
+  std::shared_ptr<Chunk<data_t>> send_chunk_;
+  std::shared_ptr<Chunk<data_t>> recv_chunk_;
   static ChunkManager<data_t> chunk_manager_;
 
   uint_t chunk_index_;
@@ -508,7 +508,7 @@ void QubitVectorThrust<data_t>::check_dimension(const QubitVectorThrust &qv) con
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::check_checkpoint() const {
-  if (checkpoint_ == NULL) {
+  if (!checkpoint_) {
     throw std::runtime_error("QubitVectorThrust: checkpoint must exist for inner_product() or revert()");
   }
 }
@@ -520,10 +520,10 @@ void QubitVectorThrust<data_t>::check_checkpoint() const {
 template <typename data_t>
 QubitVectorThrust<data_t>::QubitVectorThrust(size_t num_qubits) : num_qubits_(0)
 {
-  chunk_ = NULL;
+  chunk_.reset();
   chunk_index_ = 0;
   multi_chunk_distribution_ = false;
-  checkpoint_ = NULL;
+  checkpoint_.reset();
 
 #ifdef AER_DEBUG
   debug_fp = NULL;
@@ -545,14 +545,15 @@ QubitVectorThrust<data_t>::QubitVectorThrust() : QubitVectorThrust(0)
 template <typename data_t>
 QubitVectorThrust<data_t>::~QubitVectorThrust() 
 {
-  if(checkpoint_ != NULL){
+  if(checkpoint_){
     chunk_manager_.UnmapCheckpoint(checkpoint_);
-    checkpoint_ = NULL;
+    checkpoint_.reset();
   }
 
-  if(chunk_ != NULL){
+  if(chunk_){
     chunk_manager_.UnmapChunk(chunk_);
-    chunk_ = NULL;
+    chunk_.reset();
+    
   }
 
 #ifdef AER_DEBUG
@@ -850,12 +851,11 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   int nid = omp_get_num_threads();
 
   if(checkpoint_){
-    delete checkpoint_;
-    checkpoint_ = NULL;
+    checkpoint_.reset();
   }
 
   num_qubits_ = num_qubits;
-  if(chunk_ == NULL){
+  if(!chunk_){
     chunk_ = chunk_manager_.MapChunk(0);
   }
   chunk_->set_num_qubits(num_qubits);
@@ -924,7 +924,7 @@ check_checkpoint();
   if(checkpoint_){
     chunk_->CopyIn(checkpoint_);
     chunk_manager_.UnmapCheckpoint(checkpoint_);
-    checkpoint_ = NULL;
+    checkpoint_.reset();
   }
 
 #ifdef AER_DEBUG
@@ -946,7 +946,7 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const
   data_t* vec0;
   data_t* vec1;
 
-  if(checkpoint_ == NULL){
+  if(!checkpoint_){
     return std::complex<double>(0.0,0.0);
   }
 
@@ -960,7 +960,7 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const
       dot = thrust::inner_product(thrust::device,vec0,vec0 + data_size_*2,vec1,0.0);
     }
     else{
-      Chunk<data_t>* pBuffer = chunk_manager_.MapBufferChunk(chunk_->place());
+      std::shared_ptr<Chunk<data_t>> pBuffer = chunk_manager_.MapBufferChunk(chunk_->place());
       pBuffer->CopyIn(checkpoint_);
       vec1 = (data_t*)pBuffer->pointer();
 
@@ -987,7 +987,7 @@ void QubitVectorThrust<data_t>::fetch_chunk(void) const
   if(chunk_->device() < 0){
     do{
       buffer_chunk_ = chunk_manager_.MapBufferChunk(chunk_->place() - chunk_manager_.num_devices());
-    }while(buffer_chunk_ == NULL);
+    }while(!buffer_chunk_);
     chunk_->set_cache(buffer_chunk_);
     buffer_chunk_->CopyIn(chunk_);
   }
@@ -1004,8 +1004,8 @@ void QubitVectorThrust<data_t>::release_chunk(bool write_back) const
   if(chunk_->device() < 0){
     buffer_chunk_->CopyOut(chunk_);
     chunk_manager_.UnmapBufferChunk(buffer_chunk_);
-    chunk_->set_cache(NULL);
-    buffer_chunk_ = NULL;
+    chunk_->set_cache(nullptr);
+    buffer_chunk_.reset();
   }
   else if(multi_chunk_distribution_){
     if(chunk_->pos() == 0){
@@ -1036,7 +1036,7 @@ void* QubitVectorThrust<data_t>::send_buffer(uint_t& size_in_byte)
 {
   void* pRet;
 
-  send_chunk_ = NULL;
+  send_chunk_.reset();
 #ifdef AER_DISABLE_GDR
   if(chunk_->device() < 0){
     pRet = chunk_->pointer();
@@ -1068,7 +1068,7 @@ void* QubitVectorThrust<data_t>::recv_buffer(uint_t& size_in_byte)
 #else
     recv_chunk_ = chunk_manager_.MapBufferChunk(chunk_->place());
 #endif
-  if(recv_chunk_ == NULL){
+  if(!recv_chunk_){
     throw std::runtime_error("QubitVectorThrust: receive buffer can not be allocated");
   }
 
@@ -2640,8 +2640,8 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
   else{
     thrust::complex<data_t>* pChunk0;
     thrust::complex<data_t>* pChunk1;
-    Chunk<data_t>* pBuffer0 = NULL;
-    Chunk<data_t>* pExec;
+    std::shared_ptr<Chunk<data_t>> pBuffer0;
+    std::shared_ptr<Chunk<data_t>> pExec;
 
     if(chunk_->device() >= 0){
       pExec = chunk_;
@@ -2651,7 +2651,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
       else{
         do{
           pBuffer0 = chunk_manager_.MapBufferChunk(chunk_->place());
-        }while(pBuffer0 == NULL);
+        }while(!pBuffer0);
         pBuffer0->CopyIn(src.chunk_);
         pChunk1 = pBuffer0->pointer();
       }
@@ -2661,7 +2661,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
       if(src.chunk_->device() >= 0){
         do{
           pBuffer0 = chunk_manager_.MapBufferChunk(src.chunk_->place());
-        }while(pBuffer0 == NULL);
+        }while(!pBuffer0);
         pBuffer0->CopyIn(chunk_);
         pChunk0 = pBuffer0->pointer();
         pChunk1 = src.chunk_->pointer();
@@ -2686,7 +2686,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
     pExec->Execute(CSwapChunk_func<data_t>(qubits,pChunk0,pChunk1,true),1);
     pExec->synchronize();    //should be synchronized here
 
-    if(pBuffer0 != NULL){
+    if(pBuffer0){
       if(pExec == chunk_)
         pBuffer0->CopyOut(src.chunk_);
       else
@@ -2720,7 +2720,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, uint_t rem
   else{
     thrust::complex<data_t>* pLocal;
     thrust::complex<data_t>* pRemote;
-    Chunk<data_t>* pBuffer = NULL;
+    std::shared_ptr<Chunk<data_t>> pBuffer;
 
 #ifdef AER_DISABLE_GDR
     if(chunk_->device() >= 0){    //if there is no GPUDirectRDMA support, copy chunk from CPU
@@ -2754,12 +2754,12 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, uint_t rem
   }
 
   chunk_manager_.UnmapBufferChunk(recv_chunk_);
-  recv_chunk_ = NULL;
+  recv_chunk_.reset();
 
 #ifdef AER_DISABLE_GDR
-  if(send_chunk_ != NULL){
+  if(send_chunk_){
     chunk_manager_.UnmapBufferChunk(send_chunk_);
-    send_chunk_ = NULL;
+    send_chunk_.reset();
   }
 #endif
 }

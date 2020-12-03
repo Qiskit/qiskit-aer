@@ -134,11 +134,11 @@ public:
     return data_[i];
   }
 
-  void CopyIn(Chunk<data_t>* src,uint_t iChunk);
-  void CopyOut(Chunk<data_t>* src,uint_t iChunk);
+  void CopyIn(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk);
+  void CopyOut(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk);
   void CopyIn(thrust::complex<data_t>* src,uint_t iChunk);
   void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk);
-  void Swap(Chunk<data_t>* src,uint_t iChunk);
+  void Swap(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk);
 
   void Zero(uint_t iChunk,uint_t count);
 
@@ -617,12 +617,12 @@ thrust::complex<double> DeviceChunkContainer<data_t>::ExecuteComplexSum(Function
 }
 
 template <typename data_t>
-void DeviceChunkContainer<data_t>::CopyIn(Chunk<data_t>* src,uint_t iChunk)
+void DeviceChunkContainer<data_t>::CopyIn(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
   set_device();
   if(src->device() >= 0){
-    DeviceChunkContainer<data_t>* src_cont = (DeviceChunkContainer<data_t>*)src->container();
+    auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src->container());
     if(peer_access(src->device())){
       thrust::copy_n(src_cont->vector().begin() + (src->pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
     }
@@ -633,18 +633,18 @@ void DeviceChunkContainer<data_t>::CopyIn(Chunk<data_t>* src,uint_t iChunk)
     }
   }
   else{
-    HostChunkContainer<data_t>* src_cont = (HostChunkContainer<data_t>*)src->container();
+    auto src_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(src->container());
     thrust::copy_n(src_cont->vector().begin() + (src->pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
   }
 }
 
 template <typename data_t>
-void DeviceChunkContainer<data_t>::CopyOut(Chunk<data_t>* dest,uint_t iChunk)
+void DeviceChunkContainer<data_t>::CopyOut(std::shared_ptr<Chunk<data_t>> dest,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
   set_device();
   if(dest->device() >= 0){
-    DeviceChunkContainer<data_t>* dest_cont = (DeviceChunkContainer<data_t>*)dest->container();
+    auto dest_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(dest->container());
     if(peer_access(dest->device())){
       thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest_cont->vector().begin() + (dest->pos() << this->chunk_bits_));
     }
@@ -655,7 +655,7 @@ void DeviceChunkContainer<data_t>::CopyOut(Chunk<data_t>* dest,uint_t iChunk)
     }
   }
   else{
-    HostChunkContainer<data_t>* dest_cont = (HostChunkContainer<data_t>*)dest->container();
+    auto dest_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(dest->container());
     thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest_cont->vector().begin() + (dest->pos() << this->chunk_bits_));
   }
 }
@@ -678,12 +678,12 @@ void DeviceChunkContainer<data_t>::CopyOut(thrust::complex<data_t>* dest,uint_t 
 }
 
 template <typename data_t>
-void DeviceChunkContainer<data_t>::Swap(Chunk<data_t>* src,uint_t iChunk)
+void DeviceChunkContainer<data_t>::Swap(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
   set_device();
   if(src->device() >= 0){
-    DeviceChunkContainer<data_t>* src_cont = (DeviceChunkContainer<data_t>*)src->container();
+    auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src->container());
     if(peer_access(src->device())){
       thrust::swap_ranges(thrust::device,data_.begin() + (iChunk << this->chunk_bits_),data_.begin() + (iChunk << this->chunk_bits_) + size,src_cont->vector().begin() + (src->pos() << this->chunk_bits_));
     }
@@ -701,7 +701,7 @@ void DeviceChunkContainer<data_t>::Swap(Chunk<data_t>* src,uint_t iChunk)
   else{
     //using temporary buffer on host
     AERHostVector<thrust::complex<data_t>> tmp1(size);
-    HostChunkContainer<data_t>* src_cont = (HostChunkContainer<data_t>*)src->container();
+    auto src_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(src->container());
 
 #ifdef AER_ATS
     //for IBM AC922
