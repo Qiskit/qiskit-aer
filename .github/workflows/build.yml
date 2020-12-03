@@ -73,11 +73,11 @@ jobs:
         run: python -m pip install -U cibuildwheel==1.7.0
       - name: Build Wheels
         env:
-          CIBW_BEFORE_ALL_LINUX: "yum install -y openblas-devel"
+          CIBW_BEFORE_ALL_LINUX: "yum install -y https://archives.fedoraproject.org/pub/archive/epel/6/x86_64/epel-release-6-8.noarch.rpm && yum install -y openblas-devel"
           CIBW_BEFORE_BUILD: "pip install -U virtualenv pybind11"
           CIBW_SKIP: "cp27-* cp34-* cp35-* cp39-* pp*"
-          CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2010"
-          CIBW_MANYLINUX_I686_IMAGE: "manylinux2010"
+          CIBW_MANYLINUX_X86_64_IMAGE: "quay.io/pypa/manylinux2010_x86_64:2020-12-03-912b0de"
+          CIBW_MANYLINUX_I686_IMAGE: "quay.io/pypa/manylinux2010_i686:2020-12-03-912b0de"
           CIBW_TEST_COMMAND: "python3 {project}/tools/verify_wheels.py"
           CIBW_TEST_REQUIRES: "git+https://github.com/Qiskit/qiskit-terra.git"
         run: cibuildwheel --output-dir wheelhouse
