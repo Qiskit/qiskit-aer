@@ -12,8 +12,8 @@
  * that they have been altered from the originals.
  */
 
-#ifndef _aer_transpile_fusion_diagonal_hpp_
-#define _aer_transpile_fusion_diagonal_hpp_
+#ifndef _aer_transpile_fusion_diagonal_merge_hpp_
+#define _aer_transpile_fusion_diagonal_merge_hpp_
 
 #include <chrono>
 
@@ -24,12 +24,12 @@
 namespace AER {
 namespace Transpile {
 
-class DiagonalFusion {
+class DiagonalMerge {
 public:
-  DiagonalFusion(std::shared_ptr<FusionMethod> method_ = std::make_shared<FusionMethod>())
+  DiagonalMerge(std::shared_ptr<FusionMethod> method_ = std::make_shared<FusionMethod>())
     : method(method_), threshold(method_->get_default_threshold_qubit() + 5), active(false) { }
 
-  virtual ~DiagonalFusion() {}
+  virtual ~DiagonalMerge() {}
 
   void set_config(const json_t &config);
 
@@ -49,7 +49,7 @@ private:
   bool active;
 };
 
-void DiagonalFusion::set_config(const json_t &config) {
+void DiagonalMerge::set_config(const json_t &config) {
   //if (JSON::check_key("fusion_enable", config))
   //  JSON::get_value(active, "fusion_enable", config);
   if (JSON::check_key("fusion_enable.diagonal", config))
@@ -59,7 +59,7 @@ void DiagonalFusion::set_config(const json_t &config) {
 }
 
 #ifdef DEBUG
-void DiagonalFusion::dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const {
+void DiagonalMerge::dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const {
   std::cout << std::setw(3) << op_idx << ": ";
   if (ops[op_idx].type == optype_t::nop) {
     std::cout << std::setw(10) << "nop" << ": ";
@@ -83,7 +83,7 @@ void DiagonalFusion::dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) cons
 }
 #endif
 
-bool DiagonalFusion::aggregate_operations(uint_t num_qubits,
+bool DiagonalMerge::aggregate_operations(uint_t num_qubits,
                                           oplist_t& ops,
                                           const int fusion_start,
                                           const int fusion_end) const {

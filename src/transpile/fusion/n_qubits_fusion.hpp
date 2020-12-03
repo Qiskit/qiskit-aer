@@ -182,19 +182,13 @@ bool NQubitFusion<N>::aggregate_operations(uint_t num_qubits,
     ++fused;
   }
 
-  if (fused > ((fusion_end - fusion_start) / 10)) {
-    for (const auto& target: targets)
-      ops[target.first] = method->generate_fusion_operation(target.second, ops[target.first].qubits);
+  for (const auto& target: targets)
+    ops[target.first] = method->generate_fusion_operation(target.second, ops[target.first].qubits);
 #ifdef DEBUG
-    for (uint_t op_idx = fusion_start; op_idx < fusion_end; ++op_idx)
-      dump_op_in_circuit(ops, op_idx);
+  for (uint_t op_idx = fusion_start; op_idx < fusion_end; ++op_idx)
+    dump_op_in_circuit(ops, op_idx);
 #endif
-    return true;
-  } else {
-    for (const auto& target: nops)
-      ops[target.first].type = target.second;
-    return false;
-  }
+  return true;
 }
 
 //-------------------------------------------------------------------------
