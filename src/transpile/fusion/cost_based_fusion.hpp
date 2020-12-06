@@ -173,12 +173,13 @@ bool CostBasedFusion::aggregate_operations_kernel(oplist_t& ops,
     if (debug)
       std::cout << "cost: " << i << " - " << i << " " << costs[costs.size() - 1] << std::endl;
 
+    auto j = i - 1;
     for (int num_fusion = 2; num_fusion <=  static_cast<int> (max_fused_qubits); ++num_fusion) {
       // calculate cost if {num_fusion}-qubit fusion is applied
       reg_t fusion_qubits;
       add_fusion_qubits(fusion_qubits, ops[i]);
 
-      for (int j = i - 1; j >= fusion_start; --j) {
+      for (; j >= fusion_start; --j) {
         add_fusion_qubits(fusion_qubits, ops[j]);
 
         if (static_cast<int> (fusion_qubits.size()) > num_fusion) // exceed the limit of fusion
