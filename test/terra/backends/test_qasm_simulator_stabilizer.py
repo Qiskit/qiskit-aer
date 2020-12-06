@@ -21,7 +21,6 @@ from test.terra import common
 from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
 from test.terra.backends.qasm_simulator.qasm_measure import QasmMeasureTests
 from test.terra.backends.qasm_simulator.qasm_measure import QasmMultiQubitMeasureTests
-from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
 # Algorithm circuit tests
@@ -47,7 +46,6 @@ class TestQasmStabilizerSimulator(common.QiskitAerTestCase,
                                   QasmMultiQubitMeasureTests,
                                   QasmResetTests,
                                   QasmConditionalGateTests,
-                                  QasmCliffordTests,
                                   QasmReadoutNoiseTests,
                                   QasmResetNoiseTests,
                                   QasmPauliNoiseTests,
