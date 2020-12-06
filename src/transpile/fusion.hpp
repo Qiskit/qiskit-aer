@@ -63,15 +63,16 @@ public:
                         ExperimentResult &data) const override;
 
 private:
+  void dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const;
 
 private:
   const std::shared_ptr<FusionMethod> method;
   Fuser fuser;
   bool verbose = false;
+  bool debug = false;
   bool active = true;
   uint_t parallelization = 1;
   uint_t parallel_threshold = 10000;
-
 };
 
 template<typename Fuser>
@@ -88,7 +89,40 @@ void FusionOptimization<Fuser>::set_config(const json_t &config) {
   if (JSON::check_key("fusion_parallel_threshold", config))
     JSON::get_value(parallel_threshold, "fusion_parallel_threshold", config);
 
+  if (JSON::check_key("fusion_debug", config))
+    JSON::get_value(debug, "fusion_debug", config);
+
+  std::stringstream fusion_debug;
+  fusion_debug << "fusion_debug." <<fuser.name();
+
+  if (JSON::check_key(fusion_debug.str(), config))
+    JSON::get_value(debug, fusion_debug.str(), config);
+
   fuser.set_config(config);
+}
+
+template<typename Fuser>
+void FusionOptimization<Fuser>::dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const {
+  std::cout << std::setw(3) << op_idx << ": ";
+  if (ops[op_idx].type == optype_t::nop) {
+    std::cout << std::setw(10) << "nop" << ": ";
+  } else {
+    std::cout << std::setw(10) << ops[op_idx].name << ": ";
+    if (ops[op_idx].qubits.size() > 0) {
+      auto qubits = ops[op_idx].qubits;
+      std::sort(qubits.begin(), qubits.end());
+      int pos = 0;
+      for (int j = 0; j < qubits.size(); ++j) {
+        int q_pos = 1 + qubits[j] * 2;
+        for (int k = 0; k < (q_pos - pos); ++k) {
+          std::cout << " ";
+        }
+        pos = q_pos + 1;
+        std::cout << "X";
+      }
+    }
+  }
+  std::cout << std::endl;
 }
 
 template<typename Fuser>
@@ -116,6 +150,12 @@ void FusionOptimization<Fuser>::optimize_circuit(Circuit& circ,
   }
   // Apply fusion
   int applied = 0;
+
+  if (debug) {
+    std::cout << "before " << fuser.name() << ":" << std::endl;
+    for (int op_idx = 0; op_idx < circ.ops.size(); ++op_idx)
+      dump_op_in_circuit(circ.ops, op_idx);
+  }
 
   if (circ.ops.size() < parallel_threshold) {
     applied = fuser.aggregate_operations(circ.num_qubits, circ.ops, 0, circ.ops.size())? 1:0;
@@ -157,6 +197,12 @@ void FusionOptimization<Fuser>::optimize_circuit(Circuit& circ,
   auto timer_stop = clock_t::now();
   metadata["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
   data.add_metadata(fuser.name(), metadata);
+
+  if (debug) {
+    std::cout << "after " << fuser.name() << ":" << std::endl;
+    for (int op_idx = 0; op_idx < circ.ops.size(); ++op_idx)
+      dump_op_in_circuit(circ.ops, op_idx);
+  }
 }
 
 class Fusion : public CircuitOptimization {

@@ -51,8 +51,6 @@ public:
 private:
   bool can_ignore(const op_t& op) const;
 
-  double get_cost(const op_t& op) const;
-
   bool aggregate_operations_kernel(oplist_t& ops,
                              const int fusion_start,
                              const int fusion_end) const;
@@ -67,15 +65,13 @@ private:
 
   void add_fusion_qubits(reg_t& fusion_qubits, const op_t& op) const;
 
-#ifdef DEBUG
-  void dump(const Circuit& circuit) const;
-#endif
-
 private:
   const std::shared_ptr<FusionMethod> method;
   uint_t max_fused_qubits;
   uint_t threshold;
   double cost_factor;
+  double mat_costs[64];
+  double diag_costs[64];
   bool active = true;
 };
 
@@ -86,11 +82,29 @@ void CostBasedFusion::set_config(const json_t &config) {
   if (JSON::check_key("fusion_cost_factor", config))
     JSON::get_value(cost_factor, "fusion_cost_factor", config);
 
-  if (JSON::check_key("fusion_enable", config))
-    JSON::get_value(active, "fusion_enable", config);
+  for (int i = 1; i < 64; ++i) {
+    std::stringstream cost_name;
+    cost_name << "fusion_cost.mat." << i;
+
+    if (JSON::check_key(cost_name.str(), config))
+      JSON::get_value(mat_costs[i], cost_name.str(), config);
+    else
+      mat_costs[i] = 0.;
+  }
+
+  for (int i = 1; i < 64; ++i) {
+    std::stringstream cost_name;
+    cost_name << "fusion_cost.diag." << i;
+
+    if (JSON::check_key(cost_name.str(), config))
+      JSON::get_value(diag_costs[i], cost_name.str(), config);
+    else
+      diag_costs[i] = 0.;
+  }
 
   if (JSON::check_key("fusion_enable.cost_based", config))
     JSON::get_value(active, "fusion_enable.cost_based", config);
+
 }
 
 bool CostBasedFusion::can_ignore(const op_t& op) const {
@@ -102,13 +116,6 @@ bool CostBasedFusion::can_ignore(const op_t& op) const {
     default:
       return false;
   }
-}
-
-double CostBasedFusion::get_cost(const op_t& op) const {
-  if (can_ignore(op))
-    return .0;
-  else
-    return cost_factor;
 }
 
 bool CostBasedFusion::aggregate_operations(uint_t num_qubits,
@@ -149,14 +156,14 @@ bool CostBasedFusion::aggregate_operations_kernel(oplist_t& ops,
 
   // set costs and fusion_to of fusion_start
   fusion_to.push_back(fusion_start);
-  costs.push_back(get_cost(ops[fusion_start]));
+  costs.push_back(estimate_cost(ops, (uint_t) fusion_start, fusion_start));
 
   bool applied = false;
   // calculate the minimal path to each operation in the circuit
   for (int i = fusion_start + 1; i < fusion_end; ++i) {
     // init with fusion from i-th to i-th
     fusion_to.push_back(i);
-    costs.push_back(costs[i - fusion_start - 1] + get_cost(ops[i]));
+    costs.push_back(costs[i - fusion_start - 1] + estimate_cost(ops, (uint_t) i, i));
 
     for (int num_fusion = 2; num_fusion <=  static_cast<int> (max_fused_qubits); ++num_fusion) {
       // calculate cost if {num_fusion}-qubit fusion is applied
@@ -251,28 +258,51 @@ bool CostBasedFusion::is_diagonal(const std::vector<op_t>& ops,
 double CostBasedFusion::estimate_cost(const std::vector<op_t>& ops,
                              const uint_t from,
                              const uint_t until) const {
-  if (is_diagonal(ops, from, until))
-    return cost_factor;
 
   reg_t fusion_qubits;
   for (uint_t i = from; i <= until; ++i)
     add_fusion_qubits(fusion_qubits, ops[i]);
 
-  if(is_avx2_supported()){
-    switch (fusion_qubits.size()) {
-      case 1:
-        // [[ falling through :) ]]
-      case 2:
-        return cost_factor;
-      case 3:
-        return cost_factor * 1.1;
-      case 4:
-        return cost_factor * 3;
-      default:
-        return pow(cost_factor, (double) std::max(fusion_qubits.size() - 1, size_t(1)));
+  auto num_of_fusion_qubits = fusion_qubits.size();
+
+  if (!num_of_fusion_qubits)
+    return 0.;
+
+  if (is_diagonal(ops, from, until)) {
+
+    if (diag_costs[num_of_fusion_qubits] > 0.)
+      return diag_costs[num_of_fusion_qubits];
+
+    if (num_of_fusion_qubits < 5)
+      return cost_factor;
+
+    double last_configured_cost = 1.0;
+    double last_configured_qubit = 0;
+    for (auto i = 1; i < num_of_fusion_qubits; ++i) {
+      if (diag_costs[num_of_fusion_qubits] > 0.) {
+        last_configured_cost = diag_costs[num_of_fusion_qubits];
+        last_configured_qubit = i;
+      }
     }
+    return last_configured_cost * pow(cost_factor, (double) (fusion_qubits.size() - last_configured_qubit));
+  } else {
+
+    if (mat_costs[num_of_fusion_qubits] > 0.)
+      return mat_costs[num_of_fusion_qubits];
+
+    if (num_of_fusion_qubits < 2)
+      return 1.;
+
+    double last_configured_cost = 1.0;
+    double last_configured_qubit = 0;
+    for (auto i = 1; i < num_of_fusion_qubits; ++i) {
+      if (mat_costs[num_of_fusion_qubits] > 0.) {
+        last_configured_cost = mat_costs[num_of_fusion_qubits];
+        last_configured_qubit = i;
+      }
+    }
+    return last_configured_cost * pow(cost_factor, (double) (fusion_qubits.size() - last_configured_qubit));
   }
-  return pow(cost_factor, (double) std::max(fusion_qubits.size() - 1, size_t(1)));
 }
 
 void CostBasedFusion::add_fusion_qubits(reg_t& fusion_qubits, const op_t& op) const {

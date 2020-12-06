@@ -39,10 +39,6 @@ public:
 
   bool aggregate_operations(uint_t num_qubits, oplist_t& ops, const int fusion_start, const int fusion_end) const;
 
-#ifdef DEBUG
-  void dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const;
-#endif
-
 private:
   bool is_diagonal_op(const op_t& op) const;
 
@@ -56,8 +52,6 @@ private:
 };
 
 void DiagonalFusion::set_config(const json_t &config) {
-  if (JSON::check_key("fusion_enable", config))
-    JSON::get_value(active, "fusion_enable", config);
   if (JSON::check_key("fusion_enable.diagonal", config))
     JSON::get_value(active, "fusion_enable.diagonal", config);
   if (JSON::check_key("fusion_threshold.diagonal", config))
@@ -67,31 +61,6 @@ void DiagonalFusion::set_config(const json_t &config) {
   if (JSON::check_key("fusion_min_qubit.diagonal", config))
     JSON::get_value(min_qubit, "fusion_min_qubit.diagonal", config);
 }
-
-#ifdef DEBUG
-void DiagonalFusion::dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const {
-  std::cout << std::setw(3) << op_idx << ": ";
-  if (ops[op_idx].type == optype_t::nop) {
-    std::cout << std::setw(10) << "nop" << ": ";
-  } else {
-    std::cout << std::setw(10) << ops[op_idx].name << ": ";
-    if (ops[op_idx].qubits.size() > 0) {
-      auto qubits = ops[op_idx].qubits;
-      std::sort(qubits.begin(), qubits.end());
-      int pos = 0;
-      for (int j = 0; j < qubits.size(); ++j) {
-        int q_pos = 1 + qubits[j] * 2;
-        for (int k = 0; k < (q_pos - pos); ++k) {
-          std::cout << " ";
-        }
-        pos = q_pos + 1;
-        std::cout << "X";
-      }
-    }
-  }
-  std::cout << std::endl;
-}
-#endif
 
 bool DiagonalFusion::is_diagonal_op(const op_t& op) const {
 
@@ -185,12 +154,6 @@ bool DiagonalFusion::aggregate_operations(uint_t num_qubits,
   if (!active)
     return false;
 
-#ifdef DEBUG
-  std::cout << "before diagonal: " << std::endl;
-  for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx)
-    dump_op_in_circuit(ops, op_idx);
-#endif
-
   // current impl is sensitive to ordering of gates
   for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx) {
 
@@ -201,9 +164,6 @@ bool DiagonalFusion::aggregate_operations(uint_t num_qubits,
       continue;
 
     if (checking_qubits_set.size() > max_qubit)
-      continue;
-
-    if (checking_qubits_set.size() < min_qubit)
       continue;
 
     std::set<uint_t> fusing_qubits_set = checking_qubits_set;
@@ -220,6 +180,9 @@ bool DiagonalFusion::aggregate_operations(uint_t num_qubits,
       fusing_qubits_set = checking_qubits_set;
     }
 
+    if (checking_qubits_set.size() < min_qubit)
+      continue;
+
     std::vector<op_t> fusing_ops;
     for (; op_idx < next_diagonal_start; ++op_idx) {
       fusing_ops.push_back(ops[op_idx]); //copy
@@ -232,11 +195,6 @@ bool DiagonalFusion::aggregate_operations(uint_t num_qubits,
     ops[op_idx] = method->generate_diagonal_fusion_operation(fusing_ops, fusing_qubits);
   }
 
-#ifdef DEBUG
-  std::cout << "after diagonal: " << std::endl;
-  for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx)
-    dump_op_in_circuit(ops, op_idx);
-#endif
   return true;
 }
 

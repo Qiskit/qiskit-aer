@@ -15,8 +15,6 @@
 #ifndef _aer_transpile_fusion_two_hpp_
 #define _aer_transpile_fusion_two_hpp_
 
-//#define DEBUG
-
 #include <chrono>
 #include <algorithm>
 
@@ -42,12 +40,6 @@ public:
   uint_t get_threshold() const { return qubit_threshold; }
 
   bool aggregate_operations(uint_t num_qubits, oplist_t& ops, const int fusion_start, const int fusion_end) const;
-
-#ifdef DEBUG
-  void dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const;
-
-  void dump(const Circuit& circuit) const;
-#endif
 
 private:
   const size_t n = N;
@@ -81,32 +73,6 @@ void NQubitFusion<N>::set_config(const json_t &config) {
     JSON::get_value(gate_threshold_ratio, opt_name.str(), config);
 }
 
-#ifdef DEBUG
-template<size_t N>
-void NQubitFusion<N>::dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const {
-  std::cout << std::setw(3) << op_idx << ": ";
-  if (ops[op_idx].type == optype_t::nop) {
-    std::cout << std::setw(10) << "nop" << ": ";
-  } else {
-    std::cout << std::setw(10) << ops[op_idx].name << ": ";
-    if (ops[op_idx].qubits.size() > 0) {
-      auto qubits = ops[op_idx].qubits;
-      std::sort(qubits.begin(), qubits.end());
-      int pos = 0;
-      for (int j = 0; j < qubits.size(); ++j) {
-        int q_pos = 1 + qubits[j] * 2;
-        for (int k = 0; k < (q_pos - pos); ++k) {
-          std::cout << " ";
-        }
-        pos = q_pos + 1;
-        std::cout << "X";
-      }
-    }
-  }
-  std::cout << std::endl;
-}
-#endif
-
 template<size_t N>
 bool NQubitFusion<N>::aggregate_operations(uint_t num_qubits,
                                            oplist_t& ops,
@@ -115,11 +81,6 @@ bool NQubitFusion<N>::aggregate_operations(uint_t num_qubits,
 
   if (!active)
     return false;
-
-#ifdef DEBUG
-  for (uint_t op_idx = fusion_start; op_idx < fusion_end; ++op_idx)
-    dump_op_in_circuit(ops, op_idx);
-#endif
 
   std::vector<std::pair<uint_t, optype_t>> nops;
   std::vector<std::pair<uint_t, std::vector<op_t>>> targets;
@@ -184,10 +145,7 @@ bool NQubitFusion<N>::aggregate_operations(uint_t num_qubits,
 
   for (const auto& target: targets)
     ops[target.first] = method->generate_fusion_operation(target.second, ops[target.first].qubits);
-#ifdef DEBUG
-  for (uint_t op_idx = fusion_start; op_idx < fusion_end; ++op_idx)
-    dump_op_in_circuit(ops, op_idx);
-#endif
+
   return true;
 }
 

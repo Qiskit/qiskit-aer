@@ -48,3 +48,4 @@ from .noise_transformation import NoiseTransformer
 from .noise_transformation import approximate_quantum_error
 from .noise_transformation import approximate_noise_model
 from .noise_model_inserter import insert_noise
+from .fusion_calibration import calibrate_fusion

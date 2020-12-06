@@ -20,8 +20,6 @@
 #include "transpile/circuitopt.hpp"
 #include "../fusion_method.hpp"
 
-//#define DEBUG
-
 namespace AER {
 namespace Transpile {
 
@@ -40,10 +38,6 @@ public:
 
   bool aggregate_operations(uint_t num_qubits, oplist_t& ops, const int fusion_start, const int fusion_end) const;
 
-#ifdef DEBUG
-  void dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const;
-#endif
-
 private:
   const std::shared_ptr<FusionMethod> method;
   uint_t max_qubit;
@@ -58,31 +52,6 @@ void EntanglerFusion::set_config(const json_t &config) {
     JSON::get_value(active, "fusion_enable.entangler", config);
 }
 
-#ifdef DEBUG
-void EntanglerFusion::dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const {
-  std::cout << std::setw(3) << op_idx << ": ";
-  if (ops[op_idx].type == optype_t::nop) {
-    std::cout << std::setw(10) << "nop" << ": ";
-  } else {
-    std::cout << std::setw(10) << ops[op_idx].name << ": ";
-    if (ops[op_idx].qubits.size() > 0) {
-      auto qubits = ops[op_idx].qubits;
-      std::sort(qubits.begin(), qubits.end());
-      int pos = 0;
-      for (int j = 0; j < qubits.size(); ++j) {
-        int q_pos = 1 + qubits[j] * 2;
-        for (int k = 0; k < (q_pos - pos); ++k) {
-          std::cout << " ";
-        }
-        pos = q_pos + 1;
-        std::cout << "X";
-      }
-    }
-  }
-  std::cout << std::endl;
-}
-#endif
-
 bool EntanglerFusion::aggregate_operations(uint_t num_qubits,
                                            oplist_t& ops,
                                            const int fusion_start,
@@ -90,12 +59,6 @@ bool EntanglerFusion::aggregate_operations(uint_t num_qubits,
 
   if (!active)
     return false;
-
-#ifdef DEBUG
-  std::cout << "before entangler: " << std::endl;
-  for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx)
-    dump_op_in_circuit(ops, op_idx);
-#endif
 
   uint_t num_of_cx = 0;
 
@@ -187,15 +150,8 @@ bool EntanglerFusion::aggregate_operations(uint_t num_qubits,
     op_idx = start_op_idx;
   }
 
-#ifdef DEBUG
-  std::cout << "after entangler: " << std::endl;
-  for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx)
-    dump_op_in_circuit(ops, op_idx);
-#endif
   return true;
 }
-
-#undef DEBUG
 
 //-------------------------------------------------------------------------
 } // end namespace Transpile

@@ -33,15 +33,11 @@ public:
 
   void set_config(const json_t &config);
 
-  std::string name() const { return "diagonal"; };
+  std::string name() const { return "diagonal_merge"; };
 
   uint_t get_threshold() const { return threshold; }
 
   bool aggregate_operations(uint_t num_qubits, oplist_t& ops, const int fusion_start, const int fusion_end) const;
-
-#ifdef DEBUG
-  void dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const;
-#endif
 
 private:
   const std::shared_ptr<FusionMethod> method;
@@ -50,38 +46,11 @@ private:
 };
 
 void DiagonalMerge::set_config(const json_t &config) {
-  //if (JSON::check_key("fusion_enable", config))
-  //  JSON::get_value(active, "fusion_enable", config);
-  if (JSON::check_key("fusion_enable.diagonal", config))
-    JSON::get_value(active, "fusion_enable.diagonal", config);
-  if (JSON::check_key("fusion_threshold.diagonal", config))
-    JSON::get_value(threshold, "fusion_threshold.diagonal", config);
+  if (JSON::check_key("fusion_enable.diagonal_merge", config))
+    JSON::get_value(active, "fusion_enable.diagonal_merge", config);
+  if (JSON::check_key("fusion_threshold.diagonal_merge", config))
+    JSON::get_value(threshold, "fusion_threshold.diagonal_merge", config);
 }
-
-#ifdef DEBUG
-void DiagonalMerge::dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const {
-  std::cout << std::setw(3) << op_idx << ": ";
-  if (ops[op_idx].type == optype_t::nop) {
-    std::cout << std::setw(10) << "nop" << ": ";
-  } else {
-    std::cout << std::setw(10) << ops[op_idx].name << ": ";
-    if (ops[op_idx].qubits.size() > 0) {
-      auto qubits = ops[op_idx].qubits;
-      std::sort(qubits.begin(), qubits.end());
-      int pos = 0;
-      for (int j = 0; j < qubits.size(); ++j) {
-        int q_pos = 1 + qubits[j] * 2;
-        for (int k = 0; k < (q_pos - pos); ++k) {
-          std::cout << " ";
-        }
-        pos = q_pos + 1;
-        std::cout << "X";
-      }
-    }
-  }
-  std::cout << std::endl;
-}
-#endif
 
 bool DiagonalMerge::aggregate_operations(uint_t num_qubits,
                                           oplist_t& ops,
@@ -90,12 +59,6 @@ bool DiagonalMerge::aggregate_operations(uint_t num_qubits,
 
   if (!active)
     return false;
-
-#ifdef DEBUG
-  std::cout << "before diagonal: " << std::endl;
-  for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx)
-    dump_op_in_circuit(ops, op_idx);
-#endif
 
   // current impl is sensitive to ordering of gates
   for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx) {
@@ -118,11 +81,6 @@ bool DiagonalMerge::aggregate_operations(uint_t num_qubits,
     ops[op_idx - qubits_list.size()] = Operations::make_multi_diagonal(qubits_list, params_list, std::string("fusion"));
   }
 
-#ifdef DEBUG
-  std::cout << "after diagonal: " << std::endl;
-  for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx)
-    dump_op_in_circuit(ops, op_idx);
-#endif
   return true;
 }
 
