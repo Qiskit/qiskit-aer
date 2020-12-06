@@ -105,9 +105,9 @@ template<typename Fuser>
 void FusionOptimization<Fuser>::dump_op_in_circuit(const oplist_t& ops, uint_t op_idx) const {
   std::cout << std::setw(3) << op_idx << ": ";
   if (ops[op_idx].type == optype_t::nop) {
-    std::cout << std::setw(10) << "nop" << ": ";
+    std::cout << std::setw(15) << "nop" << ": ";
   } else {
-    std::cout << std::setw(10) << ops[op_idx].name << ": ";
+    std::cout << std::setw(15) << ops[op_idx].name << ops[op_idx].qubits.size() << ": ";
     if (ops[op_idx].qubits.size() > 0) {
       auto qubits = ops[op_idx].qubits;
       std::sort(qubits.begin(), qubits.end());

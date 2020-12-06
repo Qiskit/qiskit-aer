@@ -73,6 +73,7 @@ private:
   double mat_costs[64];
   double diag_costs[64];
   bool active = true;
+  bool debug = false;
 };
 
 void CostBasedFusion::set_config(const json_t &config) {
@@ -104,6 +105,9 @@ void CostBasedFusion::set_config(const json_t &config) {
 
   if (JSON::check_key("fusion_enable.cost_based", config))
     JSON::get_value(active, "fusion_enable.cost_based", config);
+
+  if (JSON::check_key("fusion_debug.cost_based", config))
+    JSON::get_value(debug, "fusion_debug.cost_based", config);
 
 }
 
@@ -157,6 +161,8 @@ bool CostBasedFusion::aggregate_operations_kernel(oplist_t& ops,
   // set costs and fusion_to of fusion_start
   fusion_to.push_back(fusion_start);
   costs.push_back(estimate_cost(ops, (uint_t) fusion_start, fusion_start));
+  if (debug)
+    std::cout << "cost: " << fusion_start << " - " << fusion_start << " " << costs[0] << std::endl;
 
   bool applied = false;
   // calculate the minimal path to each operation in the circuit
@@ -164,6 +170,8 @@ bool CostBasedFusion::aggregate_operations_kernel(oplist_t& ops,
     // init with fusion from i-th to i-th
     fusion_to.push_back(i);
     costs.push_back(costs[i - fusion_start - 1] + estimate_cost(ops, (uint_t) i, i));
+    if (debug)
+      std::cout << "cost: " << i << " - " << i << " " << costs[costs.size() - 1] << std::endl;
 
     for (int num_fusion = 2; num_fusion <=  static_cast<int> (max_fused_qubits); ++num_fusion) {
       // calculate cost if {num_fusion}-qubit fusion is applied
@@ -179,6 +187,9 @@ bool CostBasedFusion::aggregate_operations_kernel(oplist_t& ops,
         // calculate a new cost of (i-th) by adding
         double estimated_cost = estimate_cost(ops, (uint_t) j, i) // fusion gate from j-th to i-th, and
             + (j == 0 ? 0.0 : costs[j - 1 - fusion_start]); // cost of (j-1)-th
+
+        if (debug)
+          std::cout << "cost: " << j << " - " << i << " " << estimated_cost << std::endl;
 
         // update cost
         if (estimated_cost <= costs[i - fusion_start]) {
