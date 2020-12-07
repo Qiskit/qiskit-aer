@@ -140,6 +140,8 @@ stages:
               python.version: '3.7'
             Python38:
               python.version: '3.8'
+            Python38:
+              python.version: '3.9'
         variables:
           PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         steps:
@@ -229,6 +231,8 @@ stages:
               python.version: '3.7'
             Python38:
               python.version: '3.8'
+            Python38:
+              python.version: '3.9'
         variables:
           PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         steps:
