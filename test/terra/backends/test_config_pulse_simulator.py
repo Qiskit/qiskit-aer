@@ -66,7 +66,7 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
                 for idx, entry in enumerate(sim_dict[key]):
                     for entry_key in entry:
                         if entry_key == 'samples':
-                            self.assertTrue(all(entry[entry_key] == backend_dict[key][idx][entry_key]))
+                            self.assertTrue(np.array_equal(entry[entry_key], backend_dict[key][idx][entry_key]))
                         else:
                             self.assertTrue(entry[entry_key] == backend_dict[key][idx][entry_key])
             else:
