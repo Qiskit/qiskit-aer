@@ -340,7 +340,9 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds, pulse_to_int, dt, q
                 structs['channels'][chan_name][1].extend([inst['t0'] * dt,
                                                           inst['phase'],
                                                           cond])
-
+            # Delay instruction
+            elif inst['name'] == 'delay':
+                pass  # nothing to be done in this case
             # A standard pulse
             else:
                 start = inst['t0'] * dt
