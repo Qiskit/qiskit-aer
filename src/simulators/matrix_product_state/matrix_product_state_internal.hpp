@@ -168,12 +168,10 @@ public:
   // Description: Moves the indices of the selected qubits for more efficient computation
   //   of the expectation value
   // Parameters: The qubits for which we compute expectation value.
-  // Returns: sorted_qubits - the qubits, after sorting
-  //          centralized_qubits - the qubits, after sorting and centralizing
+  // Returns: centralized_qubits - the qubits, after sorting and centralizing
   //          
   //----------------------------------------------------------------
   void MPS_with_new_indices(const reg_t &qubits,
-			    reg_t &sorted_qubits,
 			    reg_t &centralized_qubits,
 			    MPS& temp_MPS) const;
 
@@ -361,27 +359,15 @@ private:
 						    const reg_t &qubits) const;
 
   void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
-  //----------------------------------------------------------------
-  // Function name: centralize_qubits
-  // Description: Creates a new MPS where a subset of the qubits is
-  // moved to be in consecutive positions. Used for
-  // computations involving a subset of the qubits.
-  // Parameters: Input: new_MPS - the MPS with the shifted qubits
-  //                    qubits - the subset of qubits
-  //             Returns: new_first, new_last - new positions of the 
-  //                    first and last qubits respectively
-  //                    ordered - are the qubits in ascending order
-  // Returns: none.
-  //----------------------------------------------------------------
-  void centralize_qubits(const reg_t &qubits,
-			 reg_t &new_qubits, bool &ordered);
 
   //----------------------------------------------------------------
   // Function name: centralize_and_sort_qubits
-  // Description: Similar to centralize_qubits, but also returns the sorted qubit vector
+  // Description: Creates a new MPS where a subset of the qubits is
+  // moved to be in consecutive positions. Used for
+  // computations involving a subset of the qubits.
   //----------------------------------------------------------------
-  void centralize_and_sort_qubits(const reg_t &qubits, reg_t &sorted_indexes,
-			 reg_t &centralized_qubits, bool &ordered);
+  void centralize_and_sort_qubits(const reg_t &qubits,
+				  reg_t &centralized_qubits);
 
   //----------------------------------------------------------------
   // Function name: find_centralized_indices
@@ -390,8 +376,7 @@ private:
   //----------------------------------------------------------------
   void find_centralized_indices(const reg_t &qubits, 
 				reg_t &sorted_indices,
-			        reg_t &centralized_qubits, 
-			        bool & ordered) const;
+			        reg_t &centralized_qubits) const;
 
   //----------------------------------------------------------------
   // Function name: move_qubits_to_centralized_indices
