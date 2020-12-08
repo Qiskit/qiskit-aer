@@ -1225,10 +1225,10 @@ void MPS::get_amplitude_vector(const reg_t &base_values, cvector_t &amplitude_ve
   move_all_qubits_to_sorted_ordering();
   uint_t num_values = base_values.size();
   std::string base_value;
-#pragma omp parallel for if (num_values > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+  #pragma omp parallel for if (num_values > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t i=0; i<static_cast<int_t>(num_values); i++) {
-    base_value = AER::Utils::int2string(base_values[i]);
-    amplitude_vector[i] = get_single_amplitude(base_value);
+      base_value = AER::Utils::int2string(base_values[i]);
+      amplitude_vector[i] = get_single_amplitude(base_value);
   }
 }
 
@@ -1248,15 +1248,16 @@ complex_t MPS::get_single_amplitude(const std::string &base_value) {
       bit = base_value[pos]=='0' ? 0 : 1;
     else
       bit = 0;
-    for (uint_t row=0; row<temp.GetRows(); row++)
+    for (uint_t row=0; row<temp.GetRows(); row++){
       for (uint_t col=0; col<temp.GetColumns(); col++){
 	temp(row, col) *= lambda_reg_[qubit][col];
       }
+    }
     temp = temp * q_reg_[qubit+1].get_data(bit);
     pos--;
   }
-
-  return temp(0, 0); //-> check that matrix is 1x1 to complex_t 
+  
+  return temp(0, 0);
 }
 
 void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const {
