@@ -105,20 +105,26 @@ class QiskitAerTestCase(QiskitTestCase):
         self.assertTrue(success, msg=msg)
 
     @staticmethod
-    def gate_circuits(gate_cls, num_params=0, rng=None, basis_states=None):
+    def gate_circuits(gate_cls, num_angles=0, has_ctrl_qubits=False,
+                      rng=None, basis_states=None):
         """
         Construct circuits from a gate class.
         Example of basis_states: ['010, '100'].
         When basis_states is None, tests all basis states
         with the gate's number of qubits.
         """
-        if num_params:
-            if rng is None:
-                rng = np.random.default_rng()
-            params = rng.random(num_params)
-            gate = gate_cls(*params)
+        if rng is None:
+            rng = np.random.default_rng()
+
+        if num_angles:
+            params = rng.random(num_angles)
         else:
-            gate = gate_cls()
+            params = []
+
+        if has_ctrl_qubits:
+            params.append(5)
+
+        gate = gate_cls(*params)
         
         if basis_states is None:
             basis_states = [bin(i)[2:].zfill(gate.num_qubits) \
