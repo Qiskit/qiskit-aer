@@ -218,6 +218,7 @@ protected:
   int parallel_experiments_;
   int parallel_shots_;
   int parallel_state_update_;
+  bool parallel_nested_ = false;
 };
 
 //=========================================================================
@@ -252,6 +253,7 @@ void Controller::set_config(const json_t &config) {
   max_parallel_threads_ = 1;
   max_parallel_shots_ = 1;
   max_parallel_experiments_ = 1;
+  parallel_nested_ = false;
 #endif
 
   // Load configurations for parallelization
@@ -298,6 +300,7 @@ void Controller::clear_parallelization() {
   parallel_experiments_ = 1;
   parallel_shots_ = 1;
   parallel_state_update_ = 1;
+  parallel_nested_ = false;
 
   explicit_parallelization_ = false;
   max_memory_mb_ = get_system_memory_mb() / 2;
@@ -542,8 +545,24 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     result.metadata["max_memory_mb"] = max_memory_mb_;
 
 #ifdef _OPENMP
-    if (parallel_shots_ > 1 || parallel_state_update_ > 1)
+    // Check if circuit parallelism is nested with one of the others
+    if (parallel_experiments_ > 1 && parallel_experiments_ < max_parallel_threads_) {
+      // Nested parallel experiments
+      parallel_nested_ = true;
+      #ifdef _WIN32
       omp_set_nested(1);
+      #else
+      omp_set_max_active_levels(3);
+      #endif
+      result.metadata["omp_nested"] = parallel_nested_;
+    } else {
+      parallel_nested_ = false;
+      #ifdef _WIN32
+      omp_set_nested(0);
+      #else
+      omp_set_max_active_levels(1);
+      #endif
+    }
 #endif
     // then- and else-blocks have intentionally duplication.
     // Nested omp has significant overheads even though a guard condition exists.
@@ -645,6 +664,27 @@ void Controller::execute_circuit(Circuit &circ,
       // Vector to store parallel thread output data
       std::vector<ExperimentResult> par_results(parallel_shots_);
       std::vector<std::string> error_msgs(parallel_shots_);
+
+    #ifdef _OPENMP
+    if (!parallel_nested_) {
+      if (parallel_shots_ > 1 && parallel_state_update_ > 1) {
+        // Nested parallel shots + state update
+        #ifdef _WIN32
+        omp_set_nested(1);
+        #else
+        omp_set_max_active_levels(2);
+        #endif
+        result.metadata["omp_nested"] = true;
+      } else {
+        #ifdef _WIN32
+        omp_set_nested(0);
+        #else
+        omp_set_max_active_levels(1);
+        #endif
+      }
+    }
+    #endif
+
 #pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
       for (int i = 0; i < parallel_shots_; i++) {
         try {
