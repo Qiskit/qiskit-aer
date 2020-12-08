@@ -117,7 +117,7 @@ class QiskitAerTestCase(QiskitTestCase):
             rng = np.random.default_rng()
 
         if num_angles:
-            params = rng.random(num_angles)
+            params = list(rng.random(num_angles))
         else:
             params = []
 
