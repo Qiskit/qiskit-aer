@@ -131,13 +131,14 @@ class QiskitAerTestCase(QiskitTestCase):
                             for i in range(1<<gate.num_qubits)]
 
         circs = []
+        qubit_permutation = list(rng.permutation(gate.num_qubits))
         for state in basis_states:
             circ = QuantumCircuit(gate.num_qubits)
-            for i in range(gate.num_qubits):
+            for i in qubit_permutation:
                 if state[i] == '1':
                     circ.x(i)
             
-            circ.append(gate, range(gate.num_qubits))
+            circ.append(gate, qubit_permutation)
             circs.append(circ)
             
         return circs
