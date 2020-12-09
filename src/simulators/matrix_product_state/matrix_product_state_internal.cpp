@@ -1197,13 +1197,15 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
 }
 
 void MPS::get_amplitude_vector(const reg_t &base_values, cvector_t &amplitude_vector) {
-  move_all_qubits_to_sorted_ordering();
   uint_t num_values = base_values.size();
   std::string base_value;
   #pragma omp parallel for if (num_values > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t i=0; i<static_cast<int_t>(num_values); i++) {
-      base_value = AER::Utils::int2string(base_values[i]);
-      amplitude_vector[i] = get_single_amplitude(base_value);
+    // Since the qubits may not be ordered, we determine the actual index
+    // by the internal order of the qubits, to obtain the actual_base_value
+    uint_t actual_base_value = reorder_qubits(qubit_ordering_.order_, base_values[i]);
+    base_value = AER::Utils::int2string(actual_base_value);
+    amplitude_vector[i] = get_single_amplitude(base_value);
   }
 }
 
