@@ -74,12 +74,6 @@ public:
   // Return the string name of the State class
   virtual std::string name() const override { return "unitary"; }
 
-  // Apply a sequence of operations by looping over list
-  // If the input is not in allowed_ops an exeption will be raised.
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result, RngEngine &rng,
-                         bool final_ops = false) override;
-
   // Initializes an n-qubit unitary to the identity matrix
   virtual void initialize_qreg(uint_t num_qubits) override;
 
@@ -115,7 +109,10 @@ protected:
   //-----------------------------------------------------------------------
   // Apply Instructions
   //-----------------------------------------------------------------------
-  uint_t apply_blocking(const std::vector<Operations::Op> &ops, uint_t op_begin);
+  virtual void apply_op(const int_t iChunk,const Operations::Op &op,
+                         ExperimentResult &result,
+                         RngEngine &rng,
+                         bool final_ops = false);
 
   // Applies a Gate operation to the state class.
   // This should support all and only the operations defined in
@@ -302,55 +299,42 @@ void State<unitary_matrix_t>::add_state_to_data(ExperimentResult &result)
 //============================================================================
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_ops(
-    const std::vector<Operations::Op> &ops, ExperimentResult &result,
-    RngEngine &rng, bool final_ops) 
+void State<unitary_matrix_t>::apply_op(const int_t iChunk,const Operations::Op &op,
+                         ExperimentResult &result,
+                         RngEngine &rng,
+                         bool final_ops)
 {
-  uint_t iOp,nOp;
-  int_t iChunk;
+  uint_t ireg;
 
-  nOp = ops.size();
-  iOp = 0;
+  if(BaseState::cregs_.size() == BaseState::qregs_.size()){
+    //multi-shot mode
+    ireg = iChunk;
+  }
+  else{
+    ireg = 0;
+  }
 
-  // Simple loop over vector of input operations
-  while(iOp < nOp){
-    switch (ops[iOp].type) {
-      case Operations::OpType::barrier:
-        break;
-      case Operations::OpType::gate:
-        if(ops[iOp].name == "swap_chunk"){
-          BaseState::apply_chunk_swap(ops[iOp].qubits);
-        }
-        else{
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
-          for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++)
-          // Note conditionals will always fail since no classical registers
-          if (BaseState::cregs_[0].check_conditional(ops[iOp]))
-            apply_gate(iChunk,ops[iOp]);
-        }
-        break;
-      case Operations::OpType::snapshot:
-        apply_snapshot(-1,ops[iOp], result);
-        break;
-      case Operations::OpType::matrix:
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
-        for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++)
-          apply_matrix(iChunk,ops[iOp].qubits, ops[iOp].mats[0]);
-        break;
-      case Operations::OpType::diagonal_matrix:
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
-        for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++)
-          BaseState::qregs_[iChunk].apply_diagonal_matrix(ops[iOp].qubits, ops[iOp].params);
-        break;
-      case Operations::OpType::sim_op:
-          if(ops[iOp].name == "begin_blocking"){
-            iOp = apply_blocking(ops,iOp + 1);
-          }
-          break;
-      default:
-        throw std::invalid_argument(
-            "QubitUnitary::State::invalid instruction \'" + ops[iOp].name + "\'.");
-    }
+
+  switch (op.type) {
+    case Operations::OpType::barrier:
+      break;
+    case Operations::OpType::gate:
+      // Note conditionals will always fail since no classical registers
+      if (BaseState::cregs_[ireg].check_conditional(op))
+        apply_gate(iChunk,op);
+      break;
+    case Operations::OpType::snapshot:
+      apply_snapshot(iChunk,op, result);
+      break;
+    case Operations::OpType::matrix:
+      apply_matrix(iChunk,op.qubits, op.mats[0]);
+      break;
+    case Operations::OpType::diagonal_matrix:
+      BaseState::qregs_[iChunk].apply_diagonal_matrix(op.qubits, op.params);
+      break;
+    default:
+      throw std::invalid_argument(
+          "QubitUnitary::State::invalid instruction \'" + op.name + "\'.");
   }
 }
 
@@ -597,80 +581,6 @@ void State<unitary_matrix_t>::apply_gate(const uint_t iChunk,const Operations::O
       throw std::invalid_argument("Unitary::State::invalid gate instruction \'" +
                                   op.name + "\'.");
   }
-}
-
-template <class unitary_matrix_t>
-uint_t State<unitary_matrix_t>::apply_blocking(const std::vector<Operations::Op> &ops, uint_t op_begin)
-{
-  uint_t iOp,nOp,iEnd;
-  int_t iChunk;
-
-  nOp = ops.size();
-  iEnd = op_begin;
-
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk,iOp) 
-  for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
-    bool inBlock = true;
-    iOp = op_begin;
-
-    BaseState::qregs_[iChunk].fetch_chunk();
-
-    while(iOp < nOp){
-      if(BaseState::cregs_[iChunk].check_conditional(ops[iOp])) {
-        switch (ops[iOp].type){
-          case Operations::OpType::gate:
-            apply_gate(iChunk,ops[iOp]);
-            break;
-          case Operations::OpType::matrix:
-            apply_matrix(iChunk,ops[iOp].qubits, ops[iOp].mats[0]);
-            break;
-          case Operations::OpType::diagonal_matrix:
-            BaseState::qregs_[iChunk].apply_diagonal_matrix(ops[iOp].qubits, ops[iOp].params);
-            break;
-          case Operations::OpType::sim_op:
-            if(ops[iOp].name == "end_blocking"){
-              inBlock = false;
-#ifdef _MSC_VER
-#pragma omp critical
-              {
-#else
-#pragma omp atomic write
-#endif
-              iEnd = iOp;
-#ifdef _MSC_VER
-              }
-#endif
-            }
-            break;
-          default:
-            throw std::invalid_argument("QubitVector::State::invalid instruction \'" +
-                                        ops[iOp].name + "\'.");
-        }
-      }
-
-      if(!inBlock){
-        break;
-      }
-      iOp++;
-    }
-
-    if(iOp >= nOp){
-#ifdef _MSC_VER
-#pragma omp critical
-              {
-#else
-#pragma omp atomic write
-#endif
-      iEnd = iOp;
-#ifdef _MSC_VER
-              }
-#endif
-    }
-
-    BaseState::qregs_[iChunk].release_chunk();
-  }
-
-  return iEnd;
 }
 
 template <class unitary_matrix_t>

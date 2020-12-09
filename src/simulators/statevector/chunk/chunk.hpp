@@ -195,9 +195,9 @@ public:
     chunk_container_->Zero(chunk_pos_,chunk_container_->chunk_size());
   }
 
-  reg_t sample_measure(const std::vector<double> &rnds) const
+  reg_t sample_measure(const std::vector<double> &rnds,uint_t stride = 1,bool dot = true) const
   {
-    return chunk_container_->sample_measure(chunk_pos_,rnds);
+    return chunk_container_->sample_measure(chunk_pos_,rnds,stride,dot);
   }
 
 #ifdef AER_THRUST_CUDA

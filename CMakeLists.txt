@@ -26,6 +26,7 @@ if(NOT DEFINED AER_THRUST_BACKEND AND DEFINED ENV{AER_THRUST_BACKEND})
 endif()
 
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++14")
   include(nvcc_add_compiler_options)
   set(CUDA_FOUND TRUE)
   #include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
@@ -332,7 +333,9 @@ else() # Standalone build
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
 		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES LANGUAGE CUDA)
 		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
+		if(SIMD_FLAGS_LIST)
                 nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS)
+        endif()
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS}")
 
 		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
@@ -347,6 +350,11 @@ else() # Standalone build
 			LINK_FLAGS ${AER_LINKER_FLAGS}
 			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
 			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
+
+		message(STATUS "AER_LIBRARIES = ${AER_LIBRARIES}")
+		message(STATUS "AER_COMPILER_FLAGS_OUT = ${AER_COMPILER_FLAGS_OUT}")
+		message(STATUS "AER_LINKER_FLAGS = ${AER_LINKER_FLAGS}")
+		message(STATUS "AER_SIMULATOR_CPP_EXTERNAL_LIBS = ${AER_SIMULATOR_CPP_EXTERNAL_LIBS}")
 	else()
   		string(REPLACE ";" " " SIMD_FLAGS "${SIMD_FLAGS_LIST}")
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${SIMD_FLAGS}")

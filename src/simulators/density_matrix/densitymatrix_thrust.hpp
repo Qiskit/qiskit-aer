@@ -130,6 +130,15 @@ public:
   // outcome in [0, 2^num_qubits - 1]
   virtual double probability(const uint_t outcome) const override;
 
+  // Return the Z-basis measurement outcome probabilities [P(0), ..., P(2^N-1)]
+  // for measurement of N-qubits.
+  virtual std::vector<double> probabilities(const reg_t &qubits) const;
+
+  // Return M sampled outcomes for Z-basis measurement of all qubits
+  // The input is a length M list of random reals between [0, 1) used for
+  // generating samples.
+  virtual reg_t sample_measure(const std::vector<double> &rnds) const override;
+
 
 protected:
   // Construct a vectorized superoperator from a vectorized matrix
@@ -819,6 +828,72 @@ public:
     return "density probabilities";
   }
 };
+
+template <typename data_t>
+std::vector<double> DensityMatrixThrust<data_t>::probabilities(const reg_t &qubits) const 
+{
+  const size_t N = qubits.size();
+  const int_t DIM = 1 << N;
+
+  auto qubits_sorted = qubits;
+  std::sort(qubits_sorted.begin(), qubits_sorted.end());
+  if ((N == num_qubits()) && (qubits == qubits_sorted))
+    return BaseVector::probabilities();
+
+  std::vector<double> probs(DIM, 0.);
+
+  int i;
+  for(i=0;i<DIM;i++){
+    probs[i] = BaseVector::apply_function_sum(density_probability_func<data_t>(qubits,qubits_sorted,i,BaseMatrix::num_rows()));
+  }
+
+  return probs;
+}
+
+template <typename data_t>
+class DensityMatrixDiagonalReal
+{
+protected:
+  thrust::complex<data_t>* data_;
+  data_t* diag_;
+  uint_t rows_;
+public:
+  DensityMatrixDiagonalReal(thrust::complex<data_t>* src,data_t* dest,uint_t stride)
+  {
+    data_ = src;
+    diag_ = dest;
+    rows_ = stride;
+  }
+
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    uint_t idx;
+    thrust::complex<data_t> q;
+
+    idx = i * (rows_ + 1);
+
+    q = data_[idx];
+    diag_[i] = q.real();
+  }
+};
+
+template <typename data_t>
+reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnds) const 
+{
+  uint_t nrows = BaseMatrix::num_rows();
+#ifdef AER_DEBUG
+  reg_t samples;
+
+  BaseVector::DebugMsg("sample_measure begin");
+
+  samples = BaseVector::chunk_->sample_measure(rnds,nrows+1,false);
+  BaseVector::DebugMsg("sample_measure",samples);
+  return samples;
+#else
+  return BaseVector::chunk_->sample_measure(rnds,nrows+1,false);
+#endif
+}
+
 
 //------------------------------------------------------------------------------
 } // end namespace QV

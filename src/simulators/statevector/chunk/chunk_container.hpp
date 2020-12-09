@@ -33,6 +33,11 @@
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/detail/vector_base.h>
 
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/iterator/transform_iterator.h>
+#include <thrust/iterator/permutation_iterator.h>
+#include <thrust/fill.h>
+
 #ifdef AER_THRUST_CUDA
 #include <thrust/device_vector.h>
 #endif
@@ -336,7 +341,7 @@ public:
 
   virtual void Zero(uint_t iChunk,uint_t count) = 0;
 
-  virtual reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds) const = 0;
+  virtual reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true) const = 0;
 
   size_t size_of_complex(void)
   {
@@ -501,6 +506,73 @@ void ChunkContainer<data_t>::UnmapCheckpoint(Chunk<data_t>* buf)
   }
   delete buf;
 }
+
+
+//stridded iterator to access diagonal probabilities
+template <typename Iterator>
+class strided_range
+{
+  public:
+
+  typedef typename thrust::iterator_difference<Iterator>::type difference_type;
+
+  struct stride_functor : public thrust::unary_function<difference_type,difference_type>
+  {
+    difference_type stride;
+
+    stride_functor(difference_type stride)
+        : stride(stride) {}
+
+    __host__ __device__
+    difference_type operator()(const difference_type& i) const
+    { 
+      return stride * i;
+    }
+  };
+
+  typedef typename thrust::counting_iterator<difference_type>                   CountingIterator;
+  typedef typename thrust::transform_iterator<stride_functor, CountingIterator> TransformIterator;
+  typedef typename thrust::permutation_iterator<Iterator,TransformIterator>     PermutationIterator;
+
+  // type of the strided_range iterator
+  typedef PermutationIterator iterator;
+
+  // construct strided_range for the range [first,last)
+  strided_range(Iterator first, Iterator last, difference_type stride)
+      : first(first), last(last), stride(stride) {}
+ 
+  iterator begin(void) const
+  {
+    return PermutationIterator(first, TransformIterator(CountingIterator(0), stride_functor(stride)));
+  }
+
+  iterator end(void) const
+  {
+    return begin() + ((last - first) + (stride - 1)) / stride;
+  }
+  
+  protected:
+  Iterator first;
+  Iterator last;
+  difference_type stride;
+};
+
+template <typename data_t>
+struct complex_dot : public thrust::unary_function<thrust::complex<data_t>,thrust::complex<data_t>>
+{
+  __host__ __device__
+  thrust::complex<data_t> operator()(thrust::complex<data_t> x) { return thrust::complex<data_t>(x.real()*x.real()+x.imag()*x.imag(),0); }
+};
+
+template<typename data_t>
+struct complex_less
+{
+  typedef thrust::complex<data_t> first_argument_type;
+  typedef thrust::complex<data_t> second_argument_type;
+  typedef bool result_type;
+  __thrust_exec_check_disable__
+    __host__ __device__ bool operator()(const thrust::complex<data_t> &lhs, const thrust::complex<data_t> &rhs) const {return lhs.real() < rhs.real();}
+}; // end less
 
 
 //------------------------------------------------------------------------------

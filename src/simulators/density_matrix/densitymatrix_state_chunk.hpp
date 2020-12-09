@@ -87,13 +87,6 @@ public:
   // Return the string name of the State class
   virtual std::string name() const override {return densmat_t::name();}
 
-  // Apply a sequence of operations by looping over list
-  // If the input is not in allowed_ops an exeption will be raised.
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false) override;
-
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
 
@@ -138,7 +131,13 @@ protected:
   //-----------------------------------------------------------------------
   // Apply instructions
   //-----------------------------------------------------------------------
-  uint_t apply_blocking(const std::vector<Operations::Op> &ops, uint_t op_begin);
+  virtual void apply_op(const int_t iChunk,const Operations::Op &op,
+                         ExperimentResult &result,
+                         RngEngine &rng,
+                         bool final_ops);
+
+  //swap between chunks
+  virtual void apply_chunk_swap(const reg_t &qubits);
 
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
@@ -565,186 +564,93 @@ void State<densmat_t>::set_config(const json_t &config)
 //=========================================================================
 
 template <class densmat_t>
-void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
-                                 ExperimentResult &result,
-                                 RngEngine &rng,bool final_ops) 
+void State<densmat_t>::apply_op(const int_t iChunk,const Operations::Op &op,
+                         ExperimentResult &result,
+                         RngEngine &rng,
+                         bool final_ops)
 {
-  uint_t iOp,nOp;
-  int_t iChunk;
+  uint_t ireg;
 
-  nOp = ops.size();
-  iOp = 0;
+  if(iChunk >= 0 && BaseState::cregs_.size() == BaseState::qregs_.size()){
+    //multi-shot mode
+    ireg = iChunk;
+  }
+  else{
+    ireg = 0;
+  }
 
-  // Simple loop over vector of input operations
-  while(iOp < nOp){
-    // If conditional op check conditional
-    if (BaseState::cregs_[0].check_conditional(ops[iOp])) {
-      switch (ops[iOp].type) {
-        case Operations::OpType::barrier:
-          break;
-        case Operations::OpType::reset:
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
-          for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++)
-            apply_reset(iChunk, ops[iOp].qubits);
-          break;
-        case Operations::OpType::measure:
-          apply_measure(-1, ops[iOp].qubits, ops[iOp].memory, ops[iOp].registers, rng);
-          break;
-        case Operations::OpType::bfunc:
-          for(iChunk=0;iChunk<BaseState::cregs_.size();iChunk++)
-            BaseState::cregs_[iChunk].apply_bfunc(ops[iOp]);
-          break;
-        case Operations::OpType::roerror:
-          for(iChunk=0;iChunk<BaseState::cregs_.size();iChunk++)
-            BaseState::cregs_[iChunk].apply_roerror(ops[iOp], rng);
-          break;
-        case Operations::OpType::gate:
-          if(ops[iOp].name == "swap_chunk"){
-            uint_t q0,q1;
-            q0 = ops[iOp].qubits[0];
-            q1 = ops[iOp].qubits[1];
-            if(ops[iOp].qubits[0] >= BaseState::chunk_bits_/2){
-              q0 += BaseState::chunk_bits_/2;
-            }
-            if(ops[iOp].qubits[1] >= BaseState::chunk_bits_/2){
-              q1 += BaseState::chunk_bits_/2;
-            }
-            reg_t qs0 = {{q0, q1}};
-            BaseState::apply_chunk_swap(qs0);
 
-            if(ops[iOp].qubits[0] >= BaseState::chunk_bits_/2){
-              q0 += (BaseState::num_qubits_ - BaseState::chunk_bits_)/2;
-            }
-            else{
-              q0 += BaseState::chunk_bits_/2;
-            }
-            if(ops[iOp].qubits[1] >= BaseState::chunk_bits_/2){
-              q1 += (BaseState::num_qubits_ - BaseState::chunk_bits_)/2;
-            }
-            else{
-              q1 += BaseState::chunk_bits_/2;
-            }
-            reg_t qs1 = {{q0, q1}};
-            BaseState::apply_chunk_swap(qs1);
-          }
-          else{
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
-            for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++)
-              apply_gate(iChunk,ops[iOp]);
-          }
-          break;
-        case Operations::OpType::snapshot:
-          apply_snapshot(-1,ops[iOp], result, final_ops && nOp == iOp + 1);
-          break;
-        case Operations::OpType::matrix:
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
-          for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++)
-            apply_matrix(iChunk,ops[iOp].qubits, ops[iOp].mats[0]);
-          break;
-        case Operations::OpType::diagonal_matrix:
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
-          for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++)
-            BaseState::qregs_[iChunk].apply_diagonal_matrix(ops[iOp].qubits, ops[iOp].params);
-          break;
-        case Operations::OpType::superop:
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
-          for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++)
-            BaseState::qregs_[iChunk].apply_superop_matrix(ops[iOp].qubits, Utils::vectorize_matrix(ops[iOp].mats[0]));
-          break;
-        case Operations::OpType::kraus:
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
-          for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++)
-            apply_kraus(iChunk, ops[iOp].qubits, ops[iOp].mats);
-          break;
-        case Operations::OpType::sim_op:
-          if(ops[iOp].name == "begin_blocking"){
-            iOp = apply_blocking(ops,iOp + 1);
-          }
-          break;
-        default:
-          throw std::invalid_argument("DensityMatrix::State::invalid instruction \'" +
-                                      ops[iOp].name + "\'.");
-      }
+  if (BaseState::cregs_[ireg].check_conditional(op)) {
+    switch (op.type) {
+      case Operations::OpType::barrier:
+        break;
+      case Operations::OpType::reset:
+        apply_reset(iChunk, op.qubits);
+        break;
+      case Operations::OpType::measure:
+        apply_measure(iChunk, op.qubits, op.memory, op.registers, rng);
+        break;
+      case Operations::OpType::bfunc:
+        BaseState::cregs_[ireg].apply_bfunc(op);
+        break;
+      case Operations::OpType::roerror:
+        BaseState::cregs_[ireg].apply_roerror(op, rng);
+        break;
+      case Operations::OpType::gate:
+        apply_gate(iChunk,op);
+        break;
+      case Operations::OpType::snapshot:
+        apply_snapshot(iChunk,op, result, final_ops);
+        break;
+      case Operations::OpType::matrix:
+        apply_matrix(iChunk,op.qubits, op.mats[0]);
+        break;
+      case Operations::OpType::diagonal_matrix:
+        BaseState::qregs_[iChunk].apply_diagonal_matrix(op.qubits, op.params);
+        break;
+      case Operations::OpType::superop:
+        BaseState::qregs_[iChunk].apply_superop_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
+        break;
+      case Operations::OpType::kraus:
+        apply_kraus(iChunk, op.qubits, op.mats);
+        break;
+      default:
+        throw std::invalid_argument("DensityMatrix::State::invalid instruction \'" +
+                                    op.name + "\'.");
     }
-    iOp++;
   }
 }
 
+//swap between chunks
 template <class densmat_t>
-uint_t State<densmat_t>::apply_blocking(const std::vector<Operations::Op> &ops, uint_t op_begin)
+void State<densmat_t>::apply_chunk_swap(const reg_t &qubits)
 {
-  uint_t iOp,nOp,iEnd;
-  int_t iChunk;
-
-  nOp = ops.size();
-  iEnd = op_begin;
-
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk,iOp) 
-  for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
-    bool inBlock = true;
-    iOp = op_begin;
-
-    BaseState::qregs_[iChunk].fetch_chunk();
-
-    while(iOp < nOp){
-      if(BaseState::cregs_[0].check_conditional(ops[iOp])) {
-        switch (ops[iOp].type){
-          case Operations::OpType::gate:
-            apply_gate(iChunk,ops[iOp]);
-            break;
-          case Operations::OpType::matrix:
-            apply_matrix(iChunk,ops[iOp].qubits,ops[iOp].mats[0]);
-            break;
-          case Operations::OpType::diagonal_matrix:
-            BaseState::qregs_[iChunk].apply_diagonal_matrix(ops[iOp].qubits, ops[iOp].params);
-            break;
-          case Operations::OpType::superop:
-            BaseState::qregs_[iChunk].apply_superop_matrix(ops[iOp].qubits, Utils::vectorize_matrix(ops[iOp].mats[0]));
-            break;
-          case Operations::OpType::sim_op:
-            if(ops[iOp].name == "end_blocking"){
-              inBlock = false;
-#ifdef _MSC_VER
-#pragma omp critical
-              {
-#else
-#pragma omp atomic write
-#endif
-              iEnd = iOp;
-#ifdef _MSC_VER
-              }
-#endif
-            }
-            break;
-          default:
-            throw std::invalid_argument("QubitVector::State::invalid instruction \'" +
-                                        ops[iOp].name + "\'.");
-        }
-      }
-
-      if(!inBlock){
-        break;
-      }
-      iOp++;
-    }
-
-    if(iOp >= nOp){
-#ifdef _MSC_VER
-#pragma omp critical
-              {
-#else
-#pragma omp atomic write
-#endif
-      iEnd = iOp;
-#ifdef _MSC_VER
-              }
-#endif
-    }
-
-    BaseState::qregs_[iChunk].release_chunk();
+  uint_t q0,q1;
+  q0 = qubits[0];
+  q1 = qubits[1];
+  if(qubits[0] >= BaseState::chunk_bits_/2){
+    q0 += BaseState::chunk_bits_/2;
   }
+  if(qubits[1] >= BaseState::chunk_bits_/2){
+    q1 += BaseState::chunk_bits_/2;
+  }
+  reg_t qs0 = {{q0, q1}};
+  BaseState::apply_chunk_swap(qs0);
 
-  return iEnd;
+  if(qubits[0] >= BaseState::chunk_bits_/2){
+    q0 += (BaseState::num_qubits_ - BaseState::chunk_bits_)/2;
+  }
+  else{
+    q0 += BaseState::chunk_bits_/2;
+  }
+  if(qubits[1] >= BaseState::chunk_bits_/2){
+    q1 += (BaseState::num_qubits_ - BaseState::chunk_bits_)/2;
+  }
+  else{
+    q1 += BaseState::chunk_bits_/2;
+  }
+  reg_t qs1 = {{q0, q1}};
+  BaseState::apply_chunk_swap(qs1);
 }
 
 //=========================================================================
@@ -1265,7 +1171,7 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
       uint_t irow,icol;
       irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2);
       icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2));
-      if(irow == icol)   //diagonal chunk
+      if(irow == icol)   //only diagonal chunk has probabilities
         chunkSum[i] = std::real( BaseState::qregs_[i].trace() );
       else
         chunkSum[i] = 0.0;
@@ -1279,7 +1185,7 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
     chunkSum[BaseState::num_local_chunks_] = localSum;
 
     double globalSum = 0.0;
-    if(BaseState::nprocs_ > 1){// && isMultiShot_ == false){
+    if(BaseState::nprocs_ > 1){
       std::vector<double> procTotal(BaseState::nprocs_);
 
       for(i=0;i<BaseState::nprocs_;i++){
@@ -1297,27 +1203,29 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
     //get rnds positions for each chunk
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i,j) 
     for(i=0;i<BaseState::num_local_chunks_;i++){
-      uint_t nIn;
-      std::vector<uint_t> vIdx;
-      std::vector<double> vRnd;
+      if(chunkSum[i] != chunkSum[i+1]){
+        uint_t nIn;
+        std::vector<uint_t> vIdx;
+        std::vector<double> vRnd;
 
-      //find rnds in this chunk
-      nIn = 0;
-      for(j=0;j<shots;j++){
-        if(rnds[j] >= chunkSum[i] + globalSum && rnds[j] < chunkSum[i+1] + globalSum){
-          vRnd.push_back(rnds[j] - (globalSum + chunkSum[i]));
-          vIdx.push_back(j);
-          nIn++;
+        //find rnds in this chunk
+        nIn = 0;
+        for(j=0;j<shots;j++){
+          if(rnds[j] >= chunkSum[i] + globalSum && rnds[j] < chunkSum[i+1] + globalSum){
+            vRnd.push_back(rnds[j] - (globalSum + chunkSum[i]));
+            vIdx.push_back(j);
+            nIn++;
+          }
         }
-      }
 
-      if(nIn > 0){
-        auto chunkSamples = BaseState::qregs_[i].sample_measure(vRnd);
-        uint_t irow;
-        irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2);
+        if(nIn > 0){
+          auto chunkSamples = BaseState::qregs_[i].sample_measure(vRnd);
+          uint_t irow;
+          irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2);
 
-        for(j=0;j<nIn;j++){
-          local_samples[vIdx[j]] = (irow << BaseState::chunk_bits_/2) + chunkSamples[j];
+          for(j=0;j<nIn;j++){
+            local_samples[vIdx[j]] = (irow << BaseState::chunk_bits_/2) + chunkSamples[j];
+          }
         }
       }
     }

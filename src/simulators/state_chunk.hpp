@@ -115,19 +115,7 @@ public:
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
                          ExperimentResult &result,
                          RngEngine &rng,
-                         bool final_ops = false)  = 0;
-
-  //apply one operator
-  virtual void apply_op(const uint_t ishot,const Operations::Op &op,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false)
-  {
-    //default implementation
-    std::vector<Operations::Op> ops;
-    ops.push_back(op);
-    apply_ops(ops,result,rng,final_ops);
-  }
+                         bool final_ops = false);
 
   //memory allocation (previously called before inisitalize_qreg)
   virtual void allocate(uint_t num_qubits,uint_t shots)
@@ -252,6 +240,7 @@ protected:
   int threads_ = 1;
 
   uint_t num_shots_;            //number of shots to be parallelized
+  uint_t shot_count_;           //shot counter
 
   uint_t num_qubits_;           //number of qubits
 
@@ -278,7 +267,7 @@ protected:
   uint_t get_process_by_chunk(uint_t cid);
 
   //swap between chunks
-  void apply_chunk_swap(const reg_t &qubits);
+  virtual void apply_chunk_swap(const reg_t &qubits);
 
   //reduce values over processes
   void reduce_sum(rvector_t& sum) const;
@@ -294,6 +283,13 @@ protected:
   //gather distributed state into vector (if memory is enough)
   void gather_state(std::vector<std::complex<double>>& state);
   void gather_state(std::vector<std::complex<float>>& state);
+
+  //apply one operator
+  //implement this function instead of apply_ops in the sub classes for simulation methods
+  virtual void apply_op(const int_t iChunk,const Operations::Op &op,
+                         ExperimentResult &result,
+                         RngEngine &rng,
+                         bool final_ops = false)  = 0;
 
   // Set a global phase exp(1j * theta) for the state
   bool has_global_phase_ = false;
@@ -323,6 +319,7 @@ StateChunk<state_t>::StateChunk(const Operations::OpSet &opset) : opset_(opset)
   multi_shot_parallelization_ = false;
 
   num_shots_ = 1;
+  shot_count_ = 0;
 
 #ifdef AER_MPI
   distributed_comm_ = MPI_COMM_WORLD;
@@ -455,6 +452,93 @@ void StateChunk<state_t>::set_config(const json_t &config)
     JSON::get_value(block_bits_, "blocking_qubits", config);
 }
 
+
+template <class state_t>
+void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
+                         ExperimentResult &result,
+                         RngEngine &rng,
+                         bool final_ops)
+{
+  int_t iChunk;
+  uint_t iOp,nOp;
+
+  if(multi_shot_parallelization_){
+    //for multi-shot distribution mode
+
+    //apply_ops is called shots times from controller class, so apply only the first call
+    if(shot_count_++ > 0){
+      if(shot_count_ >= num_shots_)
+        shot_count_ = 0;
+      return;
+    }
+
+    nOp = ops.size();
+    iOp = 0;
+    while(iOp < nOp){
+      for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
+        apply_op(iChunk,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
+      }
+      iOp++;
+    }
+  }
+  else{
+    //multi-chunk parallelization mode
+
+    nOp = ops.size();
+    iOp = 0;
+    while(iOp < nOp){
+      if(ops[iOp].type == Operations::OpType::gate && ops[iOp].name == "swap_chunk"){
+        //apply swap between chunks
+        apply_chunk_swap(ops[iOp].qubits);
+      }
+      else if(ops[iOp].type == Operations::OpType::sim_op && ops[iOp].name == "begin_blocking"){
+        //applying sequence of gates inside each chunk
+        uint_t iOpBegin = iOp + 1;
+#pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
+        for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
+          uint_t iOpBlock;
+          //fecth chunk in cache
+          qregs_[iChunk].fetch_chunk();
+
+          iOpBlock = iOpBegin;
+          while(iOpBlock < nOp){
+            if(ops[iOpBlock].type == Operations::OpType::sim_op && ops[iOpBlock].name == "end_blocking"){
+              //end of sequence of blocking
+              break;
+            }
+            apply_op(iChunk,ops[iOpBlock],result,rng,final_ops);
+            iOpBlock++;
+          }
+
+#ifdef _MSC_VER
+#pragma omp critical
+                {
+#else
+#pragma omp atomic write
+#endif
+                  iOp = iOpBlock;
+#ifdef _MSC_VER
+                }
+#endif
+          //release chunk from cache
+          qregs_[iChunk].release_chunk();
+        }
+      }
+      else if(ops[iOp].type == Operations::OpType::measure || ops[iOp].type == Operations::OpType::snapshot || ops[iOp].type == Operations::OpType::kraus ||
+              ops[iOp].type == Operations::OpType::bfunc || ops[iOp].type == Operations::OpType::roerror){
+                //for these operations, parallelize inside state implementations
+        apply_op(-1,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
+      }
+      else{
+#pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
+        for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
+          apply_op(iChunk,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
+        }
+      }
+      iOp++;
+    }
+  }
+}
 
 template <class state_t>
 std::vector<reg_t> StateChunk<state_t>::sample_measure(const reg_t &qubits,

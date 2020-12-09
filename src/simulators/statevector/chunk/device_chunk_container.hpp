@@ -142,7 +142,7 @@ public:
 
   void Zero(uint_t iChunk,uint_t count);
 
-  reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds) const;
+  reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true) const;
 
   template <typename Function>
   void Execute(Function func,uint_t iChunk,uint_t count);
@@ -727,24 +727,26 @@ void DeviceChunkContainer<data_t>::Zero(uint_t iChunk,uint_t count)
 #endif
 }
 
+
 template <typename data_t>
-reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vector<double> &rnds) const
+reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride, bool dot) const
 {
   const int_t SHOTS = rnds.size();
   reg_t samples(SHOTS,0);
   thrust::host_vector<uint_t> vSmp(SHOTS);
-  data_t* pVec;
   int i;
-  uint_t size = (2 << this->chunk_bits_);
 
   set_device();
-  pVec = (data_t*)((thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data()) + (iChunk << this->chunk_bits_));
+
+  strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+1), stride);
+
+  if(dot)
+    thrust::transform_inclusive_scan(thrust::cuda::par.on(stream_[iChunk]),iter.begin(),iter.end(),iter.begin(),complex_dot<data_t>(),thrust::plus<thrust::complex<data_t>>());
+  else
+    thrust::inclusive_scan(thrust::cuda::par.on(stream_[iChunk]),iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
 
 #ifdef AER_THRUST_CUDA
-
-  thrust::transform_inclusive_scan(thrust::cuda::par.on(stream_[iChunk]),pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
-
-  if(num_matrices_ >= this->num_chunks_ && SHOTS < params_buffer_size_){
+  if(multi_shots_ && num_matrices_ >= this->num_chunks_ && SHOTS < params_buffer_size_){
     //matrix and parameter buffers can be used
     double* pRnd = (double*)matrix_pointer(iChunk);
     uint_t* pSmp = param_pointer(iChunk);
@@ -752,7 +754,7 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
 
     cudaMemcpyAsync(pRnd,&rnds[0],SHOTS*sizeof(double),cudaMemcpyHostToDevice,stream_[iChunk]);
 
-    thrust::lower_bound(thrust::cuda::par.on(stream_[iChunk]), pVec, pVec + size, rnd_dev_ptr, rnd_dev_ptr + SHOTS, params_.begin() + (iChunk * params_buffer_size_) );
+    thrust::lower_bound(thrust::cuda::par.on(stream_[iChunk]), iter.begin(), iter.end(), rnd_dev_ptr, rnd_dev_ptr + SHOTS, params_.begin() + (iChunk * params_buffer_size_) ,complex_less<data_t>());
 
     cudaMemcpyAsync(thrust::raw_pointer_cast(vSmp.data()),pSmp,SHOTS*sizeof(uint_t),cudaMemcpyDeviceToHost,stream_[iChunk]);
     cudaStreamSynchronize(stream_[iChunk]);
@@ -763,7 +765,7 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
 
     cudaMemcpyAsync(thrust::raw_pointer_cast(vRnd_dev.data()),&rnds[0],SHOTS*sizeof(double),cudaMemcpyHostToDevice,stream_[iChunk]);
 
-    thrust::lower_bound(thrust::cuda::par.on(stream_[iChunk]), pVec, pVec + size, vRnd_dev.begin(), vRnd_dev.begin() + SHOTS, vSmp_dev.begin());
+    thrust::lower_bound(thrust::cuda::par.on(stream_[iChunk]), iter.begin(), iter.end(), vRnd_dev.begin(), vRnd_dev.begin() + SHOTS, vSmp_dev.begin() ,complex_less<data_t>());
 
     cudaMemcpyAsync(thrust::raw_pointer_cast(vSmp.data()),thrust::raw_pointer_cast(vSmp_dev.data()),SHOTS*sizeof(uint_t),cudaMemcpyDeviceToHost,stream_[iChunk]);
     cudaStreamSynchronize(stream_[iChunk]);
@@ -772,12 +774,11 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
     vSmp_dev.clear();
   }
 #else
-  thrust::transform_inclusive_scan(thrust::device,pVec,pVec+size,pVec,thrust::square<double>(),thrust::plus<double>());
-  thrust::lower_bound(thrust::device, pVec, pVec + size, rnds.begin(), rnds.begin() + SHOTS, vSmp.begin());
+  thrust::lower_bound(thrust::device, iter.begin(), iter.end(), rnds.begin(), rnds.begin() + SHOTS, vSmp.begin() ,complex_less<data_t>());
 #endif
 
   for(i=0;i<SHOTS;i++){
-    samples[i] = vSmp[i]/2;
+    samples[i] = vSmp[i];
   }
   vSmp.clear();
 

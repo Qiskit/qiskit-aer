@@ -102,7 +102,7 @@ public:
 
   void Zero(uint_t iChunk,uint_t count);
 
-  reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds) const;
+  reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true) const;
 
   template <typename Function>
   void Execute(Function func,uint_t iChunk,uint_t count);
@@ -444,28 +444,32 @@ void HostChunkContainer<data_t>::Zero(uint_t iChunk,uint_t count)
 }
 
 template <typename data_t>
-reg_t HostChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vector<double> &rnds) const
+reg_t HostChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride, bool dot) const
 {
   const int_t SHOTS = rnds.size();
   reg_t samples(SHOTS,0);
   thrust::host_vector<uint_t> vSmp(SHOTS);
-  data_t* pVec;
   int i;
-  uint_t size = (2 << this->chunk_bits_);
 
-  pVec = (data_t*)(thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data()) + (iChunk << this->chunk_bits_);
+  strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+1), stride);
 
   if(omp_get_num_threads() == 1){
-    thrust::transform_inclusive_scan(thrust::omp::par,pVec,pVec + size,pVec,thrust::square<double>(),thrust::plus<double>());
-    thrust::lower_bound(thrust::omp::par, pVec, pVec + size, rnds.begin(), rnds.begin() + SHOTS, vSmp.begin());
+    if(dot)
+      thrust::transform_inclusive_scan(thrust::omp::par,iter.begin(),iter.end(),iter.begin(),complex_dot<data_t>(),thrust::plus<thrust::complex<data_t>>());
+    else
+      thrust::inclusive_scan(thrust::omp::par,iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
+    thrust::lower_bound(thrust::omp::par, iter.begin(), iter.end(), rnds.begin(), rnds.begin() + SHOTS, vSmp.begin() ,complex_less<data_t>());
   }
   else{
-    thrust::transform_inclusive_scan(thrust::host,pVec,pVec + size,pVec,thrust::square<double>(),thrust::plus<double>());
-    thrust::lower_bound(thrust::host, pVec, pVec + size, rnds.begin(), rnds.begin() + SHOTS, vSmp.begin());
+    if(dot)
+      thrust::transform_inclusive_scan(thrust::host,iter.begin(),iter.end(),iter.begin(),complex_dot<data_t>(),thrust::plus<thrust::complex<data_t>>());
+    else
+      thrust::inclusive_scan(thrust::host,iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
+    thrust::lower_bound(thrust::host, iter.begin(), iter.end(), rnds.begin(), rnds.begin() + SHOTS, vSmp.begin() ,complex_less<data_t>());
   }
 
   for(i=0;i<SHOTS;i++){
-    samples[i] = vSmp[i]/2;
+    samples[i] = vSmp[i];
   }
   vSmp.clear();
 
