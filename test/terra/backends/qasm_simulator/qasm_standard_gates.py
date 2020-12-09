@@ -27,7 +27,7 @@ from qiskit.circuit.library.standard_gates import (
     C4XGate, CCXGate, CHGate, CSXGate, CSwapGate, CPhaseGate, CRXGate, CRYGate,
     CRZGate, CU1Gate, CU3Gate, CUGate, PhaseGate, RC3XGate, RCCXGate, RGate,
     RXGate, RXXGate, RYGate, RYYGate, RZGate, RZXGate, RZZGate, U1Gate, U2Gate,
-    U3Gate, UGate, MCXGate, MCPhaseGate)
+    U3Gate, UGate, MCXGate, MCPhaseGate, MCXGrayCode)
 
 GATES = [
     # Clifford Gates
@@ -79,7 +79,8 @@ GATES = [
     (U3Gate, 3, False),
     (UGate, 3, False),
     (MCXGate, 0, True),
-    (MCPhaseGate, 1, True)
+    (MCPhaseGate, 1, True),
+    (MCXGrayCode, 0, True)
 ]
 
 

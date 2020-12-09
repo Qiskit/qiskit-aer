@@ -292,7 +292,7 @@ class QasmSimulator(AerBackend):
             'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
             'mcphase', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
             'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-            'initialize', 'kraus', 'roerror', 'delay', 'pauli'
+            'initialize', 'kraus', 'roerror', 'delay', 'pauli', 'mcx_gray'
         ],
         'gates': []
     }

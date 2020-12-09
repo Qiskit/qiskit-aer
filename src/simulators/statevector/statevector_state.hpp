@@ -46,7 +46,7 @@ const Operations::OpSet StateOpSet(
      "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
      "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
      "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
-     "mcsx",   "delay", "pauli"},
+     "mcsx",   "delay", "pauli", "mcx_gray"},
     // Snapshots
     {"statevector", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli", "density_matrix",
@@ -354,7 +354,8 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
     {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
-    {"pauli", Gates::pauli}   // Multi-qubit Pauli gate
+    {"pauli", Gates::pauli},   // Multi-qubit Pauli gate
+    {"mcx_gray", Gates::mcx}
 });
 
 template <class statevec_t>
