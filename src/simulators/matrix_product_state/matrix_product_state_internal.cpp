@@ -554,7 +554,7 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
   }
 
   reg_t new_qubits(qubits.size());
-  centralize_and_sort_qubits(qubits, new_qubits);
+  centralize_qubits(qubits, new_qubits);
 
   // The controlled (or target) qubit, is qubit[2]. Since in new_qubits the qubits are sorted,
   // the relative position of the controlled qubit will be 0, 1, or 2 depending on
@@ -654,7 +654,7 @@ void MPS::apply_unordered_multi_qubit_gate(const reg_t &qubits,
 					   const cmatrix_t &mat,
 					   bool is_diagonal){
   reg_t new_qubits(qubits.size());
-  centralize_and_sort_qubits(qubits, new_qubits);
+  centralize_qubits(qubits, new_qubits);
   apply_matrix_to_target_qubits(new_qubits, mat, is_diagonal);
 }
 
@@ -760,7 +760,7 @@ void MPS::apply_kraus_internal(const reg_t &qubits,
   }
 }
 
-void MPS::centralize_and_sort_qubits(const reg_t &qubits, 
+void MPS::centralize_qubits(const reg_t &qubits, 
 				     reg_t &centralized_qubits) {
   reg_t sorted_indices;
   find_centralized_indices(qubits, sorted_indices, centralized_qubits);
@@ -880,7 +880,7 @@ rvector_t MPS::diagonal_of_density_matrix(const reg_t &qubits) const
   reg_t new_qubits;
   MPS temp_MPS;
   temp_MPS.initialize(*this);
-  temp_MPS.centralize_and_sort_qubits(qubits, new_qubits);
+  temp_MPS.centralize_qubits(qubits, new_qubits);
 
   MPS_Tensor psi = temp_MPS.state_vec_as_MPS(new_qubits.front(), new_qubits.back());
 
@@ -897,7 +897,7 @@ void MPS::MPS_with_new_indices(const reg_t &qubits,
 			       reg_t &centralized_qubits,
 			       MPS& temp_MPS) const {
   temp_MPS.initialize(*this);
-  temp_MPS.centralize_and_sort_qubits(qubits, centralized_qubits);
+  temp_MPS.centralize_qubits(qubits, centralized_qubits);
 
 }
 
@@ -1125,7 +1125,7 @@ uint_t MPS::get_max_bond_dimensions() const {
 
 MPS_Tensor MPS::state_vec_as_MPS(const reg_t &qubits) {
   reg_t new_qubits;
-  centralize_and_sort_qubits(qubits, new_qubits);
+  centralize_qubits(qubits, new_qubits);
   return state_vec_as_MPS(new_qubits.front(), new_qubits.back());
 }
 

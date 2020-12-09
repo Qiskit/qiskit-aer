@@ -361,12 +361,12 @@ private:
   void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
 
   //----------------------------------------------------------------
-  // Function name: centralize_and_sort_qubits
+  // Function name: centralize_qubits
   // Description: Creates a new MPS where a subset of the qubits is
   // moved to be in consecutive positions. Used for
   // computations involving a subset of the qubits.
   //----------------------------------------------------------------
-  void centralize_and_sort_qubits(const reg_t &qubits,
+  void centralize_qubits(const reg_t &qubits,
 				  reg_t &centralized_qubits);
 
   //----------------------------------------------------------------
