@@ -29,7 +29,7 @@ template <typename data_t>
 class ChunkManager 
 {
 protected:
-  std::vector<ChunkContainer<data_t>*> chunks_;         //chunk containers for each device and host
+  std::vector<std::shared_ptr<ChunkContainer<data_t>>> chunks_;         //chunk containers for each device and host
 
   int num_devices_;            //number of devices
   int num_places_;             //number of places (devices + host)
@@ -49,7 +49,7 @@ public:
 
   ~ChunkManager();
 
-  ChunkContainer<data_t>* container(uint_t i)
+  std::shared_ptr<ChunkContainer<data_t>> container(uint_t i)
   {
     if(i < chunks_.size())
       return chunks_[i];
@@ -88,12 +88,12 @@ public:
     return num_qubits_;
   }
 
-  Chunk<data_t>* MapChunk(int iplace = -1);
-  Chunk<data_t>* MapBufferChunk(int idev);
-  Chunk<data_t>* MapCheckpoint(Chunk<data_t>* chunk);
-  void UnmapChunk(Chunk<data_t>* chunk);
-  void UnmapBufferChunk(Chunk<data_t>* buffer);
-  void UnmapCheckpoint(Chunk<data_t>* buffer);
+  std::shared_ptr<Chunk<data_t>> MapChunk(int iplace = -1);
+  std::shared_ptr<Chunk<data_t>> MapBufferChunk(int idev);
+  std::shared_ptr<Chunk<data_t>> MapCheckpoint(std::shared_ptr<Chunk<data_t>> chunk);
+  void UnmapChunk(std::shared_ptr<Chunk<data_t>> chunk);
+  void UnmapBufferChunk(std::shared_ptr<Chunk<data_t>> buffer);
+  void UnmapCheckpoint(std::shared_ptr<Chunk<data_t>> buffer);
 
 };
 
@@ -235,7 +235,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
         }
 
         num_checkpoint = nc;
-        chunks_[iDev] = new DeviceChunkContainer<data_t>;
+        chunks_[iDev] = std::make_shared<DeviceChunkContainer<data_t>>();
 
 #ifdef AER_THRUST_CUDA
         size_t freeMem,totalMem;
@@ -251,7 +251,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
       }
       if(num_chunks_ < nchunks){
         for(iDev=0;iDev<num_places_;iDev++){
-          chunks_[num_places_ + iDev] = new HostChunkContainer<data_t>;
+          chunks_[num_places_ + iDev] = std::make_shared<HostChunkContainer<data_t>>();
           is = (nchunks-num_chunks_) * (uint_t)iDev / (uint_t)num_places_;
           ie = (nchunks-num_chunks_) * (uint_t)(iDev + 1) / (uint_t)num_places_;
 
@@ -263,7 +263,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
 
       //additional host buffer
       iplace_host_ = num_places_;
-      chunks_[iplace_host_] = new HostChunkContainer<data_t>;
+      chunks_[iplace_host_] = std::make_shared<HostChunkContainer<data_t>>();
       chunks_[iplace_host_]->Allocate(-1,chunk_bits,0,AER_MAX_BUFFERS);
     }
   }
@@ -277,9 +277,7 @@ void ChunkManager<data_t>::Free(void)
   int i;
 
   for(i=0;i<chunks_.size();i++){
-    if(chunks_[i])
-      delete chunks_[i];
-    chunks_[i] = NULL;
+      chunks_[i].reset();
   }
 
   chunk_bits_ = 0;
@@ -290,12 +288,11 @@ void ChunkManager<data_t>::Free(void)
 }
 
 template <typename data_t>
-Chunk<data_t>* ChunkManager<data_t>::MapChunk(int iplace)
+std::shared_ptr<Chunk<data_t>> ChunkManager<data_t>::MapChunk(int iplace)
 {
-  Chunk<data_t>* pChunk;
+  std::shared_ptr<Chunk<data_t>> pChunk;
   int i;
 
-  pChunk = NULL;
   while(iplace < num_places_){
     pChunk = chunks_[iplace]->MapChunk();
     if(pChunk){
@@ -309,9 +306,9 @@ Chunk<data_t>* ChunkManager<data_t>::MapChunk(int iplace)
 }
 
 template <typename data_t>
-Chunk<data_t>* ChunkManager<data_t>::MapBufferChunk(int idev)
+std::shared_ptr<Chunk<data_t>> ChunkManager<data_t>::MapBufferChunk(int idev)
 {
-  Chunk<data_t>* pChunk = NULL;
+  std::shared_ptr<Chunk<data_t>> pChunk;
 
   if(idev < 0){
     int i,iplace;
@@ -322,7 +319,7 @@ Chunk<data_t>* ChunkManager<data_t>::MapBufferChunk(int idev)
       if(idev_buffer_map_ >= num_devices_)
         idev_buffer_map_ = 0;
 
-      if(pChunk != NULL){
+      if(pChunk){
         pChunk->set_place(iplace);
         break;
       }
@@ -331,7 +328,7 @@ Chunk<data_t>* ChunkManager<data_t>::MapBufferChunk(int idev)
   }
 
   pChunk = chunks_[idev]->MapBufferChunk();
-  if(pChunk != NULL){
+  if(pChunk){
     pChunk->set_place(idev);
   }
 
@@ -339,19 +336,19 @@ Chunk<data_t>* ChunkManager<data_t>::MapBufferChunk(int idev)
 }
 
 template <typename data_t>
-Chunk<data_t>* ChunkManager<data_t>::MapCheckpoint(Chunk<data_t>* chunk)
+std::shared_ptr<Chunk<data_t>> ChunkManager<data_t>::MapCheckpoint(std::shared_ptr<Chunk<data_t>> chunk)
 {
-  Chunk<data_t>* checkpoint = NULL;
+  std::shared_ptr<Chunk<data_t>> checkpoint;
   int iplace = chunk->place();
 
   if(chunks_[iplace]->num_checkpoint() > 0){
     checkpoint = chunks_[iplace]->MapCheckpoint(chunk->pos());
-    if(checkpoint != NULL){
+    if(!checkpoint){
       checkpoint->set_place(iplace);
     }
   }
 
-  if(checkpoint == NULL){
+  if(!checkpoint){
 #pragma omp critical
     {
       //map checkpoint on host
@@ -360,7 +357,7 @@ Chunk<data_t>* ChunkManager<data_t>::MapCheckpoint(Chunk<data_t>* chunk)
       }
     }
     checkpoint = chunks_[iplace_host_]->MapCheckpoint(-1);
-    if(checkpoint != NULL){
+    if(checkpoint){
       checkpoint->set_place(iplace_host_);
     }
   }
@@ -370,7 +367,7 @@ Chunk<data_t>* ChunkManager<data_t>::MapCheckpoint(Chunk<data_t>* chunk)
 
 
 template <typename data_t>
-void ChunkManager<data_t>::UnmapChunk(Chunk<data_t>* chunk)
+void ChunkManager<data_t>::UnmapChunk(std::shared_ptr<Chunk<data_t>> chunk)
 {
   int iPlace = chunk->place();
 
@@ -379,8 +376,7 @@ void ChunkManager<data_t>::UnmapChunk(Chunk<data_t>* chunk)
     chunks_[iPlace]->UnmapChunk(chunk);
     /*
     if(chunks_[iPlace]->num_chunk_mapped() == 0){   //last one
-      delete chunks_[iPlace];
-      chunks_[iPlace] = NULL;
+      chunks_[iPlace].reset();
     }
     */
   }
@@ -388,13 +384,13 @@ void ChunkManager<data_t>::UnmapChunk(Chunk<data_t>* chunk)
 
 
 template <typename data_t>
-void ChunkManager<data_t>::UnmapBufferChunk(Chunk<data_t>* buffer)
+void ChunkManager<data_t>::UnmapBufferChunk(std::shared_ptr<Chunk<data_t>> buffer)
 {
   chunks_[buffer->place()]->UnmapBuffer(buffer);
 }
 
 template <typename data_t>
-void ChunkManager<data_t>::UnmapCheckpoint(Chunk<data_t>* buffer)
+void ChunkManager<data_t>::UnmapCheckpoint(std::shared_ptr<Chunk<data_t>> buffer)
 {
   chunks_[buffer->place()]->UnmapCheckpoint(buffer);
 }

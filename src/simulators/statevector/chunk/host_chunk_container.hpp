@@ -94,11 +94,11 @@ public:
 #endif
   }
 
-  void CopyIn(Chunk<data_t>* src,uint_t iChunk);
-  void CopyOut(Chunk<data_t>* src,uint_t iChunk);
+  void CopyIn(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk);
+  void CopyOut(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk);
   void CopyIn(thrust::complex<data_t>* src,uint_t iChunk);
   void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk);
-  void Swap(Chunk<data_t>* src,uint_t iChunk);
+  void Swap(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk);
 
   void Zero(uint_t iChunk,uint_t count);
 
@@ -310,17 +310,17 @@ thrust::complex<double> HostChunkContainer<data_t>::ExecuteComplexSum(Function f
 }
 
 template <typename data_t>
-void HostChunkContainer<data_t>::CopyIn(Chunk<data_t>* src,uint_t iChunk)
+void HostChunkContainer<data_t>::CopyIn(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
 
   if(src->device() >= 0){
     src->set_device();
-    DeviceChunkContainer<data_t>* src_cont = (DeviceChunkContainer<data_t>*)src->container();
+    auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src->container());
     thrust::copy_n(src_cont->vector().begin() + (src->pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
   }
   else{
-    HostChunkContainer<data_t>* src_cont = (HostChunkContainer<data_t>*)src->container();
+    auto src_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(src->container());
 
     if(omp_get_num_threads() > 1){  //in parallel region
       thrust::copy_n(src_cont->vector().begin() + (src->pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
@@ -342,16 +342,16 @@ void HostChunkContainer<data_t>::CopyIn(Chunk<data_t>* src,uint_t iChunk)
 }
 
 template <typename data_t>
-void HostChunkContainer<data_t>::CopyOut(Chunk<data_t>* dest,uint_t iChunk)
+void HostChunkContainer<data_t>::CopyOut(std::shared_ptr<Chunk<data_t>> dest,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
   if(dest->device() >= 0){
     dest->set_device();
-    DeviceChunkContainer<data_t>* dest_cont = (DeviceChunkContainer<data_t>*)dest->container();
+    auto dest_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(dest->container());
     thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest_cont->vector().begin() + (dest->pos() << this->chunk_bits_));
   }
   else{
-    HostChunkContainer<data_t>* dest_cont = (HostChunkContainer<data_t>*)dest->container();
+    auto dest_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(dest->container());
 
     if(omp_get_num_threads() > 1){  //in parallel region
       thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest_cont->vector().begin() + (dest->pos() << this->chunk_bits_));
@@ -387,22 +387,22 @@ void HostChunkContainer<data_t>::CopyOut(thrust::complex<data_t>* dest,uint_t iC
 }
 
 template <typename data_t>
-void HostChunkContainer<data_t>::Swap(Chunk<data_t>* src,uint_t iChunk)
+void HostChunkContainer<data_t>::Swap(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
   if(src->device() >= 0){
     src->set_device();
 
     AERHostVector<thrust::complex<data_t>> tmp1(size);
-    DeviceChunkContainer<data_t>* src_cont = (DeviceChunkContainer<data_t>*)src->container();
-
+    auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src->container());
+    
     thrust::copy_n(thrust::omp::par,data_.begin() + (iChunk << this->chunk_bits_),size,tmp1.begin());
 
     thrust::copy_n(src_cont->vector().begin() + (src->pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
     thrust::copy_n(tmp1.begin(),size,src_cont->vector().begin() + (src->pos() << this->chunk_bits_));
   }
   else{
-    HostChunkContainer<data_t>* src_cont = (HostChunkContainer<data_t>*)src->container();
+    auto src_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(src->container());
 
     if(omp_get_num_threads() > 1){  //in parallel region
       thrust::swap_ranges(thrust::host,data_.begin() + (iChunk << this->chunk_bits_),data_.begin() + (iChunk << this->chunk_bits_) + size,src_cont->vector().begin() + (src->pos() << this->chunk_bits_));
