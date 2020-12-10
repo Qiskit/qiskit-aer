@@ -2682,7 +2682,6 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
 #ifdef AER_DEBUG
     DebugMsg("chunk swap",qubits);
 #endif
-
     pExec->Execute(CSwapChunk_func<data_t>(qubits,pChunk0,pChunk1,true),1);
     pExec->synchronize();    //should be synchronized here
 
@@ -2691,6 +2690,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
         pBuffer0->CopyOut(src.chunk_);
       else
         pBuffer0->CopyOut(chunk_);
+
       chunk_manager_.UnmapBufferChunk(pBuffer0);
     }
   }
@@ -3089,55 +3089,17 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const uint_t qubit,
  *
  ******************************************************************************/
 template <typename data_t>
-class Norm : public GateFuncBase<data_t>
-{
-protected:
-
-public:
-  Norm()
-  {
-
-  }
-
-  bool is_diagonal(void)
-  {
-    return true;
-  }
-
-  __host__ __device__ double operator()(const uint_t &i) const
-  {
-    thrust::complex<data_t>* vec;
-    thrust::complex<data_t> q0;
-    double ret;
-
-    vec = this->data_;
-
-    ret = 0.0;
-
-    q0 = vec[i];
-    ret = q0.real()*q0.real() + q0.imag()*q0.imag();
-
-    return ret;
-  }
-  const char* name(void)
-  {
-    return "Norm";
-  }
-};
-
-template <typename data_t>
 double QubitVectorThrust<data_t>::norm() const
 {
-  double ret;
-  reg_t qubits(1,0);
-  ret = chunk_->ExecuteSum(Norm<data_t>(),1);
+  thrust::complex<double> ret;
 
+  ret = chunk_->norm();
 
 #ifdef AER_DEBUG
-  DebugMsg("norm",ret);
+  DebugMsg("norm",ret.real() + ret.imag());
 #endif
 
-  return ret;
+  return ret.real() + ret.imag();
 }
 
 template <typename data_t>

@@ -342,6 +342,8 @@ public:
   virtual void Zero(uint_t iChunk,uint_t count) = 0;
 
   virtual reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true) const = 0;
+  virtual thrust::complex<double> norm(uint_t iChunk,uint_t stride = 1,bool dot = true) const = 0;
+
 
   size_t size_of_complex(void)
   {
@@ -558,10 +560,17 @@ class strided_range
 };
 
 template <typename data_t>
-struct complex_dot : public thrust::unary_function<thrust::complex<data_t>,thrust::complex<data_t>>
+struct complex_dot_scan : public thrust::unary_function<thrust::complex<data_t>,thrust::complex<data_t>>
 {
   __host__ __device__
   thrust::complex<data_t> operator()(thrust::complex<data_t> x) { return thrust::complex<data_t>(x.real()*x.real()+x.imag()*x.imag(),0); }
+};
+
+template <typename data_t>
+struct complex_norm : public thrust::unary_function<thrust::complex<data_t>,thrust::complex<data_t>>
+{
+  __host__ __device__
+  thrust::complex<double> operator()(thrust::complex<data_t> x) { return thrust::complex<double>((double)x.real()*(double)x.real(),(double)x.imag()*(double)x.imag()); }
 };
 
 template<typename data_t>

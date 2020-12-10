@@ -487,6 +487,10 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
     nOp = ops.size();
     iOp = 0;
     while(iOp < nOp){
+
+      std::cout << " === " << ops[iOp] << std::endl;
+
+
       if(ops[iOp].type == Operations::OpType::gate && ops[iOp].name == "swap_chunk"){
         //apply swap between chunks
         apply_chunk_swap(ops[iOp].qubits);
@@ -512,13 +516,13 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
 
 #ifdef _MSC_VER
 #pragma omp critical
-                {
+          {
 #else
 #pragma omp atomic write
 #endif
-                  iOp = iOpBlock;
+            iOp = iOpBlock;
 #ifdef _MSC_VER
-                }
+          }
 #endif
           //release chunk from cache
           qregs_[iChunk].release_chunk();

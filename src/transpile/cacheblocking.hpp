@@ -172,11 +172,6 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
   }
 
   circ.set_params();
-
-  std::cout << "++++++++++++++ test cache blocking ++++++++++++++++" << std::endl;
-  for(uint_t i=0;i<circ.ops.size();i++){
-    std::cout << circ.ops[i] << std::endl;
-  }
 }
 
 void CacheBlocking::define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t& blockedQubits,bool crossQubitOnly) const

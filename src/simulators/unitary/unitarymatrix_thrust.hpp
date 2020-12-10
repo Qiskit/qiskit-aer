@@ -326,9 +326,11 @@ public:
 template <class data_t>
 std::complex<double> UnitaryMatrixThrust<data_t>::trace() const 
 {
-  std::complex<double> sum;
+  thrust::complex<double> sum;
 
-  sum = BaseVector::apply_function_complex_sum(UnitaryTrace<data_t>(rows_));
+  sum = BaseVector::chunk_->norm(rows_ + 1,false);
+
+//  sum = BaseVector::apply_function_complex_sum(UnitaryTrace<data_t>(rows_));
 
 #ifdef AER_DEBUG
   BaseVector::DebugMsg("trace",sum);

@@ -143,6 +143,7 @@ public:
   void Zero(uint_t iChunk,uint_t count);
 
   reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true) const;
+  thrust::complex<double> norm(uint_t iChunk,uint_t stride = 1,bool dot = true) const;
 
   template <typename Function>
   void Execute(Function func,uint_t iChunk,uint_t count);
@@ -590,6 +591,7 @@ double DeviceChunkContainer<data_t>::ExecuteSum(Function func,uint_t iChunk,uint
 #else
   ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<double>());
 #endif
+
   return ret;
 }
 
@@ -742,7 +744,7 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
 
 #ifdef AER_THRUST_CUDA
   if(dot)
-    thrust::transform_inclusive_scan(thrust::cuda::par.on(stream_[iChunk]),iter.begin(),iter.end(),iter.begin(),complex_dot<data_t>(),thrust::plus<thrust::complex<data_t>>());
+    thrust::transform_inclusive_scan(thrust::cuda::par.on(stream_[iChunk]),iter.begin(),iter.end(),iter.begin(),complex_dot_scan<data_t>(),thrust::plus<thrust::complex<data_t>>());
   else
     thrust::inclusive_scan(thrust::cuda::par.on(stream_[iChunk]),iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
 
@@ -775,7 +777,7 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
   }
 #else
   if(dot)
-    thrust::transform_inclusive_scan(thrust::device,iter.begin(),iter.end(),iter.begin(),complex_dot<data_t>(),thrust::plus<thrust::complex<data_t>>());
+    thrust::transform_inclusive_scan(thrust::device,iter.begin(),iter.end(),iter.begin(),complex_dot_scan<data_t>(),thrust::plus<thrust::complex<data_t>>());
   else
     thrust::inclusive_scan(thrust::device,iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
 
@@ -788,6 +790,29 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
   vSmp.clear();
 
   return samples;
+}
+
+template <typename data_t>
+thrust::complex<double> DeviceChunkContainer<data_t>::norm(uint_t iChunk, uint_t stride, bool dot) const
+{
+  thrust::complex<double> sum,zero(0.0,0.0);
+  set_device();
+
+  strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+1), stride);
+
+#ifdef AER_THRUST_CUDA
+  if(dot)
+    sum = thrust::transform_reduce(thrust::cuda::par.on(stream_[iChunk]), iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
+  else
+    sum = thrust::reduce(thrust::cuda::par.on(stream_[iChunk]), iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
+#else
+  if(dot)
+    sum = thrust::transform_reduce(thrust::device, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
+  else
+    sum = thrust::reduce(thrust::device, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
+#endif
+
+  return sum;
 }
 
 

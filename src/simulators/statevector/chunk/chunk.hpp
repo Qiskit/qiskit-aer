@@ -157,9 +157,9 @@ public:
     }
     else{
       if(chunk_container_->device() >= 0)
-        static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->Execute(func,chunk_pos_,count);
+        std::static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->Execute(func,chunk_pos_,count);
       else
-        static_pointer_cast<HostChunkContainer<data_t>>(chunk_container_)->Execute(func,chunk_pos_,count);
+        std::static_pointer_cast<HostChunkContainer<data_t>>(chunk_container_)->Execute(func,chunk_pos_,count);
     }
   }
   template <typename Function>
@@ -170,9 +170,9 @@ public:
     }
     else{
         if(chunk_container_->device() >= 0)
-            static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->ExecuteSum(func,chunk_pos_,count);
+            std::static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->ExecuteSum(func,chunk_pos_,count);
         else
-            static_pointer_cast<HostChunkContainer<data_t>>(chunk_container_)->ExecuteSum(func,chunk_pos_,count);
+            std::static_pointer_cast<HostChunkContainer<data_t>>(chunk_container_)->ExecuteSum(func,chunk_pos_,count);
     }
   }
   template <typename Function>
@@ -183,9 +183,9 @@ public:
     }
     else{
         if(chunk_container_->device() >= 0)
-            static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->ExecuteComplexSum(func,chunk_pos_,count);
+            std::static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->ExecuteComplexSum(func,chunk_pos_,count);
         else
-            static_pointer_cast<HostChunkContainer<data_t>>(chunk_container_)->ExecuteComplexSum(func,chunk_pos_,count);
+            std::static_pointer_cast<HostChunkContainer<data_t>>(chunk_container_)->ExecuteComplexSum(func,chunk_pos_,count);
     }
   }
   void Zero(void)
@@ -198,10 +198,15 @@ public:
     return chunk_container_->sample_measure(chunk_pos_,rnds,stride,dot);
   }
 
+  thrust::complex<double> norm(uint_t stride = 1,bool dot = true) const
+  {
+    return chunk_container_->norm(chunk_pos_,stride,dot);
+  }
+
 #ifdef AER_THRUST_CUDA
   cudaStream_t stream(void)
   {
-    return static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->stream(chunk_pos_);
+    return std::static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->stream(chunk_pos_);
   }
 #endif
 

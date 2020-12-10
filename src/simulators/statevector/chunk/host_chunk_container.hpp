@@ -103,6 +103,7 @@ public:
   void Zero(uint_t iChunk,uint_t count);
 
   reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true) const;
+  thrust::complex<double> norm(uint_t iChunk,uint_t stride = 1,bool dot = true) const;
 
   template <typename Function>
   void Execute(Function func,uint_t iChunk,uint_t count);
@@ -455,14 +456,14 @@ reg_t HostChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vector
 
   if(omp_get_num_threads() == 1){
     if(dot)
-      thrust::transform_inclusive_scan(thrust::omp::par,iter.begin(),iter.end(),iter.begin(),complex_dot<data_t>(),thrust::plus<thrust::complex<data_t>>());
+      thrust::transform_inclusive_scan(thrust::omp::par,iter.begin(),iter.end(),iter.begin(),complex_dot_scan<data_t>(),thrust::plus<thrust::complex<data_t>>());
     else
       thrust::inclusive_scan(thrust::omp::par,iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
     thrust::lower_bound(thrust::omp::par, iter.begin(), iter.end(), rnds.begin(), rnds.begin() + SHOTS, vSmp.begin() ,complex_less<data_t>());
   }
   else{
     if(dot)
-      thrust::transform_inclusive_scan(thrust::host,iter.begin(),iter.end(),iter.begin(),complex_dot<data_t>(),thrust::plus<thrust::complex<data_t>>());
+      thrust::transform_inclusive_scan(thrust::host,iter.begin(),iter.end(),iter.begin(),complex_dot_scan<data_t>(),thrust::plus<thrust::complex<data_t>>());
     else
       thrust::inclusive_scan(thrust::host,iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
     thrust::lower_bound(thrust::host, iter.begin(), iter.end(), rnds.begin(), rnds.begin() + SHOTS, vSmp.begin() ,complex_less<data_t>());
@@ -476,6 +477,28 @@ reg_t HostChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vector
   return samples;
 }
 
+template <typename data_t>
+thrust::complex<double> HostChunkContainer<data_t>::norm(uint_t iChunk, uint_t stride, bool dot) const
+{
+  thrust::complex<double> sum,zero(0.0,0.0);
+
+  strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+1), stride);
+
+  if(omp_get_num_threads() == 1){
+    if(dot)
+      sum = thrust::transform_reduce(thrust::omp::par, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
+    else
+      sum = thrust::reduce(thrust::omp::par, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
+  }
+  else{
+    if(dot)
+      sum = thrust::transform_reduce(thrust::host, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
+    else
+      sum = thrust::reduce(thrust::host, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
+  }
+
+  return sum;
+}
 
 //------------------------------------------------------------------------------
 } // end namespace QV
