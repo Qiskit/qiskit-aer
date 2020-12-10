@@ -42,7 +42,7 @@ jobs:
     needs: ["lint"]
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8, 3.9]
         platform: [
           { os: "ubuntu-latest", python-architecture: "x64" },
         ]
@@ -86,7 +86,7 @@ jobs:
     timeout-minutes: 25
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8, 3.9]
         os: ["ubuntu-latest"]
     env:
       AER_THRUST_BACKEND: OMP
