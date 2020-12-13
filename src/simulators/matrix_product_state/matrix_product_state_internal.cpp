@@ -1196,9 +1196,11 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
   statevector = reverse_all_bits(temp_statevector, num_qubits);
 }
 
-void MPS::get_amplitude_vector(const reg_t &base_values, cvector_t &amplitude_vector) {
+cvector_t MPS::get_amplitude_vector(const reg_t &base_values) {
   uint_t num_values = base_values.size();
   std::string base_value;
+  cvector_t amplitude_vector(num_values);
+
   #pragma omp parallel for if (num_values > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t i=0; i<static_cast<int_t>(num_values); i++) {
     // Since the qubits may not be ordered, we determine the actual index
@@ -1207,6 +1209,7 @@ void MPS::get_amplitude_vector(const reg_t &base_values, cvector_t &amplitude_ve
     base_value = AER::Utils::int2string(actual_base_value);
     amplitude_vector[i] = get_single_amplitude(base_value);
   }
+  return amplitude_vector;
 }
 
 complex_t MPS::get_single_amplitude(const std::string &base_value) {
