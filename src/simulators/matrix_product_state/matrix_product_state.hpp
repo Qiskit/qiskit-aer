@@ -608,7 +608,6 @@ void State::snapshot_amplitudes(const Operations::Op &op,
   for (const auto &param : op.params_amplitudes) {
     base_values.push_back(param);
   }
-  uint_t num_amplitudes = base_values.size();
   auto amplitude_vector = qreg_.get_amplitude_vector(base_values);
   result.data.add_pershot_snapshot("amplitudes", op.string_params[0], amplitude_vector);
 }
