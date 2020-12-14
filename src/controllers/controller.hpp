@@ -566,16 +566,17 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 #endif
     // then- and else-blocks have intentionally duplication.
     // Nested omp has significant overheads even though a guard condition exists.
+    const int NUM_RESULTS = result.results.size();
     if (parallel_experiments_ > 1) {
       #pragma omp parallel for num_threads(parallel_experiments_)
-      for (int j = 0; j < result.results.size(); ++j) {
+      for (int j = 0; j < NUM_RESULTS; ++j) {
         // Make a copy of the noise model for each circuit execution
         // so that it can be modified if required
         auto circ_noise_model = noise_model;
         execute_circuit(circuits[j], circ_noise_model, config, result.results[j]);
       }
     } else {
-      for (int j = 0; j < result.results.size(); ++j) {
+      for (int j = 0; j < NUM_RESULTS; ++j) {
         // Make a copy of the noise model for each circuit execution
         // so that it can be modified if required
         auto circ_noise_model = noise_model;
@@ -588,7 +589,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 
     bool all_failed = true;
     result.status = Result::Status::completed;
-    for (size_t i = 0; i < result.results.size(); ++i) {
+    for (int i = 0; i < NUM_RESULTS; ++i) {
       auto& experiment = result.results[i];
       if (experiment.status == ExperimentResult::Status::completed) {
         all_failed = false;

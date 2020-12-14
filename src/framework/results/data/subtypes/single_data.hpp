@@ -75,7 +75,7 @@ template <typename T>
 json_t SingleData<T>::to_json() {
   json_t jsdata = value();
   return jsdata;
-};
+}
 
 //------------------------------------------------------------------------------
 }  // end namespace AER
