@@ -247,7 +247,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake pip setuptools pybind11 scipy
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake pip setuptools wheel pybind11 scipy
             displayName: Create Anaconda environments
           - bash: |
               set -x
@@ -259,7 +259,7 @@ stages:
               set -x
               set -e
               source activate qiskit-aer
-              pip install -U setuptools wheel
+              pip install -U setuptools
               pip install dist/*tar.gz
               pip install git+https://github.com/Qiskit/qiskit-terra
               python tools/verify_wheels.py
