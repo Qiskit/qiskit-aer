@@ -57,22 +57,15 @@ class CJob:
         self.submit_error = None
 
     def submit(self, executor: Optional[futures.Executor] = None) -> None:
-        """Submit the job.
+        """Submit the job and obtain/save future.
 
         Args:
             executor: The executor to be used to submit the job.
         """
-
-        # Submit the job in its own future.
         logger.debug("Submitting job %s in future", self._id)
-        #self._future = executor.submit(self._backend._run_job, self._id, self._qobj,
-        #                               *self._run_args, **self._run_kwargs)
-        if executor:
-            self._future = executor.submit(self._backend._run_job, self._id, self._qobj,
-                                           *self._run_args, **self._run_kwargs)
-        else:
-            self._future = self._executor.submit(self._backend._run_job, self._id, self._qobj,
-                                                 *self._run_args, **self._run_kwargs)
+        _exec = executor or self._executor
+        self._future = _exec.submit(self._backend._run_job, self._id, self._qobj,
+                                    *self._run_args, **self._run_kwargs)
         logger.debug("Job %s future obtained", self._id)
 
     @property
