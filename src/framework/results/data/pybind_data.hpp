@@ -16,8 +16,8 @@
 #define _aer_framework_result_data_pybind_data_hpp_
 
 #include "framework/results/data/data.hpp"
-#include "framework/results/data/containers/pybind_data_cmatrix.hpp"
-#include "framework/results/data/containers/pybind_data_cvector.hpp"
+#include "framework/results/data/mixins/pybind_data_cmatrix.hpp"
+#include "framework/results/data/mixins/pybind_data_cvector.hpp"
 
 namespace AerToPy {
 

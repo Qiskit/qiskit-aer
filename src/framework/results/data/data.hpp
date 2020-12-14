@@ -1,7 +1,7 @@
 /**
  * This code is part of Qiskit.
  *
- * (C) Copyright IBM 2018, 2020.
+ * (C) Copyright IBM 2018, 2019.
  *
  * This code is licensed under the Apache License, Version 2.0. You may
  * obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,11 +15,16 @@
 #ifndef _aer_framework_results_data_hpp_
 #define _aer_framework_results_data_hpp_
 
+// Data primatives
 #include "framework/results/data/data_map.hpp"
 #include "framework/results/data/subtypes/accum_data.hpp"
 #include "framework/results/data/subtypes/average_data.hpp"
 #include "framework/results/data/subtypes/list_data.hpp"
 #include "framework/results/data/subtypes/single_data.hpp"
+
+// Data Containers
+#include "framework/results/data/mixins/data_cmatrix.hpp"
+#include "framework/results/data/mixins/data_cvector.hpp"
 
 namespace AER {
 
@@ -27,10 +32,7 @@ namespace AER {
 // Result container for Qiskit-Aer
 //============================================================================
 
-struct Data : public DataMap<SingleData, Vector<complex_t>, 1>,
-              public DataMap<SingleData, Vector<complexf_t>, 1>,
-              public DataMap<SingleData, matrix<complex_t>, 1>,
-              public DataMap<SingleData, matrix<complexf_t>, 1> {
+struct Data : public DataCVector, public DataCMatrix {
 
   //----------------------------------------------------------------
   // Measurement data
@@ -43,11 +45,11 @@ struct Data : public DataMap<SingleData, Vector<complex_t>, 1>,
   ListData<std::string> memory;
 
   // Add outcome to count dictionary
-  void add_count(const std::string& outcome);
+  void add_count(const std::string &outcome);
 
   // Add outcome to memory list
-  void add_memory(const std::string& outcome);
-  void add_memory(std::string&& outcome);
+  void add_memory(const std::string &outcome);
+  void add_memory(std::string &&outcome);
 
   //----------------------------------------------------------------
   // Add single data
@@ -132,20 +134,17 @@ Data &Data::combine(Data &&other) {
   counts.combine(std::move(other.counts));
   memory.combine(std::move(other.memory));
   // General data
-  DataMap<SingleData, Vector<complex_t>, 1>::combine(std::move(other));
-  DataMap<SingleData, Vector<complexf_t>, 1>::combine(std::move(other));
-  DataMap<SingleData, matrix<complex_t>, 1>::combine(std::move(other));
-  DataMap<SingleData, matrix<complexf_t>, 1>::combine(std::move(other));
+  DataCVector::combine(std::move(other));
+  DataCMatrix::combine(std::move(other));
   return *this;
 }
 
 json_t Data::to_json() {
   json_t result;
+
   // General data
-  DataMap<SingleData, Vector<complex_t>, 1>::add_to_json(result);
-  DataMap<SingleData, Vector<complexf_t>, 1>::add_to_json(result);
-  DataMap<SingleData, matrix<complex_t>, 1>::add_to_json(result);
-  DataMap<SingleData, matrix<complexf_t>, 1>::add_to_json(result);
+  DataCVector::add_to_json(result);
+  DataCMatrix::add_to_json(result);
 
   // Measurement data. This should be last to ensure it overrides
   // any other data that might have used the "count" keys
@@ -160,18 +159,18 @@ void Data::set_config(const json_t &config) {
   JSON::get_value(memory.enabled, "memory", config);
 }
 
-void Data::add_count(const std::string& outcome) {
+void Data::add_count(const std::string &outcome) {
   if (!outcome.empty()) {
     counts.add(1, outcome);
   }
 }
 
-void Data::add_memory(const std::string& outcome) {
+void Data::add_memory(const std::string &outcome) {
   if (memory.enabled && !outcome.empty()) {
     memory.add(outcome);
   }
 }
-void Data::add_memory(std::string&& outcome) {
+void Data::add_memory(std::string &&outcome) {
   if (memory.enabled && !outcome.empty()) {
     memory.add(std::move(outcome));
   }
@@ -244,21 +243,21 @@ template <class T, typename... Args>
 void Data::add_average(const T &data, const std::string &outer_key,
                        const Args &... inner_keys) {
   DataMap<AverageData, T, sizeof...(Args) + 1>::add(data, outer_key,
-                                                       inner_keys...);
+                                                    inner_keys...);
 }
 
 template <class T, typename... Args>
 void Data::add_average(T &data, const std::string &outer_key,
                        const Args &... inner_keys) {
   DataMap<AverageData, T, sizeof...(Args) + 1>::add(data, outer_key,
-                                                       inner_keys...);
+                                                    inner_keys...);
 }
 
 template <class T, typename... Args>
 void Data::add_average(T &&data, const std::string &outer_key,
                        const Args &... inner_keys) {
-  DataMap<AverageData, T, sizeof...(Args) + 1>::add(
-      std::move(data), outer_key, inner_keys...);
+  DataMap<AverageData, T, sizeof...(Args) + 1>::add(std::move(data), outer_key,
+                                                    inner_keys...);
 }
 
 //------------------------------------------------------------------------------
