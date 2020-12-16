@@ -563,7 +563,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         job = QasmSimulator().run(qobj, **self.BACKEND_OPTS_NE)
         result = job.result()
         self.assertSuccess(result)
-        self.compare_counts(result, [circ], [target], delta=0.05 * shots)
+        self.compare_counts(result, [circ], [target], delta=0.1 * shots)
 
 
 if __name__ == '__main__':
