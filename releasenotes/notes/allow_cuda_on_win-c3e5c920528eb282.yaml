@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    It is now possible to build AER with CUDA enabled in windows. To support this,
+    ``pybind11`` minimum version required is 2.6 instead of 2.4.
