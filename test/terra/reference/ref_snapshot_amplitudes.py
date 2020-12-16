@@ -29,7 +29,9 @@ def snapshot_amplitudes_labels_params():
         "[7,3,5,1]": [7,3,5,1],
         "[4,1,5]": [4,1,5],
         "[6,2]": [6,2],
-        "all": [0,1,2,3,4,5,6,7]
+        "all": [0,1,2,3,4,5,6,7],
+        "[0x7]": [0x7],
+        "[0x2, 0x4]": [0x2, 0x4]
     }
 
 # Verify the snapshot_amplitudes by comparing with the corresponding amplitudes
