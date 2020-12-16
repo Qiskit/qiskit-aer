@@ -86,14 +86,6 @@ class QiskitAerTestCase(QiskitTestCase):
         """
         return os.path.normpath(os.path.join(path.value, filename))
 
-    def assertNoLogs(self, logger=None, level=None):
-        """
-        Context manager to test that no message is sent to the specified
-        logger and level (the opposite of TestCase.assertLogs()).
-        """
-        # pylint: disable=invalid-name
-        return _AssertNoLogsContext(self, logger, level)
-
     def assertSuccess(self, result):
         """Assert that simulation executed without errors"""
         success = getattr(result, 'success', False)
@@ -105,8 +97,13 @@ class QiskitAerTestCase(QiskitTestCase):
         self.assertTrue(success, msg=msg)
 
     @staticmethod
-    def gate_circuit(gate_cls, num_params=0, rng=None):
-        """Construct a circuit from a gate class."""
+    def gate_circuits(gate_cls, num_params=0, rng=None, basis_states=None):
+        """
+        Construct circuits from a gate class.
+        Example of basis_states: ['010, '100'].
+        When basis_states is None, tests all basis states
+        with the gate's number of qubits.
+        """
         if num_params:
             if rng is None:
                 rng = np.random.default_rng()
@@ -114,10 +111,22 @@ class QiskitAerTestCase(QiskitTestCase):
             gate = gate_cls(*params)
         else:
             gate = gate_cls()
+        
+        if basis_states is None:
+            basis_states = [bin(i)[2:].zfill(gate.num_qubits) \
+                            for i in range(1<<gate.num_qubits)]
 
-        circ = QuantumCircuit(gate.num_qubits)
-        circ.append(gate, range(gate.num_qubits))
-        return circ
+        circs = []
+        for state in basis_states:
+            circ = QuantumCircuit(gate.num_qubits)
+            for i in range(gate.num_qubits):
+                if state[i] == '1':
+                    circ.x(i)
+            
+            circ.append(gate, range(gate.num_qubits))
+            circs.append(circ)
+            
+        return circs
 
     @staticmethod
     def check_position(obj, items, precision=15):
@@ -310,32 +319,6 @@ class QiskitAerTestCase(QiskitTestCase):
 
         msg = self._formatMessage(msg, standard_msg)
         raise self.failureException(msg)
-
-
-class _AssertNoLogsContext(unittest.case._AssertLogsContext):
-    """A context manager used to implement TestCase.assertNoLogs()."""
-
-    # pylint: disable=inconsistent-return-statements
-    def __exit__(self, exc_type, exc_value, tb):
-        """
-        This is a modified version of TestCase._AssertLogsContext.__exit__(...)
-        """
-        self.logger.handlers = self.old_handlers
-        self.logger.propagate = self.old_propagate
-        self.logger.setLevel(self.old_level)
-        if exc_type is not None:
-            # let unexpected exceptions pass through
-            return False
-
-        if self.watcher.records:
-            msg = 'logs of level {} or higher triggered on {}:\n'.format(
-                logging.getLevelName(self.level), self.logger.name)
-            for record in self.watcher.records:
-                msg += 'logger %s %s:%i: %s\n' % (record.name, record.pathname,
-                                                  record.lineno,
-                                                  record.getMessage())
-
-            self._raiseFailure(msg)
 
 
 def _is_ci_fork_pull_request():

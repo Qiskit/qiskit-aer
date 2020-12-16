@@ -167,12 +167,10 @@ public:
   // Description: Moves the indices of the selected qubits for more efficient computation
   //   of the expectation value
   // Parameters: The qubits for which we compute expectation value.
-  // Returns: sorted_qubits - the qubits, after sorting
-  //          centralized_qubits - the qubits, after sorting and centralizing
+  // Returns: centralized_qubits - the qubits, after sorting and centralizing
   //          
   //----------------------------------------------------------------
   void MPS_with_new_indices(const reg_t &qubits,
-			    reg_t &sorted_qubits,
 			    reg_t &centralized_qubits,
 			    MPS& temp_MPS) const;
 
@@ -183,6 +181,9 @@ public:
   virtual std::ostream&  print(std::ostream& out) const;
 
   void full_state_vector(cvector_t &state_vector);
+
+  cvector_t get_amplitude_vector(const reg_t &base_values);
+  complex_t get_single_amplitude(const std::string &base_value);
 
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
@@ -364,28 +365,14 @@ private:
   void initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat);
   void initialize_component_internal(const reg_t &qubits, const cvector_t &statevector);
 
-
   //----------------------------------------------------------------
   // Function name: centralize_qubits
   // Description: Creates a new MPS where a subset of the qubits is
   // moved to be in consecutive positions. Used for
   // computations involving a subset of the qubits.
-  // Parameters: Input: new_MPS - the MPS with the shifted qubits
-  //                    qubits - the subset of qubits
-  //             Returns: new_first, new_last - new positions of the 
-  //                    first and last qubits respectively
-  //                    ordered - are the qubits in ascending order
-  // Returns: none.
   //----------------------------------------------------------------
   void centralize_qubits(const reg_t &qubits,
-			 reg_t &new_qubits, bool &ordered);
-
-  //----------------------------------------------------------------
-  // Function name: centralize_and_sort_qubits
-  // Description: Similar to centralize_qubits, but also returns the sorted qubit vector
-  //----------------------------------------------------------------
-  void centralize_and_sort_qubits(const reg_t &qubits, reg_t &sorted_indexes,
-			 reg_t &centralized_qubits, bool &ordered);
+			 reg_t &centralized_qubits);
 
   //----------------------------------------------------------------
   // Function name: find_centralized_indices
@@ -394,8 +381,7 @@ private:
   //----------------------------------------------------------------
   void find_centralized_indices(const reg_t &qubits, 
 				reg_t &sorted_indices,
-			        reg_t &centralized_qubits, 
-			        bool & ordered) const;
+			        reg_t &centralized_qubits) const;
 
   //----------------------------------------------------------------
   // Function name: move_qubits_to_centralized_indices
@@ -404,23 +390,6 @@ private:
   //----------------------------------------------------------------
   void move_qubits_to_centralized_indices(const reg_t &sorted_indices,
 					  const reg_t &centralized_qubits);
-
-  //----------------------------------------------------------------
-  // Function name: move_qubits_to_right_end
-  // Description: This function moves qubits from the default (sorted) position 
-  //    to the 'right_end', in the order specified in qubits.
-  //    right_end is defined as the position of the largest qubit i 'qubits',
-  //    because this will ensure we only move qubits to the right 
-  // Example: num_qubits_=8, 'qubits'= [5, 1, 2], then at the end of the function,
-  //          actual_indices=[0, 3, 4, 2, 1, 5, 6, 7], target_qubits=[3, 4, 5]
-  // Parameters: Input: qubits - the qubits we wish to move
-  //                    target_qubits - the new location of qubits
-  //                    actual_indices - the final location of all the qubits in the MPS
-  // Returns: none.
-  //----------------------------------------------------------------
-  void move_qubits_to_right_end(const reg_t &qubits,
-				 reg_t &target_qubits,
-				 reg_t &actual_indices);
 
   //----------------------------------------------------------------
   void move_all_qubits_to_sorted_ordering();
