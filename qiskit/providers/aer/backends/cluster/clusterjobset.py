@@ -100,9 +100,10 @@ class JobSet:
         return [cjob.status() for cjob in self._futures]
 
     @requires_submit
-    def result(self,
-               timeout: Optional[float] = None,
-               raises: Optional[bool] = False
+    def result(
+            self,
+            timeout: Optional[float] = None,
+            raises: Optional[bool] = False
     ) -> Result:
         """Return the results of the jobs as a single Result object.
 
@@ -150,7 +151,6 @@ class JobSet:
         if self._results is not None:
             return self._results
 
-        success = True
         start_time = time.time()
         original_timeout = timeout
 
@@ -162,16 +162,15 @@ class JobSet:
             try:
                 result = cjob.result(timeout=timeout, raises=raises)
                 if result is None or not result.success:
-                    success = False
                     if result:
                         logger.warning('ClusterJob %s Error: %s', cjob.name(), result.header)
                     else:
                         logger.warning('ClusterJob %s did not return a result', cjob.name())
                 res.append(result)
-            except AerClusterTimeoutError as ex:
+            except AerClusterTimeoutError:
                 raise AerClusterTimeoutError(
                     'Timeout while waiting for the results of experiment {}'.format(
-                        cjob.name())) from ex
+                        cjob.name()))
             if timeout:
                 timeout = original_timeout - (time.time() - start_time)
                 if timeout <= 0:

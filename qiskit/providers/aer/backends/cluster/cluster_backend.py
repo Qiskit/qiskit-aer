@@ -19,7 +19,7 @@ from typing import Any, Union, List
 from qiskit import assemble, QuantumCircuit
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.pulse import Schedule
-from qiskit.providers.aer import AerProvider
+from qiskit.providers import BaseProvider
 from .clusterjobset import JobSet
 from .utils import split
 from ..aerbackend import AerBackend
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 class ClusterBackend(AerBackend):
     """
     Backend which can (and must) be configured at initialization with another
-    pre-configured simulator instance and an executor which will be used to 
+    pre-configured simulator instance and an executor which will be used to
     submit experiments.
     A simulator wrapped in a ClusterBackend overrides the usual run(..)
     method, in that it submits each circuit to the executor independently and
@@ -58,7 +58,7 @@ class ClusterBackend(AerBackend):
     def __init__(self,
                  backend: AerBackend,
                  executor: Any,
-                 provider: AerProvider = None,
+                 provider: BaseProvider = None,
                  **assemble_config: Any):
         if not isinstance(backend, AerBackend):
             raise ValueError(
@@ -144,5 +144,5 @@ class ClusterBackend(AerBackend):
         return job_set
 
     def _execute(self):
-        """Empty implementation of non-essential (because we override run instead) abstract method."""
+        """Empty implementation of non-essential abstract method."""
         pass

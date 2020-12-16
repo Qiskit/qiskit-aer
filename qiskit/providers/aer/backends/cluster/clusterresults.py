@@ -44,8 +44,8 @@ class CResults:
 
         Args:
             job_set: Cluster job set for these results.
-            success: ``True`` if all experiments were successful and results
-                available. ``False`` otherwise.
+            results: List of qiskit.Results for each experiment or None
+                     if that experiment did not return a result.
 
         Attributes:
             success: Whether all experiments were successful.
@@ -78,13 +78,13 @@ class CResults:
 
         # find first non-null result and copy it's config
         _result = next((r for r in self._results if r is not None), None)
-        if not _result:
-            raise AerClusterResultDataNotAvailable(
-                "Results cannot be combined - no results.")
-        else:
+        if _result:
             combined_result = copy.deepcopy(_result)
             combined_result.results = []
             combined_result.success = self.success
+        else:
+            raise AerClusterResultDataNotAvailable(
+                "Results cannot be combined - no results.")
 
         for r in self._results:
             if r is not None:

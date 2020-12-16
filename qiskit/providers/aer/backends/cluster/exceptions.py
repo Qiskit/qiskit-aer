@@ -14,10 +14,10 @@
 
 """Exception for the Job Manager modules."""
 
-from qiskit.providers.aer.aererror import AerError
+from qiskit import QiskitError
 
 
-class AerClusterError(AerError):
+class AerClusterError(QiskitError):
     """Base class for errors raise by the Job Manager."""
     pass
 
