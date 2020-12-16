@@ -1178,6 +1178,50 @@ void MPS::full_state_vector_internal(cvector_t& statevector,
   statevector = reverse_all_bits(temp_statevector, num_qubits);
 }
 
+cvector_t MPS::get_amplitude_vector(const reg_t &base_values) {
+  uint_t num_values = base_values.size();
+  std::string base_value;
+  cvector_t amplitude_vector(num_values);
+
+  #pragma omp parallel for if (num_values > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+  for (int_t i=0; i<static_cast<int_t>(num_values); i++) {
+    // Since the qubits may not be ordered, we determine the actual index
+    // by the internal order of the qubits, to obtain the actual_base_value
+    uint_t actual_base_value = reorder_qubits(qubit_ordering_.order_, base_values[i]);
+    base_value = AER::Utils::int2string(actual_base_value);
+    amplitude_vector[i] = get_single_amplitude(base_value);
+  }
+  return amplitude_vector;
+}
+
+complex_t MPS::get_single_amplitude(const std::string &base_value) {
+  // We take the bits of the base value from right to left in order not to expand the 
+  // base values to the full width of 2^n
+  // We contract from left to right because the representation in Qiskit is from left 
+  // to right, i.e., 1=1000, 2=0100, ...
+
+  int_t pos = base_value.length()-1;
+  uint_t bit = base_value[pos]=='0' ? 0 : 1;
+  pos--;
+  cmatrix_t temp = q_reg_[0].get_data(bit);
+
+  for (int_t qubit=0; qubit<num_qubits_-1; qubit++) {
+    if (pos >=0)
+      bit = base_value[pos]=='0' ? 0 : 1;
+    else
+      bit = 0;
+    for (uint_t row=0; row<temp.GetRows(); row++){
+      for (uint_t col=0; col<temp.GetColumns(); col++){
+	temp(row, col) *= lambda_reg_[qubit][col];
+      }
+    }
+    temp = temp * q_reg_[qubit+1].get_data(bit);
+    pos--;
+  }
+  
+  return temp(0, 0);
+}
+
 void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const {
   reg_t internal_qubits = get_internal_qubits(qubits);
   get_probabilities_vector_internal(probvector, internal_qubits);
