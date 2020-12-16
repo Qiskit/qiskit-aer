@@ -112,7 +112,7 @@ public:
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
-  void initialize_qreg(uint_t num_qubits, const cvector_t &statevector);
+  void initialize_qreg(reg_t qubits, const cvector_t &statevector);
 
   // Initializes to a specific n-qubit state given as a complex std::vector
   virtual void initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state);
@@ -369,22 +369,11 @@ void State::initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state
 #endif
 }
 
-void State::initialize_qreg(uint_t num_qubits, const cvector_t &statevector) {
-  // Check dimension of state
-  std::cout << "in mps::initialize_qreg" << std::endl;
-  if (qreg_.num_qubits() == num_qubits) 
-    std::cout << "qubit num ok" << std::endl;
-
-  // internal bit ordering is the opposite of ordering in Qasm, so must
-  // reverse order before starting
-  cvector_t mps_format_state_vector = reverse_all_bits(statevector, num_qubits);
-  qreg_.initialize_from_statevector(num_qubits, mps_format_state_vector);
-}
-
 void State::initialize_omp() {
   if (BaseState::threads_ > 0)
     qreg_.set_omp_threads(BaseState::threads_); // set allowed OMP threads in MPS
 }
+
 
 size_t State::required_memory_mb(uint_t num_qubits,
 			      const std::vector<Operations::Op> &ops) const {
@@ -467,10 +456,6 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 
   // Simple loop over vector of input operations
   for (const auto &op: ops) {
-    std::cout << "mps: apply_op "<< op.name << " on qubits ";
-    for (uint_t i=0; i<op.qubits.size(); i++)
-      std::cout<< op.qubits[i]<< " " ;
-    std::cout<<std::endl;
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
         case Operations::OpType::barrier:
@@ -479,7 +464,6 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
           apply_reset(op.qubits, rng);
           break;
         case Operations::OpType::initialize:
-	  std::cout<<"here" << std::endl;
           apply_initialize(op.qubits, op.params, rng);
           break;
         case Operations::OpType::measure:
@@ -511,7 +495,6 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
                                       op.name + "\'.");
       }
     }
-    qreg_.print(std::cout);
   }
 }
 
@@ -777,18 +760,7 @@ void State::apply_kraus(const reg_t &qubits,
 void State::apply_initialize(const reg_t &qubits,
 			     const cvector_t &params,
 			     RngEngine &rng) {
-  std::cout << " in apply_init" << std::endl;
-   if (qubits.size() == qreg_.num_qubits()) {
-     // If qubits is all ordered qubits in the statevector
-     // we can just initialize the whole state directly
-     auto sorted_qubits = qubits;
-     std::sort(sorted_qubits.begin(), sorted_qubits.end());
-     if (qubits == sorted_qubits) {
-       initialize_qreg(qubits.size(), params);
-       return;
-     }
-   }
-   qreg_.initialize_component(qubits, params);
+  qreg_.initialize_from_statevector(qubits, params);
 }
 
 void State::apply_measure(const reg_t &qubits,

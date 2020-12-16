@@ -31,7 +31,7 @@ from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonClifford
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmDiagonalGateTests
 from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardGateStatevectorTests
-# from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
+from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
@@ -75,7 +75,7 @@ class TestQasmMatrixProductStateSimulator(
         QasmAlgorithmTestsMinimalBasis,
         QasmUnitaryGateTests,
         QasmDiagonalGateTests,
-        # QasmInitializeTests,  # THROWS: partial initialize not supported
+        QasmInitializeTests,
         QasmReadoutNoiseTests,
         QasmPauliNoiseTests,
         QasmResetNoiseTests,

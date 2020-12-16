@@ -266,8 +266,7 @@ public:
   // Returns: none.
   //----------------------------------------------------------------
 
-  void initialize_from_statevector(uint_t num_qubits, const cvector_t &state_vector);
-  void initialize_component(reg_t qubits, cvector_t statevector);
+  void initialize_from_statevector(const reg_t &qubits, const cvector_t &state_vector);
 
   reg_t get_bond_dimensions() const;
   uint_t get_max_bond_dimensions() const;
@@ -361,8 +360,10 @@ private:
 
   reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
 						    const reg_t &qubits) const;
+  void initialize_from_statevector_internal(const reg_t &qubits, const cvector_t &state_vector);
+  void initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat);
+  void initialize_component_internal(const reg_t &qubits, const cvector_t &statevector);
 
-  void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
 
   //----------------------------------------------------------------
   // Function name: centralize_qubits
