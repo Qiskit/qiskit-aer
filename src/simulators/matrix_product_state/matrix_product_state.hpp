@@ -117,8 +117,6 @@ public:
   // Initializes to a specific n-qubit state given as a complex std::vector
   virtual void initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state);
 
-  void initialize_component(reg_t qubits, const cvector_t &statevector);
-
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes

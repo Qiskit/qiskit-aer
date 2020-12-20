@@ -77,15 +77,39 @@ void reorder_all_qubits(const std::vector<T>& orig_probvector,
 			const reg_t &qubits, 
 			std::vector<T>& new_probvector);
 uint_t reorder_qubits(const reg_t &qubits, uint_t index);
+
+//------------------------------------------------------------------------
+// Function name: permute_all_qubits
+// Description: Given an input ordering of the qubits, an output ordering of the 
+//    qubits and a statevector, create the statevector that represents the same 
+//    state in the output ordering of the qubits.
+// Input: orig_statevector - the ordered vector of probabilities/amplitudes
+//        input_qubits - a list containing the original ordering of the qubits
+//        output_qubits - a list containing the new ordering
+// Returns: new_statevector - the vector in the new ordering
+// Note that the qubits as numbered from left to right, i.e., the msb is 0
+//
+//------------------------------------------------------------------------
 template <class T>
 void permute_all_qubits(const std::vector<T>& orig_statevector, 
 			const reg_t &input_qubits, 
 			const reg_t &output_qubits,
 			std::vector<T>& new_statevector);
+
+//------------------------------------------------------------------------
+// Function name: permute_qubits
+// Description: Helper function for permute_all_qubits
+//    Given a single index in the amplitude vector, returns the index in the new 
+//    statevector that will be assigned the value of this index.
+// Input: index - the original index
+//        input_qubits - the original ordering of the qubits
+//        output_qubits - a list containing the new ordering 
+// Returns: new index
+// Note that the qubits are numbered from left to right, i.e., the msb is 0
+// For example, if input_qubits=[0,1,2], and output_qubits=[1,0,2], for index=[0x100],
+// output index =[0x010]
+//------------------------------------------------------------------------
   uint_t permute_qubits(const reg_t &input_qubits, uint_t index, const reg_t &output_qubits);
-template <class T>
-void reverse_reorder(const std::vector<T>& orig_probvector, 
-			const reg_t &qubits, std::vector<T>& new_probvector);
 
 //--------------------------------------------------------------------------
 // Function name: reverse_all_bits
@@ -157,24 +181,6 @@ void reorder_all_qubits(const std::vector<T>& orig_probvector,
   } 
 }
 
-template <class T>
-void permute_all_qubits(const std::vector<T>& orig_statevector, 
-			const reg_t &input_qubits,
-			const reg_t &output_qubits,
-			std::vector<T>& new_statevector) {
-  uint_t new_index;
-  uint_t length = 1ULL << input_qubits.size();   // length = pow(2, num_qubits)
-  // if qubits are [k0, k1,...,kn], move them to [0, 1, .. , n], but preserve relative
-  // ordering
-  reg_t squeezed_qubits(input_qubits.size());
-  squeeze_qubits(input_qubits, squeezed_qubits);
-
-  for (uint_t i=0; i < length; i++) {
-    new_index = permute_qubits(squeezed_qubits, i, output_qubits);
-    new_statevector[new_index] = orig_statevector[i];
-  } 
-}
-
 uint_t reorder_qubits(const reg_t &qubits, uint_t index) {
   uint_t new_index = 0;
 
@@ -197,6 +203,24 @@ uint_t reorder_qubits(const reg_t &qubits, uint_t index) {
     }
   }
   return new_index;
+}
+
+template <class T>
+void permute_all_qubits(const std::vector<T>& orig_statevector, 
+			const reg_t &input_qubits,
+			const reg_t &output_qubits,
+			std::vector<T>& new_statevector) {
+  uint_t new_index;
+  uint_t length = 1ULL << input_qubits.size();   // length = pow(2, num_qubits)
+  // if qubits are [k0, k1,...,kn], move them to [0, 1, .. , n], but preserve relative
+  // ordering
+  reg_t squeezed_qubits(input_qubits.size());
+  squeeze_qubits(input_qubits, squeezed_qubits);
+
+  for (uint_t i=0; i < length; i++) {
+    new_index = permute_qubits(squeezed_qubits, i, output_qubits);
+    new_statevector[new_index] = orig_statevector[i];
+  } 
 }
 
 uint_t permute_qubits(const reg_t &input_qubits, uint_t index, const reg_t &output_qubits) {
@@ -1574,14 +1598,13 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
  
 //--------------------------------------------------
 // Algorithm for initialize_component:
-// 1. Reverse_all_bits
-// 2. Centralize 'qubits'
-// 3. Compute the norm of 'qubits'
-// 4. Normalize the values in 'statevector' to the norm computed in (3)
-// 3. Create a new MPS consisting of 'qubits'
-// 4. Initialize it to 'statevector'
-// 5. Cut out the old section of 'qubits'
-// 6. Stick in the new section of 'qubits'
+// 1. Centralize 'qubits'
+// 2. Compute the norm of 'qubits'
+// 3. Normalize the values in 'statevector' to the norm computed in (3)
+// 4. Create a new MPS consisting of 'qubits'
+// 5. Initialize it to 'statevector'
+// 6. Cut out the old section of 'qubits' in the original MPS
+// 7. Stick the new section of 'qubits' in the original MPS
 //---------------------------------------------------
 void MPS::initialize_component_internal(const reg_t &qubits, const cvector_t &statevector) {
   uint_t num_qubits = qubits.size();
