@@ -87,7 +87,7 @@ uint_t reorder_qubits(const reg_t &qubits, uint_t index);
 //        input_qubits - a list containing the original ordering of the qubits
 //        output_qubits - a list containing the new ordering
 // Returns: new_statevector - the vector in the new ordering
-// Note that the qubits as numbered from left to right, i.e., the msb is 0
+// Note that the qubits are numbered from left to right, i.e., the msb is 0
 //
 //------------------------------------------------------------------------
 template <class T>
@@ -1364,7 +1364,7 @@ double MPS::norm() {
     return norm(qubits);
 }
 
-double MPS::norm(reg_t qubits) {
+double MPS::norm(reg_t &qubits) {
     std::iota( std::begin(qubits), std::end(qubits), 0);
     double trace = 0;
     rvector_t vec = diagonal_of_density_matrix(qubits);
@@ -1410,19 +1410,18 @@ reg_t MPS::sample_measure_using_probabilities_internal(const rvector_t &rnds,
 
  uint_t accvec_size = acc_probvector.size();
  uint_t rnd_index;
-  #pragma omp parallel if (SHOTS > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+#pragma omp parallel if (SHOTS > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
     {
-      #pragma omp for
+#pragma omp for
       for (int_t i = 0; i < static_cast<int_t>(SHOTS); ++i) {
-    double rnd = rnds[i];
-
-    rnd_index = binary_search(acc_probvector, 
-			       0, accvec_size-1, rnd);
-    samples[i] = index_vec[rnd_index];
-  }
- }// end omp parallel
-
-  return samples;
+	double rnd = rnds[i];
+	rnd_index = binary_search(acc_probvector, 
+				  0, accvec_size-1, rnd);
+	samples[i] = index_vec[rnd_index];
+      }
+    }// end omp parallel
+    
+    return samples;
 }
 
 

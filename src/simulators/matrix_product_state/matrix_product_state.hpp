@@ -112,9 +112,10 @@ public:
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
-  void initialize_qreg(reg_t qubits, const cvector_t &statevector);
 
   // Initializes to a specific n-qubit state given as a complex std::vector
+  void initialize_qreg(const reg_t &qubits, const cvector_t &statevector);
+
   virtual void initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state);
 
   // Returns the required memory for storing an n-qubit state in megabytes.
@@ -360,6 +361,10 @@ const stringmap_t<Snapshots> State::snapshotset_({
 
 void State::initialize_qreg(uint_t num_qubits=0) {
   qreg_.initialize(num_qubits);
+}
+
+void State::initialize_qreg(const reg_t &qubits, const cvector_t &statevector) {
+  qreg_.initialize_from_statevector(qubits, statevector);
 }
 
 void State::initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state) {

@@ -248,7 +248,7 @@ public:
   //----------------------------------------------------------------
 
   double norm();
-  double norm(reg_t qubits);
+  double norm(reg_t &qubits);
   double norm(const reg_t &qubits, const cvector_t &vmat) const;
   double norm(const reg_t &qubits, const cmatrix_t &mat) const; 
 
