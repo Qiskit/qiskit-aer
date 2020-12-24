@@ -125,7 +125,7 @@ class QasmStandardGateStatevectorTests:
             # Add snapshot and execute
             circuit.snapshot_statevector('final')
             result = execute(circuit, backend, shots=1, basis_gates=basis_gates,
-                             **backend_options).result()
+                             optimization_level=0, **backend_options).result()
 
             # Check results
             success = getattr(result, 'success', False)
@@ -176,7 +176,7 @@ class QasmStandardGateDensityMatrixTests:
             circuit.snapshot_density_matrix('final')
 
             result = execute(circuit, backend, shots=1, basis_gates=basis_gates,
-                             **backend_options).result()
+                             optimization_level=0, **backend_options).result()
 
             # Check results
             success = getattr(result, 'success', False)
