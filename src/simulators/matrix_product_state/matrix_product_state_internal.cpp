@@ -370,6 +370,12 @@ void MPS::apply_cnot(uint_t index_A, uint_t index_B)
 		     get_qubit_index(index_B), cx, cmatrix_t(1, 1));
 }
 
+void MPS::apply_cy(uint_t index_A, uint_t index_B)
+{
+  apply_2_qubit_gate(get_qubit_index(index_A), 
+		     get_qubit_index(index_B), cy, cmatrix_t(1, 1));
+}
+
 void MPS::apply_cz(uint_t index_A, uint_t index_B)
 {
   apply_2_qubit_gate(get_qubit_index(index_A), 
@@ -501,6 +507,9 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
   switch (gate_type) {
   case cx:
     temp.apply_cnot(swapped);
+    break;
+  case cy:
+    temp.apply_cy(swapped);
     break;
   case cz:
     temp.apply_cz();

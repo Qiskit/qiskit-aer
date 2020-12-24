@@ -144,6 +144,7 @@ public:
 		    bool is_diagonal=false);
   void apply_cnot(bool swapped = false);
   void apply_swap();
+  void apply_cy(bool swapped = false);
   void apply_cz();
   void apply_ccx(uint_t target_qubit);
   void mul_Gamma_by_left_Lambda(const rvector_t &Lambda);
@@ -289,12 +290,18 @@ void MPS_Tensor::apply_x()
 {
   std::swap(data_[0], data_[1]);
 }
-  void MPS_Tensor::apply_y()
-  {
-    data_[0] = data_[0] * complex_t(0, 1);
-    data_[1] = data_[1] * complex_t(0, -1);
-    std::swap(data_[0], data_[1]);
-  }
+
+void apply_y_helper(cmatrix_t& mat1, cmatrix_t& mat2)
+{
+  mat1 = mat1 * complex_t(0, 1);
+  mat2 = mat2 * complex_t(0, -1);
+  std::swap(mat1, mat2);
+}  
+
+void MPS_Tensor::apply_y()
+{
+  apply_y_helper(data_[0], data_[1]);
+}
 
 void MPS_Tensor::apply_z()
 {
@@ -351,14 +358,22 @@ void MPS_Tensor::apply_matrix(const cmatrix_t &mat, bool swapped, bool is_diagon
 void MPS_Tensor::apply_cnot(bool swapped)
 {
   if(!swapped)
-    std::swap(data_[2],data_[3]);
+    std::swap(data_[2], data_[3]);
   else
-    std::swap(data_[1],data_[3]);
+    std::swap(data_[1], data_[3]);
 }
 
 void MPS_Tensor::apply_swap()
 {
   std::swap(data_[1],data_[2]);
+}
+
+void MPS_Tensor::apply_cy(bool swapped)
+{
+  if(!swapped)
+    apply_y_helper(data_[2], data_[3]);
+  else
+    apply_y_helper(data_[1], data_[3]);
 }
 
 void MPS_Tensor::apply_cz()
