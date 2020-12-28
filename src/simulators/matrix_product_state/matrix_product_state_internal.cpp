@@ -531,7 +531,7 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
   case su4:
     // We reverse the order of the qubits, according to the Qiskit convention.
     // Effectively, this reverses swap for 2-qubit gates
-    temp.apply_matrix(mat, !swapped, is_diagonal);
+    temp.apply_matrix_2_qubits(mat, !swapped, is_diagonal);
     break;
     
   default:
@@ -624,7 +624,7 @@ void MPS::apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat,
 {
   switch (qubits.size()) {
   case 1: 
-    q_reg_[qubits[0]].apply_matrix(mat, false, is_diagonal);
+    q_reg_[qubits[0]].apply_matrix(mat, is_diagonal);
     break;
   case 2:
     apply_2_qubit_gate(qubits[0], qubits[1], su4, mat, is_diagonal);
@@ -674,7 +674,7 @@ void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
   uint_t first = target_qubits.front();
   MPS_Tensor sub_tensor(state_vec_as_MPS(first, first+num_qubits-1));
 
-  sub_tensor.apply_matrix(mat, false, is_diagonal);
+  sub_tensor.apply_matrix(mat, is_diagonal);
 
   // state_mat is a matrix containing the flattened representation of the sub-tensor 
   // into a single matrix. E.g., sub_tensor will contain 8 matrices for 3-qubit

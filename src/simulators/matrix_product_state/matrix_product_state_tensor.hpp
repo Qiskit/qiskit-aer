@@ -140,8 +140,14 @@ public:
   void apply_sdg();
   void apply_t();
   void apply_tdg();
-  void apply_matrix(const cmatrix_t &mat, bool swapped=false, 
+  void apply_matrix(const cmatrix_t &mat, 
 		    bool is_diagonal=false);
+  void apply_matrix_2_qubits(const cmatrix_t &mat, 
+			     bool swapped=false,
+			     bool is_diagonal=false);
+  void apply_matrix_helper(const cmatrix_t &mat, 
+			   bool is_diagonal,
+			   const std::vector<uint_t>& indices);
   void apply_cnot(bool swapped = false);
   void apply_swap();
   void apply_cy(bool swapped = false);
@@ -327,32 +333,57 @@ void MPS_Tensor::apply_tdg()
 {
   data_[1] = data_[1] * complex_t(SQR_HALF, -SQR_HALF);
 }
-
-void MPS_Tensor::apply_matrix(const cmatrix_t &mat, bool swapped, bool is_diagonal)
+  
+void MPS_Tensor::apply_matrix(const cmatrix_t &mat, bool is_diagonal)
 {
-  if (swapped)
-    swap(data_[1], data_[2]);
+  std::vector<uint_t> indices;
+  for(uint_t i=0; i<mat.GetRows(); ++i) {
+    indices.push_back(i);
+  }
 
+  apply_matrix_helper(mat, is_diagonal, indices);
+}
+
+void MPS_Tensor::apply_matrix_2_qubits(const cmatrix_t &mat, 
+				       bool swapped,
+				       bool is_diagonal)
+{
+  std::vector<uint_t> indices;
+  indices.push_back(0);
+  if (swapped) {
+    indices.push_back(2);
+    indices.push_back(1);
+  }
+  else { 
+    indices.push_back(1);
+    indices.push_back(2);
+  }
+  indices.push_back(3);
+  
+  apply_matrix_helper(mat, is_diagonal, indices);
+}    
+
+void MPS_Tensor::apply_matrix_helper(const cmatrix_t &mat, bool is_diagonal,
+				     const std::vector<uint_t>& indices)
+{
   if (is_diagonal) {  // diagonal matrix - the diagonal is contained in row 0
     for (uint_t i=0; i<mat.GetColumns(); i++)
-      data_[i] = mat(0, i) * data_[i];
+      data_[indices[i]] = mat(0, i) * data_[indices[i]];
   } else {            // full matrix
     MPS_Tensor new_tensor;
-    // initialize by multiplying first column of mat by data_[0]
+    new_tensor.data_.resize(mat.GetRows());
+    // initialize by multiplying first column of mat by data_[indices[0]]
     for (uint_t i=0; i<mat.GetRows(); i++) 
-      new_tensor.data_.push_back(mat(i, 0) * data_[0]);
+      new_tensor.data_[indices[i]] = (mat(i, 0) * data_[indices[0]]);
 
     // add all other columns 
     for (uint_t i=0; i<mat.GetRows(); i++) {
       for (uint_t j=1; j<mat.GetColumns(); j++) {
-	new_tensor.data_[i] += mat(i, j) * data_[j];
+	new_tensor.data_[indices[i]] += mat(i, j) * data_[indices[j]];
       }
     }
     *this = new_tensor;
   }
-
-  if (swapped)
-    swap(data_[1], data_[2]);
 }
 
 void MPS_Tensor::apply_cnot(bool swapped)
