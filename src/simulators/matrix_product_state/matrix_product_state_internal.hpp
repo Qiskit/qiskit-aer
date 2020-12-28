@@ -112,7 +112,8 @@ public:
   void apply_sdg(uint_t index){ get_qubit(index).apply_sdg();}
   void apply_t(uint_t index){ get_qubit(index).apply_t();}
   void apply_tdg(uint_t index){ get_qubit(index).apply_tdg();}
-  void apply_u1(uint_t index, double lambda);
+  void apply_u1(uint_t index, double lambda)
+    { get_qubit(index).apply_u1(lambda);}
   void apply_u2(uint_t index, double phi, double lambda);
   void apply_u3(uint_t index, double theta, double phi, double lambda);
   void apply_cnot(uint_t index_A, uint_t index_B);

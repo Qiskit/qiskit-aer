@@ -136,6 +136,7 @@ public:
   void apply_x();
   void apply_y();
   void apply_z();
+  void apply_u1(double lambda);
   void apply_s();
   void apply_sdg();
   void apply_t();
@@ -152,6 +153,7 @@ public:
   void apply_swap();
   void apply_cy(bool swapped = false);
   void apply_cz();
+  void apply_cu1(double lambda);
   void apply_ccx(uint_t target_qubit);
   void mul_Gamma_by_left_Lambda(const rvector_t &Lambda);
   void mul_Gamma_by_right_Lambda(const rvector_t &Lambda);
@@ -314,6 +316,11 @@ void MPS_Tensor::apply_z()
   data_[1] = data_[1] * (-1.0);
 }
 
+void MPS_Tensor::apply_u1(double lambda)
+{
+  data_[1] = data_[1] * std::exp(complex_t(0.0, lambda));
+}
+
 void MPS_Tensor::apply_s()
 {
   data_[1] = data_[1] * complex_t(0, 1);
@@ -410,6 +417,11 @@ void MPS_Tensor::apply_cy(bool swapped)
 void MPS_Tensor::apply_cz()
 {
   data_[3] = data_[3] * (-1.0);
+}
+
+void MPS_Tensor::apply_cu1(double lambda)
+{
+  data_[3] = data_[3] * std::exp(complex_t(0.0, lambda));
 }
 
 void MPS_Tensor::apply_ccx(uint_t target_qubit)

@@ -347,11 +347,6 @@ void MPS::apply_rz(uint_t index, double theta)
   get_qubit(index).apply_matrix(AER::Linalg::Matrix::rz(theta));
 }
 
-void MPS::apply_u1(uint_t index, double lambda)
-{
-  get_qubit(index).apply_matrix(AER::Linalg::Matrix::u1(lambda));
-}
-
 void MPS::apply_u2(uint_t index, double phi, double lambda)
 {
   get_qubit(index).apply_matrix(AER::Linalg::Matrix::u2(phi, lambda));
@@ -384,8 +379,10 @@ void MPS::apply_cz(uint_t index_A, uint_t index_B)
 
 void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
 {
-  cmatrix_t u1_matrix = AER::Linalg::Matrix::u1(lambda);
-  apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), cu1, u1_matrix);
+  cmatrix_t lam_in_mat(1, 1);
+  lam_in_mat(0, 0) = lambda;
+  apply_2_qubit_gate(get_qubit_index(index_A), 
+		     get_qubit_index(index_B), cu1, lam_in_mat);
 }
 
 void MPS::apply_rxx(uint_t index_A, uint_t index_B, double theta)
@@ -520,14 +517,8 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
   case id:
     break;
   case cu1:
-    {
-      cmatrix_t Zeros = AER::Linalg::Matrix::I-AER::Linalg::Matrix::I;
-      cmatrix_t temp1 = AER::Utils::concatenate(AER::Linalg::Matrix::I, Zeros , 1),
-	temp2 = AER::Utils::concatenate(Zeros, mat, 1);
-      cmatrix_t cu = AER::Utils::concatenate(temp1, temp2 ,0) ;
-      temp.apply_matrix(cu);
-      break;
-    }
+    temp.apply_cu1(std::real(mat(0, 0)));
+    break;
   case su4:
     // We reverse the order of the qubits, according to the Qiskit convention.
     // Effectively, this reverses swap for 2-qubit gates
