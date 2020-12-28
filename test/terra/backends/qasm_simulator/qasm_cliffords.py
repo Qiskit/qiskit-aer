@@ -20,7 +20,7 @@ from qiskit.providers.aer import QasmSimulator
 
 
 class QasmCliffordTests:
-    """QasmSimulator Clifford gate tests in default basis."""
+    """QasmSimulator Clifford gate tests"""
 
     SIMULATOR = QasmSimulator()
     BACKEND_OPTS = {}
@@ -28,8 +28,8 @@ class QasmCliffordTests:
     # ---------------------------------------------------------------------
     # Test h-gate
     # ---------------------------------------------------------------------
-    def test_h_gate_deterministic_default_basis_gates(self):
-        """Test h-gate circuits compiling to backend default basis_gates."""
+    def test_h_gate_deterministic(self):
+        """Test h-gate circuits"""
         shots = 100
         circuits = ref_1q_clifford.h_gate_circuits_deterministic(
             final_measure=True)
@@ -40,8 +40,8 @@ class QasmCliffordTests:
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
-    def test_h_gate_nondeterministic_default_basis_gates(self):
-        """Test h-gate circuits compiling to backend default basis_gates."""
+    def test_h_gate_nondeterministic(self):
+        """Test h-gate circuits"""
         shots = 4000
         circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(
             final_measure=True)
@@ -55,8 +55,8 @@ class QasmCliffordTests:
     # ---------------------------------------------------------------------
     # Test x-gate
     # ---------------------------------------------------------------------
-    def test_x_gate_deterministic_default_basis_gates(self):
-        """Test x-gate circuits compiling to backend default basis_gates."""
+    def test_x_gate_deterministic(self):
+        """Test x-gate circuits"""
         shots = 100
         circuits = ref_1q_clifford.x_gate_circuits_deterministic(
             final_measure=True)
@@ -69,8 +69,8 @@ class QasmCliffordTests:
     # ---------------------------------------------------------------------
     # Test z-gate
     # ---------------------------------------------------------------------
-    def test_z_gate_deterministic_default_basis_gates(self):
-        """Test z-gate circuits compiling to backend default basis_gates."""
+    def test_z_gate_deterministic(self):
+        """Test z-gate circuits"""
         shots = 100
         circuits = ref_1q_clifford.z_gate_circuits_deterministic(
             final_measure=True)
@@ -84,8 +84,8 @@ class QasmCliffordTests:
     # ---------------------------------------------------------------------
     # Test y-gate
     # ---------------------------------------------------------------------
-    def test_y_gate_deterministic_default_basis_gates(self):
-        """Test y-gate circuits compiling to backend default basis_gates."""
+    def test_y_gate_deterministic(self):
+        """Test y-gate circuits"""
         shots = 100
         circuits = ref_1q_clifford.y_gate_circuits_deterministic(
             final_measure=True)
@@ -99,8 +99,8 @@ class QasmCliffordTests:
     # ---------------------------------------------------------------------
     # Test s-gate
     # ---------------------------------------------------------------------
-    def test_s_gate_deterministic_default_basis_gates(self):
-        """Test s-gate circuits compiling to backend default basis_gates."""
+    def test_s_gate_deterministic(self):
+        """Test s-gate circuits"""
         shots = 100
         circuits = ref_1q_clifford.s_gate_circuits_deterministic(
             final_measure=True)
@@ -111,8 +111,8 @@ class QasmCliffordTests:
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
-    def test_s_gate_nondeterministic_default_basis_gates(self):
-        """Test s-gate circuits compiling to backend default basis_gates."""
+    def test_s_gate_nondeterministic(self):
+        """Test s-gate circuits"""
         shots = 4000
         circuits = ref_1q_clifford.s_gate_circuits_nondeterministic(
             final_measure=True)
@@ -129,8 +129,8 @@ class QasmCliffordTests:
     # ---------------------------------------------------------------------
     # Test sdg-gate
     # ---------------------------------------------------------------------
-    def test_sdg_gate_deterministic_default_basis_gates(self):
-        """Test sdg-gate circuits compiling to backend default basis_gates."""
+    def test_sdg_gate_deterministic(self):
+        """Test sdg-gate circuits"""
         shots = 100
         circuits = ref_1q_clifford.sdg_gate_circuits_deterministic(
             final_measure=True)
@@ -144,9 +144,9 @@ class QasmCliffordTests:
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
-    def test_sdg_gate_nondeterministic_default_basis_gates(self):
+    def test_sdg_gate_nondeterministic(self):
         shots = 4000
-        """Test sdg-gate circuits compiling to backend default basis_gates."""
+        """Test sdg-gate circuits"""
         circuits = ref_1q_clifford.sdg_gate_circuits_nondeterministic(
             final_measure=True)
         targets = ref_1q_clifford.sdg_gate_counts_nondeterministic(shots)
@@ -159,8 +159,8 @@ class QasmCliffordTests:
     # ---------------------------------------------------------------------
     # Test cx-gate
     # ---------------------------------------------------------------------
-    def test_cx_gate_deterministic_default_basis_gates(self):
-        """Test cx-gate circuits compiling to backend default basis_gates."""
+    def test_cx_gate_deterministic(self):
+        """Test cx-gate circuits"""
         shots = 100
         circuits = ref_2q_clifford.cx_gate_circuits_deterministic(
             final_measure=True)
@@ -171,8 +171,8 @@ class QasmCliffordTests:
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
-    def test_cx_gate_nondeterministic_default_basis_gates(self):
-        """Test cx-gate circuits compiling to backend default basis_gates."""
+    def test_cx_gate_nondeterministic(self):
+        """Test cx-gate circuits"""
         shots = 4000
         circuits = ref_2q_clifford.cx_gate_circuits_nondeterministic(
             final_measure=True)
@@ -186,8 +186,8 @@ class QasmCliffordTests:
     # ---------------------------------------------------------------------
     # Test cz-gate
     # ---------------------------------------------------------------------
-    def test_cz_gate_deterministic_default_basis_gates(self):
-        """Test cz-gate circuits compiling to backend default basis_gates."""
+    def test_cz_gate_deterministic(self):
+        """Test cz-gate circuits"""
         shots = 100
         circuits = ref_2q_clifford.cz_gate_circuits_deterministic(
             final_measure=True)
@@ -198,8 +198,8 @@ class QasmCliffordTests:
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
-    def test_cz_gate_nondeterministic_default_basis_gates(self):
-        """Test cz-gate circuits compiling to backend default basis_gates."""
+    def test_cz_gate_nondeterministic(self):
+        """Test cz-gate circuits"""
         shots = 4000
         circuits = ref_2q_clifford.cz_gate_circuits_nondeterministic(
             final_measure=True)
@@ -213,8 +213,8 @@ class QasmCliffordTests:
     # ---------------------------------------------------------------------
     # Test swap-gate
     # ---------------------------------------------------------------------
-    def test_swap_gate_deterministic_default_basis_gates(self):
-        """Test swap-gate circuits compiling to backend default basis_gates."""
+    def test_swap_gate_deterministic(self):
+        """Test swap-gate circuits"""
         shots = 100
         circuits = ref_2q_clifford.swap_gate_circuits_deterministic(
             final_measure=True)
@@ -225,8 +225,8 @@ class QasmCliffordTests:
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
-    def test_swap_gate_nondeterministic_default_basis_gates(self):
-        """Test swap-gate circuits compiling to backend default basis_gates."""
+    def test_swap_gate_nondeterministic(self):
+        """Test swap-gate circuits"""
         shots = 4000
         circuits = ref_2q_clifford.swap_gate_circuits_nondeterministic(
             final_measure=True)
@@ -240,8 +240,8 @@ class QasmCliffordTests:
     # ---------------------------------------------------------------------
     # Test pauli gate
     # ---------------------------------------------------------------------
-    def test_pauli_gate_deterministic_default_basis_gates(self):
-        """Test pauli gate circuits compiling to backend default basis_gates."""
+    def test_pauli_gate_deterministic(self):
+        """Test pauli gate circuits"""
         if 'method' in self.BACKEND_OPTS:
             conf = self.SIMULATOR._method_configuration(self.BACKEND_OPTS['method'])
             basis_gates = conf.basis_gates
