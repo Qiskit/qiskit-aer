@@ -146,6 +146,9 @@ public:
   void apply_matrix_2_qubits(const cmatrix_t &mat, 
 			     bool swapped=false,
 			     bool is_diagonal=false);
+  void apply_control_2_qubits(const cmatrix_t &mat, 
+			      bool swapped=false,
+			      bool is_diagonal=false);
   void apply_matrix_helper(const cmatrix_t &mat, 
 			   bool is_diagonal,
 			   const std::vector<uint_t>& indices);
@@ -368,6 +371,23 @@ void MPS_Tensor::apply_matrix_2_qubits(const cmatrix_t &mat,
   indices.push_back(3);
   
   apply_matrix_helper(mat, is_diagonal, indices);
+}
+
+void MPS_Tensor::apply_control_2_qubits(const cmatrix_t &mat, 
+					bool swapped,
+					bool is_diagonal)
+{
+  std::vector<uint_t> indices;
+  if (swapped) {
+    indices.push_back(3);
+    indices.push_back(2);
+  }
+  else { 
+    indices.push_back(2);
+    indices.push_back(3);
+  }
+  
+  apply_matrix_helper(mat, is_diagonal, indices);
 }    
 
 void MPS_Tensor::apply_matrix_helper(const cmatrix_t &mat, bool is_diagonal,
@@ -377,19 +397,21 @@ void MPS_Tensor::apply_matrix_helper(const cmatrix_t &mat, bool is_diagonal,
     for (uint_t i=0; i<mat.GetColumns(); i++)
       data_[indices[i]] = mat(0, i) * data_[indices[i]];
   } else {            // full matrix
-    MPS_Tensor new_tensor;
-    new_tensor.data_.resize(mat.GetRows());
+    std::vector<cmatrix_t> new_data;
+    new_data.resize(mat.GetRows());
     // initialize by multiplying first column of mat by data_[indices[0]]
     for (uint_t i=0; i<mat.GetRows(); i++) 
-      new_tensor.data_[indices[i]] = (mat(i, 0) * data_[indices[0]]);
+      new_data[i] = (mat(i, 0) * data_[indices[0]]);
 
     // add all other columns 
     for (uint_t i=0; i<mat.GetRows(); i++) {
       for (uint_t j=1; j<mat.GetColumns(); j++) {
-	new_tensor.data_[indices[i]] += mat(i, j) * data_[indices[j]];
+	new_data[i] += mat(i, j) * data_[indices[j]];
       }
     }
-    *this = new_tensor;
+
+    for (uint_t i=0; i<mat.GetRows(); i++)
+      data_[indices[i]] = new_data[i];
   }
 }
 
