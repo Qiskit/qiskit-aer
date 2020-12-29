@@ -419,7 +419,7 @@ void MPS::apply_rzx(uint_t index_A, uint_t index_B, double theta)
 void MPS::apply_ccx(const reg_t &qubits)
 {
   reg_t internal_qubits = get_internal_qubits(qubits);
-  apply_3_qubit_gate(internal_qubits, mcx, cmatrix_t(1, 1));
+  apply_3_qubit_gate(internal_qubits, ccx, cmatrix_t(1, 1));
 }
 
   void MPS::apply_swap(uint_t index_A, uint_t index_B, bool swap_gate) {
@@ -583,7 +583,7 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
 
   // apply the gate to sub_tensor
   switch (gate_type) {
-  case mcx:
+  case ccx:
        sub_tensor.apply_ccx(target);
     break;
 

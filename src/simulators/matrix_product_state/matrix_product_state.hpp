@@ -333,7 +333,7 @@ const stringmap_t<Gates> State::gateset_({
   {"rzz", Gates::rzz},   // Pauli-ZZ rotation gate
   {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
   // Three-qubit gates
-   {"ccx", Gates::mcx}   // Controlled-CX gate (Toffoli)
+   {"ccx", Gates::ccx}   // Controlled-CX gate (Toffoli)
 });
 
 const stringmap_t<Snapshots> State::snapshotset_({
@@ -662,7 +662,7 @@ void State::apply_gate(const Operations::Op &op) {
     throw std::invalid_argument(
       "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
   switch (it -> second) {
-  case Gates::mcx:
+  case Gates::ccx:
       qreg_.apply_ccx(op.qubits);
       break;
     case Gates::u3:
