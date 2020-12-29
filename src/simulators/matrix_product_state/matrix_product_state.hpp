@@ -53,7 +53,8 @@ const Operations::OpSet StateOpSet(
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",
-   "sx", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx", "csx", "delay"},
+   "sx", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx", "csx", "delay",
+   "cswap"},
   // Snapshots
   {"statevector", "amplitudes", "memory", "register", "probabilities",
     "expectation_value_pauli", "expectation_value_pauli_with_variance",
@@ -333,7 +334,8 @@ const stringmap_t<Gates> State::gateset_({
   {"rzz", Gates::rzz},   // Pauli-ZZ rotation gate
   {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
   // Three-qubit gates
-   {"ccx", Gates::ccx}   // Controlled-CX gate (Toffoli)
+  {"ccx", Gates::ccx},   // Controlled-CX gate (Toffoli)
+  {"cswap", Gates::cswap}
 });
 
 const stringmap_t<Snapshots> State::snapshotset_({
@@ -662,8 +664,11 @@ void State::apply_gate(const Operations::Op &op) {
     throw std::invalid_argument(
       "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
   switch (it -> second) {
-  case Gates::ccx:
+    case Gates::ccx:
       qreg_.apply_ccx(op.qubits);
+      break;
+    case Gates::cswap:
+      qreg_.apply_cswap(op.qubits);
       break;
     case Gates::u3:
       qreg_.apply_u3(op.qubits[0],

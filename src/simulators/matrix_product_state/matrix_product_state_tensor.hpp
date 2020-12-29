@@ -158,6 +158,7 @@ public:
   void apply_cz();
   void apply_cu1(double lambda);
   void apply_ccx(uint_t target_qubit);
+  void apply_cswap(uint_t control_qubit);
   void mul_Gamma_by_left_Lambda(const rvector_t &Lambda);
   void mul_Gamma_by_right_Lambda(const rvector_t &Lambda);
   void div_Gamma_by_left_Lambda(const rvector_t &Lambda);
@@ -459,9 +460,27 @@ void MPS_Tensor::apply_ccx(uint_t target_qubit)
     swap(data_[6], data_[7]);
     break;
   default:
-   throw std::invalid_argument("Target qubit for cxx must be 0, 1, or 2"); 
+   throw std::invalid_argument("Target qubit for ccx must be 0, 1, or 2"); 
   }
 }
+
+void MPS_Tensor::apply_cswap(uint_t control_qubit)
+{
+  switch (control_qubit) {
+  case 0:
+    swap(data_[5], data_[6]);
+    break;
+  case 1:
+    swap(data_[3], data_[6]);
+    break;
+  case 2:
+    swap(data_[3], data_[5]);
+    break;
+  default:
+   throw std::invalid_argument("Control qubit for cswap must be 0, 1, or 2"); 
+  }
+}
+
 //-------------------------------------------------------------------------
 // The following functions mul/div Gamma by Lambda are used to keep the MPS in the
 // canonical form.

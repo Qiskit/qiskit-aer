@@ -28,7 +28,7 @@ namespace MatrixProductState {
 enum Gates {
   id, h, x, y, z, s, sdg, sx, t, tdg, u1, u2, u3, r, rx, ry, rz, // single qubit
   cx, cy, cz, cu1, swap, su4, rxx, ryy, rzz, rzx, csx, // two qubit
-  ccx // three qubit
+  ccx, cswap // three qubit
 };
 
   //enum class Direction {RIGHT, LEFT};
@@ -128,7 +128,8 @@ public:
   void apply_rzz(uint_t index_A, uint_t index_B, double theta);
   void apply_rzx(uint_t index_A, uint_t index_B, double theta);
 
-  void apply_ccx(const reg_t &qubits);  
+  void apply_ccx(const reg_t &qubits);
+  void apply_cswap(const reg_t &qubits);
 
   void apply_matrix(const reg_t & qubits, const cmatrix_t &mat, 
 		    bool is_diagonal=false);

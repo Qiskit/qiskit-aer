@@ -422,7 +422,13 @@ void MPS::apply_ccx(const reg_t &qubits)
   apply_3_qubit_gate(internal_qubits, ccx, cmatrix_t(1, 1));
 }
 
-  void MPS::apply_swap(uint_t index_A, uint_t index_B, bool swap_gate) {
+void MPS::apply_cswap(const reg_t &qubits)
+{
+  reg_t internal_qubits = get_internal_qubits(qubits);
+  apply_3_qubit_gate(internal_qubits, cswap, cmatrix_t(1, 1));
+}
+
+void MPS::apply_swap(uint_t index_A, uint_t index_B, bool swap_gate) {
   apply_swap_internal(get_qubit_index(index_A), get_qubit_index(index_B), swap_gate);
 }
 
@@ -566,17 +572,6 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
   reg_t new_qubits(qubits.size());
   centralize_qubits(qubits, new_qubits);
 
-  // The controlled (or target) qubit, is qubit[2]. Since in new_qubits the qubits are sorted,
-  // the relative position of the controlled qubit will be 0, 1, or 2 depending on
-  // where qubit[2] was moved to in new_qubits
-  uint_t target=0;
-  if (qubits[2] > qubits[0] && qubits[2] > qubits[1])
-    target = 2;
-  else if (qubits[2] < qubits[0] && qubits[2] < qubits[1])
-    target = 0;
-  else
-    target = 1;
-
   // extract the tensor containing only the 3 qubits on which we apply the gate
   uint_t first = new_qubits.front();
   MPS_Tensor sub_tensor(state_vec_as_MPS(first, first+2));
@@ -584,7 +579,27 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
   // apply the gate to sub_tensor
   switch (gate_type) {
   case ccx:
-       sub_tensor.apply_ccx(target);
+    // The controlled (or target) qubit, is qubit[2]. Since in new_qubits the qubits are sorted,
+    // the relative position of the controlled qubit will be 0, 1, or 2 depending on
+    // where qubit[2] was moved to in new_qubits
+    uint_t target;
+    if (qubits[2] > qubits[0] && qubits[2] > qubits[1])
+      target = 2;
+    else if (qubits[2] < qubits[0] && qubits[2] < qubits[1])
+      target = 0;
+    else
+      target = 1;
+    sub_tensor.apply_ccx(target);
+    break;
+  case cswap:
+    uint_t control;
+    if (qubits[0] < qubits[1] && qubits[0] < qubits[2])
+      target = 0;
+    else if (qubits[0] > qubits[1] && qubits[0] > qubits[2])
+      target = 2;
+    else
+      target = 1;
+    sub_tensor.apply_cswap(control);
     break;
 
   default:
