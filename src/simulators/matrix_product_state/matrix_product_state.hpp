@@ -53,7 +53,7 @@ const Operations::OpSet StateOpSet(
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",
-      "sx", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx", "csx"},
+   "sx", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx", "csx", "delay"},
   // Snapshots
   {"statevector", "amplitudes", "memory", "register", "probabilities",
     "expectation_value_pauli", "expectation_value_pauli_with_variance",
@@ -298,6 +298,7 @@ protected:
 const stringmap_t<Gates> State::gateset_({
   // Single qubit gates
   {"id", Gates::id},     // Pauli-Identity gate
+  {"delay", Gates::id},
   {"x", Gates::x},       // Pauli-X gate
   {"y", Gates::y},       // Pauli-Y gate
   {"z", Gates::z},       // Pauli-Z gate
