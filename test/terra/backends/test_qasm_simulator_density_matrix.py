@@ -31,6 +31,7 @@ from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonClifford
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmDiagonalGateTests
 from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardGateDensityMatrixTests
+from test.terra.backends.qasm_simulator.qasm_delay_gate import QasmDelayGateTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
@@ -73,7 +74,7 @@ class DensityMatrixTests(
         QasmSnapshotDensityMatrixTests, QasmSnapshotProbabilitiesTests,
         QasmSnapshotExpValPauliTests, QasmSnapshotExpValPauliNCTests,
         QasmSnapshotExpValMatrixTests, QasmSnapshotStabilizerTests,
-        QasmStandardGateDensityMatrixTests):
+        QasmStandardGateDensityMatrixTests, QasmDelayGateTests):
     """Container class of density_matrix method tests."""
     pass
 

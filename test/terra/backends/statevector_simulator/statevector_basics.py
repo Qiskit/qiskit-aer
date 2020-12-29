@@ -550,6 +550,22 @@ class StatevectorSimulatorTests:
         self.compare_statevector(result, circuits, targets)
 
     # ---------------------------------------------------------------------
+    # Test delay gate
+    # ---------------------------------------------------------------------
+    def test_delay_gate_deterministic(self):
+        """Test delay gate circuits"""
+        circuits = ref_1q_clifford.delay_gate_circuits_deterministic(
+            final_measure=False)
+        targets = ref_1q_clifford.delay_gate_statevector_deterministic()
+        job = execute(circuits,
+                      self.SIMULATOR,
+                      shots=1,
+                      **self.BACKEND_OPTS)
+        result = job.result()
+        self.assertSuccess(result)
+        self.compare_statevector(result, circuits, targets)
+
+    # ---------------------------------------------------------------------
     # Test cx-gate
     # ---------------------------------------------------------------------
     def test_cx_gate_deterministic_default_basis_gates(self):
