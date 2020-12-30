@@ -114,7 +114,7 @@ public:
   virtual void initialize_qreg(uint_t num_qubits) override;
 
   // Initializes to a specific n-qubit state given as a complex std::vector
-  void initialize_qreg(const reg_t &qubits, const cvector_t &statevector);
+  void initialize_qreg(uint_t num_qubits, const cvector_t &statevector);
 
   virtual void initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state);
 
@@ -225,11 +225,6 @@ protected:
   // 3 -> |q1 = 1, q0 = 1> state
   std::pair<uint_t, double>
   sample_measure_with_prob(const reg_t &qubits, RngEngine &rng);
-
-
-  void measure_reset_update(const reg_t &qubits,
-                            const uint_t final_state,
-                            const reg_t &meas_state);
 
   //-----------------------------------------------------------------------
   // Special snapshot types
@@ -363,14 +358,18 @@ void State::initialize_qreg(uint_t num_qubits=0) {
   qreg_.initialize(num_qubits);
 }
 
-void State::initialize_qreg(const reg_t &qubits, const cvector_t &statevector) {
-  qreg_.initialize_from_statevector(qubits, statevector);
+void State::initialize_qreg(uint_t num_qubits, const cvector_t &statevector) {
+  if (qreg_.num_qubits() != num_qubits)
+    throw std::invalid_argument("MatrixProductState::State::initialize_qreg: initial state does not match qubit number");
+  reg_t qubits(num_qubits);
+  std::iota(qubits.begin(), qubits.end(), 0);
+  qreg_.initialize_from_statevector_internal(qubits, statevector);
 }
 
 void State::initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state) {
   // Check dimension of state
   if (qreg_.num_qubits() != num_qubits) {
-    throw std::invalid_argument("MatrixProductState::State::initialize: initial state does not match qubit number");
+    throw std::invalid_argument("MatrixProductState::State::initialize_qreg: initial state does not match qubit number");
   }
 #ifdef DEBUG
   std::cout << "initialize with state not supported yet";
@@ -464,6 +463,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 
   // Simple loop over vector of input operations
   for (const auto &op: ops) {
+    std::cout << "op = " << op.type << std::endl;
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
         case Operations::OpType::barrier:
@@ -503,6 +503,8 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
                                       op.name + "\'.");
       }
     }
+    qreg_.print(std::cout);
+    std::cout << "-----"<<std::endl;
   }
 }
 
@@ -781,7 +783,7 @@ void State::apply_kraus(const reg_t &qubits,
 void State::apply_initialize(const reg_t &qubits,
 			     const cvector_t &params,
 			     RngEngine &rng) {
-  qreg_.initialize_from_statevector(qubits, params);
+  qreg_.apply_initialize(qubits, params, rng);
 }
 
 void State::apply_measure(const reg_t &qubits,
@@ -955,20 +957,8 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result) {
 
 void State::apply_reset(const reg_t &qubits,
                         RngEngine &rng) {
-  // Simulate unobserved measurement
-  reg_t outcome = qreg_.apply_measure(qubits, rng);
-  // Apply update to reset state
-  measure_reset_update(qubits, 0, outcome);
-}
-
-void State::measure_reset_update(const reg_t &qubits,
-				 const uint_t final_state,
-				 const reg_t &meas_state) {
-  for (uint_t i=0; i<qubits.size(); i++) {
-    if(meas_state[i] != final_state) {
-      qreg_.apply_x(qubits[i]);
-    }
-  }
+  std::cout <<"in apply_reset: qubits.size =" <<qubits.size() << std::endl;
+  qreg_.reset(qubits, rng);
 }
 
 std::pair<uint_t, double>

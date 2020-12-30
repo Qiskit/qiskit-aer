@@ -65,6 +65,10 @@ public:
   //----------------------------------------------------------------
   virtual void initialize(uint_t num_qubits=0);
   void initialize(const MPS &other);
+  //  void initialize(const cvector_t &statevector);
+
+  void apply_initialize(const reg_t &qubits, const cvector_t &statevector, 
+			RngEngine &rng);
 
   //----------------------------------------------------------------
   // Function name: num_qubits
@@ -259,15 +263,19 @@ public:
 		      RngEngine &rng);
 
   //----------------------------------------------------------------
-  // Function name: initialize_from_statevector
+  // Function name: initialize_from_statevector_internal
   // Description: This function receives as input a state_vector and
   //      initializes the internal structures of the MPS according to its
   //      state.
-  // Parameters: number of qubits, state_vector to initialize from
+  // Parameters: qubits - with the internal ordering 
+  //             state_vector to initialize from
   // Returns: none.
   //----------------------------------------------------------------
 
-  void initialize_from_statevector(const reg_t &qubits, const cvector_t &state_vector);
+  //  void initialize_from_statevector(const reg_t &qubits, const cvector_t &state_vector,
+  //   RngEngine &rng);
+  void initialize_from_statevector_internal(const reg_t &qubits, const cvector_t &state_vector);
+  void reset(const reg_t &qubits, RngEngine &rng);
 
   reg_t get_bond_dimensions() const;
   uint_t get_max_bond_dimensions() const;
@@ -356,14 +364,22 @@ private:
 
   void apply_measure_internal(const reg_t &qubits,
 			      RngEngine &rng, reg_t &outcome_vector_internal);
-   uint_t apply_measure(uint_t qubit, 
-			  RngEngine &rng);
+
+  uint_t apply_measure_internal_single_qubit(uint_t qubit, 
+					     RngEngine &rng);
 
   reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
 						    const reg_t &qubits) const;
-  void initialize_from_statevector_internal(const reg_t &qubits, const cvector_t &state_vector);
+
   void initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat);
-  void initialize_component_internal(const reg_t &qubits, const cvector_t &statevector);
+  void initialize_component_internal(const reg_t &qubits, 
+				     const cvector_t &statevector,
+				     RngEngine &rng);
+
+  void reset_internal(const reg_t &qubits, RngEngine &rng);
+  void measure_reset_update_internal(const reg_t &qubits,
+				     const uint_t final_state,
+				     const reg_t &meas_state);
 
   //----------------------------------------------------------------
   // Function name: centralize_qubits

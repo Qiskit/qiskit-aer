@@ -396,8 +396,9 @@ void MPS::initialize(const MPS &other){
 
 reg_t MPS::get_internal_qubits(const reg_t &qubits) const {
   reg_t internal_qubits(qubits.size());
-  for (uint_t i=0; i<qubits.size(); i++)
+  for (uint_t i=0; i<qubits.size(); i++) {
     internal_qubits[i] = get_qubit_index(qubits[i]);
+  }
   return internal_qubits;
 }
  
@@ -980,7 +981,6 @@ void MPS::MPS_with_new_indices(const reg_t &qubits,
 			       MPS& temp_MPS) const {
   temp_MPS.initialize(*this);
   temp_MPS.centralize_qubits(qubits, centralized_qubits);
-
 }
 
 double MPS::expectation_value(const reg_t &qubits, 
@@ -1087,7 +1087,6 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits,
   reverse(reversed_matrices.begin(), reversed_matrices.end());
   for (uint_t i=0; i<num_Is; i++)
     reversed_matrices.append("I");
-
 // sort the paulis according to the initial ordering of the qubits
   auto sorted_matrices = sort_paulis_by_qubits(reversed_matrices, qubits);
 
@@ -1158,7 +1157,6 @@ complex_t MPS::expectation_value_pauli_internal(const reg_t &qubits,
   // We need to contract the final matrix with itself
   // Compute this by taking the trace of final_contract
   complex_t result = AER::Utils::trace(final_contract);
-
   return result;
 }
 
@@ -1443,22 +1441,20 @@ void MPS::apply_measure_internal(const reg_t &qubits,
 				  RngEngine &rng, reg_t &outcome_vector_internal) {
   reg_t qubits_to_update;
   for (uint_t i=0; i<qubits.size(); i++) {
-    outcome_vector_internal[i] = apply_measure(qubits[i], rng);
+    outcome_vector_internal[i] = apply_measure_internal_single_qubit(qubits[i], rng);
   }
 }
 
-uint_t MPS::apply_measure(uint_t qubit, 
-			 RngEngine &rng) {
+uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, 
+						RngEngine &rng) {
   reg_t qubits_to_update;
   qubits_to_update.push_back(qubit);
 
   // step 1 - measure qubit 0 in Z basis
-  double exp_val = real(expectation_value_pauli(qubits_to_update, "Z"));
-
+  double exp_val = real(expectation_value_pauli_internal(qubits_to_update, "Z", qubit, qubit, 0));
   // step 2 - compute probability for 0 or 1 result
   double prob0 = (1 + exp_val ) / 2;
   double prob1 = 1 - prob0;
-
   // step 3 - randomly choose a measurement value for qubit 0
   double rnd = rng.rand(0, 1);
   uint_t measurement;
@@ -1473,7 +1469,7 @@ uint_t MPS::apply_measure(uint_t qubit,
     measurement_matrix = one_measure;
     measurement_matrix = measurement_matrix * (1 / sqrt(prob1));
   }
-  apply_matrix(qubits_to_update, measurement_matrix);
+  apply_matrix_internal(qubits_to_update, measurement_matrix);
 
   // step 4 - propagate the changes to all qubits to the right
   for (uint_t i=qubit; i<num_qubits_-1; i++) {
@@ -1491,9 +1487,10 @@ uint_t MPS::apply_measure(uint_t qubit,
   return measurement;
 }
 
-void MPS::initialize_from_statevector(const reg_t &qubits, const cvector_t &statevector) {
+void MPS::apply_initialize(const reg_t &qubits, 
+			   const cvector_t &statevector,
+			   RngEngine &rng) {
   uint_t num_qubits = qubits.size();
- 
   reg_t internal_qubits = get_internal_qubits(qubits);
   uint_t num_amplitudes = statevector.size();
   cvector_t reordered_statevector(num_amplitudes);
@@ -1502,17 +1499,17 @@ void MPS::initialize_from_statevector(const reg_t &qubits, const cvector_t &stat
  // We reorder the statevector since initialize_from_statevector_internal assumes order 3,2,1,0
   for (uint_t i=0; i<num_qubits; i++)
     output_qubits[i] = num_qubits-1-i;
-
   permute_all_qubits(statevector, internal_qubits, output_qubits, reordered_statevector);
 
   if (num_qubits == num_qubits_)
     initialize_from_statevector_internal(internal_qubits, reordered_statevector);
   else
-    initialize_component_internal(internal_qubits, reordered_statevector);
+    initialize_component_internal(internal_qubits, reordered_statevector, rng);  
 }
 
 
-void MPS::initialize_from_statevector_internal(const reg_t &qubits, const cvector_t &statevector) {
+void MPS::initialize_from_statevector_internal(const reg_t &qubits, 
+					       const cvector_t &statevector) {
   uint_t num_qubits = qubits.size();
   cmatrix_t statevector_as_matrix(1, statevector.size());
 
@@ -1605,7 +1602,9 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
 // 6. Cut out the old section of 'qubits' in the original MPS
 // 7. Stick the new section of 'qubits' in the original MPS
 //---------------------------------------------------
-void MPS::initialize_component_internal(const reg_t &qubits, const cvector_t &statevector) {
+void MPS::initialize_component_internal(const reg_t &qubits, 
+					const cvector_t &statevector,
+					 RngEngine &rng) {
   uint_t num_qubits = qubits.size();
   uint_t num_amplitudes = statevector.size();
   reg_t new_qubits(num_qubits);
@@ -1622,25 +1621,37 @@ void MPS::initialize_component_internal(const reg_t &qubits, const cvector_t &st
     mat(0, i) = normalized_i;   
   }
 
+  reset_internal(qubits, rng);
+
   MPS qubits_mps;
   qubits_mps.initialize_from_matrix(num_qubits, mat);
   for (uint_t i=first; i<=last; i++) {
     q_reg_[i] = qubits_mps.q_reg_[i-first];
-    if (i<last) {
-      lambda_reg_[i].clear();
-      lambda_reg_[i] = qubits_mps.lambda_reg_[i-first];
-    }
-  }
-  if (first > 0) {
-    lambda_reg_[first-1].clear();
-    lambda_reg_[first-1].push_back(1.0);
-  }
-  if (last < num_qubits_-1) {
-    lambda_reg_[last].clear();
-    lambda_reg_[last].push_back(1.0);
   }
 }
 
+void MPS::reset(const reg_t &qubits, RngEngine &rng) {
+  reg_t internal_qubits = get_internal_qubits(qubits);
+  reset_internal(internal_qubits, rng);
+}
+
+void MPS::reset_internal(const reg_t &qubits, RngEngine &rng) {
+  // Simulate unobserved measurement
+  reg_t outcome_vector(qubits.size());
+  apply_measure_internal(qubits, rng, outcome_vector);
+  // Apply update to reset state
+  measure_reset_update_internal(qubits, 0, outcome_vector);
+}
+
+void MPS::measure_reset_update_internal(const reg_t &qubits,
+					const uint_t final_state,
+					const reg_t &meas_state) {
+  for (uint_t i=0; i<qubits.size(); i++) {
+    if(meas_state[i] != final_state) {
+      q_reg_[qubits[i]].apply_x();
+    }
+  }
+}
 //-------------------------------------------------------------------------
 } // end namespace MPS
 //-------------------------------------------------------------------------
