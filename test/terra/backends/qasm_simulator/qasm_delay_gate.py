@@ -27,8 +27,7 @@ class QasmDelayGateTests:
 
     def test_delay_gate(self):
         """Test delay gate circuits"""
-        backend_options = self.BACKEND_OPTS.copy()
-        method = backend_options.pop('method', 'automatic')
+        method = self.BACKEND_OPTS.get('method', 'automatic')
         self.SIMULATOR.set_options(method=method)
         
         shots = 100

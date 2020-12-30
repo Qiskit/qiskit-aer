@@ -100,8 +100,7 @@ class QasmStandardGateStatevectorTests:
             'matrix_product_state'
         ]
 
-        backend_options = self.BACKEND_OPTS.copy()
-        method = backend_options.pop('method', 'automatic')
+        method = self.BACKEND_OPTS.get('method', 'automatic')
         backend = self.SIMULATOR
         backend.set_options(method=method)
 
@@ -114,7 +113,7 @@ class QasmStandardGateStatevectorTests:
 
             # Add snapshot and execute
             circuit.snapshot_statevector('final')
-            result = execute(circuit, backend, shots=1, **backend_options).result()
+            result = execute(circuit, backend, shots=1).result()
 
             # Check results
             success = getattr(result, 'success', False)
@@ -148,8 +147,7 @@ class QasmStandardGateDensityMatrixTests:
             'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust'
         ]
 
-        backend_options = self.BACKEND_OPTS.copy()
-        method = backend_options.pop('method', 'automatic')
+        method = self.BACKEND_OPT.get('method', 'automatic')
         backend = self.SIMULATOR
         backend.set_options(method=method)
         
