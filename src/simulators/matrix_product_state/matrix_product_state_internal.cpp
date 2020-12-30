@@ -1357,15 +1357,18 @@ uint_t binary_search(const rvector_t &acc_probvector,
     return binary_search(acc_probvector, mid, end, rnd);
 }
 
-double MPS::norm() {
+double MPS::norm() const {
     reg_t qubits(num_qubits_);
     return norm(qubits);
 }
 
-double MPS::norm(reg_t &qubits) {
-    std::iota( std::begin(qubits), std::end(qubits), 0);
+double MPS::norm(const reg_t &qubits) const {
+  reg_t temp_qubits = qubits;
+    std::iota( std::begin(temp_qubits), std::end(temp_qubits), 0);
     double trace = 0;
-    rvector_t vec = diagonal_of_density_matrix(qubits);
+    MPS temp_MPS;
+    temp_MPS.initialize(*this);
+    rvector_t vec = temp_MPS.diagonal_of_density_matrix(temp_qubits);
     for (uint_t i=0; i<vec.size(); i++)
       trace += vec[i];
     return trace;
@@ -1492,6 +1495,7 @@ void MPS::apply_initialize(const reg_t &qubits,
 			   RngEngine &rng) {
   uint_t num_qubits = qubits.size();
   reg_t internal_qubits = get_internal_qubits(qubits);
+
   uint_t num_amplitudes = statevector.size();
   cvector_t reordered_statevector(num_amplitudes);
   reg_t output_qubits(num_qubits);
@@ -1620,9 +1624,7 @@ void MPS::initialize_component_internal(const reg_t &qubits,
     complex_t normalized_i = statevector[i]/qubits_norm;
     mat(0, i) = normalized_i;   
   }
-
-  reset_internal(qubits, rng);
-
+  reset_internal(new_qubits, rng);
   MPS qubits_mps;
   qubits_mps.initialize_from_matrix(num_qubits, mat);
   for (uint_t i=first; i<=last; i++) {
