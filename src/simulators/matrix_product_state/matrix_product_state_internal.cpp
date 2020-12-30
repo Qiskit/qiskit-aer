@@ -1431,25 +1431,20 @@ reg_t MPS::apply_measure(const reg_t &qubits,
   // since input is always sorted in qasm_controller, therefore, we must return the qubits 
   // to their original location (sorted)
   move_all_qubits_to_sorted_ordering();
+  return apply_measure_internal(qubits, rng);
+}
 
-  reg_t outcome_vector_internal(qubits.size()), outcome_vector(qubits.size());
-  apply_measure_internal(qubits, rng, outcome_vector_internal);
+reg_t MPS::apply_measure_internal(const reg_t &qubits, 
+				  RngEngine &rng) {
+  reg_t qubits_to_update;
+  reg_t outcome_vector(qubits.size());
   for (uint_t i=0; i<qubits.size(); i++) {
-    outcome_vector[i] = outcome_vector_internal[i];
+    outcome_vector[i] = apply_measure_internal_single_qubit(qubits[i], rng);
   }
   return outcome_vector;
 }
 
-void MPS::apply_measure_internal(const reg_t &qubits, 
-				  RngEngine &rng, reg_t &outcome_vector_internal) {
-  reg_t qubits_to_update;
-  for (uint_t i=0; i<qubits.size(); i++) {
-    outcome_vector_internal[i] = apply_measure_internal_single_qubit(qubits[i], rng);
-  }
-}
-
-uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, 
-						RngEngine &rng) {
+uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng) {	
   reg_t qubits_to_update;
   qubits_to_update.push_back(qubit);
 
@@ -1603,8 +1598,10 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
 // 3. Normalize the values in 'statevector' to the norm computed in (3)
 // 4. Create a new MPS consisting of 'qubits'
 // 5. Initialize it to 'statevector'
-// 6. Cut out the old section of 'qubits' in the original MPS
-// 7. Stick the new section of 'qubits' in the original MPS
+// 6. Reset 'qubits' - note that this stage may affect qubits that are not in 'qubits',
+//    if they are entangled with 'qubits'.
+// 7. Cut out the old section of 'qubits' in the original MPS
+// 8. Stick the new section of 'qubits' in the original MPS
 //---------------------------------------------------
 void MPS::initialize_component_internal(const reg_t &qubits, 
 					const cvector_t &statevector,
@@ -1639,8 +1636,7 @@ void MPS::reset(const reg_t &qubits, RngEngine &rng) {
 
 void MPS::reset_internal(const reg_t &qubits, RngEngine &rng) {
   // Simulate unobserved measurement
-  reg_t outcome_vector(qubits.size());
-  apply_measure_internal(qubits, rng, outcome_vector);
+  reg_t outcome_vector =  apply_measure_internal(qubits, rng);
   // Apply update to reset state
   measure_reset_update_internal(qubits, 0, outcome_vector);
 }

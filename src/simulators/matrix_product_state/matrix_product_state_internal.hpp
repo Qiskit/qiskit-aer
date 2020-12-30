@@ -362,11 +362,10 @@ private:
 
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 
-  void apply_measure_internal(const reg_t &qubits,
-			      RngEngine &rng, reg_t &outcome_vector_internal);
+  reg_t apply_measure_internal(const reg_t &qubits,
+			       RngEngine &rng);
 
-  uint_t apply_measure_internal_single_qubit(uint_t qubit, 
-					     RngEngine &rng);
+  uint_t apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng);
 
   reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
 						    const reg_t &qubits) const;
