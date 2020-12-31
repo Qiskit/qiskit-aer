@@ -268,12 +268,10 @@ public:
   //      initializes the internal structures of the MPS according to its
   //      state.
   // Parameters: qubits - with the internal ordering 
-  //             state_vector to initialize from
+  //             statevector to initialize from
   // Returns: none.
   //----------------------------------------------------------------
 
-  //  void initialize_from_statevector(const reg_t &qubits, const cvector_t &state_vector,
-  //   RngEngine &rng);
   void initialize_from_statevector_internal(const reg_t &qubits, const cvector_t &state_vector);
   void reset(const reg_t &qubits, RngEngine &rng);
 
@@ -370,6 +368,17 @@ private:
   reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
 						    const reg_t &qubits) const;
 
+  //----------------------------------------------------------------
+  // Function name: initialize_from_matrix
+  // Description: This method is similar to initialize_from_statevector, only here
+  //      the statevector has been converted to a 1xn matrix. The motivation is that
+  //      the algorithm works by iteratively reshaping the statevector into a matrix
+  //      and extracting one dimension every time to create one tensor of the mps.
+  // Parameters: num_qubits - the number of qubits
+  //             mat - contains the reshaped statevector to initialize from
+  // Returns: none.
+  //----------------------------------------------------------------
+
   void initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat);
   void initialize_component_internal(const reg_t &qubits, 
 				     const cvector_t &statevector,
@@ -377,7 +386,6 @@ private:
 
   void reset_internal(const reg_t &qubits, RngEngine &rng);
   void measure_reset_update_internal(const reg_t &qubits,
-				     const uint_t final_state,
 				     const reg_t &meas_state);
 
   //----------------------------------------------------------------

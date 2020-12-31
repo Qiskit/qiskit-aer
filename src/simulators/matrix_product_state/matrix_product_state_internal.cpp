@@ -231,11 +231,9 @@ uint_t permute_qubits(const reg_t &input_qubits, uint_t index, const reg_t &outp
   uint_t num_qubits = input_qubits.size();
 
   for (uint_t in=0; in<num_qubits; in++) {
-    //current_pos = num_qubits-1-in;
     current_pos = in;
     for (uint_t out=0; out<num_qubits; out++) {
       if (input_qubits[in] == output_qubits[out]) {
-	//new_pos = num_qubits-1-out;
 	new_pos = out;
 	break;
       }
@@ -1598,8 +1596,8 @@ void MPS::initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat) {
 // 3. Normalize the values in 'statevector' to the norm computed in (3)
 // 4. Create a new MPS consisting of 'qubits'
 // 5. Initialize it to 'statevector'
-// 6. Reset 'qubits' - note that this stage may affect qubits that are not in 'qubits',
-//    if they are entangled with 'qubits'.
+// 6. Reset 'qubits' in *this (the original MPS) - note that this stage may affect 
+//    qubits that are not in 'qubits', if they are entangled with 'qubits'.
 // 7. Cut out the old section of 'qubits' in the original MPS
 // 8. Stick the new section of 'qubits' in the original MPS
 //---------------------------------------------------
@@ -1638,14 +1636,13 @@ void MPS::reset_internal(const reg_t &qubits, RngEngine &rng) {
   // Simulate unobserved measurement
   reg_t outcome_vector =  apply_measure_internal(qubits, rng);
   // Apply update to reset state
-  measure_reset_update_internal(qubits, 0, outcome_vector);
+  measure_reset_update_internal(qubits, outcome_vector);
 }
 
 void MPS::measure_reset_update_internal(const reg_t &qubits,
-					const uint_t final_state,
 					const reg_t &meas_state) {
   for (uint_t i=0; i<qubits.size(); i++) {
-    if(meas_state[i] != final_state) {
+    if(meas_state[i] != 0) {
       q_reg_[qubits[i]].apply_x();
     }
   }

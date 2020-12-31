@@ -2,5 +2,5 @@
 
 features:
   - |
-    Added support for `initialize` in the MPS simulation_method.
+    Added support for `initialize` in the MPS simulation method.
 
