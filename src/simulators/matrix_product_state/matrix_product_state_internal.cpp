@@ -1446,7 +1446,7 @@ uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng) {
   reg_t qubits_to_update;
   qubits_to_update.push_back(qubit);
 
-  // step 1 - measure qubit 0 in Z basis
+  // step 1 - measure qubit in Z basis
   double exp_val = real(expectation_value_pauli_internal(qubits_to_update, "Z", qubit, qubit, 0));
   // step 2 - compute probability for 0 or 1 result
   double prob0 = (1 + exp_val ) / 2;
