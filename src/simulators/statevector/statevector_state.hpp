@@ -223,6 +223,7 @@ protected:
 
   //-----------------------------------------------------------------------
   // Special snapshot types
+  // Apply a supported snapshot instruction
   //
   // IMPORTANT: These methods are not marked const to allow modifying state
   // during snapshot, but after the snapshot is applied the simulator
