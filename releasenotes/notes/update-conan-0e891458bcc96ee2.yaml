@@ -1,6 +1,7 @@
 ---
 upgrade:
   - |
-    Update minimum ``Conan`` version to 1.31.2. This fixes an existing problem
-    with ``Urllib3``. It also natively supports AppleClang 12, so there is no
-    need anymore to provide our own Conan settings file.
+    The minimum version of `Conan <https://conan.io/>`__ has been increased to 1.31.2. This was necessary
+    to fix a compatibility issue with newer versions of the `urllib3 <https://pypi.org/project/urllib3/>`__ (which
+    is a dependency of Conan). It also adds native support for AppleClang 12 which is useful for users with
+    new Apple computers.
