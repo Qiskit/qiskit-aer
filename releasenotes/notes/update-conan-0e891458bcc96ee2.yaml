@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Update minimum ``Conan`` version to 1.31.2. This fixes an existing problem
+    with ``Urllib3``. It also natively supports AppleClang 12, so there is no
+    need anymore to provide our own Conan settings file.
