@@ -281,8 +281,8 @@ protected:
   void sync_process(void) const;
 
   //gather distributed state into vector (if memory is enough)
-  void gather_state(std::vector<std::complex<double>>& state);
-  void gather_state(std::vector<std::complex<float>>& state);
+  template <class data_t>
+  void gather_state(std::vector<std::complex<data_t>>& state);
 
   //apply one operator
   //implement this function instead of apply_ops in the sub classes for simulation methods
@@ -329,12 +329,6 @@ StateChunk<state_t>::StateChunk(const Operations::OpSet &opset) : opset_(opset)
 template <class state_t>
 StateChunk<state_t>::~StateChunk(void)
 {
-  qregs_.clear();
-  cregs_.clear();
-
-  chunk_index_begin_.clear();
-  chunk_index_end_.clear();
-
 #ifdef AER_MPI
   if(distributed_comm_ != MPI_COMM_WORLD){
     MPI_Comm_free(&distributed_comm_);
@@ -487,46 +481,38 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
     nOp = ops.size();
     iOp = 0;
     while(iOp < nOp){
-
-      std::cout << " === " << ops[iOp] << std::endl;
-
-
       if(ops[iOp].type == Operations::OpType::gate && ops[iOp].name == "swap_chunk"){
         //apply swap between chunks
         apply_chunk_swap(ops[iOp].qubits);
       }
       else if(ops[iOp].type == Operations::OpType::sim_op && ops[iOp].name == "begin_blocking"){
         //applying sequence of gates inside each chunk
+
+        uint_t iOpEnd = iOp;
+        while(iOpEnd < nOp){
+          if(ops[iOpEnd].type == Operations::OpType::sim_op && ops[iOpEnd].name == "end_blocking"){
+            break;
+          }
+          iOpEnd++;
+        }
+
         uint_t iOpBegin = iOp + 1;
 #pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
         for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
-          uint_t iOpBlock;
+          uint_t iOpBlock = iOpBegin;
           //fecth chunk in cache
-          qregs_[iChunk].fetch_chunk();
-
-          iOpBlock = iOpBegin;
-          while(iOpBlock < nOp){
-            if(ops[iOpBlock].type == Operations::OpType::sim_op && ops[iOpBlock].name == "end_blocking"){
-              //end of sequence of blocking
-              break;
+          if(qregs_[iChunk].fetch_chunk()){
+            while(iOpBlock < iOpEnd){
+              apply_op(iChunk,ops[iOpBlock],result,rng,final_ops);
+              iOpBlock++;
             }
-            apply_op(iChunk,ops[iOpBlock],result,rng,final_ops);
-            iOpBlock++;
-          }
 
-#ifdef _MSC_VER
-#pragma omp critical
-          {
-#else
-#pragma omp atomic write
-#endif
-            iOp = iOpBlock;
-#ifdef _MSC_VER
+            //release chunk from cache
+            qregs_[iChunk].release_chunk();
           }
-#endif
-          //release chunk from cache
-          qregs_[iChunk].release_chunk();
         }
+
+        iOp = iOpEnd;
       }
       else if(ops[iOp].type == Operations::OpType::measure || ops[iOp].type == Operations::OpType::snapshot || ops[iOp].type == Operations::OpType::kraus ||
               ops[iOp].type == Operations::OpType::bfunc || ops[iOp].type == Operations::OpType::roerror){
@@ -557,10 +543,8 @@ std::vector<reg_t> StateChunk<state_t>::sample_measure(const reg_t &qubits,
 template <class state_t>
 void StateChunk<state_t>::initialize_creg(uint_t num_memory, uint_t num_register) 
 {
-  int_t ireg,nreg;
-  nreg = cregs_.size();
-  for(ireg=0;ireg<nreg;ireg++)
-    cregs_[ireg].initialize(num_memory, num_register);
+  for(auto& creg : cregs_)
+    creg.initialize(num_memory, num_register);
 }
 
 
@@ -570,10 +554,8 @@ void StateChunk<state_t>::initialize_creg(uint_t num_memory,
                                      const std::string &memory_hex,
                                      const std::string &register_hex) 
 {
-  int_t ireg,nreg;
-  nreg = cregs_.size();
-  for(ireg=0;ireg<nreg;ireg++)
-    cregs_[ireg].initialize(num_memory, num_register, memory_hex, register_hex);
+  for(auto& creg : cregs_)
+    creg.initialize(num_memory, num_register, memory_hex, register_hex);
 }
 
 
@@ -602,11 +584,10 @@ void StateChunk<state_t>::snapshot_creg_memory(const int_t ireg, const Operation
                                           std::string name) const 
 {
   if(ireg < 0){
-    int_t i;
-    for(i=0;i<cregs_.size();i++){
+    for(auto& creg : cregs_){
       result.data.add_pershot_snapshot(name,
                                    op.string_params[0],
-                                   cregs_[i].memory_hex());
+                                   creg.memory_hex());
     }
   }
   else if(ireg < cregs_.size()){
@@ -623,11 +604,10 @@ void StateChunk<state_t>::snapshot_creg_register(const int_t ireg, const Operati
                                             std::string name) const 
 {
   if(ireg < 0){
-    int_t i;
-    for(i=0;i<cregs_.size();i++){
+    for(auto& creg : cregs_){
       result.data.add_pershot_snapshot(name,
                                op.string_params[0],
-                               cregs_[i].register_hex());
+                               creg.register_hex());
     }
   }
   else if(ireg < cregs_.size()){
@@ -641,18 +621,15 @@ void StateChunk<state_t>::snapshot_creg_register(const int_t ireg, const Operati
 template <class state_t>
 void StateChunk<state_t>::add_creg_to_data(ExperimentResult &result) const 
 {
-  int_t ireg,nreg;
-  nreg = cregs_.size();
-
-  for(ireg=0;ireg<nreg;ireg++){
-    if (cregs_[ireg].memory_size() > 0) {
-      std::string memory_hex = cregs_[ireg].memory_hex();
+  for(auto& creg : cregs_){
+    if (creg.memory_size() > 0) {
+      std::string memory_hex = creg.memory_hex();
       result.data.add_memory_count(memory_hex);
       result.data.add_pershot_memory(memory_hex);
     }
     // Register bits value
-    if (cregs_[ireg].register_size() > 0) {
-      result.data.add_pershot_register(cregs_[ireg].register_hex());
+    if (creg.register_size() > 0) {
+      result.data.add_pershot_register(creg.register_hex());
     }
   }
 }
@@ -815,16 +792,14 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
         MPI_Status st;
         uint_t sizeRecv,sizeSend;
 
-        void* pSend = qregs_[iLocalChunk - global_chunk_index_].send_buffer(sizeSend);
+        auto pSend = qregs_[iLocalChunk - global_chunk_index_].send_buffer(sizeSend);
         MPI_Isend(pSend,sizeSend,MPI_BYTE,iProc,iPair,distributed_comm_,&reqSend);
 
-        void* pRecv = qregs_[iLocalChunk - global_chunk_index_].recv_buffer(sizeRecv);
+        auto pRecv = qregs_[iLocalChunk - global_chunk_index_].recv_buffer(sizeRecv);
         MPI_Irecv(pRecv,sizeRecv,MPI_BYTE,iProc,iPair,distributed_comm_,&reqRecv);
 
         MPI_Wait(&reqSend,&st);
         MPI_Wait(&reqRecv,&st);
-        //MPI_Sendrecv can be used if number of processes = 2^m
-        //MPI_Sendrecv(pSend,sizeSend,MPI_BYTE,iProc,distributed_rank_,pRecv,sizeRecv,MPI_BYTE,iProc,iProc,MPI_COMM_WORLD,&st);
 
         qregs_[iLocalChunk - global_chunk_index_].apply_chunk_swap(qubits,iRemoteChunk);
       }
@@ -895,7 +870,8 @@ void StateChunk<state_t>::sync_process(void) const
 
 //gather distributed state into vector (if memory is enough)
 template <class state_t>
-void StateChunk<state_t>::gather_state(std::vector<std::complex<double>>& state)
+template <class data_t>
+void StateChunk<state_t>::gather_state(std::vector<std::complex<data_t>>& state)
 {
 #ifdef AER_MPI
   if(distributed_procs_ > 1){
@@ -916,7 +892,7 @@ void StateChunk<state_t>::gather_state(std::vector<std::complex<double>>& state)
       for(i=1;i<distributed_procs_;i++){
         MPI_Irecv(&size,1,MPI_UINT64_T,i,i*2,distributed_comm_,&reqRecv);
         MPI_Wait(&reqRecv,&st);
-        MPI_Irecv(&state[offset],size*2,MPI_DOUBLE_PRECISION,i,i*2+1,distributed_comm_,&reqRecv);
+        MPI_Irecv(&state[offset],size*sizeof(std::complex<data_t>),MPI_BYTE,i,i*2+1,distributed_comm_,&reqRecv);
         MPI_Wait(&reqRecv,&st);
         offset += size;
       }
@@ -924,50 +900,12 @@ void StateChunk<state_t>::gather_state(std::vector<std::complex<double>>& state)
     else{
       MPI_Isend(&local_size,1,MPI_UINT64_T,0,i*2,distributed_comm_,&reqSend);
       MPI_Wait(&reqSend,&st);
-      MPI_Isend(&state[0],local_size*2,MPI_DOUBLE_PRECISION,0,i*2+1,distributed_comm_,&reqSend);
+      MPI_Isend(&state[0],local_size*sizeof(std::complex<data_t>),MPI_BYTE,0,i*2+1,distributed_comm_,&reqSend);
       MPI_Wait(&reqSend,&st);
     }
   }
 #endif
 }
-
-template <class state_t>
-void StateChunk<state_t>::gather_state(std::vector<std::complex<float>>& state)
-{
-#ifdef AER_MPI
-  if(distributed_procs_ > 1){
-    uint_t size,local_size,global_size,offset;
-    int i;
-    MPI_Status st;
-    MPI_Request reqSend,reqRecv;
-
-    local_size = state.size();
-    MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,distributed_comm_);
-
-    //TO DO check memory availability
-
-    if(distributed_rank_ == 0){
-      state.resize(global_size);
-
-      offset = 0;
-      for(i=1;i<distributed_procs_;i++){
-        MPI_Irecv(&size,1,MPI_UINT64_T,i,i*2,distributed_comm_,&reqRecv);
-        MPI_Wait(&reqRecv,&st);
-        MPI_Irecv(&state[offset],size*2,MPI_FLOAT,i,i*2+1,distributed_comm_,&reqRecv);
-        MPI_Wait(&reqRecv,&st);
-        offset += size;
-      }
-    }
-    else{
-      MPI_Isend(&local_size,1,MPI_UINT64_T,0,i*2,distributed_comm_,&reqSend);
-      MPI_Wait(&reqSend,&st);
-      MPI_Isend(&state[0],local_size*2,MPI_FLOAT,0,i*2+1,distributed_comm_,&reqSend);
-      MPI_Wait(&reqSend,&st);
-    }
-  }
-#endif
-}
-
 //-------------------------------------------------------------------------
 } // end namespace Base
 //-------------------------------------------------------------------------

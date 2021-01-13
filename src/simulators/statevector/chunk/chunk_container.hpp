@@ -62,6 +62,10 @@
 #define AER_MAX_BUFFERS       4
 #define AER_DUMMY_BUFFERS     4     //reserved storage for parameters
 
+#define QV_CUDA_NUM_THREADS 512
+#define QV_MAX_REGISTERS 10
+#define QV_MAX_BLOCKED_GATES 64
+
 
 #ifdef AER_THRUST_CUDA
 #define AERDeviceVector thrust::device_vector
@@ -79,12 +83,12 @@ template <typename data_t> class Chunk;
 template <typename data_t> class DeviceChunkContainer;
 template <typename data_t> class HostChunkContainer;
 
-typedef struct _blocked_gate_params_ 
+struct BlockedGateParams
 {
   uint_t mask_;
   char gate_;
   unsigned char qubit_;
-}BlockedGateParams;
+};
 
 //========================================
 //  base class of gate functions
@@ -98,11 +102,12 @@ protected:
   uint_t* params_;                    //storage for additional parameters on device
   uint_t base_index_;               //start index of state vector 
 public:
-  GateFuncBase(void)
+  GateFuncBase()
   {
     data_ = NULL;
     base_index_ = 0;
   }
+  virtual __host__ __device__ ~GateFuncBase(){}
 
   virtual void set_data(thrust::complex<data_t>* p)
   {
@@ -144,6 +149,10 @@ public:
   virtual bool use_cache(void)
   {
     return false;
+  }
+  virtual bool batch_enable(void)
+  {
+    return true;
   }
 
   virtual const char* name(void)
@@ -238,6 +247,79 @@ public:
   }
 };
 
+//stridded iterator to access diagonal probabilities
+template <typename Iterator>
+class strided_range
+{
+  public:
+
+  typedef typename thrust::iterator_difference<Iterator>::type difference_type;
+
+  struct stride_functor : public thrust::unary_function<difference_type,difference_type>
+  {
+    difference_type stride;
+
+    stride_functor(difference_type stride)
+        : stride(stride) {}
+
+    __host__ __device__
+    difference_type operator()(const difference_type& i) const
+    {
+      return stride * i;
+    }
+  };
+
+  typedef typename thrust::counting_iterator<difference_type>                   CountingIterator;
+  typedef typename thrust::transform_iterator<stride_functor, CountingIterator> TransformIterator;
+  typedef typename thrust::permutation_iterator<Iterator,TransformIterator>     PermutationIterator;
+
+  // type of the strided_range iterator
+  typedef PermutationIterator iterator;
+
+  // construct strided_range for the range [first,last)
+  strided_range(Iterator first, Iterator last, difference_type stride)
+      : first(first), last(last), stride(stride) {}
+ 
+  iterator begin(void) const
+  {
+    return PermutationIterator(first, TransformIterator(CountingIterator(0), stride_functor(stride)));
+  }
+
+  iterator end(void) const
+  {
+    return begin() + ((last - first) + (stride - 1)) / stride;
+  }
+  
+  protected:
+  Iterator first;
+  Iterator last;
+  difference_type stride;
+};
+
+template <typename data_t>
+struct complex_dot_scan : public thrust::unary_function<thrust::complex<data_t>,thrust::complex<data_t>>
+{
+  __host__ __device__
+  thrust::complex<data_t> operator()(thrust::complex<data_t> x) { return thrust::complex<data_t>(x.real()*x.real()+x.imag()*x.imag(),0); }
+};
+
+template <typename data_t>
+struct complex_norm : public thrust::unary_function<thrust::complex<data_t>,thrust::complex<data_t>>
+{
+  __host__ __device__
+  thrust::complex<double> operator()(thrust::complex<data_t> x) { return thrust::complex<double>((double)x.real()*(double)x.real(),(double)x.imag()*(double)x.imag()); }
+};
+
+template<typename data_t>
+struct complex_less
+{
+  typedef thrust::complex<data_t> first_argument_type;
+  typedef thrust::complex<data_t> second_argument_type;
+  typedef bool result_type;
+  __thrust_exec_check_disable__
+    __host__ __device__ bool operator()(const thrust::complex<data_t> &lhs, const thrust::complex<data_t> &rhs) const {return lhs.real() < rhs.real();}
+}; // end less
+
 
 //============================================================================
 // chunk container base class
@@ -251,11 +333,11 @@ protected:
   uint_t num_chunks_;                 //number of chunks in this container
   uint_t num_buffers_;                //number of buffers (buffer chunks) in this container
   uint_t num_checkpoint_;             //number of checkpoint buffers in this container
-  uint_t num_chunk_mapped_;                 //number of chunks mapped
-  std::vector<bool> chunk_mapped_;    //which chunk is mapped
-  std::vector<bool> buffer_mapped_;   //which buffer is mapped
-  std::vector<bool> checkpoint_mapped_;   //which checkpoint buffer is mapped
+  uint_t num_chunk_mapped_;           //number of chunks mapped
   reg_t blocked_qubits_;
+  std::vector<std::shared_ptr<Chunk<data_t>>> chunks_;         //chunk storage
+  std::vector<std::shared_ptr<Chunk<data_t>>> buffers_;        //buffer storage
+  std::vector<std::shared_ptr<Chunk<data_t>>> checkpoints_;    //checkpoint storage
 public:
   ChunkContainer()
   {
@@ -266,12 +348,7 @@ public:
     num_checkpoint_ = 0;
     num_chunk_mapped_ = 0;
   }
-  virtual ~ChunkContainer()
-  {
-    chunk_mapped_.clear();
-    buffer_mapped_.clear();
-    checkpoint_mapped_.clear();
-  }
+  virtual ~ChunkContainer(){}
 
   int chunk_bits(void)
   {
@@ -310,6 +387,13 @@ public:
   {
   }
 
+#ifdef AER_THRUST_CUDA
+  virtual cudaStream_t stream(uint_t iChunk) const
+  {
+    return nullptr;
+  }
+#endif
+
   virtual uint_t size(void) = 0;
   virtual int device(void)
   {
@@ -340,6 +424,12 @@ public:
   virtual void Swap(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk) = 0;
 
   virtual void Zero(uint_t iChunk,uint_t count) = 0;
+
+  template <typename Function>
+  void Execute(Function func,uint_t iChunk,uint_t count);
+
+  template <typename Function>
+  double ExecuteSum(Function func,uint_t iChunk,uint_t count) const;
 
   virtual reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true) const = 0;
   virtual thrust::complex<double> norm(uint_t iChunk,uint_t stride = 1,bool dot = true) const = 0;
@@ -404,6 +494,9 @@ protected:
     }
     return -1;
   }
+
+  //allocate storage for chunk classes
+  void allocate_chunks(void);
 };
 
 template <typename data_t>
@@ -416,8 +509,8 @@ std::shared_ptr<Chunk<data_t>> ChunkContainer<data_t>::MapChunk(void)
   {
     for(i=0;i<num_chunks_;i++){
       idx = (num_chunk_mapped_ + i) % num_chunks_;
-      if(!chunk_mapped_[idx]){
-        chunk_mapped_[idx] = true;
+      if(!chunks_[idx]->is_mapped()){
+        chunks_[idx]->map();
         pos = idx;
         num_chunk_mapped_++;
         break;
@@ -426,37 +519,35 @@ std::shared_ptr<Chunk<data_t>> ChunkContainer<data_t>::MapChunk(void)
   }
 
   if(pos < num_chunks_)
-    return std::make_shared<Chunk<data_t>>(this->shared_from_this(),pos);
+    return chunks_[pos];
   return nullptr;
 }
 
 template <typename data_t>
 void ChunkContainer<data_t>::UnmapChunk(std::shared_ptr<Chunk<data_t>> chunk)
 {
-  chunk_mapped_[chunk->pos()] = false;
-  num_chunk_mapped_--;
-  chunk.reset();
+  chunk->unmap();
+//  chunk.reset();
 }
 
 template <typename data_t>
 std::shared_ptr<Chunk<data_t>> ChunkContainer<data_t>::MapBufferChunk(void)
 {
   uint_t i,pos;
-  pos = num_buffers_;
+  std::shared_ptr<Chunk<data_t>> ret = nullptr;
+
 #pragma omp critical
   {
     for(i=0;i<num_buffers_;i++){
-      if(!buffer_mapped_[i]){
-        buffer_mapped_[i] = true;
-        pos = i;
+      if(!buffers_[i]->is_mapped()){
+        buffers_[i]->map();
+        ret = buffers_[i];
         break;
       }
     }
   }
 
-  if(pos < num_buffers_)
-    return std::make_shared<Chunk<data_t>>(this->shared_from_this(),num_chunks_+pos);
-  return nullptr;
+  return ret;
 }
 
 template <typename data_t>
@@ -464,9 +555,9 @@ void ChunkContainer<data_t>::UnmapBuffer(std::shared_ptr<Chunk<data_t>> buf)
 {
 #pragma omp critical
   {
-    buffer_mapped_[buf->pos()-num_chunks_] = false;
+    buf->unmap();
+//    buf.reset();
   }
-  buf.reset();
 }
 
 template <typename data_t>
@@ -474,7 +565,7 @@ std::shared_ptr<Chunk<data_t>> ChunkContainer<data_t>::MapCheckpoint(int_t iChun
 {
   if(iChunk >= 0 && num_checkpoint_ == num_chunks_){   //checkpoint buffers are reserved for all chunks
     if(iChunk < num_checkpoint_)
-      return std::make_shared<Chunk<data_t>>(this->shared_from_this(),num_chunks_+num_buffers_+iChunk);
+      return checkpoints_[iChunk];
     return nullptr;
   }
   else{
@@ -483,8 +574,8 @@ std::shared_ptr<Chunk<data_t>> ChunkContainer<data_t>::MapCheckpoint(int_t iChun
 #pragma omp critical
     {
       for(i=0;i<num_checkpoint_;i++){
-        if(!checkpoint_mapped_[i]){
-          checkpoint_mapped_[i] = true;
+        if(!checkpoints_[i]->is_mapped()){
+          checkpoints_[i]->map();
           pos = i;
           break;
         }
@@ -492,7 +583,7 @@ std::shared_ptr<Chunk<data_t>> ChunkContainer<data_t>::MapCheckpoint(int_t iChun
     }
 
     if(pos < num_checkpoint_)
-      return std::make_shared<Chunk<data_t>>(this->shared_from_this(),num_chunks_+num_buffers_+pos);
+      return checkpoints_[pos];
     return nullptr;
   }
 }
@@ -503,86 +594,138 @@ void ChunkContainer<data_t>::UnmapCheckpoint(std::shared_ptr<Chunk<data_t>> buf)
   if(num_checkpoint_ != num_chunks_){
 #pragma omp critical
     {
-      checkpoint_mapped_[buf->pos()-num_chunks_-num_buffers_] = false;
+      buf->unmap();
+//      buf.reset();
     }
   }
-  buf.reset();
+}
+
+#ifdef AER_THRUST_CUDA
+
+template <typename data_t,typename kernel_t> __global__
+void dev_apply_function(kernel_t func)
+{
+  uint_t i;
+
+  i = blockIdx.x * blockDim.x + threadIdx.x;
+
+  func(i);
+}
+
+template <typename data_t,typename kernel_t> __global__
+void dev_apply_function_with_cache(kernel_t func)
+{
+  __shared__ thrust::complex<data_t> cache[1024];
+  uint_t i,idx;
+
+  i = blockIdx.x * blockDim.x + threadIdx.x;
+
+  idx = func.thread_to_index(i);
+
+  cache[threadIdx.x] = func.data()[idx];
+  __syncthreads();
+
+  func.run_with_cache(threadIdx.x,idx,cache);
+}
+
+#endif
+
+template <typename data_t>
+template <typename Function>
+void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
+{
+  set_device();
+
+  func.set_data( chunk_pointer(iChunk) );
+  func.set_matrix( matrix_pointer(iChunk) );
+  func.set_params( param_pointer(iChunk) );
+
+#ifdef AER_THRUST_CUDA
+  cudaStream_t strm = stream(iChunk);
+  if(strm){
+    uint_t nt,nb;
+    nb = 1;
+
+    if(func.use_cache()){
+      nt = count << chunk_bits_;
+
+      if(nt > 1024){
+        nb = (nt + 1024 - 1) / 1024;
+        nt = 1024;
+      }
+      dev_apply_function_with_cache<data_t,Function><<<nb,nt,0,strm>>>(func);
+    }
+    else{
+      nt = count * func.size(chunk_bits_);
+      if(nt > QV_CUDA_NUM_THREADS){
+        nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+        nt = QV_CUDA_NUM_THREADS;
+      }
+      dev_apply_function<data_t,Function><<<nb,nt,0,strm>>>(func);
+    }
+  }
+  else{ //if no stream returned, run on host
+    uint_t size = count * func.size(chunk_bits_);
+    auto ci = thrust::counting_iterator<uint_t>(0);
+    thrust::for_each_n(thrust::host, ci , size, func);
+  }
+#else
+  uint_t size = count * func.size(chunk_bits_);
+  auto ci = thrust::counting_iterator<uint_t>(0);
+  thrust::for_each_n(thrust::device, ci , size, func);
+#endif
+
+}
+
+template <typename data_t>
+template <typename Function>
+double ChunkContainer<data_t>::ExecuteSum(Function func,uint_t iChunk,uint_t count) const
+{
+  double ret;
+  uint_t size = count * func.size(chunk_bits_);
+
+  set_device();
+
+  func.set_data( chunk_pointer(iChunk) );
+  func.set_matrix( matrix_pointer(iChunk) );
+  func.set_params( param_pointer(iChunk) );
+
+  auto ci = thrust::counting_iterator<uint_t>(0);
+
+#ifdef AER_THRUST_CUDA
+  cudaStream_t strm = stream(iChunk);
+  if(strm){
+    ret = thrust::transform_reduce(thrust::cuda::par.on(strm), ci, ci + size, func,0.0,thrust::plus<double>());
+  }
+  else{ //if no stream returned, run on host
+    ret = thrust::transform_reduce(thrust::host, ci, ci + size, func,0.0,thrust::plus<double>());
+  }
+#else
+  ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<double>());
+#endif
+
+  return ret;
 }
 
 
-//stridded iterator to access diagonal probabilities
-template <typename Iterator>
-class strided_range
-{
-  public:
-
-  typedef typename thrust::iterator_difference<Iterator>::type difference_type;
-
-  struct stride_functor : public thrust::unary_function<difference_type,difference_type>
-  {
-    difference_type stride;
-
-    stride_functor(difference_type stride)
-        : stride(stride) {}
-
-    __host__ __device__
-    difference_type operator()(const difference_type& i) const
-    { 
-      return stride * i;
-    }
-  };
-
-  typedef typename thrust::counting_iterator<difference_type>                   CountingIterator;
-  typedef typename thrust::transform_iterator<stride_functor, CountingIterator> TransformIterator;
-  typedef typename thrust::permutation_iterator<Iterator,TransformIterator>     PermutationIterator;
-
-  // type of the strided_range iterator
-  typedef PermutationIterator iterator;
-
-  // construct strided_range for the range [first,last)
-  strided_range(Iterator first, Iterator last, difference_type stride)
-      : first(first), last(last), stride(stride) {}
- 
-  iterator begin(void) const
-  {
-    return PermutationIterator(first, TransformIterator(CountingIterator(0), stride_functor(stride)));
-  }
-
-  iterator end(void) const
-  {
-    return begin() + ((last - first) + (stride - 1)) / stride;
-  }
-  
-  protected:
-  Iterator first;
-  Iterator last;
-  difference_type stride;
-};
-
 template <typename data_t>
-struct complex_dot_scan : public thrust::unary_function<thrust::complex<data_t>,thrust::complex<data_t>>
+void ChunkContainer<data_t>::allocate_chunks(void)
 {
-  __host__ __device__
-  thrust::complex<data_t> operator()(thrust::complex<data_t> x) { return thrust::complex<data_t>(x.real()*x.real()+x.imag()*x.imag(),0); }
-};
+  uint_t i;
+  chunks_.resize(num_chunks_);
+  buffers_.resize(num_buffers_);
+  checkpoints_.resize(num_checkpoint_);
 
-template <typename data_t>
-struct complex_norm : public thrust::unary_function<thrust::complex<data_t>,thrust::complex<data_t>>
-{
-  __host__ __device__
-  thrust::complex<double> operator()(thrust::complex<data_t> x) { return thrust::complex<double>((double)x.real()*(double)x.real(),(double)x.imag()*(double)x.imag()); }
-};
-
-template<typename data_t>
-struct complex_less
-{
-  typedef thrust::complex<data_t> first_argument_type;
-  typedef thrust::complex<data_t> second_argument_type;
-  typedef bool result_type;
-  __thrust_exec_check_disable__
-    __host__ __device__ bool operator()(const thrust::complex<data_t> &lhs, const thrust::complex<data_t> &rhs) const {return lhs.real() < rhs.real();}
-}; // end less
-
+  for(i=0;i<num_chunks_;i++){
+    chunks_[i] = std::make_shared<Chunk<data_t>>(this->shared_from_this(),i);
+  }
+  for(i=0;i<num_buffers_;i++){
+    buffers_[i] = std::make_shared<Chunk<data_t>>(this->shared_from_this(),num_chunks_+i);
+  }
+  for(i=0;i<num_checkpoint_;i++){
+    checkpoints_[i] = std::make_shared<Chunk<data_t>>(this->shared_from_this(),num_chunks_+num_buffers_+i);
+  }
+}
 
 //------------------------------------------------------------------------------
 } // end namespace QV

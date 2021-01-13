@@ -39,9 +39,6 @@ public:
   }
   ~HostChunkContainer();
 
-  HostChunkContainer(const HostChunkContainer& obj){}
-  HostChunkContainer &operator=(const HostChunkContainer& obj){}
-
   uint_t size(void)
   {
     return data_.size();
@@ -84,6 +81,16 @@ public:
     return (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data()) + (iChunk << this->chunk_bits_);
   }
 
+  thrust::complex<double>* matrix_pointer(uint_t iChunk) const
+  {
+    return matrix_[iChunk];
+  }
+
+  uint_t* param_pointer(uint_t iChunk) const
+  {
+    return params_[iChunk];
+  }
+
   bool peer_access(int i_dest)
   {
 #ifdef AER_ATS
@@ -104,16 +111,6 @@ public:
 
   reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true) const;
   thrust::complex<double> norm(uint_t iChunk,uint_t stride = 1,bool dot = true) const;
-
-  template <typename Function>
-  void Execute(Function func,uint_t iChunk,uint_t count);
-
-  template <typename Function>
-  double ExecuteSum(Function func,uint_t iChunk,uint_t count) const;
-
-  template <typename Function>
-  thrust::complex<double> ExecuteComplexSum(Function func,uint_t iChunk,uint_t count) const;
-
 
 };
 
@@ -138,18 +135,9 @@ uint_t HostChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,uint
   matrix_.resize(nc + buffers);
   params_.resize(nc + buffers);
 
-  this->chunk_mapped_.resize(nc);
-  for(i=0;i<nc;i++){
-    this->chunk_mapped_[i] = false;
-  }
-  this->buffer_mapped_.resize(buffers);
-  for(i=0;i<buffers;i++){
-    this->buffer_mapped_[i] = false;
-  }
-  this->checkpoint_mapped_.resize(checkpoint);
-  for(i=0;i<checkpoint;i++){
-    this->checkpoint_mapped_[i] = false;
-  }
+  //allocate chunk classes
+  ChunkContainer<data_t>::allocate_chunks();
+
   return nc;
 }
 
@@ -164,29 +152,12 @@ uint_t HostChunkContainer<data_t>::Resize(uint_t chunks,uint_t buffers,uint_t ch
     params_.resize(chunks + buffers);
   }
 
-  if(chunks > this->num_chunks_){
-    this->chunk_mapped_.resize(chunks);
-    for(i=this->num_chunks_;i<chunks;i++){
-      this->chunk_mapped_[i] = false;
-    }
-  }
   this->num_chunks_ = chunks;
-
-  if(buffers > this->num_buffers_){
-    this->buffer_mapped_.resize(buffers);
-    for(i=this->num_buffers_;i<buffers;i++){
-      this->buffer_mapped_[i] = false;
-    }
-  }
   this->num_buffers_ = buffers;
-
-  if(checkpoint > this->num_checkpoint_){
-    this->checkpoint_mapped_.resize(checkpoint);
-    for(i=this->num_checkpoint_;i<checkpoint;i++){
-      this->checkpoint_mapped_[i] = false;
-    }
-  }
   this->num_checkpoint_ = checkpoint;
+
+  //allocate chunk classes
+  ChunkContainer<data_t>::allocate_chunks();
 
   return chunks + buffers + checkpoint;
 }
@@ -199,116 +170,6 @@ void HostChunkContainer<data_t>::Deallocate(void)
   params_.clear();
 }
 
-template <typename data_t>
-template <typename Function>
-void HostChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
-{
-  uint_t size = count * func.size(ChunkContainer<data_t>::chunk_bits_);
-
-  func.set_data( (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data()) + (iChunk << ChunkContainer<data_t>::chunk_bits_));
-
-  func.set_matrix( matrix_[iChunk]);
-  func.set_params( params_[iChunk]);
-
-  if(omp_get_num_threads() > 1){  //in parallel region
-    auto ci = thrust::counting_iterator<uint_t>(0);
-
-    thrust::for_each_n(thrust::host, ci, size, func);
-  }
-  else{
-#pragma omp parallel 
-    {
-      int nid = omp_get_num_threads();
-      int tid = omp_get_thread_num();
-      uint_t is,ie;
-
-      auto ci = thrust::counting_iterator<uint_t>(0);
-
-      is = (uint_t)tid * size / (uint_t)nid;
-      ie = (uint_t)(tid + 1) * size / (uint_t)nid;
-
-      thrust::for_each_n(thrust::host, ci + is, ie-is, func);
-    }
-  }
-}
-
-template <typename data_t>
-template <typename Function>
-double HostChunkContainer<data_t>::ExecuteSum(Function func,uint_t iChunk,uint_t count) const
-{
-  double ret = 0.0;
-  uint_t size = count * func.size(ChunkContainer<data_t>::chunk_bits_);
-
-  func.set_data( (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data())  + (iChunk << ChunkContainer<data_t>::chunk_bits_));
-
-  func.set_matrix( matrix_[iChunk]);
-  func.set_params( params_[iChunk]);
-
-  if(omp_get_num_threads() > 1){  //in parallel region
-    auto ci = thrust::counting_iterator<uint_t>(0);
-
-    ret = thrust::transform_reduce(thrust::host, ci, ci + size, func,0.0,thrust::plus<double>());
-  }
-  else{
-#pragma omp parallel reduction(+:ret)
-    {
-      int nid = omp_get_num_threads();
-      int tid = omp_get_thread_num();
-      uint_t is,ie;
-
-      auto ci = thrust::counting_iterator<uint_t>(0);
-
-      is = (uint_t)tid * size / (uint_t)nid;
-      ie = (uint_t)(tid + 1) * size / (uint_t)nid;
-
-      ret += thrust::transform_reduce(thrust::host, ci + is, ci + ie, func,0.0,thrust::plus<double>());
-    }
-  }
-
-  return ret;
-}
-
-template <typename data_t>
-template <typename Function>
-thrust::complex<double> HostChunkContainer<data_t>::ExecuteComplexSum(Function func,uint_t iChunk,uint_t count) const
-{
-  thrust::complex<double> ret = 0.0;
-  thrust::complex<double> zero = 0.0;
-  uint_t size = count * func.size(ChunkContainer<data_t>::chunk_bits_);
-
-  func.set_data( (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data())  + (iChunk << ChunkContainer<data_t>::chunk_bits_));
-
-  func.set_matrix( matrix_[iChunk]);
-  func.set_params( params_[iChunk]);
-
-  if(omp_get_num_threads() > 1){  //in parallel region
-    auto ci = thrust::counting_iterator<uint_t>(0);
-
-    ret = thrust::transform_reduce(thrust::host, ci, ci + size, func,zero,thrust::plus<thrust::complex<double>>());
-  }
-  else{
-    double re = 0.0,im = 0.0;
-#pragma omp parallel reduction(+:re,im)
-    {
-      int nid = omp_get_num_threads();
-      int tid = omp_get_thread_num();
-      uint_t is,ie;
-      thrust::complex<double> sum;
-
-      auto ci = thrust::counting_iterator<uint_t>(0);
-
-      is = (uint_t)tid * size / (uint_t)nid;
-      ie = (uint_t)(tid + 1) * size / (uint_t)nid;
-
-      sum = thrust::transform_reduce(thrust::host, ci + is, ci + ie, func,zero,thrust::plus<thrust::complex<double>>());
-      re += sum.real();
-      im += sum.imag();
-    }
-    ret = thrust::complex<double>(re,im);
-  }
-
-  return ret;
-}
 
 template <typename data_t>
 void HostChunkContainer<data_t>::CopyIn(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk)

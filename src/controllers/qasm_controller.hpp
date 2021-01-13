@@ -992,12 +992,9 @@ void QasmController::set_distributed_parallelization(const std::vector<Circuit> 
       case Method::statevector_thrust_cpu:
       case Method::stabilizer:
       case Method::matrix_product_state: {
-        if (circuits[i].shots == 1 ||
-            (!noise.has_quantum_errors() &&
-             check_measure_sampling_opt(circuits[i], Method::statevector))) {
-              ;
-        }
-        else{
+        if (circuits[i].shots > 1 &&
+            (noise.has_quantum_errors() ||
+             !check_measure_sampling_opt(circuits[i], Method::statevector))) {
           sample_opt = false;
         }
         break;
@@ -1005,11 +1002,8 @@ void QasmController::set_distributed_parallelization(const std::vector<Circuit> 
       case Method::density_matrix:
       case Method::density_matrix_thrust_gpu:
       case Method::density_matrix_thrust_cpu: {
-        if (circuits[i].shots == 1 ||
-            check_measure_sampling_opt(circuits[i], Method::density_matrix)) {
-              ;
-        }
-        else{
+        if (circuits[i].shots > 1 &&
+            !check_measure_sampling_opt(circuits[i], Method::density_matrix)) {
           sample_opt = false;
         }
         break;

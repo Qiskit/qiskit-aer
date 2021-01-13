@@ -211,6 +211,7 @@ protected:
 
   // Get system memory size
   size_t get_system_memory_mb();
+  size_t get_gpu_memory_mb();
 
   // The maximum number of threads to use for various levels of parallelization
   int max_parallel_threads_;
@@ -345,6 +346,7 @@ void Controller::clear_parallelization() {
 
   explicit_parallelization_ = false;
   max_memory_mb_ = get_system_memory_mb() / 2;
+  max_gpu_memory_mb_ = get_system_memory_mb() / 2;
 }
 
 void Controller::set_parallelization_experiments(
@@ -406,7 +408,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
     // Limit parallel shots by available memory and number of shots
     // And assign the remaining threads to state update
     int circ_memory_mb = required_memory_mb(circ, noise) / num_process_per_experiment_;
-    if (max_memory_mb_ < circ_memory_mb)
+    if (max_memory_mb_ + max_gpu_memory_mb_ < circ_memory_mb)
       throw std::runtime_error(
           "a circuit requires more memory than max_memory_mb.");
     // If circ memory is 0, set it to 1 so that we don't divide by zero
@@ -430,8 +432,8 @@ void Controller::set_distributed_parallelization(const std::vector<Circuit> &cir
   std::vector<size_t> required_memory_mb_list(circuits.size());
   for (size_t j = 0; j < circuits.size(); j++) {
     size_t size = required_memory_mb(circuits[j], noise);
-    if(size > max_memory_mb_){
-      num_process_per_experiment_ = std::max<int>(num_process_per_experiment_,(size + max_memory_mb_ - 1) / max_memory_mb_);
+    if(size > max_memory_mb_ + max_gpu_memory_mb_){
+      num_process_per_experiment_ = std::max<int>(num_process_per_experiment_,(size + (max_memory_mb_+max_gpu_memory_mb_) - 1) / (max_memory_mb_+max_gpu_memory_mb_));
     }
   }
 
@@ -472,6 +474,19 @@ size_t Controller::get_system_memory_mb() {
   GlobalMemoryStatusEx(&status);
   total_physical_memory = status.ullTotalPhys;
 #endif
+#ifdef AER_MPI
+  //get minimum memory size per process
+  uint64_t locMem,minMem;
+  locMem = total_physical_memory;
+  MPI_Allreduce(&locMem,&minMem,1,MPI_UINT64_T,MPI_MIN,MPI_COMM_WORLD);
+  total_physical_memory = minMem;
+#endif
+
+  return total_physical_memory >> 20;
+}
+
+size_t Controller::get_gpu_memory_mb() {
+  size_t total_physical_memory = 0;
 #ifdef AER_THRUST_CUDA
   int iDev,nDev,j;
   if(cudaGetDeviceCount(&nDev) != cudaSuccess){
@@ -482,35 +497,16 @@ size_t Controller::get_system_memory_mb() {
     size_t freeMem,totalMem;
     cudaSetDevice(iDev);
     cudaMemGetInfo(&freeMem,&totalMem);
-    max_gpu_memory_mb_ += totalMem;
-
-    for(j=0;j<nDev;j++){
-      if(iDev != j){
-        int ip;
-        cudaDeviceCanAccessPeer(&ip,iDev,j);
-        if(ip){
-          if(cudaDeviceEnablePeerAccess(j,0) != cudaSuccess)
-            cudaGetLastError();
-        }
-      }
-    }
+    total_physical_memory += totalMem;
   }
-  total_physical_memory += max_gpu_memory_mb_;
-  max_gpu_memory_mb_ >>= 20;
 #endif
-
 #ifdef AER_MPI
   //get minimum memory size per process
   uint64_t locMem,minMem;
   locMem = total_physical_memory;
   MPI_Allreduce(&locMem,&minMem,1,MPI_UINT64_T,MPI_MIN,MPI_COMM_WORLD);
   total_physical_memory = minMem;
-
-  locMem = max_gpu_memory_mb_;
-  MPI_Allreduce(&locMem,&minMem,1,MPI_UINT64_T,MPI_MIN,MPI_COMM_WORLD);
-  max_gpu_memory_mb_ = minMem;
 #endif
-
   return total_physical_memory >> 20;
 }
 
@@ -558,7 +554,7 @@ bool Controller::validate_memory_requirements(const state_t &state,
     return true;
 
   size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) / num_process_per_experiment_;
-  if (max_memory_mb_ < required_mb) {
+  if (max_memory_mb_+max_gpu_memory_mb_ < required_mb) {
     if (throw_except) {
       std::string name = "";
       JSON::get_value(name, "name", circ.header);
@@ -578,6 +574,26 @@ Result Controller::execute(const json_t &qobj_js)
 #ifdef AER_MPI
   MPI_Comm_size(MPI_COMM_WORLD,&num_processes_);
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank_);
+#endif
+
+#ifdef AER_THRUST_CUDA
+  int iDev,nDev,j;
+  if(cudaGetDeviceCount(&nDev) != cudaSuccess){
+    cudaGetLastError();
+    nDev = 0;
+  }
+  for(iDev=0;iDev<nDev;iDev++){
+    for(j=0;j<nDev;j++){
+      if(iDev != j){
+        int ip;
+        cudaDeviceCanAccessPeer(&ip,iDev,j);
+        if(ip){
+          if(cudaDeviceEnablePeerAccess(j,0) != cudaSuccess)
+            cudaGetLastError();
+        }
+      }
+    }
+  }
 #endif
 
   // Load QOBJ in a try block so we can catch parsing errors and still return
@@ -633,10 +649,20 @@ Result Controller::execute(std::vector<Circuit> &circuits,
   const auto num_circuits = distributed_experiments_end_ - distributed_experiments_begin_;
   Result result(num_circuits);
 
-  //max qubits for this process
+  //get max qubits for this process (to allocate qubit register at once)
   max_qubits_ = 0;
   for (size_t j = distributed_experiments_begin_; j < distributed_experiments_end_; j++) {
-    if(circuits[j].num_qubits > max_qubits_){
+    // get number of active qubits if truncate is enabled
+    if(truncate_qubits_) {
+      Transpile::TruncateQubits truncate_pass;
+      uint_t nactive;
+      truncate_pass.set_config(config);
+      nactive = truncate_pass.get_num_truncate_qubits(circuits[j], noise_model);
+      if(nactive > max_qubits_){
+        max_qubits_ = nactive;
+      }
+    }
+    else if(circuits[j].num_qubits > max_qubits_){
       max_qubits_ = circuits[j].num_qubits;
     }
   }
@@ -655,6 +681,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 #endif
     result.metadata["parallel_experiments"] = parallel_experiments_;
     result.metadata["max_memory_mb"] = max_memory_mb_;
+    result.metadata["max_gpu_memory_mb"] = max_gpu_memory_mb_;
 
     //store rank and number of processes, if no distribution rank=0 procs=1 is set
     result.metadata["num_distributed_processes"] = num_processes_;

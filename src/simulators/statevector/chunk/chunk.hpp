@@ -37,14 +37,17 @@ protected:
   int place_;                           //container ID
   uint_t num_qubits_;                   //total number of qubits
   uint_t chunk_index_;                  //global chunk index
+  bool mapped_;                         //mapped to qubitvector
 public:
   Chunk(std::shared_ptr<ChunkContainer<data_t>> cc,uint_t pos)
   {
     chunk_container_ = cc;
     chunk_pos_ = pos;
-    place_ = 0;
+    place_ = cc->place();
     num_qubits_ = 0;
     chunk_index_ = 0;
+    mapped_ = false;
+    cache_ = nullptr;
   }
   ~Chunk()
   {
@@ -79,6 +82,18 @@ public:
   void set_cache(const std::shared_ptr<Chunk<data_t>>& c)
   {
     cache_ = c;
+  }
+  bool is_mapped(void)
+  {
+    return mapped_;
+  }
+  void map(void)
+  {
+    mapped_ = true;
+  }
+  void unmap(void)
+  {
+    mapped_ = false;
   }
 
   void set_num_qubits(uint_t qubits)
@@ -156,12 +171,10 @@ public:
       cache_->Execute(func,count);
     }
     else{
-      if(chunk_container_->device() >= 0)
-        std::static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->Execute(func,chunk_pos_,count);
-      else
-        std::static_pointer_cast<HostChunkContainer<data_t>>(chunk_container_)->Execute(func,chunk_pos_,count);
+      chunk_container_->Execute(func,chunk_pos_,count);
     }
   }
+
   template <typename Function>
   double ExecuteSum(Function func,uint_t count) const
   {
@@ -169,25 +182,10 @@ public:
       return cache_->ExecuteSum(func,count);
     }
     else{
-        if(chunk_container_->device() >= 0)
-            std::static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->ExecuteSum(func,chunk_pos_,count);
-        else
-            std::static_pointer_cast<HostChunkContainer<data_t>>(chunk_container_)->ExecuteSum(func,chunk_pos_,count);
+      return chunk_container_->ExecuteSum(func,chunk_pos_,count);
     }
   }
-  template <typename Function>
-  thrust::complex<double> ExecuteComplexSum(Function func,uint_t count) const
-  {
-    if(cache_){
-      return cache_->ExecuteComplexSum(func,count);
-    }
-    else{
-        if(chunk_container_->device() >= 0)
-            std::static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->ExecuteComplexSum(func,chunk_pos_,count);
-        else
-            std::static_pointer_cast<HostChunkContainer<data_t>>(chunk_container_)->ExecuteComplexSum(func,chunk_pos_,count);
-    }
-  }
+
   void Zero(void)
   {
     chunk_container_->Zero(chunk_pos_,chunk_container_->chunk_size());
@@ -242,7 +240,7 @@ public:
   }
 
   //queue gate for blocked execution
-  void queue_blocked_gate(char gate,uint_t qubit,uint_t mask,const std::complex<double>* pMat = NULL)
+  void queue_blocked_gate(char gate,uint_t qubit,uint_t mask,const std::complex<double>* pMat = nullptr)
   {
     chunk_container_->queue_blocked_gate(chunk_pos_,gate,qubit,mask,pMat);
   }

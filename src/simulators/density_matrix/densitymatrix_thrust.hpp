@@ -46,8 +46,6 @@ public:
 
   DensityMatrixThrust() : DensityMatrixThrust(0) {};
   explicit DensityMatrixThrust(size_t num_qubits);
-  DensityMatrixThrust(const DensityMatrixThrust& obj) {}
-  DensityMatrixThrust &operator=(const DensityMatrixThrust& obj) {}
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -174,8 +172,8 @@ void DensityMatrixThrust<data_t>::initialize() {
   // Zero the underlying vector
   BaseVector::zero();
   // Set to be all |0> sate
-	std::complex<double> one = 1.0;
-	BaseVector::set_state(0,one);
+  std::complex<data_t> one = 1.0;
+  BaseVector::set_state(0,one);
 }
 
 template <typename data_t>
@@ -505,13 +503,13 @@ protected:
   uint_t cmask_sp;
   thrust::complex<double> phase_;
 public:
-  DensityCPhase(uint_t qc,uint_t qt,uint_t qs,thrust::complex<double>* phase)
+  DensityCPhase(uint_t qc,uint_t qt,uint_t qs,std::complex<double> phase)
   {
     offset = 1ull << qt;
     offset_sp = 1ull << (qt + qs);
     cmask = 1ull << qc;
     cmask_sp = 1ull << (qc + qs);
-    phase_ = *phase;
+    phase_ = phase;
   }
 
   int qubits_count(void)
@@ -564,7 +562,7 @@ template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_cphase(const uint_t q0, const uint_t q1,
                                          const complex_t &phase) 
 {
-  BaseVector::apply_function(DensityCPhase<data_t>(q0, q1, num_qubits(), (thrust::complex<double>*)&phase ));
+  BaseVector::apply_function(DensityCPhase<data_t>(q0, q1, num_qubits(), phase ));
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_cphase");
@@ -765,7 +763,7 @@ double DensityMatrixThrust<data_t>::probability(const uint_t outcome) const
   const auto shift = BaseMatrix::num_rows() + 1;
   std::complex<data_t> ret;
   ret = (std::complex<data_t>)BaseVector::chunk_->Get(outcome * shift);
-	return std::real(ret);
+  return std::real(ret);
 }
 
 
@@ -849,33 +847,6 @@ std::vector<double> DensityMatrixThrust<data_t>::probabilities(const reg_t &qubi
 
   return probs;
 }
-
-template <typename data_t>
-class DensityMatrixDiagonalReal
-{
-protected:
-  thrust::complex<data_t>* data_;
-  data_t* diag_;
-  uint_t rows_;
-public:
-  DensityMatrixDiagonalReal(thrust::complex<data_t>* src,data_t* dest,uint_t stride)
-  {
-    data_ = src;
-    diag_ = dest;
-    rows_ = stride;
-  }
-
-  __host__ __device__ void operator()(const uint_t &i) const
-  {
-    uint_t idx;
-    thrust::complex<data_t> q;
-
-    idx = i * (rows_ + 1);
-
-    q = data_[idx];
-    diag_[i] = q.real();
-  }
-};
 
 template <typename data_t>
 reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnds) const 

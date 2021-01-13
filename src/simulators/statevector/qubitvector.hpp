@@ -132,8 +132,9 @@ public:
   void chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
 
   //cache control for chunks on host
-  void fetch_chunk(void) const
+  bool fetch_chunk(void) const
   {
+    return true;
   }
   void release_chunk(bool write_back = true) const
   {
@@ -148,8 +149,8 @@ public:
   }
 
   //prepare buffer for MPI send/recv
-  void* send_buffer(uint_t& size_in_byte);
-  void* recv_buffer(uint_t& size_in_byte);
+  std::complex<data_t>* send_buffer(uint_t& size_in_byte);
+  std::complex<data_t>* recv_buffer(uint_t& size_in_byte);
 
   //-----------------------------------------------------------------------
   // Check point operations
@@ -853,14 +854,14 @@ void QubitVector<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk
 
 //prepare buffer for MPI send/recv
 template <typename data_t>
-void* QubitVector<data_t>::send_buffer(uint_t& size_in_byte)
+std::complex<data_t>* QubitVector<data_t>::send_buffer(uint_t& size_in_byte)
 {
   size_in_byte = sizeof(std::complex<data_t>) * data_size_;
   return data_;
 }
 
 template <typename data_t>
-void* QubitVector<data_t>::recv_buffer(uint_t& size_in_byte)
+std::complex<data_t>* QubitVector<data_t>::recv_buffer(uint_t& size_in_byte)
 {
   size_in_byte = sizeof(std::complex<data_t>) * data_size_;
   if(recv_buffer_.size() < data_size_){

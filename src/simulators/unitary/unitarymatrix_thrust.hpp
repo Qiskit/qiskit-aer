@@ -45,8 +45,6 @@ public:
 
   UnitaryMatrixThrust() : UnitaryMatrixThrust(0) {};
   explicit UnitaryMatrixThrust(size_t num_qubits);
-  UnitaryMatrixThrust(const UnitaryMatrixThrust& obj){}
-  UnitaryMatrixThrust &operator=(const UnitaryMatrixThrust& obj){}
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -224,7 +222,7 @@ template <class data_t>
 void UnitaryMatrixThrust<data_t>::initialize() 
 {
   const int_t nrows = rows_;
-	std::complex<double> one = 1.0;
+  std::complex<data_t> one = 1.0;
   // Zero the underlying vector
   BaseVector::zero();
   // Set to be identity matrix
@@ -282,55 +280,12 @@ void UnitaryMatrixThrust<data_t>::set_num_qubits(size_t num_qubits) {
   BaseVector::set_num_qubits(2 * num_qubits);
 }
 
-template <typename data_t>
-class UnitaryTrace : public GateFuncBase<data_t>
-{
-protected:
-  uint_t rows_;
-public:
-  UnitaryTrace(uint_t nr)
-  {
-    rows_ = nr;
-  }
-
-  bool IsDiagonal(void)
-  {
-    return true;
-  }
-
-  __host__ __device__ thrust::complex<double> operator()(const uint_t &i) const
-  {
-    uint_t idx;
-    thrust::complex<data_t>* vec;
-    thrust::complex<double> q;
-
-    idx = i * (rows_ + 1);
-    vec = this->data_;
-
-    q = vec[idx];
-
-    return q;
-  }
-
-  uint_t size(int num_qubits)
-  {
-    (void)num_qubits;
-    return rows_;
-  }
-  const char* name(void)
-  {
-    return "UnitaryTrace";
-  }
-};
-
 template <class data_t>
 std::complex<double> UnitaryMatrixThrust<data_t>::trace() const 
 {
   thrust::complex<double> sum;
 
   sum = BaseVector::chunk_->norm(rows_ + 1,false);
-
-//  sum = BaseVector::apply_function_complex_sum(UnitaryTrace<data_t>(rows_));
 
 #ifdef AER_DEBUG
   BaseVector::DebugMsg("trace",sum);

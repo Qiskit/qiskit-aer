@@ -18,6 +18,11 @@
 
 #include "simulators/statevector/chunk/chunk.hpp"
 
+#include <spdlog/spdlog.h>
+#include <spdlog/async.h>
+#include <spdlog/sinks/basic_file_sink.h>
+
+
 namespace AER {
 namespace QV {
 
@@ -53,7 +58,7 @@ public:
   {
     if(i < chunks_.size())
       return chunks_[i];
-    return NULL;
+    return nullptr;
   }
   uint_t num_containers(void)
   {
@@ -91,6 +96,8 @@ public:
   std::shared_ptr<Chunk<data_t>> MapChunk(int iplace = -1);
   std::shared_ptr<Chunk<data_t>> MapBufferChunk(int idev);
   std::shared_ptr<Chunk<data_t>> MapCheckpoint(std::shared_ptr<Chunk<data_t>> chunk);
+  std::shared_ptr<Chunk<data_t>> MapBufferChunkOnHost(void);
+
   void UnmapChunk(std::shared_ptr<Chunk<data_t>> chunk);
   void UnmapBufferChunk(std::shared_ptr<Chunk<data_t>> buffer);
   void UnmapCheckpoint(std::shared_ptr<Chunk<data_t>> buffer);
@@ -133,6 +140,18 @@ ChunkManager<data_t>::ChunkManager()
   chunks_.resize(num_places_*2 + 1);
 
   iplace_host_ = num_places_ ;
+
+#ifdef AER_DEBUG
+  //spdlog for Thrust implementation debugging
+  auto logger = spdlog::get("qv_thrust_logger");
+  if(!logger){  //for the first call of this process
+    char filename[512];
+    sprintf(filename,"logs/qubitvector_thrust_%d.txt",getpid());
+    auto file_logger = spdlog::basic_logger_mt<spdlog::async_factory>("qv_thrust_logger", filename);
+    file_logger->set_level(spdlog::level::debug);
+    spdlog::set_default_logger(file_logger);
+  }
+#endif
 }
 
 template <typename data_t>
@@ -250,14 +269,10 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
         num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nc,num_buffers,num_checkpoint);
       }
       if(num_chunks_ < nchunks){
-        for(iDev=0;iDev<num_places_;iDev++){
-          chunks_[num_places_ + iDev] = std::make_shared<HostChunkContainer<data_t>>();
-          is = (nchunks-num_chunks_) * (uint_t)iDev / (uint_t)num_places_;
-          ie = (nchunks-num_chunks_) * (uint_t)(iDev + 1) / (uint_t)num_places_;
-
-          chunks_[num_places_ + iDev]->Allocate(-1,chunk_bits,ie-is,AER_MAX_BUFFERS);
-        }
-        num_places_ *= 2;
+        //rest of chunks are stored on host
+        chunks_[num_places_] = std::make_shared<HostChunkContainer<data_t>>();
+        chunks_[num_places_]->Allocate(-1,chunk_bits,nchunks-num_chunks_,AER_MAX_BUFFERS);
+        num_places_ += 1;
         num_chunks_ = nchunks;
       }
 
@@ -296,7 +311,6 @@ std::shared_ptr<Chunk<data_t>> ChunkManager<data_t>::MapChunk(int iplace)
   while(iplace < num_places_){
     pChunk = chunks_[iplace]->MapChunk();
     if(pChunk){
-      pChunk->set_place(iplace);
       break;
     }
     iplace++;
@@ -308,31 +322,27 @@ std::shared_ptr<Chunk<data_t>> ChunkManager<data_t>::MapChunk(int iplace)
 template <typename data_t>
 std::shared_ptr<Chunk<data_t>> ChunkManager<data_t>::MapBufferChunk(int idev)
 {
-  std::shared_ptr<Chunk<data_t>> pChunk;
+  std::shared_ptr<Chunk<data_t>> pChunk = nullptr;
 
   if(idev < 0){
-    int i,iplace;
+    int i;
     for(i=0;i<num_devices_;i++){
-      iplace = idev_buffer_map_;
-
-      pChunk = chunks_[idev_buffer_map_++]->MapBufferChunk();
-      if(idev_buffer_map_ >= num_devices_)
-        idev_buffer_map_ = 0;
-
+      pChunk = chunks_[i]->MapBufferChunk();
       if(pChunk){
-        pChunk->set_place(iplace);
         break;
       }
     }
-    return pChunk;
   }
-
-  pChunk = chunks_[idev]->MapBufferChunk();
-  if(pChunk){
-    pChunk->set_place(idev);
+  else{
+    pChunk = chunks_[(idev % num_devices_)]->MapBufferChunk();
   }
-
   return pChunk;
+}
+
+template <typename data_t>
+std::shared_ptr<Chunk<data_t>> ChunkManager<data_t>::MapBufferChunkOnHost(void)
+{
+  return chunks_[iplace_host_]->MapBufferChunk();
 }
 
 template <typename data_t>
@@ -343,9 +353,6 @@ std::shared_ptr<Chunk<data_t>> ChunkManager<data_t>::MapCheckpoint(std::shared_p
 
   if(chunks_[iplace]->num_checkpoint() > 0){
     checkpoint = chunks_[iplace]->MapCheckpoint(chunk->pos());
-    if(!checkpoint){
-      checkpoint->set_place(iplace);
-    }
   }
 
   if(!checkpoint){
@@ -357,9 +364,6 @@ std::shared_ptr<Chunk<data_t>> ChunkManager<data_t>::MapCheckpoint(std::shared_p
       }
     }
     checkpoint = chunks_[iplace_host_]->MapCheckpoint(-1);
-    if(checkpoint){
-      checkpoint->set_place(iplace_host_);
-    }
   }
 
   return checkpoint;
@@ -374,11 +378,6 @@ void ChunkManager<data_t>::UnmapChunk(std::shared_ptr<Chunk<data_t>> chunk)
 #pragma omp critical
   {
     chunks_[iPlace]->UnmapChunk(chunk);
-    /*
-    if(chunks_[iPlace]->num_chunk_mapped() == 0){   //last one
-      chunks_[iPlace].reset();
-    }
-    */
   }
 }
 

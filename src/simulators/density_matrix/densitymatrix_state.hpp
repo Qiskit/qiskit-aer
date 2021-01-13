@@ -29,6 +29,12 @@
 #endif
 
 namespace AER {
+
+//predefinition of DensityMatrix::State for friend class declaration to access static members
+namespace DensityMatrixChunk {
+template <class densmat_t> class State;
+}
+
 namespace DensityMatrix {
 
 // OpSet of supported instructions
@@ -73,6 +79,7 @@ enum class Snapshots {
 
 template <class densmat_t = QV::DensityMatrix<double>>
 class State : public Base::State<densmat_t> {
+  friend class DensityMatrixChunk::State<densmat_t>;
 public:
   using BaseState = Base::State<densmat_t>;
 
