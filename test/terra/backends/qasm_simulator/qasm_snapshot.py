@@ -761,6 +761,8 @@ class QasmSnapshotAmplitudesTests:
     SUPPORTED_QASM_METHODS = [
         'automatic',
         'statevector',
+        'statevector_gpu',
+        'statevector_thrust',
         'matrix_product_state'
     ]
     BACKEND_OPTS = {}
