@@ -626,6 +626,7 @@ Result Controller::execute(const json_t &qobj_js)
   } catch (std::exception &e) {
     // qobj was invalid, return valid output containing error message
     Result result;
+
     result.status = Result::Status::error;
     result.message = std::string("Failed to load qobj: ") + e.what();
     return result;
@@ -643,32 +644,34 @@ Result Controller::execute(std::vector<Circuit> &circuits,
   // Start QOBJ timer
   auto timer_start = myclock_t::now();
 
-  set_distributed_parallelization(circuits, noise_model);
-
-  // Initialize Result object for the given number of experiments
-  const auto num_circuits = distributed_experiments_end_ - distributed_experiments_begin_;
-  Result result(num_circuits);
-
-  //get max qubits for this process (to allocate qubit register at once)
-  max_qubits_ = 0;
-  for (size_t j = distributed_experiments_begin_; j < distributed_experiments_end_; j++) {
-    // get number of active qubits if truncate is enabled
-    if(truncate_qubits_) {
-      Transpile::TruncateQubits truncate_pass;
-      uint_t nactive;
-      truncate_pass.set_config(config);
-      nactive = truncate_pass.get_num_truncate_qubits(circuits[j], noise_model);
-      if(nactive > max_qubits_){
-        max_qubits_ = nactive;
-      }
-    }
-    else if(circuits[j].num_qubits > max_qubits_){
-      max_qubits_ = circuits[j].num_qubits;
-    }
-  }
+  Result result(circuits.size());
 
   // Execute each circuit in a try block
   try {
+    set_distributed_parallelization(circuits, noise_model);
+
+    // Initialize Result object for the given number of experiments
+    const auto num_circuits = distributed_experiments_end_ - distributed_experiments_begin_;
+    result.resize(num_circuits);
+
+    //get max qubits for this process (to allocate qubit register at once)
+    max_qubits_ = 0;
+    for (size_t j = distributed_experiments_begin_; j < distributed_experiments_end_; j++) {
+      // get number of active qubits if truncate is enabled
+      if(truncate_qubits_) {
+        Transpile::TruncateQubits truncate_pass;
+        uint_t nactive;
+        truncate_pass.set_config(config);
+        nactive = truncate_pass.get_num_truncate_qubits(circuits[j], noise_model);
+        if(nactive > max_qubits_){
+          max_qubits_ = nactive;
+        }
+      }
+      else if(circuits[j].num_qubits > max_qubits_){
+        max_qubits_ = circuits[j].num_qubits;
+      }
+    }
+
     if (!explicit_parallelization_) {
       // set parallelization for experiments
       set_parallelization_experiments(circuits, noise_model);
