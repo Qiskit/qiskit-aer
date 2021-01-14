@@ -40,9 +40,6 @@ public:
   // Convert to JSON
   json_t to_json();
 
-  // Enable or disable storing datamap
-  bool enabled = true;
-
 protected:
   T data_;
 };

@@ -38,8 +38,11 @@ public:
   // Clear all stored data
   void clear();
 
-  // Divide accum by counts to conver to the normalized mean
+  // Divide accum by counts to convert to the normalized mean
   void normalize();
+
+  // Multiply accum by counts to convert to the un-normalized mean
+  void denormalize();
 
 protected:
   // Number of datum that have been accumulated
@@ -56,18 +59,22 @@ protected:
 
 template <typename T>
 void AverageData<T>::add(const T& data) {
+  denormalize();
   Base::add(data);
   count_ += 1;
 }
 
 template <typename T>
 void AverageData<T>::add(T&& data) {
+  denormalize();
   Base::add(std::move(data));
   count_ += 1;
 }
 
 template <typename T>
 void AverageData<T>::combine(AverageData<T>&& other) {
+  denormalize();
+  other.denormalize();
   Base::combine(std::move(other));
   count_ += other.count_;
 }
@@ -85,6 +92,14 @@ void AverageData<T>::normalize() {
     return;
   Linalg::idiv(Base::data_, double(count_));
   normalized_ = true;
+}
+
+template <typename T>
+void AverageData<T>::denormalize() {
+  if (!normalized_)
+    return;
+  Linalg::imul(Base::data_, double(count_));
+  normalized_ = false;
 }
 
 template <typename T>

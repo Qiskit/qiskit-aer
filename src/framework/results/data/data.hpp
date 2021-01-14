@@ -16,13 +16,14 @@
 #define _aer_framework_results_data_hpp_
 
 // Data primatives
-#include "framework/results/data/data_map.hpp"
+#include "framework/results/data/subtypes/data_map.hpp"
 #include "framework/results/data/subtypes/accum_data.hpp"
 #include "framework/results/data/subtypes/average_data.hpp"
 #include "framework/results/data/subtypes/list_data.hpp"
 #include "framework/results/data/subtypes/single_data.hpp"
 
 // Data Containers
+#include "framework/results/data/mixins/data_creg.hpp"
 #include "framework/results/data/mixins/data_cmatrix.hpp"
 #include "framework/results/data/mixins/data_cvector.hpp"
 
@@ -32,17 +33,13 @@ namespace AER {
 // Result container for Qiskit-Aer
 //============================================================================
 
-struct Data : public DataCVector, public DataCMatrix {
+struct Data : public DataCReg,
+              public DataCVector,
+              public DataCMatrix {
 
   //----------------------------------------------------------------
   // Measurement data
   //----------------------------------------------------------------
-
-  // Count data
-  DataMap<AccumData, uint_t> counts;
-
-  // Memory data
-  ListData<std::string> memory;
 
   // Add outcome to count dictionary
   void add_count(const std::string &outcome);
@@ -120,9 +117,6 @@ struct Data : public DataCVector, public DataCMatrix {
 
   // Combine stored data
   Data &combine(Data &&other);
-
-  // Set the output data config options
-  void set_config(const json_t &config);
 };
 
 //------------------------------------------------------------------------------
@@ -130,51 +124,20 @@ struct Data : public DataCVector, public DataCMatrix {
 //------------------------------------------------------------------------------
 
 Data &Data::combine(Data &&other) {
-  // Measurement data
-  counts.combine(std::move(other.counts));
-  memory.combine(std::move(other.memory));
-  // General data
   DataCVector::combine(std::move(other));
   DataCMatrix::combine(std::move(other));
+  DataCReg::combine(std::move(other));
   return *this;
 }
 
 json_t Data::to_json() {
   json_t result;
-
-  // General data
   DataCVector::add_to_json(result);
   DataCMatrix::add_to_json(result);
-
-  // Measurement data. This should be last to ensure it overrides
-  // any other data that might have used the "count" keys
-  result["counts"] = counts.to_json();
-  if (memory.enabled) {
-    result["memory"] = memory.to_json();
-  }
+  DataCReg::add_to_json(result);
   return result;
 }
 
-void Data::set_config(const json_t &config) {
-  JSON::get_value(memory.enabled, "memory", config);
-}
-
-void Data::add_count(const std::string &outcome) {
-  if (!outcome.empty()) {
-    counts.add(1, outcome);
-  }
-}
-
-void Data::add_memory(const std::string &outcome) {
-  if (memory.enabled && !outcome.empty()) {
-    memory.add(outcome);
-  }
-}
-void Data::add_memory(std::string &&outcome) {
-  if (memory.enabled && !outcome.empty()) {
-    memory.add(std::move(outcome));
-  }
-}
 
 template <class T, typename... Args>
 void Data::add_single(const T &data, const std::string &outer_key,

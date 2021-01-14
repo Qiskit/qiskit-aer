@@ -16,7 +16,7 @@
 #define _aer_framework_result_data_pybind_data_map_hpp_
 
 #include "framework/results/data/subtypes/pybind_subtypes.hpp"
-#include "framework/results/data/data_map.hpp"
+#include "framework/results/data/subtypes/data_map.hpp"
 
 namespace AerToPy {
 

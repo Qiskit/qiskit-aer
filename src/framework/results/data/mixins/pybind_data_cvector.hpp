@@ -16,7 +16,7 @@
 #define _aer_framework_result_data_pybind_data_cvector_hpp_
 
 #include "framework/results/data/mixins/data_cvector.hpp"
-#include "framework/results/data/pybind_data_map.hpp"
+#include "framework/results/data/subtypes/pybind_data_map.hpp"
 
 //------------------------------------------------------------------------------
 // Aer C++ -> Python Conversion
@@ -39,14 +39,7 @@ void add_to_python(py::dict &pydata, AER::DataCVector &&data);
 
 py::object AerToPy::to_python(AER::DataCVector &&data) {
   py::dict pydata;
-
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, AER::Vector<AER::complex_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, AER::Vector<AER::complexf_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::Vector<AER::complex_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::Vector<AER::complexf_t>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::Vector<AER::complex_t>, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::Vector<AER::complexf_t>, 2>&&>(data));
-
+  AerToPy::add_to_python(pydata, std::move(data));
   return std::move(pydata);
 }
 

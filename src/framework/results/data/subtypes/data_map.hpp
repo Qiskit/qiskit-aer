@@ -121,7 +121,7 @@ void DataMap<Data, T, N>::combine(DataMap<Data, T, N>&& other) {
     for (auto& pair: other.data_) {
       const auto& key = pair.first;
       // If empty we copy data without accumulating
-      if (data_.find(pair.first) == data_.end()) {
+      if (data_.find(key) == data_.end()) {
         data_[key] = std::move(pair.second);
       } else {
         data_[key].combine(std::move(pair.second));

@@ -179,6 +179,13 @@ protected:
   // Validation threshold for validating states and operators
   double validation_threshold_ = 1e-8;
 
+  // Save counts as memory list
+  bool save_creg_memory_ = false;
+
+  // Save count data
+  void save_count_data(ExperimentResult &result,
+                       const ClassicalRegister &creg) const;
+
   //-----------------------------------------------------------------------
   // Parallelization Config
   //-----------------------------------------------------------------------
@@ -233,6 +240,9 @@ void Controller::set_config(const json_t &config) {
 
   // Load validation threshold
   JSON::get_value(validation_threshold_, "validation_threshold", config);
+
+  // Load config for memory (creg list data)
+  JSON::get_value(save_creg_memory_, "memory", config);
 
 #ifdef _OPENMP
   // Load OpenMP maximum thread settings
@@ -725,6 +735,18 @@ void Controller::execute_circuit(Circuit &circ,
   catch (std::exception &e) {
     result.status = ExperimentResult::Status::error;
     result.message = e.what();
+  }
+}
+
+
+void Controller::save_count_data(ExperimentResult &result,
+                                 const ClassicalRegister &creg) const {
+  if (creg.memory_size() > 0) {
+    std::string memory_hex = creg.memory_hex();
+    result.data.add_accum(1ULL, "counts", memory_hex);
+    if (save_creg_memory_) {
+      result.data.add_list(std::move(memory_hex), "memory");
+    }
   }
 }
 

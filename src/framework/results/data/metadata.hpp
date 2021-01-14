@@ -15,7 +15,7 @@
 #ifndef _aer_framework_results_data_metadata_hpp_
 #define _aer_framework_results_data_metadata_hpp_
 
-#include "framework/results/data/data_map.hpp"
+#include "framework/results/data/subtypes/data_map.hpp"
 #include "framework/results/data/subtypes/single_data.hpp"
 
 namespace AER {

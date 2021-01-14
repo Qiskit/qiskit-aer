@@ -68,7 +68,6 @@ ExperimentResult& ExperimentResult::combine(ExperimentResult &&other) {
 }
 
 void ExperimentResult::set_config(const json_t &config) {
-  data.set_config(config);
   legacy_data.set_config(config);
 }
 

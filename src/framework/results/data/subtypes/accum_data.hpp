@@ -66,12 +66,7 @@ void AccumData<T>::add(T&& data) {
 
 template <typename T>
 void AccumData<T>::combine(AccumData<T>&& other) {
-  if (empty_) {
-    Base::data_ = std::move(other.data_);
-    empty_ = false;
-  } else {
-    Linalg::iadd(Base::data_, std::move(other.data_));
-  }
+  add(std::move(other.data_));
 }
 
 template <typename T>

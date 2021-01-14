@@ -180,9 +180,6 @@ public:
                        const std::string &memory_hex,
                        const std::string &register_hex);
 
-  // Add current creg classical bit values to a ExperimentResult container
-  void add_creg_to_data(ExperimentResult &result) const;
-
   //-----------------------------------------------------------------------
   // Save result data
   //-----------------------------------------------------------------------
@@ -328,16 +325,15 @@ void State<state_t>::save_creg(ExperimentResult &result,
                                DataSubType type) const {
   if (creg_.memory_size() == 0)
     return;
-
   switch (type) {
-  case DataSubType::list:
-    result.data.add_list(creg_.memory_hex(), key);
-    break;
-  case DataSubType::c_accum:
-    result.data.add_accum(1ULL, key, creg_.memory_hex());
-    break;
-  default:
-    throw std::runtime_error("Invalid creg data subtype for data key: " + key);
+    case DataSubType::list:
+      result.data.add_list(creg_.memory_hex(), key);
+      break;
+    case DataSubType::c_accum:
+      result.data.add_accum(1ULL, key, creg_.memory_hex());
+      break;
+    default:
+      throw std::runtime_error("Invalid creg data subtype for data key: " + key);
   }
 }
 
@@ -348,29 +344,29 @@ void State<state_t>::save_data_average(ExperimentResult &result,
                                        const T& datum,
                                        DataSubType type) const {
   switch (type) {
-  case DataSubType::single:
-    result.data.add_single(datum, key);
-    break;
-  case DataSubType::list:
-    result.data.add_list(datum, key);
-    break;
-  case DataSubType::c_list:
-    result.data.add_list(datum, key, creg_.memory_hex());
-    break;
-  case DataSubType::accum:
-    result.data.add_accum(datum, key);
-    break;
-  case DataSubType::c_accum:
-    result.data.add_accum(datum, key, creg_.memory_hex());
-    break;
-  case DataSubType::average:
-    result.data.add_average(datum, key);
-    break;
-  case DataSubType::c_average:
-    result.data.add_average(datum, key, creg_.memory_hex());
-    break;
-  default:
-    throw std::runtime_error("Invalid average data subtype for data key: " + key);
+    case DataSubType::single:
+      result.data.add_single(datum, key);
+      break;
+    case DataSubType::list:
+      result.data.add_list(datum, key);
+      break;
+    case DataSubType::c_list:
+      result.data.add_list(datum, key, creg_.memory_hex());
+      break;
+    case DataSubType::accum:
+      result.data.add_accum(datum, key);
+      break;
+    case DataSubType::c_accum:
+      result.data.add_accum(datum, key, creg_.memory_hex());
+      break;
+    case DataSubType::average:
+      result.data.add_average(datum, key);
+      break;
+    case DataSubType::c_average:
+      result.data.add_average(datum, key, creg_.memory_hex());
+      break;
+    default:
+      throw std::runtime_error("Invalid average data subtype for data key: " + key);
   }
 }
 
@@ -381,29 +377,29 @@ void State<state_t>::save_data_average(ExperimentResult &result,
                                        T&& datum,
                                        DataSubType type) const {
   switch (type) {
-  case DataSubType::single:
-    result.data.add_single(std::move(datum), key);
-    break;
-  case DataSubType::list:
-    result.data.add_list(std::move(datum), key);
-    break;
-  case DataSubType::c_list:
-    result.data.add_list(std::move(datum), key, creg_.memory_hex());
-    break;
-  case DataSubType::accum:
-    result.data.add_accum(std::move(datum), key);
-    break;
-  case DataSubType::c_accum:
-    result.data.add_accum(std::move(datum), key, creg_.memory_hex());
-    break;
-  case DataSubType::average:
-    result.data.add_average(std::move(datum), key);
-    break;
-  case DataSubType::c_average:
-    result.data.add_average(std::move(datum), key, creg_.memory_hex());
-    break;
-  default:
-    throw std::runtime_error("Invalid average data subtype for data key: " + key);
+    case DataSubType::single:
+      result.data.add_single(std::move(datum), key);
+      break;
+    case DataSubType::list:
+      result.data.add_list(std::move(datum), key);
+      break;
+    case DataSubType::c_list:
+      result.data.add_list(std::move(datum), key, creg_.memory_hex());
+      break;
+    case DataSubType::accum:
+      result.data.add_accum(std::move(datum), key);
+      break;
+    case DataSubType::c_accum:
+      result.data.add_accum(std::move(datum), key, creg_.memory_hex());
+      break;
+    case DataSubType::average:
+      result.data.add_average(std::move(datum), key);
+      break;
+    case DataSubType::c_average:
+      result.data.add_average(std::move(datum), key, creg_.memory_hex());
+      break;
+    default:
+      throw std::runtime_error("Invalid average data subtype for data key: " + key);
   }
 }
 
@@ -435,17 +431,17 @@ void State<state_t>::save_data_pershot(ExperimentResult &result,
                                        T&& datum,
                                        DataSubType type) const {
   switch (type) {
-  case DataSubType::single:
-    result.data.add_single(std::move(datum), key);
-    break;
-  case DataSubType::list:
-    result.data.add_list(std::move(datum), key);
-    break;
-  case DataSubType::c_list:
-    result.data.add_list(std::move(datum), key, creg_.memory_hex());
-    break;
-  default:
-    throw std::runtime_error("Invalid pershot data subtype for data key: " + key);
+    case DataSubType::single:
+      result.data.add_single(std::move(datum), key);
+      break;
+    case DataSubType::list:
+      result.data.add_list(std::move(datum), key);
+      break;
+    case DataSubType::c_list:
+      result.data.add_list(std::move(datum), key, creg_.memory_hex());
+      break;
+    default:
+      throw std::runtime_error("Invalid pershot data subtype for data key: " + key);
   }
 }
 
@@ -494,14 +490,6 @@ void State<state_t>::snapshot_creg_register(const Operations::Op &op,
 }
 
 
-template <class state_t>
-void State<state_t>::add_creg_to_data(ExperimentResult &result) const {
-  if (creg_.memory_size() > 0) {
-    std::string memory_hex = creg_.memory_hex();
-    result.data.add_count(memory_hex);
-    result.data.add_memory(std::move(memory_hex));
-  }
-}
 //-------------------------------------------------------------------------
 } // end namespace Base
 //-------------------------------------------------------------------------

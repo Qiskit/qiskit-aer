@@ -943,7 +943,7 @@ void QasmController::run_single_shot(const Circuit& circ,
                                      RngEngine& rng) const {
   initialize_state(circ, state, initial_state);
   state.apply_ops(circ.ops, result, rng, true);
-  state.add_creg_to_data(result);
+  Base::Controller::save_count_data(result, state.creg());
 }
 
 template <class State_t, class Initstate_t>
@@ -1051,7 +1051,7 @@ void QasmController::measure_sampler(
   // Check if meas_circ is empty, and if so return initial creg
   if (meas_roerror_ops.empty()) {
     while (shots-- > 0) {
-      state.add_creg_to_data(result);
+      Base::Controller::save_count_data(result, state.creg());
     }
     return;
   }
@@ -1120,9 +1120,8 @@ void QasmController::measure_sampler(
       creg.apply_roerror(roerror, rng);
     }
 
-    auto memory = creg.memory_hex();
-    result.data.add_count(memory);
-    result.data.add_memory(std::move(memory));
+    // Save count data
+    Base::Controller::save_count_data(result, creg);
 
     // pop off processed sample
     all_samples.pop_back();

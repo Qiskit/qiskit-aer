@@ -16,6 +16,7 @@
 #define _aer_framework_result_data_pybind_data_hpp_
 
 #include "framework/results/data/data.hpp"
+#include "framework/results/data/mixins/pybind_data_creg.hpp"
 #include "framework/results/data/mixins/pybind_data_cmatrix.hpp"
 #include "framework/results/data/mixins/pybind_data_cvector.hpp"
 
@@ -34,16 +35,9 @@ template <> py::object to_python(AER::Data &&data);
 template <>
 py::object AerToPy::to_python(AER::Data &&data) {
   py::dict pydata;
-
   AerToPy::add_to_python(pydata, static_cast<AER::DataCVector&&>(data));
   AerToPy::add_to_python(pydata, static_cast<AER::DataCMatrix&&>(data));
-
-  if (data.counts.enabled) {
-    pydata["counts"] = AerToPy::to_python(std::move(data.counts));
-  }
-  if (data.memory.enabled) {
-    pydata["memory"] = AerToPy::to_python(std::move(data.memory));
-  }
+  AerToPy::add_to_python(pydata, static_cast<AER::DataCReg&&>(data));
   return std::move(pydata);
 }
 
