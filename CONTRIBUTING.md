@@ -681,10 +681,9 @@ this means that your [patchelf](https://github.com/NixOS/patchelf) version (whic
 `auditwheel` under the hood) is too old (https://github.com/pypa/auditwheel/issues/103)
 Version `0.9` of `patchelf` is the earliest to include the patch
 https://github.com/NixOS/patchelf/pull/85 which resolves this issue.
-If you are on a Ubuntu system it may happen that the `apt`-image of `patchelf` only ships version
-`0.8`.
-If that is the case, you will need to compile `patchelf` from source
-([which is really easy to do](https://github.com/NixOS/patchelf#compiling-and-testing)).
+In the unlikely event that the `patchelf` package provided by your operating
+system only provides an older version, fear not, because it is really easy to
+[compile `patchelf` from source](https://github.com/NixOS/patchelf#compiling-and-testing).
 
 Hopefully, this information was helpful.
 In case you need more detailed information on some of the errors which may occur be sure to read
