@@ -100,31 +100,34 @@ class QasmStandardGateStatevectorTests:
             'matrix_product_state'
         ]
 
-        circuit = self.gate_circuit(gate_cls,
-                                    num_params=num_params,
-                                    rng=self.RNG)
-        target = Statevector.from_instruction(circuit)
-
-        # Add snapshot and execute
-        circuit.snapshot_statevector('final')
         backend_options = self.BACKEND_OPTS.copy()
         method = backend_options.pop('method', 'automatic')
         backend = self.SIMULATOR
         backend.set_options(method=method)
-        result = execute(circuit, backend, shots=1, **backend_options).result()
 
-        # Check results
-        success = getattr(result, 'success', False)
-        msg = '{}, method = {}'.format(gate_cls.__name__, method)
-        if method not in SUPPORTED_METHODS:
-            self.assertFalse(success)
-        else:
-            self.assertTrue(success, msg=msg)
-            self.assertSuccess(result)
-            snapshots = result.data(0).get("snapshots", {}).get("statevector", {})
-            value = snapshots.get('final', [None])[0]
-            fidelity = state_fidelity(target, value)
-            self.assertGreater(fidelity, 0.99999, msg=msg)
+        circuits = self.gate_circuits(gate_cls,
+                                      num_params=num_params,
+                                      rng=self.RNG)
+
+        for circuit in circuits:
+            target = Statevector.from_instruction(circuit)
+
+            # Add snapshot and execute
+            circuit.snapshot_statevector('final')
+            result = execute(circuit, backend, shots=1, **backend_options).result()
+
+            # Check results
+            success = getattr(result, 'success', False)
+            msg = '{}, method = {}'.format(gate_cls.__name__, method)
+            if method not in SUPPORTED_METHODS:
+                self.assertFalse(success)
+            else:
+                self.assertTrue(success, msg=msg)
+                self.assertSuccess(result)
+                snapshots = result.data(0).get("snapshots", {}).get("statevector", {})
+                value = snapshots.get('final', [None])[0]
+                fidelity = state_fidelity(target, value)
+                self.assertGreater(fidelity, 0.99999, msg=msg)
 
 
 @ddt
@@ -144,29 +147,35 @@ class QasmStandardGateDensityMatrixTests:
             'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
             'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust'
         ]
-        circuit = self.gate_circuit(gate_cls,
-                                    num_params=num_params,
-                                    rng=self.RNG)
-        target = Statevector.from_instruction(circuit)
 
-        # Add snapshot and execute
-        circuit.snapshot_density_matrix('final')
         backend_options = self.BACKEND_OPTS.copy()
         method = backend_options.pop('method', 'automatic')
         backend = self.SIMULATOR
         backend.set_options(method=method)
-        result = execute(circuit, backend, shots=1, **backend_options).result()
+        
+        circuits = self.gate_circuits(gate_cls,
+                                      num_params=num_params,
+                                      rng=self.RNG)
 
-        # Check results
-        success = getattr(result, 'success', False)
-        msg = '{}, method = {}'.format(gate_cls.__name__, method)
-        if method not in SUPPORTED_METHODS:
-            self.assertFalse(success)
-        else:
-            self.assertTrue(success, msg=msg)
-            self.assertSuccess(result)
-            snapshots = result.data(0).get("snapshots",
-                                           {}).get("density_matrix", {})
-            value = snapshots.get('final', [{'value': None}])[0]['value']
-            fidelity = state_fidelity(target, value)
-            self.assertGreater(fidelity, 0.99999, msg=msg)
+        for circuit in circuits:
+            target = Statevector.from_instruction(circuit)
+
+            # Add snapshot and execute
+            circuit.snapshot_density_matrix('final')
+
+            result = execute(circuit, backend, shots=1, **backend_options).result()
+
+            # Check results
+            success = getattr(result, 'success', False)
+            msg = '{}, method = {}'.format(gate_cls.__name__, method)
+            if method not in SUPPORTED_METHODS:
+                self.assertFalse(success)
+            else:
+                self.assertTrue(success, msg=msg)
+                self.assertSuccess(result)
+                snapshots = result.data(0).get("snapshots",
+                                               {}).get("density_matrix", {})
+                value = snapshots.get('final', [{'value': None}])[0]['value']
+                fidelity = state_fidelity(target, value)
+                self.assertGreater(fidelity, 0.99999, msg=msg)
+            

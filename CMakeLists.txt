@@ -48,12 +48,9 @@ option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
 
 # Allow disabling conan for downstream package managers. Requires all libraries to be present in path
 # Default is value of environment variable if defined or ON
-if(DEFINED ENV{DISABLE_CONAN})
-	set(_DISABLE_CONAN_DEFAULT ENV{DISABLE_CONAN})
-else()
-	set(_DISABLE_CONAN_DEFAULT OFF)
+if(NOT DEFINED DISABLE_CONAN AND DEFINED ENV{DISABLE_CONAN})
+	set(DISABLE_CONAN $ENV{DISABLE_CONAN})
 endif()
-option(DISABLE_CONAN "Disable Conan package manager to find dependencies. If disabled, you must have all dependencies present on your system." ${_DISABLE_CONAN_DEFAULT})
 
 include(CTest)
 include(compiler_utils)
@@ -153,6 +150,9 @@ setup_dependencies()
 # If we do not set them with a space CMake fails afterwards if nothing is set for this vars!
 set(AER_LINKER_FLAGS " ")
 set(AER_COMPILER_FLAGS " ")
+if(MSVC)
+  set(AER_COMPILER_FLAGS " /bigobj")
+endif ()
 
 if(NOT OPENMP_FOUND) # Could already be setup for macos with conan
 	message(STATUS "Looking for OpenMP support...")
@@ -259,7 +259,8 @@ if(AER_THRUST_SUPPORTED)
 		endif()
 		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH_FLAGS ${AER_CUDA_ARCH})
 		string(REPLACE ";" " "  AER_CUDA_ARCH_FLAGS_EXPAND "${AER_CUDA_ARCH_FLAGS}")
-		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin \"${CMAKE_CXX_COMPILER}\" ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+#		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin \"${CMAKE_CXX_COMPILER}\" ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDANT_LIBS "")
 		set(CUDA_VERBOSE_BUILD "ON")

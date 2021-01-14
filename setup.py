@@ -33,7 +33,12 @@ except ImportError:
 try:
     import pybind11
 except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.4'])
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.6'])
+
+try:
+    from numpy import array
+except ImportError:
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=1.16.3'])
 
 from skbuild import setup
 
@@ -44,7 +49,7 @@ from skbuild import setup
 common_requirements = [
     'numpy>=1.16.3',
     'scipy>=1.0',
-    'pybind11>=2.4'  # This isn't really an install requirement,
+    'pybind11>=2.6'  # This isn't really an install requirement,
                      # Pybind11 is required to be pre-installed for
                      # CMake to successfully find header files.
                      # This should be fixed in the CMake build files.
@@ -103,6 +108,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Topic :: Scientific/Engineering",
     ],
     python_requires=">=3.6",

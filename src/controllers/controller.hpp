@@ -696,11 +696,19 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     if (parallel_experiments_ > 1 && parallel_experiments_ < max_parallel_threads_) {
       // Nested parallel experiments
       parallel_nested_ = true;
+      #ifdef _WIN32
       omp_set_nested(1);
+      #else
+      omp_set_max_active_levels(3);
+      #endif
       result.metadata["omp_nested"] = parallel_nested_;
     } else {
       parallel_nested_ = false;
+      #ifdef _WIN32
       omp_set_nested(0);
+      #else
+      omp_set_max_active_levels(1);
+      #endif
     }
 #endif
     // then- and else-blocks have intentionally duplication.
@@ -809,10 +817,18 @@ void Controller::execute_circuit(Circuit &circ,
     if (!parallel_nested_) {
       if (parallel_shots_ > 1 && parallel_state_update_ > 1) {
         // Nested parallel shots + state update
+        #ifdef _WIN32
         omp_set_nested(1);
+        #else
+        omp_set_max_active_levels(2);
+        #endif
         result.metadata["omp_nested"] = true;
       } else {
+        #ifdef _WIN32
         omp_set_nested(0);
+        #else
+        omp_set_max_active_levels(1);
+        #endif
       }
     }
     #endif

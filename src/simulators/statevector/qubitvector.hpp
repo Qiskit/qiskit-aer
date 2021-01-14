@@ -25,7 +25,6 @@
 #include <string>
 #include <vector>
 #include <tuple>
-
 #include <sstream>
 #include <stdexcept>
 
@@ -2037,13 +2036,13 @@ void QubitVector<data_t>::apply_pauli(const reg_t &qubits, const std::string &pa
     int_t idxs[2];
     idxs[0] = ((i << 1) & mask_u) | (i & mask_l);
     idxs[1] = idxs[0] ^ x_mask;
+    std::swap(data_[idxs[0]], data_[idxs[1]]);
     for (int_t j = 0; j < 2; ++j) {
       if (z_mask && (AER::Utils::popcount(idxs[j] & z_mask) & 1)) {
         data_[idxs[j]] *= -1;
       }
       data_[idxs[j]] *= phase;
     }
-    std::swap(data_[idxs[0]], data_[idxs[1]]);
   };
   apply_lambda(lambda, (size_t) 0, (data_size_ >> 1));
 }
