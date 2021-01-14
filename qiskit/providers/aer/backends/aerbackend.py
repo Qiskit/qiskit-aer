@@ -23,9 +23,13 @@ import warnings
 from abc import ABC, abstractmethod
 from numpy import ndarray
 
-from qiskit.providers import BaseBackend
+from qiskit.providers import BackendV1 as Backend
+from qiskit.providers import Options
 from qiskit.providers.models import BackendStatus
 from qiskit.result import Result
+from qiskit.utils import deprecate_arguments
+from qiskit.qobj import QasmQobj
+from qiskit.compiler import assemble
 
 from ..aerjob import AerJob
 from ..aererror import AerError
@@ -55,7 +59,7 @@ class AerJSONEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-class AerBackend(BaseBackend, ABC):
+class AerBackend(Backend, ABC):
     """Qiskit Aer Backend class."""
     def __init__(self,
                  configuration,
@@ -76,13 +80,13 @@ class AerBackend(BaseBackend, ABC):
             defaults (PulseDefaults or None): Optional, backend pulse defaults.
             available_methods (list or None): Optional, the available simulation methods
                                               if backend supports multiple methods.
-            provider (BaseProvider): Optional, provider responsible for this backend.
+            provider (Provider): Optional, provider responsible for this backend.
             backend_options (dict or None): Optional set custom backend options.
 
         Raises:
             AerError: if there is no name in the configuration
         """
-        # Init configuration and provider in BaseBackend
+        # Init configuration and provider in Backend
         configuration.simulator = True
         super().__init__(configuration, provider=provider)
 
@@ -100,21 +104,22 @@ class AerBackend(BaseBackend, ABC):
         self._available_methods = [] if available_methods is None else available_methods
 
         # Set custom configured options from backend_options dictionary
-        self._options = {}
         if backend_options is not None:
             for key, val in backend_options.items():
-                self._set_option(key, val)
+                self.set_option(key, val)
 
     # pylint: disable=arguments-differ
+    @deprecate_arguments({'qobj': 'circuits'})
     def run(self,
-            qobj,
+            circuits,
             backend_options=None,  # DEPRECATED
             validate=False,
             **run_options):
         """Run a qobj on the backend.
 
         Args:
-            qobj (QasmQobj): The Qobj to be executed.
+            circuits (QuantumCircuit or list): The QuantumCircuit (or list
+                of QuantumCircuit objects) to run
             backend_options (dict or None): DEPRECATED dictionary of backend options
                                             for the execution (default: None).
             validate (bool): validate the Qobj before running (default: False).
@@ -133,6 +138,13 @@ class AerBackend(BaseBackend, ABC):
               and direct kwarg's should be used for options to pass them to
               ``run_options``.
         """
+        if isinstance(circuits, QasmQobj):
+            warnings.warn('Using a qobj for run is deprecated and will be '
+                          'removed in a future release.', DeprecationWarning,
+                          stacklevel=3)
+            qobj = circuits
+        else:
+            qobj = assemble(circuits, self)
         # DEPRECATED
         if backend_options is not None:
             warnings.warn(
@@ -189,22 +201,17 @@ class AerBackend(BaseBackend, ABC):
             return self._custom_defaults
         return self._defaults
 
-    @property
-    def options(self):
-        """Return the current simulator options"""
-        return self._options
-
-    def set_options(self, **backend_options):
-        """Set the simulator options"""
-        for key, val in backend_options.items():
-            self._set_option(key, val)
+    @classmethod
+    def _default_options(cls):
+        # TODO: Expand to include all options
+        return Options(shots=1024)
 
     def clear_options(self):
         """Reset the simulator options to default values."""
         self._custom_configuration = None
         self._custom_properties = None
         self._custom_defaults = None
-        self._options = {}
+        self._options = self._default_options()
 
     def available_methods(self):
         """Return the available simulation methods."""
@@ -284,7 +291,7 @@ class AerBackend(BaseBackend, ABC):
         """Validate the qobj for the backend"""
         pass
 
-    def _set_option(self, key, value):
+    def set_option(self, key, value):
         """Special handling for setting backend options.
 
         This method should be extended by sub classes to
@@ -329,6 +336,10 @@ class AerBackend(BaseBackend, ABC):
             # If setting an existing option to None remove it from options dict
             self._options.pop(key)
 
+    def set_options(self, **fields):
+        for key, value in fields.items():
+            self.set_option(key, value)
+
     def _set_configuration_option(self, key, value):
         """Special handling for setting backend configuration options."""
         if self._custom_configuration is None:
@@ -355,7 +366,7 @@ class AerBackend(BaseBackend, ABC):
         config = qobj.config
 
         # Add options
-        for key, val in self.options.items():
+        for key, val in self.options.__dict__.items():
             setattr(config, key, val)
 
         # DEPRECATED backend options
@@ -392,6 +403,6 @@ class AerBackend(BaseBackend, ABC):
         display = "backend_name='{}'".format(self.name())
         if self.provider():
             display += ', provider={}()'.format(self.provider())
-        for key, val in self.options.items():
+        for key, val in self.options.__dict__.items():
             display += ',\n    {}={}'.format(key, repr(val))
         return '{}(\n{})'.format(self.__class__.__name__, display)

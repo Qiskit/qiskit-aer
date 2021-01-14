@@ -20,6 +20,9 @@ from warnings import warn
 from numpy import inf
 
 from qiskit.providers.models import BackendConfiguration, PulseDefaults
+from qiskit.utils import deprecate_arguments
+from qiskit.compiler import assemble
+from qiskit.qobj import PulseQobj
 
 from ..version import __version__
 from ..aererror import AerError
@@ -167,8 +170,9 @@ class PulseSimulator(AerBackend):
                 self._set_system_model(system_model)
 
     # pylint: disable=arguments-differ, missing-param-doc
+    @deprecate_arguments({'qobj': 'schedules'})
     def run(self,
-            qobj,
+            schedules,
             *args,
             backend_options=None,  # DEPRECATED
             validate=True,
@@ -176,7 +180,8 @@ class PulseSimulator(AerBackend):
         """Run a qobj on the backend.
 
         Args:
-            qobj (QasmQobj): The Qobj to be executed.
+            schedules (Schedule or list): The pulse :class:`~qiskit.pulse.Schedule`
+                (or list of ``Schedule objects) to be executed.
             backend_options (dict or None): DEPRECATED dictionary of backend options
                                             for the execution (default: None).
             validate (bool): validate the Qobj before running (default: True).
@@ -196,6 +201,13 @@ class PulseSimulator(AerBackend):
               and direct kwarg's should be used for options to pass them to
               ``run_options``.
         """
+        if isinstance(schedules, PulseQobj):
+            warn('Using a qobj for run is deprecated and will be '
+                 'removed in a future release.', DeprecationWarning,
+                 stacklevel=2)
+            qobj = schedules
+        else:
+            qobj = assemble(schedules, self)
         if args:
             if isinstance(args[0], PulseSystemModel):
                 warn(
@@ -253,7 +265,7 @@ class PulseSimulator(AerBackend):
         qobj.config.qubit_freq_est = self.defaults().qubit_freq_est
         return pulse_controller(qobj)
 
-    def _set_option(self, key, value):
+    def set_option(self, key, value):
         """Set pulse simulation options and update backend."""
         if key == 'meas_levels':
             self._set_configuration_option(key, self._meas_levels(value))
@@ -271,7 +283,7 @@ class PulseSimulator(AerBackend):
             subsystem_list = self._options.get('subsystem_list', None)
             system_model = PulseSystemModel.from_config(self.configuration(),
                                                         subsystem_list)
-            super()._set_option('system_model', system_model)
+            super().set_option('system_model', system_model)
             self._set_configuration_option(key, value)
             return
 
@@ -285,7 +297,7 @@ class PulseSimulator(AerBackend):
             return
 
         # Set all other options from AerBackend
-        super()._set_option(key, value)
+        super().set_option(key, value)
 
     def _set_system_model(self, system_model):
         """Set system model option"""
@@ -293,7 +305,7 @@ class PulseSimulator(AerBackend):
             'dt', getattr(system_model, 'dt', []))
         self._set_configuration_option(
             'u_channel_lo', getattr(system_model, 'u_channel_lo', []))
-        super()._set_option('system_model', system_model)
+        super().set_option('system_model', system_model)
 
     def _validate(self, qobj):
         """Validation of qobj.

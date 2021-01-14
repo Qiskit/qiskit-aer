@@ -363,39 +363,31 @@ class QasmSimulator(AerBackend):
         """
         return cpp_execute(self._controller, qobj)
 
-    def _set_option(self, key, value):
-        """Set the simulation method and update configuration.
+    def set_options(self, **fields):
+        for key, value in fields.items():
+            # If key is noise_model we also change the simulator config
+            # to use the noise_model basis gates by default.
+            if key == 'noise_model' and value is not None:
+                self._set_configuration_option('basis_gates', value.basis_gates)
 
-        Args:
-            key (str): key to update
-            value (any): value to update.
+            # If key is method we update our configurations
+            if key == 'method':
+                method_config = self._method_configuration(value)
+                self._set_configuration_option('description', method_config.description)
+                self._set_configuration_option('backend_name', method_config.backend_name)
+                self._set_configuration_option('n_qubits', method_config.n_qubits)
 
-        Raises:
-            AerError: if key is 'method' and val isn't in available methods.
-        """
-        # If key is noise_model we also change the simulator config
-        # to use the noise_model basis gates by default.
-        if key == 'noise_model' and value is not None:
-            self._set_configuration_option('basis_gates', value.basis_gates)
-
-        # If key is method we update our configurations
-        if key == 'method':
-            method_config = self._method_configuration(value)
-            self._set_configuration_option('description', method_config.description)
-            self._set_configuration_option('backend_name', method_config.backend_name)
-            self._set_configuration_option('n_qubits', method_config.n_qubits)
-
-            # Take intersection of method basis gates and noise model basis gates
-            # if there is a noise model which has already set the basis gates
-            basis_gates = method_config.basis_gates
-            if 'noise_model' in self.options:
-                noise_basis_gates = self.options['noise_model'].basis_gates
-                basis_gates = list(
-                    set(basis_gates).intersection(noise_basis_gates))
-            self._set_configuration_option('basis_gates', basis_gates)
+                # Take intersection of method basis gates and noise model basis gates
+                # if there is a noise model which has already set the basis gates
+                basis_gates = method_config.basis_gates
+                if 'noise_model' in self.options:
+                    noise_basis_gates = self.options['noise_model'].basis_gates
+                    basis_gates = list(
+                        set(basis_gates).intersection(noise_basis_gates))
+                self._set_configuration_option('basis_gates', basis_gates)
 
         # Set all other options from AerBackend
-        super()._set_option(key, value)
+        super().set_options(**fields)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.
