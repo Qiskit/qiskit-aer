@@ -472,9 +472,7 @@ void DeviceChunkContainer<data_t>::CopyIn(std::shared_ptr<Chunk<data_t>> src,uin
     }
   }
   else{
-//    thrust::copy_n(src->pointer(),size,data_.begin() + (iChunk << this->chunk_bits_));
-    cudaMemcpyAsync(chunk_pointer(iChunk),src->pointer(),size*sizeof(thrust::complex<data_t>),cudaMemcpyHostToDevice,stream_[iChunk]);
-    cudaStreamSynchronize(stream_[iChunk]);
+    thrust::copy_n(src->pointer(),size,data_.begin() + (iChunk << this->chunk_bits_));
   }
 }
 
@@ -494,9 +492,7 @@ void DeviceChunkContainer<data_t>::CopyOut(std::shared_ptr<Chunk<data_t>> dest,u
     }
   }
   else{
-//    thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest->pointer());
-    cudaMemcpyAsync(dest->pointer(),chunk_pointer(iChunk),size*sizeof(thrust::complex<data_t>),cudaMemcpyDeviceToHost,stream_[iChunk]);
-    cudaStreamSynchronize(stream_[iChunk]);
+    thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest->pointer());
   }
 }
 
