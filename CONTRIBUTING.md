@@ -630,6 +630,70 @@ Few notes on GPU builds:
 3. We don't need NVIDIA® drivers for building, but we need them for running simulations
 4. Only Linux platforms are supported
 
+### Building a statically linked wheel
+
+If you encounter an error similar to the following, you may are likely in the need of compiling a
+statically linked wheel.
+```
+    ImportError: libopenblas.so.0: cannot open shared object file: No such file or directory
+```
+However, depending on your setup this can proof difficult at times.
+Thus, here we present instructions which are known to work under Linux.
+
+In general, the workflow is:
+1. Compile a wheel
+```
+    qiskit-aer$ python ./setup.py bdist_wheel
+```
+2. Repair it with [auditwheel](https://github.com/pypa/auditwheel)
+```
+    qiskit-aer$ auditwheel repair dist/qiskit_aer*.whl
+```
+> `auditwheel` vendors the shared libraries into the binary to make it fully self-contained.
+
+The command above will attempt to repair the wheel for a `manylinux*` platform and will store it
+under `wheelhouse/` from where you can install it.
+
+It may happen that you encounter the following error:
+```
+    auditwheel: error: cannot repair "qiskit_aer-0.8.0-cp36-cp36m-linux_x86_64.whl" to "manylinux1_x86_64" ABI because of the presence of too-recent versioned symbols. You'll need to compile the wheel on an older toolchain.
+```
+This means that your toolchain uses later versions of system libraries than are allowed by the
+`manylinux*` platform specification (see also [1], [2] and [3]).
+If you do not need your wheel to support the `manylinux*` platform you can resolve this issue by
+limiting the compatibility of your wheel to your specific platform.
+You can find out which platform this is through
+```
+    qiskit-aer$ auditwheel show dist/qiskit_aer*.whl
+```
+This will list the _platform tag_ (e.g. `linux_x86_64`).
+You can then repair the wheel for this specific platform using:
+```
+    qiskit-aer$ auditwheel repair --plat linux_x86_64 dist/qiskit_aer*.whl
+```
+You can now go ahead and install the wheel stored in `wheelhouse/`.
+
+Should you encounter a runtime error like
+```
+    Inconsistency detected by ld.so: dl-version.c: 205: _dl_check_map_versions: Assertion `needed != NULL' failed!
+```
+this means that your [patchelf](https://github.com/NixOS/patchelf) version (which is used by
+`auditwheel` under the hood) is too old (https://github.com/pypa/auditwheel/issues/103)
+Version `0.9` of `patchelf` is the earliest to include the patch
+https://github.com/NixOS/patchelf/pull/85 which resolves this issue.
+In the unlikely event that the `patchelf` package provided by your operating
+system only provides an older version, fear not, because it is really easy to
+[compile `patchelf` from source](https://github.com/NixOS/patchelf#compiling-and-testing).
+
+Hopefully, this information was helpful.
+In case you need more detailed information on some of the errors which may occur be sure to read
+through https://github.com/Qiskit/qiskit-aer/issues/1033.
+
+[1]: https://www.python.org/dev/peps/pep-0513/
+[2]: https://www.python.org/dev/peps/pep-0571/
+[3]: https://www.python.org/dev/peps/pep-0599/
+
+
 
 
 ## Useful CMake flags
