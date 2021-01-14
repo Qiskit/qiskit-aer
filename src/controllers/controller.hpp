@@ -761,6 +761,10 @@ Result Controller::execute(std::vector<Circuit> &circuits,
   catch (std::exception &e) {
     result.status = Result::Status::error;
     result.message = e.what();
+    for(auto& res : result.results){
+      res.status = ExperimentResult::Status::error;
+      res.message = e.what();
+    }
   }
   return result;
 }
