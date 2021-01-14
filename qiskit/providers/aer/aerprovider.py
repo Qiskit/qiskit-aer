@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name, bad-continuation
-
+# pylint: disable=invalid-name
 """Provider for Qiskit Aer backends."""
 
 from qiskit.providers import ProviderV1 as Provider
@@ -26,7 +25,7 @@ from .backends.pulse_simulator import PulseSimulator
 class AerProvider(Provider):
     """Provider for Qiskit Aer backends."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         # Populate the list of Aer simulator backends.
         self._backends = [
             ('qasm_simulator', QasmSimulator),
