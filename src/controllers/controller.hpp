@@ -743,7 +743,7 @@ void Controller::save_count_data(ExperimentResult &result,
                                  const ClassicalRegister &creg) const {
   if (creg.memory_size() > 0) {
     std::string memory_hex = creg.memory_hex();
-    result.data.add_accum(1ULL, "counts", memory_hex);
+    result.data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
     if (save_creg_memory_) {
       result.data.add_list(std::move(memory_hex), "memory");
     }
