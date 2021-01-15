@@ -4,6 +4,9 @@
 DISABLE_WARNING_PUSH
 #include <pybind11/pybind11.h>
 DISABLE_WARNING_POP
+#if defined(_MSC_VER)
+    #undef snprintf
+#endif
 
 #include "framework/matrix.hpp"
 #include "framework/types.hpp"
@@ -13,10 +16,6 @@ DISABLE_WARNING_POP
 #include "controllers/statevector_controller.hpp"
 #include "controllers/unitary_controller.hpp"
 #include "controllers/controller_execute.hpp"
-
-#if defined(_MSC_VER)
-    #undef snprintf
-#endif
 
 template<typename T>
 class ControllerExecutor {
