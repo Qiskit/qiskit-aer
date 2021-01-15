@@ -134,7 +134,7 @@ void Superoperator<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
     std::to_string(BaseUnitary::rows_) + ")!=(" +
     std::to_string(mat.GetRows()) + "," + std::to_string(mat.GetColumns()) + ")."
   );
-};
+}
 
 
 //------------------------------------------------------------------------------

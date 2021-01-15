@@ -316,10 +316,10 @@ void StatevectorController::run_circuit_helper(
   }
   state.initialize_creg(circ.num_memory, circ.num_registers);
   state.apply_ops(*op_ptr, result, rng);
-  state.add_creg_to_data(result);
+  Base::Controller::save_count_data(result, state.creg());
 
   // Add final state to the data
-  result.data.add_additional_data("statevector", state.qreg().move_to_vector());
+  state.save_data_single(result, "statevector", state.qreg().move_to_vector());
 }
 
 //-------------------------------------------------------------------------

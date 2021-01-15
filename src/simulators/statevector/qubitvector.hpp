@@ -1755,7 +1755,7 @@ reg_t QubitVector<data_t>::sample_measure(const std::vector<double> &rnds) const
  *
  ******************************************************************************/
 using pauli_mask_data = std::tuple<uint_t, uint_t, uint_t, uint_t>;
-pauli_mask_data pauli_masks_and_phase(const reg_t &qubits, const std::string &pauli){
+inline pauli_mask_data pauli_masks_and_phase(const reg_t &qubits, const std::string &pauli){
  // Break string up into Z and X
  // With Y being both Z and X (plus a phase)
   const size_t N = qubits.size();
@@ -1882,7 +1882,6 @@ void QubitVector<data_t>::apply_pauli(const reg_t &qubits, const std::string &pa
   }
   auto phase = std::complex<data_t>(coeff);
   add_y_phase(num_y, phase);
-  const uint_t DIM = 1ULL << qubits.size();
 
   // specialize x_max == 0
   if (!x_mask) {

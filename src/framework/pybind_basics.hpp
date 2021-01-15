@@ -44,6 +44,14 @@ template <typename T> py::object to_python(AER::Vector<T> &&obj);
 // Move a Vector to Python via recusivly calling to_python on elements
 template <typename T> py::object to_python(std::vector<T> &&obj);
 
+// Move an Unordered string map to Python object by calling to_python on elements
+template <typename T> py::object to_python(std::unordered_map<std::string, T> &&obj);
+
+// Move an Unordered string map into an existing Python dict
+template <typename T>
+void add_to_python(py::dict &pydata, std::unordered_map<std::string, T> &&obj);
+
+
 // Template specialization for moving numeric std::vectors to Numpy arrays
 template <> py::object to_python(std::vector<AER::int_t> &&obj);
 template <> py::object to_python(std::vector<AER::uint_t> &&obj);
@@ -51,6 +59,10 @@ template <> py::object to_python(std::vector<float> &&obj);
 template <> py::object to_python(std::vector<double> &&obj);
 template <> py::object to_python(std::vector<std::complex<double>> &&obj);
 template <> py::object to_python(std::vector<std::complex<float>> &&obj);
+
+// Template specialization for JSON
+// NOTE: this copies rather than moves
+template <> py::object to_python(json_t &&obj);
 
 //------------------------------------------------------------------------------
 // Convert To Numpy Arrays
@@ -79,6 +91,27 @@ py::array_t<T> to_numpy(std::vector<T> &&obj);
 template <typename T>
 py::object to_python(T &&obj) {
   return py::cast(obj, py::return_value_policy::move);
+}
+
+template <>
+py::object to_python(json_t &&obj) {
+  py::object pydata;
+  from_json(obj, pydata);
+  return pydata;
+}
+
+template <typename T>
+py::object to_python(std::unordered_map<std::string, T> &&obj) {
+  py::dict pydata;
+  add_to_python(pydata, std::move(obj));
+  return std::move(pydata);
+}
+
+template <typename T>
+void add_to_python(py::dict &pydata, std::unordered_map<std::string, T> &&obj) {
+  for(auto& elt : obj) {
+    pydata[elt.first.data()] = to_python(std::move(elt.second));
+  }
 }
 
 template <typename T>

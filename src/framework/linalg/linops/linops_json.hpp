@@ -28,7 +28,7 @@ namespace Linalg {
 //----------------------------------------------------------------------------
 // Linear operations
 //----------------------------------------------------------------------------
-json_t& iadd(json_t& lhs, const json_t& rhs) {
+inline json_t& iadd(json_t& lhs, const json_t& rhs) {
   // Null case
   if (lhs.is_null()) {
     lhs = rhs;
@@ -57,12 +57,12 @@ json_t& iadd(json_t& lhs, const json_t& rhs) {
   return lhs;
 }
 
-json_t add(const json_t& lhs, const json_t& rhs) {
+inline json_t add(const json_t& lhs, const json_t& rhs) {
   json_t result = lhs;
   return iadd(result, rhs);
 }
 
-json_t& isub(json_t& lhs, const json_t& rhs) {
+inline json_t& isub(json_t& lhs, const json_t& rhs) {
   // Null case
   if (rhs.is_null()) {
     return lhs;
