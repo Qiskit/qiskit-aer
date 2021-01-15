@@ -28,7 +28,8 @@ class SaveData(Directive):
     """Pragma Instruction to save simulator data."""
 
     _allowed_subtypes = set([
-        'single', 'list', 'c_list', 'average', 'c_average', 'accum', 'c_accum'
+        'single', 'c_single', 'list', 'c_list',
+        'average', 'c_average', 'accum', 'c_accum'
     ])
 
     def __init__(self, name, key, num_qubits, subtype='single', params=None):
@@ -134,15 +135,15 @@ class SaveSingleData(SaveData):
             num_qubits (int): the number of qubits for the snapshot type.
             pershot (bool): if True save a list of data for each shot of the
                             simulation [Default: False].
-            conditional (bool): if True save pershot data conditional on the
+            conditional (bool): if True save data conditional on the
                                 current classical register values
                                 [Default: False].
             params (list or None): Optional, the parameters for instruction
                                    [Default: None].
         """
-        subtype = 'single'
-        if pershot:
-            subtype = 'c_list' if conditional else 'list'
+        subtype = 'list' if pershot else 'single'
+        if conditional:
+            subtype = 'c_' + subtype
         super().__init__(name, key, num_qubits, subtype=subtype, params=params)
 
 
