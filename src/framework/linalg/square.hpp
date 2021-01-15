@@ -157,7 +157,7 @@ Vector<T> square(const Vector<T>& vec) {
 // Entrywise square of JSON
 //----------------------------------------------------------------------------
 
-json_t& isquare(json_t& data) {
+inline json_t& isquare(json_t& data) {
   // Terminating case
   if (data.is_number()) {
     double val = data;
@@ -180,7 +180,7 @@ json_t& isquare(json_t& data) {
   throw std::invalid_argument("Input JSONs cannot be squared.");
 }
 
-json_t square(const json_t& data) {
+inline json_t square(const json_t& data) {
   json_t result = data;
   return isquare(result);
 }
