@@ -14,6 +14,10 @@ DISABLE_WARNING_POP
 #include "controllers/unitary_controller.hpp"
 #include "controllers/controller_execute.hpp"
 
+#if defined(_MSC_VER)
+    #undef snprintf
+#endif
+
 template<typename T>
 class ControllerExecutor {
 public:
