@@ -346,7 +346,7 @@ void Controller::clear_parallelization() {
 
   explicit_parallelization_ = false;
   max_memory_mb_ = get_system_memory_mb() / 2;
-  max_gpu_memory_mb_ = get_system_memory_mb() / 2;
+  max_gpu_memory_mb_ = get_gpu_memory_mb() / 2;
 }
 
 void Controller::set_parallelization_experiments(
@@ -645,9 +645,23 @@ Result Controller::execute(std::vector<Circuit> &circuits,
   auto timer_start = myclock_t::now();
 
   Result result(circuits.size());
+  // Make a copy of the noise model for each circuit execution
+  // so that it can be modified if required
+  std::vector<Noise::NoiseModel> circ_noise_models(circuits.size(),noise_model);
 
   // Execute each circuit in a try block
   try {
+    //truncate circuits before experiment settings (to get correct required_memory_mb value)
+    if (truncate_qubits_) {
+      for(size_t j = 0; j < circuits.size(); j++) {
+        // Truncate unused qubits from circuit and noise model
+        Transpile::TruncateQubits truncate_pass;
+        truncate_pass.set_config(config);
+        truncate_pass.optimize_circuit(circuits[j], circ_noise_models[j], circuits[j].opset(),
+                                       result.results[j]);
+      }
+    }
+
     set_distributed_parallelization(circuits, noise_model);
 
     // Initialize Result object for the given number of experiments
@@ -657,17 +671,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     //get max qubits for this process (to allocate qubit register at once)
     max_qubits_ = 0;
     for (size_t j = distributed_experiments_begin_; j < distributed_experiments_end_; j++) {
-      // get number of active qubits if truncate is enabled
-      if(truncate_qubits_) {
-        Transpile::TruncateQubits truncate_pass;
-        uint_t nactive;
-        truncate_pass.set_config(config);
-        nactive = truncate_pass.get_num_truncate_qubits(circuits[j], noise_model);
-        if(nactive > max_qubits_){
-          max_qubits_ = nactive;
-        }
-      }
-      else if(circuits[j].num_qubits > max_qubits_){
+      if(circuits[j].num_qubits > max_qubits_){
         max_qubits_ = circuits[j].num_qubits;
       }
     }
@@ -719,17 +723,11 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     if (parallel_experiments_ > 1) {
       #pragma omp parallel for num_threads(parallel_experiments_)
       for (int j = 0; j < result.results.size(); ++j) {
-        // Make a copy of the noise model for each circuit execution
-        // so that it can be modified if required
-        auto circ_noise_model = noise_model;
-        execute_circuit(circuits[j+distributed_experiments_begin_], circ_noise_model, config, result.results[j]);
+        execute_circuit(circuits[j+distributed_experiments_begin_], circ_noise_models[j], config, result.results[j]);
       }
     } else {
       for (int j = 0; j < result.results.size(); ++j) {
-        // Make a copy of the noise model for each circuit execution
-        // so that it can be modified if required
-        auto circ_noise_model = noise_model;
-        execute_circuit(circuits[j+distributed_experiments_begin_], circ_noise_model, config, result.results[j]);
+        execute_circuit(circuits[j+distributed_experiments_begin_], circ_noise_models[j], config, result.results[j]);
       }
     }
 
@@ -786,14 +784,6 @@ void Controller::execute_circuit(Circuit &circ,
     // Remove barriers from circuit
     Transpile::ReduceBarrier barrier_pass;
     barrier_pass.optimize_circuit(circ, noise, circ.opset(), result);
-
-    // Truncate unused qubits from circuit and noise model
-    if (truncate_qubits_) {
-      Transpile::TruncateQubits truncate_pass;
-      truncate_pass.set_config(config);
-      truncate_pass.optimize_circuit(circ, noise, circ.opset(),
-                                     result);
-    }
 
     // set parallelization for this circuit
     if (!explicit_parallelization_) {
