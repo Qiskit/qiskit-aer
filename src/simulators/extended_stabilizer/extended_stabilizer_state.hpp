@@ -134,9 +134,17 @@ protected:
   void statevector_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
   // //Compute probabilities from a stabilizer rank decomposition
   void probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
-
+  
   const static stringmap_t<Gates> gateset_;
   const static stringmap_t<Snapshots> snapshotset_;
+
+  //-----------------------------------------------------------------------
+  // Save data instructions
+  //-----------------------------------------------------------------------
+
+  // Helper function for computing expectation value
+  virtual double pauli_expval(const reg_t &qubits,
+                              const std::string& pauli) override;
 
   //-----------------------------------------------------------------------
   //Parameters and methods specific to the Stabilizer Rank Decomposition
@@ -823,6 +831,12 @@ void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &r
 //-------------------------------------------------------------------------
 // Implementation: Utility
 //-------------------------------------------------------------------------
+
+double State::pauli_expval(const reg_t &qubits, const std::string& pauli) {
+  // TODO: Add support
+  throw std::runtime_error(
+    "Extended stabilizer method does not support Pauli expectation values.");
+}
 
 inline void to_json(json_t &js, cvector_t vec)
 {

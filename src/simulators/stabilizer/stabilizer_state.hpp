@@ -33,7 +33,8 @@ const Operations::OpSet StateOpSet(
   {Operations::OpType::gate, Operations::OpType::measure,
     Operations::OpType::reset, Operations::OpType::snapshot,
     Operations::OpType::barrier, Operations::OpType::bfunc,
-    Operations::OpType::roerror},
+    Operations::OpType::roerror,
+    Operations::OpType::save_expval},
   // Gates
   {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg",
    "sx", "delay"},
@@ -132,6 +133,14 @@ protected:
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
   virtual void apply_snapshot(const Operations::Op &op, ExperimentResult &result);
+
+  //-----------------------------------------------------------------------
+  // Save data instructions
+  //-----------------------------------------------------------------------
+
+  // Helper function for computing expectation value
+  virtual double pauli_expval(const reg_t &qubits,
+                              const std::string& pauli) override;
 
   //-----------------------------------------------------------------------
   // Measurement Helpers
@@ -302,6 +311,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         case Operations::OpType::snapshot:
           apply_snapshot(op, result);
           break;
+        case Operations::OpType::save_expval:
+          apply_save_expval(op, result);
+          break;
         default:
           throw std::invalid_argument("Stabilizer::State::invalid instruction \'" +
                                       op.name + "\'.");
@@ -430,6 +442,44 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
     BaseState::qreg_ = qreg_cache; // restore pre-measurement data from cache
   }
   return samples;
+}
+
+//=========================================================================
+// Implementation: Save data
+//=========================================================================
+
+double State::pauli_expval(const reg_t &qubits,
+                           const std::string& pauli) {
+  // Compute expval components
+  auto state_cpy = BaseState::qreg_;
+  reg_t measured_qubits;
+  for (uint_t pos = 0; pos < qubits.size(); ++pos) {
+    const auto& qubit = qubits[pos];
+    switch (pauli[pauli.size() - 1 - pos]) {
+      case 'I':
+        break;
+      case 'X':
+        state_cpy.append_h(qubit);
+        measured_qubits.push_back(qubit);
+        break;
+      case 'Y':
+        state_cpy.append_s(qubit);
+        state_cpy.append_z(qubit);
+        state_cpy.append_h(qubit);
+        measured_qubits.push_back(qubit);
+        break;
+      case 'Z':
+        measured_qubits.push_back(qubit);
+        break;
+      default: {
+        std::stringstream msg;
+        msg << "Invalid Pauli string \'" << pauli[pos]
+            << "\'.";
+        throw std::invalid_argument(msg.str());
+      }
+    }
+  }
+  return state_cpy.expectation_value(measured_qubits);
 }
 
 //=========================================================================
@@ -569,42 +619,11 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   }
 
   // Compute expval components
-  auto copy_of_qreg = BaseState::qreg_;
   complex_t expval(0., 0.);
   for (const auto &param : op.params_expval_pauli) {
     const auto &coeff = param.first;
     const auto &pauli = param.second;
-    std::vector<uint64_t> measured_qubits;
-    for (uint_t pos = 0; pos < op.qubits.size(); ++pos) {
-      uint_t qubit = op.qubits[pos];
-      switch (pauli[pauli.size() - 1 - pos]) {
-        case 'I':
-          break;
-        case 'X':
-          BaseState::qreg_.append_h(qubit);
-          measured_qubits.push_back(qubit);
-          break;
-        case 'Y':
-          BaseState::qreg_.append_s(qubit);
-          BaseState::qreg_.append_z(qubit);
-          BaseState::qreg_.append_h(qubit);
-          measured_qubits.push_back(qubit);
-          break;
-        case 'Z':
-          measured_qubits.push_back(qubit);
-          break;
-        default: {
-          std::stringstream msg;
-          msg << "QubitVectorState::invalid Pauli string \'" << pauli[pos]
-              << "\'.";
-          throw std::invalid_argument(msg.str());
-        }
-      }
-    }
-
-    expval +=
-        coeff * (double)BaseState::qreg_.expectation_value(measured_qubits);
-    BaseState::qreg_ = copy_of_qreg;
+    expval += coeff * pauli_expval(op.qubits, pauli);
   }
 
   // add to snapshot

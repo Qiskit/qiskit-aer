@@ -294,9 +294,9 @@ class QasmSimulator(AerBackend):
             'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
             'initialize', 'delay', 'pauli', 'mcx_gray',
             # Custom instructions
-            'kraus', 'roerror', 'snapshot'
+            'kraus', 'roerror', 'snapshot', 'save_expval'
         ]),
-        'custom_instructions': sorted(['roerror', 'kraus', 'snapshot']),
+        'custom_instructions': sorted(['roerror', 'kraus', 'snapshot', 'save_expval']),
         'gates': []
     }
 
@@ -471,7 +471,8 @@ class QasmSimulator(AerBackend):
         ]:
             config.n_qubits = config.n_qubits // 2
             config.description = 'A C++ QasmQobj density matrix simulator with noise'
-            config.custom_instructions = sorted(['roerror', 'snapshot', 'kraus', 'superop'])
+            config.custom_instructions = sorted([
+                'roerror', 'snapshot', 'kraus', 'superop', 'save_expval'])
             config.basis_gates = sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
                 'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
@@ -482,6 +483,7 @@ class QasmSimulator(AerBackend):
         # Matrix product state method
         elif method == 'matrix_product_state':
             config.description = 'A C++ QasmQobj matrix product state simulator with noise'
+            config.custom_instructions = sorted(['roerror', 'snapshot', 'kraus', 'save_expval'])
             config.basis_gates = sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
                 'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay',
@@ -493,7 +495,7 @@ class QasmSimulator(AerBackend):
         elif method == 'stabilizer':
             config.n_qubits = 5000  # TODO: estimate from memory
             config.description = 'A C++ QasmQobj Clifford stabilizer simulator with noise'
-            config.custom_instructions = sorted(['roerror', 'snapshot'])
+            config.custom_instructions = sorted(['roerror', 'snapshot', 'save_expval'])
             config.basis_gates = sorted([
                 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'cx', 'cy', 'cz',
                 'swap', 'delay',
