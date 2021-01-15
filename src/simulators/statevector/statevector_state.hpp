@@ -47,7 +47,7 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::multiplexer, Operations::OpType::kraus,
      Operations::OpType::sim_op, Operations::OpType::save_expval,
-     Operations::OpType::save_expval_var},
+     Operations::OpType::save_expval_var, Operations::OpType::save_statevec},
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
      "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
@@ -214,6 +214,14 @@ protected:
   //-----------------------------------------------------------------------
   // Save data instructions
   //-----------------------------------------------------------------------
+
+  // Save the current state of the statevector simulator
+  // If `last_op` is True this will use move semantics to move the simulator
+  // state to the results, otherwise it will use copy semantics to leave
+  // the current simulator state unchanged.
+  void apply_save_statevector(const Operations::Op &op,
+                              ExperimentResult &result,
+                              bool last_op);
 
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
@@ -553,6 +561,9 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
         case Operations::OpType::save_expval_var:
           BaseState::apply_save_expval(op, result);
           break;
+        case Operations::OpType::save_statevec:
+          apply_save_statevector(op, result, final_ops && ops.size() == i + 1);
+          break;
         default:
           throw std::invalid_argument(
               "QubitVector::State::invalid instruction \'" + op.name + "\'.");
@@ -569,6 +580,26 @@ template <class statevec_t>
 double State<statevec_t>::expval_pauli(const reg_t &qubits,
                                        const std::string& pauli) {
   return BaseState::qreg_.expval_pauli(qubits, pauli);
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_statevector(const Operations::Op &op,
+                                               ExperimentResult &result,
+                                               bool last_op) {
+  if (op.qubits.size() != BaseState::qreg_.num_qubits()) {
+    throw std::invalid_argument(
+        "Save statevector was not applied to all qubits."
+        " Only the full statevector can be saved.");
+  }
+  if (last_op) {
+    BaseState::save_data_pershot(result, op.string_params[0],
+                                 BaseState::qreg_.move_to_vector(),
+                                 op.save_type);
+  } else {
+    BaseState::save_data_pershot(result, op.string_params[0],
+                                 BaseState::qreg_.copy_to_vector(),
+                                 op.save_type);
+  }
 }
 
 //=========================================================================

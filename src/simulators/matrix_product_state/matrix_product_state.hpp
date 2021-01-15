@@ -50,7 +50,7 @@ const Operations::OpSet StateOpSet(
    Operations::OpType::bfunc, Operations::OpType::roerror,
    Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
    Operations::OpType::kraus, Operations::OpType::save_expval,
-   Operations::OpType::save_expval_var},
+   Operations::OpType::save_expval_var, Operations::OpType::save_statevec},
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",
@@ -211,6 +211,10 @@ protected:
   //-----------------------------------------------------------------------
   // Save data instructions
   //-----------------------------------------------------------------------
+
+  // Compute and save the statevector for the current simulator state
+  void apply_save_statevector(const Operations::Op &op,
+                              ExperimentResult &result);
 
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
@@ -516,6 +520,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         case Operations::OpType::save_expval_var:
           BaseState::apply_save_expval(op, result);
           break;
+        case Operations::OpType::save_statevec:
+          apply_save_statevector(op, result);
+          break;
         default:
           throw std::invalid_argument("MatrixProductState::State::invalid instruction \'" +
                                       op.name + "\'.");
@@ -531,6 +538,17 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 double State::expval_pauli(const reg_t &qubits,
                            const std::string& pauli) {
   return BaseState::qreg_.expectation_value_pauli(qubits, pauli).real();
+}
+
+void State::apply_save_statevector(const Operations::Op &op,
+                                   ExperimentResult &result) {
+  if (op.qubits.size() != BaseState::qreg_.num_qubits()) {
+    throw std::invalid_argument(
+        "Save statevector was not applied to all qubits."
+        " Only the full statevector can be saved.");
+  }
+  BaseState::save_data_pershot(result, op.string_params[0],
+                               qreg_.full_statevector(), op.save_type);
 }
 
 //=========================================================================
@@ -611,9 +629,8 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
 void State::snapshot_state(const Operations::Op &op,
 			   ExperimentResult &result,
 			   std::string name) {
-  cvector_t statevector;
-  qreg_.full_state_vector(statevector);
-  result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0], statevector);
+  result.legacy_data.add_pershot_snapshot(
+    "statevector", op.string_params[0], qreg_.full_statevector());
 }
 
 void State::snapshot_amplitudes(const Operations::Op &op,
