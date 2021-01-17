@@ -843,7 +843,6 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const {
 
 cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
   reg_t new_qubits;
-  bool ordered = true;
   
   MPS temp_MPS;
   temp_MPS.initialize(*this);

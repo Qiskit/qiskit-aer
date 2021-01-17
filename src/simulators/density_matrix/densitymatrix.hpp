@@ -149,7 +149,7 @@ protected:
 
 template <typename data_t>
 DensityMatrix<data_t>::DensityMatrix(size_t num_qubits)
-  : UnitaryMatrix<data_t>(num_qubits) {};
+  : UnitaryMatrix<data_t>(num_qubits) {}
 
 //------------------------------------------------------------------------------
 // Utility
