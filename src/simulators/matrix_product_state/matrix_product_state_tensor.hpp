@@ -418,10 +418,10 @@ void MPS_Tensor::apply_matrix_helper(const cmatrix_t &mat, bool is_diagonal,
 
 void MPS_Tensor::apply_cnot(bool swapped)
 {
-  if(!swapped)
-    std::swap(data_[2], data_[3]);
-  else
+  if (swapped)
     std::swap(data_[1], data_[3]);
+  else
+    std::swap(data_[2], data_[3]);
 }
 
 void MPS_Tensor::apply_swap()
@@ -431,10 +431,10 @@ void MPS_Tensor::apply_swap()
 
 void MPS_Tensor::apply_cy(bool swapped)
 {
-  if(!swapped)
-    apply_y_helper(data_[2], data_[3]);
-  else
+  if (swapped)
     apply_y_helper(data_[1], data_[3]);
+  else
+    apply_y_helper(data_[2], data_[3]);
 }
 
 void MPS_Tensor::apply_cz()

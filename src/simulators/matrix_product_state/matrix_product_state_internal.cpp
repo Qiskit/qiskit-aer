@@ -379,10 +379,10 @@ void MPS::apply_cz(uint_t index_A, uint_t index_B)
 
 void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
 {
-  cmatrix_t lam_in_mat(1, 1);
-  lam_in_mat(0, 0) = lambda;
+  cmatrix_t lambda_in_mat(1, 1);
+  lambda_in_mat(0, 0) = lambda;
   apply_2_qubit_gate(get_qubit_index(index_A), 
-		     get_qubit_index(index_B), cu1, lam_in_mat);
+		     get_qubit_index(index_B), cu1, lambda_in_mat);
 }
 
 void MPS::apply_csx(uint_t index_A, uint_t index_B)
@@ -594,11 +594,11 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
   case cswap:
     uint_t control;
     if (qubits[0] < qubits[1] && qubits[0] < qubits[2])
-      target = 0;
+      control = 0;
     else if (qubits[0] > qubits[1] && qubits[0] > qubits[2])
-      target = 2;
+      control = 2;
     else
-      target = 1;
+      control = 1;
     sub_tensor.apply_cswap(control);
     break;
 
