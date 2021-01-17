@@ -118,8 +118,10 @@ void DelayMeasure::optimize_circuit(Circuit& circ,
   circ.can_sample = true;
   circ.ops.insert(circ.ops.end(), meas_ops.begin(), meas_ops.end());
   
-  if (verbose_)
-      result.add_metadata("delay_measure_verbose", circ.ops);
+  if (verbose_) {
+    result.metadata.add(circ.ops, "delay_measure_verbose");
+  }
+
 }
 
 

@@ -19,10 +19,7 @@ if not _DISABLE_CONAN:
     try:
         from conans import client
     except ImportError:
-        # Problem with Conan and urllib3 1.26
-        subprocess.call([sys.executable, '-m', 'pip', 'install', 'urllib3<1.26'])
-
-        subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan'])
+        subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan>=1.31.2'])
         from conans import client
 
 try:
@@ -33,7 +30,7 @@ except ImportError:
 try:
     import pybind11
 except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.4'])
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.6'])
 
 try:
     from numpy import array
@@ -49,7 +46,7 @@ from skbuild import setup
 common_requirements = [
     'numpy>=1.16.3',
     'scipy>=1.0',
-    'pybind11>=2.4'  # This isn't really an install requirement,
+    'pybind11>=2.6'  # This isn't really an install requirement,
                      # Pybind11 is required to be pre-installed for
                      # CMake to successfully find header files.
                      # This should be fixed in the CMake build files.
@@ -60,7 +57,6 @@ setup_requirements = common_requirements + [
     'cmake!=3.17,!=3.17.0',
 ]
 if not _DISABLE_CONAN:
-    setup_requirements.append('urllib3<1.26')
     setup_requirements.append('conan>=1.22.2')
 
 requirements = common_requirements + ['qiskit-terra>=0.12.0']
