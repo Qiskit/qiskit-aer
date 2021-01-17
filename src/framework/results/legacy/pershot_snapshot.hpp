@@ -16,7 +16,7 @@
 #define _aer_framework_results_data_pershot_snapshot_hpp_
 
 #include "framework/json.hpp"
-#include "framework/results/data/pershot_data.hpp"
+#include "framework/results/legacy/pershot_data.hpp"
 #include "framework/types.hpp"
 
 namespace AER {

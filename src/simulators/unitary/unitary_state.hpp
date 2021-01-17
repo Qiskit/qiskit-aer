@@ -473,7 +473,7 @@ void State<unitary_matrix_t>::apply_snapshot(const Operations::Op &op,
                                              ExperimentResult &result) {
   // Look for snapshot type in snapshotset
   if (op.name == "unitary" || op.name == "state") {
-    result.data.add_pershot_snapshot("unitary", op.string_params[0],
+    result.legacy_data.add_pershot_snapshot("unitary", op.string_params[0],
                               BaseState::qreg_.copy_to_matrix());
     BaseState::snapshot_state(op, result);
   } else {

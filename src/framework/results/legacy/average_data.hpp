@@ -22,7 +22,7 @@
 namespace AER {
 
 template <typename T>
-class AverageData {
+class LegacyAverageData {
  public:
   // Return the mean of the accumulated data:
   // mean = accum / count
@@ -44,11 +44,11 @@ class AverageData {
 
   // Combine with another snapshot container
   // Uses copy semantics
-  void combine(const AverageData<T> &other);
+  void combine(const LegacyAverageData<T> &other);
 
   // Combine with another snapshot container
   // Uses move semantics
-  void combine(AverageData<T> &&other) noexcept;
+  void combine(LegacyAverageData<T> &&other) noexcept;
 
   // Access data
   T &data() { return accum_; }
@@ -104,7 +104,7 @@ class AverageData {
 // Implementation
 //------------------------------------------------------------------------------
 template <typename T>
-void AverageData<T>::normalize() {
+void LegacyAverageData<T>::normalize() {
   if (!normalized_ && count_ >= 1) {
     if (count_ > 1) {
       // Compute mean
@@ -126,19 +126,19 @@ void AverageData<T>::normalize() {
 }
 
 template <typename T>
-T& AverageData<T>::mean() {
+T& LegacyAverageData<T>::mean() {
   normalize();
   return accum_;
 }
 
 template <typename T>
-T& AverageData<T>::variance() {
+T& LegacyAverageData<T>::variance() {
   normalize();
   return accum_squared_;
 }
 
 template <typename T>
-void AverageData<T>::combine(const AverageData<T> &other) {
+void LegacyAverageData<T>::combine(const LegacyAverageData<T> &other) {
   // If empty we copy data without accumulating
   if (empty()) {
     count_ = other.count_;
@@ -161,7 +161,7 @@ void AverageData<T>::combine(const AverageData<T> &other) {
 }
 
 template <typename T>
-void AverageData<T>::combine(AverageData<T> &&other) noexcept {
+void LegacyAverageData<T>::combine(LegacyAverageData<T> &&other) noexcept {
   // If empty we copy data without accumulating
   if (empty()) {
     count_ = other.count_;
@@ -186,7 +186,7 @@ void AverageData<T>::combine(AverageData<T> &&other) noexcept {
 }
 
 template <typename T>
-void AverageData<T>::clear() {
+void LegacyAverageData<T>::clear() {
   // Clear stored data using default constructor of data type
   accum_ = T();
   accum_squared_ = T();
@@ -195,7 +195,7 @@ void AverageData<T>::clear() {
 }
 
 template <typename T>
-void AverageData<T>::add_data(const T &datum, bool compute_variance) {
+void LegacyAverageData<T>::add_data(const T &datum, bool compute_variance) {
   // If we add a single datum without variance we
   // disable variance for the container
   variance_ &= compute_variance;
@@ -218,7 +218,7 @@ void AverageData<T>::add_data(const T &datum, bool compute_variance) {
 }
 
 template <typename T>
-void AverageData<T>::add_data(T &&datum, bool compute_variance) noexcept {
+void LegacyAverageData<T>::add_data(T &&datum, bool compute_variance) noexcept {
   variance_ &= compute_variance;
   if (count_ == 0) {
     accum_ = std::move(datum);
@@ -236,7 +236,7 @@ void AverageData<T>::add_data(T &&datum, bool compute_variance) noexcept {
 }
 
 template <typename T>
-json_t AverageData<T>::to_json() {
+json_t LegacyAverageData<T>::to_json() {
   json_t js = json_t::object();
   js["value"] = mean();
   if (variance_) {
