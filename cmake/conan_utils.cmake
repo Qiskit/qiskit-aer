@@ -43,9 +43,6 @@ macro(setup_conan)
         list(APPEND AER_CONAN_LIBS catch2)
     endif()
 
-    # Add Appleclang-12 until officially supported by Conan
-    conan_config_install(ITEM ${PROJECT_SOURCE_DIR}/conan_settings)
-
     conan_cmake_run(REQUIRES ${REQUIREMENTS}
                     OPTIONS ${CONAN_OPTIONS}
                     ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}

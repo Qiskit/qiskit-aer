@@ -237,6 +237,9 @@ inline std::string int2hex(uint_t n) {return bin2hex(int2bin(n));}
 // Convert reg to int
 uint_t reg2int(const reg_t &reg, uint_t base);
 
+// Count number of 1's in bitstring representation of an integer
+uint_t popcount(const uint_t count_);
+
 //==============================================================================
 // Implementations: Matrix functions
 //==============================================================================

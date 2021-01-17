@@ -15,6 +15,7 @@
 #ifndef _aer_framework_results_result_hpp_
 #define _aer_framework_results_result_hpp_
 
+#include "framework/results/data/metadata.hpp"
 #include "framework/results/experiment_result.hpp"
 
 namespace AER {
@@ -50,41 +51,15 @@ public:
 
   // Metadata
   json_t header;
-  json_t metadata;
+  Metadata metadata;
 
   // Size and resize
   auto size() {return results.size();}
   void resize(size_t size) {results.resize(size);}
 
-  // Clear all metadata for given key
-  void clear_metadata(const std::string &key);
-  
-  // Append metadata for a given key.
-  // This assumes the metadata value is a dictionary and appends
-  // any new values
-  template <typename T>
-  void add_metadata(const std::string &key, const T &data);
-
   // Serialize engine data to JSON
   json_t to_json();
 };
-
-
-//------------------------------------------------------------------------------
-// Add metadata
-//------------------------------------------------------------------------------
-template <typename T>
-void Result::add_metadata(const std::string &key, const T &data) {
-  json_t js = data; // use implicit to_json conversion function for T
-  if (JSON::check_key(key, metadata))
-    metadata[key].update(js.begin(), js.end());
-  else
-    metadata[key] = js;
-}
-
-void Result::clear_metadata(const std::string &key) {
-  metadata.erase(key);
-}
 
 //------------------------------------------------------------------------------
 // JSON serialization
@@ -103,8 +78,7 @@ json_t Result::to_json() {
   }
   if (header.empty() == false)
     js["header"] = header;
-  if (metadata.empty() == false)
-    js["metadata"] = metadata;
+  js["metadata"] = metadata.to_json();
   js["success"] = (status == Status::completed);
   switch (status) {
     case Status::completed:
