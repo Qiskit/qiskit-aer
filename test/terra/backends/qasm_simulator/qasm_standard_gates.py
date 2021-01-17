@@ -83,10 +83,7 @@ GATES = [
 BASIS_GATES = [
     None,
     ['id', 'u1', 'u2', 'u3', 'cx'],  # Waltz
-    ['id', 'u', 'cx'],  # minimal
-    ['id', 'r', 'cz'],
-    ['id', 'rz', 'rx', 'cz'],
-    ['id', 'p', 'sx', 'cx']
+    ['id', 'rz', 'sx', 'x', 'cx']
 ]
 
 

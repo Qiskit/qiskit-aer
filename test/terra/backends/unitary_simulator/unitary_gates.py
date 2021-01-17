@@ -92,10 +92,7 @@ class UnitaryGateTests:
     BASIS_GATES = [
         None,
         ['id', 'u1', 'u2', 'u3', 'cx'],  # Waltz
-        ['id', 'u', 'cx'],  # minimal
-        ['id', 'r', 'cz'],
-        ['id', 'rz', 'rx', 'cz'],
-        ['id', 'p', 'sx', 'cx']
+        ['id', 'rz', 'sx', 'x', 'cx']
     ]
 
     @data(*[(gate_params[0], gate_params[1], basis_gates)
