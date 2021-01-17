@@ -162,6 +162,54 @@ class StatevectorSimulatorTests:
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
+    def test_conditional_gate_64bit(self):
+        """Test conditional gates on 64-bit conditional register."""
+        cases = ref_conditionals.conditional_cases_64bit()
+        circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
+            final_measure=False, conditional_type='gate')
+        targets = ref_conditionals.conditional_statevector_nbit(cases)
+        job = execute(circuits, self.SIMULATOR, shots=1, **self.BACKEND_OPTS)
+        result = job.result()
+        self.assertSuccess(result)
+
+        self.compare_statevector(result, circuits, targets)
+
+    def test_conditional_unitary_64bit(self):
+        """Test conditional unitary on 64-bit conditional register."""
+        cases = ref_conditionals.conditional_cases_64bit()
+        circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
+            final_measure=False, conditional_type='unitary')
+        targets = ref_conditionals.conditional_statevector_nbit(cases)
+        job = execute(circuits, self.SIMULATOR, shots=1, **self.BACKEND_OPTS)
+        result = job.result()
+        self.assertSuccess(result)
+
+        self.compare_statevector(result, circuits, targets)
+
+    def test_conditional_gate_132bit(self):
+        """Test conditional gates on 132-bit conditional register."""
+        cases = ref_conditionals.conditional_cases_132bit()
+        circuits = ref_conditionals.conditional_circuits_nbit(132, cases,
+            final_measure=False, conditional_type='gate')
+        targets = ref_conditionals.conditional_statevector_nbit(cases)
+        job = execute(circuits, self.SIMULATOR, shots=1, **self.BACKEND_OPTS)
+        result = job.result()
+        self.assertSuccess(result)
+
+        self.compare_statevector(result, circuits, targets)
+
+    def test_conditional_unitary_132bit(self):
+        """Test conditional unitary on 132-bit conditional register."""
+        cases = ref_conditionals.conditional_cases_132bit()
+        circuits = ref_conditionals.conditional_circuits_nbit(132, cases,
+            final_measure=False, conditional_type='unitary')
+        targets = ref_conditionals.conditional_statevector_nbit(cases)
+        job = execute(circuits, self.SIMULATOR, shots=1, **self.BACKEND_OPTS)
+        result = job.result()
+        self.assertSuccess(result)
+
+        self.compare_statevector(result, circuits, targets)
+
     # ---------------------------------------------------------------------
     # Test h-gate
     # ---------------------------------------------------------------------
