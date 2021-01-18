@@ -21,14 +21,6 @@ from test.terra import common
 from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
 from test.terra.backends.qasm_simulator.qasm_measure import QasmMeasureTests
 from test.terra.backends.qasm_simulator.qasm_measure import QasmMultiQubitMeasureTests
-from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTests
-from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsWaltzBasis
-from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsMinimalBasis
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsTGate
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsCCXGate
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsCGates
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsWaltzBasis
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsMinimalBasis
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmDiagonalGateTests
 from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
@@ -74,14 +66,6 @@ class TestQasmSimulator(common.QiskitAerTestCase,
                         QasmConditionalGateTests,
                         QasmConditionalUnitaryTests,
                         QasmConditionalKrausTests,
-                        QasmCliffordTests,
-                        QasmCliffordTestsWaltzBasis,
-                        QasmCliffordTestsMinimalBasis,
-                        QasmNonCliffordTestsTGate,
-                        QasmNonCliffordTestsCCXGate,
-                        QasmNonCliffordTestsCGates,
-                        QasmNonCliffordTestsWaltzBasis,
-                        QasmNonCliffordTestsMinimalBasis,
                         QasmMultiplexerTests,
                         QasmAlgorithmTests,
                         QasmAlgorithmTestsWaltzBasis,
