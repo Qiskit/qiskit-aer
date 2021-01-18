@@ -1483,18 +1483,13 @@ void QubitVector<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVector<data
     }
   }
   else{
-    if(chunk_index_ < src.chunk_index_){
-      auto lambda = [&](const areg_t<2> &inds)->void {
-        std::swap(data_[inds[1]], src.data_[inds[0]]);
-      };
-      apply_lambda(lambda, areg_t<1>({{q0}}));
-    }
-    else{
-      auto lambda = [&](const areg_t<2> &inds)->void {
-        std::swap(data_[inds[0]], src.data_[inds[1]]);
-      };
-      apply_lambda(lambda, areg_t<1>({{q0}}));
-    }
+    bool src_lower =  chunk_index_ < src.chunk_index_;
+    auto first_idx =  src_lower ? 1 : 0;
+    auto second_idx  = src_lower ? 0 : 1;
+    auto lambda = [&](const areg_t<2> &inds)->void {
+      std::swap(data_[inds[first_idx]], src.data_[inds[second_idx]]);
+    };
+    apply_lambda(lambda, areg_t<1>({{q0}}));
   }
 }
 
