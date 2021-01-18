@@ -177,7 +177,7 @@ void State<unitary_matrix_t>::add_state_to_data(ExperimentResult &result)
 {
   int_t iChunk;
 
-  if(BaseState::multi_shot_parallelization_){
+  if(BaseState::multi_shot_parallelization_ || BaseState::num_global_chunks_ == 1){
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
       result.data.add_additional_data("unitary", BaseState::qregs_[iChunk].move_to_matrix());
     }
@@ -189,7 +189,7 @@ void State<unitary_matrix_t>::add_state_to_data(ExperimentResult &result)
     state.resize(BaseState::num_local_chunks_ << BaseState::chunk_bits_);
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk)
-    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+    for(iChunk=1;iChunk<BaseState::num_local_chunks_;iChunk++){
       auto tmp = BaseState::qregs_[iChunk].vector();
       uint_t j,offset = iChunk << BaseState::chunk_bits_;
       for(j=0;j<tmp.size();j++){
@@ -197,9 +197,16 @@ void State<unitary_matrix_t>::add_state_to_data(ExperimentResult &result)
       }
     }
 
+#ifdef AER_MPI
     BaseState::gather_state(state);
+#endif
+
+    //type of matrix cam not be discovered from State class, so make from matrix
+    auto matrix = BaseState::qregs_[0].move_to_matrix();
+    matrix.resize(1ull << BaseState::num_qubits_,1ull << BaseState::num_qubits_);
+    matrix.copy_from_buffer(1ull << BaseState::num_qubits_,1ull << BaseState::num_qubits_,&state[0]);
     if(BaseState::myrank_ == 0){
-      result.data.add_additional_data("unitary",  state);
+      result.data.add_additional_data("unitary",  matrix);
     }
   }
 }

@@ -458,7 +458,7 @@ void State<statevec_t>::add_state_to_data(ExperimentResult &result)
 {
   int_t iChunk;
 
-  if(BaseState::multi_shot_parallelization_){
+  if(BaseState::multi_shot_parallelization_ || BaseState::num_global_chunks_ == 1){
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
       result.data.add_additional_data("statevector", BaseState::qregs_[iChunk].move_to_vector());
     }
@@ -478,7 +478,9 @@ void State<statevec_t>::add_state_to_data(ExperimentResult &result)
       }
     }
 
+#ifdef AER_MPI
     BaseState::gather_state(state);
+#endif
     if(BaseState::myrank_ == 0){
       result.data.add_additional_data("statevector",  state);
     }
@@ -1196,7 +1198,9 @@ rvector_t State<statevec_t>::measure_probs(const int_t iChunk, const reg_t &qubi
       }
     }
 
+#ifdef AER_MPI
     BaseState::reduce_sum(sum);
+#endif
 
     return sum;
   }
@@ -1287,7 +1291,9 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
       }
     }
 
+#ifdef AER_MPI
     BaseState::reduce_sum(local_samples);
+#endif
     allbit_samples = local_samples;
   }
 
@@ -1501,7 +1507,9 @@ void State<statevec_t>::apply_kraus(const int_t iChunk, const reg_t &qubits,
         local_accum += BaseState::qregs_[i].norm(qubits, vmat);
       }
 
+#ifdef AER_MPI
       BaseState::reduce_sum(local_accum);
+#endif
     }
     else{
       local_accum = BaseState::qregs_[iChunk].norm(qubits, vmat);

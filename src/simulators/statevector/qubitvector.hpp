@@ -1514,18 +1514,13 @@ void QubitVector<data_t>::apply_chunk_swap(const reg_t &qubits, uint_t remote_ch
     }
   }
   else{
-    if(chunk_index_ < remote_chunk_index){
-      auto lambda = [&](const areg_t<2> &inds)->void {
-        data_[inds[1]] = recv_buffer_[inds[0]];
-      };
-      apply_lambda(lambda, areg_t<1>({{q0}}));
-    }
-    else{
-      auto lambda = [&](const areg_t<2> &inds)->void {
-        data_[inds[0]] = recv_buffer_[inds[1]];
-      };
-      apply_lambda(lambda, areg_t<1>({{q0}}));
-    }
+    bool src_lower =  chunk_index_ < remote_chunk_index;
+    auto first_idx =  src_lower ? 1 : 0;
+    auto second_idx  = src_lower ? 0 : 1;
+    auto lambda = [&](const areg_t<2> &inds)->void {
+      std::swap(data_[inds[first_idx]], recv_buffer_[inds[second_idx]]);
+    };
+    apply_lambda(lambda, areg_t<1>({{q0}}));
   }
 }
 

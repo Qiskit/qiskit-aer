@@ -653,7 +653,9 @@ void State<densmat_t>::snapshot_pauli_expval(const int_t iChunk, const Operation
     }
   }
 
+#ifdef AER_MPI
   BaseState::reduce_sum(expval);
+#endif
 
   int_t id_c = iChunk < 0 ? 0 : iChunk;
 
@@ -1113,7 +1115,9 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
       }
     }
 
+#ifdef AER_MPI
     BaseState::reduce_sum(local_samples);
+#endif
     allbit_samples = local_samples;
   }
 

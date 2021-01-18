@@ -723,11 +723,11 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     if (parallel_experiments_ > 1) {
       #pragma omp parallel for num_threads(parallel_experiments_)
       for (int j = 0; j < result.results.size(); ++j) {
-        execute_circuit(circuits[j+distributed_experiments_begin_], circ_noise_models[j], config, result.results[j]);
+        execute_circuit(circuits[j+distributed_experiments_begin_], circ_noise_models[j+distributed_experiments_begin_], config, result.results[j]);
       }
     } else {
       for (int j = 0; j < result.results.size(); ++j) {
-        execute_circuit(circuits[j+distributed_experiments_begin_], circ_noise_models[j], config, result.results[j]);
+        execute_circuit(circuits[j+distributed_experiments_begin_], circ_noise_models[j+distributed_experiments_begin_], config, result.results[j]);
       }
     }
 
