@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes a bug that resulted in `c_if` not working when the
+    width of the conditional register was greater than 64. See
+    `#1077 <https://github.com/Qiskit/qiskit-aer/issues/1077>`.
