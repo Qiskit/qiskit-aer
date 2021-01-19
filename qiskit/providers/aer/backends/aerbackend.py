@@ -251,7 +251,7 @@ class AerBackend(BaseBackend, ABC):
         output = self._execute(qobj)
 
         # Validate output
-        if not isinstance(output, dict):
+        if not isinstance(output, Result):
             logger.error("%s: simulation failed.", self.name())
             if output:
                 logger.error('Output: %s', output)
@@ -259,14 +259,14 @@ class AerBackend(BaseBackend, ABC):
                 "simulation terminated without returning valid output.")
 
         # Format results
-        output["job_id"] = job_id
-        output["date"] = datetime.datetime.now().isoformat()
-        output["backend_name"] = self.name()
-        output["backend_version"] = self.configuration().backend_version
+        output.job_id = job_id
+        output.date = datetime.datetime.now().isoformat()
+        output.backend_name = self.name()
+        output.backend_version = self.configuration().backend_version
 
         # Add execution time
-        output["time_taken"] = time.time() - start
-        return Result.from_dict(output)
+        output.time_taken = time.time() - start
+        return output
 
     @abstractmethod
     def _execute(self, qobj):

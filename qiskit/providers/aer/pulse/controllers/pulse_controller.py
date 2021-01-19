@@ -19,6 +19,10 @@ Entry/exit point for pulse simulation specified through PulseSimulator backend
 
 from warnings import warn
 import numpy as np
+
+from qiskit.result import Result
+from qiskit.result.models import ExperimentResult, ExperimentResultData
+from qiskit.qobj import QobjExperimentHeader
 from qiskit.quantum_info.operators.operator import Operator
 from ..system_models.string_model_parser.string_model_parser import NoiseParser
 from ..system_models.string_model_parser import operator_generators as op_gen
@@ -203,11 +207,8 @@ def pulse_controller(qobj):
                        else run_monte_carlo_experiments)
     exp_results, exp_times = run_experiments(pulse_sim_desc, pulse_de_model, solver_options)
 
-    output = {
-        'results': format_exp_results(exp_results, exp_times, pulse_sim_desc),
-        'success': True,
-        'qobj_id': qobj.qobj_id
-    }
+    output = Result('', '', qobj.qobj_id, '', True,
+                    format_exp_results(exp_results, exp_times, pulse_sim_desc))
     return output
 
 
@@ -230,24 +231,17 @@ def format_exp_results(exp_results, exp_times, pulse_sim_desc):
         m_lev = pulse_sim_desc.meas_level
         m_ret = pulse_sim_desc.meas_return
 
-        # populate the results dictionary
-        results = {'seed_simulator': exp['seed'],
-                   'shots': pulse_sim_desc.shots,
-                   'status': 'DONE',
-                   'success': True,
-                   'time_taken': exp_times[idx_exp],
-                   'header': exp['header'],
-                   'meas_level': m_lev,
-                   'meas_return': m_ret,
-                   'data': {}}
+        header = {}
+        statevector = None
+        memory_data = None
+        counts = None
 
         if pulse_sim_desc.can_sample:
             memory = exp_results[idx_exp][0]
-            results['data']['statevector'] = []
+            statevector = []
             for coef in exp_results[idx_exp][1]:
-                results['data']['statevector'].append([np.real(coef),
-                                                       np.imag(coef)])
-            results['header']['ode_t'] = exp_results[idx_exp][2]
+                statevector.append([np.real(coef), np.imag(coef)])
+            header['ode_t'] = exp_results[idx_exp][2]
         else:
             memory = exp_results[idx_exp]
 
@@ -261,8 +255,7 @@ def format_exp_results(exp_results, exp_times, pulse_sim_desc):
 
             # if the memory flag is set return each shot
             if pulse_sim_desc.memory:
-                hex_mem = [hex(val) for val in int_mem]
-                results['data']['memory'] = hex_mem
+                memory_data = [hex(val) for val in int_mem]
 
             # Get hex counts dict
             unique = np.unique(int_mem, return_counts=True)
@@ -270,28 +263,31 @@ def format_exp_results(exp_results, exp_times, pulse_sim_desc):
             for kk in range(unique[0].shape[0]):
                 key = hex(unique[0][kk])
                 hex_dict[key] = unique[1][kk]
-            results['data']['counts'] = hex_dict
+            counts = hex_dict
 
         # meas_level 1 returns the <n>
         elif m_lev == 1:
 
             if m_ret == 'avg':
-
                 memory = [np.mean(memory, 0)]
 
             # convert into the right [real, complex] pair form for json
             # this should be cython?
-            results['data']['memory'] = []
+            memory_data = []
 
             for mem_shot in memory:
-                results['data']['memory'].append([])
+                memory_data.append([])
                 for mem_slot in mem_shot:
-                    results['data']['memory'][-1].append(
-                        [np.real(mem_slot), np.imag(mem_slot)])
+                    memory_data[-1].append([np.real(mem_slot), np.imag(mem_slot)])
 
             if m_ret == 'avg':
-                results['data']['memory'] = results['data']['memory'][0]
-
+                memory_data = memory_data[0]
+        exp_result_data = ExperimentResultData(counts=counts, snapshots=None,
+                                               memory=memory_data, statevector=statevector)
+        results = ExperimentResult(pulse_sim_desc.shots, True, exp_result_data,
+                                   m_lev, 'DONE', meas_return=m_ret,
+                                   header=QobjExperimentHeader.from_dict(exp['header']),
+                                   seed_simulator=exp['seed'], time_taken=exp_times[idx_exp])
         all_results.append(results)
     return all_results
 

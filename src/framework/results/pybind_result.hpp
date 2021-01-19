@@ -32,88 +32,98 @@ template <> py::object to_python(AER::ExperimentResult &&result);
 // Move a Result object to a Python dict
 template <> py::object to_python(AER::Result &&result);
 
-} //end namespace AerToPy
-
-
 //============================================================================
 // Implementations
 //============================================================================
 
-template <>
-py::object AerToPy::to_python(AER::ExperimentResult &&result) {
-  py::dict pyexperiment;
 
-  pyexperiment["shots"] = result.shots;
-  pyexperiment["seed_simulator"] = result.seed;
-
-  pyexperiment["data"] =  AerToPy::to_python(std::move(result.data));
-  // Add legacy snapshot data
-  py::dict legacy_snapshots = AerToPy::from_snapshot(std::move(result.legacy_data));
-  if (!legacy_snapshots.empty()) {
-    pyexperiment["data"]["snapshots"] = std::move(legacy_snapshots);
-  }
-
-  pyexperiment["metadata"] = AerToPy::to_python(std::move(result.metadata));
-
-  pyexperiment["success"] = (result.status == AER::ExperimentResult::Status::completed);
-  switch (result.status) {
-    case AER::ExperimentResult::Status::completed:
-      pyexperiment["status"] = "DONE";
-      break;
-    case AER::ExperimentResult::Status::error:
-      pyexperiment["status"] = std::string("ERROR: ") + result.message;
-      break;
-    case AER::ExperimentResult::Status::empty:
-      pyexperiment["status"] = "EMPTY";
-  }
-  pyexperiment["time_taken"] = result.time_taken;
-
-  if (result.header.empty() == false) {
-    py::object tmp;
-    from_json(result.header, tmp);
-    pyexperiment["header"] = std::move(tmp);
-  }
-  return std::move(pyexperiment);
+std::string get_status(const AER::ExperimentResult& result){
+    switch (result.status) {
+        case AER::ExperimentResult::Status::completed:
+            return "DONE";
+        case AER::ExperimentResult::Status::error:
+            return std::string("ERROR: ") + result.message;
+        case AER::ExperimentResult::Status::empty:
+            return "EMPTY";
+        default:
+            return "No STATUS info provided";
+    }
 }
 
-
-template <>
-py::object AerToPy::to_python(AER::Result &&result) {
-  py::dict pyresult;
-  pyresult["qobj_id"] = result.qobj_id;
-
-  pyresult["backend_name"] = result.backend_name;
-  pyresult["backend_version"] = result.backend_version;
-  pyresult["date"] = result.date;
-  pyresult["job_id"] = result.job_id;
-
-  py::list exp_results;
-  for(AER::ExperimentResult& exp : result.results)
-    exp_results.append(AerToPy::to_python(std::move(exp)));
-  pyresult["results"] = std::move(exp_results);
-  pyresult["metadata"] = AerToPy::to_python(std::move(result.metadata));
-  // For header and metadata we continue using the json->pyobject casting
-  //   bc these are assumed to be small relative to the ExperimentResults
-  if (result.header.empty() == false) {
-    py::object tmp;
-    from_json(result.header, tmp);
-    pyresult["header"] = std::move(tmp);
-  }
-  pyresult["success"] = (result.status == AER::Result::Status::completed);
-  switch (result.status) {
-    case AER::Result::Status::completed:
-      pyresult["status"] = "COMPLETED";
-      break;
-    case AER::Result::Status::partial_completed:
-      pyresult["status"] = "PARTIAL COMPLETED";
-      break;
-    case AER::Result::Status::error:
-      pyresult["status"] = std::string("ERROR: ") + result.message;
-      break;
-    case AER::Result::Status::empty:
-      pyresult["status"] = "EMPTY";
-  }
-  return std::move(pyresult);
+std::string get_status(const AER::Result& result){
+    switch (result.status) {
+        case AER::Result::Status::completed:
+            return "COMPLETED";
+        case AER::Result::Status::partial_completed:
+            return "PARTIAL COMPLETED";
+        case AER::Result::Status::error:
+            return std::string("ERROR: ") + result.message;
+        case AER::Result::Status::empty:
+            return "EMPTY";
+        default:
+            return "No STATUS info provided";
+    }
 }
+
+py::object to_python(AER::ExperimentResult &&exp_result){
+    static py::object PyExpResult = py::module::import("qiskit.result.models").attr("ExperimentResult");
+    static py::object PyQobjExperimentHeader = py::module::import("qiskit.qobj.common").attr("QobjExperimentHeader");
+    static py::object PyExpResultData = py::module::import("qiskit.result.models").attr("ExperimentResultData");
+
+    py::dict py_data = AerToPy::to_python(std::move(exp_result.data));
+    py::dict legacy_snapshots = AerToPy::from_snapshot(std::move(exp_result.legacy_data));
+    if (!legacy_snapshots.empty()) {
+        py_data["snapshots"] = std::move(legacy_snapshots);
+    }
+    py::object py_exp_data = PyExpResultData.attr("from_dict")(py_data);
+
+    py::object py_exp_result = PyExpResult(exp_result.shots,
+                                           exp_result.status == AER::ExperimentResult::Status::completed,
+                                           py_exp_data);
+
+    py::dict tmp_dict;
+    tmp_dict["status"] = get_status(exp_result);
+    tmp_dict["seed_simulator"] = exp_result.seed;
+    tmp_dict["time_taken"] = exp_result.time_taken;
+
+    if(!exp_result.header.empty()){
+        py::object tmp;
+        from_json(exp_result.header, tmp);
+        py_exp_result.attr("header") = PyQobjExperimentHeader(**tmp);
+    }
+
+    tmp_dict["metadata"] = AerToPy::to_python(std::move(exp_result.metadata));
+    py_exp_result.attr("_metadata") = tmp_dict;
+
+    return py_exp_result;
+}
+
+py::list get_exp_results(AER::Result&& result){
+    py::list py_exp_result_list;
+
+    for(AER::ExperimentResult& exp_result : result.results){
+        py_exp_result_list.append(to_python(std::move(exp_result)));
+    }
+    return py_exp_result_list;
+}
+
+py::object to_python(AER::Result &&result) {
+    static py::object PyResult = py::module::import("qiskit.result").attr("Result");
+    static py::object PyQobjHeader = py::module::import("qiskit.qobj.common").attr("QobjHeader");
+    py::object py_result = PyResult(result.backend_name, result.backend_version, result.qobj_id, result.job_id,
+                                    result.status == AER::Result::Status::completed, get_exp_results(std::move(result)),
+                                    result.date, get_status(std::move(result)));
+
+    if(!result.header.empty()){
+        py::object tmp;
+        from_json(result.header, tmp);
+        py_result.attr("header") = PyQobjHeader(**tmp);
+    }
+    py::dict tmp_dict;
+    tmp_dict["metadata"] = AerToPy::to_python(std::move(result.metadata));
+    py_result.attr("_metadata") = tmp_dict;
+    return py_result;
+}
+} //end namespace AerToPy
 
 #endif

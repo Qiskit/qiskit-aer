@@ -60,7 +60,7 @@ class TestControllerExecuteWrappers(QiskitAerTestCase):
 
         self.assertEqual(len(rs), n)
         for r in rs:
-            self.assertTrue(r['success'])
+            self.assertTrue(r.success)
 
     def test_mappable_qasm(self):
         """Test that the qasm controller can be mapped."""

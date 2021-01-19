@@ -64,6 +64,6 @@ def available_methods(controller, methods):
                         shots=1,
                         method=method)
         result = cpp_execute(controller, qobj)
-        if result.get('success', False):
+        if result.success:
             valid_methods.append(method)
     return valid_methods
