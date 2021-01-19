@@ -13,6 +13,7 @@
 QasmSimulator Integration Tests for circuit library standard gates
 """
 
+from itertools import product
 from ddt import ddt, unpack, data
 from numpy.random import default_rng
 
@@ -79,6 +80,11 @@ GATES = [
     (U3Gate, 3),
     (UGate, 3)
 ]
+BASIS_GATES = [
+    None,
+    ['id', 'u1', 'u2', 'u3', 'cx'],  # Waltz
+    ['id', 'rz', 'sx', 'x', 'cx']
+]
 
 
 @ddt
@@ -90,9 +96,10 @@ class QasmStandardGateStatevectorTests:
     SEED = 8181
     RNG = default_rng(seed=SEED)
 
-    @data(*GATES)
+    @data(*[(gate_params[0], gate_params[1], basis_gates)
+        for gate_params, basis_gates in product(GATES, BASIS_GATES)])
     @unpack
-    def test_gate_statevector(self, gate_cls, num_params):
+    def test_gate_statevector(self, gate_cls, num_params, basis_gates):
         """Test standard gate simulation test."""
 
         SUPPORTED_METHODS = [
@@ -113,7 +120,8 @@ class QasmStandardGateStatevectorTests:
 
             # Add snapshot and execute
             circuit.snapshot_statevector('final')
-            result = execute(circuit, backend, shots=1).result()
+            result = execute(circuit, backend, shots=1, basis_gates=basis_gates,
+                             optimization_level=0, **self.BACKEND_OPTS).result()
 
             # Check results
             success = getattr(result, 'success', False)
@@ -138,9 +146,10 @@ class QasmStandardGateDensityMatrixTests:
     SEED = 9997
     RNG = default_rng(seed=SEED)
 
-    @data(*GATES)
+    @data(*[(gate_params[0], gate_params[1], basis_gates)
+        for gate_params, basis_gates in product(GATES, BASIS_GATES)])
     @unpack
-    def test_gate_density_matrix(self, gate_cls, num_params):
+    def test_gate_density_matrix(self, gate_cls, num_params, basis_gates):
         """Test standard gate simulation test."""
         SUPPORTED_METHODS = [
             'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
@@ -161,7 +170,8 @@ class QasmStandardGateDensityMatrixTests:
             # Add snapshot and execute
             circuit.snapshot_density_matrix('final')
 
-            result = execute(circuit, backend, shots=1, **backend_options).result()
+            result = execute(circuit, backend, shots=1, basis_gates=basis_gates,
+                             optimization_level=0, **self.BACKEND_OPTS).result()
 
             # Check results
             success = getattr(result, 'success', False)

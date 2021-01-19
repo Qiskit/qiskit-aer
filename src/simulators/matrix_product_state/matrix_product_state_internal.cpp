@@ -1331,7 +1331,7 @@ double MPS::norm(const reg_t &qubits, const cmatrix_t &mat) const {
 //-----------------------------------------------------------------------------
 reg_t MPS::sample_measure_using_probabilities(const rvector_t &rnds, 
 					      const reg_t &qubits) {
-  // since input is always sorted in qasm_controller, therefore, we must return the qubits 
+  // since input is always sorted in qasm_controller, we must return the qubits 
   // to their original location (sorted)
   move_all_qubits_to_sorted_ordering();
   return sample_measure_using_probabilities_internal(rnds, qubits);

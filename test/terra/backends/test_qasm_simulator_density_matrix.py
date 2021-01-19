@@ -21,13 +21,6 @@ from test.terra.decorators import requires_method
 from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
 from test.terra.backends.qasm_simulator.qasm_measure import QasmMeasureTests
 from test.terra.backends.qasm_simulator.qasm_measure import QasmMultiQubitMeasureTests
-from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTests
-from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsWaltzBasis
-from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsMinimalBasis
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsTGate
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsCCXGate
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsWaltzBasis
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsMinimalBasis
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmDiagonalGateTests
 from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardGateDensityMatrixTests
@@ -63,10 +56,6 @@ class DensityMatrixTests(
         QasmMethodTests, QasmFusionTests, QasmMeasureTests, QasmMultiQubitMeasureTests,
         QasmResetTests, QasmConditionalGateTests, QasmConditionalUnitaryTests,
         QasmConditionalKrausTests, QasmConditionalSuperOpTests,
-        QasmCliffordTests, QasmCliffordTestsWaltzBasis,
-        QasmCliffordTestsMinimalBasis, QasmNonCliffordTestsTGate,
-        QasmNonCliffordTestsCCXGate,
-        QasmNonCliffordTestsWaltzBasis, QasmNonCliffordTestsMinimalBasis,
         QasmAlgorithmTests, QasmAlgorithmTestsWaltzBasis,
         QasmAlgorithmTestsMinimalBasis, QasmUnitaryGateTests, QasmDiagonalGateTests,
         QasmReadoutNoiseTests, QasmPauliNoiseTests, QasmResetNoiseTests,
