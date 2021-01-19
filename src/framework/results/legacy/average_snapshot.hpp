@@ -16,7 +16,7 @@
 #define _aer_framework_results_data_average_snapshot_hpp_
 
 #include "framework/json.hpp"
-#include "framework/results/data/average_data.hpp"
+#include "framework/results/legacy/average_data.hpp"
 #include "framework/types.hpp"
 
 namespace AER {
@@ -61,16 +61,16 @@ class AverageSnapshot {
   json_t to_json();
 
   // Return data reference
-  stringmap_t<stringmap_t<AverageData<T>>> &data() { return data_; }
+  stringmap_t<stringmap_t<LegacyAverageData<T>>> &data() { return data_; }
 
   // Return const data reference
-  const stringmap_t<stringmap_t<AverageData<T>>> &data() const { return data_; }
+  const stringmap_t<stringmap_t<LegacyAverageData<T>>> &data() const { return data_; }
 
  protected:
   // Internal Storage
   // Outer map key is the snapshot label string
   // Inner map key is the memory value string
-  stringmap_t<stringmap_t<AverageData<T>>> data_;
+  stringmap_t<stringmap_t<LegacyAverageData<T>>> data_;
 };
 
 //------------------------------------------------------------------------------

@@ -46,7 +46,7 @@ const Operations::OpSet StateOpSet(
      "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
      "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
      "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
-     "mcsx",   "delay", "pauli"},
+     "mcsx",   "delay", "pauli", "mcx_gray"},
     // Snapshots
     {"statevector", "amplitudes", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli", "density_matrix",
@@ -224,6 +224,7 @@ protected:
 
   //-----------------------------------------------------------------------
   // Special snapshot types
+  // Apply a supported snapshot instruction
   //
   // IMPORTANT: These methods are not marked const to allow modifying state
   // during snapshot, but after the snapshot is applied the simulator
@@ -321,7 +322,6 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"ry", Gates::mcry}, // Pauli-Y rotation gate
     {"rz", Gates::mcrz}, // Pauli-Z rotation gate
     // Waltz Gates
-    {"p", Gates::mcp},   // Parameterized phase gate 
     {"u1", Gates::mcp},  // zero-X90 pulse waltz gate
     {"u2", Gates::mcu2}, // single-X90 pulse waltz gate
     {"u3", Gates::mcu3}, // two X90 pulse waltz gate
@@ -358,10 +358,10 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"mcu1", Gates::mcp},     // Multi-controlled-u1
     {"mcu2", Gates::mcu2},    // Multi-controlled-u2
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
-    {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
     {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
-    {"pauli", Gates::pauli}   // Multi-qubit Pauli gate
+    {"pauli", Gates::pauli},   // Multi-qubit Pauli gate
+    {"mcx_gray", Gates::mcx}
 });
 
 template <class statevec_t>
@@ -545,9 +545,11 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
   switch (it->second) {
     case Snapshots::statevector:
       if (last_op) {
-        result.data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.move_to_vector());
+        result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0],
+                                         BaseState::qreg_.move_to_vector());
       } else {
-        result.data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.copy_to_vector());
+        result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0],
+                                         BaseState::qreg_.copy_to_vector());
       }
       break;
     case Snapshots::amplitudes: {
@@ -624,8 +626,9 @@ void State<statevec_t>::snapshot_probabilities(const Operations::Op &op,
   auto probs =
       Utils::vec2ket(measure_probs(op.qubits), json_chop_threshold_, 16);
   bool variance = type == SnapshotDataType::average_var;
-  result.data.add_average_snapshot("probabilities", op.string_params[0],
-                            BaseState::creg_.memory_hex(), probs, variance);
+  result.legacy_data.add_average_snapshot("probabilities", op.string_params[0],
+                                   BaseState::creg_.memory_hex(),
+                                   std::move(probs), variance);
 }
 
 template <class statevec_t>
@@ -650,15 +653,15 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
   Utils::chop_inplace(expval, json_chop_threshold_);
   switch (type) {
   case SnapshotDataType::average:
-    result.data.add_average_snapshot("expectation_value", op.string_params[0],
+    result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                               BaseState::creg_.memory_hex(), expval, false);
     break;
   case SnapshotDataType::average_var:
-    result.data.add_average_snapshot("expectation_value", op.string_params[0],
+    result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                               BaseState::creg_.memory_hex(), expval, true);
     break;
   case SnapshotDataType::pershot:
-    result.data.add_pershot_snapshot("expectation_values", op.string_params[0],
+    result.legacy_data.add_pershot_snapshot("expectation_values", op.string_params[0],
                               expval);
     break;
   }
@@ -712,15 +715,15 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
   Utils::chop_inplace(expval, json_chop_threshold_);
   switch (type) {
   case SnapshotDataType::average:
-    result.data.add_average_snapshot("expectation_value", op.string_params[0],
+    result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                               BaseState::creg_.memory_hex(), expval, false);
     break;
   case SnapshotDataType::average_var:
-    result.data.add_average_snapshot("expectation_value", op.string_params[0],
+    result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                               BaseState::creg_.memory_hex(), expval, true);
     break;
   case SnapshotDataType::pershot:
-    result.data.add_pershot_snapshot("expectation_values", op.string_params[0],
+    result.legacy_data.add_pershot_snapshot("expectation_values", op.string_params[0],
                               expval);
     break;
   }
@@ -745,17 +748,17 @@ void State<statevec_t>::snapshot_density_matrix(const Operations::Op &op,
   // Add density matrix to result data
   switch (type) {
   case SnapshotDataType::average:
-    result.data.add_average_snapshot("density_matrix", op.string_params[0],
+    result.legacy_data.add_average_snapshot("density_matrix", op.string_params[0],
                               BaseState::creg_.memory_hex(),
                               std::move(reduced_state), false);
     break;
   case SnapshotDataType::average_var:
-    result.data.add_average_snapshot("density_matrix", op.string_params[0],
+    result.legacy_data.add_average_snapshot("density_matrix", op.string_params[0],
                               BaseState::creg_.memory_hex(),
                               std::move(reduced_state), true);
     break;
   case SnapshotDataType::pershot:
-    result.data.add_pershot_snapshot("density_matrix", op.string_params[0],
+    result.legacy_data.add_pershot_snapshot("density_matrix", op.string_params[0],
                               std::move(reduced_state));
     break;
   }
