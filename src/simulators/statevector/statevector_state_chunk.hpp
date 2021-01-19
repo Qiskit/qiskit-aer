@@ -78,8 +78,6 @@ public:
                                             uint_t shots,
                                             RngEngine &rng) override;
 
-  virtual void allocate(uint_t num_qubits,uint_t shots);
-
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -146,11 +144,6 @@ protected:
                    RngEngine &rng);
 
   void apply_mcswap(const int_t iChunk,const reg_t &qubits);
-
-  /*
-  //swap between chunks
-  void apply_chunk_swap(const reg_t &qubits);
-  */
 
   //-----------------------------------------------------------------------
   // Measurement Helpers
@@ -244,15 +237,6 @@ protected:
 
   // Threshold for chopping small values to zero in JSON
   double json_chop_threshold_ = 1e-10;
-
-  /*
-  // Table of allowed gate names to gate enum class members
-  const static stringmap_t<Statevector::Gates> gateset_;
-
-  // Table of allowed snapshot types to enum class members
-  const static stringmap_t<Statevector::Snapshots> snapshotset_;
-  */
-
 };
 
 //=========================================================================
@@ -262,36 +246,6 @@ protected:
 //-------------------------------------------------------------------------
 // Initialization
 //-------------------------------------------------------------------------
-template <class statevec_t>
-void State<statevec_t>::allocate(uint_t num_qubits,uint_t shots)
-{
-  int_t i;
-  uint_t nchunks;
-
-  BaseState::num_shots_ = shots;
-
-  BaseState::setup_chunk_bits(num_qubits);
-
-  BaseState::chunk_omp_parallel_ = false;
-  if(BaseState::chunk_bits_ < BaseState::num_qubits_){
-    if(BaseState::qregs_[0].name() == "statevector_gpu"){
-      BaseState::chunk_omp_parallel_ = true;   //CUDA backend requires thread parallelization of chunk loop
-    }
-  }
-
-  nchunks = BaseState::num_local_chunks_;
-  for(i=0;i<BaseState::num_local_chunks_;i++){
-    if(this->multi_shot_parallelization_){
-      BaseState::qregs_[i].chunk_setup(num_qubits,num_qubits,0,nchunks);
-    }
-    else{
-      BaseState::qregs_[i].chunk_setup(BaseState::chunk_bits_,num_qubits,i + BaseState::global_chunk_index_,nchunks);
-    }
-    //only first one allocates chunks, others only set chunk index
-    nchunks = 0;
-  }
-}
-
 template <class statevec_t>
 void State<statevec_t>::initialize_qreg(uint_t num_qubits) 
 {

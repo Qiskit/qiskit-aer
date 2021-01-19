@@ -118,9 +118,7 @@ public:
                          bool final_ops = false);
 
   //memory allocation (previously called before inisitalize_qreg)
-  virtual void allocate(uint_t num_qubits,uint_t shots)
-  {
-  }
+  virtual void allocate(uint_t num_qubits,uint_t shots);
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
@@ -263,7 +261,10 @@ protected:
 
   bool multi_shot_parallelization_;
 
-  void setup_chunk_bits(uint_t num_qubits, int scale = 1);
+  virtual int qubit_scale(void)
+  {
+    return 1;     //scale of qubit number (x2 for density and unitary matrices)
+  }
   uint_t get_process_by_chunk(uint_t cid);
 
   //swap between chunks
@@ -381,11 +382,13 @@ void StateChunk<state_t>::set_distribution(uint_t nprocs)
 }
 
 template <class state_t>
-void StateChunk<state_t>::setup_chunk_bits(uint_t num_qubits,int scale)
+void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t shots)
 {
+  int_t i;
+  uint_t nchunks;
   int max_bits = num_qubits;
-  uint_t i;
 
+  num_shots_ = shots;
   num_qubits_ = num_qubits;
 
   if(block_bits_ > 0){
@@ -401,12 +404,11 @@ void StateChunk<state_t>::setup_chunk_bits(uint_t num_qubits,int scale)
     chunk_bits_ = num_qubits_;
   }
 
-  //scale for density matrix
-  chunk_bits_ *= scale;
-  num_qubits_ *= scale;
+  //scale for density/unitary matrix simulators
+  chunk_bits_ *= qubit_scale();
+  num_qubits_ *= qubit_scale();
 
   num_global_chunks_ = num_shots_ << (num_qubits_ - chunk_bits_);
-
 
   chunk_index_begin_.resize(distributed_procs_);
   chunk_index_end_.resize(distributed_procs_);
@@ -424,6 +426,22 @@ void StateChunk<state_t>::setup_chunk_bits(uint_t num_qubits,int scale)
 
   qregs_.resize(num_local_chunks_);
   cregs_.resize(num_shots_);
+
+  chunk_omp_parallel_ = false;
+  if(chunk_bits_ < num_qubits_){
+    if(qregs_[0].name().find("gpu") != std::string::npos){
+      chunk_omp_parallel_ = true;   //CUDA backend requires thread parallelization of chunk loop
+    }
+  }
+
+  nchunks = num_local_chunks_;
+  for(i=0;i<num_local_chunks_;i++){
+    uint_t gid = multi_shot_parallelization_ ? 0 : i + global_chunk_index_;
+    qregs_[i].chunk_setup(chunk_bits_,num_qubits_,gid,nchunks);
+
+    //only first one allocates chunks, others only set chunk index
+    nchunks = 0;
+  }
 }
 
 template <class state_t>

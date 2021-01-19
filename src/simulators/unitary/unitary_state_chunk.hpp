@@ -72,8 +72,6 @@ public:
   // Config: {"omp_qubit_threshold": 7}
   virtual void set_config(const json_t &config) override;
 
-  virtual void allocate(uint_t num_qubits,uint_t shots);
-
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -137,40 +135,17 @@ protected:
 
   // Threshold for chopping small values to zero in JSON
   double json_chop_threshold_ = 1e-10;
+
+  int qubit_scale(void)
+  {
+    return 2;
+  }
 };
 
 
 //============================================================================
 // Implementation: Base class method overrides
 //============================================================================
-
-template <class unitary_matrix_t>
-void State<unitary_matrix_t>::allocate(uint_t num_qubits,uint_t shots)
-{
-  int_t i;
-  uint_t nchunks;
-
-  BaseState::num_shots_ = shots;
-
-  BaseState::setup_chunk_bits(num_qubits,2);
-
-  BaseState::chunk_omp_parallel_ = false;
-  if(BaseState::chunk_bits_ < BaseState::num_qubits_){
-    if(BaseState::qregs_[0].name() == "unitary_matrix_gpu"){
-      BaseState::chunk_omp_parallel_ = true;   //CUDA backend requires thread parallelization of chunk loop
-    }
-  }
-
-  nchunks = BaseState::num_local_chunks_;
-  for(i=0;i<BaseState::num_local_chunks_;i++){
-    uint_t gid = this->multi_shot_parallelization_ ? 0 : i + BaseState::global_chunk_index_;
-    BaseState::qregs_[i].chunk_setup(BaseState::chunk_bits_,BaseState::num_qubits_,gid,nchunks);
-
-    //only first one allocates chunks, others only set chunk index
-    nchunks = 0;
-  }
-}
-
 //add final state to result
 template <class unitary_matrix_t>
 void State<unitary_matrix_t>::add_state_to_data(ExperimentResult &result)
