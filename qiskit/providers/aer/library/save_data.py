@@ -51,6 +51,9 @@ class SaveData(Instruction):
             raise ExtensionError(
                 "Invalid data subtype for SaveData instruction.")
 
+        if not isinstance(key, str):
+            raise ExtensionError("Invalid key for save data instruction, key must be a string.")
+
         self._key = key
         self._subtype = subtype
         super().__init__(name, num_qubits, 0, params)
