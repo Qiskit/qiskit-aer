@@ -157,17 +157,13 @@ void Fusion::optimize_circuit(Circuit& circ,
   using clock_t = std::chrono::high_resolution_clock;
   auto timer_start = clock_t::now();
 
-  // Fusion metadata container
-  json_t metadata;
-                
   // Check if fusion should be skipped
   if (!active || !allowed_opset.contains(optype_t::matrix)) {
-    metadata["enabled"] = false;
-    result.add_metadata("fusion", metadata);
+    result.metadata.add(false, "fusion", "enabled");
     return;
   }
-  metadata["enabled"] = true;
-  metadata["applied"] = false;
+  result.metadata.add(true, "fusion", "enabled");
+  result.metadata.add(false, "fusion", "applied");
 
   // Determine fusion method
   // TODO: Support Kraus fusion method
@@ -182,23 +178,22 @@ void Fusion::optimize_circuit(Circuit& circ,
        || circ.opset().contains(optype_t::superop))) {
     method = Method::kraus;
   }
-
-  // Calculate thresholds based on method
   if (method == Method::unitary) {
-    metadata["method"] = "unitary";
+    result.metadata.add("unitary", "fusion", "method");
   } else if (method == Method::superop) {
-    metadata["method"] = "superop";
+    result.metadata.add("superop", "fusion", "method");
   } else if (method == Method::kraus) {
-    metadata["method"] = "kraus";
+    result.metadata.add("kraus", "fusion", "method");
   }
+
   // Check qubit threshold
-  metadata["threshold"] = threshold;
+  result.metadata.add(threshold, "fusion", "threshold");
   if (circ.num_qubits <= threshold || circ.ops.size() < 2) {
-    result.add_metadata("fusion", metadata);
     return;
   }
-  metadata["cost_factor"] = cost_factor;
-  metadata["max_fused_qubits"] = max_qubit;
+
+  result.metadata.add(cost_factor, "fusion", "cost_factor");
+  result.metadata.add(max_qubit, "fusion", "max_fused_qubits");
 
   // Apply fusion
   bool applied = false;
@@ -230,7 +225,7 @@ void Fusion::optimize_circuit(Circuit& circ,
 
     if (idx != circ.ops.size())
       circ.ops.erase(circ.ops.begin() + idx, circ.ops.end());
-    metadata["applied"] = true;
+    result.metadata.add(true, "fusion", "applied");
 
     // Update circuit params for fused circuit
     circ.set_params();
@@ -238,12 +233,12 @@ void Fusion::optimize_circuit(Circuit& circ,
 
   // Final metadata
   if (verbose && applied) {
-    metadata["input_ops"] = circ.ops;
-    metadata["output_ops"] = circ.ops;
+    result.metadata.add(circ.ops, "fusion", "input_ops");
+    result.metadata.add(circ.ops, "fusion", "output_ops"); // This looks like a bug?
   }
   auto timer_stop = clock_t::now();
-  metadata["time_taken"] = std::chrono::duration<double>(timer_stop - timer_start).count();
-  result.add_metadata("fusion", metadata);
+  auto time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();
+  result.metadata.add(time_taken, "fusion", "time_taken");
 }
 
 bool Fusion::can_ignore(const op_t& op) const {

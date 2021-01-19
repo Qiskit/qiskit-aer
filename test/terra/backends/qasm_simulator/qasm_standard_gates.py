@@ -13,6 +13,7 @@
 QasmSimulator Integration Tests for circuit library standard gates
 """
 
+from itertools import product
 from ddt import ddt, unpack, data
 from numpy.random import default_rng
 
@@ -27,57 +28,65 @@ from qiskit.circuit.library.standard_gates import (
     C4XGate, CCXGate, CHGate, CSXGate, CSwapGate, CPhaseGate, CRXGate, CRYGate,
     CRZGate, CU1Gate, CU3Gate, CUGate, PhaseGate, RC3XGate, RCCXGate, RGate,
     RXGate, RXXGate, RYGate, RYYGate, RZGate, RZXGate, RZZGate, U1Gate, U2Gate,
-    U3Gate, UGate)
+    U3Gate, UGate, MCXGate, MCPhaseGate, MCXGrayCode)
 
 GATES = [
     # Clifford Gates
-    (CXGate, 0),
-    (CYGate, 0),
-    (CZGate, 0),
-    (DCXGate, 0),
-    (HGate, 0),
-    (IGate, 0),
-    (SGate, 0),
-    (SXGate, 0),
-    (SXdgGate, 0),
-    (SdgGate, 0),
-    (SwapGate, 0),
-    (XGate, 0),
-    (YGate, 0),
-    (ZGate, 0),
-    (TGate, 0),
+    (CXGate, 0, False),
+    (CYGate, 0, False),
+    (CZGate, 0, False),
+    (DCXGate, 0, False),
+    (HGate, 0, False),
+    (IGate, 0, False),
+    (SGate, 0, False),
+    (SXGate, 0, False),
+    (SXdgGate, 0, False),
+    (SdgGate, 0, False),
+    (SwapGate, 0, False),
+    (XGate, 0, False),
+    (YGate, 0, False),
+    (ZGate, 0, False),
+    (TGate, 0, False),
     # Non-Clifford Gates
-    (TdgGate, 0),
-    (iSwapGate, 0),
-    (C3XGate, 0),
-    (C4XGate, 0),
-    (CCXGate, 0),
-    (CHGate, 0),
-    (CSXGate, 0),
-    (CSwapGate, 0),
+    (TdgGate, 0, False),
+    (iSwapGate, 0, False),
+    (C3XGate, 0, False),
+    (C4XGate, 0, False),
+    (CCXGate, 0, False),
+    (CHGate, 0, False),
+    (CSXGate, 0, False),
+    (CSwapGate, 0, False),
     # Parameterized Gates
-    (CPhaseGate, 1),
-    (CRXGate, 1),
-    (CRYGate, 1),
-    (CRZGate, 1),
-    (CU1Gate, 1),
-    (CU3Gate, 3),
-    (CUGate, 4),
-    (PhaseGate, 1),
-    (RC3XGate, 1),
-    (RCCXGate, 1),
-    (RGate, 2),
-    (RXGate, 1),
-    (RXXGate, 1),
-    (RYGate, 1),
-    (RYYGate, 1),
-    (RZGate, 1),
-    (RZXGate, 1),
-    (RZZGate, 1),
-    (U1Gate, 1),
-    (U2Gate, 2),
-    (U3Gate, 3),
-    (UGate, 3)
+    (CPhaseGate, 1, False),
+    (CRXGate, 1, False),
+    (CRYGate, 1, False),
+    (CRZGate, 1, False),
+    (CU1Gate, 1, False),
+    (CU3Gate, 3, False),
+    (CUGate, 4, False),
+    (PhaseGate, 1, False),
+    (RC3XGate, 1, False),
+    (RCCXGate, 1, False),
+    (RGate, 2, False),
+    (RXGate, 1, False),
+    (RXXGate, 1, False),
+    (RYGate, 1, False),
+    (RYYGate, 1, False),
+    (RZGate, 1, False),
+    (RZXGate, 1, False),
+    (RZZGate, 1, False),
+    (U1Gate, 1, False),
+    (U2Gate, 2, False),
+    (U3Gate, 3, False),
+    (UGate, 3, False),
+    (MCXGate, 0, True),
+    (MCPhaseGate, 1, True),
+    (MCXGrayCode, 0, True)
+]
+BASIS_GATES = [
+    None,
+    ['id', 'u1', 'u2', 'u3', 'cx'],  # Waltz
+    ['id', 'rz', 'sx', 'x', 'cx']
 ]
 
 
@@ -90,9 +99,10 @@ class QasmStandardGateStatevectorTests:
     SEED = 8181
     RNG = default_rng(seed=SEED)
 
-    @data(*GATES)
+    @data(*[(gate_params[0], gate_params[1], gate_params[2], basis_gates)
+        for gate_params, basis_gates in product(GATES, BASIS_GATES)])
     @unpack
-    def test_gate_statevector(self, gate_cls, num_params):
+    def test_gate_statevector(self, gate_cls, num_angles, has_ctrl_qubits, basis_gates):
         """Test standard gate simulation test."""
 
         SUPPORTED_METHODS = [
@@ -106,7 +116,8 @@ class QasmStandardGateStatevectorTests:
         backend.set_options(method=method)
 
         circuits = self.gate_circuits(gate_cls,
-                                      num_params=num_params,
+                                      num_angles=num_angles,
+                                      has_ctrl_qubits=has_ctrl_qubits,
                                       rng=self.RNG)
 
         for circuit in circuits:
@@ -114,7 +125,8 @@ class QasmStandardGateStatevectorTests:
 
             # Add snapshot and execute
             circuit.snapshot_statevector('final')
-            result = execute(circuit, backend, shots=1, **backend_options).result()
+            result = execute(circuit, backend, shots=1, basis_gates=basis_gates,
+                             optimization_level=0, **backend_options).result()
 
             # Check results
             success = getattr(result, 'success', False)
@@ -139,9 +151,10 @@ class QasmStandardGateDensityMatrixTests:
     SEED = 9997
     RNG = default_rng(seed=SEED)
 
-    @data(*GATES)
+    @data(*[(gate_params[0], gate_params[1], gate_params[2], basis_gates)
+        for gate_params, basis_gates in product(GATES, BASIS_GATES)])
     @unpack
-    def test_gate_density_matrix(self, gate_cls, num_params):
+    def test_gate_density_matrix(self, gate_cls, num_angles, has_ctrl_qubits, basis_gates):
         """Test standard gate simulation test."""
         SUPPORTED_METHODS = [
             'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
@@ -154,7 +167,8 @@ class QasmStandardGateDensityMatrixTests:
         backend.set_options(method=method)
         
         circuits = self.gate_circuits(gate_cls,
-                                      num_params=num_params,
+                                      num_angles=num_angles,
+                                      has_ctrl_qubits=has_ctrl_qubits,
                                       rng=self.RNG)
 
         for circuit in circuits:
@@ -163,7 +177,8 @@ class QasmStandardGateDensityMatrixTests:
             # Add snapshot and execute
             circuit.snapshot_density_matrix('final')
 
-            result = execute(circuit, backend, shots=1, **backend_options).result()
+            result = execute(circuit, backend, shots=1, basis_gates=basis_gates,
+                             optimization_level=0, **backend_options).result()
 
             # Check results
             success = getattr(result, 'success', False)

@@ -18,11 +18,7 @@ import warnings
 import numpy as np
 from numpy.linalg import norm
 from test.terra.common import QiskitAerTestCase
-import qiskit
 from qiskit.test.mock import FakeOpenPulse2Q
-import qiskit.pulse as pulse
-from qiskit.pulse import pulse_lib
-from qiskit.compiler import assemble
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.test.mock import FakeArmonk
