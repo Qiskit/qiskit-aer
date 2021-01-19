@@ -144,7 +144,8 @@ class AerBackend(Backend, ABC):
                           stacklevel=3)
             qobj = circuits
         else:
-            qobj = assemble(circuits, self)
+            options_dict = self.options.__dict__
+            qobj = assemble(circuits, self, **options_dict)
         # DEPRECATED
         if backend_options is not None:
             warnings.warn(
