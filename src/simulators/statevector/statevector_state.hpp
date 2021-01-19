@@ -615,7 +615,7 @@ void State<statevec_t>::snapshot_amplitudes(const Operations::Op &op,
   }
   cvector_t amplitude_vector(base_values.size());
   BaseState::qreg_.get_amplitude_vector(amplitude_vector, base_values);
-  result.data.add_pershot_snapshot("amplitudes", op.string_params[0], amplitude_vector);
+  result.legacy_data.add_pershot_snapshot("amplitudes", op.string_params[0], amplitude_vector);
 }
 
 template <class statevec_t>
