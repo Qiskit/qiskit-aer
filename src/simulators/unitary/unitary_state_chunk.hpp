@@ -319,6 +319,40 @@ void State<unitary_matrix_t>::initialize_omp()
   }
 }
 
+template <class unitary_matrix_t>
+auto State<unitary_matrix_t>::move_to_matrix(void)
+{
+  if(BaseState::num_global_chunks_ == 1){
+    return BaseState::qregs_[0].move_to_matrix();
+  }
+  else{
+    int_t iChunk;
+    auto state = BaseState::qregs_[0].vector();   //using vector to gather distributed matrix
+
+    //TO DO check memory availability
+    state.resize(BaseState::num_local_chunks_ << BaseState::chunk_bits_);
+
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk)
+    for(iChunk=1;iChunk<BaseState::num_local_chunks_;iChunk++){
+      auto tmp = BaseState::qregs_[iChunk].vector();
+      uint_t j,offset = iChunk << BaseState::chunk_bits_;
+      for(j=0;j<tmp.size();j++){
+        state[offset + j] = tmp[j];
+      }
+    }
+
+#ifdef AER_MPI
+    BaseState::gather_state(state);
+#endif
+
+    //type of matrix cam not be discovered from State class, so make from matrix
+    auto matrix = BaseState::qregs_[0].move_to_matrix();
+    matrix.resize(1ull << (BaseState::num_qubits_/2),1ull << (BaseState::num_qubits_/2));
+    matrix.copy_from_buffer(1ull << (BaseState::num_qubits_/2),1ull << (BaseState::num_qubits_/2),&state[0]);
+    return matrix;
+  }
+}
+
 //=========================================================================
 // Implementation: Gates
 //=========================================================================
@@ -484,39 +518,6 @@ void State<unitary_matrix_t>::apply_global_phase() {
 }
 
 
-template <class unitary_matrix_t>
-auto State<unitary_matrix_t>::move_to_matrix(void)
-{
-  if(BaseState::num_global_chunks_ == 1){
-    return BaseState::qregs_[0].move_to_matrix();
-  }
-  else{
-    int_t iChunk;
-    auto state = BaseState::qregs_[0].vector();
-
-    //TO DO check memory availability
-    state.resize(BaseState::num_local_chunks_ << BaseState::chunk_bits_);
-
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk)
-    for(iChunk=1;iChunk<BaseState::num_local_chunks_;iChunk++){
-      auto tmp = BaseState::qregs_[iChunk].vector();
-      uint_t j,offset = iChunk << BaseState::chunk_bits_;
-      for(j=0;j<tmp.size();j++){
-        state[offset + j] = tmp[j];
-      }
-    }
-
-#ifdef AER_MPI
-    BaseState::gather_state(state);
-#endif
-
-    //type of matrix cam not be discovered from State class, so make from matrix
-    auto matrix = BaseState::qregs_[0].move_to_matrix();
-    matrix.resize(1ull << BaseState::num_qubits_,1ull << BaseState::num_qubits_);
-    matrix.copy_from_buffer(1ull << (BaseState::num_qubits_/2),1ull << (BaseState::num_qubits_/2),&state[0]);
-    return matrix;
-  }
-}
 
 //------------------------------------------------------------------------------
 } // namespace QubitUnitary

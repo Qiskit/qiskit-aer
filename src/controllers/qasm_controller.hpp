@@ -207,7 +207,7 @@ class QasmController : public Base::Controller {
   // Set distributed parallelization
   virtual void
   set_distributed_parallelization(const std::vector<Circuit> &circuits,
-                                  const Noise::NoiseModel &noise) override;
+                                  const std::vector<Noise::NoiseModel> &noise) override;
 
   // Return a fusion transpilation pass configured for the current
   // method, circuit and config
@@ -978,14 +978,14 @@ void QasmController::set_parallelization_circuit(
 }
 
 void QasmController::set_distributed_parallelization(const std::vector<Circuit> &circuits,
-                                  const Noise::NoiseModel &noise)
+                                  const std::vector<Noise::NoiseModel> &noise)
 {
   uint_t i,ncircuits;
   bool sample_opt = true;
 
   ncircuits = circuits.size();
   for(i=0;i<ncircuits;i++){
-    const auto method = simulation_method(circuits[i], noise, false);
+    const auto method = simulation_method(circuits[i], noise[i], false);
     switch (method) {
       case Method::statevector:
       case Method::statevector_thrust_gpu:
@@ -993,7 +993,7 @@ void QasmController::set_distributed_parallelization(const std::vector<Circuit> 
       case Method::stabilizer:
       case Method::matrix_product_state: {
         if (circuits[i].shots > 1 &&
-            (noise.has_quantum_errors() ||
+            (noise[i].has_quantum_errors() ||
              !check_measure_sampling_opt(circuits[i], Method::statevector))) {
           sample_opt = false;
         }

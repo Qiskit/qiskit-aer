@@ -419,7 +419,7 @@ auto State<densmat_t>::move_to_matrix(void)
 
     //type of matrix cam not be discovered from State class, so make from matrix
     auto matrix = BaseState::qregs_[0].move_to_matrix();
-    matrix.resize(1ull << BaseState::num_qubits_,1ull << BaseState::num_qubits_);
+    matrix.resize(1ull << (BaseState::num_qubits_/2),1ull << (BaseState::num_qubits_/2));
     matrix.copy_from_buffer(1ull << (BaseState::num_qubits_/2),1ull << (BaseState::num_qubits_/2),&state[0]);
     return matrix;
   }
@@ -730,7 +730,7 @@ cmatrix_t State<densmat_t>::reduced_density_matrix(const reg_t& qubits, const re
   }
 
 #ifdef AER_MPI
-  BaseState::gather_state(state);
+  BaseState::gather_state(vmat);
 #endif
 
   cmatrix_t reduced_state(DIM, DIM, false);

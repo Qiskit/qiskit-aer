@@ -315,6 +315,9 @@ protected:
   template <class data_t>
   void gather_state(std::vector<std::complex<data_t>>& state);
 
+  template <class data_t>
+  void gather_state(AER::Vector<std::complex<data_t>>& state);
+
   //apply one operator
   //implement this function instead of apply_ops in the sub classes for simulation methods
   virtual void apply_op(const int_t iChunk,const Operations::Op &op,
@@ -1013,6 +1016,44 @@ void StateChunk<state_t>::gather_state(std::vector<std::complex<data_t>>& state)
       MPI_Isend(&local_size,1,MPI_UINT64_T,0,i*2,distributed_comm_,&reqSend);
       MPI_Wait(&reqSend,&st);
       MPI_Isend(&state[0],local_size*sizeof(std::complex<data_t>),MPI_BYTE,0,i*2+1,distributed_comm_,&reqSend);
+      MPI_Wait(&reqSend,&st);
+    }
+  }
+#endif
+}
+
+template <class state_t>
+template <class data_t>
+void StateChunk<state_t>::gather_state(AER::Vector<std::complex<data_t>>& state)
+{
+#ifdef AER_MPI
+  if(distributed_procs_ > 1){
+    uint_t size,local_size,global_size,offset;
+    int i;
+    MPI_Status st;
+    MPI_Request reqSend,reqRecv;
+
+    local_size = state.size();
+    MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,distributed_comm_);
+
+    //TO DO check memory availability
+
+    if(distributed_rank_ == 0){
+      state.resize(global_size);
+
+      offset = 0;
+      for(i=1;i<distributed_procs_;i++){
+        MPI_Irecv(&size,1,MPI_UINT64_T,i,i*2,distributed_comm_,&reqRecv);
+        MPI_Wait(&reqRecv,&st);
+        MPI_Irecv(state.data() + offset,size*sizeof(std::complex<data_t>),MPI_BYTE,i,i*2+1,distributed_comm_,&reqRecv);
+        MPI_Wait(&reqRecv,&st);
+        offset += size;
+      }
+    }
+    else{
+      MPI_Isend(&local_size,1,MPI_UINT64_T,0,i*2,distributed_comm_,&reqSend);
+      MPI_Wait(&reqSend,&st);
+      MPI_Isend(state.data(),local_size*sizeof(std::complex<data_t>),MPI_BYTE,0,i*2+1,distributed_comm_,&reqSend);
       MPI_Wait(&reqSend,&st);
     }
   }

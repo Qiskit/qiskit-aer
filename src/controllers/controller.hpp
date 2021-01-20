@@ -201,7 +201,7 @@ protected:
   // Set parallelization for experiments
   virtual void
   set_parallelization_experiments(const std::vector<Circuit> &circuits,
-                                  const Noise::NoiseModel &noise);
+                                  const std::vector<Noise::NoiseModel> &noise);
 
   // Set parallelization for a circuit
   virtual void set_parallelization_circuit(const Circuit &circuit,
@@ -214,7 +214,7 @@ protected:
   // Set distributed parallelization
   virtual void
   set_distributed_parallelization(const std::vector<Circuit> &circuits,
-                                  const Noise::NoiseModel &noise);
+                                  const std::vector<Noise::NoiseModel> &noise);
 
   // Get system memory size
   size_t get_system_memory_mb();
@@ -360,7 +360,7 @@ void Controller::clear_parallelization() {
 }
 
 void Controller::set_parallelization_experiments(
-    const std::vector<Circuit> &circuits, const Noise::NoiseModel &noise) 
+    const std::vector<Circuit> &circuits, const std::vector<Noise::NoiseModel> &noise) 
 {
   // Use a local variable to not override stored maximum based
   // on currently executed circuits
@@ -378,7 +378,7 @@ void Controller::set_parallelization_experiments(
   // If memory allows, execute experiments in parallel
   std::vector<size_t> required_memory_mb_list(distributed_experiments_end_ - distributed_experiments_begin_);
   for (size_t j = 0; j < distributed_experiments_end_-distributed_experiments_begin_; j++) {
-    required_memory_mb_list[j] = required_memory_mb(circuits[j+distributed_experiments_begin_], noise) / num_process_per_experiment_;
+    required_memory_mb_list[j] = required_memory_mb(circuits[j+distributed_experiments_begin_], noise[j+distributed_experiments_begin_]) / num_process_per_experiment_;
   }
   std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(),
             std::greater<>());
@@ -437,11 +437,11 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
 }
 
 void Controller::set_distributed_parallelization(const std::vector<Circuit> &circuits,
-                                  const Noise::NoiseModel &noise)
+                                  const std::vector<Noise::NoiseModel> &noise)
 {
   std::vector<size_t> required_memory_mb_list(circuits.size());
   for (size_t j = 0; j < circuits.size(); j++) {
-    size_t size = required_memory_mb(circuits[j], noise);
+    size_t size = required_memory_mb(circuits[j], noise[j]);
     if(size > max_memory_mb_ + max_gpu_memory_mb_){
       num_process_per_experiment_ = std::max<int>(num_process_per_experiment_,(size + (max_memory_mb_+max_gpu_memory_mb_) - 1) / (max_memory_mb_+max_gpu_memory_mb_));
     }
@@ -654,6 +654,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
   // Start QOBJ timer
   auto timer_start = myclock_t::now();
 
+  // Initialize Result object for the given number of experiments
   Result result(circuits.size());
   // Make a copy of the noise model for each circuit execution
   // so that it can be modified if required
@@ -672,9 +673,8 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       }
     }
 
-    set_distributed_parallelization(circuits, noise_model);
+    set_distributed_parallelization(circuits, circ_noise_models);
 
-    // Initialize Result object for the given number of experiments
     const auto num_circuits = distributed_experiments_end_ - distributed_experiments_begin_;
     result.resize(num_circuits);
 
@@ -688,7 +688,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 
     if (!explicit_parallelization_) {
       // set parallelization for experiments
-      set_parallelization_experiments(circuits, noise_model);
+      set_parallelization_experiments(circuits, circ_noise_models);
     }
 
 #ifdef _OPENMP
@@ -770,10 +770,6 @@ Result Controller::execute(std::vector<Circuit> &circuits,
   catch (std::exception &e) {
     result.status = Result::Status::error;
     result.message = e.what();
-    for(auto& res : result.results){
-      res.status = ExperimentResult::Status::error;
-      res.message = e.what();
-    }
   }
   return result;
 }
@@ -781,8 +777,8 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 void Controller::execute_circuit(Circuit &circ,
                                  Noise::NoiseModel &noise,
                                  const json_t &config,
-                                 ExperimentResult &result) {
-
+                                 ExperimentResult &result) 
+{
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
 
@@ -795,6 +791,14 @@ void Controller::execute_circuit(Circuit &circ,
     // Remove barriers from circuit
     Transpile::ReduceBarrier barrier_pass;
     barrier_pass.optimize_circuit(circ, noise, circ.opset(), result);
+
+    // Truncate unused qubits from circuit and noise model
+    if (truncate_qubits_) {
+      Transpile::TruncateQubits truncate_pass;
+      truncate_pass.set_config(config);
+      truncate_pass.optimize_circuit(circ, noise, circ.opset(),
+                                     result);
+    }
 
     // set parallelization for this circuit
     if (!explicit_parallelization_) {
