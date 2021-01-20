@@ -150,7 +150,7 @@ public:
 
   auto move_to_vector(void)
   {
-    return qreg_.move_to_vector();
+    return BaseState::qreg_.move_to_vector();
   }
 protected:
   //-----------------------------------------------------------------------

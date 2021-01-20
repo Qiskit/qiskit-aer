@@ -115,7 +115,7 @@ public:
 
   auto move_to_matrix(void)
   {
-    return qreg_.move_to_matrix();
+    return BaseState::qreg_.move_to_matrix();
   }
 protected:
   //-----------------------------------------------------------------------
