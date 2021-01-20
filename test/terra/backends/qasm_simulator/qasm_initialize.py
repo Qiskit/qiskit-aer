@@ -82,7 +82,7 @@ class QasmInitializeTests:
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     def test_initialize_2(self):
-        """Test QasmSimulator initializes"""
+        """Test QasmSimulator initialize"""
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
         shots = 1000
@@ -99,6 +99,17 @@ class QasmInitializeTests:
         shots = 1000
         circuits = ref_initialize.initialize_sampling_optimization()
         targets = ref_initialize.initialize_counts_sampling_optimization(shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        opts = self.BACKEND_OPTS.copy()
+        result = self.SIMULATOR.run(qobj, **opts).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    def test_initialize_entangled_qubits(self):
+        """Test initialize entangled qubits"""
+        shots = 1000
+        circuits = ref_initialize.initialize_entangled_qubits()
+        targets = ref_initialize.initialize_counts_entangled_qubits(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         opts = self.BACKEND_OPTS.copy()
         result = self.SIMULATOR.run(qobj, **opts).result()
