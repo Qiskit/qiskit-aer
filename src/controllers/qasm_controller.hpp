@@ -291,8 +291,6 @@ class QasmController : public Base::Controller {
 
   // TODO: initial stabilizer state
 
-  // Controller-level parameter for CH method
-  bool extended_stabilizer_measure_sampling_ = false;
 };
 
 //=========================================================================
@@ -343,10 +341,6 @@ void QasmController::set_config(const json_t& config) {
       simulation_precision_ = Precision::single_precision;
     }
   }
-
-  // Check for extended stabilizer measure sampling
-  JSON::get_value(extended_stabilizer_measure_sampling_,
-                  "extended_stabilizer_measure_sampling", config);
 
   // DEPRECATED: Add custom initial state
   if (JSON::get_value(initial_statevector_, "initial_statevector", config)) {
@@ -889,13 +883,12 @@ void QasmController::run_circuit_helper(const Circuit& circ,
 
   // Output data container
   result.set_config(config);
-  result.add_metadata("method", state.name());
+  result.metadata.add(state.name(), "method");
   state.add_metadata(result);
 
   // Add measure sampling to metadata
   // Note: this will set to `true` if sampling is enabled for the circuit
-  result.add_metadata("measure_sampling", false);
-
+  result.metadata.add(false, "measure_sampling");
   // Choose execution method based on noise and method
   Circuit opt_circ;
 
@@ -950,7 +943,7 @@ void QasmController::run_single_shot(const Circuit& circ,
                                      RngEngine& rng) const {
   initialize_state(circ, state, initial_state);
   state.apply_ops(circ.ops, result, rng, true);
-  state.add_creg_to_data(result);
+  Base::Controller::save_count_data(result, state.creg());
 }
 
 template <class State_t, class Initstate_t>
@@ -979,7 +972,7 @@ void QasmController::run_multi_shot(const Circuit& circ,
     measure_sampler(ops, shots, state, result, rng);
 
     // Add measure sampling metadata
-    result.add_metadata("measure_sampling", true);
+    result.metadata.add(true, "measure_sampling");
   } else {
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
@@ -1028,12 +1021,6 @@ bool QasmController::check_measure_sampling_opt(const Circuit& circ,
     return false;
   }
 
-  // Check if stabilizer measure sampling has been disabled
-  if (method == Method::extended_stabilizer &&
-      !extended_stabilizer_measure_sampling_) {
-    return false;
-  }
-
   // Check if non-density matrix simulation and circuit contains
   // a stochastic instruction before measurement
   // ie. initialize, reset, kraus, superop, conditional
@@ -1064,7 +1051,7 @@ void QasmController::measure_sampler(
   // Check if meas_circ is empty, and if so return initial creg
   if (meas_roerror_ops.empty()) {
     while (shots-- > 0) {
-      state.add_creg_to_data(result);
+      Base::Controller::save_count_data(result, state.creg());
     }
     return;
   }
@@ -1133,11 +1120,8 @@ void QasmController::measure_sampler(
       creg.apply_roerror(roerror, rng);
     }
 
-    auto memory = creg.memory_hex();
-    result.data.add_memory_count(memory);
-    result.data.add_pershot_memory(memory);
-
-    result.data.add_pershot_register(creg.register_hex());
+    // Save count data
+    Base::Controller::save_count_data(result, creg);
 
     // pop off processed sample
     all_samples.pop_back();

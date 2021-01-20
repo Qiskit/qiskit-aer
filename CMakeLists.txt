@@ -8,8 +8,10 @@
 # For Mac, statically linking only happens with user libraries, system libraries cannot
 # be linked statically per Apple's indications.
 
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 file(STRINGS "qiskit/providers/aer/VERSION.txt" VERSION_NUM)
+
+include(CheckLanguage)
 project(qasm_simulator VERSION ${VERSION_NUM} LANGUAGES CXX C)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -23,6 +25,17 @@ if(NOT DEFINED AER_THRUST_BACKEND AND DEFINED ENV{AER_THRUST_BACKEND})
 	set(AER_THRUST_BACKEND $ENV{AER_THRUST_BACKEND})
 endif()
 
+if(AER_THRUST_BACKEND STREQUAL "CUDA")
+  include(nvcc_add_compiler_options)
+  set(CUDA_FOUND TRUE)
+  #include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
+  include(FindCUDA/select_compute_arch)
+  enable_language(CUDA)
+else()
+  # idiosyncrasy of CMake that it still creates a reference to this
+  set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION "")
+endif()
+
 
 # Warning: Because of a bug on CMake's FindBLAS or (it's not clear who's fault is)
 # libopenblas.a for Ubuntu (maybe others) we need to copy the file:
@@ -34,12 +47,9 @@ option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
 
 # Allow disabling conan for downstream package managers. Requires all libraries to be present in path
 # Default is value of environment variable if defined or ON
-if(DEFINED ENV{DISABLE_CONAN})
-	set(_DISABLE_CONAN_DEFAULT ENV{DISABLE_CONAN})
-else()
-	set(_DISABLE_CONAN_DEFAULT OFF)
+if(NOT DEFINED DISABLE_CONAN AND DEFINED ENV{DISABLE_CONAN})
+	set(DISABLE_CONAN $ENV{DISABLE_CONAN})
 endif()
-option(DISABLE_CONAN "Disable Conan package manager to find dependencies. If disabled, you must have all dependencies present on your system." ${_DISABLE_CONAN_DEFAULT})
 
 include(CTest)
 include(compiler_utils)
@@ -139,6 +149,9 @@ setup_dependencies()
 # If we do not set them with a space CMake fails afterwards if nothing is set for this vars!
 set(AER_LINKER_FLAGS " ")
 set(AER_COMPILER_FLAGS " ")
+if(MSVC)
+  set(AER_COMPILER_FLAGS " /bigobj")
+endif ()
 
 if(NOT OPENMP_FOUND) # Could already be setup for macos with conan
 	message(STATUS "Looking for OpenMP support...")
@@ -180,8 +193,8 @@ if(STATIC_LINKING)
 	set(BLA_STATIC TRUE)
 endif()
 
-if(BLAS_LIB_PATH)
-	find_BLAS_in_specific_path(${BLAS_LIB_PATH})
+if(AER_BLAS_LIB_PATH)
+	find_BLAS_in_specific_path(${AER_BLAS_LIB_PATH})
 else()
 	if(APPLE)
 		message(STATUS  "Looking for Apple BLAS & Lapack library...")
@@ -222,6 +235,14 @@ if(NOT MSVC)
 	endif()
 endif()
 
+if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
+	if(APPLE OR UNIX)
+		set(SIMD_FLAGS_LIST "-mfma;-mavx2")
+	elseif(MSVC)
+		set(SIMD_FLAGS_LIST "/arch:AVX2")
+	endif()
+endif()
+
 set(AER_THRUST_SUPPORTED TRUE)
 if(AER_THRUST_SUPPORTED)
 	if(AER_THRUST_BACKEND STREQUAL "CUDA")
@@ -236,18 +257,10 @@ if(AER_THRUST_SUPPORTED)
 			endif()
 		endif()
 		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH_FLAGS ${AER_CUDA_ARCH})
-		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin \"${CMAKE_CXX_COMPILER}\" ${AER_CUDA_ARCH_FLAGS} -DAER_THRUST_CUDA -std=c++14 -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
-		# We have to set SIMD flags globally because there seems to be a bug in FindCUDA which doesn't allow us to set per-file compilation flags.
-		# The implications is that users downloading the PyPi wheel package for the GPU, need to have a CPU with AVX2 support otherwise
-		# Aer will crash with: "Unknow instruction" exception.
-		# This will be fixed here: https://github.com/Qiskit/qiskit-aer/
-		if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
-			if(APPLE OR UNIX)
-				set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}; --compiler-options;-mfma,-mavx2")
-			elseif(MSVC)
-				set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} /arch:AVX2")
-			endif()
-		endif()
+
+		string(REPLACE ";" " "  AER_CUDA_ARCH_FLAGS_EXPAND "${AER_CUDA_ARCH_FLAGS}")
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDENT_LIBS "")
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
@@ -286,50 +299,58 @@ set(AER_LIBRARIES
 	${THRUST_DEPENDENT_LIBS})
 
 set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
-# Cython build is only enabled if building through scikit-build.
 if(SKBUILD) # Terra Addon build
 	set(AER_LIBRARIES ${AER_LIBRARIES} AER_DEPENDENCY_PKG::muparserx)
-	add_subdirectory(qiskit/providers/aer/pulse/qutip_extra_lite/cy)
 	add_subdirectory(qiskit/providers/aer/backends/wrappers)
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
 
-	# We build SIMD filed separately, because they will be reached only if the
-	# machine running the code has SIMD support
 	if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
-		set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
-		if(APPLE OR UNIX)
-			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "-mfma -mavx2")
-		elseif(MSVC)
-			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "/arch:AVX2")
-		endif()
-	endif()
+	  # We build SIMD filed separately, because they will be reached only if the
+	  # machine running the code has SIMD support
+	  set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+  endif()
 
-	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp"
-		"${SIMD_SOURCE_FILE}")
-	set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
-
+	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-	if(CUDA_FOUND)
-		cuda_add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES})
+	if(CUDA_FOUND AND AER_THRUST_BACKEND STREQUAL "CUDA")
+		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
+		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES LANGUAGE CUDA)
+		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
+                nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS)
+		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS}")
+
+		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
-	else(CUDA_FOUND)
-		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES})
+		string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)
+                nvcc_add_compiler_options(${AER_COMPILER_FLAGS_STRIPPED} AER_COMPILER_FLAGS_OUT)
+
+		set_target_properties(qasm_simulator PROPERTIES
+			LINKER_LANGUAGE CXX
+			CXX_STANDARD 14
+			COMPILE_FLAGS ${AER_COMPILER_FLAGS_OUT}
+			LINK_FLAGS ${AER_LINKER_FLAGS}
+			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
+			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
+	else()
+  		string(REPLACE ";" " " SIMD_FLAGS "${SIMD_FLAGS_LIST}")
+		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${SIMD_FLAGS}")
+		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(qasm_simulator PRIVATE ${AER_LIBRARIES})
-	endif(CUDA_FOUND)
-	set_target_properties(qasm_simulator PROPERTIES
-		LINKER_LANGUAGE CXX
-		CXX_STANDARD 14
-		COMPILE_FLAGS ${AER_COMPILER_FLAGS}
-		LINK_FLAGS ${AER_LINKER_FLAGS}
-		RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
-		RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
+		set_target_properties(qasm_simulator PROPERTIES
+			LINKER_LANGUAGE CXX
+			CXX_STANDARD 14
+			COMPILE_FLAGS ${AER_COMPILER_FLAGS}
+			LINK_FLAGS ${AER_LINKER_FLAGS}
+			RUNTIME_OUTPUT_DIRECTORY_DEBUG Debug
+			RUNTIME_OUTPUT_DIRECTORY_RELEASE Release)
+	endif()
 	target_include_directories(qasm_simulator
 		PRIVATE ${AER_SIMULATOR_CPP_SRC_DIR}
 		PRIVATE ${AER_SIMULATOR_CPP_EXTERNAL_LIBS})
 	target_compile_definitions(qasm_simulator
 		PRIVATE ${AER_COMPILER_DEFINITIONS})
-	if(WIN32 AND NOT BLAS_LIB_PATH)
+	if(WIN32 AND NOT AER_BLAS_LIB_PATH)
 		add_custom_command(TARGET qasm_simulator POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
 				${BACKEND_REDIST_DEPS}
 				$<TARGET_FILE_DIR:qasm_simulator>)

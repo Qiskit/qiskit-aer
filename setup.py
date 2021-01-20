@@ -15,18 +15,11 @@ import sys
 PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
 _DISABLE_CONAN = distutils.util.strtobool(os.getenv("DISABLE_CONAN", "OFF").lower())
 
-try:
-    from Cython.Build import cythonize
-except ImportError:
-    import subprocess
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'Cython>=0.27.1'])
-    from Cython.Build import cythonize
-
 if not _DISABLE_CONAN:
     try:
         from conans import client
     except ImportError:
-        subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan'])
+        subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan>=1.31.2'])
         from conans import client
 
 try:
@@ -37,7 +30,12 @@ except ImportError:
 try:
     import pybind11
 except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.4'])
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.6'])
+
+try:
+    from numpy import array
+except ImportError:
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=1.16.3'])
 
 from skbuild import setup
 
@@ -48,8 +46,7 @@ from skbuild import setup
 common_requirements = [
     'numpy>=1.16.3',
     'scipy>=1.0',
-    'cython>=0.27.1',
-    'pybind11>=2.4'  # This isn't really an install requirement,
+    'pybind11>=2.6'  # This isn't really an install requirement,
                      # Pybind11 is required to be pre-installed for
                      # CMake to successfully find header files.
                      # This should be fixed in the CMake build files.
@@ -107,6 +104,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Topic :: Scientific/Engineering",
     ],
     python_requires=">=3.6",

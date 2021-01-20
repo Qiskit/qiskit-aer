@@ -129,6 +129,10 @@ public:
   // Initialize OpenMP settings for the underlying DensityMatrix class
   void initialize_omp();
 
+  auto move_to_matrix(void)
+  {
+    return qreg_.move_to_matrix();
+  }
 protected:
   //-----------------------------------------------------------------------
   // Apply instructions
@@ -509,7 +513,7 @@ void State<densmat_t>::snapshot_probabilities(const Operations::Op &op,
   // get probs as hexadecimal
   auto probs = Utils::vec2ket(measure_probs(op.qubits),
                               json_chop_threshold_, 16);
-  result.data.add_average_snapshot("probabilities",
+  result.legacy_data.add_average_snapshot("probabilities",
                             op.string_params[0],
                             BaseState::creg_.memory_hex(),
                             std::move(probs),
@@ -536,7 +540,7 @@ void State<densmat_t>::snapshot_pauli_expval(const Operations::Op &op,
 
   // Add to snapshot
   Utils::chop_inplace(expval, json_chop_threshold_);
-  result.data.add_average_snapshot("expectation_value", op.string_params[0],
+  result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, variance);
 }
 
@@ -566,7 +570,7 @@ void State<densmat_t>::snapshot_density_matrix(const Operations::Op &op,
     }
   }
 
-  result.data.add_average_snapshot("density_matrix", op.string_params[0],
+  result.legacy_data.add_average_snapshot("density_matrix", op.string_params[0],
                             BaseState::creg_.memory_hex(),
                             std::move(reduced_state), false);
 }
@@ -607,7 +611,7 @@ State<densmat_t>::reduced_density_matrix_cpu(const reg_t &qubits,
   // Get dimensions
   const size_t N = qubits.size();
   const size_t DIM = 1ULL << N;
-  const size_t VDIM = 1ULL << (2 * N);
+  const int_t VDIM = 1ULL << (2 * N);
   const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);
   const size_t SHIFT = END + 1;
 
@@ -645,7 +649,7 @@ State<densmat_t>::reduced_density_matrix_thrust(const reg_t &qubits,
   // Get dimensions
   const size_t N = qubits.size();
   const size_t DIM = 1ULL << N;
-  const size_t VDIM = 1ULL << (2 * N);
+  const int_t VDIM = 1ULL << (2 * N);
   const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);
   const size_t SHIFT = END + 1;
 

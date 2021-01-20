@@ -25,7 +25,6 @@
 #include <string>
 #include <vector>
 #include <tuple>
-
 #include <sstream>
 #include <stdexcept>
 
@@ -1756,7 +1755,7 @@ reg_t QubitVector<data_t>::sample_measure(const std::vector<double> &rnds) const
  *
  ******************************************************************************/
 using pauli_mask_data = std::tuple<uint_t, uint_t, uint_t, uint_t>;
-pauli_mask_data pauli_masks_and_phase(const reg_t &qubits, const std::string &pauli){
+inline pauli_mask_data pauli_masks_and_phase(const reg_t &qubits, const std::string &pauli){
  // Break string up into Z and X
  // With Y being both Z and X (plus a phase)
   const size_t N = qubits.size();
@@ -1883,7 +1882,6 @@ void QubitVector<data_t>::apply_pauli(const reg_t &qubits, const std::string &pa
   }
   auto phase = std::complex<data_t>(coeff);
   add_y_phase(num_y, phase);
-  const uint_t DIM = 1ULL << qubits.size();
 
   // specialize x_max == 0
   if (!x_mask) {
@@ -1903,13 +1901,13 @@ void QubitVector<data_t>::apply_pauli(const reg_t &qubits, const std::string &pa
     int_t idxs[2];
     idxs[0] = ((i << 1) & mask_u) | (i & mask_l);
     idxs[1] = idxs[0] ^ x_mask;
+    std::swap(data_[idxs[0]], data_[idxs[1]]);
     for (int_t j = 0; j < 2; ++j) {
       if (z_mask && (AER::Utils::popcount(idxs[j] & z_mask) & 1)) {
         data_[idxs[j]] *= -1;
       }
       data_[idxs[j]] *= phase;
     }
-    std::swap(data_[idxs[0]], data_[idxs[1]]);
   };
   apply_lambda(lambda, (size_t) 0, (data_size_ >> 1));
 }

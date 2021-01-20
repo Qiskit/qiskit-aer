@@ -52,9 +52,10 @@ const Operations::OpSet StateOpSet(
    Operations::OpType::kraus},
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
-   "u2", "u3", "u", "U", "CX", "cx",  "cz", "cp", "cu1", "swap", "ccx"},
+   "u2", "u3", "u", "U", "CX", "cx",  "cz", "cp", "cu1", "swap", "ccx",
+   "sx", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx"},
   // Snapshots
-  {"statevector", "memory", "register", "probabilities",
+  {"statevector", "amplitudes", "memory", "register", "probabilities",
     "expectation_value_pauli", "expectation_value_pauli_with_variance",
     "expectation_value_pauli_single_shot", "expectation_value_matrix",
     "expectation_value_matrix_with_variance",
@@ -64,7 +65,7 @@ const Operations::OpSet StateOpSet(
 
 // Allowed snapshots enum class
 enum class Snapshots {
-  statevector, cmemory, cregister,
+  statevector, amplitudes, cmemory, cregister,
     probs, probs_var, densmat, densmat_var,
     expval_pauli, expval_pauli_var, expval_pauli_shot,
     expval_matrix, expval_matrix_var, expval_matrix_shot
@@ -262,6 +263,10 @@ protected:
 		      ExperimentResult &result,
 		      std::string name = "");
 
+  void snapshot_amplitudes(const Operations::Op &op,
+			   ExperimentResult &result,
+			   std::string name = "");
+
   //-----------------------------------------------------------------------
   // Single-qubit gate helpers
   //-----------------------------------------------------------------------
@@ -302,6 +307,10 @@ const stringmap_t<Gates> State::gateset_({
   {"sx", Gates::sx},     // Sqrt(X) gate
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
+  {"r", Gates::r},       // R rotation gate
+  {"rx", Gates::rx},     // Pauli-X rotation gate
+  {"ry", Gates::ry},     // Pauli-Y rotation gate
+  {"rz", Gates::rz},     // Pauli-Z rotation gate
   // Waltz Gates
   {"p", Gates::u1},      // zero-X90 pulse waltz gate
   {"u1", Gates::u1},     // zero-X90 pulse waltz gate
@@ -316,12 +325,17 @@ const stringmap_t<Gates> State::gateset_({
   {"cu1", Gates::cu1},   // Controlled-U1 gate
   {"cp", Gates::cu1},    // Controlled-U1 gate
   {"swap", Gates::swap}, // SWAP gate
+  {"rxx", Gates::rxx},   // Pauli-XX rotation gate
+  {"ryy", Gates::ryy},   // Pauli-YY rotation gate
+  {"rzz", Gates::rzz},   // Pauli-ZZ rotation gate
+  {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
   // Three-qubit gates
    {"ccx", Gates::mcx}   // Controlled-CX gate (Toffoli)
 });
 
 const stringmap_t<Snapshots> State::snapshotset_({
   {"statevector", Snapshots::statevector},
+  {"amplitudes", Snapshots::amplitudes},
   {"probabilities", Snapshots::probs},
   {"expectation_value_pauli", Snapshots::expval_pauli},
   {"expectation_value_matrix", Snapshots::expval_matrix},
@@ -438,14 +452,15 @@ void State::set_config(const json_t &config) {
 }
 
 void State::add_metadata(ExperimentResult &result) const {
-  result.add_metadata("matrix_product_state_truncation_threshold", 
-		    MPS_Tensor::get_truncation_threshold());
-
-  result.add_metadata("matrix_product_state_max_bond_dimension", 
-		    MPS_Tensor::get_max_bond_dimension());
-
-  result.add_metadata("matrix_product_state_sample_measure_algorithm", 
-         	    MPS::get_sample_measure_alg());
+  result.metadata.add(
+    MPS_Tensor::get_truncation_threshold(),
+    "matrix_product_state_truncation_threshold");
+  result.metadata.add(
+    MPS_Tensor::get_max_bond_dimension(),
+    "matrix_product_state_max_bond_dimension");
+  result.metadata.add(
+    MPS::get_sample_measure_alg(),
+    "matrix_product_state_sample_measure_algorithm");
 } 
 
 //=========================================================================
@@ -525,15 +540,15 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   Utils::chop_inplace(expval, MPS::get_json_chop_threshold());
   switch (type) {
     case SnapshotDataType::average:
-      result.data.add_average_snapshot("expectation_value", op.string_params[0],
+      result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, false);
       break;
     case SnapshotDataType::average_var:
-      result.data.add_average_snapshot("expectation_value", op.string_params[0],
+      result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, true);
       break;
     case SnapshotDataType::pershot:
-      result.data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
+      result.legacy_data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
       break;
   }
 }
@@ -546,7 +561,6 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
   }
   complex_t expval(0., 0.);
   double one_expval = 0;
-
   for (const auto &param : op.params_expval_matrix) {
     complex_t coeff = param.first;
 
@@ -564,15 +578,15 @@ void State::snapshot_matrix_expval(const Operations::Op &op,
   Utils::chop_inplace(expval, MPS::get_json_chop_threshold());
   switch (type) {
     case SnapshotDataType::average:
-      result.data.add_average_snapshot("expectation_value", op.string_params[0],
+      result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, false);
       break;
     case SnapshotDataType::average_var:
-      result.data.add_average_snapshot("expectation_value", op.string_params[0],
+      result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, true);
       break;
     case SnapshotDataType::pershot:
-      result.data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
+      result.legacy_data.add_pershot_snapshot("expectation_values", op.string_params[0], expval);
       break;
   }
 }
@@ -582,7 +596,21 @@ void State::snapshot_state(const Operations::Op &op,
 			   std::string name) {
   cvector_t statevector;
   qreg_.full_state_vector(statevector);
-  result.data.add_pershot_snapshot("statevector", op.string_params[0], statevector);
+  result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0], statevector);
+}
+
+void State::snapshot_amplitudes(const Operations::Op &op,
+				ExperimentResult &result,
+				std::string name) {
+  if (op.params_amplitudes.empty()) {
+    throw std::invalid_argument("Invalid amplitudes snapshot (No base value given).");
+  }
+  reg_t base_values;
+  for (const auto &param : op.params_amplitudes) {
+    base_values.push_back(param);
+  }
+  auto amplitude_vector = qreg_.get_amplitude_vector(base_values);
+  result.legacy_data.add_pershot_snapshot("amplitudes", op.string_params[0], amplitude_vector);
 }
 
 void State::snapshot_probabilities(const Operations::Op &op,
@@ -593,7 +621,7 @@ void State::snapshot_probabilities(const Operations::Op &op,
   auto probs = Utils::vec2ket(prob_vector, MPS::get_json_chop_threshold(), 16);
 
   bool variance = type == SnapshotDataType::average_var;
-  result.data.add_average_snapshot("probabilities", op.string_params[0], 
+  result.legacy_data.add_average_snapshot("probabilities", op.string_params[0], 
   			    BaseState::creg_.memory_hex(), probs, variance);
 
 }
@@ -612,15 +640,15 @@ void State::snapshot_density_matrix(const Operations::Op &op,
   // Add density matrix to result data
   switch (type) {
     case SnapshotDataType::average:
-      result.data.add_average_snapshot("density_matrix", op.string_params[0],
+      result.legacy_data.add_average_snapshot("density_matrix", op.string_params[0],
                             BaseState::creg_.memory_hex(), std::move(reduced_state), false);
       break;
     case SnapshotDataType::average_var:
-      result.data.add_average_snapshot("density_matrix", op.string_params[0],
+      result.legacy_data.add_average_snapshot("density_matrix", op.string_params[0],
                             BaseState::creg_.memory_hex(), std::move(reduced_state), true);
       break;
     case SnapshotDataType::pershot:
-      result.data.add_pershot_snapshot("density_matrix", op.string_params[0], std::move(reduced_state));
+      result.legacy_data.add_pershot_snapshot("density_matrix", op.string_params[0], std::move(reduced_state));
       break;
   }
 }
@@ -684,6 +712,23 @@ void State::apply_gate(const Operations::Op &op) {
     case Gates::tdg:
       qreg_.apply_tdg(op.qubits[0]);
       break;
+    case Gates::r:
+      qreg_.apply_r(op.qubits[0], 
+		    std::real(op.params[0]),
+		    std::real(op.params[1]));
+      break;
+    case Gates::rx:
+      qreg_.apply_rx(op.qubits[0], 
+		     std::real(op.params[0]));
+      break;
+    case Gates::ry:
+      qreg_.apply_ry(op.qubits[0], 
+		     std::real(op.params[0]));
+      break;
+    case Gates::rz:
+      qreg_.apply_rz(op.qubits[0], 
+		     std::real(op.params[0]));
+      break;
     case Gates::swap:
       qreg_.apply_swap(op.qubits[0], op.qubits[1], true);
       break;
@@ -694,6 +739,22 @@ void State::apply_gate(const Operations::Op &op) {
       qreg_.apply_cu1(op.qubits[0], op.qubits[1],
     		      std::real(op.params[0]));
       break;
+    case Gates::rxx:
+      qreg_.apply_rxx(op.qubits[0], op.qubits[1],
+    		      std::real(op.params[0]));
+      break;
+    case Gates::ryy:
+      qreg_.apply_ryy(op.qubits[0], op.qubits[1],
+    		      std::real(op.params[0]));
+      break;
+    case Gates::rzz:
+      qreg_.apply_rzz(op.qubits[0], op.qubits[1],
+    		      std::real(op.params[0]));
+      break;
+    case Gates::rzx:
+      qreg_.apply_rzx(op.qubits[0], op.qubits[1],
+    		      std::real(op.params[0]));
+      break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument(
@@ -701,12 +762,10 @@ void State::apply_gate(const Operations::Op &op) {
   }
 }
 
-  void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
-   if (!qubits.empty() && mat.size() > 0) {
-     qreg_.apply_matrix(qubits, mat);
-     return;
-   }
-  }
+void State::apply_matrix(const reg_t &qubits, const cmatrix_t &mat) {
+  if (!qubits.empty() && mat.size() > 0)
+    qreg_.apply_matrix(qubits, mat);
+}
 
 void State::apply_matrix(const reg_t &qubits, const cvector_t &vmat) {
   // Check if diagonal matrix
@@ -862,6 +921,10 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result) {
   switch (it -> second) {
   case Snapshots::statevector: {
       snapshot_state(op, result, "statevector");
+      break;
+  }
+  case Snapshots::amplitudes: {
+      snapshot_amplitudes(op, result, "amplitudes");
       break;
   }
   case Snapshots::cmemory:

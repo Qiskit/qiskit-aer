@@ -124,18 +124,19 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   if (new_SV_num < SV_num) {
     double sum=0;
     for (uint_t i=0; i<S.size(); i++) {
-      sum += std::norm(S[0]);
+      sum += std::norm(S[i]);
     }
     if (1-sum > THRESHOLD) {
       for (uint_t i=0; i<S.size(); i++) {
-	  double square_i = std::norm(S[0])/sum;
+	  double square_i = std::norm(S[i])/sum;
 	  S[i] = sqrt(square_i);
       }
     }
   }
 }
 
-void validate_SVD_result(cmatrix_t &A, cmatrix_t &U, rvector_t &S, cmatrix_t &V) {
+void validate_SVD_result(const cmatrix_t &A, const cmatrix_t &U, 
+			 const rvector_t &S, const cmatrix_t &V) {
   const uint_t nrows = A.GetRows(), ncols = A.GetColumns();
   cmatrix_t diag_S = diag(S, nrows, ncols);
   cmatrix_t product = U*diag_S;

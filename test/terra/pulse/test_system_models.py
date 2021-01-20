@@ -18,11 +18,7 @@ import warnings
 import numpy as np
 from numpy.linalg import norm
 from test.terra.common import QiskitAerTestCase
-import qiskit
 from qiskit.test.mock import FakeOpenPulse2Q
-import qiskit.pulse as pulse
-from qiskit.pulse import pulse_lib
-from qiskit.compiler import assemble
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.test.mock import FakeArmonk
@@ -139,7 +135,7 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
         qubit_lo_from_hamiltonian = test_model.hamiltonian.get_qubit_lo_from_drift()
         freqs = test_model.calculate_channel_frequencies(qubit_lo_from_hamiltonian)
         expected = getattr(backend.configuration(), 'hamiltonian')['vars']['wq0'] / (2 * np. pi)
-        self.assertAlmostEqual(freqs['D0'], expected, places=4)
+        self.assertAlmostEqual(freqs['D0'], expected, places=5)
 
     def _compute_u_lo_freqs(self, qubit_lo_freq):
         """
