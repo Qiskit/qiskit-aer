@@ -97,12 +97,6 @@ public:
   // Config: {"omp_qubit_threshold": 7}
   virtual void set_config(const json_t &config) override;
 
-  //add final state to result
-  void add_state_to_data(ExperimentResult &result)
-  {
-    result.data.add_additional_data("unitary", BaseState::qreg_.move_to_matrix());
-  }
-
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
