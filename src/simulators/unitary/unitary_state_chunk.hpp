@@ -44,8 +44,6 @@ public:
   State() : BaseState(QubitUnitary::StateOpSet) {}
   virtual ~State() = default;
 
-  //add final state to result
-  virtual void add_state_to_data(ExperimentResult &result);
   //-----------------------------------------------------------------------
   // Base class overrides
   //-----------------------------------------------------------------------
@@ -82,6 +80,8 @@ public:
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
 
+  auto move_to_matrix(void);
+
 protected:
   //-----------------------------------------------------------------------
   // Apply Instructions
@@ -98,7 +98,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const uint_t iChunk,const Operations::Op &op, ExperimentResult &result);
+  virtual void apply_snapshot(const Operations::Op &op, ExperimentResult &result);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const uint_t iChunk,const reg_t &qubits, const cmatrix_t &mat);
@@ -146,73 +146,22 @@ protected:
 //============================================================================
 // Implementation: Base class method overrides
 //============================================================================
-//add final state to result
-template <class unitary_matrix_t>
-void State<unitary_matrix_t>::add_state_to_data(ExperimentResult &result)
-{
-  int_t iChunk;
-
-  if(BaseState::multi_shot_parallelization_ || BaseState::num_global_chunks_ == 1){
-    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
-      result.data.add_additional_data("unitary", BaseState::qregs_[iChunk].move_to_matrix());
-    }
-  }
-  else{
-    auto state = BaseState::qregs_[0].vector();
-
-    //TO DO check memory availability
-    state.resize(BaseState::num_local_chunks_ << BaseState::chunk_bits_);
-
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk)
-    for(iChunk=1;iChunk<BaseState::num_local_chunks_;iChunk++){
-      auto tmp = BaseState::qregs_[iChunk].vector();
-      uint_t j,offset = iChunk << BaseState::chunk_bits_;
-      for(j=0;j<tmp.size();j++){
-        state[offset + j] = tmp[j];
-      }
-    }
-
-#ifdef AER_MPI
-    BaseState::gather_state(state);
-#endif
-
-    //type of matrix cam not be discovered from State class, so make from matrix
-    auto matrix = BaseState::qregs_[0].move_to_matrix();
-    matrix.resize(1ull << BaseState::num_qubits_,1ull << BaseState::num_qubits_);
-    matrix.copy_from_buffer(1ull << BaseState::num_qubits_,1ull << BaseState::num_qubits_,&state[0]);
-    if(BaseState::myrank_ == 0){
-      result.data.add_additional_data("unitary",  matrix);
-    }
-  }
-}
-
 template <class unitary_matrix_t>
 void State<unitary_matrix_t>::apply_op(const int_t iChunk,const Operations::Op &op,
                          ExperimentResult &result,
                          RngEngine &rng,
                          bool final_ops)
 {
-  uint_t ireg;
-
-  if(BaseState::cregs_.size() == BaseState::qregs_.size()){
-    //multi-shot mode
-    ireg = iChunk;
-  }
-  else{
-    ireg = 0;
-  }
-
-
   switch (op.type) {
     case Operations::OpType::barrier:
       break;
     case Operations::OpType::gate:
       // Note conditionals will always fail since no classical registers
-      if (BaseState::cregs_[ireg].check_conditional(op))
+      if (BaseState::creg_.check_conditional(op))
         apply_gate(iChunk,op);
       break;
     case Operations::OpType::snapshot:
-      apply_snapshot(iChunk,op, result);
+      apply_snapshot(op, result);
       break;
     case Operations::OpType::matrix:
       apply_matrix(iChunk,op.qubits, op.mats[0]);
@@ -506,38 +455,15 @@ void State<unitary_matrix_t>::apply_gate_mcu3(const uint_t iChunk,const reg_t &q
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_snapshot(const uint_t iChunk,const Operations::Op &op,
+void State<unitary_matrix_t>::apply_snapshot(const Operations::Op &op,
                                              ExperimentResult &result) {
   // Look for snapshot type in snapshotset
   if (op.name == "unitary" || op.name == "state") {
-    if(iChunk < 0){
-      auto state = BaseState::qregs_[0].vector();
-      int_t i;
-
-      //TO DO check memory availability
-      state.resize(BaseState::num_local_chunks_ << BaseState::chunk_bits_);
-
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i)
-      for(i=0;i<BaseState::num_local_chunks_;i++){
-        auto tmp = BaseState::qregs_[i].vector();
-        uint_t j,offset = i << BaseState::chunk_bits_;
-        for(j=0;j<tmp.size();j++){
-          state[offset + j] = tmp[j];
-        }
-      }
-
-      BaseState::gather_state(state);
-      if(BaseState::myrank_ == 0){
-        result.data.add_pershot_snapshot("unitary", op.string_params[0],state);
-      }
+    auto matrix = move_to_matrix();
+    if(BaseState::myrank_ == 0){
+      result.legacy_data.add_pershot_snapshot("unitary", op.string_params[0],
+                              matrix);
     }
-    else{
-      result.data.add_pershot_snapshot("unitary", op.string_params[0],
-                                BaseState::qregs_[iChunk].copy_to_matrix());
-    }
-
-    //do we need this ???
-    //BaseState::snapshot_state(iChunk,op, result);
   } else {
     throw std::invalid_argument(
         "Unitary::State::invalid snapshot instruction \'" + op.name + "\'.");
@@ -554,6 +480,41 @@ void State<unitary_matrix_t>::apply_global_phase() {
         {0}, {BaseState::global_phase_, BaseState::global_phase_}
       );
     }
+  }
+}
+
+
+template <class unitary_matrix_t>
+auto State<unitary_matrix_t>::move_to_matrix(void)
+{
+  if(BaseState::num_global_chunks_ == 1){
+    return BaseState::qregs_[0].move_to_matrix();
+  }
+  else{
+    int_t iChunk;
+    auto state = BaseState::qregs_[0].vector();
+
+    //TO DO check memory availability
+    state.resize(BaseState::num_local_chunks_ << BaseState::chunk_bits_);
+
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk)
+    for(iChunk=1;iChunk<BaseState::num_local_chunks_;iChunk++){
+      auto tmp = BaseState::qregs_[iChunk].vector();
+      uint_t j,offset = iChunk << BaseState::chunk_bits_;
+      for(j=0;j<tmp.size();j++){
+        state[offset + j] = tmp[j];
+      }
+    }
+
+#ifdef AER_MPI
+    BaseState::gather_state(state);
+#endif
+
+    //type of matrix cam not be discovered from State class, so make from matrix
+    auto matrix = BaseState::qregs_[0].move_to_matrix();
+    matrix.resize(1ull << BaseState::num_qubits_,1ull << BaseState::num_qubits_);
+    matrix.copy_from_buffer(1ull << (BaseState::num_qubits_/2),1ull << (BaseState::num_qubits_/2),&state[0]);
+    return matrix;
   }
 }
 

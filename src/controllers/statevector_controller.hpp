@@ -370,7 +370,7 @@ void StatevectorController::run_circuit_helper(
   }
 
   // Run single shot collecting measure data or snapshots
-  state.allocate(Base::Controller::max_qubits_, 1);
+  state.allocate(Base::Controller::max_qubits_);
 
   if (initial_state_.empty()) {
     state.initialize_qreg(circ.num_qubits);
@@ -379,10 +379,10 @@ void StatevectorController::run_circuit_helper(
   }
   state.initialize_creg(circ.num_memory, circ.num_registers);
   state.apply_ops(*op_ptr, result, rng);
-  state.add_creg_to_data(result);
+  Base::Controller::save_count_data(result, state.creg());
 
   // Add final state to the data
-  state.add_state_to_data(result);
+  state.save_data_single(result, "statevector", state.move_to_vector());
 }
 
 //-------------------------------------------------------------------------

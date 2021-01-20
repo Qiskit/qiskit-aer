@@ -184,6 +184,13 @@ protected:
   // Validation threshold for validating states and operators
   double validation_threshold_ = 1e-8;
 
+  // Save counts as memory list
+  bool save_creg_memory_ = false;
+
+  // Save count data
+  void save_count_data(ExperimentResult &result,
+                       const ClassicalRegister &creg) const;
+
   //-----------------------------------------------------------------------
   // Parallelization Config
   //-----------------------------------------------------------------------
@@ -266,6 +273,9 @@ void Controller::set_config(const json_t &config) {
 
   // Load validation threshold
   JSON::get_value(validation_threshold_, "validation_threshold", config);
+
+  // Load config for memory (creg list data)
+  JSON::get_value(save_creg_memory_, "memory", config);
 
 #ifdef _OPENMP
   // Load OpenMP maximum thread settings
@@ -620,8 +630,8 @@ Result Controller::execute(const json_t &qobj_js)
     }
     // Stop the timer and add total timing data including qobj parsing
     auto timer_stop = myclock_t::now();
-    result.metadata["time_taken"] =
-        std::chrono::duration<double>(timer_stop - timer_start).count();
+    auto time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();
+    result.metadata.add(time_taken, "time_taken");
     return result;
   } catch (std::exception &e) {
     // qobj was invalid, return valid output containing error message
@@ -682,21 +692,21 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     }
 
 #ifdef _OPENMP
-    result.metadata["omp_enabled"] = true;
+    result.metadata.add(true, "omp_enabled");
 #else
-    result.metadata["omp_enabled"] = false;
+    result.metadata.add(false, "omp_enabled");
 #endif
-    result.metadata["parallel_experiments"] = parallel_experiments_;
-    result.metadata["max_memory_mb"] = max_memory_mb_;
-    result.metadata["max_gpu_memory_mb"] = max_gpu_memory_mb_;
+    result.metadata.add(parallel_experiments_, "parallel_experiments");
+    result.metadata.add(max_memory_mb_, "max_memory_mb");
+    result.metadata.add(max_gpu_memory_mb_,"max_gpu_memory_mb");
 
     //store rank and number of processes, if no distribution rank=0 procs=1 is set
-    result.metadata["num_distributed_processes"] = num_processes_;
-    result.metadata["distributed_rank"] = myrank_;
+    result.metadata.add(num_processes_,"num_distributed_processes");
+    result.metadata.add(myrank_,"distributed_rank");
 
-    result.metadata["distributed_experiments"] = distributed_experiments_;
-    result.metadata["distributed_experiments_group_id"] = distributed_experiments_group_id_;
-    result.metadata["distributed_experiments_rank_in_group"] = distributed_experiments_rank_;
+    result.metadata.add(distributed_experiments_,"distributed_experiments");
+    result.metadata.add(distributed_experiments_group_id_,"distributed_experiments_group_id");
+    result.metadata.add(distributed_experiments_rank_,"distributed_experiments_rank_in_group");
 
 #ifdef _OPENMP
     // Check if circuit parallelism is nested with one of the others
@@ -708,7 +718,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       #else
       omp_set_max_active_levels(3);
       #endif
-      result.metadata["omp_nested"] = parallel_nested_;
+      result.metadata.add(parallel_nested_, "omp_nested");
     } else {
       parallel_nested_ = false;
       #ifdef _WIN32
@@ -720,6 +730,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 #endif
     // then- and else-blocks have intentionally duplication.
     // Nested omp has significant overheads even though a guard condition exists.
+    const int NUM_RESULTS = result.results.size();
     if (parallel_experiments_ > 1) {
       #pragma omp parallel for num_threads(parallel_experiments_)
       for (int j = 0; j < result.results.size(); ++j) {
@@ -736,7 +747,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 
     bool all_failed = true;
     result.status = Result::Status::completed;
-    for (size_t i = 0; i < result.results.size(); ++i) {
+    for (int i = 0; i < NUM_RESULTS; ++i) {
       auto& experiment = result.results[i];
       if (experiment.status == ExperimentResult::Status::completed) {
         all_failed = false;
@@ -752,8 +763,8 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 
     // Stop the timer and add total timing data
     auto timer_stop = myclock_t::now();
-    result.metadata["time_taken"] =
-        std::chrono::duration<double>(timer_stop - timer_start).count();
+    auto time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();
+    result.metadata.add(time_taken, "time_taken");
   }
   // If execution failed return valid output reporting error
   catch (std::exception &e) {
@@ -776,7 +787,7 @@ void Controller::execute_circuit(Circuit &circ,
   auto timer_start = myclock_t::now(); // state circuit timer
 
   // Initialize circuit json return
-  result.data.set_config(config);
+  result.legacy_data.set_config(config);
 
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
@@ -819,7 +830,7 @@ void Controller::execute_circuit(Circuit &circ,
         #else
         omp_set_max_active_levels(2);
         #endif
-        result.metadata["omp_nested"] = true;
+        result.metadata.add(true, "omp_nested");
       } else {
         #ifdef _WIN32
         omp_set_nested(0);
@@ -857,10 +868,10 @@ void Controller::execute_circuit(Circuit &circ,
     result.header = circ.header;
     result.shots = shots;
     result.seed = circ.seed;
-    result.metadata["parallel_shots"] = parallel_shots_;
-    result.metadata["parallel_state_update"] = parallel_state_update_;
+    result.metadata.add(parallel_shots_, "parallel_shots");
+    result.metadata.add(parallel_state_update_, "parallel_state_update");
     if(distributed_shots_ > 1){
-      result.metadata["distributed_shots"] = distributed_shots_;
+      result.metadata.add(distributed_shots_,"distributed_shots");
     }
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
@@ -872,6 +883,18 @@ void Controller::execute_circuit(Circuit &circ,
   catch (std::exception &e) {
     result.status = ExperimentResult::Status::error;
     result.message = e.what();
+  }
+}
+
+
+void Controller::save_count_data(ExperimentResult &result,
+                                 const ClassicalRegister &creg) const {
+  if (creg.memory_size() > 0) {
+    std::string memory_hex = creg.memory_hex();
+    result.data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
+    if (save_creg_memory_) {
+      result.data.add_list(std::move(memory_hex), "memory");
+    }
   }
 }
 

@@ -19,7 +19,6 @@
 #include "framework/opset.hpp"
 #include "framework/types.hpp"
 #include "framework/creg.hpp"
-#include "framework/results/experiment_data.hpp"
 
 #ifdef AER_MPI
 #include <mpi.h>
@@ -81,8 +80,8 @@ public:
   const auto &qreg(uint_t idx=0) const { return qregs_[idx]; }
 
   // Return the state creg object
-  auto &creg() { return cregs_; }
-  const auto &creg() const { return cregs_; }
+  auto &creg() { return creg_; }
+  const auto &creg() const { return creg_; }
 
   // Return the state opset object
   auto &opset() { return opset_; }
@@ -118,7 +117,7 @@ public:
                          bool final_ops = false);
 
   //memory allocation (previously called before inisitalize_qreg)
-  virtual void allocate(uint_t num_qubits,uint_t shots);
+  virtual void allocate(uint_t num_qubits);
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
@@ -182,8 +181,50 @@ public:
                        const std::string &memory_hex,
                        const std::string &register_hex);
 
-  // Add current creg classical bit values to a ExperimentResult container
-  void add_creg_to_data(ExperimentResult &result) const;
+  //-----------------------------------------------------------------------
+  // Save result data
+  //-----------------------------------------------------------------------
+
+  // Save current value of all classical registers to result
+  // This supports DataSubTypes: c_accum (counts), list (memory)
+  // TODO: Make classical data allow saving only subset of specified clbit values
+  void save_creg(ExperimentResult &result,
+                 const std::string &key,
+                 DataSubType type = DataSubType::c_accum) const;
+              
+  // Save single shot data type. Typically this will be the value for the
+  // last shot of the simulation
+  template <class T>
+  void save_data_single(ExperimentResult &result,
+                        const std::string &key, const T& datum) const;
+
+  template <class T>
+  void save_data_single(ExperimentResult &result,
+                        const std::string &key, T&& datum) const;
+
+  // Save data type which can be averaged over all shots.
+  // This supports DataSubTypes: list, c_list, accum, c_accum, average, c_average
+  template <class T>
+  void save_data_average(ExperimentResult &result,
+                         const std::string &key, const T& datum,
+                         DataSubType type = DataSubType::average) const;
+
+  template <class T>
+  void save_data_average(ExperimentResult &result,
+                         const std::string &key, T&& datum,
+                         DataSubType type = DataSubType::average) const;
+  
+  // Save data type which is pershot and does not support accumulator or average
+  // This supports DataSubTypes: single, list, c_list
+  template <class T>
+  void save_data_pershot(ExperimentResult &result,
+                         const std::string &key, const T& datum,
+                         DataSubType type = DataSubType::list) const;
+
+  template <class T>
+  void save_data_pershot(ExperimentResult &result,
+                         const std::string &key, T&& datum,
+                         DataSubType type = DataSubType::list) const;
 
   //-----------------------------------------------------------------------
   // Standard snapshots
@@ -191,22 +232,16 @@ public:
 
   // Snapshot the current statevector (single-shot)
   // if type_label is the empty string the operation type will be used for the type
-  void snapshot_state(const int_t ireg, const Operations::Op &op, ExperimentResult &result,
+  void snapshot_state(const Operations::Op &op, ExperimentResult &result,
                       std::string name = "") const;
 
   // Snapshot the classical memory bits state (single-shot)
-  void snapshot_creg_memory(const int_t ireg, const Operations::Op &op, ExperimentResult &result,
+  void snapshot_creg_memory(const Operations::Op &op, ExperimentResult &result,
                             std::string name = "memory") const;
 
   // Snapshot the classical register bits state (single-shot)
-  void snapshot_creg_register(const int_t ireg, const Operations::Op &op, ExperimentResult &result,
+  void snapshot_creg_register(const Operations::Op &op, ExperimentResult &result,
                               std::string name = "register") const;
-
-  //add final state to result
-  virtual void add_state_to_data(ExperimentResult &result)
-  {
-    ;
-  }
 
   //-----------------------------------------------------------------------
   // OpenMP thread settings
@@ -228,7 +263,7 @@ protected:
   std::vector<state_t> qregs_;
 
   // Classical register data
-  std::vector<ClassicalRegister> cregs_;
+  ClassicalRegister creg_;
 
   // Opset of instructions supported by the state
   Operations::OpSet opset_;
@@ -236,9 +271,6 @@ protected:
   // Maximum threads which may be used by the backend for OpenMP multithreading
   // Default value is single-threaded unless overridden
   int threads_ = 1;
-
-  uint_t num_shots_;            //number of shots to be parallelized
-  uint_t shot_count_;           //shot counter
 
   uint_t num_qubits_;           //number of qubits
 
@@ -258,8 +290,6 @@ protected:
   uint_t distributed_group_;    //group id of distribution
 
   bool chunk_omp_parallel_;     //using thread parallel to process loop of chunks or not
-
-  bool multi_shot_parallelization_;
 
   virtual int qubit_scale(void)
   {
@@ -317,10 +347,6 @@ StateChunk<state_t>::StateChunk(const Operations::OpSet &opset) : opset_(opset)
   distributed_group_ = 0;
 
   chunk_omp_parallel_ = false;
-  multi_shot_parallelization_ = false;
-
-  num_shots_ = 1;
-  shot_count_ = 0;
 
 #ifdef AER_MPI
   distributed_comm_ = MPI_COMM_WORLD;
@@ -382,13 +408,12 @@ void StateChunk<state_t>::set_distribution(uint_t nprocs)
 }
 
 template <class state_t>
-void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t shots)
+void StateChunk<state_t>::allocate(uint_t num_qubits)
 {
   int_t i;
   uint_t nchunks;
   int max_bits = num_qubits;
 
-  num_shots_ = shots;
   num_qubits_ = num_qubits;
 
   if(block_bits_ > 0){
@@ -398,9 +423,6 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t shots)
     }
   }
   else{
-    if(omp_get_num_threads() > 1){
-      multi_shot_parallelization_ = true;
-    }
     chunk_bits_ = num_qubits_;
   }
 
@@ -408,7 +430,7 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t shots)
   chunk_bits_ *= qubit_scale();
   num_qubits_ *= qubit_scale();
 
-  num_global_chunks_ = num_shots_ << (num_qubits_ - chunk_bits_);
+  num_global_chunks_ = 1ull << (num_qubits_ - chunk_bits_);
 
   chunk_index_begin_.resize(distributed_procs_);
   chunk_index_end_.resize(distributed_procs_);
@@ -420,12 +442,7 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t shots)
   num_local_chunks_ = chunk_index_end_[distributed_rank_] - chunk_index_begin_[distributed_rank_];
   global_chunk_index_ = chunk_index_begin_[distributed_rank_];
 
-  if(num_shots_ > 1){
-    num_shots_ = num_local_chunks_;
-  }
-
   qregs_.resize(num_local_chunks_);
-  cregs_.resize(num_shots_);
 
   chunk_omp_parallel_ = false;
   if(chunk_bits_ < num_qubits_){
@@ -436,7 +453,7 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t shots)
 
   nchunks = num_local_chunks_;
   for(i=0;i<num_local_chunks_;i++){
-    uint_t gid = multi_shot_parallelization_ ? 0 : i + global_chunk_index_;
+    uint_t gid = i + global_chunk_index_;
     qregs_[i].chunk_setup(chunk_bits_,num_qubits_,gid,nchunks);
 
     //only first one allocates chunks, others only set chunk index
@@ -474,77 +491,54 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
   int_t iChunk;
   uint_t iOp,nOp;
 
-  if(multi_shot_parallelization_){
-    //for multi-shot distribution mode
-
-    //apply_ops is called shots times from controller class, so apply only the first call
-    if(shot_count_++ > 0){
-      if(shot_count_ >= num_shots_)
-        shot_count_ = 0;
-      return;
+  nOp = ops.size();
+  iOp = 0;
+  while(iOp < nOp){
+    if(ops[iOp].type == Operations::OpType::gate && ops[iOp].name == "swap_chunk"){
+      //apply swap between chunks
+      apply_chunk_swap(ops[iOp].qubits);
     }
+    else if(ops[iOp].type == Operations::OpType::sim_op && ops[iOp].name == "begin_blocking"){
+      //applying sequence of gates inside each chunk
 
-    nOp = ops.size();
-    iOp = 0;
-    while(iOp < nOp){
+      uint_t iOpEnd = iOp;
+      while(iOpEnd < nOp){
+        if(ops[iOpEnd].type == Operations::OpType::sim_op && ops[iOpEnd].name == "end_blocking"){
+          break;
+        }
+        iOpEnd++;
+      }
+
+      uint_t iOpBegin = iOp + 1;
+#pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
+      for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
+        uint_t iOpBlock = iOpBegin;
+        //fecth chunk in cache
+        if(qregs_[iChunk].fetch_chunk()){
+          while(iOpBlock < iOpEnd){
+            apply_op(iChunk,ops[iOpBlock],result,rng,final_ops);
+            iOpBlock++;
+          }
+
+          //release chunk from cache
+          qregs_[iChunk].release_chunk();
+        }
+      }
+
+      iOp = iOpEnd;
+    }
+    else if(ops[iOp].type == Operations::OpType::measure || ops[iOp].type == Operations::OpType::snapshot || ops[iOp].type == Operations::OpType::kraus ||
+            ops[iOp].type == Operations::OpType::bfunc || ops[iOp].type == Operations::OpType::roerror || ops[iOp].type == Operations::OpType::initialize){
+              //for these operations, parallelize inside state implementations
+      apply_op(-1,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
+    }
+    else{
+#pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
       for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
         apply_op(iChunk,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
       }
-      iOp++;
     }
-  }
-  else{
-    //multi-chunk parallelization mode
-
-    nOp = ops.size();
-    iOp = 0;
-    while(iOp < nOp){
-      if(ops[iOp].type == Operations::OpType::gate && ops[iOp].name == "swap_chunk"){
-        //apply swap between chunks
-        apply_chunk_swap(ops[iOp].qubits);
-      }
-      else if(ops[iOp].type == Operations::OpType::sim_op && ops[iOp].name == "begin_blocking"){
-        //applying sequence of gates inside each chunk
-
-        uint_t iOpEnd = iOp;
-        while(iOpEnd < nOp){
-          if(ops[iOpEnd].type == Operations::OpType::sim_op && ops[iOpEnd].name == "end_blocking"){
-            break;
-          }
-          iOpEnd++;
-        }
-
-        uint_t iOpBegin = iOp + 1;
-#pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
-        for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
-          uint_t iOpBlock = iOpBegin;
-          //fecth chunk in cache
-          if(qregs_[iChunk].fetch_chunk()){
-            while(iOpBlock < iOpEnd){
-              apply_op(iChunk,ops[iOpBlock],result,rng,final_ops);
-              iOpBlock++;
-            }
-
-            //release chunk from cache
-            qregs_[iChunk].release_chunk();
-          }
-        }
-
-        iOp = iOpEnd;
-      }
-      else if(ops[iOp].type == Operations::OpType::measure || ops[iOp].type == Operations::OpType::snapshot || ops[iOp].type == Operations::OpType::kraus ||
-              ops[iOp].type == Operations::OpType::bfunc || ops[iOp].type == Operations::OpType::roerror){
-                //for these operations, parallelize inside state implementations
-        apply_op(-1,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
-      }
-      else{
-#pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
-        for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
-          apply_op(iChunk,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
-        }
-      }
-      iOp++;
-    }
+    iOp++;
   }
 }
 
@@ -561,8 +555,7 @@ std::vector<reg_t> StateChunk<state_t>::sample_measure(const reg_t &qubits,
 template <class state_t>
 void StateChunk<state_t>::initialize_creg(uint_t num_memory, uint_t num_register) 
 {
-  for(auto& creg : cregs_)
-    creg.initialize(num_memory, num_register);
+  creg_.initialize(num_memory, num_register);
 }
 
 
@@ -572,84 +565,185 @@ void StateChunk<state_t>::initialize_creg(uint_t num_memory,
                                      const std::string &memory_hex,
                                      const std::string &register_hex) 
 {
-  for(auto& creg : cregs_)
-    creg.initialize(num_memory, num_register, memory_hex, register_hex);
+  creg_.initialize(num_memory, num_register, memory_hex, register_hex);
 }
 
+template <class state_t>
+void StateChunk<state_t>::save_creg(ExperimentResult &result,
+                               const std::string &key,
+                               DataSubType type) const {
+  if (creg_.memory_size() == 0)
+    return;
+  switch (type) {
+    case DataSubType::list:
+      result.data.add_list(creg_.memory_hex(), key);
+      break;
+    case DataSubType::c_accum:
+      result.data.add_accum(1ULL, key, creg_.memory_hex());
+      break;
+    default:
+      throw std::runtime_error("Invalid creg data subtype for data key: " + key);
+  }
+}
 
 template <class state_t>
-void StateChunk<state_t>::snapshot_state(const int_t ireg, const Operations::Op &op,
+template <class T>
+void StateChunk<state_t>::save_data_average(ExperimentResult &result,
+                                       const std::string &key,
+                                       const T& datum,
+                                       DataSubType type) const {
+  switch (type) {
+    case DataSubType::single:
+      result.data.add_single(datum, key);
+      break;
+    case DataSubType::list:
+      result.data.add_list(datum, key);
+      break;
+    case DataSubType::c_list:
+      result.data.add_list(datum, key, creg_.memory_hex());
+      break;
+    case DataSubType::accum:
+      result.data.add_accum(datum, key);
+      break;
+    case DataSubType::c_accum:
+      result.data.add_accum(datum, key, creg_.memory_hex());
+      break;
+    case DataSubType::average:
+      result.data.add_average(datum, key);
+      break;
+    case DataSubType::c_average:
+      result.data.add_average(datum, key, creg_.memory_hex());
+      break;
+    default:
+      throw std::runtime_error("Invalid average data subtype for data key: " + key);
+  }
+}
+
+template <class state_t>
+template <class T>
+void StateChunk<state_t>::save_data_average(ExperimentResult &result,
+                                       const std::string &key,
+                                       T&& datum,
+                                       DataSubType type) const {
+  switch (type) {
+    case DataSubType::single:
+      result.data.add_single(std::move(datum), key);
+      break;
+    case DataSubType::list:
+      result.data.add_list(std::move(datum), key);
+      break;
+    case DataSubType::c_list:
+      result.data.add_list(std::move(datum), key, creg_.memory_hex());
+      break;
+    case DataSubType::accum:
+      result.data.add_accum(std::move(datum), key);
+      break;
+    case DataSubType::c_accum:
+      result.data.add_accum(std::move(datum), key, creg_.memory_hex());
+      break;
+    case DataSubType::average:
+      result.data.add_average(std::move(datum), key);
+      break;
+    case DataSubType::c_average:
+      result.data.add_average(std::move(datum), key, creg_.memory_hex());
+      break;
+    default:
+      throw std::runtime_error("Invalid average data subtype for data key: " + key);
+  }
+}
+
+template <class state_t>
+template <class T>
+void StateChunk<state_t>::save_data_pershot(ExperimentResult &result,
+                                       const std::string &key,
+                                       const T& datum,
+                                       DataSubType type) const {
+  switch (type) {
+  case DataSubType::single:
+    result.data.add_single(datum, key);
+    break;
+  case DataSubType::list:
+    result.data.add_list(datum, key);
+    break;
+  case DataSubType::c_list:
+    result.data.add_list(datum, key, creg_.memory_hex());
+    break;
+  default:
+    throw std::runtime_error("Invalid pershot data subtype for data key: " + key);
+  }
+}
+
+template <class state_t>
+template <class T>
+void StateChunk<state_t>::save_data_pershot(ExperimentResult &result, 
+                                       const std::string &key,
+                                       T&& datum,
+                                       DataSubType type) const {
+  switch (type) {
+    case DataSubType::single:
+      result.data.add_single(std::move(datum), key);
+      break;
+    case DataSubType::list:
+      result.data.add_list(std::move(datum), key);
+      break;
+    case DataSubType::c_list:
+      result.data.add_list(std::move(datum), key, creg_.memory_hex());
+      break;
+    default:
+      throw std::runtime_error("Invalid pershot data subtype for data key: " + key);
+  }
+}
+
+template <class state_t>
+template <class T>
+void StateChunk<state_t>::save_data_single(ExperimentResult &result,
+                                      const std::string &key,
+                                      const T& datum) const {
+  result.data.add_single(datum, key);
+}
+
+template <class state_t>
+template <class T>
+void StateChunk<state_t>::save_data_single(ExperimentResult &result,
+                                      const std::string &key,
+                                      T&& datum) const {
+  result.data.add_single(std::move(datum), key);
+}
+
+template <class state_t>
+void StateChunk<state_t>::snapshot_state(const Operations::Op &op,
                                     ExperimentResult &result,
                                     std::string name) const 
 {
   name = (name.empty()) ? op.name : name;
 
-  if(ireg < 0){
-    int_t i;
-    for(i=0;i<qregs_.size();i++){
-      result.data.add_pershot_snapshot(name, op.string_params[0], qregs_[i]);
-    }
-  }
-  else if(ireg < qregs_.size()){
-    result.data.add_pershot_snapshot(name, op.string_params[0], qregs_[ireg]);
+  //TO DO : gather qregs over processes
+  int_t i;
+  for(i=0;i<qregs_.size();i++){
+    result.legacy_data.add_pershot_snapshot(name, op.string_params[0], qregs_[i]);
   }
 }
 
 
 template <class state_t>
-void StateChunk<state_t>::snapshot_creg_memory(const int_t ireg, const Operations::Op &op,
+void StateChunk<state_t>::snapshot_creg_memory(const Operations::Op &op,
                                           ExperimentResult &result,
                                           std::string name) const 
 {
-  if(ireg < 0){
-    for(auto& creg : cregs_){
-      result.data.add_pershot_snapshot(name,
-                                   op.string_params[0],
-                                   creg.memory_hex());
-    }
-  }
-  else if(ireg < cregs_.size()){
-    result.data.add_pershot_snapshot(name,
-                                 op.string_params[0],
-                                 cregs_[ireg].memory_hex());
-  }
+  result.legacy_data.add_pershot_snapshot(name,
+                               op.string_params[0],
+                               creg_.memory_hex());
 }
 
 
 template <class state_t>
-void StateChunk<state_t>::snapshot_creg_register(const int_t ireg, const Operations::Op &op,
+void StateChunk<state_t>::snapshot_creg_register(const Operations::Op &op,
                                             ExperimentResult &result,
                                             std::string name) const 
 {
-  if(ireg < 0){
-    for(auto& creg : cregs_){
-      result.data.add_pershot_snapshot(name,
+  result.legacy_data.add_pershot_snapshot(name,
                                op.string_params[0],
-                               creg.register_hex());
-    }
-  }
-  else if(ireg < cregs_.size()){
-    result.data.add_pershot_snapshot(name,
-                               op.string_params[0],
-                               cregs_[ireg].register_hex());
-  }
-}
-
-
-template <class state_t>
-void StateChunk<state_t>::add_creg_to_data(ExperimentResult &result) const 
-{
-  for(auto& creg : cregs_){
-    if (creg.memory_size() > 0) {
-      std::string memory_hex = creg.memory_hex();
-      result.data.add_memory_count(memory_hex);
-      result.data.add_pershot_memory(memory_hex);
-    }
-    // Register bits value
-    if (creg.register_size() > 0) {
-      result.data.add_pershot_register(creg.register_hex());
-    }
-  }
+                               creg_.register_hex());
 }
 
 

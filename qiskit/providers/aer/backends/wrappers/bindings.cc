@@ -8,6 +8,9 @@
 DISABLE_WARNING_PUSH
 #include <pybind11/pybind11.h>
 DISABLE_WARNING_POP
+#if defined(_MSC_VER)
+    #undef snprintf
+#endif
 
 #include "framework/matrix.hpp"
 #include "framework/types.hpp"

@@ -104,13 +104,7 @@ public:
   // Config: {"omp_qubit_threshold": 7}
   virtual void set_config(const json_t &config) override;
 
-  virtual void allocate(uint_t num_qubits,uint_t shots);
-
-  //add final state to result
-  void add_state_to_data(ExperimentResult &result)
-  {
-    result.data.add_additional_data("unitary", BaseState::qreg_.move_to_matrix());
-  }
+  virtual void allocate(uint_t num_qubits);
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -121,6 +115,11 @@ public:
 
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
+
+  auto move_to_matrix(void)
+  {
+    return BaseState::qreg_.move_to_matrix();
+  }
 
 protected:
   //-----------------------------------------------------------------------
@@ -245,7 +244,7 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
 });
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::allocate(uint_t num_qubits,uint_t shots)
+void State<unitary_matrix_t>::allocate(uint_t num_qubits)
 {
   BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,1);
 }
@@ -494,7 +493,7 @@ void State<unitary_matrix_t>::apply_snapshot(const Operations::Op &op,
                                              ExperimentResult &result) {
   // Look for snapshot type in snapshotset
   if (op.name == "unitary" || op.name == "state") {
-    result.data.add_pershot_snapshot("unitary", op.string_params[0],
+    result.legacy_data.add_pershot_snapshot("unitary", op.string_params[0],
                               BaseState::qreg_.copy_to_matrix());
     BaseState::snapshot_state(op, result);
   } else {
