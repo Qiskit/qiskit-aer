@@ -60,21 +60,14 @@ public:
 
   void set_config(const json_t &config) override;
 
-  virtual void optimize_circuit(Circuit& circ,
-                                Noise::NoiseModel& noise,
-                                const opset_t &allowed_opset,
-                                ExperimentResult &result) const;
+  virtual void set_parallelization(uint_t num) { parallelization_ = num; };
+
+  virtual void set_parallelization_threshold(uint_t num) { parallel_threshold_ = num; };
 
   virtual void optimize_circuit(Circuit& circ,
                                 Noise::NoiseModel& noise,
                                 const opset_t &allowed_opset,
-                                uint_t ops_start,
-                                uint_t ops_end,
                                 ExperimentResult &result) const override;
-
-  virtual void reduce_results(Circuit& circ,
-                              ExperimentResult &result,
-                              std::vector<ExperimentResult> &results) const override;
 
   // Qubit threshold for activating fusion pass
   uint_t max_qubit;
@@ -85,6 +78,11 @@ public:
   bool allow_superop = false;
   bool allow_kraus = false;
 
+  // Number of threads to fuse operations
+  uint_t parallelization_ = 1;
+  // Number of gates to enable parallelization
+  uint_t parallel_threshold_ = 10000;
+
 private:
   bool can_ignore(const op_t& op) const;
 
@@ -94,11 +92,16 @@ private:
 
   double get_cost(const op_t& op) const;
 
+  void optimize_circuit(Circuit& circ,
+                        Noise::NoiseModel& noise,
+                        const opset_t &allowed_opset,
+                        uint_t ops_start,
+                        uint_t ops_end) const;
+
   bool aggregate_operations(oplist_t& ops,
                             const int fusion_start,
                             const int fusion_end,
                             uint_t max_fused_qubits,
-                            ExperimentResult &result,
                             Method method) const;
 
   // Aggregate a subcircuit of operations into a single operation
@@ -176,8 +179,8 @@ void Fusion::optimize_circuit(Circuit& circ,
     result.metadata.add(false, "fusion", "enabled");
     return;
   }
-  result.metadata.add(true, "fusion", "enabled");
 
+  result.metadata.add(true, "fusion", "enabled");
   result.metadata.add(threshold, "fusion", "threshold");
   result.metadata.add(cost_factor, "fusion", "cost_factor");
   result.metadata.add(max_qubit, "fusion", "max_fused_qubits");
@@ -208,7 +211,23 @@ void Fusion::optimize_circuit(Circuit& circ,
     result.metadata.add("kraus", "fusion", "method");
   }
 
-  CircuitOptimization::optimize_circuit(circ, noise, allowed_opset, result);
+  if (circ.ops.size() < parallel_threshold_ || parallelization_ <= 1) {
+    optimize_circuit(circ, noise, allowed_opset, 0, circ.ops.size());
+  } else {
+    // determine unit for each OMP thread
+    int_t unit = circ.ops.size() / parallelization_;
+    if (circ.ops.size() % parallelization_)
+      ++unit;
+
+#pragma omp parallel for if (parallelization_ > 1) num_threads(parallelization_)
+    for (int_t i = 0; i < parallelization_; i++) {
+      int_t start = unit * i;
+      int_t end = std::min(start + unit, (int_t) circ.ops.size());
+      optimize_circuit(circ, noise, allowed_opset, start, end);
+    }
+  }
+
+  result.metadata.add(parallelization_, "fusion", "parallelization");
 
   auto timer_stop = clock_t::now();
   result.metadata.add(std::chrono::duration<double>(timer_stop - timer_start).count(), "fusion", "time_taken");
@@ -238,8 +257,7 @@ void Fusion::optimize_circuit(Circuit& circ,
                               Noise::NoiseModel& noise,
                               const opset_t &allowed_opset,
                               uint_t ops_start,
-                              uint_t ops_end,
-                              ExperimentResult &result) const {
+                              uint_t ops_end) const {
 
   // Determine fusion method
   // TODO: Support Kraus fusion method
@@ -261,19 +279,11 @@ void Fusion::optimize_circuit(Circuit& circ,
     if (can_ignore(circ.ops[op_idx]))
       continue;
     if (!can_apply_fusion(circ.ops[op_idx], max_qubit, method) || op_idx == (ops_end - 1)) {
-      aggregate_operations(circ.ops, fusion_start, op_idx, max_qubit, result, method);
+      aggregate_operations(circ.ops, fusion_start, op_idx, max_qubit, method);
       fusion_start = op_idx + 1;
     }
   }
 }
-
-void Fusion::reduce_results(Circuit& circ,
-                            ExperimentResult &result,
-                            std::vector<ExperimentResult> &results) const {
-
-  result.metadata.add(results.size(), "fusion", "parallelization");
-}
-
 
 bool Fusion::can_ignore(const op_t& op) const {
   switch (op.type) {
@@ -358,7 +368,6 @@ bool Fusion::aggregate_operations(oplist_t& ops,
                                   const int fusion_start,
                                   const int fusion_end,
                                   uint_t max_fused_qubits,
-                                  ExperimentResult &result,
                                   Method method) const {
 
   // costs[i]: estimated cost to execute from 0-th to i-th in original.ops
