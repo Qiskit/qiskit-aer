@@ -18,7 +18,7 @@ import logging
 from warnings import warn
 
 from qiskit.circuit import Instruction
-from qiskit.providers import BaseBackend
+from qiskit.providers import BaseBackend, Backend
 from qiskit.providers.models import BackendProperties
 
 from ..backends.aerbackend import AerJSONEncoder
@@ -269,7 +269,7 @@ class NoiseModel:
         Raises:
             NoiseError: If the input backend is not valid.
         """
-        if isinstance(backend, BaseBackend):
+        if isinstance(backend, (BaseBackend, Backend)):
             properties = backend.properties()
             if not properties:
                 raise NoiseError('Qiskit backend {} does not have a '

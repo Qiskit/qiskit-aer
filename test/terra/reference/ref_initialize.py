@@ -377,3 +377,128 @@ def initialize_counts_sampling_optimization(shots, hex_counts=True):
         return [{'0x0': shots/2, '0x2': shots/2}]
     else:
         return [{'0x00': shots/2, '0x10': shots/2}]
+
+def initialize_entangled_qubits(final_measure=True):
+    """Initialize test circuits with entangled qubits"""
+
+    circuits = []
+    qr = QuantumRegister(3)
+    if final_measure:
+        cr = ClassicalRegister(3)
+        regs = (qr, cr)
+    else:
+        regs = (qr, )
+
+    # Initialize |000+111> -> |000+110>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.cx(0, 2)
+    circuit.initialize([1, 0], [0])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # Initialize |000+111> ->  |010+111>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.cx(0, 2)
+    circuit.initialize([0,1], [1])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # Initialize |000+111> ->  |000+011>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.cx(0, 2)
+    circuit.initialize([1,0], [2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # Initialize |000+111> ->  |000+100>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.cx(0, 2)
+    circuit.initialize([1, 0, 0, 0], [0, 1])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # Initialize |000+111> ->  |100+110>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.cx(0, 2)
+    circuit.initialize([0,0,0,1], [0, 2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # Initialize |000+111> ->  |000+100+010+110+100+101+011+111>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.cx(0, 2)
+    circuit.initialize([0.5,0.5,0.5,0.5], [1, 2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # Initialize |000+111> ->  |100>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.cx(0, 2)
+    circuit.initialize([0, 0, 0, 0, 0, 0, 0, 1], [0, 1, 2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    return circuits
+
+def initialize_counts_entangled_qubits(shots, hex_counts=True):
+    """Initialize entangled qubits reference counts."""
+    targets = []
+    if hex_counts:
+        # Initialize |000+111> -> |000+110>
+        targets.append({'0x0': shots / 2, '0x6': shots / 2})
+        # Initialize |000+111> -> |010+111> 
+        targets.append({'0x2': shots / 2, '0x7': shots / 2})
+        # Initialize |000+111> ->  |000+011>
+        targets.append({'0x0': shots / 2, '0x3': shots / 2})
+        # Initialize |000+111> ->  |000+100>
+        targets.append({'0x0': shots / 2, '0x4': shots / 2})
+        # Initialize |000+111> ->  |101+111>
+        targets.append({'0x5': shots / 2, '0x7': shots / 2})
+        # Initialize |000+111> ->  |000+100+010+110+100+101+011+111>
+        targets.append({'0x0': shots / 8, '0x1': shots / 8, '0x2': shots / 8, '0x3': shots / 8, '0x4': shots / 8, '0x5': shots / 8, '0x6': shots / 8, '0x7': shots / 8})
+        # Initialize |000+111> ->  |111>
+        targets.append({'0x7': shots})
+    else:
+        # Initialize |000+111> -> |000+110>
+        targets.append({'000': shots/2, '110': shots/2})
+        # Initialize |000+111> -> |010+110>
+        targets.append({'010': shots/2, '111': shots/2})
+        # Initialize |000+111> -> |000+110>
+        targets.append({'000': shots/2, '011': shots/2})
+        # Initialize |000+111> -> |000+110>
+        targets.append({'000': shots / 2, '100': shots / 2})
+        # Initialize |000+111> -> |101+111>
+        targets.append({'101': shots / 2, '111': shots / 2})
+        # Initialize |000+111> -> |000+100+010+011+001+101+011+010>
+        targets.append({'000': shots / 8, '001': shots / 8, '010': shots / 8, '011': shots / 8, '100': shots / 8, '101': shots / 8, '110': shots / 8, '111': shots / 8})
+        # Initialize |000+111> -> |111>
+        targets.append({'111': shots})
+    return targets
