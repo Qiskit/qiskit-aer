@@ -673,7 +673,18 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       }
     }
 
-    set_distributed_parallelization(circuits, circ_noise_models);
+    try{
+      //catch exception raised by required_memory_mb because of invalid simulation method
+      set_distributed_parallelization(circuits, circ_noise_models);
+    }
+    catch (std::exception &e) {
+      result.status = Result::Status::error;
+      result.message = e.what();
+      for(auto& res : result.results){
+        res.status = ExperimentResult::Status::error;
+        res.message = e.what();
+      }
+    }
 
     const auto num_circuits = distributed_experiments_end_ - distributed_experiments_begin_;
     result.resize(num_circuits);
@@ -688,7 +699,18 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 
     if (!explicit_parallelization_) {
       // set parallelization for experiments
-      set_parallelization_experiments(circuits, circ_noise_models);
+      try{
+        //catch exception raised by required_memory_mb because of invalid simulation method
+        set_parallelization_experiments(circuits, circ_noise_models);
+      }
+      catch (std::exception &e) {
+        result.status = Result::Status::error;
+        result.message = e.what();
+        for(auto& res : result.results){
+          res.status = ExperimentResult::Status::error;
+          res.message = e.what();
+        }
+      }
     }
 
 #ifdef _OPENMP
