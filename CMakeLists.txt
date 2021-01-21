@@ -26,7 +26,6 @@ if(NOT DEFINED AER_THRUST_BACKEND AND DEFINED ENV{AER_THRUST_BACKEND})
 endif()
 
 if(AER_THRUST_BACKEND STREQUAL "CUDA")
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++14")
   include(nvcc_add_compiler_options)
   set(CUDA_FOUND TRUE)
   #include(FindCUDA) # for cuda_select_nvcc_arch_flags, CUDA_FOUND
@@ -258,15 +257,15 @@ if(AER_THRUST_SUPPORTED)
 			endif()
 		endif()
 		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH_FLAGS ${AER_CUDA_ARCH})
+
 		string(REPLACE ";" " "  AER_CUDA_ARCH_FLAGS_EXPAND "${AER_CUDA_ARCH_FLAGS}")
-#		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin \"${CMAKE_CXX_COMPILER}\" ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
 		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
-		set(THRUST_DEPENDANT_LIBS "")
-		set(CUDA_VERBOSE_BUILD "ON")
+		set(THRUST_DEPENDENT_LIBS "")
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
 		message(STATUS "TBB Support found!")
-		set(THRUST_DEPENDANT_LIBS AER_DEPENDENCY_PKG::tbb)
+		set(THRUST_DEPENDENT_LIBS AER_DEPENDENCY_PKG::tbb)
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE)
 	elseif(AER_THRUST_BACKEND STREQUAL "OMP")
 		message(STATUS "Thrust library: Setting OMP backend")
@@ -275,18 +274,11 @@ if(AER_THRUST_SUPPORTED)
 		endif()
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_THRUST_CPU=TRUE)
 		# We don't need to add OMP because it's already an AER dependency
-		set(THRUST_DEPENDANT_LIBS "")
+		set(THRUST_DEPENDENT_LIBS "")
 	else()
 		message(STATUS "No Thrust supported backend")
 		set(AER_THRUST_SUPPORTED FALSE)
 	endif()
-	if(MSVC)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
-	endif()
-endif()
-
-if(AER_DEBUG)
-	set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_DEBUG)
 endif()
 
 if(AER_THRUST_SUPPORTED)
@@ -295,14 +287,6 @@ else()
 	message(STATUS "No Thrust support enabled")
 endif()
 
-if(AER_MPI)
-	find_package(MPI REQUIRED)
-	set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_MPI)
-	set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${MPI_CXX_INCLUDE_PATH})
-	set(MPI_DEPENDANT_LIBS ${MPI_CXX_LIBRARIES})
-else()
-	set(MPI_DEPENDANT_LIBS "")
-endif()
 
 # Set dependent libraries
 set(AER_LIBRARIES
@@ -312,8 +296,7 @@ set(AER_LIBRARIES
 	AER_DEPENDENCY_PKG::spdlog
 	Threads::Threads
 	${DL_LIB}
-	${THRUST_DEPENDANT_LIBS}
-	${MPI_DEPENDANT_LIBS})
+	${THRUST_DEPENDENT_LIBS})
 
 set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 if(SKBUILD) # Terra Addon build
@@ -334,9 +317,7 @@ else() # Standalone build
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
 		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES LANGUAGE CUDA)
 		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
-		if(SIMD_FLAGS_LIST)
                 nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS)
-        endif()
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS}")
 
 		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
