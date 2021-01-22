@@ -278,8 +278,8 @@ class NoiseModel:
         elif isinstance(backend, BackendProperties):
             properties = backend
             basis_gates = set()
-            for g in backend.properties().gates:
-                basis_gates.add(g.gate)
+            for prop in backend.properties().gates:
+                basis_gates.add(prop.gate)
             basis_gates = list(basis_gates)
         else:
             raise NoiseError('{} is not a Qiskit backend or'
