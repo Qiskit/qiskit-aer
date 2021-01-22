@@ -50,6 +50,7 @@ stages:
                 conda create --yes --quiet python=$version --name test-$version
                 source activate test-$version
                 pip install -c constraints.txt dist/*whl
+                pip install qiskit-ibmq-provider
                 python tools/verify_wheels.py
                 mv dist/*whl wheelhouse/.
                 rm -rf test-$version
@@ -105,6 +106,7 @@ stages:
                 conda create --yes --quiet python=$version --name test-$version
                 source activate test-$version
                 pip install -c constraints.txt dist/*whl
+                pip install qiskit-ibmq-provider
                 python tools/verify_wheels.py
                 mv dist/*whl wheelhouse/.
                 rm -rf test-$version
@@ -171,6 +173,7 @@ stages:
               source activate test-wheel
               pip install -c constraints.txt dist/*whl
               pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
+              pip install qiskit-ibmq-provider
               python tools/verify_wheels.py
             displayName: Verify wheels
       - job: 'Windows_win32_Wheel_Builds'
@@ -217,6 +220,7 @@ stages:
               source activate test-wheel
               pip install -c constraints.txt dist/*whl
               pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
+              pip install qiskit-ibmq-provider
               python tools/verify_wheels.py
             displayName: Verify wheels
             env:
@@ -262,6 +266,7 @@ stages:
               pip install -U setuptools
               pip install dist/*tar.gz
               pip install git+https://github.com/Qiskit/qiskit-terra
+              pip install qiskit-ibmq-provider
               python tools/verify_wheels.py
             env:
               CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
