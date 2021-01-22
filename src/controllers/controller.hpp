@@ -376,15 +376,9 @@ void Controller::set_parallelization_experiments(
   }
 
   // If memory allows, execute experiments in parallel
-  /*
   std::vector<size_t> required_memory_mb_list(distributed_experiments_end_ - distributed_experiments_begin_);
   for (size_t j = 0; j < distributed_experiments_end_-distributed_experiments_begin_; j++) {
     required_memory_mb_list[j] = required_memory_mb(circuits[j+distributed_experiments_begin_], noise[j+distributed_experiments_begin_]) / num_process_per_experiment_;
-  }
-  */
-  std::vector<size_t> required_memory_mb_list(circuits.size());
-  for (size_t j = 0; j < circuits.size(); j++) {
-    required_memory_mb_list[j] = required_memory_mb(circuits[j], noise[j]);
   }
   std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(),
             std::greater<>());
@@ -400,14 +394,9 @@ void Controller::set_parallelization_experiments(
   if (parallel_experiments_ <= 0)
     throw std::runtime_error(
         "a circuit requires more memory than max_memory_mb.");
-  /*
   parallel_experiments_ =
       std::min<int>({parallel_experiments_, max_experiments,
                      max_parallel_threads_, static_cast<int>(distributed_experiments_end_ - distributed_experiments_begin_)});
-  */
-  parallel_experiments_ =
-      std::min<int>({parallel_experiments_, max_experiments,
-                     max_parallel_threads_, static_cast<int>(circuits.size())});
 }
 
 void Controller::set_parallelization_circuit(const Circuit &circ,
@@ -435,16 +424,11 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
     // If circ memory is 0, set it to 1 so that we don't divide by zero
     circ_memory_mb = std::max<int>({1, circ_memory_mb});
 
-    /*
     int shots = (circ.shots * (distributed_shots_rank_ + 1)/distributed_shots_) - (circ.shots * distributed_shots_rank_ /distributed_shots_);
 
     parallel_shots_ =
         std::min<int>({static_cast<int>(max_memory_mb_ / circ_memory_mb),
                        max_shots, shots});
-    */
-    parallel_shots_ =
-        std::min<int>({static_cast<int>(max_memory_mb_ / circ_memory_mb),
-                       max_shots, static_cast<int>(circ.shots)});
   }
   parallel_state_update_ =
       (parallel_shots_ > 1)
@@ -456,6 +440,7 @@ void Controller::set_distributed_parallelization(const std::vector<Circuit> &cir
                                   const std::vector<Noise::NoiseModel> &noise)
 {
   std::vector<size_t> required_memory_mb_list(circuits.size());
+  num_process_per_experiment_ = 1;
   for (size_t j = 0; j < circuits.size(); j++) {
     size_t size = required_memory_mb(circuits[j], noise[j]);
     if(size > max_memory_mb_ + max_gpu_memory_mb_){
@@ -689,7 +674,6 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       }
     }
 
-    /*
     try{
       //catch exception raised by required_memory_mb because of invalid simulation method
       set_distributed_parallelization(circuits, circ_noise_models);
@@ -702,17 +686,13 @@ Result Controller::execute(std::vector<Circuit> &circuits,
         res.message = e.what();
       }
     }
-    */
 
-    /*
     const auto num_circuits = distributed_experiments_end_ - distributed_experiments_begin_;
     result.resize(num_circuits);
-    */
 
     //get max qubits for this process (to allocate qubit register at once)
     max_qubits_ = 0;
-//    for (size_t j = distributed_experiments_begin_; j < distributed_experiments_end_; j++) {
-    for (size_t j = 0; j < circuits.size(); j++) {
+    for (size_t j = distributed_experiments_begin_; j < distributed_experiments_end_; j++) {
       if(circuits[j].num_qubits > max_qubits_){
         max_qubits_ = circuits[j].num_qubits;
       }
@@ -743,7 +723,6 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     result.metadata.add(max_memory_mb_, "max_memory_mb");
     result.metadata.add(max_gpu_memory_mb_,"max_gpu_memory_mb");
 
-  /*
     //store rank and number of processes, if no distribution rank=0 procs=1 is set
     result.metadata.add(num_processes_,"num_distributed_processes");
     result.metadata.add(myrank_,"distributed_rank");
@@ -751,7 +730,6 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     result.metadata.add(distributed_experiments_,"distributed_experiments");
     result.metadata.add(distributed_experiments_group_id_,"distributed_experiments_group_id");
     result.metadata.add(distributed_experiments_rank_,"distributed_experiments_rank_in_group");
-  */
 
 #ifdef _OPENMP
     // Check if circuit parallelism is nested with one of the others
@@ -779,13 +757,11 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     if (parallel_experiments_ > 1) {
       #pragma omp parallel for num_threads(parallel_experiments_)
       for (int j = 0; j < result.results.size(); ++j) {
-//        execute_circuit(circuits[j+distributed_experiments_begin_], circ_noise_models[j+distributed_experiments_begin_], config, result.results[j]);
-        execute_circuit(circuits[j], circ_noise_models[j], config, result.results[j]);
+        execute_circuit(circuits[j+distributed_experiments_begin_], circ_noise_models[j+distributed_experiments_begin_], config, result.results[j]);
       }
     } else {
       for (int j = 0; j < result.results.size(); ++j) {
-//        execute_circuit(circuits[j+distributed_experiments_begin_], circ_noise_models[j+distributed_experiments_begin_], config, result.results[j]);
-        execute_circuit(circuits[j], circ_noise_models[j], config, result.results[j]);
+        execute_circuit(circuits[j+distributed_experiments_begin_], circ_noise_models[j+distributed_experiments_begin_], config, result.results[j]);
       }
     }
 
@@ -851,8 +827,7 @@ void Controller::execute_circuit(Circuit &circ,
     if (!explicit_parallelization_) {
       set_parallelization_circuit(circ, noise);
     }
-//    int shots = (circ.shots * (distributed_shots_rank_ + 1)/distributed_shots_) - (circ.shots * distributed_shots_rank_ /distributed_shots_);
-    int shots = circ.shots;
+    int shots = (circ.shots * (distributed_shots_rank_ + 1)/distributed_shots_) - (circ.shots * distributed_shots_rank_ /distributed_shots_);
 
     // Single shot thread execution
     if (parallel_shots_ <= 1) {
@@ -922,9 +897,9 @@ void Controller::execute_circuit(Circuit &circ,
     result.seed = circ.seed;
     result.metadata.add(parallel_shots_, "parallel_shots");
     result.metadata.add(parallel_state_update_, "parallel_state_update");
-/*    if(distributed_shots_ > 1){
+    if(distributed_shots_ > 1){
       result.metadata.add(distributed_shots_,"distributed_shots");
-    }*/
+    }
     // Add timer data
     auto timer_stop = myclock_t::now(); // stop timer
     double time_taken =

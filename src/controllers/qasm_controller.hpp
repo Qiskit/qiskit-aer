@@ -983,7 +983,6 @@ void QasmController::set_distributed_parallelization(const std::vector<Circuit> 
   uint_t i,ncircuits;
   bool sample_opt = true;
 
-  /*
   ncircuits = circuits.size();
   for(i=0;i<ncircuits;i++){
     const auto method = simulation_method(circuits[i], noise[i], false);
@@ -1018,6 +1017,7 @@ void QasmController::set_distributed_parallelization(const std::vector<Circuit> 
     }
   }
 
+  Base::Controller::set_distributed_parallelization(circuits, noise);
 
   if(sample_opt){
     if(circuits.size() <= Base::Controller::distributed_experiments_){
@@ -1034,17 +1034,12 @@ void QasmController::set_distributed_parallelization(const std::vector<Circuit> 
       Base::Controller::distributed_shots_rank_ = 0;
     }
     else{
-      Base::Controller::set_distributed_parallelization(circuits, noise);
 
       //shots are not distributed
       Base::Controller::distributed_shots_ = 1;
       Base::Controller::distributed_shots_rank_ = 0;
     }
   }
-  else{
-    Base::Controller::set_distributed_parallelization(circuits, noise);
-  }
-  */
 }
 
 //-------------------------------------------------------------------------
