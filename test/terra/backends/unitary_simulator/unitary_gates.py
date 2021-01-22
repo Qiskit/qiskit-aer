@@ -98,10 +98,10 @@ class UnitaryGateTests:
     @data(*[(gate_params[0], gate_params[1], basis_gates)
             for gate_params, basis_gates in product(GATES, BASIS_GATES)])
     @unpack
-    def test_gate(self, gate_cls, num_params, basis_gates):
+    def test_gate(self, gate_cls, num_angles, basis_gates):
         """Test standard gate simulation."""
         circuits = self.gate_circuits(gate_cls,
-                                      num_params=num_params,
+                                      num_angles=num_angles,
                                       rng=self.RNG)
 
         for circuit in circuits:

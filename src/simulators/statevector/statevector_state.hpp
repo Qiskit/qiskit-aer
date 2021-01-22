@@ -46,7 +46,7 @@ const Operations::OpSet StateOpSet(
      "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
      "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
      "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
-     "mcsx",   "delay", "pauli"},
+     "mcsx",   "delay", "pauli", "mcx_gray"},
     // Snapshots
     {"statevector", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli", "density_matrix",
@@ -317,7 +317,6 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"ry", Gates::mcry}, // Pauli-Y rotation gate
     {"rz", Gates::mcrz}, // Pauli-Z rotation gate
     // Waltz Gates
-    {"p", Gates::mcp},   // Parameterized phase gate 
     {"u1", Gates::mcp},  // zero-X90 pulse waltz gate
     {"u2", Gates::mcu2}, // single-X90 pulse waltz gate
     {"u3", Gates::mcu3}, // two X90 pulse waltz gate
@@ -354,10 +353,10 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"mcu1", Gates::mcp},     // Multi-controlled-u1
     {"mcu2", Gates::mcu2},    // Multi-controlled-u2
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
-    {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
     {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
-    {"pauli", Gates::pauli}   // Multi-qubit Pauli gate
+    {"pauli", Gates::pauli},   // Multi-qubit Pauli gate
+    {"mcx_gray", Gates::mcx}
 });
 
 template <class statevec_t>
