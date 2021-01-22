@@ -322,6 +322,8 @@ class QasmSimulator(AerBackend):
 
         if configuration is None:
             configuration = self._method_configuration()
+        elif not hasattr(configuration, 'custom_instructions'):
+            configuration.custom_instructions = []
 
         super().__init__(configuration,
                          properties=properties,
