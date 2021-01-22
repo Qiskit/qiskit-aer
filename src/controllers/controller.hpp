@@ -384,7 +384,7 @@ void Controller::set_parallelization_experiments(
   */
   std::vector<size_t> required_memory_mb_list(circuits.size());
   for (size_t j = 0; j < circuits.size(); j++) {
-    required_memory_mb_list[j] = required_memory_mb(circuits[j], noise);
+    required_memory_mb_list[j] = required_memory_mb(circuits[j], noise[j]);
   }
   std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(),
             std::greater<>());
