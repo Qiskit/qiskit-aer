@@ -205,9 +205,11 @@ class QasmController : public Base::Controller {
       const Noise::NoiseModel& noise) override;
 
   // Set distributed parallelization
+#ifdef AER_MPI
   virtual void
   set_distributed_parallelization(const std::vector<Circuit> &circuits,
                                   const std::vector<Noise::NoiseModel> &noise) override;
+#endif
 
   // Return a fusion transpilation pass configured for the current
   // method, circuit and config
@@ -977,6 +979,7 @@ void QasmController::set_parallelization_circuit(
   }
 }
 
+#ifdef AER_MPI
 void QasmController::set_distributed_parallelization(const std::vector<Circuit> &circuits,
                                   const std::vector<Noise::NoiseModel> &noise)
 {
@@ -1041,6 +1044,7 @@ void QasmController::set_distributed_parallelization(const std::vector<Circuit> 
     }
   }
 }
+#endif
 
 //-------------------------------------------------------------------------
 // Run circuit helpers
