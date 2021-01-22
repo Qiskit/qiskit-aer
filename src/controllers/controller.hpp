@@ -244,7 +244,6 @@ protected:
   //max number of qubits in given circuits
   int max_qubits_;
 
-#ifdef AER_MPI
   //results are stored independently in each process if true
   bool accept_distributed_results_ = true;
 
@@ -259,7 +258,6 @@ protected:
   //distributed shots (MPI)
   int distributed_shots_rank_ = 0;
   int distributed_shots_ = 1;
-#endif
 
   //process information (MPI)
   int myrank_ = 0;
@@ -357,14 +355,12 @@ void Controller::clear_parallelization() {
   parallel_state_update_ = 1;
   parallel_nested_ = false;
 
-#ifdef AER_MPI
   num_process_per_experiment_ = 1;
   distributed_experiments_ = 1;
   distributed_experiments_rank_ = 0;
   distributed_experiments_group_id_ = 0;
   distributed_shots_ = 1;
   distributed_shots_rank_ = 0;
-#endif
 
   explicit_parallelization_ = false;
   max_memory_mb_ = get_system_memory_mb() / 2;
@@ -406,6 +402,8 @@ void Controller::set_parallelization_experiments(
   for (size_t required_memory_mb : required_memory_mb_list) {
     total_memory += required_memory_mb;
     if (total_memory > max_memory_mb_*num_process_per_experiment_)
+      break;
+    if (total_memory > max_memory_mb_)
       break;
     ++parallel_experiments_;
   }
