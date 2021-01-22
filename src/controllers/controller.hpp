@@ -442,47 +442,35 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
 void Controller::set_distributed_parallelization(const std::vector<Circuit> &circuits,
                                   const std::vector<Noise::NoiseModel> &noise)
 {
-  if(num_processes_ > 1){
-    std::vector<size_t> required_memory_mb_list(circuits.size());
-    num_process_per_experiment_ = 1;
-    for (size_t j = 0; j < circuits.size(); j++) {
-      size_t size = required_memory_mb(circuits[j], noise[j]);
-      if(size > max_memory_mb_ + max_gpu_memory_mb_){
-        num_process_per_experiment_ = std::max<int>(num_process_per_experiment_,(size + (max_memory_mb_+max_gpu_memory_mb_) - 1) / (max_memory_mb_+max_gpu_memory_mb_));
-      }
-    }
-
-    //set group
-    distributed_experiments_ = num_processes_ / num_process_per_experiment_;
-    distributed_experiments_group_id_ = myrank_ / num_process_per_experiment_;
-    distributed_experiments_rank_ = myrank_ % num_process_per_experiment_;
-
-    if(circuits.size() < distributed_experiments_){
-      distributed_experiments_begin_ = distributed_experiments_group_id_ % circuits.size();
-      distributed_experiments_end_ = distributed_experiments_begin_ + 1;
-      distributed_shots_ = distributed_experiments_ / circuits.size();
-      if(distributed_experiments_group_id_ % circuits.size() < distributed_experiments_ % circuits.size()){
-        distributed_shots_ += 1;
-      }
-      distributed_shots_rank_ = distributed_experiments_group_id_ / circuits.size();
-
-      distributed_experiments_ = circuits.size();
-    }
-    else{
-      distributed_experiments_begin_ = circuits.size() * distributed_experiments_group_id_ / distributed_experiments_;
-      distributed_experiments_end_ = circuits.size() * (distributed_experiments_group_id_ + 1) / distributed_experiments_;
-      //shots are not distributed
-      distributed_shots_ = 1;
-      distributed_shots_rank_ = 0;
+  std::vector<size_t> required_memory_mb_list(circuits.size());
+  num_process_per_experiment_ = 1;
+  for (size_t j = 0; j < circuits.size(); j++) {
+    size_t size = required_memory_mb(circuits[j], noise[j]);
+    if(size > max_memory_mb_ + max_gpu_memory_mb_){
+      num_process_per_experiment_ = std::max<int>(num_process_per_experiment_,(size + (max_memory_mb_+max_gpu_memory_mb_) - 1) / (max_memory_mb_+max_gpu_memory_mb_));
     }
   }
-  else{
-    distributed_experiments_ = 1;
-    distributed_experiments_group_id_ = 0;
-    distributed_experiments_rank_ = 0;
-    distributed_experiments_begin_ = 0;
-    distributed_experiments_end_ = circuits.size();
 
+  //set group
+  distributed_experiments_ = num_processes_ / num_process_per_experiment_;
+  distributed_experiments_group_id_ = myrank_ / num_process_per_experiment_;
+  distributed_experiments_rank_ = myrank_ % num_process_per_experiment_;
+
+  if(circuits.size() < distributed_experiments_){
+    distributed_experiments_begin_ = distributed_experiments_group_id_ % circuits.size();
+    distributed_experiments_end_ = distributed_experiments_begin_ + 1;
+    distributed_shots_ = distributed_experiments_ / circuits.size();
+    if(distributed_experiments_group_id_ % circuits.size() < distributed_experiments_ % circuits.size()){
+      distributed_shots_ += 1;
+    }
+    distributed_shots_rank_ = distributed_experiments_group_id_ / circuits.size();
+
+    distributed_experiments_ = circuits.size();
+  }
+  else{
+    distributed_experiments_begin_ = circuits.size() * distributed_experiments_group_id_ / distributed_experiments_;
+    distributed_experiments_end_ = circuits.size() * (distributed_experiments_group_id_ + 1) / distributed_experiments_;
+    //shots are not distributed
     distributed_shots_ = 1;
     distributed_shots_rank_ = 0;
   }
@@ -692,21 +680,32 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       }
     }
 
-    try{
-      //catch exception raised by required_memory_mb because of invalid simulation method
-      set_distributed_parallelization(circuits, circ_noise_models);
-    }
-    catch (std::exception &e) {
-      result.status = Result::Status::error;
-      result.message = e.what();
-      for(auto& res : result.results){
-        res.status = ExperimentResult::Status::error;
-        res.message = e.what();
+    if(num_processes_ > 1){
+      try{
+        //catch exception raised by required_memory_mb because of invalid simulation method
+        set_distributed_parallelization(circuits, circ_noise_models);
       }
+      catch (std::exception &e) {
+        result.status = Result::Status::error;
+        result.message = e.what();
+        for(auto& res : result.results){
+          res.status = ExperimentResult::Status::error;
+          res.message = e.what();
+        }
+      }
+      const auto num_circuits = distributed_experiments_end_ - distributed_experiments_begin_;
+      result.resize(num_circuits);
     }
+    else{
+      distributed_experiments_ = 1;
+      distributed_experiments_group_id_ = 0;
+      distributed_experiments_rank_ = 0;
+      distributed_experiments_begin_ = 0;
+      distributed_experiments_end_ = circuits.size();
 
-    const auto num_circuits = distributed_experiments_end_ - distributed_experiments_begin_;
-    result.resize(num_circuits);
+      distributed_shots_ = 1;
+      distributed_shots_rank_ = 0;
+    }
 
     //get max qubits for this process (to allocate qubit register at once)
     max_qubits_ = 0;
