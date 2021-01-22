@@ -7,5 +7,5 @@ fixes:
     :meth:`~qiskit.providers.aer.QasmSimulator.from_backend`. Now the
     listed basis gates will be the intersection of gates supported by
     the backend configuration, simulation method, and noise model basis
-    gates. If this intersection of the noise model basis gates and 
+    gates. If the intersection of the noise model basis gates and 
     simulator basis gates is empty a warning will be logged.
