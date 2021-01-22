@@ -983,6 +983,7 @@ void QasmController::set_distributed_parallelization(const std::vector<Circuit> 
   uint_t i,ncircuits;
   bool sample_opt = true;
 
+  /*
   ncircuits = circuits.size();
   for(i=0;i<ncircuits;i++){
     const auto method = simulation_method(circuits[i], noise[i], false);
@@ -1043,6 +1044,7 @@ void QasmController::set_distributed_parallelization(const std::vector<Circuit> 
   else{
     Base::Controller::set_distributed_parallelization(circuits, noise);
   }
+  */
 }
 
 //-------------------------------------------------------------------------
