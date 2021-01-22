@@ -93,12 +93,12 @@ class NoiseModel:
 
     # Checks for standard 1-3 qubit instructions
     _1qubit_instructions = set([
-        "x90", "u1", "u2", "u3", "U", "id", "x", "y", "z", "h", "s", "sdg",
-        "t", "tdg", "r", "rx", "ry", "rz", "p"
-    ])
-    _2qubit_instructions = set(["cx", "cy", "cz", "swap", "rxx", "ryy", "rzz",
-                                "rzx", "cu1", "cu2", "cu3", "cp"])
-    _3qubit_instructions = set(["ccx", "cswap"])
+        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+        'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg'])
+    _2qubit_instructions = set([
+        'swap', 'cx', 'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx',
+        'ryy', 'rzz', 'rzx'])
+    _3qubit_instructions = set(['ccx', 'cswap'])
 
     def __init__(self, basis_gates=None):
         """Initialize an empty noise model.
@@ -271,15 +271,20 @@ class NoiseModel:
         """
         if isinstance(backend, BaseBackend):
             properties = backend.properties()
+            basis_gates = backend.configuration().basis_gates
             if not properties:
                 raise NoiseError('Qiskit backend {} does not have a '
                                  'BackendProperties'.format(backend))
         elif isinstance(backend, BackendProperties):
             properties = backend
+            basis_gates = set()
+            for prop in properties.gates:
+                basis_gates.add(prop.gate)
+            basis_gates = list(basis_gates)
         else:
             raise NoiseError('{} is not a Qiskit backend or'
                              ' BackendProperties'.format(backend))
-        noise_model = NoiseModel()
+        noise_model = NoiseModel(basis_gates=basis_gates)
 
         # Add single-qubit readout errors
         if readout_error:
