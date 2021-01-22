@@ -278,7 +278,7 @@ class NoiseModel:
         elif isinstance(backend, BackendProperties):
             properties = backend
             basis_gates = set()
-            for prop in backend.properties().gates:
+            for prop in properties.gates:
                 basis_gates.add(prop.gate)
             basis_gates = list(basis_gates)
         else:
