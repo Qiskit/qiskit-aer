@@ -205,11 +205,9 @@ class QasmController : public Base::Controller {
       const Noise::NoiseModel& noise) override;
 
   // Set distributed parallelization
-#ifdef AER_MPI
   virtual void
   set_distributed_parallelization(const std::vector<Circuit> &circuits,
                                   const std::vector<Noise::NoiseModel> &noise) override;
-#endif
 
   // Return a fusion transpilation pass configured for the current
   // method, circuit and config
@@ -979,10 +977,10 @@ void QasmController::set_parallelization_circuit(
   }
 }
 
-#ifdef AER_MPI
 void QasmController::set_distributed_parallelization(const std::vector<Circuit> &circuits,
                                   const std::vector<Noise::NoiseModel> &noise)
 {
+#ifdef AER_MPI
   uint_t i,ncircuits;
   bool sample_opt = true;
 
@@ -1020,7 +1018,6 @@ void QasmController::set_distributed_parallelization(const std::vector<Circuit> 
     }
   }
 
-  Base::Controller::set_distributed_parallelization(circuits, noise);
 
   if(sample_opt){
     if(circuits.size() <= Base::Controller::distributed_experiments_){
@@ -1037,14 +1034,18 @@ void QasmController::set_distributed_parallelization(const std::vector<Circuit> 
       Base::Controller::distributed_shots_rank_ = 0;
     }
     else{
+      Base::Controller::set_distributed_parallelization(circuits, noise);
 
       //shots are not distributed
       Base::Controller::distributed_shots_ = 1;
       Base::Controller::distributed_shots_rank_ = 0;
     }
   }
-}
+  else{
+    Base::Controller::set_distributed_parallelization(circuits, noise);
+  }
 #endif
+}
 
 //-------------------------------------------------------------------------
 // Run circuit helpers

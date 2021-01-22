@@ -212,11 +212,9 @@ protected:
                                     const Noise::NoiseModel &noise) const = 0;
 
   // Set distributed parallelization
-#ifdef AER_MPI
   virtual void
   set_distributed_parallelization(const std::vector<Circuit> &circuits,
                                   const std::vector<Noise::NoiseModel> &noise);
-#endif
 
   // Get system memory size
   size_t get_system_memory_mb();
@@ -258,11 +256,9 @@ protected:
   //distributed shots (MPI)
   int distributed_shots_rank_ = 0;
   int distributed_shots_ = 1;
-
   //process information (MPI)
   int myrank_ = 0;
   int num_processes_ = 1;
-
 };
 
 //=========================================================================
@@ -333,11 +329,10 @@ void Controller::set_config(const json_t &config) {
     parallel_state_update_ = std::max<int>({parallel_state_update_, 1});
   }
 
-#ifdef AER_MPI
   if (JSON::check_key("accept_distributed_results", config)) {
     JSON::get_value(accept_distributed_results_, "accept_distributed_results", config);
   }
-#endif
+
 }
 
 void Controller::clear_config() {
@@ -357,10 +352,7 @@ void Controller::clear_parallelization() {
 
   num_process_per_experiment_ = 1;
   distributed_experiments_ = 1;
-  distributed_experiments_rank_ = 0;
-  distributed_experiments_group_id_ = 0;
   distributed_shots_ = 1;
-  distributed_shots_rank_ = 0;
 
   explicit_parallelization_ = false;
   max_memory_mb_ = get_system_memory_mb() / 2;
@@ -403,17 +395,21 @@ void Controller::set_parallelization_experiments(
     total_memory += required_memory_mb;
     if (total_memory > max_memory_mb_*num_process_per_experiment_)
       break;
-    if (total_memory > max_memory_mb_)
-      break;
     ++parallel_experiments_;
   }
 
   if (parallel_experiments_ <= 0)
     throw std::runtime_error(
         "a circuit requires more memory than max_memory_mb.");
+#ifdef AER_MPI
   parallel_experiments_ =
       std::min<int>({parallel_experiments_, max_experiments,
-                     max_parallel_threads_, static_cast<int>(required_memory_mb_list.size())});
+                     max_parallel_threads_, static_cast<int>(distributed_experiments_end_ - distributed_experiments_begin_)});
+#else
+  parallel_experiments_ =
+      std::min<int>({parallel_experiments_, max_experiments,
+                     max_parallel_threads_, static_cast<int>(circuits.size())});
+#endif
 }
 
 void Controller::set_parallelization_circuit(const Circuit &circ,
@@ -443,13 +439,15 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
 
 #ifdef AER_MPI
     int shots = (circ.shots * (distributed_shots_rank_ + 1)/distributed_shots_) - (circ.shots * distributed_shots_rank_ /distributed_shots_);
-#else
-    int shots = circ.shots;
-#endif
 
     parallel_shots_ =
         std::min<int>({static_cast<int>(max_memory_mb_ / circ_memory_mb),
                        max_shots, shots});
+#else
+    parallel_shots_ =
+        std::min<int>({static_cast<int>(max_memory_mb_ / circ_memory_mb),
+                       max_shots, static_cast<int>(circ.shots)});
+#endif
   }
   parallel_state_update_ =
       (parallel_shots_ > 1)
@@ -457,56 +455,42 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
           : std::max<int>({1, max_parallel_threads_ / parallel_experiments_});
 }
 
-#ifdef AER_MPI
 void Controller::set_distributed_parallelization(const std::vector<Circuit> &circuits,
                                   const std::vector<Noise::NoiseModel> &noise)
 {
-  if(num_processes_ > 1){
-    std::vector<size_t> required_memory_mb_list(circuits.size());
-    num_process_per_experiment_ = 1;
-    for (size_t j = 0; j < circuits.size(); j++) {
-      size_t size = required_memory_mb(circuits[j], noise[j]);
-      if(size > max_memory_mb_ + max_gpu_memory_mb_){
-        num_process_per_experiment_ = std::max<int>(num_process_per_experiment_,(size + (max_memory_mb_+max_gpu_memory_mb_) - 1) / (max_memory_mb_+max_gpu_memory_mb_));
-      }
-    }
-
-    //set group
-    distributed_experiments_ = num_processes_ / num_process_per_experiment_;
-    distributed_experiments_group_id_ = myrank_ / num_process_per_experiment_;
-    distributed_experiments_rank_ = myrank_ % num_process_per_experiment_;
-
-    if(circuits.size() < distributed_experiments_){
-      distributed_experiments_begin_ = distributed_experiments_group_id_ % circuits.size();
-      distributed_experiments_end_ = distributed_experiments_begin_ + 1;
-      distributed_shots_ = distributed_experiments_ / circuits.size();
-      if(distributed_experiments_group_id_ % circuits.size() < distributed_experiments_ % circuits.size()){
-        distributed_shots_ += 1;
-      }
-      distributed_shots_rank_ = distributed_experiments_group_id_ / circuits.size();
-
-      distributed_experiments_ = circuits.size();
-    }
-    else{
-      distributed_experiments_begin_ = circuits.size() * distributed_experiments_group_id_ / distributed_experiments_;
-      distributed_experiments_end_ = circuits.size() * (distributed_experiments_group_id_ + 1) / distributed_experiments_;
-      //shots are not distributed
-      distributed_shots_ = 1;
-      distributed_shots_rank_ = 0;
+  std::vector<size_t> required_memory_mb_list(circuits.size());
+  num_process_per_experiment_ = 1;
+  for (size_t j = 0; j < circuits.size(); j++) {
+    size_t size = required_memory_mb(circuits[j], noise[j]);
+    if(size > max_memory_mb_ + max_gpu_memory_mb_){
+      num_process_per_experiment_ = std::max<int>(num_process_per_experiment_,(size + (max_memory_mb_+max_gpu_memory_mb_) - 1) / (max_memory_mb_+max_gpu_memory_mb_));
     }
   }
-  else{
-    distributed_experiments_ = 1;
-    distributed_experiments_group_id_ = 0;
-    distributed_experiments_rank_ = 0;
-    distributed_experiments_begin_ = 0;
-    distributed_experiments_end_ = circuits.size();
 
+  //set group
+  distributed_experiments_ = num_processes_ / num_process_per_experiment_;
+  distributed_experiments_group_id_ = myrank_ / num_process_per_experiment_;
+  distributed_experiments_rank_ = myrank_ % num_process_per_experiment_;
+
+  if(circuits.size() < distributed_experiments_){
+    distributed_experiments_begin_ = distributed_experiments_group_id_ % circuits.size();
+    distributed_experiments_end_ = distributed_experiments_begin_ + 1;
+    distributed_shots_ = distributed_experiments_ / circuits.size();
+    if(distributed_experiments_group_id_ % circuits.size() < distributed_experiments_ % circuits.size()){
+      distributed_shots_ += 1;
+    }
+    distributed_shots_rank_ = distributed_experiments_group_id_ / circuits.size();
+
+    distributed_experiments_ = circuits.size();
+  }
+  else{
+    distributed_experiments_begin_ = circuits.size() * distributed_experiments_group_id_ / distributed_experiments_;
+    distributed_experiments_end_ = circuits.size() * (distributed_experiments_group_id_ + 1) / distributed_experiments_;
+    //shots are not distributed
     distributed_shots_ = 1;
     distributed_shots_rank_ = 0;
   }
 }
-#endif
 
 size_t Controller::get_system_memory_mb() {
   size_t total_physical_memory = 0;
@@ -620,9 +604,6 @@ Result Controller::execute(const json_t &qobj_js)
 #ifdef AER_MPI
   MPI_Comm_size(MPI_COMM_WORLD,&num_processes_);
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank_);
-#else
-  num_processes_ = 1;
-  myrank_ = 0;
 #endif
 
 #ifdef AER_THRUST_CUDA
@@ -725,13 +706,18 @@ Result Controller::execute(std::vector<Circuit> &circuits,
         res.message = e.what();
       }
     }
+
     const auto num_circuits = distributed_experiments_end_ - distributed_experiments_begin_;
     result.resize(num_circuits);
 #endif
 
     //get max qubits for this process (to allocate qubit register at once)
     max_qubits_ = 0;
+#ifdef AER_MPI
     for (size_t j = distributed_experiments_begin_; j < distributed_experiments_end_; j++) {
+#else
+    for (size_t j = 0; j < circuits.size(); j++) {
+#endif
       if(circuits[j].num_qubits > max_qubits_){
         max_qubits_ = circuits[j].num_qubits;
       }
@@ -795,7 +781,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     // then- and else-blocks have intentionally duplication.
     // Nested omp has significant overheads even though a guard condition exists.
     const int NUM_RESULTS = result.results.size();
-    #pragma omp parallel for if(parallel_experiments_ > 1) num_threads(parallel_experiments_)
+    #pragma omp parallel for if (parallel_experiments_ > 1) num_threads(parallel_experiments_)
     for (int j = 0; j < result.results.size(); ++j) {
 #ifdef AER_MPI
       execute_circuit(circuits[j+distributed_experiments_begin_], circ_noise_models[j+distributed_experiments_begin_], config, result.results[j]);
@@ -871,6 +857,7 @@ void Controller::execute_circuit(Circuit &circ,
 #else
     int shots = circ.shots;
 #endif
+
     // Single shot thread execution
     if (parallel_shots_ <= 1) {
       run_circuit(circ, noise, config, shots, circ.seed, result);
