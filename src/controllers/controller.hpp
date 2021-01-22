@@ -259,10 +259,11 @@ protected:
   //distributed shots (MPI)
   int distributed_shots_rank_ = 0;
   int distributed_shots_ = 1;
+#endif
+
   //process information (MPI)
   int myrank_ = 0;
   int num_processes_ = 1;
-#endif
 
 };
 
@@ -395,7 +396,7 @@ void Controller::set_parallelization_experiments(
 #else
   std::vector<size_t> required_memory_mb_list(circuits.size());
   for (size_t j = 0; j < circuits.size(); j++) {
-    required_memory_mb_list[j] = required_memory_mb(circuits[j], noise);
+    required_memory_mb_list[j] = required_memory_mb(circuits[j], noise[j]);
   }
 #endif
   std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(),
