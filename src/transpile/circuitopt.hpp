@@ -15,14 +15,8 @@
 #ifndef _aer_circuit_optimization_hpp_
 #define _aer_circuit_optimization_hpp_
 
-#include <chrono>
-#include <cstdint>
-#include <iostream>
-#include <random>
-#include <sstream>
-#include <stdexcept>
-#include <string>
 #include <vector>
+#include <algorithm>
 
 #include "framework/opset.hpp"
 #include "noise/noise_model.hpp"
