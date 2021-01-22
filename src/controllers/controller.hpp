@@ -352,7 +352,10 @@ void Controller::clear_parallelization() {
 
   num_process_per_experiment_ = 1;
   distributed_experiments_ = 1;
+  distributed_experiments_rank_ = 0;
+  distributed_experiments_group_id_ = 0;
   distributed_shots_ = 1;
+  distributed_shots_rank_ = 0;
 
   explicit_parallelization_ = false;
   max_memory_mb_ = get_system_memory_mb() / 2;
@@ -439,35 +442,47 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
 void Controller::set_distributed_parallelization(const std::vector<Circuit> &circuits,
                                   const std::vector<Noise::NoiseModel> &noise)
 {
-  std::vector<size_t> required_memory_mb_list(circuits.size());
-  num_process_per_experiment_ = 1;
-  for (size_t j = 0; j < circuits.size(); j++) {
-    size_t size = required_memory_mb(circuits[j], noise[j]);
-    if(size > max_memory_mb_ + max_gpu_memory_mb_){
-      num_process_per_experiment_ = std::max<int>(num_process_per_experiment_,(size + (max_memory_mb_+max_gpu_memory_mb_) - 1) / (max_memory_mb_+max_gpu_memory_mb_));
+  if(num_processes_ > 1){
+    std::vector<size_t> required_memory_mb_list(circuits.size());
+    num_process_per_experiment_ = 1;
+    for (size_t j = 0; j < circuits.size(); j++) {
+      size_t size = required_memory_mb(circuits[j], noise[j]);
+      if(size > max_memory_mb_ + max_gpu_memory_mb_){
+        num_process_per_experiment_ = std::max<int>(num_process_per_experiment_,(size + (max_memory_mb_+max_gpu_memory_mb_) - 1) / (max_memory_mb_+max_gpu_memory_mb_));
+      }
     }
-  }
 
-  //set group
-  distributed_experiments_ = num_processes_ / num_process_per_experiment_;
-  distributed_experiments_group_id_ = myrank_ / num_process_per_experiment_;
-  distributed_experiments_rank_ = myrank_ % num_process_per_experiment_;
+    //set group
+    distributed_experiments_ = num_processes_ / num_process_per_experiment_;
+    distributed_experiments_group_id_ = myrank_ / num_process_per_experiment_;
+    distributed_experiments_rank_ = myrank_ % num_process_per_experiment_;
 
-  if(circuits.size() < distributed_experiments_){
-    distributed_experiments_begin_ = distributed_experiments_group_id_ % circuits.size();
-    distributed_experiments_end_ = distributed_experiments_begin_ + 1;
-    distributed_shots_ = distributed_experiments_ / circuits.size();
-    if(distributed_experiments_group_id_ % circuits.size() < distributed_experiments_ % circuits.size()){
-      distributed_shots_ += 1;
+    if(circuits.size() < distributed_experiments_){
+      distributed_experiments_begin_ = distributed_experiments_group_id_ % circuits.size();
+      distributed_experiments_end_ = distributed_experiments_begin_ + 1;
+      distributed_shots_ = distributed_experiments_ / circuits.size();
+      if(distributed_experiments_group_id_ % circuits.size() < distributed_experiments_ % circuits.size()){
+        distributed_shots_ += 1;
+      }
+      distributed_shots_rank_ = distributed_experiments_group_id_ / circuits.size();
+
+      distributed_experiments_ = circuits.size();
     }
-    distributed_shots_rank_ = distributed_experiments_group_id_ / circuits.size();
-
-    distributed_experiments_ = circuits.size();
+    else{
+      distributed_experiments_begin_ = circuits.size() * distributed_experiments_group_id_ / distributed_experiments_;
+      distributed_experiments_end_ = circuits.size() * (distributed_experiments_group_id_ + 1) / distributed_experiments_;
+      //shots are not distributed
+      distributed_shots_ = 1;
+      distributed_shots_rank_ = 0;
+    }
   }
   else{
-    distributed_experiments_begin_ = circuits.size() * distributed_experiments_group_id_ / distributed_experiments_;
-    distributed_experiments_end_ = circuits.size() * (distributed_experiments_group_id_ + 1) / distributed_experiments_;
-    //shots are not distributed
+    distributed_experiments_ = 1;
+    distributed_experiments_group_id_ = 0;
+    distributed_experiments_rank_ = 0;
+    distributed_experiments_begin_ = 0;
+    distributed_experiments_end_ = circuits.size();
+
     distributed_shots_ = 1;
     distributed_shots_rank_ = 0;
   }
@@ -585,6 +600,9 @@ Result Controller::execute(const json_t &qobj_js)
 #ifdef AER_MPI
   MPI_Comm_size(MPI_COMM_WORLD,&num_processes_);
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank_);
+#else
+  num_processes_ = 1;
+  myrank_ = 0;
 #endif
 
 #ifdef AER_THRUST_CUDA
