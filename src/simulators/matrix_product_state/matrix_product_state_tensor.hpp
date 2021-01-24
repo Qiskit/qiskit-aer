@@ -380,8 +380,8 @@ void MPS_Tensor::apply_control_2_qubits(const cmatrix_t &mat,
 {
   std::vector<uint_t> indices;
   if (swapped) {
+    indices.push_back(1);
     indices.push_back(3);
-    indices.push_back(2);
   }
   else { 
     indices.push_back(2);
