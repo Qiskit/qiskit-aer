@@ -160,7 +160,7 @@ class QasmStandardGateDensityMatrixTests:
             'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust'
         ]
 
-        method = self.BACKEND_OPT.get('method', 'automatic')
+        method = self.BACKEND_OPTS.get('method', 'automatic')
         backend = self.SIMULATOR
         backend.set_options(method=method)
         
