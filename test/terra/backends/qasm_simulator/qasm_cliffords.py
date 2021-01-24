@@ -15,7 +15,7 @@ QasmSimulator Integration Tests
 
 from test.terra.reference import ref_1q_clifford
 from test.terra.reference import ref_2q_clifford
-from qiskit import execute
+from qiskit import execute, assemble
 from qiskit.providers.aer import QasmSimulator
 
 
@@ -297,11 +297,9 @@ class QasmCliffordTests:
         circuits = ref_1q_clifford.delay_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.delay_gate_counts_deterministic(shots)
-        job = execute(circuits,
-                      self.SIMULATOR,
-                      shots=shots,
-                      basis_gates=basis_gates,
-                      **self.BACKEND_OPTS, optimization_level=0)
-        result = job.result()
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots,
+                        basis_gates=basis_gates,
+                        **self.BACKEND_OPTS)
+        result = self.SIMULATOR.run(qobj).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
