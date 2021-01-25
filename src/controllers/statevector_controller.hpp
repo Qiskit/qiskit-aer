@@ -360,6 +360,8 @@ void StatevectorController::run_circuit_helper(
   fusion_pass.set_config(config);
   cache_block_pass.set_config(config);
 
+  fusion_pass.set_parallelization(parallel_state_update_);
+
   Circuit opt_circ;
   if (fusion_pass.active && circ.num_qubits >= fusion_pass.threshold) {
     opt_circ = circ; // copy circuit

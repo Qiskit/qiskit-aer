@@ -899,6 +899,8 @@ Transpile::Fusion QasmController::transpile_fusion(Method method,
                                                    const Operations::OpSet &opset,
                                                    const json_t& config) const {
   Transpile::Fusion fusion_pass;
+  fusion_pass.set_parallelization(parallel_state_update_);
+
   if (opset.contains(Operations::OpType::superop)) {
     fusion_pass.allow_superop = true;
   }
