@@ -104,6 +104,10 @@ public:
   {
     chunk_index_ = id;
   }
+  void enable_omp(bool flg)
+  {
+    chunk_container_->enable_omp(flg);
+  }
 
   void Set(uint_t i,const thrust::complex<data_t>& t)
   {

@@ -324,10 +324,10 @@ reg_t HostChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vector
   }
   else{
     if(dot)
-      thrust::transform_inclusive_scan(thrust::host,iter.begin(),iter.end(),iter.begin(),complex_dot_scan<data_t>(),thrust::plus<thrust::complex<data_t>>());
+      thrust::transform_inclusive_scan(thrust::seq,iter.begin(),iter.end(),iter.begin(),complex_dot_scan<data_t>(),thrust::plus<thrust::complex<data_t>>());
     else
-      thrust::inclusive_scan(thrust::host,iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
-    thrust::lower_bound(thrust::host, iter.begin(), iter.end(), rnds.begin(), rnds.begin() + SHOTS, vSmp.begin() ,complex_less<data_t>());
+      thrust::inclusive_scan(thrust::seq,iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
+    thrust::lower_bound(thrust::seq, iter.begin(), iter.end(), rnds.begin(), rnds.begin() + SHOTS, vSmp.begin() ,complex_less<data_t>());
   }
 
   for(i=0;i<SHOTS;i++){
@@ -353,9 +353,9 @@ thrust::complex<double> HostChunkContainer<data_t>::norm(uint_t iChunk, uint_t s
   }
   else{
     if(dot)
-      sum = thrust::transform_reduce(thrust::host, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
+      sum = thrust::transform_reduce(thrust::seq, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
     else
-      sum = thrust::reduce(thrust::host, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
+      sum = thrust::reduce(thrust::seq, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
   }
 
   return sum;

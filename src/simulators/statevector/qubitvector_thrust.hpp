@@ -828,6 +828,8 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
     chunk_->set_chunk_index(chunk_index_);
   }
 
+  chunk_->enable_omp((num_qubits_ > omp_threshold_ && omp_threads_ > 1));
+
   register_blocking_ = false;
 
 #ifdef AER_DEBUG
@@ -906,8 +908,10 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const
 
   chunk_->set_device();
 
+#ifdef AER_THRUST_CUDA
   vec0 = (data_t*)chunk_->pointer();
-  if(chunk_->device() >= 0){
+  cudaStream_t strm = chunk_->stream(iChunk);
+  if(strm){
     if(chunk_->device() == checkpoint_->device()){
       vec1 = (data_t*)checkpoint_->pointer();
 
@@ -927,6 +931,14 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const
 
     dot = thrust::inner_product(thrust::omp::par,vec0,vec0 + data_size_*2,vec1,0.0);
   }
+#else
+  vec1 = (data_t*)checkpoint_->pointer();
+
+  if(omp_get_num_threads() > 1)
+    dot = thrust::inner_product(thrust::seq,vec0,vec0 + data_size_*2,vec1,0.0);
+  else
+    dot = thrust::inner_product(thrust::device,vec0,vec0 + data_size_*2,vec1,0.0);
+#endif
 
 #ifdef AER_DEBUG
   DebugMsg("inner_product",std::complex<double>(dot,0.0));
@@ -1084,7 +1096,7 @@ void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &
   cvector_t<data_t> tmp(data_size_);
   int_t i;
 
-#pragma omp parallel for
+#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for(i=0;i<data_size_;i++){
     tmp[i] = statevec[i];
   }

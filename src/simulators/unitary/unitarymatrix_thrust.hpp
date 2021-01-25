@@ -262,7 +262,7 @@ void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &m
   cvector_t<data_t> tmp(BaseVector::data_size_);
   int_t i;
 
-#pragma omp parallel for
+#pragma omp parallel for if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
   for (int_t row = 0; row < nrows; ++row)
     for  (int_t col = 0; col < nrows; ++col) {
       tmp[row + nrows * col] = mat(row, col);

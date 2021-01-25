@@ -98,8 +98,8 @@ class GateFuncBase
 {
 protected:
   thrust::complex<data_t>* data_;   //pointer to state vector buffer
-  thrust::complex<double>* matrix_;   //storage for matrix on device
-  uint_t* params_;                    //storage for additional parameters on device
+  thrust::complex<double>* matrix_; //storage for matrix on device
+  uint_t* params_;                  //storage for additional parameters on device
   uint_t base_index_;               //start index of state vector 
 public:
   GateFuncBase()
@@ -338,6 +338,7 @@ protected:
   std::vector<std::shared_ptr<Chunk<data_t>>> chunks_;         //chunk storage
   std::vector<std::shared_ptr<Chunk<data_t>>> buffers_;        //buffer storage
   std::vector<std::shared_ptr<Chunk<data_t>>> checkpoints_;    //checkpoint storage
+  bool enable_omp_;                 //disable this when shots are parallelized outside
 public:
   ChunkContainer()
   {
@@ -347,6 +348,7 @@ public:
     num_buffers_ = 0;
     num_checkpoint_ = 0;
     num_chunk_mapped_ = 0;
+    enable_omp_ = true;
   }
   virtual ~ChunkContainer(){}
 
@@ -381,6 +383,13 @@ public:
   uint_t num_chunk_mapped(void)
   {
     return num_chunk_mapped_;
+  }
+  void enable_omp(bool flg)
+  {
+#pragma omp critical
+    {
+      enable_omp_ = flg;
+    }
   }
 
   virtual void set_device(void) const
@@ -667,12 +676,15 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
   else{ //if no stream returned, run on host
     uint_t size = count * func.size(chunk_bits_);
     auto ci = thrust::counting_iterator<uint_t>(0);
-    thrust::for_each_n(thrust::host, ci , size, func);
+    thrust::for_each_n(thrust::seq, ci , size, func);
   }
 #else
   uint_t size = count * func.size(chunk_bits_);
   auto ci = thrust::counting_iterator<uint_t>(0);
-  thrust::for_each_n(thrust::device, ci , size, func);
+  if(enable_omp_)
+    thrust::for_each_n(thrust::device, ci , size, func);
+  else
+    thrust::for_each_n(thrust::seq, ci , size, func);  //disable nested OMP parallelization when shots are parallelized
 #endif
 
 }
@@ -698,10 +710,13 @@ double ChunkContainer<data_t>::ExecuteSum(Function func,uint_t iChunk,uint_t cou
     ret = thrust::transform_reduce(thrust::cuda::par.on(strm), ci, ci + size, func,0.0,thrust::plus<double>());
   }
   else{ //if no stream returned, run on host
-    ret = thrust::transform_reduce(thrust::host, ci, ci + size, func,0.0,thrust::plus<double>());
+    ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<double>());
   }
 #else
-  ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<double>());
+  if(enable_omp_)
+    ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<double>());
+  else
+    ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<double>());  //disable nested OMP parallelization when shots are parallelized
 #endif
 
   return ret;
