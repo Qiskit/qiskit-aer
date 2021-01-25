@@ -300,6 +300,7 @@ void UnitaryController::run_circuit_helper(
   Transpile::Fusion fusion_pass;
   fusion_pass.threshold /= 2;  // Halve default threshold for unitary simulator
   fusion_pass.set_config(config);
+  fusion_pass.set_parallelization(parallel_state_update_);
   Circuit opt_circ;
   if (fusion_pass.active && circ.num_qubits >= fusion_pass.threshold) {
     opt_circ = circ; // copy circuit

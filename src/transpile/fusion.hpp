@@ -60,10 +60,14 @@ public:
 
   void set_config(const json_t &config) override;
 
-  void optimize_circuit(Circuit& circ,
-                        Noise::NoiseModel& noise,
-                        const opset_t &allowed_opset,
-                        ExperimentResult &result) const override;
+  virtual void set_parallelization(uint_t num) { parallelization_ = num; };
+
+  virtual void set_parallelization_threshold(uint_t num) { parallel_threshold_ = num; };
+
+  virtual void optimize_circuit(Circuit& circ,
+                                Noise::NoiseModel& noise,
+                                const opset_t &allowed_opset,
+                                ExperimentResult &result) const override;
 
   // Qubit threshold for activating fusion pass
   uint_t max_qubit;
@@ -74,6 +78,11 @@ public:
   bool allow_superop = false;
   bool allow_kraus = false;
 
+  // Number of threads to fuse operations
+  uint_t parallelization_ = 1;
+  // Number of gates to enable parallelization
+  uint_t parallel_threshold_ = 10000;
+
 private:
   bool can_ignore(const op_t& op) const;
 
@@ -83,11 +92,16 @@ private:
 
   double get_cost(const op_t& op) const;
 
+  void optimize_circuit(Circuit& circ,
+                        Noise::NoiseModel& noise,
+                        const opset_t &allowed_opset,
+                        uint_t ops_start,
+                        uint_t ops_end) const;
+
   bool aggregate_operations(oplist_t& ops,
                             const int fusion_start,
                             const int fusion_end,
                             uint_t max_fused_qubits,
-                            ExperimentResult &result,
                             Method method) const;
 
   // Aggregate a subcircuit of operations into a single operation
@@ -146,13 +160,16 @@ void Fusion::set_config(const json_t &config) {
 
   if (JSON::check_key("fusion_allow_superop", config))
     JSON::get_value(allow_superop, "fusion_allow_superop", config);
-}
 
+  if (JSON::check_key("fusion_parallelization_threshold", config_))
+    JSON::get_value(parallel_threshold_, "fusion_parallelization_threshold", config_);
+}
 
 void Fusion::optimize_circuit(Circuit& circ,
                               Noise::NoiseModel& noise,
                               const opset_t &allowed_opset,
                               ExperimentResult &result) const {
+
   // Start timer
   using clock_t = std::chrono::high_resolution_clock;
   auto timer_start = clock_t::now();
@@ -162,9 +179,17 @@ void Fusion::optimize_circuit(Circuit& circ,
     result.metadata.add(false, "fusion", "enabled");
     return;
   }
-  result.metadata.add(true, "fusion", "enabled");
-  result.metadata.add(false, "fusion", "applied");
 
+  result.metadata.add(true, "fusion", "enabled");
+  result.metadata.add(threshold, "fusion", "threshold");
+  result.metadata.add(cost_factor, "fusion", "cost_factor");
+  result.metadata.add(max_qubit, "fusion", "max_fused_qubits");
+
+  // Check qubit threshold
+  if (circ.num_qubits <= threshold || circ.ops.size() < 2) {
+    result.metadata.add(false, "fusion", "applied");
+    return;
+  }
   // Determine fusion method
   // TODO: Support Kraus fusion method
   Method method = Method::unitary;
@@ -186,59 +211,78 @@ void Fusion::optimize_circuit(Circuit& circ,
     result.metadata.add("kraus", "fusion", "method");
   }
 
-  // Check qubit threshold
-  result.metadata.add(threshold, "fusion", "threshold");
-  if (circ.num_qubits <= threshold || circ.ops.size() < 2) {
-    return;
+  if (circ.ops.size() < parallel_threshold_ || parallelization_ <= 1) {
+    optimize_circuit(circ, noise, allowed_opset, 0, circ.ops.size());
+  } else {
+    // determine unit for each OMP thread
+    int_t unit = circ.ops.size() / parallelization_;
+    if (circ.ops.size() % parallelization_)
+      ++unit;
+
+#pragma omp parallel for if (parallelization_ > 1) num_threads(parallelization_)
+    for (int_t i = 0; i < parallelization_; i++) {
+      int_t start = unit * i;
+      int_t end = std::min(start + unit, (int_t) circ.ops.size());
+      optimize_circuit(circ, noise, allowed_opset, start, end);
+    }
   }
 
-  result.metadata.add(cost_factor, "fusion", "cost_factor");
-  result.metadata.add(max_qubit, "fusion", "max_fused_qubits");
+  result.metadata.add(parallelization_, "fusion", "parallelization");
 
-  // Apply fusion
-  bool applied = false;
+  auto timer_stop = clock_t::now();
+  result.metadata.add(std::chrono::duration<double>(timer_stop - timer_start).count(), "fusion", "time_taken");
 
-  uint_t fusion_start = 0;
-  for (uint_t op_idx = 0; op_idx < circ.ops.size(); ++op_idx) {
+  size_t idx = 0;
+  for (size_t i = 0; i < circ.ops.size(); ++i) {
+    if (circ.ops[i].type != optype_t::nop) {
+      if (i != idx)
+        circ.ops[idx] = circ.ops[i];
+      ++idx;
+    }
+  }
+
+  if (idx == circ.ops.size()) {
+    result.metadata.add(false, "fusion", "applied");
+  } else {
+    circ.ops.erase(circ.ops.begin() + idx, circ.ops.end());
+    result.metadata.add(true, "fusion", "applied");
+    circ.set_params();
+
+    if (verbose)
+      result.metadata.add(circ.ops, "fusion", "output_ops");
+  }
+}
+
+void Fusion::optimize_circuit(Circuit& circ,
+                              Noise::NoiseModel& noise,
+                              const opset_t &allowed_opset,
+                              uint_t ops_start,
+                              uint_t ops_end) const {
+
+  // Determine fusion method
+  // TODO: Support Kraus fusion method
+  Method method = Method::unitary;
+  if (allow_superop && allowed_opset.contains(optype_t::superop) &&
+      (circ.opset().contains(optype_t::kraus)
+       || circ.opset().contains(optype_t::superop)
+       || circ.opset().contains(optype_t::reset))) {
+    method = Method::superop;
+  } else if (allow_kraus && allowed_opset.contains(optype_t::kraus) &&
+      (circ.opset().contains(optype_t::kraus)
+       || circ.opset().contains(optype_t::superop))) {
+    method = Method::kraus;
+  }
+
+  uint_t fusion_start = ops_start;
+  uint_t op_idx;
+  for (op_idx = ops_start; op_idx < ops_end; ++op_idx) {
     if (can_ignore(circ.ops[op_idx]))
       continue;
-    if (!can_apply_fusion(circ.ops[op_idx], max_qubit, method)) {
-      applied |= fusion_start != op_idx && aggregate_operations(
-        circ.ops, fusion_start, op_idx, max_qubit, result, method);
+    if (!can_apply_fusion(circ.ops[op_idx], max_qubit, method) || op_idx == (ops_end - 1)) {
+      aggregate_operations(circ.ops, fusion_start, op_idx, max_qubit, method);
       fusion_start = op_idx + 1;
     }
   }
-
-  if (fusion_start < circ.ops.size() &&
-      aggregate_operations(circ.ops, fusion_start, circ.ops.size(), max_qubit, result, method))
-    applied = true;
-
-  if (applied) {
-    size_t idx = 0;
-    for (size_t i = 0; i < circ.ops.size(); ++i) {
-      if (circ.ops[i].type != optype_t::nop) {
-        if (i != idx)
-          circ.ops[idx] = circ.ops[i];
-        ++idx;
-      }
-    }
-
-    if (idx != circ.ops.size())
-      circ.ops.erase(circ.ops.begin() + idx, circ.ops.end());
-    result.metadata.add(true, "fusion", "applied");
-
-    // Update circuit params for fused circuit
-    circ.set_params();
-  }
-
-  // Final metadata
-  if (verbose && applied) {
-    result.metadata.add(circ.ops, "fusion", "input_ops");
-    result.metadata.add(circ.ops, "fusion", "output_ops"); // This looks like a bug?
-  }
-  auto timer_stop = clock_t::now();
-  auto time_taken = std::chrono::duration<double>(timer_stop - timer_start).count();
-  result.metadata.add(time_taken, "fusion", "time_taken");
 }
 
 bool Fusion::can_ignore(const op_t& op) const {
@@ -320,12 +364,10 @@ op_t Fusion::generate_fusion_operation(const std::vector<op_t>& fusioned_ops,
   return Operations::make_kraus(qubits, Utils::superop2kraus(superop, dim));
 }
 
-
 bool Fusion::aggregate_operations(oplist_t& ops,
                                   const int fusion_start,
                                   const int fusion_end,
                                   uint_t max_fused_qubits,
-                                  ExperimentResult &result,
                                   Method method) const {
 
   // costs[i]: estimated cost to execute from 0-th to i-th in original.ops
