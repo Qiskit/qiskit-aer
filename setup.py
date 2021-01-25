@@ -42,6 +42,11 @@ try:
 except ImportError:
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.4'])
 
+try:
+    from numpy import array
+except ImportError:
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=1.16.3'])
+
 from skbuild import setup
 
 
@@ -111,6 +116,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Topic :: Scientific/Engineering",
     ],
     python_requires=">=3.6",
