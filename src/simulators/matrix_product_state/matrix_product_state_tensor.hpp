@@ -348,7 +348,8 @@ void MPS_Tensor::apply_tdg()
 void MPS_Tensor::apply_matrix(const cmatrix_t &mat, bool is_diagonal)
 {
   std::vector<uint_t> indices;
-  for(uint_t i=0; i<mat.GetRows(); ++i) {
+  // note that mat.GetRows() is equal to 1 if mat is diagonal
+  for(uint_t i=0; i<mat.GetColumns(); ++i) {
     indices.push_back(i);
   }
 
@@ -395,6 +396,9 @@ void MPS_Tensor::apply_matrix_helper(const cmatrix_t &mat, bool is_diagonal,
 				     const std::vector<uint_t>& indices)
 {
   if (is_diagonal) {  // diagonal matrix - the diagonal is contained in row 0
+    if (indices.size() != mat.GetColumns()) {
+      throw std::runtime_error("Error: mismtach in the diagonal length");
+    }
     for (uint_t i=0; i<mat.GetColumns(); i++)
       data_[indices[i]] = mat(0, i) * data_[indices[i]];
   } else {            // full matrix
