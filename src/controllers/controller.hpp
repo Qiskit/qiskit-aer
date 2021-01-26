@@ -216,6 +216,8 @@ protected:
   set_distributed_parallelization(const std::vector<Circuit> &circuits,
                                   const std::vector<Noise::NoiseModel> &noise);
 
+  void save_exception_to_results(Result &result,const std::exception &e);
+
   // Get system memory size
   size_t get_system_memory_mb();
   size_t get_gpu_memory_mb();
@@ -439,15 +441,12 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
 
 #ifdef AER_MPI
     int shots = (circ.shots * (distributed_shots_rank_ + 1)/distributed_shots_) - (circ.shots * distributed_shots_rank_ /distributed_shots_);
-
+#else
+    int shots = circ.shots;
+#endif
     parallel_shots_ =
         std::min<int>({static_cast<int>(max_memory_mb_ / circ_memory_mb),
                        max_shots, shots});
-#else
-    parallel_shots_ =
-        std::min<int>({static_cast<int>(max_memory_mb_ / circ_memory_mb),
-                       max_shots, static_cast<int>(circ.shots)});
-#endif
   }
   parallel_state_update_ =
       (parallel_shots_ > 1)
@@ -596,6 +595,16 @@ bool Controller::validate_memory_requirements(const state_t &state,
   return true;
 }
 
+void Controller::save_exception_to_results(Result &result,const std::exception &e)
+{
+  result.status = Result::Status::error;
+  result.message = e.what();
+  for(auto& res : result.results){
+    res.status = ExperimentResult::Status::error;
+    res.message = e.what();
+  }
+}
+
 //-------------------------------------------------------------------------
 // Qobj execution
 //-------------------------------------------------------------------------
@@ -699,12 +708,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       set_distributed_parallelization(circuits, circ_noise_models);
     }
     catch (std::exception &e) {
-      result.status = Result::Status::error;
-      result.message = e.what();
-      for(auto& res : result.results){
-        res.status = ExperimentResult::Status::error;
-        res.message = e.what();
-      }
+      save_exception_to_results(result,e);
     }
 
     const auto num_circuits = distributed_experiments_end_ - distributed_experiments_begin_;
@@ -730,12 +734,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
         set_parallelization_experiments(circuits, circ_noise_models);
       }
       catch (std::exception &e) {
-        result.status = Result::Status::error;
-        result.message = e.what();
-        for(auto& res : result.results){
-          res.status = ExperimentResult::Status::error;
-          res.message = e.what();
-        }
+        save_exception_to_results(result,e);
       }
     }
 

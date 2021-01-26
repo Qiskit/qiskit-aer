@@ -1154,7 +1154,7 @@ void State<densmat_t>::apply_kraus(const reg_t &qubits,
   // Convert to Superoperator
   const auto nrows = kmats[0].GetRows();
   cmatrix_t superop(nrows * nrows, nrows * nrows);
-  for (const auto kraus : kmats) {
+  for (const auto& kraus : kmats) {
     superop += Utils::tensor_product(Utils::conjugate(kraus), kraus);
   }
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 

@@ -156,7 +156,6 @@ public:
   {
     return BaseState::qreg_.move_to_vector();
   }
-
 protected:
   //-----------------------------------------------------------------------
   // Apply instructions

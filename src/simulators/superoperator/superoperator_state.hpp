@@ -110,7 +110,6 @@ public:
   {
     return BaseState::qreg_.move_to_matrix();
   }
-
 protected:
   //-----------------------------------------------------------------------
   // Apply Instructions
