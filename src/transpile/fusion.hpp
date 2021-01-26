@@ -37,8 +37,10 @@ public:
   // Return name of method
   virtual std::string name() = 0;
 
+  virtual bool support_diagonal() const = 0;
+
   // Aggregate a subcircuit of operations into a single operation
-  virtual op_t generate_operation(std::vector<op_t>& fusioned_ops) const {
+  virtual op_t generate_operation(std::vector<op_t>& fusioned_ops, bool diagonal = false) const {
     std::set<uint_t> fusioned_qubits;
     for (auto & op: fusioned_ops)
       fusioned_qubits.insert(op.qubits.begin(), op.qubits.end());
@@ -62,6 +64,14 @@ public:
     // Revert qubits
     for (size_t i = 0; i < fusioned_op.qubits.size(); i++)
       fusioned_op.qubits[i] = remapped2orig[fusioned_op.qubits[i]];
+
+    if (diagonal) {
+      std::vector<complex_t> vec;
+      vec.assign((1UL << fusioned_op.qubits.size()), 0);
+      for (size_t i = 0; i < vec.size(); ++i)
+        vec[i] = fusioned_op.mats[0](i, i);
+      fusioned_op = Operations::make_diagonal(fusioned_op.qubits, vec, std::string("fusion"));
+    }
 
     return fusioned_op;
   };
@@ -109,6 +119,8 @@ class UnitaryFusion : public FusionMethod {
 public:
   virtual std::string name() { return "unitary"; };
 
+  virtual bool support_diagonal() const override { return true; }
+
   virtual op_t generate_operation_internal(const std::vector<op_t>& fusioned_ops,
                                            const reg_t &qubits) const {
     // Run simulation
@@ -129,6 +141,8 @@ public:
     switch (op.type) {
       case optype_t::matrix:
         return op.mats.size() == 1 && op.qubits.size() <= max_fused_qubits;
+      case optype_t::diagonal_matrix:
+        return op.qubits.size() <= max_fused_qubits;
       case optype_t::kraus:
       case optype_t::reset:
       case optype_t::superop: {
@@ -153,6 +167,8 @@ public:
 class SuperOpFusion : public UnitaryFusion {
 public:
   virtual std::string name() { return "superop"; };
+
+  virtual bool support_diagonal() const override { return false; }
 
   virtual op_t generate_operation_internal(const std::vector<op_t>& fusioned_ops,
                                            const reg_t &qubits) const {
@@ -197,6 +213,8 @@ public:
 class KrausFusion : public UnitaryFusion {
 public:
   virtual std::string name() { return "kraus"; };
+
+  virtual bool support_diagonal() const override { return false; }
 
   virtual op_t generate_operation_internal(const std::vector<op_t>& fusioned_ops,
                                            const reg_t &qubits) const {
@@ -264,6 +282,8 @@ FusionMethod& FusionMethod::find_method(const Circuit& circ,
 
 class Fuser {
 public:
+  virtual std::string name() const = 0;
+
   virtual void set_config(const json_t &config) = 0;
 
   virtual void set_metadata(ExperimentResult &result) const { }; //nop
@@ -278,6 +298,8 @@ public:
 class CostBasedFusion : public Fuser {
 public:
   CostBasedFusion() = default;
+
+  virtual std::string name() const { return "cost_base"; };
 
   virtual void set_config(const json_t &config) override;
 
@@ -309,6 +331,12 @@ template<size_t N>
 class NQubitFusion : public Fuser {
 public:
   virtual void set_config(const json_t &config) override;
+
+  virtual std::string name() const {
+    std::stringstream opt_name;
+    opt_name << N << "_qubits";
+    return opt_name.str();
+  };
 
   virtual bool aggregate_operations(oplist_t& ops,
                                     const int fusion_start,
@@ -427,6 +455,174 @@ bool NQubitFusion<N>::aggregate_operations(oplist_t& ops,
   return fused;
 }
 
+class DiagonalFusion : public Fuser {
+public:
+  DiagonalFusion() = default;
+
+  virtual ~DiagonalFusion() = default;
+
+  virtual std::string name() const { return "diagonal"; };
+
+  virtual void set_config(const json_t &config) override;
+
+  virtual bool aggregate_operations(oplist_t& ops,
+                                    const int fusion_start,
+                                    const int fusion_end,
+                                    const uint_t max_fused_qubits,
+                                    const FusionMethod& method) const override;
+
+private:
+  bool is_diagonal_op(const op_t& op) const;
+
+  int get_next_diagonal_end(const oplist_t& ops, const int from, std::set<uint_t>& fusing_qubits) const;
+
+  const std::shared_ptr<FusionMethod> method;
+  uint_t min_qubit = 3;
+  bool active = true;
+};
+
+void DiagonalFusion::set_config(const json_t &config) {
+  if (JSON::check_key("fusion_enable.diagonal", config))
+    JSON::get_value(active, "fusion_enable.diagonal", config);
+  if (JSON::check_key("fusion_min_qubit.diagonal", config))
+    JSON::get_value(min_qubit, "fusion_min_qubit.diagonal", config);
+}
+
+bool DiagonalFusion::is_diagonal_op(const op_t& op) const {
+
+  if (op.type == Operations::OpType::gate) {
+    if (op.name == "p" || op.name == "cp" || op.name == "u1" || op.name == "cu1"
+        || op.name == "mcu1" || op.name== "rz" || op.name== "rzz")
+      return true;
+    if (op.name == "u3")
+      return op.params[0] == std::complex<double>(0.) && op.params[1] == std::complex<double>(0.);
+    else
+      return false;
+  }
+
+  if (op.type == Operations::OpType::diagonal_matrix)
+    return true;
+
+  if (op.type == Operations::OpType::matrix)
+    return op.mats.size() == 1 && Utils::is_diagonal(op.mats[0], 1e-7);
+
+  return false;
+}
+
+int DiagonalFusion::get_next_diagonal_end(const oplist_t& ops,
+                                          const int from,
+                                          std::set<uint_t>& fusing_qubits) const {
+
+  if (is_diagonal_op(ops[from])) {
+    for (const auto qubit: ops[from].qubits)
+      fusing_qubits.insert(qubit);
+    return from;
+  }
+
+  if (ops[from].type == Operations::OpType::gate) {
+    auto pos = from;
+
+    // find first cx list
+    for (; pos < ops.size(); ++pos)
+      if (ops[from].type != Operations::OpType::gate || ops[pos].name != "cx")
+        break;
+
+    if (pos == from || pos == ops.size())
+      return -1;
+
+    auto cx_end = pos - 1;
+
+    bool found = false;
+    // find diagonals
+    for (; pos < ops.size(); ++pos)
+      if (is_diagonal_op(ops[pos]))
+        found = true;
+      else
+        break;
+
+    if (!found)
+      return -1;
+
+    if (pos == ops.size())
+      return -1;
+
+    auto u1_end = pos;
+
+    // find second cx list that is the reverse of the first
+    for (; pos < ops.size(); ++pos) {
+      if (ops[pos].type == Operations::OpType::gate
+          && ops[pos].name == ops[cx_end].name
+          && ops[pos].qubits == ops[cx_end].qubits) {
+        if (cx_end == from)
+          break;
+        --cx_end;
+      } else {
+        return -1;
+      }
+    }
+
+    for (auto i = from; i < u1_end; ++i)
+      for (const auto qubit: ops[i].qubits)
+        fusing_qubits.insert(qubit);
+
+    return pos;
+
+  } else {
+    return -1;
+  }
+
+}
+
+bool DiagonalFusion::aggregate_operations(oplist_t& ops,
+                                          const int fusion_start,
+                                          const int fusion_end,
+                                          const uint_t max_fused_qubits,
+                                          const FusionMethod& method) const {
+
+  if (!active || !method.support_diagonal())
+    return false;
+
+  // current impl is sensitive to ordering of gates
+  for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx) {
+
+    std::set<uint_t> checking_qubits_set;
+    auto next_diagonal_end = get_next_diagonal_end(ops, op_idx, checking_qubits_set);
+
+    if (next_diagonal_end < 0)
+      continue;
+
+    if (checking_qubits_set.size() > max_fused_qubits)
+      continue;
+
+    std::set<uint_t> fusing_qubits_set = checking_qubits_set;
+    auto next_diagonal_start = next_diagonal_end + 1;
+
+    int cnt = 0;
+    while (true) {
+      auto next_diagonal_end = get_next_diagonal_end(ops, next_diagonal_start, checking_qubits_set);
+      if (next_diagonal_end < 0)
+        break;
+      if (checking_qubits_set.size() > max_fused_qubits)
+        break;
+      next_diagonal_start = next_diagonal_end + 1;
+      fusing_qubits_set = checking_qubits_set;
+    }
+
+    if (checking_qubits_set.size() < min_qubit)
+      continue;
+
+    std::vector<op_t> fusing_ops;
+    for (; op_idx < next_diagonal_start; ++op_idx) {
+      fusing_ops.push_back(ops[op_idx]); //copy
+      ops[op_idx].type = optype_t::nop;
+    }
+    --op_idx;
+    ops[op_idx] = method.generate_operation(fusing_ops, true);
+  }
+
+  return true;
+}
+
 class Fusion : public CircuitOptimization {
 public:
   // constructor
@@ -480,7 +676,31 @@ private:
                         const FusionMethod& method) const;
 
 #ifdef DEBUG
-  void dump(const Circuit& circuit) const;
+  void dump(const Circuit& circuit) const {
+    auto& ops = circuit.ops;
+    for (uint_t op_idx = 0; op_idx < ops.size(); ++op_idx) {
+      std::cout << std::setw(3) << op_idx << ": ";
+      if (ops[op_idx].type == optype_t::nop) {
+        std::cout << std::setw(15) << "nop" << ": ";
+      } else {
+        std::cout << std::setw(15) << ops[op_idx].name << "-" << ops[op_idx].qubits.size() << ": ";
+        if (ops[op_idx].qubits.size() > 0) {
+          auto qubits = ops[op_idx].qubits;
+          std::sort(qubits.begin(), qubits.end());
+          int pos = 0;
+          for (int j = 0; j < qubits.size(); ++j) {
+            int q_pos = 1 + qubits[j] * 2;
+            for (int k = 0; k < (q_pos - pos); ++k) {
+              std::cout << " ";
+            }
+            pos = q_pos + 1;
+            std::cout << "X";
+          }
+        }
+      }
+      std::cout << std::endl;
+    }
+  }
 #endif
 
 private:
@@ -488,6 +708,7 @@ private:
 };
 
 Fusion::Fusion() {
+  fusers.push_back(std::make_shared<DiagonalFusion>());
   fusers.push_back(std::make_shared<NQubitFusion<1>>());
   fusers.push_back(std::make_shared<NQubitFusion<2>>());
   fusers.push_back(std::make_shared<CostBasedFusion>());
@@ -527,6 +748,11 @@ void Fusion::optimize_circuit(Circuit& circ,
                               const opset_t &allowed_opset,
                               ExperimentResult &result) const {
 
+#ifdef DEBUG
+    std::cout << "original" << std::endl;
+    dump(circ);
+#endif
+
   // Start timer
   using clock_t = std::chrono::high_resolution_clock;
   auto timer_start = clock_t::now();
@@ -553,7 +779,6 @@ void Fusion::optimize_circuit(Circuit& circ,
 
   bool applied = false;
   for (std::shared_ptr<Fuser> fuser: fusers) {
-
     fuser->set_metadata(result);
 
     if (circ.ops.size() < parallel_threshold_ || parallelization_ <= 1) {
@@ -588,6 +813,12 @@ void Fusion::optimize_circuit(Circuit& circ,
       circ.ops.erase(circ.ops.begin() + idx, circ.ops.end());
       circ.set_params();
     }
+
+#ifdef DEBUG
+    std::cout << fuser->name() << std::endl;
+    dump(circ);
+#endif
+
   }
   result.metadata.add(applied, "fusion", "applied");
   if (applied && verbose)
