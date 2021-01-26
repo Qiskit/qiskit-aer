@@ -106,6 +106,10 @@ public:
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
 
+  auto move_to_matrix()
+  {
+    return BaseState::qreg_.move_to_matrix();
+  }
 protected:
   //-----------------------------------------------------------------------
   // Apply Instructions

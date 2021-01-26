@@ -320,7 +320,7 @@ void StatevectorController::run_circuit_helper(
   Base::Controller::save_count_data(result, state.creg());
 
   // Add final state to the data
-  state.save_data_single(result, "statevector", state.qreg().move_to_vector());
+  state.save_data_single(result, "statevector", state.move_to_vector());
 }
 
 //-------------------------------------------------------------------------
