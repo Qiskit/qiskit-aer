@@ -482,12 +482,12 @@ class QasmSimulator(AerBackend):
         # Matrix product state method
         elif method == 'matrix_product_state':
             config.description = 'A C++ QasmQobj matrix product state simulator with noise'
-            config.basis_gates = [
+            config.basis_gates = sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
                 'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay',
                 'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
                 'initialize'
-            ]
+            ] + config.custom_instructions)
 
         # Stabilizer method
         elif method == 'stabilizer':
