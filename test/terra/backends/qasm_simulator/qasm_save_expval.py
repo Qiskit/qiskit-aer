@@ -47,11 +47,12 @@ class QasmSaveExpvalTests:
         target = qi.Statevector(state).expectation_value(oper).real.round(10)
 
         # Snapshot circuit
+        opts = self.BACKEND_OPTS.copy()
         circ = transpile(state, self.SIMULATOR)
         circ.save_expval('expval', oper, [0, 1])
-        qobj = assemble(circ, **self.BACKEND_OPTS)
-        result = self.SIMULATOR.run(qobj).result()
-        method = self.BACKEND_OPTS.get('method', 'automatic')
+        qobj = assemble(circ)
+        result = self.SIMULATOR.run(qobj, **opts).result()
+        method = opts.get('method', 'automatic')
         if method not in SUPPORTED_METHODS:
             self.assertFalse(result.success)
         else:
@@ -76,11 +77,12 @@ class QasmSaveExpvalTests:
         target = qi.Statevector(state).expectation_value(oper, qubits).real
 
         # Snapshot circuit
+        opts = self.BACKEND_OPTS.copy()
         circ = transpile(state, self.SIMULATOR)
         circ.save_expval('expval', oper, qubits)
-        qobj = assemble(circ, **self.BACKEND_OPTS)
-        result = self.SIMULATOR.run(qobj).result()
-        method = self.BACKEND_OPTS.get('method', 'automatic')
+        qobj = assemble(circ)
+        result = self.SIMULATOR.run(qobj, **opts).result()
+        method = opts.get('method', 'automatic')
         if method not in SUPPORTED_METHODS:
             self.assertFalse(result.success)
         else:
@@ -106,11 +108,12 @@ class QasmSaveExpvalTests:
         target = qi.Statevector(state).expectation_value(oper).real
 
         # Snapshot circuit
+        opts = self.BACKEND_OPTS.copy()
         circ = transpile(state, self.SIMULATOR)
         circ.save_expval('expval', oper, [0, 1])
-        qobj = assemble(circ, **self.BACKEND_OPTS)
-        result = self.SIMULATOR.run(qobj).result()
-        method = self.BACKEND_OPTS.get('method', 'automatic')
+        qobj = assemble(circ)
+        result = self.SIMULATOR.run(qobj, **opts).result()
+        method = opts.get('method', 'automatic')
         if method not in SUPPORTED_METHODS:
             self.assertFalse(result.success)
         else:
@@ -135,11 +138,12 @@ class QasmSaveExpvalTests:
         target = qi.Statevector(state).expectation_value(oper, qubits).real
 
         # Snapshot circuit
+        opts = self.BACKEND_OPTS.copy()
         circ = transpile(state, self.SIMULATOR)
         circ.save_expval('expval', oper, qubits)
-        qobj = assemble(circ, **self.BACKEND_OPTS)
-        result = self.SIMULATOR.run(qobj).result()
-        method = self.BACKEND_OPTS.get('method', 'automatic')
+        qobj = assemble(circ)
+        result = self.SIMULATOR.run(qobj, **opts).result()
+        method = opts.get('method', 'automatic')
         if method not in SUPPORTED_METHODS:
             self.assertFalse(result.success)
         else:
