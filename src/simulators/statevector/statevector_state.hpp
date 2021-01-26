@@ -152,7 +152,7 @@ public:
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
 
-  auto move_to_vector(void)
+  auto move_to_vector()
   {
     return BaseState::qreg_.move_to_vector();
   }

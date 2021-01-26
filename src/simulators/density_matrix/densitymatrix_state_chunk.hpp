@@ -88,7 +88,7 @@ public:
   // Initialize OpenMP settings for the underlying DensityMatrix class
   void initialize_omp();
 
-  auto move_to_matrix(void);
+  auto move_to_matrix();
 
 protected:
 
@@ -392,7 +392,7 @@ void State<densmat_t>::initialize_omp()
 }
 
 template <class densmat_t>
-auto State<densmat_t>::move_to_matrix(void)
+auto State<densmat_t>::move_to_matrix()
 {
   if(BaseState::num_global_chunks_ == 1){
     return BaseState::qregs_[0].move_to_matrix();

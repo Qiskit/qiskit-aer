@@ -85,7 +85,7 @@ public:
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
 
-  auto move_to_vector(void);
+  auto move_to_vector();
 
 protected:
 
@@ -408,7 +408,7 @@ void State<statevec_t>::set_config(const json_t &config)
 }
 
 template <class statevec_t>
-auto State<statevec_t>::move_to_vector(void)
+auto State<statevec_t>::move_to_vector()
 {
   if(BaseState::num_global_chunks_ == 1){
     return BaseState::qregs_[0].move_to_vector();
