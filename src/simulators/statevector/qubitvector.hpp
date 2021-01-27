@@ -371,8 +371,12 @@ protected:
   }
 
   void set_transformer_method(){
+#if defined(GNUC_AVX2) || defined(_MSC_VER)
     transformer_ = is_avx2_supported() ? std::make_unique<TransformerAVX2<std::complex<data_t>*, data_t>>()
                                        : std::make_unique<Transformer<std::complex<data_t>*, data_t>>();
+#else
+    transformer_ = std::make_unique<Transformer<std::complex<data_t>*, data_t>>();
+#endif
   }
 
     //-----------------------------------------------------------------------
