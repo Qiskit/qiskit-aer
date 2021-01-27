@@ -910,7 +910,7 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const
 
   vec0 = (data_t*)chunk_->pointer();
 #ifdef AER_THRUST_CUDA
-  cudaStream_t strm = chunk_->stream(iChunk);
+  cudaStream_t strm = chunk_->stream();
   if(strm){
     if(chunk_->device() == checkpoint_->device()){
       vec1 = (data_t*)checkpoint_->pointer();
