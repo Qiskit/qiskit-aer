@@ -466,7 +466,7 @@ class QasmFusionTests:
                                    msg="parallelized fusion was failed")
 
     def test_fusion_two_qubits(self):
-        """Test Fusion parallelization option"""
+        """Test 2-qubit fusion"""
         shots = 100
         num_qubits = 8
         reps = 3
@@ -502,3 +502,42 @@ class QasmFusionTests:
         
         self.assertTrue(len(meta_enabled['output_ops']) if 'output_ops' in meta_enabled else len(circuit.ops) < 
                         len(meta_disabled['output_ops']) if 'output_ops' in meta_disabled else len(circuit.ops))
+
+    def test_fusion_diagonal(self):
+        """Test diagonal fusion"""
+        shots = 100
+        num_qubits = 8
+
+        circuit = QuantumCircuit(num_qubits)
+        for i in range(num_qubits):
+            circuit.p(0.1, i)
+        
+        for i in range(num_qubits - 1):
+            circuit.cp(0.1, i, i + 1)
+        
+        circuit = transpile(circuit,
+                            backend=self.SIMULATOR,
+                            optimization_level=0)
+        circuit.measure_all()
+        
+        qobj = assemble([circuit],
+                        self.SIMULATOR,
+                        shots=shots,
+                        seed_simulator=1)
+
+        backend_options = self.fusion_options(enabled=True, threshold=1)
+        backend_options['fusion_verbose'] =  True
+        
+        backend_options['fusion_enable.cost_base'] =  False
+        result = self.SIMULATOR.run(qobj, **backend_options).result()
+        meta = self.fusion_metadata(result)
+        
+        method = result.results[0].metadata.get('method')
+        if method not in ['statevector']:
+            return
+
+        for op in meta['output_ops']:
+            op_name = op['name']
+            if op_name == 'measure':
+                break
+            self.assertEqual(op_name, 'diagonal')
