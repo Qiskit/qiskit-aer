@@ -615,26 +615,6 @@ Result Controller::execute(const json_t &qobj_js)
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank_);
 #endif
 
-#ifdef AER_THRUST_CUDA
-  int iDev,nDev,j;
-  if(cudaGetDeviceCount(&nDev) != cudaSuccess){
-    cudaGetLastError();
-    nDev = 0;
-  }
-  for(iDev=0;iDev<nDev;iDev++){
-    for(j=0;j<nDev;j++){
-      if(iDev != j){
-        int ip;
-        cudaDeviceCanAccessPeer(&ip,iDev,j);
-        if(ip){
-          if(cudaDeviceEnablePeerAccess(j,0) != cudaSuccess)
-            cudaGetLastError();
-        }
-      }
-    }
-  }
-#endif
-
   // Load QOBJ in a try block so we can catch parsing errors and still return
   // a valid JSON output containing the error message.
   try {

@@ -209,8 +209,11 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
     if(i != device_id_){
       cudaDeviceCanAccessPeer(&ip,device_id_,i);
     }
-    if(ip)
+    if(ip){
+      if(cudaDeviceEnablePeerAccess(i,0) != cudaSuccess)
+        cudaGetLastError();
       peer_access_[i] = true;
+    }
     else
       peer_access_[i] = false;
   }
@@ -521,7 +524,11 @@ void DeviceChunkContainer<data_t>::Swap(std::shared_ptr<Chunk<data_t>> src,uint_
   if(src->device() >= 0){
     auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src->container());
     if(peer_access(src->device())){
-      thrust::swap_ranges(thrust::device,data_.begin() + (iChunk << this->chunk_bits_),data_.begin() + (iChunk << this->chunk_bits_) + size,src_cont->vector().begin() + (src->pos() << this->chunk_bits_));
+#ifdef AER_THRUST_CUDA
+      thrust::swap_ranges(thrust::cuda::par.on(stream_[iChunk]),chunk_pointer(iChunk),chunk_pointer(iChunk + 1),src->pointer());
+#else
+      thrust::swap_ranges(thrust::device,chunk_pointer(iChunk),chunk_pointer(iChunk + 1),src->pointer());
+#endif
     }
     else{
       //using temporary buffer on host
@@ -541,7 +548,7 @@ void DeviceChunkContainer<data_t>::Swap(std::shared_ptr<Chunk<data_t>> src,uint_
 
 #ifdef AER_ATS
     //for IBM AC922
-    thrust::swap_ranges(thrust::device,data_.begin() + (iChunk << this->chunk_bits_),data_.begin() + (iChunk << this->chunk_bits_) + size,src_cont->vector().begin() + (src->pos() << this->chunk_bits_));
+    thrust::swap_ranges(thrust::device,chunk_pointer(iChunk),chunk_pointer(iChunk + 1),src->pointer());
 #else
     thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,tmp1.begin());
     thrust::copy_n(src_cont->vector().begin() + (src->pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
