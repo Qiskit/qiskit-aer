@@ -293,7 +293,28 @@ public:
                                     const int fusion_end,
                                     const uint_t max_fused_qubits,
                                     const FusionMethod& method) const = 0;
+
+  virtual void allocate_new_operation(oplist_t& ops,
+                                      const uint_t idx,
+                                      const std::vector<uint_t>& fusioned_ops_idxs,
+                                      const FusionMethod& method,
+                                      const bool diagonal = false) const;
 };
+
+void Fuser::allocate_new_operation(oplist_t& ops,
+                                   const uint_t idx,
+                                   const std::vector<uint_t>& idxs,
+                                   const FusionMethod& method,
+                                   const bool diagonal) const {
+
+  oplist_t fusing_ops;
+  for (uint_t i: idxs)
+    fusing_ops.push_back(ops[i]);
+  ops[idx] = method.generate_operation(fusing_ops, diagonal);
+  for (auto i: idxs)
+    if (i != idx)
+      ops[i].type = optype_t::nop;
+}
 
 class CostBasedFusion : public Fuser {
 public:
@@ -344,7 +365,7 @@ public:
                                     const uint_t max_fused_qubits,
                                     const FusionMethod& method) const override;
 
-  bool exclude_entangled_qubits(std::vector<uint_t>& fusing_qubits,
+  bool exclude_escaped_qubits(std::vector<uint_t>& fusing_qubits,
                                 const op_t& tgt_op) const;
 private:
   bool active = true;
@@ -364,8 +385,8 @@ void NQubitFusion<N>::set_config(const json_t &config) {
 }
 
 template<size_t N>
-bool NQubitFusion<N>::exclude_entangled_qubits(std::vector<uint_t>& fusing_qubits,
-                                               const op_t& tgt_op) const {
+bool NQubitFusion<N>::exclude_escaped_qubits(std::vector<uint_t>& fusing_qubits,
+                                             const op_t& tgt_op) const {
   bool included = true;
   for (const auto qubit: tgt_op.qubits)
     included &= (std::find(fusing_qubits.begin(), fusing_qubits.end(), qubit) != fusing_qubits.end());
@@ -415,13 +436,15 @@ bool NQubitFusion<N>::aggregate_operations(oplist_t& ops,
       if (!method.can_apply(tgt_op, max_fused_qubits))
         break;
       // check all the qubits are in fusing_qubits
-      if (!exclude_entangled_qubits(fusing_qubits, tgt_op))
+      if (!exclude_escaped_qubits(fusing_qubits, tgt_op))
         fusing_op_idxs.push_back(fusing_op_idx); // All the qubits of tgt_op are in fusing_qubits
       else if (fusing_qubits.empty())
           break;
     }
 
     std::reverse(fusing_op_idxs.begin(), fusing_op_idxs.end());
+    fusing_qubits.clear();
+    fusing_qubits.insert(fusing_qubits.end(), ops[op_idx].qubits.begin(), ops[op_idx].qubits.end());
 
     // 3. fuse operations with forwarding
     for (int fusing_op_idx = op_idx + 1; fusing_op_idx < fusion_end; ++fusing_op_idx) {
@@ -431,7 +454,7 @@ bool NQubitFusion<N>::aggregate_operations(oplist_t& ops,
       if (!method.can_apply(tgt_op, max_fused_qubits))
         break;
       // check all the qubits are in fusing_qubits
-      if (!exclude_entangled_qubits(fusing_qubits, tgt_op))
+      if (!exclude_escaped_qubits(fusing_qubits, tgt_op))
         fusing_op_idxs.push_back(fusing_op_idx); // All the qubits of tgt_op are in fusing_qubits
       else if (fusing_qubits.empty())
           break;
@@ -440,15 +463,9 @@ bool NQubitFusion<N>::aggregate_operations(oplist_t& ops,
     if (fusing_op_idxs.size() <= 1)
       continue;
 
-    // 4. copy operations while setting them as nop
-    std::vector<op_t> fusing_ops;
-    for (auto fusing_op_idx : fusing_op_idxs) {
-      fusing_ops.push_back(ops[fusing_op_idx]); //copy
-      ops[fusing_op_idx].type = optype_t::nop;
-    }
+    // 4. generate a fused operation
+    allocate_new_operation(ops, op_idx, fusing_op_idxs, method, false);
 
-    // 5. generate a fused operation
-    ops[op_idx] = method.generate_operation(fusing_ops);
     fused = true;
   }
 
@@ -611,13 +628,12 @@ bool DiagonalFusion::aggregate_operations(oplist_t& ops,
     if (checking_qubits_set.size() < min_qubit)
       continue;
 
-    std::vector<op_t> fusing_ops;
-    for (; op_idx < next_diagonal_start; ++op_idx) {
-      fusing_ops.push_back(ops[op_idx]); //copy
-      ops[op_idx].type = optype_t::nop;
-    }
+    std::vector<uint_t> fusing_op_idxs;
+    for (; op_idx < next_diagonal_start; ++op_idx)
+      fusing_op_idxs.push_back(op_idx);
+
     --op_idx;
-    ops[op_idx] = method.generate_operation(fusing_ops, true);
+    allocate_new_operation(ops, op_idx, fusing_op_idxs, method, true);
   }
 
   return true;
@@ -917,17 +933,11 @@ bool CostBasedFusion::aggregate_operations(oplist_t& ops,
   for (int i = fusion_end - 1; i >= fusion_start;) {
     int to = fusion_to[i - fusion_start];
     if (to != i) {
-      std::vector<op_t> fusioned_ops;
-      std::set<uint_t> fusioned_qubits;
-      for (int j = to; j <= i; ++j) {
-        fusioned_ops.push_back(ops[j]);
-        fusioned_qubits.insert(ops[j].qubits.cbegin(), ops[j].qubits.cend());
-        ops[j].type = optype_t::nop;
-      }
-      if (!fusioned_ops.empty()) {
-        reg_t qubits(fusioned_qubits.begin(), fusioned_qubits.end());
-        ops[i] = method.generate_operation(fusioned_ops);
-      }
+      std::vector<uint_t> fusing_op_idxs;
+      for (int j = to; j <= i; ++j)
+        fusing_op_idxs.push_back(j);
+      if (!fusing_op_idxs.empty())
+        allocate_new_operation(ops, i, fusing_op_idxs, method, false);
     }
     i = to - 1;
   }
