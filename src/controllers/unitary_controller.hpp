@@ -320,7 +320,7 @@ void UnitaryController::run_circuit_helper(
   Base::Controller::save_count_data(result, state.creg());
 
   // Add final state unitary to the data
-  state.save_data_single(result, "unitary", state.qreg().move_to_matrix());
+  state.save_data_single(result, "unitary", state.move_to_matrix());
 }
 
 //-------------------------------------------------------------------------
