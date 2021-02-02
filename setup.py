@@ -35,7 +35,7 @@ except ImportError:
 try:
     from numpy import array
 except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=1.16.3'])
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=1.16.3,<1.20.0'])
 
 from skbuild import setup
 
