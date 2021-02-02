@@ -62,6 +62,7 @@ protected:
   mutable reg_t qubitMap_;
   mutable reg_t qubitSwapped_;
   bool blocking_enabled_;
+  bool ignore_diagonal_ = false;
   int gpu_blocking_bits_;
 
   void block_circuit(Circuit& circ,std::vector<Operations::Op>& queue,bool doSwap) const;
@@ -97,6 +98,9 @@ void CacheBlocking::set_config(const json_t &config)
 
   if (JSON::check_key("blocking_qubits", config_))
     JSON::get_value(block_bits_, "blocking_qubits", config_);
+
+  if (JSON::check_key("blocking_ignore_diagonal", config_))
+    JSON::get_value(ignore_diagonal_, "blocking_ignore_diagonal", config_);
 
   if (JSON::check_key("gpu_blocking_bits", config_)){
     JSON::get_value(gpu_blocking_bits_, "gpu_blocking_bits", config_);
@@ -429,7 +433,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
     //gather blocked gates
     for(i=0;i<ops.size();i++){
       if(ops[i].type == Operations::OpType::gate || ops[i].type == Operations::OpType::matrix){
-        if(is_diagonal_op(ops[i]) || can_block(ops[i],blockedQubits)){
+        if((ignore_diagonal_ && is_diagonal_op(ops[i])) || can_block(ops[i],blockedQubits)){
           if(can_reorder(ops[i],queue)){
             //mapping swapped qubits
             for(iq=0;iq<ops[i].qubits.size();iq++){
@@ -481,7 +485,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
         }
         else{
           if(can_reorder(ops[i],queue)){
-            if(is_diagonal_op(ops[i])){
+            if(ignore_diagonal_ && is_diagonal_op(ops[i])){
               //diagonal gate can be applied
               out.push_back(ops[i]);
               num_gates_added++;
@@ -606,7 +610,7 @@ bool CacheBlocking::is_diagonal_op(Operations::Op& op) const
     }
   }
   else if(op.type == Operations::OpType::matrix){
-    if (Utils::is_diagonal(op.mats[0], .0)){
+    if (ignore_diagonal_ && Utils::is_diagonal(op.mats[0], .0)){
       return true;
     }
   }
