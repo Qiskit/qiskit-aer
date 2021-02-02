@@ -46,6 +46,8 @@ py::object AerToPy::to_python(AER::DataCVector &&data) {
 void AerToPy::add_to_python(py::dict &pydata, AER::DataCVector &&data) {
   AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, AER::Vector<AER::complex_t>, 1>&&>(data));
   AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, AER::Vector<AER::complexf_t>, 1>&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, AER::Vector<AER::complex_t>, 2>&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, AER::Vector<AER::complexf_t>, 2>&&>(data));
   AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::Vector<AER::complex_t>, 1>&&>(data));
   AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::Vector<AER::complexf_t>, 1>&&>(data));
   AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::Vector<AER::complex_t>, 2>&&>(data));

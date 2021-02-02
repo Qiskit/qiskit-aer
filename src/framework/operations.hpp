@@ -881,6 +881,7 @@ Op json_to_op_save_default(const json_t &js) {
   // Get subtype
   static const std::unordered_map<std::string, DataSubType> subtypes {
     {"single", DataSubType::single},
+    {"c_single", DataSubType::c_single},
     {"average", DataSubType::average},
     {"c_average", DataSubType::c_average},
     {"list", DataSubType::list},
