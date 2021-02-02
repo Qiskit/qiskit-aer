@@ -25,19 +25,18 @@ class SaveExpval(SaveAverageData):
     def __init__(self,
                  key,
                  operator,
-                 variance=False,
                  unnormalized=False,
                  conditional=False,
                  pershot=False):
-        r"""Create new a instruction to save the expectation value of a Hermitian operator.
+        r"""Instruction to save the expectation value of a Hermitian operator.
+
+        The expectation value of a Hermitian operator :math:`H` for a simulator
+        in quantum state :math`\rho`is given by
+        :math:`\langle H\rangle = \mbox{Tr}[H.\rho]`.
 
         Args:
             key (str): the key for retrieving saved data from results.
             operator (Pauli or SparsePauliOp or Operator): a Hermitian operator.
-            variance (bool): if True save both the expectation value
-                             :math:`\langle O \rangle>`, and the variance
-                             :math:`\sigma^2 = \langle O \rangle^2 - \langle O \rangle>^2`
-                             [Default: False].
             unnormalized (bool): If True return save the unnormalized accumulated
                                  or conditional accumulated expectation value
                                  over all shot [Default: False].
@@ -76,8 +75,7 @@ class SaveExpval(SaveAverageData):
             raise ExtensionError("Invalid input operator")
         if not allclose(operator.coeffs.imag, 0):
             raise ExtensionError("Input operator is not Hermitian.")
-        params = _expval_params(operator, variance=variance)
-        self._variance = variance
+        params = _expval_params(operator, variance=False)
         super().__init__('save_expval',
                          key,
                          operator.num_qubits,
@@ -86,12 +84,71 @@ class SaveExpval(SaveAverageData):
                          unnormalized=unnormalized,
                          params=params)
 
-    def assemble(self):
-        """Return the QasmQobjInstruction for the intructions."""
-        instr = super().assemble()
-        if self._variance:
-            instr.name += '_var'
-        return instr
+
+class SaveExpvalVar(SaveAverageData):
+    """Save expectation value of an operator."""
+    def __init__(self,
+                 key,
+                 operator,
+                 unnormalized=False,
+                 conditional=False,
+                 pershot=False):
+        r"""Instruction to save the expectation value and variance of a Hermitian operator.
+
+        The expectation value of a Hermitian operator :math:`H` for a
+        simulator in quantum state :math`\rho`is given by
+        :math:`\langle H\rangle = \mbox{Tr}[H.\rho]`. The variance is given by
+        :math:`\sigma^2 = \langle H^2 \rangle - \langle H \rangle>^2`.
+
+        Args:
+            key (str): the key for retrieving saved data from results.
+            operator (Pauli or SparsePauliOp or Operator): a Hermitian operator.
+            unnormalized (bool): If True return save the unnormalized accumulated
+                                 or conditional accumulated expectation value
+                                 over all shot [Default: False].
+            pershot (bool): if True save a list of expectation values for each shot
+                            of the simulation rather than the average over
+                            all shots [Default: False].
+            conditional (bool): if True save the average or pershot data
+                                conditional on the current classical register
+                                values [Default: False].
+
+        Raises:
+            ExtensionError: if the input operator is invalid or not Hermitian.
+
+        .. note ::
+
+            In cetain cases the list returned by ``pershot=True`` may only
+            contain a single value, rather than the number of shots. This
+            happens when a run circuit supports measurement sampling because
+            it is either
+
+            1. An ideal simulation with all measurements at the end.
+
+            2. A noisy simulation using the density matrix method with all
+            measurements at the end.
+
+            In both these cases only a single shot is actually simulated and
+            measurement samples for all shots are calculated from the final
+            state.
+        """
+        # Convert O to SparsePauliOp representation
+        if isinstance(operator, Pauli):
+            operator = SparsePauliOp(operator)
+        elif not isinstance(operator, SparsePauliOp):
+            operator = SparsePauliOp.from_operator(Operator(operator))
+        if not isinstance(operator, SparsePauliOp):
+            raise ExtensionError("Invalid input operator")
+        if not allclose(operator.coeffs.imag, 0):
+            raise ExtensionError("Input operator is not Hermitian.")
+        params = _expval_params(operator, variance=True)
+        super().__init__('save_expval_var',
+                         key,
+                         operator.num_qubits,
+                         conditional=conditional,
+                         pershot=pershot,
+                         unnormalized=unnormalized,
+                         params=params)
 
 
 def _expval_params(operator, variance=False):
@@ -131,7 +188,6 @@ def save_expval(self,
                 key,
                 operator,
                 qubits,
-                variance=False,
                 unnormalized=False,
                 conditional=False,
                 pershot=False):
@@ -141,10 +197,6 @@ def save_expval(self,
         key (str): the key for retrieving saved data from results.
         operator (Pauli or SparsePauliOp or Operator): a Hermitian operator.
         qubits (list): circuit qubits to apply instruction.
-        variance (bool): if True save both the expectation value
-                         :math:`\langle O \rangle>`, and the variance
-                         :math:`\sigma^2 = \langle O \rangle^2 - \langle O \rangle>^2`
-                         [Default: False].
         unnormalized (bool): If True return save the unnormalized accumulated
                              or conditional accumulated expectation value
                              over all shot [Default: False].
@@ -179,11 +231,63 @@ def save_expval(self,
     """
     instr = SaveExpval(key,
                        operator,
-                       variance=variance,
                        unnormalized=unnormalized,
                        conditional=conditional,
                        pershot=pershot)
     return self.append(instr, qubits)
 
 
+def save_expval_var(self,
+                    key,
+                    operator,
+                    qubits,
+                    unnormalized=False,
+                    conditional=False,
+                    pershot=False):
+    r"""Save the expectation value of a Hermitian operator.
+
+    Args:
+        key (str): the key for retrieving saved data from results.
+        operator (Pauli or SparsePauliOp or Operator): a Hermitian operator.
+        qubits (list): circuit qubits to apply instruction.
+        unnormalized (bool): If True return save the unnormalized accumulated
+                             or conditional accumulated expectation value
+                             and variance over all shot [Default: False].
+        pershot (bool): if True save a list of expectation values and variances
+                        for each shot of the simulation rather than the
+                        average over all shots [Default: False].
+        conditional (bool): if True save the data conditional on the current
+                            classical register values [Default: False].
+
+    Returns:
+        QuantumCircuit: with attached instruction.
+
+    Raises:
+        ExtensionError: if the input operator is invalid or not Hermitian.
+
+    .. note ::
+
+        In cetain cases the list returned by ``pershot=True`` may only
+        contain a single value, rather than the number of shots. This
+        happens when a run circuit supports measurement sampling because
+        it is either
+
+        1. An ideal simulation with all measurements at the end.
+
+        2. A noisy simulation using the density matrix method with all
+           measurements at the end.
+
+        In both these cases only a single shot is actually simulated and
+        measurement samples for all shots are calculated from the final
+        state.
+    """
+    instr = SaveExpvalVar(key,
+                          operator,
+                          unnormalized=unnormalized,
+                          conditional=conditional,
+                          pershot=pershot)
+    return self.append(instr, qubits)
+
+
 QuantumCircuit.save_expval = save_expval
+QuantumCircuit.save_expval_var = save_expval_var

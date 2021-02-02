@@ -34,6 +34,7 @@ Instruction Classes
     :toctree: ../stubs/
 
     SaveExpval
+    SaveExpvalVar
 
 Then can also be used using custom QuantumCircuit methods
 
@@ -44,8 +45,10 @@ QuantumCircuit Methods
     :toctree: ../stubs/
 
     save_expval
+    save_expval_var
 """
 
-__all__ = ['SaveExpval']
+__all__ = ['SaveExpval', 'SaveExpvalVar']
 
 from .save_expval import SaveExpval, save_expval
+from .save_expval import SaveExpvalVar, save_expval_var
