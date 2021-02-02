@@ -19,3 +19,15 @@ features:
     This instruction can also be appended to a quantum circuit by using the
     :class:`~qiskit.providers.aer.library.save_expectation_value_variance``
     circuit method which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveStatevector` quantum circuit
+    instruction for saving the current statevector of the
+    :class:`~qiskit.providers.aer.StatevectorSimulator` or
+    :class:`~qiskit.providers.aer.QasmSimulator` with a supported simulation
+    method (``"statevector"``, ``"statevector_gpu"``,
+    ``"matrix_product_state"``, ``"extended_stabilizer"``). Note that this
+    instruction always acts on the full width of the circuit being executed.
+    
+    This instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_statevector`` circuit method
+    which is added to ``QuantumCircuit`` when importing Aer.
