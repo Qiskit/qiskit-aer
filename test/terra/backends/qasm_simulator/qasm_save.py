@@ -14,7 +14,9 @@ QasmSimulator Integration Tests for Save instructions
 """
 
 from .qasm_save_expval import QasmSaveExpectationValueTests
+from .qasm_save_statevector import QasmSaveStatevectorTests
 
 
-class QasmSaveDataTests(QasmSaveExpectationValueTests):
+class QasmSaveDataTests(QasmSaveExpectationValueTests,
+                        QasmSaveStatevectorTests):
     """QasmSimulator SaveData instruction tests."""
