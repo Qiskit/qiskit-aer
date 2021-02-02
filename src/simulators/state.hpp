@@ -528,7 +528,7 @@ void State<state_t>::apply_save_expval(const Operations::Op &op,
     }
   }
   if (op.expval_variance) {
-    Vector<double> expval_var(2);
+    std::vector<double> expval_var(2);
     expval_var[0] = expval;  // mean
     expval_var[1] = sq_expval - expval * expval;  // variance
     save_data_average(result, op.string_params[0], expval_var, op.save_type);

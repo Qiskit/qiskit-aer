@@ -44,13 +44,13 @@ py::object AerToPy::to_python(AER::DataRVector &&data) {
 }
 
 void AerToPy::add_to_python(py::dict &pydata, AER::DataRVector &&data) {
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, AER::Vector<double>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::Vector<double>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::Vector<double>, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AccumData, AER::Vector<double>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AccumData, AER::Vector<double>, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AverageData, AER::Vector<double>, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AverageData, AER::Vector<double>, 2>&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, std::vector<double>, 1>&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, std::vector<double>, 1>&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, std::vector<double>, 2>&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AccumData, std::vector<double>, 1>&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AccumData, std::vector<double>, 2>&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AverageData, std::vector<double>, 1>&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AverageData, std::vector<double>, 2>&&>(data));
 }
 
 #endif

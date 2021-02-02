@@ -28,13 +28,13 @@ namespace AER {
 // Result container for Qiskit-Aer
 //============================================================================
 
-struct DataRVector : public DataMap<SingleData, Vector<double>, 1>,
-                     public DataMap<ListData, Vector<double>, 1>,
-                     public DataMap<ListData, Vector<double>, 2>,
-                     public DataMap<AccumData, Vector<double>, 1>,
-                     public DataMap<AccumData, Vector<double>, 2>,
-                     public DataMap<AverageData, Vector<double>, 1>,
-                     public DataMap<AverageData, Vector<double>, 2> {
+struct DataRVector : public DataMap<SingleData, std::vector<double>, 1>,
+                     public DataMap<ListData, std::vector<double>, 1>,
+                     public DataMap<ListData, std::vector<double>, 2>,
+                     public DataMap<AccumData, std::vector<double>, 1>,
+                     public DataMap<AccumData, std::vector<double>, 2>,
+                     public DataMap<AverageData, std::vector<double>, 1>,
+                     public DataMap<AverageData, std::vector<double>, 2> {
 
   // Serialize engine data to JSON
   void add_to_json(json_t &result);
@@ -48,24 +48,24 @@ struct DataRVector : public DataMap<SingleData, Vector<double>, 1>,
 //------------------------------------------------------------------------------
 
 DataRVector &DataRVector::combine(DataRVector &&other) {
-  DataMap<SingleData, Vector<double>, 1>::combine(std::move(other));
-  DataMap<ListData, Vector<double>, 1>::combine(std::move(other));
-  DataMap<ListData, Vector<double>, 2>::combine(std::move(other));
-  DataMap<AccumData, Vector<double>, 1>::combine(std::move(other));
-  DataMap<AccumData, Vector<double>, 2>::combine(std::move(other));
-  DataMap<AverageData, Vector<double>, 1>::combine(std::move(other));
-  DataMap<AverageData, Vector<double>, 2>::combine(std::move(other));
+  DataMap<SingleData, std::vector<double>, 1>::combine(std::move(other));
+  DataMap<ListData, std::vector<double>, 1>::combine(std::move(other));
+  DataMap<ListData, std::vector<double>, 2>::combine(std::move(other));
+  DataMap<AccumData, std::vector<double>, 1>::combine(std::move(other));
+  DataMap<AccumData, std::vector<double>, 2>::combine(std::move(other));
+  DataMap<AverageData, std::vector<double>, 1>::combine(std::move(other));
+  DataMap<AverageData, std::vector<double>, 2>::combine(std::move(other));
   return *this;
 }
 
 void DataRVector::add_to_json(json_t &result) {
-  DataMap<SingleData, Vector<double>, 1>::add_to_json(result);
-  DataMap<ListData, Vector<double>, 1>::add_to_json(result);
-  DataMap<ListData, Vector<double>, 2>::add_to_json(result);
-  DataMap<AccumData, Vector<double>, 1>::add_to_json(result);
-  DataMap<AccumData, Vector<double>, 2>::add_to_json(result);
-  DataMap<AverageData, Vector<double>, 1>::add_to_json(result);
-  DataMap<AverageData, Vector<double>, 2>::add_to_json(result);
+  DataMap<SingleData, std::vector<double>, 1>::add_to_json(result);
+  DataMap<ListData, std::vector<double>, 1>::add_to_json(result);
+  DataMap<ListData, std::vector<double>, 2>::add_to_json(result);
+  DataMap<AccumData, std::vector<double>, 1>::add_to_json(result);
+  DataMap<AccumData, std::vector<double>, 2>::add_to_json(result);
+  DataMap<AverageData, std::vector<double>, 1>::add_to_json(result);
+  DataMap<AverageData, std::vector<double>, 2>::add_to_json(result);
 }
 
 //------------------------------------------------------------------------------
