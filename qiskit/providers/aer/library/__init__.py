@@ -46,6 +46,25 @@ QuantumCircuit Methods
 
     save_expval
     save_expval_var
+
+.. note ::
+
+    **Pershot Data with Measurement Sampling Optimization**
+
+    When saving pershot data by using the ``pershot=True`` kwarg
+    in the above instructions, the resulting list may only contain
+    a single value rather than the number of shots. This
+    happens when a run circuit supports measurement sampling because
+    it is either
+
+    1. An ideal simulation with all measurements at the end.
+
+    2. A noisy simulation using the density matrix method with all
+    measurements at the end.
+
+    In both these cases only a single shot is actually simulated and
+    measurement samples for all shots are calculated from the final
+    state.
 """
 
 __all__ = ['SaveExpval', 'SaveExpvalVar']

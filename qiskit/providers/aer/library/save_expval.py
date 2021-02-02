@@ -49,22 +49,6 @@ class SaveExpval(SaveAverageData):
 
         Raises:
             ExtensionError: if the input operator is invalid or not Hermitian.
-
-        .. note ::
-
-            In cetain cases the list returned by ``pershot=True`` may only
-            contain a single value, rather than the number of shots. This
-            happens when a run circuit supports measurement sampling because
-            it is either
-
-            1. An ideal simulation with all measurements at the end.
-
-            2. A noisy simulation using the density matrix method with all
-            measurements at the end.
-
-            In both these cases only a single shot is actually simulated and
-            measurement samples for all shots are calculated from the final
-            state.
         """
         # Convert O to SparsePauliOp representation
         if isinstance(operator, Pauli):
@@ -115,22 +99,6 @@ class SaveExpvalVar(SaveAverageData):
 
         Raises:
             ExtensionError: if the input operator is invalid or not Hermitian.
-
-        .. note ::
-
-            In cetain cases the list returned by ``pershot=True`` may only
-            contain a single value, rather than the number of shots. This
-            happens when a run circuit supports measurement sampling because
-            it is either
-
-            1. An ideal simulation with all measurements at the end.
-
-            2. A noisy simulation using the density matrix method with all
-            measurements at the end.
-
-            In both these cases only a single shot is actually simulated and
-            measurement samples for all shots are calculated from the final
-            state.
         """
         # Convert O to SparsePauliOp representation
         if isinstance(operator, Pauli):
@@ -212,22 +180,6 @@ def save_expval(self,
 
     Raises:
         ExtensionError: if the input operator is invalid or not Hermitian.
-
-    .. note ::
-
-        In cetain cases the list returned by ``pershot=True`` may only
-        contain a single value, rather than the number of shots. This
-        happens when a run circuit supports measurement sampling because
-        it is either
-
-        1. An ideal simulation with all measurements at the end.
-
-        2. A noisy simulation using the density matrix method with all
-           measurements at the end.
-
-        In both these cases only a single shot is actually simulated and
-        measurement samples for all shots are calculated from the final
-        state.
     """
     instr = SaveExpval(key,
                        operator,
@@ -264,22 +216,6 @@ def save_expval_var(self,
 
     Raises:
         ExtensionError: if the input operator is invalid or not Hermitian.
-
-    .. note ::
-
-        In cetain cases the list returned by ``pershot=True`` may only
-        contain a single value, rather than the number of shots. This
-        happens when a run circuit supports measurement sampling because
-        it is either
-
-        1. An ideal simulation with all measurements at the end.
-
-        2. A noisy simulation using the density matrix method with all
-           measurements at the end.
-
-        In both these cases only a single shot is actually simulated and
-        measurement samples for all shots are calculated from the final
-        state.
     """
     instr = SaveExpvalVar(key,
                           operator,

@@ -9,7 +9,6 @@ features:
     This instruction can also be appended to a quantum circuit by using the
     :class:`~qiskit.providers.aer.library.save_expval`` circuit method which
     is added to ``QuantumCircuit`` when importing Aer.
-
   - |
     Adds a :class:`qiskit.providers.aer.library.SaveExpvalVar` quantum circuit
     instruction for saving the expectation value
