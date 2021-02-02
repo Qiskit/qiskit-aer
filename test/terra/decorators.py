@@ -28,22 +28,13 @@ if not hasattr(QuantumCircuit, 'i'):
 
 def is_method_available(backend, method):
     """Check if input method is available for the qasm simulator."""
-    # Simple test circuit that should work on all simulators.
     if isinstance(backend, str):
         backend = AerProvider().get_backend(backend)
-    dummy_circ = QuantumCircuit(1)
-    dummy_circ.i(0)
-    qobj = assemble(dummy_circ, optimization_level=0)
-    backend_options = {"method": method}
-    try:
-        job = backend.run(qobj, **backend_options)
-        result = job.result()
-        error_msg = 'not supported on this system'
-        if not result.success and error_msg in result.results[0].status:
-            return False
+    avail = backend.available_methods();
+    if method in avail:
         return True
-    except AerError:
-        return True
+    else:
+        return False
 
 
 def requires_method(backend, method):
