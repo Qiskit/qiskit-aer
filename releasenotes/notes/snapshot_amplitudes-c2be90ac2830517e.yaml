@@ -1,0 +1,11 @@
+---
+
+features:
+  - |
+    Added a new snapshot: `snapshot_amplitudes`. See PR #1034. 
+    The user can request a subset of
+    the amplitudes appearing in the full statevector. The user provides as input
+    the base values, as an array of hexa or integers. This instruction outputs
+    the corresponding array of amplitudes, in the same order as the given base values.
+    This snapshot is supported in simulation methods: `statevector` and `matrix_product_state`.
+

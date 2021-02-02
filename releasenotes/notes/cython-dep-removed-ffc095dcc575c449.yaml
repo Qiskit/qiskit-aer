@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    Code that dependes on Aer has been removed, so Cython is no longer a dependency.

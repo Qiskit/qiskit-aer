@@ -249,7 +249,7 @@ window
     $ git clone https://github.com/Qiskit/qiskit-aer
 ```
 
-- Next, install the platform-specific dependencies for your operating system [Linux](#linux-dependencies) | [macOS](#mac-dependencies) | [Windows](#win-dependencies). 
+- Next, install the platform-specific dependencies for your operating system [Linux](#linux-dependencies) | [macOS](#mac-dependencies) | [Windows](#win-dependencies).
 
 - The common dependencies can then be installed via *pip*, using the
 `requirements-dev.txt` file, e.g.:
@@ -258,10 +258,13 @@ window
     $ pip install -r requirements-dev.txt
 ```
 
-This will also install [**Conan**](https://conan.io/), a C/C++ package manager written in Python. This tool will handle 
-most of the dependencies needed by the C++ source code. Internet connection may be needed for the first build or 
-when dependencies are added/updated, in order to download the required packages if they are not in your **Conan** local 
+This will also install [**Conan**](https://conan.io/), a C/C++ package manager written in Python. This tool will handle
+most of the dependencies needed by the C++ source code. Internet connection may be needed for the first build or
+when dependencies are added/updated, in order to download the required packages if they are not in your **Conan** local
 repository.
+
+>  Note: Conan use can be disabled with the flag or environment variable ``DISABLE_CONAN=ON`` .
+This is useful for building from source offline, or to reuse the installed package dependencies.
 
 If we are only building the standalone version and do not want to install all Python requirements you can just install
 **Conan**:
@@ -627,6 +630,70 @@ Few notes on GPU builds:
 3. We don't need NVIDIA® drivers for building, but we need them for running simulations
 4. Only Linux platforms are supported
 
+### Building a statically linked wheel
+
+If you encounter an error similar to the following, you may are likely in the need of compiling a
+statically linked wheel.
+```
+    ImportError: libopenblas.so.0: cannot open shared object file: No such file or directory
+```
+However, depending on your setup this can proof difficult at times.
+Thus, here we present instructions which are known to work under Linux.
+
+In general, the workflow is:
+1. Compile a wheel
+```
+    qiskit-aer$ python ./setup.py bdist_wheel
+```
+2. Repair it with [auditwheel](https://github.com/pypa/auditwheel)
+```
+    qiskit-aer$ auditwheel repair dist/qiskit_aer*.whl
+```
+> `auditwheel` vendors the shared libraries into the binary to make it fully self-contained.
+
+The command above will attempt to repair the wheel for a `manylinux*` platform and will store it
+under `wheelhouse/` from where you can install it.
+
+It may happen that you encounter the following error:
+```
+    auditwheel: error: cannot repair "qiskit_aer-0.8.0-cp36-cp36m-linux_x86_64.whl" to "manylinux1_x86_64" ABI because of the presence of too-recent versioned symbols. You'll need to compile the wheel on an older toolchain.
+```
+This means that your toolchain uses later versions of system libraries than are allowed by the
+`manylinux*` platform specification (see also [1], [2] and [3]).
+If you do not need your wheel to support the `manylinux*` platform you can resolve this issue by
+limiting the compatibility of your wheel to your specific platform.
+You can find out which platform this is through
+```
+    qiskit-aer$ auditwheel show dist/qiskit_aer*.whl
+```
+This will list the _platform tag_ (e.g. `linux_x86_64`).
+You can then repair the wheel for this specific platform using:
+```
+    qiskit-aer$ auditwheel repair --plat linux_x86_64 dist/qiskit_aer*.whl
+```
+You can now go ahead and install the wheel stored in `wheelhouse/`.
+
+Should you encounter a runtime error like
+```
+    Inconsistency detected by ld.so: dl-version.c: 205: _dl_check_map_versions: Assertion `needed != NULL' failed!
+```
+this means that your [patchelf](https://github.com/NixOS/patchelf) version (which is used by
+`auditwheel` under the hood) is too old (https://github.com/pypa/auditwheel/issues/103)
+Version `0.9` of `patchelf` is the earliest to include the patch
+https://github.com/NixOS/patchelf/pull/85 which resolves this issue.
+In the unlikely event that the `patchelf` package provided by your operating
+system only provides an older version, fear not, because it is really easy to
+[compile `patchelf` from source](https://github.com/NixOS/patchelf#compiling-and-testing).
+
+Hopefully, this information was helpful.
+In case you need more detailed information on some of the errors which may occur be sure to read
+through https://github.com/Qiskit/qiskit-aer/issues/1033.
+
+[1]: https://www.python.org/dev/peps/pep-0513/
+[2]: https://www.python.org/dev/peps/pep-0571/
+[3]: https://www.python.org/dev/peps/pep-0599/
+
+
 
 
 ## Useful CMake flags
@@ -661,7 +728,6 @@ These are the flags:
 
     Tells CMake the directory to look for the BLAS library instead of the usual paths.
     If no BLAS library is found under that directory, CMake will raise an error and terminate.
-    
     It can also be set as an ENV variable with the same name, although the flag takes precedence.
 
     Values: An absolute path.
@@ -700,10 +766,28 @@ These are the flags:
 
     This flag allows you to specify the CUDA architecture instead of letting the build system auto detect it.
     It can also be set as an ENV variable with the same name, although the flag takes precedence.
-    
+
     Values:  Auto | Common | All | List of valid CUDA architecture(s).
     Default: Auto
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="5.2; 5.3"``
+
+* DISABLE_CONAN
+
+    This flag allows disabling the Conan package manager. This will force CMake to look for
+    the libraries in use on your system path, relying on FindPackage CMake mechanism and
+    the appropriate configuration of libraries in order to use it.
+    If a specific version is not found, the build system will look for any version available,
+    although this may produce build errors or incorrect behaviour.
+
+    __WARNING__: This is not the official procedure to build AER. Thus, the user is responsible
+    of providing all needed libraries and corresponding files to make them findable to CMake.
+
+    This is also available as the environment variable ``DISABLE_CONAN``, which overrides
+    the CMake flag of the same name.
+
+    Values: ON | OFF
+    Default: OFF
+    Example: ``python ./setup.py bdist_wheel -- -DDISABLE_CONAN=ON``
 
 ## Tests
 
@@ -723,6 +807,22 @@ qiskit-aer$ stestr run
 Manual for `stestr` can be found [here](https://stestr.readthedocs.io/en/latest/MANUAL.html#).
 
 The integration tests for Qiskit Python extension are included in: `test/terra`.
+
+## C++ Tests
+
+Our C++ unit tests use the Catch2 framework, an include-only C++ unit-testing framework. 
+Catch2 framework documentation can be found [here](https://github.com/catchorg/Catch2).
+Then, in any case, build Aer with the extra cmake argument BUILD_TESTS set to true:
+
+```
+python ./setup.py bdist_wheel --build-type=Debug -- -DBUILD_TESTS=True -- -j4 2>&1 |tee build.log
+```
+
+The test executable will be placed into the source test directory and can be run by:
+
+```
+qiskit-aer$ ./test/unitc_tests [Catch2-options]
+```
 
 ## Platform support
 

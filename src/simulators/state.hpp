@@ -19,9 +19,15 @@
 #include "framework/opset.hpp"
 #include "framework/types.hpp"
 #include "framework/creg.hpp"
-#include "framework/results/experiment_data.hpp"
+#include "framework/results/experiment_result.hpp"
 
 namespace AER {
+
+// Result data subtypes
+enum class DataSubType {
+  single, list, c_list, accum, c_accum, average, c_average
+};
+
 namespace Base {
 
 //=========================================================================
@@ -104,9 +110,13 @@ public:
   // executed (ie in sequence, or some other execution strategy.)
   // If this sequence contains operations not in the supported opset
   // an exeption will be thrown.
+  // The `final_ops` flag indicates no more instructions will be applied
+  // to the state after this sequence, so the state can be modified at the
+  // end of the instructions.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentData &data,
-                         RngEngine &rng)  = 0;
+                         ExperimentResult &result,
+                         RngEngine &rng,
+                         bool final_ops = false)  = 0;
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
@@ -128,12 +138,12 @@ public:
   // Load any settings for the State class from a config JSON
   virtual void set_config(const json_t &config);
 
-    //-----------------------------------------------------------------------
+  //-----------------------------------------------------------------------
   // Optional: Add information to metadata 
   //-----------------------------------------------------------------------
 
   // Every state can add information to the metadata structure
-  virtual void add_metadata(ExperimentData &data) const {
+  virtual void add_metadata(ExperimentResult &result) const {
   }
 
   //-----------------------------------------------------------------------
@@ -170,8 +180,50 @@ public:
                        const std::string &memory_hex,
                        const std::string &register_hex);
 
-  // Add current creg classical bit values to a ExperimentData container
-  void add_creg_to_data(ExperimentData &data) const;
+  //-----------------------------------------------------------------------
+  // Save result data
+  //-----------------------------------------------------------------------
+
+  // Save current value of all classical registers to result
+  // This supports DataSubTypes: c_accum (counts), list (memory)
+  // TODO: Make classical data allow saving only subset of specified clbit values
+  void save_creg(ExperimentResult &result,
+                 const std::string &key,
+                 DataSubType type = DataSubType::c_accum) const;
+              
+  // Save single shot data type. Typically this will be the value for the
+  // last shot of the simulation
+  template <class T>
+  void save_data_single(ExperimentResult &result,
+                        const std::string &key, const T& datum) const;
+
+  template <class T>
+  void save_data_single(ExperimentResult &result,
+                        const std::string &key, T&& datum) const;
+
+  // Save data type which can be averaged over all shots.
+  // This supports DataSubTypes: list, c_list, accum, c_accum, average, c_average
+  template <class T>
+  void save_data_average(ExperimentResult &result,
+                         const std::string &key, const T& datum,
+                         DataSubType type = DataSubType::average) const;
+
+  template <class T>
+  void save_data_average(ExperimentResult &result,
+                         const std::string &key, T&& datum,
+                         DataSubType type = DataSubType::average) const;
+  
+  // Save data type which is pershot and does not support accumulator or average
+  // This supports DataSubTypes: single, list, c_list
+  template <class T>
+  void save_data_pershot(ExperimentResult &result,
+                         const std::string &key, const T& datum,
+                         DataSubType type = DataSubType::list) const;
+
+  template <class T>
+  void save_data_pershot(ExperimentResult &result,
+                         const std::string &key, T&& datum,
+                         DataSubType type = DataSubType::list) const;
 
   //-----------------------------------------------------------------------
   // Standard snapshots
@@ -179,24 +231,27 @@ public:
 
   // Snapshot the current statevector (single-shot)
   // if type_label is the empty string the operation type will be used for the type
-  void snapshot_state(const Operations::Op &op, ExperimentData &data,
+  void snapshot_state(const Operations::Op &op, ExperimentResult &result,
                       std::string name = "") const;
 
   // Snapshot the classical memory bits state (single-shot)
-  void snapshot_creg_memory(const Operations::Op &op, ExperimentData &data,
+  void snapshot_creg_memory(const Operations::Op &op, ExperimentResult &result,
                             std::string name = "memory") const;
 
   // Snapshot the classical register bits state (single-shot)
-  void snapshot_creg_register(const Operations::Op &op, ExperimentData &data,
+  void snapshot_creg_register(const Operations::Op &op, ExperimentResult &result,
                               std::string name = "register") const;
 
   //-----------------------------------------------------------------------
-  // OpenMP thread settings
+  // Config Settings
   //-----------------------------------------------------------------------
 
   // Sets the number of threads available to the State implementation
   // If negative there is no restriction on the backend
   inline void set_parallalization(int n) {threads_ = n;}
+
+  // Set a complex global phase value exp(1j * theta) for the state
+  void set_global_phase(const double &phase);
 
 protected:
 
@@ -212,6 +267,10 @@ protected:
   // Maximum threads which may be used by the backend for OpenMP multithreading
   // Default value is single-threaded unless overridden
   int threads_ = 1;
+
+  // Set a global phase exp(1j * theta) for the state
+  bool has_global_phase_ = false;
+  complex_t global_phase_ = 1;
 };
 
 
@@ -224,6 +283,17 @@ void State<state_t>::set_config(const json_t &config) {
   (ignore_argument)config;
 }
 
+template <class state_t>
+void State<state_t>::set_global_phase(const double &phase_angle) {
+  if (Linalg::almost_equal(phase_angle, 0.0)) {
+    has_global_phase_ = false;
+    global_phase_ = 1;
+  }
+  else {
+    has_global_phase_ = true;
+    global_phase_ = std::exp(complex_t(0.0, phase_angle));
+  }
+}
 
 template <class state_t>
 std::vector<reg_t> State<state_t>::sample_measure(const reg_t &qubits,
@@ -249,21 +319,162 @@ void State<state_t>::initialize_creg(uint_t num_memory,
   creg_.initialize(num_memory, num_register, memory_hex, register_hex);
 }
 
+template <class state_t>
+void State<state_t>::save_creg(ExperimentResult &result,
+                               const std::string &key,
+                               DataSubType type) const {
+  if (creg_.memory_size() == 0)
+    return;
+  switch (type) {
+    case DataSubType::list:
+      result.data.add_list(creg_.memory_hex(), key);
+      break;
+    case DataSubType::c_accum:
+      result.data.add_accum(1ULL, key, creg_.memory_hex());
+      break;
+    default:
+      throw std::runtime_error("Invalid creg data subtype for data key: " + key);
+  }
+}
+
+template <class state_t>
+template <class T>
+void State<state_t>::save_data_average(ExperimentResult &result,
+                                       const std::string &key,
+                                       const T& datum,
+                                       DataSubType type) const {
+  switch (type) {
+    case DataSubType::single:
+      result.data.add_single(datum, key);
+      break;
+    case DataSubType::list:
+      result.data.add_list(datum, key);
+      break;
+    case DataSubType::c_list:
+      result.data.add_list(datum, key, creg_.memory_hex());
+      break;
+    case DataSubType::accum:
+      result.data.add_accum(datum, key);
+      break;
+    case DataSubType::c_accum:
+      result.data.add_accum(datum, key, creg_.memory_hex());
+      break;
+    case DataSubType::average:
+      result.data.add_average(datum, key);
+      break;
+    case DataSubType::c_average:
+      result.data.add_average(datum, key, creg_.memory_hex());
+      break;
+    default:
+      throw std::runtime_error("Invalid average data subtype for data key: " + key);
+  }
+}
+
+template <class state_t>
+template <class T>
+void State<state_t>::save_data_average(ExperimentResult &result,
+                                       const std::string &key,
+                                       T&& datum,
+                                       DataSubType type) const {
+  switch (type) {
+    case DataSubType::single:
+      result.data.add_single(std::move(datum), key);
+      break;
+    case DataSubType::list:
+      result.data.add_list(std::move(datum), key);
+      break;
+    case DataSubType::c_list:
+      result.data.add_list(std::move(datum), key, creg_.memory_hex());
+      break;
+    case DataSubType::accum:
+      result.data.add_accum(std::move(datum), key);
+      break;
+    case DataSubType::c_accum:
+      result.data.add_accum(std::move(datum), key, creg_.memory_hex());
+      break;
+    case DataSubType::average:
+      result.data.add_average(std::move(datum), key);
+      break;
+    case DataSubType::c_average:
+      result.data.add_average(std::move(datum), key, creg_.memory_hex());
+      break;
+    default:
+      throw std::runtime_error("Invalid average data subtype for data key: " + key);
+  }
+}
+
+template <class state_t>
+template <class T>
+void State<state_t>::save_data_pershot(ExperimentResult &result,
+                                       const std::string &key,
+                                       const T& datum,
+                                       DataSubType type) const {
+  switch (type) {
+  case DataSubType::single:
+    result.data.add_single(datum, key);
+    break;
+  case DataSubType::list:
+    result.data.add_list(datum, key);
+    break;
+  case DataSubType::c_list:
+    result.data.add_list(datum, key, creg_.memory_hex());
+    break;
+  default:
+    throw std::runtime_error("Invalid pershot data subtype for data key: " + key);
+  }
+}
+
+template <class state_t>
+template <class T>
+void State<state_t>::save_data_pershot(ExperimentResult &result, 
+                                       const std::string &key,
+                                       T&& datum,
+                                       DataSubType type) const {
+  switch (type) {
+    case DataSubType::single:
+      result.data.add_single(std::move(datum), key);
+      break;
+    case DataSubType::list:
+      result.data.add_list(std::move(datum), key);
+      break;
+    case DataSubType::c_list:
+      result.data.add_list(std::move(datum), key, creg_.memory_hex());
+      break;
+    default:
+      throw std::runtime_error("Invalid pershot data subtype for data key: " + key);
+  }
+}
+
+template <class state_t>
+template <class T>
+void State<state_t>::save_data_single(ExperimentResult &result,
+                                      const std::string &key,
+                                      const T& datum) const {
+  result.data.add_single(datum, key);
+}
+
+template <class state_t>
+template <class T>
+void State<state_t>::save_data_single(ExperimentResult &result,
+                                      const std::string &key,
+                                      T&& datum) const {
+  result.data.add_single(std::move(datum), key);
+}
 
 template <class state_t>
 void State<state_t>::snapshot_state(const Operations::Op &op,
-                                    ExperimentData &data,
+                                    ExperimentResult &result,
                                     std::string name) const {
   name = (name.empty()) ? op.name : name;
-  data.add_pershot_snapshot(name, op.string_params[0], qreg_);
+  result.legacy_data.add_pershot_snapshot(name, op.string_params[0], qreg_);
 }
 
 
 template <class state_t>
 void State<state_t>::snapshot_creg_memory(const Operations::Op &op,
-                                          ExperimentData &data,
+                                          ExperimentResult &result,
                                           std::string name) const {
-  data.add_pershot_snapshot(name,
+  result.legacy_data.add_pershot_snapshot(name,
                                op.string_params[0],
                                creg_.memory_hex());
 }
@@ -271,26 +482,14 @@ void State<state_t>::snapshot_creg_memory(const Operations::Op &op,
 
 template <class state_t>
 void State<state_t>::snapshot_creg_register(const Operations::Op &op,
-                                            ExperimentData &data,
+                                            ExperimentResult &result,
                                             std::string name) const {
-  data.add_pershot_snapshot(name,
+  result.legacy_data.add_pershot_snapshot(name,
                                op.string_params[0],
                                creg_.register_hex());
 }
 
 
-template <class state_t>
-void State<state_t>::add_creg_to_data(ExperimentData &data) const {
-  if (creg_.memory_size() > 0) {
-    std::string memory_hex = creg_.memory_hex();
-    data.add_memory_count(memory_hex);
-    data. add_pershot_memory(memory_hex);
-  }
-  // Register bits value
-  if (creg_.register_size() > 0) {
-    data. add_pershot_register(creg_.register_hex());
-  }
-}
 //-------------------------------------------------------------------------
 } // end namespace Base
 //-------------------------------------------------------------------------

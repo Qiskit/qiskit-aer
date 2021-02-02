@@ -15,7 +15,7 @@ Simulator command to snapshot internal simulator representation.
 """
 
 from qiskit import QuantumCircuit
-from qiskit.providers.aer.extensions import Snapshot
+from .snapshot import Snapshot
 
 
 class SnapshotDensityMatrix(Snapshot):
@@ -51,7 +51,7 @@ def snapshot_density_matrix(self, label, qubits=None):
         ExtensionError: if snapshot is invalid.
     """
 
-    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
+    snapshot_register = Snapshot.define_snapshot_register(self, qubits=qubits)
 
     return self.append(
         SnapshotDensityMatrix(label, num_qubits=len(snapshot_register)),

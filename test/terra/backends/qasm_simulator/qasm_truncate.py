@@ -9,7 +9,6 @@
 QasmSimulator Integration Tests
 """
 import json
-from test.benchmark.tools import quantum_volume_circuit
 from qiskit import execute, QuantumRegister, ClassicalRegister, QuantumCircuit, Aer
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import noise
@@ -162,7 +161,7 @@ class QasmQubitsTruncateTests:
         result = execute(circuit, 
                          qasm_sim, 
                          shots=100,
-                         backend_options=backend_options).result()
+                         **backend_options).result()
         metadata = result.results[0].metadata
         self.assertTrue('truncate_qubits' in metadata, msg="truncate_qubits must work.")
         active_qubits = sorted(metadata['truncate_qubits'].get('active_qubits', []))
@@ -194,7 +193,7 @@ class QasmQubitsTruncateTests:
                          qasm_sim, 
                          shots=100,
                          noise_model=noise_model,
-                         backend_options=backend_options).result()
+                         **backend_options).result()
         metadata = result.results[0].metadata
         self.assertTrue('truncate_qubits' in metadata, msg="truncate_qubits must work.")
         active_qubits = sorted(metadata['truncate_qubits'].get('active_qubits', []))
@@ -218,7 +217,7 @@ class QasmQubitsTruncateTests:
                             noise_model=NoiseModel.from_backend(self.device_properties()), 
                             shots=100,
                             coupling_map=[[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 0]], # 10-qubit device
-                            backend_options=backend_options).result()
+                            **backend_options).result()
                             
         self.assertTrue('truncate_qubits' in result.to_dict()['results'][0]['metadata'], msg="truncate_qubits must work.")
 
@@ -237,7 +236,7 @@ class QasmQubitsTruncateTests:
                             noise_model=NoiseModel.from_backend(self.device_properties()), 
                             shots=100,
                             coupling_map=[[1, 0], [1, 2], [1, 3], [2, 0], [2, 1], [2, 3], [3, 0], [3, 1], [3, 2]], # 4-qubit device
-                            backend_options=backend_options).result()
+                            **backend_options).result()
                             
         self.assertFalse('truncate_qubits' in result.to_dict()['results'][0]['metadata'], msg="truncate_qubits must work.")
 
@@ -258,7 +257,7 @@ class QasmQubitsTruncateTests:
                             noise_model=NoiseModel.from_backend(self.device_properties()), 
                             shots=100,
                             coupling_map=[[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 0]], # 10-qubit device
-                            backend_options=backend_options).result()
+                            **backend_options).result()
                             
         self.assertFalse('truncate_qubits' in result.to_dict()['results'][0]['metadata'], msg="truncate_qubits must not work.")
      
