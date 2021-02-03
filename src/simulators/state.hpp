@@ -360,9 +360,6 @@ void State<state_t>::save_data_average(ExperimentResult &result,
                                        const T& datum,
                                        DataSubType type) const {
   switch (type) {
-    case DataSubType::single:
-      result.data.add_single(datum, key);
-      break;
     case DataSubType::list:
       result.data.add_list(datum, key);
       break;
@@ -393,9 +390,6 @@ void State<state_t>::save_data_average(ExperimentResult &result,
                                        T&& datum,
                                        DataSubType type) const {
   switch (type) {
-    case DataSubType::single:
-      result.data.add_single(std::move(datum), key);
-      break;
     case DataSubType::list:
       result.data.add_list(std::move(datum), key);
       break;
