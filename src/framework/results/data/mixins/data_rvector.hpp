@@ -28,8 +28,7 @@ namespace AER {
 // Result container for Qiskit-Aer
 //============================================================================
 
-struct DataRVector : public DataMap<SingleData, std::vector<double>, 1>,
-                     public DataMap<ListData, std::vector<double>, 1>,
+struct DataRVector : public DataMap<ListData, std::vector<double>, 1>,
                      public DataMap<ListData, std::vector<double>, 2>,
                      public DataMap<AccumData, std::vector<double>, 1>,
                      public DataMap<AccumData, std::vector<double>, 2>,
@@ -48,7 +47,6 @@ struct DataRVector : public DataMap<SingleData, std::vector<double>, 1>,
 //------------------------------------------------------------------------------
 
 DataRVector &DataRVector::combine(DataRVector &&other) {
-  DataMap<SingleData, std::vector<double>, 1>::combine(std::move(other));
   DataMap<ListData, std::vector<double>, 1>::combine(std::move(other));
   DataMap<ListData, std::vector<double>, 2>::combine(std::move(other));
   DataMap<AccumData, std::vector<double>, 1>::combine(std::move(other));
@@ -59,7 +57,6 @@ DataRVector &DataRVector::combine(DataRVector &&other) {
 }
 
 void DataRVector::add_to_json(json_t &result) {
-  DataMap<SingleData, std::vector<double>, 1>::add_to_json(result);
   DataMap<ListData, std::vector<double>, 1>::add_to_json(result);
   DataMap<ListData, std::vector<double>, 2>::add_to_json(result);
   DataMap<AccumData, std::vector<double>, 1>::add_to_json(result);

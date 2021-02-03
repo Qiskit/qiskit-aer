@@ -44,7 +44,6 @@ py::object AerToPy::to_python(AER::DataRValue &&data) {
 }
 
 void AerToPy::add_to_python(py::dict &pydata, AER::DataRValue &&data) {
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, double, 1>&&>(data));
   AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, double, 1>&&>(data));
   AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, double, 2>&&>(data));
   AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::AccumData, double, 1>&&>(data));

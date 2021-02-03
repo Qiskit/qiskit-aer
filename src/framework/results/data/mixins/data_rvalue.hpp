@@ -29,7 +29,6 @@ namespace AER {
 //============================================================================
 
 struct DataRValue :
-    public DataMap<SingleData, double, 1>,
     public DataMap<ListData, double, 1>,
     public DataMap<ListData, double, 2>,
     public DataMap<AccumData, double, 1>,
@@ -49,7 +48,6 @@ struct DataRValue :
 //------------------------------------------------------------------------------
 
 DataRValue &DataRValue::combine(DataRValue &&other) {
-  DataMap<SingleData, double, 1>::combine(std::move(other));
   DataMap<ListData, double, 1>::combine(std::move(other));
   DataMap<ListData, double, 2>::combine(std::move(other));
   DataMap<AccumData, double, 1>::combine(std::move(other));
@@ -60,7 +58,6 @@ DataRValue &DataRValue::combine(DataRValue &&other) {
 }
 
 void DataRValue::add_to_json(json_t &result) {
-  DataMap<SingleData, double, 1>::add_to_json(result);
   DataMap<ListData, double, 1>::add_to_json(result);
   DataMap<ListData, double, 2>::add_to_json(result);
   DataMap<AccumData, double, 1>::add_to_json(result);
