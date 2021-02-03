@@ -36,7 +36,7 @@ except ImportError:
 try:
     from numpy import array
 except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=1.16.3,<1.20.0'])
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=1.16.3'])
 
 from skbuild import setup
 
@@ -45,7 +45,7 @@ from skbuild import setup
 # also build time/setup requirements and will be added to both lists
 # of requirements
 common_requirements = [
-    'numpy>=1.16.3,<1.20.0',
+    'numpy>=1.16.3',
     'scipy>=1.0',
     'pybind11>=2.6'  # This isn't really an install requirement,
                      # Pybind11 is required to be pre-installed for
