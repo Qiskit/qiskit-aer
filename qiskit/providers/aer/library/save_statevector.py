@@ -36,18 +36,35 @@ class SaveStatevector(SaveSingleData):
             This save instruction must always be performed on the full width of
             qubits in a circuit, otherwise an exception will be raised during
             simulation.
-
-        .. note ::
-
-            In cetain cases the list returned by ``pershot=True`` may only
-            contain a single value, rather than the number of shots. This
-            happens when running an ideal simulation on a circuit that
-            supports measurement sampling because it has measurements at
-            the end. In this case only a single shot is simulated and
-            measurement samples for all shots are calculated from the final
-            state.
         """
         super().__init__('save_statevector',
+                         key,
+                         num_qubits,
+                         pershot=pershot,
+                         conditional=conditional)
+
+
+class SaveStatevectorDict(SaveSingleData):
+    """Save statevector as ket-form dictionary."""
+    def __init__(self, key, num_qubits, pershot=False, conditional=False):
+        """Create new instruction to save the simualtor statevector as a dict.
+
+        Args:
+            key (str): the key for retrieving saved data from results.
+            num_qubits (int): the number of qubits of the
+            pershot (bool): if True save a list of statevectors for each
+                            shot of the simulation rather than a single
+                            statevector [Default: False].
+            conditional (bool): if True save data conditional on the current
+                                classical register values [Default: False].
+
+        .. note::
+
+            This save instruction must always be performed on the full width of
+            qubits in a circuit, otherwise an exception will be raised during
+            simulation.
+        """
+        super().__init__('save_statevector_dict',
                          key,
                          num_qubits,
                          pershot=pershot,
@@ -71,16 +88,6 @@ def save_statevector(self, key, pershot=False, conditional=False):
     .. note:
 
         This instruction is always defined across all qubits in a circuit.
-
-    .. note ::
-
-        In cetain cases the list returned by ``pershot=True`` may only
-        contain a single value, rather than the number of shots. This
-        happens when running an ideal simulation on a circuit that
-        supports measurement sampling because it has measurements at
-        the end. In this case only a single shot is simulated and
-        measurement samples for all shots are calculated from the final
-        state.
     """
     qubits = default_qubits(self)
     instr = SaveStatevector(key,
@@ -90,4 +97,31 @@ def save_statevector(self, key, pershot=False, conditional=False):
     return self.append(instr, qubits)
 
 
+def save_statevector_dict(self, key, pershot=False, conditional=False):
+    """Save the current simulator quantum state as a statevector as a dict.
+
+    Args:
+        key (str): the key for retrieving saved data from results.
+        pershot (bool): if True save a list of statevectors for each
+                        shot of the simulation [Default: False].
+        conditional (bool): if True save pershot data conditional on the
+                            current classical register values
+                            [Default: False].
+
+    Returns:
+        QuantumCircuit: with attached instruction.
+
+    .. note:
+
+        This instruction is always defined across all qubits in a circuit.
+    """
+    qubits = default_qubits(self)
+    instr = SaveStatevectorDict(key,
+                                len(qubits),
+                                pershot=pershot,
+                                conditional=conditional)
+    return self.append(instr, qubits)
+
+
 QuantumCircuit.save_statevector = save_statevector
+QuantumCircuit.save_statevector_dict = save_statevector_dict

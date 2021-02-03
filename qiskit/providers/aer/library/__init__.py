@@ -36,6 +36,7 @@ Instruction Classes
     SaveExpectationValue
     SaveExpectationValueVariance
     SaveStatevector
+    SaveStatevectorDict
 
 Then can also be used using custom QuantumCircuit methods
 
@@ -48,6 +49,7 @@ QuantumCircuit Methods
     save_expectation_value
     save_expectation_value_variance
     save_statevector
+    save_statevector_dict
 
 .. note ::
 
@@ -70,9 +72,10 @@ QuantumCircuit Methods
 """
 
 __all__ = ['SaveExpectationValue', 'SaveExpectationValueVariance',
-           'SaveStatevector']
+           'SaveStatevector', 'SaveStatevectorDict']
 
 from .save_expectation_value import (
     SaveExpectationValue, save_expectation_value,
     SaveExpectationValueVariance, save_expectation_value_variance)
 from .save_statevector import SaveStatevector, save_statevector
+from .save_statevector import SaveStatevectorDict, save_statevector_dict
