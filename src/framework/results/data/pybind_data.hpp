@@ -21,6 +21,7 @@
 #include "framework/results/data/mixins/pybind_data_rvector.hpp"
 #include "framework/results/data/mixins/pybind_data_cmatrix.hpp"
 #include "framework/results/data/mixins/pybind_data_cvector.hpp"
+#include "framework/results/data/mixins/pybind_data_cdict.hpp"
 
 namespace AerToPy {
 
@@ -41,6 +42,7 @@ py::object AerToPy::to_python(AER::Data &&data) {
   AerToPy::add_to_python(pydata, static_cast<AER::DataRVector&&>(data));
   AerToPy::add_to_python(pydata, static_cast<AER::DataCVector&&>(data));
   AerToPy::add_to_python(pydata, static_cast<AER::DataCMatrix&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataCDict&&>(data));
   AerToPy::add_to_python(pydata, static_cast<AER::DataCreg&&>(data));
   return std::move(pydata);
 }
