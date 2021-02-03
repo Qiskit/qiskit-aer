@@ -40,7 +40,7 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 # Save data tests
-from test.terra.backends.qasm_simulator.qasm_save_expval import QasmSaveExpvalTests
+from test.terra.backends.qasm_simulator.qasm_save import QasmSaveDataTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
@@ -70,7 +70,7 @@ class TestQasmMatrixProductStateSimulator(
         QasmPauliNoiseTests,
         QasmResetNoiseTests,
         QasmKrausNoiseTests,
-        QasmSaveExpvalTests,
+        QasmSaveDataTests,
         QasmSnapshotStatevectorTests,
         QasmSnapshotDensityMatrixTests,
         QasmSnapshotProbabilitiesTests,
