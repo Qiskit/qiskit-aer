@@ -45,7 +45,7 @@ stages:
                 source activate qiskit-aer-$version
                 conda update --yes -n base conda
                 conda config --add channels conda-forge
-                conda install --yes --quiet --name qiskit-aer-$version python=$version cmake pip setuptools pybind11 scipy
+                conda install --yes --quiet --name qiskit-aer-$version python=$version "numpy<1.20.0" cmake pip setuptools pybind11 scipy
                 python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
                 conda create --yes --quiet python=$version --name test-$version
                 source activate test-$version
@@ -99,7 +99,7 @@ stages:
             mkdir wheelhouse
             for version in 3.6 3.7 3.8 3.9 ; do
                 source activate qiskit-aer-$version
-                conda install --yes --quiet --name qiskit-aer-$version python=$version cmake pip setuptools pybind11 scipy
+                conda install --yes --quiet --name qiskit-aer-$version python=$version "numpy<1.20.0" cmake pip setuptools pybind11 scipy
                 python -m pip install -U setuptools wheel
                 python setup.py bdist_wheel -- -G "Visual Studio 15 2017"
                 conda create --yes --quiet python=$version --name test-$version
@@ -156,7 +156,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer python=$(python.version) cmake pip setuptools pybind11 scipy
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) "numpy<1.20.0" cmake pip setuptools pybind11 scipy
             displayName: Create Anaconda environments
           - bash: |
               set -x
@@ -197,7 +197,7 @@ stages:
               set -e
               conda create --yes --quiet --name qiskit-aer python=$(python.version)
               source activate qiskit-aer
-              conda install --yes --quiet --name qiskit-aer python=$(python.version) cmake pip setuptools pybind11 scipy
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) "numpy<1.20.0" cmake pip setuptools pybind11 scipy
             displayName: Create Anaconda environments
             env:
               CONDA_FORCE_32BIT: 1
@@ -247,7 +247,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer python=$(python.version) cmake pip setuptools wheel pybind11 scipy
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) "numpy<1.20.0" cmake pip setuptools wheel pybind11 scipy
             displayName: Create Anaconda environments
           - bash: |
               set -x
