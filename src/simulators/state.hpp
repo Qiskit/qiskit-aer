@@ -131,6 +131,11 @@ public:
                                     const std::vector<Operations::Op> &ops)
                                     const = 0;
 
+  //memory allocation (previously called before inisitalize_qreg)
+  virtual void allocate(uint_t num_qubits)
+  {
+  }
+
   //-----------------------------------------------------------------------
   // Optional: Load config settings
   //-----------------------------------------------------------------------
@@ -242,6 +247,7 @@ public:
   void snapshot_creg_register(const Operations::Op &op, ExperimentResult &result,
                               std::string name = "register") const;
 
+
   //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------
@@ -252,6 +258,9 @@ public:
 
   // Set a complex global phase value exp(1j * theta) for the state
   void set_global_phase(const double &phase);
+
+  //set number of processes to be distributed
+  void set_distribution(uint_t nprocs){}
 
 protected:
 

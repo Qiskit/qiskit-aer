@@ -17,7 +17,9 @@
 
 #include "controller.hpp"
 #include "simulators/statevector/statevector_state.hpp"
+#include "simulators/statevector/statevector_state_chunk.hpp"
 #include "transpile/fusion.hpp"
+#include "transpile/cacheblocking.hpp"
 
 namespace AER {
 namespace Simulator {
@@ -121,6 +123,10 @@ class StatevectorController : public Base::Controller {
 
   // Precision of statevector
   Precision precision_ = Precision::double_precision;
+
+  //using multiple chunks
+  bool multiple_qregs_ = false;
+
 };
 
 //=========================================================================
@@ -176,6 +182,11 @@ void StatevectorController::set_config(const json_t& config) {
       precision_ = Precision::single_precision;
     }
   }
+
+  //enable multiple qregs if cache blocking is enabled
+  if(JSON::check_key("blocking_enable", config)){
+    JSON::get_value(multiple_qregs_,"blocking_enable", config);
+  }
 }
 
 void StatevectorController::clear_config() {
@@ -204,28 +215,56 @@ void StatevectorController::run_circuit(
   switch (method_) {
     case Method::automatic:
     case Method::statevector_cpu: {
-      if (precision_ == Precision::double_precision) {
-        // Double-precision Statevector simulation
-        return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
-            circ, noise, config, shots, rng_seed, result);
-      } else {
-        // Single-precision Statevector simulation
-        return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
-            circ, noise, config, shots, rng_seed, result);
+      if(multiple_qregs_){
+        if (precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<double>>>(
+              circ, noise, config, shots, rng_seed, result);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<float>>>(
+              circ, noise, config, shots, rng_seed, result);
+        }
+      }
+      else{
+        if (precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
+              circ, noise, config, shots, rng_seed, result);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
+              circ, noise, config, shots, rng_seed, result);
+        }
       }
     }
     case Method::statevector_thrust_gpu: {
 #ifdef AER_THRUST_CUDA
-      if (precision_ == Precision::double_precision) {
-        // Double-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<double>>>(
-            circ, noise, config, shots, rng_seed, result);
-      } else {
-        // Single-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<float>>>(
-            circ, noise, config, shots, rng_seed, result);
+      if(multiple_qregs_){
+        if (precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<
+              StatevectorChunk::State<QV::QubitVectorThrust<double>>>(
+              circ, noise, config, shots, rng_seed, result);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<
+              StatevectorChunk::State<QV::QubitVectorThrust<float>>>(
+              circ, noise, config, shots, rng_seed, result);
+        }
+      }
+      else{
+        if (precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<
+              Statevector::State<QV::QubitVectorThrust<double>>>(
+              circ, noise, config, shots, rng_seed, result);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<
+              Statevector::State<QV::QubitVectorThrust<float>>>(
+              circ, noise, config, shots, rng_seed, result);
+        }
       }
 #else
       throw std::runtime_error(
@@ -236,16 +275,31 @@ void StatevectorController::run_circuit(
     }
     case Method::statevector_thrust_cpu: {
 #ifdef AER_THRUST_CPU
-      if (precision_ == Precision::double_precision) {
-        // Double-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<double>>>(
-            circ, noise, config, shots, rng_seed, result);
-      } else {
-        // Single-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<float>>>(
-            circ, noise, config, shots, rng_seed, result);
+      if(multiple_qregs_){
+        if (precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<
+              StatevectorChunk::State<QV::QubitVectorThrust<double>>>(
+              circ, noise, config, shots, rng_seed, result);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<
+              StatevectorChunk::State<QV::QubitVectorThrust<float>>>(
+              circ, noise, config, shots, rng_seed, result);
+        }
+      }
+      else{
+        if (precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<
+              Statevector::State<QV::QubitVectorThrust<double>>>(
+              circ, noise, config, shots, rng_seed, result);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<
+              Statevector::State<QV::QubitVectorThrust<float>>>(
+              circ, noise, config, shots, rng_seed, result);
+        }
       }
 #else
       throw std::runtime_error(
@@ -263,7 +317,8 @@ void StatevectorController::run_circuit(
 template <class State_t>
 void StatevectorController::run_circuit_helper(
     const Circuit& circ, const Noise::NoiseModel& noise, const json_t& config,
-    uint_t shots, uint_t rng_seed, ExperimentResult &result) const {
+    uint_t shots, uint_t rng_seed, ExperimentResult &result) const 
+{
   // Initialize  state
   State_t state;
 
@@ -287,6 +342,7 @@ void StatevectorController::run_circuit_helper(
   // Set config
   state.set_config(config);
   state.set_parallalization(parallel_state_update_);
+  state.set_distribution(Base::Controller::num_process_per_experiment_);
   state.set_global_phase(circ.global_phase_angle);
 
   // Rng engine
@@ -299,17 +355,25 @@ void StatevectorController::run_circuit_helper(
   // Optimize circuit
   const std::vector<Operations::Op>* op_ptr = &circ.ops;
   Transpile::Fusion fusion_pass;
+  Transpile::CacheBlocking cache_block_pass;
+
   fusion_pass.set_config(config);
+  cache_block_pass.set_config(config);
+
   fusion_pass.set_parallelization(parallel_state_update_);
+
   Circuit opt_circ;
   if (fusion_pass.active && circ.num_qubits >= fusion_pass.threshold) {
     opt_circ = circ; // copy circuit
     Noise::NoiseModel dummy_noise; // dummy object for transpile pass
     fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
+    cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
     op_ptr = &opt_circ.ops;
   }
 
   // Run single shot collecting measure data or snapshots
+  state.allocate(Base::Controller::max_qubits_);
+
   if (initial_state_.empty()) {
     state.initialize_qreg(circ.num_qubits);
   } else {

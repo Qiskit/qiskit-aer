@@ -279,6 +279,10 @@ if(AER_THRUST_SUPPORTED)
 		message(STATUS "No Thrust supported backend")
 		set(AER_THRUST_SUPPORTED FALSE)
 	endif()
+
+	if(MSVC)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+	endif()
 endif()
 
 if(AER_THRUST_SUPPORTED)
@@ -287,6 +291,21 @@ else()
 	message(STATUS "No Thrust support enabled")
 endif()
 
+if(AER_DEBUG)
+	set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_DEBUG)
+endif()
+
+if(AER_MPI)
+	find_package(MPI REQUIRED)
+	set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_MPI)
+	set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${MPI_CXX_INCLUDE_PATH})
+	set(MPI_DEPENDANT_LIBS ${MPI_CXX_LIBRARIES})
+	if(AER_DISABLE_GDR)
+	  set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_DISABLE_GDR)
+	endif()
+else()
+	set(MPI_DEPENDANT_LIBS "")
+endif()
 
 # Set dependent libraries
 set(AER_LIBRARIES
@@ -296,7 +315,8 @@ set(AER_LIBRARIES
 	AER_DEPENDENCY_PKG::spdlog
 	Threads::Threads
 	${DL_LIB}
-	${THRUST_DEPENDENT_LIBS})
+	${THRUST_DEPENDANT_LIBS}
+	${MPI_DEPENDANT_LIBS})
 
 set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 if(SKBUILD) # Terra Addon build
@@ -317,9 +337,10 @@ else() # Standalone build
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
 		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES LANGUAGE CUDA)
 		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
-                nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS)
-		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS}")
-
+		if(DEFINED SIMD_FLAGS_LIST)
+			nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS)
+			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS}")
+		endif()
 		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
 		string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)

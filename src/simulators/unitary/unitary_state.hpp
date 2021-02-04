@@ -28,6 +28,12 @@
 #endif
 
 namespace AER {
+
+//predefinition of QubitUnitary::State for friend class declaration to access static members
+namespace QubitUnitaryChunk {
+template <class unitary_matrix_t> class State;
+}
+
 namespace QubitUnitary {
 
 // OpSet of supported instructions
@@ -59,6 +65,7 @@ enum class Gates {
 
 template <class unitary_matrix_t = QV::UnitaryMatrix<double>>
 class State : public Base::State<unitary_matrix_t> {
+  friend class QubitUnitaryChunk::State<unitary_matrix_t>;
 public:
   using BaseState = Base::State<unitary_matrix_t>;
 
@@ -96,6 +103,8 @@ public:
   // if the controller/engine allows threads for it
   // Config: {"omp_qubit_threshold": 7}
   virtual void set_config(const json_t &config) override;
+
+  virtual void allocate(uint_t num_qubits);
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -232,6 +241,12 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
     {"pauli", Gates::pauli}  // Multiple pauli operations at once
 });
+
+template <class unitary_matrix_t>
+void State<unitary_matrix_t>::allocate(uint_t num_qubits)
+{
+  BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,1);
+}
 
 //============================================================================
 // Implementation: Base class method overrides

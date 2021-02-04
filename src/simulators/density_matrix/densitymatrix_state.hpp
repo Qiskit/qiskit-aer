@@ -29,6 +29,12 @@
 #endif
 
 namespace AER {
+
+//predefinition of DensityMatrix::State for friend class declaration to access static members
+namespace DensityMatrixChunk {
+template <class densmat_t> class State;
+}
+
 namespace DensityMatrix {
 
 // OpSet of supported instructions
@@ -73,6 +79,7 @@ enum class Snapshots {
 
 template <class densmat_t = QV::DensityMatrix<double>>
 class State : public Base::State<densmat_t> {
+  friend class DensityMatrixChunk::State<densmat_t>;
 public:
   using BaseState = Base::State<densmat_t>;
 
@@ -115,6 +122,8 @@ public:
   // to the system state
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
+
+  virtual void allocate(uint_t num_qubits);
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -321,6 +330,11 @@ const stringmap_t<Snapshots> State<densmat_t>::snapshotset_(
 //-------------------------------------------------------------------------
 // Initialization
 //-------------------------------------------------------------------------
+template <class densmat_t>
+void State<densmat_t>::allocate(uint_t num_qubits)
+{
+  BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,1);
+}
 
 template <class densmat_t>
 void State<densmat_t>::initialize_qreg(uint_t num_qubits) {
