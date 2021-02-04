@@ -27,6 +27,7 @@ from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTes
 from test.terra.backends.qasm_simulator.qasm_multiplexer import QasmMultiplexerTests
 from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardGateStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardGateDensityMatrixTests
+from test.terra.backends.qasm_simulator.qasm_delay_gate import QasmDelayGateTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
@@ -83,6 +84,7 @@ class TestQasmSimulator(common.QiskitAerTestCase,
                         QasmBasicsTests,
                         QasmStandardGateStatevectorTests,
                         QasmStandardGateDensityMatrixTests,
+                        QasmDelayGateTests,
                         QasmSnapshotStatevectorTests,
                         QasmSnapshotDensityMatrixTests,
                         QasmSnapshotProbabilitiesTests,

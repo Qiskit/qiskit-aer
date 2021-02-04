@@ -430,11 +430,6 @@ void MPS::apply_rz(uint_t index, double theta)
   get_qubit(index).apply_matrix(AER::Linalg::Matrix::rz(theta));
 }
 
-void MPS::apply_u1(uint_t index, double lambda)
-{
-  get_qubit(index).apply_matrix(AER::Linalg::Matrix::u1(lambda));
-}
-
 void MPS::apply_u2(uint_t index, double phi, double lambda)
 {
   get_qubit(index).apply_matrix(AER::Linalg::Matrix::u2(phi, lambda));
@@ -453,6 +448,12 @@ void MPS::apply_cnot(uint_t index_A, uint_t index_B)
 		     get_qubit_index(index_B), cx, cmatrix_t(1, 1));
 }
 
+void MPS::apply_cy(uint_t index_A, uint_t index_B)
+{
+  apply_2_qubit_gate(get_qubit_index(index_A), 
+		     get_qubit_index(index_B), cy, cmatrix_t(1, 1));
+}
+
 void MPS::apply_cz(uint_t index_A, uint_t index_B)
 {
   apply_2_qubit_gate(get_qubit_index(index_A), 
@@ -461,8 +462,17 @@ void MPS::apply_cz(uint_t index_A, uint_t index_B)
 
 void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
 {
-  cmatrix_t u1_matrix = AER::Linalg::Matrix::u1(lambda);
-  apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), cu1, u1_matrix);
+  cmatrix_t lambda_in_mat(1, 1);
+  lambda_in_mat(0, 0) = lambda;
+  apply_2_qubit_gate(get_qubit_index(index_A), 
+		     get_qubit_index(index_B), cu1, lambda_in_mat);
+}
+
+void MPS::apply_csx(uint_t index_A, uint_t index_B)
+{
+  cmatrix_t sx_matrix = AER::Linalg::Matrix::SX;
+  apply_2_qubit_gate(get_qubit_index(index_A), 
+		     get_qubit_index(index_B), csx, sx_matrix);
 }
 
 void MPS::apply_rxx(uint_t index_A, uint_t index_B, double theta)
@@ -492,10 +502,16 @@ void MPS::apply_rzx(uint_t index_A, uint_t index_B, double theta)
 void MPS::apply_ccx(const reg_t &qubits)
 {
   reg_t internal_qubits = get_internal_qubits(qubits);
-  apply_3_qubit_gate(internal_qubits, mcx, cmatrix_t(1, 1));
+  apply_3_qubit_gate(internal_qubits, ccx, cmatrix_t(1, 1));
 }
 
-  void MPS::apply_swap(uint_t index_A, uint_t index_B, bool swap_gate) {
+void MPS::apply_cswap(const reg_t &qubits)
+{
+  reg_t internal_qubits = get_internal_qubits(qubits);
+  apply_3_qubit_gate(internal_qubits, cswap, cmatrix_t(1, 1));
+}
+
+void MPS::apply_swap(uint_t index_A, uint_t index_B, bool swap_gate) {
   apply_swap_internal(get_qubit_index(index_A), get_qubit_index(index_B), swap_gate);
 }
 
@@ -585,6 +601,9 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
   case cx:
     temp.apply_cnot(swapped);
     break;
+  case cy:
+    temp.apply_cy(swapped);
+    break;
   case cz:
     temp.apply_cz();
     break;
@@ -594,18 +613,15 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
   case id:
     break;
   case cu1:
-    {
-      cmatrix_t Zeros = AER::Linalg::Matrix::I-AER::Linalg::Matrix::I;
-      cmatrix_t temp1 = AER::Utils::concatenate(AER::Linalg::Matrix::I, Zeros , 1),
-	temp2 = AER::Utils::concatenate(Zeros, mat, 1);
-      cmatrix_t cu = AER::Utils::concatenate(temp1, temp2 ,0) ;
-      temp.apply_matrix(cu);
-      break;
-    }
+    temp.apply_cu1(std::real(mat(0, 0)));
+    break;
+  case csx:
+    temp.apply_control_2_qubits(mat, swapped, is_diagonal);
+    break;
   case su4:
     // We reverse the order of the qubits, according to the Qiskit convention.
     // Effectively, this reverses swap for 2-qubit gates
-    temp.apply_matrix(mat, !swapped, is_diagonal);
+    temp.apply_matrix_2_qubits(mat, !swapped, is_diagonal);
     break;
     
   default:
@@ -639,25 +655,34 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
   reg_t new_qubits(qubits.size());
   centralize_qubits(qubits, new_qubits);
 
-  // The controlled (or target) qubit, is qubit[2]. Since in new_qubits the qubits are sorted,
-  // the relative position of the controlled qubit will be 0, 1, or 2 depending on
-  // where qubit[2] was moved to in new_qubits
-  uint_t target=0;
-  if (qubits[2] > qubits[0] && qubits[2] > qubits[1])
-    target = 2;
-  else if (qubits[2] < qubits[0] && qubits[2] < qubits[1])
-    target = 0;
-  else
-    target = 1;
-
   // extract the tensor containing only the 3 qubits on which we apply the gate
   uint_t first = new_qubits.front();
   MPS_Tensor sub_tensor(state_vec_as_MPS(first, first+2));
 
   // apply the gate to sub_tensor
   switch (gate_type) {
-  case mcx:
-       sub_tensor.apply_ccx(target);
+  case ccx:
+    // The controlled (or target) qubit, is qubit[2]. Since in new_qubits the qubits are sorted,
+    // the relative position of the controlled qubit will be 0, 1, or 2 depending on
+    // where qubit[2] was moved to in new_qubits
+    uint_t target;
+    if (qubits[2] > qubits[0] && qubits[2] > qubits[1])
+      target = 2;
+    else if (qubits[2] < qubits[0] && qubits[2] < qubits[1])
+      target = 0;
+    else
+      target = 1;
+    sub_tensor.apply_ccx(target);
+    break;
+  case cswap:
+    uint_t control;
+    if (qubits[0] < qubits[1] && qubits[0] < qubits[2])
+      control = 0;
+    else if (qubits[0] > qubits[1] && qubits[0] > qubits[2])
+      control = 2;
+    else
+      control = 1;
+    sub_tensor.apply_cswap(control);
     break;
 
   default:
@@ -698,7 +723,7 @@ void MPS::apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat,
 {
   switch (qubits.size()) {
   case 1: 
-    q_reg_[qubits[0]].apply_matrix(mat, false, is_diagonal);
+    q_reg_[qubits[0]].apply_matrix(mat, is_diagonal);
     break;
   case 2:
     apply_2_qubit_gate(qubits[0], qubits[1], su4, mat, is_diagonal);
@@ -748,7 +773,7 @@ void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
   uint_t first = target_qubits.front();
   MPS_Tensor sub_tensor(state_vec_as_MPS(first, first+num_qubits-1));
 
-  sub_tensor.apply_matrix(mat, false, is_diagonal);
+  sub_tensor.apply_matrix(mat, is_diagonal);
 
   // state_mat is a matrix containing the flattened representation of the sub-tensor 
   // into a single matrix. E.g., sub_tensor will contain 8 matrices for 3-qubit
