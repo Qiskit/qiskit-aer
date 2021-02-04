@@ -33,6 +33,39 @@
 namespace AER {
 namespace StatevectorChunk {
 
+const Operations::OpSet StateOpSet(
+    // Op types
+    {Operations::OpType::gate, Operations::OpType::measure,
+     Operations::OpType::reset, Operations::OpType::initialize,
+     Operations::OpType::snapshot, Operations::OpType::barrier,
+     Operations::OpType::bfunc, Operations::OpType::roerror,
+     Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
+     Operations::OpType::multiplexer, Operations::OpType::kraus,
+     Operations::OpType::sim_op, Operations::OpType::save_expval,
+     Operations::OpType::save_expval_var},
+    // Gates
+    {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
+     "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
+     "x",      "y",       "z",   "h",    "s",    "sdg",  "t",    "tdg",
+     "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
+     "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
+     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
+     "mcsx",   "delay", "pauli", "mcx_gray"},
+    // Snapshots
+    {"memory", "register", "probabilities",
+     "probabilities_with_variance", "expectation_value_pauli", "density_matrix",
+     "expectation_value_matrix_single_shot", "expectation_value_matrix",
+     "expectation_value_matrix_with_variance",
+     "expectation_value_pauli_single_shot"});
+
+// Allowed gates enum class
+enum class Gates {
+  id, h, s, sdg, t, tdg,
+  rxx, ryy, rzz, rzx,
+  mcx, mcy, mcz, mcr, mcrx, mcry,
+  mcrz, mcp, mcu2, mcu3, mcswap, mcsx, pauli
+};
+
 //=========================================================================
 // QubitVector State subclass
 //=========================================================================
@@ -42,7 +75,7 @@ class State : public Base::StateChunk<statevec_t> {
 public:
   using BaseState = Base::StateChunk<statevec_t>;
 
-  State() : BaseState(Statevector::StateOpSet) {}
+  State() : BaseState(StateOpSet) {}
 
   //-----------------------------------------------------------------------
   // Base class overrides
@@ -144,6 +177,14 @@ protected:
                    RngEngine &rng);
 
   void apply_mcswap(const int_t iChunk,const reg_t &qubits);
+
+  //-----------------------------------------------------------------------
+  // Save data instructions
+  //-----------------------------------------------------------------------
+
+  // Helper function for computing expectation value
+  virtual double pauli_expval(const reg_t &qubits,
+                              const std::string& pauli) override;
 
   //-----------------------------------------------------------------------
   // Measurement Helpers
@@ -487,11 +528,36 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
       case Operations::OpType::kraus:
         apply_kraus(op.qubits, op.mats, rng);
         break;
+      case Operations::OpType::save_expval:
+      case Operations::OpType::save_expval_var:
+        BaseState::apply_save_expval(op, result);
+        break;
       default:
         throw std::invalid_argument("QubitVector::State::invalid instruction \'" +
                                     op.name + "\'.");
     }
   }
+}
+
+//=========================================================================
+// Implementation: Save data
+//=========================================================================
+
+template <class statevec_t>
+double State<statevec_t>::pauli_expval(const reg_t &qubits,
+                                       const std::string& pauli) {
+
+  // Accumulate expval across chunks
+  double expval(0.);
+  int_t i;
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) reduction(+:expval)
+    for(i=0;i<BaseState::num_local_chunks_;i++){
+      expval += BaseState::qregs_[i].expval_pauli(qubits, pauli);
+    }
+  #ifdef AER_MPI
+    BaseState::reduce_sum(expval);
+  #endif
+  return expval;
 }
 
 //=========================================================================
@@ -584,9 +650,7 @@ void State<statevec_t>::snapshot_probabilities(const Operations::Op &op,
 template <class statevec_t>
 void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
                                                ExperimentResult &result,
-                                               Statevector::SnapshotDataType type) 
-{
-  int_t i;
+                                               Statevector::SnapshotDataType type) {
 
   // Check empty edge case
   if (op.params_expval_pauli.empty()) {
@@ -598,22 +662,8 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
   for (const auto &param : op.params_expval_pauli) {
     const auto& coeff = param.first;
     const auto& pauli = param.second;
-
-    double exp_re = 0.0;
-    double exp_im = 0.0;
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) reduction(+:exp_re,exp_im)
-    for(i=0;i<BaseState::num_local_chunks_;i++){
-      auto exp_tmp = coeff * BaseState::qregs_[i].expval_pauli(op.qubits, pauli);
-      exp_re += exp_tmp.real();
-      exp_im += exp_tmp.imag();
-    }
-    complex_t t(exp_re,exp_im);
-    expval += t;
+    expval += coeff * pauli_expval(op.qubits, pauli);
   }
-
-#ifdef AER_MPI
-  BaseState::reduce_sum(expval);
-#endif
 
   // Add to snapshot
   Utils::chop_inplace(expval, json_chop_threshold_);

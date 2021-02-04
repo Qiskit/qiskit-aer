@@ -32,6 +32,32 @@
 namespace AER {
 namespace DensityMatrixChunk {
 
+// OpSet of supported instructions
+const Operations::OpSet StateOpSet(
+    // Op types
+    {Operations::OpType::gate, Operations::OpType::measure,
+     Operations::OpType::reset, Operations::OpType::snapshot,
+     Operations::OpType::barrier, Operations::OpType::bfunc,
+     Operations::OpType::roerror, Operations::OpType::matrix,
+     Operations::OpType::diagonal_matrix, Operations::OpType::kraus,
+     Operations::OpType::superop, Operations::OpType::save_expval,
+     Operations::OpType::save_expval_var},
+    // Gates
+    {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
+     "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
+     "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
+     "rzx",  "p",   "cp", "cu1", "sx", "x90", "delay", "pauli"},
+    // Snapshots
+    {"memory", "register", "probabilities",
+     "probabilities_with_variance", "expectation_value_pauli",
+     "expectation_value_pauli_with_variance"});
+
+// Allowed gates enum class
+enum class Gates {
+  u1, u2, u3, r, rx,ry, rz, id, x, y, z, h, s, sdg, sx, t, tdg,
+  cx, cy, cz, swap, rxx, ryy, rzz, rzx, ccx, cp, pauli
+};
+
 //=========================================================================
 // DensityMatrix State subclass
 //=========================================================================
@@ -41,7 +67,7 @@ class State : public Base::StateChunk<densmat_t> {
 public:
   using BaseState = Base::StateChunk<densmat_t>;
 
-  State() : BaseState(DensityMatrix::StateOpSet) {}
+  State() : BaseState(StateOpSet) {}
   virtual ~State() {}
 
   //-----------------------------------------------------------------------
@@ -133,6 +159,14 @@ protected:
 
   // Apply a Kraus error operation
   void apply_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &kraus);
+
+  //-----------------------------------------------------------------------
+  // Save data instructions
+  //-----------------------------------------------------------------------
+
+  // Helper function for computing expectation value
+  virtual double pauli_expval(const reg_t &qubits,
+                              const std::string& pauli) override;
 
   //-----------------------------------------------------------------------
   // Measurement Helpers
@@ -503,6 +537,10 @@ void State<densmat_t>::apply_op(const int_t iChunk,const Operations::Op &op,
       case Operations::OpType::kraus:
         apply_kraus(op.qubits, op.mats);
         break;
+      case Operations::OpType::save_expval:
+      case Operations::OpType::save_expval_var:
+        BaseState::apply_save_expval(op, result);
+        break;
       default:
         throw std::invalid_argument("DensityMatrix::State::invalid instruction \'" +
                                     op.name + "\'.");
@@ -540,6 +578,32 @@ void State<densmat_t>::apply_chunk_swap(const reg_t &qubits)
   }
   reg_t qs1 = {{q0, q1}};
   BaseState::apply_chunk_swap(qs1);
+}
+
+//=========================================================================
+// Implementation: Save data
+//=========================================================================
+
+template <class statevec_t>
+double State<statevec_t>::pauli_expval(const reg_t &qubits,
+                                       const std::string& pauli) {
+
+  // Accumulate expval across chunks
+  double expval(0.);
+  int_t i;
+  #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) reduction(+:expval)
+    for(i=0;i<BaseState::num_local_chunks_;i++){
+      uint_t irow,icol;
+      irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2);
+      icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2));
+      if(irow == icol){   //only diagonal chunks are calculated
+        expval += BaseState::qregs_[i].expval_pauli(qubits, pauli);
+      }
+    }
+  #ifdef AER_MPI
+    BaseState::reduce_sum(expval);
+  #endif
+  return expval;
 }
 
 //=========================================================================
@@ -616,9 +680,7 @@ void State<densmat_t>::snapshot_probabilities(const Operations::Op &op,
 template <class densmat_t>
 void State<densmat_t>::snapshot_pauli_expval(const Operations::Op &op,
                                              ExperimentResult &result,
-                                             bool variance) 
-{
-  int_t i,ireg;
+                                             bool variance) {
   // Check empty edge case
   if (op.params_expval_pauli.empty()) {
     throw std::invalid_argument("Invalid expval snapshot (Pauli components are empty).");
@@ -629,27 +691,8 @@ void State<densmat_t>::snapshot_pauli_expval(const Operations::Op &op,
   for (const auto &param : op.params_expval_pauli) {
     const auto& coeff = param.first;
     const auto& pauli = param.second;
-
-    double exp_re = 0.0;
-    double exp_im = 0.0;
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) reduction(+:exp_re,exp_im)
-    for(i=0;i<BaseState::num_local_chunks_;i++){
-      uint_t irow,icol;
-      irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2);
-      icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2));
-      if(irow == icol){   //only diagonal chunks are calculated
-        auto exp_tmp = coeff * BaseState::qregs_[i].expval_pauli(op.qubits, pauli);
-        exp_re += exp_tmp.real();
-        exp_im += exp_tmp.imag();
-      }
-    }
-    complex_t t(exp_re,exp_im);
-    expval += t;
+    expval += coeff * pauli_expval(op.qubits, pauli);
   }
-
-#ifdef AER_MPI
-  BaseState::reduce_sum(expval);
-#endif
 
   // Add to snapshot
   Utils::chop_inplace(expval, json_chop_threshold_);

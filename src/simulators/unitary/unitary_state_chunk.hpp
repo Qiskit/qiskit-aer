@@ -32,6 +32,28 @@
 namespace AER {
 namespace QubitUnitaryChunk {
 
+// OpSet of supported instructions
+const Operations::OpSet StateOpSet(
+    // Op types
+    {Operations::OpType::gate, Operations::OpType::barrier,
+     Operations::OpType::matrix, Operations::OpType::diagonal_matrix},
+    // Gates
+    {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
+     "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
+     "x",      "y",       "z",   "h",    "s",    "sdg",  "t",    "tdg",
+     "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
+     "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
+     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
+     "mcsx",   "delay", "pauli"},
+    // Snapshots
+    {});
+
+// Allowed gates enum class
+enum class Gates {
+  id, h, s, sdg, t, tdg, rxx, ryy, rzz, rzx,
+  mcx, mcy, mcz, mcr, mcrx, mcry, mcrz, mcp, mcu2, mcu3, mcswap, mcsx, pauli,
+};
+
 //=========================================================================
 // QubitUnitary State subclass
 //=========================================================================
@@ -41,7 +63,7 @@ class State : public Base::StateChunk<unitary_matrix_t> {
 public:
   using BaseState = Base::StateChunk<unitary_matrix_t>;
 
-  State() : BaseState(QubitUnitary::StateOpSet) {}
+  State() : BaseState(StateOpSet) {}
   virtual ~State() = default;
 
   //-----------------------------------------------------------------------
@@ -122,6 +144,14 @@ protected:
   // NOTE: if N=1 this is just a regular u3 gate.
   void apply_gate_mcu3(const uint_t iChunk,const reg_t &qubits, const double theta,
                        const double phi, const double lambda);
+
+  //-----------------------------------------------------------------------
+  // Save data instructions
+  //-----------------------------------------------------------------------
+
+  // Helper function for computing expectation value
+  virtual double pauli_expval(const reg_t &qubits,
+                              const std::string& pauli) override;
 
   //-----------------------------------------------------------------------
   // Config Settings
@@ -517,7 +547,11 @@ void State<unitary_matrix_t>::apply_global_phase() {
   }
 }
 
-
+template <class unitary_matrix_t>
+double  State<unitary_matrix_t>::pauli_expval(const reg_t &qubits,
+                                              const std::string& pauli) {
+  throw std::runtime_error("Unitary simulator does not support Pauli expectation values.");
+}
 
 //------------------------------------------------------------------------------
 } // namespace QubitUnitary

@@ -33,8 +33,8 @@ const Operations::OpSet StateOpSet(
   {Operations::OpType::gate, Operations::OpType::measure,
     Operations::OpType::reset, Operations::OpType::snapshot,
     Operations::OpType::barrier, Operations::OpType::bfunc,
-    Operations::OpType::roerror,
-    Operations::OpType::save_expval},
+    Operations::OpType::roerror, Operations::OpType::save_expval,
+    Operations::OpType::save_expval_var},
   // Gates
   {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg",
    "sx", "delay"},
@@ -312,6 +312,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
           apply_snapshot(op, result);
           break;
         case Operations::OpType::save_expval:
+        case Operations::OpType::save_expval_var:
           apply_save_expval(op, result);
           break;
         default:

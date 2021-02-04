@@ -423,6 +423,9 @@ void State<state_t>::save_data_pershot(ExperimentResult &result,
   case DataSubType::single:
     result.data.add_single(datum, key);
     break;
+  case DataSubType::c_single:
+    result.data.add_single(datum, key, creg_.memory_hex());
+    break;
   case DataSubType::list:
     result.data.add_list(datum, key);
     break;
@@ -443,6 +446,9 @@ void State<state_t>::save_data_pershot(ExperimentResult &result,
   switch (type) {
     case DataSubType::single:
       result.data.add_single(std::move(datum), key);
+      break;
+    case DataSubType::c_single:
+      result.data.add_single(datum, key, creg_.memory_hex());
       break;
     case DataSubType::list:
       result.data.add_list(std::move(datum), key);
@@ -508,6 +514,7 @@ void State<state_t>::apply_save_expval(const Operations::Op &op,
     throw std::invalid_argument(
         "Invalid save expval instruction (Pauli components are empty).");
   }
+  bool variance = (op.type == Operations::OpType::save_expval_var);
 
   // Accumulate expval components
   double expval(0.);
@@ -517,11 +524,11 @@ void State<state_t>::apply_save_expval(const Operations::Op &op,
     // param is tuple (pauli, coeff, sq_coeff)
     const auto val = pauli_expval(op.qubits, std::get<0>(param));
     expval += std::get<1>(param) * val;
-    if (op.expval_variance) {
+    if (variance) {
       sq_expval += std::get<2>(param) * val;
     }
   }
-  if (op.expval_variance) {
+  if (variance) {
     std::vector<double> expval_var(2);
     expval_var[0] = expval;  // mean
     expval_var[1] = sq_expval - expval * expval;  // variance

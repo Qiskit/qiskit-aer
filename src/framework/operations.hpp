@@ -41,15 +41,15 @@ enum class OpType {
   // Noise instructions
   kraus, superop, roerror, noise_switch,
   // Save instructions
-  save_expval
+  save_expval, save_expval_var
 };
 
 enum class DataSubType {
-  single, list, c_list, accum, c_accum, average, c_average
+  single, c_single, list, c_list, accum, c_accum, average, c_average
 };
 
 const std::unordered_set<OpType> SAVE_TYPES = {
-  OpType::save_expval
+  OpType::save_expval, OpType::save_expval_var
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -71,6 +71,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::save_expval:
     stream << "save_expval";
+    break;
+  case OpType::save_expval_var:
+    stream << "save_expval_var";
     break;
   case OpType::snapshot:
     stream << "snapshot";
@@ -147,7 +150,6 @@ struct Op {
 
   // Expvals
   std::vector<std::tuple<std::string, double, double>> expval_params;
-  bool expval_variance = false;
 
   // Legacy Snapshots
   DataSubType save_type = DataSubType::single;
@@ -421,7 +423,7 @@ Op json_to_op_pauli(const json_t &js);
 
 // Save data
 Op json_to_op_save_default(const json_t &js);
-Op json_to_op_save_expval(const json_t &js, bool variance = false);
+Op json_to_op_save_expval(const json_t &js, bool variance);
 
 // Snapshots
 Op json_to_op_snapshot(const json_t &js);
@@ -908,8 +910,8 @@ Op json_to_op_save_expval(const json_t &js, bool variance) {
 
   // Initialized default save instruction params
   Op op = json_to_op_save_default(js);
-  op.type = OpType::save_expval;
-  op.expval_variance = variance;
+  op.type = (variance) ? OpType::save_expval_var
+                       : OpType::save_expval;
 
   // Parse Pauli operator components
   const auto threshold = 1e-12; // drop small components

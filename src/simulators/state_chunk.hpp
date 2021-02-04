@@ -38,6 +38,7 @@ class StateChunk {
 
 public:
   using ignore_argument = void;
+  using DataSubType = Operations::DataSubType;
 
   //-----------------------------------------------------------------------
   // Constructors
@@ -132,6 +133,12 @@ public:
                                     const std::vector<Operations::Op> &ops)
                                     const = 0;
 
+  // Return the expectation value of a N-qubit Pauli operator
+  // If the simulator does not support Pauli expectation value this should
+  // raise an exception.
+  virtual double pauli_expval(const reg_t &qubits,
+                              const std::string& pauli) = 0;
+
   //-----------------------------------------------------------------------
   // Optional: Load config settings
   //-----------------------------------------------------------------------
@@ -225,6 +232,13 @@ public:
   void save_data_pershot(ExperimentResult &result,
                          const std::string &key, T&& datum,
                          DataSubType type = DataSubType::list) const;
+
+  //-----------------------------------------------------------------------
+  // Common instructions
+  //-----------------------------------------------------------------------
+  
+  // Apply a save expectation value instruction
+  void apply_save_expval(const Operations::Op &op, ExperimentResult &result);
 
   //-----------------------------------------------------------------------
   // Standard snapshots
@@ -596,9 +610,6 @@ void StateChunk<state_t>::save_data_average(ExperimentResult &result,
                                        const T& datum,
                                        DataSubType type) const {
   switch (type) {
-    case DataSubType::single:
-      result.data.add_single(datum, key);
-      break;
     case DataSubType::list:
       result.data.add_list(datum, key);
       break;
@@ -629,9 +640,6 @@ void StateChunk<state_t>::save_data_average(ExperimentResult &result,
                                        T&& datum,
                                        DataSubType type) const {
   switch (type) {
-    case DataSubType::single:
-      result.data.add_single(std::move(datum), key);
-      break;
     case DataSubType::list:
       result.data.add_list(std::move(datum), key);
       break;
@@ -665,6 +673,9 @@ void StateChunk<state_t>::save_data_pershot(ExperimentResult &result,
   case DataSubType::single:
     result.data.add_single(datum, key);
     break;
+  case DataSubType::c_single:
+    result.data.add_single(datum, key, creg_.memory_hex());
+    break;
   case DataSubType::list:
     result.data.add_list(datum, key);
     break;
@@ -685,6 +696,9 @@ void StateChunk<state_t>::save_data_pershot(ExperimentResult &result,
   switch (type) {
     case DataSubType::single:
       result.data.add_single(std::move(datum), key);
+      break;
+    case DataSubType::c_single:
+      result.data.add_single(datum, key, creg_.memory_hex());
       break;
     case DataSubType::list:
       result.data.add_list(std::move(datum), key);
@@ -749,6 +763,37 @@ void StateChunk<state_t>::snapshot_creg_register(const Operations::Op &op,
                                creg_.register_hex());
 }
 
+template <class state_t>
+void StateChunk<state_t>::apply_save_expval(const Operations::Op &op,
+                                            ExperimentResult &result){
+  // Check empty edge case
+  if (op.expval_params.empty()) {
+    throw std::invalid_argument(
+        "Invalid save expval instruction (Pauli components are empty).");
+  }
+  bool variance = (op.type == Operations::OpType::save_expval_var);
+
+  // Accumulate expval components
+  double expval(0.);
+  double sq_expval(0.);
+
+  for (const auto &param : op.expval_params) {
+    // param is tuple (pauli, coeff, sq_coeff)
+    const auto val = pauli_expval(op.qubits, std::get<0>(param));
+    expval += std::get<1>(param) * val;
+    if (variance) {
+      sq_expval += std::get<2>(param) * val;
+    }
+  }
+  if (variance) {
+    std::vector<double> expval_var(2);
+    expval_var[0] = expval;  // mean
+    expval_var[1] = sq_expval - expval * expval;  // variance
+    save_data_average(result, op.string_params[0], expval_var, op.save_type);
+  } else {
+    save_data_average(result, op.string_params[0], expval, op.save_type);
+  }
+}
 
 template <class state_t>
 void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)

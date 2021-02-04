@@ -45,7 +45,8 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::barrier, Operations::OpType::bfunc,
      Operations::OpType::roerror, Operations::OpType::matrix,
      Operations::OpType::diagonal_matrix, Operations::OpType::kraus,
-     Operations::OpType::superop, Operations::OpType::save_expval},
+     Operations::OpType::superop, Operations::OpType::save_expval,
+     Operations::OpType::save_expval_var},
     // Gates
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
@@ -466,6 +467,7 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
           apply_kraus(op.qubits, op.mats);
           break;
         case Operations::OpType::save_expval:
+        case Operations::OpType::save_expval_var:
           BaseState::apply_save_expval(op, result);
           break;
         default:

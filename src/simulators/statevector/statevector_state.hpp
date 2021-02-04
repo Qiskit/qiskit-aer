@@ -46,7 +46,8 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::multiplexer, Operations::OpType::kraus,
-     Operations::OpType::sim_op, Operations::OpType::save_expval},
+     Operations::OpType::sim_op, Operations::OpType::save_expval,
+     Operations::OpType::save_expval_var},
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
      "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
@@ -549,6 +550,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
             BaseState::qreg_.leave_register_blocking();
           }
         case Operations::OpType::save_expval:
+        case Operations::OpType::save_expval_var:
           BaseState::apply_save_expval(op, result);
           break;
         default:
