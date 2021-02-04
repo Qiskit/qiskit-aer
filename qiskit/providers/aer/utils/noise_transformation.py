@@ -607,7 +607,7 @@ class NoiseTransformer:
         n = channel.rows
         M = numpy.zeros((n, n), dtype=numpy.complex_)
         for (i, j) in itertools.product(range(n), range(n)):
-            M[i, j] = numpy.complex128(
+            M[i, j] = complex(
                 Poly(channel[i, j], symbol).coeff_monomial(symbol))
         return M
 
@@ -633,7 +633,7 @@ class NoiseTransformer:
         n = channel.rows
         M = numpy.zeros((n, n), dtype=numpy.complex_)
         for (i, j) in itertools.product(range(n), range(n)):
-            M[i, j] = numpy.complex128(
+            M[i, j] = complex(
                 Poly(channel[i, j], symbols).coeff_monomial(1))
         return M
 
