@@ -13,8 +13,10 @@
 QasmSimulator Integration Tests for Save instructions
 """
 
-from .qasm_save_expval import QasmSaveExpvalTests
+from .qasm_save_expval import QasmSaveExpectationValueTests
+from .qasm_save_expval import QasmSaveExpectationValueVarianceTests
 
 
-class QasmSaveDataTests(QasmSaveExpvalTests):
+class QasmSaveDataTests(QasmSaveExpectationValueTests,
+                        QasmSaveExpectationValueVarianceTests):
     """QasmSimulator SaveData instruction tests."""

@@ -20,7 +20,7 @@ from qiskit.extensions.exceptions import ExtensionError
 from .save_data import SaveAverageData
 
 
-class SaveExpval(SaveAverageData):
+class SaveExpectationValue(SaveAverageData):
     """Save expectation value of an operator."""
     def __init__(self,
                  key,
@@ -49,6 +49,11 @@ class SaveExpval(SaveAverageData):
 
         Raises:
             ExtensionError: if the input operator is invalid or not Hermitian.
+
+        .. note:
+
+            This instruction can be directly appended to a circuit using the
+            :func:`save_expval` circuit method.
         """
         # Convert O to SparsePauliOp representation
         if isinstance(operator, Pauli):
@@ -69,8 +74,8 @@ class SaveExpval(SaveAverageData):
                          params=params)
 
 
-class SaveExpvalVar(SaveAverageData):
-    """Save expectation value of an operator."""
+class SaveExpectationValueVariance(SaveAverageData):
+    """Save expectation value and variance of an operator."""
     def __init__(self,
                  key,
                  operator,
@@ -99,6 +104,10 @@ class SaveExpvalVar(SaveAverageData):
 
         Raises:
             ExtensionError: if the input operator is invalid or not Hermitian.
+
+        .. note:
+            This instruction can be directly appended to a circuit using
+            the :func:`save_expval_var` circuit method.
         """
         # Convert O to SparsePauliOp representation
         if isinstance(operator, Pauli):
@@ -168,8 +177,8 @@ def save_expval(self,
         unnormalized (bool): If True return save the unnormalized accumulated
                              or conditional accumulated expectation value
                              over all shot [Default: False].
-        pershot (bool): if True save a list of expectation values for each shot
-                        of the simulation rather than the average over
+        pershot (bool): if True save a list of expectation values for each
+                        shot of the simulation rather than the average over
                         all shots [Default: False].
         conditional (bool): if True save the average or pershot data
                             conditional on the current classical register
@@ -180,12 +189,16 @@ def save_expval(self,
 
     Raises:
         ExtensionError: if the input operator is invalid or not Hermitian.
+
+    .. note:
+        This method appends a :class:`SaveExpectationValue` instruction to
+        the quantum circuit.
     """
-    instr = SaveExpval(key,
-                       operator,
-                       unnormalized=unnormalized,
-                       conditional=conditional,
-                       pershot=pershot)
+    instr = SaveExpectationValue(key,
+                                 operator,
+                                 unnormalized=unnormalized,
+                                 conditional=conditional,
+                                 pershot=pershot)
     return self.append(instr, qubits)
 
 
@@ -205,9 +218,9 @@ def save_expval_var(self,
         unnormalized (bool): If True return save the unnormalized accumulated
                              or conditional accumulated expectation value
                              and variance over all shot [Default: False].
-        pershot (bool): if True save a list of expectation values and variances
-                        for each shot of the simulation rather than the
-                        average over all shots [Default: False].
+        pershot (bool): if True save a list of expectation values and
+                        variances for each shot of the simulation rather than
+                        the average over all shots [Default: False].
         conditional (bool): if True save the data conditional on the current
                             classical register values [Default: False].
 
@@ -216,12 +229,16 @@ def save_expval_var(self,
 
     Raises:
         ExtensionError: if the input operator is invalid or not Hermitian.
+
+    .. note:
+        This method appends a :class:`SaveExpectationValueVariance`
+        instruction to the quantum circuit.
     """
-    instr = SaveExpvalVar(key,
-                          operator,
-                          unnormalized=unnormalized,
-                          conditional=conditional,
-                          pershot=pershot)
+    instr = SaveExpectationValueVariance(key,
+                                         operator,
+                                         unnormalized=unnormalized,
+                                         conditional=conditional,
+                                         pershot=pershot)
     return self.append(instr, qubits)
 
 

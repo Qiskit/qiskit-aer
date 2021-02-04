@@ -23,8 +23,8 @@ from qiskit.providers.aer import QasmSimulator
 
 
 @ddt
-class QasmSaveExpvalTests:
-    """QasmSimulator SaveExpval instruction tests."""
+class QasmSaveExpectationValueTests:
+    """QasmSimulator SaveExpectationValue instruction tests."""
 
     SIMULATOR = QasmSimulator()
     BACKEND_OPTS = {}
