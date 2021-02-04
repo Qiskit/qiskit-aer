@@ -44,8 +44,8 @@ QuantumCircuit Methods
 .. autosummary::
     :toctree: ../stubs/
 
-    save_expval
-    save_expval_var
+    save_expectation_value
+    save_expectation_value_variance
 
 .. note ::
 
@@ -69,5 +69,6 @@ QuantumCircuit Methods
 
 __all__ = ['SaveExpectationValue', 'SaveExpectationValueVariance']
 
-from .save_expval import SaveExpectationValue, save_expval
-from .save_expval import SaveExpectationValueVariance, save_expval_var
+from .save_expectation_value import (
+    SaveExpectationValue, save_expectation_value,
+    SaveExpectationValueVariance, save_expectation_value_variance)

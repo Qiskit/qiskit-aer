@@ -53,7 +53,7 @@ class SaveExpectationValue(SaveAverageData):
         .. note:
 
             This instruction can be directly appended to a circuit using the
-            :func:`save_expval` circuit method.
+            :func:`save_expectation_value` circuit method.
         """
         # Convert O to SparsePauliOp representation
         if isinstance(operator, Pauli):
@@ -107,7 +107,7 @@ class SaveExpectationValueVariance(SaveAverageData):
 
         .. note:
             This instruction can be directly appended to a circuit using
-            the :func:`save_expval_var` circuit method.
+            the :func:`save_expectation_value` circuit method.
         """
         # Convert O to SparsePauliOp representation
         if isinstance(operator, Pauli):
@@ -161,13 +161,13 @@ def _expval_params(operator, variance=False):
     return list(params.items())
 
 
-def save_expval(self,
-                key,
-                operator,
-                qubits,
-                unnormalized=False,
-                conditional=False,
-                pershot=False):
+def save_expectation_value(self,
+                           key,
+                           operator,
+                           qubits,
+                           unnormalized=False,
+                           conditional=False,
+                           pershot=False):
     r"""Save the expectation value of a Hermitian operator.
 
     Args:
@@ -202,13 +202,13 @@ def save_expval(self,
     return self.append(instr, qubits)
 
 
-def save_expval_var(self,
-                    key,
-                    operator,
-                    qubits,
-                    unnormalized=False,
-                    conditional=False,
-                    pershot=False):
+def save_expectation_value_variance(self,
+                                    key,
+                                    operator,
+                                    qubits,
+                                    unnormalized=False,
+                                    conditional=False,
+                                    pershot=False):
     r"""Save the expectation value of a Hermitian operator.
 
     Args:
@@ -242,5 +242,5 @@ def save_expval_var(self,
     return self.append(instr, qubits)
 
 
-QuantumCircuit.save_expval = save_expval
-QuantumCircuit.save_expval_var = save_expval_var
+QuantumCircuit.save_expectation_value = save_expectation_value
+QuantumCircuit.save_expectation_value_variance = save_expectation_value_variance

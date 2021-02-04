@@ -7,8 +7,8 @@ features:
     for the simulator state :math:`\rho`.
     
     This instruction can also be appended to a quantum circuit by using the
-    :class:`~qiskit.providers.aer.library.save_expval`` circuit method which
-    is added to ``QuantumCircuit`` when importing Aer.
+    :class:`~qiskit.providers.aer.library.save_.save_expectation_value``
+    circuit method which is added to ``QuantumCircuit`` when importing Aer.
   - |
     Adds a :class:`qiskit.providers.aer.library.SaveExpectationValueVariance`
     quantum circuit instruction for saving the expectation value
@@ -17,5 +17,5 @@ features:
     Hermitian operator :math:`H` for the simulator state :math:`\rho`.
     
     This instruction can also be appended to a quantum circuit by using the
-    :class:`~qiskit.providers.aer.library.save_expval_var`` circuit method which
-    is added to ``QuantumCircuit`` when importing Aer.
+    :class:`~qiskit.providers.aer.library..save_expectation_value_variance``
+    circuit method which is added to ``QuantumCircuit`` when importing Aer.
