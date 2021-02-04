@@ -1,5 +1,9 @@
 #include <iostream>
 
+#ifdef AER_MPI
+#include <mpi.h>
+#endif
+
 #include "misc/warnings.hpp"
 DISABLE_WARNING_PUSH
 #include <pybind11/pybind11.h>
@@ -25,6 +29,11 @@ public:
 };
 
 PYBIND11_MODULE(controller_wrappers, m) {
+
+#ifdef AER_MPI
+  int prov;
+  MPI_Init_thread(nullptr,nullptr,MPI_THREAD_MULTIPLE,&prov);
+#endif
 
     py::class_<ControllerExecutor<AER::Simulator::QasmController> > qasm_ctrl (m, "qasm_controller_execute");
     qasm_ctrl.def(py::init<>());

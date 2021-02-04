@@ -12,6 +12,7 @@
  * that they have been altered from the originals.
  */
 
+
 #ifndef _statevector_state_hpp
 #define _statevector_state_hpp
 
@@ -28,6 +29,12 @@
 #endif
 
 namespace AER {
+
+//predefinition of StatevectorChunk::State for friend class declaration to access static members
+namespace StatevectorChunk {
+template <class statevec_t> class State;
+}
+
 namespace Statevector {
 
 // OpSet of supported instructions
@@ -38,7 +45,7 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::snapshot, Operations::OpType::barrier,
      Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-     Operations::OpType::multiplexer, Operations::OpType::kraus},
+     Operations::OpType::multiplexer, Operations::OpType::kraus, Operations::OpType::sim_op},
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
      "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
@@ -89,6 +96,7 @@ enum class SnapshotDataType { average, average_var, pershot };
 
 template <class statevec_t = QV::QubitVector<double>>
 class State : public Base::State<statevec_t> {
+  friend class StatevectorChunk::State<statevec_t>;
 public:
   using BaseState = Base::State<statevec_t>;
 
@@ -131,6 +139,8 @@ public:
   // to the system state
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
+
+  virtual void allocate(uint_t num_qubits);
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -386,6 +396,11 @@ const stringmap_t<Snapshots> State<statevec_t>::snapshotset_(
 //-------------------------------------------------------------------------
 // Initialization
 //-------------------------------------------------------------------------
+template <class statevec_t>
+void State<statevec_t>::allocate(uint_t num_qubits)
+{
+  BaseState::qreg_.chunk_setup(num_qubits,num_qubits,0,1);
+}
 
 template <class statevec_t>
 void State<statevec_t>::initialize_qreg(uint_t num_qubits) {
@@ -517,6 +532,14 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
           break;
         case Operations::OpType::kraus:
           apply_kraus(op.qubits, op.mats, rng);
+          break;
+        case Operations::OpType::sim_op:
+          if(op.name == "begin_register_blocking"){
+            BaseState::qreg_.enter_register_blocking(op.qubits);
+          }
+          else if(op.name == "end_register_blocking"){
+            BaseState::qreg_.leave_register_blocking();
+          }
           break;
         default:
           throw std::invalid_argument(
