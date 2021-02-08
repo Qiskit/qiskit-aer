@@ -18,7 +18,7 @@
 #include <algorithm>
 #define _USE_MATH_DEFINES
 #include <math.h>
-
+#include "simulators/state.hpp"
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
 #include "simulators/state.hpp"
@@ -28,6 +28,12 @@
 #endif
 
 namespace AER {
+
+//predefinition of QubitUnitary::State for friend class declaration to access static members
+namespace QubitUnitaryChunk {
+template <class unitary_matrix_t> class State;
+}
+
 namespace QubitUnitary {
 
 // OpSet of supported instructions
@@ -37,19 +43,20 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::snapshot},
     // Gates
-    {"u1",   "u2",   "u3",   "cx",   "cz",   "cy",     "cp",      "cu1",
-     "cu2",  "cu3",  "swap", "id",   "p",    "x",      "y",       "z",
-     "h",    "s",    "sdg",  "t",    "tdg",  "r",      "rx",      "ry",
-     "rz",   "rxx",  "ryy",  "rzz",  "rzx",  "ccx",    "cswap",   "mcx",
-     "mcy",  "mcz",  "mcu1", "mcu2", "mcu3", "mcswap", "mcphase", "mcr",
-     "mcrx", "mcry", "mcry", "sx",   "csx",  "mcsx", "delay"},
+    {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
+     "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
+     "x",      "y",       "z",   "h",    "s",    "sdg",  "t",    "tdg",
+     "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
+     "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
+     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
+     "mcsx",   "delay", "pauli"},
     // Snapshots
     {"unitary"});
 
 // Allowed gates enum class
 enum class Gates {
   id, h, s, sdg, t, tdg, rxx, ryy, rzz, rzx,
-  mcx, mcy, mcz, mcr, mcrx, mcry, mcrz, mcp, mcu2, mcu3, mcswap, mcsx
+  mcx, mcy, mcz, mcr, mcrx, mcry, mcrz, mcp, mcu2, mcu3, mcswap, mcsx, pauli,
 };
 
 //=========================================================================
@@ -58,6 +65,7 @@ enum class Gates {
 
 template <class unitary_matrix_t = QV::UnitaryMatrix<double>>
 class State : public Base::State<unitary_matrix_t> {
+  friend class QubitUnitaryChunk::State<unitary_matrix_t>;
 public:
   using BaseState = Base::State<unitary_matrix_t>;
 
@@ -74,7 +82,7 @@ public:
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentData &data, RngEngine &rng,
+                         ExperimentResult &result, RngEngine &rng,
                          bool final_ops = false) override;
 
   // Initializes an n-qubit unitary to the identity matrix
@@ -96,6 +104,8 @@ public:
   // Config: {"omp_qubit_threshold": 7}
   virtual void set_config(const json_t &config) override;
 
+  virtual void allocate(uint_t num_qubits);
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -106,6 +116,10 @@ public:
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
 
+  auto move_to_matrix()
+  {
+    return BaseState::qreg_.move_to_matrix();
+  }
 protected:
   //-----------------------------------------------------------------------
   // Apply Instructions
@@ -118,7 +132,7 @@ protected:
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, ExperimentData &data);
+  virtual void apply_snapshot(const Operations::Op &op, ExperimentResult &result);
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const reg_t &qubits, const cmatrix_t &mat);
@@ -189,7 +203,10 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"u1", Gates::mcp}, // zero-X90 pulse waltz gate
     {"u2", Gates::mcu2}, // single-X90 pulse waltz gate
     {"u3", Gates::mcu3}, // two X90 pulse waltz gate
+    {"u", Gates::mcu3}, // two X90 pulse waltz gate
+    {"U", Gates::mcu3}, // two X90 pulse waltz gate
     // Two-qubit gates
+    {"CX", Gates::mcx},      // Controlled-X gate (CNOT)
     {"cx", Gates::mcx},      // Controlled-X gate (CNOT)
     {"cy", Gates::mcy},      // Controlled-Z gate
     {"cz", Gates::mcz},      // Controlled-Z gate
@@ -221,8 +238,15 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
     {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
-    {"mcsx", Gates::mcsx}     // Multi-controlled-Sqrt(X) gate
+    {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
+    {"pauli", Gates::pauli}  // Multiple pauli operations at once
 });
+
+template <class unitary_matrix_t>
+void State<unitary_matrix_t>::allocate(uint_t num_qubits)
+{
+  BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,1);
+}
 
 //============================================================================
 // Implementation: Base class method overrides
@@ -230,7 +254,7 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
 
 template <class unitary_matrix_t>
 void State<unitary_matrix_t>::apply_ops(
-    const std::vector<Operations::Op> &ops, ExperimentData &data,
+    const std::vector<Operations::Op> &ops, ExperimentResult &result,
     RngEngine &rng, bool final_ops) {
   // Simple loop over vector of input operations
   for (const auto &op : ops) {
@@ -243,7 +267,7 @@ void State<unitary_matrix_t>::apply_ops(
           apply_gate(op);
         break;
       case Operations::OpType::snapshot:
-        apply_snapshot(op, data);
+        apply_snapshot(op, result);
         break;
       case Operations::OpType::matrix:
         apply_matrix(op.qubits, op.mats[0]);
@@ -388,6 +412,9 @@ void State<unitary_matrix_t>::apply_gate(const Operations::Op &op) {
     case Gates::sdg:
       apply_gate_phase(op.qubits[0], complex_t(0., -1.));
       break;
+    case Gates::pauli:
+        BaseState::qreg_.apply_pauli(op.qubits, op.string_params[0]);
+        break;
     case Gates::t: {
       const double isqrt2{1. / std::sqrt(2)};
       apply_gate_phase(op.qubits[0], complex_t(isqrt2, isqrt2));
@@ -462,12 +489,12 @@ void State<unitary_matrix_t>::apply_gate_mcu3(const reg_t &qubits, double theta,
 
 template <class unitary_matrix_t>
 void State<unitary_matrix_t>::apply_snapshot(const Operations::Op &op,
-                                             ExperimentData &data) {
+                                             ExperimentResult &result) {
   // Look for snapshot type in snapshotset
   if (op.name == "unitary" || op.name == "state") {
-    data.add_pershot_snapshot("unitary", op.string_params[0],
+    result.legacy_data.add_pershot_snapshot("unitary", op.string_params[0],
                               BaseState::qreg_.copy_to_matrix());
-    BaseState::snapshot_state(op, data);
+    BaseState::snapshot_state(op, result);
   } else {
     throw std::invalid_argument(
         "Unitary::State::invalid snapshot instruction \'" + op.name + "\'.");

@@ -47,7 +47,6 @@ of systems.
 # pylint: disable=import-error
 import distutils.sysconfig  # noqa
 import numpy as np
-from qiskit_aer.pulse.qutip_extra_lite.cy import pyxbuilder as pbldr
 
 from qiskit_aer.pulse.system_models import duffing_system_model
 from qiskit_aer.pulse.system_models import PulseSystemModel
@@ -56,8 +55,3 @@ from qiskit_aer.pulse.system_models import PulseSystemModel
 CFG_VARS = distutils.sysconfig.get_config_vars()
 if "CFLAGS" in CFG_VARS:
     CFG_VARS["CFLAGS"] = CFG_VARS["CFLAGS"].replace("-Wstrict-prototypes", "")
-
-# Setup pyximport
-# pylint: disable=no-member
-pbldr.install(setup_args={'include_dirs': [np.get_include()]})
-del pbldr

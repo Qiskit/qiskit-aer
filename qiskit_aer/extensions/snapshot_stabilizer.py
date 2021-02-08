@@ -59,7 +59,7 @@ def snapshot_stabilizer(self, label):
         qubits in the circuit.
     """
 
-    snapshot_register = Snapshot.define_snapshot_register(self, label)
+    snapshot_register = Snapshot.define_snapshot_register(self)
 
     return self.append(
         SnapshotStabilizer(label, num_qubits=len(snapshot_register)),

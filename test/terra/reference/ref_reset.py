@@ -223,3 +223,128 @@ def reset_counts_sampling_optimization(shots, hex_counts=True):
         return [{'0x0': shots/2, '0x2': shots/2}]
     else:
         return [{'00': shots/2, '10': shots/2}]
+
+def reset_circuits_with_entangled_and_moving_qubits(final_measure=True):
+    """Reset test circuits with entangled and moving qubits count output"""
+
+    circuits = []
+    qr = QuantumRegister(3)
+    if final_measure:
+        cr = ClassicalRegister(3)
+        regs = (qr, cr)
+    else:
+        regs = (qr, )
+
+    # Reset 0 from |000+111>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.cx(0, 2)
+    circuit.reset([0])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # Reset 1 from |000+111>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.cx(0, 2)
+    circuit.reset([1])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # Reset 2 from |000+111>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.cx(0, 2)
+    circuit.reset([2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # Reset 0,1 from |000+111>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.cx(0, 2)
+    circuit.reset([0, 1])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # Reset 0,2 from |000+111>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.cx(0, 2)
+    circuit.reset([0, 2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # Reset 1,2 from |000+111>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.cx(0, 2)
+    circuit.reset([1, 2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # Reset 0,1,2 from |000+111>
+    circuit = QuantumCircuit(*regs)
+    circuit.h(0)
+    circuit.cx(0, 1)
+    circuit.cx(0, 2)
+    circuit.reset([0, 1, 2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    return circuits
+
+def reset_counts_with_entangled_and_moving_qubits(shots, hex_counts=True):
+    """Reset test circuits reference counts."""
+    targets = []
+    if hex_counts:
+        # Reset 0 from |000+111>
+        targets.append({'0x0': shots / 2, '0x6': shots / 2})
+        # Reset 1 from |000+111>
+        targets.append({'0x0': shots / 2, '0x5': shots / 2})
+        # Reset 2 from |000+111>
+        targets.append({'0x0': shots / 2, '0x3': shots / 2})
+        # Reset 0,1 from |000+111>
+        targets.append({'0x0': shots / 2, '0x4': shots / 2})
+        # Reset 0,2 from |000+111>
+        targets.append({'0x0': shots / 2, '0x2': shots / 2})
+        # Reset 1,2 from |000+111>
+        targets.append({'0x0': shots / 2, '0x1': shots / 2})
+        # Reset 0,1,2 from |000+111>
+        targets.append({'0x0': shots})
+    else:
+        # Reset 0 from |000+111>
+        targets.append({'000': shots/2, '110': shots/2})
+        # Reset 1 from |000+111>
+        targets.append({'000': shots/2, '101': shots/2})
+        # Reset 2 from |000+111>
+        targets.append({'000': shots/2, '011': shots/2})
+        # Reset 0,1 from |000+111>
+        targets.append({'000': shots / 2, '100': shots / 2})
+        # Reset 0,2 from |000+111>
+        targets.append({'000': shots / 2, '010': shots / 2})
+        # Reset 1,2 from |000+111>
+        targets.append({'000': shots / 2, '001': shots / 2})
+        # Reset 0,1,2 from |000+111>
+        targets.append({'000': shots})
+    return targets

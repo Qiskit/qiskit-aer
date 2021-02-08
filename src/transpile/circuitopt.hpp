@@ -15,14 +15,8 @@
 #ifndef _aer_circuit_optimization_hpp_
 #define _aer_circuit_optimization_hpp_
 
-#include <chrono>
-#include <cstdint>
-#include <iostream>
-#include <random>
-#include <sstream>
-#include <stdexcept>
-#include <string>
 #include <vector>
+#include <algorithm>
 
 #include "framework/opset.hpp"
 #include "noise/noise_model.hpp"
@@ -40,7 +34,7 @@ public:
   virtual void optimize_circuit(Circuit& circ,
                                 Noise::NoiseModel& noise,
                                 const Operations::OpSet &opset,
-                                ExperimentData &data) const = 0;
+                                ExperimentResult &result) const = 0;
 
   virtual void set_config(const json_t &config);
 

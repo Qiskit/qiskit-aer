@@ -1,10 +1,9 @@
 stestr>=2.5.0
 cmake!=3.17.1,!=3.17.0
-conan>=1.22.2
+conan>=1.31.2
 scikit-build
-cython
 asv
-cvxpy>=1.0.0
+cvxpy>=1.0.0,<1.1.8;python_version>'3.6' and python_version<='3.8'
 pylint
 pycodestyle
 Sphinx>=1.8.3

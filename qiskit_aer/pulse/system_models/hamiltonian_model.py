@@ -217,7 +217,7 @@ class HamiltonianModel():
 
         ham_full = np.zeros((full_dim, full_dim), dtype=complex)
         for ham_part in self._system:
-            ham_full += ham_part[0].full() * eval(ham_part[1])
+            ham_full += ham_part[0].data * eval(ham_part[1])
         # Remap eigenvalues and eigenstates
         evals, estates = la.eigh(ham_full)
 

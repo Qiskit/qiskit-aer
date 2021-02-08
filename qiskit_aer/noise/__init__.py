@@ -195,4 +195,3 @@ from qiskit_aer.noise.errors import phase_damping_error
 # Submodules
 from qiskit_aer.noise import errors
 from qiskit_aer.noise import device
-from qiskit_aer.noise import utils

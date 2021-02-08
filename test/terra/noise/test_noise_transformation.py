@@ -13,6 +13,7 @@
 NoiseTransformer class tests
 """
 
+import unittest
 from ..common import QiskitAerTestCase
 
 import numpy
@@ -26,7 +27,13 @@ from qiskit.providers.aer.noise.errors.standard_errors import reset_error
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.providers.aer.noise.errors.quantum_error import QuantumError
 
+try:
+    import cvxpy
+    HAS_CVXPY = True
+except ImportError:
+    HAS_CVXPY = False
 
+@unittest.skipUnless(HAS_CVXPY, 'cvxpy is required to run these tests')
 class TestNoiseTransformer(QiskitAerTestCase):
     def setUp(self):
         super().setUp()

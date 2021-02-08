@@ -42,7 +42,7 @@ class ReadoutError:
 
         .. code-block:: python
 
-            probabilities[j] = [P(0|m), P(1|m), ..., P(2 ** N - 1|m)]
+            probabilities[m] = [P(0|m), P(1|m), ..., P(2 ** N - 1|m)]
 
         where ``P(j|m)`` is the probability of recording a measurement outcome
         of ``m`` as the value ``j``. Where ``j`` and ``m`` are integer

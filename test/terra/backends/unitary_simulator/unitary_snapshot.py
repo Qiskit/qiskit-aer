@@ -28,17 +28,19 @@ class UnitarySnapshotTests:
     def test_unitary_snap(self):
         """Test Unitary matrix snaps on a random circuit"""
         backend = UnitarySimulator()
-        backend_opts = {}
+        target = qi.random_unitary(2 ** 4, seed=111)
         circ = QuantumCircuit(4)
-        circ.append(qi.random_unitary(2 ** 4), [0, 1, 2, 3])
+        circ.append(target, [0, 1, 2, 3])
         circ.append(Snapshot("final", "unitary", 4), [0, 1, 2, 3])
-        qobj = assemble(circ, backend=backend)
-        aer_input = backend._format_qobj(qobj, self.BACKEND_OPTS, None)
-        aer_output = backend._controller(aer_input)
-        self.assertIsInstance(aer_output, dict)
-        self.assertTrue(aer_output['success'])
-        snaps = aer_output['results'][0]['data']['snapshots']['unitary']['final']
-        self.assertTrue(all([isinstance(arr, np.ndarray) for arr in snaps]))
+        qobj = assemble(circ, backend=backend, shots=1)
+        job = backend.run(qobj)
+        result = job.result()
+        self.assertSuccess(result)
+        snaps = result.data(0)['snapshots']['unitary']['final']
+        for arr in snaps:
+            self.assertTrue(isinstance(arr, np.ndarray))
+            self.assertEqual(qi.Operator(arr), target)
+
 
 if __name__ == '__main__':
     unittest.main()

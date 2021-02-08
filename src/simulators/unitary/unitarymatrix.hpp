@@ -44,8 +44,8 @@ public:
 
   UnitaryMatrix() : UnitaryMatrix(0) {};
   explicit UnitaryMatrix(size_t num_qubits);
-  UnitaryMatrix(const UnitaryMatrix& obj) = delete;
-  UnitaryMatrix &operator=(const UnitaryMatrix& obj) = delete;
+  UnitaryMatrix(const UnitaryMatrix& obj){}
+  UnitaryMatrix &operator=(const UnitaryMatrix& obj){}
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -215,10 +215,11 @@ void UnitaryMatrix<data_t>::initialize() {
 }
 
 template <class data_t>
-void UnitaryMatrix<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
+void UnitaryMatrix<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) 
+{
   const int_t nrows = rows_;    // end for k loop
-  if (nrows != static_cast<int_t>(mat.GetRows()) ||
-      nrows != static_cast<int_t>(mat.GetColumns())) {
+  if (nrows < static_cast<int_t>(mat.GetRows()) ||
+      nrows < static_cast<int_t>(mat.GetColumns())) {
     throw std::runtime_error(
       "UnitaryMatrix::initialize input matrix is incorrect shape (" +
       std::to_string(nrows) + "," + std::to_string(nrows) + ")!=(" +
@@ -230,6 +231,7 @@ void UnitaryMatrix<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
       "UnitaryMatrix::initialize input matrix is not unitary."
     );
   }
+
 #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
   for (int_t row = 0; row < nrows; ++row)
     for  (int_t col = 0; col < nrows; ++col) {

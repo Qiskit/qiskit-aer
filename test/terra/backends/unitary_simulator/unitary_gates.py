@@ -89,22 +89,27 @@ class UnitaryGateTests:
         (U3Gate, 3),
         (UGate, 3)
     ]
-    BASIS_GATES = [None, ['id', 'u3', 'cx'], ['id', 'r', 'cz'],
-                   ['id', 'rz', 'rx', 'cz'], ['id', 'p', 'sx', 'cx']]
+    BASIS_GATES = [
+        None,
+        ['id', 'u1', 'u2', 'u3', 'cx'],  # Waltz
+        ['id', 'rz', 'sx', 'x', 'cx']
+    ]
 
     @data(*[(gate_params[0], gate_params[1], basis_gates)
             for gate_params, basis_gates in product(GATES, BASIS_GATES)])
     @unpack
-    def test_gate(self, gate_cls, num_params, basis_gates):
+    def test_gate(self, gate_cls, num_angles, basis_gates):
         """Test standard gate simulation."""
-        circuit = self.gate_circuit(gate_cls,
-                                    num_params=num_params,
-                                    rng=self.RNG)
-        target = Operator(circuit)
-        result = execute(circuit, self.SIMULATOR,
-                         basis_gates=basis_gates).result()
-        self.assertSuccess(result)
-        value = Operator(result.get_unitary(0))
-        self.assertTrue(target.equiv(value),
-                        msg='{}, basis_gates = {}'.format(
-                            gate_cls.__name__, basis_gates))
+        circuits = self.gate_circuits(gate_cls,
+                                      num_angles=num_angles,
+                                      rng=self.RNG)
+
+        for circuit in circuits:
+            target = Operator(circuit)
+            result = execute(circuit, self.SIMULATOR,
+                             basis_gates=basis_gates).result()
+            self.assertSuccess(result)
+            value = Operator(result.get_unitary(0))
+            self.assertTrue(target.equiv(value),
+                            msg='{}, basis_gates = {}'.format(
+                                gate_cls.__name__, basis_gates))

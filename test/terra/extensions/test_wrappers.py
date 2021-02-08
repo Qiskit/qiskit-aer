@@ -18,8 +18,10 @@ from multiprocessing import Pool
 
 from qiskit import assemble, transpile, QuantumCircuit
 from qiskit.providers.aer.backends import QasmSimulator, StatevectorSimulator, UnitarySimulator
-from qiskit.providers.aer import controller_wrappers as wrap
-from test.terra.reference import ref_algorithms, ref_measure, ref_1q_clifford
+from qiskit.providers.aer.backends.controller_wrappers import (qasm_controller_execute,
+                                                               statevector_controller_execute,
+                                                               unitary_controller_execute)
+from qiskit.providers.aer.backends.backend_utils import LIBRARY_DIR
 from test.terra.common import QiskitAerTestCase
 
 
@@ -46,9 +48,10 @@ class TestControllerExecuteWrappers(QiskitAerTestCase):
         circuit = QuantumCircuit(num_qubits)
         circuit.x(list(range(num_qubits)))
         qobj = assemble(transpile(circuit, backend), backend)
-        opts = {'max_parallel_threads': 1}
-        fqobj = backend._format_qobj(qobj, backend_options=opts, noise_model=noise_model)
-        return fqobj 
+        opts = {'max_parallel_threads': 1,
+                'library_dir': LIBRARY_DIR}
+        fqobj = backend._format_qobj(qobj, **opts, noise_model=noise_model)
+        return fqobj.to_dict()
 
     def _map_and_test(self, cfunc, qobj):
         n = 2

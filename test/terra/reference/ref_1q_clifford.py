@@ -721,3 +721,179 @@ def sdg_gate_unitary_nondeterministic():
     targets.append(np.array([[1 - 1j, 1 + 1j],
                              [1 + 1j, 1 - 1j]]) / 2)
     return targets
+
+# ==========================================================================
+# Pauli gate
+# ==========================================================================
+
+def pauli_gate_circuits_deterministic(final_measure=True):
+    """pauli gate test circuits with deterministic counts."""
+    circuits = []
+    qr = QuantumRegister(3)
+    if final_measure:
+        cr = ClassicalRegister(3)
+        regs = (qr, cr)
+    else:
+        regs = (qr, )
+
+    circuit = QuantumCircuit(*regs)
+    circuit.pauli('ZYX', qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # HZH = X
+    circuit = QuantumCircuit(*regs)
+    circuit.h(qr[0])
+    circuit.h(qr[2])
+    circuit.pauli('ZZ', [qr[0], qr[2]])
+    circuit.h(qr[0])
+    circuit.h(qr[2])
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    circuit = QuantumCircuit(*regs)
+    circuit.pauli('XYZ', qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    return circuits
+
+def pauli_gate_counts_deterministic(shots, hex_counts=True):
+    """multipauli-gate circuits reference counts."""
+    targets = []
+    if hex_counts:
+        targets.append({'0x3': shots})
+        targets.append({'0x5': shots})
+        targets.append({'0x6': shots})
+    else:
+        targets.append({'110': shots})
+        targets.append({'101': shots})
+        targets.append({'011': shots})
+    return targets
+
+# ==========================================================================
+# I-gate
+# ==========================================================================
+
+def id_gate_circuits_deterministic(final_measure=True):
+    """I-gate test circuits with deterministic counts."""
+    circuits = []
+    qr = QuantumRegister(1)
+    if final_measure:
+        cr = ClassicalRegister(1)
+        regs = (qr, cr)
+    else:
+        regs = (qr, )
+
+    circuit = QuantumCircuit(*regs)
+    circuit.id(qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr)
+    circuit.barrier(qr)
+    circuit.id(qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    return circuits
+
+
+def id_gate_counts_deterministic(shots, hex_counts=True):
+    """I-gate circuits reference counts."""
+    targets = []
+    if hex_counts:
+        targets.append({'0x0': shots})
+        targets.append({'0x1': shots})
+    else:
+        targets.append({'0': shots})
+        targets.append({'1': shots})
+    return targets
+
+
+def id_gate_statevector_deterministic():
+    """I-gate circuits reference statevectors."""
+    targets = []
+    targets.append(np.array([1, 0]))
+    targets.append(np.array([0, 1]))
+    return targets
+
+
+def id_gate_unitary_deterministic():
+    """delay-gate circuits reference unitaries."""
+    targets = []
+    targets.append(np.eye(2))
+    targets.append(np.array([[0, 1], [1, 0]]))
+    return targets
+
+
+# ==========================================================================
+# delay-gate
+# ==========================================================================
+
+def delay_gate_circuits_deterministic(final_measure=True):
+    """delay-gate test circuits with deterministic counts."""
+    circuits = []
+    qr = QuantumRegister(1)
+    if final_measure:
+        cr = ClassicalRegister(1)
+        regs = (qr, cr)
+    else:
+        regs = (qr, )
+
+    circuit = QuantumCircuit(*regs)
+    circuit.delay(1, qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    circuit = QuantumCircuit(*regs)
+    circuit.x(qr)
+    circuit.barrier(qr)
+    circuit.delay(1, qr)
+    if final_measure:
+        circuit.barrier(qr)
+        circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    return circuits
+
+
+def delay_gate_counts_deterministic(shots, hex_counts=True):
+    """delay-gate circuits reference counts."""
+    targets = []
+    if hex_counts:
+        targets.append({'0x0': shots})
+        targets.append({'0x1': shots})
+    else:
+        targets.append({'0': shots})
+        targets.append({'1': shots})
+    return targets
+
+
+def delay_gate_statevector_deterministic():
+    """delay-gate circuits reference statevectors."""
+    targets = []
+    targets.append(np.array([1, 0]))
+    targets.append(np.array([0, 1]))
+    return targets
+
+
+def delay_gate_unitary_deterministic():
+    """delay-gate circuits reference unitaries."""
+    targets = []
+    targets.append(np.eye(2))
+    targets.append(np.array([[0, 1], [1, 0]]))
+    return targets

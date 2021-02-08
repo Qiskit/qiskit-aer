@@ -12,6 +12,8 @@
  * that they have been altered from the originals.
  */
 
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <framework/stl_ostream.hpp>
 #include <map>
 #include <type_traits>

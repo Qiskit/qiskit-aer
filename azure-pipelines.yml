@@ -33,7 +33,7 @@ stages:
         - bash: |
             set -x
             set -e
-            for version in 3.6 3.7 3.8 ; do
+            for version in 3.6 3.7 3.8 3.9 ; do
                 conda create --yes --quiet --name qiskit-aer-$version python=$version
             done
           displayName: Create Anaconda environments
@@ -41,15 +41,16 @@ stages:
             set -x
             set -e
             mkdir wheelhouse
-            for version in 3.6 3.7 3.8 ; do
+            for version in 3.6 3.7 3.8 3.9 ; do
                 source activate qiskit-aer-$version
                 conda update --yes -n base conda
                 conda config --add channels conda-forge
-                conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake virtualenv pip setuptools pybind11 cython scipy
+                conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake pip setuptools pybind11 scipy
                 python setup.py bdist_wheel -- -G "Visual Studio 15 2017 Win64"
-                virtualenv test-$version
-                test-$version/Scripts/pip install -c constraints.txt dist/*whl
-                test-$version/Scripts/python tools/verify_wheels.py
+                conda create --yes --quiet python=$version --name test-$version
+                source activate test-$version
+                pip install -c constraints.txt dist/*whl
+                python tools/verify_wheels.py
                 mv dist/*whl wheelhouse/.
                 rm -rf test-$version
                 rm -rf _skbuild
@@ -86,7 +87,7 @@ stages:
         - bash: |
             set -x
             set -e
-            for version in 3.6 3.7 3.8 ; do
+            for version in 3.6 3.7 3.8 3.9 ; do
                 conda create --yes --quiet --name qiskit-aer-$version python=$version
             done
           displayName: Create Anaconda environments
@@ -96,14 +97,15 @@ stages:
             set -x
             set -e
             mkdir wheelhouse
-            for version in 3.6 3.7 3.8 ; do
+            for version in 3.6 3.7 3.8 3.9 ; do
                 source activate qiskit-aer-$version
-                conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake virtualenv pip setuptools pybind11 cython scipy
+                conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake pip setuptools pybind11 scipy
                 python -m pip install -U setuptools wheel
                 python setup.py bdist_wheel -- -G "Visual Studio 15 2017"
-                virtualenv test-$version
-                test-$version/Scripts/pip install -c constraints.txt dist/*whl
-                test-$version/Scripts/python tools/verify_wheels.py
+                conda create --yes --quiet python=$version --name test-$version
+                source activate test-$version
+                pip install -c constraints.txt dist/*whl
+                python tools/verify_wheels.py
                 mv dist/*whl wheelhouse/.
                 rm -rf test-$version
                 rm -rf _skbuild
@@ -138,6 +140,8 @@ stages:
               python.version: '3.7'
             Python38:
               python.version: '3.8'
+            Python39:
+              python.version: '3.9'
         variables:
           PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         steps:
@@ -145,15 +149,6 @@ stages:
             submodules: true
           - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
             displayName: Add conda to PATH
-          - task: Cache@2
-            inputs:
-              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
-              restoreKeys: |
-                pip | "$(Agent.OS)" | "$(python.version)"
-                pip | "$(Agent.OS)"
-                pip
-              path: $(PIP_CACHE_DIR)
-            displayName: Cache pip
           - bash: |
               set -x
               set -e
@@ -161,7 +156,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake virtualenv pip setuptools pybind11 cython scipy
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake pip setuptools pybind11 scipy
             displayName: Create Anaconda environments
           - bash: |
               set -x
@@ -172,11 +167,11 @@ stages:
           - bash: |
               set -x
               set -e
-              source activate qiskit-aer
-              virtualenv test-wheel
-              test-wheel/Scripts/pip install -c constraints.txt dist/*whl
-              test-wheel/Scripts/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
-              test-wheel/Scripts/python tools/verify_wheels.py
+              conda create --yes --quiet --name test-wheel python=$(python.version)
+              source activate test-wheel
+              pip install -c constraints.txt dist/*whl
+              pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
+              python tools/verify_wheels.py
             displayName: Verify wheels
       - job: 'Windows_win32_Wheel_Builds'
         pool: {vmImage: 'vs2017-win2016'}
@@ -191,15 +186,6 @@ stages:
             submodules: true
           - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
             displayName: Add conda to PATH
-          - task: Cache@2
-            inputs:
-              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
-              restoreKeys: |
-                pip | "$(Agent.OS)" | "$(python.version)"
-                pip | "$(Agent.OS)"
-                pip
-              path: $(PIP_CACHE_DIR)
-            displayName: Cache pip
           - bash: |
               set -x
               set -e
@@ -211,7 +197,7 @@ stages:
               set -e
               conda create --yes --quiet --name qiskit-aer python=$(python.version)
               source activate qiskit-aer
-              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake virtualenv pip setuptools pybind11 cython scipy
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake pip setuptools pybind11 scipy
             displayName: Create Anaconda environments
             env:
               CONDA_FORCE_32BIT: 1
@@ -227,11 +213,11 @@ stages:
           - bash: |
               set -x
               set -e
-              source activate qiskit-aer
-              virtualenv test-wheel
-              test-wheel/Scripts/pip install -c constraints.txt dist/*whl
-              test-wheel/Scripts/pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
-              test-wheel/Scripts/python tools/verify_wheels.py
+              conda create --yes --quiet --name test-wheel python=$(python.version)
+              source activate test-wheel
+              pip install -c constraints.txt dist/*whl
+              pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
+              python tools/verify_wheels.py
             displayName: Verify wheels
             env:
               CONDA_FORCE_32BIT: 1
@@ -245,6 +231,8 @@ stages:
               python.version: '3.7'
             Python38:
               python.version: '3.8'
+            Python39:
+              python.version: '3.9'
         variables:
           PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
         steps:
@@ -252,15 +240,6 @@ stages:
             submodules: true
           - powershell: Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
             displayName: Add conda to PATH
-          - task: Cache@2
-            inputs:
-              key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
-              restoreKeys: |
-                pip | "$(Agent.OS)" | "$(python.version)"
-                pip | "$(Agent.OS)"
-                pip
-              path: $(PIP_CACHE_DIR)
-            displayName: Cache pip
           - bash: |
               set -x
               set -e
@@ -268,7 +247,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake virtualenv pip setuptools pybind11 cython scipy
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake pip setuptools wheel pybind11 scipy
             displayName: Create Anaconda environments
           - bash: |
               set -x
@@ -280,7 +259,7 @@ stages:
               set -x
               set -e
               source activate qiskit-aer
-              pip install -U setuptools virtualenv wheel
+              pip install -U setuptools
               pip install dist/*tar.gz
               pip install git+https://github.com/Qiskit/qiskit-terra
               python tools/verify_wheels.py

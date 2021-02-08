@@ -249,7 +249,7 @@ window
     $ git clone https://github.com/Qiskit/qiskit-aer
 ```
 
-- Next, install the platform-specific dependencies for your operating system [Linux](#linux-dependencies) | [macOS](#mac-dependencies) | [Windows](#win-dependencies). 
+- Next, install the platform-specific dependencies for your operating system [Linux](#linux-dependencies) | [macOS](#mac-dependencies) | [Windows](#win-dependencies).
 
 - The common dependencies can then be installed via *pip*, using the
 `requirements-dev.txt` file, e.g.:
@@ -258,10 +258,13 @@ window
     $ pip install -r requirements-dev.txt
 ```
 
-This will also install [**Conan**](https://conan.io/), a C/C++ package manager written in Python. This tool will handle 
-most of the dependencies needed by the C++ source code. Internet connection may be needed for the first build or 
-when dependencies are added/updated, in order to download the required packages if they are not in your **Conan** local 
+This will also install [**Conan**](https://conan.io/), a C/C++ package manager written in Python. This tool will handle
+most of the dependencies needed by the C++ source code. Internet connection may be needed for the first build or
+when dependencies are added/updated, in order to download the required packages if they are not in your **Conan** local
 repository.
+
+>  Note: Conan use can be disabled with the flag or environment variable ``DISABLE_CONAN=ON`` .
+This is useful for building from source offline, or to reuse the installed package dependencies.
 
 If we are only building the standalone version and do not want to install all Python requirements you can just install
 **Conan**:
@@ -607,7 +610,7 @@ For example,
 
     qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA
 
-If we want to specify the CUDA® architecture instead of letting the build system 
+If we want to specify the CUDA® architecture instead of letting the build system
 auto detect it, we can use the AER_CUDA_ARCH flag (can also be set as an ENV variable
 with the same name, although the flag takes precedence). For example:
 
@@ -626,6 +629,163 @@ Few notes on GPU builds:
 2. CUDA® >= 10.1 imposes the restriction of building with g++ version not newer than 8
 3. We don't need NVIDIA® drivers for building, but we need them for running simulations
 4. Only Linux platforms are supported
+
+### Building with MPI support
+
+Qiskit Aer can parallelize its simulation on the cluster systems by using MPI. 
+This can extend available memory space to simulate quantum circuits with larger number of qubits and also can accelerate the simulation by parallel computing. 
+To use MPI support, any MPI library (i.e. OpenMPI) should be installed and configured on the system.
+
+Qiskit Aer supports MPI both with and without GPU support. Currently following simulation methods are supported to be parallelized by MPI.
+
+ - statevector
+ - statevector_thrust_gpu
+ - statevector_thrust_cpu
+ - density_matrix
+ - density_matrix_thrust_gpu
+ - density_matrix_thrust_cpu
+ - unitary_cpu
+ - unitary_thrust_gpu
+ - unitary_thrust_cpu
+
+To enable MPI support, the following flag is needed for build system based on CMake.
+
+```
+AER_MPI=True
+```
+
+For example,
+
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_MPI=True
+
+By default GPU direct RDMA is enable to exchange data between GPUs installed on the different nodes of a cluster. If the system does not support GPU direct RDMA the following flag disables this.
+
+```
+AER_DISABLE_GDR=True
+```
+
+For example,
+
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_MPI=True -DAER_DISABLE_GDR=True
+
+### Running with multiple-GPUs and/or multiple nodes
+
+Qiskit Aer parallelizes simulations by distributing quantum states into distributed memory space.
+To decrease data transfer between spaces the distributed states are managed as chunks that is a sub-state for smaller qubits than the input circuits.
+
+For example, 
+30-qubits circuit is distributed into 2^10 chunks with 20-qubits. 
+
+To decrease data exchange between chunks and also to simplify the implementation, we are applying cache blocking technique.
+This technique allows applying quantum gates to each chunk independently without data exchange, and serial simulation codes can be reused without special implementation. 
+Before the actual simulation, we apply transpilation to remap the input circuits to the equivalent circuits that has all the quantum gates on the lower qubits than the chunk's number of qubits.
+And the (noiseless) swap gates are inserted to exchange data. 
+
+So to simulate by using multiple GPUs or multiple nodes on the cluster, following configurations should be set to backend options.
+
+ - blocking_enable
+
+ should be set to True for distributed parallelization. (Default = False)
+
+ - blocking_qubits
+
+ this flag sets the qubit number for chunk, should be smaller than the smallest memory space on the system (i.e. GPU). Set this parameter to satisfy `sizeof(complex)*2^(blocking_qubits+4) < size of the smallest memory space` in byte.
+
+Here is an example how we parallelize simulation with multiple GPUs.
+
+```
+circ = transpile(QuantumVolume(qubit, 10, seed = 0))
+circ.measure_all()
+qobj = assemble(circ, shots=shots)
+result = sim.run(qobj, backend_options={"method" : "statevector_gpu", "blocking_enable" : True, "blocking_qubits" : 23}).result()
+```
+
+To run Qiskit Aer with Python script with MPI parallelization, MPI executer such as mpirun should be used to submit a job on the cluster. Following example shows how to run Python script using 4 processes by using mpirun.
+
+```
+mpirun -np 4 python example.py
+```
+
+MPI_Init function is called inside Qiskit Aer, so you do not have to manage MPI processes in Python script.
+Following metadatas are useful to find on which process is this script running. 
+
+ - num_mpi_processes : shows number of processes using for this simulation
+ - mpi_rank : shows zero based rank (process ID)
+
+
+Here is an example how to get my rank.
+
+```
+result = sim.run(qobj, backend_options={"method" : "statevector_gpu", "blocking_enable" : True, "blocking_qubits" : 23}).result()
+dict = result.to_dict()
+meta = dict['metadata']
+myrank = meta['mpi_rank']
+```
+
+
+### Building a statically linked wheel
+
+If you encounter an error similar to the following, you may are likely in the need of compiling a
+statically linked wheel.
+```
+    ImportError: libopenblas.so.0: cannot open shared object file: No such file or directory
+```
+However, depending on your setup this can proof difficult at times.
+Thus, here we present instructions which are known to work under Linux.
+
+In general, the workflow is:
+1. Compile a wheel
+```
+    qiskit-aer$ python ./setup.py bdist_wheel
+```
+2. Repair it with [auditwheel](https://github.com/pypa/auditwheel)
+```
+    qiskit-aer$ auditwheel repair dist/qiskit_aer*.whl
+```
+> `auditwheel` vendors the shared libraries into the binary to make it fully self-contained.
+
+The command above will attempt to repair the wheel for a `manylinux*` platform and will store it
+under `wheelhouse/` from where you can install it.
+
+It may happen that you encounter the following error:
+```
+    auditwheel: error: cannot repair "qiskit_aer-0.8.0-cp36-cp36m-linux_x86_64.whl" to "manylinux1_x86_64" ABI because of the presence of too-recent versioned symbols. You'll need to compile the wheel on an older toolchain.
+```
+This means that your toolchain uses later versions of system libraries than are allowed by the
+`manylinux*` platform specification (see also [1], [2] and [3]).
+If you do not need your wheel to support the `manylinux*` platform you can resolve this issue by
+limiting the compatibility of your wheel to your specific platform.
+You can find out which platform this is through
+```
+    qiskit-aer$ auditwheel show dist/qiskit_aer*.whl
+```
+This will list the _platform tag_ (e.g. `linux_x86_64`).
+You can then repair the wheel for this specific platform using:
+```
+    qiskit-aer$ auditwheel repair --plat linux_x86_64 dist/qiskit_aer*.whl
+```
+You can now go ahead and install the wheel stored in `wheelhouse/`.
+
+Should you encounter a runtime error like
+```
+    Inconsistency detected by ld.so: dl-version.c: 205: _dl_check_map_versions: Assertion `needed != NULL' failed!
+```
+this means that your [patchelf](https://github.com/NixOS/patchelf) version (which is used by
+`auditwheel` under the hood) is too old (https://github.com/pypa/auditwheel/issues/103)
+Version `0.9` of `patchelf` is the earliest to include the patch
+https://github.com/NixOS/patchelf/pull/85 which resolves this issue.
+In the unlikely event that the `patchelf` package provided by your operating
+system only provides an older version, fear not, because it is really easy to
+[compile `patchelf` from source](https://github.com/NixOS/patchelf#compiling-and-testing).
+
+Hopefully, this information was helpful.
+In case you need more detailed information on some of the errors which may occur be sure to read
+through https://github.com/Qiskit/qiskit-aer/issues/1033.
+
+[1]: https://www.python.org/dev/peps/pep-0513/
+[2]: https://www.python.org/dev/peps/pep-0571/
+[3]: https://www.python.org/dev/peps/pep-0599/
+
 
 
 
@@ -661,7 +821,7 @@ These are the flags:
 
     Tells CMake the directory to look for the BLAS library instead of the usual paths.
     If no BLAS library is found under that directory, CMake will raise an error and stop.
-    
+
     It can also be set as an ENV variable with the same name, although the flag takes precedence.
 
     Values: An absolute path.
@@ -700,10 +860,51 @@ These are the flags:
 
     This flag allows us we to specify the CUDA architecture instead of letting the build system auto detect it.
     It can also be set as an ENV variable with the same name, although the flag takes precedence.
-    
+
     Values:  Auto | Common | All | List of valid CUDA architecture(s).
     Default: Auto
     Example: ``python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DAER_CUDA_ARCH="5.2; 5.3"``
+
+* DISABLE_CONAN
+
+    This flag allows disabling the Conan package manager. This will force CMake to look for
+    the libraries in use on your system path, relying on FindPackage CMake mechanism and
+    the appropriate configuration of libraries in order to use it.
+    If a specific version is not found, the build system will look for any version available,
+    although this may produce build errors or incorrect behaviour.
+
+    __WARNING__: This is not the official procedure to build AER. Thus, the user is responsible
+    of providing all needed libraries and corresponding files to make them findable to CMake.
+
+    This is also available as the environment variable ``DISABLE_CONAN``, which overrides
+    the CMake flag of the same name.
+
+    Values: ON | OFF
+    Default: OFF
+    Example: ``python ./setup.py bdist_wheel -- -DDISABLE_CONAN=ON``
+
+* AER_MPI
+
+    This flag enables/disables parallelization using MPI to simulate circuits with large number of qubits
+    on the cluter systems. This option requires any MPI library and runtime installed on your system. 
+    MPI parallelization can be used both with/without GPU support. 
+    For GPU support GPU direct RDMA is enabled by default, see option AER_DISABLE_GDR below.
+
+    Values: True|False
+    Default: False
+    Example: ``python ./setup.py bdist_wheel -- -DAER_MPI=True``
+
+* AER_DISABLE_GDR
+
+    This flag disables/enables GPU direct RDMA to exchange data between GPUs on different nodes. 
+    If your system does not support GPU direct RDMA, please set True to this option. You do not need this option if you do not use GPU support.
+    You may also have to configure MPI to use GPU direct RDMA if you enable (AER_DISABLE_GDR=False) this option.
+
+    Note: GPU direct between GPUs on the same node (peer-to-peer copy) is automatically enabled if supported GPUs are available.
+
+    Values: True|False
+    Default: False
+    Example: ``python ./setup.py bdist_wheel -- -DAER_MPI=True -DAER_DISABLE_GDR=True``
 
 ## Tests
 
@@ -739,6 +940,7 @@ The test executable will be placed into the source test directory and can be run
 ```
 qiskit-aer$ ./test/unitc_tests [Catch2-options]
 ```
+
 
 ## Platform support
 
