@@ -143,7 +143,7 @@ protected:
   //-----------------------------------------------------------------------
 
   // Helper function for computing expectation value
-  virtual double pauli_expval(const reg_t &qubits,
+  virtual double expval_pauli(const reg_t &qubits,
                               const std::string& pauli) override;
 
   //-----------------------------------------------------------------------
@@ -832,7 +832,7 @@ void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &r
 // Implementation: Utility
 //-------------------------------------------------------------------------
 
-double State::pauli_expval(const reg_t &qubits, const std::string& pauli) {
+double State::expval_pauli(const reg_t &qubits, const std::string& pauli) {
   // TODO: Add support
   throw std::runtime_error(
     "Extended stabilizer method does not support Pauli expectation values.");

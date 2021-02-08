@@ -162,7 +162,7 @@ protected:
   //-----------------------------------------------------------------------
 
   // Helper function for computing expectation value
-  virtual double pauli_expval(const reg_t &qubits,
+  virtual double expval_pauli(const reg_t &qubits,
                               const std::string& pauli) override;
 
   //-----------------------------------------------------------------------
@@ -520,7 +520,7 @@ void State<unitary_matrix_t>::apply_global_phase() {
 
 
 template <class unitary_matrix_t>
-double  State<unitary_matrix_t>::pauli_expval(const reg_t &qubits,
+double  State<unitary_matrix_t>::expval_pauli(const reg_t &qubits,
                                               const std::string& pauli) {
   throw std::runtime_error("Unitary simulator does not support Pauli expectation values.");
 }

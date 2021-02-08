@@ -165,7 +165,7 @@ protected:
   //-----------------------------------------------------------------------
 
   // Helper function for computing expectation value
-  virtual double pauli_expval(const reg_t &qubits,
+  virtual double expval_pauli(const reg_t &qubits,
                               const std::string& pauli) override;
 
   //-----------------------------------------------------------------------
@@ -585,7 +585,7 @@ void State<densmat_t>::apply_chunk_swap(const reg_t &qubits)
 //=========================================================================
 
 template <class statevec_t>
-double State<statevec_t>::pauli_expval(const reg_t &qubits,
+double State<statevec_t>::expval_pauli(const reg_t &qubits,
                                        const std::string& pauli) {
 
   // Accumulate expval across chunks
@@ -691,7 +691,7 @@ void State<densmat_t>::snapshot_pauli_expval(const Operations::Op &op,
   for (const auto &param : op.params_expval_pauli) {
     const auto& coeff = param.first;
     const auto& pauli = param.second;
-    expval += coeff * pauli_expval(op.qubits, pauli);
+    expval += coeff * expval_pauli(op.qubits, pauli);
   }
 
   // Add to snapshot

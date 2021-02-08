@@ -213,7 +213,7 @@ protected:
   //-----------------------------------------------------------------------
 
   // Helper function for computing expectation value
-  virtual double pauli_expval(const reg_t &qubits,
+  virtual double expval_pauli(const reg_t &qubits,
                               const std::string& pauli) override;
 
   //-----------------------------------------------------------------------
@@ -528,7 +528,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 // Implementation: Save data
 //=========================================================================
 
-double State::pauli_expval(const reg_t &qubits,
+double State::expval_pauli(const reg_t &qubits,
                            const std::string& pauli) {
   return BaseState::qreg_.expectation_value_pauli(qubits, pauli).real();
 }
@@ -550,7 +550,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   for (const auto &param : op.params_expval_pauli) {
     complex_t coeff = param.first;
     std::string pauli_matrices = param.second;
-    expval += coeff * pauli_expval(op.qubits, pauli_matrices);
+    expval += coeff * expval_pauli(op.qubits, pauli_matrices);
   }
 
   // add to snapshot

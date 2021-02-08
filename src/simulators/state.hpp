@@ -133,7 +133,7 @@ public:
   // Return the expectation value of a N-qubit Pauli operator
   // If the simulator does not support Pauli expectation value this should
   // raise an exception.
-  virtual double pauli_expval(const reg_t &qubits,
+  virtual double expval_pauli(const reg_t &qubits,
                               const std::string& pauli) = 0;
 
   //-----------------------------------------------------------------------
@@ -522,7 +522,7 @@ void State<state_t>::apply_save_expval(const Operations::Op &op,
 
   for (const auto &param : op.expval_params) {
     // param is tuple (pauli, coeff, sq_coeff)
-    const auto val = pauli_expval(op.qubits, std::get<0>(param));
+    const auto val = expval_pauli(op.qubits, std::get<0>(param));
     expval += std::get<1>(param) * val;
     if (variance) {
       sq_expval += std::get<2>(param) * val;

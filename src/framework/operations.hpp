@@ -48,7 +48,7 @@ enum class DataSubType {
   single, c_single, list, c_list, accum, c_accum, average, c_average
 };
 
-const std::unordered_set<OpType> SAVE_TYPES = {
+static const std::unordered_set<OpType> SAVE_TYPES = {
   OpType::save_expval, OpType::save_expval_var
 };
 
@@ -871,7 +871,7 @@ Op json_to_op_save_default(const json_t &js) {
   JSON::get_value(op.name, "name", js);
 
   // Handle default types type
-  const std::unordered_map<std::string, OpType> default_names;
+  static const std::unordered_map<std::string, OpType> default_names;
   // NOTE: these will be added later
   auto type_it = default_names.find(op.name);
   if (type_it != default_names.end()) {
@@ -879,7 +879,7 @@ Op json_to_op_save_default(const json_t &js) {
   }
 
   // Get subtype
-  const std::unordered_map<std::string, DataSubType> subtypes {
+  static const std::unordered_map<std::string, DataSubType> subtypes {
     {"single", DataSubType::single},
     {"average", DataSubType::average},
     {"c_average", DataSubType::c_average},
