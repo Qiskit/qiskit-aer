@@ -33,7 +33,7 @@ stages:
         - bash: |
             set -x
             set -e
-            for version in 3.6 3.7 3.8 ; do
+            for version in 3.6 3.7 3.8 3.9 ; do
                 conda create --yes --quiet --name qiskit-aer-$version python=$version
             done
           displayName: Create Anaconda environments
@@ -41,7 +41,7 @@ stages:
             set -x
             set -e
             mkdir wheelhouse
-            for version in 3.6 3.7 3.8 ; do
+            for version in 3.6 3.7 3.8 3.9 ; do
                 source activate qiskit-aer-$version
                 conda update --yes -n base conda
                 conda config --add channels conda-forge
@@ -87,7 +87,7 @@ stages:
         - bash: |
             set -x
             set -e
-            for version in 3.6 3.7 3.8 ; do
+            for version in 3.6 3.7 3.8 3.9 ; do
                 conda create --yes --quiet --name qiskit-aer-$version python=$version
             done
           displayName: Create Anaconda environments
@@ -97,7 +97,7 @@ stages:
             set -x
             set -e
             mkdir wheelhouse
-            for version in 3.6 3.7 3.8 ; do
+            for version in 3.6 3.7 3.8 3.9 ; do
                 source activate qiskit-aer-$version
                 conda install --yes --quiet --name qiskit-aer-$version python=$version numpy cmake pip setuptools pybind11 cython scipy
                 python -m pip install -U setuptools wheel
