@@ -16,7 +16,6 @@ Qiskit Aer Unitary Simulator Backend.
 """
 
 import logging
-from math import log2, sqrt
 
 from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration

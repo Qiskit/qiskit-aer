@@ -15,9 +15,7 @@ Qiskit Aer qasm simulator backend.
 
 import copy
 import logging
-from math import log2
 
-from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 
 from qiskit_aer.version import __version__
