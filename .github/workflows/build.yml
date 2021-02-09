@@ -80,6 +80,7 @@ jobs:
           CIBW_MANYLINUX_I686_IMAGE: "quay.io/pypa/manylinux2010_i686:2020-12-03-912b0de"
           CIBW_TEST_COMMAND: "python3 {project}/tools/verify_wheels.py"
           CIBW_TEST_REQUIRES: "git+https://github.com/Qiskit/qiskit-terra.git"
+          CIBW_DEPENDENCY_VERSIONS: "{project}/release-constraints.txt"
         run: cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v2
         with:
