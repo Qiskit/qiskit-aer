@@ -41,7 +41,7 @@ const Operations::OpSet StateOpSet(
   {"CX", "u0", "u1", "p", "cx", "cz", "swap", "id", "x", "y", "z", "h",
     "s", "sdg", "t", "tdg", "ccx", "ccz", "delay"},
   // Snapshots
-  {"statevector", "probabilities", "memory", "register"}
+  {"statevector", "probabilities", "expectation_value_pauli", "memory", "register"}
 );
 
 using chpauli_t = CHSimulator::pauli_t;
@@ -59,6 +59,7 @@ enum class SamplingMethod {
 
 enum class Snapshots {
   statevector,
+  expval_pauli,
   cmemory,
   cregister,
   probs
@@ -134,6 +135,8 @@ protected:
   void statevector_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
   // //Compute probabilities from a stabilizer rank decomposition
   void probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
+  // //Compute pauli expectation value from a stabilizer rank decomposition
+  void pauli_expval_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
 
   const static stringmap_t<Gates> gateset_;
   const static stringmap_t<Snapshots> snapshotset_;
@@ -214,6 +217,7 @@ const stringmap_t<Gates> State::gateset_({
 const stringmap_t<Snapshots> State::snapshotset_({
   {"statevector", Snapshots::statevector},
   {"probabilities", Snapshots::probs},
+  {"expectation_value_pauli", Snapshots::expval_pauli},
   {"memory", Snapshots::cmemory},
   {"register", Snapshots::cregister}
 });
@@ -730,6 +734,9 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result, R
     case Snapshots::probs:
       probabilities_snapshot(op, result, rng);
       break;
+    case Snapshots::expval_pauli:
+      pauli_expval_snapshot(op, result, rng);
+      break;
     default:
       throw std::invalid_argument("CH::State::invlaid snapshot instruction \'"+
                               op.name + "\'.");
@@ -747,6 +754,57 @@ void State::statevector_snapshot(const Operations::Op &op, ExperimentResult &res
     sum += std::pow(std::abs(statevector[i]), 2);
   }
   result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0], statevector);
+}
+
+void State::pauli_expval_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng){
+    // Check empty edge case
+    if (op.params_expval_pauli.empty()) {
+    throw std::invalid_argument(
+        "Invalid expval snapshot (Pauli components are empty).");
+    }
+
+    /**************************************/
+    // Compute expval components
+    auto copy_of_qreg = BaseState::qreg_;
+    complex_t expval(0., 0.);
+    for (const auto &param : op.params_expval_pauli) {
+        const auto &coeff = param.first;
+        const auto &pauli = param.second;
+        std::vector<uint64_t> measured_qubits;
+        std::vector<chpauli_t>paulis(op.qubits.size(), chpauli_t());
+        for (uint_t pos = 0; pos < op.qubits.size(); ++pos) {
+          uint_t qubit = op.qubits[pos];
+          switch (pauli[pauli.size() - 1 - pos]) {
+            case 'I':
+              break;
+            case 'X':
+              paulis[pos].X = (1ULL << op.qubits[pos]);
+              measured_qubits.push_back(qubit);
+              break;
+            case 'Y':
+              paulis[pos].X = (1ULL << op.qubits[pos]);
+              paulis[pos].Z = (1ULL << op.qubits[pos]);
+              measured_qubits.push_back(qubit);
+              break;
+            case 'Z':
+              paulis[pos].Z = (1ULL << op.qubits[pos]);
+              measured_qubits.push_back(qubit);
+              break;
+            default: {
+              std::stringstream msg;
+              msg << "QubitVectorState::invalid Pauli string \'" << pauli[pos]
+                  << "\'.";
+              throw std::invalid_argument(msg.str());
+            }
+          }
+        }
+        BaseState::qreg_.apply_pauli_projector(paulis);
+        auto g_norm = BaseState::qreg_.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, rng);
+        expval += (2*g_norm - 1);
+        BaseState::qreg_ = copy_of_qreg;
+    }
+    result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
+    BaseState::creg_.memory_hex(), expval, false);
 }
 
 void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
