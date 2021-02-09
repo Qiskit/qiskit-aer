@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,14 +14,15 @@ Helper functions for noise model creation.
 """
 
 import numpy as np
-
-from qiskit.quantum_info.operators.operator import Operator
+from qiskit.circuit import Reset
+from qiskit.circuit.library.standard_gates import *
 from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel.superop import SuperOp
+from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT
 
 from ..noiseerror import NoiseError
 
@@ -35,6 +36,9 @@ def standard_gates_instructions(instructions):
     Returns:
         list: a list of qobj instructions equivalent to in input instruction.
     """
+    if not isinstance(instructions, list):
+        return instructions
+
     output_instructions = []
     for instruction in instructions:
         output_instructions += standard_gate_instruction(instruction)
@@ -51,8 +55,21 @@ def standard_gate_instruction(instruction, ignore_phase=True):
                              comparison to canonical unitary.
 
     Returns:
-        list: a list of qobj instructions equivalent to in input instruction.
+        list: a list of (instructions, qubits) equivalent to in input instruction.
     """
+    gate = {
+        "x": XGate(),
+        "y": YGate(),
+        "z": ZGate(),
+        "t": TGate(),
+        "tdg": TdgGate(),
+        "cx": CXGate(),
+        "cz": CZGate(),
+        "swap": SwapGate()
+    }
+
+    if not isinstance(instruction, dict):
+        return [instruction]
 
     name = instruction.get("name", None)
     if name not in ["mat", "unitary", "kraus"]:
@@ -67,12 +84,11 @@ def standard_gate_instruction(instruction, ignore_phase=True):
             # Check if reset to |0>
             reset0 = reset_superop(1)
             if superop == reset0:
-                return [{"name": "reset", "qubits": qubits}]
+                return [(Reset(), [0])]
             # Check if reset to |1>
             reset1 = reset0.compose(Operator(standard_gate_unitary('x')))
             if superop == reset1:
-                return [{"name": "reset", "qubits": qubits}, {"name": "x", "qubits": qubits}]
-        # otherwise just return the kraus instruction
+                return [(Reset(), [0]), (XGate(), [0])]
         return [instruction]
 
     # Check single qubit gates
@@ -91,7 +107,7 @@ def standard_gate_instruction(instruction, ignore_phase=True):
                     mat,
                     standard_gate_unitary(name),
                     ignore_phase=ignore_phase):
-                return [{"name": name, "qubits": qubits}]
+                return [(gate[name], qubits)]
         # TODO: u1,u2,u3 decomposition
     # Check two qubit gates
     if len(qubits) == 2:
@@ -100,13 +116,13 @@ def standard_gate_instruction(instruction, ignore_phase=True):
                     mat,
                     standard_gate_unitary(name),
                     ignore_phase=ignore_phase):
-                return [{"name": name, "qubits": qubits}]
+                return [(gate[name], qubits)]
         # Check reversed CX
         if matrix_equal(
                 mat,
                 standard_gate_unitary("cx_10"),
                 ignore_phase=ignore_phase):
-            return [{"name": "cx", "qubits": [qubits[1], qubits[0]]}]
+            return [(CXGate(), [qubits[1], qubits[0]])]
         # Check 2-qubit Pauli's
         paulis = ["id", "x", "y", "z"]
         for pauli0 in paulis:
@@ -116,40 +132,28 @@ def standard_gate_instruction(instruction, ignore_phase=True):
                     standard_gate_unitary(pauli0))
                 if matrix_equal(mat, pmat, ignore_phase=ignore_phase):
                     if pauli0 == "id":
-                        return [{"name": pauli1, "qubits": [qubits[1]]}]
+                        return [(gate[pauli1], [qubits[1]])]
                     elif pauli1 == "id":
-                        return [{"name": pauli0, "qubits": [qubits[0]]}]
+                        return [(gate[pauli0], [qubits[0]])]
                     else:
-                        return [{
-                            "name": pauli0,
-                            "qubits": [qubits[0]]
-                        }, {
-                            "name": pauli1,
-                            "qubits": [qubits[1]]
-                        }]
+                        return [(gate[pauli0], [qubits[0]]), (gate[pauli1], [qubits[1]])]
     # Check three qubit toffoli
     if len(qubits) == 3:
         if matrix_equal(
                 mat,
                 standard_gate_unitary("ccx_012"),
                 ignore_phase=ignore_phase):
-            return [{"name": "ccx", "qubits": qubits}]
+            return [(CCXGate(), qubits)]
         if matrix_equal(
                 mat,
                 standard_gate_unitary("ccx_021"),
                 ignore_phase=ignore_phase):
-            return [{
-                "name": "ccx",
-                "qubits": [qubits[0], qubits[2], qubits[1]]
-            }]
+            return [(CCXGate(), [qubits[0], qubits[2], qubits[1]])]
         if matrix_equal(
                 mat,
                 standard_gate_unitary("ccx_120"),
                 ignore_phase=ignore_phase):
-            return [{
-                "name": "ccx",
-                "qubits": [qubits[1], qubits[2], qubits[0]]
-            }]
+            return [(CCXGate(), [qubits[1], qubits[2], qubits[0]])]
 
     # Else return input in
     return [instruction]
@@ -167,7 +171,7 @@ def single_qubit_clifford_gates(j):
         j (int): Clifford index 0, ..., 23.
 
     Returns:
-        tuple(str): The tuple of basis gates.
+        tuple(Gate): The tuple of basis gates.
 
     Raises:
         NoiseError: If index is out of range [0, 23].
@@ -178,34 +182,32 @@ def single_qubit_clifford_gates(j):
             "Index {} must be in the range [0, ..., 23]".format(j))
 
     labels = [
-        ('id', ),
-        ('s', ),
-        ('sdg', ),
-        ('z', ),
+        (IGate(), ),
+        (SGate(), ),
+        (SdgGate(), ),
+        (ZGate(), ),
         # u2 gates
-        (
-            'h', ),
-        ('h', 'z'),
-        ('z', 'h'),
-        ('h', 's'),
-        ('s', 'h'),
-        ('h', 'sdg'),
-        ('sdg', 'h'),
-        ('s', 'h', 's'),
-        ('sdg', 'h', 's'),
-        ('z', 'h', 's'),
-        ('s', 'h', 'sdg'),
-        ('sdg', 'h', 'sdg'),
-        ('z', 'h', 'sdg'),
-        ('s', 'h', 'z'),
-        ('sdg', 'h', 'z'),
-        ('z', 'h', 'z'),
+        (HGate(), ),
+        (HGate(), ZGate()),
+        (ZGate(), HGate()),
+        (HGate(), SGate()),
+        (SGate(), HGate()),
+        (HGate(), SdgGate()),
+        (SdgGate(), HGate()),
+        (SGate(), HGate(), SGate()),
+        (SdgGate(), HGate(), SGate()),
+        (ZGate(), HGate(), SGate()),
+        (SGate(), HGate(), SdgGate()),
+        (SdgGate(), HGate(), SdgGate()),
+        (ZGate(), HGate(), SdgGate()),
+        (SGate(), HGate(), ZGate()),
+        (SdgGate(), HGate(), ZGate()),
+        (ZGate(), HGate(), ZGate()),
         # u3 gates
-        (
-            'x', ),
-        ('y', ),
-        ('s', 'x'),
-        ('sdg', 'x')
+        (XGate(), ),
+        (YGate(), ),
+        (SGate(), XGate()),
+        (SdgGate(), XGate())
     ]
     return labels[j]
 
@@ -227,18 +229,9 @@ def single_qubit_clifford_matrix(j):
         raise NoiseError(
             "Index {} must be in the range [0, ..., 23]".format(j))
 
-    basis_dict = {
-        'id': np.eye(2),
-        'x': np.array([[0, 1], [1, 0]], dtype=complex),
-        'y': np.array([[0, -1j], [1j, 0]], dtype=complex),
-        'z': np.array([[1, 0], [0, -1]], dtype=complex),
-        'h': np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2),
-        's': np.array([[1, 0], [0, 1j]], dtype=complex),
-        'sdg': np.array([[1, 0], [0, -1j]], dtype=complex)
-    }
     mat = np.eye(2)
     for gate in single_qubit_clifford_gates(j):
-        mat = np.dot(basis_dict[gate], mat)
+        mat = np.dot(gate.to_matrix(), mat)
     return mat
 
 
@@ -270,7 +263,7 @@ def single_qubit_clifford_instructions(index, qubit=0):
 
     instructions = []
     for gate in single_qubit_clifford_gates(index):
-        instructions.append({"name": gate, "qubits": [qubit]})
+        instructions.append((gate, [qubit]))
     return instructions
 
 
@@ -615,7 +608,7 @@ def kraus2instructions(kraus_ops, standard_gates, atol=ATOL_DEFAULT):
             probabilities.append(1)
         else:
             probabilities.append(prob_identity)
-        instructions.append([{"name": "id", "qubits": [0]}])
+        instructions.append([(IGate(), [0])])
 
     # Add Kraus
     if prob_kraus < atol:
