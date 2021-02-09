@@ -21,7 +21,6 @@ from numpy import inf
 
 from qiskit.providers.models import BackendConfiguration, PulseDefaults
 
-from qiskit_aer.aerjob import AerJob
 from qiskit_aer.version import __version__
 from qiskit_aer.pulse.controllers.pulse_controller import pulse_controller
 from qiskit_aer.pulse.system_models.pulse_system_model import PulseSystemModel
