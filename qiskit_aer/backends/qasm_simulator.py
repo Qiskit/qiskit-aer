@@ -15,13 +15,13 @@ Qiskit Aer qasm simulator backend.
 
 import copy
 import logging
-from math import log2
 
-from qiskit.util import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 
 from qiskit_aer.version import __version__
 from qiskit_aer.backends.aerbackend import AerBackend
+from qiskit_aer.backends.backend_utils import (cpp_execute, available_methods,
+                                               MAX_QUBITS_STATEVECTOR)
 # pylint: disable=import-error,no-name-in-module
 from qiskit_aer.backends.controller_wrappers import qasm_controller_execute
 
