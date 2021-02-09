@@ -29,7 +29,7 @@ jobs:
         run: |
           set -e
           pip install -U pip wheel
-          pip install -U -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
+          pip install -U -c constraints.txt git+https://github.com/mtreinish/qiskit-core@namespace-no-more
           pip install -U -c constraints.txt -r requirements-dev.txt
         shell: bash
       - name: Run Lint
@@ -70,7 +70,7 @@ jobs:
           set -e
           mkdir out; cd out; virtualenv aer-test
           aer-test/bin/pip install ../dist/*tar.gz
-          aer-test/bin/pip install -c ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
+          aer-test/bin/pip install -c ../constraints.txt git+https://github.com/mtreinish/qiskit-core@namespace-no-more
           aer-test/bin/python ../tools/verify_wheels.py
           aer-test/bin/pip check
         shell: bash
@@ -103,7 +103,7 @@ jobs:
       - name: Install Deps
         run: |
           set -e
-          pip install -U -c constraints.txt wheel git+https://github.com/Qiskit/qiskit-terra
+          pip install -U -c constraints.txt wheel git+https://github.com/mtreinish/qiskit-core@namespace-no-more
           pip install -U -c constraints.txt -r requirements-dev.txt
       - name: Install Aer
         run: python -m pip install -U .
