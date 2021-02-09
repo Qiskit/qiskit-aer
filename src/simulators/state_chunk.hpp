@@ -314,6 +314,10 @@ protected:
   //swap between chunks
   virtual void apply_chunk_swap(const reg_t &qubits);
 
+  //send/receive chunk in receive buffer
+  void send_chunk(uint_t local_chunk_index, uint_t global_chunk_index);
+  void recv_chunk(uint_t local_chunk_index, uint_t global_chunk_index);
+
   //reduce values over processes
   void reduce_sum(rvector_t& sum) const;
   void reduce_sum(complex_t& sum) const;
@@ -763,6 +767,7 @@ void StateChunk<state_t>::snapshot_creg_register(const Operations::Op &op,
                                creg_.register_hex());
 }
 
+
 template <class state_t>
 void StateChunk<state_t>::apply_save_expval(const Operations::Op &op,
                                             ExperimentResult &result){
@@ -967,6 +972,43 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 #endif
 
   }
+}
+
+
+template <class state_t>
+void StateChunk<state_t>::send_chunk(uint_t local_chunk_index, uint_t global_chunk_index)
+{
+#ifdef AER_MPI
+  MPI_Request reqSend;
+  MPI_Status st;
+  uint_t sizeSend;
+  uint_t iProc;
+
+  iProc = get_process_by_chunk(global_chunk_index);
+
+  auto pSend = qregs_[local_chunk_index].send_buffer(sizeSend);
+  MPI_Isend(pSend,sizeSend,MPI_BYTE,iProc,0,distributed_comm_,&reqSend);
+
+  MPI_Wait(&reqSend,&st);
+#endif
+}
+
+template <class state_t>
+void StateChunk<state_t>::recv_chunk(uint_t local_chunk_index, uint_t global_chunk_index)
+{
+#ifdef AER_MPI
+  MPI_Request reqRecv;
+  MPI_Status st;
+  uint_t sizeRecv;
+  uint_t iProc;
+
+  iProc = get_process_by_chunk(global_chunk_index);
+
+  auto pRecv = qregs_[local_chunk_index].recv_buffer(sizeRecv);
+  MPI_Irecv(pRecv,sizeRecv,MPI_BYTE,iProc,0,distributed_comm_,&reqRecv);
+
+  MPI_Wait(&reqRecv,&st);
+#endif
 }
 
 template <class state_t>

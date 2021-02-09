@@ -307,6 +307,10 @@ public:
   // The Pauli is input as a length N string of I,X,Y,Z characters.
   double expval_pauli(const reg_t &qubits, const std::string &pauli,
                       const complex_t &coeff = 1) const;
+  //for multi-chunk inter chunk expectation
+  double expval_pauli(const reg_t &qubits, const std::string &pauli,const QubitVector<data_t>& pair_chunk, 
+                      const uint_t z_count,const uint_t z_count_pair,
+                      const complex_t &coeff = 1) const;
 
   //-----------------------------------------------------------------------
   // JSON configuration settings
@@ -1991,6 +1995,43 @@ double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
     }
   };
   return std::real(apply_reduction_lambda(std::move(lambda), (size_t) 0, (data_size_ >> 1)));
+}
+
+
+template <typename data_t>
+double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
+                                         const std::string &pauli,
+                                         const QubitVector<data_t>& pair_chunk,
+                                         const uint_t z_count,const uint_t z_count_pair,
+                                         const complex_t &coeff) const 
+{
+
+  uint_t x_mask, z_mask, num_y, x_max;
+  std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
+
+  auto phase = std::complex<data_t>(coeff);
+  add_y_phase(num_y, phase);
+
+  std::complex<data_t>* pair_ptr = pair_chunk.data();
+  if(pair_ptr == this->data()){
+    pair_ptr = (std::complex<data_t>*)&recv_buffer_[0];    //use receive buffer for pair
+  }
+
+  auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
+    (void)val_im; // unused
+    uint_t idxs[2];
+    idxs[0] = i;
+    idxs[1] = i ^ x_mask;
+    double vals[2];
+    vals[0] = std::real(phase * pair_ptr[idxs[1]] * std::conj(data_[idxs[0]]));
+    vals[1] = std::real(phase * data_[idxs[0]] * std::conj(pair_ptr[idxs[1]]));
+    if( (AER::Utils::popcount(idxs[0] & z_mask)+z_count) & 1)
+      vals[0] = -vals[0];
+    if( (AER::Utils::popcount(idxs[1] & z_mask)+z_count_pair) & 1)
+      vals[1] = -vals[1];
+    val_re += vals[0] + vals[1];
+  };
+  return std::real(apply_reduction_lambda(std::move(lambda), (size_t) 0, data_size_));
 }
 
 /*******************************************************************************

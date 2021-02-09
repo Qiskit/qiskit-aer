@@ -544,19 +544,111 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
 //=========================================================================
 
 template <class statevec_t>
-double State<statevec_t>::expval_pauli(const reg_t &qubits,
-                                       const std::string& pauli) {
-
-  // Accumulate expval across chunks
+double State<statevec_t>::pauli_expval(const reg_t &qubits,
+                                       const std::string& pauli) 
+{
+  reg_t qubits_in_chunk;
+  reg_t qubits_out_chunk;
+  std::string pauli_in_chunk;
+  std::string pauli_out_chunk;
+  int_t i,n;
   double expval(0.);
-  int_t i;
+
+  //get inner/outer chunk pauli string
+  n = pauli.size();
+  for(i=0;i<n;i++){
+    if(qubits[i] < BaseState::chunk_bits_){
+      qubits_in_chunk.push_back(qubits[i]);
+      pauli_in_chunk.push_back(pauli[n-i-1]);
+    }
+    else{
+      qubits_out_chunk.push_back(qubits[i]);
+      pauli_out_chunk.push_back(pauli[n-i-1]);
+    }
+  }
+
+  if(qubits_out_chunk.size() > 0){  //there are bits out of chunk
+    std::complex<double> coeff = 1.0;
+
+    std::reverse(pauli_out_chunk.begin(),pauli_out_chunk.end());
+    std::reverse(pauli_in_chunk.begin(),pauli_in_chunk.end());
+
+    uint_t x_mask, z_mask, num_y, x_max;
+    std::tie(x_mask, z_mask, num_y, x_max) = AER::QV::pauli_masks_and_phase(qubits_out_chunk, pauli_out_chunk);
+
+    AER::QV::add_y_phase(num_y,coeff);
+
+    if(x_mask != 0){    //pairing state is out of chunk
+      bool on_same_process = true;
+#ifdef AER_MPI
+      int proc_bits = 0;
+      uint_t procs = distributed_procs_;
+      while(procs > 1){
+        if((procs & 1) != 0){
+          proc_bits = -1;
+          break;
+        }
+        proc_bits++;
+        procs >>= 1;
+      }
+      if(x_mask & (~((1ull << (BaseState::num_qubits_ - proc_bits)) - 1)) != 0){    //data exchange between processes is required
+        on_same_process = false;
+      }
+#endif
+
+      x_mask >>= BaseState::chunk_bits_;
+      z_mask >>= BaseState::chunk_bits_;
+      x_max -= BaseState::chunk_bits_;
+
+      const uint_t mask_u = ~((1ull << (x_max + 1)) - 1);
+      const uint_t mask_l = (1ull << x_max) - 1;
+
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_ && on_same_process) private(i) reduction(+:expval)
+      for(i=0;i<BaseState::num_global_chunks_/2;i++){
+        uint_t iChunk = ((i << 1) & mask_u) | (i & mask_l);
+        uint_t pair_chunk = iChunk ^ x_mask;
+        uint_t iProc = BaseState::get_process_by_chunk(pair_chunk);
+
+        if(BaseState::chunk_index_begin_[BaseState::distributed_rank_] <= iChunk && BaseState::chunk_index_end_[BaseState::distributed_rank_] > iChunk){  //on this process
+          uint_t z_count,z_count_pair;
+          z_count = AER::Utils::popcount(iChunk & z_mask);
+          z_count_pair = AER::Utils::popcount(pair_chunk & z_mask);
+
+          if(iProc == BaseState::distributed_rank_){  //pair is on the same process
+            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[pair_chunk - BaseState::global_chunk_index_],z_count,z_count_pair,coeff);
+          }
+          else{
+            BaseState::recv_chunk(iChunk-BaseState::global_chunk_index_,pair_chunk);
+            //refer receive buffer to calculate expectation value
+            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[iChunk-BaseState::global_chunk_index_],z_count,z_count_pair,coeff);
+          }
+        }
+        else if(iProc == BaseState::distributed_rank_){  //pair is on this process
+          BaseState::send_chunk(iChunk-BaseState::global_chunk_index_,pair_chunk);
+        }
+      }
+    }
+    else{ //no exchange between chunks
+      z_mask >>= BaseState::chunk_bits_;
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) reduction(+:expval)
+      for(i=0;i<BaseState::num_local_chunks_;i++){
+        double sign = 1.0;
+        if (z_mask && (AER::Utils::popcount((i + BaseState::global_chunk_index_) & z_mask) & 1))
+          sign = -1.0;
+        expval += sign * BaseState::qregs_[i].expval_pauli(qubits_in_chunk, pauli_in_chunk,coeff);
+      }
+    }
+  }
+  else{ //all bits are inside chunk
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) reduction(+:expval)
     for(i=0;i<BaseState::num_local_chunks_;i++){
       expval += BaseState::qregs_[i].expval_pauli(qubits, pauli);
     }
-  #ifdef AER_MPI
-    BaseState::reduce_sum(expval);
-  #endif
+  }
+
+#ifdef AER_MPI
+  BaseState::reduce_sum(expval);
+#endif
   return expval;
 }
 
