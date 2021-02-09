@@ -765,30 +765,27 @@ void State::pauli_expval_snapshot(const Operations::Op &op, ExperimentResult &re
 
     /**************************************/
     // Compute expval components
+    auto phi_norm = BaseState::qreg_.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, rng);
     auto copy_of_qreg = BaseState::qreg_;
     complex_t expval(0., 0.);
     for (const auto &param : op.params_expval_pauli) {
         const auto &coeff = param.first;
         const auto &pauli = param.second;
-        std::vector<uint64_t> measured_qubits;
-        std::vector<chpauli_t>paulis(op.qubits.size(), chpauli_t());
+        std::vector<chpauli_t>paulis(1, chpauli_t());
         for (uint_t pos = 0; pos < op.qubits.size(); ++pos) {
           uint_t qubit = op.qubits[pos];
           switch (pauli[pauli.size() - 1 - pos]) {
             case 'I':
               break;
             case 'X':
-              paulis[pos].X = (1ULL << op.qubits[pos]);
-              measured_qubits.push_back(qubit);
+              paulis[0].X += (1ULL << op.qubits[pos]);
               break;
             case 'Y':
-              paulis[pos].X = (1ULL << op.qubits[pos]);
-              paulis[pos].Z = (1ULL << op.qubits[pos]);
-              measured_qubits.push_back(qubit);
+              paulis[0].X += (1ULL << op.qubits[pos]);
+              paulis[0].Z += (1ULL << op.qubits[pos]);
               break;
             case 'Z':
-              paulis[pos].Z = (1ULL << op.qubits[pos]);
-              measured_qubits.push_back(qubit);
+              paulis[0].Z += (1ULL << op.qubits[pos]);
               break;
             default: {
               std::stringstream msg;
@@ -800,7 +797,7 @@ void State::pauli_expval_snapshot(const Operations::Op &op, ExperimentResult &re
         }
         BaseState::qreg_.apply_pauli_projector(paulis);
         auto g_norm = BaseState::qreg_.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, rng);
-        expval += (2*g_norm - 1);
+        expval += (2*g_norm - phi_norm);
         BaseState::qreg_ = copy_of_qreg;
     }
     result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
