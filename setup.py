@@ -27,6 +27,7 @@ try:
 except ImportError:
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build'])
     from skbuild import setup
+
 try:
     import pybind11
 except ImportError:

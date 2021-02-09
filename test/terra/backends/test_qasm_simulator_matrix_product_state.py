@@ -24,6 +24,7 @@ from test.terra.backends.qasm_simulator.qasm_measure import QasmMultiQubitMeasur
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmDiagonalGateTests
 from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardGateStatevectorTests
+from test.terra.backends.qasm_simulator.qasm_delay_gate import QasmDelayGateTests
 from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
@@ -75,7 +76,8 @@ class TestQasmMatrixProductStateSimulator(
         QasmSnapshotExpValPauliNCTests,
         QasmSnapshotExpValMatrixTests,
         QasmSnapshotAmplitudesTests,
-        QasmStandardGateStatevectorTests
+        QasmStandardGateStatevectorTests,
+        QasmDelayGateTests
 ):
     """QasmSimulator matrix product state method tests."""
 
