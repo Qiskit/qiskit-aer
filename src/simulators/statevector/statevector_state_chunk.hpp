@@ -544,9 +544,8 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
 //=========================================================================
 
 template <class statevec_t>
-double State<statevec_t>::pauli_expval(const reg_t &qubits,
-                                       const std::string& pauli) 
-{
+double State<statevec_t>::expval_pauli(const reg_t &qubits,
+                                       const std::string& pauli) {
   reg_t qubits_in_chunk;
   reg_t qubits_out_chunk;
   std::string pauli_in_chunk;
