@@ -19,13 +19,13 @@ import logging
 from warnings import warn
 from numpy import inf
 
-from qiskit.result import Result
 from qiskit.providers.models import BackendConfiguration, PulseDefaults
 
 from qiskit_aer.aerjob import AerJob
 from qiskit_aer.version import __version__
 from qiskit_aer.pulse.controllers.pulse_controller import pulse_controller
 from qiskit_aer.backends.aerbackend import AerBackend
+from qiskit_aer.aererror import AerError
 
 logger = logging.getLogger(__name__)
 
