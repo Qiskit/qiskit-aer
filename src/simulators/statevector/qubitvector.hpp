@@ -307,7 +307,6 @@ public:
   // The Pauli is input as a length N string of I,X,Y,Z characters.
   double expval_pauli(const reg_t &qubits, const std::string &pauli,
                       const complex_t &coeff = 1) const;
-  
   //for multi-chunk inter chunk expectation
   double expval_pauli(const reg_t &qubits, const std::string &pauli,
                       const QubitVector<data_t>& pair_chunk, 
