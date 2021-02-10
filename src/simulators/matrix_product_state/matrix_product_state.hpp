@@ -49,7 +49,8 @@ const Operations::OpSet StateOpSet(
    Operations::OpType::snapshot, Operations::OpType::barrier,
    Operations::OpType::bfunc, Operations::OpType::roerror,
    Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-   Operations::OpType::kraus},
+   Operations::OpType::kraus, Operations::OpType::save_expval,
+   Operations::OpType::save_expval_var},
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",
@@ -206,6 +207,14 @@ protected:
   void apply_kraus(const reg_t &qubits,
                    const std::vector<cmatrix_t> &kmats,
                    RngEngine &rng);
+
+  //-----------------------------------------------------------------------
+  // Save data instructions
+  //-----------------------------------------------------------------------
+
+  // Helper function for computing expectation value
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string& pauli) override;
 
   //-----------------------------------------------------------------------
   // Measurement Helpers
@@ -503,12 +512,25 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         case Operations::OpType::kraus:
           apply_kraus(op.qubits, op.mats, rng);
           break;
+        case Operations::OpType::save_expval:
+        case Operations::OpType::save_expval_var:
+          BaseState::apply_save_expval(op, result);
+          break;
         default:
           throw std::invalid_argument("MatrixProductState::State::invalid instruction \'" +
                                       op.name + "\'.");
       }
     }
   }
+}
+
+//=========================================================================
+// Implementation: Save data
+//=========================================================================
+
+double State::expval_pauli(const reg_t &qubits,
+                           const std::string& pauli) {
+  return BaseState::qreg_.expectation_value_pauli(qubits, pauli).real();
 }
 
 //=========================================================================
@@ -528,8 +550,7 @@ void State::snapshot_pauli_expval(const Operations::Op &op,
   for (const auto &param : op.params_expval_pauli) {
     complex_t coeff = param.first;
     std::string pauli_matrices = param.second;
-    complex_t pauli_expval = qreg_.expectation_value_pauli(op.qubits, pauli_matrices);
-    expval += coeff * pauli_expval;
+    expval += coeff * expval_pauli(op.qubits, pauli_matrices);
   }
 
   // add to snapshot
