@@ -31,3 +31,15 @@ features:
     This instruction can also be appended to a quantum circuit by using the
     :class:`~qiskit.providers.aer.library.save_statevector`` circuit method
     which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveDensityMatrix` quantum circuit
+    instruction for saving the reduced density matrix on the specified qubits
+    for the current simulator state of the
+    :class:`~qiskit.providers.aer.StatevectorSimulator` or
+    :class:`~qiskit.providers.aer.QasmSimulator` with a supported simulation
+    method (``"density_matrix"``, ``"density_matrix_gpu"``, ``"statevector"``,
+    ``"statevector_gpu"``, ``"matrix_product_state"``). 
+    
+    This instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_density_matrix`` circuit method
+    which is added to ``QuantumCircuit`` when importing Aer.

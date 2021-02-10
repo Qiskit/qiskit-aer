@@ -58,8 +58,9 @@ def save_density_matrix(self,
 
     Args:
         key (str): the key for retrieving saved data from results.
-        qubits (list or None): the qubits to apply snapshot to. If None all
-                               qubits will be snapshot [Default: None].
+        qubits (list or None): the qubits to save reduced density matrix on.
+                               If None the full density matrix of qubits will
+                               be saved [Default: None].
         unnormalized (bool): If True return save the unnormalized accumulated
                              or conditional accumulated density matrix over
                              all shots [Default: False].
