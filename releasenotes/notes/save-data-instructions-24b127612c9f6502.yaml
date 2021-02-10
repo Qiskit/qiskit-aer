@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveExpectationValue`
+    quantum circuit instruction for saving the expectation value
+    :math:`\langle H\rangle = Tr[H\rho]` of a Hermitian operator :math:`H`
+    for the simulator state :math:`\rho`.
+    
+    This instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_expectation_value``
+    circuit method which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveExpectationValueVariance`
+    quantum circuit instruction for saving the expectation value
+    :math:`\langle H\rangle = Tr[H\rho]`, and variance
+    :math:`Var(H) = \langle H^2\rangle - \langle H\rangle^2`, of a
+    Hermitian operator :math:`H` for the simulator state :math:`\rho`.
+    
+    This instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_expectation_value_variance``
+    circuit method which is added to ``QuantumCircuit`` when importing Aer.

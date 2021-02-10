@@ -12,10 +12,12 @@
  * that they have been altered from the originals.
  */
 
-#ifndef _aer_framework_results_data_creg_hpp_
-#define _aer_framework_results_data_creg_hpp_
+#ifndef _aer_framework_results_data_rvalue_hpp_
+#define _aer_framework_results_data_rvalue_hpp_
 
 #include "framework/results/data/subtypes/data_map.hpp"
+#include "framework/results/data/subtypes/accum_data.hpp"
+#include "framework/results/data/subtypes/average_data.hpp"
 #include "framework/results/data/subtypes/list_data.hpp"
 #include "framework/results/data/subtypes/single_data.hpp"
 #include "framework/types.hpp"
@@ -26,29 +28,42 @@ namespace AER {
 // Result container for Qiskit-Aer
 //============================================================================
 
-struct DataCreg : public DataMap<AccumData, uint_t, 2>,     // Counts
-                  public DataMap<ListData, std::string, 1>  // Memory
-{
+struct DataRValue :
+    public DataMap<ListData, double, 1>,
+    public DataMap<ListData, double, 2>,
+    public DataMap<AccumData, double, 1>,
+    public DataMap<AccumData, double, 2>,
+    public DataMap<AverageData, double, 1>,
+    public DataMap<AverageData, double, 2> {
+
   // Serialize engine data to JSON
   void add_to_json(json_t &result);
 
   // Combine stored data
-  DataCreg &combine(DataCreg &&other);
+  DataRValue &combine(DataRValue &&other);
 };
 
 //------------------------------------------------------------------------------
 // Implementation
 //------------------------------------------------------------------------------
 
-DataCreg &DataCreg::combine(DataCreg &&other) {
-  DataMap<ListData, std::string, 1>::combine(std::move(other));
-  DataMap<AccumData, uint_t, 2>::combine(std::move(other));
+DataRValue &DataRValue::combine(DataRValue &&other) {
+  DataMap<ListData, double, 1>::combine(std::move(other));
+  DataMap<ListData, double, 2>::combine(std::move(other));
+  DataMap<AccumData, double, 1>::combine(std::move(other));
+  DataMap<AccumData, double, 2>::combine(std::move(other));
+  DataMap<AverageData, double, 1>::combine(std::move(other));
+  DataMap<AverageData, double, 2>::combine(std::move(other));
   return *this;
 }
 
-void DataCreg::add_to_json(json_t &result) {
-  DataMap<ListData, std::string, 1>::add_to_json(result);
-  DataMap<AccumData, uint_t, 2>::add_to_json(result);
+void DataRValue::add_to_json(json_t &result) {
+  DataMap<ListData, double, 1>::add_to_json(result);
+  DataMap<ListData, double, 2>::add_to_json(result);
+  DataMap<AccumData, double, 1>::add_to_json(result);
+  DataMap<AccumData, double, 2>::add_to_json(result);
+  DataMap<AverageData, double, 1>::add_to_json(result);
+  DataMap<AverageData, double, 2>::add_to_json(result);
 }
 
 //------------------------------------------------------------------------------
