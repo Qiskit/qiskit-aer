@@ -40,7 +40,7 @@ class SaveDensityMatrix(SaveAverageData):
                                 conditional on the current classical register
                                 values [Default: False].
         """
-        super().__init__("save_densmat",
+        super().__init__("save_density_matrix",
                          key,
                          num_qubits,
                          pershot=pershot,

@@ -47,7 +47,8 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::multiplexer, Operations::OpType::kraus,
      Operations::OpType::sim_op, Operations::OpType::save_expval,
-     Operations::OpType::save_expval_var, Operations::OpType::save_statevec
+     Operations::OpType::save_expval_var, Operations::OpType::save_densmat,
+     Operations::OpType::save_statevec
      // Operations::OpType::save_statevec_ket  // TODO
      },
     // Gates
@@ -228,6 +229,10 @@ protected:
   // Save the current state of the statevector simulator as a ket-form map.
   void apply_save_statevector_ket(const Operations::Op &op,
                                   ExperimentResult &result);
+
+  // Save the current density matrix or reduced density matrix
+  void apply_save_density_matrix(const Operations::Op &op,
+                                 ExperimentResult &result);
 
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
@@ -567,6 +572,9 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
         case Operations::OpType::save_expval_var:
           BaseState::apply_save_expval(op, result);
           break;
+        case Operations::OpType::save_densmat:
+          apply_save_density_matrix(op, result);
+          break;
         case Operations::OpType::save_statevec:
           apply_save_statevector(op, result, final_ops && ops.size() == i + 1);
           break;
@@ -626,6 +634,22 @@ void State<statevec_t>::apply_save_statevector_ket(const Operations::Op &op,
                                std::move(state_ket), op.save_type);
 }
 
+template <class statevec_t>
+void State<statevec_t>::apply_save_density_matrix(const Operations::Op &op,
+                                                  ExperimentResult &result) {
+  cmatrix_t reduced_state;
+
+  // Check if tracing over all qubits
+  if (op.qubits.empty()) {
+    reduced_state = cmatrix_t(1, 1);
+    reduced_state[0] = BaseState::qreg_.norm();
+  } else {
+    reduced_state = density_matrix(op.qubits);
+  }
+
+  BaseState::save_data_average(result, op.string_params[0],
+                               std::move(reduced_state), op.save_type);
+}
 //=========================================================================
 // Implementation: Snapshots
 //=========================================================================
