@@ -483,6 +483,7 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
           break;
         case Operations::OpType::save_densmat:
           apply_save_density_matrix(op, result, final_ops && ops.size() == i + 1);
+          break;
         case Operations::OpType::save_probs:
         case Operations::OpType::save_probs_ket:
           apply_save_probs(op, result);
