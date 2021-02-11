@@ -78,8 +78,8 @@ class SaveExpectationValueVariance(SaveAverageData):
                  key,
                  operator,
                  unnormalized=False,
-                 conditional=False,
-                 pershot=False):
+                 pershot=False,
+                 conditional=False):
         r"""Instruction to save the expectation value and variance of a Hermitian operator.
 
         The expectation value of a Hermitian operator :math:`H` for a
@@ -118,8 +118,8 @@ class SaveExpectationValueVariance(SaveAverageData):
         super().__init__('save_expval_var',
                          key,
                          operator.num_qubits,
-                         pershot=pershot,
                          unnormalized=unnormalized,
+                         pershot=pershot,
                          conditional=conditional,
                          params=params)
 

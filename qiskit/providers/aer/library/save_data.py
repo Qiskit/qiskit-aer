@@ -84,9 +84,9 @@ class SaveAverageData(SaveData):
                  name,
                  key,
                  num_qubits,
+                 unnormalized=False,
                  pershot=False,
                  conditional=False,
-                 unnormalized=False,
                  params=None):
         """Create new save data instruction.
 
@@ -94,15 +94,15 @@ class SaveAverageData(SaveData):
             name (str): the name of hte save instruction.
             key (str): the key for retrieving saved data from results.
             num_qubits (int): the number of qubits for the snapshot type.
+            unnormalized (bool): If True return save the unnormalized accumulated
+                                 or conditional accumulated data over all shot.
+                                 [Default: False].
             pershot (bool): if True save a list of data for each shot of the
                             simulation rather than the average over  all shots
                             [Default: False].
             conditional (bool): if True save the average or pershot data
                                 conditional on the current classical register
                                 values [Default: False].
-            unnormalized (bool): If True return save the unnormalized accumulated
-                                 or conditional accumulated data over all shot.
-                                 [Default: False].
             params (list or None): Optional, the parameters for instruction
                                    [Default: None].
         """
