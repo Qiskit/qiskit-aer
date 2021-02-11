@@ -219,7 +219,7 @@ public:
                          DataSubType type = DataSubType::average) const;
   
   // Save data type which is pershot and does not support accumulator or average
-  // This supports DataSubTypes: single, list, c_list
+  // This supports DataSubTypes: single, c_single, list, c_list
   template <class T>
   void save_data_pershot(ExperimentResult &result,
                          const std::string &key, const T& datum,
@@ -448,7 +448,7 @@ void State<state_t>::save_data_pershot(ExperimentResult &result,
       result.data.add_single(std::move(datum), key);
       break;
     case DataSubType::c_single:
-      result.data.add_single(datum, key, creg_.memory_hex());
+      result.data.add_single(std::move(datum), key, creg_.memory_hex());
       break;
     case DataSubType::list:
       result.data.add_list(std::move(datum), key);

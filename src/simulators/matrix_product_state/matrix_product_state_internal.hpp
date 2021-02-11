@@ -188,7 +188,7 @@ public:
   //----------------------------------------------------------------
   virtual std::ostream&  print(std::ostream& out) const;
 
-  void full_state_vector(cvector_t &state_vector);
+  Vector<complex_t> full_statevector();
 
   cvector_t get_amplitude_vector(const reg_t &base_values);
   complex_t get_single_amplitude(const std::string &base_value);
@@ -360,7 +360,8 @@ private:
   // This function computes the state vector for all the consecutive qubits 
   // between first_index and last_index
   MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
-  void full_state_vector_internal(cvector_t &state_vector, const reg_t &qubits) ;
+
+  Vector<complex_t> full_state_vector_internal(const reg_t &qubits) ;
 
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 

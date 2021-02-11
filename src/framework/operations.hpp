@@ -41,7 +41,8 @@ enum class OpType {
   // Noise instructions
   kraus, superop, roerror, noise_switch,
   // Save instructions
-  save_expval, save_expval_var
+  save_expval, save_expval_var, save_statevec, save_statevec_ket,
+  save_densmat
 };
 
 enum class DataSubType {
@@ -49,7 +50,9 @@ enum class DataSubType {
 };
 
 static const std::unordered_set<OpType> SAVE_TYPES = {
-  OpType::save_expval, OpType::save_expval_var
+  OpType::save_expval, OpType::save_expval_var,
+  OpType::save_statevec, OpType::save_statevec_ket,
+  OpType::save_densmat
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -74,6 +77,14 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::save_expval_var:
     stream << "save_expval_var";
+  case OpType::save_statevec:
+    stream << "save_statevector";
+    break;
+  case OpType::save_statevec_ket:
+    stream << "save_statevector_dict";
+    break;
+  case OpType::save_densmat:
+    stream << "save_density_matrix";
     break;
   case OpType::snapshot:
     stream << "snapshot";
@@ -422,7 +433,7 @@ Op json_to_op_initialize(const json_t &js);
 Op json_to_op_pauli(const json_t &js);
 
 // Save data
-Op json_to_op_save_default(const json_t &js);
+Op json_to_op_save_default(const json_t &js, OpType op_type);
 Op json_to_op_save_expval(const json_t &js, bool variance);
 
 // Snapshots
@@ -479,6 +490,12 @@ Op json_to_op(const json_t &js) {
     return json_to_op_save_expval(js, false);
   if (name == "save_expval_var")
     return json_to_op_save_expval(js, true);
+  if (name == "save_statevector")
+    return json_to_op_save_default(js, OpType::save_statevec);
+  if (name == "save_statevector_dict")
+    return json_to_op_save_default(js, OpType::save_statevec_ket);
+  if (name == "save_density_matrix")
+    return json_to_op_save_default(js, OpType::save_densmat);
   // Snapshot
   if (name == "snapshot")
     return json_to_op_snapshot(js);
@@ -866,21 +883,15 @@ Op json_to_op_noise_switch(const json_t &js) {
 // Implementation: Save data deserialization
 //------------------------------------------------------------------------------
 
-Op json_to_op_save_default(const json_t &js) {
+Op json_to_op_save_default(const json_t &js, OpType op_type) {
   Op op;
+  op.type = op_type;
   JSON::get_value(op.name, "name", js);
-
-  // Handle default types type
-  static const std::unordered_map<std::string, OpType> default_names;
-  // NOTE: these will be added later
-  auto type_it = default_names.find(op.name);
-  if (type_it != default_names.end()) {
-    op.type = type_it->second;
-  }
 
   // Get subtype
   static const std::unordered_map<std::string, DataSubType> subtypes {
     {"single", DataSubType::single},
+    {"c_single", DataSubType::c_single},
     {"average", DataSubType::average},
     {"c_average", DataSubType::c_average},
     {"list", DataSubType::list},
@@ -907,11 +918,10 @@ Op json_to_op_save_default(const json_t &js) {
 }
 
 Op json_to_op_save_expval(const json_t &js, bool variance) {
-
   // Initialized default save instruction params
-  Op op = json_to_op_save_default(js);
-  op.type = (variance) ? OpType::save_expval_var
-                       : OpType::save_expval;
+  auto op_type = (variance) ? OpType::save_expval_var
+                            : OpType::save_expval;
+  Op op = json_to_op_save_default(js, op_type);
 
   // Parse Pauli operator components
   const auto threshold = 1e-12; // drop small components
