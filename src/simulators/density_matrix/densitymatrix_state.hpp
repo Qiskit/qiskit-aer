@@ -46,7 +46,8 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::roerror, Operations::OpType::matrix,
      Operations::OpType::diagonal_matrix, Operations::OpType::kraus,
      Operations::OpType::superop, Operations::OpType::save_expval,
-     Operations::OpType::save_expval_var, Operations::OpType::save_densmat},
+     Operations::OpType::save_expval_var, Operations::OpType::save_densmat,
+     Operations::OpType::save_probs, Operations::OpType::save_probs_ket},
     // Gates
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
@@ -188,6 +189,10 @@ protected:
   void apply_save_density_matrix(const Operations::Op &op,
                                  ExperimentResult &result,
                                  bool last_op = false);
+
+  // Helper function for computing expectation value
+  void apply_save_probs(const Operations::Op &op,
+                        ExperimentResult &result);
 
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
@@ -479,6 +484,10 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
         case Operations::OpType::save_densmat:
           apply_save_density_matrix(op, result, final_ops && ops.size() == i + 1);
           break;
+        case Operations::OpType::save_probs:
+        case Operations::OpType::save_probs_ket:
+          apply_save_probs(op, result);
+          break;
         default:
           throw std::invalid_argument("DensityMatrix::State::invalid instruction \'" +
                                       op.name + "\'.");
@@ -491,9 +500,23 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
 // Implementation: Save data
 //=========================================================================
 
-template <class statevec_t>
-double State<statevec_t>::expval_pauli(const reg_t &qubits,
-                                       const std::string& pauli) {
+template <class densmat_t>
+void State<densmat_t>::apply_save_probs(const Operations::Op &op,
+                                            ExperimentResult &result) {
+  auto probs = measure_probs(op.qubits);
+  if (op.type == Operations::OpType::save_probs_ket) {
+    BaseState::save_data_average(result, op.string_params[0],
+                                 Utils::vec2ket(probs, json_chop_threshold_, 16),
+                                 op.save_type);
+  } else {
+    BaseState::save_data_average(result, op.string_params[0],
+                                 std::move(probs), op.save_type);
+  }
+}
+
+template <class densmat_t>
+double State<densmat_t>::expval_pauli(const reg_t &qubits,
+                                      const std::string& pauli) {
   return BaseState::qreg_.expval_pauli(qubits, pauli);
 }
 

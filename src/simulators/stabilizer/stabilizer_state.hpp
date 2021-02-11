@@ -34,7 +34,8 @@ const Operations::OpSet StateOpSet(
     Operations::OpType::reset, Operations::OpType::snapshot,
     Operations::OpType::barrier, Operations::OpType::bfunc,
     Operations::OpType::roerror, Operations::OpType::save_expval,
-    Operations::OpType::save_expval_var},
+    Operations::OpType::save_expval_var, Operations::OpType::save_probs,
+    Operations::OpType::save_probs_ket},
   // Gates
   {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg",
    "sx", "delay"},
@@ -139,8 +140,18 @@ protected:
   //-----------------------------------------------------------------------
 
   // Helper function for computing expectation value
+  void apply_save_probs(const Operations::Op &op,
+                        ExperimentResult &result);
+
+  // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
                               const std::string& pauli) override;
+
+  template <typename T>
+  void get_probabilities_auxiliary(const reg_t& qubits,
+					std::string outcome,
+					double outcome_prob,
+					T& probs);
 
   //-----------------------------------------------------------------------
   // Measurement Helpers
@@ -165,11 +176,6 @@ protected:
   void snapshot_probabilities(const Operations::Op &op,
                               ExperimentResult &result,
                               bool variance);
-
-  void snapshot_probabilities_auxiliary(const reg_t& qubits,
-					std::string outcome,
-					double outcome_prob,
-					stringmap_t<double>& probs);
 
   // Snapshot the expectation value of a Pauli operator
   void snapshot_pauli_expval(const Operations::Op &op,
@@ -315,6 +321,10 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         case Operations::OpType::save_expval_var:
           apply_save_expval(op, result);
           break;
+        case Operations::OpType::save_probs:
+        case Operations::OpType::save_probs_ket:
+          apply_save_probs(op, result);
+          break;
         default:
           throw std::invalid_argument("Stabilizer::State::invalid instruction \'" +
                                       op.name + "\'.");
@@ -449,6 +459,38 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
 // Implementation: Save data
 //=========================================================================
 
+void State::apply_save_probs(const Operations::Op &op,
+                             ExperimentResult &result) {
+  // Check number of qubits being measured is less than 64.
+  // otherwise we cant use 64-bit int logic.
+  // Practical limits are much lower. For example:
+  // A 32-qubit probability vector takes approx 16 GB of memory
+  // to store.
+  const size_t num_qubits = op.qubits.size();
+  if (num_qubits > max_qubits_snapshot_probs_) {
+    std::string msg =
+        "Stabilizer::State::snapshot_probabilities: "
+        "cannot return measure probabilities for " +
+        std::to_string(num_qubits) + "-qubit measurement. Maximum is set to " +
+        std::to_string(max_qubits_snapshot_probs_);
+    throw std::runtime_error(msg);
+  }
+
+  if (op.type == Operations::OpType::save_probs_ket) {
+    std::map<std::string, double> probs;
+    get_probabilities_auxiliary(
+        op.qubits, std::string(op.qubits.size(), 'X'), 1, probs);
+    BaseState::save_data_average(result, op.string_params[0],
+                                 std::move(probs), op.save_type);
+  } else {
+    std::vector<double> probs(1ULL << op.qubits.size(), 0.);
+    get_probabilities_auxiliary(
+      op.qubits, std::string(op.qubits.size(), 'X'), 1, probs); 
+    BaseState::save_data_average(result, op.string_params[0],
+                                 std::move(probs), op.save_type);
+  }
+}
+
 double State::expval_pauli(const reg_t &qubits,
                            const std::string& pauli) {
   // Compute expval components
@@ -483,6 +525,62 @@ double State::expval_pauli(const reg_t &qubits,
   return state_cpy.expectation_value(measured_qubits);
 }
 
+void set_value_helper(std::map<std::string, double>& probs,
+                      const std::string &outcome,
+                      double value) {
+  probs[Utils::bin2hex(outcome)] = value;
+}
+
+void set_value_helper(std::vector<double>& probs,
+                      const std::string &outcome,
+                      double value) {
+  probs[std::stoull(outcome, 0, 2)] = value;
+}
+
+template <typename T>
+void State::get_probabilities_auxiliary(const reg_t &qubits,
+                                        std::string outcome,
+                                        double outcome_prob,
+                                        T &probs) {
+  uint_t qubit_for_branching = -1;
+  for (uint_t i = 0; i < qubits.size(); ++i) {
+    uint_t qubit = qubits[qubits.size() - i - 1];
+    if (outcome[i] == 'X') {
+      if (BaseState::qreg_.is_deterministic_outcome(qubit)) {
+        bool single_qubit_outcome =
+            BaseState::qreg_.measure_and_update(qubit, 0);
+        if (single_qubit_outcome) {
+          outcome[i] = '1';
+        } else {
+          outcome[i] = '0';
+        }
+      } else {
+        qubit_for_branching = i;
+      }
+    }
+  }
+
+  if (qubit_for_branching == -1) {
+    set_value_helper(probs, outcome, outcome_prob);
+    return;
+  }
+
+  for (uint_t single_qubit_outcome = 0; single_qubit_outcome < 2;
+       ++single_qubit_outcome) {
+    std::string new_outcome = outcome;
+    if (single_qubit_outcome) {
+      new_outcome[qubit_for_branching] = '1';
+    } else {
+      new_outcome[qubit_for_branching] = '0';
+    }
+
+    auto copy_of_qreg = BaseState::qreg_;
+    BaseState::qreg_.measure_and_update(
+        qubits[qubits.size() - qubit_for_branching - 1], single_qubit_outcome);
+    get_probabilities_auxiliary(qubits, new_outcome, 0.5 * outcome_prob, probs);
+    BaseState::qreg_ = copy_of_qreg;
+  }
+}
 //=========================================================================
 // Implementation: Snapshots
 //=========================================================================
@@ -557,8 +655,8 @@ void State::snapshot_probabilities(const Operations::Op &op,
     throw std::runtime_error(msg);
   }
 
-  stringmap_t<double> probs;
-  snapshot_probabilities_auxiliary(
+  std::map<std::string, double> probs;
+  get_probabilities_auxiliary(
       op.qubits, std::string(op.qubits.size(), 'X'), 1, probs);
 
   // Add snapshot to data
@@ -566,50 +664,6 @@ void State::snapshot_probabilities(const Operations::Op &op,
                             BaseState::creg_.memory_hex(), probs, variance);
 }
 
-void State::snapshot_probabilities_auxiliary(const reg_t &qubits,
-                                             std::string outcome,
-                                             double outcome_prob,
-                                             stringmap_t<double> &probs) {
-  uint_t qubit_for_branching = -1;
-  for (uint_t i = 0; i < qubits.size(); ++i) {
-    uint_t qubit = qubits[qubits.size() - i - 1];
-    if (outcome[i] == 'X') {
-      if (BaseState::qreg_.is_deterministic_outcome(qubit)) {
-        bool single_qubit_outcome =
-            BaseState::qreg_.measure_and_update(qubit, 0);
-        if (single_qubit_outcome) {
-          outcome[i] = '1';
-        } else {
-          outcome[i] = '0';
-        }
-      } else {
-        qubit_for_branching = i;
-      }
-    }
-  }
-
-  if (qubit_for_branching == -1) {
-    probs[Utils::bin2hex(outcome)] = outcome_prob;
-    return;
-  }
-
-  for (uint_t single_qubit_outcome = 0; single_qubit_outcome < 2;
-       ++single_qubit_outcome) {
-    std::string new_outcome = outcome;
-    if (single_qubit_outcome) {
-      new_outcome[qubit_for_branching] = '1';
-    } else {
-      new_outcome[qubit_for_branching] = '0';
-    }
-
-    auto copy_of_qreg = BaseState::qreg_;
-    BaseState::qreg_.measure_and_update(
-        qubits[qubits.size() - qubit_for_branching - 1], single_qubit_outcome);
-    snapshot_probabilities_auxiliary(qubits, new_outcome, 0.5 * outcome_prob,
-                                     probs);
-    BaseState::qreg_ = copy_of_qreg;
-  }
-}
 
 void State::snapshot_pauli_expval(const Operations::Op &op,
                                   ExperimentResult &result, SnapshotDataType type) {
