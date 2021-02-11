@@ -35,6 +35,9 @@ Instruction Classes
 
     SaveExpectationValue
     SaveExpectationValueVariance
+    SaveDensityMatrix
+    SaveStatevector
+    SaveStatevectorDict
 
 Then can also be used using custom QuantumCircuit methods
 
@@ -46,6 +49,9 @@ QuantumCircuit Methods
 
     save_expectation_value
     save_expectation_value_variance
+    save_density_matrix
+    save_statevector
+    save_statevector_dict
 
 .. note ::
 
@@ -67,8 +73,12 @@ QuantumCircuit Methods
     state.
 """
 
-__all__ = ['SaveExpectationValue', 'SaveExpectationValueVariance']
+__all__ = ['SaveExpectationValue', 'SaveExpectationValueVariance',
+           'SaveStatevector', 'SaveStatevectorDict', 'SaveDensityMatrix']
 
 from .save_expectation_value import (
     SaveExpectationValue, save_expectation_value,
     SaveExpectationValueVariance, save_expectation_value_variance)
+from .save_statevector import SaveStatevector, save_statevector
+from .save_statevector import SaveStatevectorDict, save_statevector_dict
+from .save_density_matrix import SaveDensityMatrix, save_density_matrix

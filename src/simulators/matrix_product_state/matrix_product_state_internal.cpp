@@ -72,10 +72,10 @@ static const cmatrix_t one_measure =
 //    e.g., 011->101 (for the ordering [1, 0, 2]
 //
 //------------------------------------------------------------------------
-template <class T>
-void reorder_all_qubits(const std::vector<T>& orig_probvector, 
+template <class vec_t>
+void reorder_all_qubits(const vec_t& orig_probvector, 
 			const reg_t &qubits, 
-			std::vector<T>& new_probvector);
+			vec_t& new_probvector);
 uint_t reorder_qubits(const reg_t &qubits, uint_t index);
 
 //------------------------------------------------------------------------
@@ -90,11 +90,11 @@ uint_t reorder_qubits(const reg_t &qubits, uint_t index);
 // Note that the qubits are numbered from left to right, i.e., the msb is 0
 //
 //------------------------------------------------------------------------
-template <class T>
-void permute_all_qubits(const std::vector<T>& orig_statevector, 
+template <class vec_t>
+void permute_all_qubits(const vec_t& orig_statevector, 
 			const reg_t &input_qubits, 
 			const reg_t &output_qubits,
-			std::vector<T>& new_statevector);
+			vec_t& new_statevector);
 
 //------------------------------------------------------------------------
 // Function name: permute_qubits
@@ -122,8 +122,8 @@ void permute_all_qubits(const std::vector<T>& orig_statevector,
 // Input: the input statevector and the number of qubits
 // Output: the statevector in reverse order
 //----------------------------------------------------------------	
-template <class T>
-std::vector<T> reverse_all_bits(const std::vector<T>& statevector, uint_t num_qubits);
+template <class vec_t>
+vec_t reverse_all_bits(const vec_t& statevector, uint_t num_qubits);
 
 // with 5 qubits, the number 2 in binary is 00010,
 // when reversed it is 01000, which is the number 8
@@ -164,10 +164,10 @@ void squeeze_qubits(const reg_t &original_qubits, reg_t &squeezed_qubits) {
   }
 }
 
-template <class T>
-void reorder_all_qubits(const std::vector<T>& orig_probvector, 
+template <class vec_t>
+void reorder_all_qubits(const vec_t& orig_probvector, 
 			const reg_t &qubits,
-			std::vector<T>& new_probvector) {
+			vec_t& new_probvector) {
   uint_t new_index;
   uint_t length = 1ULL << qubits.size();   // length = pow(2, num_qubits)
   // if qubits are [k0, k1,...,kn], move them to [0, 1, .. , n], but preserve relative
@@ -205,11 +205,11 @@ uint_t reorder_qubits(const reg_t &qubits, uint_t index) {
   return new_index;
 }
 
-template <class T>
-void permute_all_qubits(const std::vector<T>& orig_statevector, 
+template <class vec_t>
+void permute_all_qubits(const vec_t& orig_statevector, 
 			const reg_t &input_qubits,
 			const reg_t &output_qubits,
-			std::vector<T>& new_statevector) {
+			vec_t& new_statevector) {
   uint_t new_index;
   uint_t length = 1ULL << input_qubits.size();   // length = pow(2, num_qubits)
   // if qubits are [k0, k1,...,kn], move them to [0, 1, .. , n], but preserve relative
@@ -270,11 +270,12 @@ uint_t reverse_bits(uint_t num, uint_t len) {
   return sum;
 }
 
-template <class T>
-std::vector<T> reverse_all_bits(const std::vector<T>& statevector, uint_t num_qubits)
+template <class vec_t>
+vec_t reverse_all_bits(const vec_t& statevector, uint_t num_qubits)
 {
   uint_t length = statevector.size();   // length = pow(2, num_qubits_)
-  std::vector<T> output_vector(length);
+  vec_t output_vector;
+  output_vector.resize(length);
 
 #pragma omp parallel for if (length > MPS::get_omp_threshold() && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
@@ -1254,31 +1255,30 @@ MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
 	return temp;
 }
 
-void MPS::full_state_vector(cvector_t& statevector) {
+Vector<complex_t> MPS::full_statevector() {
   reg_t qubits(num_qubits_);
   std::iota( std::begin(qubits), std::end(qubits), 0);
   reg_t internal_qubits = get_internal_qubits(qubits);
-  full_state_vector_internal(statevector, internal_qubits);
+  return full_state_vector_internal(internal_qubits);
 }
 
-void MPS::full_state_vector_internal(cvector_t& statevector,
-				     const reg_t &qubits) {
+Vector<complex_t> MPS::full_state_vector_internal(const reg_t &qubits) {
   // mps_vec contains the state vector with the qubits in ascending order
   MPS_Tensor mps_vec = state_vec_as_MPS(qubits);
 
   uint_t num_qubits = qubits.size();
   uint_t length = 1ULL << num_qubits;   // length = pow(2, num_qubits)
-  statevector.resize(length);
+  Vector<complex_t> statevector(length, false);
   // statevector is constructed in ascending order
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
     statevector[i] = mps_vec.get_data(i)(0,0);
   }
-  cvector_t temp_statevector(length);
+  Vector<complex_t> temp_statevector(length, false);
   //temp_statevector will contain the statevector in the ordering defined in "qubits"
   reorder_all_qubits(statevector, qubits, temp_statevector);
   // reverse to be consistent with qasm ordering
-  statevector = reverse_all_bits(temp_statevector, num_qubits);
+  return reverse_all_bits(temp_statevector, num_qubits);
 }
 
 cvector_t MPS::get_amplitude_vector(const reg_t &base_values) {

@@ -128,7 +128,7 @@ class StatevectorSimulator(AerBackend):
             'mcp', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
             'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
             'initialize', 'kraus', 'roerror', 'delay', 'pauli',
-            'save_expval',
+            'save_expval', 'save_density_matrix', 'save_statevector'
         ],
         'gates': []
     }
