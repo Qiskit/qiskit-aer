@@ -43,3 +43,16 @@ features:
     This instruction can also be appended to a quantum circuit by using the
     :class:`~qiskit.providers.aer.library.save_density_matrix`` circuit method
     which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveProbabilities` and
+    :class:`qiskit.providers.aer.library.SaveProbabilitiesDict` quantum
+    circuit instruction for saving all measurement outcome probabilities for
+    the :class:`~qiskit.providers.aer.StatevectorSimulator` or
+    :class:`~qiskit.providers.aer.QasmSimulator` with a supported simulation
+    method (``"statevector"``, ``"statevector_gpu"``, ``"density_matrix"``,
+    ``"density_matrix_gpu"``, ``"matrix_product_state"``, ``"stabilizer"``).
+    
+    These instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_probabilities`` and
+    :class:`~qiskit.providers.aer.library.save_probabilities_dict`` circuit
+    methods which is added to ``QuantumCircuit`` when importing Aer.
