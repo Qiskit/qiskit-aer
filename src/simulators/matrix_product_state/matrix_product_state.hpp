@@ -289,10 +289,6 @@ protected:
 		      ExperimentResult &result,
 		      std::string name = "");
 
-  void snapshot_amplitudes(const Operations::Op &op,
-			   ExperimentResult &result,
-			   std::string name = "");
-
   //-----------------------------------------------------------------------
   // Single-qubit gate helpers
   //-----------------------------------------------------------------------
@@ -712,16 +708,6 @@ void State::snapshot_state(const Operations::Op &op,
     "statevector", op.string_params[0], qreg_.full_statevector());
 }
 
-void State::snapshot_amplitudes(const Operations::Op &op,
-				ExperimentResult &result,
-				std::string name) {
-  if (op.int_params.empty()) {
-    throw std::invalid_argument("Invalid amplitudes snapshot (No base value given).");
-  }
-  result.legacy_data.add_pershot_snapshot("amplitudes", op.string_params[0],
-                                          qreg_.get_amplitude_vector(op.int_params));
-}
-
 void State::snapshot_probabilities(const Operations::Op &op,
 				   ExperimentResult &result,
 				   SnapshotDataType type) {
@@ -1028,10 +1014,6 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result) {
   switch (it -> second) {
   case Snapshots::statevector: {
       snapshot_state(op, result, "statevector");
-      break;
-  }
-  case Snapshots::amplitudes: {
-      snapshot_amplitudes(op, result, "amplitudes");
       break;
   }
   case Snapshots::cmemory:
