@@ -42,7 +42,7 @@ enum class OpType {
   kraus, superop, roerror, noise_switch,
   // Save instructions
   save_expval, save_expval_var, save_statevec, save_statevec_ket,
-  save_densmat
+  save_densmat, save_probs, save_probs_ket
 };
 
 enum class DataSubType {
@@ -52,7 +52,7 @@ enum class DataSubType {
 static const std::unordered_set<OpType> SAVE_TYPES = {
   OpType::save_expval, OpType::save_expval_var,
   OpType::save_statevec, OpType::save_statevec_ket,
-  OpType::save_densmat
+  OpType::save_densmat, OpType::save_probs, OpType::save_probs_ket
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -85,6 +85,11 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::save_densmat:
     stream << "save_density_matrix";
+  case OpType::save_probs:
+    stream << "save_probabilities";
+    break;
+  case OpType::save_probs_ket:
+    stream << "save_probabilities_dict";
     break;
   case OpType::snapshot:
     stream << "snapshot";
@@ -496,6 +501,10 @@ Op json_to_op(const json_t &js) {
     return json_to_op_save_default(js, OpType::save_statevec_ket);
   if (name == "save_density_matrix")
     return json_to_op_save_default(js, OpType::save_densmat);
+  if (name == "save_probabilities")
+    return json_to_op_save_default(js, OpType::save_probs);
+  if (name == "save_probabilities_dict")
+    return json_to_op_save_default(js, OpType::save_probs_ket);
   // Snapshot
   if (name == "snapshot")
     return json_to_op_snapshot(js);

@@ -51,7 +51,8 @@ const Operations::OpSet StateOpSet(
    Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
    Operations::OpType::kraus, Operations::OpType::save_expval,
    Operations::OpType::save_expval_var, Operations::OpType::save_densmat,
-   Operations::OpType::save_statevec},
+   Operations::OpType::save_statevec, Operations::OpType::save_probs,
+   Operations::OpType::save_probs_ket},
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",
@@ -119,14 +120,14 @@ public:
   // Initializes to a specific n-qubit state given as a complex std::vector
   void initialize_qreg(uint_t num_qubits, const cvector_t &statevector);
 
-  virtual void initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state);
+  virtual void initialize_qreg(uint_t num_qubits, const matrixproductstate_t &state) override;
 
   // Returns the required memory for storing an n-qubit state in megabytes.
   // For this state the memory is indepdentent of the number of ops
   // and is approximately 16 * 1 << num_qubits bytes
-    virtual size_t required_memory_mb(uint_t num_qubits,
-                                    const std::vector<Operations::Op> &ops)
-                                    const override;
+  virtual size_t required_memory_mb(uint_t num_qubits,
+                                  const std::vector<Operations::Op> &ops)
+                                  const override;
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
@@ -220,6 +221,10 @@ protected:
   // Save the current density matrix or reduced density matrix
   void apply_save_density_matrix(const Operations::Op &op,
                                  ExperimentResult &result);
+
+  // Helper function for computing expectation value
+  void apply_save_probs(const Operations::Op &op,
+                        ExperimentResult &result);
 
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
@@ -530,6 +535,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
           break;
         case Operations::OpType::save_statevec:
           apply_save_statevector(op, result);
+        case Operations::OpType::save_probs:
+        case Operations::OpType::save_probs_ket:
+          apply_save_probs(op, result);
           break;
         default:
           throw std::invalid_argument("MatrixProductState::State::invalid instruction \'" +
@@ -542,6 +550,20 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 //=========================================================================
 // Implementation: Save data
 //=========================================================================
+
+void State::apply_save_probs(const Operations::Op &op,
+                             ExperimentResult &result) {
+  rvector_t probs;
+  qreg_.get_probabilities_vector(probs, op.qubits);
+  if (op.type == Operations::OpType::save_probs_ket) {
+    BaseState::save_data_average(result, op.string_params[0],
+                                 Utils::vec2ket(probs, MPS::get_json_chop_threshold(), 16),
+                                 op.save_type);
+  } else {
+    BaseState::save_data_average(result, op.string_params[0],
+                                 std::move(probs), op.save_type);
+  }
+}
 
 double State::expval_pauli(const reg_t &qubits,
                            const std::string& pauli) {
