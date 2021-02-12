@@ -14,29 +14,31 @@ import sys
 
 PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
 _DISABLE_CONAN = distutils.util.strtobool(os.getenv("DISABLE_CONAN", "OFF").lower())
+_DISABLE_DEPENDENCY_INSTALL = distutils.util.strtobool(os.getenv("DISABLE_DEPENDENCY_INSTALL", "OFF").lower())
 
-if not _DISABLE_CONAN:
+if not _DISABLE_DEPENDENCY_INSTALL:
+    if not _DISABLE_CONAN:
+        try:
+            from conans import client
+        except ImportError:
+            subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan>=1.31.2'])
+            from conans import client
+
     try:
-        from conans import client
+        from skbuild import setup
     except ImportError:
-        subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan>=1.31.2'])
-        from conans import client
+        subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build'])
+        from skbuild import setup
 
-try:
-    from skbuild import setup
-except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build'])
-    from skbuild import setup
+    try:
+        import pybind11
+    except ImportError:
+        subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.6'])
 
-try:
-    import pybind11
-except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.6'])
-
-try:
-    from numpy import array
-except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=1.16.3'])
+    try:
+        from numpy import array
+    except ImportError:
+        subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=1.16.3'])
 
 from skbuild import setup
 
