@@ -701,7 +701,7 @@ void State<statevec_t>::apply_save_amplitudes(const Operations::Op &op,
                                  BaseState::threads_ > 1)                       \
                           num_threads(BaseState::threads_)
       for (int_t i = 0; i < size; ++i) {
-        amps[i] = BaseState::qreg_[op.int_params[i]];
+        amps[i] = BaseState::qreg_.get_state(op.int_params[i]);
       }
     BaseState::save_data_pershot(result, op.string_params[0],
                                  std::move(amps), op.save_type);
