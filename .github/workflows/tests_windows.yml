@@ -53,6 +53,7 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+          architecture: ${{ matrix.python-architecture }}
       - name: Pip cache
         uses: actions/cache@v2
         with:
@@ -70,7 +71,7 @@ jobs:
         run: |
           set -e
           mkdir out; cd out; virtualenv aer-test
-          aer-test/Scripts/pip install --find-links dist qiskit-aer
+          aer-test/Scripts/pip install --find-links ../dist qiskit-aer
           aer-test/Scripts/pip install -c ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
           aer-test/Scripts/python ../tools/verify_wheels.py
           aer-test/Scripts/pip check
