@@ -74,6 +74,7 @@ jobs:
       - name: Build Wheels
         env:
           CIBW_BEFORE_ALL_LINUX: "yum install -y openblas-devel"
+          CIBW_BEFORE_BUILD: "pip install -r release_minimum_versions.txt"
           CIBW_SKIP: "cp27-* cp34-* cp35-* pp*"
           CIBW_TEST_COMMAND: "python3 {project}/tools/verify_wheels.py"
           CIBW_TEST_REQUIRES: "git+https://github.com/Qiskit/qiskit-terra.git"
