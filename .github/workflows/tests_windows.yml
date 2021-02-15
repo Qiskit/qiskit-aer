@@ -70,10 +70,10 @@ jobs:
         run: |
           set -e
           mkdir out; cd out; virtualenv aer-test
-          aer-test/bin/pip install ../dist/*tar.gz
-          aer-test/bin/pip install -c ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
-          aer-test/bin/python ../tools/verify_wheels.py
-          aer-test/bin/pip check
+          aer-test/Scripts/pip install --find-links dist qiskit-aer
+          aer-test/Scripts/pip install -c ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
+          aer-test/Scripts/python ../tools/verify_wheels.py
+          aer-test/Scripts/pip check
         shell: bash
   tests:
     runs-on: ${{ matrix.os }}
