@@ -543,10 +543,6 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         case OpType::save_probs_ket:
           apply_save_probs(op, result);
           break;
-        case Operations::OpType::save_probs:
-        case Operations::OpType::save_probs_ket:
-          apply_save_probs(op, result);
-          break;
         case OpType::save_amps:
         case OpType::save_amps_sq:
           apply_save_amplitudes(op, result);
