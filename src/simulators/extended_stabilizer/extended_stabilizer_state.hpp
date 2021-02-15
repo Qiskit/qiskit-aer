@@ -795,8 +795,7 @@ void State::pauli_expval_snapshot(const Operations::Op &op, ExperimentResult &re
             }
           }
         }
-        BaseState::qreg_.apply_pauli_projector(paulis);
-        auto g_norm = BaseState::qreg_.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, rng);
+        auto g_norm = BaseState::qreg_.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, paulis, rng);
         expval += (2*g_norm - phi_norm);
         BaseState::qreg_ = copy_of_qreg;
     }
