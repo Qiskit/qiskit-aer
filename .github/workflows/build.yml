@@ -73,7 +73,7 @@ jobs:
         run: python -m pip install -U cibuildwheel==1.9.0
       - name: Build Wheels
         env:
-          CIBW_BEFORE_ALL_LINUX: "yum install -y https://archives.fedoraproject.org/pub/archive/epel/6/x86_64/epel-release-6-8.noarch.rpm && yum install -y openblas-devel"
+          CIBW_BEFORE_ALL_LINUX: "yum install -y openblas-devel"
           CIBW_SKIP: "cp27-* cp34-* cp35-* pp*"
           CIBW_TEST_COMMAND: "python3 {project}/tools/verify_wheels.py"
           CIBW_TEST_REQUIRES: "git+https://github.com/Qiskit/qiskit-terra.git"
