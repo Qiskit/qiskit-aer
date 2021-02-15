@@ -1,7 +1,7 @@
 /**
  * This code is part of Qiskit.
  *
- * (C) Copyright IBM 2020.
+ * (C) Copyright IBM 2021.
  *
  * This code is licensed under the Apache License, Version 2.0. You may
  * obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -31,6 +31,8 @@ namespace AER {
 struct DataCMatrix :
     public DataMap<SingleData, matrix<complex_t>, 1>,
     public DataMap<SingleData, matrix<complexf_t>, 1>,
+    public DataMap<SingleData, matrix<complex_t>, 2>,
+    public DataMap<SingleData, matrix<complexf_t>, 2>,
     public DataMap<ListData, matrix<complex_t>, 1>,
     public DataMap<ListData, matrix<complexf_t>, 1>,
     public DataMap<ListData, matrix<complex_t>, 2>,
@@ -58,6 +60,8 @@ struct DataCMatrix :
 DataCMatrix &DataCMatrix::combine(DataCMatrix &&other) {
   DataMap<SingleData, matrix<complex_t>, 1>::combine(std::move(other));
   DataMap<SingleData, matrix<complexf_t>, 1>::combine(std::move(other));
+  DataMap<SingleData, matrix<complex_t>, 2>::combine(std::move(other));
+  DataMap<SingleData, matrix<complexf_t>, 2>::combine(std::move(other));
   DataMap<ListData, matrix<complex_t>, 1>::combine(std::move(other));
   DataMap<ListData, matrix<complexf_t>, 1>::combine(std::move(other));
   DataMap<ListData, matrix<complex_t>, 2>::combine(std::move(other));
@@ -77,6 +81,8 @@ void DataCMatrix::add_to_json(json_t &result) {
 
   DataMap<SingleData, matrix<complex_t>, 1>::add_to_json(result);
   DataMap<SingleData, matrix<complexf_t>, 1>::add_to_json(result);
+  DataMap<SingleData, matrix<complex_t>, 2>::add_to_json(result);
+  DataMap<SingleData, matrix<complexf_t>, 2>::add_to_json(result);
   DataMap<ListData, matrix<complex_t>, 1>::add_to_json(result);
   DataMap<ListData, matrix<complexf_t>, 1>::add_to_json(result);
   DataMap<ListData, matrix<complex_t>, 2>::add_to_json(result);

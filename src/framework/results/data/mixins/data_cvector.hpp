@@ -1,7 +1,7 @@
 /**
  * This code is part of Qiskit.
  *
- * (C) Copyright IBM 2020.
+ * (C) Copyright IBM 2021.
  *
  * This code is licensed under the Apache License, Version 2.0. You may
  * obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -28,6 +28,8 @@ namespace AER {
 
 struct DataCVector : public DataMap<SingleData, Vector<complex_t>, 1>,
                      public DataMap<SingleData, Vector<complexf_t>, 1>,
+                     public DataMap<SingleData, Vector<complex_t>, 2>,
+                     public DataMap<SingleData, Vector<complexf_t>, 2>,
                      public DataMap<ListData, Vector<complex_t>, 1>,
                      public DataMap<ListData, Vector<complexf_t>, 1>,
                      public DataMap<ListData, Vector<complex_t>, 2>,
@@ -47,6 +49,8 @@ struct DataCVector : public DataMap<SingleData, Vector<complex_t>, 1>,
 DataCVector &DataCVector::combine(DataCVector &&other) {
   DataMap<SingleData, Vector<complex_t>, 1>::combine(std::move(other));
   DataMap<SingleData, Vector<complexf_t>, 1>::combine(std::move(other));
+  DataMap<SingleData, Vector<complex_t>, 2>::combine(std::move(other));
+  DataMap<SingleData, Vector<complexf_t>, 2>::combine(std::move(other));
   DataMap<ListData, Vector<complex_t>, 1>::combine(std::move(other));
   DataMap<ListData, Vector<complexf_t>, 1>::combine(std::move(other));
   DataMap<ListData, Vector<complex_t>, 2>::combine(std::move(other));
@@ -57,6 +61,8 @@ DataCVector &DataCVector::combine(DataCVector &&other) {
 void DataCVector::add_to_json(json_t &result) {
   DataMap<SingleData, Vector<complex_t>, 1>::add_to_json(result);
   DataMap<SingleData, Vector<complexf_t>, 1>::add_to_json(result);
+  DataMap<SingleData, Vector<complex_t>, 2>::add_to_json(result);
+  DataMap<SingleData, Vector<complexf_t>, 2>::add_to_json(result);
   DataMap<ListData, Vector<complex_t>, 1>::add_to_json(result);
   DataMap<ListData, Vector<complexf_t>, 1>::add_to_json(result);
   DataMap<ListData, Vector<complex_t>, 2>::add_to_json(result);

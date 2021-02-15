@@ -222,6 +222,16 @@ protected:
   size_t get_system_memory_mb();
   size_t get_gpu_memory_mb();
 
+  uint_t get_distributed_num_processes(bool par_shots) const;
+
+  size_t get_min_memory_mb() const
+  {
+    if(num_gpus_ > 0){
+      return max_gpu_memory_mb_ / num_gpus_;  //return per GPU memory size
+    }
+    return max_memory_mb_;
+  }
+
   // The maximum number of threads to use for various levels of parallelization
   int max_parallel_threads_;
 
@@ -230,6 +240,7 @@ protected:
   int max_parallel_shots_;
   size_t max_memory_mb_;
   size_t max_gpu_memory_mb_;
+  int num_gpus_;    //max number of GPU per process
 
   // use explicit parallelization
   bool explicit_parallelization_;
@@ -250,6 +261,7 @@ protected:
   //distributed experiments (MPI)
   int distributed_experiments_rank_ = 0;
   int distributed_experiments_group_id_ = 0;
+  uint_t distributed_experiments_num_processes_ = 1;
   int distributed_experiments_ = 1;
   uint_t num_process_per_experiment_;
   uint_t distributed_experiments_begin_;
@@ -258,6 +270,7 @@ protected:
   //distributed shots (MPI)
   int distributed_shots_rank_ = 0;
   int distributed_shots_ = 1;
+
   //process information (MPI)
   int myrank_ = 0;
   int num_processes_ = 1;
@@ -355,6 +368,8 @@ void Controller::clear_parallelization() {
   num_process_per_experiment_ = 1;
   distributed_experiments_ = 1;
   distributed_shots_ = 1;
+
+  num_gpus_ = 0;
 
   explicit_parallelization_ = false;
   max_memory_mb_ = get_system_memory_mb() / 2;
@@ -465,29 +480,58 @@ void Controller::set_distributed_parallelization(const std::vector<Circuit> &cir
       num_process_per_experiment_ = std::max<int>(num_process_per_experiment_,(size + (max_memory_mb_+max_gpu_memory_mb_) - 1) / (max_memory_mb_+max_gpu_memory_mb_));
     }
   }
+  while((num_processes_ % num_process_per_experiment_) != 0){
+    num_process_per_experiment_++;
+  }
 
-  //set group
   distributed_experiments_ = num_processes_ / num_process_per_experiment_;
-  distributed_experiments_group_id_ = myrank_ / num_process_per_experiment_;
-  distributed_experiments_rank_ = myrank_ % num_process_per_experiment_;
 
   if(circuits.size() < distributed_experiments_){
-    distributed_experiments_begin_ = distributed_experiments_group_id_ % circuits.size();
-    distributed_experiments_end_ = distributed_experiments_begin_ + 1;
-    distributed_shots_ = distributed_experiments_ / circuits.size();
-    if(distributed_experiments_group_id_ % circuits.size() < distributed_experiments_ % circuits.size()){
-      distributed_shots_ += 1;
-    }
-    distributed_shots_rank_ = distributed_experiments_group_id_ / circuits.size();
-
+    // e.g. np = 8, circuits = 3, npe = 2,  de = 4 -> 3 , then np_in_group = [3,3,2]
+    //      np = 4, circuits = 1, npe = 2,  de = 2 -> 1 , then np_in_group = [4]
     distributed_experiments_ = circuits.size();
+
+    distributed_experiments_num_processes_ = (num_processes_ + distributed_experiments_ - 1)/distributed_experiments_;
+    distributed_experiments_group_id_ = myrank_ / distributed_experiments_num_processes_;
+    if((distributed_experiments_group_id_+1)*distributed_experiments_num_processes_ > num_processes_){
+      distributed_experiments_num_processes_ = num_processes_ - distributed_experiments_group_id_*distributed_experiments_num_processes_;
+    }
+
+    if(distributed_experiments_num_processes_ > num_process_per_experiment_ && (distributed_experiments_num_processes_ % num_process_per_experiment_) == 0){
+      distributed_shots_ = distributed_experiments_num_processes_ / num_process_per_experiment_;
+      distributed_shots_rank_ = 0;
+    }
+    else{
+      //shots are not distributed
+      distributed_shots_ = 1;
+      distributed_shots_rank_ = 0;
+    }
+    distributed_experiments_rank_ = myrank_ % distributed_experiments_;
+
+    distributed_experiments_begin_ = distributed_experiments_group_id_;
+    distributed_experiments_end_ = distributed_experiments_begin_ + 1;
   }
   else{
+    distributed_experiments_group_id_ = myrank_ / num_process_per_experiment_;
+    distributed_experiments_rank_ = myrank_ % num_process_per_experiment_;
+    distributed_experiments_num_processes_ = num_process_per_experiment_;
+
     distributed_experiments_begin_ = circuits.size() * distributed_experiments_group_id_ / distributed_experiments_;
     distributed_experiments_end_ = circuits.size() * (distributed_experiments_group_id_ + 1) / distributed_experiments_;
+
     //shots are not distributed
     distributed_shots_ = 1;
     distributed_shots_rank_ = 0;
+  }
+}
+
+uint_t Controller::get_distributed_num_processes(bool par_shots) const
+{
+  if(par_shots){
+    return num_process_per_experiment_;
+  }
+  else{
+    return distributed_experiments_num_processes_;    //no shot distribution, parallelize this experiment by processes in group
   }
 }
 
@@ -528,6 +572,7 @@ size_t Controller::get_gpu_memory_mb() {
     cudaMemGetInfo(&freeMem,&totalMem);
     total_physical_memory += totalMem;
   }
+  num_gpus_ = nDev;
 #endif
 #ifdef AER_MPI
   //get minimum memory size per process
@@ -535,7 +580,11 @@ size_t Controller::get_gpu_memory_mb() {
   locMem = total_physical_memory;
   MPI_Allreduce(&locMem,&minMem,1,MPI_UINT64_T,MPI_MIN,MPI_COMM_WORLD);
   total_physical_memory = minMem;
+
+  int t = num_gpus_;
+  MPI_Allreduce(&t,&num_gpus_,1,MPI_INT,MPI_MAX,MPI_COMM_WORLD);
 #endif
+
   return total_physical_memory >> 20;
 }
 
@@ -727,11 +776,10 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     result.metadata.add(max_memory_mb_, "max_memory_mb");
     result.metadata.add(max_gpu_memory_mb_,"max_gpu_memory_mb");
 
-#ifdef AER_MPI
     //store rank and number of processes, if no distribution rank=0 procs=1 is set
-    result.metadata.add(num_processes_,"num_distributed_processes");
-    result.metadata.add(myrank_,"distributed_rank");
-
+    result.metadata.add(num_processes_,"num_mpi_processes");
+    result.metadata.add(myrank_,"mpi_rank");
+#ifdef AER_MPI
     result.metadata.add(distributed_experiments_,"distributed_experiments");
     result.metadata.add(distributed_experiments_group_id_,"distributed_experiments_group_id");
     result.metadata.add(distributed_experiments_rank_,"distributed_experiments_rank_in_group");
@@ -831,10 +879,12 @@ void Controller::execute_circuit(Circuit &circ,
     if (!explicit_parallelization_) {
       set_parallelization_circuit(circ, noise);
     }
-#ifdef AER_MPI
-    int shots = (circ.shots * (distributed_shots_rank_ + 1)/distributed_shots_) - (circ.shots * distributed_shots_rank_ /distributed_shots_);
-#else
+
     int shots = circ.shots;
+#ifdef AER_MPI
+    if(parallel_shots_ > 1 && distributed_shots_ > 1){   //if shots can be distributed
+      shots = (circ.shots * (distributed_shots_rank_ + 1)/distributed_shots_) - (circ.shots * distributed_shots_rank_ /distributed_shots_);
+    }
 #endif
 
     // Single shot thread execution
@@ -906,7 +956,7 @@ void Controller::execute_circuit(Circuit &circ,
     result.metadata.add(parallel_shots_, "parallel_shots");
     result.metadata.add(parallel_state_update_, "parallel_state_update");
 #ifdef AER_MPI
-    if(distributed_shots_ > 1){
+    if(parallel_shots_ > 1 && distributed_shots_ > 1){
       result.metadata.add(distributed_shots_,"distributed_shots");
     }
 #endif

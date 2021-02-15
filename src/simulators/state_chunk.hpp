@@ -38,6 +38,7 @@ class StateChunk {
 
 public:
   using ignore_argument = void;
+  using DataSubType = Operations::DataSubType;
 
   //-----------------------------------------------------------------------
   // Constructors
@@ -131,6 +132,12 @@ public:
   virtual size_t required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops)
                                     const = 0;
+
+  // Return the expectation value of a N-qubit Pauli operator
+  // If the simulator does not support Pauli expectation value this should
+  // raise an exception.
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string& pauli) = 0;
 
   //-----------------------------------------------------------------------
   // Optional: Load config settings
@@ -227,6 +234,13 @@ public:
                          DataSubType type = DataSubType::list) const;
 
   //-----------------------------------------------------------------------
+  // Common instructions
+  //-----------------------------------------------------------------------
+  
+  // Apply a save expectation value instruction
+  void apply_save_expval(const Operations::Op &op, ExperimentResult &result);
+
+  //-----------------------------------------------------------------------
   // Standard snapshots
   //-----------------------------------------------------------------------
 
@@ -299,6 +313,10 @@ protected:
 
   //swap between chunks
   virtual void apply_chunk_swap(const reg_t &qubits);
+
+  //send/receive chunk in receive buffer
+  void send_chunk(uint_t local_chunk_index, uint_t global_chunk_index);
+  void recv_chunk(uint_t local_chunk_index, uint_t global_chunk_index);
 
   //reduce values over processes
   void reduce_sum(rvector_t& sum) const;
@@ -596,9 +614,6 @@ void StateChunk<state_t>::save_data_average(ExperimentResult &result,
                                        const T& datum,
                                        DataSubType type) const {
   switch (type) {
-    case DataSubType::single:
-      result.data.add_single(datum, key);
-      break;
     case DataSubType::list:
       result.data.add_list(datum, key);
       break;
@@ -629,9 +644,6 @@ void StateChunk<state_t>::save_data_average(ExperimentResult &result,
                                        T&& datum,
                                        DataSubType type) const {
   switch (type) {
-    case DataSubType::single:
-      result.data.add_single(std::move(datum), key);
-      break;
     case DataSubType::list:
       result.data.add_list(std::move(datum), key);
       break;
@@ -665,6 +677,9 @@ void StateChunk<state_t>::save_data_pershot(ExperimentResult &result,
   case DataSubType::single:
     result.data.add_single(datum, key);
     break;
+  case DataSubType::c_single:
+    result.data.add_single(datum, key, creg_.memory_hex());
+    break;
   case DataSubType::list:
     result.data.add_list(datum, key);
     break;
@@ -685,6 +700,9 @@ void StateChunk<state_t>::save_data_pershot(ExperimentResult &result,
   switch (type) {
     case DataSubType::single:
       result.data.add_single(std::move(datum), key);
+      break;
+    case DataSubType::c_single:
+      result.data.add_single(datum, key, creg_.memory_hex());
       break;
     case DataSubType::list:
       result.data.add_list(std::move(datum), key);
@@ -749,6 +767,38 @@ void StateChunk<state_t>::snapshot_creg_register(const Operations::Op &op,
                                creg_.register_hex());
 }
 
+
+template <class state_t>
+void StateChunk<state_t>::apply_save_expval(const Operations::Op &op,
+                                            ExperimentResult &result){
+  // Check empty edge case
+  if (op.expval_params.empty()) {
+    throw std::invalid_argument(
+        "Invalid save expval instruction (Pauli components are empty).");
+  }
+  bool variance = (op.type == Operations::OpType::save_expval_var);
+
+  // Accumulate expval components
+  double expval(0.);
+  double sq_expval(0.);
+
+  for (const auto &param : op.expval_params) {
+    // param is tuple (pauli, coeff, sq_coeff)
+    const auto val = expval_pauli(op.qubits, std::get<0>(param));
+    expval += std::get<1>(param) * val;
+    if (variance) {
+      sq_expval += std::get<2>(param) * val;
+    }
+  }
+  if (variance) {
+    std::vector<double> expval_var(2);
+    expval_var[0] = expval;  // mean
+    expval_var[1] = sq_expval - expval * expval;  // variance
+    save_data_average(result, op.string_params[0], expval_var, op.save_type);
+  } else {
+    save_data_average(result, op.string_params[0], expval, op.save_type);
+  }
+}
 
 template <class state_t>
 void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
@@ -922,6 +972,43 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 #endif
 
   }
+}
+
+
+template <class state_t>
+void StateChunk<state_t>::send_chunk(uint_t local_chunk_index, uint_t global_chunk_index)
+{
+#ifdef AER_MPI
+  MPI_Request reqSend;
+  MPI_Status st;
+  uint_t sizeSend;
+  uint_t iProc;
+
+  iProc = get_process_by_chunk(global_chunk_index);
+
+  auto pSend = qregs_[local_chunk_index].send_buffer(sizeSend);
+  MPI_Isend(pSend,sizeSend,MPI_BYTE,iProc,0,distributed_comm_,&reqSend);
+
+  MPI_Wait(&reqSend,&st);
+#endif
+}
+
+template <class state_t>
+void StateChunk<state_t>::recv_chunk(uint_t local_chunk_index, uint_t global_chunk_index)
+{
+#ifdef AER_MPI
+  MPI_Request reqRecv;
+  MPI_Status st;
+  uint_t sizeRecv;
+  uint_t iProc;
+
+  iProc = get_process_by_chunk(global_chunk_index);
+
+  auto pRecv = qregs_[local_chunk_index].recv_buffer(sizeRecv);
+  MPI_Irecv(pRecv,sizeRecv,MPI_BYTE,iProc,0,distributed_comm_,&reqRecv);
+
+  MPI_Wait(&reqRecv,&st);
+#endif
 }
 
 template <class state_t>
