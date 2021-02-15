@@ -10,33 +10,40 @@ import os
 import setuptools
 import subprocess
 import sys
+from pkg_resources import parse_version
 
 
 PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
 _DISABLE_CONAN = distutils.util.strtobool(os.getenv("DISABLE_CONAN", "OFF").lower())
+_DISABLE_DEPENDENCY_INSTALL = distutils.util.strtobool(os.getenv("DISABLE_DEPENDENCY_INSTALL", "OFF").lower())
+
+def install_needed_req(to_import, to_install=None, min_version=None, max_version=None):
+    to_install_ver = to_install if to_install else to_import
+    to_install_ver = to_install_ver + '>=' + min_version if min_version else to_install_ver
+    to_install_ver = to_install_ver + '<' + max_version if max_version else to_install_ver
+
+    try:
+        mod = importlib.import_module(to_import)
+        mod_ver = parse_version(mod.__version__)
+        if ((min_version and mod_ver < parse_version(min_version))
+                or (max_version and mod_ver >= parse_version(max_version))):
+            raise RuntimeError('{} {} is installed but required version is {}.'.
+                               format(to_install, mod_ver, to_install_ver))
+
+    except ImportError as err:
+        if _DISABLE_DEPENDENCY_INSTALL:
+            raise ImportError(str(err) +
+                              "\n{} is a required dependency. Please provide it and repeat install"
+                              .format(to_install))
+
+        subprocess.call([sys.executable, '-m', 'pip', 'install', to_install_ver])
 
 if not _DISABLE_CONAN:
-    try:
-        from conans import client
-    except ImportError:
-        subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan>=1.31.2'])
-        from conans import client
+    install_needed_req('conans', to_install='conan', min_version='1.31.2')
 
-try:
-    from skbuild import setup
-except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build'])
-    from skbuild import setup
-
-try:
-    import pybind11
-except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.6'])
-
-try:
-    from numpy import array
-except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=1.16.3'])
+install_needed_req('skbuild', to_install='scikit-build')
+install_needed_req('pybind11', min_version='2.6')
+install_needed_req('numpy', min_version='1.16.3')
 
 from skbuild import setup
 
