@@ -247,7 +247,7 @@ stages:
               source activate qiskit-aer
               conda update --yes -n base conda
               conda config --add channels conda-forge
-              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake pip setuptools wheel pybind11 scipy
+              conda install --yes --quiet --name qiskit-aer python=$(python.version) numpy cmake pip setuptools wheel scipy
             displayName: Create Anaconda environments
           - bash: |
               set -x
