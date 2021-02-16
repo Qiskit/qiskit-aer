@@ -78,6 +78,8 @@ jobs:
           aer-test/Scripts/python ../tools/verify_wheels.py
           aer-test/Scripts/pip check
         shell: bash
+        env:
+          CMAKE_GENERATOR: 'Visual Studio 16 2019'
   tests:
     runs-on: ${{ matrix.os }}
     needs: ["lint"]

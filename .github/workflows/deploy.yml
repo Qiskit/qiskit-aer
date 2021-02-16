@@ -25,6 +25,7 @@ jobs:
           CIBW_SKIP: "cp27-* cp34-* cp35-* pp*"
           CIBW_TEST_COMMAND: "python3 {project}/tools/verify_wheels.py"
           CIBW_TEST_REQUIRES: "git+https://github.com/Qiskit/qiskit-terra.git"
+          CIBW_ENVIRONMENT_WINDOWS: "CMAKE_GENERATOR='Visual Studio 16 2019'"
         run: |
           python -m cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v2
