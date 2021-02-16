@@ -73,7 +73,7 @@ class QasmSaveAmplitudesTests:
           [0],
           [5, 2],
           [7, 0])
-    def test_save_amplitudes_squared(self, params):
+    def test_save_amplitudes_squared_clifford(self, params):
         """Test save_amplitudes_squared instruction"""
 
         SUPPORTED_METHODS = [
@@ -84,6 +84,49 @@ class QasmSaveAmplitudesTests:
 
         # Stabilizer test circuit
         circ = QFT(3)
+
+        # Target statevector
+        target = np.abs(qi.Statevector(circ).data[params]) ** 2
+
+        # Add save to circuit
+        save_key = 'amps'
+        circ.save_amplitudes_squared(save_key, params)
+
+        # Run
+        opts = self.BACKEND_OPTS.copy()
+        qobj = assemble(circ, self.SIMULATOR)
+        result = self.SIMULATOR.run(qobj, **opts).result()
+        method = opts.get('method', 'automatic')
+        if method not in SUPPORTED_METHODS:
+            self.assertFalse(result.success)
+        else:
+            self.assertTrue(result.success)
+            data = result.data(0)
+            self.assertIn(save_key, data)
+            value = result.data(0)[save_key]
+            self.assertTrue(np.allclose(value, target))
+
+    @data([0, 1, 2, 3, 4, 5, 6, 7],
+          [7, 6, 5, 4, 3, 2, 1, 0],
+          [5, 3, 0, 2],
+          [0],
+          [5, 2],
+          [7, 0])
+    def test_save_amplitudes_squared_clifford(self, params):
+        """Test save_amplitudes_squared instruction for Clifford circuit"""
+
+        SUPPORTED_METHODS = [
+            'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
+            'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust',
+            'matrix_product_state', 'stabilizer'
+        ]
+
+        # Stabilizer test circuit
+        circ = QuantumCircuit(3)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.x(2)
+        circ.sdg(1)
 
         # Target statevector
         target = np.abs(qi.Statevector(circ).data[params]) ** 2

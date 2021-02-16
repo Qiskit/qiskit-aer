@@ -510,7 +510,8 @@ class QasmSimulator(AerBackend):
             config.description = 'A C++ QasmQobj Clifford stabilizer simulator with noise'
             config.custom_instructions = sorted([
                 'roerror', 'snapshot', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict'])
+                'save_probabilities', 'save_probabilities_dict',
+                'save_amplitudes_sq'])
             config.basis_gates = sorted([
                 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'cx', 'cy', 'cz',
                 'swap', 'delay',
