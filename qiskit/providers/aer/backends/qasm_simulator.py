@@ -294,9 +294,14 @@ class QasmSimulator(AerBackend):
             'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
             'initialize', 'delay', 'pauli', 'mcx_gray',
             # Custom instructions
-            'kraus', 'roerror', 'snapshot'
+            'kraus', 'roerror', 'snapshot', 'save_expval', 'save_expval_var',
+            'save_probabilities', 'save_probabilities_dict',
+            'save_density_matrix', 'save_statevector'
         ]),
-        'custom_instructions': sorted(['roerror', 'kraus', 'snapshot']),
+        'custom_instructions': sorted([
+            'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
+            'save_probabilities', 'save_probabilities_dict',
+            'save_density_matrix', 'save_statevector']),
         'gates': []
     }
 
@@ -471,7 +476,9 @@ class QasmSimulator(AerBackend):
         ]:
             config.n_qubits = config.n_qubits // 2
             config.description = 'A C++ QasmQobj density matrix simulator with noise'
-            config.custom_instructions = sorted(['roerror', 'snapshot', 'kraus', 'superop'])
+            config.custom_instructions = sorted([
+                'roerror', 'snapshot', 'kraus', 'superop', 'save_expval', 'save_expval_var',
+                'save_probabilities', 'save_probabilities_dict', 'save_density_matrix'])
             config.basis_gates = sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
                 'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
@@ -482,6 +489,10 @@ class QasmSimulator(AerBackend):
         # Matrix product state method
         elif method == 'matrix_product_state':
             config.description = 'A C++ QasmQobj matrix product state simulator with noise'
+            config.custom_instructions = sorted([
+                'roerror', 'snapshot', 'kraus', 'save_expval', 'save_expval_var',
+                'save_probabilities', 'save_probabilities_dict',
+                'save_density_matrix', 'save_statevector'])
             config.basis_gates = sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
                 'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay',
@@ -493,7 +504,9 @@ class QasmSimulator(AerBackend):
         elif method == 'stabilizer':
             config.n_qubits = 5000  # TODO: estimate from memory
             config.description = 'A C++ QasmQobj Clifford stabilizer simulator with noise'
-            config.custom_instructions = sorted(['roerror', 'snapshot'])
+            config.custom_instructions = sorted([
+                'roerror', 'snapshot', 'save_expval', 'save_expval_var',
+                'save_probabilities', 'save_probabilities_dict'])
             config.basis_gates = sorted([
                 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'cx', 'cy', 'cz',
                 'swap', 'delay',
@@ -503,7 +516,7 @@ class QasmSimulator(AerBackend):
         elif method == 'extended_stabilizer':
             config.n_qubits = 63  # TODO: estimate from memory
             config.description = 'A C++ QasmQobj ranked stabilizer simulator with noise'
-            config.custom_instructions = sorted(['roerror', 'snapshot'])
+            config.custom_instructions = sorted(['roerror', 'snapshot', 'save_statevector'])
             config.basis_gates = sorted([
                 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'swap',
                 'u0', 'u1', 'p', 'ccx', 'ccz', 'delay'

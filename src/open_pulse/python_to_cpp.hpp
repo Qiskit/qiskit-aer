@@ -28,7 +28,8 @@
 #endif
 #include "misc/warnings.hpp"
 DISABLE_WARNING_PUSH
-#include <numpy/arrayobject.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 DISABLE_WARNING_POP
 #include "ordered_map.hpp"
 #include "types.hpp"
@@ -109,12 +110,11 @@ bool check_is_dict(PyObject * value){
     return true;
 }
 
-bool check_is_np_array(PyArrayObject * value){
-    if(value == nullptr)
+bool check_is_np_array(py::array value){
+    if(value.ptr() == nullptr)
         throw std::invalid_argument("Numpy ndarray is null!");
-    import_array();
     // Check that it's a numpy ndarray
-    if(!PyArray_Check(value))
+    if(value.ndim() == 0)
         return false;
 
     return true;
@@ -140,7 +140,7 @@ T get_value(PyObject * value){
 }
 
 template<typename T>
-const T get_value(PyArrayObject * value){
+const T get_value(py::array value){
     return get_value(type<T>{}, value);
 }
 // </JUAN>
@@ -312,13 +312,13 @@ template<typename VecType>
 class NpArray {
   public:
 	NpArray(){}
-	NpArray(PyArrayObject * array){
-	    if(PyArray_NDIM(array) > 2){
+	NpArray(py::array array){
+	    if(array.ndim() > 2){
 	        throw std::runtime_error("NpArray can only wrap 1D or 2D arrays.");
 	    }
 		_populate_data(array);
 		_populate_shape(array);
-        size = PyArray_NDIM(array) == 2 ? array->dimensions[0] * array->dimensions[1] : array->dimensions[0];
+        size = array.ndim() == 2 ? array.shape(0) * array.shape(1) : array.shape(0);
 	}
 
     const VecType * data = nullptr;
@@ -359,40 +359,36 @@ class NpArray {
     }
   private:
 
-	void _populate_shape(PyArrayObject * array){
-		if(!check_is_np_array(array))
-			throw std::invalid_argument("PyArrayObject is not a numpy array!");
-
-		auto p_dims = PyArray_SHAPE(array);
-		if(p_dims == nullptr)
-			throw std::invalid_argument("Couldn't get the shape of the array!");
-
-		auto num_dims = PyArray_NDIM(array);
+	void _populate_shape(py::array array){
+        if(!check_is_np_array(array))
+            throw std::invalid_argument("py::array is not a numpy array!");
+        
+		auto num_dims = array.ndim();
 		shape.reserve(num_dims);
 		for(auto i = 0; i < num_dims; ++i){
-			shape.emplace_back(p_dims[i]);
+			shape.emplace_back(array.shape(i));
 		}
 		if(shape.size() == 1){
 		    shape.emplace_back(0);
 		}
 	}
 
-    void _populate_data(PyArrayObject * array){
-        data = reinterpret_cast<VecType *>(array->data);
+    void _populate_data(py::array array){
+        data = reinterpret_cast<VecType *>(array.request().ptr);
 	}
 };
 
 template<typename T>
-const NpArray<T> get_value(type<NpArray<T>> _, PyArrayObject * value){
+const NpArray<T> get_value(type<NpArray<T>> _, py::array value){
     if(!check_is_np_array(value))
-        throw std::invalid_argument("PyArrayObject is not a numpy array!");
-
+        throw std::invalid_argument("py::array is not a numpy array!");
+    
     return NpArray<T>(value);
 }
 
 template<typename T>
 const NpArray<T> get_value(type<NpArray<T>> _, PyObject * value) {
-    PyArrayObject * array = reinterpret_cast<PyArrayObject *>(value);
+    py::array array = py::cast<py::array>(value);
     return get_value<NpArray<T>>(array);
 }
 
@@ -400,16 +396,6 @@ const NpArray<T> get_value(type<NpArray<T>> _, PyObject * value) {
 PyObject * _get_py_value_from_py_dict(PyObject * dict, const std::string& key){
     if(!check_is_dict(dict))
         throw std::invalid_argument("Python dictionary is null!");
-
-    // PyObject * tmp_key;
-    // PyObject * value;
-    // Py_ssize_t pos = 0;
-    // while (PyDict_Next(dict, &pos, &tmp_key, &value)) {
-    //     auto key_str = get_value<std::string>(tmp_key);
-    //     if(key_str == key){
-    //         return value;
-    //     }
-    // }
     return PyDict_GetItemString(dict, key.c_str());
 }
 

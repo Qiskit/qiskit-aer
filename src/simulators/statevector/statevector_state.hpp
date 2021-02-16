@@ -45,7 +45,13 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::snapshot, Operations::OpType::barrier,
      Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-     Operations::OpType::multiplexer, Operations::OpType::kraus, Operations::OpType::sim_op},
+     Operations::OpType::multiplexer, Operations::OpType::kraus,
+     Operations::OpType::sim_op, Operations::OpType::save_expval,
+     Operations::OpType::save_expval_var, Operations::OpType::save_densmat,
+     Operations::OpType::save_probs, Operations::OpType::save_probs_ket,
+     Operations::OpType::save_statevec
+     // Operations::OpType::save_statevec_ket  // TODO
+     },
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
      "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
@@ -209,6 +215,33 @@ protected:
   void apply_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &krausops,
                    RngEngine &rng);
 
+  //-----------------------------------------------------------------------
+  // Save data instructions
+  //-----------------------------------------------------------------------
+
+  // Save the current state of the statevector simulator
+  // If `last_op` is True this will use move semantics to move the simulator
+  // state to the results, otherwise it will use copy semantics to leave
+  // the current simulator state unchanged.
+  void apply_save_statevector(const Operations::Op &op,
+                              ExperimentResult &result,
+                              bool last_op);
+
+  // Save the current state of the statevector simulator as a ket-form map.
+  void apply_save_statevector_ket(const Operations::Op &op,
+                                  ExperimentResult &result);
+
+  // Save the current density matrix or reduced density matrix
+  void apply_save_density_matrix(const Operations::Op &op,
+                                 ExperimentResult &result);
+
+  // Helper function for computing expectation value
+  void apply_save_probs(const Operations::Op &op,
+                        ExperimentResult &result);
+
+  // Helper function for computing expectation value
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string& pauli) override;
   //-----------------------------------------------------------------------
   // Measurement Helpers
   //-----------------------------------------------------------------------
@@ -540,6 +573,22 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
           else if(op.name == "end_register_blocking"){
             BaseState::qreg_.leave_register_blocking();
           }
+        case Operations::OpType::save_expval:
+        case Operations::OpType::save_expval_var:
+          BaseState::apply_save_expval(op, result);
+          break;
+        case Operations::OpType::save_densmat:
+          apply_save_density_matrix(op, result);
+          break;
+        case Operations::OpType::save_statevec:
+          apply_save_statevector(op, result, final_ops && ops.size() == i + 1);
+          break;
+        // case Operations::OpType::save_statevec_ket:
+        //   apply_save_statevector_ket(op, result);
+        //   break;
+        case Operations::OpType::save_probs:
+        case Operations::OpType::save_probs_ket:
+          apply_save_probs(op, result);
           break;
         default:
           throw std::invalid_argument(
@@ -549,6 +598,84 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
   }
 }
 
+//=========================================================================
+// Implementation: Save data
+//=========================================================================
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_probs(const Operations::Op &op,
+                                         ExperimentResult &result) {
+  // get probs as hexadecimal
+  auto probs = measure_probs(op.qubits);
+  if (op.type == Operations::OpType::save_probs_ket) {
+    // Convert to ket dict
+    BaseState::save_data_average(result, op.string_params[0],
+                                 Utils::vec2ket(probs, json_chop_threshold_, 16),
+                                 op.save_type);
+  } else {
+    BaseState::save_data_average(result, op.string_params[0],
+                                 std::move(probs), op.save_type);
+  }
+}
+
+
+template <class statevec_t>
+double State<statevec_t>::expval_pauli(const reg_t &qubits,
+                                       const std::string& pauli) {
+  return BaseState::qreg_.expval_pauli(qubits, pauli);
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_statevector(const Operations::Op &op,
+                                               ExperimentResult &result,
+                                               bool last_op) {
+  if (op.qubits.size() != BaseState::qreg_.num_qubits()) {
+    throw std::invalid_argument(
+        op.name + " was not applied to all qubits."
+        " Only the full statevector can be saved.");
+  }
+  if (last_op) {
+    BaseState::save_data_pershot(result, op.string_params[0],
+                                 BaseState::qreg_.move_to_vector(),
+                                 op.save_type);
+  } else {
+    BaseState::save_data_pershot(result, op.string_params[0],
+                                 BaseState::qreg_.copy_to_vector(),
+                                 op.save_type);
+  }
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_statevector_ket(const Operations::Op &op,
+                                                   ExperimentResult &result) {
+  if (op.qubits.size() != BaseState::qreg_.num_qubits()) {
+    throw std::invalid_argument(
+        op.name + " was not applied to all qubits."
+        " Only the full statevector can be saved.");
+  }
+  // TODO: compute state ket
+  std::map<std::string, complex_t> state_ket;
+
+  BaseState::save_data_pershot(result, op.string_params[0],
+                               std::move(state_ket), op.save_type);
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_density_matrix(const Operations::Op &op,
+                                                  ExperimentResult &result) {
+  cmatrix_t reduced_state;
+
+  // Check if tracing over all qubits
+  if (op.qubits.empty()) {
+    reduced_state = cmatrix_t(1, 1);
+    reduced_state[0] = BaseState::qreg_.norm();
+  } else {
+    reduced_state = density_matrix(op.qubits);
+  }
+
+  BaseState::save_data_average(result, op.string_params[0],
+                               std::move(reduced_state), op.save_type);
+}
 //=========================================================================
 // Implementation: Snapshots
 //=========================================================================
@@ -647,7 +774,7 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
   for (const auto &param : op.params_expval_pauli) {
     const auto &coeff = param.first;
     const auto &pauli = param.second;
-    expval += coeff * BaseState::qreg_.expval_pauli(op.qubits, pauli);
+    expval += coeff * expval_pauli(op.qubits, pauli);
   }
 
   // Add to snapshot
