@@ -69,7 +69,6 @@ protected:
   mutable reg_t qubitMap_;
   mutable reg_t qubitSwapped_;
   bool blocking_enabled_;
-  bool ignore_diagonal_ = false;
   int gpu_blocking_bits_;
 
   void block_circuit(Circuit& circ,bool doSwap) const;
@@ -81,11 +80,8 @@ protected:
   void restore_qubits_order(std::vector<Operations::Op>& ops) const;
 
   bool is_cross_qubits_op(Operations::Op& op) const;
-  void get_cross_qubits(Operations::Op& op, reg_t& qubits) const;
 
   bool is_diagonal_op(Operations::Op& op) const;
-
-  bool is_single_qubit_gate(Operations::Op& op) const;
 
   void insert_swap(std::vector<Operations::Op>& ops,uint_t bit0,uint_t bit1,bool chunk) const;
 
@@ -96,6 +92,7 @@ protected:
   bool can_block(Operations::Op& ops,reg_t& blockedQubits) const;
   bool can_reorder(Operations::Op& ops,std::vector<Operations::Op>& waiting_ops) const;
 
+  bool split_pauli(const Operations::Op& op, const reg_t blockedQubits, std::vector<Operations::Op>& out,std::vector<Operations::Op>& queue) const;
 };
 
 void CacheBlocking::set_config(const json_t &config)
@@ -107,9 +104,6 @@ void CacheBlocking::set_config(const json_t &config)
 
   if (JSON::check_key("blocking_qubits", config_))
     JSON::get_value(block_bits_, "blocking_qubits", config_);
-
-  if (JSON::check_key("blocking_ignore_diagonal", config_))
-    JSON::get_value(ignore_diagonal_, "blocking_ignore_diagonal", config_);
 
   if (JSON::check_key("gpu_blocking_bits", config_)){
     JSON::get_value(gpu_blocking_bits_, "gpu_blocking_bits", config_);
@@ -220,28 +214,23 @@ void CacheBlocking::define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t
   int nq,nb;
   bool exist;
   for(i=0;i<ops.size();i++){
-    reg_t cross_bits;
+    if(blockedQubits.size() >= block_bits_)
+      break;
+
     if(is_cross_qubits_op(ops[i])){
-      get_cross_qubits(ops[i],cross_bits);
-      if(cross_bits.size() > block_bits_){
-        std::string error = "CacheBlocking operation " + ops[i].name + " has " + 
-                            std::to_string(cross_bits.size()) + " bits that can not be fit in cache block " +
-                            std::to_string(block_bits_) + " bits";
-        throw std::runtime_error(error);
-      }
       reg_t blockedQubits_add;
 
       nq = blockedQubits.size();
-      for(iq=0;iq<cross_bits.size();iq++){
+      for(iq=0;iq<ops[i].qubits.size();iq++){
         exist = false;
         for(j=0;j<nq;j++){
-          if(cross_bits[iq] == blockedQubits[j]){
+          if(ops[i].qubits[iq] == blockedQubits[j]){
             exist = true;
             break;
           }
         }
         if(!exist)
-          blockedQubits_add.push_back(cross_bits[iq]);
+          blockedQubits_add.push_back(ops[i].qubits[iq]);
       }
       //only if all the qubits of gate can be added
       if(blockedQubits_add.size() + nq <= block_bits_){
@@ -249,15 +238,11 @@ void CacheBlocking::define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t
       }
     }
     else if(!crossQubitOnly){
-      if(is_single_qubit_gate(ops[i])){  //one qubit gate
-        if(blockedQubits.size() + 1 <= block_bits_){
-          blockedQubits.push_back(ops[i].qubits[0]);
-        }
+      for(j=0;j<ops[i].qubits.size();j++){
+        blockedQubits.push_back(ops[i].qubits[j]);
+        if(blockedQubits.size() >= block_bits_)
+          break;
       }
-    }
-
-    if(blockedQubits.size() >= block_bits_){
-      break;
     }
   }
 }
@@ -499,7 +484,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
     //gather blocked gates
     for(i=0;i<ops.size();i++){
       if(ops[i].type == Operations::OpType::gate || ops[i].type == Operations::OpType::matrix){
-        if((ignore_diagonal_ && is_diagonal_op(ops[i])) || can_block(ops[i],blockedQubits)){
+        if(is_diagonal_op(ops[i]) || can_block(ops[i],blockedQubits)){
           if(can_reorder(ops[i],queue)){
             //mapping swapped qubits
             for(iq=0;iq<ops[i].qubits.size();iq++){
@@ -507,6 +492,13 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
             }
             out.push_back(ops[i]);
             num_gates_added++;
+            continue;
+          }
+        }
+        else if(ops[i].name == "pauli"){
+          if(can_reorder(ops[i],queue)){
+            if(split_pauli(ops[i],blockedQubits,out,queue))
+              num_gates_added++;
             continue;
           }
         }
@@ -551,7 +543,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
         }
         else{
           if(can_reorder(ops[i],queue)){
-            if(ignore_diagonal_ && is_diagonal_op(ops[i])){
+            if(is_diagonal_op(ops[i])){
               //diagonal gate can be applied
               out.push_back(ops[i]);
               num_gates_added++;
@@ -605,14 +597,6 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
   return num_gates_added;
 }
 
-bool CacheBlocking::is_single_qubit_gate(Operations::Op& op) const
-{
-  if(op.qubits.size() == 1){
-    if((op.type == Operations::OpType::gate && op.name != "pauli") || op.type == Operations::OpType::matrix)
-      return true;
-  }
-  return false;
-}
 
 bool CacheBlocking::is_cross_qubits_op(Operations::Op& op) const
 {
@@ -624,7 +608,7 @@ bool CacheBlocking::is_cross_qubits_op(Operations::Op& op) const
     if(op.name == "swap")
       return true;
     else if(op.name == "pauli")
-      return true;
+      return false;   //pauli operation can be splited into non-cross-qubit ops
     else if(op.qubits.size() > 1)
       return true;
   }
@@ -636,30 +620,8 @@ bool CacheBlocking::is_cross_qubits_op(Operations::Op& op) const
   return false;
 }
 
-void CacheBlocking::get_cross_qubits(Operations::Op& op, reg_t& qubits) const
-{
-  int i;
-  if(op.name == "pauli"){
-    qubits.clear();
-    for(i=0;i<op.qubits.size();i++){
-      switch(op.string_params[0][op.qubits.size() - 1 - i]){
-        case 'X':
-        case 'Y':
-          qubits.push_back(op.qubits[i]);
-          break;
-        default:
-          break;
-      }
-    }
-  }
-  else{
-    qubits = op.qubits;
-  }
-}
-
 bool CacheBlocking::is_diagonal_op(Operations::Op& op) const
 {
-  bool is_pauli_str = false;
   if(op.type == Operations::OpType::gate){
     if(op.name == "u1")
       return true;
@@ -669,30 +631,65 @@ bool CacheBlocking::is_diagonal_op(Operations::Op& op) const
       return true;
     else if(op.name == "t" || op.name == "tdg")
       return true;
-    else if(op.name == "pauli"){
-      is_pauli_str = true;
-    }
   }
   else if(op.type == Operations::OpType::matrix){
-    if (ignore_diagonal_ && Utils::is_diagonal(op.mats[0], .0)){
+    if (Utils::is_diagonal(op.mats[0], .0)){
       return true;
     }
   }
+  return false;
+}
 
-  if(is_pauli_str){
-    int i;
-    bool is_diag = true;
-    for(i=0;i<op.qubits.size();i++){
-      switch(op.string_params[0][op.qubits.size() - 1 - i]){
-        case 'X':
-        case 'Y':
-          is_diag = false;
-          break;
-        default:
-          break;
+//split 1 pauli gate to 2 pauli gates (inside and outside)
+bool CacheBlocking::split_pauli(const Operations::Op& op,const reg_t blockedQubits,std::vector<Operations::Op>& out,std::vector<Operations::Op>& queue) const
+{
+  reg_t qubits_in_chunk;
+  reg_t qubits_out_chunk;
+  std::string pauli_in_chunk;
+  std::string pauli_out_chunk;
+  int_t i,j,n;
+  bool inside;
+
+  //get inner/outer chunk pauli string
+  n = op.qubits.size();
+  for(i=0;i<n;i++){
+    if(op.string_params[0][n - 1 - i] == 'I')
+      continue;   //remove I
+
+    inside = false;
+    for(j=0;j<blockedQubits.size();j++){
+      if(op.qubits[i] == blockedQubits[j]){
+        inside = true;
+        break;
       }
     }
-    return is_diag;
+    if(inside){
+      qubits_in_chunk.push_back(op.qubits[i]);
+      pauli_in_chunk.push_back(op.string_params[0][n-i-1]);
+    }
+    else{
+      qubits_out_chunk.push_back(op.qubits[i]);
+      pauli_out_chunk.push_back(op.string_params[0][n-i-1]);
+    }
+  }
+
+  if(qubits_out_chunk.size() > 0){  //save in queue
+    std::reverse(pauli_out_chunk.begin(),pauli_out_chunk.end());
+    Operations::Op op;
+    op.type = Operations::OpType::gate;
+    op.name = "pauli";
+    op.string_params = {pauli_out_chunk};
+    queue.push_back(op);
+  }
+
+  if(qubits_in_chunk.size() > 0){
+    std::reverse(pauli_in_chunk.begin(),pauli_in_chunk.end());
+    Operations::Op op;
+    op.type = Operations::OpType::gate;
+    op.name = "pauli";
+    op.string_params = {pauli_in_chunk};
+    out.push_back(op);
+    return true;
   }
 
   return false;

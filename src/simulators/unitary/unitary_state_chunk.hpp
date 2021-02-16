@@ -27,32 +27,8 @@
 #include "unitarymatrix_thrust.hpp"
 #endif
 
-//#include "unitary_state.hpp"
-
 namespace AER {
 namespace QubitUnitaryChunk {
-
-// OpSet of supported instructions
-const Operations::OpSet StateOpSet(
-    // Op types
-    {Operations::OpType::gate, Operations::OpType::barrier,
-     Operations::OpType::matrix, Operations::OpType::diagonal_matrix},
-    // Gates
-    {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
-     "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
-     "x",      "y",       "z",   "h",    "s",    "sdg",  "t",    "tdg",
-     "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
-     "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
-     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
-     "mcsx",   "delay", "pauli"},
-    // Snapshots
-    {});
-
-// Allowed gates enum class
-enum class Gates {
-  id, h, s, sdg, t, tdg, rxx, ryy, rzz, rzx,
-  mcx, mcy, mcz, mcr, mcrx, mcry, mcrz, mcp, mcu2, mcu3, mcswap, mcsx, pauli,
-};
 
 //=========================================================================
 // QubitUnitary State subclass
@@ -63,7 +39,7 @@ class State : public Base::StateChunk<unitary_matrix_t> {
 public:
   using BaseState = Base::StateChunk<unitary_matrix_t>;
 
-  State() : BaseState(StateOpSet) {}
+  State() : BaseState(QubitUnitary::StateOpSet) {}
   virtual ~State() = default;
 
   //-----------------------------------------------------------------------
@@ -127,6 +103,9 @@ protected:
 
   // Apply a matrix to given qubits (identity on all other qubits)
   void apply_matrix(const uint_t iChunk,const reg_t &qubits, const cvector_t &vmat);
+
+  // Apply a diagonal matrix
+  void apply_diagonal_matrix(const uint_t iChunk,const reg_t &qubits, const cvector_t &diag);
 
   //-----------------------------------------------------------------------
   // 1-Qubit Gates
@@ -197,7 +176,7 @@ void State<unitary_matrix_t>::apply_op(const int_t iChunk,const Operations::Op &
       apply_matrix(iChunk,op.qubits, op.mats[0]);
       break;
     case Operations::OpType::diagonal_matrix:
-      BaseState::qregs_[iChunk].apply_diagonal_matrix(op.qubits, op.params);
+      apply_diagonal_matrix(iChunk,op.qubits, op.params);
       break;
     default:
       throw std::invalid_argument(
@@ -427,7 +406,7 @@ void State<unitary_matrix_t>::apply_gate(const uint_t iChunk,const Operations::O
       BaseState::qregs_[iChunk].apply_matrix(op.qubits, Linalg::VMatrix::ryy(op.params[0]));
       break;
     case QubitUnitary::Gates::rzz:
-      BaseState::qregs_[iChunk].apply_diagonal_matrix(op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
+      apply_diagonal_matrix(iChunk,op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
       break;
     case QubitUnitary::Gates::rzx:
       BaseState::qregs_[iChunk].apply_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
@@ -497,10 +476,20 @@ void State<unitary_matrix_t>::apply_matrix(const uint_t iChunk,const reg_t &qubi
                                            const cvector_t &vmat) {
   // Check if diagonal matrix
   if (vmat.size() == 1ULL << qubits.size()) {
-    BaseState::qregs_[iChunk].apply_diagonal_matrix(qubits, vmat);
+    apply_diagonal_matrix(iChunk,qubits, vmat);
   } else {
     BaseState::qregs_[iChunk].apply_matrix(qubits, vmat);
   }
+}
+
+template <class unitary_matrix_t>
+void State<unitary_matrix_t>::apply_diagonal_matrix(const uint_t iChunk, const reg_t &qubits, const cvector_t &diag)
+{
+  reg_t qubits_in = qubits;
+  cvector_t diag_in = diag;
+
+  BaseState::block_diagonal_matrix(iChunk,qubits_in,diag_in);
+  BaseState::qregs_[iChunk].apply_diagonal_matrix(qubits_in,diag_in);
 }
 
 template <class unitary_matrix_t>
@@ -540,8 +529,7 @@ void State<unitary_matrix_t>::apply_global_phase() {
     int_t i;
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
     for(i=0;i<BaseState::num_local_chunks_;i++){
-      BaseState::qregs_[i].apply_diagonal_matrix(
-        {0}, {BaseState::global_phase_, BaseState::global_phase_}
+      apply_diagonal_matrix(i, {0}, {BaseState::global_phase_, BaseState::global_phase_}
       );
     }
   }

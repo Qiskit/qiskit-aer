@@ -343,6 +343,9 @@ protected:
                          RngEngine &rng,
                          bool final_ops = false)  = 0;
 
+  // block diagonal matrix in chunk
+  void block_diagonal_matrix(const int_t iChunk, reg_t &qubits, cvector_t &diag);
+
   // Set a global phase exp(1j * theta) for the state
   bool has_global_phase_ = false;
   complex_t global_phase_ = 1;
@@ -560,6 +563,47 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
       }
     }
     iOp++;
+  }
+}
+
+template <class state_t>
+void StateChunk<state_t>::block_diagonal_matrix(const int_t iChunk, reg_t &qubits, cvector_t &diag)
+{
+  uint_t gid = global_chunk_index_ + iChunk;
+  uint_t i,j;
+
+  reg_t qubits_in;
+  cvector_t diag_in;
+
+  for(i=0;i<qubits.size();i++){
+    if(qubits[i] < chunk_bits_/qubit_scale()){
+      qubits_in.push_back(qubits[i]);
+    }
+  }
+
+  if(qubits_in.size() < qubits.size()){
+    bool in_chunk;
+    for(i=0;i<diag.size();i++){
+      in_chunk = true;
+      for(j=0;j<qubits.size();j++){
+        if(qubits[j] >= chunk_bits_/qubit_scale()){ //out of chunk
+          if(((gid >> (qubits[i] - chunk_bits_/qubit_scale())) & 1) != ((i >> j) & 1)){
+            in_chunk = false;
+            break;
+          }
+        }
+      }
+      if(in_chunk)
+        diag_in.push_back(diag[i]);
+    }
+
+    if(qubits_in.size() == 0){
+      qubits_in.push_back(0);
+      diag_in.resize(2);
+      diag_in[1] = diag_in[0];
+    }
+    qubits = qubits_in;
+    diag = diag_in;
   }
 }
 
