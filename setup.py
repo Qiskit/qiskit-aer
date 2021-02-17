@@ -18,7 +18,8 @@ _DISABLE_CONAN = distutils.util.strtobool(os.getenv("DISABLE_CONAN", "OFF").lowe
 _DISABLE_DEPENDENCY_INSTALL = distutils.util.strtobool(os.getenv("DISABLE_DEPENDENCY_INSTALL", "OFF").lower())
 
 def install_needed_req(to_import, to_install=None, min_version=None, max_version=None):
-    to_install_ver = to_install if to_install else to_import
+    to_install = to_install if to_install else to_import
+    to_install_ver = to_install
     to_install_ver = to_install_ver + '>=' + min_version if min_version else to_install_ver
     to_install_ver = to_install_ver + '<' + max_version if max_version else to_install_ver
 
