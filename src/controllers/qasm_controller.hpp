@@ -215,6 +215,11 @@ class QasmController : public Base::Controller {
                                      const Operations::OpSet &opset,
                                      const json_t& config) const;
 
+
+  Transpile::CacheBlocking transpile_cache_blocking(const Circuit& circ,
+                                     const Noise::NoiseModel& noise,
+                                     const json_t& config) const;
+
   //----------------------------------------------------------------
   // Run circuit helpers
   //----------------------------------------------------------------
@@ -304,9 +309,6 @@ class QasmController : public Base::Controller {
 
   //using multiple chunks
   bool multiple_qregs_ = false;
-
-  //apply cache block before fusion
-  bool cache_block_before_fusion_ = false;
 };
 
 //=========================================================================
@@ -384,9 +386,6 @@ void QasmController::set_config(const json_t& config) {
   if(JSON::check_key("blocking_enable", config)){
     JSON::get_value(multiple_qregs_,"blocking_enable", config);
   }
-
-  JSON::get_value(cache_block_before_fusion_,
-                  "cache_block_before_fusion", config);
 }
 
 void QasmController::clear_config() {
@@ -939,6 +938,42 @@ Transpile::Fusion QasmController::transpile_fusion(Method method,
   return fusion_pass;
 }
 
+Transpile::CacheBlocking QasmController::transpile_cache_blocking(const Circuit& circ,
+                                   const Noise::NoiseModel& noise,
+                                   const json_t& config) const
+{
+  Transpile::CacheBlocking cache_block_pass;
+
+  cache_block_pass.set_config(config);
+  if(!cache_block_pass.enabled()){
+    //if blocking is not set by config, automatically set if required
+    if(Base::Controller::num_process_per_experiment_ > 1 || Base::Controller::get_min_memory_mb() < required_memory_mb(circ, noise)){
+      int nplace = Base::Controller::num_process_per_experiment_;
+      if(Base::Controller::num_gpus_ > 0)
+        nplace *= Base::Controller::num_gpus_;
+
+      size_t complex_size = (simulation_precision_ == Precision::single_precision) ? sizeof(std::complex<float>) : sizeof(std::complex<double>);
+
+      switch (simulation_method(circ, noise, false)) {
+        case Method::statevector:
+        case Method::statevector_thrust_cpu:
+        case Method::statevector_thrust_gpu:
+          cache_block_pass.set_blocking(circ.num_qubits, Base::Controller::get_min_memory_mb() << 20, nplace, complex_size,false);
+          break;
+        case Method::density_matrix:
+        case Method::density_matrix_thrust_cpu:
+        case Method::density_matrix_thrust_gpu:
+          cache_block_pass.set_blocking(circ.num_qubits, Base::Controller::get_min_memory_mb() << 20, nplace, complex_size,true);
+          break;
+        default:
+          throw std::runtime_error("QasmController: No enough memory to simulate this method on the sysytem");
+      }
+    }
+  }
+
+  return cache_block_pass;
+}
+
 void QasmController::set_parallelization_circuit(
     const Circuit& circ,
     const Noise::NoiseModel& noise_model) {
@@ -978,6 +1013,7 @@ void QasmController::set_parallelization_circuit(
     }
   }
 }
+
 
 void QasmController::set_distributed_parallelization(const std::vector<Circuit> &circuits,
                                   const std::vector<Noise::NoiseModel> &noise)
@@ -1022,29 +1058,11 @@ void QasmController::set_distributed_parallelization(const std::vector<Circuit> 
 
 
   if(sample_opt){
-    if(circuits.size() <= Base::Controller::distributed_experiments_){
-      //experiments and shots are not distributed
-      Base::Controller::num_process_per_experiment_ = Base::Controller::num_processes_;
-      Base::Controller::distributed_experiments_ = 1;
-      Base::Controller::distributed_experiments_group_id_ = 0;
-      Base::Controller::distributed_experiments_rank_ = Base::Controller::myrank_;
-
-      Base::Controller::distributed_experiments_begin_ = 0;
-      Base::Controller::distributed_experiments_end_ = circuits.size();
-
-      Base::Controller::distributed_shots_ = 1;
-      Base::Controller::distributed_shots_rank_ = 0;
-    }
-    else{
-      Base::Controller::set_distributed_parallelization(circuits, noise);
-
-      //shots are not distributed
-      Base::Controller::distributed_shots_ = 1;
-      Base::Controller::distributed_shots_rank_ = 0;
-    }
-  }
-  else{
     Base::Controller::set_distributed_parallelization(circuits, noise);
+
+    //shots are not distributed
+    Base::Controller::distributed_shots_ = 1;
+    Base::Controller::distributed_shots_rank_ = 0;
   }
 #endif
 }
@@ -1072,7 +1090,7 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   // Set state config
   state.set_config(config);
   state.set_parallalization(parallel_state_update_);
-  state.set_distribution(Base::Controller::num_process_per_experiment_);
+  state.set_distribution(Base::Controller::get_distributed_num_processes(shots == circ.shots));
   state.set_global_phase(circ.global_phase_angle);
 
   // Rng engine
@@ -1124,19 +1142,14 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   // Optimize circuit
   Noise::NoiseModel dummy_noise;
   Transpile::DelayMeasure measure_pass;
-  Transpile::CacheBlocking cache_block_pass;
   measure_pass.set_config(config);
   measure_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
-  cache_block_pass.set_config(config);
-  if(cache_block_before_fusion_){
-    cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
-  }
+
   auto fusion_pass = transpile_fusion(method, opt_circ.opset(), config);
   fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
 
-  if(!cache_block_before_fusion_){
-    cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
-  }
+  auto cache_block_pass = transpile_cache_blocking(opt_circ,noise,config);
+  cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
 
   // Run simulation
   run_multi_shot(opt_circ, shots, state, initial_state, method, result, rng);
@@ -1209,10 +1222,10 @@ void QasmController::run_circuit_with_sampled_noise(const Circuit& circ,
   // Transpilation for circuit noise method
   auto fusion_pass = transpile_fusion(method, circ.opset(), config);
   Transpile::DelayMeasure measure_pass;
-  Transpile::CacheBlocking cache_block_pass;
   measure_pass.set_config(config);
-  cache_block_pass.set_config(config);
   Noise::NoiseModel dummy_noise;
+
+  auto cache_block_pass = transpile_cache_blocking(circ,noise,config);
 
   //allocate qubit register
   state.allocate(Base::Controller::max_qubits_);
@@ -1221,14 +1234,10 @@ void QasmController::run_circuit_with_sampled_noise(const Circuit& circ,
   while (shots-- > 0) {
     Circuit noise_circ = noise.sample_noise(circ, rng);
     noise_circ.shots = 1;
-    if(cache_block_before_fusion_){
-      cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), result);
-    }
     measure_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), result);
     fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), result);
-    if(!cache_block_before_fusion_){
-      cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), result);
-    }
+    cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), result);
+
     run_single_shot(noise_circ, state, initial_state, result, rng);
   }
 }

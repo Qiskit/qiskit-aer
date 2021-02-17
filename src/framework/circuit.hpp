@@ -91,10 +91,11 @@ public:
   inline void set_random_seed() {seed = std::random_device()();}
 
 private:
-  Operations::OpSet opset_;      // Set of operation types contained in circuit
-  std::set<uint_t> qubitset_;    // Set of qubits used in the circuit
-  std::set<uint_t> memoryset_;   // Set of memory bits used in the circuit
-  std::set<uint_t> registerset_; // Set of register bits used in the circuit
+  Operations::OpSet opset_;       // Set of operation types contained in circuit
+  std::set<uint_t> qubitset_;     // Set of qubits used in the circuit
+  std::set<uint_t> memoryset_;    // Set of memory bits used in the circuit
+  std::set<uint_t> registerset_;  // Set of register bits used in the circuit
+  std::set<std::string> saveset_; // Set of key names for save data instructions
 };
 
 // Json conversion function
@@ -112,6 +113,7 @@ void Circuit::set_params() {
   qubitset_.clear();
   memoryset_.clear();
   registerset_.clear();
+  saveset_.clear();
   can_sample = true;
   first_measure_pos = 0;
 
@@ -126,6 +128,15 @@ void Circuit::set_params() {
     qubitset_.insert(op.qubits.begin(), op.qubits.end());
     memoryset_.insert(op.memory.begin(), op.memory.end());
     registerset_.insert(op.registers.begin(), op.registers.end());
+
+    // Check for duplicate save keys
+    if (Operations::SAVE_TYPES.find(op.type) != Operations::SAVE_TYPES.end()) {
+      auto pair = saveset_.insert(op.string_params[0]);
+      if (!pair.second) {
+        throw std::invalid_argument("Duplicate key \"" + op.string_params[0] +
+                                    "\" in save instruction.");
+      }
+    }
 
     // Compute measure sampling check
     if (can_sample) {

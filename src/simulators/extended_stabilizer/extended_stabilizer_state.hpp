@@ -36,7 +36,7 @@ const Operations::OpSet StateOpSet(
   {Operations::OpType::gate, Operations::OpType::measure,
     Operations::OpType::reset, Operations::OpType::barrier,
     Operations::OpType::roerror, Operations::OpType::bfunc,
-    Operations::OpType::snapshot},
+    Operations::OpType::snapshot, Operations::OpType::save_statevec},
   // Gates
   {"CX", "u0", "u1", "p", "cx", "cz", "swap", "id", "x", "y", "z", "h",
     "s", "sdg", "t", "tdg", "ccx", "ccz", "delay"},
@@ -134,9 +134,22 @@ protected:
   void statevector_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
   // //Compute probabilities from a stabilizer rank decomposition
   void probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
-
+  
   const static stringmap_t<Gates> gateset_;
   const static stringmap_t<Snapshots> snapshotset_;
+
+  //-----------------------------------------------------------------------
+  // Save data instructions
+  //-----------------------------------------------------------------------
+
+  // Compute and save the statevector for the current simulator state
+  void apply_save_statevector(const Operations::Op &op,
+                              ExperimentResult &result,
+                              RngEngine &rng);
+
+  // Helper function for computing expectation value
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string& pauli) override;
 
   //-----------------------------------------------------------------------
   //Parameters and methods specific to the Stabilizer Rank Decomposition
@@ -333,8 +346,10 @@ bool State::check_measurement_opt(const std::vector<Operations::Op> &ops) const
     {
       return false;
     }
-    if (op.type == Operations::OpType::measure || op.type == Operations::OpType::bfunc ||
-        op.type == Operations::OpType::snapshot)
+    if (op.type == Operations::OpType::measure ||
+        op.type == Operations::OpType::bfunc ||
+        op.type == Operations::OpType::snapshot ||
+        op.type == Operations::OpType::save_statevec)
     {
       return false;
     }
@@ -401,6 +416,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &
             case Operations::OpType::snapshot:
               apply_snapshot(op, result, rng);
               break;
+            case Operations::OpType::save_statevec:
+              apply_save_statevector(op, result, rng);
+              break;
             default:
               throw std::invalid_argument("CH::State::apply_ops does not support operations of the type \'" + 
                                           op.name + "\'.");
@@ -410,7 +428,6 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &
       }
     }
   }
-  
 }
 
 std::vector<reg_t> State::sample_measure(const reg_t& qubits,
@@ -529,6 +546,9 @@ void State::apply_stabilizer_circuit(const std::vector<Operations::Op> &ops,
         break;
       case Operations::OpType::snapshot:
         apply_snapshot(op, result, rng);
+        break;
+      case Operations::OpType::save_statevec:
+        apply_save_statevector(op, result, rng);
         break;
       default:
         throw std::invalid_argument("CH::State::apply_stabilizer_circuit does not support operations of the type \'" + 
@@ -708,6 +728,20 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank)
   }
 }
 
+void State::apply_save_statevector(const Operations::Op &op,
+                                   ExperimentResult &result,
+                                   RngEngine& rng) {
+  if (op.qubits.size() != BaseState::qreg_.get_n_qubits()) {
+    throw std::invalid_argument(
+        "Save statevector was not applied to all qubits."
+        " Only the full statevector can be saved.");
+  }
+  BaseState::save_data_pershot(
+    result, op.string_params[0],
+    BaseState::qreg_.statevector(norm_estimation_samples_, 3, rng),
+    op.save_type);
+}
+
 void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
 {
   auto it = snapshotset_.find(op.name);
@@ -739,14 +773,8 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result, R
 
 void State::statevector_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
 {
-  cvector_t statevector;
-  BaseState::qreg_.state_vector(statevector,  norm_estimation_samples_, 3, rng);
-  double sum = 0.;
-  for(uint_t i=0; i<statevector.size(); i++)
-  {
-    sum += std::pow(std::abs(statevector[i]), 2);
-  }
-  result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0], statevector);
+  result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0],
+     BaseState::qreg_.statevector(norm_estimation_samples_, 3, rng));
 }
 
 void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
@@ -823,6 +851,12 @@ void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &r
 //-------------------------------------------------------------------------
 // Implementation: Utility
 //-------------------------------------------------------------------------
+
+double State::expval_pauli(const reg_t &qubits, const std::string& pauli) {
+  // TODO: Add support
+  throw std::runtime_error(
+    "Extended stabilizer method does not support Pauli expectation values.");
+}
 
 inline void to_json(json_t &js, cvector_t vec)
 {

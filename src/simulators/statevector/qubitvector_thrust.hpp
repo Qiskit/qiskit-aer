@@ -315,6 +315,11 @@ public:
   // The Pauli is input as a length N string of I,X,Y,Z characters.
   double expval_pauli(const reg_t &qubits, const std::string &pauli,
                       const complex_t &coeff = 1) const;
+  //for multi-chunk inter chunk expectation
+  double expval_pauli(const reg_t &qubits, const std::string &pauli,
+                      const QubitVectorThrust<data_t>& pair_chunk,
+                      const uint_t z_count,const uint_t z_count_pair,
+                      const complex_t &coeff = 1) const;
 
 
   //-----------------------------------------------------------------------
@@ -3561,40 +3566,8 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
                                                const std::string &pauli,
                                                const complex_t &coeff) const 
 {
-  const size_t N = qubits.size();
-  uint_t x_mask = 0;
-  uint_t z_mask = 0;
-  uint_t num_y = 0;
-  uint_t x_max = 0;
-  for (size_t i = 0; i < N; ++i) {
-    if(qubits[i] >= num_qubits_){  //only accepts bits inside chunk
-      continue;
-    }
-    const auto bit = 1ull << qubits[i];
-
-    switch (pauli[N - 1 - i]) {
-      case 'I':
-        break;
-      case 'X': {
-        x_mask |= bit;
-        x_max = std::max(x_max, (qubits[i]));
-        break;
-      }
-      case 'Z': {
-        z_mask |= bit;
-        break;
-      }
-      case 'Y': {
-        x_mask |= bit;
-        x_max = std::max(x_max, (qubits[i]));
-        z_mask |= bit;
-        num_y++;
-        break;
-      }
-      default:
-        throw std::invalid_argument("Invalid Pauli \"" + std::to_string(pauli[N - 1 - i]) + "\".");
-    }
-  }
+  uint_t x_mask, z_mask, num_y, x_max;
+  std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
 
   // Special case for only I Paulis
   if (x_mask + z_mask == 0) {
@@ -3612,6 +3585,140 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
   }
 
   return apply_function_sum( expval_pauli_XYZ_func<data_t>(x_mask, z_mask, x_max, phase) );
+}
+
+template <typename data_t>
+class expval_pauli_inter_chunk_func : public GateFuncBase<data_t>
+{
+protected:
+  uint_t x_mask_;
+  uint_t z_mask_;
+  thrust::complex<data_t> phase_;
+  thrust::complex<data_t>* pair_chunk_;
+  uint_t z_count_;
+  uint_t z_count_pair_;
+public:
+  expval_pauli_inter_chunk_func(uint_t x,uint_t z,std::complex<data_t> p,thrust::complex<data_t>* pair_chunk,uint_t zc,uint_t zcp)
+  {
+    x_mask_ = x;
+    z_mask_ = z;
+    phase_ = p;
+
+    pair_chunk_ = pair_chunk;
+    z_count_ = zc;
+    z_count_pair_ = zcp;
+  }
+
+  bool is_diagonal(void)
+  {
+    return true;
+  }
+
+  __host__ __device__ double operator()(const uint_t &i) const
+  {
+    thrust::complex<data_t>* vec;
+    thrust::complex<data_t> q0;
+    thrust::complex<data_t> q1;
+    thrust::complex<data_t> q0p;
+    thrust::complex<data_t> q1p;
+    double d0,d1,ret = 0.0;
+    uint_t ip;
+
+    vec = this->data_;
+
+    ip = i ^ x_mask_;
+    q0 = vec[i];
+    q1 = pair_chunk_[ip];
+    q0p = q1 * phase_;
+    q1p = q0 * phase_;
+    d0 = q0.real()*q0p.real() + q0.imag()*q0p.imag();
+    d1 = q1.real()*q1p.real() + q1.imag()*q1p.imag();
+
+    if((pop_count_kernel(i & z_mask_) + z_count_) & 1)
+      ret = -d0;
+    else
+      ret = d0;
+    if((pop_count_kernel(ip & z_mask_) + z_count_pair_) & 1)
+      ret -= d1;
+    else
+      ret += d1;
+
+    return ret;
+  }
+  const char* name(void)
+  {
+    return "expval_pauli_inter_chunk";
+  }
+};
+
+template <typename data_t>
+double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
+                                               const std::string &pauli,
+                                               const QubitVectorThrust<data_t>& pair_chunk,
+                                               const uint_t z_count,const uint_t z_count_pair,
+                                               const complex_t &coeff) const 
+{
+  uint_t x_mask, z_mask, num_y, x_max;
+  std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
+
+  //get pointer to pairing chunk (copy if needed)
+  double ret;
+  thrust::complex<data_t>* pair_ptr;
+  std::shared_ptr<Chunk<data_t>> buffer = nullptr;
+
+  if(pair_chunk.data() == this->data()){
+#ifdef AER_DISABLE_GDR
+    if(chunk_->device() >= 0){    //if there is no GPUDirectRDMA support, copy chunk from CPU
+      buffer = chunk_manager_.MapBufferChunk(chunk_->place());
+      buffer->CopyIn(recv_chunk_);
+      pair_ptr = buffer->pointer();
+    }
+    else{
+      pair_ptr = recv_chunk_->pointer();
+    }
+#else
+    pair_ptr = recv_chunk_->pointer();
+#endif
+  }
+  else{   //on other memory space, copy required
+    if(chunk_->device() >= 0){
+      if(chunk_->container()->peer_access(pair_chunk.chunk_->device())){
+        pair_ptr = pair_chunk.chunk_->pointer();
+      }
+      else{
+        do{
+          buffer = chunk_manager_.MapBufferChunk(chunk_->place());
+        }while(!buffer);
+        buffer->CopyIn(pair_chunk.chunk_);
+        pair_ptr = buffer->pointer();
+      }
+    }
+    else{
+      if(pair_chunk.chunk_->device() >= 0){
+        do{
+          buffer = chunk_manager_.MapBufferChunk(chunk_->place());
+        }while(!buffer);
+        buffer->CopyIn(chunk_);
+        pair_ptr = buffer->pointer();
+      }
+      else{
+        pair_ptr = pair_chunk.chunk_->pointer();
+      }
+    }
+  }
+
+  // Compute the overall phase of the operator.
+  // This is (-1j) ** number of Y terms modulo 4
+  auto phase = std::complex<data_t>(coeff);
+  add_y_phase(num_y, phase);
+
+  ret = apply_function_sum( expval_pauli_inter_chunk_func<data_t>(x_mask, z_mask, phase, pair_ptr,z_count,z_count_pair) );
+
+  if(buffer){
+    chunk_manager_.UnmapBufferChunk(buffer);
+  }
+
+  return ret;
 }
 
 /*******************************************************************************
