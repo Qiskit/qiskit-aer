@@ -75,7 +75,7 @@ protected:
 
   void put_nongate_ops(std::vector<Operations::Op>& out,std::vector<Operations::Op>& queue,std::vector<Operations::Op>& input,bool doSwap) const;
 
-  uint_t add_ops(std::vector<Operations::Op>& ops,std::vector<Operations::Op>& out,std::vector<Operations::Op>& queue,bool doSwap) const;
+  uint_t add_ops(std::vector<Operations::Op>& ops,std::vector<Operations::Op>& out,std::vector<Operations::Op>& queue,bool doSwap,bool first) const;
 
   void restore_qubits_order(std::vector<Operations::Op>& ops) const;
 
@@ -85,7 +85,7 @@ protected:
 
   void insert_swap(std::vector<Operations::Op>& ops,uint_t bit0,uint_t bit1,bool chunk) const;
 
-  void insert_sim_op(std::vector<Operations::Op>& ops,char* name) const;
+  void insert_sim_op(std::vector<Operations::Op>& ops,char* name,const reg_t& qubits) const;
 
   void define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t& blockedQubits,bool crossQubitOnly) const;
 
@@ -161,12 +161,13 @@ void CacheBlocking::insert_swap(std::vector<Operations::Op>& ops,uint_t bit0,uin
   ops.push_back(sgate);
 }
 
-void CacheBlocking::insert_sim_op(std::vector<Operations::Op>& ops,char* name) const
+void CacheBlocking::insert_sim_op(std::vector<Operations::Op>& ops,char* name,const reg_t& qubits) const
 {
   Operations::Op op;
   op.type = Operations::OpType::sim_op;
   op.name = name;
   op.string_params = {op.name};
+  op.qubits = qubits;
   ops.push_back(op);
 }
 
@@ -181,7 +182,6 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
   }
 
   if(blocking_enabled_){
-
     qubits_ = circ.num_qubits;
     if(block_bits_ >= qubits_){
       return;
@@ -296,11 +296,11 @@ void CacheBlocking::block_circuit(Circuit& circ,bool doSwap) const
   std::vector<Operations::Op> queue;
   std::vector<Operations::Op> queue_next;
 
-  n = add_ops(circ.ops,out,queue,doSwap);
+  n = add_ops(circ.ops,out,queue,doSwap,true);
   put_nongate_ops(out,queue_next,queue,doSwap);
   queue.clear();
-  while(queue_next.size() > 0 && n != 0){
-    n = add_ops(queue_next,out,queue,doSwap);
+  while(queue_next.size() > 0){
+    n = add_ops(queue_next,out,queue,doSwap,false);
     queue_next.clear();
     put_nongate_ops(out,queue_next,queue,doSwap);
     queue.clear();
@@ -347,7 +347,7 @@ void CacheBlocking::restore_qubits_order(std::vector<Operations::Op>& ops) const
           nInBlock = 1;
         }
         else{
-          insert_sim_op(ops,"begin_blocking");
+          insert_sim_op(ops,"begin_blocking",qubitMap_);
         }
       }
       insert_swap(ops,i,qubitMap_[i],false);
@@ -382,7 +382,7 @@ void CacheBlocking::restore_qubits_order(std::vector<Operations::Op>& ops) const
     }
   }
   if(nInBlock > 0){
-    insert_sim_op(ops,"end_blocking");
+    insert_sim_op(ops,"end_blocking",qubitMap_);
   }
 
   //finally find all pair of remaining qubits so that we can restore initial qubits
@@ -405,7 +405,7 @@ void CacheBlocking::restore_qubits_order(std::vector<Operations::Op>& ops) const
   }while(count != 0);
 }
 
-uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Operations::Op>& out,std::vector<Operations::Op>& queue,bool doSwap) const
+uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Operations::Op>& out,std::vector<Operations::Op>& queue,bool doSwap,bool first) const
 {
   uint_t i,j,iq;
 
@@ -420,7 +420,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
 
   if(doSwap){
     //find qubits to be blocked
-    if(out.size() == 0){
+    if(first){
       //use lower bits for initialization
       for(i=0;i<block_bits_;i++){
         blockedQubits.push_back(i);
@@ -479,7 +479,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
       }
     }
 
-    insert_sim_op(out,"begin_blocking");
+    insert_sim_op(out,"begin_blocking",blockedQubits);
 
     //gather blocked gates
     for(i=0;i<ops.size();i++){
@@ -507,7 +507,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
     }
 
     if(num_gates_added > 0){
-      insert_sim_op(out,"end_blocking");
+      insert_sim_op(out,"end_blocking",blockedQubits);
     }
     else{
       //pop unnecessary operations
@@ -534,7 +534,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
       }
     }
 
-    insert_sim_op(out,"begin_register_blocking");
+    insert_sim_op(out,"begin_register_blocking",blockedQubits);
     //gather blocked gates
     while(i < ops.size()){
       if(ops[i].type == Operations::OpType::gate || ops[i].type == Operations::OpType::matrix){
@@ -587,7 +587,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
 
     if(out.size() > pos_begin + 1){
       out[pos_begin].qubits = blockedQubits;  //store qubits to be blocked in the sim_op::begin_register_blocking
-      insert_sim_op(out,"end_register_blocking");
+      insert_sim_op(out,"end_register_blocking",blockedQubits);
     }
     else{
       out.pop_back();

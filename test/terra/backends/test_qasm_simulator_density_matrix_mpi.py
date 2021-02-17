@@ -35,7 +35,9 @@ class TestQasmSimulatorDensityMatrixMPI(common.QiskitAerTestCase, DensityMatrixM
         "seed_simulator": 271828,
         "method": "density_matrix",
         "blocking_enable" : True,
-        "blocking_qubits" : 6,
+        "blocking_qubits" : 5,
+        "fusion_enable" : True,
+        "fusion_threshold" : 5,
         "max_parallel_threads": 1
     }
 
@@ -49,8 +51,9 @@ class TestQasmSimulatorDensityMatrixMPIThrustGPU(common.QiskitAerTestCase,
         "seed_simulator": 271828,
         "method": "density_matrix_gpu",
         "blocking_enable" : True,
-        "blocking_qubits" : 6,
-        "blocking_ignore_diagonal" : True,
+        "blocking_qubits" : 5,
+        "fusion_enable" : True,
+        "fusion_threshold" : 5,
         "max_parallel_threads": 1
     }
 
@@ -64,7 +67,9 @@ class TestQasmSimulatorDensityMatrixMPIThrustCPU(common.QiskitAerTestCase,
         "seed_simulator": 271828,
         "method": "density_matrix_thrust",
         "blocking_enable" : True,
-        "blocking_qubits" : 6,
+        "blocking_qubits" : 5,
+        "fusion_enable" : True,
+        "fusion_threshold" : 5,
         "max_parallel_threads": 1
     }
 

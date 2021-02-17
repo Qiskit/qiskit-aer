@@ -304,6 +304,7 @@ protected:
   uint_t distributed_group_;    //group id of distribution
 
   bool chunk_omp_parallel_;     //using thread parallel to process loop of chunks or not
+  bool gpu_optimization_;       //optimization for GPU
 
   virtual int qubit_scale(void)
   {
@@ -371,6 +372,7 @@ StateChunk<state_t>::StateChunk(const Operations::OpSet &opset) : opset_(opset)
   distributed_group_ = 0;
 
   chunk_omp_parallel_ = false;
+  gpu_optimization_ = false;
 
 #ifdef AER_MPI
   distributed_comm_ = MPI_COMM_WORLD;
@@ -468,11 +470,13 @@ void StateChunk<state_t>::allocate(uint_t num_qubits)
 
   qregs_.resize(num_local_chunks_);
 
+  gpu_optimization_ = false;
   chunk_omp_parallel_ = false;
-  if(chunk_bits_ < num_qubits_){
-    if(qregs_[0].name().find("gpu") != std::string::npos){
+  if(qregs_[0].name().find("gpu") != std::string::npos){
+    if(chunk_bits_ < num_qubits_){
       chunk_omp_parallel_ = true;   //CUDA backend requires thread parallelization of chunk loop
     }
+    gpu_optimization_ = true;
   }
 
   nchunks = num_local_chunks_;
@@ -571,29 +575,26 @@ void StateChunk<state_t>::block_diagonal_matrix(const int_t iChunk, reg_t &qubit
 {
   uint_t gid = global_chunk_index_ + iChunk;
   uint_t i,j;
+  uint_t mask_out = 0;
+  uint_t mask_id = 0;
 
   reg_t qubits_in;
   cvector_t diag_in;
 
   for(i=0;i<qubits.size();i++){
-    if(qubits[i] < chunk_bits_/qubit_scale()){
+    if(qubits[i] < chunk_bits_/qubit_scale()){ //in chunk
       qubits_in.push_back(qubits[i]);
+    }
+    else{
+      mask_out |= (1ull << i);
+      if((gid >> (qubits[i] - chunk_bits_/qubit_scale())) & 1)
+        mask_id |= (1ull << i);
     }
   }
 
   if(qubits_in.size() < qubits.size()){
-    bool in_chunk;
     for(i=0;i<diag.size();i++){
-      in_chunk = true;
-      for(j=0;j<qubits.size();j++){
-        if(qubits[j] >= chunk_bits_/qubit_scale()){ //out of chunk
-          if(((gid >> (qubits[i] - chunk_bits_/qubit_scale())) & 1) != ((i >> j) & 1)){
-            in_chunk = false;
-            break;
-          }
-        }
-      }
-      if(in_chunk)
+      if((i & mask_out) == mask_id)
         diag_in.push_back(diag[i]);
     }
 

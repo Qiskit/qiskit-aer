@@ -35,7 +35,9 @@ class TestQasmSimulatorStatevectorMPI(common.QiskitAerTestCase, StatevectorMPITe
         "seed_simulator": 271828,
         "method": "statevector",
         "blocking_enable" : True,
-        "blocking_qubits" : 6,
+        "blocking_qubits" : 5,
+        "fusion_enable" : True,
+        "fusion_threshold" : 5,
         "max_parallel_threads": 1
     }
 
@@ -49,8 +51,9 @@ class TestQasmSimulatorStatevectorMPIThrustGPU(common.QiskitAerTestCase,
         "seed_simulator": 271828,
         "method": "statevector_gpu",
         "blocking_enable" : True,
-        "blocking_qubits" : 6,
-        "blocking_ignore_diagonal" : True,
+        "blocking_qubits" : 5,
+        "fusion_enable" : True,
+        "fusion_threshold" : 5,
         "max_parallel_threads": 1
     }
 
@@ -64,7 +67,7 @@ class TestQasmSimulatorStatevectorMPIThrustCPU(common.QiskitAerTestCase,
         "seed_simulator": 271828,
         "method": "statevector_thrust",
         "blocking_enable" : True,
-        "blocking_qubits" : 6,
+        "blocking_qubits" : 5,
         "max_parallel_threads": 1
     }
 
