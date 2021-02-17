@@ -55,7 +55,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                  noise_ops: Union[QuantumNoiseType,
                                   Iterable[Tuple[QuantumNoiseType, float]]],
                  number_of_qubits=None,
-                 standard_gates=True):
+                 standard_gates=False):
         """
         Create a quantum error for a noise model.
 
@@ -164,7 +164,11 @@ class QuantumError(BaseOperator, TolerancesMixin):
             elif isinstance(op, BaseOperator):
                 # Try to convert an operator subclass into Instruction first
                 if hasattr(op, 'to_instruction'):
-                    return to_circuit(op.to_instruction())
+                    try:
+                        return to_circuit(op.to_instruction())
+                    except QiskitError:
+                        raise NoiseError(
+                            "Fail to convert {} to Instruction.".format(op.__class__.__name__))
                 # Try to convert an operator subclass into Kraus
                 kraus_op = Kraus(op)
                 if isinstance(kraus_op, Kraus):
