@@ -103,6 +103,7 @@ protected:
   //circuit applicaiton over the states. This reduces the threading overhead
   //as we only have to fork once per circuit.
   void apply_ops_parallel(const std::vector<Operations::Op> &ops,
+                                  ExperimentResult &result,
                                   RngEngine &rng);
 
   //Small routine that eschews any parallelisation/decomposition and applies a stabilizer
@@ -397,7 +398,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &
     bool measurement_opt = check_measurement_opt(ops);
     if(measurement_opt)
     {
-      apply_ops_parallel(non_stabilizer_circuit, rng);
+      apply_ops_parallel(non_stabilizer_circuit, result, rng);
     }
     else
     {
@@ -502,7 +503,7 @@ std::vector<reg_t> State::sample_measure(const reg_t& qubits,
 //-------------------------------------------------------------------------
 
 //Method with slighty optimized parallelisation for the case of a sample_measure circuit
-void State::apply_ops_parallel(const std::vector<Operations::Op> &ops, RngEngine &rng)
+void State::apply_ops_parallel(const std::vector<Operations::Op> &ops, ExperimentResult &result, RngEngine &rng)
 {
   const int_t NUM_STATES = BaseState::qreg_.get_num_states();
   #pragma omp parallel for if(BaseState::qreg_.check_omp_threshold() && BaseState::threads_>1) num_threads(BaseState::threads_)
@@ -520,6 +521,10 @@ void State::apply_ops_parallel(const std::vector<Operations::Op> &ops, RngEngine
           apply_gate(op, rng, i);
           break;
         case Operations::OpType::barrier:
+          break;
+        case Operations::OpType::save_expval:
+        case Operations::OpType::save_expval_var:
+          apply_save_expval(op, result, rng);
           break;
         default:
           throw std::invalid_argument("CH::State::apply_ops_parallel does not support operations of the type \'" + 
@@ -805,7 +810,8 @@ void State::statevector_snapshot(const Operations::Op &op, ExperimentResult &res
 double State::expval_pauli(const reg_t &qubits,
                            const std::string& pauli) {
     // Compute expval components
-    auto phi_norm = BaseState::qreg_.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, default_rng_);
+    auto state_cpy = BaseState::qreg_;
+    auto phi_norm = state_cpy.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, default_rng_);
     std::vector<chpauli_t>paulis(1, chpauli_t());
     for (uint_t pos = 0; pos < qubits.size(); ++pos) {
       uint_t qubit = qubits[pos];
@@ -830,7 +836,7 @@ double State::expval_pauli(const reg_t &qubits,
         }
       }
     }
-    auto g_norm = BaseState::qreg_.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, paulis, default_rng_);
+    auto g_norm = state_cpy.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, paulis, default_rng_);
     return (2*g_norm - phi_norm);
 }
 
@@ -879,7 +885,7 @@ void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &r
         uint_t target = 0ULL;
         for(uint_t j=0; j<op.qubits.size(); j++)
         {
-          if((dim >> j) & 1ULL)
+          if((i >> j) & 1ULL)
           {
             target ^= (1ULL << op.qubits[j]);
           }
