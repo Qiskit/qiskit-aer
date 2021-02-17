@@ -10,6 +10,7 @@ import os
 import setuptools
 import subprocess
 import sys
+import platform
 from pkg_resources import parse_version
 
 
@@ -43,7 +44,10 @@ if not _DISABLE_CONAN:
     install_needed_req('conans', to_install='conan', min_version='1.31.2')
 
 install_needed_req('skbuild', to_install='scikit-build')
-install_needed_req('pybind11', min_version='2.6')
+
+is_win_32_bit = (platform.system() == 'Windows' and platform.architecture()[0] == "32bit")
+pybind11_min_ver = "2.4" if is_win_32_bit else "2.4"
+install_needed_req('pybind11', min_version=pybind11_min_ver)
 install_needed_req('numpy', min_version='1.16.3')
 
 from skbuild import setup
