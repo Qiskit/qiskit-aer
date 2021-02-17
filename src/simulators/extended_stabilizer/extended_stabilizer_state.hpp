@@ -36,7 +36,8 @@ const Operations::OpSet StateOpSet(
   {Operations::OpType::gate, Operations::OpType::measure,
     Operations::OpType::reset, Operations::OpType::barrier,
     Operations::OpType::roerror, Operations::OpType::bfunc,
-    Operations::OpType::snapshot, Operations::OpType::save_statevec},
+    Operations::OpType::snapshot, Operations::OpType::save_statevec,
+    Operations::OpType::save_expval},
   // Gates
   {"CX", "u0", "u1", "p", "cx", "cz", "swap", "id", "x", "y", "z", "h",
     "s", "sdg", "t", "tdg", "ccx", "ccz", "delay"},
@@ -135,9 +136,6 @@ protected:
   void statevector_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
   // //Compute probabilities from a stabilizer rank decomposition
   void probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
-
-  // //Compute pauli expectation value from a stabilizer rank decomposition
-  void pauli_expval_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
   const static stringmap_t<Gates> gateset_;
   const static stringmap_t<Snapshots> snapshotset_;
 
@@ -147,6 +145,11 @@ protected:
 
   // Compute and save the statevector for the current simulator state
   void apply_save_statevector(const Operations::Op &op,
+                              ExperimentResult &result,
+                              RngEngine &rng);
+
+  // Compute and save the expval for the current simulator state
+  void apply_save_expval(const Operations::Op &op,
                               ExperimentResult &result,
                               RngEngine &rng);
 
@@ -194,6 +197,8 @@ protected:
 
   //Check if we can use the sample_measure optimisation
   bool check_measurement_opt(const std::vector<Operations::Op> &ops) const;
+
+  RngEngine default_rng_;
 };
 
 //=========================================================================
@@ -423,6 +428,10 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &
             case Operations::OpType::save_statevec:
               apply_save_statevector(op, result, rng);
               break;
+            case Operations::OpType::save_expval:
+            case Operations::OpType::save_expval_var:
+              apply_save_expval(op, result, rng);
+              break;
             default:
               throw std::invalid_argument("CH::State::apply_ops does not support operations of the type \'" + 
                                           op.name + "\'.");
@@ -553,6 +562,10 @@ void State::apply_stabilizer_circuit(const std::vector<Operations::Op> &ops,
         break;
       case Operations::OpType::save_statevec:
         apply_save_statevector(op, result, rng);
+        break;
+      case Operations::OpType::save_expval:
+      case Operations::OpType::save_expval_var:
+        apply_save_expval(op, result, rng);
         break;
       default:
         throw std::invalid_argument("CH::State::apply_stabilizer_circuit does not support operations of the type \'" + 
@@ -746,6 +759,14 @@ void State::apply_save_statevector(const Operations::Op &op,
     op.save_type);
 }
 
+void State::apply_save_expval(const Operations::Op &op,
+                                ExperimentResult &result,
+                                RngEngine& rng) {
+    default_rng_ = rng;
+    BaseState::apply_save_expval(op, result);
+}
+
+
 void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
 {
   auto it = snapshotset_.find(op.name);
@@ -768,9 +789,6 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result, R
     case Snapshots::probs:
       probabilities_snapshot(op, result, rng);
       break;
-    case Snapshots::expval_pauli:
-      pauli_expval_snapshot(op, result, rng);
-      break;
     default:
       throw std::invalid_argument("CH::State::invlaid snapshot instruction \'"+
                               op.name + "\'.");
@@ -784,51 +802,36 @@ void State::statevector_snapshot(const Operations::Op &op, ExperimentResult &res
      BaseState::qreg_.statevector(norm_estimation_samples_, 3, rng));
 }
 
-void State::pauli_expval_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng){
-    // Check empty edge case
-    if (op.params_expval_pauli.empty()) {
-    throw std::invalid_argument(
-        "Invalid expval snapshot (Pauli components are empty).");
-    }
-
-    /**************************************/
+double State::expval_pauli(const reg_t &qubits,
+                           const std::string& pauli) {
     // Compute expval components
-    auto phi_norm = BaseState::qreg_.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, rng);
-    auto copy_of_qreg = BaseState::qreg_;
-    complex_t expval(0., 0.);
-    for (const auto &param : op.params_expval_pauli) {
-        const auto &coeff = param.first;
-        const auto &pauli = param.second;
-        std::vector<chpauli_t>paulis(1, chpauli_t());
-        for (uint_t pos = 0; pos < op.qubits.size(); ++pos) {
-          uint_t qubit = op.qubits[pos];
-          switch (pauli[pauli.size() - 1 - pos]) {
-            case 'I':
-              break;
-            case 'X':
-              paulis[0].X += (1ULL << op.qubits[pos]);
-              break;
-            case 'Y':
-              paulis[0].X += (1ULL << op.qubits[pos]);
-              paulis[0].Z += (1ULL << op.qubits[pos]);
-              break;
-            case 'Z':
-              paulis[0].Z += (1ULL << op.qubits[pos]);
-              break;
-            default: {
-              std::stringstream msg;
-              msg << "QubitVectorState::invalid Pauli string \'" << pauli[pos]
-                  << "\'.";
-              throw std::invalid_argument(msg.str());
-            }
-          }
+    auto phi_norm = BaseState::qreg_.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, default_rng_);
+    std::vector<chpauli_t>paulis(1, chpauli_t());
+    for (uint_t pos = 0; pos < qubits.size(); ++pos) {
+      uint_t qubit = qubits[pos];
+      switch (pauli[pauli.size() - 1 - pos]) {
+        case 'I':
+          break;
+        case 'X':
+          paulis[0].X += (1ULL << qubits[pos]);
+          break;
+        case 'Y':
+          paulis[0].X += (1ULL << qubits[pos]);
+          paulis[0].Z += (1ULL << qubits[pos]);
+          break;
+        case 'Z':
+          paulis[0].Z += (1ULL << qubits[pos]);
+          break;
+        default: {
+          std::stringstream msg;
+          msg << "QubitVectorState::invalid Pauli string \'" << pauli[pos]
+              << "\'.";
+          throw std::invalid_argument(msg.str());
         }
-        auto g_norm = BaseState::qreg_.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, paulis, rng);
-        expval += (2*g_norm - phi_norm);
-        BaseState::qreg_ = copy_of_qreg;
+      }
     }
-    result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
-    BaseState::creg_.memory_hex(), expval, false);
+    auto g_norm = BaseState::qreg_.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, paulis, default_rng_);
+    return (2*g_norm - phi_norm);
 }
 
 void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
@@ -905,12 +908,6 @@ void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &r
 //-------------------------------------------------------------------------
 // Implementation: Utility
 //-------------------------------------------------------------------------
-
-double State::expval_pauli(const reg_t &qubits, const std::string& pauli) {
-  // TODO: Add support
-  throw std::runtime_error(
-    "Extended stabilizer method does not support Pauli expectation values.");
-}
 
 inline void to_json(json_t &js, cvector_t vec)
 {
