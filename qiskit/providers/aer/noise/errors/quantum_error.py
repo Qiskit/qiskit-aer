@@ -123,7 +123,8 @@ class QuantumError(BaseOperator, TolerancesMixin):
             noise_ops = list(noise_ops)
 
         # Single circuit case
-        if not isinstance(noise_ops, Iterable) or isinstance(noise_ops, Tuple):
+        if not isinstance(noise_ops, Iterable) or \
+                (isinstance(noise_ops, Tuple) and isinstance(noise_ops[0], Instruction)):
             noise_ops = [(noise_ops, 1.0)]
 
         # Remove zero probability circuits
