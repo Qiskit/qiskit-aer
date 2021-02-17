@@ -86,6 +86,7 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::save_densmat:
     stream << "save_density_matrix";
+    break;
   case OpType::save_probs:
     stream << "save_probabilities";
     break;
