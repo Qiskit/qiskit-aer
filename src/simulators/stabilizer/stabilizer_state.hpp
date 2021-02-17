@@ -162,7 +162,7 @@ protected:
 					T& probs);
 
   void get_probability_helper(const reg_t& qubits,
-					                    const std::string &outcome,
+	                            const std::string &outcome,
                               std::string &outcome_carry,
                               double &prob_carry);
   
