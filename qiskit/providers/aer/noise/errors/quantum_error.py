@@ -84,11 +84,11 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
         Args:
             noise_ops: A list of noise ops. See additional information.
-            number_of_qubits (int): [Deprecated] specify the number of qubits for the
+            number_of_qubits (int): [DEPRECATED] specify the number of qubits for the
                                     error. If None this will be determined
                                     automatically (default None).
-            standard_gates (bool): [Deprecated] Check if input matrices are standard gates.
-            atol (double): [Deprecated] Threshold for testing if probabilities are
+            standard_gates (bool): [DEPRECATED] Check if input matrices are standard gates.
+            atol (double): [DEPRECATED] Threshold for testing if probabilities are
                            equal to 0 or 1 (Default: 1e-8).
         Raises:
             NoiseError: If input noise_ops are not a CPTP map.
@@ -204,6 +204,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
                                                     num_qubits=max(dic['qubits']) + 1,
                                                     num_clbits=0,
                                                     params=dic['params']),
+                                        qargs=dic['qubits'])
+                        elif dic['name'] == 'unitary':
+                            circ.append(UnitaryGate(data=dic['params'][0]),
                                         qargs=dic['qubits'])
                         else:
                             circ.append(UnitaryGate(label=dic['name'],
@@ -374,7 +377,8 @@ class QuantumError(BaseOperator, TolerancesMixin):
     def _qc_to_json(qc: QuantumCircuit):
         ret = []
         for inst, qargs, _ in qc:
-            dic = {'name': inst.label if isinstance(inst, UnitaryGate) else inst.name,
+            name = inst.label if isinstance(inst, UnitaryGate) and inst.label else inst.name
+            dic = {'name': name,
                    'qubits': [q.index for q in qargs]}
             if inst.name == 'kraus':
                 dic['params'] = inst.params
