@@ -14,7 +14,7 @@ QasmSimulator Integration Tests for SaveExpval instruction
 """
 
 from ddt import ddt, data
-
+from numpy import allclose
 import qiskit.quantum_info as qi
 from qiskit.circuit.library import QuantumVolume
 from qiskit.compiler import transpile, assemble
@@ -42,13 +42,14 @@ class QasmSaveExpectationValueTests:
         SEED = 5832
 
         # Stabilizer test circuit
-        state = qi.random_clifford(2, seed=SEED).to_circuit()
+        state_circ = qi.random_clifford(2, seed=SEED).to_circuit()
         oper = qi.Pauli(pauli)
-        target = qi.Statevector(state).expectation_value(oper).real.round(10)
+        state = qi.Statevector(state_circ)
+        target = state.expectation_value(oper).real.round(10)
 
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
-        circ = transpile(state, self.SIMULATOR)
+        circ = transpile(state_circ, self.SIMULATOR)
         circ.save_expectation_value('expval', oper, [0, 1])
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
@@ -59,6 +60,40 @@ class QasmSaveExpectationValueTests:
             self.assertTrue(result.success)
             value = result.data(0)['expval']
             self.assertAlmostEqual(value, target)
+
+    @data('II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
+          'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ')
+    def test_save_expval_var_stabilizer_pauli(self, pauli):
+        """Test Pauli expval_var for stabilizer circuit"""
+
+        SUPPORTED_METHODS = [
+            'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
+            'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust',
+            'matrix_product_state', 'stabilizer'
+        ]
+        SEED = 5832
+
+        # Stabilizer test circuit
+        state_circ = qi.random_clifford(2, seed=SEED).to_circuit()
+        oper = qi.Pauli(pauli)
+        state = qi.Statevector(state_circ)
+        expval = state.expectation_value(oper).real
+        variance = state.expectation_value(oper ** 2).real - expval ** 2
+        target = [expval, variance]
+
+        # Snapshot circuit
+        opts = self.BACKEND_OPTS.copy()
+        circ = transpile(state_circ, self.SIMULATOR)
+        circ.save_expectation_value_variance('expval', oper, [0, 1])
+        qobj = assemble(circ)
+        result = self.SIMULATOR.run(qobj, **opts).result()
+        method = opts.get('method', 'automatic')
+        if method not in SUPPORTED_METHODS:
+            self.assertFalse(result.success)
+        else:
+            self.assertTrue(result.success)
+            value = result.data(0)['expval']
+            self.assertTrue(allclose(value, target))
 
     @data([0, 1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1])
     def test_save_expval_stabilizer_hermitian(self, qubits):
@@ -72,13 +107,14 @@ class QasmSaveExpectationValueTests:
         SEED = 7123
 
         # Stabilizer test circuit
-        state = qi.random_clifford(3, seed=SEED).to_circuit()
+        state_circ = qi.random_clifford(3, seed=SEED).to_circuit()
         oper = qi.random_hermitian(4, traceless=True, seed=SEED)
-        target = qi.Statevector(state).expectation_value(oper, qubits).real
+        state = qi.Statevector(state_circ)
+        target = state.expectation_value(oper, qubits).real
 
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
-        circ = transpile(state, self.SIMULATOR)
+        circ = transpile(state_circ, self.SIMULATOR)
         circ.save_expectation_value('expval', oper, qubits)
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
@@ -89,6 +125,39 @@ class QasmSaveExpectationValueTests:
             self.assertTrue(result.success)
             value = result.data(0)['expval']
             self.assertAlmostEqual(value, target)
+
+    @data([0, 1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1])
+    def test_save_expval_var_stabilizer_hermitian(self, qubits):
+        """Test expval_var for stabilizer circuit and Hermitian operator"""
+
+        SUPPORTED_METHODS = [
+            'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
+            'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust',
+            'matrix_product_state', 'stabilizer'
+        ]
+        SEED = 7123
+
+        # Stabilizer test circuit
+        state_circ = qi.random_clifford(3, seed=SEED).to_circuit()
+        oper = qi.random_hermitian(4, traceless=True, seed=SEED)
+        state = qi.Statevector(state_circ)
+        expval = state.expectation_value(oper, qubits).real
+        variance = state.expectation_value(oper ** 2, qubits).real - expval ** 2
+        target = [expval, variance]
+
+        # Snapshot circuit
+        opts = self.BACKEND_OPTS.copy()
+        circ = transpile(state_circ, self.SIMULATOR)
+        circ.save_expectation_value_variance('expval', oper, qubits)
+        qobj = assemble(circ)
+        result = self.SIMULATOR.run(qobj, **opts).result()
+        method = opts.get('method', 'automatic')
+        if method not in SUPPORTED_METHODS:
+            self.assertFalse(result.success)
+        else:
+            self.assertTrue(result.success)
+            value = result.data(0)['expval']
+            self.assertTrue(allclose(value, target))
 
     @data('II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
           'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ')
@@ -103,13 +172,14 @@ class QasmSaveExpectationValueTests:
         SEED = 7382
 
         # Stabilizer test circuit
-        state = QuantumVolume(2, 1, seed=SEED)
+        state_circ = QuantumVolume(2, 1, seed=SEED)
         oper = qi.Pauli(pauli)
-        target = qi.Statevector(state).expectation_value(oper).real
+        state = qi.Statevector(state_circ)
+        target = state.expectation_value(oper).real.round(10)
 
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
-        circ = transpile(state, self.SIMULATOR)
+        circ = transpile(state_circ, self.SIMULATOR)
         circ.save_expectation_value('expval', oper, [0, 1])
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
@@ -120,6 +190,40 @@ class QasmSaveExpectationValueTests:
             self.assertTrue(result.success)
             value = result.data(0)['expval']
             self.assertAlmostEqual(value, target)
+
+    @data('II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
+          'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ')
+    def test_save_expval_var_nonstabilizer_pauli(self, pauli):
+        """Test Pauli expval_var for non-stabilizer circuit"""
+
+        SUPPORTED_METHODS = [
+            'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
+            'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust',
+            'matrix_product_state'
+        ]
+        SEED = 7382
+
+        # Stabilizer test circuit
+        state_circ = QuantumVolume(2, 1, seed=SEED)
+        oper = qi.Pauli(pauli)
+        state = qi.Statevector(state_circ)
+        expval = state.expectation_value(oper).real
+        variance = state.expectation_value(oper ** 2).real - expval ** 2
+        target = [expval, variance]
+
+        # Snapshot circuit
+        opts = self.BACKEND_OPTS.copy()
+        circ = transpile(state_circ, self.SIMULATOR)
+        circ.save_expectation_value_variance('expval', oper, [0, 1])
+        qobj = assemble(circ)
+        result = self.SIMULATOR.run(qobj, **opts).result()
+        method = opts.get('method', 'automatic')
+        if method not in SUPPORTED_METHODS:
+            self.assertFalse(result.success)
+        else:
+            self.assertTrue(result.success)
+            value = result.data(0)['expval']
+            self.assertTrue(allclose(value, target))
 
     @data([0, 1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1])
     def test_save_expval_nonstabilizer_hermitian(self, qubits):
@@ -133,13 +237,14 @@ class QasmSaveExpectationValueTests:
         SEED = 8124
 
         # Stabilizer test circuit
-        state = QuantumVolume(3, 1, seed=SEED)
+        state_circ = QuantumVolume(3, 1, seed=SEED)
         oper = qi.random_hermitian(4, traceless=True, seed=SEED)
-        target = qi.Statevector(state).expectation_value(oper, qubits).real
+        state = qi.Statevector(state_circ)
+        target = state.expectation_value(oper, qubits).real.round(10)
 
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
-        circ = transpile(state, self.SIMULATOR)
+        circ = transpile(state_circ, self.SIMULATOR)
         circ.save_expectation_value('expval', oper, qubits)
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
@@ -150,3 +255,36 @@ class QasmSaveExpectationValueTests:
             self.assertTrue(result.success)
             value = result.data(0)['expval']
             self.assertAlmostEqual(value, target)
+
+    @data([0, 1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1])
+    def test_save_expval_var_nonstabilizer_hermitian(self, qubits):
+        """Test expval_var for non-stabilizer circuit and Hermitian operator"""
+
+        SUPPORTED_METHODS = [
+            'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
+            'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust',
+            'matrix_product_state'
+        ]
+        SEED = 8124
+
+        # Stabilizer test circuit
+        state_circ = QuantumVolume(3, 1, seed=SEED)
+        oper = qi.random_hermitian(4, traceless=True, seed=SEED)
+        state = qi.Statevector(state_circ)
+        expval = state.expectation_value(oper, qubits).real
+        variance = state.expectation_value(oper ** 2, qubits).real - expval ** 2
+        target = [expval, variance]
+
+        # Snapshot circuit
+        opts = self.BACKEND_OPTS.copy()
+        circ = transpile(state_circ, self.SIMULATOR)
+        circ.save_expectation_value_variance('expval', oper, qubits)
+        qobj = assemble(circ)
+        result = self.SIMULATOR.run(qobj, **opts).result()
+        method = opts.get('method', 'automatic')
+        if method not in SUPPORTED_METHODS:
+            self.assertFalse(result.success)
+        else:
+            self.assertTrue(result.success)
+            value = result.data(0)['expval']
+            self.assertTrue(allclose(value, target))

@@ -37,20 +37,23 @@ template <class statevec_t> class State;
 
 namespace Statevector {
 
+using OpType = Operations::OpType;
+
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
     // Op types
-    {Operations::OpType::gate, Operations::OpType::measure,
-     Operations::OpType::reset, Operations::OpType::initialize,
-     Operations::OpType::snapshot, Operations::OpType::barrier,
-     Operations::OpType::bfunc, Operations::OpType::roerror,
-     Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-     Operations::OpType::multiplexer, Operations::OpType::kraus,
-     Operations::OpType::sim_op, Operations::OpType::save_expval,
-     Operations::OpType::save_expval_var, Operations::OpType::save_densmat,
-     Operations::OpType::save_probs, Operations::OpType::save_probs_ket,
-     Operations::OpType::save_statevec
-     // Operations::OpType::save_statevec_ket  // TODO
+    {OpType::gate, OpType::measure,
+     OpType::reset, OpType::initialize,
+     OpType::snapshot, OpType::barrier,
+     OpType::bfunc, OpType::roerror,
+     OpType::matrix, OpType::diagonal_matrix,
+     OpType::multiplexer, OpType::kraus,
+     OpType::sim_op, OpType::save_expval,
+     OpType::save_expval_var, OpType::save_densmat,
+     OpType::save_probs, OpType::save_probs_ket,
+     OpType::save_amps, OpType::save_amps_sq,
+     OpType::save_statevec
+     // OpType::save_statevec_ket  // TODO
      },
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
@@ -238,6 +241,10 @@ protected:
   // Helper function for computing expectation value
   void apply_save_probs(const Operations::Op &op,
                         ExperimentResult &result);
+
+  // Helper function for saving amplitudes and amplitudes squared
+  void apply_save_amplitudes(const Operations::Op &op,
+                             ExperimentResult &result);
 
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
@@ -530,65 +537,69 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
     const auto& op = ops[i];
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
-        case Operations::OpType::barrier:
+        case OpType::barrier:
           break;
-        case Operations::OpType::reset:
+        case OpType::reset:
           apply_reset(op.qubits, rng);
           break;
-        case Operations::OpType::initialize:
+        case OpType::initialize:
           apply_initialize(op.qubits, op.params, rng);
           break;
-        case Operations::OpType::measure:
+        case OpType::measure:
           apply_measure(op.qubits, op.memory, op.registers, rng);
           break;
-        case Operations::OpType::bfunc:
+        case OpType::bfunc:
           BaseState::creg_.apply_bfunc(op);
           break;
-        case Operations::OpType::roerror:
+        case OpType::roerror:
           BaseState::creg_.apply_roerror(op, rng);
           break;
-        case Operations::OpType::gate:
+        case OpType::gate:
           apply_gate(op);
           break;
-        case Operations::OpType::snapshot:
+        case OpType::snapshot:
           apply_snapshot(op, result, final_ops && ops.size() == i + 1);
           break;
-        case Operations::OpType::matrix:
+        case OpType::matrix:
           apply_matrix(op);
           break;
-        case Operations::OpType::diagonal_matrix:
+        case OpType::diagonal_matrix:
           BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
           break;
-        case Operations::OpType::multiplexer:
+        case OpType::multiplexer:
           apply_multiplexer(op.regs[0], op.regs[1],
                             op.mats); // control qubits ([0]) & target qubits([1])
           break;
-        case Operations::OpType::kraus:
+        case OpType::kraus:
           apply_kraus(op.qubits, op.mats, rng);
           break;
-        case Operations::OpType::sim_op:
+        case OpType::sim_op:
           if(op.name == "begin_register_blocking"){
             BaseState::qreg_.enter_register_blocking(op.qubits);
           }
           else if(op.name == "end_register_blocking"){
             BaseState::qreg_.leave_register_blocking();
           }
-        case Operations::OpType::save_expval:
-        case Operations::OpType::save_expval_var:
+        case OpType::save_expval:
+        case OpType::save_expval_var:
           BaseState::apply_save_expval(op, result);
           break;
-        case Operations::OpType::save_densmat:
+        case OpType::save_densmat:
           apply_save_density_matrix(op, result);
           break;
-        case Operations::OpType::save_statevec:
+        case OpType::save_statevec:
           apply_save_statevector(op, result, final_ops && ops.size() == i + 1);
           break;
-        // case Operations::OpType::save_statevec_ket:
+        // case OpType::save_statevec_ket:
         //   apply_save_statevector_ket(op, result);
         //   break;
-        case Operations::OpType::save_probs:
-        case Operations::OpType::save_probs_ket:
+        case OpType::save_probs:
+        case OpType::save_probs_ket:
           apply_save_probs(op, result);
+          break;
+        case OpType::save_amps:
+        case OpType::save_amps_sq:
+          apply_save_amplitudes(op, result);
           break;
         default:
           throw std::invalid_argument(
@@ -607,7 +618,7 @@ void State<statevec_t>::apply_save_probs(const Operations::Op &op,
                                          ExperimentResult &result) {
   // get probs as hexadecimal
   auto probs = measure_probs(op.qubits);
-  if (op.type == Operations::OpType::save_probs_ket) {
+  if (op.type == OpType::save_probs_ket) {
     // Convert to ket dict
     BaseState::save_data_average(result, op.string_params[0],
                                  Utils::vec2ket(probs, json_chop_threshold_, 16),
@@ -675,6 +686,36 @@ void State<statevec_t>::apply_save_density_matrix(const Operations::Op &op,
 
   BaseState::save_data_average(result, op.string_params[0],
                                std::move(reduced_state), op.save_type);
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_amplitudes(const Operations::Op &op,
+                                              ExperimentResult &result) {
+  if (op.int_params.empty()) {
+    throw std::invalid_argument("Invalid save_amplitudes instructions (empty params).");
+  }
+  const int_t size = op.int_params.size();
+  if (op.type == OpType::save_amps) {
+    Vector<complex_t> amps(size, false);
+    #pragma omp parallel for if (size > pow(2, omp_qubit_threshold_) &&        \
+                                 BaseState::threads_ > 1)                       \
+                          num_threads(BaseState::threads_)
+      for (int_t i = 0; i < size; ++i) {
+        amps[i] = BaseState::qreg_.get_state(op.int_params[i]);
+      }
+    BaseState::save_data_pershot(result, op.string_params[0],
+                                 std::move(amps), op.save_type);
+  } else {
+    rvector_t amps_sq(size);
+    #pragma omp parallel for if (size > pow(2, omp_qubit_threshold_) &&        \
+                                 BaseState::threads_ > 1)                       \
+                          num_threads(BaseState::threads_)
+      for (int_t i = 0; i < size; ++i) {
+        amps_sq[i] = BaseState::qreg_.probability(op.int_params[i]);
+      }
+    BaseState::save_data_average(result, op.string_params[0],
+                                 std::move(amps_sq), op.save_type);
+  }
 }
 //=========================================================================
 // Implementation: Snapshots
