@@ -1020,12 +1020,12 @@ double NormEstimate(std::vector<StabilizerState>& states, const std::vector< std
                   double mag = pow(2, amp.p/(double) 2);
                   cdouble phase(RE_PHASE[amp.e], IM_PHASE[amp.e]);
                   phase *= conj(phases[j]);
-                  re_eta = (mag * real(phase));
-                  im_eta = (mag * imag(phase));
-                  xi += (pow(re_eta,2) + pow(im_eta, 2));
+                  re_eta += (mag * real(phase));
+                  im_eta += (mag * imag(phase));
               }
           }
       }
+      xi += (pow(re_eta,2) + pow(im_eta, 2));
     }
     return std::pow(2, states[0].NQubits()) * (xi/L);
 }
@@ -1055,14 +1055,14 @@ double ParallelNormEstimate(std::vector<StabilizerState>& states, const std::vec
                     double mag = pow(2, amp.p/(double) 2);
                     cdouble phase(RE_PHASE[amp.e], IM_PHASE[amp.e]);
                     phase *= conj(phases[j]);
-                    re_eta = (mag * real(phase));
-                    im_eta = (mag * imag(phase));
-                    xi += (pow(re_eta,2) + pow(im_eta, 2));
+                    re_eta += (mag * real(phase));
+                    im_eta += (mag * imag(phase));
                 }
             }
         }
+        xi += (pow(re_eta,2) + pow(im_eta, 2));
     }
-    return pow(2., states[0].NQubits())*(xi/(L*chi));
+    return pow(2., states[0].NQubits())*(xi/L);
 }
 
 }

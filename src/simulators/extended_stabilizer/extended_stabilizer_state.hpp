@@ -359,7 +359,8 @@ bool State::check_measurement_opt(const std::vector<Operations::Op> &ops) const
     if (op.type == Operations::OpType::measure ||
         op.type == Operations::OpType::bfunc ||
         op.type == Operations::OpType::snapshot ||
-        op.type == Operations::OpType::save_statevec)
+        op.type == Operations::OpType::save_statevec ||
+        op.type == Operations::OpType::save_expval)
     {
       return false;
     }
@@ -393,7 +394,8 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &
     }
     std::vector<Operations::Op> non_stabilizer_circuit(ops.cbegin()+first_non_clifford, ops.cend());
     uint_t chi = compute_chi(non_stabilizer_circuit);
-    BaseState::qreg_.initialize_decomposition(chi);
+    double delta = std::pow(approximation_error_, -2);
+    BaseState::qreg_.initialize_decomposition(chi, delta);
     //Check for measurement optimisaitons
     bool measurement_opt = check_measurement_opt(ops);
     if(measurement_opt)
@@ -521,10 +523,6 @@ void State::apply_ops_parallel(const std::vector<Operations::Op> &ops, Experimen
           apply_gate(op, rng, i);
           break;
         case Operations::OpType::barrier:
-          break;
-        case Operations::OpType::save_expval:
-        case Operations::OpType::save_expval_var:
-          apply_save_expval(op, result, rng);
           break;
         default:
           throw std::invalid_argument("CH::State::apply_ops_parallel does not support operations of the type \'" + 
