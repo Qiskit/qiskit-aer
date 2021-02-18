@@ -9,7 +9,6 @@
 #include "misc/warnings.hpp"
 DISABLE_WARNING_PUSH
 #include <Python.h>
-#include <numpy/arrayobject.h>
 DISABLE_WARNING_POP
 
 #ifdef DEBUG
