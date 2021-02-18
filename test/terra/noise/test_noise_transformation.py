@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -126,7 +126,6 @@ class TestNoiseTransformer(QiskitAerTestCase):
                         lhs, rhs, x, y))
 
     def test_transformation_by_pauli(self):
-        n = NoiseTransformer()
         # polarization in the XY plane; we represent via Kraus operators
         X = self.ops['X']
         Y = self.ops['Y']
@@ -135,7 +134,7 @@ class TestNoiseTransformer(QiskitAerTestCase):
         theta = numpy.pi / 5
         E0 = numpy.sqrt(1 - p) * numpy.array(numpy.eye(2))
         E1 = numpy.sqrt(p) * (numpy.cos(theta) * X + numpy.sin(theta) * Y)
-        results = approximate_quantum_error((E0, E1),
+        results = approximate_quantum_error([E0, E1],
                                             operator_dict={
                                                 "X": X,
                                                 "Y": Y,
@@ -144,15 +143,6 @@ class TestNoiseTransformer(QiskitAerTestCase):
             [('X', p * numpy.cos(theta) * numpy.cos(theta)),
              ('Y', p * numpy.sin(theta) * numpy.sin(theta)), ('Z', 0),
              ('I', 1 - p)])
-        self.assertErrorsAlmostEqual(expected_results, results)
-
-        # now try again without fidelity; should be the same
-        n.use_honesty_constraint = False
-        results = approximate_quantum_error((E0, E1),
-                                            operator_dict={
-                                                "X": X,
-                                                "Y": Y,
-                                                "Z": Z})
         self.assertErrorsAlmostEqual(expected_results, results)
 
     def test_reset(self):
@@ -174,16 +164,16 @@ class TestNoiseTransformer(QiskitAerTestCase):
         E0 = numpy.sqrt(1 - p) * numpy.array(numpy.eye(2))
         E1 = numpy.sqrt(p) * (numpy.cos(theta) * X + numpy.sin(theta) * Y)
 
-        results_dict = approximate_quantum_error((E0, E1),
+        results_dict = approximate_quantum_error([E0, E1],
                                                  operator_dict={
                                                      "X": X,
                                                      "Y": Y,
                                                      "Z": Z})
-        results_string = approximate_quantum_error((E0, E1),
+        results_string = approximate_quantum_error([E0, E1],
                                                    operator_string='pauli')
-        results_list = approximate_quantum_error((E0, E1),
+        results_list = approximate_quantum_error([E0, E1],
                                                  operator_list=[X, Y, Z])
-        results_tuple = approximate_quantum_error((E0, E1),
+        results_tuple = approximate_quantum_error([E0, E1],
                                                   operator_list=(X, Y, Z))
 
         self.assertErrorsAlmostEqual(results_dict, results_string)

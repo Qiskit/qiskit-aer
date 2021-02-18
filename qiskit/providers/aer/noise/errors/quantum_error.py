@@ -202,7 +202,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                             circ.append(Reset(), qargs=dic['qubits'])
                         elif dic['name'] == 'kraus':
                             circ.append(Instruction(name='kraus',
-                                                    num_qubits=max(dic['qubits']) + 1,
+                                                    num_qubits=len(dic['qubits']),
                                                     num_clbits=0,
                                                     params=dic['params']),
                                         qargs=dic['qubits'])

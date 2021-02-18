@@ -36,7 +36,7 @@ from qiskit.quantum_info.operators.channel import SuperOp
 from ..noise.errors import QuantumError
 from ..noise.noise_model import NoiseModel
 from ..noise.noiseerror import NoiseError
-from ..noise.errors.errorutils import single_qubit_clifford_instructions
+from ..noise.errors.errorutils import single_qubit_clifford_matrix
 
 logger = logging.getLogger(__name__)
 
@@ -74,14 +74,18 @@ def approximate_quantum_error(error, *,
         ``'clifford'``.
         For further information see :meth:`NoiseTransformer.named_operators`.
     """
+    if isinstance(error, (QuantumError, list)) or \
+            (isinstance(error, tuple) and isinstance(error[0], list)):
+        # second case for generalized Kraus set ([A_i], [B_i])
+        error = Kraus(error)
+    else:
+        raise NoiseError("Invalid input type: {}".format(error.__class__.__name__))
 
-    if not isinstance(error, QuantumError):
-        error = QuantumError(error)
-    if error.number_of_qubits > 2:
+    if error.num_qubits > 2:
         raise NoiseError("Only 1-qubit and 2-qubit noises can be converted, {}-qubit "
-                         "noise found in model".format(error.number_of_qubits))
+                         "noise found in model".format(error.num_qubits))
 
-    error_kraus_operators = Kraus(error.to_quantumchannel()).data
+    error_kraus_operators = error.data
     transformer = NoiseTransformer()
     if operator_string is not None:
         no_info_error = "No information about noise type {}".format(operator_string)
@@ -89,10 +93,10 @@ def approximate_quantum_error(error, *,
         if operator_string not in transformer.named_operators.keys():
             raise RuntimeError(no_info_error)
         operator_lists = transformer.named_operators[operator_string]
-        if len(operator_lists) < error.number_of_qubits:
+        if len(operator_lists) < error.num_qubits:
             raise RuntimeError(
-                no_info_error + " for {} qubits".format(error.number_of_qubits))
-        operator_dict = operator_lists[error.number_of_qubits - 1]
+                no_info_error + " for {} qubits".format(error.num_qubits))
+        operator_dict = operator_lists[error.num_qubits - 1]
     if operator_dict is not None:
         _, operator_list = zip(*operator_dict.items())
     if operator_list is not None:
@@ -286,7 +290,7 @@ class NoiseTransformer:
         self.named_operators = {
             'pauli': pauli_operators(),
             'reset': reset_operators(),
-            'clifford': [{j: single_qubit_clifford_instructions(j) for j in range(1, 24)}]
+            'clifford': [{j: single_qubit_clifford_matrix(j) for j in range(1, 24)}]
         }
         self.fidelity_data = None
         self.use_honesty_constraint = True
