@@ -77,6 +77,9 @@ public:
   std::complex<data_t> &operator[](uint_t element);
   std::complex<data_t> operator[](uint_t element) const;
 
+  void set_state(uint_t pos, std::complex<data_t>& val);
+  std::complex<data_t> get_state(uint_t pos) const;
+
   // Returns a reference to the underlying data_t data class
   std::complex<data_t>* &data() {return data_;}
 
@@ -669,6 +672,17 @@ std::complex<data_t> QubitVector<data_t>::operator[](uint_t element) const {
   #endif
   return data_[element];
 }
+
+template <typename data_t>
+void QubitVector<data_t>::set_state(uint_t pos, std::complex<data_t>& val) {
+  data_[pos] = val;
+}
+
+template <typename data_t>
+std::complex<data_t> QubitVector<data_t>::get_state(uint_t pos) const {
+  return data_[pos];
+}
+
 
 template <typename data_t>
 cvector_t<data_t> QubitVector<data_t>::vector() const {
