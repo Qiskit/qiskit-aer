@@ -74,6 +74,9 @@ def approximate_quantum_error(error, *,
         ``'clifford'``.
         For further information see :meth:`NoiseTransformer.named_operators`.
     """
+    if isinstance(error, tuple) and isinstance(error[0], numpy.ndarray):
+        error = list(error)
+
     if isinstance(error, (QuantumError, list)) or \
             (isinstance(error, tuple) and isinstance(error[0], list)):
         # second case for generalized Kraus set ([A_i], [B_i])
