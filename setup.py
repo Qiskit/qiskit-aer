@@ -10,6 +10,7 @@ import os
 import setuptools
 import subprocess
 import sys
+import platform
 
 
 PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
@@ -75,6 +76,12 @@ README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),
 with open(README_PATH) as readme_file:
     README = readme_file.read()
 
+
+cmake_args = ["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9"]
+is_win_32_bit = (platform.system() == 'Windows' and platform.architecture()[0] == "32bit")
+if is_win_32_bit:
+    cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")
+
 setup(
     name=PACKAGE_NAME,
     version=VERSION,
@@ -107,7 +114,7 @@ setup(
     install_requires=requirements,
     setup_requires=setup_requirements,
     include_package_data=True,
-    cmake_args=["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9"],
+    cmake_args=cmake_args,
     keywords="qiskit aer simulator quantum addon backend",
     zip_safe=False
 )
