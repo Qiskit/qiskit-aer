@@ -150,6 +150,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
         self._probs = list(np.array(probs) / total_probs)
 
         # Convert instructions to circuits
+        # pylint: disable=too-many-return-statements
         def to_circuit(op: QuantumNoiseType):
             if isinstance(op, QuantumCircuit):
                 return op
@@ -216,7 +217,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                     return circ
                 else:
                     raise NoiseError("Invalid noise op type (list of {}): {}".format(
-                            op[0].__class__.__name__, op))
+                        op[0].__class__.__name__, op))
 
             raise NoiseError("Invalid noise op type {}: {}".format(op.__class__.__name__, op))
 
@@ -318,11 +319,11 @@ class QuantumError(BaseOperator, TolerancesMixin):
         if prob == 1 and len(circ) == 1:
             # check if circ is identity gate up to global phase
             gate = circ[0][0]
-            if isinstance(gate, IGate)\
-                    or (isinstance(gate, UnitaryGate)
-                        and is_identity_matrix(gate.to_matrix(),
-                                               ignore_phase=True,
-                                               atol=self.atol, rtol=self.rtol)):
+            if isinstance(gate, IGate) or \
+                    (isinstance(gate, UnitaryGate) and
+                     is_identity_matrix(gate.to_matrix(),
+                                        ignore_phase=True,
+                                        atol=self.atol, rtol=self.rtol)):
                 logger.debug("Error object is ideal")
                 return True
         return False
