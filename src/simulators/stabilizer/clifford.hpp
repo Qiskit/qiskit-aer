@@ -391,14 +391,14 @@ json_t Clifford::json() const {
   json_t stab;
   for (size_t i = 0; i < num_qubits_; i++) {
     // Destabilizer
-    std::string label = (phases_[i] == 0) ? "" : "-";
+    std::string label = (phases_[i] == 0) ? "+" : "-";
     label += table_[i].str();
-    js["destabilizers"].push_back(label);
+    js["destabilizer"].push_back(label);
 
     // Stabilizer
-    label = (phases_[num_qubits_ + i] == 0) ? "" : "-";
+    label = (phases_[num_qubits_ + i] == 0) ? "+" : "-";
     label += table_[num_qubits_ + i].str();
-    js["stabilizers"].push_back(label);
+    js["stabilizer"].push_back(label);
   }
   return js;
 }
@@ -408,12 +408,12 @@ inline void to_json(json_t &js, const Clifford &clif) {
 }
 
 inline void from_json(const json_t &js, Clifford &clif) {
-  bool has_keys = JSON::check_keys({"stabilizers", "destabilizers"}, js);
+  bool has_keys = JSON::check_keys({"stabilizer", "destabilizer"}, js);
   if (!has_keys)
     throw std::invalid_argument("Invalid Clifford JSON.");
 
-  const std::vector<std::string> stab = js["stabilizers"];
-  const std::vector<std::string> destab = js["destabilizers"];
+  const std::vector<std::string> stab = js["stabilizer"];
+  const std::vector<std::string> destab = js["destabilizer"];
   const auto nq = stab.size();
   if (nq != destab.size()) {
     throw std::invalid_argument("Invalid Clifford JSON: stabilizer and destabilizer lengths do not match.");
