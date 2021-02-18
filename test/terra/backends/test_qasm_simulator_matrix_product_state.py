@@ -49,7 +49,6 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabi
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
-from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotAmplitudesTests
 
 
 class TestQasmMatrixProductStateSimulator(
@@ -78,7 +77,6 @@ class TestQasmMatrixProductStateSimulator(
         QasmSnapshotExpValPauliTests,
         QasmSnapshotExpValPauliNCTests,
         QasmSnapshotExpValMatrixTests,
-        QasmSnapshotAmplitudesTests,
         QasmStandardGateStatevectorTests,
         QasmDelayGateTests
 ):
