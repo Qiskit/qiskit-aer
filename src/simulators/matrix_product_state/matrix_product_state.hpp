@@ -42,17 +42,20 @@
 namespace AER {
 namespace MatrixProductState {
 
+using OpType = Operations::OpType;
+
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
-  {Operations::OpType::gate, Operations::OpType::measure,
-   Operations::OpType::reset, Operations::OpType::initialize,
-   Operations::OpType::snapshot, Operations::OpType::barrier,
-   Operations::OpType::bfunc, Operations::OpType::roerror,
-   Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-   Operations::OpType::kraus, Operations::OpType::save_expval,
-   Operations::OpType::save_expval_var, Operations::OpType::save_densmat,
-   Operations::OpType::save_statevec, Operations::OpType::save_probs,
-   Operations::OpType::save_probs_ket},
+  {OpType::gate, OpType::measure,
+   OpType::reset, OpType::initialize,
+   OpType::snapshot, OpType::barrier,
+   OpType::bfunc, OpType::roerror,
+   OpType::matrix, OpType::diagonal_matrix,
+   OpType::kraus, OpType::save_expval,
+   OpType::save_expval_var, OpType::save_densmat,
+   OpType::save_statevec, OpType::save_probs,
+   OpType::save_probs_ket, OpType::save_amps,
+   OpType::save_amps_sq},
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",
@@ -226,6 +229,10 @@ protected:
   void apply_save_probs(const Operations::Op &op,
                         ExperimentResult &result);
 
+  // Helper function for saving amplitudes and amplitudes squared
+  void apply_save_amplitudes(const Operations::Op &op,
+                             ExperimentResult &result);
+
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
                               const std::string& pauli) override;
@@ -281,10 +288,6 @@ protected:
   void snapshot_state(const Operations::Op &op,
 		      ExperimentResult &result,
 		      std::string name = "");
-
-  void snapshot_amplitudes(const Operations::Op &op,
-			   ExperimentResult &result,
-			   std::string name = "");
 
   //-----------------------------------------------------------------------
   // Single-qubit gate helpers
@@ -494,51 +497,55 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
   for (const auto &op: ops) {
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
-        case Operations::OpType::barrier:
+        case OpType::barrier:
           break;
-        case Operations::OpType::reset:
+        case OpType::reset:
           apply_reset(op.qubits, rng);
           break;
-        case Operations::OpType::initialize:
+        case OpType::initialize:
           apply_initialize(op.qubits, op.params, rng);
           break;
-        case Operations::OpType::measure:
+        case OpType::measure:
           apply_measure(op.qubits, op.memory, op.registers, rng);
           break;
-        case Operations::OpType::bfunc:
+        case OpType::bfunc:
           BaseState::creg_.apply_bfunc(op);
           break;
-        case Operations::OpType::roerror:
+        case OpType::roerror:
           BaseState::creg_.apply_roerror(op, rng);
           break;
-        case Operations::OpType::gate:
+        case OpType::gate:
           apply_gate(op);
           break;
-        case Operations::OpType::snapshot:
+        case OpType::snapshot:
           apply_snapshot(op, result);
           break;
-        case Operations::OpType::matrix:
+        case OpType::matrix:
           apply_matrix(op.qubits, op.mats[0]);
           break;
-        case Operations::OpType::diagonal_matrix:
+        case OpType::diagonal_matrix:
           BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
           break;
-        case Operations::OpType::kraus:
+        case OpType::kraus:
           apply_kraus(op.qubits, op.mats, rng);
           break;
-        case Operations::OpType::save_expval:
-        case Operations::OpType::save_expval_var:
+        case OpType::save_expval:
+        case OpType::save_expval_var:
           BaseState::apply_save_expval(op, result);
           break;
-        case Operations::OpType::save_densmat:
+        case OpType::save_densmat:
           apply_save_density_matrix(op, result);
           break;
-        case Operations::OpType::save_statevec:
+        case OpType::save_statevec:
           apply_save_statevector(op, result);
           break;
-        case Operations::OpType::save_probs:
-        case Operations::OpType::save_probs_ket:
+        case OpType::save_probs:
+        case OpType::save_probs_ket:
           apply_save_probs(op, result);
+          break;
+        case OpType::save_amps:
+        case OpType::save_amps_sq:
+          apply_save_amplitudes(op, result);
           break;
         default:
           throw std::invalid_argument("MatrixProductState::State::invalid instruction \'" +
@@ -556,13 +563,32 @@ void State::apply_save_probs(const Operations::Op &op,
                              ExperimentResult &result) {
   rvector_t probs;
   qreg_.get_probabilities_vector(probs, op.qubits);
-  if (op.type == Operations::OpType::save_probs_ket) {
+  if (op.type == OpType::save_probs_ket) {
     BaseState::save_data_average(result, op.string_params[0],
                                  Utils::vec2ket(probs, MPS::get_json_chop_threshold(), 16),
                                  op.save_type);
   } else {
     BaseState::save_data_average(result, op.string_params[0],
                                  std::move(probs), op.save_type);
+  }
+}
+
+void State::apply_save_amplitudes(const Operations::Op &op,
+                             ExperimentResult &result) {
+  if (op.int_params.empty()) {
+    throw std::invalid_argument("Invalid save amplitudes instructions (empty params).");
+  }
+  Vector<complex_t> amps = qreg_.get_amplitude_vector(op.int_params);
+  if (op.type == OpType::save_amps_sq) {
+    // Square amplitudes
+    std::vector<double> amps_sq(op.int_params.size());
+    std::transform(amps.data(), amps.data() + amps.size(), amps_sq.begin(),
+      [](complex_t val) -> double { return pow(abs(val), 2); });
+    BaseState::save_data_average(result, op.string_params[0],
+                                 std::move(amps_sq), op.save_type);
+  } else {
+    BaseState::save_data_pershot(result, op.string_params[0],
+                                 std::move(amps), op.save_type);
   }
 }
 
@@ -676,20 +702,6 @@ void State::snapshot_state(const Operations::Op &op,
 			   std::string name) {
   result.legacy_data.add_pershot_snapshot(
     "statevector", op.string_params[0], qreg_.full_statevector());
-}
-
-void State::snapshot_amplitudes(const Operations::Op &op,
-				ExperimentResult &result,
-				std::string name) {
-  if (op.params_amplitudes.empty()) {
-    throw std::invalid_argument("Invalid amplitudes snapshot (No base value given).");
-  }
-  reg_t base_values;
-  for (const auto &param : op.params_amplitudes) {
-    base_values.push_back(param);
-  }
-  auto amplitude_vector = qreg_.get_amplitude_vector(base_values);
-  result.legacy_data.add_pershot_snapshot("amplitudes", op.string_params[0], amplitude_vector);
 }
 
 void State::snapshot_probabilities(const Operations::Op &op,
@@ -997,10 +1009,6 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result) {
   switch (it -> second) {
   case Snapshots::statevector: {
       snapshot_state(op, result, "statevector");
-      break;
-  }
-  case Snapshots::amplitudes: {
-      snapshot_amplitudes(op, result, "amplitudes");
       break;
   }
   case Snapshots::cmemory:

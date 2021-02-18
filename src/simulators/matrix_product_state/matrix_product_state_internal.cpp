@@ -1281,10 +1281,10 @@ Vector<complex_t> MPS::full_state_vector_internal(const reg_t &qubits) {
   return reverse_all_bits(temp_statevector, num_qubits);
 }
 
-cvector_t MPS::get_amplitude_vector(const reg_t &base_values) {
+Vector<complex_t> MPS::get_amplitude_vector(const reg_t &base_values) {
   uint_t num_values = base_values.size();
   std::string base_value;
-  cvector_t amplitude_vector(num_values);
+  Vector<complex_t> amplitude_vector(num_values, false);
 
   #pragma omp parallel for if (num_values > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t i=0; i<static_cast<int_t>(num_values); i++) {

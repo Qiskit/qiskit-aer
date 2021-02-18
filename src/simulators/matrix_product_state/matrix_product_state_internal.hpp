@@ -190,7 +190,7 @@ public:
 
   Vector<complex_t> full_statevector();
 
-  cvector_t get_amplitude_vector(const reg_t &base_values);
+  Vector<complex_t> get_amplitude_vector(const reg_t &base_values);
   complex_t get_single_amplitude(const std::string &base_value);
 
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
