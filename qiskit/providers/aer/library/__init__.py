@@ -40,6 +40,8 @@ Instruction Classes
     SaveDensityMatrix
     SaveStatevector
     SaveStatevectorDict
+    SaveAmplitudes
+    SaveAmplitudesSquared
 
 Then can also be used using custom QuantumCircuit methods
 
@@ -56,6 +58,8 @@ QuantumCircuit Methods
     save_density_matrix
     save_statevector
     save_statevector_dict
+    save_amplitudes
+    save_amplitudes_squared
 
 .. note ::
 
@@ -79,7 +83,8 @@ QuantumCircuit Methods
 
 __all__ = ['SaveExpectationValue', 'SaveExpectationValueVariance',
            'SaveProbabilities', 'SaveProbabilitiesDict',
-           'SaveStatevector', 'SaveStatevectorDict', 'SaveDensityMatrix']
+           'SaveStatevector', 'SaveStatevectorDict', 'SaveDensityMatrix',
+           'SaveAmplitudes', 'SaveAmplitudesSquared']
 
 from .save_expectation_value import (
     SaveExpectationValue, save_expectation_value,
@@ -89,3 +94,5 @@ from .save_probabilities import (SaveProbabilities, save_probabilities,
 from .save_statevector import (SaveStatevector, save_statevector,
                                SaveStatevectorDict, save_statevector_dict)
 from .save_density_matrix import SaveDensityMatrix, save_density_matrix
+from .save_amplitudes import (SaveAmplitudes, save_amplitudes,
+                              SaveAmplitudesSquared, save_amplitudes_squared)
