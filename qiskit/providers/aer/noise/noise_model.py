@@ -22,7 +22,6 @@ from qiskit.providers import BaseBackend, Backend
 from qiskit.providers.models import BackendProperties
 
 from ..backends.aerbackend import AerJSONEncoder
-from ..backends.qasm_simulator import QasmSimulator
 from .noiseerror import NoiseError
 from .errors.quantum_error import QuantumError
 from .errors.readout_error import ReadoutError
@@ -84,12 +83,6 @@ class NoiseModel:
         print(noise_model)
 
     """
-
-    # Get the default basis gates for the Qiskit Aer Qasm Simulator
-    # this is used to decide what are instructions for a noise model
-    # and what are labels for other named instructions
-    # NOTE: we exclude kraus, roerror, and initialize instructions here
-    _QASMSIMULATOR_BASIS_GATES = QasmSimulator._DEFAULT_CONFIGURATION['basis_gates']
 
     # Checks for standard 1-3 qubit instructions
     _1qubit_instructions = set([
@@ -402,7 +395,7 @@ class NoiseModel:
         """Reset the noise model."""
         self.__init__()
 
-    def add_basis_gates(self, instructions, warnings=True):
+    def add_basis_gates(self, instructions, warnings=False):
         """Add additional gates to the noise model basis_gates.
 
         This should be used to add any gates that are identified by a
@@ -411,17 +404,36 @@ class NoiseModel:
         Args:
             instructions (list[str] or
                           list[Instruction]): the instructions error applies to.
-            warnings (bool): display warning if instruction is not in
-                             QasmSimulator basis_gates (Default: True).
+            warnings (bool): [DEPRECATED] display warning if instruction is not in
+                             QasmSimulator basis_gates (Default: False).
         """
+        # Instead of QasmSimulator._DEFAULT_CONFIGURATION['basis_gates'], which causes cyclic import
+        # TODO: Remove after depecation of "warnings" argument
+        _qasm_simulator_basis_gates = sorted([
+            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+            'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
+            'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
+            'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
+            'mcphase', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
+            'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
+            'initialize', 'delay', 'pauli', 'mcx_gray',
+            # Custom instructions
+            'kraus', 'roerror', 'snapshot', 'save_expval', 'save_expval_var',
+            'save_probabilities', 'save_probabilities_dict',
+            'save_density_matrix', 'save_statevector'
+        ])
         for name, _ in self._instruction_names_labels(instructions):
             # If the instruction is in the default basis gates for the
             # QasmSimulator we add it to the basis gates.
-            if name in self._QASMSIMULATOR_BASIS_GATES:
+            if name in _qasm_simulator_basis_gates:
                 if name not in ['measure', 'reset', 'initialize',
                                 'kraus', 'superop', 'roerror']:
                     self._basis_gates.add(name)
             elif warnings:
+                warn(
+                    '"warnings" option has been deprecated as of qiskit-aer 0.8.0'
+                    ' and will be removed no earlier than 3 months from that release date.',
+                    DeprecationWarning, stacklevel=2)
                 logger.warning(
                     "Warning: Adding a gate \"%s\" to basis_gates which is "
                     "not in QasmSimulator basis_gates.", name)
@@ -500,7 +512,7 @@ class NoiseModel:
                         "%s as specific error already exists.", label,
                         local_qubits)
             self._noise_instructions.add(label)
-            self.add_basis_gates(name, warnings=False)
+            self.add_basis_gates(name)
 
     def add_quantum_error(self, error, instructions, qubits, warnings=True):
         """
@@ -549,10 +561,10 @@ class NoiseModel:
 
             # Convert qubits list to hashable string
             qubits_str = self._qubits2str(qubits)
-            if error.number_of_qubits != len(qubits):
+            if error.num_qubits != len(qubits):
                 raise NoiseError("Number of qubits ({}) does not match "
                                  " the error size ({})".format(
-                                     len(qubits), error.number_of_qubits))
+                                     len(qubits), error.num_qubits))
             if qubits_str in qubit_dict:
                 new_error = qubit_dict[qubits_str].compose(error)
                 qubit_dict[qubits_str] = new_error
@@ -574,7 +586,7 @@ class NoiseModel:
                         "on qubits %s overrides previously defined "
                         "all-qubit error for these qubits.", label, qubits)
             self._noise_instructions.add(label)
-            self.add_basis_gates(name, warnings=False)
+            self.add_basis_gates(name)
 
     def add_nonlocal_quantum_error(self,
                                    error,
@@ -919,16 +931,16 @@ class NoiseModel:
         """
 
         def error_message(gate_qubits):
-            msg = "{} qubit QuantumError".format(error.number_of_qubits) + \
+            msg = "{} qubit QuantumError".format(error.num_qubits) + \
                   " cannot be applied to {} qubit".format(gate_qubits) + \
                   " instruction \"{}\".".format(name)
             return msg
 
-        if name in self._1qubit_instructions and error.number_of_qubits != 1:
+        if name in self._1qubit_instructions and error.num_qubits != 1:
             raise NoiseError(error_message(1))
-        if name in self._2qubit_instructions and error.number_of_qubits != 2:
+        if name in self._2qubit_instructions and error.num_qubits != 2:
             raise NoiseError(error_message(2))
-        if name in self._3qubit_instructions and error.number_of_qubits != 3:
+        if name in self._3qubit_instructions and error.num_qubits != 3:
             raise NoiseError(error_message(3))
 
     def _qubits2str(self, qubits):

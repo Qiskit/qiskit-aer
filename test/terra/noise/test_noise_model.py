@@ -83,7 +83,7 @@ class TestNoise(common.QiskitAerTestCase):
         # Check a non-standard gate isn't added to basis gates
         model = NoiseModel(basis_gates)
         target = sorted(basis_gates)
-        model.add_all_qubit_quantum_error(reset_error(0.2), ['label'], False)
+        model.add_all_qubit_quantum_error(reset_error(0.2), ['kraus'], False)
         self.assertEqual(model.basis_gates, target)
 
         # Check a standard gate is added to basis gates
