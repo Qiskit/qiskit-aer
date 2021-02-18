@@ -55,9 +55,13 @@ public:
                         ExperimentResult &result) const override;
 
   void set_config(const json_t &config);
-  bool enabled(void)
+  bool enabled()
   {
     return blocking_enabled_;
+  }
+  int block_bits()
+  {
+    return block_bits_;
   }
 
   //setting blocking parameters automatically
@@ -68,7 +72,7 @@ protected:
   mutable int qubits_;
   mutable reg_t qubitMap_;
   mutable reg_t qubitSwapped_;
-  bool blocking_enabled_;
+  mutable bool blocking_enabled_;
   int gpu_blocking_bits_;
 
   void block_circuit(Circuit& circ,bool doSwap) const;
@@ -181,9 +185,18 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
     return;
   }
 
+  std::cout << "  cache blocking before ---" << std::endl;
+  for(uint_t i=0;i<circ.ops.size();i++){
+    if(is_diagonal_op(circ.ops[i]))
+      std::cout << "[" << i << "]" << circ.ops[i] << "*" << std::endl;
+    else
+      std::cout << "[" << i << "]" << circ.ops[i] << std::endl;
+  }
+
   if(blocking_enabled_){
     qubits_ = circ.num_qubits;
-    if(block_bits_ >= qubits_){
+    if(block_bits_ >= qubits_ || block_bits_ < 2){
+      blocking_enabled_ = false;
       return;
     }
 
@@ -206,6 +219,15 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
   }
 
   circ.set_params();
+
+  std::cout << " --- cache blocking after " << std::endl;
+  for(uint_t i=0;i<circ.ops.size();i++){
+    if(is_diagonal_op(circ.ops[i]))
+      std::cout << "[" << i << "]" << circ.ops[i] << "*" << std::endl;
+    else
+      std::cout << "[" << i << "]" << circ.ops[i] << std::endl;
+  }
+
 }
 
 void CacheBlocking::define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t& blockedQubits,bool crossQubitOnly) const
@@ -251,6 +273,10 @@ void CacheBlocking::define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t
 bool CacheBlocking::can_block(Operations::Op& op,reg_t& blockedQubits) const
 {
   //check if the operation can be blocked in cache
+  if(op.qubits.size() > block_bits_){
+    return false;
+  }
+
   uint_t j,iq,nq,nb;
   nq = blockedQubits.size();
   nb = 0;
@@ -303,17 +329,24 @@ void CacheBlocking::block_circuit(Circuit& circ,bool doSwap) const
     n = add_ops(queue_next,out,queue,doSwap,false);
     queue_next.clear();
     put_nongate_ops(out,queue_next,queue,doSwap);
+    if(n == 0){
+      break;
+    }
     queue.clear();
   }
 
-  circ.ops = out;
+  if(queue.size() > 0)
+    blocking_enabled_ = false;
+  else
+    circ.ops = out;
 }
 
 void CacheBlocking::put_nongate_ops(std::vector<Operations::Op>& out,std::vector<Operations::Op>& queue,std::vector<Operations::Op>& input,bool doSwap) const
 {
   uint_t i;
   for(i=0;i<input.size();i++){
-    if(input[i].type == Operations::OpType::gate || input[i].type == Operations::OpType::matrix){
+    if(input[i].type == Operations::OpType::gate || input[i].type == Operations::OpType::matrix || 
+       input[i].type == Operations::OpType::diagonal_matrix || input[i].type == Operations::OpType::multiplexer){
       for(uint_t j =i;j<input.size();j++){
         queue.push_back(input[j]);
       }
@@ -483,7 +516,8 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
 
     //gather blocked gates
     for(i=0;i<ops.size();i++){
-      if(ops[i].type == Operations::OpType::gate || ops[i].type == Operations::OpType::matrix){
+      if(ops[i].type == Operations::OpType::gate || ops[i].type == Operations::OpType::matrix || 
+         ops[i].type == Operations::OpType::diagonal_matrix || ops[i].type == Operations::OpType::multiplexer){
         if(is_diagonal_op(ops[i]) || can_block(ops[i],blockedQubits)){
           if(can_reorder(ops[i],queue)){
             //mapping swapped qubits
@@ -636,6 +670,9 @@ bool CacheBlocking::is_diagonal_op(Operations::Op& op) const
     if (Utils::is_diagonal(op.mats[0], .0)){
       return true;
     }
+  }
+  else if(op.type == Operations::OpType::diagonal_matrix){
+    return true;
   }
   return false;
 }

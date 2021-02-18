@@ -124,9 +124,6 @@ class StatevectorController : public Base::Controller {
   // Precision of statevector
   Precision precision_ = Precision::double_precision;
 
-  //using multiple chunks
-  bool multiple_qregs_ = false;
-
 };
 
 //=========================================================================
@@ -182,11 +179,6 @@ void StatevectorController::set_config(const json_t& config) {
       precision_ = Precision::single_precision;
     }
   }
-
-  //enable multiple qregs if cache blocking is enabled
-  if(JSON::check_key("blocking_enable", config)){
-    JSON::get_value(multiple_qregs_,"blocking_enable", config);
-  }
 }
 
 void StatevectorController::clear_config() {
@@ -215,7 +207,7 @@ void StatevectorController::run_circuit(
   switch (method_) {
     case Method::automatic:
     case Method::statevector_cpu: {
-      if(multiple_qregs_){
+      if(Base::Controller::multiple_chunk_required(circ,noise)){
         if (precision_ == Precision::double_precision) {
           // Double-precision Statevector simulation
           return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<double>>>(
@@ -240,7 +232,7 @@ void StatevectorController::run_circuit(
     }
     case Method::statevector_thrust_gpu: {
 #ifdef AER_THRUST_CUDA
-      if(multiple_qregs_){
+      if(Base::Controller::multiple_chunk_required(circ,noise)){
         if (precision_ == Precision::double_precision) {
           // Double-precision Statevector simulation
           return run_circuit_helper<
@@ -275,7 +267,7 @@ void StatevectorController::run_circuit(
     }
     case Method::statevector_thrust_cpu: {
 #ifdef AER_THRUST_CPU
-      if(multiple_qregs_){
+      if(Base::Controller::multiple_chunk_required(circ,noise)){
         if (precision_ == Precision::double_precision) {
           // Double-precision Statevector simulation
           return run_circuit_helper<
@@ -353,34 +345,43 @@ void StatevectorController::run_circuit_helper(
   result.set_config(config);
 
   // Optimize circuit
-  const std::vector<Operations::Op>* op_ptr = &circ.ops;
   Transpile::Fusion fusion_pass;
-  Transpile::CacheBlocking cache_block_pass;
-
   fusion_pass.set_config(config);
-  cache_block_pass.set_config(config);
-
   fusion_pass.set_parallelization(parallel_state_update_);
 
-  Circuit opt_circ;
+  Circuit opt_circ = circ; // copy circuit
+  Noise::NoiseModel dummy_noise; // dummy object for transpile pass
   if (fusion_pass.active && circ.num_qubits >= fusion_pass.threshold) {
-    opt_circ = circ; // copy circuit
-    Noise::NoiseModel dummy_noise; // dummy object for transpile pass
     fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
-    cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
-    op_ptr = &opt_circ.ops;
   }
 
-  // Run single shot collecting measure data or snapshots
-  state.allocate(Base::Controller::max_qubits_);
+  Transpile::CacheBlocking cache_block_pass;
+  cache_block_pass.set_config(config);
+  if(!cache_block_pass.enabled()){
+    //if blocking is not set by config, automatically set if required
+    if(Base::Controller::multiple_chunk_required(opt_circ,noise)){
+      int nplace = Base::Controller::num_process_per_experiment_;
+      if(Base::Controller::num_gpus_ > 0)
+        nplace *= Base::Controller::num_gpus_;
+      size_t complex_size = (precision_ == Precision::single_precision) ? sizeof(std::complex<float>) : sizeof(std::complex<double>);
+      cache_block_pass.set_blocking(circ.num_qubits, Base::Controller::get_min_memory_mb() << 20, nplace, complex_size,false);
+    }
+  }
+  cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
 
+  uint_t block_bits = 0;
+  if(cache_block_pass.enabled())
+    block_bits = cache_block_pass.block_bits();
+  state.allocate(Base::Controller::max_qubits_,block_bits);
+
+  // Run single shot collecting measure data or snapshots
   if (initial_state_.empty()) {
     state.initialize_qreg(circ.num_qubits);
   } else {
     state.initialize_qreg(circ.num_qubits, initial_state_);
   }
   state.initialize_creg(circ.num_memory, circ.num_registers);
-  state.apply_ops(*op_ptr, result, rng);
+  state.apply_ops(opt_circ.ops, result, rng);
   Base::Controller::save_count_data(result, state.creg());
 
   // Add final state to the data

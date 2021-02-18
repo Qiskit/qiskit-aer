@@ -118,7 +118,7 @@ public:
                          bool final_ops = false);
 
   //memory allocation (previously called before inisitalize_qreg)
-  virtual void allocate(uint_t num_qubits);
+  virtual void allocate(uint_t num_qubits,uint_t block_bits);
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
@@ -434,13 +434,17 @@ void StateChunk<state_t>::set_distribution(uint_t nprocs)
 }
 
 template <class state_t>
-void StateChunk<state_t>::allocate(uint_t num_qubits)
+void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits)
 {
   int_t i;
   uint_t nchunks;
   int max_bits = num_qubits;
 
+  if(num_qubits_ == num_qubits && block_bits != 0 && block_bits_ == block_bits)
+    return;
+
   num_qubits_ = num_qubits;
+  block_bits_ = block_bits;
 
   if(block_bits_ > 0){
     chunk_bits_ = block_bits_;
@@ -519,9 +523,13 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
   int_t iChunk;
   uint_t iOp,nOp;
 
+  std::cout << " >>> start sequence of operations " << std::endl;
+
   nOp = ops.size();
   iOp = 0;
   while(iOp < nOp){
+    std::cout << " [" << iOp << "] " << ops[iOp] << std::endl;
+
     if(ops[iOp].type == Operations::OpType::gate && ops[iOp].name == "swap_chunk"){
       //apply swap between chunks
       apply_chunk_swap(ops[iOp].qubits);
@@ -555,16 +563,17 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
 
       iOp = iOpEnd;
     }
-    else if(ops[iOp].type == Operations::OpType::measure || ops[iOp].type == Operations::OpType::snapshot || ops[iOp].type == Operations::OpType::kraus ||
-            ops[iOp].type == Operations::OpType::bfunc || ops[iOp].type == Operations::OpType::roerror || ops[iOp].type == Operations::OpType::initialize){
-              //for these operations, parallelize inside state implementations
-      apply_op(-1,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
-    }
-    else{
+    else if(ops[iOp].type == Operations::OpType::gate || ops[iOp].type == Operations::OpType::matrix || 
+            ops[iOp].type == Operations::OpType::diagonal_matrix || ops[iOp].type == Operations::OpType::multiplexer)
+    {
 #pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
       for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
         apply_op(iChunk,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
       }
+    }
+    else{
+      //parallelize inside state implementations
+      apply_op(-1,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
     }
     iOp++;
   }

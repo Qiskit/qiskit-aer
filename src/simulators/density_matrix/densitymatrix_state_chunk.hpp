@@ -1065,7 +1065,7 @@ template <class densmat_t>
 void State<densmat_t>::apply_pauli(const reg_t &qubits,
                                    const std::string &pauli) 
 {
-  uint_t i;
+  int_t i;
   // Pauli as a superoperator is (-1)^num_y P\otimes P
   complex_t coeff = (std::count(pauli.begin(), pauli.end(), 'Y') % 2) ? -1 : 1;
 
