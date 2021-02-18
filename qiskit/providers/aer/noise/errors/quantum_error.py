@@ -35,11 +35,12 @@ from ..noiseerror import NoiseError
 
 logger = logging.getLogger(__name__)
 
-QuantumNoiseType = type(Union[BaseOperator,
-                              QuantumCircuit,
-                              List[Tuple[Instruction, List[int]]],
-                              Tuple[Instruction, List[int]],
-                              Instruction])
+# Wait for EOL of Python 3.6
+# QuantumNoiseType = type(Union[BaseOperator,
+#                               QuantumCircuit,
+#                               List[Tuple[Instruction, List[int]]],
+#                               Tuple[Instruction, List[int]],
+#                               Instruction])
 
 
 class QuantumError(BaseOperator, TolerancesMixin):
@@ -53,8 +54,17 @@ class QuantumError(BaseOperator, TolerancesMixin):
     """
 
     def __init__(self,
-                 noise_ops: Union[QuantumNoiseType,
-                                  Iterable[Tuple[QuantumNoiseType, float]]],
+                 noise_ops: Union[Union[BaseOperator,
+                                        QuantumCircuit,
+                                        List[Tuple[Instruction, List[int]]],
+                                        Tuple[Instruction, List[int]],
+                                        Instruction],
+                                  Iterable[Tuple[Union[BaseOperator,
+                                                       QuantumCircuit,
+                                                       List[Tuple[Instruction, List[int]]],
+                                                       Tuple[Instruction, List[int]],
+                                                       Instruction],
+                                                 float]]],
                  number_of_qubits=None,
                  standard_gates=False,
                  atol=1e-8):
@@ -161,7 +171,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
         # Convert instructions to circuits
         # pylint: disable=too-many-return-statements
-        def to_circuit(op: QuantumNoiseType):
+        def to_circuit(op):
             if isinstance(op, QuantumCircuit):
                 return op
             elif isinstance(op, Tuple):
