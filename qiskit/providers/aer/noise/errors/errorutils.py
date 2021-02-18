@@ -12,7 +12,7 @@
 """
 Helper functions for noise model creation.
 """
-
+# pylint: disable=wildcard-import,unused-wildcard-import
 import numpy as np
 from qiskit.circuit import Reset
 from qiskit.circuit.library.standard_gates import *

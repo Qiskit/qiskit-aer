@@ -12,6 +12,7 @@
 """
 Quantum error class for Qiskit Aer noise model
 """
+# pylint: disable=import-outside-toplevel
 import copy
 import logging
 import warnings
@@ -55,7 +56,8 @@ class QuantumError(BaseOperator, TolerancesMixin):
                  noise_ops: Union[QuantumNoiseType,
                                   Iterable[Tuple[QuantumNoiseType, float]]],
                  number_of_qubits=None,
-                 standard_gates=False):
+                 standard_gates=False,
+                 atol=1e-8):
         """
         Create a quantum error for a noise model.
 
@@ -100,6 +102,14 @@ class QuantumError(BaseOperator, TolerancesMixin):
             super().__init__(num_qubits=noise_ops.num_qubits)
             return
 
+        if atol != 1e-8:
+            QuantumError.atol = atol
+            warnings.warn(
+                '"atol" option in the constructor of QuantumError has been deprecated'
+                ' as of qiskit-aer 0.8.0 and will be removed no earlier than 3 months'
+                ' from that release date. Use QuantumError.atol = value',
+                DeprecationWarning, stacklevel=2)
+
         # Convert list of arrarys to kraus instruction (for old API support) TODO: to be removed
         if isinstance(noise_ops, (List, Tuple)) and isinstance(noise_ops[0], np.ndarray):
             warnings.warn(
@@ -115,8 +125,8 @@ class QuantumError(BaseOperator, TolerancesMixin):
                     noise_ops = Kraus(noise_ops)
                     noise_ops = [((noise_ops.to_instruction(),
                                    list(range(noise_ops.num_qubits))), 1.0)]
-                except QiskitError:
-                    raise NoiseError("Cannot convert Kraus to Instruction: channel is not CPTP")
+                except QiskitError as err:
+                    raise NoiseError("Fail to convert Kraus to Instruction") from err
 
         # Convert zipped object to list (to enable multiple iteration over it)
         if isinstance(noise_ops, zip):
@@ -168,9 +178,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 if hasattr(op, 'to_instruction'):
                     try:
                         return to_circuit(op.to_instruction())
-                    except QiskitError:
-                        raise NoiseError(
-                            "Fail to convert {} to Instruction.".format(op.__class__.__name__))
+                    except QiskitError as err:
+                        raise NoiseError("Fail to convert {} to Instruction.".format(
+                            op.__class__.__name__)) from err
                 # Try to convert an operator subclass into Kraus
                 kraus_op = Kraus(op)
                 if isinstance(kraus_op, Kraus):
