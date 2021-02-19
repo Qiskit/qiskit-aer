@@ -631,7 +631,7 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
       bool on_same_process = true;
 #ifdef AER_MPI
       int proc_bits = 0;
-      uint_t procs = distributed_procs_;
+      uint_t procs = BaseState::distributed_procs_;
       while(procs > 1){
         if((procs & 1) != 0){
           proc_bits = -1;

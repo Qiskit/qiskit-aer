@@ -450,8 +450,8 @@ auto State<densmat_t>::apply_to_matrix(bool copy)
       BaseState::recv_data(recv.data(),size,0,iChunk);
 
       int_t i;
-      uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_))) << (BaseState::chunk_bits_);
-      uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
+      uint_t irow_chunk = ((iChunk) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_))) << (BaseState::chunk_bits_);
+      uint_t icol_chunk = ((iChunk) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
 #pragma omp parallel for if(num_threads > 1) num_threads(num_threads)
       for(i=0;i<size;i++){
         uint_t irow = i >> (BaseState::chunk_bits_);
@@ -489,15 +489,15 @@ auto State<densmat_t>::apply_to_matrix(bool copy)
 #ifdef AER_MPI
     //send matrices to process 0
     for(iChunk=0;iChunk<BaseState::num_global_chunks_;iChunk++){
-      uint_t iProc = get_process_by_chunk(iChunk);
-      if(iProc == BaseSate::distributed_rank_){
+      uint_t iProc = BaseState::get_process_by_chunk(iChunk);
+      if(iProc == BaseState::distributed_rank_){
         if(copy){
           auto tmp = BaseState::qregs_[iChunk-BaseState::global_chunk_index_].copy_to_matrix();
-          BaseState::send_data(tmp.data(),iChunk,0);
+          BaseState::send_data(tmp.data(),size,iChunk,0);
         }
         else{
           auto tmp = BaseState::qregs_[iChunk-BaseState::global_chunk_index_].move_to_matrix();
-          BaseState::send_data(tmp.data(),iChunk,0);
+          BaseState::send_data(tmp.data(),size,iChunk,0);
         }
       }
     }
@@ -689,7 +689,7 @@ double State<densmat_t>::expval_pauli(const reg_t &qubits,
       bool on_same_process = true;
 #ifdef AER_MPI
       int proc_bits = 0;
-      uint_t procs = distributed_procs_;
+      uint_t procs = BaseState::distributed_procs_;
       while(procs > 1){
         if((procs & 1) != 0){
           proc_bits = -1;

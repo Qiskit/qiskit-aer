@@ -334,32 +334,61 @@ auto State<unitary_matrix_t>::move_to_matrix()
   if(BaseState::num_global_chunks_ == 1){
     return BaseState::qregs_[0].move_to_matrix();
   }
-  else{
-    int_t iChunk;
-    auto state = BaseState::qregs_[0].vector();   //using vector to gather distributed matrix
+  int_t iChunk;
+  uint_t size = 1ull << (BaseState::chunk_bits_*2);
+  uint_t mask = (1ull << (BaseState::chunk_bits_)) - 1;
+  uint_t num_threads = BaseState::qregs_[0].get_omp_threads();
 
+  auto matrix = BaseState::qregs_[0].copy_to_matrix();
+
+  if(BaseState::distributed_rank_ == 0){
     //TO DO check memory availability
-    state.resize(BaseState::num_local_chunks_ << BaseState::chunk_bits_*2);
+    matrix.resize(1ull << (BaseState::num_qubits_),1ull << (BaseState::num_qubits_));
 
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk)
-    for(iChunk=1;iChunk<BaseState::num_local_chunks_;iChunk++){
-      auto tmp = BaseState::qregs_[iChunk].vector();
-      uint_t j,offset = iChunk << BaseState::chunk_bits_*2;
-      for(j=0;j<tmp.size();j++){
-        state[offset + j] = tmp[j];
-      }
-    }
+    auto recv = BaseState::qregs_[0].copy_to_matrix();
 
 #ifdef AER_MPI
-    BaseState::gather_state(state);
+    //gather states from other processes
+    for(iChunk=BaseState::num_local_chunks_;iChunk<BaseState::num_global_chunks_;iChunk++){
+      BaseState::recv_data(recv.data(),size,0,iChunk);
+
+      int_t i;
+      uint_t offset = iChunk << (BaseState::chunk_bits_*2);
+#pragma omp parallel for if(num_threads > 1) num_threads(num_threads)
+      for(i=0;i<size;i++){
+        uint_t irow = i >> (BaseState::chunk_bits_);
+        uint_t icol = i & mask;
+        matrix[offset+i] = recv(icol,irow);
+      }
+    }
 #endif
 
-    //type of matrix cam not be discovered from State class, so make from matrix
-    auto matrix = BaseState::qregs_[0].move_to_matrix();
-    matrix.resize(1ull << (BaseState::num_qubits_),1ull << (BaseState::num_qubits_));
-    matrix.copy_from_buffer(1ull << (BaseState::num_qubits_),1ull << (BaseState::num_qubits_),&state[0]);
-    return matrix;
+    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+      int_t i;
+      uint_t offset = (iChunk + BaseState::global_chunk_index_) << (BaseState::chunk_bits_*2);
+      auto tmp = BaseState::qregs_[iChunk].move_to_matrix();
+#pragma omp parallel for if(num_threads > 1) num_threads(num_threads)
+      for(i=0;i<size;i++){
+        uint_t irow = i >> (BaseState::chunk_bits_);
+        uint_t icol = i & mask;
+        matrix[offset+i] = tmp(icol,irow);
+      }
+    }
   }
+  else{
+#ifdef AER_MPI
+    //send matrices to process 0
+    for(iChunk=0;iChunk<BaseState::num_global_chunks_;iChunk++){
+      uint_t iProc = BaseState::get_process_by_chunk(iChunk);
+      if(iProc == BaseState::distributed_rank_){
+        auto tmp = BaseState::qregs_[iChunk-BaseState::global_chunk_index_].move_to_matrix();
+        BaseState::send_data(tmp.data(),size,iChunk,0);
+      }
+    }
+#endif
+  }
+
+  return matrix;
 }
 
 //=========================================================================
