@@ -41,7 +41,7 @@ class SaveUnitary(SaveSingleData):
                          pershot=pershot)
 
 
-def save_unitary(self, key, pershot=False, conditional=False):
+def save_unitary(self, key, pershot=False):
     """Save the current state of the unitary simulator.
 
     Args:
