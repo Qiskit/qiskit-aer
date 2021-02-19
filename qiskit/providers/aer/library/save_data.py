@@ -16,17 +16,14 @@ Simulator instruction to save custom internal data to results.
 import copy
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-# TEMP For compatiblity until Terra PR #5701 is merged
-try:
-    from qiskit.circuit import Directive
-except ImportError:
-    from qiskit.circuit import Instruction as Directive
+from qiskit.circuit import Instruction
 from qiskit.extensions.exceptions import ExtensionError
 
 
-class SaveData(Directive):
+class SaveData(Instruction):
     """Pragma Instruction to save simulator data."""
 
+    _directive = True
     _allowed_subtypes = set([
         'single', 'c_single', 'list', 'c_list',
         'average', 'c_average', 'accum', 'c_accum'
