@@ -22,48 +22,48 @@ from test.terra.backends.qasm_simulator.qasm_save import QasmSaveDataTests
 # chunk tests
 from test.terra.backends.qasm_simulator.qasm_chunk import QasmChunkTests
 
-class StatevectorChunkTests(
+class DensityMatrixChunkTests(
         QasmSaveDataTests,
         QasmChunkTests
         ):
-    """Container class of statevector method tests."""
+    """Container class of density matrix method tests."""
     pass
 
 
-class TestQasmSimulatorStatevectorChunk(common.QiskitAerTestCase, StatevectorChunkTests):
-    """QasmSimulator statevector method tests."""
+class TestQasmSimulatorDensityMatrixChunk(common.QiskitAerTestCase, DensityMatrixChunkTests):
+    """QasmSimulator density_matrix method tests."""
 
     BACKEND_OPTS = {
-        "seed_simulator": 271828,
-        "method": "statevector",
+        "seed_simulator": 314159,
+        "method": "density_matrix",
         "max_parallel_threads": 1,
         "blocking_enable" : True,
         "blocking_qubits" : 2
     }
 
 
-@requires_method("qasm_simulator", "statevector_gpu")
-class TestQasmSimulatorStatevectorChunkThrustGPU(common.QiskitAerTestCase,
-                                            StatevectorChunkTests):
-    """QasmSimulator statevector_gpu method tests."""
+@requires_method("qasm_simulator", "density_matrix_gpu")
+class TestQasmSimulatorDensityMatrixChunkThrustGPU(common.QiskitAerTestCase,
+                                            DensityMatrixChunkTests):
+    """QasmSimulator density_matrix_gpu method tests."""
 
     BACKEND_OPTS = {
-        "seed_simulator": 271828,
-        "method": "statevector_gpu",
+        "seed_simulator": 314159,
+        "method": "density_matrix_gpu",
         "max_parallel_threads": 1,
         "blocking_enable" : True,
         "blocking_qubits" : 2
     }
 
 
-@requires_method("qasm_simulator", "statevector_thrust")
-class TestQasmSimulatorStatevectorChunkThrustCPU(common.QiskitAerTestCase,
-                                            StatevectorChunkTests):
-    """QasmSimulator statevector_thrust method tests."""
+@requires_method("qasm_simulator", "density_matrix_thrust")
+class TestQasmSimulatorDensityMatrixChunkThrustCPU(common.QiskitAerTestCase,
+                                            DensityMatrixChunkTests):
+    """QasmSimulator density_matrix_thrust method tests."""
 
     BACKEND_OPTS = {
-        "seed_simulator": 271828,
-        "method": "statevector_thrust",
+        "seed_simulator": 314159,
+        "method": "density_matrix_thrust",
         "max_parallel_threads": 1,
         "blocking_enable" : True,
         "blocking_qubits" : 2
