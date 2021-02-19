@@ -42,7 +42,7 @@ const Operations::OpSet StateOpSet(
   {"CX", "u0", "u1", "p", "cx", "cz", "swap", "id", "x", "y", "z", "h",
     "s", "sdg", "t", "tdg", "ccx", "ccz", "delay"},
   // Snapshots
-  {"statevector", "probabilities", "expectation_value_pauli", "memory", "register"}
+  {"statevector", "probabilities", "memory", "register"}
 );
 
 using chpauli_t = CHSimulator::pauli_t;
@@ -60,7 +60,6 @@ enum class SamplingMethod {
 
 enum class Snapshots {
   statevector,
-  expval_pauli,
   cmemory,
   cregister,
   probs
@@ -154,6 +153,10 @@ protected:
                               ExperimentResult &result,
                               RngEngine &rng);
 
+   double expval_pauli(const reg_t &qubits,
+                       const std::string& pauli,
+                             RngEngine &rng);
+
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
                               const std::string& pauli) override;
@@ -198,8 +201,6 @@ protected:
 
   //Check if we can use the sample_measure optimisation
   bool check_measurement_opt(const std::vector<Operations::Op> &ops) const;
-
-  RngEngine default_rng_;
 };
 
 //=========================================================================
@@ -236,7 +237,6 @@ const stringmap_t<Gates> State::gateset_({
 const stringmap_t<Snapshots> State::snapshotset_({
   {"statevector", Snapshots::statevector},
   {"probabilities", Snapshots::probs},
-  {"expectation_value_pauli", Snapshots::expval_pauli},
   {"memory", Snapshots::cmemory},
   {"register", Snapshots::cregister}
 });
@@ -765,10 +765,34 @@ void State::apply_save_statevector(const Operations::Op &op,
 void State::apply_save_expval(const Operations::Op &op,
                                 ExperimentResult &result,
                                 RngEngine& rng) {
-    default_rng_ = rng;
-    BaseState::apply_save_expval(op, result);
-}
+  // Check empty edge case
+  if (op.expval_params.empty()) {
+    throw std::invalid_argument(
+        "Invalid save expval instruction (Pauli components are empty).");
+  }
+  bool variance = (op.type == Operations::OpType::save_expval_var);
 
+  // Accumulate expval components
+  double expval(0.);
+  double sq_expval(0.);
+
+  for (const auto &param : op.expval_params) {
+    // param is tuple (pauli, coeff, sq_coeff)
+    const auto val = expval_pauli(op.qubits, std::get<0>(param), rng);
+    expval += std::get<1>(param) * val;
+    if (variance) {
+      sq_expval += std::get<2>(param) * val;
+    }
+  }
+  if (variance) {
+    std::vector<double> expval_var(2);
+    expval_var[0] = expval;  // mean
+    expval_var[1] = sq_expval - expval * expval;  // variance
+    save_data_average(result, op.string_params[0], expval_var, op.save_type);
+  } else {
+    save_data_average(result, op.string_params[0], expval, op.save_type);
+  }
+}
 
 void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
 {
@@ -806,10 +830,11 @@ void State::statevector_snapshot(const Operations::Op &op, ExperimentResult &res
 }
 
 double State::expval_pauli(const reg_t &qubits,
-                           const std::string& pauli) {
+                           const std::string& pauli,
+                           RngEngine &rng) {
     // Compute expval components
     auto state_cpy = BaseState::qreg_;
-    auto phi_norm = state_cpy.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, default_rng_);
+    auto phi_norm = state_cpy.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, rng);
     std::vector<chpauli_t>paulis(1, chpauli_t());
     for (uint_t pos = 0; pos < qubits.size(); ++pos) {
       uint_t qubit = qubits[pos];
@@ -834,8 +859,15 @@ double State::expval_pauli(const reg_t &qubits,
         }
       }
     }
-    auto g_norm = state_cpy.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, paulis, default_rng_);
+    auto g_norm = state_cpy.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, paulis, rng);
     return (2*g_norm - phi_norm);
+}
+
+double State::expval_pauli(const reg_t &qubits,
+                           const std::string& pauli) {
+    // empty implementation of base class virtual method
+    // since in the extended stabilizer, expval relies on RNG
+    return 0;
 }
 
 void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
