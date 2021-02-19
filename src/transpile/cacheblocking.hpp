@@ -185,14 +185,6 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
     return;
   }
 
-  std::cout << "  cache blocking before ---" << std::endl;
-  for(uint_t i=0;i<circ.ops.size();i++){
-    if(is_diagonal_op(circ.ops[i]))
-      std::cout << "[" << i << "]" << circ.ops[i] << "*" << std::endl;
-    else
-      std::cout << "[" << i << "]" << circ.ops[i] << std::endl;
-  }
-
   if(blocking_enabled_){
     qubits_ = circ.num_qubits;
     if(block_bits_ >= qubits_ || block_bits_ < 2){
@@ -219,15 +211,6 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
   }
 
   circ.set_params();
-
-  std::cout << " --- cache blocking after " << std::endl;
-  for(uint_t i=0;i<circ.ops.size();i++){
-    if(is_diagonal_op(circ.ops[i]))
-      std::cout << "[" << i << "]" << circ.ops[i] << "*" << std::endl;
-    else
-      std::cout << "[" << i << "]" << circ.ops[i] << std::endl;
-  }
-
 }
 
 void CacheBlocking::define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t& blockedQubits,bool crossQubitOnly) const
@@ -715,15 +698,22 @@ bool CacheBlocking::split_pauli(const Operations::Op& op,const reg_t blockedQubi
     Operations::Op op;
     op.type = Operations::OpType::gate;
     op.name = "pauli";
+    op.qubits = qubits_out_chunk;
     op.string_params = {pauli_out_chunk};
     queue.push_back(op);
   }
 
   if(qubits_in_chunk.size() > 0){
     std::reverse(pauli_in_chunk.begin(),pauli_in_chunk.end());
+    //mapping swapped qubits
+    for(i=0;i<qubits_in_chunk.size();i++){
+      qubits_in_chunk[i] = qubitMap_[qubits_in_chunk[i]];
+    }
+
     Operations::Op op;
     op.type = Operations::OpType::gate;
     op.name = "pauli";
+    op.qubits = qubits_in_chunk;
     op.string_params = {pauli_in_chunk};
     out.push_back(op);
     return true;

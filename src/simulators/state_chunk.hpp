@@ -319,6 +319,11 @@ protected:
   void send_chunk(uint_t local_chunk_index, uint_t global_chunk_index);
   void recv_chunk(uint_t local_chunk_index, uint_t global_chunk_index);
 
+  template <class data_t>
+  void send_data(data_t* pSend, uint_t size, uint_t myid,uint_t pairid);
+  template <class data_t>
+  void recv_data(data_t* pRecv, uint_t size, uint_t myid,uint_t pairid);
+
   //reduce values over processes
   void reduce_sum(rvector_t& sum) const;
   void reduce_sum(complex_t& sum) const;
@@ -523,13 +528,9 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
   int_t iChunk;
   uint_t iOp,nOp;
 
-  std::cout << " >>> start sequence of operations " << std::endl;
-
   nOp = ops.size();
   iOp = 0;
   while(iOp < nOp){
-    std::cout << " [" << iOp << "] " << ops[iOp] << std::endl;
-
     if(ops[iOp].type == Operations::OpType::gate && ops[iOp].name == "swap_chunk"){
       //apply swap between chunks
       apply_chunk_swap(ops[iOp].qubits);
@@ -1030,7 +1031,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 
 
 template <class state_t>
-void StateChunk<state_t>::send_chunk(uint_t local_chunk_index, uint_t global_chunk_index)
+void StateChunk<state_t>::send_chunk(uint_t local_chunk_index, uint_t global_pair_index)
 {
 #ifdef AER_MPI
   MPI_Request reqSend;
@@ -1038,17 +1039,17 @@ void StateChunk<state_t>::send_chunk(uint_t local_chunk_index, uint_t global_chu
   uint_t sizeSend;
   uint_t iProc;
 
-  iProc = get_process_by_chunk(global_chunk_index);
+  iProc = get_process_by_chunk(global_pair_index);
 
   auto pSend = qregs_[local_chunk_index].send_buffer(sizeSend);
-  MPI_Isend(pSend,sizeSend,MPI_BYTE,iProc,0,distributed_comm_,&reqSend);
+  MPI_Isend(pSend,sizeSend,MPI_BYTE,iProc,local_chunk_index + global_chunk_index_,distributed_comm_,&reqSend);
 
   MPI_Wait(&reqSend,&st);
 #endif
 }
 
 template <class state_t>
-void StateChunk<state_t>::recv_chunk(uint_t local_chunk_index, uint_t global_chunk_index)
+void StateChunk<state_t>::recv_chunk(uint_t local_chunk_index, uint_t global_pair_index)
 {
 #ifdef AER_MPI
   MPI_Request reqRecv;
@@ -1056,10 +1057,44 @@ void StateChunk<state_t>::recv_chunk(uint_t local_chunk_index, uint_t global_chu
   uint_t sizeRecv;
   uint_t iProc;
 
-  iProc = get_process_by_chunk(global_chunk_index);
+  iProc = get_process_by_chunk(global_pair_index);
 
   auto pRecv = qregs_[local_chunk_index].recv_buffer(sizeRecv);
-  MPI_Irecv(pRecv,sizeRecv,MPI_BYTE,iProc,0,distributed_comm_,&reqRecv);
+  MPI_Irecv(pRecv,sizeRecv,MPI_BYTE,iProc,global_pair_index,distributed_comm_,&reqRecv);
+
+  MPI_Wait(&reqRecv,&st);
+#endif
+}
+
+template <class state_t>
+template <class data_t>
+void StateChunk<state_t>::send_data(data_t* pSend, uint_t size, uint_t myid,uint_t pairid)
+{
+#ifdef AER_MPI
+  MPI_Request reqSend;
+  MPI_Status st;
+  uint_t iProc;
+
+  iProc = get_process_by_chunk(pairid);
+
+  MPI_Isend(pSend,size*sizeof(data_t),MPI_BYTE,iProc,myid,distributed_comm_,&reqSend);
+
+  MPI_Wait(&reqSend,&st);
+#endif
+}
+
+template <class state_t>
+template <class data_t>
+void StateChunk<state_t>::recv_data(data_t* pRecv, uint_t size, uint_t myid,uint_t pairid)
+{
+#ifdef AER_MPI
+  MPI_Request reqRecv;
+  MPI_Status st;
+  uint_t iProc;
+
+  iProc = get_process_by_chunk(pairid);
+
+  MPI_Irecv(pRecv,size*sizeof(data_t),MPI_BYTE,iProc,pairid,distributed_comm_,&reqRecv);
 
   MPI_Wait(&reqRecv,&st);
 #endif
