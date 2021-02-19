@@ -37,7 +37,7 @@ const Operations::OpSet StateOpSet(
     Operations::OpType::reset, Operations::OpType::barrier,
     Operations::OpType::roerror, Operations::OpType::bfunc,
     Operations::OpType::snapshot, Operations::OpType::save_statevec,
-    Operations::OpType::save_expval},
+    Operations::OpType::save_expval, Operations::OpType::save_expval_var},
   // Gates
   {"CX", "u0", "u1", "p", "cx", "cz", "swap", "id", "x", "y", "z", "h",
     "s", "sdg", "t", "tdg", "ccx", "ccz", "delay"},
