@@ -461,11 +461,7 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits)
     chunk_bits_ = num_qubits_;
   }
 
-  //scale for density/unitary matrix simulators
-  chunk_bits_ *= qubit_scale();
-  num_qubits_ *= qubit_scale();
-
-  num_global_chunks_ = 1ull << (num_qubits_ - chunk_bits_);
+  num_global_chunks_ = 1ull << ((num_qubits_ - chunk_bits_)*qubit_scale());
 
   chunk_index_begin_.resize(distributed_procs_);
   chunk_index_end_.resize(distributed_procs_);
@@ -491,7 +487,7 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits)
   nchunks = num_local_chunks_;
   for(i=0;i<num_local_chunks_;i++){
     uint_t gid = i + global_chunk_index_;
-    qregs_[i].chunk_setup(chunk_bits_,num_qubits_,gid,nchunks);
+    qregs_[i].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),gid,nchunks);
 
     //only first one allocates chunks, others only set chunk index
     nchunks = 0;
@@ -592,12 +588,12 @@ void StateChunk<state_t>::block_diagonal_matrix(const int_t iChunk, reg_t &qubit
   cvector_t diag_in;
 
   for(i=0;i<qubits.size();i++){
-    if(qubits[i] < chunk_bits_/qubit_scale()){ //in chunk
+    if(qubits[i] < chunk_bits_){ //in chunk
       qubits_in.push_back(qubits[i]);
     }
     else{
       mask_out |= (1ull << i);
-      if((gid >> (qubits[i] - chunk_bits_/qubit_scale())) & 1)
+      if((gid >> (qubits[i] - chunk_bits_)) & 1)
         mask_id |= (1ull << i);
     }
   }
@@ -870,7 +866,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
     q1 = t;
   }
 
-  if(q1 < chunk_bits_){
+  if(q1 < chunk_bits_*qubit_scale()){
     //device
 #pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
     for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
@@ -882,15 +878,15 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
     uint_t nPair,mask0,mask1;
     uint_t baseChunk,iChunk1,iChunk2;
 
-    if(q0 < chunk_bits_)
+    if(q0 < chunk_bits_*qubit_scale())
       nLarge = 1;
     else
       nLarge = 2;
 
     mask0 = (1ull << q0);
     mask1 = (1ull << q1);
-    mask0 >>= chunk_bits_;
-    mask1 >>= chunk_bits_;
+    mask0 >>= (chunk_bits_*qubit_scale());
+    mask1 >>= (chunk_bits_*qubit_scale());
 
     int proc_bits = 0;
     uint_t procs = distributed_procs_;
@@ -903,8 +899,8 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
       procs >>= 1;
     }
 
-    if(distributed_procs_ == 1 || (proc_bits >= 0 && q1 < (num_qubits_ - proc_bits))){   //no data transfer between processes is needed
-      if(q0 < chunk_bits_){
+    if(distributed_procs_ == 1 || (proc_bits >= 0 && q1 < (num_qubits_*qubit_scale() - proc_bits))){   //no data transfer between processes is needed
+      if(q0 < chunk_bits_*qubit_scale()){
         nPair = num_local_chunks_ >> 1;
       }
       else{
@@ -913,7 +909,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 
 #pragma omp parallel for if(chunk_omp_parallel_) private(iPair,baseChunk,iChunk1,iChunk2)
       for(iPair=0;iPair<nPair;iPair++){
-        if(q0 < chunk_bits_){
+        if(q0 < chunk_bits_*qubit_scale()){
           baseChunk = iPair & (mask1-1);
           baseChunk += ((iPair - baseChunk) << 1);
         }
@@ -942,31 +938,31 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
       uint_t iLocalChunk,iRemoteChunk,iProc;
       int i;
 
-      if(q0 < chunk_bits_){
+      if(q0 < chunk_bits_*qubit_scale()){
         nLarge = 1;
-        nu[0] = 1ull << (q1 - chunk_bits_);
+        nu[0] = 1ull << (q1 - chunk_bits_*qubit_scale());
         ub[0] = 0;
         iu[0] = 0;
 
-        nu[1] = 1ull << (num_qubits_ - q1 - 1);
-        ub[1] = (q1 - chunk_bits_) + 1;
+        nu[1] = 1ull << (num_qubits_*qubit_scale() - q1 - 1);
+        ub[1] = (q1 - chunk_bits_*qubit_scale()) + 1;
         iu[1] = 0;
       }
       else{
         nLarge = 2;
-        nu[0] = 1ull << (q0 - chunk_bits_);
+        nu[0] = 1ull << (q0 - chunk_bits_*qubit_scale());
         ub[0] = 0;
         iu[0] = 0;
 
         nu[1] = 1ull << (q1 - q0 - 1);
-        ub[1] = (q0 - chunk_bits_) + 1;
+        ub[1] = (q0 - chunk_bits_*qubit_scale()) + 1;
         iu[1] = 0;
 
-        nu[2] = 1ull << (num_qubits_ - q1 - 1);
-        ub[2] = (q1 - chunk_bits_) + 1;
+        nu[2] = 1ull << (num_qubits_*qubit_scale() - q1 - 1);
+        ub[2] = (q1 - chunk_bits_*qubit_scale()) + 1;
         iu[2] = 0;
       }
-      nPair = 1ull << (num_qubits_ - chunk_bits_ - nLarge);
+      nPair = 1ull << (num_qubits_*qubit_scale() - chunk_bits_*qubit_scale() - nLarge);
 
       for(iPair=0;iPair<nPair;iPair++){
         //calculate index of pair of chunks

@@ -261,7 +261,7 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits)
 
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
     for(i=0;i<BaseState::num_local_chunks_;i++){
-      BaseState::qregs_[i].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[i].set_num_qubits(BaseState::chunk_bits_);
       BaseState::qregs_[i].zero();
       BaseState::qregs_[i].initialize();
     }
@@ -270,7 +270,7 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits)
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
     for(i=0;i<BaseState::num_local_chunks_;i++){
-      BaseState::qregs_[i].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[i].set_num_qubits(BaseState::chunk_bits_);
       if(BaseState::global_chunk_index_ + i == 0 || this->num_qubits_ == this->chunk_bits_){
         BaseState::qregs_[i].initialize();
       }
@@ -294,7 +294,7 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits,
   int_t iChunk;
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
-      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
       BaseState::qregs_[iChunk].initialize_from_data(state.data(), 1ULL << 2 * num_qubits);
     }
   }
@@ -303,19 +303,19 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits,
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
-      uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2)) << (BaseState::chunk_bits_/2);
-      uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2))-1)) << (BaseState::chunk_bits_/2);
+      uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_))) << (BaseState::chunk_bits_);
+      uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
 
       //copy part of state for this chunk
       uint_t i,row,col;
       cvector_t tmp(1ull << BaseState::chunk_bits_);
       for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
-        uint_t icol = i & ((1ull << (BaseState::chunk_bits_/2))-1);
-        uint_t irow = i >> (BaseState::chunk_bits_/2);
-        tmp[i] = input[icol_chunk + icol + ((irow_chunk + irow) << (BaseState::num_qubits_/2))];
+        uint_t icol = i & ((1ull << (BaseState::chunk_bits_))-1);
+        uint_t irow = i >> (BaseState::chunk_bits_);
+        tmp[i] = input[icol_chunk + icol + ((irow_chunk + irow) << (BaseState::num_qubits_))];
       }
 
-      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
       BaseState::qregs_[iChunk].initialize_from_vector(tmp);
     }
   }
@@ -333,7 +333,7 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits,
   int_t iChunk;
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
-      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
       BaseState::qregs_[iChunk].initialize_from_matrix(state);
     }
   }
@@ -341,19 +341,19 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits,
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
-      uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2)) << (BaseState::chunk_bits_/2);
-      uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2))-1)) << (BaseState::chunk_bits_/2);
+      uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_))) << (BaseState::chunk_bits_);
+      uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
 
       //copy part of state for this chunk
       uint_t i,row,col;
       cvector_t tmp(1ull << BaseState::chunk_bits_);
       for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
-        uint_t icol = i & ((1ull << (BaseState::chunk_bits_/2))-1);
-        uint_t irow = i >> (BaseState::chunk_bits_/2);
-        tmp[i] = state[icol_chunk + icol + ((irow_chunk + irow) << (BaseState::num_qubits_/2))];
+        uint_t icol = i & ((1ull << (BaseState::chunk_bits_))-1);
+        uint_t irow = i >> (BaseState::chunk_bits_);
+        tmp[i] = state[icol_chunk + icol + ((irow_chunk + irow) << (BaseState::num_qubits_))];
       }
 
-      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
       BaseState::qregs_[iChunk].initialize_from_vector(tmp);
     }
   }
@@ -372,7 +372,7 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits,
   int_t iChunk;
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
-      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
       BaseState::qregs_[iChunk].initialize_from_vector(state);
     }
   }
@@ -380,19 +380,19 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits,
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
-      uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2)) << (BaseState::chunk_bits_/2);
-      uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2))-1)) << (BaseState::chunk_bits_/2);
+      uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_))) << (BaseState::chunk_bits_);
+      uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
 
       //copy part of state for this chunk
       uint_t i,row,col;
       cvector_t tmp(1ull << BaseState::chunk_bits_);
       for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
-        uint_t icol = i & ((1ull << (BaseState::chunk_bits_/2))-1);
-        uint_t irow = i >> (BaseState::chunk_bits_/2);
-        tmp[i] = state[icol_chunk + icol + ((irow_chunk + irow) << (BaseState::num_qubits_/2))];
+        uint_t icol = i & ((1ull << (BaseState::chunk_bits_))-1);
+        uint_t irow = i >> (BaseState::chunk_bits_);
+        tmp[i] = state[icol_chunk + icol + ((irow_chunk + irow) << (BaseState::num_qubits_))];
       }
 
-      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
       BaseState::qregs_[iChunk].initialize_from_vector(tmp);
     }
   }
@@ -432,15 +432,15 @@ template <class densmat_t>
 auto State<densmat_t>::apply_to_matrix(bool copy)
 {
   int_t iChunk;
-  uint_t size = 1ull << (BaseState::chunk_bits_);
-  uint_t mask = (1ull << (BaseState::chunk_bits_/2)) - 1;
+  uint_t size = 1ull << (BaseState::chunk_bits_*2);
+  uint_t mask = (1ull << (BaseState::chunk_bits_)) - 1;
   uint_t num_threads = BaseState::qregs_[0].get_omp_threads();
 
   auto matrix = BaseState::qregs_[0].copy_to_matrix();
 
   if(BaseState::distributed_rank_ == 0){
     //TO DO check memory availability
-    matrix.resize(1ull << (BaseState::num_qubits_/2),1ull << (BaseState::num_qubits_/2));
+    matrix.resize(1ull << (BaseState::num_qubits_),1ull << (BaseState::num_qubits_));
 
     auto recv = BaseState::qregs_[0].copy_to_matrix();
 
@@ -450,11 +450,11 @@ auto State<densmat_t>::apply_to_matrix(bool copy)
       BaseState::recv_data(recv.data(),size,0,iChunk);
 
       int_t i;
-      uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2)) << (BaseState::chunk_bits_/2);
-      uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2))-1)) << (BaseState::chunk_bits_/2);
+      uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_))) << (BaseState::chunk_bits_);
+      uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
 #pragma omp parallel for if(num_threads > 1) num_threads(num_threads)
       for(i=0;i<size;i++){
-        uint_t irow = i >> (BaseState::chunk_bits_/2);
+        uint_t irow = i >> (BaseState::chunk_bits_);
         uint_t icol = i & mask;
         matrix(icol_chunk+icol,irow_chunk+irow) = recv(icol,irow);
       }
@@ -463,13 +463,13 @@ auto State<densmat_t>::apply_to_matrix(bool copy)
 
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
       int_t i;
-      uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2)) << (BaseState::chunk_bits_/2);
-      uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2))-1)) << (BaseState::chunk_bits_/2);
+      uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_))) << (BaseState::chunk_bits_);
+      uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
       if(copy){
         auto tmp = BaseState::qregs_[iChunk].copy_to_matrix();
 #pragma omp parallel for if(num_threads > 1) num_threads(num_threads)
         for(i=0;i<size;i++){
-          uint_t irow = i >> (BaseState::chunk_bits_/2);
+          uint_t irow = i >> (BaseState::chunk_bits_);
           uint_t icol = i & mask;
           matrix(icol_chunk+icol,irow_chunk+irow) = tmp(icol,irow);
         }
@@ -478,7 +478,7 @@ auto State<densmat_t>::apply_to_matrix(bool copy)
         auto tmp = BaseState::qregs_[iChunk].move_to_matrix();
 #pragma omp parallel for if(num_threads > 1) num_threads(num_threads)
         for(i=0;i<size;i++){
-          uint_t irow = i >> (BaseState::chunk_bits_/2);
+          uint_t irow = i >> (BaseState::chunk_bits_);
           uint_t icol = i & mask;
           matrix(icol_chunk+icol,irow_chunk+irow) = tmp(icol,irow);
         }
@@ -607,26 +607,26 @@ void State<densmat_t>::apply_chunk_swap(const reg_t &qubits)
   uint_t q0,q1;
   q0 = qubits[0];
   q1 = qubits[1];
-  if(qubits[0] >= BaseState::chunk_bits_/2){
-    q0 += BaseState::chunk_bits_/2;
+  if(qubits[0] >= BaseState::chunk_bits_){
+    q0 += BaseState::chunk_bits_;
   }
-  if(qubits[1] >= BaseState::chunk_bits_/2){
-    q1 += BaseState::chunk_bits_/2;
+  if(qubits[1] >= BaseState::chunk_bits_){
+    q1 += BaseState::chunk_bits_;
   }
   reg_t qs0 = {{q0, q1}};
   BaseState::apply_chunk_swap(qs0);
 
-  if(qubits[0] >= BaseState::chunk_bits_/2){
-    q0 += (BaseState::num_qubits_ - BaseState::chunk_bits_)/2;
+  if(qubits[0] >= BaseState::chunk_bits_){
+    q0 += (BaseState::num_qubits_ - BaseState::chunk_bits_);
   }
   else{
-    q0 += BaseState::chunk_bits_/2;
+    q0 += BaseState::chunk_bits_;
   }
-  if(qubits[1] >= BaseState::chunk_bits_/2){
-    q1 += (BaseState::num_qubits_ - BaseState::chunk_bits_)/2;
+  if(qubits[1] >= BaseState::chunk_bits_){
+    q1 += (BaseState::num_qubits_ - BaseState::chunk_bits_);
   }
   else{
-    q1 += BaseState::chunk_bits_/2;
+    q1 += BaseState::chunk_bits_;
   }
   reg_t qs1 = {{q0, q1}};
   BaseState::apply_chunk_swap(qs1);
@@ -664,7 +664,7 @@ double State<densmat_t>::expval_pauli(const reg_t &qubits,
   //get inner/outer chunk pauli string
   n = pauli.size();
   for(i=0;i<n;i++){
-    if(qubits[i] < BaseState::chunk_bits_/2){
+    if(qubits[i] < BaseState::chunk_bits_){
       qubits_in_chunk.push_back(qubits[i]);
       pauli_in_chunk.push_back(pauli[n-i-1]);
     }
@@ -698,14 +698,14 @@ double State<densmat_t>::expval_pauli(const reg_t &qubits,
         proc_bits++;
         procs >>= 1;
       }
-      if(x_mask & (~((1ull << (BaseState::num_qubits_/2 - proc_bits)) - 1)) != 0){    //data exchange between processes is required
+      if(x_mask & (~((1ull << (BaseState::num_qubits_ - proc_bits)) - 1)) != 0){    //data exchange between processes is required
         on_same_process = false;
       }
 #endif
 
-      x_mask >>= (BaseState::chunk_bits_/2);
-      z_mask >>= (BaseState::chunk_bits_/2);
-      x_max -= (BaseState::chunk_bits_/2);
+      x_mask >>= (BaseState::chunk_bits_);
+      z_mask >>= (BaseState::chunk_bits_);
+      x_max -= (BaseState::chunk_bits_);
 
       const uint_t mask_u = ~((1ull << (x_max + 1)) - 1);
       const uint_t mask_l = (1ull << x_max) - 1;
@@ -736,7 +736,7 @@ double State<densmat_t>::expval_pauli(const reg_t &qubits,
       }
     }
     else{ //no exchange between chunks
-      z_mask >>= (BaseState::chunk_bits_/2);
+      z_mask >>= (BaseState::chunk_bits_);
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) reduction(+:expval)
       for(i=0;i<BaseState::num_local_chunks_;i++){
         double sign = 1.0;
@@ -894,7 +894,7 @@ cmatrix_t State<densmat_t>::reduced_density_matrix(const reg_t& qubits, bool las
     auto qubits_sorted = qubits;
     std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
-    if ((qubits.size() == BaseState::num_qubits_/2) && (qubits == qubits_sorted)) {
+    if ((qubits.size() == BaseState::num_qubits_) && (qubits == qubits_sorted)) {
       if (last_op) {
         reduced_state = move_to_matrix();
       } else {
@@ -929,12 +929,12 @@ cmatrix_t State<statevec_t>::reduced_density_matrix_helper(const reg_t &qubits,
   auto vmat = BaseState::qregs_[0].vector();
 
   //TO DO check memory availability
-  vmat.resize(BaseState::num_local_chunks_ << BaseState::chunk_bits_);
+  vmat.resize(BaseState::num_local_chunks_ << (BaseState::chunk_bits_*2));
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk)
   for(iChunk=1;iChunk<BaseState::num_local_chunks_;iChunk++){
     auto tmp = BaseState::qregs_[iChunk].vector();
-    uint_t j,offset = iChunk << BaseState::chunk_bits_;
+    uint_t j,offset = iChunk << (BaseState::chunk_bits_*2);
     for(j=0;j<tmp.size();j++){
       vmat[offset + j] = tmp[j];
     }
@@ -1149,7 +1149,7 @@ rvector_t State<densmat_t>::measure_probs(const reg_t &qubits) const
   reg_t qubits_out_chunk;
 
   for(i=0;i<qubits.size();i++){
-    if(qubits[i] < BaseState::chunk_bits_/2){
+    if(qubits[i] < BaseState::chunk_bits_){
       qubits_in_chunk.push_back(qubits[i]);
     }
     else{
@@ -1160,8 +1160,8 @@ rvector_t State<densmat_t>::measure_probs(const reg_t &qubits) const
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i,j,k) 
   for(i=0;i<BaseState::num_local_chunks_;i++){
     uint_t irow,icol;
-    irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2);
-    icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2));
+    irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
+    icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
 
     if(irow == icol){   //diagonal chunk
       auto chunkSum = BaseState::qregs_[i].probabilities(qubits);
@@ -1176,12 +1176,12 @@ rvector_t State<densmat_t>::measure_probs(const reg_t &qubits) const
           int idx = 0;
           int i_in = 0;
           for(k=0;k<qubits.size();k++){
-            if(qubits[k] < BaseState::chunk_bits_){
+            if(qubits[k] < (BaseState::chunk_bits_*2)){
               idx += (((j >> i_in) & 1) << k);
               i_in++;
             }
             else{
-              if((((i + BaseState::global_chunk_index_) << (BaseState::chunk_bits_/2)) >> qubits[k]) & 1){
+              if((((i + BaseState::global_chunk_index_) << (BaseState::chunk_bits_)) >> qubits[k]) & 1){
                 idx += 1ull << k;
               }
             }
@@ -1216,8 +1216,8 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
   for(i=0;i<BaseState::num_local_chunks_;i++){
     uint_t irow,icol;
-    irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2);
-    icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2));
+    irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
+    icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
     if(irow == icol)   //only diagonal chunk has probabilities
       chunkSum[i] = std::real( BaseState::qregs_[i].trace() );
     else
@@ -1251,8 +1251,8 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i,j) 
   for(i=0;i<BaseState::num_local_chunks_;i++){
     uint_t irow,icol;
-    irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2);
-    icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2));
+    irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
+    icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
     if(irow != icol)
       continue;
 
@@ -1273,10 +1273,10 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
     if(nIn > 0){
       auto chunkSamples = BaseState::qregs_[i].sample_measure(vRnd);
       uint_t irow;
-      irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2);
+      irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
 
       for(j=0;j<nIn;j++){
-        local_samples[vIdx[j]] = (irow << BaseState::chunk_bits_/2) + chunkSamples[j];
+        local_samples[vIdx[j]] = (irow << BaseState::chunk_bits_) + chunkSamples[j];
       }
     }
   }
@@ -1290,7 +1290,7 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
   std::vector<reg_t> all_samples;
   all_samples.reserve(shots);
   for (int_t val : allbit_samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, BaseState::num_qubits_/2);
+    reg_t allbit_sample = Utils::int2reg(val, 2, BaseState::num_qubits_);
     reg_t sample;
     sample.reserve(qubits.size());
     for (uint_t qubit : qubits) {

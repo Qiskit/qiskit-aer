@@ -219,7 +219,7 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits)
 
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
     for(i=0;i<BaseState::num_local_chunks_;i++){
-      BaseState::qregs_[i].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[i].set_num_qubits(BaseState::chunk_bits_);
       BaseState::qregs_[i].zero();
     }
     for(i=0;i<BaseState::num_local_chunks_;i++){
@@ -229,7 +229,7 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits)
   else{   //multi-chunk distribution
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
     for(i=0;i<BaseState::num_local_chunks_;i++){
-      BaseState::qregs_[i].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[i].set_num_qubits(BaseState::chunk_bits_);
       if(BaseState::global_chunk_index_ + i == 0 || this->num_qubits_ == this->chunk_bits_){
         BaseState::qregs_[i].initialize();
       }
@@ -257,19 +257,19 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
   int_t iChunk;
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
-      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
     }
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
-      BaseState::qregs_[iChunk].initialize_from_data(unitary.data(), 1ull << BaseState::chunk_bits_);
+      BaseState::qregs_[iChunk].initialize_from_data(unitary.data(), 1ull << BaseState::chunk_bits_*2);
     }
   }
   else{   //multi-chunk distribution
-    uint_t local_offset = BaseState::global_chunk_index_ << BaseState::chunk_bits_;
+    uint_t local_offset = BaseState::global_chunk_index_ << BaseState::chunk_bits_*2;
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
-      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
-      BaseState::qregs_[iChunk].initialize_from_data(unitary.data() + local_offset + (iChunk << BaseState::chunk_bits_), 1ull << BaseState::chunk_bits_);
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
+      BaseState::qregs_[iChunk].initialize_from_data(unitary.data() + local_offset + (iChunk << BaseState::chunk_bits_*2), 1ull << BaseState::chunk_bits_*2);
     }
   }
 
@@ -291,25 +291,25 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
   int_t iChunk;
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
-      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
     }
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
       BaseState::qregs_[iChunk].initialize_from_matrix(unitary);
     }
   }
   else{   //multi-chunk distribution
-    uint_t local_offset = BaseState::global_chunk_index_ << BaseState::chunk_bits_;
+    uint_t local_offset = BaseState::global_chunk_index_ << BaseState::chunk_bits_*2;
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
       //copy part of state for this chunk
       uint_t i;
-      cvector_t tmp(1ull << BaseState::chunk_bits_);
+      cvector_t tmp(1ull << BaseState::chunk_bits_*2);
       for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
-        tmp[i] = unitary[local_offset + (iChunk << BaseState::chunk_bits_) + i];
+        tmp[i] = unitary[local_offset + (iChunk << BaseState::chunk_bits_*2) + i];
       }
 
-      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_/2);
+      BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
       BaseState::qregs_[iChunk].initialize_from_vector(tmp);
     }
   }
@@ -339,12 +339,12 @@ auto State<unitary_matrix_t>::move_to_matrix()
     auto state = BaseState::qregs_[0].vector();   //using vector to gather distributed matrix
 
     //TO DO check memory availability
-    state.resize(BaseState::num_local_chunks_ << BaseState::chunk_bits_);
+    state.resize(BaseState::num_local_chunks_ << BaseState::chunk_bits_*2);
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk)
     for(iChunk=1;iChunk<BaseState::num_local_chunks_;iChunk++){
       auto tmp = BaseState::qregs_[iChunk].vector();
-      uint_t j,offset = iChunk << BaseState::chunk_bits_;
+      uint_t j,offset = iChunk << BaseState::chunk_bits_*2;
       for(j=0;j<tmp.size();j++){
         state[offset + j] = tmp[j];
       }
@@ -356,8 +356,8 @@ auto State<unitary_matrix_t>::move_to_matrix()
 
     //type of matrix cam not be discovered from State class, so make from matrix
     auto matrix = BaseState::qregs_[0].move_to_matrix();
-    matrix.resize(1ull << (BaseState::num_qubits_/2),1ull << (BaseState::num_qubits_/2));
-    matrix.copy_from_buffer(1ull << (BaseState::num_qubits_/2),1ull << (BaseState::num_qubits_/2),&state[0]);
+    matrix.resize(1ull << (BaseState::num_qubits_),1ull << (BaseState::num_qubits_));
+    matrix.copy_from_buffer(1ull << (BaseState::num_qubits_),1ull << (BaseState::num_qubits_),&state[0]);
     return matrix;
   }
 }
