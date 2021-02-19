@@ -17,10 +17,12 @@ from .qasm_save_expval import QasmSaveExpectationValueTests
 from .qasm_save_statevector import QasmSaveStatevectorTests
 from .qasm_save_density_matrix import QasmSaveDensityMatrixTests
 from .qasm_save_probabilities import QasmSaveProbabilitiesTests
+from .qasm_save_amplitudes import QasmSaveAmplitudesTests
 
 
 class QasmSaveDataTests(QasmSaveExpectationValueTests,
                         QasmSaveStatevectorTests,
                         QasmSaveDensityMatrixTests,
-                        QasmSaveProbabilitiesTests):
+                        QasmSaveProbabilitiesTests,
+                        QasmSaveAmplitudesTests):
     """QasmSimulator SaveData instruction tests."""
