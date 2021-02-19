@@ -26,16 +26,17 @@ namespace Stabilizer {
 //============================================================================
 // Stabilizer state gates
 //============================================================================
+using OpType = Operations::OpType;
 
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
   // Op types
-  {Operations::OpType::gate, Operations::OpType::measure,
-    Operations::OpType::reset, Operations::OpType::snapshot,
-    Operations::OpType::barrier, Operations::OpType::bfunc,
-    Operations::OpType::roerror, Operations::OpType::save_expval,
-    Operations::OpType::save_expval_var, Operations::OpType::save_probs,
-    Operations::OpType::save_probs_ket},
+  {OpType::gate, OpType::measure,
+    OpType::reset, OpType::snapshot,
+    OpType::barrier, OpType::bfunc,
+    OpType::roerror, OpType::save_expval,
+    OpType::save_expval_var, OpType::save_probs,
+    OpType::save_probs_ket, OpType::save_amps_sq},
   // Gates
   {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg",
    "sx", "delay"},
@@ -143,9 +144,16 @@ protected:
   void apply_save_probs(const Operations::Op &op,
                         ExperimentResult &result);
 
+  // Helper function for saving amplitudes squared
+  void apply_save_amplitudes_sq(const Operations::Op &op,
+                                ExperimentResult &result);
+
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
                               const std::string& pauli) override;
+
+  // Return the probability of an outcome bitstring.
+  double get_probability(const reg_t &qubits, const std::string &outcome);
 
   template <typename T>
   void get_probabilities_auxiliary(const reg_t& qubits,
@@ -153,6 +161,11 @@ protected:
 					double outcome_prob,
 					T& probs);
 
+  void get_probability_helper(const reg_t& qubits,
+	                            const std::string &outcome,
+                              std::string &outcome_carry,
+                              double &prob_carry);
+  
   //-----------------------------------------------------------------------
   // Measurement Helpers
   //-----------------------------------------------------------------------
@@ -297,33 +310,36 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
   for (const auto &op: ops) {
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
-        case Operations::OpType::barrier:
+        case OpType::barrier:
           break;
-        case Operations::OpType::reset:
+        case OpType::reset:
           apply_reset(op.qubits, rng);
           break;
-        case Operations::OpType::measure:
+        case OpType::measure:
           apply_measure(op.qubits, op.memory, op.registers, rng);
           break;
-        case Operations::OpType::bfunc:
+        case OpType::bfunc:
           BaseState::creg_.apply_bfunc(op);
           break;
-        case Operations::OpType::roerror:
+        case OpType::roerror:
           BaseState::creg_.apply_roerror(op, rng);
           break;
-        case Operations::OpType::gate:
+        case OpType::gate:
           apply_gate(op);
           break;
-        case Operations::OpType::snapshot:
+        case OpType::snapshot:
           apply_snapshot(op, result);
           break;
-        case Operations::OpType::save_expval:
-        case Operations::OpType::save_expval_var:
+        case OpType::save_expval:
+        case OpType::save_expval_var:
           apply_save_expval(op, result);
           break;
-        case Operations::OpType::save_probs:
-        case Operations::OpType::save_probs_ket:
+        case OpType::save_probs:
+        case OpType::save_probs_ket:
           apply_save_probs(op, result);
+          break;
+        case OpType::save_amps_sq:
+          apply_save_amplitudes_sq(op, result);
           break;
         default:
           throw std::invalid_argument("Stabilizer::State::invalid instruction \'" +
@@ -475,8 +491,7 @@ void State::apply_save_probs(const Operations::Op &op,
         std::to_string(max_qubits_snapshot_probs_);
     throw std::runtime_error(msg);
   }
-
-  if (op.type == Operations::OpType::save_probs_ket) {
+  if (op.type == OpType::save_probs_ket) {
     std::map<std::string, double> probs;
     get_probabilities_auxiliary(
         op.qubits, std::string(op.qubits.size(), 'X'), 1, probs);
@@ -489,6 +504,23 @@ void State::apply_save_probs(const Operations::Op &op,
     BaseState::save_data_average(result, op.string_params[0],
                                  std::move(probs), op.save_type);
   }
+}
+
+void State::apply_save_amplitudes_sq(const Operations::Op &op,
+                                     ExperimentResult &result) {
+  if (op.int_params.empty()) {
+    throw std::invalid_argument("Invalid save_amplitudes_sq instructions (empty params).");
+  }
+  uint_t num_qubits = op.qubits.size();
+  if (num_qubits != BaseState::qreg_.num_qubits()) {
+    throw std::invalid_argument("Save amplitude square must be defined on full width of qubits.");
+  }
+  rvector_t amps_sq(op.int_params.size(), 1.0); // Must be initialized in 1 for helper func
+  for (size_t i = 0; i < op.int_params.size(); i++) {
+    amps_sq[i] = get_probability(op.qubits, Utils::int2bin(op.int_params[i], num_qubits));
+  }
+  BaseState::save_data_average(result, op.string_params[0],
+                               std::move(amps_sq), op.save_type);
 }
 
 double State::expval_pauli(const reg_t &qubits,
@@ -581,6 +613,52 @@ void State::get_probabilities_auxiliary(const reg_t &qubits,
     BaseState::qreg_ = copy_of_qreg;
   }
 }
+
+double State::get_probability(const reg_t &qubits, const std::string &outcome) {
+  std::string outcome_carry = std::string(qubits.size(), 'X');
+  double prob = 1.0;
+  get_probability_helper(qubits, outcome, outcome_carry, prob);
+  return prob;
+}
+
+void State::get_probability_helper(const reg_t &qubits,
+                                   const std::string &outcome,
+                                   std::string &outcome_carry,
+                                   double &prob_carry) {
+  uint_t qubit_for_branching = -1;
+  for (uint_t i = 0; i < qubits.size(); ++i) {
+    uint_t qubit = qubits[qubits.size() - i - 1];
+    if (outcome_carry[i] == 'X') {
+      if (BaseState::qreg_.is_deterministic_outcome(qubit)) {
+        bool single_qubit_outcome =
+            BaseState::qreg_.measure_and_update(qubit, 0);
+        if (single_qubit_outcome) {
+          outcome_carry[i] = '1';
+        } else {
+          outcome_carry[i] = '0';
+        }
+        if (outcome[i] != outcome_carry[i]) {
+          prob_carry = 0.0;
+          return;
+        }
+      } else {
+        qubit_for_branching = i;
+      }
+    }
+  }
+  if (qubit_for_branching == -1) {
+    return;
+  }
+  outcome_carry[qubit_for_branching] = outcome[qubit_for_branching];
+  uint_t single_qubit_outcome = (outcome[qubit_for_branching] == '1') ? 1 : 0;
+  auto cached_qreg = BaseState::qreg_;
+  BaseState::qreg_.measure_and_update(
+      qubits[qubits.size() - qubit_for_branching - 1], single_qubit_outcome);
+  prob_carry *= 0.5;
+  get_probability_helper(qubits, outcome, outcome_carry, prob_carry);
+  BaseState::qreg_ = cached_qreg;
+}
+
 //=========================================================================
 // Implementation: Snapshots
 //=========================================================================
