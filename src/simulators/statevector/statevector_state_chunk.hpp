@@ -173,6 +173,10 @@ protected:
   void apply_save_probs(const Operations::Op &op,
                         ExperimentResult &result);
 
+  // Helper function for saving amplitudes and amplitudes squared
+  void apply_save_amplitudes(const Operations::Op &op,
+                             ExperimentResult &result);
+
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
                               const std::string& pauli) override;
@@ -565,6 +569,10 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
       case Operations::OpType::save_probs_ket:
         apply_save_probs(op, result);
         break;
+      case Operations::OpType::save_amps:
+      case Operations::OpType::save_amps_sq:
+          apply_save_amplitudes(op, result);
+          break;
       default:
         throw std::invalid_argument("QubitVector::State::invalid instruction \'" +
                                     op.name + "\'.");
@@ -763,6 +771,41 @@ void State<statevec_t>::apply_save_density_matrix(const Operations::Op &op,
 
   BaseState::save_data_average(result, op.string_params[0],
                                std::move(reduced_state), op.save_type);
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_amplitudes(const Operations::Op &op,
+                                              ExperimentResult &result) 
+{
+  if (op.int_params.empty()) {
+    throw std::invalid_argument("Invalid save_amplitudes instructions (empty params).");
+  }
+  const int_t size = op.int_params.size();
+  if (op.type == Operations::OpType::save_amps) {
+    Vector<complex_t> amps(size, false);
+    for (int_t i = 0; i < size; ++i) {
+      uint_t iChunk = op.int_params[i] >> BaseState::chunk_bits_;
+      if(iChunk >= BaseState::global_chunk_index_ && iChunk < BaseState::global_chunk_index_ + BaseState::num_local_chunks_){
+        amps[i] = BaseState::qregs_[iChunk - BaseState::global_chunk_index_].get_state(op.int_params[i] - (iChunk << BaseState::chunk_bits_));
+      }
+    }
+    BaseState::save_data_pershot(result, op.string_params[0],
+                                 std::move(amps), op.save_type);
+  }
+  else{
+    rvector_t amps_sq(size);
+    for (int_t i = 0; i < size; ++i) {
+      uint_t iChunk = op.int_params[i] >> BaseState::chunk_bits_;
+      if(iChunk >= BaseState::global_chunk_index_ && iChunk < BaseState::global_chunk_index_ + BaseState::num_local_chunks_){
+        amps_sq[i] = BaseState::qregs_[iChunk - BaseState::global_chunk_index_].probability(op.int_params[i] - (iChunk << BaseState::chunk_bits_));
+      }
+#ifdef AER_MPI
+      BaseState::reduce_sum(amps_sq[i]);
+#endif
+    }
+    BaseState::save_data_average(result, op.string_params[0],
+                                 std::move(amps_sq), op.save_type);
+  }
 }
 
 //=========================================================================

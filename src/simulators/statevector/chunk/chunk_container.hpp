@@ -536,7 +536,6 @@ template <typename data_t>
 void ChunkContainer<data_t>::UnmapChunk(std::shared_ptr<Chunk<data_t>> chunk)
 {
   chunk->unmap();
-//  chunk.reset();
 }
 
 template <typename data_t>
@@ -565,7 +564,6 @@ void ChunkContainer<data_t>::UnmapBuffer(std::shared_ptr<Chunk<data_t>> buf)
 #pragma omp critical
   {
     buf->unmap();
-//    buf.reset();
   }
 }
 
@@ -604,7 +602,6 @@ void ChunkContainer<data_t>::UnmapCheckpoint(std::shared_ptr<Chunk<data_t>> buf)
 #pragma omp critical
     {
       buf->unmap();
-//      buf.reset();
     }
   }
 }

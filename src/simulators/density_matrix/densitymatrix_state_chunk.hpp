@@ -152,6 +152,10 @@ protected:
   void apply_save_probs(const Operations::Op &op,
                         ExperimentResult &result);
 
+  // Helper function for saving amplitudes squared
+  void apply_save_amplitudes_sq(const Operations::Op &op,
+                                ExperimentResult &result);
+
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
                               const std::string& pauli) override;
@@ -593,6 +597,9 @@ void State<densmat_t>::apply_op(const int_t iChunk,const Operations::Op &op,
       case Operations::OpType::save_probs_ket:
         apply_save_probs(op, result);
         break;
+      case Operations::OpType::save_amps_sq:
+          apply_save_amplitudes_sq(op, result);
+          break;
       default:
         throw std::invalid_argument("DensityMatrix::State::invalid instruction \'" +
                                     op.name + "\'.");
@@ -648,6 +655,33 @@ void State<densmat_t>::apply_save_probs(const Operations::Op &op,
     BaseState::save_data_average(result, op.string_params[0],
                                  std::move(probs), op.save_type);
   }
+}
+
+template <class densmat_t>
+void State<densmat_t>::apply_save_amplitudes_sq(const Operations::Op &op,
+                                                ExperimentResult &result) 
+{
+  if (op.int_params.empty()) {
+    throw std::invalid_argument("Invalid save_amplitudes_sq instructions (empty params).");
+  }
+  const int_t size = op.int_params.size();
+  int_t iChunk;
+  rvector_t amps_sq(size);
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
+  for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+    uint_t irow,icol;
+    irow = (BaseState::global_chunk_index_ + iChunk) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
+    icol = (BaseState::global_chunk_index_ + iChunk) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
+    if(irow != icol)
+      continue;
+
+    for (int_t i = 0; i < size; ++i) {
+      if(op.int_params[i] >= (irow << BaseState::chunk_bits_) && op.int_params[i] < ((irow+1) << BaseState::chunk_bits_))
+        amps_sq[i] = BaseState::qregs_[iChunk].probability(op.int_params[i] - (irow << BaseState::chunk_bits_));
+    }
+  }
+  BaseState::save_data_average(result, op.string_params[0],
+                               std::move(amps_sq), op.save_type);
 }
 
 template <class densmat_t>
