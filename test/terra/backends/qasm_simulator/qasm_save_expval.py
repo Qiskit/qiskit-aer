@@ -49,11 +49,12 @@ class QasmSaveExpectationValueTests:
 
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
-        circ = transpile(state_circ, self.SIMULATOR)
+        method = opts.get('method', 'automatic')
+        circ = transpile(state, basis_gates=[
+            'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'cx', 'cz', 'swap'])
         circ.save_expectation_value('expval', oper, [0, 1])
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
-        method = opts.get('method', 'automatic')
         if method not in SUPPORTED_METHODS:
             self.assertFalse(result.success)
         else:
@@ -83,11 +84,12 @@ class QasmSaveExpectationValueTests:
 
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
-        circ = transpile(state_circ, self.SIMULATOR)
+        method = opts.get('method', 'automatic')
+        circ = transpile(state, basis_gates=[
+            'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'cx', 'cz', 'swap'])
         circ.save_expectation_value_variance('expval', oper, [0, 1])
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
-        method = opts.get('method', 'automatic')
         if method not in SUPPORTED_METHODS:
             self.assertFalse(result.success)
         else:
@@ -114,11 +116,12 @@ class QasmSaveExpectationValueTests:
 
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
-        circ = transpile(state_circ, self.SIMULATOR)
+        method = opts.get('method', 'automatic')
+        circ = transpile(state, basis_gates=[
+            'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'cx', 'cz', 'swap'])
         circ.save_expectation_value('expval', oper, qubits)
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
-        method = opts.get('method', 'automatic')
         if method not in SUPPORTED_METHODS:
             self.assertFalse(result.success)
         else:
@@ -147,11 +150,12 @@ class QasmSaveExpectationValueTests:
 
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
-        circ = transpile(state_circ, self.SIMULATOR)
+        method = opts.get('method', 'automatic')
+        circ = transpile(state, basis_gates=[
+            'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'cx', 'cz', 'swap'])
         circ.save_expectation_value_variance('expval', oper, qubits)
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
-        method = opts.get('method', 'automatic')
         if method not in SUPPORTED_METHODS:
             self.assertFalse(result.success)
         else:
@@ -179,11 +183,11 @@ class QasmSaveExpectationValueTests:
 
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
-        circ = transpile(state_circ, self.SIMULATOR)
+        method = opts.get('method', 'automatic')
+        circ = transpile(state, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
         circ.save_expectation_value('expval', oper, [0, 1])
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
-        method = opts.get('method', 'automatic')
         if method not in SUPPORTED_METHODS:
             self.assertFalse(result.success)
         else:
@@ -213,11 +217,11 @@ class QasmSaveExpectationValueTests:
 
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
-        circ = transpile(state_circ, self.SIMULATOR)
+        method = opts.get('method', 'automatic')
+        circ = transpile(state, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
         circ.save_expectation_value_variance('expval', oper, [0, 1])
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
-        method = opts.get('method', 'automatic')
         if method not in SUPPORTED_METHODS:
             self.assertFalse(result.success)
         else:
@@ -244,11 +248,11 @@ class QasmSaveExpectationValueTests:
 
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
-        circ = transpile(state_circ, self.SIMULATOR)
+        method = opts.get('method', 'automatic')
+        circ = transpile(state, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
         circ.save_expectation_value('expval', oper, qubits)
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
-        method = opts.get('method', 'automatic')
         if method not in SUPPORTED_METHODS:
             self.assertFalse(result.success)
         else:
@@ -277,11 +281,11 @@ class QasmSaveExpectationValueTests:
 
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
-        circ = transpile(state_circ, self.SIMULATOR)
+        method = opts.get('method', 'automatic')
+        circ = transpile(state, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
         circ.save_expectation_value_variance('expval', oper, qubits)
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
-        method = opts.get('method', 'automatic')
         if method not in SUPPORTED_METHODS:
             self.assertFalse(result.success)
         else:
