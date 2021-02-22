@@ -666,7 +666,7 @@ void State<densmat_t>::apply_save_amplitudes_sq(const Operations::Op &op,
   }
   const int_t size = op.int_params.size();
   int_t iChunk;
-  rvector_t amps_sq(size);
+  rvector_t amps_sq(size,0);
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
   for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
     uint_t irow,icol;
@@ -675,11 +675,17 @@ void State<densmat_t>::apply_save_amplitudes_sq(const Operations::Op &op,
     if(irow != icol)
       continue;
 
+#pragma omp parallel for if (size > pow(2, omp_qubit_threshold_) &&        \
+                                 BaseState::threads_ > 1)                       \
+                          num_threads(BaseState::threads_)
     for (int_t i = 0; i < size; ++i) {
       if(op.int_params[i] >= (irow << BaseState::chunk_bits_) && op.int_params[i] < ((irow+1) << BaseState::chunk_bits_))
         amps_sq[i] = BaseState::qregs_[iChunk].probability(op.int_params[i] - (irow << BaseState::chunk_bits_));
     }
   }
+#ifdef AER_MPI
+  BaseState::reduce_sum(amps_sq);
+#endif
   BaseState::save_data_average(result, op.string_params[0],
                                std::move(amps_sq), op.save_type);
 }

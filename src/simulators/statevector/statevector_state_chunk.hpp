@@ -785,24 +785,30 @@ void State<statevec_t>::apply_save_amplitudes(const Operations::Op &op,
     Vector<complex_t> amps(size, false);
     for (int_t i = 0; i < size; ++i) {
       uint_t iChunk = op.int_params[i] >> BaseState::chunk_bits_;
+      amps[i] = 0.0;
       if(iChunk >= BaseState::global_chunk_index_ && iChunk < BaseState::global_chunk_index_ + BaseState::num_local_chunks_){
         amps[i] = BaseState::qregs_[iChunk - BaseState::global_chunk_index_].get_state(op.int_params[i] - (iChunk << BaseState::chunk_bits_));
       }
+#ifdef AER_MPI
+      complex_t amp = amps[i];
+      BaseState::reduce_sum(amp);
+      amps[i] = amp;
+#endif
     }
     BaseState::save_data_pershot(result, op.string_params[0],
                                  std::move(amps), op.save_type);
   }
   else{
-    rvector_t amps_sq(size);
+    rvector_t amps_sq(size,0);
     for (int_t i = 0; i < size; ++i) {
       uint_t iChunk = op.int_params[i] >> BaseState::chunk_bits_;
       if(iChunk >= BaseState::global_chunk_index_ && iChunk < BaseState::global_chunk_index_ + BaseState::num_local_chunks_){
         amps_sq[i] = BaseState::qregs_[iChunk - BaseState::global_chunk_index_].probability(op.int_params[i] - (iChunk << BaseState::chunk_bits_));
       }
-#ifdef AER_MPI
-      BaseState::reduce_sum(amps_sq[i]);
-#endif
     }
+#ifdef AER_MPI
+    BaseState::reduce_sum(amps_sq);
+#endif
     BaseState::save_data_average(result, op.string_params[0],
                                  std::move(amps_sq), op.save_type);
   }

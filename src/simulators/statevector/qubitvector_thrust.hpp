@@ -958,15 +958,16 @@ bool QubitVectorThrust<data_t>::fetch_chunk(void) const
   int tid,nid;
   int idev;
 
-  tid = omp_get_thread_num();
-  nid = omp_get_num_threads();
+//  tid = omp_get_thread_num();
+//  nid = omp_get_num_threads();
 
-  idev = tid * chunk_manager_.num_devices() / nid;
+//  idev = tid * chunk_manager_.num_devices() / nid;
 
   if(chunk_->device() < 0){
     //on host
+    idev = 0;
     do{
-      buffer_chunk_ = chunk_manager_.MapBufferChunk(idev);
+      buffer_chunk_ = chunk_manager_.MapBufferChunk(idev++ % chunk_manager_.num_devices());
     }while(!buffer_chunk_);
     chunk_->set_cache(buffer_chunk_);
     buffer_chunk_->CopyIn(chunk_);
