@@ -50,7 +50,7 @@ class QasmSaveExpectationValueTests:
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
         method = opts.get('method', 'automatic')
-        circ = transpile(state, basis_gates=[
+        circ = transpile(state_circ, basis_gates=[
             'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'cx', 'cz', 'swap'])
         circ.save_expectation_value('expval', oper, [0, 1])
         qobj = assemble(circ)
@@ -85,7 +85,7 @@ class QasmSaveExpectationValueTests:
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
         method = opts.get('method', 'automatic')
-        circ = transpile(state, basis_gates=[
+        circ = transpile(state_circ, basis_gates=[
             'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'cx', 'cz', 'swap'])
         circ.save_expectation_value_variance('expval', oper, [0, 1])
         qobj = assemble(circ)
@@ -117,7 +117,7 @@ class QasmSaveExpectationValueTests:
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
         method = opts.get('method', 'automatic')
-        circ = transpile(state, basis_gates=[
+        circ = transpile(state_circ, basis_gates=[
             'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'cx', 'cz', 'swap'])
         circ.save_expectation_value('expval', oper, qubits)
         qobj = assemble(circ)
@@ -151,7 +151,7 @@ class QasmSaveExpectationValueTests:
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
         method = opts.get('method', 'automatic')
-        circ = transpile(state, basis_gates=[
+        circ = transpile(state_circ, basis_gates=[
             'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'cx', 'cz', 'swap'])
         circ.save_expectation_value_variance('expval', oper, qubits)
         qobj = assemble(circ)
@@ -184,7 +184,7 @@ class QasmSaveExpectationValueTests:
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
         method = opts.get('method', 'automatic')
-        circ = transpile(state, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
+        circ = transpile(state_circ, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
         circ.save_expectation_value('expval', oper, [0, 1])
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
@@ -218,7 +218,7 @@ class QasmSaveExpectationValueTests:
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
         method = opts.get('method', 'automatic')
-        circ = transpile(state, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
+        circ = transpile(state_circ, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
         circ.save_expectation_value_variance('expval', oper, [0, 1])
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
@@ -249,7 +249,7 @@ class QasmSaveExpectationValueTests:
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
         method = opts.get('method', 'automatic')
-        circ = transpile(state, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
+        circ = transpile(state_circ, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
         circ.save_expectation_value('expval', oper, qubits)
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
@@ -282,7 +282,7 @@ class QasmSaveExpectationValueTests:
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
         method = opts.get('method', 'automatic')
-        circ = transpile(state, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
+        circ = transpile(state_circ, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
         circ.save_expectation_value_variance('expval', oper, qubits)
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
