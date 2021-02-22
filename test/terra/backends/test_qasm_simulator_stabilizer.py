@@ -15,6 +15,8 @@ QasmSimulator Integration Tests
 """
 
 import unittest
+from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer import AerError
 from test.terra import common
 
 # Basic circuit instruction tests
@@ -67,6 +69,7 @@ class TestQasmStabilizerSimulator(common.QiskitAerTestCase,
         "method": "stabilizer",
         "max_parallel_threads": 1
     }
+    SIMULATOR = QasmSimulator(**BACKEND_OPTS)
 
 
 if __name__ == '__main__':

@@ -16,6 +16,7 @@ ExtendedStabilizer Integration Tests
 import unittest
 import logging
 from math import sqrt
+
 from test.terra import common
 from test.terra.reference import ref_measure
 from test.terra.reference import ref_reset
@@ -28,6 +29,7 @@ from test.terra.reference import ref_algorithms
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer import AerError
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +56,7 @@ class TestQasmExtendedStabilizerSimulator(common.QiskitAerTestCase):
         "extended_stabilizer_norm_estimation_default_samples": 100,
         "extended_stabilizer_norm_estimation_repetitions": 3
     }
+    SIMULATOR = QasmSimulator(method="extended_stabilizer")
 
     # ---------------------------------------------------------------------
     # Test reset
