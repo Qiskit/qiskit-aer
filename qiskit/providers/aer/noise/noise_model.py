@@ -409,7 +409,7 @@ class NoiseModel:
         """
         # Instead of QasmSimulator._DEFAULT_CONFIGURATION['basis_gates'], which causes cyclic import
         # TODO: Remove after depecation of "warnings" argument
-        _qasm_simulator_basis_gates = sorted([
+        _qasm_simulator_basis_gates = {
             'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
             'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
             'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
@@ -421,7 +421,7 @@ class NoiseModel:
             'kraus', 'roerror', 'snapshot', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_density_matrix', 'save_statevector'
-        ])
+        }
         for name, _ in self._instruction_names_labels(instructions):
             # If the instruction is in the default basis gates for the
             # QasmSimulator we add it to the basis gates.
