@@ -14,6 +14,8 @@ UnitarySimulator Integration Tests
 """
 
 import unittest
+from qiskit.providers.aer import UnitarySimulator
+from qiskit.providers.aer import AerError
 from test.terra import common
 from test.terra.decorators import requires_method
 
@@ -33,6 +35,7 @@ class TestUnitarySimulator(common.QiskitAerTestCase,
     """UnitarySimulator automatic method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 2113}
+    SIMULATOR = UnitarySimulator(**BACKEND_OPTS)
 
 
 @requires_method("unitary_simulator", "unitary_gpu")
@@ -44,6 +47,10 @@ class TestUnitarySimulatorThrustGPU(common.QiskitAerTestCase,
     """UnitarySimulator unitary_gpu method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 2113, "method": "unitary_gpu"}
+    try:
+        SIMULATOR = UnitarySimulator(**BACKEND_OPTS)
+    except AerError:
+        SIMULATOR = None
 
 
 @requires_method("unitary_simulator", "unitary_thrust")
@@ -55,6 +62,10 @@ class TestUnitarySimulatorThrustCPU(common.QiskitAerTestCase,
     """UnitarySimulator unitary_thrust method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 2113, "method": "unitary_thrust"}
+    try:
+        SIMULATOR = UnitarySimulator(**BACKEND_OPTS)
+    except AerError:
+        SIMULATOR = None
 
 
 if __name__ == '__main__':

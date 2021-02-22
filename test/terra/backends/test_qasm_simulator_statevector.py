@@ -14,6 +14,9 @@ QasmSimulator Integration Tests
 """
 
 import unittest
+from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer import AerError
+
 from test.terra import common
 from test.terra.decorators import requires_method
 
@@ -87,6 +90,7 @@ class TestQasmSimulatorStatevector(common.QiskitAerTestCase, StatevectorTests):
         "method": "statevector",
         "max_parallel_threads": 1
     }
+    SIMULATOR = QasmSimulator(**BACKEND_OPTS)
 
 
 @requires_method("qasm_simulator", "statevector_gpu")
@@ -99,6 +103,10 @@ class TestQasmSimulatorStatevectorThrustGPU(common.QiskitAerTestCase,
         "method": "statevector_gpu",
         "max_parallel_threads": 1
     }
+    try:
+        SIMULATOR = QasmSimulator(**BACKEND_OPTS)
+    except AerError:
+        SIMULATOR = None
 
 
 @requires_method("qasm_simulator", "statevector_thrust")
@@ -111,6 +119,10 @@ class TestQasmSimulatorStatevectorThrustCPU(common.QiskitAerTestCase,
         "method": "statevector_thrust",
         "max_parallel_threads": 1
     }
+    try:
+        SIMULATOR = QasmSimulator(**BACKEND_OPTS)
+    except AerError:
+        SIMULATOR = None
 
 
 if __name__ == '__main__':
