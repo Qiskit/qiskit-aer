@@ -64,6 +64,20 @@ def pauli_gate_error_circuits():
     circuit.measure(qr, cr)
     circuits.append(circuit)
 
+    # 50% Pauli error on conditional gate that doesn't get applied
+    circuit = QuantumCircuit(qr, cr)
+    circuit.x(qr).c_if(cr, 1)
+    circuit.barrier(qr)
+    circuit.measure(qr, cr)
+    circuits.append(circuit)
+
+    # 50% Pauli error on conditional gate that does get applied
+    circuit = QuantumCircuit(qr, cr)
+    circuit.x(qr).c_if(cr, 0)
+    circuit.barrier(qr)
+    circuit.measure(qr, cr)
+    circuits.append(circuit)
+
     # 25% Pauli-X error on spectator for CX gate on [0, 1]
     qr = QuantumRegister(3, 'qr')
     cr = ClassicalRegister(3, 'cr')
@@ -106,6 +120,18 @@ def pauli_gate_error_noise_models():
     noise_model.add_quantum_error(error, 'id', [0])
     noise_models.append(noise_model)
 
+    # 50% Pauli error on conditional gate that doesn't get applied
+    error = pauli_error([('X', 0.5), ('I', 0.5)])
+    noise_model = NoiseModel()
+    noise_model.add_all_qubit_quantum_error(error, 'x')
+    noise_models.append(noise_model)
+
+    # 50% Pauli error on conditional gate that does get applied
+    error = pauli_error([('X', 0.5), ('I', 0.5)])
+    noise_model = NoiseModel()
+    noise_model.add_all_qubit_quantum_error(error, 'x')
+    noise_models.append(noise_model)
+
     # 25% Pauli-X error on spectator for CX gate on [0, 1]
     error = pauli_error([('XII', 0.25), ('III', 0.75)])
     noise_model = NoiseModel()
@@ -135,11 +161,18 @@ def pauli_gate_error_counts(shots, hex_counts=True):
     counts = [3 * shots / 4, shots / 4, 0, 0]
     counts_lists.append(counts)
 
+    # 50% Pauli error on conditional gate that doesn't get applied
+    counts = [shots, 0, 0, 0]
+    counts_lists.append(counts)
+
+    # 50% Pauli error on conditional gate that does get applied
+    counts = 4 * [shots / 4]
+    counts_lists.append(counts)
+
     # 25% Pauli-X error on spectator for CX gate on [0, 1]
     counts = [3 * shots / 4, 0, 0, 0, shots / 4, 0, 0, 0]
     counts_lists.append(counts)
 
-    # Convert to counts dict
     return [list2dict(i, hex_counts) for i in counts_lists]
 
 
