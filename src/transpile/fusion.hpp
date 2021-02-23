@@ -117,12 +117,12 @@ const Operations::OpSet FusionMethod::noise_opset_(
 
 class UnitaryFusion : public FusionMethod {
 public:
-  virtual std::string name() { return "unitary"; };
+  virtual std::string name() override { return "unitary"; };
 
   virtual bool support_diagonal() const override { return true; }
 
-  virtual op_t generate_operation_internal(const std::vector<op_t>& fusioned_ops,
-                                           const reg_t &qubits) const {
+  virtual op_t generate_operation_internal (const std::vector<op_t>& fusioned_ops,
+                                           const reg_t &qubits) const override {
     // Run simulation
     RngEngine dummy_rng;
     ExperimentResult dummy_result;
@@ -143,21 +143,11 @@ public:
         return op.mats.size() == 1 && op.qubits.size() <= max_fused_qubits;
       case optype_t::diagonal_matrix:
         return op.qubits.size() <= max_fused_qubits;
-      case optype_t::kraus:
-      case optype_t::reset:
-      case optype_t::superop: {
-        return false;
-      }
       case optype_t::gate: {
         if (op.qubits.size() > max_fused_qubits)
           return false;
         return QubitUnitary::StateOpSet.contains_gates(op.name);
       }
-      case optype_t::measure:
-      case optype_t::bfunc:
-      case optype_t::roerror:
-      case optype_t::snapshot:
-      case optype_t::barrier:
       default:
         return false;
     }
@@ -166,12 +156,12 @@ public:
 
 class SuperOpFusion : public UnitaryFusion {
 public:
-  virtual std::string name() { return "superop"; };
+  virtual std::string name() override { return "superop"; };
 
   virtual bool support_diagonal() const override { return false; }
 
   virtual op_t generate_operation_internal(const std::vector<op_t>& fusioned_ops,
-                                           const reg_t &qubits) const {
+                                           const reg_t &qubits) const override {
 
     if (!exist_non_unitary(fusioned_ops))
       return UnitaryFusion::generate_operation_internal(fusioned_ops, qubits);
@@ -212,12 +202,12 @@ public:
 
 class KrausFusion : public UnitaryFusion {
 public:
-  virtual std::string name() { return "kraus"; };
+  virtual std::string name() override { return "kraus"; };
 
   virtual bool support_diagonal() const override { return false; }
 
   virtual op_t generate_operation_internal(const std::vector<op_t>& fusioned_ops,
-                                           const reg_t &qubits) const {
+                                           const reg_t &qubits) const override {
 
     if (!exist_non_unitary(fusioned_ops))
       return UnitaryFusion::generate_operation_internal(fusioned_ops, qubits);
@@ -318,9 +308,11 @@ void Fuser::allocate_new_operation(oplist_t& ops,
 
 class CostBasedFusion : public Fuser {
 public:
-  CostBasedFusion() = default;
+  CostBasedFusion() {
+    std::fill_n(costs, 64, -1);
+  };
 
-  virtual std::string name() const { return "cost_base"; };
+  virtual std::string name() const override { return "cost_base"; };
 
   virtual void set_config(const json_t &config) override;
 
@@ -346,17 +338,20 @@ private:
 private:
   bool active = true;
   double cost_factor = 1.8;
+  double costs[64];
 };
 
 template<size_t N>
 class NQubitFusion : public Fuser {
 public:
+  NQubitFusion(): opt_name(std::to_string(N) + "_qubits"),
+                  activate_prop_name("fusion_enable." + std::to_string(N) + "_qubits") {
+  }
+
   virtual void set_config(const json_t &config) override;
 
-  virtual std::string name() const {
-    std::stringstream opt_name;
-    opt_name << N << "_qubits";
-    return opt_name.str();
+  virtual std::string name() const override {
+    return opt_name;
   };
 
   virtual bool aggregate_operations(oplist_t& ops,
@@ -369,6 +364,8 @@ public:
                                 const op_t& tgt_op) const;
 private:
   bool active = true;
+  const std::string opt_name;
+  const std::string activate_prop_name;
   uint_t qubit_threshold = 5;
 };
 
@@ -377,11 +374,8 @@ void NQubitFusion<N>::set_config(const json_t &config) {
   if (JSON::check_key("fusion_enable.n_qubits", config))
     JSON::get_value(active, "fusion_enable.n_qubits", config);
 
-  std::stringstream opt_name;
-  opt_name << "fusion_enable." << N << "_qubits";
-
-  if (JSON::check_key(opt_name.str(), config))
-    JSON::get_value(active, opt_name.str(), config);
+  if (JSON::check_key(activate_prop_name, config))
+    JSON::get_value(active, activate_prop_name, config);
 }
 
 template<size_t N>
@@ -478,7 +472,7 @@ public:
 
   virtual ~DiagonalFusion() = default;
 
-  virtual std::string name() const { return "diagonal"; };
+  virtual std::string name() const override { return "diagonal"; };
 
   virtual void set_config(const json_t &config) override;
 
@@ -536,57 +530,98 @@ int DiagonalFusion::get_next_diagonal_end(const oplist_t& ops,
     return from;
   }
 
-  if (ops[from].type == Operations::OpType::gate) {
-    auto pos = from;
-
-    // find first cx list
-    for (; pos < ops.size(); ++pos)
-      if (ops[from].type != Operations::OpType::gate || ops[pos].name != "cx")
-        break;
-
-    if (pos == from || pos == ops.size())
-      return -1;
-
-    auto cx_end = pos - 1;
-
-    bool found = false;
-    // find diagonals
-    for (; pos < ops.size(); ++pos)
-      if (is_diagonal_op(ops[pos]))
-        found = true;
-      else
-        break;
-
-    if (!found)
-      return -1;
-
-    if (pos == ops.size())
-      return -1;
-
-    auto u1_end = pos;
-
-    // find second cx list that is the reverse of the first
-    for (; pos < ops.size(); ++pos) {
-      if (ops[pos].type == Operations::OpType::gate
-          && ops[pos].name == ops[cx_end].name
-          && ops[pos].qubits == ops[cx_end].qubits) {
-        if (cx_end == from)
-          break;
-        --cx_end;
-      } else {
-        return -1;
-      }
-    }
-
-    for (auto i = from; i < u1_end; ++i)
-      for (const auto qubit: ops[i].qubits)
-        fusing_qubits.insert(qubit);
-
-    return pos;
-
-  } else {
+  if (ops[from].type != Operations::OpType::gate)
     return -1;
+
+  auto pos = from;
+
+  // find a diagonal gate that has the same lists of CX before and after it
+  //      ┌───┐                                   ┌───┐
+  // q_0: ┤ X ├───────────────────────────────────┤ X ├
+  //      └─┬─┘┌───┐            ┌──────────┐ ┌───┐└─┬─┘
+  // q_1: ──■──┤ X ├────────────┤ diagonal ├─┤ X ├──■──
+  //           └─┬─┘┌──────────┐└──────────┘ └─┬─┘
+  // q_2: ───────■──┤ diagonal ├───────────────■───────
+  //                └──────────┘
+  //        ■ [from,pos]
+
+  // find first cx list
+  for (; pos < ops.size(); ++pos)
+    if (ops[from].type != Operations::OpType::gate || ops[pos].name != "cx")
+      break;
+
+  if (pos == from || pos == ops.size())
+    return -1;
+
+  auto cx_end = pos - 1;
+
+  //      ┌───┐                                   ┌───┐
+  // q_0: ┤ X ├───────────────────────────────────┤ X ├
+  //      └─┬─┘┌───┐            ┌──────────┐ ┌───┐└─┬─┘
+  // q_1: ──■──┤ X ├────────────┤ diagonal ├─┤ X ├──■──
+  //           └─┬─┘┌──────────┐└──────────┘ └─┬─┘
+  // q_2: ───────■──┤ diagonal ├───────────────■───────
+  //                └──────────┘
+  //        ■ [from]     ■ [pos]
+  //             ■ [cx_end]
+
+  bool found = false;
+  // find diagonals
+  for (; pos < ops.size(); ++pos)
+    if (is_diagonal_op(ops[pos]))
+      found = true;
+    else
+      break;
+
+  if (!found)
+    return -1;
+
+  if (pos == ops.size())
+    return -1;
+
+  auto u1_end = pos;
+
+  //      ┌───┐                                   ┌───┐
+  // q_0: ┤ X ├───────────────────────────────────┤ X ├
+  //      └─┬─┘┌───┐            ┌──────────┐ ┌───┐└─┬─┘
+  // q_1: ──■──┤ X ├────────────┤ diagonal ├─┤ X ├──■──
+  //           └─┬─┘┌──────────┐└──────────┘ └─┬─┘
+  // q_2: ───────■──┤ diagonal ├───────────────■───────
+  //                └──────────┘
+  //        ■ [from]                           ■ [pos,u1_end]
+  //             ■ [cx_end]
+
+  // find second cx list that is the reverse of the first
+  for (; pos < ops.size(); ++pos) {
+    if (ops[pos].type == Operations::OpType::gate
+        && ops[pos].name == ops[cx_end].name
+        && ops[pos].qubits == ops[cx_end].qubits) {
+      if (cx_end == from)
+        break;
+      --cx_end;
+    } else {
+      return -1;
+    }
   }
+
+  if (pos == ops.size())
+    return -1;
+
+  //      ┌───┐                                   ┌───┐
+  // q_0: ┤ X ├───────────────────────────────────┤ X ├
+  //      └─┬─┘┌───┐            ┌──────────┐ ┌───┐└─┬─┘
+  // q_1: ──■──┤ X ├────────────┤ diagonal ├─┤ X ├──■──
+  //           └─┬─┘┌──────────┐└──────────┘ └─┬─┘
+  // q_2: ───────■──┤ diagonal ├───────────────■───────
+  //                └──────────┘
+  //        ■ [from]                                ■ [pos]
+  //        ■ [cx_end]                         ■ [u1_end]
+
+  for (auto i = from; i < u1_end; ++i)
+    for (const auto qubit: ops[i].qubits)
+      fusing_qubits.insert(qubit);
+
+  return pos;
 
 }
 
@@ -611,7 +646,6 @@ bool DiagonalFusion::aggregate_operations(oplist_t& ops,
     if (checking_qubits_set.size() > max_fused_qubits)
       continue;
 
-    std::set<uint_t> fusing_qubits_set = checking_qubits_set;
     auto next_diagonal_start = next_diagonal_end + 1;
 
     int cnt = 0;
@@ -622,7 +656,6 @@ bool DiagonalFusion::aggregate_operations(oplist_t& ops,
       if (checking_qubits_set.size() > max_fused_qubits)
         break;
       next_diagonal_start = next_diagonal_end + 1;
-      fusing_qubits_set = checking_qubits_set;
     }
 
     if (checking_qubits_set.size() < min_qubit)
@@ -688,7 +721,7 @@ private:
                         const opset_t &allowed_opset,
                         const uint_t ops_start,
                         const uint_t ops_end,
-                        const std::shared_ptr<Fuser> fuser,
+                        const std::shared_ptr<Fuser>& fuser,
                         const FusionMethod& method) const;
 
 #ifdef DEBUG
@@ -746,7 +779,7 @@ void Fusion::set_config(const json_t &config) {
   if (JSON::check_key("fusion_threshold", config_))
     JSON::get_value(threshold, "fusion_threshold", config_);
 
-  for (std::shared_ptr<Fuser> fuser: fusers)
+  for (std::shared_ptr<Fuser>& fuser: fusers)
     fuser->set_config(config_);
 
   if (JSON::check_key("fusion_allow_kraus", config))
@@ -794,7 +827,7 @@ void Fusion::optimize_circuit(Circuit& circ,
   result.metadata.add(method.name(), "fusion", "method");
 
   bool applied = false;
-  for (std::shared_ptr<Fuser> fuser: fusers) {
+  for (const std::shared_ptr<Fuser>& fuser: fusers) {
     fuser->set_metadata(result);
 
     if (circ.ops.size() < parallel_threshold_ || parallelization_ <= 1) {
@@ -849,7 +882,7 @@ void Fusion::optimize_circuit(Circuit& circ,
                               const opset_t &allowed_opset,
                               const uint_t ops_start,
                               const uint_t ops_end,
-                              const std::shared_ptr<Fuser> fuser,
+                              const std::shared_ptr<Fuser>& fuser,
                               const FusionMethod& method) const {
 
   uint_t fusion_start = ops_start;
@@ -875,6 +908,12 @@ void CostBasedFusion::set_config(const json_t &config) {
 
   if (JSON::check_key("fusion_enable.cost_based", config))
     JSON::get_value(active, "fusion_enable.cost_based", config);
+
+  for (int i = 0; i < 64; ++i) {
+    auto prop_name = "fusion_cost." + std::to_string(i + 1);
+    if (JSON::check_key(prop_name, config))
+      JSON::get_value(costs[i], prop_name, config);
+  }
 }
 
 bool CostBasedFusion::aggregate_operations(oplist_t& ops,
@@ -981,24 +1020,28 @@ double CostBasedFusion::estimate_cost(const std::vector<op_t>& ops,
                              const uint_t from,
                              const uint_t until) const {
   if (is_diagonal(ops, from, until))
-    return cost_factor;
+    return 1.0;
 
   reg_t fusion_qubits;
   for (uint_t i = from; i <= until; ++i)
     add_fusion_qubits(fusion_qubits, ops[i]);
+
+  auto configured_cost = costs[fusion_qubits.size() - 1];
+  if (configured_cost > 0)
+    return configured_cost;
 
   if(is_avx2_supported()){
     switch (fusion_qubits.size()) {
       case 1:
         // [[ falling through :) ]]
       case 2:
-        return cost_factor;
+        return 1.0;
       case 3:
-        return cost_factor * 1.1;
+        return 1.1;
       case 4:
-        return cost_factor * 3;
+        return 3;
       default:
-        return pow(cost_factor, (double) std::max(fusion_qubits.size() - 1, size_t(1)));
+        return pow(cost_factor, (double) std::max(fusion_qubits.size() - 2, size_t(1)));
     }
   }
   return pow(cost_factor, (double) std::max(fusion_qubits.size() - 1, size_t(1)));
