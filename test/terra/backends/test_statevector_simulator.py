@@ -14,6 +14,9 @@ StatevectorSimulator Integration Tests
 """
 
 import unittest
+from qiskit.providers.aer import StatevectorSimulator
+from qiskit.providers.aer import AerError
+
 from test.terra import common
 from test.terra.decorators import requires_method
 # Basic circuit instruction tests
@@ -29,6 +32,7 @@ class TestStatevectorSimulator(common.QiskitAerTestCase,
     """StatevectorSimulator automatic method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 10598}
+    SIMULATOR = StatevectorSimulator(**BACKEND_OPTS)
 
 
 @requires_method("statevector_simulator", "statevector_gpu")
@@ -39,6 +43,10 @@ class TestStatevectorSimulatorThrustGPU(common.QiskitAerTestCase,
     """StatevectorSimulator automatic method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 10598, "method": "statevector_gpu"}
+    try:
+        SIMULATOR = StatevectorSimulator(**BACKEND_OPTS)
+    except AerError:
+        SIMULATOR = None
 
 
 @requires_method("statevector_simulator", "statevector_thrust")
@@ -49,6 +57,10 @@ class TestStatevectorSimulatorThrustCPU(common.QiskitAerTestCase,
     """StatevectorSimulator automatic method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 10598, "method": "statevector_thrust"}
+    try:
+        SIMULATOR = StatevectorSimulator(**BACKEND_OPTS)
+    except AerError:
+        SIMULATOR = None
 
 
 if __name__ == '__main__':
