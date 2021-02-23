@@ -36,7 +36,8 @@ const Operations::OpSet StateOpSet(
     OpType::barrier, OpType::bfunc,
     OpType::roerror, OpType::save_expval,
     OpType::save_expval_var, OpType::save_probs,
-    OpType::save_probs_ket, OpType::save_amps_sq},
+    OpType::save_probs_ket, OpType::save_amps_sq,
+    OpType::save_stabilizer},
   // Gates
   {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg",
    "sx", "delay"},
@@ -140,9 +141,11 @@ protected:
   // Save data instructions
   //-----------------------------------------------------------------------
 
-  // Helper function for computing expectation value
-  void apply_save_probs(const Operations::Op &op,
-                        ExperimentResult &result);
+  // Save Clifford state of simulator
+  void apply_save_stabilizer(const Operations::Op &op, ExperimentResult &result);
+
+  // Save probabilities
+  void apply_save_probs(const Operations::Op &op, ExperimentResult &result);
 
   // Helper function for saving amplitudes squared
   void apply_save_amplitudes_sq(const Operations::Op &op,
@@ -341,6 +344,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         case OpType::save_amps_sq:
           apply_save_amplitudes_sq(op, result);
           break;
+        case OpType::save_stabilizer:
+          apply_save_stabilizer(op, result);
+          break;
         default:
           throw std::invalid_argument("Stabilizer::State::invalid instruction \'" +
                                       op.name + "\'.");
@@ -474,6 +480,13 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
 //=========================================================================
 // Implementation: Save data
 //=========================================================================
+
+void State::apply_save_stabilizer(const Operations::Op &op,
+                                ExperimentResult &result) {
+  json_t clifford = BaseState::qreg_;
+  BaseState::save_data_pershot(result, op.string_params[0],
+                               std::move(clifford), op.save_type);
+}
 
 void State::apply_save_probs(const Operations::Op &op,
                              ExperimentResult &result) {
@@ -711,7 +724,7 @@ void State::snapshot_stabilizer(const Operations::Op &op, ExperimentResult &resu
   // Then extract the stabilizer generator list
   result.legacy_data.add_pershot_snapshot("stabilizer",
                                op.string_params[0],
-                               clifford["stabilizers"]);
+                               clifford["stabilizer"]);
 }
 
 
