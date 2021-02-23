@@ -156,7 +156,7 @@ protected:
    // Helper function for computing expectation value
    double expval_pauli(const reg_t &qubits,
                        const std::string& pauli,
-                             RngEngine &rng);
+                       RngEngine &rng);
 
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
