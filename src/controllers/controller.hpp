@@ -805,16 +805,22 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       #endif
     }
 #endif
+    uint_t offset = 0;
+#ifdef AER_MPI
+    offset = distributed_experiments_begin_;
+#endif
     // then- and else-blocks have intentionally duplication.
     // Nested omp has significant overheads even though a guard condition exists.
     const int NUM_RESULTS = result.results.size();
-    #pragma omp parallel for if (parallel_experiments_ > 1) num_threads(parallel_experiments_)
-    for (int j = 0; j < result.results.size(); ++j) {
-#ifdef AER_MPI
-      execute_circuit(circuits[j+distributed_experiments_begin_], circ_noise_models[j+distributed_experiments_begin_], config, result.results[j]);
-#else
-      execute_circuit(circuits[j], circ_noise_models[j], config, result.results[j]);
-#endif
+    if (parallel_experiments_ > 1) {
+      #pragma omp parallel for num_threads(parallel_experiments_)
+      for (int j = 0; j < result.results.size(); ++j) {
+        execute_circuit(circuits[j + offset], circ_noise_models[j + offset], config, result.results[j]);
+      }
+    } else {
+      for (int j = 0; j < result.results.size(); ++j) {
+        execute_circuit(circuits[j + offset], circ_noise_models[j + offset], config, result.results[j]);
+      }
     }
 
     // Check each experiment result for completed status.
