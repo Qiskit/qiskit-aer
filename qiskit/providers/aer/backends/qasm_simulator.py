@@ -521,7 +521,8 @@ class QasmSimulator(AerBackend):
         elif method == 'extended_stabilizer':
             config.n_qubits = 63  # TODO: estimate from memory
             config.description = 'A C++ QasmQobj ranked stabilizer simulator with noise'
-            config.custom_instructions = sorted(['roerror', 'snapshot', 'save_statevector'])
+            config.custom_instructions = sorted(['roerror', 'snapshot', 'save_statevector',
+                                                 'save_expval', 'save_expval_var'])
             config.basis_gates = sorted([
                 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'swap',
                 'u0', 'u1', 'p', 'ccx', 'ccz', 'delay'
