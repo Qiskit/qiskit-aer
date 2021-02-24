@@ -284,38 +284,57 @@ NoiseModel::param_gate_table_ = {
 
 NoiseModel::NoiseOps NoiseModel::sample_noise(const Operations::Op &op,
                                               RngEngine &rng) const {
+  // Noise operations
+  NoiseOps noise_ops;
   // Look to see if gate is a waltz gate for this error model
+  // NOTE this is deprecated and waltz gate noise sampling should be removed
   auto it = x90_gates_.find(op.name);
   if (it == x90_gates_.end()) {
     // Non-X90 based gate, run according to base model
-    return sample_noise_helper(op, rng);
-  }
-  // Decompose ops in terms of their waltz implementation
-  auto gate = waltz_gate_table_.find(op.name);
-  if (gate != waltz_gate_table_.end()) {
-    switch (gate->second) {
-      case WaltzGate::u3:
-        return sample_noise_x90_u3(op.qubits[0],
-                                   op.params[0], op.params[1], op.params[2],
-                                   rng);
-      case WaltzGate::u2:
-        return sample_noise_x90_u2(op.qubits[0],
-                                   op.params[0], op.params[1],
-                                   rng);
-      case WaltzGate::x:
-        return sample_noise_x90_u3(op.qubits[0], M_PI, 0., M_PI, rng);
-      case WaltzGate::y:
-        return sample_noise_x90_u3(op.qubits[0],  M_PI, 0.5 * M_PI, 0.5 * M_PI, rng);
-      case WaltzGate::h:
-        return sample_noise_x90_u2(op.qubits[0], 0., M_PI, rng);
-      default:
-        // The rest of the Waltz operations are noise free (u1 only)
-        return {op};
-    }
+    noise_ops = sample_noise_helper(op, rng);
   } else {
-    // something went wrong if we end up here
-    throw std::invalid_argument("Invalid waltz gate.");
+    // Decompose ops in terms of their waltz implementation
+    auto gate = waltz_gate_table_.find(op.name);
+    if (gate != waltz_gate_table_.end()) {
+      switch (gate->second) {
+        case WaltzGate::u3:
+          noise_ops = sample_noise_x90_u3(op.qubits[0],
+                                          op.params[0], op.params[1], op.params[2],
+                                          rng);
+          break;
+        case WaltzGate::u2:
+          noise_ops = sample_noise_x90_u2(op.qubits[0],
+                                          op.params[0], op.params[1],
+                                           rng);
+          break;
+        case WaltzGate::x:
+          noise_ops =  sample_noise_x90_u3(op.qubits[0], M_PI, 0., M_PI, rng);
+          break;
+        case WaltzGate::y:
+          noise_ops = sample_noise_x90_u3(op.qubits[0],  M_PI, 0.5 * M_PI, 0.5 * M_PI, rng);
+          break;
+        case WaltzGate::h:
+          noise_ops = sample_noise_x90_u2(op.qubits[0], 0., M_PI, rng);
+          break;
+        default:
+          // The rest of the Waltz operations are noise free (u1 only)
+          noise_ops = {op};
+          break;
+      }
+    } else {
+      // something went wrong if we end up here
+      throw std::invalid_argument("Invalid waltz gate.");
+    }
   }
+  // If original op is conditional, make all the noise operations also conditional
+  if (op.conditional) {
+    for (auto& noise_op : noise_ops) {
+      noise_op.conditional = op.conditional;
+      noise_op.conditional_reg = op.conditional_reg;
+      noise_op.bfunc = op.bfunc;
+    }
+  }
+  return noise_ops;
 }
 
 
