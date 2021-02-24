@@ -118,7 +118,7 @@ public:
                          bool final_ops = false);
 
   //memory allocation (previously called before inisitalize_qreg)
-  virtual void allocate(uint_t num_qubits,uint_t block_bits);
+  virtual void allocate(uint_t num_qubits);
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
@@ -343,7 +343,6 @@ protected:
                          ExperimentResult &result,
                          RngEngine &rng,
                          bool final_ops = false)  = 0;
-
   // block diagonal matrix in chunk
   void block_diagonal_matrix(const int_t iChunk, reg_t &qubits, cvector_t &diag);
 
@@ -434,17 +433,13 @@ void StateChunk<state_t>::set_distribution(uint_t nprocs)
 }
 
 template <class state_t>
-void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits)
+void StateChunk<state_t>::allocate(uint_t num_qubits)
 {
   int_t i;
   uint_t nchunks;
   int max_bits = num_qubits;
 
-  if(num_qubits_ == num_qubits && block_bits != 0 && block_bits_ == block_bits)
-    return;
-
   num_qubits_ = num_qubits;
-  block_bits_ = block_bits;
 
   if(block_bits_ > 0){
     chunk_bits_ = block_bits_;
@@ -475,7 +470,7 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits)
   qregs_.resize(num_local_chunks_);
 
   chunk_omp_parallel_ = false;
-    gpu_optimization_ = false;
+  gpu_optimization_ = false;
   if(qregs_[0].name().find("gpu") != std::string::npos){
     if(chunk_bits_ < num_qubits_){
       chunk_omp_parallel_ = true;   //CUDA backend requires thread parallelization of chunk loop

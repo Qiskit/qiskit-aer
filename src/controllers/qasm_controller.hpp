@@ -306,6 +306,9 @@ class QasmController : public Base::Controller {
 
   // Controller-level parameter for CH method
   bool extended_stabilizer_measure_sampling_ = false;
+
+  //using multiple chunks
+  bool multiple_qregs_ = false;
 };
 
 //=========================================================================
@@ -378,6 +381,11 @@ void QasmController::set_config(const json_t& config) {
           "QasmController: initial_statevector is not a unit vector");
     }
   }
+
+  //enable multiple qregs if cache blocking is enabled
+  if(JSON::check_key("blocking_enable", config)){
+    JSON::get_value(multiple_qregs_,"blocking_enable", config);
+  }
 }
 
 void QasmController::clear_config() {
@@ -399,7 +407,7 @@ void QasmController::run_circuit(const Circuit& circ,
   // Validate circuit for simulation method
   switch (simulation_method(circ, noise, true)) {
     case Method::statevector: {
-      if(Base::Controller::multiple_chunk_required(circ,noise)){
+      if(multiple_qregs_){
         if (simulation_precision_ == Precision::double_precision) {
           // Double-precision Statevector simulation
           return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<double>>>(
@@ -432,7 +440,7 @@ void QasmController::run_circuit(const Circuit& circ,
           "QasmController: method statevector_gpu is not supported on this "
           "system");
 #else
-      if(Base::Controller::multiple_chunk_required(circ,noise) || (parallel_shots_ > 1 || parallel_experiments_ > 1)){
+      if(multiple_qregs_ || (parallel_shots_ > 1 || parallel_experiments_ > 1)){
         if (simulation_precision_ == Precision::double_precision) {
           // Double-precision Statevector simulation
           return run_circuit_helper<
@@ -470,7 +478,7 @@ void QasmController::run_circuit(const Circuit& circ,
           "QasmController: method statevector_thrust is not supported on this "
           "system");
 #else
-      if(Base::Controller::multiple_chunk_required(circ,noise)){
+      if(multiple_qregs_){
         if (simulation_precision_ == Precision::double_precision) {
           // Double-precision Statevector simulation
           return run_circuit_helper<
@@ -503,7 +511,7 @@ void QasmController::run_circuit(const Circuit& circ,
 #endif
     }
     case Method::density_matrix: {
-      if(Base::Controller::multiple_chunk_required(circ,noise)){
+      if(multiple_qregs_){
         if (simulation_precision_ == Precision::double_precision) {
           // Double-precision density matrix simulation
           return run_circuit_helper<
@@ -540,7 +548,7 @@ void QasmController::run_circuit(const Circuit& circ,
           "QasmController: method density_matrix_gpu is not supported on this "
           "system");
 #else
-      if(Base::Controller::multiple_chunk_required(circ,noise) || (parallel_shots_ > 1 || parallel_experiments_ > 1)){
+      if(multiple_qregs_ || (parallel_shots_ > 1 || parallel_experiments_ > 1)){
         if (simulation_precision_ == Precision::double_precision) {
           // Double-precision density matrix simulation
           return run_circuit_helper<
@@ -578,7 +586,7 @@ void QasmController::run_circuit(const Circuit& circ,
             "this "
             "system");
 #else
-      if(Base::Controller::multiple_chunk_required(circ,noise)){
+      if(multiple_qregs_){
         if (simulation_precision_ == Precision::double_precision) {
           // Double-precision density matrix simulation
           return run_circuit_helper<
@@ -939,7 +947,7 @@ Transpile::CacheBlocking QasmController::transpile_cache_blocking(const Circuit&
   cache_block_pass.set_config(config);
   if(!cache_block_pass.enabled()){
     //if blocking is not set by config, automatically set if required
-    if(Base::Controller::multiple_chunk_required(circ,noise)){
+    if(Base::Controller::num_process_per_experiment_ > 1 || Base::Controller::get_min_memory_mb() < required_memory_mb(circ, noise)){
       int nplace = Base::Controller::num_process_per_experiment_;
       if(Base::Controller::num_gpus_ > 0)
         nplace *= Base::Controller::num_gpus_;
@@ -1143,13 +1151,6 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   auto cache_block_pass = transpile_cache_blocking(opt_circ,noise,config);
   cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
 
-  uint_t block_bits = 0;
-  if(cache_block_pass.enabled())
-    block_bits = cache_block_pass.block_bits();
-
-  //allocate qubit register
-  state.allocate(Base::Controller::max_qubits_,block_bits);
-
   // Run simulation
   run_multi_shot(opt_circ, shots, state, initial_state, method, result, rng);
 }
@@ -1178,6 +1179,9 @@ void QasmController::run_multi_shot(const Circuit& circ,
     // Implement measure sampler
     auto pos = circ.first_measure_pos;  // Position of first measurement op
 
+    //allocate qubit register
+    state.allocate(Base::Controller::max_qubits_);
+
     // Run circuit instructions before first measure
     std::vector<Operations::Op> ops(circ.ops.begin(),
                                     circ.ops.begin() + pos);
@@ -1193,6 +1197,9 @@ void QasmController::run_multi_shot(const Circuit& circ,
     // Add measure sampling metadata
     result.metadata.add(true, "measure_sampling");
   } else {
+    //allocate qubit register
+    state.allocate(Base::Controller::max_qubits_);
+
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
     while (shots-- > 0) {
@@ -1220,6 +1227,9 @@ void QasmController::run_circuit_with_sampled_noise(const Circuit& circ,
 
   auto cache_block_pass = transpile_cache_blocking(circ,noise,config);
 
+  //allocate qubit register
+  state.allocate(Base::Controller::max_qubits_);
+
   // Sample noise using circuit method
   while (shots-- > 0) {
     Circuit noise_circ = noise.sample_noise(circ, rng);
@@ -1227,13 +1237,6 @@ void QasmController::run_circuit_with_sampled_noise(const Circuit& circ,
     measure_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), result);
     fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), result);
     cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), result);
-
-    uint_t block_bits = 0;
-    if(cache_block_pass.enabled())
-      block_bits = cache_block_pass.block_bits();
-
-    //allocate qubit register
-    state.allocate(Base::Controller::max_qubits_,block_bits);
 
     run_single_shot(noise_circ, state, initial_state, result, rng);
   }

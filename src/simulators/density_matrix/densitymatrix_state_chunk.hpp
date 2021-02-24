@@ -989,9 +989,6 @@ void State<densmat_t>::apply_gate(const uint_t iChunk, const Operations::Op &op)
     case DensityMatrix::Gates::rzx:
       BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
       break;
-    case DensityMatrix::Gates::pauli:
-      apply_pauli(op.qubits, op.string_params[0]);
-      break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument("DensityMatrix::State::invalid gate instruction \'" +
@@ -1013,7 +1010,6 @@ template <class densmat_t>
 void State<densmat_t>::apply_gate_u3(const int_t iChunk, uint_t qubit, double theta, double phi, double lambda) {
   BaseState::qregs_[iChunk].apply_unitary_matrix(reg_t({qubit}), Linalg::VMatrix::u3(theta, phi, lambda));
 }
-
 
 template <class densmat_t>
 void State<densmat_t>::apply_pauli(const reg_t &qubits,
