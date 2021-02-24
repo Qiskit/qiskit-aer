@@ -164,6 +164,9 @@ protected:
   // Apply a vectorized matrix to given qubits (identity on all other qubits)
   void apply_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & vmat); 
 
+  //apply diagonal matrix
+  void apply_diagonal_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & diag); 
+
   // Apply a vector of control matrices to given qubits (identity on all other qubits)
   void apply_multiplexer(const int_t iChunk, const reg_t &control_qubits, const reg_t &target_qubits, const std::vector<cmatrix_t> &mmat);
 
@@ -520,7 +523,7 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
         apply_matrix(iChunk,op);
         break;
       case Operations::OpType::diagonal_matrix:
-        BaseState::qregs_[iChunk].apply_diagonal_matrix(op.qubits, op.params);
+        apply_diagonal_matrix(iChunk, op.qubits, op.params);
         break;
       case Operations::OpType::multiplexer:
         apply_multiplexer(iChunk,op.regs[0], op.regs[1], op.mats); // control qubits ([0]) & target qubits([1])
@@ -818,7 +821,7 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
       if (vmat.size() == 1ULL << qubits.size()) {
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i)
         for(i=0;i<BaseState::num_local_chunks_;i++)
-          BaseState::qregs_[i].apply_diagonal_matrix(sub_qubits, vmat);
+          apply_diagonal_matrix(i, sub_qubits, vmat);
       } else {
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i)
         for(i=0;i<BaseState::num_local_chunks_;i++)
@@ -1003,7 +1006,7 @@ void State<statevec_t>::apply_gate(const uint_t iChunk, const Operations::Op &op
       BaseState::qregs_[iChunk].apply_matrix(op.qubits, Linalg::VMatrix::ryy(op.params[0]));
       break;
     case Statevector::Gates::rzz:
-      BaseState::qregs_[iChunk].apply_diagonal_matrix(op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
+      apply_diagonal_matrix(iChunk, op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
       break;
     case Statevector::Gates::rzx:
       BaseState::qregs_[iChunk].apply_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
@@ -1080,7 +1083,7 @@ void State<statevec_t>::apply_matrix(const int_t iChunk, const Operations::Op &o
 {
   if (op.qubits.empty() == false && op.mats[0].size() > 0) {
     if (Utils::is_diagonal(op.mats[0], .0)) {
-      BaseState::qregs_[iChunk].apply_diagonal_matrix(op.qubits, Utils::matrix_diagonal(op.mats[0]));
+      apply_diagonal_matrix(iChunk, op.qubits, Utils::matrix_diagonal(op.mats[0]));
     } else {
       BaseState::qregs_[iChunk].apply_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
     }
@@ -1091,12 +1094,27 @@ template <class statevec_t>
 void State<statevec_t>::apply_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t &vmat) {
   // Check if diagonal matrix
   if (vmat.size() == 1ULL << qubits.size()) {
-    BaseState::qregs_[iChunk].apply_diagonal_matrix(qubits, vmat);
+    apply_diagonal_matrix(iChunk, qubits, vmat);
   } else {
     BaseState::qregs_[iChunk].apply_matrix(qubits, vmat);
   }
 }
 
+template <class statevec_t>
+void State<statevec_t>::apply_diagonal_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & diag)
+{
+  if(BaseState::gpu_optimization_){
+    //GPU computes all chunks in one kernel, so pass qubits and diagonal matrix as is
+    BaseState::qregs_[iChunk].apply_diagonal_matrix(qubits,diag);
+  }
+  else{
+    reg_t qubits_in = qubits;
+    cvector_t diag_in = diag;
+
+    BaseState::block_diagonal_matrix(iChunk,qubits_in,diag_in);
+    BaseState::qregs_[iChunk].apply_diagonal_matrix(qubits_in,diag_in);
+  }
+}
 
 template <class statevec_t>
 void State<statevec_t>::apply_gate_mcu3(const uint_t iChunk, const reg_t& qubits,

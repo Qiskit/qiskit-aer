@@ -149,7 +149,7 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
 
-  virtual void allocate(uint_t num_qubits);
+  virtual void allocate(uint_t num_qubits,uint_t block_bits);
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -437,7 +437,7 @@ const stringmap_t<Snapshots> State<statevec_t>::snapshotset_(
 // Initialization
 //-------------------------------------------------------------------------
 template <class statevec_t>
-void State<statevec_t>::allocate(uint_t num_qubits)
+void State<statevec_t>::allocate(uint_t num_qubits,uint_t block_bits)
 {
   BaseState::qreg_.chunk_setup(num_qubits,num_qubits,0,1);
 }

@@ -216,6 +216,9 @@ protected:
   set_distributed_parallelization(const std::vector<Circuit> &circuits,
                                   const std::vector<Noise::NoiseModel> &noise);
 
+  virtual bool multiple_chunk_required(const Circuit &circuit,
+                                  const Noise::NoiseModel &noise) const;
+
   void save_exception_to_results(Result &result,const std::exception &e);
 
   // Get system memory size
@@ -274,6 +277,8 @@ protected:
   //process information (MPI)
   int myrank_ = 0;
   int num_processes_ = 1;
+
+  uint_t cache_block_qubit_ = 0;
 };
 
 //=========================================================================
@@ -348,6 +353,11 @@ void Controller::set_config(const json_t &config) {
     JSON::get_value(accept_distributed_results_, "accept_distributed_results", config);
   }
 
+  //enable multiple qregs if cache blocking is enabled
+  cache_block_qubit_ = 0;
+  if(JSON::check_key("blocking_qubits", config)){
+    JSON::get_value(cache_block_qubit_,"blocking_qubits", config);
+  }
 }
 
 void Controller::clear_config() {
@@ -533,6 +543,21 @@ uint_t Controller::get_distributed_num_processes(bool par_shots) const
   else{
     return distributed_experiments_num_processes_;    //no shot distribution, parallelize this experiment by processes in group
   }
+}
+
+bool Controller::multiple_chunk_required(const Circuit &circ,
+                                const Noise::NoiseModel &noise) const
+{
+  if(circ.num_qubits < 3)
+    return false;
+
+  if(num_process_per_experiment_ > 1 || Controller::get_min_memory_mb() < required_memory_mb(circ, noise))
+    return true;
+
+  if(cache_block_qubit_ >= 2 && cache_block_qubit_ < circ.num_qubits)
+    return true;
+
+  return false;
 }
 
 size_t Controller::get_system_memory_mb() {
@@ -805,22 +830,16 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       #endif
     }
 #endif
-    uint_t offset = 0;
-#ifdef AER_MPI
-    offset = distributed_experiments_begin_;
-#endif
     // then- and else-blocks have intentionally duplication.
     // Nested omp has significant overheads even though a guard condition exists.
     const int NUM_RESULTS = result.results.size();
-    if (parallel_experiments_ > 1) {
-      #pragma omp parallel for num_threads(parallel_experiments_)
-      for (int j = 0; j < result.results.size(); ++j) {
-        execute_circuit(circuits[j + offset], circ_noise_models[j + offset], config, result.results[j]);
-      }
-    } else {
-      for (int j = 0; j < result.results.size(); ++j) {
-        execute_circuit(circuits[j + offset], circ_noise_models[j + offset], config, result.results[j]);
-      }
+    #pragma omp parallel for if (parallel_experiments_ > 1) num_threads(parallel_experiments_)
+    for (int j = 0; j < result.results.size(); ++j) {
+#ifdef AER_MPI
+      execute_circuit(circuits[j+distributed_experiments_begin_], circ_noise_models[j+distributed_experiments_begin_], config, result.results[j]);
+#else
+      execute_circuit(circuits[j], circ_noise_models[j], config, result.results[j]);
+#endif
     }
 
     // Check each experiment result for completed status.
