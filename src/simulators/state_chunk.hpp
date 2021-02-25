@@ -445,8 +445,8 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits)
   uint_t nchunks;
   int max_bits = num_qubits;
 
-  if(num_qubits_ == num_qubits && block_bits != 0 && block_bits_ == block_bits)
-    return;
+//  if(num_qubits_ == num_qubits && block_bits != 0 && block_bits_ == block_bits)
+//    return;
 
   num_qubits_ = num_qubits;
   block_bits_ = block_bits;
@@ -580,7 +580,7 @@ template <class state_t>
 void StateChunk<state_t>::block_diagonal_matrix(const int_t iChunk, reg_t &qubits, cvector_t &diag)
 {
   uint_t gid = global_chunk_index_ + iChunk;
-  uint_t i,j;
+  uint_t i;
   uint_t mask_out = 0;
   uint_t mask_id = 0;
 

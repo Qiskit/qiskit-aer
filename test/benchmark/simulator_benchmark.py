@@ -225,7 +225,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             raise ValueError('no qobj: measure={0}:{1}, qubit={2}'.format(measure, measure_count, qubit))
 
         start = time()
-        result = simulator.run(qobj, backend_options=backend_options, noise_model=noise_model).result()
+        result = simulator.run(qobj, noise_model=noise_model, **backend_options).result()
         if result.status != 'COMPLETED':
             try:
                 reason = None

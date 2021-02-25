@@ -700,7 +700,7 @@ Here is an example how we parallelize simulation with multiple GPUs.
 circ = transpile(QuantumVolume(qubit, 10, seed = 0))
 circ.measure_all()
 qobj = assemble(circ, shots=shots)
-result = sim.run(qobj, backend_options={"method" : "statevector_gpu", "blocking_enable" : True, "blocking_qubits" : 23}).result()
+result = sim.run(qobj, method="statevector_gpu", blocking_enable=True, blocking_qubits=23).result()
 ```
 
 To run Qiskit Aer with Python script with MPI parallelization, MPI executer such as mpirun should be used to submit a job on the cluster. Following example shows how to run Python script using 4 processes by using mpirun.
@@ -719,7 +719,7 @@ Following metadatas are useful to find on which process is this script running.
 Here is an example how to get my rank.
 
 ```
-result = sim.run(qobj, backend_options={"method" : "statevector_gpu", "blocking_enable" : True, "blocking_qubits" : 23}).result()
+result = sim.run(qobj, method="statevector_gpu", blocking_enable=True, blocking_qubits=23).result()
 dict = result.to_dict()
 meta = dict['metadata']
 myrank = meta['mpi_rank']

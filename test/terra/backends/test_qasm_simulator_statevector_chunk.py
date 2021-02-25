@@ -14,6 +14,8 @@ QasmSimulator Integration Tests
 """
 
 import unittest
+from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer import AerError
 from test.terra import common
 from test.terra.decorators import requires_method
 
@@ -40,6 +42,7 @@ class TestQasmSimulatorStatevectorChunk(common.QiskitAerTestCase, StatevectorChu
         "blocking_enable" : True,
         "blocking_qubits" : 2
     }
+    SIMULATOR = QasmSimulator(**BACKEND_OPTS)
 
 
 @requires_method("qasm_simulator", "statevector_gpu")
@@ -54,6 +57,10 @@ class TestQasmSimulatorStatevectorChunkThrustGPU(common.QiskitAerTestCase,
         "blocking_enable" : True,
         "blocking_qubits" : 2
     }
+    try:
+        SIMULATOR = QasmSimulator(**BACKEND_OPTS)
+    except AerError:
+        SIMULATOR = None
 
 
 @requires_method("qasm_simulator", "statevector_thrust")
@@ -68,6 +75,10 @@ class TestQasmSimulatorStatevectorChunkThrustCPU(common.QiskitAerTestCase,
         "blocking_enable" : True,
         "blocking_qubits" : 2
     }
+    try:
+        SIMULATOR = QasmSimulator(**BACKEND_OPTS)
+    except AerError:
+        SIMULATOR = None
 
 
 if __name__ == '__main__':
