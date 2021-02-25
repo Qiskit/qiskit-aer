@@ -119,8 +119,14 @@ class TestQuantumError(common.QiskitAerTestCase):
             noise_1q.compose(noise_2q)
 
     def test_compose_with_different_type_of_operator(self):
-        # TODO: fix spec
-        pass
+        """Test compose with Kraus operator."""
+        noise_x = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)])
+        meas_kraus = Kraus([np.diag([1, 0]),
+                            np.diag([0, 1])])
+        actual = noise_x.compose(meas_kraus)
+        expected = QuantumError([([(IGate(), [0]), (meas_kraus.to_instruction(), [0])], 0.9),
+                                 ([(XGate(), [0]), (meas_kraus.to_instruction(), [0])], 0.1)])
+        self.assertEqual(actual, expected)
 
     def test_tensor(self):
         """Test tensor two quantum errors."""
@@ -145,8 +151,14 @@ class TestQuantumError(common.QiskitAerTestCase):
         self.assertEqual(actual, expected)
 
     def test_tensor_with_different_type_of_operator(self):
-        # TODO: fix spec
-        pass
+        """Test tensor with Kraus operator."""
+        noise_x = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)])
+        meas_kraus = Kraus([np.diag([1, 0]),
+                            np.diag([0, 1])])
+        actual = noise_x.tensor(meas_kraus)
+        expected = QuantumError([([(IGate(), [1]), (meas_kraus.to_instruction(), [0])], 0.9),
+                                 ([(XGate(), [1]), (meas_kraus.to_instruction(), [0])], 0.1)])
+        self.assertEqual(actual, expected)
 
     # ================== Tests for old interfaces ================== #
     # TODO: remove after deprecation period

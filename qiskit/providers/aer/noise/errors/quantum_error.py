@@ -408,9 +408,8 @@ class QuantumError(BaseOperator, TolerancesMixin):
         return ret
 
     def compose(self, other, qargs=None, front=False) -> 'QuantumError':
-        # TODO: Should we allow only QuantumError for other? (same goes for tensor())
         if not isinstance(other, QuantumError):
-            return SuperOp(self).compose(other, qargs=qargs, front=front)
+            other = QuantumError(other)
 
         # TODO: Is this check really necessary? Cannot we enlarge circuits automatically?
         if self.num_qubits != other.num_qubits:
@@ -440,7 +439,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
     def tensor(self, other) -> 'QuantumError':
         if not isinstance(other, QuantumError):
-            return SuperOp(self).tensor(other)
+            other = QuantumError(other)
 
         circs = [lqc.tensor(rqc)
                  for lqc in self.circuits
