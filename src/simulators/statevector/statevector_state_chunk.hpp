@@ -513,8 +513,6 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
 {
   uint_t ireg;
 
-  std::cout << " [" << iChunk << "]  TEST : " << op << std::endl;
-
   if(BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case Operations::OpType::barrier:
@@ -1087,7 +1085,7 @@ cmatrix_t State<statevec_t>::vec2density(const reg_t &qubits, const T &vec) {
 
   // Return full density matrix
   cmatrix_t densmat(DIM, DIM);
-  if ((N == BaseState::qregs_[0].num_qubits()) && (qubits == qubits_sorted)) {
+  if ((N == BaseState::num_qubits_) && (qubits == qubits_sorted)) {
     const int_t mask = QV::MASKS[N];
 #pragma omp parallel for if (2 * N > omp_qubit_threshold_ &&                   \
                              BaseState::threads_ > 1)                          \
@@ -1098,7 +1096,7 @@ cmatrix_t State<statevec_t>::vec2density(const reg_t &qubits, const T &vec) {
       densmat(row, col) = complex_t(vec[row]) * complex_t(std::conj(vec[col]));
     }
   } else {
-    const size_t END = 1ULL << (BaseState::qregs_[0].num_qubits() - N);
+    const size_t END = 1ULL << (BaseState::num_qubits_ - N);
     // Initialize matrix values with first block
     {
       const auto inds = QV::indexes(qubits, qubits_sorted, 0);

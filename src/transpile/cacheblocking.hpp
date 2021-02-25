@@ -185,6 +185,14 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
     return;
   }
 
+  std::cout << "  cache blocking >>> " << std::endl;
+  for(uint_t i=0;i<circ.ops.size();i++){
+    if(is_diagonal_op(circ.ops[i]))
+      std::cout << "[" << i << "] " << circ.ops[i] << "*" << std::endl;
+    else
+      std::cout << "[" << i << "] " << circ.ops[i] << std::endl;
+  }
+
   if(blocking_enabled_){
     qubits_ = circ.num_qubits;
     if(block_bits_ >= qubits_ || block_bits_ < 2){
@@ -211,6 +219,15 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
   }
 
   circ.set_params();
+
+  std::cout << " >>> after  cache blocking " << std::endl;
+  for(uint_t i=0;i<circ.ops.size();i++){
+    if(is_diagonal_op(circ.ops[i]))
+      std::cout << "[" << i << "] " << circ.ops[i] << "*" << std::endl;
+    else
+      std::cout << "[" << i << "] " << circ.ops[i] << std::endl;
+  }
+
 }
 
 void CacheBlocking::define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t& blockedQubits,bool crossQubitOnly) const
