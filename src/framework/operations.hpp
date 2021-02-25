@@ -166,11 +166,6 @@ struct Op {
   uint_t conditional_reg;   // (opt) the (single) register location to look up for conditional
   RegComparison bfunc;      // (opt) boolean function relation
 
-  // DEPRECATED: Old style conditionals (remove in 0.3)
-  bool old_conditional = false;     // is gate old style conditional gate
-  std::string old_conditional_mask; // hex string for conditional mask
-  std::string old_conditional_val;  // hex string for conditional value
-
   // Measurement
   reg_t memory;             // (opt) register operation it acts on (measure)
   reg_t registers;          // (opt) register locations it acts on (measure, conditional)
@@ -586,16 +581,8 @@ void add_conditional(const Allowed allowed, Op& op, const json_t &js) {
       throw std::invalid_argument("Invalid instruction: \"" + op.name + "\" cannot be conditional.");
     }
     // If instruction is allowed to be conditional add parameters
-    if (js["conditional"].is_number()) {
-      // New style conditional
-      op.conditional_reg = js["conditional"];
-      op.conditional = true;
-    } else {
-      // DEPRECATED: old style conditional (remove in 0.3)
-      JSON::get_value(op.old_conditional_mask, "mask", js["conditional"]);
-      JSON::get_value(op.old_conditional_val, "val", js["conditional"]);
-      op.old_conditional = true;
-    }
+    op.conditional_reg = js["conditional"];
+    op.conditional = true;
   }
 }
 
@@ -788,7 +775,6 @@ Op json_to_op_roerror(const json_t &js) {
   op.name = "roerror";
   JSON::get_value(op.memory, "memory", js);
   JSON::get_value(op.registers, "register", js);
-  JSON::get_value(op.probs, "probabilities", js); // DEPRECATED: Remove in 0.4
   JSON::get_value(op.probs, "params", js);
   // Conditional
   add_conditional(Allowed::No, op, js);
