@@ -304,6 +304,7 @@ protected:
   uint_t distributed_group_;    //group id of distribution
 
   bool chunk_omp_parallel_;     //using thread parallel to process loop of chunks or not
+  bool gpu_optimization_;       //optimization for GPU
 
   virtual int qubit_scale(void)
   {
@@ -342,6 +343,8 @@ protected:
                          ExperimentResult &result,
                          RngEngine &rng,
                          bool final_ops = false)  = 0;
+  // block diagonal matrix in chunk
+  void block_diagonal_matrix(const int_t iChunk, reg_t &qubits, cvector_t &diag);
 
   // Set a global phase exp(1j * theta) for the state
   bool has_global_phase_ = false;
@@ -368,6 +371,7 @@ StateChunk<state_t>::StateChunk(const Operations::OpSet &opset) : opset_(opset)
   distributed_group_ = 0;
 
   chunk_omp_parallel_ = false;
+  gpu_optimization_ = false;
 
 #ifdef AER_MPI
   distributed_comm_ = MPI_COMM_WORLD;
@@ -466,10 +470,12 @@ void StateChunk<state_t>::allocate(uint_t num_qubits)
   qregs_.resize(num_local_chunks_);
 
   chunk_omp_parallel_ = false;
-  if(chunk_bits_ < num_qubits_){
-    if(qregs_[0].name().find("gpu") != std::string::npos){
+  gpu_optimization_ = false;
+  if(qregs_[0].name().find("gpu") != std::string::npos){
+    if(chunk_bits_ < num_qubits_){
       chunk_omp_parallel_ = true;   //CUDA backend requires thread parallelization of chunk loop
     }
+    gpu_optimization_ = true;
   }
 
   nchunks = num_local_chunks_;
@@ -548,18 +554,57 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
 
       iOp = iOpEnd;
     }
-    else if(ops[iOp].type == Operations::OpType::measure || ops[iOp].type == Operations::OpType::snapshot || ops[iOp].type == Operations::OpType::kraus ||
-            ops[iOp].type == Operations::OpType::bfunc || ops[iOp].type == Operations::OpType::roerror || ops[iOp].type == Operations::OpType::initialize){
-              //for these operations, parallelize inside state implementations
-      apply_op(-1,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
-    }
-    else{
+    else if(ops[iOp].type == Operations::OpType::gate || ops[iOp].type == Operations::OpType::matrix || 
+            ops[iOp].type == Operations::OpType::diagonal_matrix || ops[iOp].type == Operations::OpType::multiplexer)
+    {
 #pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
       for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
         apply_op(iChunk,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
       }
     }
+    else{
+      //parallelize inside state implementations
+      apply_op(-1,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
+    }
     iOp++;
+  }
+}
+
+template <class state_t>
+void StateChunk<state_t>::block_diagonal_matrix(const int_t iChunk, reg_t &qubits, cvector_t &diag)
+{
+  uint_t gid = global_chunk_index_ + iChunk;
+  uint_t i;
+  uint_t mask_out = 0;
+  uint_t mask_id = 0;
+
+  reg_t qubits_in;
+  cvector_t diag_in;
+
+  for(i=0;i<qubits.size();i++){
+    if(qubits[i] < chunk_bits_/qubit_scale()){ //in chunk
+      qubits_in.push_back(qubits[i]);
+    }
+    else{
+      mask_out |= (1ull << i);
+      if((gid >> (qubits[i] - chunk_bits_/qubit_scale())) & 1)
+        mask_id |= (1ull << i);
+    }
+  }
+
+  if(qubits_in.size() < qubits.size()){
+    for(i=0;i<diag.size();i++){
+      if((i & mask_out) == mask_id)
+        diag_in.push_back(diag[i]);
+    }
+
+    if(qubits_in.size() == 0){
+      qubits_in.push_back(0);
+      diag_in.resize(2);
+      diag_in[1] = diag_in[0];
+    }
+    qubits = qubits_in;
+    diag = diag_in;
   }
 }
 

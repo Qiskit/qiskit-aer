@@ -292,7 +292,9 @@ void ChunkManager<data_t>::Free(void)
   int i;
 
   for(i=0;i<chunks_.size();i++){
-      chunks_[i].reset();
+    if(chunks_[i])
+      chunks_[i]->Deallocate();
+    chunks_[i].reset();
   }
 
   chunk_bits_ = 0;
