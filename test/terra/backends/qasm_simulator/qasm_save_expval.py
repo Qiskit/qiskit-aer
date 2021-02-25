@@ -37,7 +37,7 @@ class QasmSaveExpectationValueTests:
         SUPPORTED_METHODS = [
             'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
             'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust',
-            'matrix_product_state', 'stabilizer'
+            'matrix_product_state', 'stabilizer', 'extended_stabilizer'
         ]
         SEED = 5832
 
@@ -104,7 +104,7 @@ class QasmSaveExpectationValueTests:
         SUPPORTED_METHODS = [
             'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
             'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust',
-            'matrix_product_state', 'stabilizer'
+            'matrix_product_state', 'stabilizer', 'extended_stabilizer'
         ]
         SEED = 7123
 
@@ -136,7 +136,7 @@ class QasmSaveExpectationValueTests:
         SUPPORTED_METHODS = [
             'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
             'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust',
-            'matrix_product_state', 'stabilizer'
+            'matrix_product_state', 'stabilizer', 'extended_stabilizer'
         ]
         SEED = 7123
 
@@ -203,7 +203,7 @@ class QasmSaveExpectationValueTests:
         SUPPORTED_METHODS = [
             'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
             'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust',
-            'matrix_product_state'
+            'matrix_product_state', 'extended_stabilizer'
         ]
         SEED = 7382
 
@@ -236,7 +236,7 @@ class QasmSaveExpectationValueTests:
         SUPPORTED_METHODS = [
             'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
             'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust',
-            'matrix_product_state'
+            'matrix_product_state', 'extended_stabilizer'
         ]
         SEED = 8124
 
@@ -267,7 +267,7 @@ class QasmSaveExpectationValueTests:
         SUPPORTED_METHODS = [
             'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
             'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust',
-            'matrix_product_state'
+            'matrix_product_state', 'extended_stabilizer'
         ]
         SEED = 8124
 
