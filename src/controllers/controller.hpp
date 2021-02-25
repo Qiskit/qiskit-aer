@@ -372,8 +372,8 @@ void Controller::clear_parallelization() {
   num_gpus_ = 0;
 
   explicit_parallelization_ = false;
-  max_memory_mb_ = get_system_memory_mb() / 2;
-  max_gpu_memory_mb_ = get_gpu_memory_mb() / 2;
+  max_memory_mb_ = get_system_memory_mb();
+  max_gpu_memory_mb_ = get_gpu_memory_mb();
 }
 
 void Controller::set_parallelization_experiments(
