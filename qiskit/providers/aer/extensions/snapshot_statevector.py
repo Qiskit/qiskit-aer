@@ -13,7 +13,7 @@
 """
 Simulator command to snapshot internal simulator representation.
 """
-
+from warnings import warn
 from qiskit import QuantumCircuit
 from .snapshot import Snapshot
 
@@ -37,6 +37,9 @@ class SnapshotStatevector(Snapshot):
             instruction as a barrier and should be set to the number of
             qubits in the circuit.
         """
+        warn('`The `SnapshotStatevector` instruction will be deprecated in the'
+             'future. It has been superseded by the `SaveStatevector`'
+             ' instructions.', PendingDeprecationWarning)
         super().__init__(label, snapshot_type='statevector', num_qubits=num_qubits)
 
 
@@ -58,6 +61,9 @@ def snapshot_statevector(self, label):
         instruction as a barrier and should be set to the number of
         qubits in the circuit.
     """
+    warn('`The `save_statevector` circuit method will be deprecated in the'
+         ' future. It has been superseded by the `save_statevector`'
+         ' circuit method.', PendingDeprecationWarning)
     # Statevector snapshot acts as a barrier across all qubits in the
     # circuit
     snapshot_register = Snapshot.define_snapshot_register(self)

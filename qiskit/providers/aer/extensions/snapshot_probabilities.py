@@ -33,6 +33,10 @@ class SnapshotProbabilities(Snapshot):
         Raises:
             ExtensionError: if snapshot is invalid.
         """
+        warn('The `SnapshotProbabilities` instruction will be deprecated in the'
+             ' future. It has been superseded by the `SaveProbabilities` and'
+             ' `SaveProbabilitiesDict` instructions.',
+             PendingDeprecationWarning)
         if variance:
             warn('The snapshot `variance` kwarg has been deprecated and will be removed'
                  ' in qiskit-aer 0.8.', DeprecationWarning)
@@ -55,6 +59,10 @@ def snapshot_probabilities(self, label, qubits, variance=False):
     Raises:
         ExtensionError: if snapshot is invalid.
     """
+    warn('The `snapshot_probabilities` circuit method will be deprecated '
+         ' in the future. It has been superseded by the `save_probabilities`'
+         ' and `save_probabilities_dict` circuit methods.',
+         PendingDeprecationWarning)
     snapshot_register = Snapshot.define_snapshot_register(self, qubits=qubits)
 
     return self.append(

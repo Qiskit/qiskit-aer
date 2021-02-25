@@ -14,6 +14,7 @@
 Simulator command to snapshot internal simulator representation.
 """
 
+from warnings import warn
 from qiskit import QuantumCircuit
 from .snapshot import Snapshot
 
@@ -37,6 +38,9 @@ class SnapshotStabilizer(Snapshot):
             instruction as a barrier and should be set to the number of
             qubits in the circuit.
         """
+        warn('The `SnapshotStabilizer` instruction will be deprecated in the'
+             ' future. It has been superseded by the `save_stabilizer`'
+             ' instructions.', PendingDeprecationWarning)
         super().__init__(label, snapshot_type='stabilizer', num_qubits=num_qubits)
 
 
@@ -58,7 +62,9 @@ def snapshot_stabilizer(self, label):
         instruction as a barrier and should be set to the number of
         qubits in the circuit.
     """
-
+    warn('`The `save_stabilizer` circuit method will be deprecated in the'
+         ' future. It has been superseded by the `save_stabilizer`'
+         ' circuit method.', PendingDeprecationWarning)
     snapshot_register = Snapshot.define_snapshot_register(self)
 
     return self.append(
