@@ -31,6 +31,12 @@ class SnapshotDensityMatrix(Snapshot):
 
         Raises:
             ExtensionError: if snapshot is invalid.
+
+        .. note::
+
+            This instruction will be deprecated after the qiskit-aer 0.8 release.
+            It has been superseded by the
+            :class:`qiskit.providers.aer.library.SaveDensityMatrix` instruction.
         """
         warn('`The `SnapshotDensityMatrix` instruction will be deprecated in the'
              'future. It has been superseded by the `SaveDensityMatrix`'
@@ -53,6 +59,13 @@ def snapshot_density_matrix(self, label, qubits=None):
 
     Raises:
         ExtensionError: if snapshot is invalid.
+
+    .. note::
+
+        This method will be deprecated after the qiskit-aer 0.8 release.
+        It has been superseded by the
+        :func:`qiskit.providers.aer.library.save_density_matrix`
+        circuit method.
     """
     warn('`The `save_density_matrix` circuit method will be deprecated in the'
          ' future. It has been superseded by the `save_density_matrix`'

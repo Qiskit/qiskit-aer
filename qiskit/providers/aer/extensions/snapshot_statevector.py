@@ -36,6 +36,12 @@ class SnapshotStatevector(Snapshot):
             The number of qubits parameter specifies the size of the
             instruction as a barrier and should be set to the number of
             qubits in the circuit.
+
+        .. note::
+
+            This instruction will be deprecated after the qiskit-aer 0.8 release.
+            It has been superseded by the
+            :class:`qiskit.providers.aer.library.SaveStatevector` instruction.
         """
         warn('`The `SnapshotStatevector` instruction will be deprecated in the'
              'future. It has been superseded by the `SaveStatevector`'
@@ -60,6 +66,13 @@ def snapshot_statevector(self, label):
         The number of qubits parameter specifies the size of the
         instruction as a barrier and should be set to the number of
         qubits in the circuit.
+
+    .. note::
+
+        This method will be deprecated after the qiskit-aer 0.8 release.
+        It has been superseded by the
+        :func:`qiskit.providers.aer.library.save_statevector` circuit
+        method.
     """
     warn('`The `save_statevector` circuit method will be deprecated in the'
          ' future. It has been superseded by the `save_statevector`'
