@@ -14,14 +14,17 @@ QuantumError class tests
 """
 
 import unittest
-from test.terra import common
-import numpy as np
 
+import numpy as np
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import *
+from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info.operators import SuperOp, Kraus
+
 from qiskit.providers.aer.noise import QuantumError
-from qiskit.providers.aer.noise.noiseerror import NoiseError
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
+from qiskit.providers.aer.noise.noiseerror import NoiseError
+from test.terra import common
 
 
 class TestQuantumError(common.QiskitAerTestCase):
@@ -64,20 +67,86 @@ class TestQuantumError(common.QiskitAerTestCase):
         a_1 = np.sqrt(0.5) * np.diag([1, 1, -1])
         self.assertRaises(NoiseError, lambda: QuantumError(Kraus([a_0, a_1])))
 
-    # TODO: Add more tests for new interfaces
-    # def test_ideal(self):
-    #
-    # def test_to_quantum_channel(self):
-    #
-    # def test_compose(self):
-    #
-    # def test_compose_with_different_type_of_operator(self):
-    #
-    # def test_tensor(self):
-    #
-    # def test_tensor_with_different_type_of_operator(self):
-    #
-    # def test_expand(self):
+    def test_ideal(self):
+        """Test ideal gates are identified correctly."""
+        self.assertTrue(QuantumError(IGate()).ideal())
+        self.assertTrue(QuantumError(UnitaryGate(np.eye(2))).ideal())
+
+        # up to global phase
+        qc = QuantumCircuit(1, global_phase=0.5)
+        qc.i(0)
+        self.assertTrue(QuantumError(qc).ideal())
+        self.assertTrue(QuantumError(UnitaryGate(-1.0 * np.eye(2))).ideal())
+
+        # cannot identify multiple circuits case
+        self.assertFalse(QuantumError([(IGate(), 0.7), (IGate(), 0.3)]).ideal())
+
+    def test_to_quantum_channel(self):
+        """Test conversion into quantum channel."""
+        meas_kraus = Kraus([np.diag([1, 0]),
+                            np.diag([0, 1])])
+        actual = QuantumError(meas_kraus).to_quantumchannel()
+        expected = SuperOp(np.diag([1, 0, 0, 1]))
+        self.assertEqual(actual, expected)
+
+    def test_compose(self):
+        """Test compose two quantum errors."""
+        noise_x = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)])
+        noise_y = QuantumError([((IGate(), [0]), 0.8), ((YGate(), [0]), 0.2)])
+        actual = noise_x.compose(noise_y)
+        expected = QuantumError([([(IGate(), [0]), (IGate(), [0])], 0.9 * 0.8),
+                                 ([(IGate(), [0]), (YGate(), [0])], 0.9 * 0.2),
+                                 ([(XGate(), [0]), (IGate(), [0])], 0.1 * 0.8),
+                                 ([(XGate(), [0]), (YGate(), [0])], 0.1 * 0.2)])
+        self.assertEqual(actual, expected)
+
+    def test_dot(self):
+        """Test dot two quantum errors."""
+        noise_x = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)])
+        noise_y = QuantumError([((IGate(), [0]), 0.8), ((YGate(), [0]), 0.2)])
+        actual = noise_y.dot(noise_x)  # reversed order of compose
+        expected = QuantumError([([(IGate(), [0]), (IGate(), [0])], 0.9 * 0.8),
+                                 ([(IGate(), [0]), (YGate(), [0])], 0.9 * 0.2),
+                                 ([(XGate(), [0]), (IGate(), [0])], 0.1 * 0.8),
+                                 ([(XGate(), [0]), (YGate(), [0])], 0.1 * 0.2)])
+        self.assertEqual(actual, expected)
+
+    def test_raise_if_compose_one_with_different_num_qubits(self):
+        """Test error is raised if compose errors with different number of qubits."""
+        noise_1q = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)])
+        noise_2q = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [1]), 0.1)])
+        with self.assertRaises(NoiseError):
+            noise_1q.compose(noise_2q)
+
+    def test_compose_with_different_type_of_operator(self):
+        # TODO: fix spec
+        pass
+
+    def test_tensor(self):
+        """Test tensor two quantum errors."""
+        noise_x = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)])
+        noise_y = QuantumError([((IGate(), [0]), 0.8), ((YGate(), [0]), 0.2)])
+        actual = noise_x.tensor(noise_y)
+        expected = QuantumError([([(IGate(), [1]), (IGate(), [0])], 0.9 * 0.8),
+                                 ([(IGate(), [1]), (YGate(), [0])], 0.9 * 0.2),
+                                 ([(XGate(), [1]), (IGate(), [0])], 0.1 * 0.8),
+                                 ([(XGate(), [1]), (YGate(), [0])], 0.1 * 0.2)])
+        self.assertEqual(actual, expected)
+
+    def test_expand(self):
+        """Test tensor two quantum errors."""
+        noise_x = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)])
+        noise_y = QuantumError([((IGate(), [0]), 0.8), ((YGate(), [0]), 0.2)])
+        actual = noise_y.expand(noise_x)  # reversed order of expand
+        expected = QuantumError([([(IGate(), [1]), (IGate(), [0])], 0.9 * 0.8),
+                                 ([(IGate(), [1]), (YGate(), [0])], 0.9 * 0.2),
+                                 ([(XGate(), [1]), (IGate(), [0])], 0.1 * 0.8),
+                                 ([(XGate(), [1]), (YGate(), [0])], 0.1 * 0.2)])
+        self.assertEqual(actual, expected)
+
+    def test_tensor_with_different_type_of_operator(self):
+        # TODO: fix spec
+        pass
 
     # ================== Tests for old interfaces ================== #
     # TODO: remove after deprecation period
