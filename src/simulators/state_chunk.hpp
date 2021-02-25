@@ -445,9 +445,6 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits)
   uint_t nchunks;
   int max_bits = num_qubits;
 
-//  if(num_qubits_ == num_qubits && block_bits != 0 && block_bits_ == block_bits)
-//    return;
-
   num_qubits_ = num_qubits;
   block_bits_ = block_bits;
 
