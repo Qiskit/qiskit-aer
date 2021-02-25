@@ -157,8 +157,14 @@ protected:
   // Apply a vectorized matrix to given qubits (identity on all other qubits)
   void apply_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & vmat);
 
+  //apply diagonal matrix
+  void apply_diagonal_unitary_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & diag);
+
   // Apply a Kraus error operation
   void apply_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &kraus);
+
+  // Apply an N-qubit Pauli gate
+  void apply_pauli(const reg_t &qubits, const std::string &pauli);
 
   //-----------------------------------------------------------------------
   // Save data instructions
@@ -529,7 +535,7 @@ void State<densmat_t>::apply_op(const int_t iChunk,const Operations::Op &op,
         apply_matrix(iChunk,op.qubits, op.mats[0]);
         break;
       case Operations::OpType::diagonal_matrix:
-        BaseState::qregs_[iChunk].apply_diagonal_matrix(op.qubits, op.params);
+        apply_diagonal_unitary_matrix(iChunk,op.qubits, op.params);
         break;
       case Operations::OpType::superop:
         BaseState::qregs_[iChunk].apply_superop_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
@@ -969,7 +975,7 @@ void State<densmat_t>::apply_gate(const uint_t iChunk, const Operations::Op &op)
       BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::ry(op.params[0]));
       break;
     case DensityMatrix::Gates::rz:
-      BaseState::qregs_[iChunk].apply_diagonal_unitary_matrix(op.qubits, Linalg::VMatrix::rz_diag(op.params[0]));
+      apply_diagonal_unitary_matrix(iChunk,op.qubits, Linalg::VMatrix::rz_diag(op.params[0]));
       break;
     case DensityMatrix::Gates::rxx:
       BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::rxx(op.params[0]));
@@ -978,7 +984,7 @@ void State<densmat_t>::apply_gate(const uint_t iChunk, const Operations::Op &op)
       BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::ryy(op.params[0]));
       break;
     case DensityMatrix::Gates::rzz:
-      BaseState::qregs_[iChunk].apply_diagonal_unitary_matrix(op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
+      apply_diagonal_unitary_matrix(iChunk,op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
       break;
     case DensityMatrix::Gates::rzx:
       BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
@@ -994,7 +1000,7 @@ void State<densmat_t>::apply_gate(const uint_t iChunk, const Operations::Op &op)
 template <class densmat_t>
 void State<densmat_t>::apply_matrix(const int_t iChunk, const reg_t &qubits, const cmatrix_t &mat) {
   if (mat.GetRows() == 1) {
-    BaseState::qregs_[iChunk].apply_diagonal_unitary_matrix(qubits, Utils::vectorize_matrix(mat));
+    apply_diagonal_unitary_matrix(iChunk,qubits, Utils::vectorize_matrix(mat));
   } else {
     BaseState::qregs_[iChunk].apply_unitary_matrix(qubits, Utils::vectorize_matrix(mat));
   }
@@ -1005,7 +1011,36 @@ void State<densmat_t>::apply_gate_u3(const int_t iChunk, uint_t qubit, double th
   BaseState::qregs_[iChunk].apply_unitary_matrix(reg_t({qubit}), Linalg::VMatrix::u3(theta, phi, lambda));
 }
 
+template <class densmat_t>
+void State<densmat_t>::apply_pauli(const reg_t &qubits,
+                                   const std::string &pauli) 
+{
+  int_t i;
+  // Pauli as a superoperator is (-1)^num_y P\otimes P
+  complex_t coeff = (std::count(pauli.begin(), pauli.end(), 'Y') % 2) ? -1 : 1;
 
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
+  for(i=0;i<BaseState::num_local_chunks_;i++){
+    BaseState::qregs_[i].apply_pauli(
+        BaseState::qregs_[i].superop_qubits(qubits), pauli + pauli, coeff);
+  }
+}
+
+template <class densmat_t>
+void State<densmat_t>::apply_diagonal_unitary_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & diag)
+{
+  if(BaseState::gpu_optimization_){
+    //GPU computes all chunks in one kernel, so pass qubits and diagonal matrix as is
+    BaseState::qregs_[iChunk].apply_diagonal_unitary_matrix(qubits,diag);
+  }
+  else{
+    reg_t qubits_in = qubits;
+    cvector_t diag_in = diag;
+
+    BaseState::block_diagonal_matrix(iChunk,qubits_in,diag_in);
+    BaseState::qregs_[iChunk].apply_diagonal_unitary_matrix(qubits_in,diag_in);
+  }
+}
 
 //=========================================================================
 // Implementation: Reset and Measurement Sampling
@@ -1228,7 +1263,7 @@ void State<densmat_t>::measure_reset_update(const reg_t &qubits,
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
     for(i=0;i<BaseState::num_local_chunks_;i++){
-      BaseState::qregs_[i].apply_diagonal_unitary_matrix(qubits, mdiag);
+      apply_diagonal_unitary_matrix(i,qubits, mdiag);
     }
 
     // If it doesn't agree with the reset state update
@@ -1248,7 +1283,7 @@ void State<densmat_t>::measure_reset_update(const reg_t &qubits,
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
     for(i=0;i<BaseState::num_local_chunks_;i++){
-      BaseState::qregs_[i].apply_diagonal_unitary_matrix(qubits, mdiag);
+      apply_diagonal_unitary_matrix(i,qubits, mdiag);
     }
 
     // If it doesn't agree with the reset state update
