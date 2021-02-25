@@ -142,7 +142,7 @@ class QasmSimulator(AerBackend):
       to store a state vector. If a state vector needs more, an error
       is thrown. In general, a state vector of n-qubits uses 2^n complex
       values (16 Bytes). If set to 0, the maximum will be automatically
-      set to half the system memory size (Default: 0).
+      set to the system memory size (Default: 0).
 
     * ``optimize_ideal_threshold`` (int): Sets the qubit threshold for
       applying circuit optimization passes on ideal circuits.
@@ -521,7 +521,8 @@ class QasmSimulator(AerBackend):
         elif method == 'extended_stabilizer':
             config.n_qubits = 63  # TODO: estimate from memory
             config.description = 'A C++ QasmQobj ranked stabilizer simulator with noise'
-            config.custom_instructions = sorted(['roerror', 'snapshot', 'save_statevector'])
+            config.custom_instructions = sorted(['roerror', 'snapshot', 'save_statevector',
+                                                 'save_expval', 'save_expval_var'])
             config.basis_gates = sorted([
                 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'swap',
                 'u0', 'u1', 'p', 'ccx', 'ccz', 'delay'
