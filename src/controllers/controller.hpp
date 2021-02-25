@@ -302,7 +302,7 @@ void Controller::clear_parallelization() {
   parallel_nested_ = false;
 
   explicit_parallelization_ = false;
-  max_memory_mb_ = get_system_memory_mb() / 2;
+  max_memory_mb_ = get_system_memory_mb();
 }
 
 void Controller::set_parallelization_experiments(
