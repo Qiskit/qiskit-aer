@@ -56,7 +56,7 @@ setup_requirements = common_requirements + [
 if not _DISABLE_CONAN:
     setup_requirements.append('conan>=1.22.2')
 
-requirements = common_requirements + ['qiskit-terra>=0.16.0']
+requirements = common_requirements + ['qiskit-terra>=0.17.0']
 
 if not hasattr(setuptools,
                'find_namespace_packages') or not inspect.ismethod(
