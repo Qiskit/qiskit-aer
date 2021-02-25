@@ -50,7 +50,7 @@ const Operations::OpSet StateOpSet(
      OpType::superop, OpType::save_expval,
      OpType::save_expval_var, OpType::save_densmat,
      OpType::save_probs, OpType::save_probs_ket,
-     OpType::save_amps_sq
+     OpType::save_amps_sq, OpType::save_state
      },
     // Gates
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
@@ -188,6 +188,11 @@ protected:
   //-----------------------------------------------------------------------
   // Save data instructions
   //-----------------------------------------------------------------------
+
+  // Save the current full density matrix
+  void apply_save_state(const Operations::Op &op,
+                        ExperimentResult &result,
+                        bool last_op = false);
 
   // Save the current density matrix or reduced density matrix
   void apply_save_density_matrix(const Operations::Op &op,
@@ -489,6 +494,9 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
         case OpType::save_expval_var:
           BaseState::apply_save_expval(op, result);
           break;
+        case OpType::save_state:
+          apply_save_state(op, result, final_ops && ops.size() == i + 1);
+          break;
         case OpType::save_densmat:
           apply_save_density_matrix(op, result, final_ops && ops.size() == i + 1);
           break;
@@ -557,6 +565,28 @@ void State<densmat_t>::apply_save_density_matrix(const Operations::Op &op,
                                reduced_density_matrix(op.qubits, last_op),
                                op.save_type);
 }
+
+template <class densmat_t>
+void State<densmat_t>::apply_save_state(const Operations::Op &op,
+                                        ExperimentResult &result,
+                                        bool last_op) {
+  if (op.qubits.size() != BaseState::qreg_.num_qubits()) {
+    throw std::invalid_argument(
+        op.name + " was not applied to all qubits."
+        " Only the full state can be saved.");
+  }
+  std::string key = (op.string_params[0] == "_method_") ? "density_matrix" : op.string_params[0];
+  if (last_op) {
+    BaseState::save_data_pershot(result, key,
+                                 BaseState::qreg_.move_to_matrix(),
+                                 op.save_type);
+  } else {
+    BaseState::save_data_pershot(result, key,
+                                 BaseState::qreg_.copy_to_matrix(),
+                                 op.save_type);
+  }
+}
+
 
 template <class densmat_t>
 cmatrix_t State<densmat_t>::reduced_density_matrix(const reg_t& qubits, bool last_op) {
