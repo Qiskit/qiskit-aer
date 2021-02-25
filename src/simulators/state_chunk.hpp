@@ -574,7 +574,7 @@ template <class state_t>
 void StateChunk<state_t>::block_diagonal_matrix(const int_t iChunk, reg_t &qubits, cvector_t &diag)
 {
   uint_t gid = global_chunk_index_ + iChunk;
-  uint_t i,j;
+  uint_t i;
   uint_t mask_out = 0;
   uint_t mask_id = 0;
 
