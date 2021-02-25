@@ -21,17 +21,17 @@ from .save_data import SaveSingleData, SaveAverageData, default_qubits
 class SaveAmplitudes(SaveSingleData):
     """Save complex statevector amplitudes."""
     def __init__(self,
-                 key,
                  num_qubits,
                  params,
+                 label="amplitudes",
                  pershot=False,
                  conditional=False):
         """Instruction to save complex statevector amplitudes.
 
         Args:
-            key (str): the key for retrieving saved data from results.
             num_qubits (int): the number of qubits for the snapshot type.
             params (list): list of entries to vale.
+            label (str): the key for retrieving saved data from results.
             pershot (bool): if True save a list of amplitudes vectors for each
                             shot of the simulation rather than the a single
                             amplitude vector [Default: False].
@@ -42,10 +42,10 @@ class SaveAmplitudes(SaveSingleData):
         Raises:
             ExtensionError: if params is invalid for the specified number of qubits.
         """
+        if label is None:
+            label = "amplitudes"
         params = _format_amplitude_params(params, num_qubits)
-        super().__init__("save_amplitudes",
-                         key,
-                         num_qubits,
+        super().__init__("save_amplitudes", num_qubits, label,
                          pershot=pershot,
                          conditional=conditional,
                          params=params)
@@ -54,18 +54,18 @@ class SaveAmplitudes(SaveSingleData):
 class SaveAmplitudesSquared(SaveAverageData):
     """Save squared statevector amplitudes (probabilities)."""
     def __init__(self,
-                 key,
                  num_qubits,
                  params,
+                 label="amplitudes_squared",
                  unnormalized=False,
                  pershot=False,
                  conditional=False):
         """Instruction to save squared statevector amplitudes (probabilities).
 
         Args:
-            key (str): the key for retrieving saved data from results.
             num_qubits (int): the number of qubits for the snapshot type.
             params (list): list of entries to vale.
+            label (str): the key for retrieving saved data from results.
             unnormalized (bool): If True return save the unnormalized accumulated
                                  probabilities over all shots [Default: False].
             pershot (bool): if True save a list of probability vectors for each
@@ -80,20 +80,20 @@ class SaveAmplitudesSquared(SaveAverageData):
         """
         params = _format_amplitude_params(params, num_qubits)
         super().__init__("save_amplitudes_sq",
-                         key,
                          num_qubits,
+                         label,
                          unnormalized=unnormalized,
                          pershot=pershot,
                          conditional=conditional,
                          params=params)
 
 
-def save_amplitudes(self, key, params, pershot=False, conditional=False):
+def save_amplitudes(self, params, label="amplitudes", pershot=False, conditional=False):
     """Save complex statevector amplitudes.
 
     Args:
-        key (str): the key for retrieving saved data from results.
         params (List[int] or List[str]): the basis states to return amplitudes for.
+        label (str): the key for retrieving saved data from results.
         pershot (bool): if True save a list of amplitudes vectors for each
                         shot of the simulation rather than the a single
                         amplitude vector [Default: False].
@@ -108,20 +108,20 @@ def save_amplitudes(self, key, params, pershot=False, conditional=False):
         ExtensionError: if params is invalid for the specified number of qubits.
     """
     qubits = default_qubits(self)
-    instr = SaveAmplitudes(key, len(qubits), params,
+    instr = SaveAmplitudes(len(qubits), params, label=label,
                            pershot=pershot, conditional=conditional)
     return self.append(instr, qubits)
 
 
-def save_amplitudes_squared(self, key, params,
+def save_amplitudes_squared(self, params, label="amplitudes_squared",
                             unnormalized=False,
                             pershot=False,
                             conditional=False):
     """Save squared statevector amplitudes (probabilities).
 
     Args:
-        key (str): the key for retrieving saved data from results.
         params (List[int] or List[str]): the basis states to return amplitudes for.
+        label (str): the key for retrieving saved data from results.
         unnormalized (bool): If True return save the unnormalized accumulated
                              probabilities over all shots [Default: False].
         pershot (bool): if True save a list of probability vectors for each
@@ -138,7 +138,7 @@ def save_amplitudes_squared(self, key, params,
         ExtensionError: if params is invalid for the specified number of qubits.
     """
     qubits = default_qubits(self)
-    instr = SaveAmplitudesSquared(key, len(qubits), params,
+    instr = SaveAmplitudesSquared(len(qubits), params, label=label,
                                   unnormalized=unnormalized,
                                   pershot=pershot,
                                   conditional=conditional)

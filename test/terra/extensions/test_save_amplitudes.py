@@ -23,42 +23,42 @@ class TestSaveAmplitudes(QiskitAerTestCase):
 
     def test_invalid_key_raises(self):
         """Test save instruction key is str"""
-        self.assertRaises(ExtensionError, lambda: SaveAmplitudes(1, 1, [0]))
+        self.assertRaises(ExtensionError, lambda: SaveAmplitudes(1, [0], 1))
 
     def test_invalid_state_raises(self):
         """Test non-Hermitian op raises exception."""
-        self.assertRaises(ExtensionError, lambda: SaveAmplitudes('key', 2, [4]))
+        self.assertRaises(ExtensionError, lambda: SaveAmplitudes(2, [4], 'key'))
 
     def test_default_kwarg(self):
         """Test default kwargs"""
         key = 'test_key'
-        instr = SaveAmplitudes(key, 2, [0])
+        instr = SaveAmplitudes(2, [0], key)
         self.assertEqual(instr.name, 'save_amplitudes')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'single')
 
     def test_cond_kwarg(self):
         """Test conditional kwarg"""
         key = 'test_key'
-        instr = SaveAmplitudes(key, 2, [0], conditional=True)
+        instr = SaveAmplitudes(2, [0], key, conditional=True)
         self.assertEqual(instr.name, 'save_amplitudes')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'c_single')
 
     def test_pershot_kwarg(self):
         """Test pershot kwarg"""
         key = 'test_key'
-        instr = SaveAmplitudes(key, 2, [0], pershot=True)
+        instr = SaveAmplitudes(2, [0], key, pershot=True)
         self.assertEqual(instr.name, 'save_amplitudes')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'list')
 
     def test_pershot_cond_kwarg(self):
         """Test pershot, conditonal kwargs"""
         key = 'test_key'
-        instr = SaveAmplitudes(key, 2, [0], conditional=True, pershot=True)
+        instr = SaveAmplitudes(2, [0], key, conditional=True, pershot=True)
         self.assertEqual(instr.name, 'save_amplitudes')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'c_list')
 
 

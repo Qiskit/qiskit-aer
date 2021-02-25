@@ -45,8 +45,8 @@ class QasmSaveDensityMatrixTests:
         target = qi.DensityMatrix(circ)
 
         # Add save to circuit
-        save_key = 'state'
-        circ.save_density_matrix(save_key)
+        label = 'state'
+        circ.save_density_matrix(label=label)
 
         # Run
         opts = self.BACKEND_OPTS.copy()
@@ -58,8 +58,8 @@ class QasmSaveDensityMatrixTests:
         else:
             self.assertTrue(result.success)
             data = result.data(0)
-            self.assertIn(save_key, data)
-            value = qi.DensityMatrix(result.data(0)[save_key])
+            self.assertIn(label, data)
+            value = qi.DensityMatrix(result.data(0)[label])
             self.assertAlmostEqual(value, target)
 
     def test_save_density_matrix_conditional(self):
@@ -72,13 +72,13 @@ class QasmSaveDensityMatrixTests:
         ]
 
         # Stabilizer test circuit
-        save_key = 'state'
+        label = 'state'
         circ = QuantumCircuit(2)
         circ.h(0)
         circ.sdg(0)
         circ.cx(0, 1)
         circ.measure_all()
-        circ.save_density_matrix(save_key, conditional=True)
+        circ.save_density_matrix(label=label, conditional=True)
 
         # Target statevector
         target = {'0x0': qi.DensityMatrix(np.diag([1, 0, 0, 0])),
@@ -94,8 +94,8 @@ class QasmSaveDensityMatrixTests:
         else:
             self.assertTrue(result.success)
             data = result.data(0)
-            self.assertIn(save_key, data)
-            for key, state in data[save_key].items():
+            self.assertIn(label, data)
+            for key, state in data[label].items():
                 self.assertIn(key, target)
                 self.assertAlmostEqual(qi.DensityMatrix(state), target[key])
 
@@ -119,8 +119,8 @@ class QasmSaveDensityMatrixTests:
         target = qi.DensityMatrix(circ)
 
         # Add save
-        save_key = 'state'
-        circ.save_density_matrix(save_key, pershot=True)
+        label = 'state'
+        circ.save_density_matrix(label=label, pershot=True)
 
         # Run
         shots = 10
@@ -133,8 +133,8 @@ class QasmSaveDensityMatrixTests:
         else:
             self.assertTrue(result.success)
             data = result.data(0)
-            self.assertIn(save_key, data)
-            value = result.data(0)[save_key]
+            self.assertIn(label, data)
+            value = result.data(0)[label]
             for state in value:
                 self.assertAlmostEqual(qi.DensityMatrix(state), target)
 
@@ -158,8 +158,8 @@ class QasmSaveDensityMatrixTests:
         target = qi.DensityMatrix(circ)
 
         # Add save
-        save_key = 'state'
-        circ.save_density_matrix(save_key, pershot=True, conditional=True)
+        label = 'state'
+        circ.save_density_matrix(label=label, pershot=True, conditional=True)
         circ.measure_all()
 
         # Run
@@ -173,8 +173,8 @@ class QasmSaveDensityMatrixTests:
         else:
             self.assertTrue(result.success)
             data = result.data(0)
-            self.assertIn(save_key, data)
-            value = result.data(0)[save_key]
+            self.assertIn(label, data)
+            value = result.data(0)[label]
             self.assertIn('0x0', value)
             for state in value['0x0']:
                 self.assertAlmostEqual(qi.DensityMatrix(state), target)

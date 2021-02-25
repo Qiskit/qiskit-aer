@@ -49,10 +49,10 @@ class QasmSaveProbabilitiesTests:
         target = state.probabilities(qubits)
 
         # Snapshot circuit
-        key = 'probs'
+        label = 'probs'
         opts = self.BACKEND_OPTS.copy()
         circ = transpile(circ, self.SIMULATOR)
-        circ.save_probabilities(key, qubits)
+        circ.save_probabilities(qubits, label)
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
         method = opts.get('method', 'automatic')
@@ -60,7 +60,7 @@ class QasmSaveProbabilitiesTests:
             self.assertFalse(result.success)
         else:
             self.assertTrue(result.success)
-            value = result.data(0)[key]
+            value = result.data(0)[label]
             self.assertTrue(np.allclose(value, target))
 
     @data([0, 1], [1, 0], [0], [1])
@@ -83,10 +83,10 @@ class QasmSaveProbabilitiesTests:
         target = state.probabilities_dict(qubits)
 
         # Snapshot circuit
-        key = 'probs'
+        label = 'probs'
         opts = self.BACKEND_OPTS.copy()
         circ = transpile(circ, self.SIMULATOR)
-        circ.save_probabilities_dict(key, qubits)
+        circ.save_probabilities_dict(qubits, label)
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
         method = opts.get('method', 'automatic')
@@ -94,5 +94,5 @@ class QasmSaveProbabilitiesTests:
             self.assertFalse(result.success)
         else:
             self.assertTrue(result.success)
-            value = Counts(result.data(0)[key], memory_slots=len(qubits))
+            value = Counts(result.data(0)[label], memory_slots=len(qubits))
             self.assertDictAlmostEqual(value, target)

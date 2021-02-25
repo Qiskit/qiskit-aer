@@ -40,8 +40,8 @@ class QasmSaveStabilizerTests:
         target = qi.Clifford(circ)
 
         # Add save to circuit
-        save_key = 'state'
-        circ.save_stabilizer(save_key)
+        label = 'state'
+        circ.save_stabilizer(label)
 
         # Run
         opts = self.BACKEND_OPTS.copy()
@@ -53,6 +53,6 @@ class QasmSaveStabilizerTests:
         else:
             self.assertTrue(result.success)
             data = result.data(0)
-            self.assertIn(save_key, data)
-            value = qi.Clifford.from_dict(result.data(0)[save_key])
+            self.assertIn(label, data)
+            value = qi.Clifford.from_dict(result.data(0)[label])
             self.assertEqual(value, target)
