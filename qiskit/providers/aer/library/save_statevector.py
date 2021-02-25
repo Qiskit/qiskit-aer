@@ -77,7 +77,6 @@ def save_statevector(self, label="statevector", pershot=False, conditional=False
     """Save the current simulator quantum state as a statevector.
 
     Args:
-        key (str): the key for retrieving saved data from results.
         pershot (bool): if True save a list of statevectors for each
                         shot of the simulation [Default: False].
         label (str): the key for retrieving saved data from results.

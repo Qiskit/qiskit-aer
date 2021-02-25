@@ -23,8 +23,8 @@ class SaveUnitary(SaveSingleData):
         """Create new instruction to save the unitary simulator state.
 
         Args:
-            key (str): the key for retrieving saved data from results.
             num_qubits (int): the number of qubits of the
+            label (str): the key for retrieving saved data from results.
             pershot (bool): if True save a list of unitaries for each
                             shot of the simulation rather than a single
                             statevector [Default: False].
