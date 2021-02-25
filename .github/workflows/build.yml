@@ -79,7 +79,7 @@ jobs:
           CIBW_BEFORE_ALL_LINUX: "yum install -y openblas-devel"
           CIBW_SKIP: "cp27-* cp34-* cp35-* pp*"
           CIBW_TEST_COMMAND: "python {project}/tools/verify_wheels.py"
-          CIBW_TEST_REQUIRES: "git+https://github.com/Qiskit/qiskit-terra.git"
+          CIBW_BEFORE_TEST: "git+https://github.com/Qiskit/qiskit-terra.git"
           CIBW_ENVIRONMENT_WINDOWS: "CMAKE_GENERATOR='Visual Studio 16 2019'"
         run: cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v2
