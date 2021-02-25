@@ -15,7 +15,6 @@ Noise model class for Qiskit Aer simulators.
 
 import json
 import logging
-from warnings import warn
 
 from qiskit.circuit import Instruction
 from qiskit.providers import BaseBackend, Backend
