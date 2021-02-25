@@ -513,6 +513,8 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
 {
   uint_t ireg;
 
+  std::cout << " [" << iChunk << "]  TEST : " << op << std::endl;
+
   if(BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case Operations::OpType::barrier:
