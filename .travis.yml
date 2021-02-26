@@ -12,7 +12,7 @@ python: 3.7
 jobs:
   include:
     - name: Build aarch64 wheels
-      arch: arm64-graviton2
+      arch: arm64
       services:
         - docker
       install:
