@@ -339,6 +339,9 @@ protected:
   template <class data_t>
   void gather_state(std::vector<std::complex<data_t>>& state);
 
+  template <class data_t>
+  void gather_state(AER::Vector<std::complex<data_t>>& state);
+
   //apply one operator
   //implement this function instead of apply_ops in the sub classes for simulation methods
   virtual void apply_op(const int_t iChunk,const Operations::Op &op,
