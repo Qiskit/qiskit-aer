@@ -34,7 +34,8 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::snapshot, Operations::OpType::barrier,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::kraus, Operations::OpType::superop,
-     Operations::OpType::save_state},
+     Operations::OpType::save_state, Operations::OpType::set_unitary,
+     Operations::OpType::set_superop},
     // Gates
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
@@ -257,6 +258,10 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
       case Operations::OpType::superop:
         BaseState::qreg_.apply_superop_matrix(
             op.qubits, Utils::vectorize_matrix(op.mats[0]));
+        break;
+      case Operations::OpType::set_unitary:
+      case Operations::OpType::set_superop:
+        BaseState::qreg_.initialize_from_matrix(op.mats[0]);
         break;
       case Operations::OpType::snapshot:
         apply_snapshot(op, result);
