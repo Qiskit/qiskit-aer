@@ -349,14 +349,16 @@ uint_t DeviceChunkContainer<data_t>::Resize(uint_t chunks,uint_t buffers,uint_t 
 template <typename data_t>
 void DeviceChunkContainer<data_t>::Deallocate(void)
 {
-  set_device();
   data_.clear();
+  data_.shrink_to_fit();
+  matrix_.clear();
+  matrix_.shrink_to_fit();
+  params_.clear();
+  params_.shrink_to_fit();
+  reduce_buffer_.clear();
+  reduce_buffer_.shrink_to_fit();
 
   peer_access_.clear();
-  matrix_.clear();
-  params_.clear();
-  reduce_buffer_.clear();
-
   num_blocked_gates_.clear();
   num_blocked_matrix_.clear();
   num_blocked_qubits_.clear();

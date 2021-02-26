@@ -79,3 +79,19 @@ features:
     This instruction can also be appended to a quantum circuit by using the
     :class:`~qiskit.providers.aer.library.save_amplitudes_squared`` circuit
     methods which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveStabilizer`
+    circuit instruction for saving the state of the `"stabilizer"` method
+    of the :class:`~qiskit.providers.aer.QasmSimulator` as a Clifford.
+    
+    This instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_stabilizer`` circuit
+    methods which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveUnitary`
+    circuit instruction for saving the state of the
+    :class:`~qiskit.providers.aer.UnitarySimulator`.
+    
+    This instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_unitary`` circuit
+    methods which is added to ``QuantumCircuit`` when importing Aer.
