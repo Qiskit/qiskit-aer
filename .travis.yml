@@ -18,7 +18,7 @@ jobs:
       install:
         - echo ""
       env:
-        - CIBW_BEFORE_ALL_LINUX="yum-config-manager --enable epel-testing && yum install -y openblas-devel"
+        - CIBW_BEFORE_ALL_LINUX="yum install -y https://dl.fedoraproject.org/pub/epel/7/aarch64/Packages/e/epel-release-7-12.noarch.rpm && yum install -y openblas-devel"
         - CIBW_SKIP="cp27-* cp34-* cp35-* pp*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python {project}/tools/verify_wheels.py"
