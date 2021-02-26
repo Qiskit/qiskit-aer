@@ -14,28 +14,30 @@ Standard quantum computing error channels for Qiskit Aer.
 """
 
 import itertools as it
+import warnings
 
 import numpy as np
-
-from qiskit.quantum_info.operators.pauli import Pauli
+from qiskit.circuit import QuantumCircuit, Reset
+from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
+from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info.operators.channel import Choi, Kraus
-from qiskit.quantum_info.operators.predicates import is_unitary_matrix
+from qiskit.quantum_info.operators.pauli import Pauli
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
+from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
-from ..noiseerror import NoiseError
 from .errorutils import make_unitary_instruction
 from .errorutils import qubits_from_mat
-from .errorutils import standard_gate_unitary
 from .quantum_error import QuantumError
+from ..noiseerror import NoiseError
 
 
-def kraus_error(noise_ops, standard_gates=True, canonical_kraus=False):
+def kraus_error(noise_ops, standard_gates=False, canonical_kraus=False):
     """
     Return a Kraus quantum error channel.
 
     Args:
         noise_ops (list[matrix]): Kraus matrices.
-        standard_gates (bool): Check if input matrices are standard gates.
+        standard_gates (bool): DEPRECATED, Check if input matrices are standard gates.
         canonical_kraus (bool): Convert input Kraus matrices into the
                                 canonical Kraus representation (default: False)
 
@@ -49,11 +51,18 @@ def kraus_error(noise_ops, standard_gates=True, canonical_kraus=False):
         raise NoiseError("Invalid Kraus error input.")
     if not noise_ops:
         raise NoiseError("Kraus error noise_ops must not be empty.")
+
+    if standard_gates:
+        warnings.warn(
+            '"standard_gates" option has been deprecated as of qiskit-aer 0.8.0'
+            ' and will be removed no earlier than 3 months from that release date.',
+            DeprecationWarning, stacklevel=2)
+
     kraus = Kraus(noise_ops)
     if canonical_kraus:
         # Convert to Choi and back to get canonical Kraus
         kraus = Kraus(Choi(kraus))
-    return QuantumError(kraus, standard_gates=standard_gates)
+    return QuantumError(kraus)
 
 
 def mixed_unitary_error(noise_ops, standard_gates=True):
@@ -74,6 +83,11 @@ def mixed_unitary_error(noise_ops, standard_gates=True):
     Raises:
         NoiseError: if error parameters are invalid.
     """
+    warnings.warn(
+        '"mixed_unitary_error()" has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.'
+        ' Use QuantumError([(UnitaryGate(mat1), prob1), (UnitaryGate(mat2), prob2)]) instead.',
+        DeprecationWarning, stacklevel=2)
 
     # Error checking
     if not isinstance(noise_ops, (list, tuple, zip)):
@@ -119,6 +133,11 @@ def coherent_unitary_error(unitary):
     Returns:
         QuantumError: The quantum error object.
     """
+    warnings.warn(
+        '"coherent_unitary_error()" has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.'
+        ' Use QuantumError(UnitaryGate(unitary)) instead.',
+        DeprecationWarning, stacklevel=2)
     return mixed_unitary_error([(unitary, 1)])
 
 
@@ -133,7 +152,7 @@ def pauli_error(noise_ops, standard_gates=True):
 
     Args:
         noise_ops (list[pair[Pauli, double]]): Pauli error terms.
-        standard_gates (bool): if True return the operators as standard qobj
+        standard_gates (bool): DEPRECATED, if True return the operators as standard qobj
                                Pauli gate instructions. If false return as
                                unitary matrix qobj instructions.
                                (Default: True)
@@ -144,6 +163,11 @@ def pauli_error(noise_ops, standard_gates=True):
     Raises:
         NoiseError: If depolarizing probability is less than 0 or greater than 1.
     """
+    if not standard_gates:
+        warnings.warn(
+            '"standard_gates" option has been deprecated as of qiskit-aer 0.8.0'
+            ' and will be removed no earlier than 3 months from that release date.',
+            DeprecationWarning, stacklevel=2)
 
     # Error checking
     if not isinstance(noise_ops, (list, tuple, zip)):
@@ -151,122 +175,39 @@ def pauli_error(noise_ops, standard_gates=True):
     noise_ops = list(noise_ops)
     if not noise_ops:
         raise NoiseError("Input noise list is empty.")
-    num_qubits = None
-    for pauli, _ in noise_ops:
-        if isinstance(pauli, Pauli):
-            pauli_str = pauli.to_label()
-        elif isinstance(pauli, str):
-            pauli_str = pauli
-        else:
-            raise NoiseError("Invalid Pauli input operator: {}".format(pauli))
-        if num_qubits is None:
-            num_qubits = len(pauli_str)
-        elif num_qubits != len(pauli_str):
+
+    ops, probs = zip(*noise_ops)  # unzip
+
+    def to_pauli(op):
+        if isinstance(op, Pauli):
+            return op
+        elif isinstance(op, str):
+            try:
+                return Pauli(op)
+            except AttributeError:  # TODO: Change to QiskitError after fixing Pauli._from_label
+                pass
+        raise NoiseError("Invalid Pauli input operator: {}".format(op))
+
+    paulis = [to_pauli(op) for op in ops]
+
+    # TODO: should we handle Pauli -> QuantumCircuit conversion within QuantumError?
+    ops = []
+    num_qubits = paulis[0].num_qubits
+    for pauli in paulis:
+        if num_qubits != pauli.num_qubits:
             raise NoiseError("Pauli's are not all of the same length.")
 
-    # Compute Paulis as single matrix
-    if standard_gates is False:
-        return _pauli_error_unitary(noise_ops, num_qubits)
-    # Compute as qobj Pauli gate instructions
-    return _pauli_error_standard(noise_ops, num_qubits)
+        op = pauli
 
+        if num_qubits > 1:
+            op = pauli.to_instruction().definition  # circuit
 
-def _pauli_error_unitary(noise_ops, num_qubits):
-    """Return Pauli error as unitary qobj instructions."""
+        if not standard_gates:
+            op = UnitaryGate(pauli.to_matrix())
 
-    def single_pauli(pauli):
-        if pauli == 'I':
-            return standard_gate_unitary('id')
-        if pauli == 'X':
-            return standard_gate_unitary('x')
-        if pauli == 'Y':
-            return standard_gate_unitary('y')
-        if pauli == 'Z':
-            return standard_gate_unitary('z')
-        raise NoiseError("Invalid Pauli string.")
+        ops.append(op)
 
-    prob_identity = 0.0
-    pauli_circs = []
-    pauli_probs = []
-    for pauli, prob in noise_ops:
-        if prob > 0:
-            # Pauli strings go from qubit-0 on left to qubit-N on right
-            # but pauli ops are tensor product of qubit-N on left to qubit-0 on right
-            # We also drop identity operators to reduce dimension of matrix multiplication
-            mat = np.identity(1)
-            qubits = []
-            if isinstance(pauli, Pauli):
-                pauli_str = pauli.to_label()
-            else:
-                pauli_str = pauli
-            for qubit, pstr in enumerate(reversed(pauli_str)):
-                if pstr in ['X', 'Y', 'Z']:
-                    mat = np.kron(single_pauli(pstr), mat)
-                    qubits.append(qubit)
-                elif pstr != 'I':
-                    raise NoiseError("Invalid Pauli string.")
-            if mat.size == 1:
-                prob_identity += prob
-            else:
-                circ = make_unitary_instruction(
-                    mat, qubits, standard_gates=False)
-                pauli_circs.append(circ)
-                pauli_probs.append(prob)
-    if prob_identity > 0:
-        pauli_probs.append(prob_identity)
-        pauli_circs.append([{"name": "id", "qubits": [0]}])
-
-    error = QuantumError(
-        zip(pauli_circs, pauli_probs), number_of_qubits=num_qubits)
-    return error
-
-
-def _pauli_error_standard(noise_ops, num_qubits):
-    """Return Pauli error as standard Pauli gate qobj instructions."""
-
-    def single_pauli(pauli):
-        if pauli == 'I':
-            return {'name': 'id'}
-        if pauli == 'X':
-            return {'name': 'x'}
-        if pauli == 'Y':
-            return {'name': 'y'}
-        if pauli == 'Z':
-            return {'name': 'z'}
-        raise NoiseError("Invalid Pauli string.")
-
-    prob_identity = 0.0
-    pauli_circuits = []
-    pauli_probs = []
-    for pauli, prob in noise_ops:
-        if prob > 0:
-            # Pauli strings go from qubit-0 on left to qubit-N on right
-            # but pauli ops are tensor product of qubit-N on left to qubit-0 on right
-            # We also drop identity operators to reduce dimension of matrix multiplication
-            circuit = []
-            if isinstance(pauli, Pauli):
-                pauli_str = pauli.to_label()
-            else:
-                pauli_str = pauli
-            for qubit, pstr in enumerate(reversed(pauli_str)):
-                if pstr in ['X', 'Y', 'Z']:
-                    instruction = single_pauli(pstr)
-                    instruction["qubits"] = [qubit]
-                    circuit.append(instruction)
-                elif pstr != 'I':
-                    raise NoiseError("Invalid Pauli string.")
-            if circuit == []:
-                prob_identity += prob
-            else:
-                pauli_circuits.append(circuit)
-                pauli_probs.append(prob)
-    if prob_identity > 0:
-        pauli_circuits.append([{"name": "id", "qubits": [0]}])
-        pauli_probs.append(prob_identity)
-
-    error = QuantumError(
-        zip(pauli_circuits, pauli_probs), number_of_qubits=num_qubits)
-    return error
+    return QuantumError(zip(ops, probs))
 
 
 def depolarizing_error(param, num_qubits, standard_gates=True):
@@ -294,9 +235,8 @@ def depolarizing_error(param, num_qubits, standard_gates=True):
     Args:
         param (double): depolarizing error parameter.
         num_qubits (int): the number of qubits for the error channel.
-        standard_gates (bool): if True return the operators as standard qobj
-                               Pauli gate instructions. If false return as
-                               unitary matrix qobj instructions.
+        standard_gates (bool): DEPRECATED, if True return the operators as
+                               Pauli gates. If false return as unitary gates.
                                (Default: True)
 
     Returns:
@@ -305,10 +245,16 @@ def depolarizing_error(param, num_qubits, standard_gates=True):
     Raises:
         NoiseError: If noise parameters are invalid.
     """
+    if not standard_gates:
+        warnings.warn(
+            '"standard_gates" option has been deprecated as of qiskit-aer 0.8.0'
+            ' and will be removed no earlier than 3 months from that release date.',
+            DeprecationWarning, stacklevel=2)
+
     if not isinstance(num_qubits, int) or num_qubits < 1:
         raise NoiseError("num_qubits must be a positive integer.")
     # Check that the depolarizing parameter gives a valid CPTP
-    num_terms = 4**num_qubits
+    num_terms = 4 ** num_qubits
     max_param = num_terms / (num_terms - 1)
     if param < 0 or param > max_param:
         raise NoiseError("Depolarizing parameter must be in between 0 "
@@ -321,11 +267,17 @@ def depolarizing_error(param, num_qubits, standard_gates=True):
     probs = [prob_iden] + (num_terms - 1) * [prob_pauli]
     # Generate pauli strings. The order doesn't matter as long
     # as the all identity string is first.
-    paulis = [
-        "".join(tup)
-        for tup in it.product(['I', 'X', 'Y', 'Z'], repeat=num_qubits)
-    ]
-    return pauli_error(zip(paulis, probs), standard_gates=standard_gates)
+    # TODO: should we handle Pauli -> QuantumCircuit conversion within QuantumError?
+    circs = []
+    for pauli_list in it.product([IGate(), XGate(), YGate(), ZGate()], repeat=num_qubits):
+        qc = QuantumCircuit(num_qubits)
+        for q, pauli in enumerate(pauli_list):
+            if not standard_gates:
+                pauli = UnitaryGate(pauli.to_matrix())
+            qc.append(pauli, qargs=[q])
+        circs.append(qc)
+
+    return QuantumError(zip(circs, probs))
 
 
 def reset_error(prob0, prob1=0):
@@ -355,21 +307,9 @@ def reset_error(prob0, prob1=0):
     if prob0 < 0 or prob1 < 0 or prob0 > 1 or prob1 > 1:
         raise NoiseError("Invalid reset probabilities.")
     noise_ops = [
-        ([{
-            'name': 'id',
-            'qubits': [0]
-        }], 1 - prob0 - prob1),
-        ([{
-            'name': 'reset',
-            'qubits': [0]
-        }], prob0),
-        ([{
-            'name': 'reset',
-            'qubits': [0]
-        }, {
-            'name': 'x',
-            'qubits': [0]
-        }], prob1),
+        ([(IGate(), [0])], 1 - prob0 - prob1),
+        ([(Reset(), [0])], prob0),
+        ([(Reset(), [0]), (XGate(), [0])], prob1)
     ]
     return QuantumError(noise_ops)
 
@@ -447,22 +387,12 @@ def thermal_relaxation_error(t1, t2, time, excited_state_population=0):
     else:
         # If T_2 < T_1 we can express this channel as a probabilistic
         # mixture of reset operations and unitary errors:
-        circuits = [[{
-            'name': 'id',
-            'qubits': [0]
-        }], [{
-            'name': 'z',
-            'qubits': [0]
-        }], [{
-            'name': 'reset',
-            'qubits': [0]
-        }], [{
-            'name': 'reset',
-            'qubits': [0]
-        }, {
-            'name': 'x',
-            'qubits': [0]
-        }]]
+        circuits = [
+            [(IGate(), [0])],
+            [(ZGate(), [0])],
+            [(Reset(), [0])],
+            [(Reset(), [0]), (XGate(), [0])]
+        ]
         # Probability
         p_reset0 = p_reset * p0
         p_reset1 = p_reset * p1
