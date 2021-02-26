@@ -348,6 +348,8 @@ protected:
                          ExperimentResult &result,
                          RngEngine &rng,
                          bool final_ops = false)  = 0;
+  // block diagonal matrix in chunk
+  void block_diagonal_matrix(const int_t iChunk, reg_t &qubits, cvector_t &diag);
 
   // block diagonal matrix in chunk
   void block_diagonal_matrix(const int_t iChunk, reg_t &qubits, cvector_t &diag);
