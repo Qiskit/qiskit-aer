@@ -52,7 +52,7 @@ class QasmSaveExpectationValueTests:
         method = opts.get('method', 'automatic')
         circ = transpile(state_circ, basis_gates=[
             'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'cx', 'cz', 'swap'])
-        circ.save_expectation_value('expval', oper, [0, 1])
+        circ.save_expectation_value(oper, [0, 1], label='expval')
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
         if method not in SUPPORTED_METHODS:
@@ -87,7 +87,7 @@ class QasmSaveExpectationValueTests:
         method = opts.get('method', 'automatic')
         circ = transpile(state_circ, basis_gates=[
             'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'cx', 'cz', 'swap'])
-        circ.save_expectation_value_variance('expval', oper, [0, 1])
+        circ.save_expectation_value_variance(oper, [0, 1], label='expval')
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
         if method not in SUPPORTED_METHODS:
@@ -119,7 +119,7 @@ class QasmSaveExpectationValueTests:
         method = opts.get('method', 'automatic')
         circ = transpile(state_circ, basis_gates=[
             'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'cx', 'cz', 'swap'])
-        circ.save_expectation_value('expval', oper, qubits)
+        circ.save_expectation_value(oper, qubits, label='expval')
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
         if method not in SUPPORTED_METHODS:
@@ -153,7 +153,7 @@ class QasmSaveExpectationValueTests:
         method = opts.get('method', 'automatic')
         circ = transpile(state_circ, basis_gates=[
             'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'cx', 'cz', 'swap'])
-        circ.save_expectation_value_variance('expval', oper, qubits)
+        circ.save_expectation_value_variance(oper, qubits, label='expval')
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
         if method not in SUPPORTED_METHODS:
@@ -185,7 +185,7 @@ class QasmSaveExpectationValueTests:
         opts = self.BACKEND_OPTS.copy()
         method = opts.get('method', 'automatic')
         circ = transpile(state_circ, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
-        circ.save_expectation_value('expval', oper, [0, 1])
+        circ.save_expectation_value(oper, [0, 1], label='expval')
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
         if method not in SUPPORTED_METHODS:
@@ -219,7 +219,7 @@ class QasmSaveExpectationValueTests:
         opts = self.BACKEND_OPTS.copy()
         method = opts.get('method', 'automatic')
         circ = transpile(state_circ, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
-        circ.save_expectation_value_variance('expval', oper, [0, 1])
+        circ.save_expectation_value_variance(oper, [0, 1], label='expval')
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
         if method not in SUPPORTED_METHODS:
@@ -250,7 +250,7 @@ class QasmSaveExpectationValueTests:
         opts = self.BACKEND_OPTS.copy()
         method = opts.get('method', 'automatic')
         circ = transpile(state_circ, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
-        circ.save_expectation_value('expval', oper, qubits)
+        circ.save_expectation_value(oper, qubits, label='expval')
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
         if method not in SUPPORTED_METHODS:
@@ -283,7 +283,7 @@ class QasmSaveExpectationValueTests:
         opts = self.BACKEND_OPTS.copy()
         method = opts.get('method', 'automatic')
         circ = transpile(state_circ, basis_gates=['u1', 'u2', 'u3', 'cx', 'swap'])
-        circ.save_expectation_value_variance('expval', oper, qubits)
+        circ.save_expectation_value_variance(oper, qubits, label='expval')
         qobj = assemble(circ)
         result = self.SIMULATOR.run(qobj, **opts).result()
         if method not in SUPPORTED_METHODS:
