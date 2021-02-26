@@ -42,8 +42,6 @@ class SaveAmplitudes(SaveSingleData):
         Raises:
             ExtensionError: if params is invalid for the specified number of qubits.
         """
-        if label is None:
-            label = "amplitudes"
         params = _format_amplitude_params(params, num_qubits)
         super().__init__("save_amplitudes", num_qubits, label,
                          pershot=pershot,
