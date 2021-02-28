@@ -73,6 +73,20 @@ def measure_circuits_deterministic(allow_sampling=True):
         circuit.i(qr)
     circuits.append(circuit)
 
+    # Measure a single qubit (qubit 1) in |1> state
+    qr = QuantumRegister(3)
+    cr = ClassicalRegister(1)
+    circuit = QuantumCircuit(qr, cr)
+    circuit.h(0)
+    circuit.x(1)
+    circuit.cx(0, 2)
+    circuit.barrier(qr)
+    circuit.measure(1, 0)
+    if not allow_sampling:
+        circuit.barrier(qr)
+        circuit.i(qr)
+    circuits.append(circuit)
+
     return circuits
 
 
@@ -89,6 +103,8 @@ def measure_counts_deterministic(shots, hex_counts=True):
         targets.append({'0x2': shots})
         # Measure |11> state
         targets.append({'0x3': shots})
+        # Measure a single qubit (qubit 1) in |1> state
+        targets.append({'0x1': shots})
     else:
         # Measure |00> state
         targets.append({'00': shots})
@@ -98,6 +114,9 @@ def measure_counts_deterministic(shots, hex_counts=True):
         targets.append({'10': shots})
         # Measure |11> state
         targets.append({'11': shots})
+        # Measure a single qubit (qubit 1) in |1> state
+        targets.append({'0x1': shots})
+
     return targets
 
 
