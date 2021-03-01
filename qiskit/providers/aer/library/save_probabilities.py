@@ -20,16 +20,16 @@ from .save_data import SaveAverageData, default_qubits
 class SaveProbabilities(SaveAverageData):
     """Save measurement outcome probabilities vector."""
     def __init__(self,
-                 key,
                  num_qubits,
+                 label="probabilities",
                  unnormalized=False,
                  pershot=False,
                  conditional=False):
         """Instruction to save measurement probabilities vector.
 
         Args:
-            key (str): the key for retrieving saved data from results.
             num_qubits (int): the number of qubits for the snapshot type.
+            label (str): the key for retrieving saved data from results.
             unnormalized (bool): If True return save the unnormalized accumulated
                                  probabilities over all shots [Default: False].
             pershot (bool): if True save a list of probabilities for each shot
@@ -39,9 +39,7 @@ class SaveProbabilities(SaveAverageData):
                                 on the current classical register values
                                 [Default: False].
         """
-        super().__init__("save_probabilities",
-                         key,
-                         num_qubits,
+        super().__init__("save_probabilities", num_qubits, label,
                          conditional=conditional,
                          pershot=pershot,
                          unnormalized=unnormalized)
@@ -50,16 +48,16 @@ class SaveProbabilities(SaveAverageData):
 class SaveProbabilitiesDict(SaveAverageData):
     """Save measurement outcome probabilities dict."""
     def __init__(self,
-                 key,
                  num_qubits,
+                 label="probabilities_dict",
                  unnormalized=False,
                  pershot=False,
                  conditional=False):
         """Instruction to save measurement probabilities dict.
 
         Args:
-            key (str): the key for retrieving saved data from results.
             num_qubits (int): the number of qubits for the snapshot type.
+            label (str): the key for retrieving saved data from results.
             unnormalized (bool): If True return save the unnormalized accumulated
                                  probabilities over all shots [Default: False].
             pershot (bool): if True save a list of probabilities for each shot
@@ -69,26 +67,24 @@ class SaveProbabilitiesDict(SaveAverageData):
                                 on the current classical register values
                                 [Default: False].
         """
-        super().__init__("save_probabilities_dict",
-                         key,
-                         num_qubits,
+        super().__init__("save_probabilities_dict", num_qubits, label,
                          unnormalized=unnormalized,
                          pershot=pershot,
                          conditional=conditional)
 
 
 def save_probabilities(self,
-                       key,
                        qubits=None,
+                       label="probabilities",
                        unnormalized=False,
                        pershot=False,
                        conditional=False):
     """Save measurement outcome probabilities vector.
 
     Args:
-        key (str): the key for retrieving saved data from results.
         qubits (list or None): the qubits to apply snapshot to. If None all
                                qubits will be snapshot [Default: None].
+        label (str): the key for retrieving saved data from results.
         unnormalized (bool): If True return save the unnormalized accumulated
                              probabilities over all shots [Default: False].
         pershot (bool): if True save a list of probabilities for each shot
@@ -102,8 +98,8 @@ def save_probabilities(self,
         QuantumCircuit: with attached instruction.
     """
     qubits = default_qubits(self, qubits=qubits)
-    instr = SaveProbabilities(key,
-                              len(qubits),
+    instr = SaveProbabilities(len(qubits),
+                              label=label,
                               unnormalized=unnormalized,
                               pershot=pershot,
                               conditional=conditional)
@@ -111,17 +107,17 @@ def save_probabilities(self,
 
 
 def save_probabilities_dict(self,
-                            key,
                             qubits=None,
+                            label="probabilities",
                             unnormalized=False,
                             pershot=False,
                             conditional=False):
     """Save measurement outcome probabilities vector.
 
     Args:
-        key (str): the key for retrieving saved data from results.
         qubits (list or None): the qubits to apply snapshot to. If None all
                                qubits will be snapshot [Default: None].
+        label (str): the key for retrieving saved data from results.
         unnormalized (bool): If True return save the unnormalized accumulated
                              probabilities over all shots [Default: False].
         pershot (bool): if True save a list of probabilities for each shot
@@ -135,8 +131,8 @@ def save_probabilities_dict(self,
         QuantumCircuit: with attached instruction.
     """
     qubits = default_qubits(self, qubits=qubits)
-    instr = SaveProbabilitiesDict(key,
-                                  len(qubits),
+    instr = SaveProbabilitiesDict(len(qubits),
+                                  label=label,
                                   unnormalized=unnormalized,
                                   pershot=pershot,
                                   conditional=conditional)
