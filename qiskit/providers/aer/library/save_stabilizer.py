@@ -19,12 +19,13 @@ from .save_data import SaveSingleData, default_qubits
 
 class SaveStabilizer(SaveSingleData):
     """Save Stabilizer instruction"""
-    def __init__(self, key, num_qubits, pershot=False, conditional=False):
+    def __init__(self, num_qubits, label="stabilizer",
+                 pershot=False, conditional=False):
         """Create new instruction to save the stabilizer simulator state.
 
         Args:
-            key (str): the key for retrieving saved data from results.
             num_qubits (int): the number of qubits of the
+            label (str): the key for retrieving saved data from results.
             pershot (bool): if True save a list of Cliffords for each
                             shot of the simulation rather than a single
                             statevector [Default: False].
@@ -37,18 +38,16 @@ class SaveStabilizer(SaveSingleData):
             qubits in a circuit, otherwise an exception will be raised during
             simulation.
         """
-        super().__init__('save_stabilizer',
-                         key,
-                         num_qubits,
+        super().__init__('save_stabilizer', num_qubits, label,
                          pershot=pershot,
                          conditional=conditional)
 
 
-def save_stabilizer(self, key, pershot=False, conditional=False):
+def save_stabilizer(self, label="stabilizer", pershot=False, conditional=False):
     """Save the current stabilizer simulator quantum state as a Clifford.
 
     Args:
-        key (str): the key for retrieving saved data from results.
+        label (str): the key for retrieving saved data from results.
         pershot (bool): if True save a list of Cliffords for each
                         shot of the simulation [Default: False].
         conditional (bool): if True save pershot data conditional on the
@@ -58,13 +57,13 @@ def save_stabilizer(self, key, pershot=False, conditional=False):
     Returns:
         QuantumCircuit: with attached instruction.
 
-    .. note:
+    .. note::
 
         This instruction is always defined across all qubits in a circuit.
     """
     qubits = default_qubits(self)
-    instr = SaveStabilizer(key,
-                           len(qubits),
+    instr = SaveStabilizer(len(qubits),
+                           label=label,
                            pershot=pershot,
                            conditional=conditional)
     return self.append(instr, qubits)

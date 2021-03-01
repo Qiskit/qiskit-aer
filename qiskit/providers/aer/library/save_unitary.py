@@ -19,12 +19,12 @@ from .save_data import SaveSingleData, default_qubits
 
 class SaveUnitary(SaveSingleData):
     """Save Unitary"""
-    def __init__(self, key, num_qubits, pershot=False):
+    def __init__(self, num_qubits, label="unitary", pershot=False):
         """Create new instruction to save the unitary simulator state.
 
         Args:
-            key (str): the key for retrieving saved data from results.
             num_qubits (int): the number of qubits of the
+            label (str): the key for retrieving saved data from results.
             pershot (bool): if True save a list of unitaries for each
                             shot of the simulation rather than a single
                             statevector [Default: False].
@@ -35,30 +35,28 @@ class SaveUnitary(SaveSingleData):
             qubits in a circuit, otherwise an exception will be raised during
             simulation.
         """
-        super().__init__('save_unitary',
-                         key,
-                         num_qubits,
+        super().__init__('save_unitary', num_qubits, label,
                          pershot=pershot)
 
 
-def save_unitary(self, key, pershot=False):
+def save_unitary(self, label="unitary", pershot=False):
     """Save the current state of the unitary simulator.
 
     Args:
-        key (str): the key for retrieving saved data from results.
+        label (str): the key for retrieving saved data from results.
         pershot (bool): if True save a list of unitaries for each
                         shot of the simulation [Default: False].
 
     Returns:
         QuantumCircuit: with attached instruction.
 
-    .. note:
+    .. note::
 
         This instruction is always defined across all qubits in a circuit.
     """
     qubits = default_qubits(self)
-    instr = SaveUnitary(key,
-                        len(qubits),
+    instr = SaveUnitary(len(qubits),
+                        label=label,
                         pershot=pershot)
     return self.append(instr, qubits)
 

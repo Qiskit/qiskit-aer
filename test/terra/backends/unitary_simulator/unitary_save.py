@@ -39,8 +39,8 @@ class UnitarySaveUnitaryTests:
         target = qi.Operator(circ)
 
         # Add save to circuit
-        save_key = 'state'
-        circ.save_unitary(save_key)
+        label = 'state'
+        circ.save_unitary(label)
 
         # Run
         opts = self.BACKEND_OPTS.copy()
@@ -52,6 +52,6 @@ class UnitarySaveUnitaryTests:
         else:
             self.assertTrue(result.success)
             data = result.data(0)
-            self.assertIn(save_key, data)
-            value = qi.Operator(result.data(0)[save_key])
+            self.assertIn(label, data)
+            value = qi.Operator(result.data(0)[label])
             self.assertEqual(value, target)
