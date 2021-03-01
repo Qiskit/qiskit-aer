@@ -24,7 +24,7 @@ class SaveMatrixProductState(SaveSingleData):
 
         Args:
             key (str): the key for retrieving saved data from results.
-            num_qubits (int): the number of qubits 
+            num_qubits (int): the number of qubits
             pershot (bool): if True save the mps for each
                             shot of the simulation [Default: False].
             conditional (bool): if True save data conditional on the current
@@ -63,9 +63,9 @@ def save_matrix_product_state(self, key, pershot=False, conditional=False):
     """
     qubits = default_qubits(self)
     instr = SaveMatrixProductState(key,
-                           len(qubits),
-                           pershot=pershot,
-                           conditional=conditional)
+                                   len(qubits),
+                                   pershot=pershot,
+                                   conditional=conditional)
     return self.append(instr, qubits)
 
 
