@@ -48,7 +48,7 @@ class QasmSaveMatrixProductStateTests:
 
         # Add save to circuit
         save_key = 'mps'
-        circ.save_matrix_product_state(save_key)
+        circ.save_matrix_product_state(key=save_key)
 
         # Run
         shots = 1
