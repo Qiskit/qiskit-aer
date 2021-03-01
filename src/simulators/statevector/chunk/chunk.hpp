@@ -31,7 +31,7 @@ template <typename data_t>
 class Chunk 
 {
 protected:
-  mutable std::shared_ptr<ChunkContainer<data_t>> chunk_container_;   //pointer to chunk container
+  mutable std::weak_ptr<ChunkContainer<data_t>> chunk_container_;   //pointer to chunk container
   std::shared_ptr<Chunk<data_t>> cache_;                //pointer to cache chunk on device
   uint_t chunk_pos_;                    //position in container
   int place_;                           //container ID
@@ -55,16 +55,16 @@ public:
 
   void set_device(void) const
   {
-    chunk_container_->set_device();
+    chunk_container_.lock()->set_device();
   }
   int device(void)
   {
-    return chunk_container_->device();
+    return chunk_container_.lock()->device();
   }
 
   std::shared_ptr<ChunkContainer<data_t>> container()
   {
-    return chunk_container_;
+    return chunk_container_.lock();
   }
 
   uint_t pos(void)
@@ -106,26 +106,29 @@ public:
   }
   void enable_omp(bool flg)
   {
-    chunk_container_->enable_omp(flg);
+    chunk_container_.lock()->enable_omp(flg);
   }
 
   void Set(uint_t i,const thrust::complex<data_t>& t)
   {
-    chunk_container_->Set(i + (chunk_pos_ << chunk_container_->chunk_bits()),t);
+    auto sel_chunk_container = chunk_container_.lock();
+    sel_chunk_container->Set(i + (chunk_pos_ << sel_chunk_container->chunk_bits()),t);
   }
   thrust::complex<data_t> Get(uint_t i) const
   {
-    return chunk_container_->Get(i + (chunk_pos_ << chunk_container_->chunk_bits()));
+    auto sel_chunk_container = chunk_container_.lock();
+    return sel_chunk_container->Get(i + (chunk_pos_ << sel_chunk_container->chunk_bits()));
   }
 
   thrust::complex<data_t>& operator[](uint_t i)
   {
-    return (*chunk_container_)[i + (chunk_pos_ << chunk_container_->chunk_bits())];
+    auto sel_chunk_container = chunk_container_.lock();
+    return (*sel_chunk_container)[i + (chunk_pos_ << sel_chunk_container->chunk_bits())];
   }
 
   thrust::complex<data_t>* pointer(void)
   {
-    return chunk_container_->chunk_pointer(chunk_pos_);
+    return chunk_container_.lock()->chunk_pointer(chunk_pos_);
   }
 
   void StoreMatrix(const std::vector<std::complex<double>>& mat)
@@ -134,7 +137,7 @@ public:
       cache_->StoreMatrix(mat);
     }
     else{
-      chunk_container_->StoreMatrix(mat,chunk_pos_);
+      chunk_container_.lock()->StoreMatrix(mat,chunk_pos_);
     }
   }
   void StoreUintParams(const std::vector<uint_t>& prm)
@@ -143,29 +146,29 @@ public:
       cache_->StoreUintParams(prm);
     }
     else{
-      chunk_container_->StoreUintParams(prm,chunk_pos_);
+      chunk_container_.lock()->StoreUintParams(prm,chunk_pos_);
     }
   }
 
   void CopyIn(std::shared_ptr<Chunk<data_t>> src)
   {
-    chunk_container_->CopyIn(src,chunk_pos_);
+    chunk_container_.lock()->CopyIn(src,chunk_pos_);
   }
   void CopyOut(std::shared_ptr<Chunk<data_t>> dest)
   {
-    chunk_container_->CopyOut(dest,chunk_pos_);
+    chunk_container_.lock()->CopyOut(dest,chunk_pos_);
   }
   void CopyIn(thrust::complex<data_t>* src)
   {
-    chunk_container_->CopyIn(src,chunk_pos_);
+    chunk_container_.lock()->CopyIn(src,chunk_pos_);
   }
   void CopyOut(thrust::complex<data_t>* dest)
   {
-    chunk_container_->CopyOut(dest,chunk_pos_);
+    chunk_container_.lock()->CopyOut(dest,chunk_pos_);
   }
   void Swap(std::shared_ptr<Chunk<data_t>> src)
   {
-    chunk_container_->Swap(src,chunk_pos_);
+    chunk_container_.lock()->Swap(src,chunk_pos_);
   }
 
   template <typename Function>
@@ -175,7 +178,7 @@ public:
       cache_->Execute(func,count);
     }
     else{
-      chunk_container_->Execute(func,chunk_pos_,count);
+      chunk_container_.lock()->Execute(func,chunk_pos_,count);
     }
   }
 
@@ -186,39 +189,40 @@ public:
       return cache_->ExecuteSum(func,count);
     }
     else{
-      return chunk_container_->ExecuteSum(func,chunk_pos_,count);
+      return chunk_container_.lock()->ExecuteSum(func,chunk_pos_,count);
     }
   }
 
   void Zero(void)
   {
-    chunk_container_->Zero(chunk_pos_,chunk_container_->chunk_size());
+    auto sel_chunk_container = chunk_container_.lock();
+    sel_chunk_container->Zero(chunk_pos_,sel_chunk_container->chunk_size());
   }
 
   reg_t sample_measure(const std::vector<double> &rnds,uint_t stride = 1,bool dot = true) const
   {
-    return chunk_container_->sample_measure(chunk_pos_,rnds,stride,dot);
+    return chunk_container_.lock()->sample_measure(chunk_pos_,rnds,stride,dot);
   }
 
   thrust::complex<double> norm(uint_t stride = 1,bool dot = true) const
   {
-    return chunk_container_->norm(chunk_pos_,stride,dot);
+    return chunk_container_.lock()->norm(chunk_pos_,stride,dot);
   }
 
 #ifdef AER_THRUST_CUDA
   cudaStream_t stream(void)
   {
-    return std::static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_)->stream(chunk_pos_);
+    return std::static_pointer_cast<DeviceChunkContainer<data_t>>(chunk_container_.lock())->stream(chunk_pos_);
   }
 #endif
 
   thrust::complex<double>* matrix_pointer(void)
   {
-    return chunk_container_->matrix_pointer(chunk_pos_);
+    return chunk_container_.lock()->matrix_pointer(chunk_pos_);
   }
   uint_t* param_pointer(void)
   {
-    return chunk_container_->param_pointer(chunk_pos_);
+    return chunk_container_.lock()->param_pointer(chunk_pos_);
   }
 
   void synchronize(void)
@@ -227,26 +231,26 @@ public:
       cache_->synchronize();
     }
     else{
-      chunk_container_->synchronize(chunk_pos_);
+      chunk_container_.lock()->synchronize(chunk_pos_);
     }
   }
 
   //set qubits to be blocked
   void set_blocked_qubits(const reg_t& qubits)
   {
-    chunk_container_->set_blocked_qubits(chunk_pos_,qubits);
+    chunk_container_.lock()->set_blocked_qubits(chunk_pos_,qubits);
   }
 
   //do all gates stored in queue
   void apply_blocked_gates(void)
   {
-    chunk_container_->apply_blocked_gates(chunk_pos_);
+    chunk_container_.lock()->apply_blocked_gates(chunk_pos_);
   }
 
   //queue gate for blocked execution
   void queue_blocked_gate(char gate,uint_t qubit,uint_t mask,const std::complex<double>* pMat = nullptr)
   {
-    chunk_container_->queue_blocked_gate(chunk_pos_,gate,qubit,mask,pMat);
+    chunk_container_.lock()->queue_blocked_gate(chunk_pos_,gate,qubit,mask,pMat);
   }
 
 };
