@@ -428,8 +428,8 @@ public:
 
   virtual void CopyIn(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk) = 0;
   virtual void CopyOut(std::shared_ptr<Chunk<data_t>> dest,uint_t iChunk) = 0;
-  virtual void CopyIn(thrust::complex<data_t>* src,uint_t iChunk) = 0;
-  virtual void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk) = 0;
+  virtual void CopyIn(thrust::complex<data_t>* src,uint_t iChunk, uint_t size) = 0;
+  virtual void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk, uint_t size) = 0;
   virtual void Swap(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk) = 0;
 
   virtual void Zero(uint_t iChunk,uint_t count) = 0;
