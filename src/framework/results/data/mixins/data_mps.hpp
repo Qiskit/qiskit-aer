@@ -25,27 +25,9 @@ namespace AER {
 //============================================================================
 // Result container for Qiskit-Aer
 //============================================================================
-//  using MPSContainer = std::pair<std::vector<std::pair<cmatrix_t, cmatrix_t>>, 
-  //			 std::vector<rvector_t>>;
-
-class MPSContainer {
-public:
-  MPSContainer() {}
-
-private:
-  size_t num_qubits_=0;
-  // lambda_size[i] is the length of lambda_struct[i];
-  std::vector<size_t> lambda_size_;  
-  // lambda_reg_[i] contains the Schmidt coefficients for qubit[i+1]
-  std::vector<std::vector<double>> lambda_reg_;
-  // q_reg_size_[i] contains the num_rows and num_columns for qreg[i] 
-  std::vector<std::pair<size_t, size_t>> q_reg_size_;
-  // q_reg_[i] contains 2 complex matrices that make the tensor for qubit i
-  std::vector<std::pair<cmatrix_t, cmatrix_t>> q_reg_;
-  // The internal ordering of the qubits
-  std::vector<uint_t> order_;
-
-};
+using cmat = std::vector<std::vector<complex_t>>;
+using MPSContainer = std::pair<std::vector<std::pair<cmat, cmat>>, 
+			       std::vector<rvector_t>>;
 
 struct DataMPS : public DataMap<SingleData, MPSContainer, 1>,
                  public DataMap<SingleData, MPSContainer, 2>,

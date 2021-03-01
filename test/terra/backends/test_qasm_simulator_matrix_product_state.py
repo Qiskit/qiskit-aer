@@ -55,32 +55,8 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValM
 
 class TestQasmMatrixProductStateSimulator(
         common.QiskitAerTestCase,
-        QasmMeasureTests,
-        QasmMultiQubitMeasureTests,
-        QasmResetTests,
-        QasmConditionalGateTests,
-        QasmConditionalUnitaryTests,
-        QasmConditionalKrausTests,
-        QasmAlgorithmTests,
-        QasmAlgorithmTestsWaltzBasis,
-        QasmAlgorithmTestsMinimalBasis,
-        QasmUnitaryGateTests,
-        QasmDiagonalGateTests,
-        QasmInitializeTests,
-        QasmReadoutNoiseTests,
-        QasmPauliNoiseTests,
-        QasmResetNoiseTests,
-        QasmKrausNoiseTests,
-        QasmSaveDataTests,
-        QasmSnapshotStatevectorTests,
-        QasmSnapshotDensityMatrixTests,
-        QasmSnapshotProbabilitiesTests,
-        QasmSnapshotStabilizerTests,
-        QasmSnapshotExpValPauliTests,
-        QasmSnapshotExpValPauliNCTests,
-        QasmSnapshotExpValMatrixTests,
-        QasmStandardGateStatevectorTests,
-        QasmDelayGateTests
+        QasmSaveDataTests
+
 ):
     """QasmSimulator matrix product state method tests."""
 

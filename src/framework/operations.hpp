@@ -43,7 +43,7 @@ enum class OpType {
   // Save instructions
   save_expval, save_expval_var, save_statevec, save_statevec_ket,
   save_densmat, save_probs, save_probs_ket, save_amps, save_amps_sq,
-  save_stabilizer, save_unitary, save_mps
+    save_stabilizer, save_unitary, save_mps
 };
 
 enum class DataSubType {
@@ -526,7 +526,7 @@ Op json_to_op(const json_t &js) {
     return json_to_op_save_default(js, OpType::save_densmat);
   if (name == "save_probabilities")
     return json_to_op_save_default(js, OpType::save_probs);
-  if (name == "save_mps")
+  if (name == "save_matrix_product_state")
     return json_to_op_save_default(js, OpType::save_mps);
   if (name == "save_probabilities_dict")
     return json_to_op_save_default(js, OpType::save_probs_ket);

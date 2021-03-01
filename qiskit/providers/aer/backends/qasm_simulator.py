@@ -297,13 +297,15 @@ class QasmSimulator(AerBackend):
             'kraus', 'roerror', 'snapshot', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_density_matrix', 'save_statevector',
-            'save_amplitudes', 'save_amplitudes_sq', 'save_stabilizer'
+            'save_amplitudes', 'save_amplitudes_sq', 'save_stabilizer',
+            'save_matrix_product_state', 'save_mps'
         ]),
         'custom_instructions': sorted([
             'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_density_matrix', 'save_statevector',
-            'save_amplitudes', 'save_amplitudes_sq', 'save_stabilizer']),
+            'save_amplitudes', 'save_amplitudes_sq', 'save_stabilizer',
+            'save_matrix_product_state']),
         'gates': []
     }
 
@@ -496,7 +498,7 @@ class QasmSimulator(AerBackend):
                 'roerror', 'snapshot', 'kraus', 'save_expval', 'save_expval_var',
                 'save_probabilities', 'save_probabilities_dict',
                 'save_density_matrix', 'save_statevector',
-                'save_amplitudes', 'save_amplitudes_sq'])
+                'save_amplitudes', 'save_amplitudes_sq', 'save_matrix_product_state'])
             config.basis_gates = sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
                 'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay',

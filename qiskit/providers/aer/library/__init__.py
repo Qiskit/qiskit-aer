@@ -44,6 +44,7 @@ Instruction Classes
     SaveAmplitudesSquared
     SaveStabilizer
     SaveUnitary
+    SaveMatrixProductState
 
 Then can also be used using custom QuantumCircuit methods
 
@@ -64,6 +65,7 @@ QuantumCircuit Methods
     save_amplitudes_squared
     save_stabilizer
     save_unitary
+    save_matrix_product_state
 
 .. note ::
 
@@ -89,7 +91,7 @@ __all__ = ['SaveExpectationValue', 'SaveExpectationValueVariance',
            'SaveProbabilities', 'SaveProbabilitiesDict',
            'SaveStatevector', 'SaveStatevectorDict', 'SaveDensityMatrix',
            'SaveAmplitudes', 'SaveAmplitudesSquared', 'SaveUnitary',
-           'SaveStabilizer']
+           'SaveStabilizer', 'SaveMatrixProductState']
 
 from .save_expectation_value import (
     SaveExpectationValue, save_expectation_value,
@@ -103,3 +105,4 @@ from .save_amplitudes import (SaveAmplitudes, save_amplitudes,
                               SaveAmplitudesSquared, save_amplitudes_squared)
 from .save_stabilizer import (SaveStabilizer, save_stabilizer)
 from .save_unitary import (SaveUnitary, save_unitary)
+from .save_matrix_product_state import (SaveMatrixProductState, save_matrix_product_state)

@@ -1672,6 +1672,20 @@ void MPS::measure_reset_update_internal(const reg_t &qubits,
     }
   }
 }
+
+MPSContainer MPS::copy_to_mps_container(){
+  move_all_qubits_to_sorted_ordering();
+  std::vector<std::pair<cmat, cmat>> qreg_vec;
+
+  for (auto i=0; i<num_qubits(); i++)
+    qreg_vec.push_back(q_reg_[i].copy_to_matrix_pair());
+  std::vector<std::vector<double>> lambda_vec;
+  for (auto i=0; i<num_qubits()-1; i++)
+    lambda_vec.push_back(lambda_reg_[i]);
+  MPSContainer new_mps = std::make_pair(qreg_vec, lambda_vec);
+  return new_mps;
+}
+
 //-------------------------------------------------------------------------
 } // end namespace MPS
 //-------------------------------------------------------------------------

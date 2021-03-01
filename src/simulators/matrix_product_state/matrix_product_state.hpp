@@ -571,20 +571,20 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 void State::apply_save_mps(const Operations::Op &op,
                            ExperimentResult &result,
                            bool last_op) {
-  if (op.qubits.size() != BaseState::qreg_.num_qubits()) {
+  if (op.qubits.size() != qreg_.num_qubits()) {
     throw std::invalid_argument(
         "Save MPS was not applied to all qubits."
         " Only the full matrix product state can be saved.");
   }
 
   if (last_op) {
-    //    BaseState::save_data_pershot(result, op.string_params[0],
-    //                           BaseState::qreg_.move_to_vector(),
-    //                           op.save_type);
+    BaseState::save_data_pershot(result, op.string_params[0],
+				 qreg_.copy_to_mps_container(),
+				 op.save_type);
   } else {
-    //BaseState::save_data_pershot(result, op.string_params[0],
-    //                           BaseState::qreg_.copy_to_vector(),
-    //                           op.save_type);
+    BaseState::save_data_pershot(result, op.string_params[0],
+                               qreg_.copy_to_mps_container(),
+                               op.save_type);
   }
   //BaseState::save_data_pershot(result, op.string_params[0],
   //                           std::move(mps), op.save_type);
