@@ -45,6 +45,7 @@ class SaveMatrixProductState(SaveSingleData):
                          pershot=pershot,
                          conditional=conditional)
 
+
 class SaveMatrixProductStateDict(SaveSingleData):
     """Save matrix product state as ket-form dictionary."""
     def __init__(self, num_qubits,
@@ -72,6 +73,7 @@ class SaveMatrixProductStateDict(SaveSingleData):
                          pershot=pershot,
                          conditional=conditional)
 
+
 def save_matrix_product_state(self, label="matrix_product_state", pershot=False, conditional=False):
     """Save the current simulator quantum state as a matrix product state.
 
@@ -97,7 +99,9 @@ def save_matrix_product_state(self, label="matrix_product_state", pershot=False,
                                    conditional=conditional)
     return self.append(instr, qubits)
 
-def save_matrix_product_state_dict(self, label="matrix_product_state_dict", pershot=False, conditional=False):
+
+def save_matrix_product_state_dict(self, label="matrix_product_state_dict",
+                                   pershot=False, conditional=False):
     """Save the current simulator quantum state as a dict of matrix_product_state.
 
     Args:
