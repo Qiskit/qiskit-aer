@@ -23,8 +23,8 @@ from .save_data import SaveAverageData
 class SaveExpectationValue(SaveAverageData):
     """Save expectation value of an operator."""
     def __init__(self,
-                 key,
                  operator,
+                 label="expectation_value",
                  unnormalized=False,
                  pershot=False,
                  conditional=False):
@@ -35,8 +35,8 @@ class SaveExpectationValue(SaveAverageData):
         :math:`\langle H\rangle = \mbox{Tr}[H.\rho]`.
 
         Args:
-            key (str): the key for retrieving saved data from results.
             operator (Pauli or SparsePauliOp or Operator): a Hermitian operator.
+            label (str): the key for retrieving saved data from results.
             unnormalized (bool): If True return save the unnormalized accumulated
                                  or conditional accumulated expectation value
                                  over all shot [Default: False].
@@ -50,7 +50,7 @@ class SaveExpectationValue(SaveAverageData):
         Raises:
             ExtensionError: if the input operator is invalid or not Hermitian.
 
-        .. note:
+        .. note::
 
             This instruction can be directly appended to a circuit using the
             :func:`save_expectation_value` circuit method.
@@ -63,9 +63,7 @@ class SaveExpectationValue(SaveAverageData):
         if not allclose(operator.coeffs.imag, 0):
             raise ExtensionError("Input operator is not Hermitian.")
         params = _expval_params(operator, variance=False)
-        super().__init__('save_expval',
-                         key,
-                         operator.num_qubits,
+        super().__init__('save_expval', operator.num_qubits, label,
                          unnormalized=unnormalized,
                          pershot=pershot,
                          conditional=conditional,
@@ -75,8 +73,8 @@ class SaveExpectationValue(SaveAverageData):
 class SaveExpectationValueVariance(SaveAverageData):
     """Save expectation value and variance of an operator."""
     def __init__(self,
-                 key,
                  operator,
+                 label="expectation_value_variance",
                  unnormalized=False,
                  pershot=False,
                  conditional=False):
@@ -88,8 +86,8 @@ class SaveExpectationValueVariance(SaveAverageData):
         :math:`\sigma^2 = \langle H^2 \rangle - \langle H \rangle>^2`.
 
         Args:
-            key (str): the key for retrieving saved data from results.
             operator (Pauli or SparsePauliOp or Operator): a Hermitian operator.
+            label (str): the key for retrieving saved data from results.
             unnormalized (bool): If True return save the unnormalized accumulated
                                  or conditional accumulated expectation value
                                  over all shot [Default: False].
@@ -103,7 +101,8 @@ class SaveExpectationValueVariance(SaveAverageData):
         Raises:
             ExtensionError: if the input operator is invalid or not Hermitian.
 
-        .. note:
+        .. note::
+
             This instruction can be directly appended to a circuit using
             the :func:`save_expectation_value` circuit method.
         """
@@ -115,9 +114,7 @@ class SaveExpectationValueVariance(SaveAverageData):
         if not allclose(operator.coeffs.imag, 0):
             raise ExtensionError("Input operator is not Hermitian.")
         params = _expval_params(operator, variance=True)
-        super().__init__('save_expval_var',
-                         key,
-                         operator.num_qubits,
+        super().__init__('save_expval_var', operator.num_qubits, label,
                          unnormalized=unnormalized,
                          pershot=pershot,
                          conditional=conditional,
@@ -158,18 +155,18 @@ def _expval_params(operator, variance=False):
 
 
 def save_expectation_value(self,
-                           key,
                            operator,
                            qubits,
+                           label="expectation_value",
                            unnormalized=False,
                            pershot=False,
                            conditional=False):
     r"""Save the expectation value of a Hermitian operator.
 
     Args:
-        key (str): the key for retrieving saved data from results.
         operator (Pauli or SparsePauliOp or Operator): a Hermitian operator.
         qubits (list): circuit qubits to apply instruction.
+        label (str): the key for retrieving saved data from results.
         unnormalized (bool): If True return save the unnormalized accumulated
                              or conditional accumulated expectation value
                              over all shot [Default: False].
@@ -186,12 +183,13 @@ def save_expectation_value(self,
     Raises:
         ExtensionError: if the input operator is invalid or not Hermitian.
 
-    .. note:
+    .. note::
+
         This method appends a :class:`SaveExpectationValue` instruction to
         the quantum circuit.
     """
-    instr = SaveExpectationValue(key,
-                                 operator,
+    instr = SaveExpectationValue(operator,
+                                 label=label,
                                  unnormalized=unnormalized,
                                  pershot=pershot,
                                  conditional=conditional)
@@ -199,18 +197,18 @@ def save_expectation_value(self,
 
 
 def save_expectation_value_variance(self,
-                                    key,
                                     operator,
                                     qubits,
+                                    label="expectation_value_variance",
                                     unnormalized=False,
                                     pershot=False,
                                     conditional=False):
     r"""Save the expectation value of a Hermitian operator.
 
     Args:
-        key (str): the key for retrieving saved data from results.
         operator (Pauli or SparsePauliOp or Operator): a Hermitian operator.
         qubits (list): circuit qubits to apply instruction.
+        label (str): the key for retrieving saved data from results.
         unnormalized (bool): If True return save the unnormalized accumulated
                              or conditional accumulated expectation value
                              and variance over all shot [Default: False].
@@ -226,12 +224,13 @@ def save_expectation_value_variance(self,
     Raises:
         ExtensionError: if the input operator is invalid or not Hermitian.
 
-    .. note:
+    .. note::
+
         This method appends a :class:`SaveExpectationValueVariance`
         instruction to the quantum circuit.
     """
-    instr = SaveExpectationValueVariance(key,
-                                         operator,
+    instr = SaveExpectationValueVariance(operator,
+                                         label=label,
                                          unnormalized=unnormalized,
                                          pershot=pershot,
                                          conditional=conditional)

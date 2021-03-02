@@ -16,29 +16,26 @@ Simulator instruction to save custom internal data to results.
 import copy
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-# TEMP For compatiblity until Terra PR #5701 is merged
-try:
-    from qiskit.circuit import Directive
-except ImportError:
-    from qiskit.circuit import Instruction as Directive
+from qiskit.circuit import Instruction
 from qiskit.extensions.exceptions import ExtensionError
 
 
-class SaveData(Directive):
+class SaveData(Instruction):
     """Pragma Instruction to save simulator data."""
 
+    _directive = True
     _allowed_subtypes = set([
         'single', 'c_single', 'list', 'c_list',
         'average', 'c_average', 'accum', 'c_accum'
     ])
 
-    def __init__(self, name, key, num_qubits, subtype='single', params=None):
+    def __init__(self, name, num_qubits, label, subtype='single', params=None):
         """Create new save data instruction.
 
         Args:
             name (str): the name of hte save instruction.
-            key (str): the key for retrieving saved data from results.
             num_qubits (int): the number of qubits for the snapshot type.
+            label (str): the key for retrieving saved data from results.
             subtype (str): the data subtype for the instruction [Default: 'single'].
             params (list or None): Optional, the parameters for instruction
                                    [Default: None].
@@ -57,10 +54,11 @@ class SaveData(Directive):
             raise ExtensionError(
                 "Invalid data subtype for SaveData instruction.")
 
-        if not isinstance(key, str):
-            raise ExtensionError("Invalid key for save data instruction, key must be a string.")
+        if not isinstance(label, str):
+            raise ExtensionError(
+                f"Invalid label for save data instruction, {label} must be a string.")
 
-        self._key = key
+        self._label = label
         self._subtype = subtype
         super().__init__(name, num_qubits, 0, params)
 
@@ -70,7 +68,7 @@ class SaveData(Directive):
         # Use same fields as Snapshot instruction
         # so we dont need to modify QasmQobjInstruction
         instr.snapshot_type = self._subtype
-        instr.label = self._key
+        instr.label = self._label
         return instr
 
     def inverse(self):
@@ -82,8 +80,8 @@ class SaveAverageData(SaveData):
     """Save averageble data"""
     def __init__(self,
                  name,
-                 key,
                  num_qubits,
+                 label,
                  unnormalized=False,
                  pershot=False,
                  conditional=False,
@@ -92,8 +90,8 @@ class SaveAverageData(SaveData):
 
         Args:
             name (str): the name of hte save instruction.
-            key (str): the key for retrieving saved data from results.
             num_qubits (int): the number of qubits for the snapshot type.
+            label (str): the key for retrieving saved data from results.
             unnormalized (bool): If True return save the unnormalized accumulated
                                  or conditional accumulated data over all shot.
                                  [Default: False].
@@ -114,7 +112,7 @@ class SaveAverageData(SaveData):
             subtype = 'average'
         if conditional:
             subtype = 'c_' + subtype
-        super().__init__(name, key, num_qubits, subtype=subtype, params=params)
+        super().__init__(name, num_qubits, label, subtype=subtype, params=params)
 
 
 class SaveSingleData(SaveData):
@@ -122,8 +120,8 @@ class SaveSingleData(SaveData):
 
     def __init__(self,
                  name,
-                 key,
                  num_qubits,
+                 label,
                  pershot=False,
                  conditional=False,
                  params=None):
@@ -131,8 +129,8 @@ class SaveSingleData(SaveData):
 
         Args:
             name (str): the name of the save instruction.
-            key (str): the key for retrieving saved data from results.
             num_qubits (int): the number of qubits for the snapshot type.
+            label (str): the key for retrieving saved data from results.
             pershot (bool): if True save a list of data for each shot of the
                             simulation [Default: False].
             conditional (bool): if True save data conditional on the
@@ -144,7 +142,7 @@ class SaveSingleData(SaveData):
         subtype = 'list' if pershot else 'single'
         if conditional:
             subtype = 'c_' + subtype
-        super().__init__(name, key, num_qubits, subtype=subtype, params=params)
+        super().__init__(name, num_qubits, label, subtype=subtype, params=params)
 
 
 def default_qubits(circuit, qubits=None):

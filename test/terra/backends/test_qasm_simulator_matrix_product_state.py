@@ -15,6 +15,8 @@ QasmSimulator matrix product state method integration tests
 
 import os
 import unittest
+from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer import AerError
 from test.terra import common
 
 # Basic circuit instruction tests
@@ -49,7 +51,6 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabi
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
-from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotAmplitudesTests
 
 
 class TestQasmMatrixProductStateSimulator(
@@ -78,7 +79,6 @@ class TestQasmMatrixProductStateSimulator(
         QasmSnapshotExpValPauliTests,
         QasmSnapshotExpValPauliNCTests,
         QasmSnapshotExpValMatrixTests,
-        QasmSnapshotAmplitudesTests,
         QasmStandardGateStatevectorTests,
         QasmDelayGateTests
 ):
@@ -89,6 +89,7 @@ class TestQasmMatrixProductStateSimulator(
         "method": "matrix_product_state",
         "max_parallel_threads": 1
     }
+    SIMULATOR = QasmSimulator(**BACKEND_OPTS)
 
 
 if __name__ == '__main__':

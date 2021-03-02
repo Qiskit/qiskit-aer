@@ -142,7 +142,7 @@ class QasmSimulator(AerBackend):
       to store a state vector. If a state vector needs more, an error
       is thrown. In general, a state vector of n-qubits uses 2^n complex
       values (16 Bytes). If set to 0, the maximum will be automatically
-      set to half the system memory size (Default: 0).
+      set to the system memory size (Default: 0).
 
     * ``optimize_ideal_threshold`` (int): Sets the qubit threshold for
       applying circuit optimization passes on ideal circuits.
@@ -296,12 +296,14 @@ class QasmSimulator(AerBackend):
             # Custom instructions
             'kraus', 'roerror', 'snapshot', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
-            'save_density_matrix', 'save_statevector'
+            'save_density_matrix', 'save_statevector',
+            'save_amplitudes', 'save_amplitudes_sq', 'save_stabilizer'
         ]),
         'custom_instructions': sorted([
             'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
-            'save_density_matrix', 'save_statevector']),
+            'save_density_matrix', 'save_statevector',
+            'save_amplitudes', 'save_amplitudes_sq', 'save_stabilizer']),
         'gates': []
     }
 
@@ -478,7 +480,8 @@ class QasmSimulator(AerBackend):
             config.description = 'A C++ QasmQobj density matrix simulator with noise'
             config.custom_instructions = sorted([
                 'roerror', 'snapshot', 'kraus', 'superop', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict', 'save_density_matrix'])
+                'save_probabilities', 'save_probabilities_dict', 'save_density_matrix',
+                'save_amplitudes_sq'])
             config.basis_gates = sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
                 'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
@@ -492,7 +495,8 @@ class QasmSimulator(AerBackend):
             config.custom_instructions = sorted([
                 'roerror', 'snapshot', 'kraus', 'save_expval', 'save_expval_var',
                 'save_probabilities', 'save_probabilities_dict',
-                'save_density_matrix', 'save_statevector'])
+                'save_density_matrix', 'save_statevector',
+                'save_amplitudes', 'save_amplitudes_sq'])
             config.basis_gates = sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
                 'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay',
@@ -506,7 +510,8 @@ class QasmSimulator(AerBackend):
             config.description = 'A C++ QasmQobj Clifford stabilizer simulator with noise'
             config.custom_instructions = sorted([
                 'roerror', 'snapshot', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict'])
+                'save_probabilities', 'save_probabilities_dict',
+                'save_amplitudes_sq', 'save_stabilizer'])
             config.basis_gates = sorted([
                 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'cx', 'cy', 'cz',
                 'swap', 'delay',
@@ -516,7 +521,8 @@ class QasmSimulator(AerBackend):
         elif method == 'extended_stabilizer':
             config.n_qubits = 63  # TODO: estimate from memory
             config.description = 'A C++ QasmQobj ranked stabilizer simulator with noise'
-            config.custom_instructions = sorted(['roerror', 'snapshot', 'save_statevector'])
+            config.custom_instructions = sorted(['roerror', 'snapshot', 'save_statevector',
+                                                 'save_expval', 'save_expval_var'])
             config.basis_gates = sorted([
                 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'swap',
                 'u0', 'u1', 'p', 'ccx', 'ccz', 'delay'

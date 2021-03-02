@@ -25,59 +25,59 @@ class TestSaveExpectationValue(QiskitAerTestCase):
 
     def test_invalid_key_raises(self):
         """Test save instruction key is str"""
-        self.assertRaises(ExtensionError, lambda: SaveExpectationValue(1, Pauli('Z')))
+        self.assertRaises(ExtensionError, lambda: SaveExpectationValue(Pauli('Z'), 1))
 
     def test_nonhermitian_raises(self):
         """Test non-Hermitian op raises exception."""
         op = [[0, 1j], [1j, 0]]
-        self.assertRaises(ExtensionError, lambda: SaveExpectationValue('expval', op))
+        self.assertRaises(ExtensionError, lambda: SaveExpectationValue(op, 'expval'))
 
     def test_default_kwarg(self):
         """Test default kwargs"""
         key = 'test_key'
-        instr = SaveExpectationValue(key, Pauli('X'))
+        instr = SaveExpectationValue(Pauli('X'), key)
         self.assertEqual(instr.name, 'save_expval')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'average')
 
     def test_cond_kwarg(self):
         """Test conditional kwarg"""
         key = 'test_key'
-        instr = SaveExpectationValue(key, Pauli('X'), conditional=True)
+        instr = SaveExpectationValue(Pauli('X'), key, conditional=True)
         self.assertEqual(instr.name, 'save_expval')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'c_average')
 
     def test_unnorm_kwarg(self):
         """Test unnormalized kwarg"""
         key = 'test_key'
-        instr = SaveExpectationValue(key, Pauli('X'), unnormalized=True)
+        instr = SaveExpectationValue(Pauli('X'), key, unnormalized=True)
         self.assertEqual(instr.name, 'save_expval')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'accum')
 
     def test_unnorm_cond_kwarg(self):
         """Test unnormalized, conditonal kwargs"""
         key = 'test_key'
-        instr = SaveExpectationValue(key, Pauli('X'), conditional=True, unnormalized=True)
+        instr = SaveExpectationValue(Pauli('X'), key, conditional=True, unnormalized=True)
         self.assertEqual(instr.name, 'save_expval')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'c_accum')
 
     def test_pershot_kwarg(self):
         """Test pershot kwarg"""
         key = 'test_key'
-        instr = SaveExpectationValue(key, Pauli('X'), pershot=True)
+        instr = SaveExpectationValue(Pauli('X'), key, pershot=True)
         self.assertEqual(instr.name, 'save_expval')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'list')
 
     def test_pershot_cond_kwarg(self):
         """Test pershot, conditonal kwargs"""
         key = 'test_key'
-        instr = SaveExpectationValue(key, Pauli('X'), conditional=True, pershot=True)
+        instr = SaveExpectationValue(Pauli('X'), key, conditional=True, pershot=True)
         self.assertEqual(instr.name, 'save_expval')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'c_list')
 
 
@@ -86,59 +86,59 @@ class TestSaveExpectationValueVariance(QiskitAerTestCase):
 
     def test_invalid_key_raises(self):
         """Test save instruction key is str"""
-        self.assertRaises(ExtensionError, lambda: SaveExpectationValueVariance(1, Pauli('Z')))
+        self.assertRaises(ExtensionError, lambda: SaveExpectationValueVariance(Pauli('Z'), 1))
 
     def test_nonhermitian_raises(self):
         """Test non-Hermitian op raises exception."""
         op = [[0, 1j], [1j, 0]]
-        self.assertRaises(ExtensionError, lambda: SaveExpectationValueVariance('expval', op))
+        self.assertRaises(ExtensionError, lambda: SaveExpectationValueVariance(op, 'expval'))
 
     def test_default_kwarg(self):
         """Test default kwargs"""
         key = 'test_key'
-        instr = SaveExpectationValueVariance(key, Pauli('X'))
+        instr = SaveExpectationValueVariance(Pauli('X'), key)
         self.assertEqual(instr.name, 'save_expval_var')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'average')
 
     def test_cond_kwarg(self):
         """Test conditional kwarg"""
         key = 'test_key'
-        instr = SaveExpectationValueVariance(key, Pauli('X'), conditional=True)
+        instr = SaveExpectationValueVariance(Pauli('X'), key, conditional=True)
         self.assertEqual(instr.name, 'save_expval_var')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'c_average')
 
     def test_unnorm_kwarg(self):
         """Test unnormalized kwarg"""
         key = 'test_key'
-        instr = SaveExpectationValueVariance(key, Pauli('X'), unnormalized=True)
+        instr = SaveExpectationValueVariance(Pauli('X'), key, unnormalized=True)
         self.assertEqual(instr.name, 'save_expval_var')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'accum')
 
     def test_unnorm_cond_kwarg(self):
         """Test unnormalized, conditonal kwargs"""
         key = 'test_key'
-        instr = SaveExpectationValueVariance(key, Pauli('X'), conditional=True, unnormalized=True)
+        instr = SaveExpectationValueVariance(Pauli('X'), key, conditional=True, unnormalized=True)
         self.assertEqual(instr.name, 'save_expval_var')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'c_accum')
 
     def test_pershot_kwarg(self):
         """Test pershot kwarg"""
         key = 'test_key'
-        instr = SaveExpectationValueVariance(key, Pauli('X'), pershot=True)
+        instr = SaveExpectationValueVariance(Pauli('X'), key, pershot=True)
         self.assertEqual(instr.name, 'save_expval_var')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'list')
 
     def test_pershot_cond_kwarg(self):
         """Test pershot, conditonal kwargs"""
         key = 'test_key'
-        instr = SaveExpectationValueVariance(key, Pauli('X'), conditional=True, pershot=True)
+        instr = SaveExpectationValueVariance(Pauli('X'), key, conditional=True, pershot=True)
         self.assertEqual(instr.name, 'save_expval_var')
-        self.assertEqual(instr._key, key)
+        self.assertEqual(instr._label, key)
         self.assertEqual(instr._subtype, 'c_list')
 
 
