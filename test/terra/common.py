@@ -25,11 +25,13 @@ from itertools import repeat
 from random import choice, sample
 from math import pi
 import numpy as np
-from numpy.linalg import norm
+import fixtures
 
-from qiskit.quantum_info import state_fidelity
+from qiskit.quantum_info import Operator, Statevector
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.providers.aer import __path__ as main_path
+from qiskit.test import QiskitTestCase
 
 
 class Path(Enum):
@@ -40,8 +42,12 @@ class Path(Enum):
     EXAMPLES = os.path.join(MAIN, '../examples')
 
 
-class QiskitAerTestCase(unittest.TestCase):
+class QiskitAerTestCase(QiskitTestCase):
     """Helper class that contains common functionality."""
+
+    def setUp(self):
+        super().setUp()
+        self.useFixture(fixtures.Timeout(120, gentle=False))
 
     @classmethod
     def setUpClass(cls):
@@ -80,14 +86,6 @@ class QiskitAerTestCase(unittest.TestCase):
         """
         return os.path.normpath(os.path.join(path.value, filename))
 
-    def assertNoLogs(self, logger=None, level=None):
-        """
-        Context manager to test that no message is sent to the specified
-        logger and level (the opposite of TestCase.assertLogs()).
-        """
-        # pylint: disable=invalid-name
-        return _AssertNoLogsContext(self, logger, level)
-
     def assertSuccess(self, result):
         """Assert that simulation executed without errors"""
         success = getattr(result, 'success', False)
@@ -98,7 +96,47 @@ class QiskitAerTestCase(unittest.TestCase):
                     msg += ', (Circuit {}) {}'.format(i, res.status)
         self.assertTrue(success, msg=msg)
 
-    def check_position(self, obj, items, precision=15):
+    @staticmethod
+    def gate_circuits(gate_cls, num_angles=0, has_ctrl_qubits=False,
+                      rng=None, basis_states=None):
+        """
+        Construct circuits from a gate class.
+        Example of basis_states: ['010, '100'].
+        When basis_states is None, tests all basis states
+        with the gate's number of qubits.
+        """
+        if rng is None:
+            rng = np.random.default_rng()
+
+        if num_angles:
+            params = list(rng.random(num_angles))
+        else:
+            params = []
+
+        if has_ctrl_qubits:
+            params.append(5)
+
+        gate = gate_cls(*params)
+        
+        if basis_states is None:
+            basis_states = [bin(i)[2:].zfill(gate.num_qubits) \
+                            for i in range(1<<gate.num_qubits)]
+
+        circs = []
+        qubit_permutation = list(rng.permutation(gate.num_qubits))
+        for state in basis_states:
+            circ = QuantumCircuit(gate.num_qubits)
+            for i in qubit_permutation:
+                if state[i] == '1':
+                    circ.x(i)
+            
+            circ.append(gate, qubit_permutation)
+            circs.append(circ)
+            
+        return circs
+
+    @staticmethod
+    def check_position(obj, items, precision=15):
         """Return position of numeric object in a list."""
         for pos, item in enumerate(items):
             # Try numeric difference first
@@ -116,51 +154,42 @@ class QiskitAerTestCase(unittest.TestCase):
                     return None
         return None
 
-    def remove_if_found(self, obj, items, precision=15):
+    @staticmethod
+    def remove_if_found(obj, items, precision=15):
         """If obj is in list of items, remove first instance"""
-        pos = self.check_position(obj, items)
+        pos = QiskitAerTestCase.check_position(obj, items)
         if pos is not None:
             items.pop(pos)
 
     def compare_statevector(self, result, circuits, targets,
-                            global_phase=True, places=None):
+                            ignore_phase=False, atol=1e-8, rtol=1e-5):
         """Compare final statevectors to targets."""
         for pos, test_case in enumerate(zip(circuits, targets)):
             circuit, target = test_case
-            output = result.get_statevector(circuit)
+            target = Statevector(target)
+            output = Statevector(result.get_statevector(circuit))
             test_msg = "Circuit ({}/{}):".format(pos + 1, len(circuits))
             with self.subTest(msg=test_msg):
                 msg = " {} != {}".format(output, target)
-                if global_phase:
-                    # Test equal including global phase
-                    self.assertAlmostEqual(
-                        norm(output - target), 0, places=places,
-                        msg=msg)
-                else:
-                    # Test equal ignorning global phase
-                    self.assertAlmostEqual(
-                        state_fidelity(output, target) - 1, 0, places=places,
-                        msg=msg + " up to global phase")
+                delta = matrix_equal(output.data, target.data,
+                                     ignore_phase=ignore_phase,
+                                     atol=atol, rtol=rtol)
+                self.assertTrue(delta, msg=msg)
 
     def compare_unitary(self, result, circuits, targets,
-                        global_phase=True, places=None):
+                        ignore_phase=False, atol=1e-8, rtol=1e-5):
         """Compare final unitary matrices to targets."""
         for pos, test_case in enumerate(zip(circuits, targets)):
             circuit, target = test_case
-            output = result.get_unitary(circuit)
+            target = Operator(target)
+            output = Operator(result.get_unitary(circuit))
             test_msg = "Circuit ({}/{}):".format(pos + 1, len(circuits))
             with self.subTest(msg=test_msg):
-                msg = "\n{}\n {} != {}".format(circuit, output, target)
-                if global_phase:
-                    # Test equal including global phase
-                    self.assertAlmostEqual(
-                        norm(output - target), 0, places=places, msg=msg)
-                else:
-                    # Test equal ignorning global phase
-                    delta = np.trace(np.dot(
-                        np.conj(np.transpose(output)), target)) - len(output)
-                    self.assertAlmostEqual(
-                        delta, 0, places=places, msg=msg + " up to global phase")
+                msg = test_msg + " {} != {}".format(output.data, target.data)
+                delta = matrix_equal(output.data, target.data,
+                                     ignore_phase=ignore_phase,
+                                     atol=atol, rtol=rtol)
+                self.assertTrue(delta, msg=msg)
 
     def compare_counts(self, result, circuits, targets, hex_counts=True, delta=0):
         """Compare counts dictionary to targets."""
@@ -174,7 +203,7 @@ class QiskitAerTestCase(unittest.TestCase):
                 output = result.get_counts(circuit)
             test_msg = "Circuit ({}/{}):".format(pos + 1, len(circuits))
             with self.subTest(msg=test_msg):
-                msg = " {} != {}".format(output, target)
+                msg = test_msg + " {} != {}".format(output, target)
                 self.assertDictAlmostEqual(
                     output, target, delta=delta, msg=msg)
 
@@ -297,32 +326,6 @@ class QiskitAerTestCase(unittest.TestCase):
 
         msg = self._formatMessage(msg, standard_msg)
         raise self.failureException(msg)
-
-
-class _AssertNoLogsContext(unittest.case._AssertLogsContext):
-    """A context manager used to implement TestCase.assertNoLogs()."""
-
-    # pylint: disable=inconsistent-return-statements
-    def __exit__(self, exc_type, exc_value, tb):
-        """
-        This is a modified version of TestCase._AssertLogsContext.__exit__(...)
-        """
-        self.logger.handlers = self.old_handlers
-        self.logger.propagate = self.old_propagate
-        self.logger.setLevel(self.old_level)
-        if exc_type is not None:
-            # let unexpected exceptions pass through
-            return False
-
-        if self.watcher.records:
-            msg = 'logs of level {} or higher triggered on {}:\n'.format(
-                logging.getLevelName(self.level), self.logger.name)
-            for record in self.watcher.records:
-                msg += 'logger %s %s:%i: %s\n' % (record.name, record.pathname,
-                                                  record.lineno,
-                                                  record.getMessage())
-
-            self._raiseFailure(msg)
 
 
 def _is_ci_fork_pull_request():

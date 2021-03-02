@@ -9,7 +9,6 @@
 #include "misc/warnings.hpp"
 DISABLE_WARNING_PUSH
 #include <Python.h>
-#include <numpy/arrayobject.h>
 DISABLE_WARNING_POP
 
 #ifdef DEBUG
@@ -134,9 +133,25 @@ struct RhsData {
       vars = get_vec_from_dict_item<double>(py_global_data, "vars");
       vars_names = get_vec_from_dict_item<std::string>(py_global_data, "vars_names");
       num_h_terms = get_value_from_dict_item<long>(py_global_data, "num_h_terms");
-      datas = get_vec_from_dict_item<NpArray<complex_t>>(py_global_data, "h_ops_data");
-      idxs = get_vec_from_dict_item<NpArray<int>>(py_global_data, "h_ops_ind");
-      ptrs = get_vec_from_dict_item<NpArray<int>>(py_global_data, "h_ops_ptr");
+      auto tmp_datas = get_vec_from_dict_item<NpArray<complex_t>>(py_global_data, "h_ops_data");
+      for (const auto& data: tmp_datas){
+          auto datas_back = datas.emplace(datas.end());
+          auto idxs_back = idxs.emplace(idxs.end());
+          auto ptrs_back = ptrs.emplace(ptrs.end());
+          ptrs_back->push_back(0);
+          auto first_j = 0;
+          auto last_j = 0;
+          for (auto i = 0; i < data.shape[0]; i++) {
+              for (auto j = 0; j < data.shape[1]; j++) {
+                  if (std::abs(data(i, j)) > 1e-15) {
+                      datas_back->push_back(data(i,j));
+                      idxs_back->push_back(j);
+                      last_j++;
+                  }
+              }
+              ptrs_back->push_back(last_j);
+          }
+      }
       energy = get_value_from_dict_item<NpArray<double>>(py_global_data, "h_diag_elems");
   }
 
@@ -150,10 +165,12 @@ struct RhsData {
   std::vector<double> vars;
   std::vector<std::string> vars_names;
   long num_h_terms;
-  std::vector<NpArray<complex_t>> datas;
-  std::vector<NpArray<int>> idxs;
-  std::vector<NpArray<int>> ptrs;
+  std::vector<std::vector<complex_t>> datas;
+  std::vector<std::vector<int>> idxs;
+  std::vector<std::vector<int>> ptrs;
   NpArray<double> energy;
+
+  std::vector<complex_t> osc_terms_no_t;
 };
 
 py::array_t <complex_t> inner_ode_rhs(double t,
@@ -205,8 +222,7 @@ py::array_t <complex_t> inner_ode_rhs(double t,
                 auto row_end = rhs_data.ptrs[h_idx][i + 1];
                 for (auto j = row_start; j < row_end; ++j) {
                     auto tmp_idx = rhs_data.idxs[h_idx][j];
-                    auto osc_term =
-                        std::exp(
+                    auto osc_term = std::exp(
                             complex_t(0., 1.) * (rhs_data.energy[i] - rhs_data.energy[tmp_idx]) * t
                         );
                     complex_t coef = (i < tmp_idx ? std::conj(td) : td);
@@ -216,7 +232,6 @@ py::array_t <complex_t> inner_ode_rhs(double t,
             }
         }
     } /* End of systems */
-
     for (auto i = 0; i < num_rows; ++i) {
         out[i] += complex_t(0., 1.) * rhs_data.energy[i] * vec[i];
     }

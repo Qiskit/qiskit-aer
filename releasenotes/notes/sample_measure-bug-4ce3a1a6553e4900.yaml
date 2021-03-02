@@ -1,0 +1,10 @@
+---
+
+fixes:
+  - |
+    When invoking MPS::sample_measure, we need to first sort the qubits to the 
+    default ordering because this is the assumption in qasm_controller.This is 
+    done by invoking the method move_all_qubits_to_sorted_ordering. It was 
+    correct in sample_measure_using_apply_measure, but missing in 
+    sample_measure_using_probabilities. 
+

@@ -35,7 +35,7 @@ class QasmConditionalGateTests:
         targets = ref_conditionals.conditional_counts_1bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -47,9 +47,39 @@ class QasmConditionalGateTests:
         targets = ref_conditionals.conditional_counts_2bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
+
+    def test_conditional_gates_64bit(self):
+        """Test conditional gate operations on 64-bit conditional register."""
+        shots = 100
+        # [value of conditional register, list of condtional values]
+        cases = ref_conditionals.conditional_cases_64bit()
+        circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
+                final_measure=True, conditional_type='gate')
+        # not using hex counts because number of leading zeros in results
+        # doesn't seem consistent
+        targets = ref_conditionals.condtional_counts_nbit(64, cases, shots,
+                hex_counts=False)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
+
+    def test_conditional_gates_132bit(self):
+        """Test conditional gate operations on 132-bit conditional register."""
+        shots = 100
+        cases = ref_conditionals.conditional_cases_132bit()
+        circuits = ref_conditionals.conditional_circuits_nbit(132, cases, final_measure=True,
+                conditional_type='gate')
+        targets = ref_conditionals.condtional_counts_nbit(132, cases, shots,
+                hex_counts=False)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
 
 
 class QasmConditionalUnitaryTests:
@@ -69,7 +99,7 @@ class QasmConditionalUnitaryTests:
         targets = ref_conditionals.conditional_counts_1bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -81,9 +111,36 @@ class QasmConditionalUnitaryTests:
         targets = ref_conditionals.conditional_counts_2bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
+
+    def test_conditional_unitary_64bit(self):
+        """Test conditional unitary operations on 64-bit conditional register."""
+        shots = 100
+        cases = ref_conditionals.conditional_cases_64bit()
+        circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
+                final_measure=True, conditional_type='unitary')
+        targets = ref_conditionals.condtional_counts_nbit(64, cases, shots,
+                hex_counts=False)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
+
+    def test_conditional_unitary_132bit(self):
+        """Test conditional unitary operations on 132-bit conditional register."""
+        shots = 100
+        cases = ref_conditionals.conditional_cases_132bit()
+        circuits = ref_conditionals.conditional_circuits_nbit(132, cases, final_measure=True,
+                conditional_type='unitary')
+        targets = ref_conditionals.condtional_counts_nbit(132, cases, shots,
+                hex_counts=False)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
 
 
 class QasmConditionalKrausTests:
@@ -103,7 +160,7 @@ class QasmConditionalKrausTests:
         targets = ref_conditionals.conditional_counts_1bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -115,9 +172,36 @@ class QasmConditionalKrausTests:
         targets = ref_conditionals.conditional_counts_2bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
+
+    def test_conditional_kraus_64bit(self):
+        """Test conditional kraus operations on 64-bit conditional register."""
+        shots = 100
+        cases = ref_conditionals.conditional_cases_64bit()
+        circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
+                final_measure=True, conditional_type='kraus')
+        targets = ref_conditionals.condtional_counts_nbit(64, cases, shots,
+                hex_counts=False)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
+
+    def test_conditional_kraus_132bit(self):
+        """Test conditional kraus operations on 132-bit conditional register."""
+        shots = 100
+        cases = ref_conditionals.conditional_cases_132bit()
+        circuits = ref_conditionals.conditional_circuits_nbit(132, cases, final_measure=True,
+                conditional_type='kraus')
+        targets = ref_conditionals.condtional_counts_nbit(132, cases, shots,
+                hex_counts=False)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
 
 
 class QasmConditionalSuperOpTests:
@@ -137,7 +221,7 @@ class QasmConditionalSuperOpTests:
         targets = ref_conditionals.conditional_counts_1bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
 
@@ -149,6 +233,33 @@ class QasmConditionalSuperOpTests:
         targets = ref_conditionals.conditional_counts_2bit(shots)
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
+
+    def test_conditional_superop_64bit(self):
+        """Test conditional superop operations on 64-bit conditional register."""
+        shots = 100
+        cases = ref_conditionals.conditional_cases_64bit()
+        circuits = ref_conditionals.conditional_circuits_nbit(64, cases,
+                final_measure=True, conditional_type='superop')
+        targets = ref_conditionals.condtional_counts_nbit(64, cases, shots,
+                hex_counts=False)
+
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)
+
+    def test_conditional_superop_132bit(self):
+        """Test conditional superop operations on 132-bit conditional register."""
+        shots = 100
+        cases = ref_conditionals.conditional_cases_132bit()
+        circuits = ref_conditionals.conditional_circuits_nbit(132, cases, final_measure=True,
+                conditional_type='superop')
+        targets = ref_conditionals.condtional_counts_nbit(132, cases, shots,
+                hex_counts=False)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, hex_counts=False, delta=0)

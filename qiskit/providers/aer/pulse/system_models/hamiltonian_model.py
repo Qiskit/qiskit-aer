@@ -18,7 +18,7 @@
 from collections import OrderedDict
 import numpy as np
 import numpy.linalg as la
-from qiskit.providers.aer.aererror import AerError
+from ...aererror import AerError
 from .string_model_parser.string_model_parser import HamiltonianParser
 
 
@@ -217,7 +217,7 @@ class HamiltonianModel():
 
         ham_full = np.zeros((full_dim, full_dim), dtype=complex)
         for ham_part in self._system:
-            ham_full += ham_part[0].full() * eval(ham_part[1])
+            ham_full += ham_part[0].data * eval(ham_part[1])
         # Remap eigenvalues and eigenstates
         evals, estates = la.eigh(ham_full)
 

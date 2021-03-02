@@ -21,7 +21,6 @@
 #include <string>
 #include "misc/warnings.hpp"
 DISABLE_WARNING_PUSH
-#include <numpy/arrayobject.h>
 #include <muparserx/mpParser.h>
 DISABLE_WARNING_POP
 

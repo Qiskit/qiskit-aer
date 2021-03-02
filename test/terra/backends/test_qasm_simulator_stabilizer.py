@@ -15,6 +15,8 @@ QasmSimulator Integration Tests
 """
 
 import unittest
+from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer import AerError
 from test.terra import common
 
 # Basic circuit instruction tests
@@ -30,6 +32,8 @@ from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTest
 from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
+# Save data tests
+from test.terra.backends.qasm_simulator.qasm_save import QasmSaveDataTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
@@ -51,6 +55,7 @@ class TestQasmStabilizerSimulator(common.QiskitAerTestCase,
                                   QasmReadoutNoiseTests,
                                   QasmResetNoiseTests,
                                   QasmPauliNoiseTests,
+                                  QasmSaveDataTests,
                                   QasmSnapshotStatevectorTests,
                                   QasmSnapshotDensityMatrixTests,
                                   QasmSnapshotProbabilitiesTests,
@@ -61,8 +66,10 @@ class TestQasmStabilizerSimulator(common.QiskitAerTestCase,
 
     BACKEND_OPTS = {
         "seed_simulator": 1337,
-        "method": "stabilizer"
+        "method": "stabilizer",
+        "max_parallel_threads": 1
     }
+    SIMULATOR = QasmSimulator(**BACKEND_OPTS)
 
 
 if __name__ == '__main__':

@@ -19,23 +19,21 @@ Entry/exit point for pulse simulation specified through PulseSimulator backend
 
 from warnings import warn
 import numpy as np
+from qiskit.quantum_info.operators.operator import Operator
 from ..system_models.string_model_parser.string_model_parser import NoiseParser
-from ..qutip_extra_lite import qobj_generators as qobj_gen
+from ..system_models.string_model_parser import operator_generators as op_gen
 from .digest_pulse_qobj import digest_pulse_qobj
-from ..qutip_extra_lite.qobj import Qobj
 from .pulse_sim_options import PulseSimOptions
 from .unitary_controller import run_unitary_experiments
 from .mc_controller import run_monte_carlo_experiments
 from .pulse_utils import get_ode_rhs_functor
 
 
-def pulse_controller(qobj, system_model, backend_options):
+def pulse_controller(qobj):
     """ Interprets PulseQobj input, runs simulations, and returns results
 
     Parameters:
-        qobj (qobj): pulse qobj containing a list of pulse schedules
-        system_model (PulseSystemModel): contains system model information
-        backend_options (dict): dict of options, which overrides other parameters
+        qobj (PulseQobj): pulse qobj containing a list of pulse schedules
 
     Returns:
         list: simulation results
@@ -44,21 +42,16 @@ def pulse_controller(qobj, system_model, backend_options):
         ValueError: if input is of incorrect format
         Exception: for invalid ODE options
     """
-
     pulse_sim_desc = PulseSimDescription()
     pulse_de_model = PulseInternalDEModel()
 
-    if backend_options is None:
-        backend_options = {}
-
-    noise_model = backend_options.get('noise_model', None)
-
-    # post warnings for unsupported features
-    _unsupported_warnings(noise_model)
+    config = qobj.config
 
     # ###############################
     # ### Extract model parameters
     # ###############################
+
+    system_model = config.system_model
 
     # Get qubit list and number
     qubit_list = system_model.subsystem_list
@@ -81,11 +74,11 @@ def pulse_controller(qobj, system_model, backend_options):
     dim_qub = ham_model._subsystem_dims
     dim_osc = {}
     # convert estates into a Qutip qobj
-    estates = [qobj_gen.state(state) for state in ham_model._estates.T[:]]
+    estates = [op_gen.state(state) for state in ham_model._estates.T[:]]
 
     # initial state set here
-    if 'initial_state' in backend_options:
-        pulse_sim_desc.initial_state = Qobj(backend_options['initial_state'])
+    if hasattr(config, 'initial_state'):
+        pulse_sim_desc.initial_state = op_gen.state(config.initial_state)
     else:
         pulse_sim_desc.initial_state = estates[0]
 
@@ -96,6 +89,11 @@ def pulse_controller(qobj, system_model, backend_options):
     pulse_de_model.dt = system_model.dt
 
     # Parse noise
+    noise_model = getattr(config, 'noise_model', None)
+
+    # post warnings for unsupported features
+    _unsupported_warnings(noise_model)
+
     if noise_model:
         noise = NoiseParser(noise_dict=noise_model, dim_osc=dim_osc, dim_qub=dim_qub)
         noise.parse()
@@ -110,8 +108,7 @@ def pulse_controller(qobj, system_model, backend_options):
     digested_qobj = digest_pulse_qobj(qobj,
                                       pulse_de_model.channels,
                                       system_model.dt,
-                                      qubit_list,
-                                      backend_options)
+                                      qubit_list)
 
     # extract simulation-description level qobj content
     pulse_sim_desc.shots = digested_qobj.shots
@@ -133,12 +130,14 @@ def pulse_controller(qobj, system_model, backend_options):
 
     # if it wasn't specified in the PulseQobj, draw from system_model
     if qubit_lo_freq is None:
-        qubit_lo_freq = system_model._qubit_freq_est
+        default_freq = getattr(config, 'qubit_freq_est', [np.inf])
+        if default_freq != [np.inf]:
+            qubit_lo_freq = default_freq
 
-    # if still None draw from the Hamiltonian
+    # if still None, or is the placeholder value draw from the Hamiltonian
     if qubit_lo_freq is None:
         qubit_lo_freq = system_model.hamiltonian.get_qubit_lo_from_drift()
-        warn('Warning: qubit_lo_freq was not specified in PulseQobj or in PulseSystemModel, ' +
+        warn('Warning: qubit_lo_freq was not specified in PulseQobj and there is no default, '
              'so it is beign automatically determined from the drift Hamiltonian.')
 
     pulse_de_model.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
@@ -147,14 +146,15 @@ def pulse_controller(qobj, system_model, backend_options):
     # ### Parse backend_options
     # # solver-specific information should be extracted in the solver
     # ###############################
-    pulse_sim_desc.seed = int(backend_options['seed']) if 'seed' in backend_options else None
-    pulse_sim_desc.q_level_meas = int(backend_options.get('q_level_meas', 1))
+
+    pulse_sim_desc.seed = int(config.seed) if hasattr(config, 'seed') else None
+    pulse_sim_desc.q_level_meas = int(getattr(config, 'q_level_meas', 1))
 
     # solver options
     allowed_solver_options = ['atol', 'rtol', 'nsteps', 'max_step',
                               'num_cpus', 'norm_tol', 'norm_steps',
                               'method']
-    solver_options = backend_options.get('solver_options', {})
+    solver_options = getattr(config, 'solver_options', {})
     for key in solver_options:
         if key not in allowed_solver_options:
             raise Exception('Invalid solver_option: {}'.format(key))
@@ -189,12 +189,12 @@ def pulse_controller(qobj, system_model, backend_options):
                     if not pulse_sim_desc.measurement_ops[qubit_list.index(jj)]:
                         q_level_meas = pulse_sim_desc.q_level_meas
                         pulse_sim_desc.measurement_ops[qubit_list.index(jj)] = \
-                            qobj_gen.qubit_occ_oper_dressed(jj,
-                                                            estates,
-                                                            h_osc=dim_osc,
-                                                            h_qub=dim_qub,
-                                                            level=q_level_meas
-                                                            )
+                            op_gen.qubit_occ_oper_dressed(jj,
+                                                          estates,
+                                                          h_osc=dim_osc,
+                                                          h_qub=dim_qub,
+                                                          level=q_level_meas
+                                                          )
 
         if not exp['can_sample']:
             pulse_sim_desc.can_sample = False
@@ -203,7 +203,12 @@ def pulse_controller(qobj, system_model, backend_options):
                        else run_monte_carlo_experiments)
     exp_results, exp_times = run_experiments(pulse_sim_desc, pulse_de_model, solver_options)
 
-    return format_exp_results(exp_results, exp_times, pulse_sim_desc)
+    output = {
+        'results': format_exp_results(exp_results, exp_times, pulse_sim_desc),
+        'success': True,
+        'qobj_id': qobj.qobj_id
+    }
+    return output
 
 
 def format_exp_results(exp_results, exp_times, pulse_sim_desc):
@@ -288,7 +293,6 @@ def format_exp_results(exp_results, exp_times, pulse_sim_desc):
                 results['data']['memory'] = results['data']['memory'][0]
 
         all_results.append(results)
-
     return all_results
 
 
@@ -348,16 +352,10 @@ class PulseInternalDEModel:
         self.num_h_terms = None
         self.c_num = None
         self.c_ops_data = None
-        self.c_ops_ind = None
-        self.c_ops_ptr = None
         self.n_ops_data = None
-        self.n_ops_ind = None
-        self.n_ops_ptr = None
         self.h_diag_elems = None
 
         self.h_ops_data = None
-        self.h_ops_ind = None
-        self.h_ops_ptr = None
 
         self._rhs_dict = None
 
@@ -373,45 +371,33 @@ class PulseInternalDEModel:
         H = [hpart[0] for hpart in self.system]
         self.num_h_terms = num_h_terms
 
-        # take care of collapse operators, if any
-        self.c_num = 0
-        if self.noise:
-            self.c_num = len(self.noise)
-            self.num_h_terms += 1
-
         self.c_ops_data = []
-        self.c_ops_ind = []
-        self.c_ops_ptr = []
         self.n_ops_data = []
-        self.n_ops_ind = []
-        self.n_ops_ptr = []
 
         self.h_diag_elems = self.h_diag
 
         # if there are any collapse operators
-        H_noise = 0
-        for kk in range(self.c_num):
-            c_op = self.noise[kk]
-            n_op = c_op.dag() * c_op
-            # collapse ops
-            self.c_ops_data.append(c_op.data.data)
-            self.c_ops_ind.append(c_op.data.indices)
-            self.c_ops_ptr.append(c_op.data.indptr)
-            # norm ops
-            self.n_ops_data.append(n_op.data.data)
-            self.n_ops_ind.append(n_op.data.indices)
-            self.n_ops_ptr.append(n_op.data.indptr)
-            # Norm ops added to time-independent part of
-            # Hamiltonian to decrease norm
-            H_noise -= 0.5j * n_op
+        self.c_num = 0
 
-        if H_noise:
+        if self.noise:
+            self.c_num = len(self.noise)
+            self.num_h_terms += 1
+            H_noise = Operator(np.zeros(self.noise[0].data.shape))
+            for kk in range(self.c_num):
+                c_op = self.noise[kk]
+                n_op = c_op.adjoint() @ c_op
+                # collapse ops
+                self.c_ops_data.append(c_op.data)
+                # norm ops
+                self.n_ops_data.append(n_op.data)
+                # Norm ops added to time-independent part of
+                # Hamiltonian to decrease norm
+                H_noise = Operator(H_noise.data - 0.5j * n_op.data)
+
             H = H + [H_noise]
 
         # construct data sets
-        self.h_ops_data = [-1.0j * hpart.data.data for hpart in H]
-        self.h_ops_ind = [hpart.data.indices for hpart in H]
-        self.h_ops_ptr = [hpart.data.indptr for hpart in H]
+        self.h_ops_data = [-1.0j * hpart.data for hpart in H]
 
         self._rhs_dict = {'freqs': list(self.freqs.values()),
                           'pulse_array': self.pulse_array,
@@ -420,8 +406,6 @@ class PulseInternalDEModel:
                           'vars_names': self.vars_names,
                           'num_h_terms': self.num_h_terms,
                           'h_ops_data': self.h_ops_data,
-                          'h_ops_ind': self.h_ops_ind,
-                          'h_ops_ptr': self.h_ops_ptr,
                           'h_diag_elems': self.h_diag_elems}
 
     def init_rhs(self, exp):

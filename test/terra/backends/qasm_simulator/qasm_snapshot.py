@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit, execute
 import qiskit.quantum_info as qi
-from qiskit.compiler import assemble
+from qiskit.compiler import assemble, transpile
 from qiskit.quantum_info import DensityMatrix, Pauli, Operator
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import AerError
@@ -87,7 +87,7 @@ class QasmSnapshotStatevectorTests:
                                                          post_measure=False)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -117,7 +117,7 @@ class QasmSnapshotStatevectorTests:
                                                             post_measure=False)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -150,7 +150,7 @@ class QasmSnapshotStatevectorTests:
                                                          post_measure=True)
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -180,7 +180,7 @@ class QasmSnapshotStatevectorTests:
                                                             post_measure=True)
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -239,7 +239,7 @@ class QasmSnapshotStabilizerTests:
                                                          post_measure=False)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -270,7 +270,7 @@ class QasmSnapshotStabilizerTests:
                                                             post_measure=False)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -304,7 +304,7 @@ class QasmSnapshotStabilizerTests:
                                                          post_measure=True)
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -335,7 +335,7 @@ class QasmSnapshotStabilizerTests:
                                                             post_measure=True)
 
         qobj = assemble(circuits, self.SIMULATOR, memory=True, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -369,7 +369,8 @@ class QasmSnapshotDensityMatrixTests:
         'statevector_thrust',
         'density_matrix',
         'density_matrix_gpu',
-        'density_matrix_thrust'
+        'density_matrix_thrust',
+        'matrix_product_state'
     ]
     BACKEND_OPTS = {}
 
@@ -378,6 +379,7 @@ class QasmSnapshotDensityMatrixTests:
         op = qi.random_unitary(8, seed=seed)
         circ = QuantumCircuit(3)
         circ.append(op, [0, 1, 2])
+        circ = transpile(circ, basis_gates=['u1', 'u2', 'u3', 'cx'])
         method = self.BACKEND_OPTS.get('method', 'automatic')
         label = 'density_matrix'
         snap_qargs = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0],
@@ -391,8 +393,8 @@ class QasmSnapshotDensityMatrixTests:
                 num_qubits = len(squbits)
                 tmp = circ.copy()
                 tmp.append(Snapshot(label, 'density_matrix', num_qubits), squbits)
-                result = execute(tmp, self.SIMULATOR,
-                                 backend_options=self.BACKEND_OPTS).result()
+                qobj = assemble(tmp, backend=self.SIMULATOR, **self.BACKEND_OPTS)
+                result = self.SIMULATOR.run(qobj).result()
                 if method not in QasmSnapshotDensityMatrixTests.SUPPORTED_QASM_METHODS:
                     self.assertFalse(result.success)
                 else:
@@ -448,7 +450,7 @@ class QasmSnapshotProbabilitiesTests:
         circuits = snapshot_probabilities_circuits(post_measure=False)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -481,7 +483,7 @@ class QasmSnapshotProbabilitiesTests:
         circuits = snapshot_probabilities_circuits(post_measure=True)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -541,7 +543,7 @@ class QasmSnapshotExpValPauliTests:
         circuits = snapshot_expval_circuits(pauli=True, post_measure=False)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -575,7 +577,7 @@ class QasmSnapshotExpValPauliTests:
         circuits = snapshot_expval_circuits(pauli=True, post_measure=True)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -635,7 +637,7 @@ class QasmSnapshotExpValPauliNCTests:
         qc.snapshot_expectation_value('final', [(1, pauli)], pauli_qubits)
         qobj = assemble(qc)
         result = self.SIMULATOR.run(
-            qobj, backend_options=self.BACKEND_OPTS).result()
+            qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         snapshots = result.data(0).get('snapshots', {})
         self.assertIn('expectation_value', snapshots)
@@ -703,7 +705,7 @@ class QasmSnapshotExpValMatrixTests:
         circuits = snapshot_expval_circuits(pauli=False, post_measure=False)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')
@@ -737,7 +739,7 @@ class QasmSnapshotExpValMatrixTests:
         circuits = snapshot_expval_circuits(pauli=False, post_measure=True)
 
         qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        job = self.SIMULATOR.run(qobj, backend_options=self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         method = self.BACKEND_OPTS.get('method', 'automatic')

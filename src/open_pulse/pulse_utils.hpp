@@ -27,6 +27,10 @@ py::object expect_psi_csr(py::array_t<complex_t> data,
                           py::array_t<complex_t> vec,
                           bool isherm);
 
+py::object expect_psi(py::array_t<complex_t> data,
+                      py::array_t<complex_t> vec,
+                      bool isherm);
+
 //============================================================================
 // Computes the occupation probabilities of the specifed qubits for
 // the given state.
@@ -89,5 +93,8 @@ py::array_t<complex_t> spmv_csr(py::array_t<complex_t> data,
                                 py::array_t<int> ind,
                                 py::array_t<int> ptr,
                                 py::array_t<complex_t> vec);
+
+py::array_t<complex_t> spmv(py::array_t<complex_t> data,
+                            py::array_t<complex_t> vec);
 
 #endif //PULSE_UTILS_H

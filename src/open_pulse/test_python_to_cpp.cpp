@@ -37,7 +37,7 @@ bool cpp_test_py_dict_string_list_of_list_of_doubles_to_cpp_map_string_vec_of_ve
     return map == expected;
 }
 
-bool cpp_test_np_array_of_doubles(PyArrayObject * val){
+bool cpp_test_np_array_of_doubles(py::array val){
     // val = np.array([0., 1., 2., 3.])
     auto vec = get_value<NpArray<double>>(val);
     if(vec[0] != 0. || vec[1] != 1. || vec[2] != 2. || vec[3] != 3.)
@@ -45,6 +45,17 @@ bool cpp_test_np_array_of_doubles(PyArrayObject * val){
 
     return true;
 }
+
+bool cpp_test_np_2D_array_of_doubles(py::array val){
+    // val = np.array([[0., 1., 2., 3.],[10.,20.,30.,40]])
+    auto vec = get_value<NpArray<double>>(val);
+    if(vec(0, 0) != 0. || vec(0, 1) != 1. || vec(0, 2) != 2. || vec(0, 3) != 3. ||
+       vec(1, 0) != 10. || vec(1, 1) != 20. || vec(1, 2) != 30. || vec(1, 3) != 40. )
+        return false;
+    
+    return true;
+}
+
 
 bool cpp_test_evaluate_hamiltonians(PyObject * val){
     // TODO: Add tests!

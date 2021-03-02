@@ -18,11 +18,7 @@ import warnings
 import numpy as np
 from numpy.linalg import norm
 from test.terra.common import QiskitAerTestCase
-import qiskit
 from qiskit.test.mock import FakeOpenPulse2Q
-import qiskit.pulse as pulse
-from qiskit.pulse import pulse_lib
-from qiskit.compiler import assemble
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.test.mock import FakeArmonk
@@ -33,6 +29,7 @@ class BaseTestPulseSystemModel(QiskitAerTestCase):
     """Tests for PulseSystemModel"""
 
     def setUp(self):
+        super().setUp()
         self._default_qubit_lo_freq = [4.9, 5.0]
         self._u_channel_lo = []
         self._u_channel_lo.append([UchannelLO(0, 1.0+0.0j)])
@@ -62,7 +59,6 @@ class BaseTestPulseSystemModel(QiskitAerTestCase):
         dt = 1.
 
         return PulseSystemModel(hamiltonian=ham_model,
-                                qubit_freq_est=self._default_qubit_lo_freq,
                                 u_channel_lo=self._u_channel_lo,
                                 subsystem_list=subsystem_list,
                                 dt=dt)
@@ -112,27 +108,6 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
 
         self.assertEqual(system_model.control_channel_labels, expected)
 
-    def test_qubit_lo_default(self):
-        """Test drawing of defaults form a backend."""
-        test_model = self._simple_system_model()
-        default_qubit_lo_freq = self._default_qubit_lo_freq
-        default_u_lo_freq = self._compute_u_lo_freqs(default_qubit_lo_freq)
-
-        # test output of default qubit_lo_freq
-        freqs = test_model.calculate_channel_frequencies()
-        self.assertAlmostEqual(freqs['D0'], default_qubit_lo_freq[0])
-        self.assertAlmostEqual(freqs['D1'], default_qubit_lo_freq[1])
-        self.assertAlmostEqual(freqs['U0'], default_u_lo_freq[0])
-        self.assertAlmostEqual(freqs['U1'], default_u_lo_freq[1])
-
-        # test defaults again, but with non-default hamiltonian
-        test_model = self._simple_system_model(v0=5.1, v1=4.9, j=0.02)
-        freqs = test_model.calculate_channel_frequencies()
-        self.assertAlmostEqual(freqs['D0'], default_qubit_lo_freq[0])
-        self.assertAlmostEqual(freqs['D1'], default_qubit_lo_freq[1])
-        self.assertAlmostEqual(freqs['U0'], default_u_lo_freq[0])
-        self.assertAlmostEqual(freqs['U1'], default_u_lo_freq[1])
-
     def test_qubit_lo_from_hamiltonian(self):
         """Test computation of qubit_lo_freq from the hamiltonian itself."""
         test_model = self._simple_system_model()
@@ -154,12 +129,13 @@ class TestPulseSystemModel(BaseTestPulseSystemModel):
         self.assertAlmostEqual(freqs['U1'], -0.203960780543)
 
     def test_qubit_lo_from_configurable_backend(self):
+        """Test computation of qubit_lo_freq from configurable backend."""
         backend = FakeArmonk()
         test_model = PulseSystemModel.from_backend(backend)
         qubit_lo_from_hamiltonian = test_model.hamiltonian.get_qubit_lo_from_drift()
         freqs = test_model.calculate_channel_frequencies(qubit_lo_from_hamiltonian)
         expected = getattr(backend.configuration(), 'hamiltonian')['vars']['wq0'] / (2 * np. pi)
-        self.assertAlmostEqual(freqs['D0'], expected, places=6)
+        self.assertAlmostEqual(freqs['D0'], expected, places=5)
 
     def _compute_u_lo_freqs(self, qubit_lo_freq):
         """

@@ -36,7 +36,7 @@ public:
   void optimize_circuit(Circuit& circ,
                         Noise::NoiseModel& noise,
                         const Operations::OpSet &opset,
-                        ExperimentData &data) const override;
+                        ExperimentResult &result) const override;
 
 private:
   // show debug info
@@ -55,7 +55,7 @@ void DelayMeasure::set_config(const json_t &config) {
 void DelayMeasure::optimize_circuit(Circuit& circ,
                                     Noise::NoiseModel& noise,
                                     const Operations::OpSet &allowed_opset,
-                                    ExperimentData &data) const {
+                                    ExperimentResult &result) const {
   // If there are no measure instructions or circuit already has
   // no instructions after measurement, or there is quantum noise
   // we don't need to optimize
@@ -118,8 +118,10 @@ void DelayMeasure::optimize_circuit(Circuit& circ,
   circ.can_sample = true;
   circ.ops.insert(circ.ops.end(), meas_ops.begin(), meas_ops.end());
   
-  if (verbose_)
-      data.add_metadata("delay_measure_verbose", circ.ops);
+  if (verbose_) {
+    result.metadata.add(circ.ops, "delay_measure_verbose");
+  }
+
 }
 
 

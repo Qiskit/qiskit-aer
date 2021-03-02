@@ -15,24 +15,23 @@ QasmSimulator matrix product state method integration tests
 
 import os
 import unittest
+from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer import AerError
 from test.terra import common
 
 # Basic circuit instruction tests
 from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
 from test.terra.backends.qasm_simulator.qasm_measure import QasmMeasureTests
 from test.terra.backends.qasm_simulator.qasm_measure import QasmMultiQubitMeasureTests
-from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTests
-from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsWaltzBasis
-from test.terra.backends.qasm_simulator.qasm_cliffords import QasmCliffordTestsMinimalBasis
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsTGate
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsCCXGate
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsWaltzBasis
-from test.terra.backends.qasm_simulator.qasm_noncliffords import QasmNonCliffordTestsMinimalBasis
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
-# from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
+from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmDiagonalGateTests
+from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardGateStatevectorTests
+from test.terra.backends.qasm_simulator.qasm_delay_gate import QasmDelayGateTests
+from test.terra.backends.qasm_simulator.qasm_initialize import QasmInitializeTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
+from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalKrausTests
 # Algorithm circuit tests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTests
 from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTestsWaltzBasis
@@ -41,13 +40,18 @@ from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTest
 from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
+# Save data tests
+from test.terra.backends.qasm_simulator.qasm_save import QasmSaveDataTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
+from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStabilizerTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabilitiesTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
+
 
 class TestQasmMatrixProductStateSimulator(
         common.QiskitAerTestCase,
@@ -56,27 +60,27 @@ class TestQasmMatrixProductStateSimulator(
         QasmResetTests,
         QasmConditionalGateTests,
         QasmConditionalUnitaryTests,
-        QasmCliffordTests,
-        QasmCliffordTestsWaltzBasis,
-        QasmCliffordTestsMinimalBasis,
-        QasmNonCliffordTestsTGate,
-        QasmNonCliffordTestsCCXGate,
-        QasmNonCliffordTestsWaltzBasis,
-        QasmNonCliffordTestsMinimalBasis,
+        QasmConditionalKrausTests,
         QasmAlgorithmTests,
         QasmAlgorithmTestsWaltzBasis,
         QasmAlgorithmTestsMinimalBasis,
         QasmUnitaryGateTests,
-        # QasmInitializeTests,  # THROWS: partial initialize not supported
+        QasmDiagonalGateTests,
+        QasmInitializeTests,
         QasmReadoutNoiseTests,
         QasmPauliNoiseTests,
         QasmResetNoiseTests,
+        QasmKrausNoiseTests,
+        QasmSaveDataTests,
         QasmSnapshotStatevectorTests,
+        QasmSnapshotDensityMatrixTests,
         QasmSnapshotProbabilitiesTests,
         QasmSnapshotStabilizerTests,
         QasmSnapshotExpValPauliTests,
         QasmSnapshotExpValPauliNCTests,
         QasmSnapshotExpValMatrixTests,
+        QasmStandardGateStatevectorTests,
+        QasmDelayGateTests
 ):
     """QasmSimulator matrix product state method tests."""
 
@@ -85,6 +89,8 @@ class TestQasmMatrixProductStateSimulator(
         "method": "matrix_product_state",
         "max_parallel_threads": 1
     }
+    SIMULATOR = QasmSimulator(**BACKEND_OPTS)
+
 
 if __name__ == '__main__':
     unittest.main()
