@@ -124,10 +124,10 @@ protected:
   virtual void apply_op(const int_t iChunk,const Operations::Op &op,
                          ExperimentResult &result,
                          RngEngine &rng,
-                         bool final_ops);
+                         bool final_ops) override;
 
   //swap between chunks
-  virtual void apply_chunk_swap(const reg_t &qubits);
+  virtual void apply_chunk_swap(const reg_t &qubits) override;
 
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
@@ -253,7 +253,7 @@ protected:
   // Threshold for chopping small values to zero in JSON
   double json_chop_threshold_ = 1e-10;
 
-  int qubit_scale(void)
+  int qubit_scale() override
   {
     return 2;
   }
