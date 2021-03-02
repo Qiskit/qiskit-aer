@@ -20,6 +20,12 @@ Circuit Extensions (:mod:`qiskit.providers.aer.extensions`)
 Snapshots
 =========
 
+.. note:
+
+    Snapshot extensions will be deprecated after qiskit-aer 0.8 release.
+    They have been superceded by the save instructions in the
+    :mod:`qiskit.providers.aer.library` module.
+
 Snapshot instructions allow taking a snapshot of the current state of the
 simulator without effecting the outcome of the simulation. These can be
 used with the `QasmSimulator` backend to return the expectation value of
