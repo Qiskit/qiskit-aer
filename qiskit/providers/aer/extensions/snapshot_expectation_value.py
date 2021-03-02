@@ -38,7 +38,19 @@ class SnapshotExpectationValue(Snapshot):
 
         Raises:
             ExtensionError: if snapshot is invalid.
+
+        .. note::
+
+            This instruction will be deprecated after the qiskit-aer 0.8 release.
+            It has been superseded by the
+            :class:`qiskit.providers.aer.library.SaveExpectationValue` and
+            :class:`qiskit.providers.aer.library.SaveExpectationValueVariance`
+            instructions.
         """
+        warn('The `SnapshotExpectationValue` instruction will be deprecated in the'
+             ' future. It has been superseded by the `SaveExpectationValue` and'
+             ' `SaveExpectationValueVariance` instructions.',
+             PendingDeprecationWarning)
         if variance:
             warn('The snapshot `variance` kwarg has been deprecated and will'
                  ' be removed in qiskit-aer 0.8. To compute variance use'
@@ -140,8 +152,19 @@ def snapshot_expectation_value(self, label, op, qubits,
 
     Raises:
         ExtensionError: if snapshot is invalid.
-    """
 
+    .. note::
+
+        This method will be deprecated after the qiskit-aer 0.8 release.
+        It has been superseded by the
+        :func:`qiskit.providers.aer.library.save_expectation_value` and
+        :func:`qiskit.providers.aer.library.save_expectation_value_variance`
+        circuit methods.
+    """
+    warn('The `snapshot_expectation_value` circuit method will be deprecated '
+         ' in the future. It has been superseded by the `save_expectation_value`'
+         ' and `save_expectation_value_variance` circuit methods.',
+         PendingDeprecationWarning)
     snapshot_register = Snapshot.define_snapshot_register(self, qubits=qubits)
 
     return self.append(
