@@ -58,7 +58,7 @@ public:
 #endif
 
   // Set the size of the vector in terms of qubit number
-  void set_num_qubits(size_t num_qubits);
+  void set_num_qubits(size_t num_qubits) override;
 
   // Return the number of rows in the matrix
   size_t num_rows() const {return rows_;}

@@ -130,7 +130,7 @@ public:
 
   // Return the Z-basis measurement outcome probabilities [P(0), ..., P(2^N-1)]
   // for measurement of N-qubits.
-  virtual std::vector<double> probabilities(const reg_t &qubits) const;
+  virtual std::vector<double> probabilities(const reg_t &qubits) const override;
 
   // Return M sampled outcomes for Z-basis measurement of all qubits
   // The input is a length M list of random reals between [0, 1) used for

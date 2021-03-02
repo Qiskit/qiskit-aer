@@ -128,7 +128,7 @@ protected:
   virtual void apply_op(const int_t iChunk,const Operations::Op &op,
                          ExperimentResult &result,
                          RngEngine &rng,
-                         bool final_ops = false);
+                         bool final_ops = false) override;
 
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
@@ -455,7 +455,7 @@ template <class statevec_t>
 auto State<statevec_t>::move_to_vector()
 {
   if(BaseState::num_global_chunks_ == 1){
-    return BaseState::qregs_[0].move_to_vector();
+      return BaseState::qregs_[0].move_to_vector();
   }
   else{
     int_t iChunk;
