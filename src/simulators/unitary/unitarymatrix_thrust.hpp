@@ -268,7 +268,7 @@ void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &m
       tmp[row + nrows * col] = mat(row, col);
     }
 
-  BaseVector::chunk_->CopyIn((thrust::complex<data_t>*)&tmp[0]);
+  BaseVector::chunk_->CopyIn((thrust::complex<data_t>*)&tmp[0], BaseVector::data_size_);
 }
 
 template <class data_t>
