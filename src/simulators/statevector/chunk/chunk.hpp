@@ -158,13 +158,13 @@ public:
   {
     chunk_container_.lock()->CopyOut(dest,chunk_pos_);
   }
-  void CopyIn(thrust::complex<data_t>* src)
+  void CopyIn(thrust::complex<data_t>* src, uint_t size)
   {
-    chunk_container_.lock()->CopyIn(src,chunk_pos_);
+    chunk_container_.lock()->CopyIn(src, chunk_pos_, size);
   }
-  void CopyOut(thrust::complex<data_t>* dest)
+  void CopyOut(thrust::complex<data_t>* dest, uint_t size)
   {
-    chunk_container_.lock()->CopyOut(dest,chunk_pos_);
+    chunk_container_.lock()->CopyOut(dest, chunk_pos_, size);
   }
   void Swap(std::shared_ptr<Chunk<data_t>> src)
   {
