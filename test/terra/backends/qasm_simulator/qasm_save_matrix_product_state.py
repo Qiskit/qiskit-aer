@@ -31,15 +31,13 @@ class QasmSaveMatrixProductStateTests:
         SUPPORTED_METHODS = ['matrix_product_state']
 
         # Target mps structure
-        target = []
-        q_vec = [([[(1-0j), -0j]],
+        q_vec = ([([[(1-0j), -0j]],
            [[-0j, (1-0j)]]),
           ([[(1-0j)], [-0j]],
            [[-0j], [(1-0j)]]),
-          ([[(1+0j)]], [[0j]])],
+          ([[(1+0j)]], [[0j]])])
         lambda_vec = [[0.7071067811865475, 0.7071067811865475], [1.0]]
-        target.append(q_vec)
-        target.append(lambda_vec)
+        target= (q_vec, lambda_vec)
 
         # Matrix product state test circuit
         circ = QuantumCircuit(3)
@@ -47,11 +45,11 @@ class QasmSaveMatrixProductStateTests:
         circ.cx(0, 1)
 
         # Add save to circuit
-        save_key = 'mps'
-        circ.save_matrix_product_state(key=save_key)
+        label = 'mps'
+        circ.save_matrix_product_state(label=label)
 
         # Run
-        shots = 1
+        shots = 10
         opts = self.BACKEND_OPTS.copy()
         qobj = assemble(circ, self.SIMULATOR, shots=shots)
         result = self.SIMULATOR.run(qobj, **opts).result()
@@ -61,7 +59,6 @@ class QasmSaveMatrixProductStateTests:
         else:
             self.assertTrue(result.success)
             data = result.data(0)
-            self.assertIn(save_key, data)
-            value = result.data(0)[save_key]
-            print(value)
+            self.assertIn(label, data)
+            value = result.data(0)[label]
             self.assertAlmostEqual(value, target)
