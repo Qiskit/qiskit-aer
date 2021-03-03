@@ -837,18 +837,18 @@ public:
     thrust::complex<data_t>* vec;
     thrust::complex<data_t> q0;
     double ret = 0.0;
-    uint_t qubit_idx, idx;
+    uint_t idx_vec, idx_mat;
 
     vec = this->data_;
 
-    qubit_idx = ((i << 1) & mask_u_) | (i & mask_l_);
-    idx = qubit_idx ^ x_mask_ + rows_ * qubit_idx;
+    idx_vec = ((i << 1) & mask_u_) | (i & mask_l_);
+    idx_mat = idx_vec ^ x_mask_ + rows_ * idx_vec;
 
-    q0 = vec[idx];
+    q0 = vec[idx_mat];
     q0 = 2 * phase_ * q0;
     ret = q0.real();
     if(z_mask_ != 0){
-      if(pop_count_kernel(qubit_idx & z_mask_) & 1)
+      if(pop_count_kernel(idx_vec & z_mask_) & 1)
         ret = -ret;
     }
     return ret;
