@@ -20,9 +20,6 @@
 #include "framework/types.hpp"
 #include "framework/creg.hpp"
 
-#include <chrono>
-
-
 #ifdef AER_MPI
 #include <mpi.h>
 #endif
@@ -526,9 +523,6 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
   nOp = ops.size();
   iOp = 0;
   while(iOp < nOp){
-    std::chrono::system_clock::time_point tstart,tend;
-    tstart = std::chrono::system_clock::now();
-
     if(ops[iOp].type == Operations::OpType::gate && ops[iOp].name == "swap_chunk"){
       //apply swap between chunks
       apply_chunk_swap(ops[iOp].qubits);
@@ -575,10 +569,6 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
       apply_op(-1,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
     }
     iOp++;
-
-    tend = std::chrono::system_clock::now();
-    std::cout << " : " << std::chrono::duration_cast<std::chrono::milliseconds>(tend-tstart).count() << " msec" << std::endl;
-
   }
 }
 
