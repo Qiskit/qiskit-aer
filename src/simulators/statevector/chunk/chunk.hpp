@@ -51,8 +51,7 @@ public:
   }
   ~Chunk()
   {
-    if(chunk_container_)
-      chunk_container_.reset();
+    chunk_container_.reset();
     if(cache_)
       cache_.reset();
   }
