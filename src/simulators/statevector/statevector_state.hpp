@@ -64,7 +64,7 @@ const Operations::OpSet StateOpSet(
      "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
      "mcsx",   "delay", "pauli", "mcx_gray"},
     // Snapshots
-    {"statevector", "statevector_ket", "memory", "register", "probabilities",
+    {"statevector", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli", "density_matrix",
      "density_matrix_with_variance", "expectation_value_pauli_with_variance",
      "expectation_value_matrix_single_shot", "expectation_value_matrix",
@@ -82,7 +82,6 @@ enum class Gates {
 // Allowed snapshots enum class
 enum class Snapshots {
   statevector,
-  statevector_ket,
   cmemory,
   cregister,
   probs,
@@ -417,7 +416,6 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
 template <class statevec_t>
 const stringmap_t<Snapshots> State<statevec_t>::snapshotset_(
     {{"statevector", Snapshots::statevector},
-     {"statevector_ket", Snapshots::statevector_ket},
      {"probabilities", Snapshots::probs},
      {"expectation_value_pauli", Snapshots::expval_pauli},
      {"expectation_value_matrix", Snapshots::expval_matrix},
@@ -592,9 +590,9 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
         case OpType::save_statevec:
           apply_save_statevector(op, result, final_ops && ops.size() == i + 1);
           break;
-        // case OpType::save_statevec_ket:
-        //   apply_save_statevector_ket(op, result);
-        //   break;
+        case OpType::save_statevec_ket:
+          apply_save_statevector_ket(op, result);
+          break;
         case OpType::save_probs:
         case OpType::save_probs_ket:
           apply_save_probs(op, result);
@@ -666,9 +664,7 @@ void State<statevec_t>::apply_save_statevector_ket(const Operations::Op &op,
         op.name + " was not applied to all qubits."
         " Only the full statevector can be saved.");
   }
-  // TODO: compute state ket
-  std::map<std::string, complex_t> state_ket;
-
+  auto state_ket = BaseState::qreg_.vector_ket(json_chop_threshold_);
   BaseState::save_data_pershot(result, op.string_params[0],
                                std::move(state_ket), op.save_type);
 }
@@ -742,9 +738,6 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
         result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0],
                                          BaseState::qreg_.copy_to_vector());
       }
-      break;
-    case Snapshots::statevector_ket:
-      data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.vector_ket(json_chop_threshold_));
       break;
     case Snapshots::cmemory:
       BaseState::snapshot_creg_memory(op, result);
