@@ -104,7 +104,7 @@ public:
   // Config: {"omp_qubit_threshold": 7}
   virtual void set_config(const json_t &config) override;
 
-  virtual void allocate(uint_t num_qubits,uint_t block_bits);
+  virtual void allocate(uint_t num_qubits,uint_t block_bits) override;
 
   //-----------------------------------------------------------------------
   // Additional methods

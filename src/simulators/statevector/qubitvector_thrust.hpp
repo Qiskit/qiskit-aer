@@ -613,7 +613,7 @@ cvector_t<data_t> QubitVectorThrust<data_t>::vector() const
 {
   cvector_t<data_t> ret(data_size_, 0.);
 
-  chunk_->CopyOut((thrust::complex<data_t>*)&ret[0]);
+  chunk_->CopyOut((thrust::complex<data_t>*)&ret[0], data_size_);
 
 #ifdef AER_DEBUG
   DebugMsg("vector");
@@ -626,7 +626,7 @@ template <typename data_t>
 AER::Vector<std::complex<data_t>> QubitVectorThrust<data_t>::copy_to_vector() const 
 {
   cvector_t<data_t> ret(data_size_, 0.);
-  chunk_->CopyOut((thrust::complex<data_t>*)&ret[0]);
+  chunk_->CopyOut((thrust::complex<data_t>*)&ret[0], data_size_);
 
 #ifdef AER_DEBUG
   DebugMsg("copy_to_vector");
@@ -641,7 +641,7 @@ AER::Vector<std::complex<data_t>> QubitVectorThrust<data_t>::move_to_vector()
   std::complex<data_t>* pRet;
   pRet = reinterpret_cast<std::complex<data_t>*>(malloc(sizeof(std::complex<data_t>) * data_size_));
 
-  chunk_->CopyOut((thrust::complex<data_t>*)pRet);
+  chunk_->CopyOut((thrust::complex<data_t>*)pRet, data_size_);
 
   const auto vec = AER::Vector<std::complex<data_t>>::move_from_buffer(data_size_, pRet);
 
@@ -1107,7 +1107,7 @@ void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &
     tmp[i] = statevec[i];
   }
 
-  chunk_->CopyIn((thrust::complex<data_t>*)&tmp[0]);
+  chunk_->CopyIn((thrust::complex<data_t>*)&tmp[0], data_size_);
 
 #ifdef AER_DEBUG
   DebugMsg("initialize_from_vector");
@@ -1128,7 +1128,7 @@ void QubitVectorThrust<data_t>::initialize_from_data(const std::complex<data_t>*
   DebugMsg("calling initialize_from_data");
 #endif
 
-  chunk_->CopyIn((thrust::complex<data_t>*)(statevec));
+  chunk_->CopyIn((thrust::complex<data_t>*)(statevec), data_size_);
 
 #ifdef AER_DEBUG
   DebugMsg("initialize_from_data");

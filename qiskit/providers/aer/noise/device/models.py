@@ -249,11 +249,11 @@ def _excited_population(freq, temperature):
     if freq != inf and temperature != 0:
         # Compute the excited state population from qubit
         # frequency and temperature
-        # Boltzman constant  kB = 6.62607015e-34 (eV/K)
-        # Planck constant h =  6.62607015e-34 (eV.s)
+        # Boltzman constant  kB = 8.617333262-5 (eV/K)
+        # Planck constant h = 4.135667696e-15 (eV.s)
         # qubit temperature temperatue = T (mK)
         # qubit frequency frequency = f (GHz)
-        # excited state population = 1/(1+exp((2hf*1e9)/(kbT*1e-3)))
+        # excited state population = 1/(1+exp((2*h*f*1e9)/(kb*T*1e-3)))
         exp_param = exp((95.9849 * freq) / abs(temperature))
         population = 1 / (1 + exp_param)
         if temperature < 0:
