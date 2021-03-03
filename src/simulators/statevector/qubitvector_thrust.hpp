@@ -2590,7 +2590,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
   else{
     thrust::complex<data_t>* pChunk0;
     thrust::complex<data_t>* pChunk1;
-    std::shared_ptr<Chunk<data_t>> pBuffer0;
+    std::shared_ptr<Chunk<data_t>> pBuffer0 = nullptr;
     std::shared_ptr<Chunk<data_t>> pExec;
 
     if(chunk_->device() >= 0){
