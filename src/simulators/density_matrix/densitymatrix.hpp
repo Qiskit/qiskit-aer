@@ -125,6 +125,20 @@ public:
   // outcome in [0, 2^num_qubits - 1]
   virtual double probability(const uint_t outcome) const override;
 
+  //-----------------------------------------------------------------------
+  // Expectation Values
+  //-----------------------------------------------------------------------
+
+  // Return Pauli expectation value
+  double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
+  //for multi-chunk inter chunk expectation
+  double expval_pauli(const reg_t &qubits, const std::string &pauli,
+                      const QubitVector<data_t>& pair_chunk, 
+                      const uint_t z_count,
+                      const uint_t z_count_pair) const {
+    return BaseVector::expval_pauli(qubits, pauli, pair_chunk, z_count, z_count_pair);          
+  }
+
 protected:
 
   // Construct a vectorized superoperator from a vectorized matrix
@@ -342,6 +356,54 @@ void DensityMatrix<data_t>::apply_toffoli(const uint_t qctrl0,
   const reg_t qubits = {{qctrl0, qctrl1, qtrgt,
                          qctrl0 + nq, qctrl1 + nq, qtrgt + nq}};
   BaseVector::apply_permutation_matrix(qubits, pairs);
+}
+
+template <typename data_t>
+double DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
+                                           const std::string &pauli) const {
+
+  uint_t x_mask, z_mask, num_y, x_max;
+  std::tie(x_mask, z_mask, num_y, x_max) = QV::pauli_masks_and_phase(qubits, pauli);
+
+  // Special case for only I Paulis
+  if (x_mask + z_mask == 0) {
+    return std::real(BaseMatrix::trace());
+  }
+
+  // Size of density matrix 
+  const size_t nrows = BaseMatrix::rows_;
+
+  // specialize x_max == 0
+  if (!x_mask) {
+    auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
+      (void)val_im; // unused
+      auto val = std::real(BaseVector::data_[i * (1 + nrows)]);
+      if (z_mask && (AER::Utils::popcount(i & z_mask) & 1)) {
+        val = -val;
+      }
+      val_re += val;
+    };
+    return std::real(BaseVector::apply_reduction_lambda(std::move(lambda), size_t(0), nrows));
+  }
+
+  auto phase = std::complex<data_t>(1.0);
+  QV::add_y_phase(num_y, phase);
+
+  const uint_t mask_u = ~MASKS[x_max + 1];
+  const uint_t mask_l = MASKS[x_max];
+  auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
+    (void)val_im; // unused
+    auto qubit_idx = ((i << 1) & mask_u) | (i & mask_l);
+    auto idx = qubit_idx ^ x_mask + nrows * qubit_idx;
+    // Since rho is hermitian rho[i, j] + rho[j, i] = 2 real(rho[i, j])
+    auto val = 2 * std::real(phase * BaseVector::data_[idx]);
+    if (z_mask && (AER::Utils::popcount(qubit_idx & z_mask) & 1)) {
+      val = - val;
+    }
+    val_re += val;
+  };
+  return std::real(BaseVector::apply_reduction_lambda(
+    std::move(lambda), size_t(0), nrows >> 1));
 }
 
 //-----------------------------------------------------------------------

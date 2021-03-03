@@ -119,7 +119,6 @@ public:
   // Apply a 3-qubit toffoli gate
   void apply_toffoli(const uint_t qctrl0, const uint_t qctrl1, const uint_t qtrgt);
 
-
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
   //-----------------------------------------------------------------------
@@ -137,6 +136,19 @@ public:
   // generating samples.
   virtual reg_t sample_measure(const std::vector<double> &rnds) const override;
 
+  //-----------------------------------------------------------------------
+  // Expectation Values
+  //-----------------------------------------------------------------------
+
+  // Return the expectation value of an N-qubit Pauli matrix.
+  // The Pauli is input as a length N string of I,X,Y,Z characters.
+  double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
+  //for multi-chunk inter chunk expectation
+  double expval_pauli(const reg_t &qubits, const std::string &pauli,
+                      const QubitVectorThrust<data_t>& pair_chunk,
+                      const uint_t z_count,const uint_t z_count_pair) const {
+    return BaseVector::expval_pauli(qubits, pauli, pair_chunk, z_count, z_count_pair);               
+  }
 
 protected:
   // Construct a vectorized superoperator from a vectorized matrix
@@ -752,6 +764,126 @@ void DensityMatrixThrust<data_t>::apply_toffoli(const uint_t qctrl0,
 
 }
 
+//-----------------------------------------------------------------------
+// Expectation Values
+//-----------------------------------------------------------------------
+
+//special case Z only
+template <typename data_t>
+class expval_pauli_Z_func_dm : public GateFuncBase<data_t>
+{
+protected:
+  uint_t z_mask_;
+  uint_t diag_stride_;
+public:
+  expval_pauli_Z_func_dm(uint_t z,uint_t stride)
+  {
+    z_mask_ = z;
+    diag_stride_ = 1 + stride;
+  }
+
+  bool is_diagonal(void)
+  {
+    return true;
+  }
+
+  __host__ __device__ double operator()(const uint_t &i) const
+  {
+    thrust::complex<data_t>* vec;
+    thrust::complex<data_t> q0;
+    double ret = 0.0;
+
+    vec = this->data_;
+    q0 = vec[i * diag_stride_];
+    ret = q0.real();
+
+    if(z_mask_ != 0){
+      if(pop_count_kernel(i & z_mask_) & 1)
+        ret = -ret;
+    }
+
+    return ret;
+  }
+  const char* name(void)
+  {
+    return "expval_pauli_Z";
+  }
+};
+
+template <typename data_t>
+class expval_pauli_XYZ_func_dm : public GateFuncBase<data_t>
+{
+protected:
+  uint_t x_mask_;
+  uint_t z_mask_;
+  uint_t mask_l_;
+  uint_t mask_u_;
+  thrust::complex<data_t> phase_;
+  uint_t rows_;
+public:
+  expval_pauli_XYZ_func_dm(uint_t x,uint_t z,uint_t x_max,std::complex<data_t> p,uint_t stride)
+  {
+    rows_ = stride;
+    x_mask_ = x;
+    z_mask_ = z;
+    phase_ = p;
+
+    mask_u_ = ~((1ull << (x_max+1)) - 1);
+    mask_l_ = (1ull << x_max) - 1;
+  }
+
+  __host__ __device__ double operator()(const uint_t &i) const
+  {
+    thrust::complex<data_t>* vec;
+    thrust::complex<data_t> q0;
+    double ret = 0.0;
+    uint_t qubit_idx, idx;
+
+    vec = this->data_;
+
+    qubit_idx = ((i << 1) & mask_u_) | (i & mask_l_);
+    idx = qubit_idx ^ x_mask_ + rows_ * qubit_idx;
+
+    q0 = vec[idx];
+    q0 = 2 * phase_ * q0;
+    ret = q0.real();
+    if(z_mask_ != 0){
+      if(pop_count_kernel(qubit_idx & z_mask_) & 1)
+        ret = -ret;
+    }
+    return ret;
+  }
+  const char* name(void)
+  {
+    return "expval_pauli_XYZ";
+  }
+};
+
+template <typename data_t>
+double DensityMatrixThrust<data_t>::expval_pauli(const reg_t &qubits,
+                                                 const std::string &pauli) const 
+{
+  uint_t x_mask, z_mask, num_y, x_max;
+  std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
+
+  // Special case for only I Paulis
+  if (x_mask + z_mask == 0) {
+    return BaseMatrix::trace().real();
+  }
+
+  // specialize x_max == 0
+  if(x_mask == 0) {
+    return BaseVector::apply_function_sum(
+      expval_pauli_Z_func_dm<data_t>(z_mask, BaseMatrix::rows_) );
+  }
+
+  // Compute the overall phase of the operator.
+  // This is (-1j) ** number of Y terms modulo 4
+  auto phase = std::complex<data_t>(1.0);
+  add_y_phase(num_y, phase);
+  return BaseVector::apply_function_sum(
+    expval_pauli_XYZ_func_dm<data_t>(x_mask, z_mask, x_max, phase, BaseMatrix::rows_) );
+}
 
 //-----------------------------------------------------------------------
 // Z-measurement outcome probabilities

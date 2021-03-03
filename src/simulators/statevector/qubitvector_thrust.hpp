@@ -3457,12 +3457,11 @@ class expval_pauli_Z_func : public GateFuncBase<data_t>
 {
 protected:
   uint_t z_mask_;
-  thrust::complex<data_t> phase_;
+
 public:
-  expval_pauli_Z_func(uint_t z,std::complex<data_t> p)
+  expval_pauli_Z_func(uint_t z)
   {
     z_mask_ = z;
-    phase_ = p;
   }
 
   bool is_diagonal(void)
@@ -3479,7 +3478,6 @@ public:
     vec = this->data_;
 
     q0 = vec[i];
-    q0 = phase_ * q0;
     ret = q0.real()*q0.real() + q0.imag()*q0.imag();
 
     if(z_mask_ != 0){
@@ -3570,17 +3568,16 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
   if (x_mask + z_mask == 0) {
     return norm();
   }
+  
+  // specialize x_max == 0
+  if(x_mask == 0) {
+    return apply_function_sum( expval_pauli_Z_func<data_t>(z_mask) );
+  }
 
   // Compute the overall phase of the operator.
   // This is (-1j) ** number of Y terms modulo 4
   auto phase = std::complex<data_t>(1.0);
   add_y_phase(num_y, phase);
-
-  // specialize x_max == 0
-  if(x_mask == 0) {
-    return apply_function_sum( expval_pauli_Z_func<data_t>(z_mask, phase) );
-  }
-
   return apply_function_sum( expval_pauli_XYZ_func<data_t>(x_mask, z_mask, x_max, phase) );
 }
 
