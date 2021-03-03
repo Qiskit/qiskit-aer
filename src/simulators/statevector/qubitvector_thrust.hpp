@@ -313,13 +313,11 @@ public:
 
   // Return the expectation value of an N-qubit Pauli matrix.
   // The Pauli is input as a length N string of I,X,Y,Z characters.
-  double expval_pauli(const reg_t &qubits, const std::string &pauli,
-                      const complex_t &coeff = 1) const;
+  double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
   //for multi-chunk inter chunk expectation
   double expval_pauli(const reg_t &qubits, const std::string &pauli,
                       const QubitVectorThrust<data_t>& pair_chunk,
-                      const uint_t z_count,const uint_t z_count_pair,
-                      const complex_t &coeff = 1) const;
+                      const uint_t z_count,const uint_t z_count_pair) const;
 
 
   //-----------------------------------------------------------------------
@@ -3563,8 +3561,7 @@ public:
 
 template <typename data_t>
 double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
-                                               const std::string &pauli,
-                                               const complex_t &coeff) const 
+                                               const std::string &pauli) const 
 {
   uint_t x_mask, z_mask, num_y, x_max;
   std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
@@ -3576,7 +3573,7 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
 
   // Compute the overall phase of the operator.
   // This is (-1j) ** number of Y terms modulo 4
-  auto phase = std::complex<data_t>(coeff);
+  auto phase = std::complex<data_t>(1.0);
   add_y_phase(num_y, phase);
 
   // specialize x_max == 0
@@ -3655,8 +3652,7 @@ template <typename data_t>
 double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
                                                const std::string &pauli,
                                                const QubitVectorThrust<data_t>& pair_chunk,
-                                               const uint_t z_count,const uint_t z_count_pair,
-                                               const complex_t &coeff) const 
+                                               const uint_t z_count,const uint_t z_count_pair) const 
 {
   uint_t x_mask, z_mask, num_y, x_max;
   std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
@@ -3709,7 +3705,7 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
 
   // Compute the overall phase of the operator.
   // This is (-1j) ** number of Y terms modulo 4
-  auto phase = std::complex<data_t>(coeff);
+  auto phase = std::complex<data_t>(1.0);
   add_y_phase(num_y, phase);
 
   ret = apply_function_sum( expval_pauli_inter_chunk_func<data_t>(x_mask, z_mask, phase, pair_ptr,z_count,z_count_pair) );
