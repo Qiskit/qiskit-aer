@@ -372,12 +372,13 @@ double DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
 
   // Size of density matrix 
   const size_t nrows = BaseMatrix::rows_;
+  const size_t diag_stride = 1 + nrows;
 
   // specialize x_max == 0
   if (!x_mask) {
     auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
       (void)val_im; // unused
-      auto val = std::real(BaseVector::data_[i * (1 + nrows)]);
+      auto val = std::real(BaseVector::data_[i * diag_stride]);
       if (z_mask && (AER::Utils::popcount(i & z_mask) & 1)) {
         val = -val;
       }
