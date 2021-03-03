@@ -910,7 +910,6 @@ rvector_t State::measure_probs(const reg_t &qubits) const {
 std::vector<reg_t> State::sample_measure(const reg_t &qubits,
                                          uint_t shots,
                                          RngEngine &rng) {
-
   // There are two alternative algorithms for sample measure
   // We choose the one that is optimal relative to the total number 
   // of qubits,and the number of shots.
@@ -973,11 +972,11 @@ sample_measure_using_probabilities(const reg_t &qubits,
   std::vector<reg_t> all_samples;
   all_samples.reserve(shots);
   for (int_t val : allbit_samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, qreg_.num_qubits());
+    reg_t allbit_sample = Utils::int2reg(val, 2, qubits.size());
     reg_t sample;
     sample.reserve(qubits.size());
-    for (uint_t qubit : qubits) {
-      sample.push_back(allbit_sample[qubit]);
+    for (uint_t j=0; j<qubits.size(); j++){
+      sample.push_back(allbit_sample[j]);
     }
     all_samples.push_back(sample);
   }
