@@ -33,8 +33,8 @@
 namespace AER {
 namespace MatrixProductState {
 
-using cmat = std::vector<std::vector<complex_t>>;
-
+  //using cmat = std::vector<std::vector<complex_t>>;
+using cmat = cmatrix_t;
 using MPSContainer = std::pair<std::vector<std::pair<cmat, cmat>>, 
 			       std::vector<rvector_t>>;
 
@@ -177,7 +177,8 @@ static void contract_2_dimensions(const MPS_Tensor &left_gamma,
 				  const MPS_Tensor &right_gamma,
 				  uint_t omp_threads,
 				  cmatrix_t &result);
-std::pair<cmat, cmat> copy_to_matrix_pair() const;
+std::pair<cmat, cmat> copy_to_matrix_pair();
+std::pair<cmat, cmat> move_to_matrix_pair();
 
   // public static class members
 static const double SQR_HALF;
@@ -675,24 +676,29 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
   reshaped_tensor = MPS_Tensor(new_data_vector);
 }
 
-std::pair<cmat, cmat> MPS_Tensor::copy_to_matrix_pair() const {
+std::pair<cmat, cmat> MPS_Tensor::copy_to_matrix_pair() {
   if (get_dim() != 2)
     throw std::runtime_error("Error: Dimension of MPS must be 2");
 
   cmat cmat0, cmat1;
-  cmat0.resize(data_[0].GetRows());
-  cmat1.resize(data_[0].GetRows());
-  for (auto i=0; i<data_[0].GetRows(); i++) {
-    cmat0[i].resize(data_[0].GetColumns());
-    cmat1[i].resize(data_[0].GetColumns());
-    for (auto j=0; j<data_[0].GetColumns(); j++) {
-      cmat0[i][j] = data_[0](i,j);
-      cmat1[i][j] = data_[1](i,j);
-    }
-  }
+  cmat0 = matrix<complex_t>::copy_from_buffer(data_[0].GetRows(), data_[0].GetColumns(), 
+  					      data_[0].data());
+  cmat1 = matrix<complex_t>::copy_from_buffer(data_[1].GetRows(), data_[1].GetColumns(), 
+  					      data_[1].data());
   return std::pair<cmat, cmat>(cmat0, cmat1);
 }
-  
+
+std::pair<cmat, cmat> MPS_Tensor::move_to_matrix_pair() {
+  if (get_dim() != 2)
+    throw std::runtime_error("Error: Dimension of MPS must be 2");
+
+  cmat cmat0, cmat1;
+  cmat0 = matrix<complex_t>::move_from_buffer(data_[0].GetRows(), data_[0].GetColumns(), 
+  					      data_[0].data());
+  cmat1 = matrix<complex_t>::move_from_buffer(data_[1].GetRows(), data_[1].GetColumns(), 
+  					      data_[1].data());
+  return std::pair<cmat, cmat>(cmat0, cmat1);
+}
 
 //-------------------------------------------------------------------------
 } // end namespace MatrixProductState

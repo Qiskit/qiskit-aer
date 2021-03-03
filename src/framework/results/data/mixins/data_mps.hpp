@@ -25,7 +25,8 @@ namespace AER {
 //============================================================================
 // Result container for Qiskit-Aer
 //============================================================================
-using cmat = std::vector<std::vector<complex_t>>;
+//using cmat = std::vector<std::vector<complex_t>>;
+using cmat = cmatrix_t;
 using MPSContainer = std::pair<std::vector<std::pair<cmat, cmat>>, 
 			       std::vector<rvector_t>>;
 

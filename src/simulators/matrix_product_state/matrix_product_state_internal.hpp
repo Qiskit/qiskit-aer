@@ -24,7 +24,8 @@
 namespace AER {
 namespace MatrixProductState {
 
-using cmat = std::vector<std::vector<complex_t>>;
+  //using cmat = std::vector<std::vector<complex_t>>;
+using cmat = cmatrix_t;
 using MPSContainer = std::pair<std::vector<std::pair<cmat, cmat>>, 
 			       std::vector<rvector_t>>;
 
@@ -287,7 +288,8 @@ public:
   uint_t get_max_bond_dimensions() const;
 
   MPSContainer copy_to_mps_container();
-
+  MPSContainer move_to_mps_container();
+  
 private:
 
   MPS_Tensor& get_qubit(uint_t index) {

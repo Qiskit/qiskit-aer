@@ -579,7 +579,7 @@ void State::apply_save_mps(const Operations::Op &op,
 
   if (last_op) {
     BaseState::save_data_pershot(result, op.string_params[0],
-				 qreg_.copy_to_mps_container(),
+				 qreg_.move_to_mps_container(),
 				 op.save_type);
   } else {
     BaseState::save_data_pershot(result, op.string_params[0],
