@@ -852,8 +852,6 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     result.status = Result::Status::error;
     result.message = e.what();
   }
-    std::cout << "result = " <<std::endl;
-    std::cout << result.results[0].data.to_json() << std::endl;
   return result;
 }
 
