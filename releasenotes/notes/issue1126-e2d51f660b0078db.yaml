@@ -1,0 +1,7 @@
+---
+
+fixes:
+  - |
+    Fixed issue #1126: bug in reporting measurement of a single qubit. The bug 
+    occured when copying the measured value to the output data structure.
+
