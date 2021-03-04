@@ -142,7 +142,7 @@ class QasmSimulator(AerBackend):
       to store a state vector. If a state vector needs more, an error
       is thrown. In general, a state vector of n-qubits uses 2^n complex
       values (16 Bytes). If set to 0, the maximum will be automatically
-      set to half the system memory size (Default: 0).
+      set to the system memory size (Default: 0).
 
     * ``optimize_ideal_threshold`` (int): Sets the qubit threshold for
       applying circuit optimization passes on ideal circuits.
