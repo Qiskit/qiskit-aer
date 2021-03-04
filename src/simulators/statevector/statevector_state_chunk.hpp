@@ -571,12 +571,15 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
   }
 
   if(qubits_out_chunk.size() > 0){  //there are bits out of chunk
+    std::complex<double> phase = 1.0;
 
     std::reverse(pauli_out_chunk.begin(),pauli_out_chunk.end());
     std::reverse(pauli_in_chunk.begin(),pauli_in_chunk.end());
 
     uint_t x_mask, z_mask, num_y, x_max;
     std::tie(x_mask, z_mask, num_y, x_max) = AER::QV::pauli_masks_and_phase(qubits_out_chunk, pauli_out_chunk);
+
+    AER::QV::add_y_phase(num_y,phase);
 
     if(x_mask != 0){    //pairing state is out of chunk
       bool on_same_process = true;

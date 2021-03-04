@@ -130,14 +130,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Return Pauli expectation value
-  double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
-  //for multi-chunk inter chunk expectation
-  double expval_pauli(const reg_t &qubits, const std::string &pauli,
-                      const QubitVector<data_t>& pair_chunk, 
-                      const uint_t z_count,
-                      const uint_t z_count_pair) const {
-    return BaseVector::expval_pauli(qubits, pauli, pair_chunk, z_count, z_count_pair);          
-  }
+  double expval_pauli(const reg_t &qubits, const std::string &pauli,const complex_t initial_phase=1.0) const;
 
 protected:
 
@@ -360,7 +353,7 @@ void DensityMatrix<data_t>::apply_toffoli(const uint_t qctrl0,
 
 template <typename data_t>
 double DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
-                                           const std::string &pauli) const {
+                                           const std::string &pauli,const complex_t initial_phase) const {
 
   uint_t x_mask, z_mask, num_y, x_max;
   std::tie(x_mask, z_mask, num_y, x_max) = QV::pauli_masks_and_phase(qubits, pauli);
@@ -387,7 +380,7 @@ double DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
     return std::real(BaseVector::apply_reduction_lambda(std::move(lambda), size_t(0), nrows));
   }
 
-  auto phase = std::complex<data_t>(1.0);
+  auto phase = std::complex<data_t>(initial_phase);
   QV::add_y_phase(num_y, phase);
 
   const uint_t mask_u = ~MASKS[x_max + 1];
