@@ -356,18 +356,7 @@ void UnitaryController::run_circuit_helper(
     fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
   }
 
-  Transpile::CacheBlocking cache_block_pass;
-  cache_block_pass.set_config(config);
-  if(!cache_block_pass.enabled()){
-    //if blocking is not set by config, automatically set if required
-    if(Base::Controller::multiple_chunk_required(opt_circ,noise)){
-      int nplace = Base::Controller::num_process_per_experiment_;
-      if(Base::Controller::num_gpus_ > 0)
-        nplace *= Base::Controller::num_gpus_;
-      size_t complex_size = (precision_ == Precision::single_precision) ? sizeof(std::complex<float>) : sizeof(std::complex<double>);
-      cache_block_pass.set_blocking(circ.num_qubits, Base::Controller::get_min_memory_mb() << 20, nplace, complex_size,true);
-    }
-  }
+  Transpile::CacheBlocking cache_block_pass = transpile_cache_blocking(opt_circ,dummy_noise,config,(precision_ == Precision::single_precision) ? sizeof(std::complex<float>) : sizeof(std::complex<double>),true);
   cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
 
   uint_t block_bits = 0;

@@ -215,11 +215,6 @@ class QasmController : public Base::Controller {
                                      const Operations::OpSet &opset,
                                      const json_t& config) const;
 
-
-  Transpile::CacheBlocking transpile_cache_blocking(const Circuit& circ,
-                                     const Noise::NoiseModel& noise,
-                                     const json_t& config) const;
-
   //----------------------------------------------------------------
   // Run circuit helpers
   //----------------------------------------------------------------
@@ -930,42 +925,6 @@ Transpile::Fusion QasmController::transpile_fusion(Method method,
   return fusion_pass;
 }
 
-Transpile::CacheBlocking QasmController::transpile_cache_blocking(const Circuit& circ,
-                                   const Noise::NoiseModel& noise,
-                                   const json_t& config) const
-{
-  Transpile::CacheBlocking cache_block_pass;
-
-  cache_block_pass.set_config(config);
-  if(!cache_block_pass.enabled()){
-    //if blocking is not set by config, automatically set if required
-    if(Base::Controller::multiple_chunk_required(circ,noise)){
-      int nplace = Base::Controller::num_process_per_experiment_;
-      if(Base::Controller::num_gpus_ > 0)
-        nplace *= Base::Controller::num_gpus_;
-
-      size_t complex_size = (simulation_precision_ == Precision::single_precision) ? sizeof(std::complex<float>) : sizeof(std::complex<double>);
-
-      switch (simulation_method(circ, noise, false)) {
-        case Method::statevector:
-        case Method::statevector_thrust_cpu:
-        case Method::statevector_thrust_gpu:
-          cache_block_pass.set_blocking(circ.num_qubits, Base::Controller::get_min_memory_mb() << 20, nplace, complex_size,false);
-          break;
-        case Method::density_matrix:
-        case Method::density_matrix_thrust_cpu:
-        case Method::density_matrix_thrust_gpu:
-          cache_block_pass.set_blocking(circ.num_qubits, Base::Controller::get_min_memory_mb() << 20, nplace, complex_size,true);
-          break;
-        default:
-          throw std::runtime_error("QasmController: No enough memory to simulate this method on the sysytem");
-      }
-    }
-  }
-
-  return cache_block_pass;
-}
-
 void QasmController::set_parallelization_circuit(
     const Circuit& circ,
     const Noise::NoiseModel& noise_model) {
@@ -1140,7 +1099,10 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   auto fusion_pass = transpile_fusion(method, opt_circ.opset(), config);
   fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
 
-  auto cache_block_pass = transpile_cache_blocking(opt_circ,noise,config);
+  bool is_matrix = false;
+  if(method == Method::density_matrix || method == Method::density_matrix_thrust_gpu || method == Method::density_matrix_thrust_cpu)
+   is_matrix = true;
+  auto cache_block_pass = transpile_cache_blocking(opt_circ,noise,config,(simulation_precision_ == Precision::single_precision) ? sizeof(std::complex<float>) : sizeof(std::complex<double>),is_matrix);
   cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
 
   uint_t block_bits = 0;
@@ -1218,7 +1180,10 @@ void QasmController::run_circuit_with_sampled_noise(const Circuit& circ,
   measure_pass.set_config(config);
   Noise::NoiseModel dummy_noise;
 
-  auto cache_block_pass = transpile_cache_blocking(circ,noise,config);
+  bool is_matrix = false;
+  if(method == Method::density_matrix || method == Method::density_matrix_thrust_gpu || method == Method::density_matrix_thrust_cpu)
+   is_matrix = true;
+  auto cache_block_pass = transpile_cache_blocking(circ,noise,config,(simulation_precision_ == Precision::single_precision) ? sizeof(std::complex<float>) : sizeof(std::complex<double>),is_matrix);
 
   // Sample noise using circuit method
   while (shots-- > 0) {

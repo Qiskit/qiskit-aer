@@ -30,6 +30,23 @@
 namespace AER {
 namespace QubitUnitaryChunk {
 
+// OpSet of supported instructions
+const Operations::OpSet StateOpSet(
+    // Op types
+    {Operations::OpType::gate, Operations::OpType::barrier,
+     Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
+     Operations::OpType::snapshot, Operations::OpType::save_unitary},
+    // Gates
+    {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
+     "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
+     "x",      "y",       "z",   "h",    "s",    "sdg",  "t",    "tdg",
+     "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
+     "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
+     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
+     "mcsx",   "delay", "pauli"},
+    // Snapshots
+    {"unitary"});
+
 //=========================================================================
 // QubitUnitary State subclass
 //=========================================================================
@@ -39,7 +56,7 @@ class State : public Base::StateChunk<unitary_matrix_t> {
 public:
   using BaseState = Base::StateChunk<unitary_matrix_t>;
 
-  State() : BaseState(QubitUnitary::StateOpSet) {}
+  State() : BaseState(StateOpSet) {}
   virtual ~State() = default;
 
   //-----------------------------------------------------------------------
@@ -345,9 +362,8 @@ auto State<unitary_matrix_t>::move_to_matrix()
     //TO DO check memory availability
     matrix.resize(1ull << (BaseState::num_qubits_),1ull << (BaseState::num_qubits_));
 
-    auto recv = BaseState::qregs_[0].copy_to_matrix();
-
 #ifdef AER_MPI
+    auto recv = BaseState::qregs_[0].copy_to_matrix();
     //gather states from other processes
     for(iChunk=BaseState::num_local_chunks_;iChunk<BaseState::num_global_chunks_;iChunk++){
       BaseState::recv_data(recv.data(),size,0,iChunk);

@@ -30,6 +30,32 @@
 namespace AER {
 namespace DensityMatrixChunk {
 
+using OpType = Operations::OpType;
+
+// OpSet of supported instructions
+const Operations::OpSet StateOpSet(
+    // Op types
+    {OpType::gate, OpType::measure,
+     OpType::reset, OpType::snapshot,
+     OpType::barrier, OpType::bfunc,
+     OpType::roerror, OpType::matrix,
+     OpType::diagonal_matrix, OpType::kraus,
+     OpType::superop, OpType::save_expval,
+     OpType::save_expval_var, OpType::save_densmat,
+     OpType::save_probs, OpType::save_probs_ket,
+     OpType::save_amps_sq
+     },
+    // Gates
+    {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
+     "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
+     "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
+     "rzx",  "p",   "cp", "cu1", "sx", "x90", "delay", "pauli"},
+    // Snapshots
+    {"density_matrix", "memory", "register", "probabilities",
+     "probabilities_with_variance", "expectation_value_pauli",
+     "expectation_value_pauli_with_variance"});
+
+
 //=========================================================================
 // DensityMatrix State subclass
 //=========================================================================
@@ -39,7 +65,7 @@ class State : public Base::StateChunk<densmat_t> {
 public:
   using BaseState = Base::StateChunk<densmat_t>;
 
-  State() : BaseState(DensityMatrix::StateOpSet) {}
+  State() : BaseState(StateOpSet) {}
   virtual ~State() {}
 
   //-----------------------------------------------------------------------
@@ -446,9 +472,8 @@ auto State<densmat_t>::apply_to_matrix(bool copy)
     //TO DO check memory availability
     matrix.resize(1ull << (BaseState::num_qubits_),1ull << (BaseState::num_qubits_));
 
-    auto recv = BaseState::qregs_[0].copy_to_matrix();
-
 #ifdef AER_MPI
+    auto recv = BaseState::qregs_[0].copy_to_matrix();
     //gather states from other processes
     for(iChunk=BaseState::num_local_chunks_;iChunk<BaseState::num_global_chunks_;iChunk++){
       BaseState::recv_data(recv.data(),size,0,iChunk);
@@ -849,10 +874,10 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
       snapshot_pauli_expval(op, result, true);
     } break;
     /* TODO
-    case DensityMatrix::Snapshots::expval_matrix: {
+    case Snapshots::expval_matrix: {
       snapshot_matrix_expval(op, data, false);
     }  break;
-    case DensityMatrix::Snapshots::expval_matrix_var: {
+    case Snapshots::expval_matrix_var: {
       snapshot_matrix_expval(op, data, true);
     }  break;
     */
@@ -947,8 +972,8 @@ cmatrix_t State<densmat_t>::reduced_density_matrix(const reg_t& qubits, bool las
   return reduced_state;
 }
   
-template <class statevec_t>
-cmatrix_t State<statevec_t>::reduced_density_matrix_helper(const reg_t &qubits,
+template <class densmat_t>
+cmatrix_t State<densmat_t>::reduced_density_matrix_helper(const reg_t &qubits,
                                           const reg_t &qubits_sorted) 
 {
   // Get superoperator qubits

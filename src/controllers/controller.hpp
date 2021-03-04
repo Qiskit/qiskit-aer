@@ -51,6 +51,7 @@
 #include "noise/noise_model.hpp"
 #include "transpile/basic_opts.hpp"
 #include "transpile/truncate_qubits.hpp"
+#include "transpile/cacheblocking.hpp"
 
 namespace AER {
 namespace Base {
@@ -220,6 +221,14 @@ protected:
                                   const Noise::NoiseModel &noise) const;
 
   void save_exception_to_results(Result &result,const std::exception &e);
+
+
+  //setting cache blocking transpiler
+  Transpile::CacheBlocking transpile_cache_blocking(const Circuit& circ,
+                                     const Noise::NoiseModel& noise,
+                                     const json_t& config,
+                                     const size_t complex_size,bool is_matrix) const;
+
 
   // Get system memory size
   size_t get_system_memory_mb();
@@ -677,6 +686,27 @@ void Controller::save_exception_to_results(Result &result,const std::exception &
     res.status = ExperimentResult::Status::error;
     res.message = e.what();
   }
+}
+
+Transpile::CacheBlocking Controller::transpile_cache_blocking(const Circuit& circ,
+                                     const Noise::NoiseModel& noise,
+                                     const json_t& config,
+                                     const size_t complex_size,bool is_matrix) const
+{
+  Transpile::CacheBlocking cache_block_pass;
+
+  cache_block_pass.set_config(config);
+  if(!cache_block_pass.enabled()){
+    //if blocking is not set by config, automatically set if required
+    if(multiple_chunk_required(circ,noise)){
+      int nplace = num_process_per_experiment_;
+      if(num_gpus_ > 0)
+        nplace *= num_gpus_;
+      cache_block_pass.set_blocking(circ.num_qubits, get_min_memory_mb() << 20, nplace, complex_size,is_matrix);
+    }
+  }
+
+  return cache_block_pass;
 }
 
 //-------------------------------------------------------------------------

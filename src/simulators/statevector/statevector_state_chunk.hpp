@@ -33,6 +33,41 @@
 namespace AER {
 namespace StatevectorChunk {
 
+using OpType = Operations::OpType;
+
+// OpSet of supported instructions
+const Operations::OpSet StateOpSet(
+    // Op types
+    {OpType::gate, OpType::measure,
+     OpType::reset, OpType::initialize,
+     OpType::snapshot, OpType::barrier,
+     OpType::bfunc, OpType::roerror,
+     OpType::matrix, OpType::diagonal_matrix,
+     OpType::multiplexer, OpType::kraus,
+     OpType::sim_op, OpType::save_expval,
+     OpType::save_expval_var, OpType::save_densmat,
+     OpType::save_probs, OpType::save_probs_ket,
+     OpType::save_amps, OpType::save_amps_sq,
+     OpType::save_statevec
+     // OpType::save_statevec_ket  // TODO
+     },
+    // Gates
+    {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
+     "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
+     "x",      "y",       "z",   "h",    "s",    "sdg",  "t",    "tdg",
+     "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
+     "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
+     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
+     "mcsx",   "delay", "pauli", "mcx_gray"},
+    // Snapshots
+    {"statevector", "memory", "register", "probabilities",
+     "probabilities_with_variance", "expectation_value_pauli", "density_matrix",
+     "density_matrix_with_variance", "expectation_value_pauli_with_variance",
+     "expectation_value_matrix_single_shot", "expectation_value_matrix",
+     "expectation_value_matrix_with_variance",
+     "expectation_value_pauli_single_shot"});
+
+
 //=========================================================================
 // QubitVector State subclass
 //=========================================================================
@@ -42,7 +77,7 @@ class State : public Base::StateChunk<statevec_t> {
 public:
   using BaseState = Base::StateChunk<statevec_t>;
 
-  State() : BaseState(Statevector::StateOpSet) {}
+  State() : BaseState(StateOpSet) {}
 
   //-----------------------------------------------------------------------
   // Base class overrides

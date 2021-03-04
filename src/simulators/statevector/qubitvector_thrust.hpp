@@ -958,11 +958,6 @@ bool QubitVectorThrust<data_t>::fetch_chunk(void) const
   int tid,nid;
   int idev;
 
-//  tid = omp_get_thread_num();
-//  nid = omp_get_num_threads();
-
-//  idev = tid * chunk_manager_.num_devices() / nid;
-
   if(chunk_->device() < 0){
     //on host
     idev = 0;
