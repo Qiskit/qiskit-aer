@@ -20,9 +20,10 @@ from warnings import warn
 from qiskit.circuit import Instruction
 from qiskit.providers import BaseBackend
 try:
-    from qiskit.providers import Backend
+    from qiskit.providers import Backend as _Backend
+    BACKEND = (BaseBackend, _Backend)
 except ImportError:
-    Backend = None
+    BACKEND = BaseBackend
 from qiskit.providers.models import BackendProperties
 
 from ..backends.aerbackend import AerJSONEncoder
@@ -273,8 +274,7 @@ class NoiseModel:
         Raises:
             NoiseError: If the input backend is not valid.
         """
-        if isinstance(backend, BaseBackend) or (
-                Backend is not None and isinstance(backend, Backend)):
+        if isinstance(backend, BACKEND):
             properties = backend.properties()
             basis_gates = backend.configuration().basis_gates
             if not properties:

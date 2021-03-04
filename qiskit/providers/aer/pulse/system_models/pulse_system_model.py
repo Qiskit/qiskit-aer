@@ -19,9 +19,10 @@ from warnings import warn
 from collections import OrderedDict
 from qiskit.providers import BaseBackend
 try:
-    from qiskit.providers import Backend
+    from qiskit.providers import Backend as _Backend
+    Backend = (BaseBackend, _Backend)
 except ImportError:
-    Backend = None
+    Backend = BaseBackend
 from ...aererror import AerError
 from .hamiltonian_model import HamiltonianModel
 
@@ -98,8 +99,7 @@ class PulseSystemModel():
             AerError: If channel or u_channel_lo are invalid.
         """
 
-        if not isinstance(backend, BaseBackend) or (
-                Backend is not None and isinstance(backend, Backend)):
+        if not isinstance(backend, Backend):
             raise AerError("{} is not a Qiskit backend".format(backend))
 
         # get relevant information from backend
