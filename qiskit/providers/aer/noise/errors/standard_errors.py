@@ -163,12 +163,7 @@ def pauli_error(noise_ops, standard_gates=True):
     Raises:
         NoiseError: If depolarizing probability is less than 0 or greater than 1.
     """
-    if not standard_gates:
-        warnings.warn(
-            '"standard_gates" option has been deprecated as of qiskit-aer 0.8.0'
-            ' and will be removed no earlier than 3 months from that release date.',
-            DeprecationWarning, stacklevel=2)
-
+    # TODO: Can we deprecate this function itself?
     # Error checking
     if not isinstance(noise_ops, (list, tuple, zip)):
         raise NoiseError("Input noise ops is not a list.")
@@ -190,24 +185,23 @@ def pauli_error(noise_ops, standard_gates=True):
 
     paulis = [to_pauli(op) for op in ops]
 
-    # TODO: should we handle Pauli -> QuantumCircuit conversion within QuantumError?
-    ops = []
     num_qubits = paulis[0].num_qubits
     for pauli in paulis:
         if num_qubits != pauli.num_qubits:
             raise NoiseError("Pauli's are not all of the same length.")
 
-        op = pauli
+    # TODO: remove these two lines after noise model compiler (unroller) is introduced in the future
+    if num_qubits > 1:
+        paulis = [pauli.to_instruction().definition for pauli in paulis]
 
-        if num_qubits > 1:
-            op = pauli.to_instruction().definition  # circuit
+    if not standard_gates:
+        warnings.warn(
+            '"standard_gates" option has been deprecated as of qiskit-aer 0.8.0'
+            ' and will be removed no earlier than 3 months from that release date.',
+            DeprecationWarning, stacklevel=2)
+        paulis = [UnitaryGate(pauli.to_matrix()) for pauli in paulis]
 
-        if not standard_gates:
-            op = UnitaryGate(pauli.to_matrix())
-
-        ops.append(op)
-
-    return QuantumError(zip(ops, probs))
+    return QuantumError(zip(paulis, probs))
 
 
 def depolarizing_error(param, num_qubits, standard_gates=True):
@@ -267,7 +261,7 @@ def depolarizing_error(param, num_qubits, standard_gates=True):
     probs = [prob_iden] + (num_terms - 1) * [prob_pauli]
     # Generate pauli strings. The order doesn't matter as long
     # as the all identity string is first.
-    # TODO: should we handle Pauli -> QuantumCircuit conversion within QuantumError?
+
     circs = []
     for pauli_list in it.product([IGate(), XGate(), YGate(), ZGate()], repeat=num_qubits):
         qc = QuantumCircuit(num_qubits)
