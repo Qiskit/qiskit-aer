@@ -26,14 +26,10 @@ namespace AER {
 // Result container for Qiskit-Aer
 //============================================================================
 //using cmat = std::vector<std::vector<complex_t>>;
-using cmat = cmatrix_t;
-using MPSContainer = std::pair<std::vector<std::pair<cmat, cmat>>, 
-			       std::vector<rvector_t>>;
-
-struct DataMPS : public DataMap<SingleData, MPSContainer, 1>,
-                 public DataMap<SingleData, MPSContainer, 2>,
-                 public DataMap<ListData, MPSContainer, 1>,
-                 public DataMap<ListData, MPSContainer, 2> {
+struct DataMPS : public DataMap<SingleData, mps_container_t, 1>,
+                 public DataMap<SingleData, mps_container_t, 2>,
+                 public DataMap<ListData, mps_container_t, 1>,
+                 public DataMap<ListData, mps_container_t, 2> {
 
   // Serialize engine data to JSON
   void add_to_json(json_t &result);
@@ -47,18 +43,18 @@ struct DataMPS : public DataMap<SingleData, MPSContainer, 1>,
 //------------------------------------------------------------------------------
 
 DataMPS &DataMPS::combine(DataMPS &&other) {
-  DataMap<SingleData, MPSContainer, 1>::combine(std::move(other));
-  DataMap<SingleData, MPSContainer, 2>::combine(std::move(other));
-  DataMap<ListData, MPSContainer, 1>::combine(std::move(other));
-  DataMap<ListData, MPSContainer, 2>::combine(std::move(other));
+  DataMap<SingleData, mps_container_t, 1>::combine(std::move(other));
+  DataMap<SingleData, mps_container_t, 2>::combine(std::move(other));
+  DataMap<ListData, mps_container_t, 1>::combine(std::move(other));
+  DataMap<ListData, mps_container_t, 2>::combine(std::move(other));
   return *this;
 }
 
 void DataMPS::add_to_json(json_t &result) {
-  DataMap<SingleData, MPSContainer, 1>::add_to_json(result);
-  DataMap<SingleData, MPSContainer, 2>::add_to_json(result);
-  DataMap<ListData, MPSContainer, 1>::add_to_json(result);
-  DataMap<ListData, MPSContainer, 2>::add_to_json(result);
+  DataMap<SingleData, mps_container_t, 1>::add_to_json(result);
+  DataMap<SingleData, mps_container_t, 2>::add_to_json(result);
+  DataMap<ListData, mps_container_t, 1>::add_to_json(result);
+  DataMap<ListData, mps_container_t, 2>::add_to_json(result);
 }
 
 //------------------------------------------------------------------------------

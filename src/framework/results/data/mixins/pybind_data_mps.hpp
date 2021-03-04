@@ -24,6 +24,9 @@
 
 namespace AerToPy {
 
+// Move mps_container_t to python object
+template <> py::object to_python(AER::mps_container_t &&mps);
+
 // Move an DataMPS container object to a new Python dict
 py::object to_python(AER::DataMPS &&data);
 
@@ -37,6 +40,19 @@ void add_to_python(py::dict &pydata, AER::DataMPS &&data);
 // Implementations
 //============================================================================
 
+template <> py::object AerToPy::to_python(AER::mps_container_t &&data) {
+  py::list mats;
+  for (auto& pair: data.first) {
+    mats.append(py::make_tuple(AerToPy::to_python(std::move(pair.first)),
+                               AerToPy::to_python(std::move(pair.second))));
+  }
+  py::list vecs;
+  for (auto&& vec: data.second) {
+    vecs.append(AerToPy::to_python(std::move(vec)));
+  }
+  return py::make_tuple(std::move(mats), std::move(vecs));
+}
+
 py::object AerToPy::to_python(AER::DataMPS &&data) {
   py::dict pydata;
   AerToPy::add_to_python(pydata, std::move(data));
@@ -44,10 +60,10 @@ py::object AerToPy::to_python(AER::DataMPS &&data) {
 }
 
 void AerToPy::add_to_python(py::dict &pydata, AER::DataMPS &&data) {
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, AER::MPSContainer, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, AER::MPSContainer, 2>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::MPSContainer, 1>&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::MPSContainer, 2>&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, AER::mps_container_t, 1>&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::SingleData, AER::mps_container_t, 2>&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::mps_container_t, 1>&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataMap<AER::ListData, AER::mps_container_t, 2>&&>(data));
 }
 
 #endif

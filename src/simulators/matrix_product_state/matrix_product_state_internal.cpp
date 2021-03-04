@@ -1673,38 +1673,32 @@ void MPS::measure_reset_update_internal(const reg_t &qubits,
   }
 }
 
-MPSContainer MPS::copy_to_mps_container() {
+mps_container_t MPS::copy_to_mps_container() {
   move_all_qubits_to_sorted_ordering();
-  std::vector<std::pair<cmat, cmat>> qreg_vec;
-
-  for (auto i=0; i<num_qubits(); i++)
-    qreg_vec.push_back(q_reg_[i].copy_to_matrix_pair());
-  std::vector<std::vector<double>> lambda_vec;
-  for (auto i=0; i<num_qubits()-1; i++)
-    lambda_vec.push_back(lambda_reg_[i]);
-  MPSContainer new_mps = std::make_pair(qreg_vec, lambda_vec);
-  return new_mps;
+  mps_container_t ret;
+  for (auto i=0; i<num_qubits(); i++) {
+    ret.first.push_back(std::make_pair(q_reg_[i].get_data(0),
+                                       q_reg_[i].get_data(1)));
+  }
+  for (auto i=0; i<num_qubits()-1; i++) {
+    ret.second.push_back(lambda_reg_[i]);
+  }
+  return ret;
 }
 
-MPSContainer MPS::move_to_mps_container() {
+mps_container_t MPS::move_to_mps_container() {
   move_all_qubits_to_sorted_ordering();
-  std::vector<std::pair<cmat, cmat>> qreg_vec(num_qubits());
+  mps_container_t ret;
   for (auto i=0; i<num_qubits(); i++) {
-    qreg_vec[i] = q_reg_[i].move_to_matrix_pair();
-    std::cout << qreg_vec[i].first;
+    ret.first.push_back(std::make_pair(std::move(q_reg_[i].get_data(0)),
+                                       std::move(q_reg_[i].get_data(1))));
   }
-
-  std::vector<std::vector<double>> lambda_vec(num_qubits()-1);
+  std::vector<std::vector<double>> lambda_vec;
   for (auto i=0; i<num_qubits()-1; i++) {
-    lambda_vec[i] = lambda_reg_[i];
-    std::cout << lambda_vec[i][0] << std::endl;
+    ret.second.push_back(std::move(lambda_reg_[i]));
   }
-
-  MPS empty_mps;
-  initialize(empty_mps);
-
-  MPSContainer new_mps = std::make_pair(qreg_vec, lambda_vec);
-  return new_mps;
+  initialize(MPS());
+  return ret;
 }
 
 //-------------------------------------------------------------------------

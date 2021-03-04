@@ -33,11 +33,6 @@
 namespace AER {
 namespace MatrixProductState {
 
-  //using cmat = std::vector<std::vector<complex_t>>;
-using cmat = cmatrix_t;
-using MPSContainer = std::pair<std::vector<std::pair<cmat, cmat>>, 
-			       std::vector<rvector_t>>;
-
 void apply_y_helper(cmatrix_t& mat1, cmatrix_t& mat2);
 
 //============================================================================
@@ -99,10 +94,16 @@ public:
   virtual std::ostream& print(std::ostream& out) const;
   reg_t get_size() const;
   cvector_t get_data(uint_t a1, uint_t a2) const;
-  cmatrix_t get_data(uint_t i) const {
+  const cmatrix_t& get_data(uint_t i) const {
     return data_[i];
   }
-  const std::vector<cmatrix_t> get_data() const {
+  cmatrix_t& get_data(uint_t i) {
+    return data_[i];
+  }
+  const std::vector<cmatrix_t>& get_data() const {
+    return data_;
+  }
+  std::vector<cmatrix_t>& get_data() {
     return data_;
   }
   void insert_data(uint_t a1, uint_t a2, cvector_t data);
@@ -177,8 +178,6 @@ static void contract_2_dimensions(const MPS_Tensor &left_gamma,
 				  const MPS_Tensor &right_gamma,
 				  uint_t omp_threads,
 				  cmatrix_t &result);
-std::pair<cmat, cmat> copy_to_matrix_pair();
-std::pair<cmat, cmat> move_to_matrix_pair();
 
   // public static class members
 static const double SQR_HALF;
@@ -674,30 +673,6 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
   new_data_vector.push_back(temp4_5);
   new_data_vector.push_back(temp6_7);
   reshaped_tensor = MPS_Tensor(new_data_vector);
-}
-
-std::pair<cmat, cmat> MPS_Tensor::copy_to_matrix_pair() {
-  if (get_dim() != 2)
-    throw std::runtime_error("Error: Dimension of MPS must be 2");
-
-  cmat cmat0, cmat1;
-  cmat0 = matrix<complex_t>::copy_from_buffer(data_[0].GetRows(), data_[0].GetColumns(), 
-  					      data_[0].data());
-  cmat1 = matrix<complex_t>::copy_from_buffer(data_[1].GetRows(), data_[1].GetColumns(), 
-  					      data_[1].data());
-  return std::pair<cmat, cmat>(cmat0, cmat1);
-}
-
-std::pair<cmat, cmat> MPS_Tensor::move_to_matrix_pair() {
-  if (get_dim() != 2)
-    throw std::runtime_error("Error: Dimension of MPS must be 2");
-
-  cmat cmat0, cmat1;
-  cmat0 = matrix<complex_t>::move_from_buffer(data_[0].GetRows(), data_[0].GetColumns(), 
-  					      data_[0].data());
-  cmat1 = matrix<complex_t>::move_from_buffer(data_[1].GetRows(), data_[1].GetColumns(), 
-  					      data_[1].data());
-  return std::pair<cmat, cmat>(cmat0, cmat1);
 }
 
 //-------------------------------------------------------------------------

@@ -24,11 +24,6 @@
 namespace AER {
 namespace MatrixProductState {
 
-  //using cmat = std::vector<std::vector<complex_t>>;
-using cmat = cmatrix_t;
-using MPSContainer = std::pair<std::vector<std::pair<cmat, cmat>>, 
-			       std::vector<rvector_t>>;
-
 // Allowed gates enum class
 enum Gates {
   id, h, x, y, z, s, sdg, sx, t, tdg, u1, u2, u3, r, rx, ry, rz, // single qubit
@@ -287,8 +282,8 @@ public:
   reg_t get_bond_dimensions() const;
   uint_t get_max_bond_dimensions() const;
 
-  MPSContainer copy_to_mps_container();
-  MPSContainer move_to_mps_container();
+  mps_container_t copy_to_mps_container();
+  mps_container_t move_to_mps_container();
   
 private:
 
