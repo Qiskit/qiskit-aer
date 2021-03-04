@@ -16,10 +16,14 @@ QasmSimulator Integration Tests for SaveExpval instruction
 from ddt import ddt, data
 from numpy import allclose
 import qiskit.quantum_info as qi
+from qiskit import QuantumCircuit
 from qiskit.circuit.library import QuantumVolume
 from qiskit.compiler import transpile, assemble
 
 from qiskit.providers.aer import QasmSimulator
+
+PAULI2 = ['II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
+          'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ']
 
 
 @ddt
@@ -29,8 +33,7 @@ class QasmSaveExpectationValueTests:
     SIMULATOR = QasmSimulator()
     BACKEND_OPTS = {}
 
-    @data('II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
-          'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ')
+    @data(*PAULI2)
     def test_save_expval_stabilizer_pauli(self, pauli):
         """Test Pauli expval for stabilizer circuit"""
 
@@ -62,8 +65,7 @@ class QasmSaveExpectationValueTests:
             value = result.data(0)['expval']
             self.assertAlmostEqual(value, target)
 
-    @data('II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
-          'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ')
+    @data(*PAULI2)
     def test_save_expval_var_stabilizer_pauli(self, pauli):
         """Test Pauli expval_var for stabilizer circuit"""
 
@@ -163,8 +165,7 @@ class QasmSaveExpectationValueTests:
             value = result.data(0)['expval']
             self.assertTrue(allclose(value, target))
 
-    @data('II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
-          'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ')
+    @data(*PAULI2)
     def test_save_expval_nonstabilizer_pauli(self, pauli):
         """Test Pauli expval for non-stabilizer circuit"""
 
@@ -195,8 +196,7 @@ class QasmSaveExpectationValueTests:
             value = result.data(0)['expval']
             self.assertAlmostEqual(value, target)
 
-    @data('II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
-          'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ')
+    @data(*PAULI2)
     def test_save_expval_var_nonstabilizer_pauli(self, pauli):
         """Test Pauli expval_var for non-stabilizer circuit"""
 
@@ -289,6 +289,72 @@ class QasmSaveExpectationValueTests:
         if method not in SUPPORTED_METHODS:
             self.assertFalse(result.success)
         else:
+            self.assertTrue(result.success)
+            value = result.data(0)['expval']
+            self.assertTrue(allclose(value, target))
+
+    @data(*PAULI2)
+    def test_save_expval_cptp_pauli(self, pauli):
+        """Test Pauli expval for stabilizer circuit"""
+
+        SUPPORTED_METHODS = [
+            'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust'
+        ]
+        SEED = 5832
+
+        opts = self.BACKEND_OPTS.copy()
+        if opts.get('method') in SUPPORTED_METHODS:
+
+            oper = qi.Pauli(pauli)
+
+            # CPTP channel test circuit
+            channel = qi.random_quantum_channel(4, seed=SEED)
+            state_circ = QuantumCircuit(2)
+            state_circ.append(channel, range(2))
+
+            state = qi.DensityMatrix(state_circ)
+            target = state.expectation_value(oper).real.round(10)
+
+            # Snapshot circuit
+            circ = transpile(state_circ, self.SIMULATOR)
+            circ.save_expectation_value(oper, [0, 1], label='expval')
+            qobj = assemble(circ)
+            result = self.SIMULATOR.run(qobj, **opts).result()
+
+            self.assertTrue(result.success)
+            value = result.data(0)['expval']
+            self.assertAlmostEqual(value, target)
+
+    @data(*PAULI2)
+    def test_save_expval_var_cptp_pauli(self, pauli):
+        """Test Pauli expval_var for stabilizer circuit"""
+
+        SUPPORTED_METHODS = [
+            'density_matrix', 'density_matrix_gpu', 'density_matrix_thrust'
+        ]
+        SEED = 5832
+
+        opts = self.BACKEND_OPTS.copy()
+        if opts.get('method') in SUPPORTED_METHODS:
+
+            oper = qi.Pauli(pauli)
+
+            # CPTP channel test circuit
+            channel = qi.random_quantum_channel(4, seed=SEED)
+            state_circ = QuantumCircuit(2)
+            state_circ.append(channel, range(2))
+
+            state = qi.DensityMatrix(state_circ)
+            expval = state.expectation_value(oper).real
+            variance = state.expectation_value(oper ** 2).real - expval ** 2
+            target = [expval, variance]
+
+            # Snapshot circuit
+            circ = transpile(state_circ, self.SIMULATOR)
+            circ.save_expectation_value_variance(oper, [0, 1], label='expval')
+            qobj = assemble(circ)
+            result = self.SIMULATOR.run(qobj, **opts).result()
+
             self.assertTrue(result.success)
             value = result.data(0)['expval']
             self.assertTrue(allclose(value, target))
