@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Removed x90 gate decomposition from noise models that was deprecated
+    in qiskit-aer 0.7. This decomposition is now done by using regular
+    noise model basis gates and the qiskit transpiler.

@@ -214,10 +214,7 @@ def approximate_noise_model(model, *,
         error_dict["gate_qubits"] = [model._str2qubits(qubits_str)]
         error_list.append(error_dict)
 
-    approx_noise_model = NoiseModel.from_dict({
-        "errors": error_list,
-        "x90_gates": model._x90_gates
-    })
+    approx_noise_model = NoiseModel.from_dict({"errors": error_list})
     # Update basis gates
     approx_noise_model._basis_gates = model._basis_gates
     return approx_noise_model
