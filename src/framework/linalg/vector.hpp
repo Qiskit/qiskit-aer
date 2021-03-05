@@ -203,6 +203,7 @@ template <class T>
 Vector<T>::Vector(Vector<T> &&other) noexcept
     : size_(other.size_), data_(other.data_) {
   other.data_ = nullptr;
+  other.size_ = 0;
 }
 
 //-----------------------------------------------------------------------
@@ -214,6 +215,7 @@ template <class T> Vector<T> &Vector<T>::operator=(Vector<T> &&other) noexcept {
   size_ = other.size_;
   data_ = other.data_;
   other.data_ = nullptr;
+  other.size_ = 0;
   return *this;
 }
 

@@ -17,8 +17,14 @@
 
 #include "framework/results/data/data.hpp"
 #include "framework/results/data/mixins/pybind_data_creg.hpp"
+#include "framework/results/data/mixins/pybind_data_rdict.hpp"
+#include "framework/results/data/mixins/pybind_data_rvalue.hpp"
+#include "framework/results/data/mixins/pybind_data_rvector.hpp"
 #include "framework/results/data/mixins/pybind_data_cmatrix.hpp"
 #include "framework/results/data/mixins/pybind_data_cvector.hpp"
+#include "framework/results/data/mixins/pybind_data_cdict.hpp"
+#include "framework/results/data/mixins/pybind_data_json.hpp"
+
 
 namespace AerToPy {
 
@@ -35,9 +41,14 @@ template <> py::object to_python(AER::Data &&data);
 template <>
 py::object AerToPy::to_python(AER::Data &&data) {
   py::dict pydata;
+  AerToPy::add_to_python(pydata, static_cast<AER::DataRValue&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataRVector&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataRDict&&>(data));
   AerToPy::add_to_python(pydata, static_cast<AER::DataCVector&&>(data));
   AerToPy::add_to_python(pydata, static_cast<AER::DataCMatrix&&>(data));
-  AerToPy::add_to_python(pydata, static_cast<AER::DataCReg&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataCDict&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataJSON&&>(data));
+  AerToPy::add_to_python(pydata, static_cast<AER::DataCreg&&>(data));
   return std::move(pydata);
 }
 

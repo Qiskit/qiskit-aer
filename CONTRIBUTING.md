@@ -630,6 +630,99 @@ Few notes on GPU builds:
 3. We don't need NVIDIA® drivers for building, but we need them for running simulations
 4. Only Linux platforms are supported
 
+### Building with MPI support
+
+Qiskit Aer can parallelize its simulation on the cluster systems by using MPI. 
+This can extend available memory space to simulate quantum circuits with larger number of qubits and also can accelerate the simulation by parallel computing. 
+To use MPI support, any MPI library (i.e. OpenMPI) should be installed and configured on the system.
+
+Qiskit Aer supports MPI both with and without GPU support. Currently following simulation methods are supported to be parallelized by MPI.
+
+ - statevector
+ - statevector_thrust_gpu
+ - statevector_thrust_cpu
+ - density_matrix
+ - density_matrix_thrust_gpu
+ - density_matrix_thrust_cpu
+ - unitary_cpu
+ - unitary_thrust_gpu
+ - unitary_thrust_cpu
+
+To enable MPI support, the following flag is needed for build system based on CMake.
+
+```
+AER_MPI=True
+```
+
+For example,
+
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_MPI=True
+
+By default GPU direct RDMA is enable to exchange data between GPUs installed on the different nodes of a cluster. If the system does not support GPU direct RDMA the following flag disables this.
+
+```
+AER_DISABLE_GDR=True
+```
+
+For example,
+
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_MPI=True -DAER_DISABLE_GDR=True
+
+### Running with multiple-GPUs and/or multiple nodes
+
+Qiskit Aer parallelizes simulations by distributing quantum states into distributed memory space.
+To decrease data transfer between spaces the distributed states are managed as chunks that is a sub-state for smaller qubits than the input circuits.
+
+For example, 
+30-qubits circuit is distributed into 2^10 chunks with 20-qubits. 
+
+To decrease data exchange between chunks and also to simplify the implementation, we are applying cache blocking technique.
+This technique allows applying quantum gates to each chunk independently without data exchange, and serial simulation codes can be reused without special implementation. 
+Before the actual simulation, we apply transpilation to remap the input circuits to the equivalent circuits that has all the quantum gates on the lower qubits than the chunk's number of qubits.
+And the (noiseless) swap gates are inserted to exchange data. 
+
+So to simulate by using multiple GPUs or multiple nodes on the cluster, following configurations should be set to backend options.
+
+ - blocking_enable
+
+ should be set to True for distributed parallelization. (Default = False)
+
+ - blocking_qubits
+
+ this flag sets the qubit number for chunk, should be smaller than the smallest memory space on the system (i.e. GPU). Set this parameter to satisfy `sizeof(complex)*2^(blocking_qubits+4) < size of the smallest memory space` in byte.
+
+Here is an example how we parallelize simulation with multiple GPUs.
+
+```
+circ = transpile(QuantumVolume(qubit, 10, seed = 0))
+circ.measure_all()
+qobj = assemble(circ, shots=shots)
+result = sim.run(qobj, method="statevector_gpu", blocking_enable=True, blocking_qubits=23).result()
+```
+
+To run Qiskit Aer with Python script with MPI parallelization, MPI executer such as mpirun should be used to submit a job on the cluster. Following example shows how to run Python script using 4 processes by using mpirun.
+
+```
+mpirun -np 4 python example.py
+```
+
+MPI_Init function is called inside Qiskit Aer, so you do not have to manage MPI processes in Python script.
+Following metadatas are useful to find on which process is this script running. 
+
+ - num_mpi_processes : shows number of processes using for this simulation
+ - mpi_rank : shows zero based rank (process ID)
+
+
+Here is an example how to get my rank.
+
+```
+result = sim.run(qobj, method="statevector_gpu", blocking_enable=True, blocking_qubits=23).result()
+dict = result.to_dict()
+meta = dict['metadata']
+myrank = meta['mpi_rank']
+```
+
+
 ### Building a statically linked wheel
 
 If you encounter an error similar to the following, you may are likely in the need of compiling a
@@ -789,6 +882,29 @@ These are the flags:
     Default: OFF
     Example: ``python ./setup.py bdist_wheel -- -DDISABLE_CONAN=ON``
 
+* AER_MPI
+
+    This flag enables/disables parallelization using MPI to simulate circuits with large number of qubits
+    on the cluter systems. This option requires any MPI library and runtime installed on your system. 
+    MPI parallelization can be used both with/without GPU support. 
+    For GPU support GPU direct RDMA is enabled by default, see option AER_DISABLE_GDR below.
+
+    Values: True|False
+    Default: False
+    Example: ``python ./setup.py bdist_wheel -- -DAER_MPI=True``
+
+* AER_DISABLE_GDR
+
+    This flag disables/enables GPU direct RDMA to exchange data between GPUs on different nodes. 
+    If your system does not support GPU direct RDMA, please set True to this option. You do not need this option if you do not use GPU support.
+    You may also have to configure MPI to use GPU direct RDMA if you enable (AER_DISABLE_GDR=False) this option.
+
+    Note: GPU direct between GPUs on the same node (peer-to-peer copy) is automatically enabled if supported GPUs are available.
+
+    Values: True|False
+    Default: False
+    Example: ``python ./setup.py bdist_wheel -- -DAER_MPI=True -DAER_DISABLE_GDR=True``
+
 ## Tests
 
 Code contributions are expected to include tests that provide coverage for the
@@ -823,6 +939,7 @@ The test executable will be placed into the source test directory and can be run
 ```
 qiskit-aer$ ./test/unitc_tests [Catch2-options]
 ```
+
 
 ## Platform support
 

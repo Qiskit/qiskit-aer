@@ -27,8 +27,8 @@ namespace MatrixProductState {
 // Allowed gates enum class
 enum Gates {
   id, h, x, y, z, s, sdg, sx, t, tdg, u1, u2, u3, r, rx, ry, rz, // single qubit
-  cx, cz, cu1, swap, su4, rxx, ryy, rzz, rzx, // two qubit
-  mcx // three qubit
+  cx, cy, cz, cu1, swap, su4, rxx, ryy, rzz, rzx, csx, // two qubit
+  ccx, cswap // three qubit
 };
 
   //enum class Direction {RIGHT, LEFT};
@@ -115,20 +115,24 @@ public:
   void apply_sdg(uint_t index){ get_qubit(index).apply_sdg();}
   void apply_t(uint_t index){ get_qubit(index).apply_t();}
   void apply_tdg(uint_t index){ get_qubit(index).apply_tdg();}
-  void apply_u1(uint_t index, double lambda);
+  void apply_u1(uint_t index, double lambda)
+    { get_qubit(index).apply_u1(lambda);}
   void apply_u2(uint_t index, double phi, double lambda);
   void apply_u3(uint_t index, double theta, double phi, double lambda);
   void apply_cnot(uint_t index_A, uint_t index_B);
   void apply_swap(uint_t index_A, uint_t index_B, bool swap_gate);
 
+  void apply_cy(uint_t index_A, uint_t index_B);
   void apply_cz(uint_t index_A, uint_t index_B);
+  void apply_csx(uint_t index_A, uint_t index_B);
   void apply_cu1(uint_t index_A, uint_t index_B, double lambda);
   void apply_rxx(uint_t index_A, uint_t index_B, double theta);
   void apply_ryy(uint_t index_A, uint_t index_B, double theta);
   void apply_rzz(uint_t index_A, uint_t index_B, double theta);
   void apply_rzx(uint_t index_A, uint_t index_B, double theta);
 
-  void apply_ccx(const reg_t &qubits);  
+  void apply_ccx(const reg_t &qubits);
+  void apply_cswap(const reg_t &qubits);
 
   void apply_matrix(const reg_t & qubits, const cmatrix_t &mat, 
 		    bool is_diagonal=false);
@@ -184,9 +188,9 @@ public:
   //----------------------------------------------------------------
   virtual std::ostream&  print(std::ostream& out) const;
 
-  void full_state_vector(cvector_t &state_vector);
+  Vector<complex_t> full_statevector();
 
-  cvector_t get_amplitude_vector(const reg_t &base_values);
+  Vector<complex_t> get_amplitude_vector(const reg_t &base_values);
   complex_t get_single_amplitude(const std::string &base_value);
 
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
@@ -356,7 +360,8 @@ private:
   // This function computes the state vector for all the consecutive qubits 
   // between first_index and last_index
   MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
-  void full_state_vector_internal(cvector_t &state_vector, const reg_t &qubits) ;
+
+  Vector<complex_t> full_state_vector_internal(const reg_t &qubits) ;
 
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 

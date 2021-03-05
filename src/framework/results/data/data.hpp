@@ -24,8 +24,13 @@
 
 // Data Containers
 #include "framework/results/data/mixins/data_creg.hpp"
+#include "framework/results/data/mixins/data_rvalue.hpp"
+#include "framework/results/data/mixins/data_rvector.hpp"
+#include "framework/results/data/mixins/data_rdict.hpp"
 #include "framework/results/data/mixins/data_cmatrix.hpp"
 #include "framework/results/data/mixins/data_cvector.hpp"
+#include "framework/results/data/mixins/data_cdict.hpp"
+#include "framework/results/data/mixins/data_json.hpp"
 
 namespace AER {
 
@@ -33,9 +38,14 @@ namespace AER {
 // Result container for Qiskit-Aer
 //============================================================================
 
-struct Data : public DataCReg,
+struct Data : public DataCreg,
+              public DataRValue,
+              public DataRVector,
+              public DataRDict,
               public DataCVector,
-              public DataCMatrix {
+              public DataCMatrix,
+              public DataCDict,
+              public DataJSON {
 
   //----------------------------------------------------------------
   // Measurement data
@@ -124,17 +134,27 @@ struct Data : public DataCReg,
 //------------------------------------------------------------------------------
 
 Data &Data::combine(Data &&other) {
+  DataRValue::combine(std::move(other));
+  DataRVector::combine(std::move(other));
+  DataRDict::combine(std::move(other));
   DataCVector::combine(std::move(other));
   DataCMatrix::combine(std::move(other));
-  DataCReg::combine(std::move(other));
+  DataCDict::combine(std::move(other));
+  DataJSON::combine(std::move(other));
+  DataCreg::combine(std::move(other));
   return *this;
 }
 
 json_t Data::to_json() {
   json_t result;
+  DataRValue::add_to_json(result);
+  DataRVector::add_to_json(result);
+  DataRDict::add_to_json(result);
   DataCVector::add_to_json(result);
   DataCMatrix::add_to_json(result);
-  DataCReg::add_to_json(result);
+  DataCDict::add_to_json(result);
+  DataJSON::add_to_json(result);
+  DataCreg::add_to_json(result);
   return result;
 }
 

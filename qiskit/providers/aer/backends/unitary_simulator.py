@@ -87,7 +87,7 @@ class UnitarySimulator(AerBackend):
       to store a state vector. If a state vector needs more, an error
       is thrown. In general, a state vector of n-qubits uses 2^n complex
       values (16 Bytes). If set to 0, the maximum will be automatically
-      set to half the system memory size (Default: 0).
+      set to the system memory size (Default: 0).
 
     * ``"statevector_parallel_threshold"`` (int): Sets the threshold that
       2 * "n_qubits" must be greater than to enable OpenMP
@@ -132,7 +132,8 @@ class UnitarySimulator(AerBackend):
             'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
             'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
             'mcp', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
-            'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli'
+            'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
+            'save_unitary'
         ],
         'gates': []
     }

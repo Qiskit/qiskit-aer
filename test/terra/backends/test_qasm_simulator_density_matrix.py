@@ -14,6 +14,8 @@ QasmSimulator Integration Tests
 """
 
 import unittest
+from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer import AerError
 from test.terra import common
 from test.terra.decorators import requires_method
 
@@ -24,6 +26,7 @@ from test.terra.backends.qasm_simulator.qasm_measure import QasmMultiQubitMeasur
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmDiagonalGateTests
 from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardGateDensityMatrixTests
+from test.terra.backends.qasm_simulator.qasm_delay_gate import QasmDelayGateTests
 # Conditional instruction tests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalGateTests
 from test.terra.backends.qasm_simulator.qasm_conditional import QasmConditionalUnitaryTests
@@ -41,6 +44,8 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 from test.terra.backends.qasm_simulator.qasm_fusion import QasmFusionTests
+# Save data tests
+from test.terra.backends.qasm_simulator.qasm_save import QasmSaveDataTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
@@ -58,11 +63,12 @@ class DensityMatrixTests(
         QasmAlgorithmTests, QasmAlgorithmTestsWaltzBasis,
         QasmAlgorithmTestsMinimalBasis, QasmUnitaryGateTests, QasmDiagonalGateTests,
         QasmReadoutNoiseTests, QasmPauliNoiseTests, QasmResetNoiseTests,
-        QasmKrausNoiseTests, QasmSnapshotStatevectorTests,
+        QasmKrausNoiseTests, QasmSaveDataTests,
+        QasmSnapshotStatevectorTests,
         QasmSnapshotDensityMatrixTests, QasmSnapshotProbabilitiesTests,
         QasmSnapshotExpValPauliTests, QasmSnapshotExpValPauliNCTests,
         QasmSnapshotExpValMatrixTests, QasmSnapshotStabilizerTests,
-        QasmStandardGateDensityMatrixTests):
+        QasmStandardGateDensityMatrixTests, QasmDelayGateTests):
     """Container class of density_matrix method tests."""
     pass
 
@@ -75,6 +81,7 @@ class TestQasmSimulatorDensityMatrix(common.QiskitAerTestCase,
         "method": "density_matrix",
         "max_parallel_threads": 1
     }
+    SIMULATOR = QasmSimulator(**BACKEND_OPTS)
 
 
 @requires_method("qasm_simulator", "density_matrix_gpu")
@@ -86,6 +93,10 @@ class TestQasmSimulatorDensityMatrixThrustGPU(common.QiskitAerTestCase,
         "method": "density_matrix_gpu",
         "max_parallel_threads": 1
     }
+    try:
+        SIMULATOR = QasmSimulator(**BACKEND_OPTS)
+    except AerError:
+        SIMULATOR = None
 
 
 @requires_method("qasm_simulator", "density_matrix_thrust")
@@ -97,6 +108,10 @@ class TestQasmSimulatorDensityMatrixThrustCPU(common.QiskitAerTestCase,
         "method": "density_matrix_thrust",
         "max_parallel_threads": 1
     }
+    try:
+        SIMULATOR = QasmSimulator(**BACKEND_OPTS)
+    except AerError:
+        SIMULATOR = None
 
 
 if __name__ == '__main__':

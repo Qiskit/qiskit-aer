@@ -37,8 +37,25 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 // Enum class for operation types
 enum class OpType {
   gate, measure, reset, bfunc, barrier, snapshot,
-  matrix, diagonal_matrix, multiplexer, kraus, superop, roerror,
-  noise_switch, initialize, nop
+  matrix, diagonal_matrix, multiplexer, initialize, sim_op, nop,
+  // Noise instructions
+  kraus, superop, roerror, noise_switch,
+  // Save instructions
+  save_expval, save_expval_var, save_statevec, save_statevec_ket,
+  save_densmat, save_probs, save_probs_ket, save_amps, save_amps_sq,
+  save_stabilizer, save_unitary
+};
+
+enum class DataSubType {
+  single, c_single, list, c_list, accum, c_accum, average, c_average
+};
+
+static const std::unordered_set<OpType> SAVE_TYPES = {
+  OpType::save_expval, OpType::save_expval_var,
+  OpType::save_statevec, OpType::save_statevec_ket,
+  OpType::save_densmat, OpType::save_probs, OpType::save_probs_ket,
+  OpType::save_amps, OpType::save_amps_sq, OpType::save_stabilizer,
+  OpType::save_unitary
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -57,6 +74,38 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::barrier:
     stream << "barrier";
+    break;
+  case OpType::save_expval:
+    stream << "save_expval";
+    break;
+  case OpType::save_expval_var:
+    stream << "save_expval_var";
+  case OpType::save_statevec:
+    stream << "save_statevector";
+    break;
+  case OpType::save_statevec_ket:
+    stream << "save_statevector_dict";
+    break;
+  case OpType::save_densmat:
+    stream << "save_density_matrix";
+    break;
+  case OpType::save_probs:
+    stream << "save_probabilities";
+    break;
+  case OpType::save_probs_ket:
+    stream << "save_probabilities_dict";
+    break;
+  case OpType::save_amps:
+    stream << "save_amplitudes";
+    break;
+  case OpType::save_amps_sq:
+    stream << "save_amplitudes_sq";
+    break;
+  case OpType::save_stabilizer:
+    stream << "save_stabilizer";
+    break;
+  case OpType::save_unitary:
+    stream << "save_unitary";
     break;
   case OpType::snapshot:
     stream << "snapshot";
@@ -85,6 +134,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   case OpType::initialize:
     stream << "initialize";
     break;
+  case OpType::sim_op:
+    stream << "sim_op";
+    break;
   case OpType::nop:
     stream << "nop";
     break;
@@ -106,17 +158,13 @@ struct Op {
   reg_t qubits;                   //  qubits operation acts on
   std::vector<reg_t> regs;        //  list of qubits for matrixes
   std::vector<complex_t> params;  // real or complex params for gates
+  std::vector<uint_t> int_params;  // integer parameters 
   std::vector<std::string> string_params; // used or snapshot label, and boolean functions
 
   // Conditional Operations
   bool conditional = false; // is gate conditional gate
   uint_t conditional_reg;   // (opt) the (single) register location to look up for conditional
   RegComparison bfunc;      // (opt) boolean function relation
-
-  // DEPRECATED: Old style conditionals (remove in 0.3)
-  bool old_conditional = false;     // is gate old style conditional gate
-  std::string old_conditional_mask; // hex string for conditional mask
-  std::string old_conditional_val;  // hex string for conditional value
 
   // Measurement
   reg_t memory;             // (opt) register operation it acts on (measure)
@@ -128,7 +176,11 @@ struct Op {
   // Readout error
   std::vector<rvector_t> probs;
 
-  // Snapshots
+  // Expvals
+  std::vector<std::tuple<std::string, double, double>> expval_params;
+
+  // Legacy Snapshots
+  DataSubType save_type = DataSubType::single;
   using pauli_component_t = std::pair<complex_t, std::string>; // Pair (coeff, label_string)
   using matrix_component_t = std::pair<complex_t, std::vector<std::pair<reg_t, cmatrix_t>>>; // vector of Pair(qubits, matrix), combined with coefficient
   std::vector<pauli_component_t> params_expval_pauli;
@@ -136,7 +188,6 @@ struct Op {
                                                         // 1 x M row-matrices
                                                         // Projector vectors are stored as
                                                         // M x 1 column-matrices
-  std::vector<uint_t> params_amplitudes; // Vector of base values
 };
 
 inline std::ostream& operator<<(std::ostream& s, const Op& op) {
@@ -397,12 +448,16 @@ Op json_to_op_bfunc(const json_t &js);
 Op json_to_op_initialize(const json_t &js);
 Op json_to_op_pauli(const json_t &js);
 
+// Save data
+Op json_to_op_save_default(const json_t &js, OpType op_type);
+Op json_to_op_save_expval(const json_t &js, bool variance);
+Op json_to_op_save_amps(const json_t &js, bool squared);
+
 // Snapshots
 Op json_to_op_snapshot(const json_t &js);
 Op json_to_op_snapshot_default(const json_t &js);
 Op json_to_op_snapshot_matrix(const json_t &js);
 Op json_to_op_snapshot_pauli(const json_t &js);
-Op json_to_op_snapshot_amplitudes(const json_t &js);
 
 // Matrices
 Op json_to_op_unitary(const json_t &js);
@@ -446,6 +501,29 @@ Op json_to_op(const json_t &js) {
     return json_to_op_diagonal(js);
   if (name == "superop")
     return json_to_op_superop(js);
+  // Save
+  if (name == "save_expval")
+    return json_to_op_save_expval(js, false);
+  if (name == "save_expval_var")
+    return json_to_op_save_expval(js, true);
+  if (name == "save_statevector")
+    return json_to_op_save_default(js, OpType::save_statevec);
+  if (name == "save_statevector_dict")
+    return json_to_op_save_default(js, OpType::save_statevec_ket);
+  if (name == "save_stabilizer")
+    return json_to_op_save_default(js, OpType::save_stabilizer);
+  if (name == "save_unitary")
+    return json_to_op_save_default(js, OpType::save_unitary);
+  if (name == "save_density_matrix")
+    return json_to_op_save_default(js, OpType::save_densmat);
+  if (name == "save_probabilities")
+    return json_to_op_save_default(js, OpType::save_probs);
+  if (name == "save_probabilities_dict")
+    return json_to_op_save_default(js, OpType::save_probs_ket);
+  if (name == "save_amplitudes")
+    return json_to_op_save_amps(js, false);
+  if (name == "save_amplitudes_sq")
+    return json_to_op_save_amps(js, true);
   // Snapshot
   if (name == "snapshot")
     return json_to_op_snapshot(js);
@@ -476,6 +554,8 @@ json_t op_to_json(const Op &op) {
     ret["regs"] = op.regs;
   if (!op.params.empty())
     ret["params"] = op.params;
+  else if (!op.int_params.empty())
+    ret["params"] = op.int_params;
   if (op.conditional)
     ret["conditional"] = op.conditional_reg;
   if (!op.memory.empty())
@@ -501,16 +581,8 @@ void add_conditional(const Allowed allowed, Op& op, const json_t &js) {
       throw std::invalid_argument("Invalid instruction: \"" + op.name + "\" cannot be conditional.");
     }
     // If instruction is allowed to be conditional add parameters
-    if (js["conditional"].is_number()) {
-      // New style conditional
-      op.conditional_reg = js["conditional"];
-      op.conditional = true;
-    } else {
-      // DEPRECATED: old style conditional (remove in 0.3)
-      JSON::get_value(op.old_conditional_mask, "mask", js["conditional"]);
-      JSON::get_value(op.old_conditional_val, "val", js["conditional"]);
-      op.old_conditional = true;
-    }
+    op.conditional_reg = js["conditional"];
+    op.conditional = true;
   }
 }
 
@@ -703,7 +775,6 @@ Op json_to_op_roerror(const json_t &js) {
   op.name = "roerror";
   JSON::get_value(op.memory, "memory", js);
   JSON::get_value(op.registers, "register", js);
-  JSON::get_value(op.probs, "probabilities", js); // DEPRECATED: Remove in 0.4
   JSON::get_value(op.probs, "params", js);
   // Conditional
   add_conditional(Allowed::No, op, js);
@@ -830,6 +901,90 @@ Op json_to_op_noise_switch(const json_t &js) {
 }
 
 //------------------------------------------------------------------------------
+// Implementation: Save data deserialization
+//------------------------------------------------------------------------------
+
+Op json_to_op_save_default(const json_t &js, OpType op_type) {
+  Op op;
+  op.type = op_type;
+  JSON::get_value(op.name, "name", js);
+
+  // Get subtype
+  static const std::unordered_map<std::string, DataSubType> subtypes {
+    {"single", DataSubType::single},
+    {"c_single", DataSubType::c_single},
+    {"average", DataSubType::average},
+    {"c_average", DataSubType::c_average},
+    {"list", DataSubType::list},
+    {"c_list", DataSubType::c_list},
+    {"accum", DataSubType::accum},
+    {"c_accum", DataSubType::c_accum},
+  };
+  std::string subtype;
+  JSON::get_value(subtype, "snapshot_type", js);
+  auto subtype_it = subtypes.find(subtype);
+  if (subtype_it == subtypes.end()) {
+    throw std::runtime_error("Invalid data subtype \"" + subtype +
+                             "\" in save data instruction.");
+  }
+  op.save_type = subtype_it->second;
+ 
+  // Get data key
+  op.string_params.emplace_back("");
+  JSON::get_value(op.string_params[0], "label", js);
+
+  // Add optional qubits field
+  JSON::get_value(op.qubits, "qubits", js);
+  return op;
+}
+
+Op json_to_op_save_expval(const json_t &js, bool variance) {
+  // Initialized default save instruction params
+  auto op_type = (variance) ? OpType::save_expval_var
+                            : OpType::save_expval;
+  Op op = json_to_op_save_default(js, op_type);
+
+  // Parse Pauli operator components
+  const auto threshold = 1e-12; // drop small components
+  // Get components
+  if (JSON::check_key("params", js) && js["params"].is_array()) {
+    for (const auto &comp : js["params"]) {
+      // Get complex coefficient
+      std::vector<double> coeffs = comp[1];
+      if (std::abs(coeffs[0]) > threshold || std::abs(coeffs[1]) > threshold) {
+        std::string pauli = comp[0];
+        if (pauli.size() != op.qubits.size()) {
+          throw std::invalid_argument(std::string("Invalid expectation value save instruction ") +
+                                      "(Pauli label does not match qubit number.).");
+        }
+        op.expval_params.emplace_back(pauli, coeffs[0], coeffs[1]);
+      }
+    }
+  } else {
+    throw std::invalid_argument("Invalid save expectation value \"params\".");
+  }
+
+  // Check edge case of all coefficients being empty
+  // In this case the operator had all coefficients zero, or sufficiently close
+  // to zero that they were all truncated.
+  if (op.expval_params.empty()) {
+    std::string pauli(op.qubits.size(), 'I');
+    op.expval_params.emplace_back(pauli, 0., 0.);
+  }
+
+  return op;
+}
+
+Op json_to_op_save_amps(const json_t &js, bool squared) {
+  // Initialized default save instruction params
+  auto op_type = (squared) ? OpType::save_amps_sq
+                           : OpType::save_amps;
+  Op op = json_to_op_save_default(js, op_type);
+  JSON::get_value(op.int_params, "params", js);
+  return op;
+}
+
+//------------------------------------------------------------------------------
 // Implementation: Snapshot deserialization
 //------------------------------------------------------------------------------
 
@@ -841,8 +996,6 @@ Op json_to_op_snapshot(const json_t &js) {
     return json_to_op_snapshot_pauli(js);
   if (snapshot_type.find("expectation_value_matrix") != std::string::npos)
     return json_to_op_snapshot_matrix(js);
-  if (snapshot_type.find("amplitudes") != std::string::npos)
-    return json_to_op_snapshot_amplitudes(js);
   // Default snapshot: has "type", "label", "qubits"
   auto op = json_to_op_snapshot_default(js);
   // Conditional
@@ -866,42 +1019,17 @@ Op json_to_op_snapshot_default(const json_t &js) {
   return op;
 }
 
-Op json_to_op_snapshot_amplitudes(const json_t &js) {
-  // Load default snapshot parameters
-  Op op = json_to_op_snapshot_default(js);
-
-  // Check qubits are valid
-  check_empty_qubits(op);
-  check_duplicate_qubits(op);
-
-  // Get components
-  if (JSON::check_key("params", js) && js["params"].is_array()) {
-    for (complex_t base_value : js["params"]) {
-      op.params_amplitudes.emplace_back(static_cast<uint_t>(real(base_value)));
-    } 
-  } else {
-    throw std::invalid_argument("Invalid amplitudes snapshot (param component invalid");
-  }
-  return op;
-}
-
 
 Op json_to_op_snapshot_pauli(const json_t &js) {
-  // Load default snapshot parameters
   Op op = json_to_op_snapshot_default(js);
 
-  // Check qubits are valid
-  check_empty_qubits(op);
-  check_duplicate_qubits(op);
-
-  // Parse Pauli operator components
   const auto threshold = 1e-15; // drop small components
   // Get components
   if (JSON::check_key("params", js) && js["params"].is_array()) {
     for (const auto &comp : js["params"]) {
       // Check component is length-2 array
       if (!comp.is_array() || comp.size() != 2)
-        throw std::invalid_argument("Invalid Pauli expval snapshot (param component " + 
+        throw std::invalid_argument("Invalid Pauli expval params (param component " + 
                                     comp.dump() + " invalid).");
       // Get complex coefficient
       complex_t coeff = comp[0];
@@ -922,7 +1050,7 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
       } // end if > threshold
     } // end component loop
   } else {
-    throw std::invalid_argument("Invalid Pauli snapshot \"params\".");
+    throw std::invalid_argument("Invalid Pauli expectation value value snapshot \"params\".");
   }
   // Check edge case of all coefficients being empty
   // In this case the operator had all coefficients zero, or sufficiently close
@@ -933,6 +1061,7 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
     complex_t coeff(0);
     op.params_expval_pauli.emplace_back(coeff, pauli);
   }
+
   return op;
 }
 

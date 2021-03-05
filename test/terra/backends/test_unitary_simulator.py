@@ -14,6 +14,8 @@ UnitarySimulator Integration Tests
 """
 
 import unittest
+from qiskit.providers.aer import UnitarySimulator
+from qiskit.providers.aer import AerError
 from test.terra import common
 from test.terra.decorators import requires_method
 
@@ -21,36 +23,49 @@ from test.terra.backends.unitary_simulator.unitary_basics import UnitarySimulato
 from test.terra.backends.unitary_simulator.unitary_snapshot import UnitarySnapshotTests
 from test.terra.backends.unitary_simulator.unitary_fusion import UnitaryFusionTests
 from test.terra.backends.unitary_simulator.unitary_gates import UnitaryGateTests
+from test.terra.backends.unitary_simulator.unitary_save import UnitarySaveUnitaryTests
 
 
 class TestUnitarySimulator(common.QiskitAerTestCase,
                            UnitaryGateTests,
                            UnitarySimulatorTests,
                            UnitarySnapshotTests,
-                           UnitaryFusionTests):
+                           UnitaryFusionTests,
+                           UnitarySaveUnitaryTests):
     """UnitarySimulator automatic method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 2113}
+    SIMULATOR = UnitarySimulator(**BACKEND_OPTS)
 
 
 @requires_method("unitary_simulator", "unitary_gpu")
 class TestUnitarySimulatorThrustGPU(common.QiskitAerTestCase,
                                     UnitaryGateTests,
                                     UnitarySimulatorTests,
-                                    UnitaryFusionTests):
+                                    UnitaryFusionTests,
+                                    UnitarySaveUnitaryTests):
     """UnitarySimulator unitary_gpu method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 2113, "method": "unitary_gpu"}
+    try:
+        SIMULATOR = UnitarySimulator(**BACKEND_OPTS)
+    except AerError:
+        SIMULATOR = None
 
 
 @requires_method("unitary_simulator", "unitary_thrust")
 class TestUnitarySimulatorThrustCPU(common.QiskitAerTestCase,
                                     UnitaryGateTests,
                                     UnitarySimulatorTests,
-                                    UnitaryFusionTests):
+                                    UnitaryFusionTests,
+                                    UnitarySaveUnitaryTests):
     """UnitarySimulator unitary_thrust method tests."""
 
     BACKEND_OPTS = {"seed_simulator": 2113, "method": "unitary_thrust"}
+    try:
+        SIMULATOR = UnitarySimulator(**BACKEND_OPTS)
+    except AerError:
+        SIMULATOR = None
 
 
 if __name__ == '__main__':

@@ -11,6 +11,11 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+# This file is part of QuTiP: Quantum Toolbox in Python.
+#
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 # pylint: disable=no-name-in-module, import-error, invalid-name
 
 """

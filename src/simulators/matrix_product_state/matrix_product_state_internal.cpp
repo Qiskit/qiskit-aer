@@ -72,10 +72,10 @@ static const cmatrix_t one_measure =
 //    e.g., 011->101 (for the ordering [1, 0, 2]
 //
 //------------------------------------------------------------------------
-template <class T>
-void reorder_all_qubits(const std::vector<T>& orig_probvector, 
+template <class vec_t>
+void reorder_all_qubits(const vec_t& orig_probvector, 
 			const reg_t &qubits, 
-			std::vector<T>& new_probvector);
+			vec_t& new_probvector);
 uint_t reorder_qubits(const reg_t &qubits, uint_t index);
 
 //------------------------------------------------------------------------
@@ -90,11 +90,11 @@ uint_t reorder_qubits(const reg_t &qubits, uint_t index);
 // Note that the qubits are numbered from left to right, i.e., the msb is 0
 //
 //------------------------------------------------------------------------
-template <class T>
-void permute_all_qubits(const std::vector<T>& orig_statevector, 
+template <class vec_t>
+void permute_all_qubits(const vec_t& orig_statevector, 
 			const reg_t &input_qubits, 
 			const reg_t &output_qubits,
-			std::vector<T>& new_statevector);
+			vec_t& new_statevector);
 
 //------------------------------------------------------------------------
 // Function name: permute_qubits
@@ -122,8 +122,8 @@ void permute_all_qubits(const std::vector<T>& orig_statevector,
 // Input: the input statevector and the number of qubits
 // Output: the statevector in reverse order
 //----------------------------------------------------------------	
-template <class T>
-std::vector<T> reverse_all_bits(const std::vector<T>& statevector, uint_t num_qubits);
+template <class vec_t>
+vec_t reverse_all_bits(const vec_t& statevector, uint_t num_qubits);
 
 // with 5 qubits, the number 2 in binary is 00010,
 // when reversed it is 01000, which is the number 8
@@ -164,10 +164,10 @@ void squeeze_qubits(const reg_t &original_qubits, reg_t &squeezed_qubits) {
   }
 }
 
-template <class T>
-void reorder_all_qubits(const std::vector<T>& orig_probvector, 
+template <class vec_t>
+void reorder_all_qubits(const vec_t& orig_probvector, 
 			const reg_t &qubits,
-			std::vector<T>& new_probvector) {
+			vec_t& new_probvector) {
   uint_t new_index;
   uint_t length = 1ULL << qubits.size();   // length = pow(2, num_qubits)
   // if qubits are [k0, k1,...,kn], move them to [0, 1, .. , n], but preserve relative
@@ -205,11 +205,11 @@ uint_t reorder_qubits(const reg_t &qubits, uint_t index) {
   return new_index;
 }
 
-template <class T>
-void permute_all_qubits(const std::vector<T>& orig_statevector, 
+template <class vec_t>
+void permute_all_qubits(const vec_t& orig_statevector, 
 			const reg_t &input_qubits,
 			const reg_t &output_qubits,
-			std::vector<T>& new_statevector) {
+			vec_t& new_statevector) {
   uint_t new_index;
   uint_t length = 1ULL << input_qubits.size();   // length = pow(2, num_qubits)
   // if qubits are [k0, k1,...,kn], move them to [0, 1, .. , n], but preserve relative
@@ -270,11 +270,12 @@ uint_t reverse_bits(uint_t num, uint_t len) {
   return sum;
 }
 
-template <class T>
-std::vector<T> reverse_all_bits(const std::vector<T>& statevector, uint_t num_qubits)
+template <class vec_t>
+vec_t reverse_all_bits(const vec_t& statevector, uint_t num_qubits)
 {
   uint_t length = statevector.size();   // length = pow(2, num_qubits_)
-  std::vector<T> output_vector(length);
+  vec_t output_vector;
+  output_vector.resize(length);
 
 #pragma omp parallel for if (length > MPS::get_omp_threshold() && MPS::get_omp_threads() > 1) num_threads(MPS::get_omp_threads()) 
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
@@ -430,11 +431,6 @@ void MPS::apply_rz(uint_t index, double theta)
   get_qubit(index).apply_matrix(AER::Linalg::Matrix::rz(theta));
 }
 
-void MPS::apply_u1(uint_t index, double lambda)
-{
-  get_qubit(index).apply_matrix(AER::Linalg::Matrix::u1(lambda));
-}
-
 void MPS::apply_u2(uint_t index, double phi, double lambda)
 {
   get_qubit(index).apply_matrix(AER::Linalg::Matrix::u2(phi, lambda));
@@ -453,6 +449,12 @@ void MPS::apply_cnot(uint_t index_A, uint_t index_B)
 		     get_qubit_index(index_B), cx, cmatrix_t(1, 1));
 }
 
+void MPS::apply_cy(uint_t index_A, uint_t index_B)
+{
+  apply_2_qubit_gate(get_qubit_index(index_A), 
+		     get_qubit_index(index_B), cy, cmatrix_t(1, 1));
+}
+
 void MPS::apply_cz(uint_t index_A, uint_t index_B)
 {
   apply_2_qubit_gate(get_qubit_index(index_A), 
@@ -461,8 +463,17 @@ void MPS::apply_cz(uint_t index_A, uint_t index_B)
 
 void MPS::apply_cu1(uint_t index_A, uint_t index_B, double lambda)
 {
-  cmatrix_t u1_matrix = AER::Linalg::Matrix::u1(lambda);
-  apply_2_qubit_gate(get_qubit_index(index_A), get_qubit_index(index_B), cu1, u1_matrix);
+  cmatrix_t lambda_in_mat(1, 1);
+  lambda_in_mat(0, 0) = lambda;
+  apply_2_qubit_gate(get_qubit_index(index_A), 
+		     get_qubit_index(index_B), cu1, lambda_in_mat);
+}
+
+void MPS::apply_csx(uint_t index_A, uint_t index_B)
+{
+  cmatrix_t sx_matrix = AER::Linalg::Matrix::SX;
+  apply_2_qubit_gate(get_qubit_index(index_A), 
+		     get_qubit_index(index_B), csx, sx_matrix);
 }
 
 void MPS::apply_rxx(uint_t index_A, uint_t index_B, double theta)
@@ -492,10 +503,16 @@ void MPS::apply_rzx(uint_t index_A, uint_t index_B, double theta)
 void MPS::apply_ccx(const reg_t &qubits)
 {
   reg_t internal_qubits = get_internal_qubits(qubits);
-  apply_3_qubit_gate(internal_qubits, mcx, cmatrix_t(1, 1));
+  apply_3_qubit_gate(internal_qubits, ccx, cmatrix_t(1, 1));
 }
 
-  void MPS::apply_swap(uint_t index_A, uint_t index_B, bool swap_gate) {
+void MPS::apply_cswap(const reg_t &qubits)
+{
+  reg_t internal_qubits = get_internal_qubits(qubits);
+  apply_3_qubit_gate(internal_qubits, cswap, cmatrix_t(1, 1));
+}
+
+void MPS::apply_swap(uint_t index_A, uint_t index_B, bool swap_gate) {
   apply_swap_internal(get_qubit_index(index_A), get_qubit_index(index_B), swap_gate);
 }
 
@@ -585,6 +602,9 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
   case cx:
     temp.apply_cnot(swapped);
     break;
+  case cy:
+    temp.apply_cy(swapped);
+    break;
   case cz:
     temp.apply_cz();
     break;
@@ -594,18 +614,15 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
   case id:
     break;
   case cu1:
-    {
-      cmatrix_t Zeros = AER::Linalg::Matrix::I-AER::Linalg::Matrix::I;
-      cmatrix_t temp1 = AER::Utils::concatenate(AER::Linalg::Matrix::I, Zeros , 1),
-	temp2 = AER::Utils::concatenate(Zeros, mat, 1);
-      cmatrix_t cu = AER::Utils::concatenate(temp1, temp2 ,0) ;
-      temp.apply_matrix(cu);
-      break;
-    }
+    temp.apply_cu1(std::real(mat(0, 0)));
+    break;
+  case csx:
+    temp.apply_control_2_qubits(mat, swapped, is_diagonal);
+    break;
   case su4:
     // We reverse the order of the qubits, according to the Qiskit convention.
     // Effectively, this reverses swap for 2-qubit gates
-    temp.apply_matrix(mat, !swapped, is_diagonal);
+    temp.apply_matrix_2_qubits(mat, !swapped, is_diagonal);
     break;
     
   default:
@@ -639,25 +656,34 @@ void MPS::apply_3_qubit_gate(const reg_t &qubits,
   reg_t new_qubits(qubits.size());
   centralize_qubits(qubits, new_qubits);
 
-  // The controlled (or target) qubit, is qubit[2]. Since in new_qubits the qubits are sorted,
-  // the relative position of the controlled qubit will be 0, 1, or 2 depending on
-  // where qubit[2] was moved to in new_qubits
-  uint_t target=0;
-  if (qubits[2] > qubits[0] && qubits[2] > qubits[1])
-    target = 2;
-  else if (qubits[2] < qubits[0] && qubits[2] < qubits[1])
-    target = 0;
-  else
-    target = 1;
-
   // extract the tensor containing only the 3 qubits on which we apply the gate
   uint_t first = new_qubits.front();
   MPS_Tensor sub_tensor(state_vec_as_MPS(first, first+2));
 
   // apply the gate to sub_tensor
   switch (gate_type) {
-  case mcx:
-       sub_tensor.apply_ccx(target);
+  case ccx:
+    // The controlled (or target) qubit, is qubit[2]. Since in new_qubits the qubits are sorted,
+    // the relative position of the controlled qubit will be 0, 1, or 2 depending on
+    // where qubit[2] was moved to in new_qubits
+    uint_t target;
+    if (qubits[2] > qubits[0] && qubits[2] > qubits[1])
+      target = 2;
+    else if (qubits[2] < qubits[0] && qubits[2] < qubits[1])
+      target = 0;
+    else
+      target = 1;
+    sub_tensor.apply_ccx(target);
+    break;
+  case cswap:
+    uint_t control;
+    if (qubits[0] < qubits[1] && qubits[0] < qubits[2])
+      control = 0;
+    else if (qubits[0] > qubits[1] && qubits[0] > qubits[2])
+      control = 2;
+    else
+      control = 1;
+    sub_tensor.apply_cswap(control);
     break;
 
   default:
@@ -698,7 +724,7 @@ void MPS::apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat,
 {
   switch (qubits.size()) {
   case 1: 
-    q_reg_[qubits[0]].apply_matrix(mat, false, is_diagonal);
+    q_reg_[qubits[0]].apply_matrix(mat, is_diagonal);
     break;
   case 2:
     apply_2_qubit_gate(qubits[0], qubits[1], su4, mat, is_diagonal);
@@ -748,7 +774,7 @@ void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
   uint_t first = target_qubits.front();
   MPS_Tensor sub_tensor(state_vec_as_MPS(first, first+num_qubits-1));
 
-  sub_tensor.apply_matrix(mat, false, is_diagonal);
+  sub_tensor.apply_matrix(mat, is_diagonal);
 
   // state_mat is a matrix containing the flattened representation of the sub-tensor 
   // into a single matrix. E.g., sub_tensor will contain 8 matrices for 3-qubit
@@ -1229,37 +1255,36 @@ MPS_Tensor MPS::state_vec_as_MPS(uint_t first_index, uint_t last_index) const
 	return temp;
 }
 
-void MPS::full_state_vector(cvector_t& statevector) {
+Vector<complex_t> MPS::full_statevector() {
   reg_t qubits(num_qubits_);
   std::iota( std::begin(qubits), std::end(qubits), 0);
   reg_t internal_qubits = get_internal_qubits(qubits);
-  full_state_vector_internal(statevector, internal_qubits);
+  return full_state_vector_internal(internal_qubits);
 }
 
-void MPS::full_state_vector_internal(cvector_t& statevector,
-				     const reg_t &qubits) {
+Vector<complex_t> MPS::full_state_vector_internal(const reg_t &qubits) {
   // mps_vec contains the state vector with the qubits in ascending order
   MPS_Tensor mps_vec = state_vec_as_MPS(qubits);
 
   uint_t num_qubits = qubits.size();
   uint_t length = 1ULL << num_qubits;   // length = pow(2, num_qubits)
-  statevector.resize(length);
+  Vector<complex_t> statevector(length, false);
   // statevector is constructed in ascending order
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t i = 0; i < static_cast<int_t>(length); i++) {
     statevector[i] = mps_vec.get_data(i)(0,0);
   }
-  cvector_t temp_statevector(length);
+  Vector<complex_t> temp_statevector(length, false);
   //temp_statevector will contain the statevector in the ordering defined in "qubits"
   reorder_all_qubits(statevector, qubits, temp_statevector);
   // reverse to be consistent with qasm ordering
-  statevector = reverse_all_bits(temp_statevector, num_qubits);
+  return reverse_all_bits(temp_statevector, num_qubits);
 }
 
-cvector_t MPS::get_amplitude_vector(const reg_t &base_values) {
+Vector<complex_t> MPS::get_amplitude_vector(const reg_t &base_values) {
   uint_t num_values = base_values.size();
   std::string base_value;
-  cvector_t amplitude_vector(num_values);
+  Vector<complex_t> amplitude_vector(num_values, false);
 
   #pragma omp parallel for if (num_values > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t i=0; i<static_cast<int_t>(num_values); i++) {

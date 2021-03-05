@@ -17,14 +17,17 @@
 
 #include "controller.hpp"
 #include "simulators/density_matrix/densitymatrix_state.hpp"
+#include "simulators/density_matrix/densitymatrix_state_chunk.hpp"
 #include "simulators/extended_stabilizer/extended_stabilizer_state.hpp"
 #include "simulators/matrix_product_state/matrix_product_state.hpp"
 #include "simulators/stabilizer/stabilizer_state.hpp"
 #include "simulators/statevector/qubitvector.hpp"
 #include "simulators/statevector/statevector_state.hpp"
+#include "simulators/statevector/statevector_state_chunk.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
 #include "transpile/delay_measure.hpp"
 #include "transpile/fusion.hpp"
+#include "transpile/cacheblocking.hpp"
 
 namespace AER {
 namespace Simulator {
@@ -201,10 +204,20 @@ class QasmController : public Base::Controller {
       const Circuit& circ,
       const Noise::NoiseModel& noise) override;
 
+  // Set distributed parallelization
+  virtual void
+  set_distributed_parallelization(const std::vector<Circuit> &circuits,
+                                  const std::vector<Noise::NoiseModel> &noise) override;
+
   // Return a fusion transpilation pass configured for the current
   // method, circuit and config
   Transpile::Fusion transpile_fusion(Method method,
                                      const Operations::OpSet &opset,
+                                     const json_t& config) const;
+
+
+  Transpile::CacheBlocking transpile_cache_blocking(const Circuit& circ,
+                                     const Noise::NoiseModel& noise,
                                      const json_t& config) const;
 
   //----------------------------------------------------------------
@@ -291,6 +304,11 @@ class QasmController : public Base::Controller {
 
   // TODO: initial stabilizer state
 
+  // Controller-level parameter for CH method
+  bool extended_stabilizer_measure_sampling_ = false;
+
+  //using multiple chunks
+  bool multiple_qregs_ = false;
 };
 
 //=========================================================================
@@ -363,6 +381,11 @@ void QasmController::set_config(const json_t& config) {
           "QasmController: initial_statevector is not a unit vector");
     }
   }
+
+  //enable multiple qregs if cache blocking is enabled
+  if(JSON::check_key("blocking_enable", config)){
+    JSON::get_value(multiple_qregs_,"blocking_enable", config);
+  }
 }
 
 void QasmController::clear_config() {
@@ -384,16 +407,31 @@ void QasmController::run_circuit(const Circuit& circ,
   // Validate circuit for simulation method
   switch (simulation_method(circ, noise, true)) {
     case Method::statevector: {
-      if (simulation_precision_ == Precision::double_precision) {
-        // Double-precision Statevector simulation
-        return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector, result);
-      } else {
-        // Single-precision Statevector simulation
-        return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector, result);
+      if(multiple_qregs_){
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<double>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector, result);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<StatevectorChunk::State<QV::QubitVector<float>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector, result);
+        }
+      }
+      else{
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<Statevector::State<QV::QubitVector<double>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector, result);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector, result);
+        }
       }
     }
     case Method::statevector_thrust_gpu: {
@@ -402,18 +440,35 @@ void QasmController::run_circuit(const Circuit& circ,
           "QasmController: method statevector_gpu is not supported on this "
           "system");
 #else
-      if (simulation_precision_ == Precision::double_precision) {
-        // Double-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<double>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector_thrust_gpu, result);
-      } else {
-        // Single-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<float>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector_thrust_gpu, result);
+      if(multiple_qregs_ || (parallel_shots_ > 1 || parallel_experiments_ > 1)){
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<
+              StatevectorChunk::State<QV::QubitVectorThrust<double>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_gpu,result);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<
+              StatevectorChunk::State<QV::QubitVectorThrust<float>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_gpu,result);
+        }
+      }
+      else{ 
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<
+              Statevector::State<QV::QubitVectorThrust<double>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_gpu,result);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<
+              Statevector::State<QV::QubitVectorThrust<float>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_gpu,result);
+        }
       }
 #endif
     }
@@ -423,34 +478,68 @@ void QasmController::run_circuit(const Circuit& circ,
           "QasmController: method statevector_thrust is not supported on this "
           "system");
 #else
-      if (simulation_precision_ == Precision::double_precision) {
-        // Double-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<double>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector_thrust_cpu, result);
-      } else {
-        // Single-precision Statevector simulation
-        return run_circuit_helper<
-            Statevector::State<QV::QubitVectorThrust<float>>>(
-            circ, noise, config, shots, rng_seed, initial_statevector_,
-            Method::statevector_thrust_cpu, result);
+      if(multiple_qregs_){
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<
+              StatevectorChunk::State<QV::QubitVectorThrust<double>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_cpu,result);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<
+              StatevectorChunk::State<QV::QubitVectorThrust<float>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_cpu,result);
+        }
+      }
+      else{
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision Statevector simulation
+          return run_circuit_helper<
+              Statevector::State<QV::QubitVectorThrust<double>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_cpu,result);
+        } else {
+          // Single-precision Statevector simulation
+          return run_circuit_helper<
+              Statevector::State<QV::QubitVectorThrust<float>>>(
+              circ, noise, config, shots, rng_seed, initial_statevector_,
+              Method::statevector_thrust_cpu,result);
+        }
       }
 #endif
     }
     case Method::density_matrix: {
-      if (simulation_precision_ == Precision::double_precision) {
-        // Double-precision density matrix simulation
-        return run_circuit_helper<
-            DensityMatrix::State<QV::DensityMatrix<double>>>(
-            circ, noise, config, shots, rng_seed, cvector_t(),
-            Method::density_matrix, result);
-      } else {
-        // Single-precision density matrix simulation
-        return run_circuit_helper<
-            DensityMatrix::State<QV::DensityMatrix<float>>>(
-            circ, noise, config, shots, rng_seed, cvector_t(),
-            Method::density_matrix, result);
+      if(multiple_qregs_){
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrixChunk::State<QV::DensityMatrix<double>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix, result);
+        } else {
+          // Single-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrixChunk::State<QV::DensityMatrix<float>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix, result);
+        }
+      }
+      else{
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrix::State<QV::DensityMatrix<double>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix, result);
+        } else {
+          // Single-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrix::State<QV::DensityMatrix<float>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix, result);
+        }
       }
     }
     case Method::density_matrix_thrust_gpu: {
@@ -459,18 +548,35 @@ void QasmController::run_circuit(const Circuit& circ,
           "QasmController: method density_matrix_gpu is not supported on this "
           "system");
 #else
-      if (simulation_precision_ == Precision::double_precision) {
-        // Double-precision density matrix simulation
-        return run_circuit_helper<
-            DensityMatrix::State<QV::DensityMatrixThrust<double>>>(
-            circ, noise, config, shots, rng_seed, cvector_t(),
-            Method::density_matrix_thrust_gpu, result);
-      } else {
-        // Single-precision density matrix simulation
-        return run_circuit_helper<
-            DensityMatrix::State<QV::DensityMatrixThrust<float>>>(
-            circ, noise, config, shots, rng_seed, cvector_t(),
-            Method::density_matrix_thrust_gpu, result);
+      if(multiple_qregs_ || (parallel_shots_ > 1 || parallel_experiments_ > 1)){
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrixChunk::State<QV::DensityMatrixThrust<double>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix_thrust_gpu,result);
+        } else {
+          // Single-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrixChunk::State<QV::DensityMatrixThrust<float>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix_thrust_gpu,result);
+        }
+      }
+      else{
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrix::State<QV::DensityMatrixThrust<double>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix_thrust_gpu,result);
+        } else {
+          // Single-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrix::State<QV::DensityMatrixThrust<float>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix_thrust_gpu,result);
+        }
       }
 #endif
       case Method::density_matrix_thrust_cpu:
@@ -480,6 +586,22 @@ void QasmController::run_circuit(const Circuit& circ,
             "this "
             "system");
 #else
+      if(multiple_qregs_){
+        if (simulation_precision_ == Precision::double_precision) {
+          // Double-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrixChunk::State<QV::DensityMatrixThrust<double>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix_thrust_cpu,result);
+        } else {
+          // Single-precision density matrix simulation
+          return run_circuit_helper<
+              DensityMatrixChunk::State<QV::DensityMatrixThrust<float>>>(
+              circ, noise, config, shots, rng_seed, cvector_t(),
+              Method::density_matrix_thrust_cpu,result);
+        }
+      }
+      else{
         if (simulation_precision_ == Precision::double_precision) {
           // Double-precision density matrix simulation
           return run_circuit_helper<
@@ -493,6 +615,7 @@ void QasmController::run_circuit(const Circuit& circ,
               circ, noise, config, shots, rng_seed, cvector_t(),
               Method::density_matrix_thrust_cpu, result);
         }
+      }
 #endif
     }
     case Method::stabilizer: {
@@ -815,6 +938,42 @@ Transpile::Fusion QasmController::transpile_fusion(Method method,
   return fusion_pass;
 }
 
+Transpile::CacheBlocking QasmController::transpile_cache_blocking(const Circuit& circ,
+                                   const Noise::NoiseModel& noise,
+                                   const json_t& config) const
+{
+  Transpile::CacheBlocking cache_block_pass;
+
+  cache_block_pass.set_config(config);
+  if(!cache_block_pass.enabled()){
+    //if blocking is not set by config, automatically set if required
+    if(Base::Controller::num_process_per_experiment_ > 1 || Base::Controller::get_min_memory_mb() < required_memory_mb(circ, noise)){
+      int nplace = Base::Controller::num_process_per_experiment_;
+      if(Base::Controller::num_gpus_ > 0)
+        nplace *= Base::Controller::num_gpus_;
+
+      size_t complex_size = (simulation_precision_ == Precision::single_precision) ? sizeof(std::complex<float>) : sizeof(std::complex<double>);
+
+      switch (simulation_method(circ, noise, false)) {
+        case Method::statevector:
+        case Method::statevector_thrust_cpu:
+        case Method::statevector_thrust_gpu:
+          cache_block_pass.set_blocking(circ.num_qubits, Base::Controller::get_min_memory_mb() << 20, nplace, complex_size,false);
+          break;
+        case Method::density_matrix:
+        case Method::density_matrix_thrust_cpu:
+        case Method::density_matrix_thrust_gpu:
+          cache_block_pass.set_blocking(circ.num_qubits, Base::Controller::get_min_memory_mb() << 20, nplace, complex_size,true);
+          break;
+        default:
+          throw std::runtime_error("QasmController: No enough memory to simulate this method on the sysytem");
+      }
+    }
+  }
+
+  return cache_block_pass;
+}
+
 void QasmController::set_parallelization_circuit(
     const Circuit& circ,
     const Noise::NoiseModel& noise_model) {
@@ -855,6 +1014,59 @@ void QasmController::set_parallelization_circuit(
   }
 }
 
+
+void QasmController::set_distributed_parallelization(const std::vector<Circuit> &circuits,
+                                  const std::vector<Noise::NoiseModel> &noise)
+{
+#ifdef AER_MPI
+  uint_t i,ncircuits;
+  bool sample_opt = true;
+
+  ncircuits = circuits.size();
+  for(i=0;i<ncircuits;i++){
+    const auto method = simulation_method(circuits[i], noise[i], false);
+    switch (method) {
+      case Method::statevector:
+      case Method::statevector_thrust_gpu:
+      case Method::statevector_thrust_cpu:
+      case Method::stabilizer:
+      case Method::matrix_product_state: {
+        if (circuits[i].shots > 1 &&
+            (noise[i].has_quantum_errors() ||
+             !check_measure_sampling_opt(circuits[i], Method::statevector))) {
+          sample_opt = false;
+        }
+        break;
+      }
+      case Method::density_matrix:
+      case Method::density_matrix_thrust_gpu:
+      case Method::density_matrix_thrust_cpu: {
+        if (circuits[i].shots > 1 &&
+            !check_measure_sampling_opt(circuits[i], Method::density_matrix)) {
+          sample_opt = false;
+        }
+        break;
+      }
+      default: {
+        sample_opt = false;
+      }
+    }
+    if(!sample_opt){
+      break;
+    }
+  }
+
+
+  if(sample_opt){
+    Base::Controller::set_distributed_parallelization(circuits, noise);
+
+    //shots are not distributed
+    Base::Controller::distributed_shots_ = 1;
+    Base::Controller::distributed_shots_rank_ = 0;
+  }
+#endif
+}
+
 //-------------------------------------------------------------------------
 // Run circuit helpers
 //-------------------------------------------------------------------------
@@ -867,7 +1079,8 @@ void QasmController::run_circuit_helper(const Circuit& circ,
                                         uint_t rng_seed,
                                         const Initstate_t& initial_state,
                                         const Method method,
-                                        ExperimentResult& result) const {
+                                        ExperimentResult& result) const 
+{
   // Initialize new state object
   State_t state;
 
@@ -877,6 +1090,7 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   // Set state config
   state.set_config(config);
   state.set_parallalization(parallel_state_update_);
+  state.set_distribution(Base::Controller::get_distributed_num_processes(shots == circ.shots));
   state.set_global_phase(circ.global_phase_angle);
 
   // Rng engine
@@ -930,8 +1144,12 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   Transpile::DelayMeasure measure_pass;
   measure_pass.set_config(config);
   measure_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
+
   auto fusion_pass = transpile_fusion(method, opt_circ.opset(), config);
   fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
+
+  auto cache_block_pass = transpile_cache_blocking(opt_circ,noise,config);
+  cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
 
   // Run simulation
   run_multi_shot(opt_circ, shots, state, initial_state, method, result, rng);
@@ -961,6 +1179,9 @@ void QasmController::run_multi_shot(const Circuit& circ,
     // Implement measure sampler
     auto pos = circ.first_measure_pos;  // Position of first measurement op
 
+    //allocate qubit register
+    state.allocate(Base::Controller::max_qubits_);
+
     // Run circuit instructions before first measure
     std::vector<Operations::Op> ops(circ.ops.begin(),
                                     circ.ops.begin() + pos);
@@ -976,6 +1197,9 @@ void QasmController::run_multi_shot(const Circuit& circ,
     // Add measure sampling metadata
     result.metadata.add(true, "measure_sampling");
   } else {
+    //allocate qubit register
+    state.allocate(Base::Controller::max_qubits_);
+
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
     while (shots-- > 0) {
@@ -995,12 +1219,16 @@ void QasmController::run_circuit_with_sampled_noise(const Circuit& circ,
                                                     const Method method,
                                                     ExperimentResult& result,
                                                     RngEngine& rng) const {
-
   // Transpilation for circuit noise method
   auto fusion_pass = transpile_fusion(method, circ.opset(), config);
   Transpile::DelayMeasure measure_pass;
   measure_pass.set_config(config);
   Noise::NoiseModel dummy_noise;
+
+  auto cache_block_pass = transpile_cache_blocking(circ,noise,config);
+
+  //allocate qubit register
+  state.allocate(Base::Controller::max_qubits_);
 
   // Sample noise using circuit method
   while (shots-- > 0) {
@@ -1008,6 +1236,8 @@ void QasmController::run_circuit_with_sampled_noise(const Circuit& circ,
     noise_circ.shots = 1;
     measure_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), result);
     fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), result);
+    cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(), result);
+
     run_single_shot(noise_circ, state, initial_state, result, rng);
   }
 }
