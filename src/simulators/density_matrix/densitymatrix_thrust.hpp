@@ -119,7 +119,6 @@ public:
   // Apply a 3-qubit toffoli gate
   void apply_toffoli(const uint_t qctrl0, const uint_t qctrl1, const uint_t qtrgt);
 
-
   //-----------------------------------------------------------------------
   // Z-measurement outcome probabilities
   //-----------------------------------------------------------------------
