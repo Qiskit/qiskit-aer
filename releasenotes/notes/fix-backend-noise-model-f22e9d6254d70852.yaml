@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes issue with setting :class:`~qiskit.providers.aer.QasmSimulator`
+    basis gates when using ``"method"`` and ``"noise_model"`` options
+    together, and when using them with a simulator constructed using
+    :meth:`~qiskit.providers.aer.QasmSimulator.from_backend`. Now the
+    listed basis gates will be the intersection of gates supported by
+    the backend configuration, simulation method, and noise model basis
+    gates. If the intersection of the noise model basis gates and 
+    simulator basis gates is empty a warning will be logged.

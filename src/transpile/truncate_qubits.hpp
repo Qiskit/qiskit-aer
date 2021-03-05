@@ -35,6 +35,9 @@ public:
                         const Operations::OpSet &opset,
                         ExperimentResult &result) const override;
 
+  uint_t get_num_truncate_qubits(const Circuit& circ,
+                          const Noise::NoiseModel& noise) const;
+
 private:
   // check if this optimization can be applied
   bool can_apply(const Circuit& circ) const;
@@ -112,11 +115,18 @@ void TruncateQubits::optimize_circuit(Circuit& circ,
   noise.remap_qubits(mapping);
 
   if (verbose_) {
-    json_t truncate_metadata;
-    truncate_metadata["active_qubits"] = active_qubits;
-    truncate_metadata["mapping"] = mapping;
-    result.add_metadata("truncate_qubits", truncate_metadata);
+    result.metadata.add(active_qubits, "truncate_qubits", "active_qubits");
+    result.metadata.add(mapping, "truncate_qubits", "mapping");
   }
+}
+
+uint_t TruncateQubits::get_num_truncate_qubits(const Circuit& circ,
+                          const Noise::NoiseModel& noise) const
+{
+  if(!active_ || !can_apply(circ))
+    return circ.num_qubits;
+  reg_t active_qubits = get_active_qubits(circ, noise);
+  return active_qubits.size();
 }
 
 reg_t TruncateQubits::get_active_qubits(const Circuit& circ,

@@ -29,17 +29,29 @@
 #endif
 
 namespace AER {
+
+//predefinition of DensityMatrix::State for friend class declaration to access static members
+namespace DensityMatrixChunk {
+template <class densmat_t> class State;
+}
+
 namespace DensityMatrix {
+
+using OpType = Operations::OpType;
 
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
     // Op types
-    {Operations::OpType::gate, Operations::OpType::measure,
-     Operations::OpType::reset, Operations::OpType::snapshot,
-     Operations::OpType::barrier, Operations::OpType::bfunc,
-     Operations::OpType::roerror, Operations::OpType::matrix,
-     Operations::OpType::diagonal_matrix, Operations::OpType::kraus,
-     Operations::OpType::superop},
+    {OpType::gate, OpType::measure,
+     OpType::reset, OpType::snapshot,
+     OpType::barrier, OpType::bfunc,
+     OpType::roerror, OpType::matrix,
+     OpType::diagonal_matrix, OpType::kraus,
+     OpType::superop, OpType::save_expval,
+     OpType::save_expval_var, OpType::save_densmat,
+     OpType::save_probs, OpType::save_probs_ket,
+     OpType::save_amps_sq
+     },
     // Gates
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
@@ -73,6 +85,7 @@ enum class Snapshots {
 
 template <class densmat_t = QV::DensityMatrix<double>>
 class State : public Base::State<densmat_t> {
+  friend class DensityMatrixChunk::State<densmat_t>;
 public:
   using BaseState = Base::State<densmat_t>;
 
@@ -116,6 +129,8 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
 
+  virtual void allocate(uint_t num_qubits) override;
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -129,6 +144,10 @@ public:
   // Initialize OpenMP settings for the underlying DensityMatrix class
   void initialize_omp();
 
+  auto move_to_matrix()
+  {
+    return BaseState::qreg_.move_to_matrix();
+  }
 protected:
   //-----------------------------------------------------------------------
   // Apply instructions
@@ -165,6 +184,36 @@ protected:
 
   // Apply an N-qubit Pauli gate
   void apply_pauli(const reg_t &qubits, const std::string &pauli);
+
+  //-----------------------------------------------------------------------
+  // Save data instructions
+  //-----------------------------------------------------------------------
+
+  // Save the current density matrix or reduced density matrix
+  void apply_save_density_matrix(const Operations::Op &op,
+                                 ExperimentResult &result,
+                                 bool last_op = false);
+
+  // Helper function for computing expectation value
+  void apply_save_probs(const Operations::Op &op,
+                        ExperimentResult &result);
+
+  // Helper function for saving amplitudes squared
+  void apply_save_amplitudes_sq(const Operations::Op &op,
+                                ExperimentResult &result);
+
+  // Helper function for computing expectation value
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string& pauli) override;
+
+  // Return the reduced density matrix for the simulator
+  cmatrix_t reduced_density_matrix(const reg_t &qubits, bool last_op = false);
+  cmatrix_t reduced_density_matrix_helper(const reg_t &qubits,
+                                          const reg_t &qubits_sorted);
+  cmatrix_t reduced_density_matrix_cpu(const reg_t &qubits,
+                                       const reg_t &qubits_sorted);
+  cmatrix_t reduced_density_matrix_thrust(const reg_t &qubits,
+                                          const reg_t &qubits_sorted);
 
   //-----------------------------------------------------------------------
   // Measurement Helpers
@@ -216,14 +265,6 @@ protected:
   // Snapshot the expectation value of a matrix operator
   void snapshot_matrix_expval(const Operations::Op &op, ExperimentResult &result,
                               bool variance);
-
-  // Return the reduced density matrix for the simulator
-  cmatrix_t reduced_density_matrix(const reg_t &qubits,
-                                   const reg_t &qubits_sorted);
-  cmatrix_t reduced_density_matrix_cpu(const reg_t &qubits,
-                                       const reg_t &qubits_sorted);
-  cmatrix_t reduced_density_matrix_thrust(const reg_t &qubits,
-                                          const reg_t &qubits_sorted);
 
   //-----------------------------------------------------------------------
   // Single-qubit gate helpers
@@ -317,6 +358,11 @@ const stringmap_t<Snapshots> State<densmat_t>::snapshotset_(
 //-------------------------------------------------------------------------
 // Initialization
 //-------------------------------------------------------------------------
+template <class densmat_t>
+void State<densmat_t>::allocate(uint_t num_qubits)
+{
+  BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,1);
+}
 
 template <class densmat_t>
 void State<densmat_t>::initialize_qreg(uint_t num_qubits) {
@@ -407,37 +453,51 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
     // If conditional op check conditional
     if (BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
-        case Operations::OpType::barrier:
+        case OpType::barrier:
           break;
-        case Operations::OpType::reset:
+        case OpType::reset:
           apply_reset(op.qubits);
           break;
-        case Operations::OpType::measure:
+        case OpType::measure:
           apply_measure(op.qubits, op.memory, op.registers, rng);
           break;
-        case Operations::OpType::bfunc:
+        case OpType::bfunc:
           BaseState::creg_.apply_bfunc(op);
           break;
-        case Operations::OpType::roerror:
+        case OpType::roerror:
           BaseState::creg_.apply_roerror(op, rng);
           break;
-        case Operations::OpType::gate:
+        case OpType::gate:
           apply_gate(op);
           break;
-        case Operations::OpType::snapshot:
+        case OpType::snapshot:
           apply_snapshot(op, result, final_ops && ops.size() == i + 1);
           break;
-        case Operations::OpType::matrix:
+        case OpType::matrix:
           apply_matrix(op.qubits, op.mats[0]);
           break;
-        case Operations::OpType::diagonal_matrix:
+        case OpType::diagonal_matrix:
           BaseState::qreg_.apply_diagonal_unitary_matrix(op.qubits, op.params);
           break;
-        case Operations::OpType::superop:
+        case OpType::superop:
           BaseState::qreg_.apply_superop_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
           break;
-        case Operations::OpType::kraus:
+        case OpType::kraus:
           apply_kraus(op.qubits, op.mats);
+          break;
+        case OpType::save_expval:
+        case OpType::save_expval_var:
+          BaseState::apply_save_expval(op, result);
+          break;
+        case OpType::save_densmat:
+          apply_save_density_matrix(op, result, final_ops && ops.size() == i + 1);
+          break;
+        case OpType::save_probs:
+        case OpType::save_probs_ket:
+          apply_save_probs(op, result);
+          break;
+        case OpType::save_amps_sq:
+          apply_save_amplitudes_sq(op, result);
           break;
         default:
           throw std::invalid_argument("DensityMatrix::State::invalid instruction \'" +
@@ -445,6 +505,181 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
       }
     }
   }
+}
+
+//=========================================================================
+// Implementation: Save data
+//=========================================================================
+
+template <class densmat_t>
+void State<densmat_t>::apply_save_probs(const Operations::Op &op,
+                                            ExperimentResult &result) {
+  auto probs = measure_probs(op.qubits);
+  if (op.type == OpType::save_probs_ket) {
+    BaseState::save_data_average(result, op.string_params[0],
+                                 Utils::vec2ket(probs, json_chop_threshold_, 16),
+                                 op.save_type);
+  } else {
+    BaseState::save_data_average(result, op.string_params[0],
+                                 std::move(probs), op.save_type);
+  }
+}
+
+template <class densmat_t>
+void State<densmat_t>::apply_save_amplitudes_sq(const Operations::Op &op,
+                                                ExperimentResult &result) {
+  if (op.int_params.empty()) {
+    throw std::invalid_argument("Invalid save_amplitudes_sq instructions (empty params).");
+  }
+  const int_t size = op.int_params.size();
+  rvector_t amps_sq(size);
+  #pragma omp parallel for if (size > pow(2, omp_qubit_threshold_) &&        \
+                                 BaseState::threads_ > 1)                       \
+                          num_threads(BaseState::threads_)
+    for (int_t i = 0; i < size; ++i) {
+      amps_sq[i] = BaseState::qreg_.probability(op.int_params[i]);
+    }
+  BaseState::save_data_average(result, op.string_params[0],
+                               std::move(amps_sq), op.save_type);
+}
+
+template <class densmat_t>
+double State<densmat_t>::expval_pauli(const reg_t &qubits,
+                                      const std::string& pauli) {
+  return BaseState::qreg_.expval_pauli(qubits, pauli);
+}
+
+template <class densmat_t>
+void State<densmat_t>::apply_save_density_matrix(const Operations::Op &op,
+                                                 ExperimentResult &result,
+                                                 bool last_op) {
+  BaseState::save_data_average(result, op.string_params[0],
+                               reduced_density_matrix(op.qubits, last_op),
+                               op.save_type);
+}
+
+template <class densmat_t>
+cmatrix_t State<densmat_t>::reduced_density_matrix(const reg_t& qubits, bool last_op) {
+  cmatrix_t reduced_state;
+
+  // Check if tracing over all qubits
+  if (qubits.empty()) {
+    reduced_state = cmatrix_t(1, 1);
+    reduced_state[0] = BaseState::qreg_.trace();
+  } else {
+
+    auto qubits_sorted = qubits;
+    std::sort(qubits_sorted.begin(), qubits_sorted.end());
+
+    if ((qubits.size() == BaseState::qreg_.num_qubits()) && (qubits == qubits_sorted)) {
+      if (last_op) {
+        reduced_state = BaseState::qreg_.move_to_matrix();
+      } else {
+        reduced_state = BaseState::qreg_.copy_to_matrix();
+      }
+    } else {
+      reduced_state = reduced_density_matrix_helper(qubits, qubits_sorted);
+    }
+  }
+  return reduced_state;
+}
+
+template <class statevec_t>
+cmatrix_t
+State<statevec_t>::reduced_density_matrix_helper(const reg_t &qubits,
+                                          const reg_t &qubits_sorted) {
+  return reduced_density_matrix_cpu(qubits, qubits_sorted);
+}
+
+#ifdef AER_THRUST_SUPPORTED
+// Thrust specialization must copy memory from device to host
+template <>
+cmatrix_t State<QV::DensityMatrixThrust<float>>::reduced_density_matrix_helper(
+    const reg_t &qubits, const reg_t &qubits_sorted) {
+
+  return reduced_density_matrix_thrust(qubits, qubits_sorted);
+}
+
+template <>
+cmatrix_t State<QV::DensityMatrixThrust<double>>::reduced_density_matrix_helper(
+    const reg_t &qubits, const reg_t &qubits_sorted) {
+
+  return reduced_density_matrix_thrust(qubits, qubits_sorted);
+}
+#endif
+
+template <class densmat_t>
+cmatrix_t
+State<densmat_t>::reduced_density_matrix_cpu(const reg_t &qubits,
+                                             const reg_t &qubits_sorted) {
+
+  // Get superoperator qubits
+  const reg_t squbits = BaseState::qreg_.superop_qubits(qubits);
+  const reg_t squbits_sorted = BaseState::qreg_.superop_qubits(qubits_sorted);
+
+  // Get dimensions
+  const size_t N = qubits.size();
+  const size_t DIM = 1ULL << N;
+  const int_t VDIM = 1ULL << (2 * N);
+  const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);
+  const size_t SHIFT = END + 1;
+
+  // TODO: If we are not going to apply any additional instructions after
+  //       this function we could move the memory when constructing rather
+  //       than copying
+  const auto &vmat = BaseState::qreg_.data();
+  cmatrix_t reduced_state(DIM, DIM, false);
+  {
+    // Fill matrix with first iteration
+    const auto inds = QV::indexes(squbits, squbits_sorted, 0);
+    for (int_t i = 0; i < VDIM; ++i) {
+      reduced_state[i] = complex_t(vmat[inds[i]]);
+    }
+  }
+  // Accumulate with remaning blocks
+  for (size_t k = 1; k < END; k++) {
+    const auto inds = QV::indexes(squbits, squbits_sorted, k * SHIFT);
+    for (int_t i = 0; i < VDIM; ++i) {
+      reduced_state[i] += complex_t(vmat[inds[i]]);
+    }
+  }
+  return reduced_state;
+}
+
+template <class densmat_t>
+cmatrix_t
+State<densmat_t>::reduced_density_matrix_thrust(const reg_t &qubits,
+                                                const reg_t &qubits_sorted) {
+
+  // Get superoperator qubits
+  const reg_t squbits = BaseState::qreg_.superop_qubits(qubits);
+  const reg_t squbits_sorted = BaseState::qreg_.superop_qubits(qubits_sorted);
+
+  // Get dimensions
+  const size_t N = qubits.size();
+  const size_t DIM = 1ULL << N;
+  const int_t VDIM = 1ULL << (2 * N);
+  const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);
+  const size_t SHIFT = END + 1;
+
+  // Copy vector to host memory
+  auto vmat = BaseState::qreg_.vector();
+  cmatrix_t reduced_state(DIM, DIM, false);
+  {
+    // Fill matrix with first iteration
+    const auto inds = QV::indexes(squbits, squbits_sorted, 0);
+    for (int_t i = 0; i < VDIM; ++i) {
+      reduced_state[i] = std::move(vmat[inds[i]]);
+    }
+  }
+  // Accumulate with remaning blocks
+  for (size_t k = 1; k < END; k++) {
+    const auto inds = QV::indexes(squbits, squbits_sorted, k * SHIFT);
+    for (int_t i = 0; i < VDIM; ++i) {
+      reduced_state[i] += complex_t(std::move(vmat[inds[i]]));
+    }
+  }
+  return reduced_state;
 }
 
 //=========================================================================
@@ -509,7 +744,7 @@ void State<densmat_t>::snapshot_probabilities(const Operations::Op &op,
   // get probs as hexadecimal
   auto probs = Utils::vec2ket(measure_probs(op.qubits),
                               json_chop_threshold_, 16);
-  result.data.add_average_snapshot("probabilities",
+  result.legacy_data.add_average_snapshot("probabilities",
                             op.string_params[0],
                             BaseState::creg_.memory_hex(),
                             std::move(probs),
@@ -531,12 +766,12 @@ void State<densmat_t>::snapshot_pauli_expval(const Operations::Op &op,
   for (const auto &param : op.params_expval_pauli) {
     const auto &coeff = param.first;
     const auto &pauli = param.second;
-    expval += coeff * BaseState::qreg_.expval_pauli(op.qubits, pauli);
+    expval += coeff * expval_pauli(op.qubits, pauli);
   }
 
   // Add to snapshot
   Utils::chop_inplace(expval, json_chop_threshold_);
-  result.data.add_average_snapshot("expectation_value", op.string_params[0],
+  result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                             BaseState::creg_.memory_hex(), expval, variance);
 }
 
@@ -544,129 +779,10 @@ template <class densmat_t>
 void State<densmat_t>::snapshot_density_matrix(const Operations::Op &op,
                                                ExperimentResult &result,
                                                bool last_op) {
-  cmatrix_t reduced_state;
-
-  // Check if tracing over all qubits
-  if (op.qubits.empty()) {
-    reduced_state = cmatrix_t(1, 1);
-    reduced_state[0] = BaseState::qreg_.trace();
-  } else {
-
-    auto qubits_sorted = op.qubits;
-    std::sort(qubits_sorted.begin(), qubits_sorted.end());
-
-    if ((op.qubits.size() == BaseState::qreg_.num_qubits()) && (op.qubits == qubits_sorted)) {
-      if (last_op) {
-        reduced_state = BaseState::qreg_.move_to_matrix();
-      } else {
-        reduced_state = BaseState::qreg_.copy_to_matrix();
-      }
-    } else {
-      reduced_state = reduced_density_matrix(op.qubits, qubits_sorted);
-    }
-  }
-
-  result.data.add_average_snapshot("density_matrix", op.string_params[0],
-                            BaseState::creg_.memory_hex(),
-                            std::move(reduced_state), false);
-}
-
-template <class statevec_t>
-cmatrix_t
-State<statevec_t>::reduced_density_matrix(const reg_t &qubits,
-                                          const reg_t &qubits_sorted) {
-  return reduced_density_matrix_cpu(qubits, qubits_sorted);
-}
-
-#ifdef AER_THRUST_SUPPORTED
-// Thrust specialization must copy memory from device to host
-template <>
-cmatrix_t State<QV::DensityMatrixThrust<float>>::reduced_density_matrix(
-    const reg_t &qubits, const reg_t &qubits_sorted) {
-
-  return reduced_density_matrix_thrust(qubits, qubits_sorted);
-}
-
-template <>
-cmatrix_t State<QV::DensityMatrixThrust<double>>::reduced_density_matrix(
-    const reg_t &qubits, const reg_t &qubits_sorted) {
-
-  return reduced_density_matrix_thrust(qubits, qubits_sorted);
-}
-#endif
-
-template <class densmat_t>
-cmatrix_t
-State<densmat_t>::reduced_density_matrix_cpu(const reg_t &qubits,
-                                             const reg_t &qubits_sorted) {
-
-  // Get superoperator qubits
-  const reg_t squbits = BaseState::qreg_.superop_qubits(qubits);
-  const reg_t squbits_sorted = BaseState::qreg_.superop_qubits(qubits_sorted);
-
-  // Get dimensions
-  const size_t N = qubits.size();
-  const size_t DIM = 1ULL << N;
-  const size_t VDIM = 1ULL << (2 * N);
-  const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);
-  const size_t SHIFT = END + 1;
-
-  // TODO: If we are not going to apply any additional instructions after
-  //       this function we could move the memory when constructing rather
-  //       than copying
-  const auto &vmat = BaseState::qreg_.data();
-  cmatrix_t reduced_state(DIM, DIM, false);
-  {
-    // Fill matrix with first iteration
-    const auto inds = QV::indexes(squbits, squbits_sorted, 0);
-    for (int_t i = 0; i < VDIM; ++i) {
-      reduced_state[i] = complex_t(vmat[inds[i]]);
-    }
-  }
-  // Accumulate with remaning blocks
-  for (size_t k = 1; k < END; k++) {
-    const auto inds = QV::indexes(squbits, squbits_sorted, k * SHIFT);
-    for (int_t i = 0; i < VDIM; ++i) {
-      reduced_state[i] += complex_t(vmat[inds[i]]);
-    }
-  }
-  return reduced_state;
-}
-
-template <class densmat_t>
-cmatrix_t
-State<densmat_t>::reduced_density_matrix_thrust(const reg_t &qubits,
-                                                const reg_t &qubits_sorted) {
-
-  // Get superoperator qubits
-  const reg_t squbits = BaseState::qreg_.superop_qubits(qubits);
-  const reg_t squbits_sorted = BaseState::qreg_.superop_qubits(qubits_sorted);
-
-  // Get dimensions
-  const size_t N = qubits.size();
-  const size_t DIM = 1ULL << N;
-  const size_t VDIM = 1ULL << (2 * N);
-  const size_t END = 1ULL << (BaseState::qreg_.num_qubits() - N);
-  const size_t SHIFT = END + 1;
-
-  // Copy vector to host memory
-  auto vmat = BaseState::qreg_.vector();
-  cmatrix_t reduced_state(DIM, DIM, false);
-  {
-    // Fill matrix with first iteration
-    const auto inds = QV::indexes(squbits, squbits_sorted, 0);
-    for (int_t i = 0; i < VDIM; ++i) {
-      reduced_state[i] = std::move(vmat[inds[i]]);
-    }
-  }
-  // Accumulate with remaning blocks
-  for (size_t k = 1; k < END; k++) {
-    const auto inds = QV::indexes(squbits, squbits_sorted, k * SHIFT);
-    for (int_t i = 0; i < VDIM; ++i) {
-      reduced_state[i] += complex_t(std::move(vmat[inds[i]]));
-    }
-  }
-  return reduced_state;
+  result.legacy_data.add_average_snapshot("density_matrix", op.string_params[0],
+                                          BaseState::creg_.memory_hex(),
+                                          reduced_density_matrix(op.qubits, last_op),
+                                          false);
 }
 
 //=========================================================================

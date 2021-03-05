@@ -22,7 +22,6 @@ from qiskit.providers.aer.backends.controller_wrappers import (qasm_controller_e
                                                                statevector_controller_execute,
                                                                unitary_controller_execute)
 from qiskit.providers.aer.backends.backend_utils import LIBRARY_DIR
-from test.terra.reference import ref_algorithms, ref_measure, ref_1q_clifford
 from test.terra.common import QiskitAerTestCase
 
 

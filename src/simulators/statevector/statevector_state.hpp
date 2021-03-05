@@ -12,6 +12,7 @@
  * that they have been altered from the originals.
  */
 
+
 #ifndef _statevector_state_hpp
 #define _statevector_state_hpp
 
@@ -28,17 +29,32 @@
 #endif
 
 namespace AER {
+
+//predefinition of StatevectorChunk::State for friend class declaration to access static members
+namespace StatevectorChunk {
+template <class statevec_t> class State;
+}
+
 namespace Statevector {
+
+using OpType = Operations::OpType;
 
 // OpSet of supported instructions
 const Operations::OpSet StateOpSet(
     // Op types
-    {Operations::OpType::gate, Operations::OpType::measure,
-     Operations::OpType::reset, Operations::OpType::initialize,
-     Operations::OpType::snapshot, Operations::OpType::barrier,
-     Operations::OpType::bfunc, Operations::OpType::roerror,
-     Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-     Operations::OpType::multiplexer, Operations::OpType::kraus},
+    {OpType::gate, OpType::measure,
+     OpType::reset, OpType::initialize,
+     OpType::snapshot, OpType::barrier,
+     OpType::bfunc, OpType::roerror,
+     OpType::matrix, OpType::diagonal_matrix,
+     OpType::multiplexer, OpType::kraus,
+     OpType::sim_op, OpType::save_expval,
+     OpType::save_expval_var, OpType::save_densmat,
+     OpType::save_probs, OpType::save_probs_ket,
+     OpType::save_amps, OpType::save_amps_sq,
+     OpType::save_statevec
+     // OpType::save_statevec_ket  // TODO
+     },
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
      "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
@@ -46,7 +62,7 @@ const Operations::OpSet StateOpSet(
      "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
      "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
      "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
-     "mcsx",   "delay", "pauli"},
+     "mcsx",   "delay", "pauli", "mcx_gray"},
     // Snapshots
     {"statevector", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli", "density_matrix",
@@ -89,6 +105,7 @@ enum class SnapshotDataType { average, average_var, pershot };
 
 template <class statevec_t = QV::QubitVector<double>>
 class State : public Base::State<statevec_t> {
+  friend class StatevectorChunk::State<statevec_t>;
 public:
   using BaseState = Base::State<statevec_t>;
 
@@ -132,6 +149,8 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
 
+  virtual void allocate(uint_t num_qubits) override;
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -142,6 +161,10 @@ public:
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
 
+  auto move_to_vector()
+  {
+    return BaseState::qreg_.move_to_vector();
+  }
 protected:
   //-----------------------------------------------------------------------
   // Apply instructions
@@ -196,6 +219,37 @@ protected:
                    RngEngine &rng);
 
   //-----------------------------------------------------------------------
+  // Save data instructions
+  //-----------------------------------------------------------------------
+
+  // Save the current state of the statevector simulator
+  // If `last_op` is True this will use move semantics to move the simulator
+  // state to the results, otherwise it will use copy semantics to leave
+  // the current simulator state unchanged.
+  void apply_save_statevector(const Operations::Op &op,
+                              ExperimentResult &result,
+                              bool last_op);
+
+  // Save the current state of the statevector simulator as a ket-form map.
+  void apply_save_statevector_ket(const Operations::Op &op,
+                                  ExperimentResult &result);
+
+  // Save the current density matrix or reduced density matrix
+  void apply_save_density_matrix(const Operations::Op &op,
+                                 ExperimentResult &result);
+
+  // Helper function for computing expectation value
+  void apply_save_probs(const Operations::Op &op,
+                        ExperimentResult &result);
+
+  // Helper function for saving amplitudes and amplitudes squared
+  void apply_save_amplitudes(const Operations::Op &op,
+                             ExperimentResult &result);
+
+  // Helper function for computing expectation value
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string& pauli) override;
+  //-----------------------------------------------------------------------
   // Measurement Helpers
   //-----------------------------------------------------------------------
 
@@ -223,6 +277,7 @@ protected:
 
   //-----------------------------------------------------------------------
   // Special snapshot types
+  // Apply a supported snapshot instruction
   //
   // IMPORTANT: These methods are not marked const to allow modifying state
   // during snapshot, but after the snapshot is applied the simulator
@@ -316,7 +371,6 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"ry", Gates::mcry}, // Pauli-Y rotation gate
     {"rz", Gates::mcrz}, // Pauli-Z rotation gate
     // Waltz Gates
-    {"p", Gates::mcp},   // Parameterized phase gate 
     {"u1", Gates::mcp},  // zero-X90 pulse waltz gate
     {"u2", Gates::mcu2}, // single-X90 pulse waltz gate
     {"u3", Gates::mcu3}, // two X90 pulse waltz gate
@@ -353,10 +407,10 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"mcu1", Gates::mcp},     // Multi-controlled-u1
     {"mcu2", Gates::mcu2},    // Multi-controlled-u2
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
-    {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
     {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
-    {"pauli", Gates::pauli}   // Multi-qubit Pauli gate
+    {"pauli", Gates::pauli},   // Multi-qubit Pauli gate
+    {"mcx_gray", Gates::mcx}
 });
 
 template <class statevec_t>
@@ -382,6 +436,11 @@ const stringmap_t<Snapshots> State<statevec_t>::snapshotset_(
 //-------------------------------------------------------------------------
 // Initialization
 //-------------------------------------------------------------------------
+template <class statevec_t>
+void State<statevec_t>::allocate(uint_t num_qubits)
+{
+  BaseState::qreg_.chunk_setup(num_qubits,num_qubits,0,1);
+}
 
 template <class statevec_t>
 void State<statevec_t>::initialize_qreg(uint_t num_qubits) {
@@ -478,41 +537,69 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
     const auto& op = ops[i];
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
-        case Operations::OpType::barrier:
+        case OpType::barrier:
           break;
-        case Operations::OpType::reset:
+        case OpType::reset:
           apply_reset(op.qubits, rng);
           break;
-        case Operations::OpType::initialize:
+        case OpType::initialize:
           apply_initialize(op.qubits, op.params, rng);
           break;
-        case Operations::OpType::measure:
+        case OpType::measure:
           apply_measure(op.qubits, op.memory, op.registers, rng);
           break;
-        case Operations::OpType::bfunc:
+        case OpType::bfunc:
           BaseState::creg_.apply_bfunc(op);
           break;
-        case Operations::OpType::roerror:
+        case OpType::roerror:
           BaseState::creg_.apply_roerror(op, rng);
           break;
-        case Operations::OpType::gate:
+        case OpType::gate:
           apply_gate(op);
           break;
-        case Operations::OpType::snapshot:
+        case OpType::snapshot:
           apply_snapshot(op, result, final_ops && ops.size() == i + 1);
           break;
-        case Operations::OpType::matrix:
+        case OpType::matrix:
           apply_matrix(op);
           break;
-        case Operations::OpType::diagonal_matrix:
+        case OpType::diagonal_matrix:
           BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
           break;
-        case Operations::OpType::multiplexer:
+        case OpType::multiplexer:
           apply_multiplexer(op.regs[0], op.regs[1],
                             op.mats); // control qubits ([0]) & target qubits([1])
           break;
-        case Operations::OpType::kraus:
+        case OpType::kraus:
           apply_kraus(op.qubits, op.mats, rng);
+          break;
+        case OpType::sim_op:
+          if(op.name == "begin_register_blocking"){
+            BaseState::qreg_.enter_register_blocking(op.qubits);
+          }
+          else if(op.name == "end_register_blocking"){
+            BaseState::qreg_.leave_register_blocking();
+          }
+        case OpType::save_expval:
+        case OpType::save_expval_var:
+          BaseState::apply_save_expval(op, result);
+          break;
+        case OpType::save_densmat:
+          apply_save_density_matrix(op, result);
+          break;
+        case OpType::save_statevec:
+          apply_save_statevector(op, result, final_ops && ops.size() == i + 1);
+          break;
+        // case OpType::save_statevec_ket:
+        //   apply_save_statevector_ket(op, result);
+        //   break;
+        case OpType::save_probs:
+        case OpType::save_probs_ket:
+          apply_save_probs(op, result);
+          break;
+        case OpType::save_amps:
+        case OpType::save_amps_sq:
+          apply_save_amplitudes(op, result);
           break;
         default:
           throw std::invalid_argument(
@@ -522,6 +609,114 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
   }
 }
 
+//=========================================================================
+// Implementation: Save data
+//=========================================================================
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_probs(const Operations::Op &op,
+                                         ExperimentResult &result) {
+  // get probs as hexadecimal
+  auto probs = measure_probs(op.qubits);
+  if (op.type == OpType::save_probs_ket) {
+    // Convert to ket dict
+    BaseState::save_data_average(result, op.string_params[0],
+                                 Utils::vec2ket(probs, json_chop_threshold_, 16),
+                                 op.save_type);
+  } else {
+    BaseState::save_data_average(result, op.string_params[0],
+                                 std::move(probs), op.save_type);
+  }
+}
+
+
+template <class statevec_t>
+double State<statevec_t>::expval_pauli(const reg_t &qubits,
+                                       const std::string& pauli) {
+  return BaseState::qreg_.expval_pauli(qubits, pauli);
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_statevector(const Operations::Op &op,
+                                               ExperimentResult &result,
+                                               bool last_op) {
+  if (op.qubits.size() != BaseState::qreg_.num_qubits()) {
+    throw std::invalid_argument(
+        op.name + " was not applied to all qubits."
+        " Only the full statevector can be saved.");
+  }
+  if (last_op) {
+    BaseState::save_data_pershot(result, op.string_params[0],
+                                 BaseState::qreg_.move_to_vector(),
+                                 op.save_type);
+  } else {
+    BaseState::save_data_pershot(result, op.string_params[0],
+                                 BaseState::qreg_.copy_to_vector(),
+                                 op.save_type);
+  }
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_statevector_ket(const Operations::Op &op,
+                                                   ExperimentResult &result) {
+  if (op.qubits.size() != BaseState::qreg_.num_qubits()) {
+    throw std::invalid_argument(
+        op.name + " was not applied to all qubits."
+        " Only the full statevector can be saved.");
+  }
+  // TODO: compute state ket
+  std::map<std::string, complex_t> state_ket;
+
+  BaseState::save_data_pershot(result, op.string_params[0],
+                               std::move(state_ket), op.save_type);
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_density_matrix(const Operations::Op &op,
+                                                  ExperimentResult &result) {
+  cmatrix_t reduced_state;
+
+  // Check if tracing over all qubits
+  if (op.qubits.empty()) {
+    reduced_state = cmatrix_t(1, 1);
+    reduced_state[0] = BaseState::qreg_.norm();
+  } else {
+    reduced_state = density_matrix(op.qubits);
+  }
+
+  BaseState::save_data_average(result, op.string_params[0],
+                               std::move(reduced_state), op.save_type);
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_amplitudes(const Operations::Op &op,
+                                              ExperimentResult &result) {
+  if (op.int_params.empty()) {
+    throw std::invalid_argument("Invalid save_amplitudes instructions (empty params).");
+  }
+  const int_t size = op.int_params.size();
+  if (op.type == OpType::save_amps) {
+    Vector<complex_t> amps(size, false);
+    #pragma omp parallel for if (size > pow(2, omp_qubit_threshold_) &&        \
+                                 BaseState::threads_ > 1)                       \
+                          num_threads(BaseState::threads_)
+      for (int_t i = 0; i < size; ++i) {
+        amps[i] = BaseState::qreg_.get_state(op.int_params[i]);
+      }
+    BaseState::save_data_pershot(result, op.string_params[0],
+                                 std::move(amps), op.save_type);
+  } else {
+    rvector_t amps_sq(size);
+    #pragma omp parallel for if (size > pow(2, omp_qubit_threshold_) &&        \
+                                 BaseState::threads_ > 1)                       \
+                          num_threads(BaseState::threads_)
+      for (int_t i = 0; i < size; ++i) {
+        amps_sq[i] = BaseState::qreg_.probability(op.int_params[i]);
+      }
+    BaseState::save_data_average(result, op.string_params[0],
+                                 std::move(amps_sq), op.save_type);
+  }
+}
 //=========================================================================
 // Implementation: Snapshots
 //=========================================================================
@@ -539,9 +734,11 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
   switch (it->second) {
     case Snapshots::statevector:
       if (last_op) {
-        result.data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.move_to_vector());
+        result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0],
+                                         BaseState::qreg_.move_to_vector());
       } else {
-        result.data.add_pershot_snapshot("statevector", op.string_params[0], BaseState::qreg_.copy_to_vector());
+        result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0],
+                                         BaseState::qreg_.copy_to_vector());
       }
       break;
     case Snapshots::cmemory:
@@ -598,8 +795,9 @@ void State<statevec_t>::snapshot_probabilities(const Operations::Op &op,
   auto probs =
       Utils::vec2ket(measure_probs(op.qubits), json_chop_threshold_, 16);
   bool variance = type == SnapshotDataType::average_var;
-  result.data.add_average_snapshot("probabilities", op.string_params[0],
-                            BaseState::creg_.memory_hex(), probs, variance);
+  result.legacy_data.add_average_snapshot("probabilities", op.string_params[0],
+                                   BaseState::creg_.memory_hex(),
+                                   std::move(probs), variance);
 }
 
 template <class statevec_t>
@@ -617,22 +815,22 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
   for (const auto &param : op.params_expval_pauli) {
     const auto &coeff = param.first;
     const auto &pauli = param.second;
-    expval += coeff * BaseState::qreg_.expval_pauli(op.qubits, pauli);
+    expval += coeff * expval_pauli(op.qubits, pauli);
   }
 
   // Add to snapshot
   Utils::chop_inplace(expval, json_chop_threshold_);
   switch (type) {
   case SnapshotDataType::average:
-    result.data.add_average_snapshot("expectation_value", op.string_params[0],
+    result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                               BaseState::creg_.memory_hex(), expval, false);
     break;
   case SnapshotDataType::average_var:
-    result.data.add_average_snapshot("expectation_value", op.string_params[0],
+    result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                               BaseState::creg_.memory_hex(), expval, true);
     break;
   case SnapshotDataType::pershot:
-    result.data.add_pershot_snapshot("expectation_values", op.string_params[0],
+    result.legacy_data.add_pershot_snapshot("expectation_values", op.string_params[0],
                               expval);
     break;
   }
@@ -686,15 +884,15 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
   Utils::chop_inplace(expval, json_chop_threshold_);
   switch (type) {
   case SnapshotDataType::average:
-    result.data.add_average_snapshot("expectation_value", op.string_params[0],
+    result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                               BaseState::creg_.memory_hex(), expval, false);
     break;
   case SnapshotDataType::average_var:
-    result.data.add_average_snapshot("expectation_value", op.string_params[0],
+    result.legacy_data.add_average_snapshot("expectation_value", op.string_params[0],
                               BaseState::creg_.memory_hex(), expval, true);
     break;
   case SnapshotDataType::pershot:
-    result.data.add_pershot_snapshot("expectation_values", op.string_params[0],
+    result.legacy_data.add_pershot_snapshot("expectation_values", op.string_params[0],
                               expval);
     break;
   }
@@ -719,17 +917,17 @@ void State<statevec_t>::snapshot_density_matrix(const Operations::Op &op,
   // Add density matrix to result data
   switch (type) {
   case SnapshotDataType::average:
-    result.data.add_average_snapshot("density_matrix", op.string_params[0],
+    result.legacy_data.add_average_snapshot("density_matrix", op.string_params[0],
                               BaseState::creg_.memory_hex(),
                               std::move(reduced_state), false);
     break;
   case SnapshotDataType::average_var:
-    result.data.add_average_snapshot("density_matrix", op.string_params[0],
+    result.legacy_data.add_average_snapshot("density_matrix", op.string_params[0],
                               BaseState::creg_.memory_hex(),
                               std::move(reduced_state), true);
     break;
   case SnapshotDataType::pershot:
-    result.data.add_pershot_snapshot("density_matrix", op.string_params[0],
+    result.legacy_data.add_pershot_snapshot("density_matrix", op.string_params[0],
                               std::move(reduced_state));
     break;
   }

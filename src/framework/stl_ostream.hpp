@@ -65,7 +65,7 @@ namespace { // private namespace
   std::ostream &operator<<(std::ostream &out, const std::pair<T1, T2> &p) {
     out << p.first << ":" << p.second;
     return out;
-  };
+  }
 
   // Helper function for printing containers
   template <typename container_t>
@@ -84,7 +84,7 @@ namespace { // private namespace
       }
       out << delim_right;
       return out;
-  };
+  }
 }
 
 template <class T, class Allocator>

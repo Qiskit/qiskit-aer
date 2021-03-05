@@ -47,12 +47,9 @@ option(BUILD_TESTS "Specify whether we want to build tests or not" FALSE)
 
 # Allow disabling conan for downstream package managers. Requires all libraries to be present in path
 # Default is value of environment variable if defined or ON
-if(DEFINED ENV{DISABLE_CONAN})
-	set(_DISABLE_CONAN_DEFAULT ENV{DISABLE_CONAN})
-else()
-	set(_DISABLE_CONAN_DEFAULT OFF)
+if(NOT DEFINED DISABLE_CONAN AND DEFINED ENV{DISABLE_CONAN})
+	set(DISABLE_CONAN $ENV{DISABLE_CONAN})
 endif()
-option(DISABLE_CONAN "Disable Conan package manager to find dependencies. If disabled, you must have all dependencies present on your system." ${_DISABLE_CONAN_DEFAULT})
 
 include(CTest)
 include(compiler_utils)
@@ -152,6 +149,9 @@ setup_dependencies()
 # If we do not set them with a space CMake fails afterwards if nothing is set for this vars!
 set(AER_LINKER_FLAGS " ")
 set(AER_COMPILER_FLAGS " ")
+if(MSVC)
+  set(AER_COMPILER_FLAGS " /bigobj")
+endif ()
 
 if(NOT OPENMP_FOUND) # Could already be setup for macos with conan
 	message(STATUS "Looking for OpenMP support...")
@@ -259,7 +259,7 @@ if(AER_THRUST_SUPPORTED)
 		cuda_select_nvcc_arch_flags(AER_CUDA_ARCH_FLAGS ${AER_CUDA_ARCH})
 
 		string(REPLACE ";" " "  AER_CUDA_ARCH_FLAGS_EXPAND "${AER_CUDA_ARCH_FLAGS}")
-		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -ccbin \"${CMAKE_CXX_COMPILER}\" ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${AER_CUDA_ARCH_FLAGS_EXPAND} -DAER_THRUST_CUDA -I${AER_SIMULATOR_CPP_SRC_DIR} -isystem ${AER_SIMULATOR_CPP_SRC_DIR}/third-party/headers -use_fast_math --expt-extended-lambda")
 
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDENT_LIBS "")
@@ -279,6 +279,10 @@ if(AER_THRUST_SUPPORTED)
 		message(STATUS "No Thrust supported backend")
 		set(AER_THRUST_SUPPORTED FALSE)
 	endif()
+
+	if(MSVC)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+	endif()
 endif()
 
 if(AER_THRUST_SUPPORTED)
@@ -287,6 +291,21 @@ else()
 	message(STATUS "No Thrust support enabled")
 endif()
 
+if(AER_DEBUG)
+	set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_DEBUG)
+endif()
+
+if(AER_MPI)
+	find_package(MPI REQUIRED)
+	set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_MPI)
+	set(AER_SIMULATOR_CPP_EXTERNAL_LIBS ${AER_SIMULATOR_CPP_EXTERNAL_LIBS} ${MPI_CXX_INCLUDE_PATH})
+	set(MPI_DEPENDANT_LIBS ${MPI_CXX_LIBRARIES})
+	if(AER_DISABLE_GDR)
+	  set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_DISABLE_GDR)
+	endif()
+else()
+	set(MPI_DEPENDANT_LIBS "")
+endif()
 
 # Set dependent libraries
 set(AER_LIBRARIES
@@ -296,7 +315,8 @@ set(AER_LIBRARIES
 	AER_DEPENDENCY_PKG::spdlog
 	Threads::Threads
 	${DL_LIB}
-	${THRUST_DEPENDENT_LIBS})
+	${THRUST_DEPENDANT_LIBS}
+	${MPI_DEPENDANT_LIBS})
 
 set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} ${CONAN_DEFINES})
 if(SKBUILD) # Terra Addon build
@@ -317,9 +337,10 @@ else() # Standalone build
 		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES LANGUAGE CUDA)
 		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES LANGUAGE CUDA)
 		set_source_files_properties(${AER_SIMULATOR_SOURCES} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS}")
-                nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS)
-		set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS}")
-
+		if(DEFINED SIMD_FLAGS_LIST)
+			nvcc_add_compiler_options_list("${SIMD_FLAGS_LIST}" SIMD_FLAGS)
+			set_source_files_properties(${SIMD_SOURCE_FILE} PROPERTIES COMPILE_FLAGS "${CUDA_NVCC_FLAGS} ${SIMD_FLAGS}")
+		endif()
 		add_executable(qasm_simulator ${AER_SIMULATOR_SOURCES} ${SIMD_SOURCE_FILE})
 		target_link_libraries(qasm_simulator ${AER_LIBRARIES})
 		string(STRIP ${AER_COMPILER_FLAGS} AER_COMPILER_FLAGS_STRIPPED)

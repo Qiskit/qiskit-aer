@@ -1,0 +1,97 @@
+---
+features:
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveExpectationValue`
+    quantum circuit instruction for saving the expectation value
+    :math:`\langle H\rangle = Tr[H\rho]` of a Hermitian operator :math:`H`
+    for the simulator state :math:`\rho`.
+    
+    This instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_expectation_value``
+    circuit method which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveExpectationValueVariance`
+    quantum circuit instruction for saving the expectation value
+    :math:`\langle H\rangle = Tr[H\rho]`, and variance
+    :math:`Var(H) = \langle H^2\rangle - \langle H\rangle^2`, of a
+    Hermitian operator :math:`H` for the simulator state :math:`\rho`.
+    
+    This instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_expectation_value_variance``
+    circuit method which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveStatevector` quantum circuit
+    instruction for saving the current statevector of the
+    :class:`~qiskit.providers.aer.StatevectorSimulator` or
+    :class:`~qiskit.providers.aer.QasmSimulator` with a supported simulation
+    method (``"statevector"``, ``"statevector_gpu"``,
+    ``"matrix_product_state"``, ``"extended_stabilizer"``). Note that this
+    instruction always acts on the full width of the circuit being executed.
+    
+    This instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_statevector`` circuit method
+    which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveDensityMatrix` quantum circuit
+    instruction for saving the reduced density matrix on the specified qubits
+    for the current simulator state of the
+    :class:`~qiskit.providers.aer.StatevectorSimulator` or
+    :class:`~qiskit.providers.aer.QasmSimulator` with a supported simulation
+    method (``"density_matrix"``, ``"density_matrix_gpu"``, ``"statevector"``,
+    ``"statevector_gpu"``, ``"matrix_product_state"``). 
+    
+    This instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_density_matrix`` circuit method
+    which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveProbabilities` and
+    :class:`qiskit.providers.aer.library.SaveProbabilitiesDict` quantum
+    circuit instruction for saving all measurement outcome probabilities for
+    the :class:`~qiskit.providers.aer.StatevectorSimulator` or
+    :class:`~qiskit.providers.aer.QasmSimulator` with a supported simulation
+    method (``"statevector"``, ``"statevector_gpu"``, ``"density_matrix"``,
+    ``"density_matrix_gpu"``, ``"matrix_product_state"``, ``"stabilizer"``).
+    
+    These instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_probabilities`` and
+    :class:`~qiskit.providers.aer.library.save_probabilities_dict`` circuit
+    methods which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveAmplitudes`
+    circuit instruction for saving complex statevector amplitudes for
+    the :class:`~qiskit.providers.aer.StatevectorSimulator` or
+    :class:`~qiskit.providers.aer.QasmSimulator` with a supported simulation
+    method (``"statevector"``, ``"statevector_gpu"``,
+    ``"matrix_product_state"``).
+    
+    This instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_amplitudes`` circuit
+    methods which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveAmplitudesSquared`
+    circuit instruction for saving specific probability values (squared
+    statevector amplitude) for
+    the :class:`~qiskit.providers.aer.StatevectorSimulator` or
+    :class:`~qiskit.providers.aer.QasmSimulator` with a supported simulation
+    method (``"statevector"``, ``"statevector_gpu"``, ``"density_matrix"``,
+    ``"density_matrix_gpu"``, ``"matrix_product_state"``, ``"stabilizer``).
+    
+    This instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_amplitudes_squared`` circuit
+    methods which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveStabilizer`
+    circuit instruction for saving the state of the `"stabilizer"` method
+    of the :class:`~qiskit.providers.aer.QasmSimulator` as a Clifford.
+    
+    This instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_stabilizer`` circuit
+    methods which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveUnitary`
+    circuit instruction for saving the state of the
+    :class:`~qiskit.providers.aer.UnitarySimulator`.
+    
+    This instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_unitary`` circuit
+    methods which is added to ``QuantumCircuit`` when importing Aer.

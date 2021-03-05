@@ -10,6 +10,7 @@ import os
 import setuptools
 import subprocess
 import sys
+import platform
 
 
 PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
@@ -19,10 +20,7 @@ if not _DISABLE_CONAN:
     try:
         from conans import client
     except ImportError:
-        # Problem with Conan and urllib3 1.26
-        subprocess.call([sys.executable, '-m', 'pip', 'install', 'urllib3<1.26'])
-
-        subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan'])
+        subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan>=1.31.2'])
         from conans import client
 
 try:
@@ -30,15 +28,11 @@ try:
 except ImportError:
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build'])
     from skbuild import setup
+
 try:
     import pybind11
 except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.4'])
-
-try:
-    from numpy import array
-except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=1.16.3'])
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.6'])
 
 from skbuild import setup
 
@@ -49,7 +43,7 @@ from skbuild import setup
 common_requirements = [
     'numpy>=1.16.3',
     'scipy>=1.0',
-    'pybind11>=2.4'  # This isn't really an install requirement,
+    'pybind11>=2.6'  # This isn't really an install requirement,
                      # Pybind11 is required to be pre-installed for
                      # CMake to successfully find header files.
                      # This should be fixed in the CMake build files.
@@ -60,10 +54,9 @@ setup_requirements = common_requirements + [
     'cmake!=3.17,!=3.17.0',
 ]
 if not _DISABLE_CONAN:
-    setup_requirements.append('urllib3<1.26')
     setup_requirements.append('conan>=1.22.2')
 
-requirements = common_requirements + ['qiskit-terra>=0.12.0']
+requirements = common_requirements + ['qiskit-terra>=0.16.0']
 
 if not hasattr(setuptools,
                'find_namespace_packages') or not inspect.ismethod(
@@ -82,6 +75,12 @@ README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                            'README.md')
 with open(README_PATH) as readme_file:
     README = readme_file.read()
+
+
+cmake_args = ["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9"]
+is_win_32_bit = (platform.system() == 'Windows' and platform.architecture()[0] == "32bit")
+if is_win_32_bit:
+    cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")
 
 setup(
     name=PACKAGE_NAME,
@@ -115,7 +114,7 @@ setup(
     install_requires=requirements,
     setup_requires=setup_requirements,
     include_package_data=True,
-    cmake_args=["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9"],
+    cmake_args=cmake_args,
     keywords="qiskit aer simulator quantum addon backend",
     zip_safe=False
 )
