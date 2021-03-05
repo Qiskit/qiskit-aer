@@ -120,11 +120,6 @@ public:
   void add_readout_error(const ReadoutError &error,
                          const std::vector<reg_t> &op_qubits = {});
 
-  // Set which single qubit gates should use the X90 waltz error model
-  inline void set_x90_gates(const stringset_t &x90_gates) {
-    x90_gates_ = x90_gates;
-  }
-
   //-----------------------------------------------------------------------
   // Utils
   //-----------------------------------------------------------------------
@@ -171,15 +166,6 @@ private:
 
   // Sample noise for the current operation
   NoiseOps sample_noise_helper(const Operations::Op &op,
-                               RngEngine &rng) const;
-
-  // Sample a noisy implementation of a two-X90 pulse u3 gate
-  NoiseOps sample_noise_x90_u3(uint_t qubit, complex_t theta,
-                               complex_t phi, complex_t lamba,
-                               RngEngine &rng) const;
-  
-  // Sample a noisy implementation of a single-X90 pulse u2 gate
-  NoiseOps sample_noise_x90_u2(uint_t qubit, complex_t phi, complex_t lambda,
                                RngEngine &rng) const;
 
   // Add a local quantum error to the noise model for specific qubits
@@ -233,9 +219,6 @@ private:
   // If conversion isn't possible this returns an empty matrix
   cmatrix_t op2unitary(const Operations::Op &op) const;
 
-  // Table of single-qubit gates to use a Waltz X90 based error model
-  stringset_t x90_gates_;
-
   // Lookup table for gate strings to enum
   enum class WaltzGate {id, x, y, z, h, s, sdg, t, tdg, u0, u1, u2, u3};
   const static stringmap_t<WaltzGate> waltz_gate_table_;
@@ -285,47 +268,8 @@ NoiseModel::param_gate_table_ = {
 NoiseModel::NoiseOps NoiseModel::sample_noise(const Operations::Op &op,
                                               RngEngine &rng) const {
   // Noise operations
-  NoiseOps noise_ops;
-  // Look to see if gate is a waltz gate for this error model
-  // NOTE this is deprecated and waltz gate noise sampling should be removed
-  auto it = x90_gates_.find(op.name);
-  if (it == x90_gates_.end()) {
-    // Non-X90 based gate, run according to base model
-    noise_ops = sample_noise_helper(op, rng);
-  } else {
-    // Decompose ops in terms of their waltz implementation
-    auto gate = waltz_gate_table_.find(op.name);
-    if (gate != waltz_gate_table_.end()) {
-      switch (gate->second) {
-        case WaltzGate::u3:
-          noise_ops = sample_noise_x90_u3(op.qubits[0],
-                                          op.params[0], op.params[1], op.params[2],
-                                          rng);
-          break;
-        case WaltzGate::u2:
-          noise_ops = sample_noise_x90_u2(op.qubits[0],
-                                          op.params[0], op.params[1],
-                                           rng);
-          break;
-        case WaltzGate::x:
-          noise_ops =  sample_noise_x90_u3(op.qubits[0], M_PI, 0., M_PI, rng);
-          break;
-        case WaltzGate::y:
-          noise_ops = sample_noise_x90_u3(op.qubits[0],  M_PI, 0.5 * M_PI, 0.5 * M_PI, rng);
-          break;
-        case WaltzGate::h:
-          noise_ops = sample_noise_x90_u2(op.qubits[0], 0., M_PI, rng);
-          break;
-        default:
-          // The rest of the Waltz operations are noise free (u1 only)
-          noise_ops = {op};
-          break;
-      }
-    } else {
-      // something went wrong if we end up here
-      throw std::invalid_argument("Invalid waltz gate.");
-    }
-  }
+  NoiseOps noise_ops = sample_noise_helper(op, rng);
+
   // If original op is conditional, make all the noise operations also conditional
   if (op.conditional) {
     for (auto& noise_op : noise_ops) {
@@ -772,107 +716,6 @@ NoiseModel::waltz_gate_table_ = {
 };
 
 
-NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u3(uint_t qubit,
-                                                     complex_t theta,
-                                                     complex_t phi,
-                                                     complex_t lambda,
-                                                     RngEngine &rng) const {
-  // sample noise for single X90
-  const auto x90 = Operations::make_unitary({qubit}, Linalg::Matrix::X90, "x90");
-  switch (method_) {
-    case Method::superop: {
-      // The first element of the sample should be the superoperator to combine
-      auto sample = sample_noise_helper(x90, rng);
-      // The first element of the sample should be the superoperator to combine
-      if (sample[0].type != Operations::OpType::superop) {
-        throw std::runtime_error("Sampling superoperator noise failed.");
-      }
-      cmatrix_t& current = sample[0].mats[0];
-      // Combine with middle u1 gate with two noisy x90 superops
-      auto mat = Linalg::Matrix::u1(theta + M_PI);
-      auto super = Utils::tensor_product(AER::Utils::conjugate(mat), mat);
-      current = current * super * current;
-
-      // Prepend with first u1 matrix with superop
-      mat = Linalg::Matrix::u1(lambda);
-      super = Utils::tensor_product(AER::Utils::conjugate(mat),
-                                          mat);
-      current = current * super;
-      // Append third u1 matrix with superop
-      mat = Linalg::Matrix::u1(phi + M_PI);
-      super = Utils::tensor_product(AER::Utils::conjugate(mat), mat);
-      current = super * current;
-      return sample;
-    }
-    default: {
-      NoiseOps ret;
-      if (std::abs(lambda) > u1_threshold_
-          && std::abs(lambda - 2 * M_PI) > u1_threshold_
-          && std::abs(lambda + 2 * M_PI) > u1_threshold_) {
-        ret.push_back(Operations::make_u1(qubit, lambda)); // add 1st U1
-      }
-      auto sample = sample_noise_helper(x90, rng); // sample noise for 1st X90
-      ret.insert(ret.end(), sample.begin(), sample.end()); // add 1st noisy X90
-      if (std::abs(theta + M_PI) > u1_threshold_
-          && std::abs(theta - M_PI) > u1_threshold_) {
-        ret.push_back(Operations::make_u1(qubit, theta + M_PI)); // add 2nd U1
-      }
-      sample = sample_noise_helper(x90, rng); // sample noise for 2nd X90
-      ret.insert(ret.end(), sample.begin(), sample.end()); // add 2nd noisy X90
-      if (std::abs(phi + M_PI) > u1_threshold_
-          && std::abs(phi - M_PI) > u1_threshold_) {
-        ret.push_back(Operations::make_u1(qubit, phi + M_PI)); // add 3rd U1
-      }
-      return ret;
-    }
-  }
-}
-
-
-NoiseModel::NoiseOps NoiseModel::sample_noise_x90_u2(uint_t qubit,
-                                                     complex_t phi,
-                                                     complex_t lambda,
-                                                     RngEngine &rng) const {
-  // sample noise for single X90
-  const auto x90 = Operations::make_unitary({qubit}, Linalg::Matrix::X90, "x90");
-  auto sample = sample_noise_helper(x90, rng); 
-  switch (method_) {
-    case Method::superop: {
-      // The first element of the sample should be the superoperator to combine
-      if (sample[0].type != Operations::OpType::superop) {
-        throw std::runtime_error("Sampling superoperator noise failed.");
-      }
-      cmatrix_t &current = sample[0].mats[0];
-      // Combine first u1 matrix with superop
-      auto mat = Linalg::Matrix::u1(lambda - 0.5 * M_PI);
-      auto super = Utils::tensor_product(AER::Utils::conjugate(mat),
-                                               mat);
-      current = current * super;
-      // Combine second u1 matrix with superop
-      mat = Linalg::Matrix::u1(phi + 0.5 * M_PI);
-      super = Utils::tensor_product(AER::Utils::conjugate(mat), mat);
-      current = super * current;
-      return sample;
-    }
-    default: {
-      NoiseOps ret;
-      // Standard method doesn't combine any ops
-      if (std::abs(lambda - 0.5 * M_PI) > u1_threshold_) {
-        // add 1st u1
-        ret.push_back(Operations::make_u1(qubit, lambda - 0.5 * M_PI));
-      }
-      // add 1st noisy x90
-      ret.insert(ret.end(), sample.begin(), sample.end()); 
-      if (std::abs(phi + 0.5 * M_PI) > u1_threshold_) {
-        // add 2nd u1
-        ret.push_back(Operations::make_u1(qubit, phi + 0.5 * M_PI));
-      }
-      return ret;
-    }
-  }
-}
-
-
 cmatrix_t NoiseModel::op2superop(const Operations::Op &op) const {
   switch (op.type) {
     case Operations::OpType::superop:
@@ -1114,8 +957,7 @@ void NoiseModel::remap_qubits(const std::unordered_map<uint_t, uint_t> &mapping)
   Schemas:
   {
     "error_model": {
-      "errors": [error js],
-      "x90_gates": which gates should be implemented as waltz gates and use the "x90" term
+      "errors": [error js]
     }
   }
 
@@ -1149,11 +991,6 @@ void NoiseModel::load_from_json(const json_t &js) {
   // Check JSON is an object
   if (!js.is_object()) {
     throw std::invalid_argument("Invalid noise_params JSON: not an object.");
-  }
-
-  // See if any single qubit gates have a waltz error model applied to them
-  if (JSON::check_key("x90_gates", js)) {
-    set_x90_gates(js["x90_gates"]);
   }
 
   if (JSON::check_key("errors", js)) {
