@@ -766,10 +766,10 @@ double State<densmat_t>::expval_pauli(const reg_t &qubits,
         uint_t iChunk = (irow ^ x_mask) + irow * nrows;
 
         if(BaseState::chunk_index_begin_[BaseState::distributed_rank_] <= iChunk && BaseState::chunk_index_end_[BaseState::distributed_rank_] > iChunk){  //on this process
-          double sign = 1.0;
-          if (z_mask && (AER::Utils::popcount(iChunk & z_mask) & 1))
-            sign = -1.0;
-          expval += sign * BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,phase);
+          double sign = 2.0;
+          if (z_mask && (AER::Utils::popcount(irow & z_mask) & 1))
+            sign = -2.0;
+          expval += sign * BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli_non_diagonal_chunk(qubits_in_chunk, pauli_in_chunk,phase);
         }
       }
     }
@@ -779,9 +779,9 @@ double State<densmat_t>::expval_pauli(const reg_t &qubits,
         uint_t iChunk = i * (nrows+1);
         if(BaseState::chunk_index_begin_[BaseState::distributed_rank_] <= iChunk && BaseState::chunk_index_end_[BaseState::distributed_rank_] > iChunk){  //on this process
           double sign = 1.0;
-          if (z_mask && (AER::Utils::popcount((i + BaseState::global_chunk_index_) & z_mask) & 1))
+          if (z_mask && (AER::Utils::popcount(i & z_mask) & 1))
             sign = -1.0;
-          expval += sign * BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk);
+          expval += sign * BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,1.0);
         }
       }
     }
@@ -791,7 +791,7 @@ double State<densmat_t>::expval_pauli(const reg_t &qubits,
     for(i=0;i<nrows;i++){
       uint_t iChunk = i * (nrows+1);
       if(BaseState::chunk_index_begin_[BaseState::distributed_rank_] <= iChunk && BaseState::chunk_index_end_[BaseState::distributed_rank_] > iChunk){  //on this process
-        expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits, pauli);
+        expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits, pauli,1.0);
       }
     }
   }
