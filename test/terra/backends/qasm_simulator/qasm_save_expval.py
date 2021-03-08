@@ -46,9 +46,9 @@ class QasmSaveExpectationValueTests:
 
         # Stabilizer test circuit
         state_circ = qi.random_clifford(2, seed=SEED).to_circuit()
-        oper = qi.Pauli(pauli)
+        oper = qi.Operator(qi.Pauli(pauli))
         state = qi.Statevector(state_circ)
-        target = state.expectation_value(oper).real.round(10)
+        target = state.expectation_value(oper).real
 
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
@@ -78,7 +78,7 @@ class QasmSaveExpectationValueTests:
 
         # Stabilizer test circuit
         state_circ = qi.random_clifford(2, seed=SEED).to_circuit()
-        oper = qi.Pauli(pauli)
+        oper = qi.Operator(qi.Pauli(pauli))
         state = qi.Statevector(state_circ)
         expval = state.expectation_value(oper).real
         variance = state.expectation_value(oper ** 2).real - expval ** 2
@@ -178,9 +178,9 @@ class QasmSaveExpectationValueTests:
 
         # Stabilizer test circuit
         state_circ = QuantumVolume(2, 1, seed=SEED)
-        oper = qi.Pauli(pauli)
+        oper = qi.Operator(qi.Pauli(pauli))
         state = qi.Statevector(state_circ)
-        target = state.expectation_value(oper).real.round(10)
+        target = state.expectation_value(oper).real
 
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
@@ -209,7 +209,7 @@ class QasmSaveExpectationValueTests:
 
         # Stabilizer test circuit
         state_circ = QuantumVolume(2, 1, seed=SEED)
-        oper = qi.Pauli(pauli)
+        oper = qi.Operator(qi.Pauli(pauli))
         state = qi.Statevector(state_circ)
         expval = state.expectation_value(oper).real
         variance = state.expectation_value(oper ** 2).real - expval ** 2
@@ -244,7 +244,7 @@ class QasmSaveExpectationValueTests:
         state_circ = QuantumVolume(3, 1, seed=SEED)
         oper = qi.random_hermitian(4, traceless=True, seed=SEED)
         state = qi.Statevector(state_circ)
-        target = state.expectation_value(oper, qubits).real.round(10)
+        target = state.expectation_value(oper, qubits).real
 
         # Snapshot circuit
         opts = self.BACKEND_OPTS.copy()
@@ -305,7 +305,7 @@ class QasmSaveExpectationValueTests:
         opts = self.BACKEND_OPTS.copy()
         if opts.get('method') in SUPPORTED_METHODS:
 
-            oper = qi.Pauli(pauli)
+            oper = qi.Operator(qi.Pauli(pauli))
 
             # CPTP channel test circuit
             channel = qi.random_quantum_channel(4, seed=SEED)
@@ -313,7 +313,7 @@ class QasmSaveExpectationValueTests:
             state_circ.append(channel, range(2))
 
             state = qi.DensityMatrix(state_circ)
-            target = state.expectation_value(oper).real.round(10)
+            target = state.expectation_value(oper).real
 
             # Snapshot circuit
             circ = transpile(state_circ, self.SIMULATOR)
@@ -337,7 +337,7 @@ class QasmSaveExpectationValueTests:
         opts = self.BACKEND_OPTS.copy()
         if opts.get('method') in SUPPORTED_METHODS:
 
-            oper = qi.Pauli(pauli)
+            oper = qi.Operator(qi.Operator(qi.Pauli(pauli)))
 
             # CPTP channel test circuit
             channel = qi.random_quantum_channel(4, seed=SEED)
