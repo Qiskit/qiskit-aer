@@ -353,7 +353,7 @@ bool State::check_measurement_opt(const std::vector<Operations::Op> &ops) const
 {
   for (const auto &op: ops)
   {
-    if (op.conditional || op.old_conditional)
+    if (op.conditional)
     {
       return false;
     }
