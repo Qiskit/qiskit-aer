@@ -128,7 +128,7 @@ protected:
   virtual void apply_op(const int_t iChunk,const Operations::Op &op,
                          ExperimentResult &result,
                          RngEngine &rng,
-                         bool final_ops = false);
+                         bool final_ops = false) override;
 
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
@@ -163,6 +163,9 @@ protected:
 
   // Apply a vectorized matrix to given qubits (identity on all other qubits)
   void apply_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & vmat); 
+
+  //apply diagonal matrix
+  void apply_diagonal_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & diag); 
 
   // Apply a vector of control matrices to given qubits (identity on all other qubits)
   void apply_multiplexer(const int_t iChunk, const reg_t &control_qubits, const reg_t &target_qubits, const std::vector<cmatrix_t> &mmat);
@@ -406,7 +409,7 @@ void State<statevec_t>::apply_global_phase()
     int_t i;
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
     for(i=0;i<BaseState::num_local_chunks_;i++){
-      BaseState::qregs_[i].apply_diagonal_matrix({0}, {BaseState::global_phase_, BaseState::global_phase_});
+      apply_diagonal_matrix(i, {0}, {BaseState::global_phase_, BaseState::global_phase_});
     }
   }
 }
@@ -452,7 +455,7 @@ template <class statevec_t>
 auto State<statevec_t>::move_to_vector()
 {
   if(BaseState::num_global_chunks_ == 1){
-    return BaseState::qregs_[0].move_to_vector();
+      return BaseState::qregs_[0].move_to_vector();
   }
   else{
     int_t iChunk;
@@ -520,7 +523,7 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
         apply_matrix(iChunk,op);
         break;
       case Operations::OpType::diagonal_matrix:
-        BaseState::qregs_[iChunk].apply_diagonal_matrix(op.qubits, op.params);
+        apply_diagonal_matrix(iChunk, op.qubits, op.params);
         break;
       case Operations::OpType::multiplexer:
         apply_multiplexer(iChunk,op.regs[0], op.regs[1], op.mats); // control qubits ([0]) & target qubits([1])
@@ -568,7 +571,7 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
   }
 
   if(qubits_out_chunk.size() > 0){  //there are bits out of chunk
-    std::complex<double> coeff = 1.0;
+    std::complex<double> phase = 1.0;
 
     std::reverse(pauli_out_chunk.begin(),pauli_out_chunk.end());
     std::reverse(pauli_in_chunk.begin(),pauli_in_chunk.end());
@@ -576,7 +579,7 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
     uint_t x_mask, z_mask, num_y, x_max;
     std::tie(x_mask, z_mask, num_y, x_max) = AER::QV::pauli_masks_and_phase(qubits_out_chunk, pauli_out_chunk);
 
-    AER::QV::add_y_phase(num_y,coeff);
+    AER::QV::add_y_phase(num_y,phase);
 
     if(x_mask != 0){    //pairing state is out of chunk
       bool on_same_process = true;
@@ -615,12 +618,12 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
           z_count_pair = AER::Utils::popcount(pair_chunk & z_mask);
 
           if(iProc == BaseState::distributed_rank_){  //pair is on the same process
-            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[pair_chunk - BaseState::global_chunk_index_],z_count,z_count_pair,coeff);
+            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[pair_chunk - BaseState::global_chunk_index_],z_count,z_count_pair);
           }
           else{
             BaseState::recv_chunk(iChunk-BaseState::global_chunk_index_,pair_chunk);
             //refer receive buffer to calculate expectation value
-            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[iChunk-BaseState::global_chunk_index_],z_count,z_count_pair,coeff);
+            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[iChunk-BaseState::global_chunk_index_],z_count,z_count_pair);
           }
         }
         else if(iProc == BaseState::distributed_rank_){  //pair is on this process
@@ -635,7 +638,7 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
         double sign = 1.0;
         if (z_mask && (AER::Utils::popcount((i + BaseState::global_chunk_index_) & z_mask) & 1))
           sign = -1.0;
-        expval += sign * BaseState::qregs_[i].expval_pauli(qubits_in_chunk, pauli_in_chunk,coeff);
+        expval += sign * BaseState::qregs_[i].expval_pauli(qubits_in_chunk, pauli_in_chunk);
       }
     }
   }
@@ -818,7 +821,7 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
       if (vmat.size() == 1ULL << qubits.size()) {
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i)
         for(i=0;i<BaseState::num_local_chunks_;i++)
-          BaseState::qregs_[i].apply_diagonal_matrix(sub_qubits, vmat);
+          apply_diagonal_matrix(i, sub_qubits, vmat);
       } else {
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i)
         for(i=0;i<BaseState::num_local_chunks_;i++)
@@ -1003,7 +1006,7 @@ void State<statevec_t>::apply_gate(const uint_t iChunk, const Operations::Op &op
       BaseState::qregs_[iChunk].apply_matrix(op.qubits, Linalg::VMatrix::ryy(op.params[0]));
       break;
     case Statevector::Gates::rzz:
-      BaseState::qregs_[iChunk].apply_diagonal_matrix(op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
+      apply_diagonal_matrix(iChunk, op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
       break;
     case Statevector::Gates::rzx:
       BaseState::qregs_[iChunk].apply_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
@@ -1080,7 +1083,7 @@ void State<statevec_t>::apply_matrix(const int_t iChunk, const Operations::Op &o
 {
   if (op.qubits.empty() == false && op.mats[0].size() > 0) {
     if (Utils::is_diagonal(op.mats[0], .0)) {
-      BaseState::qregs_[iChunk].apply_diagonal_matrix(op.qubits, Utils::matrix_diagonal(op.mats[0]));
+      apply_diagonal_matrix(iChunk, op.qubits, Utils::matrix_diagonal(op.mats[0]));
     } else {
       BaseState::qregs_[iChunk].apply_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
     }
@@ -1091,12 +1094,27 @@ template <class statevec_t>
 void State<statevec_t>::apply_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t &vmat) {
   // Check if diagonal matrix
   if (vmat.size() == 1ULL << qubits.size()) {
-    BaseState::qregs_[iChunk].apply_diagonal_matrix(qubits, vmat);
+    apply_diagonal_matrix(iChunk, qubits, vmat);
   } else {
     BaseState::qregs_[iChunk].apply_matrix(qubits, vmat);
   }
 }
 
+template <class statevec_t>
+void State<statevec_t>::apply_diagonal_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & diag)
+{
+  if(BaseState::gpu_optimization_){
+    //GPU computes all chunks in one kernel, so pass qubits and diagonal matrix as is
+    BaseState::qregs_[iChunk].apply_diagonal_matrix(qubits,diag);
+  }
+  else{
+    reg_t qubits_in = qubits;
+    cvector_t diag_in = diag;
+
+    BaseState::block_diagonal_matrix(iChunk,qubits_in,diag_in);
+    BaseState::qregs_[iChunk].apply_diagonal_matrix(qubits_in,diag_in);
+  }
+}
 
 template <class statevec_t>
 void State<statevec_t>::apply_gate_mcu3(const uint_t iChunk, const reg_t& qubits,

@@ -111,7 +111,7 @@ protected:
   virtual void apply_op(const int_t iChunk,const Operations::Op &op,
                          ExperimentResult &result,
                          RngEngine &rng,
-                         bool final_ops = false);
+                         bool final_ops = false) override;
 
   // Applies a Gate operation to the state class.
   // This should support all and only the operations defined in
@@ -166,7 +166,7 @@ protected:
   // Threshold for chopping small values to zero in JSON
   double json_chop_threshold_ = 1e-10;
 
-  int qubit_scale(void)
+  int qubit_scale() override
   {
     return 2;
   }

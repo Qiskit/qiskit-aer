@@ -42,7 +42,8 @@ enum class OpType {
   kraus, superop, roerror, noise_switch,
   // Save instructions
   save_expval, save_expval_var, save_statevec, save_statevec_ket,
-  save_densmat, save_probs, save_probs_ket, save_amps, save_amps_sq
+  save_densmat, save_probs, save_probs_ket, save_amps, save_amps_sq,
+  save_stabilizer, save_unitary
 };
 
 enum class DataSubType {
@@ -53,7 +54,8 @@ static const std::unordered_set<OpType> SAVE_TYPES = {
   OpType::save_expval, OpType::save_expval_var,
   OpType::save_statevec, OpType::save_statevec_ket,
   OpType::save_densmat, OpType::save_probs, OpType::save_probs_ket,
-  OpType::save_amps, OpType::save_amps_sq
+  OpType::save_amps, OpType::save_amps_sq, OpType::save_stabilizer,
+  OpType::save_unitary
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -98,6 +100,12 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::save_amps_sq:
     stream << "save_amplitudes_sq";
+    break;
+  case OpType::save_stabilizer:
+    stream << "save_stabilizer";
+    break;
+  case OpType::save_unitary:
+    stream << "save_unitary";
     break;
   case OpType::snapshot:
     stream << "snapshot";
@@ -157,11 +165,6 @@ struct Op {
   bool conditional = false; // is gate conditional gate
   uint_t conditional_reg;   // (opt) the (single) register location to look up for conditional
   RegComparison bfunc;      // (opt) boolean function relation
-
-  // DEPRECATED: Old style conditionals (remove in 0.3)
-  bool old_conditional = false;     // is gate old style conditional gate
-  std::string old_conditional_mask; // hex string for conditional mask
-  std::string old_conditional_val;  // hex string for conditional value
 
   // Measurement
   reg_t memory;             // (opt) register operation it acts on (measure)
@@ -507,6 +510,10 @@ Op json_to_op(const json_t &js) {
     return json_to_op_save_default(js, OpType::save_statevec);
   if (name == "save_statevector_dict")
     return json_to_op_save_default(js, OpType::save_statevec_ket);
+  if (name == "save_stabilizer")
+    return json_to_op_save_default(js, OpType::save_stabilizer);
+  if (name == "save_unitary")
+    return json_to_op_save_default(js, OpType::save_unitary);
   if (name == "save_density_matrix")
     return json_to_op_save_default(js, OpType::save_densmat);
   if (name == "save_probabilities")
@@ -574,16 +581,8 @@ void add_conditional(const Allowed allowed, Op& op, const json_t &js) {
       throw std::invalid_argument("Invalid instruction: \"" + op.name + "\" cannot be conditional.");
     }
     // If instruction is allowed to be conditional add parameters
-    if (js["conditional"].is_number()) {
-      // New style conditional
-      op.conditional_reg = js["conditional"];
-      op.conditional = true;
-    } else {
-      // DEPRECATED: old style conditional (remove in 0.3)
-      JSON::get_value(op.old_conditional_mask, "mask", js["conditional"]);
-      JSON::get_value(op.old_conditional_val, "val", js["conditional"]);
-      op.old_conditional = true;
-    }
+    op.conditional_reg = js["conditional"];
+    op.conditional = true;
   }
 }
 
@@ -776,7 +775,6 @@ Op json_to_op_roerror(const json_t &js) {
   op.name = "roerror";
   JSON::get_value(op.memory, "memory", js);
   JSON::get_value(op.registers, "register", js);
-  JSON::get_value(op.probs, "probabilities", js); // DEPRECATED: Remove in 0.4
   JSON::get_value(op.probs, "params", js);
   // Conditional
   add_conditional(Allowed::No, op, js);

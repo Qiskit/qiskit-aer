@@ -14,6 +14,8 @@ QasmSimulator Integration Tests
 """
 
 import unittest
+from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer import AerError
 from test.terra import common
 from test.terra.decorators import requires_method
 
@@ -79,6 +81,7 @@ class TestQasmSimulatorDensityMatrix(common.QiskitAerTestCase,
         "method": "density_matrix",
         "max_parallel_threads": 1
     }
+    SIMULATOR = QasmSimulator(**BACKEND_OPTS)
 
 
 @requires_method("qasm_simulator", "density_matrix_gpu")
@@ -90,6 +93,10 @@ class TestQasmSimulatorDensityMatrixThrustGPU(common.QiskitAerTestCase,
         "method": "density_matrix_gpu",
         "max_parallel_threads": 1
     }
+    try:
+        SIMULATOR = QasmSimulator(**BACKEND_OPTS)
+    except AerError:
+        SIMULATOR = None
 
 
 @requires_method("qasm_simulator", "density_matrix_thrust")
@@ -101,6 +108,10 @@ class TestQasmSimulatorDensityMatrixThrustCPU(common.QiskitAerTestCase,
         "method": "density_matrix_thrust",
         "max_parallel_threads": 1
     }
+    try:
+        SIMULATOR = QasmSimulator(**BACKEND_OPTS)
+    except AerError:
+        SIMULATOR = None
 
 
 if __name__ == '__main__':

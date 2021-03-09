@@ -97,7 +97,7 @@ public:
   //This will be either the |0>^n state, or a stabilizer state
   //produced by applying the first m Clifford gates of the
   //circuit. 
-  void initialize_decomposition(uint_t n_states);
+  void initialize_decomposition(uint_t n_states, double delta);
   //Check if the coefficient omega is 0
   bool check_eps(uint_t rank);
 
@@ -166,7 +166,7 @@ void Runner::initialize(uint_t num_qubits)
   coefficients_.push_back(complex_t(1.,0.));
 }
 
-void Runner::initialize_decomposition(uint_t n_states)
+void Runner::initialize_decomposition(uint_t n_states, double delta)
 {
   num_states_ = n_states;
   states_.reserve(num_states_);
@@ -177,6 +177,7 @@ void Runner::initialize_decomposition(uint_t n_states)
                              std::string("being properly cleared since the last ") +
                              std::string("experiment."));
   }
+  coefficients_[0] = complex_t(1./ delta,0.);
   chstabilizer_t base_sate(states_[0]);
   complex_t coeff(coefficients_[0]);
   for(uint_t i=1; i<num_states_; i++)
@@ -473,7 +474,6 @@ double Runner::norm_estimation(uint_t n_samples, uint_t repetitions, AER::RngEng
         }
       }
     } // end omp parallel
-    // return ParallelNormEstimate(states_, coefficients_, adiag_1, adiag_2, a, num_threads_);
     double xi = ParallelNormEstimate(states_, coefficients_, adiag_1, adiag_2, a, num_threads_);
     xi_samples[m] = xi;
   }

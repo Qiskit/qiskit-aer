@@ -42,6 +42,8 @@ Instruction Classes
     SaveStatevectorDict
     SaveAmplitudes
     SaveAmplitudesSquared
+    SaveStabilizer
+    SaveUnitary
 
 Then can also be used using custom QuantumCircuit methods
 
@@ -60,6 +62,18 @@ QuantumCircuit Methods
     save_statevector_dict
     save_amplitudes
     save_amplitudes_squared
+    save_stabilizer
+    save_unitary
+
+.. note ::
+
+    **Save Instruction Labels**
+
+    Each save instruction has a default label for accessing from the
+    circuit result data, however duplicate labels in results will result
+    in an exception being raised. If you use more than 1 instance of a
+    specific save instruction you must set a custom label for the
+    additional instructions.
 
 .. note ::
 
@@ -84,7 +98,8 @@ QuantumCircuit Methods
 __all__ = ['SaveExpectationValue', 'SaveExpectationValueVariance',
            'SaveProbabilities', 'SaveProbabilitiesDict',
            'SaveStatevector', 'SaveStatevectorDict', 'SaveDensityMatrix',
-           'SaveAmplitudes', 'SaveAmplitudesSquared']
+           'SaveAmplitudes', 'SaveAmplitudesSquared', 'SaveUnitary',
+           'SaveStabilizer']
 
 from .save_expectation_value import (
     SaveExpectationValue, save_expectation_value,
@@ -96,3 +111,5 @@ from .save_statevector import (SaveStatevector, save_statevector,
 from .save_density_matrix import SaveDensityMatrix, save_density_matrix
 from .save_amplitudes import (SaveAmplitudes, save_amplitudes,
                               SaveAmplitudesSquared, save_amplitudes_squared)
+from .save_stabilizer import (SaveStabilizer, save_stabilizer)
+from .save_unitary import (SaveUnitary, save_unitary)

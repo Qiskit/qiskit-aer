@@ -43,8 +43,8 @@ class QasmSaveStatevectorTests:
         target = qi.Statevector(circ)
 
         # Add save to circuit
-        save_key = 'sv'
-        circ.save_statevector(save_key)
+        label = 'sv'
+        circ.save_statevector(label)
 
         # Run
         opts = self.BACKEND_OPTS.copy()
@@ -56,8 +56,8 @@ class QasmSaveStatevectorTests:
         else:
             self.assertTrue(result.success)
             data = result.data(0)
-            self.assertIn(save_key, data)
-            value = qi.Statevector(result.data(0)[save_key])
+            self.assertIn(label, data)
+            value = qi.Statevector(result.data(0)[label])
             self.assertAlmostEqual(value, target)
 
     def test_save_statevector_conditional(self):
@@ -69,13 +69,13 @@ class QasmSaveStatevectorTests:
         ]
 
         # Stabilizer test circuit
-        save_key = 'sv'
+        label = 'sv'
         circ = QuantumCircuit(2)
         circ.h(0)
         circ.sdg(0)
         circ.cx(0, 1)
         circ.measure_all()
-        circ.save_statevector(save_key, conditional=True)
+        circ.save_statevector(label, conditional=True)
 
         # Target statevector
         target = {'0x0': qi.Statevector([1, 0, 0, 0]),
@@ -91,8 +91,8 @@ class QasmSaveStatevectorTests:
         else:
             self.assertTrue(result.success)
             data = result.data(0)
-            self.assertIn(save_key, data)
-            for key, vec in data[save_key].items():
+            self.assertIn(label, data)
+            for key, vec in data[label].items():
                 self.assertIn(key, target)
                 self.assertAlmostEqual(qi.Statevector(vec), target[key])
 
@@ -115,8 +115,8 @@ class QasmSaveStatevectorTests:
         target = qi.Statevector(circ)
 
         # Add save
-        save_key = 'sv'
-        circ.save_statevector(save_key, pershot=True)
+        label = 'sv'
+        circ.save_statevector(label, pershot=True)
 
         # Run
         shots = 10
@@ -129,8 +129,8 @@ class QasmSaveStatevectorTests:
         else:
             self.assertTrue(result.success)
             data = result.data(0)
-            self.assertIn(save_key, data)
-            value = result.data(0)[save_key]
+            self.assertIn(label, data)
+            value = result.data(0)[label]
             self.assertEqual(len(value), shots)
             for vec in value:
                 self.assertAlmostEqual(qi.Statevector(vec), target)
@@ -154,8 +154,8 @@ class QasmSaveStatevectorTests:
         target = qi.Statevector(circ)
 
         # Add save
-        save_key = 'sv'
-        circ.save_statevector(save_key, pershot=True, conditional=True)
+        label = 'sv'
+        circ.save_statevector(label, pershot=True, conditional=True)
         circ.measure_all()
 
         # Run
@@ -169,8 +169,8 @@ class QasmSaveStatevectorTests:
         else:
             self.assertTrue(result.success)
             data = result.data(0)
-            self.assertIn(save_key, data)
-            value = result.data(0)[save_key]
+            self.assertIn(label, data)
+            value = result.data(0)[label]
             self.assertIn('0x0', value)
             self.assertEqual(len(value['0x0']), shots)
             for vec in value['0x0']:

@@ -149,7 +149,7 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
 
-  virtual void allocate(uint_t num_qubits);
+  virtual void allocate(uint_t num_qubits) override;
 
   //-----------------------------------------------------------------------
   // Additional methods

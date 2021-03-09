@@ -36,7 +36,8 @@ const Operations::OpSet StateOpSet(
   {Operations::OpType::gate, Operations::OpType::measure,
     Operations::OpType::reset, Operations::OpType::barrier,
     Operations::OpType::roerror, Operations::OpType::bfunc,
-    Operations::OpType::snapshot, Operations::OpType::save_statevec},
+    Operations::OpType::snapshot, Operations::OpType::save_statevec,
+    Operations::OpType::save_expval, Operations::OpType::save_expval_var},
   // Gates
   {"CX", "u0", "u1", "p", "cx", "cz", "swap", "id", "x", "y", "z", "h",
     "s", "sdg", "t", "tdg", "ccx", "ccz", "delay"},
@@ -101,6 +102,7 @@ protected:
   //circuit applicaiton over the states. This reduces the threading overhead
   //as we only have to fork once per circuit.
   void apply_ops_parallel(const std::vector<Operations::Op> &ops,
+                                  ExperimentResult &result,
                                   RngEngine &rng);
 
   //Small routine that eschews any parallelisation/decomposition and applies a stabilizer
@@ -134,7 +136,6 @@ protected:
   void statevector_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
   // //Compute probabilities from a stabilizer rank decomposition
   void probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
-  
   const static stringmap_t<Gates> gateset_;
   const static stringmap_t<Snapshots> snapshotset_;
 
@@ -146,6 +147,16 @@ protected:
   void apply_save_statevector(const Operations::Op &op,
                               ExperimentResult &result,
                               RngEngine &rng);
+
+  // Compute and save the expval for the current simulator state
+  void apply_save_expval(const Operations::Op &op,
+                              ExperimentResult &result,
+                              RngEngine &rng);
+
+   // Helper function for computing expectation value
+   double expval_pauli(const reg_t &qubits,
+                       const std::string& pauli,
+                       RngEngine &rng);
 
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
@@ -342,14 +353,15 @@ bool State::check_measurement_opt(const std::vector<Operations::Op> &ops) const
 {
   for (const auto &op: ops)
   {
-    if (op.conditional || op.old_conditional)
+    if (op.conditional)
     {
       return false;
     }
     if (op.type == Operations::OpType::measure ||
         op.type == Operations::OpType::bfunc ||
         op.type == Operations::OpType::snapshot ||
-        op.type == Operations::OpType::save_statevec)
+        op.type == Operations::OpType::save_statevec ||
+        op.type == Operations::OpType::save_expval)
     {
       return false;
     }
@@ -383,12 +395,13 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &
     }
     std::vector<Operations::Op> non_stabilizer_circuit(ops.cbegin()+first_non_clifford, ops.cend());
     uint_t chi = compute_chi(non_stabilizer_circuit);
-    BaseState::qreg_.initialize_decomposition(chi);
+    double delta = std::pow(approximation_error_, -2);
+    BaseState::qreg_.initialize_decomposition(chi, delta);
     //Check for measurement optimisaitons
     bool measurement_opt = check_measurement_opt(ops);
     if(measurement_opt)
     {
-      apply_ops_parallel(non_stabilizer_circuit, rng);
+      apply_ops_parallel(non_stabilizer_circuit, result, rng);
     }
     else
     {
@@ -418,6 +431,10 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &
               break;
             case Operations::OpType::save_statevec:
               apply_save_statevector(op, result, rng);
+              break;
+            case Operations::OpType::save_expval:
+            case Operations::OpType::save_expval_var:
+              apply_save_expval(op, result, rng);
               break;
             default:
               throw std::invalid_argument("CH::State::apply_ops does not support operations of the type \'" + 
@@ -489,7 +506,7 @@ std::vector<reg_t> State::sample_measure(const reg_t& qubits,
 //-------------------------------------------------------------------------
 
 //Method with slighty optimized parallelisation for the case of a sample_measure circuit
-void State::apply_ops_parallel(const std::vector<Operations::Op> &ops, RngEngine &rng)
+void State::apply_ops_parallel(const std::vector<Operations::Op> &ops, ExperimentResult &result, RngEngine &rng)
 {
   const int_t NUM_STATES = BaseState::qreg_.get_num_states();
   #pragma omp parallel for if(BaseState::qreg_.check_omp_threshold() && BaseState::threads_>1) num_threads(BaseState::threads_)
@@ -549,6 +566,10 @@ void State::apply_stabilizer_circuit(const std::vector<Operations::Op> &ops,
         break;
       case Operations::OpType::save_statevec:
         apply_save_statevector(op, result, rng);
+        break;
+      case Operations::OpType::save_expval:
+      case Operations::OpType::save_expval_var:
+        apply_save_expval(op, result, rng);
         break;
       default:
         throw std::invalid_argument("CH::State::apply_stabilizer_circuit does not support operations of the type \'" + 
@@ -742,6 +763,38 @@ void State::apply_save_statevector(const Operations::Op &op,
     op.save_type);
 }
 
+void State::apply_save_expval(const Operations::Op &op,
+                                ExperimentResult &result,
+                                RngEngine& rng) {
+  // Check empty edge case
+  if (op.expval_params.empty()) {
+    throw std::invalid_argument(
+        "Invalid save expval instruction (Pauli components are empty).");
+  }
+  bool variance = (op.type == Operations::OpType::save_expval_var);
+
+  // Accumulate expval components
+  double expval(0.);
+  double sq_expval(0.);
+
+  for (const auto &param : op.expval_params) {
+    // param is tuple (pauli, coeff, sq_coeff)
+    const auto val = expval_pauli(op.qubits, std::get<0>(param), rng);
+    expval += std::get<1>(param) * val;
+    if (variance) {
+      sq_expval += std::get<2>(param) * val;
+    }
+  }
+  if (variance) {
+    std::vector<double> expval_var(2);
+    expval_var[0] = expval;  // mean
+    expval_var[1] = sq_expval - expval * expval;  // variance
+    save_data_average(result, op.string_params[0], expval_var, op.save_type);
+  } else {
+    save_data_average(result, op.string_params[0], expval, op.save_type);
+  }
+}
+
 void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
 {
   auto it = snapshotset_.find(op.name);
@@ -775,6 +828,47 @@ void State::statevector_snapshot(const Operations::Op &op, ExperimentResult &res
 {
   result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0],
      BaseState::qreg_.statevector(norm_estimation_samples_, 3, rng));
+}
+
+double State::expval_pauli(const reg_t &qubits,
+                           const std::string& pauli,
+                           RngEngine &rng) {
+    // Compute expval components
+    auto state_cpy = BaseState::qreg_;
+    auto phi_norm = state_cpy.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, rng);
+    std::vector<chpauli_t>paulis(1, chpauli_t());
+    for (uint_t pos = 0; pos < qubits.size(); ++pos) {
+      uint_t qubit = qubits[pos];
+      switch (pauli[pauli.size() - 1 - pos]) {
+        case 'I':
+          break;
+        case 'X':
+          paulis[0].X += (1ULL << qubits[pos]);
+          break;
+        case 'Y':
+          paulis[0].X += (1ULL << qubits[pos]);
+          paulis[0].Z += (1ULL << qubits[pos]);
+          break;
+        case 'Z':
+          paulis[0].Z += (1ULL << qubits[pos]);
+          break;
+        default: {
+          std::stringstream msg;
+          msg << "QubitVectorState::invalid Pauli string \'" << pauli[pos]
+              << "\'.";
+          throw std::invalid_argument(msg.str());
+        }
+      }
+    }
+    auto g_norm = state_cpy.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, paulis, rng);
+    return (2*g_norm - phi_norm);
+}
+
+double State::expval_pauli(const reg_t &qubits,
+                           const std::string& pauli) {
+    // empty implementation of base class virtual method
+    // since in the extended stabilizer, expval relies on RNG
+    return 0;
 }
 
 void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
@@ -822,7 +916,7 @@ void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &r
         uint_t target = 0ULL;
         for(uint_t j=0; j<op.qubits.size(); j++)
         {
-          if((dim >> j) & 1ULL)
+          if((i >> j) & 1ULL)
           {
             target ^= (1ULL << op.qubits[j]);
           }
@@ -851,12 +945,6 @@ void State::probabilities_snapshot(const Operations::Op &op, ExperimentResult &r
 //-------------------------------------------------------------------------
 // Implementation: Utility
 //-------------------------------------------------------------------------
-
-double State::expval_pauli(const reg_t &qubits, const std::string& pauli) {
-  // TODO: Add support
-  throw std::runtime_error(
-    "Extended stabilizer method does not support Pauli expectation values.");
-}
 
 inline void to_json(json_t &js, cvector_t vec)
 {

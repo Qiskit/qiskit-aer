@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit, execute
 import qiskit.quantum_info as qi
-from qiskit.compiler import assemble
+from qiskit.compiler import assemble, transpile
 from qiskit.quantum_info import DensityMatrix, Pauli, Operator
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import AerError
@@ -366,6 +366,7 @@ class QasmSnapshotDensityMatrixTests:
         op = qi.random_unitary(8, seed=seed)
         circ = QuantumCircuit(3)
         circ.append(op, [0, 1, 2])
+        circ = transpile(circ, basis_gates=['u1', 'u2', 'u3', 'cx'])
         method = self.BACKEND_OPTS.get('method', 'automatic')
         label = 'density_matrix'
         snap_qargs = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0],
@@ -379,8 +380,8 @@ class QasmSnapshotDensityMatrixTests:
                 num_qubits = len(squbits)
                 tmp = circ.copy()
                 tmp.append(Snapshot(label, 'density_matrix', num_qubits), squbits)
-                result = execute(tmp, self.SIMULATOR,
-                                 **self.BACKEND_OPTS).result()
+                qobj = assemble(tmp, backend=self.SIMULATOR, **self.BACKEND_OPTS)
+                result = self.SIMULATOR.run(qobj).result()
                 if method not in QasmSnapshotDensityMatrixTests.SUPPORTED_QASM_METHODS:
                     self.assertFalse(result.success)
                 else:
