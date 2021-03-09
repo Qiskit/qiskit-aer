@@ -15,6 +15,7 @@ Qiskit Aer statevector simulator backend.
 
 import logging
 from qiskit.util import local_hardware_info
+from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
 from ..aererror import AerError
@@ -165,7 +166,7 @@ class StatevectorSimulator(AerBackend):
     @classmethod
     def _default_options(cls):
         return Options(
-            #Global options
+            # Global options
             shots=1024,
             method="automatic",
             precision="double",
@@ -181,7 +182,7 @@ class StatevectorSimulator(AerBackend):
             fusion_verbose=False,
             fusion_max_qubit=5,
             fusion_threshold=14,
-            #statevector options
+            # statevector options
             statevector_parallel_threshold=14)
 
     def _execute(self, qobj):

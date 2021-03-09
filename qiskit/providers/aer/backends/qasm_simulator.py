@@ -15,6 +15,7 @@ Qiskit Aer qasm simulator backend.
 
 import copy
 import logging
+from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
 from ..version import __version__
@@ -341,7 +342,7 @@ class QasmSimulator(AerBackend):
     @classmethod
     def _default_options(cls):
         return Options(
-            #Global options
+            # Global options
             shots=1024,
             method="automatic",
             precision="double",
@@ -357,10 +358,10 @@ class QasmSimulator(AerBackend):
             fusion_verbose=False,
             fusion_max_qubit=5,
             fusion_threshold=14,
-            #statevector options
+            # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,
-            #stabilizer options
+            # stabilizer options
             stabilizer_max_snapshot_probabilities=32,
             # extended stabilizer options
             extended_stabilizer_sampling_method='resampled_metropolis',
@@ -431,7 +432,9 @@ class QasmSimulator(AerBackend):
                 basis_gates = set(self._configuration.basis_gates)  # Method basis gates
                 intersection = basis_gates.intersection(value.basis_gates)
                 self._check_basis_gates(basis_gates, value.basis_gates, intersection)
-                self._set_configuration_option('basis_gates', sorted(set(basis_gates).union(self.configuration().custom_instructions)))
+                self._set_configuration_option(
+                    'basis_gates',
+                    sorted(set(basis_gates).union(self.configuration().custom_instructions)))
                 continue
             # If key is method we update our configurations
             if key == 'method':
@@ -450,12 +453,16 @@ class QasmSimulator(AerBackend):
                     intersection = basis_gates.intersection(noise_gates)
                     self._check_basis_gates(basis_gates, noise_gates, intersection)
                     basis_gates = intersection
-                self._set_configuration_option('basis_gates', sorted(set(basis_gates).union(self.configuration().custom_instructions)))
+                self._set_configuration_option(
+                    'basis_gates',
+                    sorted(set(basis_gates).union(self.configuration().custom_instructions)))
                 continue
             # When setting basis gates always append custom simulator instructions for
             # the current method
             if key == 'basis_gates':
-                self.set_configuration_option(key, sorted(set(value).union(self.configuration().custom_instructions)))
+                self._set_configuration_option(
+                    key,
+                    sorted(set(value).union(self.configuration().custom_instructions)))
                 continue
             out_options[key] = value
         super().set_options(out_options)
