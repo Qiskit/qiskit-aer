@@ -524,8 +524,8 @@ class QasmSimulator(AerBackend):
             config.custom_instructions = sorted(['roerror', 'snapshot', 'save_statevector',
                                                  'save_expval', 'save_expval_var'])
             config.basis_gates = sorted([
-                'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'swap',
-                'u0', 'u1', 'p', 'ccx', 'ccz', 'delay'
+                'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx',
+                'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay'
             ] + config.custom_instructions)
 
         return config
