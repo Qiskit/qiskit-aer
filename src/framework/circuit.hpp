@@ -19,7 +19,7 @@
 
 #include "framework/operations.hpp"
 #include "framework/opset.hpp"
-#include "framework/json.hpp"
+#include "json_parser.hpp"
 
 namespace AER {
 
@@ -60,8 +60,11 @@ public:
   Circuit(const std::vector<Op> &_ops);
 
   // Construct a circuit from JSON
-  Circuit(const json_t &circ);
-  Circuit(const json_t &circ, const json_t &qobj_config);
+  template<typename inputdata_t>
+  Circuit(const inputdata_t& circ);
+
+  template<typename inputdata_t>
+  Circuit(const inputdata_t& circ, const json_t& qobj_config);
 
   //-----------------------------------------------------------------------
   // Set containers
@@ -167,24 +170,27 @@ Circuit::Circuit(const std::vector<Op> &_ops) : Circuit() {
   set_params();
 }
 
-Circuit::Circuit(const json_t &circ) : Circuit(circ, json_t()) {}
+template<typename inputdata_t>
+Circuit::Circuit(const inputdata_t &circ) : Circuit(circ, json_t()) {}
 
-Circuit::Circuit(const json_t &circ, const json_t &qobj_config) : Circuit() {
+template<typename inputdata_t>
+Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config) : Circuit() {
 
   // Get config
   json_t config = qobj_config;
-  if (JSON::check_key("config", circ)) {
-    for (auto it = circ["config"].cbegin(); it != circ["config"].cend();
-         ++it) {
+  if (Parser::check_key("config", circ)) {
+    json_t circ_config;
+    Parser::get_value(circ_config, "config", circ);
+    for (auto it = circ_config.cbegin(); it != circ_config.cend(); ++it) {
       config[it.key()] = it.value(); // overwrite circuit level config values
     }
   }
   // Load instructions
-  if (JSON::check_key("instructions", circ) == false) {
+  if (Parser::check_key("instructions", circ) == false) {
     throw std::invalid_argument("Invalid Qobj experiment: no \"instructions\" field.");
   }
   ops.clear(); // remove any current operations
-  const json_t &jops = circ["instructions"];
+  const inputdata_t &jops = Parser::get_list("instructions", circ);
   for(auto jop: jops){
     ops.emplace_back(Operations::json_to_op(jop));
   }
@@ -193,13 +199,13 @@ Circuit::Circuit(const json_t &circ, const json_t &qobj_config) : Circuit() {
   set_params();
 
   // Load metadata
-  JSON::get_value(header, "header", circ);
-  JSON::get_value(shots, "shots", config);
-  JSON::get_value(global_phase_angle, "global_phase", header);
+  Parser::get_value(header, "header", circ);
+  Parser::get_value(shots, "shots", config);
+  Parser::get_value(global_phase_angle, "global_phase", header);
 
   // Check for specified memory slots
   uint_t memory_slots = 0;
-  JSON::get_value(memory_slots, "memory_slots", config);
+  Parser::get_value(memory_slots, "memory_slots", config);
   if (memory_slots < num_memory) {
     throw std::invalid_argument("Invalid Qobj experiment: not enough memory slots.");
   }
@@ -207,8 +213,10 @@ Circuit::Circuit(const json_t &circ, const json_t &qobj_config) : Circuit() {
   num_memory = memory_slots;
 
   // Check for specified n_qubits
-  if (JSON::check_key("n_qubits", config)) {
-    uint_t n_qubits = config["n_qubits"];
+  if (Parser::check_key("n_qubits", config)) {
+    // uint_t n_qubits = config["n_qubits"];
+    uint_t n_qubits;
+    Parser::get_value(n_qubits, "n_qubits", config);
     if (n_qubits < num_qubits) {
       throw std::invalid_argument("Invalid Qobj experiment: n_qubits < instruction qubits.");
     }

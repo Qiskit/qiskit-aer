@@ -108,7 +108,8 @@ public:
   //-----------------------------------------------------------------------
 
   // Load a noise model from JSON
-  void load_from_json(const json_t &js);
+  template <typename inputdata_t>
+  void load_from_json(const inputdata_t &js);
 
   // Add a QuantumError to the noise model
   void add_quantum_error(const QuantumError &error,
@@ -982,7 +983,8 @@ void NoiseModel::remap_qubits(const std::unordered_map<uint_t, uint_t> &mapping)
   }
 */
 
-void NoiseModel::load_from_json(const json_t &js) {
+template <typename inputdata_t>
+void NoiseModel::load_from_json(const inputdata_t &js) {
 
   // If JSON is empty stop
   if (js.empty())
@@ -993,19 +995,19 @@ void NoiseModel::load_from_json(const json_t &js) {
     throw std::invalid_argument("Invalid noise_params JSON: not an object.");
   }
 
-  if (JSON::check_key("errors", js)) {
-    if (!js["errors"].is_array()) {
+  if (Parser::check_key("errors", js)) {
+    if (!Parser::is_array("errors", js)) {
       throw std::invalid_argument("Invalid noise_params JSON: \"error\" field is not a list");
     }
-    for (const auto &gate_js : js["errors"]) {
+    for (const auto &gate_js : Parser::get_value("errors", js)) {
       std::string type;
-      JSON::get_value(type, "type", gate_js);
+      Parser::get_value(type, "type", gate_js);
       stringset_t ops; // want set so ops are unique, and we can pull out measure
-      JSON::get_value(ops, "operations", gate_js);
+      Parser::get_value(ops, "operations", gate_js);
       std::vector<reg_t> gate_qubits;
-      JSON::get_value(gate_qubits, "gate_qubits", gate_js);
+      Parser::get_value(gate_qubits, "gate_qubits", gate_js);
       std::vector<reg_t> noise_qubits;
-      JSON::get_value(noise_qubits, "noise_qubits", gate_js);
+      Parser::get_value(noise_qubits, "noise_qubits", gate_js);
 
       // We treat measure as a separate error op so that it can be applied before
       // the measure operation, rather than after like the other gates
