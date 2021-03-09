@@ -70,7 +70,7 @@ public:
       vec.assign((1UL << fusioned_op.qubits.size()), 0);
       for (size_t i = 0; i < vec.size(); ++i)
         vec[i] = fusioned_op.mats[0](i, i);
-      fusioned_op = Operations::make_diagonal(fusioned_op.qubits, vec, std::string("fusion"));
+      fusioned_op = Operations::make_diagonal(fusioned_op.qubits, std::move(vec), std::string("fusion"));
     }
 
     return fusioned_op;
@@ -501,6 +501,9 @@ void DiagonalFusion::set_config(const json_t &config) {
 
 bool DiagonalFusion::is_diagonal_op(const op_t& op) const {
 
+  if (op.type == Operations::OpType::diagonal_matrix)
+    return true;
+
   if (op.type == Operations::OpType::gate) {
     if (op.name == "p" || op.name == "cp" || op.name == "u1" || op.name == "cu1"
         || op.name == "mcu1" || op.name== "rz" || op.name== "rzz")
@@ -510,12 +513,6 @@ bool DiagonalFusion::is_diagonal_op(const op_t& op) const {
     else
       return false;
   }
-
-  if (op.type == Operations::OpType::diagonal_matrix)
-    return true;
-
-  if (op.type == Operations::OpType::matrix)
-    return op.mats.size() == 1 && Utils::is_diagonal(op.mats[0], 1e-7);
 
   return false;
 }

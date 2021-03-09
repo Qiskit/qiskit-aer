@@ -288,12 +288,12 @@ inline Op make_unitary(const reg_t &qubits, cmatrix_t &&mat, std::string label =
   return op;
 }
 
-inline Op make_diagonal(const reg_t &qubits, const cvector_t &vec, std::string label = "") {
+inline Op make_diagonal(const reg_t &qubits, cvector_t &&vec, std::string label = "") {
   Op op;
   op.type = OpType::diagonal_matrix;
   op.name = "diagonal";
   op.qubits = qubits;
-  op.params = vec;
+  op.params = std::move(vec);
 
   if (label != "")
     op.string_params = {label};
