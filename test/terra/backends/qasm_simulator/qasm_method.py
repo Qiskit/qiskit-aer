@@ -13,6 +13,8 @@
 QasmSimulator Integration Tests
 """
 
+from ddt import ddt, data
+
 from test.terra.reference import ref_2q_clifford
 from test.terra.reference import ref_non_clifford
 from qiskit.compiler import assemble
@@ -24,6 +26,7 @@ from qiskit.providers.aer.noise.errors import pauli_error
 from qiskit.providers.aer.noise.errors import amplitude_damping_error
 
 
+@ddt
 class QasmMethodTests:
     """QasmSimulator method option tests."""
 
@@ -329,3 +332,28 @@ class QasmMethodTests:
                 target_method = method
             self.compare_result_metadata(result, circuits, 'method',
                                          target_method)
+
+    @data('automatic', 'statevector', 'density_matrix', 'stabilizer',
+          'matrix_product_state', 'extended_stabilizer')
+    def test_option_basis_gates(self, method):
+        """Test setting method and noise model has correct basis_gates"""
+        config = QasmSimulator(method=method).configuration()
+        noise_gates = ['id', 'sx', 'x', 'cx']
+        noise_model = NoiseModel(basis_gates=noise_gates)
+        target_gates = sorted(set(config.basis_gates).intersection(noise_gates).union(
+            config.custom_instructions))
+
+        sim = QasmSimulator(method=method, noise_model=noise_model)
+        basis_gates = sim.configuration().basis_gates
+        self.assertEqual(basis_gates, target_gates)
+
+    @data('automatic', 'statevector', 'density_matrix', 'stabilizer',
+          'matrix_product_state', 'extended_stabilizer')
+    def test_option_order_basis_gates(self, method):
+        """Test order of setting method and noise model gives same basis gates"""
+        noise_model = NoiseModel(basis_gates=['id', 'sx', 'x', 'cx'])
+        sim1 = QasmSimulator(method=method, noise_model=noise_model)
+        basis_gates1 = sim1.configuration().basis_gates
+        sim2 = QasmSimulator(noise_model=noise_model, method=method)
+        basis_gates2 = sim2.configuration().basis_gates
+        self.assertEqual(basis_gates1, basis_gates2)

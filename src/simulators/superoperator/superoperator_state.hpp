@@ -106,6 +106,10 @@ public:
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
 
+  auto move_to_matrix()
+  {
+    return BaseState::qreg_.move_to_matrix();
+  }
 protected:
   //-----------------------------------------------------------------------
   // Apply Instructions
@@ -144,6 +148,14 @@ protected:
   void apply_gate_u3(const uint_t qubit, const double theta, const double phi,
                      const double lambda);
 
+  //-----------------------------------------------------------------------
+  // Save data instructions
+  //-----------------------------------------------------------------------
+
+  // Helper function for computing expectation value
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string& pauli) override;
+    
   //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------
@@ -475,6 +487,12 @@ void State<data_t>::apply_snapshot(const Operations::Op &op,
         "QubitSuperoperator::State::invalid snapshot instruction \'" + op.name +
         "\'.");
   }
+}
+
+template <class data_t>
+double  State<data_t>::expval_pauli(const reg_t &qubits,
+                                    const std::string& pauli) {
+  throw std::runtime_error("SuperOp simulator does not support Pauli expectation values.");
 }
 
 //------------------------------------------------------------------------------
