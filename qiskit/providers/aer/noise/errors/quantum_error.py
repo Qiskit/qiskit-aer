@@ -148,7 +148,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
             noise_ops = [(noise_ops, 1.0)]
 
         # Remove zero probability circuits
-        if any([isinstance(p, complex) or (p < -self.atol) for _, p in noise_ops]):
+        if any(isinstance(p, complex) or (p < -self.atol) for _, p in noise_ops):
             raise NoiseError("Probabilities are invalid: {}".format([p for _, p in noise_ops]))
         noise_ops = [(op, prob) for op, prob in noise_ops if prob > 0]
 

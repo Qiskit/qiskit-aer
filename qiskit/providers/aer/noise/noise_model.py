@@ -15,6 +15,7 @@ Noise model class for Qiskit Aer simulators.
 
 import json
 import logging
+from warnings import warn
 
 from qiskit.circuit import Instruction
 from qiskit.providers import BaseBackend, Backend
@@ -425,10 +426,9 @@ class NoiseModel:
                                 'kraus', 'superop', 'roerror']:
                     self._basis_gates.add(name)
             elif warnings:
-                warn(
-                    '"warnings" option has been deprecated as of qiskit-aer 0.8.0'
-                    ' and will be removed no earlier than 3 months from that release date.',
-                    DeprecationWarning, stacklevel=2)
+                warn('"warnings" option has been deprecated as of qiskit-aer 0.8.0'
+                     ' and will be removed no earlier than 3 months from that release date.',
+                     DeprecationWarning, stacklevel=2)
                 logger.warning(
                     "Warning: Adding a gate \"%s\" to basis_gates which is "
                     "not in QasmSimulator basis_gates.", name)
