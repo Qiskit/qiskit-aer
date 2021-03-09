@@ -58,7 +58,7 @@ public:
 #endif
 
   // Set the size of the vector in terms of qubit number
-  void set_num_qubits(size_t num_qubits);
+  void set_num_qubits(size_t num_qubits) override;
 
   // Return the number of rows in the matrix
   size_t num_rows() const {return rows_;}
@@ -268,7 +268,7 @@ void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &m
       tmp[row + nrows * col] = mat(row, col);
     }
 
-  BaseVector::chunk_->CopyIn((thrust::complex<data_t>*)&tmp[0]);
+  BaseVector::chunk_->CopyIn((thrust::complex<data_t>*)&tmp[0], BaseVector::data_size_);
 }
 
 template <class data_t>

@@ -54,7 +54,7 @@ public:
                         const opset_t &allowed_opset,
                         ExperimentResult &result) const override;
 
-  void set_config(const json_t &config);
+  void set_config(const json_t &config) override;
   bool enabled()
   {
     return blocking_enabled_;
