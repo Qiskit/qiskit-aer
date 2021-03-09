@@ -204,7 +204,6 @@ class AerBackend(Backend, ABC):
 
     @classmethod
     def _default_options(cls):
-        # TODO: Expand to include all options
         return Options(shots=1024)
 
     def clear_options(self):

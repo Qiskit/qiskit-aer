@@ -326,6 +326,46 @@ class QasmSimulator(AerBackend):
                          backend_options=backend_options)
 
     @classmethod
+    def _default_options(cls):
+        return Options(
+            #Global options
+            shots=1024,
+            method="automatic",
+            precision="double",
+            zero_threshold=1e-10,
+            validation_threshold=1e-8,
+            max_parallel_threads=0,
+            max_parallel_experiments=1,
+            max_parallel_shots=0,
+            max_memory_mb=0,
+            optimize_ideal_threshold=5,
+            optimize_noise_threshold=12,
+            fusion_enable=True,
+            fusion_verbose=False,
+            fusion_max_qubit=5,
+            fusion_threshold=14,
+            #statevector options
+            statevector_parallel_threshold=14,
+            statevector_sample_measure_opt=10,
+            #stabilizer options
+            stabilizer_max_snapshot_probabilities=32,
+            # extended stabilizer options
+            extended_stabilizer_sampling_method='resampled_metropolis',
+            extended_stabilizer_metropolis_mixing_time=5000,
+            extended_stabilizer_approximation_error=0.05,
+            extended_stabilizer_norm_estimation_samples=100,
+            extended_stabilizer_norm_estimation_repitions=3,
+            extended_stabilizer_parallel_threshold=100,
+            extended_stabilizer_probabilities_snapshot_samples=3000,
+            # MPS options
+            matrix_product_state_truncation_threshold=1e-16,
+            matrix_product_state_max_bond_dimension=None,
+            mps_sample_measure_algorithm='mps_heuristic',
+            Chop_threshold=1e-8,
+            mps_parallel_threshold=14,
+            mps_omp_threads=1)
+
+    @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
         # pylint: disable=import-outside-toplevel
