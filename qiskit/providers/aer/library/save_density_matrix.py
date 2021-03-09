@@ -20,16 +20,16 @@ from .save_data import SaveAverageData, default_qubits
 class SaveDensityMatrix(SaveAverageData):
     """Save a reduced density matrix."""
     def __init__(self,
-                 key,
                  num_qubits,
+                 label="density_matrix",
                  unnormalized=False,
                  pershot=False,
                  conditional=False):
         """Create new instruction to save the simulator reduced density matrix.
 
         Args:
-            key (str): the key for retrieving saved data from results.
             num_qubits (int): the number of qubits for the save instruction.
+            label (str): the key for retrieving saved data from results.
             unnormalized (bool): If True return save the unnormalized accumulated
                                  or conditional accumulated density matrix over
                                  all shots [Default: False].
@@ -40,27 +40,25 @@ class SaveDensityMatrix(SaveAverageData):
                                 conditional on the current classical register
                                 values [Default: False].
         """
-        super().__init__("save_density_matrix",
-                         key,
-                         num_qubits,
+        super().__init__("save_density_matrix", num_qubits, label,
                          unnormalized=unnormalized,
                          pershot=pershot,
                          conditional=conditional)
 
 
 def save_density_matrix(self,
-                        key,
                         qubits=None,
+                        label="density_matrix",
                         unnormalized=False,
                         pershot=False,
                         conditional=False):
     """Save the current simulator quantum state as a density matrix.
 
     Args:
-        key (str): the key for retrieving saved data from results.
         qubits (list or None): the qubits to save reduced density matrix on.
                                If None the full density matrix of qubits will
                                be saved [Default: None].
+        label (str): the key for retrieving saved data from results.
         unnormalized (bool): If True return save the unnormalized accumulated
                              or conditional accumulated density matrix over
                              all shots [Default: False].
@@ -75,8 +73,8 @@ def save_density_matrix(self,
         QuantumCircuit: with attached instruction.
     """
     qubits = default_qubits(self, qubits=qubits)
-    instr = SaveDensityMatrix(key,
-                              len(qubits),
+    instr = SaveDensityMatrix(len(qubits),
+                              label=label,
                               unnormalized=unnormalized,
                               pershot=pershot,
                               conditional=conditional)

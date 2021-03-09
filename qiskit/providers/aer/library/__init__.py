@@ -67,6 +67,16 @@ QuantumCircuit Methods
 
 .. note ::
 
+    **Save Instruction Labels**
+
+    Each save instruction has a default label for accessing from the
+    circuit result data, however duplicate labels in results will result
+    in an exception being raised. If you use more than 1 instance of a
+    specific save instruction you must set a custom label for the
+    additional instructions.
+
+.. note ::
+
     **Pershot Data with Measurement Sampling Optimization**
 
     When saving pershot data by using the ``pershot=True`` kwarg

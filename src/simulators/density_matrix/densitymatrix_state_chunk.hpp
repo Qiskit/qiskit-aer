@@ -124,10 +124,10 @@ protected:
   virtual void apply_op(const int_t iChunk,const Operations::Op &op,
                          ExperimentResult &result,
                          RngEngine &rng,
-                         bool final_ops);
+                         bool final_ops) override;
 
   //swap between chunks
-  virtual void apply_chunk_swap(const reg_t &qubits);
+  virtual void apply_chunk_swap(const reg_t &qubits) override;
 
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
@@ -253,7 +253,7 @@ protected:
   // Threshold for chopping small values to zero in JSON
   double json_chop_threshold_ = 1e-10;
 
-  int qubit_scale(void)
+  int qubit_scale() override
   {
     return 2;
   }
@@ -614,8 +614,10 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
     }
   }
 
+  int_t nrows = 1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)/2);
+
   if(qubits_out_chunk.size() > 0){  //there are bits out of chunk
-    std::complex<double> coeff = 1.0;
+    std::complex<double> phase = 1.0;
 
     std::reverse(pauli_out_chunk.begin(),pauli_out_chunk.end());
     std::reverse(pauli_in_chunk.begin(),pauli_in_chunk.end());
@@ -623,73 +625,49 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
     uint_t x_mask, z_mask, num_y, x_max;
     std::tie(x_mask, z_mask, num_y, x_max) = AER::QV::pauli_masks_and_phase(qubits_out_chunk, pauli_out_chunk);
 
-    AER::QV::add_y_phase(num_y,coeff);
-
-    if(x_mask != 0){    //pairing state is out of chunk
-      bool on_same_process = true;
-#ifdef AER_MPI
-      int proc_bits = 0;
-      uint_t procs = distributed_procs_;
-      while(procs > 1){
-        if((procs & 1) != 0){
-          proc_bits = -1;
-          break;
-        }
-        proc_bits++;
-        procs >>= 1;
-      }
-      if(x_mask & (~((1ull << (BaseState::num_qubits_/2 - proc_bits)) - 1)) != 0){    //data exchange between processes is required
-        on_same_process = false;
-      }
-#endif
-
+    z_mask >>= (BaseState::chunk_bits_/2);
+    if(x_mask != 0){
       x_mask >>= (BaseState::chunk_bits_/2);
-      z_mask >>= (BaseState::chunk_bits_/2);
       x_max -= (BaseState::chunk_bits_/2);
+
+      AER::QV::add_y_phase(num_y,phase);
 
       const uint_t mask_u = ~((1ull << (x_max + 1)) - 1);
       const uint_t mask_l = (1ull << x_max) - 1;
 
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_ && on_same_process) private(i) reduction(+:expval)
-      for(i=0;i<BaseState::num_global_chunks_/2;i++){
-        uint_t iChunk = ((i << 1) & mask_u) | (i & mask_l);
-        uint_t pair_chunk = iChunk ^ x_mask;
-        uint_t iProc = BaseState::get_process_by_chunk(pair_chunk);
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) reduction(+:expval)
+      for(i=0;i<nrows/2;i++){
+        uint_t irow = ((i << 1) & mask_u) | (i & mask_l);
+        uint_t iChunk = (irow ^ x_mask) + irow * nrows;
 
         if(BaseState::chunk_index_begin_[BaseState::distributed_rank_] <= iChunk && BaseState::chunk_index_end_[BaseState::distributed_rank_] > iChunk){  //on this process
-          uint_t z_count,z_count_pair;
-          z_count = AER::Utils::popcount(iChunk & z_mask);
-          z_count_pair = AER::Utils::popcount(pair_chunk & z_mask);
-
-          if(iProc == BaseState::distributed_rank_){  //pair is on the same process
-            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[pair_chunk - BaseState::global_chunk_index_],z_count,z_count_pair,coeff);
-          }
-          else{
-            BaseState::recv_chunk(iChunk-BaseState::global_chunk_index_,pair_chunk);
-            //refer receive buffer to calculate expectation value
-            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[iChunk-BaseState::global_chunk_index_],z_count,z_count_pair,coeff);
-          }
-        }
-        else if(iProc == BaseState::distributed_rank_){  //pair is on this process
-          BaseState::send_chunk(iChunk-BaseState::global_chunk_index_,pair_chunk);
+          double sign = 1.0;
+          if (z_mask && (AER::Utils::popcount(iChunk & z_mask) & 1))
+            sign = -1.0;
+          expval += sign * BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,phase);
         }
       }
     }
-    else{ //no exchange between chunks
-      z_mask >>= (BaseState::chunk_bits_/2);
+    else{
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) reduction(+:expval)
-      for(i=0;i<BaseState::num_local_chunks_;i++){
-        double sign = 1.0;
-        if (z_mask && (AER::Utils::popcount((i + BaseState::global_chunk_index_) & z_mask) & 1))
-          sign = -1.0;
-        expval += sign * BaseState::qregs_[i].expval_pauli(qubits_in_chunk, pauli_in_chunk,coeff);
+      for(i=0;i<nrows;i++){
+        uint_t iChunk = i * (nrows+1);
+        if(BaseState::chunk_index_begin_[BaseState::distributed_rank_] <= iChunk && BaseState::chunk_index_end_[BaseState::distributed_rank_] > iChunk){  //on this process
+          double sign = 1.0;
+          if (z_mask && (AER::Utils::popcount((i + BaseState::global_chunk_index_) & z_mask) & 1))
+            sign = -1.0;
+          expval += sign * BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk);
+        }
       }
     }
   }
   else{ //all bits are inside chunk
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) reduction(+:expval)
-    for(i=0;i<BaseState::num_local_chunks_;i++){
-      expval += BaseState::qregs_[i].expval_pauli(qubits, pauli);
+    for(i=0;i<nrows;i++){
+      uint_t iChunk = i * (nrows+1);
+      if(BaseState::chunk_index_begin_[BaseState::distributed_rank_] <= iChunk && BaseState::chunk_index_end_[BaseState::distributed_rank_] > iChunk){  //on this process
+        expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits, pauli);
+      }
     }
   }
 

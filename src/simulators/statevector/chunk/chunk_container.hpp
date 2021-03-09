@@ -16,34 +16,15 @@
 #ifndef _qv_chunk_container_hpp_
 #define _qv_chunk_container_hpp_
 
+#include "misc/warnings.hpp"
+DISABLE_WARNING_PUSH
 #ifdef AER_THRUST_CUDA
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif
+DISABLE_WARNING_POP
 
-#include <thrust/for_each.h>
-#include <thrust/complex.h>
-#include <thrust/inner_product.h>
-#include <thrust/transform.h>
-#include <thrust/transform_scan.h>
-#include <thrust/binary_search.h>
-#include <thrust/execution_policy.h>
-#include <thrust/functional.h>
-#include <thrust/tuple.h>
-#include <thrust/iterator/constant_iterator.h>
-#include <thrust/detail/vector_base.h>
-
-#include <thrust/iterator/counting_iterator.h>
-#include <thrust/iterator/transform_iterator.h>
-#include <thrust/iterator/permutation_iterator.h>
-#include <thrust/fill.h>
-
-#ifdef AER_THRUST_CUDA
-#include <thrust/device_vector.h>
-#endif
-#include <thrust/host_vector.h>
-
-#include <thrust/system/omp/execution_policy.h>
+#include "misc/wrap_thrust.hpp"
 
 #include <algorithm>
 #include <array>
@@ -428,8 +409,8 @@ public:
 
   virtual void CopyIn(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk) = 0;
   virtual void CopyOut(std::shared_ptr<Chunk<data_t>> dest,uint_t iChunk) = 0;
-  virtual void CopyIn(thrust::complex<data_t>* src,uint_t iChunk) = 0;
-  virtual void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk) = 0;
+  virtual void CopyIn(thrust::complex<data_t>* src,uint_t iChunk, uint_t size) = 0;
+  virtual void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk, uint_t size) = 0;
   virtual void Swap(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk) = 0;
 
   virtual void Zero(uint_t iChunk,uint_t count) = 0;

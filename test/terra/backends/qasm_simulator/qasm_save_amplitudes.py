@@ -50,8 +50,8 @@ class QasmSaveAmplitudesTests:
         target = qi.Statevector(circ).data[params]
 
         # Add save to circuit
-        save_key = 'amps'
-        circ.save_amplitudes(save_key, params)
+        label = 'amps'
+        circ.save_amplitudes(params, label=label)
 
         # Run
         opts = self.BACKEND_OPTS.copy()
@@ -63,8 +63,8 @@ class QasmSaveAmplitudesTests:
         else:
             self.assertTrue(result.success)
             data = result.data(0)
-            self.assertIn(save_key, data)
-            value = result.data(0)[save_key]
+            self.assertIn(label, data)
+            value = result.data(0)[label]
             self.assertTrue(np.allclose(value, target))
 
     @data([0, 1, 2, 3, 4, 5, 6, 7],
@@ -73,7 +73,7 @@ class QasmSaveAmplitudesTests:
           [0],
           [5, 2],
           [7, 0])
-    def test_save_amplitudes_squared_clifford(self, params):
+    def test_save_amplitudes_squared_nonclifford(self, params):
         """Test save_amplitudes_squared instruction"""
 
         SUPPORTED_METHODS = [
@@ -89,8 +89,8 @@ class QasmSaveAmplitudesTests:
         target = np.abs(qi.Statevector(circ).data[params]) ** 2
 
         # Add save to circuit
-        save_key = 'amps'
-        circ.save_amplitudes_squared(save_key, params)
+        label = 'amps'
+        circ.save_amplitudes_squared(params, label=label)
 
         # Run
         opts = self.BACKEND_OPTS.copy()
@@ -102,8 +102,8 @@ class QasmSaveAmplitudesTests:
         else:
             self.assertTrue(result.success)
             data = result.data(0)
-            self.assertIn(save_key, data)
-            value = result.data(0)[save_key]
+            self.assertIn(label, data)
+            value = result.data(0)[label]
             self.assertTrue(np.allclose(value, target))
 
     @data([0, 1, 2, 3, 4, 5, 6, 7],
@@ -132,8 +132,8 @@ class QasmSaveAmplitudesTests:
         target = np.abs(qi.Statevector(circ).data[params]) ** 2
 
         # Add save to circuit
-        save_key = 'amps'
-        circ.save_amplitudes_squared(save_key, params)
+        label = 'amps'
+        circ.save_amplitudes_squared(params, label=label)
 
         # Run
         opts = self.BACKEND_OPTS.copy()
@@ -145,6 +145,6 @@ class QasmSaveAmplitudesTests:
         else:
             self.assertTrue(result.success)
             data = result.data(0)
-            self.assertIn(save_key, data)
-            value = result.data(0)[save_key]
+            self.assertIn(label, data)
+            value = result.data(0)[label]
             self.assertTrue(np.allclose(value, target))

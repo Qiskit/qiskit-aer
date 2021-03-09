@@ -128,7 +128,7 @@ protected:
   virtual void apply_op(const int_t iChunk,const Operations::Op &op,
                          ExperimentResult &result,
                          RngEngine &rng,
-                         bool final_ops = false);
+                         bool final_ops = false) override;
 
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
@@ -455,7 +455,7 @@ template <class statevec_t>
 auto State<statevec_t>::move_to_vector()
 {
   if(BaseState::num_global_chunks_ == 1){
-    return BaseState::qregs_[0].move_to_vector();
+      return BaseState::qregs_[0].move_to_vector();
   }
   else{
     int_t iChunk;
@@ -571,7 +571,7 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
   }
 
   if(qubits_out_chunk.size() > 0){  //there are bits out of chunk
-    std::complex<double> coeff = 1.0;
+    std::complex<double> phase = 1.0;
 
     std::reverse(pauli_out_chunk.begin(),pauli_out_chunk.end());
     std::reverse(pauli_in_chunk.begin(),pauli_in_chunk.end());
@@ -579,7 +579,7 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
     uint_t x_mask, z_mask, num_y, x_max;
     std::tie(x_mask, z_mask, num_y, x_max) = AER::QV::pauli_masks_and_phase(qubits_out_chunk, pauli_out_chunk);
 
-    AER::QV::add_y_phase(num_y,coeff);
+    AER::QV::add_y_phase(num_y,phase);
 
     if(x_mask != 0){    //pairing state is out of chunk
       bool on_same_process = true;
@@ -618,12 +618,12 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
           z_count_pair = AER::Utils::popcount(pair_chunk & z_mask);
 
           if(iProc == BaseState::distributed_rank_){  //pair is on the same process
-            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[pair_chunk - BaseState::global_chunk_index_],z_count,z_count_pair,coeff);
+            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[pair_chunk - BaseState::global_chunk_index_],z_count,z_count_pair);
           }
           else{
             BaseState::recv_chunk(iChunk-BaseState::global_chunk_index_,pair_chunk);
             //refer receive buffer to calculate expectation value
-            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[iChunk-BaseState::global_chunk_index_],z_count,z_count_pair,coeff);
+            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[iChunk-BaseState::global_chunk_index_],z_count,z_count_pair);
           }
         }
         else if(iProc == BaseState::distributed_rank_){  //pair is on this process
@@ -638,7 +638,7 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
         double sign = 1.0;
         if (z_mask && (AER::Utils::popcount((i + BaseState::global_chunk_index_) & z_mask) & 1))
           sign = -1.0;
-        expval += sign * BaseState::qregs_[i].expval_pauli(qubits_in_chunk, pauli_in_chunk,coeff);
+        expval += sign * BaseState::qregs_[i].expval_pauli(qubits_in_chunk, pauli_in_chunk);
       }
     }
   }
