@@ -166,8 +166,11 @@ template <typename data_t>
 void HostChunkContainer<data_t>::Deallocate(void)
 {
   data_.clear();
+  data_.shrink_to_fit();
   matrix_.clear();
+  matrix_.shrink_to_fit();
   params_.clear();
+  params_.shrink_to_fit();
 }
 
 

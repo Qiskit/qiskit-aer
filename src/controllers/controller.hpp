@@ -51,6 +51,7 @@
 #include "noise/noise_model.hpp"
 #include "transpile/basic_opts.hpp"
 #include "transpile/truncate_qubits.hpp"
+#include "transpile/cacheblocking.hpp"
 
 namespace AER {
 namespace Base {
@@ -216,7 +217,18 @@ protected:
   set_distributed_parallelization(const std::vector<Circuit> &circuits,
                                   const std::vector<Noise::NoiseModel> &noise);
 
+  virtual bool multiple_chunk_required(const Circuit &circuit,
+                                  const Noise::NoiseModel &noise) const;
+
   void save_exception_to_results(Result &result,const std::exception &e);
+
+
+  //setting cache blocking transpiler
+  Transpile::CacheBlocking transpile_cache_blocking(const Circuit& circ,
+                                     const Noise::NoiseModel& noise,
+                                     const json_t& config,
+                                     const size_t complex_size,bool is_matrix) const;
+
 
   // Get system memory size
   size_t get_system_memory_mb();
@@ -274,6 +286,8 @@ protected:
   //process information (MPI)
   int myrank_ = 0;
   int num_processes_ = 1;
+
+  uint_t cache_block_qubit_ = 0;
 };
 
 //=========================================================================
@@ -348,6 +362,11 @@ void Controller::set_config(const json_t &config) {
     JSON::get_value(accept_distributed_results_, "accept_distributed_results", config);
   }
 
+  //enable multiple qregs if cache blocking is enabled
+  cache_block_qubit_ = 0;
+  if(JSON::check_key("blocking_qubits", config)){
+    JSON::get_value(cache_block_qubit_,"blocking_qubits", config);
+  }
 }
 
 void Controller::clear_config() {
@@ -535,6 +554,21 @@ uint_t Controller::get_distributed_num_processes(bool par_shots) const
   }
 }
 
+bool Controller::multiple_chunk_required(const Circuit &circ,
+                                const Noise::NoiseModel &noise) const
+{
+  if(circ.num_qubits < 3)
+    return false;
+
+  if(num_process_per_experiment_ > 1 || Controller::get_min_memory_mb() < required_memory_mb(circ, noise))
+    return true;
+
+  if(cache_block_qubit_ >= 2 && cache_block_qubit_ < circ.num_qubits)
+    return true;
+
+  return false;
+}
+
 size_t Controller::get_system_memory_mb() {
   size_t total_physical_memory = 0;
 #if defined(__linux__) || defined(__APPLE__)
@@ -652,6 +686,27 @@ void Controller::save_exception_to_results(Result &result,const std::exception &
     res.status = ExperimentResult::Status::error;
     res.message = e.what();
   }
+}
+
+Transpile::CacheBlocking Controller::transpile_cache_blocking(const Circuit& circ,
+                                     const Noise::NoiseModel& noise,
+                                     const json_t& config,
+                                     const size_t complex_size,bool is_matrix) const
+{
+  Transpile::CacheBlocking cache_block_pass;
+
+  cache_block_pass.set_config(config);
+  if(!cache_block_pass.enabled()){
+    //if blocking is not set by config, automatically set if required
+    if(multiple_chunk_required(circ,noise)){
+      int nplace = num_process_per_experiment_;
+      if(num_gpus_ > 0)
+        nplace *= num_gpus_;
+      cache_block_pass.set_blocking(circ.num_qubits, get_min_memory_mb() << 20, nplace, complex_size,is_matrix);
+    }
+  }
+
+  return cache_block_pass;
 }
 
 //-------------------------------------------------------------------------

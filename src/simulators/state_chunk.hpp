@@ -118,7 +118,7 @@ public:
                          bool final_ops = false);
 
   //memory allocation (previously called before inisitalize_qreg)
-  virtual void allocate(uint_t num_qubits);
+  virtual void allocate(uint_t num_qubits,uint_t block_bits);
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
@@ -319,6 +319,11 @@ protected:
   void send_chunk(uint_t local_chunk_index, uint_t global_chunk_index);
   void recv_chunk(uint_t local_chunk_index, uint_t global_chunk_index);
 
+  template <class data_t>
+  void send_data(data_t* pSend, uint_t size, uint_t myid,uint_t pairid);
+  template <class data_t>
+  void recv_data(data_t* pRecv, uint_t size, uint_t myid,uint_t pairid);
+
   //reduce values over processes
   void reduce_sum(rvector_t& sum) const;
   void reduce_sum(complex_t& sum) const;
@@ -433,13 +438,14 @@ void StateChunk<state_t>::set_distribution(uint_t nprocs)
 }
 
 template <class state_t>
-void StateChunk<state_t>::allocate(uint_t num_qubits)
+void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits)
 {
   int_t i;
   uint_t nchunks;
   int max_bits = num_qubits;
 
   num_qubits_ = num_qubits;
+  block_bits_ = block_bits;
 
   if(block_bits_ > 0){
     chunk_bits_ = block_bits_;
@@ -451,11 +457,7 @@ void StateChunk<state_t>::allocate(uint_t num_qubits)
     chunk_bits_ = num_qubits_;
   }
 
-  //scale for density/unitary matrix simulators
-  chunk_bits_ *= qubit_scale();
-  num_qubits_ *= qubit_scale();
-
-  num_global_chunks_ = 1ull << (num_qubits_ - chunk_bits_);
+  num_global_chunks_ = 1ull << ((num_qubits_ - chunk_bits_)*qubit_scale());
 
   chunk_index_begin_.resize(distributed_procs_);
   chunk_index_end_.resize(distributed_procs_);
@@ -469,8 +471,8 @@ void StateChunk<state_t>::allocate(uint_t num_qubits)
 
   qregs_.resize(num_local_chunks_);
 
-  chunk_omp_parallel_ = false;
   gpu_optimization_ = false;
+  chunk_omp_parallel_ = false;
   if(qregs_[0].name().find("gpu") != std::string::npos){
     if(chunk_bits_ < num_qubits_){
       chunk_omp_parallel_ = true;   //CUDA backend requires thread parallelization of chunk loop
@@ -481,7 +483,7 @@ void StateChunk<state_t>::allocate(uint_t num_qubits)
   nchunks = num_local_chunks_;
   for(i=0;i<num_local_chunks_;i++){
     uint_t gid = i + global_chunk_index_;
-    qregs_[i].chunk_setup(chunk_bits_,num_qubits_,gid,nchunks);
+    qregs_[i].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),gid,nchunks);
 
     //only first one allocates chunks, others only set chunk index
     nchunks = 0;
@@ -582,12 +584,12 @@ void StateChunk<state_t>::block_diagonal_matrix(const int_t iChunk, reg_t &qubit
   cvector_t diag_in;
 
   for(i=0;i<qubits.size();i++){
-    if(qubits[i] < chunk_bits_/qubit_scale()){ //in chunk
+    if(qubits[i] < chunk_bits_){ //in chunk
       qubits_in.push_back(qubits[i]);
     }
     else{
       mask_out |= (1ull << i);
-      if((gid >> (qubits[i] - chunk_bits_/qubit_scale())) & 1)
+      if((gid >> (qubits[i] - chunk_bits_)) & 1)
         mask_id |= (1ull << i);
     }
   }
@@ -860,7 +862,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
     q1 = t;
   }
 
-  if(q1 < chunk_bits_){
+  if(q1 < chunk_bits_*qubit_scale()){
     //device
 #pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
     for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
@@ -872,15 +874,15 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
     uint_t nPair,mask0,mask1;
     uint_t baseChunk,iChunk1,iChunk2;
 
-    if(q0 < chunk_bits_)
+    if(q0 < chunk_bits_*qubit_scale())
       nLarge = 1;
     else
       nLarge = 2;
 
     mask0 = (1ull << q0);
     mask1 = (1ull << q1);
-    mask0 >>= chunk_bits_;
-    mask1 >>= chunk_bits_;
+    mask0 >>= (chunk_bits_*qubit_scale());
+    mask1 >>= (chunk_bits_*qubit_scale());
 
     int proc_bits = 0;
     uint_t procs = distributed_procs_;
@@ -893,8 +895,8 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
       procs >>= 1;
     }
 
-    if(distributed_procs_ == 1 || (proc_bits >= 0 && q1 < (num_qubits_ - proc_bits))){   //no data transfer between processes is needed
-      if(q0 < chunk_bits_){
+    if(distributed_procs_ == 1 || (proc_bits >= 0 && q1 < (num_qubits_*qubit_scale() - proc_bits))){   //no data transfer between processes is needed
+      if(q0 < chunk_bits_*qubit_scale()){
         nPair = num_local_chunks_ >> 1;
       }
       else{
@@ -903,7 +905,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 
 #pragma omp parallel for if(chunk_omp_parallel_) private(iPair,baseChunk,iChunk1,iChunk2)
       for(iPair=0;iPair<nPair;iPair++){
-        if(q0 < chunk_bits_){
+        if(q0 < chunk_bits_*qubit_scale()){
           baseChunk = iPair & (mask1-1);
           baseChunk += ((iPair - baseChunk) << 1);
         }
@@ -932,31 +934,31 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
       uint_t iLocalChunk,iRemoteChunk,iProc;
       int i;
 
-      if(q0 < chunk_bits_){
+      if(q0 < chunk_bits_*qubit_scale()){
         nLarge = 1;
-        nu[0] = 1ull << (q1 - chunk_bits_);
+        nu[0] = 1ull << (q1 - chunk_bits_*qubit_scale());
         ub[0] = 0;
         iu[0] = 0;
 
-        nu[1] = 1ull << (num_qubits_ - q1 - 1);
-        ub[1] = (q1 - chunk_bits_) + 1;
+        nu[1] = 1ull << (num_qubits_*qubit_scale() - q1 - 1);
+        ub[1] = (q1 - chunk_bits_*qubit_scale()) + 1;
         iu[1] = 0;
       }
       else{
         nLarge = 2;
-        nu[0] = 1ull << (q0 - chunk_bits_);
+        nu[0] = 1ull << (q0 - chunk_bits_*qubit_scale());
         ub[0] = 0;
         iu[0] = 0;
 
         nu[1] = 1ull << (q1 - q0 - 1);
-        ub[1] = (q0 - chunk_bits_) + 1;
+        ub[1] = (q0 - chunk_bits_*qubit_scale()) + 1;
         iu[1] = 0;
 
-        nu[2] = 1ull << (num_qubits_ - q1 - 1);
-        ub[2] = (q1 - chunk_bits_) + 1;
+        nu[2] = 1ull << (num_qubits_*qubit_scale() - q1 - 1);
+        ub[2] = (q1 - chunk_bits_*qubit_scale()) + 1;
         iu[2] = 0;
       }
-      nPair = 1ull << (num_qubits_ - chunk_bits_ - nLarge);
+      nPair = 1ull << (num_qubits_*qubit_scale() - chunk_bits_*qubit_scale() - nLarge);
 
       for(iPair=0;iPair<nPair;iPair++){
         //calculate index of pair of chunks
@@ -1021,7 +1023,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 
 
 template <class state_t>
-void StateChunk<state_t>::send_chunk(uint_t local_chunk_index, uint_t global_chunk_index)
+void StateChunk<state_t>::send_chunk(uint_t local_chunk_index, uint_t global_pair_index)
 {
 #ifdef AER_MPI
   MPI_Request reqSend;
@@ -1029,17 +1031,17 @@ void StateChunk<state_t>::send_chunk(uint_t local_chunk_index, uint_t global_chu
   uint_t sizeSend;
   uint_t iProc;
 
-  iProc = get_process_by_chunk(global_chunk_index);
+  iProc = get_process_by_chunk(global_pair_index);
 
   auto pSend = qregs_[local_chunk_index].send_buffer(sizeSend);
-  MPI_Isend(pSend,sizeSend,MPI_BYTE,iProc,0,distributed_comm_,&reqSend);
+  MPI_Isend(pSend,sizeSend,MPI_BYTE,iProc,local_chunk_index + global_chunk_index_,distributed_comm_,&reqSend);
 
   MPI_Wait(&reqSend,&st);
 #endif
 }
 
 template <class state_t>
-void StateChunk<state_t>::recv_chunk(uint_t local_chunk_index, uint_t global_chunk_index)
+void StateChunk<state_t>::recv_chunk(uint_t local_chunk_index, uint_t global_pair_index)
 {
 #ifdef AER_MPI
   MPI_Request reqRecv;
@@ -1047,10 +1049,44 @@ void StateChunk<state_t>::recv_chunk(uint_t local_chunk_index, uint_t global_chu
   uint_t sizeRecv;
   uint_t iProc;
 
-  iProc = get_process_by_chunk(global_chunk_index);
+  iProc = get_process_by_chunk(global_pair_index);
 
   auto pRecv = qregs_[local_chunk_index].recv_buffer(sizeRecv);
-  MPI_Irecv(pRecv,sizeRecv,MPI_BYTE,iProc,0,distributed_comm_,&reqRecv);
+  MPI_Irecv(pRecv,sizeRecv,MPI_BYTE,iProc,global_pair_index,distributed_comm_,&reqRecv);
+
+  MPI_Wait(&reqRecv,&st);
+#endif
+}
+
+template <class state_t>
+template <class data_t>
+void StateChunk<state_t>::send_data(data_t* pSend, uint_t size, uint_t myid,uint_t pairid)
+{
+#ifdef AER_MPI
+  MPI_Request reqSend;
+  MPI_Status st;
+  uint_t iProc;
+
+  iProc = get_process_by_chunk(pairid);
+
+  MPI_Isend(pSend,size*sizeof(data_t),MPI_BYTE,iProc,myid,distributed_comm_,&reqSend);
+
+  MPI_Wait(&reqSend,&st);
+#endif
+}
+
+template <class state_t>
+template <class data_t>
+void StateChunk<state_t>::recv_data(data_t* pRecv, uint_t size, uint_t myid,uint_t pairid)
+{
+#ifdef AER_MPI
+  MPI_Request reqRecv;
+  MPI_Status st;
+  uint_t iProc;
+
+  iProc = get_process_by_chunk(pairid);
+
+  MPI_Irecv(pRecv,size*sizeof(data_t),MPI_BYTE,iProc,pairid,distributed_comm_,&reqRecv);
 
   MPI_Wait(&reqRecv,&st);
 #endif
