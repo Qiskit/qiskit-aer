@@ -3,7 +3,6 @@
 """
 Main setup file for qiskit-aer
 """
-import distutils.util
 import importlib
 import inspect
 import os
@@ -14,9 +13,18 @@ from pkg_resources import parse_version
 import platform
 
 
+def strtobool(val):
+    val_lower = val.lower()
+    if val_lower in ('y', 'yes', 't', 'true', 'on', '1'): return True
+    elif val_lower in ('n', 'no', 'f', 'false', 'off', '0'): return False
+    else: raise ValueError('Value: "{}" not recognizes as True or False'.format(val))
+
+
 PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
-_DISABLE_CONAN = distutils.util.strtobool(os.getenv("DISABLE_CONAN", "OFF").lower())
-_DISABLE_DEPENDENCY_INSTALL = distutils.util.strtobool(os.getenv("DISABLE_DEPENDENCY_INSTALL", "OFF").lower())
+_DISABLE_CONAN = strtobool(os.getenv("DISABLE_CONAN", "OFF").lower())
+_DISABLE_DEPENDENCY_INSTALL = strtobool(os.getenv("DISABLE_DEPENDENCY_INSTALL", "OFF").lower())
+
+
 
 def install_needed_req(to_import, to_install=None, min_version=None, max_version=None):
     to_install = to_install if to_install else to_import
