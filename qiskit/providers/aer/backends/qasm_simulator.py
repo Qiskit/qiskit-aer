@@ -375,7 +375,7 @@ class QasmSimulator(AerBackend):
             matrix_product_state_truncation_threshold=1e-16,
             matrix_product_state_max_bond_dimension=None,
             mps_sample_measure_algorithm='mps_heuristic',
-            Chop_threshold=1e-8,
+            chop_threshold=1e-8,
             mps_parallel_threshold=14,
             mps_omp_threads=1)
 
