@@ -122,9 +122,13 @@ namespace Parser {
         return is_array(the_list);
     }
 
+    bool is_list_like(const py::handle& po){
+        return is_array(po) || py::isinstance<py::tuple>(po);
+    }
+
     py::list get_as_list(const py::handle& po){
-        if(!is_array(po)){
-            throw std::runtime_error("Object is not a list!");
+        if(!is_list_like(po)){
+            throw std::runtime_error("Object is not list like!");
         }
         return  py::cast<py::list>(po);
     }

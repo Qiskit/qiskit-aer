@@ -1068,10 +1068,7 @@ Op json_to_op_save_expval(const inputdata_t& js, bool variance) {
   const auto threshold = 1e-12; // drop small components
   // Get components
   if (Parser::check_key("params", js) && Parser::is_array("params", js)) {
-      inputdata_t the_params;
-      Parser::get_value(the_params, "params", js);
-      //for (const auto &comp_ : Parser::get_value("params", js)) {
-      for (const auto &comp_ : the_params) {
+    for (const auto &comp_ : Parser::get_value("params", js)) {
       const auto& comp = Parser::get_as_list(comp_);
       // Get complex coefficient
       std::vector<double> coeffs = Parser::get_list_elem<std::vector<double>>(comp, 1);
@@ -1150,10 +1147,7 @@ Op json_to_op_snapshot_pauli(const inputdata_t& js) {
   const auto threshold = 1e-15; // drop small components
   // Get components
   if (Parser::check_key("params", js) && Parser::is_array("params", js)) {
-      json_t the_params;
-      Parser::get_value(the_params, "params", js);
-      //for (const auto &comp_ : Parser::get_value("params", js)) {
-      for (const auto &comp_ : the_params) {
+    for (const auto &comp_ : Parser::get_value("params", js)) {
       // Check component is length-2 array
       const auto& comp = Parser::get_as_list(comp_);
       if (comp.size() != 2)
@@ -1202,10 +1196,7 @@ Op json_to_op_snapshot_matrix(const inputdata_t& js) {
   // Get matrix operator components
   // TODO: fix repeated throw string
   if (Parser::check_key("params", js) && Parser::is_array("params", js)) {
-    json_t the_params;
-    Parser::get_value(the_params, "params", js);
-    //for (const auto &comp_ : Parser::get_value("params", js)) {
-    for (const auto &comp_ : the_params) {
+    for (const auto &comp_ : Parser::get_value("params", js)) {
       const auto& comp = Parser::get_as_list(comp_);
       // Check component is length-2 array
       if (comp.size() != 2) {
