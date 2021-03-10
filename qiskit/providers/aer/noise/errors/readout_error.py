@@ -44,9 +44,9 @@ class ReadoutError:
 
             probabilities[m] = [P(0|m), P(1|m), ..., P(2 ** N - 1|m)]
 
-        where ``P(j|m)`` is the probability of recording a measurement outcome
-        of ``m`` as the value ``j``. Where ``j`` and ``m`` are integer
-        representations of bit-strings.
+        where ``P(n|m)`` is the probability of recording a noisy measurement
+        outcome as ``n`` given the true ideal measurement outcome was ``m``,
+        where ``n`` and ``m`` are integer representations of bit-strings.
 
         **Example: 1-qubit**
 

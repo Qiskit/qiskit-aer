@@ -8,15 +8,13 @@
 
 # Generic rule for the repository. This pattern is actually the one that will
 # apply unless specialized by a later rule
-* @chriseclectic @vvilpas @atilag
+* @chriseclectic @vvilpas
 
 # Individual folders on root directory
-/qiskit         @chriseclectic @atilag @vvilpas
-/cmake          @atilag @vvilpas
-/doc            @chriseclectic @atilag @vvilpas
-/examples       @chriseclectic @atilag @vvilpas
-/contrib        @chriseclectic @atilag @vvilpas
-/test           @chriseclectic @atilag @vvilpas
-/src            @chriseclectic @atilag @vvilpas
-
-# AER specific folders
+/qiskit         @chriseclectic @vvilpas @mtreinish
+/test           @chriseclectic @vvilpas @mtreinish
+/doc            @chriseclectic @vvilpas @mtreinish
+/releasenotes   @chriseclectic @vvilpas @mtreinish
+/cmake          @vvilpas
+/contrib        @chriseclectic @vvilpas @hhorii
+/src            @chriseclectic @vvilpas @hhorii
