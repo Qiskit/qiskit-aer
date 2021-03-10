@@ -175,7 +175,7 @@ class StatevectorSimulator(AerBackend):
             max_parallel_threads=0,
             max_parallel_experiments=1,
             max_parallel_shots=0,
-            max_memory_mb=0,
+#            max_memory_mb=0,
             optimize_ideal_threshold=5,
             optimize_noise_threshold=12,
             fusion_enable=True,
