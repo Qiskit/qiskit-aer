@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019, 2020, 2021.
+# (C) Copyright IBM 2018, 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,40 +19,43 @@ from qiskit.providers.aer import AerError
 from test.terra import common
 from test.terra.decorators import requires_method
 
-from test.terra.backends.qasm_simulator.qasm_mpi import QasmMPITests
+# Save data tests
+from test.terra.backends.qasm_simulator.qasm_save import QasmSaveDataTests
+# chunk tests
+from test.terra.backends.qasm_simulator.qasm_chunk import QasmChunkTests
 
-
-class StatevectorMPITests(
-        QasmMPITests):
+class StatevectorChunkTests(
+        QasmSaveDataTests,
+        QasmChunkTests
+        ):
     """Container class of statevector method tests."""
     pass
 
 
-class TestQasmSimulatorStatevectorMPI(common.QiskitAerTestCase, StatevectorMPITests):
-    """QasmSimulator statevector method MPI tests."""
+class TestQasmSimulatorStatevectorChunk(common.QiskitAerTestCase, StatevectorChunkTests):
+    """QasmSimulator statevector method tests."""
 
     BACKEND_OPTS = {
         "seed_simulator": 271828,
         "method": "statevector",
-        "blocking_enable": True,
-        "blocking_qubits": 6,
-        "max_parallel_threads": 1
+        "max_parallel_threads": 1,
+        "blocking_enable" : True,
+        "blocking_qubits" : 2
     }
     SIMULATOR = QasmSimulator(**BACKEND_OPTS)
 
 
 @requires_method("qasm_simulator", "statevector_gpu")
-class TestQasmSimulatorStatevectorMPIThrustGPU(common.QiskitAerTestCase,
-                                               StatevectorMPITests):
-    """QasmSimulator statevector_gpu method MPI tests."""
+class TestQasmSimulatorStatevectorChunkThrustGPU(common.QiskitAerTestCase,
+                                            StatevectorChunkTests):
+    """QasmSimulator statevector_gpu method tests."""
 
     BACKEND_OPTS = {
         "seed_simulator": 271828,
         "method": "statevector_gpu",
-        "blocking_enable": True,
-        "blocking_qubits": 6,
-        "blocking_ignore_diagonal": True,
-        "max_parallel_threads": 1
+        "max_parallel_threads": 1,
+        "blocking_enable" : True,
+        "blocking_qubits" : 2
     }
     try:
         SIMULATOR = QasmSimulator(**BACKEND_OPTS)
@@ -61,16 +64,16 @@ class TestQasmSimulatorStatevectorMPIThrustGPU(common.QiskitAerTestCase,
 
 
 @requires_method("qasm_simulator", "statevector_thrust")
-class TestQasmSimulatorStatevectorMPIThrustCPU(common.QiskitAerTestCase,
-                                               StatevectorMPITests):
-    """QasmSimulator statevector_thrust method MPI tests."""
+class TestQasmSimulatorStatevectorChunkThrustCPU(common.QiskitAerTestCase,
+                                            StatevectorChunkTests):
+    """QasmSimulator statevector_thrust method tests."""
 
     BACKEND_OPTS = {
         "seed_simulator": 271828,
         "method": "statevector_thrust",
-        "blocking_enable": True,
-        "blocking_qubits": 6,
-        "max_parallel_threads": 1
+        "max_parallel_threads": 1,
+        "blocking_enable" : True,
+        "blocking_qubits" : 2
     }
     try:
         SIMULATOR = QasmSimulator(**BACKEND_OPTS)

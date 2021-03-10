@@ -33,7 +33,7 @@ class DeviceChunkContainer : public ChunkContainer<data_t>
 protected:
   AERDeviceVector<thrust::complex<data_t>>  data_;    //device vector to chunks and buffers
   AERDeviceVector<thrust::complex<double>>  matrix_;  //storage for large matrix
-  mutable AERDeviceVector<uint_t>                   params_;  //storage for additional parameters
+  mutable AERDeviceVector<uint_t>           params_;  //storage for additional parameters
   AERDeviceVector<double>                   reduce_buffer_; //buffer for reduction
   int device_id_;                     //device index
   std::vector<bool> peer_access_;     //to which device accepts peer access 
@@ -349,6 +349,8 @@ uint_t DeviceChunkContainer<data_t>::Resize(uint_t chunks,uint_t buffers,uint_t 
 template <typename data_t>
 void DeviceChunkContainer<data_t>::Deallocate(void)
 {
+  set_device();
+
   data_.clear();
   data_.shrink_to_fit();
   matrix_.clear();
@@ -371,7 +373,6 @@ void DeviceChunkContainer<data_t>::Deallocate(void)
   }
   stream_.clear();
 #endif
-
 }
 
 template <typename data_t>

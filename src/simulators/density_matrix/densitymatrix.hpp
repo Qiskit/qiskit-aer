@@ -131,6 +131,7 @@ public:
 
   // Return Pauli expectation value
   double expval_pauli(const reg_t &qubits, const std::string &pauli,const complex_t initial_phase=1.0) const;
+  double expval_pauli_non_diagonal_chunk(const reg_t &qubits, const std::string &pauli,const complex_t initial_phase=1.0) const;
 
 protected:
 
@@ -398,6 +399,32 @@ double DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
   };
   return std::real(BaseVector::apply_reduction_lambda(
     std::move(lambda), size_t(0), nrows >> 1));
+}
+
+template <typename data_t>
+double DensityMatrix<data_t>::expval_pauli_non_diagonal_chunk(const reg_t &qubits,
+                                           const std::string &pauli,const complex_t initial_phase) const 
+{
+  uint_t x_mask, z_mask, num_y, x_max;
+  std::tie(x_mask, z_mask, num_y, x_max) = QV::pauli_masks_and_phase(qubits, pauli);
+
+  // Size of density matrix 
+  const size_t nrows = BaseMatrix::rows_;
+
+  auto phase = std::complex<data_t>(initial_phase);
+  QV::add_y_phase(num_y, phase);
+
+  auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
+    (void)val_im; // unused
+    auto idx_mat = i ^ x_mask + nrows * i;
+    auto val = std::real(phase * BaseVector::data_[idx_mat]);
+    if (z_mask && (AER::Utils::popcount(i & z_mask) & 1)) {
+      val = - val;
+    }
+    val_re += val;
+  };
+  return std::real(BaseVector::apply_reduction_lambda(
+    std::move(lambda), size_t(0), nrows));
 }
 
 //-----------------------------------------------------------------------
