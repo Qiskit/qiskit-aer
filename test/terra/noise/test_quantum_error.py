@@ -71,15 +71,13 @@ class TestQuantumError(common.QiskitAerTestCase):
         """Test ideal gates are identified correctly."""
         self.assertTrue(QuantumError(IGate()).ideal())
         self.assertTrue(QuantumError(UnitaryGate(np.eye(2))).ideal())
+        self.assertTrue(QuantumError([(IGate(), 0.7), (IGate(), 0.3)]).ideal())
 
         # up to global phase
         qc = QuantumCircuit(1, global_phase=0.5)
         qc.i(0)
         self.assertTrue(QuantumError(qc).ideal())
         self.assertTrue(QuantumError(UnitaryGate(-1.0 * np.eye(2))).ideal())
-
-        # cannot identify multiple circuits case
-        self.assertFalse(QuantumError([(IGate(), 0.7), (IGate(), 0.3)]).ideal())
 
     def test_to_quantum_channel(self):
         """Test conversion into quantum channel."""

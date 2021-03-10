@@ -14,7 +14,6 @@ Quantum error class for Qiskit Aer noise model
 """
 # pylint: disable=import-outside-toplevel
 import copy
-import logging
 import warnings
 from typing import Iterable, Union, Tuple, List
 
@@ -32,8 +31,6 @@ from .errorutils import kraus2instructions
 from .errorutils import standard_gate_unitary
 from .errorutils import standard_gates_instructions
 from ..noiseerror import NoiseError
-
-logger = logging.getLogger(__name__)
 
 # Wait for EOL of Python 3.6
 # QuantumNoiseType = type(Union[BaseOperator,
@@ -335,18 +332,17 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
     def ideal(self):
         """Return True if current error object is an identity"""
-        circ, prob = self.error_term(0)
-        if prob == 1 and len(circ) == 1:
-            # check if circ is identity gate up to global phase
-            gate = circ[0][0]
-            if isinstance(gate, IGate) or \
-                    (isinstance(gate, UnitaryGate) and
-                     is_identity_matrix(gate.to_matrix(),
-                                        ignore_phase=True,
-                                        atol=self.atol, rtol=self.rtol)):
-                logger.debug("Error object is ideal")
-                return True
-        return False
+        for circ in self.circuits:
+            # check if circ is composed of identity gates up to global phase
+            for gate, _, _ in circ:
+                if not isinstance(gate, IGate) and \
+                    not (isinstance(gate, UnitaryGate) and
+                         is_identity_matrix(gate.to_matrix(),
+                                            ignore_phase=True,
+                                            atol=self.atol, rtol=self.rtol)):
+                    return False
+
+        return True
 
     def to_quantumchannel(self):
         """Convert the QuantumError to a SuperOp quantum channel.
