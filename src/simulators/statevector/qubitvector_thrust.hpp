@@ -956,15 +956,11 @@ bool QubitVectorThrust<data_t>::fetch_chunk(void) const
   int tid,nid;
   int idev;
 
-  tid = omp_get_thread_num();
-  nid = omp_get_num_threads();
-
-  idev = tid * chunk_manager_.num_devices() / nid;
-
   if(chunk_->device() < 0){
     //on host
+    idev = 0;
     do{
-      buffer_chunk_ = chunk_manager_.MapBufferChunk(idev);
+      buffer_chunk_ = chunk_manager_.MapBufferChunk(idev++ % chunk_manager_.num_devices());
     }while(!buffer_chunk_);
     chunk_->set_cache(buffer_chunk_);
     buffer_chunk_->CopyIn(chunk_);
@@ -2587,7 +2583,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
   else{
     thrust::complex<data_t>* pChunk0;
     thrust::complex<data_t>* pChunk1;
-    std::shared_ptr<Chunk<data_t>> pBuffer0;
+    std::shared_ptr<Chunk<data_t>> pBuffer0 = nullptr;
     std::shared_ptr<Chunk<data_t>> pExec;
 
     if(chunk_->device() >= 0){
