@@ -15,7 +15,6 @@ Noise model class for Qiskit Aer simulators.
 
 import json
 import logging
-from warnings import warn
 
 from qiskit.circuit import Instruction
 from qiskit.providers import BaseBackend, Backend
@@ -154,7 +153,6 @@ class NoiseModel:
         # dict(str: ReadoutError)
         # where the dict keys are the gate qubits.
         self._local_readout_errors = {}
-        self._x90_gates = []
 
     @property
     def basis_gates(self):
@@ -361,9 +359,6 @@ class NoiseModel:
         if self._noise_qubits:
             output += "\n  Qubits with noise: {}".format(
                 list(self._noise_qubits))
-        if self._x90_gates:
-            output += "\n  X-90 based single qubit gates: {}".format(
-                list(self._x90_gates))
         if default_error_ops != []:
             output += "\n  All-qubits errors: {}".format(default_error_ops)
         if local_error_ops != []:
@@ -425,28 +420,6 @@ class NoiseModel:
                 logger.warning(
                     "Warning: Adding a gate \"%s\" to basis_gates which is "
                     "not in QasmSimulator basis_gates.", name)
-
-    def set_x90_single_qubit_gates(self, instructions):
-        """
-        Declares X90 based gates for noise model.
-
-        Args:
-            instructions (list[str] or
-                          list[Instruction]): the instructions error applies to.
-
-        Raises:
-            NoiseError: if the input instructions are not valid.
-        """
-        warn('This function is deprecated and will be removed in a future release. '
-             'To use an X90 based noise model use the Sqrt(X) "sx" gate and one of '
-             ' the single-qubit phase gates "u1", "rx", "p" in the noise model and '
-             ' basis gates to decompose into this gateset for noise simulations.',
-             DeprecationWarning)
-        for name, label in self._instruction_names_labels(instructions):
-            # Add X-90 based gate to noisy gates
-            self._noise_instructions.add(label)
-            self._basis_gates.add(name)
-        self._x90_gates = instructions
 
     def add_all_qubit_quantum_error(self, error, instructions, warnings=True):
         """
@@ -806,7 +779,7 @@ class NoiseModel:
             error_dict["gate_qubits"] = [self._str2qubits(qubits_str)]
             error_list.append(error_dict)
 
-        ret = {"errors": error_list, "x90_gates": self._x90_gates}
+        ret = {"errors": error_list}
         if serializable:
             ret = json.loads(json.dumps(ret, cls=AerJSONEncoder))
 
@@ -828,9 +801,6 @@ class NoiseModel:
         """
         # Return noise model
         noise_model = NoiseModel()
-
-        # Set X90 gates
-        noise_model.set_x90_single_qubit_gates(noise_dict.get('x90_gates', []))
 
         # Get error terms
         errors = noise_dict.get('errors', [])
