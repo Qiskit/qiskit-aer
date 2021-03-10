@@ -681,7 +681,10 @@ This technique allows applying quantum gates to each chunk independently without
 Before the actual simulation, we apply transpilation to remap the input circuits to the equivalent circuits that has all the quantum gates on the lower qubits than the chunk's number of qubits.
 And the (noiseless) swap gates are inserted to exchange data. 
 
+Please refer to this paper (https://arxiv.org/abs/2102.02957) for more detailed algorithm and implementation of parallel simulation.
+
 So to simulate by using multiple GPUs or multiple nodes on the cluster, following configurations should be set to backend options.
+(If there is not enough memory to simulate the input circuit, Qiskit Aer automatically set following options, but it is recommended to explicitly set them)
 
  - blocking_enable
 
