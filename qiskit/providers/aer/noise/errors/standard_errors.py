@@ -65,7 +65,7 @@ def kraus_error(noise_ops, standard_gates=False, canonical_kraus=False):
     return QuantumError(kraus)
 
 
-def mixed_unitary_error(noise_ops, standard_gates=True):
+def mixed_unitary_error(noise_ops, standard_gates=False):
     """
     Return a mixed unitary quantum error channel.
 
@@ -75,7 +75,7 @@ def mixed_unitary_error(noise_ops, standard_gates=True):
 
     Args:
         noise_ops (list[pair[matrix, double]]): unitary error matrices.
-        standard_gates (bool): Check if input matrices are standard gates.
+        standard_gates (bool): DEPRECATED, Check if input matrices are standard gates.
 
     Returns:
         QuantumError: The quantum error object.
@@ -83,11 +83,12 @@ def mixed_unitary_error(noise_ops, standard_gates=True):
     Raises:
         NoiseError: if error parameters are invalid.
     """
-    warnings.warn(
-        '"mixed_unitary_error()" has been deprecated as of qiskit-aer 0.8.0'
-        ' and will be removed no earlier than 3 months from that release date.'
-        ' Use QuantumError([(UnitaryGate(mat1), prob1), (UnitaryGate(mat2), prob2)]) instead.',
-        DeprecationWarning, stacklevel=2)
+    if standard_gates:
+        warnings.warn(
+            '"standard_gates" option has been deprecated as of qiskit-aer 0.8.0'
+            ' and will be removed no earlier than 3 months from that release date.'
+            ' Use directly init e.g. QuantumError([(IGate(), prob1), (ZGate(), prob2)]) instead.',
+            DeprecationWarning, stacklevel=2)
 
     # Error checking
     if not isinstance(noise_ops, (list, tuple, zip)):
@@ -103,7 +104,6 @@ def mixed_unitary_error(noise_ops, standard_gates=True):
     instructions = []
     instructions_probs = []
     num_qubits = qubits_from_mat(noise_ops[0][0])
-    qubits = list(range(num_qubits))
     for unitary, prob in noise_ops:
         # Check unitary
         if qubits_from_mat(unitary) != num_qubits:
@@ -113,12 +113,19 @@ def mixed_unitary_error(noise_ops, standard_gates=True):
         if is_identity_matrix(unitary):
             prob_identity += prob
         else:
-            instr = make_unitary_instruction(
-                unitary, qubits, standard_gates=standard_gates)
+            if standard_gates:  # TODO: to be removed after deprecation period
+                qubits = list(range(num_qubits))
+                instr = make_unitary_instruction(
+                    unitary, qubits, standard_gates=standard_gates)
+            else:
+                instr = UnitaryGate(unitary)
             instructions.append(instr)
             instructions_probs.append(prob)
     if prob_identity > 0:
-        instructions.append([{"name": "id", "qubits": [0]}])
+        if standard_gates:  # TODO: to be removed after deprecation period
+            instructions.append([{"name": "id", "qubits": [0]}])
+        else:
+            instructions.append(IGate())
         instructions_probs.append(prob_identity)
     return QuantumError(zip(instructions, instructions_probs))
 
@@ -133,11 +140,6 @@ def coherent_unitary_error(unitary):
     Returns:
         QuantumError: The quantum error object.
     """
-    warnings.warn(
-        '"coherent_unitary_error()" has been deprecated as of qiskit-aer 0.8.0'
-        ' and will be removed no earlier than 3 months from that release date.'
-        ' Use QuantumError(UnitaryGate(unitary)) instead.',
-        DeprecationWarning, stacklevel=2)
     return mixed_unitary_error([(unitary, 1)])
 
 

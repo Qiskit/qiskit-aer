@@ -85,7 +85,7 @@ class TestNoise(common.QiskitAerTestCase):
         unitary = np.diag([1, -1, 1, -1])
         error = coherent_unitary_error(unitary)
         ref = mixed_unitary_error([(unitary, 1)])
-        self.assertEqual(error.to_dict(), ref.to_dict())
+        self.assertEqual(error, ref)
 
     def test_pauli_error_raise_invalid(self):
         """Test exception for invalid Pauli string"""
