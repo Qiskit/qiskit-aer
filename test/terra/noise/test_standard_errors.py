@@ -156,9 +156,9 @@ class TestNoise(common.QiskitAerTestCase):
         probs = [0.5, 0.3, 0.2]
         error = pauli_error(zip(paulis, probs))
 
-        target_circs = [[{"name": "x", "qubits": [1]}],
-                        [{"name": "y", "qubits": [1]}],
-                        [{"name": "z", "qubits": [1]}]]
+        target_circs = [[{"name": "id", "qubits": [0]}, {"name": "x", "qubits": [1]}],
+                        [{"name": "id", "qubits": [0]}, {"name": "y", "qubits": [1]}],
+                        [{"name": "id", "qubits": [0]}, {"name": "z", "qubits": [1]}]]
         target_probs = probs.copy()
 
         for j in range(len(paulis)):
@@ -225,13 +225,13 @@ class TestNoise(common.QiskitAerTestCase):
         """Test 2-qubit depolarizing error as gate qobj"""
         p_depol = 0.3
         error = depolarizing_error(p_depol, 2, standard_gates=True)
-        target_circs = [[{"name": "id", "qubits": [0]}],
-                        [{"name": "x", "qubits": [0]}],
-                        [{"name": "y", "qubits": [0]}],
-                        [{"name": "z", "qubits": [0]}],
-                        [{"name": "x", "qubits": [1]}],
-                        [{"name": "y", "qubits": [1]}],
-                        [{"name": "z", "qubits": [1]}],
+        target_circs = [[{"name": "id", "qubits": [0]}, {"name": "id", "qubits": [1]}],
+                        [{"name": "x", "qubits": [0]}, {"name": "id", "qubits": [1]}],
+                        [{"name": "y", "qubits": [0]}, {"name": "id", "qubits": [1]}],
+                        [{"name": "z", "qubits": [0]}, {"name": "id", "qubits": [1]}],
+                        [{"name": "id", "qubits": [0]}, {"name": "x", "qubits": [1]}],
+                        [{"name": "id", "qubits": [0]}, {"name": "y", "qubits": [1]}],
+                        [{"name": "id", "qubits": [0]}, {"name": "z", "qubits": [1]}],
                         [{"name": "x", "qubits": [0]}, {"name": "x", "qubits": [1]}],
                         [{"name": "x", "qubits": [0]}, {"name": "y", "qubits": [1]}],
                         [{"name": "x", "qubits": [0]}, {"name": "z", "qubits": [1]}],
@@ -245,7 +245,7 @@ class TestNoise(common.QiskitAerTestCase):
             circ, p = error.error_term(j)
             circ = QuantumError._qc_to_json(circ)
             self.remove_if_found(circ, target_circs)
-            if circ == [{"name": "id", "qubits": [0]}]:
+            if circ == [{"name": "id", "qubits": [0]}, {"name": "id", "qubits": [1]}]:
                 self.assertAlmostEqual(p, 1 - p_depol + p_depol / 16,
                                        msg="Incorrect identity probability")
             else:
