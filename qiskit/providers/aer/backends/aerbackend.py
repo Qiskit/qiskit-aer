@@ -142,7 +142,6 @@ class AerBackend(Backend, ABC):
                           'removed in a future release.', DeprecationWarning,
                           stacklevel=3)
             qobj = circuits
-            print(qobj.config)
         else:
             options_dict = {}
             for key, value in self.options.__dict__.items():
@@ -333,7 +332,7 @@ class AerBackend(Backend, ABC):
         #       available options
         if value is not None:
             # Only add an option if its value is not None
-            self._options[key] = value
+            setattr(self._options, key, value)
         elif key in self._options:
             # If setting an existing option to None remove it from options dict
             self._options.pop(key)
