@@ -22,7 +22,6 @@ from numpy import inf
 from qiskit.providers.options import Options
 from qiskit.providers.models import BackendConfiguration, PulseDefaults
 from qiskit.utils import deprecate_arguments
-from qiskit.compiler import assemble
 
 from ..version import __version__
 from ..aererror import AerError
