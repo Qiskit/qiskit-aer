@@ -15,6 +15,7 @@ QasmSimulator Integration Tests for SaveMatrixProductState instruction
 
 import qiskit
 import numpy as np
+from numpy import array
 from qiskit import QuantumCircuit, assemble
 from qiskit.providers.aer import QasmSimulator
 from qiskit import execute
@@ -31,14 +32,15 @@ class QasmSaveMatrixProductStateTests:
         SUPPORTED_METHODS = ['matrix_product_state']
 
         # Target mps structure
-        q_vec = ([([[(1-0j), -0j]],
-           [[-0j, (1-0j)]]),
-          ([[(1-0j)], [-0j]],
-           [[-0j], [(1-0j)]]),
-          ([[(1+0j)]], [[0j]])])
-        lambda_vec = [[0.7071067811865475, 0.7071067811865475], [1.0]]
-        target= (q_vec, lambda_vec)
+        target_qreg = []
+        target_qreg.append((np.array([[1, 0]],dtype=complex), np.array([[0, 1]], dtype=complex)))
+        target_qreg.append((np.array([[1], [0]],dtype=complex), np.array([[0], [1]], dtype=complex)))
+        target_qreg.append((np.array([[1]], dtype=complex), np.array([[0]], dtype=complex)))
 
+        target_lambda_reg = []
+        target_lambda_reg.append(np.array([1/ np.math.sqrt(2)], dtype=float))
+        target_lambda_reg.append(np.array([1], dtype=float))
+                                 
         # Matrix product state test circuit
         circ = QuantumCircuit(3)
         circ.h(0)
@@ -61,4 +63,7 @@ class QasmSaveMatrixProductStateTests:
             data = result.data(0)
             self.assertIn(label, data)
             value = result.data(0)[label]
-            self.assertAlmostEqual(value, target)
+            for val, target in zip(value[0], target_qreg):
+                self.assertTrue(np.allclose(val, target))
+            for val, target in zip(value[1], target_lambda_reg):
+                self.assertTrue(np.allclose(val, target))
