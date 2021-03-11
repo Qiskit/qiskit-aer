@@ -361,6 +361,7 @@ class QasmSimulator(AerBackend):
             accept_distributed_results=None,
             blocking_qubits=None,
             memory=None,
+            noise_model=None,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,
@@ -451,8 +452,8 @@ class QasmSimulator(AerBackend):
                 # basis gates and noise model basis gates
                 basis_gates = set(self._configuration.basis_gates)
                 basis_gates = basis_gates.intersection(method_config.basis_gates)
-                if 'noise_model' in self.options:
-                    noise_gates = self.options['noise_model'].basis_gates
+                if 'noise_model' in fields:
+                    noise_gates = out_options['noise_model'].basis_gates
                     intersection = basis_gates.intersection(noise_gates)
                     self._check_basis_gates(basis_gates, noise_gates, intersection)
                     basis_gates = intersection
@@ -469,7 +470,7 @@ class QasmSimulator(AerBackend):
                 continue
             if value is not None:
                 out_options[key] = value
-        super().set_options(out_options)
+        super().set_options(**out_options)
 
     @staticmethod
     def _check_basis_gates(method_gates, noise_gates, intersection=None):
