@@ -87,7 +87,7 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     stream << "save_statevector_dict";
     break;
   case OpType::save_mps:
-    stream << "save_mps";
+    stream << "save_matrix_product_state";
     break;
   case OpType::save_densmat:
     stream << "save_density_matrix";

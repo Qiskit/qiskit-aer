@@ -561,6 +561,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
                                       op.name + "\'.");
       }
     }
+    //qreg_.print(std::cout);
   }
 }
 
@@ -586,8 +587,6 @@ void State::apply_save_mps(const Operations::Op &op,
                                qreg_.copy_to_mps_container(),
                                op.save_type);
   }
-  //BaseState::save_data_pershot(result, op.string_params[0],
-  //                           std::move(mps), op.save_type);
 }
 
 void State::apply_save_probs(const Operations::Op &op,
