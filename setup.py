@@ -15,43 +15,49 @@ import platform
 
 def strtobool(val):
     val_lower = val.lower()
-    if val_lower in ('y', 'yes', 't', 'true', 'on', '1'): return True
-    elif val_lower in ('n', 'no', 'f', 'false', 'off', '0'): return False
-    else: raise ValueError('Value: "{}" not recognizes as True or False'.format(val))
+    if val_lower in ('y', 'yes', 't', 'true', 'on', '1'):
+        return True
+    elif val_lower in ('n', 'no', 'f', 'false', 'off', '0'):
+        return False
+    else:
+        raise ValueError(f'Value: "{val}" not recognizes as True or False')
 
 
 PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
-_DISABLE_CONAN = strtobool(os.getenv("DISABLE_CONAN", "OFF").lower())
-_DISABLE_DEPENDENCY_INSTALL = strtobool(os.getenv("DISABLE_DEPENDENCY_INSTALL", "OFF").lower())
+_DISABLE_CONAN = strtobool(os.getenv("DISABLE_CONAN", "OFF"))
+_DISABLE_DEPENDENCY_INSTALL = strtobool(os.getenv("DISABLE_DEPENDENCY_INSTALL", "OFF"))
 
 
 
-def install_needed_req(to_import, to_install=None, min_version=None, max_version=None):
-    to_install = to_install if to_install else to_import
-    to_install_ver = to_install
-    to_install_ver = to_install_ver + '>=' + min_version if min_version else to_install_ver
-    to_install_ver = to_install_ver + '<' + max_version if max_version else to_install_ver
+def install_needed_req(import_name, package_name=None, min_version=None, max_version=None):
+    if package_name is None:
+        package_name = import_name
+    install_ver = package_name
+    if min_version:
+        install_ver += '>=' + min_version
+    if max_version:
+        install_ver += '<' + max_version
 
     try:
-        mod = importlib.import_module(to_import)
+        mod = importlib.import_module(import_name)
         mod_ver = parse_version(mod.__version__)
         if ((min_version and mod_ver < parse_version(min_version))
                 or (max_version and mod_ver >= parse_version(max_version))):
-            raise RuntimeError('{} {} is installed but required version is {}.'.
-                               format(to_install, mod_ver, to_install_ver))
+            raise RuntimeError(f'{package_name} {mod_ver} is installed '
+                               f'but required version is {install_ver}.')
 
     except ImportError as err:
         if _DISABLE_DEPENDENCY_INSTALL:
             raise ImportError(str(err) +
-                              "\n{} is a required dependency. Please provide it and repeat install"
-                              .format(to_install))
+                              f"\n{package_name} is a required dependency. "
+                              f"Please provide it and repeat install")
 
-        subprocess.call([sys.executable, '-m', 'pip', 'install', to_install_ver])
+        subprocess.call([sys.executable, '-m', 'pip', 'install', install_ver])
 
 if not _DISABLE_CONAN:
-    install_needed_req('conans', to_install='conan', min_version='1.31.2')
+    install_needed_req('conans', package_name='conan', min_version='1.31.2')
 
-install_needed_req('skbuild', to_install='scikit-build')
+install_needed_req('skbuild', package_name='scikit-build')
 install_needed_req('pybind11', min_version='2.6')
 
 from skbuild import setup
