@@ -24,7 +24,6 @@ from abc import ABC, abstractmethod
 from numpy import ndarray
 
 from qiskit.providers import BackendV1 as Backend
-from qiskit.providers import Options
 from qiskit.providers.models import BackendStatus
 from qiskit.result import Result
 from qiskit.utils import deprecate_arguments
@@ -148,7 +147,7 @@ class AerBackend(Backend, ABC):
             options_dict = {}
             for key, value in self.options.__dict__.items():
                 if value is not None:
-                    options_dict[key] == value
+                    options_dict[key] = value
             qobj = assemble(circuits, self, **options_dict)
         # DEPRECATED
         if backend_options is not None:

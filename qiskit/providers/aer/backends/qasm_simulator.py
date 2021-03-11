@@ -347,7 +347,7 @@ class QasmSimulator(AerBackend):
             method="automatic",
             precision="double",
             zero_threshold=1e-10,
-            validation_threshold=1e-8,
+            validation_threshold=None,
             max_parallel_threads=None,
             max_parallel_experiments=None,
             max_parallel_shots=None,
@@ -361,7 +361,6 @@ class QasmSimulator(AerBackend):
             accept_distributed_results=None,
             blocking_qubits=None,
             memory=None,
-            validation_threshold=None,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,
