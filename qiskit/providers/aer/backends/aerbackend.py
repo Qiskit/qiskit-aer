@@ -27,7 +27,7 @@ from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
 from qiskit.result import Result
 from qiskit.utils import deprecate_arguments
-from qiskit.qobj import QasmQobj
+from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.compiler import assemble
 
 from ..aerjob import AerJob
@@ -137,12 +137,12 @@ class AerBackend(Backend, ABC):
               and direct kwarg's should be used for options to pass them to
               ``run_options``.
         """
-        if isinstance(circuits, QasmQobj):
-            warnings.warn('Using a qobj for run is deprecated and will be '
+        if isinstance(circuits, (QasmQobj, PulseQobj)):
+            warnings.warn('Using a qobj for run() is deprecated and will be '
                           'removed in a future release.', DeprecationWarning,
                           stacklevel=3)
             qobj = circuits
-
+            print(qobj.config)
         else:
             options_dict = {}
             for key, value in self.options.__dict__.items():
@@ -162,7 +162,6 @@ class AerBackend(Backend, ABC):
         # Add backend options to the Job qobj
         qobj = self._format_qobj(
             qobj, backend_options=backend_options, **run_options)
-
         # Optional validation
         if validate:
             self._validate(qobj)
@@ -370,7 +369,7 @@ class AerBackend(Backend, ABC):
 
         # Add options
         for key, val in self.options.__dict__.items():
-            if val is not None:
+            if val is not None and not hasattr(config, key):
                 setattr(config, key, val)
 
         # DEPRECATED backend options

@@ -19,10 +19,10 @@ import logging
 from warnings import warn
 from numpy import inf
 
+from qiskit.providers.options import Options
 from qiskit.providers.models import BackendConfiguration, PulseDefaults
 from qiskit.utils import deprecate_arguments
 from qiskit.compiler import assemble
-from qiskit.qobj import PulseQobj
 
 from ..version import __version__
 from ..aererror import AerError
@@ -169,6 +169,15 @@ class PulseSimulator(AerBackend):
                     configuration, subsystem_list)
                 self._set_system_model(system_model)
 
+    @classmethod
+    def _default_options(cls):
+        return Options(
+            shots=1024,
+            meas_level=None,
+            meas_return=None,
+            qubit_lo_freq=None,
+            solver_options=None)
+
     # pylint: disable=arguments-differ, missing-param-doc
     @deprecate_arguments({'qobj': 'schedules'})
     def run(self,
@@ -201,13 +210,7 @@ class PulseSimulator(AerBackend):
               and direct kwarg's should be used for options to pass them to
               ``run_options``.
         """
-        if isinstance(schedules, PulseQobj):
-            warn('Using a qobj for run is deprecated and will be '
-                 'removed in a future release.', DeprecationWarning,
-                 stacklevel=2)
-            qobj = schedules
-        else:
-            qobj = assemble(schedules, self)
+        qobj = schedules
         if args:
             if isinstance(args[0], PulseSystemModel):
                 warn(
