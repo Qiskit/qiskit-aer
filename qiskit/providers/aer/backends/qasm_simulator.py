@@ -348,16 +348,20 @@ class QasmSimulator(AerBackend):
             precision="double",
             zero_threshold=1e-10,
             validation_threshold=1e-8,
-            max_parallel_threads=0,
-            max_parallel_experiments=1,
-            max_parallel_shots=0,
-#            max_memory_mb=0,
+            max_parallel_threads=None,
+            max_parallel_experiments=None,
+            max_parallel_shots=None,
+            max_memory_mb=None,
             optimize_ideal_threshold=5,
             optimize_noise_threshold=12,
             fusion_enable=True,
             fusion_verbose=False,
             fusion_max_qubit=5,
             fusion_threshold=14,
+            accept_distributed_results=None,
+            blocking_qubits=None,
+            memory=None,
+            validation_threshold=None,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,
@@ -464,7 +468,8 @@ class QasmSimulator(AerBackend):
                     key,
                     sorted(set(value).union(self.configuration().custom_instructions)))
                 continue
-            out_options[key] = value
+            if value is not None:
+                out_options[key] = value
         super().set_options(out_options)
 
     @staticmethod

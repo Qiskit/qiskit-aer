@@ -143,8 +143,12 @@ class AerBackend(Backend, ABC):
                           'removed in a future release.', DeprecationWarning,
                           stacklevel=3)
             qobj = circuits
+
         else:
-            options_dict = self.options.__dict__
+            options_dict = {}
+            for key, value in self.options.__dict__.items():
+                if value is not None:
+                    options_dict[key] == value
             qobj = assemble(circuits, self, **options_dict)
         # DEPRECATED
         if backend_options is not None:
@@ -204,7 +208,7 @@ class AerBackend(Backend, ABC):
 
     @classmethod
     def _default_options(cls):
-        return Options(shots=1024)
+        pass
 
     def clear_options(self):
         """Reset the simulator options to default values."""
@@ -367,7 +371,8 @@ class AerBackend(Backend, ABC):
 
         # Add options
         for key, val in self.options.__dict__.items():
-            setattr(config, key, val)
+            if val is not None:
+                setattr(config, key, val)
 
         # DEPRECATED backend options
         if backend_options is not None:
