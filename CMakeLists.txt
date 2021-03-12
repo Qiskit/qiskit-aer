@@ -237,7 +237,7 @@ endif()
 
 if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
 	if(APPLE OR UNIX)
-		set(SIMD_FLAGS_LIST "-mfma;-mavx2")
+		set(SIMD_FLAGS_LIST "-mfma;-mavx2;-mpopcnt")
 	elseif(MSVC)
 		set(SIMD_FLAGS_LIST "/arch:AVX2")
 	endif()

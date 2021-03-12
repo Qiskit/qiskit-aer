@@ -238,7 +238,11 @@ inline std::string int2hex(uint_t n) {return bin2hex(int2bin(n));}
 uint_t reg2int(const reg_t &reg, uint_t base);
 
 // Count number of 1's in bitstring representation of an integer
-uint_t popcount(const uint_t count_);
+uint_t popcount(uint_t count_);
+extern bool (*hamming_parity)(uint_t);
+const uint_t zer = 0U;
+const uint_t one = 1U;
+
 
 //==============================================================================
 // Implementations: Matrix functions
@@ -1126,7 +1130,66 @@ std::string int2string(uint_t n, uint_t base, uint_t minlen) {
   return padleft_inplace(tmp, '0', minlen);
 }
 
-uint_t popcount(const uint_t count_) {
+#ifdef _MSC_VER
+  #ifdef _WIN64
+    #define POPCNT __popcnt64
+  #else
+    #define POPCNT __popcnt
+  #endif
+  #define INTRINSIC_PARITY 1
+  #include <intrin.h>
+  inline bool _msc_parity(uint_t x)
+  {
+    return (POPCNT(x) & one);
+  }
+  bool (*hamming_parity) (uint_t) = &_msc_parity;
+  inline unsigned _msc_weight(uint_t x)
+  {
+    return (POPCNT(x));
+  }
+  uint_t popcount(uint_t count_) {return _msc_weight(count_);}
+#endif
+#ifdef __GNUC__
+  #define INTRINSIC_PARITY 1
+  inline bool _gcc_parity(uint_t x)
+  {
+    return (__builtin_popcountll(x) & one);
+  }
+  bool (*hamming_parity) (uint_t) = &_gcc_parity;
+  inline unsigned _gcc_weight(uint_t x)
+  {
+    return (__builtin_popcountll(x));
+  }
+  uint_t popcount(uint_t count_) {return _gcc_weight(count_);}
+#endif
+#ifdef _CLANG_
+  #if __has__builtin(__builtin_popcount)
+  #define INTRINSIC_PARITY 1
+    inline bool _clang_parity(uint_t x)
+    {
+      return (__builtin_popcountll(x) & one);
+    }
+    bool (*hamming_parity) (uint_t) = &_clang_parity;
+    inline unsigned _clang_weight(uint_t x)
+    {
+      return (__builtin_popcountll(x));
+    }
+    uint_t popcount(uint_t count_) {return _clang_weight(count_);}
+  #endif
+#endif
+#ifndef INTRINSIC_PARITY
+  // Implementation from http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetKernighan
+  bool _naive_parity(uint_t x)
+  {
+    uint_t c; // c accumulates the total bits set in x
+    for (c = 0; x; c++)
+    {
+      x &= (x - 1); // clear the least significant bit set
+    }
+    return (c&one);
+  }
+  unsigned _naive_weight(uint_t x)
+  {
   auto count = count_;
   count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
   count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
@@ -1135,7 +1198,11 @@ uint_t popcount(const uint_t count_) {
   count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
   count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
   return count;
-}
+  }
+
+  bool (*hamming_parity) (uint_t) = &_naive_parity;
+  uint_t popcount(uint_t count_) {return _naive_weight(count_);}
+#endif
 
 
 //------------------------------------------------------------------------------
