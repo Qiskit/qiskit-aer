@@ -42,6 +42,7 @@ const Operations::OpSet StateOpSet(
      OpType::diagonal_matrix, OpType::kraus,
      OpType::superop, OpType::save_expval,
      OpType::save_expval_var, OpType::save_densmat,
+     OpType::save_state,
      OpType::save_probs, OpType::save_probs_ket,
      OpType::save_amps_sq
      },
@@ -168,6 +169,11 @@ protected:
   //-----------------------------------------------------------------------
   // Save data instructions
   //-----------------------------------------------------------------------
+
+  // Save the current density matrix
+  void apply_save_state(const Operations::Op &op,
+                        ExperimentResult &result,
+                        bool last_op = false);
 
   // Save the current density matrix or reduced density matrix
   void apply_save_density_matrix(const Operations::Op &op,
@@ -615,6 +621,9 @@ void State<densmat_t>::apply_op(const int_t iChunk,const Operations::Op &op,
       case Operations::OpType::save_expval_var:
         BaseState::apply_save_expval(op, result);
         break;
+      case Operations::OpType::save_state:
+        apply_save_state(op, result, final_ops);
+        break;
       case Operations::OpType::save_densmat:
         apply_save_density_matrix(op, result, final_ops);
         break;
@@ -810,6 +819,30 @@ void State<densmat_t>::apply_save_density_matrix(const Operations::Op &op,
   BaseState::save_data_average(result, op.string_params[0],
                                reduced_density_matrix(op.qubits, last_op),
                                op.save_type);
+}
+
+template <class densmat_t>
+void State<densmat_t>::apply_save_state(const Operations::Op &op,
+                                        ExperimentResult &result,
+                                        bool last_op) 
+{
+  // Renamp single data type to average
+  Operations::Op op_cpy = op;
+  switch (op.save_type) {
+    case Operations::DataSubType::single:
+      op_cpy.save_type = Operations::DataSubType::average;
+      break;
+    case Operations::DataSubType::c_single:
+      op_cpy.save_type = Operations::DataSubType::c_average;
+      break;
+    default:
+      break;
+  }
+  // Default key
+  op_cpy.string_params[0] = (op.string_params[0] == "_method_")
+                              ? "density_matrix"
+                              : op.string_params[0];
+  apply_save_density_matrix(op_cpy, result, last_op);
 }
 
 //=========================================================================

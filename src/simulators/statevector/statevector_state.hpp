@@ -646,7 +646,9 @@ void State<statevec_t>::apply_save_statevector(const Operations::Op &op,
         op.name + " was not applied to all qubits."
         " Only the full statevector can be saved.");
   }
-  std::string key = (op.string_params[0] == "_method_") ? "statevector" : op.string_params[0];
+  std::string key = (op.string_params[0] == "_method_")
+                      ? "statevector"
+                      : op.string_params[0];
   if (last_op) {
     BaseState::save_data_pershot(result, key,
                                  BaseState::qreg_.move_to_vector(),

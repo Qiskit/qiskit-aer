@@ -575,15 +575,31 @@ void State<densmat_t>::apply_save_state(const Operations::Op &op,
         op.name + " was not applied to all qubits."
         " Only the full state can be saved.");
   }
-  std::string key = (op.string_params[0] == "_method_") ? "density_matrix" : op.string_params[0];
+  // Renamp single data type to average
+  Operations::DataSubType save_type;
+  switch (op.save_type) {
+    case Operations::DataSubType::single:
+      save_type = Operations::DataSubType::average;
+      break;
+    case Operations::DataSubType::c_single:
+      save_type = Operations::DataSubType::c_average;
+      break;
+    default:
+      save_type = op.save_type;
+  }
+
+  // Default key
+  std::string key = (op.string_params[0] == "_method_")
+                      ? "density_matrix"
+                      : op.string_params[0];
   if (last_op) {
-    BaseState::save_data_pershot(result, key,
+    BaseState::save_data_average(result, key,
                                  BaseState::qreg_.move_to_matrix(),
-                                 op.save_type);
+                                 save_type);
   } else {
-    BaseState::save_data_pershot(result, key,
+    BaseState::save_data_average(result, key,
                                  BaseState::qreg_.copy_to_matrix(),
-                                 op.save_type);
+                                 save_type);
   }
 }
 

@@ -48,7 +48,7 @@ const Operations::OpSet StateOpSet(
      OpType::save_expval_var, OpType::save_densmat,
      OpType::save_probs, OpType::save_probs_ket,
      OpType::save_amps, OpType::save_amps_sq,
-     OpType::save_statevec
+     OpType::save_statevec, OpType::save_state
      // OpType::save_statevec_ket  // TODO
      },
     // Gates
@@ -594,6 +594,7 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
       case Operations::OpType::save_densmat:
         apply_save_density_matrix(op, result);
         break;
+      case Operations::OpType::save_state:
       case Operations::OpType::save_statevec:
         apply_save_statevector(op, result, final_ops);
         break;
@@ -754,14 +755,13 @@ void State<statevec_t>::apply_save_statevector(const Operations::Op &op,
         op.name + " was not applied to all qubits."
         " Only the full statevector can be saved.");
   }
+  std::string key = (op.string_params[0] == "_method_")
+                      ? "statevector"
+                      : op.string_params[0];
   if (last_op) {
-    BaseState::save_data_pershot(result, op.string_params[0],
-                                 move_to_vector(),
-                                 op.save_type);
+    BaseState::save_data_pershot(result, key, move_to_vector(), op.save_type);
   } else {
-    BaseState::save_data_pershot(result, op.string_params[0],
-                                 copy_to_vector(),
-                                 op.save_type);
+    BaseState::save_data_pershot(result, key, copy_to_vector(), op.save_type);
   }
 }
 
