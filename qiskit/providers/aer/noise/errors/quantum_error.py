@@ -23,6 +23,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.channel import Kraus, SuperOp
+from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.mixins import TolerancesMixin
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 
@@ -190,35 +191,36 @@ class QuantumError(BaseOperator, TolerancesMixin):
     def _to_circuit(cls, op):
         if isinstance(op, QuantumCircuit):
             return op
-        elif isinstance(op, tuple):
+        if isinstance(op, tuple):
             inst, qubits = op
             circ = QuantumCircuit(max(qubits) + 1)
             circ.append(inst, qargs=qubits)
             return circ
-        elif isinstance(op, Instruction):
+        if isinstance(op, Instruction):
             if op.num_clbits > 0:
-                raise NoiseError("Unable to convert instruction with clbits: {}".format(
-                    op.__class__.__name__))
+                raise NoiseError("Unable to convert instruction with clbits: "
+                                 "{}".format(op.__class__.__name__))
             circ = QuantumCircuit(op.num_qubits)
             circ.append(op, qargs=list(range(op.num_qubits)))
             return circ
-        elif isinstance(op, BaseOperator):
-            # Try to convert an operator subclass into Instruction first
+        if isinstance(op, QuantumChannel):
+            if not op.is_cptp(atol=cls.atol):
+                raise NoiseError("Input quantum channel is not CPTP.")
+            try:
+                return cls._to_circuit(Kraus(op).to_instruction())
+            except QiskitError as err:
+                raise NoiseError("Fail to convert {} to Instruction.".format(
+                    op.__class__.__name__)) from err
+        if isinstance(op, BaseOperator):
             if hasattr(op, 'to_instruction'):
                 try:
                     return cls._to_circuit(op.to_instruction())
                 except QiskitError as err:
                     raise NoiseError("Fail to convert {} to Instruction.".format(
                         op.__class__.__name__)) from err
-            # Try to convert an operator subclass into Kraus
-            kraus_op = Kraus(op)
-            if isinstance(kraus_op, Kraus):
-                if kraus_op.is_cptp():
-                    return cls._to_circuit(kraus_op.to_instruction())
-                else:
-                    raise NoiseError("Input quantum channel is not CPTP.")
             else:
-                raise NoiseError("Fail to convert {} to Kraus.".format(op.__class__.__name__))
+                raise NoiseError("Unacceptable Operator, not implementing to_instruction: "
+                                 "{}".format(op.__class__.__name__))
         if isinstance(op, list):
             if all(isinstance(aop, tuple) for aop in op):
                 num_qubits = max([max(qubits) for _, qubits in op]) + 1
