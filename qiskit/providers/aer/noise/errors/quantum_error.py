@@ -107,7 +107,8 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 DeprecationWarning, stacklevel=2)
 
         # Convert list of arrarys to kraus instruction (for old API support) TODO: to be removed
-        if isinstance(noise_ops, (list, tuple)) and isinstance(noise_ops[0], np.ndarray):
+        if isinstance(noise_ops, (list, tuple)) and \
+                len(noise_ops) > 0 and isinstance(noise_ops[0], np.ndarray):
             warnings.warn(
                 'Constructing QuantumError with list of arrays representing a Kraus channel'
                 ' has been deprecated as of qiskit-aer 0.8.0 and will be removed no earlier than'
@@ -145,6 +146,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
         # Remove zero probability circuits
         noise_ops = [(op, prob) for op, prob in noise_ops if prob > 0]
+
+        if len(noise_ops) == 0:
+            raise NoiseError("Empty noise_ops is invalid")
 
         ops, probs = zip(*noise_ops)  # unzip
 

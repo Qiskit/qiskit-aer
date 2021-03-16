@@ -30,6 +30,14 @@ from test.terra import common
 class TestQuantumError(common.QiskitAerTestCase):
     """Testing QuantumError class"""
 
+    def test_empty(self):
+        """Test construction with empty noise_ops."""
+        with self.assertRaises(TypeError):
+            QuantumError()
+
+        with self.assertRaises(NoiseError):
+            QuantumError([])
+
     def test_init_with_circuits(self):
         """Test construction with mixture of quantum circuits."""
         qc = QuantumCircuit(2)
