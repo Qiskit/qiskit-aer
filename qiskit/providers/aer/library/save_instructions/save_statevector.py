@@ -14,7 +14,8 @@ Simulator instruction to save statevector.
 """
 
 from qiskit.circuit import QuantumCircuit
-from .save_data import SaveSingleData, default_qubits
+from .save_data import SaveSingleData
+from ..default_qubits import default_qubits
 
 
 class SaveStatevector(SaveSingleData):
@@ -23,7 +24,7 @@ class SaveStatevector(SaveSingleData):
                  label="statevector",
                  pershot=False,
                  conditional=False):
-        """Create new instruction to save the simualtor statevector.
+        """Create new instruction to save the simulator statevector.
 
         Args:
             num_qubits (int): the number of qubits

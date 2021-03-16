@@ -14,7 +14,8 @@ Simulator instruction to save measurement outcome probabilites.
 """
 
 from qiskit.circuit import QuantumCircuit
-from .save_data import SaveAverageData, default_qubits
+from .save_data import SaveAverageData
+from ..default_qubits import default_qubits
 
 
 class SaveProbabilities(SaveAverageData):
