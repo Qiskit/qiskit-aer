@@ -245,7 +245,8 @@ class QuantumError(BaseOperator, TolerancesMixin):
             warnings.warn(
                 '"number_of_qubits" in the constructor of QuantumError has been deprecated'
                 ' as of qiskit-aer 0.8.0 in favor of determining it automatically'
-                ' and will be removed no earlier than 3 months from that release date.',
+                ' and will be removed no earlier than 3 months from that release date.'
+                ' Specify number of qubits in the quantum circuit passed to the init if necessary.',
                 DeprecationWarning, stacklevel=2)
         self._circs = [self._enlarge_qreg(qc, num_qubits) for qc in circs]
 
