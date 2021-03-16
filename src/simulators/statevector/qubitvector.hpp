@@ -314,14 +314,12 @@ public:
 
   // Return the expectation value of an N-qubit Pauli matrix.
   // The Pauli is input as a length N string of I,X,Y,Z characters.
-  double expval_pauli(const reg_t &qubits, const std::string &pauli,
-                      const complex_t &coeff = 1) const;
+  double expval_pauli(const reg_t &qubits, const std::string &pauli,const complex_t initial_phase=1.0) const;
   //for multi-chunk inter chunk expectation
   double expval_pauli(const reg_t &qubits, const std::string &pauli,
                       const QubitVector<data_t>& pair_chunk, 
                       const uint_t z_count,
-                      const uint_t z_count_pair,
-                      const complex_t &coeff = 1) const;
+                      const uint_t z_count_pair,const complex_t initial_phase=1.0) const;
 
   //-----------------------------------------------------------------------
   // JSON configuration settings
@@ -1977,8 +1975,7 @@ void add_y_phase(uint_t num_y, std::complex<data_t>& coeff){
 
 template <typename data_t>
 double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
-                                         const std::string &pauli,
-                                         const complex_t &coeff) const {
+                                         const std::string &pauli,const complex_t initial_phase) const {
 
   uint_t x_mask, z_mask, num_y, x_max;
   std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
@@ -1987,7 +1984,7 @@ double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
   if (x_mask + z_mask == 0) {
     return norm();
   }
-  auto phase = std::complex<data_t>(coeff);
+  auto phase = std::complex<data_t>(initial_phase);
   add_y_phase(num_y, phase);
 
   // specialize x_max == 0
@@ -2029,14 +2026,13 @@ template <typename data_t>
 double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
                                          const std::string &pauli,
                                          const QubitVector<data_t>& pair_chunk,
-                                         const uint_t z_count,const uint_t z_count_pair,
-                                         const complex_t &coeff) const 
+                                         const uint_t z_count,const uint_t z_count_pair,const complex_t initial_phase) const 
 {
 
   uint_t x_mask, z_mask, num_y, x_max;
   std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
 
-  auto phase = std::complex<data_t>(coeff);
+  auto phase = std::complex<data_t>(initial_phase);
   add_y_phase(num_y, phase);
 
   std::complex<data_t>* pair_ptr = pair_chunk.data();

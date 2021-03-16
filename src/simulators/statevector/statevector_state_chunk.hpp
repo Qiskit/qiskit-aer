@@ -33,16 +33,24 @@
 namespace AER {
 namespace StatevectorChunk {
 
+using OpType = Operations::OpType;
+
+// OpSet of supported instructions
 const Operations::OpSet StateOpSet(
     // Op types
-    {Operations::OpType::gate, Operations::OpType::measure,
-     Operations::OpType::reset, Operations::OpType::initialize,
-     Operations::OpType::snapshot, Operations::OpType::barrier,
-     Operations::OpType::bfunc, Operations::OpType::roerror,
-     Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-     Operations::OpType::multiplexer, Operations::OpType::kraus,
-     Operations::OpType::sim_op, Operations::OpType::save_expval,
-     Operations::OpType::save_expval_var},
+    {OpType::gate, OpType::measure,
+     OpType::reset, OpType::initialize,
+     OpType::snapshot, OpType::barrier,
+     OpType::bfunc, OpType::roerror,
+     OpType::matrix, OpType::diagonal_matrix,
+     OpType::multiplexer, OpType::kraus,
+     OpType::sim_op, OpType::save_expval,
+     OpType::save_expval_var, OpType::save_densmat,
+     OpType::save_probs, OpType::save_probs_ket,
+     OpType::save_amps, OpType::save_amps_sq,
+     OpType::save_statevec, OpType::save_state
+     // OpType::save_statevec_ket  // TODO
+     },
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
      "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
@@ -52,19 +60,13 @@ const Operations::OpSet StateOpSet(
      "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
      "mcsx",   "delay", "pauli", "mcx_gray"},
     // Snapshots
-    {"memory", "register", "probabilities",
+    {"statevector", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli", "density_matrix",
+     "density_matrix_with_variance", "expectation_value_pauli_with_variance",
      "expectation_value_matrix_single_shot", "expectation_value_matrix",
      "expectation_value_matrix_with_variance",
      "expectation_value_pauli_single_shot"});
 
-// Allowed gates enum class
-enum class Gates {
-  id, h, s, sdg, t, tdg,
-  rxx, ryy, rzz, rzx,
-  mcx, mcy, mcz, mcr, mcrx, mcry,
-  mcrz, mcp, mcu2, mcu3, mcswap, mcsx, pauli
-};
 
 //=========================================================================
 // QubitVector State subclass
@@ -119,6 +121,7 @@ public:
   void initialize_omp();
 
   auto move_to_vector();
+  auto copy_to_vector();
 
 protected:
 
@@ -128,7 +131,7 @@ protected:
   virtual void apply_op(const int_t iChunk,const Operations::Op &op,
                          ExperimentResult &result,
                          RngEngine &rng,
-                         bool final_ops = false);
+                         bool final_ops = false) override;
 
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
@@ -184,6 +187,30 @@ protected:
   //-----------------------------------------------------------------------
   // Save data instructions
   //-----------------------------------------------------------------------
+
+  // Save the current state of the statevector simulator
+  // If `last_op` is True this will use move semantics to move the simulator
+  // state to the results, otherwise it will use copy semantics to leave
+  // the current simulator state unchanged.
+  void apply_save_statevector(const Operations::Op &op,
+                              ExperimentResult &result,
+                              bool last_op);
+
+  // Save the current state of the statevector simulator as a ket-form map.
+  void apply_save_statevector_ket(const Operations::Op &op,
+                                  ExperimentResult &result);
+
+  // Save the current density matrix or reduced density matrix
+  void apply_save_density_matrix(const Operations::Op &op,
+                                 ExperimentResult &result);
+
+  // Helper function for computing expectation value
+  void apply_save_probs(const Operations::Op &op,
+                        ExperimentResult &result);
+
+  // Helper function for saving amplitudes and amplitudes squared
+  void apply_save_amplitudes(const Operations::Op &op,
+                             ExperimentResult &result);
 
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
@@ -455,7 +482,7 @@ template <class statevec_t>
 auto State<statevec_t>::move_to_vector()
 {
   if(BaseState::num_global_chunks_ == 1){
-    return BaseState::qregs_[0].move_to_vector();
+      return BaseState::qregs_[0].move_to_vector();
   }
   else{
     int_t iChunk;
@@ -467,6 +494,35 @@ auto State<statevec_t>::move_to_vector()
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk)
     for(iChunk=1;iChunk<BaseState::num_local_chunks_;iChunk++){
       auto tmp = BaseState::qregs_[iChunk].move_to_vector();
+      uint_t j,offset = iChunk << BaseState::chunk_bits_;
+      for(j=0;j<tmp.size();j++){
+        state[offset + j] = tmp[j];
+      }
+    }
+
+#ifdef AER_MPI
+    BaseState::gather_state(state);
+#endif
+    return state;
+  }
+}
+
+template <class statevec_t>
+auto State<statevec_t>::copy_to_vector()
+{
+  if(BaseState::num_global_chunks_ == 1){
+    return BaseState::qregs_[0].copy_to_vector();
+  }
+  else{
+    int_t iChunk;
+    auto state = BaseState::qregs_[0].copy_to_vector();
+
+    //TO DO check memory availability
+    state.resize(BaseState::num_local_chunks_ << BaseState::chunk_bits_);
+
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk)
+    for(iChunk=1;iChunk<BaseState::num_local_chunks_;iChunk++){
+      auto tmp = BaseState::qregs_[iChunk].copy_to_vector();
       uint_t j,offset = iChunk << BaseState::chunk_bits_;
       for(j=0;j<tmp.size();j++){
         state[offset + j] = tmp[j];
@@ -535,6 +591,24 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
       case Operations::OpType::save_expval_var:
         BaseState::apply_save_expval(op, result);
         break;
+      case Operations::OpType::save_densmat:
+        apply_save_density_matrix(op, result);
+        break;
+      case Operations::OpType::save_state:
+      case Operations::OpType::save_statevec:
+        apply_save_statevector(op, result, final_ops);
+        break;
+      // case Operations::OpType::save_statevec_ket:
+      //   apply_save_statevector_ket(op, result);
+      //   break;
+      case Operations::OpType::save_probs:
+      case Operations::OpType::save_probs_ket:
+        apply_save_probs(op, result);
+        break;
+      case Operations::OpType::save_amps:
+      case Operations::OpType::save_amps_sq:
+          apply_save_amplitudes(op, result);
+          break;
       default:
         throw std::invalid_argument("QubitVector::State::invalid instruction \'" +
                                     op.name + "\'.");
@@ -545,6 +619,22 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
 //=========================================================================
 // Implementation: Save data
 //=========================================================================
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_probs(const Operations::Op &op,
+                                         ExperimentResult &result) {
+  // get probs as hexadecimal
+  auto probs = measure_probs(op.qubits);
+  if (op.type == Operations::OpType::save_probs_ket) {
+    // Convert to ket dict
+    BaseState::save_data_average(result, op.string_params[0],
+                                 Utils::vec2ket(probs, json_chop_threshold_, 16),
+                                 op.save_type);
+  } else {
+    BaseState::save_data_average(result, op.string_params[0],
+                                 std::move(probs), op.save_type);
+  }
+}
 
 template <class statevec_t>
 double State<statevec_t>::expval_pauli(const reg_t &qubits,
@@ -571,7 +661,7 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
   }
 
   if(qubits_out_chunk.size() > 0){  //there are bits out of chunk
-    std::complex<double> coeff = 1.0;
+    std::complex<double> phase = 1.0;
 
     std::reverse(pauli_out_chunk.begin(),pauli_out_chunk.end());
     std::reverse(pauli_in_chunk.begin(),pauli_in_chunk.end());
@@ -579,13 +669,13 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
     uint_t x_mask, z_mask, num_y, x_max;
     std::tie(x_mask, z_mask, num_y, x_max) = AER::QV::pauli_masks_and_phase(qubits_out_chunk, pauli_out_chunk);
 
-    AER::QV::add_y_phase(num_y,coeff);
+    AER::QV::add_y_phase(num_y,phase);
 
     if(x_mask != 0){    //pairing state is out of chunk
       bool on_same_process = true;
 #ifdef AER_MPI
       int proc_bits = 0;
-      uint_t procs = distributed_procs_;
+      uint_t procs = BaseState::distributed_procs_;
       while(procs > 1){
         if((procs & 1) != 0){
           proc_bits = -1;
@@ -618,12 +708,12 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
           z_count_pair = AER::Utils::popcount(pair_chunk & z_mask);
 
           if(iProc == BaseState::distributed_rank_){  //pair is on the same process
-            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[pair_chunk - BaseState::global_chunk_index_],z_count,z_count_pair,coeff);
+            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[pair_chunk - BaseState::global_chunk_index_],z_count,z_count_pair,phase);
           }
           else{
             BaseState::recv_chunk(iChunk-BaseState::global_chunk_index_,pair_chunk);
             //refer receive buffer to calculate expectation value
-            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[iChunk-BaseState::global_chunk_index_],z_count,z_count_pair,coeff);
+            expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits_in_chunk, pauli_in_chunk,BaseState::qregs_[iChunk-BaseState::global_chunk_index_],z_count,z_count_pair,phase);
           }
         }
         else if(iProc == BaseState::distributed_rank_){  //pair is on this process
@@ -638,7 +728,7 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
         double sign = 1.0;
         if (z_mask && (AER::Utils::popcount((i + BaseState::global_chunk_index_) & z_mask) & 1))
           sign = -1.0;
-        expval += sign * BaseState::qregs_[i].expval_pauli(qubits_in_chunk, pauli_in_chunk,coeff);
+        expval += sign * BaseState::qregs_[i].expval_pauli(qubits_in_chunk, pauli_in_chunk);
       }
     }
   }
@@ -653,6 +743,110 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
   BaseState::reduce_sum(expval);
 #endif
   return expval;
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_statevector(const Operations::Op &op,
+                                               ExperimentResult &result,
+                                               bool last_op) 
+{
+  if (op.qubits.size() != BaseState::num_qubits_) {
+    throw std::invalid_argument(
+        op.name + " was not applied to all qubits."
+        " Only the full statevector can be saved.");
+  }
+  std::string key = (op.string_params[0] == "_method_")
+                      ? "statevector"
+                      : op.string_params[0];
+  if (last_op) {
+    BaseState::save_data_pershot(result, key, move_to_vector(), op.save_type);
+  } else {
+    BaseState::save_data_pershot(result, key, copy_to_vector(), op.save_type);
+  }
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_statevector_ket(const Operations::Op &op,
+                                                   ExperimentResult &result) 
+{
+  if (op.qubits.size() != BaseState::num_qubits_) {
+    throw std::invalid_argument(
+        op.name + " was not applied to all qubits."
+        " Only the full statevector can be saved.");
+  }
+  // TODO: compute state ket
+  std::map<std::string, complex_t> state_ket;
+
+  BaseState::save_data_pershot(result, op.string_params[0],
+                               std::move(state_ket), op.save_type);
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_density_matrix(const Operations::Op &op,
+                                                  ExperimentResult &result) 
+{
+  cmatrix_t reduced_state;
+
+  // Check if tracing over all qubits
+  if (op.qubits.empty()) {
+    reduced_state = cmatrix_t(1, 1);
+
+    double sum = 0.0;
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) reduction(+:sum)
+    for(int_t i=0;i<BaseState::num_local_chunks_;i++){
+      sum += BaseState::qregs_[i].norm();
+    }
+#ifdef AER_MPI
+    BaseState::reduce_sum(sum);
+#endif
+    reduced_state[0] = sum;
+  } else {
+    reduced_state = density_matrix(op.qubits);
+  }
+
+  BaseState::save_data_average(result, op.string_params[0],
+                               std::move(reduced_state), op.save_type);
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_amplitudes(const Operations::Op &op,
+                                              ExperimentResult &result) 
+{
+  if (op.int_params.empty()) {
+    throw std::invalid_argument("Invalid save_amplitudes instructions (empty params).");
+  }
+  const int_t size = op.int_params.size();
+  if (op.type == Operations::OpType::save_amps) {
+    Vector<complex_t> amps(size, false);
+    for (int_t i = 0; i < size; ++i) {
+      uint_t iChunk = op.int_params[i] >> BaseState::chunk_bits_;
+      amps[i] = 0.0;
+      if(iChunk >= BaseState::global_chunk_index_ && iChunk < BaseState::global_chunk_index_ + BaseState::num_local_chunks_){
+        amps[i] = BaseState::qregs_[iChunk - BaseState::global_chunk_index_].get_state(op.int_params[i] - (iChunk << BaseState::chunk_bits_));
+      }
+#ifdef AER_MPI
+      complex_t amp = amps[i];
+      BaseState::reduce_sum(amp);
+      amps[i] = amp;
+#endif
+    }
+    BaseState::save_data_pershot(result, op.string_params[0],
+                                 std::move(amps), op.save_type);
+  }
+  else{
+    rvector_t amps_sq(size,0);
+    for (int_t i = 0; i < size; ++i) {
+      uint_t iChunk = op.int_params[i] >> BaseState::chunk_bits_;
+      if(iChunk >= BaseState::global_chunk_index_ && iChunk < BaseState::global_chunk_index_ + BaseState::num_local_chunks_){
+        amps_sq[i] = BaseState::qregs_[iChunk - BaseState::global_chunk_index_].probability(op.int_params[i] - (iChunk << BaseState::chunk_bits_));
+      }
+    }
+#ifdef AER_MPI
+    BaseState::reduce_sum(amps_sq);
+#endif
+    BaseState::save_data_average(result, op.string_params[0],
+                                 std::move(amps_sq), op.save_type);
+  }
 }
 
 //=========================================================================
@@ -926,7 +1120,7 @@ cmatrix_t State<statevec_t>::vec2density(const reg_t &qubits, const T &vec) {
 
   // Return full density matrix
   cmatrix_t densmat(DIM, DIM);
-  if ((N == BaseState::qregs_[0].num_qubits()) && (qubits == qubits_sorted)) {
+  if ((N == BaseState::num_qubits_) && (qubits == qubits_sorted)) {
     const int_t mask = QV::MASKS[N];
 #pragma omp parallel for if (2 * N > omp_qubit_threshold_ &&                   \
                              BaseState::threads_ > 1)                          \
@@ -937,7 +1131,7 @@ cmatrix_t State<statevec_t>::vec2density(const reg_t &qubits, const T &vec) {
       densmat(row, col) = complex_t(vec[row]) * complex_t(std::conj(vec[col]));
     }
   } else {
-    const size_t END = 1ULL << (BaseState::qregs_[0].num_qubits() - N);
+    const size_t END = 1ULL << (BaseState::num_qubits_ - N);
     // Initialize matrix values with first block
     {
       const auto inds = QV::indexes(qubits, qubits_sorted, 0);

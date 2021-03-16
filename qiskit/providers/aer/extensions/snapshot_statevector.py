@@ -13,7 +13,7 @@
 """
 Simulator command to snapshot internal simulator representation.
 """
-
+from warnings import warn
 from qiskit import QuantumCircuit
 from .snapshot import Snapshot
 
@@ -38,10 +38,20 @@ class SnapshotStatevector(Snapshot):
             The number of qubits parameter specifies the size of the
             instruction as a barrier and should be set to the number of
             qubits in the circuit.
+
+        .. note::
+
+            This instruction will be deprecated after the qiskit-aer 0.8 release.
+            It has been superseded by the
+            :class:`qiskit.providers.aer.library.SaveStatevector` instruction.
         """
+        warn('`The `SnapshotStatevector` instruction will be deprecated in the'
+             'future. It has been superseded by the `SaveStatevector`'
+             ' instructions.', PendingDeprecationWarning)
         snapshot_type = 'statevector'
         if dict_form:
             snapshot_type = 'statevector_ket'
+
         super().__init__(label, snapshot_type=snapshot_type, num_qubits=num_qubits)
 
 
@@ -64,7 +74,17 @@ def snapshot_statevector(self, label, dict_form=False):
         The number of qubits parameter specifies the size of the
         instruction as a barrier and should be set to the number of
         qubits in the circuit.
+
+    .. note::
+
+        This method will be deprecated after the qiskit-aer 0.8 release.
+        It has been superseded by the
+        :func:`qiskit.providers.aer.library.save_statevector` circuit
+        method.
     """
+    warn('`The `save_statevector` circuit method will be deprecated in the'
+         ' future. It has been superseded by the `save_statevector`'
+         ' circuit method.', PendingDeprecationWarning)
     # Statevector snapshot acts as a barrier across all qubits in the
     # circuit
     snapshot_register = Snapshot.define_snapshot_register(self)

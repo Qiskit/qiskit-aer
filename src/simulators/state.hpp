@@ -128,7 +128,7 @@ public:
                                     const = 0;
 
   //memory allocation (previously called before inisitalize_qreg)
-  virtual void allocate(uint_t num_qubits) {}
+  virtual void allocate(uint_t num_qubits,uint_t block_bits) {}
 
   // Return the expectation value of a N-qubit Pauli operator
   // If the simulator does not support Pauli expectation value this should
@@ -233,7 +233,7 @@ public:
   //-----------------------------------------------------------------------
   // Common instructions
   //-----------------------------------------------------------------------
-  
+ 
   // Apply a save expectation value instruction
   void apply_save_expval(const Operations::Op &op, ExperimentResult &result);
 

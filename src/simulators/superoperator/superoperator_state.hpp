@@ -33,7 +33,8 @@ const Operations::OpSet StateOpSet(
     {Operations::OpType::gate, Operations::OpType::reset,
      Operations::OpType::snapshot, Operations::OpType::barrier,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-     Operations::OpType::kraus, Operations::OpType::superop},
+     Operations::OpType::kraus, Operations::OpType::superop,
+     Operations::OpType::save_state},
     // Gates
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
@@ -152,6 +153,11 @@ protected:
   // Save data instructions
   //-----------------------------------------------------------------------
 
+  // Save the current superop matrix
+  void apply_save_state(const Operations::Op &op,
+                        ExperimentResult &result,
+                        bool last_op = false);
+
   // Helper function for computing expectation value
   virtual double expval_pauli(const reg_t &qubits,
                               const std::string& pauli) override;
@@ -226,7 +232,8 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
                               RngEngine &rng,
                               bool final_ops) {
   // Simple loop over vector of input operations
-  for (const auto &op: ops) {
+  for (size_t i = 0; i < ops.size(); ++i) {
+    const auto& op = ops[i];
     switch (op.type) {
       case Operations::OpType::barrier:
         break;
@@ -253,6 +260,9 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
         break;
       case Operations::OpType::snapshot:
         apply_snapshot(op, result);
+        break;
+      case Operations::OpType::save_state:
+        apply_save_state(op, result, final_ops && ops.size() == i + 1);
         break;
       default:
         throw std::invalid_argument(
@@ -486,6 +496,26 @@ void State<data_t>::apply_snapshot(const Operations::Op &op,
     throw std::invalid_argument(
         "QubitSuperoperator::State::invalid snapshot instruction \'" + op.name +
         "\'.");
+  }
+}
+
+template <class densmat_t>
+void State<densmat_t>::apply_save_state(const Operations::Op &op,
+                                        ExperimentResult &result,
+                                        bool last_op) {
+  if (op.qubits.size() != BaseState::qreg_.num_qubits()) {
+    throw std::invalid_argument(
+        op.name + " was not applied to all qubits."
+        " Only the full state can be saved.");
+  }
+  if (last_op) {
+    BaseState::save_data_average(result, op.string_params[0],
+                                 BaseState::qreg_.move_to_matrix(),
+                                 op.save_type);
+  } else {
+    BaseState::save_data_average(result, op.string_params[0],
+                                 BaseState::qreg_.copy_to_matrix(),
+                                 op.save_type);
   }
 }
 

@@ -41,7 +41,8 @@ const Operations::OpSet StateOpSet(
     // Op types
     {Operations::OpType::gate, Operations::OpType::barrier,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-     Operations::OpType::snapshot, Operations::OpType::save_unitary},
+     Operations::OpType::snapshot, Operations::OpType::save_unitary,
+     Operations::OpType::save_state},
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
      "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
@@ -104,7 +105,7 @@ public:
   // Config: {"omp_qubit_threshold": 7}
   virtual void set_config(const json_t &config) override;
 
-  virtual void allocate(uint_t num_qubits);
+  virtual void allocate(uint_t num_qubits,uint_t block_bits) override;
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -256,7 +257,7 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
 });
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::allocate(uint_t num_qubits)
+void State<unitary_matrix_t>::allocate(uint_t num_qubits,uint_t block_bits)
 {
   BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,1);
 }
@@ -280,6 +281,7 @@ void State<unitary_matrix_t>::apply_ops(
         if (BaseState::creg_.check_conditional(op))
           apply_gate(op);
         break;
+      case Operations::OpType::save_state:
       case Operations::OpType::save_unitary:
         apply_save_unitary(op, result, final_ops && ops.size() == i + 1);
         break;
@@ -536,12 +538,14 @@ void State<unitary_matrix_t>::apply_save_unitary(const Operations::Op &op,
         op.name + " was not applied to all qubits."
         " Only the full unitary can be saved.");
   }
+  std::string key = (op.string_params[0] == "_method_") ? "unitary" : op.string_params[0];
+
   if (last_op) {
-    BaseState::save_data_pershot(result, op.string_params[0],
+    BaseState::save_data_pershot(result, key,
                                  BaseState::qreg_.move_to_matrix(),
                                  op.save_type);
   } else {
-    BaseState::save_data_pershot(result, op.string_params[0],
+    BaseState::save_data_pershot(result, key,
                                  BaseState::qreg_.copy_to_matrix(),
                                  op.save_type);
   }
