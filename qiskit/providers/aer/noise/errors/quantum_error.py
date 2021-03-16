@@ -158,7 +158,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
         # Initialize internal variables with error checking
         total_probs = sum(probs)
-        if abs(total_probs - 1) > self.atol:
+        if not np.isclose(total_probs - 1, 0, atol=self.atol):
             raise NoiseError("Probabilities are not normalized: {} != 1".format(total_probs))
         # Rescale probabilities if their sum is ok to avoid accumulation of rounding errors
         self._probs = list(np.array(probs) / total_probs)
