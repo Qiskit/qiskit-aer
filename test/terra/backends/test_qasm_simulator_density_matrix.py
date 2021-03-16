@@ -41,6 +41,7 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmNoiseBasisGatesTests
 # Other tests
 from test.terra.backends.qasm_simulator.qasm_method import QasmMethodTests
 from test.terra.backends.qasm_simulator.qasm_fusion import QasmFusionTests
@@ -63,7 +64,7 @@ class DensityMatrixTests(
         QasmAlgorithmTests, QasmAlgorithmTestsWaltzBasis,
         QasmAlgorithmTestsMinimalBasis, QasmUnitaryGateTests, QasmDiagonalGateTests,
         QasmReadoutNoiseTests, QasmPauliNoiseTests, QasmResetNoiseTests,
-        QasmKrausNoiseTests, QasmSaveDataTests,
+        QasmKrausNoiseTests, QasmNoiseBasisGatesTests, QasmSaveDataTests,
         QasmSnapshotStatevectorTests,
         QasmSnapshotDensityMatrixTests, QasmSnapshotProbabilitiesTests,
         QasmSnapshotExpValPauliTests, QasmSnapshotExpValPauliNCTests,

@@ -43,6 +43,7 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmNoiseBasisGatesTests
 # Save data tests
 from test.terra.backends.qasm_simulator.qasm_save import QasmSaveDataTests
 # Snapshot tests
@@ -68,7 +69,7 @@ class StatevectorTests(
         QasmConditionalUnitaryTests, QasmConditionalKrausTests,
         QasmMultiplexerTests, QasmAlgorithmTests, QasmAlgorithmTestsWaltzBasis,
         QasmAlgorithmTestsMinimalBasis, QasmUnitaryGateTests, QasmDiagonalGateTests,
-        QasmReadoutNoiseTests, QasmPauliNoiseTests, QasmThreadManagementTests,
+        QasmReadoutNoiseTests, QasmPauliNoiseTests, QasmNoiseBasisGatesTests, QasmThreadManagementTests,
         QasmFusionTests, QasmDelayMeasureTests, QasmQubitsTruncateTests,
         QasmResetNoiseTests, QasmKrausNoiseTests, QasmBasicsTests,
         QasmSaveDataTests,

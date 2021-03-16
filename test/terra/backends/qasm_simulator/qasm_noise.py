@@ -20,6 +20,7 @@ from test.terra.reference import ref_kraus_noise
 
 from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer.noise import NoiseModel
 
 
 class QasmReadoutNoiseTests:
@@ -148,3 +149,23 @@ class QasmKrausNoiseTests:
                 **self.BACKEND_OPTS).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
+
+
+class QasmNoiseBasisGatesTests:
+    """Basis gates in noisy simulatios"""
+
+    SIMULATOR = QasmSimulator()
+    BACKEND_OPTS = {}
+
+    def test_noise_basis_gates(self):
+        """Test that the backend has correct basis gates when a noise model is set"""
+        config =self.SIMULATOR.configuration()
+        noise_gates = ['id', 'sx', 'x', 'cx']
+        noise_model = NoiseModel(basis_gates=noise_gates)
+        target_gates = sorted(set(config.basis_gates).intersection(noise_gates).union(
+            config.custom_instructions))
+
+        method = self.BACKEND_OPTS.get('method', 'automatic')
+        sim = QasmSimulator(method=method, noise_model=noise_model)
+        basis_gates = sim.configuration().basis_gates
+        self.assertEqual(basis_gates, target_gates)       

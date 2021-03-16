@@ -32,6 +32,7 @@ from test.terra.backends.qasm_simulator.qasm_algorithms import QasmAlgorithmTest
 from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmNoiseBasisGatesTests
 # Save data tests
 from test.terra.backends.qasm_simulator.qasm_save import QasmSaveDataTests
 # Snapshot tests
@@ -55,6 +56,7 @@ class TestQasmStabilizerSimulator(common.QiskitAerTestCase,
                                   QasmReadoutNoiseTests,
                                   QasmResetNoiseTests,
                                   QasmPauliNoiseTests,
+                                  QasmNoiseBasisGatesTests,
                                   QasmSaveDataTests,
                                   QasmSnapshotStatevectorTests,
                                   QasmSnapshotDensityMatrixTests,
