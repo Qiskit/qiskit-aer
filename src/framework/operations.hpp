@@ -41,7 +41,7 @@ enum class OpType {
   // Noise instructions
   kraus, superop, roerror, noise_switch,
   // Save instructions
-  save_expval, save_expval_var, save_statevec, save_statevec_ket,
+  save_state, save_expval, save_expval_var, save_statevec, save_statevec_ket,
   save_densmat, save_probs, save_probs_ket, save_amps, save_amps_sq,
     save_stabilizer, save_unitary, save_mps
 };
@@ -51,7 +51,7 @@ enum class DataSubType {
 };
 
 static const std::unordered_set<OpType> SAVE_TYPES = {
-  OpType::save_expval, OpType::save_expval_var,
+  OpType::save_state, OpType::save_expval, OpType::save_expval_var,
   OpType::save_statevec, OpType::save_statevec_ket,
   OpType::save_densmat, OpType::save_probs, OpType::save_probs_ket,
   OpType::save_amps, OpType::save_amps_sq, OpType::save_stabilizer,
@@ -74,6 +74,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::barrier:
     stream << "barrier";
+    break;
+  case OpType::save_state:
+    stream << "save_state";
     break;
   case OpType::save_expval:
     stream << "save_expval";
@@ -518,6 +521,8 @@ Op json_to_op(const json_t &js) {
   if (name == "superop")
     return json_to_op_superop(js);
   // Save
+  if (name == "save_state")
+    return json_to_op_save_default(js, OpType::save_state);
   if (name == "save_expval")
     return json_to_op_save_expval(js, false);
   if (name == "save_expval_var")

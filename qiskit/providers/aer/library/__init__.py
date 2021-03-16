@@ -33,6 +33,7 @@ Instruction Classes
 .. autosummary::
     :toctree: ../stubs/
 
+    SaveState
     SaveExpectationValue
     SaveExpectationValueVariance
     SaveProbabilities
@@ -54,6 +55,7 @@ QuantumCircuit Methods
 .. autosummary::
     :toctree: ../stubs/
 
+    save_state
     save_expectation_value
     save_expectation_value_variance
     save_probabilities
@@ -97,12 +99,14 @@ QuantumCircuit Methods
     state.
 """
 
-__all__ = ['SaveExpectationValue', 'SaveExpectationValueVariance',
+__all__ = ['SaveState',
+           'SaveExpectationValue', 'SaveExpectationValueVariance',
            'SaveProbabilities', 'SaveProbabilitiesDict',
            'SaveStatevector', 'SaveStatevectorDict', 'SaveDensityMatrix',
            'SaveAmplitudes', 'SaveAmplitudesSquared', 'SaveUnitary',
            'SaveStabilizer', 'SaveMatrixProductState']
 
+from .save_state import SaveState, save_state
 from .save_expectation_value import (
     SaveExpectationValue, save_expectation_value,
     SaveExpectationValueVariance, save_expectation_value_variance)
@@ -113,6 +117,6 @@ from .save_statevector import (SaveStatevector, save_statevector,
 from .save_density_matrix import SaveDensityMatrix, save_density_matrix
 from .save_amplitudes import (SaveAmplitudes, save_amplitudes,
                               SaveAmplitudesSquared, save_amplitudes_squared)
-from .save_stabilizer import (SaveStabilizer, save_stabilizer)
-from .save_unitary import (SaveUnitary, save_unitary)
-from .save_matrix_product_state import (SaveMatrixProductState, save_matrix_product_state)
+from .save_stabilizer import SaveStabilizer, save_stabilizer
+from .save_unitary import SaveUnitary, save_unitary
+from .save_matrix_product_state import SaveMatrixProductState, save_matrix_product_state

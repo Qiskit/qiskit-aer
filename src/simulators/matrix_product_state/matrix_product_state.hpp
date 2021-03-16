@@ -545,6 +545,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         case OpType::save_statevec:
           apply_save_statevector(op, result);
           break;
+        case OpType::save_state:
         case OpType::save_mps:
           apply_save_mps(op, result, final_ops && ops.size() == i + 1);
           break;

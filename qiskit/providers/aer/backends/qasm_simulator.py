@@ -295,7 +295,7 @@ class QasmSimulator(AerBackend):
             'initialize', 'delay', 'pauli', 'mcx_gray',
             # Custom instructions
             'kraus', 'roerror', 'snapshot', 'save_expval', 'save_expval_var',
-            'save_probabilities', 'save_probabilities_dict',
+            'save_probabilities', 'save_probabilities_dict', 'save_state',
             'save_density_matrix', 'save_statevector',
             'save_amplitudes', 'save_amplitudes_sq', 'save_stabilizer',
             'save_matrix_product_state'
@@ -303,7 +303,7 @@ class QasmSimulator(AerBackend):
         'custom_instructions': sorted([
             'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
-            'save_density_matrix', 'save_statevector',
+            'save_state', 'save_density_matrix', 'save_statevector',
             'save_amplitudes', 'save_amplitudes_sq', 'save_stabilizer',
             'save_matrix_product_state']),
         'gates': []
@@ -483,7 +483,7 @@ class QasmSimulator(AerBackend):
             config.custom_instructions = sorted([
                 'roerror', 'snapshot', 'kraus', 'superop', 'save_expval', 'save_expval_var',
                 'save_probabilities', 'save_probabilities_dict', 'save_density_matrix',
-                'save_amplitudes_sq'])
+                'save_amplitudes_sq', 'save_state'])
             config.basis_gates = sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
                 'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
@@ -513,7 +513,7 @@ class QasmSimulator(AerBackend):
             config.custom_instructions = sorted([
                 'roerror', 'snapshot', 'save_expval', 'save_expval_var',
                 'save_probabilities', 'save_probabilities_dict',
-                'save_amplitudes_sq', 'save_stabilizer'])
+                'save_amplitudes_sq', 'save_stabilizer', 'save_state'])
             config.basis_gates = sorted([
                 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'cx', 'cy', 'cz',
                 'swap', 'delay',
