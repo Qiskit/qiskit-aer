@@ -233,7 +233,7 @@ public:
   //-----------------------------------------------------------------------
   // Common instructions
   //-----------------------------------------------------------------------
-  
+ 
   // Apply a save expectation value instruction
   void apply_save_expval(const Operations::Op &op, ExperimentResult &result);
 
