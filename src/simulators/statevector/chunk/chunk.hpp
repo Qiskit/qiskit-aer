@@ -51,6 +51,8 @@ public:
   }
   ~Chunk()
   {
+    if(cache_)
+      cache_.reset();
   }
 
   void set_device(void) const

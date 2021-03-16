@@ -65,7 +65,7 @@ public:
   }
 
   //setting blocking parameters automatically
-  void set_blocking(int bits, size_t min_memory, uint_t n_place, size_t complex_size = 16, bool is_matrix = false);
+  void set_blocking(int bits, size_t min_memory, uint_t n_place, const size_t complex_size, bool is_matrix = false);
 
 protected:
   mutable int block_bits_;    //qubits less than this will be blocked
