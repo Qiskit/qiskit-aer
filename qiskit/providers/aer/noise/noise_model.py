@@ -412,11 +412,7 @@ class NoiseModel:
             'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
             'mcphase', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
             'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-            'initialize', 'delay', 'pauli', 'mcx_gray',
-            # Custom instructions
-            'kraus', 'roerror', 'snapshot', 'save_expval', 'save_expval_var',
-            'save_probabilities', 'save_probabilities_dict',
-            'save_density_matrix', 'save_statevector'
+            'delay', 'pauli', 'mcx_gray'
         }
         for name, _ in self._instruction_names_labels(instructions):
             # If the instruction is in the default basis gates for the
