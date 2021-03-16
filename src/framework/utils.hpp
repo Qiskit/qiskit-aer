@@ -22,6 +22,10 @@
 
 #include "framework/types.hpp"
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
 namespace AER {
 namespace Utils {
 
@@ -1137,7 +1141,6 @@ std::string int2string(uint_t n, uint_t base, uint_t minlen) {
     #define POPCNT __popcnt
   #endif
   #define INTRINSIC_PARITY 1
-  #include <intrin.h>
   inline bool _msc_parity(uint_t x)
   {
     return (POPCNT(x) & one);
