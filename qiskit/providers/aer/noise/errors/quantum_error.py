@@ -12,7 +12,6 @@
 """
 Quantum error class for Qiskit Aer noise model
 """
-# pylint: disable=import-outside-toplevel
 import copy
 import warnings
 from typing import Iterable, Union, Tuple, List
@@ -32,12 +31,11 @@ from .errorutils import standard_gate_unitary
 from .errorutils import standard_gates_instructions
 from ..noiseerror import NoiseError
 
-# Wait for EOL of Python 3.6
-# QuantumNoiseType = type(Union[BaseOperator,
-#                               QuantumCircuit,
-#                               List[Tuple[Instruction, List[int]]],
-#                               Tuple[Instruction, List[int]],
-#                               Instruction])
+InstructionLike = Union[QuantumCircuit,
+                        BaseOperator,
+                        List[Tuple[Instruction, List[int]]],
+                        Tuple[Instruction, List[int]],
+                        Instruction]
 
 
 class QuantumError(BaseOperator, TolerancesMixin):
@@ -51,17 +49,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
     """
 
     def __init__(self,
-                 noise_ops: Union[Union[BaseOperator,
-                                        QuantumCircuit,
-                                        List[Tuple[Instruction, List[int]]],
-                                        Tuple[Instruction, List[int]],
-                                        Instruction],
-                                  Iterable[Tuple[Union[BaseOperator,
-                                                       QuantumCircuit,
-                                                       List[Tuple[Instruction, List[int]]],
-                                                       Tuple[Instruction, List[int]],
-                                                       Instruction],
-                                                 float]]],
+                 noise_ops: Union[InstructionLike, Iterable[Tuple[InstructionLike, float]]],
                  number_of_qubits=None,
                  standard_gates=False,
                  atol=1e-8):
@@ -70,7 +58,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
         Noise ops may either be specified as a ``quantum channel``
         for a general CPTP map, or as a list of ``(circuit, p)`` pairs
-        where ``circuit`` is a circuit (or instruction) for the noise, and
+        where ``circuit`` is a ciruict (or instruction-like object) for the noise, and
         ``p`` is the probability of the error circuit. Any type of input
         will be converted to the probabilistic mixture of circuit format.
 
@@ -118,7 +106,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 DeprecationWarning, stacklevel=2)
 
         # Convert list of arrarys to kraus instruction (for old API support) TODO: to be removed
-        if isinstance(noise_ops, (List, Tuple)) and isinstance(noise_ops[0], np.ndarray):
+        if isinstance(noise_ops, (list, tuple)) and isinstance(noise_ops[0], np.ndarray):
             warnings.warn(
                 'Constructing QuantumError with list of arrays representing a Kraus channel'
                 ' has been deprecated as of qiskit-aer 0.8.0 and will be removed no earlier than'
@@ -141,7 +129,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
         # Single circuit case
         if not isinstance(noise_ops, Iterable) or \
-                (isinstance(noise_ops, Tuple) and isinstance(noise_ops[0], Instruction)):
+                (isinstance(noise_ops, tuple) and isinstance(noise_ops[0], Instruction)):
             noise_ops = [(noise_ops, 1.0)]
 
         # Input checks
@@ -179,7 +167,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
         def to_circuit(op):
             if isinstance(op, QuantumCircuit):
                 return op
-            elif isinstance(op, Tuple):
+            elif isinstance(op, tuple):
                 inst, qubits = op
                 circ = QuantumCircuit(max(qubits) + 1)
                 circ.append(inst, qargs=qubits)
@@ -208,7 +196,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                         raise NoiseError("Input quantum channel is not CPTP.")
                 else:
                     raise NoiseError("Fail to convert {} to Kraus.".format(op.__class__.__name__))
-            elif isinstance(op, List):
+            if isinstance(op, list):
                 if all(isinstance(aop, tuple) for aop in op):
                     num_qubits = max([max(qubits) for _, qubits in op]) + 1
                     circ = QuantumCircuit(num_qubits)
@@ -227,6 +215,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                     circ = QuantumCircuit(num_qubits)
                     for dic in op:
                         if dic['name'] == 'reset':
+                            # pylint: disable=import-outside-toplevel
                             from qiskit.circuit import Reset
                             circ.append(Reset(), qargs=dic['qubits'])
                         elif dic['name'] == 'kraus':
