@@ -21,7 +21,6 @@
 #include <vector>
 
 #include "framework/circuit.hpp"
-#include "json_parser.hpp"
 
 namespace AER {
 
