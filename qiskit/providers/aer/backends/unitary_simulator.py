@@ -133,7 +133,7 @@ class UnitarySimulator(AerBackend):
             'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
             'mcp', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
             'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
-            'save_unitary'
+            'save_unitary', 'save_state'
         ],
         'gates': []
     }

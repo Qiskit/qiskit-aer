@@ -95,3 +95,13 @@ features:
     This instruction can also be appended to a quantum circuit by using the
     :class:`~qiskit.providers.aer.library.save_unitary`` circuit
     methods which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds a :class:`qiskit.providers.aer.library.SaveState`
+    circuit instruction for saving the state of the
+    :class:`~qiskit.providers.aer.QasmSimulator`. The format of the saved
+    state depends on the simulation method
+    (eg. statevector, density matrix, etc).
+
+    This instruction can also be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_state`` circuit
+    methods which is added to ``QuantumCircuit`` when importing Aer.
