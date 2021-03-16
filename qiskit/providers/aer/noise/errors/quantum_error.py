@@ -163,81 +163,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
         self._probs = list(np.array(probs) / total_probs)
 
         # Convert instructions to circuits
-        # pylint: disable=too-many-return-statements
-        def to_circuit(op):
-            if isinstance(op, QuantumCircuit):
-                return op
-            elif isinstance(op, tuple):
-                inst, qubits = op
-                circ = QuantumCircuit(max(qubits) + 1)
-                circ.append(inst, qargs=qubits)
-                return circ
-            elif isinstance(op, Instruction):
-                if op.num_clbits > 0:
-                    raise NoiseError("Unable to convert instruction with clbits: {}".format(
-                        op.__class__.__name__))
-                circ = QuantumCircuit(op.num_qubits)
-                circ.append(op, qargs=list(range(op.num_qubits)))
-                return circ
-            elif isinstance(op, BaseOperator):
-                # Try to convert an operator subclass into Instruction first
-                if hasattr(op, 'to_instruction'):
-                    try:
-                        return to_circuit(op.to_instruction())
-                    except QiskitError as err:
-                        raise NoiseError("Fail to convert {} to Instruction.".format(
-                            op.__class__.__name__)) from err
-                # Try to convert an operator subclass into Kraus
-                kraus_op = Kraus(op)
-                if isinstance(kraus_op, Kraus):
-                    if kraus_op.is_cptp():
-                        return to_circuit(kraus_op.to_instruction())
-                    else:
-                        raise NoiseError("Input quantum channel is not CPTP.")
-                else:
-                    raise NoiseError("Fail to convert {} to Kraus.".format(op.__class__.__name__))
-            if isinstance(op, list):
-                if all(isinstance(aop, tuple) for aop in op):
-                    num_qubits = max([max(qubits) for _, qubits in op]) + 1
-                    circ = QuantumCircuit(num_qubits)
-                    for inst, qubits in op:
-                        circ.append(inst, qargs=qubits)
-                    return circ
-                # Support for old-style json-like input TODO: to be removed
-                elif all(isinstance(aop, dict) for aop in op):
-                    warnings.warn(
-                        'Constructing QuantumError with list of dict representing a mixed channel'
-                        ' has been deprecated as of qiskit-aer 0.8.0 and will be removed'
-                        ' no earlier than 3 months from that release date.',
-                        DeprecationWarning, stacklevel=3)
-                    # Convert json-like to non-kraus Instruction
-                    num_qubits = max([max(dic['qubits']) for dic in op]) + 1
-                    circ = QuantumCircuit(num_qubits)
-                    for dic in op:
-                        if dic['name'] == 'reset':
-                            # pylint: disable=import-outside-toplevel
-                            from qiskit.circuit import Reset
-                            circ.append(Reset(), qargs=dic['qubits'])
-                        elif dic['name'] == 'kraus':
-                            circ.append(Instruction(name='kraus',
-                                                    num_qubits=len(dic['qubits']),
-                                                    num_clbits=0,
-                                                    params=dic['params']),
-                                        qargs=dic['qubits'])
-                        elif dic['name'] == 'unitary':
-                            circ.append(UnitaryGate(data=dic['params'][0]),
-                                        qargs=dic['qubits'])
-                        else:
-                            circ.append(UnitaryGate(label=dic['name'],
-                                                    data=standard_gate_unitary(dic['name'])),
-                                        qargs=dic['qubits'])
-                    return circ
-                else:
-                    raise NoiseError("Invalid type of op list: {}".format(op))
-
-            raise NoiseError("Invalid noise op type {}: {}".format(op.__class__.__name__, op))
-
-        circs = [to_circuit(op) for op in ops]
+        circs = [self._to_circuit(op) for op in ops]
 
         num_qubits = max([qc.num_qubits for qc in circs])
         if number_of_qubits is not None:
@@ -258,6 +184,81 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 raise NoiseError("Number of qubits used in noise ops must be the same")
 
         super().__init__(num_qubits=num_qubits)
+
+    # pylint: disable=too-many-return-statements
+    @classmethod
+    def _to_circuit(cls, op):
+        if isinstance(op, QuantumCircuit):
+            return op
+        elif isinstance(op, tuple):
+            inst, qubits = op
+            circ = QuantumCircuit(max(qubits) + 1)
+            circ.append(inst, qargs=qubits)
+            return circ
+        elif isinstance(op, Instruction):
+            if op.num_clbits > 0:
+                raise NoiseError("Unable to convert instruction with clbits: {}".format(
+                    op.__class__.__name__))
+            circ = QuantumCircuit(op.num_qubits)
+            circ.append(op, qargs=list(range(op.num_qubits)))
+            return circ
+        elif isinstance(op, BaseOperator):
+            # Try to convert an operator subclass into Instruction first
+            if hasattr(op, 'to_instruction'):
+                try:
+                    return cls._to_circuit(op.to_instruction())
+                except QiskitError as err:
+                    raise NoiseError("Fail to convert {} to Instruction.".format(
+                        op.__class__.__name__)) from err
+            # Try to convert an operator subclass into Kraus
+            kraus_op = Kraus(op)
+            if isinstance(kraus_op, Kraus):
+                if kraus_op.is_cptp():
+                    return cls._to_circuit(kraus_op.to_instruction())
+                else:
+                    raise NoiseError("Input quantum channel is not CPTP.")
+            else:
+                raise NoiseError("Fail to convert {} to Kraus.".format(op.__class__.__name__))
+        if isinstance(op, list):
+            if all(isinstance(aop, tuple) for aop in op):
+                num_qubits = max([max(qubits) for _, qubits in op]) + 1
+                circ = QuantumCircuit(num_qubits)
+                for inst, qubits in op:
+                    circ.append(inst, qargs=qubits)
+                return circ
+            # Support for old-style json-like input TODO: to be removed
+            elif all(isinstance(aop, dict) for aop in op):
+                warnings.warn(
+                    'Constructing QuantumError with list of dict representing a mixed channel'
+                    ' has been deprecated as of qiskit-aer 0.8.0 and will be removed'
+                    ' no earlier than 3 months from that release date.',
+                    DeprecationWarning, stacklevel=3)
+                # Convert json-like to non-kraus Instruction
+                num_qubits = max([max(dic['qubits']) for dic in op]) + 1
+                circ = QuantumCircuit(num_qubits)
+                for dic in op:
+                    if dic['name'] == 'reset':
+                        # pylint: disable=import-outside-toplevel
+                        from qiskit.circuit import Reset
+                        circ.append(Reset(), qargs=dic['qubits'])
+                    elif dic['name'] == 'kraus':
+                        circ.append(Instruction(name='kraus',
+                                                num_qubits=len(dic['qubits']),
+                                                num_clbits=0,
+                                                params=dic['params']),
+                                    qargs=dic['qubits'])
+                    elif dic['name'] == 'unitary':
+                        circ.append(UnitaryGate(data=dic['params'][0]),
+                                    qargs=dic['qubits'])
+                    else:
+                        circ.append(UnitaryGate(label=dic['name'],
+                                                data=standard_gate_unitary(dic['name'])),
+                                    qargs=dic['qubits'])
+                return circ
+            else:
+                raise NoiseError("Invalid type of op list: {}".format(op))
+
+        raise NoiseError("Invalid noise op type {}: {}".format(op.__class__.__name__, op))
 
     def __repr__(self):
         """Display QuantumError."""
