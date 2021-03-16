@@ -16,10 +16,10 @@ QuantumError class tests
 import unittest
 
 import numpy as np
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Reset, Measure
 from qiskit.circuit.library.standard_gates import *
 from qiskit.extensions import UnitaryGate
-from qiskit.quantum_info.operators import SuperOp, Kraus
+from qiskit.quantum_info.operators import SuperOp, Kraus, Pauli
 
 from qiskit.providers.aer.noise import QuantumError
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
@@ -30,13 +30,67 @@ from test.terra import common
 class TestQuantumError(common.QiskitAerTestCase):
     """Testing QuantumError class"""
 
+    def test_init_with_circuits(self):
+        """Test construction with mixture of quantum circuits."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        self.assertEqual(QuantumError(qc).size, 1)
+        self.assertEqual(QuantumError([(qc, 0.7), (qc, 0.3)]).size, 2)
+
+    def test_init_with_operators(self):
+        """Test construction with mixture of operators."""
+        kraus = Kraus([np.sqrt(0.7) * np.eye(2),
+                       np.sqrt(0.3) * np.diag([1, -1])])
+        self.assertEqual(QuantumError(kraus).size, 1)
+        self.assertEqual(QuantumError([(kraus, 0.7), (kraus, 0.3)]).size, 2)
+
+        self.assertEqual(QuantumError(Pauli("X")).probabilities, [1.0])
+        self.assertEqual(QuantumError([(Pauli("I"), 0.7), (Pauli("Z"), 0.3)]).size, 2)
+
+        self.assertEqual(QuantumError([(Pauli("I"), 0.7), (kraus, 0.3)]).size, 2)
+
+    def test_init_with_instructions(self):
+        """Test construction with mixture of instructions."""
+        self.assertEqual(QuantumError(Reset()).size, 1)
+        self.assertEqual(QuantumError([(IGate(), 0.7), (Reset(), 0.3)]).size, 2)
+        mixed_insts = QuantumError([((IGate(), [1]), 0.4),
+                                   (ZGate(), 0.3),
+                                   ([(Reset(), [0])], 0.2),
+                                   ([(Reset(), [0]), (XGate(), [0])], 0.1)])
+        self.assertEqual(mixed_insts.size, 4)
+
+        self.assertEqual(QuantumError(XGate()).size, 1)
+        self.assertEqual(QuantumError([(IGate(), 0.7), (ZGate(), 0.3)]).size, 2)
+        mixed_gates = QuantumError([((IGate(), [0]), 0.6),
+                                    ((XGate(), [1]), 0.4)])
+        self.assertEqual(mixed_gates.size, 2)
+
+        mixed_ops = QuantumError([(IGate(), 0.7),          # Gate
+                                  (Pauli("Z"), 0.3)])      # Operator
+        self.assertEqual(mixed_ops.size, 2)
+        mixed_ops = QuantumError([(IGate(), 0.7),          # Instruction
+                                  ((Reset(), [1]), 0.3)])  # Tuple[Instruction, List[int]
+        self.assertEqual(mixed_ops.size, 2)
+
+    def test_raise_if_invalid_op_type_for_init(self):
+        """Test exception is raised when input with invalid type are supplied."""
+        with self.assertRaises(NoiseError):
+            QuantumError(Measure())  # instruction with clbits
+
+        with self.assertRaises(NoiseError):
+            QuantumError([Reset(), XGate()])  # list of instructions expecting default qubits
+
+        with self.assertRaises(NoiseError):
+            QuantumError([(Reset(), [0]), XGate()])  # partially supplied
+
     def test_raise_negative_probabilities(self):
         """Test exception is raised for negative probabilities."""
         noise_ops = [((IGate(), [0]), 1.1), ((XGate(), [0]), -0.1)]
         self.assertRaises(NoiseError, lambda: QuantumError(noise_ops))
 
     def test_raise_unnormalized_probabilities(self):
-        """Test exception is raised for qobj probabilities greater than 1."""
+        """Test exception is raised for probabilities greater than 1."""
         noise_ops = [((IGate(), [0]), 0.9), ((XGate(), [0]), 0.2)]
         self.assertRaises(NoiseError, lambda: QuantumError(noise_ops))
 

@@ -144,9 +144,17 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 (isinstance(noise_ops, Tuple) and isinstance(noise_ops[0], Instruction)):
             noise_ops = [(noise_ops, 1.0)]
 
+        # Input checks
+        for pair in noise_ops:
+            if not isinstance(pair, tuple) or len(pair) != 2:
+                raise NoiseError("Invalid type of input is found around '{}'".format(pair))
+            _, p = pair  # pylint: disable=invalid-name
+            if not isinstance(p, (float, int)):
+                raise NoiseError('Invalid type of probability: {}'.format(p))
+            if p < 0 and not np.isclose(p, 0, atol=self.atol):
+                raise NoiseError("Negative probability is invalid: {}".format(p))
+
         # Remove zero probability circuits
-        if any(isinstance(p, complex) or (p < -self.atol) for _, p in noise_ops):
-            raise NoiseError("Probabilities are invalid: {}".format([p for _, p in noise_ops]))
         noise_ops = [(op, prob) for op, prob in noise_ops if prob > 0]
 
         ops, probs = zip(*noise_ops)  # unzip
@@ -160,7 +168,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 DeprecationWarning, stacklevel=2)
 
         # Initialize internal variables with error checking
-        total_probs = np.sum(probs)
+        total_probs = sum(probs)
         if abs(total_probs - 1) > self.atol:
             raise NoiseError("Probabilities are not normalized: {} != 1".format(total_probs))
         # Rescale probabilities if their sum is ok to avoid accumulation of rounding errors
@@ -177,6 +185,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 circ.append(inst, qargs=qubits)
                 return circ
             elif isinstance(op, Instruction):
+                if op.num_clbits > 0:
+                    raise NoiseError("Unable to convert instruction with clbits: {}".format(
+                        op.__class__.__name__))
                 circ = QuantumCircuit(op.num_qubits)
                 circ.append(op, qargs=list(range(op.num_qubits)))
                 return circ
@@ -198,14 +209,14 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 else:
                     raise NoiseError("Fail to convert {} to Kraus.".format(op.__class__.__name__))
             elif isinstance(op, List):
-                if isinstance(op[0], Tuple):
+                if all(isinstance(aop, tuple) for aop in op):
                     num_qubits = max([max(qubits) for _, qubits in op]) + 1
                     circ = QuantumCircuit(num_qubits)
                     for inst, qubits in op:
                         circ.append(inst, qargs=qubits)
                     return circ
                 # Support for old-style json-like input TODO: to be removed
-                elif isinstance(op[0], dict):
+                elif all(isinstance(aop, dict) for aop in op):
                     warnings.warn(
                         'Constructing QuantumError with list of dict representing a mixed channel'
                         ' has been deprecated as of qiskit-aer 0.8.0 and will be removed'
@@ -233,8 +244,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                                         qargs=dic['qubits'])
                     return circ
                 else:
-                    raise NoiseError("Invalid noise op type (list of {}): {}".format(
-                        op[0].__class__.__name__, op))
+                    raise NoiseError("Invalid type of op list: {}".format(op))
 
             raise NoiseError("Invalid noise op type {}: {}".format(op.__class__.__name__, op))
 
