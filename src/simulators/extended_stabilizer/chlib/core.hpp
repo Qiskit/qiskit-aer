@@ -15,51 +15,40 @@
 #ifndef CORE_HPP
 #define CORE_HPP
 
-#include <limits.h>
-#include <stdint.h>
-#include <stdbool.h>
+#include <array>
+#include <climits>
+#include <cstdint>
 #include <complex>
 #include <iostream>
 #include <vector>
 
-static const int RE_PHASE[8] = {1, 1, 0, -1, -1, -1, 0, 1};
-static const int IM_PHASE[8] = {0, 1, 1, 1, 0, -1, -1, -1};
 
 namespace CHSimulator 
 {
-    
+
+static const std::array<int, 8> RE_PHASE = {1, 1, 0, -1, -1, -1, 0, 1};
+static const std::array<int, 8> IM_PHASE = {0, 1, 1, 1, 0, -1, -1, -1};
+
 using complex_t = std::complex<double>;
 using uint_t = uint_fast64_t;
 using int_t = int_fast64_t;
 
-// Definitions for implementing arbitrary binary vectors and matrices as arrays of 64bit integers
-typedef uint_fast64_t word;
-// typedef unsigned long word;
-#define WORD_BITS (CHAR_BIT * sizeof(word))
-// Calculate which integer in the array we are looking at
-#define WORD_INDEX(INDEX)  ((INDEX) / (WORD_BITS))
-// Calculate the shift we need to read, set or clear that bit
-#define WORD_SHIFT(INDEX) ((INDEX) % WORD_BITS)
-
-extern const word zer = 0U;
-extern const word one = 1U;
-extern bool (*hamming_parity)(word);
-extern unsigned (*hamming_weight)(word);
+extern const uint_t zer = 0U;
+extern const uint_t one = 1U;
+extern bool (*hamming_parity)(uint_t);
+extern unsigned (*hamming_weight)(uint_t);
 
 struct scalar_t {
   // complex numbers of the form eps * 2^{p/2} * exp(i (pi/4)*e )
   // eps=0,1       p=integer         e=0,1,...,7
   // if eps=0 then p and e are arbitrary
-  int eps;
-  int p;
-  int e;
+  int eps = 1;
+  int p = 0;
+  int e = 0;
   // constructor makes number 1
-  scalar_t(): eps(1), p(0), e(0) {};
-  scalar_t(const scalar_t& rhs): eps(rhs.eps), p(rhs.p), e(rhs.e) {};
-  scalar_t(const std::complex<double> coeff):
-  eps(1),
-  p(0),
-  e(0)
+  scalar_t() = default;
+  scalar_t(const scalar_t& rhs) = default;
+  scalar_t(const std::complex<double> coeff)
   {
     double abs_val = std::abs(coeff);
     if(std::abs(abs_val-0.)<1e-8)
@@ -124,11 +113,11 @@ struct scalar_t {
   scalar_t& operator*=(const scalar_t& rhs);
   scalar_t operator*(const scalar_t& rhs) const;
 
-  std::complex<double> to_complex() const
+  std::complex<double> to_complex() const 
   {
     if (eps==0)
     {
-      return std::complex<double>(0., 0.);
+      return {0., 0.};
     }
     std::complex<double> mag(std::pow(2, p/(double)2), 0.);
     std::complex<double> phase(RE_PHASE[e], IM_PHASE[e]);
@@ -147,11 +136,11 @@ struct pauli_t {
   // n-qubit Pauli operators: i^e * X(x) * Z(z)
   uint_fast64_t X; // n-bit string
   uint_fast64_t Z; // n-bit string
-  unsigned e; // takes values 0,1,2,3
+  unsigned e = 0; // takes values 0,1,2,3
   
   // constructor makes the identity Pauli operator 
   pauli_t();
-  pauli_t(const pauli_t& p): X(p.X), Z(p.Z), e(p.e) {};
+  pauli_t(const pauli_t& p) = default;
 
   // multiplication of Pauli operators
   pauli_t& operator*=( const pauli_t& rhs );
@@ -191,59 +180,59 @@ void Print(std::vector<uint_fast64_t> A, unsigned n);// print a binary matrix
   #endif
   #define INTRINSIC_PARITY 1
   #include <intrin.h>
-  inline bool _msc_parity(word x)
+  inline bool _msc_parity(uint_t x)
   {
     return (POPCNT(x) & one);
   }
-  bool (*hamming_parity) (word) = &_msc_parity;
-  inline unsigned _msc_weight(word x)
+  bool (*hamming_parity) (uint_t) = &_msc_parity;
+  inline unsigned _msc_weight(uint_t x)
   {
     return (POPCNT(x));
   }
-  unsigned (*hamming_weight) (word)= &_msc_weight;
+  unsigned (*hamming_weight) (uint_t)= &_msc_weight;
 #endif
 #ifdef __GNUC__
   #define INTRINSIC_PARITY 1
-  inline bool _gcc_parity(word x)
+  inline bool _gcc_parity(uint_t x)
   {
     return (__builtin_popcountll(x) & one);
   }
-  bool (*hamming_parity) (word) = &_gcc_parity;
-  inline unsigned _gcc_weight(word x)
+  bool (*hamming_parity) (uint_t) = &_gcc_parity;
+  inline unsigned _gcc_weight(uint_t x)
   {
     return (__builtin_popcountll(x));
   }
-  unsigned (*hamming_weight) (word)= &_gcc_weight;
+  unsigned (*hamming_weight) (uint_t)= &_gcc_weight;
 #endif
 #ifdef _CLANG_
   #if __has__builtin(__builtin_popcount)
   #define INTRINSIC_PARITY 1
-    inline bool _clang_parity(word x)
+    inline bool _clang_parity(uint_t x)
     {
       return (__builtin_popcountll(x) & one);
     }
-    bool (*hamming_parity) (word) = &_clang_parity;
-    inline unsigned _clang_weight(word x)
+    bool (*hamming_parity) (uint_t) = &_clang_parity;
+    inline unsigned _clang_weight(uint_t x)
     {
       return (__builtin_popcountll(x));
     }
-    unsigned (*hamming_weight) (word) = &_clang_weight;
+    unsigned (*hamming_weight) (uint_t) = &_clang_weight;
   #endif
 #endif
 #ifndef INTRINSIC_PARITY
   // Implementation from http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetKernighan
-  bool _naive_parity(word x)
+  bool _naive_parity(uint_t x)
   {
-    word c; // c accumulates the total bits set in x
+    uint_t c; // c accumulates the total bits set in x
     for (c = 0; x; c++)
     {
       x &= (x - 1); // clear the least significant bit set
     }
     return (c&one);
   }
-  unsigned _naive_weight(word x)
+  unsigned _naive_weight(uint_t x)
   {
-    word c; // c accumulates the total bits set in x
+    uint_t c; // c accumulates the total bits set in x
     for (c = 0; x; c++)
     {
       x &= (x - 1); // clear the least significant bit set
@@ -251,8 +240,8 @@ void Print(std::vector<uint_fast64_t> A, unsigned n);// print a binary matrix
     return c;
   }
 
-  bool (*hamming_parity) (word) = &_naive_parity;
-  unsigned (*hamming_weight) (word) = &_naive_weight;
+  bool (*hamming_parity) (uint_t) = &_naive_parity;
+  unsigned (*hamming_weight) (uint_t) = &_naive_weight;
 #endif
 
 scalar_t& scalar_t::operator*=(const scalar_t& rhs)
@@ -274,7 +263,7 @@ scalar_t scalar_t::operator*(const scalar_t& rhs) const
   return out;
 }
 
-pauli_t::pauli_t(): X(zer), Z(zer), e(0) {}
+pauli_t::pauli_t(): X(zer), Z(zer) {}
 
 pauli_t& pauli_t::operator*=( const pauli_t& rhs )
 {
@@ -401,12 +390,12 @@ scalar_t QuadraticForm::ExponentialSum()
   // sigma=0,1
   // if Z=0 then pow2,sigma contain junk and isZero=1
   int pow2_real=0;
-  bool sigma_real=0;
-  bool isZero_real=0;
+  bool sigma_real=false;
+  bool isZero_real=false;
 
   int pow2_imag=0;
-  bool sigma_imag=0;
-  bool isZero_imag=0;
+  bool sigma_imag=false;
+  bool isZero_imag=false;
   scalar_t amp;
   amp.makeOne();
 
@@ -475,12 +464,12 @@ scalar_t QuadraticForm::ExponentialSum()
     {
       // the form is linear in the variable i1
       if (L1real)
-          isZero_real=1;
+          isZero_real=true;
        
       pow2_real++;
        
       if (L1imag)
-          isZero_imag=1;
+          isZero_imag=true;
        
       pow2_imag++;
 

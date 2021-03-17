@@ -16,11 +16,8 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
-
-#ifdef _MSC_VER
-#include <intrin.h>
-#elif defined(__GNUC__)
-#include <cpuid.h>
+#ifdef AER_MPI
+#include <mpi.h>
 #endif
 
 #include "version.hpp"
@@ -98,6 +95,14 @@ int main(int argc, char **argv) {
   int indent = 4;
   json_t qobj;
   json_t config;
+  int myrank=0,nprocs=1;
+
+#ifdef AER_MPI
+  int prov;
+  MPI_Init_thread(&argc,&argv,MPI_THREAD_MULTIPLE,&prov);
+  MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
+  MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+#endif
 
   if(argc == 1){ // NOLINT
     usage(std::string(argv[0]), out); // NOLINT
@@ -149,7 +154,9 @@ int main(int argc, char **argv) {
     // Initialize simulator
     AER::Simulator::QasmController sim;
     auto result = sim.execute(qobj).to_json();
-    out << result.dump(4) << std::endl;
+    if(myrank == 0){
+      out << result.dump(4) << std::endl;
+    }
 
     // Check if execution was successful.
     bool success = false;
@@ -157,6 +164,9 @@ int main(int argc, char **argv) {
     JSON::get_value(success, "success", result);
     JSON::get_value(status, "status", result);
     if (!success) {
+#ifdef AER_MPI
+      MPI_Finalize();
+#endif
       if(status == "COMPLETED")
         return 3; // The simulation was was completed unsuccesfully.
       return 2; // Failed to execute the Qobj
@@ -165,8 +175,14 @@ int main(int argc, char **argv) {
     std::stringstream msg;
     msg << "Failed to execute qobj (" << e.what() << ")";
     failed(msg.str(), out, indent);
+#ifdef AER_MPI
+    MPI_Finalize();
+#endif
     return 2;
   }
+#ifdef AER_MPI
+  MPI_Finalize();
+#endif
 
   return 0;
 } // end main

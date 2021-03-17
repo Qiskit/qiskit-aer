@@ -46,8 +46,8 @@ public:
 
   DensityMatrix() : DensityMatrix(0) {};
   explicit DensityMatrix(size_t num_qubits);
-  DensityMatrix(const DensityMatrix& obj) = delete;
-  DensityMatrix &operator=(const DensityMatrix& obj) = delete;
+  DensityMatrix(const DensityMatrix& obj) {};
+  DensityMatrix &operator=(const DensityMatrix& obj) {};
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -126,16 +126,12 @@ public:
   virtual double probability(const uint_t outcome) const override;
 
   //-----------------------------------------------------------------------
-  // Expectation Value
+  // Expectation Values
   //-----------------------------------------------------------------------
 
-  // These functions return the expectation value <psi|A|psi> for a matrix A.
-  // If A is hermitian these will return real values, if A is non-Hermitian
-  // they in general will return complex values.
-
-  // Return the expectation value of an N-qubit Pauli matrix.
-  // The Pauli is input as a length N string of I,X,Y,Z characters.
-  double expval_pauli(const reg_t &qubits, const std::string &pauli) const;
+  // Return Pauli expectation value
+  double expval_pauli(const reg_t &qubits, const std::string &pauli,const complex_t initial_phase=1.0) const;
+  double expval_pauli_non_diagonal_chunk(const reg_t &qubits, const std::string &pauli,const complex_t initial_phase=1.0) const;
 
 protected:
 
@@ -161,7 +157,7 @@ protected:
 
 template <typename data_t>
 DensityMatrix<data_t>::DensityMatrix(size_t num_qubits)
-  : UnitaryMatrix<data_t>(num_qubits) {};
+  : UnitaryMatrix<data_t>(num_qubits) {}
 
 //------------------------------------------------------------------------------
 // Utility
@@ -356,6 +352,81 @@ void DensityMatrix<data_t>::apply_toffoli(const uint_t qctrl0,
   BaseVector::apply_permutation_matrix(qubits, pairs);
 }
 
+template <typename data_t>
+double DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
+                                           const std::string &pauli,const complex_t initial_phase) const {
+
+  uint_t x_mask, z_mask, num_y, x_max;
+  std::tie(x_mask, z_mask, num_y, x_max) = QV::pauli_masks_and_phase(qubits, pauli);
+
+  // Special case for only I Paulis
+  if (x_mask + z_mask == 0) {
+    return std::real(BaseMatrix::trace());
+  }
+
+  // Size of density matrix 
+  const size_t nrows = BaseMatrix::rows_;
+  const size_t diag_stride = 1 + nrows;
+
+  // specialize x_max == 0
+  if (!x_mask) {
+    auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
+      (void)val_im; // unused
+      auto val = std::real(BaseVector::data_[i * diag_stride]);
+      if (z_mask && (AER::Utils::popcount(i & z_mask) & 1)) {
+        val = -val;
+      }
+      val_re += val;
+    };
+    return std::real(BaseVector::apply_reduction_lambda(std::move(lambda), size_t(0), nrows));
+  }
+
+  auto phase = std::complex<data_t>(initial_phase);
+  QV::add_y_phase(num_y, phase);
+
+  const uint_t mask_u = ~MASKS[x_max + 1];
+  const uint_t mask_l = MASKS[x_max];
+  auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
+    (void)val_im; // unused
+    auto idx_vec = ((i << 1) & mask_u) | (i & mask_l);
+    auto idx_mat = idx_vec ^ x_mask + nrows * idx_vec;
+    // Since rho is hermitian rho[i, j] + rho[j, i] = 2 real(rho[i, j])
+    auto val = 2 * std::real(phase * BaseVector::data_[idx_mat]);
+    if (z_mask && (AER::Utils::popcount(idx_vec & z_mask) & 1)) {
+      val = - val;
+    }
+    val_re += val;
+  };
+  return std::real(BaseVector::apply_reduction_lambda(
+    std::move(lambda), size_t(0), nrows >> 1));
+}
+
+template <typename data_t>
+double DensityMatrix<data_t>::expval_pauli_non_diagonal_chunk(const reg_t &qubits,
+                                           const std::string &pauli,const complex_t initial_phase) const 
+{
+  uint_t x_mask, z_mask, num_y, x_max;
+  std::tie(x_mask, z_mask, num_y, x_max) = QV::pauli_masks_and_phase(qubits, pauli);
+
+  // Size of density matrix 
+  const size_t nrows = BaseMatrix::rows_;
+
+  auto phase = std::complex<data_t>(initial_phase);
+  QV::add_y_phase(num_y, phase);
+
+  auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
+    (void)val_im; // unused
+    auto idx_mat = i ^ x_mask + nrows * i;
+    auto val = std::real(phase * BaseVector::data_[idx_mat]);
+    if (z_mask && (AER::Utils::popcount(i & z_mask) & 1)) {
+      val = - val;
+    }
+    val_re += val;
+  };
+  return std::real(BaseVector::apply_reduction_lambda(
+    std::move(lambda), size_t(0), nrows));
+}
+
 //-----------------------------------------------------------------------
 // Z-measurement outcome probabilities
 //-----------------------------------------------------------------------
@@ -364,93 +435,6 @@ template <typename data_t>
 double DensityMatrix<data_t>::probability(const uint_t outcome) const {
   const auto shift = BaseMatrix::num_rows() + 1;
   return std::real(BaseVector::data_[outcome * shift]);
-}
-
-//-----------------------------------------------------------------------
-// Pauli expectation value
-//-----------------------------------------------------------------------
-
-template <typename data_t>
-double DensityMatrix<data_t>::expval_pauli(const reg_t &qubits,
-                                           const std::string &pauli) const {
-
-  // Break string up into Z and X
-  // With Y being both Z and X (plus a phase)
-  const size_t N = qubits.size();
-  uint_t x_mask = 0;
-  uint_t z_mask = 0;
-  uint_t num_y = 0;
-  for (size_t i = 0; i < N; ++i) {
-    const auto bit = BITS[qubits[i]];
-    switch (pauli[N - 1 - i]) {
-      case 'I':
-        break;
-      case 'X': {
-        x_mask += bit;
-        break;
-      }
-      case 'Z': {
-        z_mask += bit;
-        break;
-      }
-      case 'Y': {
-        x_mask += bit;
-        z_mask += bit;
-        num_y++;
-        break;
-      }
-      default:
-        throw std::invalid_argument("Invalid Pauli \"" + std::to_string(pauli[N - 1 - i]) + "\".");
-    }
-  }
-
-  // Special case for only I Paulis
-  if (x_mask + z_mask == 0) {
-    return std::real(BaseMatrix::trace());
-  }
-
-  // Compute the overall phase of the operator.
-  // This is (-1j) ** number of Y terms modulo 4
-  std::complex<data_t> phase(1, 0);
-  switch (num_y & 3) {
-    case 0:
-      // phase = 1
-      break;
-    case 1:
-      // phase = -1j
-      phase = std::complex<data_t>(0, -1);
-      break;
-    case 2:
-      // phase = -1
-      phase = std::complex<data_t>(-1, 0);
-      break;
-    case 3:
-      // phase = 1j
-      phase = std::complex<data_t>(0, 1);
-      break;
-  }
-  // The shift for density matrix indices in the vectorized vector
-  const size_t start = 0;
-  const size_t stop = BITS[num_qubits()];
-  auto lambda = [&](const int_t i, double &val_re, double &val_im)->void {
-    (void)val_im; // unused
-    auto val = std::real(phase * BaseVector::data_[i ^ x_mask + stop * i]);
-    if (z_mask) {
-      // Portable implementation of __builtin_popcountll
-      auto count = i & z_mask;
-      count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
-      count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
-      count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
-      count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
-      count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
-      count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
-      if (count & 1) {
-        val = -val;
-      }
-    }
-    val_re += val;
-  };
-  return std::real(BaseVector::apply_reduction_lambda(lambda, start, stop));
 }
 
 //------------------------------------------------------------------------------

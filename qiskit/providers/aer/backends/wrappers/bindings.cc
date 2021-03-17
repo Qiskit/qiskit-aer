@@ -1,19 +1,20 @@
 #include <iostream>
-#include "misc/common_macros.hpp"
-#if defined(_MSC_VER)
-#include <intrin.h>
-#elif defined(GNUC_AVX2)
-#include <cpuid.h>
+
+#ifdef AER_MPI
+#include <mpi.h>
 #endif
 
 #include "misc/warnings.hpp"
 DISABLE_WARNING_PUSH
 #include <pybind11/pybind11.h>
 DISABLE_WARNING_POP
+#if defined(_MSC_VER)
+    #undef snprintf
+#endif
 
 #include "framework/matrix.hpp"
 #include "framework/types.hpp"
-#include "framework/pybind_json.hpp"
+#include "framework/results/pybind_result.hpp"
 
 #include "controllers/qasm_controller.hpp"
 #include "controllers/statevector_controller.hpp"
@@ -24,10 +25,15 @@ template<typename T>
 class ControllerExecutor {
 public:
     ControllerExecutor() = default;
-    py::object operator()(const py::object &qobj) { return AerToPy::from_result(AER::controller_execute<T>(qobj)); }
+    py::object operator()(const py::object &qobj) { return AerToPy::to_python(AER::controller_execute<T>(qobj)); }
 };
 
 PYBIND11_MODULE(controller_wrappers, m) {
+
+#ifdef AER_MPI
+  int prov;
+  MPI_Init_thread(nullptr,nullptr,MPI_THREAD_MULTIPLE,&prov);
+#endif
 
     py::class_<ControllerExecutor<AER::Simulator::QasmController> > qasm_ctrl (m, "qasm_controller_execute");
     qasm_ctrl.def(py::init<>());

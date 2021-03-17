@@ -14,8 +14,9 @@
 Simulator command to snapshot internal simulator representation.
 """
 
+from warnings import warn
 from qiskit import QuantumCircuit
-from qiskit.providers.aer.extensions import Snapshot
+from .snapshot import Snapshot
 
 
 class SnapshotStabilizer(Snapshot):
@@ -36,7 +37,16 @@ class SnapshotStabilizer(Snapshot):
             The number of qubits parameter specifies the size of the
             instruction as a barrier and should be set to the number of
             qubits in the circuit.
+
+        .. note::
+
+            This instruction will be deprecated after the qiskit-aer 0.8 release.
+            It has been superseded by the
+            :class:`qiskit.providers.aer.library.SaveStabilizer` instruction.
         """
+        warn('The `SnapshotStabilizer` instruction will be deprecated in the'
+             ' future. It has been superseded by the `save_stabilizer`'
+             ' instructions.', PendingDeprecationWarning)
         super().__init__(label, snapshot_type='stabilizer', num_qubits=num_qubits)
 
 
@@ -57,9 +67,18 @@ def snapshot_stabilizer(self, label):
         The number of qubits parameter specifies the size of the
         instruction as a barrier and should be set to the number of
         qubits in the circuit.
-    """
 
-    snapshot_register = Snapshot.define_snapshot_register(self, label)
+    .. note::
+
+        This method will be deprecated after the qiskit-aer 0.8 release.
+        It has been superseded by the
+        :func:`qiskit.providers.aer.library.save_stabilizer` circuit
+        method.
+    """
+    warn('`The `save_stabilizer` circuit method will be deprecated in the'
+         ' future. It has been superseded by the `save_stabilizer`'
+         ' circuit method.', PendingDeprecationWarning)
+    snapshot_register = Snapshot.define_snapshot_register(self)
 
     return self.append(
         SnapshotStabilizer(label, num_qubits=len(snapshot_register)),

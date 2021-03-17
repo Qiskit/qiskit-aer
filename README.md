@@ -20,7 +20,7 @@ To install from source, follow the instructions in the [contribution guidelines]
 
 ## Installing GPU support
 
-In order to install and run the GPU supported simulators, you need CUDA&reg; 10.1 or newer previously installed.
+In order to install and run the GPU supported simulators on Linux, you need CUDA&reg; 10.1 or newer previously installed.
 CUDA&reg; itself would require a set of specific GPU drivers. Please follow CUDA&reg; installation procedure in the NVIDIA&reg; [web](https://www.nvidia.com/drivers).
 
 If you want to install our GPU supported simulators, you have to install this other package:
@@ -33,6 +33,11 @@ This will overwrite your current `qiskit-aer` package installation giving you
 the same functionality found in the canonical `qiskit-aer` package, plus the
 ability to run the GPU supported simulators: statevector, density matrix, and unitary.
 
+**Note**: This package is only available on x86_64 Linux. For other platforms
+that have CUDA support you will have to build from source. You can refer to
+the [contributing guide](https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md#building-with-gpu-support)
+for instructions on doing this.
+
 ## Simulating your first quantum program with Qiskit Aer
 Now that you have Qiskit Aer installed, you can start simulating quantum circuits with noise. Here is a basic example:
 
@@ -41,42 +46,40 @@ $ python
 ```
 
 ```python
-from qiskit import QuantumCircuit, execute
-from qiskit import Aer, IBMQ
-from qiskit.providers.aer.noise import NoiseModel
-
-# Choose a real device to simulate from IBMQ provider
-provider = IBMQ.load_account()
-backend = provider.get_backend('ibmq_vigo')
-coupling_map = backend.configuration().coupling_map
-
-# Generate an Aer noise model for device
-noise_model = NoiseModel.from_backend(backend)
-basis_gates = noise_model.basis_gates
+import qiskit
+from qiskit import IBMQ
+from qiskit.providers.aer import QasmSimulator
 
 # Generate 3-qubit GHZ state
-num_qubits = 3
-circ = QuantumCircuit(3, 3)
+circ = qiskit.QuantumCircuit(3, 3)
 circ.h(0)
 circ.cx(0, 1)
 circ.cx(1, 2)
 circ.measure([0, 1, 2], [0, 1 ,2])
 
+# Construct an ideal simulator
+sim = QasmSimulator()
+
+# Perform an ideal simulation
+result_ideal = qiskit.execute(circ, sim).result()
+counts_ideal = result_ideal.get_counts(0)
+print('Counts(ideal):', counts_ideal)
+# Counts(ideal): {'000': 493, '111': 531}
+
+# Construct a noisy simulator backend from an IBMQ backend
+# This simulator backend will be automatically configured
+# using the device configuration and noise model 
+provider = IBMQ.load_account()
+vigo_backend = provider.get_backend('ibmq_vigo')
+vigo_sim = QasmSimulator.from_backend(vigo_backend)
+
 # Perform noisy simulation
-backend = Aer.get_backend('qasm_simulator')
-job = execute(circ, backend,
-              coupling_map=coupling_map,
-              noise_model=noise_model,
-              basis_gates=basis_gates)
-result = job.result()
+result_noise = qiskit.execute(circ, vigo_sim).result()
+counts_noise = result_noise.get_counts(0)
 
-print(result.get_counts(0))
+print('Counts(noise):', counts_noise)
+# Counts(noise): {'000': 492, '001': 6, '010': 8, '011': 14, '100': 3, '101': 14, '110': 18, '111': 469}
 ```
-
-```python
-{'000': 495, '001': 18, '010': 8, '011': 18, '100': 2, '101': 14, '110': 28, '111': 441}
-```
-
 
 ## Contribution Guidelines
 

@@ -15,7 +15,9 @@
 #ifndef _aer_framework_results_experiment_result_hpp_
 #define _aer_framework_results_experiment_result_hpp_
 
-#include "framework/results/experiment_data.hpp"
+#include "framework/results/legacy/snapshot_data.hpp"
+#include "framework/results/data/data.hpp"
+#include "framework/results/data/metadata.hpp"
 
 namespace AER {
 
@@ -30,7 +32,8 @@ public:
   enum class Status {empty, completed, error};
 
   // Experiment data
-  ExperimentData data;
+  Data data;
+  SnapshotData legacy_data; // Legacy snapshot data
   uint_t shots;
   uint_t seed;
   double time_taken;
@@ -41,66 +44,41 @@ public:
 
   // Metadata
   json_t header;
-  stringmap_t<json_t> metadata;
-  
-  // Append metadata for a given key.
-  // This assumes the metadata value is a dictionary and appends
-  // any new values
-  template <typename T>
-  void add_metadata(const std::string &key, T &&data);
+  Metadata metadata;
 
   // Serialize engine data to JSON
   json_t to_json();
+
+  // Set the output data config options
+  void set_config(const json_t &config);
+
+  // Combine stored data
+  ExperimentResult& combine(ExperimentResult &&other);
 };
 
+//------------------------------------------------------------------------------
+// Implementation
+//------------------------------------------------------------------------------
 
-//------------------------------------------------------------------------------
-// Add metadata
-//------------------------------------------------------------------------------
-template <typename T>
-void ExperimentResult::add_metadata(const std::string &key, T &&meta) {
-  // Use implicit to_json conversion function for T
-  json_t jdata = meta;
-  add_metadata(key, std::move(jdata));
+ExperimentResult& ExperimentResult::combine(ExperimentResult &&other) {
+  legacy_data.combine(std::move(other.legacy_data));
+  data.combine(std::move(other.data));
+  metadata.combine(std::move(other.metadata));
+  return *this;
 }
 
-template <>
-void ExperimentResult::add_metadata(const std::string &key, json_t &&meta) {
-  auto elt = metadata.find("key");
-  if (elt == metadata.end()) {
-    // If key doesn't already exist add new data
-    metadata[key] = std::move(meta);
-  } else {
-    // If key already exists append with additional data
-    elt->second.update(meta.begin(), meta.end());
-  }
+void ExperimentResult::set_config(const json_t &config) {
+  legacy_data.set_config(config);
 }
 
-template <>
-void ExperimentResult::add_metadata(const std::string &key, const json_t &meta) {
-  auto elt = metadata.find("key");
-  if (elt == metadata.end()) {
-    // If key doesn't already exist add new data
-    metadata[key] = meta;
-  } else {
-    // If key already exists append with additional data
-    elt->second.update(meta.begin(), meta.end());
-  }
-}
-
-template <>
-void ExperimentResult::add_metadata(const std::string &key, json_t &meta) {
-  const json_t &const_meta = meta;
-  add_metadata(key, const_meta);
-}
-
-//------------------------------------------------------------------------------
-// JSON serialization
-//------------------------------------------------------------------------------
 json_t ExperimentResult::to_json() {
   // Initialize output as additional data JSON
   json_t result;
   result["data"] = data.to_json();
+  json_t legacy_snapshots = legacy_data.to_json();
+  if (!legacy_snapshots.empty()) {
+    result["data"]["snapshots"] = std::move(legacy_snapshots);
+  }
   result["shots"] = shots;
   result["seed_simulator"] = seed;
   result["success"] = (status == Status::completed);
@@ -117,8 +95,7 @@ json_t ExperimentResult::to_json() {
   result["time_taken"] = time_taken;
   if (header.empty() == false)
     result["header"] = header;
-  if (metadata.empty() == false)
-    result["metadata"] = metadata;
+  result["metadata"] = metadata.to_json();
   return result;
 }
 

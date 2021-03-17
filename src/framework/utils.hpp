@@ -237,6 +237,9 @@ inline std::string int2hex(uint_t n) {return bin2hex(int2bin(n));}
 // Convert reg to int
 uint_t reg2int(const reg_t &reg, uint_t base);
 
+// Count number of 1's in bitstring representation of an integer
+uint_t popcount(const uint_t count_);
+
 //==============================================================================
 // Implementations: Matrix functions
 //==============================================================================
@@ -1015,7 +1018,7 @@ std::string hex2bin(std::string str, bool prefix) {
 
   // We go via long integer conversion, so we process 64-bit chunks at
   // a time
-  const size_t block = 8;
+  const size_t block = 16;
   const size_t len = str.size();
   const size_t chunks = len / block;
   const size_t remain = len % block;
@@ -1024,7 +1027,9 @@ std::string hex2bin(std::string str, bool prefix) {
   std::string bin = (prefix) ? "0b" : "";
 
   // Start with remain
-  bin += int2string(std::stoull(str.substr(0, remain), nullptr, 16), 2);
+  if (remain != 0)
+      bin += int2string(std::stoull(str.substr(0, remain), nullptr, 16), 2);
+
   for (size_t j=0; j < chunks; ++j) {
     std::string part = int2string(std::stoull(str.substr(remain + j * block, block), nullptr, 16), 2, 64);
     bin += part;

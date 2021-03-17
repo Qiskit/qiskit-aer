@@ -29,22 +29,26 @@ class AerProvider(BaseProvider):
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
 
-        # Populate the list of Aer simulator providers.
-        self._backends = [QasmSimulator(provider=self),
-                          StatevectorSimulator(provider=self),
-                          UnitarySimulator(provider=self),
-                          PulseSimulator(provider=self)]
+        # Populate the list of Aer simulator backends.
+        self._backends = [
+            ('qasm_simulator', QasmSimulator),
+            ('statevector_simulator', StatevectorSimulator),
+            ('unitary_simulator', UnitarySimulator),
+            ('pulse_simulator', PulseSimulator)
+        ]
 
     def get_backend(self, name=None, **kwargs):
         return super().get_backend(name=name, **kwargs)
 
     def backends(self, name=None, filters=None, **kwargs):
         # pylint: disable=arguments-differ
-        backends = self._backends
-        if name:
-            backends = [backend for backend in backends if backend.name() == name]
-
-        return filter_backends(backends, filters=filters, **kwargs)
+        # Instantiate a new backend instance so if config options
+        # are set they will only last as long as that backend object exists
+        backends = []
+        for backend_name, backend_cls in self._backends:
+            if name is None or backend_name == name:
+                backends.append(backend_cls(provider=self))
+        return filter_backends(backends, filters=filters)
 
     def __str__(self):
         return 'AerProvider'

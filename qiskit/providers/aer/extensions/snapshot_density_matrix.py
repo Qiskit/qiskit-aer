@@ -14,8 +14,9 @@
 Simulator command to snapshot internal simulator representation.
 """
 
+from warnings import warn
 from qiskit import QuantumCircuit
-from qiskit.providers.aer.extensions import Snapshot
+from .snapshot import Snapshot
 
 
 class SnapshotDensityMatrix(Snapshot):
@@ -30,7 +31,16 @@ class SnapshotDensityMatrix(Snapshot):
 
         Raises:
             ExtensionError: if snapshot is invalid.
+
+        .. note::
+
+            This instruction will be deprecated after the qiskit-aer 0.8 release.
+            It has been superseded by the
+            :class:`qiskit.providers.aer.library.SaveDensityMatrix` instruction.
         """
+        warn('`The `SnapshotDensityMatrix` instruction will be deprecated in the'
+             'future. It has been superseded by the `SaveDensityMatrix`'
+             ' instructions.', PendingDeprecationWarning)
         super().__init__(label,
                          snapshot_type='density_matrix',
                          num_qubits=num_qubits)
@@ -49,9 +59,18 @@ def snapshot_density_matrix(self, label, qubits=None):
 
     Raises:
         ExtensionError: if snapshot is invalid.
-    """
 
-    snapshot_register = Snapshot.define_snapshot_register(self, label, qubits)
+    .. note::
+
+        This method will be deprecated after the qiskit-aer 0.8 release.
+        It has been superseded by the
+        :func:`qiskit.providers.aer.library.save_density_matrix`
+        circuit method.
+    """
+    warn('`The `save_density_matrix` circuit method will be deprecated in the'
+         ' future. It has been superseded by the `save_density_matrix`'
+         ' circuit method.', PendingDeprecationWarning)
+    snapshot_register = Snapshot.define_snapshot_register(self, qubits=qubits)
 
     return self.append(
         SnapshotDensityMatrix(label, num_qubits=len(snapshot_register)),

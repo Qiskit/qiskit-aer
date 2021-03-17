@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    The ``variance`` kwarg of Snapshot instructions has been deprecated. This
+    function computed the sample variance in the snapshot due to noise model
+    sampling, not the variance due to measurement statistics so was often
+    being used incorrectly. If noise modeling variance is required single shot
+    snapshots should be used so variance can be computed manually in
+    post-processing.

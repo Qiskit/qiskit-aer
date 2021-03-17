@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Improves general noisy statevector simulation performance by adding a Kraus
+    method to the gate fusion circuit optimization that allows applying gate
+    fusion to noisy statevector simulations with general Kraus noise.

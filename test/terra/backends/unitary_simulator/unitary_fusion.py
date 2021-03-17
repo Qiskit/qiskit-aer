@@ -50,7 +50,7 @@ class UnitaryFusionTests:
             circuit = transpile(circuit, self.SIMULATOR)
             qobj = assemble([circuit], shots=1)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             meta = self.fusion_metadata(result)
 
             self.assertSuccess(result)
@@ -61,18 +61,18 @@ class UnitaryFusionTests:
             circuit = transpile(circuit, self.SIMULATOR)
             qobj = assemble([circuit], shots=1)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             meta = self.fusion_metadata(result)
 
             self.assertSuccess(result)
-            self.assertTrue(meta.get('applied'))
+            self.assertFalse(meta.get('applied'))
 
         with self.subTest(msg='above fusion threshold'):
             circuit = QuantumVolume(threshold + 1, seed=seed)
             circuit = transpile(circuit, self.SIMULATOR)
             qobj = assemble([circuit], shots=1)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             meta = self.fusion_metadata(result)
 
             self.assertSuccess(result)
@@ -88,7 +88,7 @@ class UnitaryFusionTests:
         with self.subTest(msg='test fusion enable'):
             backend_options = self.fusion_options(enabled=True, threshold=1)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             meta = self.fusion_metadata(result)
 
             self.assertSuccess(result)
@@ -97,7 +97,7 @@ class UnitaryFusionTests:
         with self.subTest(msg='test fusion disable'):
             backend_options = self.fusion_options(enabled=False, threshold=1)
             result = self.SIMULATOR.run(
-                qobj, backend_options=backend_options).result()
+                qobj, **backend_options).result()
             meta = self.fusion_metadata(result)
 
             self.assertSuccess(result)
@@ -112,12 +112,12 @@ class UnitaryFusionTests:
 
         options_disabled = self.fusion_options(enabled=False, threshold=1)
         result_disabled = self.SIMULATOR.run(
-            qobj, backend_options=options_disabled).result()
+            qobj, **options_disabled).result()
         self.assertSuccess(result_disabled)
 
         options_enabled = self.fusion_options(enabled=True, threshold=1)
         result_enabled = self.SIMULATOR.run(
-            qobj, backend_options=options_enabled).result()
+            qobj, **options_enabled).result()
         self.assertSuccess(result_enabled)
 
         unitary_no_fusion = Operator(result_disabled.get_unitary(0))

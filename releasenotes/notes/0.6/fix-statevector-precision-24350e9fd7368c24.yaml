@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes bug in the :class:`~qiskit.providers.aer.StatevectorSimulator` that
+    caused it to always run as CPU with double-precision without SIMD/AVX2
+    support even on systems with AVX2, or when single-precision or the GPU
+    method was specified in the backend options.
