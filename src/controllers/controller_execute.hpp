@@ -16,7 +16,6 @@
 #define _aer_controller_execute_hpp_
 
 #include <string>
-#include "framework/json_parser.hpp"
 #include "misc/hacks.hpp"
 #include "framework/results/result.hpp"
 

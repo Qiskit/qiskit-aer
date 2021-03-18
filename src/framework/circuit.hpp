@@ -19,7 +19,6 @@
 
 #include "framework/operations.hpp"
 #include "framework/opset.hpp"
-#include "json_parser.hpp"
 
 namespace AER {
 
@@ -102,7 +101,7 @@ private:
 };
 
 // Json conversion function
-inline void from_json(const json_t &js, Circuit &circ) {circ = Circuit(js);}
+inline void from_json(const json_t& js, Circuit &circ) {circ = Circuit(js);}
 
 
 //============================================================================

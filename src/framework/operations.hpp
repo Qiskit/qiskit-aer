@@ -478,7 +478,9 @@ inline Op make_multiplexer(const reg_t &qubits,
 template<typename inputdata_t>
 Op json_to_op(const inputdata_t& js); // Partial TODO
 json_t op_to_json(const Op &op); // Partial TODO
+
 inline void from_json(const json_t &js, Op &op) {op = json_to_op(js);}
+
 inline void to_json(json_t &js, const Op &op) { js = op_to_json(op);}
 
 // Standard operations
