@@ -21,6 +21,7 @@ from .backends.qasm_simulator import QasmSimulator
 from .backends.statevector_simulator import StatevectorSimulator
 from .backends.unitary_simulator import UnitarySimulator
 from .backends.pulse_simulator import PulseSimulator
+from .profile import optimize_backend_options
 
 
 class AerProvider(BaseProvider):
@@ -56,6 +57,5 @@ class AerProvider(BaseProvider):
     @staticmethod
     def optimize_backend_options(min_qubits=10, max_qubits=20, ntrials=10):
         """Set optimal OpenMP and fusion options for backend."""
-        from .profile import optimize_backend_options
         return optimize_backend_options(
             min_qubits=min_qubits, max_qubits=max_qubits, ntrials=ntrials)

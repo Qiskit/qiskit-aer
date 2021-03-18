@@ -237,14 +237,21 @@ class AerBackend(BaseBackend, ABC):
         # Add default OpenMP options
         if 'statevector_parallel_threshold' not in backend_options and hasattr(
                 self, '_statevector_parallel_threshold'):
-            backend_options['statevector_parallel_threshold'] = self._statevector_parallel_threshold
+            backend_options['statevector_parallel_threshold'] = \
+                getattr(self, '_statevector_parallel_threshold')
 
         # Add default fusion options
         attr_postfix = '_gpu' if 'gpu' in backend_options.get('method', '') else ''
         if 'fusion_threshold' not in backend_options and hasattr(
-            self, f'_fusion_threshold{attr_postfix}'):
+                self, f'_fusion_threshold{attr_postfix}'):
             # Set fusion threshold
             backend_options['fusion_threshold'] = getattr(self, f'_fusion_threshold{attr_postfix}')
+        for i in range(1, 6):
+            if f'fusion_cost.{i}' not in backend_options and \
+               hasattr(self, f'_fusion_cost{attr_postfix}.{i}'):
+                # Set cost for each
+                backend_options[f'fusion_cost.{i}'] = getattr(self,
+                                                              f'_fusion_cost{attr_postfix}.{i}')
 
         # The new function swaps positional args qobj and job id so we do a
         # type check to swap them back

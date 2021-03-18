@@ -13,7 +13,10 @@
 Profile backend options for optimal performance
 """
 from qiskit import transpile, assemble, execute
+from qiskit.circuit.library import QuantumVolume
 from .aererror import AerError
+from .backends.aerbackend import AerBackend
+from .backends.qasm_simulator import QasmSimulator
 
 
 def optimize_backend_options(min_qubits=10, max_qubits=20, ntrials=10):
@@ -49,8 +52,6 @@ def optimize_backend_options(min_qubits=10, max_qubits=20, ntrials=10):
     # TODO: Write profile to a local qiskitaerrc file so this doesn't
     # need to be re-run on a system and the following can be loaded
     # in the AerBackend class from the rc file if it is found
-    from qiskit.providers.aer.backends.aerbackend import AerBackend
-
     if 'statevector_parallel_threshold' in profile:
         AerBackend._statevector_parallel_threshold = profile[
             'statevector_parallel_threshold']
@@ -66,9 +67,6 @@ def profile_parallel_threshold(min_qubits=10, max_qubits=20, ntrials=10,
                                backend_options=None,
                                return_ratios=False):
     """Evaluate optimal OMP parallel threshold for current system."""
-    from qiskit.circuit.library import QuantumVolume
-    from qiskit.providers.aer.backends.qasm_simulator import QasmSimulator
-
     simulator = QasmSimulator()
     opts = {'method': 'statevector',
             'max_parallel_experiments': 1,
@@ -92,10 +90,10 @@ def profile_parallel_threshold(min_qubits=10, max_qubits=20, ntrials=10,
         for val in [i - 1, i]:
             opts['statevector_parallel_threshold'] = val
             result = simulator.run(qobj, backend_options=opts).result()
-            t = 0.0
+            time_taken = 0.0
             for j in range(ntrials):
-                t += result.results[j].time_taken
-            times.append(t)
+                time_taken += result.results[j].time_taken
+            times.append(time_taken)
 
         # Compute ratio
         ratio = times[1] / times[0]
@@ -123,9 +121,6 @@ def profile_fusion_threshold(min_qubits=10, max_qubits=20, ntrials=10,
                              backend_options=None, gpu=False,
                              return_ratios=False):
     """Evaluate optimal OMP parallel threshold for current system."""
-    from qiskit.circuit.library import QuantumVolume
-    from qiskit.providers.aer.backends.qasm_simulator import QasmSimulator
-
     simulator = QasmSimulator()
     opts = {'method': 'statevector',
             'max_parallel_experiments': 1,
@@ -157,10 +152,10 @@ def profile_fusion_threshold(min_qubits=10, max_qubits=20, ntrials=10,
         for val in [i, i + 1]:
             opts['fusion_threshold'] = val
             result = simulator.run(qobj, backend_options=opts).result()
-            t = 0.0
+            time_taken = 0.0
             for j in range(ntrials):
-                t += result.results[j].time_taken
-            times.append(t)
+                time_taken += result.results[j].time_taken
+            times.append(time_taken)
 
         # Compute ratio
         ratio = times[1] / times[0]
