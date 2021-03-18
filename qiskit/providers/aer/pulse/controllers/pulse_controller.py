@@ -18,6 +18,7 @@ Entry/exit point for pulse simulation specified through PulseSimulator backend
 """
 
 from warnings import warn
+from copy import copy
 import numpy as np
 from qiskit.quantum_info.operators.operator import Operator
 from ..system_models.string_model_parser.string_model_parser import NoiseParser
@@ -335,7 +336,7 @@ class PulseInternalDEModel:
         self.pulse_to_int = None
         # dt for pulse schedules
         self.dt = None
-        # holds frequencies for the channels
+        # holds default frequencies for the channels
         self.freqs = {}
         # diagonal elements of the hamiltonian
         self.h_diag = None
@@ -422,7 +423,15 @@ class PulseInternalDEModel:
         # Init register
         register = np.ones(self.n_registers, dtype=np.uint8)
 
-        ode_rhs_obj = get_ode_rhs_functor(self._rhs_dict, exp, self.system, channels, register)
+        rhs_dict = self._rhs_dict
+
+        # if the experiment overrides qubit_lo_freq, use this one
+        if exp.get('qubit_lo_freq', None) is not None:
+            # copy to not overwrite defaults
+            rhs_dict = copy(rhs_dict)
+            rhs_dict['freqs'] = exp.get('qubit_lo_freq')
+
+        ode_rhs_obj = get_ode_rhs_functor(rhs_dict, exp, self.system, channels, register)
 
         def rhs(t, y):
             return ode_rhs_obj(t, y)
