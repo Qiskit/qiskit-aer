@@ -777,7 +777,7 @@ void State<statevec_t>::apply_save_statevector_dict(const Operations::Op &op,
 
   auto vec = copy_to_vector();
   std::map<std::string, complex_t> result_state_ket;
-  for (size_t k = 0; k < dim; ++k) {
+  for (size_t k = 0; k < vec.size(); ++k) {
     if (std::abs(vec[k]) >= json_chop_threshold_){
       std::string key = Utils::int2hex(k);
       result_state_ket.insert({key, vec[k]});
