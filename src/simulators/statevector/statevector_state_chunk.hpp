@@ -48,8 +48,8 @@ const Operations::OpSet StateOpSet(
      OpType::save_expval_var, OpType::save_densmat,
      OpType::save_probs, OpType::save_probs_ket,
      OpType::save_amps, OpType::save_amps_sq,
-     OpType::save_statevec, OpType::save_state
-     // OpType::save_statevec_ket  // TODO
+     OpType::save_statevec, OpType::save_state,
+     OpType::save_statevec_dict
      },
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
@@ -197,7 +197,7 @@ protected:
                               bool last_op);
 
   // Save the current state of the statevector simulator as a ket-form map.
-  void apply_save_statevector_ket(const Operations::Op &op,
+  void apply_save_statevector_dict(const Operations::Op &op,
                                   ExperimentResult &result);
 
   // Save the current density matrix or reduced density matrix
@@ -598,9 +598,9 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
       case Operations::OpType::save_statevec:
         apply_save_statevector(op, result, final_ops);
         break;
-      // case Operations::OpType::save_statevec_ket:
-      //   apply_save_statevector_ket(op, result);
-      //   break;
+      case Operations::OpType::save_statevec_dict:
+        apply_save_statevector_dict(op, result);
+        break;
       case Operations::OpType::save_probs:
       case Operations::OpType::save_probs_ket:
         apply_save_probs(op, result);
@@ -766,7 +766,7 @@ void State<statevec_t>::apply_save_statevector(const Operations::Op &op,
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_save_statevector_ket(const Operations::Op &op,
+void State<statevec_t>::apply_save_statevector_dict(const Operations::Op &op,
                                                    ExperimentResult &result) 
 {
   if (op.qubits.size() != BaseState::num_qubits_) {
@@ -774,11 +774,17 @@ void State<statevec_t>::apply_save_statevector_ket(const Operations::Op &op,
         op.name + " was not applied to all qubits."
         " Only the full statevector can be saved.");
   }
-  // TODO: compute state ket
-  std::map<std::string, complex_t> state_ket;
 
+  auto vec = copy_to_vector();
+  std::map<std::string, complex_t> result_state_ket;
+  for (size_t k = 0; k < vec.size(); ++k) {
+    if (std::abs(vec[k]) >= json_chop_threshold_){
+      std::string key = Utils::int2hex(k);
+      result_state_ket.insert({key, vec[k]});
+    }
+  }
   BaseState::save_data_pershot(result, op.string_params[0],
-                               std::move(state_ket), op.save_type);
+                               std::move(result_state_ket), op.save_type);
 }
 
 template <class statevec_t>

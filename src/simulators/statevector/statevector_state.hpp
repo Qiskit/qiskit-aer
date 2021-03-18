@@ -52,8 +52,8 @@ const Operations::OpSet StateOpSet(
      OpType::save_expval_var, OpType::save_densmat,
      OpType::save_probs, OpType::save_probs_ket,
      OpType::save_amps, OpType::save_amps_sq,
-     OpType::save_state, OpType::save_statevec
-     // OpType::save_statevec_ket  // TODO
+     OpType::save_state, OpType::save_statevec,
+     OpType::save_statevec_dict
      },
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
@@ -231,7 +231,7 @@ protected:
                               bool last_op);
 
   // Save the current state of the statevector simulator as a ket-form map.
-  void apply_save_statevector_ket(const Operations::Op &op,
+  void apply_save_statevector_dict(const Operations::Op &op,
                                   ExperimentResult &result);
 
   // Save the current density matrix or reduced density matrix
@@ -591,9 +591,9 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
         case OpType::save_statevec:
           apply_save_statevector(op, result, final_ops && ops.size() == i + 1);
           break;
-        // case OpType::save_statevec_ket:
-        //   apply_save_statevector_ket(op, result);
-        //   break;
+        case OpType::save_statevec_dict:
+          apply_save_statevector_dict(op, result);
+          break;
         case OpType::save_probs:
         case OpType::save_probs_ket:
           apply_save_probs(op, result);
@@ -661,18 +661,20 @@ void State<statevec_t>::apply_save_statevector(const Operations::Op &op,
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_save_statevector_ket(const Operations::Op &op,
+void State<statevec_t>::apply_save_statevector_dict(const Operations::Op &op,
                                                    ExperimentResult &result) {
   if (op.qubits.size() != BaseState::qreg_.num_qubits()) {
     throw std::invalid_argument(
         op.name + " was not applied to all qubits."
         " Only the full statevector can be saved.");
   }
-  // TODO: compute state ket
-  std::map<std::string, complex_t> state_ket;
-
+  auto state_ket = BaseState::qreg_.vector_ket(json_chop_threshold_);
+  std::map<std::string, complex_t> result_state_ket;
+  for (auto const& it : state_ket){
+    result_state_ket[it.first] = it.second;
+  }
   BaseState::save_data_pershot(result, op.string_params[0],
-                               std::move(state_ket), op.save_type);
+                               std::move(result_state_ket), op.save_type);
 }
 
 template <class statevec_t>
