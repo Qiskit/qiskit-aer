@@ -14,7 +14,7 @@ Quantum error class for Qiskit Aer noise model
 """
 import copy
 import warnings
-from typing import Iterable, Union, Tuple, List
+from typing import Iterable
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit, Instruction
@@ -32,12 +32,6 @@ from .errorutils import standard_gate_unitary
 from .errorutils import standard_gates_instructions
 from ..noiseerror import NoiseError
 
-InstructionLike = Union[QuantumCircuit,
-                        BaseOperator,
-                        List[Tuple[Instruction, List[int]]],
-                        Tuple[Instruction, List[int]],
-                        Instruction]
-
 
 class QuantumError(BaseOperator, TolerancesMixin):
     """
@@ -50,7 +44,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
     """
 
     def __init__(self,
-                 noise_ops: Union[InstructionLike, Iterable[Tuple[InstructionLike, float]]],
+                 noise_ops,
                  number_of_qubits=None,
                  standard_gates=False,
                  atol=1e-8):
@@ -59,8 +53,8 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
         Noise ops may either be specified as a ``quantum channel``
         for a general CPTP map, or as a list of ``(circuit, p)`` pairs
-        where ``circuit`` is a ciruict (or instruction-like object) for the noise, and
-        ``p`` is the probability of the error circuit. Any type of input
+        where ``circuit`` is a circuit-like object for the noise, and
+        ``p`` is the probability of the noise event. Any type of input
         will be converted to the probabilistic mixture of circuit format.
 
         **Example**
@@ -73,6 +67,13 @@ class QuantumError(BaseOperator, TolerancesMixin):
             noise_ops = [(IGate(), 0.9),
                          (XGate(), 0.1)]
 
+        or specifying explicit qubit arguments,
+
+        .. code-block:: python
+
+            noise_ops = [((IGate(), [0]), 0.9),
+                         ((XGate(), [0]), 0.1)]
+
         The same error represented as a Kraus channel can be input as:
 
         .. code-block:: python
@@ -81,7 +82,13 @@ class QuantumError(BaseOperator, TolerancesMixin):
                                np.sqrt(0.1) * np.array([[0, 1], [1, 0]])])
 
         Args:
-            noise_ops: A list of noise ops. See additional information.
+            noise_ops (QuantumChannel or Iterable): Either a quantum channel or a list of
+                ``(circuit, p)`` pairs, which represents a quantum error, where
+                ``circuit`` is a circuit-like object for the noise, and
+                ``p`` is the probability of the noise event. Circuit-like types include
+                ``QuantumCircuit``, ``(Instruction, qargs)`` and a list of ``(Instruction, qargs)``.
+                Note that ``qargs`` should be a list of integers and can be omitted
+                (default qubits are used in that case). See also examples above.
             number_of_qubits (int): [DEPRECATED] specify the number of qubits for the
                                     error. If None this will be determined
                                     automatically (default None).
@@ -89,7 +96,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
             atol (double): [DEPRECATED] Threshold for testing if probabilities are
                            equal to 0 or 1 (Default: 1e-8).
         Raises:
-            NoiseError: If input noise_ops are not a CPTP map.
+            NoiseError: If input noise_ops is invalid, e.g. it's not a CPTP map.
         """
         # Shallow copy constructor
         if isinstance(noise_ops, QuantumError):
@@ -410,11 +417,10 @@ class QuantumError(BaseOperator, TolerancesMixin):
             ret.append(dic)
         return ret
 
-    def compose(self, other, qargs=None, front=False) -> 'QuantumError':
+    def compose(self, other, qargs=None, front=False):
         if not isinstance(other, QuantumError):
             other = QuantumError(other)
 
-        # TODO: Is this check really necessary? Cannot we enlarge circuits automatically?
         if self.num_qubits != other.num_qubits:
             raise NoiseError("Number of qubis of other ({}) must be the same as self ({})".format(
                 other.num_qubits, self.num_qubits))
@@ -440,7 +446,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
             lqc = QuantumError._enlarge_qreg(lqc, rqc.num_qubits)
         return lqc.compose(rqc, qubits=qubits, front=front)
 
-    def tensor(self, other) -> 'QuantumError':
+    def tensor(self, other):
         if not isinstance(other, QuantumError):
             other = QuantumError(other)
 
@@ -452,7 +458,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                  for rpr in other.probabilities]
         return QuantumError(zip(circs, probs))
 
-    def expand(self, other) -> 'QuantumError':
+    def expand(self, other):
         return other.tensor(self)
 
     # Overloads
