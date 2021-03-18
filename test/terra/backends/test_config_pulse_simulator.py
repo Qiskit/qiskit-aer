@@ -54,7 +54,9 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
                 desc = 'A Pulse-based simulator configured from the backend: fake_athens'
                 self.assertEqual(sim_dict[key], desc)
             elif key == 'simulator':
-                self.assertTrue(sim_dict[key], True)
+                self.assertTrue(sim_dict[key])
+            elif key == 'local':
+                self.assertTrue(sim_dict[key])
             else:
                 self.assertEqual(sim_dict[key], backend_dict[key])
 
