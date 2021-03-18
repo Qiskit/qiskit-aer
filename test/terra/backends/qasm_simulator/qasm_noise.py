@@ -153,6 +153,9 @@ class QasmKrausNoiseTests:
 
     def test_kraus_gate_noise_on_QFT(self):
         """Test Kraus noise on a QFT circuit"""
+
+        SUPPORTED_METHODS = ['statevector', 'matrix_product_state']
+
         shots = 1000
         noise_models = ref_kraus_noise.kraus_gate_error_noise_models_full()
 
