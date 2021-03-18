@@ -31,8 +31,7 @@ class QasmSaveStatevectorDictTests:
         """Test save statevector for instruction"""
 
         SUPPORTED_METHODS = [
-            'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
-            'matrix_product_state', 'extended_stabilizer'
+            'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust'
         ]
 
         # Stabilizer test circuit
@@ -67,8 +66,7 @@ class QasmSaveStatevectorDictTests:
         """Test conditional save statevector instruction"""
 
         SUPPORTED_METHODS = [
-            'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
-            'matrix_product_state', 'extended_stabilizer'
+            'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust'
         ]
 
         # Stabilizer test circuit
@@ -103,8 +101,7 @@ class QasmSaveStatevectorDictTests:
         """Test pershot save statevector instruction"""
 
         SUPPORTED_METHODS = [
-            'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
-            'matrix_product_state', 'extended_stabilizer'
+            'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust'
         ]
 
         # Stabilizer test circuit
@@ -142,8 +139,7 @@ class QasmSaveStatevectorDictTests:
         """Test pershot conditional save statevector instruction"""
 
         SUPPORTED_METHODS = [
-            'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust',
-            'matrix_product_state', 'extended_stabilizer'
+            'automatic', 'statevector', 'statevector_gpu', 'statevector_thrust'
         ]
 
         # Stabilizer test circuit
