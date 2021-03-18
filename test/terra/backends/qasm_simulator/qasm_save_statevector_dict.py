@@ -24,6 +24,9 @@ class QasmSaveStatevectorDictTests:
     SIMULATOR = QasmSimulator()
     BACKEND_OPTS = {}
 
+    def statevec_as_dict(self, data):
+        return {hex(int(key,2)): val for key, val in qi.Statevector(data).to_dict().items()}
+
     def test_save_statevector_dict(self):
         """Test save statevector for instruction"""
 
@@ -40,7 +43,7 @@ class QasmSaveStatevectorDictTests:
         circ.cx(0, 2)
 
         # Target statevector
-        target = qi.Statevector(circ).to_dict()
+        target = self.statevec_as_dict(circ)
 
         # Add save to circuit
         label = 'sv'
@@ -57,8 +60,8 @@ class QasmSaveStatevectorDictTests:
             self.assertTrue(result.success)
             data = result.data(0)
             self.assertIn(label, data)
-            value = qi.Statevector(result.data(0)[label])
-            self.assertAlmostEqual(value, target)
+            value = result.data(0)[label]
+            self.assertDictAlmostEqual(value, target)
 
     def test_save_statevector_conditional(self):
         """Test conditional save statevector instruction"""
@@ -78,8 +81,8 @@ class QasmSaveStatevectorDictTests:
         circ.save_statevector_dict(label, conditional=True)
 
         # Target statevector
-        target = {'0x0': qi.Statevector([1, 0, 0, 0]).to_dict(),
-                  '0x3': qi.Statevector([0, 0, 0, -1j]).to_dict()}
+        target = {'0x0': self.statevec_as_dict([1, 0, 0, 0]),
+                  '0x3': self.statevec_as_dict([0, 0, 0, -1j])}
 
         # Run
         opts = self.BACKEND_OPTS.copy()
@@ -94,7 +97,7 @@ class QasmSaveStatevectorDictTests:
             self.assertIn(label, data)
             for key, vec in data[label].items():
                 self.assertIn(key, target)
-                self.assertAlmostEqual(qi.Statevector(vec), target[key])
+                self.assertDictAlmostEqual(vec, target[key])
 
     def test_save_statevector_dict_pershot(self):
         """Test pershot save statevector instruction"""
@@ -112,7 +115,7 @@ class QasmSaveStatevectorDictTests:
         circ.sdg(0)
 
         # Target statevector
-        target = qi.Statevector(circ).to_dict()
+        target = self.statevec_as_dict(circ)
 
         # Add save
         label = 'sv'
@@ -133,7 +136,7 @@ class QasmSaveStatevectorDictTests:
             value = result.data(0)[label]
             self.assertEqual(len(value), shots)
             for vec in value:
-                self.assertAlmostEqual(qi.Statevector(vec), target)
+                self.assertDictAlmostEqual(vec, target)
 
     def test_save_statevector_dict_pershot_conditional(self):
         """Test pershot conditional save statevector instruction"""
@@ -151,7 +154,7 @@ class QasmSaveStatevectorDictTests:
         circ.sdg(0)
 
         # Target statevector
-        target = qi.Statevector(circ).to_dict()
+        target = self.statevec_as_dict(circ)
 
         # Add save
         label = 'sv'
@@ -174,4 +177,4 @@ class QasmSaveStatevectorDictTests:
             self.assertIn('0x0', value)
             self.assertEqual(len(value['0x0']), shots)
             for vec in value['0x0']:
-                self.assertAlmostEqual(qi.Statevector(vec), target)
+                self.assertDictAlmostEqual(vec, target)
