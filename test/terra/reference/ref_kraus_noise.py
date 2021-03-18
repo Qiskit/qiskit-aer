@@ -19,7 +19,6 @@ from test.terra.utils.utils import list2dict
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
-import numpy as np
 
 # Backwards compatibility for Terra <= 0.13
 if not hasattr(QuantumCircuit, 'i'):
@@ -46,6 +45,7 @@ def kraus_gate_error_circuits():
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     circuits.append(circuit)
+    
     return circuits
 
 
@@ -58,7 +58,7 @@ def kraus_gate_error_noise_models():
     noise_model = NoiseModel()
     noise_model.add_all_qubit_quantum_error(error, 'id')
     noise_models.append(noise_model)
-    
+
     return noise_models
 
 def kraus_gate_error_noise_models_full():
@@ -80,5 +80,6 @@ def kraus_gate_error_counts(shots, hex_counts=True):
     # 100% all-qubit Pauli error on "id" gates
     counts = [3 * shots / 4, shots / 4, 0, 0]
     counts_lists.append(counts)
+
     # Convert to counts dict
     return [list2dict(i, hex_counts) for i in counts_lists]
