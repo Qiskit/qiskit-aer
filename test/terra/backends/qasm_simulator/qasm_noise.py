@@ -158,10 +158,11 @@ class QasmKrausNoiseTests:
 
         for noise_model in noise_models:
             circuit = QFT(3)
+            ref_target = qi.Statevector(circuit).data
+            circuit.save_statevector()
             job = execute([circuit], self.SIMULATOR, shots=shots,
                           noise_model=noise_model,
                           **self.BACKEND_OPTS)
             result = job.result()
-            ref_target = qi.Statevector(circuit).data[0]
             self.assertSuccess(result)
             self.compare_statevector(result, [circuit], [ref_target])
