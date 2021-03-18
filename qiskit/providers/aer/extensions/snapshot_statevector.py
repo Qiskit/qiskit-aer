@@ -21,7 +21,7 @@ from .snapshot import Snapshot
 class SnapshotStatevector(Snapshot):
     """ Snapshot instruction for statevector snapshot type """
 
-    def __init__(self, label, num_qubits=0, dict_form=False):
+    def __init__(self, label, num_qubits=0):
         """Create a statevector state snapshot instruction.
 
         Args:
@@ -48,20 +48,14 @@ class SnapshotStatevector(Snapshot):
         warn('`The `SnapshotStatevector` instruction will be deprecated in the'
              'future. It has been superseded by the `SaveStatevector`'
              ' instructions.', PendingDeprecationWarning)
-        snapshot_type = 'statevector'
-        if dict_form:
-            snapshot_type = 'statevector_ket'
-
-        super().__init__(label, snapshot_type=snapshot_type, num_qubits=num_qubits)
+        super().__init__(label, snapshot_type='statevector', num_qubits=num_qubits)
 
 
-def snapshot_statevector(self, label, dict_form=False):
+def snapshot_statevector(self, label):
     """Take a statevector snapshot of the simulator state.
 
     Args:
         label (str): a snapshot label to report the result.
-        dict_form (bool): should the snapshot statevector
-                          be returned in ket dictionary form
 
     Returns:
         QuantumCircuit: with attached instruction.
@@ -90,7 +84,7 @@ def snapshot_statevector(self, label, dict_form=False):
     snapshot_register = Snapshot.define_snapshot_register(self)
 
     return self.append(
-        SnapshotStatevector(label, num_qubits=len(snapshot_register), dict_form=dict_form),
+        SnapshotStatevector(label, num_qubits=len(snapshot_register)),
         snapshot_register)
 
 

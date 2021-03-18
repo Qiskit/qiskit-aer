@@ -24,7 +24,7 @@ class QasmSaveStatevectorDictTests:
     SIMULATOR = QasmSimulator()
     BACKEND_OPTS = {}
 
-    def test_save_statevector(self):
+    def test_save_statevector_dict(self):
         """Test save statevector for instruction"""
 
         SUPPORTED_METHODS = [
@@ -96,7 +96,7 @@ class QasmSaveStatevectorDictTests:
                 self.assertIn(key, target)
                 self.assertAlmostEqual(qi.Statevector(vec), target[key])
 
-    def test_save_statevector_pershot(self):
+    def test_save_statevector_dict_pershot(self):
         """Test pershot save statevector instruction"""
 
         SUPPORTED_METHODS = [
@@ -135,7 +135,7 @@ class QasmSaveStatevectorDictTests:
             for vec in value:
                 self.assertAlmostEqual(qi.Statevector(vec), target)
 
-    def test_save_statevector_pershot_conditional(self):
+    def test_save_statevector_dict_pershot_conditional(self):
         """Test pershot conditional save statevector instruction"""
 
         SUPPORTED_METHODS = [
