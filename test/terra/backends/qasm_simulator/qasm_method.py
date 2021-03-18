@@ -344,7 +344,7 @@ class QasmMethodTests:
             config.custom_instructions))
 
         sim = QasmSimulator(method=method, noise_model=noise_model)
-        basis_gates = sim.configuration().basis_gates
+        basis_gates = sorted(sim.configuration().basis_gates)
         self.assertEqual(basis_gates, target_gates)
 
     @data('automatic', 'statevector', 'density_matrix', 'stabilizer',

@@ -93,9 +93,13 @@ class AerBackend(BaseBackend, ABC):
 
         # Custom configuration, properties, and pulse defaults which will store
         # any configured modifications to the base simulator values.
+        # Since this copies the whole config/properties/defaults object when
+        # setting a custom value the `_custom_options` set is used to store
+        # which keys have custom values.
         self._custom_configuration = None
         self._custom_properties = None
         self._custom_defaults = None
+        self._custom_options = set()
 
         # Set available methods
         self._available_methods = [] if available_methods is None else available_methods
@@ -165,8 +169,15 @@ class AerBackend(BaseBackend, ABC):
             BackendConfiguration: the configuration for the backend.
         """
         if self._custom_configuration is not None:
-            return self._custom_configuration
-        return self._configuration
+            config = self._custom_configuration
+        else:
+            config = self._configuration
+        # If config has custom instructions make a copy and update
+        # basis gates to include them for the terra transpiler
+        if hasattr(config, 'custom_instructions'):
+            config = copy.copy(config)
+            config.basis_gates += config.custom_instructions
+        return config
 
     def properties(self):
         """Return the simulator backend properties if set.
@@ -205,6 +216,7 @@ class AerBackend(BaseBackend, ABC):
         self._custom_configuration = None
         self._custom_properties = None
         self._custom_defaults = None
+        self._custom_options = set()
         self._options = {}
 
     def available_methods(self):
@@ -304,14 +316,17 @@ class AerBackend(BaseBackend, ABC):
         # changing the original object
         if hasattr(self._configuration, key):
             self._set_configuration_option(key, value)
+            self._custom_options.add(key)
             return
 
         if hasattr(self._properties, key):
             self._set_properties_option(key, value)
+            self._custom_options.add(key)
             return
 
         if hasattr(self._defaults, key):
             self._set_defaults_option(key, value)
+            self._custom_options.add(key)
             return
 
         # If key is method, we validate it is one of the available methods
