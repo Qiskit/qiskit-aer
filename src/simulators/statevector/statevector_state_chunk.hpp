@@ -48,8 +48,8 @@ const Operations::OpSet StateOpSet(
      OpType::save_expval_var, OpType::save_densmat,
      OpType::save_probs, OpType::save_probs_ket,
      OpType::save_amps, OpType::save_amps_sq,
-     OpType::save_statevec, OpType::save_state
-     // OpType::save_statevec_ket  // TODO
+     OpType::save_statevec, OpType::save_state,
+     OpType::save_statevec_dict
      },
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
@@ -598,9 +598,9 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
       case Operations::OpType::save_statevec:
         apply_save_statevector(op, result, final_ops);
         break;
-      // case Operations::OpType::save_statevec_ket:
-      //   apply_save_statevector_ket(op, result);
-      //   break;
+      case Operations::OpType::save_statevec_dict:
+        apply_save_statevector_ket(op, result);
+        break;
       case Operations::OpType::save_probs:
       case Operations::OpType::save_probs_ket:
         apply_save_probs(op, result);

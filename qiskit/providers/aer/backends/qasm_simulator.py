@@ -296,7 +296,7 @@ class QasmSimulator(AerBackend):
             # Custom instructions
             'kraus', 'roerror', 'snapshot', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict', 'save_state',
-            'save_density_matrix', 'save_statevector',
+            'save_density_matrix', 'save_statevector', 'save_statevector_dict',
             'save_amplitudes', 'save_amplitudes_sq', 'save_stabilizer'
         ]),
         'custom_instructions': sorted([
