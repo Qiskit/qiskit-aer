@@ -775,11 +775,13 @@ void State<statevec_t>::apply_save_statevector_dict(const Operations::Op &op,
         " Only the full statevector can be saved.");
   }
 
-  auto vector = copy_to_vector();
-  auto state_ket = Utils::vec2ket(vector, json_chop_threshold_, 16);
+  auto vec = copy_to_vector();
   std::map<std::string, complex_t> result_state_ket;
-  for (auto const& it : state_ket){
-    result_state_ket[it.first] = it.second;
+  for (size_t k = 0; k < dim; ++k) {
+    if (std::abs(vec[k]) >= json_chop_threshold_){
+      std::string key = Utils::int2hex(k);
+      result_state_ket.insert({key, vec[k]});
+    }
   }
   BaseState::save_data_pershot(result, op.string_params[0],
                                std::move(result_state_ket), op.save_type);
