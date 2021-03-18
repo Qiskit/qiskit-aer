@@ -125,17 +125,17 @@ class UnitarySimulator(AerBackend):
                                 # so that the default shot value for execute
                                 # will not raise an error when trying to run
                                 # a simulation
-        'description': 'A C++ unitary simulator for QASM Qobj files',
+        'description': 'A C++ unitary circuit simulator',
         'coupling_map': None,
-        'basis_gates': [
+        'basis_gates': sorted([
             'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
             'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
             'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
             'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
             'mcp', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
             'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
-            'save_unitary'
-        ],
+        ]),
+        'custom_instructions': sorted(['save_unitary', 'save_state']),
         'gates': []
     }
 
@@ -157,6 +157,9 @@ class UnitarySimulator(AerBackend):
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
                 UnitarySimulator._DEFAULT_CONFIGURATION)
+        elif not hasattr(configuration, 'custom_instructions'):
+            custom_inst = UnitarySimulator._DEFAULT_CONFIGURATION['custom_instructions']
+            configuration.custom_instructions = custom_inst
 
         super().__init__(configuration,
                          properties=properties,
