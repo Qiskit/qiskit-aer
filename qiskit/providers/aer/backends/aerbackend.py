@@ -84,6 +84,7 @@ class AerBackend(BaseBackend, ABC):
         """
         # Init configuration and provider in BaseBackend
         configuration.simulator = True
+        configuration.local = True
         super().__init__(configuration, provider=provider)
 
         # Initialize backend properties and pulse defaults.
