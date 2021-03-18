@@ -27,8 +27,6 @@ class SnapshotStatevector(Snapshot):
         Args:
             label (str): the snapshot label.
             num_qubits (int): the instruction barrier size [Default: 0].
-            dict_form (bool): should the snapshot statevector
-                              be returned in ket dictionary form
 
         Raises:
             ExtensionError: if snapshot is invalid.
