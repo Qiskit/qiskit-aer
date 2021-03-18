@@ -28,15 +28,11 @@ from qiskit.providers.aer.extensions import Snapshot
 from test.terra.reference.ref_snapshot_state import (
     snapshot_state_circuits_deterministic, snapshot_state_counts_deterministic,
     snapshot_state_pre_measure_statevector_deterministic,
-    snapshot_state_pre_measure_statevector_ket_deterministic,
     snapshot_state_post_measure_statevector_deterministic,
-    snapshot_state_post_measure_statevector_ket_deterministic,
     snapshot_state_circuits_nondeterministic,
     snapshot_state_counts_nondeterministic,
     snapshot_state_pre_measure_statevector_nondeterministic,
-    snapshot_state_pre_measure_statevector_ket_nondeterministic,
-    snapshot_state_post_measure_statevector_nondeterministic,
-    snapshot_state_post_measure_statevector_ket_nondeterministic)
+    snapshot_state_post_measure_statevector_nondeterministic)
 from test.terra.reference.ref_snapshot_probabilities import (
     snapshot_probabilities_circuits, snapshot_probabilities_counts,
     snapshot_probabilities_labels_qubits,
@@ -63,15 +59,6 @@ class QasmSnapshotStatevectorTests:
         statevecs = []
         for snap in snaps:
             self.assertIsInstance(snap, np.ndarray)
-            statevecs.append(snap)
-        return statevecs
-
-    def statevector_ket_snapshots(self, data, label):
-        """Format snapshots as list of dictionaries"""
-        snaps = data.get("snapshots", {}).get("statevector", {}).get(label, [])
-        statevecs = []
-        for snap in snaps:
-            self.assertIsInstance(snap, dict)
             statevecs.append(snap)
         return statevecs
 

@@ -197,7 +197,7 @@ protected:
                               bool last_op);
 
   // Save the current state of the statevector simulator as a ket-form map.
-  void apply_save_statevector_ket(const Operations::Op &op,
+  void apply_save_statevector_dict(const Operations::Op &op,
                                   ExperimentResult &result);
 
   // Save the current density matrix or reduced density matrix
@@ -599,7 +599,7 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
         apply_save_statevector(op, result, final_ops);
         break;
       case Operations::OpType::save_statevec_dict:
-        apply_save_statevector_ket(op, result);
+        apply_save_statevector_dict(op, result);
         break;
       case Operations::OpType::save_probs:
       case Operations::OpType::save_probs_ket:
@@ -766,7 +766,7 @@ void State<statevec_t>::apply_save_statevector(const Operations::Op &op,
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_save_statevector_ket(const Operations::Op &op,
+void State<statevec_t>::apply_save_statevector_dict(const Operations::Op &op,
                                                    ExperimentResult &result) 
 {
   if (op.qubits.size() != BaseState::num_qubits_) {
@@ -774,11 +774,15 @@ void State<statevec_t>::apply_save_statevector_ket(const Operations::Op &op,
         op.name + " was not applied to all qubits."
         " Only the full statevector can be saved.");
   }
-  // TODO: compute state ket
-  std::map<std::string, complex_t> state_ket;
 
+  auto vector = copy_to_vector();
+  auto state_ket = Utils::vec2ket(vector, json_chop_threshold_, 16);
+  std::map<std::string, complex_t> result_state_ket;
+  for (auto const& it : state_ket){
+    result_state_ket[it.first] = it.second;
+  }
   BaseState::save_data_pershot(result, op.string_params[0],
-                               std::move(state_ket), op.save_type);
+                               std::move(result_state_ket), op.save_type);
 }
 
 template <class statevec_t>
