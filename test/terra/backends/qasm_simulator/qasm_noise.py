@@ -151,10 +151,14 @@ class QasmKrausNoiseTests:
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
+class QasmKrausNoiseOnQFTTests:
+    """QasmSimulator Kraus error noise model on QFT tests."""
+
+    SIMULATOR = QasmSimulator()
+    BACKEND_OPTS = {}
+    
     def test_kraus_gate_noise_on_QFT(self):
         """Test Kraus noise on a QFT circuit"""
-
-        SUPPORTED_METHODS = ['statevector', 'matrix_product_state']
 
         shots = 1000
         noise_models = ref_kraus_noise.kraus_gate_error_noise_models_full()

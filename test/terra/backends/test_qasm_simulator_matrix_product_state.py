@@ -41,6 +41,7 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseOnQFTTests
 # Save data tests
 from test.terra.backends.qasm_simulator.qasm_save import QasmSaveDataTests
 # Snapshot tests
@@ -71,6 +72,7 @@ class TestQasmMatrixProductStateSimulator(
         QasmPauliNoiseTests,
         QasmResetNoiseTests,
         QasmKrausNoiseTests,
+        QasmKrausNoiseOnQFTTests,
         QasmSaveDataTests,
         QasmSnapshotStatevectorTests,
         QasmSnapshotDensityMatrixTests,
