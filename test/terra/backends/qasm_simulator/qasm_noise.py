@@ -156,7 +156,7 @@ class QasmKrausNoiseOnQFTTests:
 
     SIMULATOR = QasmSimulator()
     BACKEND_OPTS = {}
-    
+
     def test_kraus_gate_noise_on_QFT(self):
         """Test Kraus noise on a QFT circuit"""
 
