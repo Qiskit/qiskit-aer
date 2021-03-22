@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,22 +15,23 @@ Standard error function tests
 """
 
 import unittest
-from test.terra import common
-import numpy as np
 
+import numpy as np
 from qiskit.quantum_info.operators.pauli import Pauli
+
 from qiskit.providers.aer.noise import QuantumError
-from qiskit.providers.aer.noise.noiseerror import NoiseError
-from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
+from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
+from qiskit.providers.aer.noise.errors.standard_errors import coherent_unitary_error
+from qiskit.providers.aer.noise.errors.standard_errors import depolarizing_error
 from qiskit.providers.aer.noise.errors.standard_errors import kraus_error
 from qiskit.providers.aer.noise.errors.standard_errors import mixed_unitary_error
-from qiskit.providers.aer.noise.errors.standard_errors import coherent_unitary_error
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
-from qiskit.providers.aer.noise.errors.standard_errors import depolarizing_error
-from qiskit.providers.aer.noise.errors.standard_errors import thermal_relaxation_error
 from qiskit.providers.aer.noise.errors.standard_errors import phase_amplitude_damping_error
-from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit.providers.aer.noise.errors.standard_errors import phase_damping_error
+from qiskit.providers.aer.noise.errors.standard_errors import thermal_relaxation_error
+from qiskit.providers.aer.noise.noiseerror import NoiseError
+from test.terra import common
+
 
 # TODO: Test Kraus thermal relaxation error by comparing to amplitude damping channel
 
@@ -71,14 +72,12 @@ class TestNoise(common.QiskitAerTestCase):
         unitaries = [np.eye(2), np.diag([1, -1])]
         probs = [0.7, 0.3]
         error = mixed_unitary_error([(unitaries[0], probs[0]),
-                                     (unitaries[1], probs[1])],
-                                    standard_gates=True)
-        (op0, p0) = error.error_term(0)
-        (op1, p1) = error.error_term(1)
-        self.assertEqual(QuantumError._qc_to_json(op0)[0], {"name": "z", "qubits": [0]})
-        self.assertEqual(QuantumError._qc_to_json(op1)[0], {"name": "id", "qubits": [0]})
-        self.assertEqual(p0, 0.3)
-        self.assertEqual(p1, 0.7)
+                                     (unitaries[1], probs[1])])
+        for i in [0, 1]:
+            op, p = error.error_term(i)
+            self.assertIn(p, probs)
+            expected = unitaries[0] if p == 0.7 else unitaries[1]
+            self.assertTrue(np.allclose(op[0][0].to_matrix(), expected))
 
     def test_coherent_unitary_error(self):
         """Test coherent unitary error"""
@@ -395,8 +394,8 @@ class TestNoise(common.QiskitAerTestCase):
         error = phase_damping_error(p_phase, canonical_kraus=True)
         # The canonical form of this channel should be a mixed
         # unitary dephasing channel
-        targets = [standard_gate_unitary("id"),
-                   standard_gate_unitary("z")]
+        targets = [Pauli("I").to_matrix(),
+                   Pauli("Z").to_matrix()]
         self.assertEqual(error.size, 1)
         circ, p = error.error_term(0)
         circ = QuantumError._qc_to_json(circ)
