@@ -242,20 +242,11 @@ class QasmCliffordTests:
     # ---------------------------------------------------------------------
     def test_pauli_gate_deterministic(self):
         """Test pauli gate circuits"""
-        if 'method' in self.BACKEND_OPTS:
-            conf = self.SIMULATOR._method_configuration(self.BACKEND_OPTS['method'])
-            basis_gates = conf.basis_gates
-        else:
-            basis_gates = None
         shots = 100
         circuits = ref_1q_clifford.pauli_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.pauli_gate_counts_deterministic(shots)
-        job = execute(circuits,
-                      self.SIMULATOR,
-                      shots=shots,
-                      basis_gates=basis_gates,
-                      **self.BACKEND_OPTS, optimization_level=0)
+        job = execute(circuits, self.SIMULATOR, shots=shots, optimization_level=0)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -265,20 +256,11 @@ class QasmCliffordTests:
     # ---------------------------------------------------------------------
     def test_id_gate_deterministic(self):
         """Test id gate circuits"""
-        if 'method' in self.BACKEND_OPTS:
-            conf = self.SIMULATOR._method_configuration(self.BACKEND_OPTS['method'])
-            basis_gates = conf.basis_gates
-        else:
-            basis_gates = None
         shots = 100
         circuits = ref_1q_clifford.id_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.id_gate_counts_deterministic(shots)
-        job = execute(circuits,
-                      self.SIMULATOR,
-                      shots=shots,
-                      basis_gates=basis_gates,
-                      **self.BACKEND_OPTS, optimization_level=0)
+        job = execute(circuits, self.SIMULATOR, shots=shots, optimization_level=0)
         result = job.result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
@@ -288,18 +270,11 @@ class QasmCliffordTests:
     # ---------------------------------------------------------------------
     def test_delay_gate_deterministic(self):
         """Test delay gate circuits"""
-        if 'method' in self.BACKEND_OPTS:
-            conf = self.SIMULATOR._method_configuration(self.BACKEND_OPTS['method'])
-            basis_gates = conf.basis_gates
-        else:
-            basis_gates = None
         shots = 100
         circuits = ref_1q_clifford.delay_gate_circuits_deterministic(
             final_measure=True)
         targets = ref_1q_clifford.delay_gate_counts_deterministic(shots)
-        qobj = assemble(circuits, self.SIMULATOR, shots=shots,
-                        basis_gates=basis_gates,
-                        **self.BACKEND_OPTS)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots, optimization_level=0)
         result = self.SIMULATOR.run(qobj).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)

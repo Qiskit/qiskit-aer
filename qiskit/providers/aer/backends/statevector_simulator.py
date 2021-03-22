@@ -119,20 +119,23 @@ class StatevectorSimulator(AerBackend):
         # so that the default shot value for execute
         # will not raise an error when trying to run
         # a simulation
-        'description': 'A C++ statevector simulator for QASM Qobj files',
+        'description': 'A C++ statevector circuit simulator',
         'coupling_map': None,
-        'basis_gates': [
+        'basis_gates': sorted([
             'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
             'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
             'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
             'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
             'mcp', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
             'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-            'initialize', 'kraus', 'roerror', 'delay', 'pauli',
+            'initialize', 'delay', 'pauli'
+        ]),
+        'custom_instructions': sorted([
+            'kraus', 'roerror',
             'save_expval', 'save_density_matrix', 'save_statevector',
             'save_probs', 'save_probs_ket', 'save_amplitudes',
-            'save_amplitudes_sq'
-        ],
+            'save_amplitudes_sq', 'save_state'
+        ]),
         'gates': []
     }
 
@@ -156,6 +159,10 @@ class StatevectorSimulator(AerBackend):
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
                 StatevectorSimulator._DEFAULT_CONFIGURATION)
+        elif not hasattr(configuration, 'custom_instructions'):
+            custom_inst = StatevectorSimulator._DEFAULT_CONFIGURATION['custom_instructions']
+            configuration.custom_instructions = custom_inst
+
         super().__init__(
             configuration,
             properties=properties,
