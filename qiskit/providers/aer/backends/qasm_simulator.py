@@ -347,7 +347,7 @@ class QasmSimulator(AerBackend):
         return Options(
             # Global options
             shots=1024,
-            method="automatic",
+            method=None,
             precision="double",
             zero_threshold=1e-10,
             validation_threshold=None,
@@ -489,13 +489,13 @@ class QasmSimulator(AerBackend):
         # basis gates
         config_gates = self._configuration.basis_gates
         basis_gates = set(config_gates)
-        if 'noise_model' in self._options:
-            noise_gates = self._options['noise_model'].basis_gates
+        if self._options.noise_model:
+            noise_gates = self._options.noise_model.basis_gates
             basis_gates = basis_gates.intersection(noise_gates)
         else:
             noise_gates = None
 
-        if 'method' in self._options:
+        if self._options.method:
             method_gates = self._method_basis_gates()
             basis_gates = basis_gates.intersection(method_gates)
         else:
