@@ -37,7 +37,7 @@ const Operations::OpSet StateOpSet(
     OpType::roerror, OpType::save_expval,
     OpType::save_expval_var, OpType::save_probs,
     OpType::save_probs_ket, OpType::save_amps_sq,
-    OpType::save_stabilizer},
+    OpType::save_stabilizer, OpType::save_state},
   // Gates
   {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg",
    "sx", "delay"},
@@ -344,6 +344,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         case OpType::save_amps_sq:
           apply_save_amplitudes_sq(op, result);
           break;
+        case OpType::save_state:
         case OpType::save_stabilizer:
           apply_save_stabilizer(op, result);
           break;
@@ -483,8 +484,9 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
 
 void State::apply_save_stabilizer(const Operations::Op &op,
                                 ExperimentResult &result) {
+  std::string key = (op.string_params[0] == "_method_") ? "stabilizer" : op.string_params[0];
   json_t clifford = BaseState::qreg_;
-  BaseState::save_data_pershot(result, op.string_params[0],
+  BaseState::save_data_pershot(result, key,
                                std::move(clifford), op.save_type);
 }
 
