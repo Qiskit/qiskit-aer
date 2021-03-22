@@ -143,9 +143,29 @@ class AerBackend(BaseBackend, ABC):
                 DeprecationWarning,
                 stacklevel=3)
 
+        profiled_options = {}
+
+        def set_if_profiled(prop_name, profiled_attr_name):
+            # DEPRECATED
+            if backend_options is not None and prop_name in backend_options:
+                return
+            if prop_name in run_options or not hasattr(self, profiled_attr_name):
+                return
+            profiled_options[prop_name] = getattr(self, profiled_attr_name)
+
+        # Add default OpenMP options
+        set_if_profiled('statevector_parallel_threshold', '_statevector_parallel_threshold')
+        # Add default fusion options
+        attr_postfix = ''
+        if backend_options is not None and 'gpu' in backend_options.get('method', ''):
+            attr_postfix = '_gpu'
+        set_if_profiled('fusion_threshold', f'_fusion_threshold{attr_postfix}')
+        for i in range(1, 6):
+            set_if_profiled(f'fusion_cost.{i}', f'_fusion_cost{attr_postfix}.{i}')
+
         # Add backend options to the Job qobj
         qobj = self._format_qobj(
-            qobj, backend_options=backend_options, **run_options)
+            qobj, backend_options=backend_options, **run_options, **profiled_options)
 
         # Optional validation
         if validate:
@@ -233,25 +253,6 @@ class AerBackend(BaseBackend, ABC):
                 'The validate arg of `_run_job` has been removed. Use '
                 'validate=True in the `run` method instead.',
                 DeprecationWarning)
-
-        # Add default OpenMP options
-        if 'statevector_parallel_threshold' not in backend_options and hasattr(
-                self, '_statevector_parallel_threshold'):
-            backend_options['statevector_parallel_threshold'] = \
-                getattr(self, '_statevector_parallel_threshold')
-
-        # Add default fusion options
-        attr_postfix = '_gpu' if 'gpu' in backend_options.get('method', '') else ''
-        if 'fusion_threshold' not in backend_options and hasattr(
-                self, f'_fusion_threshold{attr_postfix}'):
-            # Set fusion threshold
-            backend_options['fusion_threshold'] = getattr(self, f'_fusion_threshold{attr_postfix}')
-        for i in range(1, 6):
-            if f'fusion_cost.{i}' not in backend_options and \
-               hasattr(self, f'_fusion_cost{attr_postfix}.{i}'):
-                # Set cost for each
-                backend_options[f'fusion_cost.{i}'] = getattr(self,
-                                                              f'_fusion_cost{attr_postfix}.{i}')
 
         # The new function swaps positional args qobj and job id so we do a
         # type check to swap them back
