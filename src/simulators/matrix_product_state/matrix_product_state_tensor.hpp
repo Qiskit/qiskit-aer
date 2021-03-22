@@ -33,6 +33,8 @@
 namespace AER {
 namespace MatrixProductState {
 
+void apply_y_helper(cmatrix_t& mat1, cmatrix_t& mat2);
+
 //============================================================================
 // MPS_Tensor class
 //============================================================================
