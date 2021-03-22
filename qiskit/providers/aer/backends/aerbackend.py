@@ -91,21 +91,14 @@ class AerBackend(BaseBackend, ABC):
         self._properties = properties
         self._defaults = defaults
 
-        # Custom configuration, properties, and pulse defaults which will store
-        # any configured modifications to the base simulator values.
-        # Since this copies the whole config/properties/defaults object when
-        # setting a custom value the `_custom_options` set is used to store
-        # which keys have custom values.
-        self._custom_configuration = None
-        self._custom_properties = None
-        self._custom_defaults = None
-        self._custom_options = set()
-
         # Set available methods
         self._available_methods = [] if available_methods is None else available_methods
 
         # Set custom configured options from backend_options dictionary
         self._options = {}
+        self._options_configuration = {}
+        self._options_defaults = {}
+        self._options_properties = {}
         if backend_options is not None:
             for key, val in backend_options.items():
                 self._set_option(key, val)
@@ -168,14 +161,12 @@ class AerBackend(BaseBackend, ABC):
         Returns:
             BackendConfiguration: the configuration for the backend.
         """
-        if self._custom_configuration is not None:
-            config = self._custom_configuration
-        else:
-            config = self._configuration
-        # If config has custom instructions make a copy and update
+        config = copy.copy(self._configuration)
+        for key, val in self._options_configuration.items():
+            setattr(config, key, val)
+        # If config has custom instructions add them to
         # basis gates to include them for the terra transpiler
         if hasattr(config, 'custom_instructions'):
-            config = copy.copy(config)
             config.basis_gates += config.custom_instructions
         return config
 
@@ -186,9 +177,10 @@ class AerBackend(BaseBackend, ABC):
             BackendProperties: The backend properties or ``None`` if the
                                backend does not have properties set.
         """
-        if self._custom_properties is not None:
-            return self._custom_properties
-        return self._properties
+        properties = copy.copy(self._properties)
+        for key, val in self._options_properties.items():
+            setattr(properties, key, val)
+        return properties
 
     def defaults(self):
         """Return the simulator backend pulse defaults.
@@ -197,9 +189,10 @@ class AerBackend(BaseBackend, ABC):
             PulseDefaults: The backend pulse defaults or ``None`` if the
                            backend does not support pulse.
         """
-        if self._custom_defaults is not None:
-            return self._custom_defaults
-        return self._defaults
+        defaults = copy.copy(self._defaults)
+        for key, val in self._options_defaults.items():
+            setattr(defaults, key, val)
+        return defaults
 
     @property
     def options(self):
@@ -213,11 +206,10 @@ class AerBackend(BaseBackend, ABC):
 
     def clear_options(self):
         """Reset the simulator options to default values."""
-        self._custom_configuration = None
-        self._custom_properties = None
-        self._custom_defaults = None
-        self._custom_options = set()
         self._options = {}
+        self._options_configuration = {}
+        self._options_properties = {}
+        self._options_defaults = {}
 
     def available_methods(self):
         """Return the available simulation methods."""
@@ -310,25 +302,6 @@ class AerBackend(BaseBackend, ABC):
         Raises:
             AerError: if key is 'method' and val isn't in available methods.
         """
-        # Check for key in configuration, properties, and defaults
-        # If the key requires modification of one of these fields a copy
-        # will be generated that can store the modified values without
-        # changing the original object
-        if hasattr(self._configuration, key):
-            self._set_configuration_option(key, value)
-            self._custom_options.add(key)
-            return
-
-        if hasattr(self._properties, key):
-            self._set_properties_option(key, value)
-            self._custom_options.add(key)
-            return
-
-        if hasattr(self._defaults, key):
-            self._set_defaults_option(key, value)
-            self._custom_options.add(key)
-            return
-
         # If key is method, we validate it is one of the available methods
         if key == 'method' and value not in self._available_methods:
             raise AerError("Invalid simulation method {}. Available methods"
@@ -338,30 +311,38 @@ class AerBackend(BaseBackend, ABC):
         # TODO: in the future this could be replaced with an options class
         #       for the simulators like configuration/properties to show all
         #       available options
-        if value is not None:
-            # Only add an option if its value is not None
-            self._options[key] = value
-        elif key in self._options:
-            # If setting an existing option to None remove it from options dict
-            self._options.pop(key)
+        if hasattr(self._configuration, key):
+            self._set_configuration_option(key, value)
+        elif hasattr(self._properties, key):
+            self._set_properties_option(key, value)
+        elif hasattr(self._defaults, key):
+            self._set_defaults_option(key, value)
+        else:
+            if value is not None:
+                self._options[key] = value
+            elif key in self._options:
+                self._options.pop(key)
 
     def _set_configuration_option(self, key, value):
         """Special handling for setting backend configuration options."""
-        if self._custom_configuration is None:
-            self._custom_configuration = copy.copy(self._configuration)
-        setattr(self._custom_configuration, key, value)
+        if value is not None:
+            self._options_configuration[key] = value
+        elif key in self._options_configuration:
+            self._options_configuration.pop(key)
 
     def _set_properties_option(self, key, value):
         """Special handling for setting backend properties options."""
-        if self._custom_properties is None:
-            self._custom_properties = copy.copy(self._properties)
-        setattr(self._custom_properties, key, value)
+        if value is not None:
+            self._options_properties[key] = value
+        elif key in self._options_properties:
+            self._options_properties.pop(key)
 
     def _set_defaults_option(self, key, value):
         """Special handling for setting backend defaults options."""
-        if self._custom_defaults is None:
-            self._custom_defaults = copy.copy(self._defaults)
-        setattr(self._custom_defaults, key, value)
+        if value is not None:
+            self._options_defaults[key] = value
+        elif key in self._options_defaults:
+            self._options_defaults.pop(key)
 
     def _format_qobj(self, qobj,
                      backend_options=None,  # DEPRECATED

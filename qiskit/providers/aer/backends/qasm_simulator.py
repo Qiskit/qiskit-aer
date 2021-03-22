@@ -332,9 +332,8 @@ class QasmSimulator(AerBackend):
 
         # Default configuration
         if configuration is None:
-            configuration = self._method_configuration()
-        elif not hasattr(configuration, 'custom_instructions'):
-            configuration.custom_instructions = QasmSimulator._DEFAULT_CUSTOM_INSTR
+            configuration = QasmBackendConfiguration.from_dict(
+                QasmSimulator._DEFAULT_CONFIGURATION)
 
         super().__init__(configuration,
                          properties=properties,
@@ -369,6 +368,21 @@ class QasmSimulator(AerBackend):
                   **options)
         return sim
 
+    def configuration(self):
+        """Return the simulator backend configuration.
+
+        Returns:
+            BackendConfiguration: the configuration for the backend.
+        """
+        # Update basis gates based on custom options, config, method,
+        # and noise model
+        basis_gates = self._basis_gates()
+        custom_inst = self._custom_instructions()
+        config = super().configuration()
+        config.custom_instructions = custom_inst
+        config.basis_gates = basis_gates + custom_inst
+        return config
+
     def _execute(self, qobj):
         """Execute a qobj on the backend.
 
@@ -390,66 +404,16 @@ class QasmSimulator(AerBackend):
         Raises:
             AerError: if key is 'method' and val isn't in available methods.
         """
-        if key == 'noise_model' and value is not None:
-            # Update basis gates based on noise model basis gates
-            self._set_basis_gates(noise_model=value)
-
         if key == 'method':
-            # Update simulator config based on method
-            method_config = self._method_configuration(value)
-            self._set_configuration_option('description', method_config.description)
-            self._set_configuration_option('backend_name', method_config.backend_name)
-            self._set_configuration_option('n_qubits', method_config.n_qubits)
-
-            # Update basis gates based on method basis gates
-            self._set_basis_gates(method=value)
+            # Special handling to update config options if method changes
+            self._set_method(method=value)
+            return
+        if key == 'custom_instructions':
+            self._set_configuration_option(key, value)
+            return
 
         # Set all other options from AerBackend
         super()._set_option(key, value)
-
-    def _set_basis_gates(self, method=None, noise_model=None):
-        """Check configuration basis gates"""
-
-        if 'basis_gates' in self._custom_options:
-            # Use option value for basis gates
-            return
-
-        if noise_model is None:
-            noise_model = self.options.get('noise_model', None)
-
-        if method is None:
-            method = self.options.get('method', None)
-
-        # Set basis gates to be the intersection of config, method, and noise model
-        # basis gates
-        config_gates = self._configuration.basis_gates
-        basis_gates = set(config_gates)
-        if noise_model is None:
-            noise_gates = None
-        else:
-            noise_gates = noise_model.basis_gates
-            basis_gates = basis_gates.intersection(noise_gates)
-
-        if method is None:
-            method_gates = None
-            custom_inst = getattr(self._configuration,
-                                  'custom_instructions', [])
-        else:
-            method_gates, custom_inst = self._method_instructions(method)
-            basis_gates = basis_gates.intersection(method_gates)
-
-        if not basis_gates:
-            logger.warning(
-                "The intersection of configuration basis gates (%s), "
-                "simulation method basis gates (%s), and "
-                "noise model basis gates (%s) is empty",
-                config_gates, method_gates, noise_gates)
-
-        # Update configuration with basis gates
-        self._set_configuration_option(
-            'basis_gates', sorted(basis_gates))
-        self._set_configuration_option(
-            'custom_instructions', custom_inst)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.
@@ -474,91 +438,121 @@ class QasmSimulator(AerBackend):
                         'count data will return all zeros.',
                         experiment.header.name)
 
-    @staticmethod
-    def _method_instructions(method=None):
-        """Return method basis gates and custom instructions"""
+    def _basis_gates(self):
+        """Return simualtor basis gates.
 
+        This will be the option value of basis gates if it was set,
+        otherwise it will be the intersection of the configuration, noise model
+        and method supported basis gates.
+        """
+        # Use option value for basis gates if set
+        if 'basis_gates' in self._options_configuration:
+            return self._options_configuration['basis_gates']
+
+        # Set basis gates to be the intersection of config, method, and noise model
+        # basis gates
+        config_gates = self._configuration.basis_gates
+        basis_gates = set(config_gates)
+        if 'noise_model' in self._options:
+            noise_gates = self._options['noise_model'].basis_gates
+            basis_gates = basis_gates.intersection(noise_gates)
+        else:
+            noise_gates = None
+
+        if 'method' in self._options:
+            method_gates = self._method_basis_gates()
+            basis_gates = basis_gates.intersection(method_gates)
+        else:
+            method_gates = None
+
+        if not basis_gates:
+            logger.warning(
+                "The intersection of configuration basis gates (%s), "
+                "simulation method basis gates (%s), and "
+                "noise model basis gates (%s) is empty",
+                config_gates, method_gates, noise_gates)
+        return sorted(basis_gates)
+
+    def _method_basis_gates(self):
+        """Return method basis gates and custom instructions"""
+        method = self._options.get('method', None)
         if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
-            basis_gates = sorted([
+            return sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
                 'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
                 'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
                 'unitary', 'diagonal', 'delay', 'pauli',
             ])
-            custom_inst = sorted([
-                'roerror', 'kraus', 'superop', 'snapshot', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
-                'save_density_matrix', 'save_amplitudes_sq'
-            ])
-            return basis_gates, custom_inst
-
         if method == 'matrix_product_state':
-            basis_gates = sorted([
+            return sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
                 'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay',
                 'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
                 'initialize'
             ])
-            custom_inst = sorted([
+        if method == 'stabilizer':
+            return sorted([
+                'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'cx', 'cy', 'cz',
+                'swap', 'delay',
+            ])
+        if method == 'extended_stabilizer':
+            return sorted([
+                'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx',
+                'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay'
+            ])
+        return QasmSimulator._DEFAULT_BASIS_GATES
+
+    def _custom_instructions(self):
+        """Return method basis gates and custom instructions"""
+        if 'custom_instructions' in self._options_configuration:
+            return self._options_configuration['custom_instructions']
+
+        method = self._options.get('method', None)
+        if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
+            return sorted([
+                'roerror', 'kraus', 'superop', 'snapshot', 'save_expval', 'save_expval_var',
+                'save_probabilities', 'save_probabilities_dict',
+                'save_density_matrix', 'save_amplitudes_sq'
+            ])
+        if method == 'matrix_product_state':
+            return sorted([
                 'roerror', 'snapshot', 'kraus', 'save_expval', 'save_expval_var',
                 'save_probabilities', 'save_probabilities_dict',
                 'save_density_matrix', 'save_statevector',
                 'save_amplitudes', 'save_amplitudes_sq'])
-            return basis_gates, custom_inst
-
         if method == 'stabilizer':
-            basis_gates = sorted([
-                'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'cx', 'cy', 'cz',
-                'swap', 'delay',
-            ])
-            custom_inst = sorted([
+            return sorted([
                 'roerror', 'snapshot', 'save_expval', 'save_expval_var',
                 'save_probabilities', 'save_probabilities_dict',
                 'save_amplitudes_sq', 'save_stabilizer'
             ])
-            return basis_gates, custom_inst
-
-        # Extended stabilizer method
         if method == 'extended_stabilizer':
-            basis_gates = sorted([
-                'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx',
-                'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay'
-            ])
-            custom_inst = sorted(['roerror', 'snapshot', 'save_statevector',
-                                  'save_expval', 'save_expval_var'])
-            return basis_gates, custom_inst
+            return sorted(['roerror', 'snapshot', 'save_statevector',
+                           'save_expval', 'save_expval_var'])
+        return QasmSimulator._DEFAULT_CUSTOM_INSTR
 
-        # Default
-        return (QasmSimulator._DEFAULT_BASIS_GATES,
-                QasmSimulator._DEFAULT_CUSTOM_INSTR)
-
-    @staticmethod
-    def _method_configuration(method=None):
-        """Return QasmBackendConfiguration."""
-        # Default configuration
-        config = QasmBackendConfiguration.from_dict(
-            QasmSimulator._DEFAULT_CONFIGURATION)
-
-        # Update basis gates
-        basis_gates, custom_inst = QasmSimulator._method_instructions(method)
-        config.basis_gates = basis_gates
-        config.custom_instructions = custom_inst
-
-        # Update max qubits and description
+    def _set_method(self, method=None):
+        """Set non-basis gate options when setting method"""
         if method in ['statevector', 'statevector_gpu', 'statevector_thrust']:
-            config.description = 'A C++ statevector simulator with noise'
-            config.n_qubits = MAX_QUBITS_STATEVECTOR
-        if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
-            config.description = 'A C++ density matrix simulator with noise'
-            config.n_qubits = MAX_QUBITS_STATEVECTOR // 2
+            description = 'A C++ statevector simulator with noise'
+            n_qubits = MAX_QUBITS_STATEVECTOR
+        elif method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
+            description = 'A C++ density matrix simulator with noise'
+            n_qubits = MAX_QUBITS_STATEVECTOR // 2
         elif method == 'matrix_product_state':
-            config.description = 'A C++ matrix product state simulator with noise'
-            config.n_qubits = 63  # TODO: not sure what to put here?
+            description = 'A C++ matrix product state simulator with noise'
+            n_qubits = 63  # TODO: not sure what to put here?
         elif method == 'stabilizer':
-            config.description = 'A C++ Clifford stabilizer simulator with noise'
-            config.n_qubits = 10000  # TODO: estimate from memory
+            description = 'A C++ Clifford stabilizer simulator with noise'
+            n_qubits = 10000  # TODO: estimate from memory
         elif method == 'extended_stabilizer':
-            config.description = 'A C++ Clifford+T extended stabilizer simulator with noise'
-            config.n_qubits = 63  # TODO: estimate from memory
-
-        return config
+            description = 'A C++ Clifford+T extended stabilizer simulator with noise'
+            n_qubits = 63  # TODO: estimate from memory
+        else:
+            # Clear options to default
+            description = None
+            n_qubits = None
+        # Set options
+        super()._set_option('method', method)
+        super()._set_option('description', description)
+        super()._set_option('n_qubits', n_qubits)
