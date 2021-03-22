@@ -45,9 +45,8 @@ def kraus_gate_error_circuits():
     circuit.barrier(qr)
     circuit.measure(qr, cr)
     circuits.append(circuit)
-    
-    return circuits
 
+    return circuits
 
 def kraus_gate_error_noise_models():
     """Kraus gate error noise models"""
