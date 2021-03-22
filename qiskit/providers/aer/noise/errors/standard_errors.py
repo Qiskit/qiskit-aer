@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -165,7 +165,6 @@ def pauli_error(noise_ops, standard_gates=True):
     Raises:
         NoiseError: If depolarizing probability is less than 0 or greater than 1.
     """
-    # TODO: Can we deprecate this function itself?
     # Error checking
     if not isinstance(noise_ops, (list, tuple, zip)):
         raise NoiseError("Input noise ops is not a list.")
