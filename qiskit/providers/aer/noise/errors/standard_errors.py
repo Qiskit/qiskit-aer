@@ -116,8 +116,10 @@ def mixed_unitary_error(noise_ops, standard_gates=False):
         else:
             if standard_gates:  # TODO: to be removed after deprecation period
                 qubits = list(range(num_qubits))
-                instr = make_unitary_instruction(
-                    unitary, qubits, standard_gates=standard_gates)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    instr = make_unitary_instruction(
+                        unitary, qubits, standard_gates=standard_gates)
             else:
                 instr = UnitaryGate(unitary)
             instructions.append(instr)
