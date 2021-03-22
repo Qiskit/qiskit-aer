@@ -161,15 +161,14 @@ class QasmKrausNoiseOnQFTTests:
         """Test Kraus noise on a QFT circuit"""
 
         shots = 10000
-        noise_models = ref_kraus_noise.kraus_gate_error_noise_models_full()
+        noise_model = ref_kraus_noise.kraus_gate_error_noise_models_full()
 
-        for noise_model in noise_models:
-            circuit = QFT(3)
-            circuit.measure_all()
-            ref_target = ref_kraus_noise.kraus_gate_error_counts_on_QFT(shots)
-            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
-            result = self.SIMULATOR.run(qobj,
-                                        noise_model=noise_model,
-                                        **self.BACKEND_OPTS).result()
-            self.assertSuccess(result)
-            self.compare_counts(result, [circuit], [ref_target], delta=0.1 * shots)
+        circuit = QFT(3)
+        circuit.measure_all()
+        ref_target = ref_kraus_noise.kraus_gate_error_counts_on_QFT(shots)
+        qobj = assemble(circuit, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(qobj,
+                                    noise_model=noise_model,
+                                    **self.BACKEND_OPTS).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, [circuit], [ref_target], delta=0.1 * shots)
