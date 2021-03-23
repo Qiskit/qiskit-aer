@@ -177,7 +177,12 @@ class PulseSimulator(AerBackend):
             qubit_lo_freq=None,
             solver_options=None,
             subsystem_list=None,
-            system_model=None)
+            system_model=None,
+            seed=None,
+            qubit_freq_est=inf,
+            q_level_meas=1,
+            noise_model=None,
+            initial_state=None)
 
     # pylint: disable=arguments-differ, missing-param-doc
     @deprecate_arguments({'qobj': 'schedules'})
