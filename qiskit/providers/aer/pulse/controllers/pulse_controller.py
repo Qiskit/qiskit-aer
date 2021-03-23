@@ -77,7 +77,7 @@ def pulse_controller(qobj):
     estates = [op_gen.state(state) for state in ham_model._estates.T[:]]
 
     # initial state set here
-    if getattr(config, 'initial_state', None):
+    if getattr(config, 'initial_state', None) is not None:
         pulse_sim_desc.initial_state = op_gen.state(config.initial_state)
     else:
         pulse_sim_desc.initial_state = estates[0]
