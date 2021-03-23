@@ -1139,6 +1139,42 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         self.assertGreaterEqual(state_fidelity(pulse_sim_yf, approx_yf), 0.99)
 
+    def test_schedule_freqs(self):
+        """Test simulation when each schedule has its own frequencies."""
+        """Test a schedule for a pi pulse on a 2 level system."""
+
+        # qubit frequency and drive frequency
+        omega_0 = 1.1329824
+        omega_d = omega_0
+
+        # drive strength and length of pulse
+        r = 0.01
+        total_samples = 100
+
+        # initial state and seed
+        y0 = np.array([1.0, 0.0])
+        seed = 9000
+
+        # set up simulator
+        pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
+
+        # set up constant pulse for doing a pi pulse
+        schedule = self._1Q_constant_sched(total_samples)
+        frequencies = np.array([0.5, 1.0, 1.5]) * omega_d
+        qobj = assemble(schedule,
+                        pulse_sim,
+                        schedule_los=[{DriveChannel(0): freq} for freq in frequencies],
+                        shots=128)
+
+        result = pulse_sim.run(qobj, initial_state=y0, seed=seed).result()
+
+        # check that the off-resonant drives fail to excite the system,
+        # while the on resonance drive does
+        self.assertDictAlmostEqual(result.get_counts(0), {'0': 128})
+        self.assertDictAlmostEqual(result.get_counts(1), {'1': 128})
+        self.assertDictAlmostEqual(result.get_counts(2), {'0': 128})
+
+
     def _system_model_1Q(self, omega_0, r):
         """Constructs a standard model for a 1 qubit system.
 
