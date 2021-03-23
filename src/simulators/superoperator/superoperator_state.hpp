@@ -32,6 +32,7 @@ const Operations::OpSet StateOpSet(
     // Op types
     {Operations::OpType::gate, Operations::OpType::reset,
      Operations::OpType::snapshot, Operations::OpType::barrier,
+     Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::kraus, Operations::OpType::superop,
      Operations::OpType::save_state, Operations::OpType::set_unitary,
@@ -42,7 +43,7 @@ const Operations::OpSet StateOpSet(
      "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
      "rzx",  "p",   "cp", "cu1", "sx", "x90", "delay"},
     // Snapshots
-    {"superoperator"});
+    {"superop"});
 
 // Allowed gates enum class
 enum class Gates {
@@ -70,7 +71,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Return the string name of the State class
-  virtual std::string name() const override { return "superoperator"; }
+  virtual std::string name() const override { return "superop"; }
 
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
@@ -242,6 +243,12 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
         // Note conditionals will always fail since no classical registers
         if (BaseState::creg_.check_conditional(op))
           apply_gate(op);
+        break;
+      case Operations::OpType::bfunc:
+          BaseState::creg_.apply_bfunc(op);
+        break;
+      case Operations::OpType::roerror:
+          BaseState::creg_.apply_roerror(op, rng);
         break;
       case Operations::OpType::reset:
         apply_reset(op.qubits);
@@ -496,7 +503,7 @@ void State<data_t>::apply_snapshot(const Operations::Op &op,
                                    ExperimentResult &result) {
   // Look for snapshot type in snapshotset
   if (op.name == "superopertor" || op.name == "state") {
-    BaseState::snapshot_state(op, result, "superoperator");
+    BaseState::snapshot_state(op, result, "superop");
   } else {
     throw std::invalid_argument(
         "QubitSuperoperator::State::invalid snapshot instruction \'" + op.name +
