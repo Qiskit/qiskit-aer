@@ -286,7 +286,7 @@ class QasmSimulator(AerBackend):
     _DEFAULT_CUSTOM_INSTR = sorted([
         'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
         'save_probabilities', 'save_probabilities_dict',
-        'save_amplitudes', 'save_amplitudes_sq',
+        'save_amplitudes', 'save_amplitudes_sq', 'save_state',
         'save_density_matrix', 'save_statevector', 'save_statevector_dict',
         'save_stabilizer'
     ])
@@ -565,7 +565,7 @@ class QasmSimulator(AerBackend):
             return sorted([
                 'roerror', 'kraus', 'superop', 'snapshot', 'save_expval', 'save_expval_var',
                 'save_probabilities', 'save_probabilities_dict',
-                'save_density_matrix', 'save_amplitudes_sq'
+                'save_state', 'save_density_matrix', 'save_amplitudes_sq'
             ])
         if method == 'matrix_product_state':
             return sorted([
@@ -577,7 +577,7 @@ class QasmSimulator(AerBackend):
             return sorted([
                 'roerror', 'snapshot', 'save_expval', 'save_expval_var',
                 'save_probabilities', 'save_probabilities_dict',
-                'save_amplitudes_sq', 'save_stabilizer'
+                'save_amplitudes_sq', 'save_state', 'save_stabilizer'
             ])
         if method == 'extended_stabilizer':
             return sorted(['roerror', 'snapshot', 'save_statevector',
