@@ -26,7 +26,7 @@ template<typename T>
 class ControllerExecutor {
 public:
     ControllerExecutor() = default;
-    py::object operator()(const py::object &qobj) { return AerToPy::to_python(AER::controller_execute<T>(qobj)); }
+    py::object operator()(const py::handle &qobj) { return AerToPy::to_python(AER::controller_execute<T>(qobj)); }
 };
 
 PYBIND11_MODULE(controller_wrappers, m) {
