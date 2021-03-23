@@ -105,15 +105,6 @@ struct Parser<py::handle> {
             std::to_json(var, po);
         }
     }
-    template <>
-    static bool get_value(json_t &var, const std::string& key, const py::handle& po){
-        py::object ret_po;
-        auto success = get_value<py::object>(ret_po, key, po);
-        if(success){
-            convert_to_json(var, ret_po);
-        }
-        return success;
-    }
 
     static py::object get_value(const std::string& key, const py::handle& po){
         return get_py_value(key, po);
@@ -167,6 +158,16 @@ struct Parser<py::handle> {
         return js.dump();
     }
 };
+
+template <>
+bool Parser<py::handle>::get_value<json_t>(json_t &var, const std::string& key, const py::handle& po){
+    py::object ret_po;
+    auto success = get_value<py::object>(ret_po, key, po);
+    if(success){
+        convert_to_json(var, ret_po);
+    }
+    return success;
+}
 }
 
 #endif // _aer_framework_python_parser_hpp_
