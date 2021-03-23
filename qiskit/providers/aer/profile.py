@@ -88,13 +88,13 @@ def _generate_profile_circuit(profile_qubit, base_circuit=None, basis_gates=None
     if profile_qubit < 3:
         raise AerError(f'number of qubit is too small: {profile_qubit}')
 
-    if basis_gates is None:
-        basis_gates = ['id', 'u', 'cx']
-
     if base_circuit is None:
-        return transpile(QuantumVolume(profile_qubit, 10), basis_gates=basis_gates)
+        return transpile(QuantumVolume(profile_qubit, 10), basis_gates=['id', 'u', 'cx'])
 
-    profile_circuit = transpile(base_circuit.copy(), basis_gates=basis_gates)
+    if basis_gates is not None:
+        profile_circuit = transpile(base_circuit.copy(), basis_gates=basis_gates)
+    else:
+        profile_circuit = base_circuit.copy()
 
     if profile_qubit < profile_circuit.num_qubits:
 
@@ -145,14 +145,14 @@ def _generate_profile_circuit(profile_qubit, base_circuit=None, basis_gates=None
 def _profile_run(simulator, ntrials, backend_options,
                  qubit, circuit, basis_gates=None):
 
-    if basis_gates is None:
-        basis_gates = ['id', 'u', 'cx']
-
     profile_circuit = _generate_profile_circuit(qubit, circuit, basis_gates)
 
     qobj = assemble(ntrials * [profile_circuit], shots=1)
 
     result = simulator.run(qobj, **backend_options).result()
+
+    if not result.success:
+        raise AerError('Failed to run a profile circuit')
 
     time_taken = 0.0
     for j in range(ntrials):
@@ -168,20 +168,23 @@ def profile_parallel_threshold(min_qubits=10, max_qubits=20, ntrials=10,
     profile_opts = {'method': 'statevector',
                     'max_parallel_experiments': 1,
                     'max_parallel_shots': 1,
-                    'fusion_enabled': False}
+                    'fusion_enable': False}
 
     if backend_options is not None:
         for key, val in backend_options.items():
             profile_opts[key] = val
 
     simulator = QasmSimulator()
+    basis_gates = ['id', 'u', 'cx']
 
     ratios = []
     for qubit in range(min_qubits, max_qubits + 1):
         profile_opts['statevector_parallel_threshold'] = 64
-        serial_time_taken = _profile_run(simulator, ntrials, profile_opts, qubit, circuit)
+        serial_time_taken = _profile_run(simulator, ntrials, profile_opts,
+                                         qubit, circuit, basis_gates)
         profile_opts['statevector_parallel_threshold'] = 1
-        parallel_time_taken = _profile_run(simulator, ntrials, profile_opts, qubit, circuit)
+        parallel_time_taken = _profile_run(simulator, ntrials, profile_opts,
+                                           qubit, circuit, basis_gates)
         if return_ratios:
             ratios.append(serial_time_taken / parallel_time_taken)
         elif serial_time_taken < parallel_time_taken:
@@ -208,6 +211,7 @@ def profile_fusion_threshold(min_qubits=10, max_qubits=20, ntrials=10,
             profile_opts[key] = val
 
     simulator = QasmSimulator()
+    basis_gates = ['id', 'u', 'cx']
 
     # Ensure fusion is enabled and method is statevector
     if gpu:
@@ -219,10 +223,12 @@ def profile_fusion_threshold(min_qubits=10, max_qubits=20, ntrials=10,
 
     ratios = []
     for qubit in range(min_qubits, max_qubits + 1):
-        profile_opts['fusion_enabled'] = False
-        non_fusion_time_taken = _profile_run(simulator, ntrials, profile_opts, qubit, circuit)
-        profile_opts['fusion_enabled'] = True
-        fusion_time_taken = _profile_run(simulator, ntrials, profile_opts, qubit, circuit)
+        profile_opts['fusion_enable'] = False
+        non_fusion_time_taken = _profile_run(simulator, ntrials, profile_opts,
+                                             qubit, circuit, basis_gates)
+        profile_opts['fusion_enable'] = True
+        fusion_time_taken = _profile_run(simulator, ntrials, profile_opts,
+                                         qubit, circuit, basis_gates)
         if return_ratios:
             ratios.append(non_fusion_time_taken / fusion_time_taken)
         elif non_fusion_time_taken < fusion_time_taken:
@@ -239,7 +245,7 @@ def profile_fusion_costs(num_qubits, ntrials=10, backend_options=None, gpu=False
     profile_opts = {'method': 'statevector',
                     'max_parallel_experiments': 1,
                     'max_parallel_shots': 1,
-                    'fusion_threshold': 1}
+                    'fusion_enable': False}
 
     if backend_options is not None:
         for key, val in backend_options.items():
@@ -254,8 +260,6 @@ def profile_fusion_costs(num_qubits, ntrials=10, backend_options=None, gpu=False
         if not result.success:
             raise AerError('"statevector_gpu" backend is not supported on this system.')
         profile_opts['method'] = 'statevector_gpu'
-
-    basis_gates = ['id', 'u', 'cx', 'unitary', 'diagonal']
 
     all_gate_time = []
     for target in range(0, 5):
@@ -275,7 +279,7 @@ def profile_fusion_costs(num_qubits, ntrials=10, backend_options=None, gpu=False
                                           profile_opts,
                                           num_qubits,
                                           profile_circuit,
-                                          basis_gates))
+                                          None))
 
     costs = []
     for target in range(0, 5):
