@@ -328,12 +328,16 @@ class AerBackend(Backend, ABC):
         elif hasattr(self._defaults, key):
             self._set_defaults_option(key, value)
         else:
+            if not hasattr(self._options, key):
+                raise AerError("Invalid option %s" % key)
             if value is not None:
                 # Only add an option if its value is not None
                 setattr(self._options, key, value)
-            elif key in self._options:
-                # If setting an existing option to None remove it from options dict
-                self._options.pop(key)
+            else:
+                # If setting an existing option to None reset it to default
+                # this is for backwards compatibility when setting it to None would
+                # remove it from the options dict
+                setattr(self._options, key, getattr(self._default_options(), key))
 
     def set_options(self, **fields):
         for key, value in fields.items():
