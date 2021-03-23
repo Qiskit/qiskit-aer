@@ -342,6 +342,22 @@ class QasmSimulator(AerBackend):
                          provider=provider,
                          backend_options=backend_options)
 
+    def __repr__(self):
+        """String representation of an AerBackend."""
+        display = super().__repr__()[:-1]
+        pad = ' ' * (len(self.__class__.__name__) + 1)
+
+        method = getattr(self.options, 'method', None)
+        if method not in [None, 'automatic']:
+            display += ",\n{}method='{}'".format(pad, method)
+
+        noise_model = getattr(self.options, 'noise_model', None)
+        if noise_model is not None and not noise_model.is_ideal():
+            display += ',\n{}noise_model={})'.format(pad, repr(noise_model))
+
+        display += ")"
+        return display
+
     @classmethod
     def _default_options(cls):
         return Options(

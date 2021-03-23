@@ -408,9 +408,8 @@ class AerBackend(Backend, ABC):
 
     def __repr__(self):
         """String representation of an AerBackend."""
-        display = "backend_name='{}'".format(self.name())
+        name = self.__class__.__name__
+        display = f"backend_name='{self.name()}'"
         if self.provider():
-            display += ', provider={}()'.format(self.provider())
-        for key, val in self.options.__dict__.items():
-            display += ',\n    {}={}'.format(key, repr(val))
-        return '{}(\n{})'.format(self.__class__.__name__, display)
+            display += f', provider={self.provider()}()'
+        return f'{name}({display})'
