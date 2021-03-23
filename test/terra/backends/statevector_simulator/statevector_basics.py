@@ -224,6 +224,17 @@ class StatevectorSimulatorTests:
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
+    def test_unitary_gate_circuit_run(self):
+        """Test simulation with unitary gate circuit instructions."""
+        circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(
+            final_measure=False)
+        targets = ref_unitary_gate.unitary_gate_statevector_deterministic()
+        t_circs = transpile(circuits, self.SIMULATOR)
+        job = self.SIMULATOR.run(t_circs, shots=1, **self.BACKEND_OPTS)
+        result = job.result()
+        self.assertSuccess(result)
+        self.compare_statevector(result, circuits, targets)
+
     def test_diagonal_gate(self):
         """Test simulation with diagonal gate circuit instructions."""
         circuits = ref_diagonal_gate.diagonal_gate_circuits_deterministic(

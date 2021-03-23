@@ -15,6 +15,7 @@ QasmSimulator Integration Tests
 
 from test.terra.reference import ref_algorithms
 from qiskit import execute
+from qiskit import transpile
 from qiskit.providers.aer import QasmSimulator
 
 
@@ -50,6 +51,17 @@ class QasmAlgorithmTests:
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
+    def test_grovers_default_basis_gates_with_circuit_run(self):
+        shots = 4000
+        circuits = ref_algorithms.grovers_circuit(
+            final_measure=True, allow_sampling=True)
+        targets = ref_algorithms.grovers_counts(shots)
+        transpiled_circs = transpile(circuits, self.SIMULATOR)
+        job = self.SIMULATOR.run(transpiled_circs, shots=shots
+                                 **self.BACKEND_OPTS)
+        result = job.result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
 class QasmAlgorithmTestsWaltzBasis:
     """QasmSimulator algorithm tests in the Waltz u1,u2,u3,cx basis"""
