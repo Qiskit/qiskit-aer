@@ -139,8 +139,9 @@ class AerBackend(Backend, ABC):
         """
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn('Using a qobj for run() is deprecated and will be '
-                          'removed in a future release.', DeprecationWarning,
-                          stacklevel=3)
+                          'removed in a future release.',
+                          PendingDeprecationWarning,
+                          stacklevel=2)
             qobj = circuits
         else:
             options_dict = {}
