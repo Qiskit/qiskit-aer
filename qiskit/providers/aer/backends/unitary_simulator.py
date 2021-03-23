@@ -175,6 +175,7 @@ class UnitarySimulator(AerBackend):
             method="automatic",
             precision="double",
             zero_threshold=1e-10,
+            seed_simulator=None,
             validation_threshold=None,
             max_parallel_threads=None,
             max_parallel_experiments=None,
