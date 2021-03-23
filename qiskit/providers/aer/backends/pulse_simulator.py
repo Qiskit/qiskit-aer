@@ -175,7 +175,10 @@ class PulseSimulator(AerBackend):
             meas_level=None,
             meas_return=None,
             qubit_lo_freq=None,
-            solver_options=None)
+            solver_options=None,
+            subsystem_list=None,
+            system_model=None)
+
 
     # pylint: disable=arguments-differ, missing-param-doc
     @deprecate_arguments({'qobj': 'schedules'})
@@ -189,7 +192,7 @@ class PulseSimulator(AerBackend):
 
         Args:
             schedules (Schedule or list): The pulse :class:`~qiskit.pulse.Schedule`
-                (or list of ``Schedule objects) to be executed.
+                (or list of ``Schedule`` objects) to be executed.
             backend_options (dict or None): DEPRECATED dictionary of backend options
                                             for the execution (default: None).
             validate (bool): validate the Qobj before running (default: True).
@@ -234,7 +237,7 @@ class PulseSimulator(AerBackend):
 
     @property
     def _system_model(self):
-        return self._options.get('system_model')
+        return getattr(self._options, 'system_model')
 
     @classmethod
     def from_backend(cls, backend, **options):
@@ -282,7 +285,7 @@ class PulseSimulator(AerBackend):
 
         if key == 'hamiltonian':
             # if option is hamiltonian, set in configuration and reconstruct pulse system model
-            subsystem_list = self._options.get('subsystem_list', None)
+            subsystem_list = getattr(self._options.get, 'subsystem_list', None)
             system_model = PulseSystemModel.from_config(self.configuration(),
                                                         subsystem_list)
             super().set_option('system_model', system_model)
