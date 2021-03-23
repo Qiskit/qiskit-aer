@@ -57,7 +57,7 @@ def install_needed_req(import_name, package_name=None, min_version=None, max_ver
 if not _DISABLE_CONAN:
     install_needed_req('conans', package_name='conan', min_version='1.31.2')
 
-install_needed_req('skbuild', package_name='scikit-build')
+install_needed_req('skbuild', package_name='scikit-build', min_version='0.11.0')
 install_needed_req('pybind11', min_version='2.6')
 
 from skbuild import setup
@@ -76,7 +76,7 @@ common_requirements = [
 ]
 
 setup_requirements = common_requirements + [
-    'scikit-build',
+    'scikit-build>=0.11.0',
     'cmake!=3.17,!=3.17.0',
 ]
 if not _DISABLE_CONAN:

@@ -130,7 +130,7 @@ class StatevectorSimulator(AerBackend):
             'initialize', 'kraus', 'roerror', 'delay', 'pauli',
             'save_expval', 'save_density_matrix', 'save_statevector',
             'save_probs', 'save_probs_ket', 'save_amplitudes',
-            'save_amplitudes_sq'
+            'save_amplitudes_sq', 'save_state'
         ],
         'gates': []
     }

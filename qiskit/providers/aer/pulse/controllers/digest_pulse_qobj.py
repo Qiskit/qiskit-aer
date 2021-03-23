@@ -290,6 +290,15 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds, pulse_to_int, dt, q
     structs['snapshot'] = []
     structs['tlist'] = []
     structs['can_sample'] = True
+
+    # set an experiment qubit_lo_freq if present in experiment
+    structs['qubit_lo_freq'] = None
+    if 'config' in experiment:
+        if ('qubit_lo_freq' in experiment['config'] and
+                experiment['config']['qubit_lo_freq'] is not None):
+            freq_list = experiment['config']['qubit_lo_freq']
+            freq_list = [freq * 1e9 for freq in freq_list]
+            structs['qubit_lo_freq'] = freq_list
     # This is a list that tells us whether
     # the last PV pulse on a channel needs to
     # be assigned a final time based on the next pulse on that channel

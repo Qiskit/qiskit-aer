@@ -41,7 +41,7 @@ enum class OpType {
   // Noise instructions
   kraus, superop, roerror, noise_switch,
   // Save instructions
-  save_expval, save_expval_var, save_statevec, save_statevec_ket,
+  save_state, save_expval, save_expval_var, save_statevec, save_statevec_dict,
   save_densmat, save_probs, save_probs_ket, save_amps, save_amps_sq,
   save_stabilizer, save_unitary
 };
@@ -51,8 +51,8 @@ enum class DataSubType {
 };
 
 static const std::unordered_set<OpType> SAVE_TYPES = {
-  OpType::save_expval, OpType::save_expval_var,
-  OpType::save_statevec, OpType::save_statevec_ket,
+  OpType::save_state, OpType::save_expval, OpType::save_expval_var,
+  OpType::save_statevec, OpType::save_statevec_dict,
   OpType::save_densmat, OpType::save_probs, OpType::save_probs_ket,
   OpType::save_amps, OpType::save_amps_sq, OpType::save_stabilizer,
   OpType::save_unitary
@@ -75,6 +75,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   case OpType::barrier:
     stream << "barrier";
     break;
+  case OpType::save_state:
+    stream << "save_state";
+    break;
   case OpType::save_expval:
     stream << "save_expval";
     break;
@@ -83,7 +86,7 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   case OpType::save_statevec:
     stream << "save_statevector";
     break;
-  case OpType::save_statevec_ket:
+  case OpType::save_statevec_dict:
     stream << "save_statevector_dict";
     break;
   case OpType::save_densmat:
@@ -515,6 +518,8 @@ Op json_to_op(const json_t &js) {
   if (name == "superop")
     return json_to_op_superop(js);
   // Save
+  if (name == "save_state")
+    return json_to_op_save_default(js, OpType::save_state);
   if (name == "save_expval")
     return json_to_op_save_expval(js, false);
   if (name == "save_expval_var")
@@ -522,7 +527,7 @@ Op json_to_op(const json_t &js) {
   if (name == "save_statevector")
     return json_to_op_save_default(js, OpType::save_statevec);
   if (name == "save_statevector_dict")
-    return json_to_op_save_default(js, OpType::save_statevec_ket);
+    return json_to_op_save_default(js, OpType::save_statevec_dict);
   if (name == "save_stabilizer")
     return json_to_op_save_default(js, OpType::save_stabilizer);
   if (name == "save_unitary")
