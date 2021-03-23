@@ -31,10 +31,10 @@ Result controller_execute(const inputdata_t& qobj) {
 
   // Fix for MacOS and OpenMP library double initialization crash.
   // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
-  if (Parser::check_key("config", qobj)) {
+  if (Parser<inputdata_t>::check_key("config", qobj)) {
       std::string path;
-      const auto& config = Parser::get_value("config", qobj);
-      Parser::get_value(path, "library_dir", config);
+      const auto& config = Parser<inputdata_t>::get_value("config", qobj);
+      Parser<inputdata_t>::get_value(path, "library_dir", config);
       Hacks::maybe_load_openmp(path);
   }
   return controller.execute(qobj);

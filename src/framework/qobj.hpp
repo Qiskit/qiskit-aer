@@ -62,28 +62,28 @@ inline void from_json(const json_t &js, Qobj &qobj) { qobj = Qobj(js); }
 template <typename inputdata_t>
 Qobj::Qobj(const inputdata_t &js) {
   // Check required fields
-  if (Parser::get_value(id, "qobj_id", js) == false) {
+  if (Parser<inputdata_t>::get_value(id, "qobj_id", js) == false) {
     throw std::invalid_argument(R"(Invalid qobj: no "qobj_id" field)");
   };
-    Parser::get_value(type, "type", js);
+    Parser<inputdata_t>::get_value(type, "type", js);
   if (type != "QASM") {
     throw std::invalid_argument(R"(Invalid qobj: "type" != "QASM".)");
   };
-  if (Parser::check_key("experiments", js) == false) {
+  if (Parser<inputdata_t>::check_key("experiments", js) == false) {
     throw std::invalid_argument(R"(Invalid qobj: no "experiments" field.)");
   }
 
   // Get header and config;
-  Parser::get_value(config, "config", js);
-  Parser::get_value(header, "header", js);
+  Parser<inputdata_t>::get_value(config, "config", js);
+  Parser<inputdata_t>::get_value(header, "header", js);
 
   // Check for fixed simulator seed
   // If simulator seed is set, each experiment will be set to a fixed (but different) seed
   // Otherwise a random seed will be chosen for each experiment
   int_t seed = -1;
   uint_t seed_shift = 0;
-  bool has_simulator_seed = Parser::get_value(seed, "seed_simulator", config);
-  const auto& circs = Parser::get_list("experiments", js);
+  bool has_simulator_seed = Parser<json_t>::get_value(seed, "seed_simulator", config); // config always json
+  const auto& circs = Parser<inputdata_t>::get_list("experiments", js);
   const size_t num_circs = circs.size();
 
   // Check if parameterized qobj
@@ -97,7 +97,7 @@ Qobj::Qobj(const inputdata_t &js) {
   using pos_t = std::pair<uint_t, uint_t>;
   using exp_params_t = std::vector<std::pair<pos_t, std::vector<double>>>;
   std::vector<exp_params_t> param_table;
-  Parser::get_value(param_table, "parameterizations", config);
+  Parser<json_t>::get_value(param_table, "parameterizations", config);
 
   // Validate parameterizations for number of circuis
   if (!param_table.empty() && param_table.size() != num_circs) {

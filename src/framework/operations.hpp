@@ -556,7 +556,7 @@ template<typename inputdata_t>
 Op json_to_op(const inputdata_t& js) {
   // load operation identifier
   std::string name;
-  Parser::get_value(name, "name", js);
+  Parser<inputdata_t>::get_value(name, "name", js);
   // Barrier
   if (name == "barrier")
     return json_to_op_barrier(js);
@@ -663,13 +663,13 @@ json_t op_to_json(const Op &op) {
 template<typename inputdata_t>
 void add_conditional(const Allowed allowed, Op& op, const inputdata_t& js) {
   // Check conditional
-  if (Parser::check_key("conditional", js)) {
+  if (Parser<inputdata_t>::check_key("conditional", js)) {
     // If instruction isn't allow to be conditional throw an exception
     if (allowed == Allowed::No) {
       throw std::invalid_argument("Invalid instruction: \"" + op.name + "\" cannot be conditional.");
     }
     // If instruction is allowed to be conditional add parameters
-    Parser::get_value(op.conditional_reg, "conditional", js);
+    Parser<inputdata_t>::get_value(op.conditional_reg, "conditional", js);
     op.conditional = true;
   }
 }
@@ -678,14 +678,14 @@ template<typename inputdata_t>
 Op json_to_op_gate(const inputdata_t& js) {
   Op op;
   op.type = OpType::gate;
-  Parser::get_value(op.name, "name", js);
-  Parser::get_value(op.qubits, "qubits", js);
-  Parser::get_value(op.params, "params", js);
+  Parser<inputdata_t>::get_value(op.name, "name", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.params, "params", js);
 
   // Check for optional label
   // If label is not specified record the gate name as the label
   std::string label;
-  Parser::get_value(label, "label", js);
+  Parser<inputdata_t>::get_value(label, "label", js);
   if  (label != "") 
     op.string_params = {label};
   else
@@ -712,7 +712,7 @@ Op json_to_op_barrier(const inputdata_t &js) {
   Op op;
   op.type = OpType::barrier;
   op.name = "barrier";
-  Parser::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", js);
   // Check conditional
   add_conditional(Allowed::No, op, js);
   return op;
@@ -723,9 +723,9 @@ Op json_to_op_measure(const inputdata_t& js) {
   Op op;
   op.type = OpType::measure;
   op.name = "measure";
-  Parser::get_value(op.qubits, "qubits", js);
-  Parser::get_value(op.memory, "memory", js);
-  Parser::get_value(op.registers, "register", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.memory, "memory", js);
+  Parser<inputdata_t>::get_value(op.registers, "register", js);
 
   // Conditional
   add_conditional(Allowed::No, op, js);
@@ -747,7 +747,7 @@ Op json_to_op_reset(const inputdata_t& js) {
   Op op;
   op.type = OpType::reset;
   op.name = "reset";
-  Parser::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", js);
 
   // Conditional
   add_conditional(Allowed::No, op, js);
@@ -763,8 +763,8 @@ Op json_to_op_initialize(const inputdata_t& js) {
   Op op;
   op.type = OpType::initialize;
   op.name = "initialize";
-  Parser::get_value(op.qubits, "qubits", js);
-  Parser::get_value(op.params, "params", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.params, "params", js);
 
   // Conditional
   add_conditional(Allowed::No, op, js);
@@ -780,13 +780,13 @@ Op json_to_op_pauli(const inputdata_t& js){
   Op op;
   op.type = OpType::gate;
   op.name = "pauli";
-  Parser::get_value(op.qubits, "qubits", js);
-  Parser::get_value(op.string_params, "params", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.string_params, "params", js);
 
   // Check for optional label
   // If label is not specified record the gate name as the label
   std::string label;
-  Parser::get_value(label, "label", js);
+  Parser<inputdata_t>::get_value(label, "label", js);
   if  (label != "")
     op.string_params.push_back(label);
   else
@@ -812,15 +812,15 @@ Op json_to_op_bfunc(const inputdata_t& js) {
   op.name = "bfunc";
   op.string_params.resize(2);
   std::string relation;
-  Parser::get_value(op.string_params[0], "mask", js); // mask hexadecimal string
-  Parser::get_value(op.string_params[1], "val", js);  // value hexadecimal string
-  Parser::get_value(relation, "relation", js); // relation string
+  Parser<inputdata_t>::get_value(op.string_params[0], "mask", js); // mask hexadecimal string
+  Parser<inputdata_t>::get_value(op.string_params[1], "val", js);  // value hexadecimal string
+  Parser<inputdata_t>::get_value(relation, "relation", js); // relation string
   // Load single register / memory bit for storing result
   uint_t tmp;
-  if (Parser::get_value(tmp, "register", js)) {
+  if (Parser<inputdata_t>::get_value(tmp, "register", js)) {
     op.registers.push_back(tmp);
   }
-  if (Parser::get_value(tmp, "memory", js)) {
+  if (Parser<inputdata_t>::get_value(tmp, "memory", js)) {
     op.memory.push_back(tmp);
   }
   
@@ -861,9 +861,9 @@ Op json_to_op_roerror(const inputdata_t& js) {
   Op op;
   op.type = OpType::roerror;
   op.name = "roerror";
-  Parser::get_value(op.memory, "memory", js);
-  Parser::get_value(op.registers, "register", js);
-  Parser::get_value(op.probs, "params", js);
+  Parser<inputdata_t>::get_value(op.memory, "memory", js);
+  Parser<inputdata_t>::get_value(op.registers, "register", js);
+  Parser<inputdata_t>::get_value(op.probs, "params", js);
   // Conditional
   add_conditional(Allowed::No, op, js);
   return op;
@@ -877,8 +877,8 @@ Op json_to_op_unitary(const inputdata_t& js) {
   Op op;
   op.type = OpType::matrix;
   op.name = "unitary";
-  Parser::get_value(op.qubits, "qubits", js);
-  Parser::get_value(op.mats, "params", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.mats, "params", js);
   // Validation
   check_empty_qubits(op);
   check_duplicate_qubits(op);
@@ -892,7 +892,7 @@ Op json_to_op_unitary(const inputdata_t& js) {
   }
   // Check for a label
   std::string label;
-  Parser::get_value(label, "label", js);
+  Parser<inputdata_t>::get_value(label, "label", js);
   op.string_params.push_back(label);
 
   // Conditional
@@ -904,8 +904,8 @@ Op json_to_op_diagonal(const inputdata_t& js) {
   Op op;
   op.type = OpType::diagonal_matrix;
   op.name = "diagonal";
-  Parser::get_value(op.qubits, "qubits", js);
-  Parser::get_value(op.params, "params", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.params, "params", js);
 
   // Validation
   check_empty_qubits(op);
@@ -921,7 +921,7 @@ Op json_to_op_diagonal(const inputdata_t& js) {
 
   // Check for a label
   std::string label;
-  Parser::get_value(label, "label", js);
+  Parser<inputdata_t>::get_value(label, "label", js);
   op.string_params.push_back(label);
 
   // Conditional
@@ -934,8 +934,8 @@ Op json_to_op_superop(const inputdata_t& js) {
   Op op;
   op.type = OpType::superop;
   op.name = "superop";
-  Parser::get_value(op.qubits, "qubits", js);
-  Parser::get_value(op.mats, "params", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.mats, "params", js);
   // Check conditional
   add_conditional(Allowed::Yes, op, js);
   // Validation
@@ -952,9 +952,9 @@ Op json_to_op_multiplexer(const inputdata_t& js) {
   reg_t qubits;
   std::vector<cmatrix_t> mats;
   std::string label;
-  Parser::get_value(qubits, "qubits", js);
-  Parser::get_value(mats, "params", js);
-  Parser::get_value(label, "label", js);
+  Parser<inputdata_t>::get_value(qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(mats, "params", js);
+  Parser<inputdata_t>::get_value(label, "label", js);
   // Construct op
   auto op = make_multiplexer(qubits, mats, label);
   // Conditional
@@ -966,8 +966,8 @@ Op json_to_op_kraus(const inputdata_t& js) {
   Op op;
   op.type = OpType::kraus;
   op.name = "kraus";
-  Parser::get_value(op.qubits, "qubits", js);
-  Parser::get_value(op.mats, "params", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.mats, "params", js);
 
   // Validation
   check_empty_qubits(op);
@@ -982,7 +982,7 @@ Op json_to_op_noise_switch(const inputdata_t& js) {
   Op op;
   op.type = OpType::noise_switch;
   op.name = "noise_switch";
-  Parser::get_value(op.params, "params", js);
+  Parser<inputdata_t>::get_value(op.params, "params", js);
   // Conditional
   add_conditional(Allowed::No, op, js);
   return op;
@@ -1029,7 +1029,7 @@ template<typename inputdata_t>
 Op json_to_op_save_default(const inputdata_t& js, OpType op_type) {
   Op op;
   op.type = op_type;
-  Parser::get_value(op.name, "name", js);
+  Parser<inputdata_t>::get_value(op.name, "name", js);
 
   // Get subtype
   static const std::unordered_map<std::string, DataSubType> subtypes {
@@ -1043,7 +1043,7 @@ Op json_to_op_save_default(const inputdata_t& js, OpType op_type) {
     {"c_accum", DataSubType::c_accum},
   };
   std::string subtype;
-  Parser::get_value(subtype, "snapshot_type", js);
+  Parser<inputdata_t>::get_value(subtype, "snapshot_type", js);
   auto subtype_it = subtypes.find(subtype);
   if (subtype_it == subtypes.end()) {
     throw std::runtime_error("Invalid data subtype \"" + subtype +
@@ -1053,10 +1053,10 @@ Op json_to_op_save_default(const inputdata_t& js, OpType op_type) {
  
   // Get data key
   op.string_params.emplace_back("");
-  Parser::get_value(op.string_params[0], "label", js);
+  Parser<inputdata_t>::get_value(op.string_params[0], "label", js);
 
   // Add optional qubits field
-  Parser::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", js);
   return op;
 }
 template<typename inputdata_t>
@@ -1069,13 +1069,13 @@ Op json_to_op_save_expval(const inputdata_t& js, bool variance) {
   // Parse Pauli operator components
   const auto threshold = 1e-12; // drop small components
   // Get components
-  if (Parser::check_key("params", js) && Parser::is_array("params", js)) {
-    for (const auto &comp_ : Parser::get_value("params", js)) {
-      const auto& comp = Parser::get_as_list(comp_);
+  if (Parser<inputdata_t>::check_key("params", js) && Parser<inputdata_t>::is_array("params", js)) {
+    for (const auto &comp_ : Parser<inputdata_t>::get_value("params", js)) {
+      const auto& comp = Parser<inputdata_t>::get_as_list(comp_);
       // Get complex coefficient
-      std::vector<double> coeffs = Parser::get_list_elem<std::vector<double>>(comp, 1);
+      std::vector<double> coeffs = Parser<inputdata_t>::template get_list_elem<std::vector<double>>(comp, 1);
       if (std::abs(coeffs[0]) > threshold || std::abs(coeffs[1]) > threshold) {
-        std::string pauli = Parser::get_list_elem<std::string>(comp, 0);
+        std::string pauli = Parser<inputdata_t>::template get_list_elem<std::string>(comp, 0);
         if (pauli.size() != op.qubits.size()) {
           throw std::invalid_argument(std::string("Invalid expectation value save instruction ") +
                                       "(Pauli label does not match qubit number.).");
@@ -1103,7 +1103,7 @@ Op json_to_op_save_amps(const inputdata_t& js, bool squared) {
   auto op_type = (squared) ? OpType::save_amps_sq
                            : OpType::save_amps;
   Op op = json_to_op_save_default(js, op_type);
-  Parser::get_value(op.int_params, "params", js);
+  Parser<inputdata_t>::get_value(op.int_params, "params", js);
   return op;
 }
 
@@ -1113,8 +1113,8 @@ Op json_to_op_save_amps(const inputdata_t& js, bool squared) {
 template<typename inputdata_t>
 Op json_to_op_snapshot(const inputdata_t& js) {
   std::string snapshot_type;
-  Parser::get_value(snapshot_type, "snapshot_type", js); // LEGACY: to remove in 0.3
-  Parser::get_value(snapshot_type, "type", js);
+  Parser<inputdata_t>::get_value(snapshot_type, "snapshot_type", js); // LEGACY: to remove in 0.3
+  Parser<inputdata_t>::get_value(snapshot_type, "type", js);
   if (snapshot_type.find("expectation_value_pauli") != std::string::npos)
     return json_to_op_snapshot_pauli(js);
   if (snapshot_type.find("expectation_value_matrix") != std::string::npos)
@@ -1130,13 +1130,13 @@ template<typename inputdata_t>
 Op json_to_op_snapshot_default(const inputdata_t& js) {
   Op op;
   op.type = OpType::snapshot;
-  Parser::get_value(op.name, "type", js); // LEGACY: to remove in 0.3
-  Parser::get_value(op.name, "snapshot_type", js);
+  Parser<inputdata_t>::get_value(op.name, "type", js); // LEGACY: to remove in 0.3
+  Parser<inputdata_t>::get_value(op.name, "snapshot_type", js);
   // If missing use "default" for label
   op.string_params.emplace_back("default");
-  Parser::get_value(op.string_params[0], "label", js);
+  Parser<inputdata_t>::get_value(op.string_params[0], "label", js);
   // Add optional qubits field
-  Parser::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", js);
   // If qubits is not empty, check for duplicates
   check_duplicate_qubits(op);
   return op;
@@ -1148,15 +1148,15 @@ Op json_to_op_snapshot_pauli(const inputdata_t& js) {
 
   const auto threshold = 1e-15; // drop small components
   // Get components
-  if (Parser::check_key("params", js) && Parser::is_array("params", js)) {
-    for (const auto &comp_ : Parser::get_value("params", js)) {
+  if (Parser<inputdata_t>::check_key("params", js) && Parser<inputdata_t>::is_array("params", js)) {
+    for (const auto &comp_ : Parser<inputdata_t>::get_value("params", js)) {
       // Check component is length-2 array
-      const auto& comp = Parser::get_as_list(comp_);
+      const auto& comp = Parser<inputdata_t>::get_as_list(comp_);
       if (comp.size() != 2)
         throw std::invalid_argument("Invalid Pauli expval params (param component " + 
-                                    Parser::dump(comp) + " invalid).");
+                                    Parser<inputdata_t>::dump(comp) + " invalid).");
       // Get complex coefficient
-      complex_t coeff = Parser::get_list_elem<complex_t>(comp, 0);
+      complex_t coeff = Parser<inputdata_t>::template get_list_elem<complex_t>(comp, 0);
       // If coefficient is above threshold, get the Pauli operator string
       // This string may contain I, X, Y, Z
       // qubits are stored as a list where position is qubit number:
@@ -1164,7 +1164,7 @@ Op json_to_op_snapshot_pauli(const inputdata_t& js) {
       // Pauli string labels are stored in little-endian ordering:
       // eg label = "CBA", A is the Pauli for qubit-0, B for qubit-1, C for qubit-2
       if (std::abs(coeff) > threshold) {
-        std::string pauli = Parser::get_list_elem<std::string>(comp, 1);
+        std::string pauli = Parser<inputdata_t>::template get_list_elem<std::string>(comp, 1);
         if (pauli.size() != op.qubits.size()) {
           throw std::invalid_argument(std::string("Invalid Pauli expectation value snapshot ") +
                                       "(Pauli label does not match qubit number.).");
@@ -1197,38 +1197,37 @@ Op json_to_op_snapshot_matrix(const inputdata_t& js) {
   const auto threshold = 1e-10; // drop small components
   // Get matrix operator components
   // TODO: fix repeated throw string
-  if (Parser::check_key("params", js) && Parser::is_array("params", js)) {
-    for (const auto &comp_ : Parser::get_value("params", js)) {
-      const auto& comp = Parser::get_as_list(comp_);
+  if (Parser<inputdata_t>::check_key("params", js) && Parser<inputdata_t>::is_array("params", js)) {
+    for (const auto &comp_ : Parser<inputdata_t>::get_value("params", js)) {
+      const auto& comp = Parser<inputdata_t>::get_as_list(comp_);
       // Check component is length-2 array
       if (comp.size() != 2) {
         throw std::invalid_argument("Invalid matrix expval snapshot (param component " +
-                                        Parser::dump(comp) + " invalid).");
+                                        Parser<inputdata_t>::dump(comp) + " invalid).");
       }
       // Get complex coefficient
-      complex_t coeff = Parser::get_list_elem<complex_t>(comp, 0);
+      complex_t coeff = Parser<inputdata_t>::template get_list_elem<complex_t>(comp, 0);
       std::vector<std::pair<reg_t, cmatrix_t>> mats;
       if (std::abs(coeff) > threshold) {
-        //const inputdata_t& comp_list = comp[1];
-          const json_t& comp_list = comp[1];
-          if (!Parser::is_array(comp_list)) {
+        const inputdata_t& comp_list = comp[1];
+        if (!Parser<inputdata_t>::is_array(comp_list)) {
           throw std::invalid_argument("Invalid matrix expval snapshot (param component " +
-                                          Parser::dump(comp) + " invalid).");
+                                          Parser<inputdata_t>::dump(comp) + " invalid).");
         }
         for (const auto &subcomp_ : comp_list) {
-          const auto& subcomp = Parser::get_as_list(subcomp_);
+          const auto& subcomp = Parser<inputdata_t>::get_as_list(subcomp_);
           if (subcomp.size() != 2) {
             throw std::invalid_argument("Invalid matrix expval snapshot (param component " +
-                                            Parser::dump(comp) + " invalid).");
+                                            Parser<inputdata_t>::dump(comp) + " invalid).");
           }
-          reg_t comp_qubits = Parser::get_list_elem<reg_t>(subcomp, 0);
-          cmatrix_t comp_matrix = Parser::get_list_elem<cmatrix_t>(subcomp, 1);
+          reg_t comp_qubits = Parser<inputdata_t>::template get_list_elem<reg_t>(subcomp, 0);
+          cmatrix_t comp_matrix = Parser<inputdata_t>::template get_list_elem<cmatrix_t>(subcomp, 1);
           // Check qubits are ok
           // TODO: check that qubits are in range from 0 to Num of Qubits - 1 for instr
           std::unordered_set<uint_t> unique = {comp_qubits.begin(), comp_qubits.end()};
           if (unique.size() != comp_qubits.size()) {
             throw std::invalid_argument("Invalid matrix expval snapshot (param component " +
-                                            Parser::dump(comp) + " invalid).");
+                                            Parser<inputdata_t>::dump(comp) + " invalid).");
           }
           mats.emplace_back(comp_qubits, comp_matrix);
         }

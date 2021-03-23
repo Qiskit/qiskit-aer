@@ -731,11 +731,11 @@ Result Controller::execute(const inputdata_t& qobj_js)
     Noise::NoiseModel noise_model;
     json_t config;
     // Check for config
-    if (Parser::get_value(config, "config", qobj_js)) {
+    if (Parser<inputdata_t>::get_value(config, "config", qobj_js)) {
       // Set config
       set_config(config);
-      // Load noise model
-      Parser::get_value(noise_model, "noise_model", config);
+      // Load noise model (from json config)
+      Parser<json_t>::get_value(noise_model, "noise_model", config);
     }
     auto result = execute(qobj.circuits, noise_model, config);
     // Get QOBJ id and pass through header to result

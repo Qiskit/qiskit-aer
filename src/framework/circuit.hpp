@@ -177,19 +177,19 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config) : Circuit()
 
   // Get config
   json_t config = qobj_config;
-  if (Parser::check_key("config", circ)) {
+  if (Parser<inputdata_t>::check_key("config", circ)) {
     json_t circ_config;
-    Parser::get_value(circ_config, "config", circ);
+    Parser<inputdata_t>::get_value(circ_config, "config", circ);
     for (auto it = circ_config.cbegin(); it != circ_config.cend(); ++it) {
       config[it.key()] = it.value(); // overwrite circuit level config values
     }
   }
   // Load instructions
-  if (Parser::check_key("instructions", circ) == false) {
+  if (Parser<inputdata_t>::check_key("instructions", circ) == false) {
     throw std::invalid_argument("Invalid Qobj experiment: no \"instructions\" field.");
   }
   ops.clear(); // remove any current operations
-  const inputdata_t &jops = Parser::get_list("instructions", circ);
+  const inputdata_t &jops = Parser<inputdata_t>::get_list("instructions", circ);
   for(auto jop: jops){
     ops.emplace_back(Operations::json_to_op(jop));
   }
@@ -198,13 +198,13 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config) : Circuit()
   set_params();
 
   // Load metadata
-  Parser::get_value(header, "header", circ);
-  Parser::get_value(shots, "shots", config);
-  Parser::get_value(global_phase_angle, "global_phase", header);
+  Parser<inputdata_t>::get_value(header, "header", circ);
+  Parser<json_t>::get_value(shots, "shots", config);
+  Parser<json_t>::get_value(global_phase_angle, "global_phase", header);
 
   // Check for specified memory slots
   uint_t memory_slots = 0;
-  Parser::get_value(memory_slots, "memory_slots", config);
+  Parser<json_t>::get_value(memory_slots, "memory_slots", config);
   if (memory_slots < num_memory) {
     throw std::invalid_argument("Invalid Qobj experiment: not enough memory slots.");
   }
@@ -212,10 +212,10 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config) : Circuit()
   num_memory = memory_slots;
 
   // Check for specified n_qubits
-  if (Parser::check_key("n_qubits", config)) {
+  if (Parser<json_t>::check_key("n_qubits", config)) {
     // uint_t n_qubits = config["n_qubits"];
     uint_t n_qubits;
-    Parser::get_value(n_qubits, "n_qubits", config);
+    Parser<json_t>::get_value(n_qubits, "n_qubits", config);
     if (n_qubits < num_qubits) {
       throw std::invalid_argument("Invalid Qobj experiment: n_qubits < instruction qubits.");
     }

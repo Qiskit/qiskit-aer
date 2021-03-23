@@ -16,7 +16,7 @@
 #define _aer_framework_python_parser_hpp_
 
 #include "json.hpp"
-
+#include "json_parser.hpp"
 #include "pybind_json.hpp"
 
 namespace py = pybind11;
@@ -60,16 +60,19 @@ namespace pybind11 {
 
 namespace AER{
 
-namespace Parser {
-    bool check_key(const std::string& key, const py::handle& po){
+template <>
+struct Parser<py::handle> {
+    Parser() = delete;
+
+    static bool check_key(const std::string& key, const py::handle& po){
         return py::hasattr(po, key.c_str());
     }
 
-    py::object get_py_value(const std::string& key, const py::handle& po){
+    static py::object get_py_value(const std::string& key, const py::handle& po){
         return po.attr(key.c_str());
     }
 
-    bool get_value(py::object& var, const std::string& key, const py::handle& po) {
+    static bool get_value(py::object& var, const std::string& key, const py::handle& po) {
         if(check_key(key, po)) {
             var = get_py_value(key, po);
             return true;
@@ -78,7 +81,8 @@ namespace Parser {
         }
     }
 
-    template <typename T> bool get_value(T &var, const std::string& key, const py::handle& po){
+    template <typename T>
+    static bool get_value(T &var, const std::string& key, const py::handle& po){
         if(check_key(key, po)) {
             var = get_py_value(key, po).cast<T>();
             return true;
@@ -87,7 +91,7 @@ namespace Parser {
         }
     }
 
-    void convert_to_json(json_t &var, const py::handle& po){
+    static void convert_to_json(json_t &var, const py::handle& po){
         if(py::hasattr(po, "to_dict")){
             std::to_json(var, po.attr("to_dict")());
         }else if(py::isinstance<py::list>(po)){
@@ -101,7 +105,8 @@ namespace Parser {
             std::to_json(var, po);
         }
     }
-    template <> bool get_value(json_t &var, const std::string& key, const py::handle& po){
+    template <>
+    static bool get_value(json_t &var, const std::string& key, const py::handle& po){
         py::object ret_po;
         auto success = get_value<py::object>(ret_po, key, po);
         if(success){
@@ -109,31 +114,32 @@ namespace Parser {
         }
         return success;
     }
-    py::object get_value(const std::string& key, const py::handle& po){
+
+    static py::object get_value(const std::string& key, const py::handle& po){
         return get_py_value(key, po);
     }
 
-    bool is_array(const py::handle& po){
+    static bool is_array(const py::handle& po){
         return py::isinstance<py::list>(po) || py::isinstance<py::array>(po);
     }
 
-    bool is_array(const std::string& key, const py::handle& po) {
+    static bool is_array(const std::string& key, const py::handle& po) {
         py::object the_list = get_py_value(key, po);
         return is_array(the_list);
     }
 
-    bool is_list_like(const py::handle& po){
+    static bool is_list_like(const py::handle& po){
         return is_array(po) || py::isinstance<py::tuple>(po);
     }
 
-    py::list get_as_list(const py::handle& po){
+    static py::list get_as_list(const py::handle& po){
         if(!is_list_like(po)){
             throw std::runtime_error("Object is not list like!");
         }
         return  py::cast<py::list>(po);
     }
 
-    py::list get_list(const std::string& key, const py::handle& po){
+    static py::list get_list(const std::string& key, const py::handle& po){
         py::object the_list = get_py_value(key, po);
         if(!is_array(the_list)){
             throw std::runtime_error("Object " + key + "is not a list!");
@@ -141,26 +147,26 @@ namespace Parser {
         return py::list(the_list);
     }
 
-    bool is_number(const py::handle& po){
+    static bool is_number(const py::handle& po){
         return py::isinstance<py::int_>(po) || py::isinstance<py::float_>(po);
     }
 
-    bool is_number(const std::string& key, const py::handle& po) {
+    static bool is_number(const std::string& key, const py::handle& po) {
         py::object key_po = get_py_value(key, po);
         return is_number(key_po);
     }
 
     template <typename T>
-    T get_list_elem(const py::list& po, unsigned int i){
+    static T get_list_elem(const py::list& po, unsigned int i){
         return py::cast<py::object>(po[i]).cast<T>();
     }
 
-    std::string dump(const py::handle& po){
+    static std::string dump(const py::handle& po){
         json_t js;
         convert_to_json(js, po);
         return js.dump();
     }
-}
+};
 }
 
 #endif // _aer_framework_python_parser_hpp_
