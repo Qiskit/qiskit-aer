@@ -379,6 +379,7 @@ class QasmSimulator(AerBackend):
             fusion_threshold=14,
             accept_distributed_results=None,
             blocking_qubits=None,
+            blocking_enable=False,
             memory=None,
             noise_model=None,
             seed_simulator=None,
