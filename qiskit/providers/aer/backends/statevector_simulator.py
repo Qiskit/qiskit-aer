@@ -159,9 +159,8 @@ class StatevectorSimulator(AerBackend):
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
                 StatevectorSimulator._DEFAULT_CONFIGURATION)
-        elif not hasattr(configuration, 'custom_instructions'):
-            custom_inst = StatevectorSimulator._DEFAULT_CONFIGURATION['custom_instructions']
-            configuration.custom_instructions = custom_inst
+        else:
+            configuration.open_pulse = False
 
         super().__init__(
             configuration,

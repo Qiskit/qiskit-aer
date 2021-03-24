@@ -335,6 +335,8 @@ class QasmSimulator(AerBackend):
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
                 QasmSimulator._DEFAULT_CONFIGURATION)
+        else:
+            configuration.open_pulse = False
 
         super().__init__(configuration,
                          properties=properties,

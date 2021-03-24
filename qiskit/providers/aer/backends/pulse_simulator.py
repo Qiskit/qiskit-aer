@@ -146,6 +146,7 @@ class PulseSimulator(AerBackend):
         else:
             configuration = copy.copy(configuration)
             configuration.meas_levels = self._meas_levels(configuration.meas_levels)
+            configuration.open_pulse = True
 
         if defaults is None:
             defaults = PulseDefaults(qubit_freq_est=[inf],

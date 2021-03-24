@@ -157,9 +157,8 @@ class UnitarySimulator(AerBackend):
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
                 UnitarySimulator._DEFAULT_CONFIGURATION)
-        elif not hasattr(configuration, 'custom_instructions'):
-            custom_inst = UnitarySimulator._DEFAULT_CONFIGURATION['custom_instructions']
-            configuration.custom_instructions = custom_inst
+        else:
+            configuration.open_pulse = False
 
         super().__init__(configuration,
                          properties=properties,
