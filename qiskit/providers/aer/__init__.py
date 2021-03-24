@@ -31,6 +31,7 @@ Simulator Backends
 .. autosummary::
     :toctree: ../stubs/
 
+    AerSimulator
     QasmSimulator
     StatevectorSimulator
     UnitarySimulator
