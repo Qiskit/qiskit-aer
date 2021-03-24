@@ -17,6 +17,7 @@ Qiskit Aer Unitary Simulator Backend.
 
 import logging
 from qiskit.util import local_hardware_info
+from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
 from ..aererror import AerError
@@ -124,17 +125,17 @@ class UnitarySimulator(AerBackend):
                                 # so that the default shot value for execute
                                 # will not raise an error when trying to run
                                 # a simulation
-        'description': 'A C++ unitary simulator for QASM Qobj files',
+        'description': 'A C++ unitary circuit simulator',
         'coupling_map': None,
-        'basis_gates': [
+        'basis_gates': sorted([
             'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
             'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
             'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
             'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
             'mcp', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
             'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
-            'save_unitary', 'save_state'
-        ],
+        ]),
+        'custom_instructions': sorted(['save_unitary', 'save_state']),
         'gates': []
     }
 
@@ -156,12 +157,37 @@ class UnitarySimulator(AerBackend):
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
                 UnitarySimulator._DEFAULT_CONFIGURATION)
+        else:
+            configuration.open_pulse = False
 
         super().__init__(configuration,
                          properties=properties,
                          available_methods=UnitarySimulator._AVAILABLE_METHODS,
                          provider=provider,
                          backend_options=backend_options)
+
+    @classmethod
+    def _default_options(cls):
+        return Options(
+            # Global options
+            shots=1024,
+            method="automatic",
+            precision="double",
+            zero_threshold=1e-10,
+            seed_simulator=None,
+            validation_threshold=None,
+            max_parallel_threads=None,
+            max_parallel_experiments=None,
+            max_parallel_shots=None,
+            max_memory_mb=None,
+            optimize_ideal_threshold=5,
+            optimize_noise_threshold=12,
+            fusion_enable=True,
+            fusion_verbose=False,
+            fusion_max_qubit=5,
+            fusion_threshold=14,
+            # statevector options
+            statevector_parallel_threshold=14)
 
     def _execute(self, qobj):
         """Execute a qobj on the backend.

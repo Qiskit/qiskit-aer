@@ -26,7 +26,6 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-
 #include <spdlog/spdlog.h>
 
 #include "framework/json.hpp"
@@ -115,6 +114,9 @@ public:
 
   // Returns a copy of the underlying data_t data as a complex vector
   cvector_t<data_t> vector() const;
+
+  // Returns a copy of the underlying data_t data as a complex ket dictionary
+  cdict_t<data_t> vector_ket(double epsilon = 0) const;
 
   // Returns a copy of the underlying data_t data as a complex vector
   AER::Vector<std::complex<data_t>> copy_to_vector() const;
@@ -618,6 +620,12 @@ cvector_t<data_t> QubitVectorThrust<data_t>::vector() const
 #endif
 
   return ret;
+}
+
+template <typename data_t>
+cdict_t<data_t> QubitVectorThrust<data_t>::vector_ket(double epsilon) const{
+    // non-optimized version; relies on creating a copy of the statevector
+    return AER::Utils::vec2ket(vector(), epsilon, 16);
 }
 
 template <typename data_t>
