@@ -51,7 +51,7 @@ class UnitarySimulatorTests:
             final_measure=False)
         targets = ref_unitary_gate.unitary_gate_unitary_deterministic()
         tqc = transpile(circuits,self.SIMULATOR)
-        job = self.SIMULATOR(tqc, shots=1, **self.BACKEND_OPTS)
+        job = self.SIMULATOR.run(tqc, shots=1, **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)

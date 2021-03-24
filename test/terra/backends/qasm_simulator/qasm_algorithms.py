@@ -57,7 +57,7 @@ class QasmAlgorithmTests:
             final_measure=True, allow_sampling=True)
         targets = ref_algorithms.grovers_counts(shots)
         transpiled_circs = transpile(circuits, self.SIMULATOR)
-        job = self.SIMULATOR.run(transpiled_circs, shots=shots
+        job = self.SIMULATOR.run(transpiled_circs, shots=shots,
                                  **self.BACKEND_OPTS)
         result = job.result()
         self.assertSuccess(result)
