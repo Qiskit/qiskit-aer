@@ -66,7 +66,7 @@ class QasmSimulator(AerBackend):
     **Simulation Method Option**
 
     The simulation method is set using the ``method`` kwarg.
-    Supported simulation methods are:
+    Supported simulation methods are
 
     * ``"statevector"``: A dense statevector simulation that can sample
       measurement outcomes from *ideal* circuits with all measurements at
