@@ -589,16 +589,15 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule = self._3Q_constant_sched(total_samples,
                                            u_idx=0,
                                            subsystem_list=subsystem_list)
-        qobj = assemble([schedule],
-                        backend=pulse_sim,
-                        meas_level=2,
-                        meas_return='single',
-                        meas_map=[[0]],
-                        qubit_lo_freq=[omega_d, omega_d, omega_d],
-                        memory_slots=2,
-                        shots=1)
 
-        result = pulse_sim.run(qobj, initial_state=y0).result()
+        result = pulse_sim.run([schedule],
+                               meas_level=2,
+                               meas_return='single',
+                               meas_map=[[0]],
+                               qubit_lo_freq=[omega_d, omega_d, omega_d],
+                               memory_slots=2,
+                               shots=1,
+                               initial_state=y0).result()
 
         pulse_sim_yf = result.get_statevector()
 
@@ -608,7 +607,15 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         y0 = np.kron(np.array([1., 0.]), np.array([1., 0.]))
 
-        result = pulse_sim.run(qobj, initial_state=y0).result()
+        result = pulse_sim.run([schedule],
+                               meas_level=2,
+                               meas_return='single',
+                               meas_map=[[0]],
+                               qubit_lo_freq=[omega_d, omega_d, omega_d],
+                               memory_slots=2,
+                               shots=1,
+                               initial_state=y0).result()
+
         pulse_sim_yf = result.get_statevector()
 
         yf = expm(-1j * 0.5 * 2 * np.pi * np.kron(self.X, self.Z) / 4) @ y0
@@ -623,16 +630,14 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule = self._3Q_constant_sched(total_samples,
                                            u_idx=1,
                                            subsystem_list=subsystem_list)
-        qobj = assemble([schedule],
-                        backend=pulse_sim,
-                        meas_level=2,
-                        meas_return='single',
-                        meas_map=[[0]],
-                        qubit_lo_freq=[omega_d, omega_d, omega_d],
-                        memory_slots=2,
-                        shots=1)
-
-        result = pulse_sim.run(qobj, initial_state=y0).result()
+        result = pulse_sim.run([schedule],
+                               meas_level=2,
+                               meas_return='single',
+                               meas_map=[[0]],
+                               qubit_lo_freq=[omega_d, omega_d, omega_d],
+                               memory_slots=2,
+                               shots=1,
+                               initial_state=y0).result()
         pulse_sim_yf = result.get_statevector()
 
         yf = expm(-1j * 0.5 * 2 * np.pi * np.kron(self.X, self.Z) / 4) @ y0
@@ -642,7 +647,13 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         y0 = np.kron(np.array([1., 0.]), np.array([1., 0.]))
         pulse_sim.set_options(initial_state=y0)
 
-        result = pulse_sim.run(qobj).result()
+        result = pulse_sim.run([schedule],
+                               meas_level=2,
+                               meas_return='single',
+                               meas_map=[[0]],
+                               qubit_lo_freq=[omega_d, omega_d, omega_d],
+                               memory_slots=2,
+                               shots=1).result()
         pulse_sim_yf = result.get_statevector()
 
         yf = expm(-1j * 0.5 * 2 * np.pi * np.kron(self.X, self.Z) / 4) @ y0
