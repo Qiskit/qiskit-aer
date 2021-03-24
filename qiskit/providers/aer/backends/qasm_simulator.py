@@ -15,6 +15,7 @@ Qiskit Aer qasm simulator backend.
 
 import copy
 import logging
+from warnings import warn
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
@@ -324,6 +325,10 @@ class QasmSimulator(AerBackend):
                  properties=None,
                  provider=None,
                  **backend_options):
+
+        warn('The `QasmSimulator` backend will be deprecated in the'
+             ' future. It has been superseded by the `AerSimulator`'
+             ' backend.', PendingDeprecationWarning)
 
         self._controller = qasm_controller_execute()
 

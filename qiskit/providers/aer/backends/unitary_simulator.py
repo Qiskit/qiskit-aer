@@ -16,6 +16,7 @@ Qiskit Aer Unitary Simulator Backend.
 """
 
 import logging
+from warnings import warn
 from qiskit.util import local_hardware_info
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
@@ -146,6 +147,12 @@ class UnitarySimulator(AerBackend):
                  properties=None,
                  provider=None,
                  **backend_options):
+
+        warn('The `UnitarySimulator` backend will be deprecated in the'
+             ' future. It has been superseded by the `AerSimulator`'
+             ' backend. To obtain legacy functionality initalize with'
+             ' `AerSimulator(method="unitary")` and append run circuits'
+             ' with the `save_state` instruction.', PendingDeprecationWarning)
 
         self._controller = unitary_controller_execute()
 
