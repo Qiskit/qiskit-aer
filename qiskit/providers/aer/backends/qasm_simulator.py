@@ -537,7 +537,8 @@ class QasmSimulator(AerBackend):
                 'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
                 'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
                 'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
-                'unitary', 'diagonal', 'delay', 'pauli',
+                'unitary', 'diagonal', 'delay', 'pauli'
+            ])
         if method == 'matrix_product_state':
             return sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
@@ -573,7 +574,7 @@ class QasmSimulator(AerBackend):
             return sorted([
                 'roerror', 'snapshot', 'kraus', 'save_expval', 'save_expval_var',
                 'save_probabilities', 'save_probabilities_dict',
-                'save_density_matrix', 'save_statevector',
+                'save_density_matrix', 'save_state', 'save_statevector',
                 'save_amplitudes', 'save_amplitudes_sq', 'save_matrix_product_state'])
         if method == 'stabilizer':
             return sorted([

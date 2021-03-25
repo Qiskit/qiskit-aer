@@ -55,7 +55,7 @@ const Operations::OpSet StateOpSet(
    OpType::save_expval_var, OpType::save_densmat,
    OpType::save_statevec, OpType::save_probs,
    OpType::save_probs_ket, OpType::save_amps,
-   OpType::save_amps_sq, OpType::save_mps},
+   OpType::save_amps_sq, OpType::save_mps, OpType::save_state},
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",
@@ -578,15 +578,15 @@ void State::apply_save_mps(const Operations::Op &op,
         "Save MPS was not applied to all qubits."
         " Only the full matrix product state can be saved.");
   }
-
+  std::string key = (op.string_params[0] == "_method_")
+                      ? "matrix_product_state"
+                      : op.string_params[0];
   if (last_op) {
-    BaseState::save_data_pershot(result, op.string_params[0],
-				 qreg_.move_to_mps_container(),
-				 op.save_type);
+    BaseState::save_data_pershot(result, key, qreg_.move_to_mps_container(),
+				                         op.save_type);
   } else {
-    BaseState::save_data_pershot(result, op.string_params[0],
-                               qreg_.copy_to_mps_container(),
-                               op.save_type);
+    BaseState::save_data_pershot(result, key, qreg_.copy_to_mps_container(),
+                                 op.save_type);
   }
 }
 
