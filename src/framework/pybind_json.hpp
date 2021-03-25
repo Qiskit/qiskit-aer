@@ -209,6 +209,8 @@ json_t JSON::numpy_to_json(py::array_t<T, py::array::c_style> arr) {
 }
 
 void std::to_json(json_t &js, const py::handle &obj) {
+    static py::object PyNoiseModel = py::module::import("qiskit.providers.aer.noise.noise_model").attr("NoiseModel");
+    static py::object PyQasmQobj = py::module::import("qiskit.qobj.qasm_qobj").attr("QasmQobj");
     if (py::isinstance<py::float_>(obj)) {
         js = obj.cast<nl::json::number_float_t>();
     } else if (py::isinstance<py::bool_>(obj)) {
@@ -232,6 +234,10 @@ void std::to_json(json_t &js, const py::handle &obj) {
         js = JSON::numpy_to_json(obj.cast<py::array_t<std::complex<double>, py::array::c_style> >());
     } else if (obj.is_none()) {
         return;
+    } else if (py::isinstance(obj, PyNoiseModel)){
+        std::to_json(js, obj.attr("to_dict")());
+    } else if (py::isinstance(obj, PyQasmQobj)){
+        std::to_json(js, obj.attr("to_dict")());
     } else {
         auto type_str = std::string(py::str(obj.get_type()));
         if ( type_str == "<class \'complex\'>"

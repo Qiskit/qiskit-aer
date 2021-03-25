@@ -33,20 +33,10 @@ LIBRARY_DIR = os.path.dirname(__file__)
 
 
 def cpp_execute(controller, qobj):
-    """Execute qobj_dict on C++ controller wrapper"""
-    # Convert qobj to dict
-#    qobj_dict = qobj.to_dict()
-
-    # Convert noise model to dict
-    if hasattr(qobj.config, 'noise_model'):
-        noise_model = qobj.config.noise_model
-        if not isinstance(noise_model, dict):
-            noise_model = noise_model.to_dict()
-        qobj.config.noise_model = noise_model
+    """Execute qobj on C++ controller wrapper"""
 
     # Location where we put external libraries that will be
     # loaded at runtime by the simulator extension
-#    qobj_dict['config']['library_dir'] = LIBRARY_DIR
     qobj.config.library_dir = LIBRARY_DIR
 
     return controller(qobj)
