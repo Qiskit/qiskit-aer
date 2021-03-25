@@ -282,6 +282,9 @@ public:
   reg_t get_bond_dimensions() const;
   uint_t get_max_bond_dimensions() const;
 
+  mps_container_t copy_to_mps_container();
+  mps_container_t move_to_mps_container();
+  
 private:
 
   MPS_Tensor& get_qubit(uint_t index) {
