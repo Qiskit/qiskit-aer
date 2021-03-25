@@ -158,7 +158,7 @@ jobs:
       - name: Install Aer Windows
         run: |
           set -e
-          python setup.py bdist_wheel -- -DTEST_JSON -G 'Visual Studio 16 2019'
+          python setup.py bdist_wheel -- -DTEST_JSON=1 -G 'Visual Studio 16 2019'
           pip install --find-links=dist qiskit-aer
         shell: bash
       - name: Run Tests

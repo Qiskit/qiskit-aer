@@ -161,7 +161,7 @@ jobs:
       - name: Install Aer
         run: |
           set -e
-          python setup.py bdist_wheel -- -DTEST_JSON
+          python setup.py bdist_wheel -- -DTEST_JSON=1
           pip install --find-links=dist qiskit-aer
       - name: Run Tests
         env:
