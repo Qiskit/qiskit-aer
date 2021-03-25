@@ -101,6 +101,7 @@ class TestQasmSimulator(common.QiskitAerTestCase,
 
     BACKEND_OPTS = {
         "seed_simulator": 2113,
+        "method": "automatic",
         "max_parallel_threads": 1
     }
     SIMULATOR = QasmSimulator(**BACKEND_OPTS)

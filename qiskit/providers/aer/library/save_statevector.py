@@ -26,7 +26,7 @@ class SaveStatevector(SaveSingleData):
         """Create new instruction to save the simualtor statevector.
 
         Args:
-            num_qubits (int): the number of qubits of the
+            num_qubits (int): the number of qubits
             label (str): the key for retrieving saved data from results.
             pershot (bool): if True save a list of statevectors for each
                             shot of the simulation rather than a single
@@ -51,10 +51,10 @@ class SaveStatevectorDict(SaveSingleData):
                  label="statevector_dict",
                  pershot=False,
                  conditional=False):
-        """Create new instruction to save the simualtor statevector as a dict.
+        """Create new instruction to save the simulator statevector as a dict.
 
         Args:
-            num_qubits (int): the number of qubits of the
+            num_qubits (int): the number of qubits
             label (str): the key for retrieving saved data from results.
             pershot (bool): if True save a list of statevectors for each
                             shot of the simulation rather than a single

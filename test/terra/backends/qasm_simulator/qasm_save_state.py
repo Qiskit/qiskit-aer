@@ -18,7 +18,8 @@ import numpy as np
 from qiskit import QuantumCircuit, assemble
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.library import (
-    SaveStatevector, SaveDensityMatrix, SaveStabilizer)
+    SaveStatevector, SaveDensityMatrix, SaveStabilizer,
+    SaveMatrixProductState)
 
 
 class QasmSaveStateTests:
@@ -38,7 +39,8 @@ class QasmSaveStateTests:
             'statevector_thrust': SaveStatevector,
             'density_matrix': SaveDensityMatrix,
             'density_matrix_gpu': SaveDensityMatrix,
-            'density_matrix_thrust': SaveDensityMatrix
+            'density_matrix_thrust': SaveDensityMatrix,
+            'matrix_product_state': SaveMatrixProductState
         }
         REFERENCE_LABEL = {
             'automatic': 'stabilizer',
@@ -48,7 +50,8 @@ class QasmSaveStateTests:
             'statevector_thrust': 'statevector',
             'density_matrix': 'density_matrix',
             'density_matrix_gpu': 'density_matrix',
-            'density_matrix_thrust': 'density_matrix'
+            'density_matrix_thrust': 'density_matrix',
+            'matrix_product_state': 'matrix_product_state'
         }
 
         opts = self.BACKEND_OPTS.copy()
@@ -76,4 +79,10 @@ class QasmSaveStateTests:
             self.assertIn('target', data)
             value = data[label]
             target = data['target']
-            self.assertTrue(np.all(value == target))
+            if method == 'matrix_product_state':
+                for val, targ in zip(value[0], target[0]):
+                    self.assertTrue(np.allclose(val, targ))
+                for val, targ in zip(value[1], target[1]):
+                    self.assertTrue(np.allclose(val, targ))
+            else:
+                self.assertTrue(np.all(value == target))
