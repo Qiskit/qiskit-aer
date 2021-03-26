@@ -25,6 +25,7 @@
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
 #include "framework/linalg/almost_equal.hpp"
+#include "simulators/stabilizer/clifford.hpp"
 
 namespace AER {
 namespace Operations {
@@ -43,7 +44,10 @@ enum class OpType {
   // Save instructions
   save_state, save_expval, save_expval_var, save_statevec, save_statevec_dict,
   save_densmat, save_probs, save_probs_ket, save_amps, save_amps_sq,
-    save_stabilizer, save_unitary, save_mps
+  save_stabilizer, save_unitary, save_mps,
+  // Set instructions
+  set_statevec, set_densmat, set_unitary, set_superop,
+  set_stabilizer
 };
 
 enum class DataSubType {
@@ -112,6 +116,21 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::save_unitary:
     stream << "save_unitary";
+    break;
+  case OpType::set_statevec:
+    stream << "set_statevector";
+    break;
+  case OpType::set_densmat:
+    stream << "set_density_matrix";
+    break;
+  case OpType::set_unitary:
+    stream << "set_unitary";
+    break;
+  case OpType::set_superop:
+    stream << "set_superop";
+    break;
+  case OpType::set_stabilizer:
+    stream << "set_stabilizer";
     break;
   case OpType::snapshot:
     stream << "snapshot";
@@ -184,6 +203,9 @@ struct Op {
 
   // Expvals
   std::vector<std::tuple<std::string, double, double>> expval_params;
+
+  // Set states
+  Clifford::Clifford clifford;
 
   // Legacy Snapshots
   DataSubType save_type = DataSubType::single;
@@ -467,6 +489,11 @@ Op json_to_op_bfunc(const json_t &js);
 Op json_to_op_initialize(const json_t &js);
 Op json_to_op_pauli(const json_t &js);
 
+// Set state
+Op json_to_op_set_vector(const json_t& js, OpType op_type);
+Op json_to_op_set_matrix(const json_t& js, OpType op_type);
+Op json_to_op_set_clifford(const json_t& js, OpType op_type);
+
 // Save data
 Op json_to_op_save_default(const json_t &js, OpType op_type);
 Op json_to_op_save_expval(const json_t &js, bool variance);
@@ -547,6 +574,17 @@ Op json_to_op(const json_t &js) {
     return json_to_op_save_amps(js, false);
   if (name == "save_amplitudes_sq")
     return json_to_op_save_amps(js, true);
+  // Set
+  if (name == "set_statevector")
+    return json_to_op_set_vector(js, OpType::set_statevec);
+  if (name == "set_density_matrix")
+    return json_to_op_set_matrix(js, OpType::set_densmat);
+  if (name == "set_unitary")
+    return json_to_op_set_matrix(js, OpType::set_unitary);
+  if (name == "set_superop")
+    return json_to_op_set_matrix(js, OpType::set_superop);
+  if (name == "set_stabilizer")
+    return json_to_op_set_clifford(js, OpType::set_stabilizer);
   // Snapshot
   if (name == "snapshot")
     return json_to_op_snapshot(js);
@@ -919,6 +957,40 @@ Op json_to_op_noise_switch(const json_t &js) {
   op.name = "noise_switch";
   JSON::get_value(op.params, "params", js);
   // Conditional
+  add_conditional(Allowed::No, op, js);
+  return op;
+}
+
+//------------------------------------------------------------------------------
+// Implementation: Set state
+//------------------------------------------------------------------------------
+
+Op json_to_op_set_vector(const json_t &js, OpType op_type) {
+  Op op;
+  op.type = op_type;
+  op.params = js["params"][0].get<std::vector<complex_t>>();
+  JSON::get_value(op.name, "name", js);
+  JSON::get_value(op.qubits, "qubits", js);
+  add_conditional(Allowed::No, op, js);
+  return op;
+}
+
+Op json_to_op_set_matrix(const json_t &js, OpType op_type) {
+  Op op;
+  op.type = op_type;
+  op.mats.push_back(js["params"][0].get<cmatrix_t>());
+  JSON::get_value(op.name, "name", js);
+  JSON::get_value(op.qubits, "qubits", js);
+  add_conditional(Allowed::No, op, js);
+  return op;
+}
+
+Op json_to_op_set_clifford(const json_t &js, OpType op_type) {
+  Op op;
+  op.type = op_type;
+  op.clifford = js["params"][0].get<Clifford::Clifford>();
+  JSON::get_value(op.name, "name", js);
+  JSON::get_value(op.qubits, "qubits", js);
   add_conditional(Allowed::No, op, js);
   return op;
 }

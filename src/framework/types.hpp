@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "framework/matrix.hpp" // matrix class
+#include "framework/linalg/vector.hpp" // AER::Vector class
 #include "framework/stl_ostream.hpp" 
 
 

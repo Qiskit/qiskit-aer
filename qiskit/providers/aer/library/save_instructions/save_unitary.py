@@ -14,7 +14,8 @@ Simulator instruction to save unitary matrix.
 """
 
 from qiskit.circuit import QuantumCircuit
-from .save_data import SaveSingleData, default_qubits
+from .save_data import SaveSingleData
+from ..default_qubits import default_qubits
 
 
 class SaveUnitary(SaveSingleData):
