@@ -56,8 +56,15 @@ QuantumCircuit Methods
 Saving Simulator Data
 =====================
 
-The following classes can be used to directly save data from the
-simulator to the returned result object.
+.. note ::
+    Each save instruction has a default label for accessing from the
+    circuit result data, however duplicate labels in results will result
+    in an exception being raised. If you use more than 1 instance of a
+    specific save instruction you must set a custom label for the
+    additional instructions.
+
+Simulator State Save Instruction Classes
+----------------------------------------
 
 Instruction Classes
 -------------------
@@ -66,6 +73,24 @@ Instruction Classes
     :toctree: ../stubs/
 
     SaveState
+    SaveStatevector
+    SaveStatevectorDict
+    SaveDensityMatrix
+    SaveMatrixProductState
+    SaveStabilizer
+    SaveUnitary
+    SaveSuperOp
+
+Simulator Derived Data Save Instruction Classes
+-----------------------------------------------
+
+The following classes can be used to directly save data derived from the
+simulator state to the returned result object. One some are compatible
+with certain simulation methods.
+
+.. autosummary::
+    :toctree: ../stubs/
+
     SaveExpectationValue
     SaveExpectationValueVariance
     SaveProbabilities
@@ -80,6 +105,22 @@ Instruction Classes
     SaveMatrixProductState
 
 Then can also be used using custom QuantumCircuit methods
+
+.. note ::
+    When saving pershot data by using the ``pershot=True`` kwarg
+    in the above instructions, the resulting list may only contain
+    a single value rather than the number of shots. This
+    happens when a run circuit supports measurement sampling because
+    it is either
+
+    1. An ideal simulation with all measurements at the end.
+
+    2. A noisy simulation using the density matrix method with all
+    measurements at the end.
+
+    In both these cases only a single shot is actually simulated and
+    measurement samples for all shots are calculated from the final
+    state.
 
 QuantumCircuit Methods
 ----------------------
@@ -97,54 +138,32 @@ QuantumCircuit Methods
     save_statevector_dict
     save_amplitudes
     save_amplitudes_squared
-    save_stabilizer
-    save_unitary
-    save_matrix_product_state
 
-.. note ::
+Method Compatibility
+--------------------
 
-    **Save Instruction Labels**
+The following table summarizes which instructions are compatible with
+which simulation methods
 
-    Each save instruction has a default label for accessing from the
-    circuit result data, however duplicate labels in results will result
-    in an exception being raised. If you use more than 1 instance of a
-    specific save instruction you must set a custom label for the
-    additional instructions.
-
-.. note ::
-
-    **Pershot Data with Measurement Sampling Optimization**
-
-    When saving pershot data by using the ``pershot=True`` kwarg
-    in the above instructions, the resulting list may only contain
-    a single value rather than the number of shots. This
-    happens when a run circuit supports measurement sampling because
-    it is either
-
-    1. An ideal simulation with all measurements at the end.
-
-    2. A noisy simulation using the density matrix method with all
-    measurements at the end.
-
-    In both these cases only a single shot is actually simulated and
-    measurement samples for all shots are calculated from the final
-    state.
+.. csv-table::
+    :file: instructions_table.csv
+    :header-rows: 1
 """
 
 __all__ = [
     'SaveState',
+    'SaveStatevector',
+    'SaveStatevectorDict',
+    'SaveDensityMatrix',
+    'SaveUnitary',
+    'SaveStabilizer',
+    'SaveMatrixProductState'
     'SaveExpectationValue',
     'SaveExpectationValueVariance',
     'SaveProbabilities',
     'SaveProbabilitiesDict',
-    'SaveStatevector',
-    'SaveStatevectorDict',
-    'SaveDensityMatrix',
     'SaveAmplitudes',
     'SaveAmplitudesSquared',
-    'SaveUnitary',
-    'SaveStabilizer',
-    'SaveMatrixProductState'
 ]
 
 from .save_instructions import *
