@@ -35,7 +35,8 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::kraus, Operations::OpType::superop,
-     Operations::OpType::save_state, Operations::OpType::set_unitary,
+     Operations::OpType::save_state, Operations::OpType::save_superop,
+     Operations::OpType::set_unitary,
      Operations::OpType::set_superop},
     // Gates
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
@@ -274,6 +275,7 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
         apply_snapshot(op, result);
         break;
       case Operations::OpType::save_state:
+      case Operations::OpType::save_superop:
         apply_save_state(op, result, final_ops && ops.size() == i + 1);
         break;
       default:
@@ -520,31 +522,18 @@ void State<densmat_t>::apply_save_state(const Operations::Op &op,
         op.name + " was not applied to all qubits."
         " Only the full state can be saved.");
   }
-  // Renamp single data type to average
-  Operations::DataSubType save_type;
-  switch (op.save_type) {
-    case Operations::DataSubType::single:
-      save_type = Operations::DataSubType::average;
-      break;
-    case Operations::DataSubType::c_single:
-      save_type = Operations::DataSubType::c_average;
-      break;
-    default:
-      save_type = op.save_type;
-  }
-
   // Default key
   std::string key = (op.string_params[0] == "_method_")
                       ? "superop"
                       : op.string_params[0];
   if (last_op) {
-    BaseState::save_data_average(result, key,
+    BaseState::save_data_pershot(result, key,
                                  BaseState::qreg_.move_to_matrix(),
-                                 save_type);
+                                 op.save_type);
   } else {
-    BaseState::save_data_average(result, key,
+    BaseState::save_data_pershot(result, key,
                                  BaseState::qreg_.copy_to_matrix(),
-                                 save_type);
+                                 op.save_type);
   }
 }
 

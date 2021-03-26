@@ -37,6 +37,7 @@ Instruction Classes
     SetStatevector
     SetDensityMatrix
     SetStabilizer
+    SetSuperOp
     SetUnitary
 
 QuantumCircuit Methods
@@ -52,6 +53,7 @@ following ``QuantumCircuit`` methods which are patched when importing Aer.
     set_density_matrix
     set_stabilizer
     set_unitary
+    set_superop
 
 
 Saving Simulator Data
@@ -82,6 +84,7 @@ for density matrix method etc.).
     SaveDensityMatrix
     SaveMatrixProductState
     SaveStabilizer
+    SaveSuperOp
     SaveUnitary
 
 .. note::
@@ -96,6 +99,9 @@ Simulator Derived Data Save Instruction Classes
 The following classes can be used to directly save data derived from the
 simulator state to the returned result object. One some are compatible
 with certain simulation methods.
+
+For convenience the save instructions can be accessed using
+custom ``QuantumCircuit`` methods
 
 .. autosummary::
     :toctree: ../stubs/
@@ -158,19 +164,25 @@ which simulation methods
 """
 
 __all__ = [
+    'SaveAmplitudes',
+    'SaveAmplitudesSquared',
+    'SaveDensityMatrix',
+    'SaveExpectationValue',
+    'SaveExpectationValueVariance',
+    'SaveMatrixProductState',
+    'SaveProbabilities',
+    'SaveProbabilitiesDict',
+    'SaveStabilizer',
     'SaveState',
     'SaveStatevector',
     'SaveStatevectorDict',
-    'SaveDensityMatrix',
+    'SaveSuperOp',
     'SaveUnitary',
-    'SaveStabilizer',
-    'SaveMatrixProductState',
-    'SaveExpectationValue',
-    'SaveExpectationValueVariance',
-    'SaveProbabilities',
-    'SaveProbabilitiesDict',
-    'SaveAmplitudes',
-    'SaveAmplitudesSquared',
+    'SetDensityMatrix',
+    'SetStabilizer',
+    'SetStatevector',
+    'SetSuperOp',
+    'SetUnitary',
 ]
 
 from .save_instructions import *

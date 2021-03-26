@@ -28,3 +28,4 @@ from .save_stabilizer import (SaveStabilizer, save_stabilizer)
 from .save_unitary import (SaveUnitary, save_unitary)
 from .save_matrix_product_state import (
     SaveMatrixProductState, save_matrix_product_state)
+from .save_superop import (SaveSuperOp, save_superop)
