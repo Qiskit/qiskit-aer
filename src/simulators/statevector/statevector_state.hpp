@@ -580,6 +580,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
           else if(op.name == "end_register_blocking"){
             BaseState::qreg_.leave_register_blocking();
           }
+          break;
         case OpType::set_statevec:
           BaseState::qreg_.initialize_from_vector(op.params);
           break;
