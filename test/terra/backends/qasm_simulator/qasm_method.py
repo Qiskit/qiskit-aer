@@ -19,7 +19,6 @@ from test.terra.reference import ref_2q_clifford
 from test.terra.reference import ref_non_clifford
 from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
-from qiskit.providers.aer import AerError
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import QuantumError
 from qiskit.providers.aer.noise.errors import pauli_error
@@ -340,12 +339,12 @@ class QasmMethodTests:
         config = QasmSimulator(method=method).configuration()
         noise_gates = ['id', 'sx', 'x', 'cx']
         noise_model = NoiseModel(basis_gates=noise_gates)
-        target_gates = sorted(set(config.basis_gates).intersection(noise_gates).union(
-            config.custom_instructions))
+        target_gates = (sorted(set(config.basis_gates).intersection(noise_gates))
+                        + config.custom_instructions)
 
         sim = QasmSimulator(method=method, noise_model=noise_model)
         basis_gates = sim.configuration().basis_gates
-        self.assertEqual(basis_gates, target_gates)
+        self.assertEqual(sorted(basis_gates), sorted(target_gates))
 
     @data('automatic', 'statevector', 'density_matrix', 'stabilizer',
           'matrix_product_state', 'extended_stabilizer')
@@ -356,4 +355,4 @@ class QasmMethodTests:
         basis_gates1 = sim1.configuration().basis_gates
         sim2 = QasmSimulator(noise_model=noise_model, method=method)
         basis_gates2 = sim2.configuration().basis_gates
-        self.assertEqual(basis_gates1, basis_gates2)
+        self.assertEqual(sorted(basis_gates1), sorted(basis_gates2))

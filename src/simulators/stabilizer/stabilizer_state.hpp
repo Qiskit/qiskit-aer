@@ -37,7 +37,8 @@ const Operations::OpSet StateOpSet(
     OpType::roerror, OpType::save_expval,
     OpType::save_expval_var, OpType::save_probs,
     OpType::save_probs_ket, OpType::save_amps_sq,
-    OpType::save_stabilizer, OpType::save_state},
+    OpType::save_stabilizer, OpType::save_state,
+    OpType::set_stabilizer},
   // Gates
   {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg",
    "sx", "delay"},
@@ -136,6 +137,9 @@ protected:
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
   virtual void apply_snapshot(const Operations::Op &op, ExperimentResult &result);
+
+  // Set the state of the simulator to a given Clifford
+  void apply_set_stabilizer(const Clifford::Clifford &clifford);
 
   //-----------------------------------------------------------------------
   // Save data instructions
@@ -333,6 +337,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         case OpType::snapshot:
           apply_snapshot(op, result);
           break;
+        case OpType::set_stabilizer:
+          apply_set_stabilizer(op.clifford);
+          break;
         case OpType::save_expval:
         case OpType::save_expval_var:
           apply_save_expval(op, result);
@@ -476,6 +483,17 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
     BaseState::qreg_ = qreg_cache; // restore pre-measurement data from cache
   }
   return samples;
+}
+
+void State::apply_set_stabilizer(const Clifford::Clifford &clifford) {
+  if (clifford.num_qubits() != BaseState::qreg_.num_qubits()) {
+    throw std::invalid_argument(
+      "set stabilizer must be defined on full width of qubits (" +
+      std::to_string(clifford.num_qubits()) + " != " +
+      std::to_string(BaseState::qreg_.num_qubits()) + ").");
+  }
+  BaseState::qreg_.table() = clifford.table();
+  BaseState::qreg_.phases() = clifford.phases();
 }
 
 //=========================================================================

@@ -39,19 +39,11 @@
 namespace AER {
 namespace QV {
 template <typename T> using cvector_t = std::vector<std::complex<T>>;
+template <typename T> using cdict_t = std::map<std::string, std::complex<T>>;
 
 //============================================================================
 // QubitVector class
 //============================================================================
-
-// Template class for qubit vector.
-// The arguement of the template must have an operator[] access method.
-// The following methods may also need to be template specialized:
-//   * set_num_qubits(size_t)
-//   * initialize()
-//   * initialize_from_vector(cvector_t<data_t>)
-// If the template argument does not have these methods then template
-// specialization must be used to override the default implementations.
 
 template <typename data_t = double>
 class QubitVector {
@@ -108,11 +100,16 @@ public:
   // Returns a copy of the underlying data_t data as a complex vector
   cvector_t<data_t> vector() const;
 
+
+  // Returns a copy of the underlying data_t data as a complex ket dictionary
+  cdict_t<data_t> vector_ket(double epsilon = 0) const;
+
   // Returns a copy of the underlying data_t data as a complex vector
   AER::Vector<std::complex<data_t>> copy_to_vector() const;
 
   // Moves the data to a complex vector
   AER::Vector<std::complex<data_t>> move_to_vector();
+
 
   // Return JSON serialization of QubitVector;
   json_t json() const;
@@ -177,7 +174,11 @@ public:
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
   // an exception is raised.
-  void initialize_from_vector(const cvector_t<double> &data);
+  template <typename list_t>
+  void initialize_from_vector(const list_t &vec);
+  // Move semantic initialization
+  void initialize_from_vector(std::vector<std::complex<data_t>> &&vec);
+  void initialize_from_vector(AER::Vector<std::complex<data_t>> &&vec);
 
   // Initializes the vector to a custom initial state.
   // If num_states does not match the number of qubits an exception is raised.
@@ -693,6 +694,12 @@ cvector_t<data_t> QubitVector<data_t>::vector() const {
   return ret;
 }
 
+
+template <typename data_t>
+cdict_t<data_t> QubitVector<data_t>::vector_ket(double epsilon) const {
+    return AER::Utils::vec2ket(data_, size(), epsilon, 16);
+}
+
 template <typename data_t>
 AER::Vector<std::complex<data_t>> QubitVector<data_t>::copy_to_vector() const {
   return AER::Vector<std::complex<data_t>>::copy_from_buffer(data_size_, data_);
@@ -768,7 +775,6 @@ void QubitVector<data_t>::free_mem(){
     data_ = nullptr;
   }
 }
-
 
 template<typename data_t>
 void QubitVector<data_t>::free_checkpoint(){
@@ -902,11 +908,12 @@ void QubitVector<data_t>::initialize() {
 }
 
 template <typename data_t>
-void QubitVector<data_t>::initialize_from_vector(const cvector_t<double> &statevec) {
-  if (data_size_ < statevec.size()) {
+template <typename list_t>
+void QubitVector<data_t>::initialize_from_vector(const list_t &vec) {
+  if (data_size_ != vec.size()) {
     std::string error = "QubitVector::initialize input vector is incorrect length (" +
                         std::to_string(data_size_) + "!=" +
-                        std::to_string(statevec.size()) + ")";
+                        std::to_string(vec.size()) + ")";
     throw std::runtime_error(error);
   }
 
@@ -914,11 +921,34 @@ void QubitVector<data_t>::initialize_from_vector(const cvector_t<double> &statev
 
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t k = 0; k < END; ++k)
-    data_[k] = statevec[k];
+    data_[k] = vec[k];
 }
 
 template <typename data_t>
-void QubitVector<data_t>::initialize_from_data(const std::complex<data_t>* statevec, const size_t num_states) {
+void QubitVector<data_t>::initialize_from_vector(std::vector<std::complex<data_t>> &&vec) {
+  if (data_size_ != vec.size()) {
+    std::string error = "QubitVector::initialize input vector is incorrect length (" +
+                        std::to_string(data_size_) + "!=" +
+                        std::to_string(vec.size()) + ")";
+    throw std::runtime_error(error);
+  }
+  std::move(vec.begin(), vec.end(), data_);
+}
+
+template <typename data_t>
+void QubitVector<data_t>::initialize_from_vector(AER::Vector<std::complex<data_t>> &&vec) {
+  if (data_size_ != vec.size()) {
+    std::string error = "QubitVector::initialize input vector is incorrect length (" +
+                        std::to_string(data_size_) + "!=" +
+                        std::to_string(vec.size()) + ")";
+    throw std::runtime_error(error);
+  }
+  free_mem();
+  data_ = vec.move_to_buffer();
+}
+
+template <typename data_t>
+void QubitVector<data_t>::initialize_from_data(const std::complex<data_t>* vec, const size_t num_states) {
   if (data_size_ != num_states) {
     std::string error = "QubitVector::initialize input vector is incorrect length (" +
                         std::to_string(data_size_) + "!=" + std::to_string(num_states) + ")";
@@ -929,7 +959,7 @@ void QubitVector<data_t>::initialize_from_data(const std::complex<data_t>* state
 
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
   for (int_t k = 0; k < END; ++k)
-    data_[k] = statevec[k];
+    data_[k] = vec[k];
 }
 
 

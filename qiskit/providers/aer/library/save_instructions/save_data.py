@@ -15,7 +15,6 @@ Simulator instruction to save custom internal data to results.
 
 import copy
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Instruction
 from qiskit.extensions.exceptions import ExtensionError
 
@@ -143,41 +142,3 @@ class SaveSingleData(SaveData):
         if conditional:
             subtype = 'c_' + subtype
         super().__init__(name, num_qubits, label, subtype=subtype, params=params)
-
-
-def default_qubits(circuit, qubits=None):
-    """Helper method to return list of qubits.
-
-    Args:
-        circuit (QuantumCircuit): a quantum circuit.
-        qubits (list or QuantumRegister): Optional, qubits argument,
-            If None the returned list will be all qubits in the circuit.
-            [Default: None]
-
-    Raises:
-            ExtensionError: if default qubits fails.
-
-    Returns:
-        list: qubits list.
-    """
-    # Convert label to string for backwards compatibility
-    # If no qubits are specified we add all qubits so it acts as a barrier
-    # This is needed for full register snapshots like statevector
-    if isinstance(qubits, QuantumRegister):
-        qubits = qubits[:]
-    if not qubits:
-        tuples = []
-        if isinstance(circuit, QuantumCircuit):
-            for register in circuit.qregs:
-                tuples.append(register)
-        if not tuples:
-            raise ExtensionError('no qubits for snapshot')
-        qubits = []
-        for tuple_element in tuples:
-            if isinstance(tuple_element, QuantumRegister):
-                for j in range(tuple_element.size):
-                    qubits.append(tuple_element[j])
-            else:
-                qubits.append(tuple_element)
-
-    return qubits

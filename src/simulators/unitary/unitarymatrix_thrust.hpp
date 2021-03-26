@@ -86,7 +86,9 @@ public:
   // Initializes the vector to a custom initial state.
   // If the length of the statevector does not match the number of qubits
   // an exception is raised.
-  void initialize_from_matrix(const AER::cmatrix_t &mat);
+  template <typename T>
+  void initialize_from_matrix(const matrix<std::complex<T>> &mat);
+  void initialize_from_matrix(const matrix<std::complex<data_t>> &mat);
 
   //-----------------------------------------------------------------------
   // Identity checking
@@ -242,7 +244,8 @@ void UnitaryMatrixThrust<data_t>::initialize()
 }
 
 template <class data_t>
-void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat)
+template <typename T>
+void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const matrix<std::complex<T>> &mat)
 {
   const int_t nrows = rows_;    // end for k loop
   if (nrows < static_cast<int_t>(mat.GetRows()) ||
@@ -267,8 +270,12 @@ void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &m
     for  (int_t col = 0; col < nrows; ++col) {
       tmp[row + nrows * col] = mat(row, col);
     }
+  BaseVector::initialize_from_vector(tmp);
+}
 
-  BaseVector::chunk_->CopyIn((thrust::complex<data_t>*)&tmp[0], BaseVector::data_size_);
+template <class data_t>
+void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const matrix<std::complex<data_t>> &mat) {
+  BaseVector::initialize_from_data(mat.data(), mat.size());
 }
 
 template <class data_t>

@@ -139,6 +139,8 @@ double is_unit_vector(const std::vector<T> &vec);
 // Conjugate a vector
 template <typename T>
 std::vector<std::complex<T>> conjugate(const std::vector<std::complex<T>> &v);
+template <class T>
+Vector<std::complex<T>> conjugate(const Vector<std::complex<T>> &v);
 
 // Compute the Euclidean 2-norm of a vector
 template <typename T>
@@ -154,6 +156,8 @@ inline matrix<T> projector(const std::vector<T> &ket) {return outer_product(ket,
 // Tensor product vector
 template <typename T>
 std::vector<T> tensor_product(const std::vector<T> &v, const std::vector<T> &w);
+template <typename T>
+Vector<T> tensor_product(const Vector<T> &v, const Vector<T> &w);
 
 // Return a new vector formed by multiplying each element of the input vector
 // with a scalar. The product of types T1 * T2 must be valid.
@@ -171,6 +175,7 @@ double &chop_inplace(double &val, double epsilon);
 std::complex<double> &chop_inplace(std::complex<double> &val, double epsilon);
 
 double chop(double val, double epsilon);
+float chop(float val, double epsilon);
 
 // As above for complex first arguments
 template <typename T>
@@ -195,6 +200,9 @@ void combine(std::vector<T> &lhs, const std::vector<T> &rhs);
 // specifies the subsystem dimension and the base of the dit-string labels.
 template <typename T>
 std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint_t base = 2);
+
+template <typename T>
+std::map<std::string, T> vec2ket(const T* const vec, uint_t dim, double epsilon, uint_t base = 2);
 
 //------------------------------------------------------------------------------
 // Bit Conversions
@@ -782,6 +790,14 @@ std::vector<std::complex<T>> conjugate(const std::vector<std::complex<T>> &v) {
 }
 
 template <typename T>
+Vector<std::complex<T>> conjugate(const Vector<std::complex<T>> &v) {
+  Vector<std::complex<T>> ret(v.size(), false);
+  std::transform(v.data(), v.data() + v.size(), ret.data(),
+                [] (const std::complex<T> &c) -> std::complex<T> { return std::conj(c); });
+  return ret;
+}
+
+template <typename T>
 double norm(const std::vector<T> &vec) {
   double val = 0.0;
   for (const auto &v : vec) {
@@ -810,6 +826,18 @@ std::vector<T> tensor_product(const std::vector<T> &vec1,
   for (const auto &a : vec1)
     for (const auto &b : vec2) {
         ret.push_back(a * b);
+  }
+  return ret;
+}
+
+template <typename T>
+Vector<T> tensor_product(const Vector<T> &vec1, const Vector<T> &vec2) {
+  const auto SZ1 = vec1.size();
+  const auto SZ2 = vec2.size();
+  Vector<T> ret(SZ1 * SZ2, false);
+  for (size_t i = 0; i < SZ1; ++i)
+    for (size_t j = 0; j < SZ2; ++j) {
+        ret[SZ2 * i + j] = vec1[i] * vec2[j];
   }
   return ret;
 }
@@ -861,6 +889,9 @@ double chop(double val, double epsilon) {
   return (std::abs(val) < epsilon) ? 0. : val;
 }
 
+float chop(float val, double epsilon) {
+  return (std::abs(val) < epsilon) ? 0. : val;
+}
 
 template <typename T>
 std::complex<T> chop(std::complex<T> val, double epsilon) {
@@ -924,6 +955,33 @@ std::map<std::string, T> vec2ket(const std::vector<T> &vec, double epsilon, uint
   return ketmap;
 }
 
+template <typename T>
+std::map<std::string, T> vec2ket(const T* const vec, uint_t dim, double epsilon, uint_t base){
+  bool hex_output = false;
+  if (base == 16) {
+    hex_output = true;
+    base = 2; // If hexadecimal strings we convert to bin first
+  }
+
+  double n = std::log(dim) / std::log(base);
+  uint_t nint = std::trunc(n);
+  if (std::abs(nint - n) > 1e-5) {
+    std::stringstream ss;
+    ss << "vec2ket (vector dimension " << dim << " is not of size " << base << "^n)";
+    throw std::invalid_argument(ss.str());
+  }
+
+  std::map<std::string, T> ketmap;
+  for (size_t k = 0; k < dim; ++k) {
+    T val = chop(vec[k], epsilon);
+    if (std::abs(val) > epsilon) {
+      std::string key = (hex_output) ? Utils::int2hex(k)
+                                     : Utils::int2string(k, base, nint);
+      ketmap.insert({key, val});
+    }
+  }
+  return ketmap;
+}
 
 //==============================================================================
 // Implementations: Bit conversions

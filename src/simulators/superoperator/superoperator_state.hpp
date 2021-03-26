@@ -34,7 +34,8 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::snapshot, Operations::OpType::barrier,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::kraus, Operations::OpType::superop,
-     Operations::OpType::save_state},
+     Operations::OpType::save_state, Operations::OpType::set_unitary,
+     Operations::OpType::set_superop},
     // Gates
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
@@ -257,6 +258,10 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
       case Operations::OpType::superop:
         BaseState::qreg_.apply_superop_matrix(
             op.qubits, Utils::vectorize_matrix(op.mats[0]));
+        break;
+      case Operations::OpType::set_unitary:
+      case Operations::OpType::set_superop:
+        BaseState::qreg_.initialize_from_matrix(op.mats[0]);
         break;
       case Operations::OpType::snapshot:
         apply_snapshot(op, result);
@@ -508,14 +513,31 @@ void State<densmat_t>::apply_save_state(const Operations::Op &op,
         op.name + " was not applied to all qubits."
         " Only the full state can be saved.");
   }
+  // Renamp single data type to average
+  Operations::DataSubType save_type;
+  switch (op.save_type) {
+    case Operations::DataSubType::single:
+      save_type = Operations::DataSubType::average;
+      break;
+    case Operations::DataSubType::c_single:
+      save_type = Operations::DataSubType::c_average;
+      break;
+    default:
+      save_type = op.save_type;
+  }
+
+  // Default key
+  std::string key = (op.string_params[0] == "_method_")
+                      ? "superop"
+                      : op.string_params[0];
   if (last_op) {
-    BaseState::save_data_average(result, op.string_params[0],
+    BaseState::save_data_average(result, key,
                                  BaseState::qreg_.move_to_matrix(),
-                                 op.save_type);
+                                 save_type);
   } else {
-    BaseState::save_data_average(result, op.string_params[0],
+    BaseState::save_data_average(result, key,
                                  BaseState::qreg_.copy_to_matrix(),
-                                 op.save_type);
+                                 save_type);
   }
 }
 

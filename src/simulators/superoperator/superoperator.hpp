@@ -65,7 +65,9 @@ public:
   // Initializes the vector to a custom initial state.
   // The matrix can either be superoperator matrix or unitary matrix.
   // The type is inferred by the dimensions of the input matrix.
-  void initialize_from_matrix(const AER::cmatrix_t &data);
+  template <typename T>
+  void initialize_from_matrix(const matrix<std::complex<T>> &data);
+  void initialize_from_matrix(matrix<std::complex<data_t>> &&data);
 
 protected:
   // Number of qubits for the superoperator
@@ -109,7 +111,8 @@ void Superoperator<data_t>::initialize() {
 
 
 template <class data_t>
-void Superoperator<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
+template <typename T>
+void Superoperator<data_t>::initialize_from_matrix(const matrix<std::complex<T>> &mat) {
   if (AER::Utils::is_square(mat)) {
     const size_t nrows = mat.GetRows();
     if (nrows == BaseUnitary::rows_) {
@@ -135,6 +138,35 @@ void Superoperator<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
     std::to_string(mat.GetRows()) + "," + std::to_string(mat.GetColumns()) + ")."
   );
 }
+
+template <class data_t>
+void Superoperator<data_t>::initialize_from_matrix(matrix<std::complex<data_t>> &&mat) {
+  if (AER::Utils::is_square(mat)) {
+    const size_t nrows = mat.GetRows();
+    if (nrows == BaseUnitary::rows_) {
+      // The matrix is the same size as the superoperator matrix so we
+      // initialze as the matrix.
+      BaseUnitary::initialize_from_matrix(std::move(mat));
+      return;
+    } else if (nrows * nrows == BaseUnitary::rows_) {
+      // If the input matrix has half the number of rows we assume it is
+      // A unitary matrix input so we convert to a superoperator
+      BaseUnitary::initialize_from_matrix(
+        AER::Utils::tensor_product(AER::Utils::conjugate(mat), mat)
+      );
+      return;
+    }
+  }
+  // Throw an exception if the input matrix is the wrong size for
+  // unitary or superoperator input
+  throw std::runtime_error(
+    "Superoperator::initial matrix is wrong size (" +
+    std::to_string(BaseUnitary::rows_) + "," +
+    std::to_string(BaseUnitary::rows_) + ")!=(" +
+    std::to_string(mat.GetRows()) + "," + std::to_string(mat.GetColumns()) + ")."
+  );
+}
+
 
 
 //------------------------------------------------------------------------------
