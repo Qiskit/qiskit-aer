@@ -9,7 +9,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 =========================================================
 Instruction Library (:mod:`qiskit.providers.aer.library`)
@@ -20,6 +19,39 @@ Instruction Library (:mod:`qiskit.providers.aer.library`)
 This library contains custom qiskit :class:`~qiskit.QuantumCircuit`
 :class:`~qiskit.circuit.Instruction` subclasses that can be used
 with the Aer circuit simulator backends.
+
+Setting a Custom Simulator State
+================================
+
+The following instruction classes can be used to set the specific
+simulator methods to a custom state. Note that these instructions
+are only valid when applied to all qubits in a circuit. Applying
+to a subset of qubits will raise an exception during execution.
+
+Instruction Classes
+-------------------
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    SetStatevector
+    SetDensityMatrix
+    SetStabilizer
+    SetUnitary
+
+Then can also be used using custom QuantumCircuit methods
+
+QuantumCircuit Methods
+----------------------
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    set_statevector
+    set_density_matrix
+    set_stabilizer
+    set_unitary
+
 
 Saving Simulator Data
 =====================
@@ -99,24 +131,21 @@ QuantumCircuit Methods
     state.
 """
 
-__all__ = ['SaveState',
-           'SaveExpectationValue', 'SaveExpectationValueVariance',
-           'SaveProbabilities', 'SaveProbabilitiesDict',
-           'SaveStatevector', 'SaveStatevectorDict', 'SaveDensityMatrix',
-           'SaveAmplitudes', 'SaveAmplitudesSquared', 'SaveUnitary',
-           'SaveStabilizer', 'SaveMatrixProductState']
+__all__ = [
+    'SaveState',
+    'SaveExpectationValue',
+    'SaveExpectationValueVariance',
+    'SaveProbabilities',
+    'SaveProbabilitiesDict',
+    'SaveStatevector',
+    'SaveStatevectorDict',
+    'SaveDensityMatrix',
+    'SaveAmplitudes',
+    'SaveAmplitudesSquared',
+    'SaveUnitary',
+    'SaveStabilizer',
+    'SaveMatrixProductState'
+]
 
-from .save_state import SaveState, save_state
-from .save_expectation_value import (
-    SaveExpectationValue, save_expectation_value,
-    SaveExpectationValueVariance, save_expectation_value_variance)
-from .save_probabilities import (SaveProbabilities, save_probabilities,
-                                 SaveProbabilitiesDict, save_probabilities_dict)
-from .save_statevector import (SaveStatevector, save_statevector,
-                               SaveStatevectorDict, save_statevector_dict)
-from .save_density_matrix import SaveDensityMatrix, save_density_matrix
-from .save_amplitudes import (SaveAmplitudes, save_amplitudes,
-                              SaveAmplitudesSquared, save_amplitudes_squared)
-from .save_stabilizer import SaveStabilizer, save_stabilizer
-from .save_unitary import SaveUnitary, save_unitary
-from .save_matrix_product_state import SaveMatrixProductState, save_matrix_product_state
+from .save_instructions import *
+from .set_instructions import *

@@ -14,7 +14,8 @@ Simulator instruction to save a density matrix.
 """
 
 from qiskit.circuit import QuantumCircuit
-from .save_data import SaveAverageData, default_qubits
+from .save_data import SaveAverageData
+from ..default_qubits import default_qubits
 
 
 class SaveDensityMatrix(SaveAverageData):

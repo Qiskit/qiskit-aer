@@ -139,6 +139,8 @@ double is_unit_vector(const std::vector<T> &vec);
 // Conjugate a vector
 template <typename T>
 std::vector<std::complex<T>> conjugate(const std::vector<std::complex<T>> &v);
+template <class T>
+Vector<std::complex<T>> conjugate(const Vector<std::complex<T>> &v);
 
 // Compute the Euclidean 2-norm of a vector
 template <typename T>
@@ -154,6 +156,8 @@ inline matrix<T> projector(const std::vector<T> &ket) {return outer_product(ket,
 // Tensor product vector
 template <typename T>
 std::vector<T> tensor_product(const std::vector<T> &v, const std::vector<T> &w);
+template <typename T>
+Vector<T> tensor_product(const Vector<T> &v, const Vector<T> &w);
 
 // Return a new vector formed by multiplying each element of the input vector
 // with a scalar. The product of types T1 * T2 must be valid.
@@ -786,6 +790,14 @@ std::vector<std::complex<T>> conjugate(const std::vector<std::complex<T>> &v) {
 }
 
 template <typename T>
+Vector<std::complex<T>> conjugate(const Vector<std::complex<T>> &v) {
+  Vector<std::complex<T>> ret(v.size(), false);
+  std::transform(v.data(), v.data() + v.size(), ret.data(),
+                [] (const std::complex<T> &c) -> std::complex<T> { return std::conj(c); });
+  return ret;
+}
+
+template <typename T>
 double norm(const std::vector<T> &vec) {
   double val = 0.0;
   for (const auto &v : vec) {
@@ -814,6 +826,18 @@ std::vector<T> tensor_product(const std::vector<T> &vec1,
   for (const auto &a : vec1)
     for (const auto &b : vec2) {
         ret.push_back(a * b);
+  }
+  return ret;
+}
+
+template <typename T>
+Vector<T> tensor_product(const Vector<T> &vec1, const Vector<T> &vec2) {
+  const auto SZ1 = vec1.size();
+  const auto SZ2 = vec2.size();
+  Vector<T> ret(SZ1 * SZ2, false);
+  for (size_t i = 0; i < SZ1; ++i)
+    for (size_t j = 0; j < SZ2; ++j) {
+        ret[SZ2 * i + j] = vec1[i] * vec2[j];
   }
   return ret;
 }
