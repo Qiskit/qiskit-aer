@@ -12,17 +12,19 @@
 """
 Profile backend options for optimal performance
 """
+import configparser as cp
+import os
+from socket import gethostname
 import numpy as np
 
-from qiskit import transpile, assemble, execute, QuantumRegister, QuantumCircuit
+from qiskit import transpile, assemble, execute, user_config, QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import QuantumVolume
 from qiskit.quantum_info import random_unitary
 from .aererror import AerError
-from .backends.aerbackend import AerBackend
-from .backends.qasm_simulator import QasmSimulator
 
 
-def optimize_backend_options(min_qubits=10, max_qubits=25, ntrials=5, circuit=None):
+def profile_performance_options(min_qubits=10, max_qubits=25, ntrials=5,
+                                circuit=None, persist=True):
     """Set optimal OpenMP and fusion options for backend."""
     # Profile
     profile = {}
@@ -33,7 +35,8 @@ def optimize_backend_options(min_qubits=10, max_qubits=25, ntrials=5, circuit=No
         parallel_threshold = profile_parallel_threshold(
             min_qubits=min_qubits, max_qubits=max_qubits, circuit=circuit, ntrials=ntrials)
         profile['statevector_parallel_threshold'] = parallel_threshold
-        _set_optimized_option('statevector_parallel_threshold', parallel_threshold)
+        _PerformanceOptions._set_option('statevector_parallel_threshold',
+                                        parallel_threshold, persist)
     except AerError:
         pass
 
@@ -47,7 +50,7 @@ def optimize_backend_options(min_qubits=10, max_qubits=25, ntrials=5, circuit=No
                                                         ntrials=ntrials,
                                                         circuit=circuit)
             profile[f'fusion_threshold{postfix}'] = fusion_threshold
-            _set_optimized_option(f'fusion_threshold{postfix}', fusion_threshold)
+            _PerformanceOptions._set_option(f'fusion_threshold{postfix}', fusion_threshold, persist)
 
             default_qubit = 20
             num_qubits = min(max(default_qubit, fusion_threshold), max_qubits)
@@ -57,7 +60,7 @@ def optimize_backend_options(min_qubits=10, max_qubits=25, ntrials=5, circuit=No
                                          diagonal=False)
             for i, _ in enumerate(costs):
                 profile[f'fusion_cost{postfix}.{i + 1}'] = costs[i]
-                _set_optimized_option(f'fusion_cost{postfix}.{i + 1}', costs[i])
+                _PerformanceOptions._set_option(f'fusion_cost{postfix}.{i + 1}', costs[i], persist)
 
         except AerError:
             pass
@@ -65,23 +68,113 @@ def optimize_backend_options(min_qubits=10, max_qubits=25, ntrials=5, circuit=No
     return profile
 
 
-def _set_optimized_option(option_name, value):
-    setattr(AerBackend, f'_{option_name}', value)
+def get_performance_options(gpu=False):
+    """Return optimal OpenMP and fusion options for backend."""
+    return _PerformanceOptions._get_performance_options(gpu)
 
 
-def clear_optimized_backend_options():
-    """Set profiled options for backend."""
-    _clear_optimized_option('statevector_parallel_threshold')
-    for gpu in (False, True):
-        postfix = '_gpu' if gpu else ''
-        _clear_optimized_option(f'fusion_threshold{postfix}')
+def clear_performance_options(persist=True):
+    """Clear profiled options for backend."""
+    return _PerformanceOptions._clear_performance_options(persist)
+
+
+class _PerformanceOptions:
+
+    _PERFORMANCE_OPTIONS = {
+        'statevector_parallel_threshold': None,
+        **{f'fusion_threshold{postfix}': None for postfix in ['', '_gpu']},
+        **{f'fusion_cost{postfix}.{i + 1}': None for postfix in ['', '_gpu'] for i in range(5)}
+    }
+
+    @staticmethod
+    def _get_section_name():
+        return f'perf:{gethostname()}'
+
+    @staticmethod
+    def _set_option(option_name, value, persist):
+        _PerformanceOptions._PERFORMANCE_OPTIONS[option_name] = value
+        if persist:
+            config = cp.ConfigParser()
+            section_name = _PerformanceOptions._get_section_name()
+            filename = os.getenv('QISKIT_SETTINGS', user_config.DEFAULT_FILENAME)
+            if os.path.isfile(filename):
+                config.read(filename)
+            if section_name not in config.sections():
+                config.add_section(section_name)
+            config.set(section_name, option_name, str(value))
+            with open(filename, "w+") as config_file:
+                config.write(config_file)
+
+    @staticmethod
+    def _get_options_from_file(option2type):
+        ret = {}
+        filename = os.getenv('QISKIT_SETTINGS', user_config.DEFAULT_FILENAME)
+        if not os.path.isfile(filename):
+            return ret
+
+        config = cp.ConfigParser()
+        config.read(filename)
+
+        section_name = _PerformanceOptions._get_section_name()
+        if section_name not in config.sections():
+            return ret
+
+        for option_name in option2type:
+            if option_name in config[section_name]:
+                ret[option_name] = option2type[option_name](config[section_name][option_name])
+
+        return ret
+
+    @staticmethod
+    def _get_performance_options(gpu=False):
+        """Return optimal OpenMP and fusion options for backend."""
+        # Profile
+        option2type = {
+            'statevector_parallel_threshold': int,
+            **{f'fusion_threshold{postfix}': int for postfix in ['', '_gpu']},
+            **{f'fusion_cost{postfix}.{i + 1}': float for postfix in ['', '_gpu'] for i in range(5)}
+        }
+
+        profile = _PerformanceOptions._get_options_from_file(option2type)
+
+        for option_name in option2type:
+            if _PerformanceOptions._PERFORMANCE_OPTIONS[option_name] is not None:
+                profile[option_name] = _PerformanceOptions._PERFORMANCE_OPTIONS[option_name]
+
+        if 'fusion_threshold' in profile and gpu:
+            del profile['fusion_threshold']
+        if 'fusion_threshold_gpu' in profile:
+            if gpu:
+                profile['fusion_threshold'] = profile['fusion_threshold_gpu']
+            del profile['fusion_threshold_gpu']
         for i in range(5):
-            _clear_optimized_option(f'fusion_cost{postfix}.{i + 1}')
+            if f'fusion_cost.{i + 1}' in profile and gpu:
+                del profile[f'fusion_cost.{i + 1}']
+            if f'fusion_cost_gpu.{i + 1}' in profile:
+                if gpu:
+                    profile[f'fusion_cost.{i + 1}'] = profile[f'fusion_cost_gpu.{i + 1}']
+                del profile[f'fusion_cost_gpu.{i + 1}']
 
+        return profile
 
-def _clear_optimized_option(option_name):
-    if hasattr(AerBackend, f'_{option_name}'):
-        delattr(AerBackend, f'_{option_name}')
+    @staticmethod
+    def _clear_performance_options(persist=True):
+        """clear profiled options for backend."""
+        _PerformanceOptions._PERFORMANCE_OPTIONS = {
+            'statevector_parallel_threshold': None,
+            **{f'fusion_threshold{postfix}': None for postfix in ['', '_gpu']},
+            **{f'fusion_cost{postfix}.{i + 1}': None for postfix in ['', '_gpu'] for i in range(5)}
+        }
+        if persist:
+            config = cp.ConfigParser()
+            filename = os.getenv('QISKIT_SETTINGS', user_config.DEFAULT_FILENAME)
+            if os.path.isfile(filename):
+                config.read(filename)
+                section_name = _PerformanceOptions._get_section_name()
+                if section_name in config.sections():
+                    config.remove_section(section_name)
+                with open(filename, "w+") as config_file:
+                    config.write(config_file)
 
 
 def _generate_profile_circuit(profile_qubit, base_circuit=None, basis_gates=None):
@@ -174,6 +267,8 @@ def profile_parallel_threshold(min_qubits=10, max_qubits=20, ntrials=10,
         for key, val in backend_options.items():
             profile_opts[key] = val
 
+    # pylint: disable=C0415
+    from .backends.qasm_simulator import QasmSimulator
     simulator = QasmSimulator()
     basis_gates = ['id', 'u', 'cx']
 
@@ -210,6 +305,8 @@ def profile_fusion_threshold(min_qubits=10, max_qubits=20, ntrials=10,
         for key, val in backend_options.items():
             profile_opts[key] = val
 
+    # pylint: disable=C0415
+    from .backends.qasm_simulator import QasmSimulator
     simulator = QasmSimulator()
     basis_gates = ['id', 'u', 'cx']
 
@@ -251,6 +348,8 @@ def profile_fusion_costs(num_qubits, ntrials=10, backend_options=None, gpu=False
         for key, val in backend_options.items():
             profile_opts[key] = val
 
+    # pylint: disable=C0415
+    from .backends.qasm_simulator import QasmSimulator
     simulator = QasmSimulator()
 
     # Ensure fusion is enabled and method is statevector

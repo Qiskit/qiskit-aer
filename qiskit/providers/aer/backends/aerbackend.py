@@ -27,6 +27,8 @@ from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendStatus
 from qiskit.result import Result
 
+from qiskit.providers.aer.profile import get_performance_options
+
 from ..aerjob import AerJob
 from ..aererror import AerError
 
@@ -143,29 +145,16 @@ class AerBackend(BaseBackend, ABC):
                 DeprecationWarning,
                 stacklevel=3)
 
-        profiled_options = {}
-
-        def set_if_profiled(prop_name, profiled_attr_name):
-            # DEPRECATED
-            if backend_options is not None and prop_name in backend_options:
-                return
-            if prop_name in run_options or not hasattr(self, profiled_attr_name):
-                return
-            profiled_options[prop_name] = getattr(self, profiled_attr_name)
-
         # Add default OpenMP options
-        set_if_profiled('statevector_parallel_threshold', '_statevector_parallel_threshold')
-        # Add default fusion options
-        attr_postfix = ''
-        if backend_options is not None and 'gpu' in backend_options.get('method', ''):
-            attr_postfix = '_gpu'
-        set_if_profiled('fusion_threshold', f'_fusion_threshold{attr_postfix}')
-        for i in range(1, 6):
-            set_if_profiled(f'fusion_cost.{i}', f'_fusion_cost{attr_postfix}.{i}')
+        gpu = backend_options is not None and 'gpu' in backend_options.get('method', '')
+        profiled_options = get_performance_options(gpu)
+        for run_option in run_options:
+            if run_option in profiled_options:
+                del profiled_options[run_option]
 
         # Add backend options to the Job qobj
         qobj = self._format_qobj(
-            qobj, backend_options=backend_options, **run_options, **profiled_options)
+            qobj, backend_options=backend_options, **profiled_options, **run_options)
 
         # Optional validation
         if validate:
