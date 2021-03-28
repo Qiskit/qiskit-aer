@@ -58,7 +58,7 @@ T* calloc_array(size_t size) {
 
 template <class T> // define a class template
 class matrix {
-  // friend functions get to use the private varibles of the class as well as
+  // friend functions get to use the private variables of the class as well as
   // have different classes as inputs
   template <class S>
   friend std::ostream &

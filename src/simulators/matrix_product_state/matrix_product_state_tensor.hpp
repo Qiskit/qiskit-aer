@@ -33,6 +33,8 @@
 namespace AER {
 namespace MatrixProductState {
 
+void apply_y_helper(cmatrix_t& mat1, cmatrix_t& mat2);
+
 //============================================================================
 // MPS_Tensor class
 //============================================================================
@@ -92,10 +94,16 @@ public:
   virtual std::ostream& print(std::ostream& out) const;
   reg_t get_size() const;
   cvector_t get_data(uint_t a1, uint_t a2) const;
-  cmatrix_t get_data(uint_t i) const {
+  const cmatrix_t& get_data(uint_t i) const {
     return data_[i];
   }
-  const std::vector<cmatrix_t> get_data() const {
+  cmatrix_t& get_data(uint_t i) {
+    return data_[i];
+  }
+  const std::vector<cmatrix_t>& get_data() const {
+    return data_;
+  }
+  std::vector<cmatrix_t>& get_data() {
     return data_;
   }
   void insert_data(uint_t a1, uint_t a2, cvector_t data);
@@ -175,6 +183,7 @@ static void contract_2_dimensions(const MPS_Tensor &left_gamma,
 static const double SQR_HALF;
 static constexpr uint_t NUMBER_OF_PRINTED_DIGITS = 3;
 static constexpr uint_t MATRIX_OMP_THRESHOLD = 8;
+
 
 private:
   void mul_Gamma_by_Lambda(const rvector_t &Lambda,

@@ -446,6 +446,9 @@ if __name__ == '__main__':
     simulator = QasmSimulator()
     qobj = assemble(transpile(circuits, simulator), simulator, shots=shots)
     result = simulator.run(qobj).result()
+    print(result.status)
+    import pprint
+    pprint.pprint(result.to_dict())
     assert result.status == 'COMPLETED'
     compare_counts(result, circuits, targets, delta=0.05 * shots)
     assert result.success is True

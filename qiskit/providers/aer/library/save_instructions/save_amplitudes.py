@@ -15,7 +15,8 @@ Simulator instruction to save statevector amplitudes and amplitudes squared.
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.extensions.exceptions import ExtensionError
-from .save_data import SaveSingleData, SaveAverageData, default_qubits
+from .save_data import SaveSingleData, SaveAverageData
+from ..default_qubits import default_qubits
 
 
 class SaveAmplitudes(SaveSingleData):
