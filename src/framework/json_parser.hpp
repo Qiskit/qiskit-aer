@@ -43,6 +43,10 @@ struct Parser<json_t> {
         return JSON::get_value(key, js);
     }
 
+    static bool check_keys(const std::vector<std::string>& keys, const json_t &js) {
+        return JSON::check_keys(keys, js);
+    }
+
     static bool is_array(const json_t &js){
         return js.is_array();
     }

@@ -16,7 +16,7 @@
 #define _clifford_hpp_
 
 #include "pauli.hpp"
-
+#include "../../framework/json_parser.hpp"
 
 namespace Clifford {
 
@@ -407,13 +407,16 @@ inline void to_json(json_t &js, const Clifford &clif) {
   js = clif.json();
 }
 
-inline void from_json(const json_t &js, Clifford &clif) {
-  bool has_keys = JSON::check_keys({"stabilizer", "destabilizer"}, js);
+template <typename inputdata_t>
+void build_from(const inputdata_t& js, Clifford& clif){
+  bool has_keys = AER::Parser<inputdata_t>::check_keys({"stabilizer", "destabilizer"}, js);
   if (!has_keys)
     throw std::invalid_argument("Invalid Clifford JSON.");
 
-  const std::vector<std::string> stab = js["stabilizer"];
-  const std::vector<std::string> destab = js["destabilizer"];
+  std::vector<std::string> stab, destab;
+  AER::Parser<inputdata_t>::get_value(stab, "stabilizer", js);
+  AER::Parser<inputdata_t>::get_value(destab, "destabilizer", js);
+
   const auto nq = stab.size();
   if (nq != destab.size()) {
     throw std::invalid_argument("Invalid Clifford JSON: stabilizer and destabilizer lengths do not match.");
@@ -463,6 +466,9 @@ inline void from_json(const json_t &js, Clifford &clif) {
   }
 }
 
+inline void from_json(const json_t &js, Clifford &clif) {
+    build_from(js, clif);
+}
 
 //------------------------------------------------------------------------------
 } // end namespace Clifford

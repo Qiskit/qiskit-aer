@@ -474,7 +474,7 @@ inline Op make_multiplexer(const reg_t &qubits,
 // JSON conversion
 //------------------------------------------------------------------------------
 
-// Main JSON deserialization functions
+// Main deserialization functions
 template<typename inputdata_t>
 Op json_to_op(const inputdata_t& js); // Partial TODO
 json_t op_to_json(const Op &op); // Partial TODO
@@ -500,9 +500,14 @@ template<typename inputdata_t>
 Op json_to_op_pauli(const inputdata_t& js);
 
 // Set state
-Op json_to_op_set_vector(const json_t& js, OpType op_type);
-Op json_to_op_set_matrix(const json_t& js, OpType op_type);
-Op json_to_op_set_clifford(const json_t& js, OpType op_type);
+template<typename inputdata_t>
+Op json_to_op_set_vector(const inputdata_t& js, OpType op_type);
+
+template<typename inputdata_t>
+Op json_to_op_set_matrix(const inputdata_t& js, OpType op_type);
+
+template<typename inputdata_t>
+Op json_to_op_set_clifford(const inputdata_t& js, OpType op_type);
 
 // Save data
 template<typename inputdata_t>
@@ -991,33 +996,38 @@ Op json_to_op_noise_switch(const inputdata_t& js) {
 //------------------------------------------------------------------------------
 // Implementation: Set state
 //------------------------------------------------------------------------------
-
-Op json_to_op_set_vector(const json_t &js, OpType op_type) {
+template<typename inputdata_t>
+Op json_to_op_set_vector(const inputdata_t &js, OpType op_type) {
   Op op;
   op.type = op_type;
-  op.params = js["params"][0].get<std::vector<complex_t>>();
-  JSON::get_value(op.name, "name", js);
-  JSON::get_value(op.qubits, "qubits", js);
+  const inputdata_t& params = Parser<inputdata_t>::get_value("params", js);
+  op.params = Parser<inputdata_t>::template get_list_elem<std::vector<complex_t>>(params, 0);
+  Parser<inputdata_t>::get_value(op.name, "name", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", js);
   add_conditional(Allowed::No, op, js);
   return op;
 }
 
-Op json_to_op_set_matrix(const json_t &js, OpType op_type) {
+template<typename inputdata_t>
+Op json_to_op_set_matrix(const inputdata_t &js, OpType op_type) {
   Op op;
   op.type = op_type;
-  op.mats.push_back(js["params"][0].get<cmatrix_t>());
-  JSON::get_value(op.name, "name", js);
-  JSON::get_value(op.qubits, "qubits", js);
+  const inputdata_t& params = Parser<inputdata_t>::get_value("params", js);
+  op.mats.push_back(Parser<inputdata_t>::template get_list_elem<cmatrix_t>(params, 0));
+  Parser<inputdata_t>::get_value(op.name, "name", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", js);
   add_conditional(Allowed::No, op, js);
   return op;
 }
 
-Op json_to_op_set_clifford(const json_t &js, OpType op_type) {
+template<typename inputdata_t>
+Op json_to_op_set_clifford(const inputdata_t &js, OpType op_type) {
   Op op;
   op.type = op_type;
-  op.clifford = js["params"][0].get<Clifford::Clifford>();
-  JSON::get_value(op.name, "name", js);
-  JSON::get_value(op.qubits, "qubits", js);
+  const inputdata_t& params = Parser<inputdata_t>::get_value("params", js);
+  op.clifford = Parser<inputdata_t>::template get_list_elem<Clifford::Clifford>(params, 0);
+  Parser<inputdata_t>::get_value(op.name, "name", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", js);
   add_conditional(Allowed::No, op, js);
   return op;
 }

@@ -14,6 +14,7 @@ DISABLE_WARNING_POP
 
 #include "framework/matrix.hpp"
 #include "framework/python_parser.hpp"
+#include "framework/pybind_casts.hpp"
 #include "framework/types.hpp"
 #include "framework/results/pybind_result.hpp"
 

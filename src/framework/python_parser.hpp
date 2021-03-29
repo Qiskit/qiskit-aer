@@ -19,45 +19,6 @@
 #include "json_parser.hpp"
 #include "pybind_json.hpp"
 
-namespace py = pybind11;
-
-namespace pybind11 {
-    namespace detail {
-        template <typename T> struct type_caster<matrix<T>>{
-            using base = type_caster_base<matrix<T>>;
-        public:
-        PYBIND11_TYPE_CASTER(matrix<T>, _("matrix_complex_t"));
-            // Conversion part 1 (Python->C++):
-            bool load(py::handle src, bool convert){
-                // TODO: Check if make sense have to flavors of matrix: F-style and C-style
-//                auto py_matrix = py::cast<py::array_t<T, py::array::f_style | py::array::forcecast>>(src);
-                auto py_matrix = py::cast<py::array_t<T>>(src);
-                auto flags = py_matrix.attr("flags").attr("carray").template cast<bool>();
-                if(py_matrix.ndim() != 2){
-                    throw std::invalid_argument(std::string("Python: invalid matrix (empty array)."));
-                }
-                size_t ncols = py_matrix.shape(0);
-                size_t nrows = py_matrix.shape(1);
-                // Matrix looks ok, now we parse it
-                auto raw_mat = py_matrix.template unchecked<2>();
-//                auto raw_mat = static_cast<T *>(py_matrix.request().ptr);
-//                value = matrix<T>::copy_from_buffer(nrows, ncols, raw_mat);
-                value = matrix<T>(nrows, ncols, false);
-                for (size_t r = 0; r < nrows; r++) {
-                    for (size_t c = 0; c < ncols; c++) {
-                        value(r, c) = raw_mat(r, c);
-                    }
-                }
-                return true;
-            }
-            // Conversion part 2 (C++ -> Python):
-            static py::handle cast(matrix<T>, py::return_value_policy policy, py::handle parent){
-                throw std::runtime_error("Casting from matrix to python not supported.");
-            }
-        };
-    }
-}
-
 namespace AER{
 
 template <>
@@ -65,10 +26,24 @@ struct Parser<py::handle> {
     Parser() = delete;
 
     static bool check_key(const std::string& key, const py::handle& po){
+        if(py::isinstance<py::dict>(po)){
+            return !py::cast<py::dict>(po)[key.c_str()].is_none();
+        }
         return py::hasattr(po, key.c_str());
     }
 
+    static bool check_keys(const std::vector<std::string>& keys, const py::handle& po) {
+        bool pass = true;
+        for (const auto &s : keys){
+            pass &= check_key(s, po);
+        }
+        return pass;
+    }
+
     static py::object get_py_value(const std::string& key, const py::handle& po){
+        if(py::isinstance<py::dict>(po)){
+            return py::cast<py::dict>(po)[key.c_str()];
+        }
         return po.attr(key.c_str());
     }
 
@@ -150,6 +125,12 @@ struct Parser<py::handle> {
     template <typename T>
     static T get_list_elem(const py::list& po, unsigned int i){
         return py::cast<py::object>(po[i]).cast<T>();
+    }
+
+    template <typename T>
+    static T get_list_elem(const py::handle& po, unsigned int i){
+        auto py_list = get_as_list(po);
+        return get_list_elem<T>(py_list, i);
     }
 
     static std::string dump(const py::handle& po){
