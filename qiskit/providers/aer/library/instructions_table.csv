@@ -1,0 +1,19 @@
+﻿Instruction,Automatic,Statevector,Density Matrix,MPS,Stabilizer,Ext. Stabilizer,Unitary
+:class:`SaveAmplitudes`,✔,✔,✘,✔,✘,✘,✘
+:class:`SaveAmplitudesSquared`,✔,✔,✔,✔,✔,✘,✘
+:class:`SaveDensityMatrix`,✔,✔,✔,✔,✘,✘,✘
+:class:`SaveExpectationValue`,✔,✔,✔,✔,✔,✔,✘
+:class:`SaveExpectationValueVariance`,✔,✔,✔,✔,✔,✔,✘
+:class:`SaveMatrixProductState`,✘,✘,✘,✔,✘,✘,✘
+:class:`SaveProbabilities`,✔,✔,✔,✔,✔,✘,✘
+:class:`SaveProbabilitiesDict`,✔,✔,✔,✔,✔,✘,✘
+:class:`SaveStabilizer`,✔,✘,✘,✘,✔,✘,✘
+:class:`SaveState`,✔,✔,✔,✔,✔,✔,✔
+:class:`SaveStatevector`,✔,✔,✘,✔,✘,✔,✘
+:class:`SaveStatevectorDict`,✔,✔,✘,✘,✘,✘,✘
+:class:`SaveUnitary`,✘,✘,✘,✘,✘,✘,✔
+:class:`SetDensityMatrix`,✔,✘,✔,✘,✘,✘,✘
+:class:`SetStabilizer`,✔,✘,✘,✘,✔,✘,✘
+:class:`SetStatevector`,✔,✔,✘,✘,✘,✘,✘
+:class:`SetUnitary`,✘,✘,✘,✘,✘,✘,✔
+,,,,,,,,
