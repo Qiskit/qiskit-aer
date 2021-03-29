@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "framework/matrix.hpp" // matrix class
+#include "framework/linalg/vector.hpp" // AER::Vector class
 #include "framework/stl_ostream.hpp" 
 
 
@@ -50,6 +51,8 @@ namespace AER {
   using stringset_t = std::unordered_set<std::string>;
   template <typename T>
   using stringmap_t = std::unordered_map<std::string, T>;
+  using mps_container_t = std::pair<std::vector<std::pair<cmatrix_t, cmatrix_t>>, 
+			                              std::vector<rvector_t>>;
 }
 
 

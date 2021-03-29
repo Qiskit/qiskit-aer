@@ -288,7 +288,8 @@ class QasmSimulator(AerBackend):
         'save_probabilities', 'save_probabilities_dict',
         'save_amplitudes', 'save_amplitudes_sq', 'save_state',
         'save_density_matrix', 'save_statevector', 'save_statevector_dict',
-        'save_stabilizer'
+        'save_stabilizer', 'set_statevector', 'set_density_matrix',
+        'set_stabilizer'
     ])
 
     _DEFAULT_CONFIGURATION = {
@@ -537,7 +538,7 @@ class QasmSimulator(AerBackend):
                 'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
                 'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
                 'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
-                'unitary', 'diagonal', 'delay', 'pauli',
+                'unitary', 'diagonal', 'delay', 'pauli'
             ])
         if method == 'matrix_product_state':
             return sorted([
@@ -560,27 +561,38 @@ class QasmSimulator(AerBackend):
 
     def _custom_instructions(self):
         """Return method basis gates and custom instructions"""
+        # pylint: disable = too-many-return-statements
         if 'custom_instructions' in self._options_configuration:
             return self._options_configuration['custom_instructions']
 
         method = self._options.get('method', None)
+        if method in ['statevector', 'statevector_gpu', 'statevector_thrust']:
+            return sorted([
+                'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
+                'save_probabilities', 'save_probabilities_dict',
+                'save_amplitudes', 'save_amplitudes_sq', 'save_state',
+                'save_density_matrix', 'save_statevector', 'save_statevector_dict',
+                'set_statevector'
+            ])
         if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
             return sorted([
                 'roerror', 'kraus', 'superop', 'snapshot', 'save_expval', 'save_expval_var',
                 'save_probabilities', 'save_probabilities_dict',
-                'save_state', 'save_density_matrix', 'save_amplitudes_sq'
+                'save_state', 'save_density_matrix', 'save_amplitudes_sq',
+                'set_statevector', 'set_density_matrix'
             ])
         if method == 'matrix_product_state':
             return sorted([
                 'roerror', 'snapshot', 'kraus', 'save_expval', 'save_expval_var',
                 'save_probabilities', 'save_probabilities_dict',
-                'save_density_matrix', 'save_statevector',
-                'save_amplitudes', 'save_amplitudes_sq'])
+                'save_density_matrix', 'save_state', 'save_statevector',
+                'save_amplitudes', 'save_amplitudes_sq', 'save_matrix_product_state'])
         if method == 'stabilizer':
             return sorted([
                 'roerror', 'snapshot', 'save_expval', 'save_expval_var',
                 'save_probabilities', 'save_probabilities_dict',
-                'save_amplitudes_sq', 'save_state', 'save_stabilizer'
+                'save_amplitudes_sq', 'save_state', 'save_stabilizer',
+                'set_stabilizer'
             ])
         if method == 'extended_stabilizer':
             return sorted(['roerror', 'snapshot', 'save_statevector',

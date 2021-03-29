@@ -18,6 +18,7 @@ import unittest
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import AerError
 from test.terra import common
+from test.terra.decorators import requires_method
 
 # Basic circuit instruction tests
 from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
@@ -54,6 +55,7 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValP
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
 
 
+@requires_method("qasm_simulator", "matrix_product_state")
 class TestQasmMatrixProductStateSimulator(
         common.QiskitAerTestCase,
         QasmMeasureTests,
@@ -73,7 +75,6 @@ class TestQasmMatrixProductStateSimulator(
         QasmResetNoiseTests,
         QasmKrausNoiseTests,
         QasmKrausNoiseOnQFTTests,
-        QasmSaveDataTests,
         QasmSnapshotStatevectorTests,
         QasmSnapshotDensityMatrixTests,
         QasmSnapshotProbabilitiesTests,
@@ -82,7 +83,8 @@ class TestQasmMatrixProductStateSimulator(
         QasmSnapshotExpValPauliNCTests,
         QasmSnapshotExpValMatrixTests,
         QasmStandardGateStatevectorTests,
-        QasmDelayGateTests
+        QasmDelayGateTests,
+        QasmSaveDataTests
 ):
     """QasmSimulator matrix product state method tests."""
 

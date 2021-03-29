@@ -65,7 +65,9 @@ public:
   // The vector can be either a statevector or a vectorized density matrix
   // If the length of the data vector does not match either case for the
   // number of qubits an exception is raised.
-  void initialize_from_vector(const cvector_t<double> &data);
+  template <typename list_t>
+  void initialize_from_vector(const list_t &data);
+
 
   // Returns the number of qubits for the superoperator
   virtual uint_t num_qubits() const override {return BaseMatrix::num_qubits_;}
@@ -180,26 +182,25 @@ void DensityMatrixThrust<data_t>::initialize() {
   BaseVector::zero();
   // Set to be all |0> sate
   std::complex<data_t> one = 1.0;
-  BaseVector::set_state(0,one);
+  BaseVector::set_state(0, one);
 }
 
 template <typename data_t>
-void DensityMatrixThrust<data_t>::initialize_from_vector(const cvector_t<double> &statevec) {
-  if (BaseVector::data_size_ == statevec.size()) {
+template <typename list_t>
+void DensityMatrixThrust<data_t>::initialize_from_vector(const list_t &vec) {
+  if (BaseVector::data_size_ == vec.size()) {
     // Use base class initialize for already vectorized matrix
-    BaseVector::initialize_from_vector(statevec);
-  } else if (BaseVector::data_size_ == statevec.size() * statevec.size()) {
+    BaseVector::initialize_from_vector(vec);
+  } else if (BaseVector::data_size_ == vec.size() * vec.size()) {
     // Convert statevector into density matrix
-    cvector_t<double> densitymat = AER::Utils::tensor_product(AER::Utils::conjugate(statevec),
-                                                      statevec);
-    BaseVector::initialize_from_vector(densitymat);
+    BaseVector::initialize_from_vector(
+      AER::Utils::tensor_product(AER::Utils::conjugate(vec), vec));
 
   } else {
     throw std::runtime_error("DensityMatrixThrust::initialize input vector is incorrect length. Expected: " +
                              std::to_string(BaseVector::data_size_) + " Received: " +
-                             std::to_string(statevec.size()));
+                             std::to_string(vec.size()));
   }
-
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::initialize_from_vector");
 #endif

@@ -10,25 +10,27 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Simulator instruction to save Clifford state.
+Simulator instruction to save matrix product state.
 """
 
 from qiskit.circuit import QuantumCircuit
-from .save_data import SaveSingleData, default_qubits
+from .save_data import SaveSingleData
+from ..default_qubits import default_qubits
 
 
-class SaveStabilizer(SaveSingleData):
-    """Save Stabilizer instruction"""
-    def __init__(self, num_qubits, label="stabilizer",
-                 pershot=False, conditional=False):
-        """Create new instruction to save the stabilizer simulator state.
+class SaveMatrixProductState(SaveSingleData):
+    """Save matrix product state instruction"""
+    def __init__(self, num_qubits,
+                 label="matrix_product_state",
+                 pershot=False,
+                 conditional=False):
+        """Create new instruction to save the matrix product state.
 
         Args:
-            num_qubits (int): the number of qubits of the
+            num_qubits (int): the number of qubits
             label (str): the key for retrieving saved data from results.
-            pershot (bool): if True save a list of Cliffords for each
-                            shot of the simulation rather than a single
-                            statevector [Default: False].
+            pershot (bool): if True save the mps for each
+                            shot of the simulation [Default: False].
             conditional (bool): if True save data conditional on the current
                                 classical register values [Default: False].
 
@@ -38,17 +40,19 @@ class SaveStabilizer(SaveSingleData):
             qubits in a circuit, otherwise an exception will be raised during
             simulation.
         """
-        super().__init__('save_stabilizer', num_qubits, label,
+        super().__init__('save_matrix_product_state',
+                         num_qubits,
+                         label,
                          pershot=pershot,
                          conditional=conditional)
 
 
-def save_stabilizer(self, label="stabilizer", pershot=False, conditional=False):
-    """Save the current stabilizer simulator quantum state as a Clifford.
+def save_matrix_product_state(self, label="matrix_product_state", pershot=False, conditional=False):
+    """Save the current simulator quantum state as a matrix product state.
 
     Args:
         label (str): the key for retrieving saved data from results.
-        pershot (bool): if True save a list of Cliffords for each
+        pershot (bool): if True save the mps for each
                         shot of the simulation [Default: False].
         conditional (bool): if True save pershot data conditional on the
                             current classical register values
@@ -57,16 +61,16 @@ def save_stabilizer(self, label="stabilizer", pershot=False, conditional=False):
     Returns:
         QuantumCircuit: with attached instruction.
 
-    .. note::
+    .. note:
 
         This instruction is always defined across all qubits in a circuit.
     """
     qubits = default_qubits(self)
-    instr = SaveStabilizer(len(qubits),
-                           label=label,
-                           pershot=pershot,
-                           conditional=conditional)
+    instr = SaveMatrixProductState(len(qubits),
+                                   label=label,
+                                   pershot=pershot,
+                                   conditional=conditional)
     return self.append(instr, qubits)
 
 
-QuantumCircuit.save_stabilizer = save_stabilizer
+QuantumCircuit.save_matrix_product_state = save_matrix_product_state
