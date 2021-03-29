@@ -39,10 +39,11 @@ Instruction Classes
     SetStabilizer
     SetUnitary
 
-Then can also be used using custom QuantumCircuit methods
-
 QuantumCircuit Methods
 ----------------------
+
+The set instructions can also be added to circuits by using the
+following ``QuantumCircuit`` methods which are patched when importing Aer.
 
 .. autosummary::
     :toctree: ../stubs/
@@ -66,8 +67,11 @@ Saving Simulator Data
 Simulator State Save Instruction Classes
 ----------------------------------------
 
-Instruction Classes
--------------------
+The following instructions can be used to save the state of the simulator
+into the returned result object. The :class:`SaveState` instruction will
+automatically select the format based on the simulation method (eg.
+:class:`SaveStatevector` for statevector method, :class:`SaveDensityMatrix`
+for density matrix method etc.).
 
 .. autosummary::
     :toctree: ../stubs/
@@ -79,7 +83,12 @@ Instruction Classes
     SaveMatrixProductState
     SaveStabilizer
     SaveUnitary
-    SaveSuperOp
+
+.. note::
+    The :class:`SaveDensityMatrix` instruction can be used to save the
+    reduced densit matrix of a subset of qubits for supported simulation
+    methods, however all other save state instructions must be applied
+    to all qubits in a run circuit.
 
 Simulator Derived Data Save Instruction Classes
 -----------------------------------------------
@@ -95,16 +104,8 @@ with certain simulation methods.
     SaveExpectationValueVariance
     SaveProbabilities
     SaveProbabilitiesDict
-    SaveDensityMatrix
-    SaveStatevector
-    SaveStatevectorDict
     SaveAmplitudes
     SaveAmplitudesSquared
-    SaveStabilizer
-    SaveUnitary
-    SaveMatrixProductState
-
-Then can also be used using custom QuantumCircuit methods
 
 .. note ::
     When saving pershot data by using the ``pershot=True`` kwarg
@@ -125,22 +126,28 @@ Then can also be used using custom QuantumCircuit methods
 QuantumCircuit Methods
 ----------------------
 
+The save instructions can also be added to circuits by using the
+following ``QuantumCircuit`` methods which are patched when importing Aer.
+
 .. autosummary::
     :toctree: ../stubs/
 
-    save_state
-    save_expectation_value
-    save_expectation_value_variance
-    save_probabilities
-    save_probabilities_dict
-    save_density_matrix
-    save_statevector
-    save_statevector_dict
     save_amplitudes
     save_amplitudes_squared
+    save_density_matrix
+    save_expectation_value
+    save_expectation_value_variance
+    save_matrix_product_state
+    save_probabilities
+    save_probabilities_dict
+    save_stabilizer
+    save_state
+    save_statevector
+    save_statevector_dict
+    save_unitary
 
 Method Compatibility
---------------------
+====================
 
 The following table summarizes which instructions are compatible with
 which simulation methods
