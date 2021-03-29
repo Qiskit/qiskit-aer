@@ -1,0 +1,7 @@
+---
+
+fixes:
+  - |
+    Fixed bug in MPS with Kraus noise. Failure was detected in QFT.
+
+
