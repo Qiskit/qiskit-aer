@@ -47,7 +47,6 @@ def cpp_execute(controller, qobj):
     # Location where we put external libraries that will be
     # loaded at runtime by the simulator extension
     qobj_dict['config']['library_dir'] = LIBRARY_DIR
-
     return controller(qobj_dict)
 
 

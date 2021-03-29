@@ -63,7 +63,10 @@ public:
   // The vector can be either a statevector or a vectorized density matrix
   // If the length of the data vector does not match either case for the
   // number of qubits an exception is raised.
-  void initialize_from_vector(const cvector_t<double> &data);
+  template <typename list_t>
+  void initialize_from_vector(const list_t &data);
+  template <typename list_t>
+  void initialize_from_vector(list_t &&data);
 
   // Returns the number of qubits for the superoperator
   virtual uint_t num_qubits() const override {return BaseMatrix::num_qubits_;}
@@ -172,19 +175,36 @@ void DensityMatrix<data_t>::initialize() {
 }
 
 template <typename data_t>
-void DensityMatrix<data_t>::initialize_from_vector(const cvector_t<double> &statevec) {
-  if (BaseVector::data_size_ == statevec.size()) {
+template <typename list_t>
+void DensityMatrix<data_t>::initialize_from_vector(const list_t &vec) {
+  if (BaseVector::data_size_ == vec.size()) {
     // Use base class initialize for already vectorized matrix
-    BaseVector::initialize_from_vector(statevec);
-  } else if (BaseVector::data_size_ == statevec.size() * statevec.size()) {
+    BaseVector::initialize_from_vector(vec);
+  } else if (BaseVector::data_size_ == vec.size() * vec.size()) {
     // Convert statevector into density matrix
-    cvector_t<double> densitymat = AER::Utils::tensor_product(AER::Utils::conjugate(statevec),
-                                                      statevec);
-    std::move(densitymat.begin(), densitymat.end(), BaseVector::data_);
+    BaseVector::initialize_from_vector(
+      AER::Utils::tensor_product(AER::Utils::conjugate(vec), vec));
   } else {
     throw std::runtime_error("DensityMatrix::initialize input vector is incorrect length. Expected: " +
                              std::to_string(BaseVector::data_size_) + " Received: " +
-                             std::to_string(statevec.size()));
+                             std::to_string(vec.size()));
+  }
+}
+
+template <typename data_t>
+template <typename list_t>
+void DensityMatrix<data_t>::initialize_from_vector(list_t &&vec) {
+  if (BaseVector::data_size_ == vec.size()) {
+    // Use base class initialize for already vectorized matrix
+    BaseVector::initialize_from_vector(std::move(vec));
+  } else if (BaseVector::data_size_ == vec.size() * vec.size()) {
+    // Convert statevector into density matrix
+    BaseVector::initialize_from_vector(
+      AER::Utils::tensor_product(AER::Utils::conjugate(vec), vec));
+  } else {
+    throw std::runtime_error("DensityMatrix::initialize input vector is incorrect length. Expected: " +
+                             std::to_string(BaseVector::data_size_) + " Received: " +
+                             std::to_string(vec.size()));
   }
 }
 

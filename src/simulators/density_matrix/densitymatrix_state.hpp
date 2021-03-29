@@ -47,7 +47,8 @@ const Operations::OpSet StateOpSet(
      OpType::barrier, OpType::bfunc,
      OpType::roerror, OpType::matrix,
      OpType::diagonal_matrix, OpType::kraus,
-     OpType::superop, OpType::save_expval,
+     OpType::superop, OpType::set_statevec,
+     OpType::set_densmat, OpType::save_expval,
      OpType::save_expval_var, OpType::save_densmat,
      OpType::save_probs, OpType::save_probs_ket,
      OpType::save_amps_sq, OpType::save_state
@@ -489,6 +490,12 @@ void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
           break;
         case OpType::kraus:
           apply_kraus(op.qubits, op.mats);
+          break;
+        case OpType::set_statevec:
+          BaseState::qreg_.initialize_from_vector(op.params);
+          break;
+        case OpType::set_densmat:
+          BaseState::qreg_.initialize_from_matrix(op.mats[0]);
           break;
         case OpType::save_expval:
         case OpType::save_expval_var:

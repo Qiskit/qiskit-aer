@@ -48,12 +48,12 @@ const Operations::OpSet StateOpSet(
      OpType::bfunc, OpType::roerror,
      OpType::matrix, OpType::diagonal_matrix,
      OpType::multiplexer, OpType::kraus,
-     OpType::sim_op, OpType::save_expval,
-     OpType::save_expval_var, OpType::save_densmat,
+     OpType::sim_op, OpType::set_statevec,
+     OpType::save_expval, OpType::save_expval_var,
      OpType::save_probs, OpType::save_probs_ket,
      OpType::save_amps, OpType::save_amps_sq,
      OpType::save_state, OpType::save_statevec,
-     OpType::save_statevec_dict
+     OpType::save_statevec_dict, OpType::save_densmat
      },
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
@@ -580,6 +580,9 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
           else if(op.name == "end_register_blocking"){
             BaseState::qreg_.leave_register_blocking();
           }
+          break;
+        case OpType::set_statevec:
+          BaseState::qreg_.initialize_from_vector(op.params);
           break;
         case OpType::save_expval:
         case OpType::save_expval_var:
