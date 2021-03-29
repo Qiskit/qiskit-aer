@@ -306,6 +306,8 @@ protected:
   bool chunk_omp_parallel_;     //using thread parallel to process loop of chunks or not
   bool gpu_optimization_;       //optimization for GPU
 
+  reg_t qubit_map_;             //qubit map to restore swapped qubits
+
   virtual int qubit_scale(void)
   {
     return 1;     //scale of qubit number (x2 for density and unitary matrices)
@@ -314,6 +316,8 @@ protected:
 
   //swap between chunks
   virtual void apply_chunk_swap(const reg_t &qubits);
+
+  virtual void apply_chunk_x(const uint_t qubit);
 
   //send/receive chunk in receive buffer
   void send_chunk(uint_t local_chunk_index, uint_t global_chunk_index);
@@ -360,6 +364,7 @@ protected:
   MPI_Comm distributed_comm_;
 #endif
 
+  uint_t mapped_index(const uint_t idx);
 };
 
 template <class state_t>
@@ -487,6 +492,12 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits)
 
     //only first one allocates chunks, others only set chunk index
     nchunks = 0;
+  }
+
+  //initialize qubit map
+  qubit_map_.resize(num_qubits_);
+  for(i=0;i<num_qubits_;i++){
+    qubit_map_[i] = i;
   }
 }
 
@@ -848,18 +859,35 @@ void StateChunk<state_t>::apply_save_expval(const Operations::Op &op,
 }
 
 template <class state_t>
+uint_t StateChunk<state_t>::mapped_index(const uint_t idx)
+{
+  uint_t i,ret = 0;
+  uint_t t = idx;
+
+  for(i=0;i<num_qubits_;i++){
+    if(t & 1){
+      ret |= (1ull << qubit_map_[i]);
+    }
+    t >>= 1;
+  }
+  return ret;
+}
+
+template <class state_t>
 void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 {
-  uint_t q0,q1,t,nLarge;
+  uint_t q0,q1,nLarge;
   int_t iChunk;
 
   q0 = qubits[qubits.size() - 2];
   q1 = qubits[qubits.size() - 1];
 
+  if(qubit_scale() == 1){
+    std::swap(qubit_map_[q0],qubit_map_[q1]);
+  }
+    
   if(q0 > q1){
-    t = q0;
-    q0 = q1;
-    q1 = t;
+    std::swap(q0,q1);
   }
 
   if(q1 < chunk_bits_*qubit_scale()){
@@ -1021,6 +1049,136 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
   }
 }
 
+template <class state_t>
+void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
+{
+  uint_t q0,q1,t,nLarge;
+  int_t iChunk;
+
+
+  if(qubit < chunk_bits_*qubit_scale()){
+    reg_t qubits(1,qubit);
+#pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
+    for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
+      qregs_[iChunk].apply_mcx(qubits);
+    }
+  }
+  else{ //exchange over chunks
+    int_t iPair;
+    uint_t nPair,mask;
+    uint_t baseChunk,iChunk1,iChunk2;
+    reg_t qubits(2);
+    qubits[0] = qubit;
+    qubits[1] = qubit;
+
+    mask = (1ull << qubit);
+    mask >>= (chunk_bits_*qubit_scale());
+
+    int proc_bits = 0;
+    uint_t procs = distributed_procs_;
+    while(procs > 1){
+      if((procs & 1) != 0){
+        proc_bits = -1;
+        break;
+      }
+      proc_bits++;
+      procs >>= 1;
+    }
+
+    if(distributed_procs_ == 1 || (proc_bits >= 0 && qubit < (num_qubits_*qubit_scale() - proc_bits))){   //no data transfer between processes is needed
+      nPair = num_local_chunks_ >> 1;
+
+#pragma omp parallel for if(chunk_omp_parallel_) private(iPair,baseChunk,iChunk1,iChunk2)
+      for(iPair=0;iPair<nPair;iPair++){
+        baseChunk = iPair & (mask-1);
+        baseChunk += ((iPair - baseChunk) << 1);
+
+        iChunk1 = baseChunk;
+        iChunk2 = baseChunk | mask;
+
+        qregs_[iChunk1].apply_chunk_swap(qubits,qregs_[iChunk2],true);
+      }
+    }
+#ifdef AER_MPI
+    else{
+      //chunk scheduler that supports any number of processes
+      uint_t nu[3];
+      uint_t ub[3];
+      uint_t iu[3];
+      uint_t add;
+      uint_t iLocalChunk,iRemoteChunk,iProc;
+      int i;
+
+      nLarge = 1;
+      nu[0] = 1ull << (qubit - chunk_bits_*qubit_scale());
+      ub[0] = 0;
+      iu[0] = 0;
+
+      nu[1] = 1ull << (num_qubits_*qubit_scale() - qubit - 1);
+      ub[1] = (qubit - chunk_bits_*qubit_scale()) + 1;
+      iu[1] = 0;
+      nPair = 1ull << (num_qubits_*qubit_scale() - chunk_bits_*qubit_scale() - 1);
+
+      for(iPair=0;iPair<nPair;iPair++){
+        //calculate index of pair of chunks
+        baseChunk = 0;
+        add = 1;
+        for(i=1;i>=0;i--){
+          baseChunk += (iu[i] << ub[i]);
+          //update for next
+          iu[i] += add;
+          add = 0;
+          if(iu[i] >= nu[i]){
+            iu[i] = 0;
+            add = 1;
+          }
+        }
+
+        iChunk1 = baseChunk;
+        iChunk2 = baseChunk | mask;
+
+        if(iChunk1 >= chunk_index_begin_[distributed_rank_] && iChunk1 < chunk_index_end_[distributed_rank_]){    //chunk1 is on this process
+          if(iChunk2 >= chunk_index_begin_[distributed_rank_] && iChunk2 < chunk_index_end_[distributed_rank_]){    //chunk2 is on this process
+            qregs_[iChunk1 - global_chunk_index_].apply_chunk_swap(qubits,qregs_[iChunk2 - global_chunk_index_],true);
+            continue;
+          }
+          else{
+            iLocalChunk = iChunk1;
+            iRemoteChunk = iChunk2;
+            iProc = get_process_by_chunk(iChunk2);
+          }
+        }
+        else{
+          if(iChunk2 >= chunk_index_begin_[distributed_rank_] && iChunk2 < chunk_index_end_[distributed_rank_]){    //chunk2 is on this process
+            iLocalChunk = iChunk2;
+            iRemoteChunk = iChunk1;
+            iProc = get_process_by_chunk(iChunk1);
+          }
+          else{
+            continue;   //there is no chunk for this pair on this process
+          }
+        }
+
+        MPI_Request reqSend,reqRecv;
+        MPI_Status st;
+        uint_t sizeRecv,sizeSend;
+
+        auto pSend = qregs_[iLocalChunk - global_chunk_index_].send_buffer(sizeSend);
+        MPI_Isend(pSend,sizeSend,MPI_BYTE,iProc,iPair,distributed_comm_,&reqSend);
+
+        auto pRecv = qregs_[iLocalChunk - global_chunk_index_].recv_buffer(sizeRecv);
+        MPI_Irecv(pRecv,sizeRecv,MPI_BYTE,iProc,iPair,distributed_comm_,&reqRecv);
+
+        MPI_Wait(&reqSend,&st);
+        MPI_Wait(&reqRecv,&st);
+
+        qregs_[iLocalChunk - global_chunk_index_].apply_chunk_swap(qubits,iRemoteChunk);
+      }
+    }
+#endif
+
+  }
+}
 
 template <class state_t>
 void StateChunk<state_t>::send_chunk(uint_t local_chunk_index, uint_t global_pair_index)
