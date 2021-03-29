@@ -164,7 +164,7 @@ __all__ = [
     'SaveDensityMatrix',
     'SaveUnitary',
     'SaveStabilizer',
-    'SaveMatrixProductState'
+    'SaveMatrixProductState',
     'SaveExpectationValue',
     'SaveExpectationValueVariance',
     'SaveProbabilities',
