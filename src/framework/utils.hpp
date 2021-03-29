@@ -20,6 +20,7 @@
 #include <cmath>
 #include <limits>
 
+#include "framework/avx2_detect.hpp"
 #include "framework/types.hpp"
 
 #ifdef _MSC_VER
@@ -242,8 +243,6 @@ inline std::string int2hex(uint_t n) {return bin2hex(int2bin(n));}
 uint_t reg2int(const reg_t &reg, uint_t base);
 
 // Count number of 1's in bitstring representation of an integer
-uint_t popcount(uint_t count_);
-extern bool (*hamming_parity)(uint_t);
 const uint_t zer = 0U;
 const uint_t one = 1U;
 
@@ -1141,46 +1140,39 @@ std::string int2string(uint_t n, uint_t base, uint_t minlen) {
     #define POPCNT __popcnt
   #endif
   #define INTRINSIC_PARITY 1
-  inline bool _msc_parity(uint_t x)
+  inline bool _intrinsic_parity(uint_t x)
   {
     return (POPCNT(x) & one);
   }
-  bool (*hamming_parity) (uint_t) = &_msc_parity;
-  inline unsigned _msc_weight(uint_t x)
+  inline uint_t _instrinsic_weight(uint_t x)
   {
     return (POPCNT(x));
   }
-  uint_t popcount(uint_t count_) {return _msc_weight(count_);}
 #endif
 #ifdef __GNUC__
   #define INTRINSIC_PARITY 1
-  inline bool _gcc_parity(uint_t x)
+  inline bool _intrinsic_parity(uint_t x)
   {
     return (__builtin_popcountll(x) & one);
   }
-  bool (*hamming_parity) (uint_t) = &_gcc_parity;
-  inline unsigned _gcc_weight(uint_t x)
+  inline uint_t _instrinsic_weight(uint_t x)
   {
     return (__builtin_popcountll(x));
   }
-  uint_t popcount(uint_t count_) {return _gcc_weight(count_);}
 #endif
 #ifdef _CLANG_
   #if __has__builtin(__builtin_popcount)
   #define INTRINSIC_PARITY 1
-    inline bool _clang_parity(uint_t x)
+    inline bool _intrinsic_parity(uint_t x)
     {
       return (__builtin_popcountll(x) & one);
     }
-    bool (*hamming_parity) (uint_t) = &_clang_parity;
-    inline unsigned _clang_weight(uint_t x)
+    inline uint_t _instrinsic_weight(uint_t x)
     {
       return (__builtin_popcountll(x));
     }
-    uint_t popcount(uint_t count_) {return _clang_weight(count_);}
   #endif
 #endif
-#ifndef INTRINSIC_PARITY
   // Implementation from http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetKernighan
   bool _naive_parity(uint_t x)
   {
@@ -1191,20 +1183,24 @@ std::string int2string(uint_t n, uint_t base, uint_t minlen) {
     }
     return (c&one);
   }
-  unsigned _naive_weight(uint_t x)
+  uint_t _naive_weight(uint_t x)
   {
-  auto count = count_;
-  count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
-  count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
-  count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
-  count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
-  count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
-  count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
-  return count;
+    auto count = x;
+    count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
+    count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
+    count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
+    count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
+    count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
+    count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
+    return count;
   }
 
-  bool (*hamming_parity) (uint_t) = &_naive_parity;
-  uint_t popcount(uint_t count_) {return _naive_weight(count_);}
+#ifdef INTRINSIC_PARITY
+  bool (*hamming_parity)(uint_t) = is_avx2_supported() ? &_intrinsic_parity : &_naive_parity;
+  uint_t (*popcount)(uint_t) = is_avx2_supported() ? &_instrinsic_weight : &_naive_weight;
+#else
+  bool (*hamming_parity)(uint_t) = &_naive_parity;
+  uint_t (*popcount)(uint_t) = &_naive_weight;
 #endif
 
 
