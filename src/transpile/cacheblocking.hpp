@@ -567,14 +567,14 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
               continue;
             }
           }
-          if(!end_block_inserted){
-            if(sample_measure_ && ops[i].type == Operations::OpType::measure){
-              //currently sampling should be done with original qubit mapping (TO DO : sampling without inserting swaps)
-              restore_qubits_order(out);
-            }
-            else if(ops[i].type == Operations::OpType::save_statevec || ops[i].type == Operations::OpType::save_statevec_dict || ops[i].type == Operations::OpType::save_densmat || ops[i].type == Operations::OpType::save_unitary){
-              restore_qubits_order(out);
-            }
+          if(sample_measure_ && ops[i].type == Operations::OpType::measure){
+            //currently sampling should be done with original qubit mapping (TO DO : sampling without inserting swaps)
+            restore_qubits_order(out);
+          }
+          else if(ops[i].type == Operations::OpType::save_state || ops[i].type == Operations::OpType::save_statevec || 
+                  ops[i].type == Operations::OpType::save_statevec_dict || ops[i].type == Operations::OpType::save_densmat || 
+                  ops[i].type == Operations::OpType::save_unitary){
+            restore_qubits_order(out);
           }
           //mapping swapped qubits
           for(iq=0;iq<ops[i].qubits.size();iq++){
