@@ -58,7 +58,7 @@ class UnitarySimulator(AerBackend):
     The following configurable backend options are supported
 
     * ``method`` (str): Set the simulation method supported methods are
-      ``"unitary"`` for CPU simulation, and ``"untiary_gpu"``
+      ``"unitary"`` for CPU simulation, and ``"unitary_gpu"``
       for GPU simulation (Default: ``"unitary"``).
 
     * ``precision`` (str): Set the floating point precision for

@@ -684,7 +684,7 @@ class AerSimulator(AerBackend):
         elif method == 'density_matrix':
             description = 'A C++ density matrix simulator with noise'
             n_qubits = MAX_QUBITS_STATEVECTOR // 2
-        elif method == 'untiary':
+        elif method == 'unitary':
             description = 'A C++ unitary matrix simulator'
             n_qubits = MAX_QUBITS_STATEVECTOR // 2
         elif method == 'superop':
