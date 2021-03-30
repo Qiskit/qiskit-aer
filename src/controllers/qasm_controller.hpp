@@ -1103,6 +1103,7 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   if(method == Method::density_matrix || method == Method::density_matrix_thrust_gpu || method == Method::density_matrix_thrust_cpu)
    is_matrix = true;
   auto cache_block_pass = transpile_cache_blocking(opt_circ,noise,config,(simulation_precision_ == Precision::single_precision) ? sizeof(std::complex<float>) : sizeof(std::complex<double>),is_matrix);
+  cache_block_pass.set_sample_measure(check_measure_sampling_opt(opt_circ, method));
   cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
 
   uint_t block_bits = 0;
