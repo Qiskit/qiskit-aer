@@ -648,6 +648,9 @@ void State<densmat_t>::apply_chunk_swap(const reg_t &qubits)
   uint_t q0,q1;
   q0 = qubits[0];
   q1 = qubits[1];
+
+  std::swap(BaseState::qubit_map_[q0],BaseState::qubit_map_[q1]);
+
   if(qubits[0] >= BaseState::chunk_bits_){
     q0 += BaseState::chunk_bits_;
   }
@@ -713,8 +716,9 @@ void State<densmat_t>::apply_save_amplitudes_sq(const Operations::Op &op,
                                  BaseState::threads_ > 1)                       \
                           num_threads(BaseState::threads_)
     for (int_t i = 0; i < size; ++i) {
-      if(op.int_params[i] >= (irow << BaseState::chunk_bits_) && op.int_params[i] < ((irow+1) << BaseState::chunk_bits_))
-        amps_sq[i] = BaseState::qregs_[iChunk].probability(op.int_params[i] - (irow << BaseState::chunk_bits_));
+      uint_t idx = BaseState::mapped_index(op.int_params[i]);
+      if(idx >= (irow << BaseState::chunk_bits_) && idx < ((irow+1) << BaseState::chunk_bits_))
+        amps_sq[i] = BaseState::qregs_[iChunk].probability(idx - (irow << BaseState::chunk_bits_));
     }
   }
 #ifdef AER_MPI
@@ -1240,34 +1244,51 @@ rvector_t State<densmat_t>::measure_probs(const reg_t &qubits) const
     icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
 
     if(irow == icol){   //diagonal chunk
-      auto chunkSum = BaseState::qregs_[i].probabilities(qubits);
-      if(qubits_in_chunk.size() == qubits.size()){
-        for(j=0;j<dim;j++){
+      if(qubits_in_chunk.size() > 0){
+        auto chunkSum = BaseState::qregs_[i].probabilities(qubits_in_chunk);
+        if(qubits_in_chunk.size() == qubits.size()){
+          for(j=0;j<dim;j++){
 #pragma omp atomic
-          sum[j] += chunkSum[j];
+            sum[j] += chunkSum[j];
+          }
         }
-      }
-      else{
-        for(j=0;j<chunkSum.size();j++){
-          int idx = 0;
-          int i_in = 0;
-          for(k=0;k<qubits.size();k++){
-            if(qubits[k] < (BaseState::chunk_bits_*2)){
-              idx += (((j >> i_in) & 1) << k);
-              i_in++;
-            }
-            else{
-              if((((i + BaseState::global_chunk_index_) << (BaseState::chunk_bits_)) >> qubits[k]) & 1){
-                idx += 1ull << k;
+        else{
+          for(j=0;j<chunkSum.size();j++){
+            int idx = 0;
+            int i_in = 0;
+            for(k=0;k<qubits.size();k++){
+              if(qubits[k] < (BaseState::chunk_bits_)){
+                idx += (((j >> i_in) & 1) << k);
+                i_in++;
+              }
+              else{
+                if((((i + BaseState::global_chunk_index_) << (BaseState::chunk_bits_)) >> qubits[k]) & 1){
+                  idx += 1ull << k;
+                }
               }
             }
-          }
 #pragma omp atomic
-          sum[idx] += chunkSum[j];
+            sum[idx] += chunkSum[j];
+          }
         }
+      }
+      else{ //there is no bit in chunk
+        auto tr = std::real(BaseState::qregs_[i].trace());
+        int idx = 0;
+        for(k=0;k<qubits_out_chunk.size();k++){
+          if((((i + BaseState::global_chunk_index_) << (BaseState::chunk_bits_)) >> qubits_out_chunk[k]) & 1){
+            idx += 1ull << k;
+          }
+        }
+#pragma omp atomic
+        sum[idx] += tr;
       }
     }
   }
+
+#ifdef AER_MPI
+  BaseState::reduce_sum(sum);
+#endif
 
   return sum;
 }
@@ -1426,9 +1447,15 @@ void State<densmat_t>::measure_reset_update(const reg_t &qubits,
 
     // If it doesn't agree with the reset state update
     if (final_state != meas_state) {
+      if(qubits[0] < BaseState::chunk_bits_){
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
-      for(i=0;i<BaseState::num_local_chunks_;i++){
-        BaseState::qregs_[i].apply_x(qubits[0]);
+        for(i=0;i<BaseState::num_local_chunks_;i++){
+          BaseState::qregs_[i].apply_x(qubits[0]);
+        }
+      }
+      else{
+        BaseState::apply_chunk_x(qubits[0]);
+        BaseState::apply_chunk_x(qubits[0]+BaseState::chunk_bits_);
       }
     }
   }
@@ -1447,18 +1474,40 @@ void State<densmat_t>::measure_reset_update(const reg_t &qubits,
     // If it doesn't agree with the reset state update
     // TODO This function could be optimized as a permutation update
     if (final_state != meas_state) {
-      // build vectorized permutation matrix
-      cvector_t perm(dim * dim, 0.);
-      perm[final_state * dim + meas_state] = 1.;
-      perm[meas_state * dim + final_state] = 1.;
-      for (size_t j=0; j < dim; j++) {
-        if (j != final_state && j != meas_state)
-          perm[j * dim + j] = 1.;
+      reg_t qubits_in_chunk;
+      reg_t qubits_out_chunk;
+
+      for(i=0;i<qubits.size();i++){
+        if(qubits[i] < BaseState::chunk_bits_){
+          qubits_in_chunk.push_back(qubits[i]);
+        }
+        else{
+          qubits_out_chunk.push_back(qubits[i]);
+        }
       }
-      // apply permutation to swap state
+
+      if(qubits_in_chunk.size() > 0){   //in chunk exchange
+        const size_t dim_in = 1ULL << qubits_in_chunk.size();
+        // build vectorized permutation matrix
+        cvector_t perm(dim_in * dim_in, 0.);
+        perm[final_state * dim_in + meas_state] = 1.;
+        perm[meas_state * dim_in + final_state] = 1.;
+        for (size_t j=0; j < dim_in; j++) {
+          if (j != final_state && j != meas_state)
+            perm[j * dim_in + j] = 1.;
+        }
+
+        // apply permutation to swap state
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
-      for(i=0;i<BaseState::num_local_chunks_;i++){
-        BaseState::qregs_[i].apply_unitary_matrix(qubits, perm);
+        for(i=0;i<BaseState::num_local_chunks_;i++){
+          BaseState::qregs_[i].apply_unitary_matrix(qubits, perm);
+        }
+      }
+      if(qubits_out_chunk.size() > 0){  //out of chunk exchange
+        for(i=0;i<qubits_out_chunk.size();i++){
+          BaseState::apply_chunk_x(qubits_out_chunk[i]);
+          BaseState::apply_chunk_x(qubits_out_chunk[i]+(BaseState::num_qubits_ - BaseState::chunk_bits_));
+        }
       }
     }
   }
