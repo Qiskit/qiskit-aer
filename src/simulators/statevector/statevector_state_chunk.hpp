@@ -546,8 +546,6 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
                          RngEngine &rng,
                          bool final_ops)
 {
-  uint_t ireg;
-
   if(BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case Operations::OpType::barrier:
@@ -562,11 +560,9 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
         apply_measure(op.qubits, op.memory, op.registers, rng);
         break;
       case Operations::OpType::bfunc:
-        if(iChunk == 0 || ireg > 0)
           BaseState::creg_.apply_bfunc(op);
         break;
       case Operations::OpType::roerror:
-        if(iChunk == 0 || ireg > 0)
           BaseState::creg_.apply_roerror(op, rng);
         break;
       case Operations::OpType::gate:
@@ -825,10 +821,11 @@ void State<statevec_t>::apply_save_amplitudes(const Operations::Op &op,
   if (op.type == Operations::OpType::save_amps) {
     Vector<complex_t> amps(size, false);
     for (int_t i = 0; i < size; ++i) {
-      uint_t iChunk = op.int_params[i] >> BaseState::chunk_bits_;
+      uint_t idx = BaseState::mapped_index(op.int_params[i]);
+      uint_t iChunk = idx >> BaseState::chunk_bits_;
       amps[i] = 0.0;
       if(iChunk >= BaseState::global_chunk_index_ && iChunk < BaseState::global_chunk_index_ + BaseState::num_local_chunks_){
-        amps[i] = BaseState::qregs_[iChunk - BaseState::global_chunk_index_].get_state(op.int_params[i] - (iChunk << BaseState::chunk_bits_));
+        amps[i] = BaseState::qregs_[iChunk - BaseState::global_chunk_index_].get_state(idx - (iChunk << BaseState::chunk_bits_));
       }
 #ifdef AER_MPI
       complex_t amp = amps[i];
@@ -842,9 +839,10 @@ void State<statevec_t>::apply_save_amplitudes(const Operations::Op &op,
   else{
     rvector_t amps_sq(size,0);
     for (int_t i = 0; i < size; ++i) {
-      uint_t iChunk = op.int_params[i] >> BaseState::chunk_bits_;
+      uint_t idx = BaseState::mapped_index(op.int_params[i]);
+      uint_t iChunk = idx >> BaseState::chunk_bits_;
       if(iChunk >= BaseState::global_chunk_index_ && iChunk < BaseState::global_chunk_index_ + BaseState::num_local_chunks_){
-        amps_sq[i] = BaseState::qregs_[iChunk - BaseState::global_chunk_index_].probability(op.int_params[i] - (iChunk << BaseState::chunk_bits_));
+        amps_sq[i] = BaseState::qregs_[iChunk - BaseState::global_chunk_index_].probability(idx - (iChunk << BaseState::chunk_bits_));
       }
     }
 #ifdef AER_MPI
@@ -1376,32 +1374,45 @@ rvector_t State<statevec_t>::measure_probs(const reg_t &qubits) const
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i,j,k) 
   for(i=0;i<BaseState::num_local_chunks_;i++){
-    auto chunkSum = BaseState::qregs_[i].probabilities(qubits_in_chunk);
+    if(qubits_in_chunk.size() > 0){
+      auto chunkSum = BaseState::qregs_[i].probabilities(qubits_in_chunk);
 
-    if(qubits_in_chunk.size() == qubits.size()){
-      for(j=0;j<dim;j++){
+      if(qubits_in_chunk.size() == qubits.size()){
+        for(j=0;j<dim;j++){
 #pragma omp atomic 
-        sum[j] += chunkSum[j];
+          sum[j] += chunkSum[j];
+        }
       }
-    }
-    else{
-      for(j=0;j<chunkSum.size();j++){
-        int idx = 0;
-        int i_in = 0;
-        for(k=0;k<qubits.size();k++){
-          if(qubits[k] < BaseState::chunk_bits_){
-            idx += (((j >> i_in) & 1) << k);
-            i_in++;
-          }
-          else{
-            if((((i + BaseState::global_chunk_index_) << BaseState::chunk_bits_) >> qubits[k]) & 1){
-              idx += 1ull << k;
+      else{
+        for(j=0;j<chunkSum.size();j++){
+          int idx = 0;
+          int i_in = 0;
+          for(k=0;k<qubits.size();k++){
+            if(qubits[k] < BaseState::chunk_bits_){
+              idx += (((j >> i_in) & 1) << k);
+              i_in++;
+            }
+            else{
+              if((((i + BaseState::global_chunk_index_) << BaseState::chunk_bits_) >> qubits[k]) & 1){
+                idx += 1ull << k;
+              }
             }
           }
-        }
 #pragma omp atomic 
-        sum[idx] += chunkSum[j];
+          sum[idx] += chunkSum[j];
+        }
       }
+    }
+    else{ //there is no bit in chunk
+      auto nr = std::real(BaseState::qregs_[i].norm());
+      int idx = 0;
+      for(k=0;k<qubits_out_chunk.size();k++){
+        if((((i + BaseState::global_chunk_index_) << (BaseState::chunk_bits_)) >> qubits_out_chunk[k]) & 1){
+          idx += 1ull << k;
+        }
+      }
+#pragma omp atomic
+      sum[idx] += nr;
     }
   }
 
@@ -1493,28 +1504,14 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
   std::vector<reg_t> all_samples;
   all_samples.reserve(shots);
 
-  if(qubits.size() == 0){
-    //return all bits if qubits is empty (for multi-shot parallelization)
-    for (int_t val : allbit_samples) {
-      reg_t allbit_sample = Utils::int2reg(val, 2, BaseState::num_qubits_);
-      reg_t sample;
-      sample.reserve(BaseState::num_qubits_);
-      for (uint_t qubit = 0 ; qubit < BaseState::num_qubits_; qubit++) {
-        sample.push_back(allbit_sample[qubit]);
-      }
-      all_samples.push_back(sample);
+  for (int_t val : allbit_samples) {
+    reg_t allbit_sample = Utils::int2reg(val, 2, BaseState::num_qubits_);
+    reg_t sample;
+    sample.reserve(qubits.size());
+    for (uint_t qubit : qubits) {
+      sample.push_back(allbit_sample[qubit]);
     }
-  }
-  else{
-    for (int_t val : allbit_samples) {
-      reg_t allbit_sample = Utils::int2reg(val, 2, BaseState::num_qubits_);
-      reg_t sample;
-      sample.reserve(qubits.size());
-      for (uint_t qubit : qubits) {
-        sample.push_back(allbit_sample[qubit]);
-      }
-      all_samples.push_back(sample);
-    }
+    all_samples.push_back(sample);
   }
   return all_samples;
 }
@@ -1557,13 +1554,11 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
     for(i=0;i<BaseState::num_local_chunks_;i++)
-      apply_matrix(i, qubits, mdiag);
+      apply_diagonal_matrix(i, qubits, mdiag);
 
     // If it doesn't agree with the reset state update
     if (final_state != meas_state) {
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
-      for(i=0;i<BaseState::num_local_chunks_;i++)
-        BaseState::qregs_[i].apply_mcx(qubits);
+      BaseState::apply_chunk_x(qubits[0]);
     }
   }
   // Multi qubit case
@@ -1575,23 +1570,43 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
     for(i=0;i<BaseState::num_local_chunks_;i++)
-      apply_matrix(i,qubits, mdiag);
+      apply_diagonal_matrix(i,qubits, mdiag);
 
     // If it doesn't agree with the reset state update
     // This function could be optimized as a permutation update
     if (final_state != meas_state) {
-      // build vectorized permutation matrix
-      cvector_t perm(dim * dim, 0.);
-      perm[final_state * dim + meas_state] = 1.;
-      perm[meas_state * dim + final_state] = 1.;
-      for (size_t j=0; j < dim; j++) {
-        if (j != final_state && j != meas_state)
-          perm[j * dim + j] = 1.;
+      reg_t qubits_in_chunk;
+      reg_t qubits_out_chunk;
+
+      for(i=0;i<qubits.size();i++){
+        if(qubits[i] < BaseState::chunk_bits_){
+          qubits_in_chunk.push_back(qubits[i]);
+        }
+        else{
+          qubits_out_chunk.push_back(qubits[i]);
+        }
       }
-      // apply permutation to swap state
+
+      if(qubits_in_chunk.size() > 0){   //in chunk exchange
+        const size_t dim_in = 1ULL << qubits_in_chunk.size();
+        // build vectorized permutation matrix
+        cvector_t perm(dim_in * dim_in, 0.);
+        perm[final_state * dim_in + meas_state] = 1.;
+        perm[meas_state * dim_in + final_state] = 1.;
+        for (size_t j=0; j < dim_in; j++) {
+          if (j != final_state && j != meas_state)
+            perm[j * dim_in + j] = 1.;
+        }
+        // apply permutation to swap state
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
-      for(i=0;i<BaseState::num_local_chunks_;i++)
-        apply_matrix(i,qubits, perm);
+        for(i=0;i<BaseState::num_local_chunks_;i++)
+          apply_matrix(i,qubits_in_chunk, perm);
+      }
+      if(qubits_out_chunk.size() > 0){  //out of chunk exchange
+        for(i=0;i<qubits_out_chunk.size();i++){
+          BaseState::apply_chunk_x(qubits_out_chunk[i]);
+        }
+      }
     }
   }
 }
