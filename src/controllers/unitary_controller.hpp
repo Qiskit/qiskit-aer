@@ -205,7 +205,7 @@ void UnitaryController::run_circuit(const Circuit &circ,
         // Single-precision unitary simulation
         return run_circuit_helper<
             QubitUnitary::State<QV::UnitaryMatrix<float>>>(circ, noise, config,
-                                                           shots, rng_seed, result);
+                                                            shots, rng_seed, result);
       }
     }
     case Method::unitary_thrust_gpu: {
@@ -254,7 +254,8 @@ void UnitaryController::run_circuit(const Circuit &circ,
 template <class State_t>
 void UnitaryController::run_circuit_helper(
     const Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
-    uint_t shots, uint_t rng_seed, ExperimentResult &result) const {
+    uint_t shots, uint_t rng_seed, ExperimentResult &result) const 
+{
   // Initialize state
   State_t state;
 
@@ -285,6 +286,7 @@ void UnitaryController::run_circuit_helper(
   // Set state config
   state.set_config(config);
   state.set_parallalization(parallel_state_update_);
+  state.set_distribution(Base::Controller::num_process_per_experiment_);
   state.set_global_phase(circ.global_phase_angle);
 
   // Rng engine (not actually needed for unitary controller)
@@ -293,33 +295,33 @@ void UnitaryController::run_circuit_helper(
 
   // Output data container
   result.set_config(config);
-  result.add_metadata("method", state.name());
+  result.metadata.add(state.name(), "method");
 
   // Optimize circuit
-  const std::vector<Operations::Op>* op_ptr = &circ.ops;
   Transpile::Fusion fusion_pass;
   fusion_pass.threshold /= 2;  // Halve default threshold for unitary simulator
   fusion_pass.set_config(config);
-  Circuit opt_circ;
+  fusion_pass.set_parallelization(parallel_state_update_);
+
+  Circuit opt_circ = circ; // copy circuit
+  Noise::NoiseModel dummy_noise; // dummy object for transpile pass
   if (fusion_pass.active && circ.num_qubits >= fusion_pass.threshold) {
-    opt_circ = circ; // copy circuit
-    Noise::NoiseModel dummy_noise; // dummy object for transpile pass
     fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
-    op_ptr = &opt_circ.ops;
   }
 
   // Run single shot collecting measure data or snapshots
+
   if (initial_unitary_.empty()) {
     state.initialize_qreg(circ.num_qubits);
   } else {
     state.initialize_qreg(circ.num_qubits, initial_unitary_);
   }
   state.initialize_creg(circ.num_memory, circ.num_registers);
-  state.apply_ops(*op_ptr, result, rng);
-  state.add_creg_to_data(result);
+  state.apply_ops(opt_circ.ops, result, rng);
+  Base::Controller::save_count_data(result, state.creg());
 
   // Add final state unitary to the data
-  result.data.add_additional_data("unitary", state.qreg().move_to_matrix());
+  state.save_data_single(result, "unitary", state.move_to_matrix());
 }
 
 //-------------------------------------------------------------------------

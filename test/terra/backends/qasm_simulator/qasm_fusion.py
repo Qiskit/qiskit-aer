@@ -14,9 +14,10 @@ QasmSimulator Integration Tests
 """
 # pylint: disable=no-member
 import copy
+import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit.library import QuantumVolume, QFT
+from qiskit.circuit.library import QuantumVolume, QFT, RealAmplitudes
 from qiskit.compiler import assemble, transpile
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
@@ -74,7 +75,8 @@ class QasmFusionTests:
                 amplitude_damping_error(gate_error, num_qubits), gate)
             return noise
 
-    def fusion_options(self, enabled=None, threshold=None, verbose=None):
+    def fusion_options(self, enabled=None, threshold=None, verbose=None, 
+                       parallelization=None):
         """Return default backend_options dict."""
         backend_options = self.BACKEND_OPTS.copy()
         if enabled is not None:
@@ -83,6 +85,11 @@ class QasmFusionTests:
             backend_options['fusion_verbose'] = verbose
         if threshold is not None:
             backend_options['fusion_threshold'] = threshold
+        if parallelization is not None:
+            backend_options['fusion_parallelization_threshold'] = 1
+            backend_options['max_parallel_threads'] = parallelization
+            backend_options['max_parallel_shots'] = 1
+            backend_options['max_parallel_state_update'] = parallelization
         return backend_options
 
     def fusion_metadata(self, result):
@@ -151,7 +158,6 @@ class QasmFusionTests:
             meta = self.fusion_metadata(result)
             self.assertTrue(meta.get('applied', False))
             # Assert verbose meta data in output
-            self.assertIn('input_ops', meta)
             self.assertIn('output_ops', meta)
 
         with self.subTest(msg='verbose disabled'):
@@ -163,7 +169,6 @@ class QasmFusionTests:
             meta = self.fusion_metadata(result)
             self.assertTrue(meta.get('applied', False))
             # Assert verbose meta data not in output
-            self.assertNotIn('input_ops', meta)
             self.assertNotIn('output_ops', meta)
 
         with self.subTest(msg='verbose default'):
@@ -176,7 +181,6 @@ class QasmFusionTests:
             meta = self.fusion_metadata(result)
             self.assertTrue(meta.get('applied', False))
             # Assert verbose meta data not in output
-            self.assertNotIn('input_ops', meta)
             self.assertNotIn('output_ops', meta)
 
     def test_kraus_noise_fusion(self):
@@ -424,3 +428,116 @@ class QasmFusionTests:
                                    result_disabled.get_counts(circuit),
                                    delta=0.0,
                                    msg="fusion for qft was failed")
+
+    def test_fusion_parallelization(self):
+        """Test Fusion parallelization option"""
+        shots = 100
+        num_qubits = 8
+        depth = 2
+        parallelization = 2
+
+        circuit = transpile(QuantumVolume(num_qubits, depth, seed=0),
+                            backend=self.SIMULATOR,
+                            optimization_level=0)
+        circuit.measure_all()
+        
+        qobj = assemble([circuit],
+                        self.SIMULATOR,
+                        shots=shots,
+                        seed_simulator=1)
+
+        backend_options = self.fusion_options(enabled=True, threshold=1,
+                                              parallelization=1)
+        result_serial = self.SIMULATOR.run(qobj, **backend_options).result()
+        meta_serial = self.fusion_metadata(result_serial)
+
+        backend_options = self.fusion_options(enabled=True, threshold=1, 
+                                              parallelization=2)
+        result_parallel = self.SIMULATOR.run(qobj, **backend_options).result()
+        meta_parallel = self.fusion_metadata(result_parallel)
+
+        self.assertTrue(getattr(result_serial, 'success', 'False'))
+        self.assertTrue(getattr(result_parallel, 'success', 'False'))
+        self.assertEqual(meta_serial.get('parallelization'), 1)
+        self.assertEqual(meta_parallel.get('parallelization'), parallelization)
+        self.assertDictAlmostEqual(result_parallel.get_counts(circuit),
+                                   result_serial.get_counts(circuit),
+                                   delta=0.0,
+                                   msg="parallelized fusion was failed")
+
+    def test_fusion_two_qubits(self):
+        """Test 2-qubit fusion"""
+        shots = 100
+        num_qubits = 8
+        reps = 3
+        
+        circuit = RealAmplitudes(num_qubits=num_qubits, entanglement='linear', reps=reps)
+        param_binds = {}
+        for param in circuit.parameters:
+            param_binds[param] = np.random.random()
+
+        circuit = transpile(circuit.bind_parameters(param_binds),
+                            backend=self.SIMULATOR,
+                            optimization_level=0)
+        circuit.measure_all()
+        
+        qobj = assemble([circuit],
+                        self.SIMULATOR,
+                        shots=shots,
+                        seed_simulator=1)
+
+        backend_options = self.fusion_options(enabled=True, threshold=1)
+        backend_options['fusion_verbose'] =  True
+        
+        backend_options['fusion_enable.2_qubits'] =  False
+        result_disabled = self.SIMULATOR.run(qobj, **backend_options).result()
+        meta_disabled = self.fusion_metadata(result_disabled)
+        
+        backend_options['fusion_enable.2_qubits'] =  True
+        result_enabled = self.SIMULATOR.run(qobj, **backend_options).result()
+        meta_enabled = self.fusion_metadata(result_enabled)
+        
+        self.assertTrue(getattr(result_disabled, 'success', 'False'))
+        self.assertTrue(getattr(result_enabled, 'success', 'False'))
+        
+        self.assertTrue(len(meta_enabled['output_ops']) if 'output_ops' in meta_enabled else len(circuit.ops) < 
+                        len(meta_disabled['output_ops']) if 'output_ops' in meta_disabled else len(circuit.ops))
+
+    def test_fusion_diagonal(self):
+        """Test diagonal fusion"""
+        shots = 100
+        num_qubits = 8
+
+        circuit = QuantumCircuit(num_qubits)
+        for i in range(num_qubits):
+            circuit.p(0.1, i)
+        
+        for i in range(num_qubits - 1):
+            circuit.cp(0.1, i, i + 1)
+        
+        circuit = transpile(circuit,
+                            backend=self.SIMULATOR,
+                            optimization_level=0)
+        circuit.measure_all()
+        
+        qobj = assemble([circuit],
+                        self.SIMULATOR,
+                        shots=shots,
+                        seed_simulator=1)
+
+        backend_options = self.fusion_options(enabled=True, threshold=1)
+        backend_options['fusion_verbose'] =  True
+        
+        backend_options['fusion_enable.cost_base'] =  False
+        result = self.SIMULATOR.run(qobj, **backend_options).result()
+        meta = self.fusion_metadata(result)
+        
+        method = result.results[0].metadata.get('method')
+        if method not in ['statevector']:
+            return
+
+        for op in meta['output_ops']:
+            op_name = op['name']
+            if op_name == 'measure':
+                break
+            self.assertEqual(op_name, 'diagonal')

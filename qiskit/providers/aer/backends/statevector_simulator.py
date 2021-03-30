@@ -15,6 +15,7 @@ Qiskit Aer statevector simulator backend.
 
 import logging
 from qiskit.util import local_hardware_info
+from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
 from ..aererror import AerError
@@ -81,7 +82,7 @@ class StatevectorSimulator(AerBackend):
       to store a state vector. If a state vector needs more, an error
       is thrown. In general, a state vector of n-qubits uses 2^n complex
       values (16 Bytes). If set to 0, the maximum will be automatically
-      set to half the system memory size (Default: 0).
+      set to the system memory size (Default: 0).
 
     * ``statevector_parallel_threshold`` (int): Sets the threshold that
       "n_qubits" must be greater than to enable OpenMP
@@ -118,17 +119,23 @@ class StatevectorSimulator(AerBackend):
         # so that the default shot value for execute
         # will not raise an error when trying to run
         # a simulation
-        'description': 'A C++ statevector simulator for QASM Qobj files',
+        'description': 'A C++ statevector circuit simulator',
         'coupling_map': None,
-        'basis_gates': [
+        'basis_gates': sorted([
             'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
             'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
             'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
             'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
             'mcp', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
             'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-            'initialize', 'kraus', 'roerror', 'delay', 'pauli'
-        ],
+            'initialize', 'delay', 'pauli'
+        ]),
+        'custom_instructions': sorted([
+            'kraus', 'roerror',
+            'save_expval', 'save_density_matrix', 'save_statevector',
+            'save_probs', 'save_probs_ket', 'save_amplitudes',
+            'save_amplitudes_sq', 'save_state', 'set_statevector'
+        ]),
         'gates': []
     }
 
@@ -152,12 +159,38 @@ class StatevectorSimulator(AerBackend):
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
                 StatevectorSimulator._DEFAULT_CONFIGURATION)
+        else:
+            configuration.open_pulse = False
+
         super().__init__(
             configuration,
             properties=properties,
             available_methods=StatevectorSimulator._AVAILABLE_METHODS,
             provider=provider,
             backend_options=backend_options)
+
+    @classmethod
+    def _default_options(cls):
+        return Options(
+            # Global options
+            shots=1024,
+            method="automatic",
+            precision="double",
+            zero_threshold=1e-10,
+            validation_threshold=None,
+            max_parallel_threads=None,
+            max_parallel_experiments=None,
+            max_parallel_shots=None,
+            max_memory_mb=None,
+            optimize_ideal_threshold=5,
+            optimize_noise_threshold=12,
+            seed_simulator=None,
+            fusion_enable=True,
+            fusion_verbose=False,
+            fusion_max_qubit=5,
+            fusion_threshold=14,
+            # statevector options
+            statevector_parallel_threshold=14)
 
     def _execute(self, qobj):
         """Execute a qobj on the backend.

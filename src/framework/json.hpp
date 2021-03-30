@@ -47,7 +47,7 @@ namespace JSON {
  * @param name: file name to load.
  * @returns: the loaded json.
  */
-inline json_t load(std::string name);
+inline json_t load(const std::string& name);
 
 /**
  * Check if a key exists in a json_t object.
@@ -55,7 +55,7 @@ inline json_t load(std::string name);
  * @param js: the json_t to search for key.
  * @returns: true if the key exists, false otherwise.
  */
-inline bool check_key(std::string key, const json_t &js);
+inline bool check_key(const std::string& key, const json_t &js);
 
 /**
  * Check if all keys exists in a json_t object.
@@ -63,7 +63,7 @@ inline bool check_key(std::string key, const json_t &js);
  * @param js: the json_t to search for keys.
  * @returns: true if all keys exists, false otherwise.
  */
-inline bool check_keys(std::vector<std::string> keys, const json_t &js);
+inline bool check_keys(const std::vector<std::string>& keys, const json_t &js);
 
 /**
  * Load a json_t object value into a variable if the key name exists.
@@ -72,7 +72,7 @@ inline bool check_keys(std::vector<std::string> keys, const json_t &js);
  * @param js: the json_t to search for key.
  * @returns: true if the keys exists and val was set, false otherwise.
  */
-template <typename T> bool get_value(T &var, std::string key, const json_t &js);
+template <typename T> bool get_value(T &var, const std::string& key, const json_t &js);
 
 } // end namespace JSON
 
@@ -153,7 +153,7 @@ void to_json(json_t &js, const matrix<T> &mat);
 // JSON Helper Functions
 //------------------------------------------------------------------------------
 
-json_t JSON::load(std::string name) {
+json_t JSON::load(const std::string& name) {
   if (name == "") {
     json_t js;
     return js; // Return empty node if no config file
@@ -174,7 +174,7 @@ json_t JSON::load(std::string name) {
   return js;
 }
 
-bool JSON::check_key(std::string key, const json_t &js) {
+bool JSON::check_key(const std::string& key, const json_t &js) {
   // returns false if the value is 'null'
   if (js.find(key) != js.end() && !js[key].is_null())
     return true;
@@ -182,15 +182,15 @@ bool JSON::check_key(std::string key, const json_t &js) {
     return false;
 }
 
-bool JSON::check_keys(std::vector<std::string> keys, const json_t &js) {
+bool JSON::check_keys(const std::vector<std::string>& keys, const json_t &js) {
   bool pass = true;
-  for (auto s : keys)
+  for (const auto& s : keys)
     pass &= check_key(s, js);
   return pass;
 }
 
 template <typename T>
-bool JSON::get_value(T &var, std::string key, const json_t &js) {
+bool JSON::get_value(T &var, const std::string& key, const json_t &js) {
   if (check_key(key, js)) {
     var = js[key].get<T>();
     return true;

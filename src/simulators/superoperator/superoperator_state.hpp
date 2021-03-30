@@ -33,7 +33,9 @@ const Operations::OpSet StateOpSet(
     {Operations::OpType::gate, Operations::OpType::reset,
      Operations::OpType::snapshot, Operations::OpType::barrier,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-     Operations::OpType::kraus, Operations::OpType::superop},
+     Operations::OpType::kraus, Operations::OpType::superop,
+     Operations::OpType::save_state, Operations::OpType::set_unitary,
+     Operations::OpType::set_superop},
     // Gates
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
@@ -106,6 +108,10 @@ public:
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
 
+  auto move_to_matrix()
+  {
+    return BaseState::qreg_.move_to_matrix();
+  }
 protected:
   //-----------------------------------------------------------------------
   // Apply Instructions
@@ -144,6 +150,19 @@ protected:
   void apply_gate_u3(const uint_t qubit, const double theta, const double phi,
                      const double lambda);
 
+  //-----------------------------------------------------------------------
+  // Save data instructions
+  //-----------------------------------------------------------------------
+
+  // Save the current superop matrix
+  void apply_save_state(const Operations::Op &op,
+                        ExperimentResult &result,
+                        bool last_op = false);
+
+  // Helper function for computing expectation value
+  virtual double expval_pauli(const reg_t &qubits,
+                              const std::string& pauli) override;
+    
   //-----------------------------------------------------------------------
   // Config Settings
   //-----------------------------------------------------------------------
@@ -214,7 +233,8 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
                               RngEngine &rng,
                               bool final_ops) {
   // Simple loop over vector of input operations
-  for (const auto &op: ops) {
+  for (size_t i = 0; i < ops.size(); ++i) {
+    const auto& op = ops[i];
     switch (op.type) {
       case Operations::OpType::barrier:
         break;
@@ -239,8 +259,15 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
         BaseState::qreg_.apply_superop_matrix(
             op.qubits, Utils::vectorize_matrix(op.mats[0]));
         break;
+      case Operations::OpType::set_unitary:
+      case Operations::OpType::set_superop:
+        BaseState::qreg_.initialize_from_matrix(op.mats[0]);
+        break;
       case Operations::OpType::snapshot:
         apply_snapshot(op, result);
+        break;
+      case Operations::OpType::save_state:
+        apply_save_state(op, result, final_ops && ops.size() == i + 1);
         break;
       default:
         throw std::invalid_argument(
@@ -475,6 +502,49 @@ void State<data_t>::apply_snapshot(const Operations::Op &op,
         "QubitSuperoperator::State::invalid snapshot instruction \'" + op.name +
         "\'.");
   }
+}
+
+template <class densmat_t>
+void State<densmat_t>::apply_save_state(const Operations::Op &op,
+                                        ExperimentResult &result,
+                                        bool last_op) {
+  if (op.qubits.size() != BaseState::qreg_.num_qubits()) {
+    throw std::invalid_argument(
+        op.name + " was not applied to all qubits."
+        " Only the full state can be saved.");
+  }
+  // Renamp single data type to average
+  Operations::DataSubType save_type;
+  switch (op.save_type) {
+    case Operations::DataSubType::single:
+      save_type = Operations::DataSubType::average;
+      break;
+    case Operations::DataSubType::c_single:
+      save_type = Operations::DataSubType::c_average;
+      break;
+    default:
+      save_type = op.save_type;
+  }
+
+  // Default key
+  std::string key = (op.string_params[0] == "_method_")
+                      ? "superop"
+                      : op.string_params[0];
+  if (last_op) {
+    BaseState::save_data_average(result, key,
+                                 BaseState::qreg_.move_to_matrix(),
+                                 save_type);
+  } else {
+    BaseState::save_data_average(result, key,
+                                 BaseState::qreg_.copy_to_matrix(),
+                                 save_type);
+  }
+}
+
+template <class data_t>
+double  State<data_t>::expval_pauli(const reg_t &qubits,
+                                    const std::string& pauli) {
+  throw std::runtime_error("SuperOp simulator does not support Pauli expectation values.");
 }
 
 //------------------------------------------------------------------------------

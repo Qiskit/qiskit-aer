@@ -44,8 +44,8 @@ public:
 
   UnitaryMatrix() : UnitaryMatrix(0) {};
   explicit UnitaryMatrix(size_t num_qubits);
-  UnitaryMatrix(const UnitaryMatrix& obj) = delete;
-  UnitaryMatrix &operator=(const UnitaryMatrix& obj) = delete;
+  UnitaryMatrix(const UnitaryMatrix& obj){}
+  UnitaryMatrix &operator=(const UnitaryMatrix& obj){}
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -78,7 +78,10 @@ public:
   // Initializes the vector to a custom initial state.
   // If the length of the statevector does not match the number of qubits
   // an exception is raised.
-  void initialize_from_matrix(const AER::cmatrix_t &mat);
+  template <typename T>
+  void initialize_from_matrix(const matrix<std::complex<T>> &mat);
+  // Move semantics
+  void initialize_from_matrix(matrix<std::complex<data_t>> &&mat);
 
   //-----------------------------------------------------------------------
   // Identity checking
@@ -215,7 +218,8 @@ void UnitaryMatrix<data_t>::initialize() {
 }
 
 template <class data_t>
-void UnitaryMatrix<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
+template <typename T>
+void UnitaryMatrix<data_t>::initialize_from_matrix(const matrix<std::complex<T>> &mat) {
   const int_t nrows = rows_;    // end for k loop
   if (nrows != static_cast<int_t>(mat.GetRows()) ||
       nrows != static_cast<int_t>(mat.GetColumns())) {
@@ -225,16 +229,27 @@ void UnitaryMatrix<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat) {
       std::to_string(mat.GetRows()) + "," + std::to_string(mat.GetColumns()) + ")."
     );
   }
-  if (AER::Utils::is_unitary(mat, 1e-10) == false) {
-    throw std::runtime_error(
-      "UnitaryMatrix::initialize input matrix is not unitary."
-    );
-  }
+
 #pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
   for (int_t row = 0; row < nrows; ++row)
     for  (int_t col = 0; col < nrows; ++col) {
       BaseVector::data_[row + nrows * col] = mat(row, col);
     }
+}
+
+template <class data_t>
+void UnitaryMatrix<data_t>::initialize_from_matrix(matrix<std::complex<data_t>> &&mat) {
+  const int_t nrows = rows_;    // end for k loop
+  if (nrows != static_cast<int_t>(mat.GetRows()) ||
+      nrows != static_cast<int_t>(mat.GetColumns())) {
+    throw std::runtime_error(
+      "UnitaryMatrix::initialize input matrix is incorrect shape (" +
+      std::to_string(nrows) + "," + std::to_string(nrows) + ")!=(" +
+      std::to_string(mat.GetRows()) + "," + std::to_string(mat.GetColumns()) + ")."
+    );
+  }
+  BaseVector::free_mem();
+  BaseVector::data_ = mat.move_to_buffer();
 }
 
 template <class data_t>

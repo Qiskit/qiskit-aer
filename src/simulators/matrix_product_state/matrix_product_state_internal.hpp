@@ -27,8 +27,8 @@ namespace MatrixProductState {
 // Allowed gates enum class
 enum Gates {
   id, h, x, y, z, s, sdg, sx, t, tdg, u1, u2, u3, r, rx, ry, rz, // single qubit
-  cx, cz, cu1, swap, su4, rxx, ryy, rzz, rzx, // two qubit
-  mcx // three qubit
+  cx, cy, cz, cu1, swap, su4, rxx, ryy, rzz, rzx, csx, // two qubit
+  ccx, cswap // three qubit
 };
 
   //enum class Direction {RIGHT, LEFT};
@@ -65,7 +65,10 @@ public:
   //----------------------------------------------------------------
   virtual void initialize(uint_t num_qubits=0);
   void initialize(const MPS &other);
-  //void initialize(uint_t num_qubits, const cvector_t &vecState);
+  //  void initialize(const cvector_t &statevector);
+
+  void apply_initialize(const reg_t &qubits, const cvector_t &statevector, 
+			RngEngine &rng);
 
   //----------------------------------------------------------------
   // Function name: num_qubits
@@ -112,20 +115,24 @@ public:
   void apply_sdg(uint_t index){ get_qubit(index).apply_sdg();}
   void apply_t(uint_t index){ get_qubit(index).apply_t();}
   void apply_tdg(uint_t index){ get_qubit(index).apply_tdg();}
-  void apply_u1(uint_t index, double lambda);
+  void apply_u1(uint_t index, double lambda)
+    { get_qubit(index).apply_u1(lambda);}
   void apply_u2(uint_t index, double phi, double lambda);
   void apply_u3(uint_t index, double theta, double phi, double lambda);
   void apply_cnot(uint_t index_A, uint_t index_B);
   void apply_swap(uint_t index_A, uint_t index_B, bool swap_gate);
 
+  void apply_cy(uint_t index_A, uint_t index_B);
   void apply_cz(uint_t index_A, uint_t index_B);
+  void apply_csx(uint_t index_A, uint_t index_B);
   void apply_cu1(uint_t index_A, uint_t index_B, double lambda);
   void apply_rxx(uint_t index_A, uint_t index_B, double theta);
   void apply_ryy(uint_t index_A, uint_t index_B, double theta);
   void apply_rzz(uint_t index_A, uint_t index_B, double theta);
   void apply_rzx(uint_t index_A, uint_t index_B, double theta);
 
-  void apply_ccx(const reg_t &qubits);  
+  void apply_ccx(const reg_t &qubits);
+  void apply_cswap(const reg_t &qubits);
 
   void apply_matrix(const reg_t & qubits, const cmatrix_t &mat, 
 		    bool is_diagonal=false);
@@ -181,9 +188,9 @@ public:
   //----------------------------------------------------------------
   virtual std::ostream&  print(std::ostream& out) const;
 
-  void full_state_vector(cvector_t &state_vector);
+  Vector<complex_t> full_statevector();
 
-  cvector_t get_amplitude_vector(const reg_t &base_values);
+  Vector<complex_t> get_amplitude_vector(const reg_t &base_values);
   complex_t get_single_amplitude(const std::string &base_value);
 
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
@@ -248,7 +255,8 @@ public:
   // Returns: double (the norm)
   //----------------------------------------------------------------
 
-  double norm();
+  double norm() const;
+  double norm(const reg_t &qubits) const;
   double norm(const reg_t &qubits, const cvector_t &vmat) const;
   double norm(const reg_t &qubits, const cmatrix_t &mat) const; 
 
@@ -259,18 +267,24 @@ public:
 		      RngEngine &rng);
 
   //----------------------------------------------------------------
-  // Function name: initialize_from_statevector
+  // Function name: initialize_from_statevector_internal
   // Description: This function receives as input a state_vector and
   //      initializes the internal structures of the MPS according to its
   //      state.
-  // Parameters: number of qubits, state_vector to initialize from
+  // Parameters: qubits - with the internal ordering 
+  //             statevector to initialize from
   // Returns: none.
   //----------------------------------------------------------------
 
-  void initialize_from_statevector(uint_t num_qubits, cvector_t state_vector);
+  void initialize_from_statevector_internal(const reg_t &qubits, const cvector_t &state_vector);
+  void reset(const reg_t &qubits, RngEngine &rng);
+
   reg_t get_bond_dimensions() const;
   uint_t get_max_bond_dimensions() const;
 
+  mps_container_t copy_to_mps_container();
+  mps_container_t move_to_mps_container();
+  
 private:
 
   MPS_Tensor& get_qubit(uint_t index) {
@@ -349,19 +363,38 @@ private:
   // This function computes the state vector for all the consecutive qubits 
   // between first_index and last_index
   MPS_Tensor state_vec_as_MPS(uint_t first_index, uint_t last_index) const;
-  void full_state_vector_internal(cvector_t &state_vector, const reg_t &qubits) ;
+
+  Vector<complex_t> full_state_vector_internal(const reg_t &qubits) ;
 
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 
-  void apply_measure_internal(const reg_t &qubits,
-			      RngEngine &rng, reg_t &outcome_vector_internal);
-   uint_t apply_measure(uint_t qubit, 
-			  RngEngine &rng);
+  reg_t apply_measure_internal(const reg_t &qubits,
+			       RngEngine &rng);
+
+  uint_t apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng);
 
   reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
 						    const reg_t &qubits) const;
 
-  void initialize_from_matrix(uint_t num_qubits, cmatrix_t mat);
+  //----------------------------------------------------------------
+  // Function name: initialize_from_matrix
+  // Description: This method is similar to initialize_from_statevector, only here
+  //      the statevector has been converted to a 1xn matrix. The motivation is that
+  //      the algorithm works by iteratively reshaping the statevector into a matrix
+  //      and extracting one dimension every time to create one tensor of the mps.
+  // Parameters: num_qubits - the number of qubits
+  //             mat - contains the reshaped statevector to initialize from
+  // Returns: none.
+  //----------------------------------------------------------------
+
+  void initialize_from_matrix(uint_t num_qubits, const cmatrix_t &mat);
+  void initialize_component_internal(const reg_t &qubits, 
+				     const cvector_t &statevector,
+				     RngEngine &rng);
+
+  void reset_internal(const reg_t &qubits, RngEngine &rng);
+  void measure_reset_update_internal(const reg_t &qubits,
+				     const reg_t &meas_state);
 
   //----------------------------------------------------------------
   // Function name: centralize_qubits
@@ -370,7 +403,7 @@ private:
   // computations involving a subset of the qubits.
   //----------------------------------------------------------------
   void centralize_qubits(const reg_t &qubits,
-				  reg_t &centralized_qubits);
+			 reg_t &centralized_qubits);
 
   //----------------------------------------------------------------
   // Function name: find_centralized_indices

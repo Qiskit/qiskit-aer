@@ -75,3 +75,15 @@ class QasmResetTests:
             qobj, **self.BACKEND_OPTS).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0)
+
+    def test_reset_moving_qubits(self):
+        """Test QasmSimulator reset with for circuits where qubits have moved"""
+        # count output circuits
+        shots = 1000
+        circuits = ref_reset.reset_circuits_with_entangled_and_moving_qubits(final_measure=True)
+        targets = ref_reset.reset_counts_with_entangled_and_moving_qubits(shots)
+        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(
+            qobj, **self.BACKEND_OPTS).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, circuits, targets, delta=0.05*shots)

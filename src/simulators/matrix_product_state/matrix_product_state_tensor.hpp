@@ -33,6 +33,8 @@
 namespace AER {
 namespace MatrixProductState {
 
+void apply_y_helper(cmatrix_t& mat1, cmatrix_t& mat2);
+
 //============================================================================
 // MPS_Tensor class
 //============================================================================
@@ -92,10 +94,16 @@ public:
   virtual std::ostream& print(std::ostream& out) const;
   reg_t get_size() const;
   cvector_t get_data(uint_t a1, uint_t a2) const;
-  cmatrix_t get_data(uint_t i) const {
+  const cmatrix_t& get_data(uint_t i) const {
     return data_[i];
   }
-  const std::vector<cmatrix_t> get_data() const {
+  cmatrix_t& get_data(uint_t i) {
+    return data_[i];
+  }
+  const std::vector<cmatrix_t>& get_data() const {
+    return data_;
+  }
+  std::vector<cmatrix_t>& get_data() {
     return data_;
   }
   void insert_data(uint_t a1, uint_t a2, cvector_t data);
@@ -136,16 +144,29 @@ public:
   void apply_x();
   void apply_y();
   void apply_z();
+  void apply_u1(double lambda);
   void apply_s();
   void apply_sdg();
   void apply_t();
   void apply_tdg();
-  void apply_matrix(const cmatrix_t &mat, bool swapped=false, 
+  void apply_matrix(const cmatrix_t &mat, 
 		    bool is_diagonal=false);
+  void apply_matrix_2_qubits(const cmatrix_t &mat, 
+			     bool swapped=false,
+			     bool is_diagonal=false);
+  void apply_control_2_qubits(const cmatrix_t &mat, 
+			      bool swapped=false,
+			      bool is_diagonal=false);
+  void apply_matrix_helper(const cmatrix_t &mat, 
+			   bool is_diagonal,
+			   const std::vector<uint_t>& indices);
   void apply_cnot(bool swapped = false);
   void apply_swap();
+  void apply_cy(bool swapped = false);
   void apply_cz();
+  void apply_cu1(double lambda);
   void apply_ccx(uint_t target_qubit);
+  void apply_cswap(uint_t control_qubit);
   void mul_Gamma_by_left_Lambda(const rvector_t &Lambda);
   void mul_Gamma_by_right_Lambda(const rvector_t &Lambda);
   void div_Gamma_by_left_Lambda(const rvector_t &Lambda);
@@ -162,6 +183,7 @@ static void contract_2_dimensions(const MPS_Tensor &left_gamma,
 static const double SQR_HALF;
 static constexpr uint_t NUMBER_OF_PRINTED_DIGITS = 3;
 static constexpr uint_t MATRIX_OMP_THRESHOLD = 8;
+
 
 private:
   void mul_Gamma_by_Lambda(const rvector_t &Lambda,
@@ -289,16 +311,27 @@ void MPS_Tensor::apply_x()
 {
   std::swap(data_[0], data_[1]);
 }
-  void MPS_Tensor::apply_y()
-  {
-    data_[0] = data_[0] * complex_t(0, 1);
-    data_[1] = data_[1] * complex_t(0, -1);
-    std::swap(data_[0], data_[1]);
-  }
+
+void apply_y_helper(cmatrix_t& mat1, cmatrix_t& mat2)
+{
+  mat1 = mat1 * complex_t(0, 1);
+  mat2 = mat2 * complex_t(0, -1);
+  std::swap(mat1, mat2);
+}  
+
+void MPS_Tensor::apply_y()
+{
+  apply_y_helper(data_[0], data_[1]);
+}
 
 void MPS_Tensor::apply_z()
 {
   data_[1] = data_[1] * (-1.0);
+}
+
+void MPS_Tensor::apply_u1(double lambda)
+{
+  data_[1] = data_[1] * std::exp(complex_t(0.0, lambda));
 }
 
 void MPS_Tensor::apply_s()
@@ -320,40 +353,88 @@ void MPS_Tensor::apply_tdg()
 {
   data_[1] = data_[1] * complex_t(SQR_HALF, -SQR_HALF);
 }
-
-void MPS_Tensor::apply_matrix(const cmatrix_t &mat, bool swapped, bool is_diagonal)
+  
+void MPS_Tensor::apply_matrix(const cmatrix_t &mat, bool is_diagonal)
 {
-  if (swapped)
-    swap(data_[1], data_[2]);
+  std::vector<uint_t> indices;
+  // note that mat.GetRows() is equal to 1 if mat is diagonal
+  for(uint_t i=0; i<mat.GetColumns(); ++i) {
+    indices.push_back(i);
+  }
 
+  apply_matrix_helper(mat, is_diagonal, indices);
+}
+
+void MPS_Tensor::apply_matrix_2_qubits(const cmatrix_t &mat, 
+				       bool swapped,
+				       bool is_diagonal)
+{
+  std::vector<uint_t> indices;
+  indices.push_back(0);
+  if (swapped) {
+    indices.push_back(2);
+    indices.push_back(1);
+  }
+  else { 
+    indices.push_back(1);
+    indices.push_back(2);
+  }
+  indices.push_back(3);
+  
+  apply_matrix_helper(mat, is_diagonal, indices);
+}
+
+void MPS_Tensor::apply_control_2_qubits(const cmatrix_t &mat, 
+					bool swapped,
+					bool is_diagonal)
+{
+  std::vector<uint_t> indices;
+  if (swapped) {
+    indices.push_back(1);
+    indices.push_back(3);
+  }
+  else { 
+    indices.push_back(2);
+    indices.push_back(3);
+  }
+  
+  apply_matrix_helper(mat, is_diagonal, indices);
+}    
+
+void MPS_Tensor::apply_matrix_helper(const cmatrix_t &mat, bool is_diagonal,
+				     const std::vector<uint_t>& indices)
+{
   if (is_diagonal) {  // diagonal matrix - the diagonal is contained in row 0
+    if (indices.size() != mat.GetColumns()) {
+      throw std::runtime_error("Error: mismtach in the diagonal length");
+    }
     for (uint_t i=0; i<mat.GetColumns(); i++)
-      data_[i] = mat(0, i) * data_[i];
+      data_[indices[i]] = mat(0, i) * data_[indices[i]];
   } else {            // full matrix
-    MPS_Tensor new_tensor;
-    // initialize by multiplying first column of mat by data_[0]
+    std::vector<cmatrix_t> new_data;
+    new_data.resize(mat.GetRows());
+    // initialize by multiplying first column of mat by data_[indices[0]]
     for (uint_t i=0; i<mat.GetRows(); i++) 
-      new_tensor.data_.push_back(mat(i, 0) * data_[0]);
+      new_data[i] = (mat(i, 0) * data_[indices[0]]);
 
     // add all other columns 
     for (uint_t i=0; i<mat.GetRows(); i++) {
       for (uint_t j=1; j<mat.GetColumns(); j++) {
-	new_tensor.data_[i] += mat(i, j) * data_[j];
+	new_data[i] += mat(i, j) * data_[indices[j]];
       }
     }
-    *this = new_tensor;
-  }
 
-  if (swapped)
-    swap(data_[1], data_[2]);
+    for (uint_t i=0; i<mat.GetRows(); i++)
+      data_[indices[i]] = new_data[i];
+  }
 }
 
 void MPS_Tensor::apply_cnot(bool swapped)
 {
-  if(!swapped)
-    std::swap(data_[2],data_[3]);
+  if (swapped)
+    std::swap(data_[1], data_[3]);
   else
-    std::swap(data_[1],data_[3]);
+    std::swap(data_[2], data_[3]);
 }
 
 void MPS_Tensor::apply_swap()
@@ -361,9 +442,22 @@ void MPS_Tensor::apply_swap()
   std::swap(data_[1],data_[2]);
 }
 
+void MPS_Tensor::apply_cy(bool swapped)
+{
+  if (swapped)
+    apply_y_helper(data_[1], data_[3]);
+  else
+    apply_y_helper(data_[2], data_[3]);
+}
+
 void MPS_Tensor::apply_cz()
 {
   data_[3] = data_[3] * (-1.0);
+}
+
+void MPS_Tensor::apply_cu1(double lambda)
+{
+  data_[3] = data_[3] * std::exp(complex_t(0.0, lambda));
 }
 
 void MPS_Tensor::apply_ccx(uint_t target_qubit)
@@ -379,9 +473,27 @@ void MPS_Tensor::apply_ccx(uint_t target_qubit)
     swap(data_[6], data_[7]);
     break;
   default:
-   throw std::invalid_argument("Target qubit for cxx must be 0, 1, or 2"); 
+   throw std::invalid_argument("Target qubit for ccx must be 0, 1, or 2"); 
   }
 }
+
+void MPS_Tensor::apply_cswap(uint_t control_qubit)
+{
+  switch (control_qubit) {
+  case 0:
+    swap(data_[5], data_[6]);
+    break;
+  case 1:
+    swap(data_[3], data_[6]);
+    break;
+  case 2:
+    swap(data_[3], data_[5]);
+    break;
+  default:
+   throw std::invalid_argument("Control qubit for cswap must be 0, 1, or 2"); 
+  }
+}
+
 //-------------------------------------------------------------------------
 // The following functions mul/div Gamma by Lambda are used to keep the MPS in the
 // canonical form.

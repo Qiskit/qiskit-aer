@@ -23,9 +23,12 @@ import warnings
 from abc import ABC, abstractmethod
 from numpy import ndarray
 
-from qiskit.providers import BaseBackend
+from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
 from qiskit.result import Result
+from qiskit.utils import deprecate_arguments
+from qiskit.qobj import QasmQobj, PulseQobj
+from qiskit.compiler import assemble
 
 from ..aerjob import AerJob
 from ..aererror import AerError
@@ -55,7 +58,7 @@ class AerJSONEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-class AerBackend(BaseBackend, ABC):
+class AerBackend(Backend, ABC):
     """Qiskit Aer Backend class."""
     def __init__(self,
                  configuration,
@@ -76,45 +79,46 @@ class AerBackend(BaseBackend, ABC):
             defaults (PulseDefaults or None): Optional, backend pulse defaults.
             available_methods (list or None): Optional, the available simulation methods
                                               if backend supports multiple methods.
-            provider (BaseProvider): Optional, provider responsible for this backend.
+            provider (Provider): Optional, provider responsible for this backend.
             backend_options (dict or None): Optional set custom backend options.
 
         Raises:
             AerError: if there is no name in the configuration
         """
-        # Init configuration and provider in BaseBackend
+        # Init configuration and provider in Backend
         configuration.simulator = True
+        configuration.local = True
         super().__init__(configuration, provider=provider)
 
         # Initialize backend properties and pulse defaults.
         self._properties = properties
         self._defaults = defaults
 
-        # Custom configuration, properties, and pulse defaults which will store
-        # any configured modifications to the base simulator values.
-        self._custom_configuration = None
-        self._custom_properties = None
-        self._custom_defaults = None
+        # Custom option values for config, properties, and defaults
+        self._options_configuration = {}
+        self._options_defaults = {}
+        self._options_properties = {}
 
         # Set available methods
         self._available_methods = [] if available_methods is None else available_methods
 
-        # Set custom configured options from backend_options dictionary
-        self._options = {}
+        # Set options from backend_options dictionary
         if backend_options is not None:
             for key, val in backend_options.items():
-                self._set_option(key, val)
+                self.set_option(key, val)
 
     # pylint: disable=arguments-differ
+    @deprecate_arguments({'qobj': 'circuits'})
     def run(self,
-            qobj,
+            circuits,
             backend_options=None,  # DEPRECATED
             validate=False,
             **run_options):
         """Run a qobj on the backend.
 
         Args:
-            qobj (QasmQobj): The Qobj to be executed.
+            circuits (QuantumCircuit or list): The QuantumCircuit (or list
+                of QuantumCircuit objects) to run
             backend_options (dict or None): DEPRECATED dictionary of backend options
                                             for the execution (default: None).
             validate (bool): validate the Qobj before running (default: False).
@@ -133,6 +137,18 @@ class AerBackend(BaseBackend, ABC):
               and direct kwarg's should be used for options to pass them to
               ``run_options``.
         """
+        if isinstance(circuits, (QasmQobj, PulseQobj)):
+            warnings.warn('Using a qobj for run() is deprecated and will be '
+                          'removed in a future release.',
+                          PendingDeprecationWarning,
+                          stacklevel=2)
+            qobj = circuits
+        else:
+            options_dict = {}
+            for key, value in self.options.__dict__.items():
+                if value is not None:
+                    options_dict[key] = value
+            qobj = assemble(circuits, self, **options_dict)
         # DEPRECATED
         if backend_options is not None:
             warnings.warn(
@@ -146,7 +162,6 @@ class AerBackend(BaseBackend, ABC):
         # Add backend options to the Job qobj
         qobj = self._format_qobj(
             qobj, backend_options=backend_options, **run_options)
-
         # Optional validation
         if validate:
             self._validate(qobj)
@@ -163,9 +178,14 @@ class AerBackend(BaseBackend, ABC):
         Returns:
             BackendConfiguration: the configuration for the backend.
         """
-        if self._custom_configuration is not None:
-            return self._custom_configuration
-        return self._configuration
+        config = copy.copy(self._configuration)
+        for key, val in self._options_configuration.items():
+            setattr(config, key, val)
+        # If config has custom instructions add them to
+        # basis gates to include them for the terra transpiler
+        if hasattr(config, 'custom_instructions'):
+            config.basis_gates += config.custom_instructions
+        return config
 
     def properties(self):
         """Return the simulator backend properties if set.
@@ -174,9 +194,10 @@ class AerBackend(BaseBackend, ABC):
             BackendProperties: The backend properties or ``None`` if the
                                backend does not have properties set.
         """
-        if self._custom_properties is not None:
-            return self._custom_properties
-        return self._properties
+        properties = copy.copy(self._properties)
+        for key, val in self._options_properties.items():
+            setattr(properties, key, val)
+        return properties
 
     def defaults(self):
         """Return the simulator backend pulse defaults.
@@ -185,26 +206,21 @@ class AerBackend(BaseBackend, ABC):
             PulseDefaults: The backend pulse defaults or ``None`` if the
                            backend does not support pulse.
         """
-        if self._custom_defaults is not None:
-            return self._custom_defaults
-        return self._defaults
+        defaults = copy.copy(self._defaults)
+        for key, val in self._options_defaults.items():
+            setattr(defaults, key, val)
+        return defaults
 
-    @property
-    def options(self):
-        """Return the current simulator options"""
-        return self._options
-
-    def set_options(self, **backend_options):
-        """Set the simulator options"""
-        for key, val in backend_options.items():
-            self._set_option(key, val)
+    @classmethod
+    def _default_options(cls):
+        pass
 
     def clear_options(self):
         """Reset the simulator options to default values."""
-        self._custom_configuration = None
-        self._custom_properties = None
-        self._custom_defaults = None
-        self._options = {}
+        self._options = self._default_options()
+        self._options_configuration = {}
+        self._options_properties = {}
+        self._options_defaults = {}
 
     def available_methods(self):
         """Return the available simulation methods."""
@@ -284,7 +300,7 @@ class AerBackend(BaseBackend, ABC):
         """Validate the qobj for the backend"""
         pass
 
-    def _set_option(self, key, value):
+    def set_option(self, key, value):
         """Special handling for setting backend options.
 
         This method should be extended by sub classes to
@@ -297,22 +313,6 @@ class AerBackend(BaseBackend, ABC):
         Raises:
             AerError: if key is 'method' and val isn't in available methods.
         """
-        # Check for key in configuration, properties, and defaults
-        # If the key requires modification of one of these fields a copy
-        # will be generated that can store the modified values without
-        # changing the original object
-        if hasattr(self._configuration, key):
-            self._set_configuration_option(key, value)
-            return
-
-        if hasattr(self._properties, key):
-            self._set_properties_option(key, value)
-            return
-
-        if hasattr(self._defaults, key):
-            self._set_defaults_option(key, value)
-            return
-
         # If key is method, we validate it is one of the available methods
         if key == 'method' and value not in self._available_methods:
             raise AerError("Invalid simulation method {}. Available methods"
@@ -322,30 +322,48 @@ class AerBackend(BaseBackend, ABC):
         # TODO: in the future this could be replaced with an options class
         #       for the simulators like configuration/properties to show all
         #       available options
-        if value is not None:
-            # Only add an option if its value is not None
-            self._options[key] = value
-        elif key in self._options:
-            # If setting an existing option to None remove it from options dict
-            self._options.pop(key)
+        if hasattr(self._configuration, key):
+            self._set_configuration_option(key, value)
+        elif hasattr(self._properties, key):
+            self._set_properties_option(key, value)
+        elif hasattr(self._defaults, key):
+            self._set_defaults_option(key, value)
+        else:
+            if not hasattr(self._options, key):
+                raise AerError("Invalid option %s" % key)
+            if value is not None:
+                # Only add an option if its value is not None
+                setattr(self._options, key, value)
+            else:
+                # If setting an existing option to None reset it to default
+                # this is for backwards compatibility when setting it to None would
+                # remove it from the options dict
+                setattr(self._options, key, getattr(self._default_options(), key))
+
+    def set_options(self, **fields):
+        for key, value in fields.items():
+            self.set_option(key, value)
 
     def _set_configuration_option(self, key, value):
         """Special handling for setting backend configuration options."""
-        if self._custom_configuration is None:
-            self._custom_configuration = copy.copy(self._configuration)
-        setattr(self._custom_configuration, key, value)
+        if value is not None:
+            self._options_configuration[key] = value
+        elif key in self._options_configuration:
+            self._options_configuration.pop(key)
 
     def _set_properties_option(self, key, value):
         """Special handling for setting backend properties options."""
-        if self._custom_properties is None:
-            self._custom_properties = copy.copy(self._properties)
-        setattr(self._custom_properties, key, value)
+        if value is not None:
+            self._options_properties[key] = value
+        elif key in self._options_properties:
+            self._options_properties.pop(key)
 
     def _set_defaults_option(self, key, value):
         """Special handling for setting backend defaults options."""
-        if self._custom_defaults is None:
-            self._custom_defaults = copy.copy(self._defaults)
-        setattr(self._custom_defaults, key, value)
+        if value is not None:
+            self._options_defaults[key] = value
+        elif key in self._options_defaults:
+            self._options_defaults.pop(key)
 
     def _format_qobj(self, qobj,
                      backend_options=None,  # DEPRECATED
@@ -355,8 +373,9 @@ class AerBackend(BaseBackend, ABC):
         config = qobj.config
 
         # Add options
-        for key, val in self.options.items():
-            setattr(config, key, val)
+        for key, val in self.options.__dict__.items():
+            if val is not None and not hasattr(config, key):
+                setattr(config, key, val)
 
         # DEPRECATED backend options
         if backend_options is not None:
@@ -389,9 +408,8 @@ class AerBackend(BaseBackend, ABC):
 
     def __repr__(self):
         """String representation of an AerBackend."""
-        display = "backend_name='{}'".format(self.name())
+        name = self.__class__.__name__
+        display = f"backend_name='{self.name()}'"
         if self.provider():
-            display += ', provider={}()'.format(self.provider())
-        for key, val in self.options.items():
-            display += ',\n    {}={}'.format(key, repr(val))
-        return '{}(\n{})'.format(self.__class__.__name__, display)
+            display += f', provider={self.provider()}()'
+        return f'{name}({display})'

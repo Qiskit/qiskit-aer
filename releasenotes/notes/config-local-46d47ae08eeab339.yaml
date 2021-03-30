@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes bug where creating a simulator from a backend would set the
+    ``local`` attribute of the configuration to the backend value
+    (typically ``False``) rather than always being set to ``True``.

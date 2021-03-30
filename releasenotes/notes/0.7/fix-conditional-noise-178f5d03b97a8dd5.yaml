@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes a bug ([#1153](https://github.com/Qiskit/qiskit-aer/issues/1153))
+    where noise on conditional gates was always being applied regardless of
+    whether the conditional gate was actually applied based on the classical
+    register value. Now noise on a conditional gate will only be applied in
+    the case where the conditional gate is applied.
