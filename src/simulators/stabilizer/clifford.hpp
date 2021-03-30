@@ -408,14 +408,14 @@ inline void to_json(json_t &js, const Clifford &clif) {
 }
 
 template <typename inputdata_t>
-void build_from(const inputdata_t& js, Clifford& clif){
-  bool has_keys = AER::Parser<inputdata_t>::check_keys({"stabilizer", "destabilizer"}, js);
+void build_from(const inputdata_t& input, Clifford& clif){
+  bool has_keys = AER::Parser<inputdata_t>::check_keys({"stabilizer", "destabilizer"}, input);
   if (!has_keys)
     throw std::invalid_argument("Invalid Clifford JSON.");
 
   std::vector<std::string> stab, destab;
-  AER::Parser<inputdata_t>::get_value(stab, "stabilizer", js);
-  AER::Parser<inputdata_t>::get_value(destab, "destabilizer", js);
+  AER::Parser<inputdata_t>::get_value(stab, "stabilizer", input);
+  AER::Parser<inputdata_t>::get_value(destab, "destabilizer", input);
 
   const auto nq = stab.size();
   if (nq != destab.size()) {

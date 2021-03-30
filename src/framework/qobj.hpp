@@ -38,9 +38,9 @@ class Qobj {
   Qobj() = default;
   virtual ~Qobj() = default;
 
-  // JSON deserialization constructor
+  // Deserialization constructor
   template <typename inputdata_t>
-  Qobj(const inputdata_t &js);
+  Qobj(const inputdata_t &input);
 
   //----------------------------------------------------------------
   // Data
@@ -60,22 +60,22 @@ class Qobj {
 inline void from_json(const json_t &js, Qobj &qobj) { qobj = Qobj(js); }
 
 template <typename inputdata_t>
-Qobj::Qobj(const inputdata_t &js) {
+Qobj::Qobj(const inputdata_t &input) {
   // Check required fields
-  if (Parser<inputdata_t>::get_value(id, "qobj_id", js) == false) {
+  if (Parser<inputdata_t>::get_value(id, "qobj_id", input) == false) {
     throw std::invalid_argument(R"(Invalid qobj: no "qobj_id" field)");
   };
-    Parser<inputdata_t>::get_value(type, "type", js);
+    Parser<inputdata_t>::get_value(type, "type", input);
   if (type != "QASM") {
     throw std::invalid_argument(R"(Invalid qobj: "type" != "QASM".)");
   };
-  if (Parser<inputdata_t>::check_key("experiments", js) == false) {
+  if (Parser<inputdata_t>::check_key("experiments", input) == false) {
     throw std::invalid_argument(R"(Invalid qobj: no "experiments" field.)");
   }
 
   // Get header and config;
-  Parser<inputdata_t>::get_value(config, "config", js);
-  Parser<inputdata_t>::get_value(header, "header", js);
+  Parser<inputdata_t>::get_value(config, "config", input);
+  Parser<inputdata_t>::get_value(header, "header", input);
 
   // Check for fixed simulator seed
   // If simulator seed is set, each experiment will be set to a fixed (but different) seed
@@ -83,7 +83,7 @@ Qobj::Qobj(const inputdata_t &js) {
   int_t seed = -1;
   uint_t seed_shift = 0;
   bool has_simulator_seed = Parser<json_t>::get_value(seed, "seed_simulator", config); // config always json
-  const auto& circs = Parser<inputdata_t>::get_list("experiments", js);
+  const auto& circs = Parser<inputdata_t>::get_list("experiments", input);
   const size_t num_circs = circs.size();
 
   // Check if parameterized qobj

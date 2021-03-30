@@ -714,7 +714,7 @@ Transpile::CacheBlocking Controller::transpile_cache_blocking(const Circuit& cir
 // Qobj execution
 //-------------------------------------------------------------------------
 template <typename inputdata_t>
-Result Controller::execute(const inputdata_t& qobj_js)
+Result Controller::execute(const inputdata_t& input_qobj)
 {
 #ifdef AER_MPI
   MPI_Comm_size(MPI_COMM_WORLD,&num_processes_);
@@ -727,11 +727,11 @@ Result Controller::execute(const inputdata_t& qobj_js)
     // Start QOBJ timer
     auto timer_start = myclock_t::now();
 
-    Qobj qobj(qobj_js);
+    Qobj qobj(input_qobj);
     Noise::NoiseModel noise_model;
     json_t config;
     // Check for config
-    if (Parser<inputdata_t>::get_value(config, "config", qobj_js)) {
+    if (Parser<inputdata_t>::get_value(config, "config", input_qobj)) {
       // Set config
       set_config(config);
       // Load noise model (from json config)

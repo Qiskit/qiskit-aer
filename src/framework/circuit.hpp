@@ -189,9 +189,9 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config) : Circuit()
     throw std::invalid_argument("Invalid Qobj experiment: no \"instructions\" field.");
   }
   ops.clear(); // remove any current operations
-  const inputdata_t &jops = Parser<inputdata_t>::get_list("instructions", circ);
-  for(auto jop: jops){
-    ops.emplace_back(Operations::json_to_op(jop));
+  const inputdata_t &input_ops = Parser<inputdata_t>::get_list("instructions", circ);
+  for(auto the_op: input_ops){
+    ops.emplace_back(Operations::input_to_op(the_op));
   }
 
   // Set circuit parameters from ops
