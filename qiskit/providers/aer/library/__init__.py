@@ -9,7 +9,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
 =========================================================
 Instruction Library (:mod:`qiskit.providers.aer.library`)
@@ -21,11 +20,13 @@ This library contains custom qiskit :class:`~qiskit.QuantumCircuit`
 :class:`~qiskit.circuit.Instruction` subclasses that can be used
 with the Aer circuit simulator backends.
 
-Saving Simulator Data
-=====================
+Setting a Custom Simulator State
+================================
 
-The following classes can be used to directly save data from the
-simulator to the returned result object.
+The following instruction classes can be used to set the specific
+simulator methods to a custom state. Note that these instructions
+are only valid when applied to all qubits in a circuit. Applying
+to a subset of qubits will raise an exception during execution.
 
 Instruction Classes
 -------------------
@@ -33,54 +34,80 @@ Instruction Classes
 .. autosummary::
     :toctree: ../stubs/
 
-    SaveState
-    SaveExpectationValue
-    SaveExpectationValueVariance
-    SaveProbabilities
-    SaveProbabilitiesDict
-    SaveDensityMatrix
-    SaveStatevector
-    SaveStatevectorDict
-    SaveAmplitudes
-    SaveAmplitudesSquared
-    SaveStabilizer
-    SaveUnitary
-
-Then can also be used using custom QuantumCircuit methods
+    SetStatevector
+    SetDensityMatrix
+    SetStabilizer
+    SetUnitary
 
 QuantumCircuit Methods
 ----------------------
 
+The set instructions can also be added to circuits by using the
+following ``QuantumCircuit`` methods which are patched when importing Aer.
+
 .. autosummary::
     :toctree: ../stubs/
 
-    save_state
-    save_expectation_value
-    save_expectation_value_variance
-    save_probabilities
-    save_probabilities_dict
-    save_density_matrix
-    save_statevector
-    save_statevector_dict
-    save_amplitudes
-    save_amplitudes_squared
-    save_stabilizer
-    save_unitary
+    set_statevector
+    set_density_matrix
+    set_stabilizer
+    set_unitary
+
+
+Saving Simulator Data
+=====================
 
 .. note ::
-
-    **Save Instruction Labels**
-
     Each save instruction has a default label for accessing from the
     circuit result data, however duplicate labels in results will result
     in an exception being raised. If you use more than 1 instance of a
     specific save instruction you must set a custom label for the
     additional instructions.
 
+Simulator State Save Instruction Classes
+----------------------------------------
+
+The following instructions can be used to save the state of the simulator
+into the returned result object. The :class:`SaveState` instruction will
+automatically select the format based on the simulation method (eg.
+:class:`SaveStatevector` for statevector method, :class:`SaveDensityMatrix`
+for density matrix method etc.).
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    SaveState
+    SaveStatevector
+    SaveStatevectorDict
+    SaveDensityMatrix
+    SaveMatrixProductState
+    SaveStabilizer
+    SaveUnitary
+
+.. note::
+    The :class:`SaveDensityMatrix` instruction can be used to save the
+    reduced densit matrix of a subset of qubits for supported simulation
+    methods, however all other save state instructions must be applied
+    to all qubits in a run circuit.
+
+Simulator Derived Data Save Instruction Classes
+-----------------------------------------------
+
+The following classes can be used to directly save data derived from the
+simulator state to the returned result object. One some are compatible
+with certain simulation methods.
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    SaveExpectationValue
+    SaveExpectationValueVariance
+    SaveProbabilities
+    SaveProbabilitiesDict
+    SaveAmplitudes
+    SaveAmplitudesSquared
+
 .. note ::
-
-    **Pershot Data with Measurement Sampling Optimization**
-
     When saving pershot data by using the ``pershot=True`` kwarg
     in the above instructions, the resulting list may only contain
     a single value rather than the number of shots. This
@@ -95,25 +122,56 @@ QuantumCircuit Methods
     In both these cases only a single shot is actually simulated and
     measurement samples for all shots are calculated from the final
     state.
+
+QuantumCircuit Methods
+----------------------
+
+The save instructions can also be added to circuits by using the
+following ``QuantumCircuit`` methods which are patched when importing Aer.
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    save_amplitudes
+    save_amplitudes_squared
+    save_density_matrix
+    save_expectation_value
+    save_expectation_value_variance
+    save_matrix_product_state
+    save_probabilities
+    save_probabilities_dict
+    save_stabilizer
+    save_state
+    save_statevector
+    save_statevector_dict
+    save_unitary
+
+Method Compatibility
+====================
+
+The following table summarizes which instructions are compatible with
+which simulation methods
+
+.. csv-table::
+    :file: instructions_table.csv
+    :header-rows: 1
 """
 
-__all__ = ['SaveState',
-           'SaveExpectationValue', 'SaveExpectationValueVariance',
-           'SaveProbabilities', 'SaveProbabilitiesDict',
-           'SaveStatevector', 'SaveStatevectorDict', 'SaveDensityMatrix',
-           'SaveAmplitudes', 'SaveAmplitudesSquared', 'SaveUnitary',
-           'SaveStabilizer']
+__all__ = [
+    'SaveState',
+    'SaveStatevector',
+    'SaveStatevectorDict',
+    'SaveDensityMatrix',
+    'SaveUnitary',
+    'SaveStabilizer',
+    'SaveMatrixProductState',
+    'SaveExpectationValue',
+    'SaveExpectationValueVariance',
+    'SaveProbabilities',
+    'SaveProbabilitiesDict',
+    'SaveAmplitudes',
+    'SaveAmplitudesSquared',
+]
 
-from .save_state import SaveState, save_state
-from .save_expectation_value import (
-    SaveExpectationValue, save_expectation_value,
-    SaveExpectationValueVariance, save_expectation_value_variance)
-from .save_probabilities import (SaveProbabilities, save_probabilities,
-                                 SaveProbabilitiesDict, save_probabilities_dict)
-from .save_statevector import (SaveStatevector, save_statevector,
-                               SaveStatevectorDict, save_statevector_dict)
-from .save_density_matrix import SaveDensityMatrix, save_density_matrix
-from .save_amplitudes import (SaveAmplitudes, save_amplitudes,
-                              SaveAmplitudesSquared, save_amplitudes_squared)
-from .save_stabilizer import SaveStabilizer, save_stabilizer
-from .save_unitary import SaveUnitary, save_unitary
+from .save_instructions import *
+from .set_instructions import *

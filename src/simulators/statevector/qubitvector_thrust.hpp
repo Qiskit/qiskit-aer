@@ -26,7 +26,6 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-
 #include <spdlog/spdlog.h>
 
 #include "framework/json.hpp"
@@ -50,15 +49,6 @@ template <typename T> using cvector_t = std::vector<std::complex<T>>;
 //============================================================================
 // QubitVectorThrust class
 //============================================================================
-
-// Template class for qubit vector.
-// The arguement of the template must have an operator[] access method.
-// The following methods may also need to be template specialized:
-//   * set_num_qubits(size_t)
-//   * initialize()
-//   * initialize_from_vector(cvector_t<data_t>)
-// If the template argument does not have these methods then template
-// specialization must be used to override the default implementations.
 
 template <typename data_t = double>
 class QubitVectorThrust {
@@ -85,7 +75,7 @@ public:
   std::complex<data_t> get_state(uint_t pos) const;
 
   // Returns a reference to the underlying data_t data class
-//  std::complex<data_t>* &data() {return data_;}
+  //  std::complex<data_t>* &data() {return data_;}
 
   // Returns a copy of the underlying data_t data class
   std::complex<data_t>* data() const {return (std::complex<data_t>*)chunk_->pointer();}
@@ -115,6 +105,9 @@ public:
 
   // Returns a copy of the underlying data_t data as a complex vector
   cvector_t<data_t> vector() const;
+
+  // Returns a copy of the underlying data_t data as a complex ket dictionary
+  cdict_t<data_t> vector_ket(double epsilon = 0) const;
 
   // Returns a copy of the underlying data_t data as a complex vector
   AER::Vector<std::complex<data_t>> copy_to_vector() const;
@@ -174,7 +167,10 @@ public:
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
   // an exception is raised.
-  void initialize_from_vector(const cvector_t<double> &data);
+  template <typename list_t>
+  void initialize_from_vector(const list_t &vec);
+  void initialize_from_vector(const std::vector<std::complex<data_t>>& vec);
+  void initialize_from_vector(const AER::Vector<std::complex<data_t>>& vec);
 
   // Initializes the vector to a custom initial state.
   // If num_states does not match the number of qubits an exception is raised.
@@ -618,6 +614,12 @@ cvector_t<data_t> QubitVectorThrust<data_t>::vector() const
 #endif
 
   return ret;
+}
+
+template <typename data_t>
+cdict_t<data_t> QubitVectorThrust<data_t>::vector_ket(double epsilon) const{
+    // non-optimized version; relies on creating a copy of the statevector
+    return AER::Utils::vec2ket(vector(), epsilon, 16);
 }
 
 template <typename data_t>
@@ -1080,8 +1082,8 @@ void QubitVectorThrust<data_t>::initialize()
 }
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &statevec) 
-{
+template <typename list_t>
+void QubitVectorThrust<data_t>::initialize_from_vector(const list_t &statevec) {
   if(data_size_ < statevec.size()) {
     std::string error = "QubitVectorThrust::initialize input vector is incorrect length (" + 
                         std::to_string(data_size_) + "!=" +
@@ -1091,22 +1093,24 @@ void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &
 #ifdef AER_DEBUG
   DebugMsg("calling initialize_from_vector");
 #endif
-
-  cvector_t<data_t> tmp(data_size_);
+  // Convert vector data type to complex<data_t>
+  AER::Vector<std::complex<data_t>> tmp(data_size_, false);
   int_t i;
-
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  for(i=0;i<data_size_;i++){
+  for(i=0; i < data_size_; i++){
     tmp[i] = statevec[i];
   }
+  initialize_from_vector(tmp);
+}
 
-  chunk_->CopyIn((thrust::complex<data_t>*)&tmp[0], data_size_);
+template <typename data_t>
+void QubitVectorThrust<data_t>::initialize_from_vector(const std::vector<std::complex<data_t>>& vec) {
+  initialize_from_data(&vec[0], vec.size());
+}
 
-#ifdef AER_DEBUG
-  DebugMsg("initialize_from_vector");
-  DebugDump();
-#endif
-
+template <typename data_t>
+void QubitVectorThrust<data_t>::initialize_from_vector(const AER::Vector<std::complex<data_t>>& vec) {
+  initialize_from_data(vec.data(), vec.size());
 }
 
 template <typename data_t>
@@ -3926,6 +3930,3 @@ inline std::ostream &operator<<(std::ostream &out, const AER::QV::QubitVectorThr
 
 //------------------------------------------------------------------------------
 #endif // end module
-
-
-
