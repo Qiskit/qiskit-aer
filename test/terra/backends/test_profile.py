@@ -26,7 +26,7 @@ from qiskit.circuit.library import QuantumVolume
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.profile import profile_performance_options, clear_performance_options
 
-#@unittest.skip("Remove this for manual run")
+@unittest.skip("Remove this for manual run")
 class TestProfileQasmSimulator(common.QiskitAerTestCase):
     
     

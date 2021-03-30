@@ -99,11 +99,11 @@ class _PerformanceOptions:
             filename = os.getenv('QISKIT_SETTINGS', user_config.DEFAULT_FILENAME)
             if os.path.isfile(filename):
                 config.read(filename)
-            if section_name not in config.sections():
-                config.add_section(section_name)
-            config.set(section_name, option_name, str(value))
-            with open(filename, "w+") as config_file:
-                config.write(config_file)
+                if section_name not in config.sections():
+                    config.add_section(section_name)
+                config.set(section_name, option_name, str(value))
+                with open(filename, "w+") as config_file:
+                    config.write(config_file)
 
     @staticmethod
     def _get_options_from_file(option2type):
@@ -337,7 +337,8 @@ def profile_fusion_threshold(min_qubits=10, max_qubits=20, ntrials=10,
     raise AerError(f'Unable to find threshold in range [{min_qubits}, {max_qubits}]')
 
 
-def profile_fusion_costs(num_qubits, ntrials=10, backend_options=None, gpu=False, diagonal=False):
+def profile_fusion_costs(num_qubits, ntrials=10, backend_options=None, gpu=False, diagonal=False,
+                         return_ratio=True):
     """Evaluate optimal costs in cost-based fusion for current system."""
     profile_opts = {'method': 'statevector',
                     'max_parallel_experiments': 1,
@@ -380,8 +381,7 @@ def profile_fusion_costs(num_qubits, ntrials=10, backend_options=None, gpu=False
                                           profile_circuit,
                                           None))
 
-    costs = []
-    for target in range(0, 5):
-        costs.append(all_gate_time[target] / all_gate_time[0])
+    base_line = all_gate_time[0] if return_ratio else 1.0
+    costs = [gate_time / base_line for gate_time in all_gate_time]
 
     return costs

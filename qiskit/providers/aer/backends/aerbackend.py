@@ -30,10 +30,9 @@ from qiskit.utils import deprecate_arguments
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.compiler import assemble
 
-from qiskit.providers.aer.profile import get_performance_options
-
 from ..aerjob import AerJob
 from ..aererror import AerError
+from ..profile import get_performance_options
 
 # Logger
 logger = logging.getLogger(__name__)
