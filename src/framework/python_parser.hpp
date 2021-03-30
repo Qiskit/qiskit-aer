@@ -110,7 +110,7 @@ struct Parser<py::handle> {
         if(!is_array(the_list)){
             throw std::runtime_error("Object " + key + "is not a list!");
         }
-        return py::list(the_list);
+        return py::cast<py::list>(the_list);
     }
 
     static bool is_number(const py::handle& po){
