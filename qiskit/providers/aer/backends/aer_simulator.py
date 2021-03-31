@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2019, 2021
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,27 +15,27 @@ Qiskit Aer qasm simulator backend.
 
 import copy
 import logging
-from warnings import warn
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
 from ..version import __version__
-from .aerbackend import AerBackend
+from .aerbackend import AerBackend, AerError
 from .backend_utils import (cpp_execute, available_methods,
+                            available_devices,
                             MAX_QUBITS_STATEVECTOR)
 # pylint: disable=import-error, no-name-in-module
-from .controller_wrappers import qasm_controller_execute
+from .controller_wrappers import aer_controller_execute
 
 logger = logging.getLogger(__name__)
 
 
-class QasmSimulator(AerBackend):
+class AerSimulator(AerBackend):
     """
     Noisy quantum circuit simulator backend.
 
     **Configurable Options**
 
-    The `QasmSimulator` supports multiple simulation methods and
+    The `AerSimulator` supports multiple simulation methods and
     configurable options for each simulation method. These may be set using the
     appropriate kwargs during initialization. They can also be set of updated
     using the :meth:`set_options` method.
@@ -50,7 +50,7 @@ class QasmSimulator(AerBackend):
     .. code-block:: python
 
         noise_model = NoiseModel.from_backend(backend)
-        backend = QasmSimulator(method='density_matrix',
+        backend = AerSimulator(method='density_matrix',
                                 noise_model=noise_model)
 
     **Simulating an IBMQ Backend**
@@ -62,55 +62,97 @@ class QasmSimulator(AerBackend):
 
     .. code-block:: python
 
-        backend = QasmSimulator.from_backend(backend)
+        backend = AerSimulator.from_backend(backend)
+
+    **Returning the Final State**
+
+    The final state of the simulator can be saved to the returned
+    ``Result`` object by appending the
+    :func:`~qiskit.providers.aer.library.save_state` instruction to a
+    quantum circuit. The format of the final state will depend on the
+    simulation method used. Additional simulation data may also be saved
+    using the other save instructions in :mod:`qiskit.provider.aer.library`.
 
     **Simulation Method Option**
 
-    The simulation method is set using the ``method`` kwarg.
-    Supported simulation methods are
+    The simulation method is set using the ``method`` kwarg. A list supported
+    simulation methods can be returned using :meth:`available_methods`, these
+    are
+
+    * ``"automatic"``: Default simulation method. Select the simulation
+      method automatically based on the circuit and noise model.
 
     * ``"statevector"``: A dense statevector simulation that can sample
       measurement outcomes from *ideal* circuits with all measurements at
       end of the circuit. For noisy simulations each shot samples a
       randomly sampled noisy circuit from the noise model.
-      ``"statevector_cpu"`` is an alias of ``"statevector"``.
-
-    * ``"statevector_gpu"``: A dense statevector simulation that provides
-      the same functionalities with ``"statevector"``. GPU performs the computation
-      to calculate probability amplitudes as CPU does. If no GPU is available,
-      a runtime error is raised.
 
     * ``"density_matrix"``: A dense density matrix simulation that may
       sample measurement outcomes from *noisy* circuits with all
-      measurements at end of the circuit. It can only simulate half the
-      number of qubits as the statevector method.
-
-    * ``"density_matrix_gpu"``: A dense density matrix simulation that provides
-      the same functionalities with ``"density_matrix"``. GPU performs the computation
-      to calculate probability amplitudes as CPU does. If no GPU is available,
-      a runtime error is raised.
+      measurements at end of the circuit.
 
     * ``"stabilizer"``: An efficient Clifford stabilizer state simulator
-      that can simulate noisy Clifford circuits if all errors in the noise model are also
-      Clifford errors.
+      that can simulate noisy Clifford circuits if all errors in the noise
+      model are also Clifford errors.
 
-    * ``"extended_stabilizer"``: An approximate simulated based on a
-      ranked-stabilizer decomposition that decomposes circuits into stabilizer
-      state terms. The number of terms grows with the number of
-      non-Clifford gates.
+    * ``"extended_stabilizer"``: An approximate simulated for Clifford + T
+      circuits based on a state decomposition into ranked-stabilizer state.
+      The number of terms grows with the number of non-Clifford (T) gates.
 
     * ``"matrix_product_state"``: A tensor-network statevector simulator that
-      uses a Matrix Product State (MPS) representation for the state.
+      uses a Matrix Product State (MPS) representation for the state. This
+      can be done either with or without truncation of the MPS bond dimensions
+      depending on the simulator options. The default behaviour is no
+      truncation.
 
-    * ``"automatic"``: The default behavior where the method is chosen
-      automatically for each circuit based on the circuit instructions,
-      number of qubits, and noise model.
+    * ``"unitary"``: A dense unitary matrix simulation of an ideal circuit.
+      This simulates the unitary matrix of the circuit itself rather than
+      the evolution of an initial quantum state. This method can only
+      simulate gates, it does not support measurement, reset, or noise.
+
+    * ``"superop"``: A dense superoperator matrix simulation of an ideal or
+      noisy circuit. This simulates the superoperator matrix of the circuit
+      itself rather than the evolution of an initial quantum state. This method
+      can simulate ideal and noisy gates, and reset, but does not support
+      measurement.
+
+    **GPU Simulation**
+
+    By default all simulation methods run on the CPU, however select methods
+    also support running on a GPU if qiskit-aer was installed with GPU support
+    on a compatible NVidia GPU and CUDA version.
+
+    +--------------------------+---------------+
+    | Method                   | GPU Supported |
+    +==========================+===============+
+    | ``automatic``            | Sometimes     |
+    +--------------------------+---------------+
+    | ``statevector``          | Yes           |
+    +--------------------------+---------------+
+    | ``density_matrix``       | Yes           |
+    +--------------------------+---------------+
+    | ``stabilizer``           | No            |
+    +--------------------------+---------------+
+    | `"matrix_product_state`` | No            |
+    +--------------------------+---------------+
+    | ``extended_stabilizer``  | No            |
+    +--------------------------+---------------+
+    | ``unitary``              | Yes           |
+    +--------------------------+---------------+
+    | ``superop``              | No            |
+    +--------------------------+---------------+
+
+    Running a GPU simulation is done using ``device="GPU"`` kwarg during
+    initialization or with :meth:`set_options`. The list of supported devices
+    for the current system can be returned using :meth:`available_devices`.
 
     **Additional Backend Options**
 
     The following simulator specific backend options are supported
 
     * ``method`` (str): Set the simulation method (Default: ``"automatic"``).
+
+    * ``device`` (str): Set the simulation device (Default: ``"CPU"``).
 
     * ``precision`` (str): Set the floating point precision for
       certain simulation methods to either ``"single"`` or ``"double"``
@@ -273,28 +315,112 @@ class QasmSimulator(AerBackend):
     * ``fusion_threshold`` (int): Threshold that number of qubits must be greater
       than or equal to enable fusion optimization [Default: 14]
     """
+    # Supported basis gates for each simulation method
+    _BASIS_GATES = {
+        'statevector': sorted([
+            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+            'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
+            'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
+            'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
+            'mcphase', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
+            'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
+            'initialize', 'delay', 'pauli', 'mcx_gray'
+        ]),
+        'density_matrix': sorted([
+            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+            'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
+            'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
+            'unitary', 'diagonal', 'delay', 'pauli',
+        ]),
+        'matrix_product_state': sorted([
+            'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
+            'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay',
+            'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
+            'initialize'
+        ]),
+        'stabilizer': sorted([
+            'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'cx', 'cy', 'cz',
+            'swap', 'delay',
+        ]),
+        'extended_stabilizer': sorted([
+            'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx',
+            'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay'
+        ]),
+        'unitary': sorted([
+            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+            'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
+            'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
+            'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
+            'mcp', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
+            'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
+        ]),
+        'superop': sorted([
+            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+            'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
+            'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy',
+            'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'delay',
+        ])
+    }
+    # Automatic method basis gates are the union of statevector,
+    # density matrix, and stabilizer methods
+    _BASIS_GATES[None] = _BASIS_GATES['automatic'] = sorted(
+        set(_BASIS_GATES['statevector']).union(
+            _BASIS_GATES['stabilizer']).union(
+                _BASIS_GATES['density_matrix']).union(
+                    _BASIS_GATES['matrix_product_state']).union(
+                        _BASIS_GATES['unitary']).union(
+                            _BASIS_GATES['superop']))
 
-    _DEFAULT_BASIS_GATES = sorted([
-        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-        'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
-        'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
-        'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-        'mcphase', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
-        'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-        'initialize', 'delay', 'pauli', 'mcx_gray'
-    ])
-
-    _DEFAULT_CUSTOM_INSTR = sorted([
-        'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
-        'save_probabilities', 'save_probabilities_dict',
-        'save_amplitudes', 'save_amplitudes_sq', 'save_state',
-        'save_density_matrix', 'save_statevector', 'save_statevector_dict',
-        'save_stabilizer', 'set_statevector', 'set_density_matrix',
-        'set_stabilizer'
-    ])
+    _CUSTOM_INSTR = {
+        'statevector': sorted([
+            'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
+            'save_probabilities', 'save_probabilities_dict',
+            'save_amplitudes', 'save_amplitudes_sq',
+            'save_density_matrix', 'save_state', 'save_statevector',
+            'save_statevector_dict', 'set_statevector'
+        ]),
+        'density_matrix': sorted([
+            'roerror', 'kraus', 'superop', 'snapshot',
+            'save_state', 'save_expval', 'save_expval_var',
+            'save_probabilities', 'save_probabilities_dict',
+            'save_density_matrix', 'save_amplitudes_sq',
+            'set_density_matrix'
+        ]),
+        'matrix_product_state': sorted([
+            'roerror', 'snapshot', 'kraus', 'save_expval', 'save_expval_var',
+            'save_probabilities', 'save_probabilities_dict',
+            'save_state', 'save_matrix_product_state', 'save_statevector',
+            'save_density_matrix', 'save_amplitudes', 'save_amplitudes_sq'
+        ]),
+        'stabilizer': sorted([
+            'roerror', 'snapshot', 'save_expval', 'save_expval_var',
+            'save_probabilities', 'save_probabilities_dict',
+            'save_amplitudes_sq', 'save_state', 'save_stabilizer',
+            'set_stabilizer'
+        ]),
+        'extended_stabilizer': sorted([
+            'roerror', 'snapshot', 'save_statevector',
+            'save_expval', 'save_expval_var'
+        ]),
+        'unitary': sorted([
+            'snapshot', 'save_state', 'save_unitary', 'set_unitary'
+        ]),
+        'superop': sorted([
+            'kraus', 'superop', 'save_state', 'save_superop', 'set_superop'
+        ])
+    }
+    # Automatic method custom instructions are the union of statevector,
+    # density matrix, and stabilizer methods
+    _CUSTOM_INSTR[None] = _CUSTOM_INSTR['automatic'] = sorted(
+        set(_CUSTOM_INSTR['statevector']).union(
+            _CUSTOM_INSTR['stabilizer']).union(
+                _CUSTOM_INSTR['density_matrix']).union(
+                    _CUSTOM_INSTR['matrix_product_state']).union(
+                        _CUSTOM_INSTR['unitary']).union(
+                            _CUSTOM_INSTR['superop']))
 
     _DEFAULT_CONFIGURATION = {
-        'backend_name': 'qasm_simulator',
+        'backend_name': 'aer_simulator',
         'backend_version': __version__,
         'n_qubits': MAX_QUBITS_STATEVECTOR,
         'url': 'https://github.com/Qiskit/qiskit-aer',
@@ -306,19 +432,22 @@ class QasmSimulator(AerBackend):
         'max_shots': int(1e6),
         'description': 'A C++ QasmQobj simulator with noise',
         'coupling_map': None,
-        'basis_gates': _DEFAULT_BASIS_GATES,
-        'custom_instructions': _DEFAULT_CUSTOM_INSTR,
+        'basis_gates': _BASIS_GATES['automatic'],
+        'custom_instructions': _CUSTOM_INSTR['automatic'],
         'gates': []
     }
 
     _SIMULATION_METHODS = [
-        'automatic', 'statevector', 'statevector_gpu',
-        'statevector_thrust', 'density_matrix',
-        'density_matrix_gpu', 'density_matrix_thrust',
-        'stabilizer', 'matrix_product_state', 'extended_stabilizer'
+        'automatic', 'statevector', 'density_matrix',
+        'stabilizer', 'matrix_product_state', 'extended_stabilizer',
+        'unitary', 'superop'
     ]
 
     _AVAILABLE_METHODS = None
+
+    _SIMULATION_DEVICES = ['CPU', 'GPU', 'Thrust']
+
+    _AVAILABLE_DEVICES = None
 
     def __init__(self,
                  configuration=None,
@@ -326,45 +455,26 @@ class QasmSimulator(AerBackend):
                  provider=None,
                  **backend_options):
 
-        warn('The `QasmSimulator` backend will be deprecated in the'
-             ' future. It has been superseded by the `AerSimulator`'
-             ' backend.', PendingDeprecationWarning)
+        self._controller = aer_controller_execute()
 
-        self._controller = qasm_controller_execute()
-
-        # Update available methods for class
-        if QasmSimulator._AVAILABLE_METHODS is None:
-            QasmSimulator._AVAILABLE_METHODS = available_methods(
-                self._controller, QasmSimulator._SIMULATION_METHODS)
+        # Update available methods and devices for class
+        if AerSimulator._AVAILABLE_METHODS is None:
+            AerSimulator._AVAILABLE_METHODS = available_methods(
+                self._controller, AerSimulator._SIMULATION_METHODS)
+        if AerSimulator._AVAILABLE_DEVICES is None:
+            AerSimulator._AVAILABLE_DEVICES = available_devices(
+                self._controller, AerSimulator._SIMULATION_DEVICES)
 
         # Default configuration
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
-                QasmSimulator._DEFAULT_CONFIGURATION)
-        else:
-            configuration.open_pulse = False
+                AerSimulator._DEFAULT_CONFIGURATION)
 
         super().__init__(configuration,
                          properties=properties,
-                         available_methods=QasmSimulator._AVAILABLE_METHODS,
+                         available_methods=AerSimulator._AVAILABLE_METHODS,
                          provider=provider,
                          backend_options=backend_options)
-
-    def __repr__(self):
-        """String representation of an AerBackend."""
-        display = super().__repr__()[:-1]
-        pad = ' ' * (len(self.__class__.__name__) + 1)
-
-        method = getattr(self.options, 'method', None)
-        if method not in [None, 'automatic']:
-            display += ",\n{}method='{}'".format(pad, method)
-
-        noise_model = getattr(self.options, 'noise_model', None)
-        if noise_model is not None and not noise_model.is_ideal():
-            display += ',\n{}noise_model={})'.format(pad, repr(noise_model))
-
-        display += ")"
-        return display
 
     @classmethod
     def _default_options(cls):
@@ -372,6 +482,7 @@ class QasmSimulator(AerBackend):
             # Global options
             shots=1024,
             method=None,
+            device=None,
             precision="double",
             zero_threshold=1e-10,
             validation_threshold=None,
@@ -387,10 +498,8 @@ class QasmSimulator(AerBackend):
             fusion_threshold=14,
             accept_distributed_results=None,
             blocking_qubits=None,
-            blocking_enable=False,
             memory=None,
             noise_model=None,
-            seed_simulator=None,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,
@@ -412,6 +521,26 @@ class QasmSimulator(AerBackend):
             mps_parallel_threshold=14,
             mps_omp_threads=1)
 
+    def __repr__(self):
+        """String representation of an AerSimulator."""
+        display = super().__repr__()
+        noise_model = getattr(self.options, 'noise_model', None)
+        if noise_model is None or noise_model.is_ideal():
+            return display
+        pad = ' ' * (len(self.__class__.__name__) + 1)
+        return '{}\n{}noise_model={})'.format(display[:-1], pad, repr(noise_model))
+
+    def name(self):
+        """Format backend name string for simulator"""
+        name = self._configuration.backend_name
+        method = getattr(self.options, 'method', None)
+        if method not in [None, 'automatic']:
+            name += f'_{method}'
+        device = getattr(self.options, 'device', None)
+        if device not in [None, 'CPU']:
+            name += f'_{device}'.lower()
+        return name
+
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
@@ -425,7 +554,7 @@ class QasmSimulator(AerBackend):
 
         # Customize configuration name
         name = configuration.backend_name
-        configuration.backend_name = 'qasm_simulator({})'.format(name)
+        configuration.backend_name = 'aer_simulator({})'.format(name)
 
         # Use automatic noise model if none is provided
         if 'noise_model' not in options:
@@ -439,6 +568,10 @@ class QasmSimulator(AerBackend):
                   **options)
         return sim
 
+    def available_devices(self):
+        """Return the available simulation methods."""
+        return self._AVAILABLE_DEVICES
+
     def configuration(self):
         """Return the simulator backend configuration.
 
@@ -448,10 +581,13 @@ class QasmSimulator(AerBackend):
         # Update basis gates based on custom options, config, method,
         # and noise model
         basis_gates = self._basis_gates()
-        custom_inst = self._custom_instructions()
+        method = getattr(self.options, 'method', 'automatic')
+        custom_inst = self._CUSTOM_INSTR[method]
         config = super().configuration()
         config.custom_instructions = custom_inst
         config.basis_gates = basis_gates + custom_inst
+        # Update simulator name
+        config.backend_name = self.name()
         return config
 
     def _execute(self, qobj):
@@ -471,6 +607,12 @@ class QasmSimulator(AerBackend):
             if key == 'method':
                 self._set_method_config(value)
                 out_options[key] = value
+            elif key == 'device':
+                if value is not None and value not in self._AVAILABLE_DEVICES:
+                    raise AerError(
+                        "Invalid simulation device {}. Available devices"
+                        " are: {}".format(value, self._AVAILABLE_DEVICES))
+                out_options[key] = value
             elif key == 'custom_instructions':
                 self._set_configuration_option(key, value)
             else:
@@ -480,25 +622,21 @@ class QasmSimulator(AerBackend):
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.
 
-        Warn if no measurements in circuit with classical registers.
+        Warn if no measure or save instructions in run circuits.
         """
         for experiment in qobj.experiments:
-            # If circuit contains classical registers but not
-            # measurements raise a warning
-            if experiment.config.memory_slots > 0:
-                # Check if measure opts missing
-                no_measure = True
-                for op in experiment.instructions:
-                    if not no_measure:
-                        break  # we don't need to check any more ops
-                    if no_measure and op.name == "measure":
-                        no_measure = False
-                # Print warning if clbits but no measure
-                if no_measure:
-                    logger.warning(
-                        'No measurements in circuit "%s": '
-                        'count data will return all zeros.',
-                        experiment.header.name)
+            # If circuit does not contain measurement or save
+            # instructions raise a warning
+            no_data = True
+            for op in experiment.instructions:
+                if op.name == "measure" or op.name[:5] == "save_":
+                    no_data = False
+                    break
+            if no_data:
+                logger.warning(
+                    'No measure or save instruction in circuit "%s": '
+                    'results will be empty.',
+                    experiment.header.name)
 
     def _basis_gates(self):
         """Return simualtor basis gates.
@@ -515,17 +653,19 @@ class QasmSimulator(AerBackend):
         # basis gates
         config_gates = self._configuration.basis_gates
         basis_gates = set(config_gates)
-        if self._options.noise_model:
-            noise_gates = self._options.noise_model.basis_gates
+
+        # Compute intersection with method basis gates
+        method = getattr(self._options, 'method', 'automatic')
+        method_gates = self._BASIS_GATES[method]
+        basis_gates = basis_gates.intersection(method_gates)
+
+        # Compute intersection with noise model basis gates
+        noise_model = getattr(self.options, 'noise_model', None)
+        if noise_model:
+            noise_gates = noise_model.basis_gates
             basis_gates = basis_gates.intersection(noise_gates)
         else:
             noise_gates = None
-
-        if self._options.method:
-            method_gates = self._method_basis_gates()
-            basis_gates = basis_gates.intersection(method_gates)
-        else:
-            method_gates = None
 
         if not basis_gates:
             logger.warning(
@@ -535,85 +675,22 @@ class QasmSimulator(AerBackend):
                 config_gates, method_gates, noise_gates)
         return sorted(basis_gates)
 
-    def _method_basis_gates(self):
-        """Return method basis gates and custom instructions"""
-        method = self._options.get('method', None)
-        if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
-            return sorted([
-                'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-                'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
-                'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
-                'unitary', 'diagonal', 'delay', 'pauli'
-            ])
-        if method == 'matrix_product_state':
-            return sorted([
-                'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
-                'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay',
-                'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
-                'initialize'
-            ])
-        if method == 'stabilizer':
-            return sorted([
-                'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'cx', 'cy', 'cz',
-                'swap', 'delay',
-            ])
-        if method == 'extended_stabilizer':
-            return sorted([
-                'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx',
-                'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay'
-            ])
-        return QasmSimulator._DEFAULT_BASIS_GATES
-
-    def _custom_instructions(self):
-        """Return method basis gates and custom instructions"""
-        # pylint: disable = too-many-return-statements
-        if 'custom_instructions' in self._options_configuration:
-            return self._options_configuration['custom_instructions']
-
-        method = self._options.get('method', None)
-        if method in ['statevector', 'statevector_gpu', 'statevector_thrust']:
-            return sorted([
-                'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
-                'save_amplitudes', 'save_amplitudes_sq', 'save_state',
-                'save_density_matrix', 'save_statevector', 'save_statevector_dict',
-                'set_statevector'
-            ])
-        if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
-            return sorted([
-                'roerror', 'kraus', 'superop', 'snapshot', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
-                'save_state', 'save_density_matrix', 'save_amplitudes_sq',
-                'set_statevector', 'set_density_matrix'
-            ])
-        if method == 'matrix_product_state':
-            return sorted([
-                'roerror', 'snapshot', 'kraus', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
-                'save_density_matrix', 'save_state', 'save_statevector',
-                'save_amplitudes', 'save_amplitudes_sq', 'save_matrix_product_state'])
-        if method == 'stabilizer':
-            return sorted([
-                'roerror', 'snapshot', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
-                'save_amplitudes_sq', 'save_state', 'save_stabilizer',
-                'set_stabilizer'
-            ])
-        if method == 'extended_stabilizer':
-            return sorted(['roerror', 'snapshot', 'save_statevector',
-                           'save_expval', 'save_expval_var'])
-        return QasmSimulator._DEFAULT_CUSTOM_INSTR
-
     def _set_method_config(self, method=None):
         """Set non-basis gate options when setting method"""
         super().set_options(method=method)
         # Update configuration description and number of qubits
-        if method in ['statevector', 'statevector_gpu', 'statevector_thrust']:
+        if method == 'statevector':
             description = 'A C++ statevector simulator with noise'
             n_qubits = MAX_QUBITS_STATEVECTOR
-        elif method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
+        elif method == 'density_matrix':
             description = 'A C++ density matrix simulator with noise'
             n_qubits = MAX_QUBITS_STATEVECTOR // 2
+        elif method == 'unitary':
+            description = 'A C++ unitary matrix simulator'
+            n_qubits = MAX_QUBITS_STATEVECTOR // 2
+        elif method == 'superop':
+            description = 'A C++ superop matrix simulator with noise'
+            n_qubits = MAX_QUBITS_STATEVECTOR // 4
         elif method == 'matrix_product_state':
             description = 'A C++ matrix product state simulator with noise'
             n_qubits = 63  # TODO: not sure what to put here?

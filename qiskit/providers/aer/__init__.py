@@ -31,10 +31,18 @@ Simulator Backends
 .. autosummary::
     :toctree: ../stubs/
 
+    AerSimulator
+    PulseSimulator
+
+Legacy Simulator Backends
+=========================
+
+.. autosummary::
+    :toctree: ../stubs/
+
     QasmSimulator
     StatevectorSimulator
     UnitarySimulator
-    PulseSimulator
 
 Job Class
 =========

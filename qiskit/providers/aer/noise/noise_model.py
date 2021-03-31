@@ -318,6 +318,10 @@ class NoiseModel:
             return False
         return True
 
+    def __repr__(self):
+        """Noise model repr"""
+        return "<NoiseModel on {}>".format(list(self._noise_instructions))
+
     def __str__(self):
         """Noise model string representation"""
 
