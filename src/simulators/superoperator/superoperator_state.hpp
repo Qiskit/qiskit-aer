@@ -23,6 +23,9 @@
 #include "framework/utils.hpp"
 #include "simulators/state.hpp"
 #include "superoperator.hpp"
+#ifdef AER_THRUST_SUPPORTED
+#include "superoperator_thrust.hpp"
+#endif
 
 namespace AER {
 namespace QubitSuperoperator {
@@ -99,6 +102,8 @@ public:
   // if the controller/engine allows threads for it
   // Config: {"omp_qubit_threshold": 3}
   virtual void set_config(const json_t &config) override;
+
+  virtual void allocate(uint_t num_qubits,uint_t block_bits) override;
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -346,6 +351,11 @@ template <class data_t> void State<data_t>::initialize_omp() {
   if (BaseState::threads_ > 0)
     BaseState::qreg_.set_omp_threads(
         BaseState::threads_); // set allowed OMP threads in qubitvector
+}
+
+template <class data_t>
+void State<data_t>::allocate(uint_t num_qubits, uint_t block_bits){
+    BaseState::qreg_.chunk_setup(num_qubits * 2, num_qubits * 2, 0, 1);
 }
 
 //=========================================================================

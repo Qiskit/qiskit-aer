@@ -46,8 +46,8 @@ public:
 
   SuperoperatorThrust() : SuperoperatorThrust(0) {};
   explicit SuperoperatorThrust(size_t num_qubits);
-  SuperoperatorThrust(const Superoperator& obj) = delete;
-  Superoperator &operator=(const Superoperator& obj) = delete;
+  SuperoperatorThrust(const SuperoperatorThrust& obj) = delete;
+  SuperoperatorThrust &operator=(const SuperoperatorThrust& obj) = delete;
 
   //-----------------------------------------------------------------------
   // Utility functions
@@ -86,7 +86,7 @@ protected:
 //------------------------------------------------------------------------------
 
 template <typename data_t>
-SuperOperatorThrust<data_t>::SuperoperatorThrust(size_t num_qubits) {
+SuperoperatorThrust<data_t>::SuperoperatorThrust(size_t num_qubits) {
   set_num_qubits(num_qubits);
 }
 
@@ -95,7 +95,7 @@ SuperOperatorThrust<data_t>::SuperoperatorThrust(size_t num_qubits) {
 //------------------------------------------------------------------------------
 
 template <class data_t>
-void SuperOperatorThrust<data_t>::set_num_qubits(size_t num_qubits) {
+void SuperoperatorThrust<data_t>::set_num_qubits(size_t num_qubits) {
   num_qubits_ = num_qubits;
   // Superoperator is same size matrix as a unitary matrix
   // of twice as many qubits
@@ -104,7 +104,7 @@ void SuperOperatorThrust<data_t>::set_num_qubits(size_t num_qubits) {
 
 
 template <typename data_t>
-void SuperOperatorThrust<data_t>::initialize() {
+void SuperoperatorThrust<data_t>::initialize() {
   // Set underlying unitary matrix to identity
   BaseUnitary::initialize();
 }
@@ -112,7 +112,7 @@ void SuperOperatorThrust<data_t>::initialize() {
 
 template <class data_t>
 template <typename T>
-void SuperOperatorThrust<data_t>::initialize_from_matrix(const matrix<std::complex<T>> &mat) {
+void SuperoperatorThrust<data_t>::initialize_from_matrix(const matrix<std::complex<T>> &mat) {
   if (AER::Utils::is_square(mat)) {
     const size_t nrows = mat.GetRows();
     if (nrows == BaseUnitary::rows_) {
@@ -140,7 +140,7 @@ void SuperOperatorThrust<data_t>::initialize_from_matrix(const matrix<std::compl
 }
 
 template <class data_t>
-void SuperOperatorThrust<data_t>::initialize_from_matrix(matrix<std::complex<data_t>> &&mat) {
+void SuperoperatorThrust<data_t>::initialize_from_matrix(matrix<std::complex<data_t>> &&mat) {
   if (AER::Utils::is_square(mat)) {
     const size_t nrows = mat.GetRows();
     if (nrows == BaseUnitary::rows_) {
@@ -176,7 +176,7 @@ void SuperOperatorThrust<data_t>::initialize_from_matrix(matrix<std::complex<dat
 
 // ostream overload for templated qubitvector
 template <typename data_t>
-inline std::ostream &operator<<(std::ostream &out, const AER::QV::SuperOperatorThrust<data_t>&m) {
+inline std::ostream &operator<<(std::ostream &out, const AER::QV::SuperoperatorThrust<data_t>&m) {
   out << m.copy_to_matrix();
   return out;
 }

@@ -1941,19 +1941,20 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   const bool can_sample = check_measure_sampling_opt(circ, method);
   
   // Cache blocking pass
+  uint_t block_bits = 0;
   if (cache_blocking) {
     auto cache_block_pass = transpile_cache_blocking(method, circ, dummy_noise, config);
     cache_block_pass.set_sample_measure(can_sample);
     cache_block_pass.optimize_circuit(circ, dummy_noise, state.opset(), result);
-    uint_t block_bits = 0;
     if (cache_block_pass.enabled()) {
       block_bits = cache_block_pass.block_bits();
     }
-    // allocate qubit register
-    state.allocate(max_qubits_, block_bits);
   }
 
-  // Check if measure sampler and optimization are valid
+  // allocate qubit register
+  state.allocate(max_qubits_, block_bits);
+
+    // Check if measure sampler and optimization are valid
   if (can_sample) {
     // Implement measure sampler
     auto& ops = circ.ops;
@@ -2005,16 +2006,18 @@ void Controller::run_circuit_with_sampled_noise(
                                   result);
     fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
                                  result);
+    uint_t block_bits = 0;
     if (cache_blocking) {
       cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
                                         result);
-      uint_t block_bits = 0;
       if (cache_block_pass.enabled()) {
         block_bits = cache_block_pass.block_bits();
       }
-      // allocate qubit register
-      state.allocate(max_qubits_, block_bits);
     }
+
+    // allocate qubit register
+    state.allocate(max_qubits_, block_bits);
+
     run_single_shot(noise_circ, state, result, rng);
   }
 }
