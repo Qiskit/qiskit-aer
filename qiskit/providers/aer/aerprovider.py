@@ -36,7 +36,7 @@ class AerProvider(Provider):
             backends = []
             for method in methods:
                 name = 'aer_simulator'
-                if name != 'automatic':
+                if method not in [None, 'automatic']:
                     name += f'_{method}'
                 device_name = 'CPU'
                 backends.append((name, AerSimulator, method, device_name))
