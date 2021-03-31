@@ -236,23 +236,6 @@ void State<unitary_matrix_t>::apply_chunk_swap(const reg_t &qubits)
   }
   reg_t qs0 = {{q0, q1}};
   BaseState::apply_chunk_swap(qs0);
-
-  /*
-  if(qubits[0] >= BaseState::chunk_bits_){
-    q0 += (BaseState::num_qubits_ - BaseState::chunk_bits_);
-  }
-  else{
-    q0 += BaseState::chunk_bits_;
-  }
-  if(qubits[1] >= BaseState::chunk_bits_){
-    q1 += (BaseState::num_qubits_ - BaseState::chunk_bits_);
-  }
-  else{
-    q1 += BaseState::chunk_bits_;
-  }
-  reg_t qs1 = {{q0, q1}};
-  BaseState::apply_chunk_swap(qs1);
-  */
 }
 
 template <class unitary_matrix_t>
