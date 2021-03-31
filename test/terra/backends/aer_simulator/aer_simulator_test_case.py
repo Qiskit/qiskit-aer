@@ -58,7 +58,7 @@ def _method_device(methods):
     if not methods:
         methods = AerSimulator().available_methods()
     available_devices = AerSimulator().available_devices()
-    gpu_methods = ['statevector', 'density_matrix', 'unitary', 'superop']
+    gpu_methods = ['statevector', 'density_matrix', 'unitary']
     data_args = []
     for method in methods:
         if method in gpu_methods:

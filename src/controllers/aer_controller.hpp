@@ -1414,32 +1414,16 @@ void Controller::run_circuit(const Circuit &circ,
     }
   }
   case Method::superop: {
-    if (sim_device_ == Device::CPU) {
-      if (sim_precision_ == Precision::Double) {
-        return run_circuit_helper<
-            QubitSuperoperator::State<QV::Superoperator<double>>>(
-            circ, noise, config, shots, rng_seed, Method::superop,
-            false, result);
-      } else {
-        return run_circuit_helper<
-            QubitSuperoperator::State<QV::Superoperator<float>>>(
-            circ, noise, config, shots, rng_seed, Method::superop,
-            false, result);
-      }
+    if (sim_precision_ == Precision::Double) {
+      return run_circuit_helper<
+          QubitSuperoperator::State<QV::Superoperator<double>>>(
+          circ, noise, config, shots, rng_seed, Method::superop,
+          false, result);
     } else {
-#ifdef AER_THRUST_SUPPORTED
-      if (sim_precision_ == Precision::Double) {
-        return run_circuit_helper<
-            QubitSuperoperator::State<QV::SuperoperatorThrust<double>>>(
-            circ, noise, config, shots, rng_seed, Method::superop,
-            false, result);
-      } else {
-        return run_circuit_helper<
-            QubitSuperoperator::State<QV::SuperoperatorThrust<float>>>(
-            circ, noise, config, shots, rng_seed, Method::superop,
-            false, result);
-      }
-#endif
+      return run_circuit_helper<
+          QubitSuperoperator::State<QV::Superoperator<float>>>(
+          circ, noise, config, shots, rng_seed, Method::superop,
+          false, result);
     }
   }
   case Method::stabilizer:
@@ -1556,28 +1540,14 @@ Controller::simulation_method(const Circuit &circ,
   }
   case Method::superop: {
     if (validate) {
-      if (sim_device_ == Device::CPU) {
-        if (sim_precision_ == Precision::Single) {
-          QubitSuperoperator::State<QV::Superoperator<float>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        } else {
-          QubitSuperoperator::State<QV::Superoperator<double>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        }
+      if (sim_precision_ == Precision::Single) {
+        QubitSuperoperator::State<QV::Superoperator<float>> state;
+        validate_state(state, circ, noise_model, true);
+        validate_memory_requirements(state, circ, true);
       } else {
-#ifdef AER_THRUST_SUPPORTED
-        if (sim_precision_ == Precision::Single) {
-          QubitSuperoperator::State<QV::SuperoperatorThrust<float>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        } else {
-          QubitSuperoperator::State<QV::SuperoperatorThrust<double>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        }
-#endif
+        QubitSuperoperator::State<QV::Superoperator<double>> state;
+        validate_state(state, circ, noise_model, true);
+        validate_memory_requirements(state, circ, true);
       }
     }
     return Method::superop;

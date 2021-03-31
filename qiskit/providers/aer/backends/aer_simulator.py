@@ -85,39 +85,36 @@ class AerSimulator(AerBackend):
     * ``"statevector"``: A dense statevector simulation that can sample
       measurement outcomes from *ideal* circuits with all measurements at
       end of the circuit. For noisy simulations each shot samples a
-      randomly sampled noisy circuit from the noise model. Supports CPU and
-      GPU devices.
+      randomly sampled noisy circuit from the noise model.
 
     * ``"density_matrix"``: A dense density matrix simulation that may
       sample measurement outcomes from *noisy* circuits with all
-      measurements at end of the circuit. Supports CPU and GPU devices.
+      measurements at end of the circuit.
 
     * ``"stabilizer"``: An efficient Clifford stabilizer state simulator
       that can simulate noisy Clifford circuits if all errors in the noise
-      model are also Clifford errors. Supports CPU device only.
+      model are also Clifford errors.
 
     * ``"extended_stabilizer"``: An approximate simulated for Clifford + T
       circuits based on a state decomposition into ranked-stabilizer state.
       The number of terms grows with the number of non-Clifford (T) gates.
-      Supports CPU device only.
 
     * ``"matrix_product_state"``: A tensor-network statevector simulator that
       uses a Matrix Product State (MPS) representation for the state. This
       can be done either with or without truncation of the MPS bond dimensions
       depending on the simulator options. The default behaviour is no
-      truncation. Supports CPU device only.
+      truncation.
 
     * ``"unitary"``: A dense unitary matrix simulation of an ideal circuit.
       This simulates the unitary matrix of the circuit itself rather than
       the evolution of an initial quantum state. This method can only
       simulate gates, it does not support measurement, reset, or noise.
-      Supports CPU and GPU devices.
 
     * ``"superop"``: A dense superoperator matrix simulation of an ideal or
       noisy circuit. This simulates the superoperator matrix of the circuit
       itself rather than the evolution of an initial quantum state. This method
       can simulate ideal and noisy gates, and reset, but does not support
-      measurement. Supports CPU device only.
+      measurement.
 
     **GPU Simulation**
 
@@ -142,7 +139,7 @@ class AerSimulator(AerBackend):
     +--------------------------+---------------+
     | ``unitary``              | Yes           |
     +--------------------------+---------------+
-    | ``superop``              | Yes           |
+    | ``superop``              | No            |
     +--------------------------+---------------+
 
     Running a GPU simulation is done using ``device="GPU"`` kwarg during
