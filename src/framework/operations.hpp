@@ -44,7 +44,7 @@ enum class OpType {
   // Save instructions
   save_state, save_expval, save_expval_var, save_statevec, save_statevec_dict,
   save_densmat, save_probs, save_probs_ket, save_amps, save_amps_sq,
-  save_stabilizer, save_unitary, save_mps,
+  save_stabilizer, save_unitary, save_mps, save_superop,
   // Set instructions
   set_statevec, set_densmat, set_unitary, set_superop,
   set_stabilizer
@@ -59,7 +59,7 @@ static const std::unordered_set<OpType> SAVE_TYPES = {
   OpType::save_statevec, OpType::save_statevec_dict,
   OpType::save_densmat, OpType::save_probs, OpType::save_probs_ket,
   OpType::save_amps, OpType::save_amps_sq, OpType::save_stabilizer,
-  OpType::save_unitary, OpType::save_mps
+  OpType::save_unitary, OpType::save_mps, OpType::save_superop
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -116,6 +116,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::save_unitary:
     stream << "save_unitary";
+    break;
+  case OpType::save_superop:
+    stream << "save_superop";
     break;
   case OpType::set_statevec:
     stream << "set_statevector";
@@ -594,6 +597,8 @@ Op input_to_op(const inputdata_t& input) {
     return input_to_op_save_default(input, OpType::save_stabilizer);
   if (name == "save_unitary")
     return input_to_op_save_default(input, OpType::save_unitary);
+  if (name == "save_superop")
+    return input_to_op_save_default(input, OpType::save_superop);
   if (name == "save_density_matrix")
     return input_to_op_save_default(input, OpType::save_densmat);
   if (name == "save_probabilities")

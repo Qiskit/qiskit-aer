@@ -104,8 +104,7 @@ class AerBackend(Backend, ABC):
 
         # Set options from backend_options dictionary
         if backend_options is not None:
-            for key, val in backend_options.items():
-                self.set_option(key, val)
+            self.set_options(**backend_options)
 
     # pylint: disable=arguments-differ
     @deprecate_arguments({'qobj': 'circuits'})
@@ -282,6 +281,14 @@ class AerBackend(Backend, ABC):
 
         # Add execution time
         output["time_taken"] = time.time() - start
+
+        # Display warning if simulation failed
+        if not output.get("success", False):
+            msg = "Simulation failed"
+            if "status" in output:
+                msg += f" and returned the following error message:\n{output['status']}"
+            logger.warning(msg)
+
         return Result.from_dict(output)
 
     @abstractmethod
@@ -314,7 +321,7 @@ class AerBackend(Backend, ABC):
             AerError: if key is 'method' and val isn't in available methods.
         """
         # If key is method, we validate it is one of the available methods
-        if key == 'method' and value not in self._available_methods:
+        if (key == 'method' and value is not None and value not in self._available_methods):
             raise AerError("Invalid simulation method {}. Available methods"
                            " are: {}".format(value, self._available_methods))
 
@@ -409,7 +416,5 @@ class AerBackend(Backend, ABC):
     def __repr__(self):
         """String representation of an AerBackend."""
         name = self.__class__.__name__
-        display = f"backend_name='{self.name()}'"
-        if self.provider():
-            display += f', provider={self.provider()}()'
+        display = f"'{self.name()}'"
         return f'{name}({display})'

@@ -17,9 +17,9 @@
 import unittest
 import multiprocessing
 
-from qiskit import QuantumCircuit, assemble, execute
+from qiskit import QuantumCircuit, execute
 from qiskit.providers.aer import AerProvider, QasmSimulator
-from qiskit.providers.aer import AerError
+
 
 # Backwards compatibility for Terra <= 0.13
 if not hasattr(QuantumCircuit, 'i'):
@@ -30,7 +30,7 @@ def is_method_available(backend, method):
     """Check if input method is available for the qasm simulator."""
     if isinstance(backend, str):
         backend = AerProvider().get_backend(backend)
-    avail = backend.available_methods();
+    avail = backend.available_methods()
     if method in avail:
         return True
     else:
