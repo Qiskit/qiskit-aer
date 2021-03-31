@@ -68,6 +68,7 @@ public:
   {
     sample_measure_ = enabled;
   }
+
   void set_save_state(bool enabled)
   {
     save_state_ = enabled;
@@ -569,7 +570,6 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
           for(iq=0;iq<ops[i].qubits.size();iq++){
             ops[i].qubits[iq] = qubitMap_[ops[i].qubits[iq]];
           }
-
           out.push_back(ops[i]);
           num_gates_added++;
 

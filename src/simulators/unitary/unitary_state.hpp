@@ -29,11 +29,6 @@
 
 namespace AER {
 
-//predefinition of QubitUnitary::State for friend class declaration to access static members
-namespace QubitUnitaryChunk {
-template <class unitary_matrix_t> class State;
-}
-
 namespace QubitUnitary {
 
 // OpSet of supported instructions
@@ -66,7 +61,6 @@ enum class Gates {
 
 template <class unitary_matrix_t = QV::UnitaryMatrix<double>>
 class State : public Base::State<unitary_matrix_t> {
-  friend class QubitUnitaryChunk::State<unitary_matrix_t>;
 public:
   using BaseState = Base::State<unitary_matrix_t>;
 

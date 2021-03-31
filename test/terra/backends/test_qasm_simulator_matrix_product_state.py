@@ -42,6 +42,7 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseOnQFTTests
 # Save data tests
 from test.terra.backends.qasm_simulator.qasm_save import QasmSaveDataTests
 # Snapshot tests
@@ -57,8 +58,33 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValM
 @requires_method("qasm_simulator", "matrix_product_state")
 class TestQasmMatrixProductStateSimulator(
         common.QiskitAerTestCase,
+        QasmMeasureTests,
+        QasmMultiQubitMeasureTests,
+        QasmResetTests,
+        QasmConditionalGateTests,
+        QasmConditionalUnitaryTests,
+        QasmConditionalKrausTests,
+        QasmAlgorithmTests,
+        QasmAlgorithmTestsWaltzBasis,
+        QasmAlgorithmTestsMinimalBasis,
+        QasmUnitaryGateTests,
+        QasmDiagonalGateTests,
+        QasmInitializeTests,
+        QasmReadoutNoiseTests,
+        QasmPauliNoiseTests,
+        QasmResetNoiseTests,
+        QasmKrausNoiseTests,
+        QasmKrausNoiseOnQFTTests,
+        QasmSnapshotStatevectorTests,
+        QasmSnapshotDensityMatrixTests,
+        QasmSnapshotProbabilitiesTests,
+        QasmSnapshotStabilizerTests,
+        QasmSnapshotExpValPauliTests,
+        QasmSnapshotExpValPauliNCTests,
+        QasmSnapshotExpValMatrixTests,
+        QasmStandardGateStatevectorTests,
+        QasmDelayGateTests,
         QasmSaveDataTests
-
 ):
     """QasmSimulator matrix product state method tests."""
 

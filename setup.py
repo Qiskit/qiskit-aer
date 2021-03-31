@@ -3,36 +3,62 @@
 """
 Main setup file for qiskit-aer
 """
-import distutils.util
 import importlib
 import inspect
 import os
 import setuptools
 import subprocess
 import sys
+from pkg_resources import parse_version
 import platform
 
 
+def strtobool(val):
+    val_lower = val.lower()
+    if val_lower in ('y', 'yes', 't', 'true', 'on', '1'):
+        return True
+    elif val_lower in ('n', 'no', 'f', 'false', 'off', '0'):
+        return False
+    else:
+        raise ValueError(f'Value: "{val}" not recognizes as True or False')
+
+
 PACKAGE_NAME = os.getenv('QISKIT_AER_PACKAGE_NAME', 'qiskit-aer')
-_DISABLE_CONAN = distutils.util.strtobool(os.getenv("DISABLE_CONAN", "OFF").lower())
+_DISABLE_CONAN = strtobool(os.getenv("DISABLE_CONAN", "OFF"))
+_DISABLE_DEPENDENCY_INSTALL = strtobool(os.getenv("DISABLE_DEPENDENCY_INSTALL", "OFF"))
+
+
+
+def install_needed_req(import_name, package_name=None, min_version=None, max_version=None):
+    if package_name is None:
+        package_name = import_name
+    install_ver = package_name
+    if min_version:
+        install_ver += '>=' + min_version
+    if max_version:
+        install_ver += '<' + max_version
+
+    try:
+        mod = importlib.import_module(import_name)
+        mod_ver = parse_version(mod.__version__)
+        if ((min_version and mod_ver < parse_version(min_version))
+                or (max_version and mod_ver >= parse_version(max_version))):
+            raise RuntimeError(f'{package_name} {mod_ver} is installed '
+                               f'but required version is {install_ver}.')
+
+    except ImportError as err:
+        if _DISABLE_DEPENDENCY_INSTALL:
+            raise ImportError(str(err) +
+                              f"\n{package_name} is a required dependency. "
+                              f"Please provide it and repeat install")
+
+        subprocess.call([sys.executable, '-m', 'pip', 'install', install_ver])
 
 if not _DISABLE_CONAN:
-    try:
-        from conans import client
-    except ImportError:
-        subprocess.call([sys.executable, '-m', 'pip', 'install', 'conan>=1.31.2'])
-        from conans import client
+    install_needed_req('conans', package_name='conan', min_version='1.31.2')
 
-try:
-    from skbuild import setup
-except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'scikit-build>=0.11.0'])
-    from skbuild import setup
-
-try:
-    import pybind11
-except ImportError:
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'pybind11>=2.6'])
+install_needed_req('skbuild', package_name='scikit-build', min_version='0.11.0')
+install_needed_req('pybind11', min_version='2.6')
 
 from skbuild import setup
 
