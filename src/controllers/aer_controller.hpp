@@ -85,7 +85,8 @@ public:
 
   // Load a QOBJ from a JSON file and execute on the State type
   // class.
-  Result execute(const json_t &qobj);
+  template <typename inputdata_t>
+  Result execute(const inputdata_t &qobj);
 
   Result execute(std::vector<Circuit> &circuits,
                  const Noise::NoiseModel &noise_model, const json_t &config);
@@ -889,7 +890,8 @@ Controller::transpile_cache_blocking(Controller::Method method, const Circuit &c
 //-------------------------------------------------------------------------
 // Qobj execution
 //-------------------------------------------------------------------------
-Result Controller::execute(const json_t &qobj_js) {
+template <typename inputdata_t>
+Result Controller::execute(const inputdata_t &input_qobj) {
 #ifdef AER_MPI
   MPI_Comm_size(MPI_COMM_WORLD, &num_processes_);
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank_);
@@ -901,15 +903,15 @@ Result Controller::execute(const json_t &qobj_js) {
     // Start QOBJ timer
     auto timer_start = myclock_t::now();
 
-    Qobj qobj(qobj_js);
+    Qobj qobj(input_qobj);
     Noise::NoiseModel noise_model;
     json_t config;
     // Check for config
-    if (JSON::get_value(config, "config", qobj_js)) {
+    if (Parser<inputdata_t>::get_value(config, "config", input_qobj)) {
       // Set config
       set_config(config);
       // Load noise model
-      JSON::get_value(noise_model, "noise_model", config);
+      Parser<json_t>::get_value(noise_model, "noise_model", config);
     }
     auto result = execute(qobj.circuits, noise_model, config);
     // Get QOBJ id and pass through header to result
