@@ -333,7 +333,6 @@ void State<data_t>::initialize_qreg(uint_t num_qubits, const data_t &supermat) {
 
 template <class data_t>
 void State<data_t>::initialize_qreg(uint_t num_qubits, const cmatrix_t &mat) {
-
   // Check dimension of unitary
   const auto sz_uni = 1ULL << (2 * num_qubits);
   const auto sz_super = 1ULL << (4 * num_qubits);
@@ -355,7 +354,7 @@ template <class data_t> void State<data_t>::initialize_omp() {
 
 template <class data_t>
 void State<data_t>::allocate(uint_t num_qubits, uint_t block_bits){
-    BaseState::qreg_.chunk_setup(num_qubits * 2, num_qubits * 2, 0, 1);
+    BaseState::qreg_.chunk_setup(num_qubits * 4, num_qubits * 4, 0, 1);
 }
 
 //=========================================================================

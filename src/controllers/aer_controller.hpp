@@ -1431,12 +1431,12 @@ void Controller::run_circuit(const Circuit &circ,
       if (sim_precision_ == Precision::Double) {
         return run_circuit_helper<
             QubitSuperoperator::State<QV::SuperoperatorThrust<double>>>(
-            circ, noise, config, shots, rng_seed, Method::unitary,
+            circ, noise, config, shots, rng_seed, Method::superop,
             false, result);
       } else {
         return run_circuit_helper<
             QubitSuperoperator::State<QV::SuperoperatorThrust<float>>>(
-            circ, noise, config, shots, rng_seed, Method::unitary,
+            circ, noise, config, shots, rng_seed, Method::superop,
             false, result);
       }
 #endif
@@ -1556,14 +1556,28 @@ Controller::simulation_method(const Circuit &circ,
   }
   case Method::superop: {
     if (validate) {
-      if (sim_precision_ == Precision::Single) {
-        QubitSuperoperator::State<QV::Superoperator<float>> state;
-        validate_state(state, circ, noise_model, true);
-        validate_memory_requirements(state, circ, true);
+      if (sim_device_ == Device::CPU) {
+        if (sim_precision_ == Precision::Single) {
+          QubitSuperoperator::State<QV::Superoperator<float>> state;
+          validate_state(state, circ, noise_model, true);
+          validate_memory_requirements(state, circ, true);
+        } else {
+          QubitSuperoperator::State<QV::Superoperator<double>> state;
+          validate_state(state, circ, noise_model, true);
+          validate_memory_requirements(state, circ, true);
+        }
       } else {
-        QubitSuperoperator::State<QV::Superoperator<double>> state;
-        validate_state(state, circ, noise_model, true);
-        validate_memory_requirements(state, circ, true);
+#ifdef AER_THRUST_SUPPORTED
+        if (sim_precision_ == Precision::Single) {
+          QubitSuperoperator::State<QV::SuperoperatorThrust<float>> state;
+          validate_state(state, circ, noise_model, true);
+          validate_memory_requirements(state, circ, true);
+        } else {
+          QubitSuperoperator::State<QV::SuperoperatorThrust<double>> state;
+          validate_state(state, circ, noise_model, true);
+          validate_memory_requirements(state, circ, true);
+        }
+#endif
       }
     }
     return Method::superop;
