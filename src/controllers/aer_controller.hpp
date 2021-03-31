@@ -124,6 +124,17 @@ protected:
   // Simulation precision
   enum class Precision { Double, Single };
 
+  const std::unordered_map<Method, std::string> method_names_ = {
+    {Method::automatic, "automatic"},
+    {Method::statevector, "statevector"},
+    {Method::density_matrix, "density_matrix"},
+    {Method::matrix_product_state, "matrix_product_state"},
+    {Method::stabilizer, "stabilizer"},
+    {Method::extended_stabilizer, "extended_stabilizer"},
+    {Method::unitary, "unitary"},
+    {Method::superop, "superop"}
+  };
+
   //-----------------------------------------------------------------------
   // Config
   //-----------------------------------------------------------------------
@@ -1844,7 +1855,7 @@ void Controller::run_circuit_helper(const Circuit &circ,
 
   // Output data container
   result.set_config(config);
-  result.metadata.add(state.name(), "method");
+  result.metadata.add(method_names_.at(method), "method");
   if (method == Method::statevector || method == Method::density_matrix ||
       method == Method::unitary) {
     result.metadata.add(sim_device_name_, "device");
