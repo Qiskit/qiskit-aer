@@ -13,6 +13,8 @@ DISABLE_WARNING_POP
 #endif
 
 #include "framework/matrix.hpp"
+#include "framework/python_parser.hpp"
+#include "framework/pybind_casts.hpp"
 #include "framework/types.hpp"
 #include "framework/results/pybind_result.hpp"
 
@@ -25,7 +27,13 @@ template<typename T>
 class ControllerExecutor {
 public:
     ControllerExecutor() = default;
-    py::object operator()(const py::object &qobj) { return AerToPy::to_python(AER::controller_execute<T>(qobj)); }
+    py::object operator()(const py::handle &qobj) {
+#ifdef TEST_JSON // Convert input qobj to json to test standalone data reading
+        return AerToPy::to_python(AER::controller_execute<T>(json_t(qobj)));
+#else
+        return AerToPy::to_python(AER::controller_execute<T>(qobj));
+#endif
+    }
 };
 
 PYBIND11_MODULE(controller_wrappers, m) {

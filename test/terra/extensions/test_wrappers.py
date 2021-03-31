@@ -50,8 +50,7 @@ class TestControllerExecuteWrappers(QiskitAerTestCase):
         qobj = assemble(transpile(circuit, backend), backend)
         opts = {'max_parallel_threads': 1,
                 'library_dir': LIBRARY_DIR}
-        fqobj = backend._format_qobj(qobj, **opts, noise_model=noise_model)
-        return fqobj.to_dict()
+        return backend._format_qobj(qobj, **opts, noise_model=noise_model)
 
     def _map_and_test(self, cfunc, qobj):
         n = 2
