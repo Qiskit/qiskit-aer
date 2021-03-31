@@ -343,7 +343,7 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits,
       uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
 
       //copy part of state for this chunk
-      uint_t i,row,col;
+      uint_t i;
       cvector_t tmp(1ull << BaseState::chunk_bits_);
       for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
         uint_t icol = i & ((1ull << (BaseState::chunk_bits_))-1);
@@ -381,7 +381,7 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits,
       uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
 
       //copy part of state for this chunk
-      uint_t i,row,col;
+      uint_t i;
       cvector_t tmp(1ull << BaseState::chunk_bits_);
       for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
         uint_t icol = i & ((1ull << (BaseState::chunk_bits_))-1);
@@ -420,7 +420,7 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits,
       uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
 
       //copy part of state for this chunk
-      uint_t i,row,col;
+      uint_t i;
       cvector_t tmp(1ull << BaseState::chunk_bits_);
       for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
         uint_t icol = i & ((1ull << (BaseState::chunk_bits_))-1);
@@ -858,7 +858,6 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
                                       ExperimentResult &result,
                                       bool last_op) 
 {
-  int_t i;
   // Look for snapshot type in snapshotset
   auto it = DensityMatrix::State<densmat_t>::snapshotset_.find(op.name);
   if (it == DensityMatrix::State<densmat_t>::snapshotset_.end())

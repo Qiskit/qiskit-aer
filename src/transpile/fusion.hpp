@@ -645,7 +645,6 @@ bool DiagonalFusion::aggregate_operations(oplist_t& ops,
 
     auto next_diagonal_start = next_diagonal_end + 1;
 
-    int cnt = 0;
     while (true) {
       auto next_diagonal_end = get_next_diagonal_end(ops, next_diagonal_start, checking_qubits_set);
       if (next_diagonal_end < 0)

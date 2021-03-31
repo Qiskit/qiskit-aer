@@ -862,7 +862,6 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
                                        ExperimentResult &result,
                                        bool last_op) 
 {
-  int_t i;
   // Look for snapshot type in snapshotset
   auto it = Statevector::State<statevec_t>::snapshotset_.find(op.name);
   if (it == Statevector::State<statevec_t>::snapshotset_.end())
@@ -1675,7 +1674,7 @@ void State<statevec_t>::apply_kraus(const reg_t &qubits,
   double accum = 0.;
   bool complete = false;
 
-  int_t i,j;
+  int_t i;
   cvector_t vmat;
   double local_accum;
 

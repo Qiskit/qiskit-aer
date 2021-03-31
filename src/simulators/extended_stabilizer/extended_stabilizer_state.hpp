@@ -838,7 +838,6 @@ double State::expval_pauli(const reg_t &qubits,
     auto phi_norm = state_cpy.norm_estimation(norm_estimation_samples_, norm_estimation_repetitions_, rng);
     std::vector<chpauli_t>paulis(1, chpauli_t());
     for (uint_t pos = 0; pos < qubits.size(); ++pos) {
-      uint_t qubit = qubits[pos];
       switch (pauli[pauli.size() - 1 - pos]) {
         case 'I':
           break;
