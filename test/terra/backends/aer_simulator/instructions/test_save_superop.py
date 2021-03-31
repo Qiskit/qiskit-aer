@@ -24,7 +24,7 @@ from test.terra.backends.aer_simulator.aer_simulator_test_case import (
 class TestSaveSuperOp(AerSimulatorTestCase):
     """SaveSuperOp instruction tests."""
 
-    @supported_methods(["superop"])
+    @supported_methods(["automatic", "superop"])
     def test_save_superop(self, method, device):
         """Test save superop instruction"""
         backend = self.backend(method=method, device=device)

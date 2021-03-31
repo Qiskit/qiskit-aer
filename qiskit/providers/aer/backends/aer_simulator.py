@@ -79,10 +79,8 @@ class AerSimulator(AerBackend):
     simulation methods can be returned using :meth:`available_methods`, these
     are
 
-    * ``"automatic"``: Default simulation method. Either the "statevector",
-      "density_matrix", or "stabilizer" simulation method is selected
-      automatically at runtime for each circuit based on the circuit
-      instructions, number of qubits, and noise model.
+    * ``"automatic"``: Default simulation method. Select the simulation
+      method automatically based on the circuit and noise model.
 
     * ``"statevector"``: A dense statevector simulation that can sample
       measurement outcomes from *ideal* circuits with all measurements at
@@ -371,7 +369,10 @@ class AerSimulator(AerBackend):
     _BASIS_GATES[None] = _BASIS_GATES['automatic'] = sorted(
         set(_BASIS_GATES['statevector']).union(
             _BASIS_GATES['stabilizer']).union(
-                _BASIS_GATES['density_matrix']))
+                _BASIS_GATES['density_matrix']).union(
+                    _BASIS_GATES['matrix_product_state']).union(
+                        _BASIS_GATES['unitary']).union(
+                            _BASIS_GATES['superop']))
 
     _CUSTOM_INSTR = {
         'statevector': sorted([
@@ -416,7 +417,10 @@ class AerSimulator(AerBackend):
     _CUSTOM_INSTR[None] = _CUSTOM_INSTR['automatic'] = sorted(
         set(_CUSTOM_INSTR['statevector']).union(
             _CUSTOM_INSTR['stabilizer']).union(
-                _CUSTOM_INSTR['density_matrix']))
+                _CUSTOM_INSTR['density_matrix']).union(
+                    _CUSTOM_INSTR['matrix_product_state']).union(
+                        _CUSTOM_INSTR['unitary']).union(
+                            _CUSTOM_INSTR['superop']))
 
     _DEFAULT_CONFIGURATION = {
         'backend_name': 'aer_simulator',

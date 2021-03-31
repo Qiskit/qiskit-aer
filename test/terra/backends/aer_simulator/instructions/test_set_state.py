@@ -92,7 +92,7 @@ class TestSetState(AerSimulatorTestCase):
         value = qi.DensityMatrix(simdata[label])
         self.assertEqual(value, target)
 
-    @supported_methods(['unitary'], [1, 2, 3])
+    @supported_methods(['automatic', 'unitary'], [1, 2, 3])
     def test_set_unitary(self, method, device, num_qubits):
         """Test SetUnitary instruction"""
         backend = self.backend(method=method, device=device)
@@ -115,7 +115,7 @@ class TestSetState(AerSimulatorTestCase):
         value = qi.Operator(simdata[label])
         self.assertEqual(value, target)
 
-    @supported_methods(['superop'], [1, 2])
+    @supported_methods(['automatic', 'superop'], [1, 2])
     def test_set_superop(self, method, device, num_qubits):
         """Test SetSuperOp instruction"""
         backend = self.backend(method=method, device=device)

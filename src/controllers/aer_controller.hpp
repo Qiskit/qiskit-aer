@@ -1609,40 +1609,41 @@ Controller::simulation_method(const Circuit &circ,
         check_measure_sampling_opt(circ, Method::density_matrix)) {
       return Method::density_matrix;
     }
-    // Finally we check the statevector memory requirement for the
-    // current number of qubits. If it fits in available memory we
-    // default to the Statevector method. Otherwise we raise an exception
-    // and suggest using one of the other simulation methods.
-    bool enough_memory = true;
-    if (sim_precision_ == Precision::Single) {
-      Statevector::State<QV::QubitVector<float>> sv_state;
-      enough_memory = validate_memory_requirements(sv_state, circ, false);
-    } else {
-      Statevector::State<> sv_state;
-      enough_memory = validate_memory_requirements(sv_state, circ, false);
-    }
-    if (!enough_memory) {
-      throw std::runtime_error(
-          "QasmSimulator: Insufficient memory for " +
-          std::to_string(circ.num_qubits) +
-          "-qubit"
-          R"( circuit using "statevector" method. You could try using the)"
-          R"( "matrix_product_state" or "extended_stabilizer" method instead.)");
-    }
-  }
-  default: {
-    // For default we use statevector followed by density matrix (for the case
-    // when the circuit contains invalid instructions for statevector)
+  
+    // If the special conditions for stabilizer or density matrix are
+    // not satisfied we choose simulation method based on supported
+    // operations only with preference given by memory requirements
+    // statevector > density matrix > matrix product state > unitary > superop
+    // typically any save state instructions will decide the method.
     if (validate_state(Statevector::State<>(), circ, noise_model, false)) {
       return Method::statevector;
     }
-    // If circuit contains invalid instructions for statevector throw a hail
-    // mary and try for density matrix.
-    if (validate)
-      validate_state(DensityMatrix::State<>(), circ, noise_model, true);
-    return Method::density_matrix;
-  }
-  }
+    if (validate_state(DensityMatrix::State<>(), circ, noise_model, false)) {
+      return Method::density_matrix;
+    }
+    if (validate_state(MatrixProductState::State(), circ, noise_model, false)) {
+      return Method::matrix_product_state;
+    }
+    if (validate_state(QubitUnitary::State<>(), circ, noise_model, false)) {
+      return Method::unitary;
+    }
+    if (validate_state(QubitSuperoperator::State<>(), circ, noise_model, false)) {
+      return Method::superop;
+    }
+    // If we got here, circuit isn't compatible with any of the simulation
+    // methods
+    std::stringstream msg;
+    msg << "AerSimulator: ";
+    if (noise_model.is_ideal()) {
+      msg << "circuit with instructions " << circ.opset();
+    } else {
+      auto opset = circ.opset();
+      opset.insert(noise_model.opset());
+      msg << "circuit and noise model with instructions" << opset;
+    }
+    msg << " is not compatible with any of the automatic simulation methods";
+    throw std::runtime_error(msg.str());
+  }}
 }
 
 size_t Controller::required_memory_mb(const Circuit &circ,

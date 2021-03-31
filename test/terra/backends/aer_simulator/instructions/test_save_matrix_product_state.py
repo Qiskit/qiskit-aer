@@ -23,7 +23,7 @@ from test.terra.backends.aer_simulator.aer_simulator_test_case import (
 class TestSaveMatrixProductStateTests(AerSimulatorTestCase):
     """SaveMatrixProductState instruction tests."""
 
-    @supported_methods(["matrix_product_state"])
+    @supported_methods(["automatic", "matrix_product_state"])
     def test_save_matrix_product_state(self, method, device):
         """Test save matrix_product_state instruction"""
         backend = self.backend(method=method, device=device)

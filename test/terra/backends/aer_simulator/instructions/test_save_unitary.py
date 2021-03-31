@@ -24,7 +24,7 @@ from test.terra.backends.aer_simulator.aer_simulator_test_case import (
 class TestSaveUnitary(AerSimulatorTestCase):
     """SaveUnitary instruction tests."""
 
-    @supported_methods(["unitary"])
+    @supported_methods(["automatic", "unitary"])
     def test_save_unitary(self, method, device):
         """Test save unitary instruction"""
         backend = self.backend(method=method, device=device)
