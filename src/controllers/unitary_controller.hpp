@@ -357,6 +357,7 @@ void UnitaryController::run_circuit_helper(
   }
 
   Transpile::CacheBlocking cache_block_pass = transpile_cache_blocking(opt_circ,dummy_noise,config,(precision_ == Precision::single_precision) ? sizeof(std::complex<float>) : sizeof(std::complex<double>),true);
+  cache_block_pass.set_save_state(true);
   cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
 
   uint_t block_bits = 0;

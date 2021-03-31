@@ -68,6 +68,10 @@ public:
   {
     sample_measure_ = enabled;
   }
+  void set_save_state(bool enabled)
+  {
+    save_state_ = enabled;
+  }
 
   //setting blocking parameters automatically
   void set_blocking(int bits, size_t min_memory, uint_t n_place, const size_t complex_size, bool is_matrix = false);
@@ -79,6 +83,7 @@ protected:
   mutable reg_t qubitSwapped_;
   mutable bool blocking_enabled_;
   mutable bool sample_measure_ = false;
+  mutable bool save_state_ = false;
   int gpu_blocking_bits_;
 
   bool block_circuit(Circuit& circ,bool doSwap) const;
@@ -319,49 +324,23 @@ bool CacheBlocking::block_circuit(Circuit& circ,bool doSwap) const
   std::vector<Operations::Op> queue_next;
 
   n = add_ops(circ.ops,out,queue,doSwap,true);
-//  put_nongate_ops(out,queue_next,queue,doSwap);
-//  queue.clear();
   while(queue.size() > 0){
     n = add_ops(queue,out,queue_next,doSwap,false);
     queue = queue_next;
     queue_next.clear();
-//    put_nongate_ops(out,queue_next,queue,doSwap);
     if(n == 0){
       break;
     }
-//    queue.clear();
   }
 
   if(queue.size() > 0)
     return false;
 
-//  restore_qubits_order(out);
+  if(save_state_)
+    restore_qubits_order(out);
 
   circ.ops = out;
   return true;
-}
-
-void CacheBlocking::put_nongate_ops(std::vector<Operations::Op>& out,std::vector<Operations::Op>& queue,std::vector<Operations::Op>& input,bool doSwap) const
-{
-  uint_t i;
-  for(i=0;i<input.size();i++){
-    if(input[i].type == Operations::OpType::gate || input[i].type == Operations::OpType::matrix || 
-       input[i].type == Operations::OpType::diagonal_matrix || input[i].type == Operations::OpType::multiplexer){
-      for(uint_t j =i;j<input.size();j++){
-        queue.push_back(input[j]);
-      }
-      return;   //there are still gates operations remaining in queue
-    }
-
-    if(doSwap){
-      //insert swap to restore qubit ordering
-      restore_qubits_order(out);
-
-      doSwap = false;
-    }
-    //add operation to output
-    out.push_back(input[i]);
-  }
 }
 
 void CacheBlocking::restore_qubits_order(std::vector<Operations::Op>& ops) const
@@ -401,6 +380,16 @@ void CacheBlocking::restore_qubits_order(std::vector<Operations::Op>& ops) const
     if(qubitMap_[i] != i){
       j = qubitMap_[qubitMap_[i]];
       if(j != i && j < block_bits_){
+        if(nInBlock == 0){
+          uint_t last = ops.size() - 1;
+          if(ops[last].type == Operations::OpType::sim_op && ops[last].name == "end_blocking"){
+            ops.pop_back();
+            nInBlock = 1;
+          }
+          else{
+            insert_sim_op(ops,"begin_blocking",qubitMap_);
+          }
+        }
         insert_swap(ops,i,j,false);
 
         qubitMap_[qubitSwapped_[i]] = j;
@@ -508,7 +497,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
     }
     for(i=0;i<nq;i++){
       if(qubitSwapped_[swap[i]] != blockedQubits[i]){ //need swap gate
-        if(out.size() > 0){   //swap gate is not required for initial state
+        if(!first){   //swap gate is not required for initial state
           insert_swap(out,swap[i],qubitMap_[blockedQubits[i]],true);
         }
 
