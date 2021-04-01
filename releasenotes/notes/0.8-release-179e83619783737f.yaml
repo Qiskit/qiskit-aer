@@ -1,5 +1,5 @@
 ---
-prelude: >
+prelude: |
     The 0.8 release includes several new features and bug fixes. The
     highlights for this release are: the introduction of a unified
     :class:`~qiskit.provider.aer.AerSimulator` backend for running circuit
@@ -37,7 +37,6 @@ features:
     :class:`~qiskit.providers.aer.UnitarySimulator`, and the
     statevector and density matrix methods of the
     :class:`~qiskit.providers.aer.QasmSimulator`.
-  - |
 upgrade:
   - |
     The minimum version of `Conan <https://conan.io/>`__ has been increased to 1.31.2.

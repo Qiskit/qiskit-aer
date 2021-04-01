@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added a new *norm estimation* method for performing measurements when using
+    Added a new ``norm estimation`` method for performing measurements when using
     the `"extended_stabilizer"` simulation method. This norm estimation method
     can be used by passing the following options to the
     :class:`~qiskit.providers.aer.AerSimulator` and
