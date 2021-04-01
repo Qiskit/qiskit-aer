@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Added support for diagonal gates to the `"matrix_product_state"` simulation
+    method.
+  - |
+    Added support for the ``initialize`` instruction to the
+    `"matrix_product_state"` simulation method.
+issues:
+  - |
+    There is a known issue where the simulation of certain circuits with a Kraus
+    noise model using the `"matrix_product_state"` simulation method can cause
+    the simulator to crash. Refer to
+    `#306 <https://github.com/Qiskit/qiskit-aer/issues/1184>` for more
+    information.
