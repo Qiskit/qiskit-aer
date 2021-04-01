@@ -33,8 +33,8 @@ public:
       if(py_matrix.ndim() != 2){
           throw std::invalid_argument(std::string("Python: invalid matrix (empty array)."));
       }
-      size_t ncols = py_matrix.shape(0);
-      size_t nrows = py_matrix.shape(1);
+      size_t nrows = py_matrix.shape(0);
+      size_t ncols = py_matrix.shape(1);
       // Matrix looks ok, now we parse it
       auto raw_mat = py_matrix.template unchecked<2>();
       if(c_order){

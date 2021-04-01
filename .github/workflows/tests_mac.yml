@@ -130,7 +130,7 @@ jobs:
   tests-json-input:
     runs-on: ${{ matrix.os }}
     needs: [sdist, lint]
-    timeout-minutes: 40
+    timeout-minutes: 45
     strategy:
       matrix:
         python-version: [3.9]

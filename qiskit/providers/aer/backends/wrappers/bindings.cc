@@ -18,6 +18,7 @@ DISABLE_WARNING_POP
 #include "framework/types.hpp"
 #include "framework/results/pybind_result.hpp"
 
+#include "controllers/aer_controller.hpp"
 #include "controllers/qasm_controller.hpp"
 #include "controllers/statevector_controller.hpp"
 #include "controllers/unitary_controller.hpp"
@@ -42,6 +43,13 @@ PYBIND11_MODULE(controller_wrappers, m) {
   int prov;
   MPI_Init_thread(nullptr,nullptr,MPI_THREAD_MULTIPLE,&prov);
 #endif
+
+    py::class_<ControllerExecutor<AER::Controller> > aer_ctrl (m, "aer_controller_execute");
+    aer_ctrl.def(py::init<>());
+    aer_ctrl.def("__call__", &ControllerExecutor<AER::Controller>::operator());
+    aer_ctrl.def("__reduce__", [aer_ctrl](const ControllerExecutor<AER::Controller> &self) {
+        return py::make_tuple(aer_ctrl, py::tuple());
+    });
 
     py::class_<ControllerExecutor<AER::Simulator::QasmController> > qasm_ctrl (m, "qasm_controller_execute");
     qasm_ctrl.def(py::init<>());
