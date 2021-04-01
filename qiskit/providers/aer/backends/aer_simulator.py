@@ -481,8 +481,8 @@ class AerSimulator(AerBackend):
         return Options(
             # Global options
             shots=1024,
-            method=None,
-            device=None,
+            method='automatic',
+            device='CPU',
             precision="double",
             zero_threshold=1e-10,
             validation_threshold=None,
@@ -498,8 +498,10 @@ class AerSimulator(AerBackend):
             fusion_threshold=14,
             accept_distributed_results=None,
             blocking_qubits=None,
+            blocking_enable=False,
             memory=None,
             noise_model=None,
+            seed_simulator=None,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,
