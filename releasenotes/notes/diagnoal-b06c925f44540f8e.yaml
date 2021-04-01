@@ -1,8 +1,0 @@
----
-
-features:
-  - |
-    Added support for MPS::apply_diagonal_matrix.
-    
-
-
