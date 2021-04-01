@@ -12,19 +12,24 @@ features:
   - |
     This release includes support for building qiskit-aer with MPI support to
     run large simulations on a distributed computing environment. See the
-    `contributing guide<https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md#building-with-mpi-support>`_
+    `contributing guide <https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md#building-with-mpi-support>`__
     for instructions on building and running in an MPI environment.
   - |
     It is now possible to build qiskit-aer with CUDA enabled in Windows.
     See the
-    `contributing guide<https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md#building-with-gpu-support>`_
+    `contributing guide <https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md#building-with-gpu-support>`__
     for instructions on building from source with GPU support.
   - |
-    Some *Python* packages needed at C++ compilaton step were installed
-    outside the regular *setuptools* circuit, and it was not possible to
-    avoid their installation by any option. Now it is possible to avoid
-    automatic installation of those packages by setting the environment
-    variable *DISABLE_DEPENDENCY_INSTALL* to *1* or *ON*.
+    When building the qiskit-aer Python extension from source several build
+    dependencies need to be pre-installed to enable C++ compilation. As a
+    user convenience when building the extension any of these build
+    dependencies which were missing would be automatically installed using
+    ``pip`` prior to the normal ``setuptools`` installation steps, however it was
+    previously was not possible to avoid this automatic installation. To solve
+    this issue a new environment variable ``DISABLE_DEPENDENCY_INSTALL``
+    has been added. If it is set to ``1`` or ``ON`` when building the python
+    extension from source this will disable the automatic installation of these
+    missing build dependencies.
   - |
     Adds support for optimized N-qubit Pauli gate (
     :class:`qiskit.circuit.library.generalized_gates.PauliGate`) to the
