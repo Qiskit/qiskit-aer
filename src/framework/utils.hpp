@@ -1232,7 +1232,7 @@ std::string int2string(uint_t n, uint_t base, uint_t minlen) {
   #endif
 #endif
   // Implementation from http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetKernighan
-  bool _naive_parity(uint_t x)
+  static bool _naive_parity(uint_t x)
   {
     uint_t c; // c accumulates the total bits set in x
     for (c = 0; x; c++)
@@ -1241,7 +1241,7 @@ std::string int2string(uint_t n, uint_t base, uint_t minlen) {
     }
     return (c&one);
   }
-  uint_t _naive_weight(uint_t x)
+  static uint_t _naive_weight(uint_t x)
   {
     auto count = x;
     count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
