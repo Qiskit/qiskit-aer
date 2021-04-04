@@ -38,6 +38,7 @@ Instruction Classes
     SetDensityMatrix
     SetStabilizer
     SetUnitary
+    SetMatrixProductState
 
 Then can also be used using custom QuantumCircuit methods
 
@@ -51,6 +52,7 @@ QuantumCircuit Methods
     set_density_matrix
     set_stabilizer
     set_unitary
+    set_matrix_product_state
 
 
 Saving Simulator Data

@@ -47,7 +47,7 @@ enum class OpType {
   save_stabilizer, save_unitary, save_mps,
   // Set instructions
   set_statevec, set_densmat, set_unitary, set_superop,
-  set_stabilizer
+    set_stabilizer, set_mps
 };
 
 enum class DataSubType {
@@ -132,6 +132,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   case OpType::set_stabilizer:
     stream << "set_stabilizer";
     break;
+  case OpType::set_mps:
+    stream << "set_matrix_product_state";
+    break;
   case OpType::snapshot:
     stream << "snapshot";
     break;
@@ -184,7 +187,7 @@ struct Op {
   std::vector<reg_t> regs;        //  list of qubits for matrixes
   std::vector<complex_t> params;  // real or complex params for gates
   std::vector<uint_t> int_params;  // integer parameters 
-  std::vector<std::string> string_params; // used or snapshot label, and boolean functions
+  std::vector<std::string> string_params; // used for snapshot label, and boolean functions
 
   // Conditional Operations
   bool conditional = false; // is gate conditional gate
@@ -206,6 +209,7 @@ struct Op {
 
   // Set states
   Clifford::Clifford clifford;
+  mps_container_t mps;
 
   // Legacy Snapshots
   DataSubType save_type = DataSubType::single;
@@ -493,6 +497,7 @@ Op json_to_op_pauli(const json_t &js);
 Op json_to_op_set_vector(const json_t& js, OpType op_type);
 Op json_to_op_set_matrix(const json_t& js, OpType op_type);
 Op json_to_op_set_clifford(const json_t& js, OpType op_type);
+Op json_to_op_set_mps(const json_t &js, OpType op_type);
 
 // Save data
 Op json_to_op_save_default(const json_t &js, OpType op_type);
@@ -585,6 +590,8 @@ Op json_to_op(const json_t &js) {
     return json_to_op_set_matrix(js, OpType::set_superop);
   if (name == "set_stabilizer")
     return json_to_op_set_clifford(js, OpType::set_stabilizer);
+  if (name == "set_matrix_product_state")
+    return json_to_op_set_mps(js, OpType::set_mps);
   // Snapshot
   if (name == "snapshot")
     return json_to_op_snapshot(js);
@@ -992,6 +999,17 @@ Op json_to_op_set_clifford(const json_t &js, OpType op_type) {
   JSON::get_value(op.name, "name", js);
   JSON::get_value(op.qubits, "qubits", js);
   add_conditional(Allowed::No, op, js);
+  return op;
+}
+
+Op json_to_op_set_mps(const json_t &js, OpType op_type) {
+  Op op;
+  op.type = op_type;
+  op.mps = js["params"][0].get<mps_container_t>();
+  JSON::get_value(op.name, "name", js);
+  JSON::get_value(op.qubits, "qubits", js);
+  add_conditional(Allowed::No, op, js);
+  std::cout << "op = " << op << std::endl;
   return op;
 }
 

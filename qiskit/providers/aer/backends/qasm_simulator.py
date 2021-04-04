@@ -289,7 +289,7 @@ class QasmSimulator(AerBackend):
         'save_amplitudes', 'save_amplitudes_sq', 'save_state',
         'save_density_matrix', 'save_statevector', 'save_statevector_dict',
         'save_stabilizer', 'set_statevector', 'set_density_matrix',
-        'set_stabilizer'
+        'set_stabilizer', 'set_matrix_product_state'
     ])
 
     _DEFAULT_CONFIGURATION = {
