@@ -15,4 +15,5 @@ from .set_statevector import SetStatevector, set_statevector
 from .set_density_matrix import SetDensityMatrix, set_density_matrix
 from .set_unitary import SetUnitary, set_unitary
 from .set_stabilizer import SetStabilizer, set_stabilizer
+from .set_superop import SetSuperOp, set_superop
 from .set_matrix_product_state import SetMatrixProductState, set_matrix_product_state

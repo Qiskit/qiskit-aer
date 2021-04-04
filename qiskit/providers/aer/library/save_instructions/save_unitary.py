@@ -36,8 +36,7 @@ class SaveUnitary(SaveSingleData):
             qubits in a circuit, otherwise an exception will be raised during
             simulation.
         """
-        super().__init__('save_unitary', num_qubits, label,
-                         pershot=pershot)
+        super().__init__('save_unitary', num_qubits, label, pershot=pershot)
 
 
 def save_unitary(self, label="unitary", pershot=False):
@@ -56,9 +55,7 @@ def save_unitary(self, label="unitary", pershot=False):
         This instruction is always defined across all qubits in a circuit.
     """
     qubits = default_qubits(self)
-    instr = SaveUnitary(len(qubits),
-                        label=label,
-                        pershot=pershot)
+    instr = SaveUnitary(len(qubits), label=label, pershot=pershot)
     return self.append(instr, qubits)
 
 

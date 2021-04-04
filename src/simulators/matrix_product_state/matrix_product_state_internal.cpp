@@ -820,7 +820,7 @@ void MPS::apply_kraus(const reg_t &qubits,
                    const std::vector<cmatrix_t> &kmats,
                    RngEngine &rng) {
   reg_t internal_qubits = get_internal_qubits(qubits);
-  apply_kraus_internal(qubits, kmats, rng);
+  apply_kraus_internal(internal_qubits, kmats, rng);
 
 }
 void MPS::apply_kraus_internal(const reg_t &qubits,
