@@ -309,7 +309,7 @@ void Fuser::allocate_new_operation(oplist_t& ops,
 class CostBasedFusion : public Fuser {
 public:
   CostBasedFusion() {
-    std::fill_n(costs, 64, -1);
+    std::fill_n(costs_, 64, -1);
   };
 
   virtual std::string name() const override { return "cost_base"; };
@@ -338,7 +338,7 @@ private:
 private:
   bool active = true;
   double cost_factor = 1.8;
-  double costs[64];
+  double costs_[64];
 };
 
 template<size_t N>
@@ -487,7 +487,7 @@ private:
 
   int get_next_diagonal_end(const oplist_t& ops, const int from, std::set<uint_t>& fusing_qubits) const;
 
-  const std::shared_ptr<FusionMethod> method;
+  const std::shared_ptr<FusionMethod> method_;
   uint_t min_qubit = 3;
   bool active = true;
 };
@@ -646,12 +646,12 @@ bool DiagonalFusion::aggregate_operations(oplist_t& ops,
     auto next_diagonal_start = next_diagonal_end + 1;
 
     while (true) {
-      auto next_diagonal_end = get_next_diagonal_end(ops, next_diagonal_start, checking_qubits_set);
-      if (next_diagonal_end < 0)
+      auto nde = get_next_diagonal_end(ops, next_diagonal_start, checking_qubits_set);
+      if (nde < 0)
         break;
       if (checking_qubits_set.size() > max_fused_qubits)
         break;
-      next_diagonal_start = next_diagonal_end + 1;
+      next_diagonal_start = nde + 1;
     }
 
     if (checking_qubits_set.size() < min_qubit)
@@ -908,7 +908,7 @@ void CostBasedFusion::set_config(const json_t &config) {
   for (int i = 0; i < 64; ++i) {
     auto prop_name = "fusion_cost." + std::to_string(i + 1);
     if (JSON::check_key(prop_name, config))
-      JSON::get_value(costs[i], prop_name, config);
+      JSON::get_value(costs_[i], prop_name, config);
   }
 }
 
@@ -1022,7 +1022,7 @@ double CostBasedFusion::estimate_cost(const std::vector<op_t>& ops,
   for (uint_t i = from; i <= until; ++i)
     add_fusion_qubits(fusion_qubits, ops[i]);
 
-  auto configured_cost = costs[fusion_qubits.size() - 1];
+  auto configured_cost = costs_[fusion_qubits.size() - 1];
   if (configured_cost > 0)
     return configured_cost;
 

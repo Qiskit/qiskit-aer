@@ -387,9 +387,8 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
 
   initialize_omp();
 
-  int_t iChunk;
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
-    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+    for(int_t iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
       BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
       BaseState::qregs_[iChunk].initialize_from_vector(state);
     }
