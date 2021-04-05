@@ -1047,14 +1047,15 @@ Op input_to_op_set_clifford(const inputdata_t &input, OpType op_type) {
   return op;
 }
 
-Op json_to_op_set_mps(const json_t &js, OpType op_type) {
+template<typename inputdata_t>
+Op input_to_op_set_mps(const inputdata_t &input, OpType op_type) {
   Op op;
   op.type = op_type;
-  op.mps = js["params"][0].get<mps_container_t>();
-  JSON::get_value(op.name, "name", js);
-  JSON::get_value(op.qubits, "qubits", js);
-  add_conditional(Allowed::No, op, js);
-  std::cout << "op = " << op << std::endl;
+  const inputdata_t& params = Parser<inputdata_t>::get_value("params", input);
+  op.mps = Parser<inputdata_t>::template get_list_elem<mps_container_t>(params, 0);
+  Parser<inputdata_t>::get_value(op.name, "name", input);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  add_conditional(Allowed::No, op, input);
   return op;
 }
 

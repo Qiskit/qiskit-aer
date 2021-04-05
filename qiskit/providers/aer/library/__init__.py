@@ -185,6 +185,7 @@ __all__ = [
     'SetStatevector',
     'SetSuperOp',
     'SetUnitary',
+    'SetMatrixProductState'
 ]
 
 from .save_instructions import *
