@@ -58,3 +58,22 @@ def available_methods(controller, methods):
         if result.get('success', False):
             valid_methods.append(method)
     return valid_methods
+
+
+def available_devices(controller, devices):
+    """Check available simulation devices by running a dummy circuit."""
+    # Test methods are available using the controller
+    dummy_circ = QuantumCircuit(1)
+    dummy_circ.i(0)
+
+    valid_devices = []
+    for device in devices:
+        qobj = assemble(dummy_circ,
+                        optimization_level=0,
+                        shots=1,
+                        method="statevector",
+                        device=device)
+        result = cpp_execute(controller, qobj)
+        if result.get('success', False):
+            valid_devices.append(device)
+    return valid_devices

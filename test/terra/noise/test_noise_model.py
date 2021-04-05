@@ -197,7 +197,7 @@ class TestNoise(common.QiskitAerTestCase):
 
         backend = mock.FakeSingapore()
         noise_model = NoiseModel.from_backend(backend)
-        qobj = assemble(transpile(circ, backend), backend)
+        qobj = assemble(transpile(circ, backend, optimization_level=0), backend)
         sim = QasmSimulator()
         result = sim.run(qobj, noise_model=noise_model).result()
         self.assertTrue(result.success)
@@ -210,7 +210,7 @@ class TestNoise(common.QiskitAerTestCase):
 
         backend = mock.FakeAlmaden()
         noise_model = NoiseModel.from_backend(backend)
-        qobj = assemble(transpile(circ, backend), backend)
+        qobj = assemble(transpile(circ, backend, optimization_level=0), backend)
         sim = QasmSimulator()
         result = sim.run(qobj, noise_model=noise_model).result()
         self.assertTrue(result.success)
@@ -223,7 +223,7 @@ class TestNoise(common.QiskitAerTestCase):
 
         backend = mock.FakeRochester()
         noise_model = NoiseModel.from_backend(backend)
-        qobj = assemble(transpile(circ, backend), backend)
+        qobj = assemble(transpile(circ, backend, optimization_level=0), backend)
         sim = QasmSimulator()
         result = sim.run(qobj, noise_model=noise_model).result()
         self.assertTrue(result.success)

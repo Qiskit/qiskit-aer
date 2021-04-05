@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Simulator instruction to save unitary matrix.
+Simulator instruction to save a SuperOp matrix.
 """
 
 from qiskit.circuit import QuantumCircuit
@@ -18,17 +18,16 @@ from .save_data import SaveSingleData
 from ..default_qubits import default_qubits
 
 
-class SaveUnitary(SaveSingleData):
-    """Save Unitary"""
-    def __init__(self, num_qubits, label="unitary", pershot=False):
-        """Create new instruction to save the unitary simulator state.
+class SaveSuperOp(SaveSingleData):
+    """Save a SuperOp matrix."""
+    def __init__(self, num_qubits, label="superop", pershot=False):
+        """Create new instruction to save the superop simulator state.
 
         Args:
-            num_qubits (int): the number of qubits of the
+            num_qubits (int): the number of qubits for the save instruction.
             label (str): the key for retrieving saved data from results.
-            pershot (bool): if True save a list of unitaries for each
-                            shot of the simulation rather than a single
-                            statevector [Default: False].
+            pershot (bool): if True save a list of SuperOp matrices for each shot
+                            of the simulation [Default: False].
 
         .. note::
 
@@ -36,16 +35,16 @@ class SaveUnitary(SaveSingleData):
             qubits in a circuit, otherwise an exception will be raised during
             simulation.
         """
-        super().__init__('save_unitary', num_qubits, label, pershot=pershot)
+        super().__init__("save_superop", num_qubits, label, pershot=pershot)
 
 
-def save_unitary(self, label="unitary", pershot=False):
-    """Save the current state of the unitary simulator.
+def save_superop(self, label="superop", pershot=False):
+    """Save the current state of the superop simulator.
 
     Args:
         label (str): the key for retrieving saved data from results.
-        pershot (bool): if True save a list of unitaries for each
-                        shot of the simulation [Default: False].
+        pershot (bool): if True save a list of SuperOp matrices for each shot
+                        of the  simulation [Default: False].
 
     Returns:
         QuantumCircuit: with attached instruction.
@@ -55,8 +54,8 @@ def save_unitary(self, label="unitary", pershot=False):
         This instruction is always defined across all qubits in a circuit.
     """
     qubits = default_qubits(self)
-    instr = SaveUnitary(len(qubits), label=label, pershot=pershot)
+    instr = SaveSuperOp(len(qubits), label=label, pershot=pershot)
     return self.append(instr, qubits)
 
 
-QuantumCircuit.save_unitary = save_unitary
+QuantumCircuit.save_superop = save_superop
