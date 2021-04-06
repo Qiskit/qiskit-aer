@@ -1180,7 +1180,7 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
 #pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
   {
 #if !defined(_WIN64) && !defined(_WIN32)
-    void* data;
+    void* data = nullptr;
     posix_memalign(&data, 64, sizeof(std::complex<double>) * 2);
     tmps[_omp_get_thread_num()] = reinterpret_cast<std::complex<double>*>(data);
 #else
@@ -1241,7 +1241,7 @@ Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
 #pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
   {
   #if !defined(_WIN64) && !defined(_WIN32)
-    void* data;
+    void* data = nullptr;
     posix_memalign(&data, 64, sizeof(std::complex<float>) * 4);
     tmps[_omp_get_thread_num()] = reinterpret_cast<std::complex<float>*>(data);
   #else
