@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Some *Python* packages needed at C++ compilaton step were installed outside the regular *setuptools* circuit,
-    and it was not possible to avoid their installation by any option. Now it is possible to avoid automatic
-    installation of those packages by setting the environment variable *DISABLE_DEPENDENCY_INSTALL* to *1* or *ON*.
