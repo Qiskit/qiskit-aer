@@ -94,7 +94,7 @@ protected:
   bool is_diagonal_op(Operations::Op& op) const;
 
   void insert_swap(std::vector<Operations::Op>& ops,uint_t bit0,uint_t bit1,bool chunk) const;
-  void insert_sim_op(std::vector<Operations::Op>& ops,char* name,const reg_t& qubits) const;
+  void insert_sim_op(std::vector<Operations::Op>& ops,const char* name,const reg_t& qubits) const;
   void insert_pauli(std::vector<Operations::Op>& ops,reg_t& qubits,std::string& pauli) const;
 
   void define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t& blockedQubits,bool crossQubitOnly) const;
@@ -172,7 +172,7 @@ void CacheBlocking::insert_swap(std::vector<Operations::Op>& ops,uint_t bit0,uin
   ops.push_back(sgate);
 }
 
-void CacheBlocking::insert_sim_op(std::vector<Operations::Op>& ops,char* name,const reg_t& qubits) const
+void CacheBlocking::insert_sim_op(std::vector<Operations::Op>& ops,const char* name,const reg_t& qubits) const
 {
   Operations::Op op;
   op.type = Operations::OpType::sim_op;
