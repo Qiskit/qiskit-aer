@@ -1051,8 +1051,8 @@ Op input_to_op_set_mps(const inputdata_t &input, OpType op_type) {
 
   Op op;
   op.type = op_type;
-  const inputdata_t& temp = Parser<inputdata_t>::get_value("params", input);
-  op.mps = temp;
+  const inputdata_t& params = Parser<inputdata_t>::get_value("params", input);
+  op.mps = Parser<inputdata_t>::template get_list_elem<mps_container_t>(params, 0);
 
   Parser<inputdata_t>::get_value(op.name, "name", input);
   Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
