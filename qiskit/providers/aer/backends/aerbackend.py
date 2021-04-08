@@ -105,8 +105,7 @@ class AerBackend(Backend, ABC):
 
         # Set options from backend_options dictionary
         if backend_options is not None:
-            for key, val in backend_options.items():
-                self.set_option(key, val)
+            self.set_options(**backend_options)
 
     # pylint: disable=arguments-differ
     @deprecate_arguments({'qobj': 'circuits'})
@@ -138,6 +137,16 @@ class AerBackend(Backend, ABC):
               and direct kwarg's should be used for options to pass them to
               ``run_options``.
         """
+        # DEPRECATED
+        if backend_options is not None:
+            warnings.warn(
+                'Using `backend_options` kwarg has been deprecated as of'
+                ' qiskit-aer 0.7.0 and will be removed no earlier than 3'
+                ' months from that release date. Runtime backend options'
+                ' should now be added directly using kwargs for each option.',
+                DeprecationWarning,
+                stacklevel=3)
+
         profiled_options = {}
         num_qubits = None
         if isinstance(circuits, (QasmQobj, PulseQobj)):
@@ -149,32 +158,17 @@ class AerBackend(Backend, ABC):
             if isinstance(qobj, QasmQobj):
                 num_qubits = qobj.config.n_qubits
         else:
-            options_dict = {}
-            for key, value in self.options.__dict__.items():
-                if value is not None:
-                    options_dict[key] = value
-            qobj = assemble(circuits, self, **options_dict)
+            qobj = assemble(circuits, self)
             num_qubits = (circuits[0] if isinstance(circuits, list) else circuits).num_qubits
 
-        # Add default OpenMP options
+        # Get profiled options for performance
         gpu = backend_options is not None and 'gpu' in backend_options.get('method', '')
         profiled_options = get_performance_options(num_qubits, gpu)
         for run_option in run_options:
             if run_option in profiled_options:
                 del profiled_options[run_option]
 
-        # DEPRECATED
-        if backend_options is not None:
-            warnings.warn(
-                'Using `backend_options` kwarg has been deprecated as of'
-                ' qiskit-aer 0.7.0 and will be removed no earlier than 3'
-                ' months from that release date. Runtime backend options'
-                ' should now be added directly using kwargs for each option.',
-                DeprecationWarning,
-                stacklevel=3)
-
-        # Add backend options to the Job qobj
-        qobj = self._format_qobj(
+        self._add_options_to_qobj(
             qobj, backend_options=backend_options, **profiled_options, **run_options)
 
         # Optional validation
@@ -269,9 +263,10 @@ class AerBackend(Backend, ABC):
         # type check to swap them back
         if not isinstance(job_id, str) and isinstance(qobj, str):
             job_id, qobj = qobj, job_id
-        run_qobj = self._format_qobj(qobj, backend_options=backend_options,
-                                     noise_model=noise_model)
-        return self._run(run_qobj, job_id)
+        self._add_options_to_qobj(qobj,
+                                  backend_options=backend_options,
+                                  noise_model=noise_model)
+        return self._run(qobj, job_id)
 
     def _run(self, qobj, job_id=''):
         """Run a job"""
@@ -297,6 +292,14 @@ class AerBackend(Backend, ABC):
 
         # Add execution time
         output["time_taken"] = time.time() - start
+
+        # Display warning if simulation failed
+        if not output.get("success", False):
+            msg = "Simulation failed"
+            if "status" in output:
+                msg += f" and returned the following error message:\n{output['status']}"
+            logger.warning(msg)
+
         return Result.from_dict(output)
 
     @abstractmethod
@@ -329,7 +332,7 @@ class AerBackend(Backend, ABC):
             AerError: if key is 'method' and val isn't in available methods.
         """
         # If key is method, we validate it is one of the available methods
-        if key == 'method' and value not in self._available_methods:
+        if (key == 'method' and value is not None and value not in self._available_methods):
             raise AerError("Invalid simulation method {}. Available methods"
                            " are: {}".format(value, self._available_methods))
 
@@ -380,9 +383,9 @@ class AerBackend(Backend, ABC):
         elif key in self._options_defaults:
             self._options_defaults.pop(key)
 
-    def _format_qobj(self, qobj,
-                     backend_options=None,  # DEPRECATED
-                     **run_options):
+    def _add_options_to_qobj(self, qobj,
+                             backend_options=None,  # DEPRECATED
+                             **run_options):
         """Return execution sim config dict from backend options."""
         # Add options to qobj config overriding any existing fields
         config = qobj.config
@@ -403,28 +406,8 @@ class AerBackend(Backend, ABC):
 
         return qobj
 
-    def _run_config(
-            self,
-            backend_options=None,  # DEPRECATED
-            **run_options):
-        """Return execution sim config dict from backend options."""
-        # Get sim config
-        run_config = self._options.copy()
-
-        # DEPRECATED backend options
-        if backend_options is not None:
-            for key, val in backend_options.items():
-                run_config[key] = val
-
-        # Override with run-time options
-        for key, val in run_options.items():
-            run_config[key] = val
-        return run_config
-
     def __repr__(self):
         """String representation of an AerBackend."""
         name = self.__class__.__name__
-        display = f"backend_name='{self.name()}'"
-        if self.provider():
-            display += f', provider={self.provider()}()'
+        display = f"'{self.name()}'"
         return f'{name}({display})'

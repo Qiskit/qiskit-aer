@@ -372,6 +372,11 @@ the `dist/` directory, so next step is installing it:
 
     qiskit-aer/dist$ pip install -U dist/qiskit_aer*.whl
 
+As we are using *scikit-build* and we need some *Python* dependencies to be present before compiling the C++ code, 
+we install those dependencies outside the regular setuptools *mechanism*. If you want to avoid automatic installation 
+of these packages set the environment variable DISABLE_DEPENDENCY_INSTALL (ON or 1).
+
+
 **Standalone Executable**
 
 If you want to build a standalone executable, you have to use *CMake* directly.
@@ -464,6 +469,10 @@ After this command is executed successfully, we will have a wheel package into
 the `dist/` directory, so next step is installing it:
 
     qiskit-aer/dist$ pip install -U dist/qiskit_aer*.whl
+
+As we are using *scikit-build* and we need some *Python* dependencies to be present before compiling the C++ code,
+we install those dependencies outside the regular setuptools *mechanism*. If you want to avoid automatic installation
+of these packages set the environment variable DISABLE_DEPENDENCY_INSTALL (ON or 1).
 
 **Standalone Executable**
 
@@ -563,6 +572,10 @@ After this command is executed successfully, we will have a wheel package into
 the `dist/` directory, so next step is installing it:
 
     (QiskitDevEnv) qiskit-aer\dist$ pip install -U dist\qiskit_aer*.whl
+
+As we are using *scikit-build* and we need some *Python* dependencies to be present before compiling the C++ code,
+we install those dependencies outside the regular setuptools *mechanism*. If you want to avoid automatic installation
+of these packages set the environment variable DISABLE_DEPENDENCY_INSTALL (ON or 1).
 
 **Standalone Executable**
 

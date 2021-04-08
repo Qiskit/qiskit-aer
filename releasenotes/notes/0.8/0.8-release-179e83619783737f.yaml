@@ -1,0 +1,70 @@
+---
+prelude: |
+    The 0.8 release includes several new features and bug fixes. The
+    highlights for this release are: the introduction of a unified
+    :class:`~qiskit.provider.aer.AerSimulator` backend for running circuit
+    simulations using any of the supported simulation methods; a simulator
+    instruction library (:mod:`~qiskit.providers.aer.library`)
+    which includes custom instructions for saving various kinds of simulator
+    data; MPI support for running large simulations on a distributed
+    computing environment.
+features:
+  - |
+    This release includes support for building qiskit-aer with MPI support to
+    run large simulations on a distributed computing environment. See the
+    `contributing guide <https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md#building-with-mpi-support>`__
+    for instructions on building and running in an MPI environment.
+  - |
+    It is now possible to build qiskit-aer with CUDA enabled in Windows.
+    See the
+    `contributing guide <https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md#building-with-gpu-support>`__
+    for instructions on building from source with GPU support.
+  - |
+    When building the qiskit-aer Python extension from source several build
+    dependencies need to be pre-installed to enable C++ compilation. As a
+    user convenience when building the extension any of these build
+    dependencies which were missing would be automatically installed using
+    ``pip`` prior to the normal ``setuptools`` installation steps, however it was
+    previously was not possible to avoid this automatic installation. To solve
+    this issue a new environment variable ``DISABLE_DEPENDENCY_INSTALL``
+    has been added. If it is set to ``1`` or ``ON`` when building the python
+    extension from source this will disable the automatic installation of these
+    missing build dependencies.
+  - |
+    Adds support for optimized N-qubit Pauli gate (
+    :class:`qiskit.circuit.library.generalized_gates.PauliGate`) to the
+    :class:`~qiskit.providers.aer.StatevectorSimulator`,
+    :class:`~qiskit.providers.aer.UnitarySimulator`, and the
+    statevector and density matrix methods of the
+    :class:`~qiskit.providers.aer.QasmSimulator`.
+upgrade:
+  - |
+    The minimum version of `Conan <https://conan.io/>`__ has been increased to 1.31.2.
+    This was necessary to fix a compatibility issue with newer versions of the
+    `urllib3 <https://pypi.org/project/urllib3/>`__ (which is a dependency of Conan).
+    It also adds native support for AppleClang 12 which is useful for users with
+    new Apple computers.
+  - |
+    ``pybind11`` minimum version required is 2.6 instead of 2.4. This is needed
+    in order to support CUDA enabled compilation in Windows.
+  - |
+    Cython has been removed as a build dependency.
+  - |
+    Removed x90 gate decomposition from noise models that was deprecated
+    in qiskit-aer 0.7. This decomposition is now done by using regular
+    noise model basis gates and the qiskit transpiler.
+fixes:
+  - |
+    Fixes bug with the :meth:`~qiskit.providers.aer.QasmSimulator.from_backend`
+    method of the :class:`~qiskit.provider.aer.QasmSimulator` that would set the
+    ``local`` attribute of the configuration to the backend value rather than
+    always being set to ``True``.
+  - |
+    Fixes bug in
+    :meth:`~qiskit.providers.aer.noise.NoiseModel.from_backend` and
+    :meth:`~qiskit.providers.aer.QasmSimulator.from_backend` where
+    :attr:`~qiskit.providers.aer.noise.NoiseModel.basis_gates` was set
+    incorrectly for IBMQ devices with basis gate set
+    ``['id', 'rz', 'sx', 'x', 'cx']``. Now the noise model will always
+    have the same basis gates as the backend basis gates regardless of
+    whether those instructions have errors in the noise model or not.

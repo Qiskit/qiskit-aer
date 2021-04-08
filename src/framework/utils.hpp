@@ -20,7 +20,12 @@
 #include <cmath>
 #include <limits>
 
+#include "framework/avx2_detect.hpp"
 #include "framework/types.hpp"
+
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
 
 namespace AER {
 namespace Utils {
@@ -246,7 +251,9 @@ inline std::string int2hex(uint_t n) {return bin2hex(int2bin(n));}
 uint_t reg2int(const reg_t &reg, uint_t base);
 
 // Count number of 1's in bitstring representation of an integer
-uint_t popcount(const uint_t count_);
+const uint_t zer = 0U;
+const uint_t one = 1U;
+
 
 //==============================================================================
 // Implementations: Matrix functions
@@ -1184,16 +1191,75 @@ std::string int2string(uint_t n, uint_t base, uint_t minlen) {
   return padleft_inplace(tmp, '0', minlen);
 }
 
-uint_t popcount(const uint_t count_) {
-  auto count = count_;
-  count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
-  count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
-  count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
-  count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
-  count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
-  count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
-  return count;
-}
+#ifdef _MSC_VER
+  #ifdef _WIN64
+    #define POPCNT __popcnt64
+  #else
+    #define POPCNT __popcnt
+  #endif
+  #define INTRINSIC_PARITY 1
+  inline bool _intrinsic_parity(uint_t x)
+  {
+    return (POPCNT(x) & one);
+  }
+  inline uint_t _instrinsic_weight(uint_t x)
+  {
+    return (POPCNT(x));
+  }
+#endif
+#ifdef __GNUC__
+  #define INTRINSIC_PARITY 1
+  inline bool _intrinsic_parity(uint_t x)
+  {
+    return (__builtin_popcountll(x) & one);
+  }
+  inline uint_t _instrinsic_weight(uint_t x)
+  {
+    return (__builtin_popcountll(x));
+  }
+#endif
+#ifdef _CLANG_
+  #if __has__builtin(__builtin_popcount)
+  #define INTRINSIC_PARITY 1
+    inline bool _intrinsic_parity(uint_t x)
+    {
+      return (__builtin_popcountll(x) & one);
+    }
+    inline uint_t _instrinsic_weight(uint_t x)
+    {
+      return (__builtin_popcountll(x));
+    }
+  #endif
+#endif
+  // Implementation from http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetKernighan
+  static bool _naive_parity(uint_t x)
+  {
+    uint_t c; // c accumulates the total bits set in x
+    for (c = 0; x; c++)
+    {
+      x &= (x - 1); // clear the least significant bit set
+    }
+    return (c&one);
+  }
+  static uint_t _naive_weight(uint_t x)
+  {
+    auto count = x;
+    count = (count & 0x5555555555555555) + ((count >> 1) & 0x5555555555555555);
+    count = (count & 0x3333333333333333) + ((count >> 2) & 0x3333333333333333);
+    count = (count & 0x0f0f0f0f0f0f0f0f) + ((count >> 4) & 0x0f0f0f0f0f0f0f0f);
+    count = (count & 0x00ff00ff00ff00ff) + ((count >> 8) & 0x00ff00ff00ff00ff);
+    count = (count & 0x0000ffff0000ffff) + ((count >> 16) & 0x0000ffff0000ffff);
+    count = (count & 0x00000000ffffffff) + ((count >> 32) & 0x00000000ffffffff);
+    return count;
+  }
+
+#ifdef INTRINSIC_PARITY
+  bool (*hamming_parity)(uint_t) = is_avx2_supported() ? &_intrinsic_parity : &_naive_parity;
+  uint_t (*popcount)(uint_t) = is_avx2_supported() ? &_instrinsic_weight : &_naive_weight;
+#else
+  bool (*hamming_parity)(uint_t) = &_naive_parity;
+  uint_t (*popcount)(uint_t) = &_naive_weight;
+#endif
 
 
 //------------------------------------------------------------------------------

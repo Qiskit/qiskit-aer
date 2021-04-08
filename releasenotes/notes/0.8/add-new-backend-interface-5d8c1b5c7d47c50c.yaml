@@ -1,7 +1,8 @@
 ---
 features:
   - |
-    The :meth:`~qiskit.providers.aer.QasmSimulator.run` method for the 
+    The :meth:`~qiskit.providers.aer.AerSimulator.run` method for the
+    :class:`~qiskit.providers.aer.AerSimulator`,
     :class:`~qiskit.providers.aer.QasmSimulator`,
     :class:`~qiskit.providers.aer.StatevectorSimulator`, and
     :class:`~qiskit.providers.aer.UnitarySimulator` backends now takes a
@@ -16,7 +17,7 @@ features:
 
       from qiskit.providers.aer import Aer
 
-      backend = Aer.get_backend('qasm_simulator')
+      backend = Aer.get_backend('aer_simulator')
 
       circuit = QuantumCircuit(2)
       qc.h(0)

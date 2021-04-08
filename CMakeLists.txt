@@ -238,6 +238,7 @@ endif()
 if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
 	if(APPLE OR UNIX)
 		set(SIMD_FLAGS_LIST "-mfma;-mavx2")
+		enable_cxx_compiler_flag_if_supported("-mpopcnt")
 	elseif(MSVC)
 		set(SIMD_FLAGS_LIST "/arch:AVX2")
 	endif()
@@ -293,6 +294,10 @@ endif()
 
 if(AER_DEBUG)
 	set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_DEBUG)
+endif()
+
+if(TEST_JSON)
+	set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} TEST_JSON)
 endif()
 
 if(AER_MPI)
