@@ -46,7 +46,7 @@ class SetMatrixProductState(Instruction):
         print("num qubits is " + str(len(mps_state[0])))
         print(mps_state)
         print("aaa")
-        super().__init__('set_matrix_product_state', len(mps_state[0]), 0, mps_state)
+        super().__init__('set_matrix_product_state', len(mps_state[0]), 0, [mps_state])
 
 
 def set_matrix_product_state(self, mps_state):
