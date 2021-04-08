@@ -25,7 +25,7 @@ from .aererror import AerError
 
 
 def profile_performance_options(min_qubits=10, max_qubits=25, ntrials=10,
-                                circuit=None, persist=True):
+                                circuit=None, persist=True, gpu=False):
     """Set optimal OpenMP and fusion options for backend."""
     # Profile
     profile = {}
@@ -42,13 +42,15 @@ def profile_performance_options(min_qubits=10, max_qubits=25, ntrials=10,
         pass
 
     # Profile CPU and GPU fusion threshold
-    for gpu in (False, True):
-        postfix = '_gpu' if gpu else ''
+    for with_gpu in (False, True):
+        postfix = '_gpu' if with_gpu else ''
+        if with_gpu and not gpu:
+            continue
         try:
             qubit_to_costs = profile_fusion_costs(min_qubits=min_qubits,
                                                   max_qubits=max_qubits,
                                                   ntrials=ntrials,
-                                                  gpu=gpu,
+                                                  gpu=with_gpu,
                                                   diagonal=False)
             for num_qubits in qubit_to_costs:
                 costs = qubit_to_costs[num_qubits]
@@ -57,7 +59,7 @@ def profile_performance_options(min_qubits=10, max_qubits=25, ntrials=10,
                     _PerformanceOptions._set_option(f'fusion_cost{postfix}.{num_qubits}.{i + 1}',
                                                     costs[i], persist)
 
-            fusion_threshold = profile_fusion_threshold(gpu=gpu,
+            fusion_threshold = profile_fusion_threshold(gpu=with_gpu,
                                                         min_qubits=min_qubits,
                                                         max_qubits=max_qubits,
                                                         ntrials=ntrials,
@@ -270,15 +272,17 @@ def _generate_profile_circuit(profile_qubit, base_circuit=None, basis_gates=None
     return profile_circuit
 
 
-def _profile_run(simulator, ntrials, backend_options,
-                 qubit, circuit, basis_gates=None, use_time_taken=False):
+def _profile_run(simulator, ntrials, backend_options, qubit, circuit, 
+                 basis_gates=None, use_time_taken=False, return_all=False):
 
     profile_circuit = _generate_profile_circuit(qubit, circuit, basis_gates)
 
     qobj = assemble(profile_circuit, shots=1)
 
     total_time_taken = 0.0
+    time_taken_list = []
     total_time_elapsed = 0.0
+    time_elapsed_list = []
     for _ in range(ntrials):
         start_ts = time.time()
         result = simulator.run(qobj, **backend_options).result()
@@ -288,12 +292,20 @@ def _profile_run(simulator, ntrials, backend_options,
             raise AerError('Failed to run a profile circuit')
 
         total_time_taken += result.results[0].time_taken
+        time_taken_list.append(result.results[0].time_taken)
         total_time_elapsed += (end_ts - start_ts)
+        time_elapsed_list.append(end_ts - start_ts)
 
     if use_time_taken:
-        return total_time_taken
+        if return_all:
+            return time_taken_list
+        else:
+            return total_time_taken
     else:
-        return total_time_elapsed
+        if return_all:
+            return time_elapsed_list
+        else:
+            return total_time_elapsed
 
 
 def profile_parallel_threshold(min_qubits=10, max_qubits=20, ntrials=10,
@@ -316,21 +328,18 @@ def profile_parallel_threshold(min_qubits=10, max_qubits=20, ntrials=10,
 
     ratios = []
     for qubit in range(min_qubits, max_qubits + 1):
-        always_better = True
-        for _ in range(10):
-            profile_opts['statevector_parallel_threshold'] = 64
-            serial_time_taken = _profile_run(simulator, ntrials, profile_opts,
-                                             qubit, circuit, basis_gates)
-            profile_opts['statevector_parallel_threshold'] = 1
-            parallel_time_taken = _profile_run(simulator, ntrials, profile_opts,
-                                               qubit, circuit, basis_gates)
-            if return_ratios:
-                ratios.append(serial_time_taken / parallel_time_taken)
-                break
-            if parallel_time_taken >= serial_time_taken:
-                always_better = False
-                break
-        if not return_ratios and always_better:
+        profile_opts['statevector_parallel_threshold'] = 64
+        serial_time_taken = _profile_run(simulator, ntrials, profile_opts,
+                                         qubit, circuit, basis_gates, return_all=True)
+        profile_opts['statevector_parallel_threshold'] = 1
+        parallel_time_taken = _profile_run(simulator, ntrials, profile_opts,
+                                           qubit, circuit, basis_gates, return_all=True)
+        if return_ratios:
+            ratios.append(sum(serial_time_taken) / sum(parallel_time_taken))
+            break
+        if max(parallel_time_taken) >= min(serial_time_taken):
+            continue
+        if not return_ratios:
             return qubit - 1
 
     if return_ratios:
@@ -368,21 +377,18 @@ def profile_fusion_threshold(min_qubits=10, max_qubits=20, ntrials=10,
 
     ratios = []
     for qubit in range(min_qubits, max_qubits + 1):
-        always_better = True
-        for _ in range(10):
-            profile_opts['fusion_enable'] = False
-            non_fusion_time_taken = _profile_run(simulator, ntrials, profile_opts,
-                                                 qubit, circuit, basis_gates)
-            profile_opts['fusion_enable'] = True
-            fusion_time_taken = _profile_run(simulator, ntrials, profile_opts,
-                                             qubit, circuit, basis_gates)
-            if return_ratios:
-                ratios.append(non_fusion_time_taken / fusion_time_taken)
-                break
-            if fusion_time_taken >= non_fusion_time_taken:
-                always_better = False
-                break
-        if not return_ratios and always_better:
+        profile_opts['fusion_enable'] = False
+        non_fusion_time_taken = _profile_run(simulator, ntrials, profile_opts,
+                                             qubit, circuit, basis_gates, return_all=True)
+        profile_opts['fusion_enable'] = True
+        fusion_time_taken = _profile_run(simulator, ntrials, profile_opts,
+                                         qubit, circuit, basis_gates, return_all=True)
+        if return_ratios:
+            ratios.append(sum(non_fusion_time_taken) / sum(fusion_time_taken))
+            break
+        if max(fusion_time_taken) >= min(non_fusion_time_taken):
+            continue
+        if not return_ratios:
             return qubit - 1
 
     if return_ratios:

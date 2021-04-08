@@ -68,19 +68,15 @@ class TestProfileQasmSimulator(common.QiskitAerTestCase):
 
         clear_performance_options(False)
         
-        statevector_parallel_threshold = None
         fusion_cost = None
         fusion_cost_qubit = None
         
         for qubit in range(10, 25):
             profile = get_performance_options(qubit)
-            if 'statevector_parallel_threshold' in profile:
-                statevector_parallel_threshold = profile['statevector_parallel_threshold']
             if 'fusion_cost.1' in profile:
                 fusion_cost = profile['fusion_cost.1']
                 fusion_cost_qubit = qubit
 
-        self.assertTrue(statevector_parallel_threshold is not None)
         self.assertTrue(fusion_cost is not None)
 
         circuit = QuantumVolume(fusion_cost_qubit + 1, 1)
@@ -96,16 +92,9 @@ class TestProfileQasmSimulator(common.QiskitAerTestCase):
         
         for qubit in range(10, 25):
             profile = get_performance_options(qubit)
-            if 'statevector_parallel_threshold' in profile:
-                statevector_parallel_threshold = profile['statevector_parallel_threshold']
-            if 'fusion_threshold' in profile:
-                fusion_threshold = profile['fusion_threshold']
             if 'fusion_cost.1' in profile:
                 fusion_cost = profile['fusion_cost.1']
-                fusion_cost_qubit = qubit
 
-        self.assertFalse(statevector_parallel_threshold is not None)
-        self.assertFalse(fusion_threshold is not None)
         self.assertFalse(fusion_cost is not None)
 
     def test_profile_with_custom_circuit(self):
