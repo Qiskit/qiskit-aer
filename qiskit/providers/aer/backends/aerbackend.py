@@ -161,12 +161,13 @@ class AerBackend(Backend, ABC):
             qobj = assemble(circuits, self)
             num_qubits = (circuits[0] if isinstance(circuits, list) else circuits).num_qubits
 
-        # Get profiled options for performance
-        gpu = backend_options is not None and 'gpu' in backend_options.get('method', '')
-        profiled_options = get_performance_options(num_qubits, gpu)
-        for run_option in run_options:
-            if run_option in profiled_options:
-                del profiled_options[run_option]
+        if num_qubits is not None:
+            # Get profiled options for performance
+            gpu = backend_options is not None and 'gpu' in backend_options.get('method', '')
+            profiled_options = get_performance_options(num_qubits, gpu)
+            for run_option in run_options:
+                if run_option in profiled_options:
+                    del profiled_options[run_option]
 
         self._add_options_to_qobj(
             qobj, backend_options=backend_options, **profiled_options, **run_options)
