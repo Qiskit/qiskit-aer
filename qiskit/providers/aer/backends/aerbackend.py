@@ -138,18 +138,31 @@ class AerBackend(Backend, ABC):
               and direct kwarg's should be used for options to pass them to
               ``run_options``.
         """
+        profiled_options = {}
+        num_qubits = None
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn('Using a qobj for run() is deprecated and will be '
                           'removed in a future release.',
                           PendingDeprecationWarning,
                           stacklevel=2)
             qobj = circuits
+            if isinstance(qobj, QasmQobj):
+                num_qubits = qobj.config.n_qubits
         else:
             options_dict = {}
             for key, value in self.options.__dict__.items():
                 if value is not None:
                     options_dict[key] = value
             qobj = assemble(circuits, self, **options_dict)
+            num_qubits = (circuits[0] if isinstance(circuits, list) else circuits).num_qubits
+
+        # Add default OpenMP options
+        gpu = backend_options is not None and 'gpu' in backend_options.get('method', '')
+        profiled_options = get_performance_options(num_qubits, gpu)
+        for run_option in run_options:
+            if run_option in profiled_options:
+                del profiled_options[run_option]
+
         # DEPRECATED
         if backend_options is not None:
             warnings.warn(
@@ -159,13 +172,6 @@ class AerBackend(Backend, ABC):
                 ' should now be added directly using kwargs for each option.',
                 DeprecationWarning,
                 stacklevel=3)
-
-        # Add default OpenMP options
-        gpu = backend_options is not None and 'gpu' in backend_options.get('method', '')
-        profiled_options = get_performance_options(gpu)
-        for run_option in run_options:
-            if run_option in profiled_options:
-                del profiled_options[run_option]
 
         # Add backend options to the Job qobj
         qobj = self._format_qobj(

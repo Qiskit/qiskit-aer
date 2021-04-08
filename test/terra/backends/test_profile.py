@@ -24,9 +24,11 @@ from qiskit import execute, transpile
 from qiskit.compiler import assemble
 from qiskit.circuit.library import QuantumVolume
 from qiskit.providers.aer import QasmSimulator
-from qiskit.providers.aer.profile import profile_performance_options, clear_performance_options
+from qiskit.providers.aer.profile import (profile_performance_options,
+                                          get_performance_options,
+                                          clear_performance_options)
 
-@unittest.skip("Remove this for manual run")
+#@unittest.skip("Remove this for manual run")
 class TestProfileQasmSimulator(common.QiskitAerTestCase):
     
     
@@ -53,11 +55,11 @@ class TestProfileQasmSimulator(common.QiskitAerTestCase):
             self.assertTrue(hasattr(job.qobj().config, 'fusion_cost.1'))
         
         clear_performance_options(True)
-        circuit = QuantumVolume(10, 1)
-        job = execute(circuit, simulator, method='statevector')
-        self.assertFalse(hasattr(job.qobj().config, 'statevector_parallel_threshold'))
-        self.assertFalse(hasattr(job.qobj().config, 'fusion_threshold'))
-        self.assertFalse(hasattr(job.qobj().config, 'fusion_cost.1'))
+        
+        profile = get_performance_options(10)
+        self.assertFalse('statevector_parallel_threshold' in profile)
+        self.assertFalse('fusion_threshold' in profile)
+        self.assertFalse('fusion_cost.1' in profile)
 
     def test_profile_save(self):
         profile = profile_performance_options(persist=True)
@@ -66,17 +68,45 @@ class TestProfileQasmSimulator(common.QiskitAerTestCase):
 
         clear_performance_options(False)
         
-        if 'statevector_parallel_threshold' in profile:
-            circuit = QuantumVolume(profile['statevector_parallel_threshold'], 1)
-            job = execute(circuit, simulator, method='statevector')
-            self.assertTrue(hasattr(job.qobj().config, 'statevector_parallel_threshold'))
+        statevector_parallel_threshold = None
+        fusion_cost = None
+        fusion_cost_qubit = None
+        
+        for qubit in range(10, 25):
+            profile = get_performance_options(qubit)
+            if 'statevector_parallel_threshold' in profile:
+                statevector_parallel_threshold = profile['statevector_parallel_threshold']
+            if 'fusion_cost.1' in profile:
+                fusion_cost = profile['fusion_cost.1']
+                fusion_cost_qubit = qubit
+
+        self.assertTrue(statevector_parallel_threshold is not None)
+        self.assertTrue(fusion_cost is not None)
+
+        circuit = QuantumVolume(fusion_cost_qubit + 1, 1)
+        job = execute(circuit, simulator, method='statevector')
+        self.assertTrue(hasattr(job.qobj().config, 'fusion_cost.1'))
         
         clear_performance_options(True)
         
-        if 'statevector_parallel_threshold' in profile:
-            circuit = QuantumVolume(profile['statevector_parallel_threshold'], 1)
-            job = execute(circuit, simulator, method='statevector')
-            self.assertFalse(hasattr(job.qobj().config, 'statevector_parallel_threshold'))
+        statevector_parallel_threshold = None
+        fusion_threshold = None
+        fusion_cost = None
+        fusion_cost_qubit = None
+        
+        for qubit in range(10, 25):
+            profile = get_performance_options(qubit)
+            if 'statevector_parallel_threshold' in profile:
+                statevector_parallel_threshold = profile['statevector_parallel_threshold']
+            if 'fusion_threshold' in profile:
+                fusion_threshold = profile['fusion_threshold']
+            if 'fusion_cost.1' in profile:
+                fusion_cost = profile['fusion_cost.1']
+                fusion_cost_qubit = qubit
+
+        self.assertFalse(statevector_parallel_threshold is not None)
+        self.assertFalse(fusion_threshold is not None)
+        self.assertFalse(fusion_cost is not None)
 
     def test_profile_with_custom_circuit(self):
         
@@ -104,8 +134,7 @@ class TestProfileQasmSimulator(common.QiskitAerTestCase):
             self.assertTrue(hasattr(job.qobj().config, 'fusion_cost.1'))
 
         clear_performance_options(True)
-        circuit = QuantumVolume(10, 1)
-        job = execute(circuit, simulator, method='statevector')
-        self.assertFalse(hasattr(job.qobj().config, 'statevector_parallel_threshold'))
-        self.assertFalse(hasattr(job.qobj().config, 'fusion_threshold'))
-        self.assertFalse(hasattr(job.qobj().config, 'fusion_cost.1'))
+        profile = get_performance_options(10)
+        self.assertFalse('statevector_parallel_threshold' in profile)
+        self.assertFalse('fusion_threshold' in profile)
+        self.assertFalse('fusion_cost.1' in profile)
