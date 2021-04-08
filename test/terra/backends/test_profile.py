@@ -28,7 +28,7 @@ from qiskit.providers.aer.profile import (profile_performance_options,
                                           get_performance_options,
                                           clear_performance_options)
 
-#@unittest.skip("Remove this for manual run")
+@unittest.skip("Remove this for manual run")
 class TestProfileQasmSimulator(common.QiskitAerTestCase):
     
     
