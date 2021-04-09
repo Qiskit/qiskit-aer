@@ -149,7 +149,7 @@ Data &Data::combine(Data &&other) {
 }
 
 json_t Data::to_json() {
-  json_t result;
+  json_t result = json_t::object();
   DataRValue::add_to_json(result);
   DataRVector::add_to_json(result);
   DataRDict::add_to_json(result);
