@@ -147,24 +147,26 @@ class AerBackend(Backend, ABC):
                 DeprecationWarning,
                 stacklevel=3)
 
-        profiled_options = {}
-        num_qubits = None
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn('Using a qobj for run() is deprecated and will be '
                           'removed in a future release.',
                           PendingDeprecationWarning,
                           stacklevel=2)
             qobj = circuits
-            if isinstance(qobj, QasmQobj):
-                num_qubits = qobj.config.n_qubits
         else:
             qobj = assemble(circuits, self)
-            num_qubits = (circuits[0] if isinstance(circuits, list) else circuits).num_qubits
 
-        if num_qubits is not None:
+        profile_num_qubits = None
+        if isinstance(circuits, QasmQobj):
+            profile_num_qubits = qobj.config.n_qubits
+        if isinstance(circuits, list) and len(circuits) > 0 and hasattr(circuits[0], 'num_qubits'):
+            profile_num_qubits = circuits[0].num_qubits
+
+        profiled_options = {}
+        if profile_num_qubits is not None:
             # Get profiled options for performance
             gpu = backend_options is not None and 'gpu' in backend_options.get('method', '')
-            profiled_options = get_performance_options(num_qubits, gpu)
+            profiled_options = get_performance_options(profile_num_qubits, gpu)
             for run_option in run_options:
                 if run_option in profiled_options:
                     del profiled_options[run_option]
