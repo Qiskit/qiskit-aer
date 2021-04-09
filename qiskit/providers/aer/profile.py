@@ -25,50 +25,58 @@ from .aererror import AerError
 
 
 def profile_performance_options(min_qubits=10, max_qubits=25, ntrials=10,
+                                profile_parallelism=True, profile_fusion=True,
                                 circuit=None, persist=True, gpu=False):
     """Set optimal OpenMP and fusion options for backend."""
     # Profile
     profile = {}
 
-    # Profile OpenMP threshold
-    parallel_threshold = None
-    try:
-        parallel_threshold = profile_parallel_threshold(
-            min_qubits=min_qubits, max_qubits=max_qubits, circuit=circuit, ntrials=ntrials)
-        profile['statevector_parallel_threshold'] = parallel_threshold
-        _PerformanceOptions._set_option('statevector_parallel_threshold',
-                                        parallel_threshold, persist)
-    except AerError:
-        pass
-
-    # Profile CPU and GPU fusion threshold
-    for with_gpu in (False, True):
-        postfix = '_gpu' if with_gpu else ''
-        if with_gpu and not gpu:
-            continue
+    if profile_parallelism:
+        # Profile OpenMP threshold
+        parallel_threshold = None
         try:
-            qubit_to_costs = profile_fusion_costs(min_qubits=min_qubits,
-                                                  max_qubits=max_qubits,
-                                                  ntrials=ntrials,
-                                                  gpu=with_gpu,
-                                                  diagonal=False)
-            for num_qubits in qubit_to_costs:
-                costs = qubit_to_costs[num_qubits]
-                for i, _ in enumerate(costs):
-                    profile[f'fusion_cost{postfix}.{num_qubits}.{i + 1}'] = costs[i]
-                    _PerformanceOptions._set_option(f'fusion_cost{postfix}.{num_qubits}.{i + 1}',
-                                                    costs[i], persist)
-
-            fusion_threshold = profile_fusion_threshold(gpu=with_gpu,
-                                                        min_qubits=min_qubits,
-                                                        max_qubits=max_qubits,
-                                                        ntrials=ntrials,
-                                                        circuit=circuit)
-            profile[f'fusion_threshold{postfix}'] = fusion_threshold
-            _PerformanceOptions._set_option(f'fusion_threshold{postfix}',
-                                            fusion_threshold, persist)
+            parallel_threshold = profile_parallel_threshold(
+                min_qubits=min_qubits, max_qubits=max_qubits, circuit=circuit, ntrials=ntrials)
+            profile['statevector_parallel_threshold'] = parallel_threshold
+            _PerformanceOptions._set_option('statevector_parallel_threshold',
+                                            parallel_threshold, persist)
         except AerError:
             pass
+
+    if profile_fusion or circuit is not None:
+        # Profile CPU and GPU fusion threshold
+
+        if not profile_fusion and circuit is not None:
+            min_qubits = circuit.num_qubits
+            max_qubits = circuit.num_qubits
+
+        for with_gpu in [False, True] if gpu else [False]:
+            postfix = '_gpu' if with_gpu else ''
+            try:
+                qubit_to_costs = profile_fusion_costs(min_qubits=min_qubits,
+                                                      max_qubits=max_qubits,
+                                                      ntrials=ntrials,
+                                                      gpu=with_gpu,
+                                                      diagonal=False)
+                for num_qubits in qubit_to_costs:
+                    costs = qubit_to_costs[num_qubits]
+                    for i, _ in enumerate(costs):
+                        profile[f'fusion_cost{postfix}.{num_qubits}.{i + 1}'] = costs[i]
+                        _PerformanceOptions._set_option(
+                            f'fusion_cost{postfix}.{num_qubits}.{i + 1}',
+                            costs[i], persist)
+
+                fusion_threshold = profile_fusion_threshold(gpu=with_gpu,
+                                                            min_qubits=min_qubits,
+                                                            max_qubits=max_qubits,
+                                                            ntrials=ntrials,
+                                                            circuit=circuit)
+                profile[f'fusion_threshold{postfix}'] = fusion_threshold
+                _PerformanceOptions._set_option(f'fusion_threshold{postfix}',
+                                                fusion_threshold, persist)
+
+            except AerError:
+                pass
 
     return profile
 
@@ -97,15 +105,12 @@ class _PerformanceOptions:
     _DEFAULT_PARALLEL_THRESHOLD = 14
     _DEFAULT_FUSION_THRESHOLD = 14
 
-    _CACHED_PERFORMANCE_OPTIONS = {}
-
     @staticmethod
     def _get_section_name():
         return f'perf:{gethostname()}'
 
     @staticmethod
     def _set_option(option_name, value, persist):
-        _PerformanceOptions._CACHED_PERFORMANCE_OPTIONS.clear()
         _PerformanceOptions._PERFORMANCE_OPTIONS[option_name] = value
         if persist:
             config = cp.ConfigParser()
@@ -141,11 +146,6 @@ class _PerformanceOptions:
     @staticmethod
     def _get_performance_options(num_qubits, gpu=False):
         """Return optimal OpenMP and fusion options for backend."""
-
-        cache_key = (num_qubits, gpu)
-        if cache_key in _PerformanceOptions._CACHED_PERFORMANCE_OPTIONS:
-            return _PerformanceOptions._CACHED_PERFORMANCE_OPTIONS[cache_key]
-
         # Profile
         postfix = '_gpu' if gpu else ''
         option_to_type = {
@@ -173,10 +173,14 @@ class _PerformanceOptions:
                 ret['statevector_parallel_threshold'] = profiled_value
         if f'fusion_threshold{postfix}' in all_profile:
             profiled_value = all_profile[f'fusion_threshold{postfix}']
-            if num_qubits in range(profiled_value + 1,
-                                   _PerformanceOptions._DEFAULT_FUSION_THRESHOLD + 1):
+            if num_qubits in range(min(profiled_value + 1,
+                                       _PerformanceOptions._DEFAULT_FUSION_THRESHOLD + 1),
+                                   max(profiled_value + 1,
+                                       _PerformanceOptions._DEFAULT_FUSION_THRESHOLD + 1)):
                 ret['fusion_threshold'] = profiled_value
-            disable_fusion = num_qubits < profiled_value
+            disable_fusion = num_qubits <= profiled_value
+        elif num_qubits < _PerformanceOptions._DEFAULT_FUSION_THRESHOLD + 1:
+            disable_fusion = True
 
         if not disable_fusion:
             for profiled_qubits in range(1, num_qubits + 1):
@@ -184,8 +188,6 @@ class _PerformanceOptions:
                     profile_name = f'fusion_cost{postfix}.{profiled_qubits}.{i + 1}'
                     if profile_name in all_profile:
                         ret[f'fusion_cost.{i + 1}'] = all_profile[profile_name]
-
-        _PerformanceOptions._CACHED_PERFORMANCE_OPTIONS[cache_key] = ret
         return ret
 
     @staticmethod
@@ -199,8 +201,6 @@ class _PerformanceOptions:
                for postfix in ['', '_gpu']
                for i in range(5)}
         }
-
-        _PerformanceOptions._CACHED_PERFORMANCE_OPTIONS.clear()
 
         if persist:
             config = cp.ConfigParser()
@@ -219,7 +219,7 @@ def _generate_profile_circuit(profile_qubit, base_circuit=None, basis_gates=None
         raise AerError(f'number of qubit is too small: {profile_qubit}')
 
     if base_circuit is None:
-        return transpile(QuantumVolume(profile_qubit), basis_gates=['id', 'u', 'cx'])
+        return transpile(QuantumVolume(profile_qubit), basis_gates=basis_gates)
 
     if basis_gates is not None:
         profile_circuit = transpile(base_circuit.copy(), basis_gates=basis_gates)
@@ -272,7 +272,7 @@ def _generate_profile_circuit(profile_qubit, base_circuit=None, basis_gates=None
     return profile_circuit
 
 
-def _profile_run(simulator, ntrials, backend_options, qubit, circuit, 
+def _profile_run(simulator, ntrials, backend_options, qubit, circuit,
                  basis_gates=None, use_time_taken=False, return_all=False):
 
     profile_circuit = _generate_profile_circuit(qubit, circuit, basis_gates)
@@ -324,7 +324,7 @@ def profile_parallel_threshold(min_qubits=10, max_qubits=20, ntrials=10,
     # pylint: disable=C0415
     from .backends.qasm_simulator import QasmSimulator
     simulator = QasmSimulator()
-    basis_gates = ['id', 'u', 'cx']
+    basis_gates = simulator.configuration().basis_gates
 
     ratios = []
     for qubit in range(min_qubits, max_qubits + 1):
@@ -344,6 +344,9 @@ def profile_parallel_threshold(min_qubits=10, max_qubits=20, ntrials=10,
 
     if return_ratios:
         return ratios
+
+    if circuit is not None:
+        return qubit
 
     raise AerError(f'Unable to find threshold in range [{min_qubits}, {max_qubits}]')
 
@@ -365,7 +368,7 @@ def profile_fusion_threshold(min_qubits=10, max_qubits=20, ntrials=10,
     # pylint: disable=C0415
     from .backends.qasm_simulator import QasmSimulator
     simulator = QasmSimulator()
-    basis_gates = ['id', 'u', 'cx']
+    basis_gates = simulator.configuration().basis_gates
 
     # Ensure fusion is enabled and method is statevector
     if gpu:
@@ -380,19 +383,25 @@ def profile_fusion_threshold(min_qubits=10, max_qubits=20, ntrials=10,
         profile_opts['fusion_enable'] = False
         non_fusion_time_taken = _profile_run(simulator, ntrials, profile_opts,
                                              qubit, circuit, basis_gates, return_all=True)
-        profile_opts['fusion_enable'] = True
+        if qubit < _PerformanceOptions._DEFAULT_FUSION_THRESHOLD:
+            profile_opts['fusion_enable'] = True
+        else:
+            del profile_opts['fusion_enable']
         fusion_time_taken = _profile_run(simulator, ntrials, profile_opts,
                                          qubit, circuit, basis_gates, return_all=True)
         if return_ratios:
             ratios.append(sum(non_fusion_time_taken) / sum(fusion_time_taken))
             break
-        if max(fusion_time_taken) >= min(non_fusion_time_taken):
+        if max(fusion_time_taken) > min(non_fusion_time_taken):
             continue
         if not return_ratios:
             return qubit - 1
 
     if return_ratios:
         return ratios
+
+    if circuit is not None:
+        return qubit
 
     raise AerError(f'Unable to find threshold in range [{min_qubits}, {max_qubits}]')
 
