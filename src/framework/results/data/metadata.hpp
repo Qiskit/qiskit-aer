@@ -78,7 +78,7 @@ Metadata &Metadata::combine(Metadata &&other) {
 }
 
 json_t Metadata::to_json() {
-  json_t result;
+  json_t result = json_t::object();
   DataMap<SingleData, json_t, 1>::add_to_json(result);
   DataMap<SingleData, json_t, 2>::add_to_json(result);
   DataMap<SingleData, json_t, 3>::add_to_json(result);
