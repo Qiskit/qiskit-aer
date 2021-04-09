@@ -300,6 +300,20 @@ protected:
 //-------------------------------------------------------------------------
 
 void Controller::set_config(const json_t &config) {
+#ifdef AER_THRUST_CUDA
+  {
+    std::string method;
+    if (JSON::get_value(method, "method", config)) {
+      if(method.find("gpu") != std::string::npos){
+        int nDev;
+        if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
+          cudaGetLastError();
+          throw std::runtime_error("No CUDA device available!");
+        }
+      }
+    }
+  }
+#endif
 
   // Load validation threshold
   JSON::get_value(validation_threshold_, "validation_threshold", config);
