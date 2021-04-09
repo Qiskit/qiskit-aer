@@ -502,6 +502,12 @@ void Controller::set_config(const json_t &config) {
         throw std::runtime_error(
             "Simulation device \"GPU\" is not supported on this system");
 #else
+        int nDev;
+        if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
+            cudaGetLastError();
+            throw std::runtime_error("No CUDA device available!");
+        }
+
         sim_device_ = Device::GPU;
 #endif
       }
