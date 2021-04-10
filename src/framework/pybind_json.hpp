@@ -109,6 +109,8 @@ json_t numpy_to_json_2d(py::array_t<T, py::array::c_style> arr);
 template <typename T>
 json_t numpy_to_json_3d(py::array_t<T, py::array::c_style> arr);
 
+json_t iterable_to_json_list(const py::handle& obj);
+
 } //end namespace JSON
 
 /*******************************************************************************
@@ -208,6 +210,14 @@ json_t JSON::numpy_to_json(py::array_t<T, py::array::c_style> arr) {
     return tbr;
 }
 
+json_t JSON::iterable_to_json_list(const py::handle& obj){
+    json_t js = nl::json::array();
+    for (py::handle value: obj) {
+        js.push_back(value);
+    }
+    return js;
+}
+
 void std::to_json(json_t &js, const py::handle &obj) {
     static py::object PyNoiseModel = py::module::import("qiskit.providers.aer.noise.noise_model").attr("NoiseModel");
     static py::object PyQasmQobj = py::module::import("qiskit.qobj.qasm_qobj").attr("QasmQobj");
@@ -220,10 +230,7 @@ void std::to_json(json_t &js, const py::handle &obj) {
     } else if (py::isinstance<py::str>(obj)) {
         js = obj.cast<nl::json::string_t>();
     } else if (py::isinstance<py::tuple>(obj) || py::isinstance<py::list>(obj)) {
-        js = nl::json::array();
-        for (py::handle value: obj) {
-            js.push_back(value);
-        }
+        js = JSON::iterable_to_json_list(obj);
     } else if (py::isinstance<py::dict>(obj)) {
         for (auto item : py::cast<py::dict>(obj)) {
             js[item.first.cast<nl::json::string_t>()] = item.second;
@@ -255,6 +262,8 @@ void std::to_json(json_t &js, const py::handle &obj) {
         } else if ( type_str == "<class \'numpy.float32\'>"
                     || type_str == "<class \'numpy.float64\'>" ) {
             js = obj.cast<nl::json::number_float_t>();
+        } else if ( py::isinstance<py::iterable>(obj) ){ // last one to avoid intercepting numpy arrays, etc
+            js = JSON::iterable_to_json_list(obj);
         } else {
             throw std::runtime_error("to_json not implemented for this type of object: " + std::string(py::str(obj.get_type())));
         }
