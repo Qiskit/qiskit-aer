@@ -33,7 +33,7 @@ class QasmSetStateTests:
 
         SUPPORTED_METHODS = [
             'automatic', 'statevector', 'statevector_gpu',
-            'statevector_thrust'
+            'statevector_thrust', 'matrix_product_state'
         ]
 
         seed = 100
@@ -142,7 +142,7 @@ class QasmSetMPSTests:
         circ1 = QuantumCircuit(num_qubits)
         state1 = ([ ([[0]],[[1]]),
                    ([[0]],[[1]]) ],
-                 [ [1.] ]
+                 [ [1] ]
                  )
         target1 = {'0x3':shots}
         tests.append((circ1, state1, target1))
@@ -152,9 +152,9 @@ class QasmSetMPSTests:
         circ2 = QuantumCircuit(num_qubits)
 
         state2 = ([([[1, 0]], [[0, 1]]),
-                   ([[1.41421356, 0], [0, 0]], [[0, 0], [0, 1.41421356]]),
+                   ([[np.sqrt(2), 0], [0, 0]], [[0, 0], [0, np.sqrt(2)]]),
                    ([[1.-0.j], [0.-0.j]], [[0.-0.j], [1.-0.j]])],
-        [[0.70710678, 0.70710678], [0.70710678, 0.70710678]])
+        [[1/np.sqrt(2), 1/np.sqrt(2)], [1/np.sqrt(2), 1/np.sqrt(2)]])
         target2 = {'0x0':shots/2, '0x7':shots/2}
         
         tests.append((circ2, state2, target2))

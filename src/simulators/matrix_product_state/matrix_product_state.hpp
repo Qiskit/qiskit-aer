@@ -537,10 +537,12 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
           apply_kraus(op.qubits, op.mats, rng);
           break;
 	case OpType::set_statevec:
-	  //std::vector<uint_t> all_qubits(qreg_.num_qubits());
-	  //std::iota(all_qubits.begin(), all_qubits.end(), 0);
-          //qreg_.apply_initialize(all_qubits, op.params, rng);
-          break;
+	  {
+	    reg_t all_qubits(qreg_.num_qubits());
+	    std::iota(all_qubits.begin(), all_qubits.end(), 0);
+	    qreg_.apply_initialize(all_qubits, op.params, rng);
+	    break;
+	  }
 	case OpType::set_mps:
           qreg_.initialize_from_mps(op.mps);
           break;

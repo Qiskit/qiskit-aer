@@ -62,7 +62,7 @@ def set_matrix_product_state(self, mps_state):
     if not isinstance(mps_state[0], list) or not isinstance(mps_state[1], list):
         raise ExtensionError(
             "The first element of the input matrix product state is not valid. Should be a list.")
-    if len(mps_state[0]) != len(mps_state[1])+1:
+    if len(mps_state[0]) != len(mps_state[1]) + 1:
         raise ExtensionError(
             "The input matrix product state is not valid. "
             "Length of q_reg vector should be 1 more than length of lambda_reg")
