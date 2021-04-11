@@ -1702,10 +1702,22 @@ mps_container_t MPS::move_to_mps_container() {
 }
 
 void MPS::initialize_from_mps(const mps_container_t &mps) {
+
   uint num_qubits = mps.first.size();
-  std::cout <<"num_qubits = " << num_qubits << std::endl;
+  // clear and restart all internal structures
+  q_reg_.clear();
+  lambda_reg_.clear();
   q_reg_.resize(num_qubits);
   lambda_reg_.resize(num_qubits-1);
+  qubit_ordering_.order_.clear();
+  qubit_ordering_.order_.resize(num_qubits);
+  std::iota(qubit_ordering_.order_.begin(), qubit_ordering_.order_.end(), 0);
+
+  qubit_ordering_.location_.clear();
+  qubit_ordering_.location_.resize(num_qubits);
+  std::iota(qubit_ordering_.location_.begin(), qubit_ordering_.location_.end(), 0);
+
+  // initialize values from mps_container_t
   for (uint_t i=0; i<num_qubits; i++) {
     MPS_Tensor next_tensor(mps.first[i].first, mps.first[i].second);
     q_reg_[i] = next_tensor;
@@ -1713,7 +1725,6 @@ void MPS::initialize_from_mps(const mps_container_t &mps) {
   for (uint_t i=0; i<num_qubits-1; i++) {
      lambda_reg_[i] = mps.second[i];
   }
-  print(std::cout);
 }
 
 //-------------------------------------------------------------------------

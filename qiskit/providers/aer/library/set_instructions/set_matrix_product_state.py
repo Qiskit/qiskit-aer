@@ -30,22 +30,12 @@ class SetMatrixProductState(Instruction):
         Args:
             mps_state (mps_container_t): a matrix product state.
 
-        Raises:
-            ExtensionError: if the input is not a valid state.
-
         .. note::
 
             This set instruction must always be performed on the full width of
             qubits in a circuit, otherwise an exception will be raised during
             simulation.
         """
-        #if not isinstance(state, matrix_product_state):
-        #    state = matrix_product_state(state)
-        #if not state.num_qubits or not state.is_valid():
-         #   raise ExtensionError("The input matrix product state is not valid")
-        print("num qubits is " + str(len(mps_state[0])))
-        print(mps_state)
-        print("aaa")
         super().__init__('set_matrix_product_state', len(mps_state[0]), 0, [mps_state])
 
 
@@ -59,25 +49,28 @@ def set_matrix_product_state(self, mps_state):
         QuantumCircuit: with attached instruction.
 
     Raises:
-        ExtensionError: If the state is the incorrect size for the
-                        current circuit.
+        ExtensionError: If the structure of the mps_state is incorrect
 
     .. note:
 
         This instruction is always defined across all qubits in a circuit.
     """
     qubits = default_qubits(self)
-    print("qubits = " + str(qubits))
-    #if not isinstance(state, mps_container_t):
-    #    state = matrix_product_state(state)
-    #if not state.num_qubits or state.num_qubits != len(qubits):
- #   if state.first.size != len(qubits):
-#        raise ExtensionError(
- #           "The size of the matrix product for the set_matrix_product_state"
-#            " instruction must be equal to the number of qubits"
-#            f" in the circuit (state.num_qubits ({state.num_qubits})"
-#            f" != QuantumCircuit.num_qubits ({self.num_qubits})).")
-    print("3")
+    if not isinstance(mps_state, tuple) or len(mps_state) != 2:
+        raise ExtensionError(
+            "The input matrix product state is not valid.  Should be a list of 2 elements")
+    if not isinstance(mps_state[0], list) or not isinstance(mps_state[1], list):
+        raise ExtensionError(
+            "The first element of the input matrix product state is not valid. Should be a list.")
+    if len(mps_state[0]) != len(mps_state[1])+1:
+        raise ExtensionError(
+            "The input matrix product state is not valid. "
+            "Length of q_reg vector should be 1 more than length of lambda_reg")
+    for elem in mps_state[0]:
+        if not isinstance(elem, tuple) or len(elem) != 2:
+            raise ExtensionError(
+                "The input matrix product state is not valid."
+                "The first element should be a list of length 2")
     return self.append(SetMatrixProductState(mps_state), qubits)
 
 
