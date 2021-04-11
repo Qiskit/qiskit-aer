@@ -1714,7 +1714,7 @@ mps_container_t MPS::move_to_mps_container() {
 
 void MPS::initialize_from_mps(const mps_container_t &mps) {
 
-  uint num_qubits = mps.first.size();
+  uint_t num_qubits = mps.first.size();
   // clear and restart all internal structures
   q_reg_.clear();
   lambda_reg_.clear();
