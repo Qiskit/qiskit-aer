@@ -318,6 +318,11 @@ private:
 			  const cmatrix_t &mat, bool is_diagonal=false);
   void apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat,
 			     bool is_diagonal=false);
+
+  // Certain local operations need to be propagated to the neighboring qubits. 
+  // Such operations include apply_measure and apply_kraus
+  void propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit);
+
   // apply_matrix for more than 2 qubits
   void apply_multi_qubit_gate(const reg_t &qubits,
 			      const cmatrix_t &mat,
