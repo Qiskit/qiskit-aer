@@ -15,7 +15,6 @@ Instruction to set the state simulator state to a matrix.
 
 from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.extensions.exceptions import ExtensionError
-from qiskit.quantum_info import Statevector
 from ..default_qubits import default_qubits
 
 
@@ -43,7 +42,7 @@ def set_matrix_product_state(self, mps_state):
     """Set the matrix product state of the simulator.
 
     Args:
-        state (matrix_product_state): A matrix product state.
+        mps_state (matrix_product_state): A matrix product state.
 
     Returns:
         QuantumCircuit: with attached instruction.
