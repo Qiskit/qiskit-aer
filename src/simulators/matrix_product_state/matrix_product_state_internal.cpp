@@ -1677,7 +1677,7 @@ void MPS::reset_internal(const reg_t &qubits, RngEngine &rng) {
 
 void MPS::measure_reset_update_internal(const reg_t &qubits,
 					const reg_t &meas_state) {
-  for (uint_t i=0; i<qubits.size(); i++) {
+  for (auto i=0; i<qubits.size(); i++) {
     if(meas_state[i] != 0) {
       q_reg_[qubits[i]].apply_x();
     }
@@ -1687,11 +1687,11 @@ void MPS::measure_reset_update_internal(const reg_t &qubits,
 mps_container_t MPS::copy_to_mps_container() {
   move_all_qubits_to_sorted_ordering();
   mps_container_t ret;
-  for (uint_t i=0; i<num_qubits(); i++) {
+  for (auto i=0; i<num_qubits(); i++) {
     ret.first.push_back(std::make_pair(q_reg_[i].get_data(0),
                                        q_reg_[i].get_data(1)));
   }
-  for (uint_t i=0; i<num_qubits()-1; i++) {
+  for (auto i=0; i<num_qubits()-1; i++) {
     ret.second.push_back(lambda_reg_[i]);
   }
   return ret;
@@ -1700,7 +1700,7 @@ mps_container_t MPS::copy_to_mps_container() {
 mps_container_t MPS::move_to_mps_container() {
   move_all_qubits_to_sorted_ordering();
   mps_container_t ret;
-  for (uint_t i=0; i<num_qubits(); i++) {
+  for (auto i=0; i<num_qubits(); i++) {
     ret.first.push_back(std::make_pair(std::move(q_reg_[i].get_data(0)),
                                        std::move(q_reg_[i].get_data(1))));
   }
