@@ -23,26 +23,28 @@ class SetMatrixProductState(Instruction):
 
     _directive = True
 
-    def __init__(self, mps_state):
+    def __init__(self, state):
         """Create new instruction to set the matrix product state of the simulator.
 
         Args:
-            mps_state (mps_container_t): a matrix product state.
+            state: a matrix_product_state.
 
         .. note::
 
             This set instruction must always be performed on the full width of
-            qubits in a circuit, otherwise an exception will be raised during
-            simulation.
+            qubits in a circuit.
+            The matrix_product_state consists of a pair of vectors. The first is a
+            vector of pairs of matrices of complex numbers. The second is a vector of
+            vectors of double.
         """
         super().__init__('set_matrix_product_state', len(mps_state[0]), 0, [mps_state])
 
 
-def set_matrix_product_state(self, mps_state):
+def set_matrix_product_state(self, state):
     """Set the matrix product state of the simulator.
 
     Args:
-        mps_state (matrix_product_state): A matrix product state.
+        state: A matrix_product_state.
 
     Returns:
         QuantumCircuit: with attached instruction.
