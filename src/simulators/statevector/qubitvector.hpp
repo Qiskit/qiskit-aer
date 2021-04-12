@@ -1523,13 +1523,13 @@ void QubitVector<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVector<data
   if(q0 >= num_qubits_){  //exchange whole of chunk each other
     if(write_back){
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-      for (int_t k = 0; k < data_size_; ++k) {
+      for (uint_t k = 0; k < data_size_; ++k) {
         std::swap(data_[k],src.data_[k]);
       }
     }
     else{
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-      for (int_t k = 0; k < data_size_; ++k) {
+      for (uint_t k = 0; k < data_size_; ++k) {
         data_[k] = src.data_[k];
       }
     }

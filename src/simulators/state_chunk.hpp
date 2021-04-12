@@ -445,7 +445,7 @@ void StateChunk<state_t>::set_distribution(uint_t nprocs)
 template <class state_t>
 void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits)
 {
-  int_t i;
+  uint_t i;
   uint_t nchunks;
 
   num_qubits_ = num_qubits;
@@ -527,7 +527,7 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
                          RngEngine &rng,
                          bool final_ops)
 {
-  int_t iChunk;
+  uint_t iChunk;
   uint_t iOp,nOp;
 
   nOp = ops.size();
@@ -877,7 +877,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 {
   uint_t nLarge = 1;
   uint_t q0,q1;
-  int_t iChunk;
+  uint_t iChunk;
 
   q0 = qubits[qubits.size() - 2];
   q1 = qubits[qubits.size() - 1];
@@ -898,7 +898,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
     }
   }
   else{ //swap over chunks
-    int_t iPair;
+    uint_t iPair;
     uint_t nPair,mask0,mask1;
     uint_t baseChunk,iChunk1,iChunk2;
 
@@ -1052,7 +1052,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 template <class state_t>
 void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
 {
-  int_t iChunk;
+  uint_t iChunk;
 
 
   if(qubit < chunk_bits_*qubit_scale()){
@@ -1063,7 +1063,7 @@ void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
     }
   }
   else{ //exchange over chunks
-    int_t iPair;
+    uint_t iPair;
     uint_t nPair,mask;
     uint_t baseChunk,iChunk1,iChunk2;
     reg_t qubits(2);

@@ -301,7 +301,7 @@ protected:
   void apply_global_phase();
 
   // OpenMP qubit threshold
-  int omp_qubit_threshold_ = 14;
+  uint_t omp_qubit_threshold_ = 14;
 
   // QubitVector sample measure index size
   int sample_measure_index_size_ = 10;
@@ -320,7 +320,7 @@ protected:
 template <class statevec_t>
 void State<statevec_t>::initialize_qreg(uint_t num_qubits) 
 {
-  int_t i;
+  uint_t i;
 
   initialize_omp();
 
@@ -356,7 +356,7 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
   }
   initialize_omp();
 
-  int_t iChunk;
+  uint_t iChunk;
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
       BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
@@ -388,14 +388,14 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
   initialize_omp();
 
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
-    for(int_t iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+    for(uint_t iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
       BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
       BaseState::qregs_[iChunk].initialize_from_vector(state);
     }
   }
   else{   //multi-chunk distribution
     uint_t local_offset = BaseState::global_chunk_index_ << BaseState::chunk_bits_;
-    int_t iChunk;
+    uint_t iChunk;
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
@@ -432,7 +432,7 @@ template <class statevec_t>
 void State<statevec_t>::apply_global_phase() 
 {
   if (BaseState::has_global_phase_) {
-    int_t i;
+    uint_t i;
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
     for(i=0;i<BaseState::num_local_chunks_;i++){
       apply_diagonal_matrix(i, {0}, {BaseState::global_phase_, BaseState::global_phase_});
@@ -484,7 +484,7 @@ auto State<statevec_t>::move_to_vector()
       return BaseState::qregs_[0].move_to_vector();
   }
   else{
-    int_t iChunk;
+    uint_t iChunk;
     auto state = BaseState::qregs_[0].move_to_vector();
 
     //TO DO check memory availability
@@ -513,7 +513,7 @@ auto State<statevec_t>::copy_to_vector()
     return BaseState::qregs_[0].copy_to_vector();
   }
   else{
-    int_t iChunk;
+    uint_t iChunk;
     auto state = BaseState::qregs_[0].copy_to_vector();
 
     //TO DO check memory availability
@@ -639,7 +639,7 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
   reg_t qubits_out_chunk;
   std::string pauli_in_chunk;
   std::string pauli_out_chunk;
-  int_t i,n;
+  uint_t i,n;
   double expval(0.);
 
   //get inner/outer chunk pauli string
@@ -794,7 +794,7 @@ void State<statevec_t>::apply_save_density_matrix(const Operations::Op &op,
 
     double sum = 0.0;
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) reduction(+:sum)
-    for(int_t i=0;i<BaseState::num_local_chunks_;i++){
+    for(uint_t i=0;i<BaseState::num_local_chunks_;i++){
       sum += BaseState::qregs_[i].norm();
     }
 #ifdef AER_MPI
@@ -979,7 +979,7 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
                                                ExperimentResult &result,
                                                Statevector::SnapshotDataType type) 
 {
-  int_t i;
+  uint_t i;
   // Check empty edge case
   if (op.params_expval_matrix.empty()) {
     throw std::invalid_argument("Invalid matrix snapshot (components are empty).");
@@ -1077,7 +1077,7 @@ void State<statevec_t>::snapshot_density_matrix(const Operations::Op &op,
 
     double sum = 0.0;
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) reduction(+:sum)
-    for(int_t i=0;i<BaseState::num_local_chunks_;i++){
+    for(uint_t i=0;i<BaseState::num_local_chunks_;i++){
       sum += BaseState::qregs_[i].norm();
     }
 #ifdef AER_MPI
@@ -1357,7 +1357,7 @@ rvector_t State<statevec_t>::measure_probs(const reg_t &qubits) const
 {
   uint_t dim = 1ull << qubits.size();
   rvector_t sum(dim,0.0);
-  int_t i,j,k;
+  uint_t i,j,k;
   reg_t qubits_in_chunk;
   reg_t qubits_out_chunk;
 
@@ -1426,7 +1426,7 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
                                                      uint_t shots,
                                                      RngEngine &rng) 
 {
-  int_t i,j;
+  uint_t i,j;
   // Generate flat register for storing
   std::vector<double> rnds;
   rnds.reserve(shots);
@@ -1543,7 +1543,7 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
   // Update a state vector based on an outcome pair [m, p] from
   // sample_measure_with_prob function, and a desired post-measurement final_state
 
-  int_t i;
+  uint_t i;
   // Single-qubit case
   if (qubits.size() == 1) {
     // Diagonal matrix for projecting and renormalizing to measurement outcome
@@ -1673,7 +1673,7 @@ void State<statevec_t>::apply_kraus(const reg_t &qubits,
   double accum = 0.;
   bool complete = false;
 
-  int_t i;
+  uint_t i;
   cvector_t vmat;
   double local_accum;
 

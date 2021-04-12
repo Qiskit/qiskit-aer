@@ -331,7 +331,7 @@ protected:
   void apply_global_phase();
 
   // OpenMP qubit threshold
-  int omp_qubit_threshold_ = 14;
+  uint omp_qubit_threshold_ = 14;
 
   // QubitVector sample measure index size
   int sample_measure_index_size_ = 10;

@@ -266,7 +266,7 @@ protected:
   bool parallel_nested_ = false;
 
   //max number of qubits in given circuits
-  int max_qubits_;
+  uint_t max_qubits_;
 
   //results are stored independently in each process if true
   bool accept_distributed_results_ = true;
@@ -275,7 +275,7 @@ protected:
   int distributed_experiments_rank_ = 0;
   int distributed_experiments_group_id_ = 0;
   uint_t distributed_experiments_num_processes_ = 1;
-  int distributed_experiments_ = 1;
+  uint_t distributed_experiments_ = 1;
   uint_t num_process_per_experiment_;
   uint_t distributed_experiments_begin_;
   uint_t distributed_experiments_end_;
@@ -286,7 +286,7 @@ protected:
 
   //process information (MPI)
   int myrank_ = 0;
-  int num_processes_ = 1;
+  uint num_processes_ = 1;
 
   uint_t cache_block_qubit_ = 0;
 };
@@ -481,12 +481,12 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
     // Parallel shots is > 1
     // Limit parallel shots by available memory and number of shots
     // And assign the remaining threads to state update
-    int circ_memory_mb = required_memory_mb(circ, noise) / num_process_per_experiment_;
+    size_t circ_memory_mb = required_memory_mb(circ, noise) / num_process_per_experiment_;
     if (max_memory_mb_ + max_gpu_memory_mb_ < circ_memory_mb)
       throw std::runtime_error(
           "a circuit requires more memory than max_memory_mb.");
     // If circ memory is 0, set it to 1 so that we don't divide by zero
-    circ_memory_mb = std::max<int>({1, circ_memory_mb});
+    circ_memory_mb = std::max<size_t>({1, circ_memory_mb});
 
 #ifdef AER_MPI
     int shots = (circ.shots * (distributed_shots_rank_ + 1)/distributed_shots_) - (circ.shots * distributed_shots_rank_ /distributed_shots_);
@@ -885,11 +885,11 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     const int NUM_RESULTS = result.results.size();
     if (parallel_experiments_ > 1) {
       #pragma omp parallel for num_threads(parallel_experiments_)
-      for (int j = 0; j < result.results.size(); ++j) {
+      for (size_t j = 0; j < result.results.size(); ++j) {
         execute_circuit(circuits[j + offset], circ_noise_models[j + offset], config, result.results[j]);
       }
     } else {
-      for (int j = 0; j < result.results.size(); ++j) {
+      for (size_t j = 0; j < result.results.size(); ++j) {
         execute_circuit(circuits[j + offset], circ_noise_models[j + offset], config, result.results[j]);
       }
     }

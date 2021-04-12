@@ -607,7 +607,7 @@ void State::get_probabilities_auxiliary(const reg_t &qubits,
                                         std::string outcome,
                                         double outcome_prob,
                                         T &probs) {
-  uint_t qubit_for_branching = -1;
+  int_t qubit_for_branching = -1;
   for (uint_t i = 0; i < qubits.size(); ++i) {
     uint_t qubit = qubits[qubits.size() - i - 1];
     if (outcome[i] == 'X') {
@@ -620,7 +620,7 @@ void State::get_probabilities_auxiliary(const reg_t &qubits,
           outcome[i] = '0';
         }
       } else {
-        qubit_for_branching = i;
+        qubit_for_branching = static_cast<int_t>(i);
       }
     }
   }
@@ -658,7 +658,7 @@ void State::get_probability_helper(const reg_t &qubits,
                                    const std::string &outcome,
                                    std::string &outcome_carry,
                                    double &prob_carry) {
-  uint_t qubit_for_branching = -1;
+  int_t qubit_for_branching = -1;
   for (uint_t i = 0; i < qubits.size(); ++i) {
     uint_t qubit = qubits[qubits.size() - i - 1];
     if (outcome_carry[i] == 'X') {
@@ -675,7 +675,7 @@ void State::get_probability_helper(const reg_t &qubits,
           return;
         }
       } else {
-        qubit_for_branching = i;
+        qubit_for_branching = static_cast<int_t>(i);
       }
     }
   }

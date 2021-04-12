@@ -408,7 +408,7 @@ bool NQubitFusion<N>::aggregate_operations(oplist_t& ops,
   std::vector<std::pair<uint_t, std::vector<op_t>>> targets;
   bool fused = false;
 
-  for (uint_t op_idx = fusion_start; op_idx < fusion_end; ++op_idx) {
+  for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx) {
     // skip operations to be ignored
     if (!method.can_apply(ops[op_idx], max_fused_qubits) || ops[op_idx].type == optype_t::nop)
       continue;
@@ -417,7 +417,7 @@ bool NQubitFusion<N>::aggregate_operations(oplist_t& ops,
     if (ops[op_idx].qubits.size() != N)
       continue;
 
-    std::vector<uint_t> fusing_op_idxs = { op_idx };
+    std::vector<uint_t> fusing_op_idxs = { static_cast<uint_t>(op_idx) };
 
     std::vector<uint_t> fusing_qubits;
     fusing_qubits.insert(fusing_qubits.end(), ops[op_idx].qubits.begin(), ops[op_idx].qubits.end());
@@ -530,7 +530,7 @@ int DiagonalFusion::get_next_diagonal_end(const oplist_t& ops,
   if (ops[from].type != Operations::OpType::gate)
     return -1;
 
-  auto pos = from;
+  uint_t pos = from;
 
   // find a diagonal gate that has the same lists of CX before and after it
   //      ┌───┐                                   ┌───┐
@@ -547,7 +547,7 @@ int DiagonalFusion::get_next_diagonal_end(const oplist_t& ops,
     if (ops[from].type != Operations::OpType::gate || ops[pos].name != "cx")
       break;
 
-  if (pos == from || pos == ops.size())
+  if (pos == static_cast<uint_t>(from) || pos == ops.size())
     return -1;
 
   auto cx_end = pos - 1;
@@ -593,7 +593,7 @@ int DiagonalFusion::get_next_diagonal_end(const oplist_t& ops,
     if (ops[pos].type == Operations::OpType::gate
         && ops[pos].name == ops[cx_end].name
         && ops[pos].qubits == ops[cx_end].qubits) {
-      if (cx_end == from)
+      if (cx_end == static_cast<uint_t>(from))
         break;
       --cx_end;
     } else {
@@ -614,7 +614,7 @@ int DiagonalFusion::get_next_diagonal_end(const oplist_t& ops,
   //        ■ [from]                                ■ [pos]
   //        ■ [cx_end]                         ■ [u1_end]
 
-  for (auto i = from; i < u1_end; ++i)
+  for (uint_t i = from; i < u1_end; ++i)
     for (const auto qubit: ops[i].qubits)
       fusing_qubits.insert(qubit);
 
@@ -836,7 +836,7 @@ void Fusion::optimize_circuit(Circuit& circ,
         ++unit;
 
 #pragma omp parallel for if (parallelization_ > 1) num_threads(parallelization_)
-      for (int_t i = 0; i < parallelization_; i++) {
+      for (uint_t i = 0; i < parallelization_; i++) {
         int_t start = unit * i;
         int_t end = std::min(start + unit, (int_t) circ.ops.size());
         optimize_circuit(circ, noise, allowed_opset, start, end, fuser, method);

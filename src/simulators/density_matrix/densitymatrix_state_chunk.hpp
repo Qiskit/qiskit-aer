@@ -291,7 +291,7 @@ protected:
 template <class densmat_t>
 void State<densmat_t>::initialize_qreg(uint_t num_qubits) 
 {
-  int_t i;
+  uint_t i;
 
   initialize_omp();
 
@@ -327,7 +327,7 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits,
   }
   initialize_omp();
 
-  int_t iChunk;
+  uint_t iChunk;
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
       BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
@@ -366,7 +366,7 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits,
   }
   initialize_omp();
 
-  int_t iChunk;
+  uint_t iChunk;
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
       BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
@@ -405,7 +405,7 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits,
 
   initialize_omp();
 
-  int_t iChunk;
+  uint_t iChunk;
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
       BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
@@ -467,7 +467,7 @@ auto State<densmat_t>::copy_to_matrix()
 template <class densmat_t>
 auto State<densmat_t>::apply_to_matrix(bool copy)
 {
-  int_t iChunk;
+  uint_t iChunk;
   uint_t size = 1ull << (BaseState::chunk_bits_*2);
   uint_t mask = (1ull << (BaseState::chunk_bits_)) - 1;
   uint_t num_threads = BaseState::qregs_[0].get_omp_threads();
@@ -484,7 +484,7 @@ auto State<densmat_t>::apply_to_matrix(bool copy)
     for(iChunk=BaseState::num_local_chunks_;iChunk<BaseState::num_global_chunks_;iChunk++){
       BaseState::recv_data(recv.data(),size,0,iChunk);
 
-      int_t i;
+      uint_t i;
       uint_t irow_chunk = ((iChunk) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_))) << (BaseState::chunk_bits_);
       uint_t icol_chunk = ((iChunk) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
 #pragma omp parallel for if(num_threads > 1) num_threads(num_threads)
@@ -497,7 +497,7 @@ auto State<densmat_t>::apply_to_matrix(bool copy)
 #endif
 
     for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
-      int_t i;
+      uint_t i;
       uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_))) << (BaseState::chunk_bits_);
       uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
       if(copy){
@@ -702,7 +702,7 @@ void State<densmat_t>::apply_save_amplitudes_sq(const Operations::Op &op,
     throw std::invalid_argument("Invalid save_amplitudes_sq instructions (empty params).");
   }
   const int_t size = op.int_params.size();
-  int_t iChunk;
+  uint_t iChunk;
   rvector_t amps_sq(size,0);
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
   for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
@@ -962,7 +962,7 @@ cmatrix_t State<densmat_t>::reduced_density_matrix(const reg_t& qubits, bool las
     reduced_state = cmatrix_t(1, 1);
 
     std::complex<double> sum = 0.0;
-    for(int_t i=0;i<BaseState::num_local_chunks_;i++){
+    for(uint_t i=0;i<BaseState::num_local_chunks_;i++){
       sum += BaseState::qregs_[i].trace();
     }
 #ifdef AER_MPI
@@ -1004,7 +1004,7 @@ cmatrix_t State<densmat_t>::reduced_density_matrix_helper(const reg_t &qubits,
   // TODO: If we are not going to apply any additional instructions after
   //       this function we could move the memory when constructing rather
   //       than copying
-  int_t iChunk;
+  uint_t iChunk;
   auto vmat = BaseState::qregs_[0].vector();
 
   //TO DO check memory availability
@@ -1027,14 +1027,14 @@ cmatrix_t State<densmat_t>::reduced_density_matrix_helper(const reg_t &qubits,
   {
     // Fill matrix with first iteration
     const auto inds = QV::indexes(squbits, squbits_sorted, 0);
-    for (int_t i = 0; i < VDIM; ++i) {
+    for (size_t i = 0; i < VDIM; ++i) {
       reduced_state[i] = complex_t(vmat[inds[i]]);
     }
   }
   // Accumulate with remaning blocks
   for (size_t k = 1; k < END; k++) {
     const auto inds = QV::indexes(squbits, squbits_sorted, k * SHIFT);
-    for (int_t i = 0; i < VDIM; ++i) {
+    for (size_t i = 0; i < VDIM; ++i) {
       reduced_state[i] += complex_t(vmat[inds[i]]);
     }
   }
@@ -1172,7 +1172,7 @@ template <class densmat_t>
 void State<densmat_t>::apply_pauli(const reg_t &qubits,
                                    const std::string &pauli) 
 {
-  int_t i;
+  uint_t i;
   // Pauli as a superoperator is (-1)^num_y P\otimes P
   complex_t coeff = (std::count(pauli.begin(), pauli.end(), 'Y') % 2) ? -1 : 1;
 
@@ -1223,7 +1223,7 @@ rvector_t State<densmat_t>::measure_probs(const reg_t &qubits) const
 {
   uint_t dim = 1ull << qubits.size();
   rvector_t sum(dim,0.0);
-  int_t i,j,k;
+  uint_t i,j,k;
   reg_t qubits_in_chunk;
   reg_t qubits_out_chunk;
 
@@ -1297,7 +1297,7 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
                                                      uint_t shots,
                                                      RngEngine &rng) 
 {
-  int_t i,j;
+  uint_t i,j;
   std::vector<double> chunkSum(BaseState::num_local_chunks_+1,0);
   double sum,localSum;
   // Generate flat register for storing
@@ -1406,7 +1406,7 @@ void State<densmat_t>::apply_reset(const reg_t &qubits)
   // where all but 1 row is zeros.
   const auto reset_op = Linalg::SMatrix::reset(1ULL << qubits.size());
 
-  int_t i;
+  uint_t i;
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
   for(i=0;i<BaseState::num_local_chunks_;i++){
     BaseState::qregs_[i].apply_superop_matrix(qubits, Utils::vectorize_matrix(reset_op));
@@ -1429,7 +1429,7 @@ void State<densmat_t>::measure_reset_update(const reg_t &qubits,
                                              const uint_t meas_state,
                                              const double meas_prob) 
 {
-  int_t i;
+  uint_t i;
 
   // Update a state vector based on an outcome pair [m, p] from
   // sample_measure_with_prob function, and a desired post-measurement final_state
