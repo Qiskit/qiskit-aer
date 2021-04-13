@@ -1216,20 +1216,27 @@ bool QasmController::check_measure_sampling_opt(const Circuit& circ,
     return false;
   }
 
+  // If density matrix method all noise instructions allowSampling
+  if (method == Method::density_matrix ||
+      method == Method::density_matrix_thrust_gpu ||
+      method == Method::density_matrix_thrust_cpu) {
+    return true;
+  }
+
+  // If circuit contains a non-initial initialize that is not a full width
+  // instruction we can't sample
+  if (circ.can_sample_initialize == false) {
+    return false;
+  }
+
   // Check if non-density matrix simulation and circuit contains
   // a stochastic instruction before measurement
-  // ie. initialize, reset, kraus, superop, conditional
+  // ie. reset, kraus, superop
   // TODO:
-  // * If initialize should be allowed if applied to product states (ie start of
-  // circuit)
   // * Resets should be allowed if applied to |0> state (no gates before).
-  bool density_mat = (method == Method::density_matrix ||
-                      method == Method::density_matrix_thrust_gpu ||
-                      method == Method::density_matrix_thrust_cpu);
-  if (!density_mat && (circ.opset().contains(Operations::OpType::reset) ||
-                       circ.opset().contains(Operations::OpType::initialize) ||
-                       circ.opset().contains(Operations::OpType::kraus) ||
-                       circ.opset().contains(Operations::OpType::superop))) {
+  if (circ.opset().contains(Operations::OpType::reset) ||
+      circ.opset().contains(Operations::OpType::kraus) ||
+      circ.opset().contains(Operations::OpType::superop)) {
     return false;
   }
   // Otherwise true

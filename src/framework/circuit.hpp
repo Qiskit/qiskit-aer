@@ -42,9 +42,11 @@ public:
   uint_t num_registers = 0;     // maximum number of registers clbits needed for ops
   
   // Measurement params
-  bool has_conditional = false; // True if any ops are conditional
-  bool can_sample = true;       // True if circuit tail contains measure, roerror, barrier.
-  size_t first_measure_pos = 0; // Position of first measure instruction
+  bool has_conditional = false;      // True if any ops are conditional
+  bool can_sample = true;            // True if circuit tail contains measure, roerror, barrier.
+  size_t first_measure_pos = 0;      // Position of first measure instruction
+  bool can_sample_initialize = true; // True if circuit contains at most 1 initialize
+                                     // and it is the first instruction in the circuit
 
   // Circuit metadata constructed from json QobjExperiment
   uint_t shots = 1;
@@ -123,6 +125,7 @@ void Circuit::set_params() {
   // Memory size is loaded from qobj config
   // Also check if measure sampling is in principle possible
   bool first_measure = true;
+  size_t initialize_qubits = 0;
   for (size_t i = 0; i < ops.size(); ++i) {
     const auto &op = ops[i];
     has_conditional |= op.conditional;
@@ -138,6 +141,13 @@ void Circuit::set_params() {
         throw std::invalid_argument("Duplicate key \"" + op.string_params[0] +
                                     "\" in save instruction.");
       }
+    }
+
+    // Keep track of minimum width of any non-initial initialize instructions
+    if (i > 0 && op.type == OpType::initialize) {
+      initialize_qubits = (initialize_qubits == 0)
+        ? op.qubits.size()
+        : std::min(op.qubits.size(), initialize_qubits);
     }
 
     // Compute measure sampling check
@@ -162,6 +172,11 @@ void Circuit::set_params() {
   num_qubits = (qubitset_.empty()) ? 0 : 1 + *qubitset_.rbegin();
   num_memory = (memoryset_.empty()) ? 0 : 1 + *memoryset_.rbegin();
   num_registers = (registerset_.empty()) ? 0 : 1 + *registerset_.rbegin();
+
+  // Check that any non-initial initialize is defined on full width of qubits
+  if (initialize_qubits > 0 && initialize_qubits < num_qubits) {
+    can_sample_initialize = false;
+  }
 }
 
 Circuit::Circuit(const std::vector<Op> &_ops) : Circuit() {
