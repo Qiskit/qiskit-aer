@@ -37,7 +37,7 @@ class SetMatrixProductState(Instruction):
             vector of pairs of matrices of complex numbers. The second is a vector of
             vectors of double.
         """
-        super().__init__('set_matrix_product_state', len(mps_state[0]), 0, [mps_state])
+        super().__init__('set_matrix_product_state', len(state[0]), 0, [state])
 
 
 def set_matrix_product_state(self, state):
@@ -50,29 +50,29 @@ def set_matrix_product_state(self, state):
         QuantumCircuit: with attached instruction.
 
     Raises:
-        ExtensionError: If the structure of the mps_state is incorrect
+        ExtensionError: If the structure of the state is incorrect
 
     .. note:
 
         This instruction is always defined across all qubits in a circuit.
     """
     qubits = default_qubits(self)
-    if not isinstance(mps_state, tuple) or len(mps_state) != 2:
+    if not isinstance(state, tuple) or len(state) != 2:
         raise ExtensionError(
             "The input matrix product state is not valid.  Should be a list of 2 elements")
-    if not isinstance(mps_state[0], list) or not isinstance(mps_state[1], list):
+    if not isinstance(state[0], list) or not isinstance(state[1], list):
         raise ExtensionError(
             "The first element of the input matrix product state is not valid. Should be a list.")
-    if len(mps_state[0]) != len(mps_state[1]) + 1:
+    if len(state[0]) != len(state[1]) + 1:
         raise ExtensionError(
             "The input matrix product state is not valid. "
             "Length of q_reg vector should be 1 more than length of lambda_reg")
-    for elem in mps_state[0]:
+    for elem in state[0]:
         if not isinstance(elem, tuple) or len(elem) != 2:
             raise ExtensionError(
                 "The input matrix product state is not valid."
                 "The first element should be a list of length 2")
-    return self.append(SetMatrixProductState(mps_state), qubits)
+    return self.append(SetMatrixProductState(state), qubits)
 
 
 QuantumCircuit.set_matrix_product_state = set_matrix_product_state
