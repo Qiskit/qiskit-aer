@@ -1130,12 +1130,12 @@ inline int _omp_get_thread_num() {
 #endif
 }
 
-m256_t<double> _load_diagonal_input(const std::complex<double>* input_vec,
-                                    std::complex<double>* tmp,
-                                    const uint64_t i,
-                                    const uint64_t* qregs,
-                                    const size_t qregs_size,
-                                    const size_t q0_mask) {
+static m256_t<double> _load_diagonal_input(const std::complex<double>* input_vec,
+                                           std::complex<double>* tmp,
+                                           const uint64_t i,
+                                           const uint64_t* qregs,
+                                           const size_t qregs_size,
+                                           const size_t q0_mask) {
   uint64_t vec_idx0 = 0;
   for (size_t j = 0; j < qregs_size; ++j)
     if (i & (MASKS[qregs[j]] + 1UL))
@@ -1145,13 +1145,13 @@ m256_t<double> _load_diagonal_input(const std::complex<double>* input_vec,
   return _mm256_load(reinterpret_cast<double*>(tmp));
 }
 
-m256_t<float> _load_diagonal_input(const std::complex<float>* input_vec,
-                                   std::complex<float>* tmp,
-                                   const uint64_t i,
-                                   const uint64_t* qregs,
-                                   const size_t qregs_size,
-                                   const size_t q0_mask,
-                                   const size_t q1_mask) {
+static m256_t<float> _load_diagonal_input(const std::complex<float>* input_vec,
+                                          std::complex<float>* tmp,
+                                          const uint64_t i,
+                                          const uint64_t* qregs,
+                                          const size_t qregs_size,
+                                          const size_t q0_mask,
+                                          const size_t q1_mask) {
   uint64_t vec_idx0 = 0;
   for (size_t j = 0; j < qregs_size; ++j)
     if (i & (MASKS[qregs[j]] + 1UL))

@@ -590,15 +590,15 @@ double State::expval_pauli(const reg_t &qubits,
   return state_cpy.expectation_value(measured_qubits);
 }
 
-void set_value_helper(std::map<std::string, double>& probs,
-                      const std::string &outcome,
-                      double value) {
+static void set_value_helper(std::map<std::string, double>& probs,
+                             const std::string &outcome,
+                             double value) {
   probs[Utils::bin2hex(outcome)] = value;
 }
 
-void set_value_helper(std::vector<double>& probs,
-                      const std::string &outcome,
-                      double value) {
+static void set_value_helper(std::vector<double>& probs,
+                             const std::string &outcome,
+                             double value) {
   probs[std::stoull(outcome, 0, 2)] = value;
 }
 
