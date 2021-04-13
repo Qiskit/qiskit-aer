@@ -134,7 +134,6 @@ class QasmSetMPSTests:
             'matrix_product_state'
         ]
 
-        seed = 100
         tests = []
         shots = 100
         # circuit1 - |11>
@@ -166,6 +165,4 @@ class QasmSetMPSTests:
             opts = self.BACKEND_OPTS.copy()
             qobj = assemble(circ, self.SIMULATOR)
             result = self.SIMULATOR.run(qobj, **opts, shots=shots).result()
-            method = opts.get('method', 'automatic')
-            data = result.get_counts()
             self.compare_counts(result, [circ], [target], delta=0.1*shots)
