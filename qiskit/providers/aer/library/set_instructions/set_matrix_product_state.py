@@ -27,7 +27,7 @@ class SetMatrixProductState(Instruction):
         """Create new instruction to set the matrix product state of the simulator.
 
         Args:
-            state: a matrix_product_state.
+            state (Tuple[List[Tuple[np.array[complex_t]]]], List[List[float]]): a matrix_product_state.
 
         .. note::
 
@@ -44,7 +44,7 @@ def set_matrix_product_state(self, state):
     """Set the matrix product state of the simulator.
 
     Args:
-        state: A matrix_product_state.
+        state (Tuple[List[Tuple[np.array[complex_t]]]], List[List[float]]): A matrix_product_state.
 
     Returns:
         QuantumCircuit: with attached instruction.
