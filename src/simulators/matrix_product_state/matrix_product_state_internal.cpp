@@ -1730,11 +1730,11 @@ void MPS::initialize_from_mps(const mps_container_t &mps) {
 
   // initialize values from mps_container_t
   for (uint_t i=0; i<num_qubits; i++) {
-    MPS_Tensor next_tensor(mps.first[i].first, mps.first[i].second);
+    MPS_Tensor next_tensor(std::move(mps.first[i].first), std::move(mps.first[i].second));
     q_reg_[i] = next_tensor;
   }
   for (uint_t i=0; i<num_qubits-1; i++) {
-     lambda_reg_[i] = mps.second[i];
+    lambda_reg_[i] = std::move(mps.second[i]);
   }
 }
 
