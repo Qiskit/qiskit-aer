@@ -24,7 +24,8 @@ from test.terra.backends.aer_simulator.aer_simulator_test_case import (
 class TestSaveStatevector(AerSimulatorTestCase):
     """SaveStatevector instruction tests."""
 
-    @supported_methods(['automatic', 'statevector', 'matrix_product_state'])
+    @supported_methods(['automatic', 'statevector', 'matrix_product_state',
+                        'extended_stabilizer'])
     def test_save_statevector(self, method, device):
         """Test save statevector instruction"""
         backend = self.backend(method=method, device=device)
@@ -52,7 +53,8 @@ class TestSaveStatevector(AerSimulatorTestCase):
         value = qi.Statevector(simdata[label])
         self.assertEqual(value, target)
 
-    @supported_methods(['automatic', 'statevector', 'matrix_product_state'])
+    @supported_methods(['automatic', 'statevector', 'matrix_product_state',
+                        'extended_stabilizer'])
     def test_save_statevector_conditional(self, method, device):
         """Test conditional save statevector instruction"""
 
@@ -82,10 +84,10 @@ class TestSaveStatevector(AerSimulatorTestCase):
             self.assertIn(key, target)
             self.assertEqual(qi.Statevector(vec), target[key])
 
-    @supported_methods(['automatic', 'statevector', 'matrix_product_state'])
+    @supported_methods(['automatic', 'statevector', 'matrix_product_state',
+                        'extended_stabilizer'])
     def test_save_statevector_pershot(self, method, device):
         """Test pershot save statevector instruction"""
-        print(method)
         backend = self.backend(method=method, device=device)
 
         # Stabilizer test circuit
@@ -114,8 +116,9 @@ class TestSaveStatevector(AerSimulatorTestCase):
         for vec in value:
             self.assertEqual(qi.Statevector(vec), target)
 
-    @supported_methods(['automatic', 'statevector', 'matrix_product_state'])
-    def test_save_statevector_pershot2_conditional(self, method, device):
+    @supported_methods(['automatic', 'statevector', 'matrix_product_state',
+                        'extended_stabilizer'])
+    def test_save_statevector_pershot_conditional(self, method, device):
         """Test pershot conditional save statevector instruction"""
 
         backend = self.backend(method=method, device=device)
