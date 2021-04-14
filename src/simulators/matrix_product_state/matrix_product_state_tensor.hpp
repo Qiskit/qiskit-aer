@@ -79,6 +79,17 @@ public:
       data_.push_back(data[i]);
   }
 
+  MPS_Tensor(MPS_Tensor&& rhs) {
+    data_ = std::move(rhs.data_);
+  }
+  
+  MPS_Tensor& operator=(MPS_Tensor&& rhs) {
+    if (this != &rhs){
+      data_ = std::move(rhs.data_);
+    }
+    return *this;
+  }
+
   // Destructor
   virtual ~MPS_Tensor(){}
 
