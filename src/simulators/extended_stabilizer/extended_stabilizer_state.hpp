@@ -133,7 +133,7 @@ protected:
 
   void apply_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
   //Convert a decomposition to a state-vector
-  void statevector_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
+  void statevector_snapshot(const Operations::Op &op, ExperimentResult &result);
   // //Compute probabilities from a stabilizer rank decomposition
   void probabilities_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng);
   const static stringmap_t<Gates> gateset_;
@@ -145,8 +145,7 @@ protected:
 
   // Compute and save the statevector for the current simulator state
   void apply_save_statevector(const Operations::Op &op,
-                              ExperimentResult &result,
-                              RngEngine &rng);
+                              ExperimentResult &result);
 
   // Compute and save the expval for the current simulator state
   void apply_save_expval(const Operations::Op &op,
@@ -430,7 +429,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &
               apply_snapshot(op, result, rng);
               break;
             case Operations::OpType::save_statevec:
-              apply_save_statevector(op, result, rng);
+              apply_save_statevector(op, result);
               break;
             case Operations::OpType::save_expval:
             case Operations::OpType::save_expval_var:
@@ -565,7 +564,7 @@ void State::apply_stabilizer_circuit(const std::vector<Operations::Op> &ops,
         apply_snapshot(op, result, rng);
         break;
       case Operations::OpType::save_statevec:
-        apply_save_statevector(op, result, rng);
+        apply_save_statevector(op, result);
         break;
       case Operations::OpType::save_expval:
       case Operations::OpType::save_expval_var:
@@ -750,8 +749,7 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank)
 }
 
 void State::apply_save_statevector(const Operations::Op &op,
-                                   ExperimentResult &result,
-                                   RngEngine& rng) {
+                                   ExperimentResult &result) {
   if (op.qubits.size() != BaseState::qreg_.get_n_qubits()) {
     throw std::invalid_argument(
         "Save statevector was not applied to all qubits."
@@ -759,7 +757,7 @@ void State::apply_save_statevector(const Operations::Op &op,
   }
   BaseState::save_data_pershot(
     result, op.string_params[0],
-    BaseState::qreg_.statevector(norm_estimation_samples_, 3, rng),
+    BaseState::qreg_.statevector(),
     op.save_type);
 }
 
@@ -812,7 +810,7 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result, R
       BaseState::snapshot_creg_register(op, result);
       break;
     case Snapshots::statevector:
-      statevector_snapshot(op, result, rng);
+      statevector_snapshot(op, result);
       break;
     case Snapshots::probs:
       probabilities_snapshot(op, result, rng);
@@ -824,10 +822,10 @@ void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result, R
   }
 }
 
-void State::statevector_snapshot(const Operations::Op &op, ExperimentResult &result, RngEngine &rng)
+void State::statevector_snapshot(const Operations::Op &op, ExperimentResult &result)
 {
   result.legacy_data.add_pershot_snapshot("statevector", op.string_params[0],
-     BaseState::qreg_.statevector(norm_estimation_samples_, 3, rng));
+		      BaseState::qreg_.statevector());
 }
 
 double State::expval_pauli(const reg_t &qubits,
