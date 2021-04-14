@@ -13,6 +13,7 @@
 QasmSimulator Integration Tests
 """
 
+from qiskit import QuantumCircuit
 from test.terra.reference import ref_initialize
 from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
@@ -115,3 +116,32 @@ class QasmInitializeTests:
         result = self.SIMULATOR.run(qobj, **opts).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    def test_initialize_sampling_opt_enabled(self):
+        """Test sampling optimization"""
+        shots = 1000
+        circuit = QuantumCircuit(2)
+        circuit.initialize([0, 1], [1])
+        circuit.h([0, 1])
+        circuit.initialize([0, 0, 1, 0], [0, 1])
+        circuit.measure_all()
+        qobj = assemble(circuit, self.SIMULATOR, shots=shots)
+        opts = self.BACKEND_OPTS.copy()
+        result = self.SIMULATOR.run(qobj, **opts).result()
+        self.assertSuccess(result)
+        sampling = result.results[0].metadata.get('measure_sampling', None)
+        self.assertTrue(sampling)
+
+    def test_initialize_sampling_opt_disabled(self):
+        """Test sampling optimization"""
+        shots = 1000
+        circuit = QuantumCircuit(2)
+        circuit.h([0, 1])
+        circuit.initialize([0, 1], [1])
+        circuit.measure_all()
+        qobj = assemble(circuit, self.SIMULATOR, shots=shots)
+        opts = self.BACKEND_OPTS.copy()
+        result = self.SIMULATOR.run(qobj, **opts).result()
+        self.assertSuccess(result)
+        sampling = result.results[0].metadata.get('measure_sampling', None)
+        self.assertFalse(sampling)
