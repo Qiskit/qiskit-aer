@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes bug where the initialize instruction would disable measurement
+    sampling optimization for the statevector and matrix product state
+    simulation methods even when it was the first circuit instruction or
+    applied to all qubits and hence deterministic.
