@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fix issue #1196 by using the inner products with the computational basis states to calculate the norm rather than the norm estimation algorithm.
