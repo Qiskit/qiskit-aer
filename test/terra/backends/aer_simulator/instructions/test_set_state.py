@@ -147,7 +147,7 @@ class TestSetMPS(AerSimulatorTestCase):
     def test_set_matrix_product_state(self, method, device):
         backend = self.backend(method=method, device=device)
         tests = []
-        shots = 100
+        shots = 1000
         # circuit1 - |11>
         num_qubits = 2
         circ1 = QuantumCircuit(num_qubits)

@@ -135,7 +135,7 @@ class QasmSetMPSTests:
         ]
 
         tests = []
-        shots = 100
+        shots = 1000
         # circuit1 - |11>
         num_qubits = 2
         circ1 = QuantumCircuit(num_qubits)
