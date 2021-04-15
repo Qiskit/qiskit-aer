@@ -144,6 +144,9 @@ public:
   thrust::complex<data_t>* send_buffer(uint_t& size_in_byte);
   thrust::complex<data_t>* recv_buffer(uint_t& size_in_byte);
 
+  void release_send_buffer(void) const;
+  void release_recv_buffer(void) const;
+
   //-----------------------------------------------------------------------
   // Check point operations
   //-----------------------------------------------------------------------
@@ -364,12 +367,13 @@ protected:
   mutable std::shared_ptr<Chunk<data_t>> chunk_;
   mutable std::shared_ptr<Chunk<data_t>> buffer_chunk_;
   std::shared_ptr<Chunk<data_t>> checkpoint_;
-  std::shared_ptr<Chunk<data_t>> send_chunk_;
-  std::shared_ptr<Chunk<data_t>> recv_chunk_;
+  mutable std::shared_ptr<Chunk<data_t>> send_chunk_;
+  mutable std::shared_ptr<Chunk<data_t>> recv_chunk_;
   static ChunkManager<data_t> chunk_manager_;
 
   uint_t chunk_index_;
   bool multi_chunk_distribution_;
+  bool multi_shots_;
 
   bool register_blocking_;
 
@@ -517,7 +521,10 @@ QubitVectorThrust<data_t>::QubitVectorThrust(size_t num_qubits) : num_qubits_(0)
   chunk_ = nullptr;
   chunk_index_ = 0;
   multi_chunk_distribution_ = false;
+  multi_shots_ = false;
   checkpoint_ = nullptr;
+  recv_chunk_ = nullptr;
+  send_chunk_ = nullptr;
 
 #ifdef AER_DEBUG
   debug_count = 0;
@@ -818,6 +825,9 @@ void QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t
   if(chunk_bits < num_qubits){
     multi_chunk_distribution_ = true;
   }
+
+  if(omp_get_num_threads() > 1)
+    multi_shots_ = true;
 }
 
 template <typename data_t>
@@ -1056,6 +1066,26 @@ thrust::complex<data_t>* QubitVectorThrust<data_t>::recv_buffer(uint_t& size_in_
   return recv_chunk_->pointer();
 }
 
+template <typename data_t>
+void QubitVectorThrust<data_t>::release_send_buffer(void) const
+{
+#ifdef AER_DISABLE_GDR
+  if(send_chunk_){
+    chunk_manager_.UnmapBufferChunk(send_chunk_);
+    send_chunk_ = nullptr;
+  }
+#endif
+}
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::release_recv_buffer(void) const
+{
+  if(recv_chunk_){
+    chunk_manager_.UnmapBufferChunk(recv_chunk_);
+    recv_chunk_ = nullptr;
+  }
+}
+
 //------------------------------------------------------------------------------
 // Initialization
 //------------------------------------------------------------------------------
@@ -1147,13 +1177,14 @@ void QubitVectorThrust<data_t>::apply_function(Function func) const
 #endif
 
 
-  func.set_base_index(chunk_index_ << num_qubits_);
   if(func.batch_enable() && multi_chunk_distribution_ && chunk_->device() >= 0){
     if(chunk_->pos() == 0){   //only first chunk on device calculates all the chunks
+      func.set_base_index(chunk_index_ << num_qubits_);
       chunk_->Execute(func,chunk_->container()->num_chunks());
     }
   }
   else{
+    func.set_base_index(chunk_index_ << num_qubits_);
     chunk_->Execute(func,1);
   }
 
@@ -2700,14 +2731,10 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, uint_t rem
     }
   }
 
-  chunk_manager_.UnmapBufferChunk(recv_chunk_);
-//  recv_chunk_.reset();
+  release_recv_buffer();
 
 #ifdef AER_DISABLE_GDR
-  if(send_chunk_){
-    chunk_manager_.UnmapBufferChunk(send_chunk_);
-//    send_chunk_.reset();
-  }
+  release_send_buffer();
 #endif
 }
 
@@ -3709,6 +3736,10 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
 
   if(buffer){
     chunk_manager_.UnmapBufferChunk(buffer);
+  }
+
+  if(pair_chunk.data() == this->data()){
+    release_recv_buffer();
   }
 
   return ret;
