@@ -462,7 +462,6 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits)
 {
   int_t i;
   uint_t nchunks;
-  int max_bits = num_qubits;
 
   num_qubits_ = num_qubits;
   block_bits_ = block_bits;
@@ -1028,7 +1027,8 @@ uint_t StateChunk<state_t>::mapped_index(const uint_t idx)
 template <class state_t>
 void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 {
-  uint_t q0,q1,nLarge;
+  uint_t nLarge = 1;
+  uint_t q0,q1;
   int_t iChunk;
 
   q0 = qubits[qubits.size() - 2];
@@ -1204,7 +1204,6 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 template <class state_t>
 void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
 {
-  uint_t q0,q1,t,nLarge;
   int_t iChunk;
 
 

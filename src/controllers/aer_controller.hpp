@@ -503,6 +503,12 @@ void Controller::set_config(const json_t &config) {
         throw std::runtime_error(
             "Simulation device \"GPU\" is not supported on this system");
 #else
+        int nDev;
+        if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
+            cudaGetLastError();
+            throw std::runtime_error("No CUDA device available!");
+        }
+
         sim_device_ = Device::GPU;
 #endif
       }
@@ -2063,21 +2069,26 @@ bool Controller::check_measure_sampling_opt(const Circuit &circ,
     return false;
   }
 
-  // If density matrix or superop method all noise instructions allow
-  // Sampling
-  if (method == Method::density_matrix || method == Method::unitary) {
+  // If density matrix, unitary, superop method all supported instructions
+  // allow sampling
+  if (method == Method::density_matrix ||
+      method == Method::superop ||
+      method == Method::unitary) {
     return true;
+  }
+  
+  // If circuit contains a non-initial initialize that is not a full width
+  // instruction we can't sample
+  if (circ.can_sample_initialize == false) {
+    return false;
   }
 
   // Check if non-density matrix simulation and circuit contains
   // a stochastic instruction before measurement
-  // ie. initialize, reset, kraus, superop, conditional
+  // ie. reset, kraus, superop
   // TODO:
-  // * If initialize should be allowed if applied to product states (ie start of
-  // circuit)
   // * Resets should be allowed if applied to |0> state (no gates before).
   if (circ.opset().contains(Operations::OpType::reset) ||
-      circ.opset().contains(Operations::OpType::initialize) ||
       circ.opset().contains(Operations::OpType::kraus) ||
       circ.opset().contains(Operations::OpType::superop)) {
     return false;

@@ -793,7 +793,7 @@ void QubitVector<data_t>::allocate_mem(size_t data_size){
   // Allocate memory for new vector
   if (data_ == nullptr) {
 #if !defined(_WIN64) && !defined(_WIN32)
-    void* data;
+    void* data = nullptr;
     posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size);
     data_ = reinterpret_cast<std::complex<data_t>*>(data);
 #else
@@ -806,7 +806,7 @@ template <typename data_t>
 void QubitVector<data_t>::allocate_checkpoint(size_t data_size){
   free_checkpoint();
 #if !defined(_WIN64) && !defined(_WIN32)
-  void* data;
+  void* data = nullptr;
   posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size);
   checkpoint_ = reinterpret_cast<std::complex<data_t>*>(data);
 #else

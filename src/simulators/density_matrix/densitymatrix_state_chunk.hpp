@@ -858,7 +858,6 @@ void State<densmat_t>::apply_snapshot(const Operations::Op &op,
                                       ExperimentResult &result,
                                       bool last_op) 
 {
-  int_t i;
   // Look for snapshot type in snapshotset
   auto it = DensityMatrix::State<densmat_t>::snapshotset_.find(op.name);
   if (it == DensityMatrix::State<densmat_t>::snapshotset_.end())
@@ -1417,11 +1416,11 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
 
     if(nIn > 0){
       auto chunkSamples = BaseState::qregs_[i].sample_measure(vRnd);
-      uint_t irow;
-      irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
+      uint_t ir;
+      ir = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
 
       for(j=0;j<nIn;j++){
-        local_samples[vIdx[j]] = (irow << BaseState::chunk_bits_) + chunkSamples[j];
+        local_samples[vIdx[j]] = (ir << BaseState::chunk_bits_) + chunkSamples[j];
       }
     }
   }

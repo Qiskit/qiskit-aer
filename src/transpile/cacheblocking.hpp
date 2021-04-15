@@ -101,7 +101,7 @@ protected:
   bool is_diagonal_op(Operations::Op& op) const;
 
   void insert_swap(std::vector<Operations::Op>& ops,uint_t bit0,uint_t bit1,bool chunk) const;
-  void insert_sim_op(std::vector<Operations::Op>& ops,char* name,const reg_t& qubits) const;
+  void insert_sim_op(std::vector<Operations::Op>& ops,const char* name,const reg_t& qubits) const;
   void insert_pauli(std::vector<Operations::Op>& ops,reg_t& qubits,std::string& pauli) const;
 
   void define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t& blockedQubits,bool crossQubitOnly) const;
@@ -147,7 +147,6 @@ void CacheBlocking::set_blocking(int bits, size_t min_memory, uint_t n_place, si
 {
   int chunk_bits = bits;
   uint_t scale = is_matrix ? 2 : 1;
-  size_t size;
 
   //get largest possible chunk bits
   while((complex_size << (scale*chunk_bits)) > min_memory){
@@ -190,7 +189,7 @@ void CacheBlocking::insert_swap(std::vector<Operations::Op>& ops,uint_t bit0,uin
   ops.push_back(sgate);
 }
 
-void CacheBlocking::insert_sim_op(std::vector<Operations::Op>& ops,char* name,const reg_t& qubits) const
+void CacheBlocking::insert_sim_op(std::vector<Operations::Op>& ops,const char* name,const reg_t& qubits) const
 {
   Operations::Op op;
   op.type = Operations::OpType::sim_op;
@@ -241,7 +240,7 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
 void CacheBlocking::define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t& blockedQubits,bool crossQubitOnly) const
 {
   uint_t i,j,iq;
-  int nq,nb;
+  int nq;
   bool exist;
   for(i=0;i<ops.size();i++){
     if(blockedQubits.size() >= block_bits_)
@@ -333,7 +332,7 @@ bool CacheBlocking::can_reorder(Operations::Op& op,std::vector<Operations::Op>& 
 
 bool CacheBlocking::block_circuit(Circuit& circ,bool doSwap) const
 {
-  uint_t i,n;
+  uint_t n;
   std::vector<Operations::Op> out;
   std::vector<Operations::Op> queue;
   std::vector<Operations::Op> queue_next;
@@ -460,7 +459,6 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
 {
   uint_t i,j,iq;
 
-  int nqubitUsed = 0;
   reg_t blockedQubits;
   int nq;
   bool exist;

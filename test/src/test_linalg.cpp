@@ -327,7 +327,7 @@ bool check_eigenvector(const std::vector<std::complex<T>>& expected_eigen,
     auto div = expected_eigen[0] / actual_eigen[0];
     T r = std::abs(div);
     T angle = std::arg(div);
-    for (int j = 1; j < expected_eigen.size(); j++) {
+    for (size_t j = 1; j < expected_eigen.size(); j++) {
         auto div_2 = expected_eigen[j] / actual_eigen[j];
         T r_2 = std::abs(div_2);
         T angle_2 = std::arg(div_2);
@@ -348,7 +348,7 @@ bool check_all_eigenvectors(const matrix<std::complex<T>>& expected,
     if (expected.size() != actual.size() || expected.GetColumns() != expected.GetColumns()) {
         return false;
     }
-    for (int i = 0; i < col_num; i++) {
+    for (size_t i = 0; i < col_num; i++) {
         auto expected_eigen = expected.col_index(i);
         auto actual_eigen = actual.col_index(i);
 
