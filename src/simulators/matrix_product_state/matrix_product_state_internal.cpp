@@ -1734,7 +1734,7 @@ void MPS::initialize_from_mps(const mps_container_t &mps) {
     q_reg_[i] = std::move(next_tensor);
   }
   for (uint_t i=0; i<num_qubits-1; i++) {
-    lambda_reg_[i] = std::move(mps.second[i]);
+    lambda_reg_[i] = mps.second[i];
   }
 }
 
