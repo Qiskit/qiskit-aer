@@ -1,4 +1,10 @@
 ---
 fixes:
   - |
-    Fix issue #1196 by using the inner products with the computational basis states to calculate the norm rather than the norm estimation algorithm.
+    Fix an issue with the :class:`~qiskit.providers.aer.library.SaveStatevector`
+    and :class:`~qiskit.providers.aer.extensions.SnapshotStatevector`
+    instructions when used with the ``extended_stabilizer`` simulation method
+    of the :class:`~qiskit.providers.aer.AerSimulator` and
+    :class:`~qiskit.providers.aer.QasmSimulator` simulators where it would
+    return an unnormalized statevector.
+    Fixed `#1196 <https://github.com/Qiskit/qiskit-aer/issues/1210>`__

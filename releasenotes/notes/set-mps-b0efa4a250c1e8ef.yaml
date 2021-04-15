@@ -1,6 +1,7 @@
 ---
-
-features:
+fixes:
   - |
-    Added support for set_matrix_product_state.
-
+    The ``matrix_product_state`` simulation method now has support for it's
+    previously missing set state instruction,
+    :class:`qiskit.providers.aer.library.SetMatrixProductState`, which enables
+    setting the state of a simulation in a circuit.
