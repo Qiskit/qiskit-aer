@@ -47,7 +47,7 @@ enum class OpType {
   save_stabilizer, save_unitary, save_mps, save_superop,
   // Set instructions
   set_statevec, set_densmat, set_unitary, set_superop,
-  set_stabilizer
+    set_stabilizer, set_mps
 };
 
 enum class DataSubType {
@@ -135,6 +135,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   case OpType::set_stabilizer:
     stream << "set_stabilizer";
     break;
+  case OpType::set_mps:
+    stream << "set_matrix_product_state";
+    break;
   case OpType::snapshot:
     stream << "snapshot";
     break;
@@ -187,7 +190,7 @@ struct Op {
   std::vector<reg_t> regs;        //  list of qubits for matrixes
   std::vector<complex_t> params;  // real or complex params for gates
   std::vector<uint_t> int_params;  // integer parameters 
-  std::vector<std::string> string_params; // used or snapshot label, and boolean functions
+  std::vector<std::string> string_params; // used for snapshot label, and boolean functions
 
   // Conditional Operations
   bool conditional = false; // is gate conditional gate
@@ -209,6 +212,7 @@ struct Op {
 
   // Set states
   Clifford::Clifford clifford;
+  mps_container_t mps;
 
   // Legacy Snapshots
   DataSubType save_type = DataSubType::single;
@@ -512,6 +516,9 @@ Op input_to_op_set_matrix(const inputdata_t& input, OpType op_type);
 template<typename inputdata_t>
 Op input_to_op_set_clifford(const inputdata_t& input, OpType op_type);
 
+template<typename inputdata_t>
+Op input_to_op_set_mps(const inputdata_t& input, OpType op_type);
+
 // Save data
 template<typename inputdata_t>
 Op input_to_op_save_default(const inputdata_t& input, OpType op_type);
@@ -622,6 +629,9 @@ Op input_to_op(const inputdata_t& input) {
     return input_to_op_set_matrix(input, OpType::set_superop);
   if (name == "set_stabilizer")
     return input_to_op_set_clifford(input, OpType::set_stabilizer);
+  if (name == "set_matrix_product_state")
+    return input_to_op_set_mps(input, OpType::set_mps);
+
   // Snapshot
   if (name == "snapshot")
     return input_to_op_snapshot(input);
@@ -1031,6 +1041,19 @@ Op input_to_op_set_clifford(const inputdata_t &input, OpType op_type) {
   op.type = op_type;
   const inputdata_t& params = Parser<inputdata_t>::get_value("params", input);
   op.clifford = Parser<inputdata_t>::template get_list_elem<Clifford::Clifford>(params, 0);
+  Parser<inputdata_t>::get_value(op.name, "name", input);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  add_conditional(Allowed::No, op, input);
+  return op;
+}
+
+template<typename inputdata_t>
+Op input_to_op_set_mps(const inputdata_t &input, OpType op_type) {
+  Op op;
+  op.type = op_type;
+  const inputdata_t& params = Parser<inputdata_t>::get_value("params", input);
+  op.mps = Parser<inputdata_t>::template get_list_elem<mps_container_t>(params, 0);
+
   Parser<inputdata_t>::get_value(op.name, "name", input);
   Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
   add_conditional(Allowed::No, op, input);

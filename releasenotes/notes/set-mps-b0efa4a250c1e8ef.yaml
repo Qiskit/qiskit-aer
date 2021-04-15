@@ -1,0 +1,6 @@
+---
+
+features:
+  - |
+    Added support for set_matrix_product_state.
+

@@ -39,6 +39,7 @@ Instruction Classes
     SetStabilizer
     SetSuperOp
     SetUnitary
+    SetMatrixProductState
 
 QuantumCircuit Methods
 ----------------------
@@ -54,6 +55,7 @@ following ``QuantumCircuit`` methods which are patched when importing Aer.
     set_stabilizer
     set_unitary
     set_superop
+    set_matrix_product_state
 
 
 Saving Simulator Data
@@ -183,6 +185,7 @@ __all__ = [
     'SetStatevector',
     'SetSuperOp',
     'SetUnitary',
+    'SetMatrixProductState'
 ]
 
 from .save_instructions import *

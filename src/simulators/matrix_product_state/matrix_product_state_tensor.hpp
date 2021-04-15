@@ -55,7 +55,6 @@ public:
   // Constructors of MPS_Tensor class
   MPS_Tensor(){}
   explicit MPS_Tensor(complex_t& alpha, complex_t& beta){
-    //    matrix<complex_t> A = matrix<complex_t>(1), B = matrix<complex_t>(1);
     cmatrix_t A = cmatrix_t(1, 1), B = cmatrix_t(1, 1);
     A(0,0) = alpha;
     B(0,0) = beta;
@@ -78,6 +77,17 @@ public:
       data_.clear();
     for (uint_t i=0; i<data.size(); i++)
       data_.push_back(data[i]);
+  }
+
+  MPS_Tensor(MPS_Tensor&& rhs) {
+    data_ = std::move(rhs.data_);
+  }
+  
+  MPS_Tensor& operator=(MPS_Tensor&& rhs) {
+    if (this != &rhs){
+      data_ = std::move(rhs.data_);
+    }
+    return *this;
   }
 
   // Destructor
