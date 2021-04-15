@@ -69,6 +69,7 @@ public:
 
   void apply_initialize(const reg_t &qubits, const cvector_t &statevector, 
 			RngEngine &rng);
+  void initialize_from_mps(const mps_container_t &mps);
 
   //----------------------------------------------------------------
   // Function name: num_qubits

@@ -1677,7 +1677,7 @@ void MPS::reset_internal(const reg_t &qubits, RngEngine &rng) {
 
 void MPS::measure_reset_update_internal(const reg_t &qubits,
 					const reg_t &meas_state) {
-  for (uint_t i=0; i<qubits.size(); i++) {
+  for (auto i=0; i<qubits.size(); i++) {
     if(meas_state[i] != 0) {
       q_reg_[qubits[i]].apply_x();
     }
@@ -1705,11 +1705,37 @@ mps_container_t MPS::move_to_mps_container() {
                                        std::move(q_reg_[i].get_data(1))));
   }
   std::vector<std::vector<double>> lambda_vec;
-  for (auto i=0; i<num_qubits()-1; i++) {
+  for (uint_t i=0; i<num_qubits()-1; i++) {
     ret.second.push_back(std::move(lambda_reg_[i]));
   }
   initialize(MPS());
   return ret;
+}
+
+void MPS::initialize_from_mps(const mps_container_t &mps) {
+
+  uint_t num_qubits = mps.first.size();
+  // clear and restart all internal structures
+  q_reg_.clear();
+  lambda_reg_.clear();
+  q_reg_.resize(num_qubits);
+  lambda_reg_.resize(num_qubits-1);
+  qubit_ordering_.order_.clear();
+  qubit_ordering_.order_.resize(num_qubits);
+  std::iota(qubit_ordering_.order_.begin(), qubit_ordering_.order_.end(), 0);
+
+  qubit_ordering_.location_.clear();
+  qubit_ordering_.location_.resize(num_qubits);
+  std::iota(qubit_ordering_.location_.begin(), qubit_ordering_.location_.end(), 0);
+
+  // initialize values from mps_container_t
+  for (uint_t i=0; i<num_qubits; i++) {
+    MPS_Tensor next_tensor(mps.first[i].first, mps.first[i].second);
+    q_reg_[i] = std::move(next_tensor);
+  }
+  for (uint_t i=0; i<num_qubits-1; i++) {
+    lambda_reg_[i] = mps.second[i];
+  }
 }
 
 //-------------------------------------------------------------------------
