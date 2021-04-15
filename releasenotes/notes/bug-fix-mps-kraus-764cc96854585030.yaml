@@ -2,6 +2,12 @@
 
 fixes:
   - |
-    Fixed bug in MPS::apply_kraus. After applying the kraus matrix to the relevant
-    qubits, we should propagate the changes to the neighboring qubits.
-
+    Fixed an issue with use of the ``matrix_product_state`` method of the
+    :class:`~qiskit.providers.aer.AerSimulator` and
+    :class:`~qiskit.providers.aer.QasmSimulator` simulators when running a
+    noisy simulation with Kraus errors. Previously, the matrix product state
+    simulation method would not propogate changes to neighboring qubits after
+    applying the Kraus matrix. This has been fixed so the output from the
+    simulation is correct.
+    Fixed `#1184 <https://github.com/Qiskit/qiskit-aer/issues/1184>`__ and
+    `#1205 <https://github.com/Qiskit/qiskit-aer/issues/1205>`__
