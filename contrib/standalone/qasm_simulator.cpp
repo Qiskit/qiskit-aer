@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
   int indent = 4;
   json_t qobj;
   json_t config;
-  int myrank=0,nprocs=1;
+  int myrank=0;
 
 #ifdef AER_MPI
   int prov;

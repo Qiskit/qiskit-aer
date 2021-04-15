@@ -387,9 +387,8 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
 
   initialize_omp();
 
-  int_t iChunk;
   if(BaseState::chunk_bits_ == BaseState::num_qubits_){
-    for(iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
+    for(int_t iChunk=0;iChunk<BaseState::num_local_chunks_;iChunk++){
       BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
       BaseState::qregs_[iChunk].initialize_from_vector(state);
     }
@@ -862,7 +861,6 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
                                        ExperimentResult &result,
                                        bool last_op) 
 {
-  int_t i;
   // Look for snapshot type in snapshotset
   auto it = Statevector::State<statevec_t>::snapshotset_.find(op.name);
   if (it == Statevector::State<statevec_t>::snapshotset_.end())
@@ -1675,7 +1673,7 @@ void State<statevec_t>::apply_kraus(const reg_t &qubits,
   double accum = 0.;
   bool complete = false;
 
-  int_t i,j;
+  int_t i;
   cvector_t vmat;
   double local_accum;
 
