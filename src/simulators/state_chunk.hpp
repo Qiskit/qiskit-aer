@@ -875,9 +875,7 @@ uint_t StateChunk<state_t>::mapped_index(const uint_t idx)
 template <class state_t>
 void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 {
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
-  uint_t nLarge;
-#pragma GCC diagnostic pop
+  uint_t nLarge = 1;
   uint_t q0,q1;
   int_t iChunk;
 
