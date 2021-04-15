@@ -55,7 +55,8 @@ const Operations::OpSet StateOpSet(
    OpType::save_expval_var, OpType::save_densmat,
    OpType::save_statevec, OpType::save_probs,
    OpType::save_probs_ket, OpType::save_amps,
-   OpType::save_amps_sq, OpType::save_mps, OpType::save_state},
+   OpType::save_amps_sq, OpType::save_mps, OpType::save_state,
+   OpType::set_mps, OpType::set_statevec},
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",
@@ -534,6 +535,16 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
           break;
         case OpType::kraus:
           apply_kraus(op.qubits, op.mats, rng);
+          break;
+	case OpType::set_statevec:
+	  {
+	    reg_t all_qubits(qreg_.num_qubits());
+	    std::iota(all_qubits.begin(), all_qubits.end(), 0);
+	    qreg_.apply_initialize(all_qubits, op.params, rng);
+	    break;
+	  }
+	case OpType::set_mps:
+          qreg_.initialize_from_mps(op.mps);
           break;
         case OpType::save_expval:
         case OpType::save_expval_var:

@@ -390,7 +390,8 @@ class AerSimulator(AerBackend):
             'roerror', 'snapshot', 'kraus', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_state', 'save_matrix_product_state', 'save_statevector',
-            'save_density_matrix', 'save_amplitudes', 'save_amplitudes_sq'
+            'save_density_matrix', 'save_amplitudes', 'save_amplitudes_sq',
+            'set_matrix_product_state'
         ]),
         'stabilizer': sorted([
             'roerror', 'snapshot', 'save_expval', 'save_expval_var',
