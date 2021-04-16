@@ -875,7 +875,9 @@ uint_t StateChunk<state_t>::mapped_index(const uint_t idx)
 template <class state_t>
 void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 {
+#ifdef AER_MPI
   uint_t nLarge = 1;
+#endif
   uint_t q0,q1;
   uint_t iChunk;
 
@@ -902,10 +904,12 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
     uint_t nPair,mask0,mask1;
     uint_t baseChunk,iChunk1,iChunk2;
 
+#ifdef AER_MPI
     if(q0 < chunk_bits_*qubit_scale())
       nLarge = 1;
     else
       nLarge = 2;
+#endif
 
     mask0 = (1ull << q0);
     mask1 = (1ull << q1);
