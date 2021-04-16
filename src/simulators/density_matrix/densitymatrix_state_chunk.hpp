@@ -1009,7 +1009,7 @@ cmatrix_t State<densmat_t>::reduced_density_matrix_helper(const reg_t &qubits,
         tmp = BaseState::qregs_[iChunk].copy_to_matrix();
 #ifdef AER_MPI
       else
-        recv_data(tmp.data(),size,0,iChunk);
+        BaseState::recv_data(tmp.data(),size,0,iChunk);
 #endif
 #pragma omp parallel for if(num_threads > 1) num_threads(num_threads)
       for(i=0;i<size;i++){
@@ -1039,17 +1039,11 @@ cmatrix_t State<densmat_t>::reduced_density_matrix_helper(const reg_t &qubits,
   else{
 #ifdef AER_MPI
     //send matrices to process 0
-    for(iChunk=0;iChunk<num_global_chunks_;iChunk++){
-      uint_t iProc = get_process_by_chunk(iChunk);
-      if(iProc == distributed_rank_){
-        if(copy){
-          auto tmp = qregs_[iChunk-global_chunk_index_].copy_to_matrix();
-          send_data(tmp.data(),size,iChunk,0);
-        }
-        else{
-          auto tmp = qregs_[iChunk-global_chunk_index_].move_to_matrix();
-          send_data(tmp.data(),size,iChunk,0);
-        }
+    for(iChunk=0;iChunk<BaseState::num_global_chunks_;iChunk++){
+      uint_t iProc = BaseState::get_process_by_chunk(iChunk);
+      if(iProc == BaseState::distributed_rank_){
+        auto tmp = BaseState::qregs_[iChunk-BaseState::global_chunk_index_].copy_to_matrix();
+        BaseState::send_data(tmp.data(),size,iChunk,0);
       }
     }
 #endif

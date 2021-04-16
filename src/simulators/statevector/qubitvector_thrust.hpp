@@ -796,14 +796,35 @@ void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const 
 //------------------------------------------------------------------------------
 
 template <typename data_t>
+class ZeroClear : public GateFuncBase<data_t>
+{
+protected:
+public:
+  ZeroClear() {}
+  bool is_diagonal(void)
+  {
+    return true;
+  }
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    thrust::complex<data_t>* vec;
+    vec = this->data_;
+    vec[i] = 0.0;
+  }
+  const char* name(void)
+  {
+    return "zero";
+  }
+};
+
+template <typename data_t>
 void QubitVectorThrust<data_t>::zero()
 {
 #ifdef AER_DEBUG
   DebugMsg("zero");
 #endif
 
-  chunk_->Zero();
-//  chunk_->synchronize();
+  apply_function(ZeroClear<data_t>());
 
 #ifdef AER_DEBUG
   DebugMsg("zero done");
