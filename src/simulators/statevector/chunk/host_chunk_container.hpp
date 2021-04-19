@@ -131,12 +131,16 @@ uint_t HostChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,uint
   ChunkContainer<data_t>::num_buffers_ = buffers;
   ChunkContainer<data_t>::num_checkpoint_ = checkpoint;
   ChunkContainer<data_t>::num_chunks_ = nc;
-  data_.resize((nc + buffers + checkpoint) << bits);
-  matrix_.resize(nc + buffers);
-  params_.resize(nc + buffers);
+  if(nc + buffers + checkpoint > 0)
+    data_.resize((nc + buffers + checkpoint) << bits);
+  if(nc + buffers > 0){
+    matrix_.resize(nc + buffers);
+    params_.resize(nc + buffers);
+  }
 
   //allocate chunk classes
-  ChunkContainer<data_t>::allocate_chunks();
+  if(nc + buffers + checkpoint > 0)
+    ChunkContainer<data_t>::allocate_chunks();
 
   return nc;
 }
@@ -147,9 +151,12 @@ uint_t HostChunkContainer<data_t>::Resize(uint_t chunks,uint_t buffers,uint_t ch
   uint_t i;
 
   if(chunks + buffers + checkpoint > this->num_chunks_ + this->num_buffers_ + this->num_checkpoint_){
-    data_.resize((chunks + buffers + checkpoint) << this->chunk_bits_);
-    matrix_.resize(chunks + buffers);
-    params_.resize(chunks + buffers);
+    if(chunks + buffers + checkpoint > 0)
+      data_.resize((chunks + buffers + checkpoint) << this->chunk_bits_);
+    if(chunks + buffers > 0){
+      matrix_.resize(chunks + buffers);
+      params_.resize(chunks + buffers);
+    }
   }
 
   this->num_chunks_ = chunks;
@@ -157,7 +164,8 @@ uint_t HostChunkContainer<data_t>::Resize(uint_t chunks,uint_t buffers,uint_t ch
   this->num_checkpoint_ = checkpoint;
 
   //allocate chunk classes
-  ChunkContainer<data_t>::allocate_chunks();
+  if(chunks + buffers + checkpoint > 0)
+    ChunkContainer<data_t>::allocate_chunks();
 
   return chunks + buffers + checkpoint;
 }
