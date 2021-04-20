@@ -519,6 +519,8 @@ QubitVectorThrust<data_t>::QubitVectorThrust(size_t num_qubits) : num_qubits_(0)
   multi_chunk_distribution_ = false;
   buffer_chunk_ = nullptr;
   checkpoint_ = nullptr;
+  send_chunk_ = nullptr;
+  recv_chunk_ = nullptr;
 
 #ifdef AER_DEBUG
   debug_count = 0;
