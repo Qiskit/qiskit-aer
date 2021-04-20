@@ -137,7 +137,7 @@ ChunkManager<data_t>::ChunkManager()
 
 #endif
 
-  chunks_.resize(num_places_*2 + 1);
+  chunks_.resize(num_places_*2 + 1,nullptr);
 
   iplace_host_ = num_places_ ;
 
@@ -283,9 +283,11 @@ void ChunkManager<data_t>::Free(void)
   int i;
 
   for(i=0;i<chunks_.size();i++){
-    if(chunks_[i])
+    if(chunks_[i]){
       chunks_[i]->Deallocate();
-    chunks_[i].reset();
+      chunks_[i].reset();
+      chunks_[i] = nullptr;
+    }
   }
 
   chunk_bits_ = 0;

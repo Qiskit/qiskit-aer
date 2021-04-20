@@ -179,6 +179,8 @@ void HostChunkContainer<data_t>::Deallocate(void)
   matrix_.shrink_to_fit();
   params_.clear();
   params_.shrink_to_fit();
+
+  ChunkContainer<data_t>::deallocate_chunks();
 }
 
 

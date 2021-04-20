@@ -373,6 +373,8 @@ void DeviceChunkContainer<data_t>::Deallocate(void)
   }
   stream_.clear();
 #endif
+
+  ChunkContainer<data_t>::deallocate_chunks();
 }
 
 template <typename data_t>
