@@ -914,31 +914,14 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const
   chunk_->set_device();
 
   vec0 = (data_t*)chunk_->pointer();
+  vec1 = (data_t*)checkpoint_->pointer();
 #ifdef AER_THRUST_CUDA
   cudaStream_t strm = chunk_->stream();
-  if(strm){
-    if(chunk_->device() == checkpoint_->device()){
-      vec1 = (data_t*)checkpoint_->pointer();
-
-      dot = thrust::inner_product(thrust::device,vec0,vec0 + data_size_*2,vec1,0.0);
-    }
-    else{
-      std::shared_ptr<Chunk<data_t>> pBuffer = chunk_manager_.MapBufferChunk(chunk_->place());
-      pBuffer->CopyIn(checkpoint_);
-      vec1 = (data_t*)pBuffer->pointer();
-
-      dot = thrust::inner_product(thrust::device,vec0,vec0 + data_size_*2,vec1,0.0);
-      chunk_manager_.UnmapBufferChunk(pBuffer);
-    }
-  }
-  else{
-    vec1 = (data_t*)checkpoint_->pointer();
-
+  if(strm)
+    dot = thrust::inner_product(thrust::device,vec0,vec0 + data_size_*2,vec1,0.0);
+  else
     dot = thrust::inner_product(thrust::omp::par,vec0,vec0 + data_size_*2,vec1,0.0);
-  }
 #else
-  vec1 = (data_t*)checkpoint_->pointer();
-
   if(num_qubits_ > omp_threshold_ && omp_threads_ > 1)
     dot = thrust::inner_product(thrust::device,vec0,vec0 + data_size_*2,vec1,0.0);
   else

@@ -173,7 +173,6 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
   char* str;
   bool multi_gpu = false;
   bool hybrid = false;
-  uint_t num_checkpoint,total_checkpoint = 0;
   bool multi_shot = false;
 
   //--- for test
@@ -253,19 +252,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
           nc /= 2;
         }
 
-        num_checkpoint = 0;
         chunks_[iDev] = std::make_shared<DeviceChunkContainer<data_t>>();
-
-#ifdef AER_THRUST_CUDA
-        size_t freeMem,totalMem;
-        cudaSetDevice(iDev);
-        cudaMemGetInfo(&freeMem,&totalMem);
-        if(freeMem <= ( ((uint_t)sizeof(thrust::complex<data_t>) * (nc + num_buffers)) << chunk_bits_)){
-          num_checkpoint = 0;
-        }
-#endif
-
-        total_checkpoint += num_checkpoint;
         num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nc,num_buffers);
       }
       if(num_chunks_ < nchunks){
