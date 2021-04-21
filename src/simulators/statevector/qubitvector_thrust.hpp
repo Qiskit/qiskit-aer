@@ -2761,15 +2761,6 @@ public:
       mask |= (1ull << qubits[i]);
     }
   }
-  int qubits_count(void)
-  {
-    return nqubits;
-  }
-  int num_control_bits(void)
-  {
-    return nqubits - 1;
-  }
-
   bool is_diagonal(void)
   {
     return true;
