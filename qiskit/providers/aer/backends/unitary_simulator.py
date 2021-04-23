@@ -193,6 +193,8 @@ class UnitarySimulator(AerBackend):
             fusion_verbose=False,
             fusion_max_qubit=5,
             fusion_threshold=14,
+            blocking_qubits=None,
+            blocking_enable=False,
             # statevector options
             statevector_parallel_threshold=14)
 
