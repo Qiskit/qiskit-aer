@@ -106,10 +106,6 @@ public:
   // the outcome was random.
   bool measure_and_update(const uint64_t qubit, const uint64_t randint);
 
-  // Return 1 or -1: the expectation value of observable Z on all
-  // the qubits in the parameter `qubits`
-  int64_t expectation_value(const std::vector<uint64_t>& qubits);
-
   //-----------------------------------------------------------------------
   // Configuration settings
   //-----------------------------------------------------------------------
@@ -335,54 +331,6 @@ bool Clifford::measure_and_update(const uint64_t qubit, const uint64_t randint) 
     }
     return outcome;
   }
-}
-
-int64_t Clifford::expectation_value(const std::vector<uint64_t>& qubits) {
-  // Check if there is a stabilizer that anti-commutes with an odd number of qubits
-  // If so expectation value is 0
-  for (size_t row = num_qubits_; row < 2 * num_qubits_; row++) {
-    size_t num_of_x = 0;
-    for (const auto& qubit : qubits) {
-      if (table_[row].X[qubit]) {
-	      num_of_x++;
-      }
-    }
-    if(num_of_x % 2 == 1)
-      return 0;
-  }
-
-  // Otherwise P is (-1)^a prod_j S_j^b_j for Clifford stabilizers
-  // If P anti-commutes with D_j then b_j = 1.  
-  
-  // Get Pauli rep for Z on input qubits
-  uint64_t phase = 0;
-  BV::BinaryVector z(num_qubits_);
-  for (auto qubit : qubits) {
-    z.set1(qubit);
-  }
-
-  // Multiply P by stabilizers with anti-commuting destabilizers
-  for (size_t row = 0; row < num_qubits_; row++) {
-    // Check if destabilizer anti-commutes
-    size_t num_of_x = 0;
-    for (auto qubit : qubits) {
-      if (table_[row].X[qubit]) {
-	      num_of_x++;
-      }
-    }
-    if(num_of_x % 2 == 0) continue;
-
-    // If anti-commutes multiply Pauli by stabilizer
-    auto xi = table_[row + num_qubits_].X;
-    auto zi = table_[row + num_qubits_].Z;
-    phase += 2 * phases_[row + num_qubits_];
-    for (size_t i = 0; i < num_qubits_; i++) {
-      phase += zi[i] & xi[i];
-      phase += 2 * (z[i] & xi[i]);
-      z.setValue(z[i] ^ zi[i], i);
-    }
-  }
-  return (phase % 4) ? -1 : 1;
 }
 
 void Clifford::rowsum_helper(const Pauli::Pauli &row, const phase_t row_phase,
