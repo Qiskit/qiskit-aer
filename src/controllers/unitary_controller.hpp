@@ -17,6 +17,7 @@
 
 #include "controller.hpp"
 #include "simulators/unitary/unitary_state.hpp"
+#include "simulators/unitary/unitary_state_chunk.hpp"
 #include "transpile/fusion.hpp"
 
 namespace AER {
@@ -196,30 +197,60 @@ void UnitaryController::run_circuit(const Circuit &circ,
   switch (method_) {
     case Method::automatic:
     case Method::unitary_cpu: {
-      if (precision_ == Precision::double_precision) {
-        // Double-precision unitary simulation
-        return run_circuit_helper<
-            QubitUnitary::State<QV::UnitaryMatrix<double>>>(circ, noise, config,
-                                                            shots, rng_seed, result);
-      } else {
-        // Single-precision unitary simulation
-        return run_circuit_helper<
-            QubitUnitary::State<QV::UnitaryMatrix<float>>>(circ, noise, config,
-                                                            shots, rng_seed, result);
+      if(Base::Controller::multiple_chunk_required(circ,noise)){
+        if (precision_ == Precision::double_precision) {
+          // Double-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitaryChunk::State<QV::UnitaryMatrix<double>>>(circ, noise, config,
+                                                              shots, rng_seed, result);
+        } else {
+          // Single-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitaryChunk::State<QV::UnitaryMatrix<float>>>(circ, noise, config,
+                                                              shots, rng_seed, result);
+        }
+      }
+      else{
+        if (precision_ == Precision::double_precision) {
+          // Double-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitary::State<QV::UnitaryMatrix<double>>>(circ, noise, config,
+                                                              shots, rng_seed, result);
+        } else {
+          // Single-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitary::State<QV::UnitaryMatrix<float>>>(circ, noise, config,
+                                                              shots, rng_seed, result);
+        }
       }
     }
     case Method::unitary_thrust_gpu: {
 #ifdef AER_THRUST_CUDA
-      if (precision_ == Precision::double_precision) {
-        // Double-precision unitary simulation
-        return run_circuit_helper<
-            QubitUnitary::State<QV::UnitaryMatrixThrust<double>>>(
-            circ, noise, config, shots, rng_seed, result);
-      } else {
-        // Single-precision unitary simulation
-        return run_circuit_helper<
-            QubitUnitary::State<QV::UnitaryMatrixThrust<float>>>(
-            circ, noise, config, shots, rng_seed, result);
+      if(Base::Controller::multiple_chunk_required(circ,noise)){
+        if (precision_ == Precision::double_precision) {
+          // Double-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitaryChunk::State<QV::UnitaryMatrixThrust<double>>>(
+              circ, noise, config, shots, rng_seed, result);
+        } else {
+          // Single-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitaryChunk::State<QV::UnitaryMatrixThrust<float>>>(
+              circ, noise, config, shots, rng_seed, result);
+        }
+      }
+      else{
+        if (precision_ == Precision::double_precision) {
+          // Double-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitary::State<QV::UnitaryMatrixThrust<double>>>(
+              circ, noise, config, shots, rng_seed, result);
+        } else {
+          // Single-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitary::State<QV::UnitaryMatrixThrust<float>>>(
+              circ, noise, config, shots, rng_seed, result);
+        }
       }
 #else
       throw std::runtime_error(
@@ -308,6 +339,15 @@ void UnitaryController::run_circuit_helper(
   if (fusion_pass.active && circ.num_qubits >= fusion_pass.threshold) {
     fusion_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
   }
+
+  Transpile::CacheBlocking cache_block_pass = transpile_cache_blocking(opt_circ,dummy_noise,config,(precision_ == Precision::single_precision) ? sizeof(std::complex<float>) : sizeof(std::complex<double>),true);
+  cache_block_pass.set_save_state(true);
+  cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
+
+  uint_t block_bits = 0;
+  if(cache_block_pass.enabled())
+    block_bits = cache_block_pass.block_bits();
+  state.allocate(Base::Controller::max_qubits_,block_bits);
 
   // Run single shot collecting measure data or snapshots
 
