@@ -48,7 +48,6 @@ protected:
   int idev_buffer_map_;        //device index buffer to be mapped
 
   int iplace_host_;            //chunk container for host memory
-
 public:
   ChunkManager();
 
@@ -93,14 +92,12 @@ public:
     return num_qubits_;
   }
 
-  std::shared_ptr<Chunk<data_t>> MapChunk(int iplace = -1);
-  std::shared_ptr<Chunk<data_t>> MapBufferChunk(int idev);
-  std::shared_ptr<Chunk<data_t>> MapCheckpoint(std::shared_ptr<Chunk<data_t>> chunk);
-  std::shared_ptr<Chunk<data_t>> MapBufferChunkOnHost(void);
+  bool MapChunk(Chunk<data_t>& chunk,int iplace = -1);
+  bool MapBufferChunk(Chunk<data_t>& out,int idev);
+  bool MapBufferChunkOnHost(Chunk<data_t>& out);
 
-  void UnmapChunk(std::shared_ptr<Chunk<data_t>> chunk);
-  void UnmapBufferChunk(std::shared_ptr<Chunk<data_t>> buffer);
-  void UnmapCheckpoint(std::shared_ptr<Chunk<data_t>> buffer);
+  void UnmapChunk(Chunk<data_t>& chunk);
+  void UnmapBufferChunk(Chunk<data_t>& buffer);
 
 };
 
@@ -108,7 +105,6 @@ template <typename data_t>
 ChunkManager<data_t>::ChunkManager()
 {
   int i,j;
-
   num_places_ = 1;
   chunk_bits_ = 0;
   num_chunks_ = 0;
@@ -137,8 +133,6 @@ ChunkManager<data_t>::ChunkManager()
 
 #endif
 
-  chunks_.resize(num_places_*2 + 1,nullptr);
-
   iplace_host_ = num_places_ ;
 
 #ifdef AER_DEBUG
@@ -158,14 +152,11 @@ template <typename data_t>
 ChunkManager<data_t>::~ChunkManager()
 {
   Free();
-
-  chunks_.clear();
 }
 
 template <typename data_t>
 uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
 {
-  int tid,nid;
   uint_t num_buffers;
   int iDev;
   uint_t is,ie,nc;
@@ -187,90 +178,88 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
   }
   //---
 
-  nid = omp_get_num_threads();
-  tid = omp_get_thread_num();
+  if(num_qubits_ != nqubits || chunk_bits_ != chunk_bits || nchunks > num_chunks_){
+    //free previous allocation
+    Free();
 
-#pragma omp critical
-  {
-    if(num_qubits_ != nqubits || chunk_bits_ != chunk_bits || nchunks*nid > num_chunks_){
-      //free previous allocation
-      Free();
-      num_qubits_ = nqubits;
-      chunk_bits_ = chunk_bits;
+    num_qubits_ = nqubits;
+    chunk_bits_ = chunk_bits;
 
-      num_chunks_ = 0;
+    num_chunks_ = 0;
 
-      if(chunk_bits == nqubits){
-        if(nchunks > 1 || nid > 1){  //multi-shot parallelization
-          //accumulate number of chunks
-          num_chunks_ = nid*nchunks;
+    if(chunk_bits == nqubits){
+      if(nchunks > 1){  //multi-shot parallelization
+        //accumulate number of chunks
+        num_chunks_ = nchunks;
 
-          num_buffers = 0;
-          multi_shot = true;
+        num_buffers = 0;
+        multi_shot = true;
 
 #ifdef AER_THRUST_CPU
-          multi_gpu = false;
-          num_places_ = 1;
+        multi_gpu = false;
+        num_places_ = 1;
 #else
-          multi_gpu = true;
-          num_places_ = num_devices_;
+        multi_gpu = true;
+        num_places_ = num_devices_;
 #endif
-        }
-        else{    //single chunk
-          num_buffers = 0;
-          multi_gpu = false;
-          num_places_ = 1;
-          num_chunks_ = nchunks;
-        }
       }
-      else{   //multiple-chunk parallelization
-        num_buffers = AER_MAX_BUFFERS;
+      else{    //single chunk
+        num_buffers = 0;
+        multi_gpu = false;
+        num_places_ = 1;
+        num_chunks_ = nchunks;
+      }
+    }
+    else{   //multiple-chunk parallelization
+      num_buffers = AER_MAX_BUFFERS;
 
 #ifdef AER_THRUST_CUDA
-        num_places_ = num_devices_;
-        if(!multi_gpu){
-          size_t freeMem,totalMem;
-          cudaSetDevice(0);
-          cudaMemGetInfo(&freeMem,&totalMem);
-          if(freeMem > ( ((uint_t)sizeof(thrust::complex<data_t>) * (nchunks + num_buffers + AER_DUMMY_BUFFERS)) << chunk_bits_)){
-            num_places_ = 1;
-          }
+      num_places_ = num_devices_;
+      if(!multi_gpu){
+        size_t freeMem,totalMem;
+        cudaSetDevice(0);
+        cudaMemGetInfo(&freeMem,&totalMem);
+        if(freeMem > ( ((uint_t)sizeof(thrust::complex<data_t>) * (nchunks + num_buffers + AER_DUMMY_BUFFERS)) << chunk_bits_)){
+          num_places_ = 1;
         }
+      }
 #else
-        num_places_ = 1;
+      num_places_ = 1;
 #endif
-        num_chunks_ = nchunks;
+      num_chunks_ = nchunks;
+    }
+
+    nchunks = num_chunks_;
+    num_chunks_ = 0;
+    for(iDev=0;iDev<num_places_;iDev++){
+      is = nchunks * (uint_t)iDev / (uint_t)num_places_;
+      ie = nchunks * (uint_t)(iDev + 1) / (uint_t)num_places_;
+      nc = ie - is;
+      if(hybrid){
+        nc /= 2;
       }
 
-      nchunks = num_chunks_;
-      num_chunks_ = 0;
-      for(iDev=0;iDev<num_places_;iDev++){
-        is = nchunks * (uint_t)iDev / (uint_t)num_places_;
-        ie = nchunks * (uint_t)(iDev + 1) / (uint_t)num_places_;
-        nc = ie - is;
-        if(hybrid){
-          nc /= 2;
-        }
+      chunks_.push_back(std::make_shared<DeviceChunkContainer<data_t>>());
+      num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nc,num_buffers);
+    }
+    if(num_chunks_ < nchunks){
+      //rest of chunks are stored on host
+      chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
+      chunks_[num_places_]->Allocate(-1,chunk_bits,nchunks-num_chunks_,num_buffers);
+      num_places_ += 1;
+      num_chunks_ = nchunks;
+    }
 
-        chunks_[iDev] = std::make_shared<DeviceChunkContainer<data_t>>();
-        num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nc,num_buffers);
-      }
-      if(num_chunks_ < nchunks){
-        //rest of chunks are stored on host
-        chunks_[num_places_] = std::make_shared<HostChunkContainer<data_t>>();
-        chunks_[num_places_]->Allocate(-1,chunk_bits,nchunks-num_chunks_,num_buffers);
-        num_places_ += 1;
-        num_chunks_ = nchunks;
-      }
-
-      //additional host buffer
-      iplace_host_ = num_places_;
-      chunks_[iplace_host_] = std::make_shared<HostChunkContainer<data_t>>();
 #ifdef AER_DISABLE_GDR
-      chunks_[iplace_host_]->Allocate(-1,chunk_bits,0,AER_MAX_BUFFERS);
-#else
-      chunks_[iplace_host_]->Allocate(-1,chunk_bits,0,0);
+    //additional host buffer
+    iplace_host_ = chunks_.size();
+    chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
+    chunks_[iplace_host_]->Allocate(-1,chunk_bits,0,AER_MAX_BUFFERS);
 #endif
+  }
+  else{
+    for(iDev=0;iDev<chunks_.size();iDev++){
+      chunks_[iDev]->unmap_all();
     }
   }
 
@@ -283,12 +272,10 @@ void ChunkManager<data_t>::Free(void)
   int i;
 
   for(i=0;i<chunks_.size();i++){
-    if(chunks_[i]){
-      chunks_[i]->Deallocate();
-      chunks_[i].reset();
-      chunks_[i] = nullptr;
-    }
+    chunks_[i]->Deallocate();
+    chunks_[i].reset();
   }
+  chunks_.clear();
 
   chunk_bits_ = 0;
   num_qubits_ = 0;
@@ -298,77 +285,43 @@ void ChunkManager<data_t>::Free(void)
 }
 
 template <typename data_t>
-std::shared_ptr<Chunk<data_t>> ChunkManager<data_t>::MapChunk(int iplace)
+bool ChunkManager<data_t>::MapChunk(Chunk<data_t>& chunk,int iplace)
 {
-  std::shared_ptr<Chunk<data_t>> pChunk;
   int i;
 
   while(iplace < num_places_){
-    pChunk = chunks_[iplace]->MapChunk();
-    if(pChunk){
+    if(chunks_[iplace]->MapChunk(chunk))
       break;
-    }
-    iplace++;
   }
-
-  return pChunk;
+  return chunk.is_mapped();
 }
 
 template <typename data_t>
-std::shared_ptr<Chunk<data_t>> ChunkManager<data_t>::MapBufferChunk(int idev)
+bool ChunkManager<data_t>::MapBufferChunk(Chunk<data_t>& out,int idev)
 {
-  std::shared_ptr<Chunk<data_t>> pChunk = nullptr;
-
   if(idev < 0){
     int i;
     for(i=0;i<num_devices_;i++){
-      pChunk = chunks_[i]->MapBufferChunk();
-      if(pChunk){
+      if(chunks_[i]->MapBufferChunk(out))
         break;
-      }
     }
   }
   else{
-    pChunk = chunks_[(idev % num_devices_)]->MapBufferChunk();
+    chunks_[(idev % num_devices_)]->MapBufferChunk(out);
   }
-  return pChunk;
+  return out.is_mapped();
 }
 
 template <typename data_t>
-std::shared_ptr<Chunk<data_t>> ChunkManager<data_t>::MapBufferChunkOnHost(void)
+bool ChunkManager<data_t>::MapBufferChunkOnHost(Chunk<data_t>& out)
 {
-  return chunks_[iplace_host_]->MapBufferChunk();
+  return chunks_[iplace_host_]->MapBufferChunk(out);
 }
 
 template <typename data_t>
-std::shared_ptr<Chunk<data_t>> ChunkManager<data_t>::MapCheckpoint(std::shared_ptr<Chunk<data_t>> chunk)
+void ChunkManager<data_t>::UnmapChunk(Chunk<data_t>& chunk)
 {
-  std::shared_ptr<Chunk<data_t>> checkpoint;
-  int iplace = chunk->place();
-
-  if(chunks_[iplace]->num_checkpoint() > 0){
-    checkpoint = chunks_[iplace]->MapCheckpoint(chunk->pos());
-  }
-
-  if(!checkpoint){
-#pragma omp critical
-    {
-      //map checkpoint on host
-      if(chunks_[iplace_host_]->num_checkpoint() == 0){
-        chunks_[iplace_host_]->Resize(chunks_[iplace_host_]->num_chunks(),chunks_[iplace_host_]->num_buffers(),num_chunks_);
-      }
-    }
-    checkpoint = chunks_[iplace_host_]->MapCheckpoint(-1);
-  }
-
-  return checkpoint;
-}
-
-
-template <typename data_t>
-void ChunkManager<data_t>::UnmapChunk(std::shared_ptr<Chunk<data_t>> chunk)
-{
-  int iPlace = chunk->place();
+  int iPlace = chunk.place();
 
 #pragma omp critical
   {
@@ -378,15 +331,9 @@ void ChunkManager<data_t>::UnmapChunk(std::shared_ptr<Chunk<data_t>> chunk)
 
 
 template <typename data_t>
-void ChunkManager<data_t>::UnmapBufferChunk(std::shared_ptr<Chunk<data_t>> buffer)
+void ChunkManager<data_t>::UnmapBufferChunk(Chunk<data_t>& buffer)
 {
-  chunks_[buffer->place()]->UnmapBuffer(buffer);
-}
-
-template <typename data_t>
-void ChunkManager<data_t>::UnmapCheckpoint(std::shared_ptr<Chunk<data_t>> buffer)
-{
-  chunks_[buffer->place()]->UnmapCheckpoint(buffer);
+  chunks_[buffer.place()]->UnmapBuffer(buffer);
 }
 
 

@@ -313,12 +313,10 @@ protected:
   int place_id_;                      //index of a container (device index + host)
   uint_t num_chunks_;                 //number of chunks in this container
   uint_t num_buffers_;                //number of buffers (buffer chunks) in this container
-  uint_t num_checkpoint_;             //number of checkpoint buffers in this container
   uint_t num_chunk_mapped_;           //number of chunks mapped
   reg_t blocked_qubits_;
-  std::vector<std::shared_ptr<Chunk<data_t>>> chunks_;         //chunk storage
-  std::vector<std::shared_ptr<Chunk<data_t>>> buffers_;        //buffer storage
-  std::vector<std::shared_ptr<Chunk<data_t>>> checkpoints_;    //checkpoint storage
+  std::vector<bool> chunks_map_;      //chunk mapper
+  std::vector<bool> buffers_map_;     //buffer mapper
   bool enable_omp_;                 //disable this when shots are parallelized outside
 public:
   ChunkContainer()
@@ -327,7 +325,6 @@ public:
     place_id_ = 0;
     num_chunks_ = 0;
     num_buffers_ = 0;
-    num_checkpoint_ = 0;
     num_chunk_mapped_ = 0;
     enable_omp_ = true;
   }
@@ -352,10 +349,6 @@ public:
   uint_t num_buffers(void)
   {
     return num_buffers_;
-  }
-  uint_t num_checkpoint(void)
-  {
-    return num_checkpoint_;
   }
   uint_t chunk_size(void)
   {
@@ -397,9 +390,9 @@ public:
 
   virtual thrust::complex<data_t>& operator[](uint_t i) = 0;
 
-  virtual uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,uint_t checkpoint = 0) = 0;
+  virtual uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS) = 0;
   virtual void Deallocate(void) = 0;
-  virtual uint_t Resize(uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,uint_t checkpoint = 0) = 0;
+  virtual uint_t Resize(uint_t chunks,uint_t buffers = AER_MAX_BUFFERS) = 0;
 
   virtual void Set(uint_t i,const thrust::complex<data_t>& t) = 0;
   virtual thrust::complex<data_t> Get(uint_t i) const = 0;
@@ -407,11 +400,11 @@ public:
   virtual void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk) = 0;
   virtual void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk) = 0;
 
-  virtual void CopyIn(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk) = 0;
-  virtual void CopyOut(std::shared_ptr<Chunk<data_t>> dest,uint_t iChunk) = 0;
+  virtual void CopyIn(Chunk<data_t>& src,uint_t iChunk) = 0;
+  virtual void CopyOut(Chunk<data_t>& dest,uint_t iChunk) = 0;
   virtual void CopyIn(thrust::complex<data_t>* src,uint_t iChunk, uint_t size) = 0;
   virtual void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk, uint_t size) = 0;
-  virtual void Swap(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk) = 0;
+  virtual void Swap(Chunk<data_t>& src,uint_t iChunk) = 0;
 
   virtual void Zero(uint_t iChunk,uint_t count) = 0;
 
@@ -430,12 +423,11 @@ public:
     return sizeof(thrust::complex<data_t>);
   }
 
-  std::shared_ptr<Chunk<data_t>> MapChunk(void);
-  std::shared_ptr<Chunk<data_t>> MapBufferChunk(void);
-  std::shared_ptr<Chunk<data_t>> MapCheckpoint(int_t iChunk = -1);
-  void UnmapChunk(std::shared_ptr<Chunk<data_t>> chunk);
-  void UnmapBuffer(std::shared_ptr<Chunk<data_t>> buf);
-  void UnmapCheckpoint(std::shared_ptr<Chunk<data_t>> buf);
+  bool MapChunk(Chunk<data_t>& chunk);
+  bool MapBufferChunk(Chunk<data_t>& chunk);
+  void UnmapChunk(Chunk<data_t>& chunk);
+  void UnmapBuffer(Chunk<data_t>& chunk);
+  void unmap_all(void);
 
   virtual thrust::complex<data_t>* chunk_pointer(uint_t iChunk) const
   {
@@ -491,101 +483,70 @@ protected:
 };
 
 template <typename data_t>
-std::shared_ptr<Chunk<data_t>> ChunkContainer<data_t>::MapChunk(void)
+bool ChunkContainer<data_t>::MapChunk(Chunk<data_t>& chunk)
 {
-  uint_t i,pos,idx;
-  pos = num_chunks_;
+  uint_t i,idx;
 
 #pragma omp critical
   {
     for(i=0;i<num_chunks_;i++){
       idx = (num_chunk_mapped_ + i) % num_chunks_;
-      if(!chunks_[idx]->is_mapped()){
-        chunks_[idx]->map();
-        pos = idx;
+      if(!chunks_map_[idx]){
+        chunks_map_[idx] = true;
         num_chunk_mapped_++;
+        chunk.map(this->shared_from_this(),idx);
         break;
       }
     }
   }
-
-  if(pos < num_chunks_)
-    return chunks_[pos];
-  return nullptr;
+  return chunk.is_mapped();
 }
 
 template <typename data_t>
-void ChunkContainer<data_t>::UnmapChunk(std::shared_ptr<Chunk<data_t>> chunk)
+void ChunkContainer<data_t>::UnmapChunk(Chunk<data_t>& chunk)
 {
-  chunk->unmap();
+  chunks_map_[chunk.pos()] = false;
+  chunk.unmap();
 }
 
 template <typename data_t>
-std::shared_ptr<Chunk<data_t>> ChunkContainer<data_t>::MapBufferChunk(void)
+bool ChunkContainer<data_t>::MapBufferChunk(Chunk<data_t>& chunk)
 {
   uint_t i,pos;
-  std::shared_ptr<Chunk<data_t>> ret = nullptr;
 
 #pragma omp critical
   {
     for(i=0;i<num_buffers_;i++){
-      if(!buffers_[i]->is_mapped()){
-        buffers_[i]->map();
-        ret = buffers_[i];
+      if(!buffers_map_[i]){
+        buffers_map_[i] = true;
+        chunk.map(this->shared_from_this(),num_chunks_+i);
         break;
       }
     }
   }
 
-  return ret;
+  return chunk.is_mapped();
 }
 
 template <typename data_t>
-void ChunkContainer<data_t>::UnmapBuffer(std::shared_ptr<Chunk<data_t>> buf)
+void ChunkContainer<data_t>::UnmapBuffer(Chunk<data_t>& buf)
 {
 #pragma omp critical
   {
-    buf->unmap();
+    buffers_map_[buf.pos()-num_chunks_] = false;
   }
+  buf.unmap();
 }
 
 template <typename data_t>
-std::shared_ptr<Chunk<data_t>> ChunkContainer<data_t>::MapCheckpoint(int_t iChunk)
+void ChunkContainer<data_t>::unmap_all(void)
 {
-  if(iChunk >= 0 && num_checkpoint_ == num_chunks_){   //checkpoint buffers are reserved for all chunks
-    if(iChunk < num_checkpoint_)
-      return checkpoints_[iChunk];
-    return nullptr;
-  }
-  else{
-    uint_t i,pos;
-    pos = num_checkpoint_;
-#pragma omp critical
-    {
-      for(i=0;i<num_checkpoint_;i++){
-        if(!checkpoints_[i]->is_mapped()){
-          checkpoints_[i]->map();
-          pos = i;
-          break;
-        }
-      }
-    }
-
-    if(pos < num_checkpoint_)
-      return checkpoints_[pos];
-    return nullptr;
-  }
-}
-
-template <typename data_t>
-void ChunkContainer<data_t>::UnmapCheckpoint(std::shared_ptr<Chunk<data_t>> buf)
-{
-  if(num_checkpoint_ != num_chunks_){
-#pragma omp critical
-    {
-      buf->unmap();
-    }
-  }
+  int_t i;
+  for(i=0;i<chunks_map_.size();i++)
+    chunks_map_[i] = false;
+  for(i=0;i<buffers_map_.size();i++)
+    buffers_map_[i] = false;
+  num_chunk_mapped_ = 0;
 }
 
 #ifdef AER_THRUST_CUDA
@@ -706,53 +667,15 @@ template <typename data_t>
 void ChunkContainer<data_t>::allocate_chunks(void)
 {
   uint_t i;
-  chunks_.resize(num_chunks_);
-  buffers_.resize(num_buffers_);
-  checkpoints_.resize(num_checkpoint_);
-
-  if(num_chunks_ > 0){
-    chunks_.resize(num_chunks_);
-    for(i=0;i<num_chunks_;i++){
-      chunks_[i] = std::make_shared<Chunk<data_t>>(this->shared_from_this(),i);
-    }
-  }
-  if(num_buffers_ > 0){
-    buffers_.resize(num_buffers_);
-    for(i=0;i<num_buffers_;i++){
-      buffers_[i] = std::make_shared<Chunk<data_t>>(this->shared_from_this(),num_chunks_+i);
-    }
-  }
-  if(num_checkpoint_ > 0){
-    checkpoints_.resize(num_checkpoint_);
-    for(i=0;i<num_checkpoint_;i++){
-      checkpoints_[i] = std::make_shared<Chunk<data_t>>(this->shared_from_this(),num_chunks_+num_buffers_+i);
-    }
-  }
+  chunks_map_.resize(num_chunks_,false);
+  buffers_map_.resize(num_buffers_,false);
 }
 
 template <typename data_t>
 void ChunkContainer<data_t>::deallocate_chunks(void)
 {
-  uint_t i;
-
-  if(num_chunks_ > 0){
-    for(i=0;i<num_chunks_;i++){
-      chunks_[i].reset();
-    }
-    chunks_.clear();
-  }
-  if(num_buffers_ > 0){
-    for(i=0;i<num_buffers_;i++){
-      buffers_[i].reset();
-    }
-    buffers_.clear();
-  }
-  if(num_checkpoint_ > 0){
-    for(i=0;i<num_checkpoint_;i++){
-      checkpoints_[i].reset();
-    }
-    checkpoints_.clear();
-  }
+  chunks_map_.clear();
+  buffers_map_.clear();
 }
 
 //------------------------------------------------------------------------------

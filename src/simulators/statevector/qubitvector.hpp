@@ -129,6 +129,7 @@ public:
 
   //setup chunk
   void chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
+  void chunk_setup(const QubitVector<data_t>& base,const uint_t chunk_index);
 
   //cache control for chunks on host
   bool fetch_chunk(void) const
@@ -877,6 +878,12 @@ std::complex<double> QubitVector<data_t>::inner_product() const {
 //setup chunk
 template <typename data_t>
 void QubitVector<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks)
+{
+  chunk_index_ = chunk_index;
+}
+
+template <typename data_t>
+void QubitVector<data_t>::chunk_setup(const QubitVector<data_t>& base,const uint_t chunk_index)
 {
   chunk_index_ = chunk_index;
 }

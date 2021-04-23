@@ -407,9 +407,9 @@ template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_diagonal_unitary_matrix(const reg_t &qubits,
                                                           const cvector_t<double> &diag) 
 {
-  BaseVector::chunk_->StoreMatrix(diag);
-  BaseVector::chunk_->StoreUintParams(qubits);
-  BaseVector::apply_function(DensityDiagMatMultNxN<data_t>(qubits, BaseVector::chunk_manager_.num_qubits()/2, num_qubits()));
+  BaseVector::chunk_.StoreMatrix(diag);
+  BaseVector::chunk_.StoreUintParams(qubits);
+  BaseVector::apply_function(DensityDiagMatMultNxN<data_t>(qubits, BaseVector::chunk_manager_->num_qubits()/2, num_qubits()));
 
   /*
   if(qubits.size() == 1){
@@ -625,7 +625,7 @@ public:
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_phase(const uint_t q,const complex_t &phase) 
 {
-  BaseVector::apply_function(DensityPhase<data_t>(q, (thrust::complex<double>*)&phase, BaseVector::chunk_manager_.num_qubits()/2, num_qubits() ));
+  BaseVector::apply_function(DensityPhase<data_t>(q, (thrust::complex<double>*)&phase, BaseVector::chunk_manager_->num_qubits()/2, num_qubits() ));
 //  BaseVector::apply_function(DensityPhase<data_t>(q, num_qubits(), (thrust::complex<double>*)&phase ));
 
 #ifdef AER_DEBUG
@@ -1093,7 +1093,7 @@ double DensityMatrixThrust<data_t>::probability(const uint_t outcome) const
 {
   const auto shift = BaseMatrix::num_rows() + 1;
   std::complex<data_t> ret;
-  ret = (std::complex<data_t>)BaseVector::chunk_->Get(outcome * shift);
+  ret = (std::complex<data_t>)BaseVector::chunk_.Get(outcome * shift);
   return std::real(ret);
 }
 
@@ -1188,11 +1188,11 @@ reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnd
 
   BaseVector::DebugMsg("sample_measure begin");
 
-  samples = BaseVector::chunk_->sample_measure(rnds,nrows+1,false);
+  samples = BaseVector::chunk_.sample_measure(rnds,nrows+1,false);
   BaseVector::DebugMsg("sample_measure",samples);
   return samples;
 #else
-  return BaseVector::chunk_->sample_measure(rnds,nrows+1,false);
+  return BaseVector::chunk_.sample_measure(rnds,nrows+1,false);
 #endif
 }
 

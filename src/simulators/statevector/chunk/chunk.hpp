@@ -22,8 +22,6 @@ namespace AER {
 namespace QV {
 
 
-
-
 //============================================================================
 // chunk class
 //============================================================================
@@ -32,27 +30,42 @@ class Chunk
 {
 protected:
   mutable std::weak_ptr<ChunkContainer<data_t>> chunk_container_;   //pointer to chunk container
-  std::shared_ptr<Chunk<data_t>> cache_;                //pointer to cache chunk on device
+  std::shared_ptr<Chunk<data_t>> cache_;                 //pointer to cache chunk on device
   uint_t chunk_pos_;                    //position in container
   int place_;                           //container ID
   uint_t num_qubits_;                   //total number of qubits
   uint_t chunk_index_;                  //global chunk index
   bool mapped_;                         //mapped to qubitvector
 public:
-  Chunk(std::shared_ptr<ChunkContainer<data_t>> cc,uint_t pos)
+  Chunk()
   {
-    chunk_container_ = cc;
-    chunk_pos_ = pos;
-    place_ = cc->place();
+    chunk_pos_ = 0;
+    place_ = -1;
     num_qubits_ = 0;
     chunk_index_ = 0;
     mapped_ = false;
-    cache_ = nullptr;
+  }
+
+  Chunk(std::weak_ptr<ChunkContainer<data_t>> cc,uint_t pos)
+  {
+    chunk_container_ = cc;
+    chunk_pos_ = pos;
+    place_ = chunk_container_.lock()->place();
+    num_qubits_ = 0;
+    chunk_index_ = 0;
+    mapped_ = false;
+  }
+  Chunk(Chunk<data_t>& chunk)   //map chunk from exisiting chunk (used fo cache chunk)
+  {
+    chunk_container_ = chunk.chunk_container_;
+    chunk_pos_ = chunk.chunk_pos_;
+    place_ = chunk.place_;
+    num_qubits_ = chunk.num_qubits_;
+    chunk_index_ = chunk.chunk_index_;
+    mapped_ = true;
   }
   ~Chunk()
   {
-    if(cache_)
-      cache_.reset();
   }
 
   void set_device(void) const
@@ -69,6 +82,14 @@ public:
     return chunk_container_.lock();
   }
 
+  void map(std::weak_ptr<ChunkContainer<data_t>> cc,uint_t pos)
+  {
+    chunk_container_ = cc;
+    chunk_pos_ = pos;
+    place_ = chunk_container_.lock()->place();
+    mapped_ = true;
+  }
+
   uint_t pos(void)
   {
     return chunk_pos_;
@@ -81,21 +102,25 @@ public:
   {
     place_ = ip;
   }
-  void set_cache(const std::shared_ptr<Chunk<data_t>>& c)
+  void map_cache(Chunk<data_t>& chunk)
   {
-    cache_ = c;
+    cache_ = std::make_shared<Chunk<data_t>>(chunk);
   }
+  void unmap_cache(void)
+  {
+    cache_->unmap();
+    cache_.reset();
+  }
+  
   bool is_mapped(void)
   {
     return mapped_;
   }
-  void map(void)
-  {
-    mapped_ = true;
-  }
   void unmap(void)
   {
     mapped_ = false;
+    if(cache_)
+      cache_.reset();
   }
 
   void set_num_qubits(uint_t qubits)
@@ -152,11 +177,11 @@ public:
     }
   }
 
-  void CopyIn(std::shared_ptr<Chunk<data_t>> src)
+  void CopyIn(Chunk<data_t>& src)
   {
     chunk_container_.lock()->CopyIn(src,chunk_pos_);
   }
-  void CopyOut(std::shared_ptr<Chunk<data_t>> dest)
+  void CopyOut(Chunk<data_t>& dest)
   {
     chunk_container_.lock()->CopyOut(dest,chunk_pos_);
   }
@@ -168,7 +193,7 @@ public:
   {
     chunk_container_.lock()->CopyOut(dest, chunk_pos_, size);
   }
-  void Swap(std::shared_ptr<Chunk<data_t>> src)
+  void Swap(Chunk<data_t>& src)
   {
     chunk_container_.lock()->Swap(src,chunk_pos_);
   }

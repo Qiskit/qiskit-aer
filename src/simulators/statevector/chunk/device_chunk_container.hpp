@@ -96,9 +96,9 @@ public:
     return raw_reference_cast(data_[i]);
   }
 
-  uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers,uint_t checkpoint);
+  uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers);
   void Deallocate(void);
-  uint_t Resize(uint_t chunks,uint_t buffers,uint_t checkpoint);
+  uint_t Resize(uint_t chunks,uint_t buffers);
 
   void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk);
   void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk);
@@ -127,11 +127,11 @@ public:
     return data_[i];
   }
 
-  void CopyIn(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk);
-  void CopyOut(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk);
+  void CopyIn(Chunk<data_t>& src,uint_t iChunk);
+  void CopyOut(Chunk<data_t>& src,uint_t iChunk);
   void CopyIn(thrust::complex<data_t>* src,uint_t iChunk, uint_t size);
   void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk, uint_t size);
-  void Swap(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk);
+  void Swap(Chunk<data_t>& src,uint_t iChunk);
 
   void Zero(uint_t iChunk,uint_t count);
 
@@ -189,7 +189,7 @@ DeviceChunkContainer<data_t>::~DeviceChunkContainer(void)
 }
 
 template <typename data_t>
-uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,uint_t buffers,uint_t checkpoint)
+uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,uint_t buffers)
 {
   uint_t nc = chunks;
   uint_t i;
@@ -227,7 +227,6 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
   if(omp_get_num_threads() > 1){    //mult-shot parallelization for small qubits
     multi_shots_ = true;
     mat_bits = bits;
-    this->num_checkpoint_ = checkpoint;
     nc = chunks;
     num_matrices_ = chunks;
   }
@@ -244,22 +243,13 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
 
     size_t freeMem,totalMem;
     cudaMemGetInfo(&freeMem,&totalMem);
-    while(freeMem < ((((nc+buffers+checkpoint)*(uint_t)sizeof(thrust::complex<data_t>)) << bits) + param_size* (num_matrices_ + buffers)) ){
-      if(checkpoint > 0){
-        checkpoint--;
-      }
-      else{
-        nc--;
-        if(checkpoint > nc){
-          checkpoint = nc;
-        }
-      }
+    while(freeMem < ((((nc+buffers)*(uint_t)sizeof(thrust::complex<data_t>)) << bits) + param_size* (num_matrices_ + buffers)) ){
+      nc--;
       if(nc == 0){
         break;
       }
     }
 #endif
-    this->num_checkpoint_ = checkpoint;
   }
 
   max_blocked_gates_ = QV_MAX_BLOCKED_GATES;
@@ -267,7 +257,7 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
   ResizeMatrixBuffers(mat_bits);
 
   this->num_chunks_ = nc;
-  data_.resize((nc+buffers+checkpoint) << bits);
+  data_.resize((nc+buffers) << bits);
 
 #ifdef AER_THRUST_CUDA
   stream_.resize(nc + buffers);
@@ -302,18 +292,17 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
 }
 
 template <typename data_t>
-uint_t DeviceChunkContainer<data_t>::Resize(uint_t chunks,uint_t buffers,uint_t checkpoint)
+uint_t DeviceChunkContainer<data_t>::Resize(uint_t chunks,uint_t buffers)
 {
   uint_t i;
 
-  if(chunks + buffers + checkpoint > this->num_chunks_ + this->num_buffers_ + this->num_checkpoint_){
+  if(chunks + buffers > this->num_chunks_ + this->num_buffers_){
     set_device();
-    data_.resize((chunks + buffers + checkpoint) << this->chunk_bits_);
+    data_.resize((chunks + buffers) << this->chunk_bits_);
   }
 
   this->num_chunks_ = chunks;
   this->num_buffers_ = buffers;
-  this->num_checkpoint_ = checkpoint;
 
   if(multi_shots_){
     num_matrices_ = chunks;
@@ -343,7 +332,7 @@ uint_t DeviceChunkContainer<data_t>::Resize(uint_t chunks,uint_t buffers,uint_t 
   //allocate chunk classes
   ChunkContainer<data_t>::allocate_chunks();
 
-  return chunks + buffers + checkpoint;
+  return chunks + buffers;
 }
 
 template <typename data_t>
@@ -464,42 +453,42 @@ void DeviceChunkContainer<data_t>::StoreUintParams(const std::vector<uint_t>& pr
 }
 
 template <typename data_t>
-void DeviceChunkContainer<data_t>::CopyIn(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk)
+void DeviceChunkContainer<data_t>::CopyIn(Chunk<data_t>& src,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
   set_device();
-  if(src->device() >= 0){
-    if(peer_access(src->device())){
-      thrust::copy_n(src->pointer(),size,data_.begin() + (iChunk << this->chunk_bits_));
+  if(src.device() >= 0){
+    if(peer_access(src.device())){
+      thrust::copy_n(src.pointer(),size,data_.begin() + (iChunk << this->chunk_bits_));
     }
     else{
       AERHostVector<thrust::complex<data_t>> tmp(size);
-      thrust::copy_n(src->pointer(),size,tmp.begin());
+      thrust::copy_n(src.pointer(),size,tmp.begin());
       thrust::copy_n(tmp.begin(),size,data_.begin() + (iChunk << this->chunk_bits_));
     }
   }
   else{
-    thrust::copy_n(src->pointer(),size,data_.begin() + (iChunk << this->chunk_bits_));
+    thrust::copy_n(src.pointer(),size,data_.begin() + (iChunk << this->chunk_bits_));
   }
 }
 
 template <typename data_t>
-void DeviceChunkContainer<data_t>::CopyOut(std::shared_ptr<Chunk<data_t>> dest,uint_t iChunk)
+void DeviceChunkContainer<data_t>::CopyOut(Chunk<data_t>& dest,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
   set_device();
-  if(dest->device() >= 0){
-    if(peer_access(dest->device())){
-      thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest->pointer());
+  if(dest.device() >= 0){
+    if(peer_access(dest.device())){
+      thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest.pointer());
     }
     else{
       AERHostVector<thrust::complex<data_t>> tmp(size);
       thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,tmp.begin());
-      thrust::copy_n(tmp.begin(),size,dest->pointer());
+      thrust::copy_n(tmp.begin(),size,dest.pointer());
     }
   }
   else{
-    thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest->pointer());
+    thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest.pointer());
   }
 }
 
@@ -524,17 +513,17 @@ void DeviceChunkContainer<data_t>::CopyOut(thrust::complex<data_t>* dest,uint_t 
 }
 
 template <typename data_t>
-void DeviceChunkContainer<data_t>::Swap(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk)
+void DeviceChunkContainer<data_t>::Swap(Chunk<data_t>& src,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
   set_device();
-  if(src->device() >= 0){
-    auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src->container());
-    if(peer_access(src->device())){
+  if(src.device() >= 0){
+    auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src.container());
+    if(peer_access(src.device())){
 #ifdef AER_THRUST_CUDA
-      thrust::swap_ranges(thrust::cuda::par.on(stream_[iChunk]),chunk_pointer(iChunk),chunk_pointer(iChunk + 1),src->pointer());
+      thrust::swap_ranges(thrust::cuda::par.on(stream_[iChunk]),chunk_pointer(iChunk),chunk_pointer(iChunk + 1),src.pointer());
 #else
-      thrust::swap_ranges(thrust::device,chunk_pointer(iChunk),chunk_pointer(iChunk + 1),src->pointer());
+      thrust::swap_ranges(thrust::device,chunk_pointer(iChunk),chunk_pointer(iChunk + 1),src.pointer());
 #endif
     }
     else{
@@ -542,24 +531,24 @@ void DeviceChunkContainer<data_t>::Swap(std::shared_ptr<Chunk<data_t>> src,uint_
       AERHostVector<thrust::complex<data_t>> tmp1(size);
       AERHostVector<thrust::complex<data_t>> tmp2(size);
 
-      thrust::copy_n(src_cont->vector().begin() + (src->pos() << this->chunk_bits_),size,tmp1.begin());
+      thrust::copy_n(src_cont->vector().begin() + (src.pos() << this->chunk_bits_),size,tmp1.begin());
       thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,tmp2.begin());
       thrust::copy_n(tmp1.begin(),size,data_.begin() + (iChunk << this->chunk_bits_));
-      thrust::copy_n(tmp2.begin(),size,src_cont->vector().begin() + (src->pos() << this->chunk_bits_));
+      thrust::copy_n(tmp2.begin(),size,src_cont->vector().begin() + (src.pos() << this->chunk_bits_));
     }
   }
   else{
     //using temporary buffer on host
     AERHostVector<thrust::complex<data_t>> tmp1(size);
-    auto src_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(src->container());
+    auto src_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(src.container());
 
 #ifdef AER_ATS
     //for IBM AC922
-    thrust::swap_ranges(thrust::device,chunk_pointer(iChunk),chunk_pointer(iChunk + 1),src->pointer());
+    thrust::swap_ranges(thrust::device,chunk_pointer(iChunk),chunk_pointer(iChunk + 1),src.pointer());
 #else
     thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,tmp1.begin());
-    thrust::copy_n(src_cont->vector().begin() + (src->pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
-    thrust::copy_n(tmp1.begin(),size,src_cont->vector().begin() + (src->pos() << this->chunk_bits_));
+    thrust::copy_n(src_cont->vector().begin() + (src.pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
+    thrust::copy_n(tmp1.begin(),size,src_cont->vector().begin() + (src.pos() << this->chunk_bits_));
 #endif
   }
 }

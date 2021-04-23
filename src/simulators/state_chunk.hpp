@@ -499,15 +499,11 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits)
     gpu_optimization_ = true;
   }
 
-  nchunks = num_local_chunks_;
-  for(i=0;i<num_local_chunks_;i++){
+  qregs_[0].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),global_chunk_index_,num_local_chunks_);
+  for(i=1;i<num_local_chunks_;i++){
     uint_t gid = i + global_chunk_index_;
-    qregs_[i].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),gid,nchunks);
-
-    //only first one allocates chunks, others only set chunk index
-    nchunks = 0;
+    qregs_[i].chunk_setup(qregs_[0],gid);
   }
-
   //initialize qubit map
   qubit_map_.resize(num_qubits_);
   for(i=0;i<num_qubits_;i++){
@@ -558,6 +554,8 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
   nOp = ops.size();
   iOp = 0;
   while(iOp < nOp){
+    std::cout << "[" << iOp << "] " << ops[iOp] << std::endl;
+
     if(ops[iOp].type == Operations::OpType::gate && ops[iOp].name == "swap_chunk"){
       //apply swap between chunks
       apply_chunk_swap(ops[iOp].qubits);
@@ -603,6 +601,10 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
     }
     iOp++;
   }
+
+
+  std::cout << "[" << iOp << "] END OPS" << std::endl;
+
 }
 
 template <class state_t>

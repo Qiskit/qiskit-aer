@@ -34,9 +34,7 @@ protected:
   std::vector<thrust::complex<double>*> matrix_;     //pointer to matrix
   std::vector<uint_t*> params_;                      //pointer to additional parameters
 public:
-  HostChunkContainer()
-  {
-  }
+  HostChunkContainer(){}
   ~HostChunkContainer();
 
   uint_t size(void)
@@ -54,9 +52,9 @@ public:
     return data_[i];
   }
 
-  uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers,uint_t checkpoint);
+  uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers);
   void Deallocate(void);
-  uint_t Resize(uint_t chunks,uint_t buffers,uint_t checkpoint);
+  uint_t Resize(uint_t chunks,uint_t buffers);
 
   void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk)
   {
@@ -101,11 +99,11 @@ public:
 #endif
   }
 
-  void CopyIn(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk);
-  void CopyOut(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk);
+  void CopyIn(Chunk<data_t>& src,uint_t iChunk);
+  void CopyOut(Chunk<data_t>& src,uint_t iChunk);
   void CopyIn(thrust::complex<data_t>* src,uint_t iChunk, uint_t size);
   void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk, uint_t size);
-  void Swap(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk);
+  void Swap(Chunk<data_t>& src,uint_t iChunk);
 
   void Zero(uint_t iChunk,uint_t count);
 
@@ -121,7 +119,7 @@ HostChunkContainer<data_t>::~HostChunkContainer(void)
 }
 
 template <typename data_t>
-uint_t HostChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,uint_t buffers,uint_t checkpoint)
+uint_t HostChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,uint_t buffers)
 {
   uint_t nc = chunks;
   uint_t i;
@@ -129,30 +127,29 @@ uint_t HostChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,uint
   ChunkContainer<data_t>::chunk_bits_ = bits;
 
   ChunkContainer<data_t>::num_buffers_ = buffers;
-  ChunkContainer<data_t>::num_checkpoint_ = checkpoint;
   ChunkContainer<data_t>::num_chunks_ = nc;
-  if(nc + buffers + checkpoint > 0)
-    data_.resize((nc + buffers + checkpoint) << bits);
+  if(nc + buffers > 0)
+    data_.resize((nc + buffers) << bits);
   if(nc + buffers > 0){
     matrix_.resize(nc + buffers);
     params_.resize(nc + buffers);
   }
 
   //allocate chunk classes
-  if(nc + buffers + checkpoint > 0)
+  if(nc + buffers > 0)
     ChunkContainer<data_t>::allocate_chunks();
 
   return nc;
 }
 
 template <typename data_t>
-uint_t HostChunkContainer<data_t>::Resize(uint_t chunks,uint_t buffers,uint_t checkpoint)
+uint_t HostChunkContainer<data_t>::Resize(uint_t chunks,uint_t buffers)
 {
   uint_t i;
 
-  if(chunks + buffers + checkpoint > this->num_chunks_ + this->num_buffers_ + this->num_checkpoint_){
-    if(chunks + buffers + checkpoint > 0)
-      data_.resize((chunks + buffers + checkpoint) << this->chunk_bits_);
+  if(chunks + buffers > this->num_chunks_ + this->num_buffers_){
+    if(chunks + buffers > 0)
+      data_.resize((chunks + buffers) << this->chunk_bits_);
     if(chunks + buffers > 0){
       matrix_.resize(chunks + buffers);
       params_.resize(chunks + buffers);
@@ -161,13 +158,12 @@ uint_t HostChunkContainer<data_t>::Resize(uint_t chunks,uint_t buffers,uint_t ch
 
   this->num_chunks_ = chunks;
   this->num_buffers_ = buffers;
-  this->num_checkpoint_ = checkpoint;
 
   //allocate chunk classes
-  if(chunks + buffers + checkpoint > 0)
+  if(chunks + buffers > 0)
     ChunkContainer<data_t>::allocate_chunks();
 
-  return chunks + buffers + checkpoint;
+  return chunks + buffers;
 }
 
 template <typename data_t>
@@ -185,20 +181,20 @@ void HostChunkContainer<data_t>::Deallocate(void)
 
 
 template <typename data_t>
-void HostChunkContainer<data_t>::CopyIn(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk)
+void HostChunkContainer<data_t>::CopyIn(Chunk<data_t>& src,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
 
-  if(src->device() >= 0){
-    src->set_device();
-    auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src->container());
-    thrust::copy_n(src_cont->vector().begin() + (src->pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
+  if(src.device() >= 0){
+    src.set_device();
+    auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src.container());
+    thrust::copy_n(src_cont->vector().begin() + (src.pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
   }
   else{
-    auto src_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(src->container());
+    auto src_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(src.container());
 
     if(omp_get_num_threads() > 1){  //in parallel region
-      thrust::copy_n(src_cont->vector().begin() + (src->pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
+      thrust::copy_n(src_cont->vector().begin() + (src.pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
     }
     else{
 #pragma omp parallel
@@ -210,26 +206,26 @@ void HostChunkContainer<data_t>::CopyIn(std::shared_ptr<Chunk<data_t>> src,uint_
         is = (uint_t)(tid) * size / (uint_t)(nid);
         ie = (uint_t)(tid + 1) * size / (uint_t)(nid);
 
-        thrust::copy_n(src_cont->vector().begin() + (src->pos() << this->chunk_bits_) + is,ie - is,data_.begin() + (iChunk << this->chunk_bits_) + is);
+        thrust::copy_n(src_cont->vector().begin() + (src.pos() << this->chunk_bits_) + is,ie - is,data_.begin() + (iChunk << this->chunk_bits_) + is);
       }
     }
   }
 }
 
 template <typename data_t>
-void HostChunkContainer<data_t>::CopyOut(std::shared_ptr<Chunk<data_t>> dest,uint_t iChunk)
+void HostChunkContainer<data_t>::CopyOut(Chunk<data_t>& dest,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
-  if(dest->device() >= 0){
-    dest->set_device();
-    auto dest_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(dest->container());
-    thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest_cont->vector().begin() + (dest->pos() << this->chunk_bits_));
+  if(dest.device() >= 0){
+    dest.set_device();
+    auto dest_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(dest.container());
+    thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest_cont->vector().begin() + (dest.pos() << this->chunk_bits_));
   }
   else{
-    auto dest_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(dest->container());
+    auto dest_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(dest.container());
 
     if(omp_get_num_threads() > 1){  //in parallel region
-      thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest_cont->vector().begin() + (dest->pos() << this->chunk_bits_));
+      thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest_cont->vector().begin() + (dest.pos() << this->chunk_bits_));
     }
     else{
 #pragma omp parallel
@@ -240,7 +236,7 @@ void HostChunkContainer<data_t>::CopyOut(std::shared_ptr<Chunk<data_t>> dest,uin
 
         is = (uint_t)(tid) * size / (uint_t)(nid);
         ie = (uint_t)(tid + 1) * size / (uint_t)(nid);
-        thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_)+is,ie-is,dest_cont->vector().begin() + (dest->pos() << this->chunk_bits_)+is);
+        thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_)+is,ie-is,dest_cont->vector().begin() + (dest.pos() << this->chunk_bits_)+is);
       }
     }
   }
@@ -265,25 +261,25 @@ void HostChunkContainer<data_t>::CopyOut(thrust::complex<data_t>* dest,uint_t iC
 }
 
 template <typename data_t>
-void HostChunkContainer<data_t>::Swap(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk)
+void HostChunkContainer<data_t>::Swap(Chunk<data_t>& src,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
-  if(src->device() >= 0){
-    src->set_device();
+  if(src.device() >= 0){
+    src.set_device();
 
     AERHostVector<thrust::complex<data_t>> tmp1(size);
-    auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src->container());
+    auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src.container());
     
     thrust::copy_n(thrust::omp::par,data_.begin() + (iChunk << this->chunk_bits_),size,tmp1.begin());
 
-    thrust::copy_n(src_cont->vector().begin() + (src->pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
-    thrust::copy_n(tmp1.begin(),size,src_cont->vector().begin() + (src->pos() << this->chunk_bits_));
+    thrust::copy_n(src_cont->vector().begin() + (src.pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
+    thrust::copy_n(tmp1.begin(),size,src_cont->vector().begin() + (src.pos() << this->chunk_bits_));
   }
   else{
-    auto src_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(src->container());
+    auto src_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(src.container());
 
     if(omp_get_num_threads() > 1){  //in parallel region
-      thrust::swap_ranges(thrust::host,data_.begin() + (iChunk << this->chunk_bits_),data_.begin() + (iChunk << this->chunk_bits_) + size,src_cont->vector().begin() + (src->pos() << this->chunk_bits_));
+      thrust::swap_ranges(thrust::host,data_.begin() + (iChunk << this->chunk_bits_),data_.begin() + (iChunk << this->chunk_bits_) + size,src_cont->vector().begin() + (src.pos() << this->chunk_bits_));
     }
     else{
 #pragma omp parallel
@@ -294,7 +290,7 @@ void HostChunkContainer<data_t>::Swap(std::shared_ptr<Chunk<data_t>> src,uint_t 
 
         is = (uint_t)(tid) * size / (uint_t)(nid);
         ie = (uint_t)(tid + 1) * size / (uint_t)(nid);
-        thrust::swap_ranges(thrust::host,data_.begin() + (iChunk << this->chunk_bits_) + is,data_.begin() + (iChunk << this->chunk_bits_) + ie,src_cont->vector().begin() + (src->pos() << this->chunk_bits_) + is);
+        thrust::swap_ranges(thrust::host,data_.begin() + (iChunk << this->chunk_bits_) + is,data_.begin() + (iChunk << this->chunk_bits_) + ie,src_cont->vector().begin() + (src.pos() << this->chunk_bits_) + is);
       }
     }
   }

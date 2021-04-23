@@ -285,7 +285,7 @@ std::complex<double> UnitaryMatrixThrust<data_t>::trace() const
 {
   thrust::complex<double> sum;
 
-  sum = BaseVector::chunk_->norm(rows_ + 1,false);
+  sum = BaseVector::chunk_.norm(rows_ + 1,false);
 
 #ifdef AER_DEBUG
   BaseVector::DebugMsg("trace",sum);
@@ -322,7 +322,7 @@ std::pair<bool, double> UnitaryMatrixThrust<data_t>::check_identity() const {
 	uint_t csize = BaseVector::data_size_;
 	cvector_t<data_t> tmp(csize);
 
-  BaseVector::chunk_->CopyOut((thrust::complex<data_t>*)&tmp[0]);
+  BaseVector::chunk_.CopyOut((thrust::complex<data_t>*)&tmp[0]);
 
   uint_t offset = BaseVector::chunk_index_ << BaseVector::num_qubits_;
   uint_t err_count = 0;
