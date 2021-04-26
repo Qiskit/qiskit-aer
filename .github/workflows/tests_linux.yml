@@ -1,9 +1,9 @@
 name: Tests Linux
 on:
   push:
-    branches: [master, 'stable/*']
+    branches: [main, 'stable/*']
   pull_request:
-    branches: [master, 'stable/*']
+    branches: [main, 'stable/*']
 jobs:
   lint:
     runs-on: ubuntu-latest
