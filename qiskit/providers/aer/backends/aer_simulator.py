@@ -471,6 +471,10 @@ class AerSimulator(AerBackend):
             configuration = QasmBackendConfiguration.from_dict(
                 AerSimulator._DEFAULT_CONFIGURATION)
 
+        # Cache basis gates since computing the intersection
+        # of noise model, method, and config gates is expensive.
+        self._cached_basis_gates = self._BASIS_GATES['automatic']
+
         super().__init__(configuration,
                          properties=properties,
                          available_methods=AerSimulator._AVAILABLE_METHODS,
@@ -581,14 +585,14 @@ class AerSimulator(AerBackend):
         Returns:
             BackendConfiguration: the configuration for the backend.
         """
+        config = copy.copy(self._configuration)
+        for key, val in self._options_configuration.items():
+            setattr(config, key, val)
         # Update basis gates based on custom options, config, method,
         # and noise model
-        basis_gates = self._basis_gates()
-        method = getattr(self.options, 'method', 'automatic')
-        custom_inst = self._CUSTOM_INSTR[method]
-        config = super().configuration()
-        config.custom_instructions = custom_inst
-        config.basis_gates = basis_gates + custom_inst
+        config.custom_instructions = self._CUSTOM_INSTR[
+            getattr(self.options, 'method', 'automatic')]
+        config.basis_gates = self._cached_basis_gates + config.custom_instructions
         # Update simulator name
         config.backend_name = self.name()
         return config
@@ -606,9 +610,14 @@ class AerSimulator(AerBackend):
 
     def set_options(self, **fields):
         out_options = {}
+        update_basis_gates = False
         for key, value in fields.items():
             if key == 'method':
                 self._set_method_config(value)
+                update_basis_gates = True
+                out_options[key] = value
+            elif key in ['noise_model', 'basis_gates']:
+                update_basis_gates = True
                 out_options[key] = value
             elif key == 'device':
                 if value is not None and value not in self._AVAILABLE_DEVICES:
@@ -621,6 +630,8 @@ class AerSimulator(AerBackend):
             else:
                 out_options[key] = value
         super().set_options(**out_options)
+        if update_basis_gates:
+            self._cached_basis_gates = self._basis_gates()
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.
@@ -652,15 +663,15 @@ class AerSimulator(AerBackend):
         if 'basis_gates' in self._options_configuration:
             return self._options_configuration['basis_gates']
 
-        # Set basis gates to be the intersection of config, method, and noise model
-        # basis gates
-        config_gates = self._configuration.basis_gates
-        basis_gates = set(config_gates)
-
         # Compute intersection with method basis gates
         method = getattr(self._options, 'method', 'automatic')
         method_gates = self._BASIS_GATES[method]
-        basis_gates = basis_gates.intersection(method_gates)
+        config_gates = self._configuration.basis_gates
+        if config_gates:
+            basis_gates = set(config_gates).intersection(
+                method_gates)
+        else:
+            basis_gates = method_gates
 
         # Compute intersection with noise model basis gates
         noise_model = getattr(self.options, 'noise_model', None)
