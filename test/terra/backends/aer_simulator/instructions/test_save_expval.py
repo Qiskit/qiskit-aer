@@ -65,13 +65,14 @@ class TestSaveExpectationValueTests(AerSimulatorTestCase):
         [
             'automatic', 'stabilizer', 'statevector', 'density_matrix',
             'matrix_product_state'
-        ],  # , 'extended_stabilizer'],
+        ],
         PAULI2)
-    def test_save_expval_stabilizer_pauli(self, method, device, pauli):
-        """Test Pauli expval for stabilizer circuit"""
-        SEED = 5832
-        circ = qi.random_clifford(2, seed=SEED).to_circuit()
-        oper = qi.Operator(qi.Pauli(pauli))
+    def test_save_expval_bell_pauli(self, method, device, pauli):
+        """Test Pauli expval for Bell state circuit"""
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.cx(0, 1)
+        oper = qi.Pauli(pauli)
         qubits = [0, 1]
         self._test_save_expval(circ,
                                oper,
@@ -84,13 +85,32 @@ class TestSaveExpectationValueTests(AerSimulatorTestCase):
         [
             'automatic', 'stabilizer', 'statevector', 'density_matrix',
             'matrix_product_state'
-        ],  # , 'extended_stabilizer'],
+        ],
+        PAULI2)
+    def test_save_expval_stabilizer_pauli(self, method, device, pauli):
+        """Test Pauli expval for stabilizer circuit"""
+        SEED = 5832
+        circ = qi.random_clifford(2, seed=SEED).to_circuit()
+        oper = qi.Pauli(pauli)
+        qubits = [0, 1]
+        self._test_save_expval(circ,
+                               oper,
+                               qubits,
+                               False,
+                               method=method,
+                               device=device)
+                        
+    @supported_methods(
+        [
+            'automatic', 'stabilizer', 'statevector', 'density_matrix',
+            'matrix_product_state'
+        ],
         PAULI2)
     def test_save_expval_var_stabilizer_pauli(self, method, device, pauli):
         """Test Pauli expval_var for stabilizer circuit"""
         SEED = 5832
         circ = qi.random_clifford(2, seed=SEED).to_circuit()
-        oper = qi.Operator(qi.Pauli(pauli))
+        oper = qi.Pauli(pauli)
         qubits = [0, 1]
         self._test_save_expval(circ,
                                oper,
@@ -103,7 +123,7 @@ class TestSaveExpectationValueTests(AerSimulatorTestCase):
         [
             'automatic', 'stabilizer', 'statevector', 'density_matrix',
             'matrix_product_state'
-        ],  # , 'extended_stabilizer'],
+        ],
         [[0, 1], [1, 0], [0, 2], [2, 0], [1, 2], [2, 1]])
     def test_save_expval_stabilizer_hermitian(self, method, device, qubits):
         """Test expval for stabilizer circuit and Hermitian operator"""
@@ -159,7 +179,7 @@ class TestSaveExpectationValueTests(AerSimulatorTestCase):
         """Test Pauli expval_var for non-stabilizer circuit"""
         SEED = 7382
         circ = QuantumVolume(2, 1, seed=SEED)
-        oper = qi.Operator(qi.Pauli(pauli))
+        oper = qi.Pauli(pauli)
         qubits = [0, 1]
         self._test_save_expval(circ,
                                oper,
@@ -237,7 +257,7 @@ class TestSaveExpectationValueTests(AerSimulatorTestCase):
         """Test Pauli expval for stabilizer circuit"""
         SEED = 5832
         circ = qi.random_clifford(2, seed=SEED).to_circuit()
-        oper = qi.Operator(qi.Pauli(pauli))
+        oper = qi.Pauli(pauli)
         qubits = [0, 1]
         self._test_save_expval(circ,
                                oper,
@@ -254,7 +274,7 @@ class TestSaveExpectationValueTests(AerSimulatorTestCase):
         """Test Pauli expval_var for stabilizer circuit"""
         SEED = 5832
         circ = qi.random_clifford(2, seed=SEED).to_circuit()
-        oper = qi.Operator(qi.Pauli(pauli))
+        oper = qi.Pauli(pauli)
         qubits = [0, 1]
         self._test_save_expval(circ,
                                oper,
