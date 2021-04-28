@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes a bug where qiskit-terra assumes that qubits in a multiplexer gate
+    are first the targets and then the controls of the gate while qiskit-aer
+    assumes the opposite order.

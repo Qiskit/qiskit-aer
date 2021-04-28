@@ -181,7 +181,7 @@ class AerBackend(Backend, ABC):
         # If config has custom instructions add them to
         # basis gates to include them for the terra transpiler
         if hasattr(config, 'custom_instructions'):
-            config.basis_gates += config.custom_instructions
+            config.basis_gates = config.basis_gates + config.custom_instructions
         return config
 
     def properties(self):
