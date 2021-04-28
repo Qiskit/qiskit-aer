@@ -36,7 +36,7 @@ def multiplexer_cx_gate_circuits_deterministic(final_measure=True):
 
     # CX01, |00> state
     circuit = QuantumCircuit(*regs)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[0], qr[1]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[1], qr[0]])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -44,7 +44,7 @@ def multiplexer_cx_gate_circuits_deterministic(final_measure=True):
 
     # CX10, |00> state
     circuit = QuantumCircuit(*regs)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[1], qr[0]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[0], qr[1]])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -54,7 +54,7 @@ def multiplexer_cx_gate_circuits_deterministic(final_measure=True):
     circuit = QuantumCircuit(*regs)
     circuit.x(qr[1])
     circuit.barrier(qr)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[0], qr[1]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[1], qr[0]])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -64,7 +64,7 @@ def multiplexer_cx_gate_circuits_deterministic(final_measure=True):
     circuit = QuantumCircuit(*regs)
     circuit.x(qr[0])
     circuit.barrier(qr)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[1], qr[0]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[0], qr[1]])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -74,7 +74,7 @@ def multiplexer_cx_gate_circuits_deterministic(final_measure=True):
     circuit = QuantumCircuit(*regs)
     circuit.x(qr[0])
     circuit.barrier(qr)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[0], qr[1]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[1], qr[0]])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -84,7 +84,7 @@ def multiplexer_cx_gate_circuits_deterministic(final_measure=True):
     circuit = QuantumCircuit(*regs)
     circuit.x(qr[1])
     circuit.barrier(qr)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[1], qr[0]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[0], qr[1]])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -94,7 +94,7 @@ def multiplexer_cx_gate_circuits_deterministic(final_measure=True):
     circuit = QuantumCircuit(*regs)
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[0], qr[1]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[1], qr[0]])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -104,7 +104,7 @@ def multiplexer_cx_gate_circuits_deterministic(final_measure=True):
     circuit = QuantumCircuit(*regs)
     circuit.x(qr)
     circuit.barrier(qr)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[1], qr[0]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[0], qr[1]])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -129,7 +129,7 @@ def multiplexer_cx_gate_circuits_nondeterministic(final_measure=True):
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[0])
     circuit.barrier(qr)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[0], qr[1]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[1], qr[0]])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -139,7 +139,7 @@ def multiplexer_cx_gate_circuits_nondeterministic(final_measure=True):
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[1])
     circuit.barrier(qr)
-    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[1], qr[0]])
+    circuit.append(multiplexer_multi_controlled_x(num_control_qubits), [qr[0], qr[1]])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -177,7 +177,7 @@ def multiplexer_ccx_gate_circuits_deterministic(final_measure=True):
     # CCX(0,1,2)
     circuit = QuantumCircuit(*regs)
     circuit.append(multiplexer_multi_controlled_x(num_control_qubits),
-                   [qr[0], qr[1], qr[2]])
+                   [qr[2], qr[0], qr[1]])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -190,7 +190,7 @@ def multiplexer_ccx_gate_circuits_deterministic(final_measure=True):
     circuit.x(qr[1])
     circuit.barrier(qr)
     circuit.append(multiplexer_multi_controlled_x(num_control_qubits),
-                   [qr[0], qr[1], qr[2]])
+                   [qr[2], qr[0], qr[1]])
     circuit.barrier(qr)
     circuit.x(qr[0])
     circuit.barrier(qr)
@@ -203,7 +203,7 @@ def multiplexer_ccx_gate_circuits_deterministic(final_measure=True):
     # CCX(2,1,0)
     circuit = QuantumCircuit(*regs)
     circuit.append(multiplexer_multi_controlled_x(num_control_qubits),
-                   [qr[2], qr[1], qr[0]])
+                   [qr[0], qr[2], qr[1]])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -216,7 +216,7 @@ def multiplexer_ccx_gate_circuits_deterministic(final_measure=True):
     circuit.x(qr[2])
     circuit.barrier(qr)
     circuit.append(multiplexer_multi_controlled_x(num_control_qubits),
-                   [qr[2], qr[1], qr[0]])
+                   [qr[0], qr[2], qr[1]])
     circuit.barrier(qr)
     circuit.x(qr[1])
     circuit.barrier(qr)
@@ -249,7 +249,7 @@ def multiplexer_ccx_gate_circuits_nondeterministic(final_measure=True):
     circuit.x(qr[1])
     circuit.barrier(qr)
     circuit.append(multiplexer_multi_controlled_x(num_control_qubits),
-                   [qr[0], qr[1], qr[2]])
+                   [qr[2], qr[0], qr[1]])
     circuit.barrier(qr)
     circuit.x(qr[1])
     if final_measure:
@@ -264,7 +264,7 @@ def multiplexer_ccx_gate_circuits_nondeterministic(final_measure=True):
     circuit.x(qr[2])
     circuit.barrier(qr)
     circuit.append(multiplexer_multi_controlled_x(num_control_qubits),
-                   [qr[2], qr[1], qr[0]])
+                   [qr[0], qr[2], qr[1]])
     circuit.barrier(qr)
     circuit.x(qr[2])
     if final_measure:
