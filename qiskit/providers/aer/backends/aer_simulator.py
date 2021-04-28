@@ -400,8 +400,7 @@ class AerSimulator(AerBackend):
             'set_stabilizer'
         ]),
         'extended_stabilizer': sorted([
-            'roerror', 'snapshot', 'save_statevector',
-            'save_expval', 'save_expval_var'
+            'roerror', 'snapshot', 'save_statevector'
         ]),
         'unitary': sorted([
             'snapshot', 'save_state', 'save_unitary', 'set_unitary'
