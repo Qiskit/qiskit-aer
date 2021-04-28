@@ -1,9 +1,9 @@
 name: Build
 on:
   push:
-    branches: [master, 'stable/*']
+    branches: [main, 'stable/*']
   pull_request:
-    branches: [master, 'stable/*']
+    branches: [main, 'stable/*']
 jobs:
   standalone:
     runs-on: ${{ matrix.os }}

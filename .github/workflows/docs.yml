@@ -1,9 +1,9 @@
 name: Docs and Tutorial
 on:
   push:
-    branches: [master, 'stable/*']
+    branches: [main, 'stable/*']
   pull_request:
-    branches: [master, 'stable/*']
+    branches: [main, 'stable/*']
 jobs:
   docs:
     runs-on: ubuntu-latest
