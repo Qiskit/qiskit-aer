@@ -1,0 +1,11 @@
+---
+issues:
+  - |
+    The :class:`~qiskit.providers.aer.library.SaveExpectationValue` and
+    :class:`~qiskit.providers.aer.library.SaveExpectationValueVariance` have
+    been disabled for the `extended_stabilizer` method of the
+    :class:`~qiskit.providers.aer.QasmSimulator` and
+    :class:`~qiskit.providers.aer.AerSimulator` due to returning the
+    incorrect value for certain Pauli operator components. Refer to
+    `#1227 <https://github.com/Qiskit/qiskit-aer/issues/1227>` for more
+    information and examples.
