@@ -106,6 +106,7 @@ jobs:
         shell: bash
       - name: Run qobj
         run: |
+          pip install -U qiskit-terra
           python tools/generate_qobj.py
           cd out
           /usr/bin/mpirun.openmpi -host localhost:2 -np 2 Release/qasm_simulator ../qobj.json
