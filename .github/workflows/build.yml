@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: 3.7
       - name: Install deps
-        run: pip install "conan>=1.31.2" "qiskit-terra"
+        run: pip install "conan>=1.31.2"
       - name: Install openblas
         run: |
           set -e
@@ -59,6 +59,7 @@ jobs:
         shell: bash
       - name: Run qobj
         run: |
+          pip install -U qiskit-terra
           python tools/generate_qobj.py
           cd out
           Release/qasm_simulator ../qobj.json
