@@ -57,6 +57,46 @@ jobs:
             exit 1
           fi
         shell: bash
+  mpi_standalone:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: Install deps
+        run: pip install "conan>=1.31.2"
+      - name: Install openblas and mpi
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev openmpi-bin libopenmpi-dev
+        shell: bash
+      - name: Compile Standalone
+        run: |
+          set -e
+          mkdir out; cd out; cmake .. -DBUILD_TESTS=1 -DAER_MPI=True
+          make
+        shell: bash
+      - name: Run Unit Tests
+        run: |
+          cd out/bin
+          for test in test*
+          do echo $test
+            if ! ./$test
+            then
+              ERR=1
+            fi
+          done
+          if [ ! -z "$ERR" ]
+          then
+            exit 1
+          fi
+        shell: bash
   wheel:
     runs-on: ${{ matrix.os }}
     needs: ["standalone"]
