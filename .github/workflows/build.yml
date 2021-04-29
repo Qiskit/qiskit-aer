@@ -93,7 +93,7 @@ jobs:
           cd out/bin
           for test in test*
           do echo $test
-            if ! /usr/bin/mprirun -host localhost:2 -np 2 ./$test
+            if ! /usr/bin/mpirun.openmpi -host localhost:2 -np 2 ./$test
             then
               ERR=1
             fi
@@ -107,7 +107,7 @@ jobs:
         run: |
           python tools/generate_qobj.py
           cd out
-          /usr/bin/mpirun -host localhost:2 -np 2 Release/qasm_simulator ../qobj.json
+          /usr/bin/mpirun.openmpi -host localhost:2 -np 2 Release/qasm_simulator ../qobj.json
         env:
           USE_MPI: 1
         shell: bash
