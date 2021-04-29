@@ -82,12 +82,12 @@ jobs:
           mkdir out; cd out; cmake .. -DBUILD_TESTS=1 -DAER_MPI=True
           make
         shell: bash
-      - name: Run Unit Tests
+      - name: Run Unit Tests with mpi
         run: |
           cd out/bin
           for test in test*
           do echo $test
-            if ! ./$test
+            if ! mprirun -host localhost:2 -np 2 ./$test
             then
               ERR=1
             fi
