@@ -1205,6 +1205,7 @@ template <class state_t>
 void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
 {
   int_t iChunk;
+  uint_t nLarge = 1;
 
 
   if(qubit < chunk_bits_*qubit_scale()){
