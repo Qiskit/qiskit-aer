@@ -51,9 +51,9 @@
         "python setup.py bdist_wheel --dist-dir={build_cache_dir} -- -DCMAKE_CXX_COMPILER=g++ -- -j"
     ],
 
-    // List of branches to benchmark. If not provided, defaults to "master"
+    // List of branches to benchmark. If not provided, defaults to "main"
     // (for git) or "default" (for mercurial).
-    // "branches": ["master"], // for git
+    // "branches": ["main"], // for git
     // "branches": ["default"],    // for mercurial
 
     // The DVCS being used.  If not set, it will be automatically

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes a bug with the ``"multiplexer"`` simulator instruction where the
+    order of target and control qubits was reversed to the order in the
+    Qiskit instruction.
