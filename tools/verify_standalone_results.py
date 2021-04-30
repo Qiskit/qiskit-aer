@@ -116,7 +116,8 @@ if __name__ == '__main__':
     result = Result.from_dict(result_dict)
     assert result.status == 'COMPLETED'
     assert result.success is True
-    assert result.metadata['num_mpi_processes'] > 1
+    if os.getenv('USE_MPI', False):
+        assert result.metadata['num_mpi_processes'] > 1
     shots = result.results[0].shots
     targets = {'0x0': 5 * shots / 8, '0x1': shots / 8,
                '0x2': shots / 8, '0x3': shots / 8}
