@@ -62,7 +62,7 @@ jobs:
           pip install -U qiskit-terra
           python tools/generate_qobj.py
           cd out
-          Release/qasm_simulator ../qobj.json
+          Release/qasm_simulator ../qobj.json | python ../tools/verify_standalone_results.py
         shell: bash
   mpi_standalone:
     runs-on: ${{ matrix.os }}
@@ -109,7 +109,7 @@ jobs:
           pip install -U qiskit-terra
           python tools/generate_qobj.py
           cd out
-          /usr/bin/mpirun.openmpi -host localhost:2 -np 2 Release/qasm_simulator ../qobj.json
+          /usr/bin/mpirun.openmpi -host localhost:2 -np 2 Release/qasm_simulator ../qobj.json | python ../tools/verify_standalone_results.py
         env:
           USE_MPI: 1
         shell: bash
