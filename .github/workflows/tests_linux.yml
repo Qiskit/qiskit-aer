@@ -163,7 +163,7 @@ jobs:
           set -e
           python setup.py bdist_wheel -- -DAER_MPI=True
           pip install --find-links=dist qiskit-aer
-       - name: Run Tests
+      - name: Run Tests
         env:
           QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         run: |
