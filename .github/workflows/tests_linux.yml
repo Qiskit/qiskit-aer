@@ -151,7 +151,10 @@ jobs:
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
       - name: Install Deps
-        run: python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel git+https://github.com/Qiskit/qiskit-terra
+        run: |
+          python -m venv mpi_tests
+          mpi_tests/bin/python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel git+https://github.com/Qiskit/qiskit-terra
+        shell: bash
       - name: Install openblas and openmpi
         run: |
           set -e
@@ -161,7 +164,6 @@ jobs:
       - name: Install Aer
         run: |
           set -e
-          python -m venv mpi_tests
           mpi_tests/bin/python setup.py bdist_wheel -- -DAER_MPI=True
           mpi_tests/bin/pip install --find-links=dist qiskit-aer
       - name: Run Tests
