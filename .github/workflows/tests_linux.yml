@@ -156,7 +156,7 @@ jobs:
         run: |
           set -e
           sudo apt-get update
-          sudo apt-get install -y libopenblas-dev openmpi-bin openmpi-dev
+          sudo apt-get install -y libopenblas-dev openmpi-bin libopenmpi-dev
         shell: bash
       - name: Install Aer
         run: |
