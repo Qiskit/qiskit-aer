@@ -161,15 +161,16 @@ jobs:
       - name: Install Aer
         run: |
           set -e
-          python setup.py bdist_wheel -- -DAER_MPI=True
-          pip install --find-links=dist qiskit-aer
+          python -m venv mpi_tests
+          mpi_tests/bin/python setup.py bdist_wheel -- -DAER_MPI=True
+          mpi_tests/bin/pip install --find-links=dist qiskit-aer
       - name: Run Tests
         env:
           QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
         run: |
           set -e
           pip check
-          /usr/bin/mpirun.openmpi -host localhost:2 -np 2 python -m unittest discover ./test/terra
+          /usr/bin/mpirun.openmpi -host localhost:2 -np 2 mpi_tests/bin/python -m unittest discover ./test/terra
         shell: bash
   tests-json-input:
     runs-on: ${{ matrix.os }}
