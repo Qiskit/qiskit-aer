@@ -28,6 +28,7 @@
 #define _matrix_product_state_hpp
 
 #include <algorithm>
+#include <string>
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -41,6 +42,9 @@
 
 namespace AER {
 namespace MatrixProductState {
+
+static uint_t instruction_number= 0;
+static std::string bond_dimensions_str = " ";
 
 using OpType = Operations::OpType;
 
@@ -139,6 +143,12 @@ public:
   virtual void set_config(const json_t &config) override;
 
   virtual void add_metadata(ExperimentResult &result) const override;
+
+  // Similar to add_metadata, but used to add data at the end of circuit execution
+  virtual void add_reporting_metadata(ExperimentResult &result) const override;
+
+  // prints the bond dimensions after each instruction to the metadata
+  void output_bond_dimensions(const Operations::Op &op) const;
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
@@ -316,6 +326,8 @@ protected:
   // Table of allowed snapshot types to enum class members
   const static stringmap_t<Snapshots> snapshotset_;
 
+
+
 };
 
 
@@ -489,7 +501,33 @@ void State::add_metadata(ExperimentResult &result) const {
   result.metadata.add(
     MPS::get_sample_measure_alg(),
     "matrix_product_state_sample_measure_algorithm");
+  instruction_number = 0;
+  bond_dimensions_str = " ";
 } 
+
+void State::add_reporting_metadata(ExperimentResult &result) const {
+  result.metadata.add("{" + bond_dimensions_str + "}", "mps_bond_dimensions");
+}
+
+void State::output_bond_dimensions(const Operations::Op &op) const {
+  std::string num_str = std::to_string(instruction_number);
+  bond_dimensions_str += 
+    "I" + num_str + ": " + op.name + " on qubits " + std::to_string(op.qubits[0]);
+  for (uint_t index=1; index<op.qubits.size(); index++) {
+    bond_dimensions_str += "," + std::to_string(op.qubits[index]);
+  }
+  bond_dimensions_str += ": [";
+  reg_t bd = qreg_.get_bond_dimensions();
+  for (uint_t index=0; index<bd.size(); index++) {
+    bond_dimensions_str += std::to_string(bd[index]);
+    if (index < bd.size()-1)
+      bond_dimensions_str += " ";
+  }
+  const std::string end("], ");
+  bond_dimensions_str += end;
+  instruction_number++;
+}
+
 
 //=========================================================================
 // Implementation: apply operations
@@ -574,6 +612,9 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
       }
     }
     //qreg_.print(std::cout);
+    if (getenv("MPS_OUTPUT_DATA")) {
+      output_bond_dimensions(op);
+    }
   }
 }
 

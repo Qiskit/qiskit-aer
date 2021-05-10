@@ -1937,12 +1937,14 @@ void Controller::run_circuit_helper(const Circuit &circ,
   else {
     run_circuit_with_sampled_noise(circ, noise, config, shots, state, method,
                                    cache_blocking, result, rng);
+    state.add_reporting_metadata(result);
     return;
   }
 
   // Run multishot simulation without noise sampling
   run_circuit_without_sampled_noise(opt_circ, config, shots, state,
                                     method, cache_blocking, result, rng);
+  state.add_reporting_metadata(result);
 }
 
 template <class State_t>

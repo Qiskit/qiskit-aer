@@ -1677,8 +1677,8 @@ void MPS::reset_internal(const reg_t &qubits, RngEngine &rng) {
 
 void MPS::measure_reset_update_internal(const reg_t &qubits,
 					const reg_t &meas_state) {
-  for (auto i=0; i<qubits.size(); i++) {
-    if(meas_state[i] != 0) {
+  for (uint_t i=0; i<qubits.size(); i++) {
+    if (meas_state[i] != 0) {
       q_reg_[qubits[i]].apply_x();
     }
   }
@@ -1691,7 +1691,7 @@ mps_container_t MPS::copy_to_mps_container() {
     ret.first.push_back(std::make_pair(q_reg_[i].get_data(0),
                                        q_reg_[i].get_data(1)));
   }
-  for (auto i=0; i<num_qubits()-1; i++) {
+  for (uint_t i=0; i<num_qubits()-1; i++) {
     ret.second.push_back(lambda_reg_[i]);
   }
   return ret;

@@ -150,6 +150,9 @@ public:
   // Every state can add information to the metadata structure
   virtual void add_metadata(ExperimentResult &result) const {
   }
+  // Similar to add_metadata, but used to add data at the end of circuit execution
+  virtual void add_reporting_metadata(ExperimentResult &result) const {
+  }
 
   //-----------------------------------------------------------------------
   // Optional: measurement sampling
