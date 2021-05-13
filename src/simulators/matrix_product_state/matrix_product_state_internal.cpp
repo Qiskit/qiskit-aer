@@ -41,7 +41,9 @@ static const cmatrix_t one_measure =
   uint_t MPS::omp_threads_ = 1;     
   uint_t MPS::omp_threshold_ = 14;  
   enum Sample_measure_alg MPS::sample_measure_alg_ = Sample_measure_alg::HEURISTIC; 
-  double MPS::json_chop_threshold_ = 1E-8;  
+  double MPS::json_chop_threshold_ = 1E-8;
+  std::stringstream MPS::logging_str_;
+
 //------------------------------------------------------------------------
 // local function declarations
 //------------------------------------------------------------------------
@@ -631,7 +633,10 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
 
   MPS_Tensor left_gamma, right_gamma;
   rvector_t lambda;
-  MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
+  double discarded_value = MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
+  //MPS::print_to_log(gate_type);
+  MPS::print_to_log("discarded_value = ");
+  MPS::print_to_log(discarded_value);
 
   if (A != 0)
     left_gamma.div_Gamma_by_left_Lambda(lambda_reg_[A-1]);

@@ -504,7 +504,7 @@ void State::add_metadata(ExperimentResult &result) const {
 
 void State::add_reporting_metadata(ExperimentResult &result) const {
   result.metadata.add("{" + bond_dimensions_str.str() + "}", "mps_bond_dimensions");
-  //  result.metadata.add("{" + MPS::output_log() + "}", "discarded values from approximation");
+  result.metadata.add("{" + MPS::output_log() + "}", "discarded values from approximation");
 }
 
 void State::output_bond_dimensions(const Operations::Op &op) const {

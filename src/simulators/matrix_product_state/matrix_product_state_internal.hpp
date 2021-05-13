@@ -16,6 +16,8 @@
 #ifndef _aer_matrix_product_state_hpp_
 #define _aer_matrix_product_state_hpp_
 
+#include <cstdarg>
+
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
 #include "framework/operations.hpp"
@@ -92,6 +94,20 @@ public:
   bool empty() const {
     return(num_qubits_ == 0);
   }
+
+  static void clear_log() {
+    logging_str_.clear();
+  }
+
+  template <typename T>
+  static void print_to_log(T t) {
+    logging_str_ << t <<", ";
+  }
+  
+  static std::string output_log() {
+    return logging_str_.str();
+  }
+  
 
   /////////////////////////////////////////////////////////////////
   // API functions
@@ -467,6 +483,7 @@ private:
   static double json_chop_threshold_;  // Threshold for choping small values
                                     // in JSON serialization
   static bool enable_gate_opt_;      // allow optimizations on gates
+  static std::stringstream logging_str_;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
