@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <string>
+#include <sstream>
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -43,8 +44,8 @@
 namespace AER {
 namespace MatrixProductState {
 
-static uint_t instruction_number= 0;
-static std::string bond_dimensions_str = " ";
+static uint_t instruction_number = 0;
+static std::stringstream bond_dimensions_str;
 
 using OpType = Operations::OpType;
 
@@ -325,9 +326,6 @@ protected:
 
   // Table of allowed snapshot types to enum class members
   const static stringmap_t<Snapshots> snapshotset_;
-
-
-
 };
 
 
@@ -501,30 +499,30 @@ void State::add_metadata(ExperimentResult &result) const {
   result.metadata.add(
     MPS::get_sample_measure_alg(),
     "matrix_product_state_sample_measure_algorithm");
-  instruction_number = 0;
-  bond_dimensions_str = " ";
+  //MPS::clear_log();
 } 
 
 void State::add_reporting_metadata(ExperimentResult &result) const {
-  result.metadata.add("{" + bond_dimensions_str + "}", "mps_bond_dimensions");
+  result.metadata.add("{" + bond_dimensions_str.str() + "}", "mps_bond_dimensions");
+  //  result.metadata.add("{" + MPS::output_log() + "}", "discarded values from approximation");
 }
 
 void State::output_bond_dimensions(const Operations::Op &op) const {
   std::string num_str = std::to_string(instruction_number);
-  bond_dimensions_str += 
-    "I" + num_str + ": " + op.name + " on qubits " + std::to_string(op.qubits[0]);
+  bond_dimensions_str << 
+    "I" << num_str << ": " << op.name << " on qubits " << std::to_string(op.qubits[0]);
   for (uint_t index=1; index<op.qubits.size(); index++) {
-    bond_dimensions_str += "," + std::to_string(op.qubits[index]);
+    bond_dimensions_str << "," << op.qubits[index];
   }
-  bond_dimensions_str += ": [";
+  bond_dimensions_str << ": [";
   reg_t bd = qreg_.get_bond_dimensions();
   for (uint_t index=0; index<bd.size(); index++) {
-    bond_dimensions_str += std::to_string(bd[index]);
+    bond_dimensions_str << bd[index];
     if (index < bd.size()-1)
-      bond_dimensions_str += " ";
+      bond_dimensions_str << " ";
   }
   const std::string end("], ");
-  bond_dimensions_str += end;
+  bond_dimensions_str << end;
   instruction_number++;
 }
 
