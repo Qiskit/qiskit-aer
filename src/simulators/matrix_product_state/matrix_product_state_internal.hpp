@@ -99,13 +99,22 @@ public:
     logging_str_.clear();
   }
 
-  template <typename T>
-  static void print_to_log(T t) {
-    logging_str_ << t <<", ";
+  static void print_to_log() {  // Base function for recursive function
   }
-  
+
+  template<typename T, typename... Targs>
+  static void print_to_log(const T &value, const Targs & ... Fargs) {
+    if (getenv("MPS_OUTPUT_DATA")) {
+      logging_str_ << value;
+      MPS::print_to_log(Fargs...); // recursive call
+    }
+  }
+
   static std::string output_log() {
-    return logging_str_.str();
+    if (getenv("MPS_OUTPUT_DATA"))
+      return logging_str_.str();
+    else
+      return "";
   }
   
 

@@ -665,7 +665,6 @@ double MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t
   left_gamma.data_  = reshape_U_after_SVD(U);
   lambda            = S;
   right_gamma.data_ = reshape_V_after_SVD(V);
-  std::cout << "in decompose: " << discarded_value<<std::endl;
   return discarded_value;
 }
 

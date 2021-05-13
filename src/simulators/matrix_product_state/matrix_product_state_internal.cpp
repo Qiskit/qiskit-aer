@@ -634,9 +634,8 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
   MPS_Tensor left_gamma, right_gamma;
   rvector_t lambda;
   double discarded_value = MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
-  //MPS::print_to_log(gate_type);
-  MPS::print_to_log("discarded_value = ");
-  MPS::print_to_log(discarded_value);
+  if (discarded_value > 0.0)
+    MPS::print_to_log("discarded_value = ", discarded_value, ", ");
 
   if (A != 0)
     left_gamma.div_Gamma_by_left_Lambda(lambda_reg_[A-1]);

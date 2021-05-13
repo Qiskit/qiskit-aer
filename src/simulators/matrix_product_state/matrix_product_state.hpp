@@ -499,30 +499,28 @@ void State::add_metadata(ExperimentResult &result) const {
   result.metadata.add(
     MPS::get_sample_measure_alg(),
     "matrix_product_state_sample_measure_algorithm");
-  //MPS::clear_log();
+  MPS::clear_log();
 } 
 
 void State::add_reporting_metadata(ExperimentResult &result) const {
-  result.metadata.add("{" + bond_dimensions_str.str() + "}", "mps_bond_dimensions");
-  result.metadata.add("{" + MPS::output_log() + "}", "discarded values from approximation");
+  result.metadata.add("{" + MPS::output_log() + "}", "MPS_log_data");
 }
 
 void State::output_bond_dimensions(const Operations::Op &op) const {
   std::string num_str = std::to_string(instruction_number);
-  bond_dimensions_str << 
-    "I" << num_str << ": " << op.name << " on qubits " << std::to_string(op.qubits[0]);
+  MPS::print_to_log("I", num_str, ":", op.name, " on qubits ", op.qubits[0]);
   for (uint_t index=1; index<op.qubits.size(); index++) {
-    bond_dimensions_str << "," << op.qubits[index];
+    MPS::print_to_log(",", op.qubits[index]);
   }
-  bond_dimensions_str << ": [";
+  MPS::print_to_log(", BD= [");
   reg_t bd = qreg_.get_bond_dimensions();
+  
   for (uint_t index=0; index<bd.size(); index++) {
-    bond_dimensions_str << bd[index];
-    if (index < bd.size()-1)
-      bond_dimensions_str << " ";
+    MPS::print_to_log(bd[index]);
+      if (index < bd.size()-1)
+	MPS::print_to_log(" ");
   }
-  const std::string end("], ");
-  bond_dimensions_str << end;
+  MPS::print_to_log("],  ");
   instruction_number++;
 }
 
@@ -610,7 +608,12 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
       }
     }
     //qreg_.print(std::cout);
-    if (getenv("MPS_OUTPUT_DATA")) {
+    // print out bond dimensions only if they may have changed since previous print
+    if (getenv("MPS_OUTPUT_DATA") && 
+	(op.type == OpType::gate ||op.type == OpType::measure || 
+	 op.type == OpType::initialize 	 || op.type == OpType::reset || 
+	 op.type == OpType::matrix) && 
+	op.qubits.size() > 1) {
       output_bond_dimensions(op);
     }
   }
