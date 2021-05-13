@@ -95,6 +95,8 @@ public:
     return(num_qubits_ == 0);
   }
 
+  // the following 3 static methods are used as a reporting mechanism
+  // for MPS debug data
   static void clear_log() {
     logging_str_.clear();
   }

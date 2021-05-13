@@ -1,7 +1,8 @@
 ---
 features:
   - |
-    If the environment variable `MPS_OUTPUT_DATA` is set to 1, then the MPS 
-    bond dimensions are printed to the metadata after every instruction. 
+    If the environment variable `MPS_OUTPUT_DATA` is set to 1, then MPS
+    log data is printed to the metadata. This includes, after every relevant
+    instruction, the bond dimensions and the values discarded during approximation.
 
 

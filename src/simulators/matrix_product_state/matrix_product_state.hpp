@@ -28,7 +28,6 @@
 #define _matrix_product_state_hpp
 
 #include <algorithm>
-#include <string>
 #include <sstream>
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -45,7 +44,6 @@ namespace AER {
 namespace MatrixProductState {
 
 static uint_t instruction_number = 0;
-static std::stringstream bond_dimensions_str;
 
 using OpType = Operations::OpType;
 
@@ -507,14 +505,12 @@ void State::add_reporting_metadata(ExperimentResult &result) const {
 }
 
 void State::output_bond_dimensions(const Operations::Op &op) const {
-  std::string num_str = std::to_string(instruction_number);
-  MPS::print_to_log("I", num_str, ":", op.name, " on qubits ", op.qubits[0]);
+  MPS::print_to_log("I", instruction_number, ":", op.name, " on qubits ", op.qubits[0]);
   for (uint_t index=1; index<op.qubits.size(); index++) {
     MPS::print_to_log(",", op.qubits[index]);
   }
   MPS::print_to_log(", BD= [");
   reg_t bd = qreg_.get_bond_dimensions();
-  
   for (uint_t index=0; index<bd.size(); index++) {
     MPS::print_to_log(bd[index]);
       if (index < bd.size()-1)
@@ -611,7 +607,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
     // print out bond dimensions only if they may have changed since previous print
     if (getenv("MPS_OUTPUT_DATA") && 
 	(op.type == OpType::gate ||op.type == OpType::measure || 
-	 op.type == OpType::initialize 	 || op.type == OpType::reset || 
+	 op.type == OpType::initialize || op.type == OpType::reset || 
 	 op.type == OpType::matrix) && 
 	op.qubits.size() > 1) {
       output_bond_dimensions(op);
