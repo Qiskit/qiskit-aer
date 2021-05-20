@@ -23,6 +23,9 @@
 #include "framework/utils.hpp"
 #include "simulators/state.hpp"
 #include "superoperator.hpp"
+#ifdef AER_THRUST_SUPPORTED
+#include "superoperator_thrust.hpp"
+#endif
 
 namespace AER {
 namespace QubitSuperoperator {
@@ -32,9 +35,11 @@ const Operations::OpSet StateOpSet(
     // Op types
     {Operations::OpType::gate, Operations::OpType::reset,
      Operations::OpType::snapshot, Operations::OpType::barrier,
+     Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::kraus, Operations::OpType::superop,
-     Operations::OpType::save_state, Operations::OpType::set_unitary,
+     Operations::OpType::save_state, Operations::OpType::save_superop,
+     Operations::OpType::set_unitary,
      Operations::OpType::set_superop},
     // Gates
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
@@ -42,7 +47,7 @@ const Operations::OpSet StateOpSet(
      "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
      "rzx",  "p",   "cp", "cu1", "sx", "x90", "delay"},
     // Snapshots
-    {"superoperator"});
+    {"superop"});
 
 // Allowed gates enum class
 enum class Gates {
@@ -70,7 +75,7 @@ public:
   //-----------------------------------------------------------------------
 
   // Return the string name of the State class
-  virtual std::string name() const override { return "superoperator"; }
+  virtual std::string name() const override { return "superop"; }
 
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
@@ -97,6 +102,8 @@ public:
   // if the controller/engine allows threads for it
   // Config: {"omp_qubit_threshold": 3}
   virtual void set_config(const json_t &config) override;
+
+  virtual void allocate(uint_t num_qubits,uint_t block_bits) override;
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -243,6 +250,12 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
         if (BaseState::creg_.check_conditional(op))
           apply_gate(op);
         break;
+      case Operations::OpType::bfunc:
+          BaseState::creg_.apply_bfunc(op);
+        break;
+      case Operations::OpType::roerror:
+          BaseState::creg_.apply_roerror(op, rng);
+        break;
       case Operations::OpType::reset:
         apply_reset(op.qubits);
         break;
@@ -267,6 +280,7 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
         apply_snapshot(op, result);
         break;
       case Operations::OpType::save_state:
+      case Operations::OpType::save_superop:
         apply_save_state(op, result, final_ops && ops.size() == i + 1);
         break;
       default:
@@ -319,7 +333,6 @@ void State<data_t>::initialize_qreg(uint_t num_qubits, const data_t &supermat) {
 
 template <class data_t>
 void State<data_t>::initialize_qreg(uint_t num_qubits, const cmatrix_t &mat) {
-
   // Check dimension of unitary
   const auto sz_uni = 1ULL << (2 * num_qubits);
   const auto sz_super = 1ULL << (4 * num_qubits);
@@ -337,6 +350,11 @@ template <class data_t> void State<data_t>::initialize_omp() {
   if (BaseState::threads_ > 0)
     BaseState::qreg_.set_omp_threads(
         BaseState::threads_); // set allowed OMP threads in qubitvector
+}
+
+template <class data_t>
+void State<data_t>::allocate(uint_t num_qubits, uint_t block_bits){
+    BaseState::qreg_.chunk_setup(num_qubits * 4, num_qubits * 4, 0, 1);
 }
 
 //=========================================================================
@@ -496,7 +514,7 @@ void State<data_t>::apply_snapshot(const Operations::Op &op,
                                    ExperimentResult &result) {
   // Look for snapshot type in snapshotset
   if (op.name == "superopertor" || op.name == "state") {
-    BaseState::snapshot_state(op, result, "superoperator");
+    BaseState::snapshot_state(op, result, "superop");
   } else {
     throw std::invalid_argument(
         "QubitSuperoperator::State::invalid snapshot instruction \'" + op.name +
@@ -513,31 +531,18 @@ void State<densmat_t>::apply_save_state(const Operations::Op &op,
         op.name + " was not applied to all qubits."
         " Only the full state can be saved.");
   }
-  // Renamp single data type to average
-  Operations::DataSubType save_type;
-  switch (op.save_type) {
-    case Operations::DataSubType::single:
-      save_type = Operations::DataSubType::average;
-      break;
-    case Operations::DataSubType::c_single:
-      save_type = Operations::DataSubType::c_average;
-      break;
-    default:
-      save_type = op.save_type;
-  }
-
   // Default key
   std::string key = (op.string_params[0] == "_method_")
                       ? "superop"
                       : op.string_params[0];
   if (last_op) {
-    BaseState::save_data_average(result, key,
+    BaseState::save_data_pershot(result, key,
                                  BaseState::qreg_.move_to_matrix(),
-                                 save_type);
+                                 op.save_type);
   } else {
-    BaseState::save_data_average(result, key,
+    BaseState::save_data_pershot(result, key,
                                  BaseState::qreg_.copy_to_matrix(),
-                                 save_type);
+                                 op.save_type);
   }
 }
 

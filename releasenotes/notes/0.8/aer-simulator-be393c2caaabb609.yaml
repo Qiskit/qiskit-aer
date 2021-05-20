@@ -1,0 +1,81 @@
+---
+features:
+  - |
+    Adds the new :class:`~qiskit.provider.aer.AerSimulator` simulator backend
+    supporting the following simulation methods
+  
+      * `automatic`
+      * `statevector`
+      * `stabilizer`
+      * `density_matrix`
+      * `matrix_product_state` 
+      * `unitary`
+      * `superop`
+
+    The default `automatic` method will automatically choose a simulation
+    method separately for each run circuit based on the circuit instructions
+    and noise model (if any). Initializing a simulator with a specific
+    method can be done using the `method` option.
+
+    .. code::python
+
+      from qiskit.providers.aer import AerSimulator
+
+      # Create a MPS simulator backend
+      backend = AerSimulator(method='matrix_product_state')
+
+    GPU simulation for the statevector, density matrix and unitary methods
+    can be enabled by setting the `device='GPU'` backend option.
+    
+    .. code::python
+
+      from qiskit.providers.aer import AerSimulator
+
+      # Create a GPU statevector backend
+      backend = AerSimulator(method='statevector', device='GPU')
+
+    Note that the `unitary` and `superop` methods do not support measurement
+    as they simulate the unitary matrix or superopator matrix of the run
+    circuit so one of the new :func:`~qiskit.provider.aer.library.save_unitary`,
+    :func:`~qiskit.provider.aer.library.save_superop`, or
+    :func:`~qiskit.provider.aer.library.save_state` instructions must
+    be used to save the simulator state to the returned results. Similarly
+    state of the other simulations methods can be saved using the
+    appropriate instructions. See the :mod:`qiskit.provider.aer.library`
+    API documents for more details.
+
+    Note that the :class:`~qiskit.provider.aer.AerSimulator` simulator
+    superceds the :class:`~qiskit.provider.aer.QasmSimulator`,
+    :class:`~qiskit.provider.aer.StatevectorSimulator`, and
+    :class:`~qiskit.provider.aer.UnitarySimulator` backends which will
+    be deprecated in a future release.   
+  - |
+    Updates the :class:`~qiskit.providers.aer.AerProvider` class to include
+    multiple :class:`~qiskit.provider.aer.AerSimulator` backends preconfigured
+    for all available simulation methods and simulation devices. The new
+    backends can be accessed through the provider interface using the names
+
+      * `"aer_simulator"`
+      * `"aer_simulator_statevector"`
+      * `"aer_simulator_stabilizer"`
+      * `"aer_simulator_density_matrix"`
+      * `"aer_simulator_matrix_product_state"`
+      * `"aer_simulator_extended_stabilizer"`
+      * `"aer_simulator_unitary"`
+      * `"aer_simulator_superop"`
+
+    Additional if Aer was installed with GPU support on a compatible system
+    the following GPU backends will also be available
+
+      * `"aer_simulator_statevector_gpu"`
+      * `"aer_simulator_density_matrix_gpu"`
+      * `"aer_simulator_unitary_gpu"`
+
+    Example
+
+    .. code::python
+
+      from qiskit import Aer
+
+      # Get the GPU statevector simulator backend
+      backend = Aer.get_backend('aer_simulator_statevector_gpu')

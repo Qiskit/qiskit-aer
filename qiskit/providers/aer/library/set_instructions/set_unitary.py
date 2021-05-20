@@ -59,6 +59,7 @@ def set_unitary(self, state):
     Raises:
         ExtensionError: If the state is the incorrect size for the
                         current circuit.
+        ExtensionError: if the input matrix is not unitary.
 
     .. note:
 

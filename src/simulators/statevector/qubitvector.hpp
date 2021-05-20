@@ -150,6 +150,8 @@ public:
   //prepare buffer for MPI send/recv
   std::complex<data_t>* send_buffer(uint_t& size_in_byte);
   std::complex<data_t>* recv_buffer(uint_t& size_in_byte);
+  void release_send_buffer(void) const;
+  void release_recv_buffer(void) const;
 
   //-----------------------------------------------------------------------
   // Check point operations
@@ -364,7 +366,7 @@ protected:
   std::complex<data_t>* checkpoint_;
 
   uint_t chunk_index_;      //global chunk index
-  cvector_t<data_t> recv_buffer_;   //receive buffer for MPI
+  mutable cvector_t<data_t> recv_buffer_;   //receive buffer for MPI
 
   //-----------------------------------------------------------------------
   // Config settings
@@ -791,7 +793,7 @@ void QubitVector<data_t>::allocate_mem(size_t data_size){
   // Allocate memory for new vector
   if (data_ == nullptr) {
 #if !defined(_WIN64) && !defined(_WIN32)
-    void* data;
+    void* data = nullptr;
     posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size);
     data_ = reinterpret_cast<std::complex<data_t>*>(data);
 #else
@@ -804,7 +806,7 @@ template <typename data_t>
 void QubitVector<data_t>::allocate_checkpoint(size_t data_size){
   free_checkpoint();
 #if !defined(_WIN64) && !defined(_WIN32)
-  void* data;
+  void* data = nullptr;
   posix_memalign(&data, 64, sizeof(std::complex<data_t>) * data_size);
   checkpoint_ = reinterpret_cast<std::complex<data_t>*>(data);
 #else
@@ -895,6 +897,18 @@ std::complex<data_t>* QubitVector<data_t>::recv_buffer(uint_t& size_in_byte)
     recv_buffer_.resize(data_size_);
   }
   return &recv_buffer_[0];
+}
+
+template <typename data_t>
+void QubitVector<data_t>::release_send_buffer(void) const
+{
+
+}
+
+template <typename data_t>
+void QubitVector<data_t>::release_recv_buffer(void) const
+{
+  recv_buffer_.clear();
 }
 
 //------------------------------------------------------------------------------
@@ -1225,7 +1239,6 @@ void QubitVector<data_t>::apply_permutation_matrix(const reg_t& qubits,
     }
   } // end switch
 }
-
 
 /*******************************************************************************
  *

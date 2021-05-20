@@ -1,6 +1,0 @@
----
-
-features:
-  - |
-    Added support for `initialize` in the MPS simulation method.
-

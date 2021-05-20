@@ -558,47 +558,84 @@ void State::apply_save_amplitudes_sq(const Operations::Op &op,
 
 double State::expval_pauli(const reg_t &qubits,
                            const std::string& pauli) {
-  // Compute expval components
-  auto state_cpy = BaseState::qreg_;
-  reg_t measured_qubits;
-  for (uint_t pos = 0; pos < qubits.size(); ++pos) {
-    const auto& qubit = qubits[pos];
-    switch (pauli[pauli.size() - 1 - pos]) {
-      case 'I':
-        break;
+  // Construct Pauli on N-qubits
+  const auto num_qubits = BaseState::qreg_.num_qubits();
+  Pauli::Pauli P(num_qubits);
+  uint_t phase = 0;
+  for (size_t i = 0; i < qubits.size(); ++i) {
+    switch (pauli[pauli.size() - 1 - i]) {
       case 'X':
-        state_cpy.append_h(qubit);
-        measured_qubits.push_back(qubit);
+        P.X.set1(qubits[i]);
         break;
       case 'Y':
-        state_cpy.append_s(qubit);
-        state_cpy.append_z(qubit);
-        state_cpy.append_h(qubit);
-        measured_qubits.push_back(qubit);
+        P.X.set1(qubits[i]);
+        P.Z.set1(qubits[i]);
+        phase += 1;
         break;
       case 'Z':
-        measured_qubits.push_back(qubit);
+        P.Z.set1(qubits[i]);
         break;
-      default: {
-        std::stringstream msg;
-        msg << "Invalid Pauli string \'" << pauli[pos]
-            << "\'.";
-        throw std::invalid_argument(msg.str());
+      default:
+        break;
+    };
+  }
+
+  // Check if there is a stabilizer that anti-commutes with an odd number of qubits
+  // If so expectation value is 0
+  for (size_t i = 0; i < num_qubits; i++) {
+    const auto& stabi = BaseState::qreg_.stabilizer(i);
+    size_t num_anti = 0;
+    for (const auto& qubit : qubits) {
+      if (P.Z[qubit] & stabi.X[qubit]) {
+	      num_anti++;
+      }
+      if (P.X[qubit] & stabi.Z[qubit]) {
+	      num_anti++;
       }
     }
+    if(num_anti % 2 == 1)
+      return 0.0;
   }
-  return state_cpy.expectation_value(measured_qubits);
+
+  // Otherwise P is (-1)^a prod_j S_j^b_j for Clifford stabilizers
+  // If P anti-commutes with D_j then b_j = 1.
+  // Multiply P by stabilizers with anti-commuting destabilizers
+  auto PZ = P.Z; // Make a copy of P.Z 
+  for (size_t i = 0; i < num_qubits; i++) {
+    // Check if destabilizer anti-commutes
+    const auto& destabi = BaseState::qreg_.destabilizer(i);
+    size_t num_anti = 0;
+    for (const auto& qubit : qubits) {
+      if (P.Z[qubit] & destabi.X[qubit]) {
+	      num_anti++;
+      }
+      if (P.X[qubit] & destabi.Z[qubit]) {
+	      num_anti++;
+      }
+    }
+    if (num_anti % 2 == 0) continue;
+
+    // If anti-commutes multiply Pauli by stabilizer
+    const auto& stabi = BaseState::qreg_.stabilizer(i);
+    phase += 2 * BaseState::qreg_.phases()[i + num_qubits];
+    for (size_t k = 0; k < num_qubits; k++) {
+      phase += stabi.Z[k] & stabi.X[k];
+      phase += 2 * (PZ[k] & stabi.X[k]);
+      PZ.setValue(PZ[k] ^ stabi.Z[k], k);
+    }
+  }
+  return (phase % 4) ? -1.0 : 1.0;
 }
 
-void set_value_helper(std::map<std::string, double>& probs,
-                      const std::string &outcome,
-                      double value) {
+static void set_value_helper(std::map<std::string, double>& probs,
+                             const std::string &outcome,
+                             double value) {
   probs[Utils::bin2hex(outcome)] = value;
 }
 
-void set_value_helper(std::vector<double>& probs,
-                      const std::string &outcome,
-                      double value) {
+static void set_value_helper(std::vector<double>& probs,
+                             const std::string &outcome,
+                             double value) {
   probs[std::stoull(outcome, 0, 2)] = value;
 }
 

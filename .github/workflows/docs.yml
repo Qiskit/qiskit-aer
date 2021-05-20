@@ -1,9 +1,9 @@
 name: Docs and Tutorial
 on:
   push:
-    branches: [master, 'stable/*']
+    branches: [main, 'stable/*']
   pull_request:
-    branches: [master, 'stable/*']
+    branches: [main, 'stable/*']
 jobs:
   docs:
     runs-on: ubuntu-latest
@@ -71,7 +71,7 @@ jobs:
           pip install -U -r requirements-dev.txt -c constraints.txt
           pip install -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
           pip install -c constraints.txt .
-          pip install -U "qiskit-ibmq-provider" "z3-solver" "qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" jupyter pylatexenc sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
+          pip install -U "qiskit-ibmq-provider" "z3-solver" "qiskit-ignis" "qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" jupyter pylatexenc nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
           python setup.py build_ext --inplace
           sudo apt install -y graphviz pandoc libopenblas-dev
           pip check

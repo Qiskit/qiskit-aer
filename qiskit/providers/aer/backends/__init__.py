@@ -14,6 +14,7 @@
 Aer Provider Simulator Backends
 """
 
+from .aer_simulator import AerSimulator
 from .qasm_simulator import QasmSimulator
 from .statevector_simulator import StatevectorSimulator
 from .unitary_simulator import UnitarySimulator

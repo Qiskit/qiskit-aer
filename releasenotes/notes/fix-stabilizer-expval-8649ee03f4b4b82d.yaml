@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes a bug in the ``stabilizer`` simulator method of the
+    :class:`~qiskit.providers.aer.QasmSimulator` and
+    :class:`~qiskit.providers.aer.AerSimulator` where the expectation value
+    for the ``save_expectation_value`` and ``snapshot_expectation_value``
+    could have the wrong sign for certain ``Y`` Pauli's.
