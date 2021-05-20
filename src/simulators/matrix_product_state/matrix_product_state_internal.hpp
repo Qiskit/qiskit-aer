@@ -276,6 +276,10 @@ public:
     return enable_gate_opt_;
   }
 
+  static bool get_mps_output_data() {
+    return mps_output_data;
+  }
+
   //----------------------------------------------------------------
   // Function name: norm
   // Description: the norm is defined as <psi|A^dagger . A|psi>.

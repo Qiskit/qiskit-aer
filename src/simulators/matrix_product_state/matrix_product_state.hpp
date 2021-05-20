@@ -605,7 +605,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
     }
     //qreg_.print(std::cout);
     // print out bond dimensions only if they may have changed since previous print
-    if (getenv("MPS_OUTPUT_DATA") && 
+    if (MPS::get_mps_output_data() && 
 	(op.type == OpType::gate ||op.type == OpType::measure || 
 	 op.type == OpType::initialize || op.type == OpType::reset || 
 	 op.type == OpType::matrix) && 
