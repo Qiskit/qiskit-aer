@@ -106,14 +106,14 @@ public:
 
   template<typename T, typename... Targs>
   static void print_to_log(const T &value, const Targs & ... Fargs) {
-    if (getenv("MPS_OUTPUT_DATA")) {
+    if (mps_output_data) {
       logging_str_ << value;
       MPS::print_to_log(Fargs...); // recursive call
     }
   }
 
   static std::string output_log() {
-    if (getenv("MPS_OUTPUT_DATA"))
+    if (mps_output_data)
       return logging_str_.str();
     else
       return "";
@@ -495,6 +495,7 @@ private:
                                     // in JSON serialization
   static bool enable_gate_opt_;      // allow optimizations on gates
   static std::stringstream logging_str_;
+  static bool mps_output_data;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {

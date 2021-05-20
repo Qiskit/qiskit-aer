@@ -120,6 +120,8 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   S.resize(new_SV_num);
   V.resize(V.GetRows(), new_SV_num);
 
+  // discarded_value is the sum of the squares of the Schmidt coeffients 
+  // that were discarded by approximation
   double discarded_value = 0.0;
   // After approximation, we may need to re-normalize the values of S
   if (new_SV_num < SV_num) {
