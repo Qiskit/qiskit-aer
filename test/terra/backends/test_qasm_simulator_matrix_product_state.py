@@ -55,6 +55,7 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabi
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
+from test.terra.backends.qasm_simulator.qasm_fusion import QasmMPSFusionTests
 
 
 @requires_method("qasm_simulator", "matrix_product_state")
@@ -88,7 +89,8 @@ class TestQasmMatrixProductStateSimulator(
         QasmDelayGateTests,
         QasmSaveDataTests,
         QasmSetMPSTests,
-        QasmSetStateTests
+        QasmSetStateTests,
+        QasmMPSFusionTests
 ):
     """QasmSimulator matrix product state method tests."""
 
