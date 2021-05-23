@@ -905,7 +905,6 @@ Transpile::Fusion QasmController::transpile_fusion(Method method,
     case Method::matrix_product_state: {
       fusion_pass.active = false;
       return fusion_pass; // Do not allow the config to set active for MPS
-
     }
     case Method::statevector:
     case Method::statevector_thrust_gpu:
