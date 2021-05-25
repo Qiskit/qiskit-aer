@@ -64,8 +64,7 @@ class CJob:
         """
         logger.debug("Submitting job %s in future", self._id)
         _exec = executor or self._executor
-        self._future = _exec.submit(self._backend._run_job, self._id, self._qobj,
-                                    *self._run_args, **self._run_kwargs)
+        self._future = _exec.submit(self._backend._run, self._qobj)
         logger.debug("Job %s future obtained", self._id)
 
     @property

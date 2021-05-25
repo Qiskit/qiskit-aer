@@ -83,7 +83,6 @@ class JobSet:
                 'The jobs for this managed job set have already been submitted.')
 
         self._future = True
-        total_jobs = len(self._experiments)
         for i, exp in enumerate(self._experiments):
             cjob = CJob(backend, exp, *run_args, **run_kwargs)
             cjob.submit(executor=executor)

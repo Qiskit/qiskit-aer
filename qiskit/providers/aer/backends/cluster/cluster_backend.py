@@ -69,11 +69,13 @@ class ClusterBackend(AerBackend):
                          properties=backend.properties(),
                          available_methods=backend.available_methods(),
                          defaults=backend.defaults(),
-                         backend_options=backend.options,
+                         backend_options=None,
                          provider=provider)
+
         self._executor = executor
         self._backend_impl = backend
         self._assemble_config = assemble_config
+        self._options = backend._options
 
     @property
     def executor(self):
@@ -138,6 +140,9 @@ class ClusterBackend(AerBackend):
         else:
             raise ValueError(
                 "run() is not implemented for this type of experiment ({})".format(str(type(exp))))
+
+        for experiment in experiments:
+            self._add_options_to_qobj(experiment, backend_options=None, **run_kwargs)
 
         job_set = JobSet(experiments)
         job_set.run(self.executor, self.backend, *run_args, **run_kwargs)
