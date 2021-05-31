@@ -202,6 +202,13 @@ def pulse_controller(qobj):
         if not exp['can_sample']:
             pulse_sim_desc.can_sample = False
 
+    meas_ops_hack = []
+    for op in pulse_sim_desc.measurement_ops:
+        if op is not None:
+            meas_ops_hack.append(op)
+
+    pulse_sim_desc.measurement_ops = meas_ops_hack
+
     run_experiments = (run_unitary_experiments if pulse_sim_desc.can_sample
                        else run_monte_carlo_experiments)
     exp_results, exp_times = run_experiments(pulse_sim_desc, pulse_de_model, solver_options)
