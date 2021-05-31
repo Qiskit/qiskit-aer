@@ -1213,10 +1213,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule |= Acquire(total_samples, AcquireChannel(1),
                             MemorySlot(1)) << 3 * total_samples
 
-        y0 = np.array([1., 1., 0., 0., 0., 0., 0., 0., 0.])/np.sqrt(2)
+        y0 = np.array([1., 1., 0., 0., 0., 0., 0., 0., 0.]) / np.sqrt(2)
         pulse_sim = PulseSimulator(system_model=system_model,
                                    initial_state=y0,
-                                   seed=9000)
+                                  seed=50)
 
         qobj = assemble([schedule],
                         backend=pulse_sim,
@@ -1227,6 +1227,10 @@ class TestPulseSimulator(common.QiskitAerTestCase):
                         memory_slots=2,
                         shots=1000)
         result = pulse_sim.run(qobj).result()
+        counts = result.get_counts()
+        exp_counts = {'00': 479, '01': 502, '10': 9, '11': 10}
+        self.assertDictAlmostEqual(counts, exp_counts)
+
 
 
     def _system_model_1Q(self, omega_0, r):
