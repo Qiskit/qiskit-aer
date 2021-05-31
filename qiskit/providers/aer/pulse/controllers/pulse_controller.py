@@ -390,7 +390,7 @@ class PulseInternalDEModel:
             H_noise = Operator(np.zeros(self.noise[0].data.shape))
             for kk in range(self.c_num):
                 c_op = self.noise[kk]
-                n_op = c_op.adjoint() @ c_op
+                n_op = c_op.adjoint() & c_op
                 # collapse ops
                 self.c_ops_data.append(c_op.data)
                 # norm ops
