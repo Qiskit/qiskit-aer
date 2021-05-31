@@ -737,19 +737,31 @@ void MPS::apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat,
 void MPS::apply_multi_qubit_gate(const reg_t &qubits,
 				 const cmatrix_t &mat,
 				 bool is_diagonal) {
-  // change qubit order in the matrix
+  // bring the qubits to consecutive positions
+  uint_t num_qubits = qubits.size();
+  uint_t length  = 1ULL << num_qubits;
+  reg_t squeezed_qubits(num_qubits);
+  squeeze_qubits(qubits, squeezed_qubits);
+
+  // reverse to match the ordering in qiskit, which is the reverse of mps
+  std::reverse(squeezed_qubits.begin(), squeezed_qubits.end());
+
+  // reorder on a dummy vector to get the new ordering
+  reg_t ordered_vec(length);
+  std::iota( std::begin(ordered_vec), std::end(ordered_vec), 0);
+  reg_t new_vec(length);
+  reorder_all_qubits(ordered_vec, squeezed_qubits, new_vec);
+
+  // change qubit order in the matrix - instead of doing swaps on the qubits
   uint_t nqubits = qubits.size();
   uint_t sidelen = 1 << nqubits;
   cmatrix_t new_mat(sidelen, sidelen);
-  for (uint_t i=0; i<sidelen; ++i) {
-    for (uint_t j=0; j<sidelen; ++j) {
-      uint_t new_i = reverse_bits(i, nqubits);
-      if (i==j)
-	new_mat(new_i, new_i) = mat(i, i);
-      else {
-	uint_t new_j = reverse_bits(j, nqubits);
-	new_mat(new_i, new_j) = mat(i, j);
-      }
+  for (uint_t col=0; col<sidelen; ++col) {
+    for (uint_t row=0; row<sidelen; ++row) {
+      if (row == col)
+	new_mat(new_vec[row], new_vec[row]) = mat(row, row);
+      else
+	new_mat(new_vec[row], new_vec[col]) = mat(row, col);
     }
   }
 
@@ -762,9 +774,16 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits,
 void MPS::apply_unordered_multi_qubit_gate(const reg_t &qubits,
 					   const cmatrix_t &mat,
 					   bool is_diagonal){
+  std::cout << "in apply_unordered_multi_qubit_gate" << std::endl;
   reg_t new_qubits(qubits.size());
   centralize_qubits(qubits, new_qubits);
   apply_matrix_to_target_qubits(new_qubits, mat, is_diagonal);
+  reg_t temp = get_internal_qubits(qubits);
+  std::cout << "new_qubits = ";
+  for (uint_t i=0; i<new_qubits.size(); i++)
+    std::cout << new_qubits[i] << " " ;
+  std::cout << std::endl;
+  std::cout <<"internal index of 0 " << get_qubit_index(0) << std::endl;
 }
 
 void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
@@ -773,9 +792,11 @@ void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
   uint_t num_qubits = target_qubits.size();
   uint_t first = target_qubits.front();
   MPS_Tensor sub_tensor(state_vec_as_MPS(first, first+num_qubits-1));
-
+  std::cout << "sub_tensor before apply= "<<std::endl;
+  sub_tensor.print(std::cout);
   sub_tensor.apply_matrix(mat, is_diagonal);
-
+  std::cout << "sub_tensor after apply= "<<std::endl;
+sub_tensor.print(std::cout);
   // state_mat is a matrix containing the flattened representation of the sub-tensor 
   // into a single matrix. E.g., sub_tensor will contain 8 matrices for 3-qubit
   // gates. state_mat will be the concatenation of them all.
@@ -910,6 +931,15 @@ void MPS::find_centralized_indices(const reg_t &qubits,
 
 void MPS::move_qubits_to_centralized_indices(const reg_t &sorted_indices,
 					     const reg_t &centralized_qubits) {
+  std::cout << "sorted_indices = ";
+  for (uint_t i=0; i<sorted_indices.size(); i++)
+    std::cout << sorted_indices[i] << " " ;
+  std::cout << std::endl;
+  std::cout << "centralized_qubits = ";
+  for (uint_t i=0; i<centralized_qubits.size(); i++)
+    std::cout << centralized_qubits[i] << " " ;
+  std::cout << std::endl;
+
   // We wish to minimize the number of swaps. Therefore we center the 
   // new indices around the median
   uint_t mid_index = (centralized_qubits.size()-1)/2;
@@ -941,6 +971,7 @@ void MPS::move_all_qubits_to_sorted_ordering() {
 }  
 
 void MPS::change_position(uint_t src, uint_t dst) {
+  std::cout<< "change position "<< src << " " << dst << std::endl;
    if(src == dst)
      return;
    if(src < dst)
