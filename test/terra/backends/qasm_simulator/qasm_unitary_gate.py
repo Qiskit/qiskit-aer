@@ -18,6 +18,9 @@ from test.terra.reference import ref_unitary_gate, ref_diagonal_gate
 
 from qiskit import execute
 from qiskit.providers.aer import QasmSimulator
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import Statevector
 
 import numpy as np
 
@@ -54,6 +57,35 @@ class QasmUnitaryGateTests:
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
 
+    def test_random_unitary_gate_with_permutations(self):
+        """Test simulation with random unitary gate with permutations."""
+        all_permutations = [[0, 1, 2],
+                            [0, 2, 1],
+                            [1, 0, 2],
+                            [1, 2, 0],
+                            [2, 0, 1],
+                            [2, 1, 0]
+                            ]
+        unitary_matrix = random_unitary(8, seed=8)
+        n = 3
+        shots = 2000
+        qr = QuantumRegister(n, 'qr')
+        cr = ClassicalRegister(n, 'cr')
+        regs = (qr, cr)
+    
+        for perm in all_permutations:
+            circuit = QuantumCircuit(*regs)
+            circuit.unitary(unitary_matrix, perm)
+            circuit.barrier(qr)
+            circuit.measure(qr, cr)
+            result = execute([circuit], self.SIMULATOR, shots=shots,
+                         **self.BACKEND_OPTS).result()
+            
+            state = Statevector.from_label(n * '0').evolve(unitary_matrix, perm)
+            counts = state.sample_counts(shots=shots)
+            hex_counts = {hex(int(key, 2)): val for key, val in counts.items()}
+            self.assertSuccess(result)
+            self.compare_counts(result, [circuit], [hex_counts], delta=0.05 * shots)
 
 class QasmDiagonalGateTests:
     """QasmSimulator diagonal gate tests."""
