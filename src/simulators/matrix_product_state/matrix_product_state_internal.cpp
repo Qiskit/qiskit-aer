@@ -774,16 +774,10 @@ void MPS::apply_multi_qubit_gate(const reg_t &qubits,
 void MPS::apply_unordered_multi_qubit_gate(const reg_t &qubits,
 					   const cmatrix_t &mat,
 					   bool is_diagonal){
-  std::cout << "in apply_unordered_multi_qubit_gate" << std::endl;
   reg_t new_qubits(qubits.size());
   centralize_qubits(qubits, new_qubits);
   apply_matrix_to_target_qubits(new_qubits, mat, is_diagonal);
   reg_t temp = get_internal_qubits(qubits);
-  std::cout << "new_qubits = ";
-  for (uint_t i=0; i<new_qubits.size(); i++)
-    std::cout << new_qubits[i] << " " ;
-  std::cout << std::endl;
-  std::cout <<"internal index of 0 " << get_qubit_index(0) << std::endl;
 }
 
 void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
@@ -792,11 +786,7 @@ void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
   uint_t num_qubits = target_qubits.size();
   uint_t first = target_qubits.front();
   MPS_Tensor sub_tensor(state_vec_as_MPS(first, first+num_qubits-1));
-  std::cout << "sub_tensor before apply= "<<std::endl;
-  sub_tensor.print(std::cout);
   sub_tensor.apply_matrix(mat, is_diagonal);
-  std::cout << "sub_tensor after apply= "<<std::endl;
-sub_tensor.print(std::cout);
   // state_mat is a matrix containing the flattened representation of the sub-tensor 
   // into a single matrix. E.g., sub_tensor will contain 8 matrices for 3-qubit
   // gates. state_mat will be the concatenation of them all.
@@ -931,15 +921,6 @@ void MPS::find_centralized_indices(const reg_t &qubits,
 
 void MPS::move_qubits_to_centralized_indices(const reg_t &sorted_indices,
 					     const reg_t &centralized_qubits) {
-  std::cout << "sorted_indices = ";
-  for (uint_t i=0; i<sorted_indices.size(); i++)
-    std::cout << sorted_indices[i] << " " ;
-  std::cout << std::endl;
-  std::cout << "centralized_qubits = ";
-  for (uint_t i=0; i<centralized_qubits.size(); i++)
-    std::cout << centralized_qubits[i] << " " ;
-  std::cout << std::endl;
-
   // We wish to minimize the number of swaps. Therefore we center the 
   // new indices around the median
   uint_t mid_index = (centralized_qubits.size()-1)/2;
@@ -971,7 +952,6 @@ void MPS::move_all_qubits_to_sorted_ordering() {
 }  
 
 void MPS::change_position(uint_t src, uint_t dst) {
-  std::cout<< "change position "<< src << " " << dst << std::endl;
    if(src == dst)
      return;
    if(src < dst)
