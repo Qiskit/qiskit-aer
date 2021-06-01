@@ -233,7 +233,7 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         qobj = assemble([self._1Q_schedule(num_acquires=2)],
                         backend=test_sim,
                         meas_level=2,
-                        qubit_lo_freq=[0.],
+                        qubit_lo_freq=test_sim.defaults().qubit_freq_est,
                         meas_return='single',
                         shots=256)
 
@@ -246,7 +246,7 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         qobj = assemble([self._1Q_schedule(num_acquires=0)],
                         backend=test_sim,
                         meas_level=2,
-                        qubit_lo_freq=[0.],
+                        qubit_lo_freq=test_sim.defaults().qubit_freq_est,
                         meas_return='single',
                         shots=256)
 
