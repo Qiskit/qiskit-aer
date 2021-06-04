@@ -94,6 +94,16 @@ public:
   // Set the circuit rng seed to random value
   inline void set_random_seed() {seed = std::random_device()();}
 
+  // Set shots
+  void set_shots(uint_t shots_) { shots = shots_; }
+
+  // Set seed
+  void set_seed(uint_t seed_) { seed = seed_; }
+
+  // Set global_phase_angle
+  void set_golbal_phase(double global_phase_angle_) { global_phase_angle = global_phase_angle_; }
+
+
 private:
   Operations::OpSet opset_;       // Set of operation types contained in circuit
   std::set<uint_t> qubitset_;     // Set of qubits used in the circuit
