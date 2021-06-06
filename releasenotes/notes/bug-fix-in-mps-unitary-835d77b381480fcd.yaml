@@ -4,5 +4,4 @@ fixes:
   - |
     ``unitary`` gate in MPS did not support permutations in the ordering of the 
     qubits on which the gate is applied. Added support for permutations. 
-    This bug appeared when using ``fusion`` on MPS.
 
