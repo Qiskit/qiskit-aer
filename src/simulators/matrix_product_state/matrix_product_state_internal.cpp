@@ -777,7 +777,6 @@ void MPS::apply_unordered_multi_qubit_gate(const reg_t &qubits,
   reg_t new_qubits(qubits.size());
   centralize_qubits(qubits, new_qubits);
   apply_matrix_to_target_qubits(new_qubits, mat, is_diagonal);
-  reg_t temp = get_internal_qubits(qubits);
 }
 
 void MPS::apply_matrix_to_target_qubits(const reg_t &target_qubits,
