@@ -69,7 +69,7 @@ class QasmUnitaryGateTests:
             circuit.unitary(unitary_matrix, perm)
             circuit.barrier(range(n))
             circuit.measure(range(n), range(n))
-            result = execute([circuit], self.SIMULATOR, shots=shots,
+            result = execute(circuit, self.SIMULATOR, shots=shots,
                          optimization_level=0, **self.BACKEND_OPTS).result()
             
             state = Statevector.from_label(n * '0').evolve(unitary_matrix, perm)
