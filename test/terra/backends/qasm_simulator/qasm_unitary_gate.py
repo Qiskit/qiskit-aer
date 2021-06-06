@@ -63,17 +63,14 @@ class QasmUnitaryGateTests:
         unitary_matrix = random_unitary(8, seed=8)
         n = 3
         shots = 2000
-        qr = QuantumRegister(n, 'qr')
-        cr = ClassicalRegister(n, 'cr')
-        regs = (qr, cr)
     
         for perm in all_permutations:
-            circuit = QuantumCircuit(*regs)
+            circuit = QuantumCircuit(n, n)
             circuit.unitary(unitary_matrix, perm)
-            circuit.barrier(qr)
-            circuit.measure(qr, cr)
+            circuit.barrier(range(n))
+            circuit.measure(range(n), range(n))
             result = execute([circuit], self.SIMULATOR, shots=shots,
-                         **self.BACKEND_OPTS).result()
+                         optimization_level=0, **self.BACKEND_OPTS).result()
             
             state = Statevector.from_label(n * '0').evolve(unitary_matrix, perm)
             counts = state.sample_counts(shots=shots)
