@@ -149,6 +149,10 @@ def _unsupported_errors(qobj_dict):
     if _contains_parametric_pulse(qobj_dict['experiments']):
         raise AerError(error_str.format('Parametric Pulses'))
 
+    error_str = '''Schedules contain {}, are not supported by PulseSimulator.'''
+    if _contains_frequency_instruction(qobj_dict['experiments']):
+        raise AerError(error_str.format('shift frequency and/or set frequency instructions'))
+
     required_str = '{} are required for simulation, and none were specified.'
     if not _contains_acquire_instruction(qobj_dict['experiments']):
         raise AerError(required_str.format('Acquire instructions'))
@@ -171,7 +175,7 @@ def _contains_acquire_instruction(experiments):
 
 
 def _contains_pv_instruction(experiments):
-    """ Return True if the list of experiments contains a PersistentValue instruction
+    """ Return True if the list of experiments contains a PersistentValue instruction.
 
     Parameters:
         experiments (list): list of schedules
@@ -182,6 +186,23 @@ def _contains_pv_instruction(experiments):
     for exp in experiments:
         for inst in exp['instructions']:
             if inst['name'] == 'pv':
+                return True
+    return False
+
+
+def _contains_frequency_instruction(experiments):
+    """ Return True if the list of experiments contains either a set fruquency or shift
+    frequency instruction.
+
+    Parameters:
+        experiments (list): list of schedules
+    Returns:
+        True or False: whether or not the schedules contain one of the mentioned instructions.
+    Raises:
+    """
+    for exp in experiments:
+        for inst in exp['instructions']:
+            if inst['name'] == 'setf' or inst['name'] == 'shiftf':
                 return True
     return False
 
