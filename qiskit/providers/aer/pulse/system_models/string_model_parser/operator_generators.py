@@ -16,6 +16,7 @@
 """Operators to use in simulator"""
 
 import numpy as np
+from qiskit.quantum_info import Operator
 from . import gen_operator
 
 
@@ -143,15 +144,15 @@ def qubit_occ_oper_dressed(target_qubit, estates, h_osc, h_qub, level=0):
         states.append(basis(dd, 0))
     for ii, dd in rev_h_qub:
         if ii == target_qubit:
-            states.append(basis(dd, level))
+            states.append(Operator(basis(dd, level).data.flatten()))
         else:
-            states.append(state(np.ones(dd)))
+            states.append(Operator(np.ones(dd)))
 
     out_state = tensor(states)
 
     for ii, estate in enumerate(estates):
         if out_state.data.flatten()[ii] == 1:
-            proj_op += estate @ estate.adjoint()
+            proj_op += estate & estate.adjoint()
 
     return proj_op
 
