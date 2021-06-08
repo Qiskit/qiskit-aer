@@ -58,6 +58,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
                 self.assertTrue(sim_dict[key])
             elif key == 'local':
                 self.assertTrue(sim_dict[key])
+            elif key == 'parametric_pulses':
+                self.assertEqual(sim_dict[key], [])
             else:
                 self.assertEqual(sim_dict[key], backend_dict[key])
 
