@@ -46,7 +46,8 @@ DEFAULT_CONFIGURATION = {
     'max_shots': int(1e6),
     'description': 'A Pulse-based Hamiltonian simulator for Pulse Qobj files',
     'gates': [],
-    'basis_gates': []
+    'basis_gates': [],
+    'parametric_pulses': []
 }
 
 
@@ -147,6 +148,7 @@ class PulseSimulator(AerBackend):
             configuration = copy.copy(configuration)
             configuration.meas_levels = self._meas_levels(configuration.meas_levels)
             configuration.open_pulse = True
+            configuration.parametric_pulses = []
 
         if defaults is None:
             defaults = PulseDefaults(qubit_freq_est=[inf],
