@@ -196,6 +196,7 @@ class StatevectorSimulator(AerBackend):
             fusion_verbose=False,
             fusion_max_qubit=5,
             fusion_threshold=14,
+            executor=None,
             # statevector options
             statevector_parallel_threshold=14)
 

@@ -27,11 +27,16 @@ from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
 from qiskit.result import Result
 from qiskit.utils import deprecate_arguments
+from qiskit.circuit import QuantumCircuit
+from qiskit.pulse import Schedule
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.compiler import assemble
 
 from ..aerjob import AerJob
 from ..aererror import AerError
+from .cluster.utils import split
+from .cluster.aerjobset import AerJobSet
+
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -146,28 +151,64 @@ class AerBackend(Backend, ABC):
                 DeprecationWarning,
                 stacklevel=3)
 
-        if isinstance(circuits, (QasmQobj, PulseQobj)):
-            warnings.warn('Using a qobj for run() is deprecated and will be '
-                          'removed in a future release.',
-                          PendingDeprecationWarning,
-                          stacklevel=2)
-            qobj = circuits
+        executor = None
+        if hasattr(self._options, 'executor'):
+            executor = getattr(self._options, 'executor')
+            delattr(self._options, 'executor')
+
+        if executor:
+            if isinstance(circuits, (QasmQobj, PulseQobj)):
+                experiments = split(circuits)
+            elif isinstance(circuits, (QuantumCircuit, Schedule)):
+                experiments = [assemble(circuits, self)]
+            elif (
+                    isinstance(circuits, list) and
+                    all(isinstance(circ, QuantumCircuit) for circ in circuits) or
+                    isinstance(circuits, list) and
+                    all(isinstance(circ, Schedule) for circ in circuits)
+            ):
+                experiments = [assemble(circ, self) for circ in circuits]
+            else:
+                raise ValueError(
+                    "run() is not implemented for this "
+                    "type of experiment ({})".format(str(type(circuits))))
+
+            for experiment in experiments:
+                self._add_options_to_qobj(experiment,
+                                          backend_options=backend_options,
+                                          **run_options)
+                # Optional validation
+                if validate:
+                    self._validate(experiment)
+
+            job_id = str(uuid.uuid4())
+            aer_job = AerJobSet(self, job_id, self._run, experiments, executor)
+            aer_job.submit()
+            return aer_job
+
         else:
-            qobj = assemble(circuits, self)
+            if isinstance(circuits, (QasmQobj, PulseQobj)):
+                warnings.warn('Using a qobj for run() is deprecated and will be '
+                              'removed in a future release.',
+                              PendingDeprecationWarning,
+                              stacklevel=2)
+                qobj = circuits
+            else:
+                qobj = assemble(circuits, self)
 
-        # Add backend options to the Job qobj
-        self._add_options_to_qobj(
-            qobj, backend_options=backend_options, **run_options)
+            # Add backend options to the Job qobj
+            self._add_options_to_qobj(
+                qobj, backend_options=backend_options, **run_options)
 
-        # Optional validation
-        if validate:
-            self._validate(qobj)
+            # Optional validation
+            if validate:
+                self._validate(qobj)
 
-        # Submit job
-        job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run, qobj)
-        aer_job.submit()
-        return aer_job
+            # Submit job
+            job_id = str(uuid.uuid4())
+            aer_job = AerJob(self, job_id, self._run, qobj)
+            aer_job.submit()
+            return aer_job
 
     def configuration(self):
         """Return the simulator backend configuration.
@@ -255,6 +296,9 @@ class AerBackend(Backend, ABC):
                                   backend_options=backend_options,
                                   noise_model=noise_model)
         return self._run(qobj, job_id)
+
+    def _dummy_job(self):
+        return
 
     def _run(self, qobj, job_id=''):
         """Run a job"""

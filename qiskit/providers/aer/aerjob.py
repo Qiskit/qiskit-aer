@@ -64,9 +64,11 @@ class AerJob(Job):
         self._args = args
         self._future = None
 
-    def submit(self):
+    def submit(self, executor=None):
         """Submit the job to the backend for execution.
 
+        Args:
+            executor (futures.Executor or None): executor to handle asynchronous jobs
         Raises:
             QobjValidationError: if the JSON serialization of the Qobj passed
             during construction does not validate against the Qobj schema.
@@ -75,11 +77,11 @@ class AerJob(Job):
         """
         if self._future is not None:
             raise JobError("We have already submitted the job!")
-
-        self._future = self._executor.submit(self._fn,
-                                             self._qobj,
-                                             self._job_id,
-                                             *self._args)
+        _exec = executor or self._executor
+        self._future = _exec.submit(self._fn,
+                                    self._qobj,
+                                    self._job_id,
+                                    *self._args)
 
     @requires_submit
     def result(self, timeout=None):

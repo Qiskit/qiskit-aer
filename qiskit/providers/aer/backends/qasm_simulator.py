@@ -395,6 +395,7 @@ class QasmSimulator(AerBackend):
             memory=None,
             noise_model=None,
             seed_simulator=None,
+            executor=None,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,
