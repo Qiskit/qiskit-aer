@@ -1174,6 +1174,64 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertDictAlmostEqual(result.get_counts(1), {'1': 128})
         self.assertDictAlmostEqual(result.get_counts(2), {'0': 128})
 
+    def test_3_level_measurement(self):
+        """Test correct measurement outcomes for a pair of 3 level systems."""
+
+        q_freqs = [5., 5.1]
+        r = 0.02
+        j = 0.02
+        total_samples = 25
+
+        hamiltonian = {}
+        hamiltonian['h_str'] = [
+            '2*np.pi*v0*0.5*Z0', '2*np.pi*v1*0.5*Z1', '2*np.pi*r*0.5*X0||D0',
+            '2*np.pi*r*0.5*X1||D1', '2*np.pi*j*0.5*I0*I1',
+            '2*np.pi*j*0.5*X0*X1', '2*np.pi*j*0.5*Y0*Y1', '2*np.pi*j*0.5*Z0*Z1'
+        ]
+        hamiltonian['vars'] = {
+            'v0': q_freqs[0],
+            'v1': q_freqs[1],
+            'r': r,
+            'j': j
+        }
+        hamiltonian['qub'] = {'0': 3, '1': 3}
+        ham_model = HamiltonianModel.from_dict(hamiltonian)
+
+        # set the U0 to have frequency of drive channel 0
+        u_channel_lo = []
+        subsystem_list = [0, 1]
+        dt = 1.
+
+        system_model = PulseSystemModel(hamiltonian=ham_model,
+                                        u_channel_lo=u_channel_lo,
+                                        subsystem_list=subsystem_list,
+                                        dt=dt)
+
+        schedule = Schedule()
+        schedule |= Acquire(total_samples, AcquireChannel(0),
+                            MemorySlot(0)) << 3 * total_samples
+        schedule |= Acquire(total_samples, AcquireChannel(1),
+                            MemorySlot(1)) << 3 * total_samples
+
+        y0 = np.array([1., 1., 0., 0., 0., 0., 0., 0., 0.]) / np.sqrt(2)
+        pulse_sim = PulseSimulator(system_model=system_model,
+                                   initial_state=y0,
+                                  seed=50)
+
+        qobj = assemble([schedule],
+                        backend=pulse_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=q_freqs,
+                        memory_slots=2,
+                        shots=1000)
+        result = pulse_sim.run(qobj).result()
+        counts = result.get_counts()
+        exp_counts = {'00': 479, '01': 502, '10': 9, '11': 10}
+        self.assertDictAlmostEqual(counts, exp_counts)
+
+
 
     def _system_model_1Q(self, omega_0, r):
         """Constructs a standard model for a 1 qubit system.
