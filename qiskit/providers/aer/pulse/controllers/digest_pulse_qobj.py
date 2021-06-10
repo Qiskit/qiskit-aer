@@ -24,8 +24,7 @@ from .pulse_utils import oplist_to_array
 
 
 class DigestedPulseQobj:
-    """Container class for information extracted from PulseQobj
-    """
+    """Container class for information extracted from PulseQobj."""
 
     def __init__(self):
 

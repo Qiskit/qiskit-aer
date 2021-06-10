@@ -19,6 +19,7 @@ import re
 import copy
 from collections import namedtuple, OrderedDict
 import numpy as np
+from qiskit.quantum_info import Operator
 from .apply_str_func_to_qobj import apply_func
 from .operator_from_string import gen_oper
 
@@ -277,7 +278,10 @@ class HamiltonianParser:
                 elif token.name == '-':
                     stack.append(op1 - op2)
                 elif token.name == '*':
-                    stack.append(op1 * op2)
+                    if isinstance(op1, Operator) and isinstance(op2, Operator):
+                        stack.append(op1 & op2)
+                    else:
+                        stack.append(op1 * op2)
                 elif token.name == '/':
                     stack.append(op1 / op2)
             elif token.type in ['Func', 'Ext']:
