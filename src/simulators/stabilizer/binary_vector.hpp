@@ -57,7 +57,8 @@ public:
   void set1(uint64_t pos) { setValue(ONE_, pos); };
 
   void flipAt(uint64_t pos);
-
+  void xorAt(bool value, uint64_t pos);
+  
   BinaryVector &operator+=(const BinaryVector &rhs);
 
   bool operator[](const uint64_t pos) const;
@@ -211,6 +212,11 @@ void BinaryVector::flipAt(const uint64_t pos) {
   m_data[q] ^= (ONE_ << r);
 }
 
+void BinaryVector::xorAt(bool value, uint64_t pos) {
+  auto q = pos / BLOCK_SIZE;
+  auto r = pos % BLOCK_SIZE;
+  m_data[q] ^= ((value & ONE_) << r);
+}
 
 BinaryVector &BinaryVector::operator+=(const BinaryVector &rhs) {
   const auto size = m_data.size();
