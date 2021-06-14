@@ -46,6 +46,10 @@ public:
 
   void setLength(uint64_t length);
 
+  //preserves the vector up to the new length
+  //and pads with zeros if necessary
+  void resize(uint64_t length);
+  
   void setVector(std::string);
   void setValue(bool value, uint64_t pos);
 
@@ -180,6 +184,16 @@ void BinaryVector::setLength(uint64_t length) {
   m_data.assign((length - 1) / BLOCK_SIZE + 1, ZERO_);
 }
 
+void BinaryVector::resize(uint64_t new_length) {
+  m_data.resize((new_length - 1) / BLOCK_SIZE + 1, ZERO_);
+  //zero the rest of the last block if necessary
+  if((new_length < m_length) && (new_length % BLOCK_SIZE) > 0){
+    for(size_t i = (new_length % BLOCK_SIZE) ; i < BLOCK_SIZE; i++){
+      m_data[m_data.size() - 1] &= ~(ONE_ << i);
+    }
+  }
+  m_length = new_length;
+}
 
 void BinaryVector::setValue(bool value, uint64_t pos) {
   auto q = pos / BLOCK_SIZE;
