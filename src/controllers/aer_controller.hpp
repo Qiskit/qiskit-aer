@@ -65,6 +65,7 @@
 #include "simulators/superoperator/superoperator_state.hpp"
 #include "simulators/unitary/unitary_state.hpp"
 #include "simulators/unitary/unitary_state_chunk.hpp"
+#include "simulators/clifford_plus_phase/compute.hpp"
 
 namespace AER {
 
@@ -116,6 +117,7 @@ protected:
     matrix_product_state,
     stabilizer,
     extended_stabilizer,
+    clifford_phase_compute,
     unitary,
     superop
   };
@@ -132,6 +134,7 @@ protected:
     {Method::matrix_product_state, "matrix_product_state"},
     {Method::stabilizer, "stabilizer"},
     {Method::extended_stabilizer, "extended_stabilizer"},
+    {Method::clifford_phase_compute, "clifford_phase_compute"},
     {Method::unitary, "unitary"},
     {Method::superop, "superop"}
   };
@@ -475,6 +478,8 @@ void Controller::set_config(const json_t &config) {
       sim_method_ = Method::stabilizer;
     } else if (method == "extended_stabilizer") {
       sim_method_ = Method::extended_stabilizer;
+    } else if (method == "clifford_phase_compute") {
+      sim_method_ = Method::clifford_phase_compute;      
     } else if (method == "matrix_product_state") {
       sim_method_ = Method::matrix_product_state;
     } else if (method == "unitary") {
@@ -1492,6 +1497,11 @@ void Controller::run_circuit(const Circuit &circ,
     return run_circuit_helper<MatrixProductState::State>(
         circ, noise, config, shots, rng_seed, Method::matrix_product_state,
         false, result);
+  case Method::clifford_phase_compute:
+    return run_circuit_helper<CliffPhaseCompute::State>(
+      circ, noise, config, shots, rng_seed, Method::extended_stabilizer_compute,
+      false, result
+      )
   default:
     throw std::runtime_error("Controller:Invalid simulation method");
   }
@@ -1628,6 +1638,14 @@ Controller::simulation_method(const Circuit &circ,
     }
     return Method::matrix_product_state;
   }
+  case Method::clifford_phase_compute: {
+    if (validate) {
+      CliffPhaseCompute::State state;
+      validate_state(state, circ, noise_model, true);
+      validate_memory_requirements(CliffPhaseCompute::State(), circ, true);
+    }
+    return Method::clifford_phase_compute;
+  }
   case Method::automatic: {
     // If circuit and noise model are Clifford run on Stabilizer simulator
     if (validate_state(Stabilizer::State(), circ, noise_model, false)) {
@@ -1731,6 +1749,10 @@ size_t Controller::required_memory_mb(const Circuit &circ,
   }
   case Method::matrix_product_state: {
     MatrixProductState::State state;
+    return state.required_memory_mb(circ.num_qubits, circ.ops);
+  }
+  case Method::clifford_phase_compute: {
+    CliffPhaseCompute::State state;
     return state.required_memory_mb(circ.num_qubits, circ.ops);
   }
   default:
@@ -2075,6 +2097,10 @@ bool Controller::check_measure_sampling_opt(const Circuit &circ,
       method == Method::superop ||
       method == Method::unitary) {
     return true;
+  }
+
+  if(method == Method::clifford_phase_compute){
+    return false;
   }
   
   // If circuit contains a non-initial initialize that is not a full width
