@@ -1499,9 +1499,9 @@ void Controller::run_circuit(const Circuit &circ,
         false, result);
   case Method::clifford_phase_compute:
     return run_circuit_helper<CliffPhaseCompute::State>(
-      circ, noise, config, shots, rng_seed, Method::extended_stabilizer_compute,
+      circ, noise, config, shots, rng_seed, Method::clifford_phase_compute,
       false, result
-      )
+      );
   default:
     throw std::runtime_error("Controller:Invalid simulation method");
   }
