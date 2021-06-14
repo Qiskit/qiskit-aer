@@ -28,12 +28,13 @@ from qiskit.compiler import assemble
 from qiskit.quantum_info import state_fidelity
 from qiskit.pulse import (Schedule, Play, ShiftPhase, SetPhase, Delay, Acquire,
                           Waveform, DriveChannel, ControlChannel,
-                          AcquireChannel, MemorySlot)
+                          AcquireChannel, MemorySlot, SetFrequency, ShiftFrequency)
 from qiskit.providers.aer.pulse.de.DE_Methods import ScipyODE
 from qiskit.providers.aer.pulse.de.DE_Options import DE_Options
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.models.backendconfiguration import UchannelLO
+from qiskit.providers.aer.aererror import AerError
 
 from .pulse_sim_independent import (simulate_1q_model,
                                     simulate_2q_exchange_model,
@@ -1139,9 +1140,47 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         self.assertGreaterEqual(state_fidelity(pulse_sim_yf, approx_yf), 0.99)
 
+    def test_frequency_error(self):
+        """Test that using SetFrequency and ShiftFrequency instructions raises an error."""
+
+        # qubit frequency and drive frequency
+        omega_0 = 1.1329824
+        omega_d = omega_0
+
+        # drive strength and length of pulse
+        r = 0.01
+        total_samples = 100
+
+        # set up simulator
+        pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
+
+        # set up schedule with ShiftFrequency
+        drive_pulse = Waveform(1. * np.ones(total_samples))
+        schedule = Schedule()
+        schedule |= Play(drive_pulse, DriveChannel(0))
+        schedule += ShiftFrequency(5., DriveChannel(0))
+        schedule += Play(drive_pulse, DriveChannel(0))
+        schedule += Acquire(total_samples, AcquireChannel(0),
+                            MemorySlot(0)) << schedule.duration
+
+        with self.assertRaises(AerError):
+            res = pulse_sim.run(schedule).result()
+
+        # set up schedule with SetFrequency
+        drive_pulse = Waveform(1. * np.ones(total_samples))
+        schedule = Schedule()
+        schedule |= Play(drive_pulse, DriveChannel(0))
+        schedule += SetFrequency(5., DriveChannel(0))
+        schedule += Play(drive_pulse, DriveChannel(0))
+        schedule += Acquire(total_samples, AcquireChannel(0),
+                            MemorySlot(0)) << schedule.duration
+
+        with self.assertRaises(AerError):
+            res = pulse_sim.run(schedule).result()
+
+
     def test_schedule_freqs(self):
         """Test simulation when each schedule has its own frequencies."""
-        """Test a schedule for a pi pulse on a 2 level system."""
 
         # qubit frequency and drive frequency
         omega_0 = 1.1329824
