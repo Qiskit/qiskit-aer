@@ -46,6 +46,8 @@ public:
 
   // exponent g of i such that P(x1,z1) P(x2,z2) = i^g P(x1+x2,z1+z2)
   static int8_t phase_exponent(const Pauli& pauli1, const Pauli& pauli2);
+
+  Pauli &operator+=(const Pauli &rhs);
 };
 
 
@@ -112,6 +114,12 @@ int8_t Pauli::phase_exponent(const Pauli& pauli1, const Pauli& pauli2) {
   if (exponent < 0)
       exponent += 4;
   return exponent;
+}
+
+Pauli &Pauli::operator+=(const Pauli &rhs) {
+  this->X += rhs.X;
+  this->Z += rhs.Z;
+  return (*this);
 }
 
 //------------------------------------------------------------------------------
