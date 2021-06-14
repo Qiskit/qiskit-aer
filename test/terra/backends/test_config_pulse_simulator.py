@@ -19,6 +19,7 @@ import warnings
 import numpy as np
 from test.terra import common
 
+from qiskit import QuantumCircuit, transpile, schedule
 from qiskit.test.mock.backends.armonk.fake_armonk import FakeArmonk
 from qiskit.test.mock.backends.athens.fake_athens import FakeAthens
 
@@ -57,6 +58,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
                 self.assertTrue(sim_dict[key])
             elif key == 'local':
                 self.assertTrue(sim_dict[key])
+            elif key == 'parametric_pulses':
+                self.assertEqual(sim_dict[key], [])
             else:
                 self.assertEqual(sim_dict[key], backend_dict[key])
 
@@ -111,6 +114,39 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         sim_attr = athens_sim.configuration().dt
         model_attr = athens_sim._system_model.dt
         self.assertTrue(sim_attr == set_attr and model_attr == set_attr)
+
+    def test_from_backend_parametric_pulses(self):
+        """Verify that the parametric_pulses parameter is overriden in the PulseSimulator.
+        Results don't matter, just need to check that it runs.
+        """
+
+        backend = PulseSimulator.from_backend(FakeAthens())
+
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(1)
+        qc.measure_all()
+
+        sched = schedule(transpile(qc, backend), backend)
+        res = backend.run(sched)
+
+    def test_parametric_pulses_error(self):
+        """Verify error is raised if a parametric pulse makes it into the digest."""
+
+        fake_backend = FakeAthens()
+        backend = PulseSimulator.from_backend(fake_backend)
+
+        # reset parametric_pulses option
+        backend.set_option('parametric_pulses', fake_backend.configuration().parametric_pulses)
+
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(1)
+        qc.measure_all()
+        sched = schedule(transpile(qc, backend), backend)
+
+        with self.assertRaises(AerError):
+            res = backend.run(sched).result()
 
     def test_set_meas_levels(self):
         """Test setting of meas_levels."""
@@ -233,7 +269,7 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         qobj = assemble([self._1Q_schedule(num_acquires=2)],
                         backend=test_sim,
                         meas_level=2,
-                        qubit_lo_freq=[0.],
+                        qubit_lo_freq=test_sim.defaults().qubit_freq_est,
                         meas_return='single',
                         shots=256)
 
@@ -246,7 +282,7 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         qobj = assemble([self._1Q_schedule(num_acquires=0)],
                         backend=test_sim,
                         meas_level=2,
-                        qubit_lo_freq=[0.],
+                        qubit_lo_freq=test_sim.defaults().qubit_freq_est,
                         meas_return='single',
                         shots=256)
 
