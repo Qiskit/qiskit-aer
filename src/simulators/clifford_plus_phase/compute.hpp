@@ -62,21 +62,13 @@ public:
   void initialize_qreg(uint_t num_qubits, const agstate_t &state) override;
   size_t required_memory_mb(uint_t num_qubits, const std::vector<Operations::Op> &ops) const override;
 
-  void apply_save_specific_probs(const Operations::Op &op, ExperimentResult &result);
+  void apply_save_specific_prob(const Operations::Op &op, ExperimentResult &result);
   double expval_pauli(const reg_t &qubits, const std::string& pauli);
 private:  
   const static stringmap_t<Gates> gateset_;
-  const static stringmap_t<Snapshots> snapshotset_;
   size_t num_code_qubits; //out AG state has code+magic qubits
   double compute_probability(std::vector<size_t> measured_qubits, std::vector<uint_t> outcomes);
-  //void apply_save_specific_probs(const Operations::Op &op, ExperimentResult &result);
-  //void apply_snapshot(const Operations::Op &ops, ExperimentResult &result);
-  //void probabilities_snapshot(const Operations::Op &op, ExperimentResult &result);
 };
-
-const stringmap_t<Snapshots> State::snapshotset_({
-  {"probabilities", Snapshots::probs},
-});
 
 
 const stringmap_t<Gates> State::gateset_({
@@ -102,17 +94,13 @@ const stringmap_t<Gates> State::gateset_({
 
 
 void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &result, RngEngine &rng, bool final_ops){
-  std::cout << "2" << std::endl;
   for(const auto &op: ops){
-    std::cout << op.type << std::endl;
     switch(op.type){
     case Operations::OpType::gate:
-      std::cout << "Operations::OpType::gate" << std::endl;
       this->apply_gate(op);
       break;
-    case Operations::OpType::save_specific_probs:
-      std::cout << "Operations::OpType::save_specific_probs" << std::endl;
-      this->apply_save_specific_probs(op, result);
+    case Operations::OpType::save_specific_prob:
+      this->apply_save_specific_prob(op, result);
       break;
     default:
       throw std::invalid_argument("Compute::State::invalid instruction \'" + op.name + "\'.");  
@@ -121,7 +109,6 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &
 }
 
 void State::apply_gate(const Operations::Op &op){
-  std::cout << "State::apply_gate " << op.name << ":  " << op.qubits[0] << std::endl;
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
   {
@@ -170,24 +157,10 @@ void State::apply_gate(const Operations::Op &op){
   }
 }
 
-void State::apply_save_specific_probs(const Operations::Op &op, ExperimentResult &result){  
-  std::vector<double> v;
-  std::cout << "qubits = ";
-  for(size_t i = 0; i < op.qubits.size(); i++){
-    std::cout << op.qubits[i] << " ";
-  }
-  std::cout << std::endl;
-
-  std::cout << "states = ";
-  for(size_t i = 0; i < op.int_params.size(); i++){
-    std::cout << op.int_params[i] << " ";
-  }
-  std::cout << std::endl;
-  
+void State::apply_save_specific_prob(const Operations::Op &op, ExperimentResult &result){  
+  std::vector<double> v;  
   double p = this->compute_probability(op.qubits, op.int_params);
-  std::cout << p << std::endl;
   v.push_back(p);
-  std::cout << v[0] << std::endl;
 
   BaseState::save_data_average(result, op.string_params[0], std::move(v), Operations::DataSubType::list);
 }
