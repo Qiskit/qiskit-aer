@@ -94,6 +94,7 @@ const stringmap_t<Gates> State::gateset_({
 
 
 void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &result, RngEngine &rng, bool final_ops){
+
   for(const auto &op: ops){
     switch(op.type){
     case Operations::OpType::gate:

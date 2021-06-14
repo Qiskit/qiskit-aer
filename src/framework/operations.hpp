@@ -529,6 +529,8 @@ template<typename inputdata_t>
 Op input_to_op_save_expval(const inputdata_t& input, bool variance);
 template<typename inputdata_t>
 Op input_to_op_save_amps(const inputdata_t& input, bool squared);
+template<typename inputdata_t>
+Op input_to_op_save_specific_prob(const inputdata_t& input);
 
 // Snapshots
 template<typename inputdata_t>
@@ -621,6 +623,9 @@ Op input_to_op(const inputdata_t& input) {
     return input_to_op_save_amps(input, false);
   if (name == "save_amplitudes_sq")
     return input_to_op_save_amps(input, true);
+  if (name == "save_specific_prob"){
+    return input_to_op_save_specific_prob(input);
+  }
   // Set
   if (name == "set_statevector")
     return input_to_op_set_vector(input, OpType::set_statevec);
@@ -1147,6 +1152,17 @@ Op input_to_op_save_amps(const inputdata_t& input, bool squared) {
   Parser<inputdata_t>::get_value(op.int_params, "params", input);
   return op;
 }
+
+template<typename inputdata_t>
+Op input_to_op_save_specific_prob(const inputdata_t& input) {
+  Op op = input_to_op_save_default(input, OpType::save_specific_prob);
+  const inputdata_t& params = Parser<inputdata_t>::get_value("params", input);
+  op.qubits = Parser<inputdata_t>::template get_list_elem<std::vector<uint_t>>(params, 0);
+  op.int_params = Parser<inputdata_t>::template get_list_elem<std::vector<uint_t>>(params, 1);
+
+  return op;
+}
+
 
 //------------------------------------------------------------------------------
 // Implementation: Snapshot deserialization
