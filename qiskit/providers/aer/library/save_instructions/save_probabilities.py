@@ -73,6 +73,33 @@ class SaveProbabilitiesDict(SaveAverageData):
                          pershot=pershot,
                          conditional=conditional)
 
+class SaveSpecificProbability(SaveAverageData):
+    """Save measurement outcome probabilities vector."""
+    def __init__(self, num_qubits,
+                 states, qubits, 
+                 label="specific-probabilities",
+                 unnormalized=False,
+                 pershot=False,
+                 conditional=False):
+        """Instruction to save specific probabilities.
+
+        Args:
+            num_qubits (int): the number of qubits for the snapshot type.
+            label (str): the key for retrieving saved data from results.
+            unnormalized (bool): If True return save the unnormalized accumulated
+                                 probabilities over all shots [Default: False].
+            pershot (bool): if True save a list of probabilities for each shot
+                            of the simulation rather than the average over
+                            all shots [Default: False].
+            conditional (bool): if True save the probabilities data conditional
+                                on the current classical register values
+                                [Default: False].
+        """
+        
+        super().__init__("save_specific_prob", num_qubits, label,
+                         pershot=pershot,
+                         conditional=conditional,
+                         params=[qubits, states])
 
 def save_probabilities(self,
                        qubits=None,
@@ -139,6 +166,39 @@ def save_probabilities_dict(self,
                                   conditional=conditional)
     return self.append(instr, qubits)
 
+def save_specific_probability(self, states, qubits, label="specific_probability",
+                                 unnormalized=False,
+                                 pershot=False,
+                                 conditional=False):
+    """Save squared statevector amplitudes (probabilities).
+
+    Args:
+        states (List[int] or List[str]): the basis states to return amplitudes for.
+        qubits (List[int] or List[str]): the qubits to return amplitudes for.
+        label (str): the key for retrieving saved data from results.
+        unnormalized (bool): If True return save the unnormalized accumulated
+                             probabilities over all shots [Default: False].
+        pershot (bool): if True save a list of probability vectors for each
+                        shot of the simulation rather than the a single
+                        amplitude vector [Default: False].
+        conditional (bool): if True save the probability vector conditional
+                            on the current classical register values
+                            [Default: False].
+
+    Returns:
+        QuantumCircuit: with attached instruction.
+
+    Raises:
+        ExtensionError: if params is invalid for the specified number of qubits.
+    """
+    if qubits == None:
+        qubits = default_qubits(self)
+    instr = SaveSpecificProbability(len(qubits), states, qubits, label=label,
+                                    unnormalized=unnormalized,
+                                    pershot=pershot,
+                                    conditional=conditional)
+    return self.append(instr, qubits)
 
 QuantumCircuit.save_probabilities = save_probabilities
 QuantumCircuit.save_probabilities_dict = save_probabilities_dict
+QuantumCircuit.save_specific_probability = save_specific_probability
