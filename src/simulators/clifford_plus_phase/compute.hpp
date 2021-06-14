@@ -109,7 +109,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &
   }
 }
 
-void State::apply_gate(const Operations::Op &op){
+void State::apply_gate(const Operations::Op &op){  
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
   {
@@ -159,7 +159,7 @@ void State::apply_gate(const Operations::Op &op){
 }
 
 void State::apply_save_specific_prob(const Operations::Op &op, ExperimentResult &result){  
-  std::vector<double> v;  
+  std::vector<double> v;
   double p = this->compute_probability(op.qubits, op.int_params);
   v.push_back(p);
 
@@ -261,25 +261,26 @@ double State::compute_probability(std::vector<size_t> measured_qubits, std::vect
 
   size_t w = measured_qubits.size();
   size_t t = copied_ag.magic_phases.size();
-    
-  //now all the measured qubits are at the start and the magic qubits are at the end 
+
+  //now all the measured qubits are at the start and the magic qubits are at the end
   std::pair<bool, size_t> v_pair = copied_ag.apply_constraints(w, t);
   if(!v_pair.first){
     return 0.;
   }
 
   size_t v = v_pair.second;
+
   //at this point we can delete all the non-magic qubits
   for(size_t q = 0; q < t; q++){
     copied_ag.applySwap(q, q+t);
   }
+
   for(size_t s = 0; s < copied_ag.num_stabilizers; s++){
     copied_ag.table[s].X.resize(t);
     copied_ag.table[s].Z.resize(t);
   }
 
   copied_ag.num_qubits = t;
-  
   copied_ag.apply_T_constraints();
   copied_ag.delete_identity_magic_qubits();
 
@@ -296,7 +297,7 @@ double State::compute_probability(std::vector<size_t> measured_qubits, std::vect
     return powl(2., (double)v - (double)w);
   }
 
-  return compute_algorithm_all_phases_T(copied_ag) * powl(2., v - w);
+  return compute_algorithm_all_phases_T(copied_ag) * powl(2., (double)v - w);
   
 }
 

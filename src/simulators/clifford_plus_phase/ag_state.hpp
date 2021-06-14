@@ -227,6 +227,7 @@ void AGState::gadgetized_phase_gate(size_t a, double phase){
   }
   this->table.push_back(Pauli::Pauli(this->num_qubits + 1));
   this->table[this->num_stabilizers].Z.set1(this->num_qubits);
+  this->phases.push_back(0);
   this->num_stabilizers += 1;
   this->num_qubits += 1;
 
@@ -302,6 +303,7 @@ bool AGState::rowsum2(Pauli::Pauli row, bool phase, size_t i){
 void AGState::delete_identity_magic_qubits(){
   //indended for use when we've already restricted our table to only contain the magic qubits
   size_t qubits_deleted = 0;
+  
   for(size_t q = 0; q < this->num_qubits; q++){
     size_t non_identity_paulis = 0;
     for(size_t s = 0; (s < this->num_stabilizers) && (non_identity_paulis == 0); s++){
@@ -324,12 +326,12 @@ void AGState::delete_identity_magic_qubits(){
     }
   }
   this->num_qubits = this->num_qubits - qubits_deleted;
+
   for(size_t s = 0; s < this->num_stabilizers; s++){
     this->table[s].X.resize(this->num_qubits);
     this->table[s].Z.resize(this->num_qubits);
   }
-  magic_phases.resize(magic_phases.size() - qubits_deleted);
-  this->num_qubits -= qubits_deleted;
+  magic_phases.resize(this->num_qubits);
 }
 
 bool AGState::tableau_element(size_t stabilizer, size_t column){
@@ -366,7 +368,7 @@ void AGState::swap_rows(size_t i, size_t j){
   std::swap(this->phases[i], this->phases[j]);
 }
 
-void AGState::delete_row(size_t i){  
+void AGState::delete_row(size_t i){
   this->table.erase(this->table.begin() + i);
   this->phases.erase(this->phases.begin() + i);
   this->num_stabilizers -= 1;
@@ -612,12 +614,13 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
   size_t v = 0;
   
   //first apply region a constraints (measurement)
-  for(size_t q=0; q < w; q++){ //iterate over all the measured qubits	
+  for(size_t q=0; q < w; q++){ //iterate over all the measured qubits
     std::pair<bool,size_t> y_stab = std::pair<bool,size_t>(false, 0); //store the index of the first stab we come to with both x and z = 1 on this qubit
     std::pair<bool,size_t> x_stab = std::pair<bool,size_t>(false, 0); //store the index of the first stab we come to with x=1, z=0
     std::pair<bool,size_t> z_stab = std::pair<bool,size_t>(false, 0); //store the index of the first stab we come to with z=1, x=0
     
     for(size_t s=0; s < this->num_stabilizers && (((!y_stab.first) + (!x_stab.first) + (!z_stab.first)) > 1); s++){//iterate over all stabilisers and find interesting stabilisers
+
       if(this->table[s].X[q] && this->table[s].Z[q]){
 	y_stab.first = true;
 	y_stab.second = s;
@@ -631,7 +634,6 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
 	z_stab.second = s;
       }
     }
-    
     //there are several cases here
     //either a single z, a single x, a single y or we can generate the whole Pauli group on this qubit
     
@@ -655,7 +657,7 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
       //ignore the y one if we have all 3
       y_stab = std::pair<bool, size_t>(false,0);
     }
-    
+
     //now the only possibilities are that we have an an x, y or z or both an x and a z
     //zero everything else on this qubit
     for(size_t s = 0; s < this->num_stabilizers; s++){
@@ -673,26 +675,22 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
 	}
       }
     }    
-    
+
     //case 1 - there is a generator which does not commute with Z_q
     if(y_stab.first || x_stab.first){
       //we can't have both >= 0
       size_t non_commuting_generator = y_stab.first ? y_stab.second : x_stab.second;
-      
       //we delete the non-commuting guy
       this->swap_rows(non_commuting_generator, this->num_stabilizers-1);
-      this->delete_row(this->num_stabilizers-1);
-      
+      this->delete_row(this->num_stabilizers-1);      
     }else{
       //case 2 - all generators commute with Z_q
       //our generating set contains either Z_q or -Z_q
       //we need to work out which one it is
       
-      //swap our Z_q guy to the end 
+      //swap our Z_q guy to the end
       this->swap_rows(z_stab.second, this->num_stabilizers-1);
-      
       bool independent = this->independence_test(q);
-      
       if(!independent){
 	if(this->phases[this->num_stabilizers-1] == 0){
 	  // +Z_q
