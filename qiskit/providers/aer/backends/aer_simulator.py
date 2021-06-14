@@ -346,6 +346,10 @@ class AerSimulator(AerBackend):
             'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx',
             'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay'
         ]),
+        'clifford_phase_compute': sorted([
+            'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 
+            'swap', 't', 'tdg',  'delay'
+        ]),
         'unitary': sorted([
             'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
             'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
@@ -402,6 +406,9 @@ class AerSimulator(AerBackend):
         'extended_stabilizer': sorted([
             'roerror', 'snapshot', 'save_statevector'
         ]),
+        'clifford_phase_compute':sorted([
+            'save_specific_probability'
+        ]),
         'unitary': sorted([
             'snapshot', 'save_state', 'save_unitary', 'set_unitary'
         ]),
@@ -440,7 +447,7 @@ class AerSimulator(AerBackend):
     _SIMULATION_METHODS = [
         'automatic', 'statevector', 'density_matrix',
         'stabilizer', 'matrix_product_state', 'extended_stabilizer',
-        'unitary', 'superop'
+        'unitary', 'superop', 'clifford_phase_compute'
     ]
 
     _AVAILABLE_METHODS = None
