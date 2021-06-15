@@ -285,7 +285,7 @@ public:
 
   mps_container_t copy_to_mps_container();
   mps_container_t move_to_mps_container();
-  
+
 private:
 
   MPS_Tensor& get_qubit(uint_t index) {
@@ -452,7 +452,7 @@ private:
     // location_ stores the location of each qubit in the vector. It is derived from order_ 
     // at the end of every swap operation for performance reasons
     // for example: starting position order_ = location_ = 01234
-    // ccx(0,4) -> order_ = 04123, location_ = 02341
+    // cx(0,4) -> order_ = 04123, location_ = 02341
     reg_t order_;
     reg_t location_;
   } qubit_ordering_;
