@@ -39,23 +39,18 @@ class SnapshotExpectationValue(Snapshot):
         Raises:
             ExtensionError: if snapshot is invalid.
 
-        .. note::
+        .. warning::
 
-            This instruction will be deprecated after the qiskit-aer 0.8 release.
+            This instruction hase deprecated as of qiskit-aer 0.9.
             It has been superseded by the
             :class:`qiskit.providers.aer.library.SaveExpectationValue` and
             :class:`qiskit.providers.aer.library.SaveExpectationValueVariance`
             instructions.
         """
-        warn('The `SnapshotExpectationValue` instruction will be deprecated in the'
-             ' future. It has been superseded by the `SaveExpectationValue` and'
+        warn('The `SnapshotExpectationValue` instruction has been deprecated as of'
+             ' qiskit-aer 0.9. It has been superseded by the `SaveExpectationValue` and'
              ' `SaveExpectationValueVariance` instructions.',
-             PendingDeprecationWarning)
-        if variance:
-            warn('The snapshot `variance` kwarg has been deprecated and will'
-                 ' be removed in qiskit-aer 0.8. To compute variance use'
-                 ' `single_shot=True` and compute manually in post-processing',
-                 DeprecationWarning)
+             DeprecationWarning, stacklevel=2)
         pauli_op = self._format_pauli_op(op)
         if pauli_op:
             # Pauli expectation value
@@ -153,18 +148,19 @@ def snapshot_expectation_value(self, label, op, qubits,
     Raises:
         ExtensionError: if snapshot is invalid.
 
-    .. note::
+    .. warning::
 
-        This method will be deprecated after the qiskit-aer 0.8 release.
-        It has been superseded by the
+        This instruction hase deprecated as of qiskit-aer 0.9 and will be
+        removed in a future release. It has been superseded by the
         :func:`qiskit.providers.aer.library.save_expectation_value` and
         :func:`qiskit.providers.aer.library.save_expectation_value_variance`
         circuit methods.
     """
-    warn('The `snapshot_expectation_value` circuit method will be deprecated '
-         ' in the future. It has been superseded by the `save_expectation_value`'
+    warn('The `snapshot_expectation_value` circuit method has been deprecated as of'
+         ' qiskit-aer 0.9 and will be removed in a future release.'
+         ' It has been superseded by the `save_expectation_value`'
          ' and `save_expectation_value_variance` circuit methods.',
-         PendingDeprecationWarning)
+         DeprecationWarning, stacklevel=2)
     snapshot_register = Snapshot.define_snapshot_register(self, qubits=qubits)
 
     return self.append(

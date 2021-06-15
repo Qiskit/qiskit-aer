@@ -41,13 +41,11 @@ class SnapshotProbabilities(Snapshot):
             :class:`qiskit.providers.aer.library.SaveProbabilitiesDict`
             instructions.
         """
-        warn('The `SnapshotProbabilities` instruction will be deprecated in the'
-             ' future. It has been superseded by the `SaveProbabilities` and'
+        warn('The `SnapshotProbabilities` instruction has been deprecated as of'
+             ' qiskit-aer 0.9. It has been superseded by the `SaveProbabilities` and'
              ' `SaveProbabilitiesDict` instructions.',
-             PendingDeprecationWarning)
-        if variance:
-            warn('The snapshot `variance` kwarg has been deprecated and will be removed'
-                 ' in qiskit-aer 0.8.', DeprecationWarning)
+             DeprecationWarning, stacklevel=2)
+
         snapshot_type = 'probabilities_with_variance' if variance else 'probabilities'
         super().__init__(label, snapshot_type=snapshot_type,
                          num_qubits=num_qubits)
@@ -75,10 +73,10 @@ def snapshot_probabilities(self, label, qubits, variance=False):
         :func:`qiskit.providers.aer.library.save_probabilities_dict`
         circuit methods.
     """
-    warn('The `snapshot_probabilities` circuit method will be deprecated '
-         ' in the future. It has been superseded by the `save_probabilities`'
+    warn('The `snapshot_probabilities` circuit method has been deprecated as of'
+         ' qiskit-aer 0.9. It has been superseded by the `save_probabilities`'
          ' and `save_probabilities_dict` circuit methods.',
-         PendingDeprecationWarning)
+         DeprecationWarning)
     snapshot_register = Snapshot.define_snapshot_register(self, qubits=qubits)
 
     return self.append(

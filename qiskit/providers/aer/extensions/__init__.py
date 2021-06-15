@@ -20,9 +20,9 @@ Circuit Extensions (:mod:`qiskit.providers.aer.extensions`)
 Snapshots
 =========
 
-.. note:
+.. warning::
 
-    Snapshot extensions will be deprecated after qiskit-aer 0.8 release.
+    Snapshot extensions are deprecated as of qiskit-aer 0.9.
     They have been superceded by the save instructions in the
     :mod:`qiskit.providers.aer.library` module.
 
