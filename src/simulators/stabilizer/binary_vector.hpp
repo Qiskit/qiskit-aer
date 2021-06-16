@@ -186,7 +186,12 @@ void BinaryVector::setLength(uint64_t length) {
 }
 
 void BinaryVector::resize(uint64_t new_length) {
-  m_data.resize((new_length - 1) / BLOCK_SIZE + 1, ZERO_);
+  if(new_length == 0){
+    m_data.resize(0);
+  } else {
+    m_data.resize((new_length - 1) / BLOCK_SIZE + 1, ZERO_);
+  }
+  
   //zero the rest of the last block if necessary
   if((new_length < m_length) && (new_length % BLOCK_SIZE) > 0){
     for(size_t i = (new_length % BLOCK_SIZE) ; i < BLOCK_SIZE; i++){

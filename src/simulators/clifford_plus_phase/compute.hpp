@@ -24,7 +24,7 @@ const Operations::OpSet StateOpSet(
   {Operations::OpType::gate, Operations::OpType::save_specific_prob},
   // Gates
   {"CX", "cx", "cz", "swap", "id", "x", "y", "z", "h",
-    "s", "sdg", "t"},
+   "s", "sdg", "t","p", "rz"},
   // Snapshots
   {}
 );
@@ -32,7 +32,7 @@ const Operations::OpSet StateOpSet(
 
 
 enum class Gates {
-  id, x, y, z, h, s, sdg, sx, t, tdg, cx, cz, swap,
+  id, x, y, z, h, s, sdg, sx, t, tdg, cx, cz, swap, u1,
 };
 
 
@@ -82,6 +82,8 @@ const stringmap_t<Gates> State::gateset_({
   {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
   {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
   {"t", Gates::t},       // T-gate (sqrt(S))
+  {"rz", Gates::rz}, // Pauli-Z rotation gate
+  {"p", Gates::p},   // Parameterized phase gate 
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   // Two-qubit gates
   {"CX", Gates::cx},     // Controlled-X gate (CNOT)
@@ -162,7 +164,6 @@ void State::apply_save_specific_prob(const Operations::Op &op, ExperimentResult 
   std::vector<double> v;
   double p = this->compute_probability(op.qubits, op.int_params);
   v.push_back(p);
-
   BaseState::save_data_average(result, op.string_params[0], std::move(v), Operations::DataSubType::list);
 }
 
@@ -174,10 +175,12 @@ uint_t BinaryToGray(uint_t num)
 
 
 double compute_algorithm_all_phases_T(AGState &state){
+  
   uint_t full_mask = 0u;
   for(size_t i = 0; i < state.num_stabilizers; i++){
     full_mask |= (ONE << i);
   }
+
   double acc = 1.;
   Pauli::Pauli row(state.num_qubits);
   unsigned char phase = 0;
@@ -191,9 +194,11 @@ double compute_algorithm_all_phases_T(AGState &state){
 	break;
       }
     }
-    phase += Pauli::Pauli::phase_exponent(row, state.table[bit_to_flip]);
+
+    phase += state.phases[bit_to_flip] + (Pauli::Pauli::phase_exponent(row, state.table[bit_to_flip]) / 2); //phases for stabilizers are always 1 or -1
+    phase %= 2;
     row += state.table[bit_to_flip];
-    
+
     size_t XCount = 0;
     size_t YCount = 0;
     size_t ZCount = 0;
@@ -222,6 +227,57 @@ double compute_algorithm_all_phases_T(AGState &state){
       }
     }      
   }
+
+  if(full_mask == 0u){
+    return 1.;
+  }
+  return acc;
+}
+
+double compute_algorithm_arbitrary_phases(AGState &state){
+  uint_t full_mask = 0u;
+  for(size_t i = 0; i < state.num_stabilizers; i++){
+    full_mask |= (ONE << i);
+  }
+  double acc = 1.;
+  Pauli::Pauli row(state.num_qubits);
+  unsigned char phase = 0;
+  
+  for(uint_t mask = 1u; mask <= full_mask; mask++){
+    uint_t mask_with_bit_to_flip = BinaryToGray(mask) ^ BinaryToGray(mask - 1);
+    size_t bit_to_flip = 0;
+    for(size_t j = 0; j < state.num_stabilizers; j++){
+      if((mask_with_bit_to_flip >> j) & ONE){
+	bit_to_flip = j;
+	break;
+      }
+    }
+    
+    phase += (Pauli::Pauli::phase_exponent(row, state.table[bit_to_flip]) / 2); //phases for stabilizers are always 0 or 2
+    row += state.table[bit_to_flip];
+    
+    double prod = 1.;
+    for(size_t j = 0; j < state.num_qubits; j++){
+      //if((row[j] == 0) && (row[j+state.n] == 0)){
+      //    ICount += 1;
+      //}
+      if(row.X[j] && !row.Z[j]){
+	prod *= cos(state.magic_phases[j]);
+      }
+      if(!row.X[j] && row.Z[j]){
+	prod = 0.;
+	break;
+      }
+      if(row.X[j] && row.Z[j]){
+	prod *= -sin(state.magic_phases[j]);
+      }
+    }
+    if(phase){
+      acc -= prod;
+    }else{
+      acc += prod;
+    }
+  }
   
   if(full_mask == 0u){
     return 1.;
@@ -229,30 +285,46 @@ double compute_algorithm_all_phases_T(AGState &state){
   return acc;
 }
 
+
 double State::compute_probability(std::vector<size_t> measured_qubits, std::vector<uint_t> outcomes){
-  AGState copied_ag = this->qreg_; //copy constructor TODO check this
+
+  AGState copied_ag(this->qreg_); //copy constructor TODO check this
+
   //first reorder things so the first w qubits are measured
-  std::vector<size_t> measured_qubits_sorted = measured_qubits;
+  std::vector<size_t> measured_qubits_sorted(measured_qubits);
+
+  std::vector<size_t> qubit_indexes;
+  for(size_t i = 0; i < this->qreg_.num_qubits; i++){
+    qubit_indexes.push_back(i);
+  }  
   std::sort(measured_qubits_sorted.begin(), measured_qubits_sorted.end());
   
-  //size_t qubits_swapped = 0;
   for(size_t i = 0; i < measured_qubits.size(); i++){
-    size_t w = measured_qubits_sorted[i];
-    size_t idx = 0;
-    for(size_t j = 0; j < measured_qubits.size(); j++){
-      if(measured_qubits[j] == w){
-	idx = j;
+    size_t w = measured_qubits_sorted[i];    
+    size_t idx1 = 0;
+    size_t idx2 = 0;
+    for(size_t j = 0; j < qubit_indexes.size(); j++){
+      if(qubit_indexes[j] == w){
+	idx1 = j;
 	break;
       }
     }
-    //now swap element w with element idx    
-    if(measured_qubits[i] != i){
-      copied_ag.applySwap(w, idx);
+    for(size_t j = 0; j < measured_qubits.size(); j++){
+      if(measured_qubits[j] == w){
+	idx2 = j;
+	break;
+      }
+    }
+    
+    if(idx1 != idx2){
+      std::swap(qubit_indexes[idx1], qubit_indexes[idx2]);
+      copied_ag.applySwap(idx1, idx2);
     }
   }
 
   //from this point on we will assume we're looking for the measurement outcome 0 on all measured qubits
   //so apply X gates to measured qubits where we're looking for outcome 1 to correct this
+  //now all the measured qubits are at the start and the magic qubits are at the end
   for(size_t i = 0; i < outcomes.size(); i++){
     if(outcomes[i] == 1){
       copied_ag.applyX(i);
@@ -263,18 +335,18 @@ double State::compute_probability(std::vector<size_t> measured_qubits, std::vect
   size_t t = copied_ag.magic_phases.size();
 
   //now all the measured qubits are at the start and the magic qubits are at the end
+
   std::pair<bool, size_t> v_pair = copied_ag.apply_constraints(w, t);
   if(!v_pair.first){
     return 0.;
   }
-
   size_t v = v_pair.second;
 
   //at this point we can delete all the non-magic qubits
   for(size_t q = 0; q < t; q++){
-    copied_ag.applySwap(q, q+t);
+    copied_ag.applySwap(q, q+(copied_ag.num_qubits - t));
   }
-
+  
   for(size_t s = 0; s < copied_ag.num_stabilizers; s++){
     copied_ag.table[s].X.resize(t);
     copied_ag.table[s].Z.resize(t);
@@ -293,12 +365,16 @@ double State::compute_probability(std::vector<size_t> measured_qubits, std::vect
       break;
     }
   }
+
+  
   if(copied_ag.num_qubits == 0){
     return powl(2., (double)v - (double)w);
   }
-
-  return compute_algorithm_all_phases_T(copied_ag) * powl(2., (double)v - w);
-  
+  if(all_phases_are_T){
+    return compute_algorithm_all_phases_T(copied_ag) * powl(2., (double)v - w);
+  } else {
+    return compute_algorithm_arbitrary_phases(copied_ag) * powl(2., (double)v - w);
+  }  
 }
 
 void State::initialize_qreg(uint_t num_qubits){

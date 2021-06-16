@@ -76,7 +76,7 @@ public:
   std::pair<bool,size_t> first_non_zero_in_row(size_t col, size_t startpoint);
 
   void swap_rows(size_t i, size_t j);
-  void delete_row(size_t i);
+  void delete_last_row();
 /*
  * create a QCircuit that brings the state represented by this table to the state |0><0|^k \otimes I^(n-k) / (2^(n-k))
  * Explicitly num_stabilizers stabilisers on num_qubits qubits with the jth stabilzier being a +z on the jth qubit
@@ -154,7 +154,7 @@ void AGState::Print(){
 
 void AGState::applyCX(size_t a, size_t b){
   for(size_t i = 0; i < this->num_stabilizers; i++){
-    this->phases[i] ^= this->table[i].X[a] & this->table[i].Z[a] & (this->table[i].X[b] ^ this->table[i].Z[a] ^ true);
+    this->phases[i] ^= this->table[i].X[a] & this->table[i].Z[b] & (this->table[i].X[b] ^ this->table[i].Z[a] ^ true);
     this->table[i].X.xorAt(this->table[i].X[a], b);
     this->table[i].Z.xorAt(this->table[i].Z[b], a);
   }
@@ -169,15 +169,18 @@ void AGState::applyCZ(size_t a, size_t b){
 }
 
 void AGState::applySwap(size_t a, size_t b){
-  for(size_t i = 0; i < this->num_stabilizers; i++){
-    this->table[i].X.xorAt(this->table[i].X[a], b);
-    this->table[i].X.xorAt(this->table[i].X[b], a);
-    this->table[i].X.xorAt(this->table[i].X[a], b);
+  this->applyCX(a,b);
+  this->applyCX(b,a);
+  this->applyCX(a,b);
+  // for(size_t i = 0; i < this->num_stabilizers; i++){
+  //   this->table[i].X.xorAt(this->table[i].X[a], b);
+  //   this->table[i].X.xorAt(this->table[i].X[b], a);
+  //   this->table[i].X.xorAt(this->table[i].X[a], b);
     
-    this->table[i].Z.xorAt(this->table[i].Z[b], a);
-    this->table[i].Z.xorAt(this->table[i].Z[a], b);
-    this->table[i].Z.xorAt(this->table[i].Z[b], a);
-  }
+  //   this->table[i].Z.xorAt(this->table[i].Z[b], a);
+  //   this->table[i].Z.xorAt(this->table[i].Z[a], b);
+  //   this->table[i].Z.xorAt(this->table[i].Z[b], a);
+  // }
 }
 
 void AGState::applyH(size_t a){
@@ -364,14 +367,16 @@ void AGState::swap_rows(size_t i, size_t j){
   
   //this->table[i].X.swap(this->table[j].X);
   //this->table[i].Z.swap(this->table[j].Z);
-  std::swap(this->table[i], this->table[j]);
-  std::swap(this->phases[i], this->phases[j]);
+  if(i != j){
+    std::swap(this->table[i], this->table[j]);
+    std::swap(this->phases[i], this->phases[j]);
+  }
 }
 
-void AGState::delete_row(size_t i){
-  this->table.erase(this->table.begin() + i);
-  this->phases.erase(this->phases.begin() + i);
+void AGState::delete_last_row(){
   this->num_stabilizers -= 1;
+  this->table.resize(this->num_stabilizers);
+  this->phases.resize(this->num_stabilizers);
 }
 
 Operations::Op make_H(uint_t a){
@@ -620,7 +625,7 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
     std::pair<bool,size_t> z_stab = std::pair<bool,size_t>(false, 0); //store the index of the first stab we come to with z=1, x=0
     
     for(size_t s=0; s < this->num_stabilizers && (((!y_stab.first) + (!x_stab.first) + (!z_stab.first)) > 1); s++){//iterate over all stabilisers and find interesting stabilisers
-
+      
       if(this->table[s].X[q] && this->table[s].Z[q]){
 	y_stab.first = true;
 	y_stab.second = s;
@@ -667,14 +672,14 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
 	}
 	
 	if(this->table[s].X[q]){
-	  this->rowsum(s, x_stab.first);
+	  this->rowsum(s, x_stab.second);
 	}
 	
 	if(this->table[s].Z[q]){
-	  this->rowsum(s, z_stab.first);
+	  this->rowsum(s, z_stab.second);
 	}
       }
-    }    
+    }
 
     //case 1 - there is a generator which does not commute with Z_q
     if(y_stab.first || x_stab.first){
@@ -682,7 +687,7 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
       size_t non_commuting_generator = y_stab.first ? y_stab.second : x_stab.second;
       //we delete the non-commuting guy
       this->swap_rows(non_commuting_generator, this->num_stabilizers-1);
-      this->delete_row(this->num_stabilizers-1);      
+      this->delete_last_row();
     }else{
       //case 2 - all generators commute with Z_q
       //our generating set contains either Z_q or -Z_q
@@ -691,13 +696,14 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
       //swap our Z_q guy to the end
       this->swap_rows(z_stab.second, this->num_stabilizers-1);
       bool independent = this->independence_test(q);
+      
       if(!independent){
 	if(this->phases[this->num_stabilizers-1] == 0){
 	  // +Z_q
 	  v += 1;
-	  this->delete_row(this->num_stabilizers-1);
+	  this->delete_last_row();
 	}else{
-	  //our chosen measurement outcome is impossible
+	  //our chosen measurement outcome is impossible	  
 	  return std::pair<bool, size_t>(false,0);
 	}
       }else{
@@ -707,8 +713,7 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
     }
   }
   
-  //time to impose region b constraints
-  
+  //time to impose region b constraints  
   for(size_t q=w; q < this->num_qubits - t ; q++){ //iterate over all the non-measured non-magic qubits
     std::pair<bool, size_t> y_stab = std::pair<bool, size_t>(false,0); //store the index of the first stab we come to with both x and z = 1 on this qubit
     std::pair<bool, size_t> x_stab = std::pair<bool, size_t>(false,0); //store the index of the first stab we come to with x=1, z=0
@@ -769,10 +774,9 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
 	  this->rowsum(s, z_stab.second);
 	}
       }
-    }        
+    }
     
-    //now we just delete the non-identity guys on this qubit
-    
+    //now we just delete the non-identity guys on this qubit    
     int num_to_delete = 0;
     if(y_stab.first){
       //if we have a Y stab we don't have either of the others
@@ -781,7 +785,7 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
     }else{
       if(x_stab.first){
 	this->swap_rows(x_stab.second, this->num_stabilizers-1);
-	if(z_stab.first && this->num_stabilizers - 1 == z_stab.second){
+	if(z_stab.first && (this->num_stabilizers - 1 == z_stab.second)){
 	  z_stab = x_stab;
 	}
 	num_to_delete += 1;
@@ -791,10 +795,11 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
 	num_to_delete += 1;
       }
     }
+
     //delete the last num_to_delete rows
     //TODO should we implement an erase method that works like the std::vector one so you can pass a range?
     for(size_t deletes = 0; deletes < num_to_delete; deletes++){
-      this->delete_row(this->num_stabilizers-1);	
+      this->delete_last_row();
     }
   }
   
@@ -812,7 +817,7 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
 size_t AGState::apply_T_constraints(){
   size_t starting_rows = this->num_stabilizers;
   size_t deleted_rows = 0;
-  for(size_t reps = 0; reps < starting_rows; reps++){	
+  for(size_t reps = 0; reps < starting_rows; reps++){
     for(size_t q=0; q < this->num_qubits; q++){ //iterate over all the magic qubits
       std::pair<bool, size_t> y_stab = std::pair<bool, size_t>(false,0); //store the index of the first stab we come to with both x and z = 1 on this qubit
       std::pair<bool, size_t> x_stab = std::pair<bool, size_t>(false,0); //store the index of the first stab we come to with x=1, z=0
@@ -859,14 +864,17 @@ size_t AGState::apply_T_constraints(){
       
       if(z_stab.first && !x_stab.first){
 	//kill all other z stuff on this qubit	
-	for(size_t s = 0; s < this->num_qubits; s++){
+	for(size_t s = 0; s < this->num_stabilizers; s++){
 	  if((s != z_stab.second) && this->table[s].Z[q]){
 	    this->rowsum(s, z_stab.second);
 	  }
 	}
 	//now delete the z guy
-	this->swap_rows(z_stab.second, this->num_stabilizers-1);
-	this->delete_row(this->num_stabilizers-1);
+
+	if(z_stab.second != this->num_stabilizers-1){
+	  this->swap_rows(z_stab.second, this->num_stabilizers-1);
+	}
+	this->delete_last_row();
 	deleted_rows += 1;
       }
     }
