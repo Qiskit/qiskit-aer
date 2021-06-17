@@ -33,22 +33,13 @@ LIBRARY_DIR = os.path.dirname(__file__)
 
 
 def cpp_execute(controller, qobj):
-    """Execute qobj_dict on C++ controller wrapper"""
-    # Convert qobj to dict
-    qobj_dict = qobj.to_dict()
-
-    # Convert noise model to dict
-    noise_model = qobj_dict['config'].pop('noise_model', None)
-    if noise_model is not None:
-        if not isinstance(noise_model, dict):
-            noise_model = noise_model.to_dict()
-        qobj_dict['config']['noise_model'] = noise_model
+    """Execute qobj on C++ controller wrapper"""
 
     # Location where we put external libraries that will be
     # loaded at runtime by the simulator extension
-    qobj_dict['config']['library_dir'] = LIBRARY_DIR
+    qobj.config.library_dir = LIBRARY_DIR
 
-    return controller(qobj_dict)
+    return controller(qobj)
 
 
 def available_methods(controller, methods):
@@ -67,3 +58,22 @@ def available_methods(controller, methods):
         if result.get('success', False):
             valid_methods.append(method)
     return valid_methods
+
+
+def available_devices(controller, devices):
+    """Check available simulation devices by running a dummy circuit."""
+    # Test methods are available using the controller
+    dummy_circ = QuantumCircuit(1)
+    dummy_circ.i(0)
+
+    valid_devices = []
+    for device in devices:
+        qobj = assemble(dummy_circ,
+                        optimization_level=0,
+                        shots=1,
+                        method="statevector",
+                        device=device)
+        result = cpp_execute(controller, qobj)
+        if result.get('success', False):
+            valid_devices.append(device)
+    return valid_devices

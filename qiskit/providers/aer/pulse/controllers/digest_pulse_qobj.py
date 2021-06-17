@@ -24,8 +24,7 @@ from .pulse_utils import oplist_to_array
 
 
 class DigestedPulseQobj:
-    """Container class for information extracted from PulseQobj
-    """
+    """Container class for information extracted from PulseQobj."""
 
     def __init__(self):
 
@@ -145,6 +144,15 @@ def _unsupported_errors(qobj_dict):
     if _contains_pv_instruction(qobj_dict['experiments']):
         raise AerError(warning_str.format('PersistentValue instructions'))
 
+    error_str = '''{} are not directly supported by PulseSimulator. Convert to
+                explicit WaveForms to simulate.'''
+    if _contains_parametric_pulse(qobj_dict['experiments']):
+        raise AerError(error_str.format('Parametric Pulses'))
+
+    error_str = '''Schedules contain {}, are not supported by PulseSimulator.'''
+    if _contains_frequency_instruction(qobj_dict['experiments']):
+        raise AerError(error_str.format('shift frequency and/or set frequency instructions'))
+
     required_str = '{} are required for simulation, and none were specified.'
     if not _contains_acquire_instruction(qobj_dict['experiments']):
         raise AerError(required_str.format('Acquire instructions'))
@@ -167,7 +175,7 @@ def _contains_acquire_instruction(experiments):
 
 
 def _contains_pv_instruction(experiments):
-    """ Return True if the list of experiments contains a PersistentValue instruction
+    """ Return True if the list of experiments contains a PersistentValue instruction.
 
     Parameters:
         experiments (list): list of schedules
@@ -178,6 +186,39 @@ def _contains_pv_instruction(experiments):
     for exp in experiments:
         for inst in exp['instructions']:
             if inst['name'] == 'pv':
+                return True
+    return False
+
+
+def _contains_frequency_instruction(experiments):
+    """ Return True if the list of experiments contains either a set fruquency or shift
+    frequency instruction.
+
+    Parameters:
+        experiments (list): list of schedules
+    Returns:
+        True or False: whether or not the schedules contain one of the mentioned instructions.
+    Raises:
+    """
+    for exp in experiments:
+        for inst in exp['instructions']:
+            if inst['name'] == 'setf' or inst['name'] == 'shiftf':
+                return True
+    return False
+
+
+def _contains_parametric_pulse(experiments):
+    """Return True if the list of experiments contains a parametric pulse.
+
+    Parameters:
+        experiments (list): list of schedules
+    Returns:
+        True or False: whether or not the schedules contain a PersistentValue command
+    Raises:
+    """
+    for exp in experiments:
+        for inst in exp['instructions']:
+            if inst['name'] == 'parametric_pulse':
                 return True
     return False
 
@@ -290,6 +331,15 @@ def experiment_to_structs(experiment, ham_chans, pulse_inds, pulse_to_int, dt, q
     structs['snapshot'] = []
     structs['tlist'] = []
     structs['can_sample'] = True
+
+    # set an experiment qubit_lo_freq if present in experiment
+    structs['qubit_lo_freq'] = None
+    if 'config' in experiment:
+        if ('qubit_lo_freq' in experiment['config'] and
+                experiment['config']['qubit_lo_freq'] is not None):
+            freq_list = experiment['config']['qubit_lo_freq']
+            freq_list = [freq * 1e9 for freq in freq_list]
+            structs['qubit_lo_freq'] = freq_list
     # This is a list that tells us whether
     # the last PV pulse on a channel needs to
     # be assigned a final time based on the next pulse on that channel

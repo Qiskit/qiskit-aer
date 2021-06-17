@@ -19,7 +19,6 @@ from enum import Enum
 import inspect
 import logging
 import os
-import unittest
 from unittest.util import safe_repr
 from itertools import repeat
 from random import choice, sample
@@ -117,7 +116,7 @@ class QiskitAerTestCase(QiskitTestCase):
             params.append(5)
 
         gate = gate_cls(*params)
-        
+
         if basis_states is None:
             basis_states = [bin(i)[2:].zfill(gate.num_qubits) \
                             for i in range(1<<gate.num_qubits)]
@@ -335,7 +334,7 @@ def _is_ci_fork_pull_request():
 
     Returns:
         bool: True if the tests are executed inside a CI tool, and the changes
-            are not against the "master" branch.
+            are not against the "main" branch.
     """
     if os.getenv('TRAVIS'):
         # Using Travis CI.

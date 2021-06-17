@@ -29,7 +29,7 @@
 
 namespace AER {
 
-//predefinition of QubitUnitary::State for friend class declaration to access static members
+//predefinition of QubitUnitatyChunk::State for friend class declaration to access static members
 namespace QubitUnitaryChunk {
 template <class unitary_matrix_t> class State;
 }
@@ -40,9 +40,10 @@ namespace QubitUnitary {
 const Operations::OpSet StateOpSet(
     // Op types
     {Operations::OpType::gate, Operations::OpType::barrier,
+     Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::snapshot, Operations::OpType::save_unitary,
-     Operations::OpType::save_state},
+     Operations::OpType::save_state, Operations::OpType::set_unitary},
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
      "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
@@ -276,10 +277,19 @@ void State<unitary_matrix_t>::apply_ops(
     switch (op.type) {
       case Operations::OpType::barrier:
         break;
+      case Operations::OpType::bfunc:
+          BaseState::creg_.apply_bfunc(op);
+        break;
+      case Operations::OpType::roerror:
+          BaseState::creg_.apply_roerror(op, rng);
+        break;
       case Operations::OpType::gate:
         // Note conditionals will always fail since no classical registers
         if (BaseState::creg_.check_conditional(op))
           apply_gate(op);
+        break;
+      case Operations::OpType::set_unitary:
+        BaseState::qreg_.initialize_from_matrix(op.mats[0]);
         break;
       case Operations::OpType::save_state:
       case Operations::OpType::save_unitary:

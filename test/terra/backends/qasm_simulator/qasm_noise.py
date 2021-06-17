@@ -20,7 +20,9 @@ from test.terra.reference import ref_kraus_noise
 
 from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
-
+from qiskit import execute
+from qiskit.circuit.library import QFT
+import qiskit.quantum_info as qi
 
 class QasmReadoutNoiseTests:
     """QasmSimulator readout error noise model tests."""
@@ -148,3 +150,25 @@ class QasmKrausNoiseTests:
                 **self.BACKEND_OPTS).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
+
+class QasmKrausNoiseOnQFTTests:
+    """QasmSimulator Kraus error noise model on QFT tests."""
+
+    SIMULATOR = QasmSimulator()
+    BACKEND_OPTS = {}
+
+    def test_kraus_gate_noise_on_QFT(self):
+        """Test Kraus noise on a QFT circuit"""
+
+        shots = 10000
+        noise_model = ref_kraus_noise.kraus_gate_error_noise_models_full()
+
+        circuit = QFT(3)
+        circuit.measure_all()
+        ref_target = ref_kraus_noise.kraus_gate_error_counts_on_QFT(shots)
+        qobj = assemble(circuit, self.SIMULATOR, shots=shots)
+        result = self.SIMULATOR.run(qobj,
+                                    noise_model=noise_model,
+                                    **self.BACKEND_OPTS).result()
+        self.assertSuccess(result)
+        self.compare_counts(result, [circuit], [ref_target], delta=0.1 * shots)

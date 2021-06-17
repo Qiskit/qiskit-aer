@@ -227,17 +227,10 @@ endif()
 
 message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
-# Windows don't have a DL library (dlopen, dlclose, etc...)
-if(NOT MSVC)
-	find_library(DL_LIB NAMES dl)
-	if(${DL_LIB} MATCHES "DL_LIB-NOTFOUND")
-		message(FATAL_ERROR "No dl lib found")
-	endif()
-endif()
-
 if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
 	if(APPLE OR UNIX)
 		set(SIMD_FLAGS_LIST "-mfma;-mavx2")
+		enable_cxx_compiler_flag_if_supported("-mpopcnt")
 	elseif(MSVC)
 		set(SIMD_FLAGS_LIST "/arch:AVX2")
 	endif()
@@ -295,6 +288,10 @@ if(AER_DEBUG)
 	set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_DEBUG)
 endif()
 
+if(TEST_JSON)
+	set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} TEST_JSON)
+endif()
+
 if(AER_MPI)
 	find_package(MPI REQUIRED)
 	set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_MPI)
@@ -314,7 +311,7 @@ set(AER_LIBRARIES
 	AER_DEPENDENCY_PKG::nlohmann_json
 	AER_DEPENDENCY_PKG::spdlog
 	Threads::Threads
-	${DL_LIB}
+	${CMAKE_DL_LIBS}
 	${THRUST_DEPENDANT_LIBS}
 	${MPI_DEPENDANT_LIBS})
 

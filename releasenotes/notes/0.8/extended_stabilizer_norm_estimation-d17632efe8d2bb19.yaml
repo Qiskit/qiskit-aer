@@ -1,0 +1,44 @@
+---
+features:
+  - |
+    Added a new ``norm estimation`` method for performing measurements when using
+    the `"extended_stabilizer"` simulation method. This norm estimation method
+    can be used by passing the following options to the
+    :class:`~qiskit.providers.aer.AerSimulator` and
+    :class:`~qiskit.providers.aer.QasmSimulator` backends
+
+    .. code::python
+
+      simulator = QasmSimulator(
+          method='extended_stabilizer',
+          extended_stabilizer_sampling_method='norm_estimation')
+
+    The norm estimation method is slower than the alternative `metropolis`
+    or `resampled_metropolis` options, but gives better performance on circuits
+    with sparse output distributions. See the documentation of the
+    :class:`~qiskit.providers.aer.QasmSimulator` for more information.
+fixes:
+  - |
+    Fixes an issue where the Extended `"extended_stabilizer"` simulation method
+    would give incorrect results on quantum circuits with sparse output
+    distributions. Refer to
+    `#306 <https://github.com/Qiskit/qiskit-aer/issues/306>` for more
+    information and examples.
+upgrade:
+  - |
+    The following options for the `"extended_stabilizer"` simulation method
+    have changed.
+
+      + ``extended_stabilizer_measure_sampling``: This option has been replaced
+        by the options ``extended_stabilizer_sampling_method``, which controls
+        how we simulate qubit measurement.
+      
+      + ``extended_stabilizer_mixing_time``: This option has been renamed as
+        ``extended_stabilizer_metropolis_mixing_time`` to clarify it only applies
+        to the `metropolis` and `resampled_metropolis` sampling methods.
+      
+      + ``extended_stabilizer_norm_estimation_samples``: This option has been renamed
+        to ``extended_stabilizer_norm_estimation_default_samples``.
+     
+    One additional option, ``extended_stabilizer_norm_estimation_repetitions`` has been
+    added, whih controls part of the behaviour of the norm estimation sampling method.

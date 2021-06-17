@@ -997,7 +997,7 @@ void NoiseModel::load_from_json(const json_t &js) {
     if (!js["errors"].is_array()) {
       throw std::invalid_argument("Invalid noise_params JSON: \"error\" field is not a list");
     }
-    for (const auto &gate_js : js["errors"]) {
+    for (const auto &gate_js : JSON::get_value("errors", js)) {
       std::string type;
       JSON::get_value(type, "type", gate_js);
       stringset_t ops; // want set so ops are unique, and we can pull out measure

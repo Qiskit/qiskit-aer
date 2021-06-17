@@ -18,6 +18,7 @@ import unittest
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import AerError
 from test.terra import common
+from test.terra.decorators import requires_method
 
 # Basic circuit instruction tests
 from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
@@ -41,8 +42,11 @@ from test.terra.backends.qasm_simulator.qasm_noise import QasmReadoutNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmPauliNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmResetNoiseTests
 from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseTests
+from test.terra.backends.qasm_simulator.qasm_noise import QasmKrausNoiseOnQFTTests
 # Save data tests
 from test.terra.backends.qasm_simulator.qasm_save import QasmSaveDataTests
+from test.terra.backends.qasm_simulator.qasm_set_state import QasmSetMPSTests
+from test.terra.backends.qasm_simulator.qasm_set_state import QasmSetStateTests
 # Snapshot tests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotStatevectorTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotDensityMatrixTests
@@ -51,8 +55,10 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabi
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
+from test.terra.backends.qasm_simulator.qasm_fusion import QasmMPSFusionTests
 
 
+@requires_method("qasm_simulator", "matrix_product_state")
 class TestQasmMatrixProductStateSimulator(
         common.QiskitAerTestCase,
         QasmMeasureTests,
@@ -71,7 +77,7 @@ class TestQasmMatrixProductStateSimulator(
         QasmPauliNoiseTests,
         QasmResetNoiseTests,
         QasmKrausNoiseTests,
-        QasmSaveDataTests,
+        QasmKrausNoiseOnQFTTests,
         QasmSnapshotStatevectorTests,
         QasmSnapshotDensityMatrixTests,
         QasmSnapshotProbabilitiesTests,
@@ -80,7 +86,11 @@ class TestQasmMatrixProductStateSimulator(
         QasmSnapshotExpValPauliNCTests,
         QasmSnapshotExpValMatrixTests,
         QasmStandardGateStatevectorTests,
-        QasmDelayGateTests
+        QasmDelayGateTests,
+        QasmSaveDataTests,
+        QasmSetMPSTests,
+        QasmSetStateTests,
+        QasmMPSFusionTests
 ):
     """QasmSimulator matrix product state method tests."""
 

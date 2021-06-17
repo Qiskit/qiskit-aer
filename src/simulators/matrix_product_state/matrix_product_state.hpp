@@ -55,7 +55,8 @@ const Operations::OpSet StateOpSet(
    OpType::save_expval_var, OpType::save_densmat,
    OpType::save_statevec, OpType::save_probs,
    OpType::save_probs_ket, OpType::save_amps,
-   OpType::save_amps_sq},
+   OpType::save_amps_sq, OpType::save_mps, OpType::save_state,
+   OpType::set_mps, OpType::set_statevec},
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",
@@ -217,6 +218,11 @@ protected:
   // Save data instructions
   //-----------------------------------------------------------------------
 
+  // Save the current state of the simulator
+  void apply_save_mps(const Operations::Op &op,
+                      ExperimentResult &result,
+                      bool last_op);
+                            
   // Compute and save the statevector for the current simulator state
   void apply_save_statevector(const Operations::Op &op,
                               ExperimentResult &result);
@@ -494,7 +500,8 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
                       RngEngine &rng, bool final_ops) {
 
   // Simple loop over vector of input operations
-  for (const auto &op: ops) {
+  for (size_t i = 0; i < ops.size(); ++i) {
+    const auto& op = ops[i];
     if(BaseState::creg_.check_conditional(op)) {
       switch (op.type) {
         case OpType::barrier:
@@ -529,6 +536,16 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
         case OpType::kraus:
           apply_kraus(op.qubits, op.mats, rng);
           break;
+	case OpType::set_statevec:
+	  {
+	    reg_t all_qubits(qreg_.num_qubits());
+	    std::iota(all_qubits.begin(), all_qubits.end(), 0);
+	    qreg_.apply_initialize(all_qubits, op.params, rng);
+	    break;
+	  }
+	case OpType::set_mps:
+          qreg_.initialize_from_mps(op.mps);
+          break;
         case OpType::save_expval:
         case OpType::save_expval_var:
           BaseState::apply_save_expval(op, result);
@@ -538,6 +555,10 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
           break;
         case OpType::save_statevec:
           apply_save_statevector(op, result);
+          break;
+        case OpType::save_state:
+        case OpType::save_mps:
+          apply_save_mps(op, result, final_ops && ops.size() == i + 1);
           break;
         case OpType::save_probs:
         case OpType::save_probs_ket:
@@ -552,12 +573,33 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
                                       op.name + "\'.");
       }
     }
+    //qreg_.print(std::cout);
   }
 }
 
 //=========================================================================
 // Implementation: Save data
 //=========================================================================
+
+void State::apply_save_mps(const Operations::Op &op,
+                           ExperimentResult &result,
+                           bool last_op) {
+  if (op.qubits.size() != qreg_.num_qubits()) {
+    throw std::invalid_argument(
+        "Save MPS was not applied to all qubits."
+        " Only the full matrix product state can be saved.");
+  }
+  std::string key = (op.string_params[0] == "_method_")
+                      ? "matrix_product_state"
+                      : op.string_params[0];
+  if (last_op) {
+    BaseState::save_data_pershot(result, key, qreg_.move_to_mps_container(),
+				                         op.save_type);
+  } else {
+    BaseState::save_data_pershot(result, key, qreg_.copy_to_mps_container(),
+                                 op.save_type);
+  }
+}
 
 void State::apply_save_probs(const Operations::Op &op,
                              ExperimentResult &result) {
@@ -607,6 +649,7 @@ void State::apply_save_statevector(const Operations::Op &op,
   BaseState::save_data_pershot(result, op.string_params[0],
                                qreg_.full_statevector(), op.save_type);
 }
+
 
 void State::apply_save_density_matrix(const Operations::Op &op,
                                       ExperimentResult &result) {

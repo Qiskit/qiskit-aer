@@ -22,9 +22,10 @@
 #include <tuple>
 
 #include "framework/types.hpp"
-#include "framework/json.hpp"
+#include "framework/json_parser.hpp"
 #include "framework/utils.hpp"
 #include "framework/linalg/almost_equal.hpp"
+#include "simulators/stabilizer/clifford.hpp"
 
 namespace AER {
 namespace Operations {
@@ -43,7 +44,10 @@ enum class OpType {
   // Save instructions
   save_state, save_expval, save_expval_var, save_statevec, save_statevec_dict,
   save_densmat, save_probs, save_probs_ket, save_amps, save_amps_sq,
-  save_stabilizer, save_unitary
+  save_stabilizer, save_unitary, save_mps, save_superop,
+  // Set instructions
+  set_statevec, set_densmat, set_unitary, set_superop,
+    set_stabilizer, set_mps
 };
 
 enum class DataSubType {
@@ -55,7 +59,7 @@ static const std::unordered_set<OpType> SAVE_TYPES = {
   OpType::save_statevec, OpType::save_statevec_dict,
   OpType::save_densmat, OpType::save_probs, OpType::save_probs_ket,
   OpType::save_amps, OpType::save_amps_sq, OpType::save_stabilizer,
-  OpType::save_unitary
+  OpType::save_unitary, OpType::save_mps, OpType::save_superop
 };
 
 inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
@@ -89,6 +93,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   case OpType::save_statevec_dict:
     stream << "save_statevector_dict";
     break;
+  case OpType::save_mps:
+    stream << "save_matrix_product_state";
+    break;
   case OpType::save_densmat:
     stream << "save_density_matrix";
     break;
@@ -109,6 +116,27 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::save_unitary:
     stream << "save_unitary";
+    break;
+  case OpType::save_superop:
+    stream << "save_superop";
+    break;
+  case OpType::set_statevec:
+    stream << "set_statevector";
+    break;
+  case OpType::set_densmat:
+    stream << "set_density_matrix";
+    break;
+  case OpType::set_unitary:
+    stream << "set_unitary";
+    break;
+  case OpType::set_superop:
+    stream << "set_superop";
+    break;
+  case OpType::set_stabilizer:
+    stream << "set_stabilizer";
+    break;
+  case OpType::set_mps:
+    stream << "set_matrix_product_state";
     break;
   case OpType::snapshot:
     stream << "snapshot";
@@ -162,7 +190,7 @@ struct Op {
   std::vector<reg_t> regs;        //  list of qubits for matrixes
   std::vector<complex_t> params;  // real or complex params for gates
   std::vector<uint_t> int_params;  // integer parameters 
-  std::vector<std::string> string_params; // used or snapshot label, and boolean functions
+  std::vector<std::string> string_params; // used for snapshot label, and boolean functions
 
   // Conditional Operations
   bool conditional = false; // is gate conditional gate
@@ -181,6 +209,10 @@ struct Op {
 
   // Expvals
   std::vector<std::tuple<std::string, double, double>> expval_params;
+
+  // Set states
+  Clifford::Clifford clifford;
+  mps_container_t mps;
 
   // Legacy Snapshots
   DataSubType save_type = DataSubType::single;
@@ -425,8 +457,8 @@ inline Op make_multiplexer(const reg_t &qubits,
   }
   // Get lists of controls and targets
   reg_t controls(num_controls), targets(num_targets);
-  std::copy_n(qubits.begin(), num_controls, controls.begin());
-  std::copy_n(qubits.begin() + num_controls, num_targets, targets.begin());
+  std::copy_n(qubits.begin(), num_targets, targets.begin());
+  std::copy_n(qubits.begin() + num_targets, num_controls, controls.begin());
 
   // Construct the Op
   Op op;
@@ -449,46 +481,85 @@ inline Op make_multiplexer(const reg_t &qubits,
 // JSON conversion
 //------------------------------------------------------------------------------
 
-// Main JSON deserialization functions
-Op json_to_op(const json_t &js); // Partial TODO
+// Main deserialization functions
+template<typename inputdata_t>
+Op input_to_op(const inputdata_t& input); // Partial TODO
 json_t op_to_json(const Op &op); // Partial TODO
-inline void from_json(const json_t &js, Op &op) {op = json_to_op(js);}
+
+inline void from_json(const json_t &js, Op &op) {op = input_to_op(js);}
+
 inline void to_json(json_t &js, const Op &op) { js = op_to_json(op);}
 
 // Standard operations
-Op json_to_op_gate(const json_t &js);
-Op json_to_op_barrier(const json_t &js);
-Op json_to_op_measure(const json_t &js);
-Op json_to_op_reset(const json_t &js);
-Op json_to_op_bfunc(const json_t &js);
-Op json_to_op_initialize(const json_t &js);
-Op json_to_op_pauli(const json_t &js);
+template<typename inputdata_t>
+Op input_to_op_gate(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_barrier(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_measure(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_reset(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_bfunc(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_initialize(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_pauli(const inputdata_t& input);
+
+// Set state
+template<typename inputdata_t>
+Op input_to_op_set_vector(const inputdata_t& input, OpType op_type);
+
+template<typename inputdata_t>
+Op input_to_op_set_matrix(const inputdata_t& input, OpType op_type);
+
+template<typename inputdata_t>
+Op input_to_op_set_clifford(const inputdata_t& input, OpType op_type);
+
+template<typename inputdata_t>
+Op input_to_op_set_mps(const inputdata_t& input, OpType op_type);
 
 // Save data
-Op json_to_op_save_default(const json_t &js, OpType op_type);
-Op json_to_op_save_expval(const json_t &js, bool variance);
-Op json_to_op_save_amps(const json_t &js, bool squared);
+template<typename inputdata_t>
+Op input_to_op_save_default(const inputdata_t& input, OpType op_type);
+template<typename inputdata_t>
+Op input_to_op_save_expval(const inputdata_t& input, bool variance);
+template<typename inputdata_t>
+Op input_to_op_save_amps(const inputdata_t& input, bool squared);
 
 // Snapshots
-Op json_to_op_snapshot(const json_t &js);
-Op json_to_op_snapshot_default(const json_t &js);
-Op json_to_op_snapshot_matrix(const json_t &js);
-Op json_to_op_snapshot_pauli(const json_t &js);
+template<typename inputdata_t>
+Op input_to_op_snapshot(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_snapshot_default(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_snapshot_matrix(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_snapshot_pauli(const inputdata_t& input);
 
 // Matrices
-Op json_to_op_unitary(const json_t &js);
-Op json_to_op_diagonal(const json_t &js);
-Op json_to_op_superop(const json_t &js);
-Op json_to_op_multiplexer(const json_t &js);
-Op json_to_op_kraus(const json_t &js);
-Op json_to_op_noise_switch(const json_t &js);
+template<typename inputdata_t>
+Op input_to_op_unitary(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_diagonal(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_superop(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_multiplexer(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_kraus(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_noise_switch(const inputdata_t& input);
 
 // Classical bits
-Op json_to_op_roerror(const json_t &js);
+template<typename inputdata_t>
+Op input_to_op_roerror(const inputdata_t& input);
 
 // Optional instruction parameters
 enum class Allowed {Yes, No};
-void add_conditional(const Allowed val, Op& op, const json_t &js);
+
+template<typename inputdata_t>
+void add_conditional(const Allowed val, Op& op, const inputdata_t& input);
 
 
 //------------------------------------------------------------------------------
@@ -496,71 +567,90 @@ void add_conditional(const Allowed val, Op& op, const json_t &js);
 //------------------------------------------------------------------------------
 
 // TODO: convert if-else to switch
-Op json_to_op(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op(const inputdata_t& input) {
   // load operation identifier
   std::string name;
-  JSON::get_value(name, "name", js);
+  Parser<inputdata_t>::get_value(name, "name", input);
   // Barrier
   if (name == "barrier")
-    return json_to_op_barrier(js);
+    return input_to_op_barrier(input);
   // Measure & Reset
   if (name == "measure")
-    return json_to_op_measure(js);
+    return input_to_op_measure(input);
   if (name == "reset")
-    return json_to_op_reset(js);
+    return input_to_op_reset(input);
   if (name == "initialize")
-    return json_to_op_initialize(js);
+    return input_to_op_initialize(input);
   // Arbitrary matrix gates
   if (name == "unitary")
-    return json_to_op_unitary(js);
+    return input_to_op_unitary(input);
   if (name == "diagonal" || name == "diag")
-    return json_to_op_diagonal(js);
+    return input_to_op_diagonal(input);
   if (name == "superop")
-    return json_to_op_superop(js);
+    return input_to_op_superop(input);
   // Save
   if (name == "save_state")
-    return json_to_op_save_default(js, OpType::save_state);
+    return input_to_op_save_default(input, OpType::save_state);
   if (name == "save_expval")
-    return json_to_op_save_expval(js, false);
+    return input_to_op_save_expval(input, false);
   if (name == "save_expval_var")
-    return json_to_op_save_expval(js, true);
+    return input_to_op_save_expval(input, true);
   if (name == "save_statevector")
-    return json_to_op_save_default(js, OpType::save_statevec);
+    return input_to_op_save_default(input, OpType::save_statevec);
   if (name == "save_statevector_dict")
-    return json_to_op_save_default(js, OpType::save_statevec_dict);
+    return input_to_op_save_default(input, OpType::save_statevec_dict);
   if (name == "save_stabilizer")
-    return json_to_op_save_default(js, OpType::save_stabilizer);
+    return input_to_op_save_default(input, OpType::save_stabilizer);
   if (name == "save_unitary")
-    return json_to_op_save_default(js, OpType::save_unitary);
+    return input_to_op_save_default(input, OpType::save_unitary);
+  if (name == "save_superop")
+    return input_to_op_save_default(input, OpType::save_superop);
   if (name == "save_density_matrix")
-    return json_to_op_save_default(js, OpType::save_densmat);
+    return input_to_op_save_default(input, OpType::save_densmat);
   if (name == "save_probabilities")
-    return json_to_op_save_default(js, OpType::save_probs);
+    return input_to_op_save_default(input, OpType::save_probs);
+  if (name == "save_matrix_product_state")
+    return input_to_op_save_default(input, OpType::save_mps);
   if (name == "save_probabilities_dict")
-    return json_to_op_save_default(js, OpType::save_probs_ket);
+    return input_to_op_save_default(input, OpType::save_probs_ket);
   if (name == "save_amplitudes")
-    return json_to_op_save_amps(js, false);
+    return input_to_op_save_amps(input, false);
   if (name == "save_amplitudes_sq")
-    return json_to_op_save_amps(js, true);
+    return input_to_op_save_amps(input, true);
+  // Set
+  if (name == "set_statevector")
+    return input_to_op_set_vector(input, OpType::set_statevec);
+  if (name == "set_density_matrix")
+    return input_to_op_set_matrix(input, OpType::set_densmat);
+  if (name == "set_unitary")
+    return input_to_op_set_matrix(input, OpType::set_unitary);
+  if (name == "set_superop")
+    return input_to_op_set_matrix(input, OpType::set_superop);
+  if (name == "set_stabilizer")
+    return input_to_op_set_clifford(input, OpType::set_stabilizer);
+  if (name == "set_matrix_product_state")
+    return input_to_op_set_mps(input, OpType::set_mps);
+
   // Snapshot
   if (name == "snapshot")
-    return json_to_op_snapshot(js);
+    return input_to_op_snapshot(input);
   // Bit functions
   if (name == "bfunc")
-    return json_to_op_bfunc(js);
+    return input_to_op_bfunc(input);
   // Noise functions
   if (name == "noise_switch")
-    return json_to_op_noise_switch(js);
+    return input_to_op_noise_switch(input);
   if (name == "multiplexer")
-    return json_to_op_multiplexer(js);
+    return input_to_op_multiplexer(input);
   if (name == "kraus")
-    return json_to_op_kraus(js);
+    return input_to_op_kraus(input);
   if (name == "roerror")
-    return json_to_op_roerror(js);
+    return input_to_op_roerror(input);
    if (name == "pauli")
-    return json_to_op_pauli(js);
+    return input_to_op_pauli(input);
   // Default assume gate
-  return json_to_op_gate(js);
+  return input_to_op_gate(input);
 }
 
 json_t op_to_json(const Op &op) {
@@ -590,39 +680,39 @@ json_t op_to_json(const Op &op) {
 // Implementation: Gates, measure, reset deserialization
 //------------------------------------------------------------------------------
 
-
-void add_conditional(const Allowed allowed, Op& op, const json_t &js) {
+template<typename inputdata_t>
+void add_conditional(const Allowed allowed, Op& op, const inputdata_t& input) {
   // Check conditional
-  if (JSON::check_key("conditional", js)) {
+  if (Parser<inputdata_t>::check_key("conditional", input)) {
     // If instruction isn't allow to be conditional throw an exception
     if (allowed == Allowed::No) {
       throw std::invalid_argument("Invalid instruction: \"" + op.name + "\" cannot be conditional.");
     }
     // If instruction is allowed to be conditional add parameters
-    op.conditional_reg = js["conditional"];
+    Parser<inputdata_t>::get_value(op.conditional_reg, "conditional", input);
     op.conditional = true;
   }
 }
 
-
-Op json_to_op_gate(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_gate(const inputdata_t& input) {
   Op op;
   op.type = OpType::gate;
-  JSON::get_value(op.name, "name", js);
-  JSON::get_value(op.qubits, "qubits", js);
-  JSON::get_value(op.params, "params", js);
+  Parser<inputdata_t>::get_value(op.name, "name", input);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  Parser<inputdata_t>::get_value(op.params, "params", input);
 
   // Check for optional label
   // If label is not specified record the gate name as the label
   std::string label;
-  JSON::get_value(label, "label", js);
+  Parser<inputdata_t>::get_value(label, "label", input);
   if  (label != "") 
     op.string_params = {label};
   else
     op.string_params = {op.name};
 
   // Conditional
-  add_conditional(Allowed::Yes, op, js);
+  add_conditional(Allowed::Yes, op, input);
 
   // Validation
   check_empty_name(op);
@@ -637,28 +727,28 @@ Op json_to_op_gate(const json_t &js) {
   return op;
 }
 
-
-Op json_to_op_barrier(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_barrier(const inputdata_t &input) {
   Op op;
   op.type = OpType::barrier;
   op.name = "barrier";
-  JSON::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
   // Check conditional
-  add_conditional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, input);
   return op;
 }
 
-
-Op json_to_op_measure(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_measure(const inputdata_t& input) {
   Op op;
   op.type = OpType::measure;
   op.name = "measure";
-  JSON::get_value(op.qubits, "qubits", js);
-  JSON::get_value(op.memory, "memory", js);
-  JSON::get_value(op.registers, "register", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  Parser<inputdata_t>::get_value(op.memory, "memory", input);
+  Parser<inputdata_t>::get_value(op.registers, "register", input);
 
   // Conditional
-  add_conditional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, input);
 
   // Validation
   check_empty_qubits(op);
@@ -672,15 +762,15 @@ Op json_to_op_measure(const json_t &js) {
   return op;
 }
 
-
-Op json_to_op_reset(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_reset(const inputdata_t& input) {
   Op op;
   op.type = OpType::reset;
   op.name = "reset";
-  JSON::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
 
   // Conditional
-  add_conditional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, input);
 
   // Validation
   check_empty_qubits(op);
@@ -688,16 +778,16 @@ Op json_to_op_reset(const json_t &js) {
   return op;
 }
 
-
-Op json_to_op_initialize(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_initialize(const inputdata_t& input) {
   Op op;
   op.type = OpType::initialize;
   op.name = "initialize";
-  JSON::get_value(op.qubits, "qubits", js);
-  JSON::get_value(op.params, "params", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  Parser<inputdata_t>::get_value(op.params, "params", input);
 
   // Conditional
-  add_conditional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, input);
 
   // Validation
   check_empty_qubits(op);
@@ -705,25 +795,25 @@ Op json_to_op_initialize(const json_t &js) {
   check_length_params(op, 1ULL << op.qubits.size());
   return op;
 }
-
-Op json_to_op_pauli(const json_t &js){
+template<typename inputdata_t>
+Op input_to_op_pauli(const inputdata_t& input){
   Op op;
   op.type = OpType::gate;
   op.name = "pauli";
-  JSON::get_value(op.qubits, "qubits", js);
-  JSON::get_value(op.string_params, "params", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  Parser<inputdata_t>::get_value(op.string_params, "params", input);
 
   // Check for optional label
   // If label is not specified record the gate name as the label
   std::string label;
-  JSON::get_value(label, "label", js);
+  Parser<inputdata_t>::get_value(label, "label", input);
   if  (label != "")
     op.string_params.push_back(label);
   else
     op.string_params.push_back(op.name);
 
   // Conditional
-  add_conditional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, input);
 
   // Validation
   check_empty_qubits(op);
@@ -735,22 +825,22 @@ Op json_to_op_pauli(const json_t &js){
 //------------------------------------------------------------------------------
 // Implementation: Boolean Functions
 //------------------------------------------------------------------------------
-
-Op json_to_op_bfunc(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_bfunc(const inputdata_t& input) {
   Op op;
   op.type = OpType::bfunc;
   op.name = "bfunc";
   op.string_params.resize(2);
   std::string relation;
-  JSON::get_value(op.string_params[0], "mask", js); // mask hexadecimal string
-  JSON::get_value(op.string_params[1], "val", js);  // value hexadecimal string
-  JSON::get_value(relation, "relation", js); // relation string
+  Parser<inputdata_t>::get_value(op.string_params[0], "mask", input); // mask hexadecimal string
+  Parser<inputdata_t>::get_value(op.string_params[1], "val", input);  // value hexadecimal string
+  Parser<inputdata_t>::get_value(relation, "relation", input); // relation string
   // Load single register / memory bit for storing result
   uint_t tmp;
-  if (JSON::get_value(tmp, "register", js)) {
+  if (Parser<inputdata_t>::get_value(tmp, "register", input)) {
     op.registers.push_back(tmp);
   }
-  if (JSON::get_value(tmp, "memory", js)) {
+  if (Parser<inputdata_t>::get_value(tmp, "memory", input)) {
     op.memory.push_back(tmp);
   }
   
@@ -777,7 +867,7 @@ Op json_to_op_bfunc(const json_t &js) {
   }
 
   // Conditional
-  add_conditional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, input);
 
   // Validation
   if (op.registers.empty()) {
@@ -786,29 +876,29 @@ Op json_to_op_bfunc(const json_t &js) {
   return op;
 }
 
-
-Op json_to_op_roerror(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_roerror(const inputdata_t& input) {
   Op op;
   op.type = OpType::roerror;
   op.name = "roerror";
-  JSON::get_value(op.memory, "memory", js);
-  JSON::get_value(op.registers, "register", js);
-  JSON::get_value(op.probs, "params", js);
+  Parser<inputdata_t>::get_value(op.memory, "memory", input);
+  Parser<inputdata_t>::get_value(op.registers, "register", input);
+  Parser<inputdata_t>::get_value(op.probs, "params", input);
   // Conditional
-  add_conditional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, input);
   return op;
 }
 
 //------------------------------------------------------------------------------
 // Implementation: Matrix and Kraus deserialization
 //------------------------------------------------------------------------------
-
-Op json_to_op_unitary(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_unitary(const inputdata_t& input) {
   Op op;
   op.type = OpType::matrix;
   op.name = "unitary";
-  JSON::get_value(op.qubits, "qubits", js);
-  JSON::get_value(op.mats, "params", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  Parser<inputdata_t>::get_value(op.mats, "params", input);
   // Validation
   check_empty_qubits(op);
   check_duplicate_qubits(op);
@@ -822,20 +912,20 @@ Op json_to_op_unitary(const json_t &js) {
   }
   // Check for a label
   std::string label;
-  JSON::get_value(label, "label", js);
+  Parser<inputdata_t>::get_value(label, "label", input);
   op.string_params.push_back(label);
 
   // Conditional
-  add_conditional(Allowed::Yes, op, js);
+  add_conditional(Allowed::Yes, op, input);
   return op;
 }
-
-Op json_to_op_diagonal(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_diagonal(const inputdata_t& input) {
   Op op;
   op.type = OpType::diagonal_matrix;
   op.name = "diagonal";
-  JSON::get_value(op.qubits, "qubits", js);
-  JSON::get_value(op.params, "params", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  Parser<inputdata_t>::get_value(op.params, "params", input);
 
   // Validation
   check_empty_qubits(op);
@@ -851,23 +941,23 @@ Op json_to_op_diagonal(const json_t &js) {
 
   // Check for a label
   std::string label;
-  JSON::get_value(label, "label", js);
+  Parser<inputdata_t>::get_value(label, "label", input);
   op.string_params.push_back(label);
 
   // Conditional
-  add_conditional(Allowed::Yes, op, js);
+  add_conditional(Allowed::Yes, op, input);
   return op;
 }
-
-Op json_to_op_superop(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_superop(const inputdata_t& input) {
   // Warning: we don't check superoperator is valid!
   Op op;
   op.type = OpType::superop;
   op.name = "superop";
-  JSON::get_value(op.qubits, "qubits", js);
-  JSON::get_value(op.mats, "params", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  Parser<inputdata_t>::get_value(op.mats, "params", input);
   // Check conditional
-  add_conditional(Allowed::Yes, op, js);
+  add_conditional(Allowed::Yes, op, input);
   // Validation
   check_empty_qubits(op);
   check_duplicate_qubits(op);
@@ -876,56 +966,108 @@ Op json_to_op_superop(const json_t &js) {
   }
   return op;
 }
-
-Op json_to_op_multiplexer(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_multiplexer(const inputdata_t& input) {
   // Parse parameters
   reg_t qubits;
   std::vector<cmatrix_t> mats;
   std::string label;
-  JSON::get_value(qubits, "qubits", js);
-  JSON::get_value(mats, "params", js);
-  JSON::get_value(label, "label", js);
+  Parser<inputdata_t>::get_value(qubits, "qubits", input);
+  Parser<inputdata_t>::get_value(mats, "params", input);
+  Parser<inputdata_t>::get_value(label, "label", input);
   // Construct op
   auto op = make_multiplexer(qubits, mats, label);
   // Conditional
-  add_conditional(Allowed::Yes, op, js);
+  add_conditional(Allowed::Yes, op, input);
   return op;
 }
-
-Op json_to_op_kraus(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_kraus(const inputdata_t& input) {
   Op op;
   op.type = OpType::kraus;
   op.name = "kraus";
-  JSON::get_value(op.qubits, "qubits", js);
-  JSON::get_value(op.mats, "params", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  Parser<inputdata_t>::get_value(op.mats, "params", input);
 
   // Validation
   check_empty_qubits(op);
   check_duplicate_qubits(op);
   // Conditional
-  add_conditional(Allowed::Yes, op, js);
+  add_conditional(Allowed::Yes, op, input);
   return op;
 }
 
-
-Op json_to_op_noise_switch(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_noise_switch(const inputdata_t& input) {
   Op op;
   op.type = OpType::noise_switch;
   op.name = "noise_switch";
-  JSON::get_value(op.params, "params", js);
+  Parser<inputdata_t>::get_value(op.params, "params", input);
   // Conditional
-  add_conditional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, input);
+  return op;
+}
+
+//------------------------------------------------------------------------------
+// Implementation: Set state
+//------------------------------------------------------------------------------
+template<typename inputdata_t>
+Op input_to_op_set_vector(const inputdata_t &input, OpType op_type) {
+  Op op;
+  op.type = op_type;
+  const inputdata_t& params = Parser<inputdata_t>::get_value("params", input);
+  op.params = Parser<inputdata_t>::template get_list_elem<std::vector<complex_t>>(params, 0);
+  Parser<inputdata_t>::get_value(op.name, "name", input);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  add_conditional(Allowed::No, op, input);
+  return op;
+}
+
+template<typename inputdata_t>
+Op input_to_op_set_matrix(const inputdata_t &input, OpType op_type) {
+  Op op;
+  op.type = op_type;
+  const inputdata_t& params = Parser<inputdata_t>::get_value("params", input);
+  op.mats.push_back(Parser<inputdata_t>::template get_list_elem<cmatrix_t>(params, 0));
+  Parser<inputdata_t>::get_value(op.name, "name", input);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  add_conditional(Allowed::No, op, input);
+  return op;
+}
+
+template<typename inputdata_t>
+Op input_to_op_set_clifford(const inputdata_t &input, OpType op_type) {
+  Op op;
+  op.type = op_type;
+  const inputdata_t& params = Parser<inputdata_t>::get_value("params", input);
+  op.clifford = Parser<inputdata_t>::template get_list_elem<Clifford::Clifford>(params, 0);
+  Parser<inputdata_t>::get_value(op.name, "name", input);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  add_conditional(Allowed::No, op, input);
+  return op;
+}
+
+template<typename inputdata_t>
+Op input_to_op_set_mps(const inputdata_t &input, OpType op_type) {
+  Op op;
+  op.type = op_type;
+  const inputdata_t& params = Parser<inputdata_t>::get_value("params", input);
+  op.mps = Parser<inputdata_t>::template get_list_elem<mps_container_t>(params, 0);
+
+  Parser<inputdata_t>::get_value(op.name, "name", input);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  add_conditional(Allowed::No, op, input);
   return op;
 }
 
 //------------------------------------------------------------------------------
 // Implementation: Save data deserialization
 //------------------------------------------------------------------------------
-
-Op json_to_op_save_default(const json_t &js, OpType op_type) {
+template<typename inputdata_t>
+Op input_to_op_save_default(const inputdata_t& input, OpType op_type) {
   Op op;
   op.type = op_type;
-  JSON::get_value(op.name, "name", js);
+  Parser<inputdata_t>::get_value(op.name, "name", input);
 
   // Get subtype
   static const std::unordered_map<std::string, DataSubType> subtypes {
@@ -939,7 +1081,7 @@ Op json_to_op_save_default(const json_t &js, OpType op_type) {
     {"c_accum", DataSubType::c_accum},
   };
   std::string subtype;
-  JSON::get_value(subtype, "snapshot_type", js);
+  Parser<inputdata_t>::get_value(subtype, "snapshot_type", input);
   auto subtype_it = subtypes.find(subtype);
   if (subtype_it == subtypes.end()) {
     throw std::runtime_error("Invalid data subtype \"" + subtype +
@@ -949,28 +1091,29 @@ Op json_to_op_save_default(const json_t &js, OpType op_type) {
  
   // Get data key
   op.string_params.emplace_back("");
-  JSON::get_value(op.string_params[0], "label", js);
+  Parser<inputdata_t>::get_value(op.string_params[0], "label", input);
 
   // Add optional qubits field
-  JSON::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
   return op;
 }
-
-Op json_to_op_save_expval(const json_t &js, bool variance) {
+template<typename inputdata_t>
+Op input_to_op_save_expval(const inputdata_t& input, bool variance) {
   // Initialized default save instruction params
   auto op_type = (variance) ? OpType::save_expval_var
                             : OpType::save_expval;
-  Op op = json_to_op_save_default(js, op_type);
+  Op op = input_to_op_save_default(input, op_type);
 
   // Parse Pauli operator components
   const auto threshold = 1e-12; // drop small components
   // Get components
-  if (JSON::check_key("params", js) && js["params"].is_array()) {
-    for (const auto &comp : js["params"]) {
+  if (Parser<inputdata_t>::check_key("params", input) && Parser<inputdata_t>::is_array("params", input)) {
+    for (const auto &comp_ : Parser<inputdata_t>::get_value("params", input)) {
+      const auto& comp = Parser<inputdata_t>::get_as_list(comp_);
       // Get complex coefficient
-      std::vector<double> coeffs = comp[1];
+      std::vector<double> coeffs = Parser<inputdata_t>::template get_list_elem<std::vector<double>>(comp, 1);
       if (std::abs(coeffs[0]) > threshold || std::abs(coeffs[1]) > threshold) {
-        std::string pauli = comp[0];
+        std::string pauli = Parser<inputdata_t>::template get_list_elem<std::string>(comp, 0);
         if (pauli.size() != op.qubits.size()) {
           throw std::invalid_argument(std::string("Invalid expectation value save instruction ") +
                                       "(Pauli label does not match qubit number.).");
@@ -992,65 +1135,66 @@ Op json_to_op_save_expval(const json_t &js, bool variance) {
 
   return op;
 }
-
-Op json_to_op_save_amps(const json_t &js, bool squared) {
+template<typename inputdata_t>
+Op input_to_op_save_amps(const inputdata_t& input, bool squared) {
   // Initialized default save instruction params
   auto op_type = (squared) ? OpType::save_amps_sq
                            : OpType::save_amps;
-  Op op = json_to_op_save_default(js, op_type);
-  JSON::get_value(op.int_params, "params", js);
+  Op op = input_to_op_save_default(input, op_type);
+  Parser<inputdata_t>::get_value(op.int_params, "params", input);
   return op;
 }
 
 //------------------------------------------------------------------------------
 // Implementation: Snapshot deserialization
 //------------------------------------------------------------------------------
-
-Op json_to_op_snapshot(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_snapshot(const inputdata_t& input) {
   std::string snapshot_type;
-  JSON::get_value(snapshot_type, "snapshot_type", js); // LEGACY: to remove in 0.3
-  JSON::get_value(snapshot_type, "type", js);
+  Parser<inputdata_t>::get_value(snapshot_type, "snapshot_type", input); // LEGACY: to remove in 0.3
+  Parser<inputdata_t>::get_value(snapshot_type, "type", input);
   if (snapshot_type.find("expectation_value_pauli") != std::string::npos)
-    return json_to_op_snapshot_pauli(js);
+    return input_to_op_snapshot_pauli(input);
   if (snapshot_type.find("expectation_value_matrix") != std::string::npos)
-    return json_to_op_snapshot_matrix(js);
+    return input_to_op_snapshot_matrix(input);
   // Default snapshot: has "type", "label", "qubits"
-  auto op = json_to_op_snapshot_default(js);
+  auto op = input_to_op_snapshot_default(input);
   // Conditional
-  add_conditional(Allowed::No, op, js);
+  add_conditional(Allowed::No, op, input);
   return op;
 }
 
-
-Op json_to_op_snapshot_default(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_snapshot_default(const inputdata_t& input) {
   Op op;
   op.type = OpType::snapshot;
-  JSON::get_value(op.name, "type", js); // LEGACY: to remove in 0.3
-  JSON::get_value(op.name, "snapshot_type", js);
+  Parser<inputdata_t>::get_value(op.name, "type", input); // LEGACY: to remove in 0.3
+  Parser<inputdata_t>::get_value(op.name, "snapshot_type", input);
   // If missing use "default" for label
   op.string_params.emplace_back("default");
-  JSON::get_value(op.string_params[0], "label", js);
+  Parser<inputdata_t>::get_value(op.string_params[0], "label", input);
   // Add optional qubits field
-  JSON::get_value(op.qubits, "qubits", js);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
   // If qubits is not empty, check for duplicates
   check_duplicate_qubits(op);
   return op;
 }
 
-
-Op json_to_op_snapshot_pauli(const json_t &js) {
-  Op op = json_to_op_snapshot_default(js);
+template<typename inputdata_t>
+Op input_to_op_snapshot_pauli(const inputdata_t& input) {
+  Op op = input_to_op_snapshot_default(input);
 
   const auto threshold = 1e-15; // drop small components
   // Get components
-  if (JSON::check_key("params", js) && js["params"].is_array()) {
-    for (const auto &comp : js["params"]) {
+  if (Parser<inputdata_t>::check_key("params", input) && Parser<inputdata_t>::is_array("params", input)) {
+    for (const auto &comp_ : Parser<inputdata_t>::get_value("params", input)) {
       // Check component is length-2 array
-      if (!comp.is_array() || comp.size() != 2)
+      const auto& comp = Parser<inputdata_t>::get_as_list(comp_);
+      if (comp.size() != 2)
         throw std::invalid_argument("Invalid Pauli expval params (param component " + 
-                                    comp.dump() + " invalid).");
+                                    Parser<inputdata_t>::dump(comp) + " invalid).");
       // Get complex coefficient
-      complex_t coeff = comp[0];
+      complex_t coeff = Parser<inputdata_t>::template get_list_elem<complex_t>(comp, 0);
       // If coefficient is above threshold, get the Pauli operator string
       // This string may contain I, X, Y, Z
       // qubits are stored as a list where position is qubit number:
@@ -1058,7 +1202,7 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
       // Pauli string labels are stored in little-endian ordering:
       // eg label = "CBA", A is the Pauli for qubit-0, B for qubit-1, C for qubit-2
       if (std::abs(coeff) > threshold) {
-        std::string pauli = comp[1];
+        std::string pauli = Parser<inputdata_t>::template get_list_elem<std::string>(comp, 1);
         if (pauli.size() != op.qubits.size()) {
           throw std::invalid_argument(std::string("Invalid Pauli expectation value snapshot ") +
                                       "(Pauli label does not match qubit number.).");
@@ -1083,42 +1227,45 @@ Op json_to_op_snapshot_pauli(const json_t &js) {
   return op;
 }
 
-
-Op json_to_op_snapshot_matrix(const json_t &js) {
+template<typename inputdata_t>
+Op input_to_op_snapshot_matrix(const inputdata_t& input) {
   // Load default snapshot parameters
-  Op op = json_to_op_snapshot_default(js);
+  Op op = input_to_op_snapshot_default(input);
 
   const auto threshold = 1e-10; // drop small components
   // Get matrix operator components
   // TODO: fix repeated throw string
-  if (JSON::check_key("params", js) && js["params"].is_array()) {
-    for (const auto &comp : js["params"]) {
+  if (Parser<inputdata_t>::check_key("params", input) && Parser<inputdata_t>::is_array("params", input)) {
+    for (const auto &comp_ : Parser<inputdata_t>::get_value("params", input)) {
+      const auto& comp = Parser<inputdata_t>::get_as_list(comp_);
       // Check component is length-2 array
-      if (!comp.is_array() || comp.size() != 2) {
-        throw std::invalid_argument("Invalid matrix expval snapshot (param component " + 
-                                    comp.dump() + " invalid).");
+      if (comp.size() != 2) {
+        throw std::invalid_argument("Invalid matrix expval snapshot (param component " +
+                                        Parser<inputdata_t>::dump(comp) + " invalid).");
       }
       // Get complex coefficient
-      complex_t coeff = comp[0];
+      complex_t coeff = Parser<inputdata_t>::template get_list_elem<complex_t>(comp, 0);
       std::vector<std::pair<reg_t, cmatrix_t>> mats;
       if (std::abs(coeff) > threshold) {
-        if (!comp[1].is_array()) {
-          throw std::invalid_argument("Invalid matrix expval snapshot (param component " + 
-                                      comp.dump() + " invalid).");
+        const inputdata_t& comp_list = comp[1];
+        if (!Parser<inputdata_t>::is_array(comp_list)) {
+          throw std::invalid_argument("Invalid matrix expval snapshot (param component " +
+                                          Parser<inputdata_t>::dump(comp) + " invalid).");
         }
-        for (const auto &subcomp : comp[1]) {
-          if (!subcomp.is_array() || subcomp.size() != 2) {
-            throw std::invalid_argument("Invalid matrix expval snapshot (param component " + 
-                                        comp.dump() + " invalid).");
+        for (const auto &subcomp_ : comp_list) {
+          const auto& subcomp = Parser<inputdata_t>::get_as_list(subcomp_);
+          if (subcomp.size() != 2) {
+            throw std::invalid_argument("Invalid matrix expval snapshot (param component " +
+                                            Parser<inputdata_t>::dump(comp) + " invalid).");
           }
-          reg_t comp_qubits = subcomp[0];
-          cmatrix_t comp_matrix = subcomp[1];
+          reg_t comp_qubits = Parser<inputdata_t>::template get_list_elem<reg_t>(subcomp, 0);
+          cmatrix_t comp_matrix = Parser<inputdata_t>::template get_list_elem<cmatrix_t>(subcomp, 1);
           // Check qubits are ok
           // TODO: check that qubits are in range from 0 to Num of Qubits - 1 for instr
           std::unordered_set<uint_t> unique = {comp_qubits.begin(), comp_qubits.end()};
           if (unique.size() != comp_qubits.size()) {
-            throw std::invalid_argument("Invalid matrix expval snapshot (param component " + 
-                                        comp.dump() + " invalid).");
+            throw std::invalid_argument("Invalid matrix expval snapshot (param component " +
+                                            Parser<inputdata_t>::dump(comp) + " invalid).");
           }
           mats.emplace_back(comp_qubits, comp_matrix);
         }

@@ -50,15 +50,6 @@ template <typename T> using cvector_t = std::vector<std::complex<T>>;
 // QubitVectorThrust class
 //============================================================================
 
-// Template class for qubit vector.
-// The arguement of the template must have an operator[] access method.
-// The following methods may also need to be template specialized:
-//   * set_num_qubits(size_t)
-//   * initialize()
-//   * initialize_from_vector(cvector_t<data_t>)
-// If the template argument does not have these methods then template
-// specialization must be used to override the default implementations.
-
 template <typename data_t = double>
 class QubitVectorThrust {
 
@@ -84,7 +75,7 @@ public:
   std::complex<data_t> get_state(uint_t pos) const;
 
   // Returns a reference to the underlying data_t data class
-//  std::complex<data_t>* &data() {return data_;}
+  //  std::complex<data_t>* &data() {return data_;}
 
   // Returns a copy of the underlying data_t data class
   std::complex<data_t>* data() const {return (std::complex<data_t>*)chunk_->pointer();}
@@ -153,6 +144,9 @@ public:
   thrust::complex<data_t>* send_buffer(uint_t& size_in_byte);
   thrust::complex<data_t>* recv_buffer(uint_t& size_in_byte);
 
+  void release_send_buffer(void) const;
+  void release_recv_buffer(void) const;
+
   //-----------------------------------------------------------------------
   // Check point operations
   //-----------------------------------------------------------------------
@@ -176,7 +170,10 @@ public:
   // Initializes the vector to a custom initial state.
   // If the length of the data vector does not match the number of qubits
   // an exception is raised.
-  void initialize_from_vector(const cvector_t<double> &data);
+  template <typename list_t>
+  void initialize_from_vector(const list_t &vec);
+  void initialize_from_vector(const std::vector<std::complex<data_t>>& vec);
+  void initialize_from_vector(const AER::Vector<std::complex<data_t>>& vec);
 
   // Initializes the vector to a custom initial state.
   // If num_states does not match the number of qubits an exception is raised.
@@ -370,12 +367,13 @@ protected:
   mutable std::shared_ptr<Chunk<data_t>> chunk_;
   mutable std::shared_ptr<Chunk<data_t>> buffer_chunk_;
   std::shared_ptr<Chunk<data_t>> checkpoint_;
-  std::shared_ptr<Chunk<data_t>> send_chunk_;
-  std::shared_ptr<Chunk<data_t>> recv_chunk_;
+  mutable std::shared_ptr<Chunk<data_t>> send_chunk_;
+  mutable std::shared_ptr<Chunk<data_t>> recv_chunk_;
   static ChunkManager<data_t> chunk_manager_;
 
   uint_t chunk_index_;
   bool multi_chunk_distribution_;
+  bool multi_shots_;
 
   bool register_blocking_;
 
@@ -523,7 +521,10 @@ QubitVectorThrust<data_t>::QubitVectorThrust(size_t num_qubits) : num_qubits_(0)
   chunk_ = nullptr;
   chunk_index_ = 0;
   multi_chunk_distribution_ = false;
+  multi_shots_ = false;
   checkpoint_ = nullptr;
+  recv_chunk_ = nullptr;
+  send_chunk_ = nullptr;
 
 #ifdef AER_DEBUG
   debug_count = 0;
@@ -795,14 +796,35 @@ void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const 
 //------------------------------------------------------------------------------
 
 template <typename data_t>
+class ZeroClear : public GateFuncBase<data_t>
+{
+protected:
+public:
+  ZeroClear() {}
+  bool is_diagonal(void)
+  {
+    return true;
+  }
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    thrust::complex<data_t>* vec;
+    vec = this->data_;
+    vec[i] = 0.0;
+  }
+  const char* name(void)
+  {
+    return "zero";
+  }
+};
+
+template <typename data_t>
 void QubitVectorThrust<data_t>::zero()
 {
 #ifdef AER_DEBUG
   DebugMsg("zero");
 #endif
 
-  chunk_->Zero();
-//  chunk_->synchronize();
+  apply_function(ZeroClear<data_t>());
 
 #ifdef AER_DEBUG
   DebugMsg("zero done");
@@ -824,6 +846,9 @@ void QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t
   if(chunk_bits < num_qubits){
     multi_chunk_distribution_ = true;
   }
+
+  if(omp_get_num_threads() > 1)
+    multi_shots_ = true;
 }
 
 template <typename data_t>
@@ -920,31 +945,14 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const
   chunk_->set_device();
 
   vec0 = (data_t*)chunk_->pointer();
+  vec1 = (data_t*)checkpoint_->pointer();
 #ifdef AER_THRUST_CUDA
   cudaStream_t strm = chunk_->stream();
-  if(strm){
-    if(chunk_->device() == checkpoint_->device()){
-      vec1 = (data_t*)checkpoint_->pointer();
-
-      dot = thrust::inner_product(thrust::device,vec0,vec0 + data_size_*2,vec1,0.0);
-    }
-    else{
-      std::shared_ptr<Chunk<data_t>> pBuffer = chunk_manager_.MapBufferChunk(chunk_->place());
-      pBuffer->CopyIn(checkpoint_);
-      vec1 = (data_t*)pBuffer->pointer();
-
-      dot = thrust::inner_product(thrust::device,vec0,vec0 + data_size_*2,vec1,0.0);
-      chunk_manager_.UnmapBufferChunk(pBuffer);
-    }
-  }
-  else{
-    vec1 = (data_t*)checkpoint_->pointer();
-
+  if(strm)
+    dot = thrust::inner_product(thrust::device,vec0,vec0 + data_size_*2,vec1,0.0);
+  else
     dot = thrust::inner_product(thrust::omp::par,vec0,vec0 + data_size_*2,vec1,0.0);
-  }
 #else
-  vec1 = (data_t*)checkpoint_->pointer();
-
   if(num_qubits_ > omp_threshold_ && omp_threads_ > 1)
     dot = thrust::inner_product(thrust::device,vec0,vec0 + data_size_*2,vec1,0.0);
   else
@@ -1062,6 +1070,26 @@ thrust::complex<data_t>* QubitVectorThrust<data_t>::recv_buffer(uint_t& size_in_
   return recv_chunk_->pointer();
 }
 
+template <typename data_t>
+void QubitVectorThrust<data_t>::release_send_buffer(void) const
+{
+#ifdef AER_DISABLE_GDR
+  if(send_chunk_){
+    chunk_manager_.UnmapBufferChunk(send_chunk_);
+    send_chunk_ = nullptr;
+  }
+#endif
+}
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::release_recv_buffer(void) const
+{
+  if(recv_chunk_){
+    chunk_manager_.UnmapBufferChunk(recv_chunk_);
+    recv_chunk_ = nullptr;
+  }
+}
+
 //------------------------------------------------------------------------------
 // Initialization
 //------------------------------------------------------------------------------
@@ -1088,8 +1116,8 @@ void QubitVectorThrust<data_t>::initialize()
 }
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &statevec) 
-{
+template <typename list_t>
+void QubitVectorThrust<data_t>::initialize_from_vector(const list_t &statevec) {
   if(data_size_ < statevec.size()) {
     std::string error = "QubitVectorThrust::initialize input vector is incorrect length (" + 
                         std::to_string(data_size_) + "!=" +
@@ -1099,22 +1127,24 @@ void QubitVectorThrust<data_t>::initialize_from_vector(const cvector_t<double> &
 #ifdef AER_DEBUG
   DebugMsg("calling initialize_from_vector");
 #endif
-
-  cvector_t<data_t> tmp(data_size_);
+  // Convert vector data type to complex<data_t>
+  AER::Vector<std::complex<data_t>> tmp(data_size_, false);
   int_t i;
-
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-  for(i=0;i<data_size_;i++){
+  for(i=0; i < data_size_; i++){
     tmp[i] = statevec[i];
   }
+  initialize_from_vector(tmp);
+}
 
-  chunk_->CopyIn((thrust::complex<data_t>*)&tmp[0], data_size_);
+template <typename data_t>
+void QubitVectorThrust<data_t>::initialize_from_vector(const std::vector<std::complex<data_t>>& vec) {
+  initialize_from_data(&vec[0], vec.size());
+}
 
-#ifdef AER_DEBUG
-  DebugMsg("initialize_from_vector");
-  DebugDump();
-#endif
-
+template <typename data_t>
+void QubitVectorThrust<data_t>::initialize_from_vector(const AER::Vector<std::complex<data_t>>& vec) {
+  initialize_from_data(vec.data(), vec.size());
 }
 
 template <typename data_t>
@@ -1151,13 +1181,14 @@ void QubitVectorThrust<data_t>::apply_function(Function func) const
 #endif
 
 
-  func.set_base_index(chunk_index_ << num_qubits_);
   if(func.batch_enable() && multi_chunk_distribution_ && chunk_->device() >= 0){
     if(chunk_->pos() == 0){   //only first chunk on device calculates all the chunks
+      func.set_base_index(chunk_index_ << num_qubits_);
       chunk_->Execute(func,chunk_->container()->num_chunks());
     }
   }
   else{
+    func.set_base_index(chunk_index_ << num_qubits_);
     chunk_->Execute(func,1);
   }
 
@@ -2704,14 +2735,10 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, uint_t rem
     }
   }
 
-  chunk_manager_.UnmapBufferChunk(recv_chunk_);
-//  recv_chunk_.reset();
+  release_recv_buffer();
 
 #ifdef AER_DISABLE_GDR
-  if(send_chunk_){
-    chunk_manager_.UnmapBufferChunk(send_chunk_);
-//    send_chunk_.reset();
-  }
+  release_send_buffer();
 #endif
 }
 
@@ -2734,15 +2761,6 @@ public:
       mask |= (1ull << qubits[i]);
     }
   }
-  int qubits_count(void)
-  {
-    return nqubits;
-  }
-  int num_control_bits(void)
-  {
-    return nqubits - 1;
-  }
-
   bool is_diagonal(void)
   {
     return true;
@@ -3715,6 +3733,10 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
     chunk_manager_.UnmapBufferChunk(buffer);
   }
 
+  if(pair_chunk.data() == this->data()){
+    release_recv_buffer();
+  }
+
   return ret;
 }
 
@@ -3934,6 +3956,3 @@ inline std::ostream &operator<<(std::ostream &out, const AER::QV::QubitVectorThr
 
 //------------------------------------------------------------------------------
 #endif // end module
-
-
-

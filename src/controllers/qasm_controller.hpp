@@ -903,8 +903,8 @@ Transpile::Fusion QasmController::transpile_fusion(Method method,
       break;
     }
     case Method::matrix_product_state: {
-      // Disable fusion by default, but allow it to be enabled by config settings
       fusion_pass.active = false;
+      return fusion_pass; // Do not allow the config to set active for MPS
     }
     case Method::statevector:
     case Method::statevector_thrust_gpu:
@@ -1103,6 +1103,7 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   if(method == Method::density_matrix || method == Method::density_matrix_thrust_gpu || method == Method::density_matrix_thrust_cpu)
    is_matrix = true;
   auto cache_block_pass = transpile_cache_blocking(opt_circ,noise,config,(simulation_precision_ == Precision::single_precision) ? sizeof(std::complex<float>) : sizeof(std::complex<double>),is_matrix);
+  cache_block_pass.set_sample_measure(check_measure_sampling_opt(opt_circ, method));
   cache_block_pass.optimize_circuit(opt_circ, dummy_noise, state.opset(), result);
 
   uint_t block_bits = 0;
@@ -1215,20 +1216,27 @@ bool QasmController::check_measure_sampling_opt(const Circuit& circ,
     return false;
   }
 
+  // If density matrix method all noise instructions allowSampling
+  if (method == Method::density_matrix ||
+      method == Method::density_matrix_thrust_gpu ||
+      method == Method::density_matrix_thrust_cpu) {
+    return true;
+  }
+
+  // If circuit contains a non-initial initialize that is not a full width
+  // instruction we can't sample
+  if (circ.can_sample_initialize == false) {
+    return false;
+  }
+
   // Check if non-density matrix simulation and circuit contains
   // a stochastic instruction before measurement
-  // ie. initialize, reset, kraus, superop, conditional
+  // ie. reset, kraus, superop
   // TODO:
-  // * If initialize should be allowed if applied to product states (ie start of
-  // circuit)
   // * Resets should be allowed if applied to |0> state (no gates before).
-  bool density_mat = (method == Method::density_matrix ||
-                      method == Method::density_matrix_thrust_gpu ||
-                      method == Method::density_matrix_thrust_cpu);
-  if (!density_mat && (circ.opset().contains(Operations::OpType::reset) ||
-                       circ.opset().contains(Operations::OpType::initialize) ||
-                       circ.opset().contains(Operations::OpType::kraus) ||
-                       circ.opset().contains(Operations::OpType::superop))) {
+  if (circ.opset().contains(Operations::OpType::reset) ||
+      circ.opset().contains(Operations::OpType::kraus) ||
+      circ.opset().contains(Operations::OpType::superop)) {
     return false;
   }
   // Otherwise true

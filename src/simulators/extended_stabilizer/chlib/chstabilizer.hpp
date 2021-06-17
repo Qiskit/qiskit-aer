@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "core.hpp"
+#include "framework/utils.hpp"
 
 namespace CHSimulator
 {
@@ -336,12 +337,12 @@ void StabilizerState::X(unsigned q)
   // Each z that hits a hadamard becomes a Pauli X
   s ^= (z_string & v);
   //Remaining Z gates add a global phase from their action on the s string
-  phase += 4*(hamming_parity((z_string & ~(v)) & s));
+  phase += 4*(AER::Utils::hamming_parity((z_string & ~(v)) & s));
   //Commute the x_string through the hadamard layer
   // Any remaining X gates update s
   s ^= (x_string & ~(v));
   //New z gates add a global phase from their action on the s string
-  phase += 4*(hamming_parity((x_string & v) & s));
+  phase += 4*(AER::Utils::hamming_parity((x_string & v) & s));
   //Update the global phase
   omega.e = (omega.e + phase)%8;
 }
@@ -453,7 +454,7 @@ scalar_t StabilizerState::Amplitude(uint_fast64_t x)
 
   scalar_t amp;
   amp.e=2*P.e;
-  int p = (int) hamming_weight(v);
+  int p = (int) AER::Utils::popcount(v);
   amp.p= -1 * p;// each Hadamard gate contributes 1/sqrt(2)
   bool isNonZero=true;
 
@@ -510,7 +511,7 @@ scalar_t StabilizerState::ProposeFlip(unsigned flip_pos)
 
   scalar_t amp;
   amp.e=2*Q.e;
-  amp.p=-1*(hamming_weight(v));// each Hadamard gate contributes 1/sqrt(2)
+  amp.p=-1*(AER::Utils::popcount(v));// each Hadamard gate contributes 1/sqrt(2)
   bool isNonZero=true;
 
   for (unsigned q=0; q<n; q++)
@@ -771,8 +772,8 @@ void StabilizerState::H(unsigned q)
     uint_fast64_t t = s ^ (rowG & v);
     uint_fast64_t u = s ^ (rowF & (~v)) ^ (rowM & v);
 
-    unsigned alpha =  hamming_weight( rowG & (~v) & s );
-    unsigned beta =  hamming_weight( (rowM & (~v) & s) ^ (rowF & v & (rowM ^ s)) );
+    unsigned alpha =  AER::Utils::popcount( rowG & (~v) & s );
+    unsigned beta =  AER::Utils::popcount( (rowM & (~v) & s) ^ (rowF & v & (rowM ^ s)) );
 
     if (alpha % 2) omega.e=(omega.e+4) % 8;
     // get the phase gamma[q]
@@ -818,25 +819,25 @@ void StabilizerState::MeasurePauli(pauli_t PP)
                 rowF^=(one<<i)*( (F[i]>>j) & one);
                 rowM^=(one<<i)*( (M[i]>>j) & one);
             }
-            R.e+= 2*hamming_weight(R.Z & rowF); // extra sign from Pauli commutation
+            R.e+= 2*AER::Utils::popcount(R.Z & rowF); // extra sign from Pauli commutation
             R.Z^=rowM;
             R.X^=rowF;
             R.e+= ((gamma1>>j) & one) + 2*((gamma2>>j) & one);
         }
     for (unsigned q=0; q<n; q++)
-          R.Z^=(one<<q)*(hamming_weight( PP.Z & G[q]) % 2);
+          R.Z^=(one<<q)*(AER::Utils::popcount( PP.Z & G[q]) % 2);
 
     // now R=U_C^{-1} PP U_C
     // next conjugate R by U_H
     uint_fast64_t tempX = ( (~v) & R.X ) ^ (v & R.Z);
     uint_fast64_t tempZ = ( (~v) & R.Z ) ^ (v & R.X);
     // the sign flips each time a Hadamard hits Y on some qubit
-    R.e=(R.e + 2*hamming_weight(v & R.X & R.Z)) % 4;
+    R.e=(R.e + 2*AER::Utils::popcount(v & R.X & R.Z)) % 4;
     R.X=tempX;
     R.Z=tempZ;
 
     // now the initial state |s> becomes 0.5*(|s> + R |s>) = 0.5*(|s> + i^b |s ^ R.X>)
-    unsigned b = (R.e + 2*hamming_weight(R.Z & s) ) % 4;
+    unsigned b = (R.e + 2*AER::Utils::popcount(R.Z & s) ) % 4;
     UpdateSvector(s, s ^ R.X, b);
     // account for the extra factor sqrt(1/2)
     omega.p-=1;
@@ -879,7 +880,7 @@ scalar_t StabilizerState::InnerProduct(const uint_fast64_t& A_diag1,
     {
         for (size_t j=i; j<n; j++)
         {
-            if (hamming_parity(MT[i] & FT[j]))
+            if (AER::Utils::hamming_parity(MT[i] & FT[j]))
             {
                 J[i] |= (one << j);
                 J[j] |= (one << i);
@@ -900,7 +901,7 @@ scalar_t StabilizerState::InnerProduct(const uint_fast64_t& A_diag1,
         uint_fast64_t col_i = J[i];
         for (size_t j=0; j<n; j++)
         {
-            if (hamming_parity(col_i & G[j]))
+            if (AER::Utils::hamming_parity(col_i & G[j]))
             {
                 placeholder[j] |= (one<<i);
             }
@@ -913,7 +914,7 @@ scalar_t StabilizerState::InnerProduct(const uint_fast64_t& A_diag1,
         uint_fast64_t shift = (one << i);
         for (size_t j=i; j<n; j++)
         {
-            if(hamming_parity(col_i & placeholder[j]))
+            if(AER::Utils::hamming_parity(col_i & placeholder[j]))
             {
                 K[j] |= shift;
                 K[i] |= (one << j);
@@ -941,7 +942,7 @@ scalar_t StabilizerState::InnerProduct(const uint_fast64_t& A_diag1,
         }
     }
     unsigned col=0;
-    QuadraticForm q(hamming_weight(v));
+    QuadraticForm q(AER::Utils::popcount(v));
     //We need to setup a quadratic form to evaluate the Exponential Sum
     for (size_t i=0; i<n; i++)
     {
@@ -952,9 +953,9 @@ scalar_t StabilizerState::InnerProduct(const uint_fast64_t& A_diag1,
             // J = K(1,1);
             q.D1 ^= ((K_diag1 >> i) & one) * shift;
             q.D2 ^= (( ((K_diag2 >> i) ^ (s >> i)) & one)
-                     ^ hamming_parity(K[i] & s)) * shift;
+                     ^ AER::Utils::hamming_parity(K[i] & s)) * shift;
             // q.D2 ^= ((s >> i) & one) * shift;
-            // q.D2 ^= hamming_parity(K[i] & s) * shift;
+            // q.D2 ^= AER::Utils::hamming_parity(K[i] & s) * shift;
             unsigned row=0;
             for (size_t j=0; j<n; j++)
             {
@@ -968,7 +969,7 @@ scalar_t StabilizerState::InnerProduct(const uint_fast64_t& A_diag1,
         }
     }
     // Q = 4* (s.v) + sKs
-    q.Q = hamming_parity(s&v)*4;
+    q.Q = AER::Utils::hamming_parity(s&v)*4;
     for (size_t i=0; i<n; i++)
     {
         if ((s>>i) & one)
@@ -985,7 +986,7 @@ scalar_t StabilizerState::InnerProduct(const uint_fast64_t& A_diag1,
     }
     scalar_t amp = q.ExponentialSum();
     // Reweight by 2^{-(n+|v|)}/2
-    amp.p -= (n+hamming_weight(v));
+    amp.p -= (n+AER::Utils::popcount(v));
     // We need to further multiply by omega*
     scalar_t psi_amp(omega);
     psi_amp.conjugate();

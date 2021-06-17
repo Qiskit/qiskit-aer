@@ -28,12 +28,13 @@ from qiskit.compiler import assemble
 from qiskit.quantum_info import state_fidelity
 from qiskit.pulse import (Schedule, Play, ShiftPhase, SetPhase, Delay, Acquire,
                           Waveform, DriveChannel, ControlChannel,
-                          AcquireChannel, MemorySlot)
+                          AcquireChannel, MemorySlot, SetFrequency, ShiftFrequency)
 from qiskit.providers.aer.pulse.de.DE_Methods import ScipyODE
 from qiskit.providers.aer.pulse.de.DE_Options import DE_Options
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.models.backendconfiguration import UchannelLO
+from qiskit.providers.aer.aererror import AerError
 
 from .pulse_sim_independent import (simulate_1q_model,
                                     simulate_2q_exchange_model,
@@ -589,16 +590,15 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule = self._3Q_constant_sched(total_samples,
                                            u_idx=0,
                                            subsystem_list=subsystem_list)
-        qobj = assemble([schedule],
-                        backend=pulse_sim,
-                        meas_level=2,
-                        meas_return='single',
-                        meas_map=[[0]],
-                        qubit_lo_freq=[omega_d, omega_d, omega_d],
-                        memory_slots=2,
-                        shots=1)
 
-        result = pulse_sim.run(qobj, initial_state=y0).result()
+        result = pulse_sim.run([schedule],
+                               meas_level=2,
+                               meas_return='single',
+                               meas_map=[[0]],
+                               qubit_lo_freq=[omega_d, omega_d, omega_d],
+                               memory_slots=2,
+                               shots=1,
+                               initial_state=y0).result()
 
         pulse_sim_yf = result.get_statevector()
 
@@ -608,7 +608,15 @@ class TestPulseSimulator(common.QiskitAerTestCase):
 
         y0 = np.kron(np.array([1., 0.]), np.array([1., 0.]))
 
-        result = pulse_sim.run(qobj, initial_state=y0).result()
+        result = pulse_sim.run([schedule],
+                               meas_level=2,
+                               meas_return='single',
+                               meas_map=[[0]],
+                               qubit_lo_freq=[omega_d, omega_d, omega_d],
+                               memory_slots=2,
+                               shots=1,
+                               initial_state=y0).result()
+
         pulse_sim_yf = result.get_statevector()
 
         yf = expm(-1j * 0.5 * 2 * np.pi * np.kron(self.X, self.Z) / 4) @ y0
@@ -623,16 +631,14 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         schedule = self._3Q_constant_sched(total_samples,
                                            u_idx=1,
                                            subsystem_list=subsystem_list)
-        qobj = assemble([schedule],
-                        backend=pulse_sim,
-                        meas_level=2,
-                        meas_return='single',
-                        meas_map=[[0]],
-                        qubit_lo_freq=[omega_d, omega_d, omega_d],
-                        memory_slots=2,
-                        shots=1)
-
-        result = pulse_sim.run(qobj, initial_state=y0).result()
+        result = pulse_sim.run([schedule],
+                               meas_level=2,
+                               meas_return='single',
+                               meas_map=[[0]],
+                               qubit_lo_freq=[omega_d, omega_d, omega_d],
+                               memory_slots=2,
+                               shots=1,
+                               initial_state=y0).result()
         pulse_sim_yf = result.get_statevector()
 
         yf = expm(-1j * 0.5 * 2 * np.pi * np.kron(self.X, self.Z) / 4) @ y0
@@ -642,7 +648,13 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         y0 = np.kron(np.array([1., 0.]), np.array([1., 0.]))
         pulse_sim.set_options(initial_state=y0)
 
-        result = pulse_sim.run(qobj).result()
+        result = pulse_sim.run([schedule],
+                               meas_level=2,
+                               meas_return='single',
+                               meas_map=[[0]],
+                               qubit_lo_freq=[omega_d, omega_d, omega_d],
+                               memory_slots=2,
+                               shots=1).result()
         pulse_sim_yf = result.get_statevector()
 
         yf = expm(-1j * 0.5 * 2 * np.pi * np.kron(self.X, self.Z) / 4) @ y0
@@ -1127,6 +1139,138 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         approx_yf = phases * (expm(-1j * (np.pi / 2) * self.Y) @ y0)
 
         self.assertGreaterEqual(state_fidelity(pulse_sim_yf, approx_yf), 0.99)
+
+    def test_frequency_error(self):
+        """Test that using SetFrequency and ShiftFrequency instructions raises an error."""
+
+        # qubit frequency and drive frequency
+        omega_0 = 1.1329824
+        omega_d = omega_0
+
+        # drive strength and length of pulse
+        r = 0.01
+        total_samples = 100
+
+        # set up simulator
+        pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
+
+        # set up schedule with ShiftFrequency
+        drive_pulse = Waveform(1. * np.ones(total_samples))
+        schedule = Schedule()
+        schedule |= Play(drive_pulse, DriveChannel(0))
+        schedule += ShiftFrequency(5., DriveChannel(0))
+        schedule += Play(drive_pulse, DriveChannel(0))
+        schedule += Acquire(total_samples, AcquireChannel(0),
+                            MemorySlot(0)) << schedule.duration
+
+        with self.assertRaises(AerError):
+            res = pulse_sim.run(schedule).result()
+
+        # set up schedule with SetFrequency
+        drive_pulse = Waveform(1. * np.ones(total_samples))
+        schedule = Schedule()
+        schedule |= Play(drive_pulse, DriveChannel(0))
+        schedule += SetFrequency(5., DriveChannel(0))
+        schedule += Play(drive_pulse, DriveChannel(0))
+        schedule += Acquire(total_samples, AcquireChannel(0),
+                            MemorySlot(0)) << schedule.duration
+
+        with self.assertRaises(AerError):
+            res = pulse_sim.run(schedule).result()
+
+
+    def test_schedule_freqs(self):
+        """Test simulation when each schedule has its own frequencies."""
+
+        # qubit frequency and drive frequency
+        omega_0 = 1.1329824
+        omega_d = omega_0
+
+        # drive strength and length of pulse
+        r = 0.01
+        total_samples = 100
+
+        # initial state and seed
+        y0 = np.array([1.0, 0.0])
+        seed = 9000
+
+        # set up simulator
+        pulse_sim = PulseSimulator(system_model=self._system_model_1Q(omega_0, r))
+
+        # set up constant pulse for doing a pi pulse
+        schedule = self._1Q_constant_sched(total_samples)
+        frequencies = np.array([0.5, 1.0, 1.5]) * omega_d
+        qobj = assemble(schedule,
+                        pulse_sim,
+                        schedule_los=[{DriveChannel(0): freq} for freq in frequencies],
+                        shots=128)
+
+        result = pulse_sim.run(qobj, initial_state=y0, seed=seed).result()
+
+        # check that the off-resonant drives fail to excite the system,
+        # while the on resonance drive does
+        self.assertDictAlmostEqual(result.get_counts(0), {'0': 128})
+        self.assertDictAlmostEqual(result.get_counts(1), {'1': 128})
+        self.assertDictAlmostEqual(result.get_counts(2), {'0': 128})
+
+    def test_3_level_measurement(self):
+        """Test correct measurement outcomes for a pair of 3 level systems."""
+
+        q_freqs = [5., 5.1]
+        r = 0.02
+        j = 0.02
+        total_samples = 25
+
+        hamiltonian = {}
+        hamiltonian['h_str'] = [
+            '2*np.pi*v0*0.5*Z0', '2*np.pi*v1*0.5*Z1', '2*np.pi*r*0.5*X0||D0',
+            '2*np.pi*r*0.5*X1||D1', '2*np.pi*j*0.5*I0*I1',
+            '2*np.pi*j*0.5*X0*X1', '2*np.pi*j*0.5*Y0*Y1', '2*np.pi*j*0.5*Z0*Z1'
+        ]
+        hamiltonian['vars'] = {
+            'v0': q_freqs[0],
+            'v1': q_freqs[1],
+            'r': r,
+            'j': j
+        }
+        hamiltonian['qub'] = {'0': 3, '1': 3}
+        ham_model = HamiltonianModel.from_dict(hamiltonian)
+
+        # set the U0 to have frequency of drive channel 0
+        u_channel_lo = []
+        subsystem_list = [0, 1]
+        dt = 1.
+
+        system_model = PulseSystemModel(hamiltonian=ham_model,
+                                        u_channel_lo=u_channel_lo,
+                                        subsystem_list=subsystem_list,
+                                        dt=dt)
+
+        schedule = Schedule()
+        schedule |= Acquire(total_samples, AcquireChannel(0),
+                            MemorySlot(0)) << 3 * total_samples
+        schedule |= Acquire(total_samples, AcquireChannel(1),
+                            MemorySlot(1)) << 3 * total_samples
+
+        y0 = np.array([1., 1., 0., 0., 0., 0., 0., 0., 0.]) / np.sqrt(2)
+        pulse_sim = PulseSimulator(system_model=system_model,
+                                   initial_state=y0,
+                                  seed=50)
+
+        qobj = assemble([schedule],
+                        backend=pulse_sim,
+                        meas_level=2,
+                        meas_return='single',
+                        meas_map=[[0]],
+                        qubit_lo_freq=q_freqs,
+                        memory_slots=2,
+                        shots=1000)
+        result = pulse_sim.run(qobj).result()
+        counts = result.get_counts()
+        exp_counts = {'00': 479, '01': 502, '10': 9, '11': 10}
+        self.assertDictAlmostEqual(counts, exp_counts)
+
+
 
     def _system_model_1Q(self, omega_0, r):
         """Constructs a standard model for a 1 qubit system.

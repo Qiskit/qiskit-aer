@@ -1,0 +1,7 @@
+---
+
+fixes:
+  - |
+    Fixed bug in MPS::apply_kraus. After applying the kraus matrix to the relevant
+    qubits, we should propagate the changes to the neighboring qubits.
+

@@ -18,6 +18,8 @@ Entry/exit point for pulse simulation specified through PulseSimulator backend
 """
 
 from warnings import warn
+from copy import copy
+from typing import Callable
 import numpy as np
 from qiskit.quantum_info.operators.operator import Operator
 from ..system_models.string_model_parser.string_model_parser import NoiseParser
@@ -77,7 +79,7 @@ def pulse_controller(qobj):
     estates = [op_gen.state(state) for state in ham_model._estates.T[:]]
 
     # initial state set here
-    if hasattr(config, 'initial_state'):
+    if getattr(config, 'initial_state', None) is not None:
         pulse_sim_desc.initial_state = op_gen.state(config.initial_state)
     else:
         pulse_sim_desc.initial_state = estates[0]
@@ -138,9 +140,10 @@ def pulse_controller(qobj):
     if qubit_lo_freq is None:
         qubit_lo_freq = system_model.hamiltonian.get_qubit_lo_from_drift()
         warn('Warning: qubit_lo_freq was not specified in PulseQobj and there is no default, '
-             'so it is beign automatically determined from the drift Hamiltonian.')
+             'so it is being automatically determined from the drift Hamiltonian.')
 
     pulse_de_model.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
+    pulse_de_model.calculate_channel_frequencies = system_model.calculate_channel_frequencies
 
     # ###############################
     # ### Parse backend_options
@@ -198,6 +201,13 @@ def pulse_controller(qobj):
 
         if not exp['can_sample']:
             pulse_sim_desc.can_sample = False
+
+    # trim measurement operators to relevant qubits once constructed
+    meas_ops_reduced = []
+    for op in pulse_sim_desc.measurement_ops:
+        if op is not None:
+            meas_ops_reduced.append(op)
+    pulse_sim_desc.measurement_ops = meas_ops_reduced
 
     run_experiments = (run_unitary_experiments if pulse_sim_desc.can_sample
                        else run_monte_carlo_experiments)
@@ -335,8 +345,10 @@ class PulseInternalDEModel:
         self.pulse_to_int = None
         # dt for pulse schedules
         self.dt = None
-        # holds frequencies for the channels
+        # holds default frequencies for the channels
         self.freqs = {}
+        # frequency calculation function for overriding defaults
+        self.calculate_channel_frequencies = None
         # diagonal elements of the hamiltonian
         self.h_diag = None
         # eigenvalues of the time-independent hamiltonian
@@ -385,7 +397,7 @@ class PulseInternalDEModel:
             H_noise = Operator(np.zeros(self.noise[0].data.shape))
             for kk in range(self.c_num):
                 c_op = self.noise[kk]
-                n_op = c_op.adjoint() @ c_op
+                n_op = c_op.adjoint() & c_op
                 # collapse ops
                 self.c_ops_data.append(c_op.data)
                 # norm ops
@@ -422,12 +434,37 @@ class PulseInternalDEModel:
         # Init register
         register = np.ones(self.n_registers, dtype=np.uint8)
 
-        ode_rhs_obj = get_ode_rhs_functor(self._rhs_dict, exp, self.system, channels, register)
+        rhs_dict = setup_rhs_dict_freqs(self._rhs_dict, exp, self.calculate_channel_frequencies)
+        ode_rhs_obj = get_ode_rhs_functor(rhs_dict, exp, self.system, channels, register)
 
         def rhs(t, y):
             return ode_rhs_obj(t, y)
 
         return rhs
+
+
+def setup_rhs_dict_freqs(default_rhs_dict: dict,
+                         exp: dict,
+                         calculate_channel_frequencies: Callable):
+    """Standalone function for overriding channel frequencies in a given experiment.
+
+    Args:
+        default_rhs_dict: Dictionary containing default RHS data.
+        exp: Dictionary containing experiment data.
+        calculate_channel_frequencies: Function for computing all channel frequencies from
+                                       a list of DriveChannel frequencies.
+
+    Returns:
+        dict: Dictionary with frequencies potentially overriden by those in exp.
+    """
+
+    if 'qubit_lo_freq' in exp and exp['qubit_lo_freq'] is not None:
+        # copy to not overwrite defaults
+        default_rhs_dict = copy(default_rhs_dict)
+        freqs_dict = calculate_channel_frequencies(exp['qubit_lo_freq'])
+        default_rhs_dict['freqs'] = list(freqs_dict.values())
+
+    return default_rhs_dict
 
 
 class PulseSimDescription:

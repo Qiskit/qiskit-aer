@@ -69,6 +69,7 @@ public:
 
   void apply_initialize(const reg_t &qubits, const cvector_t &statevector, 
 			RngEngine &rng);
+  void initialize_from_mps(const mps_container_t &mps);
 
   //----------------------------------------------------------------
   // Function name: num_qubits
@@ -282,6 +283,9 @@ public:
   reg_t get_bond_dimensions() const;
   uint_t get_max_bond_dimensions() const;
 
+  mps_container_t copy_to_mps_container();
+  mps_container_t move_to_mps_container();
+
 private:
 
   MPS_Tensor& get_qubit(uint_t index) {
@@ -314,6 +318,11 @@ private:
 			  const cmatrix_t &mat, bool is_diagonal=false);
   void apply_matrix_internal(const reg_t & qubits, const cmatrix_t &mat,
 			     bool is_diagonal=false);
+
+  // Certain local operations need to be propagated to the neighboring qubits. 
+  // Such operations include apply_measure and apply_kraus
+  void propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit);
+
   // apply_matrix for more than 2 qubits
   void apply_multi_qubit_gate(const reg_t &qubits,
 			      const cmatrix_t &mat,
@@ -443,7 +452,7 @@ private:
     // location_ stores the location of each qubit in the vector. It is derived from order_ 
     // at the end of every swap operation for performance reasons
     // for example: starting position order_ = location_ = 01234
-    // ccx(0,4) -> order_ = 04123, location_ = 02341
+    // cx(0,4) -> order_ = 04123, location_ = 02341
     reg_t order_;
     reg_t location_;
   } qubit_ordering_;
