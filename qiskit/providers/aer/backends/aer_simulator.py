@@ -303,6 +303,9 @@ class AerSimulator(AerBackend):
       number of qubits, and low entanglement. If the user does not specify the algorithm,
       a heuristic algorithm is used to select between the two algorithms.
       (Default: "mps_heuristic").
+    * ``mps_log_data`` (str): if True, output logging data of the MPS
+      structure: bond dimensions and values discarded during approximation.
+      (Default: False)
 
     These backend options apply in circuit optimization passes:
 
@@ -523,7 +526,7 @@ class AerSimulator(AerBackend):
             matrix_product_state_truncation_threshold=1e-16,
             matrix_product_state_max_bond_dimension=None,
             mps_sample_measure_algorithm='mps_heuristic',
-            MPS_log_data=None,
+            mps_log_data=False,
             chop_threshold=1e-8,
             mps_parallel_threshold=14,
             mps_omp_threads=1)

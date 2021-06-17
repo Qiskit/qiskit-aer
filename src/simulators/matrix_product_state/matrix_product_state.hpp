@@ -143,9 +143,6 @@ public:
 
   virtual void add_metadata(ExperimentResult &result) const override;
 
-  // Similar to add_metadata, but used to add data at the end of circuit execution
-  virtual void add_reporting_metadata(ExperimentResult &result) const override;
-
   // prints the bond dimensions after each instruction to the metadata
   void output_bond_dimensions(const Operations::Op &op) const;
 
@@ -485,6 +482,10 @@ void State::set_config(const json_t &config) {
   } else {
     MPS::set_sample_measure_alg(Sample_measure_alg::HEURISTIC);
   }
+  // Set mps_log_data
+  bool mps_log_data;
+  if (JSON::get_value(mps_log_data, "mps_log_data", config))
+    MPS::set_mps_log_data(mps_log_data);
 }
 
 void State::add_metadata(ExperimentResult &result) const {
@@ -497,12 +498,9 @@ void State::add_metadata(ExperimentResult &result) const {
   result.metadata.add(
     MPS::get_sample_measure_alg(),
     "matrix_product_state_sample_measure_algorithm");
-  MPS::clear_log();
+  if (MPS::get_mps_log_data())
+    result.metadata.add("{" + MPS::output_log() + "}", "MPS_log_data");
 } 
-
-void State::add_reporting_metadata(ExperimentResult &result) const {
-  result.metadata.add("{" + MPS::output_log() + "}", "MPS_log_data");
-}
 
 void State::output_bond_dimensions(const Operations::Op &op) const {
   MPS::print_to_log("I", instruction_number, ":", op.name, " on qubits ", op.qubits[0]);
@@ -605,7 +603,7 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
     }
     //qreg_.print(std::cout);
     // print out bond dimensions only if they may have changed since previous print
-    if (MPS::get_mps_output_data() && 
+    if (MPS::get_mps_log_data() && 
 	(op.type == OpType::gate ||op.type == OpType::measure || 
 	 op.type == OpType::initialize || op.type == OpType::reset || 
 	 op.type == OpType::matrix) && 

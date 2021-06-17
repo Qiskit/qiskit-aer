@@ -106,14 +106,14 @@ public:
 
   template<typename T, typename... Targs>
   static void print_to_log(const T &value, const Targs & ... Fargs) {
-    if (mps_output_data) {
+    if (mps_log_data_) {
       logging_str_ << value;
       MPS::print_to_log(Fargs...); // recursive call
     }
   }
 
   static std::string output_log() {
-    if (mps_output_data)
+    if (mps_log_data_)
       return logging_str_.str();
     else
       return "";
@@ -259,6 +259,10 @@ public:
     enable_gate_opt_ = enable_gate_opt;
   }
 
+  static void set_mps_log_data(bool mps_log_data) {
+    mps_log_data_ = mps_log_data;
+  }
+
   static uint_t get_omp_threads() {
     return omp_threads_;
   }
@@ -276,8 +280,8 @@ public:
     return enable_gate_opt_;
   }
 
-  static bool get_mps_output_data() {
-    return mps_output_data;
+  static bool get_mps_log_data() {
+    return mps_log_data_;
   }
 
   //----------------------------------------------------------------
@@ -499,7 +503,7 @@ private:
                                     // in JSON serialization
   static bool enable_gate_opt_;      // allow optimizations on gates
   static std::stringstream logging_str_;
-  static bool mps_output_data;
+  static bool mps_log_data_;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {

@@ -43,7 +43,7 @@ static const cmatrix_t one_measure =
   enum Sample_measure_alg MPS::sample_measure_alg_ = Sample_measure_alg::HEURISTIC; 
   double MPS::json_chop_threshold_ = 1E-8;
   std::stringstream MPS::logging_str_;
-  bool MPS::mps_output_data = 0;
+  bool MPS::mps_log_data_ = 0;
 
 //------------------------------------------------------------------------
 // local function declarations
@@ -384,7 +384,6 @@ void MPS::initialize(uint_t num_qubits)
   qubit_ordering_.location_.clear();
   qubit_ordering_.location_.resize(num_qubits);
   std::iota(qubit_ordering_.location_.begin(), qubit_ordering_.location_.end(), 0);
-  MPS::mps_output_data = getenv("MPS_OUTPUT_DATA") ? 1 : 0;
 }
 
 void MPS::initialize(const MPS &other){
