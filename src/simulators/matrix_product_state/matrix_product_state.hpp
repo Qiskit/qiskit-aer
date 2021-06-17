@@ -28,6 +28,7 @@
 #define _matrix_product_state_hpp
 
 #include <algorithm>
+#include <sstream>
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -41,6 +42,8 @@
 
 namespace AER {
 namespace MatrixProductState {
+
+static uint_t instruction_number = 0;
 
 using OpType = Operations::OpType;
 
@@ -139,6 +142,12 @@ public:
   virtual void set_config(const json_t &config) override;
 
   virtual void add_metadata(ExperimentResult &result) const override;
+
+  // Similar to add_metadata, but used to add data at the end of circuit execution
+  virtual void add_reporting_metadata(ExperimentResult &result) const override;
+
+  // prints the bond dimensions after each instruction to the metadata
+  void output_bond_dimensions(const Operations::Op &op) const;
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
@@ -315,7 +324,6 @@ protected:
 
   // Table of allowed snapshot types to enum class members
   const static stringmap_t<Snapshots> snapshotset_;
-
 };
 
 
@@ -489,7 +497,29 @@ void State::add_metadata(ExperimentResult &result) const {
   result.metadata.add(
     MPS::get_sample_measure_alg(),
     "matrix_product_state_sample_measure_algorithm");
+  MPS::clear_log();
 } 
+
+void State::add_reporting_metadata(ExperimentResult &result) const {
+  result.metadata.add("{" + MPS::output_log() + "}", "MPS_log_data");
+}
+
+void State::output_bond_dimensions(const Operations::Op &op) const {
+  MPS::print_to_log("I", instruction_number, ":", op.name, " on qubits ", op.qubits[0]);
+  for (uint_t index=1; index<op.qubits.size(); index++) {
+    MPS::print_to_log(",", op.qubits[index]);
+  }
+  MPS::print_to_log(", BD=[");
+  reg_t bd = qreg_.get_bond_dimensions();
+  for (uint_t index=0; index<bd.size(); index++) {
+    MPS::print_to_log(bd[index]);
+      if (index < bd.size()-1)
+	MPS::print_to_log(" ");
+  }
+  MPS::print_to_log("],  ");
+  instruction_number++;
+}
+
 
 //=========================================================================
 // Implementation: apply operations
@@ -574,6 +604,14 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
       }
     }
     //qreg_.print(std::cout);
+    // print out bond dimensions only if they may have changed since previous print
+    if (MPS::get_mps_output_data() && 
+	(op.type == OpType::gate ||op.type == OpType::measure || 
+	 op.type == OpType::initialize || op.type == OpType::reset || 
+	 op.type == OpType::matrix) && 
+	op.qubits.size() > 1) {
+      output_bond_dimensions(op);
+    }
   }
 }
 

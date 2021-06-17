@@ -1087,6 +1087,7 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   else {
     run_circuit_with_sampled_noise(circ, noise, config, shots, state,
                                    initial_state, method, result, rng);
+    state.add_reporting_metadata(result);
     return;
   }
 
@@ -1115,6 +1116,7 @@ void QasmController::run_circuit_helper(const Circuit& circ,
 
   // Run simulation
   run_multi_shot(opt_circ, shots, state, initial_state, method, result, rng);
+  state.add_reporting_metadata(result);
 }
 
 template <class State_t, class Initstate_t>

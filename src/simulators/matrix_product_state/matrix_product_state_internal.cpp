@@ -41,7 +41,10 @@ static const cmatrix_t one_measure =
   uint_t MPS::omp_threads_ = 1;     
   uint_t MPS::omp_threshold_ = 14;  
   enum Sample_measure_alg MPS::sample_measure_alg_ = Sample_measure_alg::HEURISTIC; 
-  double MPS::json_chop_threshold_ = 1E-8;  
+  double MPS::json_chop_threshold_ = 1E-8;
+  std::stringstream MPS::logging_str_;
+  bool MPS::mps_output_data = 0;
+
 //------------------------------------------------------------------------
 // local function declarations
 //------------------------------------------------------------------------
@@ -381,6 +384,7 @@ void MPS::initialize(uint_t num_qubits)
   qubit_ordering_.location_.clear();
   qubit_ordering_.location_.resize(num_qubits);
   std::iota(qubit_ordering_.location_.begin(), qubit_ordering_.location_.end(), 0);
+  MPS::mps_output_data = getenv("MPS_OUTPUT_DATA") ? 1 : 0;
 }
 
 void MPS::initialize(const MPS &other){
@@ -631,7 +635,9 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
 
   MPS_Tensor left_gamma, right_gamma;
   rvector_t lambda;
-  MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
+  double discarded_value = MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
+  if (discarded_value > 0.0)
+    MPS::print_to_log("discarded_value=", discarded_value, ", ");
 
   if (A != 0)
     left_gamma.div_Gamma_by_left_Lambda(lambda_reg_[A-1]);
@@ -1677,8 +1683,8 @@ void MPS::reset_internal(const reg_t &qubits, RngEngine &rng) {
 
 void MPS::measure_reset_update_internal(const reg_t &qubits,
 					const reg_t &meas_state) {
-  for (auto i=0; i<qubits.size(); i++) {
-    if(meas_state[i] != 0) {
+  for (uint_t i=0; i<qubits.size(); i++) {
+    if (meas_state[i] != 0) {
       q_reg_[qubits[i]].apply_x();
     }
   }
@@ -1691,7 +1697,7 @@ mps_container_t MPS::copy_to_mps_container() {
     ret.first.push_back(std::make_pair(q_reg_[i].get_data(0),
                                        q_reg_[i].get_data(1)));
   }
-  for (auto i=0; i<num_qubits()-1; i++) {
+  for (uint_t i=0; i<num_qubits()-1; i++) {
     ret.second.push_back(lambda_reg_[i]);
   }
   return ret;
