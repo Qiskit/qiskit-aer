@@ -60,7 +60,7 @@ class QasmUnitaryGateTests:
     def test_random_unitary_gate_with_permutations(self):
         """Test simulation with random unitary gate with permutations."""
         all_permutations = list(itertools.permutations([0, 1, 2]))
-        unitary_matrix = random_unitary(8, seed=8)
+        unitary_matrix = random_unitary(8, seed=5)
         n = 3
         shots = 2000
     
