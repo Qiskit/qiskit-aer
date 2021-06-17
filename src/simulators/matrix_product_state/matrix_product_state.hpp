@@ -61,7 +61,7 @@ const Operations::OpSet StateOpSet(
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",
    "sx", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx", "csx", "delay",
-   "cswap"},
+   "cswap", "pauli"},
   // Snapshots
   {"statevector", "amplitudes", "memory", "register", "probabilities",
     "expectation_value_pauli", "expectation_value_pauli_with_variance",
@@ -214,6 +214,9 @@ protected:
                    const std::vector<cmatrix_t> &kmats,
                    RngEngine &rng);
 
+  // Apply multi-qubit Pauli
+  void apply_pauli(const reg_t &qubits, const std::string& pauli);
+
   //-----------------------------------------------------------------------
   // Save data instructions
   //-----------------------------------------------------------------------
@@ -362,7 +365,9 @@ const stringmap_t<Gates> State::gateset_({
   {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
   // Three-qubit gates
   {"ccx", Gates::ccx},   // Controlled-CX gate (Toffoli)
-  {"cswap", Gates::cswap}
+  {"cswap", Gates::cswap},
+  // Pauli
+  {"pauli", Gates::pauli}
 });
 
 const stringmap_t<Snapshots> State::snapshotset_({
@@ -898,10 +903,35 @@ void State::apply_gate(const Operations::Op &op) {
       qreg_.apply_rzx(op.qubits[0], op.qubits[1],
     		      std::real(op.params[0]));
       break;
+    case Gates::pauli:
+      apply_pauli(op.qubits, op.string_params[0]);
+      break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument(
         "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
+  }
+}
+
+void State::apply_pauli(const reg_t &qubits, const std::string& pauli) {
+  const auto size = qubits.size();
+  for (size_t i = 0; i < qubits.size(); ++i) {
+    const auto qubit = qubits[size - 1 - i];
+    switch (pauli[i]) {
+      case 'I':
+        break;
+      case 'X':
+        BaseState::qreg_.apply_x(qubit);
+        break;
+      case 'Y':
+        BaseState::qreg_.apply_y(qubit);
+        break;
+      case 'Z':
+        BaseState::qreg_.apply_z(qubit);
+        break;
+      default:
+        throw std::invalid_argument("invalid Pauli \'" + std::to_string(pauli[i]) + "\'.");
+    }
   }
 }
 
