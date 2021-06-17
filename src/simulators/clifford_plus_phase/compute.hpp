@@ -24,7 +24,7 @@ const Operations::OpSet StateOpSet(
   {Operations::OpType::gate, Operations::OpType::save_specific_prob},
   // Gates
   {"CX", "cx", "cz", "swap", "id", "x", "y", "z", "h",
-   "s", "sdg", "t","p", "rz"},
+   "s", "sdg", "t","p", "rz", "u1"},
   // Snapshots
   {}
 );
@@ -32,7 +32,7 @@ const Operations::OpSet StateOpSet(
 
 
 enum class Gates {
-  id, x, y, z, h, s, sdg, sx, t, tdg, cx, cz, swap, u1,
+id, x, y, z, h, s, sdg, sx, t, tdg, cx, cz, swap,  p, rz, u1,
 };
 
 
@@ -83,7 +83,8 @@ const stringmap_t<Gates> State::gateset_({
   {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"rz", Gates::rz}, // Pauli-Z rotation gate
-  {"p", Gates::p},   // Parameterized phase gate 
+  {"p", Gates::rz},   // Parameterized phase gate
+  {"u1", Gates::rz}, 
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   // Two-qubit gates
   {"CX", Gates::cx},     // Controlled-X gate (CNOT)
@@ -146,6 +147,8 @@ void State::apply_gate(const Operations::Op &op){
   case Gates::tdg:
     this->qreg_.gadgetized_phase_gate(op.qubits[0], -T_ANGLE);
     break;
+  case Gates::rz:
+    this->qreg_.gadgetized_phase_gate(op.qubits[0], op.params[0].real());
   case Gates::cx:
     this->qreg_.applyCX(op.qubits[0],op.qubits[1]);
     break;
