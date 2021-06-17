@@ -71,7 +71,7 @@ class SaveProbabilitiesDict(SaveAverageData):
         super().__init__("save_probabilities_dict", num_qubits, label,
                          unnormalized=unnormalized,
                          pershot=pershot,
-                         conditional=conditional
+                         conditional=conditional)
 
 
 class SaveSpecificProbability(SaveAverageData):
