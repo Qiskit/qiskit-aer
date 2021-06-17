@@ -63,7 +63,6 @@ class QasmUnitaryGateTests:
         unitary_matrix = random_unitary(8, seed=5)
         n = 3
         shots = 2000
-    
         for perm in all_permutations:
             circuit = QuantumCircuit(n, n)
             circuit.unitary(unitary_matrix, perm)
