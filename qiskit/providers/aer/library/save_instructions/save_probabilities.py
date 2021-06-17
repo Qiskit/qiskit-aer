@@ -73,10 +73,11 @@ class SaveProbabilitiesDict(SaveAverageData):
                          pershot=pershot,
                          conditional=conditional)
 
+        
 class SaveSpecificProbability(SaveAverageData):
     """Save measurement outcome probabilities vector."""
     def __init__(self, num_qubits,
-                 states, qubits, 
+                 states, qubits,
                  label="specific-probabilities",
                  unnormalized=False,
                  pershot=False,
@@ -94,12 +95,12 @@ class SaveSpecificProbability(SaveAverageData):
             conditional (bool): if True save the probabilities data conditional
                                 on the current classical register values
                                 [Default: False].
-        """
-        
+        """        
         super().__init__("save_specific_prob", num_qubits, label,
                          pershot=pershot,
                          conditional=conditional,
                          params=[qubits, states])
+
 
 def save_probabilities(self,
                        qubits=None,
@@ -166,10 +167,11 @@ def save_probabilities_dict(self,
                                   conditional=conditional)
     return self.append(instr, qubits)
 
+
 def save_specific_probability(self, states, qubits, label="specific_probability",
-                                 unnormalized=False,
-                                 pershot=False,
-                                 conditional=False):
+                              unnormalized=False,
+                              pershot=False,
+                              conditional=False):
     """Save squared statevector amplitudes (probabilities).
 
     Args:
@@ -191,13 +193,14 @@ def save_specific_probability(self, states, qubits, label="specific_probability"
     Raises:
         ExtensionError: if params is invalid for the specified number of qubits.
     """
-    if qubits == None:
+    if qubits is None:
         qubits = default_qubits(self)
     instr = SaveSpecificProbability(len(qubits), states, qubits, label=label,
                                     unnormalized=unnormalized,
                                     pershot=pershot,
                                     conditional=conditional)
     return self.append(instr, qubits)
+
 
 QuantumCircuit.save_probabilities = save_probabilities
 QuantumCircuit.save_probabilities_dict = save_probabilities_dict
