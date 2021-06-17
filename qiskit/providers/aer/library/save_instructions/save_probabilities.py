@@ -71,9 +71,9 @@ class SaveProbabilitiesDict(SaveAverageData):
         super().__init__("save_probabilities_dict", num_qubits, label,
                          unnormalized=unnormalized,
                          pershot=pershot,
-                         conditional=conditional)
+                         conditional=conditional
 
-        
+
 class SaveSpecificProbability(SaveAverageData):
     """Save measurement outcome probabilities vector."""
     def __init__(self, num_qubits,
@@ -95,7 +95,7 @@ class SaveSpecificProbability(SaveAverageData):
             conditional (bool): if True save the probabilities data conditional
                                 on the current classical register values
                                 [Default: False].
-        """        
+        """
         super().__init__("save_specific_prob", num_qubits, label,
                          pershot=pershot,
                          conditional=conditional,
