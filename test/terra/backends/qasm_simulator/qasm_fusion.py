@@ -97,8 +97,8 @@ class QasmFusionTests:
         metadata = result.results[0].metadata
         return metadata.get('fusion', {})
 
-    def test_fusion_theshold(self):
-        """Test fusion threhsold"""
+    def test_fusion_threshold(self):
+        """Test fusion threshsold"""
         shots = 100
         threshold = 6
         backend_options = self.fusion_options(enabled=True, threshold=threshold)
@@ -541,3 +541,63 @@ class QasmFusionTests:
             if op_name == 'measure':
                 break
             self.assertEqual(op_name, 'diagonal')
+
+class QasmMPSFusionTests:
+    """QasmSimulator MPS fusion tests."""
+
+    SIMULATOR = QasmSimulator()
+
+    def fusion_options(self, enabled=None, threshold=None, verbose=None, 
+                       parallelization=None):
+        """Return default backend_options dict."""
+        backend_options = self.BACKEND_OPTS.copy()
+        if enabled is not None:
+            backend_options['fusion_enable'] = enabled
+        if verbose is not None:
+            backend_options['fusion_verbose'] = verbose
+        if threshold is not None:
+            backend_options['fusion_threshold'] = threshold
+        if parallelization is not None:
+            backend_options['fusion_parallelization_threshold'] = 1
+            backend_options['max_parallel_threads'] = parallelization
+            backend_options['max_parallel_shots'] = 1
+            backend_options['max_parallel_state_update'] = parallelization
+        return backend_options
+
+    def fusion_metadata(self, result):
+        """Return fusion metadata dict"""
+        metadata = result.results[0].metadata
+        print(metadata)
+        return metadata.get('fusion', {})
+
+    def test_fusion_MPS_threshold(self):
+        """Test fusion MPS threshsold"""
+        shots = 100
+        threshold = 6
+        backend_options = self.fusion_options(enabled=True, threshold=threshold)
+
+        with self.subTest(msg='below fusion threshold'):
+            circuit = transpile(QFT(threshold - 1),
+                                self.SIMULATOR, basis_gates=['u1', 'u2', 'u3', 'cx', 'cz'],
+                                optimization_level=0)
+            circuit.measure_all()
+            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
+            result = self.SIMULATOR.run(
+                qobj, **backend_options).result()
+            self.assertSuccess(result)
+            meta = self.fusion_metadata(result)
+            self.assertFalse(meta.get('enabled'))
+            self.assertFalse(meta.get('applied'))
+
+        with self.subTest(msg='above fusion threshold'):
+            circuit = transpile(QFT(threshold + 1),
+                                self.SIMULATOR, basis_gates=['u1', 'u2', 'u3', 'cx', 'cz'],
+                                optimization_level=0)
+            circuit.measure_all()
+            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
+            result = self.SIMULATOR.run(
+                qobj, **backend_options).result()
+            self.assertSuccess(result)
+            meta = self.fusion_metadata(result)
+            self.assertFalse(meta.get('enabled'))
+            self.assertFalse(meta.get('applied'))
