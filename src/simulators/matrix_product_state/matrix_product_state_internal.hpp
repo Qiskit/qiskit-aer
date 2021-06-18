@@ -28,7 +28,8 @@ namespace MatrixProductState {
 enum Gates {
   id, h, x, y, z, s, sdg, sx, t, tdg, u1, u2, u3, r, rx, ry, rz, // single qubit
   cx, cy, cz, cu1, swap, su4, rxx, ryy, rzz, rzx, csx, // two qubit
-  ccx, cswap // three qubit
+  ccx, cswap, // three qubit
+  pauli
 };
 
   //enum class Direction {RIGHT, LEFT};
@@ -285,7 +286,7 @@ public:
 
   mps_container_t copy_to_mps_container();
   mps_container_t move_to_mps_container();
-  
+
 private:
 
   MPS_Tensor& get_qubit(uint_t index) {
@@ -452,7 +453,7 @@ private:
     // location_ stores the location of each qubit in the vector. It is derived from order_ 
     // at the end of every swap operation for performance reasons
     // for example: starting position order_ = location_ = 01234
-    // ccx(0,4) -> order_ = 04123, location_ = 02341
+    // cx(0,4) -> order_ = 04123, location_ = 02341
     reg_t order_;
     reg_t location_;
   } qubit_ordering_;
