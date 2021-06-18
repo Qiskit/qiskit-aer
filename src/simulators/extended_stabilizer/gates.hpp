@@ -32,7 +32,7 @@ namespace CHSimulator
   enum class Gates {
     u0, u1, id, x, y, z, h, s, sdg, sx, t, tdg,
     cx, cz, swap,
-    ccx, ccz
+    ccx, ccz, pauli
   };
 
   enum class Gatetypes {
