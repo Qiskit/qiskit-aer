@@ -73,7 +73,7 @@ class SaveProbabilitiesDict(SaveAverageData):
                          pershot=pershot,
                          conditional=conditional)
 
-        
+
 class SaveSpecificProbability(SaveAverageData):
     """Save a probability for a specific measurement probability."""
     def __init__(self, num_qubits,
@@ -84,8 +84,8 @@ class SaveSpecificProbability(SaveAverageData):
         """Instruction to save specific probabilities.
 
         Args:
-            states (list): list of ints indicating which measurement outcomes to compute the outcome for
-            qubits (list): list of ints indicating which qubits the measurement is on
+            states (list): list of ints indicating which measurement outcome to compute the probability for.
+            qubits (list): list of ints indicating which qubits the measurement is on.
             num_qubits (int): the number of qubits for the snapshot type.
             label (str): the key for retrieving saved data from results.
             pershot (bool): if True save a list of probabilities for each shot
@@ -174,8 +174,9 @@ def save_specific_probability(self, states, qubits, label="specific_probability"
                               pershot=False,
                               conditional=False):
     """Instruction to save specific probabilities.
+
     Args:
-        states (list): list of ints indicating which measurement outcomes to compute the outcome for
+        states (list): list of ints indicating which measurement outcome to compute the probability for
         qubits (list): list of ints indicating which qubits the measurement is on
         num_qubits (int): the number of qubits for the snapshot type.
         label (str): the key for retrieving saved data from results.
