@@ -578,7 +578,6 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
                                       op.name + "\'.");
       }
     }
-    //qreg_.print(std::cout);
   }
 }
 
