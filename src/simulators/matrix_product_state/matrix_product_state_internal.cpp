@@ -1467,26 +1467,31 @@ reg_t MPS::sample_measure_using_probabilities_internal(const rvector_t &rnds,
     return samples;
 }
 
-
-reg_t MPS::apply_measure(const reg_t &qubits, 
-			 RngEngine &rng) {
+// If all qubits are measured, then for every qubit measured, it is sufficient to 
+// propagate to the nearest neighbors
+reg_t MPS::apply_measure(const reg_t &qubits, RngEngine &rng, bool measure_all) {
   // since input is always sorted in qasm_controller, therefore, we must return the qubits 
   // to their original location (sorted)
   move_all_qubits_to_sorted_ordering();
-  return apply_measure_internal(qubits, rng);
+  return apply_measure_internal(qubits, rng, measure_all);
 }
 
 reg_t MPS::apply_measure_internal(const reg_t &qubits, 
-				  RngEngine &rng) {
+				  RngEngine &rng,
+				  bool measure_all) {
   reg_t qubits_to_update;
   reg_t outcome_vector(qubits.size());
   for (uint_t i=0; i<qubits.size(); i++) {
-    outcome_vector[i] = apply_measure_internal_single_qubit(qubits[i], rng);
+    if (measure_all)
+      outcome_vector[i] = apply_measure_internal_single_qubit(qubit_ordering_.order_[i], rng, 1);
+
+    outcome_vector[i] = apply_measure_internal_single_qubit(qubits[i], rng, 0);
   }
   return outcome_vector;
 }
 
-uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng) {	
+uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng, 
+						bool measure_all) {	
   reg_t qubits_to_update;
   qubits_to_update.push_back(qubit);
 
@@ -1510,20 +1515,28 @@ uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng) {
     measurement_matrix = measurement_matrix * (1 / sqrt(prob1));
   }
   apply_matrix_internal(qubits_to_update, measurement_matrix);
-  propagate_to_neighbors_internal(qubit, qubit);
+  propagate_to_neighbors_internal(qubit, qubit, measure_all);
+
   return measurement;
 }
 
-void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit) {
+void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit, 
+					  bool single_step) {
+  uint_t right_qubit=num_qubits_-1;
+  int_t left_qubit=0;
+
+  if (single_step) {
+    right_qubit = max_qubit >= num_qubits_-2 ? num_qubits_-1 : max_qubit + 1;
+    left_qubit = min_qubit == 0 ? 0 : min_qubit - 1;
+  }
   // step 4 - propagate the changes to all qubits to the right
-  for (uint_t i=max_qubit; i<num_qubits_-1; i++) {
+  for (uint_t i=max_qubit; i<right_qubit; i++) {
     if (lambda_reg_[i].size() == 1) 
       break;   // no need to propagate if no entanglement
     apply_2_qubit_gate(i, i+1, id, cmatrix_t(1, 1));
   }
-
   // and propagate the changes to all qubits to the left
-  for (int_t i=min_qubit; i>0; i--) {
+  for (int_t i=min_qubit; i>left_qubit; i--) {
     if (lambda_reg_[i-1].size() == 1) 
       break;   // no need to propagate if no entanglement
     apply_2_qubit_gate(i-1, i, id, cmatrix_t(1, 1));
@@ -1688,7 +1701,7 @@ void MPS::reset_internal(const reg_t &qubits, RngEngine &rng) {
 
 void MPS::measure_reset_update_internal(const reg_t &qubits,
 					const reg_t &meas_state) {
-  for (auto i=0; i<qubits.size(); i++) {
+  for (uint_t i=0; i<qubits.size(); i++) {
     if(meas_state[i] != 0) {
       q_reg_[qubits[i]].apply_x();
     }
@@ -1698,11 +1711,11 @@ void MPS::measure_reset_update_internal(const reg_t &qubits,
 mps_container_t MPS::copy_to_mps_container() {
   move_all_qubits_to_sorted_ordering();
   mps_container_t ret;
-  for (auto i=0; i<num_qubits(); i++) {
+  for (uint_t i=0; i<num_qubits(); i++) {
     ret.first.push_back(std::make_pair(q_reg_[i].get_data(0),
                                        q_reg_[i].get_data(1)));
   }
-  for (auto i=0; i<num_qubits()-1; i++) {
+  for (uint_t i=0; i<num_qubits()-1; i++) {
     ret.second.push_back(lambda_reg_[i]);
   }
   return ret;
@@ -1711,7 +1724,7 @@ mps_container_t MPS::copy_to_mps_container() {
 mps_container_t MPS::move_to_mps_container() {
   move_all_qubits_to_sorted_ordering();
   mps_container_t ret;
-  for (auto i=0; i<num_qubits(); i++) {
+  for (uint_t i=0; i<num_qubits(); i++) {
     ret.first.push_back(std::make_pair(std::move(q_reg_[i].get_data(0)),
                                        std::move(q_reg_[i].get_data(1))));
   }

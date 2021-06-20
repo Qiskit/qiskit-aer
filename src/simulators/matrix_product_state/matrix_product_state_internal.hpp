@@ -34,7 +34,7 @@ enum Gates {
 
   //enum class Direction {RIGHT, LEFT};
 
-  enum class Sample_measure_alg {APPLY_MEASURE, PROB, HEURISTIC};
+  enum class Sample_measure_alg {APPLY_MEASURE, PROB, MEASURE_ALL, HEURISTIC};
 
 //=========================================================================
 // MPS class
@@ -265,8 +265,7 @@ public:
   reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
 					   const reg_t &qubits);
 
-  reg_t apply_measure(const reg_t &qubits,
-		      RngEngine &rng);
+  reg_t apply_measure(const reg_t &qubits, RngEngine &rng, bool measure_all=0);
 
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector_internal
@@ -322,7 +321,8 @@ private:
 
   // Certain local operations need to be propagated to the neighboring qubits. 
   // Such operations include apply_measure and apply_kraus
-  void propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit);
+  void propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit, 
+				       bool single_step=0);
 
   // apply_matrix for more than 2 qubits
   void apply_multi_qubit_gate(const reg_t &qubits,
@@ -376,9 +376,11 @@ private:
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 
   reg_t apply_measure_internal(const reg_t &qubits,
-			       RngEngine &rng);
+			       RngEngine &rng,
+			       bool measure_all=0);
 
-  uint_t apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng);
+  uint_t apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng, 
+					     bool measure_all=0);
 
   reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
 						    const reg_t &qubits) const;
