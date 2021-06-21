@@ -203,7 +203,6 @@ class QasmMPSMeasureAlgorithms:
     SIMULATOR = QasmSimulator()
     BACKEND_OPTS1 = {"mps_sample_measure_algorithm":"mps_apply_measure"}
     BACKEND_OPTS2 = {"mps_sample_measure_algorithm":"mps_probabilities"}
-    BACKEND_OPTS3 = {"mps_sample_measure_algorithm":"mps_measure_all"}
 
     # ---------------------------------------------------------------------
     # Test MPS algorithms for measure
@@ -223,13 +222,6 @@ class QasmMPSMeasureAlgorithms:
                          **self.BACKEND_OPTS2).result()
         self.assertTrue(getattr(result2, 'success', 'True'))
         
-        result3 = execute(circuit, self.SIMULATOR, shots=shots,
-                         **self.BACKEND_OPTS3).result()
-        self.assertTrue(getattr(result3, 'success', 'True'))
-
         self.assertDictAlmostEqual(result1.get_counts(circuit),
                                    result2.get_counts(circuit),
-                                   delta=0.05 * shots)
-        self.assertDictAlmostEqual(result1.get_counts(circuit),
-                                   result3.get_counts(circuit),
                                    delta=0.05 * shots)

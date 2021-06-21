@@ -265,7 +265,7 @@ public:
   reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
 					   const reg_t &qubits);
 
-  reg_t apply_measure(const reg_t &qubits, RngEngine &rng, bool measure_all=0);
+  reg_t apply_measure(const reg_t &qubits, RngEngine &rng);
 
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector_internal
@@ -376,8 +376,7 @@ private:
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 
   reg_t apply_measure_internal(const reg_t &qubits,
-			       RngEngine &rng,
-			       bool measure_all=0);
+			       RngEngine &rng);
 
   uint_t apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng, 
 					     bool measure_all=0);

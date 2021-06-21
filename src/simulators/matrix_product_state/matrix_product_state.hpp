@@ -159,8 +159,7 @@ public:
   std::vector<reg_t> 
   sample_measure_using_apply_measure(const reg_t &qubits,
 				     uint_t shots,
-				     RngEngine &rng,
-				     bool measure_all = 0) const;
+				     RngEngine &rng) const;
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -479,8 +478,6 @@ void State::set_config(const json_t &config) {
       MPS::set_sample_measure_alg(Sample_measure_alg::PROB);
     } else if (alg.compare("mps_apply_measure") == 0) {
       MPS::set_sample_measure_alg(Sample_measure_alg::APPLY_MEASURE);
-    } else if (alg.compare("mps_measure_all") == 0) {
-      MPS::set_sample_measure_alg(Sample_measure_alg::MEASURE_ALL);
     }
   } else {
     MPS::set_sample_measure_alg(Sample_measure_alg::HEURISTIC);
@@ -991,8 +988,6 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   // The parameters used below are based on experimentation.
   // The user can override this by setting the parameter "mps_sample_measure_algorithm"
   uint_t num_qubits = qubits.size();
-  if (num_qubits == qreg_.num_qubits() && MPS::get_sample_measure_alg() == Sample_measure_alg::MEASURE_ALL)
-    return sample_measure_using_apply_measure(qubits, shots, rng, 1);
   if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB){
     return sample_measure_using_probabilities(qubits, shots, rng);
   }
@@ -1063,8 +1058,7 @@ sample_measure_using_probabilities(const reg_t &qubits,
 std::vector<reg_t> State::
   sample_measure_using_apply_measure(const reg_t &qubits, 
 				     uint_t shots, 
-				     RngEngine &rng,
-				     bool measure_all) const {
+				     RngEngine &rng) const {
   MPS temp;
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
@@ -1072,7 +1066,7 @@ std::vector<reg_t> State::
 
   for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
     temp.initialize(qreg_);
-    single_result = temp.apply_measure(qubits, rng, measure_all);
+    single_result = temp.apply_measure(qubits, rng);
     all_samples[i] = single_result;
   }
   return all_samples;

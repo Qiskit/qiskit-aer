@@ -1469,16 +1469,18 @@ reg_t MPS::sample_measure_using_probabilities_internal(const rvector_t &rnds,
 
 // If all qubits are measured, then for every qubit measured, it is sufficient to 
 // propagate to the nearest neighbors
-reg_t MPS::apply_measure(const reg_t &qubits, RngEngine &rng, bool measure_all) {
+reg_t MPS::apply_measure(const reg_t &qubits, RngEngine &rng) {
   // since input is always sorted in qasm_controller, therefore, we must return the qubits 
   // to their original location (sorted)
   move_all_qubits_to_sorted_ordering();
-  return apply_measure_internal(qubits, rng, measure_all);
+  return apply_measure_internal(qubits, rng);
 }
 
 reg_t MPS::apply_measure_internal(const reg_t &qubits, 
-				  RngEngine &rng,
-				  bool measure_all) {
+				  RngEngine &rng) {
+  bool measure_all = 0;
+  if (qubits.size() == num_qubits_)
+    measure_all = 1;
   reg_t qubits_to_update;
   reg_t outcome_vector(qubits.size());
   for (uint_t i=0; i<qubits.size(); i++) {
