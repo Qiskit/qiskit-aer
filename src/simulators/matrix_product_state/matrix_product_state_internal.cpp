@@ -1523,14 +1523,16 @@ uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng,
 }
 
 void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit, 
-					  bool single_step) {
+					  bool measure_all) {
   uint_t right_qubit=num_qubits_-1;
   int_t left_qubit=0;
 
-  if (single_step) {
+  if (measure_all) {
     right_qubit = max_qubit >= num_qubits_-2 ? num_qubits_-1 : max_qubit + 1;
     left_qubit = min_qubit == 0 ? 0 : min_qubit - 1;
   }
+  if (num_qubits_ == 1)
+    right_qubit = 0;
   // step 4 - propagate the changes to all qubits to the right
   for (uint_t i=max_qubit; i<right_qubit; i++) {
     if (lambda_reg_[i].size() == 1) 
