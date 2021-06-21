@@ -1486,8 +1486,8 @@ reg_t MPS::apply_measure_internal(const reg_t &qubits,
   for (uint_t i=0; i<qubits.size(); i++) {
     if (measure_all)
       outcome_vector[i] = apply_measure_internal_single_qubit(qubit_ordering_.order_[i], rng, 1);
-
-    outcome_vector[i] = apply_measure_internal_single_qubit(qubits[i], rng, 0);
+    else
+      outcome_vector[i] = apply_measure_internal_single_qubit(qubits[i], rng, 0);
   }
   return outcome_vector;
 }
