@@ -210,10 +210,10 @@ class QasmMPSMeasureAlgorithms:
     # ---------------------------------------------------------------------
     def test_mps_measure_alg_qv(self):
         """Test MPS measure algorithms with quantum volume"""
-        shots = 100
+        shots = 1000
         n = 5
         depth = 2
-        circuit = QuantumVolume(n, depth, seed=10)
+        circuit = QuantumVolume(n, depth, seed=9)
         circuit.measure_all()
         result1 = execute(circuit, self.SIMULATOR, shots=shots,
                          **self.BACKEND_OPTS1).result()
@@ -229,7 +229,7 @@ class QasmMPSMeasureAlgorithms:
 
         self.assertDictAlmostEqual(result1.get_counts(circuit),
                                    result2.get_counts(circuit),
-                                   delta=0.1 * shots)
+                                   delta=0.05 * shots)
         self.assertDictAlmostEqual(result1.get_counts(circuit),
                                    result3.get_counts(circuit),
-                                   delta=0.1 * shots)
+                                   delta=0.05 * shots)
