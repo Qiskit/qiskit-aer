@@ -182,7 +182,7 @@ public:
   void div_Gamma_by_left_Lambda(const rvector_t &Lambda);
   void div_Gamma_by_right_Lambda(const rvector_t &Lambda);
   static MPS_Tensor contract(const MPS_Tensor &left_gamma, const rvector_t &lambda, const MPS_Tensor &right_gamma, bool mul_by_lambda);
-  static void Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma);
+  static double Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma);
   static void reshape_for_3_qubits_before_SVD(const std::vector<cmatrix_t> data, MPS_Tensor &reshaped_tensor);
 static void contract_2_dimensions(const MPS_Tensor &left_gamma, 
 				  const MPS_Tensor &right_gamma,
@@ -650,7 +650,7 @@ void MPS_Tensor::contract_2_dimensions(const MPS_Tensor &left_gamma,
 // 			   tensors for the result.
 // Returns: none.
 //---------------------------------------------------------------
-void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma)
+double MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &lambda, MPS_Tensor &right_gamma)
 {
   cmatrix_t C;
   C = reshape_before_SVD(temp.data_);
@@ -658,12 +658,14 @@ void MPS_Tensor::Decompose(MPS_Tensor &temp, MPS_Tensor &left_gamma, rvector_t &
   rvector_t S(std::min(C.GetRows(), C.GetColumns()));
 
   csvd_wrapper(C, U, S, V);
-  reduce_zeros(U, S, V,
-	       max_bond_dimension_, truncation_threshold_);
+  double discarded_value = 0.0;
+  discarded_value = reduce_zeros(U, S, V, max_bond_dimension_, 
+				 truncation_threshold_);
 
   left_gamma.data_  = reshape_U_after_SVD(U);
   lambda            = S;
   right_gamma.data_ = reshape_V_after_SVD(V);
+  return discarded_value;
 }
 
   void MPS_Tensor::reshape_for_3_qubits_before_SVD(const std::vector<cmatrix_t> data, 
