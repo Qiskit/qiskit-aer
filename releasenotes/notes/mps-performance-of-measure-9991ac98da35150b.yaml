@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    Performance improvement in algorithm for measure: when all qubits are 
+    Performance improvement in algorithm for measure in MPS: when all qubits are 
     measured, no need to propagate the effect of measuring a single qubit to
     all the other qubits; it is sufficient to propagate to the nearest 
     neighbors, because these neighbors will be measured next.
