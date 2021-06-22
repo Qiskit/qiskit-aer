@@ -1517,7 +1517,8 @@ uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng,
     measurement_matrix = measurement_matrix * (1 / sqrt(prob1));
   }
   apply_matrix_internal(qubits_to_update, measurement_matrix);
-  propagate_to_neighbors_internal(qubit, qubit, measure_all);
+  if (num_qubits_ > 1)
+    propagate_to_neighbors_internal(qubit, qubit, measure_all);
 
   return measurement;
 }
@@ -1531,8 +1532,7 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
     right_qubit = max_qubit >= num_qubits_-2 ? num_qubits_-1 : max_qubit + 1;
     left_qubit = min_qubit == 0 ? 0 : min_qubit - 1;
   }
-  if (num_qubits_ == 1)
-    right_qubit = 0;
+
   // step 4 - propagate the changes to all qubits to the right
   for (uint_t i=max_qubit; i<right_qubit; i++) {
     if (lambda_reg_[i].size() == 1) 
