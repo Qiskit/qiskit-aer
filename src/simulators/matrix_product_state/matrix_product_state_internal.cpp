@@ -1480,14 +1480,14 @@ reg_t MPS::apply_measure_internal(const reg_t &qubits,
   // propagate to the nearest neighbors because the neighbors will be measured next
   bool measure_all = 0;
   if (qubits.size() == num_qubits_)
-    measure_all = 1;
+    measure_all = true;
   reg_t qubits_to_update;
   reg_t outcome_vector(qubits.size());
   for (uint_t i=0; i<qubits.size(); i++) {
-    if (measure_all)
-      outcome_vector[i] = apply_measure_internal_single_qubit(qubit_ordering_.order_[i], rng, 1);
-    else
-      outcome_vector[i] = apply_measure_internal_single_qubit(qubits[i], rng, 0);
+    // The following line is correct because the qubits were sorted in apply_measure.
+    // If the sort is cancelled, for the case of measure_all, we must measure
+    // in the order in which the qubits are organized
+      outcome_vector[i] = apply_measure_internal_single_qubit(qubits[i], rng, measure_all);
   }
   return outcome_vector;
 }
