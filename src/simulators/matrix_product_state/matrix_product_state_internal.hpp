@@ -30,7 +30,8 @@ namespace MatrixProductState {
 enum Gates {
   id, h, x, y, z, s, sdg, sx, t, tdg, u1, u2, u3, r, rx, ry, rz, // single qubit
   cx, cy, cz, cu1, swap, su4, rxx, ryy, rzz, rzx, csx, // two qubit
-  ccx, cswap // three qubit
+  ccx, cswap, // three qubit
+  pauli
 };
 
   //enum class Direction {RIGHT, LEFT};
