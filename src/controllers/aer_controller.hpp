@@ -64,6 +64,7 @@
 #include "simulators/statevector/statevector_state_chunk.hpp"
 #include "simulators/superoperator/superoperator_state.hpp"
 #include "simulators/unitary/unitary_state.hpp"
+#include "simulators/unitary/unitary_state_chunk.hpp"
 
 namespace AER {
 
@@ -502,6 +503,12 @@ void Controller::set_config(const json_t &config) {
         throw std::runtime_error(
             "Simulation device \"GPU\" is not supported on this system");
 #else
+        int nDev;
+        if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
+            cudaGetLastError();
+            throw std::runtime_error("No CUDA device available!");
+        }
+
         sim_device_ = Device::GPU;
 #endif
       }
@@ -1393,33 +1400,67 @@ void Controller::run_circuit(const Circuit &circ,
   }
   case Method::unitary: {
     if (sim_device_ == Device::CPU) {
-      if (sim_precision_ == Precision::Double) {
-        // Double-precision unitary simulation
-        return run_circuit_helper<
-            QubitUnitary::State<QV::UnitaryMatrix<double>>>(
-            circ, noise, config, shots, rng_seed, Method::unitary,
-            false, result);
-      } else {
-        // Single-precision unitary simulation
-        return run_circuit_helper<
-            QubitUnitary::State<QV::UnitaryMatrix<float>>>(
-            circ, noise, config, shots, rng_seed, Method::unitary,
-            false, result);
+      if (multiple_chunk_required(circ, noise)) {
+        if (sim_precision_ == Precision::Double) {
+          // Double-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitaryChunk::State<QV::UnitaryMatrix<double>>>(
+              circ, noise, config, shots, rng_seed, Method::unitary,
+              false, result);
+        } else {
+          // Single-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitaryChunk::State<QV::UnitaryMatrix<float>>>(
+              circ, noise, config, shots, rng_seed, Method::unitary,
+              false, result);
+        }
+      }
+      else{
+        if (sim_precision_ == Precision::Double) {
+          // Double-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitary::State<QV::UnitaryMatrix<double>>>(
+              circ, noise, config, shots, rng_seed, Method::unitary,
+              false, result);
+        } else {
+          // Single-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitary::State<QV::UnitaryMatrix<float>>>(
+              circ, noise, config, shots, rng_seed, Method::unitary,
+              false, result);
+        }
       }
     } else {
 #ifdef AER_THRUST_SUPPORTED
-      if (sim_precision_ == Precision::Double) {
-        // Double-precision unitary simulation
-        return run_circuit_helper<
-            QubitUnitary::State<QV::UnitaryMatrixThrust<double>>>(
-            circ, noise, config, shots, rng_seed, Method::unitary,
-            false, result);
-      } else {
-        // Single-precision unitary simulation
-        return run_circuit_helper<
-            QubitUnitary::State<QV::UnitaryMatrixThrust<float>>>(
-            circ, noise, config, shots, rng_seed, Method::unitary,
-            false, result);
+      if (multiple_chunk_required(circ, noise)) {
+        if (sim_precision_ == Precision::Double) {
+          // Double-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitaryChunk::State<QV::UnitaryMatrixThrust<double>>>(
+              circ, noise, config, shots, rng_seed, Method::unitary,
+              false, result);
+        } else {
+          // Single-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitaryChunk::State<QV::UnitaryMatrixThrust<float>>>(
+              circ, noise, config, shots, rng_seed, Method::unitary,
+              false, result);
+        }
+      }
+      else{
+        if (sim_precision_ == Precision::Double) {
+          // Double-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitary::State<QV::UnitaryMatrixThrust<double>>>(
+              circ, noise, config, shots, rng_seed, Method::unitary,
+              false, result);
+        } else {
+          // Single-precision unitary simulation
+          return run_circuit_helper<
+              QubitUnitary::State<QV::UnitaryMatrixThrust<float>>>(
+              circ, noise, config, shots, rng_seed, Method::unitary,
+              false, result);
+        }
       }
 #endif
     }
@@ -1720,8 +1761,8 @@ Transpile::Fusion Controller::transpile_fusion(Method method,
     break;
   }
   case Method::matrix_product_state: {
-    // Disable fusion by default, but allow it to be enabled by config settings
     fusion_pass.active = false;
+    return fusion_pass;  // Do not allow the config to set active for MPS
   }
   case Method::statevector: {
     if (fusion_pass.allow_kraus) {
@@ -1931,7 +1972,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
   auto fusion_pass = transpile_fusion(method, circ.opset(), config);
   fusion_pass.optimize_circuit(circ, dummy_noise, state.opset(), result);
-  
+
   // Check if measure sampling supported
   const bool can_sample = check_measure_sampling_opt(circ, method);
   
@@ -2000,7 +2041,7 @@ void Controller::run_circuit_with_sampled_noise(
     measure_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
                                   result);
     fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
-                                 result);
+				 result);
     uint_t block_bits = 0;
     if (cache_blocking) {
       cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
@@ -2028,21 +2069,26 @@ bool Controller::check_measure_sampling_opt(const Circuit &circ,
     return false;
   }
 
-  // If density matrix or superop method all noise instructions allow
-  // Sampling
-  if (method == Method::density_matrix || method == Method::unitary) {
+  // If density matrix, unitary, superop method all supported instructions
+  // allow sampling
+  if (method == Method::density_matrix ||
+      method == Method::superop ||
+      method == Method::unitary) {
     return true;
+  }
+  
+  // If circuit contains a non-initial initialize that is not a full width
+  // instruction we can't sample
+  if (circ.can_sample_initialize == false) {
+    return false;
   }
 
   // Check if non-density matrix simulation and circuit contains
   // a stochastic instruction before measurement
-  // ie. initialize, reset, kraus, superop, conditional
+  // ie. reset, kraus, superop
   // TODO:
-  // * If initialize should be allowed if applied to product states (ie start of
-  // circuit)
   // * Resets should be allowed if applied to |0> state (no gates before).
   if (circ.opset().contains(Operations::OpType::reset) ||
-      circ.opset().contains(Operations::OpType::initialize) ||
       circ.opset().contains(Operations::OpType::kraus) ||
       circ.opset().contains(Operations::OpType::superop)) {
     return false;

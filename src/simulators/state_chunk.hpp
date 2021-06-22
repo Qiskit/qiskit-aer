@@ -189,6 +189,15 @@ public:
                        const std::string &register_hex);
 
   //-----------------------------------------------------------------------
+  // Initialization
+  //-----------------------------------------------------------------------
+  template <typename list_t>
+  void initialize_from_vector(const list_t &vec);
+
+  template <typename list_t>
+  void initialize_from_matrix(const list_t &mat);
+
+  //-----------------------------------------------------------------------
   // Save result data
   //-----------------------------------------------------------------------
 
@@ -355,6 +364,12 @@ protected:
   // block diagonal matrix in chunk
   void block_diagonal_matrix(const int_t iChunk, reg_t &qubits, cvector_t &diag);
 
+  void qubits_inout(const reg_t& qubits, reg_t& qubits_in,reg_t& qubits_out) const;
+
+  auto apply_to_matrix(bool copy = false);
+
+  virtual bool is_applied_to_each_chunk(const Operations::Op &op);
+
   // Set a global phase exp(1j * theta) for the state
   bool has_global_phase_ = false;
   complex_t global_phase_ = 1;
@@ -447,7 +462,6 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits)
 {
   int_t i;
   uint_t nchunks;
-  int max_bits = num_qubits;
 
   num_qubits_ = num_qubits;
   block_bits_ = block_bits;
@@ -521,6 +535,16 @@ void StateChunk<state_t>::set_config(const json_t &config)
     JSON::get_value(block_bits_, "blocking_qubits", config);
 }
 
+template <class state_t>
+bool StateChunk<state_t>::is_applied_to_each_chunk(const Operations::Op &op)
+{
+  if(op.type == Operations::OpType::gate || op.type == Operations::OpType::matrix || 
+            op.type == Operations::OpType::diagonal_matrix || op.type == Operations::OpType::multiplexer ||
+            op.type == Operations::OpType::superop){
+    return true;
+  }
+  return false;
+}
 
 template <class state_t>
 void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
@@ -567,9 +591,7 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
 
       iOp = iOpEnd;
     }
-    else if(ops[iOp].type == Operations::OpType::gate || ops[iOp].type == Operations::OpType::matrix || 
-            ops[iOp].type == Operations::OpType::diagonal_matrix || ops[iOp].type == Operations::OpType::multiplexer)
-    {
+    else if(is_applied_to_each_chunk(ops[iOp])){
 #pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
       for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
         apply_op(iChunk,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
@@ -622,6 +644,23 @@ void StateChunk<state_t>::block_diagonal_matrix(const int_t iChunk, reg_t &qubit
 }
 
 template <class state_t>
+void StateChunk<state_t>::qubits_inout(const reg_t& qubits, reg_t& qubits_in,reg_t& qubits_out) const
+{
+  int_t i;
+  qubits_in.clear();
+  qubits_out.clear();
+  for(i=0;i<qubits.size();i++){
+    if(qubits[i] < chunk_bits_){ //in chunk
+      qubits_in.push_back(qubits[i]);
+    }
+    else{
+      qubits_out.push_back(qubits[i]);
+    }
+  }
+}
+
+
+template <class state_t>
 std::vector<reg_t> StateChunk<state_t>::sample_measure(const reg_t &qubits,
                                                   uint_t shots,
                                                   RngEngine &rng) {
@@ -645,6 +684,118 @@ void StateChunk<state_t>::initialize_creg(uint_t num_memory,
                                      const std::string &register_hex) 
 {
   creg_.initialize(num_memory, num_register, memory_hex, register_hex);
+}
+
+template <class state_t>
+template <typename list_t>
+void StateChunk<state_t>::initialize_from_vector(const list_t &vec)
+{
+  int_t iChunk;
+  if(chunk_bits_ == num_qubits_){
+    for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
+      qregs_[iChunk].initialize_from_vector(vec);
+    }
+  }
+  else{   //multi-chunk distribution
+#pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
+    for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
+      list_t tmp(1ull << (chunk_bits_*qubit_scale()));
+      for(int_t i=0;i<(1ull << (chunk_bits_*qubit_scale()));i++){
+        tmp[i] = vec[((global_chunk_index_ + iChunk) << (chunk_bits_*qubit_scale())) + i];
+      }
+      qregs_[iChunk].initialize_from_vector(tmp);
+    }
+  }
+}
+
+template <class state_t>
+template <typename list_t>
+void StateChunk<state_t>::initialize_from_matrix(const list_t &mat)
+{
+  int_t iChunk;
+  if(chunk_bits_ == num_qubits_){
+    for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
+      qregs_[iChunk].initialize_from_matrix(mat);
+    }
+  }
+  else{   //multi-chunk distribution
+#pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
+    for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
+      list_t tmp(1ull << (chunk_bits_),1ull << (chunk_bits_));
+      uint_t irow_chunk = ((iChunk + global_chunk_index_) >> ((num_qubits_ - chunk_bits_))) << (chunk_bits_);
+      uint_t icol_chunk = ((iChunk + global_chunk_index_) & ((1ull << ((num_qubits_ - chunk_bits_)))-1)) << (chunk_bits_);
+
+      //copy part of state for this chunk
+      uint_t i,row,col;
+      for(i=0;i<(1ull << (chunk_bits_*qubit_scale()));i++){
+        uint_t icol = i & ((1ull << chunk_bits_)-1);
+        uint_t irow = i >> chunk_bits_;
+        tmp[i] = mat[icol_chunk + icol + ((irow_chunk + irow) << num_qubits_)];
+      }
+      qregs_[iChunk].initialize_from_matrix(tmp);
+    }
+  }
+}
+
+template <class state_t>
+auto StateChunk<state_t>::apply_to_matrix(bool copy)
+{
+  int_t iChunk;
+  uint_t size = 1ull << (chunk_bits_*qubit_scale());
+  uint_t mask = (1ull << (chunk_bits_)) - 1;
+  uint_t num_threads = qregs_[0].get_omp_threads();
+
+  auto matrix = qregs_[0].copy_to_matrix();
+
+  if(distributed_rank_ == 0){
+    //TO DO check memory availability
+    matrix.resize(1ull << (num_qubits_),1ull << (num_qubits_));
+
+    auto tmp = qregs_[0].copy_to_matrix();
+    for(iChunk=0;iChunk<num_global_chunks_;iChunk++){
+      int_t i;
+      uint_t irow_chunk = (iChunk >> ((num_qubits_ - chunk_bits_))) << chunk_bits_;
+      uint_t icol_chunk = (iChunk & ((1ull << ((num_qubits_ - chunk_bits_)))-1)) << chunk_bits_;
+
+      if(iChunk < num_local_chunks_){
+        if(copy)
+          tmp = qregs_[iChunk].copy_to_matrix();
+        else
+          tmp = qregs_[iChunk].move_to_matrix();
+      }
+#ifdef AER_MPI
+      else
+        recv_data(tmp.data(),size,0,iChunk);
+#endif
+#pragma omp parallel for if(num_threads > 1) num_threads(num_threads)
+      for(i=0;i<size;i++){
+        uint_t irow = i >> (chunk_bits_);
+        uint_t icol = i & mask;
+        uint_t idx = ((irow+irow_chunk) << (num_qubits_)) + icol_chunk + icol;
+        matrix[idx] = tmp[i];
+      }
+    }
+  }
+  else{
+#ifdef AER_MPI
+    //send matrices to process 0
+    for(iChunk=0;iChunk<num_global_chunks_;iChunk++){
+      uint_t iProc = get_process_by_chunk(iChunk);
+      if(iProc == distributed_rank_){
+        if(copy){
+          auto tmp = qregs_[iChunk-global_chunk_index_].copy_to_matrix();
+          send_data(tmp.data(),size,iChunk,0);
+        }
+        else{
+          auto tmp = qregs_[iChunk-global_chunk_index_].move_to_matrix();
+          send_data(tmp.data(),size,iChunk,0);
+        }
+      }
+    }
+#endif
+  }
+
+  return matrix;
 }
 
 template <class state_t>
@@ -876,7 +1027,8 @@ uint_t StateChunk<state_t>::mapped_index(const uint_t idx)
 template <class state_t>
 void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 {
-  uint_t q0,q1,nLarge;
+  uint_t nLarge = 1;
+  uint_t q0,q1;
   int_t iChunk;
 
   q0 = qubits[qubits.size() - 2];
@@ -1052,8 +1204,8 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 template <class state_t>
 void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
 {
-  uint_t q0,q1,t,nLarge;
   int_t iChunk;
+  uint_t nLarge = 1;
 
 
   if(qubit < chunk_bits_*qubit_scale()){
@@ -1195,6 +1347,8 @@ void StateChunk<state_t>::send_chunk(uint_t local_chunk_index, uint_t global_pai
   MPI_Isend(pSend,sizeSend,MPI_BYTE,iProc,local_chunk_index + global_chunk_index_,distributed_comm_,&reqSend);
 
   MPI_Wait(&reqSend,&st);
+
+  qregs_[local_chunk_index].release_send_buffer();
 #endif
 }
 

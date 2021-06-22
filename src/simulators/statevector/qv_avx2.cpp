@@ -182,10 +182,10 @@ struct RealVectorView {
   RealVectorView() = delete;
   // Unfortunately, shared_ptr implies allocations and we cannot afford
   // them in this piece of code, so this is the reason to use raw pointers.
-  RealVectorView(FloatType* data) : data(data) {}
-  inline FloatType* operator[](size_t i) { return &data[i * 2]; }
-  inline const FloatType* operator[](size_t i) const { return &data[i * 2]; }
-  FloatType* data = nullptr;
+  RealVectorView(FloatType* data) : data_(data) {}
+  inline FloatType* operator[](size_t i) { return &data_[i * 2]; }
+  inline const FloatType* operator[](size_t i) const { return &data_[i * 2]; }
+  FloatType* data_ = nullptr;
 };
 
 template <typename FloatType>
@@ -194,24 +194,24 @@ struct ImaginaryVectorView : std::false_type {};
 template <>
 struct ImaginaryVectorView<double> {
   ImaginaryVectorView() = delete;
-  ImaginaryVectorView(double* data) : data(data) {}
+  ImaginaryVectorView(double* data) : data_(data) {}
   // SIMD vectorization takes n bytes depending on the underlaying type, so
   // for doubles, SIMD loads 4 consecutive values (4 * sizeof(double) = 32
   // bytes)
-  inline double* operator[](size_t i) { return &data[i * 2 + 4]; }
-  inline const double* operator[](size_t i) const { return &data[i * 2 + 4]; }
-  double* data = nullptr;
+  inline double* operator[](size_t i) { return &data_[i * 2 + 4]; }
+  inline const double* operator[](size_t i) const { return &data_[i * 2 + 4]; }
+  double* data_ = nullptr;
 };
 
 template <>
 struct ImaginaryVectorView<float> {
   ImaginaryVectorView() = delete;
-  ImaginaryVectorView(float* data) : data(data) {}
+  ImaginaryVectorView(float* data) : data_(data) {}
   // SIMD vectorization takes n bytes depending on the underlaying type, so
   // for floats, SIMD loads 8 consecutive (8 * sizeof(float) = 32 bytes)
-  inline float* operator[](size_t i) { return &data[i * 2 + 8]; }
-  inline const float* operator[](size_t i) const { return &data[i * 2 + 8]; }
-  float* data = nullptr;
+  inline float* operator[](size_t i) { return &data_[i * 2 + 8]; }
+  inline const float* operator[](size_t i) const { return &data_[i * 2 + 8]; }
+  float* data_ = nullptr;
 };
 
 static auto _mm256_mul(const m256_t<double>& left,
@@ -951,29 +951,29 @@ inline Avx _apply_avx_kernel(const uint64_t* qregs,
   ImaginaryVectorView<float> img = {data};
 
   if (num_qubits > 2 && qregs[2] == 2) {
-    auto lambda = [&](const uint64_t index0, const float* mat) -> void {
-      _apply_matrix_float_avx_q0q1q2<num_qubits>(real, img, mat, qregs, index0);
+    auto lambda = [&](const uint64_t index0, const float* m) -> void {
+      _apply_matrix_float_avx_q0q1q2<num_qubits>(real, img, m, qregs, index0);
     };
 
     avx_apply_lambda<num_qubits>(data_size, 1, lambda, qregs, omp_threads, mat);
 
   } else if (num_qubits > 1 && qregs[1] < 3) {
-    auto lambda = [&](const uint64_t index0, const float* mat) -> void {
-      _apply_matrix_float_avx_qLqL<num_qubits>(real, img, mat, qregs, index0);
+    auto lambda = [&](const uint64_t index0, const float* m) -> void {
+      _apply_matrix_float_avx_qLqL<num_qubits>(real, img, m, qregs, index0);
     };
 
     avx_apply_lambda<num_qubits>(data_size, 2, lambda, qregs, omp_threads, mat);
 
   } else if (qregs[0] < 3) {
-    auto lambda = [&](const uint64_t index0, const float* mat) -> void {
-      _apply_matrix_float_avx_qL<num_qubits>(real, img, mat, qregs, index0);
+    auto lambda = [&](const uint64_t index0, const float* m) -> void {
+      _apply_matrix_float_avx_qL<num_qubits>(real, img, m, qregs, index0);
     };
 
     avx_apply_lambda<num_qubits>(data_size, 4, lambda, qregs, omp_threads, mat);
 
   } else {
-    auto lambda = [&](const uint64_t index0, const float* mat) -> void {
-      _apply_matrix_float_avx<num_qubits>(real, img, mat, qregs, index0);
+    auto lambda = [&](const uint64_t index0, const float* m) -> void {
+      _apply_matrix_float_avx<num_qubits>(real, img, m, qregs, index0);
     };
 
     avx_apply_lambda<num_qubits>(data_size, 8, lambda, qregs, omp_threads, mat);
@@ -991,22 +991,22 @@ inline Avx _apply_avx_kernel(const uint64_t* qregs,
   ImaginaryVectorView<double> img = {data};
 
   if (num_qubits > 1 && qregs[1] == 1) {
-    auto lambda = [&](const uint64_t index0, const double* mat) -> void {
-      _apply_matrix_double_avx_q0q1<num_qubits>(real, img, mat, qregs, index0);
+    auto lambda = [&](const uint64_t index0, const double* m) -> void {
+      _apply_matrix_double_avx_q0q1<num_qubits>(real, img, m, qregs, index0);
     };
 
     avx_apply_lambda<num_qubits>(data_size, 1, lambda, qregs, omp_threads, mat);
 
   } else if (qregs[0] < 2) {
-    auto lambda = [&](const uint64_t index0, const double* mat) -> void {
-      _apply_matrix_double_avx_qL<num_qubits>(real, img, mat, qregs, index0);
+    auto lambda = [&](const uint64_t index0, const double* m) -> void {
+      _apply_matrix_double_avx_qL<num_qubits>(real, img, m, qregs, index0);
     };
 
     avx_apply_lambda<num_qubits>(data_size, 2, lambda, qregs, omp_threads, mat);
 
   } else {
-    auto lambda = [&](const uint64_t index0, const double* mat) -> void {
-      _apply_matrix_double_avx<num_qubits>(real, img, mat, qregs, index0);
+    auto lambda = [&](const uint64_t index0, const double* m) -> void {
+      _apply_matrix_double_avx<num_qubits>(real, img, m, qregs, index0);
     };
 
     avx_apply_lambda<num_qubits>(data_size, 4, lambda, qregs, omp_threads, mat);
@@ -1130,12 +1130,12 @@ inline int _omp_get_thread_num() {
 #endif
 }
 
-m256_t<double> _load_diagonal_input(const std::complex<double>* input_vec,
-                                    std::complex<double>* tmp,
-                                    const uint64_t i,
-                                    const uint64_t* qregs,
-                                    const size_t qregs_size,
-                                    const size_t q0_mask) {
+static m256_t<double> _load_diagonal_input(const std::complex<double>* input_vec,
+                                           std::complex<double>* tmp,
+                                           const uint64_t i,
+                                           const uint64_t* qregs,
+                                           const size_t qregs_size,
+                                           const size_t q0_mask) {
   uint64_t vec_idx0 = 0;
   for (size_t j = 0; j < qregs_size; ++j)
     if (i & (MASKS[qregs[j]] + 1UL))
@@ -1145,13 +1145,13 @@ m256_t<double> _load_diagonal_input(const std::complex<double>* input_vec,
   return _mm256_load(reinterpret_cast<double*>(tmp));
 }
 
-m256_t<float> _load_diagonal_input(const std::complex<float>* input_vec,
-                                   std::complex<float>* tmp,
-                                   const uint64_t i,
-                                   const uint64_t* qregs,
-                                   const size_t qregs_size,
-                                   const size_t q0_mask,
-                                   const size_t q1_mask) {
+static m256_t<float> _load_diagonal_input(const std::complex<float>* input_vec,
+                                          std::complex<float>* tmp,
+                                          const uint64_t i,
+                                          const uint64_t* qregs,
+                                          const size_t qregs_size,
+                                          const size_t q0_mask,
+                                          const size_t q1_mask) {
   uint64_t vec_idx0 = 0;
   for (size_t j = 0; j < qregs_size; ++j)
     if (i & (MASKS[qregs[j]] + 1UL))
@@ -1180,7 +1180,7 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
 #pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
   {
 #if !defined(_WIN64) && !defined(_WIN32)
-    void* data;
+    void* data = nullptr;
     posix_memalign(&data, 64, sizeof(std::complex<double>) * 2);
     tmps[_omp_get_thread_num()] = reinterpret_cast<std::complex<double>*>(data);
 #else
@@ -1198,13 +1198,13 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
   const size_t q0_mask = q0_mask_;
   const auto batch = (data_size <= (1UL << 5) ? 0 : 4);
 
-  auto lambda = [&](const uint64_t i_, const std::complex<double>* input_vec) -> void {
+  auto lambda = [&](const uint64_t i_, const std::complex<double>* in_vec) -> void {
     const auto base = i_ << (batch + 1);
     const auto until = base + (1UL << (batch + 1));
     std::complex<double>* tmp = tmps[_omp_get_thread_num()];
     for (auto i = base; i < until; i+=2) {
       auto tgt_qv_data = _mm256_load(reinterpret_cast<double*>(&(qv_data[i])));
-      auto input_data = _load_diagonal_input(input_vec, tmp, i, qregs, qregs_size, q0_mask);
+      auto input_data = _load_diagonal_input(in_vec, tmp, i, qregs, qregs_size, q0_mask);
       _mm_complex_multiply<double>(tgt_qv_data, input_data);
       _mm256_store(reinterpret_cast<double*>(&(qv_data[i])), tgt_qv_data);
     }
@@ -1241,7 +1241,7 @@ Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
 #pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
   {
   #if !defined(_WIN64) && !defined(_WIN32)
-    void* data;
+    void* data = nullptr;
     posix_memalign(&data, 64, sizeof(std::complex<float>) * 4);
     tmps[_omp_get_thread_num()] = reinterpret_cast<std::complex<float>*>(data);
   #else
@@ -1263,13 +1263,13 @@ Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
   const size_t q1_mask = q1_mask_;
   const auto batch = (data_size <= (1UL << 6) ? 0 : 4);
 
-  auto lambda = [&](const uint64_t i_, const std::complex<float>* input_vec) -> void {
+  auto lambda = [&](const uint64_t i_, const std::complex<float>* in_vec) -> void {
     const auto base = i_ << (batch + 2);
     const auto until = base + (1UL << (batch + 2));
     std::complex<float>* tmp = tmps[_omp_get_thread_num()];
     for (auto i = base; i < until; i+=4) {
       m256_t<float> tgt_qv_data = _mm256_load(reinterpret_cast<float*>(&(qv_data[i])));
-      auto input_data = _load_diagonal_input(input_vec, tmp, i, qregs, qregs_size, q0_mask, q1_mask);
+      auto input_data = _load_diagonal_input(in_vec, tmp, i, qregs, qregs_size, q0_mask, q1_mask);
       _mm_complex_multiply<float>(tgt_qv_data, input_data);
       _mm256_store(reinterpret_cast<float*>(&(qv_data[i])), tgt_qv_data);
     }

@@ -344,6 +344,10 @@ class QasmSimulator(AerBackend):
         else:
             configuration.open_pulse = False
 
+        # Cache basis gates since computing the intersection
+        # of noise model, method, and config gates is expensive.
+        self._cached_basis_gates = self._DEFAULT_BASIS_GATES
+
         super().__init__(configuration,
                          properties=properties,
                          available_methods=QasmSimulator._AVAILABLE_METHODS,
@@ -445,13 +449,13 @@ class QasmSimulator(AerBackend):
         Returns:
             BackendConfiguration: the configuration for the backend.
         """
+        config = copy.copy(self._configuration)
+        for key, val in self._options_configuration.items():
+            setattr(config, key, val)
         # Update basis gates based on custom options, config, method,
         # and noise model
-        basis_gates = self._basis_gates()
-        custom_inst = self._custom_instructions()
-        config = super().configuration()
-        config.custom_instructions = custom_inst
-        config.basis_gates = basis_gates + custom_inst
+        config.custom_instructions = self._custom_instructions()
+        config.basis_gates = self._cached_basis_gates + config.custom_instructions
         return config
 
     def _execute(self, qobj):
@@ -467,15 +471,22 @@ class QasmSimulator(AerBackend):
 
     def set_options(self, **fields):
         out_options = {}
+        update_basis_gates = False
         for key, value in fields.items():
             if key == 'method':
                 self._set_method_config(value)
+                update_basis_gates = True
+                out_options[key] = value
+            elif key in ['noise_model', 'basis_gates']:
+                update_basis_gates = True
                 out_options[key] = value
             elif key == 'custom_instructions':
                 self._set_configuration_option(key, value)
             else:
                 out_options[key] = value
         super().set_options(**out_options)
+        if update_basis_gates:
+            self._cached_basis_gates = self._basis_gates()
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.
@@ -511,21 +522,22 @@ class QasmSimulator(AerBackend):
         if 'basis_gates' in self._options_configuration:
             return self._options_configuration['basis_gates']
 
-        # Set basis gates to be the intersection of config, method, and noise model
-        # basis gates
+        # Compute intersection with method basis gates
+        method_gates = self._method_basis_gates()
         config_gates = self._configuration.basis_gates
-        basis_gates = set(config_gates)
-        if self._options.noise_model:
-            noise_gates = self._options.noise_model.basis_gates
+        if config_gates:
+            basis_gates = set(config_gates).intersection(
+                method_gates)
+        else:
+            basis_gates = method_gates
+
+        # Compute intersection with noise model basis gates
+        noise_model = getattr(self.options, 'noise_model', None)
+        if noise_model:
+            noise_gates = noise_model.basis_gates
             basis_gates = basis_gates.intersection(noise_gates)
         else:
             noise_gates = None
-
-        if self._options.method:
-            method_gates = self._method_basis_gates()
-            basis_gates = basis_gates.intersection(method_gates)
-        else:
-            method_gates = None
 
         if not basis_gates:
             logger.warning(
@@ -548,19 +560,19 @@ class QasmSimulator(AerBackend):
         if method == 'matrix_product_state':
             return sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
-                'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay',
+                'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay', 'pauli',
                 'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
                 'initialize'
             ])
         if method == 'stabilizer':
             return sorted([
                 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'cx', 'cy', 'cz',
-                'swap', 'delay',
+                'swap', 'delay', 'pauli'
             ])
         if method == 'extended_stabilizer':
             return sorted([
                 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx',
-                'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay'
+                'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay', 'pauli'
             ])
         return QasmSimulator._DEFAULT_BASIS_GATES
 
@@ -591,7 +603,8 @@ class QasmSimulator(AerBackend):
                 'roerror', 'snapshot', 'kraus', 'save_expval', 'save_expval_var',
                 'save_probabilities', 'save_probabilities_dict',
                 'save_density_matrix', 'save_state', 'save_statevector',
-                'save_amplitudes', 'save_amplitudes_sq', 'save_matrix_product_state'])
+                'save_amplitudes', 'save_amplitudes_sq', 'save_matrix_product_state',
+                'set_matrix_product_state'])
         if method == 'stabilizer':
             return sorted([
                 'roerror', 'snapshot', 'save_expval', 'save_expval_var',
@@ -600,8 +613,7 @@ class QasmSimulator(AerBackend):
                 'set_stabilizer'
             ])
         if method == 'extended_stabilizer':
-            return sorted(['roerror', 'snapshot', 'save_statevector',
-                           'save_expval', 'save_expval_var'])
+            return sorted(['roerror', 'snapshot', 'save_statevector'])
         return QasmSimulator._DEFAULT_CUSTOM_INSTR
 
     def _set_method_config(self, method=None):

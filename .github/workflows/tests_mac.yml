@@ -1,9 +1,9 @@
 name: Tests MacOS
 on:
   push:
-    branches: [master, 'stable/*']
+    branches: [main, 'stable/*']
   pull_request:
-    branches: [master, 'stable/*']
+    branches: [main, 'stable/*']
 jobs:
   lint:
     runs-on: macOS-latest
@@ -77,7 +77,7 @@ jobs:
   tests:
     runs-on: ${{ matrix.os }}
     needs: [sdist, lint]
-    timeout-minutes: 40
+    timeout-minutes: 60
     strategy:
       matrix:
         python-version: [3.6, 3.7, 3.8, 3.9]
@@ -130,7 +130,7 @@ jobs:
   tests-json-input:
     runs-on: ${{ matrix.os }}
     needs: [sdist, lint]
-    timeout-minutes: 45
+    timeout-minutes: 60
     strategy:
       matrix:
         python-version: [3.9]

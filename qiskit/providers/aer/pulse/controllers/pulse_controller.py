@@ -140,7 +140,7 @@ def pulse_controller(qobj):
     if qubit_lo_freq is None:
         qubit_lo_freq = system_model.hamiltonian.get_qubit_lo_from_drift()
         warn('Warning: qubit_lo_freq was not specified in PulseQobj and there is no default, '
-             'so it is beign automatically determined from the drift Hamiltonian.')
+             'so it is being automatically determined from the drift Hamiltonian.')
 
     pulse_de_model.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
     pulse_de_model.calculate_channel_frequencies = system_model.calculate_channel_frequencies
@@ -201,6 +201,13 @@ def pulse_controller(qobj):
 
         if not exp['can_sample']:
             pulse_sim_desc.can_sample = False
+
+    # trim measurement operators to relevant qubits once constructed
+    meas_ops_reduced = []
+    for op in pulse_sim_desc.measurement_ops:
+        if op is not None:
+            meas_ops_reduced.append(op)
+    pulse_sim_desc.measurement_ops = meas_ops_reduced
 
     run_experiments = (run_unitary_experiments if pulse_sim_desc.can_sample
                        else run_monte_carlo_experiments)
@@ -390,7 +397,7 @@ class PulseInternalDEModel:
             H_noise = Operator(np.zeros(self.noise[0].data.shape))
             for kk in range(self.c_num):
                 c_op = self.noise[kk]
-                n_op = c_op.adjoint() @ c_op
+                n_op = c_op.adjoint() & c_op
                 # collapse ops
                 self.c_ops_data.append(c_op.data)
                 # norm ops

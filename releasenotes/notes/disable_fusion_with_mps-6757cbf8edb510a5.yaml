@@ -1,0 +1,8 @@
+---
+
+fixes:
+  - |
+    Disabled fusion when using the MPS simulation method, even when fusion is 
+    enabled in the config. Fusion does not run correctly on MPS so should
+    always be disabled. See issue #1253 for an example.
+

@@ -1,9 +1,9 @@
 name: Tests Windows
 on:
   push:
-    branches: [master, 'stable/*']
+    branches: [main, 'stable/*']
   pull_request:
-    branches: [master, 'stable/*']
+    branches: [main, 'stable/*']
 jobs:
   lint:
     runs-on: windows-latest
@@ -83,7 +83,7 @@ jobs:
   tests:
     runs-on: ${{ matrix.os }}
     needs: ["lint"]
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       matrix:
         python-version: [3.6, 3.7, 3.8, 3.9]
@@ -128,7 +128,7 @@ jobs:
   tests-json-input:
     runs-on: ${{ matrix.os }}
     needs: ["lint"]
-    timeout-minutes: 45
+    timeout-minutes: 60
     strategy:
       matrix:
         python-version: [3.9]
