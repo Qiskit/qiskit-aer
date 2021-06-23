@@ -16,6 +16,8 @@
 #ifndef _aer_matrix_product_state_hpp_
 #define _aer_matrix_product_state_hpp_
 
+#include <cstdarg>
+
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
 #include "framework/operations.hpp"
@@ -93,6 +95,31 @@ public:
   bool empty() const {
     return(num_qubits_ == 0);
   }
+
+  // the following 3 static methods are used as a reporting mechanism
+  // for MPS debug data
+  static void clear_log() {
+    logging_str_.clear();
+  }
+
+  static void print_to_log() {  // Base function for recursive function
+  }
+
+  template<typename T, typename... Targs>
+  static void print_to_log(const T &value, const Targs & ... Fargs) {
+    if (mps_log_data_) {
+      logging_str_ << value;
+      MPS::print_to_log(Fargs...); // recursive call
+    }
+  }
+
+  static std::string output_log() {
+    if (mps_log_data_)
+      return logging_str_.str();
+    else
+      return "";
+  }
+  
 
   /////////////////////////////////////////////////////////////////
   // API functions
@@ -233,6 +260,10 @@ public:
     enable_gate_opt_ = enable_gate_opt;
   }
 
+  static void set_mps_log_data(bool mps_log_data) {
+    mps_log_data_ = mps_log_data;
+  }
+
   static uint_t get_omp_threads() {
     return omp_threads_;
   }
@@ -248,6 +279,10 @@ public:
 
   static bool get_enable_gate_opt() {
     return enable_gate_opt_;
+  }
+
+  static bool get_mps_log_data() {
+    return mps_log_data_;
   }
 
   //----------------------------------------------------------------
@@ -469,6 +504,8 @@ private:
   static double json_chop_threshold_;  // Threshold for choping small values
                                     // in JSON serialization
   static bool enable_gate_opt_;      // allow optimizations on gates
+  static std::stringstream logging_str_;
+  static bool mps_log_data_;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
