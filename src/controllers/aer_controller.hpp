@@ -628,18 +628,9 @@ bool Controller::multiple_chunk_required(const Circuit &circ,
   return false;
 }
 
-size_t Controller::get_system_memory_mb() {
-  size_t total_physical_memory = 0;
-#if defined(__linux__) || defined(__APPLE__)
-  auto pages = sysconf(_SC_PHYS_PAGES);
-  auto page_size = sysconf(_SC_PAGE_SIZE);
-  total_physical_memory = pages * page_size;
-#elif defined(_WIN64) || defined(_WIN32)
-  MEMORYSTATUSEX status;
-  status.dwLength = sizeof(status);
-  GlobalMemoryStatusEx(&status);
-  total_physical_memory = status.ullTotalPhys;
-#endif
+size_t Controller::get_system_memory_mb() 
+{
+  size_t total_physical_memory = Utils::get_system_memory_mb();
 #ifdef AER_MPI
   // get minimum memory size per process
   uint64_t locMem, minMem;

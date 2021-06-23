@@ -746,7 +746,7 @@ auto StateChunk<state_t>::apply_to_matrix(bool copy)
   uint_t num_threads = qregs_[0].get_omp_threads();
 
   size_t size_matrix = sizeof(std::complex<double>) << (num_qubits_*2 - 20);
-  if(size_matrix > Utils::get_free_system_memory_mb()){
+  if(size_matrix/2 > Utils::get_system_memory_mb()){
     throw std::runtime_error(std::string("There is not enough memory to store states as matrix"));
   }
 
@@ -1483,7 +1483,7 @@ void StateChunk<state_t>::gather_state(std::vector<std::complex<data_t>>& state)
     MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,distributed_comm_);
 
     if(distributed_rank_ == 0){
-      if((global_size >> 20) > Utils::get_free_system_memory_mb()){
+      if((global_size >> 21) > Utils::get_system_memory_mb()){
         throw std::runtime_error(std::string("There is not enough memory to gather state"));
       }
 
@@ -1523,7 +1523,7 @@ void StateChunk<state_t>::gather_state(AER::Vector<std::complex<data_t>>& state)
     MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,distributed_comm_);
 
     if(distributed_rank_ == 0){
-      if((global_size >> 20) > Utils::get_free_system_memory_mb()){
+      if((global_size >> 21) > Utils::get_system_memory_mb()){
         throw std::runtime_error(std::string("There is not enough memory to gather state"));
       }
 

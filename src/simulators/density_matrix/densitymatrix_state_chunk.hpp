@@ -996,7 +996,7 @@ cmatrix_t State<densmat_t>::reduced_density_matrix_helper(const reg_t &qubits,
   uint_t num_threads = BaseState::qregs_[0].get_omp_threads();
 
   size_t size_matrix = sizeof(std::complex<double>) << (qubits.size()*2 - 20);
-  if(size_matrix > Utils::get_free_system_memory_mb()){
+  if(size_matrix/2 > Utils::get_system_memory_mb()){
     throw std::runtime_error(std::string("There is not enough memory to store density matrix"));
   }
   cmatrix_t reduced_state(1ull << qubits.size(),1ull << qubits.size(),true);

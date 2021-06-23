@@ -488,7 +488,7 @@ auto State<statevec_t>::move_to_vector()
   }
   else{
     size_t size_vector = sizeof(std::complex<double>) << (BaseState::num_qubits_ - 20);
-    if(size_vector > Utils::get_free_system_memory_mb()){
+    if(size_vector/2 > Utils::get_system_memory_mb()){
       throw std::runtime_error(std::string("There is not enough memory to store states"));
     }
     else{
@@ -521,7 +521,7 @@ auto State<statevec_t>::copy_to_vector()
   }
   else{
     size_t size_vector = sizeof(std::complex<double>) << (BaseState::num_qubits_ - 20);
-    if(size_vector > Utils::get_free_system_memory_mb()){
+    if(size_vector/2 > Utils::get_system_memory_mb()){
       throw std::runtime_error(std::string("There is not enough memory to store states"));
     }
     else{
