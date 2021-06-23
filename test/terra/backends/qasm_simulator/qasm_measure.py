@@ -224,4 +224,4 @@ class QasmMPSMeasureAlgorithms:
         
         self.assertDictAlmostEqual(result1.get_counts(circuit),
                                    result2.get_counts(circuit),
-                                   delta=0.05 * shots)
+                                   delta=0.1 * shots)
