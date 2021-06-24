@@ -1,5 +1,5 @@
 ---
-upgrade:
+other:
   - |
     Performance improvement in algorithm for measure in MPS: when all qubits are 
     measured, no need to propagate the effect of measuring a single qubit to
