@@ -18,6 +18,7 @@ from typing import List, Optional, Union, Tuple, Iterable
 import time
 import logging
 import copy
+import datetime
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.pulse import Schedule
@@ -65,6 +66,8 @@ class AerJobSet(Job):
         self._results = None
         self._fn = func
         self._executor = executor
+        self._start_time = None
+        self._end_time = None
 
     def submit(self):
         """Execute this set of jobs on an executor.
@@ -77,11 +80,13 @@ class AerJobSet(Job):
                 'The jobs for this managed job set have already been submitted.')
 
         self._future = True
+        self._start_time = datetime.datetime.now()
         for i, exp in enumerate(self._experiments):
             job_id = exp.qobj_id
             logger.debug("Job %s submitted", i + 1)
             aer_job = AerJob(self._backend, job_id, self._fn, exp)
             aer_job.submit(self._executor)
+            aer_job._future.add_done_callback(self._set_end_time)
             self._futures.append(aer_job)
 
     @requires_submit
@@ -244,6 +249,11 @@ class AerJobSet(Job):
             if each_result is not None:
                 combined_result.results.extend(each_result.results)
 
+        _time_taken = self._end_time - self._start_time
+        combined_result_dict = combined_result.to_dict()
+        combined_result_dict["time_taken"] = _time_taken.total_seconds()
+        combined_result_dict["date"] = datetime.datetime.isoformat(self._end_time)
+        combined_result = Result.from_dict(combined_result_dict)
         return combined_result
 
     @requires_submit
@@ -335,3 +345,12 @@ class AerJobSet(Job):
             return aer_jobs
         else:
             return self._futures
+
+    def _set_end_time(self, future):
+        """Set job's end time to calculate "time_taken" value
+
+        Args:
+            future(concurrent.futures or dask.distributed.futures): callback future object
+        """
+        # pylint: disable=unused-argument
+        self._end_time = datetime.datetime.now()
