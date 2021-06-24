@@ -64,7 +64,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         tqc = transpile(qc, pulse_sim)
         result = pulse_sim.run(tqc, shots=1024).result()
         self.assertDictAlmostEqual(result.get_counts(0), {'0': 512, '1': 512},
-                                   delta=100)
+                                   delta=128)
 
     def test_multiple_circuit_conversion(self):
         pulse_sim = PulseSimulator.from_backend(FakeArmonk())
@@ -79,7 +79,7 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.assertEqual(5, len(counts))
         for i in range(5):
             self.assertDictAlmostEqual(result.get_counts(i), {'0': 512, '1': 512},
-                                       delta=100)
+                                       delta=128)
 
     # ---------------------------------------------------------------------
     # Test single qubit gates
