@@ -19,6 +19,8 @@ import logging
 from warnings import warn
 from numpy import inf
 
+from qiskit.circuit import QuantumCircuit
+from qiskit.compiler import schedule
 from qiskit.providers.options import Options
 from qiskit.providers.models import BackendConfiguration, PulseDefaults
 from qiskit.utils import deprecate_arguments
@@ -239,6 +241,16 @@ class PulseSimulator(AerBackend):
                 validate = args[0]
                 if len(args) > 1:
                     backend_options = args[1]
+        if isinstance(qobj, list):
+            new_qobj = []
+            for circuit in qobj:
+                if isinstance(circuit, QuantumCircuit):
+                    new_qobj.append(schedule(circuit, self))
+                else:
+                    new_qobj.append(circuit)
+            qobj = new_qobj
+        elif isinstance(qobj, QuantumCircuit):
+            qobj = schedule(qobj, self)
         return super().run(qobj, backend_options=backend_options, validate=validate,
                            **run_options)
 
