@@ -538,7 +538,13 @@ void Controller::clear_parallelization() {
 
 void Controller::set_parallelization_experiments(
     const std::vector<Circuit> &circuits,
-    const std::vector<Noise::NoiseModel> &noise) {
+    const std::vector<Noise::NoiseModel> &noise) 
+{
+  if(circuits.size() == 1){
+    parallel_experiments_ = 1;
+    return;
+  }
+
   // Use a local variable to not override stored maximum based
   // on currently executed circuits
   const auto max_experiments =
@@ -546,7 +552,7 @@ void Controller::set_parallelization_experiments(
           ? std::min({max_parallel_experiments_, max_parallel_threads_})
           : max_parallel_threads_;
 
-  if (max_experiments == 1 && num_processes_ == 1) {
+  if (max_experiments == 1) {
     // No parallel experiment execution
     parallel_experiments_ = 1;
     return;
@@ -577,8 +583,8 @@ void Controller::set_parallelization_experiments(
 }
 
 void Controller::set_parallelization_circuit(const Circuit &circ,
-                                             const Noise::NoiseModel &noise) {
-
+                                             const Noise::NoiseModel &noise) 
+{
   // Use a local variable to not override stored maximum based
   // on currently executed circuits
   const auto max_shots =

@@ -217,9 +217,6 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
       return;
     }
 
-    result.metadata.add(true, "cacheblocking", "enabled");
-    result.metadata.add(block_bits_, "cacheblocking", "block_bits");
-
     qubitMap_.resize(qubits_);
     qubitSwapped_.resize(qubits_);
 
@@ -229,6 +226,11 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
     }
 
     blocking_enabled_ = block_circuit(circ,true);
+
+    if(blocking_enabled_){
+      result.metadata.add(true, "cacheblocking", "enabled");
+      result.metadata.add(block_bits_, "cacheblocking", "block_bits");
+    }
   }
 
   if(gpu_blocking_bits_ > 0){
@@ -307,7 +309,7 @@ bool CacheBlocking::can_reorder(Operations::Op& op,std::vector<Operations::Op>& 
   uint_t j,iq,jq;
 
   //only gate and matrix can be reordered
-  if(op.type != Operations::OpType::gate && op.type != Operations::OpType::matrix){
+  if(op.type != Operations::OpType::gate && op.type != Operations::OpType::matrix && op.type != Operations::OpType::diagonal_matrix){
     //except for reset for density matrix
     if(!density_matrix_ || op.type != Operations::OpType::reset){
       return false;
@@ -341,20 +343,22 @@ bool CacheBlocking::block_circuit(Circuit& circ,bool doSwap) const
   n = add_ops(circ.ops,out,queue,doSwap,true);
   while(queue.size() > 0){
     n = add_ops(queue,out,queue_next,doSwap,false);
+
     queue = queue_next;
     queue_next.clear();
-    if(n == 0){
+    if(n == 0)
       break;
-    }
   }
 
-  if(queue.size() > 0)
+  if(queue.size() > 0){
     return false;
+  }
 
   if(save_state_)
     restore_qubits_order(out);
 
   circ.ops = out;
+
   return true;
 }
 
@@ -479,12 +483,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
       }
     }
     else{
-      //add multi-qubits gate at first
-      define_blocked_qubits(ops,blockedQubits,true);
-
-      //not enough qubits are blocked, then add one qubit gate
-      if(blockedQubits.size() < block_bits_)
-        define_blocked_qubits(ops,blockedQubits,false);
+      define_blocked_qubits(ops,blockedQubits,false);
     }
 
     pos_begin = out.size();
