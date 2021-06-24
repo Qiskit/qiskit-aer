@@ -575,7 +575,7 @@ bool Controller::multiple_chunk_required(const Circuit &circ,
   if(circ.num_qubits < 3)
     return false;
 
-  if(num_process_per_experiment_ > 1 || Controller::get_min_memory_mb() < required_memory_mb(circ, noise))
+  if(num_process_per_experiment_ > 1 && Controller::get_min_memory_mb() < required_memory_mb(circ, noise))
     return true;
 
   if(cache_block_qubit_ >= 2 && cache_block_qubit_ < circ.num_qubits)
