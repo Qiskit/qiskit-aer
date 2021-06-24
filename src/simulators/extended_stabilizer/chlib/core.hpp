@@ -120,6 +120,9 @@ struct scalar_t {
     }
     std::complex<double> mag(std::pow(2, p/(double)2), 0.);
     std::complex<double> phase(RE_PHASE[e], IM_PHASE[e]);
+    if(e % 2){
+      phase /= std::sqrt(2);
+    }
     return mag*phase;
   }
 

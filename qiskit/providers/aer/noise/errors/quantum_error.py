@@ -273,7 +273,7 @@ class QuantumError:
             position (int): the position of the error term.
 
         Returns:
-            tuple: A pair `(p, circuit)` for error term at `position` < size
+            tuple: A pair `(circuit, p)` for error term at `position` < size
             where `p` is the probability of the error term, and `circuit`
             is the list of qobj instructions for the error term.
 
