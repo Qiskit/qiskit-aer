@@ -138,4 +138,4 @@ def fock_dm(dim, n=0):
         Operator: Density matrix Operator representation of Fock state.
     """
     psi = basis(dim, n)
-    return psi * psi.adjoint()
+    return psi.adjoint() & psi

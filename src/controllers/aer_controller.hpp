@@ -1761,8 +1761,8 @@ Transpile::Fusion Controller::transpile_fusion(Method method,
     break;
   }
   case Method::matrix_product_state: {
-    // Disable fusion by default, but allow it to be enabled by config settings
     fusion_pass.active = false;
+    return fusion_pass;  // Do not allow the config to set active for MPS
   }
   case Method::statevector: {
     if (fusion_pass.allow_kraus) {
@@ -1903,7 +1903,6 @@ void Controller::run_circuit_helper(const Circuit &circ,
   } else {
     result.metadata.add("CPU", "device");
   }
-  state.add_metadata(result);
 
   // Add measure sampling to metadata
   // Note: this will set to `true` if sampling is enabled for the circuit
@@ -1937,12 +1936,14 @@ void Controller::run_circuit_helper(const Circuit &circ,
   else {
     run_circuit_with_sampled_noise(circ, noise, config, shots, state, method,
                                    cache_blocking, result, rng);
+    state.add_metadata(result);
     return;
   }
 
   // Run multishot simulation without noise sampling
   run_circuit_without_sampled_noise(opt_circ, config, shots, state,
                                     method, cache_blocking, result, rng);
+  state.add_metadata(result);
 }
 
 template <class State_t>
@@ -1972,7 +1973,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
   auto fusion_pass = transpile_fusion(method, circ.opset(), config);
   fusion_pass.optimize_circuit(circ, dummy_noise, state.opset(), result);
-  
+
   // Check if measure sampling supported
   const bool can_sample = check_measure_sampling_opt(circ, method);
   
@@ -2041,7 +2042,7 @@ void Controller::run_circuit_with_sampled_noise(
     measure_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
                                   result);
     fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
-                                 result);
+				 result);
     uint_t block_bits = 0;
     if (cache_blocking) {
       cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),

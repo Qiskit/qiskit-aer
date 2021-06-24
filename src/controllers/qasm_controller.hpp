@@ -903,8 +903,8 @@ Transpile::Fusion QasmController::transpile_fusion(Method method,
       break;
     }
     case Method::matrix_product_state: {
-      // Disable fusion by default, but allow it to be enabled by config settings
       fusion_pass.active = false;
+      return fusion_pass; // Do not allow the config to set active for MPS
     }
     case Method::statevector:
     case Method::statevector_thrust_gpu:
@@ -1051,7 +1051,6 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   // Output data container
   result.set_config(config);
   result.metadata.add(state.name(), "method");
-  state.add_metadata(result);
 
   // Add measure sampling to metadata
   // Note: this will set to `true` if sampling is enabled for the circuit
@@ -1087,6 +1086,7 @@ void QasmController::run_circuit_helper(const Circuit& circ,
   else {
     run_circuit_with_sampled_noise(circ, noise, config, shots, state,
                                    initial_state, method, result, rng);
+    state.add_metadata(result);
     return;
   }
 
@@ -1115,6 +1115,7 @@ void QasmController::run_circuit_helper(const Circuit& circ,
 
   // Run simulation
   run_multi_shot(opt_circ, shots, state, initial_state, method, result, rng);
+  state.add_metadata(result);
 }
 
 template <class State_t, class Initstate_t>

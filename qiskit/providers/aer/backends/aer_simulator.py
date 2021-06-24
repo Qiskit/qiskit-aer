@@ -307,6 +307,9 @@ class AerSimulator(AerBackend):
       number of qubits, and low entanglement. If the user does not specify the algorithm,
       a heuristic algorithm is used to select between the two algorithms.
       (Default: "mps_heuristic").
+    * ``mps_log_data`` (str): if True, output logging data of the MPS
+      structure: bond dimensions and values discarded during approximation.
+      (Default: False)
 
     These backend options apply in circuit optimization passes:
 
@@ -338,17 +341,17 @@ class AerSimulator(AerBackend):
         ]),
         'matrix_product_state': sorted([
             'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
-            'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay',
+            'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay', 'pauli',
             'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
             'initialize'
         ]),
         'stabilizer': sorted([
             'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'cx', 'cy', 'cz',
-            'swap', 'delay',
+            'swap', 'delay', 'pauli'
         ]),
         'extended_stabilizer': sorted([
             'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx',
-            'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay'
+            'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay', 'pauli'
         ]),
         'unitary': sorted([
             'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
@@ -362,7 +365,7 @@ class AerSimulator(AerBackend):
             'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
             'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
             'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy',
-            'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'delay',
+            'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'delay', 'pauli'
         ])
     }
     # Automatic method basis gates are the union of statevector,
@@ -528,6 +531,7 @@ class AerSimulator(AerBackend):
             matrix_product_state_truncation_threshold=1e-16,
             matrix_product_state_max_bond_dimension=None,
             mps_sample_measure_algorithm='mps_heuristic',
+            mps_log_data=False,
             chop_threshold=1e-8,
             mps_parallel_threshold=14,
             mps_omp_threads=1)
