@@ -1674,7 +1674,6 @@ void Controller::run_circuit_helper(const Circuit &circ,
   } else {
     result.metadata.add("CPU", "device");
   }
-  state.add_metadata(result);
 
   // Add measure sampling to metadata
   // Note: this will set to `true` if sampling is enabled for the circuit
@@ -1708,12 +1707,14 @@ void Controller::run_circuit_helper(const Circuit &circ,
   else {
     run_circuit_with_sampled_noise(circ, noise, config, shots, state, method,
                                    cache_blocking, result, rng);
+    state.add_metadata(result);
     return;
   }
 
   // Run multishot simulation without noise sampling
   run_circuit_without_sampled_noise(opt_circ, config, shots, state,
                                     method, cache_blocking, result, rng);
+  state.add_metadata(result);
 }
 
 template <class State_t>
