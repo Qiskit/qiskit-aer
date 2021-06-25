@@ -180,7 +180,6 @@ def save_specific_probability(self, states, qubits, label="specific_probability"
     Args:
         states (list): list of ints indicating the outcome to compute the probability for
         qubits (list): list of ints indicating which qubits the measurement is on
-        num_qubits (int): the number of qubits for the snapshot type.
         label (str): the key for retrieving saved data from results.
         pershot (bool): if True save a list of probabilities for each shot
                         of the simulation rather than the average over
@@ -193,11 +192,13 @@ def save_specific_probability(self, states, qubits, label="specific_probability"
         we compute the probability of 0 on qubit 0, 1 on qubit 1 and 0 on qubit 2
         if states = [0,1], qubits = [5,1]
         we compute the probability of 0 on qubit 5 and 1 on qubit 0
+
+    Returns:
+        QuantumCircuit: with attached instruction.
     """
     if qubits is None:
         qubits = default_qubits(self)
     instr = SaveSpecificProbability(len(qubits), states, qubits, label=label,
-                                    unnormalized=unnormalized,
                                     pershot=pershot,
                                     conditional=conditional)
     return self.append(instr, qubits)
