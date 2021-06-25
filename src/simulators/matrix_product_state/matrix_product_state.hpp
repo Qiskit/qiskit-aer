@@ -1096,16 +1096,21 @@ std::vector<reg_t> State::
   sample_measure_using_apply_measure(const reg_t &qubits, 
 				     uint_t shots, 
 				     RngEngine &rng) const {
-  MPS temp;
+
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
-  reg_t single_result;
 
-  for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
-    temp.initialize(qreg_);
-    single_result = temp.apply_measure(qubits, rng);
-    all_samples[i] = single_result;
+#pragma omp parallel if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
+  {
+    MPS temp;
+#pragma omp for
+    for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
+      temp.initialize(qreg_);
+      auto single_result = temp.apply_measure(qubits, rng);
+      all_samples[i] = single_result;
+    }
   }
+
   return all_samples;
 }
 
