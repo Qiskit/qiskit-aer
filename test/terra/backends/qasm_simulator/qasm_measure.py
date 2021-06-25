@@ -15,10 +15,11 @@ QasmSimulator Integration Tests
 
 from test.terra.reference import ref_measure
 from qiskit.compiler import assemble
+from qiskit import execute
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import ReadoutError, depolarizing_error
-
+from qiskit.circuit.library import QuantumVolume
 
 class QasmMeasureTests:
     """QasmSimulator measure tests."""
@@ -195,3 +196,32 @@ class QasmMultiQubitMeasureTests:
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
         self.compare_result_metadata(result, circuits, "measure_sampling", False)
+
+class QasmMPSMeasureAlgorithms:
+    """QasmSimulator MPS algorithms for measure tests."""
+
+    SIMULATOR = QasmSimulator()
+    BACKEND_OPTS1 = {"mps_sample_measure_algorithm":"mps_apply_measure"}
+    BACKEND_OPTS2 = {"mps_sample_measure_algorithm":"mps_probabilities"}
+
+    # ---------------------------------------------------------------------
+    # Test MPS algorithms for measure
+    # ---------------------------------------------------------------------
+    def test_mps_measure_alg_qv(self):
+        """Test MPS measure algorithms with quantum volume"""
+        shots = 1000
+        n = 5
+        depth = 2
+        circuit = QuantumVolume(n, depth, seed=9)
+        circuit.measure_all()
+        result1 = execute(circuit, self.SIMULATOR, shots=shots,
+                         **self.BACKEND_OPTS1).result()
+        self.assertTrue(getattr(result1, 'success', 'True'))
+        
+        result2 = execute(circuit, self.SIMULATOR, shots=shots,
+                         **self.BACKEND_OPTS2).result()
+        self.assertTrue(getattr(result2, 'success', 'True'))
+        
+        self.assertDictAlmostEqual(result1.get_counts(circuit),
+                                   result2.get_counts(circuit),
+                                   delta=0.1 * shots)
