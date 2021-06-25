@@ -95,9 +95,9 @@ class SaveSpecificProbability(SaveAverageData):
                                 on the current classical register values
                                 [Default: False].
         e.g:
-        if states = [0,1,0], qubits = [0,1,2] 
+        if states = [0,1,0], qubits = [0,1,2]
         we compute the probability of the outcome 0 on qubit 0, 1 on qubit 1 and 0 on qubit 2
-        if states = [0,1], qubits = [5,1] 
+        if states = [0,1], qubits = [5,1]
         we compute the probability of the outcome 0 on qubit 5 and 1 on qubit 0
         """
         super().__init__("save_specific_prob", num_qubits, label,
@@ -189,9 +189,9 @@ def save_specific_probability(self, states, qubits, label="specific_probability"
                             on the current classical register values
                             [Default: False].
     e.g:
-        if states = [0,1,0], qubits = [0,1,2] 
+        if states = [0,1,0], qubits = [0,1,2]
         we compute the probability of 0 on qubit 0, 1 on qubit 1 and 0 on qubit 2
-        if states = [0,1], qubits = [5,1] 
+        if states = [0,1], qubits = [5,1]
         we compute the probability of 0 on qubit 5 and 1 on qubit 0
     """
     if qubits is None:
