@@ -745,8 +745,8 @@ auto StateChunk<state_t>::apply_to_matrix(bool copy)
   uint_t mask = (1ull << (chunk_bits_)) - 1;
   uint_t num_threads = qregs_[0].get_omp_threads();
 
-  size_t size_matrix = sizeof(std::complex<double>) << (num_qubits_*2 - 20);
-  if(size_matrix/2 > Utils::get_system_memory_mb()){
+  size_t size_required = 2*(sizeof(std::complex<double>) << (num_qubits_*2)) + (sizeof(std::complex<double>) << (chunk_bits_*2))*BaseState::num_local_chunks_;
+  if((size_required>>20) > Utils::get_system_memory_mb()){
     throw std::runtime_error(std::string("There is not enough memory to store states as matrix"));
   }
 
