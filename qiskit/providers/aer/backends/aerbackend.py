@@ -140,6 +140,9 @@ class AerBackend(Backend, ABC):
               ``backend_options`` taking precedence. This kwarg is deprecated
               and direct kwarg's should be used for options to pass them to
               ``run_options``.
+
+        Raises:
+            ValueError: if run is not implemented
         """
         # DEPRECATED
         if backend_options is not None:
