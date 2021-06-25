@@ -645,7 +645,7 @@ size_t Controller::get_system_memory_mb()
   total_physical_memory = minMem;
 #endif
 
-  return total_physical_memory >> 20;
+  return total_physical_memory;
 }
 
 size_t Controller::get_gpu_memory_mb() {
