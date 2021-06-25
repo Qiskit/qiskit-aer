@@ -487,8 +487,8 @@ auto State<statevec_t>::move_to_vector()
       return BaseState::qregs_[0].move_to_vector();
   }
   else{
-    size_t size_vector = sizeof(std::complex<double>) << (BaseState::num_qubits_ - 20);
-    if(size_vector/2 > Utils::get_system_memory_mb()){
+    size_t size_required = 2*(sizeof(std::complex<double>) << BaseState::num_qubits_) + (sizeof(std::complex<double>) << BaseState::chunk_bits_)*BaseState::num_local_chunks_;
+    if((size_required >> 20) > Utils::get_system_memory_mb()){
       throw std::runtime_error(std::string("There is not enough memory to store states"));
     }
     else{
@@ -520,8 +520,8 @@ auto State<statevec_t>::copy_to_vector()
     return BaseState::qregs_[0].copy_to_vector();
   }
   else{
-    size_t size_vector = sizeof(std::complex<double>) << (BaseState::num_qubits_ - 20);
-    if(size_vector/2 > Utils::get_system_memory_mb()){
+    size_t size_required = 2*(sizeof(std::complex<double>) << BaseState::num_qubits_) + (sizeof(std::complex<double>) << BaseState::chunk_bits_)*BaseState::num_local_chunks_;
+    if((size_required >> 20) > Utils::get_system_memory_mb()){
       throw std::runtime_error(std::string("There is not enough memory to store states"));
     }
     else{
