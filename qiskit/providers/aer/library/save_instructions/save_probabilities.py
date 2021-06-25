@@ -84,7 +84,7 @@ class SaveSpecificProbability(SaveAverageData):
         """Instruction to save specific probabilities.
 
         Args:
-            states (list): list of ints indicating which measurement outcome to compute the probability for.
+            states (list): list of ints indicating the outcome to compute the probability for.
             qubits (list): list of ints indicating which qubits the measurement is on.
             num_qubits (int): the number of qubits for the snapshot type.
             label (str): the key for retrieving saved data from results.
@@ -95,8 +95,10 @@ class SaveSpecificProbability(SaveAverageData):
                                 on the current classical register values
                                 [Default: False].
         e.g:
-        if states = [0,1,0], qubits = [0,1,2] we compute the probability of observing the outcome 0 on qubit 0, 1 on qubit 1 and 0 on qubit 2
-        if states = [0,1], qubits = [5,1] we compute the probability of observing the outcome 0 on qubit 5 and 1 on qubit 0
+        if states = [0,1,0], qubits = [0,1,2] 
+        we compute the probability of the outcome 0 on qubit 0, 1 on qubit 1 and 0 on qubit 2
+        if states = [0,1], qubits = [5,1] 
+        we compute the probability of the outcome 0 on qubit 5 and 1 on qubit 0
         """
         super().__init__("save_specific_prob", num_qubits, label,
                          pershot=pershot,
@@ -176,7 +178,7 @@ def save_specific_probability(self, states, qubits, label="specific_probability"
     """Instruction to save specific probabilities.
 
     Args:
-        states (list): list of ints indicating which measurement outcome to compute the probability for
+        states (list): list of ints indicating the outcome to compute the probability for
         qubits (list): list of ints indicating which qubits the measurement is on
         num_qubits (int): the number of qubits for the snapshot type.
         label (str): the key for retrieving saved data from results.
@@ -187,8 +189,10 @@ def save_specific_probability(self, states, qubits, label="specific_probability"
                             on the current classical register values
                             [Default: False].
     e.g:
-        if states = [0,1,0], qubits = [0,1,2] we compute the probability of observing the outcome 0 on qubit 0, 1 on qubit 1 and 0 on qubit 2
-        if states = [0,1], qubits = [5,1] we compute the probability of observing the outcome 0 on qubit 5 and 1 on qubit 0
+        if states = [0,1,0], qubits = [0,1,2] 
+        we compute the probability of 0 on qubit 0, 1 on qubit 1 and 0 on qubit 2
+        if states = [0,1], qubits = [5,1] 
+        we compute the probability of 0 on qubit 5 and 1 on qubit 0
     """
     if qubits is None:
         qubits = default_qubits(self)
