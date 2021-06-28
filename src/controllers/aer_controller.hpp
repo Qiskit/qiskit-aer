@@ -749,12 +749,19 @@ bool Controller::multiple_chunk_required(const Circuit &circ,
   if (circ.num_qubits < 3)
     return false;
 
-  if (num_process_per_experiment_ > 1 &&
-      Controller::get_min_memory_mb() < required_memory_mb(circ, noise))
-    return true;
-
   if (cache_block_qubit_ >= 2 && cache_block_qubit_ < circ.num_qubits)
     return true;
+
+  if(num_process_per_experiment_ == 1 && sim_device_ == Device::GPU && num_gpus_ > 0)
+    return (max_gpu_memory_mb_ / num_gpus_ < required_memory_mb(circ, noise));
+
+  if(num_process_per_experiment_ > 1) {
+    size_t total_mem = max_memory_mb_;
+    if(sim_device_ == Device::GPU)
+      total_mem += max_gpu_memory_mb_;
+    if(total_mem * num_process_per_experiment_ > required_memory_mb(circ, noise))
+      return true;
+  }
 
   return false;
 }
