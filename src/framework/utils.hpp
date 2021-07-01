@@ -19,6 +19,7 @@
 #include <sstream>
 #include <cmath>
 #include <limits>
+#include <string>
 
 #include "framework/avx2_detect.hpp"
 #include "framework/types.hpp"
@@ -26,6 +27,16 @@
 #ifdef _MSC_VER
 #include <intrin.h>
 #endif
+
+#if defined(__linux__) || defined(__APPLE__)
+#include <unistd.h>
+#elif defined(_WIN64) || defined(_WIN32)
+// This is needed because windows.h redefine min()/max() so interferes with
+// std::min/max
+#define NOMINMAX
+#include <windows.h>
+#endif
+
 
 namespace AER {
 namespace Utils {
@@ -1260,6 +1271,23 @@ std::string int2string(uint_t n, uint_t base, uint_t minlen) {
   bool (*hamming_parity)(uint_t) = &_naive_parity;
   uint_t (*popcount)(uint_t) = &_naive_weight;
 #endif
+
+
+size_t get_system_memory_mb() 
+{
+  size_t total_physical_memory = 0;
+#if defined(__linux__) || defined(__APPLE__)
+  size_t pages = (size_t)sysconf(_SC_PHYS_PAGES);
+  size_t page_size = (size_t)sysconf(_SC_PAGE_SIZE);
+  total_physical_memory = pages * page_size;
+#elif defined(_WIN64) || defined(_WIN32)
+  MEMORYSTATUSEX status;
+  status.dwLength = sizeof(status);
+  GlobalMemoryStatusEx(&status);
+  total_physical_memory = status.ullTotalPhys;
+#endif
+  return total_physical_memory >> 20;
+}
 
 
 //------------------------------------------------------------------------------
