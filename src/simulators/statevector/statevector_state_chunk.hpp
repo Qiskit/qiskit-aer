@@ -510,7 +510,6 @@ auto State<statevec_t>::move_to_vector()
     else{
       int_t iChunk;
       auto state = BaseState::qregs_[0].move_to_vector();
-
       state.resize(BaseState::num_local_chunks_ << BaseState::chunk_bits_);
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk)

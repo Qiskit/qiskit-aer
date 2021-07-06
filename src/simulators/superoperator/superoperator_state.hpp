@@ -45,14 +45,14 @@ const Operations::OpSet StateOpSet(
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
      "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
-     "rzx",  "p",   "cp", "cu1", "sx", "x90", "delay"},
+     "rzx",  "p",   "cp", "cu1", "sx", "x90", "delay", "pauli"},
     // Snapshots
     {"superop"});
 
 // Allowed gates enum class
 enum class Gates {
   u2, u1, u3, id, x, y, z, h, s, sdg, sx, t, tdg, r, rx, ry, rz,
-  cx, cy, cz, cp, swap, rxx, ryy, rzz, rzx, ccx
+  cx, cy, cz, cp, swap, rxx, ryy, rzz, rzx, ccx, pauli
 };
 
 // Allowed snapshots enum class
@@ -147,6 +147,9 @@ protected:
   // Apply a Kraus error operation
   void apply_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &krausops);
 
+  // Apply an N-qubit Pauli gate
+  void apply_pauli(const reg_t &qubits, const std::string &pauli);
+
   //-----------------------------------------------------------------------
   // Multi-controlled u3
   //-----------------------------------------------------------------------
@@ -227,7 +230,8 @@ const stringmap_t<Gates> State<data_t>::gateset_({
     {"rzz", Gates::rzz},   // Pauli-ZZ rotation gate
     {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
     // Three-qubit gates
-    {"ccx", Gates::ccx} // Controlled-CX gate (Toffoli)
+    {"ccx", Gates::ccx}, // Controlled-CX gate (Toffoli)
+    {"pauli", Gates::pauli}  // Multiple pauli operations at once
 });
 
 //============================================================================
@@ -478,6 +482,9 @@ void State<data_t>::apply_gate(const Operations::Op &op) {
     case Gates::ccx:
       BaseState::qreg_.apply_toffoli(op.qubits[0], op.qubits[1], op.qubits[2]);
       break;
+    case Gates::pauli:
+      apply_pauli(op.qubits, op.string_params[0]);
+      break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument(
@@ -522,8 +529,18 @@ void State<data_t>::apply_snapshot(const Operations::Op &op,
   }
 }
 
-template <class densmat_t>
-void State<densmat_t>::apply_save_state(const Operations::Op &op,
+template <class statevec_t>
+void State<statevec_t>::apply_pauli(const reg_t &qubits,
+                                    const std::string &pauli) {
+  // Pauli as a superoperator is (-1)^num_y P\otimes P
+  complex_t coeff = (std::count(pauli.begin(), pauli.end(), 'Y') % 2) ? -1 : 1;
+  BaseState::qreg_.apply_pauli(
+      BaseState::qreg_.superop_qubits(qubits), pauli + pauli, coeff);
+}
+
+
+template <class statevec_t>
+void State<statevec_t>::apply_save_state(const Operations::Op &op,
                                         ExperimentResult &result,
                                         bool last_op) {
   if (op.qubits.size() != BaseState::qreg_.num_qubits()) {

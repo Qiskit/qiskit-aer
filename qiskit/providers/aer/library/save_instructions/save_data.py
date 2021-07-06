@@ -46,9 +46,6 @@ class SaveData(Instruction):
             The supported subtypes are 'single', 'list', 'c_list', 'average',
             'c_average', 'accum', 'c_accum'.
         """
-        if params is None:
-            params = {}
-
         if subtype not in self._allowed_subtypes:
             raise ExtensionError(
                 "Invalid data subtype for SaveData instruction.")
@@ -57,9 +54,13 @@ class SaveData(Instruction):
             raise ExtensionError(
                 f"Invalid label for save data instruction, {label} must be a string.")
 
+        if params is None:
+            params = {}
+
+        super().__init__(name, num_qubits, 0, params)
+
         self._label = label
         self._subtype = subtype
-        super().__init__(name, num_qubits, 0, params)
 
     def assemble(self):
         """Return the QasmQobjInstruction for the intructions."""

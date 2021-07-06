@@ -41,7 +41,7 @@ const Operations::OpSet StateOpSet(
     OpType::set_stabilizer},
   // Gates
   {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg",
-   "sx", "delay"},
+   "sx", "delay", "pauli"},
   // Snapshots
   {"stabilizer", "memory", "register", "probabilities",
     "probabilities_with_variance", "expectation_value_pauli",
@@ -49,7 +49,7 @@ const Operations::OpSet StateOpSet(
     "expectation_value_pauli_single_shot"}
 );
 
-enum class Gates {id, x, y, z, h, s, sdg, sx, cx, cy, cz, swap};
+enum class Gates {id, x, y, z, h, s, sdg, sx, cx, cy, cz, swap, pauli};
 
 // Allowed snapshots enum class
 enum class Snapshots {
@@ -119,6 +119,10 @@ protected:
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
   void apply_gate(const Operations::Op &op);
+
+  // Applies a sypported Gate operation to the state class.
+  // If the input is not in allowed_gates an exeption will be raised.
+  void apply_pauli(const reg_t &qubits, const std::string& pauli);
 
   // Measure qubits and return a list of outcomes [q0, q1, ...]
   // If a state subclass supports this function then "measure"
@@ -242,7 +246,8 @@ const stringmap_t<Gates> State::gateset_({
   {"cx", Gates::cx},    // Controlled-X gate (CNOT),
   {"cy", Gates::cy},    // Controlled-Y gate
   {"cz", Gates::cz},    // Controlled-Z gate
-  {"swap", Gates::swap} // SWAP gate
+  {"swap", Gates::swap},  // SWAP gate
+  {"pauli", Gates::pauli} // Pauli gate
 });
 
 const stringmap_t<Snapshots> State::snapshotset_({
@@ -417,10 +422,35 @@ void State::apply_gate(const Operations::Op &op) {
       BaseState::qreg_.append_cx(op.qubits[1], op.qubits[0]);
       BaseState::qreg_.append_cx(op.qubits[0], op.qubits[1]);
       break;
+    case Gates::pauli:
+      apply_pauli(op.qubits, op.string_params[0]);
+      break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument("Stabilizer::State::invalid gate instruction \'" +
                                   op.name + "\'.");
+  }
+}
+
+void State::apply_pauli(const reg_t &qubits, const std::string& pauli) {
+  const auto size = qubits.size();
+  for (size_t i = 0; i < qubits.size(); ++i) {
+    const auto qubit = qubits[size - 1 - i];
+    switch (pauli[i]) {
+      case 'I':
+        break;
+      case 'X':
+        BaseState::qreg_.append_x(qubit);
+        break;
+      case 'Y':
+        BaseState::qreg_.append_y(qubit);
+        break;
+      case 'Z':
+        BaseState::qreg_.append_z(qubit);
+        break;
+      default:
+        throw std::invalid_argument("invalid Pauli \'" + std::to_string(pauli[i]) + "\'.");
+    }
   }
 }
 

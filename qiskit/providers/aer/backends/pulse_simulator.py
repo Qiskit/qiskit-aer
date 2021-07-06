@@ -19,6 +19,8 @@ import logging
 from warnings import warn
 from numpy import inf
 
+from qiskit.circuit import QuantumCircuit
+from qiskit.compiler import schedule
 from qiskit.providers.options import Options
 from qiskit.providers.models import BackendConfiguration, PulseDefaults
 from qiskit.utils import deprecate_arguments
@@ -46,7 +48,8 @@ DEFAULT_CONFIGURATION = {
     'max_shots': int(1e6),
     'description': 'A Pulse-based Hamiltonian simulator for Pulse Qobj files',
     'gates': [],
-    'basis_gates': []
+    'basis_gates': [],
+    'parametric_pulses': []
 }
 
 
@@ -147,6 +150,7 @@ class PulseSimulator(AerBackend):
             configuration = copy.copy(configuration)
             configuration.meas_levels = self._meas_levels(configuration.meas_levels)
             configuration.open_pulse = True
+            configuration.parametric_pulses = []
 
         if defaults is None:
             defaults = PulseDefaults(qubit_freq_est=[inf],
@@ -237,6 +241,16 @@ class PulseSimulator(AerBackend):
                 validate = args[0]
                 if len(args) > 1:
                     backend_options = args[1]
+        if isinstance(qobj, list):
+            new_qobj = []
+            for circuit in qobj:
+                if isinstance(circuit, QuantumCircuit):
+                    new_qobj.append(schedule(circuit, self))
+                else:
+                    new_qobj.append(circuit)
+            qobj = new_qobj
+        elif isinstance(qobj, QuantumCircuit):
+            qobj = schedule(qobj, self)
         return super().run(qobj, backend_options=backend_options, validate=validate,
                            **run_options)
 

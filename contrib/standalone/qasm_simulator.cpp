@@ -99,6 +99,7 @@ int main(int argc, char **argv) {
 
 #ifdef AER_MPI
   int prov;
+  int nprocs=1;
   MPI_Init_thread(&argc,&argv,MPI_THREAD_MULTIPLE,&prov);
   MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);

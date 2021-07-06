@@ -374,7 +374,6 @@ protected:
   int myrank_ = 0;
   int num_processes_ = 1;
   uint_t num_process_per_experiment_;
-
   uint_t cache_block_qubit_ = 0;
 };
 
@@ -621,12 +620,11 @@ void Controller::set_parallelization_experiments(
       batched_experiments_ == true;
     }
   }
-
 }
 
 void Controller::set_parallelization_circuit(const Circuit &circ,
-                                             const Noise::NoiseModel &noise) {
-
+                                             const Noise::NoiseModel &noise) 
+{
   // Use a local variable to not override stored maximum based
   // on currently executed circuits
   const auto max_shots =
@@ -644,14 +642,14 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
     // And assign the remaining threads to state update
     int circ_memory_mb =
         required_memory_mb(circ, noise) / num_process_per_experiment_;
-    if (max_memory_mb_ + max_gpu_memory_mb_ < circ_memory_mb)
+    size_t mem_size = (sim_device_ == Device::GPU) ? max_memory_mb_ + max_gpu_memory_mb_ : max_memory_mb_;
+    if (mem_size < circ_memory_mb)
       throw std::runtime_error(
           "a circuit requires more memory than max_memory_mb.");
     // If circ memory is 0, set it to 1 so that we don't divide by zero
     circ_memory_mb = std::max<int>({1, circ_memory_mb});
 
     int shots = circ.shots;
-
     parallel_shots_ = std::min<int>(
         {static_cast<int>(max_memory_mb_ / circ_memory_mb), max_shots, shots});
   }
@@ -776,7 +774,9 @@ bool Controller::validate_memory_requirements(const state_t &state,
 
   size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) /
                        num_process_per_experiment_;
-  if (max_memory_mb_ + max_gpu_memory_mb_ < required_mb) {
+                                                
+  size_t mem_size = (sim_device_ == Device::GPU) ? max_memory_mb_ + max_gpu_memory_mb_ : max_memory_mb_;
+  if (mem_size < required_mb) {
     if (throw_except) {
       std::string name = "";
       JSON::get_value(name, "name", circ.header);
@@ -942,13 +942,6 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     // set
     result.metadata.add(num_processes_, "num_mpi_processes");
     result.metadata.add(myrank_, "mpi_rank");
-#ifdef AER_MPI
-    result.metadata.add(distributed_experiments_, "distributed_experiments");
-    result.metadata.add(distributed_experiments_group_id_,
-                        "distributed_experiments_group_id");
-    result.metadata.add(distributed_experiments_rank_,
-                        "distributed_experiments_rank_in_group");
-#endif
 
 #ifdef _OPENMP
     // Check if circuit parallelism is nested with one of the others
@@ -971,15 +964,12 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 #endif
     }
 #endif
-
     // then- and else-blocks have intentionally duplication.
     // Nested omp has significant overheads even though a guard condition
     // exists.
     const int NUM_RESULTS = result.results.size();
-
     run_circuits(circuits, circ_noise_models,
                         config, result);
-
     // Check each experiment result for completed status.
     // If only some experiments completed return partial completed status.
 
@@ -1571,8 +1561,8 @@ Transpile::Fusion Controller::transpile_fusion(Method method,
     break;
   }
   case Method::matrix_product_state: {
-    // Disable fusion by default, but allow it to be enabled by config settings
     fusion_pass.active = false;
+    return fusion_pass;  // Do not allow the config to set active for MPS
   }
   case Method::statevector: {
     if (fusion_pass.allow_kraus) {
@@ -1933,7 +1923,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
   auto fusion_pass = transpile_fusion(method, circ.opset(), config);
   fusion_pass.optimize_circuit(circ, dummy_noise, state.opset(), result);
-  
+
   // Check if measure sampling supported
   const bool can_sample = check_measure_sampling_opt(circ, method);
   

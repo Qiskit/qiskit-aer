@@ -821,6 +821,11 @@ auto StateChunk<state_t>::apply_to_matrix(bool copy)
   uint_t mask = (1ull << (chunk_bits_)) - 1;
   uint_t num_threads = qregs_[0].get_omp_threads();
 
+  size_t size_required = 2*(sizeof(std::complex<double>) << (num_qubits_*2)) + (sizeof(std::complex<double>) << (chunk_bits_*2))*num_local_chunks_;
+  if((size_required>>20) > Utils::get_system_memory_mb()){
+    throw std::runtime_error(std::string("There is not enough memory to store states as matrix"));
+  }
+
   auto matrix = qregs_[0].copy_to_matrix();
 
   size_t size_required = 2*(sizeof(std::complex<double>) << (num_qubits_*2)) + (sizeof(std::complex<double>) << (chunk_bits_*2))*num_local_chunks_;
@@ -829,7 +834,6 @@ auto StateChunk<state_t>::apply_to_matrix(bool copy)
   }
 
   if(distributed_rank_ == 0){
-    //TO DO check memory availability
     matrix.resize(1ull << (num_qubits_),1ull << (num_qubits_));
 
     auto tmp = qregs_[0].copy_to_matrix();
@@ -1286,6 +1290,7 @@ template <class state_t>
 void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
 {
   int_t iChunk;
+  uint_t nLarge = 1;
 
 
   if(qubit < chunk_bits_*qubit_scale()){
@@ -1563,6 +1568,10 @@ void StateChunk<state_t>::gather_state(std::vector<std::complex<data_t>>& state)
     }
 
     if(distributed_rank_ == 0){
+      if((global_size >> 21) > Utils::get_system_memory_mb()){
+        throw std::runtime_error(std::string("There is not enough memory to gather state"));
+      }
+
       state.resize(global_size);
 
       offset = 0;
@@ -1603,6 +1612,10 @@ void StateChunk<state_t>::gather_state(AER::Vector<std::complex<data_t>>& state)
     }
 
     if(distributed_rank_ == 0){
+      if((global_size >> 21) > Utils::get_system_memory_mb()){
+        throw std::runtime_error(std::string("There is not enough memory to gather state"));
+      }
+
       state.resize(global_size);
 
       offset = 0;

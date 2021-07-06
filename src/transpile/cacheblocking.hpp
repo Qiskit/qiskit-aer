@@ -365,6 +365,7 @@ bool CacheBlocking::block_circuit(Circuit& circ,bool doSwap) const
     restore_qubits_order(out);
 
   circ.ops = out;
+
   return true;
 }
 
