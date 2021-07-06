@@ -2,8 +2,8 @@
 :class:`SaveAmplitudes`,✔,✔,✘,✔,✘,✘,✘,✘
 :class:`SaveAmplitudesSquared`,✔,✔,✔,✔,✔,✘,✘,✘
 :class:`SaveDensityMatrix`,✔,✔,✔,✔,✘,✘,✘,✘
-:class:`SaveExpectationValue`,✔,✔,✔,✔,✔,✔,✘,✘
-:class:`SaveExpectationValueVariance`,✔,✔,✔,✔,✔,✔,✘,✘
+:class:`SaveExpectationValue`,✔,✔,✔,✔,✔,✘,✘,✘
+:class:`SaveExpectationValueVariance`,✔,✔,✔,✔,✔,✘,✘,✘
 :class:`SaveMatrixProductState`,✘,✘,✘,✔,✘,✘,✘,✘
 :class:`SaveProbabilities`,✔,✔,✔,✔,✔,✘,✘,✘
 :class:`SaveProbabilitiesDict`,✔,✔,✔,✔,✔,✘,✘,✘

@@ -359,6 +359,10 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits)
     }
   }
   else{   //multi-chunk distribution
+    for(i=0;i<BaseState::num_local_chunks_;i++){
+      //this function should be called in-order
+      BaseState::qregs_[i].set_num_qubits(BaseState::chunk_bits_);
+    }
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
     for(i=0;i<BaseState::num_local_chunks_;i++){
@@ -556,6 +560,39 @@ auto State<statevec_t>::copy_to_vector()
       BaseState::gather_state(state);
 #endif
       return state;
+    }
+  }
+}
+
+template <class statevec_t>
+complex_t State<statevec_t>::get_state(const uint_t idx)
+{
+  complex_t ret = 0.0;
+  if(BaseState::num_global_chunks_ == 1){
+    return BaseState::qregs_[0].get_state(idx);
+  }
+  else{
+    uint_t iChunk = idx >> BaseState::chunk_bits_;
+    if(BaseState::chunk_index_begin_[BaseState::distributed_rank_] <= iChunk && BaseState::chunk_index_end_[BaseState::distributed_rank_] > iChunk){  //on this process
+      ret = BaseState::qregs_[iChunk - BaseState::global_chunk_index_].get_state(idx - (iChunk << BaseState::chunk_bits_));
+    }
+#ifdef AER_MPI
+    BaseState::reduce_sum(ret);
+#endif
+  }
+  return ret;
+}
+
+template <class statevec_t>
+void State<statevec_t>::set_state(const uint_t idx,const complex_t s)
+{
+  if(BaseState::num_global_chunks_ == 1){
+    BaseState::qregs_[0][idx] = s;
+  }
+  else{
+    uint_t iChunk = idx >> BaseState::chunk_bits_;
+    if(BaseState::chunk_index_begin_[BaseState::distributed_rank_] <= iChunk && BaseState::chunk_index_end_[BaseState::distributed_rank_] > iChunk){  //on this process
+      BaseState::qregs_[iChunk - BaseState::global_chunk_index_][idx - (iChunk << BaseState::chunk_bits_)] = s;
     }
   }
 }

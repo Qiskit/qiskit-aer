@@ -365,7 +365,6 @@ bool CacheBlocking::block_circuit(Circuit& circ,bool doSwap) const
     restore_qubits_order(out);
 
   circ.ops = out;
-
   return true;
 }
 
@@ -621,7 +620,6 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
           else if(!end_block_inserted){
             out.pop_back();
           }
-
           if(restore_qubits)
             restore_qubits_order(out);
 

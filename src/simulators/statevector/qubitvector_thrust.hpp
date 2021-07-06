@@ -575,6 +575,9 @@ QubitVectorThrust<data_t>::QubitVectorThrust(size_t num_qubits) : num_qubits_(0)
   chunk_index_ = 0;
   multi_chunk_distribution_ = false;
   multi_shots_ = false;
+  checkpoint_ = nullptr;
+  recv_chunk_ = nullptr;
+  send_chunk_ = nullptr;
 
 #ifdef AER_DEBUG
   debug_count = 0;
@@ -1169,6 +1172,26 @@ void QubitVectorThrust<data_t>::end_of_circuit()
 {
   if(enable_batch_ && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
+}
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::release_send_buffer(void) const
+{
+#ifdef AER_DISABLE_GDR
+  if(send_chunk_){
+    chunk_manager_.UnmapBufferChunk(send_chunk_);
+    send_chunk_ = nullptr;
+  }
+#endif
+}
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::release_recv_buffer(void) const
+{
+  if(recv_chunk_){
+    chunk_manager_.UnmapBufferChunk(recv_chunk_);
+    recv_chunk_ = nullptr;
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -2930,15 +2953,6 @@ public:
       mask |= (1ull << qubits[i]);
     }
   }
-  int qubits_count(void)
-  {
-    return nqubits;
-  }
-  int num_control_bits(void)
-  {
-    return nqubits - 1;
-  }
-
   bool is_diagonal(void)
   {
     return true;
@@ -4292,6 +4306,10 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
 
   if(buffer.is_mapped()){
     chunk_manager_->UnmapBufferChunk(buffer);
+  }
+
+  if(pair_chunk.data() == this->data()){
+    release_recv_buffer();
   }
 
   if(pair_chunk.data() == this->data()){

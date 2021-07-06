@@ -37,7 +37,7 @@ const Operations::OpSet StateOpSet(
     Operations::OpType::reset, Operations::OpType::barrier,
     Operations::OpType::roerror, Operations::OpType::bfunc,
     Operations::OpType::snapshot, Operations::OpType::save_statevec,
-    Operations::OpType::save_expval, Operations::OpType::save_expval_var},
+    }, //Operations::OpType::save_expval, Operations::OpType::save_expval_var},
   // Gates
   {"CX", "u0", "u1", "p", "cx", "cz", "swap", "id", "x", "y", "z", "h",
     "s", "sdg", "t", "tdg", "ccx", "ccz", "delay"},
@@ -431,10 +431,11 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &
             case Operations::OpType::save_statevec:
               apply_save_statevector(op, result);
               break;
-            case Operations::OpType::save_expval:
-            case Operations::OpType::save_expval_var:
-              apply_save_expval(op, result, rng);
-              break;
+            // Disabled until can fix bug in expval
+            // case Operations::OpType::save_expval:
+            // case Operations::OpType::save_expval_var:
+            //   apply_save_expval(op, result, rng);
+            //   break;
             default:
               throw std::invalid_argument("CH::State::apply_ops does not support operations of the type \'" + 
                                           op.name + "\'.");

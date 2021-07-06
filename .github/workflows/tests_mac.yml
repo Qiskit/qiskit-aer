@@ -1,9 +1,9 @@
 name: Tests MacOS
 on:
   push:
-    branches: [master, 'stable/*']
+    branches: [main, 'stable/*']
   pull_request:
-    branches: [master, 'stable/*']
+    branches: [main, 'stable/*']
 jobs:
   lint:
     runs-on: macOS-latest

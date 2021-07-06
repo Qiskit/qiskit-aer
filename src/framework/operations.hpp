@@ -460,8 +460,8 @@ inline Op make_multiplexer(const reg_t &qubits,
   }
   // Get lists of controls and targets
   reg_t controls(num_controls), targets(num_targets);
-  std::copy_n(qubits.begin(), num_controls, controls.begin());
-  std::copy_n(qubits.begin() + num_controls, num_targets, targets.begin());
+  std::copy_n(qubits.begin(), num_targets, targets.begin());
+  std::copy_n(qubits.begin() + num_targets, num_controls, controls.begin());
 
   // Construct the Op
   Op op;
