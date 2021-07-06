@@ -20,6 +20,9 @@
 #include "framework/types.hpp"
 #include "framework/creg.hpp"
 
+#include "noise/noise_model.hpp"
+
+
 #ifdef AER_MPI
 #include <mpi.h>
 #endif
@@ -81,8 +84,8 @@ public:
   const auto &qreg(uint_t idx=0) const { return qregs_[idx]; }
 
   // Return the state creg object
-  auto &creg() { return creg_; }
-  const auto &creg() const { return creg_; }
+  auto &creg(uint_t idx=0) { return creg_; }
+  const auto &creg(uint_t idx=0) const { return creg_; }
 
   // Return the state opset object
   auto &opset() { return opset_; }
@@ -117,8 +120,25 @@ public:
                          RngEngine &rng,
                          bool final_ops = false);
 
+  virtual void apply_op(int_t iChunk,const Operations::Op &op,
+                         ExperimentResult &result,
+                         std::vector<RngEngine>& rng,
+                         bool final_ops = false) = 0;
+
+  virtual void apply_batched_ops(const std::vector<Operations::Op> &ops){}
+  virtual void enable_batch(bool flg);
+
+
+  virtual void apply_batched_pauli(reg_t& params){}
+
+  virtual void end_of_circuit();
+
+  //store asynchronously measured classical bits after batched execution
+  virtual void store_measured_cbits(const Operations::Op &op) {}
+
   //memory allocation (previously called before inisitalize_qreg)
-  virtual void allocate(uint_t num_qubits,uint_t block_bits);
+  virtual void allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1);
+  virtual void bind_state(StateChunk<state_t>& state,uint_t ishot,bool batch_enable);
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
@@ -168,6 +188,13 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits,
                                             uint_t shots,
                                             RngEngine &rng);
+
+  virtual std::vector<reg_t> batched_sample_measure(const reg_t &qubits,
+                                            reg_t& shots,
+                                            std::vector<RngEngine> &rng)
+  {
+    return sample_measure(qubits,shots[0],rng[0]);
+  }
 
   //=======================================================================
   // Standard non-virtual methods
@@ -280,6 +307,13 @@ public:
   //set number of processes to be distributed
   void set_distribution(uint_t nprocs);
 
+
+  //check if this register is on the top of array
+  virtual bool top_of_array()
+  {
+    return qregs_[0].top_of_array();
+  }
+
 protected:
 
   // The quantum state data structure
@@ -305,6 +339,8 @@ protected:
   uint_t global_chunk_index_;   //beginning chunk index for this process
   reg_t chunk_index_begin_;     //beginning chunk index for each process
   reg_t chunk_index_end_;       //ending chunk index for each process
+
+  uint_t shot_index_;           //shot ID for this state
 
   uint_t myrank_;               //process ID
   uint_t nprocs_;               //number of processes
@@ -355,12 +391,6 @@ protected:
   template <class data_t>
   void gather_state(AER::Vector<std::complex<data_t>>& state);
 
-  //apply one operator
-  //implement this function instead of apply_ops in the sub classes for simulation methods
-  virtual void apply_op(const int_t iChunk,const Operations::Op &op,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false)  = 0;
   // block diagonal matrix in chunk
   void block_diagonal_matrix(const int_t iChunk, reg_t &qubits, cvector_t &diag);
 
@@ -380,6 +410,7 @@ protected:
 #endif
 
   uint_t mapped_index(const uint_t idx);
+
 };
 
 template <class state_t>
@@ -397,6 +428,8 @@ StateChunk<state_t>::StateChunk(const Operations::OpSet &opset) : opset_(opset)
 
   chunk_omp_parallel_ = false;
   gpu_optimization_ = false;
+
+  shot_index_ = 0;
 
 #ifdef AER_MPI
   distributed_comm_ = MPI_COMM_WORLD;
@@ -458,10 +491,11 @@ void StateChunk<state_t>::set_distribution(uint_t nprocs)
 }
 
 template <class state_t>
-void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits)
+void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
 {
   int_t i;
-  uint_t nchunks;
+
+  shot_index_ = 0;
 
   num_qubits_ = num_qubits;
   block_bits_ = block_bits;
@@ -499,16 +533,34 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits)
     gpu_optimization_ = true;
   }
 
-  qregs_[0].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),global_chunk_index_,num_local_chunks_);
-  for(i=1;i<num_local_chunks_;i++){
-    uint_t gid = i + global_chunk_index_;
-    qregs_[i].chunk_setup(qregs_[0],gid);
+  if(chunk_bits_ < num_qubits_){
+    qregs_[0].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),global_chunk_index_,num_local_chunks_);
+    for(i=1;i<num_local_chunks_;i++){
+      uint_t gid = i + global_chunk_index_;
+      qregs_[i].chunk_setup(qregs_[0],gid);
+    }
   }
+  else{
+    if(num_parallel_shots > 0)
+      qregs_[0].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),0,num_parallel_shots);
+  }
+
   //initialize qubit map
   qubit_map_.resize(num_qubits_);
   for(i=0;i<num_qubits_;i++){
     qubit_map_[i] = i;
   }
+}
+
+template <class state_t>
+void StateChunk<state_t>::bind_state(StateChunk<state_t>& state,uint_t ishot,bool batch_enable)
+{
+  //allocate qreg from allocated buffer
+  qregs_[0].chunk_setup(state.qregs_[0],ishot);
+  qregs_[0].enable_batch(batch_enable);
+  state.qregs_[0].enable_batch(batch_enable);
+
+  shot_index_ = ishot;
 }
 
 template <class state_t>
@@ -550,11 +602,13 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
 {
   int_t iChunk;
   uint_t iOp,nOp;
+  std::vector<RngEngine> rngs(1);
+  rngs[0] = rng;
 
   nOp = ops.size();
   iOp = 0;
   while(iOp < nOp){
-    std::cout << "[" << iOp << "] " << ops[iOp] << std::endl;
+//    std::cout << "[" << iOp << "] " << ops[iOp] << std::endl;
 
     if(ops[iOp].type == Operations::OpType::gate && ops[iOp].name == "swap_chunk"){
       //apply swap between chunks
@@ -578,7 +632,7 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
         //fecth chunk in cache
         if(qregs_[iChunk].fetch_chunk()){
           while(iOpBlock < iOpEnd){
-            apply_op(iChunk,ops[iOpBlock],result,rng,final_ops);
+            apply_op(iChunk,ops[iOpBlock],result,rngs,final_ops);
             iOpBlock++;
           }
 
@@ -592,20 +646,40 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
     else if(is_applied_to_each_chunk(ops[iOp])){
 #pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
       for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
-        apply_op(iChunk,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
+        apply_op(iChunk,ops[iOp],result,rngs,final_ops && nOp == iOp + 1);
       }
     }
     else{
       //parallelize inside state implementations
-      apply_op(-1,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
+      apply_op(-1,ops[iOp],result,rngs,final_ops && nOp == iOp + 1);
     }
     iOp++;
   }
 
+  end_of_circuit();
 
-  std::cout << "[" << iOp << "] END OPS" << std::endl;
-
+//  std::cout << "[" << iOp << "] END OPS" << std::endl;
 }
+
+template <class state_t>
+void StateChunk<state_t>::enable_batch(bool flg)
+{
+  int_t iChunk;
+  for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
+    qregs_[iChunk].enable_batch(flg);
+  }
+}
+  
+template <class state_t>
+void StateChunk<state_t>::end_of_circuit()
+{
+  int_t iChunk;
+#pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
+  for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
+    qregs_[iChunk].end_of_circuit();
+  }
+}
+
 
 template <class state_t>
 void StateChunk<state_t>::block_diagonal_matrix(const int_t iChunk, reg_t &qubits, cvector_t &diag)
@@ -748,6 +822,11 @@ auto StateChunk<state_t>::apply_to_matrix(bool copy)
   uint_t num_threads = qregs_[0].get_omp_threads();
 
   auto matrix = qregs_[0].copy_to_matrix();
+
+  size_t size_required = 2*(sizeof(std::complex<double>) << (num_qubits_*2)) + (sizeof(std::complex<double>) << (chunk_bits_*2))*num_local_chunks_;
+  if((size_required>>20) > Utils::get_system_memory_mb()){
+    throw std::runtime_error(std::string("There is not enough memory to store states as matrix"));
+  }
 
   if(distributed_rank_ == 0){
     //TO DO check memory availability
@@ -1479,7 +1558,9 @@ void StateChunk<state_t>::gather_state(std::vector<std::complex<data_t>>& state)
     local_size = state.size();
     MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,distributed_comm_);
 
-    //TO DO check memory availability
+    if((global_size >> 21) > Utils::get_system_memory_mb()){
+      throw std::runtime_error(std::string("There is not enough memory to gather state"));
+    }
 
     if(distributed_rank_ == 0){
       state.resize(global_size);
@@ -1517,7 +1598,9 @@ void StateChunk<state_t>::gather_state(AER::Vector<std::complex<data_t>>& state)
     local_size = state.size();
     MPI_Allreduce(&local_size,&global_size,1,MPI_UINT64_T,MPI_SUM,distributed_comm_);
 
-    //TO DO check memory availability
+    if((global_size >> 21) > Utils::get_system_memory_mb()){
+      throw std::runtime_error(std::string("There is not enough memory to gather state"));
+    }
 
     if(distributed_rank_ == 0){
       state.resize(global_size);

@@ -95,6 +95,9 @@ public:
   // The matrix is input as vector of the matrix diagonal.
   void apply_diagonal_superop_matrix(const reg_t &qubits, const cvector_t<double> &mat);
 
+  //batched matrix is used for GPU optimization
+  void apply_batched_matrix(std::vector<batched_matrix_params>& params,reg_t& qubits,std::vector<std::complex<double>>& matrices){}
+
   //-----------------------------------------------------------------------
   // Apply Specialized Gates
   //-----------------------------------------------------------------------

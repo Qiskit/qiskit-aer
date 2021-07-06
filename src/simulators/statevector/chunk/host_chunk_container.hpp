@@ -33,6 +33,7 @@ protected:
   AERHostVector<thrust::complex<data_t>>  data_;     //host vector for chunks + buffers
   std::vector<thrust::complex<double>*> matrix_;     //pointer to matrix
   std::vector<uint_t*> params_;                      //pointer to additional parameters
+  batched_matrix_params* batched_params_;
 public:
   HostChunkContainer(){}
   ~HostChunkContainer();
@@ -52,7 +53,7 @@ public:
     return data_[i];
   }
 
-  uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers);
+  uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers,bool multi_shots);
   void Deallocate(void);
   uint_t Resize(uint_t chunks,uint_t buffers);
 
@@ -60,9 +61,21 @@ public:
   {
     matrix_[iChunk] = (thrust::complex<double>*)&mat[0];
   }
+  void StoreBatchedMatrix(const std::vector<std::complex<double>>& mat)
+  {
+    matrix_[0] = (thrust::complex<double>*)&mat[0];
+  }
+  void StoreMatrix(const std::complex<double>* mat,uint_t iChunk,uint_t size)
+  {
+    matrix_[iChunk] = (thrust::complex<double>*)mat;
+  }
   void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk)
   {
     params_[iChunk] = (uint_t*)&prm[0];
+  }
+  void StoreBatchedParams(const std::vector<batched_matrix_params>& params)
+  {
+    batched_params_ = (batched_matrix_params*)&params[0];
   }
 
   void Set(uint_t i,const thrust::complex<data_t>& t)
@@ -107,7 +120,7 @@ public:
 
   void Zero(uint_t iChunk,uint_t count);
 
-  reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true) const;
+  reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true,uint_t count = 1) const;
   thrust::complex<double> norm(uint_t iChunk,uint_t stride = 1,bool dot = true) const;
 
 };
@@ -119,7 +132,7 @@ HostChunkContainer<data_t>::~HostChunkContainer(void)
 }
 
 template <typename data_t>
-uint_t HostChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,uint_t buffers)
+uint_t HostChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,uint_t buffers,bool multi_shots)
 {
   uint_t nc = chunks;
   uint_t i;
@@ -318,14 +331,14 @@ void HostChunkContainer<data_t>::Zero(uint_t iChunk,uint_t count)
 }
 
 template <typename data_t>
-reg_t HostChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride, bool dot) const
+reg_t HostChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride, bool dot,uint_t count) const
 {
   const int_t SHOTS = rnds.size();
   reg_t samples(SHOTS,0);
   thrust::host_vector<uint_t> vSmp(SHOTS);
   int i;
 
-  strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+1), stride);
+  strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+count), stride);
 
   if(omp_get_num_threads() == 1){
     if(dot)

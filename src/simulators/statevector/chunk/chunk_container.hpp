@@ -43,7 +43,7 @@ DISABLE_WARNING_POP
 #define AER_MAX_BUFFERS       4
 #define AER_DUMMY_BUFFERS     4     //reserved storage for parameters
 
-#define QV_CUDA_NUM_THREADS 512
+#define QV_CUDA_NUM_THREADS 1024
 #define QV_MAX_REGISTERS 10
 #define QV_MAX_BLOCKED_GATES 64
 
@@ -56,6 +56,12 @@ DISABLE_WARNING_POP
 #define AERHostVector thrust::host_vector
 
 #include "framework/utils.hpp"
+
+#ifdef AER_THRUST_CUDA
+#include "simulators/statevector/chunk/cuda_kernels.hpp"
+#endif
+
+#include "simulators/statevector/batched_matrix.hpp"
 
 namespace AER {
 namespace QV {
@@ -81,6 +87,7 @@ protected:
   thrust::complex<data_t>* data_;   //pointer to state vector buffer
   thrust::complex<double>* matrix_; //storage for matrix on device
   uint_t* params_;                  //storage for additional parameters on device
+  batched_matrix_params* batched_params_; //storage for parameters for batched matrix multiplier on device
   uint_t base_index_;               //start index of state vector 
 public:
   GateFuncBase()
@@ -88,7 +95,7 @@ public:
     data_ = NULL;
     base_index_ = 0;
   }
-  virtual __host__ __device__ ~GateFuncBase(){}
+//  virtual __host__ __device__ ~GateFuncBase(){}
 
   virtual void set_data(thrust::complex<data_t>* p)
   {
@@ -102,6 +109,11 @@ public:
   {
     params_ = p;
   }
+  void set_batched_params(batched_matrix_params* p)
+  {
+    batched_params_ = p;
+  }
+
   void set_base_index(uint_t i)
   {
     base_index_ = i;
@@ -158,6 +170,16 @@ public:
   {
     //implemente this in the kernel class
   }
+  virtual __host__ __device__ double run_with_cache_sum(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
+  {
+    //implemente this in the kernel class
+    return 0.0;
+  }
+
+  virtual __host__ __device__  bool check_condition(uint_t i)
+  {
+    return true;
+  }
 };
 
 //========================================
@@ -179,7 +201,7 @@ public:
     return true;
   }
 
-  __host__ __device__ uint_t thread_to_index(uint_t _tid) const
+    __host__ __device__ virtual uint_t thread_to_index(uint_t _tid) const
   {
     uint_t idx,ii,t,j;
     uint_t* qubits;
@@ -203,6 +225,13 @@ public:
     return idx;
   }
 
+  __host__ __device__ void sync_threads() const
+  {
+#ifdef CUDA_ARCH
+    __syncthreads();
+#endif
+  }
+
   __host__ __device__ void operator()(const uint_t &i) const
   {
     thrust::complex<data_t> cache[1024];
@@ -220,6 +249,74 @@ public:
       idx = thread_to_index((i << nqubits_) + j);
       this->run_with_cache(j,idx,cache);
     }
+  }
+
+  virtual int qubits_count(void)
+  {
+    return nqubits_;
+  }
+};
+
+template <typename data_t>
+class GateFuncSumWithCache : public GateFuncBase<data_t>
+{
+protected:
+  int nqubits_;
+public:
+  GateFuncSumWithCache(uint_t nq)
+  {
+    nqubits_ = nq;
+  }
+
+  bool use_cache(void)
+  {
+    return true;
+  }
+
+
+  __host__ __device__ virtual uint_t thread_to_index(uint_t _tid) const
+  {
+    uint_t idx,ii,t,j;
+    uint_t* qubits;
+    uint_t* qubits_sorted;
+
+    qubits_sorted = this->params_;
+    qubits = qubits_sorted + nqubits_;
+
+    idx = 0;
+    ii = _tid >> nqubits_;
+    for(j=0;j<nqubits_;j++){
+      t = ii & ((1ull << qubits_sorted[j]) - 1);
+      idx += t;
+      ii = (ii - t) << 1;
+
+      if(((_tid >> j) & 1) != 0){
+        idx += (1ull << qubits[j]);
+      }
+    }
+    idx += ii;
+    return idx;
+  }
+
+  __host__ __device__ double operator()(const uint_t &i) const
+  {
+    thrust::complex<data_t> cache[1024];
+    uint_t j,idx;
+    uint_t matSize = 1ull << nqubits_;
+    double sum = 0.0;
+
+    //load data to cache
+    for(j=0;j<matSize;j++){
+      idx = thread_to_index((i << nqubits_) + j);
+      cache[j] = this->data_[idx];
+    }
+
+    //execute using cache
+    for(j=0;j<matSize;j++){
+      idx = thread_to_index((i << nqubits_) + j);
+      sum += this->run_with_cache_sum(j,idx,cache);
+    }
+    return sum;
   }
 
   virtual int qubits_count(void)
@@ -302,6 +399,15 @@ struct complex_less
 }; // end less
 
 
+class HostFuncBase
+{
+protected:
+public:
+  HostFuncBase(){}
+
+  virtual void execute(){}
+};
+
 //============================================================================
 // chunk container base class
 //============================================================================
@@ -318,6 +424,8 @@ protected:
   std::vector<bool> chunks_map_;      //chunk mapper
   std::vector<bool> buffers_map_;     //buffer mapper
   bool enable_omp_;                 //disable this when shots are parallelized outside
+  mutable reg_t reduced_queue_begin_;
+  mutable reg_t reduced_queue_end_;
 public:
   ChunkContainer()
   {
@@ -390,7 +498,7 @@ public:
 
   virtual thrust::complex<data_t>& operator[](uint_t i) = 0;
 
-  virtual uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS) = 0;
+  virtual uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,bool multi_shots = false) = 0;
   virtual void Deallocate(void) = 0;
   virtual uint_t Resize(uint_t chunks,uint_t buffers = AER_MAX_BUFFERS) = 0;
 
@@ -398,7 +506,10 @@ public:
   virtual thrust::complex<data_t> Get(uint_t i) const = 0;
 
   virtual void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk) = 0;
+  virtual void StoreBatchedMatrix(const std::vector<std::complex<double>>& mat) = 0;
+  virtual void StoreMatrix(const std::complex<double>* mat,uint_t iChunk,uint_t size) = 0;
   virtual void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk) = 0;
+  virtual void StoreBatchedParams(const std::vector<batched_matrix_params>& params) = 0;
 
   virtual void CopyIn(Chunk<data_t>& src,uint_t iChunk) = 0;
   virtual void CopyOut(Chunk<data_t>& dest,uint_t iChunk) = 0;
@@ -412,9 +523,14 @@ public:
   void Execute(Function func,uint_t iChunk,uint_t count);
 
   template <typename Function>
-  double ExecuteSum(Function func,uint_t iChunk,uint_t count) const;
+  void ExecuteSum(double* pSum,Function func,uint_t iChunk,uint_t count) const;
 
-  virtual reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true) const = 0;
+  template <typename Function>
+  void ExecuteSum2(double* pSum,Function func,uint_t iChunk,uint_t count) const;
+
+  void ExecuteOnHost(HostFuncBase* func,uint_t iChunk);
+
+  virtual reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true,uint_t count = 1) const = 0;
   virtual thrust::complex<double> norm(uint_t iChunk,uint_t stride = 1,bool dot = true) const = 0;
 
 
@@ -441,6 +557,12 @@ public:
   {
     return NULL;
   }
+  virtual batched_matrix_params* batched_param_pointer(void) const
+  {
+    return NULL;
+  }
+
+
 
   virtual void synchronize(uint_t iChunk)
   {
@@ -465,6 +587,42 @@ public:
     ;
   }
 
+  //CUDA graph
+  virtual void begin_capture(uint_t iChunk) const
+  {
+    ;
+  }
+  virtual void end_capture(uint_t iChunk) const
+  {
+    ;
+  }
+  virtual void begin_add_graph_node(uint_t iChunk){}
+  virtual void end_add_graph_node(uint_t iChunk){}
+
+  virtual double* reduce_buffer(uint_t iChunk) const
+  {
+    return NULL;
+  }
+  virtual uint_t reduce_buffer_size() const
+  {
+    return 1;
+  }
+  virtual double* condition_buffer(uint_t iChunk) const
+  {
+    return NULL;
+  }
+  virtual void init_condition(uint_t iChunk,std::vector<double>& cond){}
+  virtual bool update_condition(uint_t iChunk,uint_t count,bool async){return true;}
+
+  virtual int measured_cbit(uint_t iChunk,int qubit)
+  {
+    return 0;
+  }
+  virtual uint_t* measured_bits_buffer(uint_t iChunk)
+  {
+    return NULL;
+  }
+
 protected:
   int convert_blocked_qubit(int qubit)
   {
@@ -476,6 +634,7 @@ protected:
     }
     return -1;
   }
+
 
   //allocate storage for chunk classes
   void allocate_chunks(void);
@@ -549,36 +708,6 @@ void ChunkContainer<data_t>::unmap_all(void)
   num_chunk_mapped_ = 0;
 }
 
-#ifdef AER_THRUST_CUDA
-
-template <typename data_t,typename kernel_t> __global__
-void dev_apply_function(kernel_t func)
-{
-  uint_t i;
-
-  i = blockIdx.x * blockDim.x + threadIdx.x;
-
-  func(i);
-}
-
-template <typename data_t,typename kernel_t> __global__
-void dev_apply_function_with_cache(kernel_t func)
-{
-  __shared__ thrust::complex<data_t> cache[1024];
-  uint_t i,idx;
-
-  i = blockIdx.x * blockDim.x + threadIdx.x;
-
-  idx = func.thread_to_index(i);
-
-  cache[threadIdx.x] = func.data()[idx];
-  __syncthreads();
-
-  func.run_with_cache(threadIdx.x,idx,cache);
-}
-
-#endif
-
 template <typename data_t>
 template <typename Function>
 void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
@@ -588,6 +717,7 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
   func.set_data( chunk_pointer(iChunk) );
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
+  func.set_batched_params(batched_param_pointer() );
 
 #ifdef AER_THRUST_CUDA
   cudaStream_t strm = stream(iChunk);
@@ -597,7 +727,6 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
 
     if(func.use_cache()){
       nt = count << chunk_bits_;
-
       if(nt > 1024){
         nb = (nt + 1024 - 1) / 1024;
         nt = 1024;
@@ -612,6 +741,7 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
       }
       dev_apply_function<data_t,Function><<<nb,nt,0,strm>>>(func);
     }
+
   }
   else{ //if no stream returned, run on host
     uint_t size = count * func.size(chunk_bits_);
@@ -631,9 +761,8 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
 
 template <typename data_t>
 template <typename Function>
-double ChunkContainer<data_t>::ExecuteSum(Function func,uint_t iChunk,uint_t count) const
+void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk,uint_t count) const
 {
-  double ret;
   uint_t size = count * func.size(chunk_bits_);
 
   set_device();
@@ -641,27 +770,141 @@ double ChunkContainer<data_t>::ExecuteSum(Function func,uint_t iChunk,uint_t cou
   func.set_data( chunk_pointer(iChunk) );
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
+  func.set_batched_params(batched_param_pointer() );
 
   auto ci = thrust::counting_iterator<uint_t>(0);
 
 #ifdef AER_THRUST_CUDA
   cudaStream_t strm = stream(iChunk);
   if(strm){
-    ret = thrust::transform_reduce(thrust::cuda::par.on(strm), ci, ci + size, func,0.0,thrust::plus<double>());
+//    *pSum = thrust::transform_reduce(thrust::cuda::par.on(strm), ci, ci + size, func,0.0,thrust::plus<double>());
+    uint_t buf_size = reduce_buffer_size();
+    double* buf = reduce_buffer(iChunk);
+
+    uint_t n,nt,nb;
+    nb = 1;
+
+    if(func.use_cache()){
+      nt = 1ull << chunk_bits_;
+      if(nt > 1024){
+        nb = (nt + 1024 - 1) / 1024;
+        nt = 1024;
+      }
+      dim3 grid(nb,count,1);
+      dev_apply_function_sum_with_cache<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
+    }
+    else{
+      nt = func.size(chunk_bits_);
+      if(nt > 1024){
+        nb = (nt + 1024 - 1) / 1024;
+        nt = 1024;
+      }
+      dim3 grid(nb,count,1);
+      dev_apply_function_sum<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
+    }
+
+    while(nb > 1){
+      n = nb;
+      nt = nb;
+      nb = 1;
+      if(nt > 1024){
+        nb = (nt + 1024 - 1) / 1024;
+        nt = 1024;
+      }
+      dim3 grid(nb,count,1);
+      dev_reduce_sum<<<grid,nt,0,strm>>>(buf,n,buf_size);
+    }
+    if(pSum)
+      cudaMemcpyAsync(pSum,buf,sizeof(double),cudaMemcpyDeviceToHost,strm);
   }
   else{ //if no stream returned, run on host
-    ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<double>());
+    *pSum = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<double>());
   }
 #else
   if(enable_omp_)
-    ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<double>());
+    *pSum = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<double>());
   else
-    ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<double>());  //disable nested OMP parallelization when shots are parallelized
+    *pSum = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<double>());  //disable nested OMP parallelization when shots are parallelized
 #endif
-
-  return ret;
 }
 
+template <typename data_t>
+template <typename Function>
+void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChunk,uint_t count) const
+{
+  uint_t size = count * func.size(chunk_bits_);
+
+  set_device();
+
+  func.set_data( chunk_pointer(iChunk) );
+  func.set_matrix( matrix_pointer(iChunk) );
+  func.set_params( param_pointer(iChunk) );
+  func.set_batched_params(batched_param_pointer() );
+
+  auto ci = thrust::counting_iterator<uint_t>(0);
+
+#ifdef AER_THRUST_CUDA
+  cudaStream_t strm = stream(iChunk);
+  if(strm){
+    uint_t buf_size = reduce_buffer_size() / 2;
+    uint_t n,nt,nb;
+    nb = 1;
+    nt = func.size(chunk_bits_);
+
+    if(nt > 1024){
+      nb = (nt + 1024 - 1) / 1024;
+      nt = 1024;
+    }
+    thrust::complex<double>* buf = (thrust::complex<double>*)reduce_buffer(iChunk);
+    dim3 grid(nb,count,1);
+    dev_apply_function_sum_complex<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
+
+    while(nb > 1){
+      n = nb;
+      nt = nb;
+      nb = 1;
+      if(nt > 1024){
+        nb = (nt + 1024 - 1) / 1024;
+        nt = 1024;
+      }
+      dim3 grid(nb,count,1);
+      dev_reduce_sum_complex<<<grid,nt,0,strm>>>(buf,n,buf_size);
+    }
+    if(pSum)
+      cudaMemcpyAsync(pSum,buf,sizeof(double)*2,cudaMemcpyDeviceToHost,strm);
+  }
+  else{ //if no stream returned, run on host
+//    *((thrust::complex<double>*)pSum) = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<thrust::complex<double>>());
+  }
+#else
+  if(enable_omp_)
+    *((thrust::complex<double>*)pSum) = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<thrust::complex<double>>());
+  else
+    *((thrust::complex<double>*)pSum) = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<thrust::complex<double>>());  //disable nested OMP parallelization when shots are parallelized
+#endif
+}
+
+
+void host_func_launcher(void* pParam)
+{
+  HostFuncBase* func = reinterpret_cast<HostFuncBase*>(pParam);
+  func->execute();
+}
+
+
+template <typename data_t>
+void ChunkContainer<data_t>::ExecuteOnHost(HostFuncBase* func,uint_t iChunk)
+{
+#ifdef AER_THRUST_CUDA
+  cudaStream_t strm = stream(iChunk);
+  if(strm){
+//    cudaLaunchHostFunc(strm,(cudaHostFn_t )&func,pParams);
+    cudaLaunchHostFunc(strm,&host_func_launcher,reinterpret_cast<void*>(func));
+  }
+#else
+  func(pParams);
+#endif
+}
 
 template <typename data_t>
 void ChunkContainer<data_t>::allocate_chunks(void)
@@ -669,6 +912,9 @@ void ChunkContainer<data_t>::allocate_chunks(void)
   uint_t i;
   chunks_map_.resize(num_chunks_,false);
   buffers_map_.resize(num_buffers_,false);
+
+  reduced_queue_begin_.resize(num_chunks_,0);
+  reduced_queue_end_.resize(num_chunks_,0);
 }
 
 template <typename data_t>
@@ -676,6 +922,9 @@ void ChunkContainer<data_t>::deallocate_chunks(void)
 {
   chunks_map_.clear();
   buffers_map_.clear();
+
+  reduced_queue_begin_.clear();
+  reduced_queue_end_.clear();
 }
 
 //------------------------------------------------------------------------------

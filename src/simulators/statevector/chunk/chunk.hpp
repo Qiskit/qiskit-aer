@@ -36,6 +36,8 @@ protected:
   uint_t num_qubits_;                   //total number of qubits
   uint_t chunk_index_;                  //global chunk index
   bool mapped_;                         //mapped to qubitvector
+  mutable bool in_capture_;
+  bool enable_capture_;
 public:
   Chunk()
   {
@@ -44,6 +46,8 @@ public:
     num_qubits_ = 0;
     chunk_index_ = 0;
     mapped_ = false;
+    in_capture_ = false;
+    enable_capture_ = true;
   }
 
   Chunk(std::weak_ptr<ChunkContainer<data_t>> cc,uint_t pos)
@@ -63,6 +67,7 @@ public:
     num_qubits_ = chunk.num_qubits_;
     chunk_index_ = chunk.chunk_index_;
     mapped_ = true;
+    in_capture_ = false;
   }
   ~Chunk()
   {
@@ -108,6 +113,7 @@ public:
   }
   void unmap_cache(void)
   {
+    cache_->end_capture();
     cache_->unmap();
     cache_.reset();
   }
@@ -118,9 +124,10 @@ public:
   }
   void unmap(void)
   {
+    end_capture();
     mapped_ = false;
     if(cache_)
-      cache_.reset();
+      unmap_cache();
   }
 
   void set_num_qubits(uint_t qubits)
@@ -138,17 +145,20 @@ public:
 
   void Set(uint_t i,const thrust::complex<data_t>& t)
   {
+    end_capture();
     auto sel_chunk_container = chunk_container_.lock();
     sel_chunk_container->Set(i + (chunk_pos_ << sel_chunk_container->chunk_bits()),t);
   }
   thrust::complex<data_t> Get(uint_t i) const
   {
+    end_capture();
     auto sel_chunk_container = chunk_container_.lock();
     return sel_chunk_container->Get(i + (chunk_pos_ << sel_chunk_container->chunk_bits()));
   }
 
   thrust::complex<data_t>& operator[](uint_t i)
   {
+    end_capture();
     auto sel_chunk_container = chunk_container_.lock();
     return (*sel_chunk_container)[i + (chunk_pos_ << sel_chunk_container->chunk_bits())];
   }
@@ -164,7 +174,23 @@ public:
       cache_->StoreMatrix(mat);
     }
     else{
+      begin_capture();
       chunk_container_.lock()->StoreMatrix(mat,chunk_pos_);
+    }
+  }
+  void StoreBatchedMatrix(const std::vector<std::complex<double>>& mat)
+  {
+    begin_capture();
+    chunk_container_.lock()->StoreBatchedMatrix(mat);
+  }
+  void StoreMatrix(const std::complex<double>* mat,uint_t size)
+  {
+    if(cache_){
+      cache_->StoreMatrix(mat,size);
+    }
+    else{
+      begin_capture();
+      chunk_container_.lock()->StoreMatrix(mat,chunk_pos_,size);
     }
   }
   void StoreUintParams(const std::vector<uint_t>& prm)
@@ -173,28 +199,39 @@ public:
       cache_->StoreUintParams(prm);
     }
     else{
+      begin_capture();
       chunk_container_.lock()->StoreUintParams(prm,chunk_pos_);
     }
+  }
+  void StoreBatchedParams(const std::vector<batched_matrix_params>& prm)
+  {
+    begin_capture();
+    chunk_container_.lock()->StoreBatchedParams(prm);
   }
 
   void CopyIn(Chunk<data_t>& src)
   {
+    end_capture();
     chunk_container_.lock()->CopyIn(src,chunk_pos_);
   }
   void CopyOut(Chunk<data_t>& dest)
   {
+    end_capture();
     chunk_container_.lock()->CopyOut(dest,chunk_pos_);
   }
   void CopyIn(thrust::complex<data_t>* src, uint_t size)
   {
+    end_capture();
     chunk_container_.lock()->CopyIn(src, chunk_pos_, size);
   }
   void CopyOut(thrust::complex<data_t>* dest, uint_t size)
   {
+    end_capture();
     chunk_container_.lock()->CopyOut(dest, chunk_pos_, size);
   }
   void Swap(Chunk<data_t>& src)
   {
+    end_capture();
     chunk_container_.lock()->Swap(src,chunk_pos_);
   }
 
@@ -205,34 +242,56 @@ public:
       cache_->Execute(func,count);
     }
     else{
+      begin_capture();
       chunk_container_.lock()->Execute(func,chunk_pos_,count);
     }
   }
 
   template <typename Function>
-  double ExecuteSum(Function func,uint_t count) const
+  void ExecuteSum(double* pSum,Function func,uint_t count) const
   {
     if(cache_){
-      return cache_->ExecuteSum(func,count);
+      cache_->ExecuteSum(pSum,func,count);
     }
     else{
-      return chunk_container_.lock()->ExecuteSum(func,chunk_pos_,count);
+      begin_capture();
+      chunk_container_.lock()->ExecuteSum(pSum,func,chunk_pos_,count);
     }
   }
 
-  void Zero(void)
+  template <typename Function>
+  void ExecuteSum2(double* pSum,Function func,uint_t count) const
   {
-    auto sel_chunk_container = chunk_container_.lock();
-    sel_chunk_container->Zero(chunk_pos_,sel_chunk_container->chunk_size());
+    if(cache_){
+      cache_->ExecuteSum2(pSum,func,count);
+    }
+    else{
+      begin_capture();
+      chunk_container_.lock()->ExecuteSum2(pSum,func,chunk_pos_,count);
+    }
   }
 
-  reg_t sample_measure(const std::vector<double> &rnds,uint_t stride = 1,bool dot = true) const
+  void ExecuteOnHost(HostFuncBase* func)
   {
-    return chunk_container_.lock()->sample_measure(chunk_pos_,rnds,stride,dot);
+    if(cache_){
+      cache_->ExecuteOnHost(func);
+    }
+    else{
+      chunk_container_.lock()->ExecuteOnHost(func,chunk_pos_);
+    }
+  }
+
+  reg_t sample_measure(const std::vector<double> &rnds,uint_t stride = 1,bool dot = true,uint_t count = 1) const
+  {
+    end_capture();
+
+    return chunk_container_.lock()->sample_measure(chunk_pos_,rnds,stride,dot,count);
   }
 
   thrust::complex<double> norm(uint_t stride = 1,bool dot = true) const
   {
+    end_capture();
+
     return chunk_container_.lock()->norm(chunk_pos_,stride,dot);
   }
 
@@ -251,13 +310,53 @@ public:
   {
     return chunk_container_.lock()->param_pointer(chunk_pos_);
   }
+  double* reduce_buffer(void)
+  {
+    if(cache_){
+      return cache_->reduce_buffer();
+    }
+    return chunk_container_.lock()->reduce_buffer(chunk_pos_);
+  }
+  uint_t reduce_buffer_size(void)
+  {
+    if(cache_){
+      return cache_->reduce_buffer_size();
+    }
+    return chunk_container_.lock()->reduce_buffer_size();
+  }
+  double* condition_buffer(void)
+  {
+    if(cache_){
+      return cache_->condition_buffer();
+    }
+    return chunk_container_.lock()->condition_buffer(chunk_pos_);
+  }
+  void init_condition(std::vector<double>& cond)
+  {
+    if(cache_){
+      cache_->init_condition(cond);
+    }
+    else{
+      chunk_container_.lock()->init_condition(chunk_pos_,cond);
+    }
+  }
+  bool update_condition(uint_t count,bool async = true)
+  {
+    if(cache_){
+      return cache_->update_condition(count,async);
+    }
+    else{
+      return chunk_container_.lock()->update_condition(chunk_pos_,count,async);
+    }
+  }
 
-  void synchronize(void)
+  void synchronize(void) const
   {
     if(cache_){
       cache_->synchronize();
     }
     else{
+      end_capture();
       chunk_container_.lock()->synchronize(chunk_pos_);
     }
   }
@@ -280,6 +379,34 @@ public:
     chunk_container_.lock()->queue_blocked_gate(chunk_pos_,gate,qubit,mask,pMat);
   }
 
+  //CUDA graph
+  void begin_capture() const
+  {
+    if(!in_capture_ && enable_capture_){
+      chunk_container_.lock()->begin_capture(chunk_pos_);
+      in_capture_ = true;
+    }
+  }
+  void end_capture() const
+  {
+    if(in_capture_){
+      chunk_container_.lock()->end_capture(chunk_pos_);
+      in_capture_ = false;
+    }
+  }
+  void enable_capture(bool flg)
+  {
+    enable_capture_ = flg;
+  }
+
+  int measured_cbit(int qubit)
+  {
+    return chunk_container_.lock()->measured_cbit(chunk_pos_,qubit);
+  }
+  uint_t* measured_bits_buffer(void)
+  {
+    return chunk_container_.lock()->measured_bits_buffer(chunk_pos_);
+  }
 };
 
 //------------------------------------------------------------------------------

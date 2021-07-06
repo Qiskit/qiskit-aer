@@ -106,7 +106,7 @@ public:
   // Config: {"omp_qubit_threshold": 7}
   virtual void set_config(const json_t &config) override;
 
-  virtual void allocate(uint_t num_qubits,uint_t block_bits) override;
+  virtual void allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -258,7 +258,7 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
 });
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::allocate(uint_t num_qubits,uint_t block_bits)
+void State<unitary_matrix_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
 {
   BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,1);
 }

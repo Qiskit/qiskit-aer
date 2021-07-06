@@ -45,7 +45,7 @@ public:
   // Sample a noisy implementation of op
   NoiseOps sample_noise(const reg_t &qubits,
                         RngEngine &rng,
-                        Method method = Method::circuit) const;
+                        Method method = Method::circuit,bool sample_at_runtime = false) const;
 
   // Return the opset for the quantum error
   const Operations::OpSet& opset() const {return opset_;}
@@ -137,7 +137,7 @@ protected:
 
 QuantumError::NoiseOps QuantumError::sample_noise(const reg_t &qubits,
                                                   RngEngine &rng,
-                                                  Method method) const {
+                                                  Method method,bool sample_at_runtime) const {
   if (qubits.size() < get_num_qubits()) {
     std::stringstream msg;
     msg << "QuantumError: qubits size (" << qubits.size() << ")";
@@ -160,23 +160,32 @@ QuantumError::NoiseOps QuantumError::sample_noise(const reg_t &qubits,
       return NoiseOps({op});
     }
     default: {
-      auto r = rng.rand_int(probabilities_);
-      // Check for invalid arguments
-      if (r + 1 > circuits_.size()) {
-        throw std::invalid_argument(
-          "QuantumError: probability outcome (" + std::to_string(r) + ")"
-          " is greater than number of circuits (" + std::to_string(circuits_.size()) + ")."
-        );
+      if(sample_at_runtime){
+        NoiseOps noise_op(1);
+        noise_op[0].type = Operations::OpType::runtime_error;
+        noise_op[0].name = "runtime_error";
+        noise_op[0].qubits = qubits;
+        return noise_op;
       }
-      NoiseOps noise_ops = circuits_[r];
-      // Add qubits to noise op commands;
-      for (auto &op : noise_ops) {
-        // Update qubits based on position in qubits list
-        for (auto &qubit: op.qubits) {
-          qubit = qubits[qubit];
+      else{
+        auto r = rng.rand_int(probabilities_);
+        // Check for invalid arguments
+        if (r + 1 > circuits_.size()) {
+          throw std::invalid_argument(
+            "QuantumError: probability outcome (" + std::to_string(r) + ")"
+            " is greater than number of circuits (" + std::to_string(circuits_.size()) + ")."
+          );
         }
+        NoiseOps noise_ops = circuits_[r];
+        // Add qubits to noise op commands;
+        for (auto &op : noise_ops) {
+          // Update qubits based on position in qubits list
+          for (auto &qubit: op.qubits) {
+            qubit = qubits[qubit];
+          }
+        }
+        return noise_ops;
       }
-      return noise_ops;
     }
   }
 }

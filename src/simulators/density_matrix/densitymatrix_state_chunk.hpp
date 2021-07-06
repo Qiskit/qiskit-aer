@@ -100,6 +100,11 @@ public:
                                             uint_t shots,
                                             RngEngine &rng) override;
 
+  virtual void apply_op(const int_t iChunk,const Operations::Op &op,
+                         ExperimentResult &result,
+                         std::vector<RngEngine> &rng,
+                         bool final_ops) override;
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -123,10 +128,6 @@ protected:
   //-----------------------------------------------------------------------
   // Apply instructions
   //-----------------------------------------------------------------------
-  virtual void apply_op(const int_t iChunk,const Operations::Op &op,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops) override;
 
   //swap between chunks
   virtual void apply_chunk_swap(const reg_t &qubits) override;
@@ -574,7 +575,7 @@ void State<densmat_t>::set_config(const json_t &config)
 template <class densmat_t>
 void State<densmat_t>::apply_op(const int_t iChunk,const Operations::Op &op,
                          ExperimentResult &result,
-                         RngEngine &rng,
+                         std::vector<RngEngine> &rng,
                          bool final_ops)
 {
   if (BaseState::creg_.check_conditional(op)) {
@@ -585,13 +586,13 @@ void State<densmat_t>::apply_op(const int_t iChunk,const Operations::Op &op,
         apply_reset(iChunk,op.qubits);
         break;
       case Operations::OpType::measure:
-        apply_measure(op.qubits, op.memory, op.registers, rng);
+        apply_measure(op.qubits, op.memory, op.registers, rng[0]);
         break;
       case Operations::OpType::bfunc:
         BaseState::creg_.apply_bfunc(op);
         break;
       case Operations::OpType::roerror:
-        BaseState::creg_.apply_roerror(op, rng);
+        BaseState::creg_.apply_roerror(op, rng[0]);
         break;
       case Operations::OpType::gate:
         apply_gate(iChunk,op);
@@ -995,7 +996,10 @@ cmatrix_t State<densmat_t>::reduced_density_matrix_helper(const reg_t &qubits,
   uint_t mask = (1ull << (BaseState::chunk_bits_)) - 1;
   uint_t num_threads = BaseState::qregs_[0].get_omp_threads();
 
-  //TO DO check memory availability
+  size_t size_required = (sizeof(std::complex<double>) << (qubits.size()*2)) + (sizeof(std::complex<double>) << (BaseState::chunk_bits_*2))*BaseState::num_local_chunks_;
+  if((size_required>>20) > Utils::get_system_memory_mb()){
+    throw std::runtime_error(std::string("There is not enough memory to store density matrix"));
+  }
   cmatrix_t reduced_state(1ull << qubits.size(),1ull << qubits.size(),true);
 
   if(BaseState::distributed_rank_ == 0){

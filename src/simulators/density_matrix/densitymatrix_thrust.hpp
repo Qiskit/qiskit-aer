@@ -96,6 +96,8 @@ public:
   // The matrix is input as vector of the matrix diagonal.
   void apply_diagonal_superop_matrix(const reg_t &qubits, const cvector_t<double> &mat);
 
+  void apply_batched_matrix(std::vector<batched_matrix_params>& params,reg_t& qubits,std::vector<std::complex<double>>& matrices);
+
   //-----------------------------------------------------------------------
   // Apply Specialized Gates
   //-----------------------------------------------------------------------
@@ -567,66 +569,10 @@ public:
   }
 };
 
-  /*
-template <typename data_t>
-class DensityPhase : public GateFuncBase<data_t>
-{
-protected:
-  uint_t offset;
-  uint_t offset_sp;
-  thrust::complex<double> phase_;
-public:
-  DensityPhase(uint_t qt,uint_t qs,thrust::complex<double>* phase)
-  {
-    offset = 1ull << qt;
-    offset_sp = 1ull << (qt + qs);
-    phase_ = *phase;
-  }
-
-  bool is_diagonal(void)
-  {
-    return true;
-  }
-
-  __host__ __device__ void operator()(const uint_t &i) const
-  {
-    uint_t i0,i1,i2;
-    thrust::complex<data_t>* vec0;
-    thrust::complex<data_t>* vec1;
-    thrust::complex<data_t>* vec2;
-    thrust::complex<data_t>* vec3;
-    thrust::complex<data_t> q0,q1,q2,q3;
-
-    vec0 = this->data_;
-    vec1 = vec0 + offset;
-    vec2 = vec0 + offset_sp;
-    vec3 = vec2 + offset;
-
-    i0 = i & (offset - 1);
-    i2 = (i - i0) << 1;
-    i1 = i2 & (offset_sp - 1);
-    i2 = (i2 - i1) << 1;
-
-    i0 = i0 + i1 + i2;
-
-    q1 = vec1[i0];
-    vec1[i0] = phase_*q1;
-
-    q2 = vec2[i0];
-    vec2[i0] = thrust::conj(phase_)*q2;
-  }
-  const char* name(void)
-  {
-    return "DensityPhase";
-  }
-};
-  */
-
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_phase(const uint_t q,const complex_t &phase) 
 {
   BaseVector::apply_function(DensityPhase<data_t>(q, (thrust::complex<double>*)&phase, BaseVector::chunk_manager_->num_qubits()/2, num_qubits() ));
-//  BaseVector::apply_function(DensityPhase<data_t>(q, num_qubits(), (thrust::complex<double>*)&phase ));
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_phase");
@@ -812,14 +758,14 @@ public:
   {
     offset0 = 1ull << q0;
     offset1 = 1ull << q1;
-  	if(q0 < q1){
+    if(q0 < q1){
       mask0 = (1ull << q0) - 1;
       mask1 = (1ull << q1) - 1;
-  	}
-  	else{
+    }
+    else{
       mask0 = (1ull << q1) - 1;
       mask1 = (1ull << q0) - 1;
-  	}
+    }
   }
   int qubits_count(void)
   {
@@ -890,6 +836,245 @@ void DensityMatrixThrust<data_t>::apply_toffoli(const uint_t qctrl0,
 	BaseVector::DebugMsg(" density::apply_toffoli",qubits);
 #endif
 
+}
+
+//-----------------------------------------------------------------------
+// batched execution
+//-----------------------------------------------------------------------
+template <typename data_t>
+class DensityMatrixMult2x2_batched : public GateFuncWithCache<data_t>
+{
+protected:
+  int num_qubits_state_;
+public:
+  DensityMatrixMult2x2_batched(int nqs) : GateFuncWithCache<data_t>(1)
+  {
+    num_qubits_state_ = nqs;
+  }
+
+  __host__ __device__ virtual uint_t thread_to_index(uint_t _tid) const
+  {
+    uint_t istate = _tid >> (num_qubits_state_*2);
+    uint_t qubit = this->batched_params_[istate].qubit_;
+    uint_t idx,i0,i1,i2,lid;
+
+    lid = _tid - (istate << (num_qubits_state_*2));
+    idx = this->batched_params_[istate].state_index_ << (num_qubits_state_*2);
+
+    i0 = (lid >> 2) & ((1ull << qubit) - 1);
+    i2 = ((lid >> 2) - i0) << 1;
+    i1 = i2 & ((1ull << (qubit + num_qubits_state_)) - 1);
+    i2 = (i2 - i1) << 1;
+
+    idx += i0 + i1 + i2;
+
+    if((lid & 1) != 0){
+      idx += (1ull << qubit);
+    }
+    if((lid & 2) != 0){
+      idx += (1ull << (qubit + num_qubits_state_));
+    }
+    return idx;
+  }
+
+  __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
+  {
+    uint_t istate = _tid >> (num_qubits_state_*2);
+    uint_t cmask = this->batched_params_[istate].control_mask_;
+
+    uint_t j;
+    thrust::complex<data_t> q,r;
+    thrust::complex<double> m;
+    uint_t mat_size,irow;
+    thrust::complex<data_t>* vec;
+    thrust::complex<double>* pMat;
+
+    vec = this->data_;
+    pMat = (thrust::complex<double>*)this->batched_params_[istate].matrix2x2_;
+
+    if((_idx & cmask) == cmask){  //control bits
+      irow = _tid & 1;
+
+      m = pMat[irow];
+      q = _cache[(_tid & 1023) - irow];
+      r = m*q;
+      m = pMat[irow+2];
+      q = _cache[(_tid & 1023) - irow+1];
+      r += m*q;
+
+      this->sync_threads();
+      _cache[(_tid & 1023)] = r;
+      this->sync_threads();
+
+      irow = (_tid >> 1) & 1;
+
+      m = thrust::conj(pMat[irow]);
+      q = _cache[(_tid & 1023) - (irow << 1)];
+      r = m*q;
+      m = thrust::conj(pMat[irow+2]);
+      q = _cache[(_tid & 1023) - (irow << 1) + 2];
+      r += m*q;
+
+      vec[_idx] = r;
+    }
+    else{
+      this->sync_threads();
+      this->sync_threads();
+    }
+  }
+
+  const char* name(void)
+  {
+    return "density_mult2x2_batched";
+  }
+
+};
+
+template <typename data_t>
+class DensityMatrixMultNxN_batched : public GateFuncWithCache<data_t>
+{
+protected:
+  int num_qubits_state_;
+public:
+  DensityMatrixMultNxN_batched(int nqs) : GateFuncWithCache<data_t>(1)
+  {
+    num_qubits_state_ = nqs;
+  }
+
+  __host__ __device__ virtual uint_t thread_to_index(uint_t _tid) const
+  {
+    uint_t istate = _tid >> (num_qubits_state_*2);
+    uint_t nq = this->batched_params_[istate].num_qubits_;
+    uint_t idx,ii,t,j,lid;
+    uint_t* qubits;
+    uint_t* qubits_sorted;
+
+    if(nq == 1){
+      qubits = &this->batched_params_[istate].qubit_;
+      qubits_sorted = qubits;
+    }
+    else{
+      qubits = this->params_ + this->batched_params_[istate].offset_qubits_;
+      qubits_sorted = qubits + nq;
+    }
+
+    lid = _tid - (istate << (num_qubits_state_*2));
+    idx = this->batched_params_[istate].state_index_ << (num_qubits_state_*2);
+    ii = lid >> (nq*2);
+    for(j=0;j<nq;j++){
+      t = ii & ((1ull << qubits_sorted[j]) - 1);
+      idx += t;
+      ii = (ii - t) << 1;
+
+      if(((lid >> j) & 1) != 0){
+        idx += (1ull << qubits[j]);
+      }
+    }
+    for(j=0;j<nq;j++){
+      t = ii & ((1ull << (qubits_sorted[j] + num_qubits_state_)) - 1);
+      idx += t;
+      ii = (ii - t) << 1;
+
+      if(((lid >> j) & 1) != 0){
+        idx += (1ull << (qubits[j] + num_qubits_state_));
+      }
+    }
+    idx += ii;
+    return idx;
+  }
+
+  __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
+  {
+    uint_t istate = _tid >> (num_qubits_state_*2);
+    uint_t nq = this->batched_params_[istate].num_qubits_;
+    uint_t cmask = this->batched_params_[istate].control_mask_;
+
+    uint_t j;
+    thrust::complex<data_t> q,r;
+    thrust::complex<double> m;
+    uint_t mat_size,irow;
+    thrust::complex<data_t>* vec;
+    thrust::complex<double>* pMat;
+
+    vec = this->data_;
+    if(nq == 1)
+      pMat = (thrust::complex<double>*)this->batched_params_[istate].matrix2x2_;
+    else
+      pMat = this->matrix_ + this->batched_params_[istate].offset_matrix_;
+
+    if((_idx & cmask) == cmask){  //control bits
+      mat_size = 1ull << nq;
+      if(this->batched_params_[istate].super_op_)
+        mat_size <<= nq;
+
+      irow = _tid & (mat_size - 1);
+
+      r = 0.0;
+      for(j=0;j<mat_size;j++){
+        m = pMat[irow + mat_size*j];
+        q = _cache[(_tid & 1023) - irow + j];
+
+        r += m*q;
+      }
+
+      if(!this->batched_params_[istate].super_op_){
+        this->sync_threads();
+        _cache[(_tid & 1023)] = r;
+        this->sync_threads();
+
+        irow = (_tid >> nq) & (mat_size - 1);
+
+        r = 0.0;
+        for(j=0;j<mat_size;j++){
+          m = thrust::conj(pMat[irow + mat_size*j]);
+          q = _cache[(_tid & 1023) - ((irow + j) << nq)];
+
+          r += m*q;
+        }
+      }
+      vec[_idx] = r;
+    }
+    else if(!this->batched_params_[istate].super_op_){
+      this->sync_threads();
+      this->sync_threads();
+    }
+  }
+
+  const char* name(void)
+  {
+    return "density_multNxN_batched";
+  }
+
+};
+
+template <typename data_t>
+void DensityMatrixThrust<data_t>::apply_batched_matrix(std::vector<batched_matrix_params>& params,reg_t& qubits,std::vector<std::complex<double>>& matrices)
+{
+  if(BaseVector::enable_batch_ && BaseVector::chunk_.pos() != 0)
+    return;   //first chunk execute all in batch
+
+  if(qubits.size() == 0){ //batched 2x2 matrix 
+    BaseVector::chunk_.StoreBatchedParams(params);
+
+    BaseVector::chunk_.Execute(DensityMatrixMult2x2_batched<data_t>(BaseVector::num_qubits_), params.size() );
+
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_batched_2x2matrix");
+#endif
+  }
+  else{   //batched NxN matrix
+    if(qubits.size() > 0)
+      BaseVector::chunk_.StoreUintParams(qubits);
+    if(matrices.size() > 0)
+      BaseVector::chunk_.StoreBatchedMatrix(matrices);
+    BaseVector::chunk_.StoreBatchedParams(params);
+
+    BaseVector::chunk_.Execute(DensityMatrixMultNxN_batched<data_t>(BaseVector::num_qubits_), params.size() );
+
+#ifdef AER_DEBUG
+	BaseVector::DebugMsg(" density::apply_batched_NxNmatrix");
+#endif
+  }
 }
 
 //-----------------------------------------------------------------------
@@ -1008,18 +1193,21 @@ double DensityMatrixThrust<data_t>::expval_pauli(const reg_t &qubits,
     return BaseMatrix::trace().real();
   }
 
+  double ret;
   // specialize x_max == 0
   if(x_mask == 0) {
-    return BaseVector::apply_function_sum(
+    BaseVector::apply_function_sum(&ret,
       expval_pauli_Z_func_dm<data_t>(z_mask, BaseMatrix::rows_) );
+    return ret;
   }
 
   // Compute the overall phase of the operator.
   // This is (-1j) ** number of Y terms modulo 4
   auto phase = std::complex<data_t>(initial_phase);
   add_y_phase(num_y, phase);
-  return BaseVector::apply_function_sum(
+  BaseVector::apply_function_sum(&ret,
     expval_pauli_XYZ_func_dm<data_t>(x_mask, z_mask, x_max, phase, BaseMatrix::rows_) );
+  return ret;
 }
 
 template <typename data_t>
@@ -1081,8 +1269,11 @@ double DensityMatrixThrust<data_t>::expval_pauli_non_diagonal_chunk(const reg_t 
   // This is (-1j) ** number of Y terms modulo 4
   auto phase = std::complex<data_t>(initial_phase);
   add_y_phase(num_y, phase);
-  return BaseVector::apply_function_sum(
+  double ret;
+  BaseVector::apply_function_sum(&ret,
     expval_pauli_XYZ_func_dm_non_diagonal<data_t>(x_mask, z_mask, x_max, phase, BaseMatrix::rows_) );
+
+  return ret;
 }
 //-----------------------------------------------------------------------
 // Z-measurement outcome probabilities
@@ -1173,7 +1364,7 @@ std::vector<double> DensityMatrixThrust<data_t>::probabilities(const reg_t &qubi
 
   int i;
   for(i=0;i<DIM;i++){
-    probs[i] = BaseVector::apply_function_sum(density_probability_func<data_t>(qubits,qubits_sorted,i,BaseMatrix::num_rows()));
+    BaseVector::apply_function_sum(&probs[i],density_probability_func<data_t>(qubits,qubits_sorted,i,BaseMatrix::num_rows()));
   }
 
   return probs;

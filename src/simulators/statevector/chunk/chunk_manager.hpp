@@ -48,6 +48,7 @@ protected:
   int idev_buffer_map_;        //device index buffer to be mapped
 
   int iplace_host_;            //chunk container for host memory
+  bool multi_shots_;
 public:
   ChunkManager();
 
@@ -98,7 +99,6 @@ public:
 
   void UnmapChunk(Chunk<data_t>& chunk);
   void UnmapBufferChunk(Chunk<data_t>& buffer);
-
 };
 
 template <typename data_t>
@@ -109,6 +109,7 @@ ChunkManager<data_t>::ChunkManager()
   chunk_bits_ = 0;
   num_chunks_ = 0;
   num_qubits_ = 0;
+  multi_shots_ = false;
 
   idev_buffer_map_ = 0;
 
@@ -164,7 +165,6 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
   char* str;
   bool multi_gpu = false;
   bool hybrid = false;
-  bool multi_shot = false;
 
   //--- for test
   str = getenv("AER_MULTI_GPU");
@@ -193,7 +193,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
         num_chunks_ = nchunks;
 
         num_buffers = 0;
-        multi_shot = true;
+        multi_shots_ = true;
 
 #ifdef AER_THRUST_CPU
         multi_gpu = false;
@@ -208,9 +208,12 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
         multi_gpu = false;
         num_places_ = 1;
         num_chunks_ = nchunks;
+        multi_shots_ = false;
       }
     }
     else{   //multiple-chunk parallelization
+      multi_shots_ = false;
+
       num_buffers = AER_MAX_BUFFERS;
 
 #ifdef AER_THRUST_CUDA
@@ -228,6 +231,9 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
 #endif
       num_chunks_ = nchunks;
     }
+    if(num_chunks_ < num_places_){
+      num_places_ = num_chunks_;
+    }
 
     nchunks = num_chunks_;
     num_chunks_ = 0;
@@ -240,12 +246,12 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
       }
 
       chunks_.push_back(std::make_shared<DeviceChunkContainer<data_t>>());
-      num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nc,num_buffers);
+      num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nc,num_buffers,multi_shots_);
     }
     if(num_chunks_ < nchunks){
       //rest of chunks are stored on host
       chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
-      chunks_[num_places_]->Allocate(-1,chunk_bits,nchunks-num_chunks_,num_buffers);
+      chunks_[num_places_]->Allocate(-1,chunk_bits,nchunks-num_chunks_,num_buffers,multi_shots_);
       num_places_ += 1;
       num_chunks_ = nchunks;
     }
@@ -289,8 +295,8 @@ bool ChunkManager<data_t>::MapChunk(Chunk<data_t>& chunk,int iplace)
 {
   int i;
 
-  while(iplace < num_places_){
-    if(chunks_[iplace]->MapChunk(chunk))
+  for(i=0;i<num_places_;i++){
+    if(chunks_[(iplace + i) % num_places_]->MapChunk(chunk))
       break;
   }
   return chunk.is_mapped();
@@ -335,7 +341,6 @@ void ChunkManager<data_t>::UnmapBufferChunk(Chunk<data_t>& buffer)
 {
   chunks_[buffer.place()]->UnmapBuffer(buffer);
 }
-
 
 
 //------------------------------------------------------------------------------

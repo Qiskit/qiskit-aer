@@ -103,7 +103,7 @@ public:
   // Config: {"omp_qubit_threshold": 3}
   virtual void set_config(const json_t &config) override;
 
-  virtual void allocate(uint_t num_qubits,uint_t block_bits) override;
+  virtual void allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -353,7 +353,7 @@ template <class data_t> void State<data_t>::initialize_omp() {
 }
 
 template <class data_t>
-void State<data_t>::allocate(uint_t num_qubits, uint_t block_bits){
+void State<data_t>::allocate(uint_t num_qubits, uint_t block_bits,uint_t num_parallel_shots){
     BaseState::qreg_.chunk_setup(num_qubits * 4, num_qubits * 4, 0, 1);
 }
 

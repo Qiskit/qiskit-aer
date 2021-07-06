@@ -21,6 +21,8 @@
 #include "framework/creg.hpp"
 #include "framework/results/experiment_result.hpp"
 
+#include "noise/noise_model.hpp"
+
 namespace AER {
 
 namespace Base {
@@ -76,8 +78,8 @@ public:
   const auto &qreg() const { return qreg_; }
 
   // Return the state creg object
-  auto &creg() { return creg_; }
-  const auto &creg() const { return creg_; }
+  auto &creg(uint_t idx=0) { return creg_; }
+  const auto &creg(uint_t idx=0) const { return creg_; }
 
   // Return the state opset object
   auto &opset() { return opset_; }
@@ -114,6 +116,21 @@ public:
                          RngEngine &rng,
                          bool final_ops = false)  = 0;
 
+  virtual void apply_op(uint_t iChunk, const Operations::Op &op,
+                         ExperimentResult &result,
+                         std::vector<RngEngine>& rng,
+                         bool final_ops = false) {}
+
+  virtual void apply_batched_ops(const std::vector<Operations::Op> &ops){}
+  virtual void enable_batch(bool flg){}
+
+  virtual void apply_batched_pauli(reg_t& params){}
+
+  virtual void end_of_circuit(){};
+
+  //store asynchronously measured classical bits after batched execution
+  virtual void store_measured_cbits(const Operations::Op &op) {}
+
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
   virtual void initialize_qreg(uint_t num_qubits) = 0;
@@ -128,7 +145,9 @@ public:
                                     const = 0;
 
   //memory allocation (previously called before inisitalize_qreg)
-  virtual void allocate(uint_t num_qubits,uint_t block_bits) {}
+  virtual void allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1){}
+  virtual void bind_state(State<state_t>& state,uint_t ishot,bool batch_enable){}
+
 
   // Return the expectation value of a N-qubit Pauli operator
   // If the simulator does not support Pauli expectation value this should
@@ -165,6 +184,13 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits,
                                             uint_t shots,
                                             RngEngine &rng);
+
+  virtual std::vector<reg_t> batched_sample_measure(const reg_t &qubits,
+                                            reg_t& shots,
+                                            std::vector<RngEngine> &rng)
+  {
+    return sample_measure(qubits,shots[0],rng[0]);
+  }
 
   //=======================================================================
   // Standard non-virtual methods
@@ -269,6 +295,12 @@ public:
   //set number of processes to be distributed
   void set_distribution(uint_t nprocs){}
 
+  //check if this register is on the top of array
+  virtual bool top_of_array()
+  {
+    return true;//qreg_.top_of_array();
+  }
+
 protected:
 
   // The quantum state data structure
@@ -287,6 +319,9 @@ protected:
   // Set a global phase exp(1j * theta) for the state
   bool has_global_phase_ = false;
   complex_t global_phase_ = 1;
+
+  uint_t shot_index_ = 0;
+
 };
 
 

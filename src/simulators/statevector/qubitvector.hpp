@@ -36,6 +36,9 @@
 #include "framework/utils.hpp"
 #include "framework/linalg/vector.hpp"
 
+
+#include "simulators/statevector/batched_matrix.hpp"
+
 namespace AER {
 namespace QV {
 template <typename T> using cvector_t = std::vector<std::complex<T>>;
@@ -97,6 +100,9 @@ public:
   // Returns required memory
   size_t required_memory_mb(uint_t num_qubits) const;
 
+  //check if this register is on the top of array (always true if array is allocated independently)
+  bool top_of_array(){ return true;}
+
   // Returns a copy of the underlying data_t data as a complex vector
   cvector_t<data_t> vector() const;
 
@@ -129,7 +135,7 @@ public:
 
   //setup chunk
   void chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
-  void chunk_setup(const QubitVector<data_t>& base,const uint_t chunk_index);
+  void chunk_setup(QubitVector<data_t>& base,const uint_t chunk_index);
 
   //cache control for chunks on host
   bool fetch_chunk(void) const
@@ -153,6 +159,8 @@ public:
   std::complex<data_t>* recv_buffer(uint_t& size_in_byte);
   void release_send_buffer(void) const;
   void release_recv_buffer(void) const;
+
+  void end_of_circuit(){}
 
   //-----------------------------------------------------------------------
   // Check point operations
@@ -206,6 +214,9 @@ public:
   // Swap pairs of indicies in the underlying vector
   void apply_permutation_matrix(const reg_t &qubits,
                                 const std::vector<std::pair<uint_t, uint_t>> &pairs);
+
+  //batched matrix is used for GPU optimization
+  void apply_batched_matrix(std::vector<batched_matrix_params>& params,reg_t& qubits,std::vector<std::complex<double>>& matrices){}
 
   //-----------------------------------------------------------------------
   // Apply Specialized Gates
@@ -269,6 +280,33 @@ public:
   // The input is a length M list of random reals between [0, 1) used for
   // generating samples.
   virtual reg_t sample_measure(const std::vector<double> &rnds) const;
+
+
+  //-----------------------------------------------------------------------
+  // for batched optimization (thesea are not used for this class)
+  //-----------------------------------------------------------------------
+  virtual bool batched_optimization_supported(void)
+  {
+    return false;
+  }
+
+  //optimized 1 qubit measure (async)
+  virtual void apply_batched_measure(const uint_t qubit,std::vector<RngEngine> &rng){}
+
+  int measured_cbit(int qubit)
+  {
+    return -1;
+  }
+
+  //runtime noise sampling
+  void apply_batched_pauli(reg_t& params)
+  {
+  }
+
+  //Apply Kraus 
+  void apply_kraus(const reg_t &qubits,
+                   const std::vector<cmatrix_t> &kmats,
+                   std::vector<RngEngine>& rng);
 
   //-----------------------------------------------------------------------
   // Norms
@@ -355,6 +393,11 @@ public:
 
   // Get the sample_measure index size
   int get_sample_measure_index_size() {return sample_measure_index_size_;}
+
+  virtual bool enable_batch(bool flg)
+  {
+    return false;
+  }
 
 protected:
 
@@ -883,7 +926,7 @@ void QubitVector<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk
 }
 
 template <typename data_t>
-void QubitVector<data_t>::chunk_setup(const QubitVector<data_t>& base,const uint_t chunk_index)
+void QubitVector<data_t>::chunk_setup(QubitVector<data_t>& base,const uint_t chunk_index)
 {
   chunk_index_ = chunk_index;
 }
@@ -1864,6 +1907,7 @@ std::vector<double> QubitVector<data_t>::probabilities(const reg_t &qubits) cons
   return probs;
 }
 
+
 //------------------------------------------------------------------------------
 // Sample measure outcomes
 //------------------------------------------------------------------------------
@@ -2141,6 +2185,48 @@ void QubitVector<data_t>::apply_pauli(const reg_t &qubits, const std::string &pa
     }
   };
   apply_lambda(lambda, (size_t) 0, (data_size_ >> 1));
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_kraus(const reg_t &qubits,
+                                            const std::vector<cmatrix_t> &kmats,
+                                            std::vector<RngEngine>& rng)
+{
+  // Choose a real in [0, 1) to choose the applied kraus operator once
+  // the accumulated probability is greater than r.
+  // We know that the Kraus noise must be normalized
+  // So we only compute probabilities for the first N-1 kraus operators
+  // and infer the probability of the last one from 1 - sum of the previous
+
+  double r = rng[0].rand(0., 1.);
+  double accum = 0.;
+  bool complete = false;
+
+  // Loop through N-1 kraus operators
+  for (size_t j = 0; j < kmats.size() - 1; j++) {
+
+    // Calculate probability
+    cvector_t<double> vmat = Utils::vectorize_matrix(kmats[j]);
+    double p = norm(qubits, vmat);
+    accum += p;
+
+    // check if we need to apply this operator
+    if (accum > r) {
+      // rescale vmat so projection is normalized
+      Utils::scalar_multiply_inplace(vmat, 1 / std::sqrt(p));
+      // apply Kraus projection operator
+      apply_matrix(qubits, vmat);
+      complete = true;
+      break;
+    }
+  }
+
+  // check if we haven't applied a kraus operator yet
+  if (complete == false) {
+    // Compute probability from accumulated
+    double renorm = 1 / std::sqrt(1. - accum);
+    apply_matrix(qubits, Utils::vectorize_matrix(renorm * kmats.back()));
+  }
 }
 
 //------------------------------------------------------------------------------
