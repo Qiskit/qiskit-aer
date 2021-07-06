@@ -1111,13 +1111,13 @@ void Controller::run_circuits(const std::vector<Circuit> &circs,
           if (sim_precision_ == Precision::Double) {
             // Double-precision Statevector simulation
             return run_circuits_helper<
-                Statevector::State<QV::QubitVectorThrust<double>>>(
+                StatevectorChunk::State<QV::QubitVectorThrust<double>>>(
                 circs, noise, config, Method::statevector,
                 false, result);
           } else {
             // Single-precision Statevector simulation
             return run_circuits_helper<
-                Statevector::State<QV::QubitVectorThrust<float>>>(
+                StatevectorChunk::State<QV::QubitVectorThrust<float>>>(
                 circs, noise, config, Method::statevector,
                 false, result);
           }
