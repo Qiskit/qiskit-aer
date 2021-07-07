@@ -18,10 +18,6 @@
 
 #include "framework/operations.hpp"
 
-
-#include "misc/wrap_thrust.hpp"
-
-
 namespace AER {
 namespace QV {
 
@@ -38,7 +34,12 @@ public:
   std::complex<double> matrix2x2_[4];
 
   batched_matrix_params(){}
+
+#ifdef AER_THRUST_CUDA
   __host__ __device__ batched_matrix_params(const batched_matrix_params& prm)
+#else
+  batched_matrix_params(const batched_matrix_params& prm)
+#endif
   {
     state_index_ = prm.state_index_;
     num_qubits_ = prm.num_qubits_;
@@ -52,7 +53,11 @@ public:
     matrix2x2_[3] = prm.matrix2x2_[3];
   }
 
+#ifdef AER_THRUST_CUDA
   __host__ __device__ batched_matrix_params& operator=(const batched_matrix_params& prm)
+#else
+  batched_matrix_params& operator=(const batched_matrix_params& prm)
+#endif
   {
     state_index_ = prm.state_index_;
     num_qubits_ = prm.num_qubits_;
