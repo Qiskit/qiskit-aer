@@ -271,16 +271,6 @@ public:
     }
   }
 
-  void ExecuteOnHost(HostFuncBase* func)
-  {
-    if(cache_){
-      cache_->ExecuteOnHost(func);
-    }
-    else{
-      chunk_container_.lock()->ExecuteOnHost(func,chunk_pos_);
-    }
-  }
-
   reg_t sample_measure(const std::vector<double> &rnds,uint_t stride = 1,bool dot = true,uint_t count = 1) const
   {
     end_capture();

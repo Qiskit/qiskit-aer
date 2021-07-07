@@ -1362,7 +1362,7 @@ bool DeviceChunkContainer<data_t>::update_condition(uint_t iChunk,uint_t count,b
     return true;
   }
 #else
-  condition_buffer_[iChunk] -= reduce_buffer[iChunk*reduce_buffer_size_];
+  condition_buffer_[iChunk] -= reduce_buffer_[iChunk*reduce_buffer_size_];
 #endif
 
   return false;

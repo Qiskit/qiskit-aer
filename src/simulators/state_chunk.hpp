@@ -828,11 +828,6 @@ auto StateChunk<state_t>::apply_to_matrix(bool copy)
 
   auto matrix = qregs_[0].copy_to_matrix();
 
-  size_t size_required = 2*(sizeof(std::complex<double>) << (num_qubits_*2)) + (sizeof(std::complex<double>) << (chunk_bits_*2))*num_local_chunks_;
-  if((size_required>>20) > Utils::get_system_memory_mb()){
-    throw std::runtime_error(std::string("There is not enough memory to store states as matrix"));
-  }
-
   if(distributed_rank_ == 0){
     matrix.resize(1ull << (num_qubits_),1ull << (num_qubits_));
 

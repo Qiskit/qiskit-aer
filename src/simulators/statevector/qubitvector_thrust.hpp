@@ -2340,8 +2340,8 @@ template <typename data_t>
 class Permutation : public GateFuncBase<data_t>
 {
 protected:
-  int nqubits;
-  int npairs;
+  uint_t nqubits;
+  uint_t npairs;
 
 public:
   Permutation(const reg_t& qubits_sorted,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs,reg_t& params)
@@ -4563,7 +4563,11 @@ public:
       vec0 = this->data_;
       vec1 = vec0 + offset0;
 
+#ifdef CUDA_ARCH
       scale = rsqrt(red);
+#else
+      scale = 1.0/sqrt(red);
+#endif
 
       i1 = i & mask;
       i0 = (i - i1) << 1;
@@ -4684,7 +4688,11 @@ public:
     red = reduced_[iChunk*red_size_];
 
     //if(cond < 0.0 && cond + red >= 0.0){
+#ifdef CUDA_ARCH
       scale = rsqrt(red);
+#else
+      scale = 1.0/sqrt(red);
+#endif
 
       vec = this->data_;
       pMat = this->matrix_;

@@ -528,8 +528,6 @@ public:
   template <typename Function>
   void ExecuteSum2(double* pSum,Function func,uint_t iChunk,uint_t count) const;
 
-  void ExecuteOnHost(HostFuncBase* func,uint_t iChunk);
-
   virtual reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true,uint_t count = 1) const = 0;
   virtual thrust::complex<double> norm(uint_t iChunk,uint_t stride = 1,bool dot = true) const = 0;
 
@@ -828,6 +826,14 @@ void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk
 #endif
 }
 
+struct complex_sum
+{
+  __host__ __device__ thrust::complex<double> operator()(const thrust::complex<double>& a,const thrust::complex<double>& b)
+  {
+    return a+b;
+  }
+};
+
 template <typename data_t>
 template <typename Function>
 void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChunk,uint_t count) const
@@ -874,13 +880,18 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
       cudaMemcpyAsync(pSum,buf,sizeof(double)*2,cudaMemcpyDeviceToHost,strm);
   }
   else{ //if no stream returned, run on host
-//    *((thrust::complex<double>*)pSum) = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<thrust::complex<double>>());
+    thrust::complex<double> ret = 0.0;
+    ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,ret,complex_sum());
+    *((thrust::complex<double>*)pSum) = ret;
   }
 #else
+  thrust::complex<double> ret = 0.0;
   if(enable_omp_)
-    *((thrust::complex<double>*)pSum) = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<thrust::complex<double>>());
+    ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,ret,complex_sum());
   else
-    *((thrust::complex<double>*)pSum) = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<thrust::complex<double>>());  //disable nested OMP parallelization when shots are parallelized
+    ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,ret,complex_sum());  //disable nested OMP parallelization when shots are parallelized
+
+  *((thrust::complex<double>*)pSum) = ret;
 #endif
 }
 
@@ -889,21 +900,6 @@ void host_func_launcher(void* pParam)
 {
   HostFuncBase* func = reinterpret_cast<HostFuncBase*>(pParam);
   func->execute();
-}
-
-
-template <typename data_t>
-void ChunkContainer<data_t>::ExecuteOnHost(HostFuncBase* func,uint_t iChunk)
-{
-#ifdef AER_THRUST_CUDA
-  cudaStream_t strm = stream(iChunk);
-  if(strm){
-//    cudaLaunchHostFunc(strm,(cudaHostFn_t )&func,pParams);
-    cudaLaunchHostFunc(strm,&host_func_launcher,reinterpret_cast<void*>(func));
-  }
-#else
-  func(pParams);
-#endif
 }
 
 template <typename data_t>

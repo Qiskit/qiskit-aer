@@ -18,6 +18,10 @@
 
 #include "framework/operations.hpp"
 
+
+#include "misc/wrap_thrust.hpp"
+
+
 namespace AER {
 namespace QV {
 
