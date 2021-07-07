@@ -897,7 +897,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     // truncate circuits before experiment settings (to get correct
     // required_memory_mb value)
 #pragma omp parallel for
-    for (size_t j = 0; j < circuits.size(); j++) {
+    for (int_t j = 0; j < circuits.size(); j++) {
       // Remove barriers from circuit
       Transpile::ReduceBarrier barrier_pass;
       barrier_pass.optimize_circuit(circuits[j], circ_noise_models[j], circuits[j].opset(), result.results[j]);
