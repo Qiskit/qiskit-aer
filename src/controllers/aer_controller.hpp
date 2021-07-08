@@ -1101,13 +1101,13 @@ void Controller::run_circuits(const std::vector<Circuit> &circs,
           if (sim_precision_ == Precision::Double) {
             // Double-precision Statevector simulation
             return run_circuits_helper<
-                StatevectorChunk::State<QV::QubitVectorThrust<double>>>(
+                Statevector::State<QV::QubitVectorThrust<double>>>(
                 circs, noise, config, Method::statevector,
                 false, result);
           } else {
             // Single-precision Statevector simulation
             return run_circuits_helper<
-                StatevectorChunk::State<QV::QubitVectorThrust<float>>>(
+                Statevector::State<QV::QubitVectorThrust<float>>>(
                 circs, noise, config, Method::statevector,
                 false, result);
           }
@@ -1630,6 +1630,7 @@ void Controller::run_circuits_helper(const std::vector<Circuit> &circs,
                                     bool cache_blocking,
                                     Result &result) 
 {
+
 #pragma omp parallel for if (parallel_experiments_ > 1) num_threads(parallel_experiments_)
   for (int j = 0; j < circs.size(); ++j) {
     // Start individual circuit timer
@@ -1912,7 +1913,6 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   // Set state config
   state.set_config(config);
   state.set_parallalization(parallel_state_update_);
-//    state.set_distribution(get_distributed_num_processes(shots == circ.shots));
   state.set_global_phase(circ.global_phase_angle);
 
   // Optimize circuit
@@ -1987,7 +1987,6 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
       // Set state config
       par_state.set_config(config);
       par_state.set_parallalization(parallel_state_update_);
-//    state.set_distribution(get_distributed_num_processes(shots == circ.shots));
       par_state.set_global_phase(circ.global_phase_angle);
 
       // allocate qubit register
@@ -2032,7 +2031,6 @@ void Controller::run_circuit_with_sampled_noise(
     // Set state config
     state.set_config(config);
     state.set_parallalization(parallel_state_update_);
-//    state.set_distribution(get_distributed_num_processes(shots == circ.shots));
     state.set_global_phase(circ.global_phase_angle);
 
     for(;i_shot<shot_end;i_shot++){
@@ -2080,6 +2078,7 @@ void Controller::run_circuit_without_sampled_noise_batched_optimization(Circuit 
                                                    uint_t rng_seed) const 
 {
   State_t state;
+
   // Set state config
   state.set_config(config);
 
@@ -2123,7 +2122,6 @@ void Controller::run_circuit_without_sampled_noise_batched_optimization(Circuit 
   for(ishot=0;ishot<shots;ishot++){
     save_count_data(result, states.creg(ishot));
   }
-
 }
 
 //-------------------------------------------------------------------------

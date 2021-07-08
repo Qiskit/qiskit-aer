@@ -476,7 +476,7 @@ const stringmap_t<Snapshots> State<statevec_t>::snapshotset_(
 template <class statevec_t>
 void State<statevec_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
 {
-  BaseState::qreg_.chunk_setup(num_qubits,num_qubits,0,1);
+  BaseState::qreg_.chunk_setup(num_qubits,num_qubits,0,num_parallel_shots);
   BaseState::shot_index_ = 0;
 }
 

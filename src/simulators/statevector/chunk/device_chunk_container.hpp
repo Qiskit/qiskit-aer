@@ -321,7 +321,6 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
   for(i=0;i<nc + buffers;i++){
     cudaStreamCreateWithFlags(&stream_[i], cudaStreamNonBlocking);
   }
-#endif
 
   if(bits < 10){
     reduce_buffer_size_ = 1;
@@ -329,6 +328,10 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
   else{
     reduce_buffer_size_ = (1ull << (bits - 10));
   }
+#else
+  reduce_buffer_size_ = 1;
+#endif
+
   reduce_buffer_size_ *= 2;
   reduce_buffer_.resize(reduce_buffer_size_*nc);
   condition_buffer_.resize(nc);
@@ -1321,7 +1324,7 @@ void DeviceChunkContainer<data_t>::init_condition(uint_t iChunk,std::vector<doub
 #ifdef AER_THRUST_CUDA
   cudaMemcpyAsync(condition_buffer(iChunk),&cond[0],sizeof(double)*cond.size(),cudaMemcpyHostToDevice,stream_[iChunk]);
 #else
-  condition_buffer_[iChunk] = 0.0;
+  thrust::copy_n(cond.begin(),cond.size(),condition_buffer_.begin() + iChunk);
 #endif
 }
 
@@ -1362,7 +1365,18 @@ bool DeviceChunkContainer<data_t>::update_condition(uint_t iChunk,uint_t count,b
     return true;
   }
 #else
-  condition_buffer_[iChunk] -= reduce_buffer_[iChunk*reduce_buffer_size_];
+
+  int_t i,n;
+  n = 0;
+#pragma omp parallel for if(this->enable_omp_) reduction(+:n)
+  for(i=0;i<count;i++){
+    condition_buffer_[iChunk+i] -= reduce_buffer_[(iChunk+i)*reduce_buffer_size_];
+    if(condition_buffer_[iChunk+i] < 0){
+      n++;
+    }
+  }
+  if(n >= count)
+    return true;
 #endif
 
   return false;

@@ -296,7 +296,11 @@ public:
   //-----------------------------------------------------------------------
   virtual bool batched_optimization_supported(void)
   {
+#ifdef AER_THRUST_CUDA
     return true;
+#else
+    return false;
+#endif
   }
 
   bool enable_batch(bool flg)
@@ -939,7 +943,8 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   chunk_.set_num_qubits(num_qubits);
   chunk_.set_chunk_index(chunk_index_);
 
-  chunk_.enable_omp((num_qubits_ > omp_threshold_ && omp_threads_ > 1));
+//  chunk_.enable_omp((num_qubits_ > omp_threshold_ && omp_threads_ > 1));
+  chunk_.enable_omp((nid == 1));
 
   register_blocking_ = false;
 
@@ -4600,7 +4605,7 @@ public:
     condition_ = cond;
   }
 
-  __host__ __device__  bool check_condition(uint_t i)
+  __host__ __device__  bool check_condition(uint_t i) const
   {
     uint_t iChunk = (i >> num_qubits_state_);
     return (condition_[iChunk] >= 0.0);
@@ -4614,10 +4619,6 @@ public:
     uint_t mat_size,irow;
     thrust::complex<data_t>* vec;
     thrust::complex<double>* pMat;
-
-//    uint_t iChunk = (_idx >> num_qubits_state_);
-//    if(condition_[iChunk] < 0.0)
-//      return 0.0;
 
     vec = this->data_;
     pMat = this->matrix_;
@@ -4660,7 +4661,7 @@ public:
     condition_ = cond;
   }
 
-  __host__ __device__  bool check_condition(uint_t i)
+  __host__ __device__  bool check_condition(uint_t i) const
   {
     double cond;
     double red;
@@ -4684,32 +4685,29 @@ public:
     double red;
 
     uint_t iChunk = (_idx >> num_qubits_state_);
-//    cond = condition_[iChunk];
     red = reduced_[iChunk*red_size_];
 
-    //if(cond < 0.0 && cond + red >= 0.0){
 #ifdef CUDA_ARCH
-      scale = rsqrt(red);
+    scale = rsqrt(red);
 #else
-      scale = 1.0/sqrt(red);
+    scale = 1.0/sqrt(red);
 #endif
 
-      vec = this->data_;
-      pMat = this->matrix_;
+    vec = this->data_;
+    pMat = this->matrix_;
 
-      mat_size = 1ull << this->nqubits_;
-      irow = _tid & (mat_size - 1);
+    mat_size = 1ull << this->nqubits_;
+    irow = _tid & (mat_size - 1);
 
-      r = 0.0;
-      for(j=0;j<mat_size;j++){
-        m = pMat[irow + mat_size*j];
-        q = _cache[(_tid & 1023) - irow + j];
+    r = 0.0;
+    for(j=0;j<mat_size;j++){
+      m = pMat[irow + mat_size*j];
+      q = _cache[(_tid & 1023) - irow + j];
 
-        r += m*q;
-      }
+      r += m*q;
+    }
 
-      vec[_idx] = scale*r;
-//    }
+    vec[_idx] = scale*r;
   }
 
   const char* name(void)
@@ -4728,6 +4726,7 @@ void QubitVectorThrust<data_t>::apply_kraus(const reg_t &qubits,
   uint_t i,count;
   double ret;
 
+#ifdef AER_THRUST_CUDA
   count = 1;
   if(enable_batch_){
     if(chunk_.pos() != 0){
@@ -4746,18 +4745,21 @@ void QubitVectorThrust<data_t>::apply_kraus(const reg_t &qubits,
     chunk_.init_condition(r);
   }
 
+  bool finished = false;
   if(N == 1){
     for(i=0;i<kmats.size();i++){
       cvector_t<double> vmat = Utils::vectorize_matrix(kmats[i]);
       apply_function_sum(nullptr,NormMatrixMult2x2<data_t>(vmat,qubits[0]),true);
 
-      chunk_.update_condition(count,true);
+      finished = chunk_.update_condition(count,true);
 
       apply_function(MatrixMult2x2_conditional<data_t>(vmat,qubits[0],num_qubits_,chunk_.reduce_buffer(),chunk_.reduce_buffer_size(),chunk_.condition_buffer(),false) );
+
+      if(finished)
+        break;
     }
   }
   else{
-    bool finished = false;
     auto qubits_sorted = qubits;
     std::sort(qubits_sorted.begin(), qubits_sorted.end());
     for(i=0;i<N;i++)
@@ -4767,18 +4769,52 @@ void QubitVectorThrust<data_t>::apply_kraus(const reg_t &qubits,
     for(i=0;i<kmats.size();i++){
       chunk_.StoreMatrix(Utils::vectorize_matrix(kmats[i]));
 
-//      apply_function_sum(nullptr,NormMatrixMultNxN<data_t>(N),true);
       apply_function_sum(nullptr,NormMatrixMultNxN_conditional<data_t>(N,num_qubits_,chunk_.condition_buffer()),true);
 
-      //finished = chunk_.update_condition(count,false);  //synchronize to check if all states satisfy condition
       finished = chunk_.update_condition(count,true);
 
       apply_function(MatrixMultNxN_conditional<data_t>(N,num_qubits_,chunk_.reduce_buffer(),chunk_.reduce_buffer_size(),chunk_.condition_buffer()) );
 
-//      if(finished)
-//        break;
+      if(finished)
+        break;
     }
   }
+#else
+
+  double r = rng[chunk_index_].rand(0., 1.);
+  double accum = 0.;
+  bool complete = false;
+
+  bool batch = enable_batch(false);
+
+  // Loop through N-1 kraus operators
+  for (size_t j = 0; j < kmats.size() - 1; j++) {
+
+    // Calculate probability
+    auto vmat = Utils::vectorize_matrix(kmats[j]);
+    double p = norm(qubits, vmat);
+    accum += p;
+
+    // check if we need to apply this operator
+    if (accum > r) {
+      // rescale vmat so projection is normalized
+      Utils::scalar_multiply_inplace(vmat, 1 / std::sqrt(p));
+      // apply Kraus projection operator
+      apply_matrix(qubits, vmat);
+      complete = true;
+      break;
+    }
+  }
+
+  // check if we haven't applied a kraus operator yet
+  if (complete == false) {
+    // Compute probability from accumulated
+    complex_t renorm = 1 / std::sqrt(1. - accum);
+    apply_matrix(qubits, Utils::vectorize_matrix(renorm * kmats.back()));
+  }
+
+  enable_batch(batch);
+#endif
 }
 
 #ifdef AER_DEBUG

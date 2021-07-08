@@ -89,11 +89,17 @@ protected:
   uint_t* params_;                  //storage for additional parameters on device
   batched_matrix_params* batched_params_; //storage for parameters for batched matrix multiplier on device
   uint_t base_index_;               //start index of state vector 
+#ifndef AER_THRUST_CUDA
+  uint_t index_offset_;
+#endif
 public:
   GateFuncBase()
   {
     data_ = NULL;
     base_index_ = 0;
+#ifndef AER_THRUST_CUDA
+    index_offset_ = 0;
+#endif
   }
 //  virtual __host__ __device__ ~GateFuncBase(){}
 
@@ -118,6 +124,13 @@ public:
   {
     base_index_ = i;
   }
+#ifndef AER_THRUST_CUDA
+  void set_index_offset(uint_t i)
+  {
+    index_offset_ = i;
+  }
+#endif
+
   __host__ __device__ thrust::complex<data_t>* data(void)
   {
     return data_;
@@ -176,7 +189,7 @@ public:
     return 0.0;
   }
 
-  virtual __host__ __device__  bool check_condition(uint_t i)
+  virtual __host__ __device__  bool check_condition(uint_t i) const
   {
     return true;
   }
@@ -234,6 +247,9 @@ public:
 
   __host__ __device__ void operator()(const uint_t &i) const
   {
+    if(!check_condition(i << nqubits_))
+      return;
+
     thrust::complex<data_t> cache[1024];
     uint_t j,idx;
     uint_t matSize = 1ull << nqubits_;
@@ -254,6 +270,11 @@ public:
   virtual int qubits_count(void)
   {
     return nqubits_;
+  }
+
+  virtual __host__ __device__  bool check_condition(uint_t i) const
+  {
+    return true;
   }
 };
 
@@ -300,6 +321,11 @@ public:
 
   __host__ __device__ double operator()(const uint_t &i) const
   {
+#ifndef AER_THRUST_CUDA
+    if(!check_condition((i << nqubits_) + this->index_offset_))
+      return 0.0;
+#endif
+
     thrust::complex<data_t> cache[1024];
     uint_t j,idx;
     uint_t matSize = 1ull << nqubits_;
@@ -322,6 +348,11 @@ public:
   virtual int qubits_count(void)
   {
     return nqubits_;
+  }
+
+  virtual __host__ __device__  bool check_condition(uint_t i) const
+  {
+    return true;
   }
 };
 
@@ -761,6 +792,8 @@ template <typename data_t>
 template <typename Function>
 void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk,uint_t count) const
 {
+
+#ifdef AER_THRUST_CUDA
   uint_t size = count * func.size(chunk_bits_);
 
   set_device();
@@ -772,7 +805,6 @@ void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk
 
   auto ci = thrust::counting_iterator<uint_t>(0);
 
-#ifdef AER_THRUST_CUDA
   cudaStream_t strm = stream(iChunk);
   if(strm){
 //    *pSum = thrust::transform_reduce(thrust::cuda::par.on(strm), ci, ci + size, func,0.0,thrust::plus<double>());
@@ -819,10 +851,32 @@ void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk
     *pSum = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<double>());
   }
 #else
-  if(enable_omp_)
-    *pSum = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<double>());
-  else
-    *pSum = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<double>());  //disable nested OMP parallelization when shots are parallelized
+  uint_t size = func.size(chunk_bits_);
+
+  func.set_matrix( matrix_pointer(iChunk) );
+  func.set_params( param_pointer(iChunk) );
+  func.set_batched_params(batched_param_pointer() );
+
+  uint_t i;
+  for(i=0;i<count;i++){
+
+    func.set_data( chunk_pointer(iChunk + i) );
+    func.set_index_offset(iChunk << chunk_bits_);
+
+    auto ci = thrust::counting_iterator<uint_t>(0);
+
+    double sum;
+    if(enable_omp_)
+      sum = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<double>());
+    else
+      sum = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<double>());  //disable nested OMP parallelization when shots are parallelized
+    if(count == 1 && pSum){
+      *pSum = sum;
+    }
+    else{
+      *(reduce_buffer(iChunk + i)) = sum;
+    }
+  }
 #endif
 }
 
@@ -838,6 +892,8 @@ template <typename data_t>
 template <typename Function>
 void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChunk,uint_t count) const
 {
+
+#ifdef AER_THRUST_CUDA
   uint_t size = count * func.size(chunk_bits_);
 
   set_device();
@@ -849,7 +905,6 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
 
   auto ci = thrust::counting_iterator<uint_t>(0);
 
-#ifdef AER_THRUST_CUDA
   cudaStream_t strm = stream(iChunk);
   if(strm){
     uint_t buf_size = reduce_buffer_size() / 2;
@@ -885,13 +940,32 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
     *((thrust::complex<double>*)pSum) = ret;
   }
 #else
-  thrust::complex<double> ret = 0.0;
-  if(enable_omp_)
-    ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,ret,complex_sum());
-  else
-    ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,ret,complex_sum());  //disable nested OMP parallelization when shots are parallelized
+  uint_t size = func.size(chunk_bits_);
 
-  *((thrust::complex<double>*)pSum) = ret;
+  func.set_matrix( matrix_pointer(iChunk) );
+  func.set_params( param_pointer(iChunk) );
+  func.set_batched_params(batched_param_pointer() );
+
+  uint_t i;
+  for(i=0;i<count;i++){
+    thrust::complex<double> ret = 0.0;
+    func.set_data( chunk_pointer(iChunk + i) );
+    func.set_index_offset(iChunk << chunk_bits_);
+
+    auto ci = thrust::counting_iterator<uint_t>(0);
+
+    if(enable_omp_)
+      ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,ret,complex_sum());
+    else
+      ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,ret,complex_sum());  //disable nested OMP parallelization when shots are parallelized
+
+    if(count == 1 && pSum){
+      *((thrust::complex<double>*)pSum) = ret;
+    }
+    else{
+      *((thrust::complex<double>*)reduce_buffer(iChunk + i)) = ret;
+    }
+  }
 #endif
 }
 
