@@ -297,7 +297,10 @@ public:
   virtual bool batched_optimization_supported(void)
   {
 #ifdef AER_THRUST_CUDA
-    return true;
+    if(multi_shots_)
+      return true;
+    else
+      return false;
 #else
     return false;
 #endif
@@ -943,8 +946,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   chunk_.set_num_qubits(num_qubits);
   chunk_.set_chunk_index(chunk_index_);
 
-//  chunk_.enable_omp((num_qubits_ > omp_threshold_ && omp_threads_ > 1));
-  chunk_.enable_omp((nid == 1));
+  chunk_.enable_omp((num_qubits_ > omp_threshold_ && omp_threads_ > 1));
 
   register_blocking_ = false;
 

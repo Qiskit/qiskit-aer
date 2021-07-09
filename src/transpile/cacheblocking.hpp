@@ -120,11 +120,12 @@ void CacheBlocking::set_config(const json_t &config)
 {
   CircuitOptimization::set_config(config);
 
-  if (JSON::check_key("blocking_enable", config_))
-    JSON::get_value(blocking_enabled_, "blocking_enable", config_);
-
   if (JSON::check_key("blocking_qubits", config_))
     JSON::get_value(block_bits_, "blocking_qubits", config_);
+
+  if(block_bits_ >= 2){
+    blocking_enabled_ = true;
+  }
 
   if (JSON::check_key("gpu_blocking_bits", config_)){
     JSON::get_value(gpu_blocking_bits_, "gpu_blocking_bits", config_);
@@ -341,6 +342,14 @@ bool CacheBlocking::block_circuit(Circuit& circ,bool doSwap) const
   std::vector<Operations::Op> queue_next;
   bool crossQubits = false;
 
+  /*
+  std::cout << " === before cache block ===" << std::endl;
+  for(i=0;i<circ.ops.size();i++){
+    std::cout << "[" << i << "] " << circ.ops[i] << std::endl;
+  }
+  std::cout << " ==========================" << std::endl;
+  */
+
   n = add_ops(circ.ops,out,queue,doSwap,true,crossQubits);
   while(queue.size() > 0){
     n = add_ops(queue,out,queue_next,doSwap,false,crossQubits);
@@ -365,6 +374,14 @@ bool CacheBlocking::block_circuit(Circuit& circ,bool doSwap) const
     restore_qubits_order(out);
 
   circ.ops = out;
+
+  /*
+  std::cout << " === after cache block ===" << std::endl;
+  for(i=0;i<circ.ops.size();i++){
+    std::cout << "[" << i << "] " << circ.ops[i] << std::endl;
+  }
+  std::cout << " ==========================" << std::endl;
+  */
 
   return true;
 }

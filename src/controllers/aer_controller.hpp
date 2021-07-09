@@ -642,8 +642,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
     // And assign the remaining threads to state update
     int circ_memory_mb =
         required_memory_mb(circ, noise) / num_process_per_experiment_;
-    size_t mem_size = (sim_device_ == Device::GPU) ? max_memory_mb_ + max_gpu_memory_mb_ : max_memory_mb_;
-    if (mem_size < circ_memory_mb)
+    if (max_memory_mb_ < circ_memory_mb)
       throw std::runtime_error(
           "a circuit requires more memory than max_memory_mb.");
     // If circ memory is 0, set it to 1 so that we don't divide by zero
@@ -896,7 +895,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
   try {
     // truncate circuits before experiment settings (to get correct
     // required_memory_mb value)
-#pragma omp parallel for
+#pragma omp parallel for if(circuits.size() > 1)
     for (int_t j = 0; j < circuits.size(); j++) {
       // Remove barriers from circuit
       Transpile::ReduceBarrier barrier_pass;
@@ -1598,6 +1597,11 @@ void Controller::set_parallelization_circuit_method(
         return;
       }
       set_parallelization_circuit(circ, noise_model);
+      if(method == Method::matrix_product_state && parallel_shots_ > 8){
+        //MPS has maximum threads limitation (?)
+        parallel_shots_ = 8;
+        parallel_state_update_ = std::max<int>({1, max_parallel_threads_ / parallel_shots_});
+      }
       break;
     }
     case Method::density_matrix:
@@ -1631,7 +1635,7 @@ void Controller::run_circuits_helper(const std::vector<Circuit> &circs,
                                     Result &result) 
 {
 
-#pragma omp parallel for if (parallel_experiments_ > 1) num_threads(parallel_experiments_)
+#pragma omp parallel for if (parallel_experiments_ > 1 && !cache_blocking) num_threads(parallel_experiments_)
   for (int j = 0; j < circs.size(); ++j) {
     // Start individual circuit timer
     auto timer_start = myclock_t::now(); // state circuit timer
@@ -1639,19 +1643,23 @@ void Controller::run_circuits_helper(const std::vector<Circuit> &circs,
     // Initialize circuit json return
     result.results[j].legacy_data.set_config(config);
 
-    // set parallelization for this circuit
-    if (!explicit_parallelization_ && sim_device_ != Device::GPU) {
-      set_parallelization_circuit_method(circs[j], noise[j]);
-    }
-
     // Execute in try block so we can catch errors and return the error message
     // for individual circuit failures.
     try {
-      int shots = circs[j].shots;
-
       //---------------------------
       //run single circuit here
       //---------------------------
+      // set parallelization for this circuit
+      if(cache_blocking){
+        parallel_shots_ = 1;
+        parallel_state_update_ =
+            std::max<int>({1, max_parallel_threads_});
+      }
+      else if (!explicit_parallelization_ && sim_device_ != Device::GPU) {
+        set_parallelization_circuit_method(circs[j], noise[j]);
+      }
+
+      int shots = circs[j].shots;
 
       // Rng engine (this one is used to add noise on circuit)
       RngEngine rng;
