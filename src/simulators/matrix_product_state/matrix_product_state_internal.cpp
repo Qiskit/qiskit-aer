@@ -1443,7 +1443,6 @@ reg_t MPS::sample_measure_using_probabilities(const rvector_t &rnds,
 					      const reg_t &qubits) {
   // since input is always sorted in qasm_controller, we must return the qubits 
   // to their original location (sorted)
-  std::cout << "in sample_measure" << std::endl;
   move_all_qubits_to_sorted_ordering();
   return sample_measure_using_probabilities_internal(rnds, qubits);
 }
@@ -1489,8 +1488,8 @@ reg_t MPS::apply_measure_internal(const reg_t &qubits,
   reg_t sorted_qubits = qubits;
   std::sort(sorted_qubits.begin(), sorted_qubits.end());
 
+  bool measure_right_neighbor = false;
   for (uint_t i=0; i<qubits.size(); i++) {
-    bool measure_right_neighbor = false;
     measure_right_neighbor = (i<sorted_qubits.size()-1 && 
 			      sorted_qubits[i+1] == i+1);
 
