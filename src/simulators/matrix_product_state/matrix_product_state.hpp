@@ -481,11 +481,9 @@ void State::set_config(const json_t &config) {
   if (JSON::get_value(alg, "mps_sample_measure_algorithm", config)) {
     if (alg.compare("mps_probabilities") == 0) {
       MPS::set_sample_measure_alg(Sample_measure_alg::PROB);
-    } else if (alg.compare("mps_apply_measure") == 0) {
+    } else {
       MPS::set_sample_measure_alg(Sample_measure_alg::APPLY_MEASURE);
     }
-  } else {
-    MPS::set_sample_measure_alg(Sample_measure_alg::HEURISTIC);
   }
   // Set mps_log_data
   bool mps_log_data;
@@ -1028,40 +1026,9 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB){
     return sample_measure_using_probabilities(qubits, shots, rng);
   }
-  if (MPS::get_sample_measure_alg() == Sample_measure_alg::APPLY_MEASURE ||
-      num_qubits >26 )
-     return sample_measure_using_apply_measure(qubits, shots, rng);
-
-  double num_qubits_dbl = static_cast<double>(num_qubits);
-  double shots_dbl = static_cast<double>(shots);
-
-  // Sample_measure_alg::HEURISTIC
-  uint_t max_bond_dim = qreg_.get_max_bond_dimensions();
-
-  if (num_qubits <10)
+  if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB)
     return sample_measure_using_probabilities(qubits, shots, rng);
-  if (max_bond_dim <= 2) {
-    if (shots_dbl < 12.0 * pow(1.85, (num_qubits_dbl-10.0)))
-       return sample_measure_using_apply_measure(qubits, shots, rng);
-    else
-      return sample_measure_using_probabilities(qubits, shots, rng);
-  } else if (max_bond_dim <= 4) {
-    if (shots_dbl < 3.0 * pow(1.75, (num_qubits_dbl-10.0)))
-       return sample_measure_using_apply_measure(qubits, shots, rng);
-    else
-      return sample_measure_using_probabilities(qubits, shots, rng);
-  } else if (max_bond_dim <= 8) {
-    if (shots_dbl < 2.5 * pow(1.65, (num_qubits_dbl-10.0)))
-       return sample_measure_using_apply_measure(qubits, shots, rng);
-    else
-      return sample_measure_using_probabilities(qubits, shots, rng);
-  } else if (max_bond_dim <= 16) {
-    if (shots_dbl < 0.5 * pow(1.75, (num_qubits_dbl-10.0)))
-       return sample_measure_using_apply_measure(qubits, shots, rng);
-    else
-      return sample_measure_using_probabilities(qubits, shots, rng);
-  } 
-  return sample_measure_using_probabilities(qubits, shots, rng);
+  return sample_measure_using_apply_measure(qubits, shots, rng);
 }
 	     
 std::vector<reg_t> State::
@@ -1100,10 +1067,10 @@ std::vector<reg_t> State::
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
 
-#pragma omp parallel if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
+  //#pragma omp parallel if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
   {
     MPS temp;
-#pragma omp for
+    //#pragma omp for
     for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
       temp.initialize(qreg_);
       auto single_result = temp.apply_measure(qubits, rng);
