@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 class QasmSimulator(AerBackend):
-    """
+    r"""
     Noisy quantum circuit simulator backend.
 
     **Configurable Options**
@@ -266,7 +266,7 @@ class QasmSimulator(AerBackend):
       :math:`O(n \chi^2)'
       per shot.
       (Default: "mps_apply_measure").
-      
+
     * ``mps_log_data`` (str): if True, output logging data of the MPS
       structure: bond dimensions and values discarded during approximation.
       (Default: False)
