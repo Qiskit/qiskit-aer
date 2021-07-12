@@ -1484,14 +1484,14 @@ reg_t MPS::apply_measure_internal(const reg_t &qubits,
   // When all qubits are measured, then for every qubit measured, it is sufficient to 
   // propagate to the nearest neighbors because the neighbors will be measured next
   reg_t qubits_to_update;
-  reg_t outcome_vector(qubits.size());
+  uint_t size = qubits.size();
+  reg_t outcome_vector(size);
   reg_t sorted_qubits = qubits;
   std::sort(sorted_qubits.begin(), sorted_qubits.end());
 
   bool measure_right_neighbor = false;
-  for (uint_t i=0; i<qubits.size(); i++) {
-    measure_right_neighbor = (i<sorted_qubits.size()-1 && 
-			      sorted_qubits[i+1] == i+1);
+  for (uint_t i=0; i<size; i++) {
+    measure_right_neighbor = (i<size-1 && sorted_qubits[i+1] == i+1);
 
     // The following line is correct because the qubits were sorted in apply_measure.
     // If the sort is cancelled, for the case of measure_all, we must measure
