@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 class AerSimulator(AerBackend):
-    r"""
+    """
     Noisy quantum circuit simulator backend.
 
     **Configurable Options**
@@ -299,13 +299,13 @@ class AerSimulator(AerBackend):
       ``"mps_probabilities"``first constructs the probability vector and
       then generates a sample per shot. It is more efficient for a large number
       of shots and a small number of
-      qubits, with complexity :math:`O(2^n n \chi^2)' to create the vector and
-      O(1) per shot, where n is the number of qubits and :math:`\chi'
+      qubits, with complexity O(2^n * n * D^2) to create the vector and
+      O(1) per shot, where n is the number of qubits and D
       is the bond dimension.
       ``"mps_apply_measure"`` creates a copy of the mps structure and
       measures directly on it. It is more efficient for a small number of
       shots, and a high number of qubits, with complexity around
-      :math:`O(n \chi^2)'
+      O(n * D^2)
       per shot.
       (Default: "mps_apply_measure").
 
