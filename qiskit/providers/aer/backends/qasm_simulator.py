@@ -266,7 +266,7 @@ class QasmSimulator(AerBackend):
       O(n * D^2)
       per shot.
       (Default: "mps_apply_measure").
-      
+
     * ``mps_log_data`` (str): if True, output logging data of the MPS
       structure: bond dimensions and values discarded during approximation.
       (Default: False)
