@@ -119,8 +119,11 @@ jobs:
       - name: Run Tests
         env:
           QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+          LANG: 'C.UTF-8'
+          PYTHONIOENCODING: 'utf-8:backslashreplace'
         run: |
           set -e
+          chcp.com 65001
           pip check
           stestr run --slowest
         shell: bash
@@ -164,8 +167,11 @@ jobs:
       - name: Run Tests
         env:
           QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+          LANG: 'C.UTF-8'
+          PYTHONIOENCODING: 'utf-8:backslashreplace'
         run: |
           set -e
           pip check
+          chcp.com 65001
           stestr run --slowest
         shell: bash
