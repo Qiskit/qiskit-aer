@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    When required memory is smaller than the system memory, multi-chunk was enabled
+    and simulation was started though memory is short. This fix corrects this behavior
+    to throw an exception.
