@@ -542,32 +542,6 @@ class QasmFusionTests:
                 break
             self.assertEqual(op_name, 'diagonal')
 
-    def test_fusion_diagonal_only_circuit(self):
-        """Test diagonal fusion for issue 1289"""
-        shots = 100
-        num_qubits = 16
-
-        circuit = QuantumCircuit(num_qubits)
-        circuit.barrier()
-
-        for q0 in range(num_qubits):
-            for q1 in range(q0 + 1, num_qubits):
-                circuit.rzz(np.pi/3, q0, q1)
-        circuit.barrier()
-
-        circuit = transpile(circuit,
-                            backend=self.SIMULATOR,
-                            optimization_level=0)
-        
-        qobj = assemble([circuit],
-                        self.SIMULATOR,
-                        shots=shots,
-                        seed_simulator=1)
-
-        backend_options = { 'fusion_enable': True }
-        self.SIMULATOR.run(qobj, **backend_options).result()
-        # success if no segmentation fault is occurred
-
 class QasmMPSFusionTests:
     """QasmSimulator MPS fusion tests."""
 
