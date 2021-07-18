@@ -304,9 +304,8 @@ class AerSimulator(AerBackend):
       is the bond dimension.
       ``"mps_apply_measure"`` creates a copy of the mps structure and
       measures directly on it. It is more efficient for a small number of
-      shots, and a high number of qubits, with complexity around
-      O(n * D^2)
-      per shot.
+      shots, and a large number of qubits, with complexity around
+      O(n * D^2) per shot.
       (Default: "mps_apply_measure").
 
     * ``mps_log_data`` (str): if True, output logging data of the MPS

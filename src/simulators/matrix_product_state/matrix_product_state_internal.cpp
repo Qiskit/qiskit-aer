@@ -1481,8 +1481,16 @@ reg_t MPS::apply_measure(const reg_t &qubits, RngEngine &rng) {
 
 reg_t MPS::apply_measure_internal(const reg_t &qubits, 
 				  RngEngine &rng) {
-  // When all qubits are measured, then for every qubit measured, it is sufficient to 
-  // propagate to the nearest neighbors because the neighbors will be measured next
+  // For every qubit, q,  that is measured, we must propagate the effect of its
+  // measurement to its neigbors, l and r, and then to their neighbors, and 
+  // so on. If r (or l) is measured next, then there is no need to propagate to
+  // its next neighbor because we can propagate the effects of measuring q 
+  // and r together.
+  // We sort 'qubits' at the beginning of the algorithm, so that the index of 
+  // the next measured qubit will always be r, or greater. Therefore we check 
+  // if r needs to be measured. If so, we simply measure it. If not, we 
+  // propagate the effect of measuring q all the way to the right. 
+  // In both cases, we propagate the effect all the way to the left.
   reg_t qubits_to_update;
   uint_t size = qubits.size();
   reg_t outcome_vector(size);
