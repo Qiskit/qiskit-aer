@@ -1498,6 +1498,7 @@ reg_t MPS::apply_measure_internal(const reg_t &qubits,
   std::sort(sorted_qubits.begin(), sorted_qubits.end());
 
   bool measure_right_neighbor = false;
+  // here we check if the next qubit to be measured is r (r's index is i+1)
   for (uint_t i=0; i<size; i++) {
     measure_right_neighbor = (i<size-1 && sorted_qubits[i+1] == i+1);
 
