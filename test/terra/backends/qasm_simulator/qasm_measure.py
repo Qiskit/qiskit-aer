@@ -14,12 +14,14 @@ QasmSimulator Integration Tests
 """
 
 from test.terra.reference import ref_measure
+from qiskit import QuantumCircuit
 from qiskit.compiler import assemble
 from qiskit import execute
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import ReadoutError, depolarizing_error
 from qiskit.circuit.library import QuantumVolume
+from qiskit.quantum_info.random import random_unitary
 
 class QasmMeasureTests:
     """QasmSimulator measure tests."""
@@ -225,3 +227,31 @@ class QasmMPSMeasureAlgorithms:
         self.assertDictAlmostEqual(result1.get_counts(circuit),
                                    result2.get_counts(circuit),
                                    delta=0.1 * shots)
+
+    def test_mps_measure_subset_alg_qv(self):
+        """Test MPS measure algorithms with quantum volume"""
+        shots = 1000
+        n = 5
+        circuits = []
+        for i in range(2):
+            circuit = QuantumCircuit(n, n)
+            circuit.unitary(random_unitary(4), [0, 1])
+            circuit.unitary(random_unitary(4), [1, 2])
+            circuit.unitary(random_unitary(4), [2, 3])
+            circuit.unitary(random_unitary(4), [3, 4])
+            circuits.append(circuit)
+        circuits[0].measure([0, 2, 4], [0, 2, 4])
+        circuits[1].measure([4, 1], [4, 1])
+
+        for circuit in circuits:
+            result1 = execute(circuit, self.SIMULATOR, shots=shots,
+                              **self.BACKEND_OPTS1).result()
+            self.assertTrue(getattr(result1, 'success', 'True'))
+
+            result2 = execute(circuit, self.SIMULATOR, shots=shots,
+                              **self.BACKEND_OPTS2).result()
+            self.assertTrue(getattr(result2, 'success', 'True'))
+
+            self.assertDictAlmostEqual(result1.get_counts(circuit),
+                                       result2.get_counts(circuit),
+                                       delta=0.1 * shots)
