@@ -380,19 +380,35 @@ void AGState::delete_last_row(){
 }
 
 Operations::Op make_H(uint_t a){
-  return {.type=Operations::OpType::gate, .name="h", .qubits={a}};
+  Operations::Op op;
+  op.type = Operations::OpType::gate;
+  op.name = "h";
+  op.qubits = {a};
+  return op;
 }
 
 Operations::Op make_S(uint_t a){
-  return {.type=Operations::OpType::gate, .name="s", .qubits={a}};
+  Operations::Op op;
+  op.type = Operations::OpType::gate;
+  op.name = "s";
+  op.qubits = {a};
+  return op;
 }
 
 Operations::Op make_CX(uint_t a, uint_t b){
-  return {.type=Operations::OpType::gate, .name="cx", .qubits={a, b}};
+  Operations::Op op;
+  op.type = Operations::OpType::gate;
+  op.name = "cx";
+  op.qubits = {a, b};
+  return op;
 }
 
 Operations::Op make_CZ(uint_t a, uint_t b){
-  return {.type=Operations::OpType::gate, .name="cz", .qubits={a, b}};
+  Operations::Op op;
+  op.type = Operations::OpType::gate;
+  op.name = "cz";
+  op.qubits = {a, b};
+  return op;
 }
 
 
