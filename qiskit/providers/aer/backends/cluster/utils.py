@@ -11,9 +11,13 @@
 # that they have been altered from the originals.
 
 """Utility functions for AerClusterManager."""
+from platform import node
 import uuid
+import random
+import copy
 from typing import Optional, List
 from functools import singledispatch, update_wrapper, wraps
+from qiskit import circuit
 
 <<<<<<< HEAD
 from qiskit.qobj import QasmQobj, PulseQobj, QasmQobjConfig
@@ -56,7 +60,7 @@ def methdispatch(func):
     return wrapper
 
 
-def split(qobj: QasmQobj, _id: Optional[str] = None) -> List[QasmQobj]:
+def split(qobj: QasmQobj, _id: Optional[str] = None, noise: bool = False) -> List[QasmQobj]:
     """Split a qobj and return a list of qobjs each with a single experiment.
 
     Args:
@@ -69,7 +73,7 @@ def split(qobj: QasmQobj, _id: Optional[str] = None) -> List[QasmQobj]:
     if qobj.type == 'PULSE':
         return _split_pulse_qobj(qobj, _id)
     else:
-        return _split_qasm_qobj(qobj, _id)
+        return _split_qasm_qobj(qobj, _id, noise)
 
 
 def _split_pulse_qobj(qobj: PulseQobj, _id: Optional[str] = None):
@@ -78,23 +82,110 @@ def _split_pulse_qobj(qobj: PulseQobj, _id: Optional[str] = None):
         return [qobj]
     for exp in qobj.experiments:
         _qid = _id or str(uuid.uuid4())
-        qobjs.append(QasmQobj(_qid, qobj.config, [exp], qobj.header))
+        _config = copy.deepcopy(qobj.config)
+        qobjs.append([{"qobj":QasmQobj(_qid, _config, [exp], qobj.header)}])
     return qobjs
 
 
-def _split_qasm_qobj(qobj: QasmQobj, _id: Optional[str] = None):
+def _split_qasm_qobj(qobj: QasmQobj, _id: Optional[str] = None, noise: bool = False):
     qobjs = []
     if len(qobj.experiments) <= 1:
-        return [qobj]
+        return [{"qobj":qobj}]
     elif getattr(qobj.config, 'parameterizations', None):
         params = getattr(qobj.config, 'parameterizations', None)
         delattr(qobj.config, 'parameterizations')
         for exp, par in zip(qobj.experiments, params):
             _qid = _id or str(uuid.uuid4())
             _config = QasmQobjConfig(parameterizations=[par], **qobj.config.__dict__)
-            qobjs.append(QasmQobj(_qid, _config, [exp], qobj.header))
+            if noise:
+                qobjs.append({"qobj":QasmQobj(_qid, _config, [exp], qobj.header)})
+            else:
+                qobjs.append([{"qobj":QasmQobj(_qid, _config, [exp], qobj.header)}])
     else:
         for exp in qobj.experiments:
+            _config = copy.deepcopy(qobj.config)
             _qid = _id or str(uuid.uuid4())
-            qobjs.append(QasmQobj(_qid, qobj.config, [exp], qobj.header))
+            if noise:
+                qobjs.append({"qobj":QasmQobj(_qid, _config, [exp], qobj.header)})
+            else:
+                qobjs.append([{"qobj":QasmQobj(_qid, _config, [exp], qobj.header)}])
+    #print("split", qobjs))
     return qobjs
+
+
+def copy_qobj_and_options(qobj, shots, seed, node_num, run_option):
+    run_options_list = []
+    qobj_list = []
+
+    if seed == 0:
+        seed = random.randint(0, 0xffffffff)
+
+    for exp in qobj.experiments:
+        _qobjs, _options = _copy_qobj_and_opt(qobj, exp, shots, seed, node_num, run_option)
+        #print("options", _options)
+        qobj_list.append(_qobjs)
+        run_options_list.append(_options)
+
+    return qobj_list, run_options_list
+
+def  _copy_qobj_and_opt(qobj, exp, shots, seed, node_num, option):
+    option_list = []
+    exp_list = []
+
+    chunk_size, mod = divmod(shots, node_num)
+    task_size = [chunk_size] * node_num
+
+    _qid = str(uuid.uuid4())
+
+    for i in range(mod):
+        task_size[i] = task_size[i] + 1
+
+    for i in range(node_num):
+        if task_size[i] > 0:
+            _option = option.copy()
+            _option["shots"] = task_size[i]
+            _option["seed_simulator"] = seed + i
+            option_list.append(_option)
+            exp_list.append(exp)
+
+    _qobj = QasmQobj(_qid, qobj.config, exp_list, qobj.header)
+    return _qobj, option_list
+
+def copy_circuits_and_options(circuits, shots, seed, node_num, run_option):
+
+    run_options_list = []
+    circuits_list = []
+    if seed == 0:
+        seed = random.randint(0, 0xffffffff)
+
+    if isinstance(circuits, list):
+        for circ in circuits:
+            _circuits, _options = _copy_circ_and_opt(circ, shots, seed, node_num, run_option)
+            circuits_list.append(_circuits)
+            run_options_list.append(_options)
+    else:
+        _circuits, _options = _copy_circ_and_opt(circuits, shots, seed, node_num, run_option)
+        circuits_list.append(_circuits)
+        run_options_list.append(_options)
+
+    return circuits_list, run_options_list
+
+def _copy_circ_and_opt(circ, shots, seed, node_num, option):
+    circuits_list = []
+    option_list = []
+
+    chunk_size, mod = divmod(shots, node_num)
+    task_size = [chunk_size] * node_num
+
+    for i in range(mod):
+        task_size[i] = task_size[i] + 1
+
+    for i in range(node_num):
+        if task_size[i] > 0:
+            circuits_list.append(circ)
+            _option = option.copy()
+            _option["shots"] = task_size[i]
+            _option["seed_simulator"] = seed + i
+            option_list.append(_option)
+
+    return circuits_list, option_list

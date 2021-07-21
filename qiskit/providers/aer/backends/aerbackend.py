@@ -21,9 +21,9 @@ import time
 import uuid
 import warnings
 from abc import ABC, abstractmethod
-from numpy import ndarray
+from numpy import exp, ndarray
 
-from qiskit.providers import BackendV1 as Backend
+from qiskit.providers import BackendV1 as Backend, backend
 from qiskit.providers.models import BackendStatus
 from qiskit.result import Result
 from qiskit.utils import deprecate_arguments
@@ -34,7 +34,7 @@ from qiskit.compiler import assemble
 
 from ..aerjob import AerJob
 from ..aererror import AerError
-from .cluster.utils import split
+from .cluster.utils import split, copy_circuits_and_options, copy_qobj_and_options
 from .cluster.aerjobset import AerJobSet
 
 
@@ -78,8 +78,7 @@ class AerBackend(Backend, ABC):
         raise an exception if a component of the module is
         not available.
 
-        Args:
-            configuration (BackendConfiguration): backend configuration.
+        Args (BackendConfiguration): backend configuration.
             properties (BackendProperties or None): Optional, backend properties.
             defaults (PulseDefaults or None): Optional, backend pulse defaults.
             available_methods (list or None): Optional, the available simulation methods
@@ -110,6 +109,8 @@ class AerBackend(Backend, ABC):
         # Set options from backend_options dictionary
         if backend_options is not None:
             self.set_options(**backend_options)
+        
+        #self._executor = None
 
     # pylint: disable=arguments-differ
     @deprecate_arguments({'qobj': 'circuits'})
@@ -165,28 +166,59 @@ class AerBackend(Backend, ABC):
 
         if executor:
             if isinstance(circuits, (QasmQobj, PulseQobj)):
-                experiments = split(circuits)
+                experiments.extend(split(circuits, noise=noise))
+            elif(
+                    isinstance(circuits, list) and
+                    all(isinstance(circ, QasmQobj) for circ in circuits)
+            ):
+                for each_qobj in circuits:
+                    experiments.append(split(each_qobj, noise=noise))
+                    #print("qobj list", experiments)
+
             elif isinstance(circuits, (QuantumCircuit, Schedule)):
-                experiments = [assemble(circuits, self)]
+                experiments.append([{"qobj":assemble(circuits, self)}])
             elif (
                     isinstance(circuits, list) and
                     all(isinstance(circ, QuantumCircuit) for circ in circuits) or
                     isinstance(circuits, list) and
                     all(isinstance(circ, Schedule) for circ in circuits)
             ):
-                experiments = [assemble(circ, self) for circ in circuits]
+                for circ in circuits:
+                    _qobj = {"qobj" : assemble(circ)}
+                    experiments.append([_qobj])
+
+            elif (
+                    isinstance(circuits, list) and
+                    isinstance(circuits[0], list)
+            ):
+                for each_circ_list in circuits:
+                    _qobj_list = []
+                    for circ in each_circ_list:
+                        _qobj = {"qobj" : assemble(circ)}
+                        _qobj_list.append(_qobj)
+                    experiments.append(_qobj_list)
+
             else:
                 raise ValueError(
                     "run() is not implemented for this "
                     "type of experiment ({})".format(str(type(circuits))))
 
-            for experiment in experiments:
-                self._add_options_to_qobj(experiment,
-                                          backend_options=backend_options,
-                                          **run_options)
-                # Optional validation
-                if validate:
-                    self._validate(experiment)
+            #print(experiments)
+            for index, experiment in enumerate(experiments):
+                for _index, _expe in enumerate(experiment):
+                    if len(run_options_list) == 0:
+                        _expe["qobj"] = self._add_options_to_qobj(_expe["qobj"],
+                                                backend_options=backend_options,
+                                                **run_options)
+                    else:
+                        #print("condif", run_options_list)
+                        #print("qobj", experiment)
+                        _expe['qobj'] = self._add_options_to_qobj(_expe['qobj'],
+                                                backend_options=backend_options,
+                                                **run_options_list[index][_index])
+                    #print("exp", _expe["qobj"])
+                    if validate:
+                        self._validate(_expe["qobj"])
 
             job_id = str(uuid.uuid4())
             aer_job_set = AerJobSet(self, job_id, self._run, experiments, executor)
@@ -213,6 +245,7 @@ class AerBackend(Backend, ABC):
 
             # Submit job
             job_id = str(uuid.uuid4())
+            print("aer_job")
             aer_job = AerJob(self, job_id, self._run, qobj)
             aer_job.submit()
             return aer_job
@@ -309,6 +342,7 @@ class AerBackend(Backend, ABC):
 
     def _run(self, qobj, job_id=''):
         """Run a job"""
+        print("input _run")
         # Start timer
         start = time.time()
 

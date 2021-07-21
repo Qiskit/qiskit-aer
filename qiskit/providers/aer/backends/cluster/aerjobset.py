@@ -21,6 +21,7 @@ import time
 import logging
 import copy
 import datetime
+from collections import Counter
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.pulse import Schedule
@@ -47,7 +48,7 @@ class AerJobSet(Job):
     :meth:`cancel()`.
     """
 
-    def __init__(self, backend, job_id, func, experiments: List[QasmQobj], executor):
+    def __init__(self, backend, job_id, func, experiments: List[List[QasmQobj]], executor):
         """AerJobSet constructor.
 
         Args:
@@ -83,13 +84,21 @@ class AerJobSet(Job):
 
         self._future = True
         self._start_time = datetime.datetime.now()
-        for i, exp in enumerate(self._experiments):
-            job_id = exp.qobj_id
-            logger.debug("Job %s submitted", i + 1)
-            aer_job = AerJob(self._backend, job_id, self._fn, exp)
-            aer_job.submit(self._executor)
-            aer_job._future.add_done_callback(self._set_end_time)
-            self._futures.append(aer_job)
+        worker_id = 0
+        for experiments in self._experiments:
+            for i, exp in enumerate(experiments):
+                job_id = exp["qobj"].qobj_id
+                logger.debug("Job %s submitted", i + 1)
+                aer_job = AerJob(self._backend, job_id, self._fn, exp["qobj"])
+                print("call aer_job submit")
+                aer_job.submit(self._executor)
+                print("submitted")
+                aer_job._future.add_done_callback(self._set_end_time)
+                self._futures.append(aer_job)
+                exp["worker_id"] = worker_id
+                worker_id = worker_id + 1
+
+        #print(self._experiments)
 
     @requires_submit
     def status(self, worker: Union[None, int, Iterable[int]]
@@ -171,8 +180,12 @@ class AerJobSet(Job):
                 res.append(self._get_worker_result(worker_id, timeout))
             return res
         else:
-            for worker_id in range(len(self._futures)):
-                res.append(self._get_worker_result(worker_id, timeout))
+            for experiment in self._experiments:
+                _res = []
+                for _exp in experiment:
+                    #print("jobid ", _exp["worker_id"])
+                    _res.append(self._get_worker_result(_exp["worker_id"], timeout))
+                res.append(self._merge_result(_res))
             return res
 
     def _get_worker_result(self, worker: int, timeout: Optional[float] = None):
@@ -200,11 +213,12 @@ class AerJobSet(Job):
 
         try:
             result = aer_job.result(timeout=timeout)
+            #print("result", result)
             if result is None or not result.success:
                 if result:
-                    logger.warning('ClusterJob %s Error: %s', aer_job.name(), result.header)
+                    logger.warning('AerJobSet %s Error: %s', aer_job.name(), result.header)
                 else:
-                    logger.warning('ClusterJob %s did not return a result', aer_job.name())
+                    logger.warning('AerJobSet %s did not return a result', aer_job.name())
         except AerError:
             raise AerError(
                 'Timeout while waiting for the results of experiment {}'.format(
@@ -265,6 +279,31 @@ class AerJobSet(Job):
         combined_result_dict["date"] = datetime.datetime.isoformat(self._end_time)
         combined_result = Result.from_dict(combined_result_dict)
         return combined_result
+
+    def _merge_result(self, results: List[Result]):
+        master_result = None
+        total_shots = 0
+        total_count = None
+        for res in results:
+            if master_result is None:
+                master_result = res.to_dict()
+                total_shots = master_result["results"][0]["shots"]
+                master_result["results"][0]["metadata"]["all_results"] = [res.to_dict()]
+                if "counts" in master_result["results"][0]["data"]:
+                    total_count = master_result["results"][0]["data"]["counts"]
+            else:
+                sub_result = res.to_dict()
+                total_shots = total_shots + sub_result["results"][0]["shots"]
+                master_result["results"][0]["metadata"]["all_results"].append(sub_result)
+                if "counts" in sub_result["results"][0]["data"]:
+                    sub_count = sub_result["results"][0]["data"]["counts"]
+                    total_count = dict(Counter(total_count) + Counter(sub_count))
+
+        master_result["results"][0]["shots"] = total_shots
+        if total_count is not None:
+            master_result["results"][0]["data"]["counts"] = total_count
+
+        return Result.from_dict(master_result)
 
     @requires_submit
     def cancel(self) -> None:

@@ -77,11 +77,15 @@ class AerJob(Job):
         """
         if self._future is not None:
             raise JobError("We have already submitted the job!")
+        print("aerjob")
         _exec = executor or self._executor
+        print("call _exec submit, type", type(_exec))
+        print(self._fn)
         self._future = _exec.submit(self._fn,
                                     self._qobj,
                                     self._job_id,
                                     *self._args)
+        print("return")
 
     @requires_submit
     def result(self, timeout=None):
