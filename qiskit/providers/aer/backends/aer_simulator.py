@@ -198,10 +198,6 @@ class AerSimulator(AerBackend):
       Passes include gate fusion and truncation of unused qubits
       (Default: 12).
 
-    * ``executor`` (concurrent.futures.ThreadPoolExecutor or
-      dask.distributed.Client) : Sets user's executor for parallel execution.
-      (Default: None)
-
     These backend options only apply when using the ``"statevector"``
     simulation method:
 
@@ -513,7 +509,6 @@ class AerSimulator(AerBackend):
             memory=None,
             noise_model=None,
             seed_simulator=None,
-            executor=None,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,

@@ -155,9 +155,13 @@ class AerBackend(Backend, ABC):
                 stacklevel=3)
 
         executor = None
-        if hasattr(self._options, 'executor'):
-            executor = getattr(self._options, 'executor')
-            delattr(self._options, 'executor')
+        if backend_options and "executor" in backend_options:
+            executor = backend_options["executor"]
+            del backend_options["executor"]
+
+        if "executor" in run_options:
+            executor = run_options["executor"]
+            del run_options["executor"]
 
         if executor:
             if isinstance(circuits, (QasmQobj, PulseQobj)):
@@ -185,9 +189,9 @@ class AerBackend(Backend, ABC):
                     self._validate(experiment)
 
             job_id = str(uuid.uuid4())
-            aer_job = AerJobSet(self, job_id, self._run, experiments, executor)
-            aer_job.submit()
-            return aer_job
+            aer_job_set = AerJobSet(self, job_id, self._run, experiments, executor)
+            aer_job_set.submit()
+            return aer_job_set
 
         else:
             if isinstance(circuits, (QasmQobj, PulseQobj)):
@@ -394,6 +398,7 @@ class AerBackend(Backend, ABC):
                 setattr(self._options, key, getattr(self._default_options(), key))
 
     def set_options(self, **fields):
+        """Set the simulator options"""
         for key, value in fields.items():
             self.set_option(key, value)
 
