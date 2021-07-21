@@ -63,24 +63,23 @@ class CBFixture(common.QiskitAerTestCase):
 class ThreadPoolFixture(CBFixture):
     """Setup of ThreadPool execution tests"""
     @classmethod
-    def setUpClass(cls, sim_name):
+    def setUpClass(cls, backend_opts):
         super(ThreadPoolFixture, cls).setUpClass()
-        cls._test_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        simulator = Aer.get_backend(sim_name)
-        simulator.set_options(executor=cls._test_executor)
-        return simulator
+        cls._test_executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
+        backend_opts["executor"] = cls._test_executor
+        return backend_opts
 
 
 class DaskFixture(CBFixture):
     """Setup of Dask execution tests"""
     @classmethod
-    def setUpClass(cls, sim_name):
+    def setUpClass(cls, backend_opts):
         super(DaskFixture, cls).setUpClass()
         if DASK_TESTS:
+            super(DaskFixture, cls).setUpClass()
             cls._test_executor = Client(address=LocalCluster(n_workers=1, processes=True))
-            simulator = Aer.get_backend(sim_name)
-            simulator.set_options(executor=cls._test_executor)
-            return simulator
+            backend_opts["executor"] = cls._test_executor
+            return backend_opts
         else:
             return None
 
@@ -97,7 +96,9 @@ class TestQasmDask(DaskFixture,
     """qasm simulator test with Dask"""
     @classmethod
     def setUpClass(cls):
-        cls.SIMULATOR = super(TestQasmDask, cls).setUpClass('qasm_simulator')
+        cls.BACKEND_OPTS = super(TestQasmDask, cls).setUpClass(cls.BACKEND_OPTS)
+        cls.BACKEND_OPTS_SAMPLING = super(TestQasmDask, cls).setUpClass(cls.BACKEND_OPTS_SAMPLING)
+        cls.BACKEND_OPTS_NE = super(TestQasmDask, cls).setUpClass(cls.BACKEND_OPTS_NE)
 
 
 class TestQasmThread(ThreadPoolFixture,
@@ -105,15 +106,16 @@ class TestQasmThread(ThreadPoolFixture,
     """qasm simulator test with threadpool"""
     @classmethod
     def setUpClass(cls):
-        cls.SIMULATOR = super(TestQasmThread, cls).setUpClass('qasm_simulator')
-
+        cls.BACKEND_OPTS = super(TestQasmThread, cls).setUpClass(cls.BACKEND_OPTS)
+        cls.BACKEND_OPTS_SAMPLING = super(TestQasmThread, cls).setUpClass(cls.BACKEND_OPTS_SAMPLING)
+        cls.BACKEND_OPTS_NE = super(TestQasmThread, cls).setUpClass(cls.BACKEND_OPTS_NE)
 
 class TestStatevectorDask(DaskFixture,
                           StatevectorGateTests):
     """statevector simulator test with Dask"""
     @classmethod
     def setUpClass(cls):
-        cls.SIMULATOR = super(TestStatevectorDask, cls).setUpClass('statevector_simulator')
+        cls.BACKEND_OPTS = super(TestStatevectorDask, cls).setUpClass(cls.BACKEND_OPTS)
 
 
 class TestStatevectorThread(ThreadPoolFixture,
@@ -121,7 +123,7 @@ class TestStatevectorThread(ThreadPoolFixture,
     """statevector simulator test with thread pool"""
     @classmethod
     def setUpClass(cls):
-        cls.SIMULATOR = super(TestStatevectorThread, cls).setUpClass('statevector_simulator')
+        cls.BACKEND_OPTS = super(TestStatevectorThread, cls).setUpClass(cls.BACKEND_OPTS)
 
 
 class TestUnitaryDask(DaskFixture,
@@ -129,7 +131,7 @@ class TestUnitaryDask(DaskFixture,
     """unitary simulator test with Dask"""
     @classmethod
     def setUpClass(cls):
-        cls.SIMULATOR = super(TestUnitaryDask, cls).setUpClass('unitary_simulator')
+        cls.BACKEND_OPTS = super(TestUnitaryDask, cls).setUpClass(cls.BACKEND_OPTS)
 
 
 class TestUnitaryThread(ThreadPoolFixture,
@@ -137,14 +139,15 @@ class TestUnitaryThread(ThreadPoolFixture,
     """unitary simulator test with thread pool"""
     @classmethod
     def setUpClass(cls):
-        cls.SIMULATOR = super(TestUnitaryThread, cls).setUpClass('unitary_simulator')
+        cls.BACKEND_OPTS = super(TestUnitaryThread, cls).setUpClass(cls.BACKEND_OPTS)
 
 
 class TestClusterBackendUtils(ThreadPoolFixture):
     """Test cluster utils"""
     @classmethod
     def setUpClass(cls):
-        cls.SIMULATOR = super(TestClusterBackendUtils, cls).setUpClass('qasm_simulator')
+        cls._backend_opt = {}
+        cls.backend_opt = super(TestClusterBackendUtils, cls).setUpClass(cls._backend_opt)
 
     @staticmethod
     def parameterized_circuits(shots=1000, measure=True, snapshot=False):
@@ -204,29 +207,28 @@ class TestClusterBackendUtils(ThreadPoolFixture):
     def test_pauli_gate_noise(self):
         """Test simulation with Pauli gate error noise model."""
 
-        sim = QasmSimulator()
-        backend_opts = {}
+        backend = Aer.get_backend('qasm_simulator')
         shots = 1000
+        self.backend_opt["shots"] = shots
         circuits = ref_pauli_noise.pauli_gate_error_circuits()
         noise_models = ref_pauli_noise.pauli_gate_error_noise_models()
         targets = ref_pauli_noise.pauli_gate_error_counts(shots)
 
         for circuit, noise_model, target in zip(circuits, noise_models,
                                                 targets):
-            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
-            result = sim.run(
+            qobj = assemble(circuit, backend, shots=shots)
+            result = backend.run(
                 qobj,
-                noise_model=noise_model, **backend_opts).result()
+                noise_model=noise_model, **self.backend_opt).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
     def test_cluster_dispatch(self):
         """Test snapshot label must be str"""
-        backend_options = {'shots': 4000}
-        shots = 4000
-
         backend = Aer.get_backend('qasm_simulator')
-        backend.set_options(executor=self._test_executor)
+        shots = 4000
+        self.backend_opt["shots"] = shots
+
         circuits = ref_pauli_noise.pauli_gate_error_circuits()
         noise_models = ref_pauli_noise.pauli_gate_error_noise_models()
         targets = ref_pauli_noise.pauli_gate_error_counts(shots)
@@ -234,10 +236,10 @@ class TestClusterBackendUtils(ThreadPoolFixture):
         qobj = assemble(circuits, backend, shots=shots)
         combined_result_list = backend.run(circuits,
                                            noise_model=noise_models[0],
-                                           **backend_options).result()
+                                           **self.backend_opt).result()
         combined_result_qobj = backend.run(qobj,
                                            noise_model=noise_models[0],
-                                           **backend_options).result()
+                                           **self.backend_opt).result()
         self.assertSuccess(combined_result_list)
         self.assertSuccess(combined_result_qobj)
         self.compare_counts(combined_result_list,

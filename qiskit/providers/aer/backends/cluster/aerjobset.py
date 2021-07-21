@@ -251,9 +251,17 @@ class AerJobSet(Job):
             if each_result is not None:
                 combined_result.results.extend(each_result.results)
 
-        _time_taken = self._end_time - self._start_time
         combined_result_dict = combined_result.to_dict()
-        combined_result_dict["time_taken"] = _time_taken.total_seconds()
+
+        if self._end_time is None:
+            self._end_time = datetime.datetime.now()
+
+        if self._start_time:
+            _time_taken = self._end_time - self._start_time
+            combined_result_dict["time_taken"] = _time_taken.total_seconds()
+        else:
+            combined_result_dict["time_taken"] = 0
+
         combined_result_dict["date"] = datetime.datetime.isoformat(self._end_time)
         combined_result = Result.from_dict(combined_result_dict)
         return combined_result
