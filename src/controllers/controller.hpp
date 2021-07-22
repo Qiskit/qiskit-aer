@@ -122,6 +122,9 @@ public:
                          const Noise::NoiseModel &noise_model,
                          const json_t &config);
 
+  virtual bool execute0(std::vector<Circuit> &circuits,
+                        const Noise::NoiseModel &noise_model,
+                        const json_t &config);
   //-----------------------------------------------------------------------
   // Config settings
   //-----------------------------------------------------------------------
@@ -924,6 +927,14 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     result.message = e.what();
   }
   return result;
+}
+
+bool Controller::execute0(std::vector<Circuit> &circuits,
+                          const Noise::NoiseModel &noise_model,
+                          const json_t &config)
+{
+  auto ret = execute(circuits, noise_model, config);
+  return ret.status == Result::Status::completed;
 }
 
 void Controller::execute_circuit(Circuit &circ,
