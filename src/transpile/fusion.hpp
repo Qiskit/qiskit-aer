@@ -658,8 +658,10 @@ bool DiagonalFusion::aggregate_operations(oplist_t& ops,
       continue;
 
     std::vector<uint_t> fusing_op_idxs;
-    for (; op_idx < next_diagonal_start; ++op_idx)
+    while(op_idx < next_diagonal_start && op_idx < fusion_end) {
       fusing_op_idxs.push_back(op_idx);
+      ++op_idx;
+    }
 
     --op_idx;
     allocate_new_operation(ops, op_idx, fusing_op_idxs, method, true);
