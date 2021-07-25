@@ -357,7 +357,7 @@ private:
   // Certain local operations need to be propagated to the neighboring qubits. 
   // Such operations include apply_measure and apply_kraus
   void propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit, 
-				       bool measure_right_neighbor=false);
+				       uint_t next_measured_qubit);
 
   // apply_matrix for more than 2 qubits
   void apply_multi_qubit_gate(const reg_t &qubits,
@@ -414,7 +414,7 @@ private:
 			       RngEngine &rng);
 
   uint_t apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng, 
-					     bool measure_right_neighbor=false);
+					     uint_t next_measured_qubit);
 
   reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
 						    const reg_t &qubits) const;

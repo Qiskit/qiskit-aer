@@ -890,7 +890,7 @@ void MPS::apply_kraus_internal(const reg_t &qubits,
     min_qubit = std::min(min_qubit, qubits[i]);
     max_qubit = std::max(max_qubit, qubits[i]);
   }
-  propagate_to_neighbors_internal(min_qubit, max_qubit);
+  propagate_to_neighbors_internal(min_qubit, max_qubit, num_qubits_-1);
 }
 
 void MPS::centralize_qubits(const reg_t &qubits, 
@@ -1489,30 +1489,35 @@ reg_t MPS::apply_measure_internal(const reg_t &qubits,
   // We sort 'qubits' at the beginning of the algorithm, so that the index of 
   // the next measured qubit will always be r, or greater. Therefore we check 
   // if r needs to be measured. If so, we simply measure it. If not, we 
-  // propagate the effect of measuring q all the way to the right. 
-  // In both cases, we propagate the effect all the way to the left.
+  // propagate the effect of measuring q all the way to the right, until 
+  // We reach a qubit that should be measured. Then we measure that qubit
+  // and continue the propagation to the right.
+  // In both cases, we propagate the effect all the way to the left, because 
+  // no more qubits will be measured on the left
   reg_t qubits_to_update;
   uint_t size = qubits.size();
   reg_t outcome_vector(size);
   reg_t sorted_qubits = qubits;
   std::sort(sorted_qubits.begin(), sorted_qubits.end());
 
-  bool measure_right_neighbor = false;
-  // here we check if the next qubit to be measured is r (r's index is i+1)
+  uint_t next_measured_qubit = num_qubits_-1;
   for (uint_t i=0; i<size; i++) {
-    measure_right_neighbor = (i<size-1 && 
-			      sorted_qubits[i+1] == sorted_qubits[i]+1);
+    if (i < size-1) {
+      next_measured_qubit = sorted_qubits[i+1];
+    } else {
+      next_measured_qubit = num_qubits_-1;
+    }
 
     // The following line is correct because the qubits were sorted in apply_measure.
     // If the sort is cancelled, for the case of measure_all, we must measure
     // in the order in which the qubits are organized
-    outcome_vector[i] = apply_measure_internal_single_qubit(sorted_qubits[i], rng, measure_right_neighbor);
+    outcome_vector[i] = apply_measure_internal_single_qubit(sorted_qubits[i], rng, next_measured_qubit);
   }
   return outcome_vector;
 }
 
 uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng, 
-						bool measure_right_neighbor) {	
+						uint_t next_measured_qubit) {	
   reg_t qubits_to_update;
   qubits_to_update.push_back(qubit);
 
@@ -1537,22 +1542,15 @@ uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng,
   }
   apply_matrix_internal(qubits_to_update, measurement_matrix);
   if (num_qubits_ > 1)
-    propagate_to_neighbors_internal(qubit, qubit, measure_right_neighbor);
+    propagate_to_neighbors_internal(qubit, qubit, next_measured_qubit);
 
   return measurement;
 }
 
 void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
-					  bool measure_right_neighbor) {
-  uint_t right_qubit=num_qubits_-1;
-  int_t left_qubit=0;
-
-  if (measure_right_neighbor) {
-    right_qubit = (max_qubit >= num_qubits_-2) ? num_qubits_-1 : max_qubit + 1;
-  }
-
+					  uint_t next_measured_qubit) {
   // step 4 - propagate the changes to all qubits to the right
-  for (uint_t i=max_qubit; i<right_qubit; i++) {
+  for (uint_t i=max_qubit; i<next_measured_qubit; i++) {
     if (lambda_reg_[i].size() == 1) 
       break;   // no need to propagate if no entanglement
     apply_2_qubit_gate(i, i+1, id, cmatrix_t(1, 1));
@@ -1710,6 +1708,7 @@ void MPS::initialize_component_internal(const reg_t &qubits,
 }
 
 void MPS::reset(const reg_t &qubits, RngEngine &rng) {
+  move_all_qubits_to_sorted_ordering();
   reg_t internal_qubits = get_internal_qubits(qubits);
   reset_internal(internal_qubits, rng);
 }
