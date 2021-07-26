@@ -1490,7 +1490,7 @@ reg_t MPS::apply_measure_internal(const reg_t &qubits,
   // the next measured qubit will always be r, or greater. Therefore we check 
   // if r needs to be measured. If so, we simply measure it. If not, we 
   // propagate the effect of measuring q all the way to the right, until 
-  // We reach a qubit that should be measured. Then we measure that qubit
+  // we reach a qubit that should be measured. Then we measure that qubit
   // and continue the propagation to the right.
   // In both cases, we propagate the effect all the way to the left, because 
   // no more qubits will be measured on the left
