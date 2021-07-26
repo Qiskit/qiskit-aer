@@ -17,10 +17,10 @@ import itertools as it
 
 import numpy as np
 
-from qiskit.quantum_info.operators.pauli import Pauli
 from qiskit.quantum_info.operators.channel import Choi, Kraus
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
+from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 
 from ..noiseerror import NoiseError
 from .errorutils import make_unitary_instruction
