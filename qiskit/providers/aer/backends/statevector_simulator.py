@@ -151,7 +151,7 @@ class StatevectorSimulator(AerBackend):
 
         warn('The `StatevectorSimulator` backend will be deprecated in the'
              ' future. It has been superseded by the `AerSimulator`'
-             ' backend. To obtain legacy functionality initalize with'
+             ' backend. To obtain legacy functionality initialize with'
              ' `AerSimulator(method="statevector")` and append run circuits'
              ' with the `save_state` instruction.', PendingDeprecationWarning)
 
