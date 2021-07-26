@@ -150,7 +150,7 @@ class UnitarySimulator(AerBackend):
 
         warn('The `UnitarySimulator` backend will be deprecated in the'
              ' future. It has been superseded by the `AerSimulator`'
-             ' backend. To obtain legacy functionality initalize with'
+             ' backend. To obtain legacy functionality initialize with'
              ' `AerSimulator(method="unitary")` and append run circuits'
              ' with the `save_state` instruction.', PendingDeprecationWarning)
 
