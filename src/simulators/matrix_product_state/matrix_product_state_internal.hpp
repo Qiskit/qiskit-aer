@@ -16,6 +16,8 @@
 #ifndef _aer_matrix_product_state_hpp_
 #define _aer_matrix_product_state_hpp_
 
+#include <cstdarg>
+
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
 #include "framework/operations.hpp"
@@ -28,12 +30,13 @@ namespace MatrixProductState {
 enum Gates {
   id, h, x, y, z, s, sdg, sx, t, tdg, u1, u2, u3, r, rx, ry, rz, // single qubit
   cx, cy, cz, cu1, swap, su4, rxx, ryy, rzz, rzx, csx, // two qubit
-  ccx, cswap // three qubit
+  ccx, cswap, // three qubit
+  pauli
 };
 
   //enum class Direction {RIGHT, LEFT};
 
-  enum class Sample_measure_alg {APPLY_MEASURE, PROB, HEURISTIC};
+  enum class Sample_measure_alg {APPLY_MEASURE, PROB, MEASURE_ALL, HEURISTIC};
 
 //=========================================================================
 // MPS class
@@ -92,6 +95,31 @@ public:
   bool empty() const {
     return(num_qubits_ == 0);
   }
+
+  // the following 3 static methods are used as a reporting mechanism
+  // for MPS debug data
+  static void clear_log() {
+    logging_str_.clear();
+  }
+
+  static void print_to_log() {  // Base function for recursive function
+  }
+
+  template<typename T, typename... Targs>
+  static void print_to_log(const T &value, const Targs & ... Fargs) {
+    if (mps_log_data_) {
+      logging_str_ << value;
+      MPS::print_to_log(Fargs...); // recursive call
+    }
+  }
+
+  static std::string output_log() {
+    if (mps_log_data_)
+      return logging_str_.str();
+    else
+      return "";
+  }
+  
 
   /////////////////////////////////////////////////////////////////
   // API functions
@@ -232,6 +260,10 @@ public:
     enable_gate_opt_ = enable_gate_opt;
   }
 
+  static void set_mps_log_data(bool mps_log_data) {
+    mps_log_data_ = mps_log_data;
+  }
+
   static uint_t get_omp_threads() {
     return omp_threads_;
   }
@@ -249,6 +281,10 @@ public:
     return enable_gate_opt_;
   }
 
+  static bool get_mps_log_data() {
+    return mps_log_data_;
+  }
+
   //----------------------------------------------------------------
   // Function name: norm
   // Description: the norm is defined as <psi|A^dagger . A|psi>.
@@ -264,8 +300,7 @@ public:
   reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
 					   const reg_t &qubits);
 
-  reg_t apply_measure(const reg_t &qubits,
-		      RngEngine &rng);
+  reg_t apply_measure(const reg_t &qubits, RngEngine &rng);
 
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector_internal
@@ -285,7 +320,7 @@ public:
 
   mps_container_t copy_to_mps_container();
   mps_container_t move_to_mps_container();
-  
+
 private:
 
   MPS_Tensor& get_qubit(uint_t index) {
@@ -321,7 +356,8 @@ private:
 
   // Certain local operations need to be propagated to the neighboring qubits. 
   // Such operations include apply_measure and apply_kraus
-  void propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit);
+  void propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit, 
+				       bool measure_all=false);
 
   // apply_matrix for more than 2 qubits
   void apply_multi_qubit_gate(const reg_t &qubits,
@@ -377,7 +413,8 @@ private:
   reg_t apply_measure_internal(const reg_t &qubits,
 			       RngEngine &rng);
 
-  uint_t apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng);
+  uint_t apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng, 
+					     bool measure_all=false);
 
   reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
 						    const reg_t &qubits) const;
@@ -452,7 +489,7 @@ private:
     // location_ stores the location of each qubit in the vector. It is derived from order_ 
     // at the end of every swap operation for performance reasons
     // for example: starting position order_ = location_ = 01234
-    // ccx(0,4) -> order_ = 04123, location_ = 02341
+    // cx(0,4) -> order_ = 04123, location_ = 02341
     reg_t order_;
     reg_t location_;
   } qubit_ordering_;
@@ -467,6 +504,8 @@ private:
   static double json_chop_threshold_;  // Threshold for choping small values
                                     // in JSON serialization
   static bool enable_gate_opt_;      // allow optimizations on gates
+  static std::stringstream logging_str_;
+  static bool mps_log_data_;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {

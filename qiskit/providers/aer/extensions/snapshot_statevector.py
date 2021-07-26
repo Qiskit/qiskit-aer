@@ -74,7 +74,7 @@ def snapshot_statevector(self, label):
         :func:`qiskit.providers.aer.library.save_statevector` circuit
         method.
     """
-    warn('`The `save_statevector` circuit method will be deprecated in the'
+    warn('`The `snapshot_statevector` circuit method will be deprecated in the'
          ' future. It has been superseded by the `save_statevector`'
          ' circuit method.', PendingDeprecationWarning)
     # Statevector snapshot acts as a barrier across all qubits in the

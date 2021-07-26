@@ -47,11 +47,13 @@ class Snapshot(Instruction):
         """
         if not isinstance(label, str):
             raise ExtensionError('Snapshot label must be a string.')
-        self._label = label
-        self._snapshot_type = snapshot_type
         if params is None:
             params = []
+
         super().__init__('snapshot', num_qubits, num_clbits, params)
+
+        self._label = label
+        self._snapshot_type = snapshot_type
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""

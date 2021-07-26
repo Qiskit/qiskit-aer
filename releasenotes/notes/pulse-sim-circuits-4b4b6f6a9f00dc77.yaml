@@ -1,0 +1,26 @@
+---
+features:
+  - |
+    The :class:`~qiskit.providers.aer.backends.PulseSimulator` can now take
+    :class:`~qiskit.circuit.QuantumCircuit` objects on the
+    :meth:`~qiskit.providers.aer.backends.PulseSimulator.run`. Previously,
+    it only would except :class:`~qiskit.pulse.Schedule` objects as input to
+    :meth:`~qiskit.providers.aer.backends.PulseSimulator.run`. When a circuit
+    or list of circuits is passed to the simulator it will call
+    :func:`~qiskit.compiler.schedule` to convert the circuits to a schedule
+    before executing the circuit. For example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.compiler import transpile
+      from qiskit.test.mock import FakeVigo
+      from qiskit.providers.aer.backends import PulseSimulator
+
+      backend = PulseSimulator.from_backend(FakeVigo())
+
+      circuit = QuantumCircuit(2)
+      circuit.h(0)
+      circuit.cx(0, 1)
+      circuit.measure_all()
+
+      transpiled_circuit = transpile(circuit, backend)
+      backend.run(circuit)

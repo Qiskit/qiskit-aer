@@ -24,6 +24,7 @@ from test.terra.decorators import requires_method
 from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
 from test.terra.backends.qasm_simulator.qasm_measure import QasmMeasureTests
 from test.terra.backends.qasm_simulator.qasm_measure import QasmMultiQubitMeasureTests
+from test.terra.backends.qasm_simulator.qasm_measure import QasmMPSMeasureAlgorithms
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmDiagonalGateTests
 from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardGateStatevectorTests
@@ -55,6 +56,7 @@ from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotProbabi
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValPauliNCTests
 from test.terra.backends.qasm_simulator.qasm_snapshot import QasmSnapshotExpValMatrixTests
+from test.terra.backends.qasm_simulator.qasm_fusion import QasmMPSFusionTests
 
 
 @requires_method("qasm_simulator", "matrix_product_state")
@@ -62,6 +64,7 @@ class TestQasmMatrixProductStateSimulator(
         common.QiskitAerTestCase,
         QasmMeasureTests,
         QasmMultiQubitMeasureTests,
+        QasmMPSMeasureAlgorithms,
         QasmResetTests,
         QasmConditionalGateTests,
         QasmConditionalUnitaryTests,
@@ -88,7 +91,8 @@ class TestQasmMatrixProductStateSimulator(
         QasmDelayGateTests,
         QasmSaveDataTests,
         QasmSetMPSTests,
-        QasmSetStateTests
+        QasmSetStateTests,
+        QasmMPSFusionTests
 ):
     """QasmSimulator matrix product state method tests."""
 
