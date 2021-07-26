@@ -24,7 +24,7 @@ from .backend_utils import (cpp_execute, available_methods,
                             available_devices,
                             MAX_QUBITS_STATEVECTOR)
 # pylint: disable=import-error, no-name-in-module
-from .controller_wrappers import aer_controller_execute
+from .controller_wrappers import aer_controller_execute, AerController
 
 logger = logging.getLogger(__name__)
 
@@ -719,3 +719,6 @@ class AerSimulator(AerBackend):
             n_qubits = None
         self._set_configuration_option('description', description)
         self._set_configuration_option('n_qubits', n_qubits)
+
+    def get_controller(self):
+        return AerController()

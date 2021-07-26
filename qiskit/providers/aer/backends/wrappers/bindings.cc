@@ -28,8 +28,6 @@ DISABLE_WARNING_POP
 #include "controllers/unitary_controller.hpp"
 #include "controllers/controller_execute.hpp"
 
-#include "matrix_wrapper.hpp"
-
 using namespace AER;
 
 template<typename T>
@@ -80,33 +78,23 @@ PYBIND11_MODULE(controller_wrappers, m) {
         return py::make_tuple(unitary_ctrl, py::tuple());
     });
 
-    py::class_<AER::Simulator::QasmController> qasm_controller(m, "QasmController");
-    qasm_controller.def(py::init<>());
-    qasm_controller.def("execute", [](AER::Simulator::QasmController &controller, std::vector<AER::Circuit> circuits) {
-      AER::Noise::NoiseModel noise_model;
+    py::class_<AER::Controller> aer_controller(m, "AerController");
+    aer_controller.def(py::init<>());
+    aer_controller.def("execute", [](AER::Controller &controller,
+                                     std::vector<AER::Circuit> circuits,
+                                     const uint_t shots,
+                                     const py::handle &py_config
+                                     ) {
       json_t config;
+      Parser<py::handle>::get_value(config, "config", py_config);
       controller.set_config(config);
+      AER::Noise::NoiseModel noise_model;
+      Parser<json_t>::get_value(noise_model, "noise_model", config);
+      for (auto &circuit: circuits)
+        circuit.shots = shots;
       auto ret = AerToPy::to_python(controller.execute(circuits, noise_model, config));
       return ret;
     });
-    qasm_controller.def("execute0", [](AER::Simulator::QasmController &controller, std::vector<AER::Circuit> circuits) {
-      AER::Noise::NoiseModel noise_model;
-      json_t config;
-      controller.set_config(config);
-      auto ret = AerToPy::to_python(controller.execute(circuits, noise_model, config));
-      return ret;
-    });
-
-    /*
-     * cmatrix can not be correctly bound with Python via pybind in Aer
-     * CMatrix is a wrapper class of cmatrix that allows public access to its member cmatrix:data
-     */
-    py::class_<cmatrix_t> cmat(m, "cmatrix");
-    py::class_<PYBIND::Matrix<complex_t>> cmat_wrapper(m, "CMatrix");
-    cmat_wrapper.def(py::init<unsigned int, unsigned int>());
-    cmat_wrapper.def("__repr__", [cmat_wrapper](PYBIND::Matrix<complex_t> &mat) { std::stringstream ss; ss << mat.data; return ss.str(); });
-    cmat_wrapper.def("get", [cmat_wrapper](PYBIND::Matrix<complex_t> &t, size_t i, size_t j) { return t(i, j); });
-    cmat_wrapper.def("set", [cmat_wrapper](PYBIND::Matrix<complex_t> &t, size_t i, size_t j, complex_t v) { t(i, j) = v; });
 
     py::enum_<Operations::OpType> optype(m, "OpType") ;
     optype.value("gate", Operations::OpType::gate);
@@ -166,10 +154,7 @@ PYBIND11_MODULE(controller_wrappers, m) {
     aer_op.def_readwrite("expval_params", &Operations::Op::expval_params);
     aer_op.def_readwrite("params_expval_pauli", &Operations::Op::params_expval_pauli);
     aer_op.def_readwrite("params_expval_matrix", &Operations::Op::params_expval_matrix);
-    aer_op.def("mats_", [aer_op](Operations::Op &op, std::vector<PYBIND::Matrix<complex_t>> &mats) {
-      op.mats.resize(mats.size());
-      for (auto i = 0; i < mats.size(); ++i) op.mats[i] = mats[i].data;
-    });
+    aer_op.def_readwrite("mats", &Operations::Op::mats);
 
     py::class_<Circuit> aer_circuit(m, "AerCircuit");
     aer_circuit.def(py::init<std::vector<Operations::Op>>(), "constructor", py::arg("ops"));

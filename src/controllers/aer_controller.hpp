@@ -89,8 +89,9 @@ public:
   template <typename inputdata_t>
   Result execute(const inputdata_t &qobj);
 
+  template <class config_t>
   Result execute(std::vector<Circuit> &circuits,
-                 const Noise::NoiseModel &noise_model, const json_t &config);
+                 const Noise::NoiseModel &noise_model, const config_t &config);
 
   //-----------------------------------------------------------------------
   // Config settings
@@ -98,7 +99,8 @@ public:
 
   // Load Controller, State and Data config from a JSON
   // config settings will be passed to the State and Data classes
-  void set_config(const json_t &config);
+  template <class config_t>
+  void set_config(const config_t &config);
 
   // Clear the current config
   void clear_config();
@@ -172,14 +174,16 @@ protected:
   // Parallel execution of a circuit
   // This function manages parallel shot configuration and internally calls
   // the `run_circuit` method for each shot thread
+  template <class config_t>
   void execute_circuit(Circuit &circ, Noise::NoiseModel &noise,
-                       const json_t &config, ExperimentResult &result);
+                       const config_t &config, ExperimentResult &result);
 
   // Abstract method for executing a circuit.
   // This method must initialize a state and return output data for
   // the required number of shots.
+  template <class config_t>
   void run_circuit(const Circuit &circ, const Noise::NoiseModel &noise,
-                   const json_t &config, uint_t shots, uint_t rng_seed,
+                   const config_t &config, uint_t shots, uint_t rng_seed,
                    ExperimentResult &result) const;
 
   //----------------------------------------------------------------
@@ -187,9 +191,9 @@ protected:
   //----------------------------------------------------------------
 
   // Execute n-shots of a circuit on the input state
-  template <class State_t>
+  template <class State_t, class config_t>
   void run_circuit_helper(const Circuit &circ, const Noise::NoiseModel &noise,
-                          const json_t &config, uint_t shots, uint_t rng_seed,
+                          const config_t &config, uint_t shots, uint_t rng_seed,
                           const Method method, bool cache_block,
                           ExperimentResult &result) const;
 
@@ -203,9 +207,9 @@ protected:
   // Execute multiple shots a of circuit by initializing the state vector,
   // running all ops in circ, and updating data with
   // simulation output. Will use measurement sampling if possible
-  template <class State_t>
+  template <class State_t, class config_t>
   void run_circuit_without_sampled_noise(Circuit &circ,
-                                         const json_t &config,
+                                         const config_t &config,
                                          uint_t shots,
                                          State_t &state,
                                          const Method method,
@@ -213,10 +217,10 @@ protected:
                                          ExperimentResult &result,
                                          RngEngine &rng) const;
 
-  template <class State_t>
+  template <class State_t, class config_t>
   void run_circuit_with_sampled_noise(const Circuit &circ,
                                       const Noise::NoiseModel &noise,
-                                      const json_t &config,
+                                      const config_t &config,
                                       uint_t shots,
                                       State_t &state,
                                       const Method method,
@@ -282,16 +286,18 @@ protected:
 
   // Return a fusion transpilation pass configured for the current
   // method, circuit and config
+  template <class config_t>
   Transpile::Fusion transpile_fusion(Method method,
                                      const Operations::OpSet &opset,
-                                     const json_t &config) const;
+                                     const config_t &config) const;
 
   // Return cache blocking transpiler pass
+  template <class config_t>
   Transpile::CacheBlocking
   transpile_cache_blocking(Controller::Method method,
                            const Circuit &circ,
                            const Noise::NoiseModel &noise,
-                           const json_t &config) const;
+                           const config_t &config) const;
 
   //-----------------------------------------------------------------------
   // Parallelization Config
@@ -393,7 +399,8 @@ protected:
 // Config settings
 //-------------------------------------------------------------------------
 
-void Controller::set_config(const json_t &config) {
+template <class config_t>
+void Controller::set_config(const config_t &config) {
 
   // Load validation threshold
   JSON::get_value(validation_threshold_, "validation_threshold", config);
@@ -879,10 +886,11 @@ void Controller::save_exception_to_results(Result &result,
   }
 }
 
+template <class config_t>
 Transpile::CacheBlocking
 Controller::transpile_cache_blocking(Controller::Method method, const Circuit &circ,
                                      const Noise::NoiseModel &noise,
-                                     const json_t &config) const {
+                                     const config_t &config) const {
   Transpile::CacheBlocking cache_block_pass;
 
   const bool is_matrix = (method == Method::density_matrix
@@ -957,9 +965,10 @@ Result Controller::execute(const inputdata_t &input_qobj) {
 // Experiment execution
 //-------------------------------------------------------------------------
 
+template <class config_t>
 Result Controller::execute(std::vector<Circuit> &circuits,
                            const Noise::NoiseModel &noise_model,
-                           const json_t &config) {
+                           const config_t &config) {
   // Start QOBJ timer
   auto timer_start = myclock_t::now();
 
@@ -1118,8 +1127,9 @@ Result Controller::execute(std::vector<Circuit> &circuits,
   return result;
 }
 
+template <class config_t>
 void Controller::execute_circuit(Circuit &circ, Noise::NoiseModel &noise,
-                                 const json_t &config,
+                                 const config_t &config,
                                  ExperimentResult &result) {
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
@@ -1257,9 +1267,10 @@ void Controller::save_count_data(ExperimentResult &result,
 // Base class override
 //-------------------------------------------------------------------------
 
+template <class config_t>
 void Controller::run_circuit(const Circuit &circ,
                              const Noise::NoiseModel &noise,
-                             const json_t &config, uint_t shots,
+                             const config_t &config, uint_t shots,
                              uint_t rng_seed, ExperimentResult &result) const {
   // Validate circuit for simulation method
   switch (simulation_method(circ, noise, true)) {
@@ -1739,9 +1750,10 @@ size_t Controller::required_memory_mb(const Circuit &circ,
   }
 }
 
+template <class config_t>
 Transpile::Fusion Controller::transpile_fusion(Method method,
                                                const Operations::OpSet &opset,
-                                               const json_t &config) const {
+                                               const config_t &config) const {
   Transpile::Fusion fusion_pass;
   fusion_pass.set_parallelization(parallel_state_update_);
 
@@ -1871,10 +1883,10 @@ void Controller::set_distributed_parallelization_method(
 // Run circuit helpers
 //-------------------------------------------------------------------------
 
-template <class State_t>
+template <class State_t, class config_t>
 void Controller::run_circuit_helper(const Circuit &circ,
                                     const Noise::NoiseModel &noise,
-                                    const json_t &config, uint_t shots,
+                                    const config_t &config, uint_t shots,
                                     uint_t rng_seed, const Method method,
                                     bool cache_blocking,
                                     ExperimentResult &result) const {
@@ -1955,9 +1967,9 @@ void Controller::run_single_shot(const Circuit &circ, State_t &state,
   save_count_data(result, state.creg());
 }
 
-template <class State_t>
+template <class State_t, class config_t>
 void Controller::run_circuit_without_sampled_noise(Circuit &circ,
-                                                   const json_t &config,
+                                                   const config_t &config,
                                                    uint_t shots,
                                                    State_t &state,
                                                    const Method method,
@@ -2022,9 +2034,9 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   }
 }                                  
 
-template <class State_t>
+template <class State_t, class config_t>
 void Controller::run_circuit_with_sampled_noise(
-    const Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
+    const Circuit &circ, const Noise::NoiseModel &noise, const config_t &config,
     uint_t shots, State_t &state, const Method method, bool cache_blocking,
     ExperimentResult &result, RngEngine &rng) const {
   // Transpilation for circuit noise method

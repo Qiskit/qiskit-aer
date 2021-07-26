@@ -1,22 +1,6 @@
 import numpy
 from ..backends.controller_wrappers import *
 
-def to_aer_cmatrix(data):
-    if isinstance(data, CMatrix):
-        return data
-    elif isinstance(data, numpy.ndarray):
-        input_dim, output_dim = data.shape
-        num_qubits = int(numpy.log2(input_dim))
-        if input_dim != output_dim or 2 ** num_qubits != input_dim:
-            raise ValueError("matrix is not for a unitary gate.")
-        cmat = CMatrix(input_dim, output_dim)
-        for row in range(input_dim):
-            for col in range(output_dim):
-                cmat.set(row, col, data[row][col])
-        return cmat
-    else:
-        raise ValueError(f"unknown data type for conversion to complex matrix: {data.__class__ }")
-
 def to_aer_vec(data, T):
     if isinstance(data, list):
         return [T(d) for d in data]
@@ -49,12 +33,13 @@ def initialize(qubits, initial_state):
     return op
 
 # OpType.measure:
-def measure(qubits, registers):
+def measure(qubits, memory):
     op = AerOp()
-    op.type = OpType.roerror
+    op.type = OpType.measure
     op.name = "measure"
     op.qubits = qubits
-    op.registers = registers
+    op.memory = memory
+    op.registers = memory
     return op
 
 # OpType.bfunc:
@@ -471,7 +456,7 @@ def unitary(qubits, mat):
     op.type = OpType.matrix
     op.name = 'unitary'
     op.qubits = qubits
-    op.mats_([mat])
+    op.mats = [mat]
     return op
 
 # OpType.diagonal_matrix:
@@ -491,7 +476,7 @@ def _kraus(qubits, mats):
     op.type = OpType.kraus
     op.name = "kraus"
     op.qubits = qubits
-    op.mats = [to_aer_cmatrix(mat) for mat in mats]
+    op.mats = mats
     return op
 
 def _superop(qubits, mat):
@@ -499,7 +484,7 @@ def _superop(qubits, mat):
     op.type = OpType.superop
     op.name = "superop"
     op.qubits = qubits
-    op.mats = [to_aer_cmatrix(mat)]
+    op.mats = [mat]
     return op
 
 def gen_aer_op(instruction, qubits, clbits):
@@ -612,7 +597,7 @@ def gen_aer_op(instruction, qubits, clbits):
     elif instruction.name == 'mcx_gray':
         return mcx_gray(qubits[0: len(qubits) - 1], qubits[len(qubits) - 1])
     elif instruction.name == 'unitary':
-        return unitary(qubits, to_aer_cmatrix(params[0]))
+        return unitary(qubits, params[0])
     elif instruction.name == 'diagonal':
         return diagonal(qubits, to_aer_vec(diagonal_gate.params[0], complex))
     else:
@@ -620,14 +605,14 @@ def gen_aer_op(instruction, qubits, clbits):
     
 def gen_aer_circuit(circuit):
 
-    circuit_name = circuit.name
     global_phase = circuit.global_phase
-    #TODO circuit.metadata
 
     qubit_indices = {bit: index for index, bit in enumerate(circuit.qubits)}
     clbit_indices = {bit: index for index, bit in enumerate(circuit.clbits)}
 
-    return AerCircuit([gen_aer_op(instruction[0],
+    circ = AerCircuit([gen_aer_op(instruction[0],
                                   [qubit_indices[qubit] for qubit in instruction[1]],
                                   [clbit_indices[clbit] for clbit in instruction[2]])
                                   for instruction in circuit.data])
+    circ.global_phase_angle = global_phase
+    return circ
