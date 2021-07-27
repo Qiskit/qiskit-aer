@@ -80,19 +80,15 @@ PYBIND11_MODULE(controller_wrappers, m) {
 
     py::class_<AER::Controller> aer_controller(m, "AerController");
     aer_controller.def(py::init<>());
-    aer_controller.def("execute", [](AER::Controller &controller,
+    aer_controller.def("execute", [aer_controller](AER::Controller &controller,
                                      std::vector<AER::Circuit> circuits,
                                      const uint_t shots,
+                                     const py::handle &py_noise_model,
                                      const py::handle &py_config
                                      ) {
-      json_t config;
-      Parser<py::handle>::get_value(config, "config", py_config);
-      controller.set_config(config);
-      AER::Noise::NoiseModel noise_model;
-      Parser<json_t>::get_value(noise_model, "noise_model", config);
       for (auto &circuit: circuits)
         circuit.shots = shots;
-      auto ret = AerToPy::to_python(controller.execute(circuits, noise_model, config));
+      auto ret = AerToPy::to_python(controller.execute(circuits, AER::Noise::NoiseModel(py_noise_model), py_config));
       return ret;
     });
 

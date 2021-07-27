@@ -46,7 +46,8 @@ public:
   using NoiseOps = std::vector<Operations::Op>;
 
   NoiseModel() = default;
-  NoiseModel(const json_t &js) {load_from_json(js);}
+  template <class input_t>
+  NoiseModel(const input_t &input) {load(input);}
 
   // Sample a noisy implementation of a full circuit
   // An RngEngine is passed in as a reference so that sampling
@@ -108,7 +109,8 @@ public:
   //-----------------------------------------------------------------------
 
   // Load a noise model from JSON
-  void load_from_json(const json_t &js);
+  template <class input_t>
+  void load(const input_t &js);
 
   // Add a QuantumError to the noise model
   void add_quantum_error(const QuantumError &error,
@@ -982,30 +984,30 @@ void NoiseModel::remap_qubits(const std::unordered_map<uint_t, uint_t> &mapping)
   }
 */
 
-void NoiseModel::load_from_json(const json_t &js) {
+template <class input_t>
+void NoiseModel::load(const input_t &input) {
 
   // If JSON is empty stop
-  if (js.empty())
+  if (Parser<input_t>::is_empty(input))
     return;
 
   // Check JSON is an object
-  if (!js.is_object()) {
+  if (!Parser<input_t>::is_object(input)) {
     throw std::invalid_argument("Invalid noise_params JSON: not an object.");
   }
 
-  if (JSON::check_key("errors", js)) {
-    if (!js["errors"].is_array()) {
+  if (Parser<input_t>::check_key("errors", input)) {
+    if (!Parser<input_t>::is_array("errors", input))
       throw std::invalid_argument("Invalid noise_params JSON: \"error\" field is not a list");
-    }
-    for (const auto &gate_js : JSON::get_value("errors", js)) {
+    for (const auto &error_input : Parser<input_t>::get_list("errors", input)) {
       std::string type;
-      JSON::get_value(type, "type", gate_js);
+      Parser<input_t>::get_value(type, "type", error_input);
       stringset_t ops; // want set so ops are unique, and we can pull out measure
-      JSON::get_value(ops, "operations", gate_js);
+      Parser<input_t>::get_value(ops, "operations", error_input);
       std::vector<reg_t> gate_qubits;
-      JSON::get_value(gate_qubits, "gate_qubits", gate_js);
+      Parser<input_t>::get_value(gate_qubits, "gate_qubits", error_input);
       std::vector<reg_t> noise_qubits;
-      JSON::get_value(noise_qubits, "noise_qubits", gate_js);
+      Parser<input_t>::get_value(noise_qubits, "noise_qubits", error_input);
 
       // We treat measure as a separate error op so that it can be applied before
       // the measure operation, rather than after like the other gates
@@ -1014,14 +1016,14 @@ void NoiseModel::load_from_json(const json_t &js) {
         if (type != "qerror")
           throw std::invalid_argument("NoiseModel: Invalid noise type (" + type + ")");
         QuantumError error;
-        error.load_from_json(gate_js);
+        error.load(error_input);
         error.set_errors_before(); // set errors before the op
         add_quantum_error(error, {"measure"}, gate_qubits, noise_qubits);
       }
       // Load the remaining ops as errors that come after op
       if (type == "qerror") {
         QuantumError error;
-        error.load_from_json(gate_js);
+        error.load(error_input);
         add_quantum_error(error, ops, gate_qubits, noise_qubits);
       } else if (type == "roerror") {
         // We do not allow non-local readout errors
@@ -1029,7 +1031,7 @@ void NoiseModel::load_from_json(const json_t &js) {
           throw std::invalid_argument("Readout error must be a local error");
         }
         ReadoutError error; // readout error goes after
-        error.load_from_json(gate_js);
+        error.load(error_input);
         add_readout_error(error, gate_qubits);
       }else {
         throw std::invalid_argument("NoiseModel: Invalid noise type (" + type + ")");

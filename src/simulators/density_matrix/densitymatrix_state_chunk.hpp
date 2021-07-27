@@ -92,7 +92,8 @@ public:
 
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
-  virtual void set_config(const json_t &config) override;
+  template <class config_t>
+  void set_config(const config_t &config);
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
@@ -550,19 +551,20 @@ size_t State<densmat_t>::required_memory_mb(uint_t num_qubits,
 }
 
 template <class densmat_t>
-void State<densmat_t>::set_config(const json_t &config) 
+template <class config_t>
+void State<densmat_t>::set_config(const config_t &config)
 {
   BaseState::set_config(config);
 
   // Set threshold for truncating snapshots
-  JSON::get_value(json_chop_threshold_, "chop_threshold", config);
+  Parser<config_t>::get_value(json_chop_threshold_, "chop_threshold", config);
   uint_t i;
   for(i=0;i<BaseState::num_local_chunks_;i++){
     BaseState::qregs_[i].set_json_chop_threshold(json_chop_threshold_);
   }
 
   // Set OMP threshold for state update functions
-  JSON::get_value(omp_qubit_threshold_, "statevector_parallel_threshold", config);
+  Parser<config_t>::get_value(omp_qubit_threshold_, "statevector_parallel_threshold", config);
 
 }
 

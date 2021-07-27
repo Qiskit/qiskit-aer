@@ -101,7 +101,8 @@ public:
   //----------------------------------------------------------------
 
   // Set the output data config options
-  void set_config(const json_t &config);
+  template <class config_t>
+  void set_config(const config_t &config);
 
   // Empty engine of stored data
   void clear();
@@ -151,10 +152,11 @@ public:
 // Implementations
 //============================================================================
 
-void SnapshotData::set_config(const json_t &config) {
+template <class config_t>
+void SnapshotData::set_config(const config_t &config) {
   // Snapshots enabled
   bool enabled = true;
-  JSON::get_value(enabled, "snapshots", config);
+  Parser<config_t>::get_value(enabled, "snapshots", config);
   DataContainer<json_t>::enable(enabled);
   DataContainer<complex_t>::enable(enabled);
   DataContainer<std::vector<std::complex<float>>>::enable(enabled);

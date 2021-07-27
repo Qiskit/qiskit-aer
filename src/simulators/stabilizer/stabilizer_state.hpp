@@ -102,7 +102,8 @@ public:
                                     const override;
 
   // Load any settings for the State class from a config JSON
-  virtual void set_config(const json_t &config) override;
+  template <class config_t>
+  void set_config(const config_t &config);
 
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
@@ -302,12 +303,13 @@ size_t State::required_memory_mb(uint_t num_qubits,
   return mem;
 }
 
-void State::set_config(const json_t &config) {
+template <class config_t>
+void State::set_config(const config_t &config) {
   // Set threshold for truncating snapshots
-  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
+  Parser<config_t>::get_value(json_chop_threshold_, "zero_threshold", config);
 
   // Load max snapshot qubit size and set hard limit of 64 qubits.
-  JSON::get_value(max_qubits_snapshot_probs_, "stabilizer_max_snapshot_probabilities", config);
+  Parser<config_t>::get_value(max_qubits_snapshot_probs_, "stabilizer_max_snapshot_probabilities", config);
   max_qubits_snapshot_probs_ = std::max<uint_t>(max_qubits_snapshot_probs_, 64);
 }
 

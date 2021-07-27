@@ -50,7 +50,8 @@ public:
   json_t to_json();
 
   // Set the output data config options
-  void set_config(const json_t &config);
+  template <class config_t>
+  void set_config(const config_t &config);
 
   // Combine stored data
   ExperimentResult& combine(ExperimentResult &&other);
@@ -67,7 +68,8 @@ ExperimentResult& ExperimentResult::combine(ExperimentResult &&other) {
   return *this;
 }
 
-void ExperimentResult::set_config(const json_t &config) {
+template <class config_t>
+void ExperimentResult::set_config(const config_t &config) {
   legacy_data.set_config(config);
 }
 

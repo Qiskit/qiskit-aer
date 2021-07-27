@@ -144,7 +144,8 @@ public:
   //-----------------------------------------------------------------------
 
   // Load any settings for the State class from a config JSON
-  virtual void set_config(const json_t &config);
+  template <class config_t>
+  void set_config(const config_t &config);
 
   //-----------------------------------------------------------------------
   // Optional: Add information to metadata 
@@ -528,11 +529,12 @@ uint_t StateChunk<state_t>::get_process_by_chunk(uint_t cid)
 }
 
 template <class state_t>
-void StateChunk<state_t>::set_config(const json_t &config) 
+template <class config_t>
+void StateChunk<state_t>::set_config(const config_t &config)
 {
   block_bits_ = 0;
-  if (JSON::check_key("blocking_qubits", config))
-    JSON::get_value(block_bits_, "blocking_qubits", config);
+  if (Parser<config_t>::check_key("blocking_qubits", config))
+    Parser<config_t>::get_value(block_bits_, "blocking_qubits", config);
 }
 
 template <class state_t>

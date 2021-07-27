@@ -36,15 +36,8 @@ public:
                                 const Operations::OpSet &opset,
                                 ExperimentResult &result) const = 0;
 
-  virtual void set_config(const json_t &config);
-
 protected:
-  json_t config_;
 };
-
-void CircuitOptimization::set_config(const json_t& config) {
-  config_ = config;
-}
 
 //-------------------------------------------------------------------------
 } // end namespace Transpile

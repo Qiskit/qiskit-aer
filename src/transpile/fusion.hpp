@@ -274,8 +274,6 @@ class Fuser {
 public:
   virtual std::string name() const = 0;
 
-  virtual void set_config(const json_t &config) = 0;
-
   virtual void set_metadata(ExperimentResult &result) const { }; //nop
 
   virtual bool aggregate_operations(oplist_t& ops,
@@ -314,7 +312,8 @@ public:
 
   virtual std::string name() const override { return "cost_base"; };
 
-  virtual void set_config(const json_t &config) override;
+  template <class config_t>
+  void set_config(const config_t &config);
 
   virtual void set_metadata(ExperimentResult &result) const override;
 
@@ -348,7 +347,8 @@ public:
                   activate_prop_name("fusion_enable." + std::to_string(N) + "_qubits") {
   }
 
-  virtual void set_config(const json_t &config) override;
+  template <class config_t>
+  void set_config(const config_t &config);
 
   virtual std::string name() const override {
     return opt_name;
@@ -370,12 +370,13 @@ private:
 };
 
 template<size_t N>
-void NQubitFusion<N>::set_config(const json_t &config) {
-  if (JSON::check_key("fusion_enable.n_qubits", config))
-    JSON::get_value(active, "fusion_enable.n_qubits", config);
+template <class config_t>
+void NQubitFusion<N>::set_config(const config_t &config) {
+  if (Parser<config_t>::check_key("fusion_enable.n_qubits", config))
+    Parser<config_t>::get_value(active, "fusion_enable.n_qubits", config);
 
-  if (JSON::check_key(activate_prop_name, config))
-    JSON::get_value(active, activate_prop_name, config);
+  if (Parser<config_t>::check_key(activate_prop_name, config))
+    Parser<config_t>::get_value(active, activate_prop_name, config);
 }
 
 template<size_t N>
@@ -474,7 +475,8 @@ public:
 
   virtual std::string name() const override { return "diagonal"; };
 
-  virtual void set_config(const json_t &config) override;
+  template <class config_t>
+  void set_config(const config_t &config);
 
   virtual bool aggregate_operations(oplist_t& ops,
                                     const int fusion_start,
@@ -492,11 +494,12 @@ private:
   bool active = true;
 };
 
-void DiagonalFusion::set_config(const json_t &config) {
-  if (JSON::check_key("fusion_enable.diagonal", config))
-    JSON::get_value(active, "fusion_enable.diagonal", config);
-  if (JSON::check_key("fusion_min_qubit.diagonal", config))
-    JSON::get_value(min_qubit, "fusion_min_qubit.diagonal", config);
+template <class config_t>
+void DiagonalFusion::set_config(const config_t &config) {
+  if (Parser<config_t>::check_key("fusion_enable.diagonal", config))
+    Parser<config_t>::get_value(active, "fusion_enable.diagonal", config);
+  if (Parser<config_t>::check_key("fusion_min_qubit.diagonal", config))
+    Parser<config_t>::get_value(min_qubit, "fusion_min_qubit.diagonal", config);
 }
 
 bool DiagonalFusion::is_diagonal_op(const op_t& op) const {
@@ -688,7 +691,8 @@ public:
    */
   Fusion();
   
-  void set_config(const json_t &config) override;
+  template <class config_t>
+  void set_config(const config_t &config);
 
   virtual void set_parallelization(uint_t num) { parallelization_ = num; };
 
@@ -752,42 +756,53 @@ private:
 
 private:
   std::vector<std::shared_ptr<Fuser>> fusers;
+  std::shared_ptr<DiagonalFusion> diagonal_fusion;
+  std::shared_ptr<NQubitFusion<1>> one_qubit_fusion;
+  std::shared_ptr<NQubitFusion<2>> two_qubit_fusion;
+  std::shared_ptr<CostBasedFusion> cost_based_fusion;
+
 };
 
 Fusion::Fusion() {
-  fusers.push_back(std::make_shared<DiagonalFusion>());
-  fusers.push_back(std::make_shared<NQubitFusion<1>>());
-  fusers.push_back(std::make_shared<NQubitFusion<2>>());
-  fusers.push_back(std::make_shared<CostBasedFusion>());
+  diagonal_fusion = std::make_shared<DiagonalFusion>();
+  one_qubit_fusion = std::make_shared<NQubitFusion<1>>();
+  two_qubit_fusion = std::make_shared<NQubitFusion<2>>();
+  cost_based_fusion = std::make_shared<CostBasedFusion>();
+
+  fusers.push_back(diagonal_fusion);
+  fusers.push_back(one_qubit_fusion);
+  fusers.push_back(two_qubit_fusion);
+  fusers.push_back(cost_based_fusion);
 }
 
-void Fusion::set_config(const json_t &config) {
+template <class config_t>
+void Fusion::set_config(const config_t &config) {
 
-  CircuitOptimization::set_config(config);
+  if (Parser<config_t>::check_key("fusion_verbose", config))
+    Parser<config_t>::get_value(verbose, "fusion_verbose", config);
 
-  if (JSON::check_key("fusion_verbose", config_))
-    JSON::get_value(verbose, "fusion_verbose", config_);
+  if (Parser<config_t>::check_key("fusion_enable", config))
+    Parser<config_t>::get_value(active, "fusion_enable", config);
 
-  if (JSON::check_key("fusion_enable", config_))
-    JSON::get_value(active, "fusion_enable", config_);
+  if (Parser<config_t>::check_key("fusion_max_qubit", config))
+    Parser<config_t>::get_value(max_qubit, "fusion_max_qubit", config);
 
-  if (JSON::check_key("fusion_max_qubit", config_))
-    JSON::get_value(max_qubit, "fusion_max_qubit", config_);
+  if (Parser<config_t>::check_key("fusion_threshold", config))
+    Parser<config_t>::get_value(threshold, "fusion_threshold", config);
 
-  if (JSON::check_key("fusion_threshold", config_))
-    JSON::get_value(threshold, "fusion_threshold", config_);
+  diagonal_fusion->set_config(config);
+  one_qubit_fusion->set_config(config);
+  two_qubit_fusion->set_config(config);
+  cost_based_fusion->set_config(config);
 
-  for (std::shared_ptr<Fuser>& fuser: fusers)
-    fuser->set_config(config_);
+  if (Parser<config_t>::check_key("fusion_allow_kraus", config))
+    Parser<config_t>::get_value(allow_kraus, "fusion_allow_kraus", config);
 
-  if (JSON::check_key("fusion_allow_kraus", config))
-    JSON::get_value(allow_kraus, "fusion_allow_kraus", config);
+  if (Parser<config_t>::check_key("fusion_allow_superop", config))
+    Parser<config_t>::get_value(allow_superop, "fusion_allow_superop", config);
 
-  if (JSON::check_key("fusion_allow_superop", config))
-    JSON::get_value(allow_superop, "fusion_allow_superop", config);
-
-  if (JSON::check_key("fusion_parallelization_threshold", config_))
-    JSON::get_value(parallel_threshold_, "fusion_parallelization_threshold", config_);
+  if (Parser<config_t>::check_key("fusion_parallelization_threshold", config))
+    Parser<config_t>::get_value(parallel_threshold_, "fusion_parallelization_threshold", config);
 }
 
 void Fusion::optimize_circuit(Circuit& circ,
@@ -899,18 +914,19 @@ void CostBasedFusion::set_metadata(ExperimentResult &result) const {
   result.metadata.add(cost_factor, "fusion", "cost_factor");
 }
 
-void CostBasedFusion::set_config(const json_t &config) {
+template <class config_t>
+void CostBasedFusion::set_config(const config_t &config) {
 
-  if (JSON::check_key("fusion_cost_factor", config))
-    JSON::get_value(cost_factor, "fusion_cost_factor", config);
+  if (Parser<config_t>::check_key("fusion_cost_factor", config))
+    Parser<config_t>::get_value(cost_factor, "fusion_cost_factor", config);
 
-  if (JSON::check_key("fusion_enable.cost_based", config))
-    JSON::get_value(active, "fusion_enable.cost_based", config);
+  if (Parser<config_t>::check_key("fusion_enable.cost_based", config))
+    Parser<config_t>::get_value(active, "fusion_enable.cost_based", config);
 
   for (int i = 0; i < 64; ++i) {
     auto prop_name = "fusion_cost." + std::to_string(i + 1);
-    if (JSON::check_key(prop_name, config))
-      JSON::get_value(costs_[i], prop_name, config);
+    if (Parser<config_t>::check_key(prop_name, config))
+      Parser<config_t>::get_value(costs_[i], prop_name, config);
   }
 }
 

@@ -141,7 +141,8 @@ public:
   //-----------------------------------------------------------------------
 
   // Load any settings for the State class from a config JSON
-  virtual void set_config(const json_t &config);
+  template <class config_t>
+  void set_config(const config_t &config);
 
   //-----------------------------------------------------------------------
   // Optional: Add information to metadata 
@@ -295,7 +296,8 @@ protected:
 //=========================================================================
 
 template <class state_t>
-void State<state_t>::set_config(const json_t &config) {
+template <class config_t>
+void State<state_t>::set_config(const config_t &config) {
   (ignore_argument)config;
 }
 

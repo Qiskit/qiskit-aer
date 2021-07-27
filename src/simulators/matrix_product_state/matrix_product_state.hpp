@@ -139,7 +139,8 @@ public:
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
   // We currently set the threshold to 1 in qasm_controller.hpp, i.e., no parallelization
-  virtual void set_config(const json_t &config) override;
+  template <class config_t>
+  void set_config(const config_t &config);
 
   virtual void add_metadata(ExperimentResult &result) const override;
 
@@ -441,44 +442,45 @@ size_t State::required_memory_mb(uint_t num_qubits,
     return mem_mb;
 }
 
-void State::set_config(const json_t &config) {
+template <class config_t>
+void State::set_config(const config_t &config) {
   // Set threshold for truncating Schmidt coefficients
   double threshold;
-  if (JSON::get_value(threshold, "matrix_product_state_truncation_threshold", config))
+  if (Parser<config_t>::get_value(threshold, "matrix_product_state_truncation_threshold", config))
     MPS_Tensor::set_truncation_threshold(threshold);
   else
     MPS_Tensor::set_truncation_threshold(1e-16);
 
   uint_t max_bond_dimension;
-  if (JSON::get_value(max_bond_dimension, "matrix_product_state_max_bond_dimension", config)) 
+  if (Parser<config_t>::get_value(max_bond_dimension, "matrix_product_state_max_bond_dimension", config))
     MPS_Tensor::set_max_bond_dimension(max_bond_dimension);
   else
     MPS_Tensor::set_max_bond_dimension(UINT64_MAX);
 
   // Set threshold for truncating snapshots
   uint_t json_chop_threshold;
-  if (JSON::get_value(json_chop_threshold, "chop_threshold", config))
+  if (Parser<config_t>::get_value(json_chop_threshold, "chop_threshold", config))
     MPS::set_json_chop_threshold(json_chop_threshold);
   else
     MPS::set_json_chop_threshold(1E-8);
 
   // Set OMP num threshold
   uint_t omp_qubit_threshold;
-  if (JSON::get_value(omp_qubit_threshold, "mps_parallel_threshold", config))
+  if (Parser<config_t>::get_value(omp_qubit_threshold, "mps_parallel_threshold", config))
     MPS::set_omp_threshold(omp_qubit_threshold);
   else
      MPS::set_omp_threshold(14);
 
   // Set OMP threads
   uint_t omp_threads;
-  if (JSON::get_value(omp_threads, "mps_omp_threads", config))
+  if (Parser<config_t>::get_value(omp_threads, "mps_omp_threads", config))
     MPS::set_omp_threads(omp_threads);
   else
     MPS::set_omp_threads(1);
 
 // Set the algorithm for sample measure
   std::string alg;
-  if (JSON::get_value(alg, "mps_sample_measure_algorithm", config)) {
+  if (Parser<config_t>::get_value(alg, "mps_sample_measure_algorithm", config)) {
     if (alg.compare("mps_probabilities") == 0) {
       MPS::set_sample_measure_alg(Sample_measure_alg::PROB);
     } else if (alg.compare("mps_apply_measure") == 0) {
@@ -489,7 +491,7 @@ void State::set_config(const json_t &config) {
   }
   // Set mps_log_data
   bool mps_log_data;
-  if (JSON::get_value(mps_log_data, "mps_log_data", config))
+  if (Parser<config_t>::get_value(mps_log_data, "mps_log_data", config))
     MPS::set_mps_log_data(mps_log_data);
 }
 

@@ -69,6 +69,13 @@ struct Parser<json_t> {
         return JSON::get_value(key, js);
     }
 
+    static bool is_empty(const json_t &js){
+        return js.empty();
+    }
+
+    static bool is_object(const json_t &js){
+        return js.is_object();
+    }
 
     static bool is_number(const std::string& key, const json_t &js){
         return js[key].is_number();

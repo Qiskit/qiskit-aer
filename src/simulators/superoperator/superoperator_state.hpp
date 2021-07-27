@@ -101,7 +101,8 @@ public:
   // Load the threshold for applying OpenMP parallelization
   // if the controller/engine allows threads for it
   // Config: {"omp_qubit_threshold": 3}
-  virtual void set_config(const json_t &config) override;
+  template <class config_t>
+  void set_config(const config_t &config);
 
   virtual void allocate(uint_t num_qubits,uint_t block_bits) override;
 
@@ -306,13 +307,15 @@ size_t State<data_t>::required_memory_mb(
   return mem_mb;
 }
 
-template <class data_t> void State<data_t>::set_config(const json_t &config) {
+template <class data_t>
+template <class config_t>
+void State<data_t>::set_config(const config_t &config) {
   // Set OMP threshold for state update functions
-  JSON::get_value(omp_qubit_threshold_, "superoperator_parallel_threshold",
+  Parser<config_t>::get_value(omp_qubit_threshold_, "superoperator_parallel_threshold",
                   config);
 
   // Set threshold for truncating snapshots
-  JSON::get_value(json_chop_threshold_, "zero_threshold", config);
+  Parser<config_t>::get_value(json_chop_threshold_, "zero_threshold", config);
   BaseState::qreg_.set_json_chop_threshold(json_chop_threshold_);
 }
 

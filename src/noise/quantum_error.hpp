@@ -65,7 +65,8 @@ public:
   //-----------------------------------------------------------------------
 
   // Load a QuantumError object from a JSON Error object
-  void load_from_json(const json_t &js);
+  template <class input_t>
+  void load(const input_t &js);
 
   // Sets the sub-circuits and probabilities to be sampled from.
   // The length of the circuits vector and probability vector must be equal.
@@ -379,11 +380,12 @@ void QuantumError::compute_kraus() {
   canonical_kraus_ = Utils::superop2kraus(superoperator_, dim);
 }
 
-void QuantumError::load_from_json(const json_t &js) {
+template <class input_t>
+void QuantumError::load(const input_t &input) {
   rvector_t probs;
-  JSON::get_value(probs, "probabilities", js);
+  Parser<input_t>::get_value(probs, "probabilities", input);
   std::vector<NoiseOps> circuits;
-  JSON::get_value(circuits, "instructions", js);
+  Parser<input_t>::get_value(circuits, "instructions", input);
   set_circuits(circuits, probs);
 }
 

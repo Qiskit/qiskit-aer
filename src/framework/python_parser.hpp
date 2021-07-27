@@ -113,6 +113,14 @@ struct Parser<py::handle> {
         return py::cast<py::list>(the_list);
     }
 
+    static bool is_empty(const py::handle& po){
+        return po.is_none();
+    }
+
+    static bool is_object(const py::handle& po){
+        return !is_number(po);
+    }
+
     static bool is_number(const py::handle& po){
         return py::isinstance<py::int_>(po) || py::isinstance<py::float_>(po);
     }

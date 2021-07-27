@@ -381,20 +381,20 @@ template <class config_t>
 void Controller::set_config(const config_t &config) {
 
   // Load validation threshold
-  JSON::get_value(validation_threshold_, "validation_threshold", config);
+  Parser<config_t>::get_value(validation_threshold_, "validation_threshold", config);
 
   // Load config for memory (creg list data)
-  JSON::get_value(save_creg_memory_, "memory", config);
+  Parser<config_t>::get_value(save_creg_memory_, "memory", config);
 
 #ifdef _OPENMP
   // Load OpenMP maximum thread settings
-  if (JSON::check_key("max_parallel_threads", config))
-    JSON::get_value(max_parallel_threads_, "max_parallel_threads", config);
-  if (JSON::check_key("max_parallel_experiments", config))
-    JSON::get_value(max_parallel_experiments_, "max_parallel_experiments",
+  if (Parser<config_t>::check_key("max_parallel_threads", config))
+    Parser<config_t>::get_value(max_parallel_threads_, "max_parallel_threads", config);
+  if (Parser<config_t>::check_key("max_parallel_experiments", config))
+    Parser<config_t>::get_value(max_parallel_experiments_, "max_parallel_experiments",
                     config);
-  if (JSON::check_key("max_parallel_shots", config))
-    JSON::get_value(max_parallel_shots_, "max_parallel_shots", config);
+  if (Parser<config_t>::check_key("max_parallel_shots", config))
+    Parser<config_t>::get_value(max_parallel_shots_, "max_parallel_shots", config);
   // Limit max threads based on number of available OpenMP threads
   auto omp_threads = omp_get_max_threads();
   max_parallel_threads_ = (max_parallel_threads_ > 0)
@@ -410,25 +410,25 @@ void Controller::set_config(const config_t &config) {
 
   // Load configurations for parallelization
 
-  if (JSON::check_key("max_memory_mb", config)) {
-    JSON::get_value(max_memory_mb_, "max_memory_mb", config);
+  if (Parser<config_t>::check_key("max_memory_mb", config)) {
+    Parser<config_t>::get_value(max_memory_mb_, "max_memory_mb", config);
   }
 
   // for debugging
-  if (JSON::check_key("_parallel_experiments", config)) {
-    JSON::get_value(parallel_experiments_, "_parallel_experiments", config);
+  if (Parser<config_t>::check_key("_parallel_experiments", config)) {
+    Parser<config_t>::get_value(parallel_experiments_, "_parallel_experiments", config);
     explicit_parallelization_ = true;
   }
 
   // for debugging
-  if (JSON::check_key("_parallel_shots", config)) {
-    JSON::get_value(parallel_shots_, "_parallel_shots", config);
+  if (Parser<config_t>::check_key("_parallel_shots", config)) {
+    Parser<config_t>::get_value(parallel_shots_, "_parallel_shots", config);
     explicit_parallelization_ = true;
   }
 
   // for debugging
-  if (JSON::check_key("_parallel_state_update", config)) {
-    JSON::get_value(parallel_state_update_, "_parallel_state_update", config);
+  if (Parser<config_t>::check_key("_parallel_state_update", config)) {
+    Parser<config_t>::get_value(parallel_state_update_, "_parallel_state_update", config);
     explicit_parallelization_ = true;
   }
 
@@ -438,20 +438,20 @@ void Controller::set_config(const config_t &config) {
     parallel_state_update_ = std::max<int>({parallel_state_update_, 1});
   }
 
-  if (JSON::check_key("accept_distributed_results", config)) {
-    JSON::get_value(accept_distributed_results_, "accept_distributed_results",
+  if (Parser<config_t>::check_key("accept_distributed_results", config)) {
+    Parser<config_t>::get_value(accept_distributed_results_, "accept_distributed_results",
                     config);
   }
 
   // enable multiple qregs if cache blocking is enabled
   cache_block_qubit_ = 0;
-  if (JSON::check_key("blocking_qubits", config)) {
-    JSON::get_value(cache_block_qubit_, "blocking_qubits", config);
+  if (Parser<config_t>::check_key("blocking_qubits", config)) {
+    Parser<config_t>::get_value(cache_block_qubit_, "blocking_qubits", config);
   }
 
   // Override automatic simulation method with a fixed method
   std::string method;
-  if (JSON::get_value(method, "method", config)) {
+  if (Parser<config_t>::get_value(method, "method", config)) {
     if (method == "statevector") {
       sim_method_ = Method::statevector;
     } else if (method == "density_matrix") {
@@ -473,7 +473,7 @@ void Controller::set_config(const config_t &config) {
   }
 
   // Override automatic simulation method with a fixed method
-  if (JSON::get_value(sim_device_name_, "device", config)) {
+  if (Parser<config_t>::get_value(sim_device_name_, "device", config)) {
     if (sim_device_name_ == "CPU") {
       sim_device_ = Device::CPU;
     } else if (sim_device_name_ == "Thrust") {
@@ -504,7 +504,7 @@ void Controller::set_config(const config_t &config) {
   }
 
   std::string precision;
-  if (JSON::get_value(precision, "precision", config)) {
+  if (Parser<config_t>::get_value(precision, "precision", config)) {
     if (precision == "double") {
       sim_precision_ = Precision::Double;
     } else if (precision == "single") {
@@ -742,7 +742,7 @@ bool Controller::validate_memory_requirements(const state_t &state,
   if (mem_size < required_mb) {
     if (throw_except) {
       std::string name = "";
-      JSON::get_value(name, "name", circ.header);
+      Parser<json_t>::get_value(name, "name", circ.header);
       throw std::runtime_error("Insufficient memory to run circuit \"" + name +
                                "\" using the " + state.name() + " simulator.");
     }

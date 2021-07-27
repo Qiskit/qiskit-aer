@@ -28,7 +28,8 @@ public:
   // DelayMeasure uses following configuration options
   // - delay_measure_verbose (bool): if true, output generated gates in metadata (default: false)
   // - delay_measure_enable (bool): if true, activate optimization (default: true)
-  void set_config(const json_t &config) override;
+  template <class config_t>
+  void set_config(const config_t &config);
 
   // Push back measurements to tail of circuit if no non-measure
   // instructions follow on the same qubits
@@ -46,10 +47,10 @@ private:
   bool active_ = true;
 };
 
-void DelayMeasure::set_config(const json_t &config) {
-  CircuitOptimization::set_config(config);
-  JSON::get_value(verbose_, "delay_measure_verbose", config);
-  JSON::get_value(active_, "delay_measure_enable", config);
+template <class config_t>
+void DelayMeasure::set_config(const config_t &config) {
+  Parser<config_t>::get_value(verbose_, "delay_measure_verbose", config);
+  Parser<config_t>::get_value(active_, "delay_measure_enable", config);
 }
 
 void DelayMeasure::optimize_circuit(Circuit& circ,

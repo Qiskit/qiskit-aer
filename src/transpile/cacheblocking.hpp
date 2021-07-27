@@ -54,7 +54,8 @@ public:
                         const opset_t &allowed_opset,
                         ExperimentResult &result) const override;
 
-  void set_config(const json_t &config) override;
+  template <class config_t>
+  void set_config(const config_t &config);
   bool enabled()
   {
     return blocking_enabled_;
@@ -116,25 +117,24 @@ protected:
   bool is_blockable_operation(Operations::Op& op) const;
 };
 
-void CacheBlocking::set_config(const json_t &config)
+template <class config_t>
+void CacheBlocking::set_config(const config_t &config)
 {
-  CircuitOptimization::set_config(config);
+  if (Parser<config_t>::check_key("blocking_enable", config))
+    Parser<config_t>::get_value(blocking_enabled_, "blocking_enable", config);
 
-  if (JSON::check_key("blocking_enable", config_))
-    JSON::get_value(blocking_enabled_, "blocking_enable", config_);
+  if (Parser<config_t>::check_key("blocking_qubits", config))
+    Parser<config_t>::get_value(block_bits_, "blocking_qubits", config);
 
-  if (JSON::check_key("blocking_qubits", config_))
-    JSON::get_value(block_bits_, "blocking_qubits", config_);
-
-  if (JSON::check_key("gpu_blocking_bits", config_)){
-    JSON::get_value(gpu_blocking_bits_, "gpu_blocking_bits", config_);
+  if (Parser<config_t>::check_key("gpu_blocking_bits", config)){
+    Parser<config_t>::get_value(gpu_blocking_bits_, "gpu_blocking_bits", config);
     if(gpu_blocking_bits_ >= 10){   //blocking qubit should be <=10
       gpu_blocking_bits_ = 10;
     }
   }
 
   std::string method;
-  if (JSON::get_value(method, "method", config)) {
+  if (Parser<config_t>::get_value(method, "method", config)) {
     if(method.find("density_matrix") != std::string::npos){
       density_matrix_ = true;
     }

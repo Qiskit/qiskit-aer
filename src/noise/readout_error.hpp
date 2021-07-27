@@ -43,7 +43,8 @@ public:
   //-----------------------------------------------------------------------
 
   // Load a ReadoutError object from a JSON Error object
-  void load_from_json(const json_t &js);
+  template <class input_t>
+  void load(const input_t &js);
 
   // Set the default assignment probabilities for measurement of each qubit
   // Each vector is a list of probabilities {P(0|q), P(1|q), ... P(n-1|q)}
@@ -104,11 +105,11 @@ void ReadoutError::set_probabilities(const std::vector<rvector_t> &probs) {
   }
 }
 
-
-void ReadoutError::load_from_json(const json_t &js) {
+template <class input_t>
+void ReadoutError::load(const input_t &js) {
   std::vector<rvector_t> probs;
-  JSON::get_value(probs, "probabilities", js);
-  if (!probs.empty()) {
+  Parser<input_t>::get_value(probs, "probabilities", js);
+  if (probs.size() != 0) {
     set_probabilities(probs);
   }
 }

@@ -27,7 +27,8 @@ public:
 
   using mapping_t = std::unordered_map<uint_t, uint_t>;
 
-  void set_config(const json_t &config) override;
+  template <class config_t>
+  void set_config(const config_t &config);
 
   // Truncate unused qubits
   void optimize_circuit(Circuit& circ,
@@ -65,17 +66,16 @@ private:
   bool active_ = true;
 };
 
-void TruncateQubits::set_config(const json_t &config) {
+template <class config_t>
+void TruncateQubits::set_config(const config_t &config) {
 
-  CircuitOptimization::set_config(config);
-
-  if (JSON::check_key("truncate_verbose", config)) {
-    JSON::get_value(verbose_, "truncate_verbose", config);
+  if (Parser<config_t>::check_key("truncate_verbose", config)) {
+    Parser<config_t>::get_value(verbose_, "truncate_verbose", config);
   }
-  if (JSON::check_key("truncate_enable", config)) {
-    JSON::get_value(active_, "truncate_enable", config);
+  if (Parser<config_t>::check_key("truncate_enable", config)) {
+    Parser<config_t>::get_value(active_, "truncate_enable", config);
   }
-  if (JSON::check_key("initial_statevector", config)) {
+  if (Parser<config_t>::check_key("initial_statevector", config)) {
     active_ = false;
   }
 }
