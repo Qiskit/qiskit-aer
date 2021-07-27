@@ -24,6 +24,7 @@ from test.terra.decorators import requires_method
 from test.terra.backends.qasm_simulator.qasm_reset import QasmResetTests
 from test.terra.backends.qasm_simulator.qasm_measure import QasmMeasureTests
 from test.terra.backends.qasm_simulator.qasm_measure import QasmMultiQubitMeasureTests
+from test.terra.backends.qasm_simulator.qasm_measure import QasmMPSMeasureAlgorithms
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmUnitaryGateTests
 from test.terra.backends.qasm_simulator.qasm_unitary_gate import QasmDiagonalGateTests
 from test.terra.backends.qasm_simulator.qasm_standard_gates import QasmStandardGateStatevectorTests
@@ -63,6 +64,7 @@ class TestQasmMatrixProductStateSimulator(
         common.QiskitAerTestCase,
         QasmMeasureTests,
         QasmMultiQubitMeasureTests,
+        QasmMPSMeasureAlgorithms,
         QasmResetTests,
         QasmConditionalGateTests,
         QasmConditionalUnitaryTests,

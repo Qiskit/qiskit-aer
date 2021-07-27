@@ -44,7 +44,7 @@ class QasmSaveAmplitudesTests:
         ]
 
         # Stabilizer test circuit
-        circ = QFT(3)
+        circ = QFT(3).decompose()
 
         # Target statevector
         target = qi.Statevector(circ).data[params]
@@ -83,7 +83,7 @@ class QasmSaveAmplitudesTests:
         ]
 
         # Stabilizer test circuit
-        circ = QFT(3)
+        circ = QFT(3).decompose()
 
         # Target statevector
         target = np.abs(qi.Statevector(circ).data[params]) ** 2
