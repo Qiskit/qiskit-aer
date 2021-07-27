@@ -725,4 +725,5 @@ class AerSimulator(AerBackend):
         self._set_configuration_option('n_qubits', n_qubits)
 
     def get_controller(self):
+        """Return the controller"""
         return AerController()
