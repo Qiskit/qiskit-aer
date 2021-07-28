@@ -90,7 +90,7 @@ PYBIND11_MODULE(controller_wrappers, m) {
         circuit.shots = shots;
       auto ret = AerToPy::to_python(controller.execute(circuits, AER::Noise::NoiseModel(py_noise_model), py_config));
       return ret;
-    });
+    }, py::arg("circuits"), py::arg("shots") = 1024, py::arg("noise_model") = py::none(), py::arg("config") = py::none());
 
     py::enum_<Operations::OpType> optype(m, "OpType") ;
     optype.value("gate", Operations::OpType::gate);
