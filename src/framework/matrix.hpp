@@ -46,12 +46,12 @@ Multiplication is done with the C wrapper of the fortran blas library.
  ******************************************************************************/
 
 template <class T>
-T* malloc_array(size_t size) {
+T* _malloc_array(size_t size) {
   return reinterpret_cast<T*>(malloc(sizeof(T) * size));
 }
 
 template <class T>
-T* calloc_array(size_t size) {
+T* _calloc_array(size_t size) {
   return reinterpret_cast<T*>(calloc(size, sizeof(T)));
 }
 
@@ -258,7 +258,7 @@ protected:
 template <class T>
 matrix<T>::matrix(size_t rows, size_t cols, bool fill)
     : rows_(rows), cols_(cols), size_(rows * cols), LD_(rows),
-      data_((fill) ? calloc_array<T>(size_) : malloc_array<T>(size_)) {}
+      data_((fill) ? _calloc_array<T>(size_) : _malloc_array<T>(size_)) {}
 
 template <class T>
 matrix<T>::matrix(const matrix<T> &other) : matrix(other.rows_, other.cols_, false) {
@@ -298,7 +298,7 @@ matrix<T> &matrix<T>::operator=(const matrix<T> &other) {
     cols_ = other.cols_;
     size_ = rows_ * cols_;
     LD_ = other.LD_;
-    data_ = malloc_array<T>(size_);
+    data_ = _malloc_array<T>(size_);
   }
   std::copy(other.data_, other.data_ + size_, data_);
   return *this;
@@ -315,7 +315,7 @@ inline matrix<T> &matrix<T>::operator=(const matrix<S> &other) {
     cols_ = other.GetColumns();
     size_ = rows_ * cols_;
     LD_ = other.GetLD();
-    data_ = malloc_array<T>(size_);
+    data_ = _malloc_array<T>(size_);
   }
   for (size_t p = 0; p < size_; p++) {
     data_[p] = T(other[p]);
@@ -334,7 +334,7 @@ matrix<T> matrix<T>::copy_from_buffer(size_t rows, size_t cols, const T* buffer)
   ret.rows_ = rows;
   ret.cols_ = cols;
   ret.LD_ = rows;
-  ret.data_ = calloc_array<T>(ret.size_);
+  ret.data_ = _calloc_array<T>(ret.size_);
   std::copy(buffer, buffer + ret.size_, ret.data_);
   return ret;
 }
@@ -352,7 +352,7 @@ matrix<T> matrix<T>::move_from_buffer(size_t rows, size_t cols, T* buffer) {
 
 template <class T>
 T* matrix<T>::copy_to_buffer() const {
-  T* buffer = malloc_array<T>(size_);
+  T* buffer = _malloc_array<T>(size_);
   std::copy(data_, data_ + size_, buffer);
   return buffer;
 }
@@ -437,7 +437,7 @@ template <class T> inline void matrix<T>::initialize(size_t rows, size_t cols) {
     cols_ = cols;
     size_ = rows_ * cols_;
     LD_ = rows;
-    data_ = calloc_array<T>(size_);
+    data_ = _calloc_array<T>(size_);
   }
 }
 
@@ -451,7 +451,7 @@ void matrix<T>::resize(size_t rows, size_t cols) {
   if (rows_ == rows && cols_ == cols)
     return;
   size_ = rows * cols;
-  T *tempmat = malloc_array<T>(size_);
+  T *tempmat = _malloc_array<T>(size_);
   for (size_t j = 0; j < cols; j++)
     for (size_t i = 0; i < rows; i++)
       if (i < rows_ && j < cols_)
