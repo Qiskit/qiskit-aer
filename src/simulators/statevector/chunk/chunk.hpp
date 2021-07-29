@@ -278,11 +278,11 @@ public:
     return chunk_container_.lock()->sample_measure(chunk_pos_,rnds,stride,dot,count);
   }
 
-  thrust::complex<double> norm(uint_t stride = 1,bool dot = true) const
+  thrust::complex<double> norm(uint_t count=1,uint_t stride = 1,bool dot = true) const
   {
     end_capture();
 
-    return chunk_container_.lock()->norm(chunk_pos_,stride,dot);
+    return chunk_container_.lock()->norm(chunk_pos_,count,stride,dot);
   }
 
 #ifdef AER_THRUST_CUDA
@@ -397,6 +397,15 @@ public:
   {
     return chunk_container_.lock()->measured_bits_buffer(chunk_pos_);
   }
+
+  void set_conditional(uint_t mask,uint_t target,Operations::RegComparison bfunc)
+  {
+    //top chunk only sets conditional bit
+    if(chunk_pos_ == 0)
+      chunk_container_.lock()->set_conditional(mask,target,bfunc);
+  }
+
+
 };
 
 //------------------------------------------------------------------------------

@@ -89,6 +89,11 @@ protected:
   uint_t* params_;                  //storage for additional parameters on device
   batched_matrix_params* batched_params_; //storage for parameters for batched matrix multiplier on device
   uint_t base_index_;               //start index of state vector 
+  uint_t chunk_bits_;
+  uint_t bfunc_mask_;
+  uint_t bfunc_target_;
+  Operations::RegComparison bfunc_;
+  uint_t* creg_bits_;
 #ifndef AER_THRUST_CUDA
   uint_t index_offset_;
 #endif
@@ -97,6 +102,8 @@ public:
   {
     data_ = NULL;
     base_index_ = 0;
+    bfunc_ = Operations::RegComparison::Nop;
+    creg_bits_ = NULL;
 #ifndef AER_THRUST_CUDA
     index_offset_ = 0;
 #endif
@@ -119,10 +126,24 @@ public:
   {
     batched_params_ = p;
   }
+  void set_chunk_bits(uint_t bits)
+  {
+    chunk_bits_ = bits;
+  }
 
   void set_base_index(uint_t i)
   {
     base_index_ = i;
+  }
+  void set_creg_bits(uint_t* cbits)
+  {
+    creg_bits_ = cbits;
+  }
+  void set_conditional(uint_t mask,uint_t target,Operations::RegComparison bfunc)
+  {
+    bfunc_mask_ = mask;
+    bfunc_target_ = target;
+    bfunc_ = bfunc;
   }
 #ifndef AER_THRUST_CUDA
   void set_index_offset(uint_t i)
@@ -168,9 +189,11 @@ public:
   virtual uint_t size(int num_qubits)
   {
     if(is_diagonal()){
+      chunk_bits_ = num_qubits;
       return (1ull << num_qubits);
     }
     else{
+      chunk_bits_ = num_qubits - (qubits_count() - num_control_bits());
       return (1ull << (num_qubits - (qubits_count() - num_control_bits())));
     }
   }
@@ -192,6 +215,40 @@ public:
   virtual __host__ __device__  bool check_condition(uint_t i) const
   {
     return true;
+  }
+
+  virtual __host__ __device__ bool check_branch_condition(uint_t i) const
+  {
+    if(bfunc_ == Operations::RegComparison::Nop)
+      return true;
+    uint_t iChunk = i >> chunk_bits_;
+    uint_t reg = creg_bits_[iChunk];
+    int_t compared = (reg & bfunc_mask_) - bfunc_target_;
+    bool outcome = true;
+
+    switch(bfunc_) {
+      case Operations::RegComparison::Equal:
+        outcome = (compared == 0);
+        break;
+      case Operations::RegComparison::NotEqual:
+        outcome = (compared != 0);
+        break;
+      case Operations::RegComparison::Less:
+        outcome = (compared < 0);
+        break;
+      case Operations::RegComparison::LessEqual:
+        outcome = (compared <= 0);
+        break;
+      case Operations::RegComparison::Greater:
+        outcome = (compared > 0);
+        break;
+      case Operations::RegComparison::GreaterEqual:
+        outcome = (compared >= 0);
+        break;
+      default:
+        break;
+    }
+    return outcome;
   }
 };
 
@@ -457,6 +514,9 @@ protected:
   bool enable_omp_;                 //disable this when shots are parallelized outside
   mutable reg_t reduced_queue_begin_;
   mutable reg_t reduced_queue_end_;
+  uint_t bfunc_mask_;
+  uint_t bfunc_target_;
+  Operations::RegComparison bfunc_;
 public:
   ChunkContainer()
   {
@@ -466,6 +526,7 @@ public:
     num_buffers_ = 0;
     num_chunk_mapped_ = 0;
     enable_omp_ = true;
+    bfunc_ = Operations::RegComparison::Nop;
   }
   virtual ~ChunkContainer(){}
 
@@ -527,6 +588,13 @@ public:
     return false;
   }
 
+  virtual void set_conditional(uint_t mask,uint_t target,Operations::RegComparison bfunc)
+  {
+    bfunc_mask_ = mask;
+    bfunc_target_ = target;
+    bfunc_ = bfunc;
+  }
+
   virtual thrust::complex<data_t>& operator[](uint_t i) = 0;
 
   virtual uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,bool multi_shots = false) = 0;
@@ -560,7 +628,7 @@ public:
   void ExecuteSum2(double* pSum,Function func,uint_t iChunk,uint_t count) const;
 
   virtual reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true,uint_t count = 1) const = 0;
-  virtual thrust::complex<double> norm(uint_t iChunk,uint_t stride = 1,bool dot = true) const = 0;
+  virtual thrust::complex<double> norm(uint_t iChunk,uint_t count,uint_t stride = 1,bool dot = true) const = 0;
 
 
   size_t size_of_complex(void)
@@ -747,6 +815,12 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
   func.set_batched_params(batched_param_pointer() );
+  func.set_creg_bits(measured_bits_buffer(iChunk));
+  if(iChunk == 0 && bfunc_ != Operations::RegComparison::Nop){
+    func.set_conditional(bfunc_mask_,bfunc_target_,bfunc_);
+
+    bfunc_ = Operations::RegComparison::Nop;  //reset conditional
+  }
 
 #ifdef AER_THRUST_CUDA
   cudaStream_t strm = stream(iChunk);
@@ -755,6 +829,8 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
     nb = 1;
 
     if(func.use_cache()){
+      func.set_chunk_bits(chunk_bits_);
+
       nt = count << chunk_bits_;
       if(nt > 1024){
         nb = (nt + 1024 - 1) / 1024;
@@ -770,7 +846,6 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
       }
       dev_apply_function<data_t,Function><<<nb,nt,0,strm>>>(func);
     }
-
   }
   else{ //if no stream returned, run on host
     uint_t size = count * func.size(chunk_bits_);
@@ -807,7 +882,6 @@ void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk
 
   cudaStream_t strm = stream(iChunk);
   if(strm){
-//    *pSum = thrust::transform_reduce(thrust::cuda::par.on(strm), ci, ci + size, func,0.0,thrust::plus<double>());
     uint_t buf_size = reduce_buffer_size();
     double* buf = reduce_buffer(iChunk);
 
@@ -935,8 +1009,8 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
       cudaMemcpyAsync(pSum,buf,sizeof(double)*2,cudaMemcpyDeviceToHost,strm);
   }
   else{ //if no stream returned, run on host
-    thrust::complex<double> ret = 0.0;
-    ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,ret,complex_sum());
+    thrust::complex<double> ret,zero = 0.0;
+    ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,zero,complex_sum());
     *((thrust::complex<double>*)pSum) = ret;
   }
 #else
@@ -948,16 +1022,16 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
 
   uint_t i;
   for(i=0;i<count;i++){
-    thrust::complex<double> ret = 0.0;
+    thrust::complex<double> ret,zero = 0.0;
     func.set_data( chunk_pointer(iChunk + i) );
     func.set_index_offset(iChunk << chunk_bits_);
 
     auto ci = thrust::counting_iterator<uint_t>(0);
 
     if(enable_omp_)
-      ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,ret,complex_sum());
+      ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,zero,complex_sum());
     else
-      ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,ret,complex_sum());  //disable nested OMP parallelization when shots are parallelized
+      ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,zero,complex_sum());  //disable nested OMP parallelization when shots are parallelized
 
     if(count == 1 && pSum){
       *((thrust::complex<double>*)pSum) = ret;

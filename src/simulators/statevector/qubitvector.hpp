@@ -289,6 +289,8 @@ public:
   {
     return false;
   }
+  virtual void apply_bfunc(const Operations::Op &op){}
+  virtual void set_conditional(int_t reg){}
 
   //optimized 1 qubit measure (async)
   virtual void apply_batched_measure(const uint_t qubit,std::vector<RngEngine> &rng){}

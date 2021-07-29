@@ -127,7 +127,7 @@ public:
 
   virtual void apply_batched_ops(const std::vector<Operations::Op> &ops){}
   virtual void enable_batch(bool flg);
-
+  virtual bool batchable_op(const Operations::Op& op){return false;}
 
   virtual void apply_batched_pauli(reg_t& params){}
 
@@ -349,7 +349,7 @@ protected:
   uint_t distributed_group_;    //group id of distribution
 
   bool chunk_omp_parallel_;     //using thread parallel to process loop of chunks or not
-  bool gpu_optimization_;       //optimization for GPU
+  bool thrust_optimization_;       //optimization for Thrust implementation
 
   reg_t qubit_map_;             //qubit map to restore swapped qubits
 
@@ -427,7 +427,7 @@ StateChunk<state_t>::StateChunk(const Operations::OpSet &opset) : opset_(opset)
   distributed_group_ = 0;
 
   chunk_omp_parallel_ = false;
-  gpu_optimization_ = false;
+  thrust_optimization_ = false;
 
   shot_index_ = 0;
 
@@ -524,13 +524,16 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
 
   qregs_.resize(num_local_chunks_);
 
-  gpu_optimization_ = false;
+  thrust_optimization_ = false;
   chunk_omp_parallel_ = false;
   if(qregs_[0].name().find("gpu") != std::string::npos){
     if(chunk_bits_ < num_qubits_){
       chunk_omp_parallel_ = true;   //CUDA backend requires thread parallelization of chunk loop
     }
-    gpu_optimization_ = true;
+    thrust_optimization_ = true;
+  }
+  else if(qregs_[0].name().find("thrust") != std::string::npos){
+    thrust_optimization_ = true;
   }
 
   if(chunk_bits_ < num_qubits_){
@@ -632,6 +635,8 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
         //fecth chunk in cache
         if(qregs_[iChunk].fetch_chunk()){
           while(iOpBlock < iOpEnd){
+//            std::cout << "  (" << iChunk << "/" << num_local_chunks_ << ") <" << iOpBlock << "> " << ops[iOpBlock] << std::endl;
+
             apply_op(iChunk,ops[iOpBlock],result,rngs,final_ops);
             iOpBlock++;
           }

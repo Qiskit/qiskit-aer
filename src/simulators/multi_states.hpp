@@ -320,7 +320,7 @@ protected:
   uint_t distributed_procs_;    //number of processes in communicator group
   uint_t distributed_group_;    //group id of distribution
 
-  bool gpu_optimization_;       //optimization for GPU
+  bool thrust_optimization_;       //optimization for Thrust implementation
 
   reg_t top_states_;
   reg_t num_states_on_device_;
@@ -365,7 +365,7 @@ States<state_t>::States()
 
   num_local_states_ = 0;
 
-  gpu_optimization_ = false;
+  thrust_optimization_ = false;
 
 #ifdef AER_MPI
   distributed_comm_ = MPI_COMM_WORLD;
@@ -535,17 +535,29 @@ void States<state_t>::apply_single_ops(const std::vector<Operations::Op> &ops,
 
   nOp = ops.size();
 
+  std::vector<ExperimentResult> par_results(num_top_states);
+
 #pragma omp parallel for if(num_top_states > 1) num_threads(num_top_states) private(iOp)
   for(i=0;i<num_top_states;i++){
     uint_t istate = top_states_[i];
     for(iOp=0;iOp<nOp;iOp++){
       if(ops[iOp].type == Operations::OpType::runtime_error){
-        apply_runtime_error(i,ops[iOp],result,rng,noise);
+        apply_runtime_error(i,ops[iOp],par_results[i],rng,noise);
+      }
+      else if(states_[istate].batchable_op(ops[iOp])){
+        states_[istate].apply_op(0,ops[iOp],par_results[i],rng,final_ops && nOp == iOp + 1);
       }
       else{
-        states_[istate].apply_op(0,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
+        //call apply_op for each state
+        uint_t j;
+        for(j=top_states_[i];j<top_states_[i+1];j++){
+          states_[j].apply_op(0,ops[iOp],par_results[i],rng,final_ops && nOp == iOp + 1);
+        }
       }
     }
+  }
+  for (auto &res : par_results) {
+    result.combine(std::move(res));
   }
 
 #pragma omp parallel for if(num_top_states > 1) num_threads(num_top_states) 

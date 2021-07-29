@@ -123,6 +123,7 @@ public:
 
   virtual void apply_batched_ops(const std::vector<Operations::Op> &ops){}
   virtual void enable_batch(bool flg){}
+  virtual bool batchable_op(const Operations::Op& op){return false;}
 
   virtual void apply_batched_pauli(reg_t& params){}
 
@@ -322,6 +323,15 @@ protected:
 
   uint_t shot_index_ = 0;
 
+
+  virtual void apply_bfunc(const Operations::Op &op)
+  {
+    creg_.apply_bfunc(op);
+  }
+  virtual bool check_conditional(const Operations::Op &op)
+  {
+    return creg_.check_conditional(op);
+  }
 };
 
 
@@ -357,7 +367,8 @@ std::vector<reg_t> State<state_t>::sample_measure(const reg_t &qubits,
 
 
 template <class state_t>
-void State<state_t>::initialize_creg(uint_t num_memory, uint_t num_register) {
+void State<state_t>::initialize_creg(uint_t num_memory, uint_t num_register) 
+{
   creg_.initialize(num_memory, num_register);
 }
 

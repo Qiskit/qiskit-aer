@@ -121,7 +121,7 @@ public:
   void Zero(uint_t iChunk,uint_t count);
 
   reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true,uint_t count = 1) const;
-  thrust::complex<double> norm(uint_t iChunk,uint_t stride = 1,bool dot = true) const;
+  thrust::complex<double> norm(uint_t iChunk,uint_t count,uint_t stride = 1,bool dot = true) const;
 
 };
 
@@ -364,11 +364,11 @@ reg_t HostChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vector
 }
 
 template <typename data_t>
-thrust::complex<double> HostChunkContainer<data_t>::norm(uint_t iChunk, uint_t stride, bool dot) const
+thrust::complex<double> HostChunkContainer<data_t>::norm(uint_t iChunk, uint_t count, uint_t stride, bool dot) const
 {
   thrust::complex<double> sum,zero(0.0,0.0);
 
-  strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+1), stride);
+  strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+count), stride);
 
   if(omp_get_num_threads() == 1){
     if(dot)

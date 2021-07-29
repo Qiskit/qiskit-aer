@@ -140,6 +140,9 @@ public:
   // generating samples.
   virtual reg_t sample_measure(const std::vector<double> &rnds) const override;
 
+  //optimized 1 qubit measure (async)
+  virtual void apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng);
+
   //-----------------------------------------------------------------------
   // Expectation Values
   //-----------------------------------------------------------------------
@@ -179,12 +182,9 @@ DensityMatrixThrust<data_t>::DensityMatrixThrust(size_t num_qubits)
 //------------------------------------------------------------------------------
 
 template <typename data_t>
-void DensityMatrixThrust<data_t>::initialize() {
-  // Zero the underlying vector
-  BaseVector::zero();
-  // Set to be all |0> sate
-  std::complex<data_t> one = 1.0;
-  BaseVector::set_state(0, one);
+void DensityMatrixThrust<data_t>::initialize() 
+{
+  BaseVector::initialize();
 }
 
 template <typename data_t>
@@ -412,6 +412,10 @@ void DensityMatrixThrust<data_t>::apply_diagonal_unitary_matrix(const reg_t &qub
   BaseVector::chunk_.StoreMatrix(diag);
   BaseVector::chunk_.StoreUintParams(qubits);
   BaseVector::apply_function(DensityDiagMatMultNxN<data_t>(qubits, BaseVector::chunk_manager_->num_qubits()/2, num_qubits()));
+
+#ifdef AER_DEBUG
+  BaseVector::DebugMsg(" density::apply_diagonal_unitary_matrix",qubits);
+#endif
 
   /*
   if(qubits.size() == 1){
@@ -681,14 +685,14 @@ public:
   {
     offset0 = 1ull << q0;
     offset1 = 1ull << q1;
-  	if(q0 < q1){
+    if(q0 < q1){
       mask0 = (1ull << q0) - 1;
       mask1 = (1ull << q1) - 1;
-  	}
-  	else{
+    }
+    else{
       mask0 = (1ull << q1) - 1;
       mask1 = (1ull << q0) - 1;
-  	}
+    }
   }
   int qubits_count(void)
   {
@@ -733,14 +737,12 @@ public:
 };
 
 template <typename data_t>
-void DensityMatrixThrust<data_t>::apply_x(const uint_t qubit) {
-  // Use the lambda function
-  const reg_t qubits = {{qubit, qubit + num_qubits()}};
-
-	BaseVector::apply_function(DensityX<data_t>(qubits[0], qubits[1]) );
+void DensityMatrixThrust<data_t>::apply_x(const uint_t qubit) 
+{
+  BaseVector::apply_function(DensityX<data_t>(qubit, qubit + num_qubits()) );
 
 #ifdef AER_DEBUG
-	BaseVector::DebugMsg(" density::apply_x",qubits);
+  BaseVector::DebugMsg(" density::apply_x",(int)qubit);
 #endif
 }
 
@@ -1099,6 +1101,10 @@ public:
   {
     return true;
   }
+  bool batch_enable(void)
+  {
+    return false;
+  }
   uint_t size(int num_qubits)
   {
     return diag_stride_ - 1;
@@ -1152,6 +1158,10 @@ public:
   uint_t size(int num_qubits)
   {
     return (rows_ >> 1);
+  }
+  bool batch_enable(void)
+  {
+    return false;
   }
 
   __host__ __device__ double operator()(const uint_t &i) const
@@ -1230,6 +1240,10 @@ public:
   uint_t size(int num_qubits)
   {
     return rows_;
+  }
+  bool batch_enable(void)
+  {
+    return false;
   }
 
   __host__ __device__ double operator()(const uint_t &i) const
@@ -1319,6 +1333,10 @@ public:
   {
     return true;
   }
+  bool batch_enable(void)
+  {
+    return false;
+  }
 
   __host__ __device__ double operator()(const uint_t &i) const
   {
@@ -1377,9 +1395,8 @@ reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnd
 #ifdef AER_DEBUG
   reg_t samples;
 
-  BaseVector::DebugMsg("sample_measure begin");
-
   samples = BaseVector::chunk_.sample_measure(rnds,nrows+1,false);
+
   BaseVector::DebugMsg("sample_measure",samples);
   return samples;
 #else
@@ -1387,6 +1404,159 @@ reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnd
 #endif
 }
 
+template <typename data_t>
+class density_probability_1qubit_func : public GateFuncBase<data_t>
+{
+protected:
+  uint_t offset_;
+  uint_t rows_;
+public:
+  density_probability_1qubit_func(const uint_t qubit,const uint_t nrow)
+  {
+    offset_ = 1ull << qubit;
+    rows_ = nrow;
+  }
+  uint_t size(int num_qubits)
+  {
+    return rows_/2;
+  }
+
+  __host__ __device__ thrust::complex<double> operator()(const uint_t &i) const
+  {
+    uint_t i0,i1;
+    thrust::complex<data_t> q0,q1;
+    thrust::complex<data_t>* vec;
+    thrust::complex<double> ret;
+    double d0,d1;
+    uint_t iChunk = i / (rows_/2);
+    uint_t lid = i - (iChunk*rows_/2);
+    uint_t base = iChunk*rows_*rows_;
+
+    vec = this->data_;
+
+    i1 = lid & (offset_ - 1);
+    i0 = (lid - i1) << 1;
+    i0 += i1;
+
+    q0 = vec[base+i0*(rows_+1)];
+    q1 = vec[base+(i0 + offset_)*(rows_+1)];
+
+    d0 = (double)q0.real();
+    d1 = (double)q1.real();
+
+    ret = thrust::complex<double>(d0,d1);
+    return ret;
+  }
+
+  const char* name(void)
+  {
+    return "density_probabilities_1qubit";
+  }
+};
+
+template <typename data_t>
+class DensityResetAfterMeasure : public GateFuncBase<data_t>
+{
+protected:
+  int qubit_;
+  int qubit_sp_;
+  int num_qubits_state_;
+  double* probs_;
+  double* cond_;
+  uint_t* cbits_;
+  uint_t size_;
+public:
+
+  DensityResetAfterMeasure(int q,int qsp,int nqs,double* probs,uint_t size,double* cond,uint_t* bits)
+  {
+    qubit_ = q;
+    qubit_sp_ = qsp;
+    probs_ = probs;
+    cond_ = cond;
+    cbits_ = bits;
+    size_ = size;
+    num_qubits_state_ = nqs;
+  }
+
+  bool is_diagonal(void)
+  {
+    return true;
+  }
+
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    thrust::complex<data_t> q;
+    thrust::complex<data_t>* vec;
+    double m;
+    double p,p0,p1;
+    uint_t gid;
+    uint_t bit;
+
+    uint_t iChunk = (i >> num_qubits_state_);
+
+    vec = this->data_;
+    gid = this->base_index_;
+
+    p0 = probs_[iChunk*size_];
+    p1 = probs_[iChunk*size_+1];
+    p = p0 / (p0 + p1);
+    if(cond_[iChunk] < p){
+      bit = 0;
+      p = p0;
+    }
+    else{
+      bit = 1;
+      p = p1;
+    }
+
+    if((i - (iChunk <<num_qubits_state_))  == 0){
+      cbits_[iChunk] = (cbits_[iChunk] & (~(1ull << qubit_))) | (bit << qubit_);
+    }
+
+    q = vec[i];
+    if((((i + gid) >> qubit_) & 1) == bit && (((i + gid) >> qubit_sp_) & 1) == bit){
+      m = 1.0 / p;
+    }
+    else{
+      m = 0.0;
+    }
+    vec[i] = m * q;
+  }
+  const char* name(void)
+  {
+    return "density_reset_after_measure";
+  }
+};
+
+
+template <typename data_t>
+void DensityMatrixThrust<data_t>::apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng)
+{
+  uint_t i,count = 1;
+  if(BaseVector::enable_batch_){
+    if(BaseVector::chunk_.pos() != 0){
+      BaseVector::measure_requested_[qubit] = true;
+      return;   //first chunk execute all in batch
+    }
+    count = BaseVector::chunk_.container()->num_chunks();
+    std::vector<double> r(count);
+    for(i=0;i<count;i++){
+      r[i] = rng[BaseVector::chunk_index_ + i].rand();
+    }
+    BaseVector::chunk_.init_condition(r);
+  }
+  else{
+    std::vector<double> r(1);
+    r[0] = rng[BaseVector::chunk_index_].rand();
+    BaseVector::chunk_.init_condition(r);
+  }
+
+  BaseVector::apply_function_sum2(nullptr,density_probability_1qubit_func<data_t>(qubit,1ull << num_qubits()),true);
+
+  BaseVector::apply_function(DensityResetAfterMeasure<data_t>(qubit,qubit+num_qubits(),BaseVector::chunk_manager_->chunk_bits(),BaseVector::chunk_.reduce_buffer(),BaseVector::chunk_.reduce_buffer_size(),BaseVector::chunk_.condition_buffer(),BaseVector::chunk_.measured_bits_buffer()));
+
+  BaseVector::measure_requested_[qubit] = true;
+}
 
 //------------------------------------------------------------------------------
 } // end namespace QV

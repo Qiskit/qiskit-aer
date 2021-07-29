@@ -166,9 +166,6 @@ protected:
   // Apply a Kraus error operation
   void apply_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &kraus);
 
-  // Apply an N-qubit Pauli gate
-  void apply_pauli(const reg_t &qubits, const std::string &pauli);
-
   // apply phase
   void apply_phase(const uint_t iChunk,const uint_t qubit, const complex_t phase);
   void apply_phase(const uint_t iChunk,const reg_t& qubits, const complex_t phase);
@@ -1159,7 +1156,7 @@ void State<densmat_t>::apply_gate(const uint_t iChunk, const Operations::Op &op)
       BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
       break;
     case DensityMatrix::Gates::pauli:
-      apply_pauli(op.qubits, op.string_params[0]);
+      BaseState::qregs_[iChunk].apply_pauli(BaseState::qregs_[iChunk].superop_qubits(op.qubits), op.string_params[0]+op.string_params[0]);
       break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
@@ -1184,24 +1181,9 @@ void State<densmat_t>::apply_gate_u3(const int_t iChunk, uint_t qubit, double th
 }
 
 template <class densmat_t>
-void State<densmat_t>::apply_pauli(const reg_t &qubits,
-                                   const std::string &pauli) 
-{
-  int_t i;
-  // Pauli as a superoperator is (-1)^num_y P\otimes P
-  complex_t coeff = (std::count(pauli.begin(), pauli.end(), 'Y') % 2) ? -1 : 1;
-
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
-  for(i=0;i<BaseState::num_local_chunks_;i++){
-    BaseState::qregs_[i].apply_pauli(
-        BaseState::qregs_[i].superop_qubits(qubits), pauli + pauli, coeff);
-  }
-}
-
-template <class densmat_t>
 void State<densmat_t>::apply_diagonal_unitary_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & diag)
 {
-  if(BaseState::gpu_optimization_){
+  if(BaseState::thrust_optimization_){
     //GPU computes all chunks in one kernel, so pass qubits and diagonal matrix as is
     BaseState::qregs_[iChunk].apply_diagonal_unitary_matrix(qubits,diag);
   }
@@ -1390,7 +1372,6 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
   rvector_t local_samples(shots,0);
 
   //get rnds positions for each chunk
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i,j) 
   for(i=0;i<BaseState::num_local_chunks_;i++){
     uint_t irow,icol;
     irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
@@ -1417,7 +1398,7 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
       uint_t ir;
       ir = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
 
-      for(j=0;j<nIn;j++){
+      for(j=0;j<chunkSamples.size();j++){
         local_samples[vIdx[j]] = (ir << BaseState::chunk_bits_) + chunkSamples[j];
       }
     }

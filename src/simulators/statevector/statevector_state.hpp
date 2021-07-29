@@ -137,6 +137,7 @@ public:
   //batched execution
   virtual void apply_batched_ops(const std::vector<Operations::Op> &ops);
   virtual void apply_batched_pauli(reg_t& params);
+  virtual bool batchable_op(const Operations::Op& op);
 
   //store asynchronously measured classical bits after batched execution
   virtual void store_measured_cbits(const Operations::Op &op);
@@ -254,6 +255,9 @@ protected:
   // Apply a Kraus error operation
   void apply_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &krausops,
                    std::vector<RngEngine> &rng);
+
+  virtual void apply_bfunc(const Operations::Op &op);
+  virtual bool check_conditional(const Operations::Op &op);
 
   //-----------------------------------------------------------------------
   // Save data instructions
@@ -571,6 +575,30 @@ void State<statevec_t>::set_config(const json_t &config) {
   };
 }
 
+template <class statevec_t>
+void State<statevec_t>::apply_bfunc(const Operations::Op &op)
+{
+  if(BaseState::qreg_.batched_optimization_supported()){
+    BaseState::qreg_.apply_bfunc(op);
+  }
+  else
+    BaseState::creg_.apply_bfunc(op);
+}
+
+template <class statevec_t>
+bool State<statevec_t>::check_conditional(const Operations::Op &op)
+{
+  if(BaseState::qreg_.batched_optimization_supported()){
+    //for batched optimization, conditional check is done for each state in batched kernel
+    if(op.conditional){
+      //conditional execution is set for next operation on qreg
+      BaseState::qreg_.set_conditional(op.conditional_reg);
+    }
+    return true;
+  }
+  return BaseState::check_conditional(op);
+}
+
 //=========================================================================
 // Implementation: apply operations
 //=========================================================================
@@ -588,6 +616,7 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
     const auto& op = ops[i];
     apply_op(0, op,result,rngs,final_ops && ops.size() == i + 1);
   }
+
   BaseState::qreg_.end_of_circuit();
 }
 
@@ -597,7 +626,7 @@ void State<statevec_t>::apply_op(uint_t iChunk, const Operations::Op &op,
                                   std::vector<RngEngine> &rng,
                                   bool final_ops) 
 {
-  if(BaseState::creg_.check_conditional(op)) {
+  if(check_conditional(op)) {
     switch (op.type) {
       case OpType::barrier:
       case OpType::nop:
@@ -612,7 +641,7 @@ void State<statevec_t>::apply_op(uint_t iChunk, const Operations::Op &op,
         apply_measure(op.qubits, op.memory, op.registers, rng);
         break;
       case OpType::bfunc:
-        BaseState::creg_.apply_bfunc(op);
+        apply_bfunc(op);
         break;
       case OpType::roerror:
         BaseState::creg_.apply_roerror(op, rng[BaseState::shot_index_]);
@@ -674,6 +703,17 @@ void State<statevec_t>::apply_op(uint_t iChunk, const Operations::Op &op,
             "QubitVector::State::invalid instruction \'" + op.name + "\'.");
       }
   }
+}
+
+template <class statevec_t>
+bool State<statevec_t>::batchable_op(const Operations::Op& op)
+{
+  if(op.type == OpType::set_statevec || op.type == OpType::save_expval || op.type == OpType::save_expval_var ||
+     op.type == OpType::save_densmat || op.type == OpType::save_state || op.type == OpType::save_statevec ||
+     op.type == OpType::save_statevec_dict || op.type == OpType::save_probs || op.type == OpType::save_probs_ket ||
+     op.type == OpType::save_amps || op.type == OpType::save_amps_sq || op.type == OpType::roerror)
+    return false;
+  return true;
 }
 
 //=========================================================================

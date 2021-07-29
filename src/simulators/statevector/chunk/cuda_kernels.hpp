@@ -27,7 +27,8 @@ void dev_apply_function(kernel_t func)
 
   i = blockIdx.x * blockDim.x + threadIdx.x;
 
-  func(i);
+  if(func.check_branch_condition(i))
+    func(i);
 }
 
 template <typename data_t,typename kernel_t> __global__
@@ -37,6 +38,9 @@ void dev_apply_function_with_cache(kernel_t func)
   uint_t i,idx;
 
   i = blockIdx.x * blockDim.x + threadIdx.x;
+
+  if(!func.check_branch_condition(i))
+    return;
 
   if(!func.check_condition(i))
     return;

@@ -147,7 +147,7 @@ public:
   void Zero(uint_t iChunk,uint_t count);
 
   reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true,uint_t count = 1) const;
-  thrust::complex<double> norm(uint_t iChunk,uint_t stride = 1,bool dot = true) const;
+  thrust::complex<double> norm(uint_t iChunk,uint_t count,uint_t stride = 1,bool dot = true) const;
 
   thrust::complex<data_t>* chunk_pointer(uint_t iChunk) const
   {
@@ -728,49 +728,36 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
   strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+count), stride);
 
 #ifdef AER_THRUST_CUDA
+
   if(dot)
     thrust::transform_inclusive_scan(thrust::cuda::par.on(stream_[iChunk]),iter.begin(),iter.end(),iter.begin(),complex_dot_scan<data_t>(),thrust::plus<thrust::complex<data_t>>());
   else
     thrust::inclusive_scan(thrust::cuda::par.on(stream_[iChunk]),iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
 
-  if(multi_shots_ || this->num_chunks_ == 1){
-    //matrix and parameter buffers can be used
-    double* pRnd = (double*)matrix_pointer(iChunk);
-    uint_t* pSmp = param_pointer(iChunk);
-    thrust::device_ptr<double> rnd_dev_ptr = thrust::device_pointer_cast(pRnd);
-    uint_t i,nshots,size = matrix_.size()*2;
-    if(size > params_.size())
-      size = params_.size();
+  uint_t iBuf = 0;
+  if(multi_shots_)
+    iBuf = iChunk;
 
-    for(i=0;i<SHOTS;i+=size){
-      nshots = size;
-      if(i + nshots > SHOTS)
-        nshots = SHOTS - i;
+  double* pRnd = (double*)matrix_pointer(iBuf);
+  uint_t* pSmp = param_pointer(iBuf);
+  thrust::device_ptr<double> rnd_dev_ptr = thrust::device_pointer_cast(pRnd);
+  uint_t i,nshots,size = matrix_.size()*2;
+  if(size > params_.size())
+    size = params_.size();
 
-      cudaMemcpyAsync(pRnd,&rnds[i],nshots*sizeof(double),cudaMemcpyHostToDevice,stream_[iChunk]);
+  for(i=0;i<SHOTS;i+=size){
+    nshots = size;
+    if(i + nshots > SHOTS)
+      nshots = SHOTS - i;
 
-      thrust::lower_bound(thrust::cuda::par.on(stream_[iChunk]), iter.begin(), iter.end(), rnd_dev_ptr, rnd_dev_ptr + nshots, params_.begin() + (iChunk * params_buffer_size_),complex_less<data_t>());
+    cudaMemcpyAsync(pRnd,&rnds[i],nshots*sizeof(double),cudaMemcpyHostToDevice,stream_[iChunk]);
 
-      cudaMemcpyAsync(&samples[i],pSmp,nshots*sizeof(uint_t),cudaMemcpyDeviceToHost,stream_[iChunk]);
-    }
-    cudaStreamSynchronize(stream_[iChunk]);
+    thrust::lower_bound(thrust::cuda::par.on(stream_[iChunk]), iter.begin(), iter.end(), rnd_dev_ptr, rnd_dev_ptr + nshots, params_.begin() + (iBuf * params_buffer_size_),complex_less<data_t>());
+
+    cudaMemcpyAsync(&samples[i],pSmp,nshots*sizeof(uint_t),cudaMemcpyDeviceToHost,stream_[iChunk]);
   }
-  else{
-    thrust::device_vector<double> vRnd_dev(SHOTS);
-    thrust::device_vector<uint_t> vSmp_dev(SHOTS);
+  cudaStreamSynchronize(stream_[iChunk]);
 
-    cudaMemcpyAsync(thrust::raw_pointer_cast(vRnd_dev.data()),&rnds[0],SHOTS*sizeof(double),cudaMemcpyHostToDevice,stream_[iChunk]);
-
-    thrust::lower_bound(thrust::cuda::par.on(stream_[iChunk]), iter.begin(), iter.end(), vRnd_dev.begin(), vRnd_dev.begin() + SHOTS, vSmp_dev.begin() ,complex_less<data_t>());
-
-    cudaMemcpyAsync(&samples[0],thrust::raw_pointer_cast(vSmp_dev.data()),SHOTS*sizeof(uint_t),cudaMemcpyDeviceToHost,stream_[iChunk]);
-    cudaStreamSynchronize(stream_[iChunk]);
-
-    vRnd_dev.clear();
-    vRnd_dev.shrink_to_fit();
-    vSmp_dev.clear();
-    vSmp_dev.shrink_to_fit();
-  }
 #else
 
   if(ChunkContainer<data_t>::enable_omp_){
@@ -796,12 +783,12 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
 }
 
 template <typename data_t>
-thrust::complex<double> DeviceChunkContainer<data_t>::norm(uint_t iChunk, uint_t stride, bool dot) const
+thrust::complex<double> DeviceChunkContainer<data_t>::norm(uint_t iChunk, uint_t count, uint_t stride, bool dot) const
 {
   thrust::complex<double> sum,zero(0.0,0.0);
   set_device();
 
-  strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+1), stride);
+  strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+count), stride);
 
 #ifdef AER_THRUST_CUDA
   if(dot)

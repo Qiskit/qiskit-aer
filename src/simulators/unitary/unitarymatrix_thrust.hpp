@@ -285,7 +285,7 @@ std::complex<double> UnitaryMatrixThrust<data_t>::trace() const
 {
   thrust::complex<double> sum;
 
-  sum = BaseVector::chunk_.norm(rows_ + 1,false);
+  sum = BaseVector::chunk_.norm(1, rows_ + 1,false);
 
 #ifdef AER_DEBUG
   BaseVector::DebugMsg("trace",sum);

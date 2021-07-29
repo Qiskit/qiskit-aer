@@ -1628,7 +1628,7 @@ void State<statevec_t>::apply_matrix(const int_t iChunk, const reg_t &qubits, co
 template <class statevec_t>
 void State<statevec_t>::apply_diagonal_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & diag)
 {
-  if(BaseState::gpu_optimization_){
+  if(BaseState::thrust_optimization_){
     //GPU computes all chunks in one kernel, so pass qubits and diagonal matrix as is
     BaseState::qregs_[iChunk].apply_diagonal_matrix(qubits,diag);
   }
@@ -1659,7 +1659,7 @@ void State<statevec_t>::apply_gate_phase(const int_t iChunk, uint_t qubit, compl
 template <class statevec_t>
 void State<statevec_t>::apply_gate_mcphase(const int_t iChunk, const reg_t& qubits, const complex_t phase)
 {
-  if(BaseState::gpu_optimization_){
+  if(BaseState::thrust_optimization_){
     //GPU computes all chunks in one kernel
     BaseState::qregs_[iChunk].apply_mcphase(qubits,phase);
   }
@@ -1787,6 +1787,7 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
   for(i=0;i<BaseState::num_local_chunks_;i++){
     chunkSum[i] = BaseState::qregs_[i].norm();
   }
+
   localSum = 0.0;
   for(i=0;i<BaseState::num_local_chunks_;i++){
     sum = localSum;
@@ -1813,7 +1814,7 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
   rvector_t local_samples(shots,0);
 
   //get rnds positions for each chunk
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i,j) 
+//#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i,j) 
   for(i=0;i<BaseState::num_local_chunks_;i++){
     uint_t nIn;
     std::vector<uint_t> vIdx;
@@ -1832,7 +1833,7 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
     if(nIn > 0){
       auto chunkSamples = BaseState::qregs_[i].sample_measure(vRnd);
 
-      for(j=0;j<nIn;j++){
+      for(j=0;j<chunkSamples.size();j++){
         local_samples[vIdx[j]] = ((BaseState::global_chunk_index_ + i) << BaseState::chunk_bits_) + chunkSamples[j];
       }
     }

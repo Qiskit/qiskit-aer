@@ -534,7 +534,7 @@ void Controller::clear_config() {
 void Controller::clear_parallelization() {
   max_parallel_threads_ = 0;
   max_parallel_experiments_ = 1;
-  max_parallel_shots_ = 1;
+  max_parallel_shots_ = 0;
 
   parallel_experiments_ = 1;
   parallel_shots_ = 1;
@@ -561,7 +561,7 @@ void Controller::set_parallelization_experiments(
   // Use a local variable to not override stored maximum based
   // on currently executed circuits
   const auto max_experiments =
-      (max_parallel_experiments_ > 1)
+      (max_parallel_experiments_ > 0)
           ? std::min({max_parallel_experiments_, max_parallel_threads_})
           : max_parallel_threads_;
 
@@ -581,6 +581,8 @@ void Controller::set_parallelization_experiments(
     if(max_required < required_memory_mb)
       max_required = required_memory_mb;
   }
+  if(num_parallel_experiments == 0)
+    num_parallel_experiments = 1;
 
   if(explicit_parallelization_){
     if(parallel_experiments_ > num_parallel_experiments)
@@ -588,26 +590,26 @@ void Controller::set_parallelization_experiments(
   }
   else{
     parallel_experiments_ = num_parallel_experiments;
+
+    if(parallel_experiments_ <= 0){
+      if(circuits.size() == 1){
+        parallel_experiments_ = 1;
+      }
+      else{
+        throw std::runtime_error(
+            "a circuit requires more memory than max_memory_mb.");
+      }
+    }
+    parallel_experiments_ =
+        std::min<int>({parallel_experiments_, max_experiments,
+                       max_parallel_threads_, static_cast<int>(circuits.size())});
   }
 
   //number of maximum parallel shots/experiments
   max_parallel_states_ = (max_memory_mb_ + max_required - 1) / max_required;
   gpu_max_parallel_states_ = (max_gpu_memory_mb_ + max_required - 1) / max_required;
 
-  if(parallel_experiments_ <= 0){
-    if(circuits.size() == 1){
-      parallel_experiments_ = 1;
-    }
-    else{
-      throw std::runtime_error(
-          "a circuit requires more memory than max_memory_mb.");
-    }
-  }
-  parallel_experiments_ =
-      std::min<int>({parallel_experiments_, max_experiments,
-                     max_parallel_threads_, static_cast<int>(circuits.size())});
-
-  batched_experiments_ == false;
+  batched_experiments_ = false;
   if(circuits.size() > 1 && gpu_max_parallel_states_ > 1 && sim_device_ == Device::GPU){
     //currently batched multi-circuit simulation is for GPU only
     int_t n = 0;
@@ -617,7 +619,7 @@ void Controller::set_parallelization_experiments(
       }
     }
     if(n == circuits.size()){
-      batched_experiments_ == true;
+      batched_experiments_ = true;
     }
   }
 }
@@ -628,7 +630,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
   // Use a local variable to not override stored maximum based
   // on currently executed circuits
   const auto max_shots =
-      (max_parallel_shots_ > 1)
+      (max_parallel_shots_ > 0)
           ? std::min({max_parallel_shots_, max_parallel_threads_})
           : max_parallel_threads_;
 
@@ -1655,7 +1657,7 @@ void Controller::run_circuits_helper(const std::vector<Circuit> &circs,
         parallel_state_update_ =
             std::max<int>({1, max_parallel_threads_});
       }
-      else if (!explicit_parallelization_ && sim_device_ != Device::GPU) {
+      else if (!explicit_parallelization_) {
         set_parallelization_circuit_method(circs[j], noise[j]);
       }
 
@@ -1721,7 +1723,7 @@ void Controller::run_circuits_helper(const std::vector<Circuit> &circs,
                                        cache_blocking, result.results[j], circs[j].seed);
       }
       else{
-        if(check_measure_sampling_opt(opt_circ, method) || sim_device_ != Device::GPU){
+        if(cache_blocking || check_measure_sampling_opt(opt_circ, method) || sim_device_ != Device::GPU){
           // Run multishot simulation without noise sampling
           run_circuit_without_sampled_noise<State_t>(opt_circ, config, shots, 
                                             method, cache_blocking, result.results[j], circs[j].seed);
@@ -1975,8 +1977,6 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
     // Add measure sampling metadata
     result.metadata.add(true, "measure_sampling");
-
-    state.add_metadata(result);
   }
   else{
     // Perform standard execution if we cannot apply the
@@ -1985,7 +1985,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
     // Vector to store parallel thread output data
     std::vector<ExperimentResult> par_results(parallel_shots_);
 
-#pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
+#pragma omp parallel for if (parallel_shots_ > 1 && sim_device_ != Device::GPU) num_threads(parallel_shots_)
     for (int i = 0; i < parallel_shots_; i++) {
       uint_t i_shot,shot_end;
       i_shot = shots*i/parallel_shots_;
@@ -2005,12 +2005,13 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
         rng.set_seed(rng_seed + i_shot);
         run_single_shot(circ, par_state, par_results[i], rng);
       }
-      state.add_metadata(par_results[i]);
+      par_state.add_metadata(par_results[i]);
     }
     for (auto &res : par_results) {
       result.combine(std::move(res));
     }
   }
+  state.add_metadata(result);
 }
 
 template <class State_t>
@@ -2098,17 +2099,6 @@ void Controller::run_circuit_without_sampled_noise_batched_optimization(Circuit 
 
   auto fusion_pass = transpile_fusion(method, circ.opset(), config);
   fusion_pass.optimize_circuit(circ, dummy_noise, state.opset(), result);
-
-  // Cache blocking pass
-  uint_t block_bits = 0;
-  if (cache_blocking) {
-    auto cache_block_pass = transpile_cache_blocking(method, circ, dummy_noise, config);
-    cache_block_pass.set_sample_measure(false);
-    cache_block_pass.optimize_circuit(circ, dummy_noise, state.opset(), result);
-    if (cache_block_pass.enabled()) {
-      block_bits = cache_block_pass.block_bits();
-    }
-  }
 
   Multi::States<State_t> states;
   std::vector<RngEngine> rng(shots);
