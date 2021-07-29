@@ -503,9 +503,8 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
 }
 
 bool Controller::multiple_chunk_required(const Circuit &circ,
-                                const Noise::NoiseModel &noise) const
-{
-  if(circ.num_qubits < 3)
+                                const Noise::NoiseModel &noise) const {
+  if (circ.num_qubits < 3)
     return false;
 
   if (cache_block_qubit_ >= 2 && cache_block_qubit_ < circ.num_qubits)
