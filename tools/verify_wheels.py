@@ -438,6 +438,20 @@ def model_and_pi_schedule():
     return model, schedule
 
 if __name__ == '__main__':
+    # Run qasm simulator
+    shots = 4000
+    circuits = grovers_circuit(final_measure=True, allow_sampling=True)
+    targets = [{'0x0': 5 * shots / 8, '0x1': shots / 8,
+                '0x2': shots / 8, '0x3': shots / 8}]
+    simulator = QasmSimulator()
+    qobj = assemble(transpile(circuits, simulator), simulator, shots=shots)
+    result = simulator.run(qobj).result()
+    print(result.status)
+    import pprint
+    pprint.pprint(result.to_dict())
+    assert result.status == 'COMPLETED'
+    compare_counts(result, circuits, targets, delta=0.05 * shots)
+    assert result.success is True
 
     # Run statevector simulator
     circuits = cx_gate_circuits_deterministic(final_measure=False)

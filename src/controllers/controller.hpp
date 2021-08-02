@@ -134,18 +134,24 @@ public:
   void virtual clear_config();
 
 protected:
-  enum class Device { CPU, GPU, ThrustCPU };
-
   //-----------------------------------------------------------------------
   // Circuit Execution
   //-----------------------------------------------------------------------
 
+  // Parallel execution of a circuit
+  // This function manages parallel shot configuration and internally calls
+  // the `run_circuit` method for each shot thread
+  virtual void execute_circuit(Circuit &circ,
+                               Noise::NoiseModel &noise,
+                               const json_t &config,
+                               ExperimentResult &result);
+
   // Abstract method for executing a circuit.
   // This method must initialize a state and return output data for
   // the required number of shots.
-  virtual void run_circuits(const std::vector<Circuit> &circs, std::vector<Noise::NoiseModel> &noise,
-                           const json_t &config, 
-                           Result &result) = 0;
+  virtual void run_circuit(const Circuit &circ, const Noise::NoiseModel &noise,
+                           const json_t &config, uint_t shots, uint_t rng_seed,
+                           ExperimentResult &result) const = 0;
 
   //-------------------------------------------------------------------------
   // State validation
@@ -182,13 +188,6 @@ protected:
 
   // Save counts as memory list
   bool save_creg_memory_ = false;
-
-  // Simulation device
-  Device sim_device_ = Device::CPU;
-  std::string sim_device_name_ = "CPU";
-
-  //enable batched execution of multiple-experiments
-  bool batched_experiments_ = false;
 
   // Save count data
   void save_count_data(ExperimentResult &result,
@@ -248,9 +247,6 @@ protected:
   size_t max_memory_mb_;
   size_t max_gpu_memory_mb_;
   int num_gpus_;    //max number of GPU per process
-
-  int max_parallel_states_;
-  int gpu_max_parallel_states_;
 
   // use explicit parallelization
   bool explicit_parallelization_;
@@ -385,9 +381,6 @@ void Controller::clear_parallelization() {
   parallel_state_update_ = 1;
   parallel_nested_ = false;
 
-  max_parallel_states_ = 1;
-  gpu_max_parallel_states_ = 1;
-
   num_process_per_experiment_ = 1;
 
   num_gpus_ = 0;
@@ -407,6 +400,12 @@ void Controller::set_parallelization_experiments(
           ? std::min({max_parallel_experiments_, max_parallel_threads_})
           : max_parallel_threads_;
 
+  if (max_experiments == 1 && num_processes_ == 1) {
+    // No parallel experiment execution
+    parallel_experiments_ = 1;
+    return;
+  }
+
   // If memory allows, execute experiments in parallel
   std::vector<size_t> required_memory_mb_list(circuits.size());
   for (size_t j = 0; j < circuits.size(); j++) {
@@ -414,61 +413,26 @@ void Controller::set_parallelization_experiments(
   }
   std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(),
             std::greater<>());
-  size_t total_memory = 0,max_required = 0;
-  int num_parallel_experiments = 0;
+  size_t total_memory = 0;
+  parallel_experiments_ = 0;
   for (size_t required_memory_mb : required_memory_mb_list) {
     total_memory += required_memory_mb;
-    if (total_memory < max_memory_mb_)
-      ++num_parallel_experiments;
-    if(max_required < required_memory_mb)
-      max_required = required_memory_mb;
-  }
-  if(num_parallel_experiments == 0)
-    num_parallel_experiments = 1;
-
-  if(explicit_parallelization_){
-    if(parallel_experiments_ > num_parallel_experiments)
-      parallel_experiments_ = num_parallel_experiments;
-  }
-  else{
-    parallel_experiments_ = num_parallel_experiments;
-
-    if(parallel_experiments_ <= 0){
-      if(circuits.size() == 1){
-        parallel_experiments_ = 1;
-      }
-      else{
-        throw std::runtime_error(
-            "a circuit requires more memory than max_memory_mb.");
-      }
-    }
-    parallel_experiments_ =
-        std::min<int>({parallel_experiments_, max_experiments,
-                       max_parallel_threads_, static_cast<int>(circuits.size())});
+    if (total_memory > max_memory_mb_*num_process_per_experiment_)
+      break;
+    ++parallel_experiments_;
   }
 
-  //number of maximum parallel shots/experiments
-  max_parallel_states_ = (max_memory_mb_ + max_required - 1) / max_required;
-  gpu_max_parallel_states_ = (max_gpu_memory_mb_ + max_required - 1) / max_required;
-
-  batched_experiments_ = false;
-  if(circuits.size() > 1 && gpu_max_parallel_states_ > 1 && sim_device_ == Device::GPU){
-    //currently batched multi-circuit simulation is for GPU only
-    int_t n = 0;
-    for (int j = 0; j < circuits.size(); ++j) {
-      if(noise[j].is_ideal()){
-        n++;
-      }
-    }
-    if(n == circuits.size()){
-      batched_experiments_ = true;
-    }
-  }
+  if (parallel_experiments_ <= 0)
+    throw std::runtime_error(
+        "a circuit requires more memory than max_memory_mb.");
+  parallel_experiments_ =
+      std::min<int>({parallel_experiments_, max_experiments,
+                     max_parallel_threads_, static_cast<int>(circuits.size())});
 }
 
 void Controller::set_parallelization_circuit(const Circuit &circ,
-                                             const Noise::NoiseModel &noise) 
-{
+                                             const Noise::NoiseModel &noise) {
+
   // Use a local variable to not override stored maximum based
   // on currently executed circuits
   const auto max_shots =
@@ -476,7 +440,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
           ? std::min({max_parallel_shots_, max_parallel_threads_})
           : max_parallel_threads_;
 
-                                              // If we are executing circuits in parallel we disable
+  // If we are executing circuits in parallel we disable
   // parallel shots
   if (max_shots == 1 || parallel_experiments_ > 1) {
     parallel_shots_ = 1;
@@ -485,7 +449,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
     // Limit parallel shots by available memory and number of shots
     // And assign the remaining threads to state update
     int circ_memory_mb = required_memory_mb(circ, noise) / num_process_per_experiment_;
-    if (max_memory_mb_ < circ_memory_mb)
+    if (max_memory_mb_ + max_gpu_memory_mb_ < circ_memory_mb)
       throw std::runtime_error(
           "a circuit requires more memory than max_memory_mb.");
     // If circ memory is 0, set it to 1 so that we don't divide by zero
@@ -510,13 +474,12 @@ bool Controller::multiple_chunk_required(const Circuit &circ,
   if (cache_block_qubit_ >= 2 && cache_block_qubit_ < circ.num_qubits)
     return true;
 
-  if(num_process_per_experiment_ == 1 && sim_device_ == Device::GPU && num_gpus_ > 0){
-    if(max_gpu_memory_mb_ / num_gpus_ < required_memory_mb(circ, noise))
-      return true;
-  }
-  if(num_process_per_experiment_ > 1){
+  if(num_process_per_experiment_ == 1 && cache_block_qubit_ >= 2 && num_gpus_ > 0)
+    return (max_gpu_memory_mb_ / num_gpus_ < required_memory_mb(circ, noise));
+
+  if(num_process_per_experiment_ > 1) {
     size_t total_mem = max_memory_mb_;
-    if(sim_device_ == Device::GPU)
+    if(cache_block_qubit_ >= 2)
       total_mem += max_gpu_memory_mb_;
     if(total_mem*num_process_per_experiment_ > required_memory_mb(circ, noise))
       return true;
@@ -526,7 +489,17 @@ bool Controller::multiple_chunk_required(const Circuit &circ,
 }
 
 size_t Controller::get_system_memory_mb() {
-  size_t total_physical_memory = Utils::get_system_memory_mb();
+  size_t total_physical_memory = 0;
+#if defined(__linux__) || defined(__APPLE__)
+  auto pages = sysconf(_SC_PHYS_PAGES);
+  auto page_size = sysconf(_SC_PAGE_SIZE);
+  total_physical_memory = pages * page_size;
+#elif defined(_WIN64)  || defined(_WIN32)
+  MEMORYSTATUSEX status;
+  status.dwLength = sizeof(status);
+  GlobalMemoryStatusEx(&status);
+  total_physical_memory = status.ullTotalPhys;
+#endif
 #ifdef AER_MPI
   //get minimum memory size per process
   uint64_t locMem,minMem;
@@ -535,7 +508,7 @@ size_t Controller::get_system_memory_mb() {
   total_physical_memory = minMem;
 #endif
 
-  return total_physical_memory;
+  return total_physical_memory >> 20;
 }
 
 size_t Controller::get_gpu_memory_mb() {
@@ -612,8 +585,7 @@ bool Controller::validate_memory_requirements(const state_t &state,
     return true;
 
   size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) / num_process_per_experiment_;
-  size_t mem_size = (sim_device_ == Device::GPU) ? max_memory_mb_ + max_gpu_memory_mb_ : max_memory_mb_;
-  if (mem_size < required_mb) {
+  if (max_memory_mb_+max_gpu_memory_mb_ < required_mb) {
     if (throw_except) {
       std::string name = "";
       JSON::get_value(name, "name", circ.header);
@@ -647,7 +619,7 @@ Transpile::CacheBlocking Controller::transpile_cache_blocking(const Circuit& cir
     //if blocking is not set by config, automatically set if required
     if(multiple_chunk_required(circ,noise)){
       int nplace = num_process_per_experiment_;
-      if(sim_device_ == Device::GPU && num_gpus_ > 0)
+      if(num_gpus_ > 0)
         nplace *= num_gpus_;
       cache_block_pass.set_blocking(circ.num_qubits, get_min_memory_mb() << 20, nplace, complex_size,is_matrix);
     }
@@ -723,13 +695,9 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 
   // Execute each circuit in a try block
   try {
-    for (int_t j = 0; j < circuits.size(); j++) {
-      // Remove barriers from circuit
-      Transpile::ReduceBarrier barrier_pass;
-      barrier_pass.optimize_circuit(circuits[j], circ_noise_models[j], circuits[j].opset(), result.results[j]);
-
-      //truncate circuits before experiment settings (to get correct required_memory_mb value)
-      if (truncate_qubits_) {
+    //truncate circuits before experiment settings (to get correct required_memory_mb value)
+    if (truncate_qubits_) {
+      for(size_t j = 0; j < circuits.size(); j++) {
         // Truncate unused qubits from circuit and noise model
         Transpile::TruncateQubits truncate_pass;
         truncate_pass.set_config(config);
@@ -746,15 +714,17 @@ Result Controller::execute(std::vector<Circuit> &circuits,
         max_qubits_ = circuits[j].num_qubits;
       }
     }
-    num_process_per_experiment_ = num_processes_;
 
-    // set parallelization for experiments
-    try {
-      // catch exception raised by required_memory_mb because of invalid
-      // simulation method
-      set_parallelization_experiments(circuits, circ_noise_models);
-    } catch (std::exception &e) {
-      save_exception_to_results(result, e);
+    num_process_per_experiment_ = num_processes_;
+    if (!explicit_parallelization_) {
+      // set parallelization for experiments
+      try{
+        //catch exception raised by required_memory_mb because of invalid simulation method
+        set_parallelization_experiments(circuits, circ_noise_models);
+      }
+      catch (std::exception &e) {
+        save_exception_to_results(result,e);
+      }
     }
 
 #ifdef _OPENMP
@@ -793,8 +763,16 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     // then- and else-blocks have intentionally duplication.
     // Nested omp has significant overheads even though a guard condition exists.
     const int NUM_RESULTS = result.results.size();
-    run_circuits(circuits, circ_noise_models,
-                        config, result);
+    if (parallel_experiments_ > 1) {
+      #pragma omp parallel for num_threads(parallel_experiments_)
+      for (int j = 0; j < result.results.size(); ++j) {
+        execute_circuit(circuits[j], circ_noise_models[j], config, result.results[j]);
+      }
+    } else {
+      for (int j = 0; j < result.results.size(); ++j) {
+        execute_circuit(circuits[j], circ_noise_models[j], config, result.results[j]);
+      }
+    }
 
     // Check each experiment result for completed status.
     // If only some experiments completed return partial completed status.
@@ -828,10 +806,123 @@ Result Controller::execute(std::vector<Circuit> &circuits,
   return result;
 }
 
+void Controller::execute_circuit(Circuit &circ,
+                                 Noise::NoiseModel &noise,
+                                 const json_t &config,
+                                 ExperimentResult &result) 
+{
+  // Start individual circuit timer
+  auto timer_start = myclock_t::now(); // state circuit timer
+
+  // Initialize circuit json return
+  result.legacy_data.set_config(config);
+
+  // Execute in try block so we can catch errors and return the error message
+  // for individual circuit failures.
+  try {
+    // Remove barriers from circuit
+    Transpile::ReduceBarrier barrier_pass;
+    barrier_pass.optimize_circuit(circ, noise, circ.opset(), result);
+
+    // Truncate unused qubits from circuit and noise model
+    if (truncate_qubits_) {
+      Transpile::TruncateQubits truncate_pass;
+      truncate_pass.set_config(config);
+      truncate_pass.optimize_circuit(circ, noise, circ.opset(),
+                                     result);
+    }
+
+    // set parallelization for this circuit
+    if (!explicit_parallelization_) {
+      set_parallelization_circuit(circ, noise);
+    }
+
+    int shots = circ.shots;
+
+    // Single shot thread execution
+    if (parallel_shots_ <= 1) {
+      run_circuit(circ, noise, config, shots, circ.seed, result);
+      // Parallel shot thread execution
+    } else {
+      // Calculate shots per thread
+      std::vector<unsigned int> subshots;
+      for (int j = 0; j < parallel_shots_; ++j) {
+        subshots.push_back(shots / parallel_shots_);
+      }
+      // If shots is not perfectly divisible by threads, assign the remainder
+      for (int j = 0; j < int(shots % parallel_shots_); ++j) {
+        subshots[j] += 1;
+      }
+
+      // Vector to store parallel thread output data
+      std::vector<ExperimentResult> par_results(parallel_shots_);
+      std::vector<std::string> error_msgs(parallel_shots_);
+
+    #ifdef _OPENMP
+    if (!parallel_nested_) {
+      if (parallel_shots_ > 1 && parallel_state_update_ > 1) {
+        // Nested parallel shots + state update
+        #ifdef _WIN32
+        omp_set_nested(1);
+        #else
+        omp_set_max_active_levels(2);
+        #endif
+        result.metadata.add(true, "omp_nested");
+      } else {
+        #ifdef _WIN32
+        omp_set_nested(0);
+        #else
+        omp_set_max_active_levels(1);
+        #endif
+      }
+    }
+    #endif
+
+#pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
+      for (int i = 0; i < parallel_shots_; i++) {
+        try {
+          run_circuit(circ, noise, config, subshots[i], circ.seed + i,
+                      par_results[i]);
+        } catch (std::runtime_error &error) {
+          error_msgs[i] = error.what();
+        }
+      }
+
+      for (std::string error_msg : error_msgs)
+        if (error_msg != "")
+          throw std::runtime_error(error_msg);
+
+      // Accumulate results across shots
+      // Use move semantics to avoid copying data
+      for (auto &res : par_results) {
+        result.combine(std::move(res));
+      }
+    }
+    // Report success
+    result.status = ExperimentResult::Status::completed;
+
+    // Pass through circuit header and add metadata
+    result.header = circ.header;
+    result.shots = shots;
+    result.seed = circ.seed;
+    result.metadata.add(parallel_shots_, "parallel_shots");
+    result.metadata.add(parallel_state_update_, "parallel_state_update");
+    // Add timer data
+    auto timer_stop = myclock_t::now(); // stop timer
+    double time_taken =
+        std::chrono::duration<double>(timer_stop - timer_start).count();
+    result.time_taken = time_taken;
+  }
+  // If an exception occurs during execution, catch it and pass it to the output
+  catch (std::exception &e) {
+    result.status = ExperimentResult::Status::error;
+    result.message = e.what();
+  }
+}
+
 
 void Controller::save_count_data(ExperimentResult &result,
-                                 const ClassicalRegister &creg) const 
-{
+                                 const ClassicalRegister &creg) const {
   if (creg.memory_size() > 0) {
     std::string memory_hex = creg.memory_hex();
     result.data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
@@ -847,3 +938,4 @@ void Controller::save_count_data(ExperimentResult &result,
 } // end namespace AER
 //-------------------------------------------------------------------------
 #endif
+
