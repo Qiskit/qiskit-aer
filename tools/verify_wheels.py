@@ -453,35 +453,4 @@ if __name__ == '__main__':
     compare_counts(result, circuits, targets, delta=0.05 * shots)
     assert result.success is True
 
-    # Run statevector simulator
-    circuits = cx_gate_circuits_deterministic(final_measure=False)
-    targets = cx_gate_statevector_deterministic()
-    job = execute(circuits, StatevectorSimulator(), shots=1)
-    result = job.result()
-    assert result.status == 'COMPLETED'
-    assert result.success is True
-    compare_statevector(result, circuits, targets)
 
-    # Run unitary simulator
-    circuits = cx_gate_circuits_deterministic(final_measure=False)
-    targets = cx_gate_unitary_deterministic()
-    job = execute(circuits, UnitarySimulator(), shots=1,
-                  basis_gates=['u1', 'u2', 'u3', 'cx'])
-    result = job.result()
-    assert result.status == 'COMPLETED'
-    assert result.success is True
-    compare_unitary(result, circuits, targets)
-
-    # Run pulse simulator
-    system_model, schedule = model_and_pi_schedule()
-    backend_sim = PulseSimulator()
-    qobj = assemble([schedule],
-                    backend=backend_sim,
-                    qubit_lo_freq=[5.0],
-                    meas_level=1,
-                    meas_return='avg',
-                    shots=1)
-    results = backend_sim.run(qobj, system_model=system_model).result()
-    state = results.get_statevector(0)
-    assertAlmostEqual(state[0], 0, delta=10**-3)
-    assertAlmostEqual(state[1], -1j, delta=10**-3)
