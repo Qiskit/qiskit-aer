@@ -438,19 +438,36 @@ def model_and_pi_schedule():
     return model, schedule
 
 if __name__ == '__main__':
-    # Run qasm simulator
-    shots = 4000
-    circuits = grovers_circuit(final_measure=True, allow_sampling=True)
-    targets = [{'0x0': 5 * shots / 8, '0x1': shots / 8,
-                '0x2': shots / 8, '0x3': shots / 8}]
-    simulator = QasmSimulator()
-    qobj = assemble(transpile(circuits, simulator), simulator, shots=shots)
-    result = simulator.run(qobj).result()
-    print(result.status)
-    import pprint
-    pprint.pprint(result.to_dict())
+
+    # Run statevector simulator
+    circuits = cx_gate_circuits_deterministic(final_measure=False)
+    targets = cx_gate_statevector_deterministic()
+    job = execute(circuits, StatevectorSimulator(), shots=1)
+    result = job.result()
     assert result.status == 'COMPLETED'
-    compare_counts(result, circuits, targets, delta=0.05 * shots)
     assert result.success is True
+    compare_statevector(result, circuits, targets)
 
+    # Run unitary simulator
+    circuits = cx_gate_circuits_deterministic(final_measure=False)
+    targets = cx_gate_unitary_deterministic()
+    job = execute(circuits, UnitarySimulator(), shots=1,
+                  basis_gates=['u1', 'u2', 'u3', 'cx'])
+    result = job.result()
+    assert result.status == 'COMPLETED'
+    assert result.success is True
+    compare_unitary(result, circuits, targets)
 
+    # Run pulse simulator
+    system_model, schedule = model_and_pi_schedule()
+    backend_sim = PulseSimulator()
+    qobj = assemble([schedule],
+                    backend=backend_sim,
+                    qubit_lo_freq=[5.0],
+                    meas_level=1,
+                    meas_return='avg',
+                    shots=1)
+    results = backend_sim.run(qobj, system_model=system_model).result()
+    state = results.get_statevector(0)
+    assertAlmostEqual(state[0], 0, delta=10**-3)
+    assertAlmostEqual(state[1], -1j, delta=10**-3)
