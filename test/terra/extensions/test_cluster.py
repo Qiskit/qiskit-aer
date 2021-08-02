@@ -224,29 +224,31 @@ class TestClusterBackendUtils(ThreadPoolFixture):
     def test_oneshot_circ_noise(self):
         """Test simulation with Pauli gate error noise model."""
 
-        backend_opts = {}
+        backend = Aer.get_backend('qasm_simulator')
         shots = 1
+        self.backend_opt["shots"] = shots
         circuits = ref_pauli_noise.pauli_gate_error_circuits()
         noise_models = ref_pauli_noise.pauli_gate_error_noise_models()
 
-        result = self.SIMULATOR.run(
+        result = backend.run(
                 circuits,
-                noise_model=noise_models[0], **backend_opts, shots=shots).result()
+                noise_model=noise_models[0], **self.backend_opt).result()
 
         self.assertSuccess(result)
 
     def test_oneshot_qobj_noise(self):
         """Test simulation with Pauli gate error noise model."""
 
-        backend_opts = {}
+        backend = Aer.get_backend('qasm_simulator')
         shots = 1
+        self.backend_opt["shots"] = shots
         circuits = ref_pauli_noise.pauli_gate_error_circuits()
         noise_models = ref_pauli_noise.pauli_gate_error_noise_models()
 
-        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(
+        qobj = assemble(circuits, backend, shots=shots)
+        result = backend.run(
                 qobj,
-                noise_model=noise_models[0], **backend_opts).result()
+                noise_model=noise_models[0], **self.backend_opt).result()
 
         self.assertSuccess(result)
 
@@ -267,14 +269,6 @@ class TestClusterBackendUtils(ThreadPoolFixture):
         combined_result_qobj = backend.run(qobj,
                                            noise_model=noise_models[0],
                                            **self.backend_opt).result()
-
-        qobj = assemble(circuits, self.SIMULATOR, shots=shots)
-        combined_result_list = self.SIMULATOR.run(circuits,
-                                           noise_model=noise_models[0],
-                                           **backend_options).result()
-        combined_result_qobj = self.SIMULATOR.run(qobj,
-                                           noise_model=noise_models[0],
-                                           **backend_options).result()
 
         self.assertSuccess(combined_result_list)
         self.assertSuccess(combined_result_qobj)

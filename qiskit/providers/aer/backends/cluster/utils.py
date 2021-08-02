@@ -11,20 +11,15 @@
 # that they have been altered from the originals.
 
 """Utility functions for AerClusterManager."""
-from platform import node
 import uuid
 import random
 import copy
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from functools import singledispatch, update_wrapper, wraps
-from qiskit import circuit
 
-<<<<<<< HEAD
 from qiskit.qobj import QasmQobj, PulseQobj, QasmQobjConfig
-=======
-from qiskit.qobj import QasmQobj, QasmQobjConfig
->>>>>>> Add ClusterBackend and related utilities
 from qiskit.providers import JobError
+from qiskit.circuit import QuantumCircuit
 
 
 def requires_submit(func):
@@ -66,6 +61,7 @@ def split(qobj: QasmQobj, _id: Optional[str] = None, noise: bool = False) -> Lis
     Args:
         qobj (Qobj): The input qobj object to split
         _id (str): All generated qobjs will have this ID
+        noise (bool): Noise exists or not
 
     Returns:
         A list of qobjs.
@@ -83,14 +79,18 @@ def _split_pulse_qobj(qobj: PulseQobj, _id: Optional[str] = None):
     for exp in qobj.experiments:
         _qid = _id or str(uuid.uuid4())
         _config = copy.deepcopy(qobj.config)
-        qobjs.append([{"qobj":QasmQobj(_qid, _config, [exp], qobj.header)}])
+        qobjs.append([{"qobj": QasmQobj(_qid, _config, [exp], qobj.header)}])
     return qobjs
 
 
 def _split_qasm_qobj(qobj: QasmQobj, _id: Optional[str] = None, noise: bool = False):
     qobjs = []
     if len(qobj.experiments) <= 1:
-        return [{"qobj":qobj}]
+        if noise:
+            return [{"qobj": qobj}]
+        else:
+            qobjs.append([{"qobj": qobj}])
+        return qobjs
     elif getattr(qobj.config, 'parameterizations', None):
         params = getattr(qobj.config, 'parameterizations', None)
         delattr(qobj.config, 'parameterizations')
@@ -98,22 +98,37 @@ def _split_qasm_qobj(qobj: QasmQobj, _id: Optional[str] = None, noise: bool = Fa
             _qid = _id or str(uuid.uuid4())
             _config = QasmQobjConfig(parameterizations=[par], **qobj.config.__dict__)
             if noise:
-                qobjs.append({"qobj":QasmQobj(_qid, _config, [exp], qobj.header)})
+                qobjs.append({"qobj": QasmQobj(_qid, _config, [exp], qobj.header)})
             else:
-                qobjs.append([{"qobj":QasmQobj(_qid, _config, [exp], qobj.header)}])
+                qobjs.append([{"qobj": QasmQobj(_qid, _config, [exp], qobj.header)}])
     else:
         for exp in qobj.experiments:
             _config = copy.deepcopy(qobj.config)
             _qid = _id or str(uuid.uuid4())
             if noise:
-                qobjs.append({"qobj":QasmQobj(_qid, _config, [exp], qobj.header)})
+                qobjs.append({"qobj": QasmQobj(_qid, _config, [exp], qobj.header)})
             else:
-                qobjs.append([{"qobj":QasmQobj(_qid, _config, [exp], qobj.header)}])
-    #print("split", qobjs))
+                qobjs.append([{"qobj": QasmQobj(_qid, _config, [exp], qobj.header)}])
     return qobjs
 
 
-def copy_qobj_and_options(qobj, shots, seed, node_num, run_option):
+def copy_qobj_and_options(qobj: QasmQobj,
+                          shots: int,
+                          seed: int,
+                          node_num: int,
+                          run_option: dict) -> Tuple[List[QasmQobj], List[dict]]:
+    """Copy Qobj and run options to execute simulation parallely for shot with noise.
+
+    Args:
+        qobj (Qobj): The input qobj object to copy
+        shots (int): Number of shots
+        seed (int): Seed number
+        node_num (int): Number of execution nodes or threads
+        run_option(dict): run options
+
+    Returns:
+        A list of qobj and run option list.
+    """
     run_options_list = []
     qobj_list = []
 
@@ -122,13 +137,13 @@ def copy_qobj_and_options(qobj, shots, seed, node_num, run_option):
 
     for exp in qobj.experiments:
         _qobjs, _options = _copy_qobj_and_opt(qobj, exp, shots, seed, node_num, run_option)
-        #print("options", _options)
         qobj_list.append(_qobjs)
         run_options_list.append(_options)
 
     return qobj_list, run_options_list
 
-def  _copy_qobj_and_opt(qobj, exp, shots, seed, node_num, option):
+
+def _copy_qobj_and_opt(qobj, exp, shots, seed, node_num, option):
     option_list = []
     exp_list = []
 
@@ -151,7 +166,24 @@ def  _copy_qobj_and_opt(qobj, exp, shots, seed, node_num, option):
     _qobj = QasmQobj(_qid, qobj.config, exp_list, qobj.header)
     return _qobj, option_list
 
-def copy_circuits_and_options(circuits, shots, seed, node_num, run_option):
+
+def copy_circuits_and_options(circuits: QuantumCircuit,
+                              shots: int,
+                              seed: int,
+                              node_num: int,
+                              run_option: dict) -> Tuple[List[QuantumCircuit], List[dict]]:
+    """Copy circuits and run options to execute simulation parallely for shot with noise.
+
+    Args:
+        circuits(QuantumCircuit): The input circuit to copy
+        shots (int): Number of shots
+        seed (int): Seed number
+        node_num (int): Number of execution nodes or threads
+        run_option(dict): run options
+
+    Returns:
+        A list of circuits and run option list.
+    """
 
     run_options_list = []
     circuits_list = []
@@ -169,6 +201,7 @@ def copy_circuits_and_options(circuits, shots, seed, node_num, run_option):
         run_options_list.append(_options)
 
     return circuits_list, run_options_list
+
 
 def _copy_circ_and_opt(circ, shots, seed, node_num, option):
     circuits_list = []

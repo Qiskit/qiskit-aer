@@ -21,9 +21,9 @@ import time
 import uuid
 import warnings
 from abc import ABC, abstractmethod
-from numpy import exp, ndarray
+from numpy import ndarray
 
-from qiskit.providers import BackendV1 as Backend, backend
+from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
 from qiskit.result import Result
 from qiskit.utils import deprecate_arguments
@@ -109,8 +109,6 @@ class AerBackend(Backend, ABC):
         # Set options from backend_options dictionary
         if backend_options is not None:
             self.set_options(**backend_options)
-        
-        #self._executor = None
 
     # pylint: disable=arguments-differ
     @deprecate_arguments({'qobj': 'circuits'})
@@ -130,7 +128,7 @@ class AerBackend(Backend, ABC):
             run_options (kwargs): additional run time backend options.
 
         Returns:
-            AerJob: The simulation job.
+            AerJob or AerJobSet: The simulation job.
 
         Additional Information:
             * kwarg options specified in ``run_options`` will temporarily override
@@ -165,6 +163,53 @@ class AerBackend(Backend, ABC):
             del run_options["executor"]
 
         if executor:
+            run_options_list = []
+            experiments = []
+            noise = False
+            _node_num = 0
+
+            if hasattr(executor, "_max_workers"):
+                _node_num = executor._max_workers
+            else:
+                _node_num = len(executor.scheduler_info()['workers'])
+
+            # For noise simulation
+            if getattr(self._options, 'noise_model', None) or \
+                "noise_model" in run_options and \
+                    _node_num > 1:
+                _shots = 1024
+                _seed = 0
+                noise = True
+
+                # Get shot number and seed
+                if hasattr(self._options, "shots"):
+                    _shots = self._options.shots
+
+                if backend_options is not None:
+                    if "shots" in backend_options:
+                        _shots = backend_options["shots"]
+                    if "seed_simulator" in backend_options:
+                        _seed = backend_options["seed_simulator"]
+
+                if isinstance(circuits, (QasmQobj)):
+                    _shots = getattr(circuits.config, 'shots')
+
+                if run_options.get("shots"):
+                    _shots = run_options["shots"]
+
+                if run_options.get("seed_simulator"):
+                    _seed = run_options["seed_simulator"]
+
+                # Copy experiment of each Qobj and set shot number and seed to run_options
+                if isinstance(circuits, (QasmQobj)):
+                    circuits, run_options_list = \
+                        copy_qobj_and_options(circuits, _shots, _seed, _node_num, run_options)
+                # Copy circuits and set shots number and seed to run_options
+                elif isinstance(circuits, (QuantumCircuit)) or \
+                        all(isinstance(circ, QuantumCircuit) for circ in circuits):
+                    circuits, run_options_list = \
+                        copy_circuits_and_options(circuits, _shots, _seed, _node_num, run_options)
+
             if isinstance(circuits, (QasmQobj, PulseQobj)):
                 experiments.extend(split(circuits, noise=noise))
             elif(
@@ -173,10 +218,8 @@ class AerBackend(Backend, ABC):
             ):
                 for each_qobj in circuits:
                     experiments.append(split(each_qobj, noise=noise))
-                    #print("qobj list", experiments)
-
             elif isinstance(circuits, (QuantumCircuit, Schedule)):
-                experiments.append([{"qobj":assemble(circuits, self)}])
+                experiments.append([{"qobj": assemble(circuits, self)}])
             elif (
                     isinstance(circuits, list) and
                     all(isinstance(circ, QuantumCircuit) for circ in circuits) or
@@ -184,9 +227,9 @@ class AerBackend(Backend, ABC):
                     all(isinstance(circ, Schedule) for circ in circuits)
             ):
                 for circ in circuits:
-                    _qobj = {"qobj" : assemble(circ)}
+                    _qobj = {"qobj": assemble(circ)}
                     experiments.append([_qobj])
-
+            # Already copy circuits for shot parallel
             elif (
                     isinstance(circuits, list) and
                     isinstance(circuits[0], list)
@@ -194,7 +237,7 @@ class AerBackend(Backend, ABC):
                 for each_circ_list in circuits:
                     _qobj_list = []
                     for circ in each_circ_list:
-                        _qobj = {"qobj" : assemble(circ)}
+                        _qobj = {"qobj": assemble(circ)}
                         _qobj_list.append(_qobj)
                     experiments.append(_qobj_list)
 
@@ -203,20 +246,18 @@ class AerBackend(Backend, ABC):
                     "run() is not implemented for this "
                     "type of experiment ({})".format(str(type(circuits))))
 
-            #print(experiments)
             for index, experiment in enumerate(experiments):
                 for _index, _expe in enumerate(experiment):
-                    if len(run_options_list) == 0:
-                        _expe["qobj"] = self._add_options_to_qobj(_expe["qobj"],
-                                                backend_options=backend_options,
-                                                **run_options)
+                    if not run_options_list:
+                        _expe["qobj"] = \
+                            self._add_options_to_qobj(_expe["qobj"],
+                                                      backend_options=backend_options,
+                                                      **run_options)
                     else:
-                        #print("condif", run_options_list)
-                        #print("qobj", experiment)
-                        _expe['qobj'] = self._add_options_to_qobj(_expe['qobj'],
-                                                backend_options=backend_options,
-                                                **run_options_list[index][_index])
-                    #print("exp", _expe["qobj"])
+                        _expe['qobj'] = \
+                            self._add_options_to_qobj(_expe['qobj'],
+                                                      backend_options=backend_options,
+                                                      **run_options_list[index][_index])
                     if validate:
                         self._validate(_expe["qobj"])
 
@@ -224,7 +265,6 @@ class AerBackend(Backend, ABC):
             aer_job_set = AerJobSet(self, job_id, self._run, experiments, executor)
             aer_job_set.submit()
             return aer_job_set
-
         else:
             if isinstance(circuits, (QasmQobj, PulseQobj)):
                 warnings.warn('Using a qobj for run() is deprecated and will be '
@@ -245,7 +285,6 @@ class AerBackend(Backend, ABC):
 
             # Submit job
             job_id = str(uuid.uuid4())
-            print("aer_job")
             aer_job = AerJob(self, job_id, self._run, qobj)
             aer_job.submit()
             return aer_job
@@ -342,7 +381,6 @@ class AerBackend(Backend, ABC):
 
     def _run(self, qobj, job_id=''):
         """Run a job"""
-        print("input _run")
         # Start timer
         start = time.time()
 

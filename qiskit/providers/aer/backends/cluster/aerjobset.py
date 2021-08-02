@@ -90,15 +90,11 @@ class AerJobSet(Job):
                 job_id = exp["qobj"].qobj_id
                 logger.debug("Job %s submitted", i + 1)
                 aer_job = AerJob(self._backend, job_id, self._fn, exp["qobj"])
-                print("call aer_job submit")
                 aer_job.submit(self._executor)
-                print("submitted")
                 aer_job._future.add_done_callback(self._set_end_time)
                 self._futures.append(aer_job)
                 exp["worker_id"] = worker_id
                 worker_id = worker_id + 1
-
-        #print(self._experiments)
 
     @requires_submit
     def status(self, worker: Union[None, int, Iterable[int]]
@@ -183,7 +179,6 @@ class AerJobSet(Job):
             for experiment in self._experiments:
                 _res = []
                 for _exp in experiment:
-                    #print("jobid ", _exp["worker_id"])
                     _res.append(self._get_worker_result(_exp["worker_id"], timeout))
                 res.append(self._merge_result(_res))
             return res
@@ -213,7 +208,6 @@ class AerJobSet(Job):
 
         try:
             result = aer_job.result(timeout=timeout)
-            #print("result", result)
             if result is None or not result.success:
                 if result:
                     logger.warning('AerJobSet %s Error: %s', aer_job.name(), result.header)
@@ -234,7 +228,8 @@ class AerJobSet(Job):
     def _combine_results(self,
                          results: List[Union[Result, None]] = None
                          ) -> Result:
-        """Combine results from all jobs into a single `Result`.
+        """Combine results from all jobs of experiment level
+           parallelization into a single `Result`.
 
         Note:
             Since the order of the results must match the order of the initial
@@ -280,7 +275,17 @@ class AerJobSet(Job):
         combined_result = Result.from_dict(combined_result_dict)
         return combined_result
 
-    def _merge_result(self, results: List[Result]):
+    def _merge_result(self, results: List[Result]) -> Result:
+        """merge results from all jobs of shot level
+           parallelization into a single `Result`.
+           Sum up the counter and shots number from each result.
+
+        Args:
+            results: Result will be combined.
+        Returns:
+            A :class:`~qiskit.result.Result` object that contains results from
+                all jobs.
+        """
         master_result = None
         total_shots = 0
         total_count = None
