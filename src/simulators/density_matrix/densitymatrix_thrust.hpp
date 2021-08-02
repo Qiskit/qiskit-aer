@@ -353,7 +353,7 @@ public:
     gid = this->base_index_;
 
     irow_chunk = ((gid + i) >> (chunk_bits_*2)) >> (total_bits_ - chunk_bits_);
-    icol_chunk = ((gid + i) >> (chunk_bits_*2)) & ((1ull << (total_bits_ - chunk_bits_)-1));
+    icol_chunk = ((gid + i) >> (chunk_bits_*2)) & ((1ull << (total_bits_ - chunk_bits_))-1);
 
     local_mask = (1ull << (chunk_bits_*2)) - 1;
     irow = (i & local_mask) >> chunk_bits_;
@@ -551,7 +551,7 @@ public:
     gid = this->base_index_;
 
     irow_chunk = ((gid + i) >> (chunk_bits_*2)) >> (total_bits_ - chunk_bits_);
-    icol_chunk = ((gid + i) >> (chunk_bits_*2)) & ((1ull << (total_bits_ - chunk_bits_)-1));
+    icol_chunk = ((gid + i) >> (chunk_bits_*2)) & ((1ull << (total_bits_ - chunk_bits_))-1);
 
     local_mask = (1ull << (chunk_bits_*2)) - 1;
     irow = (i & local_mask) >> chunk_bits_;
