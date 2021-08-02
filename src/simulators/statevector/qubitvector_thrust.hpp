@@ -963,7 +963,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   chunk_.set_num_qubits(num_qubits);
   chunk_.set_chunk_index(chunk_index_);
 
-  chunk_.enable_omp((num_qubits_ > omp_threshold_ && omp_threads_ > 1));
+  chunk_.enable_omp((omp_get_num_threads() == 1) && (num_qubits_ > omp_threshold_ && omp_threads_ > 1));
 
   register_blocking_ = false;
 

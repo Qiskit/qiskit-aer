@@ -329,10 +329,7 @@ void ChunkManager<data_t>::UnmapChunk(Chunk<data_t>& chunk)
 {
   int iPlace = chunk.place();
 
-#pragma omp critical
-  {
-    chunks_[iPlace]->UnmapChunk(chunk);
-  }
+  chunks_[iPlace]->UnmapChunk(chunk);
 }
 
 

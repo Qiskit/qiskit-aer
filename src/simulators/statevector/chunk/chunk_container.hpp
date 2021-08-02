@@ -525,7 +525,7 @@ public:
     num_chunks_ = 0;
     num_buffers_ = 0;
     num_chunk_mapped_ = 0;
-    enable_omp_ = true;
+    enable_omp_ = false;
     bfunc_ = Operations::RegComparison::Nop;
   }
   virtual ~ChunkContainer(){}
@@ -560,10 +560,7 @@ public:
   }
   void enable_omp(bool flg)
   {
-#pragma omp critical
-    {
-      enable_omp_ = flg;
-    }
+    enable_omp_ = flg;
   }
 
   virtual void set_device(void) const
@@ -743,16 +740,13 @@ bool ChunkContainer<data_t>::MapChunk(Chunk<data_t>& chunk)
 {
   uint_t i,idx;
 
-#pragma omp critical
-  {
-    for(i=0;i<num_chunks_;i++){
-      idx = (num_chunk_mapped_ + i) % num_chunks_;
-      if(!chunks_map_[idx]){
-        chunks_map_[idx] = true;
-        num_chunk_mapped_++;
-        chunk.map(this->shared_from_this(),idx);
-        break;
-      }
+  for(i=0;i<num_chunks_;i++){
+    idx = (num_chunk_mapped_ + i) % num_chunks_;
+    if(!chunks_map_[idx]){
+      chunks_map_[idx] = true;
+      num_chunk_mapped_++;
+      chunk.map(this->shared_from_this(),idx);
+      break;
     }
   }
   return chunk.is_mapped();
@@ -770,27 +764,20 @@ bool ChunkContainer<data_t>::MapBufferChunk(Chunk<data_t>& chunk)
 {
   uint_t i,pos;
 
-#pragma omp critical
-  {
-    for(i=0;i<num_buffers_;i++){
-      if(!buffers_map_[i]){
-        buffers_map_[i] = true;
-        chunk.map(this->shared_from_this(),num_chunks_+i);
-        break;
-      }
+  for(i=0;i<num_buffers_;i++){
+    if(!buffers_map_[i]){
+      buffers_map_[i] = true;
+      chunk.map(this->shared_from_this(),num_chunks_+i);
+      break;
     }
   }
-
   return chunk.is_mapped();
 }
 
 template <typename data_t>
 void ChunkContainer<data_t>::UnmapBuffer(Chunk<data_t>& buf)
 {
-#pragma omp critical
-  {
-    buffers_map_[buf.pos()-num_chunks_] = false;
-  }
+  buffers_map_[buf.pos()-num_chunks_] = false;
   buf.unmap();
 }
 
