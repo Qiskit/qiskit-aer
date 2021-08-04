@@ -50,6 +50,7 @@ class QiskitAerTestCase(QiskitTestCase):
 
     @classmethod
     def setUpClass(cls):
+        super().setUpClass()
         cls.moduleName = os.path.splitext(inspect.getfile(cls))[0]
         cls.log = logging.getLogger(cls.__name__)
 
