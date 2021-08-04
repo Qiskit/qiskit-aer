@@ -55,7 +55,7 @@ def kraus_error(noise_ops, standard_gates=False, canonical_kraus=False):
 
     if standard_gates:
         warnings.warn(
-            '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
+            '"standard_gates" option has been deprecated as of qiskit-aer 0.9.0'
             ' and will be removed no earlier than 3 months from that release date.',
             DeprecationWarning, stacklevel=2)
 
@@ -86,7 +86,7 @@ def mixed_unitary_error(noise_ops, standard_gates=False):
     """
     if standard_gates:
         warnings.warn(
-            '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
+            '"standard_gates" option has been deprecated as of qiskit-aer 0.9.0'
             ' and will be removed no earlier than 3 months from that release date.'
             ' Use directly init e.g. QuantumError([(IGate(), prob1), (ZGate(), prob2)]) instead.',
             DeprecationWarning, stacklevel=2)
@@ -198,7 +198,7 @@ def pauli_error(noise_ops, standard_gates=True):
 
     if not standard_gates:
         warnings.warn(
-            '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
+            '"standard_gates" option has been deprecated as of qiskit-aer 0.9.0'
             ' and will be removed no earlier than 3 months from that release date.',
             DeprecationWarning, stacklevel=2)
         paulis = [UnitaryGate(pauli.to_matrix()) for pauli in paulis]
@@ -243,7 +243,7 @@ def depolarizing_error(param, num_qubits, standard_gates=True):
     """
     if not standard_gates:
         warnings.warn(
-            '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
+            '"standard_gates" option has been deprecated as of qiskit-aer 0.9.0'
             ' and will be removed no earlier than 3 months from that release date.',
             DeprecationWarning, stacklevel=2)
 
