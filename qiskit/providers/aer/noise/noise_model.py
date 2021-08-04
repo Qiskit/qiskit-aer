@@ -426,7 +426,7 @@ class NoiseModel:
                                 'kraus', 'superop', 'roerror']:
                     self._basis_gates.add(name)
             elif warnings:
-                warn('"warnings" option has been deprecated as of qiskit-aer 0.10.0'
+                warn('"warnings" option has been deprecated as of qiskit-aer 0.9.0'
                      ' and will be removed no earlier than 3 months from that release date.',
                      DeprecationWarning, stacklevel=2)
                 logger.warning(

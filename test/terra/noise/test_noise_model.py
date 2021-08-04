@@ -58,7 +58,7 @@ class TestNoise(common.QiskitAerTestCase):
         noise_model.add_all_qubit_quantum_error(error, 'id')
         # Execute
         target = {'0x0': 3 * shots / 4, '0x1': shots / 4}
-        circuit = transpile(circuit, basis_gates=noise_model.basis_gates)
+        circuit = transpile(circuit, basis_gates=noise_model.basis_gates, optimization_level=0)
         qobj = assemble([circuit], backend, shots=shots)
         result = backend.run(qobj, noise_model=noise_model).result()
         self.assertSuccess(result)
