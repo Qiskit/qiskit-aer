@@ -19,6 +19,7 @@ import warnings
 import numpy as np
 from qiskit.circuit import QuantumCircuit, Reset
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
+from qiskit.exceptions import QiskitError
 from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info.operators.channel import Choi, Kraus
 from qiskit.quantum_info.operators.pauli import Pauli
@@ -180,7 +181,7 @@ def pauli_error(noise_ops, standard_gates=True):
         elif isinstance(op, str):
             try:
                 return Pauli(op)
-            except AttributeError:  # TODO: Change to QiskitError after fixing Pauli._from_label
+            except QiskitError:
                 pass
         raise NoiseError("Invalid Pauli input operator: {}".format(op))
 
