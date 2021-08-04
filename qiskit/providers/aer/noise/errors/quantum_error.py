@@ -407,11 +407,12 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
     @staticmethod
     def _qc_to_json(qc: QuantumCircuit):
+        bit_indices = {bit: index for index, bit in enumerate(qc.qubits)}
         ret = []
         for inst, qargs, _ in qc:
             name = inst.label if isinstance(inst, UnitaryGate) and inst.label else inst.name
             dic = {'name': name,
-                   'qubits': [q.index for q in qargs]}
+                   'qubits': [bit_indices[q] for q in qargs]}
             if name in {'kraus', 'unitary'}:
                 dic['params'] = inst.params
             ret.append(dic)
