@@ -209,9 +209,9 @@ class QasmSnapshotStabilizerTests:
                 pauli_mat = -1 * Pauli(stab[1:]).to_matrix()
             else:
                 pauli_mat = Pauli(stab).to_matrix()
-        val = statevector.conj().dot(pauli_mat.dot(statevector))
-        if not np.isclose(val, 1):
-            return False
+            val = statevector.conj().dot(pauli_mat.dot(statevector))
+            if not np.isclose(val, 1):
+                return False
         return True
 
     def test_snapshot_stabilizer_pre_measure_det(self):
