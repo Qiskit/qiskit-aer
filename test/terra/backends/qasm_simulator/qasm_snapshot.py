@@ -206,12 +206,12 @@ class QasmSnapshotStabilizerTests:
         # Get stabilizer and destabilizers and convert to sets
         for stab in stabilizer:
             if stab[0] == '-':
-                pauli_mat = -1 * Pauli.from_label(stab[1:]).to_matrix()
+                pauli_mat = -1 * Pauli(stab[1:]).to_matrix()
             else:
-                pauli_mat = Pauli.from_label(stab).to_matrix()
-            val = statevector.conj().dot(pauli_mat.dot(statevector))
-            if not np.isclose(val, 1):
-                return False
+                pauli_mat = Pauli(stab).to_matrix()
+        val = statevector.conj().dot(pauli_mat.dot(statevector))
+        if not np.isclose(val, 1):
+            return False
         return True
 
     def test_snapshot_stabilizer_pre_measure_det(self):

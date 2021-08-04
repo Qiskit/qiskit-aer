@@ -83,7 +83,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
                                        measure=True,
                                        snapshot=True)
         self.assertIn('parameterizations', qobj.to_dict()['config'])
-        job = backend.run(qobj, self.BACKEND_OPTS)
+        job = backend.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         num_circs = len(result.to_dict()['results'])
@@ -113,7 +113,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
                                        measure=False,
                                        snapshot=False)
         self.assertIn('parameterizations', qobj.to_dict()['config'])
-        job = backend.run(qobj, self.BACKEND_OPTS)
+        job = backend.run(qobj, **self.BACKEND_OPTS)
         result = job.result()
         success = getattr(result, 'success', False)
         num_circs = len(result.to_dict()['results'])
