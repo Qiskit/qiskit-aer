@@ -163,7 +163,7 @@ class QasmKrausNoiseOnQFTTests:
         shots = 10000
         noise_model = ref_kraus_noise.kraus_gate_error_noise_models_full()
 
-        circuit = QFT(3)
+        circuit = QFT(3).decompose()
         circuit.measure_all()
         ref_target = ref_kraus_noise.kraus_gate_error_counts_on_QFT(shots)
         qobj = assemble(circuit, self.SIMULATOR, shots=shots)

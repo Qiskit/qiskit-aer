@@ -30,7 +30,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.providers.aer import __path__ as main_path
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.test import QiskitTestCase
+from qiskit.test.base import FullQiskitTestCase
 
 
 class Path(Enum):
@@ -41,7 +41,7 @@ class Path(Enum):
     EXAMPLES = os.path.join(MAIN, '../examples')
 
 
-class QiskitAerTestCase(QiskitTestCase):
+class QiskitAerTestCase(FullQiskitTestCase):
     """Helper class that contains common functionality."""
 
     def setUp(self):

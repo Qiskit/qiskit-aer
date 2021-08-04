@@ -24,7 +24,8 @@ from scipy.special import erf
 
 from qiskit.providers.aer.backends import PulseSimulator
 
-from qiskit.compiler import assemble
+from qiskit.circuit import QuantumCircuit
+from qiskit.compiler import assemble, transpile
 from qiskit.quantum_info import state_fidelity
 from qiskit.pulse import (Schedule, Play, ShiftPhase, SetPhase, Delay, Acquire,
                           Waveform, DriveChannel, ControlChannel,
@@ -35,6 +36,7 @@ from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSys
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.models.backendconfiguration import UchannelLO
 from qiskit.providers.aer.aererror import AerError
+from qiskit.test.mock import FakeArmonk
 
 from .pulse_sim_independent import (simulate_1q_model,
                                     simulate_2q_exchange_model,
@@ -52,6 +54,32 @@ class TestPulseSimulator(common.QiskitAerTestCase):
         self.X = np.array([[0., 1.], [1., 0.]])
         self.Y = np.array([[0., -1j], [1j, 0.]])
         self.Z = np.array([[1., 0.], [0., -1.]])
+
+    def test_circuit_conversion(self):
+        pulse_sim = PulseSimulator.from_backend(FakeArmonk())
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.t(0)
+        qc.measure_all()
+        tqc = transpile(qc, pulse_sim)
+        result = pulse_sim.run(tqc, shots=1024).result()
+        self.assertDictAlmostEqual(result.get_counts(0), {'0': 512, '1': 512},
+                                   delta=128)
+
+    def test_multiple_circuit_conversion(self):
+        pulse_sim = PulseSimulator.from_backend(FakeArmonk())
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.t(0)
+        qc.measure_all()
+        circs = [qc]*5
+        tqc = transpile(circs, pulse_sim)
+        result = pulse_sim.run(tqc, shots=1024).result()
+        counts = result.get_counts()
+        self.assertEqual(5, len(counts))
+        for i in range(5):
+            self.assertDictAlmostEqual(result.get_counts(i), {'0': 512, '1': 512},
+                                       delta=128)
 
     # ---------------------------------------------------------------------
     # Test single qubit gates
