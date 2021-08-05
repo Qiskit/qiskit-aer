@@ -1736,7 +1736,7 @@ void Controller::run_single_shot(const Circuit &circ, State_t &state,
                                  RngEngine &rng) const {
   state.initialize_qreg(circ.num_qubits);
   state.initialize_creg(circ.num_memory, circ.num_registers);
-  state.apply_ops(circ.ops, result, rng, true);
+  state.apply_ops(circ.ops.cbegin(), circ.ops.cend(), result, rng, true);
   save_count_data(result, state.creg());
 }
 
@@ -1779,19 +1779,17 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   if (can_sample) {
     // Implement measure sampler
     auto& ops = circ.ops;
-    auto pos =circ.first_measure_pos; // Position of first measurement op
-    auto it_pos = std::next(ops.begin(), pos);
-    bool final_ops = (pos == ops.size());
+    auto first_meas = circ.first_measure_pos; // Position of first measurement op
+    bool final_ops = (first_meas == ops.size());
 
     // Get measurement opts
     std::vector<Operations::Op> meas_ops;
-    std::move(it_pos, ops.end(), std::back_inserter(meas_ops));
-    ops.resize(pos);
+    std::move(ops.begin() + first_meas, ops.end(), std::back_inserter(meas_ops));
 
     // Run circuit instructions before first measure
     state.initialize_qreg(circ.num_qubits);
     state.initialize_creg(circ.num_memory, circ.num_registers);
-    state.apply_ops(ops, result, rng, final_ops);
+    state.apply_ops(ops.cbegin(), ops.cbegin() + first_meas, result, rng, final_ops);
 
     // Get measurement operations and set of measured qubits
     measure_sampler(meas_ops, shots, state, result, rng);

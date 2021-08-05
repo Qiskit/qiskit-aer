@@ -1068,7 +1068,7 @@ void QasmController::run_single_shot(const Circuit& circ,
                                      ExperimentResult& result,
                                      RngEngine& rng) const {
   initialize_state(circ, state, initial_state);
-  state.apply_ops(circ.ops, result, rng, true);
+  state.apply_ops(circ.ops.cbegin(), circ.ops.cend(), result, rng, true);
   Base::Controller::save_count_data(result, state.creg());
 }
 
@@ -1090,7 +1090,7 @@ void QasmController::run_multi_shot(const Circuit& circ,
                                     circ.ops.begin() + pos);
     bool final_ops = (pos == circ.ops.size());
     initialize_state(circ, state, initial_state);
-    state.apply_ops(ops, result, rng, final_ops);
+    state.apply_ops(ops.cbegin(), ops.cend(), result, rng, final_ops);
 
     // Get measurement operations and set of measured qubits
     ops = std::vector<Operations::Op>(circ.ops.begin() + pos,
