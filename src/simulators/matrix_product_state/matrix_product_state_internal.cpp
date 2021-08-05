@@ -1472,14 +1472,16 @@ reg_t MPS::sample_measure_using_probabilities_internal(const rvector_t &rnds,
     return samples;
 }
 
-reg_t MPS::apply_measure(const reg_t &sorted_qubits, RngEngine &rng) {
-  // qubits in MPS structure have been moved to their original location
-  // input 'sorted_qubits' have been sorted
-  return apply_measure_internal(sorted_qubits, rng);
+reg_t MPS::apply_measure(const reg_t &qubits, RngEngine &rng, bool is_sorted) {
+  // Move qubits in the MPS structure to their original location
+  // unless we know they were already sorted
+  if (!is_sorted)
+    move_all_qubits_to_sorted_ordering();
+  return apply_measure_internal(qubits, rng, is_sorted);
 }
 
-reg_t MPS::apply_measure_internal(const reg_t &sorted_qubits, 
-				  RngEngine &rng) {
+reg_t MPS::apply_measure_internal(const reg_t &qubits, 
+				  RngEngine &rng, bool is_sorted) {
   // For every qubit, q,  that is measured, we must propagate the effect of its
   // measurement to its neigbors, l and r, and then to their neighbors, and 
   // so on. If r (or l) is measured next, then there is no need to propagate to
@@ -1494,8 +1496,12 @@ reg_t MPS::apply_measure_internal(const reg_t &sorted_qubits,
   // In both cases, we propagate the effect all the way to the left, because 
   // no more qubits will be measured on the left
   reg_t qubits_to_update;
-  uint_t size = sorted_qubits.size();
+  uint_t size = qubits.size();
   reg_t outcome_vector(size);
+
+  reg_t sorted_qubits = qubits;
+  if (!is_sorted)
+    std::sort(sorted_qubits.begin(), sorted_qubits.end());
 
   uint_t next_measured_qubit = num_qubits_-1;
   for (uint_t i=0; i<size; i++) {
@@ -1564,16 +1570,7 @@ void MPS::apply_initialize(const reg_t &qubits,
 			   const cvector_t &statevector,
 			   RngEngine &rng) {
   uint_t num_qubits = qubits.size();
-  // This is required because apply_measure assumes the qubits are sorted
-  move_all_qubits_to_sorted_ordering();
-  reg_t sorted_qubits = qubits;
-  std::sort(sorted_qubits.begin(), sorted_qubits.end());
   reg_t internal_qubits = get_internal_qubits(qubits);
-  std::cout << "internal_qubits = ";
-  for (uint_t i=0; i<internal_qubits.size(); i++)
-    std::cout << internal_qubits[i] << " ";
-std::cout << std::endl;
-
   uint_t num_amplitudes = statevector.size();
   cvector_t reordered_statevector(num_amplitudes);
   reg_t output_qubits(num_qubits);
@@ -1713,11 +1710,8 @@ void MPS::initialize_component_internal(const reg_t &qubits,
 }
 
 void MPS::reset(const reg_t &qubits, RngEngine &rng) {
-  move_all_qubits_to_sorted_ordering();
-  reg_t sorted_qubits = qubits;
-  std::sort(sorted_qubits.begin(), sorted_qubits.end());
-  reg_t internal_qubits = get_internal_qubits(sorted_qubits);
 
+  reg_t internal_qubits = get_internal_qubits(qubits);
   reset_internal(internal_qubits, rng);
 }
 
