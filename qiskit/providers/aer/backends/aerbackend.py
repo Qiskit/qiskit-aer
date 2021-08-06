@@ -168,7 +168,16 @@ class AerBackend(Backend, ABC):
             noise = False
             _node_num = 0
 
-            if hasattr(executor, "_max_workers"):
+            if hasattr(executor, "cluster"):
+                if executor.cluster:
+                    for spec in executor.cluster.worker_spec.values():
+                        opt = spec["options"]
+                        cores = 1
+                        if "cores" in opt:
+                          cores = opt["cores"]
+                        _node_num = cores + _node_num
+                    _node_num = _node_num * 10
+            elif hasattr(executor, "_max_workers"):
                 _node_num = executor._max_workers
             else:
                 _node_num = len(executor.scheduler_info()['workers'])

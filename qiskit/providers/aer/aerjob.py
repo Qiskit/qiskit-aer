@@ -78,10 +78,17 @@ class AerJob(Job):
         if self._future is not None:
             raise JobError("We have already submitted the job!")
         _exec = executor or self._executor
-        self._future = _exec.submit(self._fn,
-                                    self._qobj,
-                                    self._job_id,
-                                    *self._args)
+        if isinstance(_exec, futures.ThreadPoolExecutor):
+            self._future = _exec.submit(self._fn,
+                                       self._qobj,
+                                       self._job_id,
+                                       *self._args)
+        else:
+            self._future = _exec.submit(self._fn,
+                                       self._qobj,
+                                       self._job_id,
+                                       *self._args, 
+                                       retries=5)
 
     @requires_submit
     def result(self, timeout=None):
