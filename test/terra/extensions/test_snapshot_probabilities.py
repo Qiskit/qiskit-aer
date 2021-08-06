@@ -23,11 +23,14 @@ from ..common import QiskitAerTestCase
 class TestSnapshotProbabilitiesExtension(QiskitAerTestCase):
     """SnapshotProbabilities extension tests"""
 
-    @staticmethod
-    def snapshot_circuit_instr(circ_qubits, label, qubits, variance=False):
+    def snapshot_circuit_instr(self, circ_qubits, label, qubits, variance=False):
         """Return QobjInstruction for circuit monkey patch method."""
         circuit = QuantumCircuit(circ_qubits)
-        circuit.snapshot_probabilities(label, qubits, variance)
+        if variance:
+            with self.assertWarns(DeprecationWarning):
+                circuit.snapshot_probabilities(label, qubits, variance)
+        else:
+            circuit.snapshot_probabilities(label, qubits, variance)
         qobj = assemble(circuit)
         instr = qobj.experiments[0].instructions[0]
         return instr
@@ -38,12 +41,13 @@ class TestSnapshotProbabilitiesExtension(QiskitAerTestCase):
 
     def test_snapshot_name(self):
         """Test snapshot instruction has correct name"""
-        instrs = [
-            SnapshotProbabilities('snap', 1, False).assemble(),
-            SnapshotProbabilities('snap', 1, True).assemble(),
-            self.snapshot_circuit_instr(1, 'snap', [0], False),
-            self.snapshot_circuit_instr(1, 'snap', [0], True)
-        ]
+        with self.assertWarns(DeprecationWarning):
+            instrs = [
+                SnapshotProbabilities('snap', 1, False).assemble(),
+                SnapshotProbabilities('snap', 1, True).assemble(),
+                self.snapshot_circuit_instr(1, 'snap', [0], False),
+                self.snapshot_circuit_instr(1, 'snap', [0], True)
+            ]
         for instr in instrs:
             self.assertTrue(hasattr(instr, 'name'))
             self.assertEqual(instr.name, 'snapshot')
@@ -59,10 +63,11 @@ class TestSnapshotProbabilitiesExtension(QiskitAerTestCase):
             self.assertTrue(hasattr(instr, 'snapshot_type'))
             self.assertEqual(instr.snapshot_type, 'probabilities')
         # with variance
-        instrs = [
-            SnapshotProbabilities('snap', 1, True).assemble(),
-            self.snapshot_circuit_instr(1, 'snap', [0], True)
-        ]
+        with self.assertWarns(DeprecationWarning):
+            instrs = [
+                SnapshotProbabilities('snap', 1, True).assemble(),
+                self.snapshot_circuit_instr(1, 'snap', [0], True)
+            ]
         for instr in instrs:
             self.assertTrue(hasattr(instr, 'snapshot_type'))
             self.assertEqual(instr.snapshot_type, 'probabilities_with_variance')
@@ -70,12 +75,13 @@ class TestSnapshotProbabilitiesExtension(QiskitAerTestCase):
     def test_snapshot_label(self):
         """Test snapshot instruction has correct label"""
         for label in ['snap0', 'snap1']:
-            instrs = [
-                SnapshotProbabilities(label, 1, False).assemble(),
-                SnapshotProbabilities(label, 1, True).assemble(),
-                self.snapshot_circuit_instr(1, label, [0], False),
-                self.snapshot_circuit_instr(1, label, [0], True)
-            ]
+            with self.assertWarns(DeprecationWarning):
+                instrs = [
+                    SnapshotProbabilities(label, 1, False).assemble(),
+                    SnapshotProbabilities(label, 1, True).assemble(),
+                    self.snapshot_circuit_instr(1, label, [0], False),
+                    self.snapshot_circuit_instr(1, label, [0], True)
+                ]
             for instr in instrs:
                 self.assertTrue(hasattr(instr, 'label'))
                 self.assertEqual(instr.label, label)
@@ -83,12 +89,13 @@ class TestSnapshotProbabilitiesExtension(QiskitAerTestCase):
     def test_snapshot_all_qubits(self):
         """Test snapshot instruction has correct qubits."""
         for j in range(1, 5):
-            instrs = [
-                SnapshotProbabilities('snap', j, False).assemble(),
-                SnapshotProbabilities('snap', j, True).assemble(),
-                self.snapshot_circuit_instr(j, 'snap', range(j), True),
-                self.snapshot_circuit_instr(j, 'snap', range(j), False)
-            ]
+            with self.assertWarns(DeprecationWarning):
+                instrs = [
+                    SnapshotProbabilities('snap', j, False).assemble(),
+                    SnapshotProbabilities('snap', j, True).assemble(),
+                    self.snapshot_circuit_instr(j, 'snap', range(j), True),
+                    self.snapshot_circuit_instr(j, 'snap', range(j), False)
+                ]
             for instr in instrs:
                 self.assertTrue(hasattr(instr, 'qubits'))
                 self.assertEqual(instr.qubits, list(range(j)))
