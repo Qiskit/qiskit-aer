@@ -53,6 +53,11 @@ class QiskitAerTestCase(FullQiskitTestCase):
         super().setUpClass()
         # overwrite the filter not to regard DeprecationWarning as error
         warnings.filterwarnings("default", category=DeprecationWarning)
+        allow_DeprecationWarning_modules = [
+            "cvxpy",
+        ]
+        for mod in allow_DeprecationWarning_modules:
+            warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
 
         cls.moduleName = os.path.splitext(inspect.getfile(cls))[0]
         cls.log = logging.getLogger(cls.__name__)

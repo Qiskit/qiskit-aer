@@ -111,6 +111,31 @@ class TestNoise(common.QiskitAerTestCase):
         self.assertEqual(target_probs, [], msg="Incorrect probabilities")
         self.assertEqual(target_circs, [], msg="Incorrect circuits")
 
+    def test_pauli_error_1q_unitary_from_pauli(self):
+        """Test single-qubit pauli error as unitary qobj from Pauli obj"""
+        paulis = [Pauli(s) for s in ['I', 'X', 'Y', 'Z']]
+        probs = [0.4, 0.3, 0.2, 0.1]
+        error = pauli_error(zip(paulis, probs), standard_gates=False)
+
+        target_unitaries = [standard_gate_unitary('x'),
+                            standard_gate_unitary('y'),
+                            standard_gate_unitary('z')]
+        target_probs = probs.copy()
+        target_identity_count = 0
+        for j in range(len(paulis)):
+            circ, p = error.error_term(j)
+            name = circ[0]['name']
+            self.assertIn(name, ('unitary', 'id'))
+            self.assertEqual(circ[0]['qubits'], [0])
+            self.remove_if_found(p, target_probs)
+            if name == "unitary":
+                self.remove_if_found(circ[0]['params'][0], target_unitaries)
+            else:
+                target_identity_count += 1
+        self.assertEqual(target_probs, [], msg="Incorrect probabilities")
+        self.assertEqual(target_unitaries, [], msg="Incorrect unitaries")
+        self.assertEqual(target_identity_count, 1, msg="Incorrect identities")
+
     def test_pauli_error_1q_gate_from_pauli(self):
         """Test single-qubit pauli error as gate qobj from Pauli obj"""
         paulis = [Pauli(s) for s in ['I', 'X', 'Y', 'Z']]
@@ -168,6 +193,27 @@ class TestNoise(common.QiskitAerTestCase):
             self.remove_if_found(circ, target_circs)
         self.assertEqual(target_probs, [], msg="Incorrect probabilities")
         self.assertEqual(target_circs, [], msg="Incorrect circuits")
+
+    def test_pauli_error_2q_unitary_from_pauli(self):
+        """Test two-qubit pauli error as unitary qobj from Pauli obj"""
+        paulis = [Pauli(s) for s in ['XY', 'YZ', 'ZX']]
+        probs = [0.5, 0.3, 0.2]
+        error = pauli_error(zip(paulis, probs), standard_gates=False)
+
+        X = standard_gate_unitary('x')
+        Y = standard_gate_unitary('y')
+        Z = standard_gate_unitary('z')
+        target_unitaries = [np.kron(X, Y), np.kron(Y, Z), np.kron(Z, X)]
+        target_probs = probs.copy()
+        for j in range(len(paulis)):
+            circ, p = error.error_term(j)
+            name = circ[0]['name']
+            self.assertIn(name, 'unitary')
+            self.assertEqual(circ[0]['qubits'], [0, 1])
+            self.remove_if_found(p, target_probs)
+            self.remove_if_found(circ[0]['params'][0], target_unitaries)
+        self.assertEqual(target_probs, [], msg="Incorrect probabilities")
+        self.assertEqual(target_unitaries, [], msg="Incorrect unitaries")
 
     def test_pauli_error_2q_gate_from_pauli(self):
         """Test two-qubit pauli error as gate qobj from Pauli obj"""
