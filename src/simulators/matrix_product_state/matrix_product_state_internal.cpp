@@ -1472,15 +1472,14 @@ reg_t MPS::sample_measure_using_probabilities_internal(const rvector_t &rnds,
     return samples;
 }
 
-reg_t MPS::apply_measure(const reg_t &qubits, RngEngine &rng) {
+reg_t MPS::apply_measure(const reg_t &qubits, const rvector_t &rnds) {
   // since input is always sorted in qasm_controller, therefore, we must return the qubits 
   // to their original location (sorted)
   move_all_qubits_to_sorted_ordering();
-  return apply_measure_internal(qubits, rng);
+  return apply_measure_internal(qubits, rnds);
 }
 
-reg_t MPS::apply_measure_internal(const reg_t &qubits, 
-				  RngEngine &rng) {
+reg_t MPS::apply_measure_internal(const reg_t &qubits, const rvector_t &rands) {
   // When all qubits are measured, then for every qubit measured, it is sufficient to 
   // propagate to the nearest neighbors because the neighbors will be measured next
   bool measure_all = 0;
@@ -1492,12 +1491,12 @@ reg_t MPS::apply_measure_internal(const reg_t &qubits,
     // The following line is correct because the qubits were sorted in apply_measure.
     // If the sort is cancelled, for the case of measure_all, we must measure
     // in the order in which the qubits are organized
-      outcome_vector[i] = apply_measure_internal_single_qubit(qubits[i], rng, measure_all);
+      outcome_vector[i] = apply_measure_internal_single_qubit(qubits[i], rands[i], measure_all);
   }
   return outcome_vector;
 }
 
-uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng, 
+uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
 						bool measure_all) {	
   reg_t qubits_to_update;
   qubits_to_update.push_back(qubit);
@@ -1507,8 +1506,6 @@ uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng,
   // step 2 - compute probability for 0 or 1 result
   double prob0 = (1 + exp_val ) / 2;
   double prob1 = 1 - prob0;
-  // step 3 - randomly choose a measurement value for qubit 0
-  double rnd = rng.rand(0, 1);
   uint_t measurement;
   cmatrix_t measurement_matrix(2, 2);
   
@@ -1702,8 +1699,12 @@ void MPS::reset(const reg_t &qubits, RngEngine &rng) {
 }
 
 void MPS::reset_internal(const reg_t &qubits, RngEngine &rng) {
+  rvector_t rands;
+  rands.reserve(qubits.size());
+  for (auto i = 0; i < qubits.size(); ++i)
+    rands.push_back(rng.rand(0., 1.));
   // Simulate unobserved measurement
-  reg_t outcome_vector =  apply_measure_internal(qubits, rng);
+  reg_t outcome_vector =  apply_measure_internal(qubits, rands);
   // Apply update to reset state
   measure_reset_update_internal(qubits, outcome_vector);
 }

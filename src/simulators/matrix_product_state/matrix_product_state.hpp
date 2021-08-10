@@ -1006,7 +1006,11 @@ void State::apply_measure(const reg_t &qubits,
                           const reg_t &cmemory,
                           const reg_t &cregister,
                           RngEngine &rng) {
-  reg_t outcome = qreg_.apply_measure(qubits, rng);
+  rvector_t rands;
+  rands.reserve(qubits.size());
+  for (int_t i = 0; i < qubits.size(); ++i)
+    rands.push_back(rng.rand(0., 1.));
+  reg_t outcome = qreg_.apply_measure(qubits, rands);
   creg_.store_measure(outcome, cmemory, cregister);
 }
 
@@ -1073,7 +1077,7 @@ sample_measure_using_probabilities(const reg_t &qubits,
   rvector_t rnds;
   rnds.reserve(shots);
   for (uint_t i = 0; i < shots; ++i)
-    rnds.push_back(rng.rand(0, 1));
+    rnds.push_back(rng.rand(0., 1.));
 
   auto allbit_samples = qreg_.sample_measure_using_probabilities(rnds, qubits);
 
@@ -1100,13 +1104,23 @@ std::vector<reg_t> State::
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
 
+  std::vector<rvector_t> rnds_list;
+  rnds_list.reserve(shots);
+  for (int_t i = 0; i < shots; ++i) {
+    rvector_t rands;
+    rands.reserve(qubits.size());
+    for (int_t j = 0; j < qubits.size(); ++j)
+      rands.push_back(rng.rand(0., 1.));
+    rnds_list.push_back(rands);
+  }
+
 #pragma omp parallel if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
   {
     MPS temp;
 #pragma omp for
     for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
       temp.initialize(qreg_);
-      auto single_result = temp.apply_measure(qubits, rng);
+      auto single_result = temp.apply_measure(qubits, rnds_list[i]);
       all_samples[i] = single_result;
     }
   }
