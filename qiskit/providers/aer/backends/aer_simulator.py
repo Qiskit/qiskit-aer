@@ -229,7 +229,7 @@ class AerSimulator(AerBackend):
       measurements on qubits. The performance of the simulator depends
       significantly on this choice. In the following, let n be the number of
       qubits in the circuit, m the number of qubits measured, and S be the
-      number of shots. (Default: resampled_metropolis)
+      number of shots (Default: resampled_metropolis).
 
       - ``"metropolis"``: Use a Monte-Carlo method to sample many output
         strings from the simulator at once. To be accurate, this method
@@ -295,17 +295,16 @@ class AerSimulator(AerBackend):
       (Default: 1e-16).
 
     * ``mps_sample_measure_algorithm`` (str): Choose which algorithm to use for
-      ``"sample_measure"``(Default: "mps_apply_measure").
+      ``"sample_measure"`` (Default: "mps_apply_measure").
 
-      - ``"mps_probabilities"``first constructs the probability vector and
-        then generates a sample per shot. It is more efficient for a large number
-        of shots and a small number of
-        qubits, with complexity O(2^n * n * D^2) to create the vector and
-        O(1) per shot, where n is the number of qubits and D
-        is the bond dimension.
+      - ``"mps_probabilities"``: This method first constructs the probability
+        vector and then generates a sample per shot. It is more efficient for
+        a large number of shots and a small number of qubits, with complexity
+        O(2^n * n * D^2) to create the vector and O(1) per shot, where n is
+        the number of qubits and D is the bond dimension.
 
-      - ``"mps_apply_measure"`` creates a copy of the mps structure and
-        measures directly on it. It is more efficient for a small number of
+      - ``"mps_apply_measure"``: This method creates a copy of the mps structure
+        and measures directly on it. It is more efficient for a small number of
         shots, and a large number of qubits, with complexity around
         O(n * D^2) per shot.
 
