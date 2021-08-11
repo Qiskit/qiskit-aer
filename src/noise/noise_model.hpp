@@ -56,24 +56,24 @@ public:
   // standard: each noisy op will be returned along with additional noise ops
   // superop: each noisy gate or reset will be returned as a single superop 
   Circuit sample_noise(const Circuit &circ,
-                       RngEngine &rng) const;
+                       RngEngine &rng,
+                       const Method method = Method::circuit) const;
+  
+  Circuit sample_noise(const Circuit &circ,
+                       RngEngine &rng,
+                       const Method method = Method::circuit);
 
-  // Set sample mode to circuit
-  // This is the default method for noise sampling that can work for
-  // any simulator that supports the sampled noise instructions
-  void activate_circuit_method();
-
-  // Set sample mode to superoperator
+  // Enable superop sampling method
   // This will cause all QuantumErrors stored in the noise model
   // to calculate their superoperator representations and raise
   // an exception if they cannot be converted.
-  void activate_superop_method();
+  void enable_superop_method();
 
-  // Set sample mode to kraus
+  // Enable kraus sampling method
   // This will cause all QuantumErrors stored in the noise model
   // to calculate their canonical Kraus representations and raise
   // an exception if they cannot be converted.
-  void activate_kraus_method();
+  void enable_kraus_method();
 
   //-----------------------------------------------------------------------
   // Checking if errors types are in noise model
@@ -140,33 +140,41 @@ public:
 
 private:
 
+  Circuit sample_noise_circuit(const Circuit &circ,
+                               RngEngine &rng,
+                               const Method method) const;
+
   // Sample noise for the current operation.
-  NoiseOps sample_noise(const Operations::Op &op,
-                        RngEngine &rng,
-                        const mapping_t &mapping = mapping_t()) const;
+  NoiseOps sample_noise_op(const Operations::Op &op,
+                           RngEngine &rng,
+                           const Method method,
+                           const mapping_t &mapping) const;
 
   // Sample noise for the current operation
   void sample_readout_noise(const Operations::Op &op,
                             NoiseOps &noise_after,
                             RngEngine &rng,
-                            const mapping_t &mapping = mapping_t())  const;
+                            const mapping_t &mapping)  const;
 
   void sample_local_quantum_noise(const Operations::Op &op,
                                   NoiseOps &noise_before,
                                   NoiseOps &noise_after,
                                   RngEngine &rng,
-                                  const mapping_t &mapping = mapping_t())  const;
+                                  const Method method,
+                                  const mapping_t &mapping)  const;
 
   void sample_nonlocal_quantum_noise(const Operations::Op &op,
                                      NoiseOps &noise_ops,
                                      NoiseOps &noise_after,
                                      RngEngine &rng,
-                                     const mapping_t &mapping = mapping_t()) const;
+                                     const Method method,
+                                     const mapping_t &mapping) const;
 
   // Sample noise for the current operation
   NoiseOps sample_noise_helper(const Operations::Op &op,
                                RngEngine &rng,
-                               const mapping_t &mapping = mapping_t()) const;
+                               const Method method,
+                               const mapping_t &mapping) const;
 
   // Add a local quantum error to the noise model for specific qubits
   void add_local_quantum_error(const QuantumError &error,
@@ -229,8 +237,8 @@ private:
   // Joint OpSet of all errors
   Operations::OpSet opset_;
 
-  // Sampling method
-  Method method_ = Method::circuit;
+  // Allowed sampling methods
+  std::unordered_set<Method> enabled_methods_ = std::unordered_set<Method>({Method::circuit});
 };
 
 //=========================================================================
@@ -262,26 +270,38 @@ NoiseModel::param_gate_table_ = {
 // Noise sampling
 //=========================================================================
 
-NoiseModel::NoiseOps NoiseModel::sample_noise(const Operations::Op &op,
-                                              RngEngine &rng,
-                                              const mapping_t &mapping) const {
-  // Noise operations
-  NoiseOps noise_ops = sample_noise_helper(op, rng, mapping);
-
-  // If original op is conditional, make all the noise operations also conditional
-  if (op.conditional) {
-    for (auto& noise_op : noise_ops) {
-      noise_op.conditional = op.conditional;
-      noise_op.conditional_reg = op.conditional_reg;
-      noise_op.bfunc = op.bfunc;
+Circuit NoiseModel::sample_noise(const Circuit &circ,
+                                 RngEngine &rng,
+                                 const Method method) {
+  // Check if sampling method is enabled and if not enable it
+  if (enabled_methods_.find(method) == enabled_methods_.end()) {
+    switch (method) {
+      case Method::superop:
+        enable_superop_method();
+        break;
+      case Method::kraus:
+        enable_kraus_method();
+        break;
+      default:
+        break;
     }
   }
-  return noise_ops;
+  return sample_noise_circuit(circ, rng, method);                   
 }
 
-
 Circuit NoiseModel::sample_noise(const Circuit &circ,
-                                 RngEngine &rng) const {
+                                 RngEngine &rng,
+                                 const Method method) const {
+  // Check if sampling method is enabled
+  if (enabled_methods_.find(method) == enabled_methods_.end()) {
+    throw std::runtime_error("Kraus or superoperator noise sampling method has not been abled.");
+  }
+  return sample_noise_circuit(circ, rng, method);                   
+}
+
+Circuit NoiseModel::sample_noise_circuit(const Circuit &circ,
+                                         RngEngine &rng,
+                                         const Method method) const {
     bool noise_active = true; // set noise active to on-state
     Circuit noisy_circ;
     // Copy metadata
@@ -320,7 +340,7 @@ Circuit NoiseModel::sample_noise(const Circuit &circ,
           break;
         default:
           if (noise_active) {
-            NoiseOps noisy_op = sample_noise(op, rng, circ.qubit_map());
+            NoiseOps noisy_op = sample_noise_op(op, rng, method, circ.qubit_map());
             noisy_circ.ops.insert(noisy_circ.ops.end(), noisy_op.begin(), noisy_op.end());
           }
           break;
@@ -331,26 +351,44 @@ Circuit NoiseModel::sample_noise(const Circuit &circ,
     return noisy_circ;
 }
 
-void NoiseModel::activate_circuit_method() {
-  method_ = Method::circuit;
+
+NoiseModel::NoiseOps NoiseModel::sample_noise_op(const Operations::Op &op,
+                                                 RngEngine &rng,
+                                                 const Method method,
+                                                 const mapping_t &mapping) const {
+  // Noise operations
+  NoiseOps noise_ops = sample_noise_helper(op, rng, method, mapping);
+
+  // If original op is conditional, make all the noise operations also conditional
+  if (op.conditional) {
+    for (auto& noise_op : noise_ops) {
+      noise_op.conditional = op.conditional;
+      noise_op.conditional_reg = op.conditional_reg;
+      noise_op.bfunc = op.bfunc;
+    }
+  }
+  return noise_ops;
 }
 
-void NoiseModel::activate_superop_method() {
-  // Set internal sampling method
-  method_ = Method::superop;
-  // Compute superoperators
-  for (auto& qerror : quantum_errors_) {
-    qerror.compute_superoperator();
+
+void NoiseModel::enable_superop_method() {
+  if (enabled_methods_.find(Method::superop) == enabled_methods_.end()) {
+    // Compute superoperators
+    for (auto& qerror : quantum_errors_) {
+      qerror.compute_superoperator();
+    }
+    enabled_methods_.insert(Method::superop);
   }
 }
 
 
-void NoiseModel::activate_kraus_method() {
-  // Set internal sampling method
-  method_ = Method::kraus;
-  // Compute kraus
-  for (auto& qerror : quantum_errors_) {
-    qerror.compute_kraus();
+void NoiseModel::enable_kraus_method() {
+  if (enabled_methods_.find(Method::kraus) == enabled_methods_.end()) {
+    // Compute kraus
+    for (auto& qerror : quantum_errors_) {
+      qerror.compute_kraus();
+    }
+    enabled_methods_.insert(Method::kraus);
   }
 }
 
@@ -448,14 +486,15 @@ void NoiseModel::add_nonlocal_quantum_error(const QuantumError &error,
 
 NoiseModel::NoiseOps NoiseModel::sample_noise_helper(const Operations::Op &op,
                                                      RngEngine &rng,
+                                                     const Method method,
                                                      const mapping_t &mapping) const {                                                
   // Return operator set
   NoiseOps noise_before;
   NoiseOps noise_after;
   // Apply local errors first
-  sample_local_quantum_noise(op, noise_before, noise_after, rng, mapping);
+  sample_local_quantum_noise(op, noise_before, noise_after, rng, method, mapping);
   // Apply nonlocal errors second
-  sample_nonlocal_quantum_noise(op, noise_before, noise_after, rng, mapping);
+  sample_nonlocal_quantum_noise(op, noise_before, noise_after, rng, method, mapping);
   // Apply readout error to measure ops
   if (op.type == Operations::OpType::measure) {
     sample_readout_noise(op, noise_after, rng, mapping);
@@ -590,6 +629,7 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
                                             NoiseOps &noise_before,
                                             NoiseOps &noise_after,
                                             RngEngine &rng,
+                                            const Method method,
                                             const mapping_t &mapping) const {
   
   // If no errors are defined pass
@@ -647,7 +687,7 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
           ? iter_qubits->second
           : iter_default->second;
         for (auto &pos : error_positions) {
-          auto noise_ops = quantum_errors_[pos].sample_noise(op_qubits, rng, method_);
+          auto noise_ops = quantum_errors_[pos].sample_noise(op_qubits, rng, method);
           // Duplicate same sampled error operations
           if (quantum_errors_[pos].errors_after())
             noise_after.insert(noise_after.end(), noise_ops.begin(), noise_ops.end());
@@ -664,6 +704,7 @@ void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
                                                NoiseOps &noise_before,
                                                NoiseOps &noise_after,
                                                RngEngine &rng,
+                                               const Method method,
                                                const mapping_t &mapping) const {
   
   // If no errors are defined pass
@@ -711,7 +752,7 @@ void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
           auto &error_positions = target_pair.second;
           for (auto &pos : error_positions) {
             auto ops = quantum_errors_[pos].sample_noise(string2reg(target_qubits), rng,
-                                                         method_);
+                                                         method);
             if (quantum_errors_[pos].errors_after())
               noise_after.insert(noise_after.end(), ops.begin(), ops.end());
             else

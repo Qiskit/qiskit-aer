@@ -1707,15 +1707,15 @@ void Controller::run_circuit_helper(const Circuit &circ,
   else if (method == Method::density_matrix || method == Method::superop) {
     // Sample noise using SuperOp method
     auto noise_superop = noise;
-    noise_superop.activate_superop_method();
-    opt_circ = noise_superop.sample_noise(circ, rng);
+    noise_superop.enable_superop_method();
+    opt_circ = noise_superop.sample_noise(circ, rng, Noise::NoiseModel::Method::superop);
   }
   // Kraus noise sampling
   else if (noise.opset().contains(Operations::OpType::kraus) ||
            noise.opset().contains(Operations::OpType::superop)) {
     auto noise_kraus = noise;
-    noise_kraus.activate_kraus_method();
-    opt_circ = noise_kraus.sample_noise(circ, rng);
+    noise_kraus.enable_kraus_method();
+    opt_circ = noise_kraus.sample_noise(circ, rng, Noise::NoiseModel::Method::kraus);
   }
   // General circuit noise sampling
   else {
