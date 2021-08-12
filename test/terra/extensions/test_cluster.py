@@ -27,7 +27,7 @@ from test.terra.backends.unitary_simulator.unitary_gates import UnitaryGateTests
 from qiskit import transpile, assemble
 from qiskit import Aer
 from qiskit.providers.aer import QasmSimulator
-from qiskit.providers.aer.backends.cluster.utils import split
+from qiskit.providers.aer.jobs import split_qobj
 from qiskit.circuit.random import random_circuit
 
 DASK_TESTS = False
@@ -182,7 +182,7 @@ class TestClusterBackendUtils(ThreadPoolFixture):
         else:
             qobjs = [assemble(c, qobj_id='testing', **shared_assemble_args) for c in circs]
 
-        test_qobjs = split(qobj, _id='testing')
+        test_qobjs = split_qobj(qobj, max_job_size=1, qob_id='testing')
         self.assertEqual(len(test_qobjs), len(qobjs))
         for ref, test in zip(qobjs, test_qobjs):
             self.assertEqual(ref, test)
