@@ -339,7 +339,7 @@ class AerBackend(Backend, ABC):
 
         # Add options
         for key, val in self.options.__dict__.items():
-            if val is not None and not hasattr(config, key):
+            if val is not None:
                 setattr(config, key, val)
 
         # Override with run-time options

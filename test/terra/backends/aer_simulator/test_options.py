@@ -61,11 +61,12 @@ class TestOptions(SimulatorTestCase):
     @supported_methods(
         ['automatic', 'stabilizer', 'statevector', 'density_matrix',
          'matrix_product_state', 'extended_stabilizer', 'unitary', 'superop'])
-    def test_method(self, method, device):
-        """Test seed_simulator option fixes measurement outcomes"""
+    def test_method_option(self, method, device):
+        """Test method option works"""
         backend = self.backend(method=method, device=device)
         qc = QuantumCircuit(1)
         qc.x(0)
+        qc.measure_all()
         qc = transpile(qc, backend)
 
         # Target simulation method
@@ -81,11 +82,12 @@ class TestOptions(SimulatorTestCase):
     @supported_methods(
         ['automatic', 'stabilizer', 'statevector', 'density_matrix',
          'matrix_product_state', 'extended_stabilizer', 'unitary', 'superop'])
-    def test_device(self, method, device):
-        """Test seed_simulator option fixes measurement outcomes"""
+    def test_device_option(self, method, device):
+        """Test device option works"""
         backend = self.backend(method=method, device=device)
         qc = QuantumCircuit(1)
         qc.x(0)
+        qc.measure_all()
         qc = transpile(qc, backend)
 
         result = backend.run(qc).result()
@@ -116,3 +118,32 @@ class TestOptions(SimulatorTestCase):
         sim2 = self.backend(noise_model=noise_model, method=method)
         basis_gates2 = sim2.configuration().basis_gates
         self.assertEqual(sorted(basis_gates1), sorted(basis_gates2))
+    @supported_methods(
+        ['automatic', 'stabilizer', 'statevector', 'density_matrix',
+         'matrix_product_state', 'extended_stabilizer'])
+    def test_shots_option(self, method, device):
+        """Test shots option is observed"""
+        shots = 99
+        backend = self.backend(method=method, device=device, shots=shots)
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.measure_all()
+        qc = transpile(qc, backend)
+        result = backend.run(qc).result()
+        value = sum(result.get_counts().values())
+        self.assertEqual(value, shots)
+
+    @supported_methods(
+        ['automatic', 'stabilizer', 'statevector', 'density_matrix',
+         'matrix_product_state', 'extended_stabilizer'])
+    def test_shots_run_option(self, method, device):
+        """Test shots option is observed"""
+        shots = 99
+        backend = self.backend(method=method, device=device)
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.measure_all()
+        qc = transpile(qc, backend)
+        result = backend.run(qc, shots=shots).result()
+        value = sum(result.get_counts().values())
+        self.assertEqual(value, shots)
