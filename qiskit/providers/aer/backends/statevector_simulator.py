@@ -13,6 +13,7 @@
 Qiskit Aer statevector simulator backend.
 """
 
+import copy
 import logging
 from warnings import warn
 from qiskit.util import local_hardware_info
@@ -23,9 +24,11 @@ from ..aererror import AerError
 from ..version import __version__
 from .aerbackend import AerBackend
 from .backend_utils import (cpp_execute, available_methods,
-                            MAX_QUBITS_STATEVECTOR)
+                            MAX_QUBITS_STATEVECTOR,
+                            add_final_save_instruction,
+                            map_legacy_method_options)
 # pylint: disable=import-error, no-name-in-module
-from .controller_wrappers import statevector_controller_execute
+from .controller_wrappers import aer_controller_execute
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -163,7 +166,7 @@ class StatevectorSimulator(AerBackend):
              ' `AerSimulator(method="statevector")` and append run circuits'
              ' with the `save_state` instruction.', PendingDeprecationWarning)
 
-        self._controller = statevector_controller_execute()
+        self._controller = aer_controller_execute()
 
         if StatevectorSimulator._AVAILABLE_METHODS is None:
             StatevectorSimulator._AVAILABLE_METHODS = available_methods(
@@ -189,7 +192,7 @@ class StatevectorSimulator(AerBackend):
         return Options(
             # Global options
             shots=1024,
-            method="automatic",
+            method="statevector",
             precision="double",
             executor=None,
             max_job_size=None,
@@ -218,6 +221,10 @@ class StatevectorSimulator(AerBackend):
         Returns:
             dict: return a dictionary of results.
         """
+        # Make deepcopy so we don't modify the original qobj
+        qobj = copy.deepcopy(qobj)
+        qobj = add_final_save_instruction(qobj, "statevector")
+        qobj = map_legacy_method_options(qobj)
         return cpp_execute(self._controller, qobj)
 
     def _validate(self, qobj):

@@ -18,9 +18,7 @@ from multiprocessing import Pool
 
 from qiskit import assemble, transpile, QuantumCircuit
 from qiskit.providers.aer.backends import QasmSimulator, StatevectorSimulator, UnitarySimulator
-from qiskit.providers.aer.backends.controller_wrappers import (qasm_controller_execute,
-                                                               statevector_controller_execute,
-                                                               unitary_controller_execute)
+from qiskit.providers.aer.backends.controller_wrappers import aer_controller_execute
 from qiskit.providers.aer.backends.backend_utils import LIBRARY_DIR
 from test.terra.common import QiskitAerTestCase
 
@@ -28,9 +26,7 @@ from test.terra.common import QiskitAerTestCase
 class TestControllerExecuteWrappers(QiskitAerTestCase):
     """Basic functionality tests for pybind-generated wrappers"""
 
-    CFUNCS = [qasm_controller_execute(),
-              statevector_controller_execute(),
-              unitary_controller_execute()]
+    CFUNCS = [aer_controller_execute()]
 
     def test_deepcopy(self):
         """Test that the functors are deepcopy-able."""
@@ -64,22 +60,8 @@ class TestControllerExecuteWrappers(QiskitAerTestCase):
 
     def test_mappable_qasm(self):
         """Test that the qasm controller can be mapped."""
-        cfunc = qasm_controller_execute()
+        cfunc = aer_controller_execute()
         sim = QasmSimulator()
-        fqobj = self._create_qobj(sim)
-        self._map_and_test(cfunc, fqobj)
-
-    def test_mappable_statevector(self):
-        """Test that the statevector controller can be mapped."""
-        cfunc = statevector_controller_execute()
-        sim = StatevectorSimulator()
-        fqobj = self._create_qobj(sim)
-        self._map_and_test(cfunc, fqobj)
-
-    def test_mappable_unitary(self):
-        """Test that the unitary controller can be mapped."""
-        cfunc = unitary_controller_execute()
-        sim = UnitarySimulator()
         fqobj = self._create_qobj(sim)
         self._map_and_test(cfunc, fqobj)
 

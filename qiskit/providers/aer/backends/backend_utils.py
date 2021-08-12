@@ -19,6 +19,7 @@ from math import log2
 from qiskit.util import local_hardware_info
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import assemble
+from qiskit.qobj import QasmQobjInstruction
 
 # Available system memory
 SYSTEM_MEMORY_GB = local_hardware_info()['memory']
@@ -77,3 +78,36 @@ def available_devices(controller, devices):
         if result.get('success', False):
             valid_devices.append(device)
     return valid_devices
+
+
+def add_final_save_instruction(qobj, state):
+    """Add final save state instruction to all experiments in a qobj."""
+
+    def save_inst(num_qubits):
+        """Return n-qubit save statevector inst"""
+        return QasmQobjInstruction(
+            name=f"save_{state}",
+            qubits=list(range(num_qubits)),
+            label=f"{state}",
+            snapshot_type="single")
+
+    for exp in qobj.experiments:
+        num_qubits = exp.config.n_qubits
+        exp.instructions.append(save_inst(num_qubits))
+
+    return qobj
+
+
+def map_legacy_method_options(qobj):
+    """Map legacy method names of qasm simulator to aer simulator options"""
+    method = getattr(qobj.config, "method", None)
+    if method == "statevector_gpu":
+        qobj.config.method = "statevector"
+        qobj.config.device = "GPU"
+    if method == "density_matrix_gpu":
+        qobj.config.method = "density_matrix"
+        qobj.config.device = "GPU"
+    if method == "unitary_gpu":
+        qobj.config.method = "unitary"
+        qobj.config.device = "GPU"
+    return qobj

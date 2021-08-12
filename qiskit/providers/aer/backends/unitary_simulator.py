@@ -14,7 +14,7 @@
 """
 Qiskit Aer Unitary Simulator Backend.
 """
-
+import copy
 import logging
 from warnings import warn
 from qiskit.util import local_hardware_info
@@ -25,9 +25,11 @@ from ..aererror import AerError
 from ..version import __version__
 from .aerbackend import AerBackend
 from .backend_utils import (cpp_execute, available_methods,
-                            MAX_QUBITS_STATEVECTOR)
+                            MAX_QUBITS_STATEVECTOR,
+                            add_final_save_instruction,
+                            map_legacy_method_options)
 # pylint: disable=import-error, no-name-in-module
-from .controller_wrappers import unitary_controller_execute
+from .controller_wrappers import aer_controller_execute
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -162,7 +164,7 @@ class UnitarySimulator(AerBackend):
              ' `AerSimulator(method="unitary")` and append run circuits'
              ' with the `save_state` instruction.', PendingDeprecationWarning)
 
-        self._controller = unitary_controller_execute()
+        self._controller = aer_controller_execute()
 
         if UnitarySimulator._AVAILABLE_METHODS is None:
             UnitarySimulator._AVAILABLE_METHODS = available_methods(
@@ -186,7 +188,7 @@ class UnitarySimulator(AerBackend):
         return Options(
             # Global options
             shots=1024,
-            method="automatic",
+            method="unitary",
             precision="double",
             executor=None,
             max_job_size=None,
@@ -217,6 +219,10 @@ class UnitarySimulator(AerBackend):
         Returns:
             dict: return a dictionary of results.
         """
+        # Make deepcopy so we don't modify the original qobj
+        qobj = copy.deepcopy(qobj)
+        qobj = add_final_save_instruction(qobj, "unitary")
+        qobj = map_legacy_method_options(qobj)
         return cpp_execute(self._controller, qobj)
 
     def _validate(self, qobj):

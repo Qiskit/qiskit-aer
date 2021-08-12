@@ -22,9 +22,10 @@ from qiskit.providers.models import QasmBackendConfiguration
 from ..version import __version__
 from .aerbackend import AerBackend
 from .backend_utils import (cpp_execute, available_methods,
-                            MAX_QUBITS_STATEVECTOR)
+                            MAX_QUBITS_STATEVECTOR,
+                            map_legacy_method_options)
 # pylint: disable=import-error, no-name-in-module
-from .controller_wrappers import qasm_controller_execute
+from .controller_wrappers import aer_controller_execute
 
 logger = logging.getLogger(__name__)
 
@@ -346,7 +347,7 @@ class QasmSimulator(AerBackend):
              ' future. It has been superseded by the `AerSimulator`'
              ' backend.', PendingDeprecationWarning)
 
-        self._controller = qasm_controller_execute()
+        self._controller = aer_controller_execute()
 
         # Update available methods for class
         if QasmSimulator._AVAILABLE_METHODS is None:
@@ -486,6 +487,7 @@ class QasmSimulator(AerBackend):
         Returns:
             dict: return a dictionary of results.
         """
+        qobj = map_legacy_method_options(qobj)
         return cpp_execute(self._controller, qobj)
 
     def set_options(self, **fields):
