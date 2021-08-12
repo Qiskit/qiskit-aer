@@ -32,6 +32,7 @@ from qiskit.compiler import assemble
 
 from ..aerjob import AerJob
 from ..aererror import AerError
+from ..profile import get_performance_options
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -155,9 +156,23 @@ class AerBackend(Backend, ABC):
         else:
             qobj = assemble(circuits, self)
 
-        # Add backend options to the Job qobj
+        profile_num_qubits = None
+        if isinstance(circuits, QasmQobj):
+            profile_num_qubits = qobj.config.n_qubits
+        if isinstance(circuits, list) and len(circuits) > 0 and hasattr(circuits[0], 'num_qubits'):
+            profile_num_qubits = circuits[0].num_qubits
+
+        profiled_options = {}
+        if profile_num_qubits is not None:
+            # Get profiled options for performance
+            gpu = backend_options is not None and 'gpu' in backend_options.get('method', '')
+            profiled_options = get_performance_options(profile_num_qubits, gpu)
+            for run_option in run_options:
+                if run_option in profiled_options:
+                    del profiled_options[run_option]
+
         self._add_options_to_qobj(
-            qobj, backend_options=backend_options, **run_options)
+            qobj, backend_options=backend_options, **profiled_options, **run_options)
 
         # Optional validation
         if validate:
