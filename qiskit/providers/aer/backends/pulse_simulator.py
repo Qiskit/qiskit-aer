@@ -119,13 +119,7 @@ class PulseSimulator(AerBackend):
       ``|1>``. Defaults to ``2``.
     * ``meas_return``: Measurement type, ``'single'`` or ``'avg'``. Defaults to ``'avg'``.
     * ``shots``: Number of shots per experiment. Defaults to ``1024``.
-    * ``executor``: Set a custom executor for asynchronous running of simulation
-    * ``max_job_size`` (int or None): If the number of run schedules
-      exceeds this value simulation will be run as a set of of sub-jobs
-      on the executor. If ``None`` simulation of all schedules are submitted
-      to the executor as a single job (Default: None).
 
-      jobs (Default: None).
 
     **Simulation details**
 
@@ -193,9 +187,7 @@ class PulseSimulator(AerBackend):
             qubit_freq_est=inf,
             q_level_meas=1,
             noise_model=None,
-            initial_state=None,
-            executor=None,
-            max_job_size=None)
+            initial_state=None)
 
     # pylint: disable=arguments-differ, missing-param-doc
     @deprecate_arguments({'qobj': 'schedules'})

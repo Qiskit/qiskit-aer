@@ -44,13 +44,12 @@ Legacy Simulator Backends
     StatevectorSimulator
     UnitarySimulator
 
-Job Classes
-===========
+Job Class
+=========
 .. autosummary::
    :toctree: ../stubs/
 
    AerJob
-   AerJobSet
 
 Exceptions
 ==========
@@ -71,7 +70,7 @@ if platform.system() == "Darwin":
 
 # pylint: disable=wrong-import-position
 from .aerprovider import AerProvider
-from .jobs import AerJob, AerJobSet
+from .aerjob import AerJob
 from .aererror import AerError
 from .backends import *
 from . import library

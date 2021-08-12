@@ -32,8 +32,10 @@ from qiskit.pulse import Schedule
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.compiler import assemble
 
-from qiskit.providers.aer.jobs import AerJob, AerJobSet, split_qobj
-from qiskit.providers.aer.aererror import AerError
+from ..aerjob import AerJob
+from ..aererror import AerError
+from .cluster.utils import split
+from .cluster.aerjobset import AerJobSet
 
 
 # Logger
@@ -63,7 +65,6 @@ class AerJSONEncoder(json.JSONEncoder):
 
 class AerBackend(Backend, ABC):
     """Qiskit Aer Backend class."""
-
     def __init__(self,
                  configuration,
                  properties=None,
@@ -114,6 +115,7 @@ class AerBackend(Backend, ABC):
     @deprecate_arguments({'qobj': 'circuits'})
     def run(self,
             circuits,
+            backend_options=None,  # DEPRECATED
             validate=False,
             **run_options):
         """Run a qobj on the backend.
@@ -121,6 +123,8 @@ class AerBackend(Backend, ABC):
         Args:
             circuits (QuantumCircuit or list): The QuantumCircuit (or list
                 of QuantumCircuit objects) to run
+            backend_options (dict or None): DEPRECATED dictionary of backend options
+                                            for the execution (default: None).
             validate (bool): validate the Qobj before running (default: False).
             run_options (kwargs): additional run time backend options.
 
@@ -128,32 +132,90 @@ class AerBackend(Backend, ABC):
             AerJob: The simulation job.
 
         Additional Information:
-            kwarg options specified in ``run_options`` will temporarily override
-        any set options of the same name for the current run.
+            * kwarg options specified in ``run_options`` will temporarily override
+              any set options of the same name for the current run.
+
+            * The entries in the ``backend_options`` will be combined with
+              the ``Qobj.config`` dictionary with the values of entries in
+              ``backend_options`` taking precedence. This kwarg is deprecated
+              and direct kwarg's should be used for options to pass them to
+              ``run_options``.
 
         Raises:
             ValueError: if run is not implemented
         """
-        if isinstance(circuits, (QasmQobj, PulseQobj)):
-            warnings.warn('Using a qobj for run() is deprecated and will be '
-                            'removed in a future release.',
-                            PendingDeprecationWarning,
-                            stacklevel=2)
-            qobj = circuits
-        else:
-            qobj = assemble(circuits, self)
+        # DEPRECATED
+        if backend_options is not None:
+            warnings.warn(
+                'Using `backend_options` kwarg has been deprecated as of'
+                ' qiskit-aer 0.7.0 and will be removed no earlier than 3'
+                ' months from that release date. Runtime backend options'
+                ' should now be added directly using kwargs for each option.',
+                DeprecationWarning,
+                stacklevel=3)
 
-        # Add submit args for the job
-        experiments, executor = self._get_job_submit_args(qobj, validate=validate, **run_options)
+        executor = None
+        if backend_options and "executor" in backend_options:
+            executor = backend_options["executor"]
+            del backend_options["executor"]
 
-        # Submit job
-        job_id = str(uuid.uuid4())
-        if isinstance(experiments, list):
-            aer_job = AerJobSet(self, job_id, self._run, experiments, executor)
+        if "executor" in run_options:
+            executor = run_options["executor"]
+            del run_options["executor"]
+
+        if executor:
+            if isinstance(circuits, (QasmQobj, PulseQobj)):
+                experiments = split(circuits)
+            elif isinstance(circuits, (QuantumCircuit, Schedule)):
+                experiments = [assemble(circuits, self)]
+            elif (
+                    isinstance(circuits, list) and
+                    all(isinstance(circ, QuantumCircuit) for circ in circuits) or
+                    isinstance(circuits, list) and
+                    all(isinstance(circ, Schedule) for circ in circuits)
+            ):
+                experiments = [assemble(circ, self) for circ in circuits]
+            else:
+                raise ValueError(
+                    "run() is not implemented for this "
+                    "type of experiment ({})".format(str(type(circuits))))
+
+            for experiment in experiments:
+                self._add_options_to_qobj(experiment,
+                                          backend_options=backend_options,
+                                          **run_options)
+                # Optional validation
+                if validate:
+                    self._validate(experiment)
+
+            job_id = str(uuid.uuid4())
+            aer_job_set = AerJobSet(self, job_id, self._run, experiments, executor)
+            aer_job_set.submit()
+            return aer_job_set
+
         else:
-            aer_job = AerJob(self, job_id, self._run, experiments, executor)
-        aer_job.submit()
-        return aer_job
+            if isinstance(circuits, (QasmQobj, PulseQobj)):
+                warnings.warn('Using a qobj for run() is deprecated and will be '
+                              'removed in a future release.',
+                              PendingDeprecationWarning,
+                              stacklevel=2)
+                qobj = circuits
+            else:
+                qobj = assemble(circuits, self)
+
+            # Add backend options to the Job qobj
+            self._add_options_to_qobj(
+                qobj, backend_options=backend_options, **run_options)
+
+            # Optional validation
+            if validate:
+                self._validate(qobj)
+
+            # Submit job
+            job_id = str(uuid.uuid4())
+            aer_job = AerJob(self, job_id, self._run, qobj)
+            aer_job.submit()
+            return aer_job
 
     def configuration(self):
         """Return the simulator backend configuration.
@@ -221,6 +283,26 @@ class AerBackend(Backend, ABC):
             operational=True,
             pending_jobs=0,
             status_msg='')
+
+    def _run_job(self, job_id, qobj, backend_options=None, noise_model=None, validate=False):
+        """Run a qobj job"""
+        warnings.warn(
+            'The `_run_job` method has been deprecated. Use `_run` instead.',
+            DeprecationWarning)
+        if validate:
+            warnings.warn(
+                'The validate arg of `_run_job` has been removed. Use '
+                'validate=True in the `run` method instead.',
+                DeprecationWarning)
+
+        # The new function swaps positional args qobj and job id so we do a
+        # type check to swap them back
+        if not isinstance(job_id, str) and isinstance(qobj, str):
+            job_id, qobj = qobj, job_id
+        self._add_options_to_qobj(qobj,
+                                  backend_options=backend_options,
+                                  noise_model=noise_model)
+        return self._run(qobj, job_id)
 
     def _dummy_job(self):
         return
@@ -341,7 +423,9 @@ class AerBackend(Backend, ABC):
         elif key in self._options_defaults:
             self._options_defaults.pop(key)
 
-    def _get_job_submit_args(self, qobj, validate=False, **run_options):
+    def _add_options_to_qobj(self, qobj,
+                             backend_options=None,  # DEPRECATED
+                             **run_options):
         """Return execution sim config dict from backend options."""
         # Add options to qobj config overriding any existing fields
         config = qobj.config
@@ -351,26 +435,16 @@ class AerBackend(Backend, ABC):
             if val is not None and not hasattr(config, key):
                 setattr(config, key, val)
 
+        # DEPRECATED backend options
+        if backend_options is not None:
+            for key, val in backend_options.items():
+                setattr(config, key, val)
+
         # Override with run-time options
         for key, val in run_options.items():
             setattr(config, key, val)
 
-        # Get executor
-        executor = None
-        if hasattr(qobj.config, 'executor'):
-            executor = getattr(qobj.config, 'executor')
-            # We need to remove the executor from the qobj config
-            # since it can't be serialized though JSON/Pybind.
-            delattr(qobj.config, 'executor')
-
-        # Optional validation
-        if validate:
-            self._validate(qobj)
-
-        # Split circuits for sub-jobs
-        experiments = split_qobj(
-            qobj, max_size=getattr(qobj.config, 'max_job_size', None))
-        return experiments, executor
+        return qobj
 
     def __repr__(self):
         """String representation of an AerBackend."""

@@ -21,9 +21,27 @@ import functools
 
 from qiskit.providers import JobV1 as Job
 from qiskit.providers import JobStatus, JobError
-from .utils import DEFAULT_EXECUTOR, requires_submit
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+
+
+def requires_submit(func):
+    """
+    Decorator to ensure that a submit has been performed before
+    calling the method.
+
+    Args:
+        func (callable): test function to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+    @functools.wraps(func)
+    def _wrapper(self, *args, **kwargs):
+        if self._future is None:
+            raise JobError("Job not submitted yet!. You have to .submit() first!")
+        return func(self, *args, **kwargs)
+    return _wrapper
 
 
 class AerJob(Job):
@@ -33,24 +51,37 @@ class AerJob(Job):
         _executor (futures.Executor): executor to handle asynchronous jobs
     """
 
-    def __init__(self, backend, job_id, fn, qobj, executor=None):
+    _executor = futures.ThreadPoolExecutor(max_workers=1)
+
+    def __init__(self, backend, job_id, fn, qobj, *args):
         super().__init__(backend, job_id)
         self._fn = fn
         self._qobj = qobj
-        self._executor = executor or DEFAULT_EXECUTOR
+        if args:
+            warnings.warn('Using *args for AerJob is deprecated. All backend'
+                          ' options should be contained in the assembled Qobj.',
+                          DeprecationWarning)
+        self._args = args
         self._future = None
 
-    def submit(self):
+    def submit(self, executor=None):
         """Submit the job to the backend for execution.
 
+        Args:
+            executor (futures.Executor or None): executor to handle asynchronous jobs
         Raises:
             QobjValidationError: if the JSON serialization of the Qobj passed
             during construction does not validate against the Qobj schema.
+
             JobError: if trying to re-submit the job.
         """
         if self._future is not None:
-            raise JobError("Aer job has already been submitted.")
-        self._future = self._executor.submit(self._fn, self._qobj, self._job_id)
+            raise JobError("We have already submitted the job!")
+        _exec = executor or self._executor
+        self._future = _exec.submit(self._fn,
+                                    self._qobj,
+                                    self._job_id,
+                                    *self._args)
 
     @requires_submit
     def result(self, timeout=None):
@@ -113,7 +144,3 @@ class AerJob(Job):
             Qobj: the Qobj submitted for this job.
         """
         return self._qobj
-
-    def executor(self):
-        """Return the executor for this job"""
-        return self._executor
