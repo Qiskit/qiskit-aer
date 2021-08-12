@@ -1034,7 +1034,6 @@ std::vector<reg_t> State::
 sample_measure_using_probabilities(const reg_t &qubits,
 				   uint_t shots,
 				   RngEngine &rng) {
-  std::cout << "in sample_measure_using_probabilities" << std::endl;
   // Generate flat register for storing
   rvector_t rnds;
   rnds.reserve(shots);

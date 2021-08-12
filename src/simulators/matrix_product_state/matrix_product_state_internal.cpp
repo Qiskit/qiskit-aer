@@ -1481,7 +1481,7 @@ reg_t MPS::apply_measure(const reg_t &qubits, RngEngine &rng, bool is_sorted) {
 }
 
 reg_t MPS::apply_measure_internal(const reg_t &qubits, 
-				                          RngEngine &rng, bool is_sorted) {
+				  RngEngine &rng, bool is_sorted) {
   // For every qubit, q,  that is measured, we must propagate the effect of its
   // measurement to its neigbors, l and r, and then to their neighbors, and 
   // so on. If r (or l) is measured next, then there is no need to propagate to
