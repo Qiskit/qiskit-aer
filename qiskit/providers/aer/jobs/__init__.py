@@ -12,20 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-===========================================================
-Cluster Backend (:mod:`qiskit.providers.aer.backends.cluster`)
-===========================================================
-
-.. currentmodule:: qiskit.providers.aer.backends.cluster
-
-High level mechanism for handling cluster jobs.
-
-Classes
-==========================
-.. autosummary::
-   :toctree: ../stubs/
-
-   ClusterBackend
+Aer simulator job management.
 """
 
+from .aerjob import AerJob
 from .aerjobset import AerJobSet
+from .utils import split_qobj

@@ -21,17 +21,17 @@ import time
 import logging
 import copy
 import datetime
+import uuid
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.pulse import Schedule
 from qiskit.qobj import QasmQobj
-from qiskit.providers.jobstatus import JobStatus
 from qiskit.providers import JobV1 as Job
+from qiskit.providers import JobStatus, JobError
 from qiskit.result import Result
 
-from ..aerbackend import AerError
-from .utils import requires_submit
-from ...aerjob import AerJob
+from .utils import DEFAULT_EXECUTOR, requires_submit
+from .aerjob import AerJob
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class AerJobSet(Job):
     :meth:`cancel()`.
     """
 
-    def __init__(self, backend, job_id, func, experiments: List[QasmQobj], executor):
+    def __init__(self, backend, job_id, func, experiments: List[QasmQobj], executor=None):
         """AerJobSet constructor.
 
         Args:
@@ -67,7 +67,7 @@ class AerJobSet(Job):
         self._futures = []
         self._results = None
         self._fn = func
-        self._executor = executor
+        self._executor = executor or DEFAULT_EXECUTOR
         self._start_time = None
         self._end_time = None
 
@@ -84,10 +84,10 @@ class AerJobSet(Job):
         self._future = True
         self._start_time = datetime.datetime.now()
         for i, exp in enumerate(self._experiments):
-            job_id = exp.qobj_id
+            job_id = str(uuid.uuid4())
             logger.debug("Job %s submitted", i + 1)
-            aer_job = AerJob(self._backend, job_id, self._fn, exp)
-            aer_job.submit(self._executor)
+            aer_job = AerJob(self._backend, job_id, self._fn, exp, self._executor)
+            aer_job.submit()
             aer_job._future.add_done_callback(self._set_end_time)
             self._futures.append(aer_job)
 
@@ -129,7 +129,7 @@ class AerJobSet(Job):
             qiskit.Result: Result object
 
         Raises:
-            AerError: if unable to retrieve all job results before the
+            JobError: if unable to retrieve all job results before the
                 specified timeout.
 
         """
@@ -155,7 +155,7 @@ class AerJobSet(Job):
             for individual experiments.
 
         Raises:
-            AerError: if unable to retrieve all job results before the
+            JobError: if unable to retrieve all job results before the
                 specified timeout.
         """
 
@@ -191,7 +191,7 @@ class AerJobSet(Job):
             instance that can be used to retrieve a result.
 
         Raises:
-            AerError: if unable to retrieve all job results before the
+            JobError: if unable to retrieve all job results before the
                 specified timeout.
         """
         start_time = time.time()
@@ -205,15 +205,15 @@ class AerJobSet(Job):
                     logger.warning('ClusterJob %s Error: %s', aer_job.name(), result.header)
                 else:
                     logger.warning('ClusterJob %s did not return a result', aer_job.name())
-        except AerError:
-            raise AerError(
+        except JobError:
+            raise JobError(
                 'Timeout while waiting for the results of experiment {}'.format(
                     aer_job.name()))
 
         if timeout:
             timeout = original_timeout - (time.time() - start_time)
             if timeout <= 0:
-                raise AerError(
+                raise JobError(
                     "Timeout while waiting for JobSet results")
         return result
 
@@ -232,10 +232,10 @@ class AerJobSet(Job):
             A :class:`~qiskit.result.Result` object that contains results from
                 all jobs.
         Raises:
-            AerError: If results cannot be combined because some jobs failed.
+            JobError: If results cannot be combined because some jobs failed.
         """
         if not results:
-            raise AerError(
+            raise JobError(
                 "Results cannot be combined - no results.")
 
         # find first non-null result and copy it's config
@@ -244,7 +244,7 @@ class AerJobSet(Job):
             combined_result = copy.deepcopy(_result)
             combined_result.results = []
         else:
-            raise AerError(
+            raise JobError(
                 "Results cannot be combined - no results.")
 
         for each_result in results:
@@ -288,7 +288,7 @@ class AerJobSet(Job):
             A tuple of the job used to submit the experiment and the experiment index.
 
         Raises:
-            AerError: If the job for the experiment could not be found.
+            JobError: If the job for the experiment could not be found.
         """
         worker_index = self.worker(experiment)
         return self.worker_job(worker_index)
@@ -311,7 +311,7 @@ class AerJobSet(Job):
             list or integer value of the job id
 
         Raises:
-            AerError: If the job for the experiment could not be found.
+            JobError: If the job for the experiment could not be found.
         """
 
         if isinstance(experiment, (QuantumCircuit, Schedule)):
@@ -327,7 +327,7 @@ class AerJobSet(Job):
         elif len(job_list) > 1:
             return job_list
 
-        raise AerError(
+        raise JobError(
             'Unable to find the job for experiment {}.'.format(experiment))
 
     @requires_submit
@@ -344,7 +344,7 @@ class AerJobSet(Job):
             instances that represents the submitted jobs.
 
         Raises:
-            AerError: If the job for the experiment could not be found.
+            JobError: If the job for the experiment could not be found.
         """
         aer_jobs = []
         if isinstance(worker, int):
@@ -364,3 +364,7 @@ class AerJobSet(Job):
         """
         # pylint: disable=unused-argument
         self._end_time = datetime.datetime.now()
+
+    def executor(self):
+        """Return the executor for this job"""
+        return self._executor

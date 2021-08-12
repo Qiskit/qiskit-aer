@@ -158,6 +158,14 @@ class AerSimulator(AerBackend):
       certain simulation methods to either ``"single"`` or ``"double"``
       precision (default: ``"double"``).
 
+    * ``executor`` (futures.Executor or None): Set a custom executor for
+      asynchronous running of simulation jobs (Default: None).
+
+    * ``max_job_size`` (int or None): If the number of run circuits
+      exceeds this value simulation will be run as a set of of sub-jobs
+      on the executor. If ``None`` simulation of all circuits are submitted
+      to the executor as a single job (Default: None).
+      
     * ``zero_threshold`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
 
@@ -491,6 +499,8 @@ class AerSimulator(AerBackend):
             method='automatic',
             device='CPU',
             precision="double",
+            executor=None,
+            max_job_size=None,
             zero_threshold=1e-10,
             validation_threshold=None,
             max_parallel_threads=None,
