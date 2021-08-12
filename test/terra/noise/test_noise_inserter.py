@@ -98,7 +98,8 @@ class TestNoiseInserter(QiskitAerTestCase):
 
         error_x = pauli_error([('Y', 0.25), ('I', 0.75)])
         noise_model = NoiseModel()
-        noise_model.add_nonlocal_quantum_error(error_x, 'x', [0], [1])
+        with self.assertWarns(DeprecationWarning):
+            noise_model.add_nonlocal_quantum_error(error_x, 'x', [0], [1])
 
         target_circuit = QuantumCircuit(qr)
         target_circuit.x(qr[0])
