@@ -766,17 +766,21 @@ Result Controller::execute(const inputdata_t &input_qobj) {
 
     Noise::NoiseModel noise_model;
     json_t config;
+    bool disable_truncation = false;
+
     // Check for config
     if (Parser<inputdata_t>::get_value(config, "config", input_qobj)) {
       // Set config
       set_config(config);
       // Load noise model
       Parser<json_t>::get_value(noise_model, "noise_model", config);
+      // Check for truncation disabled flag
+      Parser<json_t>::get_value(disable_truncation, "disable_truncation", config);
     }
 
     // Initialize qobj
     Qobj qobj;
-    if (noise_model.has_nonlocal_quantum_errors()) {
+    if (disable_truncation || noise_model.has_nonlocal_quantum_errors()) {
        // Non-local noise does not work with optimized initialization
        qobj = Qobj(input_qobj, false);
     } else {

@@ -75,6 +75,11 @@ void TruncateQubits::set_config(const json_t &config) {
   if (JSON::check_key("truncate_enable", config)) {
     JSON::get_value(active_, "truncate_enable", config);
   }
+  bool disabled = false;
+  if (JSON::check_key("disable_truncation", config)) {
+    JSON::get_value(disabled, "disable_truncation", config);
+    active_ = !disabled;
+  }
   if (JSON::check_key("initial_statevector", config)) {
     active_ = false;
   }
