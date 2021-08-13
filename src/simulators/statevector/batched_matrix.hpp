@@ -21,9 +21,10 @@
 namespace AER {
 namespace QV {
 
-class batched_matrix_params 
+class alignas(128) batched_matrix_params 
 {
 public:
+  std::complex<double> matrix2x2_[4];
   uint_t state_index_;
   uint_t num_qubits_;
   uint_t control_mask_;
@@ -31,7 +32,6 @@ public:
   uint_t offset_matrix_;
   uint_t qubit_;
   bool super_op_;
-  std::complex<double> matrix2x2_[4];
 
   batched_matrix_params(){}
 

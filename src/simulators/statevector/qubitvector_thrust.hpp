@@ -3426,22 +3426,27 @@ public:
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_batched_matrix(std::vector<batched_matrix_params>& params,reg_t& qubits,std::vector<std::complex<double>>& matrices)
 {
-  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
-    return;   //first chunk execute all in batch
+  if((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_){
+    if(chunk_.pos() == 0){
+      uint_t n = params.size();
+      if(n > chunk_.container()->num_chunks())
+        n = chunk_.container()->num_chunks();
 
-  if(qubits.size() == 0){ //batched 2x2 matrix 
-    chunk_.StoreBatchedParams(params);
+      if(qubits.size() == 0){ //batched 2x2 matrix 
+        chunk_.StoreBatchedParams(params);
 
-    chunk_.Execute(MatrixMult2x2_batched<data_t>(num_qubits_), params.size() );
-  }
-  else{   //batched NxN matrix
-    if(qubits.size() > 0)
-      chunk_.StoreUintParams(qubits);
-    if(matrices.size() > 0)
-      chunk_.StoreBatchedMatrix(matrices);
-    chunk_.StoreBatchedParams(params);
+        chunk_.Execute(MatrixMult2x2_batched<data_t>(num_qubits_), n );
+      }
+      else{   //batched NxN matrix
+        if(qubits.size() > 0)
+          chunk_.StoreUintParams(qubits);
+        if(matrices.size() > 0)
+          chunk_.StoreBatchedMatrix(matrices);
+        chunk_.StoreBatchedParams(params);
 
-    chunk_.Execute(MatrixMultNxN_batched<data_t>(num_qubits_), params.size() );
+        chunk_.Execute(MatrixMultNxN_batched<data_t>(num_qubits_), n );
+      }
+    }
   }
 }
 

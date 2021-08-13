@@ -614,10 +614,8 @@ void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
   // Simple loop over vector of input operations
   for (size_t i = 0; i < ops.size(); ++i) {
     const auto& op = ops[i];
-    std::cerr << "[" << i << "] " << op << std::endl;
     apply_op(0, op,result,rngs,final_ops && ops.size() == i + 1);
   }
-  std::cerr << " End of Circuit" << std::endl;
 
   BaseState::qreg_.end_of_circuit();
 }
