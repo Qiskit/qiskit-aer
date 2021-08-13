@@ -95,6 +95,12 @@ public:
   // for conditionals based on ops
   void set_params();
 
+  // Optimized initialization method that performs truncation of
+  // unnecessary qubits, remapping of remaining qubits, checking
+  // of measure sampling optimization, and delay of measurements
+  // to end of circuit
+  void optimized_set_params(bool disable_truncation = false);
+
   // Set the circuit rng seed to random value
   inline void set_random_seed() {seed = std::random_device()();}
 
@@ -118,36 +124,12 @@ private:
   // Reset circuit metadata
   void reset_metadata();
 
-  // Set for op types that generate result data from simulations
-  const static std::unordered_set<OpType> result_ops_;
-
-  // Optimized initialization method that performs truncation of
-  // unnecessary qubits, remapping of remaining qubits, checking
-  // of measure sampling optimization, and delay of measurements
-  // to end of circuit 
-  void optimized_initialize(std::vector<Op>&& instructions);
-  void optimized_initialize(const std::vector<Op>& instructions);
-
-  // Helper functions for optimized initialization
-
-  // Reverse iterate over set of input ops to build set of measure
-  // and save instruction predecessors to determine which qubits
-  // are necessary to simulate
-  std::vector<Op> get_reversed_ops(std::vector<Op>&& instructions);
-  std::vector<Op> get_reversed_ops(const std::vector<Op>& instructions);
-
-  // Reverse iterate over reversed ops to build the remapped circuit
-  // of ops required to produce the expected output
-  std::vector<Op> get_forward_ops(std::vector<Op>&& reversed_ops);
-
-  // Helper function for get_reversed_ops
+  // Helper function for optimized set params
   bool check_result_ancestor(const Op& op,
-                             std::set<uint_t>& measured_qubits,
-                             std::set<uint_t>& ancestor_qubits,
-                             std::set<uint_t>& modified_qubits,
-                             bool& measure_opt) const;
-
+                             std::unordered_set<uint_t>& ancestor_qubits) const;
   
+  // Helper function for optimized set params
+  void remap_qubits(Op& op, std::unordered_map<uint_t, uint_t> &qubit_mapping) const;
 };
 
 
@@ -229,19 +211,19 @@ void Circuit::set_params() {
 }
 
 Circuit::Circuit(const std::vector<Op> &_ops, bool optimize) : Circuit() {
+  ops = _ops;
   if (optimize) {
-    optimized_initialize(_ops);
+    optimized_set_params();
   } else {
-    ops = _ops;
     set_params();
   }
 }
 
 Circuit::Circuit(std::vector<Op> &&_ops, bool optimize) : Circuit() {
+  ops = _ops;
   if (optimize) {
-    optimized_initialize(std::move(_ops));
+    optimized_set_params();
   } else {
-    ops = std::move(_ops);
     set_params();
   }
 }
@@ -280,18 +262,14 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool optimi
   for(auto the_op: input_ops){
     converted_ops.emplace_back(Operations::input_to_op(the_op));
   }
-
-  // Optimized initialization
-  if (optimize) {
-    optimized_initialize(converted_ops);
-    return;
-  }
-
-  // Old non-optimized initialization
   ops = std::move(converted_ops);
 
   // Set circuit parameters from ops
-  set_params();
+  if (optimize) {
+    optimized_set_params();
+  } else {
+    set_params();
+  }
 
   // Check for specified memory slots
   uint_t memory_slots = 0;
@@ -310,24 +288,16 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool optimi
     if (n_qubits < num_qubits) {
       throw std::invalid_argument("Invalid Qobj experiment: n_qubits < instruction qubits.");
     }
-    // override qubit number
-    num_qubits = n_qubits;
+    if (!optimize) {
+      // override qubit number
+      num_qubits = n_qubits;
+    }
   }
 }
 
 //-------------------------------------------------------------------------
 // Circuit initialization optimization
 //-------------------------------------------------------------------------
-
-const std::unordered_set<Operations::OpType> Circuit::result_ops_ = {
-  Operations::OpType::measure, Operations::OpType::roerror, Operations::OpType::snapshot,
-  Operations::OpType::save_state, Operations::OpType::save_expval, Operations::OpType::save_expval_var,
-  Operations::OpType::save_statevec, Operations::OpType::save_statevec_dict,
-  Operations::OpType::save_densmat, Operations::OpType::save_probs, Operations::OpType::save_probs_ket,
-  Operations::OpType::save_amps, Operations::OpType::save_amps_sq, Operations::OpType::save_stabilizer,
-  Operations::OpType::save_unitary, Operations::OpType::save_mps, Operations::OpType::save_superop,
-};
-
 
 void Circuit::reset_metadata() {
 
@@ -366,193 +336,237 @@ void Circuit::add_op_metadata(const Op& op) {
 }
 
 
-void Circuit::optimized_initialize(const std::vector<Op>& instructions) {
+void Circuit::optimized_set_params(bool disable_truncation) {
+  // Clear current circuit metadata  
   reset_metadata();
-  ops = get_forward_ops(get_reversed_ops(instructions));
-}
 
-void Circuit::optimized_initialize(std::vector<Op>&& instructions) {
-  reset_metadata();
-  ops = get_forward_ops(get_reversed_ops(std::move(instructions)));
-}
+  
+  // Analyze input ops from tail to head to get locations of ancestor,
+  // first measurement position and last initialize position
+  const auto size = ops.size();
+  std::vector<bool> ancestor(size, false);
+  first_measure_pos = 0;
+  size_t num_ancestors = 0;
+  size_t last_ancestor_pos = 0;
+  size_t last_initialize_pos = 0;
+  bool truncate_ops = false;
 
+  if (!ops.empty()) {
+    std::unordered_set<uint_t> ancestor_qubits;
+    for (size_t i = 0; i < size; ++ i) {
+      const size_t rpos = size - i - 1;
+      const auto& op = ops[rpos];
+      if (disable_truncation || check_result_ancestor(op, ancestor_qubits)) {
+        add_op_metadata(op);
+        ancestor[rpos] = true;
+        num_ancestors++;
+        if (op.type == OpType::measure) {
+          first_measure_pos = rpos;
+        } else if (op.type == OpType::initialize && last_initialize_pos == 0) {
+          last_initialize_pos = rpos;
+        }
+        if (last_ancestor_pos == 0) {
+          last_ancestor_pos = rpos;
+        }
+      } else if (!disable_truncation && !truncate_ops){
+        truncate_ops = true;
+      }
+    }
+  }
 
-std::vector<Operations::Op> Circuit::get_forward_ops(std::vector<Op> && reversed_ops) {
-
-  // Generate mapping of original qubits to ancestor set
-  uint_t idx = 0;
+  // Set qubit size and check for truncaiton
   std::unordered_map<uint_t, uint_t> qubit_mapping;
   std::unordered_map<uint_t, uint_t> inverse_qubit_mapping;
-  for (const auto& qubit: qubitset_) {
-    if (trivial_map_ && idx != qubit) {
-      trivial_map_ = false;
-    }
-    qubit_mapping[qubit] = idx;
-    inverse_qubit_mapping[idx] = qubit;
-    idx++;
-  }
-
-  // Set circuit size parameters
-  num_qubits = qubitset_.size();
-  num_memory = memoryset_.size();
-  num_registers = registerset_.size();
-
-  // Construct remapped circuit
-  std::vector<Op> circuit_ops;
-  std::vector<Op> measurement_ops;
-
-  // Keep track of any initialize instructions that aren't first instruction
-  size_t pos = 0;
-  size_t min_initialize_qubits = 0;
-  bool has_results = false;
-
-  while (!reversed_ops.empty()) {
-    auto& op = reversed_ops.back();
-
-    // Check if circuit has generated any result data
-    if (!has_results && (result_ops_.find(op.type) != result_ops_.end())) {
-      has_results = true;
-    }
-
-    // Remap op qubits
-    if (!trivial_map_) {
-      reg_t new_qubits;
-      for (auto& qubit : op.qubits) {
-        new_qubits.push_back(qubit_mapping[qubit]);
+  if (!disable_truncation) {
+    // Generate mapping of original qubits to ancestor set
+    trivial_map_ = false;
+    uint_t idx = 0;
+    std::unordered_map<uint_t, uint_t> qubit_mapping;
+    std::unordered_map<uint_t, uint_t> inverse_qubit_mapping;
+    for (const auto& qubit: qubitset_) {
+      if (trivial_map_ && idx != qubit) {
+        trivial_map_ = false;
       }
-      op.qubits = new_qubits;
+      qubit_mapping[qubit] = idx;
+      inverse_qubit_mapping[idx] = qubit;
+      idx++;
     }
-
-    // Check for initialize optimizations
-    if (op.type == OpType::initialize) {
-      if (!has_results && (op.qubits.size() == num_qubits)) {
-        // We are overriding any previous instructions that haven't generated
-        // data so we can discard them
-        ops.clear();
-        min_initialize_qubits = 0;
-        pos = 0;
-      } else if (pos > 0) {
-        min_initialize_qubits = (min_initialize_qubits == 0)
-          ? op.qubits.size()
-          : std::min(op.qubits.size(), min_initialize_qubits);
-      }
-    }
-
-    // Move op to remapped circuit
-    if (!has_conditional && can_sample && (
-          op.type == OpType::measure || op.type == OpType::roerror)) {
-      measurement_ops.push_back(std::move(op));
-    } else {
-      circuit_ops.push_back(std::move(op));
-    }
-
-    // Pop off empty tail and increase position counter
-    reversed_ops.pop_back();
-    pos++;
+    // Set qubit map to original circuit qubits
+    qubitmap_ = std::move(inverse_qubit_mapping);
+  } else {
+    // No truncation
+    trivial_map_ = true;
   }
 
-  // Add measurement ops to tail
-  first_measure_pos = circuit_ops.size();
-  for (auto&& op : measurement_ops) {
-    circuit_ops.push_back(std::move(op));
+  // Set qubit and memory size
+  num_memory = (memoryset_.empty()) ? 0 : 1 + *memoryset_.rbegin();
+  num_registers = (registerset_.empty()) ? 0 : 1 + *registerset_.rbegin();
+  if (!trivial_map_) {
+    num_qubits = qubitset_.size();
+  } else {
+    num_qubits = (qubitset_.empty()) ? 0 : 1 + *qubitset_.rbegin();
   }
 
-  // Check if non-initial initialize instructions disable measure sampling
-  // because they aren't defined on the full circuit width.
-  if (min_initialize_qubits > 0 && min_initialize_qubits < num_qubits) {
+  // Check if can sample initialize
+  if (last_initialize_pos > 0 &&
+      ops[last_initialize_pos].qubits.size() < num_qubits) {
     can_sample_initialize = false;
+    can_sample = false;
   }
 
-  // Set qubit map to original circuit qubits
-  qubitmap_ = std::move(inverse_qubit_mapping);
+  // Check measurement opt and split tail meas and non-meas ops
+  std::vector<uint_t> tail_pos;
+  std::vector<Op> tail_meas_ops;
+  if (can_sample) {
+    std::unordered_set<uint_t> meas_qubits;
+    std::unordered_set<uint_t> modified_qubits;
 
-  return circuit_ops;
-}
-
-std::vector<Operations::Op> Circuit::get_reversed_ops(const std::vector<Operations::Op>& instructions) {
-  std::vector<Operations::Op> inst_cpy = instructions;
-  return get_reversed_ops(std::move(inst_cpy));
-}
-
-std::vector<Operations::Op> Circuit::get_reversed_ops(std::vector<Operations::Op>&& instructions) {
-  std::vector<Operations::Op> reversed_ancestors;
-
-  // Reverse iterate over instructions and collect ancestors
-  // for any result producing instructions
-  std::set<uint_t> measured_qubits;
-  std::set<uint_t> ancestor_qubits;
-  std::set<uint_t> modified_qubits;
-
-  while (!instructions.empty()) {
-    auto& op = instructions.back();
-    if (check_result_ancestor(op, measured_qubits, ancestor_qubits, modified_qubits, can_sample)) {
-      add_op_metadata(op);
-      reversed_ancestors.push_back(std::move(op));
-    }
-    instructions.pop_back();
-  }
-  return reversed_ancestors;
-}
-
-
-bool Circuit::check_result_ancestor(const Op& op,
-                                    std::set<uint_t>& measured_qubits,
-                                    std::set<uint_t>& ancestor_qubits,
-                                    std::set<uint_t>& modified_qubits,
-                                    bool& measure_opt) const {
-  if (op.type == OpType::barrier || op.type == OpType::nop) {
-    return false;
-  }
-  if (op.type == OpType::bfunc) {
-    measure_opt = false;
-    return true;
-  }
-
-  // Check if op is a a result generating instrunction, or an ancestor
-  // of result generating instructions
-  bool ancestor = false;
-  for (const auto& qubit: op.qubits) {
-    if (result_ops_.find(op.type) != result_ops_.end()) {
-      // Instruction generates result data
-      measured_qubits.insert(qubit);
-      ancestor_qubits.insert(qubit);
-      if (measure_opt && op.type == OpType::measure
-          && (modified_qubits.find(qubit) == modified_qubits.end())) {
-        // Instruction is an intermediate measurement that can't be
-        // pushed to the tail of a circuit and hence disables
-        // measure sampling optimization
-        measure_opt = false;
+    // NOTE: check if end should be < or <=?
+    for (uint_t pos = first_measure_pos; pos < last_ancestor_pos; ++pos) {
+      if (truncate_ops && !ancestor[pos]) {
+        // Skip if not ancestor
+        continue;
       }
-    } else if (measure_opt && measured_qubits.find(qubit) != measured_qubits.end()) {
+
+      const auto& op = ops[pos];
       if (op.conditional) {
-        // Measure opt is also prevented if the op is conditional
-        measure_opt = false;
-      } else {
-        // Instruction modifies a qubit that will be measured so could
-        // potentially prevent measure sampling if there is an intermediate
-        // measurement on this qubit
-        modified_qubits.insert(qubit);
+        can_sample = false;
+        break;
+      }
+  
+      switch (op.type) {
+        case OpType::measure:
+        case OpType::roerror: {
+          meas_qubits.insert(op.qubits.begin(), op.qubits.end());
+          tail_meas_ops.push_back(op);
+          break;  
+        }
+        case OpType::snapshot:
+        case OpType::save_state:
+        case OpType::save_expval:
+        case OpType::save_expval_var:
+        case OpType::save_statevec:
+        case OpType::save_statevec_dict:
+        case OpType::save_densmat:
+        case OpType::save_probs:
+        case OpType::save_probs_ket:
+        case OpType::save_amps:
+        case OpType::save_amps_sq:
+        case OpType::save_stabilizer:
+        case OpType::save_unitary:
+        case OpType::save_mps:
+        case OpType::save_superop: {
+          can_sample = false;
+          break;
+        }
+        default: {
+          for (const auto &qubit : op.qubits) {
+            if (meas_qubits.find(qubit) != meas_qubits.end()) {
+              can_sample = false;
+              break;
+            }
+          }
+          tail_pos.push_back(pos);
+        }
+      }
+      if (!can_sample) {
+        break;
       }
     }
+  }
 
-    if (!ancestor && (ancestor_qubits.find(qubit) != ancestor_qubits.end())) {
-      // If qubit is in ancestor qubits all op qubits are ancestors
-      ancestor = true;
+  // Counter for current position in ops as we shuffle ops
+  size_t op_idx = 0;
+  size_t front_end = (can_sample) ? first_measure_pos : last_ancestor_pos;
+  for (size_t pos = 0; pos < front_end; ++pos) {
+    if (!truncate_ops || ancestor[pos]) {
+      remap_qubits(ops[pos], qubit_mapping);
+      if (pos != op_idx) {
+        ops[op_idx] = std::move(ops[pos]);
+      }
+      op_idx++;
     }
   }
-  
-  // If instruction isn't an ancestor we are done
-  if (!ancestor) {
-    return false;
+  if (can_sample) {
+    // Apply remapping to tail ops
+    for (size_t tidx = 0; tidx < tail_pos.size(); ++tidx) {
+      const auto tpos = tail_pos[tidx];
+      if (!truncate_ops || ancestor[tpos]) {
+        auto& op = ops[tpos];
+        remap_qubits(ops[tpos], qubit_mapping);
+        if (tpos != op_idx) {
+          ops[op_idx] = std::move(op);
+        }
+        op_idx++;
+      }
+    }
+    // Now add remaining delayed measure ops
+    for (auto & op : tail_meas_ops) {
+      remap_qubits(op, qubit_mapping);
+      ops[op_idx] = std::move(op);
+      op_idx++;
+    }
   }
 
-  // If instruction is ancestor add all qubits to ancestor qubit set
-  for (const auto& qubit: op.qubits) {
-    ancestor_qubits.insert(qubit);
-  }
-  return true;
+  // Resize to remove discarded ops
+  ops.resize(op_idx);
 }
 
+
+void Circuit::remap_qubits(Op& op, std::unordered_map<uint_t, uint_t> &qubit_mapping) const {
+  if (!trivial_map_) {
+    // Remap qubits
+    reg_t new_qubits;
+    new_qubits.reserve(op.qubits.size());
+    for (auto& qubit : op.qubits) {
+      new_qubits.push_back(qubit_mapping[qubit]);
+    }
+    op.qubits = std::move(new_qubits);
+  }
+}
+
+
+bool Circuit::check_result_ancestor(const Op& op, std::unordered_set<uint_t>& ancestor_qubits) const {
+  switch (op.type) {
+    case OpType::barrier:
+    case OpType::nop: {
+      return false;
+    }
+    case OpType::bfunc: {
+      return true;
+    }
+    // Result generating types
+    case OpType::measure:
+    case OpType::roerror:
+    case OpType::snapshot:
+    case OpType::save_state:
+    case OpType::save_expval:
+    case OpType::save_expval_var:
+    case OpType::save_statevec:
+    case OpType::save_statevec_dict:
+    case OpType::save_densmat:
+    case OpType::save_probs:
+    case OpType::save_probs_ket:
+    case OpType::save_amps:
+    case OpType::save_amps_sq:
+    case OpType::save_stabilizer:
+    case OpType::save_unitary:
+    case OpType::save_mps:
+    case OpType::save_superop: {
+      ancestor_qubits.insert(op.qubits.begin(), op.qubits.end());
+      return true;
+    }
+    default: {
+      for (const auto& qubit : op.qubits) {
+        if (ancestor_qubits.find(qubit) != ancestor_qubits.end()) {
+          ancestor_qubits.insert(op.qubits.begin(), op.qubits.end());
+          return true;
+        }
+      }
+      return false;
+    }
+  }
+}
 
 //------------------------------------------------------------------------------
 } // end namespace AER
