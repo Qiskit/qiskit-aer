@@ -66,7 +66,6 @@ class TestOptions(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         qc = QuantumCircuit(1)
         qc.x(0)
-        qc.measure_all()
         qc = transpile(qc, backend)
 
         # Target simulation method
@@ -87,7 +86,6 @@ class TestOptions(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         qc = QuantumCircuit(1)
         qc.x(0)
-        qc.measure_all()
         qc = transpile(qc, backend)
 
         result = backend.run(qc).result()

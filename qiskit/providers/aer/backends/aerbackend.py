@@ -133,12 +133,15 @@ class AerBackend(Backend, ABC):
                           PendingDeprecationWarning,
                           stacklevel=2)
             qobj = circuits
-            # Qobj values take precendence over run_options for shots and memory,
+            # Qobj values take precendence over run_options
             # otherwise values from legacy assembly won't be preserved.
-            for key in ["shots", "memory"]:
-                value = getattr(qobj.config, key, None)
-                if value is not None:
-                    run_options[key] = value
+            if not run_options:
+                run_options = qobj.config.__dict__
+            else:
+                run_options = copy.copy(run_options)
+                for key, value in qobj.config.__dict__.items():
+                    if key not in run_options and value is not None:
+                        run_options[key] = value
         else:
             qobj = assemble(circuits, self)
 
