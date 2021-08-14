@@ -99,7 +99,7 @@ public:
   // unnecessary qubits, remapping of remaining qubits, checking
   // of measure sampling optimization, and delay of measurements
   // to end of circuit
-  void optimized_set_params(bool disable_truncation = false);
+  void optimized_set_params(bool truncation = true);
 
   // Set the circuit rng seed to random value
   inline void set_random_seed() {seed = std::random_device()();}
@@ -336,16 +336,16 @@ void Circuit::add_op_metadata(const Op& op) {
 }
 
 
-void Circuit::optimized_set_params(bool disable_truncation) {
+void Circuit::optimized_set_params(bool truncation) {
   // Clear current circuit metadata  
   reset_metadata();
-
   
   // Analyze input ops from tail to head to get locations of ancestor,
   // first measurement position and last initialize position
   const auto size = ops.size();
   std::vector<bool> ancestor(size, false);
-  first_measure_pos = 0;
+  first_measure_pos = size;
+  bool has_measure = false;
   size_t num_ancestors = 0;
   size_t last_ancestor_pos = 0;
   size_t last_initialize_pos = 0;
@@ -356,36 +356,38 @@ void Circuit::optimized_set_params(bool disable_truncation) {
     for (size_t i = 0; i < size; ++ i) {
       const size_t rpos = size - i - 1;
       const auto& op = ops[rpos];
-      if (disable_truncation || check_result_ancestor(op, ancestor_qubits)) {
+      if (!truncation || check_result_ancestor(op, ancestor_qubits)) {
         add_op_metadata(op);
         ancestor[rpos] = true;
         num_ancestors++;
         if (op.type == OpType::measure) {
           first_measure_pos = rpos;
+          has_measure = true;
         } else if (op.type == OpType::initialize && last_initialize_pos == 0) {
           last_initialize_pos = rpos;
         }
         if (last_ancestor_pos == 0) {
           last_ancestor_pos = rpos;
         }
-      } else if (!disable_truncation && !truncate_ops){
+      } else if (truncation && !truncate_ops){
         truncate_ops = true;
       }
     }
   }
 
   // Set qubit size and check for truncaiton
+  trivial_map_ = true;
   std::unordered_map<uint_t, uint_t> qubit_mapping;
   std::unordered_map<uint_t, uint_t> inverse_qubit_mapping;
-  if (!disable_truncation) {
+  if (truncation) {
     // Generate mapping of original qubits to ancestor set
-    trivial_map_ = false;
     uint_t idx = 0;
     std::unordered_map<uint_t, uint_t> qubit_mapping;
     std::unordered_map<uint_t, uint_t> inverse_qubit_mapping;
     for (const auto& qubit: qubitset_) {
       if (trivial_map_ && idx != qubit) {
         trivial_map_ = false;
+        break;
       }
       qubit_mapping[qubit] = idx;
       inverse_qubit_mapping[idx] = qubit;
@@ -393,11 +395,7 @@ void Circuit::optimized_set_params(bool disable_truncation) {
     }
     // Set qubit map to original circuit qubits
     qubitmap_ = std::move(inverse_qubit_mapping);
-  } else {
-    // No truncation
-    trivial_map_ = true;
   }
-
   // Set qubit and memory size
   num_memory = (memoryset_.empty()) ? 0 : 1 + *memoryset_.rbegin();
   num_registers = (registerset_.empty()) ? 0 : 1 + *registerset_.rbegin();
@@ -417,12 +415,11 @@ void Circuit::optimized_set_params(bool disable_truncation) {
   // Check measurement opt and split tail meas and non-meas ops
   std::vector<uint_t> tail_pos;
   std::vector<Op> tail_meas_ops;
-  if (can_sample) {
+  if (has_measure && can_sample) {
     std::unordered_set<uint_t> meas_qubits;
     std::unordered_set<uint_t> modified_qubits;
 
-    // NOTE: check if end should be < or <=?
-    for (uint_t pos = first_measure_pos; pos < last_ancestor_pos; ++pos) {
+    for (uint_t pos = first_measure_pos; pos <= last_ancestor_pos; ++pos) {
       if (truncate_ops && !ancestor[pos]) {
         // Skip if not ancestor
         continue;
@@ -433,7 +430,7 @@ void Circuit::optimized_set_params(bool disable_truncation) {
         can_sample = false;
         break;
       }
-  
+
       switch (op.type) {
         case OpType::measure:
         case OpType::roerror: {
@@ -477,17 +474,21 @@ void Circuit::optimized_set_params(bool disable_truncation) {
 
   // Counter for current position in ops as we shuffle ops
   size_t op_idx = 0;
-  size_t front_end = (can_sample) ? first_measure_pos : last_ancestor_pos;
-  for (size_t pos = 0; pos < front_end; ++pos) {
+  const size_t head_end = (has_measure && can_sample) ? first_measure_pos : last_ancestor_pos + 1;
+  for (size_t pos = 0; pos < head_end; ++pos) {
     if (!truncate_ops || ancestor[pos]) {
       remap_qubits(ops[pos], qubit_mapping);
       if (pos != op_idx) {
         ops[op_idx] = std::move(ops[pos]);
       }
+      if (pos == first_measure_pos) {
+        first_measure_pos = op_idx;
+      }
       op_idx++;
     }
   }
-  if (can_sample) {
+
+  if (has_measure && can_sample) {
     // Apply remapping to tail ops
     for (size_t tidx = 0; tidx < tail_pos.size(); ++tidx) {
       const auto tpos = tail_pos[tidx];
@@ -501,12 +502,15 @@ void Circuit::optimized_set_params(bool disable_truncation) {
       }
     }
     // Now add remaining delayed measure ops
+    first_measure_pos = op_idx;
     for (auto & op : tail_meas_ops) {
       remap_qubits(op, qubit_mapping);
       ops[op_idx] = std::move(op);
       op_idx++;
     }
   }
+  // Handle edge case of truncation with no measurements
+  first_measure_pos = std::min(op_idx, first_measure_pos);
 
   // Resize to remove discarded ops
   ops.resize(op_idx);
