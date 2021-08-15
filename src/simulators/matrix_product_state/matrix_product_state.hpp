@@ -1076,7 +1076,7 @@ std::vector<reg_t> State::
     #pragma omp for
     for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
       temp.initialize(qreg_);
-      auto single_result = temp.apply_measure(sorted_qubits, rng, true);
+      auto single_result = temp.apply_measure(sorted_qubits, rng);
       all_samples[i] = single_result;
     }
   }
