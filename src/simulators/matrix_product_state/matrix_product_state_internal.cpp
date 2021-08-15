@@ -1481,6 +1481,8 @@ reg_t MPS::apply_measure(const reg_t &qubits, RngEngine &rng, bool is_sorted) {
   return apply_measure_internal(qubits, rng, is_sorted);
 }
 
+// The caller to apply_measure_internal is responsible to call 
+// move_all_qubits_to_sorted_ordering before calling this function
 reg_t MPS::apply_measure_internal(const reg_t &qubits, 
 				  RngEngine &rng, bool is_sorted) {
   // For every qubit, q,  that is measured, we must propagate the effect of its
