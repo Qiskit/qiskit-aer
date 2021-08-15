@@ -1064,7 +1064,7 @@ std::vector<reg_t> State::
 
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
-  // since input is always sorted in qasm_controller, therefore, we must return the qubits 
+  // input is always sorted in qasm_controller, therefore, we must return the qubits 
   // to their original location (sorted)
   qreg_.move_all_qubits_to_sorted_ordering();
   reg_t sorted_qubits = qubits;
