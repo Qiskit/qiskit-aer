@@ -136,12 +136,6 @@ public:
   // If no nonlocal error exists an empty set is returned.
   std::set<uint_t> nonlocal_noise_qubits(const std::string label, const reg_t &qubits) const;
 
-  // Set threshold for applying u1 rotation angles.
-  // an Op for u1(theta) will only be added if |theta| > 0 and |theta - 2*pi| > 0
-  inline void set_u1_threshold(double threshold) {
-    u1_threshold_ = threshold;
-  }
-
   // Return the opset for the noise model
   inline const Operations::OpSet& opset() const {return opset_;}
 
@@ -221,16 +215,9 @@ private:
   // If conversion isn't possible this returns an empty matrix
   cmatrix_t op2unitary(const Operations::Op &op) const;
 
-  // Lookup table for gate strings to enum
-  enum class WaltzGate {id, x, y, z, h, s, sdg, t, tdg, u0, u1, u2, u3};
-  const static stringmap_t<WaltzGate> waltz_gate_table_;
-
   // Parameterized Gates
   enum class ParamGate {u1, u2, u3, r, rx, ry, rz, rxx, ryy, rzz, rzx, cp};
   const static stringmap_t<ParamGate> param_gate_table_;
-
-  // waltz threshold for applying u1 rotations if |theta - 2n*pi | > threshold
-  double u1_threshold_ = 1e-10;
 
   // Joint OpSet of all errors
   Operations::OpSet opset_;
@@ -707,15 +694,6 @@ void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
     }
   }
 }
-
-
-const stringmap_t<NoiseModel::WaltzGate>
-NoiseModel::waltz_gate_table_ = {
-  {"u3", WaltzGate::u3}, {"u2", WaltzGate::u2}, {"u1", WaltzGate::u1}, {"u0", WaltzGate::u0},
-  {"id", WaltzGate::id}, {"x", WaltzGate::x}, {"y", WaltzGate::y}, {"z", WaltzGate::z},
-  {"h", WaltzGate::h}, {"s", WaltzGate::s}, {"sdg", WaltzGate::sdg},
-  {"t", WaltzGate::t}, {"tdg", WaltzGate::tdg}
-};
 
 
 cmatrix_t NoiseModel::op2superop(const Operations::Op &op) const {

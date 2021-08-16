@@ -110,7 +110,6 @@ class AerBackend(Backend, ABC):
     @deprecate_arguments({'qobj': 'circuits'})
     def run(self,
             circuits,
-            backend_options=None,  # DEPRECATED
             validate=False,
             **run_options):
         """Run a qobj on the backend.
@@ -118,8 +117,6 @@ class AerBackend(Backend, ABC):
         Args:
             circuits (QuantumCircuit or list): The QuantumCircuit (or list
                 of QuantumCircuit objects) to run
-            backend_options (dict or None): DEPRECATED dictionary of backend options
-                                            for the execution (default: None).
             validate (bool): validate the Qobj before running (default: False).
             run_options (kwargs): additional run time backend options.
 
@@ -127,25 +124,9 @@ class AerBackend(Backend, ABC):
             AerJob: The simulation job.
 
         Additional Information:
-            * kwarg options specified in ``run_options`` will temporarily override
-              any set options of the same name for the current run.
-
-            * The entries in the ``backend_options`` will be combined with
-              the ``Qobj.config`` dictionary with the values of entries in
-              ``backend_options`` taking precedence. This kwarg is deprecated
-              and direct kwarg's should be used for options to pass them to
-              ``run_options``.
+            kwarg options specified in ``run_options`` will temporarily override
+            any set options of the same name for the current run.
         """
-        # DEPRECATED
-        if backend_options is not None:
-            warnings.warn(
-                'Using `backend_options` kwarg has been deprecated as of'
-                ' qiskit-aer 0.7.0 and will be removed no earlier than 3'
-                ' months from that release date. Runtime backend options'
-                ' should now be added directly using kwargs for each option.',
-                DeprecationWarning,
-                stacklevel=3)
-
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn('Using a qobj for run() is deprecated and will be '
                           'removed in a future release.',
@@ -156,8 +137,7 @@ class AerBackend(Backend, ABC):
             qobj = assemble(circuits, self)
 
         # Add backend options to the Job qobj
-        self._add_options_to_qobj(
-            qobj, backend_options=backend_options, **run_options)
+        self._add_options_to_qobj(qobj, **run_options)
 
         # Optional validation
         if validate:
@@ -235,26 +215,6 @@ class AerBackend(Backend, ABC):
             operational=True,
             pending_jobs=0,
             status_msg='')
-
-    def _run_job(self, job_id, qobj, backend_options, noise_model, validate):
-        """Run a qobj job"""
-        warnings.warn(
-            'The `_run_job` method has been deprecated. Use `_run` instead.',
-            DeprecationWarning)
-        if validate:
-            warnings.warn(
-                'The validate arg of `_run_job` has been removed. Use '
-                'validate=True in the `run` method instead.',
-                DeprecationWarning)
-
-        # The new function swaps positional args qobj and job id so we do a
-        # type check to swap them back
-        if not isinstance(job_id, str) and isinstance(qobj, str):
-            job_id, qobj = qobj, job_id
-        self._add_options_to_qobj(qobj,
-                                  backend_options=backend_options,
-                                  noise_model=noise_model)
-        return self._run(qobj, job_id)
 
     def _run(self, qobj, job_id=''):
         """Run a job"""
@@ -372,7 +332,6 @@ class AerBackend(Backend, ABC):
             self._options_defaults.pop(key)
 
     def _add_options_to_qobj(self, qobj,
-                             backend_options=None,  # DEPRECATED
                              **run_options):
         """Return execution sim config dict from backend options."""
         # Add options to qobj config overriding any existing fields
@@ -381,11 +340,6 @@ class AerBackend(Backend, ABC):
         # Add options
         for key, val in self.options.__dict__.items():
             if val is not None and not hasattr(config, key):
-                setattr(config, key, val)
-
-        # DEPRECATED backend options
-        if backend_options is not None:
-            for key, val in backend_options.items():
                 setattr(config, key, val)
 
         # Override with run-time options

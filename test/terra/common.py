@@ -25,6 +25,7 @@ from random import choice, sample
 from math import pi
 import numpy as np
 import fixtures
+import warnings
 
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -50,6 +51,14 @@ class QiskitAerTestCase(FullQiskitTestCase):
 
     @classmethod
     def setUpClass(cls):
+        super().setUpClass()
+        allow_DeprecationWarning_modules = [
+            "cvxpy",
+        ]
+        for mod in allow_DeprecationWarning_modules:
+            warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
+
+
         cls.moduleName = os.path.splitext(inspect.getfile(cls))[0]
         cls.log = logging.getLogger(cls.__name__)
 
