@@ -101,19 +101,6 @@ public:
   // Return a string name for the State type
   virtual std::string name() const = 0;
 
-  // Apply a sequence of operations to the current state of the State class.
-  // It is up to the State subclass to decide how this sequence should be
-  // executed (ie in sequence, or some other execution strategy.)
-  // If this sequence contains operations not in the supported opset
-  // an exeption will be thrown.
-  // The `final_ops` flag indicates no more instructions will be applied
-  // to the state after this sequence, so the state can be modified at the
-  // end of the instructions.
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false)  = 0;
-
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
   virtual void initialize_qreg(uint_t num_qubits) = 0;
@@ -172,6 +159,34 @@ public:
   //
   // These methods should not be modified in any State subclasses
   //=======================================================================
+
+  //-----------------------------------------------------------------------
+  // Apply circuits and ops
+  //-----------------------------------------------------------------------
+
+  // Apply a single operation
+  // The `final_op` flag indicates no more instructions will be applied
+  // to the state after this sequence, so the state can be modified at the
+  // end of the instructions.
+  virtual void apply_op(const Operations::Op &op,
+                        ExperimentResult &result,
+                        RngEngine &rng,
+                        bool final_op = false) = 0;
+  
+  // Apply a sequence of operations to the current state of the State class.
+  // It is up to the State subclass to decide how this sequence should be
+  // executed (ie in sequence, or some other execution strategy.)
+  // If this sequence contains operations not in the supported opset
+  // an exeption will be thrown.
+  // The `final_ops` flag indicates no more instructions will be applied
+  // to the state after this sequence, so the state can be modified at the
+  // end of the instructions.
+  template <typename InputIterator>
+  void apply_ops(InputIterator first,
+                 InputIterator last,
+                 ExperimentResult &result,
+                 RngEngine &rng,
+                 bool final_ops = false);
 
   //-----------------------------------------------------------------------
   // ClassicalRegister methods
@@ -310,6 +325,18 @@ void State<state_t>::set_global_phase(const double &phase_angle) {
   else {
     has_global_phase_ = true;
     global_phase_ = std::exp(complex_t(0.0, phase_angle));
+  }
+}
+
+template <class state_t>
+template <typename InputIterator>
+void State<state_t>::apply_ops(InputIterator first, InputIterator last,
+                               ExperimentResult &result,
+                               RngEngine &rng,
+                               bool final_ops) {
+  // Simple loop over vector of input operations
+  for (auto it = first; it != last; ++it) {
+    apply_op(*it, result, rng, final_ops && (it + 1 == last));
   }
 }
 

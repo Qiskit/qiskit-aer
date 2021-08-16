@@ -365,7 +365,7 @@ void QuantumError::compute_superoperator() {
     // We don't need output data or RNG for this
     ExperimentResult data;
     RngEngine rng;
-    superop.apply_ops(circuits_[j], data, rng);
+    superop.apply_ops(circuits_[j].cbegin(), circuits_[j].cend(), data, rng);
     superoperator_ += probabilities_[j] * superop.move_to_matrix();
   }
 }

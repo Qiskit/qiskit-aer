@@ -234,8 +234,8 @@ protected:
 
   // Sample measurement outcomes for the input measure ops from the
   // current state of the input State_t
-  template <class State_t>
-  void measure_sampler(const std::vector<Operations::Op> &meas_ops,
+  template <typename InputIterator, class State_t>
+  void measure_sampler(InputIterator first_meas, InputIterator last_meas,
                        uint_t shots, State_t &state, ExperimentResult &result,
                        RngEngine &rng) const;
 
@@ -1748,7 +1748,7 @@ void Controller::run_single_shot(const Circuit &circ, State_t &state,
                                  RngEngine &rng) const {
   state.initialize_qreg(circ.num_qubits);
   state.initialize_creg(circ.num_memory, circ.num_registers);
-  state.apply_ops(circ.ops, result, rng, true);
+  state.apply_ops(circ.ops.cbegin(), circ.ops.cend(), result, rng, true);
   save_count_data(result, state.creg());
 }
 
@@ -1791,22 +1791,16 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   if (can_sample) {
     // Implement measure sampler
     auto& ops = circ.ops;
-    auto pos =circ.first_measure_pos; // Position of first measurement op
-    auto it_pos = std::next(ops.begin(), pos);
-    bool final_ops = (pos == ops.size());
-
-    // Get measurement opts
-    std::vector<Operations::Op> meas_ops;
-    std::move(it_pos, ops.end(), std::back_inserter(meas_ops));
-    ops.resize(pos);
+    auto first_meas = circ.first_measure_pos; // Position of first measurement op
+    bool final_ops = (first_meas == ops.size());
 
     // Run circuit instructions before first measure
     state.initialize_qreg(circ.num_qubits);
     state.initialize_creg(circ.num_memory, circ.num_registers);
-    state.apply_ops(ops, result, rng, final_ops);
+    state.apply_ops(ops.cbegin(), ops.cbegin() + first_meas, result, rng, final_ops);
 
     // Get measurement operations and set of measured qubits
-    measure_sampler(meas_ops, shots, state, result, rng);
+    measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(), shots, state, result, rng);
 
     // Add measure sampling metadata
     result.metadata.add(true, "measure_sampling");
@@ -1894,12 +1888,12 @@ bool Controller::check_measure_sampling_opt(const Circuit &circ,
   return true;
 }
 
-template <class State_t>
+template <typename InputIterator, class State_t>
 void Controller::measure_sampler(
-    const std::vector<Operations::Op> &meas_roerror_ops, uint_t shots,
+    InputIterator first_meas, InputIterator last_meas, uint_t shots,
     State_t &state, ExperimentResult &result, RngEngine &rng) const {
   // Check if meas_circ is empty, and if so return initial creg
-  if (meas_roerror_ops.empty()) {
+  if (first_meas == last_meas) {
     while (shots-- > 0) {
       save_count_data(result, state.creg());
     }
@@ -1908,11 +1902,13 @@ void Controller::measure_sampler(
 
   std::vector<Operations::Op> meas_ops;
   std::vector<Operations::Op> roerror_ops;
-  for (const Operations::Op &op : meas_roerror_ops)
-    if (op.type == Operations::OpType::roerror)
-      roerror_ops.push_back(op);
-    else /*(op.type == Operations::OpType::measure) */
-      meas_ops.push_back(op);
+  for (auto op = first_meas; op != last_meas; op++) {
+    if (op->type == Operations::OpType::roerror) {
+      roerror_ops.push_back(*op);
+    } else { /*(op.type == Operations::OpType::measure) */
+      meas_ops.push_back(*op);
+    }
+  }
 
   // Get measured qubits from circuit sort and delete duplicates
   std::vector<uint_t> meas_qubits; // measured qubits
@@ -1933,8 +1929,8 @@ void Controller::measure_sampler(
   }
 
   // Maps of memory and register to qubit position
-  std::unordered_map<uint_t, uint_t> memory_map;
-  std::unordered_map<uint_t, uint_t> register_map;
+  std::map<uint_t, uint_t> memory_map;
+  std::map<uint_t, uint_t> register_map;
   for (const auto &op : meas_ops) {
     for (size_t j = 0; j < op.qubits.size(); ++j) {
       auto pos = qubit_map[op.qubits[j]];
@@ -1946,13 +1942,12 @@ void Controller::measure_sampler(
   }
 
   // Process samples
-  // Convert opts to circuit so we can get the needed creg sizes
-  // NB: this function could probably be moved somewhere else like Utils or Ops
-  Circuit meas_circ(meas_roerror_ops);
+  uint_t num_memory = (memory_map.empty()) ? 0ULL : 1 + memory_map.rbegin()->first;
+  uint_t num_registers = (register_map.empty()) ? 0ULL : 1 + register_map.rbegin()->first;
   ClassicalRegister creg;
   while (!all_samples.empty()) {
     auto sample = all_samples.back();
-    creg.initialize(meas_circ.num_memory, meas_circ.num_registers);
+    creg.initialize(num_memory, num_registers);
 
     // process memory bit measurements
     for (const auto &pair : memory_map) {

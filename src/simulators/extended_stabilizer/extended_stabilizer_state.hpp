@@ -77,10 +77,18 @@ public:
 
   //Apply a sequence of operations to the cicuit. For each operation,
   //we loop over the terms in the decomposition in parallel
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false) override;
+  template <typename InputIterator>
+  void apply_ops(InputIterator first, InputIterator last,
+                  ExperimentResult &result,
+                  RngEngine &rng,
+                  bool final_ops = false);
+
+  // Apply a single operation
+  // If the op is not in allowed_ops an exeption will be raised.
+  virtual void apply_op(const Operations::Op &op,
+                        ExperimentResult &result,
+                        RngEngine &rng,
+                        bool final_op = false) override;
 
   void initialize_qreg(uint_t num_qubits) override;
 
@@ -94,24 +102,27 @@ public:
   void set_config(const config_t &config);
 
   std::vector<reg_t> sample_measure(const reg_t& qubits,
-                                            uint_t shots,
-                                            RngEngine &rng) override;
+                                    uint_t shots,
+                                    RngEngine &rng) override;
 
 protected:
 
   //Alongside the sample measure optimisaiton, we can parallelise
   //circuit applicaiton over the states. This reduces the threading overhead
   //as we only have to fork once per circuit.
-  void apply_ops_parallel(const std::vector<Operations::Op> &ops,
-                                  ExperimentResult &result,
-                                  RngEngine &rng);
+  template <typename InputIterator>
+  void apply_ops_parallel(InputIterator first, InputIterator last,
+                          ExperimentResult &result,
+                          RngEngine &rng);
 
   //Small routine that eschews any parallelisation/decomposition and applies a stabilizer
   //circuit to a single state. This is used to optimize a circuit with a large
   //initial clifford fraction, or for running stabilizer circuits.
-  void apply_stabilizer_circuit(const std::vector<Operations::Op> &ops,
-                                      ExperimentResult &result,
-                                      RngEngine &rng);
+  template <typename InputIterator>
+  void apply_stabilizer_circuit(InputIterator first, InputIterator last,
+                                ExperimentResult &result,
+                                RngEngine &rng);
+
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
   // TODO: Investigate OMP synchronisation over stattes to remove these different versions
@@ -192,19 +203,21 @@ protected:
 
   SamplingMethod sampling_method_ = SamplingMethod::resampled_metropolis;
 
-  // Compute the required stabilizer rank of the circuit
-  uint_t compute_chi(const std::vector<Operations::Op> &ops) const;
+  template <typename InputIterator>
+  uint_t compute_chi(InputIterator first, InputIterator last) const;
+
   // Add the given operation to the extent
   void compute_extent(const Operations::Op &op, double &xi) const;
 
-  //Compute the required chi, and count the number of three qubit gates
-  std::pair<uint_t, uint_t> decomposition_parameters(const std::vector<Operations::Op> &ops);
+  template <typename InputIterator>
+  std::pair<uint_t, uint_t> decomposition_parameters(InputIterator first, InputIterator last);
   
-  //Check if this is a stabilizer circuit, for the locaiton of the first non-CLifford gate
-  std::pair<bool, size_t> check_stabilizer_opt(const std::vector<Operations::Op> &ops) const;
+  template <typename InputIterator>
+  std::pair<bool, size_t> check_stabilizer_opt(InputIterator first, InputIterator last) const;
 
-  //Check if we can use the sample_measure optimisation
-  bool check_measurement_opt(const std::vector<Operations::Op> &ops) const;
+  template <typename InputIterator>
+  bool check_measurement_opt(InputIterator first, InputIterator last) const;
+
 };
 
 //=========================================================================
@@ -308,17 +321,18 @@ void State::set_config(const config_t &config)
   }
 }
 
-std::pair<uint_t, uint_t> State::decomposition_parameters(const std::vector<Operations::Op> &ops)
+template <typename InputIterator>
+std::pair<uint_t, uint_t> State::decomposition_parameters(InputIterator first, InputIterator last)
 {
   double xi=1.;
   unsigned three_qubit_gate_count = 0;
-  for (const auto &op: ops)
+  for (auto op = first; op != last; op++)
   {
-    if (op.type == Operations::OpType::gate)
+    if (op->type == Operations::OpType::gate)
     {
       compute_extent(op, xi);
-      auto it = CHSimulator::gate_types_.find(op.name);
-      if (it->second == CHSimulator::Gatetypes::non_clifford && op.qubits.size() == 3)
+      auto it = CHSimulator::gate_types_.find(op->name);
+      if (it->second == CHSimulator::Gatetypes::non_clifford && op->qubits.size() == 3)
       { //We count the number of 3 qubit gates for normalisation purposes
         three_qubit_gate_count++;
       }
@@ -333,9 +347,10 @@ std::pair<uint_t, uint_t> State::decomposition_parameters(const std::vector<Oper
   return std::pair<uint_t, uint_t>({chi, three_qubit_gate_count});
 }
 
-std::pair<bool, size_t> State::check_stabilizer_opt(const std::vector<Operations::Op> &ops) const
+template <typename InputIterator>
+std::pair<bool, size_t> State::check_stabilizer_opt(InputIterator first, InputIterator last) const
 {
-  for(auto op = ops.cbegin(); op != ops.cend(); op++)
+  for(auto op = first; op != last; op++)
   {
     if (op->type != Operations::OpType::gate)
     {
@@ -349,25 +364,26 @@ std::pair<bool, size_t> State::check_stabilizer_opt(const std::vector<Operations
     }
     if(it->second == CHSimulator::Gatetypes::non_clifford)
     {
-      return std::pair<bool, size_t>({false, op - ops.cbegin()});
+      return std::pair<bool, size_t>({false, op - first});
     }
   }
   return std::pair<bool, size_t>({true, 0});
 }
 
-bool State::check_measurement_opt(const std::vector<Operations::Op> &ops) const
+template <typename InputIterator>
+bool State::check_measurement_opt(InputIterator first, InputIterator last) const
 {
-  for (const auto &op: ops)
+  for (auto op = first; op != last; op++)
   {
-    if (op.conditional)
+    if (op->conditional)
     {
       return false;
     }
-    if (op.type == Operations::OpType::measure ||
-        op.type == Operations::OpType::bfunc ||
-        op.type == Operations::OpType::snapshot ||
-        op.type == Operations::OpType::save_statevec ||
-        op.type == Operations::OpType::save_expval)
+    if (op->type == Operations::OpType::measure ||
+        op->type == Operations::OpType::bfunc ||
+        op->type == Operations::OpType::snapshot ||
+        op->type == Operations::OpType::save_statevec ||
+        op->type == Operations::OpType::save_expval)
     {
       return false;
     }
@@ -378,15 +394,20 @@ bool State::check_measurement_opt(const std::vector<Operations::Op> &ops) const
 //-------------------------------------------------------------------------
 // Implementation: Operations
 //-------------------------------------------------------------------------
+void State::apply_op(const Operations::Op &op, ExperimentResult &result,
+                     RngEngine &rng, bool final_op) {
+  apply_ops(&op, &op+1, result, rng, final_op);
+}
 
-void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &result,
-                         RngEngine &rng, bool final_ops)
+template <typename InputIterator>
+void State::apply_ops(InputIterator first, InputIterator last, ExperimentResult &result,
+                      RngEngine &rng, bool final_ops)
 {
-  std::pair<bool, size_t> stabilizer_opts = check_stabilizer_opt(ops);
+  std::pair<bool, size_t> stabilizer_opts = check_stabilizer_opt(first, last);
   bool is_stabilizer = stabilizer_opts.first;
   if(is_stabilizer)
   {
-    apply_stabilizer_circuit(ops, result, rng);
+    apply_stabilizer_circuit(first, last, result, rng);
   }
   else
   {
@@ -396,23 +417,26 @@ void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &
     {
       //Apply the stabilizer circuit first. This optimisaiton avoids duplicating the application
       //of the initial stabilizer circuit chi times.
-      std::vector<Operations::Op> stabilizer_circuit(ops.cbegin(), ops.cbegin()+first_non_clifford);
-      apply_stabilizer_circuit(stabilizer_circuit, result, rng);
+      apply_stabilizer_circuit(first, first+first_non_clifford, result, rng);
     }
-    std::vector<Operations::Op> non_stabilizer_circuit(ops.cbegin()+first_non_clifford, ops.cend());
-    uint_t chi = compute_chi(non_stabilizer_circuit);
+
+    auto it_nonstab_begin = first+first_non_clifford;
+
+    uint_t chi = compute_chi(it_nonstab_begin, last);
     double delta = std::pow(approximation_error_, -2);
     BaseState::qreg_.initialize_decomposition(chi, delta);
     //Check for measurement optimisaitons
-    bool measurement_opt = check_measurement_opt(ops);
+    bool measurement_opt = check_measurement_opt(first, last);
+
     if(measurement_opt)
     {
-      apply_ops_parallel(non_stabilizer_circuit, result, rng);
+      apply_ops_parallel(it_nonstab_begin, last, result, rng);
     }
     else
     {
-      for (const auto &op: non_stabilizer_circuit)
+      for (auto it = it_nonstab_begin; it != last; it++)
       {
+        const auto op = *it;
         if(BaseState::creg_.check_conditional(op)) {
           switch (op.type) {
             case Operations::OpType::gate:
@@ -513,7 +537,8 @@ std::vector<reg_t> State::sample_measure(const reg_t& qubits,
 //-------------------------------------------------------------------------
 
 //Method with slighty optimized parallelisation for the case of a sample_measure circuit
-void State::apply_ops_parallel(const std::vector<Operations::Op> &ops, ExperimentResult &result, RngEngine &rng)
+template <typename InputIterator>
+void State::apply_ops_parallel(InputIterator first, InputIterator last, ExperimentResult &result, RngEngine &rng)
 {
   const int_t NUM_STATES = BaseState::qreg_.get_num_states();
   #pragma omp parallel for if(BaseState::qreg_.check_omp_threshold() && BaseState::threads_>1) num_threads(BaseState::threads_)
@@ -523,65 +548,66 @@ void State::apply_ops_parallel(const std::vector<Operations::Op> &ops, Experimen
     {
       continue;
     }
-    for(const auto &op: ops)
+    for(auto it = first; it != last; it++)
     {
-      switch (op.type)
+      switch (it->type)
       {
         case Operations::OpType::gate:
-          apply_gate(op, rng, i);
+          apply_gate(*it, rng, i);
           break;
         case Operations::OpType::barrier:
           break;
         default:
           throw std::invalid_argument("CH::State::apply_ops_parallel does not support operations of the type \'" + 
-                                       op.name + "\'.");
+                                       it->name + "\'.");
           break;
       }
     }
   }
 }
 
-void State::apply_stabilizer_circuit(const std::vector<Operations::Op> &ops,
-                                      ExperimentResult &result, RngEngine &rng)
+template <typename InputIterator>
+void State::apply_stabilizer_circuit(InputIterator first, InputIterator last,
+                                     ExperimentResult &result, RngEngine &rng)
 {
-  for (const auto &op: ops)
+  for (auto it = first; it != last; ++it)
   {
-    switch (op.type)
-    {
-      case Operations::OpType::gate:
-        if(BaseState::creg_.check_conditional(op))
-        {
+    const Operations::Op op = *it;
+    if(BaseState::creg_.check_conditional(op)) {
+      switch (op.type)
+      {
+        case Operations::OpType::gate:
           apply_gate(op, rng, 0);
-        }
-        break;
-      case Operations::OpType::reset:
-        apply_reset(op.qubits, rng);
-        break;
-      case Operations::OpType::barrier:
-        break;
-      case Operations::OpType::measure:
-        apply_measure(op.qubits, op.memory, op.registers, rng);
-        break;
-      case Operations::OpType::roerror:
-        BaseState::creg_.apply_roerror(op, rng);
-        break;
-      case Operations::OpType::bfunc:
-        BaseState::creg_.apply_bfunc(op);
-        break;
-      case Operations::OpType::snapshot:
-        apply_snapshot(op, result, rng);
-        break;
-      case Operations::OpType::save_statevec:
-        apply_save_statevector(op, result);
-        break;
-      case Operations::OpType::save_expval:
-      case Operations::OpType::save_expval_var:
-        apply_save_expval(op, result, rng);
-        break;
-      default:
-        throw std::invalid_argument("CH::State::apply_stabilizer_circuit does not support operations of the type \'" + 
-                                     op.name + "\'.");
-        break;
+          break;
+        case Operations::OpType::reset:
+          apply_reset(op.qubits, rng);
+          break;
+        case Operations::OpType::barrier:
+          break;
+        case Operations::OpType::measure:
+          apply_measure(op.qubits, op.memory, op.registers, rng);
+          break;
+        case Operations::OpType::roerror:
+          BaseState::creg_.apply_roerror(op, rng);
+          break;
+        case Operations::OpType::bfunc:
+          BaseState::creg_.apply_bfunc(op);
+          break;
+        case Operations::OpType::snapshot:
+          apply_snapshot(op, result, rng);
+          break;
+        case Operations::OpType::save_statevec:
+          apply_save_statevector(op, result);
+          break;
+        case Operations::OpType::save_expval:
+        case Operations::OpType::save_expval_var:
+          apply_save_expval(op, result, rng);
+          break;
+        default:
+          throw std::invalid_argument("CH::State::apply_stabilizer_circuit does not support operations of the type \'" + 
+                                      op.name + "\'.");
+          break;
+      }
     }
   }
 }
@@ -984,13 +1010,13 @@ inline void to_json(json_t &js, cvector_t vec)
   }
 }
 
-//
-uint_t State::compute_chi(const std::vector<Operations::Op> &ops) const
+template <typename InputIterator>
+uint_t State::compute_chi(InputIterator first, InputIterator last) const
 {
   double xi = 1;
-  for (const auto &op: ops)
+  for (auto op = first; op != last; op++)
   {
-    compute_extent(op, xi);
+    compute_extent(*op, xi);
   }
   double err_scaling = std::pow(approximation_error_, -2);
   return std::llrint(std::ceil(xi*err_scaling));
@@ -1032,7 +1058,7 @@ void State::compute_extent(const Operations::Op &op, double &xi) const
 size_t State::required_memory_mb(uint_t num_qubits,
                                  const std::vector<Operations::Op> &ops) const
 {
-  size_t required_chi = compute_chi(ops);
+  size_t required_chi = compute_chi(ops.cbegin(), ops.cend());
   // 5 vectors of num_qubits*8byte words
   // Plus 2*CHSimulator::scalar_t which has 3 4 byte words
   // Plus 2*CHSimulator::pauli_t which has 2 8 byte words and one 4 byte word;

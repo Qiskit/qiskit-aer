@@ -100,12 +100,12 @@ public:
   // Return the string name of the State class
   virtual std::string name() const override { return densmat_t::name(); }
 
-  // Apply a sequence of operations by looping over list
-  // If the input is not in allowed_ops an exeption will be raised.
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false) override;
+  // Apply an operation
+  // If the op is not in allowed_ops an exeption will be raised.
+  virtual void apply_op(const Operations::Op &op,
+                        ExperimentResult &result,
+                        RngEngine &rng,
+                        bool final_op = false) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -451,75 +451,70 @@ void State<densmat_t>::set_config(const config_t &config) {
 //=========================================================================
 
 template <class densmat_t>
-void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
+void State<densmat_t>::apply_op(const Operations::Op &op,
                                  ExperimentResult &result,
                                  RngEngine &rng,
-                                 bool final_ops) {
-  // Simple loop over vector of input operations
-  for (size_t i = 0; i < ops.size(); ++i) {
-    const auto& op = ops[i];
-    // If conditional op check conditional
-    if (BaseState::creg_.check_conditional(op)) {
-      switch (op.type) {
-        case OpType::barrier:
-          break;
-        case OpType::reset:
-          apply_reset(op.qubits);
-          break;
-        case OpType::measure:
-          apply_measure(op.qubits, op.memory, op.registers, rng);
-          break;
-        case OpType::bfunc:
-          BaseState::creg_.apply_bfunc(op);
-          break;
-        case OpType::roerror:
-          BaseState::creg_.apply_roerror(op, rng);
-          break;
-        case OpType::gate:
-          apply_gate(op);
-          break;
-        case OpType::snapshot:
-          apply_snapshot(op, result, final_ops && ops.size() == i + 1);
-          break;
-        case OpType::matrix:
-          apply_matrix(op.qubits, op.mats[0]);
-          break;
-        case OpType::diagonal_matrix:
-          BaseState::qreg_.apply_diagonal_unitary_matrix(op.qubits, op.params);
-          break;
-        case OpType::superop:
-          BaseState::qreg_.apply_superop_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
-          break;
-        case OpType::kraus:
-          apply_kraus(op.qubits, op.mats);
-          break;
-        case OpType::set_statevec:
-          BaseState::qreg_.initialize_from_vector(op.params);
-          break;
-        case OpType::set_densmat:
-          BaseState::qreg_.initialize_from_matrix(op.mats[0]);
-          break;
-        case OpType::save_expval:
-        case OpType::save_expval_var:
-          BaseState::apply_save_expval(op, result);
-          break;
-        case OpType::save_state:
-          apply_save_state(op, result, final_ops && ops.size() == i + 1);
-          break;
-        case OpType::save_densmat:
-          apply_save_density_matrix(op, result, final_ops && ops.size() == i + 1);
-          break;
-        case OpType::save_probs:
-        case OpType::save_probs_ket:
-          apply_save_probs(op, result);
-          break;
-        case OpType::save_amps_sq:
-          apply_save_amplitudes_sq(op, result);
-          break;
-        default:
-          throw std::invalid_argument("DensityMatrix::State::invalid instruction \'" +
-                                      op.name + "\'.");
-      }
+                                 bool final_op) {
+  if (BaseState::creg_.check_conditional(op)) {
+    switch (op.type) {
+      case OpType::barrier:
+        break;
+      case OpType::reset:
+        apply_reset(op.qubits);
+        break;
+      case OpType::measure:
+        apply_measure(op.qubits, op.memory, op.registers, rng);
+        break;
+      case OpType::bfunc:
+        BaseState::creg_.apply_bfunc(op);
+        break;
+      case OpType::roerror:
+        BaseState::creg_.apply_roerror(op, rng);
+        break;
+      case OpType::gate:
+        apply_gate(op);
+        break;
+      case OpType::snapshot:
+        apply_snapshot(op, result, final_op);
+        break;
+      case OpType::matrix:
+        apply_matrix(op.qubits, op.mats[0]);
+        break;
+      case OpType::diagonal_matrix:
+        BaseState::qreg_.apply_diagonal_unitary_matrix(op.qubits, op.params);
+        break;
+      case OpType::superop:
+        BaseState::qreg_.apply_superop_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
+        break;
+      case OpType::kraus:
+        apply_kraus(op.qubits, op.mats);
+        break;
+      case OpType::set_statevec:
+        BaseState::qreg_.initialize_from_vector(op.params);
+        break;
+      case OpType::set_densmat:
+        BaseState::qreg_.initialize_from_matrix(op.mats[0]);
+        break;
+      case OpType::save_expval:
+      case OpType::save_expval_var:
+        BaseState::apply_save_expval(op, result);
+        break;
+      case OpType::save_state:
+        apply_save_state(op, result, final_op);
+        break;
+      case OpType::save_densmat:
+        apply_save_density_matrix(op, result, final_op);
+        break;
+      case OpType::save_probs:
+      case OpType::save_probs_ket:
+        apply_save_probs(op, result);
+        break;
+      case OpType::save_amps_sq:
+        apply_save_amplitudes_sq(op, result);
+        break;
+      default:
+        throw std::invalid_argument("DensityMatrix::State::invalid instruction \'" +
+                                    op.name + "\'.");
     }
   }
 }

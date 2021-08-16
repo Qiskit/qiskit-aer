@@ -81,11 +81,12 @@ public:
   // Return the string name of the State class
   virtual std::string name() const override { return "unitary"; }
 
-  // Apply a sequence of operations by looping over list
-  // If the input is not in allowed_ops an exeption will be raised.
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result, RngEngine &rng,
-                         bool final_ops = false) override;
+  // Apply an operation
+  // If the op is not in allowed_ops an exeption will be raised.
+  virtual void apply_op(const Operations::Op &op,
+                        ExperimentResult &result,
+                        RngEngine &rng,
+                        bool final_op = false) override;
 
   // Initializes an n-qubit unitary to the identity matrix
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -269,32 +270,28 @@ void State<unitary_matrix_t>::allocate(uint_t num_qubits,uint_t block_bits)
 //============================================================================
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_ops(
-    const std::vector<Operations::Op> &ops, ExperimentResult &result,
-    RngEngine &rng, bool final_ops) {
-  // Simple loop over vector of input operations
-  for (size_t i = 0; i < ops.size(); ++i) {
-    const auto& op = ops[i];
+void State<unitary_matrix_t>::apply_op(
+    const Operations::Op &op, ExperimentResult &result,
+    RngEngine &rng, bool final_op) {
+  if (BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case Operations::OpType::barrier:
         break;
       case Operations::OpType::bfunc:
-          BaseState::creg_.apply_bfunc(op);
+        BaseState::creg_.apply_bfunc(op);
         break;
       case Operations::OpType::roerror:
-          BaseState::creg_.apply_roerror(op, rng);
+        BaseState::creg_.apply_roerror(op, rng);
         break;
       case Operations::OpType::gate:
-        // Note conditionals will always fail since no classical registers
-        if (BaseState::creg_.check_conditional(op))
-          apply_gate(op);
+        apply_gate(op);
         break;
       case Operations::OpType::set_unitary:
         BaseState::qreg_.initialize_from_matrix(op.mats[0]);
         break;
       case Operations::OpType::save_state:
       case Operations::OpType::save_unitary:
-        apply_save_unitary(op, result, final_ops && ops.size() == i + 1);
+        apply_save_unitary(op, result, final_op);
         break;
       case Operations::OpType::snapshot:
         apply_snapshot(op, result);

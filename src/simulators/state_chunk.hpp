@@ -24,6 +24,7 @@
 #include <mpi.h>
 #endif
 
+#include <iterator>
 #include <omp.h>
 
 namespace AER {
@@ -112,10 +113,11 @@ public:
   // executed (ie in sequence, or some other execution strategy.)
   // If this sequence contains operations not in the supported opset
   // an exeption will be thrown.
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false);
+  template <typename InputIterator>
+  void apply_ops(InputIterator first, InputIterator last,
+                ExperimentResult &result,
+                RngEngine &rng,
+                bool final_ops = false);
 
   //memory allocation (previously called before inisitalize_qreg)
   virtual void allocate(uint_t num_qubits,uint_t block_bits);
@@ -549,7 +551,8 @@ bool StateChunk<state_t>::is_applied_to_each_chunk(const Operations::Op &op)
 }
 
 template <class state_t>
-void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
+template <typename InputIterator>
+void StateChunk<state_t>::apply_ops(InputIterator first, InputIterator last,
                          ExperimentResult &result,
                          RngEngine &rng,
                          bool final_ops)
@@ -557,19 +560,21 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
   int_t iChunk;
   uint_t iOp,nOp;
 
-  nOp = ops.size();
+  nOp = std::distance(first, last);
   iOp = 0;
   while(iOp < nOp){
-    if(ops[iOp].type == Operations::OpType::gate && ops[iOp].name == "swap_chunk"){
+    const Operations::Op op_iOp = *(first + iOp);
+    if(op_iOp.type == Operations::OpType::gate && op_iOp.name == "swap_chunk"){
       //apply swap between chunks
-      apply_chunk_swap(ops[iOp].qubits);
+      apply_chunk_swap(op_iOp.qubits);
     }
-    else if(ops[iOp].type == Operations::OpType::sim_op && ops[iOp].name == "begin_blocking"){
+    else if(op_iOp.type == Operations::OpType::sim_op && op_iOp.name == "begin_blocking"){
       //applying sequence of gates inside each chunk
 
       uint_t iOpEnd = iOp;
       while(iOpEnd < nOp){
-        if(ops[iOpEnd].type == Operations::OpType::sim_op && ops[iOpEnd].name == "end_blocking"){
+        const Operations::Op op_iOpEnd = *(first + iOpEnd);
+        if(op_iOpEnd.type == Operations::OpType::sim_op && op_iOpEnd.name == "end_blocking"){
           break;
         }
         iOpEnd++;
@@ -582,7 +587,7 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
         //fecth chunk in cache
         if(qregs_[iChunk].fetch_chunk()){
           while(iOpBlock < iOpEnd){
-            apply_op(iChunk,ops[iOpBlock],result,rng,final_ops);
+            apply_op(iChunk,*(first + iOpBlock),result,rng,final_ops);
             iOpBlock++;
           }
 
@@ -593,15 +598,15 @@ void StateChunk<state_t>::apply_ops(const std::vector<Operations::Op> &ops,
 
       iOp = iOpEnd;
     }
-    else if(is_applied_to_each_chunk(ops[iOp])){
+    else if(is_applied_to_each_chunk(op_iOp)){
 #pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
       for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
-        apply_op(iChunk,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
+        apply_op(iChunk,op_iOp,result,rng,final_ops && nOp == iOp + 1);
       }
     }
     else{
       //parallelize inside state implementations
-      apply_op(-1,ops[iOp],result,rng,final_ops && nOp == iOp + 1);
+      apply_op(-1,op_iOp,result,rng,final_ops && nOp == iOp + 1);
     }
     iOp++;
   }
