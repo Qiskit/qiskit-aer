@@ -371,7 +371,7 @@ void StatevectorController::run_circuit_helper(
     state.initialize_qreg(circ.num_qubits, initial_state_);
   }
   state.initialize_creg(circ.num_memory, circ.num_registers);
-  state.apply_ops(opt_circ.ops, result, rng);
+  state.apply_ops(opt_circ.ops.cbegin(), opt_circ.ops.cend(), result, rng);
   Base::Controller::save_count_data(result, state.creg());
 
   // Add final state to the data
