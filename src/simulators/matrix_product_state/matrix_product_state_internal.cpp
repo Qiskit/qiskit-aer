@@ -1473,14 +1473,16 @@ reg_t MPS::sample_measure_using_probabilities_internal(const rvector_t &rnds,
 }
 
 reg_t MPS::apply_measure(const reg_t &qubits, RngEngine &rng) {
-  // since input is always sorted in qasm_controller, therefore, we must return the qubits 
-  // to their original location (sorted)
+  // apply_measure_internal requires the qubits to be sorted
   move_all_qubits_to_sorted_ordering();
-  return apply_measure_internal(qubits, rng);
+  reg_t sorted_qubits = qubits;
+  std::sort(sorted_qubits.begin(), sorted_qubits.end());
+  return apply_measure_internal(sorted_qubits, rng);
 }
 
-reg_t MPS::apply_measure_internal(const reg_t &qubits, 
-				  RngEngine &rng) {
+// The caller to apply_measure_internal is responsible to call 
+// move_all_qubits_to_sorted_ordering before calling this function
+reg_t MPS::apply_measure_internal(const reg_t &sorted_qubits, RngEngine &rng) {
   // For every qubit, q,  that is measured, we must propagate the effect of its
   // measurement to its neigbors, l and r, and then to their neighbors, and 
   // so on. If r (or l) is measured next, then there is no need to propagate to
@@ -1495,10 +1497,8 @@ reg_t MPS::apply_measure_internal(const reg_t &qubits,
   // In both cases, we propagate the effect all the way to the left, because 
   // no more qubits will be measured on the left
   reg_t qubits_to_update;
-  uint_t size = qubits.size();
+  uint_t size = sorted_qubits.size();
   reg_t outcome_vector(size);
-  reg_t sorted_qubits = qubits;
-  std::sort(sorted_qubits.begin(), sorted_qubits.end());
 
   uint_t next_measured_qubit = num_qubits_-1;
   for (uint_t i=0; i<size; i++) {
@@ -1568,7 +1568,6 @@ void MPS::apply_initialize(const reg_t &qubits,
 			   RngEngine &rng) {
   uint_t num_qubits = qubits.size();
   reg_t internal_qubits = get_internal_qubits(qubits);
-
   uint_t num_amplitudes = statevector.size();
   cvector_t reordered_statevector(num_amplitudes);
   reg_t output_qubits(num_qubits);
@@ -1699,6 +1698,8 @@ void MPS::initialize_component_internal(const reg_t &qubits,
     complex_t normalized_i = statevector[i]/qubits_norm;
     mat(0, i) = normalized_i;   
   }
+  // Note that new_qubits are sorted by default, since they are new qubits
+  // Therefore we don't need to sort before reset_internal
   reset_internal(new_qubits, rng);
   MPS qubits_mps;
   qubits_mps.initialize_from_matrix(num_qubits, mat);
@@ -1709,11 +1710,17 @@ void MPS::initialize_component_internal(const reg_t &qubits,
 
 void MPS::reset(const reg_t &qubits, RngEngine &rng) {
   move_all_qubits_to_sorted_ordering();
+  reg_t sorted_qubits = qubits;
+  std::sort(sorted_qubits.begin(), sorted_qubits.end());
+
+  // At this point internal_qubits should actually be identical to qubits,
+  // but keeping this call to be consistent with other apply_ methods
   reg_t internal_qubits = get_internal_qubits(qubits);
   reset_internal(internal_qubits, rng);
 }
 
 void MPS::reset_internal(const reg_t &qubits, RngEngine &rng) {
+  // note that qubits should be sorted by the caller to this method
   // Simulate unobserved measurement
   reg_t outcome_vector =  apply_measure_internal(qubits, rng);
   // Apply update to reset state
