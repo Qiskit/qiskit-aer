@@ -40,7 +40,7 @@ class Qobj {
 
   // Deserialization constructor
   template <typename inputdata_t>
-  Qobj(const inputdata_t &input, bool optimize = false);
+  Qobj(const inputdata_t &input, bool truncation = false);
 
   //----------------------------------------------------------------
   // Data
@@ -60,7 +60,7 @@ class Qobj {
 inline void from_json(const json_t &js, Qobj &qobj) { qobj = Qobj(js); }
 
 template <typename inputdata_t>
-Qobj::Qobj(const inputdata_t &input, bool optimize) {
+Qobj::Qobj(const inputdata_t &input, bool truncation) {
   // Check required fields
   if (Parser<inputdata_t>::get_value(id, "qobj_id", input) == false) {
     throw std::invalid_argument(R"(Invalid qobj: no "qobj_id" field)");
@@ -108,7 +108,7 @@ Qobj::Qobj(const inputdata_t &input, bool optimize) {
   // Load circuits
   for (size_t i=0; i<num_circs; i++) {
     // Get base circuit from qobj
-    Circuit circuit(static_cast<inputdata_t>(circs[i]), config, optimize);
+    Circuit circuit(static_cast<inputdata_t>(circs[i]), config, truncation);
     if (param_table.empty() || param_table[i].empty()) {
       // Non parameterized circuit
       circuits.push_back(std::move(circuit));
