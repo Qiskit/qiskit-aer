@@ -165,7 +165,7 @@ public:
   std::vector<reg_t> 
   sample_measure_using_apply_measure(const reg_t &qubits,
 				     uint_t shots,
-				     RngEngine &rng) const;
+				     RngEngine &rng);
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -1022,7 +1022,6 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   // of qubits,and the number of shots.
   // The parameters used below are based on experimentation.
   // The user can override this by setting the parameter "mps_sample_measure_algorithm"
-  uint_t num_qubits = qubits.size();
   if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB){
     return sample_measure_using_probabilities(qubits, shots, rng);
   }
@@ -1035,7 +1034,6 @@ std::vector<reg_t> State::
 sample_measure_using_probabilities(const reg_t &qubits,
 				   uint_t shots,
 				   RngEngine &rng) {
-
   // Generate flat register for storing
   rvector_t rnds;
   rnds.reserve(shots);
@@ -1062,10 +1060,15 @@ sample_measure_using_probabilities(const reg_t &qubits,
 std::vector<reg_t> State::
   sample_measure_using_apply_measure(const reg_t &qubits, 
 				     uint_t shots, 
-				     RngEngine &rng) const {
+				     RngEngine &rng) {
 
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
+  // input is always sorted in qasm_controller, therefore, we must return the qubits 
+  // to their original location (sorted)
+  qreg_.move_all_qubits_to_sorted_ordering();
+  reg_t sorted_qubits = qubits;
+  std::sort(sorted_qubits.begin(), sorted_qubits.end());
 
   #pragma omp parallel if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
   {
@@ -1073,7 +1076,7 @@ std::vector<reg_t> State::
     #pragma omp for
     for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
       temp.initialize(qreg_);
-      auto single_result = temp.apply_measure(qubits, rng);
+      auto single_result = temp.apply_measure(sorted_qubits, rng);
       all_samples[i] = single_result;
     }
   }
