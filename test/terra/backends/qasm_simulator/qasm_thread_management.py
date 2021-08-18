@@ -129,7 +129,7 @@ class QasmThreadManagementTests:
 
     @requires_omp
     @requires_multiprocessing
-    def test_parallel_thread_defaults(self):
+    def test_parallel_defaults_single_ideal(self):
         """Test parallel thread assignment defaults"""
 
         opts = self.backend_options_parallel()
@@ -148,7 +148,15 @@ class QasmThreadManagementTests:
                 'state_update': max_threads,
                 'total': max_threads
             }
-            self.assertEqual(threads, target)
+            self.assertEqual(threads, target, msg="single circuit ideal case")
+
+    @requires_omp
+    @requires_multiprocessing
+    def test_parallel_defaults_single_noise(self):
+        """Test parallel thread assignment defaults"""
+
+        opts = self.backend_options_parallel()
+        max_threads = self.available_threads()
 
         # Test single circuit, with noise
         # Parallel experiments should always be 1
@@ -167,6 +175,14 @@ class QasmThreadManagementTests:
             }
             self.assertEqual(threads, target)
 
+    @requires_omp
+    @requires_multiprocessing
+    def test_parallel_defaults_single_meas(self):
+        """Test parallel thread assignment defaults"""
+
+        opts = self.backend_options_parallel()
+        max_threads = self.available_threads()
+
         # Test single circuit, with measure in middle, no noise
         # Parallel experiments should always be 1
         # parallel shots should be greater than 1
@@ -183,6 +199,14 @@ class QasmThreadManagementTests:
             }
             self.assertEqual(threads, target)
 
+    @requires_omp
+    @requires_multiprocessing
+    def test_parallel_defaults_multi_ideal(self):
+        """Test parallel thread assignment defaults"""
+
+        opts = self.backend_options_parallel()
+        max_threads = self.available_threads()
+
         # Test multiple circuit, no noise
         # Parallel experiments always be 1
         # parallel shots should always be 1
@@ -197,7 +221,15 @@ class QasmThreadManagementTests:
                 'state_update': max_threads,
                 'total': max_threads
             }
-            self.assertEqual(threads, target)
+            self.assertEqual(threads, target, msg="multiple circuits ideal case")
+
+    @requires_omp
+    @requires_multiprocessing
+    def test_parallel_defaults_multi_noise(self):
+        """Test parallel thread assignment defaults"""
+
+        opts = self.backend_options_parallel()
+        max_threads = self.available_threads()
 
         # Test multiple circuits, with noise
         # Parallel experiments should always be 1
@@ -214,7 +246,15 @@ class QasmThreadManagementTests:
                 'state_update': 1,
                 'total': max_threads
             }
-            self.assertEqual(threads, target)
+            self.assertEqual(threads, target, msg="multiple circuits noise case")
+
+    @requires_omp
+    @requires_multiprocessing
+    def test_parallel_defaults_multi_meas(self):
+        """Test parallel thread assignment defaults"""
+
+        opts = self.backend_options_parallel()
+        max_threads = self.available_threads()
 
         # Test multiple circuit, with measure in middle, no noise
         # Parallel experiments should always be 1
@@ -231,7 +271,7 @@ class QasmThreadManagementTests:
                 'state_update': 1,
                 'total': max_threads
             }
-            self.assertEqual(threads, target)
+            self.assertEqual(threads, target,  msg="multiple circuits no meas opt")
 
     @requires_omp
     @requires_multiprocessing
@@ -441,7 +481,7 @@ class QasmThreadManagementTests:
 
     @requires_omp
     @requires_multiprocessing
-    def test_parallel_shot_thread_assignment(self):
+    def test_parallel_shot_thread_single_ideal(self):
         """Test parallel shot thread assignment"""
 
         max_threads = self.available_threads()
@@ -460,7 +500,15 @@ class QasmThreadManagementTests:
                 'state_update': max_threads,
                 'total': max_threads
             }
-            self.assertEqual(threads, target)
+            self.assertEqual(threads, target, msg="single circuit ideal case failed")
+
+    @requires_omp
+    @requires_multiprocessing
+    def test_parallel_shot_thread_multi_ideal(self):
+        """Test parallel shot thread assignment"""
+
+        max_threads = self.available_threads()
+        opts = self.backend_options_parallel(shot_threads=max_threads)
 
         # Test multiple circuit, no noise
         # Parallel experiments and shots should always be 1
@@ -475,7 +523,15 @@ class QasmThreadManagementTests:
                 'state_update': max_threads,
                 'total': max_threads
             }
-            self.assertEqual(threads, target)
+            self.assertEqual(threads, target, msg="multi circuit ideal case failed")
+    
+    @requires_omp
+    @requires_multiprocessing
+    def test_parallel_shot_thread_multi_noise(self):
+        """Test parallel shot thread assignment"""
+
+        max_threads = self.available_threads()
+        opts = self.backend_options_parallel(shot_threads=max_threads)
 
         # Test multiple circuits, with noise
         # Parallel shots should take priority
@@ -493,6 +549,14 @@ class QasmThreadManagementTests:
             }
             self.assertEqual(threads, target)
 
+    @requires_omp
+    @requires_multiprocessing
+    def test_parallel_shot_thread_multi_meas(self):
+        """Test parallel shot thread assignment"""
+
+        max_threads = self.available_threads()
+        opts = self.backend_options_parallel(shot_threads=max_threads)
+
         # Test multiple circuit, with measure in middle, no noise
         # Parallel shots should take priority
         result = execute(max_threads*[self.measure_in_middle_circuit(1)],
@@ -507,7 +571,15 @@ class QasmThreadManagementTests:
                 'state_update': 1,
                 'total': max_threads
             }
-            self.assertEqual(threads, target)
+            self.assertEqual(threads, target, msg="multi circuit noise case failed")
+
+    @requires_omp
+    @requires_multiprocessing
+    def test_parallel_shot_thread_multi_mem(self):
+        """Test parallel shot thread assignment"""
+
+        max_threads = self.available_threads()
+        opts = self.backend_options_parallel(shot_threads=max_threads)
 
         # Test multiple circuits, with memory limitation
         # NOTE: this assumes execution on statevector simulator

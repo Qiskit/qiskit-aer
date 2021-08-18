@@ -538,8 +538,8 @@ void Controller::clear_parallelization() {
 
 void Controller::set_parallelization_experiments(
     const std::vector<Circuit> &circuits,
-    const std::vector<Noise::NoiseModel> &noise) 
-{
+    const std::vector<Noise::NoiseModel> &noise) {
+
   if(circuits.size() == 1){
     parallel_experiments_ = 1;
     return;
@@ -548,7 +548,7 @@ void Controller::set_parallelization_experiments(
   // Use a local variable to not override stored maximum based
   // on currently executed circuits
   const auto max_experiments =
-      (max_parallel_experiments_ > 1)
+      (max_parallel_experiments_ > 0)
           ? std::min({max_parallel_experiments_, max_parallel_threads_})
           : max_parallel_threads_;
 
@@ -566,20 +566,21 @@ void Controller::set_parallelization_experiments(
   std::sort(required_memory_mb_list.begin(), required_memory_mb_list.end(),
             std::greater<>());
   size_t total_memory = 0;
-  parallel_experiments_ = 0;
+  int parallel_experiments = 0;
   for (size_t required_memory_mb : required_memory_mb_list) {
     total_memory += required_memory_mb;
     if (total_memory > max_memory_mb_)
       break;
-    ++parallel_experiments_;
+    ++parallel_experiments;
   }
 
-  if (parallel_experiments_ <= 0)
+  if (parallel_experiments <= 0)
     throw std::runtime_error(
         "a circuit requires more memory than max_memory_mb.");
   parallel_experiments_ =
-      std::min<int>({parallel_experiments_, max_experiments,
+      std::min<int>({parallel_experiments, max_experiments,
                      max_parallel_threads_, static_cast<int>(circuits.size())});
+
 }
 
 void Controller::set_parallelization_circuit(const Circuit &circ,
@@ -858,7 +859,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
                                        circuits[j].opset(), result.results[j]);
       }
     }
-
+    
     // get max qubits for this process (to allocate qubit register at once)
     max_qubits_ = 0;
     for (size_t j = 0; j < circuits.size(); j++) {
