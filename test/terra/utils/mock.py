@@ -29,14 +29,14 @@ from concurrent import futures
 import time
 
 from qiskit.result import Result
-from qiskit.providers import BaseBackend, BaseJob
+from qiskit.providers import BackendV1, JobV1, Options
 from qiskit.providers.models import BackendProperties, BackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig,
                          QasmQobjExperiment, QasmQobjConfig)
 from qiskit.providers.jobstatus import JobStatus
-from qiskit.providers.baseprovider import BaseProvider
+from qiskit.providers import ProviderV1
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.aer import AerError
 
@@ -44,7 +44,7 @@ from qiskit.providers.aer import AerError
 logger = logging.getLogger(__name__)
 
 
-class FakeProvider(BaseProvider):
+class FakeProvider(ProviderV1):
     """Dummy provider just for testing purposes.
 
     Only filtering backends by name is implemented.
@@ -71,7 +71,7 @@ class FakeProvider(BaseProvider):
         super().__init__()
 
 
-class FakeBackend(BaseBackend):
+class FakeBackend(BackendV1):
     """This is a dummy backend just for testing purposes."""
 
     def __init__(self, configuration, time_alive=10):
@@ -106,6 +106,9 @@ class FakeBackend(BaseBackend):
         job = FakeJob(self, self.run_job, job_id, qobj)
         job.submit()
         return job
+
+    def _default_options(self):
+        return Options()
 
     # pylint: disable=unused-argument
     def run_job(self, job_id, qobj):
@@ -178,7 +181,7 @@ class FakeFailureQasmSimulator(FakeBackend):
 
         raise AerError("Mocking a failure in the QASM Simulator")
 
-class FakeJob(BaseJob):
+class FakeJob(JobV1):
     """Fake simulator job"""
     _executor = futures.ThreadPoolExecutor()
 

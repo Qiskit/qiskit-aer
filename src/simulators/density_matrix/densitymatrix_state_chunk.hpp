@@ -575,8 +575,7 @@ template <class densmat_t>
 void State<densmat_t>::apply_op(const int_t iChunk,const Operations::Op &op,
                          ExperimentResult &result,
                          RngEngine &rng,
-                         bool final_ops)
-{
+                         bool final_ops) {
   if (BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case Operations::OpType::barrier:

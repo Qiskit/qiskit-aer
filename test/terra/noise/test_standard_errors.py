@@ -137,7 +137,7 @@ class TestNoise(common.QiskitAerTestCase):
 
     def test_pauli_error_1q_unitary_from_pauli(self):
         """Test single-qubit pauli error as unitary qobj from Pauli obj"""
-        paulis = [Pauli.from_label(s) for s in ['I', 'X', 'Y', 'Z']]
+        paulis = [Pauli(s) for s in ['I', 'X', 'Y', 'Z']]
         probs = [0.4, 0.3, 0.2, 0.1]
         error = pauli_error(zip(paulis, probs), standard_gates=False)
 
@@ -162,7 +162,7 @@ class TestNoise(common.QiskitAerTestCase):
 
     def test_pauli_error_1q_gate_from_pauli(self):
         """Test single-qubit pauli error as gate qobj from Pauli obj"""
-        paulis = [Pauli.from_label(s) for s in ['I', 'X', 'Y', 'Z']]
+        paulis = [Pauli(s) for s in ['I', 'X', 'Y', 'Z']]
         probs = [0.4, 0.3, 0.2, 0.1]
         error = pauli_error(zip(paulis, probs), standard_gates=True)
 
@@ -258,7 +258,7 @@ class TestNoise(common.QiskitAerTestCase):
 
     def test_pauli_error_2q_unitary_from_pauli(self):
         """Test two-qubit pauli error as unitary qobj from Pauli obj"""
-        paulis = [Pauli.from_label(s) for s in ['XY', 'YZ', 'ZX']]
+        paulis = [Pauli(s) for s in ['XY', 'YZ', 'ZX']]
         probs = [0.5, 0.3, 0.2]
         error = pauli_error(zip(paulis, probs), standard_gates=False)
 
@@ -279,7 +279,7 @@ class TestNoise(common.QiskitAerTestCase):
 
     def test_pauli_error_2q_gate_from_pauli(self):
         """Test two-qubit pauli error as gate qobj from Pauli obj"""
-        paulis = [Pauli.from_label(s) for s in ['XZ', 'YX', 'ZY']]
+        paulis = [Pauli(s) for s in ['XZ', 'YX', 'ZY']]
         probs = [0.5, 0.3, 0.2]
         error = pauli_error(zip(paulis, probs), standard_gates=True)
 

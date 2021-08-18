@@ -47,11 +47,12 @@ def insert_noise(circuits, noise_model, transpile=False):
                                                            basis_gates=noise_model.basis_gates)
         else:
             transpiled_circuit = circuit
+        qubit_indices = {bit: index for index, bit in enumerate(transpiled_circuit.qubits)}
         result_circuit = circuit.copy(name=transpiled_circuit.name + '_with_noise')
         result_circuit.data = []
         for inst, qargs, cargs in transpiled_circuit.data:
             result_circuit.data.append((inst, qargs, cargs))
-            qubits_string = ",".join([str(q.index) for q in qargs])
+            qubits_string = ",".join([str(qubit_indices[q]) for q in qargs])
             # Priority for error model used:
             # nonlocal error > local error > default error
             if inst.name in nonlocal_errors and qubits_string in nonlocal_errors[inst.name]:

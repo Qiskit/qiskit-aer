@@ -223,9 +223,6 @@ class AerBackend(Backend, ABC):
             pending_jobs=0,
             status_msg='')
 
-    def _dummy_job(self):
-        return
-
     def _run(self, qobj, job_id=''):
         """Run a job"""
         # Start timer
@@ -342,9 +339,9 @@ class AerBackend(Backend, ABC):
         elif key in self._options_defaults:
             self._options_defaults.pop(key)
 
+
     def _get_job_submit_args(self, qobj, validate=False, **run_options):
         """Return execution sim config dict from backend options."""
-
         # Get executor
         executor = None
         if hasattr(self._options, 'executor'):
