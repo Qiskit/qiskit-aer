@@ -13,8 +13,9 @@
 AerSimualtor options tests
 """
 
-from ddt import ddt
+from ddt import ddt, data
 from qiskit import QuantumCircuit, transpile
+from qiskit.providers.aer.noise import NoiseModel
 from .aer_simulator_test_case import (
     AerSimulatorTestCase, supported_methods)
 
@@ -90,3 +91,28 @@ class TestOptions(AerSimulatorTestCase):
         result = backend.run(qc).result()
         value = result.results[0].metadata.get('device', None)
         self.assertEqual(value, device)
+
+    @data('automatic', 'statevector', 'density_matrix', 'stabilizer',
+          'matrix_product_state', 'extended_stabilizer')
+    def test_option_basis_gates(self, method):
+        """Test setting method and noise model has correct basis_gates"""
+        config = self.backend(method=method).configuration()
+        noise_gates = ['id', 'sx', 'x', 'cx']
+        noise_model = NoiseModel(basis_gates=noise_gates)
+        target_gates = (sorted(set(config.basis_gates).intersection(noise_gates))
+                        + config.custom_instructions)
+
+        sim = self.backend(method=method, noise_model=noise_model)
+        basis_gates = sim.configuration().basis_gates
+        self.assertEqual(sorted(basis_gates), sorted(target_gates))
+
+    @data('automatic', 'statevector', 'density_matrix', 'stabilizer',
+          'matrix_product_state', 'extended_stabilizer')
+    def test_option_order_basis_gates(self, method):
+        """Test order of setting method and noise model gives same basis gates"""
+        noise_model = NoiseModel(basis_gates=['id', 'sx', 'x', 'cx'])
+        sim1 = self.backend(method=method, noise_model=noise_model)
+        basis_gates1 = sim1.configuration().basis_gates
+        sim2 = self.backend(noise_model=noise_model, method=method)
+        basis_gates2 = sim2.configuration().basis_gates
+        self.assertEqual(sorted(basis_gates1), sorted(basis_gates2))

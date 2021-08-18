@@ -22,7 +22,7 @@ from test.terra.common import QiskitAerTestCase
 class AerSimulatorTestCase(QiskitAerTestCase):
     """AerSimulator test class"""
 
-    OPTIONS = {}
+    OPTIONS = {"seed_simulator": 9000}
 
     def backend(self, **options):
         """Return AerSimulator backend using current class options"""
