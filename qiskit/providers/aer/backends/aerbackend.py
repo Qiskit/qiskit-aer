@@ -27,8 +27,6 @@ from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
 from qiskit.result import Result
 from qiskit.utils import deprecate_arguments
-from qiskit.circuit import QuantumCircuit
-from qiskit.pulse import Schedule
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.compiler import assemble
 
@@ -102,6 +100,7 @@ class AerBackend(Backend, ABC):
         self._options_configuration = {}
         self._options_defaults = {}
         self._options_properties = {}
+        self._executor = None
 
         # Set available methods
         self._available_methods = [] if available_methods is None else available_methods
@@ -136,15 +135,16 @@ class AerBackend(Backend, ABC):
         """
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn('Using a qobj for run() is deprecated and will be '
-                            'removed in a future release.',
-                            PendingDeprecationWarning,
-                            stacklevel=2)
+                          'removed in a future release.',
+                          PendingDeprecationWarning,
+                          stacklevel=2)
             qobj = circuits
         else:
             qobj = assemble(circuits, self)
 
         # Add submit args for the job
         experiments, executor = self._get_job_submit_args(qobj, validate=validate, **run_options)
+        executor = executor or self._executor
 
         # Submit job
         job_id = str(uuid.uuid4())
@@ -153,6 +153,7 @@ class AerBackend(Backend, ABC):
         else:
             aer_job = AerJob(self, job_id, self._run, experiments, executor)
         aer_job.submit()
+        self._executor = executor
         return aer_job
 
     def configuration(self):
@@ -343,6 +344,15 @@ class AerBackend(Backend, ABC):
 
     def _get_job_submit_args(self, qobj, validate=False, **run_options):
         """Return execution sim config dict from backend options."""
+
+        # Get executor
+        executor = None
+        if hasattr(self._options, 'executor'):
+            executor = getattr(self._options, 'executor')
+            # We need to remove the executor from the qobj config
+            # since it can't be serialized though JSON/Pybind.
+            delattr(self._options, 'executor')
+
         # Add options to qobj config overriding any existing fields
         config = qobj.config
 
@@ -354,14 +364,6 @@ class AerBackend(Backend, ABC):
         # Override with run-time options
         for key, val in run_options.items():
             setattr(config, key, val)
-
-        # Get executor
-        executor = None
-        if hasattr(qobj.config, 'executor'):
-            executor = getattr(qobj.config, 'executor')
-            # We need to remove the executor from the qobj config
-            # since it can't be serialized though JSON/Pybind.
-            delattr(qobj.config, 'executor')
 
         # Optional validation
         if validate:

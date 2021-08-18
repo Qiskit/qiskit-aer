@@ -25,7 +25,7 @@ from .aer_simulator_test_case import (
     AerSimulatorTestCase, supported_methods)
 
 
-DASK_TESTS = False
+DASK = False
 
 try:
     from dask.distributed import LocalCluster, Client
@@ -86,7 +86,7 @@ class TestDaskExecutor(CBFixture):
 
     def setUp(self):
         super().setUp()
-        if not DASK_TESTS:
+        if not DASK:
             self.skipTest('Dask not installed, skipping ClusterBackend-dask tests')
 
     @supported_methods(['statevector'], [None, 1, 2, 3])

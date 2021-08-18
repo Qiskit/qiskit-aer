@@ -165,7 +165,7 @@ class AerSimulator(AerBackend):
       exceeds this value simulation will be run as a set of of sub-jobs
       on the executor. If ``None`` simulation of all circuits are submitted
       to the executor as a single job (Default: None).
-      
+
     * ``zero_threshold`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
 

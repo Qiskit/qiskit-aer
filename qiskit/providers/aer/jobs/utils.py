@@ -65,12 +65,11 @@ def split_qobj(qobj, max_size=None, qobj_id=None):
         qobj_id (str): Optional, set a fixed qobj ID for all subjob qobjs.
 
     Returns:
-        A list of qobjs.
+        List: A list of qobjs.
     """
     # Check if we don't need to split
     if max_size is None or not max_size > 0:
         return qobj
-    num_exp = len(qobj.experiments)
     num_jobs = ceil(len(qobj.experiments) / max_size)
     if num_jobs == 1:
         return qobj
@@ -84,7 +83,6 @@ def split_qobj(qobj, max_size=None, qobj_id=None):
         sub_exp = qobj.experiments[indices]
         sub_config = qobj.config
         if params is not None:
-            sub_params = params[indices]
             sub_config = copy.copy(qobj.config)
             sub_config.parameterizations = params[indices]
         qobjs.append(type(qobj)(sub_id, sub_config, sub_exp, qobj.header))
