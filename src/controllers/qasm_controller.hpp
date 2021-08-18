@@ -265,8 +265,9 @@ class QasmController : public Base::Controller {
 
   // Sample measurement outcomes for the input measure ops from the
   // current state of the input State_t
-  template <class State_t>
-  void measure_sampler(const std::vector<Operations::Op>& meas_ops,
+  template <typename InputIterator, class State_t>
+  void measure_sampler(InputIterator first_meas,
+                       InputIterator last_meas,
                        uint_t shots,
                        State_t& state,
                        ExperimentResult& result,
@@ -1068,7 +1069,7 @@ void QasmController::run_single_shot(const Circuit& circ,
                                      ExperimentResult& result,
                                      RngEngine& rng) const {
   initialize_state(circ, state, initial_state);
-  state.apply_ops(circ.ops, result, rng, true);
+  state.apply_ops(circ.ops.cbegin(), circ.ops.cend(), result, rng, true);
   Base::Controller::save_count_data(result, state.creg());
 }
 
@@ -1090,12 +1091,10 @@ void QasmController::run_multi_shot(const Circuit& circ,
                                     circ.ops.begin() + pos);
     bool final_ops = (pos == circ.ops.size());
     initialize_state(circ, state, initial_state);
-    state.apply_ops(ops, result, rng, final_ops);
+    state.apply_ops(ops.cbegin(), ops.cend(), result, rng, final_ops);
 
     // Get measurement operations and set of measured qubits
-    ops = std::vector<Operations::Op>(circ.ops.begin() + pos,
-                                      circ.ops.end());
-    measure_sampler(ops, shots, state, result, rng);
+    measure_sampler(circ.ops.begin() + pos, circ.ops.end(), shots, state, result, rng);
 
     // Add measure sampling metadata
     result.metadata.add(true, "measure_sampling");
@@ -1187,15 +1186,16 @@ bool QasmController::check_measure_sampling_opt(const Circuit& circ,
   return true;
 }
 
-template <class State_t>
+template <typename InputIterator, class State_t>
 void QasmController::measure_sampler(
-    const std::vector<Operations::Op>& meas_roerror_ops,
+    InputIterator first_meas,
+    InputIterator last_meas,
     uint_t shots,
     State_t& state,
     ExperimentResult& result,
     RngEngine& rng) const {
   // Check if meas_circ is empty, and if so return initial creg
-  if (meas_roerror_ops.empty()) {
+  if (first_meas == last_meas) {
     while (shots-- > 0) {
       Base::Controller::save_count_data(result, state.creg());
     }
@@ -1204,11 +1204,13 @@ void QasmController::measure_sampler(
 
   std::vector<Operations::Op> meas_ops;
   std::vector<Operations::Op> roerror_ops;
-  for (const Operations::Op& op : meas_roerror_ops)
-    if (op.type == Operations::OpType::roerror)
-      roerror_ops.push_back(op);
-    else /*(op.type == Operations::OpType::measure) */
-      meas_ops.push_back(op);
+  for (auto op = first_meas; op != last_meas; op++) {
+    if (op->type == Operations::OpType::roerror) {
+      roerror_ops.push_back(*op);
+    } else { /*(op.type == Operations::OpType::measure) */
+      meas_ops.push_back(*op);
+    }
+  }
 
   // Get measured qubits from circuit sort and delete duplicates
   std::vector<uint_t> meas_qubits;  // measured qubits
@@ -1229,8 +1231,8 @@ void QasmController::measure_sampler(
   }
 
   // Maps of memory and register to qubit position
-  std::unordered_map<uint_t, uint_t> memory_map;
-  std::unordered_map<uint_t, uint_t> register_map;
+  std::map<uint_t, uint_t> memory_map;
+  std::map<uint_t, uint_t> register_map;
   for (const auto &op : meas_ops) {
     for (size_t j = 0; j < op.qubits.size(); ++j) {
       auto pos = qubit_map[op.qubits[j]];
@@ -1242,13 +1244,12 @@ void QasmController::measure_sampler(
   }
 
   // Process samples
-  // Convert opts to circuit so we can get the needed creg sizes
-  // NB: this function could probably be moved somewhere else like Utils or Ops
-  Circuit meas_circ(meas_roerror_ops);
+  uint_t num_memory = (memory_map.empty()) ? 0ULL : 1 + memory_map.rbegin()->first;
+  uint_t num_registers = (register_map.empty()) ? 0ULL : 1 + register_map.rbegin()->first;
   ClassicalRegister creg;
   while (!all_samples.empty()) {
     auto sample = all_samples.back();
-    creg.initialize(meas_circ.num_memory, meas_circ.num_registers);
+    creg.initialize(num_memory, num_registers);
 
     // process memory bit measurements
     for (const auto &pair : memory_map) {
@@ -1262,7 +1263,7 @@ void QasmController::measure_sampler(
     }
 
     // process read out errors for memory and registers
-    for (const Operations::Op& roerror : roerror_ops) {
+    for (const auto& roerror : roerror_ops) {
       creg.apply_roerror(roerror, rng);
     }
 

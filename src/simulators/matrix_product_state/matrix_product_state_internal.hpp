@@ -119,7 +119,10 @@ public:
     else
       return "";
   }
-  
+
+  //----------------------------------------------------------------
+  void move_all_qubits_to_sorted_ordering();
+
 
   /////////////////////////////////////////////////////////////////
   // API functions
@@ -357,7 +360,7 @@ private:
   // Certain local operations need to be propagated to the neighboring qubits. 
   // Such operations include apply_measure and apply_kraus
   void propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit, 
-				       bool measure_all=false);
+				       uint_t next_measured_qubit);
 
   // apply_matrix for more than 2 qubits
   void apply_multi_qubit_gate(const reg_t &qubits,
@@ -413,7 +416,7 @@ private:
   reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
 
   uint_t apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
-					     bool measure_all=false);
+               uint_t next_measured_qubit);
 
   reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
 						    const reg_t &qubits) const;
@@ -463,10 +466,6 @@ private:
   //----------------------------------------------------------------
   void move_qubits_to_centralized_indices(const reg_t &sorted_indices,
 					  const reg_t &centralized_qubits);
-
-  //----------------------------------------------------------------
-  void move_all_qubits_to_sorted_ordering();
-
 
   // Function name: change_position
   // Description: Move qubit from src to dst in the MPS. Used only

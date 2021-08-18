@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The deprecated ``backend_options`` kwarg of the ``run`` method of Aer
+    backends has been removed. All run options must now be passed as
+    separate kwargs.

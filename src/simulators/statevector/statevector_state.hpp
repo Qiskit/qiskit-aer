@@ -119,12 +119,12 @@ public:
   // Return the string name of the State class
   virtual std::string name() const override { return statevec_t::name(); }
 
-  // Apply a sequence of operations by looping over list
-  // If the input is not in allowed_ops an exception will be raised.
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false) override;
+  // Apply an operation
+  // If the op is not in allowed_ops an exeption will be raised.
+  virtual void apply_op(const Operations::Op &op,
+                        ExperimentResult &result,
+                        RngEngine &rng,
+                        bool final_op = false) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -527,89 +527,84 @@ void State<statevec_t>::set_config(const json_t &config) {
 //=========================================================================
 
 template <class statevec_t>
-void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
-                                  ExperimentResult &result,
-                                  RngEngine &rng,
-                                  bool final_ops) {
-
-  // Simple loop over vector of input operations
-  for (size_t i = 0; i < ops.size(); ++i) {
-    const auto& op = ops[i];
-    if(BaseState::creg_.check_conditional(op)) {
-      switch (op.type) {
-        case OpType::barrier:
-          break;
-        case OpType::reset:
-          apply_reset(op.qubits, rng);
-          break;
-        case OpType::initialize:
-          apply_initialize(op.qubits, op.params, rng);
-          break;
-        case OpType::measure:
-          apply_measure(op.qubits, op.memory, op.registers, rng);
-          break;
-        case OpType::bfunc:
-          BaseState::creg_.apply_bfunc(op);
-          break;
-        case OpType::roerror:
-          BaseState::creg_.apply_roerror(op, rng);
-          break;
-        case OpType::gate:
-          apply_gate(op);
-          break;
-        case OpType::snapshot:
-          apply_snapshot(op, result, final_ops && ops.size() == i + 1);
-          break;
-        case OpType::matrix:
-          apply_matrix(op);
-          break;
-        case OpType::diagonal_matrix:
-          BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
-          break;
-        case OpType::multiplexer:
-          apply_multiplexer(op.regs[0], op.regs[1],
-                            op.mats); // control qubits ([0]) & target qubits([1])
-          break;
-        case OpType::kraus:
-          apply_kraus(op.qubits, op.mats, rng);
-          break;
-        case OpType::sim_op:
-          if(op.name == "begin_register_blocking"){
-            BaseState::qreg_.enter_register_blocking(op.qubits);
-          }
-          else if(op.name == "end_register_blocking"){
-            BaseState::qreg_.leave_register_blocking();
-          }
-          break;
-        case OpType::set_statevec:
-          BaseState::qreg_.initialize_from_vector(op.params);
-          break;
-        case OpType::save_expval:
-        case OpType::save_expval_var:
-          BaseState::apply_save_expval(op, result);
-          break;
-        case OpType::save_densmat:
-          apply_save_density_matrix(op, result);
-          break;
-        case OpType::save_state:
-        case OpType::save_statevec:
-          apply_save_statevector(op, result, final_ops && ops.size() == i + 1);
-          break;
-        case OpType::save_statevec_dict:
-          apply_save_statevector_dict(op, result);
-          break;
-        case OpType::save_probs:
-        case OpType::save_probs_ket:
-          apply_save_probs(op, result);
-          break;
-        case OpType::save_amps:
-        case OpType::save_amps_sq:
-          apply_save_amplitudes(op, result);
-          break;
-        default:
-          throw std::invalid_argument(
-              "QubitVector::State::invalid instruction \'" + op.name + "\'.");
+void State<statevec_t>::apply_op(const Operations::Op &op,
+                                 ExperimentResult &result,
+                                 RngEngine &rng,
+                                 bool final_op) {
+  if (BaseState::creg_.check_conditional(op)) {
+    switch (op.type) {
+      case OpType::barrier:
+        break;
+      case OpType::reset:
+        apply_reset(op.qubits, rng);
+        break;
+      case OpType::initialize:
+        apply_initialize(op.qubits, op.params, rng);
+        break;
+      case OpType::measure:
+        apply_measure(op.qubits, op.memory, op.registers, rng);
+        break;
+      case OpType::bfunc:
+        BaseState::creg_.apply_bfunc(op);
+        break;
+      case OpType::roerror:
+        BaseState::creg_.apply_roerror(op, rng);
+        break;
+      case OpType::gate:
+        apply_gate(op);
+        break;
+      case OpType::snapshot:
+        apply_snapshot(op, result, final_op);
+        break;
+      case OpType::matrix:
+        apply_matrix(op);
+        break;
+      case OpType::diagonal_matrix:
+        BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
+        break;
+      case OpType::multiplexer:
+        apply_multiplexer(op.regs[0], op.regs[1],
+                          op.mats); // control qubits ([0]) & target qubits([1])
+        break;
+      case OpType::kraus:
+        apply_kraus(op.qubits, op.mats, rng);
+        break;
+      case OpType::sim_op:
+        if(op.name == "begin_register_blocking"){
+          BaseState::qreg_.enter_register_blocking(op.qubits);
         }
+        else if(op.name == "end_register_blocking"){
+          BaseState::qreg_.leave_register_blocking();
+        }
+        break;
+      case OpType::set_statevec:
+        BaseState::qreg_.initialize_from_vector(op.params);
+        break;
+      case OpType::save_expval:
+      case OpType::save_expval_var:
+        BaseState::apply_save_expval(op, result);
+        break;
+      case OpType::save_densmat:
+        apply_save_density_matrix(op, result);
+        break;
+      case OpType::save_state:
+      case OpType::save_statevec:
+        apply_save_statevector(op, result, final_op);
+        break;
+      case OpType::save_statevec_dict:
+        apply_save_statevector_dict(op, result);
+        break;
+      case OpType::save_probs:
+      case OpType::save_probs_ket:
+        apply_save_probs(op, result);
+        break;
+      case OpType::save_amps:
+      case OpType::save_amps_sq:
+        apply_save_amplitudes(op, result);
+        break;
+      default:
+        throw std::invalid_argument(
+            "QubitVector::State::invalid instruction \'" + op.name + "\'.");
     }
   }
 }
