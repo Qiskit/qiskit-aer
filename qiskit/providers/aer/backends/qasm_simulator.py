@@ -337,6 +337,15 @@ class QasmSimulator(AerBackend):
 
     _AVAILABLE_METHODS = None
 
+    _LEGACY_METHOD_MAP = {
+      "statevector_cpu": ("statevector", "CPU"),
+      "statevector_gpu": ("statevector", "GPU"),
+      "statevector_thrust": ("statevector", "Thrust"),
+      "density_matrix_cpu": ("density_matrix", "CPU"),
+      "density_matrix_gpu": ("density_matrix", "GPU"),
+      "density_matrix_thrust": ("density_matrix", "Thrust"),
+    }
+
     def __init__(self,
                  configuration=None,
                  properties=None,
@@ -393,6 +402,7 @@ class QasmSimulator(AerBackend):
             # Global options
             shots=1024,
             method=None,
+            device="CPU",
             precision="double",
             executor=None,
             max_job_size=None,
@@ -495,6 +505,9 @@ class QasmSimulator(AerBackend):
         update_basis_gates = False
         for key, value in fields.items():
             if key == 'method':
+                if value in self._LEGACY_METHOD_MAP:
+                    value, device = self._LEGACY_METHOD_MAP[value]
+                    out_options["device"] = device
                 self._set_method_config(value)
                 update_basis_gates = True
                 out_options[key] = value

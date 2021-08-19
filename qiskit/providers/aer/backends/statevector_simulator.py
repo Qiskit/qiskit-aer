@@ -58,9 +58,14 @@ class StatevectorSimulator(AerBackend):
 
     The following configurable backend options are supported
 
-    * ``method`` (str): Set the simulation method supported methods are
-      ``"statevector"`` for CPU simulation, and ``"statevector_gpu"``
-      for GPU simulation (Default: ``"statevector"``).
+    * ``device`` (str): Set the simulation device to "CPU" or "GPU".
+      GPU is only availalbe on supported CUDA systems (Default: "CPU").
+
+    * ``method`` (str): [DEPRECATED] Set the simulation method supported
+      methods are ``"statevector"`` for CPU simulation, and
+      ``"statevector_gpu"`` for GPU simulation. This option has been
+      deprecated, use the ``device`` option to set "CPU" or "GPU"
+      simulation instead.
 
     * ``precision`` (str): Set the floating point precision for
       certain simulation methods to either ``"single"`` or ``"double"``
@@ -192,7 +197,7 @@ class StatevectorSimulator(AerBackend):
         return Options(
             # Global options
             shots=1024,
-            method="statevector",
+            device='CPU',
             precision="double",
             executor=None,
             max_job_size=None,
@@ -211,6 +216,18 @@ class StatevectorSimulator(AerBackend):
             fusion_threshold=14,
             # statevector options
             statevector_parallel_threshold=14)
+
+    def set_options(self, **fields):
+        if "method" in fields:
+            warn("The method option of the `StatevectorSimulator` has been"
+                 " deprecated as of qiskit-aer 0.9.0. To run a GPU statevector"
+                 " simulation use the option `device='GPU'` instead",
+                 DeprecationWarning)
+            fields = copy.copy(fields)
+            if fields["method"] == "statevector_gpu":
+                fields["device"] = "GPU"
+            fields.pop("method")
+        super().set_options(**fields)
 
     def _execute(self, qobj):
         """Execute a qobj on the backend.
