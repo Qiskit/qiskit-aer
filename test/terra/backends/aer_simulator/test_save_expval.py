@@ -15,8 +15,8 @@ Integration Tests for SaveExpval instruction
 
 from ddt import ddt
 from numpy import allclose
-from test.terra.backends.aer_simulator.aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import QuantumVolume
@@ -29,7 +29,7 @@ PAULI2 = [
 
 
 @ddt
-class TestSaveExpectationValueTests(AerSimulatorTestCase):
+class TestSaveExpectationValueTests(SimulatorTestCase):
     """Test SaveExpectationValue instruction."""
     def _test_save_expval(self, circuit, oper, qubits, variance, **options):
         """Test Pauli expval for stabilizer circuit"""

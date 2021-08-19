@@ -19,17 +19,18 @@ from qiskit.providers.aer import AerSimulator
 from test.terra.common import QiskitAerTestCase
 
 
-class AerSimulatorTestCase(QiskitAerTestCase):
-    """AerSimulator test class"""
+class SimulatorTestCase(QiskitAerTestCase):
+    """Simulator test class"""
 
-    OPTIONS = {}
+    BACKEND = AerSimulator
+    OPTIONS = {"seed_simulator": 9000}
 
     def backend(self, **options):
         """Return AerSimulator backend using current class options"""
         sim_options = self.OPTIONS.copy()
         for key, val in options.items():
             sim_options[key] = val
-        return AerSimulator(**sim_options)
+        return self.BACKEND(**sim_options)
 
 
 def supported_methods(methods, *other_args, product=True):

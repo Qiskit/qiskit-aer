@@ -15,8 +15,8 @@ Integration Tests for SaveExpval instruction
 
 from ddt import ddt
 import numpy as np
-from test.terra.backends.aer_simulator.aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit
 from qiskit.compiler import transpile
@@ -24,7 +24,7 @@ from qiskit.result import Counts
 
 
 @ddt
-class TestSaveProbabilities(AerSimulatorTestCase):
+class TestSaveProbabilities(SimulatorTestCase):
     """Test SaveProbabilities instruction."""
     def _test_save_probabilities(self, qubits, **options):
         """Test save probabilities instruction"""

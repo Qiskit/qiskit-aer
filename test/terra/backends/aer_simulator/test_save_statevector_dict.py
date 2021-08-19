@@ -14,8 +14,8 @@ Integration Tests for SaveStatevector instruction
 """
 
 from ddt import ddt
-from test.terra.backends.aer_simulator.aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit, transpile
 
@@ -26,7 +26,7 @@ def statevec_as_dict(data):
 
 
 @ddt
-class TestSaveStatevectorDict(AerSimulatorTestCase):
+class TestSaveStatevectorDict(SimulatorTestCase):
     """Test SaveStatevectorDict instruction."""
 
     @supported_methods(['automatic', 'statevector'])
