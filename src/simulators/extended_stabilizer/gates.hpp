@@ -64,7 +64,7 @@ namespace CHSimulator
     {"swap", Gatetypes::clifford},    // SWAP gate
     // Three-qubit gates
     {"ccx", Gatetypes::non_clifford}, // Controlled-CX gate (Toffoli)
-    {"ccz", Gatetypes::non_clifford}, // Constrolled-CZ gate (H3 Toff H3)
+    {"ccz", Gatetypes::non_clifford}, // Controlled-CZ gate (H3 Toff H3)
     // N-qubit gates
     {"pauli", Gatetypes::pauli},      // N-qubit Pauli gate
   };
