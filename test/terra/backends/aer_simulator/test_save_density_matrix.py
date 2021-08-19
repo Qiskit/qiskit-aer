@@ -14,15 +14,15 @@ Integration Tests for SaveDensityMatrix instruction
 """
 
 from ddt import ddt
-from test.terra.backends.aer_simulator.aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 import numpy as np
 import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit, transpile
 
 
 @ddt
-class QasmSaveDensityMatrixTests(AerSimulatorTestCase):
+class QasmSaveDensityMatrixTests(SimulatorTestCase):
     """Test SaveDensityMatrix instruction."""
 
     @supported_methods(['automatic', 'statevector', 'density_matrix',

@@ -16,29 +16,29 @@ from ddt import ddt
 import qiskit.quantum_info as qi
 from qiskit import transpile
 from qiskit.circuit.library import QuantumVolume
-from test.terra.backends.aer_simulator.aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 
 @ddt
-class TestSaveUnitary(AerSimulatorTestCase):
-    """SaveUnitary instruction tests."""
+class TestSaveSuperOp(SimulatorTestCase):
+    """SaveSuperOp instruction tests."""
 
-    @supported_methods(["automatic", "unitary"])
-    def test_save_unitary(self, method, device):
-        """Test save unitary instruction"""
+    @supported_methods(["automatic", "superop"])
+    def test_save_superop(self, method, device):
+        """Test save superop instruction"""
         backend = self.backend(method=method, device=device)
 
         # Test circuit
-        SEED = 5426
-        circ = QuantumVolume(3, seed=SEED)
+        SEED = 712
+        circ = QuantumVolume(2, seed=SEED)
 
         # Target unitary
-        target = qi.Operator(circ)
+        target = qi.SuperOp(circ)
 
         # Add save to circuit
         label = 'state'
-        circ.save_unitary(label=label)
+        circ.save_superop(label=label)
 
         # Run
         result = backend.run(transpile(
@@ -46,5 +46,5 @@ class TestSaveUnitary(AerSimulatorTestCase):
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
-        value = qi.Operator(simdata[label])
+        value = qi.SuperOp(simdata[label])
         self.assertEqual(value, target)

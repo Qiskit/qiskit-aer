@@ -16,12 +16,12 @@ Integration Tests for SaveStatevector instruction
 from ddt import ddt
 import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit, transpile
-from test.terra.backends.aer_simulator.aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 
 @ddt
-class TestSaveStatevector(AerSimulatorTestCase):
+class TestSaveStatevector(SimulatorTestCase):
     """SaveStatevector instruction tests."""
 
     @supported_methods(['automatic', 'statevector', 'matrix_product_state',
