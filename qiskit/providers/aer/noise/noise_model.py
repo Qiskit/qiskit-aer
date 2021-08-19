@@ -563,6 +563,13 @@ class NoiseModel:
         """
         Add a non-local quantum error to the noise model (DEPRECATED).
 
+        .. warning::
+
+            Adding nonlocal noise to a noise model is deprecated as of
+            qiskit-aer 0.9.0 and will be removed no earlier than 3
+            months from that release date. To add non-local noise to
+            a circuit you should write a custom qiskit transpiler pass.
+
         Args:
             error (QuantumError): the quantum error object.
             instructions (str or list[str] or
