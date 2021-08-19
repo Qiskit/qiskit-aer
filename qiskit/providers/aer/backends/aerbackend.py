@@ -30,8 +30,8 @@ from qiskit.utils import deprecate_arguments
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.compiler import assemble
 
-from qiskit.providers.aer.jobs import AerJob, AerJobSet, split_qobj
-from qiskit.providers.aer.aererror import AerError
+from ..jobs import AerJob, AerJobSet, split_qobj
+from ..aererror import AerError
 
 
 # Logger
@@ -128,7 +128,7 @@ class AerBackend(Backend, ABC):
 
         Additional Information:
             kwarg options specified in ``run_options`` will temporarily override
-        any set options of the same name for the current run.
+            any set options of the same name for the current run.
 
         Raises:
             ValueError: if run is not implemented
@@ -338,7 +338,6 @@ class AerBackend(Backend, ABC):
             self._options_defaults[key] = value
         elif key in self._options_defaults:
             self._options_defaults.pop(key)
-
 
     def _get_job_submit_args(self, qobj, validate=False, **run_options):
         """Return execution sim config dict from backend options."""

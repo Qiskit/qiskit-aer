@@ -60,11 +60,13 @@ class CBFixture(AerSimulatorTestCase):
     """Extension tests for Aerbackend with cluster backend"""
     @classmethod
     def setUpClass(cls):
+        super().setUpClass()
         """Override me with an executor init."""
         cls._test_executor = None
 
     @classmethod
     def tearDownClass(cls):
+        super().tearDownClass()
         if cls._test_executor:
             cls._test_executor.shutdown()
 
@@ -81,7 +83,6 @@ class TestDaskExecutor(CBFixture):
     def setUpClass(cls):
         super().setUpClass()
         if DASK:
-            super().setUpClass()
             cls._test_executor = Client(address=LocalCluster(n_workers=1, processes=True))
 
     def setUp(self):
@@ -105,6 +106,7 @@ class TestThreadPoolExecutor(CBFixture):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls._test_executor = None
         cls._test_executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
     
     @supported_methods(['statevector'], [None, 1, 2, 3])

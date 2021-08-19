@@ -95,6 +95,7 @@ class AerJobSet(Job):
     def status(self, worker: Union[None, int, Iterable[int]]
                ) -> Union[JobStatus, List[JobStatus]]:
         """Return the status of each job in this set.
+
         Args
             worker: Worker id. When None, all workers' statuses are returned.
 
