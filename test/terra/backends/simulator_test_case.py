@@ -13,6 +13,7 @@
 AerSimulator test case class
 """
 
+from qiskit.providers.aer.backends.backend_utils import available_devices
 import ddt
 import itertools as it
 from qiskit.providers.aer import AerSimulator
@@ -54,6 +55,12 @@ def supported_methods(methods, *other_args, product=True):
     return decorator
 
 
+def supported_devices(func):
+    """ddt decorator for iterative over supported devices on current system."""
+    devices = AerSimulator().available_devices()
+    return ddt.data(*devices)(func)
+
+
 def _method_device(methods):
     """Return list of (methods, device) supported on current system"""
     if not methods:
@@ -68,3 +75,5 @@ def _method_device(methods):
         else:
             data_args.append((method, 'CPU'))
     return data_args
+
+

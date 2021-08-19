@@ -13,59 +13,61 @@
 UnitarySimulator Integration Tests
 """
 
+from ddt import ddt
 from numpy import exp, pi
 
 from test.terra.reference import ref_1q_clifford
 from test.terra.reference import ref_unitary_gate
 from test.terra.reference import ref_diagonal_gate
 
-from qiskit import execute, assemble, transpile
+from qiskit import transpile
 from qiskit.providers.aer import UnitarySimulator
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_devices)
 
 
-class UnitarySimulatorTests:
+@ddt
+class UnitarySimulatorTests(SimulatorTestCase):
     """UnitarySimulator tests."""
 
-    SIMULATOR = UnitarySimulator()
-    BACKEND_OPTS = {}
+    BACKEND = UnitarySimulator
 
     # ---------------------------------------------------------------------
     # Test unitary gate qobj instruction
     # ---------------------------------------------------------------------
-    def test_unitary_gate(self):
+    @supported_devices
+    def test_unitary_gate(self, device):
         """Test simulation with unitary gate circuit instructions."""
+        backend = self.backend(device=device)
         circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(
             final_measure=False)
+        circuits = transpile(circuits, backend, optimization_level=1)
+        result = backend.run(circuits, shots=1).result()
         targets = ref_unitary_gate.unitary_gate_unitary_deterministic()
-        job = execute(circuits,
-                      self.SIMULATOR,
-                      shots=1,
-                      **self.BACKEND_OPTS)
-        result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
 
-    def test_unitary_gate_circuit_run(self):
+    @supported_devices
+    def test_unitary_gate_circuit_run(self, device):
         """Test simulation with unitary gate circuit instructions."""
+        backend = self.backend(device=device)
         circuits = ref_unitary_gate.unitary_gate_circuits_deterministic(
             final_measure=False)
+        circuits = transpile(circuits, backend, optimization_level=1)
+        result = backend.run(circuits, shots=1).result()
         targets = ref_unitary_gate.unitary_gate_unitary_deterministic()
-        tqc = transpile(circuits,self.SIMULATOR)
-        job = self.SIMULATOR.run(tqc, shots=1, **self.BACKEND_OPTS)
-        result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
 
-    def test_diagonal_gate(self):
+    @supported_devices
+    def test_diagonal_gate(self, device):
         """Test simulation with diagonal gate circuit instructions."""
+        backend = self.backend(device=device)
         circuits = ref_diagonal_gate.diagonal_gate_circuits_deterministic(
             final_measure=False)
+        circuits = transpile(circuits, backend, optimization_level=1)
+        result = backend.run(circuits, shots=1).result()
         targets = ref_diagonal_gate.diagonal_gate_unitary_deterministic()
-        job = execute(circuits,
-                      self.SIMULATOR,
-                      shots=1,
-                      **self.BACKEND_OPTS)
-        result = job.result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets)
 
@@ -73,20 +75,20 @@ class UnitarySimulatorTests:
     # Test global phase
     # ---------------------------------------------------------------------
 
-    def test_qobj_global_phase(self):
+    @supported_devices
+    def test_qobj_global_phase(self, device):
         """Test qobj global phase."""
-
+        backend = self.backend(device=device)
         circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(
             final_measure=False)
+        circuits = transpile(circuits, backend, optimization_level=1)
+        result = backend.run(circuits, shots=1).result()
         targets = ref_1q_clifford.h_gate_unitary_nondeterministic()
-
-        qobj = assemble(transpile(circuits, self.SIMULATOR),
-                        shots=1, **self.BACKEND_OPTS)
-        # Set global phases
-        for i, _ in enumerate(circuits):
+        for i, circuit in enumerate(circuits):
             global_phase = (-1) ** i * (pi / 4)
-            qobj.experiments[i].header.global_phase = global_phase
+            circuit.global_phase += global_phase
             targets[i] = exp(1j * global_phase) * targets[i]
-        result = self.SIMULATOR.run(qobj).result()
+        circuits = transpile(circuits, backend, optimization_level=1)
+        result = backend.run(circuits, shots=1).result()
         self.assertSuccess(result)
         self.compare_unitary(result, circuits, targets, ignore_phase=False)
