@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes bug in the "extended_stabilizer" simulation method where it
+    incorrectly treated some multi-qubit Pauli instructions as unsupported
+    instructions.
+  - |
+    Fixes typo in the `AerSimulator` and ``QasmSimulator`` options for the
+    ``extended_stabilizer_norm_estimation_repetitions`` option.

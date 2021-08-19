@@ -524,7 +524,7 @@ class AerSimulator(AerBackend):
             extended_stabilizer_metropolis_mixing_time=5000,
             extended_stabilizer_approximation_error=0.05,
             extended_stabilizer_norm_estimation_samples=100,
-            extended_stabilizer_norm_estimation_repitions=3,
+            extended_stabilizer_norm_estimation_repetitions=3,
             extended_stabilizer_parallel_threshold=100,
             extended_stabilizer_probabilities_snapshot_samples=3000,
             # MPS options

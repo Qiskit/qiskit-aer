@@ -63,7 +63,9 @@ namespace CHSimulator
     {"swap", Gatetypes::clifford}, // SWAP gate
     // Three-qubit gates
     {"ccx", Gatetypes::non_clifford},    // Controlled-CX gate (Toffoli)
-    {"ccz", Gatetypes::non_clifford}     // Constrolled-CZ gate (H3 Toff H3)
+    {"ccz", Gatetypes::non_clifford},    // Constrolled-CZ gate (H3 Toff H3)
+    // General Pauli
+    {"pauli", Gatetypes::pauli},
   };
 
   using sample_branch_t = std::pair<complex_t, Gates>;
