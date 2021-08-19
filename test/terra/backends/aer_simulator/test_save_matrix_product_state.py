@@ -15,12 +15,12 @@ QasmSimulator Integration Tests for SaveMatrixProductState instruction
 from ddt import ddt
 import numpy as np
 from qiskit import QuantumCircuit, transpile
-from test.terra.backends.aer_simulator.aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 
 @ddt
-class TestSaveMatrixProductStateTests(AerSimulatorTestCase):
+class TestSaveMatrixProductStateTests(SimulatorTestCase):
     """SaveMatrixProductState instruction tests."""
 
     @supported_methods(["automatic", "matrix_product_state"])

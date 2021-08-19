@@ -19,12 +19,12 @@ from ddt import ddt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import QuantumVolume, QFT
 from qiskit.compiler import transpile
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 
 @ddt
-class TestChunkSimulators(AerSimulatorTestCase):
+class TestChunkSimulators(SimulatorTestCase):
     """QasmSimulator Multi-chunk tests."""
 
     OPTIONS = {

@@ -14,8 +14,8 @@ QasmSimulator Integration Tests
 """
 from ddt import ddt
 from test.terra.reference import ref_reset
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 ALL_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
@@ -23,7 +23,7 @@ ALL_METHODS = [
 ]
 
 @ddt
-class TestReset(AerSimulatorTestCase):
+class TestReset(SimulatorTestCase):
     """AerSimulator reset tests."""
 
     # ---------------------------------------------------------------------

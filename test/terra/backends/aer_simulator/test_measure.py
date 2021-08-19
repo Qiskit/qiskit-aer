@@ -22,8 +22,8 @@ from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import ReadoutError, depolarizing_error
 from qiskit.circuit.library import QuantumVolume
 from qiskit.quantum_info.random import random_unitary
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 SUPPORTED_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
@@ -32,7 +32,7 @@ SUPPORTED_METHODS = [
 
 
 @ddt
-class QasmMeasureTests(AerSimulatorTestCase):
+class QasmMeasureTests(SimulatorTestCase):
     """AerSimulator measure tests."""
 
     OPTIONS = {"seed_simulator": 41411}

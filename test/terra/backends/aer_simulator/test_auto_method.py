@@ -23,8 +23,8 @@ from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import QuantumError
 from qiskit.providers.aer.noise.errors import pauli_error
 from qiskit.providers.aer.noise.errors import amplitude_damping_error
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 SUPPORTED_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
@@ -33,7 +33,7 @@ SUPPORTED_METHODS = [
 
 
 @ddt
-class TestSimulationMethod(AerSimulatorTestCase):
+class TestSimulationMethod(SimulatorTestCase):
     """AerSimulator method option tests."""
 
     # ---------------------------------------------------------------------

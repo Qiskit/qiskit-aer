@@ -15,8 +15,8 @@ QasmSimulator Integration Tests for circuit library standard gates
 
 from ddt import ddt
 from numpy.random import default_rng
-from test.terra.backends.aer_simulator.aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 from qiskit import transpile
 import qiskit.quantum_info as qi
@@ -98,7 +98,7 @@ MC_GATES_DICT = {i[0].__name__: i for i in MC_GATES}
 
 
 @ddt
-class TestGates(AerSimulatorTestCase):
+class TestGates(SimulatorTestCase):
     """Test standard gate library."""
 
     SEED = 8181

@@ -16,12 +16,12 @@ QasmSimulator Integration Tests
 
 from ddt import ddt
 from qiskit import QuantumCircuit
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 
 @ddt
-class TestDelayMeasure(AerSimulatorTestCase):
+class TestDelayMeasure(SimulatorTestCase):
     """AerSimulator delay measure sampling optimization tests."""
 
     def delay_measure_circuit(self):

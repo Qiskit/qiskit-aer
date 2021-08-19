@@ -21,12 +21,12 @@ from qiskit.quantum_info import Statevector
 
 from test.terra.reference import ref_unitary_gate, ref_diagonal_gate
 
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 
 @ddt
-class QasmUnitaryGateTests(AerSimulatorTestCase):
+class QasmUnitaryGateTests(SimulatorTestCase):
     """QasmSimulator unitary gate tests."""
  
     METHODS = ["automatic", "statevector", "density_matrix", "matrix_product_state"]

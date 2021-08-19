@@ -16,12 +16,12 @@ from ddt import ddt
 import qiskit.quantum_info as qi
 from qiskit import transpile
 from qiskit.circuit.library import QuantumVolume
-from test.terra.backends.aer_simulator.aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 
 @ddt
-class TestSaveUnitary(AerSimulatorTestCase):
+class TestSaveUnitary(SimulatorTestCase):
     """SaveUnitary instruction tests."""
 
     @supported_methods(["automatic", "unitary"])

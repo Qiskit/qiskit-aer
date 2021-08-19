@@ -24,12 +24,12 @@ from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import (ReadoutError,
                                                depolarizing_error,
                                                amplitude_damping_error)
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 
 @ddt
-class TestGateFusion(AerSimulatorTestCase):
+class TestGateFusion(SimulatorTestCase):
     """QasmSimulator fusion tests."""
 
     def create_statevector_circuit(self):

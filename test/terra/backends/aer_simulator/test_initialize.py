@@ -18,14 +18,14 @@ from test.terra.reference import ref_initialize
 from qiskit.providers.aer import QasmSimulator
 
 import numpy as np
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 SUPPORTED_METHODS = ['automatic', 'statevector', 'matrix_product_state']
 
 
 @ddt
-class QasmInitializeTests(AerSimulatorTestCase):
+class QasmInitializeTests(SimulatorTestCase):
     """AerSimulator initialize tests."""
 
     # ---------------------------------------------------------------------

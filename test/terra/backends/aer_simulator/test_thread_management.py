@@ -23,11 +23,11 @@ from qiskit.circuit.library import QuantumVolume
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from test.terra.decorators import requires_omp, requires_multiprocessing
-from .aer_simulator_test_case import AerSimulatorTestCase
+from test.terra.backends.simulator_test_case import SimulatorTestCase
 
 
 @ddt
-class QasmThreadManagementTests(AerSimulatorTestCase):
+class QasmThreadManagementTests(SimulatorTestCase):
     """QasmSimulator thread tests."""
 
     def backend_options_parallel(self,

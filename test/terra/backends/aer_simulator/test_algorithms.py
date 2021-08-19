@@ -17,12 +17,12 @@ from ddt import ddt
 from qiskit import transpile, QuantumCircuit
 from test.terra.reference import ref_algorithms
 
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 
 @ddt
-class TestAlgorithms(AerSimulatorTestCase):
+class TestAlgorithms(SimulatorTestCase):
     """AerSimulator algorithm tests in the default basis"""
 
     def _test_grovers(self, **options):

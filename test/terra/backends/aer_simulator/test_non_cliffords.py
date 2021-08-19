@@ -15,8 +15,8 @@ QasmSimulator Integration Tests
 from ddt import ddt
 from test.terra.reference import ref_non_clifford
 from qiskit import transpile
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 SUPPORTED_METHODS = [
     'automatic', 'statevector', 'density_matrix',
@@ -25,7 +25,7 @@ SUPPORTED_METHODS = [
 
 
 @ddt
-class TestNonCliffords(AerSimulatorTestCase):
+class TestNonCliffords(SimulatorTestCase):
     """AerSimulator T and CCX gate tests"""
 
     # ---------------------------------------------------------------------

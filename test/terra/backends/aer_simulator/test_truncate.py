@@ -15,8 +15,8 @@ from qiskit.providers.aer import noise
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import ReadoutError, depolarizing_error
 from qiskit.providers.models import BackendProperties
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 ALL_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
@@ -24,7 +24,7 @@ ALL_METHODS = [
 ]
 
 @ddt
-class TestTruncateQubits(AerSimulatorTestCase):
+class TestTruncateQubits(SimulatorTestCase):
     """AerSimulator Qubits Truncate tests."""
 
     def create_circuit_for_truncate(self):

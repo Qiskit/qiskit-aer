@@ -15,14 +15,14 @@ QasmSimulator Integration Tests
 
 from ddt import ddt
 from test.terra.reference import ref_conditionals
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 
 
 
 @ddt
-class TestConditionalGates(AerSimulatorTestCase):
+class TestConditionalGates(SimulatorTestCase):
     """AerSimulator conditional tests."""
 
     SUPPORTED_METHODS = [
@@ -91,7 +91,7 @@ class TestConditionalGates(AerSimulatorTestCase):
 
 
 @ddt
-class TestConditionalUnitary(AerSimulatorTestCase):
+class TestConditionalUnitary(SimulatorTestCase):
     """AerSimulator conditional unitary tests."""
 
     SUPPORTED_METHODS = [
@@ -156,7 +156,7 @@ class TestConditionalUnitary(AerSimulatorTestCase):
 
 
 @ddt
-class TestConditionalKraus(AerSimulatorTestCase):
+class TestConditionalKraus(SimulatorTestCase):
     """AerSimulator conditional kraus tests."""
 
     SUPPORTED_METHODS = [
@@ -221,7 +221,7 @@ class TestConditionalKraus(AerSimulatorTestCase):
 
 
 @ddt
-class TestConditionalSuperOp(AerSimulatorTestCase):
+class TestConditionalSuperOp(SimulatorTestCase):
     """AerSimulator conditional superop tests."""
 
     SUPPORTED_METHODS = ['automatic', 'density_matrix']

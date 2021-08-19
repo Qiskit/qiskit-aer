@@ -15,15 +15,15 @@ QasmSimulator Integration Tests for circuit library standard gates
 
 from ddt import ddt
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from test.terra.backends.aer_simulator.aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 from qiskit import transpile
 import qiskit.quantum_info as qi
 
 
 @ddt
-class TestPauliGate(AerSimulatorTestCase):
+class TestPauliGate(SimulatorTestCase):
     """Test standard gate library."""
 
     @supported_methods(

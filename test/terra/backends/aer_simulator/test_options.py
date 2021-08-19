@@ -16,12 +16,12 @@ AerSimualtor options tests
 from ddt import ddt, data
 from qiskit import QuantumCircuit, transpile
 from qiskit.providers.aer.noise import NoiseModel
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 
 @ddt
-class TestOptions(AerSimulatorTestCase):
+class TestOptions(SimulatorTestCase):
     """Tests of AerSimulator options"""
 
     @supported_methods(

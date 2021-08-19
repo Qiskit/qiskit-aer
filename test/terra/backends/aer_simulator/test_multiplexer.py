@@ -14,11 +14,11 @@ QasmSimulator Integration Tests
 """
 
 from test.terra.reference import ref_multiplexer
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 
-class QasmMultiplexerTests(AerSimulatorTestCase):
+class QasmMultiplexerTests(SimulatorTestCase):
     """QasmSimulator multiplexer gate tests in default basis."""
 
     # ---------------------------------------------------------------------

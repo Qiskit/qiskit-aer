@@ -16,8 +16,8 @@ from ddt import ddt
 from test.terra.reference import ref_1q_clifford
 from test.terra.reference import ref_2q_clifford
 from qiskit import transpile
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 SUPPORTED_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
@@ -26,7 +26,7 @@ SUPPORTED_METHODS = [
 
 
 @ddt
-class TestCliffords(AerSimulatorTestCase):
+class TestCliffords(SimulatorTestCase):
     """AerSimulator Clifford gate tests"""
 
     SEED = 12345
