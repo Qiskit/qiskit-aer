@@ -13,6 +13,8 @@
 Helper functions for noise model creation.
 """
 # pylint: disable=wildcard-import,unused-wildcard-import
+import warnings
+
 import numpy as np
 from qiskit.circuit import Reset
 from qiskit.circuit.library.standard_gates import *
@@ -36,12 +38,19 @@ def standard_gates_instructions(instructions):
     Returns:
         list: a list of qobj instructions equivalent to in input instruction.
     """
+    warnings.warn(
+        'standard_gates_instructions has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
+
     if not isinstance(instructions, list):
         return instructions
 
     output_instructions = []
-    for instruction in instructions:
-        output_instructions += standard_gate_instruction(instruction)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for instruction in instructions:
+            output_instructions += standard_gate_instruction(instruction)
     return output_instructions
 
 
@@ -57,6 +66,14 @@ def standard_gate_instruction(instruction, ignore_phase=True):
     Returns:
         list: a list of (instructions, qubits) equivalent to in input instruction.
     """
+    warnings.warn(
+        'standard_gate_instruction has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
+
+    if not isinstance(instruction, dict):
+        return [instruction]
+
     gate = {
         "x": XGate(),
         "y": YGate(),
@@ -68,92 +85,92 @@ def standard_gate_instruction(instruction, ignore_phase=True):
         "swap": SwapGate()
     }
 
-    if not isinstance(instruction, dict):
-        return [instruction]
-
     name = instruction.get("name", None)
     if name not in ["mat", "unitary", "kraus"]:
         return [instruction]
     qubits = instruction["qubits"]
     params = instruction["params"]
 
-    # Check for single-qubit reset Kraus
-    if name == "kraus":
-        if len(qubits) == 1:
-            superop = SuperOp(Kraus(params))
-            # Check if reset to |0>
-            reset0 = reset_superop(1)
-            if superop == reset0:
-                return [(Reset(), [0])]
-            # Check if reset to |1>
-            reset1 = reset0.compose(Operator(standard_gate_unitary('x')))
-            if superop == reset1:
-                return [(Reset(), [0]), (XGate(), [0])]
-        return [instruction]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
 
-    # Check single qubit gates
-    mat = params[0]
-    if len(qubits) == 1:
-        # Check clifford gates
-        for j in range(24):
+        # Check for single-qubit reset Kraus
+        if name == "kraus":
+            if len(qubits) == 1:
+                superop = SuperOp(Kraus(params))
+                # Check if reset to |0>
+                reset0 = reset_superop(1)
+                if superop == reset0:
+                    return [(Reset(), [0])]
+                # Check if reset to |1>
+                reset1 = reset0.compose(Operator(standard_gate_unitary('x')))
+                if superop == reset1:
+                    return [(Reset(), [0]), (XGate(), [0])]
+            return [instruction]
+
+        # Check single qubit gates
+        mat = params[0]
+        if len(qubits) == 1:
+            # Check clifford gates
+            for j in range(24):
+                if matrix_equal(
+                        mat,
+                        single_qubit_clifford_matrix(j),
+                        ignore_phase=ignore_phase):
+                    return single_qubit_clifford_instructions(j, qubit=qubits[0])
+            # Check t gates
+            for name in ["t", "tdg"]:
+                if matrix_equal(
+                        mat,
+                        standard_gate_unitary(name),
+                        ignore_phase=ignore_phase):
+                    return [(gate[name], qubits)]
+            # TODO: u1,u2,u3 decomposition
+        # Check two qubit gates
+        if len(qubits) == 2:
+            for name in ["cx", "cz", "swap"]:
+                if matrix_equal(
+                        mat,
+                        standard_gate_unitary(name),
+                        ignore_phase=ignore_phase):
+                    return [(gate[name], qubits)]
+            # Check reversed CX
             if matrix_equal(
                     mat,
-                    single_qubit_clifford_matrix(j),
+                    standard_gate_unitary("cx_10"),
                     ignore_phase=ignore_phase):
-                return single_qubit_clifford_instructions(j, qubit=qubits[0])
-        # Check t gates
-        for name in ["t", "tdg"]:
+                return [(CXGate(), [qubits[1], qubits[0]])]
+            # Check 2-qubit Pauli's
+            paulis = ["id", "x", "y", "z"]
+            for pauli0 in paulis:
+                for pauli1 in paulis:
+                    pmat = np.kron(
+                        standard_gate_unitary(pauli1),
+                        standard_gate_unitary(pauli0))
+                    if matrix_equal(mat, pmat, ignore_phase=ignore_phase):
+                        if pauli0 == "id":
+                            return [(gate[pauli1], [qubits[1]])]
+                        elif pauli1 == "id":
+                            return [(gate[pauli0], [qubits[0]])]
+                        else:
+                            return [(gate[pauli0], [qubits[0]]), (gate[pauli1], [qubits[1]])]
+        # Check three qubit toffoli
+        if len(qubits) == 3:
             if matrix_equal(
                     mat,
-                    standard_gate_unitary(name),
+                    standard_gate_unitary("ccx_012"),
                     ignore_phase=ignore_phase):
-                return [(gate[name], qubits)]
-        # TODO: u1,u2,u3 decomposition
-    # Check two qubit gates
-    if len(qubits) == 2:
-        for name in ["cx", "cz", "swap"]:
+                return [(CCXGate(), qubits)]
             if matrix_equal(
                     mat,
-                    standard_gate_unitary(name),
+                    standard_gate_unitary("ccx_021"),
                     ignore_phase=ignore_phase):
-                return [(gate[name], qubits)]
-        # Check reversed CX
-        if matrix_equal(
-                mat,
-                standard_gate_unitary("cx_10"),
-                ignore_phase=ignore_phase):
-            return [(CXGate(), [qubits[1], qubits[0]])]
-        # Check 2-qubit Pauli's
-        paulis = ["id", "x", "y", "z"]
-        for pauli0 in paulis:
-            for pauli1 in paulis:
-                pmat = np.kron(
-                    standard_gate_unitary(pauli1),
-                    standard_gate_unitary(pauli0))
-                if matrix_equal(mat, pmat, ignore_phase=ignore_phase):
-                    if pauli0 == "id":
-                        return [(gate[pauli1], [qubits[1]])]
-                    elif pauli1 == "id":
-                        return [(gate[pauli0], [qubits[0]])]
-                    else:
-                        return [(gate[pauli0], [qubits[0]]), (gate[pauli1], [qubits[1]])]
-    # Check three qubit toffoli
-    if len(qubits) == 3:
-        if matrix_equal(
-                mat,
-                standard_gate_unitary("ccx_012"),
-                ignore_phase=ignore_phase):
-            return [(CCXGate(), qubits)]
-        if matrix_equal(
-                mat,
-                standard_gate_unitary("ccx_021"),
-                ignore_phase=ignore_phase):
-            return [(CCXGate(), [qubits[0], qubits[2], qubits[1]])]
-        if matrix_equal(
-                mat,
-                standard_gate_unitary("ccx_120"),
-                ignore_phase=ignore_phase):
-            return [(CCXGate(), [qubits[1], qubits[2], qubits[0]])]
+                return [(CCXGate(), [qubits[0], qubits[2], qubits[1]])]
+            if matrix_equal(
+                    mat,
+                    standard_gate_unitary("ccx_120"),
+                    ignore_phase=ignore_phase):
+                return [(CCXGate(), [qubits[1], qubits[2], qubits[0]])]
 
     # Else return input in
     return [instruction]
@@ -176,6 +193,10 @@ def single_qubit_clifford_gates(j):
     Raises:
         NoiseError: If index is out of range [0, 23].
     """
+    warnings.warn(
+        'single_qubit_clifford_gates has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
 
     if not isinstance(j, int) or j < 0 or j > 23:
         raise NoiseError(
@@ -224,14 +245,20 @@ def single_qubit_clifford_matrix(j):
     Raises:
         NoiseError: If index is out of range [0, 23].
     """
+    warnings.warn(
+        'single_qubit_clifford_matrix has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
 
     if not isinstance(j, int) or j < 0 or j > 23:
         raise NoiseError(
             "Index {} must be in the range [0, ..., 23]".format(j))
 
     mat = np.eye(2)
-    for gate in single_qubit_clifford_gates(j):
-        mat = np.dot(gate.to_matrix(), mat)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for gate in single_qubit_clifford_gates(j):
+            mat = np.dot(gate.to_matrix(), mat)
     return mat
 
 
@@ -254,6 +281,10 @@ def single_qubit_clifford_instructions(index, qubit=0):
     Raises:
         NoiseError: If index is out of range [0, 23] or qubit invalid.
     """
+    warnings.warn(
+        'single_qubit_clifford_instructions has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
 
     if not isinstance(index, int) or index < 0 or index > 23:
         raise NoiseError(
@@ -262,13 +293,19 @@ def single_qubit_clifford_instructions(index, qubit=0):
         raise NoiseError("qubit position must be positive integer.")
 
     instructions = []
-    for gate in single_qubit_clifford_gates(index):
-        instructions.append((gate, [qubit]))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for gate in single_qubit_clifford_gates(index):
+            instructions.append((gate, [qubit]))
     return instructions
 
 
 def standard_gate_unitary(name):
     """Return the unitary matrix for a standard gate."""
+    warnings.warn(
+        'standard_gate_unitary has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
 
     unitary_matrices = {
         ("id", "I"):
@@ -322,6 +359,10 @@ def standard_gate_unitary(name):
 
 def reset_superop(num_qubits):
     """Return a N-qubit reset SuperOp."""
+    warnings.warn(
+        'reset_superop has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
     reset = SuperOp(
         np.array([[1, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]))
     if num_qubits == 1:
@@ -334,6 +375,10 @@ def reset_superop(num_qubits):
 
 def standard_instruction_operator(instr):
     """Return the Operator for a standard gate instruction."""
+    warnings.warn(
+        'standard_instruction_operator has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
     # Convert to dict (for QobjInstruction types)
     if hasattr(instr, 'as_dict'):
         instr = instr.as_dict()
@@ -341,7 +386,9 @@ def standard_instruction_operator(instr):
     name = instr.get('name', "")
     params = instr.get('params', [])
     # Check if standard unitary gate name
-    mat = standard_gate_unitary(name)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        mat = standard_gate_unitary(name)
     if isinstance(mat, np.ndarray):
         return Operator(mat)
 
@@ -376,8 +423,14 @@ def standard_instruction_operator(instr):
 
 def standard_instruction_channel(instr):
     """Return the SuperOp channel for a standard instruction."""
-    # Check if standard operator
-    oper = standard_instruction_operator(instr)
+    warnings.warn(
+        'standard_instruction_channel has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        # Check if standard operator
+        oper = standard_instruction_operator(instr)
     if oper is not None:
         return SuperOp(oper)
 
@@ -391,7 +444,10 @@ def standard_instruction_channel(instr):
     if name == 'reset':
         # params should be the number of qubits being reset
         num_qubits = len(instr['qubits'])
-        return reset_superop(num_qubits)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            res = reset_superop(num_qubits)
+        return res
     # Check if Kraus instruction
     if name == 'kraus':
         params = instr['params']
@@ -401,6 +457,11 @@ def standard_instruction_channel(instr):
 
 def circuit2superop(circuit, min_qubits=1):
     """Return the SuperOp for a standard instruction."""
+    warnings.warn(
+        'circuit2superop has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
+
     # Get number of qubits
     max_qubits = 1
     for instr in circuit:
@@ -417,7 +478,9 @@ def circuit2superop(circuit, min_qubits=1):
     superop = SuperOp(np.eye(4**num_qubits))
     # compose each circuit element with the superoperator
     for instr in circuit:
-        instr_op = standard_instruction_channel(instr)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            instr_op = standard_instruction_channel(instr)
         if instr_op is None:
             raise NoiseError('Cannot convert instruction {} to SuperOp'.format(instr))
         if hasattr(instr, 'qubits'):
@@ -443,6 +506,11 @@ def make_unitary_instruction(mat, qubits, standard_gates=True):
     Raises:
         NoiseError: if the input is not a unitary matrix.
     """
+    warnings.warn(
+        'make_unitary_instruction has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
+
     if not is_unitary_matrix(mat):
         raise NoiseError("Input matrix is not unitary.")
 
@@ -451,7 +519,10 @@ def make_unitary_instruction(mat, qubits, standard_gates=True):
 
     instruction = {"name": "unitary", "qubits": qubits, "params": [mat]}
     if standard_gates:
-        return standard_gate_instruction(instruction)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            res = standard_gate_instruction(instruction)
+        return res
     else:
         return [instruction]
 
@@ -468,6 +539,11 @@ def make_kraus_instruction(mats, qubits):
     Raises:
         NoiseError: if the input is not a CPTP Kraus channel.
     """
+    warnings.warn(
+        'make_kraus_instruction has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
+
     kraus = Kraus(mats)
     if not kraus.is_cptp() or kraus._input_dim != kraus._output_dim:
         raise NoiseError("Input Kraus matrices are not a CPTP channel.")
@@ -478,6 +554,7 @@ def make_kraus_instruction(mats, qubits):
 
 def qubits_from_mat(mat):
     """Return the number of qubits for a multi-qubit matrix."""
+    # TODO: where to be moved?
     arr = np.array(mat)
     shape = arr.shape
     num_qubits = int(np.log2(shape[1]))
@@ -488,6 +565,11 @@ def qubits_from_mat(mat):
 
 def is_matrix_diagonal(mat):
     """Test if row-vector representation of diagonal matrix."""
+    warnings.warn(
+        'is_matrix_diagonal has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
+
     mat = np.array(mat)
     shape = mat.shape
     return len(shape) == 2 and shape[0] == 1
@@ -516,6 +598,11 @@ def kraus2instructions(kraus_ops, standard_gates, atol=ATOL_DEFAULT):
     Raises:
         NoiseError: If the input Kraus channel is not CPTP.
     """
+    warnings.warn(
+        'kraus2instructions has been deprecated as of qiskit-aer 0.8.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
+
     # Check threshold
     if atol < 0:
         raise NoiseError("atol cannot be negative")
@@ -597,10 +684,12 @@ def kraus2instructions(kraus_ops, standard_gates, atol=ATOL_DEFAULT):
     qubits = list(range(num_qubits))
 
     # Add unitary instructions
-    for unitary in unitaries:
-        instructions.append(
-            make_unitary_instruction(
-                unitary, qubits, standard_gates=standard_gates))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for unitary in unitaries:
+            instructions.append(
+                make_unitary_instruction(
+                    unitary, qubits, standard_gates=standard_gates))
 
     # Add identity instruction
     if prob_identity > atol:
@@ -619,7 +708,9 @@ def kraus2instructions(kraus_ops, standard_gates, atol=ATOL_DEFAULT):
         non_unitaries = [
             np.array(op) / np.sqrt(prob_kraus) for op in non_unitaries
         ]
-    instructions.append(make_kraus_instruction(non_unitaries, qubits))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        instructions.append(make_kraus_instruction(non_unitaries, qubits))
     probabilities.append(prob_kraus)
     # Normalize probabilities to account for any rounding errors
     probabilities = list(np.array(probabilities) / np.sum(probabilities))
