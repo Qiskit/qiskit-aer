@@ -17,12 +17,12 @@ from ddt import ddt
 import numpy as np
 import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit, transpile
-from test.terra.backends.aer_simulator.aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 
 @ddt
-class TestSetState(AerSimulatorTestCase):
+class TestSetState(SimulatorTestCase):
     """Test for set state instructions"""
     @supported_methods(['automatic', 'stabilizer'], [1, 2, 3, 4])
     def test_set_stabilizer(self, method, device, num_qubits):
@@ -141,7 +141,7 @@ class TestSetState(AerSimulatorTestCase):
         self.assertEqual(value, target)
 
 @ddt
-class TestSetMPS(AerSimulatorTestCase):
+class TestSetMPS(SimulatorTestCase):
     """Test for set_mps instruction"""
     @supported_methods(['automatic', 'matrix_product_state'])
     def test_set_matrix_product_state(self, method, device):

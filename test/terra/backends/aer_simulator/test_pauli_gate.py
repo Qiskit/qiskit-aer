@@ -15,20 +15,20 @@ QasmSimulator Integration Tests for circuit library standard gates
 
 from ddt import ddt
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from test.terra.backends.aer_simulator.aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 from qiskit import transpile
 import qiskit.quantum_info as qi
 
 
 @ddt
-class TestPauliGate(AerSimulatorTestCase):
+class TestPauliGate(SimulatorTestCase):
     """Test standard gate library."""
 
     @supported_methods(
         ["automatic", "stabilizer", "statevector", "density_matrix", "matrix_product_state",
-         "unitary", "superop"], ['I', 'X', 'Y', 'Z', 'XY', 'ZXY'])
+         "unitary", "superop", "extended_stabilizer"], ['I', 'X', 'Y', 'Z', 'XY', 'ZXY'])
     def test_pauli_gate(self, method, device, pauli):
         """Test multi-qubit Pauli gate."""
         pauli = qi.Pauli(pauli)
@@ -68,9 +68,12 @@ class TestPauliGate(AerSimulatorTestCase):
 
         # Check results
         success = getattr(result, 'success', False)
-        self.assertTrue(success)
+        self.assertTrue(success, msg="Simulation unexpectedly failed")
         data = result.data(0)
         self.assertIn(label, data)
         value = state_fn(data[label])
         fidelity = fidelity_fn(target, value)
-        self.assertGreater(fidelity, 0.9999)
+
+        threshold = 0.9999
+        self.assertGreater(
+            fidelity, threshold, msg="Fidelity {fidelity} not > {threshold}")

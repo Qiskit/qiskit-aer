@@ -81,12 +81,12 @@ public:
   // Return the string name of the State class
   virtual std::string name() const override {return "stabilizer";}
 
-  // Apply a sequence of operations by looping over list
-  // If the input is not in allowed_ops an exeption will be raised.
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false) override;
+  // Apply an operation
+  // If the op is not in allowed_ops an exeption will be raised.
+  virtual void apply_op(const Operations::Op &op,
+                        ExperimentResult &result,
+                        RngEngine &rng,
+                        bool final_op = false) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -315,55 +315,52 @@ void State::set_config(const json_t &config) {
 // Implementation: apply operations
 //=========================================================================
 
-void State::apply_ops(const std::vector<Operations::Op> &ops,
-                      ExperimentResult &result,
-                      RngEngine &rng, bool final_ops) {
-  // Simple loop over vector of input operations
-  for (const auto &op: ops) {
-    if(BaseState::creg_.check_conditional(op)) {
-      switch (op.type) {
-        case OpType::barrier:
-          break;
-        case OpType::reset:
-          apply_reset(op.qubits, rng);
-          break;
-        case OpType::measure:
-          apply_measure(op.qubits, op.memory, op.registers, rng);
-          break;
-        case OpType::bfunc:
-          BaseState::creg_.apply_bfunc(op);
-          break;
-        case OpType::roerror:
-          BaseState::creg_.apply_roerror(op, rng);
-          break;
-        case OpType::gate:
-          apply_gate(op);
-          break;
-        case OpType::snapshot:
-          apply_snapshot(op, result);
-          break;
-        case OpType::set_stabilizer:
-          apply_set_stabilizer(op.clifford);
-          break;
-        case OpType::save_expval:
-        case OpType::save_expval_var:
-          apply_save_expval(op, result);
-          break;
-        case OpType::save_probs:
-        case OpType::save_probs_ket:
-          apply_save_probs(op, result);
-          break;
-        case OpType::save_amps_sq:
-          apply_save_amplitudes_sq(op, result);
-          break;
-        case OpType::save_state:
-        case OpType::save_stabilizer:
-          apply_save_stabilizer(op, result);
-          break;
-        default:
-          throw std::invalid_argument("Stabilizer::State::invalid instruction \'" +
-                                      op.name + "\'.");
-      }
+void State::apply_op(const Operations::Op &op,
+                     ExperimentResult &result,
+                     RngEngine &rng, bool final_op) {
+  if (BaseState::creg_.check_conditional(op)) {
+    switch (op.type) {
+      case OpType::barrier:
+        break;
+      case OpType::reset:
+        apply_reset(op.qubits, rng);
+        break;
+      case OpType::measure:
+        apply_measure(op.qubits, op.memory, op.registers, rng);
+        break;
+      case OpType::bfunc:
+        BaseState::creg_.apply_bfunc(op);
+        break;
+      case OpType::roerror:
+        BaseState::creg_.apply_roerror(op, rng);
+        break;
+      case OpType::gate:
+        apply_gate(op);
+        break;
+      case OpType::snapshot:
+        apply_snapshot(op, result);
+        break;
+      case OpType::set_stabilizer:
+        apply_set_stabilizer(op.clifford);
+        break;
+      case OpType::save_expval:
+      case OpType::save_expval_var:
+        apply_save_expval(op, result);
+        break;
+      case OpType::save_probs:
+      case OpType::save_probs_ket:
+        apply_save_probs(op, result);
+        break;
+      case OpType::save_amps_sq:
+        apply_save_amplitudes_sq(op, result);
+        break;
+      case OpType::save_state:
+      case OpType::save_stabilizer:
+        apply_save_stabilizer(op, result);
+        break;
+      default:
+        throw std::invalid_argument("Stabilizer::State::invalid instruction \'" +
+                                    op.name + "\'.");
     }
   }
 }

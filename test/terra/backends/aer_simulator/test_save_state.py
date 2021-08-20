@@ -15,8 +15,8 @@ Integration Tests for SaveState instruction
 
 import numpy as np
 from ddt import ddt
-from test.terra.backends.aer_simulator.aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 from qiskit import QuantumCircuit, transpile
 from qiskit.providers.aer.library import (
     SaveStatevector, SaveDensityMatrix, SaveStabilizer,
@@ -24,7 +24,7 @@ from qiskit.providers.aer.library import (
 
 
 @ddt
-class TestSaveState(AerSimulatorTestCase):
+class TestSaveState(SimulatorTestCase):
     """Test instructions for saving simulator state."""
 
     @supported_methods(['automatic', 'statevector', 'density_matrix',
