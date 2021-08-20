@@ -439,7 +439,6 @@ def model_and_pi_schedule():
     return model, schedule
 
 if __name__ == '__main__':
-
     # Run Aer simulator
     shots = 4000
     circuits = grovers_circuit(final_measure=True, allow_sampling=True)
@@ -447,22 +446,16 @@ if __name__ == '__main__':
                 '0x2': shots / 8, '0x3': shots / 8}]
     simulator = AerSimulator()
     result = simulator.run(transpile(circuits, simulator), shots=shots).result()
-    print(result.status)
-    import pprint
-    pprint.pprint(result.to_dict())
     assert result.status == 'COMPLETED'
-    compare_counts(result, circuits, targets, delta=0.05 * shots)
     assert result.success is True
+    compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # Run qasm simulator
     simulator = QasmSimulator()
     result = simulator.run(transpile(circuits, simulator), shots=shots).result()
-    print(result.status)
-    import pprint
-    pprint.pprint(result.to_dict())
     assert result.status == 'COMPLETED'
-    compare_counts(result, circuits, targets, delta=0.05 * shots)
     assert result.success is True
+    compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # Run statevector simulator
     circuits = cx_gate_circuits_deterministic(final_measure=False)

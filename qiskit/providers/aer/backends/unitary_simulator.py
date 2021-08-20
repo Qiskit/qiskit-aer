@@ -195,7 +195,7 @@ class UnitarySimulator(AerBackend):
         return Options(
             # Global options
             shots=1,
-            device="GPU",
+            device="CPU",
             precision="double",
             executor=None,
             max_job_size=None,
