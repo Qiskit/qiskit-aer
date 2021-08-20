@@ -331,6 +331,8 @@ protected:
     }
     return max_memory_mb_;
   }
+  // Truncate and remap input qubits
+  bool enable_truncation_ = true;
 
   // The maximum number of threads to use for various levels of parallelization
   int max_parallel_threads_;
@@ -375,6 +377,8 @@ protected:
 //-------------------------------------------------------------------------
 
 void Controller::set_config(const json_t &config) {
+  // Load validation threshold
+  JSON::get_value(enable_truncation_, "enable_truncation", config);
 
   // Load validation threshold
   JSON::get_value(validation_threshold_, "validation_threshold", config);
@@ -766,7 +770,6 @@ Result Controller::execute(const inputdata_t &input_qobj) {
 
     Noise::NoiseModel noise_model;
     json_t config;
-    bool disable_truncation = false;
 
     // Check for config
     if (Parser<inputdata_t>::get_value(config, "config", input_qobj)) {
@@ -774,17 +777,15 @@ Result Controller::execute(const inputdata_t &input_qobj) {
       set_config(config);
       // Load noise model
       Parser<json_t>::get_value(noise_model, "noise_model", config);
-      // Check for truncation disabled flag
-      Parser<json_t>::get_value(disable_truncation, "disable_truncation", config);
     }
 
     // Initialize qobj
     Qobj qobj;
-    if (disable_truncation || noise_model.has_nonlocal_quantum_errors()) {
+    if (noise_model.has_nonlocal_quantum_errors()) {
        // Non-local noise does not work with optimized initialization
        qobj = Qobj(input_qobj, false);
     } else {
-      qobj = Qobj(input_qobj, true);
+      qobj = Qobj(input_qobj, enable_truncation_);
     }
 
     auto result = execute(qobj.circuits, noise_model, config);
@@ -1714,11 +1715,11 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
       auto method = automatic_simulation_method(circ, noise_model);
       sim_methods.push_back(method);
       if (!superop_enabled && (method == Method::density_matrix || method == Method::superop)) {
-        noise_model.enable_superop_method();
+        noise_model.enable_superop_method(max_parallel_threads_);
         superop_enabled = true;
       } else if (kraus_noise && !kraus_enabled &&
                  (method == Method::statevector || method == Method::matrix_product_state)) {
-        noise_model.enable_kraus_method();
+        noise_model.enable_kraus_method(max_parallel_threads_);
         kraus_enabled = true;
       }
     }
@@ -1728,11 +1729,11 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
   // Use non-automatic default method for all circuits
   std::vector<Method> sim_methods(circuits.size(), default_method_);
   if (default_method_ == Method::density_matrix || default_method_ == Method::superop) {
-    noise_model.enable_superop_method();
+    noise_model.enable_superop_method(max_parallel_threads_);
   } else if (kraus_noise && (
               default_method_ == Method::statevector
               || default_method_ == Method::matrix_product_state)) {
-    noise_model.enable_kraus_method();
+    noise_model.enable_kraus_method(max_parallel_threads_);
   }
   return sim_methods;
 }

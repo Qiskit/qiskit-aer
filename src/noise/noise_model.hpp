@@ -67,13 +67,13 @@ public:
   // This will cause all QuantumErrors stored in the noise model
   // to calculate their superoperator representations and raise
   // an exception if they cannot be converted.
-  void enable_superop_method();
+  void enable_superop_method(int num_threads=1);
 
   // Enable kraus sampling method
   // This will cause all QuantumErrors stored in the noise model
   // to calculate their canonical Kraus representations and raise
   // an exception if they cannot be converted.
-  void enable_kraus_method();
+  void enable_kraus_method(int num_threads=1);
 
   //-----------------------------------------------------------------------
   // Checking if errors types are in noise model
@@ -371,22 +371,34 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_op(const Operations::Op &op,
 }
 
 
-void NoiseModel::enable_superop_method() {
+void NoiseModel::enable_superop_method(int num_threads) {
   if (enabled_methods_.find(Method::superop) == enabled_methods_.end()) {
-    // Compute superoperators
-    for (auto& qerror : quantum_errors_) {
-      qerror.compute_superoperator();
+    if (num_threads > 1 && quantum_errors_.size() > 10) {
+      #pragma omp parallel for num_threads(num_threads)
+      for (int i=0; i < quantum_errors_.size(); i++)  {
+        quantum_errors_[i].compute_superoperator();
+      }
+    } else {
+      for (auto& qerror : quantum_errors_) {
+        qerror.compute_superoperator();
+      }
     }
     enabled_methods_.insert(Method::superop);
   }
 }
 
 
-void NoiseModel::enable_kraus_method() {
+void NoiseModel::enable_kraus_method(int num_threads) {
   if (enabled_methods_.find(Method::kraus) == enabled_methods_.end()) {
-    // Compute kraus
-    for (auto& qerror : quantum_errors_) {
-      qerror.compute_kraus();
+    if (num_threads > 1 && quantum_errors_.size() > 10) {
+      #pragma omp parallel for num_threads(num_threads) 
+      for (int i=0; i < quantum_errors_.size(); i++)  {
+        quantum_errors_[i].compute_kraus();
+      }
+    } else {
+      for (auto& qerror : quantum_errors_) {
+        qerror.compute_kraus();
+      }
     }
     enabled_methods_.insert(Method::kraus);
   }
