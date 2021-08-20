@@ -338,12 +338,12 @@ class QasmSimulator(AerBackend):
     _AVAILABLE_METHODS = None
 
     _LEGACY_METHOD_MAP = {
-      "statevector_cpu": ("statevector", "CPU"),
-      "statevector_gpu": ("statevector", "GPU"),
-      "statevector_thrust": ("statevector", "Thrust"),
-      "density_matrix_cpu": ("density_matrix", "CPU"),
-      "density_matrix_gpu": ("density_matrix", "GPU"),
-      "density_matrix_thrust": ("density_matrix", "Thrust"),
+        "statevector_cpu": ("statevector", "CPU"),
+        "statevector_gpu": ("statevector", "GPU"),
+        "statevector_thrust": ("statevector", "Thrust"),
+        "density_matrix_cpu": ("density_matrix", "CPU"),
+        "density_matrix_gpu": ("density_matrix", "GPU"),
+        "density_matrix_thrust": ("density_matrix", "Thrust"),
     }
 
     def __init__(self,

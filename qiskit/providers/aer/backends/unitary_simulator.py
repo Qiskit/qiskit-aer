@@ -224,6 +224,8 @@ class UnitarySimulator(AerBackend):
             fields = copy.copy(fields)
             if fields["method"] == "unitary_gpu":
                 fields["device"] = "GPU"
+            elif fields["method"] == "unitary_thrust":
+                fields["device"] = "Thrust"
             fields.pop("method")
         super().set_options(**fields)
 

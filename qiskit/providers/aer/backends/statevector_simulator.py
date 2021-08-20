@@ -226,6 +226,8 @@ class StatevectorSimulator(AerBackend):
             fields = copy.copy(fields)
             if fields["method"] == "statevector_gpu":
                 fields["device"] = "GPU"
+            elif fields["method"] == "statevector_thrust":
+                fields["device"] = "Thrust"
             fields.pop("method")
         super().set_options(**fields)
 
