@@ -12,6 +12,7 @@
 
 import unittest
 
+from warnings import filterwarnings
 from qiskit import QuantumCircuit, assemble
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.providers.aer.extensions.snapshot_density_matrix import SnapshotDensityMatrix
@@ -21,6 +22,10 @@ from ..common import QiskitAerTestCase
 
 class TestSnapshotDensityMatrixExtension(QiskitAerTestCase):
     """SnapshotDensityMatrix extension tests"""
+
+    def setUpClass(cls):
+        super().setUpClass()
+        filterwarnings("default", category=DeprecationWarning)
 
     @staticmethod
     def snapshot_circuit_instr(circ_qubits, label, qubits=None):
