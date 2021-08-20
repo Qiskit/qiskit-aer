@@ -32,6 +32,18 @@ MAX_QUBITS_STATEVECTOR = int(log2(SYSTEM_MEMORY_GB * (1024**3) / 16))
 # loaded at runtime by the simulator extension
 LIBRARY_DIR = os.path.dirname(__file__)
 
+LEGACY_METHOD_MAP = {
+    "statevector_cpu": ("statevector", "CPU"),
+    "statevector_gpu": ("statevector", "GPU"),
+    "statevector_thrust": ("statevector", "Thrust"),
+    "density_matrix_cpu": ("density_matrix", "CPU"),
+    "density_matrix_gpu": ("density_matrix", "GPU"),
+    "density_matrix_thrust": ("density_matrix", "Thrust"),
+    "unitary_cpu": ("unitary", "CPU"),
+    "unitary_gpu": ("unitary", "GPU"),
+    "unitary_thrust": ("unitary", "Thrust"),
+}
+
 
 def cpp_execute(controller, qobj):
     """Execute qobj on C++ controller wrapper"""
@@ -101,13 +113,8 @@ def add_final_save_instruction(qobj, state):
 def map_legacy_method_options(qobj):
     """Map legacy method names of qasm simulator to aer simulator options"""
     method = getattr(qobj.config, "method", None)
-    if method == "statevector_gpu":
-        qobj.config.method = "statevector"
-        qobj.config.device = "GPU"
-    if method == "density_matrix_gpu":
-        qobj.config.method = "density_matrix"
-        qobj.config.device = "GPU"
-    if method == "unitary_gpu":
-        qobj.config.method = "unitary"
-        qobj.config.device = "GPU"
+    if method in LEGACY_METHOD_MAP:
+        new_method, device = LEGACY_METHOD_MAP[method]
+        qobj.config.method = new_method
+        qobj.config.device = device
     return qobj

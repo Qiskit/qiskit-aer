@@ -20,9 +20,11 @@ from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
 from ..version import __version__
+from ..aererror import AerError
 from .aerbackend import AerBackend
 from .backend_utils import (cpp_execute, available_methods,
                             MAX_QUBITS_STATEVECTOR,
+                            LEGACY_METHOD_MAP,
                             map_legacy_method_options)
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import aer_controller_execute
@@ -112,6 +114,11 @@ class QasmSimulator(AerBackend):
     The following simulator specific backend options are supported
 
     * ``method`` (str): Set the simulation method (Default: ``"automatic"``).
+      Use :meth:`available_methods` to return a list of all availabe methods.
+
+    * ``device`` (str): Set the simulation device (Default: ``"CPU"``).
+      Use :meth:`available_devices` to return a list of devices supported
+      on the current system.
 
     * ``precision`` (str): Set the floating point precision for
       certain simulation methods to either ``"single"`` or ``"double"``
@@ -337,14 +344,9 @@ class QasmSimulator(AerBackend):
 
     _AVAILABLE_METHODS = None
 
-    _LEGACY_METHOD_MAP = {
-        "statevector_cpu": ("statevector", "CPU"),
-        "statevector_gpu": ("statevector", "GPU"),
-        "statevector_thrust": ("statevector", "Thrust"),
-        "density_matrix_cpu": ("density_matrix", "CPU"),
-        "density_matrix_gpu": ("density_matrix", "GPU"),
-        "density_matrix_thrust": ("density_matrix", "Thrust"),
-    }
+    _SIMULATION_DEVICES = ['CPU', 'GPU', 'Thrust']
+
+    _AVAILABLE_DEVICES = None
 
     def __init__(self,
                  configuration=None,
@@ -376,7 +378,6 @@ class QasmSimulator(AerBackend):
 
         super().__init__(configuration,
                          properties=properties,
-                         available_methods=QasmSimulator._AVAILABLE_METHODS,
                          provider=provider,
                          backend_options=backend_options)
 
@@ -488,6 +489,14 @@ class QasmSimulator(AerBackend):
         config.basis_gates = self._cached_basis_gates + config.custom_instructions
         return config
 
+    def available_methods(self):
+        """Return the available simulation methods."""
+        return self._AVAILABLE_METHODS
+
+    def available_devices(self):
+        """Return the available simulation methods."""
+        return self._AVAILABLE_DEVICES
+
     def _execute(self, qobj):
         """Execute a qobj on the backend.
 
@@ -505,12 +514,16 @@ class QasmSimulator(AerBackend):
         update_basis_gates = False
         for key, value in fields.items():
             if key == 'method':
-                if value in self._LEGACY_METHOD_MAP:
-                    value, device = self._LEGACY_METHOD_MAP[value]
+                if value in LEGACY_METHOD_MAP:
+                    value, device = LEGACY_METHOD_MAP[value]
                     out_options["device"] = device
                 self._set_method_config(value)
                 update_basis_gates = True
                 out_options[key] = value
+                if (value is not None and value not in self.available_methods()):
+                    raise AerError(
+                        "Invalid simulation method {}. Available methods"
+                        " are: {}".format(value, self.available_methods()))
             elif key in ['noise_model', 'basis_gates']:
                 update_basis_gates = True
                 out_options[key] = value

@@ -23,8 +23,9 @@ from qiskit.providers.models import QasmBackendConfiguration
 from ..aererror import AerError
 from ..version import __version__
 from .aerbackend import AerBackend
-from .backend_utils import (cpp_execute, available_methods,
+from .backend_utils import (cpp_execute, available_devices,
                             MAX_QUBITS_STATEVECTOR,
+                            LEGACY_METHOD_MAP,
                             add_final_save_instruction,
                             map_legacy_method_options)
 # pylint: disable=import-error, no-name-in-module
@@ -58,8 +59,9 @@ class StatevectorSimulator(AerBackend):
 
     The following configurable backend options are supported
 
-    * ``device`` (str): Set the simulation device to "CPU" or "GPU".
-      GPU is only availalbe on supported CUDA systems (Default: "CPU").
+    * ``device`` (str): Set the simulation device (Default: ``"CPU"``).
+      Use :meth:`available_devices` to return a list of devices supported
+      on the current system.
 
     * ``method`` (str): [DEPRECATED] Set the simulation method supported
       methods are ``"statevector"`` for CPU simulation, and
@@ -156,8 +158,9 @@ class StatevectorSimulator(AerBackend):
         'gates': []
     }
 
-    # Cache available methods
-    _AVAILABLE_METHODS = None
+    _SIMULATION_DEVICES = ['CPU', 'GPU', 'Thrust']
+
+    _AVAILABLE_DEVICES = None
 
     def __init__(self,
                  configuration=None,
@@ -167,18 +170,16 @@ class StatevectorSimulator(AerBackend):
 
         warn('The `StatevectorSimulator` backend will be deprecated in the'
              ' future. It has been superseded by the `AerSimulator`'
-             ' backend. To obtain legacy functionality initalize with'
+             ' backend. To obtain legacy functionality initialize with'
              ' `AerSimulator(method="statevector")` and append run circuits'
              ' with the `save_state` instruction.', PendingDeprecationWarning)
 
         self._controller = aer_controller_execute()
 
-        if StatevectorSimulator._AVAILABLE_METHODS is None:
-            StatevectorSimulator._AVAILABLE_METHODS = available_methods(
-                self._controller, [
-                    'automatic', 'statevector', 'statevector_gpu',
-                    'statevector_thrust'
-                ])
+        if StatevectorSimulator._AVAILABLE_DEVICES is None:
+            StatevectorSimulator._AVAILABLE_DEVICES = available_devices(
+                self._controller, StatevectorSimulator._SIMULATION_DEVICES)
+
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
                 StatevectorSimulator._DEFAULT_CONFIGURATION)
@@ -188,7 +189,6 @@ class StatevectorSimulator(AerBackend):
         super().__init__(
             configuration,
             properties=properties,
-            available_methods=StatevectorSimulator._AVAILABLE_METHODS,
             provider=provider,
             backend_options=backend_options)
 
@@ -196,8 +196,8 @@ class StatevectorSimulator(AerBackend):
     def _default_options(cls):
         return Options(
             # Global options
-            shots=1024,
-            device='CPU',
+            shots=1,
+            device="CPU",
             precision="double",
             executor=None,
             max_job_size=None,
@@ -219,17 +219,35 @@ class StatevectorSimulator(AerBackend):
 
     def set_options(self, **fields):
         if "method" in fields:
+            # Handle deprecation of method option for device option
             warn("The method option of the `StatevectorSimulator` has been"
                  " deprecated as of qiskit-aer 0.9.0. To run a GPU statevector"
                  " simulation use the option `device='GPU'` instead",
                  DeprecationWarning)
             fields = copy.copy(fields)
-            if fields["method"] == "statevector_gpu":
-                fields["device"] = "GPU"
-            elif fields["method"] == "statevector_thrust":
-                fields["device"] = "Thrust"
+            method = fields["method"]
+            if method in LEGACY_METHOD_MAP:
+                new_method, device = LEGACY_METHOD_MAP[method]
+                fields["method"] = new_method
+                fields["device"] = device
+            if fields["method"] != "statevector":
+                raise AerError(
+                    "only the 'statevector' method is supported for the StatevectorSimulator")
             fields.pop("method")
         super().set_options(**fields)
+
+    def available_methods(self):
+        """Return the available simulation methods."""
+        warn("The `available_methods` method of the StatevectorSimulator"
+             " is deprecated as of qiskit-aer 0.9.0 as this simulator only"
+             " supports a single method. To check if GPU simulation is available"
+             " use the `available_devices` method instead.",
+             DeprecationWarning)
+        return self._AVAILABLE_METHODS
+
+    def available_devices(self):
+        """Return the available simulation methods."""
+        return self._AVAILABLE_DEVICES
 
     def _execute(self, qobj):
         """Execute a qobj on the backend.

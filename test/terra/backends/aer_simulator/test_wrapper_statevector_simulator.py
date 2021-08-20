@@ -25,7 +25,7 @@ from test.terra.reference import ref_unitary_gate
 from test.terra.reference import ref_diagonal_gate
 
 from qiskit import transpile
-from qiskit.providers.aer import StatevectorSimulator
+from qiskit.providers.aer import StatevectorSimulator, AerError
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_devices)
 
@@ -266,3 +266,22 @@ class TestStatevectorSimulator(SimulatorTestCase):
         result = backend.run(circuits, shots=1).result()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets, ignore_phase=False)
+
+    # ---------------------------------------------------------------------
+    # Test legacy methods
+    # ---------------------------------------------------------------------
+
+    @supported_devices
+    def test_legacy_method(self, device):
+        """Test legacy device method options."""
+        backend = self.backend()
+        legacy_method = f"statevector_{device.lower()}"
+        with self.assertWarns(DeprecationWarning):
+            backend.set_options(method=legacy_method)
+        self.assertEqual(backend.options.device, device)
+
+    def test_unsupported_methods(self):
+        """Test unsupported AerSimulator method raises AerError."""
+        backend = self.backend()
+        with self.assertWarns(DeprecationWarning):
+            self.assertRaises(AerError, backend.set_options, method="automatic")
