@@ -133,6 +133,18 @@ class AerBackend(Backend, ABC):
                           PendingDeprecationWarning,
                           stacklevel=2)
             qobj = circuits
+            # A work around to support both qobj options and run options until
+            # qobj is deprecated is to copy all the set qobj.config fields into
+            # run_options that don't override existing fields. This means set
+            # run_options fields will take precidence over the value for those
+            # fields that are set via assemble.
+            if not run_options:
+                run_options = qobj.config.__dict__
+            else:
+                run_options = copy.copy(run_options)
+                for key, value in qobj.config.__dict__.items():
+                    if key not in run_options and value is not None:
+                        run_options[key] = value
         else:
             qobj = assemble(circuits, self)
 
@@ -339,7 +351,7 @@ class AerBackend(Backend, ABC):
 
         # Add options
         for key, val in self.options.__dict__.items():
-            if val is not None and not hasattr(config, key):
+            if val is not None:
                 setattr(config, key, val)
 
         # Override with run-time options
