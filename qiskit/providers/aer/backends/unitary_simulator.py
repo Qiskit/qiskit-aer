@@ -243,7 +243,7 @@ class UnitarySimulator(AerBackend):
              " supports a single method. To check if GPU simulation is available"
              " use the `available_devices` method instead.",
              DeprecationWarning)
-        return self._AVAILABLE_METHODS
+        return ["unitary"]
 
     def available_devices(self):
         """Return the available simulation methods."""

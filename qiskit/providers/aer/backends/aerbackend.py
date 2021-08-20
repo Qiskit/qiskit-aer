@@ -66,7 +66,6 @@ class AerBackend(Backend, ABC):
                  configuration,
                  properties=None,
                  defaults=None,
-                 available_methods=None,
                  backend_options=None,
                  provider=None):
         """Aer class for backends.
