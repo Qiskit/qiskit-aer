@@ -122,8 +122,10 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 ' 3 months from that release date. Use QuantumError(Kraus()) instead.',
                 DeprecationWarning, stacklevel=2)
             if standard_gates:
-                noise_ops = kraus2instructions(
-                    noise_ops, standard_gates, atol=self.atol)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    noise_ops = kraus2instructions(
+                        noise_ops, standard_gates, atol=self.atol)
             else:
                 try:
                     noise_ops = Kraus(noise_ops)
@@ -160,7 +162,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
         ops, probs = zip(*noise_ops)  # unzip
 
         if standard_gates:
-            ops = [standard_gates_instructions(op) for op in ops]
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                ops = [standard_gates_instructions(op) for op in ops]
             warnings.warn(
                 '"standard_gates" option in the constructor of QuantumError has been deprecated'
                 ' as of qiskit-aer 0.9.0 in favor of externalizing such an unrolling functionality'
@@ -264,9 +268,11 @@ class QuantumError(BaseOperator, TolerancesMixin):
                         circ.append(UnitaryGate(data=dic['params'][0]),
                                     qargs=dic['qubits'])
                     else:
-                        circ.append(UnitaryGate(label=dic['name'],
-                                                data=standard_gate_unitary(dic['name'])),
-                                    qargs=dic['qubits'])
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore")
+                            circ.append(UnitaryGate(label=dic['name'],
+                                                    data=standard_gate_unitary(dic['name'])),
+                                        qargs=dic['qubits'])
                 return circ
             else:
                 raise NoiseError("Invalid type of op list: {}".format(op))

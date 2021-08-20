@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 201, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,15 +15,20 @@ NoiseModel class integration tests
 """
 
 import unittest
-from test.terra import common
+
+import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import assemble, transpile
+from qiskit.quantum_info.operators.pauli import Pauli
+
 from qiskit.providers.aer.backends import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
+from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
+from qiskit.providers.aer.noise.errors.standard_errors import kraus_error
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.providers.aer.noise.errors.standard_errors import reset_error
-from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit.test import mock
+from test.terra import common
 
 # Backwards compatibility for Terra <= 0.13
 if not hasattr(QuantumCircuit, 'i'):
@@ -161,8 +166,8 @@ class TestNoise(common.QiskitAerTestCase):
     def test_noise_models_equal(self):
         """Test two noise models are Equal"""
         roerror = [[0.9, 0.1], [0.5, 0.5]]
-        error1 = pauli_error([['X', 1]], standard_gates=False)
-        error2 = pauli_error([['X', 1]], standard_gates=True)
+        error1 = kraus_error([np.diag([1, 0]), np.diag([0, 1])])
+        error2 = pauli_error([("I", 0.5), ("Z", 0.5)])
 
         model1 = NoiseModel()
         model1.add_all_qubit_quantum_error(error1, ['u3'], False)
