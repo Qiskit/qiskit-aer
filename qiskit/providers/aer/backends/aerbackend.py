@@ -136,8 +136,8 @@ class AerBackend(Backend, ABC):
             # A work around to support both qobj options and run options until
             # qobj is deprecated is to copy all the set qobj.config fields into
             # run_options that don't override existing fields. This means set
-            # run_options fields will take precidence of any option fields
-            # set in assemble.
+            # run_options fields will take precidence over the value for those
+            # fields that are set via assemble.
             if not run_options:
                 run_options = qobj.config.__dict__
             else:
