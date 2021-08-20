@@ -133,8 +133,11 @@ class AerBackend(Backend, ABC):
                           PendingDeprecationWarning,
                           stacklevel=2)
             qobj = circuits
-            # Qobj values take precendence over run_options
-            # otherwise values from legacy assembly won't be preserved.
+            # A work around to support both qobj options and run options until
+            # qobj is deprecated is to copy all the set qobj.config fields into
+            # run_options that don't override existing fields. This means set
+            # run_options fields will take precidence of any option fields
+            # set in assemble.
             if not run_options:
                 run_options = qobj.config.__dict__
             else:
