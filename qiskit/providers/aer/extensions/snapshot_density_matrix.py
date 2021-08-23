@@ -34,11 +34,11 @@ class SnapshotDensityMatrix(Snapshot):
 
         .. warning::
 
-            This instruction hase deprecated as of qiskit-aer 0.9 and will be
+            This instruction is deprecated as of qiskit-aer 0.9 and will be
             removed in a future release. It has been superseded by the
             :class:`qiskit.providers.aer.library.SaveDensityMatrix` instruction.
         """
-        warn('`The `SnapshotDensityMatrix` instruction has been deprecated as of'
+        warn('The `SnapshotDensityMatrix` instruction has been deprecated as of'
              ' qiskit-aer 0.9. It has been superseded by the `SaveDensityMatrix`'
              ' instructions.', DeprecationWarning, stacklevel=2)
         super().__init__(label,
@@ -67,7 +67,7 @@ def snapshot_density_matrix(self, label, qubits=None):
         :func:`qiskit.providers.aer.library.save_density_matrix`
         circuit method.
     """
-    warn('`The `snapshot_density_matrix` circuit method has been deprecated as of'
+    warn('The `snapshot_density_matrix` circuit method has been deprecated as of'
          ' qiskit-aer 0.9 and will be removed in a future release.'
          ' It has been superseded by the `save_density_matrix`'
          ' circuit method.', DeprecationWarning, stacklevel=2)

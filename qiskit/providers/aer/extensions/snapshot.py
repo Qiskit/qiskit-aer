@@ -46,11 +46,11 @@ class Snapshot(Instruction):
 
         .. warning::
 
-            This instruction hase deprecated as of qiskit-aer 0.9 and will be
+            This instruction is deprecated as of qiskit-aer 0.9 and will be
             removed in a future release. It has been superseded by the
             save instructions in :mod:`qiskit.providers.aer.library` module.
         """
-        warn('`The `Snapshot` instruction will be deprecated in the'
+        warn('The `Snapshot` instruction will be deprecated in the'
              'future. It has been superseded by the `SaveStatevector`'
              ' instructions.', DeprecationWarning, stacklevel=2)
         if not isinstance(label, str):

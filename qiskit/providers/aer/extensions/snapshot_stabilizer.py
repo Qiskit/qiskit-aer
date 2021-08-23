@@ -40,7 +40,7 @@ class SnapshotStabilizer(Snapshot):
 
         .. warning::
 
-            This instruction hase deprecated as of qiskit-aer 0.9 and will be
+            This instruction is deprecated as of qiskit-aer 0.9 and will be
             removed in a future release. It has been superseded by the
             :class:`qiskit.providers.aer.library.SaveStabilizer` instruction.
         """
@@ -75,7 +75,7 @@ def snapshot_stabilizer(self, label):
         :func:`qiskit.providers.aer.library.save_stabilizer` circuit
         method.
     """
-    warn('`The `snapshot_stabilizer` circuit method has been deprecated as of'
+    warn('The `snapshot_stabilizer` circuit method has been deprecated as of'
          ' qiskit-aer 0.9 and will be removed in a future release.'
          ' It has been superseded by the `save_stabilizer`'
          ' circuit method.', DeprecationWarning, stacklevel=2)

@@ -41,7 +41,7 @@ class SnapshotExpectationValue(Snapshot):
 
         .. warning::
 
-            This instruction hase deprecated as of qiskit-aer 0.9.
+            This instruction is deprecated as of qiskit-aer 0.9.
             It has been superseded by the
             :class:`qiskit.providers.aer.library.SaveExpectationValue` and
             :class:`qiskit.providers.aer.library.SaveExpectationValueVariance`
@@ -150,7 +150,7 @@ def snapshot_expectation_value(self, label, op, qubits,
 
     .. warning::
 
-        This instruction hase deprecated as of qiskit-aer 0.9 and will be
+        This instruction is deprecated as of qiskit-aer 0.9 and will be
         removed in a future release. It has been superseded by the
         :func:`qiskit.providers.aer.library.save_expectation_value` and
         :func:`qiskit.providers.aer.library.save_expectation_value_variance`
