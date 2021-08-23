@@ -181,7 +181,8 @@ class QasmQubitsTruncateTests:
         # that acts on qubits [4, 6] when X applied to qubit 5
         noise_model = NoiseModel()
         error = depolarizing_error(0.1, 2)
-        noise_model.add_nonlocal_quantum_error(error, ['x'], [5], [4, 6])
+        with self.assertWarns(DeprecationWarning):
+            noise_model.add_nonlocal_quantum_error(error, ['x'], [5], [4, 6])
 
         qasm_sim = Aer.get_backend('qasm_simulator')
         backend_options = self.BACKEND_OPTS.copy()

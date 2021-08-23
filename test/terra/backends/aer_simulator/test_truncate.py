@@ -185,7 +185,8 @@ class TestTruncateQubits(SimulatorTestCase):
         # that acts on qubits [4, 6] when X applied to qubit 5
         noise_model = NoiseModel()
         error = depolarizing_error(0.1, 2)
-        noise_model.add_nonlocal_quantum_error(error, ['x'], [5], [4, 6])
+        with self.assertWarns(DeprecationWarning):
+            noise_model.add_nonlocal_quantum_error(error, ['x'], [5], [4, 6])
 
         run_options = {
             "noise_model": noise_model,
