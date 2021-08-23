@@ -33,10 +33,10 @@ class SnapshotProbabilities(Snapshot):
         Raises:
             ExtensionError: if snapshot is invalid.
 
-        .. note::
+        .. deprecated:: 0.9.0
 
-            This instruction will be deprecated after the qiskit-aer 0.8 release.
-            It has been superseded by the
+            This instruction has been deprecated and will be removed no earlier
+            than 3 months from the 0.9.0 release date. It has been superseded by the
             :class:`qiskit.providers.aer.library.SaveProbabilities` and
             :class:`qiskit.providers.aer.library.SaveProbabilitiesDict`
             instructions.
@@ -65,10 +65,10 @@ def snapshot_probabilities(self, label, qubits, variance=False):
     Raises:
         ExtensionError: if snapshot is invalid.
 
-    .. note::
+    .. deprecated:: 0.9.0
 
-        This method will be deprecated after the qiskit-aer 0.8 release.
-        It has been superseded by the
+        This instruction has been deprecated and will be removed no earlier
+        than 3 months from the 0.9.0 release date. It has been superseded by the
         :func:`qiskit.providers.aer.library.save_probabilities` and
         :func:`qiskit.providers.aer.library.save_probabilities_dict`
         circuit methods.

@@ -39,10 +39,10 @@ class SnapshotExpectationValue(Snapshot):
         Raises:
             ExtensionError: if snapshot is invalid.
 
-        .. warning::
+        .. deprecated:: 0.9.0
 
-            This instruction is deprecated as of qiskit-aer 0.9.
-            It has been superseded by the
+            This instruction has been deprecated and will be removed no earlier
+            than 3 months from the 0.9.0 release date. It has been superseded by the
             :class:`qiskit.providers.aer.library.SaveExpectationValue` and
             :class:`qiskit.providers.aer.library.SaveExpectationValueVariance`
             instructions.
@@ -148,10 +148,10 @@ def snapshot_expectation_value(self, label, op, qubits,
     Raises:
         ExtensionError: if snapshot is invalid.
 
-    .. warning::
+    .. deprecated:: 0.9.0
 
-        This instruction is deprecated as of qiskit-aer 0.9 and will be
-        removed in a future release. It has been superseded by the
+        This instruction has been deprecated and will be removed no earlier
+        than 3 months from the 0.9.0 release date. It has been superseded by the
         :func:`qiskit.providers.aer.library.save_expectation_value` and
         :func:`qiskit.providers.aer.library.save_expectation_value_variance`
         circuit methods.

@@ -44,11 +44,12 @@ class Snapshot(Instruction):
         Raises:
             ExtensionError: if snapshot label is invalid.
 
-        .. warning::
+        .. deprecated:: 0.9.0
 
-            This instruction is deprecated as of qiskit-aer 0.9 and will be
-            removed in a future release. It has been superseded by the
-            save instructions in :mod:`qiskit.providers.aer.library` module.
+            This instruction has been deprecated and will be removed no earlier
+            than 3 months from the 0.9.0 release date. It has been superseded by
+            the the save instructions in
+            :mod:`qiskit.providers.aer.library` module.
         """
         warn('The `Snapshot` instruction will be deprecated in the'
              'future. It has been superseded by the `SaveStatevector`'
