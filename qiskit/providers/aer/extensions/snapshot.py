@@ -48,11 +48,11 @@ class Snapshot(Instruction):
 
             This instruction has been deprecated and will be removed no earlier
             than 3 months from the 0.9.0 release date. It has been superseded by
-            the the save instructions in
+            the save instructions in
             :mod:`qiskit.providers.aer.library` module.
         """
         warn('The `Snapshot` instruction will be deprecated in the'
-             'future. It has been superseded by the `SaveStatevector`'
+             ' future. It has been superseded by the `SaveStatevector`'
              ' instructions.', DeprecationWarning, stacklevel=2)
         if not isinstance(label, str):
             raise ExtensionError('Snapshot label must be a string.')
@@ -148,7 +148,7 @@ def snapshot(self,
     Raises:
         ExtensionError: malformed command
     """
-    warn('`The Aer `snapshot` circuit method has been deprecated as of'
+    warn('The Aer `snapshot` circuit method has been deprecated as of'
          ' qiskit-aer 0.9 and will be removed in a future release.'
          ' It has been superseded by the various `save_*`'
          ' circuit methods.', DeprecationWarning, stacklevel=2)
