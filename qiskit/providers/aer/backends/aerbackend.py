@@ -30,8 +30,9 @@ from qiskit.utils import deprecate_arguments
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.compiler import assemble
 
-from ..aerjob import AerJob
+from ..jobs import AerJob, AerJobSet, split_qobj
 from ..aererror import AerError
+
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -60,6 +61,7 @@ class AerJSONEncoder(json.JSONEncoder):
 
 class AerBackend(Backend, ABC):
     """Qiskit Aer Backend class."""
+
     def __init__(self,
                  configuration,
                  properties=None,
@@ -98,6 +100,7 @@ class AerBackend(Backend, ABC):
         self._options_configuration = {}
         self._options_defaults = {}
         self._options_properties = {}
+        self._executor = None
 
         # Set available methods
         self._available_methods = [] if available_methods is None else available_methods
@@ -126,6 +129,9 @@ class AerBackend(Backend, ABC):
         Additional Information:
             kwarg options specified in ``run_options`` will temporarily override
             any set options of the same name for the current run.
+
+        Raises:
+            ValueError: if run is not implemented
         """
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn('Using a qobj for run() is deprecated and will be '
@@ -148,17 +154,18 @@ class AerBackend(Backend, ABC):
         else:
             qobj = assemble(circuits, self)
 
-        # Add backend options to the Job qobj
-        self._add_options_to_qobj(qobj, **run_options)
-
-        # Optional validation
-        if validate:
-            self._validate(qobj)
+        # Add submit args for the job
+        experiments, executor = self._get_job_submit_args(qobj, validate=validate, **run_options)
+        executor = executor or self._executor
 
         # Submit job
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run, qobj)
+        if isinstance(experiments, list):
+            aer_job = AerJobSet(self, job_id, self._run, experiments, executor)
+        else:
+            aer_job = AerJob(self, job_id, self._run, experiments, executor)
         aer_job.submit()
+        self._executor = executor
         return aer_job
 
     def configuration(self):
@@ -319,6 +326,7 @@ class AerBackend(Backend, ABC):
                 setattr(self._options, key, getattr(self._default_options(), key))
 
     def set_options(self, **fields):
+        """Set the simulator options"""
         for key, value in fields.items():
             self.set_option(key, value)
 
@@ -343,9 +351,16 @@ class AerBackend(Backend, ABC):
         elif key in self._options_defaults:
             self._options_defaults.pop(key)
 
-    def _add_options_to_qobj(self, qobj,
-                             **run_options):
+    def _get_job_submit_args(self, qobj, validate=False, **run_options):
         """Return execution sim config dict from backend options."""
+        # Get executor
+        executor = None
+        if hasattr(self._options, 'executor'):
+            executor = getattr(self._options, 'executor')
+            # We need to remove the executor from the qobj config
+            # since it can't be serialized though JSON/Pybind.
+            delattr(self._options, 'executor')
+
         # Add options to qobj config overriding any existing fields
         config = qobj.config
 
@@ -358,7 +373,14 @@ class AerBackend(Backend, ABC):
         for key, val in run_options.items():
             setattr(config, key, val)
 
-        return qobj
+        # Optional validation
+        if validate:
+            self._validate(qobj)
+
+        # Split circuits for sub-jobs
+        experiments = split_qobj(
+            qobj, max_size=getattr(qobj.config, 'max_job_size', None))
+        return experiments, executor
 
     def __repr__(self):
         """String representation of an AerBackend."""

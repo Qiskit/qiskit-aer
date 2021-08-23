@@ -107,7 +107,8 @@ class UnitaryGateTests:
         for circuit in circuits:
             target = Operator(circuit)
             result = execute(circuit, self.SIMULATOR,
-                             basis_gates=basis_gates).result()
+                             basis_gates=basis_gates,
+                             **self.BACKEND_OPTS).result()
             self.assertSuccess(result)
             value = Operator(result.get_unitary(0))
             self.assertTrue(target.equiv(value),
