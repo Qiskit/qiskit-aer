@@ -740,7 +740,7 @@ myrank = meta['mpi_rank']
 
 ### Running with Threadpool and DASK
 
-Qiskit Aer can parallelize the simulation on a circuit bases with ThreadpoolExecutor or DASK as a custom executor. When user gives dask client as the executor, Aer can execute a simulation on the distributed machines like HPC clusters.
+Qiskit Aer runs simulation jobs on a single-worker Python multiprocessing ThreadPool executor so that all parallelization is handled by low-level OpenMP and CUDA code. However to customize job-level parallel execution of multiple circuits a user can specify a custom multiprocessing executor and control the splitting of circuits using the `executor`and `max_job_size` backend options. For large scale job parallelization on HPC clusters Qiskit Aer executors support the distributed Clients from the [Dask](https://dask.org/) library.
 If you want to install dask client at the same time as Qiskit Aer, please add `dask` option as follows. This option installs Aer, dask, and  distributed packages. 
 ```
 pip install .[dask]
