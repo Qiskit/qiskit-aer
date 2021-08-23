@@ -21,8 +21,8 @@ from qiskit import QuantumCircuit, transpile
 from qiskit.circuit.random import random_circuit
 from qiskit.quantum_info import Statevector
 from qiskit.providers.aer.jobs import AerJob, AerJobSet
-from .aer_simulator_test_case import (
-    AerSimulatorTestCase, supported_methods)
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
 
 DASK = False
@@ -56,7 +56,7 @@ def run_random_circuits(backend, shots=None, **run_options):
     return result, circuits, targets
 
 
-class CBFixture(AerSimulatorTestCase):
+class CBFixture(SimulatorTestCase):
     """Extension tests for Aerbackend with cluster backend"""
     @classmethod
     def setUpClass(cls):

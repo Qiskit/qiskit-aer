@@ -22,11 +22,11 @@ from qiskit.providers.aer.jobs import split_qobj
 from test.terra.reference.ref_snapshot_expval import (
     snapshot_expval_circuits, snapshot_expval_circuit_parameterized)
 
-from .aer_simulator_test_case import AerSimulatorTestCase
+from test.terra.backends.simulator_test_case import SimulatorTestCase
 
 
 @ddt
-class TestJobSplitting(AerSimulatorTestCase):
+class TestJobSplitting(SimulatorTestCase):
     """Test job splitting option"""
 
     @staticmethod
