@@ -52,13 +52,13 @@ class TestNoiseRemapper(common.QiskitAerTestCase):
         model = NoiseModel()
         error1 = depolarizing_error(0.5, 1)
         error2 = depolarizing_error(0.5, 2)
-        model.add_nonlocal_quantum_error(error1, ['u3'], [0], [1], False)
-        model.add_nonlocal_quantum_error(error2, ['cx'], [1, 2], [3, 0], False)
-
-        remapped_model = remap_noise_model(model, [[0, 1], [1, 2], [2, 0]], warnings=False)
-        target = NoiseModel()
-        target.add_nonlocal_quantum_error(error1, ['u3'], [1], [2], False)
-        target.add_nonlocal_quantum_error(error2, ['cx'], [2, 0], [3, 1], False)
+        with self.assertWarns(DeprecationWarning):
+            model.add_nonlocal_quantum_error(error1, ['u3'], [0], [1], False)
+            model.add_nonlocal_quantum_error(error2, ['cx'], [1, 2], [3, 0], False)
+            remapped_model = remap_noise_model(model, [[0, 1], [1, 2], [2, 0]], warnings=False)
+            target = NoiseModel()
+            target.add_nonlocal_quantum_error(error1, ['u3'], [1], [2], False)
+            target.add_nonlocal_quantum_error(error2, ['cx'], [2, 0], [3, 1], False)
         self.assertEqual(remapped_model, target)
 
     def test_remap_all_qubit_readout_errors(self):
@@ -94,7 +94,8 @@ class TestNoiseRemapper(common.QiskitAerTestCase):
         model = NoiseModel()
         model.add_all_qubit_quantum_error(error1, ['u3'], False)
         model.add_quantum_error(error1, ['u3'], [1], False)
-        model.add_nonlocal_quantum_error(error2, ['cx'], [2, 0], [3, 1], False)
+        with self.assertWarns(DeprecationWarning):
+            model.add_nonlocal_quantum_error(error2, ['cx'], [2, 0], [3, 1], False)
         model.add_all_qubit_readout_error(roerror1, False)
         model.add_readout_error(roerror2, [0, 2], False)
 
@@ -116,7 +117,8 @@ class TestNoiseRemapper(common.QiskitAerTestCase):
         model = NoiseModel()
         model.add_all_qubit_quantum_error(error1, ['u3'], False)
         model.add_quantum_error(error1, ['u3'], [1], False)
-        model.add_nonlocal_quantum_error(error2, ['cx'], [2, 0], [3, 1], False)
+        with self.assertWarns(DeprecationWarning):
+            model.add_nonlocal_quantum_error(error2, ['cx'], [2, 0], [3, 1], False)
         model.add_all_qubit_readout_error(roerror1, False)
         model.add_readout_error(roerror2, [0, 2], False)
 

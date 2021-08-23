@@ -13,6 +13,7 @@
 QasmSimulator Integration Tests
 """
 
+from ddt import ddt
 from test.terra.reference import ref_readout_noise
 from test.terra.reference import ref_pauli_noise
 from test.terra.reference import ref_reset_noise
@@ -23,15 +24,23 @@ from qiskit.providers.aer import QasmSimulator
 from qiskit import execute
 from qiskit.circuit.library import QFT
 import qiskit.quantum_info as qi
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
-class QasmReadoutNoiseTests:
+ALL_METHODS = [
+    'automatic', 'stabilizer', 'statevector', 'density_matrix',
+    'matrix_product_state', 'extended_stabilizer'
+]
+
+
+@ddt
+class QasmReadoutNoiseTests(SimulatorTestCase):
     """QasmSimulator readout error noise model tests."""
 
-    SIMULATOR = QasmSimulator()
-    BACKEND_OPTS = {}
-
-    def test_readout_noise(self):
+    @supported_methods(ALL_METHODS)
+    def test_readout_noise(self, method, device):
         """Test simulation with classical readout error noise model."""
+        backend = self.backend(method=method, device=device)
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
         shots = 4000
@@ -41,22 +50,15 @@ class QasmReadoutNoiseTests:
 
         for circuit, noise_model, target in zip(circuits, noise_models,
                                                 targets):
-            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
-            result = self.SIMULATOR.run(
-                qobj,
-                noise_model=noise_model, **self.BACKEND_OPTS).result()
+            backend.set_options(noise_model=noise_model)
+            result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
-
-class QasmPauliNoiseTests:
-    """QasmSimulator pauli error noise model tests."""
-
-    SIMULATOR = QasmSimulator()
-    BACKEND_OPTS = {}
-
-    def test_pauli_gate_noise(self):
+    @supported_methods(ALL_METHODS)
+    def test_pauli_gate_noise(self, method, device):
         """Test simulation with Pauli gate error noise model."""
+        backend = self.backend(method=method, device=device)
         shots = 1000
         circuits = ref_pauli_noise.pauli_gate_error_circuits()
         with self.assertWarns(DeprecationWarning):
@@ -65,15 +67,17 @@ class QasmPauliNoiseTests:
 
         for circuit, noise_model, target in zip(circuits, noise_models,
                                                 targets):
-            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
-            result = self.SIMULATOR.run(
-                qobj,
-                noise_model=noise_model, **self.BACKEND_OPTS).result()
+            backend.set_options(noise_model=noise_model)
+            result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
-    def test_pauli_reset_noise(self):
+    @supported_methods([
+        'automatic', 'stabilizer', 'statevector', 'density_matrix',
+        'matrix_product_state', 'extended_stabilizer'])
+    def test_pauli_reset_noise(self, method, device):
         """Test simulation with Pauli reset error noise model."""
+        backend = self.backend(method=method, device=device)
         shots = 1000
         circuits = ref_pauli_noise.pauli_reset_error_circuits()
         with self.assertWarns(DeprecationWarning):
@@ -82,15 +86,15 @@ class QasmPauliNoiseTests:
 
         for circuit, noise_model, target in zip(circuits, noise_models,
                                                 targets):
-            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
-            result = self.SIMULATOR.run(
-                qobj,
-                noise_model=noise_model, **self.BACKEND_OPTS).result()
+            backend.set_options(noise_model=noise_model)
+            result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
-    def test_pauli_measure_noise(self):
+    @supported_methods(ALL_METHODS)
+    def test_pauli_measure_noise(self, method, device):
         """Test simulation with Pauli measure error noise model."""
+        backend = self.backend(method=method, device=device)
         shots = 1000
         circuits = ref_pauli_noise.pauli_measure_error_circuits()
         with self.assertWarns(DeprecationWarning):
@@ -99,22 +103,15 @@ class QasmPauliNoiseTests:
 
         for circuit, noise_model, target in zip(circuits, noise_models,
                                                 targets):
-            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
-            result = self.SIMULATOR.run(
-                qobj,
-                noise_model=noise_model, **self.BACKEND_OPTS).result()
+            backend.set_options(noise_model=noise_model)
+            result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
-
-class QasmResetNoiseTests:
-    """QasmSimulator reset error noise model tests."""
-
-    SIMULATOR = QasmSimulator()
-    BACKEND_OPTS = {}
-
-    def test_reset_gate_noise(self):
+    @supported_methods(ALL_METHODS)
+    def test_reset_gate_noise(self, method, device):
         """Test simulation with reset gate error noise model."""
+        backend = self.backend(method=method, device=device)
         shots = 1000
         circuits = ref_reset_noise.reset_gate_error_circuits()
         noise_models = ref_reset_noise.reset_gate_error_noise_models()
@@ -122,23 +119,17 @@ class QasmResetNoiseTests:
 
         for circuit, noise_model, target in zip(circuits, noise_models,
                                                 targets):
-            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
-            result = self.SIMULATOR.run(
-                qobj,
-                noise_model=noise_model,
-                **self.BACKEND_OPTS).result()
+            backend.set_options(noise_model=noise_model)
+            result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
 
-class QasmKrausNoiseTests:
-    """QasmSimulator Kraus error noise model tests."""
-
-    SIMULATOR = QasmSimulator()
-    BACKEND_OPTS = {}
-
-    def test_kraus_gate_noise(self):
+    @supported_methods([
+        'automatic', 'statevector', 'density_matrix', 'matrix_product_state'])
+    def test_kraus_gate_noise(self, method, device):
         """Test simulation with Kraus gate error noise model."""
+        backend = self.backend(method=method, device=device)
         shots = 1000
         circuits = ref_kraus_noise.kraus_gate_error_circuits()
         noise_models = ref_kraus_noise.kraus_gate_error_noise_models()
@@ -146,32 +137,22 @@ class QasmKrausNoiseTests:
 
         for circuit, noise_model, target in zip(circuits, noise_models,
                                                 targets):
-            qobj = assemble(circuit, self.SIMULATOR, shots=shots)
-            result = self.SIMULATOR.run(
-                qobj,
-                noise_model=noise_model,
-                **self.BACKEND_OPTS).result()
+            backend.set_options(noise_model=noise_model)
+            result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
-class QasmKrausNoiseOnQFTTests:
-    """QasmSimulator Kraus error noise model on QFT tests."""
-
-    SIMULATOR = QasmSimulator()
-    BACKEND_OPTS = {}
-
-    def test_kraus_gate_noise_on_QFT(self):
+    @supported_methods([
+        'automatic', 'statevector', 'density_matrix', 'matrix_product_state'])
+    def test_kraus_gate_noise_on_QFT(self, method, device):
         """Test Kraus noise on a QFT circuit"""
-
         shots = 10000
         noise_model = ref_kraus_noise.kraus_gate_error_noise_models_full()
-
+        backend = self.backend(
+            method=method, device=device, noise_model=noise_model)
         circuit = QFT(3).decompose()
         circuit.measure_all()
         ref_target = ref_kraus_noise.kraus_gate_error_counts_on_QFT(shots)
-        qobj = assemble(circuit, self.SIMULATOR, shots=shots)
-        result = self.SIMULATOR.run(qobj,
-                                    noise_model=noise_model,
-                                    **self.BACKEND_OPTS).result()
+        result = backend.run(circuit, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, [circuit], [ref_target], delta=0.1 * shots)

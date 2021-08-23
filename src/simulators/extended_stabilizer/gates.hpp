@@ -42,28 +42,31 @@ namespace CHSimulator
   };
 
   const AER::stringmap_t<Gatetypes> gate_types_ = {
-    {"id", Gatetypes::pauli},     // Pauli-Identity gate
-    {"x", Gatetypes::pauli},       // Pauli-X gate
-    {"y", Gatetypes::pauli},       // Pauli-Y gate
-    {"z", Gatetypes::pauli},       // Pauli-Z gate
+    // One-qubit gates
+    {"u0", Gatetypes::pauli},         // Pauli-Identity gate
+    {"delay", Gatetypes::pauli},      // Pauli-Identity gate
+    {"id", Gatetypes::pauli},         // Pauli-Identity gate
+    {"x", Gatetypes::pauli},          // Pauli-X gate
+    {"y", Gatetypes::pauli},          // Pauli-Y gate
+    {"z", Gatetypes::pauli},          // Pauli-Z gate
     {"s", Gatetypes::clifford},       // Phase gate (aka sqrt(Z) gate)
-    {"sdg", Gatetypes::clifford},   // Conjugate-transpose of Phase gate
-    {"sx", Gatetypes::clifford},    // Sqrt(X) gate
+    {"sdg", Gatetypes::clifford},     // Conjugate-transpose of Phase gate
+    {"sx", Gatetypes::clifford},      // Sqrt(X) gate
     {"h", Gatetypes::clifford},       // Hadamard gate (X + Z / sqrt(2))
-    {"t", Gatetypes::non_clifford},       // T-gate (sqrt(S))
-    {"tdg", Gatetypes::non_clifford},   // Conjguate-transpose of T gate
-    // Waltz Gates
-    {"u0", Gatetypes::pauli},     // idle gate in multiples of X90
-    {"u1", Gatetypes::non_clifford},     // zero-X90 pulse waltz gate
-    {"p", Gatetypes::non_clifford},     // zero-X90 pulse waltz gate
+    {"t", Gatetypes::non_clifford},   // T-gate (sqrt(S))
+    {"tdg", Gatetypes::non_clifford}, // Conjguate-transpose of T gate
+    {"u1", Gatetypes::non_clifford},  // zero-X90 pulse waltz gate
+    {"p", Gatetypes::non_clifford},   // zero-X90 pulse waltz gate
     // Two-qubit gates
-    {"CX", Gatetypes::clifford},     // Controlled-X gate (CNOT)
-    {"cx", Gatetypes::clifford},     // Controlled-X gate (CNOT)
-    {"cz", Gatetypes::clifford},     // Controlled-Z gate
-    {"swap", Gatetypes::clifford}, // SWAP gate
+    {"CX", Gatetypes::clifford},      // Controlled-X gate (CNOT)
+    {"cx", Gatetypes::clifford},      // Controlled-X gate (CNOT)
+    {"cz", Gatetypes::clifford},      // Controlled-Z gate
+    {"swap", Gatetypes::clifford},    // SWAP gate
     // Three-qubit gates
-    {"ccx", Gatetypes::non_clifford},    // Controlled-CX gate (Toffoli)
-    {"ccz", Gatetypes::non_clifford}     // Constrolled-CZ gate (H3 Toff H3)
+    {"ccx", Gatetypes::non_clifford}, // Controlled-CX gate (Toffoli)
+    {"ccz", Gatetypes::non_clifford}, // Controlled-CZ gate (H3 Toff H3)
+    // N-qubit gates
+    {"pauli", Gatetypes::pauli},      // N-qubit Pauli gate
   };
 
   using sample_branch_t = std::pair<complex_t, Gates>;

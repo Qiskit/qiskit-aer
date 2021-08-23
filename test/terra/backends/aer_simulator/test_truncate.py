@@ -8,19 +8,24 @@
 """
 QasmSimulator Integration Tests
 """
+from ddt import ddt
 import json
-from qiskit import execute, QuantumRegister, ClassicalRegister, QuantumCircuit, Aer
-from qiskit.providers.aer import QasmSimulator
+from qiskit import transpile, QuantumRegister, ClassicalRegister, QuantumCircuit, Aer
 from qiskit.providers.aer import noise
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import ReadoutError, depolarizing_error
 from qiskit.providers.models import BackendProperties
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 
+ALL_METHODS = [
+    'automatic', 'stabilizer', 'statevector', 'density_matrix',
+    'matrix_product_state', 'extended_stabilizer'
+]
 
-class QasmQubitsTruncateTests:
-    """QasmSimulator Qubits Truncate tests."""
-
-    SIMULATOR = QasmSimulator()
+@ddt
+class TestTruncateQubits(SimulatorTestCase):
+    """AerSimulator Qubits Truncate tests."""
 
     def create_circuit_for_truncate(self):
         qr = QuantumRegister(4)
@@ -141,27 +146,24 @@ class QasmQubitsTruncateTests:
         return BackendProperties.from_dict(properties)
 
     
-    def test_truncate_ideal_sparse_circuit(self):
+    @supported_methods(ALL_METHODS)
+    def test_truncate_ideal_sparse_circuit(self, method, device):
         """Test qubit truncation for large circuit with unused qubits."""
-        
+        backend = self.backend(method=method, device=device)
+
         # Circuit that uses just 2-qubits
         circuit = QuantumCircuit(50, 2)
         circuit.x(10)
         circuit.x(20)
         circuit.measure(10, 0)
         circuit.measure(20, 1)
+        run_options = {
+            "truncate_verbose": True,
+            "optimize_ideal_threshold": 1,
+            "optimize_noise_threshold": 1
+        }
 
-
-        qasm_sim = Aer.get_backend('qasm_simulator')
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options["truncate_verbose"] = True
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
-
-        result = execute(circuit, 
-                         qasm_sim, 
-                         shots=100,
-                         **backend_options).result()
+        result = backend.run(circuit, shots=100, **run_options).result()
         metadata = result.results[0].metadata
         self.assertTrue('truncate_qubits' in metadata, msg="truncate_qubits must work.")
         active_qubits = sorted(metadata['truncate_qubits'].get('active_qubits', []))
@@ -169,9 +171,11 @@ class QasmQubitsTruncateTests:
         self.assertEqual(active_qubits, [10, 20])
         self.assertIn(mapping, [[[10, 0], [20, 1]], [[10, 1], [20, 0]]])
 
-    def test_truncate_nonlocal_noise(self):
+    @supported_methods(ALL_METHODS)
+    def test_truncate_nonlocal_noise(self, method, device):
         """Test qubit truncation with non-local noise."""
-        
+        backend = self.backend(method=method, device=device)
+
         # Circuit that uses just 2-qubits
         circuit = QuantumCircuit(10, 1)
         circuit.x(5)
@@ -184,17 +188,14 @@ class QasmQubitsTruncateTests:
         with self.assertWarns(DeprecationWarning):
             noise_model.add_nonlocal_quantum_error(error, ['x'], [5], [4, 6])
 
-        qasm_sim = Aer.get_backend('qasm_simulator')
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options["truncate_verbose"] = True
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
+        run_options = {
+            "noise_model": noise_model,
+            "truncate_verbose": True,
+            "optimize_ideal_threshold": 1,
+            "optimize_noise_threshold": 1
+        }
 
-        result = execute(circuit, 
-                         qasm_sim, 
-                         shots=100,
-                         noise_model=noise_model,
-                         **backend_options).result()
+        result = backend.run(circuit, shots=100, **run_options).result()
         metadata = result.results[0].metadata
         self.assertTrue('truncate_qubits' in metadata, msg="truncate_qubits must work.")
         active_qubits = sorted(metadata['truncate_qubits'].get('active_qubits', []))
@@ -203,62 +204,84 @@ class QasmQubitsTruncateTests:
         self.assertEqual(active_qubits, [4, 5, 6])
         self.assertEqual(active_remapped, [0, 1, 2])
 
-    def test_truncate(self):
+    @supported_methods([
+     'automatic', 'statevector', 'density_matrix', 'matrix_product_state'])
+    def test_truncate(self, method, device):
         """Test truncation with noise model option"""
-        circuit = self.create_circuit_for_truncate()
-        
-        qasm_sim = Aer.get_backend('qasm_simulator')
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options["truncate_verbose"] = True
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
+        coupling_map = [  # 10-qubit device
+            [0, 1], [1, 2], [2, 3], [3, 4], [4, 5],
+            [5, 6], [6, 7], [7, 8], [8, 9], [9, 0]
+        ]
+        noise_model = NoiseModel.from_backend(self.device_properties())
+        backend = self.backend(
+            method=method, device=device, noise_model=noise_model)
+        circuit = transpile(
+            self.create_circuit_for_truncate(),
+            backend, coupling_map=coupling_map)
 
-        result = execute(circuit, 
-                            qasm_sim, 
-                            noise_model=NoiseModel.from_backend(self.device_properties()), 
-                            shots=100,
-                            coupling_map=[[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 0]], # 10-qubit device
-                            **backend_options).result()
-                            
-        self.assertTrue('truncate_qubits' in result.to_dict()['results'][0]['metadata'], msg="truncate_qubits must work.")
+        run_options = {
+            "truncate_verbose": True,
+            "optimize_ideal_threshold": 1,
+            "optimize_noise_threshold": 1
+        }
 
-    def test_no_truncate(self):
+        result = backend.run(circuit, shots=100, **run_options).result()                            
+        self.assertTrue(
+            'truncate_qubits' in result.to_dict()['results'][0]['metadata'],
+            msg="truncate_qubits must work.")
+
+    @supported_methods([
+     'automatic', 'statevector', 'density_matrix', 'matrix_product_state'])
+    def test_no_truncate(self, method, device):
         """Test truncation with noise model option"""
-        circuit = self.create_circuit_for_truncate()
+        coupling_map = [  # 4-qubit device
+            [1, 0], [1, 2], [1, 3], [2, 0],
+            [2, 1], [2, 3], [3, 0], [3, 1], [3, 2]
+        ]
+        noise_model = NoiseModel.from_backend(self.device_properties())
+        backend = self.backend(
+            method=method, device=device, noise_model=noise_model)
+        circuit = transpile(
+            self.create_circuit_for_truncate(),
+            backend, coupling_map=coupling_map)
         
-        qasm_sim = Aer.get_backend('qasm_simulator')
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options["truncate_verbose"] = True
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
+        run_options = {
+            "truncate_verbose": True,
+            "optimize_ideal_threshold": 1,
+            "optimize_noise_threshold": 1
+        }
 
-        result = execute(circuit, 
-                            qasm_sim, 
-                            noise_model=NoiseModel.from_backend(self.device_properties()), 
-                            shots=100,
-                            coupling_map=[[1, 0], [1, 2], [1, 3], [2, 0], [2, 1], [2, 3], [3, 0], [3, 1], [3, 2]], # 4-qubit device
-                            **backend_options).result()
+        result = backend.run(circuit, shots=100, **run_options).result()
                             
-        self.assertFalse('truncate_qubits' in result.to_dict()['results'][0]['metadata'], msg="truncate_qubits must work.")
+        self.assertFalse(
+            'truncate_qubits' in result.to_dict()['results'][0]['metadata'],
+            msg="truncate_qubits must work.")
 
-    
-    def test_truncate_disable(self):
+    @supported_methods([
+        'automatic', 'statevector', 'density_matrix', 'matrix_product_state'])
+    def test_truncate_disable(self, method, device):
         """Test explicitly disabling truncation with noise model option"""
-        circuit = self.create_circuit_for_truncate()
+        coupling_map = [  # 10-qubit device
+            [0, 1], [1, 2], [2, 3], [3, 4], [4, 5],
+            [5, 6], [6, 7], [7, 8], [8, 9], [9, 0]
+        ]
+        noise_model = NoiseModel.from_backend(self.device_properties())
+        backend = self.backend(
+            method=method, device=device, noise_model=noise_model)
+        circuit = transpile(
+            self.create_circuit_for_truncate(),
+            backend, coupling_map=coupling_map)
         
-        qasm_sim = Aer.get_backend('qasm_simulator')
-        backend_options = self.BACKEND_OPTS.copy()
-        backend_options["truncate_verbose"] = True
-        backend_options["truncate_enable"] = False
-        backend_options['optimize_ideal_threshold'] = 1
-        backend_options['optimize_noise_threshold'] = 1
+        run_options = {
+            "truncate_verbose": True,
+            "truncate_enable": False,
+            "optimize_ideal_threshold": 1,
+            "optimize_noise_threshold": 1
+        }
 
-        result = execute(circuit, 
-                            qasm_sim, 
-                            noise_model=NoiseModel.from_backend(self.device_properties()), 
-                            shots=100,
-                            coupling_map=[[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 0]], # 10-qubit device
-                            **backend_options).result()
+        result = backend.run(circuit, shots=100, **run_options).result()
                             
-        self.assertFalse('truncate_qubits' in result.to_dict()['results'][0]['metadata'], msg="truncate_qubits must not work.")
+        self.assertFalse(
+            'truncate_qubits' in result.to_dict()['results'][0]['metadata'],
+            msg="truncate_qubits must not work.")
      
