@@ -27,7 +27,7 @@ from test.terra.backends.simulator_test_case import SimulatorTestCase
 
 
 @ddt
-class QasmThreadManagementTests(SimulatorTestCase):
+class TestThreadManagement(SimulatorTestCase):
     """QasmSimulator thread tests."""
 
     def backend_options_parallel(self,

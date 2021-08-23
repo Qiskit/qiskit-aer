@@ -19,6 +19,7 @@ from qiskit.providers.aer.pulse.system_models.duffing_model_generators import du
 from qiskit.pulse import (Schedule, Play, Acquire, Waveform, DriveChannel, AcquireChannel,
                           MemorySlot)
 
+from qiskit.providers.aer import AerSimulator
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer import StatevectorSimulator
 from qiskit.providers.aer import UnitarySimulator
@@ -438,26 +439,29 @@ def model_and_pi_schedule():
     return model, schedule
 
 if __name__ == '__main__':
-    # Run qasm simulator
+    # Run Aer simulator
     shots = 4000
     circuits = grovers_circuit(final_measure=True, allow_sampling=True)
     targets = [{'0x0': 5 * shots / 8, '0x1': shots / 8,
                 '0x2': shots / 8, '0x3': shots / 8}]
-    simulator = QasmSimulator()
-    qobj = assemble(transpile(circuits, simulator), simulator, shots=shots)
-    result = simulator.run(qobj).result()
-    print(result.status)
-    import pprint
-    pprint.pprint(result.to_dict())
+    simulator = AerSimulator()
+    result = simulator.run(transpile(circuits, simulator), shots=shots).result()
     assert result.status == 'COMPLETED'
-    compare_counts(result, circuits, targets, delta=0.05 * shots)
     assert result.success is True
+    compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    # Run qasm simulator
+    simulator = QasmSimulator()
+    result = simulator.run(transpile(circuits, simulator), shots=shots).result()
+    assert result.status == 'COMPLETED'
+    assert result.success is True
+    compare_counts(result, circuits, targets, delta=0.05 * shots)
 
     # Run statevector simulator
     circuits = cx_gate_circuits_deterministic(final_measure=False)
     targets = cx_gate_statevector_deterministic()
-    job = execute(circuits, StatevectorSimulator(), shots=1)
-    result = job.result()
+    backend = StatevectorSimulator()
+    result = backend.run(transpile(circuits, backend), shots=1).result()
     assert result.status == 'COMPLETED'
     assert result.success is True
     compare_statevector(result, circuits, targets)
@@ -465,9 +469,8 @@ if __name__ == '__main__':
     # Run unitary simulator
     circuits = cx_gate_circuits_deterministic(final_measure=False)
     targets = cx_gate_unitary_deterministic()
-    job = execute(circuits, UnitarySimulator(), shots=1,
-                  basis_gates=['u1', 'u2', 'u3', 'cx'])
-    result = job.result()
+    backend = UnitarySimulator()
+    result = backend.run(transpile(circuits, backend), shots=1).result()
     assert result.status == 'COMPLETED'
     assert result.success is True
     compare_unitary(result, circuits, targets)

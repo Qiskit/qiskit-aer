@@ -66,7 +66,6 @@ class AerBackend(Backend, ABC):
                  configuration,
                  properties=None,
                  defaults=None,
-                 available_methods=None,
                  backend_options=None,
                  provider=None):
         """Aer class for backends.
@@ -79,8 +78,6 @@ class AerBackend(Backend, ABC):
             configuration (BackendConfiguration): backend configuration.
             properties (BackendProperties or None): Optional, backend properties.
             defaults (PulseDefaults or None): Optional, backend pulse defaults.
-            available_methods (list or None): Optional, the available simulation methods
-                                              if backend supports multiple methods.
             provider (Provider): Optional, provider responsible for this backend.
             backend_options (dict or None): Optional set custom backend options.
 
@@ -101,9 +98,6 @@ class AerBackend(Backend, ABC):
         self._options_defaults = {}
         self._options_properties = {}
         self._executor = None
-
-        # Set available methods
-        self._available_methods = [] if available_methods is None else available_methods
 
         # Set options from backend_options dictionary
         if backend_options is not None:
@@ -218,10 +212,6 @@ class AerBackend(Backend, ABC):
         self._options_properties = {}
         self._options_defaults = {}
 
-    def available_methods(self):
-        """Return the available simulation methods."""
-        return self._available_methods
-
     def status(self):
         """Return backend status.
 
@@ -298,11 +288,6 @@ class AerBackend(Backend, ABC):
         Raises:
             AerError: if key is 'method' and val isn't in available methods.
         """
-        # If key is method, we validate it is one of the available methods
-        if (key == 'method' and value is not None and value not in self._available_methods):
-            raise AerError("Invalid simulation method {}. Available methods"
-                           " are: {}".format(value, self._available_methods))
-
         # Add all other options to the options dict
         # TODO: in the future this could be replaced with an options class
         #       for the simulators like configuration/properties to show all
