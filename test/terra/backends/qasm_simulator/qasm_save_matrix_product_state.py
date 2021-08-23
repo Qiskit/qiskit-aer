@@ -29,7 +29,7 @@ class QasmSaveMatrixProductStateTests:
     def test_save_matrix_product_state(self):
         """Test save matrix_product_state for instruction"""
 
-        SUPPORTED_METHODS = ['matrix_product_state']
+        SUPPORTED_METHODS = ['matrix_product_state', 'automatic']
 
         # Target mps structure
         target_qreg = []

@@ -18,7 +18,7 @@ from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
 
 
-class QasmMultiplexerTests(SimulatorTestCase):
+class TestMultiplexer(SimulatorTestCase):
     """QasmSimulator multiplexer gate tests in default basis."""
 
     # ---------------------------------------------------------------------

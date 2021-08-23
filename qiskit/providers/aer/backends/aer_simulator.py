@@ -151,8 +151,11 @@ class AerSimulator(AerBackend):
     The following simulator specific backend options are supported
 
     * ``method`` (str): Set the simulation method (Default: ``"automatic"``).
+      Use :meth:`available_methods` to return a list of all availabe methods.
 
     * ``device`` (str): Set the simulation device (Default: ``"CPU"``).
+      Use :meth:`available_devices` to return a list of devices supported
+      on the current system.
 
     * ``precision`` (str): Set the floating point precision for
       certain simulation methods to either ``"single"`` or ``"double"``
@@ -461,7 +464,7 @@ class AerSimulator(AerBackend):
 
     _AVAILABLE_METHODS = None
 
-    _SIMULATION_DEVICES = ['CPU', 'GPU', 'Thrust']
+    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust')
 
     _AVAILABLE_DEVICES = None
 
@@ -492,7 +495,6 @@ class AerSimulator(AerBackend):
 
         super().__init__(configuration,
                          properties=properties,
-                         available_methods=AerSimulator._AVAILABLE_METHODS,
                          provider=provider,
                          backend_options=backend_options)
 
@@ -593,9 +595,13 @@ class AerSimulator(AerBackend):
                   **options)
         return sim
 
+    def available_methods(self):
+        """Return the available simulation methods."""
+        return copy.copy(self._AVAILABLE_METHODS)
+
     def available_devices(self):
         """Return the available simulation methods."""
-        return self._AVAILABLE_DEVICES
+        return copy.copy(self._AVAILABLE_DEVICES)
 
     def configuration(self):
         """Return the simulator backend configuration.
@@ -631,6 +637,10 @@ class AerSimulator(AerBackend):
         update_basis_gates = False
         for key, value in fields.items():
             if key == 'method':
+                if (value is not None and value not in self.available_methods()):
+                    raise AerError(
+                        "Invalid simulation method {}. Available methods"
+                        " are: {}".format(value, self.available_methods()))
                 self._set_method_config(value)
                 update_basis_gates = True
                 out_options[key] = value
