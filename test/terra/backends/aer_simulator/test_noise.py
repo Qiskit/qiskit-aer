@@ -61,7 +61,8 @@ class QasmReadoutNoiseTests(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         shots = 1000
         circuits = ref_pauli_noise.pauli_gate_error_circuits()
-        noise_models = ref_pauli_noise.pauli_gate_error_noise_models()
+        with self.assertWarns(DeprecationWarning):
+            noise_models = ref_pauli_noise.pauli_gate_error_noise_models()
         targets = ref_pauli_noise.pauli_gate_error_counts(shots)
 
         for circuit, noise_model, target in zip(circuits, noise_models,
@@ -79,7 +80,8 @@ class QasmReadoutNoiseTests(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         shots = 1000
         circuits = ref_pauli_noise.pauli_reset_error_circuits()
-        noise_models = ref_pauli_noise.pauli_reset_error_noise_models()
+        with self.assertWarns(DeprecationWarning):
+            noise_models = ref_pauli_noise.pauli_reset_error_noise_models()
         targets = ref_pauli_noise.pauli_reset_error_counts(shots)
 
         for circuit, noise_model, target in zip(circuits, noise_models,
@@ -95,7 +97,8 @@ class QasmReadoutNoiseTests(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         shots = 1000
         circuits = ref_pauli_noise.pauli_measure_error_circuits()
-        noise_models = ref_pauli_noise.pauli_measure_error_noise_models()
+        with self.assertWarns(DeprecationWarning):
+            noise_models = ref_pauli_noise.pauli_measure_error_noise_models()
         targets = ref_pauli_noise.pauli_measure_error_counts(shots)
 
         for circuit, noise_model, target in zip(circuits, noise_models,
