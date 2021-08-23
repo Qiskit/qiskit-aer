@@ -1,7 +1,7 @@
 ---
 deprecations:
   - |
-    Use the ``method`` option of the
+    Use of the ``method`` option of the
     :class:`~qiskit.providers.aer.StatevectorSimulator`, and 
     :class:`~qiskit.providers.aer.UnitarySimulator` to run a GPU simulation
     has been deprecated. To run a GPU simulation on a compatible system

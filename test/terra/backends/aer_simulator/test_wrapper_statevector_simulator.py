@@ -72,7 +72,7 @@ class TestStatevectorSimulator(SimulatorTestCase):
         circuits = ref_reset.reset_circuits_deterministic(final_measure=False)
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
-        targets = ref_reset.reset_statevector_deterministic()        
+        targets = ref_reset.reset_statevector_deterministic()
         self.assertSuccess(result)
         self.compare_statevector(result, circuits, targets)
 
@@ -258,10 +258,10 @@ class TestStatevectorSimulator(SimulatorTestCase):
         circuits = ref_1q_clifford.h_gate_circuits_nondeterministic(
             final_measure=False)
         targets = ref_1q_clifford.h_gate_statevector_nondeterministic()
-        for i, circuit in enumerate(circuits):
-            global_phase = (-1) ** i * (pi / 4)
+        for iter, circuit in enumerate(circuits):
+            global_phase = (-1) ** iter * (pi / 4)
             circuit.global_phase += global_phase
-            targets[i] = exp(1j * global_phase) * targets[i]
+            targets[iter] = exp(1j * global_phase) * targets[iter]
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         self.assertSuccess(result)

@@ -70,7 +70,7 @@ def available_methods(controller, methods):
         result = cpp_execute(controller, qobj)
         if result.get('success', False):
             valid_methods.append(method)
-    return valid_methods
+    return tuple(valid_methods)
 
 
 def available_devices(controller, devices):
@@ -89,7 +89,7 @@ def available_devices(controller, devices):
         result = cpp_execute(controller, qobj)
         if result.get('success', False):
             valid_devices.append(device)
-    return valid_devices
+    return tuple(valid_devices)
 
 
 def add_final_save_instruction(qobj, state):
@@ -114,7 +114,5 @@ def map_legacy_method_options(qobj):
     """Map legacy method names of qasm simulator to aer simulator options"""
     method = getattr(qobj.config, "method", None)
     if method in LEGACY_METHOD_MAP:
-        new_method, device = LEGACY_METHOD_MAP[method]
-        qobj.config.method = new_method
-        qobj.config.device = device
+        qobj.config.method, qobj.config.device = LEGACY_METHOD_MAP[method]
     return qobj

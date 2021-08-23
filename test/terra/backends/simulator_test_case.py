@@ -75,5 +75,3 @@ def _method_device(methods):
         else:
             data_args.append((method, 'CPU'))
     return data_args
-
-

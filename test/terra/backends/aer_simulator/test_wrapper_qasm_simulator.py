@@ -39,5 +39,6 @@ class TestQasmSimulator(SimulatorTestCase):
     def test_unsupported_methods(self, method):
         """Test unsupported AerSimulator method raises AerError."""
         backend = self.backend()
-        self.assertRaises(AerError, backend.set_options, method=method)
+        with self.assertRaises(AerError):
+            backend.set_options(method=method)
 

@@ -344,7 +344,7 @@ class QasmSimulator(AerBackend):
 
     _AVAILABLE_METHODS = None
 
-    _SIMULATION_DEVICES = ['CPU', 'GPU', 'Thrust']
+    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust')
 
     _AVAILABLE_DEVICES = None
 
@@ -491,11 +491,11 @@ class QasmSimulator(AerBackend):
 
     def available_methods(self):
         """Return the available simulation methods."""
-        return self._AVAILABLE_METHODS
+        return copy.copy(self._AVAILABLE_METHODS)
 
     def available_devices(self):
         """Return the available simulation methods."""
-        return self._AVAILABLE_DEVICES
+        return copy.copy(self._AVAILABLE_DEVICES)
 
     def _execute(self, qobj):
         """Execute a qobj on the backend.

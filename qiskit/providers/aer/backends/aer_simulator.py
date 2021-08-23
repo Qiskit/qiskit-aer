@@ -464,7 +464,7 @@ class AerSimulator(AerBackend):
 
     _AVAILABLE_METHODS = None
 
-    _SIMULATION_DEVICES = ['CPU', 'GPU', 'Thrust']
+    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust')
 
     _AVAILABLE_DEVICES = None
 
@@ -597,11 +597,11 @@ class AerSimulator(AerBackend):
 
     def available_methods(self):
         """Return the available simulation methods."""
-        return self._AVAILABLE_METHODS
+        return copy.copy(self._AVAILABLE_METHODS)
 
     def available_devices(self):
         """Return the available simulation methods."""
-        return self._AVAILABLE_DEVICES
+        return copy.copy(self._AVAILABLE_DEVICES)
 
     def configuration(self):
         """Return the simulator backend configuration.

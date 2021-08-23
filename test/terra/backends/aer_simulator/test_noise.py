@@ -34,7 +34,7 @@ ALL_METHODS = [
 
 
 @ddt
-class QasmReadoutNoiseTests(SimulatorTestCase):
+class TestNoise(SimulatorTestCase):
     """QasmSimulator readout error noise model tests."""
 
     @supported_methods(ALL_METHODS)

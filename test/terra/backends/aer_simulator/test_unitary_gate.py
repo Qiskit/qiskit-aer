@@ -26,7 +26,7 @@ from test.terra.backends.simulator_test_case import (
 
 
 @ddt
-class QasmUnitaryGateTests(SimulatorTestCase):
+class TestUnitaryGates(SimulatorTestCase):
     """QasmSimulator unitary gate tests."""
  
     METHODS = ["automatic", "statevector", "density_matrix", "matrix_product_state"]
@@ -77,8 +77,9 @@ class QasmUnitaryGateTests(SimulatorTestCase):
         result = backend.run(circuits, shots=shots).result()
         
         state = Statevector.from_label(n * '0').evolve(unitary_matrix, perm)
-        counts = state.sample_counts(shots=shots)
-        hex_counts = {hex(int(key, 2)): val for key, val in counts.items()}
+        state.seed(11111)
+        probs = state.probabilities_dict()
+        hex_counts = {hex(int(key, 2)): val * shots for key, val in probs.items()}
         self.assertSuccess(result)
         self.compare_counts(result, [circuit], [hex_counts], delta=0.05 * shots)
 

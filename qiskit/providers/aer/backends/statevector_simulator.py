@@ -158,7 +158,7 @@ class StatevectorSimulator(AerBackend):
         'gates': []
     }
 
-    _SIMULATION_DEVICES = ['CPU', 'GPU', 'Thrust']
+    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust')
 
     _AVAILABLE_DEVICES = None
 
@@ -243,11 +243,11 @@ class StatevectorSimulator(AerBackend):
              " supports a single method. To check if GPU simulation is available"
              " use the `available_devices` method instead.",
              DeprecationWarning)
-        return ["statevector"]
+        return ("statevector",)
 
     def available_devices(self):
         """Return the available simulation methods."""
-        return self._AVAILABLE_DEVICES
+        return copy.copy(self._AVAILABLE_DEVICES)
 
     def _execute(self, qobj):
         """Execute a qobj on the backend.

@@ -27,7 +27,7 @@ from test.terra.backends.simulator_test_case import (
 
 
 @ddt
-class UnitarySimulatorTests(SimulatorTestCase):
+class TestUnitarySimulator(SimulatorTestCase):
     """UnitarySimulator tests."""
 
     BACKEND = UnitarySimulator
@@ -84,10 +84,10 @@ class UnitarySimulatorTests(SimulatorTestCase):
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         targets = ref_1q_clifford.h_gate_unitary_nondeterministic()
-        for i, circuit in enumerate(circuits):
-            global_phase = (-1) ** i * (pi / 4)
+        for iter, circuit in enumerate(circuits):
+            global_phase = (-1) ** iter * (pi / 4)
             circuit.global_phase += global_phase
-            targets[i] = exp(1j * global_phase) * targets[i]
+            targets[iter] = exp(1j * global_phase) * targets[iter]
         circuits = transpile(circuits, backend, optimization_level=1)
         result = backend.run(circuits, shots=1).result()
         self.assertSuccess(result)
