@@ -1432,35 +1432,49 @@ void Controller::run_circuit_helper(const Circuit &circ,
     result.metadata.add("CPU", "device");
   }
 
+  // Circuit qubit metadata
+  result.metadata.add(circ.num_qubits, "num_qubits");
+  result.metadata.add(circ.num_memory, "num_clbits");
+  result.metadata.add(circ.qubits(), "active_input_qubits");
+  if (!circ.qubit_map().empty()) {
+    result.metadata.add(circ.qubit_map(), "input_qubit_map");
+  }
+
   // Add measure sampling to metadata
   // Note: this will set to `true` if sampling is enabled for the circuit
   result.metadata.add(false, "measure_sampling");
+
   // Choose execution method based on noise and method
   Circuit opt_circ;
 
   // Ideal circuit
   if (noise.is_ideal()) {
     opt_circ = circ;
+    result.metadata.add("ideal", "noise");
   }
   // Readout error only
   else if (noise.has_quantum_errors() == false) {
     opt_circ = noise.sample_noise(circ, rng);
+    result.metadata.add("readout", "noise");
   }
   // Superop noise sampling
   else if (method == Method::density_matrix || method == Method::superop) {
     // Sample noise using SuperOp method
     opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::superop);
+    result.metadata.add("superop", "noise");
   }
   // Kraus noise sampling
   else if (noise.opset().contains(Operations::OpType::kraus) ||
            noise.opset().contains(Operations::OpType::superop)) {
     opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::kraus);
+    result.metadata.add("kraus", "noise");
   }
   // General circuit noise sampling
   else {
     run_circuit_with_sampled_noise(circ, noise, config, shots, state, method,
                                    cache_blocking, result, rng);
     state.add_metadata(result);
+    result.metadata.add("circuit", "noise");
     return;
   }
 

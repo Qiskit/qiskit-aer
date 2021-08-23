@@ -276,6 +276,11 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool trunca
     if (n_qubits < num_qubits) {
       throw std::invalid_argument("Invalid Qobj experiment: n_qubits < instruction qubits.");
     }
+    if (!truncation) {
+      // Override minimal circuit qubit number with qobj number if truncation
+      // is explicitly disabled.
+      num_qubits = n_qubits;
+    }
   }
 }
 
@@ -375,7 +380,9 @@ void Circuit::optimized_set_params(bool truncation) {
       idx++;
     }
     // Set qubit map to original circuit qubits
-    qubitmap_ = std::move(inverse_qubit_mapping);
+    if (!trivial_map_) {
+      qubitmap_ = std::move(inverse_qubit_mapping);
+    }
   }
 
   // Set qubit and memory size
