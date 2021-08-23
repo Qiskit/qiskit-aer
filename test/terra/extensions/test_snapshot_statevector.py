@@ -25,7 +25,11 @@ class TestSnapshotStatevectorExtension(QiskitAerTestCase):
 
     def setUpClass(cls):
         super().setUpClass()
-        filterwarnings("default", category=DeprecationWarning)
+        filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            module=".*snapshot_statevector",
+        )
 
     @staticmethod
     def snapshot_circuit_instr(circ_qubits, label):

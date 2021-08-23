@@ -25,7 +25,11 @@ class TestSnapshotProbabilitiesExtension(QiskitAerTestCase):
 
     def setUpClass(cls):
         super().setUpClass()
-        filterwarnings("default", category=DeprecationWarning)
+        filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            module=".*snapshot_probabilities",
+        )
 
     def snapshot_circuit_instr(self, circ_qubits, label, qubits, variance=False):
         """Return QobjInstruction for circuit monkey patch method."""

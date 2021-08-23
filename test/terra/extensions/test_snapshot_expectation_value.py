@@ -28,7 +28,11 @@ class TestSnapshotExpectationValueExtension(QiskitAerTestCase):
 
     def setUpClass(cls):
         super().setUpClass()
-        filterwarnings("default", category=DeprecationWarning)
+        filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            module=".*snapshot_expectation_value",
+        )
 
     @staticmethod
     def snapshot_circuit_instr(circ_qubits, label, op, qubits, single_shot=False, variance=False):
