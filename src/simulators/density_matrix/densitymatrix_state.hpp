@@ -100,29 +100,19 @@ public:
   // Return the string name of the State class
   virtual std::string name() const override { return densmat_t::name(); }
 
-<<<<<<< HEAD
-  // Apply a sequence of operations by looping over list
-  // If the input is not in allowed_ops an exeption will be raised.
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false) override;
-  //applying one operation
-  virtual void apply_op(uint_t iChunk, const Operations::Op &op,
-                         ExperimentResult &result,
-                         std::vector<RngEngine>& rng,
-                         bool final_ops = false) override;
-
   void apply_batched_ops(const std::vector<Operations::Op> &ops);
   virtual bool batchable_op(const Operations::Op& op,bool single_op = true);
-=======
+
   // Apply an operation
   // If the op is not in allowed_ops an exeption will be raised.
   virtual void apply_op(const Operations::Op &op,
                         ExperimentResult &result,
                         RngEngine &rng,
                         bool final_op = false) override;
->>>>>>> upstream/main
+  virtual void apply_op_multi_shots(const Operations::Op &op,
+                         ExperimentResult &result,
+                         std::vector<RngEngine>& rng,
+                         bool final_ops = false) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -532,19 +522,12 @@ void State<densmat_t>::apply_op(const Operations::Op &op,
                                  RngEngine &rng,
                                  bool final_ops) 
 {
-  std::vector<RngEngine> rngs(1);
-  rngs[0] = rng;
-  // Simple loop over vector of input operations
-  for (size_t i = 0; i < ops.size(); ++i) {
-    const auto& op = ops[i];
-    apply_op(0, op,result,rngs,final_ops && ops.size() == i + 1);
-  }
-
-  BaseState::qreg_.end_of_circuit();
+  std::vector<RngEngine> r(1,rng);
+  apply_op_multi_shots(op,result,r,final_ops);
 }
 
 template <class densmat_t>
-void State<densmat_t>::apply_op(uint_t iChunk, const Operations::Op &op,
+void State<densmat_t>::apply_op_multi_shots(const Operations::Op &op,
                                   ExperimentResult &result,
                                   std::vector<RngEngine> &rng,
                                   bool final_ops) 

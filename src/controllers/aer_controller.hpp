@@ -1908,7 +1908,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
     RngEngine rng;
     rng.set_seed(rng_seed);
-    state.apply_ops(ops, result, rng, final_ops);
+    state.apply_ops(ops.cbegin(), ops.cbegin() + first_meas, result, rng, final_ops);
 
     // Get measurement operations and set of measured qubits
     measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(), shots, state, result, rng);

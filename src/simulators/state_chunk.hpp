@@ -122,10 +122,25 @@ public:
                 RngEngine &rng,
                 bool final_ops = false);
 
-  virtual void apply_op(int_t iChunk,const Operations::Op &op,
+  virtual void apply_op_chunk(int_t iChunk,const Operations::Op &op,
                          ExperimentResult &result,
-                         std::vector<RngEngine>& rng,
+                         RngEngine& rng,
                          bool final_ops = false) = 0;
+  virtual void apply_op(const Operations::Op &op,
+                         ExperimentResult &result,
+                         RngEngine& rng,
+                         bool final_ops = false)
+  {
+    apply_op_chunk(0,op,result,rng,final_ops);
+  }
+  //for multi-shot optimization
+  virtual void apply_op_multi_shots(const Operations::Op &op,
+                        ExperimentResult &result,
+                        std::vector<RngEngine>& rng,
+                        bool final_op = false)
+  {
+    apply_op_chunk(0,op,result,rng[0],final_op);
+  }
 
   virtual void apply_batched_ops(const std::vector<Operations::Op> &ops){}
   virtual void enable_batch(bool flg);
@@ -614,9 +629,8 @@ void StateChunk<state_t>::apply_ops(InputIterator first, InputIterator last,
   nOp = std::distance(first, last);
   iOp = 0;
   while(iOp < nOp){
-//    std::cout << "[" << iOp << "] " << ops[iOp] << std::endl;
-
-    if(ops[iOp].type == Operations::OpType::gate && ops[iOp].name == "swap_chunk"){
+    const Operations::Op op_iOp = *(first + iOp);
+    if(op_iOp.type == Operations::OpType::gate && op_iOp.name == "swap_chunk"){
       //apply swap between chunks
       apply_chunk_swap(op_iOp.qubits);
     }
@@ -639,9 +653,7 @@ void StateChunk<state_t>::apply_ops(InputIterator first, InputIterator last,
         //fecth chunk in cache
         if(qregs_[iChunk].fetch_chunk()){
           while(iOpBlock < iOpEnd){
-//            std::cout << "  (" << iChunk << "/" << num_local_chunks_ << ") <" << iOpBlock << "> " << ops[iOpBlock] << std::endl;
-
-            apply_op(iChunk,ops[iOpBlock],result,rngs,final_ops);
+            apply_op_chunk(iChunk,*(first + iOpBlock),result,rng,final_ops);
             iOpBlock++;
           }
 
@@ -655,19 +667,18 @@ void StateChunk<state_t>::apply_ops(InputIterator first, InputIterator last,
     else if(is_applied_to_each_chunk(op_iOp)){
 #pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
       for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
-        apply_op(iChunk,ops[iOp],result,rngs,final_ops && nOp == iOp + 1);
+        apply_op_chunk(iChunk,op_iOp,result,rng,final_ops && nOp == iOp + 1);
       }
     }
     else{
       //parallelize inside state implementations
-      apply_op(-1,ops[iOp],result,rngs,final_ops && nOp == iOp + 1);
+      apply_op_chunk(-1,op_iOp,result,rng,final_ops && nOp == iOp + 1);
     }
     iOp++;
   }
 
   end_of_circuit();
 
-//  std::cout << "[" << iOp << "] END OPS" << std::endl;
 }
 
 template <class state_t>

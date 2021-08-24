@@ -129,7 +129,7 @@ public:
                         bool final_op = false) override;
 
   //applying one operation
-  virtual void apply_op(uint_t iChunk, const Operations::Op &op,
+  virtual void apply_op_multi_shots(const Operations::Op &op,
                          ExperimentResult &result,
                          std::vector<RngEngine>& rng,
                          bool final_ops = false) override;
@@ -604,24 +604,17 @@ bool State<statevec_t>::check_conditional(const Operations::Op &op)
 //=========================================================================
 
 template <class statevec_t>
-void State<statevec_t>::apply_ops(const std::vector<Operations::Op> &ops,
+void State<statevec_t>::apply_op(const Operations::Op &op,
                                   ExperimentResult &result,
                                   RngEngine &rng,
                                   bool final_ops) 
 {
-  std::vector<RngEngine> rngs(1);
-  rngs[0] = rng;
-  // Simple loop over vector of input operations
-  for (size_t i = 0; i < ops.size(); ++i) {
-    const auto& op = ops[i];
-    apply_op(0, op,result,rngs,final_ops && ops.size() == i + 1);
-  }
-
-  BaseState::qreg_.end_of_circuit();
+  std::vector<RngEngine> r(1,rng);
+  apply_op_multi_shots(op,result,r,final_ops);
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_op(uint_t iChunk, const Operations::Op &op,
+void State<statevec_t>::apply_op_multi_shots(const Operations::Op &op,
                                   ExperimentResult &result,
                                   std::vector<RngEngine> &rng,
                                   bool final_ops) 

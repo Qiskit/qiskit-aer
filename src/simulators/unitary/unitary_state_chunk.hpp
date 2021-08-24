@@ -87,9 +87,9 @@ public:
   // Config: {"omp_qubit_threshold": 7}
   virtual void set_config(const json_t &config) override;
 
-  virtual void apply_op(const int_t iChunk,const Operations::Op &op,
+  virtual void apply_op_chunk(const int_t iChunk,const Operations::Op &op,
                          ExperimentResult &result,
-                         std::vector<RngEngine> &rng,
+                         RngEngine &rng,
                          bool final_ops = false) override;
 
   //-----------------------------------------------------------------------
@@ -186,9 +186,9 @@ protected:
 // Implementation: Base class method overrides
 //============================================================================
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_op(const int_t iChunk,const Operations::Op &op,
+void State<unitary_matrix_t>::apply_op_chunk(const int_t iChunk,const Operations::Op &op,
                          ExperimentResult &result,
-                         std::vector<RngEngine> &rng,
+                         RngEngine &rng,
                          bool final_ops)
 {
   switch (op.type) {
@@ -198,7 +198,7 @@ void State<unitary_matrix_t>::apply_op(const int_t iChunk,const Operations::Op &
         BaseState::creg_.apply_bfunc(op);
       break;
     case Operations::OpType::roerror:
-        BaseState::creg_.apply_roerror(op, rng[0]);
+        BaseState::creg_.apply_roerror(op, rng);
       break;
     case Operations::OpType::gate:
       // Note conditionals will always fail since no classical registers

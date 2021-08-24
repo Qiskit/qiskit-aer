@@ -100,9 +100,9 @@ public:
                                             uint_t shots,
                                             RngEngine &rng) override;
 
-  virtual void apply_op(const int_t iChunk,const Operations::Op &op,
+  virtual void apply_op_chunk(const int_t iChunk,const Operations::Op &op,
                          ExperimentResult &result,
-                         std::vector<RngEngine> &rng,
+                         RngEngine &rng,
                          bool final_ops) override;
 
   //-----------------------------------------------------------------------
@@ -570,9 +570,9 @@ void State<densmat_t>::set_config(const json_t &config)
 //=========================================================================
 
 template <class densmat_t>
-void State<densmat_t>::apply_op(const int_t iChunk,const Operations::Op &op,
+void State<densmat_t>::apply_op_chunk(const int_t iChunk,const Operations::Op &op,
                          ExperimentResult &result,
-                         std::vector<RngEngine> &rng,
+                         RngEngine &rng,
                          bool final_ops)
 {
   if (BaseState::creg_.check_conditional(op)) {
@@ -583,13 +583,13 @@ void State<densmat_t>::apply_op(const int_t iChunk,const Operations::Op &op,
         apply_reset(iChunk,op.qubits);
         break;
       case Operations::OpType::measure:
-        apply_measure(op.qubits, op.memory, op.registers, rng[0]);
+        apply_measure(op.qubits, op.memory, op.registers, rng);
         break;
       case Operations::OpType::bfunc:
         BaseState::creg_.apply_bfunc(op);
         break;
       case Operations::OpType::roerror:
-        BaseState::creg_.apply_roerror(op, rng[0]);
+        BaseState::creg_.apply_roerror(op, rng);
         break;
       case Operations::OpType::gate:
         apply_gate(iChunk,op);

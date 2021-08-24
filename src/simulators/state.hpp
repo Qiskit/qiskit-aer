@@ -103,34 +103,6 @@ public:
   // Return a string name for the State type
   virtual std::string name() const = 0;
 
-  // Apply a sequence of operations to the current state of the State class.
-  // It is up to the State subclass to decide how this sequence should be
-  // executed (ie in sequence, or some other execution strategy.)
-  // If this sequence contains operations not in the supported opset
-  // an exeption will be thrown.
-  // The `final_ops` flag indicates no more instructions will be applied
-  // to the state after this sequence, so the state can be modified at the
-  // end of the instructions.
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false)  = 0;
-
-  virtual void apply_op(uint_t iChunk, const Operations::Op &op,
-                         ExperimentResult &result,
-                         std::vector<RngEngine>& rng,
-                         bool final_ops = false) {}
-
-  virtual void apply_batched_ops(const std::vector<Operations::Op> &ops){}
-  virtual void enable_batch(bool flg){}
-  virtual bool batchable_op(const Operations::Op& op,bool single_op = true){return false;}
-
-  virtual bool top_of_group(){return true;}  //check if this register is on the top of group
-
-  virtual void apply_batched_pauli(reg_t& params){}
-
-  virtual void end_of_circuit(){};
-
   //store asynchronously measured classical bits after batched execution
   virtual void store_measured_cbits(const Operations::Op &op) {}
 
@@ -211,9 +183,18 @@ public:
   // end of the instructions.
   virtual void apply_op(const Operations::Op &op,
                         ExperimentResult &result,
-                        RngEngine &rng,
+                        RngEngine& rng,
                         bool final_op = false) = 0;
-  
+
+  //for multi-shot optimization
+  virtual void apply_op_multi_shots(const Operations::Op &op,
+                        ExperimentResult &result,
+                        std::vector<RngEngine>& rng,
+                        bool final_op = false)
+  {
+    apply_op(op,result,rng[0],final_op);
+  }
+
   // Apply a sequence of operations to the current state of the State class.
   // It is up to the State subclass to decide how this sequence should be
   // executed (ie in sequence, or some other execution strategy.)
@@ -228,6 +209,17 @@ public:
                  ExperimentResult &result,
                  RngEngine &rng,
                  bool final_ops = false);
+
+  //for batched apply op
+  virtual void apply_batched_ops(const std::vector<Operations::Op> &ops){}
+  virtual void enable_batch(bool flg){}
+  virtual bool batchable_op(const Operations::Op& op,bool single_op = true){return false;}
+
+  virtual bool top_of_group(){return true;}  //check if this register is on the top of group
+
+  virtual void apply_batched_pauli(reg_t& params){}
+
+  virtual void end_of_circuit(){};
 
   //-----------------------------------------------------------------------
   // ClassicalRegister methods

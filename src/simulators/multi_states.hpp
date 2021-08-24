@@ -594,13 +594,13 @@ void States<state_t>::apply_single_ops(const std::vector<Operations::Op> &ops,
           apply_runtime_error(i,ops[iOp],par_results[i],rng,noise);
         }
         else if(states_[istate].batchable_op(ops[iOp],true)){
-          states_[istate].apply_op(0,ops[iOp],par_results[i],rng,final_ops && nOp == iOp + 1);
+          states_[istate].apply_op_multi_shots(ops[iOp],par_results[i],rng,final_ops && nOp == iOp + 1);
         }
         else{
           //call apply_op for each state
           for(uint_t j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
             states_[j].enable_batch(false);
-            states_[j].apply_op(0,ops[iOp],par_results[i],rng,final_ops && nOp == iOp + 1);
+            states_[j].apply_op(ops[iOp],par_results[i],rng[global_state_index_ + i_begin + j],final_ops && nOp == iOp + 1);
             states_[j].enable_batch(true);
           }
         }
@@ -698,7 +698,7 @@ void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::
               std::vector<RngEngine> local_rng(1);
               local_rng[0] = rng[i_circ];
               states_[j].enable_batch(false);
-              states_[j].apply_op(0,ops[i_circ][iOp],result[i_circ],local_rng,final_ops && ops[i_circ].size() == iOp + 1);
+              states_[j].apply_op(ops[i_circ][iOp],result[i_circ],local_rng[i_circ],final_ops && ops[i_circ].size() == iOp + 1);
               states_[j].enable_batch(true);
             }
             num_active++;
