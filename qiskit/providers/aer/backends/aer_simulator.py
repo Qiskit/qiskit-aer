@@ -17,6 +17,7 @@ import copy
 import logging
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
+from qiskit.qobj import QasmQobj, PulseQobj
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
@@ -24,7 +25,8 @@ from .backend_utils import (cpp_execute, available_methods,
                             available_devices,
                             MAX_QUBITS_STATEVECTOR)
 # pylint: disable=import-error, no-name-in-module
-from .controller_wrappers import aer_controller_execute, AerController
+from .controller_wrappers import aer_controller_execute, AerController, AerCircuit
+from ..native import gen_aer_circuit
 
 logger = logging.getLogger(__name__)
 
@@ -464,6 +466,7 @@ class AerSimulator(AerBackend):
                  **backend_options):
 
         self._controller = aer_controller_execute()
+        self._controller_new = AerController()
 
         # Update available methods and devices for class
         if AerSimulator._AVAILABLE_METHODS is None:
@@ -605,7 +608,7 @@ class AerSimulator(AerBackend):
         config.backend_name = self.name()
         return config
 
-    def _execute(self, qobj):
+    def _execute(self, circuits, noise_model, config):
         """Execute a qobj on the backend.
 
         Args:
@@ -614,7 +617,17 @@ class AerSimulator(AerBackend):
         Returns:
             dict: return a dictionary of results.
         """
-        return cpp_execute(self._controller, qobj)
+        if isinstance(circuits, (QasmQobj, PulseQobj)):
+            return cpp_execute(self._controller, circuits)
+        elif isinstance(circuits, AerCircuit):
+            return self._controller_new.execute([circuits], config.shots, noise_model, config)
+        elif isinstance(circuits, QuantumCircuit):
+            return self._controller_new.execute([gen_aer_circuit(circuits)], config.shots,
+                                                noise_model, config)
+        else:
+            circuits = [ circuit if isinstance(circuit, AerCircuit) else gen_aer_circuit(circuit)
+                            for circuit in circuits ]
+            return self._controller_new.execute(circuits, config.shots, noise_model, config)
 
     def set_options(self, **fields):
         out_options = {}

@@ -88,8 +88,7 @@ PYBIND11_MODULE(controller_wrappers, m) {
                                      ) {
       for (auto &circuit: circuits)
         circuit.shots = shots;
-      auto ret = AerToPy::to_python(controller.execute(circuits, AER::Noise::NoiseModel(py_noise_model), py_config));
-      return ret;
+      return AerToPy::to_python(controller.execute(circuits, AER::Noise::NoiseModel(), py_config));
     }, py::arg("circuits"), py::arg("shots") = 1024, py::arg("noise_model") = py::none(), py::arg("config") = py::none());
 
     py::enum_<Operations::OpType> optype(m, "OpType") ;
@@ -179,4 +178,20 @@ PYBIND11_MODULE(controller_wrappers, m) {
     aer_circuit.def_readwrite("shots", &Circuit::shots);
     aer_circuit.def_readwrite("seed", &Circuit::seed);
     aer_circuit.def_readwrite("global_phase_angle", &Circuit::global_phase_angle);
+
+    m.def("make_unitary", [](const AER::reg_t &qubits, const py::array_t<std::complex<double>> &values, const bool carray) {
+      size_t mat_len = qubits.size() * qubits.size();
+      auto ptr = values.unchecked<2>();
+      AER::cmatrix_t mat(mat_len, mat_len);
+      if (carray) {
+        for (auto i = 0; i < mat_len; ++i)
+          for (auto j = 0; j < mat_len; ++j)
+            mat(i, j) = ptr(i, j);
+      } else {
+        for (auto i = 0; i < mat_len; ++i)
+          for (auto j = 0; j < mat_len; ++j)
+            mat(j, i) = ptr(i, j);
+      }
+      return AER::Operations::make_unitary(qubits, mat);
+    }, "return unitary op");
 }

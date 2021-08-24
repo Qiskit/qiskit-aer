@@ -132,20 +132,21 @@ class AerBackend(Backend, ABC):
                           'removed in a future release.',
                           PendingDeprecationWarning,
                           stacklevel=2)
-            qobj = circuits
+            config = circuits.config
+            # Optional validation
+            if validate:
+                self._validate(circuits)
         else:
-            qobj = assemble(circuits, self)
+            config = self.configuration()
 
         # Add backend options to the Job qobj
-        self._add_options_to_qobj(qobj, **run_options)
+        self._add_options_to_config(config, **run_options)
 
-        # Optional validation
-        if validate:
-            self._validate(qobj)
+        noise_model = config.noise_model if hasattr(config, 'noise_model') else None
 
         # Submit job
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run, qobj)
+        aer_job = AerJob(self, job_id, self._run, circuits, noise_model, config)
         aer_job.submit()
         return aer_job
 
@@ -216,13 +217,13 @@ class AerBackend(Backend, ABC):
             pending_jobs=0,
             status_msg='')
 
-    def _run(self, qobj, job_id=''):
+    def _run(self, circuits, job_id='', noise_model=None, config=None):
         """Run a job"""
         # Start timer
         start = time.time()
 
         # Run simulation
-        output = self._execute(qobj)
+        output = self._execute(circuits, noise_model, config)
 
         # Validate output
         if not isinstance(output, dict):
@@ -251,8 +252,8 @@ class AerBackend(Backend, ABC):
         return Result.from_dict(output)
 
     @abstractmethod
-    def _execute(self, qobj):
-        """Execute a qobj on the backend.
+    def _execute(self, circuits, config):
+        """Execute circuits on the backend.
 
         Args:
             qobj (QasmQobj or PulseQobj): simulator input.
@@ -331,12 +332,9 @@ class AerBackend(Backend, ABC):
         elif key in self._options_defaults:
             self._options_defaults.pop(key)
 
-    def _add_options_to_qobj(self, qobj,
+    def _add_options_to_config(self, config,
                              **run_options):
         """Return execution sim config dict from backend options."""
-        # Add options to qobj config overriding any existing fields
-        config = qobj.config
-
         # Add options
         for key, val in self.options.__dict__.items():
             if val is not None and not hasattr(config, key):
@@ -346,7 +344,7 @@ class AerBackend(Backend, ABC):
         for key, val in run_options.items():
             setattr(config, key, val)
 
-        return qobj
+        return config
 
     def __repr__(self):
         """String representation of an AerBackend."""
