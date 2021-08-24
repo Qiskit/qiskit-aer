@@ -121,12 +121,12 @@ public:
   // Return the string name of the State class
   virtual std::string name() const override { return statevec_t::name(); }
 
-  // Apply a sequence of operations by looping over list
-  // If the input is not in allowed_ops an exception will be raised.
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false) override;
+  // Apply an operation
+  // If the op is not in allowed_ops an exeption will be raised.
+  virtual void apply_op(const Operations::Op &op,
+                        ExperimentResult &result,
+                        RngEngine &rng,
+                        bool final_op = false) override;
 
   //applying one operation
   virtual void apply_op(uint_t iChunk, const Operations::Op &op,
@@ -701,7 +701,7 @@ void State<statevec_t>::apply_op(uint_t iChunk, const Operations::Op &op,
       default:
         throw std::invalid_argument(
             "QubitVector::State::invalid instruction \'" + op.name + "\'.");
-      }
+    }
   }
 }
 

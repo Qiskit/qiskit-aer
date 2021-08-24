@@ -100,6 +100,7 @@ public:
   // Return the string name of the State class
   virtual std::string name() const override { return densmat_t::name(); }
 
+<<<<<<< HEAD
   // Apply a sequence of operations by looping over list
   // If the input is not in allowed_ops an exeption will be raised.
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
@@ -114,6 +115,14 @@ public:
 
   void apply_batched_ops(const std::vector<Operations::Op> &ops);
   virtual bool batchable_op(const Operations::Op& op,bool single_op = true);
+=======
+  // Apply an operation
+  // If the op is not in allowed_ops an exeption will be raised.
+  virtual void apply_op(const Operations::Op &op,
+                        ExperimentResult &result,
+                        RngEngine &rng,
+                        bool final_op = false) override;
+>>>>>>> upstream/main
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -518,7 +527,7 @@ bool State<densmat_t>::check_conditional(const Operations::Op &op)
 //=========================================================================
 
 template <class densmat_t>
-void State<densmat_t>::apply_ops(const std::vector<Operations::Op> &ops,
+void State<densmat_t>::apply_op(const Operations::Op &op,
                                  ExperimentResult &result,
                                  RngEngine &rng,
                                  bool final_ops) 

@@ -738,6 +738,45 @@ meta = dict['metadata']
 myrank = meta['mpi_rank']
 ```
 
+### Running with Threadpool and DASK
+
+Qiskit Aer runs simulation jobs on a single-worker Python multiprocessing ThreadPool executor so that all parallelization is handled by low-level OpenMP and CUDA code. However to customize job-level parallel execution of multiple circuits a user can specify a custom multiprocessing executor and control the splitting of circuits using the `executor`and `max_job_size` backend options. For large scale job parallelization on HPC clusters Qiskit Aer executors support the distributed Clients from the [Dask](https://dask.org/) library.
+If you want to install dask client at the same time as Qiskit Aer, please add `dask` option as follows. This option installs Aer, dask, and  distributed packages. 
+```
+pip install .[dask]
+```
+
+To use Threadpool or DASK as an executor, you need to set `executor` and `max_job_size` by `set_options` function. If both `executor` (default None) and `max_job_size` (default None) are set, Aer splits the multiple circuits to some chunk of circuits and submits them to the executor. `max_job_size` can control the number of splitting circuits. When `max_job_size` is set to 1, multiple circuits are split into one circuit and distributed to the executor. If user executes 60 circuits with the executor and `max_job_size=1`, Aer splits it to 1 circuit x 60 jobs. 
+If 60 circuits and `max_job_size=2`, Aer splits it to 2 circuits x 30 jobs. 
+
+Example Usage:
+Threadpool execution:
+
+```
+from concurrent.futures import ThreadPoolExecutor
+
+exc = ThreadPoolExecutor(max_workers=2)
+qbackend = Aer.get_backend('qasm_simulator')
+qbackend.set_options(executor=exc)
+qbackend.set_options(max_job_size=3)
+result = qbackend.run(circuits, seed_simulator=54321).result()
+```
+
+Dask execution:
+
+Dask client creates multi-processes so you need to gurad it by if __name__ == "__main__": block. 
+```
+from dask.distributed import Client
+
+def dask_exec():
+    exc = Client(address=LocalCluster(n_workers=1, processes=True))
+    qbackend.set_options(executor=exc)
+    qbackend.set_options(max_job_size=3)
+    result = qbackend.run(circuits, seed_simulator=54321).result()
+
+if __name__ == "__main__":
+    dask_exec()
+```
 
 ### Building a statically linked wheel
 
