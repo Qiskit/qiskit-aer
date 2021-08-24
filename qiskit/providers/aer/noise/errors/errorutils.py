@@ -203,6 +203,7 @@ _CLIFFORD_GATES = [
     (SdgGate(), XGate())
 ]
 
+
 def single_qubit_clifford_gates(j):
     """Return a tuple of gates for a single qubit Clifford.
 
