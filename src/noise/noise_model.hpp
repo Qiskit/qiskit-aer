@@ -44,7 +44,6 @@ public:
 
   using Method = QuantumError::Method;
   using NoiseOps = std::vector<Operations::Op>;
-  using mapping_t = std::unordered_map<uint_t, uint_t>;
 
   NoiseModel() = default;
   NoiseModel(const json_t &js) {load_from_json(js);}
@@ -125,12 +124,6 @@ public:
   // Utils
   //-----------------------------------------------------------------------
 
-  // Remap the qubits in the noise model.
-  // A remapping is entered as a map {old: new}
-  // Any qubits not in the mapping are assumed to be mapped to themselves.
-  // Hence the sets of all keys and all values of the map must be equal.
-  void remap_qubits(const mapping_t &mapping);
-
   // Return vector of noise qubits for non local error on specified label and qubits
   // If no nonlocal error exists an empty set is returned.
   std::set<uint_t> nonlocal_noise_qubits(const std::string label, const reg_t &qubits) const;
@@ -148,33 +141,33 @@ private:
   NoiseOps sample_noise_op(const Operations::Op &op,
                            RngEngine &rng,
                            const Method method,
-                           const mapping_t &mapping) const;
+                           const reg_t &mapping) const;
 
   // Sample noise for the current operation
   void sample_readout_noise(const Operations::Op &op,
                             NoiseOps &noise_after,
                             RngEngine &rng,
-                            const mapping_t &mapping)  const;
+                            const reg_t &mapping)  const;
 
   void sample_local_quantum_noise(const Operations::Op &op,
                                   NoiseOps &noise_before,
                                   NoiseOps &noise_after,
                                   RngEngine &rng,
                                   const Method method,
-                                  const mapping_t &mapping)  const;
+                                  const reg_t &mapping)  const;
 
   void sample_nonlocal_quantum_noise(const Operations::Op &op,
                                      NoiseOps &noise_ops,
                                      NoiseOps &noise_after,
                                      RngEngine &rng,
                                      const Method method,
-                                     const mapping_t &mapping) const;
+                                     const reg_t &mapping) const;
 
   // Sample noise for the current operation
   NoiseOps sample_noise_helper(const Operations::Op &op,
                                RngEngine &rng,
                                const Method method,
-                               const mapping_t &mapping) const;
+                               const reg_t &mapping) const;
 
   // Add a local quantum error to the noise model for specific qubits
   void add_local_quantum_error(const QuantumError &error,
@@ -216,11 +209,9 @@ private:
   // Helper function to convert reg to string for key of unordered maps/sets
   std::string reg2string(const reg_t &reg) const;
   reg_t string2reg(std::string s) const;
-  std::string remap_string(const std::string key,
-                           const mapping_t &mapping) const;
 
   // Remap op qubits to different noise qubits as supplied by a mapping
-  reg_t remap_reg(const reg_t &reg, const mapping_t &mapping = mapping_t()) const;
+  reg_t remap_reg(const reg_t &reg, const reg_t &mapping = reg_t()) const;
 
   // Helper function to try and convert an instruction to superop matrix
   // If conversion isn't possible this returns an empty matrix
@@ -312,6 +303,11 @@ Circuit NoiseModel::sample_noise_circuit(const Circuit &circ,
     // Reserve double length of ops just to be safe
     noisy_circ.ops.reserve(2 * circ.ops.size());
 
+    // Qubit mapping
+    reg_t mapping = (circ.remapped_qubits)
+      ? reg_t(circ.qubits().cbegin(), circ.qubits().cend())
+      : reg_t();
+
     // Sample a noisy realization of the circuit
     for (const auto &op: circ.ops) {
       switch (op.type) {
@@ -340,7 +336,7 @@ Circuit NoiseModel::sample_noise_circuit(const Circuit &circ,
           break;
         default:
           if (noise_active) {
-            NoiseOps noisy_op = sample_noise_op(op, rng, method, circ.qubit_map());
+            NoiseOps noisy_op = sample_noise_op(op, rng, method, mapping);
             noisy_circ.ops.insert(noisy_circ.ops.end(), noisy_op.begin(), noisy_op.end());
           }
           break;
@@ -355,7 +351,7 @@ Circuit NoiseModel::sample_noise_circuit(const Circuit &circ,
 NoiseModel::NoiseOps NoiseModel::sample_noise_op(const Operations::Op &op,
                                                  RngEngine &rng,
                                                  const Method method,
-                                                 const mapping_t &mapping) const {
+                                                 const reg_t &mapping) const {
   // Noise operations
   NoiseOps noise_ops = sample_noise_helper(op, rng, method, mapping);
 
@@ -499,7 +495,7 @@ void NoiseModel::add_nonlocal_quantum_error(const QuantumError &error,
 NoiseModel::NoiseOps NoiseModel::sample_noise_helper(const Operations::Op &op,
                                                      RngEngine &rng,
                                                      const Method method,
-                                                     const mapping_t &mapping) const {                                                
+                                                     const reg_t &mapping) const {                                                
   // Return operator set
   NoiseOps noise_before;
   NoiseOps noise_after;
@@ -569,7 +565,7 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_helper(const Operations::Op &op,
 void NoiseModel::sample_readout_noise(const Operations::Op &op,
                                       NoiseOps &noise_after,
                                       RngEngine &rng,
-                                      const mapping_t &mapping) const {
+                                      const reg_t &mapping) const {
   // If no readout errors are defined pass
   if (readout_errors_.empty()) {
     return;
@@ -642,7 +638,7 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
                                             NoiseOps &noise_after,
                                             RngEngine &rng,
                                             const Method method,
-                                            const mapping_t &mapping) const {
+                                            const reg_t &mapping) const {
   
   // If no errors are defined pass
   if (local_quantum_errors_ == false)
@@ -717,7 +713,7 @@ void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
                                                NoiseOps &noise_after,
                                                RngEngine &rng,
                                                const Method method,
-                                               const mapping_t &mapping) const {
+                                               const reg_t &mapping) const {
   
   // If no errors are defined pass
   if (nonlocal_quantum_errors_ == false)
@@ -924,109 +920,16 @@ std::set<uint_t> NoiseModel::nonlocal_noise_qubits(const std::string label,
   return all_noise_qubits;
 }
 
-reg_t NoiseModel::remap_reg(const reg_t &reg, const mapping_t &mapping) const {
+reg_t NoiseModel::remap_reg(const reg_t &reg, const reg_t &mapping) const {
   if (mapping.empty()) {
     return reg;
   }
-  reg_t ret;
-  ret.reserve(reg.size());
-  for (const auto& elem : reg) {
-      auto item = mapping.find(elem);
-      if (item != mapping.end()) {
-          ret.push_back(item->second);
-      } else {
-          ret.push_back(elem);
-      }
+  reg_t ret(reg.size());
+  for (size_t i = 0; i < reg.size(); ++i) {
+    ret[i] = mapping[reg[i]];
   }
   return ret;
 }
-
-std::string NoiseModel::remap_string(const std::string key,
-                                     const mapping_t &mapping) const{
-  reg_t qubits = string2reg(key);
-  for (size_t j=0; j<qubits.size(); j++)
-    qubits[j] = mapping.at(qubits[j]);
-  return reg2string(qubits);
-}
-
-
-void NoiseModel::remap_qubits(const mapping_t &mapping) {
-
-  // If noise model is ideal we have no need to remap
-  if (is_ideal())
-    return;
-
-  // We only need the mapping for qubits in the noise model.
-  // We add qubits not specified in the mapping as trivial mapping to themselves
-  // We also validate the mapping while building the full mapping
-  mapping_t full_mapping = mapping;
-  // Add noise qubits not specified in mapping
-  for (const auto &qubit : noise_qubits_) {
-    if (full_mapping.find(qubit) == full_mapping.end()) {
-      full_mapping[qubit] = qubit;
-    }
-  }
-
-  // Check mapping is valid
-  std::set<uint_t> qubits_in;
-  std::set<uint_t> qubits_out;
-  for (const auto &pair: full_mapping) {
-    qubits_in.insert(pair.first);
-    qubits_out.insert(pair.second);
-  }
-  if (qubits_in != qubits_out) {
-    std::stringstream msg;
-    msg << "NoiseModel: invalid qubit re-mapping " << full_mapping;
-    throw std::invalid_argument(msg.str());
-  }
-
-  // Remap readout error
-  if (has_readout_errors()) {
-    inner_table_t new_readout_error_table;
-    for (const auto &pair : readout_error_table_) {
-      new_readout_error_table[remap_string(pair.first, full_mapping)] = pair.second;
-    }
-    readout_error_table_ = new_readout_error_table;
-    new_readout_error_table.clear();
-  }
-
-  // Remap local quantum error
-  if (has_local_quantum_errors()) {
-    for (auto& outer_pair : local_quantum_error_table_) {
-      // Get reference to the inner table we need to change the keys for
-      auto& inner_table = outer_pair.second;
-      // Make a temporary table to store remapped table
-      inner_table_t new_table;
-      for (const auto &inner_pair : inner_table) {
-        new_table[remap_string(inner_pair.first, full_mapping)] = inner_pair.second;
-      }
-      // Replace inner table with the remapped table
-      inner_table = new_table;
-    }
-  }
-
-  // Remap nonlocal quantum error
-  if (has_nonlocal_quantum_errors()) {
-    for (auto& pair : nonlocal_quantum_error_table_) {
-      // Get reference to the middle table we need to change the keys for
-      auto& outer_table = pair.second;
-      // Make a temporary table to store remapped outer table
-      outer_table_t new_outer_table;
-      for (auto& outer_pair : outer_table) {
-        // Remap inner table
-        auto& inner_table = outer_pair.second;
-        inner_table_t new_inner_table;
-        for (const auto &inner_pair : inner_table) {
-          new_inner_table[remap_string(inner_pair.first, full_mapping)] = inner_pair.second;
-        }
-        // Update outer table with remapped inner table
-        new_outer_table[remap_string(outer_pair.first, full_mapping)] = new_inner_table;
-      }
-      outer_table = new_outer_table;
-    }
-  }
-}
-
 
 //=========================================================================
 // JSON Conversion

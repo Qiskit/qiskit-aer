@@ -1436,9 +1436,8 @@ void Controller::run_circuit_helper(const Circuit &circ,
   result.metadata.add(circ.num_qubits, "num_qubits");
   result.metadata.add(circ.num_memory, "num_clbits");
   result.metadata.add(circ.qubits(), "active_input_qubits");
-  if (!circ.qubit_map().empty()) {
-    result.metadata.add(circ.qubit_map(), "input_qubit_map");
-  }
+  result.metadata.add(circ.qubit_map(), "input_qubit_map");
+  result.metadata.add(circ.remapped_qubits, "remapped_qubits");
 
   // Add measure sampling to metadata
   // Note: this will set to `true` if sampling is enabled for the circuit

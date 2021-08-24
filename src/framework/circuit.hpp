@@ -53,6 +53,7 @@ public:
   uint_t seed;
   json_t header;
   double global_phase_angle = 0;
+  bool remapped_qubits = false;      // True if qubits have been remapped
 
   // Constructor
   // The constructor automatically calculates the num_qubits, num_memory, num_registers
@@ -84,7 +85,7 @@ public:
   // Return the used registers for the circuit
   inline const auto& registers() const {return registerset_;}
 
-  // Return the used registers for the circuit
+  // Return the mapping of input op qubits to circuit qubits
   inline const auto& qubit_map() const {return qubitmap_;}
 
   //-----------------------------------------------------------------------
@@ -92,16 +93,12 @@ public:
   //-----------------------------------------------------------------------
 
   // Automatically set the number of qubits, memory, registers, and check
-  // for conditionals based on ops
-  void set_params();
-
-  // Automatically set the number of qubits, memory, registers, and check
   // for conditionals and measure sampling based on ops.
   // If `truncation = true` also perform truncation of
   // unnecessary qubits, remapping of remaining qubits, checking
   // of measure sampling optimization, and delay of measurements
   // to end of circuit
-  void optimized_set_params(bool truncation = false);
+  void set_params(bool truncation = false);
 
   // Set the circuit rng seed to random value
   inline void set_random_seed() {seed = std::random_device()();}
@@ -116,10 +113,6 @@ private:
   // Mapping from loaded op qubits to remapped truncated circuit qubits
   std::unordered_map<uint_t, uint_t> qubitmap_;
 
-  // True if qubitmap is trivial so circuit qubits are the same
-  // as original qubits
-  bool trivial_map_ = true;
-
   // Add type, qubit, memory, conditional metadata information from op
   void add_op_metadata(const Op& op);
 
@@ -131,7 +124,7 @@ private:
                              std::unordered_set<uint_t>& ancestor_qubits) const;
   
   // Helper function for optimized set params
-  void remap_qubits(Op& op, const std::unordered_map<uint_t, uint_t> &qubit_mapping) const;
+  void remap_qubits(Op& op) const;
 };
 
 
@@ -143,83 +136,14 @@ inline void from_json(const json_t& js, Circuit &circ) {circ = Circuit(js);}
 // Implementation: Circuit methods
 //============================================================================
 
-void Circuit::set_params() {
-
-  // Clear current containers
-  opset_ = Operations::OpSet();
-  qubitset_.clear();
-  memoryset_.clear();
-  registerset_.clear();
-  saveset_.clear();
-  can_sample = true;
-  first_measure_pos = 0;
-
-  // Check maximum qubit, and register size
-  // Memory size is loaded from qobj config
-  // Also check if measure sampling is in principle possible
-  bool first_measure = true;
-  size_t initialize_qubits = 0;
-  for (size_t i = 0; i < ops.size(); ++i) {
-    const auto &op = ops[i];
-    has_conditional |= op.conditional;
-    opset_.insert(op);
-    qubitset_.insert(op.qubits.begin(), op.qubits.end());
-    memoryset_.insert(op.memory.begin(), op.memory.end());
-    registerset_.insert(op.registers.begin(), op.registers.end());
-
-    // Check for duplicate save keys
-    if (Operations::SAVE_TYPES.find(op.type) != Operations::SAVE_TYPES.end()) {
-      auto pair = saveset_.insert(op.string_params[0]);
-      if (!pair.second) {
-        throw std::invalid_argument("Duplicate key \"" + op.string_params[0] +
-                                    "\" in save instruction.");
-      }
-    }
-
-    // Keep track of minimum width of any non-initial initialize instructions
-    if (i > 0 && op.type == OpType::initialize) {
-      initialize_qubits = (initialize_qubits == 0)
-        ? op.qubits.size()
-        : std::min(op.qubits.size(), initialize_qubits);
-    }
-
-    // Compute measure sampling check
-    if (can_sample) {
-      if (first_measure) {
-        if (op.type == OpType::measure || op.type == OpType::roerror) {
-          first_measure = false;
-        } else {
-          first_measure_pos++;
-        }
-      } else if(!(op.type == OpType::barrier ||
-                  op.type == OpType::measure ||
-                  op.type == OpType::roerror)) {
-        can_sample = false;
-      }
-    }
-  }
-
-  // Get required number of qubits, memory, registers from set maximums
-  // Since these are std::set containers the largest element is the
-  // Last element of the (non-empty) container. 
-  num_qubits = (qubitset_.empty()) ? 0 : 1 + *qubitset_.rbegin();
-  num_memory = (memoryset_.empty()) ? 0 : 1 + *memoryset_.rbegin();
-  num_registers = (registerset_.empty()) ? 0 : 1 + *registerset_.rbegin();
-
-  // Check that any non-initial initialize is defined on full width of qubits
-  if (initialize_qubits > 0 && initialize_qubits < num_qubits) {
-    can_sample_initialize = false;
-  }
-}
-
 Circuit::Circuit(const std::vector<Op> &_ops, bool truncation) : Circuit() {
   ops = _ops;
-  optimized_set_params(truncation);
+  set_params(truncation);
 }
 
 Circuit::Circuit(std::vector<Op> &&_ops, bool truncation) : Circuit() {
   ops = _ops;
-  optimized_set_params(truncation);
+  set_params(truncation);
 }
 
 template<typename inputdata_t>
@@ -257,7 +181,7 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool trunca
     converted_ops.emplace_back(Operations::input_to_op(the_op));
   }
   ops = std::move(converted_ops);
-  optimized_set_params(truncation);
+  set_params(truncation);
 
   // Check for specified memory slots
   uint_t memory_slots = 0;
@@ -325,7 +249,7 @@ void Circuit::add_op_metadata(const Op& op) {
 }
 
 
-void Circuit::optimized_set_params(bool truncation) {
+void Circuit::set_params(bool truncation) {
   // Clear current circuit metadata  
   reset_metadata();
   
@@ -365,30 +289,24 @@ void Circuit::optimized_set_params(bool truncation) {
   }
 
   // Set qubit size and check for truncaiton
-  trivial_map_ = true;
-  std::unordered_map<uint_t, uint_t> qubit_mapping;
-  std::unordered_map<uint_t, uint_t> inverse_qubit_mapping;
+  remapped_qubits = false;
   if (truncation) {
     // Generate mapping of original qubits to ancestor set
     uint_t idx = 0;
     for (const auto& qubit: qubitset_) {
-      if (trivial_map_ && idx != qubit) {
-        trivial_map_ = false;
+      if (!remapped_qubits && idx != qubit) {
+        // qubits will be remapped
+        remapped_qubits = true;
       }
-      qubit_mapping[qubit] = idx;
-      inverse_qubit_mapping[idx] = qubit;
+      qubitmap_[qubit] = idx;
       idx++;
-    }
-    // Set qubit map to original circuit qubits
-    if (!trivial_map_) {
-      qubitmap_ = std::move(inverse_qubit_mapping);
     }
   }
 
   // Set qubit and memory size
   num_memory = (memoryset_.empty()) ? 0 : 1 + *memoryset_.rbegin();
   num_registers = (registerset_.empty()) ? 0 : 1 + *registerset_.rbegin();
-  if (!trivial_map_) {
+  if (remapped_qubits) {
     num_qubits = qubitset_.size();
   } else {
     num_qubits = (qubitset_.empty()) ? 0 : 1 + *qubitset_.rbegin();
@@ -469,7 +387,9 @@ void Circuit::optimized_set_params(bool truncation) {
       // Skip if not ancestor
       continue;
     }
-    remap_qubits(ops[pos], qubit_mapping);
+    if (remapped_qubits) {
+      remap_qubits(ops[pos]);
+    }
     if (pos != op_idx) {
       ops[op_idx] = std::move(ops[pos]);
     }
@@ -487,7 +407,9 @@ void Circuit::optimized_set_params(bool truncation) {
         continue;
       }
       auto& op = ops[tpos];
-      remap_qubits(ops[tpos], qubit_mapping);
+      if (remapped_qubits) {
+        remap_qubits(ops[tpos]);
+      }
       if (tpos != op_idx) {
         ops[op_idx] = std::move(op);
       }
@@ -496,7 +418,9 @@ void Circuit::optimized_set_params(bool truncation) {
     // Now add remaining delayed measure ops
     first_measure_pos = op_idx;
     for (auto & op : tail_meas_ops) {
-      remap_qubits(op, qubit_mapping);
+      if (remapped_qubits) {
+        remap_qubits(op);
+      }
       ops[op_idx] = std::move(op);
       op_idx++;
     }
@@ -509,14 +433,12 @@ void Circuit::optimized_set_params(bool truncation) {
 }
 
 
-void Circuit::remap_qubits(Op& op, const std::unordered_map<uint_t, uint_t> &qubit_mapping) const {
-  if (!trivial_map_) {
-    reg_t new_qubits;
-    for (auto& qubit : op.qubits) {
-      new_qubits.push_back(qubit_mapping.at(qubit));
-    }
-    op.qubits = std::move(new_qubits);
+void Circuit::remap_qubits(Op& op) const {
+  reg_t new_qubits;
+  for (auto& qubit : op.qubits) {
+    new_qubits.push_back(qubitmap_.at(qubit));
   }
+  op.qubits = std::move(new_qubits);
 }
 
 
