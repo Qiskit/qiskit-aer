@@ -121,13 +121,13 @@ class TestNoiseInserter(QiskitAerTestCase):
         error_y = pauli_error([('X', 0.35), ('Z', 0.65)])
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error_x, 'x')
-        noise_model.add_all_qubit_quantum_error(error_y, 'u1')
+        noise_model.add_all_qubit_quantum_error(error_y, 'p')
 
         target_circuit = QuantumCircuit(qr)
         target_circuit.x(qr[0])
         target_circuit.append(error_x.to_instruction(), [qr[0]])
-        target_circuit.u3(pi, pi / 2, pi / 2, qr[1])
-        target_circuit.u1(pi, qr[2])
+        target_circuit.u(pi, pi / 2, pi / 2, qr[1])
+        target_circuit.p(pi, qr[2])
         target_circuit.append(error_y.to_instruction(), [qr[2]])
 
         result_circuit = insert_noise(circuit, noise_model, transpile=True)

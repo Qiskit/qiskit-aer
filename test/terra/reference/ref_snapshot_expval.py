@@ -251,11 +251,11 @@ def snapshot_expval_circuit_parameterized(single_shot=False,
     regs = (qr, cr)
 
     circuit = QuantumCircuit(*regs)
-    circuit.u3(0, 0, 0, 0)
-    circuit.u1(0, 0)
-    circuit.u3(0, 0, 0, 1)
-    circuit.cu3(0, 0, 0, 0, 1)
-    circuit.u3(0, 0, 0, 1)
+    circuit.u(0, 0, 0, 0)
+    circuit.p(0, 0)
+    circuit.u(0, 0, 0, 1)
+    circuit.cu(0, 0, 0, 0, 0, 1)
+    circuit.u(0, 0, 0, 1)
     circuit.i(0)
     if snapshot:
         for label, (params, qubits) in snapshot_expval_params(pauli=True).items():
