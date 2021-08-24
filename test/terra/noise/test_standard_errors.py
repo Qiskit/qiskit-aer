@@ -195,7 +195,6 @@ class TestNoise(common.QiskitAerTestCase):
         self.assertEqual(target_probs, [], msg="Incorrect probabilities")
         self.assertEqual(target_circs, [], msg="Incorrect circuits")
 
-    @unittest.skip("TODO: update test")
     def test_pauli_error_2q_unitary_from_pauli(self):
         """Test two-qubit pauli error as unitary qobj from Pauli obj"""
         paulis = [Pauli(s) for s in ['XY', 'YZ', 'ZX']]

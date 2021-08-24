@@ -21,6 +21,7 @@ from qiskit.circuit import QuantumCircuit, Reset
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.exceptions import QiskitError
 from qiskit.extensions import UnitaryGate
+from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.channel import Choi, Kraus
 from qiskit.quantum_info.operators.pauli import Pauli
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
@@ -203,7 +204,7 @@ def pauli_error(noise_ops, standard_gates=True):
             '"standard_gates" option has been deprecated as of qiskit-aer 0.9.0'
             ' and will be removed no earlier than 3 months from that release date.',
             DeprecationWarning, stacklevel=2)
-        paulis = [UnitaryGate(pauli.to_matrix()) for pauli in paulis]
+        paulis = [Operator(pauli).to_instruction() for pauli in paulis]
 
     return QuantumError(zip(paulis, probs))
 
