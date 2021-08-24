@@ -37,7 +37,7 @@ DISABLE_WARNING_POP
 #include <sstream>
 #include <stdexcept>
 
-#define AER_DEFAULT_MATRIX_BITS   6
+#define AER_DEFAULT_MATRIX_BITS   5
 
 #define AER_CHUNK_BITS        21
 #define AER_MAX_BUFFERS       4
@@ -431,7 +431,14 @@ class strided_range
     __host__ __device__
     difference_type operator()(const difference_type& i) const
     {
-      return stride * i;
+      if(stride == 1) //statevector
+        return i;
+
+      //density matrix
+      difference_type i_chunk;
+      i_chunk = i / (stride - 1);
+      difference_type ret = stride * i - i_chunk*(stride-1);
+      return ret;
     }
   };
 
@@ -453,7 +460,11 @@ class strided_range
 
   iterator end(void) const
   {
-    return begin() + ((last - first) + (stride - 1)) / stride;
+    if(stride == 1) //statevector
+      return begin() + (last - first);
+
+    //density matrix
+    return begin() + (last - first) / (stride-1);
   }
   
   protected:
@@ -517,6 +528,7 @@ protected:
   uint_t bfunc_mask_;
   uint_t bfunc_target_;
   Operations::RegComparison bfunc_;
+  uint_t matrix_bits_;                //max matrix bits
 public:
   ChunkContainer()
   {
@@ -527,6 +539,7 @@ public:
     num_chunk_mapped_ = 0;
     enable_omp_ = false;
     bfunc_ = Operations::RegComparison::Nop;
+    matrix_bits_ = AER_DEFAULT_MATRIX_BITS;
   }
   virtual ~ChunkContainer(){}
 
@@ -562,6 +575,10 @@ public:
   {
     enable_omp_ = flg;
   }
+  uint_t matrix_bits(void)
+  {
+    return matrix_bits_;
+  }
 
   virtual void set_device(void) const
   {
@@ -594,7 +611,7 @@ public:
 
   virtual thrust::complex<data_t>& operator[](uint_t i) = 0;
 
-  virtual uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,bool multi_shots = false) = 0;
+  virtual uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,bool multi_shots = false,int matrix_bit = AER_DEFAULT_MATRIX_BITS) = 0;
   virtual void Deallocate(void) = 0;
   virtual uint_t Resize(uint_t chunks,uint_t buffers = AER_MAX_BUFFERS) = 0;
 
@@ -606,6 +623,7 @@ public:
   virtual void StoreMatrix(const std::complex<double>* mat,uint_t iChunk,uint_t size) = 0;
   virtual void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk) = 0;
   virtual void StoreBatchedParams(const std::vector<batched_matrix_params>& params) = 0;
+  virtual void ResizeMatrixBuffers(int bits) = 0;
 
   virtual void CopyIn(Chunk<data_t>& src,uint_t iChunk) = 0;
   virtual void CopyOut(Chunk<data_t>& dest,uint_t iChunk) = 0;
@@ -680,18 +698,6 @@ public:
   {
     ;
   }
-
-  //CUDA graph
-  virtual void begin_capture(uint_t iChunk) const
-  {
-    ;
-  }
-  virtual void end_capture(uint_t iChunk) const
-  {
-    ;
-  }
-  virtual void begin_add_graph_node(uint_t iChunk){}
-  virtual void end_add_graph_node(uint_t iChunk){}
 
   virtual double* reduce_buffer(uint_t iChunk) const
   {

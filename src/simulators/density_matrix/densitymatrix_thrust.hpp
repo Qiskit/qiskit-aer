@@ -57,6 +57,7 @@ public:
 #else
   static std::string name() {return "density_matrix_thrust";}
 #endif
+  virtual bool is_density_matrix(void) {return true;}
 
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
@@ -416,17 +417,6 @@ void DensityMatrixThrust<data_t>::apply_diagonal_unitary_matrix(const reg_t &qub
 #ifdef AER_DEBUG
   BaseVector::DebugMsg(" density::apply_diagonal_unitary_matrix",qubits);
 #endif
-
-  /*
-  if(qubits.size() == 1){
-    const reg_t qubits_sp = {{qubits[0], qubits[0] + num_qubits()}};
-    BaseVector::apply_function(DensityDiagMatMult2x2<data_t>(diag,qubits[0], num_qubits()));
-  }
-  else{
-    // Apply as single 2N-qubit matrix mult.
-    apply_diagonal_superop_matrix(qubits, AER::Utils::tensor_product(AER::Utils::conjugate(diag), diag));
-  }
-  */
 }
 
 //-----------------------------------------------------------------------
@@ -856,12 +846,12 @@ public:
 
   __host__ __device__ virtual uint_t thread_to_index(uint_t _tid) const
   {
-    uint_t istate = _tid >> (num_qubits_state_*2);
+    uint_t istate = _tid >> this->chunk_bits_;
     uint_t qubit = this->batched_params_[istate].qubit_;
     uint_t idx,i0,i1,i2,lid;
 
-    lid = _tid - (istate << (num_qubits_state_*2));
-    idx = this->batched_params_[istate].state_index_ << (num_qubits_state_*2);
+    lid = _tid - (istate << this->chunk_bits_);
+    idx = this->batched_params_[istate].state_index_ << this->chunk_bits_;
 
     i0 = (lid >> 2) & ((1ull << qubit) - 1);
     i2 = ((lid >> 2) - i0) << 1;
@@ -881,8 +871,8 @@ public:
 
   __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
   {
-    uint_t istate = _tid >> (num_qubits_state_*2);
-    uint_t cmask = this->batched_params_[istate].control_mask_;
+    uint_t istate = _tid >> this->chunk_bits_;
+    uint_t cmask;
 
     uint_t j;
     thrust::complex<data_t> q,r;
@@ -892,36 +882,67 @@ public:
     thrust::complex<double>* pMat;
 
     vec = this->data_;
-    pMat = (thrust::complex<double>*)this->batched_params_[istate].matrix2x2_;
 
-    if((_idx & cmask) == cmask){  //control bits
-      irow = _tid & 1;
+    if(this->batched_params_[istate].super_op_){
+      pMat = this->matrix_ + this->batched_params_[istate].offset_matrix_;
+      irow = _tid & 3;
 
       m = pMat[irow];
       q = _cache[(_tid & 1023) - irow];
       r = m*q;
-      m = pMat[irow+2];
+      m = pMat[irow+4];
       q = _cache[(_tid & 1023) - irow+1];
       r += m*q;
-
-      this->sync_threads();
-      _cache[(_tid & 1023)] = r;
-      this->sync_threads();
-
-      irow = (_tid >> 1) & 1;
-
-      m = thrust::conj(pMat[irow]);
-      q = _cache[(_tid & 1023) - (irow << 1)];
-      r = m*q;
-      m = thrust::conj(pMat[irow+2]);
-      q = _cache[(_tid & 1023) - (irow << 1) + 2];
+      m = pMat[irow+8];
+      q = _cache[(_tid & 1023) - irow+2];
       r += m*q;
+      m = pMat[irow+12];
+      q = _cache[(_tid & 1023) - irow+3];
+      r += m*q;
+
+      this->sync_threads();
+      this->sync_threads();
 
       vec[_idx] = r;
     }
     else{
-      this->sync_threads();
-      this->sync_threads();
+      cmask = this->batched_params_[istate].control_mask_;
+      if((_idx & cmask) == cmask){  //control bits
+        pMat = (thrust::complex<double>*)this->batched_params_[istate].matrix2x2_;
+        irow = _tid & 1;
+
+        m = pMat[irow];
+        q = _cache[(_tid & 1023) - irow];
+        r = m*q;
+        m = pMat[irow+2];
+        q = _cache[(_tid & 1023) - irow+1];
+        r += m*q;
+
+        this->sync_threads();
+        _cache[(_tid & 1023)] = r;
+        this->sync_threads();
+      }
+      else{
+        this->sync_threads();
+        this->sync_threads();
+      }
+
+      cmask <<= num_qubits_state_;    //shift mask bits to get super_op mask bits
+      if((_idx & cmask) == cmask){  //control bits
+        irow = (_tid >> 1) & 1;
+
+        m = thrust::conj(pMat[irow]);
+        q = _cache[(_tid & 1023) - (irow << 1)];
+        r = m*q;
+        m = thrust::conj(pMat[irow+2]);
+        q = _cache[(_tid & 1023) - (irow << 1) + 2];
+        r += m*q;
+      }
+      else{
+        r = _cache[(_tid & 1023)];
+      }
+
+      vec[_idx] = r;
     }
   }
 
@@ -945,7 +966,7 @@ public:
 
   __host__ __device__ virtual uint_t thread_to_index(uint_t _tid) const
   {
-    uint_t istate = _tid >> (num_qubits_state_*2);
+    uint_t istate = _tid >> this->chunk_bits_;
     uint_t nq = this->batched_params_[istate].num_qubits_;
     uint_t idx,ii,t,j,lid;
     uint_t* qubits;
@@ -960,8 +981,8 @@ public:
       qubits_sorted = qubits + nq;
     }
 
-    lid = _tid - (istate << (num_qubits_state_*2));
-    idx = this->batched_params_[istate].state_index_ << (num_qubits_state_*2);
+    lid = _tid - (istate << this->chunk_bits_);
+    idx = this->batched_params_[istate].state_index_ << this->chunk_bits_;
     ii = lid >> (nq*2);
     for(j=0;j<nq;j++){
       t = ii & ((1ull << qubits_sorted[j]) - 1);
@@ -977,7 +998,7 @@ public:
       idx += t;
       ii = (ii - t) << 1;
 
-      if(((lid >> j) & 1) != 0){
+      if(((lid >> (j+nq)) & 1) != 0){
         idx += (1ull << (qubits[j] + num_qubits_state_));
       }
     }
@@ -987,9 +1008,9 @@ public:
 
   __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
   {
-    uint_t istate = _tid >> (num_qubits_state_*2);
+    uint_t istate = _tid >> this->chunk_bits_;
     uint_t nq = this->batched_params_[istate].num_qubits_;
-    uint_t cmask = this->batched_params_[istate].control_mask_;
+    uint_t cmask;
 
     uint_t j;
     thrust::complex<data_t> q,r;
@@ -999,11 +1020,156 @@ public:
     thrust::complex<double>* pMat;
 
     vec = this->data_;
-    if(nq == 1)
+
+    if(this->batched_params_[istate].super_op_){
+      pMat = this->matrix_ + this->batched_params_[istate].offset_matrix_;
+
+      mat_size = 1ull << (nq*2);
+
+      irow = _tid & (mat_size - 1);
+
+      r = 0.0;
+      for(j=0;j<mat_size;j++){
+        m = pMat[irow + mat_size*j];
+        q = _cache[(_tid & 1023) - irow + j];
+
+        r += m*q;
+      }
+      this->sync_threads();
+      this->sync_threads();
+      vec[_idx] = r;
+    }
+    else{
+      if(nq == 1)
+        pMat = (thrust::complex<double>*)this->batched_params_[istate].matrix2x2_;
+      else
+        pMat = this->matrix_ + this->batched_params_[istate].offset_matrix_;
+
+      cmask = this->batched_params_[istate].control_mask_;
+      if((_idx & cmask) == cmask){  //control bits
+        mat_size = 1ull << nq;
+
+        irow = _tid & (mat_size - 1);
+
+        r = 0.0;
+        for(j=0;j<mat_size;j++){
+          m = pMat[irow + mat_size*j];
+          q = _cache[(_tid & 1023) - irow + j];
+
+          r += m*q;
+        }
+        this->sync_threads();
+        _cache[(_tid & 1023)] = r;
+      }
+      else{
+        this->sync_threads();
+      }
+      this->sync_threads();
+
+      cmask <<= num_qubits_state_;    //shift mask bits to get super_op mask bits
+      if((_idx & cmask) == cmask){  //control bits
+        irow = (_tid >> nq) & (mat_size - 1);
+
+        r = 0.0;
+        for(j=0;j<mat_size;j++){
+          m = thrust::conj(pMat[irow + mat_size*j]);
+          q = _cache[(_tid & 1023) - (irow << nq) + (j << nq)];
+
+          r += m*q;
+        }
+      }
+      else{
+        r = _cache[(_tid & 1023)];
+      }
+      vec[_idx] = r;
+    }
+  }
+
+  const char* name(void)
+  {
+    return "density_multNxN_batched";
+  }
+
+};
+
+  /*
+template <typename data_t>
+class DensityMatrixMultNxN_batched : public GateFuncWithCache<data_t>
+{
+protected:
+  int num_qubits_state_;
+public:
+  DensityMatrixMultNxN_batched(int nqs) : GateFuncWithCache<data_t>(1)
+  {
+    num_qubits_state_ = nqs;
+  }
+
+  __host__ __device__ virtual uint_t thread_to_index(uint_t _tid) const
+  {
+    uint_t istate = _tid >> this->chunk_bits_;
+    uint_t nq = this->batched_params_[istate].num_qubits_;
+    uint_t idx,ii,t,j,lid;
+    uint_t* qubits;
+    uint_t* qubits_sorted;
+
+    if(nq == 1){
+      qubits = &this->batched_params_[istate].qubit_;
+      qubits_sorted = qubits;
+    }
+    else{
+      qubits = this->params_ + this->batched_params_[istate].offset_qubits_;
+      qubits_sorted = qubits + nq;
+    }
+
+    lid = _tid - (istate << this->chunk_bits_);
+    idx = this->batched_params_[istate].state_index_ << this->chunk_bits_;
+    ii = lid >> nq;
+    if(this->batched_params_[istate].super_op_)
+      ii >>= nq;
+    for(j=0;j<nq;j++){
+      t = ii & ((1ull << qubits_sorted[j]) - 1);
+      idx += t;
+      ii = (ii - t) << 1;
+
+      if(((lid >> j) & 1) != 0){
+        idx += (1ull << qubits[j]);
+      }
+    }
+    if(this->batched_params_[istate].super_op_){
+      for(j=0;j<nq;j++){
+        t = ii & ((1ull << (qubits_sorted[j] + num_qubits_state_)) - 1);
+        idx += t;
+        ii = (ii - t) << 1;
+
+        if(((lid >> (j+nq)) & 1) != 0){
+          idx += (1ull << (qubits[j] + num_qubits_state_));
+        }
+      }
+    }
+    idx += ii;
+    return idx;
+  }
+
+  __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
+  {
+    uint_t istate = _tid >> this->chunk_bits_;
+    uint_t nq = this->batched_params_[istate].num_qubits_;
+    uint_t cmask;
+
+    uint_t j;
+    thrust::complex<data_t> q,r;
+    thrust::complex<double> m;
+    uint_t mat_size,irow;
+    thrust::complex<data_t>* vec;
+    thrust::complex<double>* pMat;
+
+    vec = this->data_;
+    if(nq == 1 && !this->batched_params_[istate].super_op_)
       pMat = (thrust::complex<double>*)this->batched_params_[istate].matrix2x2_;
     else
       pMat = this->matrix_ + this->batched_params_[istate].offset_matrix_;
 
+    cmask = this->batched_params_[istate].control_mask_;
     if((_idx & cmask) == cmask){  //control bits
       mat_size = 1ull << nq;
       if(this->batched_params_[istate].super_op_)
@@ -1018,27 +1184,7 @@ public:
 
         r += m*q;
       }
-
-      if(!this->batched_params_[istate].super_op_){
-        this->sync_threads();
-        _cache[(_tid & 1023)] = r;
-        this->sync_threads();
-
-        irow = (_tid >> nq) & (mat_size - 1);
-
-        r = 0.0;
-        for(j=0;j<mat_size;j++){
-          m = thrust::conj(pMat[irow + mat_size*j]);
-          q = _cache[(_tid & 1023) - ((irow + j) << nq)];
-
-          r += m*q;
-        }
-      }
       vec[_idx] = r;
-    }
-    else if(!this->batched_params_[istate].super_op_){
-      this->sync_threads();
-      this->sync_threads();
     }
   }
 
@@ -1050,33 +1196,134 @@ public:
 };
 
 template <typename data_t>
+class DensityMatrixMultNxN_sp_batched : public GateFuncWithCache<data_t>
+{
+protected:
+  int num_qubits_state_;
+public:
+  DensityMatrixMultNxN_sp_batched(int nqs) : GateFuncWithCache<data_t>(1)
+  {
+    num_qubits_state_ = nqs;
+  }
+
+  __host__ __device__ virtual uint_t thread_to_index(uint_t _tid) const
+  {
+    uint_t istate = _tid >> this->chunk_bits_;
+    uint_t nq = this->batched_params_[istate].num_qubits_;
+    uint_t idx,ii,t,j,lid;
+    uint_t* qubits;
+    uint_t* qubits_sorted;
+
+    if(nq == 1){
+      qubits = &this->batched_params_[istate].qubit_;
+      qubits_sorted = qubits;
+    }
+    else{
+      qubits = this->params_ + this->batched_params_[istate].offset_qubits_;
+      qubits_sorted = qubits + nq;
+    }
+
+    lid = _tid - (istate << this->chunk_bits_);
+    idx = this->batched_params_[istate].state_index_ << this->chunk_bits_;
+    ii = lid >> (nq);
+    for(j=0;j<nq;j++){
+      t = ii & ((1ull << (qubits_sorted[j] + num_qubits_state_)) - 1);
+      idx += t;
+      ii = (ii - t) << 1;
+
+      if(((lid >> (j)) & 1) != 0){
+        idx += (1ull << (qubits[j] + num_qubits_state_));
+      }
+    }
+    idx += ii;
+    return idx;
+  }
+
+  __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
+  {
+    uint_t istate = _tid >> this->chunk_bits_;
+    uint_t nq = this->batched_params_[istate].num_qubits_;
+    uint_t cmask;
+
+    if(!this->batched_params_[istate].super_op_){
+      uint_t j;
+      thrust::complex<data_t> q,r;
+      thrust::complex<double> m;
+      uint_t mat_size,irow;
+      thrust::complex<data_t>* vec;
+      thrust::complex<double>* pMat;
+
+      vec = this->data_;
+      if(nq == 1)
+        pMat = (thrust::complex<double>*)this->batched_params_[istate].matrix2x2_;
+      else
+        pMat = this->matrix_ + this->batched_params_[istate].offset_matrix_;
+
+      cmask = this->batched_params_[istate].control_mask_ << num_qubits_state_;    //shift mask bits to get super_op mask bits
+      if((_idx & cmask) == cmask){  //control bits
+        mat_size = 1ull << nq;
+
+        irow = _tid & (mat_size - 1);
+
+        r = 0.0;
+        for(j=0;j<mat_size;j++){
+          m = thrust::conj(pMat[irow + mat_size*j]);
+          q = _cache[(_tid & 1023) - irow + j];
+
+          r += m*q;
+        }
+        vec[_idx] = r;
+      }
+    }
+  }
+
+  const char* name(void)
+  {
+    return "density_multNxN_batched";
+  }
+
+};
+*/
+
+template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_batched_matrix(std::vector<batched_matrix_params>& params,reg_t& qubits,std::vector<std::complex<double>>& matrices)
 {
-  if(BaseVector::enable_batch_ && BaseVector::chunk_.pos() != 0)
-    return;   //first chunk execute all in batch
 
-  if(qubits.size() == 0){ //batched 2x2 matrix 
-    BaseVector::chunk_.StoreBatchedParams(params);
+  if((BaseVector::multi_chunk_distribution_ && BaseVector::chunk_.device() >= 0) || BaseVector::enable_batch_){
+    if(BaseVector::chunk_.pos() == 0){
+      uint_t n = params.size();
+      if(n > BaseVector::chunk_.container()->num_chunks())
+        n = BaseVector::chunk_.container()->num_chunks();
 
-    BaseVector::chunk_.Execute(DensityMatrixMult2x2_batched<data_t>(BaseVector::num_qubits_), params.size() );
+      if(qubits.size() == 0){ //batched 2x2 matrix 
+        if(matrices.size() > 0)
+          BaseVector::chunk_.StoreBatchedMatrix(matrices);
+        BaseVector::chunk_.StoreBatchedParams(params);
 
-#ifdef AER_DEBUG
-	BaseVector::DebugMsg(" density::apply_batched_2x2matrix");
-#endif
-  }
-  else{   //batched NxN matrix
-    if(qubits.size() > 0)
-      BaseVector::chunk_.StoreUintParams(qubits);
-    if(matrices.size() > 0)
-      BaseVector::chunk_.StoreBatchedMatrix(matrices);
-    BaseVector::chunk_.StoreBatchedParams(params);
-
-    BaseVector::chunk_.Execute(DensityMatrixMultNxN_batched<data_t>(BaseVector::num_qubits_), params.size() );
+        BaseVector::chunk_.Execute(DensityMatrixMult2x2_batched<data_t>(num_qubits()), n );
 
 #ifdef AER_DEBUG
-	BaseVector::DebugMsg(" density::apply_batched_NxNmatrix");
+        BaseVector::DebugMsg(" density::apply_batched_2x2matrix");
+        BaseVector::DebugDump();
 #endif
+      }
+      else{   //batched NxN matrix
+        BaseVector::chunk_.StoreUintParams(qubits);
+        if(matrices.size() > 0)
+          BaseVector::chunk_.StoreBatchedMatrix(matrices);
+        BaseVector::chunk_.StoreBatchedParams(params);
+
+        BaseVector::chunk_.Execute(DensityMatrixMultNxN_batched<data_t>(num_qubits()), n );
+//        BaseVector::chunk_.Execute(DensityMatrixMultNxN_sp_batched<data_t>(num_qubits()), n );
+
+#ifdef AER_DEBUG
+        BaseVector::DebugMsg(" density::apply_batched_NxNmatrix");
+        BaseVector::DebugDump();
+#endif
+      }
+    }
   }
+
 }
 
 //-----------------------------------------------------------------------
@@ -1391,16 +1638,21 @@ std::vector<double> DensityMatrixThrust<data_t>::probabilities(const reg_t &qubi
 template <typename data_t>
 reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnds) const 
 {
+  if(((BaseVector::multi_chunk_distribution_ && BaseVector::chunk_.device() >= 0) || BaseVector::enable_batch_) && BaseVector::chunk_.pos() != 0)
+    return reg_t();   //first chunk execute all in batch
+
   uint_t nrows = BaseMatrix::num_rows();
+  uint_t count = BaseVector::chunk_.container()->num_chunks();
+
 #ifdef AER_DEBUG
   reg_t samples;
 
-  samples = BaseVector::chunk_.sample_measure(rnds,nrows+1,false);
+  samples = BaseVector::chunk_.sample_measure(rnds,nrows+1,false,count);
 
   BaseVector::DebugMsg("sample_measure",samples);
   return samples;
 #else
-  return BaseVector::chunk_.sample_measure(rnds,nrows+1,false);
+  return BaseVector::chunk_.sample_measure(rnds,nrows+1,false,count);
 #endif
 }
 

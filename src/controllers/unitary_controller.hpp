@@ -328,7 +328,7 @@ void UnitaryController::run_circuit_helper(
       }
       // Set state config
       state.set_config(config);
-      state.set_parallalization(parallel_state_update_);
+      state.set_parallelization(parallel_state_update_);
       state.set_global_phase(circ.global_phase_angle);
 
       // Rng engine (this one is used to add noise on circuit)

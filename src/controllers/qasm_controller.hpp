@@ -555,7 +555,8 @@ void QasmController::run_circuit(const Circuit& circ,
         }
       }
 #endif
-      case Method::density_matrix_thrust_cpu:
+    }
+    case Method::density_matrix_thrust_cpu: {
 #ifndef AER_THRUST_CPU
         throw std::runtime_error(
             "QasmController: method density_matrix_thrust is not supported on "
@@ -600,19 +601,19 @@ void QasmController::run_circuit(const Circuit& circ,
       return run_circuit_helper<Stabilizer::State>(
           circ, noise, config, Clifford::Clifford(),
           Method::stabilizer, result);
-      case Method::extended_stabilizer:
+    }
+    case Method::extended_stabilizer: {
         return run_circuit_helper<ExtendedStabilizer::State>(
             circ, noise, config, CHSimulator::Runner(),
             Method::extended_stabilizer, result);
-
-      case Method::matrix_product_state:
+    }
+    case Method::matrix_product_state: {
         return run_circuit_helper<MatrixProductState::State>(
             circ, noise, config, MatrixProductState::MPS(),
             Method::matrix_product_state, result);
-
-      default:
-        throw std::runtime_error("QasmController:Invalid simulation method");
     }
+    default:
+      throw std::runtime_error("QasmController:Invalid simulation method");
   }
 }
 
@@ -1087,7 +1088,7 @@ void QasmController::run_circuit_without_sampled_noise(Circuit &circ,
   State_t state;
   // Set state config
   state.set_config(config);
-  state.set_parallalization(parallel_state_update_);
+  state.set_parallelization(parallel_state_update_);
   state.set_global_phase(circ.global_phase_angle);
 
   result.metadata.add(state.name(), "method");
@@ -1161,7 +1162,7 @@ void QasmController::run_circuit_without_sampled_noise(Circuit &circ,
         State_t par_state;
         // Set state config
         par_state.set_config(config);
-        par_state.set_parallalization(parallel_state_update_);
+        par_state.set_parallelization(parallel_state_update_);
         par_state.set_global_phase(circ.global_phase_angle);
 
         // allocate qubit register
@@ -1214,7 +1215,7 @@ void QasmController::run_circuit_with_sampled_noise(const Circuit& circ,
       State_t state;
       // Set state config
       state.set_config(config);
-      state.set_parallalization(parallel_state_update_);
+      state.set_parallelization(parallel_state_update_);
       state.set_global_phase(circ.global_phase_angle);
 
       par_results[i].metadata.add(state.name(), "method");
@@ -1262,7 +1263,7 @@ void QasmController::run_circuit_with_sampled_noise(const Circuit& circ,
     State_t state;
     // Set state config
     state.set_config(config);
-    state.set_parallalization(parallel_state_update_);
+    state.set_parallelization(parallel_state_update_);
     state.set_global_phase(circ.global_phase_angle);
 
     result.metadata.add(state.name(), "method");

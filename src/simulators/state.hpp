@@ -123,7 +123,9 @@ public:
 
   virtual void apply_batched_ops(const std::vector<Operations::Op> &ops){}
   virtual void enable_batch(bool flg){}
-  virtual bool batchable_op(const Operations::Op& op){return false;}
+  virtual bool batchable_op(const Operations::Op& op,bool single_op = true){return false;}
+
+  virtual bool top_of_group(){return true;}  //check if this register is on the top of group
 
   virtual void apply_batched_pauli(reg_t& params){}
 
@@ -288,7 +290,7 @@ public:
 
   // Sets the number of threads available to the State implementation
   // If negative there is no restriction on the backend
-  inline void set_parallalization(int n) {threads_ = n;}
+  inline void set_parallelization(int n) {threads_ = n;}
 
   // Set a complex global phase value exp(1j * theta) for the state
   void set_global_phase(const double &phase);
@@ -296,11 +298,6 @@ public:
   //set number of processes to be distributed
   void set_distribution(uint_t nprocs){}
 
-  //check if this register is on the top of array
-  virtual bool top_of_array()
-  {
-    return true;//qreg_.top_of_array();
-  }
 
 protected:
 

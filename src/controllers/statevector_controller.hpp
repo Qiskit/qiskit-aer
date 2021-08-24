@@ -343,7 +343,7 @@ void StatevectorController::run_circuit_helper(
 
       // Set state config
       state.set_config(config);
-      state.set_parallalization(parallel_state_update_);
+      state.set_parallelization(parallel_state_update_);
       state.set_global_phase(circ.global_phase_angle);
 
       int shots = circ.shots;

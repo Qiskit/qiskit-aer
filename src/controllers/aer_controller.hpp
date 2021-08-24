@@ -237,7 +237,7 @@ protected:
 
   template <class State_t>
   void batched_measure_sampler(const std::vector<std::vector<Operations::Op>> &meas_ops,
-                       reg_t& shots, State_t &state, Result &result,uint_t result_offset,
+                       reg_t& shots, State_t &state, Result &result,
                        std::vector<RngEngine> &rng) const;
 
   // Check if measure sampling optimization is valid for the input circuit
@@ -353,6 +353,9 @@ protected:
   int parallel_state_update_;
 
   bool parallel_nested_ = false;
+
+  //max number of states can be stored on memory for batched multi-shots/experiments optimization
+  int max_batched_states_;
 
   // max number of qubits in given circuits
   int max_qubits_;
@@ -526,6 +529,7 @@ void Controller::clear_parallelization() {
   max_parallel_threads_ = 0;
   max_parallel_experiments_ = 1;
   max_parallel_shots_ = 0;
+  max_batched_states_ = 1;
 
   parallel_experiments_ = 1;
   parallel_shots_ = 1;
@@ -870,13 +874,24 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     }
 
     // get max qubits for this process (to allocate qubit register at once)
+    int i_max_circ = 0;
     max_qubits_ = 0;
     for (size_t j = 0; j < circuits.size(); j++) {
       if (circuits[j].num_qubits > max_qubits_) {
         max_qubits_ = circuits[j].num_qubits;
+        i_max_circ = j;
       }
     }
     num_process_per_experiment_ = num_processes_;
+
+    //set max batched states
+    uint_t max_required = required_memory_mb(circuits[i_max_circ], circ_noise_models[i_max_circ]);
+    if(sim_device_ == Device::GPU){
+      max_batched_states_ = ((max_gpu_memory_mb_/num_gpus_*8/10) / max_required)*num_gpus_;
+    }
+    else{
+      max_batched_states_ = (max_memory_mb_*8/10) / max_required;
+    }
 
     if (!explicit_parallelization_) {
       // set parallelization for experiments
@@ -1647,7 +1662,7 @@ void Controller::run_circuits_helper(const std::vector<Circuit> &circs,
       }
       // General circuit noise sampling
       else {
-        if(sim_device_ == Device::GPU){
+        if(sim_device_ == Device::GPU && max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
           //for GPU noise sampling is done at runtime
           opt_circ = noises[i_circ].sample_noise(circs[i_circ], rng, true);
           opt_circ.can_sample = false;
@@ -1723,82 +1738,80 @@ void Controller::run_batched_circuits_helper(const std::vector<Circuit> &circs,
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
   try {
+    State_t state;
     Multi::States<State_t> states;
 
-    int_t i_circ,num_parallel_circs = circs.size();
+    int_t i_circ;
 
-    //loop for batch execution in available memory space 
-    for(i_circ=0;i_circ<circs.size();i_circ+=num_parallel_circs){
-      int_t num_circs = num_parallel_circs;
-      if(i_circ + num_circs > circs.size())
-        num_circs = circs.size() - i_circ;
+    std::vector<RngEngine> rng(circs.size());
+    std::vector<std::vector<Operations::Op>> ops(circs.size());
+    std::vector<std::vector<Operations::Op>> meas_roerror_ops(circs.size());
+    std::vector<double> global_phase(circs.size());
 
-      std::vector<RngEngine> rng(num_circs);
-      std::vector<std::vector<Operations::Op>> ops(num_circs);
-      std::vector<std::vector<Operations::Op>> meas_roerror_ops(num_circs);
+    states.set_parallelization(max_batched_states_);
+    states.allocate(max_qubits_, max_qubits_,circs.size());
+    states.set_config(config);
 
-      states.allocate(max_qubits_, max_qubits_,num_circs);
-      states.set_config(config);
+#pragma omp parallel for if(circs.size() > 1)
+    for (i_circ=0;i_circ< circs.size(); i_circ++) {
+      rng[i_circ].set_seed(circs[i_circ].seed);
 
-#pragma omp parallel for 
-      for (int j = 0; j < num_circs; ++j) {
-        rng[j].set_seed(circs[i_circ + j].seed);
+      Circuit circ;
 
-        Circuit circ;
-
-        // Ideal circuit
-        if (noises[i_circ + j].is_ideal()) {
-          circ = circs[i_circ + j];
-        }
-        // Readout error only
-        else if (noises[i_circ + j].has_quantum_errors() == false) {
-          circ = noises[i_circ + j].sample_noise(circs[i_circ + j], rng[j]);
-        }
-        // Superop noise sampling
-        else if (method == Method::density_matrix || method == Method::superop) {
-          // Sample noise using SuperOp method
-          auto noise_superop = noises[i_circ + j];
-          noise_superop.activate_superop_method();
-          circ = noise_superop.sample_noise(circs[i_circ + j], rng[j]);
-        }
-
-        Noise::NoiseModel dummy_noise;
-        Transpile::DelayMeasure measure_pass;
-        measure_pass.set_config(config);
-        measure_pass.optimize_circuit(circ, dummy_noise, states.opset(), result.results[i_circ + j]);
-
-        auto fusion_pass = transpile_fusion(method, circ.opset(), config);
-        fusion_pass.optimize_circuit(circ, dummy_noise, states.opset(), result.results[i_circ + j]);
-
-        auto pos =circ.first_measure_pos; // Position of first measurement op
-        auto it_pos = std::next(circ.ops.begin(), pos);
-        bool final_ops = (pos == circ.ops.size());
-
-        // Get measurement opts
-        std::move(it_pos, circ.ops.end(), std::back_inserter(meas_roerror_ops[j]));
-        circ.ops.resize(pos);
-
-        ops[j] = circ.ops;
-
-        states.state(i_circ + j).set_global_phase(circs[i_circ + j].global_phase_angle);
-        states.state(i_circ + j).initialize_creg(circs[i_circ + j].num_memory, circs[i_circ + j].num_registers);
+      // Ideal circuit
+      if (noises[i_circ].is_ideal()) {
+        circ = circs[i_circ];
       }
-
-      states.initialize_qreg(max_qubits_);
-
-      states.apply_multi_ops(ops, result.results, rng, noises, true);
-
-      reg_t shots(num_circs);
-      for (int j = 0; j < num_circs; ++j) {
-        shots[j] = circs[i_circ + j].shots;
+      // Readout error only
+      else if (noises[i_circ].has_quantum_errors() == false) {
+        circ = noises[i_circ].sample_noise(circs[i_circ], rng[i_circ]);
       }
-      batched_measure_sampler(meas_roerror_ops,shots,states,result,i_circ,rng);
-
-      // Add measure sampling metadata
-      for (int j = 0; j < num_circs; ++j){
-        result.results[i_circ + j].metadata.add(true, "measure_sampling");
-        states.state(i_circ + j).add_metadata(result.results[i_circ + j]);
+      // Superop noise sampling
+      else if (method == Method::density_matrix || method == Method::superop) {
+        // Sample noise using SuperOp method
+        auto noise_superop = noises[i_circ];
+        noise_superop.activate_superop_method();
+        circ = noise_superop.sample_noise(circs[i_circ], rng[i_circ]);
       }
+      else{
+        circ = circs[i_circ];
+      }
+      Noise::NoiseModel dummy_noise;
+      Transpile::DelayMeasure measure_pass;
+      measure_pass.set_config(config);
+      measure_pass.optimize_circuit(circ, dummy_noise, state.opset(), result.results[i_circ]);
+
+      auto fusion_pass = transpile_fusion(method, circ.opset(), config);
+      fusion_pass.optimize_circuit(circ, dummy_noise, state.opset(), result.results[i_circ]);
+
+      auto pos =circ.first_measure_pos; // Position of first measurement op
+      auto it_pos = std::next(circ.ops.begin(), pos);
+      bool final_ops = (pos == circ.ops.size());
+
+      // Get measurement opts
+      std::move(it_pos, circ.ops.end(), std::back_inserter(meas_roerror_ops[i_circ]));
+      circ.ops.resize(pos);
+
+      ops[i_circ] = circ.ops;
+
+      global_phase[i_circ] = circs[i_circ].global_phase_angle;
+      states.creg(i_circ).initialize(circs[i_circ].num_memory, circs[i_circ].num_registers);
+    }
+    states.set_global_phase(global_phase);
+
+    reg_t shots(circs.size());
+    for (i_circ = 0; i_circ < circs.size(); ++i_circ) {
+      shots[i_circ] = circs[i_circ].shots;
+    }
+
+    states.apply_multi_ops(ops, shots, result.results, rng, noises, true);
+
+    batched_measure_sampler(meas_roerror_ops,shots,states,result,rng);
+
+    // Add measure sampling metadata
+    for (i_circ = 0; i_circ < circs.size(); ++i_circ){
+      result.results[i_circ].metadata.add(true, "measure_sampling");
+      states.state(i_circ).add_metadata(result.results[i_circ]);
     }
   }
   // If an exception occurs during execution, catch it and pass it to the output
@@ -1852,7 +1865,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   State_t state;
   // Set state config
   state.set_config(config);
-  state.set_parallalization(parallel_state_update_);
+  state.set_parallelization(parallel_state_update_);
   state.set_global_phase(circ.global_phase_angle);
 
   // Optimize circuit
@@ -1912,26 +1925,22 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
 
-    if(sim_device_ == Device::GPU && !cache_blocking){
+    if(sim_device_ == Device::GPU && !cache_blocking && max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
       //apply batched multi-shots optimization on GPU
       Multi::States<State_t> states;
-      std::vector<RngEngine> rng(shots);
 
-      uint_t ishot;
-      for(ishot=0;ishot<shots;ishot++){
-        rng[ishot].set_seed(rng_seed + ishot);
-      }
+      states.set_parallelization(max_batched_states_);
 
       states.allocate(max_qubits_, max_qubits_,shots);
+
       states.set_config(config);
       states.set_global_phase(circ.global_phase_angle);
 
-      states.initialize_qreg(circ.num_qubits);
       states.initialize_creg(circ.num_memory, circ.num_registers);
 
-      states.apply_single_ops(circ.ops, result, rng, noise, true);
+      states.apply_single_ops(circ.ops, result, rng_seed, noise, true);
 
-      for(ishot=0;ishot<shots;ishot++){
+      for(uint_t ishot=0;ishot<shots;ishot++){
         save_count_data(result, states.creg(ishot));
       }
     }
@@ -1948,7 +1957,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
         State_t par_state;
         // Set state config
         par_state.set_config(config);
-        par_state.set_parallalization(parallel_state_update_);
+        par_state.set_parallelization(parallel_state_update_);
         par_state.set_global_phase(circ.global_phase_angle);
 
         // allocate qubit register
@@ -1994,7 +2003,7 @@ void Controller::run_circuit_with_sampled_noise(
     State_t state;
     // Set state config
     state.set_config(config);
-    state.set_parallalization(parallel_state_update_);
+    state.set_parallelization(parallel_state_update_);
     state.set_global_phase(circ.global_phase_angle);
 
     for(;i_shot<shot_end;i_shot++){
@@ -2155,15 +2164,11 @@ void Controller::measure_sampler(
 
 template <class State_t>
 void Controller::batched_measure_sampler(const std::vector<std::vector<Operations::Op>> &meas_roerror_ops,
-                     reg_t& shots, State_t &state, Result &result,uint_t result_offset,
+                     reg_t& shots, State_t &state, Result &result,
                      std::vector<RngEngine> &rng) const
 {
-  reg_t qubits(state.num_qubits());
   reg_t shot_offset(shots.size());
   uint_t offset;
-
-  for(int_t i=0;i<qubits.size();i++)
-    qubits[i] = i;
 
   offset = 0;
   for(int_t i=0;i<shots.size();i++){
@@ -2172,7 +2177,7 @@ void Controller::batched_measure_sampler(const std::vector<std::vector<Operation
   }
 
   // Generate the samples
-  auto all_samples = state.batched_sample_measure(qubits, shots, rng);
+  auto all_samples = state.stored_sample_measure();
 
 #pragma omp parallel for
   for(int_t i=0;i<shots.size();i++){
@@ -2222,7 +2227,7 @@ void Controller::batched_measure_sampler(const std::vector<std::vector<Operation
       }
 
       // Save count data
-      save_count_data(result.results[result_offset + i], creg);
+      save_count_data(result.results[i], creg);
     }
   }
 }

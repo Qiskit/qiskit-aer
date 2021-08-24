@@ -79,12 +79,12 @@ public:
   const auto &qreg(uint_t idx=0) const { return states_[idx].qreg(); }
 
   // Return the state creg object
-  auto &creg(uint_t idx=0) { return states_[idx].creg(); }
-  const auto &creg(uint_t idx=0) const { return states_[idx].creg(); }
+  auto &creg(uint_t idx=0) { return cregs_[idx]; }
+  const auto &creg(uint_t idx=0) const { return cregs_[idx]; }
 
   // Return the state opset object
   auto &opset() { return states_[0].opset(); }
-  const auto &opset() const { return states_[0].opset(); }
+  const auto &opset() const { return state_t::opset(); }
 
   auto &state(uint_t idx = 0){ return states_[idx];}
 
@@ -128,13 +128,14 @@ public:
 
   virtual void apply_single_ops(const std::vector<Operations::Op> &ops,
                          ExperimentResult &result,
-                         std::vector<RngEngine>& rng,
+                         uint_t rng_seed,
                          const AER::Noise::NoiseModel &noise,
                          bool final_ops = false);
 
   virtual void apply_multi_ops(const std::vector<std::vector<Operations::Op>> &ops,
+                         reg_t& shots,
                          std::vector<ExperimentResult> &result,
-                         std::vector<RngEngine>& rng,
+                         std::vector<RngEngine> &rng,
                          const std::vector<AER::Noise::NoiseModel> &noise,
                          bool final_ops = false);
 
@@ -187,9 +188,10 @@ public:
                                             uint_t shots,
                                             RngEngine &rng);
 
-  virtual std::vector<reg_t> batched_sample_measure(const reg_t &qubits,
-                                            reg_t& shots,
-                                            std::vector<RngEngine> &rng);
+  std::vector<reg_t>& stored_sample_measure(void)
+  {
+    return samples_;
+  }
 
   //=======================================================================
   // Standard non-virtual methods
@@ -292,18 +294,26 @@ public:
   // OpenMP thread settings
   //-----------------------------------------------------------------------
 
-  // Sets the number of threads available to the State implementation
-  // If negative there is no restriction on the backend
-  inline void set_parallalization(int n) {threads_ = n;}
+  // Sets the number of states to be batched in parallel
+  inline void set_parallelization(int n) {parallel_states_ = n;}
 
   // Set a complex global phase value exp(1j * theta) for the state
   void set_global_phase(const double &phase);
+  void set_global_phase(const std::vector<double> &phase_angle);
 
   //set number of processes to be distributed
   void set_distribution(uint_t nprocs);
 
+
 protected:
+  // Classical register data (copy)
+  std::vector<ClassicalRegister> cregs_;
+
   std::string method_;
+  json_t config_;
+
+  // Save counts as memory list
+  bool save_creg_memory_ = false;
 
   // multiple states
   std::vector<state_t> states_;
@@ -320,33 +330,37 @@ protected:
   uint_t distributed_procs_;    //number of processes in communicator group
   uint_t distributed_group_;    //group id of distribution
 
-  bool thrust_optimization_;       //optimization for Thrust implementation
+  bool gpu_;                    //optimization for GPU
 
-  reg_t top_states_;
-  reg_t num_states_on_device_;
+  //group of states (GPU devices)
+  uint_t num_groups_;            //number of group of states
+  reg_t top_state_of_group_;
+  reg_t num_states_in_group_;
+
 
   virtual int qubit_scale(void)
   {
     return 1;     //scale of qubit number (x2 for density and unitary matrices)
   }
 
-  // Maximum threads which may be used by the backend for OpenMP multithreading
-  // Default value is single-threaded unless overridden
-  int threads_ = 1;
+  int_t parallel_states_;
 
   // Set a global phase exp(1j * theta) for the state
-  bool has_global_phase_ = false;
-  complex_t global_phase_ = 1;
+  std::vector<double> phase_angle_;
 
-#ifdef AER_MPI
-  //communicator group to simulate a circuit (for multi-experiments)
-  MPI_Comm distributed_comm_;
-#endif
+  //creg initialization
+  uint_t creg_num_memory_;
+  uint_t creg_num_register_;
+
+  //stored sampling resuls
+  std::vector<reg_t> samples_;
 
   void apply_runtime_error(int_t istate,const Operations::Op& op,
                           ExperimentResult &result,
                           std::vector<RngEngine>& rng,
                           const AER::Noise::NoiseModel &noise);
+
+  void allocate_states(uint_t n_states);
 };
 
 template <class state_t>
@@ -365,7 +379,7 @@ States<state_t>::States()
 
   num_local_states_ = 0;
 
-  thrust_optimization_ = false;
+  gpu_ = false;
 
 #ifdef AER_MPI
   distributed_comm_ = MPI_COMM_WORLD;
@@ -388,22 +402,14 @@ States<state_t>::~States(void)
 template <class state_t>
 void States<state_t>::set_global_phase(const double &phase_angle) 
 {
-  int_t i;
-
-  if (Linalg::almost_equal(phase_angle, 0.0)) {
-    has_global_phase_ = false;
-    global_phase_ = 1;
-  }
-  else {
-    has_global_phase_ = true;
-    global_phase_ = std::exp(complex_t(0.0, phase_angle));
-  }
-
-  for(i=0;i<num_local_states_;i++){
-    states_[i].set_global_phase(phase_angle);
-  }
+  phase_angle_.resize(1,phase_angle);
 }
 
+template <class state_t>
+void States<state_t>::set_global_phase(const std::vector<double> &phase_angle) 
+{
+  phase_angle_ = phase_angle;
+}
 
 template <class state_t>
 void States<state_t>::set_distribution(uint_t nprocs)
@@ -434,28 +440,61 @@ void States<state_t>::set_distribution(uint_t nprocs)
 }
 
 template <class state_t>
-void States<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_states)
+void States<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_states)
 {
   int_t i;
   uint_t n_states;
 
-  global_state_index_ = (num_parallel_states*(distributed_rank_) / distributed_procs_);
-  n_states = (num_parallel_states*(distributed_rank_+1) / distributed_procs_) - global_state_index_;
+  myrank_ = 0;
+  nprocs_ = 1;
+#ifdef AER_MPI
+  int t;
+  MPI_Comm_size(MPI_COMM_WORLD,&t);
+  nprocs_ = t;
+  MPI_Comm_rank(MPI_COMM_WORLD,&t);
+  myrank_ = t;
+#endif
 
-  //reuse allocated states if enough states are already allocated
-  if(num_qubits_ != num_qubits || n_states > num_local_states_){
+  global_state_index_ = (num_states*(myrank_) / nprocs_);
+  n_states = (num_states*(myrank_+1) / nprocs_) - global_state_index_;
+
+  num_qubits_ = num_qubits;
+  num_global_states_ = num_states;
+  num_local_states_ = n_states;
+
+  //copy of creg for all states
+  cregs_.resize(num_states);
+}
+
+template <class state_t>
+void States<state_t>::allocate_states(uint_t n_states)
+{
+  int_t i;
+  if(states_.size() != n_states){
     states_.resize(n_states);
 
-    states_[0].allocate(num_qubits,block_bits,n_states);
+    states_[0].allocate(num_qubits_,num_qubits_,n_states);
     for(i=1;i<n_states;i++){
-      states_[i].allocate(num_qubits,block_bits,0);
-      states_[i].bind_state(states_[0],global_state_index_+i,true);
+      states_[i].allocate(num_qubits_,num_qubits_,0);
+      states_[i].bind_state(states_[0],i,true);
     }
   }
 
-  num_qubits_ = num_qubits;
-  num_global_states_ = num_parallel_states;
-  num_local_states_ = n_states;
+  //initialize groups
+  num_groups_ = 0;
+  for(i=0;i<n_states;i++){
+    if(states_[i].top_of_group()){
+      top_state_of_group_.push_back(i);
+      num_groups_++;
+    }
+  }
+  top_state_of_group_.push_back(n_states);
+
+  num_states_in_group_.resize(num_groups_);
+
+  for(i=0;i<num_groups_;i++){
+    num_states_in_group_[i] = top_state_of_group_[i+1] - top_state_of_group_[i];
+  }
 }
 
 template <class state_t>
@@ -468,11 +507,12 @@ void States<state_t>::set_config(const json_t &config)
 {
   int_t i;
 
-  for(i=0;i<num_local_states_;i++){
-    states_[i].set_config(config);
-  }
+  config_ = config;
 
   JSON::get_value(method_, "method", config);
+
+  // Load config for memory (creg list data)
+  JSON::get_value(save_creg_memory_, "memory", config);
 }
 
 
@@ -511,185 +551,220 @@ size_t States<state_t>::required_memory_mb(uint_t num_qubits,
 template <class state_t>
 void States<state_t>::apply_single_ops(const std::vector<Operations::Op> &ops,
                          ExperimentResult &result,
-                         std::vector<RngEngine>& rng,
+                         uint_t rng_seed,
                          const Noise::NoiseModel &noise,
                          bool final_ops)
 {
   int_t i,iOp,nOp;
-  int_t num_top_states = 0;
+  int_t i_begin,n_states;
 
-  //get top states on arrays on each device
-  for(i=0;i<num_local_states_;i++){
-    if(states_[i].top_of_array()){
-      top_states_.push_back(i);
-      num_top_states++;
+  for(i_begin=0;i_begin<num_local_states_;i_begin+=parallel_states_){
+    //loop for states can be stored in available memory
+    n_states = parallel_states_;
+    if(i_begin+n_states > num_local_states_){
+      n_states = num_local_states_ - i_begin;
     }
-  }
-  top_states_.push_back(num_local_states_);
 
-  num_states_on_device_.resize(num_top_states);
-  for(i=0;i<num_top_states-1;i++){
-    num_states_on_device_[i] = top_states_[i+1] - top_states_[i];
-  }
-  num_states_on_device_[num_top_states-1] = num_local_states_ - top_states_[num_top_states-1];
+    //allocate and initialize states
+    allocate_states(n_states);
+    std::vector<RngEngine> rng(n_states);
+    for(i=0;i<n_states;i++){
+      states_[i].set_config(config_);
 
-  nOp = ops.size();
-
-  std::vector<ExperimentResult> par_results(num_top_states);
-
-#pragma omp parallel for if(num_top_states > 1) num_threads(num_top_states) private(iOp)
-  for(i=0;i<num_top_states;i++){
-    uint_t istate = top_states_[i];
-    for(iOp=0;iOp<nOp;iOp++){
-      if(ops[iOp].type == Operations::OpType::runtime_error){
-        apply_runtime_error(i,ops[iOp],par_results[i],rng,noise);
+      if(phase_angle_.size() == 1){
+        states_[i].set_global_phase(phase_angle_[0]);
       }
-      else if(states_[istate].batchable_op(ops[iOp])){
-        states_[istate].apply_op(0,ops[iOp],par_results[i],rng,final_ops && nOp == iOp + 1);
+      else if(phase_angle_.size() == num_global_states_){
+        states_[i].set_global_phase(phase_angle_[global_state_index_ + i_begin + i]);
       }
-      else{
-        //call apply_op for each state
-        uint_t j;
-        for(j=top_states_[i];j<top_states_[i+1];j++){
-          states_[j].apply_op(0,ops[iOp],par_results[i],rng,final_ops && nOp == iOp + 1);
+      states_[i].initialize_qreg(num_qubits_);
+      states_[i].initialize_creg(creg_num_memory_, creg_num_register_);
+      rng[i].set_seed(rng_seed + global_state_index_ + i_begin + i);
+    }
+    nOp = ops.size();
+
+    std::vector<ExperimentResult> par_results(num_groups_);
+
+#pragma omp parallel for if(num_groups_ > 1) private(iOp)
+    for(i=0;i<num_groups_;i++){
+      uint_t istate = top_state_of_group_[i];
+
+      for(iOp=0;iOp<nOp;iOp++){
+        if(ops[iOp].type == Operations::OpType::runtime_error){
+          apply_runtime_error(i,ops[iOp],par_results[i],rng,noise);
+        }
+        else if(states_[istate].batchable_op(ops[iOp],true)){
+          states_[istate].apply_op(0,ops[iOp],par_results[i],rng,final_ops && nOp == iOp + 1);
+        }
+        else{
+          //call apply_op for each state
+          for(uint_t j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
+            states_[j].enable_batch(false);
+            states_[j].apply_op(0,ops[iOp],par_results[i],rng,final_ops && nOp == iOp + 1);
+            states_[j].enable_batch(true);
+          }
         }
       }
     }
-  }
-  for (auto &res : par_results) {
-    result.combine(std::move(res));
-  }
+    for (auto &res : par_results) {
+      result.combine(std::move(res));
+    }
 
-#pragma omp parallel for if(num_top_states > 1) num_threads(num_top_states) 
-  for(i=0;i<num_top_states;i++){
-    states_[i].end_of_circuit();
-  }
+#pragma omp parallel for if(num_groups_ > 1) 
+    for(i=0;i<num_groups_;i++){
+      uint_t istate = top_state_of_group_[i];
+      states_[istate].end_of_circuit();
+    }
 
-  //collect measured bits
-  for(iOp=0;iOp<nOp;iOp++){
-    if(ops[iOp].type == Operations::OpType::measure){
-      for(i=0;i<num_local_states_;i++){
-        states_[i].store_measured_cbits(ops[iOp]);
+    //collect measured bits
+    for(iOp=0;iOp<nOp;iOp++){
+      if(ops[iOp].type == Operations::OpType::measure){
+        for(i=0;i<states_.size();i++){
+          states_[i].store_measured_cbits(ops[iOp]);
+        }
       }
+    }
+
+    //copy cregs
+    for(i=0;i<n_states;i++){
+      cregs_[global_state_index_ + i_begin + i].creg_memory() = states_[i].creg().creg_memory();
     }
   }
 }
 
 template <class state_t>
 void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::Op>> &ops,
+                         reg_t& shots,
                          std::vector<ExperimentResult> &result,
                          std::vector<RngEngine>& rng,
                          const std::vector<AER::Noise::NoiseModel> &noise,
                          bool final_ops)
 {
   int_t i;
-  int_t num_top_states = 0;
+  int_t i_begin,n_states;
+  uint_t total_shots = 0;
+  reg_t shot_offset(shots.size());
+  for(i=0;i<shots.size();i++){
+    shot_offset[i] = total_shots;
+    total_shots += shots[i];
+  }
+  samples_.resize(total_shots);
+  reg_t all_qubits(num_qubits_);
+  for(i=0;i<num_qubits_;i++)
+    all_qubits[i] = i;
 
-  top_states_.clear();
-  //get top states on arrays on each device
-  for(i=0;i<num_local_states_;i++){
-    if(states_[i].top_of_array()){
-      top_states_.push_back(i);
-      num_top_states++;
+  for(i_begin=0;i_begin<num_local_states_;i_begin+=parallel_states_){
+    //loop for states can be stored in available memory
+    n_states = parallel_states_;
+    if(i_begin+n_states > num_local_states_){
+      n_states = num_local_states_ - i_begin;
     }
-  }
-  top_states_.push_back(num_local_states_);
 
-  num_states_on_device_.resize(num_top_states);
-  for(i=0;i<num_top_states;i++){
-    num_states_on_device_[i] = top_states_[i+1] - top_states_[i];
-  }
+    //allocate and initialize states
+    allocate_states(n_states);
+#pragma omp parallel for if(num_groups_ > 1) private(i)
+    for(i=0;i<num_groups_;i++){
+      uint_t j,istate = top_state_of_group_[i];
 
-  bool density_matrix = false;
-  if(method_.find("density_matrix") != std::string::npos)
-    density_matrix = true;
+      for(j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
+        states_[j].set_config(config_);
+        states_[j].set_global_phase(phase_angle_[global_state_index_ + i_begin + j]);
+        states_[j].initialize_qreg(num_qubits_);
+        states_[j].initialize_creg(cregs_[global_state_index_ + i_begin + j].memory_size(),
+                                   cregs_[global_state_index_ + i_begin + j].register_size());
+      }
+    }
 
-#pragma omp parallel for if(num_top_states > 1) num_threads(num_top_states) 
-  for(i=0;i<num_top_states;i++){
-    uint_t j,iOp,istate = top_states_[i];
-    uint_t num_active = num_states_on_device_[i];
-    std::vector<Operations::Op> batched_ops(top_states_[i+1] - top_states_[i]);
-    uint_t n_states;
+#pragma omp parallel for if(num_groups_ > 1) private(i)
+    for(i=0;i<num_groups_;i++){
+      uint_t j,iOp,istate = top_state_of_group_[i];
+      uint_t num_active;
+      std::vector<Operations::Op> batched_ops(num_states_in_group_[i]);
+      uint_t n_batch;
 
-    iOp = 0;
-    while(num_active > 0){
-      n_states = 0;
-      num_active = 0;
-      for(j=top_states_[i];j<top_states_[i+1];j++){
-        if(iOp < ops[j].size()){
-          bool batch_enable = false;
-          batched_ops[j - top_states_[i]] = ops[j][iOp];
+      iOp = 0;
+      do{
+        n_batch = 0;
+        num_active = 0;
+        for(j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
+          uint_t i_circ = global_state_index_ + i_begin + j;
+          if(iOp < ops[i_circ].size()){
+            batched_ops[j - top_state_of_group_[i]] = ops[i_circ][iOp];
 
-          if(density_matrix){ //for density matrix
-            if(ops[j][iOp].type == Operations::OpType::gate || ops[j][iOp].type == Operations::OpType::matrix || ops[j][iOp].type == Operations::OpType::diagonal_matrix ||
-               ops[j][iOp].type == Operations::OpType::superop || ops[j][iOp].type == Operations::OpType::kraus)
-              batch_enable = true;
-          }
-          else{ //for statevector
-            if(ops[j][iOp].type == Operations::OpType::gate || ops[j][iOp].type == Operations::OpType::matrix || ops[j][iOp].type == Operations::OpType::diagonal_matrix)
-              batch_enable = true;
-          }
-
-          if(batch_enable){
-            n_states++;
+            if(states_[j].batchable_op(ops[i_circ][iOp],false)){
+              n_batch++;
+            }
+            else{
+              std::vector<RngEngine> local_rng(1);
+              local_rng[0] = rng[i_circ];
+              states_[j].enable_batch(false);
+              states_[j].apply_op(0,ops[i_circ][iOp],result[i_circ],local_rng,final_ops && ops[i_circ].size() == iOp + 1);
+              states_[j].enable_batch(true);
+            }
+            num_active++;
           }
           else{
-            states_[j].enable_batch(false);
-            states_[j].apply_op(0,ops[j][iOp],result[j],rng,final_ops && ops[j].size() == iOp + 1);
-            states_[j].enable_batch(true);
-          }
-          num_active++;
-        }
-        else{
-          batched_ops[j - top_states_[i]].type = Operations::OpType::nop;
-        }
-      }
-
-      if(n_states > 0){
-        states_[istate].apply_batched_ops(batched_ops);
-
-        /*
-        //for test
-        std::cout << " ops[" << iOp << "] ===================" << std::endl;
-        for(j=top_states_[i];j<top_states_[i+1];j++){
-          std::cout << "    (" << j << ") " << batched_ops[j - top_states_[i]] << std::endl;
-          if(batched_ops[j - top_states_[i]].type != Operations::OpType::nop){
-            states_[j].enable_batch(false);
-            states_[j].apply_op(0,ops[j][iOp],result[j],rng,final_ops && ops[j].size() == iOp + 1);
-            states_[j].enable_batch(true);
+            batched_ops[j - top_state_of_group_[i]].type = Operations::OpType::nop;
           }
         }
-        std::cout << "=========================================" << std::endl;
-        */
-      }
 
-      iOp++;
+        if(n_batch > 0){
+          states_[istate].apply_batched_ops(batched_ops);
+        }
+        iOp++;
+      }while(num_active > 0);
     }
-  }
 
-#pragma omp parallel for if(num_top_states > 1) num_threads(num_top_states) 
-  for(i=0;i<num_top_states;i++){
-    states_[i].end_of_circuit();
+#pragma omp parallel for if(num_groups_ > 1) private(i)
+    for(i=0;i<num_groups_;i++){
+      uint_t istate = top_state_of_group_[i];
+      states_[istate].end_of_circuit();
+    }
+
+    //sampling
+#pragma omp parallel for if(num_groups_ > 1) private(i)
+    for(i=0;i<num_groups_;i++){
+      uint_t istate = top_state_of_group_[i];
+      uint_t gid = global_state_index_ + i_begin;
+      uint_t j,k;
+
+      reg_t local_shots(shots.begin() + gid + top_state_of_group_[i],shots.begin() + gid + top_state_of_group_[i+1]);
+      std::vector<RngEngine> local_rng(rng.begin() + gid + top_state_of_group_[i],rng.begin() + gid + top_state_of_group_[i+1]);
+
+      auto ret = states_[istate].batched_sample_measure(all_qubits,local_shots,local_rng);
+
+      uint_t sample_idx = 0;
+      for(j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
+        for(k=0;k<shots[gid+j];k++){
+          samples_[shot_offset[gid+j]+k] = ret[sample_idx++];
+        }
+      }
+    }
+
+    //copy cregs
+    for(i=0;i<n_states;i++){
+      cregs_[global_state_index_ + i_begin + i].creg_memory() = states_[i].creg().creg_memory();
+    }
   }
 }
 
 template <class state_t>
-void States<state_t>::apply_runtime_error(int_t istate,const Operations::Op& op,
+void States<state_t>::apply_runtime_error(int_t igroup,const Operations::Op& op,
                           ExperimentResult &result,
                           std::vector<RngEngine>& rng,
                           const AER::Noise::NoiseModel &noise)
 {
   uint_t count_i = 0;
   int_t i;
-  int_t num_top_states = top_states_.size();
-  reg_t params(4*num_states_on_device_[istate]);
+  int_t num_top_states = top_state_of_group_.size();
+  reg_t params(4*num_states_in_group_[igroup]);
 
-  for(i=0;i<num_states_on_device_[istate];i++){
+  for(i=0;i<num_states_in_group_[igroup];i++){
     uint_t x_max = 0;
     uint_t num_y = 0;
     uint_t x_mask = 0;
     uint_t z_mask = 0;
-    auto ops = noise.sample_noise_at_runtime(op,rng[i+top_states_[istate]]);
+    auto ops = noise.sample_noise_at_runtime(op,rng[i+top_state_of_group_[igroup]]);
     if(ops.size() == 0)
       count_i++;
     else if(ops.size() == 1 && ops[0].name == "id")
@@ -718,8 +793,8 @@ void States<state_t>::apply_runtime_error(int_t istate,const Operations::Op& op,
     params[i*4+3] = z_mask;
   }
 
-  if(count_i < num_local_states_){
-    states_[top_states_[istate]].apply_batched_pauli(params);
+  if(count_i < num_states_in_group_[igroup]){
+    states_[top_state_of_group_[igroup]].apply_batched_pauli(params);
   }
 
 }
@@ -744,58 +819,13 @@ std::vector<reg_t> States<state_t>::sample_measure(const reg_t &qubits,
 }
 
 template <class state_t>
-std::vector<reg_t> States<state_t>::batched_sample_measure(const reg_t &qubits,
-                                                        reg_t& shots,
-                                                        std::vector<RngEngine> &rng)
-{
-  int_t i,j,k;
-//  int_t num_top_states = top_states_.size() - 1;
-  std::vector<reg_t> ret;
-  uint_t total_shots = 0;
-  reg_t shot_offset(shots.size());
-
-  int_t num_top_states = 0;
-
-  top_states_.clear();
-  //get top states on arrays on each device
-  for(i=0;i<num_local_states_;i++){
-    if(states_[i].top_of_array()){
-      top_states_.push_back(i);
-      num_top_states++;
-    }
-  }
-  top_states_.push_back(num_local_states_);
-
-  for(i=0;i<shots.size();i++){
-    shot_offset[i] = total_shots;
-    total_shots += shots[i];
-  }
-  ret.resize(total_shots);
-
-#pragma omp parallel for if(num_top_states > 1) num_threads(num_top_states) private(i,j,k)
-  for(i=0;i<num_top_states;i++){
-    uint_t istate = top_states_[i];
-    reg_t local_shots(shots.begin() + top_states_[i],shots.begin() + top_states_[i+1]);
-    std::vector<RngEngine> local_rng(rng.begin() + top_states_[i],rng.begin() + top_states_[i+1]);
-
-    auto samples = states_[istate].batched_sample_measure(qubits,local_shots,local_rng);
-
-    uint_t sample_idx = 0;
-    for(j=top_states_[i];j<top_states_[i+1];j++){
-      for(k=0;k<shots[j];k++){
-        ret[shot_offset[j]+k] = samples[sample_idx++];
-      }
-    }
-  }
-  return ret;
-}
-
-template <class state_t>
 void States<state_t>::initialize_creg(uint_t num_memory, uint_t num_register) 
 {
+  creg_num_memory_ = num_memory;
+  creg_num_register_ = num_register;
   int_t i;
-  for(i=0;i<num_local_states_;i++){
-    states_[i].initialize_creg(num_memory, num_register);
+  for(i=0;i<cregs_.size();i++){
+    cregs_[i].initialize(num_memory, num_register);
   }
 }
 
@@ -807,8 +837,8 @@ void States<state_t>::initialize_creg(uint_t num_memory,
                                      const std::string &register_hex) 
 {
   int_t i;
-  for(i=0;i<num_local_states_;i++){
-    states_[i].initialize_creg(num_memory, num_register, memory_hex, register_hex);
+  for(i=0;i<cregs_.size();i++){
+    cregs_[i].initialize(num_memory, num_register, memory_hex, register_hex);
   }
 }
 

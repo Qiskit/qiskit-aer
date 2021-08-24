@@ -47,6 +47,7 @@ public:
     offset_qubits_ = prm.offset_qubits_;
     offset_matrix_ = prm.offset_matrix_;
     qubit_ = prm.qubit_;
+    super_op_ = prm.super_op_;
     matrix2x2_[0] = prm.matrix2x2_[0];
     matrix2x2_[1] = prm.matrix2x2_[1];
     matrix2x2_[2] = prm.matrix2x2_[2];
@@ -65,6 +66,7 @@ public:
     offset_qubits_ = prm.offset_qubits_;
     offset_matrix_ = prm.offset_matrix_;
     qubit_ = prm.qubit_;
+    super_op_ = prm.super_op_;
     matrix2x2_[0] = prm.matrix2x2_[0];
     matrix2x2_[1] = prm.matrix2x2_[1];
     matrix2x2_[2] = prm.matrix2x2_[2];

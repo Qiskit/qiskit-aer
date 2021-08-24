@@ -53,7 +53,7 @@ public:
     return data_[i];
   }
 
-  uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers,bool multi_shots);
+  uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit);
   void Deallocate(void);
   uint_t Resize(uint_t chunks,uint_t buffers);
 
@@ -77,6 +77,7 @@ public:
   {
     batched_params_ = (batched_matrix_params*)&params[0];
   }
+  void ResizeMatrixBuffers(int bits){}
 
   void Set(uint_t i,const thrust::complex<data_t>& t)
   {
@@ -132,7 +133,7 @@ HostChunkContainer<data_t>::~HostChunkContainer(void)
 }
 
 template <typename data_t>
-uint_t HostChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,uint_t buffers,bool multi_shots)
+uint_t HostChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit)
 {
   uint_t nc = chunks;
   uint_t i;

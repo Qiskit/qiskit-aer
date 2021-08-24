@@ -97,6 +97,7 @@ public:
 #else
   static std::string name() {return "statevector_thrust";}
 #endif
+  virtual bool is_density_matrix(void) {return false;}
 
   // Set the size of the vector in terms of qubit number
   virtual void set_num_qubits(size_t num_qubits);
@@ -111,7 +112,7 @@ public:
   size_t required_memory_mb(uint_t num_qubits) const;
 
   //check if this register is on the top of array on device
-  bool top_of_array()
+  bool top_of_group()
   {
     return (chunk_.pos() == 0);
   }
@@ -306,12 +307,7 @@ public:
 #endif
   }
 
-  bool enable_batch(bool flg)
-  {
-    bool prev = enable_batch_;
-    enable_batch_ = flg;
-    return prev;
-  }
+  bool enable_batch(bool flg);
 
   virtual void apply_bfunc(const Operations::Op &op);
   virtual void set_conditional(int_t reg);
@@ -914,7 +910,13 @@ void QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t
   //only first chunk call allocation function
   if(chunk_bits > 0 && num_qubits > 0){
     chunk_manager_ = std::make_shared<ChunkManager<data_t>>();
-    chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks);
+    /*
+    if(is_density_matrix()){  //if density matrix, allocate x2 matrix buffer for super_op matrix
+      chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks,AER_DEFAULT_MATRIX_BITS*2);
+    }
+    else{*/
+      chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks,AER_DEFAULT_MATRIX_BITS);
+//    }
   }
 
   multi_chunk_distribution_ = false;
@@ -926,6 +928,10 @@ void QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t
   buffer_chunk_.unmap();
   send_chunk_.unmap();
   recv_chunk_.unmap();
+
+  //mapping/setting chunk
+  chunk_manager_->MapChunk(chunk_,0);
+  chunk_.set_chunk_index(chunk_index_);
 }
 
 template <typename data_t>
@@ -948,6 +954,10 @@ void QubitVectorThrust<data_t>::chunk_setup(QubitVectorThrust<data_t>& base,cons
   buffer_chunk_.unmap();
   send_chunk_.unmap();
   recv_chunk_.unmap();
+
+  //mapping/setting chunk
+  chunk_manager_->MapChunk(chunk_,0);
+  chunk_.set_chunk_index(chunk_index_);
 }
 
 template <typename data_t>
@@ -958,11 +968,7 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   num_qubits_ = num_qubits;
   data_size_ = 1ull << num_qubits;
 
-  chunk_manager_->MapChunk(chunk_,0);
-
   chunk_.set_num_qubits(num_qubits);
-  chunk_.set_chunk_index(chunk_index_);
-
   chunk_.enable_omp((omp_get_num_threads() == 1) && (num_qubits_ > omp_threshold_ && omp_threads_ > 1));
 
   register_blocking_ = false;
@@ -1215,6 +1221,19 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::set_conditional(int_t reg)
 {
   chunk_.set_conditional(bfunc_mask_[reg],bfunc_target_[reg],bfunc_comp_[reg]);
+}
+
+template <typename data_t>
+bool QubitVectorThrust<data_t>::enable_batch(bool flg)
+{
+  bool prev = enable_batch_;
+
+  if(flg != prev){
+    chunk_.synchronize();
+  }
+  enable_batch_ = flg;
+
+  return prev;
 }
 
 //------------------------------------------------------------------------------
@@ -3460,10 +3479,15 @@ double QubitVectorThrust<data_t>::norm() const
 {
   thrust::complex<double> ret;
 
-  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
-    return 0.0;   //first chunk execute all in batch
+  if((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_){
+    if(chunk_.pos() != 0)
+      return 0.0;   //first chunk execute all in batch
 
-  ret = chunk_.norm(chunk_.container()->num_chunks());
+    ret = chunk_.norm(chunk_.container()->num_chunks());
+  }
+  else{
+    ret = chunk_.norm(1);
+  }
 
 #ifdef AER_DEBUG
   DebugMsg("norm",ret.real() + ret.imag());
@@ -4958,14 +4982,23 @@ void QubitVectorThrust<data_t>::DebugMsg(const char* str,const std::vector<doubl
 template <typename data_t>
 void QubitVectorThrust<data_t>::DebugDump(void) const
 {
-  if(num_qubits_ < 7){
-    thrust::complex<data_t> t;
-    uint_t i;
+  thrust::complex<data_t> t;
+  uint_t i,idx,n;
 
-    for(i=0;i<data_size_;i++){
-      t = chunk_.Get(i);
-      spdlog::debug("   {0:05b} | {1:e}, {2:e}",i + (chunk_index_ << chunk_manager_->chunk_bits()),t.real(),t.imag());
-    }
+  chunk_->synchronize();
+
+  n = 16;
+  if(n > data_size_)
+    n = data_size_;
+  for(i=0;i<n;i++){
+    idx = i*data_size_/n;
+    t = chunk_->Get(idx);
+    spdlog::debug("   {0:05b} | {1:e}, {2:e}",idx,t.real(),t.imag());
+  }
+  if(n < data_size_){
+    idx = data_size_-1;
+    t = chunk_->Get(idx);
+    spdlog::debug("   {0:05b} | {1:e}, {2:e}",idx,t.real(),t.imag());
   }
 }
 

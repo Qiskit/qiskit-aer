@@ -104,7 +104,7 @@ public:
     return raw_reference_cast(data_[i]);
   }
 
-  uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers,bool multi_shots);
+  uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit);
   void Deallocate(void);
   uint_t Resize(uint_t chunks,uint_t buffers);
 
@@ -228,10 +228,6 @@ public:
 
   //queue gate for blocked execution
   void queue_blocked_gate(uint_t iChunk,char gate,uint_t qubit,uint_t mask,const std::complex<double>* pMat = NULL);
-
-  //CUDA graph
-  void begin_capture(uint_t iChunk) const;
-  void end_capture(uint_t iChunk) const;
 };
 
 template <typename data_t>
@@ -241,7 +237,7 @@ DeviceChunkContainer<data_t>::~DeviceChunkContainer(void)
 }
 
 template <typename data_t>
-uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,uint_t buffers,bool multi_shots)
+uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit)
 {
   uint_t nc = chunks;
   uint_t i;
@@ -297,7 +293,7 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
 
 #ifdef AER_THRUST_CUDA
   uint_t param_size;
-  param_size = (sizeof(thrust::complex<double>) << (mat_bits*2)) + (sizeof(uint_t) << (mat_bits+2));
+  param_size = (sizeof(thrust::complex<double>) << (matrix_bit*2)) + (sizeof(uint_t) << (matrix_bit+2));
 
   size_t freeMem,totalMem;
   cudaMemGetInfo(&freeMem,&totalMem);
@@ -311,7 +307,9 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
 
   max_blocked_gates_ = QV_MAX_BLOCKED_GATES;
 
-  ResizeMatrixBuffers(mat_bits);
+  matrix_buffer_size_ = 0;
+  params_buffer_size_ = 0;
+  ResizeMatrixBuffers(matrix_bit);
 
   this->num_chunks_ = nc;
   data_.resize((nc+buffers) << bits);
@@ -463,6 +461,7 @@ void DeviceChunkContainer<data_t>::ResizeMatrixBuffers(int bits)
     matrix_.resize(n * matrix_buffer_size_);
   }
   else{
+    this->matrix_bits_ = bits;
     size = 1ull << (bits*2);
 
     if(max_blocked_gates_*4 > size){
@@ -501,15 +500,6 @@ void DeviceChunkContainer<data_t>::StoreMatrix(const std::vector<std::complex<do
   }
   set_device();
 
-  if(matrix_buffer_size_ < mat.size()){
-    int bits;
-    bits = 1;
-    while((1 << (bits*2)) < mat.size()){
-      bits++;
-    }
-    ResizeMatrixBuffers(bits);
-  }
-
 #ifdef AER_THRUST_CUDA
   cudaMemcpyAsync(matrix_pointer(iChunk),&mat[0],mat.size()*sizeof(thrust::complex<double>),cudaMemcpyHostToDevice,stream_[iChunk]);
 #else
@@ -542,15 +532,6 @@ void DeviceChunkContainer<data_t>::StoreMatrix(const std::complex<double>* mat,u
     return;
   }
   set_device();
-
-  if(matrix_buffer_size_ < size){
-    int bits;
-    bits = 1;
-    while((1 << (bits*2)) < size){
-      bits++;
-    }
-    ResizeMatrixBuffers(bits);
-  }
 
 #ifdef AER_THRUST_CUDA
   cudaMemcpyAsync(matrix_pointer(iChunk),mat,size*sizeof(thrust::complex<double>),cudaMemcpyHostToDevice,stream_[iChunk]);
@@ -601,7 +582,7 @@ template <typename data_t>
 void DeviceChunkContainer<data_t>::CopyIn(Chunk<data_t>& src,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
-  set_device();
+  synchronize(iChunk);
   if(src.device() >= 0){
     if(peer_access(src.device())){
       thrust::copy_n(src.pointer(),size,data_.begin() + (iChunk << this->chunk_bits_));
@@ -621,7 +602,7 @@ template <typename data_t>
 void DeviceChunkContainer<data_t>::CopyOut(Chunk<data_t>& dest,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
-  set_device();
+  synchronize(iChunk);
   if(dest.device() >= 0){
     if(peer_access(dest.device())){
       thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest.pointer());
@@ -643,7 +624,7 @@ void DeviceChunkContainer<data_t>::CopyIn(thrust::complex<data_t>* src,uint_t iC
   uint_t this_size = 1ull << this->chunk_bits_;
   if(this_size < size) throw std::runtime_error("CopyIn chunk size is less than provided size");
   
-  set_device();
+  synchronize(iChunk);
   thrust::copy_n(src,size,data_.begin() + (iChunk << this->chunk_bits_));
 }
 
@@ -653,7 +634,7 @@ void DeviceChunkContainer<data_t>::CopyOut(thrust::complex<data_t>* dest,uint_t 
   uint_t this_size = 1ull << this->chunk_bits_;
   if(this_size < size) throw std::runtime_error("CopyOut chunk size is less than provided size");
   
-  set_device();
+  synchronize(iChunk);
   thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest);
 }
 
@@ -661,7 +642,7 @@ template <typename data_t>
 void DeviceChunkContainer<data_t>::Swap(Chunk<data_t>& src,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
-  set_device();
+  synchronize(iChunk);
   if(src.device() >= 0){
     auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src.container());
     if(peer_access(src.device())){
@@ -727,7 +708,6 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
 
   strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+count), stride);
 
-
 #ifdef AER_THRUST_CUDA
 
   if(dot)
@@ -792,10 +772,11 @@ thrust::complex<double> DeviceChunkContainer<data_t>::norm(uint_t iChunk, uint_t
   strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+count), stride);
 
 #ifdef AER_THRUST_CUDA
+  cudaStreamSynchronize(stream_[iChunk]);
   if(dot)
-    sum = thrust::transform_reduce(thrust::cuda::par.on(stream_[iChunk]), iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
+    sum = thrust::transform_reduce(thrust::device, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
   else
-    sum = thrust::reduce(thrust::cuda::par.on(stream_[iChunk]), iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
+    sum = thrust::reduce(thrust::device, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
 #else
   if(ChunkContainer<data_t>::enable_omp_){
     if(dot)
@@ -1279,31 +1260,6 @@ void DeviceChunkContainer<data_t>::apply_blocked_gates(uint_t iChunk)
   num_blocked_gates_[iBlock] = 0;
   num_blocked_matrix_[iBlock] = 0;
 
-}
-
-template <typename data_t>
-void DeviceChunkContainer<data_t>::begin_capture(uint_t iChunk) const
-{
-#ifdef AER_THRUST_CUDA_
-  cudaStreamBeginCapture(stream_[iChunk], cudaStreamCaptureModeThreadLocal);
-#endif
-}
-
-template <typename data_t>
-void DeviceChunkContainer<data_t>::end_capture(uint_t iChunk) const
-{
-#ifdef AER_THRUST_CUDA_
-  cudaGraph_t graph;
-  cudaGraphExec_t instance;
-
-  cudaStreamEndCapture(stream_[iChunk], &graph);
-  cudaGraphInstantiate(&instance, graph, NULL, NULL, 0);
-
-  cudaGraphLaunch(instance, stream_[iChunk]);
-  cudaStreamSynchronize(stream_[iChunk]);
-
-  cudaGraphDestroy(graph);
-#endif
 }
 
 template <typename data_t>

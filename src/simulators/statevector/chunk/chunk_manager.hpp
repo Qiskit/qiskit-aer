@@ -65,7 +65,7 @@ public:
     return chunks_.size();
   }
 
-  uint_t Allocate(int chunk_bits,int nqubits,uint_t nchunks);
+  uint_t Allocate(int chunk_bits,int nqubits,uint_t nchunks,int matrix_bit);
   void Free(void);
 
   int num_devices(void)
@@ -156,7 +156,7 @@ ChunkManager<data_t>::~ChunkManager()
 }
 
 template <typename data_t>
-uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
+uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,int matrix_bit)
 {
   uint_t num_buffers;
   int iDev;
@@ -246,12 +246,12 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
       }
 
       chunks_.push_back(std::make_shared<DeviceChunkContainer<data_t>>());
-      num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nc,num_buffers,multi_shots_);
+      num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nc,num_buffers,multi_shots_,matrix_bit);
     }
     if(num_chunks_ < nchunks){
       //rest of chunks are stored on host
       chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
-      chunks_[num_places_]->Allocate(-1,chunk_bits,nchunks-num_chunks_,num_buffers,multi_shots_);
+      chunks_[num_places_]->Allocate(-1,chunk_bits,nchunks-num_chunks_,num_buffers,multi_shots_,matrix_bit);
       num_places_ += 1;
       num_chunks_ = nchunks;
     }
@@ -260,7 +260,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks)
     //additional host buffer
     iplace_host_ = chunks_.size();
     chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
-    chunks_[iplace_host_]->Allocate(-1,chunk_bits,0,AER_MAX_BUFFERS);
+    chunks_[iplace_host_]->Allocate(-1,chunk_bits,0,AER_MAX_BUFFERS,multi_shots_,matrix_bit);
 #endif
   }
   else{
@@ -296,8 +296,10 @@ bool ChunkManager<data_t>::MapChunk(Chunk<data_t>& chunk,int iplace)
   int i;
 
   for(i=0;i<num_places_;i++){
-    if(chunks_[(iplace + i) % num_places_]->MapChunk(chunk))
+    if(chunks_[(iplace + i) % num_places_]->MapChunk(chunk)){
+      chunk.set_place((iplace + i) % num_places_);
       break;
+    }
   }
   return chunk.is_mapped();
 }

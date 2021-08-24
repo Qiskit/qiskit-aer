@@ -185,7 +185,7 @@ json_t UnitaryMatrixThrust<data_t>::json() const
 //------------------------------------------------------------------------------
 
 template <class data_t>
-UnitaryMatrixThrust<data_t>::UnitaryMatrixThrust(size_t num_qubits) {
+UnitaryMatrixThrust<data_t>::UnitaryMatrixThrust(size_t num_qubits) : QubitVectorThrust<data_t>(num_qubits) {
 	if(num_qubits > 0){
 		set_num_qubits(num_qubits);
 	}
@@ -285,7 +285,15 @@ std::complex<double> UnitaryMatrixThrust<data_t>::trace() const
 {
   thrust::complex<double> sum;
 
-  sum = BaseVector::chunk_.norm(1, rows_ + 1,false);
+  if((BaseVector::multi_chunk_distribution_ && BaseVector::chunk_.device() >= 0) || BaseVector::enable_batch_){
+    if(BaseVector::chunk_.pos() != 0)
+      return 0.0;   //first chunk execute all in batch
+
+    sum = BaseVector::chunk_.norm(BaseVector::chunk_.container()->num_chunks(), rows_ + 1,false);
+  }
+  else{
+    sum = BaseVector::chunk_.norm(1, rows_ + 1,false);
+  }
 
 #ifdef AER_DEBUG
   BaseVector::DebugMsg("trace",sum);

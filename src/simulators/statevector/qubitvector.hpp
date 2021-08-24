@@ -401,6 +401,11 @@ public:
     return false;
   }
 
+  virtual bool top_of_group(void)
+  {
+    return true;
+  }
+
 protected:
 
   //-----------------------------------------------------------------------
