@@ -13,6 +13,7 @@
 Helper functions for noise model creation.
 """
 # pylint: disable=wildcard-import,unused-wildcard-import
+import copy
 import warnings
 
 import numpy as np
@@ -39,18 +40,18 @@ def standard_gates_instructions(instructions):
         list: a list of qobj instructions equivalent to in input instruction.
     """
     warnings.warn(
-        'standard_gates_instructions has been deprecated as of qiskit-aer 0.8.0'
+        'standard_gates_instructions has been deprecated as of qiskit-aer 0.9.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
-
-    if not isinstance(instructions, list):
-        return instructions
 
     output_instructions = []
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         for instruction in instructions:
-            output_instructions += standard_gate_instruction(instruction)
+            if isinstance(instruction, dict):
+                output_instructions += standard_gate_instruction(instruction)
+            else:
+                output_instructions.append(instruction)
     return output_instructions
 
 
@@ -67,12 +68,9 @@ def standard_gate_instruction(instruction, ignore_phase=True):
         list: a list of (instructions, qubits) equivalent to in input instruction.
     """
     warnings.warn(
-        'standard_gate_instruction has been deprecated as of qiskit-aer 0.8.0'
+        'standard_gate_instruction has been deprecated as of qiskit-aer 0.9.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
-
-    if not isinstance(instruction, dict):
-        return [instruction]
 
     gate = {
         "x": XGate(),
@@ -176,10 +174,39 @@ def standard_gate_instruction(instruction, ignore_phase=True):
     return [instruction]
 
 
-def single_qubit_clifford_gates(j):
-    """Return a QASM gate names for a single qubit Clifford.
+_CLIFFORD_GATES = [
+    (IGate(), ),
+    (SGate(), ),
+    (SdgGate(), ),
+    (ZGate(), ),
+    # u2 gates
+    (HGate(), ),
+    (HGate(), ZGate()),
+    (ZGate(), HGate()),
+    (HGate(), SGate()),
+    (SGate(), HGate()),
+    (HGate(), SdgGate()),
+    (SdgGate(), HGate()),
+    (SGate(), HGate(), SGate()),
+    (SdgGate(), HGate(), SGate()),
+    (ZGate(), HGate(), SGate()),
+    (SGate(), HGate(), SdgGate()),
+    (SdgGate(), HGate(), SdgGate()),
+    (ZGate(), HGate(), SdgGate()),
+    (SGate(), HGate(), ZGate()),
+    (SdgGate(), HGate(), ZGate()),
+    (ZGate(), HGate(), ZGate()),
+    # u3 gates
+    (XGate(), ),
+    (YGate(), ),
+    (SGate(), XGate()),
+    (SdgGate(), XGate())
+]
 
-    The labels are returned in a basis set consisting of
+def single_qubit_clifford_gates(j):
+    """Return a tuple of gates for a single qubit Clifford.
+
+    The gate is returned in a basis set consisting of
     ('id', 's', 'sdg', 'z', 'h', x', 'y') gates decomposed to
     use the minimum number of X-90 pulses in a (u1, u2, u3)
     decomposition.
@@ -194,7 +221,7 @@ def single_qubit_clifford_gates(j):
         NoiseError: If index is out of range [0, 23].
     """
     warnings.warn(
-        'single_qubit_clifford_gates has been deprecated as of qiskit-aer 0.8.0'
+        'single_qubit_clifford_gates has been deprecated as of qiskit-aer 0.9.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -202,35 +229,7 @@ def single_qubit_clifford_gates(j):
         raise NoiseError(
             "Index {} must be in the range [0, ..., 23]".format(j))
 
-    labels = [
-        (IGate(), ),
-        (SGate(), ),
-        (SdgGate(), ),
-        (ZGate(), ),
-        # u2 gates
-        (HGate(), ),
-        (HGate(), ZGate()),
-        (ZGate(), HGate()),
-        (HGate(), SGate()),
-        (SGate(), HGate()),
-        (HGate(), SdgGate()),
-        (SdgGate(), HGate()),
-        (SGate(), HGate(), SGate()),
-        (SdgGate(), HGate(), SGate()),
-        (ZGate(), HGate(), SGate()),
-        (SGate(), HGate(), SdgGate()),
-        (SdgGate(), HGate(), SdgGate()),
-        (ZGate(), HGate(), SdgGate()),
-        (SGate(), HGate(), ZGate()),
-        (SdgGate(), HGate(), ZGate()),
-        (ZGate(), HGate(), ZGate()),
-        # u3 gates
-        (XGate(), ),
-        (YGate(), ),
-        (SGate(), XGate()),
-        (SdgGate(), XGate())
-    ]
-    return labels[j]
+    return copy.deepcopy(_CLIFFORD_GATES[j])
 
 
 def single_qubit_clifford_matrix(j):
@@ -246,7 +245,7 @@ def single_qubit_clifford_matrix(j):
         NoiseError: If index is out of range [0, 23].
     """
     warnings.warn(
-        'single_qubit_clifford_matrix has been deprecated as of qiskit-aer 0.8.0'
+        'single_qubit_clifford_matrix has been deprecated as of qiskit-aer 0.9.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -282,7 +281,7 @@ def single_qubit_clifford_instructions(index, qubit=0):
         NoiseError: If index is out of range [0, 23] or qubit invalid.
     """
     warnings.warn(
-        'single_qubit_clifford_instructions has been deprecated as of qiskit-aer 0.8.0'
+        'single_qubit_clifford_instructions has been deprecated as of qiskit-aer 0.9.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -303,7 +302,7 @@ def single_qubit_clifford_instructions(index, qubit=0):
 def standard_gate_unitary(name):
     """Return the unitary matrix for a standard gate."""
     warnings.warn(
-        'standard_gate_unitary has been deprecated as of qiskit-aer 0.8.0'
+        'standard_gate_unitary has been deprecated as of qiskit-aer 0.9.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -360,7 +359,7 @@ def standard_gate_unitary(name):
 def reset_superop(num_qubits):
     """Return a N-qubit reset SuperOp."""
     warnings.warn(
-        'reset_superop has been deprecated as of qiskit-aer 0.8.0'
+        'reset_superop has been deprecated as of qiskit-aer 0.9.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
     reset = SuperOp(
@@ -376,7 +375,7 @@ def reset_superop(num_qubits):
 def standard_instruction_operator(instr):
     """Return the Operator for a standard gate instruction."""
     warnings.warn(
-        'standard_instruction_operator has been deprecated as of qiskit-aer 0.8.0'
+        'standard_instruction_operator has been deprecated as of qiskit-aer 0.9.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
     # Convert to dict (for QobjInstruction types)
@@ -424,7 +423,7 @@ def standard_instruction_operator(instr):
 def standard_instruction_channel(instr):
     """Return the SuperOp channel for a standard instruction."""
     warnings.warn(
-        'standard_instruction_channel has been deprecated as of qiskit-aer 0.8.0'
+        'standard_instruction_channel has been deprecated as of qiskit-aer 0.9.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
     with warnings.catch_warnings():
@@ -458,7 +457,7 @@ def standard_instruction_channel(instr):
 def circuit2superop(circuit, min_qubits=1):
     """Return the SuperOp for a standard instruction."""
     warnings.warn(
-        'circuit2superop has been deprecated as of qiskit-aer 0.8.0'
+        'circuit2superop has been deprecated as of qiskit-aer 0.9.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -507,7 +506,7 @@ def make_unitary_instruction(mat, qubits, standard_gates=True):
         NoiseError: if the input is not a unitary matrix.
     """
     warnings.warn(
-        'make_unitary_instruction has been deprecated as of qiskit-aer 0.8.0'
+        'make_unitary_instruction has been deprecated as of qiskit-aer 0.9.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -521,7 +520,10 @@ def make_unitary_instruction(mat, qubits, standard_gates=True):
     if standard_gates:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            res = standard_gate_instruction(instruction)
+            if isinstance(instruction, dict):
+                res = standard_gate_instruction(instruction)
+            else:
+                res = [instruction]
         return res
     else:
         return [instruction]
@@ -540,7 +542,7 @@ def make_kraus_instruction(mats, qubits):
         NoiseError: if the input is not a CPTP Kraus channel.
     """
     warnings.warn(
-        'make_kraus_instruction has been deprecated as of qiskit-aer 0.8.0'
+        'make_kraus_instruction has been deprecated as of qiskit-aer 0.9.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -566,7 +568,7 @@ def qubits_from_mat(mat):
 def is_matrix_diagonal(mat):
     """Test if row-vector representation of diagonal matrix."""
     warnings.warn(
-        'is_matrix_diagonal has been deprecated as of qiskit-aer 0.8.0'
+        'is_matrix_diagonal has been deprecated as of qiskit-aer 0.9.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -599,7 +601,7 @@ def kraus2instructions(kraus_ops, standard_gates, atol=ATOL_DEFAULT):
         NoiseError: If the input Kraus channel is not CPTP.
     """
     warnings.warn(
-        'kraus2instructions has been deprecated as of qiskit-aer 0.8.0'
+        'kraus2instructions has been deprecated as of qiskit-aer 0.9.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 

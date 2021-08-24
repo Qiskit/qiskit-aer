@@ -13,6 +13,7 @@
 Quantum error class for Qiskit Aer noise model
 """
 import copy
+import numbers
 import warnings
 from typing import Iterable
 
@@ -134,21 +135,21 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 except QiskitError as err:
                     raise NoiseError("Fail to convert Kraus to Instruction") from err
 
-        # Convert zipped object to list (to enable multiple iteration over it)
-        if isinstance(noise_ops, zip):
-            noise_ops = list(noise_ops)
-
         # Single circuit case
         if not isinstance(noise_ops, Iterable) or \
                 (isinstance(noise_ops, tuple) and isinstance(noise_ops[0], Instruction)):
             noise_ops = [(noise_ops, 1.0)]
+
+        # Convert zipped object to list (to enable multiple iteration over it)
+        if not isinstance(noise_ops, list):
+            noise_ops = list(noise_ops)
 
         # Input checks
         for pair in noise_ops:
             if not isinstance(pair, tuple) or len(pair) != 2:
                 raise NoiseError("Invalid type of input is found around '{}'".format(pair))
             _, p = pair  # pylint: disable=invalid-name
-            if not isinstance(p, (float, int)):
+            if not isinstance(p, numbers.Real):
                 raise NoiseError('Invalid type of probability: {}'.format(p))
             if p < 0 and not np.isclose(p, 0, atol=self.atol):
                 raise NoiseError("Negative probability is invalid: {}".format(p))
@@ -164,7 +165,8 @@ class QuantumError(BaseOperator, TolerancesMixin):
         if standard_gates:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                ops = [standard_gates_instructions(op) for op in ops]
+                if isinstance(ops[0], list):
+                    ops = [standard_gates_instructions(op) for op in ops]
             warnings.warn(
                 '"standard_gates" option in the constructor of QuantumError has been deprecated'
                 ' as of qiskit-aer 0.9.0 in favor of externalizing such an unrolling functionality'
@@ -181,7 +183,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
         # Convert instructions to circuits
         circs = [self._to_circuit(op) for op in ops]
 
-        num_qubits = max([qc.num_qubits for qc in circs])
+        num_qubits = max(qc.num_qubits for qc in circs)
         if number_of_qubits is not None:
             num_qubits = number_of_qubits
             warnings.warn(
