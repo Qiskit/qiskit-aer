@@ -621,6 +621,8 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
       }
       break;
     }
+    case Method::extended_stabilizer:
+      break;
     default:
       throw std::invalid_argument("Cannot set parallelization for unresolved method.");
   }
