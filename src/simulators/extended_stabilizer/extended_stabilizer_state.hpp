@@ -40,7 +40,7 @@ const Operations::OpSet StateOpSet(
     }, //Operations::OpType::save_expval, Operations::OpType::save_expval_var},
   // Gates
   {"CX", "u0", "u1", "p", "cx", "cz", "swap", "id", "x", "y", "z", "h",
-    "s", "sdg", "t", "tdg", "ccx", "ccz", "delay", "pauli"},
+    "s", "sdg", "sx", "sxdg", "t", "tdg", "ccx", "ccz", "delay", "pauli"},
   // Snapshots
   {"statevector", "probabilities", "memory", "register"}
 );
@@ -234,6 +234,7 @@ const stringmap_t<Gates> State::gateset_({
   {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
   {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
   {"sx", Gates::sx},     // sqrt(X) gate
+  {"sxdg", Gates::sxdg},     // sqrt(X) gate
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   // Waltz Gates
@@ -750,6 +751,9 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank)
       break;
     case Gates::sx:
       BaseState::qreg_.apply_sx(op.qubits[0], rank);
+      break;
+    case Gates::sxdg:
+      BaseState::qreg_.apply_sxdg(op.qubits[0], rank);
       break;
     case Gates::cx:
       BaseState::qreg_.apply_cx(op.qubits[0], op.qubits[1], rank);
