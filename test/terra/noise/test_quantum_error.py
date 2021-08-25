@@ -19,11 +19,10 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, Reset, Measure
 from qiskit.circuit.library.standard_gates import *
 from qiskit.extensions import UnitaryGate
-from qiskit.quantum_info.operators import SuperOp, Kraus, Pauli
-
 from qiskit.providers.aer.noise import QuantumError
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 from qiskit.providers.aer.noise.noiseerror import NoiseError
+from qiskit.quantum_info.operators import SuperOp, Kraus, Pauli
 from test.terra import common
 
 
@@ -220,8 +219,19 @@ class TestQuantumError(common.QiskitAerTestCase):
                                  ([(XGate(), [1]), (meas_kraus.to_instruction(), [0])], 0.1)])
         self.assertEqual(actual, expected)
 
-    # ================== Tests for old interfaces ================== #
-    # TODO: remove after deprecation period
+
+# ================== Tests for old interfaces ================== #
+# TODO: remove after deprecation period
+import warnings
+class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
+    """Testing the deprecating interface of QuantumError class"""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # overwrite the filter not to regard DeprecationWarning as error
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+
     def kraus_error(self, param):
         """Return a Kraus error list"""
         return [

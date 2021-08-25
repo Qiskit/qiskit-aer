@@ -51,8 +51,6 @@ class QiskitAerTestCase(FullQiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # overwrite the filter not to regard DeprecationWarning as error
-        warnings.filterwarnings("default", category=DeprecationWarning)
         allow_DeprecationWarning_modules = [
             "cvxpy",
         ]

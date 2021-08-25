@@ -14,9 +14,10 @@ NoiseTransformer class tests
 """
 
 import unittest
-from ..common import QiskitAerTestCase
+from test.terra import common
 
 import numpy
+from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.utils import NoiseTransformer
@@ -34,15 +35,15 @@ except ImportError:
     HAS_CVXPY = False
 
 @unittest.skipUnless(HAS_CVXPY, 'cvxpy is required to run these tests')
-class TestNoiseTransformer(QiskitAerTestCase):
+class TestNoiseTransformer(common.QiskitAerTestCase):
     def setUp(self):
         super().setUp()
         self.ops = {
-            'X': standard_gate_unitary('x'),
-            'Y': standard_gate_unitary('y'),
-            'Z': standard_gate_unitary('z'),
-            'H': standard_gate_unitary('h'),
-            'S': standard_gate_unitary('s')
+            'X': XGate(),
+            'Y': YGate(),
+            'Z': ZGate(),
+            'H': HGate(),
+            'S': SGate()
         }
         self.n = NoiseTransformer()
 
