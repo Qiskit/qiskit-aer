@@ -568,7 +568,14 @@ class NoiseModel:
                                    noise_qubits,
                                    warnings=True):
         """
-        Add a non-local quantum error to the noise model.
+        Add a non-local quantum error to the noise model (DEPRECATED).
+
+        .. warning::
+
+            Adding nonlocal noise to a noise model is deprecated as of
+            qiskit-aer 0.9.0 and will be removed no earlier than 3
+            months from that release date. To add non-local noise to
+            a circuit you should write a custom qiskit transpiler pass.
 
         Args:
             error (QuantumError): the quantum error object.
@@ -588,6 +595,12 @@ class NoiseModel:
         Additional Information:
             If the error object is ideal it will not be added to the model.
         """
+        warn('Adding nonlocal noise to a noise model is deprecated as of'
+             ' qiskit-aer 0.9.0 and will be removed no earlier than 3'
+             ' months from that release date. To add non-local noise to'
+             ' a circuit you should write a custom qiskit transpiler pass.',
+             DeprecationWarning)
+
         if not isinstance(noise_qubits, (list, tuple)):
             raise NoiseError("Noise qubits must be a list of integers.")
         # Error checking

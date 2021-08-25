@@ -32,7 +32,7 @@ SUPPORTED_METHODS = [
 
 
 @ddt
-class QasmMeasureTests(SimulatorTestCase):
+class TestMeasure(SimulatorTestCase):
     """AerSimulator measure tests."""
 
     OPTIONS = {"seed_simulator": 41411}

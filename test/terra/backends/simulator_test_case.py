@@ -13,6 +13,7 @@
 AerSimulator test case class
 """
 
+from qiskit.providers.aer.backends.backend_utils import available_devices
 import ddt
 import itertools as it
 from qiskit.providers.aer import AerSimulator
@@ -52,6 +53,12 @@ def supported_methods(methods, *other_args, product=True):
         return ddt.data(*data_args)(ddt.unpack(func))
 
     return decorator
+
+
+def supported_devices(func):
+    """ddt decorator for iterative over supported devices on current system."""
+    devices = AerSimulator().available_devices()
+    return ddt.data(*devices)(func)
 
 
 def _method_device(methods):

@@ -25,7 +25,7 @@ SUPPORTED_METHODS = ['automatic', 'statevector', 'matrix_product_state']
 
 
 @ddt
-class QasmInitializeTests(SimulatorTestCase):
+class TestInitialize(SimulatorTestCase):
     """AerSimulator initialize tests."""
 
     # ---------------------------------------------------------------------

@@ -79,6 +79,11 @@ setup_requirements = common_requirements + [
     'scikit-build>=0.11.0',
     'cmake!=3.17,!=3.17.0',
 ]
+
+extras_requirements = {
+    "dask": ["dask", "distributed"]
+}
+
 if not _DISABLE_CONAN:
     setup_requirements.append('conan>=1.22.2')
 
@@ -140,6 +145,7 @@ setup(
     install_requires=requirements,
     setup_requires=setup_requirements,
     include_package_data=True,
+    extras_require=extras_requirements,
     cmake_args=cmake_args,
     keywords="qiskit aer simulator quantum addon backend",
     zip_safe=False
