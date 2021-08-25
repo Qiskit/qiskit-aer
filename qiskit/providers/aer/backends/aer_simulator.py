@@ -170,7 +170,7 @@ class AerSimulator(AerBackend):
       to the executor as a single job (Default: None).
 
     * ``enable_truncation`` (bool): If set to True this removes unnecessary
-      qubits which do not effect the simulation outcome from the simulated
+      qubits which do not affect the simulation outcome from the simulated
       circuits (Default: True).
 
     * ``zero_threshold`` (double): Sets the threshold for truncating

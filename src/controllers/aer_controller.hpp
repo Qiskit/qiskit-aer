@@ -148,7 +148,7 @@ protected:
   bool save_creg_memory_ = false;
 
   // Simulation method
-  Method default_method_ = Method::automatic;
+  Method method_ = Method::automatic;
 
   // Simulation device
   Device sim_device_ = Device::CPU;
@@ -167,7 +167,8 @@ protected:
   // Parallel execution of a circuit
   // This function manages parallel shot configuration and internally calls
   // the `run_circuit` method for each shot thread
-  void execute_circuit(Circuit &circ, Noise::NoiseModel &noise, const Method method,
+  void execute_circuit(Circuit &circ, const Noise::NoiseModel &noise,
+                       const Method method,
                        const json_t &config, ExperimentResult &result);
 
   // Abstract method for executing a circuit.
@@ -319,7 +320,7 @@ protected:
                                const Noise::NoiseModel &noise,
                                const Method method) const;
 
-  void save_exception_to_results(Result &result, const std::exception &e);
+  void save_exception_to_results(Result &result, const std::exception &e) const;
 
   // Get system memory size
   size_t get_system_memory_mb();
@@ -453,19 +454,19 @@ void Controller::set_config(const json_t &config) {
   std::string method;
   if (JSON::get_value(method, "method", config)) {
     if (method == "statevector") {
-      default_method_ = Method::statevector;
+      method_ = Method::statevector;
     } else if (method == "density_matrix") {
-      default_method_ = Method::density_matrix;
+      method_ = Method::density_matrix;
     } else if (method == "stabilizer") {
-      default_method_ = Method::stabilizer;
+      method_ = Method::stabilizer;
     } else if (method == "extended_stabilizer") {
-      default_method_ = Method::extended_stabilizer;
+      method_ = Method::extended_stabilizer;
     } else if (method == "matrix_product_state") {
-      default_method_ = Method::matrix_product_state;
+      method_ = Method::matrix_product_state;
     } else if (method == "unitary") {
-      default_method_ = Method::unitary;
+      method_ = Method::unitary;
     } else if (method == "superop") {
-      default_method_ = Method::superop;
+      method_ = Method::superop;
     } else if (method != "automatic") {
       throw std::runtime_error(std::string("Invalid simulation method (") +
                                method + std::string(")."));
@@ -519,7 +520,7 @@ void Controller::set_config(const json_t &config) {
 void Controller::clear_config() {
   clear_parallelization();
   validation_threshold_ = 1e-8;
-  default_method_ = Method::automatic;
+  method_ = Method::automatic;
   sim_device_ = Device::CPU;
   sim_precision_ = Precision::Double;
 }
@@ -621,7 +622,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
       break;
     }
     default:
-      break;
+      throw std::invalid_argument("Cannot set parallelization for unresolved method.");
   }
 
   // Use a local variable to not override stored maximum based
@@ -935,7 +936,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 }
 
 
-void Controller::execute_circuit(Circuit &circ, Noise::NoiseModel &noise,
+void Controller::execute_circuit(Circuit &circ, const Noise::NoiseModel &noise,
                                  const Method method, const json_t &config,
                                  ExperimentResult &result) {
   // Start individual circuit timer
@@ -1719,7 +1720,7 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
   bool kraus_noise = (noise_model.opset().contains(Operations::OpType::kraus) ||
                       noise_model.opset().contains(Operations::OpType::superop));
 
-  if (default_method_ == Method::automatic) {
+  if (method_ == Method::automatic) {
     // Determine simulation methods for each circuit and noise model
     std::vector<Method> sim_methods;
     bool superop_enabled = false;
@@ -1740,12 +1741,12 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
   }
 
   // Use non-automatic default method for all circuits
-  std::vector<Method> sim_methods(circuits.size(), default_method_);
-  if (default_method_ == Method::density_matrix || default_method_ == Method::superop) {
+  std::vector<Method> sim_methods(circuits.size(), method_);
+  if (method_ == Method::density_matrix || method_ == Method::superop) {
     noise_model.enable_superop_method(max_parallel_threads_);
   } else if (kraus_noise && (
-              default_method_ == Method::statevector
-              || default_method_ == Method::matrix_product_state)) {
+              method_ == Method::statevector
+              || method_ == Method::matrix_product_state)) {
     noise_model.enable_kraus_method(max_parallel_threads_);
   }
   return sim_methods;
@@ -1763,7 +1764,7 @@ Controller::automatic_simulation_method(const Circuit &circ,
   // a single shot of the density matrix simulator is approx 2 ** nq
   // times slower than a single shot of statevector due the increased
   // dimension
-  if (noise_model.has_quantum_errors() &&
+  if (noise_model.has_quantum_errors() && circ.num_qubits < 64 &&
       circ.shots > (1ULL << circ.num_qubits) &&
       validate_memory_requirements(DensityMatrix::State<>(), circ, false) &&
       validate_state(DensityMatrix::State<>(), circ, noise_model, false) &&
@@ -1820,7 +1821,7 @@ bool Controller::validate_state(const state_t &state, const Circuit &circ,
 
   // If we didn't return true then either noise model or circ has
   // invalid instructions.
-  if (throw_except == false)
+  if (!throw_except)
     return false;
 
   // If we are throwing an exception we include information
@@ -1863,7 +1864,7 @@ bool Controller::validate_memory_requirements(const state_t &state,
 }
 
 void Controller::save_exception_to_results(Result &result,
-                                           const std::exception &e) {
+                                           const std::exception &e) const {
   result.status = Result::Status::error;
   result.message = e.what();
   for (auto &res : result.results) {

@@ -25,7 +25,6 @@
 namespace AER {
 namespace Transpile {
 
-using uint_t = uint_t;
 using op_t = Operations::Op;
 using optype_t = Operations::OpType;
 using oplist_t = std::vector<op_t>;

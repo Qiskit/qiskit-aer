@@ -142,7 +142,7 @@ Circuit::Circuit(const std::vector<Op> &_ops, bool truncation) : Circuit() {
 }
 
 Circuit::Circuit(std::vector<Op> &&_ops, bool truncation) : Circuit() {
-  ops = _ops;
+  ops = std::move(_ops);
   set_params(truncation);
 }
 

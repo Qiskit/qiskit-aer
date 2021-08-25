@@ -277,7 +277,7 @@ Circuit NoiseModel::sample_noise(const Circuit &circ,
         break;
     }
   }
-  return sample_noise_circuit(circ, rng, method);                   
+  return sample_noise_circuit(circ, rng, method);
 }
 
 Circuit NoiseModel::sample_noise(const Circuit &circ,
@@ -285,7 +285,8 @@ Circuit NoiseModel::sample_noise(const Circuit &circ,
                                  const Method method) const {
   // Check if sampling method is enabled
   if (enabled_methods_.find(method) == enabled_methods_.end()) {
-    throw std::runtime_error("Kraus or superoperator noise sampling method has not been abled.");
+    throw std::runtime_error(
+      "Kraus or superoperator noise sampling method has not been enabled.");
   }
   return sample_noise_circuit(circ, rng, method);                   
 }
