@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-QasmSimulator Integration Tests for SaveStatevector instruction
+AerSimulator Integration Tests for SaveStatevector instruction
 """
 from ddt import ddt
 import qiskit.quantum_info as qi

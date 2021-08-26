@@ -16,13 +16,13 @@ import sys
 import numpy as np
 from time import time
 from qiskit.compiler import transpile, assemble
-from qiskit.providers.aer import QasmSimulator, UnitarySimulator
+from qiskit.providers.aer import AerSimulator, UnitarySimulator
 from qiskit.providers.aer.noise import NoiseModel, amplitude_damping_error, depolarizing_error
 
 from benchmark.circuit_library_circuits import CircuitLibraryCircuits
 
 QOBJS = {}
-QASM_SIMULATOR = QasmSimulator()
+SIMULATOR = AerSimulator()
 
 class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
 
@@ -98,7 +98,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         self.params = (self.apps, self.measures, self.measure_counts, self.noise_model_names, self.qubits)
         self.param_names = ["application", "measure_method", "measure_counts", "noise", "qubit"]
         
-        all_simulators = [ QASM_SIMULATOR ]
+        all_simulators = [ SIMULATOR ]
         
         self.simulators = {}
         self.backend_options_list = {}
@@ -118,27 +118,27 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             self.noise_models[self.NOISE_DEPOLARIZING] = noise_model
 
         if self.RUNTIME_STATEVECTOR_CPU in runtime_names:
-            self.simulators[self.RUNTIME_STATEVECTOR_CPU] = QASM_SIMULATOR
+            self.simulators[self.RUNTIME_STATEVECTOR_CPU] = SIMULATOR
             self.backend_options_list[self.RUNTIME_STATEVECTOR_CPU] = { 'method': self.RUNTIME_STATEVECTOR_CPU }
             self.backend_qubits[self.RUNTIME_STATEVECTOR_CPU] = self.qubits
         
         if self.RUNTIME_STATEVECTOR_GPU in runtime_names:
-            self.simulators[self.RUNTIME_STATEVECTOR_GPU] = QASM_SIMULATOR
+            self.simulators[self.RUNTIME_STATEVECTOR_GPU] = SIMULATOR
             self.backend_options_list[self.RUNTIME_STATEVECTOR_GPU] = { 'method': self.RUNTIME_STATEVECTOR_GPU }
             self.backend_qubits[self.RUNTIME_STATEVECTOR_GPU] = self.qubits
         
         if self.RUNTIME_MPS_CPU in runtime_names:
-            self.simulators[self.RUNTIME_MPS_CPU] = QASM_SIMULATOR
+            self.simulators[self.RUNTIME_MPS_CPU] = SIMULATOR
             self.backend_options_list[self.RUNTIME_MPS_CPU] = { 'method': self.RUNTIME_MPS_CPU }
             self.backend_qubits[self.RUNTIME_MPS_CPU] = self.qubits
         
         if self.RUNTIME_DENSITY_MATRIX_CPU in runtime_names:
-            self.simulators[self.RUNTIME_DENSITY_MATRIX_CPU] = QASM_SIMULATOR
+            self.simulators[self.RUNTIME_DENSITY_MATRIX_CPU] = SIMULATOR
             self.backend_options_list[self.RUNTIME_DENSITY_MATRIX_CPU] = { 'method': self.RUNTIME_DENSITY_MATRIX_CPU }
             self.backend_qubits[self.RUNTIME_DENSITY_MATRIX_CPU] = [qubit for qubit in qubits if qubit <= 15]
         
         if self.RUNTIME_DENSITY_MATRIX_GPU in runtime_names:
-            self.simulators[self.RUNTIME_DENSITY_MATRIX_GPU] = QASM_SIMULATOR
+            self.simulators[self.RUNTIME_DENSITY_MATRIX_GPU] = SIMULATOR
             self.backend_options_list[self.RUNTIME_DENSITY_MATRIX_GPU] = { 'method': self.RUNTIME_DENSITY_MATRIX_GPU }
             self.backend_qubits[self.RUNTIME_DENSITY_MATRIX_GPU] = [qubit for qubit in qubits if qubit <= 15]
         
