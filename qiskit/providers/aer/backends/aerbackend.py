@@ -123,15 +123,17 @@ class AerBackend(Backend, ABC):
         if isinstance(circuits, QuantumCircuit):
             if len(parameter_binds) > 1:
                 raise AerError("More than 1 parameter table provided for a single circuit")
+
             return [self._convert_circuit_binds(circuits, parameter_binds[0])]
         elif len(parameter_binds) != len(circuits):
             raise AerError(
                 "Number of input circuits does not match number of input "
                 "parameter bind dictionaries"
             )
-        parameterizations = []
-        for idx, circuit in enumerate(circuits):
-            parameterizations.append(self._convert_circuit_binds(circuit, parameter_binds[idx]))
+        parameterizations = [
+            self._convert_circuit_binds(
+                circuit, parameter_binds[idx]) for idx, circuit in enumerate(circuits)
+        ]
         return parameterizations
 
     # pylint: disable=arguments-differ
@@ -200,8 +202,7 @@ class AerBackend(Backend, ABC):
             if parameter_binds:
                 parameterizations = self._convert_binds(circuits, parameter_binds)
                 assemble_binds = []
-                for bind in parameter_binds:
-                    assemble_binds.append({param: 1 for param in bind})
+                assemble_binds.append({param: 1 for bind in parameter_binds for param in bind})
 
                 qobj = assemble(circuits, self, parameter_binds=assemble_binds)
                 self._get_job_submit_args(qobj,
