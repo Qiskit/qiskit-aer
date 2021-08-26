@@ -625,26 +625,39 @@ class AerSimulator(AerBackend):
         config.backend_name = self.name()
         return config
 
-    def _execute(self, circuits, noise_model, config):
+    def _execute(self, qobj, config):
         """Execute a qobj on the backend.
 
         Args:
-            qobj (QasmQobj): simulator input.
+            qobj (QasmQobj or PulseQobj or list): simulator input.
+            config (BackendConfiguration): the configuration for the backend.
 
         Returns:
             dict: return a dictionary of results.
         """
-        if isinstance(circuits, (QasmQobj, PulseQobj)):
-            return cpp_execute(self._controller, circuits)
-        elif isinstance(circuits, AerCircuit):
-            return self._controller_new.execute([circuits], config.shots, noise_model, config)
-        elif isinstance(circuits, QuantumCircuit):
-            return self._controller_new.execute([gen_aer_circuit(circuits)], config.shots,
-                                                noise_model, config)
+        if isinstance(qobj, (QasmQobj, PulseQobj)):
+            return cpp_execute(self._controller, qobj)
+
+        noise_model = None
+        if config and hasattr(config, 'noise_model'):
+            noise_model = config.noise_model
+            delattr(config, 'noise_model')
+
+        circs = qobj
+        if isinstance(circs, AerCircuit):
+            result = self._controller_new.execute([circs], config.shots, noise_model, config)
+        elif isinstance(circs, QuantumCircuit):
+            result = self._controller_new.execute([gen_aer_circuit(circs)], config.shots,
+                                                  noise_model, config)
         else:
-            circuits = [ circuit if isinstance(circuit, AerCircuit) else gen_aer_circuit(circuit)
-                            for circuit in circuits ]
-            return self._controller_new.execute(circuits, config.shots, noise_model, config)
+            circs = [circuit if isinstance(circuit, QuantumCircuit) else gen_aer_circuit(circuit)
+                     for circuit in circs]
+            result = self._controller_new.execute(circs, config.shots, noise_model, config)
+
+        if noise_model:
+            setattr(config, 'noise_model', noise_model)
+
+        return result
 
     def set_options(self, **fields):
         out_options = {}

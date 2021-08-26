@@ -249,11 +249,12 @@ class UnitarySimulator(AerBackend):
         """Return the available simulation methods."""
         return copy.copy(self._AVAILABLE_DEVICES)
 
-    def _execute(self, qobj):
+    def _execute(self, qobj, config):
         """Execute a qobj on the backend.
 
         Args:
             qobj (QasmQobj): simulator input.
+            config (BackendConfiguration): the configuration for the backend.
 
         Returns:
             dict: return a dictionary of results.

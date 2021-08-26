@@ -12,9 +12,10 @@
 """
 Qiskit Aer helper functions to use C++ objects with pybind11.
 """
-# pylint: disable=import-error, no-name-in-module, invalid-name
+# pylint: disable=import-error, no-name-in-module, invalid-name, unused-argument
 import qiskit
-from qiskit.providers.aer.backends.controller_wrappers import *
+from qiskit.providers.aer.backends.controller_wrappers import (AerCircuit, AerOp,
+                                                               OpType, make_unitary)
 
 
 # OpType.barrier
@@ -550,9 +551,10 @@ def mcx_gray(inst, qubits, clbits):
 
 # OpType.matrix:
 def unitary(inst, qubits, clbits):
+    """unitary"""
     mat = inst.params[0]
-    size = 2 ** len(qubits)
     return make_unitary(qubits, mat, mat.flags.carray)
+
 
 # OpType.diagonal_matrix:
 def diagonal(inst, qubits, clbits):
@@ -616,14 +618,16 @@ _gen_op_funcs = {
     qiskit.circuit.library.generalized_gates.pauli.PauliGate: pauli,
     qiskit.circuit.library.generalized_gates.diagonal.Diagonal: diagonal,
     qiskit.circuit.library.standard_gates.x.MCXGrayCode: mcx_gray,
-    }
+}
+
 
 def gen_aer_op(inst, qubits, clbits):
     """Generate an Aer operation from an inst"""
-    if not inst.__class__ in _gen_op_funcs:
+    if inst.__class__ not in _gen_op_funcs:
         raise ValueError(f'unsupported instruction: {inst.__class__}')
-    
+
     return _gen_op_funcs[inst.__class__](inst, qubits, clbits)
+
 
 def gen_aer_circuit(circuit):
     """convert QuantumCircuit to AerCircuit"""

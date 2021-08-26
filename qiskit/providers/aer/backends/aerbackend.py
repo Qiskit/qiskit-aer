@@ -9,7 +9,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from _ast import Or
 """
 Qiskit Aer qasm simulator backend.
 """
@@ -145,7 +144,7 @@ class AerBackend(Backend, ABC):
         """Run a qobj on the backend.
 
         Args:
-            qobj: QasmQobj or PulseQobj to run
+            qobj (QasmQobj or PulseQobj): qobj to run
             validate (bool): validate the Qobj before running (default: False).
             run_options (kwargs): additional run time backend options.
 
@@ -159,10 +158,6 @@ class AerBackend(Backend, ABC):
         Raises:
             ValueError: if run is not implemented
         """
-        # Optional validation
-        if validate:
-            self._validate(qobj)
-
         config = qobj.config
         # A work around to support both qobj options and run options until
         # qobj is deprecated is to copy all the set qobj.config fields into
@@ -177,8 +172,12 @@ class AerBackend(Backend, ABC):
                 if key not in run_options and value is not None:
                     run_options[key] = value
 
+        # Optional validation
+        if validate:
+            self._validate(qobj)
+
         # Add submit args for the job
-        experiments = self._get_job_submit_args(qobj, validate=validate, **run_options)
+        experiments = self._get_job_submit_args(qobj, **run_options)
 
         # Avoid serialization of self._options._executor in submit()
         executor = None
@@ -203,7 +202,6 @@ class AerBackend(Backend, ABC):
 
         return aer_job
 
-
     def _run_circuits(self,
                       circuits,
                       validate=False,
@@ -211,7 +209,7 @@ class AerBackend(Backend, ABC):
         """Run a qobj on the backend.
 
         Args:
-            circuits: QuantumCircuit or its List to run
+            circuits (QuantumCircuit or list): QuantumCircuit or its List to run
             validate (bool): validate the circuits before running (default: False).
             run_options (kwargs): additional run time backend options.
 
@@ -225,6 +223,10 @@ class AerBackend(Backend, ABC):
         Raises:
             ValueError: if run is not implemented
         """
+        # Optional validation
+        if validate:
+            self._validate(assemble(circuits, self))
+
         # Generate configuration
         config = self.configuration()
         # Add options
@@ -243,7 +245,6 @@ class AerBackend(Backend, ABC):
 
         return aer_job
 
-    
     def configuration(self):
         """Return the simulator backend configuration.
 
@@ -312,16 +313,8 @@ class AerBackend(Backend, ABC):
         # Start timer
         start = time.time()
 
-        noise_model = None
-        if config and hasattr(config, 'noise_model'):
-            noise_model = config.noise_model
-            delattr(config, 'noise_model')
-
         # Run simulation
-        output = self._execute(circuits, noise_model, config)
-
-        if noise_model:
-            setattr(config, 'noise_model', noise_model)
+        output = self._execute(circuits, config)
 
         # Validate output
         if not isinstance(output, dict):
@@ -350,11 +343,12 @@ class AerBackend(Backend, ABC):
         return Result.from_dict(output)
 
     @abstractmethod
-    def _execute(self, circuits, config):
+    def _execute(self, qobj, config):
         """Execute circuits on the backend.
 
         Args:
-            qobj (QasmQobj or PulseQobj): simulator input.
+            qobj (QasmQobj or PulseQobj or list): simulator input.
+            config (BackendConfiguration): simulation config.
 
         Returns:
             dict: return a dictionary of results.
@@ -400,7 +394,6 @@ class AerBackend(Backend, ABC):
                 # remove it from the options dict
                 setattr(self._options, key, getattr(self._default_options(), key))
 
-
     def set_options(self, **fields):
         """Set the simulator options"""
         for key, value in fields.items():
@@ -427,7 +420,7 @@ class AerBackend(Backend, ABC):
         elif key in self._options_defaults:
             self._options_defaults.pop(key)
 
-    def _get_job_submit_args(self, qobj, validate=False, **run_options):
+    def _get_job_submit_args(self, qobj, **run_options):
         """Return execution sim config dict from backend options."""
         # Add options to qobj config overriding any existing fields
         config = qobj.config
