@@ -10,20 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Test circuits and reference outputs for snapshot state instructions.
+Test circuits and reference outputs for save state instructions.
 """
 
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.quantum_info.states import Statevector
-from qiskit.providers.aer.extensions.snapshot_expectation_value import *
-
-# Backwards compatibility for Terra <= 0.13
-if not hasattr(QuantumCircuit, 'i'):
-    QuantumCircuit.i = QuantumCircuit.iden
+from qiskit.quantum_info import Pauli, SparsePauliOp
 
 
-def snapshot_expval_labels():
+def save_expval_labels():
     """List of labels for exp val snapshots."""
     return [
         "<H[0]>", "<H[1]>", "<X[0]>", "<X[1]>", "<Z[0]>", "<Z[1]>",
@@ -32,20 +28,20 @@ def snapshot_expval_labels():
     ]
 
 
-def snapshot_expval_params(pauli=False):
+def save_expval_params(pauli=False):
     """Dictionary of labels and params, qubits for exp val snapshots."""
     if pauli:
-        X_wpo = [[1, 'X']]
-        Y_wpo = [[1, 'Y']]
-        Z_wpo = [[1, 'Z']]
-        H_wpo = [[1 / np.sqrt(2), 'X'], [1 / np.sqrt(2), 'Z']]
-        IX_wpo = [[1, 'IX']]
-        IY_wpo = [[1, 'IY']]
-        IZ_wpo = [[1, 'IZ']]
-        IH_wpo = [[1 / np.sqrt(2), 'IX'], [1 / np.sqrt(2), 'IZ']]
-        XX_wpo = [[1, 'XX']]
-        YY_wpo = [[1, 'YY']]
-        ZZ_wpo = [[1, 'ZZ']]
+        X_wpo = Pauli('X')
+        Y_wpo = Pauli('Y')
+        Z_wpo = Pauli('Z')
+        H_wpo = np.sqrt(0.5) * (SparsePauliOp('X') + SparsePauliOp('Z'))
+        IX_wpo = Pauli('IX')
+        IY_wpo = Pauli('IY')
+        IZ_wpo = Pauli('IZ')
+        IH_wpo = np.sqrt(0.5) * (SparsePauliOp('IX') + SparsePauliOp('IZ'))
+        XX_wpo = Pauli('XX')
+        YY_wpo = Pauli('YY')
+        ZZ_wpo = Pauli('ZZ')
     else:
         X_wpo = np.array([[0, 1], [1, 0]], dtype=complex)
         Y_wpo = np.array([[0, -1j], [1j, 0]], dtype=complex)
@@ -81,12 +77,14 @@ def snapshot_expval_params(pauli=False):
     }
 
 
-def snapshot_expval_circuits(pauli=False,
-                             single_shot=False,
-                             variance=False,
-                             post_measure=False,
-                             skip_measure=False):
-    """SnapshotExpectationValue test circuits with deterministic counts"""
+def save_expval_circuits(
+    pauli=False,
+    pershot=False,
+    variance=False,
+    post_measure=False,
+    skip_measure=False,
+):
+    """SaveExpectationValue test circuits with deterministic counts"""
 
     circuits = []
     num_qubits = 2
@@ -94,30 +92,30 @@ def snapshot_expval_circuits(pauli=False,
     cr = ClassicalRegister(num_qubits)
     regs = (qr, cr)
 
+    save_expectation = (
+        QuantumCircuit.save_expectation_value_variance
+        if variance
+        else QuantumCircuit.save_expectation_value
+    )
+
     # State |+1>
     circuit = QuantumCircuit(*regs)
     circuit.x(0)
     circuit.h(1)
     if not post_measure:
-        for label, (params,
-                    qubits) in snapshot_expval_params(pauli=pauli).items():
-            circuit.snapshot_expectation_value(label,
-                                               params,
-                                               qubits,
-                                               single_shot=single_shot,
-                                               variance=variance)
+        for label, (params, qubits) in save_expval_params(pauli=pauli).items():
+            save_expectation(
+                circuit, params, qubits, label=label, pershot=pershot,
+            )
     circuit.barrier(qr)
     if not skip_measure:
         circuit.measure(qr, cr)
     circuit.barrier(qr)
     if post_measure:
-        for label, (params,
-                    qubits) in snapshot_expval_params(pauli=pauli).items():
-            circuit.snapshot_expectation_value(label,
-                                               params,
-                                               qubits,
-                                               single_shot=single_shot,
-                                               variance=variance)
+        for label, (params, qubits) in save_expval_params(pauli=pauli).items():
+            save_expectation(
+                circuit, params, qubits, label=label, pershot=pershot,
+            )
     circuits.append(circuit)
 
     # State |00> + |11>
@@ -125,25 +123,19 @@ def snapshot_expval_circuits(pauli=False,
     circuit.h(0)
     circuit.cx(0, 1)
     if not post_measure:
-        for label, (params,
-                    qubits) in snapshot_expval_params(pauli=pauli).items():
-            circuit.snapshot_expectation_value(label,
-                                               params,
-                                               qubits,
-                                               single_shot=single_shot,
-                                               variance=variance)
+        for label, (params, qubits) in save_expval_params(pauli=pauli).items():
+            save_expectation(
+                circuit, params, qubits, label=label, pershot=pershot,
+            )
     circuit.barrier(qr)
     if not skip_measure:
         circuit.measure(qr, cr)
     circuit.barrier(qr)
     if post_measure:
-        for label, (params,
-                    qubits) in snapshot_expval_params(pauli=pauli).items():
-            circuit.snapshot_expectation_value(label,
-                                               params,
-                                               qubits,
-                                               single_shot=single_shot,
-                                               variance=variance)
+        for label, (params, qubits) in save_expval_params(pauli=pauli).items():
+            save_expectation(
+                circuit, params, qubits, label=label, pershot=pershot,
+            )
     circuits.append(circuit)
 
     # State |10> -i|01>
@@ -153,31 +145,25 @@ def snapshot_expval_circuits(pauli=False,
     circuit.cx(0, 1)
     circuit.x(1)
     if not post_measure:
-        for label, (params,
-                    qubits) in snapshot_expval_params(pauli=pauli).items():
-            circuit.snapshot_expectation_value(label,
-                                               params,
-                                               qubits,
-                                               single_shot=single_shot,
-                                               variance=variance)
+        for label, (params, qubits) in save_expval_params(pauli=pauli).items():
+            save_expectation(
+                circuit, params, qubits, label=label, pershot=pershot,
+            )
     circuit.barrier(qr)
     if not skip_measure:
         circuit.measure(qr, cr)
     circuit.barrier(qr)
     if post_measure:
-        for label, (params,
-                    qubits) in snapshot_expval_params(pauli=pauli).items():
-            circuit.snapshot_expectation_value(label,
-                                               params,
-                                               qubits,
-                                               single_shot=single_shot,
-                                               variance=variance)
+        for label, (params, qubits) in save_expval_params(pauli=pauli).items():
+            save_expectation(
+                circuit, params, qubits, label=label, pershot=pershot,
+            )
     circuits.append(circuit)
     return circuits
 
 
-def snapshot_expval_counts(shots):
-    """SnapshotExpectationValue test circuits reference counts."""
+def save_expval_counts(shots):
+    """SaveExpectationValue test circuits reference counts."""
     targets = []
     # State |+1>
     targets.append({'0x1': shots / 2, '0x3': shots / 2})
@@ -188,8 +174,8 @@ def snapshot_expval_counts(shots):
     return targets
 
 
-def snapshot_expval_final_statevecs():
-    """SnapshotExpectationValue test circuits pre meas statevecs"""
+def save_expval_final_statevecs():
+    """SaveExpectationValue test circuits pre meas statevecs"""
     # Get pre-measurement statevectors
     statevecs = []
     # State |+1>
@@ -206,25 +192,25 @@ def snapshot_expval_final_statevecs():
     return statevecs
 
 
-def snapshot_expval_pre_meas_values():
-    """SnapshotExpectationValue test circuits reference final probs"""
+def save_expval_pre_meas_values():
+    """SaveExpectationValue test circuits reference final probs"""
     targets = []
-    for statevec in snapshot_expval_final_statevecs():
+    for statevec in save_expval_final_statevecs():
         values = {}
-        for label, (mat, qubits) in snapshot_expval_params().items():
-            values[label] = {
-                '0x0': statevec.data.conj().dot(statevec.evolve(mat, qubits).data)
-            }
+        for label, (mat, qubits) in save_expval_params().items():
+            values[label] = (
+                statevec.data.conj().dot(statevec.evolve(mat, qubits).data)
+            )
         targets.append(values)
     return targets
 
 
-def snapshot_expval_post_meas_values():
-    """SnapshotExpectationValue test circuits reference final statevector"""
+def save_expval_post_meas_values():
+    """SaveExpectationValue test circuits reference final statevector"""
     targets = []
-    for statevec in snapshot_expval_final_statevecs():
+    for statevec in save_expval_final_statevecs():
         values = {}
-        for label, (mat, qubits) in snapshot_expval_params().items():
+        for label, (mat, qubits) in save_expval_params().items():
             inner_dict = {}
             for j in ['00', '01', '10', '11']:
                 # Check if non-zero measurement probability for given
@@ -239,11 +225,11 @@ def snapshot_expval_post_meas_values():
     return targets
 
 
-def snapshot_expval_circuit_parameterized(single_shot=False,
-                                          measure=True,
-                                          snapshot=False):
-    """SnapshotExpectationValue test circuits, rewritten as a single parameterized circuit and
-    parameterizations array. """
+def save_expval_circuit_parameterized(
+    pershot=False, measure=True, snapshot=False,
+):
+    """SaveExpectationValue test circuits, rewritten as a single parameterized
+    circuit and parameterizations array."""
 
     num_qubits = 2
     qr = QuantumRegister(num_qubits)
@@ -258,11 +244,10 @@ def snapshot_expval_circuit_parameterized(single_shot=False,
     circuit.u(0, 0, 0, 1)
     circuit.i(0)
     if snapshot:
-        for label, (params, qubits) in snapshot_expval_params(pauli=True).items():
-            circuit.snapshot_expectation_value(label,
-                                               params,
-                                               qubits,
-                                               single_shot=single_shot)
+        for label, (params, qubits) in save_expval_params(pauli=True).items():
+            circuit.save_expectation_value(
+                params, qubits, label=label, pershot=pershot,
+            )
     if measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
