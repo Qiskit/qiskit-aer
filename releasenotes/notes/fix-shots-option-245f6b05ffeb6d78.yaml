@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes issue where setting the ``shots`` option for a backend with
+    ``set_options(shots=k)`` was always running the default number of shots
+    rather than the specified value.

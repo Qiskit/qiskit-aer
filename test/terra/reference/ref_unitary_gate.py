@@ -205,8 +205,7 @@ def unitary_random_gate_counts_nondeterministic(shots):
     for n in range(1, 5):
         unitary1 = random_unitary(2 ** n, seed=n)
         state = Statevector.from_label(n * '0').evolve(unitary1)
-        state.seed(10)
-        counts = state.sample_counts(shots=shots)
-        hex_counts = {hex(int(key, 2)): val for key, val in counts.items()}
+        probs = state.probabilities_dict()
+        hex_counts = {hex(int(key, 2)): val * shots for key, val in probs.items()}
         targets.append(hex_counts)
     return targets
