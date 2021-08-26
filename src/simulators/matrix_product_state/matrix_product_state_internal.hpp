@@ -28,7 +28,7 @@ namespace MatrixProductState {
 
 // Allowed gates enum class
 enum Gates {
-  id, h, x, y, z, s, sdg, sx, t, tdg, u1, u2, u3, r, rx, ry, rz, // single qubit
+  id, h, x, y, z, s, sdg, sx, sxdg, t, tdg, u1, u2, u3, r, rx, ry, rz, // single qubit
   cx, cy, cz, cu1, swap, su4, rxx, ryy, rzz, rzx, csx, // two qubit
   ccx, cswap, // three qubit
   pauli
@@ -119,7 +119,10 @@ public:
     else
       return "";
   }
-  
+
+  //----------------------------------------------------------------
+  void move_all_qubits_to_sorted_ordering();
+
 
   /////////////////////////////////////////////////////////////////
   // API functions
@@ -133,6 +136,7 @@ public:
   //----------------------------------------------------------------
   void apply_h(uint_t index);
   void apply_sx(uint_t index);
+  void apply_sxdg(uint_t index);
   void apply_r(uint_t index, double phi, double lam);
   void apply_rx(uint_t index, double theta);
   void apply_ry(uint_t index, double theta);
@@ -300,7 +304,7 @@ public:
   reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
 					   const reg_t &qubits);
 
-  reg_t apply_measure(const reg_t &qubits, RngEngine &rng);
+  reg_t apply_measure(const reg_t &qubits, const rvector_t &rnds);
 
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector_internal
@@ -410,11 +414,10 @@ private:
 
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 
-  reg_t apply_measure_internal(const reg_t &qubits,
-			       RngEngine &rng);
+  reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
 
-  uint_t apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng, 
-					     uint_t next_measured_qubit);
+  uint_t apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
+               uint_t next_measured_qubit);
 
   reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
 						    const reg_t &qubits) const;
@@ -464,10 +467,6 @@ private:
   //----------------------------------------------------------------
   void move_qubits_to_centralized_indices(const reg_t &sorted_indices,
 					  const reg_t &centralized_qubits);
-
-  //----------------------------------------------------------------
-  void move_all_qubits_to_sorted_ordering();
-
 
   // Function name: change_position
   // Description: Move qubit from src to dst in the MPS. Used only

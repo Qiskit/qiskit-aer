@@ -41,7 +41,7 @@ const Operations::OpSet StateOpSet(
     OpType::set_stabilizer},
   // Gates
   {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg",
-   "sx", "delay", "pauli"},
+   "sx", "sxdg", "delay", "pauli"},
   // Snapshots
   {"stabilizer", "memory", "register", "probabilities",
     "probabilities_with_variance", "expectation_value_pauli",
@@ -49,7 +49,7 @@ const Operations::OpSet StateOpSet(
     "expectation_value_pauli_single_shot"}
 );
 
-enum class Gates {id, x, y, z, h, s, sdg, sx, cx, cy, cz, swap, pauli};
+enum class Gates {id, x, y, z, h, s, sdg, sx, sxdg, cx, cy, cz, swap, pauli};
 
 // Allowed snapshots enum class
 enum class Snapshots {
@@ -81,12 +81,12 @@ public:
   // Return the string name of the State class
   virtual std::string name() const override {return "stabilizer";}
 
-  // Apply a sequence of operations by looping over list
-  // If the input is not in allowed_ops an exeption will be raised.
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false) override;
+  // Apply an operation
+  // If the op is not in allowed_ops an exeption will be raised.
+  virtual void apply_op(const Operations::Op &op,
+                        ExperimentResult &result,
+                        RngEngine &rng,
+                        bool final_op = false) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -241,6 +241,7 @@ const stringmap_t<Gates> State::gateset_({
   {"sdg", Gates::sdg}, // Conjugate-transpose of Phase gate
   {"h", Gates::h},     // Hadamard gate (X + Z / sqrt(2))
   {"sx", Gates::sx},   // Sqrt X gate.
+  {"sxdg", Gates::sxdg}, // Inverse Sqrt X gate.
   // Two-qubit gates
   {"CX", Gates::cx},    // Controlled-X gate (CNOT)
   {"cx", Gates::cx},    // Controlled-X gate (CNOT),
@@ -315,55 +316,52 @@ void State::set_config(const json_t &config) {
 // Implementation: apply operations
 //=========================================================================
 
-void State::apply_ops(const std::vector<Operations::Op> &ops,
-                      ExperimentResult &result,
-                      RngEngine &rng, bool final_ops) {
-  // Simple loop over vector of input operations
-  for (const auto &op: ops) {
-    if(BaseState::creg_.check_conditional(op)) {
-      switch (op.type) {
-        case OpType::barrier:
-          break;
-        case OpType::reset:
-          apply_reset(op.qubits, rng);
-          break;
-        case OpType::measure:
-          apply_measure(op.qubits, op.memory, op.registers, rng);
-          break;
-        case OpType::bfunc:
-          BaseState::creg_.apply_bfunc(op);
-          break;
-        case OpType::roerror:
-          BaseState::creg_.apply_roerror(op, rng);
-          break;
-        case OpType::gate:
-          apply_gate(op);
-          break;
-        case OpType::snapshot:
-          apply_snapshot(op, result);
-          break;
-        case OpType::set_stabilizer:
-          apply_set_stabilizer(op.clifford);
-          break;
-        case OpType::save_expval:
-        case OpType::save_expval_var:
-          apply_save_expval(op, result);
-          break;
-        case OpType::save_probs:
-        case OpType::save_probs_ket:
-          apply_save_probs(op, result);
-          break;
-        case OpType::save_amps_sq:
-          apply_save_amplitudes_sq(op, result);
-          break;
-        case OpType::save_state:
-        case OpType::save_stabilizer:
-          apply_save_stabilizer(op, result);
-          break;
-        default:
-          throw std::invalid_argument("Stabilizer::State::invalid instruction \'" +
-                                      op.name + "\'.");
-      }
+void State::apply_op(const Operations::Op &op,
+                     ExperimentResult &result,
+                     RngEngine &rng, bool final_op) {
+  if (BaseState::creg_.check_conditional(op)) {
+    switch (op.type) {
+      case OpType::barrier:
+        break;
+      case OpType::reset:
+        apply_reset(op.qubits, rng);
+        break;
+      case OpType::measure:
+        apply_measure(op.qubits, op.memory, op.registers, rng);
+        break;
+      case OpType::bfunc:
+        BaseState::creg_.apply_bfunc(op);
+        break;
+      case OpType::roerror:
+        BaseState::creg_.apply_roerror(op, rng);
+        break;
+      case OpType::gate:
+        apply_gate(op);
+        break;
+      case OpType::snapshot:
+        apply_snapshot(op, result);
+        break;
+      case OpType::set_stabilizer:
+        apply_set_stabilizer(op.clifford);
+        break;
+      case OpType::save_expval:
+      case OpType::save_expval_var:
+        apply_save_expval(op, result);
+        break;
+      case OpType::save_probs:
+      case OpType::save_probs_ket:
+        apply_save_probs(op, result);
+        break;
+      case OpType::save_amps_sq:
+        apply_save_amplitudes_sq(op, result);
+        break;
+      case OpType::save_state:
+      case OpType::save_stabilizer:
+        apply_save_stabilizer(op, result);
+        break;
+      default:
+        throw std::invalid_argument("Stabilizer::State::invalid instruction \'" +
+                                    op.name + "\'.");
     }
   }
 }
@@ -401,6 +399,11 @@ void State::apply_gate(const Operations::Op &op) {
       BaseState::qreg_.append_s(op.qubits[0]);
       BaseState::qreg_.append_h(op.qubits[0]);
       BaseState::qreg_.append_z(op.qubits[0]);
+      BaseState::qreg_.append_s(op.qubits[0]);
+      break;
+    case Gates::sxdg:
+      BaseState::qreg_.append_s(op.qubits[0]);
+      BaseState::qreg_.append_h(op.qubits[0]);
       BaseState::qreg_.append_s(op.qubits[0]);
       break;
     case Gates::cx:
