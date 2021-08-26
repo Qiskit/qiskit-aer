@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 import unittest
-
+from warnings import filterwarnings
 
 import numpy
 
@@ -25,6 +25,14 @@ from ..common import QiskitAerTestCase
 
 class TestSnapshotExpectationValueExtension(QiskitAerTestCase):
     """SnapshotExpectationValue extension tests"""
+
+    def setUpClass(cls):
+        super().setUpClass()
+        filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            module=".*snapshot_expectation_value",
+        )
 
     @staticmethod
     def snapshot_circuit_instr(circ_qubits, label, op, qubits, single_shot=False, variance=False):
