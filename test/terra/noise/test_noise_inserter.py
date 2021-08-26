@@ -13,7 +13,8 @@
 noise_model_inserter module tests
 """
 
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit, transpile
+from qiskit.quantum_info import SuperOp
 from qiskit.providers.aer.utils import insert_noise
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
@@ -40,7 +41,7 @@ class TestNoiseInserter(QiskitAerTestCase):
 
         result_circuit = insert_noise(circuit, noise_model)
 
-        self.assertEqual(target_circuit, result_circuit)
+        self.assertEqual(SuperOp(target_circuit), SuperOp(result_circuit))
 
     def test_all_qubit_quantum_errors(self):
         qr = QuantumRegister(3, 'qr')
@@ -88,7 +89,7 @@ class TestNoiseInserter(QiskitAerTestCase):
 
         result_circuit = insert_noise(circuit, noise_model)
 
-        self.assertEqual(target_circuit, result_circuit)
+        self.assertEqual(SuperOp(target_circuit), SuperOp(result_circuit))
 
     def test_nonlocal_quantum_errors(self):
         qr = QuantumRegister(3, 'qr')
@@ -108,7 +109,7 @@ class TestNoiseInserter(QiskitAerTestCase):
 
         result_circuit = insert_noise(circuit, noise_model)
 
-        self.assertEqual(target_circuit, result_circuit)
+        self.assertEqual(SuperOp(target_circuit), SuperOp(result_circuit))
 
     def test_transpiling(self):
         qr = QuantumRegister(3, 'qr')
@@ -121,17 +122,18 @@ class TestNoiseInserter(QiskitAerTestCase):
         error_y = pauli_error([('X', 0.35), ('Z', 0.65)])
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error_x, 'x')
-        noise_model.add_all_qubit_quantum_error(error_y, 'p')
+        noise_model.add_all_qubit_quantum_error(error_y, 'y')
 
         target_circuit = QuantumCircuit(qr)
         target_circuit.x(qr[0])
         target_circuit.append(error_x.to_instruction(), [qr[0]])
-        target_circuit.u(pi, pi / 2, pi / 2, qr[1])
-        target_circuit.p(pi, qr[2])
-        target_circuit.append(error_y.to_instruction(), [qr[2]])
-
+        target_circuit.y(qr[1])
+        target_circuit.append(error_y.to_instruction(), [qr[1]])
+        target_circuit.z(qr[2])
+        target_basis = ['kraus'] + noise_model.basis_gates
+        target_circuit = transpile(target_circuit, basis_gates=target_basis)
         result_circuit = insert_noise(circuit, noise_model, transpile=True)
-        self.assertEqual(target_circuit, result_circuit)
+        self.assertEqual(SuperOp(target_circuit), SuperOp(result_circuit))
 
     def test_multiple_inputs(self):
         qr = QuantumRegister(1, 'qr')
@@ -162,9 +164,9 @@ class TestNoiseInserter(QiskitAerTestCase):
         result_circuits = insert_noise(circuits_list, noise_model)
         self.assertEqual(target_circuits, result_circuits)
 
-        target_circuits = [target_circuit1, target_circuit2]
-        result_circuits = insert_noise(circuits_tuple, noise_model)
-        self.assertEqual(target_circuits, result_circuits)
+        targets = [SuperOp(i) for i in [target_circuit1, target_circuit2]]
+        results = [SuperOp(i) for i in insert_noise(circuits_tuple, noise_model)]
+        self.assertEqual(targets, results)
 
 
 if __name__ == '__main__':
