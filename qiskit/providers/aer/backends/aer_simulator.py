@@ -15,6 +15,7 @@ Qiskit Aer qasm simulator backend.
 
 import copy
 import logging
+from qiskit.circuit import QuantumCircuit
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.qobj import QasmQobj, PulseQobj
@@ -153,12 +154,23 @@ class AerSimulator(AerBackend):
     The following simulator specific backend options are supported
 
     * ``method`` (str): Set the simulation method (Default: ``"automatic"``).
+      Use :meth:`available_methods` to return a list of all availabe methods.
 
     * ``device`` (str): Set the simulation device (Default: ``"CPU"``).
+      Use :meth:`available_devices` to return a list of devices supported
+      on the current system.
 
     * ``precision`` (str): Set the floating point precision for
       certain simulation methods to either ``"single"`` or ``"double"``
       precision (default: ``"double"``).
+
+    * ``executor`` (futures.Executor or None): Set a custom executor for
+      asynchronous running of simulation jobs (Default: None).
+
+    * ``max_job_size`` (int or None): If the number of run circuits
+      exceeds this value simulation will be run as a set of of sub-jobs
+      on the executor. If ``None`` simulation of all circuits are submitted
+      to the executor as a single job (Default: None).
 
     * ``zero_threshold`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
@@ -455,7 +467,7 @@ class AerSimulator(AerBackend):
 
     _AVAILABLE_METHODS = None
 
-    _SIMULATION_DEVICES = ['CPU', 'GPU', 'Thrust']
+    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust')
 
     _AVAILABLE_DEVICES = None
 
@@ -487,7 +499,6 @@ class AerSimulator(AerBackend):
 
         super().__init__(configuration,
                          properties=properties,
-                         available_methods=AerSimulator._AVAILABLE_METHODS,
                          provider=provider,
                          backend_options=backend_options)
 
@@ -499,6 +510,8 @@ class AerSimulator(AerBackend):
             method='automatic',
             device='CPU',
             precision="double",
+            executor=None,
+            max_job_size=None,
             zero_threshold=1e-10,
             validation_threshold=None,
             max_parallel_threads=None,
@@ -527,7 +540,7 @@ class AerSimulator(AerBackend):
             extended_stabilizer_metropolis_mixing_time=5000,
             extended_stabilizer_approximation_error=0.05,
             extended_stabilizer_norm_estimation_samples=100,
-            extended_stabilizer_norm_estimation_repitions=3,
+            extended_stabilizer_norm_estimation_repetitions=3,
             extended_stabilizer_parallel_threshold=100,
             extended_stabilizer_probabilities_snapshot_samples=3000,
             # MPS options
@@ -586,9 +599,13 @@ class AerSimulator(AerBackend):
                   **options)
         return sim
 
+    def available_methods(self):
+        """Return the available simulation methods."""
+        return copy.copy(self._AVAILABLE_METHODS)
+
     def available_devices(self):
         """Return the available simulation methods."""
-        return self._AVAILABLE_DEVICES
+        return copy.copy(self._AVAILABLE_DEVICES)
 
     def configuration(self):
         """Return the simulator backend configuration.
@@ -634,6 +651,10 @@ class AerSimulator(AerBackend):
         update_basis_gates = False
         for key, value in fields.items():
             if key == 'method':
+                if (value is not None and value not in self.available_methods()):
+                    raise AerError(
+                        "Invalid simulation method {}. Available methods"
+                        " are: {}".format(value, self.available_methods()))
                 self._set_method_config(value)
                 update_basis_gates = True
                 out_options[key] = value

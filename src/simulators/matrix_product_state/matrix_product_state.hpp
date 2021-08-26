@@ -166,7 +166,7 @@ public:
   std::vector<reg_t> 
   sample_measure_using_apply_measure(const reg_t &qubits,
 				     uint_t shots,
-				     RngEngine &rng) const;
+				     RngEngine &rng);
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -1000,7 +1000,11 @@ void State::apply_measure(const reg_t &qubits,
                           const reg_t &cmemory,
                           const reg_t &cregister,
                           RngEngine &rng) {
-  reg_t outcome = qreg_.apply_measure(qubits, rng);
+  rvector_t rands;
+  rands.reserve(qubits.size());
+  for (int_t i = 0; i < qubits.size(); ++i)
+    rands.push_back(rng.rand(0., 1.));
+  reg_t outcome = qreg_.apply_measure(qubits, rands);
   creg_.store_measure(outcome, cmemory, cregister);
 }
 
@@ -1018,7 +1022,6 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   // of qubits,and the number of shots.
   // The parameters used below are based on experimentation.
   // The user can override this by setting the parameter "mps_sample_measure_algorithm"
-  uint_t num_qubits = qubits.size();
   if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB){
     return sample_measure_using_probabilities(qubits, shots, rng);
   }
@@ -1031,12 +1034,11 @@ std::vector<reg_t> State::
 sample_measure_using_probabilities(const reg_t &qubits,
 				   uint_t shots,
 				   RngEngine &rng) {
-
   // Generate flat register for storing
   rvector_t rnds;
   rnds.reserve(shots);
   for (uint_t i = 0; i < shots; ++i)
-    rnds.push_back(rng.rand(0, 1));
+    rnds.push_back(rng.rand(0., 1.));
 
   auto allbit_samples = qreg_.sample_measure_using_probabilities(rnds, qubits);
 
@@ -1058,10 +1060,25 @@ sample_measure_using_probabilities(const reg_t &qubits,
 std::vector<reg_t> State::
   sample_measure_using_apply_measure(const reg_t &qubits, 
 				     uint_t shots, 
-				     RngEngine &rng) const {
+				     RngEngine &rng) {
 
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
+  // input is always sorted in qasm_controller, therefore, we must return the qubits 
+  // to their original location (sorted)
+  qreg_.move_all_qubits_to_sorted_ordering();
+  reg_t sorted_qubits = qubits;
+  std::sort(sorted_qubits.begin(), sorted_qubits.end());
+
+  std::vector<rvector_t> rnds_list;
+  rnds_list.reserve(shots);
+  for (int_t i = 0; i < shots; ++i) {
+    rvector_t rands;
+    rands.reserve(qubits.size());
+    for (int_t j = 0; j < qubits.size(); ++j)
+      rands.push_back(rng.rand(0., 1.));
+    rnds_list.push_back(rands);
+  }
 
   #pragma omp parallel if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
   {
@@ -1069,7 +1086,7 @@ std::vector<reg_t> State::
     #pragma omp for
     for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
       temp.initialize(qreg_);
-      auto single_result = temp.apply_measure(qubits, rng);
+      auto single_result = temp.apply_measure(sorted_qubits, rnds_list[i]);
       all_samples[i] = single_result;
     }
   }

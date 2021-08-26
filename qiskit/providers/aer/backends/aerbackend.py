@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+from _ast import Or
 """
 Qiskit Aer qasm simulator backend.
 """
@@ -30,8 +31,9 @@ from qiskit.utils import deprecate_arguments
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.compiler import assemble
 
-from ..aerjob import AerJob
+from ..jobs import AerJob, AerJobSet, split_qobj
 from ..aererror import AerError
+
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -60,11 +62,11 @@ class AerJSONEncoder(json.JSONEncoder):
 
 class AerBackend(Backend, ABC):
     """Qiskit Aer Backend class."""
+
     def __init__(self,
                  configuration,
                  properties=None,
                  defaults=None,
-                 available_methods=None,
                  backend_options=None,
                  provider=None):
         """Aer class for backends.
@@ -77,8 +79,6 @@ class AerBackend(Backend, ABC):
             configuration (BackendConfiguration): backend configuration.
             properties (BackendProperties or None): Optional, backend properties.
             defaults (PulseDefaults or None): Optional, backend pulse defaults.
-            available_methods (list or None): Optional, the available simulation methods
-                                              if backend supports multiple methods.
             provider (Provider): Optional, provider responsible for this backend.
             backend_options (dict or None): Optional set custom backend options.
 
@@ -98,9 +98,6 @@ class AerBackend(Backend, ABC):
         self._options_configuration = {}
         self._options_defaults = {}
         self._options_properties = {}
-
-        # Set available methods
-        self._available_methods = [] if available_methods is None else available_methods
 
         # Set options from backend_options dictionary
         if backend_options is not None:
@@ -126,30 +123,127 @@ class AerBackend(Backend, ABC):
         Additional Information:
             kwarg options specified in ``run_options`` will temporarily override
             any set options of the same name for the current run.
+
+        Raises:
+            ValueError: if run is not implemented
         """
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn('Using a qobj for run() is deprecated and will be '
                           'removed in a future release.',
                           PendingDeprecationWarning,
                           stacklevel=2)
-            config = circuits.config
-            # Optional validation
-            if validate:
-                self._validate(circuits)
+            return self._run_qobj(circuits, validate, **run_options)
+        elif hasattr(self._options, 'executor'):
+            return self._run_qobj(assemble(circuits, self), validate, **run_options)
         else:
-            config = self.configuration()
+            return self._run_circuits(circuits, validate, **run_options)
 
-        # Add backend options to the Job qobj
-        self._add_options_to_config(config, **run_options)
+    def _run_qobj(self,
+                  qobj,
+                  validate=False,
+                  **run_options):
+        """Run a qobj on the backend.
 
-        noise_model = config.noise_model if hasattr(config, 'noise_model') else None
+        Args:
+            qobj: QasmQobj or PulseQobj to run
+            validate (bool): validate the Qobj before running (default: False).
+            run_options (kwargs): additional run time backend options.
+
+        Returns:
+            AerJob: The simulation job.
+
+        Additional Information:
+            kwarg options specified in ``run_options`` will temporarily override
+            any set options of the same name for the current run.
+
+        Raises:
+            ValueError: if run is not implemented
+        """
+        # Optional validation
+        if validate:
+            self._validate(qobj)
+
+        config = qobj.config
+        # A work around to support both qobj options and run options until
+        # qobj is deprecated is to copy all the set qobj.config fields into
+        # run_options that don't override existing fields. This means set
+        # run_options fields will take precidence over the value for those
+        # fields that are set via assemble.
+        if not run_options:
+            run_options = config.__dict__
+        else:
+            run_options = copy.copy(run_options)
+            for key, value in config.__dict__.items():
+                if key not in run_options and value is not None:
+                    run_options[key] = value
+
+        # Add submit args for the job
+        experiments = self._get_job_submit_args(qobj, validate=validate, **run_options)
+
+        # Avoid serialization of self._options._executor in submit()
+        executor = None
+        if hasattr(self._options, 'executor'):
+            executor = getattr(self._options, 'executor')
+            # We need to remove the executor from the qobj config
+            # since it can't be serialized though JSON/Pybind.
+            delattr(self._options, 'executor')
 
         # Submit job
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run, circuits, noise_model, config)
+        if isinstance(experiments, list):
+            aer_job = AerJobSet(self, job_id, self._run, experiments, executor=executor)
+        else:
+            aer_job = AerJob(self, job_id, self._run, experiments, executor=executor)
+
+        # Restore self._options
+        if executor:
+            setattr(self._options, 'executor', executor)
+
         aer_job.submit()
+
         return aer_job
 
+
+    def _run_circuits(self,
+                      circuits,
+                      validate=False,
+                      **run_options):
+        """Run a qobj on the backend.
+
+        Args:
+            circuits: QuantumCircuit or its List to run
+            validate (bool): validate the circuits before running (default: False).
+            run_options (kwargs): additional run time backend options.
+
+        Returns:
+            AerJob: The simulation job.
+
+        Additional Information:
+            kwarg options specified in ``run_options`` will temporarily override
+            any set options of the same name for the current run.
+
+        Raises:
+            ValueError: if run is not implemented
+        """
+        # Generate configuration
+        config = self.configuration()
+        # Add options
+        for key, val in self.options.__dict__.items():
+            if val is not None and not hasattr(config, key):
+                setattr(config, key, val)
+        # Override with run-time options
+        for key, val in run_options.items():
+            setattr(config, key, val)
+
+        # Submit job
+        job_id = str(uuid.uuid4())
+        aer_job = AerJob(self, job_id, self._run, circuits, config=config)
+
+        aer_job.submit()
+
+        return aer_job
+
+    
     def configuration(self):
         """Return the simulator backend configuration.
 
@@ -200,10 +294,6 @@ class AerBackend(Backend, ABC):
         self._options_properties = {}
         self._options_defaults = {}
 
-    def available_methods(self):
-        """Return the available simulation methods."""
-        return self._available_methods
-
     def status(self):
         """Return backend status.
 
@@ -217,13 +307,21 @@ class AerBackend(Backend, ABC):
             pending_jobs=0,
             status_msg='')
 
-    def _run(self, circuits, job_id='', noise_model=None, config=None):
+    def _run(self, circuits, job_id='', config=None):
         """Run a job"""
         # Start timer
         start = time.time()
 
+        noise_model = None
+        if config and hasattr(config, 'noise_model'):
+            noise_model = config.noise_model
+            delattr(config, 'noise_model')
+
         # Run simulation
         output = self._execute(circuits, noise_model, config)
+
+        if noise_model:
+            setattr(config, 'noise_model', noise_model)
 
         # Validate output
         if not isinstance(output, dict):
@@ -280,11 +378,6 @@ class AerBackend(Backend, ABC):
         Raises:
             AerError: if key is 'method' and val isn't in available methods.
         """
-        # If key is method, we validate it is one of the available methods
-        if (key == 'method' and value is not None and value not in self._available_methods):
-            raise AerError("Invalid simulation method {}. Available methods"
-                           " are: {}".format(value, self._available_methods))
-
         # Add all other options to the options dict
         # TODO: in the future this could be replaced with an options class
         #       for the simulators like configuration/properties to show all
@@ -307,7 +400,9 @@ class AerBackend(Backend, ABC):
                 # remove it from the options dict
                 setattr(self._options, key, getattr(self._default_options(), key))
 
+
     def set_options(self, **fields):
+        """Set the simulator options"""
         for key, value in fields.items():
             self.set_option(key, value)
 
@@ -332,19 +427,23 @@ class AerBackend(Backend, ABC):
         elif key in self._options_defaults:
             self._options_defaults.pop(key)
 
-    def _add_options_to_config(self, config,
-                             **run_options):
+    def _get_job_submit_args(self, qobj, validate=False, **run_options):
         """Return execution sim config dict from backend options."""
+        # Add options to qobj config overriding any existing fields
+        config = qobj.config
+
         # Add options
         for key, val in self.options.__dict__.items():
-            if val is not None and not hasattr(config, key):
+            if val is not None:
                 setattr(config, key, val)
 
         # Override with run-time options
         for key, val in run_options.items():
             setattr(config, key, val)
 
-        return config
+        # Split circuits for sub-jobs
+        return split_qobj(
+            qobj, max_size=getattr(qobj.config, 'max_job_size', None))
 
     def __repr__(self):
         """String representation of an AerBackend."""
