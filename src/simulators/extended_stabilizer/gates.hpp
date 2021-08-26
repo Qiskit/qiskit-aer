@@ -52,7 +52,7 @@ namespace CHSimulator
     {"s", Gatetypes::clifford},       // Phase gate (aka sqrt(Z) gate)
     {"sdg", Gatetypes::clifford},     // Conjugate-transpose of Phase gate
     {"sx", Gatetypes::clifford},      // Sqrt(X) gate
-    {"sxdg", Gatetypes::clifford},    // Sqrt(X) gate
+    {"sxdg", Gatetypes::clifford},    // Inverse Sqrt(X) gate
     {"h", Gatetypes::clifford},       // Hadamard gate (X + Z / sqrt(2))
     {"t", Gatetypes::non_clifford},   // T-gate (sqrt(S))
     {"tdg", Gatetypes::non_clifford}, // Conjguate-transpose of T gate

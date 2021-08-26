@@ -317,10 +317,9 @@ protected:
   // Multi-controlled u3
   //-----------------------------------------------------------------------
 
-  // Apply N-qubit multi-controlled single qubit waltz gate specified by
-  // parameters u4(theta, phi, lambda, gamma)
+  // Apply N-qubit multi-controlled single qubit gate specified by
+  // 4 parameters u4(theta, phi, lambda, gamma)
   // NOTE: if N=1 this is just a regular u4 gate.
-
   void apply_gate_mcu(const reg_t &qubits, const double theta,
                       const double phi, const double lambda,
                       const double gamma);
@@ -367,7 +366,7 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"tdg", Gates::tdg}, // Conjguate-transpose of T gate
     {"p", Gates::mcp},   // Parameterized phase gate 
     {"sx", Gates::mcsx}, // Sqrt(X) gate
-    {"sxdg", Gates::mcsxdg}, // Sqrt(X) gate
+    {"sxdg", Gates::mcsxdg}, // Inverse Sqrt(X) gate
     // 1-qubit rotation Gates
     {"r", Gates::mcr},   // R rotation gate
     {"rx", Gates::mcrx}, // Pauli-X rotation gate
@@ -385,10 +384,10 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"cy", Gates::mcy},      // Controlled-Y gate
     {"cz", Gates::mcz},      // Controlled-Z gate
     {"cp", Gates::mcp},      // Controlled-Phase gate 
-    {"cu1", Gates::mcp},    // Controlled-u1 gate
+    {"cu1", Gates::mcp},     // Controlled-u1 gate
     {"cu2", Gates::mcu2},    // Controlled-u2 gate
     {"cu3", Gates::mcu3},    // Controlled-u3 gate
-    {"cu", Gates::mcu},    // Controlled-u3 gate
+    {"cu", Gates::mcu},      // Controlled-u4 gate
     {"cp", Gates::mcp},      // Controlled-Phase gate 
     {"swap", Gates::mcswap}, // SWAP gate
     {"rxx", Gates::rxx},     // Pauli-XX rotation gate
@@ -413,6 +412,7 @@ const stringmap_t<Gates> State<statevec_t>::gateset_({
     {"mcu1", Gates::mcp},     // Multi-controlled-u1
     {"mcu2", Gates::mcu2},    // Multi-controlled-u2
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
+    {"mcu", Gates::mcu},      // Multi-controlled-u4
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
     {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
     {"mcsxdg", Gates::mcsxdg}, // Multi-controlled-Sqrt(X)dg gate

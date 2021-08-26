@@ -342,7 +342,7 @@ const stringmap_t<Gates> State::gateset_({
   {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
   {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
   {"sx", Gates::sx},     // Sqrt(X) gate
-  {"sxdg", Gates::sxdg}, // Sqrt(X) gate
+  {"sxdg", Gates::sxdg}, // Inverse Sqrt(X) gate
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   {"r", Gates::r},       // R rotation gate

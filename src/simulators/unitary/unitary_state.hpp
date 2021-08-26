@@ -155,9 +155,9 @@ protected:
   // Multi-controlled u
   //-----------------------------------------------------------------------
 
-  // Apply N-qubit multi-controlled single qubit waltz gate specified by
-  // parameters u3(theta, phi, lambda)
-  // NOTE: if N=1 this is just a regular u3 gate.
+  // Apply N-qubit multi-controlled single qubit gate specified by
+  // 4 parameters u4(theta, phi, lambda, gamma)
+  // NOTE: if N=1 this is just a regular u4 gate.
   void apply_gate_mcu(const reg_t &qubits, double theta,
                       double phi, double lambda, double gamma);
 
@@ -232,7 +232,7 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"cu1", Gates::mcp},     // Controlled-u1 gate
     {"cu2", Gates::mcu2},    // Controlled-u2 gate
     {"cu3", Gates::mcu3},    // Controlled-u3 gate
-    {"cu", Gates::mcu},      // Controlled-u gate
+    {"cu", Gates::mcu},      // Controlled-u4 gate
     {"cp", Gates::mcp},      // Controlled-Phase gate 
     {"swap", Gates::mcswap}, // SWAP gate
     {"rxx", Gates::rxx},     // Pauli-XX rotation gate
@@ -256,7 +256,7 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"mcu1", Gates::mcp},    // Multi-controlled-u1
     {"mcu2", Gates::mcu2},    // Multi-controlled-u2
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
-    {"mcu", Gates::mcu},      // Multi-controlled-u
+    {"mcu", Gates::mcu},      // Multi-controlled-u4
     {"mcp", Gates::mcp},      // Multi-controlled-Phase gate 
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
     {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate

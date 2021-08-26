@@ -241,7 +241,7 @@ const stringmap_t<Gates> State::gateset_({
   {"sdg", Gates::sdg}, // Conjugate-transpose of Phase gate
   {"h", Gates::h},     // Hadamard gate (X + Z / sqrt(2))
   {"sx", Gates::sx},   // Sqrt X gate.
-  {"sxdg", Gates::sxdg},   // Sqrt X gate.
+  {"sxdg", Gates::sxdg}, // Inverse Sqrt X gate.
   // Two-qubit gates
   {"CX", Gates::cx},    // Controlled-X gate (CNOT)
   {"cx", Gates::cx},    // Controlled-X gate (CNOT),

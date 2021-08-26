@@ -606,10 +606,10 @@ class QasmSimulator(AerBackend):
             ])
         if method == 'matrix_product_state':
             return sorted([
-                'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
-                'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay', 'pauli',
-                'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
-                'initialize'
+                'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x',
+                'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'ccx',
+                'unitary', 'roerror', 'delay', 'pauli', 'r', 'rx', 'ry', 'rz', 'rxx',
+                'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal', 'initialize'
             ])
         if method == 'stabilizer':
             return sorted([

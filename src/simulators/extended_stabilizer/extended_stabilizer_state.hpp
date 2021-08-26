@@ -234,7 +234,7 @@ const stringmap_t<Gates> State::gateset_({
   {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
   {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
   {"sx", Gates::sx},     // sqrt(X) gate
-  {"sxdg", Gates::sxdg},     // sqrt(X) gate
+  {"sxdg", Gates::sxdg}, // Inverse sqrt(X) gate
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   // Waltz Gates
@@ -750,9 +750,11 @@ void State::apply_gate(const Operations::Op &op, RngEngine &rng, uint_t rank)
       BaseState::qreg_.apply_h(op.qubits[0], rank);
       break;
     case Gates::sx:
+      BaseState::add_global_phase(M_PI / 4.);
       BaseState::qreg_.apply_sx(op.qubits[0], rank);
       break;
     case Gates::sxdg:
+      BaseState::add_global_phase(-M_PI / 4.);
       BaseState::qreg_.apply_sxdg(op.qubits[0], rank);
       break;
     case Gates::cx:
@@ -816,9 +818,13 @@ void State::apply_save_statevector(const Operations::Op &op,
         "Save statevector was not applied to all qubits."
         " Only the full statevector can be saved.");
   }
+  auto statevec = BaseState::qreg_.statevector();
+  if (BaseState::has_global_phase_) {
+    statevec *= BaseState::global_phase_;
+  }
   BaseState::save_data_pershot(
     result, op.string_params[0],
-    BaseState::qreg_.statevector(),
+    std::move(statevec),
     op.save_type);
 }
 

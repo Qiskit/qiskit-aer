@@ -318,7 +318,7 @@ const stringmap_t<Gates> State<densmat_t>::gateset_({
     {"tdg", Gates::tdg}, // Conjguate-transpose of T gate
     {"x90", Gates::sx},  // Pi/2 X (equiv to Sqrt(X) gate)
     {"sx", Gates::sx},   // Sqrt(X) gate
-    {"sxdg", Gates::sxdg},// Sqrt(X) gate
+    {"sxdg", Gates::sxdg},// Inverse Sqrt(X) gate
     {"r", Gates::r},     // R rotation gate
     {"rx", Gates::rx},   // Pauli-X rotation gate
     {"ry", Gates::ry},   // Pauli-Y rotation gate

@@ -204,17 +204,17 @@ cvector_t VMatrix::u2(double phi, double lambda) {
 cvector_t VMatrix::u3(double theta, double phi, double lambda) {
   cvector_t mat(2 * 2);
   const complex_t i(0., 1.);
-  mat[0 + 0 * 2] = std::cos(theta / 2.);
-  mat[0 + 1 * 2] = -std::exp(i * lambda) * std::sin(theta / 2.);
-  mat[1 + 0 * 2] = std::exp(i * phi) * std::sin(theta / 2.);
-  mat[1 + 1 * 2] = std::exp(i * (phi + lambda)) * std::cos(theta / 2.);
+  mat[0 + 0 * 2] = std::cos(0.5 * theta);
+  mat[0 + 1 * 2] = -std::exp(i * lambda) * std::sin(0.5 * theta);
+  mat[1 + 0 * 2] = std::exp(i * phi) * std::sin(0.5 * theta);
+  mat[1 + 1 * 2] = std::exp(i * (phi + lambda)) * std::cos(0.5 * theta);
   return mat;
 }
 
 cvector_t VMatrix::u4(double theta, double phi, double lambda, double gamma) {
   cvector_t mat(2 * 2);
   const complex_t i(0., 1.);
-  mat[0 + 0 * 2] = std::exp(i * gamma) * std::cos(theta / 2.);
+  mat[0 + 0 * 2] = std::exp(i * gamma) * std::cos(0.5 * theta);
   mat[0 + 1 * 2] = -std::exp(i * (lambda + gamma)) * std::sin(0.5 * theta);
   mat[1 + 0 * 2] = std::exp(i * (phi + gamma)) * std::sin(0.5 * theta);
   mat[1 + 1 * 2] = std::exp(i * (phi + lambda + gamma)) * std::cos(0.5 * theta);
