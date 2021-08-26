@@ -245,21 +245,21 @@ protected:
   // State validation
   //-------------------------------------------------------------------------
 
-  // Return True if a given circuit (and internal noise model) are valid for
-  // execution on the given state. Otherwise return false.
-  // If throw_except is true an exception will be thrown on the return false
-  // case listing the invalid instructions in the circuit or noise model.
+  // Return True if the operations in the circuit and noise model are valid
+  // for execution on the given method, and that the required memory is less
+  // than the maximum allowed memory, otherwise return false.
+  // If `throw_except` is true an exception will be thrown on the return false
+  // case listing the invalid instructions in the circuit or noise model, or
+  // the required memory.
+  bool validate_method(Method method,
+                       const Circuit &circ,
+                       const Noise::NoiseModel &noise,
+                       bool throw_except = false) const;
+                            
   template <class state_t>
-  static bool validate_state(const state_t &state, const Circuit &circ,
-                             const Noise::NoiseModel &noise,
-                             bool throw_except = false);
-
-  // Return True if a given circuit are valid for execution on the given state.
-  // Otherwise return false.
-  // If throw_except is true an exception will be thrown directly.
-  template <class state_t>
-  bool validate_memory_requirements(const state_t &state, const Circuit &circ,
-                                    bool throw_except = false) const;
+  bool validate_state(const state_t &state, const Circuit &circ,
+                      const Noise::NoiseModel &noise,
+                      bool throw_except = false) const;
 
   // Return an estimate of the required memory for a circuit.
   size_t required_memory_mb(const Circuit &circuit,
@@ -1413,7 +1413,6 @@ void Controller::run_circuit_helper(const Circuit &circ,
 
   // Validate gateset and memory requirements, raise exception if they're exceeded
   validate_state(state, circ, noise, true);
-  validate_memory_requirements(state, circ, true);
 
   // Set state config
   state.set_config(config);
@@ -1758,7 +1757,7 @@ Controller::Method
 Controller::automatic_simulation_method(const Circuit &circ,
                                         const Noise::NoiseModel &noise_model) const {
   // If circuit and noise model are Clifford run on Stabilizer simulator
-  if (validate_state(Stabilizer::State(), circ, noise_model, false)) {
+  if (validate_method(Method::stabilizer, circ, noise_model, false)) {
     return Method::stabilizer;
   }
   // For noisy simulations we enable the density matrix method if
@@ -1768,8 +1767,7 @@ Controller::automatic_simulation_method(const Circuit &circ,
   // dimension
   if (noise_model.has_quantum_errors() && circ.num_qubits < 64 &&
       circ.shots > (1ULL << circ.num_qubits) &&
-      validate_memory_requirements(DensityMatrix::State<>(), circ, false) &&
-      validate_state(DensityMatrix::State<>(), circ, noise_model, false) &&
+      validate_method(Method::density_matrix, circ, noise_model, false) &&
       check_measure_sampling_opt(circ, Method::density_matrix)) {
     return Method::density_matrix;
   }
@@ -1779,20 +1777,14 @@ Controller::automatic_simulation_method(const Circuit &circ,
   // operations only with preference given by memory requirements
   // statevector > density matrix > matrix product state > unitary > superop
   // typically any save state instructions will decide the method.
-  if (validate_state(Statevector::State<>(), circ, noise_model, false)) {
-    return Method::statevector;
-  }
-  if (validate_state(DensityMatrix::State<>(), circ, noise_model, false)) {
-    return Method::density_matrix;
-  }
-  if (validate_state(MatrixProductState::State(), circ, noise_model, false)) {
-    return Method::matrix_product_state;
-  }
-  if (validate_state(QubitUnitary::State<>(), circ, noise_model, false)) {
-    return Method::unitary;
-  }
-  if (validate_state(QubitSuperoperator::State<>(), circ, noise_model, false)) {
-    return Method::superop;
+  const std::vector<Method> methods({Method::statevector,
+                                     Method::density_matrix,
+                                     Method::matrix_product_state,
+                                     Method::unitary,
+                                     Method::superop});
+  for (const auto& method : methods) {
+    if (validate_method(method, circ, noise_model, false))
+      return method;
   }
 
   // If we got here, circuit isn't compatible with any of the simulation
@@ -1810,59 +1802,77 @@ Controller::automatic_simulation_method(const Circuit &circ,
   throw std::runtime_error(msg.str());
 }
 
+bool Controller::validate_method(Method method,
+                                 const Circuit &circ, 
+                                 const Noise::NoiseModel &noise_model,
+                                 bool throw_except) const {
+  // Switch wrapper for templated function validate_state
+  switch (method) {
+    case Method::stabilizer:
+      return validate_state(Stabilizer::State(), circ, noise_model, throw_except);
+    case Method::extended_stabilizer:
+      return validate_state(ExtendedStabilizer::State(), circ, noise_model, throw_except);
+    case Method::matrix_product_state:
+      return validate_state(MatrixProductState::State(), circ, noise_model, throw_except);
+    case Method::statevector:
+      return validate_state(Statevector::State<>(), circ, noise_model,  throw_except);
+    case Method::density_matrix:
+      return validate_state(DensityMatrix::State<>(), circ, noise_model, throw_except);
+    case Method::unitary:
+      return validate_state(QubitUnitary::State<>(), circ, noise_model, throw_except);
+    case Method::superop:
+      return validate_state(QubitSuperoperator::State<>(), circ, noise_model, throw_except);
+    case Method::automatic:
+      throw std::runtime_error("Cannot validate circuit for unresolved simulation method.");
+  }
+}
+
+
 template <class state_t>
 bool Controller::validate_state(const state_t &state, const Circuit &circ,
                                 const Noise::NoiseModel &noise,
-                                bool throw_except) {
-  // First check if a noise model is valid for a given state
-  bool noise_valid = noise.is_ideal() || state.opset().contains(noise.opset());
+                                bool throw_except) const {
+  std::stringstream error_msg;
+  std::string circ_name;
+  JSON::get_value(circ_name, "name", circ.header);
+
+  // Check if a circuit is valid for state ops
   bool circ_valid = state.opset().contains(circ.opset());
-  if (noise_valid && circ_valid) {
+  if (throw_except && !circ_valid) {
+    error_msg << "Circuit " << circ_name << " contains invalid instructions ";
+    error_msg << state.opset().difference(circ.opset());
+    error_msg << " for \"" << state.name() << "\" method.";
+  }
+
+  // Check if a noise model valid for state ops
+  bool noise_valid = noise.is_ideal() || state.opset().contains(noise.opset());
+  if (throw_except && !noise_valid) {
+    error_msg << "Noise model contains invalid instructions ";
+    error_msg << state.opset().difference(noise.opset());
+    error_msg << " for \"" << state.name() << "\" method.";
+  }
+
+  // Validate memory requirements
+  bool memory_valid = true;
+  if (max_memory_mb_ > 0) {
+    size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) / num_process_per_experiment_;                                        
+    size_t mem_size = (sim_device_ == Device::GPU) ? max_memory_mb_ + max_gpu_memory_mb_ : max_memory_mb_;
+    memory_valid = (required_mb <= mem_size);
+  }
+  if (throw_except && !memory_valid) {
+    error_msg << "Insufficient memory to run circuit " << circ_name;
+    error_msg << " using the " << state.name() << " simulator.";
+  }
+
+  if (noise_valid && circ_valid && memory_valid) {
     return true;
   }
 
-  // If we didn't return true then either noise model or circ has
-  // invalid instructions.
-  if (!throw_except)
-    return false;
-
-  // If we are throwing an exception we include information
-  // about the invalid operations
-  std::stringstream msg;
-  if (!noise_valid) {
-    msg << "Noise model contains invalid instructions ";
-    msg << state.opset().difference(noise.opset());
-    msg << " for \"" << state.name() << "\" method";
+  // One of the validation checks failed for the current state
+  if (throw_except) {
+    throw std::runtime_error(error_msg.str());
   }
-  if (!circ_valid) {
-    msg << "Circuit contains invalid instructions ";
-    msg << state.opset().difference(circ.opset());
-    msg << " for \"" << state.name() << "\" method";
-  }
-  throw std::runtime_error(msg.str());
-}
-
-template <class state_t>
-bool Controller::validate_memory_requirements(const state_t &state,
-                                              const Circuit &circ,
-                                              bool throw_except) const {
-  if (max_memory_mb_ == 0)
-    return true;
-
-  size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) /
-                       num_process_per_experiment_;
-                                                
-  size_t mem_size = (sim_device_ == Device::GPU) ? max_memory_mb_ + max_gpu_memory_mb_ : max_memory_mb_;
-  if (mem_size < required_mb) {
-    if (throw_except) {
-      std::string name = "";
-      JSON::get_value(name, "name", circ.header);
-      throw std::runtime_error("Insufficient memory to run circuit \"" + name +
-                               "\" using the " + state.name() + " simulator.");
-    }
-    return false;
-  }
-  return true;
+  return false;
 }
 
 void Controller::save_exception_to_results(Result &result,
