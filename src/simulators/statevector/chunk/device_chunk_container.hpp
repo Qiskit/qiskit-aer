@@ -467,7 +467,7 @@ template <typename data_t>
 void DeviceChunkContainer<data_t>::CopyIn(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
-  set_device();
+  synchronize(iChunk);
   if(src->device() >= 0){
     if(peer_access(src->device())){
       thrust::copy_n(src->pointer(),size,data_.begin() + (iChunk << this->chunk_bits_));
@@ -487,7 +487,7 @@ template <typename data_t>
 void DeviceChunkContainer<data_t>::CopyOut(std::shared_ptr<Chunk<data_t>> dest,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
-  set_device();
+  synchronize(iChunk);
   if(dest->device() >= 0){
     if(peer_access(dest->device())){
       thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest->pointer());
@@ -508,8 +508,8 @@ void DeviceChunkContainer<data_t>::CopyIn(thrust::complex<data_t>* src,uint_t iC
 {
   uint_t this_size = 1ull << this->chunk_bits_;
   if(this_size < size) throw std::runtime_error("CopyIn chunk size is less than provided size");
-  
-  set_device();
+
+  synchronize(iChunk);
   thrust::copy_n(src,size,data_.begin() + (iChunk << this->chunk_bits_));
 }
 
@@ -518,8 +518,8 @@ void DeviceChunkContainer<data_t>::CopyOut(thrust::complex<data_t>* dest,uint_t 
 {
   uint_t this_size = 1ull << this->chunk_bits_;
   if(this_size < size) throw std::runtime_error("CopyOut chunk size is less than provided size");
-  
-  set_device();
+
+  synchronize(iChunk);
   thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest);
 }
 
@@ -527,7 +527,7 @@ template <typename data_t>
 void DeviceChunkContainer<data_t>::Swap(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk)
 {
   uint_t size = 1ull << this->chunk_bits_;
-  set_device();
+  synchronize(iChunk);
   if(src->device() >= 0){
     auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src->container());
     if(peer_access(src->device())){

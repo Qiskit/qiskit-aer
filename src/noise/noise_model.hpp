@@ -214,7 +214,7 @@ private:
   cmatrix_t op2unitary(const Operations::Op &op) const;
 
   // Parameterized Gates
-  enum class ParamGate {u1, u2, u3, r, rx, ry, rz, rxx, ryy, rzz, rzx, cp};
+  enum class ParamGate {u1, u2, u3, r, rx, ry, rz, rxx, ryy, rzz, rzx, cp, cu};
   const static stringmap_t<ParamGate> param_gate_table_;
 
   // Joint OpSet of all errors
@@ -244,7 +244,8 @@ NoiseModel::param_gate_table_ = {
   {"rzx", ParamGate::rzx},
   {"p", ParamGate::u1},
   {"cp", ParamGate::cp},
-  {"cu1", ParamGate::cp}
+  {"cu1", ParamGate::cp},
+  {"cu", ParamGate::cu},
 };
 
 
@@ -734,6 +735,8 @@ cmatrix_t NoiseModel::op2superop(const Operations::Op &op) const {
             return Linalg::SMatrix::rzx(op.params[0]);
           case ParamGate::cp:
             return Linalg::SMatrix::cphase(op.params[0]);
+          case ParamGate::cu:
+            return Linalg::SMatrix::cu(op.params[0], op.params[1], op.params[2], op.params[3]);
         }
       } else {
         // Check if we can convert this gate to a standard superoperator matrix
