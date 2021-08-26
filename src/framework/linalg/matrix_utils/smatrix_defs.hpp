@@ -44,6 +44,7 @@ public:
   const static cmatrix_t T;   // name: "t"
   const static cmatrix_t TDG; // name: "tdg"
   const static cmatrix_t SX;  // name: "sx"
+  const static cmatrix_t SXDG;// name: "sxdg"
   const static cmatrix_t X90; // name: "x90"
 
   // Two-qubit gates
@@ -59,6 +60,7 @@ public:
   static cmatrix_t u1(double lam);
   static cmatrix_t u2(double phi, double lam);
   static cmatrix_t u3(double theta, double phi, double lam);
+  static cmatrix_t u4(double theta, double phi, double lam, double gamma);
 
   // Single-qubit rotation gates
   static cmatrix_t r(double phi, double lam);
@@ -78,6 +80,9 @@ public:
   static cmatrix_t cphase_diag(double theta);
   static cmatrix_t cphase(double theta);
 
+  // Controlled-single qubit gate
+  static cmatrix_t cu(double theta, double phi, double lam, double gamma);
+
   // Complex arguments are implemented by taking std::real
   // of the input
   static cmatrix_t u1(complex_t lam) { return phase(std::real(lam)); }
@@ -87,6 +92,9 @@ public:
   static cmatrix_t u3(complex_t theta, complex_t phi, complex_t lam) {
     return u3(std::real(theta), std::real(phi), std::real(lam));
   };
+  static cmatrix_t u4(complex_t theta, complex_t phi, complex_t lam, complex_t gamma) {
+    return u4(std::real(theta), std::real(phi), std::real(lam), std::real(gamma));
+  }
   static cmatrix_t r(complex_t theta, complex_t phi) {
     return r(std::real(theta), std::real(phi));
   }
@@ -101,6 +109,9 @@ public:
   static cmatrix_t phase_diag(complex_t theta) { return phase_diag(std::real(theta)); }
   static cmatrix_t cphase(complex_t theta) { return cphase(std::real(theta)); }
   static cmatrix_t cphase_diag(complex_t theta) { return cphase_diag(std::real(theta)); }
+  static cmatrix_t cu(complex_t theta, complex_t phi, complex_t lam, complex_t gamma) {
+    return cu(std::real(theta), std::real(phi), std::real(lam), std::real(gamma));
+  }
 
   // Return superoperator matrix for reset instruction
   // on specified dim statespace.
@@ -148,6 +159,8 @@ const cmatrix_t SMatrix::H = Utils::unitary_superop(Matrix::H);
 
 const cmatrix_t SMatrix::SX = Utils::unitary_superop(Matrix::SX);
 
+const cmatrix_t SMatrix::SXDG = Utils::unitary_superop(Matrix::SXDG);
+
 const cmatrix_t SMatrix::X90 = Utils::unitary_superop(Matrix::X90);
 
 const cmatrix_t SMatrix::CX = Utils::unitary_superop(Matrix::CX);
@@ -165,7 +178,7 @@ const stringmap_t<const cmatrix_t *> SMatrix::label_map_ = {
     {"sdg", &SMatrix::SDG},  {"t", &SMatrix::T},   {"tdg", &SMatrix::TDG},
     {"x90", &SMatrix::X90},  {"cx", &SMatrix::CX}, {"cy", &SMatrix::CY},
     {"cz", &SMatrix::CZ},    {"swap", &SMatrix::SWAP}, {"sx", &SMatrix::SX},
-    {"delay", &SMatrix::I}};
+    {"sxdg", &SMatrix::SXDG}, {"delay", &SMatrix::I}};
 
 cmatrix_t SMatrix::identity(size_t dim) { return Matrix::identity(dim * dim); }
 
@@ -181,6 +194,11 @@ cmatrix_t SMatrix::u2(double phi, double lambda) {
 cmatrix_t SMatrix::u3(double theta, double phi, double lambda) {
   return Utils::tensor_product(Matrix::u3(theta, -phi, -lambda),
                                Matrix::u3(theta, phi, lambda));
+}
+
+cmatrix_t SMatrix::u4(double theta, double phi, double lambda, double gamma) {
+  return Utils::tensor_product(Matrix::u4(theta, -phi, -lambda, -gamma),
+                               Matrix::u4(theta, phi, lambda, gamma));
 }
 
 cmatrix_t SMatrix::r(double theta, double phi) {
@@ -213,6 +231,11 @@ cmatrix_t SMatrix::rzz(double theta) {
 
 cmatrix_t SMatrix::rzx(double theta) {
   return Utils::tensor_product(Matrix::rzx(-theta), Matrix::rzx(theta));
+}
+
+cmatrix_t SMatrix::cu(double theta, double phi, double lambda, double gamma) {
+  return Utils::tensor_product(Matrix::cu(theta, -phi, -lambda, -gamma),
+                               Matrix::cu(theta, phi, lambda, gamma));
 }
 
 cmatrix_t SMatrix::phase(double theta) {
