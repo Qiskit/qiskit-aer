@@ -114,17 +114,20 @@ public:
   void Set(uint_t i,const thrust::complex<data_t>& t)
   {
     auto sel_chunk_container = chunk_container_.lock();
+    sel_chunk_container->synchronize(chunk_pos_);
     sel_chunk_container->Set(i + (chunk_pos_ << sel_chunk_container->chunk_bits()),t);
   }
   thrust::complex<data_t> Get(uint_t i) const
   {
     auto sel_chunk_container = chunk_container_.lock();
+    sel_chunk_container->synchronize(chunk_pos_);
     return sel_chunk_container->Get(i + (chunk_pos_ << sel_chunk_container->chunk_bits()));
   }
 
   thrust::complex<data_t>& operator[](uint_t i)
   {
     auto sel_chunk_container = chunk_container_.lock();
+    sel_chunk_container->synchronize(chunk_pos_);
     return (*sel_chunk_container)[i + (chunk_pos_ << sel_chunk_container->chunk_bits())];
   }
 

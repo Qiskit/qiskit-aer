@@ -414,6 +414,11 @@ void MPS::apply_sx(uint_t index)
   get_qubit(index).apply_matrix(AER::Linalg::Matrix::SX);
 }
 
+void MPS::apply_sxdg(uint_t index)
+{
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::SXDG);
+}
+
 void MPS::apply_r(uint_t index, double phi, double lam)
 {
   get_qubit(index).apply_matrix(AER::Linalg::Matrix::r(phi, lam));
