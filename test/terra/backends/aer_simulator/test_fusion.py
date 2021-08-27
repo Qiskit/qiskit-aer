@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-QasmSimulator Integration Tests
+AerSimulator Integration Tests
 """
 # pylint: disable=no-member
 import copy
@@ -19,7 +19,6 @@ from ddt import ddt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import QuantumVolume, QFT, RealAmplitudes
 from qiskit.compiler import transpile
-from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import (ReadoutError,
                                                depolarizing_error,
@@ -30,7 +29,7 @@ from test.terra.backends.simulator_test_case import (
 
 @ddt
 class TestGateFusion(SimulatorTestCase):
-    """QasmSimulator fusion tests."""
+    """AerSimulator fusion tests."""
 
     def create_statevector_circuit(self):
         """ Creates a simple circuit for running in the statevector """
