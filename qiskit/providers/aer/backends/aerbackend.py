@@ -200,14 +200,14 @@ class AerBackend(Backend, ABC):
             qobj = self._assemble(circuits, **run_options)
         else:
             qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
-        
+
         # Optional validation
         if validate:
             self._validate(qobj)
 
         # Optionally split the job
         experiments = split_qobj(qobj, max_size=getattr(qobj.config, 'max_job_size', None))
-    
+
         # Get the executor
         executor = self._get_executor(**run_options)
 
@@ -342,13 +342,13 @@ class AerBackend(Backend, ABC):
         # Override with run-time options
         for key, val in run_options.items():
             setattr(qobj.config, key, val)
-        
+
         # We need to remove the executor from the qobj config
         # since it can't be serialized though JSON/Pybind.
         if hasattr(qobj.config, 'executor'):
             delattr(qobj.config, 'executor')
-        
-        return qobj    
+
+        return qobj
 
     def _get_executor(self, **run_options):
         """Get the executor"""
