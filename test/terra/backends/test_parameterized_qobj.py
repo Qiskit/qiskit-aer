@@ -20,6 +20,7 @@ import numpy as np
 from test.terra import common
 
 from qiskit import assemble
+from qiskit.circuit import QuantumCircuit, Parameter
 from test.terra.reference.ref_save_expval import (
     save_expval_circuits,
     save_expval_counts,
@@ -28,7 +29,7 @@ from test.terra.reference.ref_save_expval import (
     save_expval_circuit_parameterized,
     save_expval_final_statevecs,
 )
-from qiskit.providers.aer import AerSimulator
+from qiskit.providers.aer import AerSimulator, AerError
 
 
 class TestParameterizedQobj(common.QiskitAerTestCase):
@@ -110,6 +111,153 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         for j in range(num_circs):
             statevector = result.get_statevector(j)
             np.testing.assert_array_almost_equal(statevector, statevec_targets[j].data, decimal=7)
+
+    def test_run_path(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, 3.14, 6.28]}]
+        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        self.assertEqual(counts, [{'00': 1000}, {'11': 1000}, {'00': 1000}])
+
+    def test_run_path_with_expressions(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        theta_squared = theta*theta
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, 3.14, 6.28]}]
+        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        self.assertEqual(counts, [{'00': 1000}, {'11': 1000}, {'00': 1000}])
+
+    def test_run_path_with_expressions_multiple_params_per_instruction(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        theta_squared = theta*theta
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.u(theta, theta_squared, theta, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, 3.14, 6.28]}]
+        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        self.assertEqual(counts, [{'00': 1000}, {'01': 1000}, {'00': 1000}])
+
+    def test_run_path_with_more_params_than_expressions(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        theta_squared = theta*theta
+        phi = Parameter('phi')
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.ry(phi, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, 3.14, 6.28], phi: [0, 1, 3.14]}]
+        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        for index, expected in enumerate([{'00': 1000}, {'01': 250, '11': 750}, {'10': 1000}]):
+            self.assertDictAlmostEqual(counts[index], expected, delta=50)
+
+    def test_run_path_multiple_circuits(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, 3.14, 6.28]}]*3
+        res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        self.assertEqual(counts, [{'00': 1000}, {'11': 1000}, {'00': 1000}] * 3)
+
+    def test_run_path_with_expressions_multiple_circuits(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        theta_squared = theta*theta
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, 3.14, 6.28]}]*3
+        res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        self.assertEqual(counts, [{'00': 1000}, {'11': 1000}, {'00': 1000}] * 3)
+
+    def test_run_path_with_expressions_multiple_params_per_instruction(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        theta_squared = theta*theta
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.u(theta, theta_squared, theta, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, 3.14, 6.28]}]*3
+        res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        self.assertEqual(counts, [{'00': 1000}, {'01': 1000}, {'00': 1000}] * 3)
+
+    def test_run_path_with_more_params_than_expressions_multiple_circuits(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        theta_squared = theta*theta
+        phi = Parameter('phi')
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.ry(phi, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, 3.14, 6.28], phi: [0, 1, 3.14]}]*3
+        res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        for index, expected in enumerate([{'00': 1000}, {'01': 250, '11': 750}, {'10': 1000}] * 3):
+            self.assertDictAlmostEqual(counts[index], expected, delta=50)
+
+    def test_run_path_multiple_circuits_mismatch_length(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, 3.14, 6.28]}]
+        with self.assertRaises(AerError):
+            backend.run([circuit]*3, shots=shots, parameter_binds=[parameter_binds]).result()
+
+
 
 if __name__ == '__main__':
     unittest.main()
