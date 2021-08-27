@@ -78,20 +78,22 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
                                        measure=True,
                                        snapshot=True)
         self.assertIn('parameterizations', qobj.to_dict()['config'])
-        job = backend.run(qobj, **self.BACKEND_OPTS)
-        result = job.result()
-        success = getattr(result, 'success', False)
-        num_circs = len(result.to_dict()['results'])
-        self.assertTrue(success)
-        self.compare_counts(result,
-                            range(num_circs),
-                            counts_targets,
-                            delta=0.1 * shots)
-        # Check snapshots
-        for j, target in enumerate(value_targets):
-            data = result.data(j)
-            for label in labels:
-                self.assertAlmostEqual(data[label], target[label], delta=1e-7)
+        with self.assertRaises(DeprecationWarning):
+            job = backend.run(qobj, **self.BACKEND_OPTS)
+            result = job.result()
+            success = getattr(result, 'success', False)
+            num_circs = len(result.to_dict()['results'])
+            self.assertTrue(success)
+            self.compare_counts(result,
+                                range(num_circs),
+                                counts_targets,
+                                delta=0.1 * shots)
+            # Check snapshots
+            for j, target in enumerate(value_targets):
+                data = result.data(j)
+                for label in labels:
+                    self.assertAlmostEqual(
+                        data[label], target[label], delta=1e-7)
 
     def test_parameterized_qobj_statevector(self):
         """Test parameterized qobj with Expectation Value snapshot and qasm simulator."""
@@ -102,15 +104,17 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
             backend=backend, measure=False, snapshot=False, save_state=True,
         )
         self.assertIn('parameterizations', qobj.to_dict()['config'])
-        job = backend.run(qobj, **self.BACKEND_OPTS)
-        result = job.result()
-        success = getattr(result, 'success', False)
-        num_circs = len(result.to_dict()['results'])
-        self.assertTrue(success)
+        with self.assertRaises(DeprecationWarning):
+            job = backend.run(qobj, **self.BACKEND_OPTS)
+            result = job.result()
+            success = getattr(result, 'success', False)
+            num_circs = len(result.to_dict()['results'])
+            self.assertTrue(success)
 
-        for j in range(num_circs):
-            statevector = result.get_statevector(j)
-            np.testing.assert_array_almost_equal(statevector, statevec_targets[j].data, decimal=7)
+            for j in range(num_circs):
+                statevector = result.get_statevector(j)
+                np.testing.assert_array_almost_equal(
+                    statevector, statevec_targets[j].data, decimal=7)
 
     def test_run_path(self):
         """Test parameterized circuit path via backed.run()"""

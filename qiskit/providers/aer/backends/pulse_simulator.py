@@ -220,26 +220,17 @@ class PulseSimulator(AerBackend):
             * kwarg options specified in ``run_options`` will override options
               of the same kwarg specified in the simulator options, the
               ``backend_options`` and the ``Qobj.config``.
-
-            * The entries in the ``backend_options`` will be combined with
-              the ``Qobj.config`` dictionary with the values of entries in
-              ``backend_options`` taking precedence. This kwarg is deprecated
-              and direct kwarg's should be used for options to pass them to
-              ``run_options``.
         """
-        qobj = schedules
-
-        if isinstance(qobj, list):
-            new_qobj = []
-            for circuit in qobj:
-                if isinstance(circuit, QuantumCircuit):
-                    new_qobj.append(schedule(circuit, self))
-                else:
-                    new_qobj.append(circuit)
-            qobj = new_qobj
-        elif isinstance(qobj, QuantumCircuit):
-            qobj = schedule(qobj, self)
-        return super().run(qobj, validate=validate, **run_options)
+        if not isinstance(schedules, list):
+            schedules = [schedules]
+        new_schedules = []
+        for circuit in schedules:
+            if isinstance(circuit, QuantumCircuit):
+                new_schedules.append(schedule(circuit, self))
+            else:
+                new_schedules.append(circuit)
+        schedules = new_schedules
+        return super().run(schedules, validate=validate, **run_options)
 
     @property
     def _system_model(self):
