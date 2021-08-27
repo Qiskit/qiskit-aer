@@ -282,10 +282,9 @@ Circuit NoiseModel::sample_noise_circuit(const Circuit &circ,
     noisy_circ.ops.reserve(2 * circ.ops.size());
 
     // Qubit mapping
-    // reg_t mapping;
-    // if (circ.remapped_qubits)
-    //   mapping = reg_t(circ.qubits().cbegin(), circ.qubits().cend());
-    const reg_t mapping(circ.qubits().cbegin(), circ.qubits().cend());
+    reg_t mapping;
+    if (circ.remapped_qubits)
+      mapping = reg_t(circ.qubits().cbegin(), circ.qubits().cend());
 
     // Sample a noisy realization of the circuit
     for (const auto &op: circ.ops) {
