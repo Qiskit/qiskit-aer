@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-QasmSimulator Integration Tests
+AerSimulator Integration Tests
 """
 # pylint: disable=no-member
 import copy
@@ -25,7 +25,7 @@ from test.terra.backends.simulator_test_case import (
 
 @ddt
 class TestChunkSimulators(SimulatorTestCase):
-    """QasmSimulator Multi-chunk tests."""
+    """AerSimulator Multi-chunk tests."""
 
     OPTIONS = {
         "seed_simulator": 271828,

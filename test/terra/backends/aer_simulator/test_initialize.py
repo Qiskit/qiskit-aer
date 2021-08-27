@@ -10,12 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-QasmSimulator Integration Tests
+AerSimulator Integration Tests
 """
 from ddt import ddt
 from qiskit import QuantumCircuit
 from test.terra.reference import ref_initialize
-from qiskit.providers.aer import QasmSimulator
 
 import numpy as np
 from test.terra.backends.simulator_test_case import (
@@ -33,7 +32,7 @@ class TestInitialize(SimulatorTestCase):
     # ---------------------------------------------------------------------
     @supported_methods(SUPPORTED_METHODS)
     def test_initialize_wrapper_1(self, method, device):
-        """Test QasmSimulator initialize"""
+        """Test AerSimulator initialize"""
         backend = self.backend(method=method, device=device)
         shots = 100
         lst = [0, 1]
@@ -53,7 +52,7 @@ class TestInitialize(SimulatorTestCase):
     # ---------------------------------------------------------------------
     @supported_methods(SUPPORTED_METHODS)
     def test_initialize_wrapper_2(self, method, device):
-        """Test QasmSimulator initialize"""
+        """Test AerSimulator initialize"""
         backend = self.backend(method=method, device=device)
         shots = 100
         lst = [0, 1, 0, 0]
@@ -73,7 +72,7 @@ class TestInitialize(SimulatorTestCase):
     # ---------------------------------------------------------------------
     @supported_methods(SUPPORTED_METHODS)
     def test_initialize_1(self, method, device):
-        """Test QasmSimulator initialize"""
+        """Test AerSimulator initialize"""
         backend = self.backend(method=method, device=device)
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
@@ -86,7 +85,7 @@ class TestInitialize(SimulatorTestCase):
 
     @supported_methods(SUPPORTED_METHODS)
     def test_initialize_2(self, method, device):
-        """Test QasmSimulator initialize"""
+        """Test AerSimulator initialize"""
         backend = self.backend(method=method, device=device)
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits

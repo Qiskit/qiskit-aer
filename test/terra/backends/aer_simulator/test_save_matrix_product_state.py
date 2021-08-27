@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-QasmSimulator Integration Tests for SaveMatrixProductState instruction
+AerSimulator Integration Tests for SaveMatrixProductState instruction
 """
 from ddt import ddt
 import numpy as np

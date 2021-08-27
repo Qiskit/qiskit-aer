@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-QasmSimulator Integration Tests
+AerSimulator Integration Tests
 """
 
 import multiprocessing
@@ -28,7 +28,7 @@ from test.terra.backends.simulator_test_case import SimulatorTestCase
 
 @ddt
 class TestThreadManagement(SimulatorTestCase):
-    """QasmSimulator thread tests."""
+    """AerSimulator thread tests."""
 
     def backend_options_parallel(self,
                                  total_threads=None,

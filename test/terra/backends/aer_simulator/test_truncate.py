@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-QasmSimulator Integration Tests
+AerSimulator Integration Tests
 """
 from ddt import ddt
 import json
