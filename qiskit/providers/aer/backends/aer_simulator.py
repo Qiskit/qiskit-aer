@@ -18,7 +18,6 @@ import logging
 from qiskit.circuit import QuantumCircuit
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
-from qiskit.qobj import QasmQobj, PulseQobj
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
@@ -478,7 +477,7 @@ class AerSimulator(AerBackend):
                  **backend_options):
 
         self._controller = aer_controller_execute()
-        self._controller_new = AerController()
+        self._controller_native = None
 
         # Update available methods and devices for class
         if AerSimulator._AVAILABLE_METHODS is None:
@@ -625,34 +624,44 @@ class AerSimulator(AerBackend):
         config.backend_name = self.name()
         return config
 
-    def _execute(self, qobj, config):
+    def _execute(self, qobj):
         """Execute a qobj on the backend.
 
         Args:
             qobj (QasmQobj or PulseQobj or list): simulator input.
+
+        Returns:
+            dict: return a dictionary of results.
+        """
+        return cpp_execute(self._controller, qobj)
+
+    def _execute_circuits(self, circuits, config):
+        """Execute a circuits on the backend.
+
+        Args:
+            circuits (list): simulator input.
             config (BackendConfiguration): the configuration for the backend.
 
         Returns:
             dict: return a dictionary of results.
         """
-        if isinstance(qobj, (QasmQobj, PulseQobj)):
-            return cpp_execute(self._controller, qobj)
-
         noise_model = None
         if config and hasattr(config, 'noise_model'):
             noise_model = config.noise_model
             delattr(config, 'noise_model')
 
-        circs = qobj
-        if isinstance(circs, AerCircuit):
-            result = self._controller_new.execute([circs], config.shots, noise_model, config)
-        elif isinstance(circs, QuantumCircuit):
-            result = self._controller_new.execute([gen_aer_circuit(circs)], config.shots,
-                                                  noise_model, config)
+        if not self._controller_native:
+            self._controller_native = AerController()
+
+        if isinstance(circuits, AerCircuit):
+            result = self._controller_native.execute([circuits], config.shots, noise_model, config)
+        elif isinstance(circuits, QuantumCircuit):
+            result = self._controller_native.execute([gen_aer_circuit(circuits)], config.shots,
+                                                     noise_model, config)
         else:
-            circs = [circuit if isinstance(circuit, QuantumCircuit) else gen_aer_circuit(circuit)
-                     for circuit in circs]
-            result = self._controller_new.execute(circs, config.shots, noise_model, config)
+            circuits = [circ if isinstance(circ, QuantumCircuit) else gen_aer_circuit(circ)
+                        for circ in circuits]
+            result = self._controller_native.execute(circuits, config.shots, noise_model, config)
 
         if noise_model:
             setattr(config, 'noise_model', noise_model)

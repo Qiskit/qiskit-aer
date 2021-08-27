@@ -17,6 +17,8 @@ Qiskit Aer Unitary Simulator Backend.
 import copy
 import logging
 from warnings import warn
+from qiskit.circuit import QuantumCircuit
+from qiskit.compiler import assemble
 from qiskit.util import local_hardware_info
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
@@ -249,12 +251,38 @@ class UnitarySimulator(AerBackend):
         """Return the available simulation methods."""
         return copy.copy(self._AVAILABLE_DEVICES)
 
-    def _execute(self, qobj, config):
+    def run(self,
+            circuits,
+            validate=False,
+            **run_options):
+        """Run a qobj on the backend.
+
+        Args:
+            circuits (QuantumCircuit or list): The QuantumCircuit (or list
+                of QuantumCircuit objects) to run
+            validate (bool): validate the Qobj before running (default: False).
+            run_options (kwargs): additional run time backend options.
+
+        Returns:
+            AerJob: The simulation job.
+
+        Additional Information:
+            kwarg options specified in ``run_options`` will temporarily override
+            any set options of the same name for the current run.
+
+        Raises:
+            ValueError: if run is not implemented
+        """
+        if isinstance(circuits, (list, QuantumCircuit)):
+            circuits = assemble(circuits, self)
+
+        return super().run(circuits, validate, **run_options)
+
+    def _execute(self, qobj):
         """Execute a qobj on the backend.
 
         Args:
             qobj (QasmQobj): simulator input.
-            config (BackendConfiguration): the configuration for the backend.
 
         Returns:
             dict: return a dictionary of results.
@@ -264,6 +292,21 @@ class UnitarySimulator(AerBackend):
         qobj = add_final_save_instruction(qobj, "unitary")
         qobj = map_legacy_method_options(qobj)
         return cpp_execute(self._controller, qobj)
+
+    def _execute_circuits(self, circuits, config):
+        """Execute circuits on the backend.
+
+        Args:
+            circuits (list): simulator input.
+            config (BackendConfiguration): simulation config.
+
+        Returns:
+            dict: return a dictionary of results.
+
+        Raises:
+            AerError: if backend does not support direct circuit simulation.
+        """
+        raise AerError("{} does not support direct circuit simulation.".format(self.name()))
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.

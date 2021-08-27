@@ -203,13 +203,13 @@ class AerJobSet(Job):
             result = aer_job.result(timeout=timeout)
             if result is None or not result.success:
                 if result:
-                    logger.warning('ClusterJob %s Error: %s', aer_job.name(), result.header)
+                    logger.warning('ClusterJob %s Error: %s', aer_job.job_id(), result.header)
                 else:
-                    logger.warning('ClusterJob %s did not return a result', aer_job.name())
+                    logger.warning('ClusterJob %s did not return a result', aer_job.job_id())
         except JobError:
             raise JobError(
                 'Timeout while waiting for the results of experiment {}'.format(
-                    aer_job.name()))
+                    aer_job.job_id()))
 
         if timeout:
             timeout = original_timeout - (time.time() - start_time)

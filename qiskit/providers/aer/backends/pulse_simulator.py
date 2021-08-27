@@ -285,18 +285,32 @@ class PulseSimulator(AerBackend):
                   **options)
         return sim
 
-    def _execute(self, qobj, config):
+    def _execute(self, qobj):
         """Execute a qobj on the backend.
 
         Args:
             qobj (PulseQobj): simulator input.
-            config (BackendConfiguration): simulation config.
 
         Returns:
             dict: return a dictionary of results.
         """
         qobj.config.qubit_freq_est = self.defaults().qubit_freq_est
         return pulse_controller(qobj)
+
+    def _execute_circuits(self, circuits, config):
+        """Execute circuits on the backend.
+
+        Args:
+            circuits (list): simulator input.
+            config (BackendConfiguration): simulation config.
+
+        Returns:
+            dict: return a dictionary of results.
+
+        Raises:
+            AerError: if backend does not support direct circuit simulation.
+        """
+        raise AerError("{} does not support direct circuit simulation.".format(self.name()))
 
     def set_option(self, key, value):
         """Set pulse simulation options and update backend."""

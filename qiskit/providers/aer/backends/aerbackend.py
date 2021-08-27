@@ -130,7 +130,8 @@ class AerBackend(Backend, ABC):
         if (isinstance(circuits, list) and
                 all(isinstance(circuit, QuantumCircuit) for circuit in circuits) and
                 not hasattr(self._options, 'executor')):
-            return self._run_circuits(circuits, validate, **run_options)
+            return self._submit_circuits(circuits, validate, **run_options)
+
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn('Using a qobj for run() is deprecated and will be '
                           'removed in a future release.',
@@ -138,12 +139,12 @@ class AerBackend(Backend, ABC):
                           stacklevel=2)
         else:
             circuits = assemble(circuits, self)
-        return self._run_qobj(circuits, validate, **run_options)
+        return self._submit_qobj(circuits, validate, **run_options)
 
-    def _run_qobj(self,
-                  qobj,
-                  validate=False,
-                  **run_options):
+    def _submit_qobj(self,
+                     qobj,
+                     validate=False,
+                     **run_options):
         """Run a qobj on the backend.
 
         Args:
@@ -200,18 +201,18 @@ class AerBackend(Backend, ABC):
         else:
             aer_job = AerJob(self, job_id, self._run, experiments, executor=executor)
 
+        aer_job.submit()
+
         # Restore self._options
         if executor:
             setattr(self._options, 'executor', executor)
 
-        aer_job.submit()
-
         return aer_job
 
-    def _run_circuits(self,
-                      circuits,
-                      validate=False,
-                      **run_options):
+    def _submit_circuits(self,
+                         circuits,
+                         validate=False,
+                         **run_options):
         """Run a qobj on the backend.
 
         Args:
@@ -245,7 +246,7 @@ class AerBackend(Backend, ABC):
 
         # Submit job
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run, circuits, config=config)
+        aer_job = AerJob(self, job_id, self._run_circuits, circuits, config=config)
 
         aer_job.submit()
 
@@ -314,13 +315,47 @@ class AerBackend(Backend, ABC):
             pending_jobs=0,
             status_msg='')
 
-    def _run(self, circuits, job_id='', config=None):
+    def _run(self, qobj, job_id=''):
         """Run a job"""
         # Start timer
         start = time.time()
 
         # Run simulation
-        output = self._execute(circuits, config)
+        output = self._execute(qobj)
+
+        # Validate output
+        if not isinstance(output, dict):
+            logger.error("%s: simulation failed.", self.name())
+            if output:
+                logger.error('Output: %s', output)
+            raise AerError(
+                "simulation terminated without returning valid output.")
+
+        # Format results
+        output["job_id"] = job_id
+        output["date"] = datetime.datetime.now().isoformat()
+        output["backend_name"] = self.name()
+        output["backend_version"] = self.configuration().backend_version
+
+        # Add execution time
+        output["time_taken"] = time.time() - start
+
+        # Display warning if simulation failed
+        if not output.get("success", False):
+            msg = "Simulation failed"
+            if "status" in output:
+                msg += f" and returned the following error message:\n{output['status']}"
+            logger.warning(msg)
+
+        return Result.from_dict(output)
+
+    def _run_circuits(self, circuits, job_id='', config=None):
+        """Run a job"""
+        # Start timer
+        start = time.time()
+
+        # Run simulation
+        output = self._execute_circuits(circuits, config)
 
         # Validate output
         if not isinstance(output, dict):
@@ -349,15 +384,30 @@ class AerBackend(Backend, ABC):
         return Result.from_dict(output)
 
     @abstractmethod
-    def _execute(self, qobj, config):
-        """Execute circuits on the backend.
+    def _execute(self, qobj):
+        """Execute qobj on the backend.
 
         Args:
             qobj (QasmQobj or PulseQobj or list): simulator input.
+
+        Returns:
+            dict: return a dictionary of results.
+        """
+        pass
+
+    @abstractmethod
+    def _execute_circuits(self, circuits, config):
+        """Execute circuits on the backend.
+
+        Args:
+            circuits (list): simulator input.
             config (BackendConfiguration): simulation config.
 
         Returns:
             dict: return a dictionary of results.
+
+        Raises:
+            AerError: if backend does not support direct circuit simulation.
         """
         pass
 

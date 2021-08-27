@@ -48,7 +48,10 @@ class AerJob(Job):
         """
         if self._future is not None:
             raise JobError("Aer job has already been submitted.")
-        self._future = self._executor.submit(self._fn, self._qobj, self._job_id, self._config)
+        if self._config:
+            self._future = self._executor.submit(self._fn, self._qobj, self._job_id, self._config)
+        else:
+            self._future = self._executor.submit(self._fn, self._qobj, self._job_id)
 
     @requires_submit
     def result(self, timeout=None):
@@ -126,7 +129,7 @@ class AerJob(Job):
         Returns:
             circuits: Configuration submitted for this job.
         """
-        return self._qobj
+        return self._config
 
     def executor(self):
         """Return the executor for this job"""
