@@ -23,6 +23,7 @@ import warnings
 from abc import ABC, abstractmethod
 from numpy import ndarray
 
+from qiskit.circuit import QuantumCircuit
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
 from qiskit.result import Result
@@ -126,16 +127,18 @@ class AerBackend(Backend, ABC):
         Raises:
             ValueError: if run is not implemented
         """
+        if (isinstance(circuits, list) and
+                all(isinstance(circuit, QuantumCircuit) for circuit in circuits) and
+                not hasattr(self._options, 'executor')):
+            return self._run_circuits(circuits, validate, **run_options)
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn('Using a qobj for run() is deprecated and will be '
                           'removed in a future release.',
                           PendingDeprecationWarning,
                           stacklevel=2)
-            return self._run_qobj(circuits, validate, **run_options)
-        elif hasattr(self._options, 'executor'):
-            return self._run_qobj(assemble(circuits, self), validate, **run_options)
         else:
-            return self._run_circuits(circuits, validate, **run_options)
+            circuits = assemble(circuits, self)
+        return self._run_qobj(circuits, validate, **run_options)
 
     def _run_qobj(self,
                   qobj,
@@ -158,28 +161,31 @@ class AerBackend(Backend, ABC):
         Raises:
             ValueError: if run is not implemented
         """
-        config = qobj.config
         # A work around to support both qobj options and run options until
         # qobj is deprecated is to copy all the set qobj.config fields into
         # run_options that don't override existing fields. This means set
         # run_options fields will take precidence over the value for those
         # fields that are set via assemble.
         if not run_options:
-            run_options = config.__dict__
+            run_options = qobj.config.__dict__
         else:
             run_options = copy.copy(run_options)
-            for key, value in config.__dict__.items():
+            for key, value in qobj.config.__dict__.items():
                 if key not in run_options and value is not None:
                     run_options[key] = value
+
+        # Add submit args for the job
+        self._add_options_to_qobj_config(qobj, **run_options)
 
         # Optional validation
         if validate:
             self._validate(qobj)
 
-        # Add submit args for the job
-        experiments = self._get_job_submit_args(qobj, **run_options)
+        # Split circuits for sub-jobs
+        experiments = split_qobj(
+            qobj, max_size=getattr(qobj.config, 'max_job_size', None))
 
-        # Avoid serialization of self._options._executor in submit()
+        # Avoid serialization of self._options._executor only in submit()
         executor = None
         if hasattr(self._options, 'executor'):
             executor = getattr(self._options, 'executor')
@@ -420,7 +426,7 @@ class AerBackend(Backend, ABC):
         elif key in self._options_defaults:
             self._options_defaults.pop(key)
 
-    def _get_job_submit_args(self, qobj, **run_options):
+    def _add_options_to_qobj_config(self, qobj, **run_options):
         """Return execution sim config dict from backend options."""
         # Add options to qobj config overriding any existing fields
         config = qobj.config
@@ -433,10 +439,6 @@ class AerBackend(Backend, ABC):
         # Override with run-time options
         for key, val in run_options.items():
             setattr(config, key, val)
-
-        # Split circuits for sub-jobs
-        return split_qobj(
-            qobj, max_size=getattr(qobj.config, 'max_job_size', None))
 
     def __repr__(self):
         """String representation of an AerBackend."""

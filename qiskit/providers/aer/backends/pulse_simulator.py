@@ -285,11 +285,12 @@ class PulseSimulator(AerBackend):
                   **options)
         return sim
 
-    def _execute(self, qobj):
+    def _execute(self, qobj, config):
         """Execute a qobj on the backend.
 
         Args:
             qobj (PulseQobj): simulator input.
+            config (BackendConfiguration): simulation config.
 
         Returns:
             dict: return a dictionary of results.
