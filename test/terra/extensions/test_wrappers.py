@@ -17,7 +17,7 @@ import pickle
 from multiprocessing import Pool
 
 from qiskit import transpile, QuantumCircuit
-from qiskit.providers.aer.backends import QasmSimulator, StatevectorSimulator, UnitarySimulator
+from qiskit.providers.aer.backends import AerSimulator
 from qiskit.providers.aer.backends.controller_wrappers import aer_controller_execute
 from qiskit.providers.aer.backends.backend_utils import LIBRARY_DIR
 from test.terra.common import QiskitAerTestCase
@@ -62,7 +62,7 @@ class TestControllerExecuteWrappers(QiskitAerTestCase):
     def test_mappable_qasm(self):
         """Test that the qasm controller can be mapped."""
         cfunc = aer_controller_execute()
-        sim = QasmSimulator()
+        sim = AerSimulator()
         fqobj = self._create_qobj(sim)
         self._map_and_test(cfunc, fqobj)
 

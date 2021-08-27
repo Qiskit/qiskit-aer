@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-QasmSimulator Integration Tests
+AerSimulator Integration Tests
 """
 import itertools
 from ddt import ddt
@@ -27,7 +27,7 @@ from test.terra.backends.simulator_test_case import (
 
 @ddt
 class TestUnitaryGates(SimulatorTestCase):
-    """QasmSimulator unitary gate tests."""
+    """AerSimulator unitary gate tests."""
  
     METHODS = ["automatic", "statevector", "density_matrix", "matrix_product_state"]
 

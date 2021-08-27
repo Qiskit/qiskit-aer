@@ -44,6 +44,7 @@ def pulse_controller(qobj):
         ValueError: if input is of incorrect format
         Exception: for invalid ODE options
     """
+
     pulse_sim_desc = PulseSimDescription()
     pulse_de_model = PulseInternalDEModel()
 
@@ -139,8 +140,9 @@ def pulse_controller(qobj):
     # if still None, or is the placeholder value draw from the Hamiltonian
     if qubit_lo_freq is None:
         qubit_lo_freq = system_model.hamiltonian.get_qubit_lo_from_drift()
-        warn('Warning: qubit_lo_freq was not specified in PulseQobj and there is no default, '
-             'so it is being automatically determined from the drift Hamiltonian.')
+        if getattr(qobj.config, 'schedule_los', None) is None:
+            warn('Warning: qubit_lo_freq was not specified in PulseQobj and there is no default, '
+                 'so it is being automatically determined from the drift Hamiltonian.')
 
     pulse_de_model.freqs = system_model.calculate_channel_frequencies(qubit_lo_freq=qubit_lo_freq)
     pulse_de_model.calculate_channel_frequencies = system_model.calculate_channel_frequencies
