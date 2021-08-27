@@ -169,6 +169,10 @@ class AerSimulator(AerBackend):
       on the executor. If ``None`` simulation of all circuits are submitted
       to the executor as a single job (Default: None).
 
+    * ``enable_truncation`` (bool): If set to True this removes unnecessary
+      qubits which do not affect the simulation outcome from the simulated
+      circuits (Default: True).
+
     * ``zero_threshold`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
 
@@ -508,6 +512,7 @@ class AerSimulator(AerBackend):
             precision="double",
             executor=None,
             max_job_size=None,
+            enable_truncation=True,
             zero_threshold=1e-10,
             validation_threshold=None,
             max_parallel_threads=None,

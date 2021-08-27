@@ -26,7 +26,7 @@ class TestAlgorithms(SimulatorTestCase):
     """AerSimulator algorithm tests in the default basis"""
 
     def _test_grovers(self, **options):
-        shots = 4000
+        shots = 2000
         backend = self.backend(**options)
 
         circuits = ref_algorithms.grovers_circuit(
@@ -38,11 +38,11 @@ class TestAlgorithms(SimulatorTestCase):
         result = job.result()
 
         self.assertSuccess(result)
-        self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+        self.compare_counts(result, circuits, targets, delta=0.1 * shots)
 
     def _test_teleport(self, **options):
         """Test teleport circuits."""
-        shots = 4000
+        shots = 1000
         backend = self.backend(**options)
 
         circuits = ref_algorithms.teleport_circuit()
