@@ -57,10 +57,6 @@ public:
   Circuit sample_noise(const Circuit &circ,
                        RngEngine &rng,
                        const Method method = Method::circuit) const;
-  
-  Circuit sample_noise(const Circuit &circ,
-                       RngEngine &rng,
-                       const Method method = Method::circuit);
 
   // Enable superop sampling method
   // This will cause all QuantumErrors stored in the noise model
@@ -263,25 +259,6 @@ NoiseModel::param_gate_table_ = {
 
 Circuit NoiseModel::sample_noise(const Circuit &circ,
                                  RngEngine &rng,
-                                 const Method method) {
-  // Check if sampling method is enabled and if not enable it
-  if (enabled_methods_.find(method) == enabled_methods_.end()) {
-    switch (method) {
-      case Method::superop:
-        enable_superop_method();
-        break;
-      case Method::kraus:
-        enable_kraus_method();
-        break;
-      default:
-        break;
-    }
-  }
-  return sample_noise_circuit(circ, rng, method);
-}
-
-Circuit NoiseModel::sample_noise(const Circuit &circ,
-                                 RngEngine &rng,
                                  const Method method) const {
   // Check if sampling method is enabled
   if (enabled_methods_.find(method) == enabled_methods_.end()) {
@@ -305,9 +282,10 @@ Circuit NoiseModel::sample_noise_circuit(const Circuit &circ,
     noisy_circ.ops.reserve(2 * circ.ops.size());
 
     // Qubit mapping
-    reg_t mapping = (circ.remapped_qubits)
-      ? reg_t(circ.qubits().cbegin(), circ.qubits().cend())
-      : reg_t();
+    // reg_t mapping;
+    // if (circ.remapped_qubits)
+    //   mapping = reg_t(circ.qubits().cbegin(), circ.qubits().cend());
+    const reg_t mapping(circ.qubits().cbegin(), circ.qubits().cend());
 
     // Sample a noisy realization of the circuit
     for (const auto &op: circ.ops) {
@@ -370,15 +348,9 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_op(const Operations::Op &op,
 
 void NoiseModel::enable_superop_method(int num_threads) {
   if (enabled_methods_.find(Method::superop) == enabled_methods_.end()) {
-    if (num_threads > 1 && quantum_errors_.size() > 10) {
-      #pragma omp parallel for num_threads(num_threads)
-      for (int i=0; i < quantum_errors_.size(); i++)  {
-        quantum_errors_[i].compute_superoperator();
-      }
-    } else {
-      for (auto& qerror : quantum_errors_) {
-        qerror.compute_superoperator();
-      }
+    #pragma omp parallel for if (num_threads > 1 && quantum_errors_.size() > 10) num_threads(num_threads)
+    for (int i=0; i < quantum_errors_.size(); i++)  {
+      quantum_errors_[i].compute_superoperator();
     }
     enabled_methods_.insert(Method::superop);
   }
@@ -387,15 +359,9 @@ void NoiseModel::enable_superop_method(int num_threads) {
 
 void NoiseModel::enable_kraus_method(int num_threads) {
   if (enabled_methods_.find(Method::kraus) == enabled_methods_.end()) {
-    if (num_threads > 1 && quantum_errors_.size() > 10) {
-      #pragma omp parallel for num_threads(num_threads) 
-      for (int i=0; i < quantum_errors_.size(); i++)  {
-        quantum_errors_[i].compute_kraus();
-      }
-    } else {
-      for (auto& qerror : quantum_errors_) {
-        qerror.compute_kraus();
-      }
+    #pragma omp parallel for if (num_threads > 1 && quantum_errors_.size() > 10) num_threads(num_threads)
+    for (int i=0; i < quantum_errors_.size(); i++)  {
+      quantum_errors_[i].compute_kraus();
     }
     enabled_methods_.insert(Method::kraus);
   }
