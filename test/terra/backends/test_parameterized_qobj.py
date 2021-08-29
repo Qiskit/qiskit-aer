@@ -15,6 +15,7 @@ statevector_simulator, and expectation value snapshots.
 """
 
 import unittest
+from math import pi
 import numpy as np
 
 from test.terra import common
@@ -125,7 +126,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         circuit.rx(theta, 0)
         circuit.cx(0, 1)
         circuit.measure_all()
-        parameter_binds = [{theta: [0, 3.14, 6.28]}]
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
         res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{'00': 1000}, {'11': 1000}, {'00': 1000}])
@@ -141,7 +142,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         circuit.cx(0, 1)
         circuit.rz(theta_squared, 1)
         circuit.measure_all()
-        parameter_binds = [{theta: [0, 3.14, 6.28]}]
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
         res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{'00': 1000}, {'11': 1000}, {'00': 1000}])
@@ -158,7 +159,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         circuit.rz(theta_squared, 1)
         circuit.u(theta, theta_squared, theta, 1)
         circuit.measure_all()
-        parameter_binds = [{theta: [0, 3.14, 6.28]}]
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
         res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{'00': 1000}, {'01': 1000}, {'00': 1000}])
@@ -176,7 +177,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         circuit.rz(theta_squared, 1)
         circuit.ry(phi, 1)
         circuit.measure_all()
-        parameter_binds = [{theta: [0, 3.14, 6.28], phi: [0, 1, 3.14]}]
+        parameter_binds = [{theta: [0, pi, 2 * pi], phi: [0, 1, pi]}]
         res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
         for index, expected in enumerate([{'00': 1000}, {'01': 250, '11': 750}, {'10': 1000}]):
@@ -191,7 +192,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         circuit.rx(theta, 0)
         circuit.cx(0, 1)
         circuit.measure_all()
-        parameter_binds = [{theta: [0, 3.14, 6.28]}]*3
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]*3
         res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{'00': 1000}, {'11': 1000}, {'00': 1000}] * 3)
@@ -207,7 +208,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         circuit.cx(0, 1)
         circuit.rz(theta_squared, 1)
         circuit.measure_all()
-        parameter_binds = [{theta: [0, 3.14, 6.28]}]*3
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]*3
         res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{'00': 1000}, {'11': 1000}, {'00': 1000}] * 3)
@@ -224,7 +225,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         circuit.rz(theta_squared, 1)
         circuit.u(theta, theta_squared, theta, 1)
         circuit.measure_all()
-        parameter_binds = [{theta: [0, 3.14, 6.28]}]*3
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]*3
         res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{'00': 1000}, {'01': 1000}, {'00': 1000}] * 3)
@@ -242,7 +243,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         circuit.rz(theta_squared, 1)
         circuit.ry(phi, 1)
         circuit.measure_all()
-        parameter_binds = [{theta: [0, 3.14, 6.28], phi: [0, 1, 3.14]}]*3
+        parameter_binds = [{theta: [0, pi, 2 * pi], phi: [0, 1, pi]}]*3
         res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
         for index, expected in enumerate([{'00': 1000}, {'01': 250, '11': 750}, {'10': 1000}] * 3):
@@ -257,7 +258,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         circuit.rx(theta, 0)
         circuit.cx(0, 1)
         circuit.measure_all()
-        parameter_binds = [{theta: [0, 3.14, 6.28]}]
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
         with self.assertRaises(AerError):
             backend.run([circuit]*3, shots=shots, parameter_binds=[parameter_binds]).result()
 
