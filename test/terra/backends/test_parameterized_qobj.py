@@ -78,7 +78,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
                                        measure=True,
                                        snapshot=True)
         self.assertIn('parameterizations', qobj.to_dict()['config'])
-        with self.assertRaises(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             job = backend.run(qobj, **self.BACKEND_OPTS)
             result = job.result()
             success = getattr(result, 'success', False)
@@ -104,7 +104,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
             backend=backend, measure=False, snapshot=False, save_state=True,
         )
         self.assertIn('parameterizations', qobj.to_dict()['config'])
-        with self.assertRaises(DeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             job = backend.run(qobj, **self.BACKEND_OPTS)
             result = job.result()
             success = getattr(result, 'success', False)

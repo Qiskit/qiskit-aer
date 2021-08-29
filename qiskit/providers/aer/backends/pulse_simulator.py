@@ -221,15 +221,16 @@ class PulseSimulator(AerBackend):
               of the same kwarg specified in the simulator options, the
               ``backend_options`` and the ``Qobj.config``.
         """
-        if not isinstance(schedules, list):
-            schedules = [schedules]
-        new_schedules = []
-        for circuit in schedules:
-            if isinstance(circuit, QuantumCircuit):
-                new_schedules.append(schedule(circuit, self))
-            else:
-                new_schedules.append(circuit)
-        schedules = new_schedules
+        if isinstance(schedules, list):
+            new_schedules = []
+            for i in schedules:
+                if isinstance(i, QuantumCircuit):
+                    new_schedules.append(schedule(i, self))
+                else:
+                    new_schedules.append(i)
+            schedules = new_schedules
+        elif isinstance(schedules, QuantumCircuit):
+            schedules = schedule(schedules, self)
         return super().run(schedules, validate=validate, **run_options)
 
     @property
