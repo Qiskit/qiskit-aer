@@ -232,7 +232,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
 
     def test_run_path_with_more_params_than_expressions_multiple_circuits(self):
         """Test parameterized circuit path via backed.run()"""
-        shots = 1000
+        shots = 2000
         backend = AerSimulator()
         circuit = QuantumCircuit(2)
         theta = Parameter('theta')
@@ -247,7 +247,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
         for index, expected in enumerate([{'00': 1000}, {'01': 250, '11': 750}, {'10': 1000}] * 3):
-            self.assertDictAlmostEqual(counts[index], expected, delta=50)
+            self.assertDictAlmostEqual(counts[index], expected, delta=0.08*shots)
 
     def test_run_path_multiple_circuits_mismatch_length(self):
         """Test parameterized circuit path via backed.run()"""
