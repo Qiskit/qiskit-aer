@@ -129,7 +129,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         parameter_binds = [{theta: [0, pi, 2 * pi]}]
         res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
-        self.assertEqual(counts, [{'00': 1000}, {'11': 1000}, {'00': 1000}])
+        self.assertEqual(counts, [{'00': shots}, {'11': shots}, {'00': shots}])
 
     def test_run_path_with_expressions(self):
         """Test parameterized circuit path via backed.run()"""
@@ -145,7 +145,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         parameter_binds = [{theta: [0, pi, 2 * pi]}]
         res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
-        self.assertEqual(counts, [{'00': 1000}, {'11': 1000}, {'00': 1000}])
+        self.assertEqual(counts, [{'00': shots}, {'11': shots}, {'00': shots}])
 
     def test_run_path_with_expressions_multiple_params_per_instruction(self):
         """Test parameterized circuit path via backed.run()"""
@@ -162,11 +162,11 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         parameter_binds = [{theta: [0, pi, 2 * pi]}]
         res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
-        self.assertEqual(counts, [{'00': 1000}, {'01': 1000}, {'00': 1000}])
+        self.assertEqual(counts, [{'00': shots}, {'01': shots}, {'00': shots}])
 
     def test_run_path_with_more_params_than_expressions(self):
         """Test parameterized circuit path via backed.run()"""
-        shots = 1000
+        shots = 2000
         backend = AerSimulator()
         circuit = QuantumCircuit(2)
         theta = Parameter('theta')
@@ -180,8 +180,8 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         parameter_binds = [{theta: [0, pi, 2 * pi], phi: [0, 1, pi]}]
         res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
-        for index, expected in enumerate([{'00': 1000}, {'01': 250, '11': 750}, {'10': 1000}]):
-            self.assertDictAlmostEqual(counts[index], expected, delta=50)
+        for index, expected in enumerate([{'00': shots}, {'01': 0.25*shots, '11': 0.75*shots}, {'10': shots}]):
+            self.assertDictAlmostEqual(counts[index], expected, delta=0.05*shots)
 
     def test_run_path_multiple_circuits(self):
         """Test parameterized circuit path via backed.run()"""
@@ -195,7 +195,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         parameter_binds = [{theta: [0, pi, 2 * pi]}]*3
         res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
-        self.assertEqual(counts, [{'00': 1000}, {'11': 1000}, {'00': 1000}] * 3)
+        self.assertEqual(counts, [{'00': shots}, {'11': shots}, {'00': shots}] * 3)
 
     def test_run_path_with_expressions_multiple_circuits(self):
         """Test parameterized circuit path via backed.run()"""
@@ -211,7 +211,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         parameter_binds = [{theta: [0, pi, 2 * pi]}]*3
         res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
-        self.assertEqual(counts, [{'00': 1000}, {'11': 1000}, {'00': 1000}] * 3)
+        self.assertEqual(counts, [{'00': shots}, {'11': shots}, {'00': shots}] * 3)
 
     def test_run_path_with_expressions_multiple_params_per_instruction(self):
         """Test parameterized circuit path via backed.run()"""
@@ -228,7 +228,7 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         parameter_binds = [{theta: [0, pi, 2 * pi]}]*3
         res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
-        self.assertEqual(counts, [{'00': 1000}, {'01': 1000}, {'00': 1000}] * 3)
+        self.assertEqual(counts, [{'00': shots}, {'01': shots}, {'00': shots}] * 3)
 
     def test_run_path_with_more_params_than_expressions_multiple_circuits(self):
         """Test parameterized circuit path via backed.run()"""
@@ -246,8 +246,8 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         parameter_binds = [{theta: [0, pi, 2 * pi], phi: [0, 1, pi]}]*3
         res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
-        for index, expected in enumerate([{'00': 1000}, {'01': 250, '11': 750}, {'10': 1000}] * 3):
-            self.assertDictAlmostEqual(counts[index], expected, delta=0.08*shots)
+        for index, expected in enumerate([{'00': shots}, {'01': 0.25*shots, '11': 0.75*shots}, {'10': shots}] * 3):
+            self.assertDictAlmostEqual(counts[index], expected, delta=0.05*shots)
 
     def test_run_path_multiple_circuits_mismatch_length(self):
         """Test parameterized circuit path via backed.run()"""
