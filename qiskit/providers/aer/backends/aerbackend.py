@@ -179,10 +179,12 @@ class AerBackend(Backend, ABC):
             ValueError: if run is not implemented
         """
         if isinstance(circuits, (QasmQobj, PulseQobj)):
-            warnings.warn('Using a qobj for run() is deprecated and will be '
-                          'removed in a future release.',
-                          PendingDeprecationWarning,
-                          stacklevel=2)
+            warnings.warn(
+                'Using a qobj for run() is deprecated as of qiskit-aer 0.9.0'
+                ' and will be removed no sooner than 3 months from that release'
+                ' date. Transpiled circuits should now be passed directly using'
+                ' `backend.run(circuits, **run_options).',
+                DeprecationWarning, stacklevel=2)
             if parameter_binds:
                 raise AerError("Parameter binds can't be used with an input qobj")
             # A work around to support both qobj options and run options until
