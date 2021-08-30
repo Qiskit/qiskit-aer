@@ -10,14 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-QasmSimulator Integration Tests
+AerSimulator Integration Tests
 """
 
 from ddt import ddt, data
 
 from test.terra.reference import ref_2q_clifford
 from test.terra.reference import ref_non_clifford
-from qiskit.compiler import assemble
 from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import QuantumError

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-QasmSimulator Integration Tests
+AerSimulator Integration Tests
 """
 # pylint: disable=no-member
 import copy
@@ -19,7 +19,6 @@ from ddt import ddt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import QuantumVolume, QFT, RealAmplitudes
 from qiskit.compiler import transpile
-from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import (ReadoutError,
                                                depolarizing_error,
@@ -30,14 +29,14 @@ from test.terra.backends.simulator_test_case import (
 
 @ddt
 class TestGateFusion(SimulatorTestCase):
-    """QasmSimulator fusion tests."""
+    """AerSimulator fusion tests."""
 
     def create_statevector_circuit(self):
         """ Creates a simple circuit for running in the statevector """
         qr = QuantumRegister(5)
         cr = ClassicalRegister(5)
         circuit = QuantumCircuit(qr, cr)
-        circuit.u3(0.1, 0.1, 0.1, qr[0])
+        circuit.u(0.1, 0.1, 0.1, qr[0])
         circuit.barrier(qr)
         circuit.x(qr[0])
         circuit.barrier(qr)
@@ -45,7 +44,7 @@ class TestGateFusion(SimulatorTestCase):
         circuit.barrier(qr)
         circuit.x(qr[0])
         circuit.barrier(qr)
-        circuit.u3(0.1, 0.1, 0.1, qr[0])
+        circuit.u(0.1, 0.1, 0.1, qr[0])
         circuit.barrier(qr)
         circuit.measure(qr, cr)
         return circuit
@@ -290,32 +289,17 @@ class TestGateFusion(SimulatorTestCase):
         circuit.h(qr)
         circuit.barrier(qr)
 
-        circuit.u3(0.1, 0.1, 0.1, qr[0])
+        circuit.u(0.1, 0.1, 0.1, qr[0])
         circuit.barrier(qr)
-        circuit.u3(0.1, 0.1, 0.1, qr[1])
+        circuit.u(0.1, 0.1, 0.1, qr[1])
         circuit.barrier(qr)
         circuit.cx(qr[1], qr[0])
         circuit.barrier(qr)
-        circuit.u3(0.1, 0.1, 0.1, qr[0])
+        circuit.u(0.1, 0.1, 0.1, qr[0])
         circuit.barrier(qr)
-        circuit.u3(0.1, 0.1, 0.1, qr[1])
+        circuit.u(0.1, 0.1, 0.1, qr[1])
         circuit.barrier(qr)
-        circuit.u3(0.1, 0.1, 0.1, qr[3])
-        circuit.barrier(qr)
-
-        circuit.x(qr[0])
-        circuit.barrier(qr)
-        circuit.x(qr[1])
-        circuit.barrier(qr)
-        circuit.x(qr[0])
-        circuit.barrier(qr)
-        circuit.x(qr[1])
-        circuit.barrier(qr)
-        circuit.cx(qr[2], qr[3])
-        circuit.barrier(qr)
-        circuit.u3(0.1, 0.1, 0.1, qr[3])
-        circuit.barrier(qr)
-        circuit.u3(0.1, 0.1, 0.1, qr[3])
+        circuit.u(0.1, 0.1, 0.1, qr[3])
         circuit.barrier(qr)
 
         circuit.x(qr[0])
@@ -328,9 +312,24 @@ class TestGateFusion(SimulatorTestCase):
         circuit.barrier(qr)
         circuit.cx(qr[2], qr[3])
         circuit.barrier(qr)
-        circuit.u3(0.1, 0.1, 0.1, qr[3])
+        circuit.u(0.1, 0.1, 0.1, qr[3])
         circuit.barrier(qr)
-        circuit.u3(0.1, 0.1, 0.1, qr[3])
+        circuit.u(0.1, 0.1, 0.1, qr[3])
+        circuit.barrier(qr)
+
+        circuit.x(qr[0])
+        circuit.barrier(qr)
+        circuit.x(qr[1])
+        circuit.barrier(qr)
+        circuit.x(qr[0])
+        circuit.barrier(qr)
+        circuit.x(qr[1])
+        circuit.barrier(qr)
+        circuit.cx(qr[2], qr[3])
+        circuit.barrier(qr)
+        circuit.u(0.1, 0.1, 0.1, qr[3])
+        circuit.barrier(qr)
+        circuit.u(0.1, 0.1, 0.1, qr[3])
         circuit.barrier(qr)
 
         circuit.measure(qr, cr)

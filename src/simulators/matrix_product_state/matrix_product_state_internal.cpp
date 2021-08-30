@@ -370,12 +370,13 @@ void MPS::initialize(uint_t num_qubits)
   lambda_reg_.clear();
   complex_t alpha = 1.0f;
   complex_t beta = 0.0f;
-  for(uint_t i = 0; i < num_qubits_-1; i++) {
-      q_reg_.push_back(MPS_Tensor(alpha,beta));
-      lambda_reg_.push_back(rvector_t {1.0});
+
+  for(uint_t i = 0; i < num_qubits_; i++) {
+    q_reg_.push_back(MPS_Tensor(alpha, beta));
   }
-  // need to add one more Gamma tensor, because above loop only initialized up to n-1 
-  q_reg_.push_back(MPS_Tensor(alpha, beta));
+  for (uint_t i = 1; i < num_qubits_; i++) {
+    lambda_reg_.push_back(rvector_t {1.0});
+  }
 
   qubit_ordering_.order_.clear();
   qubit_ordering_.order_.resize(num_qubits);
@@ -412,6 +413,11 @@ void MPS::apply_h(uint_t index)
 void MPS::apply_sx(uint_t index)
 {
   get_qubit(index).apply_matrix(AER::Linalg::Matrix::SX);
+}
+
+void MPS::apply_sxdg(uint_t index)
+{
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::SXDG);
 }
 
 void MPS::apply_r(uint_t index, double phi, double lam)

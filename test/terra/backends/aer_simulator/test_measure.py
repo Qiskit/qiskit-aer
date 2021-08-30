@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-QasmSimulator Integration Tests
+AerSimulator Integration Tests
 """
 
 from ddt import ddt
@@ -42,7 +42,7 @@ class TestMeasure(SimulatorTestCase):
     # ---------------------------------------------------------------------
     @supported_methods(SUPPORTED_METHODS)
     def test_measure_deterministic_with_sampling(self, method, device):
-        """Test QasmSimulator measure with deterministic counts with sampling"""
+        """Test AerSimulator measure with deterministic counts with sampling"""
         backend = self.backend(method=method, device=device)
         shots = 100
         circuits = ref_measure.measure_circuits_deterministic(
@@ -57,7 +57,7 @@ class TestMeasure(SimulatorTestCase):
 
     @supported_methods(SUPPORTED_METHODS)
     def test_measure_deterministic_without_sampling(self, method, device):
-        """Test QasmSimulator measure with deterministic counts without sampling"""
+        """Test AerSimulator measure with deterministic counts without sampling"""
         backend = self.backend(method=method, device=device)
         shots = 100
         circuits = ref_measure.measure_circuits_deterministic(
@@ -72,7 +72,7 @@ class TestMeasure(SimulatorTestCase):
 
     @supported_methods(SUPPORTED_METHODS)
     def test_measure_nondeterministic_with_sampling(self, method, device):
-        """Test QasmSimulator measure with non-deterministic counts with sampling"""
+        """Test AerSimulator measure with non-deterministic counts with sampling"""
         backend = self.backend(method=method, device=device)
         shots = 4000
         circuits = ref_measure.measure_circuits_nondeterministic(
@@ -88,7 +88,7 @@ class TestMeasure(SimulatorTestCase):
 
     @supported_methods(SUPPORTED_METHODS)
     def test_measure_nondeterministic_without_sampling(self, method, device):
-        """Test QasmSimulator measure with non-deterministic counts without sampling"""
+        """Test AerSimulator measure with non-deterministic counts without sampling"""
         backend = self.backend(method=method, device=device)
         shots = 4000
         circuits = ref_measure.measure_circuits_nondeterministic(
@@ -101,7 +101,7 @@ class TestMeasure(SimulatorTestCase):
 
     @supported_methods(SUPPORTED_METHODS)
     def test_measure_sampling_with_readouterror(self, method, device):
-        """Test QasmSimulator measure with deterministic counts with sampling and readout-error"""
+        """Test AerSimulator measure with deterministic counts with sampling and readout-error"""
         readout_error = [0.01, 0.1]
         noise_model = NoiseModel()
         readout = [[1.0 - readout_error[0], readout_error[0]],
@@ -120,7 +120,7 @@ class TestMeasure(SimulatorTestCase):
 
     @supported_methods(SUPPORTED_METHODS)
     def test_measure_sampling_with_quantum_noise(self, method, device):
-        """Test QasmSimulator measure with deterministic counts with sampling and readout-error"""
+        """Test AerSimulator measure with deterministic counts with sampling and readout-error"""
         readout_error = [0.01, 0.1]
         noise_model = NoiseModel()
         depolarizing = {'u3': (1, 0.001), 'cx': (2, 0.02)}
@@ -147,7 +147,7 @@ class TestMeasure(SimulatorTestCase):
     # ---------------------------------------------------------------------
     @supported_methods(SUPPORTED_METHODS)
     def test_measure_deterministic_multi_qubit_with_sampling(self, method, device):
-        """Test QasmSimulator multi-qubit measure with deterministic counts with sampling"""
+        """Test AerSimulator multi-qubit measure with deterministic counts with sampling"""
         backend = self.backend(method=method, device=device)
         shots = 100
         circuits = ref_measure.multiqubit_measure_circuits_deterministic(
@@ -162,7 +162,7 @@ class TestMeasure(SimulatorTestCase):
 
     @supported_methods(SUPPORTED_METHODS)
     def test_measure_deterministic_multi_qubit_without_sampling(self, method, device):
-        """Test QasmSimulator multi-qubit measure with deterministic counts without sampling"""
+        """Test AerSimulator multi-qubit measure with deterministic counts without sampling"""
         backend = self.backend(method=method, device=device)
         shots = 100
         circuits = ref_measure.multiqubit_measure_circuits_deterministic(
@@ -176,7 +176,7 @@ class TestMeasure(SimulatorTestCase):
 
     @supported_methods(SUPPORTED_METHODS)
     def test_measure_nondeterministic_multi_qubit_with_sampling(self, method, device):
-        """Test QasmSimulator measure with non-deterministic counts"""
+        """Test AerSimulator measure with non-deterministic counts"""
         backend = self.backend(method=method, device=device)
         shots = 4000
         circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(
@@ -189,7 +189,7 @@ class TestMeasure(SimulatorTestCase):
 
     @supported_methods(SUPPORTED_METHODS)
     def test_measure_nondeterministic_multi_qubit_without_sampling(self, method, device):
-        """Test QasmSimulator measure with non-deterministic counts"""
+        """Test AerSimulator measure with non-deterministic counts"""
         backend = self.backend(method=method, device=device)
         shots = 4000
         circuits = ref_measure.multiqubit_measure_circuits_nondeterministic(

@@ -79,7 +79,7 @@ class NoiseModel:
 
         # Add errors to noise model
         noise_model = noise.NoiseModel()
-        noise_model.add_all_qubit_quantum_error(error_1, ['u1', 'u2', 'u3'])
+        noise_model.add_all_qubit_quantum_error(error_1, ['rz', 'sx', 'x'])
         noise_model.add_all_qubit_quantum_error(error_2, ['cx'])
         print(noise_model)
 
@@ -94,9 +94,9 @@ class NoiseModel:
     # Checks for standard 1-3 qubit instructions
     _1qubit_instructions = set([
         'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-        'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg'])
+        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg'])
     _2qubit_instructions = set([
-        'swap', 'cx', 'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx',
+        'swap', 'cx', 'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx',
         'ryy', 'rzz', 'rzx'])
     _3qubit_instructions = set(['ccx', 'cswap'])
 
@@ -105,7 +105,7 @@ class NoiseModel:
 
         Args:
             basis_gates (list[str] or None): Specify an initial basis_gates
-                for the noise model. If None a default value of ['id', 'u3', 'cx']
+                for the noise model. If None a default value of ['id', 'rz', 'sx', 'cx']
                 is used (Default: None).
 
         Additional Information:
@@ -119,10 +119,10 @@ class NoiseModel:
         or the :meth:`add_basis_gates` method.
         """
         if basis_gates is None:
-            # Default basis gates is id, u3, cx so that all standard
-            # non-identity instructions can be unrolled to u3, cx,
-            # and identities won't be unrolled to u3.
-            self._basis_gates = set(['id', 'u3', 'cx'])
+            # Default basis gates is id, rz, sx, cx so that all standard
+            # non-identity instructions can be unrolled to rz, sx, cx,
+            # and identities won't be unrolled
+            self._basis_gates = set(['id', 'rz', 'sx', 'cx'])
         else:
             self._basis_gates = set(
                 name for name, _ in self._instruction_names_labels(basis_gates))
@@ -563,12 +563,12 @@ class NoiseModel:
         """
         Add a non-local quantum error to the noise model (DEPRECATED).
 
-        .. warning::
+        .. deprecated:: 0.9.0
 
-            Adding nonlocal noise to a noise model is deprecated as of
-            qiskit-aer 0.9.0 and will be removed no earlier than 3
-            months from that release date. To add non-local noise to
-            a circuit you should write a custom qiskit transpiler pass.
+            Adding nonlocal noise to a noise model is deprecated and will
+            be removed no earlier than 3 months from the qiskit-aer 0.9.0
+            release date. To add non-local noise to a circuit you should
+            write a custom qiskit transpiler pass.
 
         Args:
             error (QuantumError): the quantum error object.
