@@ -140,7 +140,7 @@ public:
   virtual bool batchable_op(const Operations::Op& op,bool single_op = true);
 
   //store asynchronously measured classical bits after batched execution
-  virtual void store_measured_cbits(const Operations::Op &op);
+  virtual void store_measured_cbits(void);
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -203,6 +203,19 @@ public:
     BaseState::qreg_.enable_batch(flg);
   }
 
+  //-----------------------------------------------------------------------
+  // ClassicalRegister methods
+  //-----------------------------------------------------------------------
+
+  // Initialize classical memory and register to default value (all-0)
+  virtual void initialize_creg(uint_t num_memory, uint_t num_register);
+
+  // Initialize classical memory and register to specific values
+  virtual void initialize_creg(uint_t num_memory,
+                       uint_t num_register,
+                       const std::string &memory_hex,
+                       const std::string &register_hex);
+
 protected:
   //-----------------------------------------------------------------------
   // Apply instructions
@@ -217,7 +230,7 @@ protected:
   // should be contained in the set returned by the 'allowed_ops'
   // method.
   virtual void apply_measure(const reg_t &qubits, const reg_t &cmemory,
-                             const reg_t &cregister, std::vector<RngEngine> &rng);
+                             const reg_t &cregister, RngEngine &rng);
 
   // Reset the specified qubits to the |0> state by simulating
   // a measurement, applying a conditional x-gate if the outcome is 1, and
@@ -254,7 +267,7 @@ protected:
 
   // Apply a Kraus error operation
   void apply_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &krausops,
-                   std::vector<RngEngine> &rng);
+                   RngEngine &rng);
 
   virtual void apply_bfunc(const Operations::Op &op);
   virtual bool check_conditional(const Operations::Op &op);
@@ -537,6 +550,26 @@ template <class statevec_t> void State<statevec_t>::initialize_omp() {
         BaseState::threads_); // set allowed OMP threads in qubitvector
 }
 
+template <class state_t>
+void State<state_t>::initialize_creg(uint_t num_memory, uint_t num_register) 
+{
+  BaseState::initialize_creg(num_memory, num_register);
+
+  //initialize creg on GPU memory
+  BaseState::qreg_.initialize_creg(num_memory, num_register);
+}
+
+
+template <class state_t>
+void State<state_t>::initialize_creg(uint_t num_memory,
+                                     uint_t num_register,
+                                     const std::string &memory_hex,
+                                     const std::string &register_hex) 
+{
+  BaseState::initialize_creg(num_memory, num_register, memory_hex, register_hex);
+  BaseState::qreg_.initialize_creg(num_memory, num_register);
+}
+
 //-------------------------------------------------------------------------
 // Utility
 //-------------------------------------------------------------------------
@@ -609,8 +642,83 @@ void State<statevec_t>::apply_op(const Operations::Op &op,
                                   RngEngine &rng,
                                   bool final_ops) 
 {
-  std::vector<RngEngine> r(1,rng);
-  apply_op_multi_shots(op,result,r,final_ops);
+  if(check_conditional(op)) {
+    switch (op.type) {
+      case OpType::barrier:
+      case OpType::nop:
+        break;
+      case OpType::reset:
+        apply_reset(op.qubits, rng);
+        break;
+      case OpType::initialize:
+        apply_initialize(op.qubits, op.params, rng);
+        break;
+      case OpType::measure:
+        apply_measure(op.qubits, op.memory, op.registers, rng);
+        break;
+      case OpType::bfunc:
+        apply_bfunc(op);
+        break;
+      case OpType::roerror:
+        BaseState::creg_.apply_roerror(op, rng);
+        break;
+      case OpType::gate:
+        apply_gate(op);
+        break;
+      case OpType::snapshot:
+        apply_snapshot(op, result, final_ops);
+        break;
+      case OpType::matrix:
+        apply_matrix(op);
+        break;
+      case OpType::diagonal_matrix:
+        BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
+        break;
+      case OpType::multiplexer:
+        apply_multiplexer(op.regs[0], op.regs[1],
+                          op.mats); // control qubits ([0]) & target qubits([1])
+        break;
+      case OpType::kraus:
+        apply_kraus(op.qubits, op.mats, rng);
+        break;
+      case OpType::sim_op:
+        if(op.name == "begin_register_blocking"){
+          BaseState::qreg_.enter_register_blocking(op.qubits);
+        }
+        else if(op.name == "end_register_blocking"){
+          BaseState::qreg_.leave_register_blocking();
+        }
+        break;
+      case OpType::set_statevec:
+        BaseState::qreg_.initialize_from_vector(op.params);
+        break;
+      case OpType::save_expval:
+      case OpType::save_expval_var:
+        BaseState::apply_save_expval(op, result);
+        break;
+      case OpType::save_densmat:
+        apply_save_density_matrix(op, result);
+        break;
+      case OpType::save_state:
+      case OpType::save_statevec:
+        apply_save_statevector(op, result, final_ops);
+        break;
+      case OpType::save_statevec_dict:
+        apply_save_statevector_dict(op, result);
+        break;
+      case OpType::save_probs:
+      case OpType::save_probs_ket:
+        apply_save_probs(op, result);
+        break;
+      case OpType::save_amps:
+      case OpType::save_amps_sq:
+        apply_save_amplitudes(op, result);
+        break;
+      default:
+        throw std::invalid_argument(
+            "QubitVector::State::invalid instruction \'" + op.name + "\'.");
+    }
+  }
 }
 
 template <class statevec_t>
@@ -631,7 +739,7 @@ void State<statevec_t>::apply_op_multi_shots(const Operations::Op &op,
         apply_initialize(op.qubits, op.params, rng[BaseState::shot_index_]);
         break;
       case OpType::measure:
-        apply_measure(op.qubits, op.memory, op.registers, rng);
+        BaseState::qreg_.apply_batched_measure(op.qubits[0],rng,op.registers);
         break;
       case OpType::bfunc:
         apply_bfunc(op);
@@ -656,7 +764,7 @@ void State<statevec_t>::apply_op_multi_shots(const Operations::Op &op,
                           op.mats); // control qubits ([0]) & target qubits([1])
         break;
       case OpType::kraus:
-        apply_kraus(op.qubits, op.mats, rng);
+        BaseState::qreg_.apply_kraus(op.qubits, op.mats,rng);
         break;
       case OpType::sim_op:
         if(op.name == "begin_register_blocking"){
@@ -1455,30 +1563,31 @@ void State<statevec_t>::apply_gate_phase(uint_t qubit, complex_t phase) {
 
 template <class statevec_t>
 void State<statevec_t>::apply_measure(const reg_t &qubits, const reg_t &cmemory,
-                                      const reg_t &cregister, std::vector<RngEngine> &rng) 
+                                      const reg_t &cregister, RngEngine &rng) 
 {
-  if(BaseState::qreg_.batched_optimization_supported() && qubits.size() == 1){
-    BaseState::qreg_.apply_batched_measure(qubits[0],rng);
-  }
-  else{
-    // Actual measurement outcome
-    const auto meas = sample_measure_with_prob(qubits, rng[0]);
-    // Implement measurement update
-    measure_reset_update(qubits, meas.first, meas.first, meas.second);
-    const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
-    BaseState::creg_.store_measure(outcome, cmemory, cregister);
-  }
+//  if(BaseState::qreg_.batched_optimization_supported() && qubits.size() == 1){
+//    BaseState::qreg_.apply_batched_measure(qubits[0],rng);
+//  }
+  // Actual measurement outcome
+  const auto meas = sample_measure_with_prob(qubits, rng);
+  // Implement measurement update
+  measure_reset_update(qubits, meas.first, meas.first, meas.second);
+  const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
+  BaseState::creg_.store_measure(outcome, cmemory, cregister);
 }
 
 template <class statevec_t>
-void State<statevec_t>::store_measured_cbits(const Operations::Op &op)
+void State<statevec_t>::store_measured_cbits(void)
 {
-  if(op.type == Operations::OpType::measure && op.qubits.size() == 1){
-    if(BaseState::qreg_.batched_optimization_supported()){
-      int bit = BaseState::qreg_.measured_cbit(op.qubits[0]);
+  uint_t i;
+  reg_t pos(1);
+  if(BaseState::qreg_.batched_optimization_supported()){
+    for(i=0;i<BaseState::creg_.memory_size();i++){
+      int bit = BaseState::qreg_.measured_cbit(i);
       if(bit >= 0){
         const reg_t outcome = Utils::int2reg(bit, 2, 1);
-        BaseState::creg_.store_measure(outcome, op.memory, op.registers);
+        pos[0] = i;
+        BaseState::creg_.store_measure(outcome, pos,pos);
       }
     }
   }
@@ -1668,51 +1777,49 @@ void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits,
 template <class statevec_t>
 void State<statevec_t>::apply_kraus(const reg_t &qubits,
                                     const std::vector<cmatrix_t> &kmats,
-                                    std::vector<RngEngine> &rng) 
+                                    RngEngine &rng) 
 {
   // Check edge case for empty Kraus set (this shouldn't happen)
   if (kmats.empty())
     return; // end function early
 
-  if(BaseState::qreg_.batched_optimization_supported()){
-    BaseState::qreg_.apply_kraus(qubits,kmats,rng);
+//  if(BaseState::qreg_.batched_optimization_supported()){
+//    BaseState::qreg_.apply_kraus(qubits,kmats,rng);
+//  }
+  // Choose a real in [0, 1) to choose the applied kraus operator once
+  // the accumulated probability is greater than r.
+  // We know that the Kraus noise must be normalized
+  // So we only compute probabilities for the first N-1 kraus operators
+  // and infer the probability of the last one from 1 - sum of the previous
+
+  double r = rng.rand(0., 1.);
+  double accum = 0.;
+  bool complete = false;
+
+  // Loop through N-1 kraus operators
+  for (size_t j = 0; j < kmats.size() - 1; j++) {
+
+    // Calculate probability
+    cvector_t vmat = Utils::vectorize_matrix(kmats[j]);
+    double p = BaseState::qreg_.norm(qubits, vmat);
+    accum += p;
+
+    // check if we need to apply this operator
+    if (accum > r) {
+      // rescale vmat so projection is normalized
+      Utils::scalar_multiply_inplace(vmat, 1 / std::sqrt(p));
+      // apply Kraus projection operator
+      apply_matrix(qubits, vmat);
+      complete = true;
+      break;
+    }
   }
-  else{
-    // Choose a real in [0, 1) to choose the applied kraus operator once
-    // the accumulated probability is greater than r.
-    // We know that the Kraus noise must be normalized
-    // So we only compute probabilities for the first N-1 kraus operators
-    // and infer the probability of the last one from 1 - sum of the previous
 
-    double r = rng[0].rand(0., 1.);
-    double accum = 0.;
-    bool complete = false;
-
-    // Loop through N-1 kraus operators
-    for (size_t j = 0; j < kmats.size() - 1; j++) {
-
-      // Calculate probability
-      cvector_t vmat = Utils::vectorize_matrix(kmats[j]);
-      double p = BaseState::qreg_.norm(qubits, vmat);
-      accum += p;
-
-      // check if we need to apply this operator
-      if (accum > r) {
-        // rescale vmat so projection is normalized
-        Utils::scalar_multiply_inplace(vmat, 1 / std::sqrt(p));
-        // apply Kraus projection operator
-        apply_matrix(qubits, vmat);
-        complete = true;
-        break;
-      }
-    }
-
-    // check if we haven't applied a kraus operator yet
-    if (complete == false) {
-      // Compute probability from accumulated
-      complex_t renorm = 1 / std::sqrt(1. - accum);
-      apply_matrix(qubits, Utils::vectorize_matrix(renorm * kmats.back()));
-    }
+  // check if we haven't applied a kraus operator yet
+  if (complete == false) {
+    // Compute probability from accumulated
+    complex_t renorm = 1 / std::sqrt(1. - accum);
+    apply_matrix(qubits, Utils::vectorize_matrix(renorm * kmats.back()));
   }
 }
 

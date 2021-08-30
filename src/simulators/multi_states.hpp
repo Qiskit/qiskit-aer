@@ -617,12 +617,8 @@ void States<state_t>::apply_single_ops(const std::vector<Operations::Op> &ops,
     }
 
     //collect measured bits
-    for(iOp=0;iOp<nOp;iOp++){
-      if(ops[iOp].type == Operations::OpType::measure){
-        for(i=0;i<states_.size();i++){
-          states_[i].store_measured_cbits(ops[iOp]);
-        }
-      }
+    for(i=0;i<states_.size();i++){
+      states_[i].store_measured_cbits();
     }
 
     //copy cregs

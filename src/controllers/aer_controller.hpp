@@ -1575,7 +1575,7 @@ void Controller::run_circuits_helper(const std::vector<Circuit> &circs,
                                     bool cache_blocking,
                                     Result &result) 
 {
-  if(sim_device_ == Device::GPU && !cache_blocking && circs.size() > 1 && (method == Method::statevector || method == Method::density_matrix)){
+  if(sim_device_ == Device::GPU && !cache_blocking && circs.size() > num_gpus_ && max_batched_states_ > 1 && max_batched_states_ >= num_gpus_ && (method == Method::statevector || method == Method::density_matrix)){
     bool sampling_enable = true;
     for (int i_circ = 0; i_circ < circs.size(); ++i_circ) {
       if(!check_measure_sampling_opt(circs[i_circ], method)){

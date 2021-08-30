@@ -90,10 +90,9 @@ protected:
   batched_matrix_params* batched_params_; //storage for parameters for batched matrix multiplier on device
   uint_t base_index_;               //start index of state vector 
   uint_t chunk_bits_;
-  uint_t bfunc_mask_;
-  uint_t bfunc_target_;
-  Operations::RegComparison bfunc_;
-  uint_t* creg_bits_;
+  uint_t* cregs_;
+  uint_t num_creg_bits_;
+  int_t conditional_bit_;
 #ifndef AER_THRUST_CUDA
   uint_t index_offset_;
 #endif
@@ -102,14 +101,13 @@ public:
   {
     data_ = NULL;
     base_index_ = 0;
-    bfunc_ = Operations::RegComparison::Nop;
-    creg_bits_ = NULL;
+    cregs_ = NULL;
+    num_creg_bits_ = 0;
+    conditional_bit_ = -1;
 #ifndef AER_THRUST_CUDA
     index_offset_ = 0;
 #endif
   }
-//  virtual __host__ __device__ ~GateFuncBase(){}
-
   virtual void set_data(thrust::complex<data_t>* p)
   {
     data_ = p;
@@ -135,16 +133,16 @@ public:
   {
     base_index_ = i;
   }
-  void set_creg_bits(uint_t* cbits)
+  void set_cregs_(uint_t* cbits,uint_t nreg)
   {
-    creg_bits_ = cbits;
+    cregs_ = cbits;
+    num_creg_bits_ = nreg;
   }
-  void set_conditional(uint_t mask,uint_t target,Operations::RegComparison bfunc)
+  void set_conditional(int_t bit)
   {
-    bfunc_mask_ = mask;
-    bfunc_target_ = target;
-    bfunc_ = bfunc;
+    conditional_bit_ = bit;
   }
+
 #ifndef AER_THRUST_CUDA
   void set_index_offset(uint_t i)
   {
@@ -217,38 +215,17 @@ public:
     return true;
   }
 
-  virtual __host__ __device__ bool check_branch_condition(uint_t i) const
+  virtual __host__ __device__ bool check_conditional(uint_t i) const
   {
-    if(bfunc_ == Operations::RegComparison::Nop)
+    if(conditional_bit_ < 0)
       return true;
-    uint_t iChunk = i >> chunk_bits_;
-    uint_t reg = creg_bits_[iChunk];
-    int_t compared = (reg & bfunc_mask_) - bfunc_target_;
-    bool outcome = true;
 
-    switch(bfunc_) {
-      case Operations::RegComparison::Equal:
-        outcome = (compared == 0);
-        break;
-      case Operations::RegComparison::NotEqual:
-        outcome = (compared != 0);
-        break;
-      case Operations::RegComparison::Less:
-        outcome = (compared < 0);
-        break;
-      case Operations::RegComparison::LessEqual:
-        outcome = (compared <= 0);
-        break;
-      case Operations::RegComparison::Greater:
-        outcome = (compared > 0);
-        break;
-      case Operations::RegComparison::GreaterEqual:
-        outcome = (compared >= 0);
-        break;
-      default:
-        break;
-    }
-    return outcome;
+    uint_t iChunk = i >> chunk_bits_;
+    uint_t n64,i64,ibit;
+    n64 = (num_creg_bits_ + 63) >> 6;
+    i64 = conditional_bit_ >> 6;
+    ibit = conditional_bit_ & 63;
+    return (((cregs_[iChunk*n64 + i64] >> ibit) & 1) != 0);
   }
 };
 
@@ -525,10 +502,10 @@ protected:
   bool enable_omp_;                 //disable this when shots are parallelized outside
   mutable reg_t reduced_queue_begin_;
   mutable reg_t reduced_queue_end_;
-  uint_t bfunc_mask_;
-  uint_t bfunc_target_;
-  Operations::RegComparison bfunc_;
   uint_t matrix_bits_;                //max matrix bits
+  uint_t num_creg_bits_;              //number of cregs
+  mutable int_t conditional_bit_;
+  bool keep_conditional_bit_;         //keep conditional bit alive
 public:
   ChunkContainer()
   {
@@ -538,7 +515,8 @@ public:
     num_buffers_ = 0;
     num_chunk_mapped_ = 0;
     enable_omp_ = false;
-    bfunc_ = Operations::RegComparison::Nop;
+    conditional_bit_ = -1;
+    keep_conditional_bit_ = false;
     matrix_bits_ = AER_DEFAULT_MATRIX_BITS;
   }
   virtual ~ChunkContainer(){}
@@ -602,18 +580,19 @@ public:
     return false;
   }
 
-  virtual void set_conditional(uint_t mask,uint_t target,Operations::RegComparison bfunc)
+  void set_conditional(int_t reg)
   {
-    bfunc_mask_ = mask;
-    bfunc_target_ = target;
-    bfunc_ = bfunc;
+    conditional_bit_ = reg;
+  }
+  void keep_conditional(bool keep)
+  {
+    keep_conditional_bit_ = keep;
   }
 
   virtual thrust::complex<data_t>& operator[](uint_t i) = 0;
 
   virtual uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,bool multi_shots = false,int matrix_bit = AER_DEFAULT_MATRIX_BITS) = 0;
   virtual void Deallocate(void) = 0;
-  virtual uint_t Resize(uint_t chunks,uint_t buffers = AER_MAX_BUFFERS) = 0;
 
   virtual void Set(uint_t i,const thrust::complex<data_t>& t) = 0;
   virtual thrust::complex<data_t> Get(uint_t i) const = 0;
@@ -714,14 +693,18 @@ public:
   virtual void init_condition(uint_t iChunk,std::vector<double>& cond){}
   virtual bool update_condition(uint_t iChunk,uint_t count,bool async){return true;}
 
+  //classical register to store measured bits/used for bfunc operations
+  virtual void allocate_cbit_register(uint_t num_reg){}
   virtual int measured_cbit(uint_t iChunk,int qubit)
   {
     return 0;
   }
-  virtual uint_t* measured_bits_buffer(uint_t iChunk)
+  virtual uint_t* creg_buffer(uint_t iChunk) const
   {
     return NULL;
   }
+  virtual void request_creg_update(void){}
+
 
 protected:
   int convert_blocked_qubit(int qubit)
@@ -808,11 +791,11 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
   func.set_batched_params(batched_param_pointer() );
-  func.set_creg_bits(measured_bits_buffer(iChunk));
-  if(iChunk == 0 && bfunc_ != Operations::RegComparison::Nop){
-    func.set_conditional(bfunc_mask_,bfunc_target_,bfunc_);
-
-    bfunc_ = Operations::RegComparison::Nop;  //reset conditional
+  func.set_cregs_(creg_buffer(iChunk),num_creg_bits_);
+  if(iChunk == 0 && conditional_bit_ >= 0){
+    func.set_conditional(conditional_bit_);
+    if(!keep_conditional_bit_)
+      conditional_bit_ = -1;  //reset conditional
   }
 
 #ifdef AER_THRUST_CUDA
@@ -825,19 +808,23 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
       func.set_chunk_bits(chunk_bits_);
 
       nt = count << chunk_bits_;
-      if(nt > 1024){
-        nb = (nt + 1024 - 1) / 1024;
-        nt = 1024;
+      if(nt > 0){
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dev_apply_function_with_cache<data_t,Function><<<nb,nt,0,strm>>>(func);
       }
-      dev_apply_function_with_cache<data_t,Function><<<nb,nt,0,strm>>>(func);
     }
     else{
       nt = count * func.size(chunk_bits_);
-      if(nt > QV_CUDA_NUM_THREADS){
-        nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
-        nt = QV_CUDA_NUM_THREADS;
+      if(nt > 0){
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dev_apply_function<data_t,Function><<<nb,nt,0,strm>>>(func);
       }
-      dev_apply_function<data_t,Function><<<nb,nt,0,strm>>>(func);
     }
   }
   else{ //if no stream returned, run on host
@@ -870,6 +857,12 @@ void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
   func.set_batched_params(batched_param_pointer() );
+  func.set_cregs_(creg_buffer(iChunk),num_creg_bits_);
+  if(iChunk == 0 && conditional_bit_ >= 0){
+    func.set_conditional(conditional_bit_);
+    if(!keep_conditional_bit_)
+      conditional_bit_ = -1;  //reset conditional
+  }
 
   auto ci = thrust::counting_iterator<uint_t>(0);
 
@@ -883,30 +876,34 @@ void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk
 
     if(func.use_cache()){
       nt = 1ull << chunk_bits_;
-      if(nt > 1024){
-        nb = (nt + 1024 - 1) / 1024;
-        nt = 1024;
+      if(nt > 0){
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dim3 grid(nb,count,1);
+        dev_apply_function_sum_with_cache<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
       }
-      dim3 grid(nb,count,1);
-      dev_apply_function_sum_with_cache<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
     }
     else{
       nt = func.size(chunk_bits_);
-      if(nt > 1024){
-        nb = (nt + 1024 - 1) / 1024;
-        nt = 1024;
+      if(nt > 0){
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dim3 grid(nb,count,1);
+        dev_apply_function_sum<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
       }
-      dim3 grid(nb,count,1);
-      dev_apply_function_sum<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
     }
 
     while(nb > 1){
       n = nb;
       nt = nb;
       nb = 1;
-      if(nt > 1024){
-        nb = (nt + 1024 - 1) / 1024;
-        nt = 1024;
+      if(nt > QV_CUDA_NUM_THREADS){
+        nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+        nt = QV_CUDA_NUM_THREADS;
       }
       dim3 grid(nb,count,1);
       dev_reduce_sum<<<grid,nt,0,strm>>>(buf,n,buf_size);
@@ -969,6 +966,12 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
   func.set_batched_params(batched_param_pointer() );
+  func.set_cregs_(creg_buffer(iChunk),num_creg_bits_);
+  if(iChunk == 0 && conditional_bit_ >= 0){
+    func.set_conditional(conditional_bit_);
+    if(!keep_conditional_bit_)
+      conditional_bit_ = -1;  //reset conditional
+  }
 
   auto ci = thrust::counting_iterator<uint_t>(0);
 
@@ -978,22 +981,24 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
     uint_t n,nt,nb;
     nb = 1;
     nt = func.size(chunk_bits_);
-
-    if(nt > 1024){
-      nb = (nt + 1024 - 1) / 1024;
-      nt = 1024;
-    }
     thrust::complex<double>* buf = (thrust::complex<double>*)reduce_buffer(iChunk);
-    dim3 grid(nb,count,1);
-    dev_apply_function_sum_complex<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
+
+    if(nt > 0){
+      if(nt > QV_CUDA_NUM_THREADS){
+        nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+        nt = QV_CUDA_NUM_THREADS;
+      }
+      dim3 grid(nb,count,1);
+      dev_apply_function_sum_complex<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
+    }
 
     while(nb > 1){
       n = nb;
       nt = nb;
       nb = 1;
-      if(nt > 1024){
-        nb = (nt + 1024 - 1) / 1024;
-        nt = 1024;
+      if(nt > QV_CUDA_NUM_THREADS){
+        nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+        nt = QV_CUDA_NUM_THREADS;
       }
       dim3 grid(nb,count,1);
       dev_reduce_sum_complex<<<grid,nt,0,strm>>>(buf,n,buf_size);

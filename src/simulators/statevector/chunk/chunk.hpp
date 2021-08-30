@@ -360,16 +360,18 @@ public:
   {
     return chunk_container_.lock()->measured_cbit(chunk_pos_,qubit);
   }
-  uint_t* measured_bits_buffer(void)
-  {
-    return chunk_container_.lock()->measured_bits_buffer(chunk_pos_);
-  }
 
-  void set_conditional(uint_t mask,uint_t target,Operations::RegComparison bfunc)
+  void set_conditional(int_t bit)
   {
     //top chunk only sets conditional bit
     if(chunk_pos_ == 0)
-      chunk_container_.lock()->set_conditional(mask,target,bfunc);
+      chunk_container_.lock()->set_conditional(bit);
+  }
+  void keep_conditional(bool keep)
+  {
+    //top chunk only sets conditional bit
+    if(chunk_pos_ == 0)
+      chunk_container_.lock()->keep_conditional(keep);
   }
 
 

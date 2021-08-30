@@ -27,7 +27,7 @@ void dev_apply_function(kernel_t func)
 
   i = blockIdx.x * blockDim.x + threadIdx.x;
 
-  if(func.check_branch_condition(i))
+  if(func.check_conditional(i))
     func(i);
 }
 
@@ -39,7 +39,7 @@ void dev_apply_function_with_cache(kernel_t func)
 
   i = blockIdx.x * blockDim.x + threadIdx.x;
 
-  if(!func.check_branch_condition(i))
+  if(!func.check_conditional(i))
     return;
 
   if(!func.check_condition(i))
@@ -63,6 +63,9 @@ void dev_apply_function_sum(double* pReduceBuffer, kernel_t func,uint_t buf_size
 
   iChunk = blockIdx.y + blockIdx.z*gridDim.y;
   i = threadIdx.x + blockIdx.x * blockDim.x + iChunk*gridDim.x*blockDim.x;
+
+  if(!func.check_conditional(i))
+    return;
 
   sum = func(i);
 
@@ -103,6 +106,9 @@ void dev_apply_function_sum_with_cache(double* pReduceBuffer, kernel_t func,uint
   uint_t i,idx;
   uint_t j,iChunk,nw;
   double sum;
+
+  if(!func.check_conditional(i))
+    return;
 
   iChunk = blockIdx.y + blockIdx.z*gridDim.y;
   i = threadIdx.x + blockIdx.x * blockDim.x + iChunk*gridDim.x*blockDim.x;
@@ -201,6 +207,9 @@ void dev_apply_function_sum_complex(thrust::complex<double>* pReduceBuffer, kern
   thrust::complex<double> sum;
   double tr,ti;
   uint_t i,j,iChunk,nw;
+
+  if(!func.check_conditional(i))
+    return;
 
   iChunk = blockIdx.y + blockIdx.z*gridDim.y;
   i = threadIdx.x + blockIdx.x * blockDim.x + iChunk*gridDim.x*blockDim.x;

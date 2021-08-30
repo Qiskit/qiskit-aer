@@ -151,7 +151,7 @@ public:
   virtual void end_of_circuit();
 
   //store asynchronously measured classical bits after batched execution
-  virtual void store_measured_cbits(const Operations::Op &op) {}
+  virtual void store_measured_cbits(void) {}
 
   //memory allocation (previously called before inisitalize_qreg)
   virtual void allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1);

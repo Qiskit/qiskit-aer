@@ -195,6 +195,15 @@ public:
   // If num_states does not match the number of qubits an exception is raised.
   void initialize_from_data(const std::complex<data_t>* data, const size_t num_states);
 
+  // Initialize classical memory and register to default value (all-0)
+  virtual void initialize_creg(uint_t num_memory, uint_t num_register) {}
+
+  // Initialize classical memory and register to specific values
+  virtual void initialize_creg(uint_t num_memory,
+                       uint_t num_register,
+                       const std::string &memory_hex,
+                       const std::string &register_hex) {}
+
   //-----------------------------------------------------------------------
   // Apply Matrices
   //-----------------------------------------------------------------------
@@ -293,7 +302,7 @@ public:
   virtual void set_conditional(int_t reg){}
 
   //optimized 1 qubit measure (async)
-  virtual void apply_batched_measure(const uint_t qubit,std::vector<RngEngine> &rng){}
+  virtual void apply_batched_measure(const uint_t qubit,std::vector<RngEngine> &rng,const reg_t& cbits){}
 
   int measured_cbit(int qubit)
   {

@@ -38,8 +38,8 @@ protected:
   AERDeviceVector<double>                   reduce_buffer_; //buffer for reduction
   AERDeviceVector<double>                   condition_buffer_; //buffer to store condition
   AERDeviceVector<uint_t>                   condition_count_buffer_;     //buffer to count condition
-  AERDeviceVector<uint_t>                   measured_bits_;     //measured classical bits (0-63)
-  AERHostVector<uint_t>                     measured_bits_on_host_;
+  AERDeviceVector<uint_t>                   cregs_;
+  AERHostVector<uint_t>                     cregs_host_;
   int device_id_;                     //device index
   std::vector<bool> peer_access_;     //to which device accepts peer access 
   uint_t matrix_buffer_size_;         //matrix buffer size per chunk
@@ -49,7 +49,7 @@ protected:
 
   bool multi_shots_;                  //multi-shot parallelization
 
-  bool measured_bits_update_;
+  bool creg_host_update_;
 
   //for register blocking
   thrust::host_vector<uint_t>               blocked_qubits_holder_;
@@ -69,6 +69,7 @@ public:
     params_buffer_size_ = 0;
     num_matrices_ = 1;
     multi_shots_ = false;
+    creg_host_update_ = true;
   }
   ~DeviceChunkContainer();
 
@@ -106,7 +107,6 @@ public:
 
   uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit);
   void Deallocate(void);
-  uint_t Resize(uint_t chunks,uint_t buffers);
 
   void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk);
   void StoreBatchedMatrix(const std::vector<std::complex<double>>& mat);
@@ -193,23 +193,35 @@ public:
   void init_condition(uint_t iChunk,std::vector<double>& cond);
   bool update_condition(uint_t iChunk,uint_t count,bool async);
 
+  void allocate_cbit_register(uint_t num_reg);
   int measured_cbit(uint_t iChunk,int qubit)
   {
-    if(measured_bits_update_){
-      measured_bits_update_ = false;
+    uint_t n64,i64,ibit;
+    if(qubit >= this->num_creg_bits_)
+      return -1;
+    n64 = (this->num_creg_bits_ + 63) >> 6;
+    i64 = qubit >> 6;
+    ibit = qubit & 63;
+    if(iChunk == 0 && creg_host_update_){
+      creg_host_update_ = false;
 #ifdef AER_THRUST_CUDA
-      cudaMemcpyAsync(thrust::raw_pointer_cast(measured_bits_on_host_.data()),thrust::raw_pointer_cast(measured_bits_.data()),sizeof(uint_t)*this->num_chunks_,cudaMemcpyDeviceToHost,stream_[0]);
+      cudaMemcpyAsync(thrust::raw_pointer_cast(cregs_host_.data()),thrust::raw_pointer_cast(cregs_.data()),sizeof(uint_t)*this->num_chunks_*n64,cudaMemcpyDeviceToHost,stream_[0]);
       cudaStreamSynchronize(stream_[0]);
 #else
-      thrust::copy_n(measured_bits_.begin(),this->num_chunks_,measured_bits_on_host_.begin());
+      thrust::copy_n(cregs_.begin(),this->num_chunks_*n64,cregs_host_.begin());
 #endif
     }
-    return (measured_bits_on_host_[iChunk] >> qubit) & 1;
+    return (cregs_host_[iChunk*n64 + i64] >> ibit) & 1;
   }
-  uint_t* measured_bits_buffer(uint_t iChunk)
+  uint_t* creg_buffer(uint_t iChunk) const
   {
-    measured_bits_update_ = true;
-    return ((uint_t*)thrust::raw_pointer_cast(measured_bits_.data()) + iChunk);
+    uint_t n64;
+    n64 = (this->num_creg_bits_ + 63) >> 6;
+    return ((uint_t*)thrust::raw_pointer_cast(cregs_.data()) + iChunk*n64);
+  }
+  void request_creg_update(void)
+  {
+    creg_host_update_ = true;
   }
 
   void synchronize(uint_t iChunk)
@@ -335,9 +347,8 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
   condition_buffer_.resize(nc);
   condition_count_buffer_.resize(nc);
 
-  measured_bits_.resize(nc);
-  measured_bits_on_host_.resize(nc);
-  measured_bits_update_ = false;
+  creg_host_update_ = false;
+  this->num_creg_bits_ = bits;
 
   if(multi_shots)
     batched_params_.resize(nc);
@@ -359,58 +370,14 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
 }
 
 template <typename data_t>
-uint_t DeviceChunkContainer<data_t>::Resize(uint_t chunks,uint_t buffers)
+void DeviceChunkContainer<data_t>::allocate_cbit_register(uint_t num_reg)
 {
-  uint_t i;
-
-  if(chunks + buffers > this->num_chunks_ + this->num_buffers_){
-    set_device();
-    data_.resize((chunks + buffers) << this->chunk_bits_);
-
-    reduce_buffer_.resize(reduce_buffer_size_*chunks);
-    condition_buffer_.resize(chunks);
-    condition_count_buffer_.resize(chunks);
-    measured_bits_.resize(chunks);
-    measured_bits_on_host_.resize(chunks);
-
-    if(multi_shots_)
-      batched_params_.resize(chunks);
-  }
-
-  this->num_chunks_ = chunks;
-  this->num_buffers_ = buffers;
-
-  if(multi_shots_){
-    num_matrices_ = chunks;
-    ResizeMatrixBuffers(-1);
-  }
-
-#ifdef AER_THRUST_CUDA
-  if(stream_.size() < chunks + buffers){
-    uint_t size = stream_.size();
-    stream_.resize(chunks + buffers);
-    for(i=size;i<chunks + buffers;i++){
-      cudaStreamCreateWithFlags(&stream_[i], cudaStreamNonBlocking);
-    }
-  }
-#endif
-
-  uint_t size = num_matrices_ + this->num_buffers_;
-  num_blocked_gates_.resize(size);
-  num_blocked_matrix_.resize(size);
-  num_blocked_qubits_.resize(size);
-  for(i=0;i<size;i++){
-    num_blocked_gates_[i] = 0;
-    num_blocked_matrix_[i] = 0;
-  }
-  blocked_qubits_holder_.resize(QV_MAX_REGISTERS*size);
-
-  //allocate chunk classes
-  ChunkContainer<data_t>::allocate_chunks();
-
-  return chunks + buffers;
+  this->num_creg_bits_ = num_reg;
+  uint_t n64 = (num_reg + 63) >> 6;
+  cregs_.resize(num_matrices_*n64);
+  cregs_host_.resize(num_matrices_*n64);
 }
-
+  
 template <typename data_t>
 void DeviceChunkContainer<data_t>::Deallocate(void)
 {
@@ -430,10 +397,10 @@ void DeviceChunkContainer<data_t>::Deallocate(void)
   condition_buffer_.shrink_to_fit();
   condition_count_buffer_.clear();
   condition_count_buffer_.shrink_to_fit();
-  measured_bits_.clear();
-  measured_bits_.shrink_to_fit();
-  measured_bits_on_host_.clear();
-  measured_bits_on_host_.shrink_to_fit();
+  cregs_.clear();
+  cregs_.shrink_to_fit();
+  cregs_host_.clear();
+  cregs_host_.shrink_to_fit();
 
   peer_access_.clear();
   num_blocked_gates_.clear();
@@ -710,6 +677,7 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
 
 #ifdef AER_THRUST_CUDA
 
+//  cudaGetLastError();
   if(dot)
     thrust::transform_inclusive_scan(thrust::cuda::par.on(stream_[iChunk]),iter.begin(),iter.end(),iter.begin(),complex_dot_scan<data_t>(),thrust::plus<thrust::complex<data_t>>());
   else

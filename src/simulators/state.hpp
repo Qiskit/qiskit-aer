@@ -104,7 +104,7 @@ public:
   virtual std::string name() const = 0;
 
   //store asynchronously measured classical bits after batched execution
-  virtual void store_measured_cbits(const Operations::Op &op) {}
+  virtual void store_measured_cbits(void) {}
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
@@ -226,10 +226,10 @@ public:
   //-----------------------------------------------------------------------
 
   // Initialize classical memory and register to default value (all-0)
-  void initialize_creg(uint_t num_memory, uint_t num_register);
+  virtual void initialize_creg(uint_t num_memory, uint_t num_register);
 
   // Initialize classical memory and register to specific values
-  void initialize_creg(uint_t num_memory,
+  virtual void initialize_creg(uint_t num_memory,
                        uint_t num_register,
                        const std::string &memory_hex,
                        const std::string &register_hex);

@@ -196,6 +196,15 @@ public:
   // If num_states does not match the number of qubits an exception is raised.
   void initialize_from_data(const std::complex<data_t>* data, const size_t num_states);
 
+  // Initialize classical memory and register to default value (all-0)
+  virtual void initialize_creg(uint_t num_memory, uint_t num_register);
+
+  // Initialize classical memory and register to specific values
+  virtual void initialize_creg(uint_t num_memory,
+                       uint_t num_register,
+                       const std::string &memory_hex,
+                       const std::string &register_hex);
+
   //-----------------------------------------------------------------------
   // Apply Matrices
   //-----------------------------------------------------------------------
@@ -313,7 +322,7 @@ public:
   virtual void set_conditional(int_t reg);
 
   //optimized 1 qubit measure (async)
-  virtual void apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng);
+  virtual void apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng,const reg_t& cbits);
 
   //return measured cbit (for asynchronous measure)
   virtual int measured_cbit(int qubit);
@@ -436,12 +445,7 @@ protected:
 
   bool register_blocking_;
 
-  std::vector<bool> measure_requested_;
-
-  //for batched bfunc/conditional
-  std::vector<uint_t> bfunc_mask_;
-  std::vector<uint_t> bfunc_target_;
-  std::vector<Operations::RegComparison> bfunc_comp_;
+  uint_t num_creg_bits_;
 
   //-----------------------------------------------------------------------
   // Config settings
@@ -973,15 +977,6 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 
   register_blocking_ = false;
 
-  measure_requested_.resize(num_qubits_);
-  for(int i=0;i<num_qubits_;i++){
-    measure_requested_[i] = false;
-  }
-
-  bfunc_mask_.resize(num_qubits_*2,0);
-  bfunc_target_.resize(num_qubits_*2,0);
-  bfunc_comp_.resize(num_qubits_*2,Operations::RegComparison::Nop);
-
 #ifdef AER_DEBUG
   spdlog::debug(" ==== Thrust qubit vector initialization {} qubits ====",num_qubits_);
   if(chunk_.device() >= 0)
@@ -1205,22 +1200,134 @@ void QubitVectorThrust<data_t>::end_of_circuit()
     return;   //first chunk execute all in batch
 }
 
+
+template <typename data_t>
+class bfunc_kernel : public GateFuncBase<data_t>
+{
+protected:
+  uint_t bfunc_num_regs_;
+  Operations::RegComparison bfunc_;
+public:
+  bfunc_kernel(uint_t n,Operations::RegComparison bfunc)
+  {
+    bfunc_num_regs_ = n;    //number of registers to be updated
+    bfunc_ = bfunc;
+  }
+  bool is_diagonal(void)
+  {
+    return true;
+  }
+
+  //in uint param array: array of qubits results to be stored, mask registers, target registers 
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    uint_t iChunk = i >> this->chunk_bits_;
+    if(i - (iChunk << this->chunk_bits_) == 0){
+      uint_t n64 = (this->num_creg_bits_ + 63) >> 6;
+      uint_t* regs = this->params_;
+      uint_t* mask = regs + bfunc_num_regs_;
+      uint_t* target = mask + n64;
+      int_t comp;
+      uint_t i,i64,ibit;
+      bool ret = true;
+
+      for(i=0;i<n64;i++){
+        comp = (this->cregs_[iChunk*n64 + n64-i-1] & mask[n64-i-1]) - target[n64-i-1];
+        if(comp < 0){
+          if(bfunc_ == Operations::RegComparison::Less || bfunc_ == Operations::RegComparison::LessEqual){
+            break;
+          }
+          else if(bfunc_ == Operations::RegComparison::Equal || bfunc_ == Operations::RegComparison::Greater || bfunc_ == Operations::RegComparison::GreaterEqual){
+            ret= false;
+            break;
+          }
+        }
+        else if(comp > 0){
+          if(bfunc_ == Operations::RegComparison::Greater || bfunc_ == Operations::RegComparison::GreaterEqual){
+            break;
+          }
+          else if(bfunc_ == Operations::RegComparison::Equal || bfunc_ == Operations::RegComparison::Less || bfunc_ == Operations::RegComparison::LessEqual){
+            ret= false;
+            break;
+          }
+        }
+        else if(bfunc_ == Operations::RegComparison::NotEqual && mask[n64-i-1] != 0){
+          ret= false;
+          break;
+        }
+      }
+      //store result in creg
+      if(ret){
+        for(i=0;i<bfunc_num_regs_;i++){
+          i64 = regs[i] >> 6;
+          ibit = regs[i] & 63;
+          this->cregs_[iChunk*n64 + i64] |= (1ull << ibit);
+        }
+      }
+      else{
+        for(i=0;i<bfunc_num_regs_;i++){
+          i64 = regs[i] >> 6;
+          ibit = regs[i] & 63;
+          this->cregs_[iChunk*n64 + i64] &= ~(1ull << ibit);
+        }
+      }
+    }
+  }
+
+  const char* name(void)
+  {
+    return "bfunc_kernel";
+  }
+
+};
+
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_bfunc(const Operations::Op &op)
 {
-  int_t idx = op.registers[0];
-  const std::string &mask = op.string_params[0];
-  const std::string &target_val = op.string_params[1];
+  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
+    return;   //first chunk execute all in batch
 
-  bfunc_mask_[idx] = std::stoull(mask, nullptr, 16);
-  bfunc_target_[idx] = std::stoull(target_val, nullptr, 16);
-  bfunc_comp_[idx] = op.bfunc;
+  reg_t params;
+  int_t i,n64,n,iparam;
+
+  //registers to be updated
+  for(i=0;i<op.registers.size();i++)
+    params.push_back(op.registers[i]);
+
+  n64 = (num_creg_bits_ + 63) >> 6;   //number of 64-bit integer
+
+  for(iparam=0;iparam<2;iparam++){
+    uint_t val,added = 0;
+    n = op.string_params[iparam].size();
+    for(i=0;i<n-2;i+=16){
+      std::string tmp;
+      tmp = "0x";
+      if(i + 16 > n - 2)
+        tmp += op.string_params[iparam].substr(2,n-2-i);
+      else
+        tmp += op.string_params[iparam].substr(n-i-16,16);
+      val = std::stoull(tmp, nullptr, 16);
+
+      params.push_back(val);
+      added++;
+    }
+    for(i=added;i<n64;i++){  //pack 0 if there is not enough values in string_params
+      val = 0;
+      params.push_back(val);
+    }
+  }
+
+  chunk_.StoreUintParams(params);
+
+  apply_function(bfunc_kernel<data_t>(op.registers.size(),op.bfunc));
+
+  chunk_.container()->request_creg_update();
 }
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::set_conditional(int_t reg)
 {
-  chunk_.set_conditional(bfunc_mask_[reg],bfunc_target_[reg],bfunc_comp_[reg]);
+  chunk_.set_conditional(reg);
 }
 
 template <typename data_t>
@@ -1361,6 +1468,26 @@ void QubitVectorThrust<data_t>::initialize_from_data(const std::complex<data_t>*
 
 }
 
+template <typename data_t>
+void QubitVectorThrust<data_t>::initialize_creg(uint_t num_memory, uint_t num_register)
+{
+  num_creg_bits_ = num_register;
+  if(chunk_.pos() == 0){
+    chunk_.container()->allocate_cbit_register(num_creg_bits_);
+  }
+}
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::initialize_creg(uint_t num_memory,
+                       uint_t num_register,
+                       const std::string &memory_hex,
+                       const std::string &register_hex)
+{
+  num_creg_bits_ = num_register;
+  if(chunk_.pos() == 0){
+    chunk_.container()->allocate_cbit_register(num_creg_bits_);
+  }
+}
 //--------------------------------------------------------------------------------------
 //  gate kernel execution
 //--------------------------------------------------------------------------------------
@@ -3451,6 +3578,9 @@ void QubitVectorThrust<data_t>::apply_batched_matrix(std::vector<batched_matrix_
       if(n > chunk_.container()->num_chunks())
         n = chunk_.container()->num_chunks();
 
+      if(n == 0)
+        return;
+
       if(qubits.size() == 0){ //batched 2x2 matrix 
         chunk_.StoreBatchedParams(params);
 
@@ -3971,21 +4101,19 @@ class ResetAfterMeasure : public GateFuncBase<data_t>
 {
 protected:
   int qubit_;
-  int num_qubits_state_;
   double* probs_;
   double* cond_;
-  uint_t* cbits_;
   uint_t size_;
+  uint_t num_save_cbits_;
 public:
 
-  ResetAfterMeasure(int q,int nqs,double* probs,uint_t size,double* cond,uint_t* bits)
+  ResetAfterMeasure(int q,double* probs,uint_t size,double* cond,int nbits)
   {
     qubit_ = q;
     probs_ = probs;
     cond_ = cond;
-    cbits_ = bits;
     size_ = size;
-    num_qubits_state_ = nqs;
+    num_save_cbits_ = nbits;
   }
 
   bool is_diagonal(void)
@@ -4002,7 +4130,7 @@ public:
     uint_t gid;
     uint_t bit;
 
-    uint_t iChunk = (i >> num_qubits_state_);
+    uint_t iChunk = (i >> this->chunk_bits_);
 
     vec = this->data_;
     gid = this->base_index_;
@@ -4019,10 +4147,6 @@ public:
       p = p1;
     }
 
-    if((i - (iChunk <<num_qubits_state_))  == 0){
-      cbits_[iChunk] = (cbits_[iChunk] & (~(1ull << qubit_))) | (bit << qubit_);
-    }
-
     q = vec[i];
     if((((i + gid) >> qubit_) & 1) == bit){
       m = 1.0 / sqrt(p);
@@ -4031,6 +4155,17 @@ public:
       m = 0.0;
     }
     vec[i] = m * q;
+
+    //save measure to cregs
+    if((i - (iChunk << this->chunk_bits_))  == 0){
+      uint_t j,n64,i64,ibit;
+      n64 = (this->num_creg_bits_ + 63) >> 6;
+      for(j=0;j<num_save_cbits_;j++){
+        i64 = this->params_[j] >> 6;
+        ibit = this->params_[j] & 63;
+        this->cregs_[iChunk*n64 + i64] = (this->cregs_[iChunk*n64 + i64] & (~(1ull << ibit))) | (bit << ibit);
+      }
+    }
   }
   const char* name(void)
   {
@@ -4040,12 +4175,11 @@ public:
 
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng)
+void QubitVectorThrust<data_t>::apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng,const reg_t& cbits)
 {
   uint_t i,count = 1;
   if(enable_batch_){
     if(chunk_.pos() != 0){
-      measure_requested_[qubit] = true;
       return;   //first chunk execute all in batch
     }
     count = chunk_.container()->num_chunks();
@@ -4063,9 +4197,11 @@ void QubitVectorThrust<data_t>::apply_batched_measure(const uint_t qubit,std::ve
 
   apply_function_sum2(nullptr,probability_1qubit_func<data_t>(qubit),true);
 
-  apply_function(ResetAfterMeasure<data_t>(qubit,chunk_manager_->chunk_bits(),chunk_.reduce_buffer(),chunk_.reduce_buffer_size(),chunk_.condition_buffer(),chunk_.measured_bits_buffer()));
+  //bits to be stored
+  chunk_.StoreUintParams(cbits);
+  apply_function(ResetAfterMeasure<data_t>(qubit,chunk_.reduce_buffer(),chunk_.reduce_buffer_size(),chunk_.condition_buffer(),cbits.size() ));
 
-  measure_requested_[qubit] = true;
+  chunk_.container()->request_creg_update();
 }
 
 template <typename data_t>
@@ -4095,7 +4231,7 @@ reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds)
 
 #ifdef AER_DEBUG
   reg_t samples;
-  DebugMsg("sample_measure begin");
+  DebugMsg("sample_measure begin",(int)count);
   samples = chunk_.sample_measure(rnds,1,true,count);
   DebugMsg("sample_measure",samples);
   return samples;
@@ -4985,19 +5121,19 @@ void QubitVectorThrust<data_t>::DebugDump(void) const
   thrust::complex<data_t> t;
   uint_t i,idx,n;
 
-  chunk_->synchronize();
+  chunk_.synchronize();
 
   n = 16;
   if(n > data_size_)
     n = data_size_;
   for(i=0;i<n;i++){
     idx = i*data_size_/n;
-    t = chunk_->Get(idx);
+    t = chunk_.Get(idx);
     spdlog::debug("   {0:05b} | {1:e}, {2:e}",idx,t.real(),t.imag());
   }
   if(n < data_size_){
     idx = data_size_-1;
-    t = chunk_->Get(idx);
+    t = chunk_.Get(idx);
     spdlog::debug("   {0:05b} | {1:e}, {2:e}",idx,t.real(),t.imag());
   }
 }
