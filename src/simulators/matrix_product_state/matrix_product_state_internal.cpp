@@ -567,17 +567,31 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
 void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, const cmatrix_t &mat, bool is_diagonal)
 {
   // We first move the two qubits to be in consecutive positions
-  // If index_B > index_A, we move the qubit at index_B to index_A+1
-  // If index_B < index_A, we move the qubit at index_B to index_A-1, and then
-  // swap between the qubits
+  // For performance reasons, we move the qubit with higher bond dimension
+  // toward the qubit with lower bond dimension
+  // Case i:
+  //     If index_B > index_A, we either move the qubit at index_B to index_A+1
+  //                                 or  move the qubit at index_A to index_B-1
+  // Case ii:
+  //     If index_B < index_A, we either move the qubit at index_B to index_A-1, 
+  //                                  or move the qubit at index_A to index_B+1
+  //     afterwards, we swap between the qubits
+
   uint_t A = index_A;
 
   bool swapped = false;
 
   if (index_B > index_A+1) {
-    change_position(index_B, index_A+1);  // Move B to be right after A
+    if (lambda_reg_[index_A] < lambda_reg_[index_B-1])
+      change_position(index_B, index_A+1);  // Move B to be right after A
+    else
+      change_position(index_A, index_B-1);  // Move A to be right before B
+
   } else if (index_A > 0 && index_B < index_A-1) {
-    change_position(index_B, index_A-1);  // Move B to be right before A
+    if (lambda_reg_[index_B] < lambda_reg_[index_A-1])
+      change_position(index_A, index_B+1);  // Move A to be right after B
+    else
+      change_position(index_B, index_A-1);  //Move B to be right before A
   }
   if (index_B < index_A) {
     A = index_A - 1;
