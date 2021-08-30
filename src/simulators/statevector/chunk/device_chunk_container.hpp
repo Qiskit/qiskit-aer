@@ -590,7 +590,7 @@ void DeviceChunkContainer<data_t>::CopyIn(thrust::complex<data_t>* src,uint_t iC
 {
   uint_t this_size = 1ull << this->chunk_bits_;
   if(this_size < size) throw std::runtime_error("CopyIn chunk size is less than provided size");
-  
+
   synchronize(iChunk);
   thrust::copy_n(src,size,data_.begin() + (iChunk << this->chunk_bits_));
 }
@@ -600,7 +600,7 @@ void DeviceChunkContainer<data_t>::CopyOut(thrust::complex<data_t>* dest,uint_t 
 {
   uint_t this_size = 1ull << this->chunk_bits_;
   if(this_size < size) throw std::runtime_error("CopyOut chunk size is less than provided size");
-  
+
   synchronize(iChunk);
   thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest);
 }

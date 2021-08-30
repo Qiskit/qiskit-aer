@@ -18,6 +18,8 @@
 
 from collections import OrderedDict
 import numpy as np
+
+from qiskit.pulse import DriveChannel
 from ...aererror import AerError
 # pylint: disable=no-name-in-module
 from .pulse_utils import oplist_to_array
@@ -85,6 +87,23 @@ def digest_pulse_qobj(qobj, channels, dt, qubit_list):
 
     qobj_dict = qobj.to_dict()
     qobj_config = qobj_dict['config']
+
+    # extract schedule_los
+    if qobj_config.get('schedule_los') is not None:
+        for exp, schedule_lo in zip(qobj_dict['experiments'], qobj_config['schedule_los']):
+            if exp.get('config') is None:
+                exp['config'] = {}
+
+            schedule_lo_list = []
+            for idx in qubit_list:
+                freq = schedule_lo.get(DriveChannel(idx), None)
+                if freq is None:
+                    raise ValueError('''A qubit in the simulation is missing an entry in
+                                        schedule_los.''')
+
+                schedule_lo_list.append(freq * 1e-9)
+
+            exp['config']['qubit_lo_freq'] = schedule_lo_list
 
     # raises errors for unsupported features
     _unsupported_errors(qobj_dict)

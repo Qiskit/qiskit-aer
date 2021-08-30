@@ -50,15 +50,16 @@ const Operations::OpSet StateOpSet(
      "x",      "y",       "z",   "h",    "s",    "sdg",  "t",    "tdg",
      "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
      "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
-     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
-     "mcsx",   "delay", "pauli"},
+     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "sxdg", "csx",
+     "mcsx",   "csxdg", "mcsxdg", "delay", "pauli", "cu",   "mcu", "mcp"},
     // Snapshots
     {"unitary"});
 
 // Allowed gates enum class
 enum class Gates {
   id, h, s, sdg, t, tdg, rxx, ryy, rzz, rzx,
-  mcx, mcy, mcz, mcr, mcrx, mcry, mcrz, mcp, mcu2, mcu3, mcswap, mcsx, pauli,
+  mcx, mcy, mcz, mcr, mcrx, mcry, mcrz, mcp,
+  mcu2, mcu3, mcu, mcswap, mcsx, mcsxdg, pauli,
 };
 
 //=========================================================================
@@ -151,14 +152,14 @@ protected:
   void apply_gate_phase(const uint_t qubit, const complex_t phase);
 
   //-----------------------------------------------------------------------
-  // Multi-controlled u3
+  // Multi-controlled u
   //-----------------------------------------------------------------------
 
-  // Apply N-qubit multi-controlled single qubit waltz gate specified by
-  // parameters u3(theta, phi, lambda)
-  // NOTE: if N=1 this is just a regular u3 gate.
-  void apply_gate_mcu3(const reg_t &qubits, const double theta,
-                       const double phi, const double lambda);
+  // Apply N-qubit multi-controlled single qubit gate specified by
+  // 4 parameters u4(theta, phi, lambda, gamma)
+  // NOTE: if N=1 this is just a regular u4 gate.
+  void apply_gate_mcu(const reg_t &qubits, double theta,
+                      double phi, double lambda, double gamma);
 
   //-----------------------------------------------------------------------
   // Save data instructions
@@ -209,6 +210,7 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"tdg", Gates::tdg}, // Conjguate-transpose of T gate
     {"p", Gates::mcp},   // Parameterized phase gate
     {"sx", Gates::mcsx}, // Sqrt(X) gate
+    {"sxdg", Gates::mcsxdg}, // Sqrt(X)^hc gate
     // 1-qubit rotation Gates
     {"r", Gates::mcr},   // R rotation gate
     {"rx", Gates::mcrx}, // Pauli-X rotation gate
@@ -227,9 +229,10 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"cy", Gates::mcy},      // Controlled-Z gate
     {"cz", Gates::mcz},      // Controlled-Z gate
     {"cp", Gates::mcp},      // Controlled-Phase gate 
-    {"cu1", Gates::mcp},    // Controlled-u1 gate
-    {"cu2", Gates::mcu2},    // Controlled-u2
+    {"cu1", Gates::mcp},     // Controlled-u1 gate
+    {"cu2", Gates::mcu2},    // Controlled-u2 gate
     {"cu3", Gates::mcu3},    // Controlled-u3 gate
+    {"cu", Gates::mcu},      // Controlled-u4 gate
     {"cp", Gates::mcp},      // Controlled-Phase gate 
     {"swap", Gates::mcswap}, // SWAP gate
     {"rxx", Gates::rxx},     // Pauli-XX rotation gate
@@ -237,6 +240,7 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"rzz", Gates::rzz},     // Pauli-ZZ rotation gate
     {"rzx", Gates::rzx},     // Pauli-ZX rotation gate
     {"csx", Gates::mcsx},    // Controlled-Sqrt(X) gate
+    {"csxdg", Gates::mcsxdg},// Controlled-Sqrt(X)dg gate
     // Three-qubit gates
     {"ccx", Gates::mcx},      // Controlled-CX gate (Toffoli)
     {"cswap", Gates::mcswap}, // Controlled-SWAP gate (Fredkin)
@@ -252,9 +256,11 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"mcu1", Gates::mcp},    // Multi-controlled-u1
     {"mcu2", Gates::mcu2},    // Multi-controlled-u2
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
-    {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
+    {"mcu", Gates::mcu},      // Multi-controlled-u4
+    {"mcp", Gates::mcp},      // Multi-controlled-Phase gate 
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
     {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
+    {"mcsxdg", Gates::mcsxdg},    // Multi-controlled-Sqrt(X)dg gate
     {"pauli", Gates::pauli}  // Multiple pauli operations at once
 });
 
@@ -430,7 +436,7 @@ void State<unitary_matrix_t>::apply_gate(const Operations::Op &op) {
     case Gates::id:
       break;
     case Gates::h:
-      apply_gate_mcu3(op.qubits, M_PI / 2., 0., M_PI);
+      apply_gate_mcu(op.qubits, M_PI / 2., 0., M_PI, 0.);
       break;
     case Gates::s:
       apply_gate_phase(op.qubits[0], complex_t(0., 1.));
@@ -455,13 +461,18 @@ void State<unitary_matrix_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::mcu3:
       // Includes u3, cu3, etc
-      apply_gate_mcu3(op.qubits, std::real(op.params[0]), std::real(op.params[1]),
-                      std::real(op.params[2]));
+      apply_gate_mcu(op.qubits, std::real(op.params[0]), std::real(op.params[1]),
+                      std::real(op.params[2]), 0.);
+      break;
+    case Gates::mcu:
+      // Includes u, cu, etc
+      apply_gate_mcu(op.qubits, std::real(op.params[0]), std::real(op.params[1]),
+                      std::real(op.params[2]), std::real(op.params[3]));
       break;
     case Gates::mcu2:
       // Includes u2, cu2, etc
-      apply_gate_mcu3(op.qubits, M_PI / 2., std::real(op.params[0]),
-                      std::real(op.params[1]));
+      apply_gate_mcu(op.qubits, M_PI / 2., std::real(op.params[0]),
+                     std::real(op.params[1]), 0.);
       break;
     case Gates::mcp:
       // Includes u1, cu1, p, cp, mcp, etc
@@ -471,6 +482,9 @@ void State<unitary_matrix_t>::apply_gate(const Operations::Op &op) {
     case Gates::mcsx:
       // Includes sx, csx, mcsx etc
       BaseState::qreg_.apply_mcu(op.qubits, Linalg::VMatrix::SX);
+      break;
+     case Gates::mcsxdg:
+      BaseState::qreg_.apply_mcu(op.qubits, Linalg::VMatrix::SXDG);
       break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
@@ -507,10 +521,10 @@ void State<unitary_matrix_t>::apply_gate_phase(uint_t qubit, complex_t phase) {
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_gate_mcu3(const reg_t &qubits, double theta,
-                                              double phi, double lambda) {
-  const auto u3 = Linalg::Matrix::u3(theta, phi, lambda);
-  BaseState::qreg_.apply_mcu(qubits, Utils::vectorize_matrix(u3));
+void State<unitary_matrix_t>::apply_gate_mcu(const reg_t &qubits, double theta,
+                                              double phi, double lambda, double gamma) {
+  const auto u4 = Linalg::Matrix::u4(theta, phi, lambda, gamma);
+  BaseState::qreg_.apply_mcu(qubits, Utils::vectorize_matrix(u4));
 }
 
 template <class unitary_matrix_t>

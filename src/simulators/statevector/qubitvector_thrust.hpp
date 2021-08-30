@@ -716,7 +716,8 @@ AER::Vector<std::complex<data_t>> QubitVectorThrust<data_t>::move_to_vector()
   chunk_.CopyOut((thrust::complex<data_t>*)&ret[0], data_size_);
 
 #ifdef AER_DEBUG
-  DebugMsg("move_to_vector");
+  DebugMsg("move_to_vector", ret[0]);
+  DebugDump();
 #endif
   return AER::Vector<std::complex<data_t>>::copy_from_buffer(data_size_, &ret[0]);
 }

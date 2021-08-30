@@ -50,7 +50,7 @@ const Operations::OpSet StateOpSet(
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
      "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
-     "rzx",  "p",   "cp", "cu1", "sx", "x90", "delay", "pauli"},
+     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli"},
     // Snapshots
     {"density_matrix", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli",
@@ -1116,6 +1116,9 @@ void State<densmat_t>::apply_gate(const uint_t iChunk, const Operations::Op &op)
       break;
     case DensityMatrix::Gates::sx:
       BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::SX);
+      break;
+    case DensityMatrix::Gates::sxdg:
+      BaseState::qregs_[iChunk].apply_unitary_matrix(op.qubits, Linalg::VMatrix::SXDG);
       break;
     case DensityMatrix::Gates::t: {
       const double isqrt2{1. / std::sqrt(2)};

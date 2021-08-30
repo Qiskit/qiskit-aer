@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-QasmSimulator kraus error NoiseModel integration tests
+AerSimulator kraus error NoiseModel integration tests
 """
 
 from test.terra.utils.utils import list2dict

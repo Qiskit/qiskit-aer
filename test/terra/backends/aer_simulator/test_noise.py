@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-QasmSimulator Integration Tests
+AerSimulator Integration Tests
 """
 
 from ddt import ddt
@@ -19,9 +19,6 @@ from test.terra.reference import ref_pauli_noise
 from test.terra.reference import ref_reset_noise
 from test.terra.reference import ref_kraus_noise
 
-from qiskit.compiler import assemble
-from qiskit.providers.aer import QasmSimulator
-from qiskit import execute
 from qiskit.circuit.library import QFT
 import qiskit.quantum_info as qi
 from test.terra.backends.simulator_test_case import (
@@ -35,7 +32,7 @@ ALL_METHODS = [
 
 @ddt
 class TestNoise(SimulatorTestCase):
-    """QasmSimulator readout error noise model tests."""
+    """AerSimulator readout error noise model tests."""
 
     @supported_methods(ALL_METHODS)
     def test_readout_noise(self, method, device):

@@ -44,6 +44,7 @@ public:
   const static cvector_t T;   // name: "t"
   const static cvector_t TDG; // name: "tdg"
   const static cvector_t SX;  // name: "sx"
+  const static cvector_t SXDG;// name: "sxdg"
   const static cvector_t X90; // name: "x90"
 
   // Two-qubit gates
@@ -59,6 +60,7 @@ public:
   static cvector_t u1(double lam);
   static cvector_t u2(double phi, double lam);
   static cvector_t u3(double theta, double phi, double lam);
+  static cvector_t u4(double theta, double phi, double lam, double gamma);
 
   // Single-qubit rotation gates
   static cvector_t r(double phi, double lam);
@@ -80,6 +82,9 @@ public:
   static cvector_t cphase(double theta);
   static cvector_t cphase_diag(double theta);
 
+  // Controlled-single qubit gate
+  static cvector_t cu(double theta, double phi, double lam, double gamma);
+
   // Complex arguments are implemented by taking std::real
   // of the input
   static cvector_t u1(complex_t lam) { return phase(std::real(lam)); }
@@ -88,6 +93,9 @@ public:
   }
   static cvector_t u3(complex_t theta, complex_t phi, complex_t lam) {
     return u3(std::real(theta), std::real(phi), std::real(lam));
+  };
+  static cvector_t u4(complex_t theta, complex_t phi, complex_t lam, complex_t gamma) {
+    return u4(std::real(theta), std::real(phi), std::real(lam), std::real(gamma));
   };
   static cvector_t r(complex_t theta, complex_t phi) {
     return r(std::real(theta), std::real(phi));
@@ -105,6 +113,9 @@ public:
   static cvector_t phase_diag(complex_t theta) { return phase_diag(std::real(theta)); }
   static cvector_t cphase(complex_t theta) { return cphase(std::real(theta)); }
   static cvector_t cphase_diag(complex_t theta) { return cphase_diag(std::real(theta)); }
+  static cvector_t cu(complex_t theta, complex_t phi, complex_t lam, complex_t gamma) {
+    return cu(std::real(theta), std::real(phi), std::real(lam), std::real(gamma));
+  }
 
   // Return the matrix for a named matrix string
   // Allowed names correspond to all the const static single-qubit
@@ -147,6 +158,8 @@ const cvector_t VMatrix::H = Utils::vectorize_matrix(Matrix::H);
 
 const cvector_t VMatrix::SX = Utils::vectorize_matrix(Matrix::SX);
 
+const cvector_t VMatrix::SXDG = Utils::vectorize_matrix(Matrix::SXDG);
+
 const cvector_t VMatrix::X90 = Utils::vectorize_matrix(Matrix::X90);
 
 const cvector_t VMatrix::CX = Utils::vectorize_matrix(Matrix::CX);
@@ -164,7 +177,7 @@ const stringmap_t<const cvector_t *> VMatrix::label_map_ = {
     {"sdg", &VMatrix::SDG},  {"t", &VMatrix::T},   {"tdg", &VMatrix::TDG},
     {"x90", &VMatrix::X90},  {"cx", &VMatrix::CX}, {"cy", &VMatrix::CY},
     {"cz", &VMatrix::CZ},    {"swap", &VMatrix::SWAP}, {"sx", &VMatrix::SX},
-    {"delay", &VMatrix::I}};
+    {"sxdg", &VMatrix::SXDG},    {"delay", &VMatrix::I}};
 
 cvector_t VMatrix::identity(size_t dim) {
   cvector_t mat(dim * dim);
@@ -191,10 +204,20 @@ cvector_t VMatrix::u2(double phi, double lambda) {
 cvector_t VMatrix::u3(double theta, double phi, double lambda) {
   cvector_t mat(2 * 2);
   const complex_t i(0., 1.);
-  mat[0 + 0 * 2] = std::cos(theta / 2.);
-  mat[0 + 1 * 2] = -std::exp(i * lambda) * std::sin(theta / 2.);
-  mat[1 + 0 * 2] = std::exp(i * phi) * std::sin(theta / 2.);
-  mat[1 + 1 * 2] = std::exp(i * (phi + lambda)) * std::cos(theta / 2.);
+  mat[0 + 0 * 2] = std::cos(0.5 * theta);
+  mat[0 + 1 * 2] = -std::exp(i * lambda) * std::sin(0.5 * theta);
+  mat[1 + 0 * 2] = std::exp(i * phi) * std::sin(0.5 * theta);
+  mat[1 + 1 * 2] = std::exp(i * (phi + lambda)) * std::cos(0.5 * theta);
+  return mat;
+}
+
+cvector_t VMatrix::u4(double theta, double phi, double lambda, double gamma) {
+  cvector_t mat(2 * 2);
+  const complex_t i(0., 1.);
+  mat[0 + 0 * 2] = std::exp(i * gamma) * std::cos(0.5 * theta);
+  mat[0 + 1 * 2] = -std::exp(i * (lambda + gamma)) * std::sin(0.5 * theta);
+  mat[1 + 0 * 2] = std::exp(i * (phi + gamma)) * std::sin(0.5 * theta);
+  mat[1 + 1 * 2] = std::exp(i * (phi + lambda + gamma)) * std::cos(0.5 * theta);
   return mat;
 }
 
@@ -305,6 +328,18 @@ cvector_t VMatrix::rzx(double theta) {
   mat[2 + 2 * 4] = cost;
   mat[3 + 1 * 4] = i * sint;
   mat[3 + 3 * 4] = cost;
+  return mat;
+}
+
+cvector_t VMatrix::cu(double theta, double phi, double lambda, double gamma) {
+  cvector_t mat(4 * 4);
+  const complex_t i(0., 1.);
+  mat[0 + 0 * 4] = 1;
+  mat[2 + 2 * 4] = 1;
+  mat[1 + 1 * 4] = std::exp(i * gamma) * std::cos(0.5 * theta);
+  mat[1 + 3 * 4] = -std::exp(i * (lambda + gamma)) * std::sin(0.5 * theta);
+  mat[3 + 1 * 4] = std::exp(i * (phi + gamma)) * std::sin(0.5 * theta);
+  mat[3 + 3 * 4] = std::exp(i * (phi + lambda + gamma)) * std::cos(0.5 * theta);
   return mat;
 }
 

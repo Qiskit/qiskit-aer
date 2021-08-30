@@ -45,13 +45,13 @@ const Operations::OpSet StateOpSet(
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
      "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
-     "rzx",  "p",   "cp", "cu1", "sx", "x90", "delay", "pauli"},
+     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli"},
     // Snapshots
     {"superop"});
 
 // Allowed gates enum class
 enum class Gates {
-  u2, u1, u3, id, x, y, z, h, s, sdg, sx, t, tdg, r, rx, ry, rz,
+  u2, u1, u3, id, x, y, z, h, s, sdg, sx, sxdg, t, tdg, r, rx, ry, rz,
   cx, cy, cz, cp, swap, rxx, ryy, rzz, rzx, ccx, pauli
 };
 
@@ -206,6 +206,7 @@ const stringmap_t<Gates> State<data_t>::gateset_({
     {"tdg", Gates::tdg}, // Conjguate-transpose of T gate
     {"x90", Gates::sx},  // Pi/2 X (equiv to Sqrt(X) gate)
     {"sx", Gates::sx},   // Sqrt(X) gate
+    {"sxdg", Gates::sxdg},// Sqrt(X)^hc gate
     {"r", Gates::r},     // R rotation gate
     {"rx", Gates::rx},   // Pauli-X rotation gate
     {"ry", Gates::ry},   // Pauli-Y rotation gate
@@ -463,6 +464,9 @@ void State<data_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::sx:
       BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::SX);
+      break;
+    case Gates::sxdg:
+      BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::SXDG);
       break;
     case Gates::t: {
       const double isqrt2{1. / std::sqrt(2)};

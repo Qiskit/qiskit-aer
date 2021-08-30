@@ -17,17 +17,13 @@ NoiseModel class integration tests
 import unittest
 from test.terra import common
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler import assemble, transpile
-from qiskit.providers.aer.backends import QasmSimulator
+from qiskit.compiler import transpile
+from qiskit.providers.aer.backends import AerSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.providers.aer.noise.errors.standard_errors import reset_error
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit.test import mock
-
-# Backwards compatibility for Terra <= 0.13
-if not hasattr(QuantumCircuit, 'i'):
-    QuantumCircuit.i = QuantumCircuit.iden
 
 
 class TestNoise(common.QiskitAerTestCase):
@@ -46,7 +42,7 @@ class TestNoise(common.QiskitAerTestCase):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
         shots = 4000
-        backend = QasmSimulator()
+        backend = AerSimulator()
         # test noise model
         error = amplitude_damping_error(0.75, 0.25)
         noise_model = NoiseModel()
@@ -54,8 +50,7 @@ class TestNoise(common.QiskitAerTestCase):
         # Execute
         target = {'0x0': 3 * shots / 4, '0x1': shots / 4}
         circuit = transpile(circuit, basis_gates=noise_model.basis_gates, optimization_level=0)
-        qobj = assemble([circuit], backend, shots=shots)
-        result = backend.run(qobj, noise_model=noise_model).result()
+        result = backend.run(circuit, shots=shots, noise_model=noise_model).result()
         self.assertSuccess(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
@@ -200,9 +195,8 @@ class TestNoise(common.QiskitAerTestCase):
 
         backend = mock.FakeSingapore()
         noise_model = NoiseModel.from_backend(backend)
-        qobj = assemble(transpile(circ, backend, optimization_level=0), backend)
-        sim = QasmSimulator()
-        result = sim.run(qobj, noise_model=noise_model).result()
+        circ = transpile(circ, backend, optimization_level=0)
+        result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
 
     def test_noise_model_from_backend_almaden(self):
@@ -213,9 +207,8 @@ class TestNoise(common.QiskitAerTestCase):
 
         backend = mock.FakeAlmaden()
         noise_model = NoiseModel.from_backend(backend)
-        qobj = assemble(transpile(circ, backend, optimization_level=0), backend)
-        sim = QasmSimulator()
-        result = sim.run(qobj, noise_model=noise_model).result()
+        circ = transpile(circ, backend, optimization_level=0)
+        result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
 
     def test_noise_model_from_rochester(self):
@@ -226,9 +219,8 @@ class TestNoise(common.QiskitAerTestCase):
 
         backend = mock.FakeRochester()
         noise_model = NoiseModel.from_backend(backend)
-        qobj = assemble(transpile(circ, backend, optimization_level=0), backend)
-        sim = QasmSimulator()
-        result = sim.run(qobj, noise_model=noise_model).result()
+        circ = transpile(circ, backend, optimization_level=0)
+        result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
 
 
