@@ -22,7 +22,7 @@ from test.terra.backends.simulator_test_case import (
 
 @ddt
 class TestQasmSimulator(SimulatorTestCase):
-    """StatevectorSimulator tests."""
+    """QasmSimulator backend wrapper tests."""
 
     BACKEND = QasmSimulator
 

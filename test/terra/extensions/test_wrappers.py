@@ -16,8 +16,8 @@ import copy
 import pickle
 from multiprocessing import Pool
 
-from qiskit import assemble, transpile, QuantumCircuit
-from qiskit.providers.aer.backends import QasmSimulator, StatevectorSimulator, UnitarySimulator
+from qiskit import transpile, QuantumCircuit
+from qiskit.providers.aer.backends import AerSimulator
 from qiskit.providers.aer.backends.controller_wrappers import aer_controller_execute
 from qiskit.providers.aer.backends.backend_utils import LIBRARY_DIR
 from test.terra.common import QiskitAerTestCase
@@ -43,10 +43,11 @@ class TestControllerExecuteWrappers(QiskitAerTestCase):
         num_qubits = 2
         circuit = QuantumCircuit(num_qubits)
         circuit.x(list(range(num_qubits)))
-        qobj = assemble(transpile(circuit, backend), backend)
+        circuit = transpile(circuit, backend)
         opts = {'max_parallel_threads': 1,
-                'library_dir': LIBRARY_DIR}
-        qobj, _ = backend._get_job_submit_args(qobj, **opts, noise_model=noise_model)
+                'library_dir': LIBRARY_DIR,
+                'noise_model': noise_model}
+        qobj = backend._assemble(circuit, **opts)
         return qobj
 
     def _map_and_test(self, cfunc, qobj):
@@ -61,7 +62,7 @@ class TestControllerExecuteWrappers(QiskitAerTestCase):
     def test_mappable_qasm(self):
         """Test that the qasm controller can be mapped."""
         cfunc = aer_controller_execute()
-        sim = QasmSimulator()
+        sim = AerSimulator()
         fqobj = self._create_qobj(sim)
         self._map_and_test(cfunc, fqobj)
 

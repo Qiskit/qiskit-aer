@@ -43,6 +43,7 @@ public:
   const static cmatrix_t T;   // name: "t"
   const static cmatrix_t TDG; // name: "tdg"
   const static cmatrix_t SX;  // name: "sx"
+  const static cmatrix_t SXDG;// name: "sxdg"
   const static cmatrix_t X90; // name: "x90"
 
   // Two-qubit gates
@@ -58,6 +59,7 @@ public:
   static cmatrix_t u1(double lam);
   static cmatrix_t u2(double phi, double lam);
   static cmatrix_t u3(double theta, double phi, double lam);
+  static cmatrix_t u4(double theta, double phi, double lam, double gamma);
 
   // Single-qubit rotation gates
   static cmatrix_t r(double phi, double lam);
@@ -77,6 +79,9 @@ public:
   static cmatrix_t cphase(double theta);
   static cmatrix_t cphase_diag(double theta);
 
+  // Controlled-single qubit gate
+  static cmatrix_t cu(double theta, double phi, double lam, double gamma);
+
   // Complex arguments are implemented by taking std::real
   // of the input
   static cmatrix_t u1(complex_t lam) { return phase(std::real(lam)); }
@@ -85,6 +90,9 @@ public:
   }
   static cmatrix_t u3(complex_t theta, complex_t phi, complex_t lam) {
     return u3(std::real(theta), std::real(phi), std::real(lam));
+  };
+  static cmatrix_t u4(complex_t theta, complex_t phi, complex_t lam, complex_t gamma) {
+    return u4(std::real(theta), std::real(phi), std::real(lam), std::real(gamma));
   };
   static cmatrix_t r(complex_t theta, complex_t phi) {
     return r(std::real(theta), std::real(phi));
@@ -100,6 +108,9 @@ public:
   static cmatrix_t phase_diag(complex_t theta) { return phase_diag(std::real(theta)); }
   static cmatrix_t cphase(complex_t theta) { return cphase(std::real(theta)); }
   static cmatrix_t cphase_diag(complex_t theta) { return cphase_diag(std::real(theta)); }
+  static cmatrix_t cu(complex_t theta, complex_t phi, complex_t lam, complex_t gamma) {
+    return cu(std::real(theta), std::real(phi), std::real(lam), std::real(gamma));
+  }
 
   // Return the matrix for a named matrix string
   // Allowed names correspond to all the const static single-qubit
@@ -139,6 +150,7 @@ const cmatrix_t Matrix::S =
 
 const cmatrix_t Matrix::SDG =
     Utils::make_matrix<complex_t>({{{1, 0}, {0, 0}}, {{0, 0}, {0, -1}}});
+
 const cmatrix_t Matrix::T = Utils::make_matrix<complex_t>(
     {{{1, 0}, {0, 0}}, {{0, 0}, {1 / std::sqrt(2), 1 / std::sqrt(2)}}});
 
@@ -151,6 +163,9 @@ const cmatrix_t Matrix::H = Utils::make_matrix<complex_t>(
 
 const cmatrix_t Matrix::SX = Utils::make_matrix<complex_t>(
     {{{0.5, 0.5}, {0.5, -0.5}}, {{0.5, -0.5}, {0.5, 0.5}}});
+
+const cmatrix_t Matrix::SXDG = Utils::make_matrix<complex_t>(
+    {{{0.5, -0.5}, {0.5, 0.5}}, {{0.5, 0.5}, {0.5, -0.5}}});
 
 const cmatrix_t Matrix::X90 = Utils::make_matrix<complex_t>(
     {{{1. / std::sqrt(2.), 0}, {0, -1. / std::sqrt(2.)}},
@@ -187,7 +202,7 @@ const stringmap_t<const cmatrix_t *> Matrix::label_map_ = {
     {"sdg", &Matrix::SDG},  {"t", &Matrix::T},   {"tdg", &Matrix::TDG},
     {"x90", &Matrix::X90},  {"cx", &Matrix::CX}, {"cy", &Matrix::CY},
     {"cz", &Matrix::CZ},    {"swap", &Matrix::SWAP}, {"sx", &Matrix::SX},
-    {"delay", &Matrix::I}};
+    {"sxdg", &Matrix::SXDG},  {"delay", &Matrix::I}};
 
 cmatrix_t Matrix::identity(size_t dim) {
   cmatrix_t mat(dim, dim);
@@ -218,6 +233,16 @@ cmatrix_t Matrix::u3(double theta, double phi, double lambda) {
   mat(0, 1) = -std::exp(i * lambda) * std::sin(0.5 * theta);
   mat(1, 0) = std::exp(i * phi) * std::sin(0.5 * theta);
   mat(1, 1) = std::exp(i * (phi + lambda)) * std::cos(0.5 * theta);
+  return mat;
+}
+
+cmatrix_t Matrix::u4(double theta, double phi, double lambda, double gamma) {
+  cmatrix_t mat(2, 2);
+  const complex_t i(0., 1.);
+  mat(0, 0) = std::exp(i * gamma) * std::cos(0.5 * theta);
+  mat(0, 1) = -std::exp(i * (lambda + gamma)) * std::sin(0.5 * theta);
+  mat(1, 0) = std::exp(i * (phi + gamma)) * std::sin(0.5 * theta);
+  mat(1, 1) = std::exp(i * (phi + lambda + gamma)) * std::cos(0.5 * theta);
   return mat;
 }
 
@@ -315,6 +340,18 @@ cmatrix_t Matrix::rzx(double theta) {
   mat(2, 2) = cost;
   mat(3, 1) = i * sint;
   mat(3, 3) = cost;
+  return mat;
+}
+
+cmatrix_t Matrix::cu(double theta, double phi, double lambda, double gamma) {
+  cmatrix_t mat(4, 4);
+  const complex_t i(0., 1.);
+  mat(0, 0) = 1;
+  mat(2, 2) = 1;
+  mat(1, 1) = std::exp(i * gamma) * std::cos(0.5 * theta);
+  mat(1, 3) = -std::exp(i * (lambda + gamma)) * std::sin(0.5 * theta);
+  mat(3, 1) = std::exp(i * (phi + gamma)) * std::sin(0.5 * theta);
+  mat(3, 3) = std::exp(i * (phi + lambda + gamma)) * std::cos(0.5 * theta);
   return mat;
 }
 

@@ -132,6 +132,10 @@ class QasmSimulator(AerBackend):
       on the executor. If ``None`` simulation of all circuits are submitted
       to the executor as a single job (Default: None).
 
+    * ``enable_truncation`` (bool): If set to True this removes unnecessary
+      qubits which do not affect the simulation outcome from the simulated
+      circuits (Default: True).
+
     * ``zero_threshold`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
 
@@ -300,10 +304,10 @@ class QasmSimulator(AerBackend):
 
     _DEFAULT_BASIS_GATES = sorted([
         'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-        'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
-        'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
+        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
+        'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
         'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-        'mcphase', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
+        'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
         'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
         'initialize', 'delay', 'pauli', 'mcx_gray'
     ])
@@ -407,6 +411,7 @@ class QasmSimulator(AerBackend):
             precision="double",
             executor=None,
             max_job_size=None,
+            enable_truncation=True,
             zero_threshold=1e-10,
             validation_threshold=None,
             max_parallel_threads=None,
@@ -600,25 +605,25 @@ class QasmSimulator(AerBackend):
         if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
             return sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-                'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
+                'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
                 'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
                 'unitary', 'diagonal', 'delay', 'pauli'
             ])
         if method == 'matrix_product_state':
             return sorted([
-                'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
-                'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay', 'pauli',
-                'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
-                'initialize'
+                'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x',
+                'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'ccx',
+                'unitary', 'roerror', 'delay', 'pauli', 'r', 'rx', 'ry', 'rz', 'rxx',
+                'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal', 'initialize'
             ])
         if method == 'stabilizer':
             return sorted([
-                'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'cx', 'cy', 'cz',
+                'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 'cx', 'cy', 'cz',
                 'swap', 'delay', 'pauli'
             ])
         if method == 'extended_stabilizer':
             return sorted([
-                'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx',
+                'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg',
                 'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay', 'pauli'
             ])
         return QasmSimulator._DEFAULT_BASIS_GATES

@@ -32,15 +32,15 @@ class SnapshotDensityMatrix(Snapshot):
         Raises:
             ExtensionError: if snapshot is invalid.
 
-        .. note::
+        .. deprecated:: 0.9.0
 
-            This instruction will be deprecated after the qiskit-aer 0.8 release.
-            It has been superseded by the
+            This instruction has been deprecated and will be removed no earlier
+            than 3 months from the 0.9.0 release date. It has been superseded by the
             :class:`qiskit.providers.aer.library.SaveDensityMatrix` instruction.
         """
-        warn('`The `SnapshotDensityMatrix` instruction will be deprecated in the'
-             'future. It has been superseded by the `SaveDensityMatrix`'
-             ' instructions.', PendingDeprecationWarning)
+        warn('The `SnapshotDensityMatrix` instruction has been deprecated as of'
+             ' qiskit-aer 0.9. It has been superseded by the `SaveDensityMatrix`'
+             ' instructions.', DeprecationWarning, stacklevel=2)
         super().__init__(label,
                          snapshot_type='density_matrix',
                          num_qubits=num_qubits)
@@ -60,16 +60,17 @@ def snapshot_density_matrix(self, label, qubits=None):
     Raises:
         ExtensionError: if snapshot is invalid.
 
-    .. note::
+    .. deprecated:: 0.9.0
 
-        This method will be deprecated after the qiskit-aer 0.8 release.
-        It has been superseded by the
-        :func:`qiskit.providers.aer.library.save_density_matrix`
+        This instruction has been deprecated and will be removed no earlier
+        than 3 months from the 0.9.0 release date. It has been superseded by the
+        :class:`qiskit.providers.aer.library.save_density_matrix`
         circuit method.
     """
-    warn('`The `save_density_matrix` circuit method will be deprecated in the'
-         ' future. It has been superseded by the `save_density_matrix`'
-         ' circuit method.', PendingDeprecationWarning)
+    warn('The `snapshot_density_matrix` circuit method has been deprecated as of'
+         ' qiskit-aer 0.9 and will be removed in a future release.'
+         ' It has been superseded by the `save_density_matrix`'
+         ' circuit method.', DeprecationWarning, stacklevel=2)
     snapshot_register = Snapshot.define_snapshot_register(self, qubits=qubits)
 
     return self.append(

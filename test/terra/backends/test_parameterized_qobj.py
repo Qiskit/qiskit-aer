@@ -15,16 +15,22 @@ statevector_simulator, and expectation value snapshots.
 """
 
 import unittest
+from math import pi
 import numpy as np
 
 from test.terra import common
 
 from qiskit import assemble
-from test.terra.reference.ref_snapshot_expval import (
-    snapshot_expval_circuits, snapshot_expval_counts, snapshot_expval_labels,
-    snapshot_expval_pre_meas_values, snapshot_expval_circuit_parameterized,
-    snapshot_expval_final_statevecs)
-from qiskit.providers.aer import QasmSimulator, StatevectorSimulator
+from qiskit.circuit import QuantumCircuit, Parameter
+from test.terra.reference.ref_save_expval import (
+    save_expval_circuits,
+    save_expval_counts,
+    save_expval_labels,
+    save_expval_pre_meas_values,
+    save_expval_circuit_parameterized,
+    save_expval_final_statevecs,
+)
+from qiskit.providers.aer import AerSimulator, AerError
 
 
 class TestParameterizedQobj(common.QiskitAerTestCase):
@@ -35,34 +41,24 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
     }
 
     @staticmethod
-    def expval_snapshots(data, labels):
-        """Format snapshots as nested dicts"""
-        # Check snapshot entry exists in data
-        output = {}
-        for label in labels:
-            snaps = data.get("snapshots", {}).get("expectation_value",
-                                                  {}).get(label, [])
-            # Convert list into dict
-            inner = {}
-            for snap_dict in snaps:
-                inner[snap_dict['memory']] = snap_dict['value']
-            output[label] = inner
-        return output
-
-    @staticmethod
-    def parameterized_qobj(backend, shots=1000, measure=True, snapshot=False):
+    def parameterized_qobj(
+        backend, shots=1000, measure=True, snapshot=False, save_state=False,
+    ):
         """Return ParameterizedQobj for settings."""
-        single_shot = shots == 1
-        pcirc1, param1 = snapshot_expval_circuit_parameterized(single_shot=single_shot,
-                                                               measure=measure,
-                                                               snapshot=snapshot)
-        circuits2to4 = snapshot_expval_circuits(pauli=True,
-                                                skip_measure=(not measure),
-                                                single_shot=single_shot)
-        pcirc2, param2 = snapshot_expval_circuit_parameterized(single_shot=single_shot,
-                                                               measure=measure,
-                                                               snapshot=snapshot)
+        pershot = shots == 1
+        pcirc1, param1 = save_expval_circuit_parameterized(
+            pershot=pershot, measure=measure, snapshot=snapshot,
+        )
+        circuits2to4 = save_expval_circuits(
+            pauli=True, skip_measure=(not measure), pershot=pershot,
+        )
+        pcirc2, param2 = save_expval_circuit_parameterized(
+            pershot=pershot, measure=measure, snapshot=snapshot,
+        )
         circuits = [pcirc1] + circuits2to4 + [pcirc2]
+        if save_state:
+            for circuit in circuits:
+                circuit.save_statevector(pershot=pershot)
         params = [param1, [], [], [], param2]
         qobj = assemble(circuits,
                         backend=backend,
@@ -70,58 +66,203 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
                         parameterizations=params)
         return qobj
 
-    def test_parameterized_qobj_qasm_snapshot_expval(self):
+    def test_parameterized_qobj_qasm_save_expval(self):
         """Test parameterized qobj with Expectation Value snapshot and qasm simulator."""
         shots = 1000
-        labels = snapshot_expval_labels() * 3
-        counts_targets = snapshot_expval_counts(shots) * 3
-        value_targets = snapshot_expval_pre_meas_values() * 3
+        labels = save_expval_labels() * 3
+        counts_targets = save_expval_counts(shots) * 3
+        value_targets = save_expval_pre_meas_values() * 3
 
-        backend = QasmSimulator()
+        backend = AerSimulator()
         qobj = self.parameterized_qobj(backend=backend,
                                        shots=1000,
                                        measure=True,
                                        snapshot=True)
         self.assertIn('parameterizations', qobj.to_dict()['config'])
-        job = backend.run(qobj, **self.BACKEND_OPTS)
-        result = job.result()
-        success = getattr(result, 'success', False)
-        num_circs = len(result.to_dict()['results'])
-        self.assertTrue(success)
-        self.compare_counts(result,
-                            range(num_circs),
-                            counts_targets,
-                            delta=0.1 * shots)
-        # Check snapshots
-        for j in range(num_circs):
-            data = result.data(j)
-            all_snapshots = self.expval_snapshots(data, labels)
-            for label in labels:
-                snaps = all_snapshots.get(label, {})
-                self.assertTrue(len(snaps), 1)
-                for memory, value in snaps.items():
-                    target = value_targets[j].get(label,
-                                                  {}).get(memory, {})
-                    self.assertAlmostEqual(value, target, delta=1e-7)
+        with self.assertWarns(DeprecationWarning):
+            job = backend.run(qobj, **self.BACKEND_OPTS)
+            result = job.result()
+            success = getattr(result, 'success', False)
+            num_circs = len(result.to_dict()['results'])
+            self.assertTrue(success)
+            self.compare_counts(result,
+                                range(num_circs),
+                                counts_targets,
+                                delta=0.1 * shots)
+            # Check snapshots
+            for j, target in enumerate(value_targets):
+                data = result.data(j)
+                for label in labels:
+                    self.assertAlmostEqual(
+                        data[label], target[label], delta=1e-7)
 
     def test_parameterized_qobj_statevector(self):
         """Test parameterized qobj with Expectation Value snapshot and qasm simulator."""
-        statevec_targets = snapshot_expval_final_statevecs() * 3
+        statevec_targets = save_expval_final_statevecs() * 3
 
-        backend = StatevectorSimulator()
-        qobj = self.parameterized_qobj(backend=backend,
-                                       measure=False,
-                                       snapshot=False)
+        backend = AerSimulator(method="statevector")
+        qobj = self.parameterized_qobj(
+            backend=backend, measure=False, snapshot=False, save_state=True,
+        )
         self.assertIn('parameterizations', qobj.to_dict()['config'])
-        job = backend.run(qobj, **self.BACKEND_OPTS)
-        result = job.result()
-        success = getattr(result, 'success', False)
-        num_circs = len(result.to_dict()['results'])
-        self.assertTrue(success)
+        with self.assertWarns(DeprecationWarning):
+            job = backend.run(qobj, **self.BACKEND_OPTS)
+            result = job.result()
+            success = getattr(result, 'success', False)
+            num_circs = len(result.to_dict()['results'])
+            self.assertTrue(success)
 
-        for j in range(num_circs):
-            statevector = result.get_statevector(j)
-            np.testing.assert_array_almost_equal(statevector, statevec_targets[j].data, decimal=7)
+            for j in range(num_circs):
+                statevector = result.get_statevector(j)
+                np.testing.assert_array_almost_equal(
+                    statevector, statevec_targets[j].data, decimal=7)
+
+    def test_run_path(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
+        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        self.assertEqual(counts, [{'00': shots}, {'11': shots}, {'00': shots}])
+
+    def test_run_path_with_expressions(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        theta_squared = theta*theta
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
+        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        self.assertEqual(counts, [{'00': shots}, {'11': shots}, {'00': shots}])
+
+    def test_run_path_with_expressions_multiple_params_per_instruction(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        theta_squared = theta*theta
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.u(theta, theta_squared, theta, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
+        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        self.assertEqual(counts, [{'00': shots}, {'01': shots}, {'00': shots}])
+
+    def test_run_path_with_more_params_than_expressions(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 2000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        theta_squared = theta*theta
+        phi = Parameter('phi')
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.ry(phi, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi], phi: [0, 1, pi]}]
+        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        for index, expected in enumerate([{'00': shots}, {'01': 0.25*shots, '11': 0.75*shots}, {'10': shots}]):
+            self.assertDictAlmostEqual(counts[index], expected, delta=0.05*shots)
+
+    def test_run_path_multiple_circuits(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]*3
+        res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        self.assertEqual(counts, [{'00': shots}, {'11': shots}, {'00': shots}] * 3)
+
+    def test_run_path_with_expressions_multiple_circuits(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        theta_squared = theta*theta
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]*3
+        res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        self.assertEqual(counts, [{'00': shots}, {'11': shots}, {'00': shots}] * 3)
+
+    def test_run_path_with_expressions_multiple_params_per_instruction(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        theta_squared = theta*theta
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.u(theta, theta_squared, theta, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]*3
+        res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        self.assertEqual(counts, [{'00': shots}, {'01': shots}, {'00': shots}] * 3)
+
+    def test_run_path_with_more_params_than_expressions_multiple_circuits(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 2000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        theta_squared = theta*theta
+        phi = Parameter('phi')
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.rz(theta_squared, 1)
+        circuit.ry(phi, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi], phi: [0, 1, pi]}]*3
+        res = backend.run([circuit]*3, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        for index, expected in enumerate([{'00': shots}, {'01': 0.25*shots, '11': 0.75*shots}, {'10': shots}] * 3):
+            self.assertDictAlmostEqual(counts[index], expected, delta=0.05*shots)
+
+    def test_run_path_multiple_circuits_mismatch_length(self):
+        """Test parameterized circuit path via backed.run()"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
+        with self.assertRaises(AerError):
+            backend.run([circuit]*3, shots=shots, parameter_binds=[parameter_binds]).result()
+
+
 
 if __name__ == '__main__':
     unittest.main()

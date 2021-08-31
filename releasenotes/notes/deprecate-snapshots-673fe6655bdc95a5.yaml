@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    All snapshot instructions in :mod:`qiskit.providers.aer.extensions` have
+    been deprecated. For replacement use the save instructions from the
+    :mod:`qiskit.providers.aer.library` module.
