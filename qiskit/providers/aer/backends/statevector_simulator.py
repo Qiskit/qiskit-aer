@@ -17,7 +17,6 @@ import copy
 import logging
 from warnings import warn
 from qiskit.circuit import QuantumCircuit
-from qiskit.compiler import assemble
 from qiskit.util import local_hardware_info
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
@@ -254,6 +253,7 @@ class StatevectorSimulator(AerBackend):
     def run(self,
             circuits,
             validate=False,
+            parameter_binds=None,
             **run_options):
         """Run a qobj on the backend.
 
@@ -261,6 +261,8 @@ class StatevectorSimulator(AerBackend):
             circuits (QuantumCircuit or list): The QuantumCircuit (or list
                 of QuantumCircuit objects) to run
             validate (bool): validate the Qobj before running (default: False).
+            parameter_binds (list): A list of parameter binding dictionaries.
+                                    See additional information (default: None).
             run_options (kwargs): additional run time backend options.
 
         Returns:
@@ -274,7 +276,7 @@ class StatevectorSimulator(AerBackend):
             ValueError: if run is not implemented
         """
         if isinstance(circuits, (list, QuantumCircuit)):
-            circuits = assemble(circuits, self)
+            circuits = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
 
         return super().run(circuits, validate=validate, **run_options)
 

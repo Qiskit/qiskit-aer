@@ -17,7 +17,6 @@ import copy
 import logging
 from warnings import warn
 from qiskit.circuit import QuantumCircuit
-from qiskit.compiler import assemble
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
@@ -133,6 +132,10 @@ class QasmSimulator(AerBackend):
       exceeds this value simulation will be run as a set of of sub-jobs
       on the executor. If ``None`` simulation of all circuits are submitted
       to the executor as a single job (Default: None).
+
+    * ``enable_truncation`` (bool): If set to True this removes unnecessary
+      qubits which do not affect the simulation outcome from the simulated
+      circuits (Default: True).
 
     * ``zero_threshold`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
@@ -409,6 +412,7 @@ class QasmSimulator(AerBackend):
             precision="double",
             executor=None,
             max_job_size=None,
+            enable_truncation=True,
             zero_threshold=1e-10,
             validation_threshold=None,
             max_parallel_threads=None,
@@ -502,6 +506,7 @@ class QasmSimulator(AerBackend):
     def run(self,
             circuits,
             validate=False,
+            parameter_binds=None,
             **run_options):
         """Run a qobj on the backend.
 
@@ -509,6 +514,8 @@ class QasmSimulator(AerBackend):
             circuits (QuantumCircuit or list): The QuantumCircuit (or list
                 of QuantumCircuit objects) to run
             validate (bool): validate the Qobj before running (default: False).
+            parameter_binds (list): A list of parameter binding dictionaries.
+                                    See additional information (default: None).
             run_options (kwargs): additional run time backend options.
 
         Returns:
@@ -522,7 +529,7 @@ class QasmSimulator(AerBackend):
             ValueError: if run is not implemented
         """
         if isinstance(circuits, (list, QuantumCircuit)):
-            circuits = assemble(circuits, self)
+            circuits = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
 
         return super().run(circuits, validate, **run_options)
 

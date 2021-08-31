@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-QasmSimulator Integration Tests for circuit library standard gates
+AerSimulator Integration Tests for circuit library standard gates
 """
 
 from ddt import ddt
