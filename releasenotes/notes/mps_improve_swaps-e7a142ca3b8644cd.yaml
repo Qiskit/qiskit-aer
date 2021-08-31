@@ -1,0 +1,5 @@
+other:
+  - |
+    Improved algorithm for swapping of qubits in MPS 2-qubit gates. In previous
+    version the direction of the swaps was arbitrary. Now, always move the
+    qubit with higher bond dimension toward the qubit with lower bond dimension.
