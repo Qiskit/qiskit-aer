@@ -581,7 +581,7 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, co
   // Case ii:
   //     If index_B < index_A, we either move the qubit at index_B to index_A-1, 
   //                                  or move the qubit at index_A to index_B+1
-  //     afterwards, we swap between the qubits
+  //     Finally, A = min(index_A, index_B)
 
   uint_t A = index_A;
 
