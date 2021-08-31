@@ -103,8 +103,7 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
     // in this case, leave only the first max_bond_dimension
     // values in S, and discard all the rest
     new_SV_num = max_bond_dimension;
-  } 
-
+  }
   // Remove the lowest Schmidt coefficients such that the sum of 
   // their squares is less than trunction_threshold
   double sum_squares = 0;
@@ -116,27 +115,15 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
       break;
     }
   }
+
+  double discarded_value = 0.0;
+  for (uint_t i=new_SV_num; i<SV_num; i++) {
+    discarded_value += std::norm(S[i]);
+  }
   U.resize(U.GetRows(), new_SV_num);
   S.resize(new_SV_num);
   V.resize(V.GetRows(), new_SV_num);
 
-  // discarded_value is the sum of the squares of the Schmidt coeffients 
-  // that were discarded by approximation
-  double discarded_value = 0.0;
-  // After approximation, we may need to re-normalize the values of S
-  if (new_SV_num < SV_num) {
-    double sum=0;
-    for (uint_t i=0; i<S.size(); i++) {
-      sum += std::norm(S[i]);
-    }
-    discarded_value = 1.0 - sum;
-    if ( discarded_value > THRESHOLD) {
-      for (uint_t i=0; i<S.size(); i++) {
-	  double square_i = std::norm(S[i])/sum;
-	  S[i] = sqrt(square_i);
-      }
-    }
-  }
   return discarded_value;
 }
 
