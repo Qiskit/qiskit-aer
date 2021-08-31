@@ -271,6 +271,12 @@ Circuit NoiseModel::sample_noise(const Circuit &circ,
   return sample_noise_circuit(circ, rng, method,sample_at_runtime);
 }
 
+NoiseModel::NoiseOps NoiseModel::sample_noise_at_runtime(const Operations::Op &op,RngEngine &rng) const
+{
+  auto noise_ops = quantum_errors_[op.int_params[0]].sample_noise(op.qubits, rng, Method::circuit,false);
+  return noise_ops;
+}
+
 Circuit NoiseModel::sample_noise_circuit(const Circuit &circ,
                                          RngEngine &rng,
                                          const Method method,bool sample_at_runtime) const 

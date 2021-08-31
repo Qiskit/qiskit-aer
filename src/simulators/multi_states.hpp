@@ -136,7 +136,7 @@ public:
                          reg_t& shots,
                          std::vector<ExperimentResult> &result,
                          std::vector<RngEngine> &rng,
-                         const std::vector<AER::Noise::NoiseModel> &noise,
+                         const AER::Noise::NoiseModel &noise,
                          bool final_ops = false);
 
   virtual void end_of_circuit();
@@ -633,7 +633,7 @@ void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::
                          reg_t& shots,
                          std::vector<ExperimentResult> &result,
                          std::vector<RngEngine>& rng,
-                         const std::vector<AER::Noise::NoiseModel> &noise,
+                         const AER::Noise::NoiseModel &noise,
                          bool final_ops)
 {
   int_t i;

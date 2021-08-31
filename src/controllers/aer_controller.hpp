@@ -168,9 +168,13 @@ protected:
   // Abstract method for executing a circuit.
   // This method must initialize a state and return output data for
   // the required number of shots.
-  void run_circuits(const std::vector<Circuit> &circs, std::vector<Noise::NoiseModel> &noises,
-                   const json_t &config, 
-                   Result &result) ;
+  void run_circuit(const Circuit &circ, const Noise::NoiseModel &noise,
+                   const Method method,const json_t &config, uint_t shots,
+                   uint_t rng_seed, ExperimentResult &result,bool multi_chunk) const;
+
+  void run_batched_circuits(const std::vector<Circuit> &circs, const Noise::NoiseModel &noises,
+                   const Method method,const json_t &config, 
+                   Result &result) const;
 
   //----------------------------------------------------------------
   // Run circuit helpers
@@ -178,16 +182,16 @@ protected:
 
   // Execute n-shots of a circuit on the input state
   template <class State_t>
-  void run_circuits_helper(const std::vector<Circuit> &circs, std::vector<Noise::NoiseModel> &noises,
-                          const json_t &config, 
+  void run_circuit_helper(const Circuit &circ, const Noise::NoiseModel &noise,
+                          const json_t &config, uint_t shots, uint_t rng_seed,
                           const Method method, bool cache_block,
-                          Result &result);
+                          ExperimentResult &result) const;
 
   template <class State_t>
-  void run_batched_circuits_helper(const std::vector<Circuit> &circs, std::vector<Noise::NoiseModel> &noises,
+  void run_batched_circuits_helper(const std::vector<Circuit> &circs, const Noise::NoiseModel &noise,
                           const json_t &config, 
                           const Method method, 
-                          Result &result);
+                          Result &result) const;
 
   // Execute a single shot a of circuit by initializing the state vector,
   // running all ops in circ, and updating data with
@@ -827,36 +831,23 @@ Result Controller::execute(const inputdata_t &input_qobj) {
 
 Result Controller::execute(std::vector<Circuit> &circuits,
                            Noise::NoiseModel &noise_model,
-                           const json_t &config) {
+                           const json_t &config) 
+{
   // Start QOBJ timer
   auto timer_start = myclock_t::now();
 
   // Determine simulation method for each circuit
   // and enable required noise sampling methods
   auto methods = simulation_methods(circuits, noise_model);
+  bool one_method = true;
 
   // Initialize Result object for the given number of experiments
   Result result(circuits.size());
 
   // Execute each circuit in a try block
   try {
-    // truncate circuits before experiment settings (to get correct
-    // required_memory_mb value)
-#pragma omp parallel for if(circuits.size() > 1)
-    for (int_t j = 0; j < circuits.size(); j++) {
-      // Remove barriers from circuit
-      Transpile::ReduceBarrier barrier_pass;
-      barrier_pass.optimize_circuit(circuits[j], circ_noise_models[j], circuits[j].opset(), result.results[j]);
-
-      if (truncate_qubits_) {
-        // Truncate unused qubits from circuit and noise model
-        Transpile::TruncateQubits truncate_pass;
-        truncate_pass.set_config(config);
-        truncate_pass.optimize_circuit(circuits[j], circ_noise_models[j],
-                                       circuits[j].opset(), result.results[j]);
-      }
-    }
-
+    std::vector<bool> multi_chunk;
+    bool multi_chunk_req = false;
     // get max qubits for this process (to allocate qubit register at once)
     int i_max_circ = 0;
     max_qubits_ = 0;
@@ -865,11 +856,16 @@ Result Controller::execute(std::vector<Circuit> &circuits,
         max_qubits_ = circuits[j].num_qubits;
         i_max_circ = j;
       }
+      if(methods[j] != methods[0])
+        one_method = false;
+      multi_chunk[j] = multiple_chunk_required(circuits[j], noise_model, methods[j]);
+      if(multi_chunk[j])
+        multi_chunk_req = true;
     }
     num_process_per_experiment_ = num_processes_;
 
     //set max batched states
-    uint_t max_required = required_memory_mb(circuits[i_max_circ], circ_noise_models[i_max_circ]);
+    uint_t max_required = required_memory_mb(circuits[i_max_circ], noise_model, methods[i_max_circ]);
     if(sim_device_ == Device::GPU){
       max_batched_states_ = ((max_gpu_memory_mb_/num_gpus_*8/10) / max_required)*num_gpus_;
     }
@@ -924,10 +920,56 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     }
 #endif
 
+    // then- and else-blocks have intentionally duplication.
+    // Nested omp has significant overheads even though a guard condition
+    // exists.
     const int NUM_RESULTS = result.results.size();
+    if (parallel_experiments_ > 1 && sim_device_ != Device::GPU && !multi_chunk_req) {
+#pragma omp parallel for if (parallel_experiments_ > 1) num_threads(parallel_experiments_)
+      for (int j = 0; j < result.results.size(); ++j) {
+        run_circuit(circuits[j], noise_model,methods[j],
+                    config, circuits[j].shots, circuits[j].seed,
+                    result.results[j],multi_chunk[j]);
+      }
+    }
+    else{
+      bool batch_enable = false;
+      if(one_method && sim_device_ == Device::GPU && !multi_chunk_req && circuits.size() > num_gpus_ && 
+              max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
+        batch_enable = true;
+        for (size_t j = 0; j < circuits.size(); j++) {
+          if(methods[j] != Method::statevector && methods[j] != Method::density_matrix){
+            batch_enable = false;
+            break;
+          }
+          if(!check_measure_sampling_opt(circuits[j], methods[j])){
+            batch_enable = false;
+            break;
+          }
+        }
+      }
 
-    run_circuits(circuits, circ_noise_models,
-                        config, result);
+      if(batch_enable){
+        //batched execution of multi-circuits
+        run_batched_circuits(circuits, noise_model,methods[0],
+                              config, result);
+      }
+      else{
+        for (int j = 0; j < result.results.size(); ++j) {
+          if (!explicit_parallelization_) {
+            set_parallelization_circuit(circuits[j], noise_model, methods[j]);
+          }
+          if(multi_chunk_req){
+            parallel_shots_ = 1;
+            parallel_state_update_ =
+                std::max<int>({1, max_parallel_threads_});
+          }
+          run_circuit(circuits[j], noise_model,methods[j],
+                      config, circuits[j].shots, circuits[j].seed,
+                      result.results[j],multi_chunk[j]);
+        }
+      }
+    }
 
     // Check each experiment result for completed status.
     // If only some experiments completed return partial completed status.
@@ -976,51 +1018,42 @@ void Controller::save_count_data(ExperimentResult &result,
 //-------------------------------------------------------------------------
 // Base class override
 //-------------------------------------------------------------------------
-
-void Controller::run_circuits(const std::vector<Circuit> &circs,
-                             std::vector<Noise::NoiseModel> &noises,
-                             const json_t &config,
-                             Result &result) 
+void Controller::run_circuit(const Circuit &circ,
+                             const Noise::NoiseModel &noise, const Method method,
+                             const json_t &config, uint_t shots,
+                             uint_t rng_seed, ExperimentResult &result,bool multi_chunk) const 
 {
-  bool multi_chunk = false;
-  for(int_t i;i<circs.size();i++){
-    if(multiple_chunk_required(circs[i], noises[i])){
-      multi_chunk = true;
-      break;
-    }
-  }
-
-  // Validate circuit for simulation method
-  switch (simulation_method(circs[0], noises[0], true)) {
+  // Run the circuit
+  switch (method) {
   case Method::statevector: {
     if (sim_device_ == Device::CPU) {
-      if (multi_chunk){
+      if (multi_chunk) {
         // Chunk based simualtion
         if (sim_precision_ == Precision::Double) {
           // Double-precision Statevector simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               StatevectorChunk::State<QV::QubitVector<double>>>(
-              circs, noises, config, Method::statevector,
+              circ, noise, config, shots, rng_seed, Method::statevector,
               true, result);
         } else {
           // Single-precision Statevector simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               StatevectorChunk::State<QV::QubitVector<float>>>(
-              circs, noises, config, Method::statevector,
+              circ, noise, config, shots, rng_seed, Method::statevector,
               true, result);
         }
       } else {
         // Non-chunk based simulation
         if (sim_precision_ == Precision::Double) {
           // Double-precision Statevector simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               Statevector::State<QV::QubitVector<double>>>(
-              circs, noises, config, Method::statevector,
+              circ, noise, config, shots, rng_seed, Method::statevector,
               false, result);
         } else {
           // Single-precision Statevector simulation
-          return run_circuits_helper<Statevector::State<QV::QubitVector<float>>>(
-              circs, noises, config, Method::statevector,
+          return run_circuit_helper<Statevector::State<QV::QubitVector<float>>>(
+              circ, noise, config, shots, rng_seed, Method::statevector,
               false, result);
         }
       }
@@ -1030,30 +1063,30 @@ void Controller::run_circuits(const std::vector<Circuit> &circs,
         // Chunk based simulation
         if (sim_precision_ == Precision::Double) {
           // Double-precision Statevector simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               StatevectorChunk::State<QV::QubitVectorThrust<double>>>(
-              circs, noises, config, Method::statevector,
+              circ, noise, config, shots, rng_seed, Method::statevector,
               true, result);
         } else {
           // Single-precision Statevector simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               StatevectorChunk::State<QV::QubitVectorThrust<float>>>(
-              circs, noises, config, Method::statevector,
+              circ, noise, config, shots, rng_seed, Method::statevector,
               true, result);
         }
       } else {
         // Non-chunk based simulation
         if (sim_precision_ == Precision::Double) {
           // Double-precision Statevector simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               Statevector::State<QV::QubitVectorThrust<double>>>(
-              circs, noises, config, Method::statevector,
+              circ, noise, config, shots, rng_seed, Method::statevector,
               false, result);
         } else {
           // Single-precision Statevector simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               Statevector::State<QV::QubitVectorThrust<float>>>(
-              circs, noises, config, Method::statevector,
+              circ, noise, config, shots, rng_seed, Method::statevector,
               false, result);
         }
       }
@@ -1065,60 +1098,60 @@ void Controller::run_circuits(const std::vector<Circuit> &circs,
       if (multi_chunk) {
         if (sim_precision_ == Precision::Double) {
           // Double-precision density matrix simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               DensityMatrixChunk::State<QV::DensityMatrix<double>>>(
-              circs, noises, config, Method::density_matrix,
+              circ, noise, config, shots, rng_seed, Method::density_matrix,
               true, result);
         } else {
           // Single-precision density matrix simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               DensityMatrixChunk::State<QV::DensityMatrix<float>>>(
-              circs, noises, config, Method::density_matrix,
+              circ, noise, config, shots, rng_seed, Method::density_matrix,
               true, result);
         }
       } else {
         if (sim_precision_ == Precision::Double) {
           // Double-precision density matrix simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               DensityMatrix::State<QV::DensityMatrix<double>>>(
-              circs, noises, config, Method::density_matrix,
+              circ, noise, config, shots, rng_seed, Method::density_matrix,
               false, result);
         } else {
           // Single-precision density matrix simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               DensityMatrix::State<QV::DensityMatrix<float>>>(
-              circs, noises, config, Method::density_matrix,
+              circ, noise, config, shots, rng_seed, Method::density_matrix,
               false, result);
         }
       }
     } else {
 #ifdef AER_THRUST_SUPPORTED
-      if (multi_chunk) {
+      if (multi_chunk){
         if (sim_precision_ == Precision::Double) {
           // Double-precision density matrix simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               DensityMatrixChunk::State<QV::DensityMatrixThrust<double>>>(
-              circs, noises, config, Method::density_matrix,
+              circ, noise, config, shots, rng_seed, Method::density_matrix,
               true, result);
         } else {
           // Single-precision density matrix simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               DensityMatrixChunk::State<QV::DensityMatrixThrust<float>>>(
-              circs, noises, config, Method::density_matrix,
+              circ, noise, config, shots, rng_seed, Method::density_matrix,
               true, result);
         }
       } else {
         if (sim_precision_ == Precision::Double) {
           // Double-precision density matrix simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               DensityMatrix::State<QV::DensityMatrixThrust<double>>>(
-              circs, noises, config, Method::density_matrix,
+              circ, noise, config, shots, rng_seed, Method::density_matrix,
               false, result);
         } else {
           // Single-precision density matrix simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               DensityMatrix::State<QV::DensityMatrixThrust<float>>>(
-              circs, noises, config, Method::density_matrix,
+              circ, noise, config, shots, rng_seed, Method::density_matrix,
               false, result);
         }
       }
@@ -1127,33 +1160,33 @@ void Controller::run_circuits(const std::vector<Circuit> &circs,
   }
   case Method::unitary: {
     if (sim_device_ == Device::CPU) {
-      if (multi_chunk) {
+      if (multi_chunk){
         if (sim_precision_ == Precision::Double) {
           // Double-precision unitary simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               QubitUnitaryChunk::State<QV::UnitaryMatrix<double>>>(
-              circs, noises, config, Method::unitary,
+              circ, noise, config, shots, rng_seed, Method::unitary,
               false, result);
         } else {
           // Single-precision unitary simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               QubitUnitaryChunk::State<QV::UnitaryMatrix<float>>>(
-              circs, noises, config, Method::unitary,
+              circ, noise, config, shots, rng_seed, Method::unitary,
               false, result);
         }
       }
       else{
         if (sim_precision_ == Precision::Double) {
           // Double-precision unitary simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               QubitUnitary::State<QV::UnitaryMatrix<double>>>(
-              circs, noises, config, Method::unitary,
+              circ, noise, config, shots, rng_seed, Method::unitary,
               false, result);
         } else {
           // Single-precision unitary simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               QubitUnitary::State<QV::UnitaryMatrix<float>>>(
-              circs, noises, config, Method::unitary,
+              circ, noise, config, shots, rng_seed, Method::unitary,
               false, result);
         }
       }
@@ -1162,30 +1195,30 @@ void Controller::run_circuits(const std::vector<Circuit> &circs,
       if (multi_chunk) {
         if (sim_precision_ == Precision::Double) {
           // Double-precision unitary simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               QubitUnitaryChunk::State<QV::UnitaryMatrixThrust<double>>>(
-              circs, noises, config, Method::unitary,
+              circ, noise, config, shots, rng_seed, Method::unitary,
               false, result);
         } else {
           // Single-precision unitary simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               QubitUnitaryChunk::State<QV::UnitaryMatrixThrust<float>>>(
-              circs, noises, config, Method::unitary,
+              circ, noise, config, shots, rng_seed, Method::unitary,
               false, result);
         }
       }
       else{
         if (sim_precision_ == Precision::Double) {
           // Double-precision unitary simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               QubitUnitary::State<QV::UnitaryMatrixThrust<double>>>(
-              circs, noises, config, Method::unitary,
+              circ, noise, config, shots, rng_seed, Method::unitary,
               false, result);
         } else {
           // Single-precision unitary simulation
-          return run_circuits_helper<
+          return run_circuit_helper<
               QubitUnitary::State<QV::UnitaryMatrixThrust<float>>>(
-              circs, noises, config, Method::unitary,
+              circ, noise, config, shots, rng_seed, Method::unitary,
               false, result);
         }
       }
@@ -1194,31 +1227,152 @@ void Controller::run_circuits(const std::vector<Circuit> &circs,
   }
   case Method::superop: {
     if (sim_precision_ == Precision::Double) {
-      return run_circuits_helper<
+      return run_circuit_helper<
           QubitSuperoperator::State<QV::Superoperator<double>>>(
-          circs, noises, config, Method::superop,
+          circ, noise, config, shots, rng_seed, Method::superop,
           false, result);
     } else {
-      return run_circuits_helper<
+      return run_circuit_helper<
           QubitSuperoperator::State<QV::Superoperator<float>>>(
-          circs, noises, config, Method::superop,
+          circ, noise, config, shots, rng_seed, Method::superop,
           false, result);
     }
   }
   case Method::stabilizer:
     // Stabilizer simulation
     // TODO: Stabilizer doesn't yet support custom state initialization
-    return run_circuits_helper<Stabilizer::State>(
-        circs, noises, config, Method::stabilizer,
+    return run_circuit_helper<Stabilizer::State>(
+        circ, noise, config, shots, rng_seed, Method::stabilizer,
         false, result);
   case Method::extended_stabilizer:
-    return run_circuits_helper<ExtendedStabilizer::State>(
-        circs, noises, config, Method::extended_stabilizer,
+    return run_circuit_helper<ExtendedStabilizer::State>(
+        circ, noise, config, shots, rng_seed, Method::extended_stabilizer,
         false, result);
   case Method::matrix_product_state:
-    return run_circuits_helper<MatrixProductState::State>(
-        circs, noises, config, Method::matrix_product_state,
+    return run_circuit_helper<MatrixProductState::State>(
+        circ, noise, config, shots, rng_seed, Method::matrix_product_state,
         false, result);
+  default:
+    throw std::runtime_error("Controller:Invalid simulation method");
+  }
+}
+
+void Controller::run_batched_circuits(const std::vector<Circuit> &circs,
+                             const Noise::NoiseModel &noise,
+                             const Method method,const json_t &config,
+                             Result &result) const 
+{
+  // Validate circuit for simulation method
+  switch (method) {
+  case Method::statevector: {
+    if (sim_device_ == Device::CPU) {
+      if (sim_precision_ == Precision::Double) {
+        // Double-precision Statevector simulation
+        return run_batched_circuits_helper<
+            Statevector::State<QV::QubitVector<double>>>(
+            circs, noise, config, method, result);
+      } else {
+        // Single-precision Statevector simulation
+        return run_batched_circuits_helper<Statevector::State<QV::QubitVector<float>>>(
+            circs, noise, config, method,result);
+      }
+    } else {
+#ifdef AER_THRUST_SUPPORTED
+      // Non-chunk based simulation
+      if (sim_precision_ == Precision::Double) {
+        // Double-precision Statevector simulation
+        return run_batched_circuits_helper<
+            Statevector::State<QV::QubitVectorThrust<double>>>(
+            circs, noise, config, method, result);
+      } else {
+        // Single-precision Statevector simulation
+        return run_batched_circuits_helper<
+            Statevector::State<QV::QubitVectorThrust<float>>>(
+            circs, noise, config, method, result);
+      }
+#endif
+    }
+  }
+  case Method::density_matrix: {
+    if (sim_device_ == Device::CPU) {
+      if (sim_precision_ == Precision::Double) {
+        // Double-precision density matrix simulation
+        return run_batched_circuits_helper<
+            DensityMatrix::State<QV::DensityMatrix<double>>>(
+            circs, noise, config, method, result);
+      } else {
+        // Single-precision density matrix simulation
+        return run_batched_circuits_helper<
+            DensityMatrix::State<QV::DensityMatrix<float>>>(
+            circs, noise, config, method, result);
+      }
+    } else {
+#ifdef AER_THRUST_SUPPORTED
+      if (sim_precision_ == Precision::Double) {
+        // Double-precision density matrix simulation
+        return run_batched_circuits_helper<
+            DensityMatrix::State<QV::DensityMatrixThrust<double>>>(
+            circs, noise, config, method, result);
+      } else {
+        // Single-precision density matrix simulation
+        return run_batched_circuits_helper<
+            DensityMatrix::State<QV::DensityMatrixThrust<float>>>(
+            circs, noise, config, method, result);
+      }
+#endif
+    }
+  }
+  case Method::unitary: {
+    if (sim_device_ == Device::CPU) {
+      if (sim_precision_ == Precision::Double) {
+        // Double-precision unitary simulation
+        return run_batched_circuits_helper<
+            QubitUnitary::State<QV::UnitaryMatrix<double>>>(
+            circs, noise, config, method, result);
+      } else {
+        // Single-precision unitary simulation
+        return run_batched_circuits_helper<
+            QubitUnitary::State<QV::UnitaryMatrix<float>>>(
+            circs, noise, config, method, result);
+      }
+    } else {
+#ifdef AER_THRUST_SUPPORTED
+      if (sim_precision_ == Precision::Double) {
+        // Double-precision unitary simulation
+        return run_batched_circuits_helper<
+            QubitUnitary::State<QV::UnitaryMatrixThrust<double>>>(
+            circs, noise, config, method, result);
+      } else {
+        // Single-precision unitary simulation
+        return run_batched_circuits_helper<
+            QubitUnitary::State<QV::UnitaryMatrixThrust<float>>>(
+            circs, noise, config, method, result);
+      }
+#endif
+    }
+  }
+  case Method::superop: {
+    if (sim_precision_ == Precision::Double) {
+      return run_batched_circuits_helper<
+          QubitSuperoperator::State<QV::Superoperator<double>>>(
+          circs, noise, config, method, result);
+    } else {
+      return run_batched_circuits_helper<
+          QubitSuperoperator::State<QV::Superoperator<float>>>(
+          circs, noise, config, method, result);
+    }
+  }
+  case Method::stabilizer:
+    // Stabilizer simulation
+    // TODO: Stabilizer doesn't yet support custom state initialization
+    return run_batched_circuits_helper<Stabilizer::State>(
+        circs, noise, config, method, result);
+  case Method::extended_stabilizer:
+    return run_batched_circuits_helper<ExtendedStabilizer::State>(
+        circs, noise, config, method, result);
+  case Method::matrix_product_state:
+    return run_batched_circuits_helper<MatrixProductState::State>(
+        circs, noise, config, method, result);
   default:
     throw std::runtime_error("Controller:Invalid simulation method");
   }
@@ -1333,152 +1487,124 @@ Transpile::Fusion Controller::transpile_fusion(Method method,
 //-------------------------------------------------------------------------
 
 template <class State_t>
-void Controller::run_circuits_helper(const std::vector<Circuit> &circs,
-                                    std::vector<Noise::NoiseModel> &noises,
-                                    const json_t &config,
-                                    const Method method,
+void Controller::run_circuit_helper(const Circuit &circ,
+                                    const Noise::NoiseModel &noise,
+                                    const json_t &config,uint_t shots,
+                                    uint_t rng_seed, const Method method,
                                     bool cache_blocking,
-                                    Result &result) 
+                                    ExperimentResult &result) const
 {
-  if(sim_device_ == Device::GPU && !cache_blocking && circs.size() > num_gpus_ && max_batched_states_ > 1 && max_batched_states_ >= num_gpus_ && (method == Method::statevector || method == Method::density_matrix)){
-    bool sampling_enable = true;
-    for (int i_circ = 0; i_circ < circs.size(); ++i_circ) {
-      if(!check_measure_sampling_opt(circs[i_circ], method)){
-        sampling_enable = false;
-        break;
-      }
+  // Start individual circuit timer
+  auto timer_start = myclock_t::now(); // state circuit timer
+
+  // Initialize circuit json return
+  result.legacy_data.set_config(config);
+
+  // Execute in try block so we can catch errors and return the error message
+  // for individual circuit failures.
+  try {
+    // Rng engine (this one is used to add noise on circuit)
+    RngEngine rng;
+    rng.set_seed(rng_seed);
+
+    // Output data container
+    result.set_config(config);
+    result.metadata.add(method_names_.at(method), "method");
+    if (method == Method::statevector || method == Method::density_matrix ||
+        method == Method::unitary) {
+      result.metadata.add(sim_device_name_, "device");
+    } else {
+      result.metadata.add("CPU", "device");
     }
-    if(sampling_enable){
-      //multiple-circuits batched optimization on GPU
-      run_batched_circuits_helper<State_t>(circs,noises,config,method,result);
-      return;
+
+    // Circuit qubit metadata
+    result.metadata.add(circ.num_qubits, "num_qubits");
+    result.metadata.add(circ.num_memory, "num_clbits");
+    result.metadata.add(circ.qubits(), "active_input_qubits");
+    result.metadata.add(circ.qubit_map(), "input_qubit_map");
+    result.metadata.add(circ.remapped_qubits, "remapped_qubits");
+
+    // Add measure sampling to metadata
+    // Note: this will set to `true` if sampling is enabled for the circuit
+    result.metadata.add(false, "measure_sampling");
+    // Choose execution method based on noise and method
+    Circuit opt_circ;
+
+    bool noise_sampling = false;
+    // Ideal circuit
+    if (noise.is_ideal()) {
+      opt_circ = circ;
+      result.metadata.add("ideal", "noise");
     }
-  }
-
-#pragma omp parallel for if (parallel_experiments_ > 1 && !cache_blocking) num_threads(parallel_experiments_)
-  for (int i_circ = 0; i_circ < circs.size(); ++i_circ) {
-    // Start individual circuit timer
-    auto timer_start = myclock_t::now(); // state circuit timer
-
-    Noise::NoiseModel noise = noises[i_circ];
-
-    // Initialize circuit json return
-    result.results[i_circ].legacy_data.set_config(config);
-
-    // Execute in try block so we can catch errors and return the error message
-    // for individual circuit failures.
-    try {
-      //---------------------------
-      //run single circuit here
-      //---------------------------
-      // set parallelization for this circuit
-      if(cache_blocking){
-        parallel_shots_ = 1;
-        parallel_state_update_ =
-            std::max<int>({1, max_parallel_threads_});
-      }
-      else if (!explicit_parallelization_) {
-        set_parallelization_circuit_method(circs[i_circ], noises[i_circ]);
-      }
-
-      int shots = circs[i_circ].shots;
-
-      // Rng engine (this one is used to add noise on circuit)
-      RngEngine rng;
-      rng.set_seed(circs[i_circ].seed);
-
-      // Output data container
-      result.results[i_circ].set_config(config);
-      result.results[i_circ].metadata.add(method_names_.at(method), "method");
-      if (method == Method::statevector || method == Method::density_matrix ||
-          method == Method::unitary) {
-        result.results[i_circ].metadata.add(sim_device_name_, "device");
-      } else {
-        result.results[i_circ].metadata.add("CPU", "device");
-      }
-
-      // Add measure sampling to metadata
-      // Note: this will set to `true` if sampling is enabled for the circuit
-      result.results[i_circ].metadata.add(false, "measure_sampling");
-      // Choose execution method based on noise and method
-      Circuit opt_circ;
-
-      bool noise_sampling = false;
-      // Ideal circuit
-      if (noise.is_ideal()) {
-        opt_circ = circs[i_circ];
-      }
-      // Readout error only
-      else if (noise.has_quantum_errors() == false) {
-        opt_circ = noise.sample_noise(circs[i_circ], rng);
-      }
-      // Superop noise sampling
-      else if (method == Method::density_matrix || method == Method::superop) {
-        // Sample noise using SuperOp method
-        auto noise_superop = noise;
-        noise_superop.activate_superop_method();
-        opt_circ = noise_superop.sample_noise(circs[i_circ], rng);
-      }
-      // Kraus noise sampling
-      else if (noise.opset().contains(Operations::OpType::kraus) ||
-               noise.opset().contains(Operations::OpType::superop)) {
-        auto noise_kraus = noises[i_circ];
-        noise_kraus.activate_kraus_method();
-        opt_circ = noise_kraus.sample_noise(circs[i_circ], rng);
-      }
-      // General circuit noise sampling
-      else {
-        if(sim_device_ == Device::GPU && max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
-          //for GPU noise sampling is done at runtime
-          opt_circ = noises[i_circ].sample_noise(circs[i_circ], rng, true);
-          opt_circ.can_sample = false;
-        }
-        else{
-          opt_circ = circs[i_circ];
-          noise_sampling = true;
-        }
-      }
-
-      if(noise_sampling){
-        run_circuit_with_sampled_noise<State_t>(opt_circ, noises[i_circ], config, shots, method,
-                                       cache_blocking, result.results[i_circ], circs[i_circ].seed);
+    // Readout error only
+    else if (noise.has_quantum_errors() == false) {
+      opt_circ = noise.sample_noise(circ, rng);
+      result.metadata.add("readout", "noise");
+    }
+    // Superop noise sampling
+    else if (method == Method::density_matrix || method == Method::superop) {
+      // Sample noise using SuperOp method
+      opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::superop);
+      result.metadata.add("superop", "noise");
+    }
+    // Kraus noise sampling
+    else if (noise.opset().contains(Operations::OpType::kraus) ||
+             noise.opset().contains(Operations::OpType::superop)) {
+      opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::kraus);
+      result.metadata.add("kraus", "noise");
+    }
+    // General circuit noise sampling
+    else {
+      if(sim_device_ == Device::GPU && max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
+        //for GPU noise sampling is done at runtime
+        opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::circuit, true);
+        opt_circ.can_sample = false;
       }
       else{
-        // Run multishot simulation without noise sampling
-        run_circuit_without_sampled_noise<State_t>(opt_circ, noises[i_circ], config, shots, 
-                                          method, cache_blocking, result.results[i_circ], circs[i_circ].seed);
+        noise_sampling = true;
       }
-
-      // Report success
-      result.results[i_circ].status = ExperimentResult::Status::completed;
-
-      // Pass through circuit header and add metadata
-      result.results[i_circ].header = circs[i_circ].header;
-      result.results[i_circ].shots = shots;
-      result.results[i_circ].seed = circs[i_circ].seed;
-      result.results[i_circ].metadata.add(parallel_shots_, "parallel_shots");
-      result.results[i_circ].metadata.add(parallel_state_update_, "parallel_state_update");
-
-      // Add timer data
-      auto timer_stop = myclock_t::now(); // stop timer
-      double time_taken =
-          std::chrono::duration<double>(timer_stop - timer_start).count();
-      result.results[i_circ].time_taken = time_taken;
+      result.metadata.add("circuit", "noise");
     }
-    // If an exception occurs during execution, catch it and pass it to the output
-    catch (std::exception &e) {
-      result.results[i_circ].status = ExperimentResult::Status::error;
-      result.results[i_circ].message = e.what();
+
+    if(noise_sampling){
+      run_circuit_with_sampled_noise<State_t>(circ, noise, config, shots, method,
+                                     cache_blocking, result, rng_seed);
     }
+    else{
+      // Run multishot simulation without noise sampling
+      run_circuit_without_sampled_noise<State_t>(opt_circ, noise, config, shots, 
+                                        method, cache_blocking, result, rng_seed);
+    }
+
+    // Report success
+    result.status = ExperimentResult::Status::completed;
+
+    // Pass through circuit header and add metadata
+    result.header = circ.header;
+    result.shots = shots;
+    result.seed = circ.seed;
+    result.metadata.add(parallel_shots_, "parallel_shots");
+    result.metadata.add(parallel_state_update_, "parallel_state_update");
+
+    // Add timer data
+    auto timer_stop = myclock_t::now(); // stop timer
+    double time_taken =
+        std::chrono::duration<double>(timer_stop - timer_start).count();
+    result.time_taken = time_taken;
+  }
+  // If an exception occurs during execution, catch it and pass it to the output
+  catch (std::exception &e) {
+    result.status = ExperimentResult::Status::error;
+    result.message = e.what();
   }
 }
 
 template <class State_t>
 void Controller::run_batched_circuits_helper(const std::vector<Circuit> &circs,
-                                    std::vector<Noise::NoiseModel> &noises,
+                                    const Noise::NoiseModel &noise,
                                     const json_t &config,
                                     const Method method,
-                                    Result &result) 
+                                    Result &result) const
 {
   auto timer_start = myclock_t::now(); // state circuit timer
 
@@ -1499,6 +1625,13 @@ void Controller::run_batched_circuits_helper(const std::vector<Circuit> &circs,
     // Add measure sampling to metadata
     // Note: this will set to `true` if sampling is enabled for the circuit
     result.results[j].metadata.add(false, "measure_sampling");
+
+    // Circuit qubit metadata
+    result.results[j].metadata.add(circs[j].num_qubits, "num_qubits");
+    result.results[j].metadata.add(circs[j].num_memory, "num_clbits");
+    result.results[j].metadata.add(circs[j].qubits(), "active_input_qubits");
+    result.results[j].metadata.add(circs[j].qubit_map(), "input_qubit_map");
+    result.results[j].metadata.add(circs[j].remapped_qubits, "remapped_qubits");
   }
 
   // Execute in try block so we can catch errors and return the error message
@@ -1525,28 +1658,25 @@ void Controller::run_batched_circuits_helper(const std::vector<Circuit> &circs,
       Circuit circ;
 
       // Ideal circuit
-      if (noises[i_circ].is_ideal()) {
+      if (noise.is_ideal()) {
         circ = circs[i_circ];
+        result.results[i_circ].metadata.add("ideal", "noise");
       }
       // Readout error only
-      else if (noises[i_circ].has_quantum_errors() == false) {
-        circ = noises[i_circ].sample_noise(circs[i_circ], rng[i_circ]);
+      else if (noise.has_quantum_errors() == false) {
+        circ = noise.sample_noise(circs[i_circ], rng[i_circ]);
+        result.results[i_circ].metadata.add("readout", "noise");
       }
       // Superop noise sampling
       else if (method == Method::density_matrix || method == Method::superop) {
         // Sample noise using SuperOp method
-        auto noise_superop = noises[i_circ];
-        noise_superop.activate_superop_method();
-        circ = noise_superop.sample_noise(circs[i_circ], rng[i_circ]);
+        circ = noise.sample_noise(circs[i_circ], rng[i_circ], Noise::NoiseModel::Method::superop);
+        result.results[i_circ].metadata.add("superop", "noise");
       }
       else{
-        circ = circs[i_circ];
+        throw std::runtime_error("Controller : batched experiments with noise sampling is not supported");
       }
       Noise::NoiseModel dummy_noise;
-      Transpile::DelayMeasure measure_pass;
-      measure_pass.set_config(config);
-      measure_pass.optimize_circuit(circ, dummy_noise, state.opset(), result.results[i_circ]);
-
       auto fusion_pass = transpile_fusion(method, circ.opset(), config);
       fusion_pass.optimize_circuit(circ, dummy_noise, state.opset(), result.results[i_circ]);
 
@@ -1570,7 +1700,7 @@ void Controller::run_batched_circuits_helper(const std::vector<Circuit> &circs,
       shots[i_circ] = circs[i_circ].shots;
     }
 
-    states.apply_multi_ops(ops, shots, result.results, rng, noises, true);
+    states.apply_multi_ops(ops, shots, result.results, rng, noise, true);
 
     batched_measure_sampler(meas_roerror_ops,shots,states,result,rng);
 
@@ -1629,6 +1759,10 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
                                                    uint_t rng_seed) const 
 {
   State_t state;
+
+  // Validate gateset and memory requirements, raise exception if they're exceeded
+  validate_state(state, circ, noise, true);
+
   // Set state config
   state.set_config(config);
   state.set_parallelization(parallel_state_update_);
@@ -1642,7 +1776,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
   // Check if measure sampling supported
   const bool can_sample = check_measure_sampling_opt(circ, method);
-  
+
   // Cache blocking pass
   uint_t block_bits = 0;
   if (cache_blocking) {
@@ -1753,11 +1887,13 @@ void Controller::run_circuit_with_sampled_noise(
     // Transpilation for circuit noise method
     auto fusion_pass = transpile_fusion(method, circ.opset(), config);
     auto cache_block_pass = transpile_cache_blocking(method, circ, noise, config);
-    Transpile::DelayMeasure measure_pass;
-    measure_pass.set_config(config);
     Noise::NoiseModel dummy_noise;
 
     State_t state;
+
+    // Validate gateset and memory requirements, raise exception if they're exceeded
+    validate_state(state, circ, noise, true);
+
     // Set state config
     state.set_config(config);
     state.set_parallelization(parallel_state_update_);
@@ -1770,8 +1906,6 @@ void Controller::run_circuit_with_sampled_noise(
       // Sample noise using circuit method
       Circuit noise_circ = noise.sample_noise(circ, rng);
       noise_circ.shots = 1;
-      measure_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
-                                    par_results[i]);
       fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
                                    par_results[i]);
       uint_t block_bits = 0;
