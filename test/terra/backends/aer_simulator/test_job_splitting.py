@@ -19,8 +19,10 @@ from ddt import ddt, data
 from qiskit import transpile, assemble
 from qiskit.circuit.random import random_circuit
 from qiskit.providers.aer.jobs import split_qobj
-from test.terra.reference.ref_snapshot_expval import (
-    snapshot_expval_circuits, snapshot_expval_circuit_parameterized)
+from test.terra.reference.ref_save_expval import (
+    save_expval_circuits,
+    save_expval_circuit_parameterized,
+)
 
 from test.terra.backends.simulator_test_case import SimulatorTestCase
 
@@ -32,15 +34,15 @@ class TestJobSplitting(SimulatorTestCase):
     @staticmethod
     def parameterized_circuits():
         """Return ParameterizedQobj for settings."""
-        pcirc1, param1 = snapshot_expval_circuit_parameterized(single_shot=False,
-                                                               measure=True,
-                                                               snapshot=False)
-        circuits2to4 = snapshot_expval_circuits(pauli=True,
-                                                skip_measure=False,
-                                                single_shot=False)
-        pcirc2, param2 = snapshot_expval_circuit_parameterized(single_shot=False,
-                                                               measure=True,
-                                                               snapshot=False)
+        pcirc1, param1 = save_expval_circuit_parameterized(
+            pershot=False, measure=True, snapshot=False,
+        )
+        circuits2to4 = save_expval_circuits(
+            pauli=True, skip_measure=False, pershot=False,
+        )
+        pcirc2, param2 = save_expval_circuit_parameterized(
+            pershot=False, measure=True, snapshot=False,
+        )
         circuits = [pcirc1] + circuits2to4 + [pcirc2]
         params = [param1, [], [], [], param2]
         return circuits, params

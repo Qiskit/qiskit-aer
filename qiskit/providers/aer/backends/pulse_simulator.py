@@ -185,6 +185,7 @@ class PulseSimulator(AerBackend):
             shots=1024,
             meas_level=None,
             meas_return=None,
+            meas_map=None,
             qubit_lo_freq=None,
             solver_options=None,
             subsystem_list=None,
@@ -195,14 +196,13 @@ class PulseSimulator(AerBackend):
             noise_model=None,
             initial_state=None,
             executor=None,
+            memory_slots=1,
             max_job_size=None)
 
     # pylint: disable=arguments-differ, missing-param-doc
     @deprecate_arguments({'qobj': 'schedules'})
     def run(self,
             schedules,
-            *args,
-            backend_options=None,  # DEPRECATED
             validate=True,
             **run_options):
         """Run a qobj on the backend.
@@ -210,8 +210,6 @@ class PulseSimulator(AerBackend):
         Args:
             schedules (Schedule or list): The pulse :class:`~qiskit.pulse.Schedule`
                 (or list of ``Schedule`` objects) to be executed.
-            backend_options (dict or None): DEPRECATED dictionary of backend options
-                                            for the execution (default: None).
             validate (bool): validate the Qobj before running (default: True).
             run_options (kwargs): additional run time backend options.
 
@@ -222,45 +220,18 @@ class PulseSimulator(AerBackend):
             * kwarg options specified in ``run_options`` will override options
               of the same kwarg specified in the simulator options, the
               ``backend_options`` and the ``Qobj.config``.
-
-            * The entries in the ``backend_options`` will be combined with
-              the ``Qobj.config`` dictionary with the values of entries in
-              ``backend_options`` taking precedence. This kwarg is deprecated
-              and direct kwarg's should be used for options to pass them to
-              ``run_options``.
         """
-        qobj = schedules
-        if args:
-            if isinstance(args[0], PulseSystemModel):
-                warn(
-                    'Passing `system_model` as a positional argument to'
-                    ' `PulseSimulator.run` has been deprecated as of'
-                    ' qiskit-aer 0.7.0 and will be removed no earlier than 3'
-                    ' months from that release date. Pass `system_model` as a kwarg'
-                    ' `system_model=model` instead.',
-                    DeprecationWarning,
-                    stacklevel=3)
-                run_options['system_model'] = args[0]
-                if len(args) > 1:
-                    backend_options = args[1]
-                if len(args) > 2:
-                    validate = args[3]
-            elif isinstance(args[0], bool):
-                validate = args[0]
-                if len(args) > 1:
-                    backend_options = args[1]
-        if isinstance(qobj, list):
-            new_qobj = []
-            for circuit in qobj:
-                if isinstance(circuit, QuantumCircuit):
-                    new_qobj.append(schedule(circuit, self))
+        if isinstance(schedules, list):
+            new_schedules = []
+            for i in schedules:
+                if isinstance(i, QuantumCircuit):
+                    new_schedules.append(schedule(i, self))
                 else:
-                    new_qobj.append(circuit)
-            qobj = new_qobj
-        elif isinstance(qobj, QuantumCircuit):
-            qobj = schedule(qobj, self)
-        return super().run(qobj, backend_options=backend_options, validate=validate,
-                           **run_options)
+                    new_schedules.append(i)
+            schedules = new_schedules
+        elif isinstance(schedules, QuantumCircuit):
+            schedules = schedule(schedules, self)
+        return super().run(schedules, validate=validate, **run_options)
 
     @property
     def _system_model(self):
@@ -327,6 +298,9 @@ class PulseSimulator(AerBackend):
             # Set config dt and u_channel_lo to system model values
             self._set_system_model(value)
             return
+
+        if key == 'qubit_lo_freq':
+            value = [freq * 1e-9 for freq in value]
 
         # Set all other options from AerBackend
         super().set_option(key, value)

@@ -38,15 +38,15 @@ class SnapshotStabilizer(Snapshot):
             instruction as a barrier and should be set to the number of
             qubits in the circuit.
 
-        .. note::
+        .. deprecated:: 0.9.0
 
-            This instruction will be deprecated after the qiskit-aer 0.8 release.
-            It has been superseded by the
+            This instruction has been deprecated and will be removed no earlier
+            than 3 months from the 0.9.0 release date. It has been superseded by the
             :class:`qiskit.providers.aer.library.SaveStabilizer` instruction.
         """
         warn('The `SnapshotStabilizer` instruction will be deprecated in the'
              ' future. It has been superseded by the `save_stabilizer`'
-             ' instructions.', PendingDeprecationWarning)
+             ' instructions.', DeprecationWarning, stacklevel=2)
         super().__init__(label, snapshot_type='stabilizer', num_qubits=num_qubits)
 
 
@@ -68,16 +68,17 @@ def snapshot_stabilizer(self, label):
         instruction as a barrier and should be set to the number of
         qubits in the circuit.
 
-    .. note::
+    .. deprecated:: 0.9.0
 
-        This method will be deprecated after the qiskit-aer 0.8 release.
-        It has been superseded by the
+        This instruction has been deprecated and will be removed no earlier
+        than 3 months from the 0.9.0 release date. It has been superseded by the
         :func:`qiskit.providers.aer.library.save_stabilizer` circuit
         method.
     """
-    warn('`The `save_stabilizer` circuit method will be deprecated in the'
-         ' future. It has been superseded by the `save_stabilizer`'
-         ' circuit method.', PendingDeprecationWarning)
+    warn('The `snapshot_stabilizer` circuit method has been deprecated as of'
+         ' qiskit-aer 0.9 and will be removed in a future release.'
+         ' It has been superseded by the `save_stabilizer`'
+         ' circuit method.', DeprecationWarning, stacklevel=2)
     snapshot_register = Snapshot.define_snapshot_register(self)
 
     return self.append(

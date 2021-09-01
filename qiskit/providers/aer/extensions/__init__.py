@@ -20,9 +20,10 @@ Circuit Extensions (:mod:`qiskit.providers.aer.extensions`)
 Snapshots
 =========
 
-.. note:
+.. deprecated:: 0.9.0
 
-    Snapshot extensions will be deprecated after qiskit-aer 0.8 release.
+    Adding nonlocal noise to a noise model is deprecated as of qiskit-aer
+    0.9.0 and will be removed no earlier than 3 months from that release date.
     They have been superceded by the save instructions in the
     :mod:`qiskit.providers.aer.library` module.
 

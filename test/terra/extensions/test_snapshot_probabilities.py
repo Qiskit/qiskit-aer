@@ -12,7 +12,7 @@
 
 
 import unittest
-
+from warnings import filterwarnings
 from qiskit import QuantumCircuit, assemble
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.providers.aer.extensions.snapshot_probabilities import SnapshotProbabilities
@@ -22,6 +22,14 @@ from ..common import QiskitAerTestCase
 
 class TestSnapshotProbabilitiesExtension(QiskitAerTestCase):
     """SnapshotProbabilities extension tests"""
+
+    def setUpClass(cls):
+        super().setUpClass()
+        filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            module=".*snapshot_probabilities",
+        )
 
     def snapshot_circuit_instr(self, circ_qubits, label, qubits, variance=False):
         """Return QobjInstruction for circuit monkey patch method."""

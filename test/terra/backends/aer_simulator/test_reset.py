@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-QasmSimulator Integration Tests
+AerSimulator Integration Tests
 """
 from ddt import ddt
 from test.terra.reference import ref_reset
@@ -31,7 +31,7 @@ class TestReset(SimulatorTestCase):
     # ---------------------------------------------------------------------
     @supported_methods(ALL_METHODS)
     def test_reset_deterministic(self, method, device):
-        """Test QasmSimulator reset with for circuits with deterministic counts"""
+        """Test AerSimulator reset with for circuits with deterministic counts"""
         backend = self.backend(method=method, device=device)
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
@@ -44,7 +44,7 @@ class TestReset(SimulatorTestCase):
 
     @supported_methods(ALL_METHODS)
     def test_reset_nondeterministic(self, method, device):
-        """Test QasmSimulator reset with for circuits with non-deterministic counts"""
+        """Test AerSimulator reset with for circuits with non-deterministic counts"""
         backend = self.backend(method=method, device=device)
         # For statevector output we can combine deterministic and non-deterministic
         # count output circuits
@@ -80,7 +80,7 @@ class TestReset(SimulatorTestCase):
 
     @supported_methods(ALL_METHODS)
     def test_reset_moving_qubits(self, method, device):
-        """Test QasmSimulator reset with for circuits where qubits have moved"""
+        """Test AerSimulator reset with for circuits where qubits have moved"""
         backend = self.backend(method=method, device=device)
         # count output circuits
         shots = 1000
