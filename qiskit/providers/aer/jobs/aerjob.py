@@ -32,7 +32,7 @@ class AerJob(Job):
         Args:
             backend(AerBackend): the backend used to run the job.
             job_id(str): a unique id in the context of the backend used to run the job.
-            fn(function): callabled function.
+            fn(function): callable function.
             qobj(QasmQobj): qobj to execute
             executor(ThreadPoolExecutor or dask.distributed.client):
                 The executor to be used to submit the job.

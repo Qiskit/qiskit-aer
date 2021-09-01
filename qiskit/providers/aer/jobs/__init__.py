@@ -25,7 +25,7 @@ Running with Threadpool and DASK
 
 Qiskit Aer runs simulation jobs on a single-worker Python multiprocessing ThreadPool executor
 so that all parallelization is handled by low-level OpenMP and CUDA code.
-However to customize job-level parallel execution of multiple circuits a user can specif
+However to customize job-level parallel execution of multiple circuits a user can specify
 a custom multiprocessing executor and control the splitting of circuits using
 the ``executor`` and ``max_job_size`` backend options.
 For large scale job parallelization on HPC clusters Qiskit Aer executors support
@@ -35,7 +35,7 @@ the distributed Clients from the `DASK <http://dask.org>`_.
 Installation of DASK packages with Aer
 ---------------------------------------
 If you want to install dask client at the same time as Qiskit Aer,
-please add `dask` option as follows.
+please add the ``dask`` extra as follows.
 This option installs Aer, dask, and  distributed packages.
 
 .. code-block:: sh
@@ -46,14 +46,14 @@ Usage of executor
 -----------------
 To use Threadpool or DASK as an executor, you need to set
 ``executor`` and ``max_job_size`` by ``set_options`` function.
-If both ``executor`` (default None) and `max_job_size` (default None) are set,
+If both ``executor`` (default None) and ``max_job_size`` (default None) are set,
 Aer splits the multiple circuits to some chunk of circuits and submits them to the executor.
 ``max_job_size`` can control the number of splitting circuits.
 When ``max_job_size`` is set to 1, multiple circuits are split into
 one circuit and distributed to the executor.
-If user executes 60 circuits with the executor and `max_job_size=1`,
-Aer splits it to 1 circuit x 60 jobs.
-If 60 circuits and `max_job_size=2`, Aer splits it to 2 circuits x 30 jobs.
+If a user executes 60 circuits with the executor and ``max_job_size=1``,
+Aer splits it as 60 jobs each of 1 circuit.
+If there are 60 circuits and ``max_job_size=2``, Aer splits it as 30 jobs, each with 2 circuits.
 
 **Example: Threadpool execution**
 
@@ -90,8 +90,8 @@ If 60 circuits and `max_job_size=2`, Aer splits it to 2 circuits x 30 jobs.
 
 **Example: Dask execution**
 
-Dask client creates multi-processes so you need to
-guard it by ``if __name__ == "__main__":`` block.
+The Dask client uses ``multiprocessing`` so you need to
+guard it by an ``if __name__ == "__main__":`` block.
 
 .. code-block:: python
 
@@ -132,7 +132,7 @@ guard it by ``if __name__ == "__main__":`` block.
 Classes
 =======
 
-The following are the classes used to management job submitting.
+The following are the classes used to manage job submissions.
 
 .. autosummary::
     :toctree: ../stubs/

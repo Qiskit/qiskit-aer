@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class AerJobSet(Job):
-    """A set of :class:`AerJob` class for Qiskit Aer simulators.
+    """A set of :class:`~AerJob` classes for Qiskit Aer simulators.
 
     An instance of this class is returned when you submit experiments with
     executor option.  It provides methods that allow you to interact
@@ -52,7 +52,7 @@ class AerJobSet(Job):
         Args:
             backend(Aerbackend): Aerbackend.
             job_id(int): Job Id.
-            fn(function): Callabled function.
+            fn(function): Callable function.
             experiments(List[QasmQobj]): List[QasmQobjs] to execute.
             executor(ThreadPoolExecutor or dask.distributed.client):
                 The executor to be used to submit the job.
