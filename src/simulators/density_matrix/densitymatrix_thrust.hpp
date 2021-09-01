@@ -313,10 +313,10 @@ public:
     t2 = m0 * q2 + m2 * q3;
     t3 = m1 * q2 + m3 * q3;
 
-    vec0[i0] = thrust::conj(m0) * t0 + thrust::conj(m2) * q2;
-    vec2[i0] = thrust::conj(m1) * t0 + thrust::conj(m3) * q2;
-    vec1[i0] = thrust::conj(m0) * t1 + thrust::conj(m2) * q3;
-    vec3[i0] = thrust::conj(m1) * t1 + thrust::conj(m3) * q3;
+    vec0[i0] = thrust::conj(m0) * t0 + thrust::conj(m2) * t2;
+    vec2[i0] = thrust::conj(m1) * t0 + thrust::conj(m3) * t2;
+    vec1[i0] = thrust::conj(m0) * t1 + thrust::conj(m2) * t3;
+    vec3[i0] = thrust::conj(m1) * t1 + thrust::conj(m3) * t3;
   }
 
   const char* name(void)
@@ -353,7 +353,7 @@ void DensityMatrixThrust<data_t>::apply_unitary_matrix(const reg_t &qubits,
   }
 
 #ifdef AER_DEBUG
-	BaseVector::DebugMsg(" density::apply_unitary_matrix",qubits);
+  BaseVector::DebugMsg(" density::apply_unitary_matrix",qubits);
   BaseVector::DebugDump();
 #endif
 }
@@ -1533,11 +1533,16 @@ std::vector<double> DensityMatrixThrust<data_t>::probabilities(const reg_t &qubi
 template <typename data_t>
 reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnds) const 
 {
-  if(((BaseVector::multi_chunk_distribution_ && BaseVector::chunk_.device() >= 0) || BaseVector::enable_batch_) && BaseVector::chunk_.pos() != 0)
-    return reg_t();   //first chunk execute all in batch
-
+  uint_t count = 1;
+  if(BaseVector::multi_chunk_distribution_){
+    //each chunk calculates
+  }
+  else if(BaseVector::enable_batch_ ){
+    if(BaseVector::chunk_.pos() != 0)
+      return reg_t();   //first chunk execute all in batch
+    count = BaseVector::chunk_.container()->num_chunks();
+  }
   uint_t nrows = BaseMatrix::num_rows();
-  uint_t count = BaseVector::chunk_.container()->num_chunks();
 
 #ifdef AER_DEBUG
   reg_t samples;

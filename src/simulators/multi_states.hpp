@@ -380,20 +380,11 @@ States<state_t>::States()
   num_local_states_ = 0;
 
   gpu_ = false;
-
-#ifdef AER_MPI
-  distributed_comm_ = MPI_COMM_WORLD;
-#endif
 }
 
 template <class state_t>
 States<state_t>::~States(void)
 {
-#ifdef AER_MPI
-  if(distributed_comm_ != MPI_COMM_WORLD){
-    MPI_Comm_free(&distributed_comm_);
-  }
-#endif
 }
 
 //=========================================================================
@@ -427,15 +418,6 @@ void States<state_t>::set_distribution(uint_t nprocs)
   distributed_procs_ = nprocs;
   distributed_rank_ = myrank_ % nprocs;
   distributed_group_ = myrank_ / nprocs;
-
-#ifdef AER_MPI
-  if(nprocs != nprocs_){
-    MPI_Comm_split(MPI_COMM_WORLD,(int)distributed_group_,(int)distributed_rank_,&distributed_comm_);
-  }
-  else{
-    distributed_comm_ = MPI_COMM_WORLD;
-  }
-#endif
 
 }
 

@@ -285,7 +285,7 @@ std::complex<double> UnitaryMatrixThrust<data_t>::trace() const
 {
   thrust::complex<double> sum;
 
-  if((BaseVector::multi_chunk_distribution_ && BaseVector::chunk_.device() >= 0) || BaseVector::enable_batch_){
+  if(!BaseVector::multi_chunk_distribution_ && BaseVector::enable_batch_){
     if(BaseVector::chunk_.pos() != 0)
       return 0.0;   //first chunk execute all in batch
 

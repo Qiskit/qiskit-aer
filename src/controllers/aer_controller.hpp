@@ -851,6 +851,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     // get max qubits for this process (to allocate qubit register at once)
     int i_max_circ = 0;
     max_qubits_ = 0;
+
     for (size_t j = 0; j < circuits.size(); j++){
       if (circuits[j].num_qubits > max_qubits_) {
         max_qubits_ = circuits[j].num_qubits;
@@ -876,11 +877,16 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     else{
       //set max batched states
       uint_t max_required = required_memory_mb(circuits[i_max_circ], noise_model, methods[i_max_circ]);
-      if(sim_device_ == Device::GPU){
-        max_batched_states_ = ((max_gpu_memory_mb_/num_gpus_*8/10) / max_required)*num_gpus_;
+      if(max_required == 0){
+        max_batched_states_ = 1;
       }
       else{
-        max_batched_states_ = (max_memory_mb_*8/10) / max_required;
+        if(sim_device_ == Device::GPU){
+          max_batched_states_ = ((max_gpu_memory_mb_/num_gpus_*8/10) / max_required)*num_gpus_;
+        }
+        else{
+          max_batched_states_ = (max_memory_mb_*8/10) / max_required;
+        }
       }
     }
 
