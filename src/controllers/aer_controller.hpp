@@ -846,31 +846,42 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 
   // Execute each circuit in a try block
   try {
-    std::vector<bool> multi_chunk;
+    std::vector<bool> multi_chunk(circuits.size());
     bool multi_chunk_req = false;
     // get max qubits for this process (to allocate qubit register at once)
     int i_max_circ = 0;
     max_qubits_ = 0;
-    for (size_t j = 0; j < circuits.size(); j++) {
+    for (size_t j = 0; j < circuits.size(); j++){
       if (circuits[j].num_qubits > max_qubits_) {
         max_qubits_ = circuits[j].num_qubits;
         i_max_circ = j;
       }
       if(methods[j] != methods[0])
         one_method = false;
-      multi_chunk[j] = multiple_chunk_required(circuits[j], noise_model, methods[j]);
-      if(multi_chunk[j])
-        multi_chunk_req = true;
+      if(circuits[j].num_qubits > 0){
+        multi_chunk[j] = multiple_chunk_required(circuits[j], noise_model, methods[j]);
+        if(multi_chunk[j])
+          multi_chunk_req = true;
+      }
+      else{
+        multi_chunk[j] = false;
+      }
     }
     num_process_per_experiment_ = num_processes_;
 
-    //set max batched states
-    uint_t max_required = required_memory_mb(circuits[i_max_circ], noise_model, methods[i_max_circ]);
-    if(sim_device_ == Device::GPU){
-      max_batched_states_ = ((max_gpu_memory_mb_/num_gpus_*8/10) / max_required)*num_gpus_;
+    if(max_qubits_ == 0){
+      max_qubits_ = 1;
+      max_batched_states_ = 1;
     }
     else{
-      max_batched_states_ = (max_memory_mb_*8/10) / max_required;
+      //set max batched states
+      uint_t max_required = required_memory_mb(circuits[i_max_circ], noise_model, methods[i_max_circ]);
+      if(sim_device_ == Device::GPU){
+        max_batched_states_ = ((max_gpu_memory_mb_/num_gpus_*8/10) / max_required)*num_gpus_;
+      }
+      else{
+        max_batched_states_ = (max_memory_mb_*8/10) / max_required;
+      }
     }
 
     if (!explicit_parallelization_) {
@@ -1527,6 +1538,7 @@ void Controller::run_circuit_helper(const Circuit &circ,
     // Add measure sampling to metadata
     // Note: this will set to `true` if sampling is enabled for the circuit
     result.metadata.add(false, "measure_sampling");
+
     // Choose execution method based on noise and method
     Circuit opt_circ;
 
