@@ -169,6 +169,7 @@ protected:
   // Parallel execution of a circuit
   // This function manages parallel shot configuration and internally calls
   // the `run_circuit` method for each shot thread
+  template <class config_t>
   void execute_circuit(Circuit &circ, const Noise::NoiseModel &noise,
                        const Method method,
                        const config_t &config, ExperimentResult &result);
@@ -178,6 +179,7 @@ protected:
   // the required number of shots.
   template <class config_t>
   void run_circuit(const Circuit &circ, const Noise::NoiseModel &noise,
+                   const Method method,
                    const config_t &config, uint_t shots, uint_t rng_seed,
                    ExperimentResult &result) const;
 
@@ -383,7 +385,6 @@ protected:
 //-------------------------------------------------------------------------
 
 template <class config_t>
-void Controller::set_config(const config_t &config) {
 void Controller::set_config(const config_t &config) {
   // Load validation threshold
   Parser<config_t>::get_value(enable_truncation_, "enable_truncation", config);

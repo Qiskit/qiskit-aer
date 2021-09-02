@@ -64,7 +64,8 @@ PYBIND11_MODULE(controller_wrappers, m) {
                                      ) {
       for (auto &circuit: circuits)
         circuit.shots = shots;
-      return AerToPy::to_python(controller.execute(circuits, AER::Noise::NoiseModel(), py_config));
+      auto noise_model = AER::Noise::NoiseModel(py_noise_model);
+      return AerToPy::to_python(controller.execute(circuits, noise_model, py_config));
     }, py::arg("circuits"), py::arg("shots") = 1024, py::arg("noise_model") = py::none(), py::arg("config") = py::none());
 
     py::enum_<Operations::OpType> optype(m, "OpType") ;

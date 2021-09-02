@@ -45,14 +45,9 @@ class TestControllerExecuteWrappers(QiskitAerTestCase):
         circuit.x(list(range(num_qubits)))
         circuit = transpile(circuit, backend)
         opts = {'max_parallel_threads': 1,
-<<<<<<< HEAD
-                'library_dir': LIBRARY_DIR}
-        backend._add_options_to_qobj_config(qobj, **opts, noise_model=noise_model)
-=======
                 'library_dir': LIBRARY_DIR,
                 'noise_model': noise_model}
         qobj = backend._assemble(circuit, **opts)
->>>>>>> upstream/main
         return qobj
 
     def _map_and_test(self, cfunc, qobj):

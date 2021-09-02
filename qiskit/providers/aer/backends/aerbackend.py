@@ -34,6 +34,7 @@ from qiskit.compiler import assemble
 
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..aererror import AerError
+from ..native import AerCircuit
 
 
 # Logger
@@ -179,10 +180,12 @@ class AerBackend(Backend, ABC):
             ValueError: if run is not implemented
         """
         if (isinstance(circuits, list) and
-                all(isinstance(circuit, QuantumCircuit) for circuit in circuits) and
+                all(isinstance(circuit, (QuantumCircuit, AerCircuit)) for circuit in circuits) and
                 not hasattr(self._options, 'executor')):
             return self._submit_circuits(circuits, validate, **run_options)
-
+        if (isinstance(circuits, (QuantumCircuit, AerCircuit)) and
+                not hasattr(self._options, 'executor')):
+            return self._submit_circuits(circuits, validate, **run_options)
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn(
                 'Using a qobj for run() is deprecated as of qiskit-aer 0.9.0'

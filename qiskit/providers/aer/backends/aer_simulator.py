@@ -651,22 +651,26 @@ class AerSimulator(AerBackend):
             dict: return a dictionary of results.
         """
         noise_model = None
+        noise_model_dict = None
         if config and hasattr(config, 'noise_model'):
             noise_model = config.noise_model
+            noise_model_dict = noise_model.to_dict()
             delattr(config, 'noise_model')
 
         if not self._controller_native:
             self._controller_native = AerController()
 
         if isinstance(circuits, AerCircuit):
-            result = self._controller_native.execute([circuits], config.shots, noise_model, config)
+            result = self._controller_native.execute([circuits], config.shots,
+                                                     noise_model_dict, config)
         elif isinstance(circuits, QuantumCircuit):
             result = self._controller_native.execute([gen_aer_circuit(circuits)], config.shots,
-                                                     noise_model, config)
+                                                     noise_model_dict, config)
         else:
             circuits = [circ if isinstance(circ, QuantumCircuit) else gen_aer_circuit(circ)
                         for circ in circuits]
-            result = self._controller_native.execute(circuits, config.shots, noise_model, config)
+            result = self._controller_native.execute(circuits, config.shots,
+                                                     noise_model_dict, config)
 
         if noise_model:
             setattr(config, 'noise_model', noise_model)
