@@ -577,43 +577,31 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B,
   // We first move the two qubits to be in consecutive positions
   // For performance reasons, we move the qubit with higher bond dimension
   // toward the qubit with lower bond dimension. For this purpose, 
-  // we define the bond dimension of qubit i as the size of lambda_reg_[i], 
-  // and the bond dimension of qubit j, as the size of lambda_reg_[j-1], 
-  // where i<j
-  // Case i:
-  //     If index_B > index_A, we either move the qubit at index_B to index_A+1
-  //                                 or  move the qubit at index_A to index_B-1
-  // Case ii:
-  //     If index_B < index_A, we either move the qubit at index_B to index_A-1, 
-  //                                  or move the qubit at index_A to index_B+1
-  //     Finally, A = min(index_A, index_B)
-
-  uint_t A = index_A;
+  // we define the bond dimension of low_qubit as the size of 
+  // lambda_reg_[low_qubit], and the bond dimension of high_qubit, as 
+  // the size of lambda_reg_[high_qubit -1], 
+  // where low_qubit < high_qubit
 
   bool swapped = false;
-  if (index_B > index_A+1) {
-    if (lambda_reg_[index_A] <= lambda_reg_[index_B-1]) {
-      change_position(index_B, index_A+1);  // Move B to be right after A
-    } else {
-      change_position(index_A, index_B-1);  // Move A to be right before B
-      index_A = index_B-1;
-    }
+  uint_t low_qubit=0, high_qubit=0;
 
-  } else if (index_A > 0 && index_B < index_A-1) {
-    if (lambda_reg_[index_B] <= lambda_reg_[index_A-1]) {
-      change_position(index_A, index_B+1);  // Move A to be right after B
-    }  else {
-      change_position(index_B, index_A-1);  //Move B to be right before A
-    }
-  }
-  // if B < A, swap A and B
-  if (index_B < index_A) {
-    A = index_B;
-    swapped = true;
+  if (index_B > index_A) {
+    low_qubit = index_A;
+    high_qubit = index_B;
   } else {
-    A = index_A;
+    low_qubit = index_B;
+    high_qubit = index_A;
+    swapped = true;
   }
-  common_apply_2_qubit_gate(A, gate_type, mat, swapped, is_diagonal);
+  if (lambda_reg_[low_qubit] <= lambda_reg_[high_qubit-1]) {
+    // Move high_qubit to be right after low_qubit
+      change_position(high_qubit, low_qubit+1);  
+    } else {
+    // Move low_qubit to be right before high_qubit
+      change_position(low_qubit, high_qubit-1);  
+      low_qubit = high_qubit-1;
+    }
+  common_apply_2_qubit_gate(low_qubit, gate_type, mat, swapped, is_diagonal);
 }
 
 void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A+1
