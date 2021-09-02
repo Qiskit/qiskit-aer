@@ -551,6 +551,13 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
     // and the qubit at index_B (or index_A+1) is moved one position 
     //to the left
     std::swap(qubit_ordering_.order_[index_A], qubit_ordering_.order_[index_B]);    
+    // For logging purposes:
+    if (MPS::get_mps_log_data()) {
+      if (swap_gate)
+	print_to_log_internal_swap(index_A, index_B);
+      else
+	print_to_log_internal_swap(index_B, index_A);
+    }
 
     // update qubit locations after all the swaps
     for (uint_t i=0; i<num_qubits_; i++)
@@ -558,6 +565,21 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
   }
 }
 
+void MPS::print_to_log_internal_swap(uint_t qubit0, uint_t qubit1) const {
+  print_to_log("internal_swap on qubits ", qubit0, ",", qubit1);
+  print_bond_dimensions();
+}
+
+void MPS::print_bond_dimensions() const {
+  print_to_log(", BD=[");
+  reg_t bd = get_bond_dimensions();
+  for (uint_t index=0; index<bd.size(); index++) {
+    print_to_log(bd[index]);
+      if (index < bd.size()-1)
+	print_to_log(" ");
+  }
+  print_to_log("],  ");
+}
 //-------------------------------------------------------------------------
 // MPS::apply_2_qubit_gate - outline of the algorithm
 // 1. Swap qubits A and B until they are consecutive

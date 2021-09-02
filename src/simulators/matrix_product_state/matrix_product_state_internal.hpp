@@ -320,6 +320,7 @@ public:
   void reset(const reg_t &qubits, RngEngine &rng);
 
   reg_t get_bond_dimensions() const;
+  void print_bond_dimensions() const;
   uint_t get_max_bond_dimensions() const;
 
   mps_container_t copy_to_mps_container();
@@ -346,6 +347,8 @@ private:
   // if swap_gate==false, this is an internal swap, necessary for
   // some internal algorithm
   void apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate=false);
+  void print_to_log_internal_swap(uint_t qubit0, uint_t qubit1) const;
+
   void apply_2_qubit_gate(uint_t index_A, uint_t index_B, 
 			  Gates gate_type, const cmatrix_t &mat,
 			  bool is_diagonal=false);
