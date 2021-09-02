@@ -33,8 +33,8 @@ class AerJob(Job):
             backend(AerBackend): the backend used to run the job.
             job_id(str): a unique id in the context of the backend used to run the job.
             fn(function): a callable function to execute qobj on backend.
-                :class:`AerBackend` sets :meth:`AerBackend._run()` function that takes
-                qobj(QasmQobj) and job_id(string) as an argument.
+                This should usually be a bound :meth:`AerBackend._run()` method,
+                with the signature `(qobj: QasmQobj, job_id: str) -> Result`.
             qobj(QasmQobj): qobj to execute
             executor(ThreadPoolExecutor or dask.distributed.client):
                 The executor to be used to submit the job.
