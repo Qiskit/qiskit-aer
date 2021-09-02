@@ -557,12 +557,16 @@ def make_kraus_instruction(mats, qubits):
 
 def qubits_from_mat(mat):
     """Return the number of qubits for a multi-qubit matrix."""
-    # TODO: where to be moved?
+    warnings.warn(
+        'qubits_from_mat has been deprecated as of qiskit-aer 0.10.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
+
     arr = np.array(mat)
     shape = arr.shape
     num_qubits = int(np.log2(shape[1]))
     if shape[1] != 2**num_qubits:
-        raise NoiseError("Input Kraus channel is not a multi-qubit channel.")
+        raise NoiseError("Input matrix is not a multi-qubit matrix.")
     return num_qubits
 
 

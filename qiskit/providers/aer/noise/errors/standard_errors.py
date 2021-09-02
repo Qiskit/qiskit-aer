@@ -105,10 +105,12 @@ def mixed_unitary_error(noise_ops, standard_gates=False):
     prob_identity = 0.
     instructions = []
     instructions_probs = []
-    num_qubits = qubits_from_mat(noise_ops[0][0])
+    num_qubits = int(np.log2(noise_ops[0][0].shape[0]))
+    if noise_ops[0][0].shape != (2**num_qubits, 2**num_qubits):
+        raise NoiseError("A unitary matrix in input noise_ops is not a multi-qubit matrix.")
     for unitary, prob in noise_ops:
         # Check unitary
-        if qubits_from_mat(unitary) != num_qubits:
+        if unitary.shape != noise_ops[0][0].shape:
             raise NoiseError("Input matrices different size.")
         if not is_unitary_matrix(unitary):
             raise NoiseError("Input matrix is not unitary.")
