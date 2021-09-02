@@ -37,7 +37,7 @@ DISABLE_WARNING_POP
 #include <sstream>
 #include <stdexcept>
 
-#define AER_DEFAULT_MATRIX_BITS   5
+#define AER_DEFAULT_MATRIX_BITS   6
 
 #define AER_CHUNK_BITS        21
 #define AER_MAX_BUFFERS       4
@@ -694,7 +694,7 @@ public:
   virtual bool update_condition(uint_t iChunk,uint_t count,bool async){return true;}
 
   //classical register to store measured bits/used for bfunc operations
-  virtual void allocate_cbit_register(uint_t num_reg){}
+  virtual void allocate_creg(uint_t num_mem,uint_t num_reg){}
   virtual int measured_cbit(uint_t iChunk,int qubit)
   {
     return 0;
@@ -826,6 +826,12 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
         dev_apply_function<data_t,Function><<<nb,nt,0,strm>>>(func);
       }
     }
+    cudaError_t err = cudaGetLastError();
+    if(err != cudaSuccess){
+      std::stringstream str;
+      str << "ChunkContainer::Execute in " << func.name() << " : " << cudaGetErrorName(err);
+      throw std::runtime_error(str.str());
+    }
   }
   else{ //if no stream returned, run on host
     uint_t size = count * func.size(chunk_bits_);
@@ -858,11 +864,6 @@ void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk
   func.set_params( param_pointer(iChunk) );
   func.set_batched_params(batched_param_pointer() );
   func.set_cregs_(creg_buffer(iChunk),num_creg_bits_);
-  if(iChunk == 0 && conditional_bit_ >= 0){
-    func.set_conditional(conditional_bit_);
-    if(!keep_conditional_bit_)
-      conditional_bit_ = -1;  //reset conditional
-  }
 
   auto ci = thrust::counting_iterator<uint_t>(0);
 
@@ -967,11 +968,6 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
   func.set_params( param_pointer(iChunk) );
   func.set_batched_params(batched_param_pointer() );
   func.set_cregs_(creg_buffer(iChunk),num_creg_bits_);
-  if(iChunk == 0 && conditional_bit_ >= 0){
-    func.set_conditional(conditional_bit_);
-    if(!keep_conditional_bit_)
-      conditional_bit_ = -1;  //reset conditional
-  }
 
   auto ci = thrust::counting_iterator<uint_t>(0);
 

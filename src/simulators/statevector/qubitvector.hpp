@@ -302,12 +302,10 @@ public:
   virtual void set_conditional(int_t reg){}
 
   //optimized 1 qubit measure (async)
-  virtual void apply_batched_measure(const uint_t qubit,std::vector<RngEngine> &rng,const reg_t& cbits){}
+  virtual void apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs){}
 
-  int measured_cbit(int qubit)
-  {
-    return -1;
-  }
+  virtual int measured_cregister(int qubit){return -1;}
+  virtual int measured_cmemory(int qubit){return -1;}
 
   //runtime noise sampling
   void apply_batched_pauli(reg_t& params)

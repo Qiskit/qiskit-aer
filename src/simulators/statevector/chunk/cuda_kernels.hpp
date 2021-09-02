@@ -64,9 +64,6 @@ void dev_apply_function_sum(double* pReduceBuffer, kernel_t func,uint_t buf_size
   iChunk = blockIdx.y + blockIdx.z*gridDim.y;
   i = threadIdx.x + blockIdx.x * blockDim.x + iChunk*gridDim.x*blockDim.x;
 
-  if(!func.check_conditional(i))
-    return;
-
   sum = func(i);
 
   //reduce in warp
@@ -106,9 +103,6 @@ void dev_apply_function_sum_with_cache(double* pReduceBuffer, kernel_t func,uint
   uint_t i,idx;
   uint_t j,iChunk,nw;
   double sum;
-
-  if(!func.check_conditional(i))
-    return;
 
   iChunk = blockIdx.y + blockIdx.z*gridDim.y;
   i = threadIdx.x + blockIdx.x * blockDim.x + iChunk*gridDim.x*blockDim.x;
@@ -207,9 +201,6 @@ void dev_apply_function_sum_complex(thrust::complex<double>* pReduceBuffer, kern
   thrust::complex<double> sum;
   double tr,ti;
   uint_t i,j,iChunk,nw;
-
-  if(!func.check_conditional(i))
-    return;
 
   iChunk = blockIdx.y + blockIdx.z*gridDim.y;
   i = threadIdx.x + blockIdx.x * blockDim.x + iChunk*gridDim.x*blockDim.x;

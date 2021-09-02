@@ -142,7 +142,7 @@ public:
   virtual reg_t sample_measure(const std::vector<double> &rnds) const override;
 
   //optimized 1 qubit measure (async)
-  virtual void apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng,const reg_t& cbits);
+  virtual void apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs);
 
   //-----------------------------------------------------------------------
   // Expectation Values
@@ -1688,7 +1688,7 @@ public:
 
 
 template <typename data_t>
-void DensityMatrixThrust<data_t>::apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng,const reg_t& cbits)
+void DensityMatrixThrust<data_t>::apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs)
 {
   uint_t i,count = 1;
   if(BaseVector::enable_batch_){
@@ -1712,6 +1712,10 @@ void DensityMatrixThrust<data_t>::apply_batched_measure(const uint_t qubit,std::
   BaseVector::apply_function_sum2(nullptr,density_probability_1qubit_func<data_t>(qubit,1ull << num_qubits()),true);
 
   //bits to be stored
+  reg_t cbits = cregs;
+  for(i=0;i<cmemory.size();i++){
+    cbits.push_back(cmemory[i] + BaseVector::num_creg_bits_);
+  }
   BaseVector::chunk_.StoreUintParams(cbits);
   BaseVector::apply_function(DensityResetAfterMeasure<data_t>(qubit,qubit+num_qubits(),BaseVector::chunk_.reduce_buffer(),BaseVector::chunk_.reduce_buffer_size(),BaseVector::chunk_.condition_buffer(),cbits.size() ));
 

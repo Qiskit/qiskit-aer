@@ -1834,7 +1834,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
 
-    if(sim_device_ == Device::GPU && !cache_blocking && max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
+    if(sim_device_ == Device::GPU && !cache_blocking && shots > 1 && max_batched_states_ >= num_gpus_){
       //apply batched multi-shots optimization on GPU
       Multi::States<State_t> states;
 

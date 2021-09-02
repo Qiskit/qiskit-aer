@@ -193,7 +193,7 @@ public:
   void init_condition(uint_t iChunk,std::vector<double>& cond);
   bool update_condition(uint_t iChunk,uint_t count,bool async);
 
-  void allocate_cbit_register(uint_t num_reg);
+  void allocate_creg(uint_t num_mem,uint_t num_reg);
   int measured_cbit(uint_t iChunk,int qubit)
   {
     uint_t n64,i64,ibit;
@@ -211,6 +211,7 @@ public:
       thrust::copy_n(cregs_.begin(),this->num_chunks_*n64,cregs_host_.begin());
 #endif
     }
+
     return (cregs_host_[iChunk*n64 + i64] >> ibit) & 1;
   }
   uint_t* creg_buffer(uint_t iChunk) const
@@ -370,10 +371,12 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
 }
 
 template <typename data_t>
-void DeviceChunkContainer<data_t>::allocate_cbit_register(uint_t num_reg)
+void DeviceChunkContainer<data_t>::allocate_creg(uint_t num_mem,uint_t num_reg)
 {
-  this->num_creg_bits_ = num_reg;
-  uint_t n64 = (num_reg + 63) >> 6;
+  //allocate memory + register in the same array (reg first)
+  this->num_creg_bits_ = num_mem + num_reg;
+
+  uint_t n64 = (this->num_creg_bits_ + 63) >> 6;
   cregs_.resize(num_matrices_*n64);
   cregs_host_.resize(num_matrices_*n64);
 }

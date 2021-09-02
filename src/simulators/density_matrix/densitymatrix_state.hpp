@@ -557,7 +557,7 @@ void State<densmat_t>::apply_op(const Operations::Op &op,
                                  RngEngine &rng,
                                  bool final_ops) 
 {
-  if(check_conditional(op)) {
+  if(BaseState::check_conditional(op)) {
     switch (op.type) {
       case OpType::barrier:
         break;
@@ -568,7 +568,7 @@ void State<densmat_t>::apply_op(const Operations::Op &op,
         apply_measure(op.qubits, op.memory, op.registers, rng);
         break;
       case OpType::bfunc:
-        apply_bfunc(op);
+        BaseState::creg_.apply_bfunc(op);
         break;
       case OpType::roerror:
         BaseState::creg_.apply_roerror(op, rng);
@@ -627,67 +627,66 @@ void State<densmat_t>::apply_op_multi_shots(const Operations::Op &op,
                                   std::vector<RngEngine> &rng,
                                   bool final_ops) 
 {
-  if(check_conditional(op)) {
-    switch (op.type) {
-      case OpType::barrier:
-        break;
-      case OpType::reset:
-        apply_reset(op.qubits);
-        break;
-      case OpType::measure:
-        BaseState::qreg_.apply_batched_measure(op.qubits[0],rng,op.registers);
-        break;
-      case OpType::bfunc:
-        apply_bfunc(op);
-        break;
-      case OpType::roerror:
-        BaseState::creg_.apply_roerror(op, rng[BaseState::shot_index_]);
-        break;
-      case OpType::gate:
-        apply_gate(op);
-        break;
-      case OpType::snapshot:
-        apply_snapshot(op, result, final_ops);
-        break;
-      case OpType::matrix:
-        apply_matrix(op.qubits, op.mats[0]);
-        break;
-      case OpType::diagonal_matrix:
-        BaseState::qreg_.apply_diagonal_unitary_matrix(op.qubits, op.params);
-        break;
-      case OpType::superop:
-        BaseState::qreg_.apply_superop_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
-        break;
-      case OpType::kraus:
-        apply_kraus(op.qubits, op.mats);
-        break;
-      case OpType::set_statevec:
-        BaseState::qreg_.initialize_from_vector(op.params);
-        break;
-      case OpType::set_densmat:
-        BaseState::qreg_.initialize_from_matrix(op.mats[0]);
-        break;
-      case OpType::save_expval:
-      case OpType::save_expval_var:
-        BaseState::apply_save_expval(op, result);
-        break;
-      case OpType::save_state:
-        apply_save_state(op, result, final_ops);
-        break;
-      case OpType::save_densmat:
-        apply_save_density_matrix(op, result, final_ops);
-        break;
-      case OpType::save_probs:
-      case OpType::save_probs_ket:
-        apply_save_probs(op, result);
-        break;
-      case OpType::save_amps_sq:
-        apply_save_amplitudes_sq(op, result);
-        break;
-      default:
-        throw std::invalid_argument("DensityMatrix::State::invalid instruction \'" +
-                                    op.name + "\'.");
-    }
+  BaseState::qreg_.set_conditional(op.conditional_reg);
+  switch (op.type) {
+    case OpType::barrier:
+      break;
+    case OpType::reset:
+      apply_reset(op.qubits);
+      break;
+    case OpType::measure:
+      BaseState::qreg_.apply_batched_measure(op.qubits[0],rng,op.memory,op.registers);
+      break;
+    case OpType::bfunc:
+      BaseState::qreg_.apply_bfunc(op);
+      break;
+    case OpType::roerror:
+      BaseState::creg_.apply_roerror(op, rng[BaseState::shot_index_]);
+      break;
+    case OpType::gate:
+      apply_gate(op);
+      break;
+    case OpType::snapshot:
+      apply_snapshot(op, result, final_ops);
+      break;
+    case OpType::matrix:
+      apply_matrix(op.qubits, op.mats[0]);
+      break;
+    case OpType::diagonal_matrix:
+      BaseState::qreg_.apply_diagonal_unitary_matrix(op.qubits, op.params);
+      break;
+    case OpType::superop:
+      BaseState::qreg_.apply_superop_matrix(op.qubits, Utils::vectorize_matrix(op.mats[0]));
+      break;
+    case OpType::kraus:
+      apply_kraus(op.qubits, op.mats);
+      break;
+    case OpType::set_statevec:
+      BaseState::qreg_.initialize_from_vector(op.params);
+      break;
+    case OpType::set_densmat:
+      BaseState::qreg_.initialize_from_matrix(op.mats[0]);
+      break;
+    case OpType::save_expval:
+    case OpType::save_expval_var:
+      BaseState::apply_save_expval(op, result);
+      break;
+    case OpType::save_state:
+      apply_save_state(op, result, final_ops);
+      break;
+    case OpType::save_densmat:
+      apply_save_density_matrix(op, result, final_ops);
+      break;
+    case OpType::save_probs:
+    case OpType::save_probs_ket:
+      apply_save_probs(op, result);
+      break;
+    case OpType::save_amps_sq:
+      apply_save_amplitudes_sq(op, result);
+      break;
+    default:
+      throw std::invalid_argument("DensityMatrix::State::invalid instruction \'" +
+                                  op.name + "\'.");
   }
 }
 
@@ -1391,9 +1390,6 @@ template <class densmat_t>
 void State<densmat_t>::apply_measure(const reg_t &qubits, const reg_t &cmemory,
                                      const reg_t &cregister, RngEngine &rng) 
 {
-//  if(BaseState::qreg_.batched_optimization_supported() && qubits.size() == 1){
-//    BaseState::qreg_.apply_batched_measure(qubits[0],rng);
-//  }
   // Actual measurement outcome
   const auto meas = sample_measure_with_prob(qubits, rng);
   // Implement measurement update
@@ -1405,15 +1401,25 @@ void State<densmat_t>::apply_measure(const reg_t &qubits, const reg_t &cmemory,
 template <class densmat_t>
 void State<densmat_t>::store_measured_cbits(void)
 {
-  uint_t i;
-  reg_t pos(1);
   if(BaseState::qreg_.batched_optimization_supported()){
+    uint_t i;
+    reg_t pos(1);
+    reg_t dummy_pos;
+
     for(i=0;i<BaseState::creg_.memory_size();i++){
-      int bit = BaseState::qreg_.measured_cbit(i);
+      int bit = BaseState::qreg_.measured_cmemory(i);
       if(bit >= 0){
         const reg_t outcome = Utils::int2reg(bit, 2, 1);
         pos[0] = i;
-        BaseState::creg_.store_measure(outcome, pos,pos);
+        BaseState::creg_.store_measure(outcome, pos , dummy_pos);
+      }
+    }
+    for(i=0;i<BaseState::creg_.register_size();i++){
+      int bit = BaseState::qreg_.measured_cregister(i);
+      if(bit >= 0){
+        const reg_t outcome = Utils::int2reg(bit, 2, 1);
+        pos[0] = i;
+        BaseState::creg_.store_measure(outcome, dummy_pos, pos);
       }
     }
   }

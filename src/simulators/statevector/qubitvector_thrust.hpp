@@ -322,10 +322,11 @@ public:
   virtual void set_conditional(int_t reg);
 
   //optimized 1 qubit measure (async)
-  virtual void apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng,const reg_t& cbits);
+  virtual void apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs);
 
   //return measured cbit (for asynchronous measure)
-  virtual int measured_cbit(int qubit);
+  virtual int measured_cregister(uint_t qubit);
+  virtual int measured_cmemory(uint_t qubit);
 
   //runtime noise sampling
   virtual void apply_batched_pauli(reg_t& params);
@@ -446,6 +447,7 @@ protected:
   bool register_blocking_;
 
   uint_t num_creg_bits_;
+  uint_t num_cmem_bits_;
 
   //-----------------------------------------------------------------------
   // Config settings
@@ -1295,7 +1297,7 @@ void QubitVectorThrust<data_t>::apply_bfunc(const Operations::Op &op)
   for(i=0;i<op.registers.size();i++)
     params.push_back(op.registers[i]);
 
-  n64 = (num_creg_bits_ + 63) >> 6;   //number of 64-bit integer
+  n64 = (num_creg_bits_ + num_cmem_bits_ + 63) >> 6;   //number of 64-bit integer
 
   for(iparam=0;iparam<2;iparam++){
     uint_t val,added = 0;
@@ -1473,8 +1475,9 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::initialize_creg(uint_t num_memory, uint_t num_register)
 {
   num_creg_bits_ = num_register;
+  num_cmem_bits_ = num_memory;
   if(chunk_.pos() == 0){
-    chunk_.container()->allocate_cbit_register(num_creg_bits_);
+    chunk_.container()->allocate_creg(num_cmem_bits_,num_creg_bits_);
   }
 }
 
@@ -1485,8 +1488,9 @@ void QubitVectorThrust<data_t>::initialize_creg(uint_t num_memory,
                        const std::string &register_hex)
 {
   num_creg_bits_ = num_register;
+  num_cmem_bits_ = num_memory;
   if(chunk_.pos() == 0){
-    chunk_.container()->allocate_cbit_register(num_creg_bits_);
+    chunk_.container()->allocate_creg(num_cmem_bits_,num_creg_bits_);
   }
 }
 //--------------------------------------------------------------------------------------
@@ -4176,7 +4180,7 @@ public:
 
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng,const reg_t& cbits)
+void QubitVectorThrust<data_t>::apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs)
 {
   uint_t i,count = 1;
   if(enable_batch_){
@@ -4199,6 +4203,10 @@ void QubitVectorThrust<data_t>::apply_batched_measure(const uint_t qubit,std::ve
   apply_function_sum2(nullptr,probability_1qubit_func<data_t>(qubit),true);
 
   //bits to be stored
+  reg_t cbits = cregs;
+  for(i=0;i<cmemory.size();i++){
+    cbits.push_back(cmemory[i] + num_creg_bits_);
+  }
   chunk_.StoreUintParams(cbits);
   apply_function(ResetAfterMeasure<data_t>(qubit,chunk_.reduce_buffer(),chunk_.reduce_buffer_size(),chunk_.condition_buffer(),cbits.size() ));
 
@@ -4206,9 +4214,17 @@ void QubitVectorThrust<data_t>::apply_batched_measure(const uint_t qubit,std::ve
 }
 
 template <typename data_t>
-int QubitVectorThrust<data_t>::measured_cbit(int qubit)
+int QubitVectorThrust<data_t>::measured_cregister(uint_t qubit)
 {
+  //read from memory
   return chunk_.measured_cbit(qubit);
+}
+
+template <typename data_t>
+int QubitVectorThrust<data_t>::measured_cmemory(uint_t qubit)
+{
+  //read from memory
+  return chunk_.measured_cbit(qubit + num_creg_bits_);
 }
 
 //------------------------------------------------------------------------------
@@ -4217,14 +4233,6 @@ int QubitVectorThrust<data_t>::measured_cbit(int qubit)
 template <typename data_t>
 reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds) const
 {
-  /*
-  uint_t count = 1;
-  if(!multi_chunk_distribution_ && enable_batch_){
-    if(chunk_.pos() != 0)
-      return reg_t();   //first chunk execute all in batch
-    count = chunk_.container()->num_chunks();   //sample all states at once
-  }
-  */
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return reg_t();   //first chunk execute all in batch
 
