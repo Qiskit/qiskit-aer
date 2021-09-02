@@ -52,7 +52,8 @@ class QuantumError(BaseOperator, TolerancesMixin):
         """
         Create a quantum error for a noise model.
 
-        Noise ops may either be specified as a ``quantum channel``
+        Noise ops may either be specified as a
+        :obj:`~qiskit.quantum_info.operators.channel.quantum_channel.QuantumChannel`
         for a general CPTP map, or as a list of ``(circuit, p)`` pairs
         where ``circuit`` is a circuit-like object for the noise, and
         ``p`` is the probability of the noise event. Any type of input
