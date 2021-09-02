@@ -115,22 +115,23 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
       break;
     }
   }
-  // discarded_value is the sum of the squares of the Schmidt coeffients 
-  // that were discarded by approximation
-  double discarded_value = 0.0;
-  for (uint_t i=new_SV_num; i<SV_num; i++) {
-    discarded_value += std::norm(S[i]);
-  }
   U.resize(U.GetRows(), new_SV_num);
   S.resize(new_SV_num);
   V.resize(V.GetRows(), new_SV_num);
 
-  // After approximation, we may need to re-normalize the values of S
+  // discarded_value is the sum of the squares of the Schmidt coeffients 
+  // that were discarded by approximation
+  double discarded_value = 0.0;
+
   if (new_SV_num < SV_num) {
+    for (uint_t i=new_SV_num; i<SV_num; i++) {
+      discarded_value += std::norm(S[i]);
+    }
+    // After approximation, we may need to re-normalize the values of S
     double new_sum_squares = 0;
     for (uint_t i=0; i<S.size(); i++) 
       new_sum_squares +=std::norm(S[i]);
-
+    
     double sqrt_sum = std::sqrt(new_sum_squares);
     for (uint_t i=0; i<S.size(); i++)
       S[i] /= sqrt_sum;
