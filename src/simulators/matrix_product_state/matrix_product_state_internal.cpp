@@ -570,11 +570,16 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
 //    V is split by columns to yield two MPS_Tensors representing qubit B (in reshape_V_after_SVD),
 //    the diagonal of S becomes the Lambda-vector in between A and B.
 //-------------------------------------------------------------------------
-void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, const cmatrix_t &mat, bool is_diagonal)
+void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, 
+			     Gates gate_type, const cmatrix_t &mat, 
+			     bool is_diagonal)
 {
   // We first move the two qubits to be in consecutive positions
   // For performance reasons, we move the qubit with higher bond dimension
-  // toward the qubit with lower bond dimension
+  // toward the qubit with lower bond dimension. For this purpose, 
+  // we define the bond dimension of qubit i as the size of lambda_reg_[i], 
+  // and the bond dimension of qubit j, as the size of lambda_reg_[j-1], 
+  // where i<j
   // Case i:
   //     If index_B > index_A, we either move the qubit at index_B to index_A+1
   //                                 or  move the qubit at index_A to index_B-1
