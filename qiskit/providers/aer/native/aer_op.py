@@ -825,7 +825,10 @@ def set_mps(inst, qubits, clbits):
 def unitary(inst, qubits, clbits):
     """unitary"""
     mat = inst.params[0]
-    return make_unitary(qubits, mat, mat.flags.carray)
+    op = make_unitary(qubits, mat, mat.flags.carray)
+    if inst.label:
+        op.string_params = [inst.label]
+    return op
 
 
 # OpType.diagonal_matrix:
