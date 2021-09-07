@@ -226,7 +226,7 @@ struct Op {
 };
 
 inline std::ostream& operator<<(std::ostream& s, const Op& op) {
-  s << op.name << "[";
+  s << "[" << op.name << ",qubits=[";
   bool first = true;
   for (size_t qubit: op.qubits) {
     if (!first) s << ",";
@@ -246,6 +246,64 @@ inline std::ostream& operator<<(std::ostream& s, const Op& op) {
     }
     s << "]";
     first = false;
+  }
+  s << "]";
+  if (!op.params.empty()) {
+    s << ",params=[";
+    first = true;
+    for (auto& param: op.params) {
+      if (!first) s << ",";
+      s << param.real() << "+" << param.imag() << "j";
+      first = false;
+    }
+    s << "]";
+  }
+  if (!op.int_params.empty()) {
+    s << ",int_params=[";
+    first = true;
+    for (auto& param: op.int_params) {
+      if (!first) s << ",";
+      s << param;
+      first = false;
+    }
+    s << "]";
+  }
+  if (!op.string_params.empty()) {
+    s << ",string_params=[";
+    first = true;
+    for (auto& param: op.string_params) {
+      if (!first) s << ",";
+      s << param;
+      first = false;
+    }
+    s << "]";
+  }
+  if (!op.expval_params.empty()) {
+    s << ",expval_params=[";
+    first = true;
+    for (auto& expval_param: op.expval_params) {
+      if (!first) s << ", ";
+      s << std::get<0>(expval_param) << ":" << std::get<1>(expval_param) << ":" << std::get<2>(expval_param);
+      first = false;
+    }
+    s << "]";
+  }
+  if (!op.params_expval_pauli.empty()) {
+    s << ",params_expval_pauli=[";
+    first = true;
+    for (auto& pauli_component: op.params_expval_pauli) {
+      if (!first) s << ",";
+      s << pauli_component.first << ":" << pauli_component.second;
+      first = false;
+    }
+    s << "]";
+  }
+  if (!op.mats.empty()) {
+    s << ",mats=[" << std::endl;
+    for (auto& mat: op.mats) {
+      s << mat << std::endl;
+      first = false;
+    }
   }
   s << "]";
   return s;

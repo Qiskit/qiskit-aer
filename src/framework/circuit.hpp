@@ -60,6 +60,7 @@ public:
   // parameters by scanning the input list of ops.
   Circuit() {set_random_seed();}
   Circuit(const std::vector<Op> &_ops, bool truncation = false);
+  Circuit(const std::string &name, const std::vector<Op> &_ops, bool truncation = false);
   Circuit(std::vector<Op> &&_ops, bool truncation = false);
 
   // Construct a circuit from JSON
@@ -154,6 +155,10 @@ Circuit::Circuit(const std::vector<Op> &_ops, bool truncation) : Circuit() {
 Circuit::Circuit(std::vector<Op> &&_ops, bool truncation) : Circuit() {
   ops = std::move(_ops);
   set_params(truncation);
+}
+
+Circuit::Circuit(const std::string &name, const std::vector<Op> &_ops, bool truncation) : Circuit(_ops, truncation) {
+  header["name"] = name;
 }
 
 template<typename inputdata_t>

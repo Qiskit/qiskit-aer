@@ -739,7 +739,6 @@ template <class statevec_t>
 void State<statevec_t>::apply_snapshot(const Operations::Op &op,
                                        ExperimentResult &result,
                                        bool last_op) {
-
   // Look for snapshot type in snapshotset
   auto it = snapshotset_.find(op.name);
   if (it == snapshotset_.end())

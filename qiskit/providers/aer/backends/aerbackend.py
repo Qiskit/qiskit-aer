@@ -31,11 +31,14 @@ from qiskit.result import Result
 from qiskit.utils import deprecate_arguments
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.compiler import assemble
+from qiskit.pulse import Schedule
 
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..aererror import AerError
-from ..native import AerCircuit
+from ..native import AerCircuit, gen_aer_circuit
 
+# pylint: disable=import-error, no-name-in-module
+from .controller_wrappers import AerController
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -104,6 +107,9 @@ class AerBackend(Backend, ABC):
         # Set options from backend_options dictionary
         if backend_options is not None:
             self.set_options(**backend_options)
+
+        # AerController bound to C++ implementation
+        self._native_controller = None
 
     def _convert_circuit_binds(self, circuit, binds):
         parameterizations = []
@@ -179,13 +185,7 @@ class AerBackend(Backend, ABC):
         Raises:
             ValueError: if run is not implemented
         """
-        if (isinstance(circuits, list) and
-                all(isinstance(circuit, (QuantumCircuit, AerCircuit)) for circuit in circuits) and
-                not hasattr(self._options, 'executor')):
-            return self._submit_circuits(circuits, validate, **run_options)
-        if (isinstance(circuits, (QuantumCircuit, AerCircuit)) and
-                not hasattr(self._options, 'executor')):
-            return self._submit_circuits(circuits, validate, **run_options)
+        qobj = None
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             warnings.warn(
                 'Using a qobj for run() is deprecated as of qiskit-aer 0.9.0'
@@ -195,9 +195,54 @@ class AerBackend(Backend, ABC):
                 DeprecationWarning, stacklevel=2)
             if parameter_binds:
                 raise AerError("Parameter binds can't be used with an input qobj")
+            qobj = circuits
         else:
-            circuits = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
-        return self._submit_qobj(circuits, validate, **run_options)
+            if not isinstance(circuits, list):
+                circuits = [circuits]
+
+            if ((hasattr(self._options, 'executor') and self._options.executor) or
+                    'executor' in run_options and run_options['executor']):
+                for circuit in circuits:
+                    if not isinstance(circuit, (QuantumCircuit, Schedule)):
+                        raise AerError(f"Unsupported circuit for simulation: {circuit.__class__}")
+                qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
+            else:
+                def has_condition(circuit):
+                    for inst, _, _ in circuit.data:
+                        if inst.condition:
+                            return True
+                    return False
+                if (not all(isinstance(circuit, QuantumCircuit) for circuit in circuits) or
+                        any(has_condition(circuit) for circuit in circuits) or
+                        parameter_binds):
+                    qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
+
+        if qobj:
+            return self._submit_qobj(qobj, validate, **run_options)
+        else:
+            return self._submit_circuits(circuits, validate, **run_options)
+
+    def _generate_aer_circuit(self, circuit, shots=None, seed=None, enable_truncation=False):
+        """Run a qobj on the backend.
+
+        Args:
+            circuit (QuantumCircuit or AerCircuit): circuit to run
+            shots (int): shots to run
+            seed (int): seed in run
+            enable_truncation (bool): flat to enable truncation
+
+        Returns:
+            AerCircuit: native circuit to run.
+
+        Raises:
+            AerError: if run is not implemented
+        """
+        if isinstance(circuit, AerCircuit):
+            return circuit
+        elif isinstance(circuit, QuantumCircuit):
+            return gen_aer_circuit(circuit, seed, shots, enable_truncation)
+        else:
+            raise AerError(f"Unsupported circuit for simulation: {circuit.__class__}")
 
     def _submit_qobj(self,
                      qobj,
@@ -233,8 +278,20 @@ class AerBackend(Backend, ABC):
                 if key not in run_options and value is not None:
                     run_options[key] = value
 
+        # Avoid serialization of self._options._executor only in submit()
+        executor = None
+        if hasattr(self._options, 'executor'):
+            executor = getattr(self._options, 'executor')
+            # We need to remove the executor from the qobj config
+            # since it can't be serialized though JSON/Pybind.
+            delattr(self._options, 'executor')
+
         # Add submit args for the job
         self._add_options_to_qobj_config(qobj, **run_options)
+
+        # Avoid serialization of qobj.config.executor only in submit()
+        if hasattr(qobj.config, 'executor'):
+            delattr(qobj.config, 'executor')
 
         # Optional validation
         if validate:
@@ -243,14 +300,6 @@ class AerBackend(Backend, ABC):
         # Split circuits for sub-jobs
         experiments = split_qobj(
             qobj, max_size=getattr(qobj.config, 'max_job_size', None))
-
-        # Avoid serialization of self._options._executor only in submit()
-        executor = None
-        if hasattr(self._options, 'executor'):
-            executor = getattr(self._options, 'executor')
-            # We need to remove the executor from the qobj config
-            # since it can't be serialized though JSON/Pybind.
-            delattr(self._options, 'executor')
 
         # Submit job
         job_id = str(uuid.uuid4())
@@ -290,7 +339,7 @@ class AerBackend(Backend, ABC):
         """
         # Optional validation
         if validate:
-            self._validate(self._assemble(circuits, self))
+            self._validate(self._assemble(circuits, **run_options))
 
         # Generate configuration
         config = self.configuration()
@@ -302,9 +351,25 @@ class AerBackend(Backend, ABC):
         for key, val in run_options.items():
             setattr(config, key, val)
 
+        shots = None
+        if hasattr(config, 'shots'):
+            shots = config.shots
+
+        seed_simulator = None
+        if hasattr(config, 'seed_simulator'):
+            seed_simulator = config.seed_simulator
+
+        enable_truncation = False
+        if hasattr(config, 'enable_truncation'):
+            enable_truncation = config.enable_truncation
+
+        aer_circuits = [self._generate_aer_circuit(circuit, shots,
+                                                   seed_simulator, enable_truncation)
+                        for circuit in circuits]
+
         # Submit job
         job_id = str(uuid.uuid4())
-        aer_job = AerJob(self, job_id, self._run_circuits, circuits, config=config)
+        aer_job = AerJob(self, job_id, self._run_circuits, aer_circuits, config=config)
 
         aer_job.submit()
 
@@ -493,7 +558,12 @@ class AerBackend(Backend, ABC):
         """
         pass
 
-    @abstractmethod
+    def native_controller(self):
+        """Return AerController"""
+        if not self._native_controller:
+            self._native_controller = AerController()
+        return self._native_controller
+
     def _execute_circuits(self, circuits, config):
         """Execute circuits on the backend.
 
@@ -507,7 +577,7 @@ class AerBackend(Backend, ABC):
         Raises:
             AerError: if backend does not support direct circuit simulation.
         """
-        pass
+        return self.native_controller().execute(circuits, config)
 
     def _validate(self, qobj):
         """Validate the qobj for the backend"""

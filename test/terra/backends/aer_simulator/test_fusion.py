@@ -90,6 +90,7 @@ class TestGateFusion(SimulatorTestCase):
             backend_options['max_parallel_threads'] = parallelization
             backend_options['max_parallel_shots'] = 1
             backend_options['max_parallel_state_update'] = parallelization
+        backend_options['seed_simulator'] = 7777
         return backend_options
 
     def fusion_metadata(self, result):
@@ -279,7 +280,7 @@ class TestGateFusion(SimulatorTestCase):
 
     def test_fusion_operations(self):
         """Test Fusion enable/disable option"""
-        shots = 100
+        shots = 1024
         num_qubits = 8
 
         qr = QuantumRegister(num_qubits)
@@ -316,7 +317,7 @@ class TestGateFusion(SimulatorTestCase):
         circuit.barrier(qr)
         circuit.u(0.1, 0.1, 0.1, qr[3])
         circuit.barrier(qr)
-
+ 
         circuit.x(qr[0])
         circuit.barrier(qr)
         circuit.x(qr[1])
@@ -345,7 +346,10 @@ class TestGateFusion(SimulatorTestCase):
         result_enabled = backend.run(
             circuit, **self.fusion_options(enabled=True, threshold=1)).result()
         meta_enabled = self.fusion_metadata(result_enabled)
-
+        
+        count_disabled = result_disabled.get_counts(circuit)
+        count_enabled = result_disabled.get_counts(circuit)
+        
         self.assertTrue(getattr(result_disabled, 'success', 'False'))
         self.assertTrue(getattr(result_enabled, 'success', 'False'))
         self.assertFalse(meta_disabled.get('enabled'))
@@ -391,7 +395,10 @@ class TestGateFusion(SimulatorTestCase):
         shots = 100
         num_qubits = 8
         backend = self.backend(method="statevector")
-        circuit = transpile(QFT(num_qubits), backend, optimization_level=0)
+        circuit = QuantumCircuit(num_qubits, num_qubits)
+        for qubit in range(num_qubits):
+            circuit.h(qubit)
+        circuit += transpile(QFT(num_qubits), backend, optimization_level=0)
         circuit.measure_all()
 
         options_disabled = self.fusion_options(enabled=False, threshold=1)

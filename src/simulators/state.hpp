@@ -550,6 +550,7 @@ void State<state_t>::snapshot_creg_register(const Operations::Op &op,
 template <class state_t>
 void State<state_t>::apply_save_expval(const Operations::Op &op,
                                        ExperimentResult &result){
+
   // Check empty edge case
   if (op.expval_params.empty()) {
     throw std::invalid_argument(

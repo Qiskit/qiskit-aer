@@ -16,7 +16,6 @@ Qiskit Aer statevector simulator backend.
 import copy
 import logging
 from warnings import warn
-from qiskit.circuit import QuantumCircuit
 from qiskit.util import local_hardware_info
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
@@ -31,6 +30,8 @@ from .backend_utils import (cpp_execute, available_devices,
                             map_legacy_method_options)
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import aer_controller_execute
+from ..native import gen_aer_op
+from ..library import SaveStatevector
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -250,35 +251,25 @@ class StatevectorSimulator(AerBackend):
         """Return the available simulation methods."""
         return copy.copy(self._AVAILABLE_DEVICES)
 
-    def run(self,
-            circuits,
-            validate=False,
-            parameter_binds=None,
-            **run_options):
+    def _generate_aer_circuit(self, circuit, shots=None, seed=None, enable_truncation=False):
         """Run a qobj on the backend.
 
         Args:
-            circuits (QuantumCircuit or list): The QuantumCircuit (or list
-                of QuantumCircuit objects) to run
-            validate (bool): validate the Qobj before running (default: False).
-            parameter_binds (list): A list of parameter binding dictionaries.
-                                    See additional information (default: None).
-            run_options (kwargs): additional run time backend options.
+            circuit (QuantumCircuit or AerCircuit): circuit to run
+            shots (int): shots to run
+            seed (int): seed in run
+            enable_truncation (bool): flat to enable truncation
 
         Returns:
-            AerJob: The simulation job.
-
-        Additional Information:
-            kwarg options specified in ``run_options`` will temporarily override
-            any set options of the same name for the current run.
+            AerCircuit: native circuit to run.
 
         Raises:
-            ValueError: if run is not implemented
+            AerError: if run is not implemented
         """
-        if isinstance(circuits, (list, QuantumCircuit)):
-            circuits = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
-
-        return super().run(circuits, validate=validate, **run_options)
+        aer_circuit = super()._generate_aer_circuit(circuit, 1, seed, enable_truncation)
+        aer_circuit.append_op(gen_aer_op(SaveStatevector(aer_circuit.num_qubits),
+                                         list(range(circuit.num_qubits)), []))
+        return aer_circuit
 
     def _execute(self, qobj):
         """Execute a qobj on the backend.
@@ -292,7 +283,7 @@ class StatevectorSimulator(AerBackend):
         # Make deepcopy so we don't modify the original qobj
         qobj = copy.deepcopy(qobj)
         qobj = add_final_save_instruction(qobj, "statevector")
-        qobj = map_legacy_method_options(qobj)
+        qobj.config = map_legacy_method_options(qobj.config)
         return cpp_execute(self._controller, qobj)
 
     def _execute_circuits(self, circuits, config):
@@ -308,7 +299,9 @@ class StatevectorSimulator(AerBackend):
         Raises:
             AerError: if backend does not support direct circuit simulation.
         """
-        raise AerError("{} does not support direct circuit simulation.".format(self.name()))
+        config = map_legacy_method_options(config)
+        config.shots = 1
+        return super()._execute_circuits(circuits, config)
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.

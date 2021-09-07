@@ -110,9 +110,9 @@ def add_final_save_instruction(qobj, state):
     return qobj
 
 
-def map_legacy_method_options(qobj):
+def map_legacy_method_options(config):
     """Map legacy method names of qasm simulator to aer simulator options"""
-    method = getattr(qobj.config, "method", None)
+    method = getattr(config, "method", None)
     if method in LEGACY_METHOD_MAP:
-        qobj.config.method, qobj.config.device = LEGACY_METHOD_MAP[method]
-    return qobj
+        config.method, config.device = LEGACY_METHOD_MAP[method]
+    return config

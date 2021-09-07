@@ -58,15 +58,12 @@ PYBIND11_MODULE(controller_wrappers, m) {
     aer_controller.def(py::init<>());
     aer_controller.def("execute", [aer_controller](AER::Controller &controller,
                                      std::vector<AER::Circuit> circuits,
-                                     const uint_t shots,
-                                     const py::handle &py_noise_model,
-                                     const py::handle &py_config
+                                     const py::handle &py_config,
+                                     const py::handle &py_noise_model
                                      ) {
-      for (auto &circuit: circuits)
-        circuit.shots = shots;
-      auto noise_model = AER::Noise::NoiseModel(py_noise_model);
+      auto noise_model = AER::Noise::NoiseModel(json_t(py_noise_model));
       return AerToPy::to_python(controller.execute(circuits, noise_model, py_config));
-    }, py::arg("circuits"), py::arg("shots") = 1024, py::arg("noise_model") = py::none(), py::arg("config") = py::none());
+    }, py::arg("circuits"), py::arg("config") = py::none(), py::arg("noise_model") = py::none());
 
     py::enum_<Operations::OpType> optype(m, "OpType") ;
     optype.value("gate", Operations::OpType::gate);
@@ -95,6 +92,8 @@ PYBIND11_MODULE(controller_wrappers, m) {
     optype.value("save_amps", Operations::OpType::save_amps);
     optype.value("save_amps_sq", Operations::OpType::save_amps_sq);
     optype.value("save_stabilizer", Operations::OpType::save_stabilizer);
+    optype.value("save_mps", Operations::OpType::save_mps);
+    optype.value("save_superop", Operations::OpType::save_superop);
     optype.value("save_unitary", Operations::OpType::save_unitary);
     optype.export_values();
 
@@ -107,6 +106,17 @@ PYBIND11_MODULE(controller_wrappers, m) {
     reg_comparison.value("GreaterEqual", Operations::RegComparison::GreaterEqual);
     reg_comparison.export_values();
 
+    py::enum_<Operations::DataSubType> data_sub_type(m, "DataSubType");
+    data_sub_type.value("single", Operations::DataSubType::single);
+    data_sub_type.value("c_single", Operations::DataSubType::c_single);
+    data_sub_type.value("list", Operations::DataSubType::list);
+    data_sub_type.value("c_list", Operations::DataSubType::c_list);
+    data_sub_type.value("accum", Operations::DataSubType::accum);
+    data_sub_type.value("c_accum", Operations::DataSubType::c_accum);
+    data_sub_type.value("average", Operations::DataSubType::average);
+    data_sub_type.value("c_average", Operations::DataSubType::c_average);
+    data_sub_type.export_values();
+
     py::class_<Operations::Op> aer_op(m, "AerOp");
     aer_op.def(py::init(), "constructor");
     aer_op.def("__repr__", [](const Operations::Op &op) { std::stringstream ss; ss << op; return ss.str(); });
@@ -115,6 +125,7 @@ PYBIND11_MODULE(controller_wrappers, m) {
     aer_op.def_readwrite("qubits", &Operations::Op::qubits);
     aer_op.def_readwrite("regs", &Operations::Op::regs);
     aer_op.def_readwrite("params", &Operations::Op::params);
+    aer_op.def_readwrite("int_params", &Operations::Op::int_params);
     aer_op.def_readwrite("string_params", &Operations::Op::string_params);
     aer_op.def_readwrite("conditional", &Operations::Op::conditional);
     aer_op.def_readwrite("conditional_reg", &Operations::Op::conditional_reg);
@@ -127,9 +138,11 @@ PYBIND11_MODULE(controller_wrappers, m) {
     aer_op.def_readwrite("params_expval_pauli", &Operations::Op::params_expval_pauli);
     aer_op.def_readwrite("params_expval_matrix", &Operations::Op::params_expval_matrix);
     aer_op.def_readwrite("mats", &Operations::Op::mats);
+    aer_op.def_readwrite("save_type", &Operations::Op::save_type);
 
     py::class_<Circuit> aer_circuit(m, "AerCircuit");
-    aer_circuit.def(py::init<std::vector<Operations::Op>>(), "constructor", py::arg("ops"));
+    aer_circuit.def(py::init<std::string, std::vector<Operations::Op>, bool>(), "constructor",
+        py::arg("name") = "circuit", py::arg("ops") = std::vector<Operations::Op>(), py::arg("truncation") = false);
     aer_circuit.def("__repr__", [](const Circuit &circ) {
       std::stringstream ss;
       ss << "Circuit("
@@ -153,22 +166,35 @@ PYBIND11_MODULE(controller_wrappers, m) {
       return ss.str();
     });
     aer_circuit.def_readwrite("shots", &Circuit::shots);
+    aer_circuit.def_readwrite("num_qubits", &Circuit::num_qubits);
     aer_circuit.def_readwrite("seed", &Circuit::seed);
+    aer_circuit.def_readwrite("ops", &Circuit::ops);
     aer_circuit.def_readwrite("global_phase_angle", &Circuit::global_phase_angle);
+    aer_circuit.def("append_op", [aer_circuit](Circuit &circ, const Operations::Op &op) {
+      circ.ops.push_back(op);
+      circ.set_params();
+    });
+    aer_circuit.def("initialize", [aer_circuit](Circuit &circ) {
+      circ.set_params();
+    });
 
     m.def("make_unitary", [](const AER::reg_t &qubits, const py::array_t<std::complex<double>> &values, const bool carray) {
       size_t mat_len = qubits.size() * qubits.size();
       auto ptr = values.unchecked<2>();
       AER::cmatrix_t mat(mat_len, mat_len);
-      if (carray) {
+//      if (carray) {
         for (auto i = 0; i < mat_len; ++i)
           for (auto j = 0; j < mat_len; ++j)
             mat(i, j) = ptr(i, j);
-      } else {
-        for (auto i = 0; i < mat_len; ++i)
-          for (auto j = 0; j < mat_len; ++j)
-            mat(j, i) = ptr(i, j);
-      }
+//      } else {
+//        for (auto i = 0; i < mat_len; ++i)
+//          for (auto j = 0; j < mat_len; ++j)
+//            mat(j, i) = ptr(i, j);
+//      }
       return AER::Operations::make_unitary(qubits, mat);
     }, "return unitary op");
+
+    m.def("make_multiplexer", [](const AER::reg_t &qubits, const std::vector<cmatrix_t> &mats, const std::string label) {
+      return Operations::make_multiplexer(qubits, mats, label);
+    }, "return multiplexer", py::arg("qubits"), py::arg("mats"), py::arg("label") = "");
 }

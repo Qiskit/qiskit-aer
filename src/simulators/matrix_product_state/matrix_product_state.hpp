@@ -459,7 +459,7 @@ void State::set_config(const config_t &config) {
     MPS_Tensor::set_max_bond_dimension(UINT64_MAX);
 
   // Set threshold for truncating snapshots
-  uint_t json_chop_threshold;
+  double json_chop_threshold;
   if (Parser<config_t>::get_value(json_chop_threshold, "chop_threshold", config))
     MPS::set_json_chop_threshold(json_chop_threshold);
   else

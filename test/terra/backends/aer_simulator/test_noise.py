@@ -136,6 +136,7 @@ class TestNoise(SimulatorTestCase):
                                                 targets):
             backend.set_options(noise_model=noise_model)
             result = backend.run(circuit, shots=shots).result()
+            print(result)
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 

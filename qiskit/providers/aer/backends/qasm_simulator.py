@@ -542,7 +542,7 @@ class QasmSimulator(AerBackend):
         Returns:
             dict: return a dictionary of results.
         """
-        qobj = map_legacy_method_options(qobj)
+        qobj.config = map_legacy_method_options(qobj.config)
         return cpp_execute(self._controller, qobj)
 
     def _execute_circuits(self, circuits, config):

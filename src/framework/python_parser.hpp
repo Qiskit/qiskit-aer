@@ -27,6 +27,8 @@ struct Parser<py::handle> {
 
     static bool check_key(const std::string& key, const py::handle& po){
         if(py::isinstance<py::dict>(po)){
+            if (!py::cast<py::dict>(po).contains(key.c_str()))
+                return false;
             return !py::cast<py::dict>(po)[key.c_str()].is_none();
         }
         return py::hasattr(po, key.c_str());

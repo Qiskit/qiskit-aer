@@ -15,7 +15,6 @@ Qiskit Aer qasm simulator backend.
 
 import copy
 import logging
-from qiskit.circuit import QuantumCircuit
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
@@ -25,8 +24,7 @@ from .backend_utils import (cpp_execute, available_methods,
                             available_devices,
                             MAX_QUBITS_STATEVECTOR)
 # pylint: disable=import-error, no-name-in-module
-from .controller_wrappers import aer_controller_execute, AerController, AerCircuit
-from ..native import gen_aer_circuit
+from .controller_wrappers import aer_controller_execute
 
 logger = logging.getLogger(__name__)
 
@@ -481,7 +479,6 @@ class AerSimulator(AerBackend):
                  **backend_options):
 
         self._controller = aer_controller_execute()
-        self._controller_native = None
 
         # Update available methods and devices for class
         if AerSimulator._AVAILABLE_METHODS is None:
@@ -644,33 +641,20 @@ class AerSimulator(AerBackend):
         """Execute a circuits on the backend.
 
         Args:
-            circuits (list): simulator input.
+            circuits (list): a list of AerCircuit, which is simulator input.
             config (BackendConfiguration): the configuration for the backend.
 
         Returns:
             dict: return a dictionary of results.
         """
         noise_model = None
-        noise_model_dict = None
         if config and hasattr(config, 'noise_model'):
             noise_model = config.noise_model
-            noise_model_dict = noise_model.to_dict()
             delattr(config, 'noise_model')
 
-        if not self._controller_native:
-            self._controller_native = AerController()
-
-        if isinstance(circuits, AerCircuit):
-            result = self._controller_native.execute([circuits], config.shots,
-                                                     noise_model_dict, config)
-        elif isinstance(circuits, QuantumCircuit):
-            result = self._controller_native.execute([gen_aer_circuit(circuits)], config.shots,
-                                                     noise_model_dict, config)
-        else:
-            circuits = [circ if isinstance(circ, QuantumCircuit) else gen_aer_circuit(circ)
-                        for circ in circuits]
-            result = self._controller_native.execute(circuits, config.shots,
-                                                     noise_model_dict, config)
+        result = self.native_controller().execute(circuits,
+                                                  config=config,
+                                                  noise_model=noise_model)
 
         if noise_model:
             setattr(config, 'noise_model', noise_model)
@@ -793,7 +777,3 @@ class AerSimulator(AerBackend):
             n_qubits = None
         self._set_configuration_option('description', description)
         self._set_configuration_option('n_qubits', n_qubits)
-
-    def get_controller(self):
-        """Return the controller"""
-        return AerController()

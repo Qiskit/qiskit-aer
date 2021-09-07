@@ -741,9 +741,15 @@ private:
             pos = q_pos + 1;
             std::cout << "X";
           }
+          for (int j = pos; j < circuit.num_qubits * 2; ++j)
+            std::cout << " ";
         }
+        std::cout << " [";
+        for (auto& param : ops[op_idx].params)
+          std::cout << param << " ";
+        std::cout << " ]";
+        std::cout << std::endl;
       }
-      std::cout << std::endl;
     }
   }
 #endif

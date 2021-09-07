@@ -394,8 +394,9 @@ void Controller::set_config(const config_t &config) {
 
 #ifdef _OPENMP
   // Load OpenMP maximum thread settings
-  if (Parser<config_t>::check_key("max_parallel_threads", config))
+  if (Parser<config_t>::check_key("max_parallel_threads", config)) {
     Parser<config_t>::get_value(max_parallel_threads_, "max_parallel_threads", config);
+  }
   if (Parser<config_t>::check_key("max_parallel_experiments", config))
     Parser<config_t>::get_value(max_parallel_experiments_, "max_parallel_experiments",
                     config);
@@ -828,6 +829,8 @@ Result Controller::execute(std::vector<Circuit> &circuits,
                            const config_t &config) {
   // Start QOBJ timer
   auto timer_start = myclock_t::now();
+
+  set_config(config);
 
   // Determine simulation method for each circuit
   // and enable required noise sampling methods
