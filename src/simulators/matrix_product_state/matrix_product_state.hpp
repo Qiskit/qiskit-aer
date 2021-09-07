@@ -63,7 +63,7 @@ const Operations::OpSet StateOpSet(
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",
-   "sx", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx", "csx", "delay",
+   "sx", "sxdg", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx", "csx", "delay",
    "cswap", "pauli"},
   // Snapshots
   {"statevector", "amplitudes", "memory", "register", "probabilities",
@@ -342,6 +342,7 @@ const stringmap_t<Gates> State::gateset_({
   {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
   {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
   {"sx", Gates::sx},     // Sqrt(X) gate
+  {"sxdg", Gates::sxdg}, // Inverse Sqrt(X) gate
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   {"r", Gates::r},       // R rotation gate
@@ -875,6 +876,9 @@ void State::apply_gate(const Operations::Op &op) {
       break;
     case Gates::sx:
       qreg_.apply_sx(op.qubits[0]);
+      break;
+    case Gates::sxdg:
+      qreg_.apply_sxdg(op.qubits[0]);
       break;
     case Gates::t:
       qreg_.apply_t(op.qubits[0]);

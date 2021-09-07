@@ -279,7 +279,10 @@ public:
   inline void set_parallalization(int n) {threads_ = n;}
 
   // Set a complex global phase value exp(1j * theta) for the state
-  void set_global_phase(const double &phase);
+  void set_global_phase(double theta);
+
+  // Set a complex global phase value exp(1j * theta) for the state
+  void add_global_phase(double theta);
 
   //set number of processes to be distributed
   void set_distribution(uint_t nprocs){}
@@ -315,15 +318,24 @@ void State<state_t>::set_config(const json_t &config) {
 }
 
 template <class state_t>
-void State<state_t>::set_global_phase(const double &phase_angle) {
-  if (Linalg::almost_equal(phase_angle, 0.0)) {
+void State<state_t>::set_global_phase(double theta) {
+  if (Linalg::almost_equal(theta, 0.0)) {
     has_global_phase_ = false;
     global_phase_ = 1;
   }
   else {
     has_global_phase_ = true;
-    global_phase_ = std::exp(complex_t(0.0, phase_angle));
+    global_phase_ = std::exp(complex_t(0.0, theta));
   }
+}
+
+template <class state_t>
+void State<state_t>::add_global_phase(double theta) {
+  if (Linalg::almost_equal(theta, 0.0)) 
+    return;
+  
+  has_global_phase_ = true;
+  global_phase_ *= std::exp(complex_t(0.0, theta));
 }
 
 template <class state_t>

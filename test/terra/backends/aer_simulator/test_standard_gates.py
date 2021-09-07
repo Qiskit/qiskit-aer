@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-QasmSimulator Integration Tests for circuit library standard gates
+AerSimulator Integration Tests for circuit library standard gates
 """
 
 from ddt import ddt
@@ -25,8 +25,8 @@ from qiskit.circuit.library.standard_gates import (
     CXGate, CYGate, CZGate, DCXGate, HGate, IGate, SGate, SXGate, SXdgGate,
     SdgGate, SwapGate, XGate, YGate, ZGate, TGate, TdgGate, iSwapGate, C3XGate,
     C4XGate, CCXGate, CHGate, CSXGate, CSwapGate, CPhaseGate, CRXGate, CRYGate,
-    CRZGate, CU1Gate, CU3Gate, CUGate, PhaseGate, RC3XGate, RCCXGate, RGate,
-    RXGate, RXXGate, RYGate, RYYGate, RZGate, RZXGate, RZZGate, U1Gate, U2Gate,
+    CRZGate, CUGate, CU1Gate, CU3Gate, CUGate, PhaseGate, RC3XGate, RCCXGate, RGate,
+    RXGate, RXXGate, RYGate, RYYGate, RZGate, RZXGate, RZZGate, UGate, U1Gate, U2Gate,
     U3Gate, UGate, MCXGate, MCPhaseGate, MCXGrayCode)
 
 

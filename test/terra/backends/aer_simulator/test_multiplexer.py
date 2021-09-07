@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-QasmSimulator Integration Tests
+AerSimulator Integration Tests
 """
 
 from test.terra.reference import ref_multiplexer
@@ -19,7 +19,7 @@ from test.terra.backends.simulator_test_case import (
 
 
 class TestMultiplexer(SimulatorTestCase):
-    """QasmSimulator multiplexer gate tests in default basis."""
+    """AerSimulator multiplexer gate tests in default basis."""
 
     # ---------------------------------------------------------------------
     # Test multiplexer-cx-gate

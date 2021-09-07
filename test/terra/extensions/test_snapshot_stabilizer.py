@@ -12,7 +12,7 @@
 
 
 import unittest
-
+from warnings import filterwarnings
 from qiskit import QuantumCircuit, assemble
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.providers.aer.extensions.snapshot_stabilizer import SnapshotStabilizer
@@ -22,6 +22,14 @@ from ..common import QiskitAerTestCase
 
 class TestSnapshotStabilizerExtension(QiskitAerTestCase):
     """SnapshotStbilizer extension tests"""
+
+    def setUpClass(cls):
+        super().setUpClass()
+        filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            module=".*snapshot_stabilizer",
+        )
 
     @staticmethod
     def snapshot_circuit_instr(circ_qubits, label):

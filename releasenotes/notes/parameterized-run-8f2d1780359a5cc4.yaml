@@ -1,0 +1,29 @@
+---
+features:
+  - |
+    The :meth:`~qiskit.providers.aer.AerSimulator.run` method for the
+    :class:`~qiskit.providers.aer.AerSimulator`,
+    :class:`~qiskit.providers.aer.QasmSimulator`,
+    :class:`~qiskit.providers.aer.StatevectorSimulator`, and
+    :class:`~qiskit.providers.aer.UnitarySimulator` has a new kwarg,
+    ``parameter_binds`` which is used to provide a list of values to use for
+    any unbound parameters in the inbound circuit. For example::
+
+      from qiskit.circuit import QuantumCircuit, Parameter
+      from qiskit.providers.aer import AerSimulator
+
+      shots = 1000
+      backend = AerSimulator()
+      circuit = QuantumCircuit(2)
+      theta = Parameter('theta')
+      circuit.rx(theta, 0)
+      circuit.cx(0, 1)
+      circuit.measure_all()
+      parameter_binds = [{theta: [0, 3.14, 6.28]}]
+      backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
+
+    will run the input circuit 3 times with the values 0, 3.14, and 6.28 for
+    theta. When running with multiple parameters the length of the value lists
+    must all be the same. When running with multiple circuits, the length
+    of ``parameter_binds`` must match the number of input circuits (you can use 
+    an empty dict, ``{}``, if there are no binds for a circuit).
