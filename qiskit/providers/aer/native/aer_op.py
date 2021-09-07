@@ -28,10 +28,17 @@ from qiskit.providers.aer.library.save_instructions import (SaveState,
                                                             SaveStabilizer,
                                                             SaveMatrixProductState,
                                                             SaveSuperOp)
+from qiskit.providers.aer.library.set_instructions import (SetStatevector,
+                                                           SetDensityMatrix,
+                                                           SetUnitary,
+                                                           SetStabilizer,
+                                                           SetSuperOp,
+                                                           SetMatrixProductState)
 from qiskit.providers.aer.backends.controller_wrappers import (AerCircuit, AerOp,
                                                                OpType, DataSubType,
                                                                make_unitary,
-                                                               make_multiplexer)
+                                                               make_multiplexer,
+                                                               make_set_clifford)
 
 
 # OpType.barrier
@@ -751,6 +758,56 @@ def save_superop(inst, qubits, clbits):
     """save superop state"""
     return _save_operation(OpType.save_superop, inst, qubits, clbits)
 
+
+def _set_state(_type, inst, qubits, clbits):
+    """set state base"""
+    op = AerOp()
+    op.name = inst.name
+    op.type = _type
+    op.qubits = qubits
+    return op
+
+
+def set_statevector(inst, qubits, clbits):
+    """set statevector"""
+    op = _set_state(OpType.set_statevec, inst, qubits, clbits)
+    op.params = inst.params[0]
+    return op
+
+
+def set_density_matrix(inst, qubits, clbits):
+    """set density matrix"""
+    op = _set_state(OpType.set_densmat, inst, qubits, clbits)
+    op.mats = inst.params
+    return op
+
+
+def set_unitary(inst, qubits, clbits):
+    """set unitary"""
+    op = _set_state(OpType.set_unitary, inst, qubits, clbits)
+    op.mats = inst.params
+    return op
+
+
+def set_stabilizer(inst, qubits, clbits):
+    """set stabilizer"""
+    return make_set_clifford(qubits, inst.params[0]['stabilizer'], inst.params[0]['destabilizer'])
+
+
+def set_superop(inst, qubits, clbits):
+    """set superop"""
+    op = _set_state(OpType.set_superop, inst, qubits, clbits)
+    op.mats = inst.params
+    return op
+
+
+def set_mps(inst, qubits, clbits):
+    """set mps"""
+    op = _set_state(OpType.set_mps, inst, qubits, clbits)
+    op.mps = inst.params[0]
+    return op
+
+
 # OpType.snapshot:
 #      {"expectation_value_matrix", Snapshots::expval_matrix},
 #      {"probabilities_with_variance", Snapshots::probs_var},
@@ -893,6 +950,12 @@ _gen_op_funcs = {
     SaveStabilizer: save_stabilizer,
     SaveMatrixProductState: save_mps,
     SaveSuperOp: save_superop,
+    SetStatevector: set_statevector,
+    SetDensityMatrix: set_density_matrix,
+    SetUnitary: set_unitary,
+    SetStabilizer: set_stabilizer,
+    SetSuperOp: set_superop,
+    SetMatrixProductState: set_mps,
     qiskit.circuit.instruction.Instruction: general_instruction,
     qiskit.extensions.quantum_initializer.diagonal.DiagonalGate: diagonal,
     qiskit.extensions.quantum_initializer.initializer.Initialize: initialize,

@@ -95,6 +95,12 @@ PYBIND11_MODULE(controller_wrappers, m) {
     optype.value("save_mps", Operations::OpType::save_mps);
     optype.value("save_superop", Operations::OpType::save_superop);
     optype.value("save_unitary", Operations::OpType::save_unitary);
+    optype.value("set_statevec", Operations::OpType::set_statevec);
+    optype.value("set_unitary", Operations::OpType::set_unitary);
+    optype.value("set_densmat", Operations::OpType::set_densmat);
+    optype.value("set_superop", Operations::OpType::set_superop);
+    optype.value("set_stabilizer", Operations::OpType::set_stabilizer);
+    optype.value("set_mps", Operations::OpType::set_mps);
     optype.export_values();
 
     py::enum_<Operations::RegComparison> reg_comparison(m, "RegComparison");
@@ -139,6 +145,7 @@ PYBIND11_MODULE(controller_wrappers, m) {
     aer_op.def_readwrite("params_expval_matrix", &Operations::Op::params_expval_matrix);
     aer_op.def_readwrite("mats", &Operations::Op::mats);
     aer_op.def_readwrite("save_type", &Operations::Op::save_type);
+    aer_op.def_readwrite("mps", &Operations::Op::mps);
 
     py::class_<Circuit> aer_circuit(m, "AerCircuit");
     aer_circuit.def(py::init<std::string, std::vector<Operations::Op>, bool>(), "constructor",
@@ -197,4 +204,11 @@ PYBIND11_MODULE(controller_wrappers, m) {
     m.def("make_multiplexer", [](const AER::reg_t &qubits, const std::vector<cmatrix_t> &mats, const std::string label) {
       return Operations::make_multiplexer(qubits, mats, label);
     }, "return multiplexer", py::arg("qubits"), py::arg("mats"), py::arg("label") = "");
+
+
+    m.def("make_set_clifford", [](const AER::reg_t &qubits, const std::vector<std::string> &stab, const std::vector<std::string> &destab) {
+      return Operations::make_set_clifford(qubits, stab, destab);
+    }, "return set_clifford", py::arg("qubits"), py::arg("stab"), py::arg("destab"));
+
+
 }

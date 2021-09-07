@@ -535,6 +535,16 @@ inline Op make_multiplexer(const reg_t &qubits,
   return op;
 }
 
+inline Op make_set_clifford(const reg_t &qubits, const std::vector<std::string> &stabilizer, const std::vector<std::string> &destabilizer) {
+  Op op;
+  op.type = OpType::set_stabilizer;
+  op.name = "set_stabilizer";
+  op.qubits = qubits;
+  Clifford::build_clifford(stabilizer, destabilizer, op.clifford);
+  return op;
+}
+
+
 //------------------------------------------------------------------------------
 // JSON conversion
 //------------------------------------------------------------------------------

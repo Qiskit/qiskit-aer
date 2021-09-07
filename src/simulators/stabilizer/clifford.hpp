@@ -373,16 +373,7 @@ inline void to_json(json_t &js, const Clifford &clif) {
   js = clif.json();
 }
 
-template <typename inputdata_t>
-void build_from(const inputdata_t& input, Clifford& clif){
-  bool has_keys = AER::Parser<inputdata_t>::check_keys({"stabilizer", "destabilizer"}, input);
-  if (!has_keys)
-    throw std::invalid_argument("Invalid Clifford JSON.");
-
-  std::vector<std::string> stab, destab;
-  AER::Parser<inputdata_t>::get_value(stab, "stabilizer", input);
-  AER::Parser<inputdata_t>::get_value(destab, "destabilizer", input);
-
+void build_clifford(const std::vector<std::string> &stab, const std::vector<std::string> &destab, Clifford& clif){
   const auto nq = stab.size();
   if (nq != destab.size()) {
     throw std::invalid_argument("Invalid Clifford JSON: stabilizer and destabilizer lengths do not match.");
@@ -430,6 +421,18 @@ void build_from(const inputdata_t& input, Clifford& clif){
         throw std::invalid_argument("Invalid Stabilizer JSON string.");
     }
   }
+}
+template <typename inputdata_t>
+void build_from(const inputdata_t& input, Clifford& clif){
+  bool has_keys = AER::Parser<inputdata_t>::check_keys({"stabilizer", "destabilizer"}, input);
+  if (!has_keys)
+    throw std::invalid_argument("Invalid Clifford JSON.");
+
+  std::vector<std::string> stab, destab;
+  AER::Parser<inputdata_t>::get_value(stab, "stabilizer", input);
+  AER::Parser<inputdata_t>::get_value(destab, "destabilizer", input);
+
+  build_clifford(stab, destab, clif);
 }
 
 inline void from_json(const json_t &js, Clifford &clif) {
