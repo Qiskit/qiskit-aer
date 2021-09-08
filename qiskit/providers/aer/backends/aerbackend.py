@@ -436,8 +436,11 @@ class AerBackend(Backend, ABC):
     def _convert_config(self, config):
         config_dict = {}
         for key, val in config.__dict__.items():
-            if (val is not None and isinstance(key, str) and not key.startswith('_')):
-                config_dict[key] = val
+            if not isinstance(key, str) or key.startswith('_'):
+                continue
+            if (val is None or not isinstance(val, (int, float, str, bool))):
+                continue
+            config_dict[key] = val
         return config_dict
 
     def status(self):
