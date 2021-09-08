@@ -973,7 +973,7 @@ def gen_aer_op(inst, qubits, clbits):
     return _gen_op_funcs[inst.__class__](inst, qubits, clbits)
 
 
-def gen_aer_circuit(circuit, seed=None, shots=None, enable_truncation=False):
+def gen_aer_circuit(circuit, seed=None, shots=None, num_memory=0, enable_truncation=False):
     """convert QuantumCircuit to AerCircuit"""
 
     if isinstance(circuit, AerCircuit):
@@ -991,6 +991,9 @@ def gen_aer_circuit(circuit, seed=None, shots=None, enable_truncation=False):
                        for instruction in circuit.data],
                       enable_truncation)
     circ.global_phase_angle = global_phase
+    circ.num_memory = num_memory
+    if not enable_truncation:
+        circ.num_qubits = len(qubit_indices)
 
     if seed:
         circ.seed = seed

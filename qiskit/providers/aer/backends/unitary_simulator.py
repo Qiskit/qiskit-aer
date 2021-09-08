@@ -251,13 +251,15 @@ class UnitarySimulator(AerBackend):
         """Return the available simulation methods."""
         return copy.copy(self._AVAILABLE_DEVICES)
 
-    def _generate_aer_circuit(self, circuit, shots=None, seed=None, enable_truncation=False):
+    def _generate_aer_circuit(self, circuit, shots=None, seed=None,
+                              num_memory=0, enable_truncation=False):
         """Run a qobj on the backend.
 
         Args:
             circuit (QuantumCircuit or AerCircuit): circuit to run
             shots (int): shots to run
             seed (int): seed in run
+            num_memory (int): num_memory in run
             enable_truncation (bool): flat to enable truncation
 
         Returns:
@@ -266,9 +268,10 @@ class UnitarySimulator(AerBackend):
         Raises:
             AerError: if run is not implemented
         """
-        aer_circuit = super()._generate_aer_circuit(circuit, 1, seed, enable_truncation)
+        aer_circuit = super()._generate_aer_circuit(circuit, 1, seed,
+                                                    num_memory, enable_truncation)
         aer_circuit.append_op(gen_aer_op(SaveUnitary(aer_circuit.num_qubits),
-                                         list(range(circuit.num_qubits)), []))
+                                         list(range(circuit.num_qubits)), []), enable_truncation)
         return aer_circuit
 
     def _execute(self, qobj):

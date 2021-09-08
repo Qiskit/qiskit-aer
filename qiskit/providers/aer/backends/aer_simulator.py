@@ -653,7 +653,7 @@ class AerSimulator(AerBackend):
             delattr(config, 'noise_model')
 
         result = self.native_controller().execute(circuits,
-                                                  config=config,
+                                                  config=self._convert_config(config),
                                                   noise_model=noise_model)
 
         if noise_model:

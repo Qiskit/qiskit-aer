@@ -222,13 +222,15 @@ class AerBackend(Backend, ABC):
         else:
             return self._submit_circuits(circuits, validate, **run_options)
 
-    def _generate_aer_circuit(self, circuit, shots=None, seed=None, enable_truncation=False):
+    def _generate_aer_circuit(self, circuit, shots=None, seed=None,
+                              num_memory=0, enable_truncation=False):
         """Run a qobj on the backend.
 
         Args:
             circuit (QuantumCircuit or AerCircuit): circuit to run
             shots (int): shots to run
             seed (int): seed in run
+            num_memory (int): num_memory in run
             enable_truncation (bool): flat to enable truncation
 
         Returns:
@@ -240,7 +242,7 @@ class AerBackend(Backend, ABC):
         if isinstance(circuit, AerCircuit):
             return circuit
         elif isinstance(circuit, QuantumCircuit):
-            return gen_aer_circuit(circuit, seed, shots, enable_truncation)
+            return gen_aer_circuit(circuit, seed, shots, num_memory, enable_truncation)
         else:
             raise AerError(f"Unsupported circuit for simulation: {circuit.__class__}")
 
@@ -363,8 +365,14 @@ class AerBackend(Backend, ABC):
         if hasattr(config, 'enable_truncation'):
             enable_truncation = config.enable_truncation
 
-        aer_circuits = [self._generate_aer_circuit(circuit, shots,
-                                                   seed_simulator, enable_truncation)
+        def get_num_memory(circuit):
+            ret = 0
+            for creg in circuit.cregs:
+                ret += creg.size
+            return ret
+
+        aer_circuits = [self._generate_aer_circuit(circuit, shots, seed_simulator,
+                                                   get_num_memory(circuit), enable_truncation)
                         for circuit in circuits]
 
         # Submit job
@@ -424,6 +432,13 @@ class AerBackend(Backend, ABC):
         self._options_configuration = {}
         self._options_properties = {}
         self._options_defaults = {}
+
+    def _convert_config(self, config):
+        config_dict = {}
+        for key, val in config.__dict__.items():
+            if (val is not None and isinstance(key, str) and not key.startswith('_')):
+                config_dict[key] = val
+        return config_dict
 
     def status(self):
         """Return backend status.
@@ -577,7 +592,7 @@ class AerBackend(Backend, ABC):
         Raises:
             AerError: if backend does not support direct circuit simulation.
         """
-        return self.native_controller().execute(circuits, config)
+        return self.native_controller().execute(circuits, self._convert_config(config))
 
     def _validate(self, qobj):
         """Validate the qobj for the backend"""
