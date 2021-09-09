@@ -18,7 +18,8 @@ from qiskit import QuantumCircuit, transpile
 from qiskit.providers.aer.noise import NoiseModel
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
-
+from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import state_fidelity
 
 @ddt
 class TestOptions(SimulatorTestCase):
@@ -145,3 +146,28 @@ class TestOptions(SimulatorTestCase):
         result = backend.run(qc, shots=shots).result()
         value = sum(result.get_counts().values())
         self.assertEqual(value, shots)
+
+    def test_mps_approximation(self):
+        """Test MPS approximation"""
+        shots = 4000
+        method="matrix_product_state"
+        backend_exact = self.backend(method=method)
+        backend_approx = self.backend(method=method,
+                                     matrix_product_state_max_bond_dimension=8)
+        # The test must be large enough and entangled enough so that
+        # approximation actually does something
+        n = 10
+        circuit = QuantumCircuit(n, n)
+        for times in range(2):
+            for i in range(0, n, 2):
+                circuit.unitary(random_unitary(4), [i, i+1])
+            for i in range(1, n-1):
+                circuit.cx(0, i)
+        circuit.save_statevector('sv')
+
+        result_exact = backend_exact.run(circuit, shots=shots).result()
+        sv_exact = result_exact.data(0)['sv']
+        result_approx = backend_approx.run(circuit, shots=shots).result()
+        sv_approx = result_approx.data(0)['sv']
+        self.assertGreaterEqual(state_fidelity(sv_exact, sv_approx), 0.90)
+        self.assertLessEqual(state_fidelity(sv_exact, sv_approx), 0.99)

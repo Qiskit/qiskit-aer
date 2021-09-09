@@ -24,7 +24,6 @@ from qiskit.circuit.library import QuantumVolume
 from qiskit.quantum_info.random import random_unitary
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
-import numpy as np
 
 SUPPORTED_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
@@ -259,29 +258,3 @@ class TestMeasure(SimulatorTestCase):
             self.assertDictAlmostEqual(result1.get_counts(circuit),
                                        result2.get_counts(circuit),
                                        delta=0.1 * shots)
-
-    def test_mps_approximation(self):
-        """Test MPS approximation"""
-        shots = 4000
-        np.random.seed(5)
-        method="matrix_product_state"
-        backend_exact = self.backend(method=method)
-        backend_approx = self.backend(method=method,
-                                     matrix_product_state_max_bond_dimension=8)
-        # The test must be large enough and entangled enough so that
-        # approximation actually does something
-        n = 10
-        circuit = QuantumCircuit(n, n)
-        for times in range(2):
-            for i in range(0, n, 2):
-                circuit.unitary(random_unitary(4), [i, i+1])
-            for i in range(1, n-1):
-                circuit.cx(0, i)
-        circuit.measure_all()
-
-        result_exact = backend_exact.run(circuit, shots=shots).result()
-        counts_exact = result_exact.get_counts(circuit)
-        result_approx = backend_approx.run(circuit, shots=shots).result()
-        counts_approx = result_approx.get_counts(circuit)
-        self.assertDictAlmostEqual(counts_exact, counts_approx,
-                                   delta=0.1*shots)
