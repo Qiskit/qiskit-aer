@@ -169,5 +169,5 @@ class TestOptions(SimulatorTestCase):
         sv_exact = result_exact.data(0)['sv']
         result_approx = backend_approx.run(circuit, shots=shots).result()
         sv_approx = result_approx.data(0)['sv']
-        self.assertGreaterEqual(state_fidelity(sv_exact, sv_approx), 0.90)
+        self.assertGreaterEqual(state_fidelity(sv_exact, sv_approx), 0.88)
         self.assertLessEqual(state_fidelity(sv_exact, sv_approx), 0.99)
