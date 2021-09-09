@@ -1,6 +1,6 @@
 other:
   - |
-    Improved performance ofalgorithm for swapping of qubits in MPS 2-qubit gates.
+    Improved performance of algorithm for swapping of qubits in MPS 2-qubit gates.
     In the previous version the direction of the swaps was arbitrary. 
     Now, always move the qubit with higher bond dimension toward the qubit 
     with lower bond dimension. For this purpose, we define the bond dimension 
