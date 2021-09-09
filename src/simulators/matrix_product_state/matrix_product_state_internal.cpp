@@ -552,12 +552,7 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
     //to the left
     std::swap(qubit_ordering_.order_[index_A], qubit_ordering_.order_[index_B]);    
     // For logging purposes:
-    if (MPS::get_mps_log_data()) {
-      if (swap_gate)
-	print_to_log_internal_swap(index_A, index_B);
-      else
-	print_to_log_internal_swap(index_B, index_A);
-    }
+    print_to_log_internal_swap(index_A, index_B);
 
     // update qubit locations after all the swaps
     for (uint_t i=0; i<num_qubits_; i++)
@@ -566,7 +561,9 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
 }
 
 void MPS::print_to_log_internal_swap(uint_t qubit0, uint_t qubit1) const {
-  print_to_log("internal_swap on qubits ", qubit0, ",", qubit1);
+  if (mps_log_data_) {
+    print_to_log("internal_swap on qubits ", qubit0, ",", qubit1);
+  }
   print_bond_dimensions();
 }
 
