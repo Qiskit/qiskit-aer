@@ -364,7 +364,8 @@ class AerBackend(Backend, ABC):
 
         # Split circuits for sub-jobs
         experiments = split_qobj(
-            qobj, max_size=getattr(qobj.config, 'max_job_size', None))
+            qobj, max_size=getattr(qobj.config, 'max_job_size', None),
+            max_shot_size=getattr(qobj.config, 'max_shot_size', None))
         return experiments, executor
 
     def __repr__(self):

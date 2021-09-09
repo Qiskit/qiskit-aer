@@ -124,6 +124,9 @@ class PulseSimulator(AerBackend):
       exceeds this value simulation will be run as a set of of sub-jobs
       on the executor. If ``None`` simulation of all schedules are submitted
       to the executor as a single job (Default: None).
+    * ``max_shot_size`` (int or None): If the number of shots with
+      a noise model exceeds this value simulation will be splitted into
+      sub-circuits. If ``None``  simulator does noting (Default: None).
 
       jobs (Default: None).
 
@@ -195,7 +198,8 @@ class PulseSimulator(AerBackend):
             noise_model=None,
             initial_state=None,
             executor=None,
-            max_job_size=None)
+            max_job_size=None,
+            max_shot_size=None)
 
     # pylint: disable=arguments-differ, missing-param-doc
     @deprecate_arguments({'qobj': 'schedules'})
