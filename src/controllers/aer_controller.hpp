@@ -389,6 +389,9 @@ void Controller::set_config(const config_t &config) {
   // Load validation threshold
   Parser<config_t>::get_value(enable_truncation_, "enable_truncation", config);
 
+  // Load validation threshold
+  Parser<config_t>::get_value(validation_threshold_, "validation_threshold", config);
+
   // Load config for memory (creg list data)
   Parser<config_t>::get_value(save_creg_memory_, "memory", config);
 
