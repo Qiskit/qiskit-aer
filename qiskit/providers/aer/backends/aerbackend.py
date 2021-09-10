@@ -55,14 +55,14 @@ class AerJSONEncoder(json.JSONEncoder):
     """
 
     # pylint: disable=method-hidden,arguments-differ
-    def default(self, obj):
-        if isinstance(obj, ndarray):
-            return obj.tolist()
-        if isinstance(obj, complex):
-            return [obj.real, obj.imag]
-        if hasattr(obj, "to_dict"):
-            return obj.to_dict()
-        return super().default(obj)
+    def default(self, o):
+        if isinstance(o, ndarray):
+            return o.tolist()
+        if isinstance(o, complex):
+            return [o.real, o.imag]
+        if hasattr(o, "to_dict"):
+            return o.to_dict()
+        return super().default(o)
 
 
 class AerBackend(Backend, ABC):
@@ -207,17 +207,15 @@ class AerBackend(Backend, ABC):
                         raise AerError(f"Unsupported circuit for simulation: {circuit.__class__}")
                 qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
             else:
-                def is_conditional_quantum_circuit(circuit):
+                def is_conditional_circuit(circuit):
                     if isinstance(circuit, AerCircuit):
                         return False
                     for inst, _, _ in circuit.data:
                         if inst.condition:
                             return True
                     return False
-                if (not all(isinstance(circuit, (QuantumCircuit, AerCircuit))
-                            for circuit in circuits) or
-                      any(is_conditional_quantum_circuit(circuit) for circuit in circuits) or
-                      parameter_binds):
+                if (not all(isinstance(c, (QuantumCircuit, AerCircuit)) for c in circuits) or
+                        any(is_conditional_circuit(c) for c in circuits) or parameter_binds):
                     qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
 
         if qobj:
