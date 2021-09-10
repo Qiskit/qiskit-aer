@@ -614,7 +614,8 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
 
   // Get op name, or label if it is a gate or unitary matrix
   std::string name = (op.type == Operations::OpType::matrix ||
-                      op.type == Operations::OpType::gate)
+                      op.type == Operations::OpType::gate) &&
+                          !op.string_params.empty()
     ? op.string_params[0]
     : op.name;
 
@@ -689,7 +690,8 @@ void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
   
   // Get op name, or label if it is a gate or unitary matrix
   std::string name = (op.type == Operations::OpType::matrix ||
-                      op.type == Operations::OpType::gate)
+                      op.type == Operations::OpType::gate) &&
+                          !op.string_params.empty()
     ? op.string_params[0]
     : op.name;
 

@@ -95,7 +95,6 @@ def u1(inst, qubits, clbits):
     op.type = OpType.gate
     op.name = "u1"
     op.qubits = qubits
-    op.string_params = [op.name]
     op.params = inst.params
     return op
 
@@ -105,7 +104,6 @@ def u2(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "u2"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -116,7 +114,6 @@ def u3(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "u3"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -127,7 +124,6 @@ def u(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "u"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -138,7 +134,6 @@ def cx(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "cx"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -148,7 +143,6 @@ def cz(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "cz"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -158,7 +152,6 @@ def cy(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "cy"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -168,7 +161,6 @@ def cp(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "cp"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -179,7 +171,6 @@ def cu1(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "cu1"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -190,7 +181,6 @@ def cu2(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "cu2"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -201,7 +191,6 @@ def cu3(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "cu3"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -212,7 +201,6 @@ def cu(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "cu"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -223,7 +211,6 @@ def swap(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "swap"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -233,7 +220,6 @@ def id_(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "id"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -243,7 +229,6 @@ def p(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "p"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -254,7 +239,6 @@ def x(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "x"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -264,7 +248,6 @@ def y(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "y"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -274,7 +257,6 @@ def z(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "z"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -284,7 +266,6 @@ def h(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "h"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -294,7 +275,6 @@ def s(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "s"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -304,7 +284,6 @@ def sdg(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "sdg"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -314,7 +293,6 @@ def t(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "t"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -324,7 +302,6 @@ def tdg(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "tdg"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -334,7 +311,6 @@ def r(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "r"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -345,7 +321,6 @@ def rx(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "rx"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -356,7 +331,6 @@ def ry(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "ry"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -367,7 +341,6 @@ def rz(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "rz"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -378,7 +351,6 @@ def rxx(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "rxx"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -389,7 +361,6 @@ def ryy(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "ryy"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -400,7 +371,6 @@ def rzz(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "rzz"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -411,7 +381,6 @@ def rzx(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "rzx"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -422,7 +391,6 @@ def ccx(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "ccx"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -432,7 +400,6 @@ def cswap(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "cswap"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -442,7 +409,6 @@ def mcx(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "mcx"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -452,7 +418,6 @@ def mcy(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "mcy"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -462,7 +427,6 @@ def mcz(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "mcz"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -472,7 +436,6 @@ def mcu1(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "mcu1"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -483,7 +446,6 @@ def mcu2(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "mcu2"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -494,7 +456,6 @@ def mcu3(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "mcu3"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -505,7 +466,6 @@ def mcu(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "mcu"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -516,7 +476,6 @@ def mcswap(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "mcswap"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -527,7 +486,6 @@ def mcp(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "mcphase"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -538,7 +496,6 @@ def mcr(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "mcr"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -549,7 +506,6 @@ def mcrx(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "mcrx"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -560,7 +516,6 @@ def mcry(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "mcry"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -571,7 +526,6 @@ def mcrz(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "mcrz"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -582,7 +536,6 @@ def sx(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "sx"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -592,7 +545,6 @@ def sxdg(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "sxdg"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -602,7 +554,6 @@ def csx(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "csx"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -613,7 +564,6 @@ def mcsx(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "mcsx"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -624,7 +574,6 @@ def delay(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "delay"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.params = inst.params
     return op
@@ -635,7 +584,6 @@ def pauli(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "pauli"
-    op.string_params = [op.name]
     op.qubits = qubits
     op.string_params = inst.params
     return op
@@ -646,7 +594,6 @@ def mcx_gray(inst, qubits, clbits):
     op = AerOp()
     op.type = OpType.gate
     op.name = "mcx_gray"
-    op.string_params = [op.name]
     op.qubits = qubits
     return op
 
@@ -826,8 +773,6 @@ def unitary(inst, qubits, clbits):
     """unitary"""
     mat = inst.params[0]
     op = make_unitary(qubits, mat, mat.flags.carray)
-    if inst.label:
-        op.string_params = [inst.label]
     return op
 
 
