@@ -207,14 +207,17 @@ class AerBackend(Backend, ABC):
                         raise AerError(f"Unsupported circuit for simulation: {circuit.__class__}")
                 qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
             else:
-                def has_condition(circuit):
+                def is_conditional_quantum_circuit(circuit):
+                    if isinstance(circuit, AerCircuit):
+                        return False
                     for inst, _, _ in circuit.data:
                         if inst.condition:
                             return True
                     return False
-                if (not all(isinstance(circuit, QuantumCircuit) for circuit in circuits) or
-                        any(has_condition(circuit) for circuit in circuits) or
-                        parameter_binds):
+                if (not all(isinstance(circuit, (QuantumCircuit, AerCircuit))
+                            for circuit in circuits) or
+                      any(is_conditional_quantum_circuit(circuit) for circuit in circuits) or
+                      parameter_binds):
                     qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
 
         if qobj:
@@ -366,6 +369,8 @@ class AerBackend(Backend, ABC):
             enable_truncation = config.enable_truncation
 
         def get_num_memory(circuit):
+            if isinstance(circuit, AerCircuit):
+                return 0
             ret = 0
             for creg in circuit.cregs:
                 ret += creg.size
