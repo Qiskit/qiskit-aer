@@ -376,6 +376,19 @@ inline Op make_unitary(const reg_t &qubits, cmatrix_t &&mat, std::string label =
   return op;
 }
 
+Op make_measure(const reg_t &qubits, const reg_t &memory, const reg_t &clbits) {
+
+  Operations::Op op;
+  op.type = Operations::OpType::measure;
+  op.name = "measure";
+  op.qubits = qubits;
+  op.memory = memory;
+  op.registers = clbits;
+
+  return op;
+};
+
+
 inline Op make_diagonal(const reg_t &qubits, cvector_t &&vec, std::string label = "") {
   Op op;
   op.type = OpType::diagonal_matrix;

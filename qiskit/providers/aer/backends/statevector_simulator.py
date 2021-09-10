@@ -271,7 +271,8 @@ class StatevectorSimulator(AerBackend):
         aer_circuit = super()._generate_aer_circuit(circuit, 1, seed,
                                                     num_memory, enable_truncation)
         aer_circuit.append_op(gen_aer_op(SaveStatevector(aer_circuit.num_qubits),
-                                         list(range(circuit.num_qubits)), []), enable_truncation)
+                                         list(range(circuit.num_qubits)), []))
+        aer_circuit.initialize(enable_truncation)
         return aer_circuit
 
     def _execute(self, qobj):

@@ -83,6 +83,12 @@ def measure(inst, qubits, clbits):
     op.registers = clbits
     return op
 
+
+def append_measure(circuit, inst, qubits, clbits):
+    """measure"""
+    memory = clbits
+    return circuit.measure(qubits, memory, clbits)
+
 # OpType.bfunc:
 
 # OpType.roerror:
@@ -773,7 +779,15 @@ def unitary(inst, qubits, clbits):
     """unitary"""
     mat = inst.params[0]
     op = make_unitary(qubits, mat, mat.flags.carray)
+    if inst.label:
+        op.string_params = [inst.label]
     return op
+
+
+def append_unitary(circuit, inst, qubits, clbits):
+    """append_ unitary"""
+    mat = inst.params[0]
+    circuit.unitary(qubits, mat, mat.flags.carray)
 
 
 # OpType.diagonal_matrix:
@@ -909,6 +923,83 @@ _gen_op_funcs = {
     qiskit.extensions.quantum_initializer.initializer.Initialize: initialize,
 }
 
+_append_funcs = {
+    qiskit.extensions.unitary.UnitaryGate: append_unitary,
+    # qiskit.circuit.reset.Reset: append_reset,
+    qiskit.circuit.measure.Measure: append_measure,
+    # qiskit.circuit.barrier.Barrier: append_barrier,
+    # qiskit.circuit.library.standard_gates.u1.U1Gate: append_u1,
+    # qiskit.circuit.library.standard_gates.u2.U2Gate: append_u2,
+    # qiskit.circuit.library.standard_gates.u3.U3Gate: append_u3,
+    # qiskit.circuit.library.standard_gates.u.UGate: append_u,
+    # qiskit.circuit.library.standard_gates.x.CXGate: append_cx,
+    # qiskit.circuit.library.standard_gates.y.CYGate: append_cy,
+    # qiskit.circuit.library.standard_gates.z.CZGate: append_cz,
+    # qiskit.circuit.library.standard_gates.p.CPhaseGate: append_cp,
+    # qiskit.circuit.library.standard_gates.u1.CU1Gate: append_cu1,
+    # qiskit.circuit.library.standard_gates.u3.CU3Gate: append_cu3,
+    # qiskit.circuit.library.standard_gates.u.CUGate: append_cu,
+    # qiskit.circuit.library.standard_gates.u1.MCU1Gate: append_mcu1,
+    # qiskit.circuit.library.standard_gates.swap.SwapGate: append_swap,
+    # qiskit.circuit.library.standard_gates.i.IGate: append_id_,
+    # qiskit.circuit.library.standard_gates.p.PhaseGate: append_p,
+    # qiskit.circuit.library.standard_gates.x.XGate: append_x,
+    # qiskit.circuit.library.standard_gates.y.YGate: append_y,
+    # qiskit.circuit.library.standard_gates.z.ZGate: append_z,
+    # qiskit.circuit.library.standard_gates.h.HGate: append_h,
+    # qiskit.circuit.library.standard_gates.s.SGate: append_s,
+    # qiskit.circuit.library.standard_gates.s.SdgGate: append_sdg,
+    # qiskit.circuit.library.standard_gates.t.TGate: append_t,
+    # qiskit.circuit.library.standard_gates.t.TdgGate: append_tdg,
+    # qiskit.circuit.library.standard_gates.r.RGate: append_r,
+    # qiskit.circuit.library.standard_gates.rx.RXGate: append_rx,
+    # qiskit.circuit.library.standard_gates.ry.RYGate: append_ry,
+    # qiskit.circuit.library.standard_gates.rz.RZGate: append_rz,
+    # qiskit.circuit.library.standard_gates.rxx.RXXGate: append_rxx,
+    # qiskit.circuit.library.standard_gates.ryy.RYYGate: append_ryy,
+    # qiskit.circuit.library.standard_gates.rzz.RZZGate: append_rzz,
+    # qiskit.circuit.library.standard_gates.rzx.RZXGate: append_rzx,
+    # qiskit.circuit.library.standard_gates.x.CCXGate: append_ccx,
+    # qiskit.circuit.library.standard_gates.swap.CSwapGate: append_cswap,
+    # qiskit.circuit.library.standard_gates.x.C3XGate: append_mcx,
+    # qiskit.circuit.library.standard_gates.x.C4XGate: append_mcx,
+    # qiskit.circuit.library.standard_gates.x.MCXGate: append_mcx,
+    # qiskit.circuit.library.standard_gates.p.MCPhaseGate: append_mcp,
+    # qiskit.circuit.library.standard_gates.rx.CRXGate: append_mcrx,
+    # qiskit.circuit.library.standard_gates.ry.CRYGate: append_mcry,
+    # qiskit.circuit.library.standard_gates.rz.CRZGate: append_mcrz,
+    # qiskit.circuit.library.standard_gates.sx.SXGate: append_sx,
+    # qiskit.circuit.library.standard_gates.sx.SXdgGate: append_sxdg,
+    # qiskit.circuit.library.standard_gates.sx.CSXGate: append_csx,
+    # qiskit.circuit.delay.Delay: append_delay,
+    # qiskit.circuit.library.generalized_gates.pauli.PauliGate: append_pauli,
+    # qiskit.circuit.library.generalized_gates.diagonal.Diagonal: append_diagonal,
+    # qiskit.circuit.library.standard_gates.x.MCXGrayCode: append_mcx_gray,
+    # SaveState: append_save_state,
+    # SaveStatevector: append_save_statevector,
+    # SaveStatevectorDict: append_save_statevector_dict,
+    # SaveExpectationValue: append_save_expval,
+    # SaveExpectationValueVariance: append_save_expval_var,
+    # SaveProbabilities: append_save_probabilities,
+    # SaveProbabilitiesDict: append_save_probabilities_dict,
+    # SaveAmplitudes: append_save_amplitudes,
+    # SaveAmplitudesSquared: append_save_amplitudes_squared,
+    # SaveDensityMatrix: append_save_density_matrix,
+    # SaveUnitary: append_save_unitary,
+    # SaveStabilizer: append_save_stabilizer,
+    # SaveMatrixProductState: append_save_mps,
+    # SaveSuperOp: append_save_superop,
+    # SetStatevector: append_set_statevector,
+    # SetDensityMatrix: append_set_density_matrix,
+    # SetUnitary: append_set_unitary,
+    # SetStabilizer: append_set_stabilizer,
+    # SetSuperOp: append_set_superop,
+    # SetMatrixProductState: append_set_mps,
+    # qiskit.circuit.instruction.Instruction: append_general_instruction,
+    # qiskit.extensions.quantum_initializer.diagonal.DiagonalGate: append_diagonal,
+    # qiskit.extensions.quantum_initializer.initializer.Initialize: append_initialize,
+}
+
 
 def gen_aer_op(inst, qubits, clbits):
     """Generate an Aer operation from an inst"""
@@ -929,20 +1020,29 @@ def gen_aer_circuit(circuit, seed=None, shots=None, num_memory=0, enable_truncat
     qubit_indices = {bit: index for index, bit in enumerate(circuit.qubits)}
     clbit_indices = {bit: index for index, bit in enumerate(circuit.clbits)}
 
-    circ = AerCircuit(circuit.name,
-                      [gen_aer_op(instruction[0],
-                                  [qubit_indices[qubit] for qubit in instruction[1]],
-                                  [clbit_indices[clbit] for clbit in instruction[2]])
-                       for instruction in circuit.data],
-                      enable_truncation)
+#     circ = AerCircuit(circuit.name,
+#                       [gen_aer_op(instruction[0],
+#                                   [qubit_indices[qubit] for qubit in instruction[1]],
+#                                   [clbit_indices[clbit] for clbit in instruction[2]])
+#                        for instruction in circuit.data],
+#                       enable_truncation)
+
+    circ = AerCircuit(circuit.name)
+    for instruction in circuit.data:
+        qubits = [qubit_indices[qubit] for qubit in instruction[1]]
+        clbits = [clbit_indices[clbit] for clbit in instruction[2]]
+        if instruction[0].__class__ in _append_funcs:
+            _append_funcs[instruction[0].__class__](circ, instruction[0], qubits, clbits)
+        else:
+            op = gen_aer_op(instruction[0], qubits, clbits)
+            circ.append_op(op)
     circ.global_phase_angle = global_phase
     circ.num_memory = num_memory
-    if not enable_truncation:
-        circ.num_qubits = len(qubit_indices)
-
     if seed:
         circ.seed = seed
     if shots:
         circ.shots = shots
-
+    circ.initialize(enable_truncation)
+    if not enable_truncation:
+        circ.num_qubits = len(qubit_indices)
     return circ

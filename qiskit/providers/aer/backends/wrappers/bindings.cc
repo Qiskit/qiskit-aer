@@ -33,11 +33,21 @@ public:
     ControllerExecutor() = default;
     py::object operator()(const py::handle &qobj) {
 #ifdef TEST_JSON // Convert input qobj to json to test standalone data reading
-        return AerToPy::to_python(AER::controller_execute<T>(json_t(qobj)));
+        return AerToPy::to_python(controller_execute<T>(json_t(qobj)));
 #else
-        return AerToPy::to_python(AER::controller_execute<T>(qobj));
+        return AerToPy::to_python(controller_execute<T>(qobj));
 #endif
     }
+};
+
+Operations::Op make_unitary(const reg_t &qubits, const py::array_t<std::complex<double>> &values, const bool carray) {
+  size_t mat_len = (1UL << qubits.size());
+  auto ptr = values.unchecked<2>();
+  cmatrix_t mat(mat_len, mat_len);
+    for (auto i = 0; i < mat_len; ++i)
+      for (auto j = 0; j < mat_len; ++j)
+        mat(i, j) = ptr(i, j);
+  return Operations::make_unitary(qubits, mat);
 };
 
 PYBIND11_MODULE(controller_wrappers, m) {
@@ -47,22 +57,22 @@ PYBIND11_MODULE(controller_wrappers, m) {
   MPI_Init_thread(nullptr,nullptr,MPI_THREAD_MULTIPLE,&prov);
 #endif
 
-    py::class_<ControllerExecutor<AER::Controller> > aer_ctrl (m, "aer_controller_execute");
+    py::class_<ControllerExecutor<Controller> > aer_ctrl (m, "aer_controller_execute");
     aer_ctrl.def(py::init<>());
-    aer_ctrl.def("__call__", &ControllerExecutor<AER::Controller>::operator());
-    aer_ctrl.def("__reduce__", [aer_ctrl](const ControllerExecutor<AER::Controller> &self) {
+    aer_ctrl.def("__call__", &ControllerExecutor<Controller>::operator());
+    aer_ctrl.def("__reduce__", [aer_ctrl](const ControllerExecutor<Controller> &self) {
         return py::make_tuple(aer_ctrl, py::tuple());
     });
 
-    py::class_<AER::Controller> aer_controller(m, "AerController");
+    py::class_<Controller> aer_controller(m, "AerController");
     aer_controller.def(py::init<>());
-    aer_controller.def("execute", [aer_controller](AER::Controller &controller,
-                                     std::vector<AER::Circuit> circuits,
+    aer_controller.def("execute", [aer_controller](Controller &controller,
+                                     std::vector<Circuit> circuits,
                                      const py::handle &py_config,
                                      const py::handle &py_noise_model
                                      ) {
       auto config = json_t(py_config);
-      auto noise_model = AER::Noise::NoiseModel(json_t(py_noise_model));
+      auto noise_model = Noise::NoiseModel(json_t(py_noise_model));
       return AerToPy::to_python(controller.execute(circuits, noise_model, config));
     }, py::arg("circuits"), py::arg("config") = py::none(), py::arg("noise_model") = py::none());
 
@@ -149,8 +159,8 @@ PYBIND11_MODULE(controller_wrappers, m) {
     aer_op.def_readwrite("mps", &Operations::Op::mps);
 
     py::class_<Circuit> aer_circuit(m, "AerCircuit");
-    aer_circuit.def(py::init<std::string, std::vector<Operations::Op>, bool>(), "constructor",
-        py::arg("name") = "circuit", py::arg("ops") = std::vector<Operations::Op>(), py::arg("truncation") = false);
+    aer_circuit.def(py::init<std::string>(), "constructor",
+        py::arg("name") = "circuit");
     aer_circuit.def("__repr__", [](const Circuit &circ) {
       std::stringstream ss;
       ss << "Circuit("
@@ -179,36 +189,33 @@ PYBIND11_MODULE(controller_wrappers, m) {
     aer_circuit.def_readwrite("seed", &Circuit::seed);
     aer_circuit.def_readwrite("ops", &Circuit::ops);
     aer_circuit.def_readwrite("global_phase_angle", &Circuit::global_phase_angle);
-    aer_circuit.def("append_op", [aer_circuit](Circuit &circ, const Operations::Op &op, bool truncation) {
+    aer_circuit.def("append_op", [aer_circuit](Circuit &circ, const Operations::Op &op) {
       circ.ops.push_back(op);
+    });
+    aer_circuit.def("initialize", [aer_circuit](Circuit &circ, bool truncation) {
       circ.set_params(truncation);
     });
-    aer_circuit.def("initialize", [aer_circuit](Circuit &circ) {
-      circ.set_params();
+    aer_circuit.def("unitary", [aer_circuit](Circuit &circ,
+                                             const reg_t &qubits,
+                                             const py::array_t<std::complex<double>> &values,
+                                             const bool carray) {
+      circ.ops.push_back(make_unitary(qubits, values, carray));
     });
 
-    m.def("make_unitary", [](const AER::reg_t &qubits, const py::array_t<std::complex<double>> &values, const bool carray) {
-      size_t mat_len = (1UL << qubits.size());
-      auto ptr = values.unchecked<2>();
-      AER::cmatrix_t mat(mat_len, mat_len);
-//      if (!carray) {
-        for (auto i = 0; i < mat_len; ++i)
-          for (auto j = 0; j < mat_len; ++j)
-            mat(i, j) = ptr(i, j);
-//      } else {
-//        for (auto i = 0; i < mat_len; ++i)
-//          for (auto j = 0; j < mat_len; ++j)
-//            mat(j, i) = ptr(i, j);
-//      }
-      return AER::Operations::make_unitary(qubits, mat);
-    }, "return unitary op");
+    aer_circuit.def("measure", [aer_circuit](Circuit &circ, const reg_t &qubits, const reg_t &memory, const reg_t &clbits) {
+      circ.ops.push_back(Operations::make_measure(qubits, memory, clbits));
+    });
 
-    m.def("make_multiplexer", [](const AER::reg_t &qubits, const std::vector<cmatrix_t> &mats, const std::string label) {
+
+    m.def("make_unitary", &make_unitary, "return unitary op");
+    m.def("make_measure", &Operations::make_measure, "return measure op");
+
+    m.def("make_multiplexer", [](const reg_t &qubits, const std::vector<cmatrix_t> &mats, const std::string label) {
       return Operations::make_multiplexer(qubits, mats, label);
     }, "return multiplexer", py::arg("qubits"), py::arg("mats"), py::arg("label") = "");
 
 
-    m.def("make_set_clifford", [](const AER::reg_t &qubits, const std::vector<std::string> &stab, const std::vector<std::string> &destab) {
+    m.def("make_set_clifford", [](const reg_t &qubits, const std::vector<std::string> &stab, const std::vector<std::string> &destab) {
       return Operations::make_set_clifford(qubits, stab, destab);
     }, "return set_clifford", py::arg("qubits"), py::arg("stab"), py::arg("destab"));
 
