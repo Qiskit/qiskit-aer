@@ -157,7 +157,7 @@ class TestOptions(SimulatorTestCase):
         # The test must be large enough and entangled enough so that
         # approximation actually does something
         n = 10
-        circuit = QuantumCircuit(n, n)
+        circuit = QuantumCircuit(n)
         for times in range(2):
             for i in range(0, n, 2):
                 circuit.unitary(random_unitary(4), [i, i+1])
@@ -169,5 +169,9 @@ class TestOptions(SimulatorTestCase):
         sv_exact = result_exact.data(0)['sv']
         result_approx = backend_approx.run(circuit, shots=shots).result()
         sv_approx = result_approx.data(0)['sv']
+        # Check that the fidelity is reasonable
         self.assertGreaterEqual(state_fidelity(sv_exact, sv_approx), 0.88)
+
+        # Check that the approximated result is not identical to the exact
+        # result, because that could mean there was actually no approximation
         self.assertLessEqual(state_fidelity(sv_exact, sv_approx), 0.99)
