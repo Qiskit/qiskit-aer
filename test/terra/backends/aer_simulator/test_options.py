@@ -174,4 +174,4 @@ class TestOptions(SimulatorTestCase):
 
         # Check that the approximated result is not identical to the exact
         # result, because that could mean there was actually no approximation
-        self.assertLessEqual(state_fidelity(sv_exact, sv_approx), 0.99)
+        self.assertLessEqual(state_fidelity(sv_exact, sv_approx), 0.999)
