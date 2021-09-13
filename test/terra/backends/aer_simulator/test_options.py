@@ -155,7 +155,7 @@ class TestOptions(SimulatorTestCase):
         backend_approx = self.backend(method=method,
                                      matrix_product_state_max_bond_dimension=8)
         # The test must be large enough and entangled enough so that
-        # approximation actually does something
+        # approximation actually truncates something
         n = 10
         circuit = QuantumCircuit(n)
         for times in range(2):
