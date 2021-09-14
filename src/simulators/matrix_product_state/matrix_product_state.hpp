@@ -511,14 +511,7 @@ void State::output_bond_dimensions(const Operations::Op &op) const {
   for (uint_t index=1; index<op.qubits.size(); index++) {
     MPS::print_to_log(",", op.qubits[index]);
   }
-  MPS::print_to_log(", BD=[");
-  reg_t bd = qreg_.get_bond_dimensions();
-  for (uint_t index=0; index<bd.size(); index++) {
-    MPS::print_to_log(bd[index]);
-      if (index < bd.size()-1)
-	MPS::print_to_log(" ");
-  }
-  MPS::print_to_log("],  ");
+  qreg_.print_bond_dimensions();
   instruction_number++;
 }
 
