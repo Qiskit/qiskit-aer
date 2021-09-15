@@ -1,3 +1,5 @@
+.. _dask:
+
 Running with Threadpool and DASK
 ================================
 
