@@ -22,7 +22,7 @@ features:
 
     Supported executors include Python multiprocessing executors
     (eg. ``ThreadPoolExecutor``, ``ProcessPoolExecutor``), and
-    `Dask <http://dask.org>`__ distributed  Client executors if the optional dask
-    library is installed. Using a Dask executor allows configuring parallel execution of
-    multiple circuits on HPC clusters. See the :docs:`parallel` API docs for
-    additional details on using Dask executors for HPC simulation.
+    `Dask <http://dask.org>`__ distributed  Client executors if the optional
+    dask library is installed. Using a Dask executor allows configuring parallel
+    execution of multiple circuits on HPC clusters. See the :docs:`parallel`
+    API docs for additional details on using Dask executors for HPC simulation.

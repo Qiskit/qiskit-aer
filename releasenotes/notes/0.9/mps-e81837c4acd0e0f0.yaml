@@ -7,12 +7,6 @@ features:
     bond dimensions and the discarded value (the sum of the squares of
     the Schmidt coeffients that were discarded by approximation) after
     every relevant circuit instruction.
-  - |
-    If the environment variable `MPS_OUTPUT_DATA` is set to 1, then MPS
-    log data is printed to the metadata. This includes, after every relevant
-    instruction, the bond dimensions and the discarded value i.e.,
-    the sum of the squares of the Schmidt coeffients 
-    that were discarded by approximation.
 fixes:
   - |
     Fixes bug with applying the ``unitary`` gate in using the ``matrix_product_state``
