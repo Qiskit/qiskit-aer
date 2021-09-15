@@ -660,7 +660,7 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
   MPS_Tensor left_gamma, right_gamma;
   rvector_t lambda;
   double discarded_value = MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
-  if (discarded_value > 0.0)
+  if (discarded_value > json_chop_threshold_)
     MPS::print_to_log("discarded_value=", discarded_value, ", ");
 
   if (A != 0)
@@ -1541,7 +1541,7 @@ reg_t MPS::apply_measure_internal(const reg_t &sorted_qubits, const rvector_t &r
 }
 
 uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
-    uint_t next_measured_qubit) {
+						uint_t next_measured_qubit) {
   reg_t qubits_to_update;
   qubits_to_update.push_back(qubit);
 
@@ -1563,6 +1563,7 @@ uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
     measurement_matrix = measurement_matrix * (1 / sqrt(prob1));
   }
   apply_matrix_internal(qubits_to_update, measurement_matrix);
+
   if (num_qubits_ > 1)
     propagate_to_neighbors_internal(qubit, qubit, next_measured_qubit);
 
