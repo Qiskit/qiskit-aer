@@ -6,8 +6,9 @@ prelude: |
 features:
   - |
     Add qiskit library SXdgGate and CUGate to the supported basis gates for
-    the Aer simulator backends. Note that the CUGate gate is only natively
-    supported for the statevector and unitary methods. For other simulation
+    the Aer simulator backends. Note that the :class:`~qiskit.circuit.library.CUGate`
+    gate is only natively
+    supported for the ``statevector`` and ``unitary`` methods. For other simulation
     methods it must be transpiled to the supported basis gates for that method.
   - |
     Adds support for N-qubit Pauli gate (
@@ -20,7 +21,7 @@ deprecations:
     Passing an assembled qobj directly to the
     :meth:`~qiskit.providers.aer.AerSimulator.run` method of the Aer simulator
     backends has been deprecated in favor of passing transpiled circuits
-    directly as `backend.run(circuits, **run_options)`.
+    directly as ``backend.run(circuits, **run_options)``.
   - |
     All snapshot instructions in :mod:`qiskit.providers.aer.extensions` have
     been deprecated. For replacement use the save instructions from the
@@ -50,7 +51,7 @@ upgrade:
     that was deprecated in qiskit-aer 0.7. All run options must now be passed as
     separate kwargs.
   - |
-    Removed passing `system_model` as a positional arg for the ``run`` method of the
+    Removed passing ``system_model`` as a positional arg for the ``run`` method of the
     :class:`~qiskit.providers.aer.PulseSimulator`.
 fixes:
   - |

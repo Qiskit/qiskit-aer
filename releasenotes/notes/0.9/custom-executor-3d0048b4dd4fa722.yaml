@@ -18,7 +18,7 @@ features:
     :class:`~qiskit.providers.aer.jobs.AerJobSet` object containing all the
     individual :class:`~qiskit.providers.aer.jobs.AerJob` classes. After all
     individual jobs finish running the job results are automatically combined
-    into a single Result object that is returned by `job.result()`.
+    into a single Result object that is returned by ``job.result()``.
 
     Supported executors include Python multiprocessing executors
     (eg. ``ThreadPoolExecutor``, ``ProcessPoolExecutor``), and
