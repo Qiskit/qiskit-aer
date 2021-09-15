@@ -247,7 +247,7 @@ class TestMeasure(SimulatorTestCase):
         for circuit in circuits:
             result1 = backend.run(
                 circuit, shots=shots,
-                ps_sample_measure_algorithm="mps_apply_measure").result()
+                mps_sample_measure_algorithm="mps_apply_measure").result()
             self.assertTrue(getattr(result1, 'success', 'True'))
 
             result2 = backend.run(
