@@ -20,7 +20,8 @@ features:
     individual jobs finish running the job results are automatically combined
     into a single Result object that is returned by ``job.result()``.
 
-    Supported executors include Python multiprocessing executors
+    Supported executors include those in the Python ``concurrent.futures``
+    `module <https://docs.python.org/3/library/concurrent.futures.html>`__
     (eg. ``ThreadPoolExecutor``, ``ProcessPoolExecutor``), and
     `Dask <http://dask.org>`__ distributed  Client executors if the optional
     dask library is installed. Using a Dask executor allows configuring parallel
