@@ -24,5 +24,6 @@ features:
     (eg. ``ThreadPoolExecutor``, ``ProcessPoolExecutor``), and
     `Dask <http://dask.org>`__ distributed  Client executors if the optional
     dask library is installed. Using a Dask executor allows configuring parallel
-    execution of multiple circuits on HPC clusters. See the :docs:`parallel`
-    API docs for additional details on using Dask executors for HPC simulation.
+    execution of multiple circuits on HPC clusters. See the 
+    Dask executor `API Documentation <apidocs/parallel>`_ for additional details
+    on using Dask executors for HPC simulation.
