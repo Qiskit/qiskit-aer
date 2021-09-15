@@ -5,7 +5,8 @@ prelude: |
     along with other general performance improvements and bug fixes.
 features:
   - |
-    Add qiskit library SXdgGate and CUGate to the supported basis gates for
+    Add qiskit library :class:`~qiskit.circuit.library.SXdgGate`
+    and :class:`~qiskit.circuit.library.CUGate` to the supported basis gates for
     the Aer simulator backends. Note that the :class:`~qiskit.circuit.library.CUGate`
     gate is only natively
     supported for the ``statevector`` and ``unitary`` methods. For other simulation
