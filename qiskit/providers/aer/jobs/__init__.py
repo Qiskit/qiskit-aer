@@ -12,7 +12,25 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Aer simulator job management.
+================================================
+Aer Jobs (:mod:`qiskit.providers.aer.jobs`)
+================================================
+
+.. currentmodule:: qiskit.providers.aer.jobs
+
+This module contains classes and functions to manage Aer jobs.
+
+Classes
+=======
+
+The following are the classes used to manage job submissions.
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    AerJob
+    AerJobSet
+
 """
 
 from .aerjob import AerJob

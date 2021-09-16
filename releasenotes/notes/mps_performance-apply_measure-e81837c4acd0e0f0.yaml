@@ -1,8 +1,0 @@
----
-other:
-  - |
-    Performance improvement in algorithm for apply_measure in MPS: this 
-    generalizes the improvement done for all qubits to any subset of the qubits.
-    Also removed the heuristic for choosing the algorithm for sample_measure.
-    The default is now `mps_apply_measure` and the user can specify 
-    'mps_probabilities` if she prefers that algorithm.

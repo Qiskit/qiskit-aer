@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fixes a bug in how the ``AerSimulator`` handled the option value
-    ``max_parallel_experiments=1`` which was being previously being treated
-    the same as ``max_parallel_experiments=0``. 

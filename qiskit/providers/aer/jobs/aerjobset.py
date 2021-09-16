@@ -37,27 +37,27 @@ logger = logging.getLogger(__name__)
 
 
 class AerJobSet(Job):
-    """A set of cluster jobs.
+    """A set of :class:`~AerJob` classes for Qiskit Aer simulators.
 
     An instance of this class is returned when you submit experiments with
-    executor option.
-    It provides methods that allow you to interact
+    executor option.  It provides methods that allow you to interact
     with the jobs as a single entity. For example, you can retrieve the results
     for all of the jobs using :meth:`result()` and cancel all jobs using
     :meth:`cancel()`.
     """
 
-    def __init__(self, backend, job_id, func, experiments: List[QasmQobj], executor=None):
+    def __init__(self, backend, job_id, fn, experiments: List[QasmQobj], executor=None):
         """AerJobSet constructor.
 
         Args:
             backend(Aerbackend): Aerbackend.
             job_id(int): Job Id.
-            func(fun): Callabled function.
+            fn(function): a callable function to execute qobj on backend.
+                This should usually be a bound :meth:`AerBackend._run()` method,
+                with the signature `(qobj: QasmQobj, job_id: str) -> Result`.
             experiments(List[QasmQobj]): List[QasmQobjs] to execute.
-            executor(ThreadPoolExecutor or dask.distributed.client): The executor
-            to be used to submit the job.
-
+            executor(ThreadPoolExecutor or dask.distributed.client):
+                The executor to be used to submit the job.
         """
         super().__init__(backend, job_id)
         self._experiments = experiments
@@ -66,7 +66,7 @@ class AerJobSet(Job):
         self._future = None
         self._futures = []
         self._results = None
-        self._fn = func
+        self._fn = fn
         self._executor = executor or DEFAULT_EXECUTOR
         self._start_time = None
         self._end_time = None
@@ -203,9 +203,9 @@ class AerJobSet(Job):
             result = aer_job.result(timeout=timeout)
             if result is None or not result.success:
                 if result:
-                    logger.warning('ClusterJob %s Error: %s', aer_job.job_id(), result.header)
+                    logger.warning('AerJobSet %s Error: %s', aer_job.name(), result.header)
                 else:
-                    logger.warning('ClusterJob %s did not return a result', aer_job.job_id())
+                    logger.warning('AerJobSet %s did not return a result', aer_job.name())
         except JobError:
             raise JobError(
                 'Timeout while waiting for the results of experiment {}'.format(

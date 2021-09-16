@@ -24,13 +24,21 @@ LOGGER = logging.getLogger(__name__)
 
 
 class AerJob(Job):
-    """AerJob class.
-
-    Attributes:
-        _executor (futures.Executor): executor to handle asynchronous jobs
-    """
+    """AerJob class for Qiskit Aer Simulators."""
 
     def __init__(self, backend, job_id, fn, qobj, executor=None, config=None):
+        """ Initializes the asynchronous job.
+
+        Args:
+            backend(AerBackend): the backend used to run the job.
+            job_id(str): a unique id in the context of the backend used to run the job.
+            fn(function): a callable function to execute qobj on backend.
+                This should usually be a bound :meth:`AerBackend._run()` method,
+                with the signature `(qobj: QasmQobj, job_id: str) -> Result`.
+            qobj(QasmQobj): qobj to execute
+            executor(ThreadPoolExecutor or dask.distributed.client):
+                The executor to be used to submit the job.
+        """
         super().__init__(backend, job_id)
         self._fn = fn
         self._qobj = qobj
@@ -75,6 +83,7 @@ class AerJob(Job):
 
     @requires_submit
     def cancel(self):
+        """Attempt to cancel the job."""
         return self._future.cancel()
 
     @requires_submit
