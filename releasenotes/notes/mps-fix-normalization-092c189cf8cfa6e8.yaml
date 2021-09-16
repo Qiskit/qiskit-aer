@@ -1,7 +1,0 @@
----
-
-fixes:
-  - |
-    Fixed bug in computing the normalization following truncation of the 
-    Schmidt coefficients following SVD.
-
