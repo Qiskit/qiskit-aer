@@ -1,9 +1,0 @@
----
-upgrade:
-  - |
-    The default basis for the :class:`~qiskit.providers.aer.noise.NoiseModel`
-    class has been changed from ``["id", "u3", "cx"]`` to
-    ``["id", "rz", "sx", "cx"]`` due to the deprecation of the ``u3`` circuit
-    method in qiskit-terra and change of qiskit-ibmq-provider backend basis
-    gates. To use the old basis gates you can initialize a noise model with
-    custom basis gates as ``NoiseModel(basis_gates=["id", "u3", "cx"])``.
