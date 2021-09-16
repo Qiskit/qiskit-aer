@@ -38,6 +38,7 @@ class AerJob(Job):
             qobj(QasmQobj): qobj to execute
             executor(ThreadPoolExecutor or dask.distributed.client):
                 The executor to be used to submit the job.
+            config(BackendConfiguration): the configuration for the backend.
         """
         super().__init__(backend, job_id)
         self._fn = fn
