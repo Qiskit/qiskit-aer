@@ -1121,16 +1121,12 @@ void State<densmat_t>::apply_batched_ops(const std::vector<Operations::Op> &ops)
     qubits.reserve(ops.size());
     matrices.reserve(ops.size()*16);
 
-    std::cout << "    === batch === " << std::endl;
-
     for(i=0;i<ops.size();i++){
       param.state_index_ = i;
       param.num_qubits_ = 1;
       param.offset_qubits_ = qubits.size();
       param.offset_matrix_ = matrices.size();
       param.super_op_ = false;
-
-      std::cout << "   ops[" << i << "] " <<ops[i]<<std::endl;
 
       if(ops[i].type == Operations::OpType::gate){
         auto it = gateset_.find(ops[i].name);
@@ -1342,7 +1338,6 @@ void State<densmat_t>::apply_batched_ops(const std::vector<Operations::Op> &ops)
         params.push_back(param);
       }
     }
-    std::cout << "    ================== " << std::endl;
 
     BaseState::qreg_.apply_batched_matrix(params,qubits,matrices);
   }

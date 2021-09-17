@@ -114,6 +114,8 @@ public:
   //check if this register is on the top of array on device
   bool top_of_group()
   {
+    if(chunk_.device() < 0)
+      return true;    //host chunk are always top
     return (chunk_.pos() == 0);
   }
 
@@ -1169,7 +1171,7 @@ void QubitVectorThrust<data_t>::release_chunk(bool write_back) const
     chunk_manager_->UnmapBufferChunk(buffer_chunk_);
     chunk_.unmap_cache();
   }
-  else if(enable_batch_){
+  else{
     if(chunk_.pos() == 0){
       chunk_.synchronize();    //synchronize stream before chunk exchange
     }
@@ -1343,6 +1345,7 @@ void QubitVectorThrust<data_t>::initialize()
     else{
       zero();
     }
+    chunk_.synchronize();
   }
   else{
     apply_function(initialize_kernel<data_t>(t,chunk_manager_->chunk_bits(),(1ull << chunk_manager_->chunk_bits())));

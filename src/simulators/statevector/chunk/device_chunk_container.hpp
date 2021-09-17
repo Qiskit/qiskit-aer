@@ -615,11 +615,7 @@ void DeviceChunkContainer<data_t>::Swap(Chunk<data_t>& src,uint_t iChunk)
   if(src.device() >= 0){
     auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src.container());
     if(peer_access(src.device())){
-#ifdef AER_THRUST_CUDA
-      thrust::swap_ranges(thrust::cuda::par.on(stream_[iChunk]),chunk_pointer(iChunk),chunk_pointer(iChunk + 1),src.pointer());
-#else
       thrust::swap_ranges(thrust::device,chunk_pointer(iChunk),chunk_pointer(iChunk + 1),src.pointer());
-#endif
     }
     else{
       //using temporary buffer on host

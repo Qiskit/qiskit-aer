@@ -101,7 +101,7 @@ public:
   size_t required_memory_mb(uint_t num_qubits) const;
 
   //check if this register is on the top of array (always true if array is allocated independently)
-  bool top_of_array(){ return true;}
+  bool top_of_group(){ return true;}
 
   // Returns a copy of the underlying data_t data as a complex vector
   cvector_t<data_t> vector() const;
@@ -407,11 +407,6 @@ public:
   virtual bool enable_batch(bool flg)
   {
     return false;
-  }
-
-  virtual bool top_of_group(void)
-  {
-    return true;
   }
 
 protected:

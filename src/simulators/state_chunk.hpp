@@ -651,16 +651,18 @@ void StateChunk<state_t>::apply_ops(InputIterator first, InputIterator last,
       uint_t iOpBegin = iOp + 1;
 #pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
       for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
-        uint_t iOpBlock = iOpBegin;
-        //fecth chunk in cache
-        if(qregs_[iChunk].fetch_chunk()){
-          while(iOpBlock < iOpEnd){
-            apply_op_chunk(iChunk,*(first + iOpBlock),result,rng,final_ops);
-            iOpBlock++;
-          }
+        if(qregs_[iChunk].top_of_group()){
+          uint_t iOpBlock = iOpBegin;
+          //fecth chunk in cache
+          if(qregs_[iChunk].fetch_chunk()){
+            while(iOpBlock < iOpEnd){
+              apply_op_chunk(iChunk,*(first + iOpBlock),result,rng,final_ops);
+              iOpBlock++;
+            }
 
-          //release chunk from cache
-          qregs_[iChunk].release_chunk();
+            //release chunk from cache
+            qregs_[iChunk].release_chunk();
+          }
         }
       }
 
@@ -669,7 +671,12 @@ void StateChunk<state_t>::apply_ops(InputIterator first, InputIterator last,
     else if(is_applied_to_each_chunk(op_iOp)){
 #pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
       for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
-        apply_op_chunk(iChunk,op_iOp,result,rng,final_ops && nOp == iOp + 1);
+        if(qregs_[iChunk].top_of_group()){
+          if(qregs_[iChunk].fetch_chunk()){
+            apply_op_chunk(iChunk,op_iOp,result,rng,final_ops && nOp == iOp + 1);
+            qregs_[iChunk].release_chunk();
+          }
+        }
       }
     }
     else{
@@ -1148,7 +1155,9 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
     //device
 #pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
     for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
-      qregs_[iChunk].apply_mcswap(qubits);
+      if(qregs_[iChunk].top_of_group()){
+        qregs_[iChunk].apply_mcswap(qubits);
+      }
     }
   }
   else{ //swap over chunks
@@ -1314,7 +1323,9 @@ void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
     reg_t qubits(1,qubit);
 #pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
     for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
-      qregs_[iChunk].apply_mcx(qubits);
+      if(qregs_[iChunk].top_of_group()){
+        qregs_[iChunk].apply_mcx(qubits);
+      }
     }
   }
   else{ //exchange over chunks
