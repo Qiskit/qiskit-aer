@@ -44,14 +44,6 @@ Legacy Simulator Backends
     StatevectorSimulator
     UnitarySimulator
 
-Job Classes
-===========
-.. autosummary::
-   :toctree: ../stubs/
-
-   AerJob
-   AerJobSet
-
 Exceptions
 ==========
 .. autosummary::

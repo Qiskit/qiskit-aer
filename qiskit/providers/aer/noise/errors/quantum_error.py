@@ -242,10 +242,8 @@ class QuantumError:
     def ideal(self):
         """Return True if current error object is an identity"""
         instructions, probability = self.error_term(0)
-        if probability == 1 and instructions == [{
-                "name": "id",
-                "qubits": [0]
-        }]:
+        if (probability == 1 and len(instructions) == 1 and
+                instructions[0]["name"] == "id"):
             logger.debug("Error object is ideal")
             return True
         return False

@@ -1,0 +1,30 @@
+---
+features:
+  - |
+    Adds ability to record logging data for the ``matrix_product_state``
+    simulation method to the experiment result metadata by setting the
+    backend option  ``mps_log_data=True``. The saved data includes the
+    bond dimensions and the discarded value (the sum of the squares of
+    the Schmidt coeffients that were discarded by approximation) after
+    every relevant circuit instruction.
+fixes:
+  - |
+    Fixes bug with applying the ``unitary`` gate in using the ``matrix_product_state``
+    simulation method which did not correctly support permutations in the ordering of
+    the qubits on which the gate is applied.
+  - |
+    Fixes an issue where gate fusion could still be enabled for the
+    ``matrix_product_state`` simulation method even though it is not supported. 
+    Now fusion is always disabled for this method.
+  - |
+    Fixed bug in the ``matrix_product_state`` simulation method in computing the
+    normalization following truncation of the  Schmidt coefficients after
+    performing the SVD.
+other:
+  - |
+    Improves the performance of the measurement sampling algorithm for the
+    ``matrix_product_state`` simulation method.
+    The new default behaviour is to always sample using the
+    improved ``mps_apply_measure`` method. The ``mps_probabilities`` sampling
+    method be still used by setting the custom option value
+    ``mps_sample_measure_algorithm="mps_probabilities"``.
