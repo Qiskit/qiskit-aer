@@ -47,6 +47,8 @@ DISABLE_WARNING_POP
 #define QV_MAX_REGISTERS 10
 #define QV_MAX_BLOCKED_GATES 64
 
+#define QV_PROBABILITY_BUFFER_SIZE 4
+#define QV_NUM_INTERNAL_REGS 4
 
 #ifdef AER_THRUST_CUDA
 #define AERDeviceVector thrust::device_vector
@@ -210,11 +212,6 @@ public:
     return 0.0;
   }
 
-  virtual __host__ __device__  bool check_condition(uint_t i) const
-  {
-    return true;
-  }
-
   virtual __host__ __device__ bool check_conditional(uint_t i) const
   {
     if(conditional_bit_ < 0)
@@ -281,7 +278,7 @@ public:
 
   __host__ __device__ void operator()(const uint_t &i) const
   {
-    if(!check_condition(i << nqubits_))
+    if(!this->check_conditional(i))
       return;
 
     thrust::complex<data_t> cache[1024];
@@ -304,11 +301,6 @@ public:
   virtual int qubits_count(void)
   {
     return nqubits_;
-  }
-
-  virtual __host__ __device__  bool check_condition(uint_t i) const
-  {
-    return true;
   }
 };
 
@@ -355,10 +347,8 @@ public:
 
   __host__ __device__ double operator()(const uint_t &i) const
   {
-#ifndef AER_THRUST_CUDA
-    if(!check_condition((i << nqubits_) + this->index_offset_))
+    if(!this->check_conditional(i))
       return 0.0;
-#endif
 
     thrust::complex<data_t> cache[1024];
     uint_t j,idx;
@@ -384,10 +374,6 @@ public:
     return nqubits_;
   }
 
-  virtual __host__ __device__  bool check_condition(uint_t i) const
-  {
-    return true;
-  }
 };
 
 //stridded iterator to access diagonal probabilities
@@ -504,6 +490,8 @@ protected:
   mutable reg_t reduced_queue_end_;
   uint_t matrix_bits_;                //max matrix bits
   uint_t num_creg_bits_;              //number of cregs
+  uint_t num_cregisters_;
+  uint_t num_cmemory_;
   mutable int_t conditional_bit_;
   bool keep_conditional_bit_;         //keep conditional bit alive
 public:
@@ -583,6 +571,10 @@ public:
   void set_conditional(int_t reg)
   {
     conditional_bit_ = reg;
+  }
+  int_t get_conditional(void)
+  {
+    return conditional_bit_;
   }
   void keep_conditional(bool keep)
   {
@@ -690,8 +682,12 @@ public:
   {
     return NULL;
   }
-  virtual void init_condition(uint_t iChunk,std::vector<double>& cond){}
-  virtual bool update_condition(uint_t iChunk,uint_t count,bool async){return true;}
+  virtual double* probability_buffer(uint_t iChunk) const
+  {
+    return NULL;
+  }
+
+  virtual void copy_to_probability_buffer(std::vector<double>& buf,int pos){}
 
   //classical register to store measured bits/used for bfunc operations
   virtual void allocate_creg(uint_t num_mem,uint_t num_reg){}
@@ -699,6 +695,7 @@ public:
   {
     return 0;
   }
+
   virtual uint_t* creg_buffer(uint_t iChunk) const
   {
     return NULL;
@@ -792,6 +789,7 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
   func.set_params( param_pointer(iChunk) );
   func.set_batched_params(batched_param_pointer() );
   func.set_cregs_(creg_buffer(iChunk),num_creg_bits_);
+
   if(iChunk == 0 && conditional_bit_ >= 0){
     func.set_conditional(conditional_bit_);
     if(!keep_conditional_bit_)
@@ -869,48 +867,114 @@ void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk
 
   cudaStream_t strm = stream(iChunk);
   if(strm){
-    uint_t buf_size = reduce_buffer_size();
+    uint_t buf_size;
     double* buf = reduce_buffer(iChunk);
 
-    uint_t n,nt,nb;
-    nb = 1;
+    if(pSum){   //sum for all chunks are gathered and stored to pSum
+      buf_size = 0;
+      uint_t n,nt,nb;
+      nb = 1;
 
-    if(func.use_cache()){
-      nt = 1ull << chunk_bits_;
-      if(nt > 0){
+      if(func.use_cache()){
+        nt = count << chunk_bits_;
+        if(nt > 0){
+          if(nt > QV_CUDA_NUM_THREADS){
+            nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+            nt = QV_CUDA_NUM_THREADS;
+          }
+          dev_apply_function_sum_with_cache<data_t,Function><<<nb,nt,0,strm>>>(buf,func,buf_size);
+        }
+      }
+      else{
+        nt = size;
+        if(nt > 0){
+          if(nt > QV_CUDA_NUM_THREADS){
+            nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+            nt = QV_CUDA_NUM_THREADS;
+          }
+          dev_apply_function_sum<data_t,Function><<<nb,nt,0,strm>>>(buf,func,buf_size);
+        }
+      }
+      cudaError_t err = cudaGetLastError();
+      if(err != cudaSuccess){
+        std::stringstream str;
+        str << "ChunkContainer::ExecuteSum in " << func.name() << " : " << cudaGetErrorName(err);
+        throw std::runtime_error(str.str());
+      }
+
+      while(nb > 1){
+        n = nb;
+        nt = nb;
+        nb = 1;
         if(nt > QV_CUDA_NUM_THREADS){
           nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
           nt = QV_CUDA_NUM_THREADS;
         }
-        dim3 grid(nb,count,1);
-        dev_apply_function_sum_with_cache<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
+        dev_reduce_sum<<<nb,nt,0,strm>>>(buf,n,buf_size);
+
+        cudaError_t err = cudaGetLastError();
+        if(err != cudaSuccess){
+          std::stringstream str;
+          str << "ChunkContainer::ExecuteSum in " << func.name() << " :: " << cudaGetErrorName(err);
+          throw std::runtime_error(str.str());
+        }
       }
+      cudaMemcpyAsync(pSum,buf,sizeof(double),cudaMemcpyDeviceToHost,strm);
     }
     else{
-      nt = func.size(chunk_bits_);
-      if(nt > 0){
+      buf_size = reduce_buffer_size();
+
+      uint_t n,nt,nb;
+      nb = 1;
+
+      if(func.use_cache()){
+        nt = 1ull << chunk_bits_;
+        if(nt > 0){
+          if(nt > QV_CUDA_NUM_THREADS){
+            nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+            nt = QV_CUDA_NUM_THREADS;
+          }
+          dim3 grid(nb,count,1);
+          dev_apply_function_sum_with_cache<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
+        }
+      }
+      else{
+        nt = func.size(chunk_bits_);
+        if(nt > 0){
+          if(nt > QV_CUDA_NUM_THREADS){
+            nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+            nt = QV_CUDA_NUM_THREADS;
+          }
+          dim3 grid(nb,count,1);
+          dev_apply_function_sum<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
+        }
+      }
+      cudaError_t err = cudaGetLastError();
+      if(err != cudaSuccess){
+        std::stringstream str;
+        str << "ChunkContainer::ExecuteSum in " << func.name() << " : " << cudaGetErrorName(err);
+        throw std::runtime_error(str.str());
+      }
+
+      while(nb > 1){
+        n = nb;
+        nt = nb;
+        nb = 1;
         if(nt > QV_CUDA_NUM_THREADS){
           nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
           nt = QV_CUDA_NUM_THREADS;
         }
         dim3 grid(nb,count,1);
-        dev_apply_function_sum<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
-      }
-    }
+        dev_reduce_sum<<<grid,nt,0,strm>>>(buf,n,buf_size);
 
-    while(nb > 1){
-      n = nb;
-      nt = nb;
-      nb = 1;
-      if(nt > QV_CUDA_NUM_THREADS){
-        nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
-        nt = QV_CUDA_NUM_THREADS;
+        cudaError_t err = cudaGetLastError();
+        if(err != cudaSuccess){
+          std::stringstream str;
+          str << "ChunkContainer::ExecuteSum in " << func.name() << " :: " << cudaGetErrorName(err);
+          throw std::runtime_error(str.str());
+        }
       }
-      dim3 grid(nb,count,1);
-      dev_reduce_sum<<<grid,nt,0,strm>>>(buf,n,buf_size);
     }
-    if(pSum)
-      cudaMemcpyAsync(pSum,buf,sizeof(double),cudaMemcpyDeviceToHost,strm);
   }
   else{ //if no stream returned, run on host
     *pSum = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<double>());
@@ -973,34 +1037,85 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
 
   cudaStream_t strm = stream(iChunk);
   if(strm){
-    uint_t buf_size = reduce_buffer_size() / 2;
+    uint_t buf_size;
     uint_t n,nt,nb;
     nb = 1;
     nt = func.size(chunk_bits_);
     thrust::complex<double>* buf = (thrust::complex<double>*)reduce_buffer(iChunk);
 
-    if(nt > 0){
-      if(nt > QV_CUDA_NUM_THREADS){
-        nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
-        nt = QV_CUDA_NUM_THREADS;
+    if(pSum){   //sum for all chunks are gathered and stored to pSum
+      buf_size = 0;
+      nt = size;
+      if(nt > 0){
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dev_apply_function_sum_complex<data_t,Function><<<nb,nt,0,strm>>>(buf,func,buf_size);
       }
-      dim3 grid(nb,count,1);
-      dev_apply_function_sum_complex<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
-    }
+      cudaError_t err = cudaGetLastError();
+      if(err != cudaSuccess){
+        std::stringstream str;
+        str << "ChunkContainer::ExecuteSum2 in " << func.name() << " : " << cudaGetErrorName(err);
+        throw std::runtime_error(str.str());
+      }
 
-    while(nb > 1){
-      n = nb;
-      nt = nb;
-      nb = 1;
-      if(nt > QV_CUDA_NUM_THREADS){
-        nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
-        nt = QV_CUDA_NUM_THREADS;
+      while(nb > 1){
+        n = nb;
+        nt = nb;
+        nb = 1;
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dev_reduce_sum_complex<<<nb,nt,0,strm>>>(buf,n,buf_size);
+
+        cudaError_t err = cudaGetLastError();
+        if(err != cudaSuccess){
+          std::stringstream str;
+          str << "ChunkContainer::ExecuteSum2 in " << func.name() << " :: " << cudaGetErrorName(err);
+          throw std::runtime_error(str.str());
+        }
       }
-      dim3 grid(nb,count,1);
-      dev_reduce_sum_complex<<<grid,nt,0,strm>>>(buf,n,buf_size);
-    }
-    if(pSum)
       cudaMemcpyAsync(pSum,buf,sizeof(double)*2,cudaMemcpyDeviceToHost,strm);
+    }
+    else{
+      buf_size = reduce_buffer_size()/2;
+
+      if(nt > 0){
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dim3 grid(nb,count,1);
+        dev_apply_function_sum_complex<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
+      }
+      cudaError_t err = cudaGetLastError();
+      if(err != cudaSuccess){
+        std::stringstream str;
+        str << "ChunkContainer::ExecuteSum2 in " << func.name() << " : " << cudaGetErrorName(err);
+        throw std::runtime_error(str.str());
+      }
+
+      while(nb > 1){
+        n = nb;
+        nt = nb;
+        nb = 1;
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dim3 grid(nb,count,1);
+        dev_reduce_sum_complex<<<grid,nt,0,strm>>>(buf,n,buf_size);
+
+        cudaError_t err = cudaGetLastError();
+        if(err != cudaSuccess){
+          std::stringstream str;
+          str << "ChunkContainer::ExecuteSum2 in " << func.name() << " :: " << cudaGetErrorName(err);
+          throw std::runtime_error(str.str());
+        }
+      }
+    }
   }
   else{ //if no stream returned, run on host
     thrust::complex<double> ret,zero = 0.0;

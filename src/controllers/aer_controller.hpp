@@ -378,6 +378,8 @@ protected:
   int num_process_per_experiment_ = 1;
 
   uint_t cache_block_qubit_ = 0;
+
+  bool batched_shots_optimization_ = true;
 };
 
 //=========================================================================
@@ -459,6 +461,11 @@ void Controller::set_config(const json_t &config) {
   cache_block_qubit_ = 0;
   if (JSON::check_key("blocking_qubits", config)) {
     JSON::get_value(cache_block_qubit_, "blocking_qubits", config);
+  }
+
+  //enable batched multi-shots/experiments optimization
+  if(JSON::check_key("batched_shots_optimization", config)) {
+    JSON::get_value(batched_shots_optimization_, "batched_shots_optimization", config);
   }
 
   // Override automatic simulation method with a fixed method
@@ -951,17 +958,23 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     }
     else{
       bool batch_enable = false;
-      if(one_method && sim_device_ == Device::GPU && !multi_chunk_req && circuits.size() > num_gpus_ && 
-              max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
-        batch_enable = true;
-        for (size_t j = 0; j < circuits.size(); j++) {
-          if(methods[j] != Method::statevector && methods[j] != Method::density_matrix){
-            batch_enable = false;
-            break;
-          }
-          if(!check_measure_sampling_opt(circuits[j], methods[j])){
-            batch_enable = false;
-            break;
+      if(batched_shots_optimization_){
+        if(one_method && sim_device_ == Device::GPU && !multi_chunk_req && circuits.size() > num_gpus_ && 
+                max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
+          batch_enable = true;
+          for (size_t j = 0; j < circuits.size(); j++) {
+            if(methods[j] != Method::statevector && methods[j] != Method::density_matrix){
+              batch_enable = false;
+              break;
+            }
+            if(noise_model.has_quantum_errors() && methods[j] == Method::statevector){
+              batch_enable = false;
+              break;
+            }
+            if(!check_measure_sampling_opt(circuits[j], methods[j])){
+              batch_enable = false;
+              break;
+            }
           }
         }
       }
@@ -1545,53 +1558,55 @@ void Controller::run_circuit_helper(const Circuit &circ,
     // Note: this will set to `true` if sampling is enabled for the circuit
     result.metadata.add(false, "measure_sampling");
 
-    // Choose execution method based on noise and method
-    Circuit opt_circ;
+    if(circ.num_qubits > 0){  //do nothing for query steps
+      // Choose execution method based on noise and method
+      Circuit opt_circ;
 
-    bool noise_sampling = false;
-    // Ideal circuit
-    if (noise.is_ideal()) {
-      opt_circ = circ;
-      result.metadata.add("ideal", "noise");
-    }
-    // Readout error only
-    else if (noise.has_quantum_errors() == false) {
-      opt_circ = noise.sample_noise(circ, rng);
-      result.metadata.add("readout", "noise");
-    }
-    // Superop noise sampling
-    else if (method == Method::density_matrix || method == Method::superop) {
-      // Sample noise using SuperOp method
-      opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::superop);
-      result.metadata.add("superop", "noise");
-    }
-    // Kraus noise sampling
-    else if (noise.opset().contains(Operations::OpType::kraus) ||
-             noise.opset().contains(Operations::OpType::superop)) {
-      opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::kraus);
-      result.metadata.add("kraus", "noise");
-    }
-    // General circuit noise sampling
-    else {
-      if(sim_device_ == Device::GPU && max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
-        //for GPU noise sampling is done at runtime
-        opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::circuit, true);
-        opt_circ.can_sample = false;
+      bool noise_sampling = false;
+      // Ideal circuit
+      if (noise.is_ideal()) {
+        opt_circ = circ;
+        result.metadata.add("ideal", "noise");
+      }
+      // Readout error only
+      else if (noise.has_quantum_errors() == false) {
+        opt_circ = noise.sample_noise(circ, rng);
+        result.metadata.add("readout", "noise");
+      }
+      // Superop noise sampling
+      else if (method == Method::density_matrix || method == Method::superop) {
+        // Sample noise using SuperOp method
+        opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::superop);
+        result.metadata.add("superop", "noise");
+      }
+      // Kraus noise sampling
+      else if (noise.opset().contains(Operations::OpType::kraus) ||
+               noise.opset().contains(Operations::OpType::superop)) {
+        opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::kraus);
+        result.metadata.add("kraus", "noise");
+      }
+      // General circuit noise sampling
+      else {
+        if(batched_shots_optimization_ && sim_device_ == Device::GPU && max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
+          //for GPU noise sampling is done at runtime
+          opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::circuit, true);
+          opt_circ.can_sample = false;
+        }
+        else{
+          noise_sampling = true;
+        }
+        result.metadata.add("circuit", "noise");
+      }
+
+      if(noise_sampling){
+        run_circuit_with_sampled_noise<State_t>(circ, noise, config, shots, method,
+                                       cache_blocking, result, rng_seed);
       }
       else{
-        noise_sampling = true;
+        // Run multishot simulation without noise sampling
+        run_circuit_without_sampled_noise<State_t>(opt_circ, noise, config, shots, 
+                                          method, cache_blocking, result, rng_seed);
       }
-      result.metadata.add("circuit", "noise");
-    }
-
-    if(noise_sampling){
-      run_circuit_with_sampled_noise<State_t>(circ, noise, config, shots, method,
-                                     cache_blocking, result, rng_seed);
-    }
-    else{
-      // Run multishot simulation without noise sampling
-      run_circuit_without_sampled_noise<State_t>(opt_circ, noise, config, shots, 
-                                        method, cache_blocking, result, rng_seed);
     }
 
     // Report success
@@ -1786,14 +1801,13 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   state.set_parallelization(parallel_state_update_);
   state.set_global_phase(circ.global_phase_angle);
 
+  bool can_sample = circ.can_sample;
+
   // Optimize circuit
   Noise::NoiseModel dummy_noise;
 
   auto fusion_pass = transpile_fusion(method, circ.opset(), config);
   fusion_pass.optimize_circuit(circ, dummy_noise, state.opset(), result);
-
-  // Check if measure sampling supported
-  const bool can_sample = check_measure_sampling_opt(circ, method);
 
   // Cache blocking pass
   uint_t block_bits = 0;
@@ -1806,6 +1820,9 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
     }
   }
 
+  // Check if measure sampling supported
+  can_sample &= check_measure_sampling_opt(circ, method);
+
   // Check if measure sampler and optimization are valid
   if (can_sample) {
     // Implement measure sampler
@@ -1814,7 +1831,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
     bool final_ops = (first_meas == ops.size());
 
     // allocate qubit register
-    state.allocate(max_qubits_, block_bits);
+    state.allocate(circ.num_qubits, block_bits);
 
     // Run circuit instructions before first measure
     state.initialize_qreg(circ.num_qubits);
@@ -1834,13 +1851,13 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
 
-    if(sim_device_ == Device::GPU && !cache_blocking && shots > 1 && max_batched_states_ >= num_gpus_){
+    if(batched_shots_optimization_ && sim_device_ == Device::GPU && !cache_blocking && shots > 1 && max_batched_states_ >= num_gpus_){
       //apply batched multi-shots optimization on GPU
       Multi::States<State_t> states;
 
       states.set_parallelization(max_batched_states_);
 
-      states.allocate(max_qubits_, max_qubits_,shots);
+      states.allocate(circ.num_qubits, circ.num_qubits,shots);
 
       states.set_config(config);
       states.set_global_phase(circ.global_phase_angle);
@@ -1870,7 +1887,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
         par_state.set_global_phase(circ.global_phase_angle);
 
         // allocate qubit register
-        par_state.allocate(max_qubits_, block_bits);
+        par_state.allocate(circ.num_qubits, block_bits);
 
         for(;i_shot<shot_end;i_shot++){
           RngEngine rng;
@@ -1936,7 +1953,7 @@ void Controller::run_circuit_with_sampled_noise(
       }
 
       // allocate qubit register
-      state.allocate(max_qubits_, block_bits);
+      state.allocate(noise_circ.num_qubits, block_bits);
 
       run_single_shot(noise_circ, state, par_results[i], rng);
     }

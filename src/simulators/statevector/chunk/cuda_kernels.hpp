@@ -42,9 +42,6 @@ void dev_apply_function_with_cache(kernel_t func)
   if(!func.check_conditional(i))
     return;
 
-  if(!func.check_condition(i))
-    return;
-
   idx = func.thread_to_index(i);
 
   cache[threadIdx.x] = func.data()[idx];
@@ -63,6 +60,9 @@ void dev_apply_function_sum(double* pReduceBuffer, kernel_t func,uint_t buf_size
 
   iChunk = blockIdx.y + blockIdx.z*gridDim.y;
   i = threadIdx.x + blockIdx.x * blockDim.x + iChunk*gridDim.x*blockDim.x;
+
+  if(!func.check_conditional(i))
+    return;
 
   sum = func(i);
 
@@ -107,7 +107,7 @@ void dev_apply_function_sum_with_cache(double* pReduceBuffer, kernel_t func,uint
   iChunk = blockIdx.y + blockIdx.z*gridDim.y;
   i = threadIdx.x + blockIdx.x * blockDim.x + iChunk*gridDim.x*blockDim.x;
 
-  if(!func.check_condition(i))
+  if(!func.check_conditional(i))
     return;
 
   idx = func.thread_to_index(i);
@@ -205,6 +205,9 @@ void dev_apply_function_sum_complex(thrust::complex<double>* pReduceBuffer, kern
   iChunk = blockIdx.y + blockIdx.z*gridDim.y;
   i = threadIdx.x + blockIdx.x * blockDim.x + iChunk*gridDim.x*blockDim.x;
 
+  if(!func.check_conditional(i))
+    return;
+
   sum = func(i);
 
   //reduce in warp
@@ -290,49 +293,6 @@ __global__ void dev_reduce_sum_complex(thrust::complex<double> *pReduceBuffer,ui
   }
 }
 
-__global__ void dev_update_condition(double* pCond,double* pVal,uint_t* count_buffer,uint_t offset,uint_t num_states)
-{
-  __shared__ uint_t cache[32];
-  uint_t i = blockIdx.x * blockDim.x + threadIdx.x;
-  uint_t j,nw,n = 0;
-  if(i < num_states){
-    double cond = pCond[i];
-    cond -= pVal[i*offset];
-    pCond[i] = cond;
-    if(cond < 0){
-      n = 1;
-    }
-  }
-
-  nw = min(blockDim.x,warpSize);
-  for(j=1;j<nw;j*=2){
-    n += __shfl_xor_sync(0xffffffff,n,j,32);
-  }
-
-  if(blockDim.x > warpSize){
-    //reduce in thread block
-    if((threadIdx.x & 31) == 0){
-      cache[(threadIdx.x >> 5)] = n;
-    }
-    __syncthreads();
-    if(threadIdx.x < 32){
-      if(threadIdx.x < ((blockDim.x+warpSize-1) >> 5))
-        n = cache[threadIdx.x];
-      else
-        n = 0.0;
-
-      //reduce in warp
-      nw = warpSize;
-      for(j=1;j<nw;j*=2){
-        n += __shfl_xor_sync(0xffffffff,n,j,32);
-      }
-    }
-  }
-  if(threadIdx.x == 0){
-    count_buffer[blockIdx.x] = n;
-  }
-}
-
 __global__ void dev_reduce_sum_uint(uint_t *pReduceBuffer,uint_t n,uint_t buf_size)
 {
   __shared__ uint_t cache[32];
@@ -376,6 +336,7 @@ __global__ void dev_reduce_sum_uint(uint_t *pReduceBuffer,uint_t n,uint_t buf_si
     pReduceBuffer[blockIdx.x + buf_size*iChunk] = sum;
   }
 }
+
 
 //------------------------------------------------------------------------------
 } // end namespace QV

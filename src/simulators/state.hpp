@@ -217,7 +217,9 @@ public:
 
   virtual bool top_of_group(){return true;}  //check if this register is on the top of group
 
-  virtual void apply_batched_pauli(reg_t& params){}
+  virtual void apply_batched_pauli(const Operations::Op &op, reg_t& idx){}
+  virtual void apply_batched_multi_circuits_op(const Operations::Op &op, ExperimentResult &result,
+                                               std::vector<RngEngine> &rng, reg_t& idx){}
 
   virtual void end_of_circuit(){};
 
@@ -233,6 +235,9 @@ public:
                        uint_t num_register,
                        const std::string &memory_hex,
                        const std::string &register_hex);
+
+  //set conditional regisiter (if op is conditional)
+  virtual void set_conditional(const Operations::Op &op){}
 
   //-----------------------------------------------------------------------
   // Save result data
@@ -347,10 +352,6 @@ protected:
   virtual void apply_bfunc(const Operations::Op &op)
   {
     creg_.apply_bfunc(op);
-  }
-  virtual bool check_conditional(const Operations::Op &op)
-  {
-    return creg_.check_conditional(op);
   }
 };
 

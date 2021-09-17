@@ -230,7 +230,6 @@ protected:
   void apply_pauli(const reg_t &qubits, const std::string &pauli);
 
   virtual void apply_bfunc(const Operations::Op &op);
-  virtual bool check_conditional(const Operations::Op &op);
 
   //-----------------------------------------------------------------------
   // Save data instructions
@@ -533,19 +532,6 @@ void State<densmat_t>::apply_bfunc(const Operations::Op &op)
     BaseState::creg_.apply_bfunc(op);
 }
 
-template <class densmat_t>
-bool State<densmat_t>::check_conditional(const Operations::Op &op)
-{
-  if(BaseState::qreg_.batched_optimization_supported()){
-    //for batched optimization, conditional check is done for each state in batched kernel
-    if(op.conditional){
-      //conditional execution is set for next operation on qreg
-      BaseState::qreg_.set_conditional(op.conditional_reg);
-    }
-    return true;
-  }
-  return BaseState::check_conditional(op);
-}
 
 //=========================================================================
 // Implementation: apply operations
@@ -557,7 +543,7 @@ void State<densmat_t>::apply_op(const Operations::Op &op,
                                  RngEngine &rng,
                                  bool final_ops) 
 {
-  if(BaseState::check_conditional(op)) {
+  if(BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case OpType::barrier:
         break;
@@ -627,21 +613,23 @@ void State<densmat_t>::apply_op_multi_shots(const Operations::Op &op,
                                   std::vector<RngEngine> &rng,
                                   bool final_ops) 
 {
-  BaseState::qreg_.set_conditional(op.conditional_reg);
+  if(op.conditional)
+    BaseState::qreg_.set_conditional(op.conditional_reg);
+
   switch (op.type) {
     case OpType::barrier:
       break;
     case OpType::reset:
-      apply_reset(op.qubits);
+      BaseState::qreg_.apply_reset(op.qubits);
       break;
     case OpType::measure:
-      BaseState::qreg_.apply_batched_measure(op.qubits[0],rng,op.memory,op.registers);
+      BaseState::qreg_.apply_batched_measure(op.qubits,rng,op.memory,op.registers);
       break;
     case OpType::bfunc:
       BaseState::qreg_.apply_bfunc(op);
       break;
     case OpType::roerror:
-      BaseState::creg_.apply_roerror(op, rng[BaseState::shot_index_]);
+      BaseState::qreg_.apply_roerror(op, rng);
       break;
     case OpType::gate:
       apply_gate(op);
@@ -661,29 +649,6 @@ void State<densmat_t>::apply_op_multi_shots(const Operations::Op &op,
     case OpType::kraus:
       apply_kraus(op.qubits, op.mats);
       break;
-    case OpType::set_statevec:
-      BaseState::qreg_.initialize_from_vector(op.params);
-      break;
-    case OpType::set_densmat:
-      BaseState::qreg_.initialize_from_matrix(op.mats[0]);
-      break;
-    case OpType::save_expval:
-    case OpType::save_expval_var:
-      BaseState::apply_save_expval(op, result);
-      break;
-    case OpType::save_state:
-      apply_save_state(op, result, final_ops);
-      break;
-    case OpType::save_densmat:
-      apply_save_density_matrix(op, result, final_ops);
-      break;
-    case OpType::save_probs:
-    case OpType::save_probs_ket:
-      apply_save_probs(op, result);
-      break;
-    case OpType::save_amps_sq:
-      apply_save_amplitudes_sq(op, result);
-      break;
     default:
       throw std::invalid_argument("DensityMatrix::State::invalid instruction \'" +
                                   op.name + "\'.");
@@ -702,7 +667,13 @@ bool State<densmat_t>::batchable_op(const Operations::Op& op,bool single_op)
   if(single_op)
     return true;
 
-  if(op.type == OpType::bfunc)
+  if(op.type == OpType::reset){
+    if(op.qubits.size() > 3){
+      return false;
+    }
+  }
+
+  if(op.type == OpType::bfunc || op.type == OpType::roerror)
     return false;
   if(op.type == OpType::gate && op.name == "pauli")
     return false;   //pauli can be only applied for single_op mode
@@ -1150,12 +1121,16 @@ void State<densmat_t>::apply_batched_ops(const std::vector<Operations::Op> &ops)
     qubits.reserve(ops.size());
     matrices.reserve(ops.size()*16);
 
+    std::cout << "    === batch === " << std::endl;
+
     for(i=0;i<ops.size();i++){
       param.state_index_ = i;
       param.num_qubits_ = 1;
       param.offset_qubits_ = qubits.size();
       param.offset_matrix_ = matrices.size();
       param.super_op_ = false;
+
+      std::cout << "   ops[" << i << "] " <<ops[i]<<std::endl;
 
       if(ops[i].type == Operations::OpType::gate){
         auto it = gateset_.find(ops[i].name);
@@ -1179,7 +1154,7 @@ void State<densmat_t>::apply_batched_ops(const std::vector<Operations::Op> &ops)
           }
           else{
             param.set_control_mask(ops[i].qubits);
-            param.qubit_ = ops[i].qubits[0];
+            param.qubit_ = ops[i].qubits[ops[i].qubits.size()-1];
             switch (it->second) {
               case Gates::u3:{
                   auto mat = Linalg::VMatrix::u3(ops[i].params[0],ops[i].params[1],ops[i].params[2]);
@@ -1349,7 +1324,25 @@ void State<densmat_t>::apply_batched_ops(const std::vector<Operations::Op> &ops)
         param.control_mask_ = 0;
         params.push_back(param);
       }
+      else if(ops[i].type == Operations::OpType::reset){
+        param.super_op_ = true;
+        param.num_qubits_ = ops[i].qubits.size();
+        if(ops[i].qubits.size() > 1){
+          auto qubits_sorted = ops[i].qubits;
+          std::sort(qubits_sorted.begin(), qubits_sorted.end());
+          qubits.insert(qubits.end(),ops[i].qubits.begin(),ops[i].qubits.end());
+          qubits.insert(qubits.end(),qubits_sorted.begin(),qubits_sorted.end());
+        }
+        else{
+          param.qubit_ = ops[i].qubits[0];
+        }
+        auto mat = Utils::vectorize_matrix(Linalg::SMatrix::reset(1ull << ops[i].qubits.size()));
+        matrices.insert(matrices.end(),mat.begin(),mat.end());
+        param.control_mask_ = 0;
+        params.push_back(param);
+      }
     }
+    std::cout << "    ================== " << std::endl;
 
     BaseState::qreg_.apply_batched_matrix(params,qubits,matrices);
   }
@@ -1399,35 +1392,72 @@ void State<densmat_t>::apply_measure(const reg_t &qubits, const reg_t &cmemory,
 }
 
 template <class densmat_t>
-void State<densmat_t>::store_measured_cbits(void)
-{
-  if(BaseState::qreg_.batched_optimization_supported()){
-    uint_t i;
-    reg_t pos(1);
-    reg_t dummy_pos;
-
-    for(i=0;i<BaseState::creg_.memory_size();i++){
-      int bit = BaseState::qreg_.measured_cmemory(i);
-      if(bit >= 0){
-        const reg_t outcome = Utils::int2reg(bit, 2, 1);
-        pos[0] = i;
-        BaseState::creg_.store_measure(outcome, pos , dummy_pos);
-      }
-    }
-    for(i=0;i<BaseState::creg_.register_size();i++){
-      int bit = BaseState::qreg_.measured_cregister(i);
-      if(bit >= 0){
-        const reg_t outcome = Utils::int2reg(bit, 2, 1);
-        pos[0] = i;
-        BaseState::creg_.store_measure(outcome, dummy_pos, pos);
-      }
-    }
-  }
+rvector_t State<densmat_t>::measure_probs(const reg_t &qubits) const {
+  return BaseState::qreg_.probabilities(qubits);
 }
 
 template <class densmat_t>
-rvector_t State<densmat_t>::measure_probs(const reg_t &qubits) const {
-  return BaseState::qreg_.probabilities(qubits);
+void State<densmat_t>::apply_reset(const reg_t &qubits) {
+  // TODO: This can be more efficient by adding reset
+  // to base class rather than doing a matrix multiplication
+  // where all but 1 row is zeros.
+  const auto reset_op = Linalg::SMatrix::reset(1ULL << qubits.size());
+  BaseState::qreg_.apply_superop_matrix(qubits,
+                                        Utils::vectorize_matrix(reset_op));
+}
+
+template <class densmat_t>
+std::pair<uint_t, double>
+State<densmat_t>::sample_measure_with_prob(const reg_t &qubits,
+                                           RngEngine &rng) {
+  rvector_t probs = measure_probs(qubits);
+  // Randomly pick outcome and return pair
+  uint_t outcome = rng.rand_int(probs);
+  return std::make_pair(outcome, probs[outcome]);
+}
+
+template <class densmat_t>
+void State<densmat_t>::measure_reset_update(const reg_t &qubits,
+                                            const uint_t final_state,
+                                            const uint_t meas_state,
+                                            const double meas_prob) {
+  // Update a state vector based on an outcome pair [m, p] from
+  // sample_measure_with_prob function, and a desired post-measurement
+  // final_state Single-qubit case
+  if (qubits.size() == 1) {
+    // Diagonal matrix for projecting and renormalizing to measurement outcome
+    cvector_t mdiag(2, 0.);
+    mdiag[meas_state] = 1. / std::sqrt(meas_prob);
+    BaseState::qreg_.apply_diagonal_unitary_matrix(qubits, mdiag);
+
+    // If it doesn't agree with the reset state update
+    if (final_state != meas_state) {
+      BaseState::qreg_.apply_x(qubits[0]);
+    }
+  }
+  // Multi qubit case
+  else {
+    // Diagonal matrix for projecting and renormalizing to measurement outcome
+    const size_t dim = 1ULL << qubits.size();
+    cvector_t mdiag(dim, 0.);
+    mdiag[meas_state] = 1. / std::sqrt(meas_prob);
+    BaseState::qreg_.apply_diagonal_unitary_matrix(qubits, mdiag);
+
+    // If it doesn't agree with the reset state update
+    // TODO This function could be optimized as a permutation update
+    if (final_state != meas_state) {
+      // build vectorized permutation matrix
+      cvector_t perm(dim * dim, 0.);
+      perm[final_state * dim + meas_state] = 1.;
+      perm[meas_state * dim + final_state] = 1.;
+      for (size_t j = 0; j < dim; j++) {
+        if (j != final_state && j != meas_state)
+          perm[j * dim + j] = 1.;
+      }
+      // apply permutation to swap state
+      BaseState::qreg_.apply_unitary_matrix(qubits, perm);
+    }
+  }
 }
 
 template <class densmat_t>
@@ -1504,68 +1534,32 @@ std::vector<reg_t> State<densmat_t>::batched_sample_measure(const reg_t &qubits,
 }
 
 template <class densmat_t>
-void State<densmat_t>::apply_reset(const reg_t &qubits) {
-  // TODO: This can be more efficient by adding reset
-  // to base class rather than doing a matrix multiplication
-  // where all but 1 row is zeros.
-  const auto reset_op = Linalg::SMatrix::reset(1ULL << qubits.size());
-  BaseState::qreg_.apply_superop_matrix(qubits,
-                                        Utils::vectorize_matrix(reset_op));
-}
+void State<densmat_t>::store_measured_cbits(void)
+{
+  if(BaseState::qreg_.batched_optimization_supported()){
+    uint_t i;
+    reg_t pos(1);
+    reg_t dummy_pos;
 
-template <class densmat_t>
-std::pair<uint_t, double>
-State<densmat_t>::sample_measure_with_prob(const reg_t &qubits,
-                                           RngEngine &rng) {
-  rvector_t probs = measure_probs(qubits);
-  // Randomly pick outcome and return pair
-  uint_t outcome = rng.rand_int(probs);
-  return std::make_pair(outcome, probs[outcome]);
-}
-
-template <class densmat_t>
-void State<densmat_t>::measure_reset_update(const reg_t &qubits,
-                                            const uint_t final_state,
-                                            const uint_t meas_state,
-                                            const double meas_prob) {
-  // Update a state vector based on an outcome pair [m, p] from
-  // sample_measure_with_prob function, and a desired post-measurement
-  // final_state Single-qubit case
-  if (qubits.size() == 1) {
-    // Diagonal matrix for projecting and renormalizing to measurement outcome
-    cvector_t mdiag(2, 0.);
-    mdiag[meas_state] = 1. / std::sqrt(meas_prob);
-    BaseState::qreg_.apply_diagonal_unitary_matrix(qubits, mdiag);
-
-    // If it doesn't agree with the reset state update
-    if (final_state != meas_state) {
-      BaseState::qreg_.apply_x(qubits[0]);
-    }
-  }
-  // Multi qubit case
-  else {
-    // Diagonal matrix for projecting and renormalizing to measurement outcome
-    const size_t dim = 1ULL << qubits.size();
-    cvector_t mdiag(dim, 0.);
-    mdiag[meas_state] = 1. / std::sqrt(meas_prob);
-    BaseState::qreg_.apply_diagonal_unitary_matrix(qubits, mdiag);
-
-    // If it doesn't agree with the reset state update
-    // TODO This function could be optimized as a permutation update
-    if (final_state != meas_state) {
-      // build vectorized permutation matrix
-      cvector_t perm(dim * dim, 0.);
-      perm[final_state * dim + meas_state] = 1.;
-      perm[meas_state * dim + final_state] = 1.;
-      for (size_t j = 0; j < dim; j++) {
-        if (j != final_state && j != meas_state)
-          perm[j * dim + j] = 1.;
+    for(i=0;i<BaseState::creg_.memory_size();i++){
+      int bit = BaseState::qreg_.measured_cmemory(i);
+      if(bit >= 0){
+        const reg_t outcome = Utils::int2reg(bit, 2, 1);
+        pos[0] = i;
+        BaseState::creg_.store_measure(outcome, pos , dummy_pos);
       }
-      // apply permutation to swap state
-      BaseState::qreg_.apply_unitary_matrix(qubits, perm);
+    }
+    for(i=0;i<BaseState::creg_.register_size();i++){
+      int bit = BaseState::qreg_.measured_cregister(i);
+      if(bit >= 0){
+        const reg_t outcome = Utils::int2reg(bit, 2, 1);
+        pos[0] = i;
+        BaseState::creg_.store_measure(outcome, dummy_pos, pos);
+      }
     }
   }
 }
+
 
 //=========================================================================
 // Implementation: Kraus Noise

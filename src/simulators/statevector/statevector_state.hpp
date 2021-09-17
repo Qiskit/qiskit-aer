@@ -137,7 +137,10 @@ public:
 
   //batched execution
   virtual void apply_batched_ops(const std::vector<Operations::Op> &ops);
-  virtual void apply_batched_pauli(reg_t& params);
+  virtual void apply_batched_pauli(const Operations::Op &op, reg_t& idx);
+  virtual void apply_batched_multi_circuits_op(const Operations::Op &op, ExperimentResult &result,
+                                               std::vector<RngEngine> &rng, reg_t& idx);
+
   virtual bool batchable_op(const Operations::Op& op,bool single_op = true);
 
   //store asynchronously measured classical bits after batched execution
@@ -217,6 +220,9 @@ public:
                        const std::string &memory_hex,
                        const std::string &register_hex);
 
+  //set conditional regisiter
+  virtual void set_conditional(const Operations::Op &op);
+
 protected:
   //-----------------------------------------------------------------------
   // Apply instructions
@@ -271,7 +277,6 @@ protected:
                    RngEngine &rng);
 
   virtual void apply_bfunc(const Operations::Op &op);
-  virtual bool check_conditional(const Operations::Op &op);
 
   //-----------------------------------------------------------------------
   // Save data instructions
@@ -627,17 +632,12 @@ void State<statevec_t>::apply_bfunc(const Operations::Op &op)
 }
 
 template <class statevec_t>
-bool State<statevec_t>::check_conditional(const Operations::Op &op)
+void State<statevec_t>::set_conditional(const Operations::Op &op)
 {
-  if(BaseState::qreg_.batched_optimization_supported()){
-    //for batched optimization, conditional check is done for each state in batched kernel
-    if(op.conditional){
-      //conditional execution is set for next operation on qreg
-      BaseState::qreg_.set_conditional(op.conditional_reg);
-    }
-    return true;
+  if(op.conditional){
+    //conditional execution is set for next operation on qreg
+    BaseState::qreg_.set_conditional(op.conditional_reg);
   }
-  return BaseState::check_conditional(op);
 }
 
 //=========================================================================
@@ -650,7 +650,7 @@ void State<statevec_t>::apply_op(const Operations::Op &op,
                                   RngEngine &rng,
                                   bool final_ops) 
 {
-  if(BaseState::check_conditional(op)) {
+  if(BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case OpType::barrier:
       case OpType::nop:
@@ -735,27 +735,29 @@ void State<statevec_t>::apply_op_multi_shots(const Operations::Op &op,
                                   std::vector<RngEngine> &rng,
                                   bool final_ops) 
 {
-  BaseState::qreg_.set_conditional(op.conditional_reg);
+  if(op.conditional){
+    BaseState::qreg_.set_conditional(op.conditional_reg);
+  }
 
   switch (op.type) {
     case OpType::barrier:
     case OpType::nop:
       break;
     case OpType::reset:
-      apply_reset(op.qubits, rng[BaseState::shot_index_]);
+      BaseState::qreg_.apply_batched_reset(op.qubits,rng);
       break;
     case OpType::initialize:
-      apply_initialize(op.qubits, op.params, rng[BaseState::shot_index_]);
+      BaseState::qreg_.apply_batched_reset(op.qubits,rng);
+      BaseState::qreg_.initialize_component(op.qubits, op.params);
       break;
     case OpType::measure:
-      BaseState::qreg_.apply_batched_measure(op.qubits[0],rng,op.memory,op.registers);
+      BaseState::qreg_.apply_batched_measure(op.qubits,rng,op.memory,op.registers);
       break;
     case OpType::bfunc:
       BaseState::qreg_.apply_bfunc(op);
-      //apply_bfunc(op);
       break;
     case OpType::roerror:
-      BaseState::creg_.apply_roerror(op, rng[BaseState::shot_index_]);
+      BaseState::qreg_.apply_roerror(op, rng);
       break;
     case OpType::gate:
       apply_gate(op);
@@ -774,7 +776,7 @@ void State<statevec_t>::apply_op_multi_shots(const Operations::Op &op,
                         op.mats); // control qubits ([0]) & target qubits([1])
       break;
     case OpType::kraus:
-      BaseState::qreg_.apply_kraus(op.qubits, op.mats,rng);
+      BaseState::qreg_.apply_batched_kraus(op.qubits, op.mats,rng);
       break;
     case OpType::sim_op:
       if(op.name == "begin_register_blocking"){
@@ -786,28 +788,6 @@ void State<statevec_t>::apply_op_multi_shots(const Operations::Op &op,
       break;
     case OpType::set_statevec:
       BaseState::qreg_.initialize_from_vector(op.params);
-      break;
-    case OpType::save_expval:
-    case OpType::save_expval_var:
-      BaseState::apply_save_expval(op, result);
-      break;
-    case OpType::save_densmat:
-      apply_save_density_matrix(op, result);
-      break;
-    case OpType::save_state:
-    case OpType::save_statevec:
-      apply_save_statevector(op, result, final_ops);
-      break;
-    case OpType::save_statevec_dict:
-      apply_save_statevector_dict(op, result);
-      break;
-    case OpType::save_probs:
-    case OpType::save_probs_ket:
-      apply_save_probs(op, result);
-      break;
-    case OpType::save_amps:
-    case OpType::save_amps_sq:
-      apply_save_amplitudes(op, result);
       break;
     default:
       throw std::invalid_argument(
@@ -821,13 +801,13 @@ bool State<statevec_t>::batchable_op(const Operations::Op& op,bool single_op)
   if(op.type == OpType::set_statevec || op.type == OpType::save_expval || op.type == OpType::save_expval_var ||
      op.type == OpType::save_densmat || op.type == OpType::save_state || op.type == OpType::save_statevec ||
      op.type == OpType::save_statevec_dict || op.type == OpType::save_probs || op.type == OpType::save_probs_ket ||
-     op.type == OpType::save_amps || op.type == OpType::save_amps_sq || op.type == OpType::roerror)
+     op.type == OpType::save_amps || op.type == OpType::save_amps_sq)
     return false;
 
   if(single_op)
     return true;
 
-  if(op.type == OpType::bfunc)
+  if(op.type == OpType::bfunc || op.type == OpType::roerror)
     return false;
   if(op.type == OpType::gate && op.name == "pauli")
     return false;   //pauli can be only applied for single_op mode
@@ -1520,10 +1500,52 @@ void State<statevec_t>::apply_batched_ops(const std::vector<Operations::Op> &ops
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_batched_pauli(reg_t& params)
+void State<statevec_t>::apply_batched_pauli(const Operations::Op& op,reg_t& idx)
 {
-  if(BaseState::qreg_.batched_optimization_supported()){
-    BaseState::qreg_.apply_batched_pauli(params);
+  BaseState::qreg_.apply_batched_pauli(op,idx);
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_batched_multi_circuits_op(const Operations::Op &op, ExperimentResult &result,
+                                                        std::vector<RngEngine> &rng, reg_t& idx)
+{
+  int_t i,j,count,n;
+  count = idx.size();
+
+  reg_t mask(count);
+  for(i=0;i<op.circs.size();i++){
+    if(op.circs[i].size() == 0 || (op.circs[i].size() == 1 && op.circs[i][0].name == "id"))
+      continue;
+
+    n = 0;
+    for(j=0;j<count;j++){
+      if(idx[j] == i){
+        mask[j] = 1;
+        n++;
+      }
+      else{
+        mask[j] = 0;
+      }
+    }
+    if(n > 0){
+      int_t cond_reg = -1;
+      int_t sys_reg;
+      if(op.conditional){
+        cond_reg = op.conditional_reg;
+      }
+      //mask conditional register
+      sys_reg = BaseState::qreg_.set_batched_system_conditional(cond_reg,mask);
+
+      for(j=0;j<op.circs[i].size();j++){
+        Operations::Op cop = op.circs[i][j];
+
+        //mark op conditional to mask shots
+        cop.conditional = true;
+        cop.conditional_reg = sys_reg;
+
+        apply_op_multi_shots(cop,result,rng,false);
+      }
+    }
   }
 }
 
@@ -1591,35 +1613,72 @@ void State<statevec_t>::apply_measure(const reg_t &qubits, const reg_t &cmemory,
 }
 
 template <class statevec_t>
-void State<statevec_t>::store_measured_cbits(void)
-{
-  if(BaseState::qreg_.batched_optimization_supported()){
-    uint_t i;
-    reg_t pos(1);
-    reg_t dummy_pos;
-
-    for(i=0;i<BaseState::creg_.memory_size();i++){
-      int bit = BaseState::qreg_.measured_cmemory(i);
-      if(bit >= 0){
-        const reg_t outcome = Utils::int2reg(bit, 2, 1);
-        pos[0] = i;
-        BaseState::creg_.store_measure(outcome, pos , dummy_pos);
-      }
-    }
-    for(i=0;i<BaseState::creg_.register_size();i++){
-      int bit = BaseState::qreg_.measured_cregister(i);
-      if(bit >= 0){
-        const reg_t outcome = Utils::int2reg(bit, 2, 1);
-        pos[0] = i;
-        BaseState::creg_.store_measure(outcome, dummy_pos, pos);
-      }
-    }
-  }
+rvector_t State<statevec_t>::measure_probs(const reg_t &qubits) const {
+  return BaseState::qreg_.probabilities(qubits);
 }
 
 template <class statevec_t>
-rvector_t State<statevec_t>::measure_probs(const reg_t &qubits) const {
-  return BaseState::qreg_.probabilities(qubits);
+void State<statevec_t>::apply_reset(const reg_t &qubits, RngEngine &rng) {
+  // Simulate unobserved measurement
+  const auto meas = sample_measure_with_prob(qubits, rng);
+  // Apply update to reset state
+  measure_reset_update(qubits, 0, meas.first, meas.second);
+}
+
+template <class statevec_t>
+std::pair<uint_t, double>
+State<statevec_t>::sample_measure_with_prob(const reg_t &qubits,
+                                            RngEngine &rng) {
+  rvector_t probs = measure_probs(qubits);
+  // Randomly pick outcome and return pair
+  uint_t outcome = rng.rand_int(probs);
+  return std::make_pair(outcome, probs[outcome]);
+}
+
+template <class statevec_t>
+void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
+                                             const uint_t final_state,
+                                             const uint_t meas_state,
+                                             const double meas_prob) {
+  // Update a state vector based on an outcome pair [m, p] from
+  // sample_measure_with_prob function, and a desired post-measurement
+  // final_state
+
+  // Single-qubit case
+  if (qubits.size() == 1) {
+    // Diagonal matrix for projecting and renormalizing to measurement outcome
+    cvector_t mdiag(2, 0.);
+    mdiag[meas_state] = 1. / std::sqrt(meas_prob);
+    apply_matrix(qubits, mdiag);
+
+    // If it doesn't agree with the reset state update
+    if (final_state != meas_state) {
+      BaseState::qreg_.apply_mcx(qubits);
+    }
+  }
+  // Multi qubit case
+  else {
+    // Diagonal matrix for projecting and renormalizing to measurement outcome
+    const size_t dim = 1ULL << qubits.size();
+    cvector_t mdiag(dim, 0.);
+    mdiag[meas_state] = 1. / std::sqrt(meas_prob);
+    apply_matrix(qubits, mdiag);
+
+    // If it doesn't agree with the reset state update
+    // This function could be optimized as a permutation update
+    if (final_state != meas_state) {
+      // build vectorized permutation matrix
+      cvector_t perm(dim * dim, 0.);
+      perm[final_state * dim + meas_state] = 1.;
+      perm[meas_state * dim + final_state] = 1.;
+      for (size_t j = 0; j < dim; j++) {
+        if (j != final_state && j != meas_state)
+          perm[j * dim + j] = 1.;
+      }
+      // apply permutation to swap state
+      apply_matrix(qubits, perm);
+    }
+  }
 }
 
 template <class statevec_t>
@@ -1695,68 +1754,32 @@ std::vector<reg_t> State<statevec_t>::batched_sample_measure(const reg_t &qubits
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_reset(const reg_t &qubits, RngEngine &rng) {
-  // Simulate unobserved measurement
-  const auto meas = sample_measure_with_prob(qubits, rng);
-  // Apply update to reset state
-  measure_reset_update(qubits, 0, meas.first, meas.second);
-}
+void State<statevec_t>::store_measured_cbits(void)
+{
+  if(BaseState::qreg_.batched_optimization_supported()){
+    uint_t i;
+    reg_t pos(1);
+    reg_t dummy_pos;
 
-template <class statevec_t>
-std::pair<uint_t, double>
-State<statevec_t>::sample_measure_with_prob(const reg_t &qubits,
-                                            RngEngine &rng) {
-  rvector_t probs = measure_probs(qubits);
-  // Randomly pick outcome and return pair
-  uint_t outcome = rng.rand_int(probs);
-  return std::make_pair(outcome, probs[outcome]);
-}
-
-template <class statevec_t>
-void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
-                                             const uint_t final_state,
-                                             const uint_t meas_state,
-                                             const double meas_prob) {
-  // Update a state vector based on an outcome pair [m, p] from
-  // sample_measure_with_prob function, and a desired post-measurement
-  // final_state
-
-  // Single-qubit case
-  if (qubits.size() == 1) {
-    // Diagonal matrix for projecting and renormalizing to measurement outcome
-    cvector_t mdiag(2, 0.);
-    mdiag[meas_state] = 1. / std::sqrt(meas_prob);
-    apply_matrix(qubits, mdiag);
-
-    // If it doesn't agree with the reset state update
-    if (final_state != meas_state) {
-      BaseState::qreg_.apply_mcx(qubits);
-    }
-  }
-  // Multi qubit case
-  else {
-    // Diagonal matrix for projecting and renormalizing to measurement outcome
-    const size_t dim = 1ULL << qubits.size();
-    cvector_t mdiag(dim, 0.);
-    mdiag[meas_state] = 1. / std::sqrt(meas_prob);
-    apply_matrix(qubits, mdiag);
-
-    // If it doesn't agree with the reset state update
-    // This function could be optimized as a permutation update
-    if (final_state != meas_state) {
-      // build vectorized permutation matrix
-      cvector_t perm(dim * dim, 0.);
-      perm[final_state * dim + meas_state] = 1.;
-      perm[meas_state * dim + final_state] = 1.;
-      for (size_t j = 0; j < dim; j++) {
-        if (j != final_state && j != meas_state)
-          perm[j * dim + j] = 1.;
+    for(i=0;i<BaseState::creg_.memory_size();i++){
+      int bit = BaseState::qreg_.measured_cmemory(i);
+      if(bit >= 0){
+        const reg_t outcome = Utils::int2reg(bit, 2, 1);
+        pos[0] = i;
+        BaseState::creg_.store_measure(outcome, pos , dummy_pos);
       }
-      // apply permutation to swap state
-      apply_matrix(qubits, perm);
+    }
+    for(i=0;i<BaseState::creg_.register_size();i++){
+      int bit = BaseState::qreg_.measured_cregister(i);
+      if(bit >= 0){
+        const reg_t outcome = Utils::int2reg(bit, 2, 1);
+        pos[0] = i;
+        BaseState::creg_.store_measure(outcome, dummy_pos, pos);
+      }
     }
   }
 }
+
 
 template <class statevec_t>
 void State<statevec_t>::apply_initialize(const reg_t &qubits,

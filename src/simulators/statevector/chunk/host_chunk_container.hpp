@@ -68,6 +68,7 @@ public:
   {
     matrix_[iChunk] = (thrust::complex<double>*)mat;
   }
+
   void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk)
   {
     params_[iChunk] = (uint_t*)&prm[0];

@@ -142,7 +142,10 @@ public:
   virtual reg_t sample_measure(const std::vector<double> &rnds) const override;
 
   //optimized 1 qubit measure (async)
-  virtual void apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs);
+  virtual void apply_batched_measure(const reg_t& qubits,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs);
+
+
+  virtual void apply_reset(const reg_t& qubits);
 
   //-----------------------------------------------------------------------
   // Expectation Values
@@ -161,6 +164,10 @@ protected:
   // Qubit threshold for when apply unitary will apply as two matrix multiplications
   // rather than as a 2n-qubit superoperator matrix.
   size_t apply_unitary_threshold_ = 4;
+
+#ifdef AER_DEBUG
+  virtual void DebugDump(void) const;
+#endif
 };
 
 /*******************************************************************************
@@ -354,7 +361,7 @@ void DensityMatrixThrust<data_t>::apply_unitary_matrix(const reg_t &qubits,
 
 #ifdef AER_DEBUG
   BaseVector::DebugMsg(" density::apply_unitary_matrix",qubits);
-  BaseVector::DebugDump();
+  DebugDump();
 #endif
 }
 
@@ -588,8 +595,8 @@ void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qt
   BaseVector::apply_function(DensityCX<data_t>(qctrl, qtrgt, num_qubits()));
 
 #ifdef AER_DEBUG
-	BaseVector::DebugMsg(" density::apply_cnot");
-  BaseVector::DebugDump();
+  BaseVector::DebugMsg(" density::apply_cnot");
+  DebugDump();
 #endif
 }
 
@@ -655,7 +662,7 @@ void DensityMatrixThrust<data_t>::apply_phase(const uint_t q,const complex_t &ph
 
 #ifdef AER_DEBUG
   BaseVector::DebugMsg(" density::apply_phase");
-  BaseVector::DebugDump();
+  DebugDump();
 #endif
 }
 
@@ -819,7 +826,7 @@ void DensityMatrixThrust<data_t>::apply_x(const uint_t qubit)
 
 #ifdef AER_DEBUG
   BaseVector::DebugMsg(" density::apply_x",(int)qubit);
-  BaseVector::DebugDump();
+  DebugDump();
 #endif
 }
 
@@ -896,8 +903,8 @@ void DensityMatrixThrust<data_t>::apply_y(const uint_t qubit)
 	BaseVector::apply_function(DensityY<data_t>(qubits[0], qubits[1]) );
 
 #ifdef AER_DEBUG
-	BaseVector::DebugMsg(" density::apply_y",qubits);
-  BaseVector::DebugDump();
+  BaseVector::DebugMsg(" density::apply_y",qubits);
+  DebugDump();
 #endif
 }
 
@@ -995,8 +1002,8 @@ public:
     }
     else{
       cmask = this->batched_params_[istate].control_mask_;
+      pMat = (thrust::complex<double>*)this->batched_params_[istate].matrix2x2_;
       if((_idx & cmask) == cmask){  //control bits
-        pMat = (thrust::complex<double>*)this->batched_params_[istate].matrix2x2_;
         irow = _tid & 1;
 
         m = pMat[irow];
@@ -1190,6 +1197,9 @@ void DensityMatrixThrust<data_t>::apply_batched_matrix(std::vector<batched_matri
       if(n > BaseVector::chunk_.container()->num_chunks())
         n = BaseVector::chunk_.container()->num_chunks();
 
+      if(n == 0)
+        return;
+
       if(qubits.size() == 0){ //batched 2x2 matrix 
         if(matrices.size() > 0)
           BaseVector::chunk_.StoreBatchedMatrix(matrices);
@@ -1199,7 +1209,7 @@ void DensityMatrixThrust<data_t>::apply_batched_matrix(std::vector<batched_matri
 
 #ifdef AER_DEBUG
         BaseVector::DebugMsg(" density::apply_batched_2x2matrix");
-        BaseVector::DebugDump();
+        DebugDump();
 #endif
       }
       else{   //batched NxN matrix
@@ -1213,7 +1223,7 @@ void DensityMatrixThrust<data_t>::apply_batched_matrix(std::vector<batched_matri
 
 #ifdef AER_DEBUG
         BaseVector::DebugMsg(" density::apply_batched_NxNmatrix");
-        BaseVector::DebugDump();
+        DebugDump();
 #endif
       }
     }
@@ -1249,6 +1259,7 @@ public:
   }
   uint_t size(int num_qubits)
   {
+    this->chunk_bits_ = num_qubits;
     return diag_stride_ - 1;
   }
 
@@ -1299,6 +1310,7 @@ public:
 
   uint_t size(int num_qubits)
   {
+    this->chunk_bits_ = num_qubits;
     return (rows_ >> 1);
   }
   bool batch_enable(void)
@@ -1381,6 +1393,7 @@ public:
 
   uint_t size(int num_qubits)
   {
+    this->chunk_bits_ = num_qubits;
     return rows_;
   }
   bool batch_enable(void)
@@ -1449,21 +1462,21 @@ template <typename data_t>
 class density_probability_func : public GateFuncBase<data_t>
 {
 protected:
-  uint_t rows_;
+  uint_t qubit_sp_;
   uint_t mask_;
   uint_t cmask_;
 public:
-  density_probability_func(const reg_t &qubits,const reg_t &qubits_sorted,int i,uint_t stride)
+  density_probability_func(const reg_t &qubits,int i,uint_t sp)
   {
     int k;
     int nq = qubits.size();
 
-    rows_ = stride;
+    qubit_sp_ = sp;
 
     mask_ = 0;
     cmask_ = 0;
     for(k=0;k<nq;k++){
-      mask_ |= (1ull << qubits_sorted[k]);
+      mask_ |= (1ull << qubits[k]);
 
       if(((i >> k) & 1) != 0){
         cmask_ |= (1ull << qubits[k]);
@@ -1475,32 +1488,28 @@ public:
   {
     return true;
   }
-  bool batch_enable(void)
+  uint_t size(int num_qubits)
   {
-    return false;
+    this->chunk_bits_ = num_qubits;
+    return (1ull << qubit_sp_);
   }
 
   __host__ __device__ double operator()(const uint_t &i) const
   {
     thrust::complex<data_t> q;
     thrust::complex<data_t>* vec;
-    double ret;
-    uint_t idx;
+    double ret = 0.0;
 
-    vec = this->data_;
-    idx = i * (rows_ + 1);
+    uint_t iChunk = i >> qubit_sp_;
+    uint_t lid = i - (iChunk  << qubit_sp_);
+    uint_t idx = (iChunk << this->chunk_bits_) + (lid << qubit_sp_) + lid;
 
-    ret = 0.0;
-    if((i & mask_) == cmask_){
+    if((lid & mask_) == cmask_){
+      vec = this->data_;
       q = vec[idx];
       ret = q.real();
     }
     return ret;
-  }
-  uint_t size(int num_qubits)
-  {
-    (void)num_qubits;
-    return rows_;
   }
 
   const char* name(void)
@@ -1524,7 +1533,7 @@ std::vector<double> DensityMatrixThrust<data_t>::probabilities(const reg_t &qubi
 
   int i;
   for(i=0;i<DIM;i++){
-    BaseVector::apply_function_sum(&probs[i],density_probability_func<data_t>(qubits,qubits_sorted,i,BaseMatrix::num_rows()));
+    BaseVector::apply_function_sum(&probs[i],density_probability_func<data_t>(qubits,i,num_qubits()));
   }
 
   return probs;
@@ -1534,14 +1543,13 @@ template <typename data_t>
 reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnds) const 
 {
   uint_t count = 1;
-  if(BaseVector::multi_chunk_distribution_){
-    //each chunk calculates
-  }
-  else if(BaseVector::enable_batch_ ){
-    if(BaseVector::chunk_.pos() != 0)
+  if(!BaseVector::multi_chunk_distribution_){
+    if(BaseVector::enable_batch_ && BaseVector::chunk_.pos() != 0){
       return reg_t();   //first chunk execute all in batch
+    }
     count = BaseVector::chunk_.container()->num_chunks();
   }
+
   uint_t nrows = BaseMatrix::num_rows();
 
 #ifdef AER_DEBUG
@@ -1557,75 +1565,23 @@ reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnd
 }
 
 template <typename data_t>
-class density_probability_1qubit_func : public GateFuncBase<data_t>
+class density_reset_after_measure_func : public GateFuncBase<data_t>
 {
 protected:
-  uint_t offset_;
-  uint_t rows_;
-public:
-  density_probability_1qubit_func(const uint_t qubit,const uint_t nrow)
-  {
-    offset_ = 1ull << qubit;
-    rows_ = nrow;
-  }
-  uint_t size(int num_qubits)
-  {
-    return rows_/2;
-  }
-
-  __host__ __device__ thrust::complex<double> operator()(const uint_t &i) const
-  {
-    uint_t i0,i1;
-    thrust::complex<data_t> q0,q1;
-    thrust::complex<data_t>* vec;
-    thrust::complex<double> ret;
-    double d0,d1;
-    uint_t iChunk = i / (rows_/2);
-    uint_t lid = i - (iChunk*rows_/2);
-    uint_t base = iChunk*rows_*rows_;
-
-    vec = this->data_;
-
-    i1 = lid & (offset_ - 1);
-    i0 = (lid - i1) << 1;
-    i0 += i1;
-
-    q0 = vec[base+i0*(rows_+1)];
-    q1 = vec[base+(i0 + offset_)*(rows_+1)];
-
-    d0 = (double)q0.real();
-    d1 = (double)q1.real();
-
-    ret = thrust::complex<double>(d0,d1);
-    return ret;
-  }
-
-  const char* name(void)
-  {
-    return "density_probabilities_1qubit";
-  }
-};
-
-template <typename data_t>
-class DensityResetAfterMeasure : public GateFuncBase<data_t>
-{
-protected:
-  int qubit_;
-  int qubit_sp_;
+  uint_t num_qubits_;
+  uint_t qubit_sp_;
   double* probs_;
-  double* cond_;
-  uint_t size_;
-  uint_t num_save_cbits_;
+  uint_t iter_;
+  uint_t prob_buf_size_;
 public:
 
-  DensityResetAfterMeasure(int q,int qsp,double* probs,uint_t size,double* cond,int nbits)
+  density_reset_after_measure_func(uint_t nq,uint_t qsp,double* probs,uint_t prob_size,uint_t iter)
   {
-    qubit_ = q;
+    num_qubits_ = nq;
     qubit_sp_ = qsp;
     probs_ = probs;
-    cond_ = cond;
-    size_ = size;
-    num_save_cbits_ = nbits;
+    iter_ = iter;
+    prob_buf_size_ = prob_size;
   }
 
   bool is_diagonal(void)
@@ -1637,48 +1593,26 @@ public:
   {
     thrust::complex<data_t> q;
     thrust::complex<data_t>* vec;
-    double m;
-    double p,p0,p1;
-    uint_t gid;
-    uint_t bit;
+    double scale;
+    uint_t* qubits;
+    uint_t j;
 
     uint_t iChunk = (i >> this->chunk_bits_);
+    scale = 1.0/probs_[iChunk + QV_RESET_CURRENT_PROB*prob_buf_size_];
 
     vec = this->data_;
-    gid = this->base_index_;
+    qubits = this->params_;
 
-    p0 = probs_[iChunk*size_];
-    p1 = probs_[iChunk*size_+1];
-    p = p0 / (p0 + p1);
-    if(cond_[iChunk] < p){
-      bit = 0;
-      p = p0;
+    uint_t my_bit = 0;
+    uint_t my_bit_sp = 0;
+    for(j=0;j<num_qubits_;j++){
+      my_bit += ( ((i >> qubits[j]) & 1) << j);
+      my_bit_sp += ( ((i >> (qubits[j] + qubit_sp_)) & 1) << j);
     }
-    else{
-      bit = 1;
-      p = p1;
-    }
-
-    q = vec[i];
-    if((((i + gid) >> qubit_) & 1) == bit && (((i + gid) >> qubit_sp_) & 1) == bit){
-      m = 1.0 / sqrt(p);
-    }
-    else{
-      m = 0.0;
-    }
-    vec[i] = m * q;
-
-    //save measure to cregs
-    if((i - (iChunk << this->chunk_bits_))  == 0){
-      uint_t j,n64,i64,ibit;
-      n64 = (this->num_creg_bits_ + 63) >> 6;
-      for(j=0;j<num_save_cbits_;j++){
-        i64 = this->params_[j] >> 6;
-        ibit = this->params_[j] & 63;
-        this->cregs_[iChunk*n64 + i64] = (this->cregs_[iChunk*n64 + i64] & (~(1ull << ibit))) | (bit << ibit);
-      }
-    }
-
+    if(iter_ == my_bit && iter_ == my_bit_sp)
+      vec[i] = scale*vec[i];
+    else
+      vec[i] = 0.0;
   }
   const char* name(void)
   {
@@ -1686,44 +1620,186 @@ public:
   }
 };
 
-
 template <typename data_t>
-void DensityMatrixThrust<data_t>::apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs)
+void DensityMatrixThrust<data_t>::apply_batched_measure(const reg_t& qubits,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs)
 {
+  const int_t DIM = 1 << qubits.size();
   uint_t i,count = 1;
   if(BaseVector::enable_batch_){
     if(BaseVector::chunk_.pos() != 0){
       return;   //first chunk execute all in batch
     }
-    count = BaseVector::chunk_.container()->num_chunks();
-    std::vector<double> r(count);
-    for(i=0;i<count;i++){
-      r[i] = rng[BaseVector::chunk_index_ + i].rand();
-    }
-    BaseVector::chunk_.init_condition(r);
   }
-  else{
-    std::vector<double> r(1);
-    r[0] = rng[BaseVector::chunk_index_].rand();
-    BaseVector::chunk_.init_condition(r);
+  count = BaseVector::chunk_.container()->num_chunks();
+
+  //total probability
+  BaseVector::apply_function_sum(nullptr,trace_func<data_t>(BaseMatrix::rows_),true);
+  BaseVector::apply_function(set_probability_buffer_for_reset_func<data_t>(BaseVector::chunk_.probability_buffer(),BaseVector::chunk_.container()->num_chunks(),
+                                                                           BaseVector::chunk_.reduce_buffer(),BaseVector::chunk_.reduce_buffer_size()) );
+
+  reg_t params(qubits.size() + cmemory.size() + cregs.size());
+  for(i=0;i<qubits.size();i++){
+    params[i] = qubits[i];
   }
+  for(i=0;i<cmemory.size();i++){
+    params[i+qubits.size()] = cmemory[i] + BaseVector::num_creg_bits_;
+  }
+  for(i=0;i<cregs.size();i++){
+    params[cmemory.size()+qubits.size()+i] = cregs[i];
+  }
+  BaseVector::chunk_.StoreUintParams(params);
+
+  //probability
+  std::vector<double> r(count);
+  for(i=0;i<count;i++){
+    r[i] = rng[BaseVector::chunk_index_ + i].rand();
+  }
+  BaseVector::chunk_.container()->copy_to_probability_buffer(r,QV_RESET_TARGET_PROB);
+
+  //set system register[0] to 1 used for conditional register
+  uint_t system_reg = BaseVector::num_creg_bits_ + BaseVector::num_cmem_bits_;
+  BaseVector::store_cregister(system_reg,1);
   BaseVector::chunk_.keep_conditional(true);
 
-  BaseVector::apply_function_sum2(nullptr,density_probability_1qubit_func<data_t>(qubit,1ull << num_qubits()),true);
+  for(i=0;i<DIM-1;i++){
+    BaseVector::chunk_.set_conditional(system_reg);
+    BaseVector::apply_function_sum(nullptr,density_probability_func<data_t>(qubits,i,num_qubits()),true);
 
-  //bits to be stored
-  reg_t cbits = cregs;
-  for(i=0;i<cmemory.size();i++){
-    cbits.push_back(cmemory[i] + BaseVector::num_creg_bits_);
+    BaseVector::apply_function(check_measure_probability_func<data_t>(qubits.size(),BaseVector::chunk_.probability_buffer(),BaseVector::chunk_.container()->num_chunks(),
+                                                                        BaseVector::chunk_.reduce_buffer(),BaseVector::chunk_.reduce_buffer_size(),
+                                                                        i,cmemory.size(),cregs.size()) );
+
+    BaseVector::chunk_.set_conditional(system_reg+1);
+    BaseVector::apply_function(density_reset_after_measure_func<data_t>(qubits.size(),num_qubits(),BaseVector::chunk_.probability_buffer(),BaseVector::chunk_.container()->num_chunks(),i ));
+    BaseVector::store_cregister(system_reg+1,0);
   }
-  BaseVector::chunk_.StoreUintParams(cbits);
-  BaseVector::apply_function(DensityResetAfterMeasure<data_t>(qubit,qubit+num_qubits(),BaseVector::chunk_.reduce_buffer(),BaseVector::chunk_.reduce_buffer_size(),BaseVector::chunk_.condition_buffer(),cbits.size() ));
-
-  BaseVector::chunk_.set_conditional(-1);
+  //for last case
   BaseVector::chunk_.keep_conditional(false);
+  BaseVector::chunk_.set_conditional(system_reg);
+  BaseVector::apply_function(density_reset_after_measure_func<data_t>(qubits.size(),num_qubits(),BaseVector::chunk_.probability_buffer(),BaseVector::chunk_.container()->num_chunks(),DIM-1 ));
 
   BaseVector::chunk_.container()->request_creg_update();
 }
+
+template <typename data_t>
+class density_reset_func : public GateFuncBase<data_t>
+{
+protected:
+  uint_t num_qubits_;
+  uint_t qubit_sp_;
+public:
+
+  density_reset_func(uint_t q,uint_t qsp)
+  {
+    num_qubits_ = q;
+    qubit_sp_ = qsp;
+  }
+
+  bool is_diagonal(void)
+  {
+    return true;
+  }
+  uint_t size(int nq)
+  {
+    this->chunk_bits_ = nq - 2*num_qubits_;
+    return (1ull << (nq-2*num_qubits_) );
+  }
+
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    thrust::complex<data_t> q;
+    thrust::complex<data_t>* vec;
+    uint_t idx,ii,t,j,k;
+    uint_t* qubits;
+    uint_t* qubits_sorted;
+
+    qubits_sorted = this->params_;
+    qubits = qubits_sorted + num_qubits_;
+
+    //calc base index
+    idx = 0;
+    ii = i;
+    for(j=0;j<num_qubits_;j++){
+      t = ii & ((1ull << qubits_sorted[j]) - 1);
+      idx += t;
+      ii = (ii - t) << 1;
+    }
+    for(j=0;j<num_qubits_;j++){
+      t = ii & ((1ull << (qubits_sorted[j] + qubit_sp_)) - 1);
+      idx += t;
+      ii = (ii - t) << 1;
+    }
+    idx += ii;
+
+    //collect diagonal elements and reset elements
+    vec = this->data_;
+    q = vec[idx];
+    for(j=1;j<(1ull << (num_qubits_*2));j++){
+      ii = idx;
+      for(k=0;k<num_qubits_;k++){
+        if(((j >> k) & 1) != 0){
+          ii += (1ull << qubits[k]);
+        }
+      }
+      for(k=0;k<num_qubits_;k++){
+        if(((j >> (k+num_qubits_)) & 1) != 0){
+          ii += (1ull << (qubits[k]+qubit_sp_));
+        }
+      }
+      q += vec[ii];
+      vec[ii] = 0.0;
+    }
+    vec[idx] = q;
+  }
+  const char* name(void)
+  {
+    return "reset";
+  }
+};
+
+template <typename data_t>
+void DensityMatrixThrust<data_t>::apply_reset(const reg_t& qubits)
+{
+  if(((BaseVector::multi_chunk_distribution_ && BaseVector::chunk_.device() >= 0) || BaseVector::enable_batch_) && BaseVector::chunk_.pos() != 0)
+    return;   //first chunk execute all in batch
+
+  auto qubits_sorted = qubits;
+  std::sort(qubits_sorted.begin(), qubits_sorted.end());
+
+  for(int_t i=0;i<qubits.size();i++){
+    qubits_sorted.push_back(qubits[i]);
+  }
+  BaseVector::chunk_.StoreUintParams(qubits_sorted);
+
+  BaseVector::apply_function(density_reset_func<data_t>(qubits.size(),num_qubits()));
+}
+
+#ifdef AER_DEBUG
+template <typename data_t>
+void DensityMatrixThrust<data_t>::DebugDump(void) const
+{
+  thrust::complex<data_t> t;
+  uint_t i,idx,n;
+
+  BaseVector::chunk_.synchronize();
+
+  n = 16;
+  if(n > (1ull << num_qubits()))
+    n = (1ull << num_qubits());
+  for(i=0;i<n;i++){
+    idx = i*(1ull << num_qubits())/n;
+    t = BaseVector::chunk_.Get(idx*(BaseMatrix::rows_+1));
+    spdlog::debug("   {0:05b} | {1:e}, {2:e}",idx,t.real(),t.imag());
+  }
+  if(n < (1ull << num_qubits())){
+    idx = (1ull << num_qubits())-1;
+    t = BaseVector::chunk_.Get(idx*(BaseMatrix::rows_+1));
+    spdlog::debug("   {0:05b} | {1:e}, {2:e}",idx,t.real(),t.imag());
+  }
+}
+
+
+#endif
 
 //------------------------------------------------------------------------------
 } // end namespace QV

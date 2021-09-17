@@ -355,11 +355,6 @@ protected:
   //stored sampling resuls
   std::vector<reg_t> samples_;
 
-  void apply_runtime_error(int_t istate,const Operations::Op& op,
-                          ExperimentResult &result,
-                          std::vector<RngEngine>& rng,
-                          const AER::Noise::NoiseModel &noise);
-
   void allocate_states(uint_t n_states);
 };
 
@@ -572,8 +567,41 @@ void States<state_t>::apply_single_ops(const std::vector<Operations::Op> &ops,
       uint_t istate = top_state_of_group_[i];
 
       for(iOp=0;iOp<nOp;iOp++){
+//        std::cout << "  op["<<iOp<<"] : " << ops[iOp] << std::endl;
+
         if(ops[iOp].type == Operations::OpType::runtime_error){
-          apply_runtime_error(i,ops[iOp],par_results[i],rng,noise);
+          //apply error by using multi-circuits op
+          uint_t count = num_states_in_group_[i];
+          uint_t max_ops = 0;
+          bool pauli_only = true;
+
+          reg_t circ_idx(count);
+          for(uint_t j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
+            uint_t idx = rng[j].rand_int(ops[iOp].probs[0]);
+            circ_idx[j - top_state_of_group_[i]] = idx;
+            if(ops[iOp].circs[idx].size() == 0 || (ops[iOp].circs[idx].size() == 1 && ops[iOp].circs[idx][0].name == "id"))
+              continue;
+            else{
+              if(max_ops < ops[iOp].circs[idx].size())
+                max_ops = ops[iOp].circs[idx].size();
+              if(pauli_only){
+                for(int_t k=0;k<ops[iOp].circs[idx].size();k++){
+                  if(ops[iOp].circs[idx][k].name != "x" && ops[iOp].circs[idx][k].name != "y" && ops[iOp].circs[idx][k].name != "z")
+                    pauli_only = false;
+                }
+              }
+            }
+          }
+          if(max_ops == 0){
+            continue;   //do nothing
+          }
+          if(pauli_only){   //batched Pauli can be applied (optimization for Pauli error)
+            states_[istate].apply_batched_pauli(ops[iOp],circ_idx);
+          }
+          else{
+            //otherwise execute each circuit
+            states_[istate].apply_batched_multi_circuits_op(ops[iOp],par_results[i],rng,circ_idx);
+          }
         }
         else if(states_[istate].batchable_op(ops[iOp],true)){
           states_[istate].apply_op_multi_shots(ops[iOp],par_results[i],rng,final_ops && nOp == iOp + 1);
@@ -606,6 +634,7 @@ void States<state_t>::apply_single_ops(const std::vector<Operations::Op> &ops,
     //copy cregs
     for(i=0;i<n_states;i++){
       cregs_[global_state_index_ + i_begin + i].creg_memory() = states_[i].creg().creg_memory();
+      cregs_[global_state_index_ + i_begin + i].creg_register() = states_[i].creg().creg_register();
     }
   }
 }
@@ -722,59 +751,9 @@ void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::
     //copy cregs
     for(i=0;i<n_states;i++){
       cregs_[global_state_index_ + i_begin + i].creg_memory() = states_[i].creg().creg_memory();
+      cregs_[global_state_index_ + i_begin + i].creg_register() = states_[i].creg().creg_register();
     }
   }
-}
-
-template <class state_t>
-void States<state_t>::apply_runtime_error(int_t igroup,const Operations::Op& op,
-                          ExperimentResult &result,
-                          std::vector<RngEngine>& rng,
-                          const AER::Noise::NoiseModel &noise)
-{
-  uint_t count_i = 0;
-  int_t i;
-  int_t num_top_states = top_state_of_group_.size();
-  reg_t params(4*num_states_in_group_[igroup]);
-
-  for(i=0;i<num_states_in_group_[igroup];i++){
-    uint_t x_max = 0;
-    uint_t num_y = 0;
-    uint_t x_mask = 0;
-    uint_t z_mask = 0;
-    auto ops = noise.sample_noise_at_runtime(op,rng[i+top_state_of_group_[igroup]]);
-    if(ops.size() == 0)
-      count_i++;
-    else if(ops.size() == 1 && ops[0].name == "id")
-      count_i++;
-    else{
-      uint_t j;
-      for(j=0;j<ops.size();j++){
-        if(ops[j].name == "x"){
-          x_mask ^= (1ull << ops[j].qubits[0]);
-          x_max = std::max<uint_t>(x_max, (ops[j].qubits[0]));
-        }
-        else if(ops[j].name == "z"){
-          z_mask ^= (1ull << ops[j].qubits[0]);
-        }
-        else if(ops[j].name == "y"){
-          x_mask ^= (1ull << ops[j].qubits[0]);
-          z_mask ^= (1ull << ops[j].qubits[0]);
-          x_max = std::max<uint_t>(x_max, (ops[j].qubits[0]));
-          num_y++;
-        }
-      }
-    }
-    params[i*4] = x_max;
-    params[i*4+1] = num_y % 4;
-    params[i*4+2] = x_mask;
-    params[i*4+3] = z_mask;
-  }
-
-  if(count_i < num_states_in_group_[igroup]){
-    states_[top_state_of_group_[igroup]].apply_batched_pauli(params);
-  }
-
 }
 
 template <class state_t>

@@ -36,8 +36,7 @@ protected:
   mutable AERDeviceVector<uint_t>           params_;  //storage for additional parameters
   AERDeviceVector<batched_matrix_params>    batched_params_;  //storage for parameters for batched matrix multiplication
   AERDeviceVector<double>                   reduce_buffer_; //buffer for reduction
-  AERDeviceVector<double>                   condition_buffer_; //buffer to store condition
-  AERDeviceVector<uint_t>                   condition_count_buffer_;     //buffer to count condition
+  AERDeviceVector<double>                   probability_buffer_; //buffer used for measure probability
   AERDeviceVector<uint_t>                   cregs_;
   AERHostVector<uint_t>                     cregs_host_;
   int device_id_;                     //device index
@@ -186,12 +185,12 @@ public:
   {
     return reduce_buffer_size_;
   }
-  double* condition_buffer(uint_t iChunk) const
+  double* probability_buffer(uint_t iChunk) const
   {
-    return ((double*)thrust::raw_pointer_cast(condition_buffer_.data()) + iChunk);
+    return ((double*)thrust::raw_pointer_cast(probability_buffer_.data()) + iChunk*QV_PROBABILITY_BUFFER_SIZE);
   }
-  void init_condition(uint_t iChunk,std::vector<double>& cond);
-  bool update_condition(uint_t iChunk,uint_t count,bool async);
+
+  void copy_to_probability_buffer(std::vector<double>& buf,int pos);
 
   void allocate_creg(uint_t num_mem,uint_t num_reg);
   int measured_cbit(uint_t iChunk,int qubit)
@@ -214,6 +213,7 @@ public:
 
     return (cregs_host_[iChunk*n64 + i64] >> ibit) & 1;
   }
+
   uint_t* creg_buffer(uint_t iChunk) const
   {
     uint_t n64;
@@ -345,8 +345,7 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
 
   reduce_buffer_size_ *= 2;
   reduce_buffer_.resize(reduce_buffer_size_*nc);
-  condition_buffer_.resize(nc);
-  condition_count_buffer_.resize(nc);
+  probability_buffer_.resize(nc*QV_PROBABILITY_BUFFER_SIZE);
 
   creg_host_update_ = false;
   this->num_creg_bits_ = bits;
@@ -374,7 +373,9 @@ template <typename data_t>
 void DeviceChunkContainer<data_t>::allocate_creg(uint_t num_mem,uint_t num_reg)
 {
   //allocate memory + register in the same array (reg first)
-  this->num_creg_bits_ = num_mem + num_reg;
+  this->num_creg_bits_ = num_mem + num_reg + QV_NUM_INTERNAL_REGS;
+  this->num_cregisters_ = num_reg;
+  this->num_cmemory_ = num_mem;
 
   uint_t n64 = (this->num_creg_bits_ + 63) >> 6;
   cregs_.resize(num_matrices_*n64);
@@ -396,10 +397,8 @@ void DeviceChunkContainer<data_t>::Deallocate(void)
   batched_params_.shrink_to_fit();
   reduce_buffer_.clear();
   reduce_buffer_.shrink_to_fit();
-  condition_buffer_.clear();
-  condition_buffer_.shrink_to_fit();
-  condition_count_buffer_.clear();
-  condition_count_buffer_.shrink_to_fit();
+  probability_buffer_.clear();
+  probability_buffer_.shrink_to_fit();
   cregs_.clear();
   cregs_.shrink_to_fit();
   cregs_host_.clear();
@@ -1234,69 +1233,16 @@ void DeviceChunkContainer<data_t>::apply_blocked_gates(uint_t iChunk)
 }
 
 template <typename data_t>
-void DeviceChunkContainer<data_t>::init_condition(uint_t iChunk,std::vector<double>& cond)
+void DeviceChunkContainer<data_t>::copy_to_probability_buffer(std::vector<double>& buf,int pos)
 {
 #ifdef AER_THRUST_CUDA
-  cudaMemcpyAsync(condition_buffer(iChunk),&cond[0],sizeof(double)*cond.size(),cudaMemcpyHostToDevice,stream_[iChunk]);
+  set_device();
+  cudaMemcpyAsync(probability_buffer(0) + pos*this->num_chunks_,&buf[0],buf.size()*sizeof(double),cudaMemcpyHostToDevice,stream_[0]);
 #else
-  thrust::copy_n(cond.begin(),cond.size(),condition_buffer_.begin() + iChunk);
-#endif
-}
-
-template <typename data_t>
-bool DeviceChunkContainer<data_t>::update_condition(uint_t iChunk,uint_t count,bool async)
-{
-#ifdef AER_THRUST_CUDA
-  uint_t* count_buf = (uint_t*)thrust::raw_pointer_cast(condition_count_buffer_.data());
-  uint_t nt,nb;
-  nt = count;
-  nb = 1;
-  if(nt > 1024){
-    nb = (nt + 1024 - 1) / 1024;
-    nt = 1024;
-  }
-
-  dev_update_condition<<<nb,nt,0,stream_[iChunk]>>>(condition_buffer(iChunk),reduce_buffer(iChunk),count_buf,reduce_buffer_size_,count);
-
-  if(async){
-    return false;
-  }
-
-  while(nb > 1){
-    uint_t n = nb;
-    nt = nb;
-    nb = 1;
-    if(nt > 1024){
-      nb = (nt + 1024 - 1) / 1024;
-      nt = 1024;
-    }
-
-    dev_reduce_sum_uint<<<nb,nt,0,stream_[iChunk]>>>(count_buf,n,0);
-  }
-  cudaMemcpyAsync(&nt,count_buf,sizeof(uint_t),cudaMemcpyDeviceToHost,stream_[iChunk]);
-  cudaStreamSynchronize(stream_[iChunk]);
-
-  if(nt >= count){
-    return true;
-  }
-#else
-
-  int_t i,n;
-  n = 0;
-#pragma omp parallel for if(this->enable_omp_) reduction(+:n)
-  for(i=0;i<count;i++){
-    condition_buffer_[iChunk+i] -= reduce_buffer_[(iChunk+i)*reduce_buffer_size_];
-    if(condition_buffer_[iChunk+i] < 0){
-      n++;
-    }
-  }
-  if(n >= count)
-    return true;
+  thrust::copy_n(buf.begin(),buf.size(),probability_buffer_.begin());
 #endif
 
-  return false;
 }
-
 
 //------------------------------------------------------------------------------
 } // end namespace QV

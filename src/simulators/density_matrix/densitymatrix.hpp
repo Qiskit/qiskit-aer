@@ -131,6 +131,9 @@ public:
   // outcome in [0, 2^num_qubits - 1]
   virtual double probability(const uint_t outcome) const override;
 
+
+  virtual void apply_reset(const reg_t& qubits){}
+
   //-----------------------------------------------------------------------
   // Expectation Values
   //-----------------------------------------------------------------------

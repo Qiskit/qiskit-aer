@@ -302,30 +302,12 @@ public:
     }
     return chunk_container_.lock()->reduce_buffer_size();
   }
-  double* condition_buffer(void)
+  double* probability_buffer(void)
   {
     if(cache_){
-      return cache_->condition_buffer();
+      return cache_->probability_buffer();
     }
-    return chunk_container_.lock()->condition_buffer(chunk_pos_);
-  }
-  void init_condition(std::vector<double>& cond)
-  {
-    if(cache_){
-      cache_->init_condition(cond);
-    }
-    else{
-      chunk_container_.lock()->init_condition(chunk_pos_,cond);
-    }
-  }
-  bool update_condition(uint_t count,bool async = true)
-  {
-    if(cache_){
-      return cache_->update_condition(count,async);
-    }
-    else{
-      return chunk_container_.lock()->update_condition(chunk_pos_,count,async);
-    }
+    return chunk_container_.lock()->probability_buffer(chunk_pos_);
   }
 
   void synchronize(void) const
@@ -361,11 +343,16 @@ public:
     return chunk_container_.lock()->measured_cbit(chunk_pos_,qubit);
   }
 
+
   void set_conditional(int_t bit)
   {
     //top chunk only sets conditional bit
     if(chunk_pos_ == 0)
       chunk_container_.lock()->set_conditional(bit);
+  }
+  int_t get_conditional(void)
+  {
+    return chunk_container_.lock()->get_conditional();
   }
   void keep_conditional(bool keep)
   {

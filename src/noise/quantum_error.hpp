@@ -165,6 +165,16 @@ QuantumError::NoiseOps QuantumError::sample_noise(const reg_t &qubits,
         noise_op[0].type = Operations::OpType::runtime_error;
         noise_op[0].name = "runtime_error";
         noise_op[0].qubits = qubits;
+        noise_op[0].probs.push_back(probabilities_);
+        for (size_t j=0; j < circuits_.size(); j++ ){
+          noise_op[0].circs.push_back(circuits_[j]);
+          for (auto &op : noise_op[0].circs[j]) {
+            // Update qubits based on position in qubits list
+            for (auto &qubit: op.qubits) {
+              qubit = qubits[qubit];
+            }
+          }
+        }
         return noise_op;
       }
       else{

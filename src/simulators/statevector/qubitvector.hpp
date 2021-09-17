@@ -292,7 +292,7 @@ public:
 
 
   //-----------------------------------------------------------------------
-  // for batched optimization (thesea are not used for this class)
+  // for batched optimization (these are not used for CPU)
   //-----------------------------------------------------------------------
   virtual bool batched_optimization_supported(void)
   {
@@ -300,22 +300,23 @@ public:
   }
   virtual void apply_bfunc(const Operations::Op &op){}
   virtual void set_conditional(int_t reg){}
+  virtual void apply_roerror(const Operations::Op &op, std::vector<RngEngine> &rng){}
 
-  //optimized 1 qubit measure (async)
-  virtual void apply_batched_measure(const uint_t qubit,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs){}
+  //optimized batched measure
+  virtual void apply_batched_measure(const reg_t& qubits,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs){}
+  virtual void apply_batched_reset(const reg_t& qubits,std::vector<RngEngine>& rng){}
 
   virtual int measured_cregister(int qubit){return -1;}
   virtual int measured_cmemory(int qubit){return -1;}
+  virtual int_t set_batched_system_conditional(int_t src_reg, reg_t& mask){return -1;}
 
   //runtime noise sampling
-  void apply_batched_pauli(reg_t& params)
-  {
-  }
+  virtual void apply_batched_pauli(const Operations::Op &op, reg_t& idx){}
 
   //Apply Kraus 
-  void apply_kraus(const reg_t &qubits,
+  void apply_batched_kraus(const reg_t &qubits,
                    const std::vector<cmatrix_t> &kmats,
-                   std::vector<RngEngine>& rng);
+                   std::vector<RngEngine>& rng){}
 
   //-----------------------------------------------------------------------
   // Norms
@@ -2201,47 +2202,6 @@ void QubitVector<data_t>::apply_pauli(const reg_t &qubits, const std::string &pa
   apply_lambda(lambda, (size_t) 0, (data_size_ >> 1));
 }
 
-template <typename data_t>
-void QubitVector<data_t>::apply_kraus(const reg_t &qubits,
-                                            const std::vector<cmatrix_t> &kmats,
-                                            std::vector<RngEngine>& rng)
-{
-  // Choose a real in [0, 1) to choose the applied kraus operator once
-  // the accumulated probability is greater than r.
-  // We know that the Kraus noise must be normalized
-  // So we only compute probabilities for the first N-1 kraus operators
-  // and infer the probability of the last one from 1 - sum of the previous
-
-  double r = rng[0].rand(0., 1.);
-  double accum = 0.;
-  bool complete = false;
-
-  // Loop through N-1 kraus operators
-  for (size_t j = 0; j < kmats.size() - 1; j++) {
-
-    // Calculate probability
-    cvector_t<double> vmat = Utils::vectorize_matrix(kmats[j]);
-    double p = norm(qubits, vmat);
-    accum += p;
-
-    // check if we need to apply this operator
-    if (accum > r) {
-      // rescale vmat so projection is normalized
-      Utils::scalar_multiply_inplace(vmat, 1 / std::sqrt(p));
-      // apply Kraus projection operator
-      apply_matrix(qubits, vmat);
-      complete = true;
-      break;
-    }
-  }
-
-  // check if we haven't applied a kraus operator yet
-  if (complete == false) {
-    // Compute probability from accumulated
-    double renorm = 1 / std::sqrt(1. - accum);
-    apply_matrix(qubits, Utils::vectorize_matrix(renorm * kmats.back()));
-  }
-}
 
 //------------------------------------------------------------------------------
 } // end namespace QV
