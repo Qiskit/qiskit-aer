@@ -626,7 +626,7 @@ class QasmSimulator(AerBackend):
         if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
             return sorted([
                 'qerror', 'qerror_loc', 'roerror', 'kraus', 'superop', 'snapshot',
-                'save_expval', 'save_expval_var',  'save_probabilities', 'save_probabilities_dict',
+                'save_expval', 'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_state', 'save_density_matrix', 'save_amplitudes_sq',
                 'set_statevector', 'set_density_matrix'
             ])

@@ -30,11 +30,11 @@ from qiskit.result import Result
 from qiskit.utils import deprecate_arguments
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.compiler import assemble
-from qiskit.converters import dag_to_circuit, circuit_to_dag
 
-from qiskit.providers.aer.aererror import AerError
-from qiskit.providers.aer.jobs import AerJob, AerJobSet, split_qobj
-from qiskit.providers.aer.noise.noise_model_pass import NoiseModelPass
+from ..aererror import AerError
+from ..jobs import AerJob, AerJobSet, split_qobj
+from ..noise.noise_model import NoiseModel
+from ..noise.errors.quantum_error import QuantumErrorLocation
 
 
 # Logger
@@ -320,7 +320,7 @@ class AerBackend(Backend, ABC):
         """Assemble one or more Qobj for running on the simulator"""
         # Remove quantum error instructions from circuits and add to
         # run option noise model
-        circuits, run_options = self._noise_model_pass(circuits, **run_options)
+        circuits, run_options = self._assemble_noise_model(circuits, **run_options)
 
         # This conditional check can be removed when we remove passing
         # qobj to run
@@ -348,23 +348,13 @@ class AerBackend(Backend, ABC):
 
         return qobj
 
-    def _noise_model_pass(self, circuits, **run_options):
-        """Transpile to add circuit quantum error instructions to noise model"""
+    def _assemble_noise_model(self, circuits, **run_options):
+        """Move quantum error instructions from circuits to noise model"""
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             return circuits, run_options
 
         if isinstance(circuits, (QuantumCircuit, Schedule)):
             circuits = [circuits]
-
-        # Check if circuits contain quantum error instructions
-        has_qerror = False
-        for circ in circuits:
-            # Check input is a circuit so we don't call count_ops on a schedule
-            if isinstance(circ, QuantumCircuit) and 'qerror' in circ.count_ops():
-                has_qerror = True
-                break
-        if not has_qerror:
-            return circuits, run_options
 
         # Build noise model pass and apply to circuits
         # We don't use pass manager because we need to avoid parallel map
@@ -373,14 +363,54 @@ class AerBackend(Backend, ABC):
             noise_model = run_options['noise_model']
         else:
             noise_model = getattr(self.options, 'noise_model', None)
-        noise_pass = NoiseModelPass(noise_model)
-        transpiled_circuits = []
+
+        # Flag for if we need to make a deep copy of the noise model
+        # This avoids unnecessarily copying the noise model for circuits
+        # that do not contain a quantum error
+        updated_noise = False
+
+        # Check if circuits contain quantum error instructions
+        run_circuits = []
         for circ in circuits:
-            dag = circuit_to_dag(circ)
-            transpiled_circuits.append(dag_to_circuit(noise_pass.run(dag)))
-        if noise_pass.updated:
-            run_options['noise_model'] = noise_pass.noise_model
-        return transpiled_circuits, run_options
+            if isinstance(circ, Schedule):
+                run_circuits.append(circ)
+            else:
+                updated_circ = False
+                qubit_index_map = {bit: index for index, bit in enumerate(circ.qubits)}
+                new_data = []
+                for inst, qargs, cargs in circ.data:
+                    if inst.name == "qerror":
+                        updated_circ = True
+                        if not updated_noise:
+                            # Deep copy noise model on first update
+                            if noise_model is None:
+                                noise_model = NoiseModel()
+                            else:
+                                noise_model = copy.deepcopy(noise_model)
+                            updated_noise = True
+                        # Extract error and replace with place holder
+                        qerror = inst._quantum_error
+                        label = uuid.uuid4().hex
+                        qubits = [qubit_index_map[i] for i in qargs]
+                        new_inst = QuantumErrorLocation(qerror.num_qubits, label=label)
+                        new_data.append((new_inst, qargs, cargs))
+                        # Add error to noise model
+                        noise_model.add_quantum_error(qerror, new_inst, qubits)
+                    else:
+                        new_data.append((inst, qargs, cargs))
+                if updated_circ:
+                    new_circ = circ.copy()
+                    new_circ.data = new_data
+                    run_circuits.append(new_circ)
+                else:
+                    run_circuits.append(circ)
+
+        # If we modified the existing noise model, add it to the run options
+        if updated_noise:
+            run_options['noise_model'] = noise_model
+
+        # Return the possibly updated circuits and noise model
+        return run_circuits, run_options
 
     def _get_executor(self, **run_options):
         """Get the executor"""

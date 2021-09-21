@@ -44,6 +44,15 @@ class QuantumErrorInstruction(Gate):
         self._quantum_error = quantum_error
 
 
+class QuantumErrorLocation(Gate):
+    """Instruction for representing a multi-qubit error location in Aer"""
+
+    _directive = True
+
+    def __init__(self, num_qubits, label=None):
+        super().__init__("qerror_loc", num_qubits, [], label=label)
+
+
 class QuantumError:
     """
     Quantum error class for Qiskit Aer noise model
