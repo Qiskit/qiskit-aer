@@ -1468,24 +1468,22 @@ template <typename data_t>
 template <typename Function>
 void QubitVectorThrust<data_t>::apply_function_sum(double* pSum,Function func,bool async) const
 {
+  uint_t count = 1;
+#ifdef AER_THRUST_CUDA
   if(func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0 && num_qubits_ == num_qubits()) || (enable_batch_))){
-    if(chunk_.pos() == 0){
+    if(chunk_.pos() != 0){
       //only first chunk on device calculates all the chunks
-      func.set_base_index(chunk_index_ << num_qubits_);
-      chunk_.ExecuteSum(pSum,func,chunk_.container()->num_chunks());
-#ifdef AER_DEBUG
-      int nc = chunk_.container()->num_chunks();
-      DebugMsg(func.name(),nc);
-#endif
+      return;
     }
+    count = chunk_.container()->num_chunks();
   }
-  else{
-    func.set_base_index(chunk_index_ << num_qubits_);
-    chunk_.ExecuteSum(pSum,func,1);
-#ifdef AER_DEBUG
-    DebugMsg(func.name(),1);
 #endif
-  }
+
+  func.set_base_index(chunk_index_ << num_qubits_);
+  chunk_.ExecuteSum(pSum,func,count);
+#ifdef AER_DEBUG
+  DebugMsg(func.name(),count);
+#endif
 
   if(!async)
     chunk_.synchronize();
@@ -1495,24 +1493,22 @@ template <typename data_t>
 template <typename Function>
 void QubitVectorThrust<data_t>::apply_function_sum2(double* pSum,Function func,bool async) const
 {
+  uint_t count = 1;
+#ifdef AER_THRUST_CUDA
   if(func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0 && num_qubits_ == num_qubits()) || (enable_batch_))){
-    if(chunk_.pos() == 0){
+    if(chunk_.pos() != 0){
       //only first chunk on device calculates all the chunks
-      func.set_base_index(chunk_index_ << num_qubits_);
-      chunk_.ExecuteSum2(pSum,func,chunk_.container()->num_chunks());
-#ifdef AER_DEBUG
-      int nc = chunk_.container()->num_chunks();
-      DebugMsg(func.name(),nc);
-#endif
+      return;
     }
+    count = chunk_.container()->num_chunks();
   }
-  else{
-    func.set_base_index(chunk_index_ << num_qubits_);
-    chunk_.ExecuteSum2(pSum,func,1);
-#ifdef AER_DEBUG
-    DebugMsg(func.name(),1);
 #endif
-  }
+
+  func.set_base_index(chunk_index_ << num_qubits_);
+  chunk_.ExecuteSum2(pSum,func,count);
+#ifdef AER_DEBUG
+  DebugMsg(func.name(),count);
+#endif
 
   if(!async)
     chunk_.synchronize();
@@ -3582,10 +3578,13 @@ template <typename data_t>
 double QubitVectorThrust<data_t>::norm() const
 {
   double ret;
+#ifdef AER_THRUST_CUDA
   if((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_){
     if(chunk_.pos() != 0)
       return 0.0;   //first chunk execute all in batch
   }
+#endif
+
   apply_function_sum(&ret,norm_func<data_t>());
 
 #ifdef AER_DEBUG
@@ -4606,10 +4605,12 @@ void QubitVectorThrust<data_t>::copy_cregister(uint_t dest,uint_t src)
 template <typename data_t>
 reg_t QubitVectorThrust<data_t>::sample_measure(const std::vector<double> &rnds) const
 {
+  uint_t count = 1;
+#ifdef AER_THRUST_CUDA
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return reg_t();   //first chunk execute all in batch
-
-  uint_t count = chunk_.container()->num_chunks();
+  count = chunk_.container()->num_chunks();
+#endif
 
 #ifdef AER_DEBUG
   reg_t samples;
