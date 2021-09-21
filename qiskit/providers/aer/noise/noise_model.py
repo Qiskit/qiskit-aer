@@ -541,10 +541,10 @@ class NoiseModel:
 
             # Convert qubits list to hashable string
             qubits_str = self._qubits2str(qubits)
-            if error.number_of_qubits != len(qubits):
+            if error.num_qubits != len(qubits):
                 raise NoiseError("Number of qubits ({}) does not match "
                                  " the error size ({})".format(
-                                     len(qubits), error.number_of_qubits))
+                                     len(qubits), error.num_qubits))
             if qubits_str in qubit_dict:
                 new_error = qubit_dict[qubits_str].compose(error)
                 qubit_dict[qubits_str] = new_error
@@ -921,16 +921,16 @@ class NoiseModel:
         """
 
         def error_message(gate_qubits):
-            msg = "{} qubit QuantumError".format(error.number_of_qubits) + \
+            msg = "{} qubit QuantumError".format(error.num_qubits) + \
                   " cannot be applied to {} qubit".format(gate_qubits) + \
                   " instruction \"{}\".".format(name)
             return msg
 
-        if name in self._1qubit_instructions and error.number_of_qubits != 1:
+        if name in self._1qubit_instructions and error.num_qubits != 1:
             raise NoiseError(error_message(1))
-        if name in self._2qubit_instructions and error.number_of_qubits != 2:
+        if name in self._2qubit_instructions and error.num_qubits != 2:
             raise NoiseError(error_message(2))
-        if name in self._3qubit_instructions and error.number_of_qubits != 3:
+        if name in self._3qubit_instructions and error.num_qubits != 3:
             raise NoiseError(error_message(3))
 
     def _qubits2str(self, qubits):

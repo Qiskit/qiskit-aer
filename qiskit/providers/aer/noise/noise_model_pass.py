@@ -67,7 +67,7 @@ class NoiseModelPass(TransformationPass):
                 error = node.op._quantum_error
                 qubits = list(dag.qubits.index(q) for q in node.qargs)
                 label = str(uuid.uuid4())
-                error_loc = QuantumErrorLocation(error.number_of_qubits, label=label)
+                error_loc = QuantumErrorLocation(error.num_qubits, label=label)
                 error_loc.condition = node.op.condition
                 self._noise_model.add_quantum_error(error, error_loc, qubits)
                 dag.substitute_node(node, error_loc)

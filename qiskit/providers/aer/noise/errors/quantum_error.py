@@ -14,6 +14,7 @@ Quantum error class for Qiskit Aer noise model
 """
 import logging
 import copy
+from warnings import warn
 import numpy as np
 
 from qiskit.circuit import Gate
@@ -39,7 +40,7 @@ class QuantumErrorInstruction(Gate):
         Args:
             quantum_error (QuantumError): the error to add as an instruction.
         """
-        super().__init__("qerror", quantum_error.number_of_qubits, [])
+        super().__init__("qerror", quantum_error.num_qubits, [])
         self._quantum_error = quantum_error
 
 
@@ -150,7 +151,7 @@ class QuantumError:
             self._number_of_qubits = number_of_qubits
 
         # Combine any kraus circuits
-        noise_ops = self._combine_kraus(noise_ops, self.number_of_qubits)
+        noise_ops = self._combine_kraus(noise_ops, self.num_qubits)
 
         # Error checking
         if minimum_qubits > self._number_of_qubits:
@@ -238,7 +239,16 @@ class QuantumError:
         return len(self._noise_circuits)
 
     @property
+    def num_qubits(self):
+        """Return the number of qubits for the error."""
+        return self._number_of_qubits
+
+    @property
     def number_of_qubits(self):
+        """Return the number of qubits for the error."""
+        warn("The `number_of_qubits` property has been deprecated as of"
+             " qiskit-aer 0.10.0. Use the `num_qubits` property instead.",
+             DeprecationWarning)
         return self._number_of_qubits
 
     @property
@@ -263,11 +273,11 @@ class QuantumError:
     def to_quantumchannel(self):
         """Convert the QuantumError to a SuperOp quantum channel."""
         # Initialize as an empty superoperator of the correct size
-        dim = 2**self.number_of_qubits
+        dim = 2**self.num_qubits
         channel = SuperOp(np.zeros([dim * dim, dim * dim]))
         for circuit, prob in zip(self._noise_circuits,
                                  self._noise_probabilities):
-            component = prob * circuit2superop(circuit, self.number_of_qubits)
+            component = prob * circuit2superop(circuit, self.num_qubits)
             channel = channel + component
         return channel
 
@@ -409,7 +419,7 @@ class QuantumError:
         if not isinstance(other, QuantumError):
             other = QuantumError(other)
         # Error checking
-        if self.number_of_qubits != other.number_of_qubits:
+        if self.num_qubits != other.num_qubits:
             raise NoiseError(
                 "QuantumErrors are not defined on same number of qubits.")
 
@@ -444,7 +454,7 @@ class QuantumError:
                     if (can_combine and self._check_instr(last_name) and
                             self._check_instr(name)):
                         combined_circuit[-1] = self._compose_instr(
-                            last_instr, instr, self.number_of_qubits)
+                            last_instr, instr, self.num_qubits)
                     else:
                         # If they cannot be combined append the operation
                         combined_circuit.append(instr)
@@ -455,7 +465,7 @@ class QuantumError:
                 combined_noise_circuits.append(combined_circuit)
         noise_ops = self._combine_kraus(
             zip(combined_noise_circuits, combined_noise_probabilities),
-            self.number_of_qubits)
+            self.num_qubits)
         return QuantumError(noise_ops)
 
     def _tensor_product(self, other, reverse=False):
@@ -479,13 +489,13 @@ class QuantumError:
         combined_noise_probabilities = []
         # Combine subcircuits and probabilities
         if reverse:
-            shift_qubits = self.number_of_qubits
+            shift_qubits = self.num_qubits
             noise_ops0 = list(
                 zip(self._noise_circuits, self._noise_probabilities))
             noise_ops1 = list(
                 zip(other._noise_circuits, other._noise_probabilities))
         else:
-            shift_qubits = other.number_of_qubits
+            shift_qubits = other.num_qubits
             noise_ops0 = list(
                 zip(other._noise_circuits, other._noise_probabilities))
             noise_ops1 = list(
@@ -524,7 +534,7 @@ class QuantumError:
         # Now we combine any error circuits containing only Kraus operations
         noise_ops = self._combine_kraus(
             zip(combined_noise_circuits, combined_noise_probabilities),
-            self.number_of_qubits + other.number_of_qubits)
+            self.num_qubits + other.num_qubits)
         return QuantumError(noise_ops)
 
     @staticmethod
