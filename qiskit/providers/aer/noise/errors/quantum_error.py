@@ -14,9 +14,9 @@ Quantum error class for Qiskit Aer noise model
 """
 import logging
 import copy
-
 import numpy as np
 
+from qiskit.circuit import Gate
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators import Kraus, SuperOp, Choi, Operator
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
@@ -28,6 +28,19 @@ from .errorutils import standard_instruction_channel
 from .errorutils import standard_instruction_operator
 
 logger = logging.getLogger(__name__)
+
+
+class QuantumErrorInstruction(Gate):
+    """Container instruction for adding QuantumError to circuit"""
+
+    def __init__(self, quantum_error):
+        """Initialize a quantum error circuit instruction.
+
+        Args:
+            quantum_error (QuantumError): the error to add as an instruction.
+        """
+        super().__init__("qerror", quantum_error.number_of_qubits, [])
+        self._quantum_error = quantum_error
 
 
 class QuantumError:
@@ -226,7 +239,6 @@ class QuantumError:
 
     @property
     def number_of_qubits(self):
-        """Return the number of qubits for the error."""
         return self._number_of_qubits
 
     @property
@@ -261,7 +273,7 @@ class QuantumError:
 
     def to_instruction(self):
         """Convert the QuantumError to a circuit Instruction."""
-        return self.to_quantumchannel().to_instruction()
+        return QuantumErrorInstruction(self)
 
     def error_term(self, position):
         """
