@@ -14,16 +14,15 @@ Qiskit Aer qasm simulator backend.
 """
 
 import copy
-import json
 import logging
 import datetime
 import time
 import uuid
 import warnings
 from abc import ABC, abstractmethod
-from numpy import ndarray
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.pulse import Schedule
 from qiskit.circuit import ParameterExpression
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
@@ -31,34 +30,15 @@ from qiskit.result import Result
 from qiskit.utils import deprecate_arguments
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.compiler import assemble
+from qiskit.converters import dag_to_circuit, circuit_to_dag
 
-from ..jobs import AerJob, AerJobSet, split_qobj
-from ..aererror import AerError
+from qiskit.providers.aer.aererror import AerError
+from qiskit.providers.aer.jobs import AerJob, AerJobSet, split_qobj
+from qiskit.providers.aer.noise.noise_model_pass import NoiseModelPass
 
 
 # Logger
 logger = logging.getLogger(__name__)
-
-
-class AerJSONEncoder(json.JSONEncoder):
-    """
-    JSON encoder for NumPy arrays and complex numbers.
-
-    This functions as the standard JSON Encoder but adds support
-    for encoding:
-        complex numbers z as lists [z.real, z.imag]
-        ndarrays as nested lists.
-    """
-
-    # pylint: disable=method-hidden,arguments-differ
-    def default(self, obj):
-        if isinstance(obj, ndarray):
-            return obj.tolist()
-        if isinstance(obj, complex):
-            return [obj.real, obj.imag]
-        if hasattr(obj, "to_dict"):
-            return obj.to_dict()
-        return super().default(obj)
 
 
 class AerBackend(Backend, ABC):
@@ -338,6 +318,10 @@ class AerBackend(Backend, ABC):
 
     def _assemble(self, circuits, parameter_binds=None, **run_options):
         """Assemble one or more Qobj for running on the simulator"""
+        # Remove quantum error instructions from circuits and add to
+        # run option noise model
+        circuits, run_options = self._noise_model_pass(circuits, **run_options)
+
         # This conditional check can be removed when we remove passing
         # qobj to run
         if isinstance(circuits, (QasmQobj, PulseQobj)):
@@ -363,6 +347,47 @@ class AerBackend(Backend, ABC):
             setattr(qobj.config, key, val)
 
         return qobj
+
+    def _noise_model_pass(self, circuits, **run_options):
+        """Transpile to add circuit quantum error instructions to noise model"""
+        if isinstance(circuits, (QasmQobj, PulseQobj)):
+            return circuits, run_options
+
+        if isinstance(circuits, (QuantumCircuit, Schedule)):
+            circuits = [circuits]
+
+        # Check if circuits contain quantum error instructions
+        has_qerror = False
+        for circ in circuits:
+            # Check input is a circuit so we don't call count_ops on a schedule
+            if isinstance(circ, QuantumCircuit) and 'qerror' in circ.count_ops():
+                has_qerror = True
+                break
+        if not has_qerror:
+            return circuits, run_options
+
+        # Build noise model pass and apply to circuits
+        # We don't use pass manager because we need to avoid parallel map
+        # since multiple cirucits will be extending the same noise model
+        if 'noise_model' in run_options:
+            noise_model = run_options['noise_model']
+        else:
+            noise_model = getattr(self.options, 'noise_model', None)
+        noise_pass = NoiseModelPass(noise_model)
+        transpiled_circuits = []
+        for circ in circuits:
+            dag = circuit_to_dag(circ)
+            transpiled_circuits.append(dag_to_circuit(noise_pass.run(dag)))
+        if noise_pass.updated:
+            run_options['noise_model'] = noise_pass.noise_model
+        return transpiled_circuits, run_options
+
+    def _get_executor(self, **run_options):
+        """Get the executor"""
+        if 'executor' in run_options:
+            return run_options['executor']
+        else:
+            return getattr(self._options, 'executor', None)
 
     @abstractmethod
     def _execute(self, qobj):

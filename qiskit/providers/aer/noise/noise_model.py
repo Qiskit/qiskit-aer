@@ -16,13 +16,13 @@ Noise model class for Qiskit Aer simulators.
 import json
 import logging
 from warnings import warn
+from numpy import ndarray
 
 from qiskit.circuit import Instruction
 from qiskit.providers import BaseBackend, Backend
 from qiskit.providers.models import BackendProperties
 
-from ..backends.aerbackend import AerJSONEncoder
-from ..backends.qasm_simulator import QasmSimulator
+from ..backends.backend_utils import BASIS_GATES
 from .noiseerror import NoiseError
 from .errors.quantum_error import QuantumError
 from .errors.readout_error import ReadoutError
@@ -30,6 +30,27 @@ from .device.models import basic_device_gate_errors
 from .device.models import basic_device_readout_errors
 
 logger = logging.getLogger(__name__)
+
+
+class AerJSONEncoder(json.JSONEncoder):
+    """
+    JSON encoder for NumPy arrays and complex numbers.
+
+    This functions as the standard JSON Encoder but adds support
+    for encoding:
+        complex numbers z as lists [z.real, z.imag]
+        ndarrays as nested lists.
+    """
+
+    # pylint: disable=method-hidden,arguments-differ
+    def default(self, obj):
+        if isinstance(obj, ndarray):
+            return obj.tolist()
+        if isinstance(obj, complex):
+            return [obj.real, obj.imag]
+        if hasattr(obj, "to_dict"):
+            return obj.to_dict()
+        return super().default(obj)
 
 
 class NoiseModel:
@@ -84,13 +105,6 @@ class NoiseModel:
         print(noise_model)
 
     """
-
-    # Get the default basis gates for the Qiskit Aer Qasm Simulator
-    # this is used to decide what are instructions for a noise model
-    # and what are labels for other named instructions
-    # NOTE: we exclude kraus, roerror, and initialize instructions here
-    _QASMSIMULATOR_BASIS_GATES = QasmSimulator._DEFAULT_CONFIGURATION['basis_gates']
-
     # Checks for standard 1-3 qubit instructions
     _1qubit_instructions = set([
         'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
@@ -417,7 +431,7 @@ class NoiseModel:
         for name, _ in self._instruction_names_labels(instructions):
             # If the instruction is in the default basis gates for the
             # QasmSimulator we add it to the basis gates.
-            if name in self._QASMSIMULATOR_BASIS_GATES:
+            if name in BASIS_GATES:
                 if name not in ['measure', 'reset', 'initialize',
                                 'kraus', 'superop', 'roerror']:
                     self._basis_gates.add(name)
