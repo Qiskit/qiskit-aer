@@ -373,7 +373,7 @@ class AerBackend(Backend, ABC):
                 qubit_index_map = {bit: index for index, bit in enumerate(circ.qubits)}
                 new_data = []
                 for inst, qargs, cargs in circ.data:
-                    if inst.name == "qerror":
+                    if inst.name == "quantum_channel":
                         updated_circ = True
                         if not updated_noise:
                             # Deep copy noise model on first update

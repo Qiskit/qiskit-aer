@@ -130,7 +130,7 @@ class TestNoiseInserter(QiskitAerTestCase):
         target_circuit.y(qr[1])
         target_circuit.append(error_y, [qr[1]])
         target_circuit.z(qr[2])
-        target_basis = ['qerror'] + noise_model.basis_gates
+        target_basis = ['quantum_channel'] + noise_model.basis_gates
         target_circuit = transpile(target_circuit, basis_gates=target_basis)
         result_circuit = insert_noise(circuit, noise_model, transpile=True)
         self.assertEqual(SuperOp(target_circuit), SuperOp(result_circuit))
