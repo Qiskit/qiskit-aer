@@ -170,7 +170,7 @@ class TestOptions(SimulatorTestCase):
         result_approx = backend_approx.run(circuit, shots=shots).result()
         sv_approx = result_approx.data(0)['sv']
         # Check that the fidelity is reasonable
-        self.assertGreaterEqual(state_fidelity(sv_exact, sv_approx), 0.88)
+        self.assertGreaterEqual(state_fidelity(sv_exact, sv_approx), 0.80)
 
         # Check that the approximated result is not identical to the exact
         # result, because that could mean there was actually no approximation
