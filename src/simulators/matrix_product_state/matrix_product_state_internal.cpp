@@ -595,12 +595,10 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B,
 			     bool is_diagonal)
 {
   // We first move the two qubits to be in consecutive positions
-  // For performance reasons, we move the qubit with higher bond dimension
-  // toward the qubit with lower bond dimension. For this purpose, 
-  // we define the bond dimension of low_qubit as the size of 
-  // lambda_reg_[low_qubit], and the bond dimension of high_qubit, as 
-  // the size of lambda_reg_[high_qubit -1], 
-  // where low_qubit < high_qubit
+  // By default, the right qubit is moved after the left qubit.
+  // However, the user can choose to move the left qubit to be before the 
+  // right qubit by changing the MPS_swap_direction to SWAP_RIGHT.
+  // The direction of the swaps may affect performance, depending on the circuit.
 
   bool swapped = false;
   uint_t low_qubit=0, high_qubit=0;

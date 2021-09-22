@@ -1,8 +1,6 @@
 other:
   - |
-    Improved performance of algorithm for swapping of qubits in MPS 2-qubit gates.
-    In the previous version the direction of the swaps was arbitrary. 
-    Now, always move the qubit with higher bond dimension toward the qubit 
-    with lower bond dimension. For this purpose, we define the bond dimension 
-    of qubit i as the size of lambda[i], and the bond dimension of qubit j, as 
-    the size of lambda[j-1], where i<j.
+    Added an option that allows the user to determine the direction of 
+    swapping the qubits when internal swaps are inserted for a 2-qubit gate.
+    Possible values are "mps_swap_right" and "mps_swap_left".
+    The direction of the swaps may affect performance, depending on the circuit.

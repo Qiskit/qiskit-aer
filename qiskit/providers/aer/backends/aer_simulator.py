@@ -328,8 +328,8 @@ class AerSimulator(AerBackend):
       (Default: False)
 
     * ``"mps_swap_direction"`` (str): Determine the direction of swapping the
-      qubits when internal swaps are needed for a 2-qubit gate. Possible values
-      are "mps_swap_right" and "mps_swap_left".
+      qubits when internal swaps are inserted for a 2-qubit gate.
+      Possible values are "mps_swap_right" and "mps_swap_left".
       (Default: "mps_swap_left")
 
     These backend options apply in circuit optimization passes:
