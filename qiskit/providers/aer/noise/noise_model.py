@@ -53,6 +53,20 @@ class AerJSONEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
+class QuantumErrorLocation(Instruction):
+    """Instruction for referencing a multi-qubit error in a NoiseModel"""
+
+    _directive = True
+
+    def __init__(self, qerror):
+        """Construct a new quantum error location instruction.
+
+        Args:
+            qerror (QuantumError): the quantum error to reference.
+        """
+        super().__init__("qerror_loc", qerror.num_qubits, 0, [], label=qerror.id)
+
+
 class NoiseModel:
     """Noise model class for Qiskit Aer simulators.
 
@@ -848,6 +862,7 @@ class NoiseModel:
                 all_gate_qubits = error.get('gate_qubits', None)
                 all_noise_qubits = error.get('noise_qubits', None)
                 qerror = QuantumError(noise_ops)
+                qerror._id = error.get('id', None) or qerror.id
                 if all_gate_qubits is not None:
                     for gate_qubits in all_gate_qubits:
                         # Load non-local quantum error

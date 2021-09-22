@@ -14,6 +14,7 @@ Quantum error class for Qiskit Aer noise model
 """
 import logging
 import copy
+import uuid
 from warnings import warn
 import numpy as np
 
@@ -91,6 +92,8 @@ class QuantumError:
         Raises:
             NoiseError: If input noise_ops are not a CPTP map.
         """
+        # Unique ID for QuantumError
+        self._id = uuid.uuid4().hex
 
         # Shallow copy constructor
         if isinstance(noise_ops, QuantumError):
@@ -179,6 +182,14 @@ class QuantumError:
         if not isinstance(other, QuantumError):
             return False
         return self.to_quantumchannel() == other.to_quantumchannel()
+
+    def __hash__(self):
+        return hash(self._id)
+
+    @property
+    def id(self):
+        """Return unique ID string for error"""
+        return self._id
 
     def copy(self):
         """Make a copy of current QuantumError."""
@@ -298,6 +309,7 @@ class QuantumError:
         """Return the current error as a dictionary."""
         error = {
             "type": "qerror",
+            "id": self.id,
             "operations": [],
             "instructions": list(self._noise_circuits),
             "probabilities": list(self._noise_probabilities)
@@ -676,15 +688,6 @@ class QuantumError:
 
     def __neg__(self):
         raise NotImplementedError("'QuantumError' does not support negation.")
-
-
-class QuantumErrorLocation(Instruction):
-    """Instruction for representing a multi-qubit error location in Aer"""
-
-    _directive = True
-
-    def __init__(self, num_qubits, label=None):
-        super().__init__("qerror_loc", num_qubits, 0, [], label=label)
 
 
 class QuantumChannelInstruction(Instruction):

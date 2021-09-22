@@ -33,8 +33,7 @@ from qiskit.compiler import assemble
 
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
-from ..noise.noise_model import NoiseModel
-from ..noise.errors.quantum_error import QuantumErrorLocation
+from ..noise.noise_model import NoiseModel, QuantumErrorLocation
 
 
 # Logger
@@ -383,11 +382,10 @@ class AerBackend(Backend, ABC):
                             updated_noise = True
                         # Extract error and replace with place holder
                         qerror = inst._quantum_error
-                        label = uuid.uuid4().hex
-                        new_inst = QuantumErrorLocation(qerror.num_qubits, label=label)
-                        new_data.append((new_inst, qargs, cargs))
+                        new_data.append((QuantumErrorLocation(qerror), qargs, cargs))
                         # Add error to noise model
-                        noise_model.add_all_qubit_quantum_error(qerror, new_inst)
+                        if qerror.id not in noise_model._default_quantum_errors:
+                            noise_model.add_all_qubit_quantum_error(qerror, qerror.id)
                     else:
                         new_data.append((inst, qargs, cargs))
                 if updated_circ:
