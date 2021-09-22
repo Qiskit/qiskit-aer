@@ -108,7 +108,7 @@ with open(README_PATH) as readme_file:
     README = readme_file.read()
 
 
-cmake_args = ["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9"]
+cmake_args = []
 is_win_32_bit = (platform.system() == 'Windows' and platform.architecture()[0] == "32bit")
 if is_win_32_bit:
     cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")

@@ -39,7 +39,7 @@ macro(setup_conan)
     endif()
 
     if(BUILD_TESTS)
-        set(REQUIREMENTS ${REQUIREMENTS} catch2/2.12.1)
+        set(REQUIREMENTS ${REQUIREMENTS} catch2/2.13.6)
         list(APPEND AER_CONAN_LIBS catch2)
     endif()
 
