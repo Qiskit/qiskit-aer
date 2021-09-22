@@ -431,7 +431,7 @@ class NoiseModel:
         for name, _ in self._instruction_names_labels(instructions):
             # If the instruction is in the default basis gates for the
             # QasmSimulator we add it to the basis gates.
-            if name in BASIS_GATES:
+            if name in BASIS_GATES['automatic']:
                 if name not in ['measure', 'reset', 'initialize',
                                 'kraus', 'superop', 'roerror']:
                     self._basis_gates.add(name)

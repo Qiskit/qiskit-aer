@@ -17,7 +17,7 @@ import copy
 from warnings import warn
 import numpy as np
 
-from qiskit.circuit import Gate
+from qiskit.circuit import Instruction, QuantumRegister, QuantumCircuit
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators import Kraus, SuperOp, Choi, Operator
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
@@ -31,7 +31,7 @@ from .errorutils import standard_instruction_operator
 logger = logging.getLogger(__name__)
 
 
-class QuantumErrorInstruction(Gate):
+class QuantumErrorInstruction(Instruction):
     """Container instruction for adding QuantumError to circuit"""
 
     def __init__(self, quantum_error):
@@ -40,17 +40,24 @@ class QuantumErrorInstruction(Gate):
         Args:
             quantum_error (QuantumError): the error to add as an instruction.
         """
-        super().__init__("qerror", quantum_error.num_qubits, [])
+        super().__init__("qerror", quantum_error.num_qubits, 0, [])
         self._quantum_error = quantum_error
 
+    def _define(self):
+        """Allow unrolling to a Kraus instruction"""
+        q = QuantumRegister(self.num_qubits, "q")
+        qc = QuantumCircuit(q, name=self.name)
+        qc._append(Kraus(self._quantum_error).to_instruction(), q, [])
+        self.definition = qc
 
-class QuantumErrorLocation(Gate):
+
+class QuantumErrorLocation(Instruction):
     """Instruction for representing a multi-qubit error location in Aer"""
 
     _directive = True
 
     def __init__(self, num_qubits, label=None):
-        super().__init__("qerror_loc", num_qubits, [], label=label)
+        super().__init__("qerror_loc", num_qubits, 0, [], label=label)
 
 
 class QuantumError:

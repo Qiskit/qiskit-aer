@@ -356,18 +356,12 @@ class AerBackend(Backend, ABC):
         if isinstance(circuits, (QuantumCircuit, Schedule)):
             circuits = [circuits]
 
-        # Build noise model pass and apply to circuits
-        # We don't use pass manager because we need to avoid parallel map
-        # since multiple cirucits will be extending the same noise model
-        if 'noise_model' in run_options:
-            noise_model = run_options['noise_model']
-        else:
-            noise_model = getattr(self.options, 'noise_model', None)
-
         # Flag for if we need to make a deep copy of the noise model
         # This avoids unnecessarily copying the noise model for circuits
         # that do not contain a quantum error
         updated_noise = False
+        noise_model = run_options.get(
+            'noise_model', getattr(self.options, 'noise_model', None))
 
         # Check if circuits contain quantum error instructions
         run_circuits = []
