@@ -370,7 +370,6 @@ class AerBackend(Backend, ABC):
                 run_circuits.append(circ)
             else:
                 updated_circ = False
-                qubit_index_map = {bit: index for index, bit in enumerate(circ.qubits)}
                 new_data = []
                 for inst, qargs, cargs in circ.data:
                     if inst.name == "quantum_channel":
@@ -385,11 +384,10 @@ class AerBackend(Backend, ABC):
                         # Extract error and replace with place holder
                         qerror = inst._quantum_error
                         label = uuid.uuid4().hex
-                        qubits = [qubit_index_map[i] for i in qargs]
                         new_inst = QuantumErrorLocation(qerror.num_qubits, label=label)
                         new_data.append((new_inst, qargs, cargs))
                         # Add error to noise model
-                        noise_model.add_quantum_error(qerror, new_inst, qubits)
+                        noise_model.add_all_qubit_quantum_error(qerror, new_inst)
                     else:
                         new_data.append((inst, qargs, cargs))
                 if updated_circ:
