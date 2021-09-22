@@ -41,6 +41,7 @@ static const cmatrix_t one_measure =
   uint_t MPS::omp_threads_ = 1;     
   uint_t MPS::omp_threshold_ = 14;  
   enum Sample_measure_alg MPS::sample_measure_alg_ = Sample_measure_alg::HEURISTIC; 
+  enum MPS_swap_direction MPS::mps_swap_direction_ = MPS_swap_direction::SWAP_LEFT;
   double MPS::json_chop_threshold_ = 1E-8;
   std::stringstream MPS::logging_str_;
   bool MPS::mps_log_data_ = 0;
@@ -589,26 +590,38 @@ void MPS::print_bond_dimensions() const {
 //    V is split by columns to yield two MPS_Tensors representing qubit B (in reshape_V_after_SVD),
 //    the diagonal of S becomes the Lambda-vector in between A and B.
 //-------------------------------------------------------------------------
-void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, const cmatrix_t &mat, bool is_diagonal)
+void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, 
+			     Gates gate_type, const cmatrix_t &mat, 
+			     bool is_diagonal)
 {
   // We first move the two qubits to be in consecutive positions
-  // If index_B > index_A, we move the qubit at index_B to index_A+1
-  // If index_B < index_A, we move the qubit at index_B to index_A-1, and then
-  // swap between the qubits
-  uint_t A = index_A;
+  // For performance reasons, we move the qubit with higher bond dimension
+  // toward the qubit with lower bond dimension. For this purpose, 
+  // we define the bond dimension of low_qubit as the size of 
+  // lambda_reg_[low_qubit], and the bond dimension of high_qubit, as 
+  // the size of lambda_reg_[high_qubit -1], 
+  // where low_qubit < high_qubit
 
   bool swapped = false;
+  uint_t low_qubit=0, high_qubit=0;
 
-  if (index_B > index_A+1) {
-    change_position(index_B, index_A+1);  // Move B to be right after A
-  } else if (index_A > 0 && index_B < index_A-1) {
-    change_position(index_B, index_A-1);  // Move B to be right before A
-  }
-  if (index_B < index_A) {
-    A = index_A - 1;
+  if (index_B > index_A) {
+    low_qubit = index_A;
+    high_qubit = index_B;
+  } else {
+    low_qubit = index_B;
+    high_qubit = index_A;
     swapped = true;
   }
-  common_apply_2_qubit_gate(A, gate_type, mat, swapped, is_diagonal);
+  if (mps_swap_direction_ == MPS_swap_direction::SWAP_LEFT) {
+    // Move high_qubit to be right after low_qubit
+      change_position(high_qubit, low_qubit+1);  
+  } else {  //mps_swap_right
+    // Move low_qubit to be right before high_qubit
+      change_position(low_qubit, high_qubit-1);  
+      low_qubit = high_qubit-1;
+    }
+  common_apply_2_qubit_gate(low_qubit, gate_type, mat, swapped, is_diagonal);
 }
 
 void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A+1

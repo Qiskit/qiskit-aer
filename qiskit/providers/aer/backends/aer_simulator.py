@@ -323,9 +323,14 @@ class AerSimulator(AerBackend):
         shots, and a large number of qubits, with complexity around
         O(n * D^2) per shot.
 
-    * ``mps_log_data`` (str): if True, output logging data of the MPS
+    * ``"mps_log_data"`` (str): if True, output logging data of the MPS
       structure: bond dimensions and values discarded during approximation.
       (Default: False)
+
+    * ``"mps_swap_direction"`` (str): Determine the direction of swapping the
+      qubits when internal swaps are needed for a 2-qubit gate. Possible values
+      are "mps_swap_right" and "mps_swap_left".
+      (Default: "mps_swap_left")
 
     These backend options apply in circuit optimization passes:
 
@@ -549,6 +554,7 @@ class AerSimulator(AerBackend):
             matrix_product_state_max_bond_dimension=None,
             mps_sample_measure_algorithm='mps_heuristic',
             mps_log_data=False,
+            mps_swap_direction='mps_swap_left',
             chop_threshold=1e-8,
             mps_parallel_threshold=14,
             mps_omp_threads=1)
