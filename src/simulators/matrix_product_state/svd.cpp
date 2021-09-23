@@ -136,6 +136,7 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
     for (uint_t i=0; i<S.size(); i++)
       S[i] /= sqrt_sum;
   }
+  std::cout << "discarded_value = " << discarded_value << std::endl;
   return discarded_value;
 }
 

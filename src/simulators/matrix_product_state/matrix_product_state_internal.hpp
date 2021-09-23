@@ -220,6 +220,7 @@ public:
   // Description: prints the MPS in the current ordering of the qubits (qubit_order_)
   //----------------------------------------------------------------
   virtual std::ostream&  print(std::ostream& out) const;
+  std::ostream& print_sum_lambdas(std::ostream& out) const;
 
   Vector<complex_t> full_statevector();
 

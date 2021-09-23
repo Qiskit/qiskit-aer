@@ -552,7 +552,7 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
     //to the left
     std::swap(qubit_ordering_.order_[index_A], qubit_ordering_.order_[index_B]);    
     // For logging purposes:
-    print_to_log_internal_swap(index_A, index_B);
+    //print_to_log_internal_swap(index_A, index_B);
 
     // update qubit locations after all the swaps
     for (uint_t i=0; i<num_qubits_; i++)
@@ -591,6 +591,8 @@ void MPS::print_bond_dimensions() const {
 //-------------------------------------------------------------------------
 void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B, Gates gate_type, const cmatrix_t &mat, bool is_diagonal)
 {
+  if (index_A==61 && index_B==62 && gate_type==id)
+    std::cout <<"contracting 61 with 62" << std::endl;
   // We first move the two qubits to be in consecutive positions
   // If index_B > index_A, we move the qubit at index_B to index_A+1
   // If index_B < index_A, we move the qubit at index_B to index_A-1, and then
@@ -615,6 +617,15 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
 				    Gates gate_type, const cmatrix_t &mat,
 				    bool swapped,
 				    bool is_diagonal) {
+  if (gate_type==id) {
+    std::cout <<"in common with " << A << std::endl;
+    q_reg_[A].print(std::cout);
+    for (uint_t i=0; i<lambda_reg_[A].size(); i++)
+      std::cout << lambda_reg_[A][i] << " ";
+    std::cout << std::endl;
+    q_reg_[A+1].print(std::cout);
+    std::cout << std::endl;
+  }
   // After we moved the qubits as necessary, 
   // the operation is always between qubits A and A+1
 
@@ -625,7 +636,8 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
     q_reg_[A+1].mul_Gamma_by_right_Lambda(lambda_reg_[A+1]);
 
   MPS_Tensor temp = MPS_Tensor::contract(q_reg_[A], lambda_reg_[A], q_reg_[A+1]);
-  
+    if (A==61 && gate_type==id)
+      std::cout <<"after contract" << std::endl;
   switch (gate_type) {
   case cx:
     temp.apply_cnot(swapped);
@@ -656,7 +668,10 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
   default:
     throw std::invalid_argument("illegal gate for apply_2_qubit_gate"); 
   }
-
+  if (A==60 && gate_type==id) {
+    std::cout << "temp"<< std::endl;
+    temp.print(std::cout);
+  }
   MPS_Tensor left_gamma, right_gamma;
   rvector_t lambda;
   double discarded_value = MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
@@ -671,6 +686,15 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
   q_reg_[A] = left_gamma;
   lambda_reg_[A] = lambda;
   q_reg_[A+1] = right_gamma;
+  if (gate_type==id) {
+    std::cout <<"after contraction " << A << std::endl;
+    q_reg_[A].print(std::cout);
+    for (uint_t i=0; i<lambda_reg_[A].size(); i++)
+      std::cout << lambda_reg_[A][i] << " ";
+    std::cout << std::endl;
+    q_reg_[A+1].print(std::cout);
+    std::cout << "--------------------------" << std::endl << std::endl;
+  }
 }
 
 void MPS::apply_3_qubit_gate(const reg_t &qubits,
@@ -1248,6 +1272,16 @@ std::ostream& MPS::print(std::ostream& out) const {
   return out;
 }
 
+std::ostream& MPS::print_sum_lambdas(std::ostream& out) const {
+  for(uint_t i=0; i<num_qubits_-1; i++)
+    {
+      double sum = 0.0;
+      for (uint_t j=0; j<lambda_reg_[i].size(); j++)
+	sum += std::norm(lambda_reg_[i][j]);
+      out << "sum[" << i << "]=" << sum <<std::endl; 
+    }
+}
+
 std::vector<reg_t> MPS::get_matrices_sizes() const
 {
   std::vector<reg_t> result;
@@ -1572,6 +1606,7 @@ uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
 
 void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
 					  uint_t next_measured_qubit) {
+  std::cout << "propagate_to_neighbors_internal, min = "<< min_qubit<< ", max = " << max_qubit << "next = " << next_measured_qubit << std::endl;
   // step 4 - propagate the changes to all qubits to the right
   for (uint_t i=max_qubit; i<next_measured_qubit; i++) {
     if (lambda_reg_[i].size() == 1) 
