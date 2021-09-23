@@ -265,27 +265,25 @@ void Circuit::set_params(bool truncation) {
   size_t last_initialize_pos = 0;
   bool ops_to_remove = false;
 
-  if (!ops.empty()) {
-    std::unordered_set<uint_t> ancestor_qubits;
-    for (size_t i = 0; i < size; ++ i) {
-      const size_t rpos = size - i - 1;
-      const auto& op = ops[rpos];
-      if (!truncation || check_result_ancestor(op, ancestor_qubits)) {
-        add_op_metadata(op);
-        ancestor[rpos] = true;
-        num_ancestors++;
-        if (op.type == OpType::measure) {
-          first_measure_pos = rpos;
-          has_measure = true;
-        } else if (op.type == OpType::initialize && last_initialize_pos == 0) {
-          last_initialize_pos = rpos;
-        }
-        if (last_ancestor_pos == 0) {
-          last_ancestor_pos = rpos;
-        }
-      } else if (truncation && !ops_to_remove){
-        ops_to_remove = true;
+  std::unordered_set<uint_t> ancestor_qubits;
+  for (size_t i = 0; i < size; ++ i) {
+    const size_t rpos = size - i - 1;
+    const auto& op = ops[rpos];
+    if (!truncation || check_result_ancestor(op, ancestor_qubits)) {
+      add_op_metadata(op);
+      ancestor[rpos] = true;
+      num_ancestors++;
+      if (op.type == OpType::measure) {
+        first_measure_pos = rpos;
+        has_measure = true;
+      } else if (op.type == OpType::initialize && last_initialize_pos == 0) {
+        last_initialize_pos = rpos;
       }
+      if (last_ancestor_pos == 0) {
+        last_ancestor_pos = rpos;
+      }
+    } else if (truncation && !ops_to_remove){
+      ops_to_remove = true;
     }
   }
 
