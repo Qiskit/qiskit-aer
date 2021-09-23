@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes `#1347 <https://github.com/Qiskit/qiskit-aer/issue/1347>`__
+    where the behaviour of using the
+    :meth:`~qiskit.providers.aer.AerSimulator.set_options` and
+    :meth:`~qiskit.providers.aer.AerSimulator.set_option` methods of 
+    simulator backends could lead to different behavior for some options.
