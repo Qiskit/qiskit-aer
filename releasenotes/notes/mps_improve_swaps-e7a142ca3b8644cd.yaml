@@ -1,0 +1,6 @@
+other:
+  - |
+    Added an option that allows the user to determine the direction of 
+    swapping the qubits when internal swaps are inserted for a 2-qubit gate.
+    Possible values are "mps_swap_right" and "mps_swap_left".
+    The direction of the swaps may affect performance, depending on the circuit.
