@@ -252,7 +252,8 @@ void Circuit::add_op_metadata(const Op& op) {
 void Circuit::set_params(bool truncation) {
   // Clear current circuit metadata  
   reset_metadata();
-  
+  if (ops.empty()) return;
+
   // Analyze input ops from tail to head to get locations of ancestor,
   // first measurement position and last initialize position
   const auto size = ops.size();
