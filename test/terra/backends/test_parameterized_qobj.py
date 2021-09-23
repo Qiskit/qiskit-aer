@@ -20,7 +20,7 @@ import numpy as np
 
 from test.terra import common
 
-from qiskit import assemble
+from qiskit.compiler import assemble, transpile
 from qiskit.circuit import QuantumCircuit, Parameter
 from test.terra.reference.ref_save_expval import (
     save_expval_circuits,
@@ -130,6 +130,39 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
         counts = res.get_counts()
         self.assertEqual(counts, [{'00': shots}, {'11': shots}, {'00': shots}])
+
+    def test_run_path_already_bound_parameter_expression(self):
+        """Test parameterizations with a parameter expression that's already bound."""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        tmp = Parameter('x')
+        theta = Parameter('theta')
+        expr = tmp - tmp
+        bound_expr = expr.bind({tmp: 1})
+        circuit.rx(theta, 0)
+        circuit.rx(bound_expr, 0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
+        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        self.assertEqual(counts, [{'00': shots}, {'11': shots}, {'00': shots}])
+
+    def test_run_path_already_transpiled_parameter_expression(self):
+        """Test parameterizations with a transpiled parameter expression."""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(1)
+        theta = Parameter('theta')
+        circuit.rx(theta, 0)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
+        tqc = transpile(circuit, basis_gates=['u3'])
+        res = backend.run(tqc, shots=shots, parameter_binds=parameter_binds).result()
+        counts = res.get_counts()
+        self.assertEqual(counts, [{'0': shots}, {'1': shots}, {'0': shots}])
+
 
     def test_run_path_with_expressions(self):
         """Test parameterized circuit path via backed.run()"""
