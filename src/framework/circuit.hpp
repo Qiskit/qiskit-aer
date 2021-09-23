@@ -380,7 +380,12 @@ void Circuit::set_params(bool truncation) {
 
   // Counter for current position in ops as we shuffle ops
   size_t op_idx = 0;
-  const size_t head_end = (has_measure && can_sample) ? first_measure_pos : last_ancestor_pos + 1;
+  size_t head_end = 0;
+  if (has_measure && can_sample) {
+    head_end = first_measure_pos;
+  } else if (num_ancestors > 0) {
+    head_end = last_ancestor_pos + 1;
+  }
   for (size_t pos = 0; pos < head_end; ++pos) {
     if (ops_to_remove && !ancestor[pos]) {
       // Skip if not ancestor
