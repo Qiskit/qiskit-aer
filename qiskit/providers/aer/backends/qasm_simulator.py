@@ -514,30 +514,21 @@ class QasmSimulator(AerBackend):
         qobj = map_legacy_method_options(qobj)
         return cpp_execute(self._controller, qobj)
 
-    def set_options(self, **fields):
-        out_options = {}
-        update_basis_gates = False
-        for key, value in fields.items():
-            if key == 'method':
-                if value in LEGACY_METHOD_MAP:
-                    value, device = LEGACY_METHOD_MAP[value]
-                    out_options["device"] = device
-                self._set_method_config(value)
-                update_basis_gates = True
-                out_options[key] = value
-                if (value is not None and value not in self.available_methods()):
-                    raise AerError(
-                        "Invalid simulation method {}. Available methods"
-                        " are: {}".format(value, self.available_methods()))
-            elif key in ['noise_model', 'basis_gates']:
-                update_basis_gates = True
-                out_options[key] = value
-            elif key == 'custom_instructions':
-                self._set_configuration_option(key, value)
-            else:
-                out_options[key] = value
-        super().set_options(**out_options)
-        if update_basis_gates:
+    def set_option(self, key, value):
+        if key == "custom_instructions":
+            self._set_configuration_option(key, value)
+            return
+        if key == "method":
+            if value in LEGACY_METHOD_MAP:
+                value, device = LEGACY_METHOD_MAP[value]
+                self.set_option("device", device)
+            if (value is not None and value not in self.available_methods()):
+                raise AerError(
+                    "Invalid simulation method {}. Available methods"
+                    " are: {}".format(value, self.available_methods()))
+            self._set_method_config(value)
+        super().set_option(key, value)
+        if key in ["method", "noise_model", "basis_gates"]:
             self._cached_basis_gates = self._basis_gates()
 
     def _validate(self, qobj):
@@ -670,7 +661,6 @@ class QasmSimulator(AerBackend):
 
     def _set_method_config(self, method=None):
         """Set non-basis gate options when setting method"""
-        super().set_options(method=method)
         # Update configuration description and number of qubits
         if method in ['statevector', 'statevector_gpu', 'statevector_thrust']:
             description = 'A C++ statevector simulator with noise'

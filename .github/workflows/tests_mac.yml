@@ -4,6 +4,9 @@ on:
     branches: [main, 'stable/*']
   pull_request:
     branches: [main, 'stable/*']
+concurrency:
+  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
+  cancel-in-progress: true
 jobs:
   lint:
     runs-on: macOS-latest
