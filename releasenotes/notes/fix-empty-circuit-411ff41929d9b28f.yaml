@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes `#1351 <https://github.com/Qiskit/qiskit-aer/issue/1351>`__
+    where running an empty QuantumCircuit with a noise model set
+    would cause the simulator to crash.
