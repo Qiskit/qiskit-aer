@@ -142,8 +142,8 @@ public:
   //store asynchronously measured classical bits after batched execution
   virtual void store_measured_cbits(void);
 
-  virtual void allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
-  virtual void bind_state(State<densmat_t>& state,uint_t ishot,bool batch_enable);
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
+  virtual bool bind_state(State<densmat_t>& state,uint_t ishot,bool batch_enable);
 
   virtual void end_of_circuit()
   {
@@ -411,21 +411,27 @@ const stringmap_t<Snapshots> State<densmat_t>::snapshotset_(
 // Initialization
 //-------------------------------------------------------------------------
 template <class densmat_t>
-void State<densmat_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
+bool State<densmat_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
 {
-  BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,num_parallel_shots);
-  BaseState::shot_index_ = 0;
+  if(BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,num_parallel_shots)){
+    BaseState::shot_index_ = 0;
+    return true;
+  }
+  return false;
 }
 
 template <class densmat_t>
-void State<densmat_t>::bind_state(State<densmat_t>& state,uint_t ishot,bool batch_enable)
+bool State<densmat_t>::bind_state(State<densmat_t>& state,uint_t ishot,bool batch_enable)
 {
   //allocate qreg from allocated buffer
-  BaseState::qreg_.chunk_setup(state.qreg_,ishot);
-  BaseState::qreg_.enable_batch(batch_enable);
-  state.qreg_.enable_batch(batch_enable);
+  if(BaseState::qreg_.chunk_setup(state.qreg_,ishot)){
+    BaseState::qreg_.enable_batch(batch_enable);
+    state.qreg_.enable_batch(batch_enable);
 
-  BaseState::shot_index_ = ishot;
+    BaseState::shot_index_ = ishot;
+    return true;
+  }
+  return false;
 }
 
 template <class densmat_t>

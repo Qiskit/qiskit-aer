@@ -138,7 +138,7 @@ public:
   //batched execution
   virtual void apply_batched_ops(const std::vector<Operations::Op> &ops);
   virtual void apply_batched_pauli(const Operations::Op &op, reg_t& idx);
-  virtual void apply_batched_multi_circuits_op(const Operations::Op &op, ExperimentResult &result,
+  virtual void apply_batched_noise_circuits(const Operations::Op &op, ExperimentResult &result,
                                                std::vector<RngEngine> &rng, reg_t& idx);
 
   virtual bool batchable_op(const Operations::Op& op,bool single_op = true);
@@ -172,8 +172,8 @@ public:
   virtual std::vector<reg_t> batched_sample_measure(const reg_t &qubits,reg_t& shots,std::vector<RngEngine> &rng);
 
 
-  virtual void allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
-  virtual void bind_state(State<statevec_t>& state,uint_t ishot,bool batch_enable);
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
+  virtual bool bind_state(State<statevec_t>& state,uint_t ishot,bool batch_enable);
 
   virtual void end_of_circuit()
   {
@@ -504,21 +504,27 @@ const stringmap_t<Snapshots> State<statevec_t>::snapshotset_(
 // Initialization
 //-------------------------------------------------------------------------
 template <class statevec_t>
-void State<statevec_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
+bool State<statevec_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
 {
-  BaseState::qreg_.chunk_setup(num_qubits,num_qubits,0,num_parallel_shots);
+  bool ret = BaseState::qreg_.chunk_setup(num_qubits,num_qubits,0,num_parallel_shots);
   BaseState::shot_index_ = 0;
+
+  return ret;
 }
 
 template <class statevec_t>
-void State<statevec_t>::bind_state(State<statevec_t>& state,uint_t ishot,bool batch_enable)
+bool State<statevec_t>::bind_state(State<statevec_t>& state,uint_t ishot,bool batch_enable)
 {
   //allocate qreg from allocated buffer
-  BaseState::qreg_.chunk_setup(state.qreg_,ishot);
-  BaseState::qreg_.enable_batch(batch_enable);
-  state.qreg_.enable_batch(batch_enable);
+  if(BaseState::qreg_.chunk_setup(state.qreg_,ishot)){
+    BaseState::qreg_.enable_batch(batch_enable);
+    state.qreg_.enable_batch(batch_enable);
 
-  BaseState::shot_index_ = ishot;
+    BaseState::shot_index_ = ishot;
+
+    return true;
+  }
+  return false;
 }
 
 template <class statevec_t>
@@ -1506,7 +1512,7 @@ void State<statevec_t>::apply_batched_pauli(const Operations::Op& op,reg_t& idx)
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_batched_multi_circuits_op(const Operations::Op &op, ExperimentResult &result,
+void State<statevec_t>::apply_batched_noise_circuits(const Operations::Op &op, ExperimentResult &result,
                                                         std::vector<RngEngine> &rng, reg_t& idx)
 {
   int_t i,j,count,n;

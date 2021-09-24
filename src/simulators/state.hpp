@@ -120,8 +120,8 @@ public:
                                     const = 0;
 
   //memory allocation (previously called before inisitalize_qreg)
-  virtual void allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1){}
-  virtual void bind_state(State<state_t>& state,uint_t ishot,bool batch_enable){}
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1){return true;}
+  virtual bool bind_state(State<state_t>& state,uint_t ishot,bool batch_enable){return true;}
 
 
   // Return the expectation value of a N-qubit Pauli operator
@@ -218,7 +218,7 @@ public:
   virtual bool top_of_group(){return true;}  //check if this register is on the top of group
 
   virtual void apply_batched_pauli(const Operations::Op &op, reg_t& idx){}
-  virtual void apply_batched_multi_circuits_op(const Operations::Op &op, ExperimentResult &result,
+  virtual void apply_batched_noise_circuits(const Operations::Op &op, ExperimentResult &result,
                                                std::vector<RngEngine> &rng, reg_t& idx){}
 
   virtual void end_of_circuit(){};

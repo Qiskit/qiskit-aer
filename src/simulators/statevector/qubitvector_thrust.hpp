@@ -146,8 +146,8 @@ public:
   void initialize_component(const reg_t &qubits, const cvector_t<double> &state);
 
   //chunk setup
-  void chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
-  void chunk_setup(QubitVectorThrust<data_t>& base,const uint_t chunk_index);
+  bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
+  bool chunk_setup(QubitVectorThrust<data_t>& base,const uint_t chunk_index);
 
   //cache control for chunks on host
   bool fetch_chunk(void) const;
@@ -962,18 +962,21 @@ void QubitVectorThrust<data_t>::zero()
 
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks)
+bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks)
 {
   //set global chunk ID / shot ID
   chunk_index_ = chunk_index;
 
   if(chunk_manager_){
-    if(chunk_manager_->chunk_bits() == chunk_bits && chunk_manager_->num_qubits() == num_qubits)
-      return;
-
     if(chunk_.is_mapped()){
       chunk_.unmap();
       chunk_manager_->UnmapChunk(chunk_);
+    }
+
+    if(chunk_manager_->chunk_bits() == chunk_bits && chunk_manager_->num_qubits() == num_qubits){
+      bool mapped = chunk_manager_->MapChunk(chunk_,0);
+      chunk_.set_chunk_index(chunk_index_);
+      return mapped;
     }
     chunk_manager_.reset();
   }
@@ -1001,12 +1004,14 @@ void QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t
   recv_chunk_.unmap();
 
   //mapping/setting chunk
-  chunk_manager_->MapChunk(chunk_,0);
+  bool mapped = chunk_manager_->MapChunk(chunk_,0);
   chunk_.set_chunk_index(chunk_index_);
+
+  return mapped;
 }
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::chunk_setup(QubitVectorThrust<data_t>& base,const uint_t chunk_index)
+bool QubitVectorThrust<data_t>::chunk_setup(QubitVectorThrust<data_t>& base,const uint_t chunk_index)
 {
   chunk_manager_ = base.chunk_manager_;
 
@@ -1027,8 +1032,10 @@ void QubitVectorThrust<data_t>::chunk_setup(QubitVectorThrust<data_t>& base,cons
   recv_chunk_.unmap();
 
   //mapping/setting chunk
-  chunk_manager_->MapChunk(chunk_,0);
+  bool mapped = chunk_manager_->MapChunk(chunk_,0);
   chunk_.set_chunk_index(chunk_index_);
+
+  return mapped;
 }
 
 template <typename data_t>
@@ -1431,6 +1438,24 @@ void QubitVectorThrust<data_t>::initialize_creg(uint_t num_memory,
   num_cmem_bits_ = num_memory;
   if(chunk_.pos() == 0){
     chunk_.container()->allocate_creg(num_cmem_bits_,num_creg_bits_);
+
+    int_t i;
+    for(i=0;i<num_register;i++){
+      if(register_hex[register_hex.size() - 1 - i] == '0'){
+        store_cregister(i,0);
+      }
+      else{
+        store_cregister(i,1);
+      }
+    }
+    for(i=0;i<num_memory;i++){
+      if(memory_hex[memory_hex.size() - 1 - i] == '0'){
+        store_cregister(i+num_creg_bits_,0);
+      }
+      else{
+        store_cregister(i+num_creg_bits_,1);
+      }
+    }
   }
 }
 //--------------------------------------------------------------------------------------
@@ -4275,7 +4300,7 @@ void QubitVectorThrust<data_t>::apply_batched_measure(const reg_t& qubits,std::v
   //probability
   std::vector<double> r(count);
   for(i=0;i<count;i++){
-    r[i] = rng[chunk_index_ + i].rand();
+    r[i] = rng[i].rand();
   }
   chunk_.container()->copy_to_probability_buffer(r,QV_RESET_TARGET_PROB);
 
@@ -4401,7 +4426,7 @@ void QubitVectorThrust<data_t>::apply_batched_reset(const reg_t& qubits,std::vec
   //probability
   std::vector<double> r(count);
   for(i=0;i<count;i++){
-    r[i] = rng[chunk_index_ + i].rand();
+    r[i] = rng[i].rand();
   }
   chunk_.container()->copy_to_probability_buffer(r,QV_RESET_TARGET_PROB);
 
@@ -5374,7 +5399,7 @@ void QubitVectorThrust<data_t>::apply_batched_kraus(const reg_t &qubits,
 
   std::vector<double> r(count);
   for(i=0;i<count;i++){
-    r[i] = rng[chunk_index_ + i].rand(0., 1.);
+    r[i] = rng[i].rand(0., 1.);
   }
   chunk_.container()->copy_to_probability_buffer(r,QV_RESET_TARGET_PROB);
 
@@ -5640,7 +5665,7 @@ void QubitVectorThrust<data_t>::apply_roerror(const Operations::Op &op, std::vec
 
   std::vector<double> r(chunk_.container()->num_chunks());
   for(i=0;i<chunk_.container()->num_chunks();i++){
-    r[i] = rng[chunk_index_ + i].rand(0., 1.);
+    r[i] = rng[i].rand(0., 1.);
   }
   chunk_.container()->copy_to_probability_buffer(r,0);
 

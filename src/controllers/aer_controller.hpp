@@ -1557,6 +1557,7 @@ void Controller::run_circuit_helper(const Circuit &circ,
     // Add measure sampling to metadata
     // Note: this will set to `true` if sampling is enabled for the circuit
     result.metadata.add(false, "measure_sampling");
+    result.metadata.add(false, "batched_shots_optimization");
 
     if(circ.num_qubits > 0){  //do nothing for query steps
       // Choose execution method based on noise and method
@@ -1733,7 +1734,7 @@ void Controller::run_batched_circuits_helper(const std::vector<Circuit> &circs,
       shots[i_circ] = circs[i_circ].shots;
     }
 
-    states.apply_multi_ops(ops, shots, result.results, rng, noise, true);
+    states.apply_multi_ops(ops, shots, result.results, rng, true);
 
     batched_measure_sampler(meas_roerror_ops,shots,states,result,rng);
 
@@ -1864,11 +1865,14 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
       states.initialize_creg(circ.num_memory, circ.num_registers);
 
-      states.apply_single_ops(circ.ops, result, rng_seed, noise, true);
+      states.apply_single_ops(circ.ops, result, rng_seed, true);
 
       for(uint_t ishot=0;ishot<shots;ishot++){
         save_count_data(result, states.creg(ishot));
       }
+
+      // Add batched multi-shots optimizaiton metadata
+      result.metadata.add(true, "batched_shots_optimization");
     }
     else{
       // Vector to store parallel thread output data

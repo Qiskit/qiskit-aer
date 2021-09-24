@@ -129,14 +129,12 @@ public:
   virtual void apply_single_ops(const std::vector<Operations::Op> &ops,
                          ExperimentResult &result,
                          uint_t rng_seed,
-                         const AER::Noise::NoiseModel &noise,
                          bool final_ops = false);
 
   virtual void apply_multi_ops(const std::vector<std::vector<Operations::Op>> &ops,
                          reg_t& shots,
                          std::vector<ExperimentResult> &result,
                          std::vector<RngEngine> &rng,
-                         const AER::Noise::NoiseModel &noise,
                          bool final_ops = false);
 
   virtual void end_of_circuit();
@@ -355,7 +353,10 @@ protected:
   //stored sampling resuls
   std::vector<reg_t> samples_;
 
-  void allocate_states(uint_t n_states);
+  uint_t allocate_states(uint_t n_states);
+
+  //gather cregs to mpi rank 0
+  void gather_creg_memory(void);
 };
 
 template <class state_t>
@@ -380,6 +381,7 @@ States<state_t>::States()
 template <class state_t>
 States<state_t>::~States(void)
 {
+  states_.clear();
 }
 
 //=========================================================================
@@ -444,34 +446,45 @@ void States<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_st
 }
 
 template <class state_t>
-void States<state_t>::allocate_states(uint_t n_states)
+uint_t States<state_t>::allocate_states(uint_t n_states)
 {
   int_t i;
-  if(states_.size() != n_states){
+  uint_t num_allocated = states_.size();
+  if(num_allocated == 0){
     states_.resize(n_states);
 
     states_[0].allocate(num_qubits_,num_qubits_,n_states);
+    num_allocated = 1;
     for(i=1;i<n_states;i++){
-      states_[i].allocate(num_qubits_,num_qubits_,0);
-      states_[i].bind_state(states_[0],i,true);
+      if(!states_[i].bind_state(states_[0],i,true))
+        break;
+      num_allocated++;
+    }
+    for(i=num_allocated;i<n_states;i++){
+      states_.pop_back();
     }
   }
+  if(num_allocated > n_states)
+    num_allocated = n_states;
 
   //initialize groups
   num_groups_ = 0;
-  for(i=0;i<n_states;i++){
+  for(i=0;i<num_allocated;i++){
     if(states_[i].top_of_group()){
       top_state_of_group_.push_back(i);
       num_groups_++;
     }
   }
-  top_state_of_group_.push_back(n_states);
+
+  top_state_of_group_.push_back(num_allocated);
 
   num_states_in_group_.resize(num_groups_);
 
   for(i=0;i<num_groups_;i++){
     num_states_in_group_[i] = top_state_of_group_[i+1] - top_state_of_group_[i];
   }
+
+  return num_allocated;
 }
 
 template <class state_t>
@@ -529,22 +542,22 @@ template <class state_t>
 void States<state_t>::apply_single_ops(const std::vector<Operations::Op> &ops,
                          ExperimentResult &result,
                          uint_t rng_seed,
-                         const Noise::NoiseModel &noise,
                          bool final_ops)
 {
   int_t i,iOp,nOp;
   int_t i_begin,n_states;
 
-  for(i_begin=0;i_begin<num_local_states_;i_begin+=parallel_states_){
+  i_begin = 0;
+  while(i_begin<num_local_states_){
     //loop for states can be stored in available memory
     n_states = parallel_states_;
     if(i_begin+n_states > num_local_states_){
       n_states = num_local_states_ - i_begin;
     }
-
     //allocate and initialize states
-    allocate_states(n_states);
-    std::vector<RngEngine> rng(n_states);
+    n_states = allocate_states(n_states);
+
+    /*
     for(i=0;i<n_states;i++){
       states_[i].set_config(config_);
 
@@ -556,8 +569,8 @@ void States<state_t>::apply_single_ops(const std::vector<Operations::Op> &ops,
       }
       states_[i].initialize_qreg(num_qubits_);
       states_[i].initialize_creg(creg_num_memory_, creg_num_register_);
-      rng[i].set_seed(rng_seed + global_state_index_ + i_begin + i);
     }
+    */
     nOp = ops.size();
 
     std::vector<ExperimentResult> par_results(num_groups_);
@@ -565,6 +578,22 @@ void States<state_t>::apply_single_ops(const std::vector<Operations::Op> &ops,
 #pragma omp parallel for if(num_groups_ > 1) private(iOp)
     for(i=0;i<num_groups_;i++){
       uint_t istate = top_state_of_group_[i];
+      std::vector<RngEngine> rng(num_states_in_group_[i]);
+
+      for(uint_t j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
+        rng[j-top_state_of_group_[i]].set_seed(rng_seed + global_state_index_ + i_begin + j);
+
+        states_[j].set_config(config_);
+
+        if(phase_angle_.size() == 1){
+          states_[j].set_global_phase(phase_angle_[0]);
+        }
+        else if(phase_angle_.size() == num_global_states_){
+          states_[j].set_global_phase(phase_angle_[global_state_index_ + i_begin + j]);
+        }
+        states_[j].initialize_qreg(num_qubits_);
+        states_[j].initialize_creg(creg_num_memory_, creg_num_register_);
+      }
 
       for(iOp=0;iOp<nOp;iOp++){
 //        std::cout << "  op["<<iOp<<"] : " << ops[iOp] << std::endl;
@@ -577,7 +606,7 @@ void States<state_t>::apply_single_ops(const std::vector<Operations::Op> &ops,
 
           reg_t circ_idx(count);
           for(uint_t j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
-            uint_t idx = rng[j].rand_int(ops[iOp].probs[0]);
+            uint_t idx = rng[j-top_state_of_group_[i]].rand_int(ops[iOp].probs[0]);
             circ_idx[j - top_state_of_group_[i]] = idx;
             if(ops[iOp].circs[idx].size() == 0 || (ops[iOp].circs[idx].size() == 1 && ops[iOp].circs[idx][0].name == "id"))
               continue;
@@ -600,7 +629,7 @@ void States<state_t>::apply_single_ops(const std::vector<Operations::Op> &ops,
           }
           else{
             //otherwise execute each circuit
-            states_[istate].apply_batched_multi_circuits_op(ops[iOp],par_results[i],rng,circ_idx);
+            states_[istate].apply_batched_noise_circuits(ops[iOp],par_results[i],rng,circ_idx);
           }
         }
         else if(states_[istate].batchable_op(ops[iOp],true)){
@@ -610,33 +639,27 @@ void States<state_t>::apply_single_ops(const std::vector<Operations::Op> &ops,
           //call apply_op for each state
           for(uint_t j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
             states_[j].enable_batch(false);
-            states_[j].apply_op(ops[iOp],par_results[i],rng[global_state_index_ + i_begin + j],final_ops && nOp == iOp + 1);
+            states_[j].apply_op(ops[iOp],par_results[i],rng[j-top_state_of_group_[i]],final_ops && nOp == iOp + 1);
             states_[j].enable_batch(true);
           }
         }
       }
+      states_[istate].end_of_circuit();
     }
     for (auto &res : par_results) {
       result.combine(std::move(res));
     }
 
-#pragma omp parallel for if(num_groups_ > 1) 
-    for(i=0;i<num_groups_;i++){
-      uint_t istate = top_state_of_group_[i];
-      states_[istate].end_of_circuit();
-    }
-
-    //collect measured bits
-    for(i=0;i<states_.size();i++){
-      states_[i].store_measured_cbits();
-    }
-
-    //copy cregs
+    //collect measured bits and copy memory
     for(i=0;i<n_states;i++){
+      states_[i].store_measured_cbits();
       cregs_[global_state_index_ + i_begin + i].creg_memory() = states_[i].creg().creg_memory();
-      cregs_[global_state_index_ + i_begin + i].creg_register() = states_[i].creg().creg_register();
     }
+
+    i_begin += n_states;
   }
+
+  gather_creg_memory();
 }
 
 template <class state_t>
@@ -644,7 +667,6 @@ void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::
                          reg_t& shots,
                          std::vector<ExperimentResult> &result,
                          std::vector<RngEngine>& rng,
-                         const AER::Noise::NoiseModel &noise,
                          bool final_ops)
 {
   int_t i;
@@ -660,7 +682,8 @@ void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::
   for(i=0;i<num_qubits_;i++)
     all_qubits[i] = i;
 
-  for(i_begin=0;i_begin<num_local_states_;i_begin+=parallel_states_){
+  i_begin = 0;
+  while(i_begin<num_local_states_){
     //loop for states can be stored in available memory
     n_states = parallel_states_;
     if(i_begin+n_states > num_local_states_){
@@ -668,7 +691,8 @@ void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::
     }
 
     //allocate and initialize states
-    allocate_states(n_states);
+    n_states = allocate_states(n_states);
+    /*
 #pragma omp parallel for if(num_groups_ > 1) private(i)
     for(i=0;i<num_groups_;i++){
       uint_t j,istate = top_state_of_group_[i];
@@ -681,6 +705,7 @@ void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::
                                    cregs_[global_state_index_ + i_begin + j].register_size());
       }
     }
+    */
 
 #pragma omp parallel for if(num_groups_ > 1) private(i)
     for(i=0;i<num_groups_;i++){
@@ -688,6 +713,14 @@ void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::
       uint_t num_active;
       std::vector<Operations::Op> batched_ops(num_states_in_group_[i]);
       uint_t n_batch;
+
+      for(j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
+        states_[j].set_config(config_);
+        states_[j].set_global_phase(phase_angle_[global_state_index_ + i_begin + j]);
+        states_[j].initialize_qreg(num_qubits_);
+        states_[j].initialize_creg(cregs_[global_state_index_ + i_begin + j].memory_size(),
+                                   cregs_[global_state_index_ + i_begin + j].register_size());
+      }
 
       iOp = 0;
       do{
@@ -702,10 +735,8 @@ void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::
               n_batch++;
             }
             else{
-              std::vector<RngEngine> local_rng(1);
-              local_rng[0] = rng[i_circ];
               states_[j].enable_batch(false);
-              states_[j].apply_op(ops[i_circ][iOp],result[i_circ],local_rng[i_circ],final_ops && ops[i_circ].size() == iOp + 1);
+              states_[j].apply_op(ops[i_circ][iOp],result[i_circ],rng[i_circ],final_ops && ops[i_circ].size() == iOp + 1);
               states_[j].enable_batch(true);
             }
             num_active++;
@@ -720,20 +751,11 @@ void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::
         }
         iOp++;
       }while(num_active > 0);
-    }
 
-#pragma omp parallel for if(num_groups_ > 1) private(i)
-    for(i=0;i<num_groups_;i++){
-      uint_t istate = top_state_of_group_[i];
       states_[istate].end_of_circuit();
-    }
 
-    //sampling
-#pragma omp parallel for if(num_groups_ > 1) private(i)
-    for(i=0;i<num_groups_;i++){
-      uint_t istate = top_state_of_group_[i];
       uint_t gid = global_state_index_ + i_begin;
-      uint_t j,k;
+      uint_t k;
 
       reg_t local_shots(shots.begin() + gid + top_state_of_group_[i],shots.begin() + gid + top_state_of_group_[i+1]);
       std::vector<RngEngine> local_rng(rng.begin() + gid + top_state_of_group_[i],rng.begin() + gid + top_state_of_group_[i+1]);
@@ -748,12 +770,15 @@ void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::
       }
     }
 
-    //copy cregs
+    //copy memory
     for(i=0;i<n_states;i++){
       cregs_[global_state_index_ + i_begin + i].creg_memory() = states_[i].creg().creg_memory();
-      cregs_[global_state_index_ + i_begin + i].creg_register() = states_[i].creg().creg_register();
     }
+
+    i_begin += n_states;
   }
+
+  gather_creg_memory();
 }
 
 template <class state_t>
@@ -797,6 +822,61 @@ void States<state_t>::initialize_creg(uint_t num_memory,
   for(i=0;i<cregs_.size();i++){
     cregs_[i].initialize(num_memory, num_register, memory_hex, register_hex);
   }
+}
+
+template <class state_t>
+void States<state_t>::gather_creg_memory(void)
+{
+#ifdef AER_MPI
+  int_t i,j;
+  uint_t n64,i64,ibit;
+
+  if(nprocs_ == 1)
+    return;
+  if(creg_num_memory_ == 0)
+    return;
+
+  //number of 64-bit integers per memory
+  n64 = (creg_num_memory_ + 63) >> 6;
+
+  reg_t bin_memory(n64*num_local_states_,0);
+  //compress memory string to binary
+#pragma omp parallel for private(i,j,i64,ibit)
+  for(i=0;i<num_local_states_;i++){
+    for(j=0;j<creg_num_memory_;j++){
+      i64 = j >> 6;
+      ibit = j & 63;
+      if(cregs_[global_state_index_ + i].creg_memory()[j] == '1'){
+        bin_memory[i*n64 + i64] |= (1ull << ibit);
+      }
+    }
+  }
+
+  reg_t recv(n64*num_global_states_);
+  std::vector<int> recv_counts(nprocs_);
+  std::vector<int> recv_offset(nprocs_);
+
+  for(i=0;i<nprocs_;i++){
+    recv_offset[i] = num_global_states_ * i / nprocs_;
+    recv_counts[i] = (num_global_states_ * (i+1) / nprocs_) - recv_offset[i];
+  }
+
+  MPI_Allgatherv(&bin_memory[0],n64*num_local_states_,MPI_UINT64_T,
+                 &recv[0],&recv_counts[0],&recv_offset[0],MPI_UINT64_T,MPI_COMM_WORLD);
+
+  //store gathered memory
+#pragma omp parallel for private(i,j,i64,ibit)
+  for(i=0;i<num_global_states_;i++){
+    for(j=0;j<creg_num_memory_;j++){
+      i64 = j >> 6;
+      ibit = j & 63;
+      if(((recv[i*n64 + i64] >> ibit) & 1) == 1)
+        cregs_[i].creg_memory()[j] = '1';
+      else
+        cregs_[i].creg_memory()[j] = '0';
+    }
+  }
+#endif
 }
 
 template <class state_t>

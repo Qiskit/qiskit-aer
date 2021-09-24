@@ -147,7 +147,7 @@ public:
   virtual bool batchable_op(const Operations::Op& op,bool single_op = true){return false;}
 
   virtual void apply_batched_pauli(const Operations::Op& op,reg_t& params){}
-  virtual void apply_batched_multi_circuits_op(const Operations::Op &op, ExperimentResult &result,
+  virtual void apply_batched_noise_circuits(const Operations::Op &op, ExperimentResult &result,
                                                std::vector<RngEngine> &rng, reg_t& idx){}
 
   virtual void end_of_circuit();
@@ -156,8 +156,8 @@ public:
   virtual void store_measured_cbits(void) {}
 
   //memory allocation (previously called before inisitalize_qreg)
-  virtual void allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1);
-  virtual void bind_state(StateChunk<state_t>& state,uint_t ishot,bool batch_enable);
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1);
+  virtual bool bind_state(StateChunk<state_t>& state,uint_t ishot,bool batch_enable);
 
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
@@ -510,7 +510,7 @@ void StateChunk<state_t>::set_distribution(uint_t nprocs)
 }
 
 template <class state_t>
-void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
+bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
 {
   int_t i;
 
@@ -572,10 +572,12 @@ void StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
   for(i=0;i<num_qubits_;i++){
     qubit_map_[i] = i;
   }
+
+  return true;
 }
 
 template <class state_t>
-void StateChunk<state_t>::bind_state(StateChunk<state_t>& state,uint_t ishot,bool batch_enable)
+bool StateChunk<state_t>::bind_state(StateChunk<state_t>& state,uint_t ishot,bool batch_enable)
 {
   //allocate qreg from allocated buffer
   qregs_[0].chunk_setup(state.qregs_[0],ishot);
@@ -583,6 +585,8 @@ void StateChunk<state_t>::bind_state(StateChunk<state_t>& state,uint_t ishot,boo
   state.qregs_[0].enable_batch(batch_enable);
 
   shot_index_ = ishot;
+
+  return true;
 }
 
 template <class state_t>
