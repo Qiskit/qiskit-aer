@@ -221,7 +221,6 @@ public:
   // Description: prints the MPS in the current ordering of the qubits (qubit_order_)
   //----------------------------------------------------------------
   virtual std::ostream&  print(std::ostream& out) const;
-  std::ostream& print_sum_lambdas(std::ostream& out) const;
 
   Vector<complex_t> full_statevector();
 
@@ -376,6 +375,12 @@ private:
   // Such operations include apply_measure and apply_kraus
   void propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit, 
 				       uint_t next_measured_qubit);
+
+  // The Pauli expectation value by 'I' of every gamma tensor should be 1. 
+  // Approximation may cause this invariant to not be satisfied. This method
+  // corrects the expectation value if needed. It is used during measurement,
+  // because otherwise measurement may not be correct.
+  void normalize_tensor(reg_t qubits_to_update);
 
   // apply_matrix for more than 2 qubits
   void apply_multi_qubit_gate(const reg_t &qubits,
