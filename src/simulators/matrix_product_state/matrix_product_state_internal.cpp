@@ -553,7 +553,7 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
     //to the left
     std::swap(qubit_ordering_.order_[index_A], qubit_ordering_.order_[index_B]);    
     // For logging purposes:
-    //print_to_log_internal_swap(index_A, index_B);
+    print_to_log_internal_swap(index_A, index_B);
 
     // update qubit locations after all the swaps
     for (uint_t i=0; i<num_qubits_; i++)
@@ -1548,7 +1548,6 @@ reg_t MPS::apply_measure_internal(const reg_t &sorted_qubits, const rvector_t &r
   }
   return outcome_vector;
 }
-
 
 uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
 						uint_t next_measured_qubit) {

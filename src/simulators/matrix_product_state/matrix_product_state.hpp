@@ -609,7 +609,7 @@ void State::apply_op(const Operations::Op &op,
             op.type == OpType::initialize || op.type == OpType::reset || 
             op.type == OpType::matrix) && 
             op.qubits.size() > 1) {
-      //output_bond_dimensions(op);
+      output_bond_dimensions(op);
     }
   }
 }
@@ -1027,7 +1027,6 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   // of qubits,and the number of shots.
   // The parameters used below are based on experimentation.
   // The user can override this by setting the parameter "mps_sample_measure_algorithm"
-
   if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB){
     return sample_measure_using_probabilities(qubits, shots, rng);
   }
