@@ -151,7 +151,10 @@ class TestOptions(SimulatorTestCase):
         """Test MPS approximation"""
         shots = 4000
         method="matrix_product_state"
-        backend_exact = self.backend(method=method)
+        backend_swap_left = self.backend(method=method,
+                                          mps_swap_direction='mps_swap_left')
+        backend_swap_right = self.backend(method=method,
+                                          mps_swap_direction='mps_swap_right')
         backend_approx = self.backend(method=method,
                                      matrix_product_state_max_bond_dimension=8)
         # The test must be large enough and entangled enough so that
@@ -165,13 +168,21 @@ class TestOptions(SimulatorTestCase):
                 circuit.cx(0, i)
         circuit.save_statevector('sv')
 
-        result_exact = backend_exact.run(circuit, shots=shots).result()
-        sv_exact = result_exact.data(0)['sv']
+        result_swap_left = backend_swap_left.run(circuit, shots=shots).result()
+        sv_left = result_swap_left.data(0)['sv']
+        
+        result_swap_right = backend_swap_right.run(circuit, shots=shots).result()
+        sv_right = result_swap_right.data(0)['sv']
+        
         result_approx = backend_approx.run(circuit, shots=shots).result()
         sv_approx = result_approx.data(0)['sv']
-        # Check that the fidelity is reasonable
-        self.assertGreaterEqual(state_fidelity(sv_exact, sv_approx), 0.80)
+
+        # swap_left and swap_right should give the same state vector
+        self.assertAlmostEqual(state_fidelity(sv_left, sv_right), 1.0)
+        
+        # Check that the fidelity of approximation is reasonable
+        self.assertGreaterEqual(state_fidelity(sv_left, sv_approx), 0.80)
 
         # Check that the approximated result is not identical to the exact
         # result, because that could mean there was actually no approximation
-        self.assertLessEqual(state_fidelity(sv_exact, sv_approx), 0.999)
+        self.assertLessEqual(state_fidelity(sv_left, sv_approx), 0.999)
