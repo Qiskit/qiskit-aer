@@ -494,11 +494,10 @@ void State::set_config(const json_t &config) {
 // Set the direction for the internal swaps
   std::string direction;
   if (JSON::get_value(direction, "mps_swap_direction", config)) {
-    if (direction.compare("mps_swap_right") == 0) {
+    if (direction.compare("mps_swap_right") == 0)
       MPS::set_mps_swap_direction(MPS_swap_direction::SWAP_RIGHT);
-    } else {
+    else
       MPS::set_mps_swap_direction(MPS_swap_direction::SWAP_LEFT);
-    }
   }
 }
 
