@@ -252,7 +252,8 @@ void Circuit::add_op_metadata(const Op& op) {
 void Circuit::set_params(bool truncation) {
   // Clear current circuit metadata  
   reset_metadata();
-  
+  if (ops.empty()) return;
+
   // Analyze input ops from tail to head to get locations of ancestor,
   // first measurement position and last initialize position
   const auto size = ops.size();
@@ -264,27 +265,25 @@ void Circuit::set_params(bool truncation) {
   size_t last_initialize_pos = 0;
   bool ops_to_remove = false;
 
-  if (!ops.empty()) {
-    std::unordered_set<uint_t> ancestor_qubits;
-    for (size_t i = 0; i < size; ++ i) {
-      const size_t rpos = size - i - 1;
-      const auto& op = ops[rpos];
-      if (!truncation || check_result_ancestor(op, ancestor_qubits)) {
-        add_op_metadata(op);
-        ancestor[rpos] = true;
-        num_ancestors++;
-        if (op.type == OpType::measure) {
-          first_measure_pos = rpos;
-          has_measure = true;
-        } else if (op.type == OpType::initialize && last_initialize_pos == 0) {
-          last_initialize_pos = rpos;
-        }
-        if (last_ancestor_pos == 0) {
-          last_ancestor_pos = rpos;
-        }
-      } else if (truncation && !ops_to_remove){
-        ops_to_remove = true;
+  std::unordered_set<uint_t> ancestor_qubits;
+  for (size_t i = 0; i < size; ++ i) {
+    const size_t rpos = size - i - 1;
+    const auto& op = ops[rpos];
+    if (!truncation || check_result_ancestor(op, ancestor_qubits)) {
+      add_op_metadata(op);
+      ancestor[rpos] = true;
+      num_ancestors++;
+      if (op.type == OpType::measure) {
+        first_measure_pos = rpos;
+        has_measure = true;
+      } else if (op.type == OpType::initialize && last_initialize_pos == 0) {
+        last_initialize_pos = rpos;
       }
+      if (last_ancestor_pos == 0) {
+        last_ancestor_pos = rpos;
+      }
+    } else if (truncation && !ops_to_remove){
+      ops_to_remove = true;
     }
   }
 
@@ -383,7 +382,12 @@ void Circuit::set_params(bool truncation) {
 
   // Counter for current position in ops as we shuffle ops
   size_t op_idx = 0;
-  const size_t head_end = (has_measure && can_sample) ? first_measure_pos : last_ancestor_pos + 1;
+  size_t head_end = 0;
+  if (has_measure && can_sample) {
+    head_end = first_measure_pos;
+  } else if (num_ancestors > 0) {
+    head_end = last_ancestor_pos + 1;
+  }
   for (size_t pos = 0; pos < head_end; ++pos) {
     if (ops_to_remove && !ancestor[pos]) {
       // Skip if not ancestor

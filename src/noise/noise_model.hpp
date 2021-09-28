@@ -263,6 +263,10 @@ NoiseModel::param_gate_table_ = {
 Circuit NoiseModel::sample_noise(const Circuit &circ,
                                  RngEngine &rng,
                                  const Method method,bool sample_at_runtime) const {
+  // Check edge case of empty circuit
+  if (circ.ops.empty()) {
+    return circ;
+  }
   // Check if sampling method is enabled
   if (enabled_methods_.find(method) == enabled_methods_.end()) {
     throw std::runtime_error(
