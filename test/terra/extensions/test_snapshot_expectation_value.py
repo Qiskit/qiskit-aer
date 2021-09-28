@@ -26,6 +26,7 @@ from ..common import QiskitAerTestCase
 class TestSnapshotExpectationValueExtension(QiskitAerTestCase):
     """SnapshotExpectationValue extension tests"""
 
+    @classmethod
     def setUpClass(cls):
         super().setUpClass()
         filterwarnings(

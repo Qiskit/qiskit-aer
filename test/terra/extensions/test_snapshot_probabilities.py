@@ -23,6 +23,7 @@ from ..common import QiskitAerTestCase
 class TestSnapshotProbabilitiesExtension(QiskitAerTestCase):
     """SnapshotProbabilities extension tests"""
 
+    @classmethod
     def setUpClass(cls):
         super().setUpClass()
         filterwarnings(
