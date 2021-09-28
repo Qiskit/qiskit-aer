@@ -23,6 +23,7 @@ from ..common import QiskitAerTestCase
 class TestSnapshotDensityMatrixExtension(QiskitAerTestCase):
     """SnapshotDensityMatrix extension tests"""
 
+    @classmethod
     def setUpClass(cls):
         super().setUpClass()
         filterwarnings(
