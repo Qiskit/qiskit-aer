@@ -232,12 +232,7 @@ protected:
   template <typename InputIterator, class State_t>
   void measure_sampler(InputIterator first_meas, InputIterator last_meas,
                        uint_t shots, State_t &state, ExperimentResult &result,
-                       RngEngine &rng) const;
-
-  template <class State_t>
-  void batched_measure_sampler(const std::vector<std::vector<Operations::Op>> &meas_ops,
-                       reg_t& shots, State_t &state, Result &result,
-                       std::vector<RngEngine> &rng) const;
+                       RngEngine &rng , int_t shot_index = -1) const;
 
   // Check if measure sampling optimization is valid for the input circuit
   // for the given method. This checks if operation types before
@@ -1746,12 +1741,11 @@ void Controller::run_batched_circuits_helper(const std::vector<Circuit> &circs,
 
     states.apply_multi_ops(ops, shots, result.results, rng, true);
 
-    batched_measure_sampler(meas_roerror_ops,shots,states,result,rng);
-
-    // Add measure sampling metadata
-    for (i_circ = 0; i_circ < circs.size(); ++i_circ){
+#pragma omp parallel for if(circs.size() > 1)
+    for (i_circ=0;i_circ< circs.size(); i_circ++) {
+      measure_sampler(meas_roerror_ops[i_circ].begin(),meas_roerror_ops[i_circ].end(),shots[i_circ],states,result.results[i_circ],rng[i_circ],i_circ);
+      // Add measure sampling metadata
       result.results[i_circ].metadata.add(true, "measure_sampling");
-      states.state(i_circ).add_metadata(result.results[i_circ]);
     }
   }
   // If an exception occurs during execution, catch it and pass it to the output
@@ -1761,7 +1755,6 @@ void Controller::run_batched_circuits_helper(const std::vector<Circuit> &circs,
       result.results[j].message = e.what();
     }
   }
-
 
   // Add timer data
   auto timer_stop = myclock_t::now(); // stop timer
@@ -2030,7 +2023,8 @@ bool Controller::check_measure_sampling_opt(const Circuit &circ,
 template <typename InputIterator, class State_t>
 void Controller::measure_sampler(
     InputIterator first_meas, InputIterator last_meas, uint_t shots,
-    State_t &state, ExperimentResult &result, RngEngine &rng) const {
+    State_t &state, ExperimentResult &result, RngEngine &rng, int_t shot_index) const 
+{
   // Check if meas_circ is empty, and if so return initial creg
   if (first_meas == last_meas) {
     while (shots-- > 0) {
@@ -2058,8 +2052,14 @@ void Controller::measure_sampler(
   sort(meas_qubits.begin(), meas_qubits.end());
   meas_qubits.erase(unique(meas_qubits.begin(), meas_qubits.end()),
                     meas_qubits.end());
+
   // Generate the samples
-  auto all_samples = state.sample_measure(meas_qubits, shots, rng);
+  uint_t shots_or_index;
+  if(shot_index < 0)
+    shots_or_index = shots;
+  else
+    shots_or_index = shot_index;
+  auto all_samples = state.sample_measure(meas_qubits, shots_or_index, rng);
 
   // Make qubit map of position in vector of measured qubits
   std::unordered_map<uint_t, uint_t> qubit_map;
@@ -2112,75 +2112,6 @@ void Controller::measure_sampler(
   }
 }
 
-template <class State_t>
-void Controller::batched_measure_sampler(const std::vector<std::vector<Operations::Op>> &meas_roerror_ops,
-                     reg_t& shots, State_t &state, Result &result,
-                     std::vector<RngEngine> &rng) const
-{
-  reg_t shot_offset(shots.size());
-  uint_t offset;
-
-  offset = 0;
-  for(int_t i=0;i<shots.size();i++){
-    shot_offset[i] = offset;
-    offset += shots[i];
-  }
-
-  // Generate the samples
-  auto all_samples = state.stored_sample_measure();
-
-#pragma omp parallel for
-  for(int_t i=0;i<shots.size();i++){
-    std::vector<Operations::Op> meas_ops;
-    std::vector<Operations::Op> roerror_ops;
-    for (const Operations::Op &op : meas_roerror_ops[i])
-      if (op.type == Operations::OpType::roerror)
-        roerror_ops.push_back(op);
-      else /*(op.type == Operations::OpType::measure) */
-        meas_ops.push_back(op);
-
-    // Maps of memory and register to qubit position
-    std::unordered_map<uint_t, uint_t> memory_map;
-    std::unordered_map<uint_t, uint_t> register_map;
-    for (const auto &op : meas_ops) {
-      for (size_t j = 0; j < op.qubits.size(); ++j) {
-        if (!op.memory.empty())
-          memory_map[op.memory[j]] = op.qubits[j];
-        if (!op.registers.empty())
-          register_map[op.registers[j]] = op.qubits[j];
-      }
-    }
-
-    // Process samples
-    // Convert opts to circuit so we can get the needed creg sizes
-    // NB: this function could probably be moved somewhere else like Utils or Ops
-    Circuit meas_circ(meas_roerror_ops[i]);
-    ClassicalRegister creg;
-    for(int_t j=0;j<shots[i];j++){
-      auto sample = all_samples[shot_offset[i] + j];
-      creg.initialize(meas_circ.num_memory, meas_circ.num_registers);
-
-      // process memory bit measurements
-      for (const auto &pair : memory_map) {
-        creg.store_measure(reg_t({sample[pair.second]}), reg_t({pair.first}),
-                           reg_t());
-      }
-      // process register bit measurements
-      for (const auto &pair : register_map) {
-        creg.store_measure(reg_t({sample[pair.second]}), reg_t(),
-                           reg_t({pair.first}));
-      }
-
-      // process read out errors for memory and registers
-      for (const Operations::Op &roerror : roerror_ops) {
-        creg.apply_roerror(roerror, rng[i]);
-      }
-
-      // Save count data
-      save_count_data(result.results[i], creg);
-    }
-  }
-}
 
 //-------------------------------------------------------------------------
 // Validation

@@ -75,18 +75,16 @@ public:
 
   // Returns a const reference to the states data structure
   // Return the state qreg object
-  auto &qreg(uint_t idx=0) { return states_[idx].qreg(); }
-  const auto &qreg(uint_t idx=0) const { return states_[idx].qreg(); }
+//  auto &qreg(uint_t idx=0) { return states_[idx].qreg(); }
+//  const auto &qreg(uint_t idx=0) const { return states_[idx].qreg(); }
 
   // Return the state creg object
   auto &creg(uint_t idx=0) { return cregs_[idx]; }
   const auto &creg(uint_t idx=0) const { return cregs_[idx]; }
 
   // Return the state opset object
-  auto &opset() { return states_[0].opset(); }
+//  auto &opset() { return states_[0].opset(); }
   const auto &opset() const { return state_t::opset(); }
-
-  auto &state(uint_t idx = 0){ return states_[idx];}
 
   uint_t num_qubits(void)
   {
@@ -107,12 +105,6 @@ public:
   //
   // The implementation of these methods must be defined in all subclasses
   //-----------------------------------------------------------------------
-  
-  // Return a string name for the State type
-  virtual std::string name()
-  {
-    return states_[0].name();
-  }
 
   // Apply a sequence of operations to the current state of the State class.
   // It is up to the State subclass to decide how this sequence should be
@@ -190,11 +182,6 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits,
                                             uint_t shots,
                                             RngEngine &rng);
-
-  std::vector<reg_t>& stored_sample_measure(void)
-  {
-    return samples_;
-  }
 
   //=======================================================================
   // Standard non-virtual methods
@@ -358,12 +345,17 @@ protected:
   int_t max_matrix_bits_ = 1;
 
   //stored sampling resuls
-  std::vector<reg_t> samples_;
+  reg_t samples_;
+  reg_t sample_offset_;
 
   uint_t allocate_states(uint_t n_states);
 
-  //gather cregs to mpi rank 0
+  //gather cregs 
   void gather_creg_memory(void);
+
+  //gather samples
+  void gather_samples(void);
+
 };
 
 template <class state_t>
@@ -517,33 +509,18 @@ void States<state_t>::set_config(const json_t &config)
 template <class state_t>
 void States<state_t>::initialize_qreg(uint_t num_qubits)
 {
-  int_t i;
-
-  for(i=0;i<num_local_states_;i++){
-    states_[i].initialize_qreg(num_qubits);
-  }
 }
 
 template <class state_t>
 void States<state_t>::initialize_qreg(uint_t num_qubits, const state_t &state)
 {
-  int_t i;
-
-  for(i=0;i<num_local_states_;i++){
-    states_[i].initialize_qreg(num_qubits,state.qreg());
-  }
 }
 
 template <class state_t>
 size_t States<state_t>::required_memory_mb(uint_t num_qubits,
                                     const std::vector<Operations::Op> &ops) const
 {
-  int_t i;
-  size_t size = 0;
-  for(i=0;i<num_local_states_;i++){
-    size = std::max(size,states_[i].required_memory_mb(num_qubits,ops));
-  }
-  return size;
+  return 0;
 }
 
 template <class state_t>
@@ -667,11 +644,13 @@ void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::
   int_t i;
   int_t i_begin,n_states;
   uint_t total_shots = 0;
-  reg_t shot_offset(shots.size());
+  sample_offset_.resize(num_global_states_+1);
   for(i=0;i<shots.size();i++){
-    shot_offset[i] = total_shots;
+    sample_offset_[i] = total_shots;
     total_shots += shots[i];
   }
+  sample_offset_[i] = total_shots;
+
   samples_.resize(total_shots);
   reg_t all_qubits(num_qubits_);
   for(i=0;i<num_qubits_;i++)
@@ -745,8 +724,10 @@ void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::
 
       uint_t sample_idx = 0;
       for(j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
+        states_[j].add_metadata(result[gid + j]);
+
         for(k=0;k<shots[gid+j];k++){
-          samples_[shot_offset[gid+j]+k] = ret[sample_idx++];
+          samples_[sample_offset_[gid+j]+k] = ret[sample_idx++];
         }
       }
     }
@@ -759,6 +740,7 @@ void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::
     i_begin += n_states;
   }
 
+  gather_samples();
   gather_creg_memory();
 }
 
@@ -775,10 +757,26 @@ void States<state_t>::end_of_circuit()
 template <class state_t>
 std::vector<reg_t> States<state_t>::sample_measure(const reg_t &qubits,
                                                   uint_t shots,
-                                                  RngEngine &rng) {
-  (ignore_argument)qubits;
-  (ignore_argument)shots;
+                                                  RngEngine &rng) 
+{
+  //return stored sample value
+  //shots is used for shot index, not number of shots
+
+  if(shots >= sample_offset_.size())
   return std::vector<reg_t>();
+
+  std::vector<reg_t> all_samples;
+  all_samples.reserve(sample_offset_[shots+1] - sample_offset_[shots]);
+  for (uint_t i = sample_offset_[shots];i<sample_offset_[shots+1];i++) {
+    reg_t allbit_sample = Utils::int2reg(samples_[i], 2, num_qubits_);
+    reg_t sample;
+    sample.reserve(qubits.size());
+    for (uint_t qubit : qubits) {
+      sample.push_back(allbit_sample[qubit]);
+    }
+    all_samples.push_back(sample);
+  }
+  return all_samples;
 }
 
 template <class state_t>
@@ -861,23 +859,40 @@ void States<state_t>::gather_creg_memory(void)
 }
 
 template <class state_t>
+void States<state_t>::gather_samples(void)
+{
+#ifdef AER_MPI
+  int_t i;
+
+  if(nprocs_ == 1)
+    return;
+  if(samples_.size() == 0)
+    return;
+
+  std::vector<int> recv_counts(nprocs_);
+  std::vector<int> recv_offset(nprocs_);
+
+  for(i=0;i<nprocs_;i++){
+    recv_offset[i] = sample_offset_[num_global_states_ * i / nprocs_];
+    recv_counts[i] = sample_offset_[(num_global_states_ * (i+1) / nprocs_)] - recv_offset[i];
+  }
+
+  MPI_Allgatherv(&samples_[0],recv_counts[myrank_],MPI_UINT64_T,
+                 &samples_[0],&recv_counts[0],&recv_offset[0],MPI_UINT64_T,MPI_COMM_WORLD);
+
+#endif
+}
+
+template <class state_t>
 template <typename list_t>
 void States<state_t>::initialize_from_vector(const list_t &vec)
 {
-  int_t i;
-  for(i=0;i<num_local_states_;i++){
-    states_[i].initialize_from_vector(vec);
-  }
 }
 
 template <class state_t>
 template <typename list_t>
 void States<state_t>::initialize_from_matrix(const list_t &mat)
 {
-  int_t i;
-  for(i=0;i<num_local_states_;i++){
-    states_[i].initialize_from_matrix(mat);
-  }
 }
 
 template <class state_t>
@@ -885,10 +900,6 @@ void States<state_t>::save_creg(ExperimentResult &result,
                                const std::string &key,
                                DataSubType type) const 
 {
-  int_t i;
-  for(i=0;i<num_local_states_;i++){
-    states_[i].save_creg(result,key,type);
-  }
 }
 
 template <class state_t>
@@ -898,10 +909,6 @@ void States<state_t>::save_data_average(ExperimentResult &result,
                                        const T& datum,
                                        DataSubType type) const 
 {
-  int_t i;
-  for(i=0;i<num_local_states_;i++){
-    states_[i].save_data_average(result,key,datum,type);
-  }
 }
 
 template <class state_t>
@@ -911,10 +918,6 @@ void States<state_t>::save_data_average(ExperimentResult &result,
                                        T&& datum,
                                        DataSubType type) const 
 {
-  int_t i;
-  for(i=0;i<num_local_states_;i++){
-    states_[i].save_data_average(result,key,datum,type);
-  }
 }
 
 template <class state_t>
@@ -924,10 +927,6 @@ void States<state_t>::save_data_pershot(ExperimentResult &result,
                                        const T& datum,
                                        DataSubType type) const 
 {
-  int_t i;
-  for(i=0;i<num_local_states_;i++){
-    states_[i].save_data_pershot(result,key,datum,type);
-  }
 }
 
 template <class state_t>
@@ -937,10 +936,6 @@ void States<state_t>::save_data_pershot(ExperimentResult &result,
                                        T&& datum,
                                        DataSubType type) const 
 {
-  int_t i;
-  for(i=0;i<num_local_states_;i++){
-    states_[i].save_data_pershot(result,key,datum,type);
-  }
 }
 
 template <class state_t>
@@ -964,10 +959,6 @@ void States<state_t>::snapshot_state(const Operations::Op &op,
                                     ExperimentResult &result,
                                     std::string name) const 
 {
-  int_t i;
-  for(i=0;i<num_local_states_;i++){
-    states_[i].snapshot_state(op,result,name);
-  }
 }
 
 
@@ -976,10 +967,6 @@ void States<state_t>::snapshot_creg_memory(const Operations::Op &op,
                                           ExperimentResult &result,
                                           std::string name) const 
 {
-  int_t i;
-  for(i=0;i<num_local_states_;i++){
-    states_[i].snapshot_creg_memory(op,result,name);
-  }
 }
 
 
@@ -988,10 +975,6 @@ void States<state_t>::snapshot_creg_register(const Operations::Op &op,
                                             ExperimentResult &result,
                                             std::string name) const 
 {
-  int_t i;
-  for(i=0;i<num_local_states_;i++){
-    states_[i].snapshot_creg_register(op,result,name);
-  }
 }
 
 
@@ -999,10 +982,6 @@ template <class state_t>
 void States<state_t>::apply_save_expval(const Operations::Op &op,
                                             ExperimentResult &result)
 {
-  int_t i;
-  for(i=0;i<num_local_states_;i++){
-    states_[i].apply_save_expval(op,result);
-  }
 }
 
 

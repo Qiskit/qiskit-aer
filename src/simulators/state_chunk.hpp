@@ -214,11 +214,11 @@ public:
                                             uint_t shots,
                                             RngEngine &rng);
 
-  virtual std::vector<reg_t> batched_sample_measure(const reg_t &qubits,
+  virtual reg_t batched_sample_measure(const reg_t &qubits,
                                             reg_t& shots,
                                             std::vector<RngEngine> &rng)
   {
-    return sample_measure(qubits,shots[0],rng[0]);
+    return reg_t();
   }
 
   //=======================================================================

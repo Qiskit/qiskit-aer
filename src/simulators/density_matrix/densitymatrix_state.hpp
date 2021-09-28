@@ -137,7 +137,7 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
 
-  virtual std::vector<reg_t> batched_sample_measure(const reg_t &qubits,reg_t& shots,std::vector<RngEngine> &rng);
+  virtual reg_t batched_sample_measure(const reg_t &qubits,reg_t& shots,std::vector<RngEngine> &rng);
 
   //store asynchronously measured classical bits after batched execution
   virtual void store_measured_cbits(void);
@@ -1491,7 +1491,7 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
 }
 
 template <class densmat_t>
-std::vector<reg_t> State<densmat_t>::batched_sample_measure(const reg_t &qubits,reg_t& shots,std::vector<RngEngine> &rng)
+reg_t State<densmat_t>::batched_sample_measure(const reg_t &qubits,reg_t& shots,std::vector<RngEngine> &rng)
 {
   uint_t i,j,pos,n = shots.size();
   uint_t total_shots = 0;
@@ -1519,20 +1519,8 @@ std::vector<reg_t> State<densmat_t>::batched_sample_measure(const reg_t &qubits,
     }
   }
 
-  // Convert to reg_t format
-  std::vector<reg_t> all_samples;
-  all_samples.reserve(total_shots);
-
-  for (int_t val : samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, BaseState::qreg_.num_qubits());
-    reg_t qubit_sample;
-    qubit_sample.reserve(qubits.size());
-    for (uint_t qubit : qubits) {
-      qubit_sample.push_back(allbit_sample[qubit]);
-    }
-    all_samples.push_back(qubit_sample);
-  }
-  return all_samples;
+  //return raw sample value, convert in multi-states class
+  return samples;
 }
 
 template <class densmat_t>
