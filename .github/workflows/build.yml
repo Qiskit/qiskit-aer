@@ -145,7 +145,6 @@ jobs:
           path: ./wheelhouse/*.whl
   wheel-arm64:
     runs-on: ${{ matrix.os }}
-    needs: ["standalone"]
     strategy:
       matrix:
         os: ["macOS-latest"]
@@ -160,7 +159,7 @@ jobs:
       - name: Build Wheels
         env:
           CIBW_SKIP: "cp310-* pp*"
-          CIBW_ARCHS_MACOS: arm64 universal2
+          CIBW_ARCHS_MACOS: arm64
         run: cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v2
         with:
