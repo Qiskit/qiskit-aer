@@ -133,6 +133,7 @@ public:
   {
     apply_op_chunk(0,op,result,rng,final_ops);
   }
+
   //for multi-shot optimization
   virtual void apply_op_multi_shots(const Operations::Op &op,
                         ExperimentResult &result,
@@ -140,6 +141,11 @@ public:
                         bool final_op = false)
   {
     apply_op_chunk(0,op,result,rng[0],final_op);
+  }
+
+  virtual void set_max_matrix_bits(int_t bits)
+  {
+    max_matrix_bits_ = bits;
   }
 
   virtual void apply_batched_ops(const std::vector<Operations::Op> &ops){}
@@ -372,6 +378,8 @@ protected:
 
   reg_t qubit_map_;             //qubit map to restore swapped qubits
 
+  int_t max_matrix_bits_ = 1;
+
   virtual int qubit_scale(void)
   {
     return 1;     //scale of qubit number (x2 for density and unitary matrices)
@@ -556,6 +564,8 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
   }
 
   if(chunk_bits_ < num_qubits_){
+    qregs_[0].set_max_matrix_bits(max_matrix_bits_);
+
     qregs_[0].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),global_chunk_index_,num_local_chunks_);
     for(i=1;i<num_local_chunks_;i++){
       uint_t gid = i + global_chunk_index_;
@@ -563,8 +573,10 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
     }
   }
   else{
-    if(num_parallel_shots > 0)
+    if(num_parallel_shots > 0){
+      qregs_[0].set_max_matrix_bits(max_matrix_bits_);
       qregs_[0].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),0,num_parallel_shots);
+    }
   }
 
   //initialize qubit map
@@ -580,6 +592,7 @@ template <class state_t>
 bool StateChunk<state_t>::bind_state(StateChunk<state_t>& state,uint_t ishot,bool batch_enable)
 {
   //allocate qreg from allocated buffer
+  qregs_[0].set_max_matrix_bits(max_matrix_bits_);
   qregs_[0].chunk_setup(state.qregs_[0],ishot);
   qregs_[0].enable_batch(batch_enable);
   state.qregs_[0].enable_batch(batch_enable);

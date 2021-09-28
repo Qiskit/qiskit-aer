@@ -166,6 +166,8 @@ public:
 
   void end_of_circuit();
 
+  void set_max_matrix_bits(int_t bits);
+
   //-----------------------------------------------------------------------
   // Check point operations
   //-----------------------------------------------------------------------
@@ -460,6 +462,8 @@ protected:
   uint_t num_creg_bits_;
   uint_t num_cmem_bits_;
 
+  int_t max_matrix_bits_ = 0;
+
   //-----------------------------------------------------------------------
   // Config settings
   //----------------------------------------------------------------------- 
@@ -604,6 +608,8 @@ QubitVectorThrust<data_t>::QubitVectorThrust(size_t num_qubits) : num_qubits_(0)
   multi_chunk_distribution_ = false;
   multi_shots_ = false;
   enable_batch_ = false;
+
+  max_matrix_bits_ = 0;
 
 #ifdef AER_DEBUG
   debug_count = 0;
@@ -984,13 +990,7 @@ bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t
   //only first chunk call allocation function
   if(chunk_bits > 0 && num_qubits > 0){
     chunk_manager_ = std::make_shared<ChunkManager<data_t>>();
-    /*
-    if(is_density_matrix()){  //if density matrix, allocate x2 matrix buffer for super_op matrix
-      chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks,AER_DEFAULT_MATRIX_BITS*2);
-    }
-    else{*/
-      chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks,AER_DEFAULT_MATRIX_BITS);
-//    }
+    chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks,max_matrix_bits_);
   }
 
   multi_chunk_distribution_ = false;
@@ -1039,6 +1039,13 @@ bool QubitVectorThrust<data_t>::chunk_setup(QubitVectorThrust<data_t>& base,cons
 }
 
 template <typename data_t>
+void QubitVectorThrust<data_t>::set_max_matrix_bits(int_t bits)
+{
+  if(bits > max_matrix_bits_){
+    max_matrix_bits_ = bits;
+  }
+}
+template <typename data_t>
 void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 {
   int nid = omp_get_num_threads();
@@ -1060,7 +1067,6 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
       spdlog::debug("    TEST [id={}]: allocated on host (place = {})",chunk_index_,chunk_.place());
   }
 #endif
-
 }
 
 template <typename data_t>
@@ -1507,7 +1513,7 @@ void QubitVectorThrust<data_t>::apply_function_sum(double* pSum,Function func,bo
   func.set_base_index(chunk_index_ << num_qubits_);
   chunk_.ExecuteSum(pSum,func,count);
 #ifdef AER_DEBUG
-  DebugMsg(func.name(),count);
+  DebugMsg(func.name(),(int)count);
 #endif
 
   if(!async)
@@ -1532,7 +1538,7 @@ void QubitVectorThrust<data_t>::apply_function_sum2(double* pSum,Function func,b
   func.set_base_index(chunk_index_ << num_qubits_);
   chunk_.ExecuteSum2(pSum,func,count);
 #ifdef AER_DEBUG
-  DebugMsg(func.name(),count);
+  DebugMsg(func.name(),(int)count);
 #endif
 
   if(!async)

@@ -506,6 +506,7 @@ const stringmap_t<Snapshots> State<statevec_t>::snapshotset_(
 template <class statevec_t>
 bool State<statevec_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
 {
+  BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_bits_);
   bool ret = BaseState::qreg_.chunk_setup(num_qubits,num_qubits,0,num_parallel_shots);
   BaseState::shot_index_ = 0;
 
@@ -521,6 +522,8 @@ bool State<statevec_t>::bind_state(State<statevec_t>& state,uint_t ishot,bool ba
     state.qreg_.enable_batch(batch_enable);
 
     BaseState::shot_index_ = ishot;
+
+    BaseState::max_matrix_bits_ = state.max_matrix_bits_;
 
     return true;
   }

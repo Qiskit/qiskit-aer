@@ -1652,7 +1652,7 @@ void DensityMatrixThrust<data_t>::apply_batched_measure(const reg_t& qubits,std:
   //probability
   std::vector<double> r(count);
   for(i=0;i<count;i++){
-    r[i] = rng[BaseVector::chunk_index_ + i].rand();
+    r[i] = rng[i].rand();
   }
   BaseVector::chunk_.container()->copy_to_probability_buffer(r,QV_RESET_TARGET_PROB);
 

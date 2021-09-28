@@ -160,6 +160,8 @@ public:
   void release_send_buffer(void) const;
   void release_recv_buffer(void) const;
 
+  void set_max_matrix_bits(int_t bits){}
+
   void end_of_circuit(){}
 
   //-----------------------------------------------------------------------

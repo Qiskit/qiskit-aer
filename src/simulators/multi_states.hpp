@@ -156,6 +156,11 @@ public:
                                     const std::vector<Operations::Op> &ops)
                                     const;
 
+  virtual void set_max_matrix_bits(int_t bits)
+  {
+    max_matrix_bits_ = bits;
+  }
+
   //-----------------------------------------------------------------------
   // Optional: Load config settings
   //-----------------------------------------------------------------------
@@ -350,6 +355,8 @@ protected:
   uint_t creg_num_memory_;
   uint_t creg_num_register_;
 
+  int_t max_matrix_bits_ = 1;
+
   //stored sampling resuls
   std::vector<reg_t> samples_;
 
@@ -453,6 +460,7 @@ uint_t States<state_t>::allocate_states(uint_t n_states)
   if(num_allocated == 0){
     states_.resize(n_states);
 
+    states_[0].set_max_matrix_bits(max_matrix_bits_);
     states_[0].allocate(num_qubits_,num_qubits_,n_states);
     num_allocated = 1;
     for(i=1;i<n_states;i++){
@@ -554,23 +562,10 @@ void States<state_t>::apply_single_ops(const std::vector<Operations::Op> &ops,
     if(i_begin+n_states > num_local_states_){
       n_states = num_local_states_ - i_begin;
     }
+
     //allocate and initialize states
     n_states = allocate_states(n_states);
 
-    /*
-    for(i=0;i<n_states;i++){
-      states_[i].set_config(config_);
-
-      if(phase_angle_.size() == 1){
-        states_[i].set_global_phase(phase_angle_[0]);
-      }
-      else if(phase_angle_.size() == num_global_states_){
-        states_[i].set_global_phase(phase_angle_[global_state_index_ + i_begin + i]);
-      }
-      states_[i].initialize_qreg(num_qubits_);
-      states_[i].initialize_creg(creg_num_memory_, creg_num_register_);
-    }
-    */
     nOp = ops.size();
 
     std::vector<ExperimentResult> par_results(num_groups_);
@@ -692,20 +687,6 @@ void States<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::
 
     //allocate and initialize states
     n_states = allocate_states(n_states);
-    /*
-#pragma omp parallel for if(num_groups_ > 1) private(i)
-    for(i=0;i<num_groups_;i++){
-      uint_t j,istate = top_state_of_group_[i];
-
-      for(j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
-        states_[j].set_config(config_);
-        states_[j].set_global_phase(phase_angle_[global_state_index_ + i_begin + j]);
-        states_[j].initialize_qreg(num_qubits_);
-        states_[j].initialize_creg(cregs_[global_state_index_ + i_begin + j].memory_size(),
-                                   cregs_[global_state_index_ + i_begin + j].register_size());
-      }
-    }
-    */
 
 #pragma omp parallel for if(num_groups_ > 1) private(i)
     for(i=0;i<num_groups_;i++){

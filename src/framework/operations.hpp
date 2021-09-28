@@ -218,7 +218,7 @@ struct Op {
   Clifford::Clifford clifford;
   mps_container_t mps;
 
-  //MultiCircuit selected by probs (used for runtime_error)
+  //circuits selected by probability (used for runtime_error)
   std::vector<std::vector<Op>> circs;
 
   // Legacy Snapshots

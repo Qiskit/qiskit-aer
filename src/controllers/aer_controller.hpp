@@ -306,6 +306,10 @@ protected:
                            const Noise::NoiseModel &noise,
                            const json_t &config) const;
 
+  //return maximum number of qubits for matrix
+  int_t get_max_matrix_bits(const Circuit &circ) const;
+  int_t get_matrix_bits(const Operations::Op& op) const;
+
   //-----------------------------------------------------------------------
   // Parallelization Config
   //-----------------------------------------------------------------------
@@ -1681,6 +1685,12 @@ void Controller::run_batched_circuits_helper(const std::vector<Circuit> &circs,
     std::vector<std::vector<Operations::Op>> meas_roerror_ops(circs.size());
     std::vector<double> global_phase(circs.size());
 
+    int_t max_bits = 1;
+    for (i_circ=0;i_circ< circs.size(); i_circ++) {
+      max_bits = std::max(max_bits,get_max_matrix_bits(circs[i_circ]) );
+    }
+    states.set_max_matrix_bits(max_bits);
+
     states.set_parallelization(max_batched_states_);
     states.allocate(max_qubits_, max_qubits_,circs.size());
     states.set_config(config);
@@ -1831,6 +1841,8 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
     auto first_meas = circ.first_measure_pos; // Position of first measurement op
     bool final_ops = (first_meas == ops.size());
 
+    state.set_max_matrix_bits(get_max_matrix_bits(circ) );
+
     // allocate qubit register
     state.allocate(circ.num_qubits, block_bits);
 
@@ -1858,6 +1870,8 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
       states.set_parallelization(max_batched_states_);
 
+      states.set_max_matrix_bits(get_max_matrix_bits(circ) );
+
       states.allocate(circ.num_qubits, circ.num_qubits,shots);
 
       states.set_config(config);
@@ -1878,6 +1892,8 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
       // Vector to store parallel thread output data
       std::vector<ExperimentResult> par_results(parallel_shots_);
 
+      int_t max_bits = get_max_matrix_bits(circ);
+
 #pragma omp parallel for if (parallel_shots_ > 1 && sim_device_ != Device::GPU) num_threads(parallel_shots_)
       for (int i = 0; i < parallel_shots_; i++) {
         uint_t i_shot,shot_end;
@@ -1889,6 +1905,8 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
         par_state.set_config(config);
         par_state.set_parallelization(parallel_state_update_);
         par_state.set_global_phase(circ.global_phase_angle);
+
+        par_state.set_max_matrix_bits(max_bits );
 
         // allocate qubit register
         par_state.allocate(circ.num_qubits, block_bits);
@@ -1956,6 +1974,7 @@ void Controller::run_circuit_with_sampled_noise(
         }
       }
 
+      state.set_max_matrix_bits(get_max_matrix_bits(circ) );
       // allocate qubit register
       state.allocate(noise_circ.num_qubits, block_bits);
 
@@ -2336,6 +2355,42 @@ void Controller::save_exception_to_results(Result &result,
     res.status = ExperimentResult::Status::error;
     res.message = e.what();
   }
+}
+
+int_t Controller::get_matrix_bits(const Operations::Op& op) const
+{
+  int_t bit = 1;
+  if(op.type == Operations::OpType::matrix || op.type == Operations::OpType::diagonal_matrix || op.type == Operations::OpType::initialize)
+    bit = op.qubits.size();
+  else if(op.type == Operations::OpType::kraus || op.type == Operations::OpType::superop){
+    if(method_ == Method::density_matrix)
+      bit = op.qubits.size() * 2;
+    else
+      bit = op.qubits.size();
+  }
+  return bit;
+}
+
+int_t Controller::get_max_matrix_bits(const Circuit &circ) const
+{
+  int_t max_bits = 0;
+  int_t i;
+
+  for(i=0;i<circ.ops.size();i++){
+    int_t bit = 1;
+    if(circ.ops[i].type == Operations::OpType::runtime_error){
+      for(int_t j=0;j<circ.ops[i].circs.size();j++){
+        for(int_t k=0;k<circ.ops[i].circs[j].size();k++){
+          bit = std::max(bit,get_matrix_bits(circ.ops[i].circs[j][k]) );
+        }
+      }
+    }
+    else{
+      bit = get_matrix_bits(circ.ops[i]);
+    }
+    max_bits = std::max(max_bits,bit);
+  }
+  return max_bits;
 }
 
 //-------------------------------------------------------------------------

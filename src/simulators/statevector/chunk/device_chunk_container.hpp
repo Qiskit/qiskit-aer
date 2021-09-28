@@ -104,7 +104,7 @@ public:
     return raw_reference_cast(data_[i]);
   }
 
-  uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit);
+  uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit);
   void Deallocate(void);
 
   void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk);
@@ -250,13 +250,14 @@ DeviceChunkContainer<data_t>::~DeviceChunkContainer(void)
 }
 
 template <typename data_t>
-uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit)
+uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit)
 {
   uint_t nc = chunks;
   uint_t i;
   int mat_bits;
 
-  this->chunk_bits_ = bits;
+  this->chunk_bits_ = chunk_bits;
+  this->num_qubits_ = num_qubits;
 
   device_id_ = idev;
   set_device();
@@ -310,7 +311,7 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
 
   size_t freeMem,totalMem;
   cudaMemGetInfo(&freeMem,&totalMem);
-  while(freeMem < ((((nc+buffers)*(uint_t)sizeof(thrust::complex<data_t>)) << bits) + param_size* (num_matrices_ + buffers)) ){
+  while(freeMem < ((((nc+buffers)*(uint_t)sizeof(thrust::complex<data_t>)) << chunk_bits) + param_size* (num_matrices_ + buffers)) ){
     nc--;
     if(nc == 0){
       break;
@@ -322,10 +323,11 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
 
   matrix_buffer_size_ = 0;
   params_buffer_size_ = 0;
-  ResizeMatrixBuffers(matrix_bit);
+  if(matrix_bit > 0)
+    ResizeMatrixBuffers(matrix_bit);
 
   this->num_chunks_ = nc;
-  data_.resize((nc+buffers) << bits);
+  data_.resize((nc+buffers) << chunk_bits);
 
 #ifdef AER_THRUST_CUDA
   stream_.resize(nc + buffers);
@@ -333,11 +335,11 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
     cudaStreamCreateWithFlags(&stream_[i], cudaStreamNonBlocking);
   }
 
-  if(bits < 10){
+  if(chunk_bits < 10){
     reduce_buffer_size_ = 1;
   }
   else{
-    reduce_buffer_size_ = (1ull << (bits - 10));
+    reduce_buffer_size_ = (1ull << (chunk_bits - 10));
   }
 #else
   reduce_buffer_size_ = 1;
@@ -348,7 +350,7 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int bits,uint_t chunks,ui
   probability_buffer_.resize(nc*QV_PROBABILITY_BUFFER_SIZE);
 
   creg_host_update_ = false;
-  this->num_creg_bits_ = bits;
+  this->num_creg_bits_ = num_qubits;
 
   if(multi_shots)
     batched_params_.resize(nc);
@@ -446,13 +448,14 @@ void DeviceChunkContainer<data_t>::ResizeMatrixBuffers(int bits)
     params_.resize(n * params_buffer_size_);
   }
   else{
-    size = 1ull << (bits + 2);
+//    size = 1ull << (bits + 2);
+    size = this->num_qubits_ * 4;
     if(QV_MAX_REGISTERS + max_blocked_gates_*4 > size){
       size = QV_MAX_REGISTERS + max_blocked_gates_*4;
     }
-    if(num_matrices_*size < (1ull << (bits*2))){
-      size = (1ull << (bits*2))/num_matrices_;
-    }
+//    if(num_matrices_*size < (1ull << (bits*2))){
+//      size = (1ull << (bits*2))/num_matrices_;
+//    }
     if(size > params_buffer_size_){
       params_buffer_size_ = size;
       params_.resize(n * size);

@@ -246,12 +246,12 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
       }
 
       chunks_.push_back(std::make_shared<DeviceChunkContainer<data_t>>());
-      num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nc,num_buffers,multi_shots_,matrix_bit);
+      num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
     }
     if(num_chunks_ < nchunks){
       //rest of chunks are stored on host
       chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
-      chunks_[num_places_]->Allocate(-1,chunk_bits,nchunks-num_chunks_,num_buffers,multi_shots_,matrix_bit);
+      chunks_[num_places_]->Allocate(-1,chunk_bits,nqubits,nchunks-num_chunks_,num_buffers,multi_shots_,matrix_bit);
       num_places_ += 1;
       num_chunks_ = nchunks;
     }
@@ -260,7 +260,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
     //additional host buffer
     iplace_host_ = chunks_.size();
     chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
-    chunks_[iplace_host_]->Allocate(-1,chunk_bits,0,AER_MAX_BUFFERS,multi_shots_,matrix_bit);
+    chunks_[iplace_host_]->Allocate(-1,chunk_bits,nqubits,0,AER_MAX_BUFFERS,multi_shots_,matrix_bit);
 #endif
   }
   else{

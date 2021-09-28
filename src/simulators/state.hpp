@@ -210,6 +210,11 @@ public:
                  RngEngine &rng,
                  bool final_ops = false);
 
+  virtual void set_max_matrix_bits(int_t bits)
+  {
+    max_matrix_bits_ = bits;
+  }
+
   //for batched apply op
   virtual void apply_batched_ops(const std::vector<Operations::Op> &ops){}
   virtual void enable_batch(bool flg){}
@@ -348,6 +353,7 @@ protected:
 
   uint_t shot_index_ = 0;
 
+  int_t max_matrix_bits_ = 0;
 
   virtual void apply_bfunc(const Operations::Op &op)
   {

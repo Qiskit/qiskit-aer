@@ -477,7 +477,8 @@ template <typename data_t>
 class ChunkContainer : public std::enable_shared_from_this<ChunkContainer<data_t>>
 {
 protected:
-  int chunk_bits_;                    //number of qubits for a chunk
+  int_t chunk_bits_;                  //number of qubits for a chunk
+  int_t num_qubits_;                  //total qubits
   int place_id_;                      //index of a container (device index + host)
   uint_t num_chunks_;                 //number of chunks in this container
   uint_t num_buffers_;                //number of buffers (buffer chunks) in this container
@@ -509,7 +510,7 @@ public:
   }
   virtual ~ChunkContainer(){}
 
-  int chunk_bits(void)
+  int_t chunk_bits(void)
   {
     return chunk_bits_;
   }
@@ -583,7 +584,7 @@ public:
 
   virtual thrust::complex<data_t>& operator[](uint_t i) = 0;
 
-  virtual uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,bool multi_shots = false,int matrix_bit = AER_DEFAULT_MATRIX_BITS) = 0;
+  virtual uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,bool multi_shots = false,int matrix_bit = AER_DEFAULT_MATRIX_BITS) = 0;
   virtual void Deallocate(void) = 0;
 
   virtual void Set(uint_t i,const thrust::complex<data_t>& t) = 0;

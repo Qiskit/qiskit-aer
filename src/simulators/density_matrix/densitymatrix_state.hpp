@@ -413,6 +413,7 @@ const stringmap_t<Snapshots> State<densmat_t>::snapshotset_(
 template <class densmat_t>
 bool State<densmat_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
 {
+  BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_bits_);
   if(BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,num_parallel_shots)){
     BaseState::shot_index_ = 0;
     return true;
