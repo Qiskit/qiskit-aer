@@ -68,16 +68,12 @@ from skbuild import setup
 # of requirements
 common_requirements = [
     'numpy>=1.16.3',
-    'scipy>=1.0',
-    'pybind11>=2.6'  # This isn't really an install requirement,
-                     # Pybind11 is required to be pre-installed for
-                     # CMake to successfully find header files.
-                     # This should be fixed in the CMake build files.
 ]
 
 setup_requirements = common_requirements + [
     'scikit-build>=0.11.0',
     'cmake!=3.17,!=3.17.0',
+    'pybind11>=2.6',
 ]
 
 extras_requirements = {
@@ -87,7 +83,7 @@ extras_requirements = {
 if not _DISABLE_CONAN:
     setup_requirements.append('conan>=1.22.2')
 
-requirements = common_requirements + ['qiskit-terra>=0.17.0']
+requirements = common_requirements + ['qiskit-terra>=0.17.0', 'scipy>=1.0']
 
 if not hasattr(setuptools,
                'find_namespace_packages') or not inspect.ismethod(

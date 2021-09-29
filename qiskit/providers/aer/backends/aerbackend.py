@@ -119,6 +119,10 @@ class AerBackend(Backend, ABC):
                     if param in binds:
                         parameterizations.append([[index, bind_pos], binds[param]])
                     elif isinstance(param, ParameterExpression):
+                        # If parameter expression has no unbound parameters
+                        # it's already bound and should be skipped
+                        if not param.parameters:
+                            continue
                         local_binds = {k: v for k, v in binds.items() if k in param.parameters}
                         bind_list = [dict(zip(local_binds, t)) for t in zip(*local_binds.values())]
                         bound_values = [float(param.bind(x)) for x in bind_list]
