@@ -147,8 +147,8 @@ class TestOptions(SimulatorTestCase):
         value = sum(result.get_counts().values())
         self.assertEqual(value, shots)
 
-    def test_mps_approximation(self):
-        """Test MPS approximation"""
+    def test_mps_options(self):
+        """Test MPS options"""
         shots = 4000
         method="matrix_product_state"
         backend_swap_left = self.backend(method=method,
