@@ -42,16 +42,25 @@ macro(setup_conan)
         set(REQUIREMENTS ${REQUIREMENTS} catch2/2.13.6)
         list(APPEND AER_CONAN_LIBS catch2)
     endif()
-
-    conan_cmake_run(REQUIRES ${REQUIREMENTS}
-                    OPTIONS ${CONAN_OPTIONS}
-                    ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
-                    BASIC_SETUP
-                    CMAKE_TARGETS
-                    KEEP_RPATHS
-                    ARCH armv8
-                    SETTINGS arch_build=armv8
-                    BUILD missing)
+    if (CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+        conan_cmake_run(REQUIRES ${REQUIREMENTS}
+                        OPTIONS ${CONAN_OPTIONS}
+                        ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
+                        BASIC_SETUP
+                        CMAKE_TARGETS
+                        KEEP_RPATHS
+                        ARCH armv8
+                        SETTINGS arch_build=armv8
+                        BUILD missing)
+    else()
+        conan_cmake_run(REQUIRES ${REQUIREMENTS}
+                        OPTIONS ${CONAN_OPTIONS}
+                        ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
+                        BASIC_SETUP
+                        CMAKE_TARGETS
+                        KEEP_RPATHS
+                        BUILD missing)
+    endif()
 
     # Headers includes
     if(AER_THRUST_BACKEND AND NOT AER_THRUST_BACKEND STREQUAL "CUDA")
