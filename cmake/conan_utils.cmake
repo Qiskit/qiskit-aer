@@ -49,6 +49,8 @@ macro(setup_conan)
                     BASIC_SETUP
                     CMAKE_TARGETS
                     KEEP_RPATHS
+                    ARCH armv8
+                    SETTINGS arch_build=armv8
                     BUILD missing)
 
     # Headers includes
