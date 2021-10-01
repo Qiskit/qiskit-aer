@@ -107,12 +107,11 @@ class QuantumError(BaseOperator, TolerancesMixin):
             super().__init__(num_qubits=noise_ops.num_qubits)
             return
 
-        if atol != 1e-8:
-            QuantumError.atol = atol
+        if atol != QuantumError.atol:
             warnings.warn(
                 '"atol" option in the constructor of QuantumError has been deprecated'
                 ' as of qiskit-aer 0.10.0 and will be removed no earlier than 3 months'
-                ' from that release date. Use QuantumError.atol = value',
+                ' from that release date. Use QuantumError.atol = value instead.',
                 DeprecationWarning, stacklevel=2)
 
         # Convert list of arrarys to kraus instruction (for old API support) TODO: to be removed
@@ -127,7 +126,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     noise_ops = kraus2instructions(
-                        noise_ops, standard_gates, atol=self.atol)
+                        noise_ops, standard_gates, atol=atol)
             else:
                 try:
                     noise_ops = Kraus(noise_ops)
@@ -152,7 +151,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
             _, p = pair  # pylint: disable=invalid-name
             if not isinstance(p, numbers.Real):
                 raise NoiseError('Invalid type of probability: {}'.format(p))
-            if p < 0 and not np.isclose(p, 0, atol=self.atol):
+            if p < -atol:
                 raise NoiseError("Negative probability is invalid: {}".format(p))
 
         # Remove zero probability circuits
@@ -176,7 +175,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
         # Initialize internal variables with error checking
         total_probs = sum(probs)
-        if not np.isclose(total_probs - 1, 0, atol=self.atol):
+        if not np.isclose(total_probs - 1, 0, atol=atol):
             raise NoiseError("Probabilities are not normalized: {} != 1".format(total_probs))
         # Rescale probabilities if their sum is ok to avoid accumulation of rounding errors
         self._probs = list(np.array(probs) / total_probs)
