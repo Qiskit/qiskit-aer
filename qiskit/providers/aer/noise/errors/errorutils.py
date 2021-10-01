@@ -40,7 +40,7 @@ def standard_gates_instructions(instructions):
         list: a list of qobj instructions equivalent to in input instruction.
     """
     warnings.warn(
-        'standard_gates_instructions has been deprecated as of qiskit-aer 0.9.0'
+        'standard_gates_instructions has been deprecated as of qiskit-aer 0.10.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -68,7 +68,7 @@ def standard_gate_instruction(instruction, ignore_phase=True):
         list: a list of (instructions, qubits) equivalent to in input instruction.
     """
     warnings.warn(
-        'standard_gate_instruction has been deprecated as of qiskit-aer 0.9.0'
+        'standard_gate_instruction has been deprecated as of qiskit-aer 0.10.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -222,7 +222,7 @@ def single_qubit_clifford_gates(j):
         NoiseError: If index is out of range [0, 23].
     """
     warnings.warn(
-        'single_qubit_clifford_gates has been deprecated as of qiskit-aer 0.9.0'
+        'single_qubit_clifford_gates has been deprecated as of qiskit-aer 0.10.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -246,7 +246,7 @@ def single_qubit_clifford_matrix(j):
         NoiseError: If index is out of range [0, 23].
     """
     warnings.warn(
-        'single_qubit_clifford_matrix has been deprecated as of qiskit-aer 0.9.0'
+        'single_qubit_clifford_matrix has been deprecated as of qiskit-aer 0.10.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -282,7 +282,7 @@ def single_qubit_clifford_instructions(index, qubit=0):
         NoiseError: If index is out of range [0, 23] or qubit invalid.
     """
     warnings.warn(
-        'single_qubit_clifford_instructions has been deprecated as of qiskit-aer 0.9.0'
+        'single_qubit_clifford_instructions has been deprecated as of qiskit-aer 0.10.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -303,7 +303,7 @@ def single_qubit_clifford_instructions(index, qubit=0):
 def standard_gate_unitary(name):
     """Return the unitary matrix for a standard gate."""
     warnings.warn(
-        'standard_gate_unitary has been deprecated as of qiskit-aer 0.9.0'
+        'standard_gate_unitary has been deprecated as of qiskit-aer 0.10.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -360,7 +360,7 @@ def standard_gate_unitary(name):
 def reset_superop(num_qubits):
     """Return a N-qubit reset SuperOp."""
     warnings.warn(
-        'reset_superop has been deprecated as of qiskit-aer 0.9.0'
+        'reset_superop has been deprecated as of qiskit-aer 0.10.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
     reset = SuperOp(
@@ -376,7 +376,7 @@ def reset_superop(num_qubits):
 def standard_instruction_operator(instr):
     """Return the Operator for a standard gate instruction."""
     warnings.warn(
-        'standard_instruction_operator has been deprecated as of qiskit-aer 0.9.0'
+        'standard_instruction_operator has been deprecated as of qiskit-aer 0.10.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
     # Convert to dict (for QobjInstruction types)
@@ -424,7 +424,7 @@ def standard_instruction_operator(instr):
 def standard_instruction_channel(instr):
     """Return the SuperOp channel for a standard instruction."""
     warnings.warn(
-        'standard_instruction_channel has been deprecated as of qiskit-aer 0.9.0'
+        'standard_instruction_channel has been deprecated as of qiskit-aer 0.10.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
     with warnings.catch_warnings():
@@ -458,7 +458,7 @@ def standard_instruction_channel(instr):
 def circuit2superop(circuit, min_qubits=1):
     """Return the SuperOp for a standard instruction."""
     warnings.warn(
-        'circuit2superop has been deprecated as of qiskit-aer 0.9.0'
+        'circuit2superop has been deprecated as of qiskit-aer 0.10.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -507,7 +507,7 @@ def make_unitary_instruction(mat, qubits, standard_gates=True):
         NoiseError: if the input is not a unitary matrix.
     """
     warnings.warn(
-        'make_unitary_instruction has been deprecated as of qiskit-aer 0.9.0'
+        'make_unitary_instruction has been deprecated as of qiskit-aer 0.10.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -543,7 +543,7 @@ def make_kraus_instruction(mats, qubits):
         NoiseError: if the input is not a CPTP Kraus channel.
     """
     warnings.warn(
-        'make_kraus_instruction has been deprecated as of qiskit-aer 0.9.0'
+        'make_kraus_instruction has been deprecated as of qiskit-aer 0.10.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -573,7 +573,7 @@ def qubits_from_mat(mat):
 def is_matrix_diagonal(mat):
     """Test if row-vector representation of diagonal matrix."""
     warnings.warn(
-        'is_matrix_diagonal has been deprecated as of qiskit-aer 0.9.0'
+        'is_matrix_diagonal has been deprecated as of qiskit-aer 0.10.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 
@@ -606,7 +606,7 @@ def kraus2instructions(kraus_ops, standard_gates, atol=ATOL_DEFAULT):
         NoiseError: If the input Kraus channel is not CPTP.
     """
     warnings.warn(
-        'kraus2instructions has been deprecated as of qiskit-aer 0.9.0'
+        'kraus2instructions has been deprecated as of qiskit-aer 0.10.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
 

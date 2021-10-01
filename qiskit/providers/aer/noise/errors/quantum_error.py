@@ -111,7 +111,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
             QuantumError.atol = atol
             warnings.warn(
                 '"atol" option in the constructor of QuantumError has been deprecated'
-                ' as of qiskit-aer 0.9.0 and will be removed no earlier than 3 months'
+                ' as of qiskit-aer 0.10.0 and will be removed no earlier than 3 months'
                 ' from that release date. Use QuantumError.atol = value',
                 DeprecationWarning, stacklevel=2)
 
@@ -120,7 +120,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 len(noise_ops) > 0 and isinstance(noise_ops[0], np.ndarray):
             warnings.warn(
                 'Constructing QuantumError with list of arrays representing a Kraus channel'
-                ' has been deprecated as of qiskit-aer 0.9.0 and will be removed no earlier than'
+                ' has been deprecated as of qiskit-aer 0.10.0 and will be removed no earlier than'
                 ' 3 months from that release date. Use QuantumError(Kraus()) instead.',
                 DeprecationWarning, stacklevel=2)
             if standard_gates:
@@ -170,7 +170,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                     ops = [standard_gates_instructions(op) for op in ops]
             warnings.warn(
                 '"standard_gates" option in the constructor of QuantumError has been deprecated'
-                ' as of qiskit-aer 0.9.0 in favor of externalizing such an unrolling functionality'
+                ' as of qiskit-aer 0.10.0 in favor of externalizing such an unrolling functionality'
                 ' and will be removed no earlier than 3 months from that release date.',
                 DeprecationWarning, stacklevel=2)
 
@@ -189,7 +189,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
             num_qubits = number_of_qubits
             warnings.warn(
                 '"number_of_qubits" in the constructor of QuantumError has been deprecated'
-                ' as of qiskit-aer 0.9.0 in favor of determining it automatically'
+                ' as of qiskit-aer 0.10.0 in favor of determining it automatically'
                 ' and will be removed no earlier than 3 months from that release date.'
                 ' Specify number of qubits in the quantum circuit passed to the init if necessary.',
                 DeprecationWarning, stacklevel=2)
@@ -250,7 +250,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
             elif all(isinstance(aop, dict) for aop in op):
                 warnings.warn(
                     'Constructing QuantumError with list of dict representing a mixed channel'
-                    ' has been deprecated as of qiskit-aer 0.9.0 and will be removed'
+                    ' has been deprecated as of qiskit-aer 0.10.0 and will be removed'
                     ' no earlier than 3 months from that release date.',
                     DeprecationWarning, stacklevel=3)
                 # Convert json-like to non-kraus Instruction
@@ -312,7 +312,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
     def set_atol(cls, value):
         """Set the class default absolute tolerance parameter for float comparisons."""
         warnings.warn(
-            'QuantumError.set_atol(value) has been deprecated as of qiskit-aer 0.9.0'
+            'QuantumError.set_atol(value) has been deprecated as of qiskit-aer 0.10.0'
             ' and will be removed no earlier than 3 months from that release date.'
             ' Use QuantumError.atol = value instead.',
             DeprecationWarning, stacklevel=2)
@@ -322,7 +322,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
     def set_rtol(cls, value):
         """Set the class default relative tolerance parameter for float comparisons."""
         warnings.warn(
-            'QuantumError.set_rtol(value) has been deprecated as of qiskit-aer 0.9.0'
+            'QuantumError.set_rtol(value) has been deprecated as of qiskit-aer 0.10.0'
             ' and will be removed no earlier than 3 months from that release date.'
             ' Use QuantumError.rtol = value instead.',
             DeprecationWarning, stacklevel=2)
@@ -338,7 +338,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
         """Return the number of qubits for the error."""
         warnings.warn(
             '"number_of_qubits" property has been renamed to num_qubits and deprecated as of'
-            ' qiskit-aer 0.9.0, and will be removed no earlier than 3 months'
+            ' qiskit-aer 0.10.0, and will be removed no earlier than 3 months'
             ' from that release date. Use "num_qubits" instead.',
             DeprecationWarning, stacklevel=2)
         return self.num_qubits
