@@ -170,12 +170,16 @@ class TestQuantumError(common.QiskitAerTestCase):
                                  ([(XGate(), [0]), (YGate(), [0])], 0.1 * 0.2)])
         self.assertEqual(actual, expected)
 
-    def test_raise_if_compose_one_with_different_num_qubits(self):
-        """Test error is raised if compose errors with different number of qubits."""
+    def test_compose_one_with_different_num_qubits(self):
+        """Test compose errors with different number of qubits."""
         noise_1q = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)])
-        noise_2q = QuantumError([((IGate(), [0]), 0.9), ((XGate(), [1]), 0.1)])
-        with self.assertRaises(NoiseError):
-            noise_1q.compose(noise_2q)
+        noise_2q = QuantumError([((IGate(), [0]), 0.8), ((XGate(), [1]), 0.2)])
+        actual = noise_1q.compose(noise_2q)
+        expected = QuantumError([([(IGate(), [0]), (IGate(), [0])], 0.9 * 0.8),
+                                 ([(IGate(), [0]), (XGate(), [1])], 0.9 * 0.2),
+                                 ([(XGate(), [0]), (IGate(), [0])], 0.1 * 0.8),
+                                 ([(XGate(), [0]), (XGate(), [1])], 0.1 * 0.2)])
+        self.assertEqual(actual, expected)
 
     def test_compose_with_different_type_of_operator(self):
         """Test compose with Kraus operator."""
@@ -484,14 +488,6 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
         circ, prob = error.error_term(0)
         self.assertEqual(self.aslist(circ.qubits), [0, 1])
         self.assertEqual(target, SuperOp(error))
-
-    def test_raise_compose_different_dim(self):
-        """Test composing incompatible errors raises exception"""
-        error0 = QuantumError([np.diag([1, 1, 1,
-                                        -1])])  # 2-qubit coherent error
-        error1 = QuantumError([np.diag([1, -1])])  # 1-qubit coherent error
-        self.assertRaises(NoiseError, lambda: error0.compose(error1))
-        self.assertRaises(NoiseError, lambda: error1.compose(error0))
 
     def test_compose_both_kraus(self):
         """Test compose of two kraus errors"""

@@ -430,6 +430,16 @@ class QuantumError(BaseOperator, TolerancesMixin):
         if not isinstance(other, QuantumError):
             other = QuantumError(other)
 
+        if qargs is not None:
+            if self.num_qubits < other.num_qubits:
+                raise QiskitError("Number of qubits of this error must be less than"
+                                  " that of the error to be composed if using 'qargs' argument.")
+            if len(qargs) != other.num_qubits:
+                raise QiskitError("Number of items in 'qargs' argument must be the same as"
+                                  " number of qubits of the error to be composed.")
+            if front:
+                raise QiskitError("QuantumError.compose does not support 'qargs' when 'front=True'.")
+
         circs = [self._compose_circ(lqc, rqc, qubits=qargs, front=front)
                  for lqc in self.circuits
                  for rqc in other.circuits]
@@ -447,8 +457,13 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
     @staticmethod
     def _compose_circ(lqc: QuantumCircuit, rqc: QuantumCircuit, qubits, front):
-        if lqc.num_qubits < rqc.num_qubits:
-            lqc = QuantumError._enlarge_qreg(lqc, rqc.num_qubits)
+        if qubits is None:
+            if front:
+                lqc, rqc = rqc, lqc
+            if lqc.num_qubits < rqc.num_qubits:
+                lqc = QuantumError._enlarge_qreg(lqc, rqc.num_qubits)
+            return lqc.compose(rqc)
+
         return lqc.compose(rqc, qubits=qubits, front=front)
 
     def tensor(self, other):
