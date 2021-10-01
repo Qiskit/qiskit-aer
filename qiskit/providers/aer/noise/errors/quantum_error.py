@@ -158,7 +158,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
         noise_ops = [(op, prob) for op, prob in noise_ops if prob > 0]
 
         if len(noise_ops) == 0:
-            raise NoiseError("Empty noise_ops is invalid")
+            raise NoiseError("noise_ops must contain at least one operator with non-zero probability")
 
         ops, probs = zip(*noise_ops)  # unzip
 
