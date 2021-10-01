@@ -430,10 +430,6 @@ class QuantumError(BaseOperator, TolerancesMixin):
         if not isinstance(other, QuantumError):
             other = QuantumError(other)
 
-        if self.num_qubits != other.num_qubits:
-            raise NoiseError("Number of qubis of other ({}) must be the same as self ({})".format(
-                other.num_qubits, self.num_qubits))
-
         circs = [self._compose_circ(lqc, rqc, qubits=qargs, front=front)
                  for lqc in self.circuits
                  for rqc in other.circuits]
