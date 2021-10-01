@@ -27,7 +27,7 @@ from qiskit.quantum_info.operators.pauli import Pauli
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
-from .errorutils import make_unitary_instruction
+from .errorutils import _make_unitary_instruction
 from .errorutils import qubits_from_mat
 from .quantum_error import QuantumError
 from ..noiseerror import NoiseError
@@ -119,10 +119,8 @@ def mixed_unitary_error(noise_ops, standard_gates=False):
         else:
             if standard_gates:  # TODO: to be removed after deprecation period
                 qubits = list(range(num_qubits))
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    instr = make_unitary_instruction(
-                        unitary, qubits, standard_gates=standard_gates)
+                instr = _make_unitary_instruction(
+                    unitary, qubits, standard_gates=standard_gates)
             else:
                 instr = UnitaryGate(unitary)
             instructions.append(instr)

@@ -30,7 +30,7 @@ from qiskit.quantum_info.operators.predicates import is_identity_matrix
 
 from .errorutils import kraus2instructions
 from .errorutils import standard_gate_unitary
-from .errorutils import standard_gates_instructions
+from .errorutils import _standard_gates_instructions
 from ..noiseerror import NoiseError
 
 
@@ -124,7 +124,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 DeprecationWarning, stacklevel=2)
             if standard_gates:
                 with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
+                    warnings.filterwarnings("ignore",
+                                            category=DeprecationWarning,
+                                            module="qiskit.providers.aer.noise.errors.errorutils")
                     noise_ops = kraus2instructions(
                         noise_ops, standard_gates, atol=atol)
             else:
@@ -163,10 +165,8 @@ class QuantumError(BaseOperator, TolerancesMixin):
         ops, probs = zip(*noise_ops)  # unzip
 
         if standard_gates:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                if isinstance(ops[0], list):
-                    ops = [standard_gates_instructions(op) for op in ops]
+            if isinstance(ops[0], list):
+                ops = [_standard_gates_instructions(op) for op in ops]
             warnings.warn(
                 '"standard_gates" option in the constructor of QuantumError has been deprecated'
                 ' as of qiskit-aer 0.10.0 in favor of externalizing such an unrolling functionality'
@@ -271,7 +271,11 @@ class QuantumError(BaseOperator, TolerancesMixin):
                                     qargs=dic['qubits'])
                     else:
                         with warnings.catch_warnings():
-                            warnings.simplefilter("ignore")
+                            warnings.filterwarnings(
+                                "ignore",
+                                category=DeprecationWarning,
+                                module="qiskit.providers.aer.noise.errors.errorutils"
+                            )
                             circ.append(UnitaryGate(label=dic['name'],
                                                     data=standard_gate_unitary(dic['name'])),
                                         qargs=dic['qubits'])

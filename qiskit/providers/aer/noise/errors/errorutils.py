@@ -45,19 +45,148 @@ def standard_gates_instructions(instructions):
         DeprecationWarning, stacklevel=2)
 
     output_instructions = []
+    for instruction in instructions:
+         output_instructions += standard_gate_instruction(instruction)
+    return output_instructions
+
+def _standard_gates_instructions(instructions):
+    """Temporary function to mimic standard_gates_instructions during deprecation period.
+
+    Args:
+        instructions (list): A list of qobj instructions or ordinary instruction.
+
+    Returns:
+        list: a list of ordinary instructions equivalent to in input instruction.
+    """
+    output_instructions = []
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+        warnings.filterwarnings("ignore",
+                                category=DeprecationWarning,
+                                module="qiskit.providers.aer.noise.errors.errorutils")
         for instruction in instructions:
             if isinstance(instruction, dict):
-                output_instructions += standard_gate_instruction(instruction)
+                output_instructions += _standard_gate_instruction(instruction)
             else:
                 output_instructions.append(instruction)
     return output_instructions
 
-
 # pylint: disable=too-many-return-statements
 def standard_gate_instruction(instruction, ignore_phase=True):
     """Convert a unitary matrix instruction into a standard gate instruction.
+    Args:
+        instruction (dict): A qobj instruction.
+        ignore_phase (bool): Ignore global phase on unitary matrix in
+                             comparison to canonical unitary.
+    Returns:
+        list: a list of qobj instructions equivalent to in input instruction.
+    """
+    warnings.warn(
+        'standard_gate_instruction has been deprecated as of qiskit-aer 0.10.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
+
+    name = instruction.get("name", None)
+    if name not in ["mat", "unitary", "kraus"]:
+        return [instruction]
+    qubits = instruction["qubits"]
+    params = instruction["params"]
+
+    # Check for single-qubit reset Kraus
+    if name == "kraus":
+        if len(qubits) == 1:
+            superop = SuperOp(Kraus(params))
+            # Check if reset to |0>
+            reset0 = reset_superop(1)
+            if superop == reset0:
+                return [{"name": "reset", "qubits": qubits}]
+            # Check if reset to |1>
+            reset1 = reset0.compose(Operator(standard_gate_unitary('x')))
+            if superop == reset1:
+                return [{"name": "reset", "qubits": qubits}, {"name": "x", "qubits": qubits}]
+        # otherwise just return the kraus instruction
+        return [instruction]
+
+    # Check single qubit gates
+    mat = params[0]
+    if len(qubits) == 1:
+        # Check clifford gates
+        for j in range(24):
+            if matrix_equal(
+                    mat,
+                    single_qubit_clifford_matrix(j),
+                    ignore_phase=ignore_phase):
+                return single_qubit_clifford_instructions(j, qubit=qubits[0])
+        # Check t gates
+        for name in ["t", "tdg"]:
+            if matrix_equal(
+                    mat,
+                    standard_gate_unitary(name),
+                    ignore_phase=ignore_phase):
+                return [{"name": name, "qubits": qubits}]
+        # TODO: u1,u2,u3 decomposition
+    # Check two qubit gates
+    if len(qubits) == 2:
+        for name in ["cx", "cz", "swap"]:
+            if matrix_equal(
+                    mat,
+                    standard_gate_unitary(name),
+                    ignore_phase=ignore_phase):
+                return [{"name": name, "qubits": qubits}]
+        # Check reversed CX
+        if matrix_equal(
+                mat,
+                standard_gate_unitary("cx_10"),
+                ignore_phase=ignore_phase):
+            return [{"name": "cx", "qubits": [qubits[1], qubits[0]]}]
+        # Check 2-qubit Pauli's
+        paulis = ["id", "x", "y", "z"]
+        for pauli0 in paulis:
+            for pauli1 in paulis:
+                pmat = np.kron(
+                    standard_gate_unitary(pauli1),
+                    standard_gate_unitary(pauli0))
+                if matrix_equal(mat, pmat, ignore_phase=ignore_phase):
+                    if pauli0 == "id":
+                        return [{"name": pauli1, "qubits": [qubits[1]]}]
+                    elif pauli1 == "id":
+                        return [{"name": pauli0, "qubits": [qubits[0]]}]
+                    else:
+                        return [{
+                            "name": pauli0,
+                            "qubits": [qubits[0]]
+                        }, {
+                            "name": pauli1,
+                            "qubits": [qubits[1]]
+                        }]
+    # Check three qubit toffoli
+    if len(qubits) == 3:
+        if matrix_equal(
+                mat,
+                standard_gate_unitary("ccx_012"),
+                ignore_phase=ignore_phase):
+            return [{"name": "ccx", "qubits": qubits}]
+        if matrix_equal(
+                mat,
+                standard_gate_unitary("ccx_021"),
+                ignore_phase=ignore_phase):
+            return [{
+                "name": "ccx",
+                "qubits": [qubits[0], qubits[2], qubits[1]]
+            }]
+        if matrix_equal(
+                mat,
+                standard_gate_unitary("ccx_120"),
+                ignore_phase=ignore_phase):
+            return [{
+                "name": "ccx",
+                "qubits": [qubits[1], qubits[2], qubits[0]]
+            }]
+
+    # Else return input in
+    return [instruction]
+
+def _standard_gate_instruction(instruction, ignore_phase=True):
+    """Temporary function to mimic standard_gates_instruction during deprecation period.
 
     Args:
         instruction (dict): A qobj instruction.
@@ -67,11 +196,6 @@ def standard_gate_instruction(instruction, ignore_phase=True):
     Returns:
         list: a list of (instructions, qubits) equivalent to in input instruction.
     """
-    warnings.warn(
-        'standard_gate_instruction has been deprecated as of qiskit-aer 0.10.0'
-        ' and will be removed no earlier than 3 months from that release date.',
-        DeprecationWarning, stacklevel=2)
-
     gate = {
         "x": XGate(),
         "y": YGate(),
@@ -90,7 +214,9 @@ def standard_gate_instruction(instruction, ignore_phase=True):
     params = instruction["params"]
 
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+        warnings.filterwarnings("ignore",
+                                category=DeprecationWarning,
+                                module="qiskit.providers.aer.noise.errors.errorutils")
 
         # Check for single-qubit reset Kraus
         if name == "kraus":
@@ -113,9 +239,9 @@ def standard_gate_instruction(instruction, ignore_phase=True):
             for j in range(24):
                 if matrix_equal(
                         mat,
-                        single_qubit_clifford_matrix(j),
+                        _single_qubit_clifford_matrix(j),
                         ignore_phase=ignore_phase):
-                    return single_qubit_clifford_instructions(j, qubit=qubits[0])
+                    return _single_qubit_clifford_instructions(j, qubit=qubits[0])
             # Check t gates
             for name in ["t", "tdg"]:
                 if matrix_equal(
@@ -174,6 +300,61 @@ def standard_gate_instruction(instruction, ignore_phase=True):
     return [instruction]
 
 
+def single_qubit_clifford_gates(j):
+    """Return a QASM gate names for a single qubit Clifford.
+    The labels are returned in a basis set consisting of
+    ('id', 's', 'sdg', 'z', 'h', x', 'y') gates decomposed to
+    use the minimum number of X-90 pulses in a (u1, u2, u3)
+    decomposition.
+    Args:
+        j (int): Clifford index 0, ..., 23.
+    Returns:
+        tuple(str): The tuple of basis gates.
+    Raises:
+        NoiseError: If index is out of range [0, 23].
+    """
+    warnings.warn(
+        'single_qubit_clifford_gates has been deprecated as of qiskit-aer 0.10.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
+
+    if not isinstance(j, int) or j < 0 or j > 23:
+        raise NoiseError(
+            "Index {} must be in the range [0, ..., 23]".format(j))
+
+    labels = [
+        ('id', ),
+        ('s', ),
+        ('sdg', ),
+        ('z', ),
+        # u2 gates
+        (
+            'h', ),
+        ('h', 'z'),
+        ('z', 'h'),
+        ('h', 's'),
+        ('s', 'h'),
+        ('h', 'sdg'),
+        ('sdg', 'h'),
+        ('s', 'h', 's'),
+        ('sdg', 'h', 's'),
+        ('z', 'h', 's'),
+        ('s', 'h', 'sdg'),
+        ('sdg', 'h', 'sdg'),
+        ('z', 'h', 'sdg'),
+        ('s', 'h', 'z'),
+        ('sdg', 'h', 'z'),
+        ('z', 'h', 'z'),
+        # u3 gates
+        (
+            'x', ),
+        ('y', ),
+        ('s', 'x'),
+        ('sdg', 'x')
+    ]
+    return labels[j]
+
+
 _CLIFFORD_GATES = [
     (IGate(), ),
     (SGate(), ),
@@ -204,13 +385,8 @@ _CLIFFORD_GATES = [
 ]
 
 
-def single_qubit_clifford_gates(j):
-    """Return a tuple of gates for a single qubit Clifford.
-
-    The gate is returned in a basis set consisting of
-    ('id', 's', 'sdg', 'z', 'h', x', 'y') gates decomposed to
-    use the minimum number of X-90 pulses in a (u1, u2, u3)
-    decomposition.
+def _single_qubit_clifford_gates(j):
+    """Temporary function to mimic single_qubit_clifford_gates during deprecation period.
 
     Args:
         j (int): Clifford index 0, ..., 23.
@@ -221,11 +397,6 @@ def single_qubit_clifford_gates(j):
     Raises:
         NoiseError: If index is out of range [0, 23].
     """
-    warnings.warn(
-        'single_qubit_clifford_gates has been deprecated as of qiskit-aer 0.10.0'
-        ' and will be removed no earlier than 3 months from that release date.',
-        DeprecationWarning, stacklevel=2)
-
     if not isinstance(j, int) or j < 0 or j > 23:
         raise NoiseError(
             "Index {} must be in the range [0, ..., 23]".format(j))
@@ -235,13 +406,10 @@ def single_qubit_clifford_gates(j):
 
 def single_qubit_clifford_matrix(j):
     """Return Numpy array for a single qubit Clifford.
-
     Args:
         j (int): Clifford index 0, ..., 23.
-
     Returns:
         np.array: The matrix for the indexed clifford.
-
     Raises:
         NoiseError: If index is out of range [0, 23].
     """
@@ -254,10 +422,41 @@ def single_qubit_clifford_matrix(j):
         raise NoiseError(
             "Index {} must be in the range [0, ..., 23]".format(j))
 
+    basis_dict = {
+        'id': np.eye(2),
+        'x': np.array([[0, 1], [1, 0]], dtype=complex),
+        'y': np.array([[0, -1j], [1j, 0]], dtype=complex),
+        'z': np.array([[1, 0], [0, -1]], dtype=complex),
+        'h': np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2),
+        's': np.array([[1, 0], [0, 1j]], dtype=complex),
+        'sdg': np.array([[1, 0], [0, -1j]], dtype=complex)
+    }
+    mat = np.eye(2)
+    for gate in single_qubit_clifford_gates(j):
+        mat = np.dot(basis_dict[gate], mat)
+    return mat
+
+
+def _single_qubit_clifford_matrix(j):
+    """Temporary function to mimic single_qubit_clifford_matrix during deprecation period.
+
+    Args:
+        j (int): Clifford index 0, ..., 23.
+
+    Returns:
+        np.array: The matrix for the indexed clifford.
+
+    Raises:
+        NoiseError: If index is out of range [0, 23].
+    """
+    if not isinstance(j, int) or j < 0 or j > 23:
+        raise NoiseError(
+            "Index {} must be in the range [0, ..., 23]".format(j))
+
     mat = np.eye(2)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        for gate in single_qubit_clifford_gates(j):
+        for gate in _single_qubit_clifford_gates(j):
             mat = np.dot(gate.to_matrix(), mat)
     return mat
 
@@ -265,19 +464,15 @@ def single_qubit_clifford_matrix(j):
 # pylint: disable=invalid-name
 def single_qubit_clifford_instructions(index, qubit=0):
     """Return a list of qobj instructions for a single qubit Cliffords.
-
     The instructions are returned in a basis set consisting of
     ('id', 's', 'sdg', 'z', 'h', x', 'y') gates decomposed to
     use the minimum number of X-90 pulses in a (u1, u2, u3)
     decomposition.
-
     Args:
         index (int): Clifford index 0, ..., 23.
         qubit (int): the qubit to apply the Clifford to.
-
     Returns:
         list(dict): The list of instructions.
-
     Raises:
         NoiseError: If index is out of range [0, 23] or qubit invalid.
     """
@@ -293,9 +488,34 @@ def single_qubit_clifford_instructions(index, qubit=0):
         raise NoiseError("qubit position must be positive integer.")
 
     instructions = []
+    for gate in single_qubit_clifford_gates(index):
+        instructions.append({"name": gate, "qubits": [qubit]})
+    return instructions
+
+
+def _single_qubit_clifford_instructions(index, qubit=0):
+    """Temporary function to mimic single_qubit_clifford_instructions during deprecation period.
+
+    Args:
+        index (int): Clifford index 0, ..., 23.
+        qubit (int): the qubit to apply the Clifford to.
+
+    Returns:
+        list(tuple): The list of instructions as (gate, qubits) tuples.
+
+    Raises:
+        NoiseError: If index is out of range [0, 23] or qubit invalid.
+    """
+    if not isinstance(index, int) or index < 0 or index > 23:
+        raise NoiseError(
+            "Index {} must be in the range [0, ..., 23]".format(index))
+    if not isinstance(qubit, int) or qubit < 0:
+        raise NoiseError("qubit position must be positive integer.")
+
+    instructions = []
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        for gate in single_qubit_clifford_gates(index):
+        for gate in _single_qubit_clifford_gates(index):
             instructions.append((gate, [qubit]))
     return instructions
 
@@ -386,9 +606,7 @@ def standard_instruction_operator(instr):
     name = instr.get('name', "")
     params = instr.get('params', [])
     # Check if standard unitary gate name
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        mat = standard_gate_unitary(name)
+    mat = standard_gate_unitary(name)
     if isinstance(mat, np.ndarray):
         return Operator(mat)
 
@@ -427,10 +645,8 @@ def standard_instruction_channel(instr):
         'standard_instruction_channel has been deprecated as of qiskit-aer 0.10.0'
         ' and will be removed no earlier than 3 months from that release date.',
         DeprecationWarning, stacklevel=2)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        # Check if standard operator
-        oper = standard_instruction_operator(instr)
+    # Check if standard operator
+    oper = standard_instruction_operator(instr)
     if oper is not None:
         return SuperOp(oper)
 
@@ -478,9 +694,7 @@ def circuit2superop(circuit, min_qubits=1):
     superop = SuperOp(np.eye(4**num_qubits))
     # compose each circuit element with the superoperator
     for instr in circuit:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            instr_op = standard_instruction_channel(instr)
+        instr_op = standard_instruction_channel(instr)
         if instr_op is None:
             raise NoiseError('Cannot convert instruction {} to SuperOp'.format(instr))
         if hasattr(instr, 'qubits'):
@@ -493,16 +707,13 @@ def circuit2superop(circuit, min_qubits=1):
 
 def make_unitary_instruction(mat, qubits, standard_gates=True):
     """Return a qobj instruction for a unitary matrix gate.
-
     Args:
         mat (matrix): A square or diagonal unitary matrix.
         qubits (list[int]): The qubits the matrix is applied to.
         standard_gates (bool): Check if the matrix instruction is a
                                standard instruction.
-
     Returns:
         dict: The qobj instruction object.
-
     Raises:
         NoiseError: if the input is not a unitary matrix.
     """
@@ -519,12 +730,42 @@ def make_unitary_instruction(mat, qubits, standard_gates=True):
 
     instruction = {"name": "unitary", "qubits": qubits, "params": [mat]}
     if standard_gates:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            if isinstance(instruction, dict):
-                res = standard_gate_instruction(instruction)
-            else:
-                res = [instruction]
+        return standard_gate_instruction(instruction)
+    else:
+        return [instruction]
+
+
+def _make_unitary_instruction(mat, qubits, standard_gates=True):
+    """Temporary function to mimic make_unitary_instruction during deprecation period.
+
+    Args:
+        mat (matrix): A square or diagonal unitary matrix.
+        qubits (list[int]): The qubits the matrix is applied to.
+        standard_gates (bool): Check if the matrix instruction is a
+                               standard instruction.
+
+    Returns:
+        list: The list of instructions.
+
+    Raises:
+        NoiseError: if the input is not a unitary matrix.
+    """
+    if not is_unitary_matrix(mat):
+        raise NoiseError("Input matrix is not unitary.")
+
+    if isinstance(qubits, int):
+        qubits = [qubits]
+
+    instruction = {"name": "unitary", "qubits": qubits, "params": [mat]}
+    if standard_gates:
+        if isinstance(instruction, dict):
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore",
+                                        category=DeprecationWarning,
+                                        module="qiskit.providers.aer.noise.errors.errorutils")
+                res = _standard_gate_instruction(instruction)
+        else:
+            res = [instruction]
         return res
     else:
         return [instruction]
@@ -691,12 +932,10 @@ def kraus2instructions(kraus_ops, standard_gates, atol=ATOL_DEFAULT):
     qubits = list(range(num_qubits))
 
     # Add unitary instructions
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        for unitary in unitaries:
-            instructions.append(
-                make_unitary_instruction(
-                    unitary, qubits, standard_gates=standard_gates))
+    for unitary in unitaries:
+        instructions.append(
+            _make_unitary_instruction(
+                unitary, qubits, standard_gates=standard_gates))
 
     # Add identity instruction
     if prob_identity > atol:
@@ -716,7 +955,9 @@ def kraus2instructions(kraus_ops, standard_gates, atol=ATOL_DEFAULT):
             np.array(op) / np.sqrt(prob_kraus) for op in non_unitaries
         ]
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+        warnings.filterwarnings("ignore",
+                                category=DeprecationWarning,
+                                module="qiskit.providers.aer.noise.errors.errorutils")
         instructions.append(make_kraus_instruction(non_unitaries, qubits))
     probabilities.append(prob_kraus)
     # Normalize probabilities to account for any rounding errors
