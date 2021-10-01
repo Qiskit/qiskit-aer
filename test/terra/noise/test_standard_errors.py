@@ -70,15 +70,14 @@ class TestNoise(common.QiskitAerTestCase):
 
     def test_mixed_unitary_error(self):
         """Test construction of mixed unitary error"""
-        unitaries = [np.eye(2), np.diag([1, -1])]
-        probs = [0.7, 0.3]
+        unitaries = [np.diag([1, -1]), np.eye(2)]
+        probs = [0.3, 0.7]
         error = mixed_unitary_error([(unitaries[0], probs[0]),
                                      (unitaries[1], probs[1])])
         for i in [0, 1]:
             op, p = error.error_term(i)
-            self.assertIn(p, probs)
-            expected = unitaries[0] if p == 0.7 else unitaries[1]
-            self.assertTrue(np.allclose(op[0][0].to_matrix(), expected))
+            self.assertEqual(p, probs[i])
+            self.assertTrue(np.allclose(op[0][0].to_matrix(), unitaries[i]))
 
     def test_coherent_unitary_error(self):
         """Test coherent unitary error"""
