@@ -1,7 +1,0 @@
----
-features:
-  - |
-    Add qiskit library SXdgGate and CUGate to the supported basis gates for
-    the Aer simulator backends. Note that the CUGate gate is only natively
-    supported for the statevector and unitary methods. For other simulation
-    methods it must be transpiled to the supported basis gates for that method.

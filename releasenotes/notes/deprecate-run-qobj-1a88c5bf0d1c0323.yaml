@@ -1,7 +1,0 @@
----
-deprecations:
-  - |
-    Passing an assembled qobj directly to the
-    :meth:`~qiskit.providers.aer.AerSimulator.run` method of the Aer simulator
-    backends has been deprecated in favor of passing transpiled circuits
-    directly as `backend.run(circuits, **run_options)`.
