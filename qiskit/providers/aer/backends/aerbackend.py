@@ -100,6 +100,8 @@ class AerBackend(Backend, ABC):
         self._options_defaults = {}
         self._options_properties = {}
 
+        self._executor = None
+
         # Set options from backend_options dictionary
         if backend_options is not None:
             self.set_options(**backend_options)
@@ -215,7 +217,7 @@ class AerBackend(Backend, ABC):
         experiments = split_qobj(qobj, max_size=getattr(qobj.config, 'max_job_size', None))
 
         # Get the executor
-        executor = self._get_executor(**run_options)
+        executor = self._get_executor(**run_options) or self._executor
 
         # Submit job
         job_id = str(uuid.uuid4())
@@ -224,6 +226,7 @@ class AerBackend(Backend, ABC):
         else:
             aer_job = AerJob(self, job_id, self._run, experiments, executor)
         aer_job.submit()
+        self._executor = executor
         return aer_job
 
     def configuration(self):
@@ -361,7 +364,10 @@ class AerBackend(Backend, ABC):
         if 'executor' in run_options:
             return run_options['executor']
         else:
-            return getattr(self._options, 'executor', None)
+            _executor = getattr(self._options, 'executor', None)
+            if _executor:
+                delattr(self._options, 'executor')
+            return _executor
 
     @abstractmethod
     def _execute(self, qobj):
