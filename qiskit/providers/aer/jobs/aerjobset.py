@@ -98,7 +98,6 @@ class AerJobSet(Job):
                 _worker_id_list.append(worker_id)
                 worker_id = worker_id + 1
             self._combined_result.append(_worker_id_list)
-        print(self._combined_result)
 
     @requires_submit
     def status(self, worker: Union[None, int, Iterable[int]]
@@ -113,7 +112,7 @@ class AerJobSet(Job):
         """
         if isinstance(worker, int):
             aer_job = self._futures[worker]
-            return aer_job.satus()
+            return aer_job.status()
         elif isinstance(worker, Iterable):
             job_list = []
             for worker_id in worker:
@@ -177,16 +176,18 @@ class AerJobSet(Job):
         if isinstance(worker, int):
             res = self._get_worker_result(worker, timeout)
         elif isinstance(worker, Iterable):
+            _res = []
             for worker_id in worker:
-                res.append(self._get_worker_result(worker_id, timeout))
-            res = self._combine_results(res)
+                _res.append(self._get_worker_result(worker_id, timeout))
+            res = self._combine_results(_res)
         else:
+            _res = []
             for _worker_id_list in self._combined_result:
-                _res = []
                 for worker_id in _worker_id_list:
                     _res.append(self._get_worker_result(worker_id, timeout))
                 res.append(self._combine_results(_res))
-        res = (self._merge_experiments_result(res))
+
+        res = self._merge_experiments_result(res)
         return self._merge_results(res)
 
     def _get_worker_result(self, worker: int, timeout: Optional[float] = None):
@@ -216,9 +217,9 @@ class AerJobSet(Job):
             result = aer_job.result(timeout=timeout)
             if result is None or not result.success:
                 if result:
-                    logger.warning('ClusterJob %s Error: %s', aer_job.name(), result.header)
+                    logger.warning('AerJobSet %s Error: %s', aer_job.name(), result.header)
                 else:
-                    logger.warning('ClusterJob %s did not return a result', aer_job.name())
+                    logger.warning('AerJobSet %s did not return a result', aer_job.name())
         except JobError:
             raise JobError(
                 'Timeout while waiting for the results of experiment {}'.format(
@@ -237,21 +238,37 @@ class AerJobSet(Job):
 
         master_result = result_list[0].to_dict()
         sub_result = result_list[1].to_dict()
+        all_results = master_result["metadata"]["all_results"]
         result_list = []
 
         for (_master_result, _sub_result) in zip(master_result["results"], sub_result["results"]):
             result_list.append(self._merge_exp(_master_result, _sub_result))
         master_result["results"] = result_list
-
+        master_result["metadata"]["all_results"] = \
+            all_results + sub_result["metadata"]["all_results"]
         return Result.from_dict(master_result)
 
     def _merge_experiments_result(self, results: List[Result]):
+        """Merge all experiments into a single in a`Result`
+
+        this function merges the counts and the number of shots
+        from each experiment in a `Result` for a noise simulation
+        if `id` in metadata field is the same.
+
+        Args:
+            results: Result list whose experiments will be combined.
+
+        Returns:
+            A list of Result: Result list
+
+        """
         results_list = []
         for each_result in results:
             _merge_results = []
-            _dict_result = each_result.to_dict()
             master_id = None
             master_result = None
+
+            _dict_result = each_result.to_dict()
             for _result in _dict_result["results"]:
                 meta_data = _result["header"]["metadata"]
                 if meta_data and "id" in meta_data:
@@ -268,15 +285,15 @@ class AerJobSet(Job):
                 else:
                     _merge_results.append(_result)
             _dict_result["results"] = _merge_results
+            _dict_result["metadata"]["all_results"] = [each_result.to_dict()]
             results_list.append(Result.from_dict(_dict_result))
-
         return results_list
 
     def _merge_exp(self, master: Result, sub: Result):
         master["shots"] = master["shots"] + sub["shots"]
         if "counts" in master["data"]:
-            master["data"]["counts"] = dict(Counter(master["data"]["counts"]) + 
-                Counter(sub["data"]["counts"]))
+            master["data"]["counts"] = dict(Counter(master["data"]["counts"]) +
+                                            Counter(sub["data"]["counts"]))
         return master
 
     def _combine_results(self,

@@ -82,6 +82,10 @@ class UnitarySimulator(AerBackend):
       on the executor. If ``None`` simulation of all circuits are submitted
       to the executor as a single job (Default: None).
 
+    * ``max_shot_size`` (int or None): If the number of shots with
+      a noise model exceeds this value, simulation will split the experiments into
+      sub experiments in the qobj. If ``None``  simulator does nothing (Default: None).
+
     * ``"initial_unitary"`` (matrix_like): Sets a custom initial unitary
       matrix for the simulation instead of identity (Default: None).
 
@@ -199,6 +203,7 @@ class UnitarySimulator(AerBackend):
             precision="double",
             executor=None,
             max_job_size=None,
+            max_shot_size=None,
             zero_threshold=1e-10,
             seed_simulator=None,
             validation_threshold=None,

@@ -125,8 +125,8 @@ class PulseSimulator(AerBackend):
       on the executor. If ``None`` simulation of all schedules are submitted
       to the executor as a single job (Default: None).
     * ``max_shot_size`` (int or None): If the number of shots with
-      a noise model exceeds this value simulation will be splitted into
-      sub-circuits. If ``None``  simulator does noting (Default: None).
+      a noise model exceeds this value, simulation will split the experiments into
+      sub experiments in the qobj. If ``None``  simulator does nothing (Default: None).
 
       jobs (Default: None).
 

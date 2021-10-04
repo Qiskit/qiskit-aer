@@ -63,7 +63,9 @@ def _copy_qobj_for_noise(qobj, max_shot_size, qobj_id):
 
     if shot_mod > 0:
         setattr(qobj.config, "shots", shot_mod)
-        #print("first", qobj)
+        for experiment in qobj.experiments:
+            _id = str(uuid.uuid4())
+            setattr(experiment.header, "metadata", {"id": _id})
         qobj_list.append(qobj)
 
     if num_shot_jobs > 1:
@@ -75,36 +77,61 @@ def _copy_qobj_for_noise(qobj, max_shot_size, qobj_id):
             _id = str(uuid.uuid4())
             for _ in range(num_shot_jobs):
                 cpy_exp = copy.deepcopy(experiment)
-                #print("hogehogheoh"+str(i))
                 setattr(cpy_exp.header, "metadata", {"id": _id})
                 experiment_list.append(cpy_exp)
         qobj_list.append(QasmQobj(_qid, _config, experiment_list, qobj.header))
 
     return qobj_list
 
-def _split_qobj(qobj, max_size, qobj_id):
+
+def _split_qobj(qobj, max_size, qobj_id, seed):
     # Check if we don't need to split
     if max_size is None or not max_size > 0:
-        return qobj
+        return qobj, seed
 
     num_jobs = ceil(len(qobj.experiments) / max_size)
-    print("num_jobs", num_jobs)
     if num_jobs == 1:
-        return qobj
+        return qobj, seed
 
     qobjs = []
     # Check for parameterizations
     params = getattr(qobj.config, 'parameterizations', None)
+
+    exp_id = None
+    shift_index = 0
+    seed_shift = 256
+    _seed = 0
     for i in range(num_jobs):
         sub_id = qobj_id or str(uuid.uuid4())
         indices = slice(i * max_size, (i + 1) * max_size)
         sub_exp = qobj.experiments[indices]
         sub_config = qobj.config
+
         if params is not None:
-            sub_config = copy.copy(qobj.config)
             sub_config.parameterizations = params[indices]
+            sub_config = copy.copy(qobj.config)
+
+        if seed > 0:
+            id_dat = getattr(sub_exp[0].header, "metadata", None)
+            if id_dat is not None and "id" in id_dat:
+                _id = id_dat["id"]
+                if _id == exp_id:
+                    shift_index = shift_index + 1
+                else:
+                    exp_id = _id
+                    shift_index = 0
+                _seed = seed + seed_shift * shift_index
+            if sub_config is qobj.config:
+                sub_config = copy.copy(qobj.config)
+            setattr(sub_config, "seed_simulator", _seed)
+
         qobjs.append(type(qobj)(sub_id, sub_config, sub_exp, qobj.header))
-    return qobjs
+
+    if seed > 0:
+        seed = _seed + seed_shift
+
+    return qobjs, seed
+
 
 def split_qobj(qobj, max_size=None, max_shot_size=None, qobj_id=None):
     """Split a qobj and return a list of qobjs each with a single experiment.
@@ -113,32 +140,34 @@ def split_qobj(qobj, max_size=None, max_shot_size=None, qobj_id=None):
         qobj (Qobj): The input qobj object to split
         max_size (int or None): the maximum number of circuits per job. If
             None don't split (Default: None).
+        max_shot_size (int or None): the maximum number of shots per job. If
+            None don't split (Default: None).
         qobj_id (str): Optional, set a fixed qobj ID for all subjob qobjs.
 
     Returns:
         List: A list of qobjs.
     """
-    qobj_list = None
     split_qobj_list = []
+    _seed = getattr(qobj.config, "seed_simulator", 0)
     if hasattr(qobj.config, "noise_model"):
+        if _seed and max_size is not None and max_size > 1:
+            raise JobError("cannot support max_job_size > 1 for noise simulation, "
+                           "when seed_simulator is set.")
+
         if max_shot_size is not None and max_shot_size > 0:
             _qobj = _copy_qobj_for_noise(qobj, max_shot_size, qobj_id)
             if isinstance(_qobj, list):
-                qobj_list = _qobj
+                for each_qobj in _qobj:
+                    _split, _seed = _split_qobj(each_qobj, max_size, qobj_id, _seed)
+                    if isinstance(_split, QasmQobj):
+                        split_qobj_list.append([_split])
+                    else:
+                        split_qobj_list.append(_split)
+                return split_qobj_list
 
-    if not qobj_list:
-        _qobj = _split_qobj(qobj, max_size, qobj_id)
-        if isinstance(_qobj, QasmQobj):
-            return _qobj
-        else:
-            split_qobj_list.append(_qobj)
+    _qobj, _seed = _split_qobj(qobj, max_size, qobj_id, _seed)
+    if isinstance(_qobj, QasmQobj):
+        return _qobj
     else:
-        for each_qobj in qobj_list:
-            _qobj = _split_qobj(each_qobj, max_size, qobj_id)
-            if isinstance(_qobj, QasmQobj):
-                split_qobj_list.append([_qobj])
-            else:
-                split_qobj_list.append(_qobj)
-
+        split_qobj_list.append(_qobj)
     return split_qobj_list
-
