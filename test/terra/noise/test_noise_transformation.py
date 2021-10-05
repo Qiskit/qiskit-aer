@@ -39,8 +39,6 @@ except ImportError:
 class TestNoiseTransformer(common.QiskitAerTestCase):
     def setUp(self):
         super().setUp()
-        # overwrite the filter not to regard DeprecationWarning as error
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
         self.ops = {
             'X': XGate(),
             'Y': YGate(),
@@ -49,6 +47,12 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
             'S': SGate()
         }
         self.n = NoiseTransformer()
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # overwrite the filter not to regard DeprecationWarning as error
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
 
     def assertNoiseModelsAlmostEqual(self, lhs, rhs, places=3):
         self.assertNoiseDictsAlmostEqual(
