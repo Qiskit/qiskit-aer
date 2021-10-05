@@ -15,7 +15,7 @@ Noise model class for Qiskit Aer simulators.
 
 import json
 import logging
-from warnings import warn
+from warnings import warn, catch_warnings, filterwarnings
 
 from qiskit.circuit import Instruction
 from qiskit.providers import BaseBackend, Backend
@@ -840,7 +840,11 @@ class NoiseModel:
                 instruction_names = error['operations']
                 all_gate_qubits = error.get('gate_qubits', None)
                 all_noise_qubits = error.get('noise_qubits', None)
-                qerror = QuantumError(noise_ops)
+                with catch_warnings():
+                    filterwarnings("ignore",
+                                   category=DeprecationWarning,
+                                   module="qiskit.providers.aer.noise")
+                    qerror = QuantumError(noise_ops)
                 if all_gate_qubits is not None:
                     for gate_qubits in all_gate_qubits:
                         # Load non-local quantum error

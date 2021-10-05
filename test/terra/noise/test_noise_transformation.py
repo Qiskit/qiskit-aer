@@ -14,6 +14,7 @@ NoiseTransformer class tests
 """
 
 import unittest
+import warnings
 from test.terra import common
 
 import numpy
@@ -38,6 +39,8 @@ except ImportError:
 class TestNoiseTransformer(common.QiskitAerTestCase):
     def setUp(self):
         super().setUp()
+        # overwrite the filter not to regard DeprecationWarning as error
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
         self.ops = {
             'X': XGate(),
             'Y': YGate(),
@@ -134,7 +137,7 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
         p = 0.22
         theta = numpy.pi / 5
         E0 = numpy.sqrt(1 - p) * numpy.array(numpy.eye(2))
-        E1 = numpy.sqrt(p) * (numpy.cos(theta) * X + numpy.sin(theta) * Y)
+        E1 = numpy.sqrt(p) * (numpy.cos(theta) * numpy.array(X) + numpy.sin(theta) * numpy.array(Y))
         results = approximate_quantum_error([E0, E1],
                                             operator_dict={
                                                 "X": X,
@@ -163,7 +166,7 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
         p = 0.34
         theta = numpy.pi / 7
         E0 = numpy.sqrt(1 - p) * numpy.array(numpy.eye(2))
-        E1 = numpy.sqrt(p) * (numpy.cos(theta) * X + numpy.sin(theta) * Y)
+        E1 = numpy.sqrt(p) * (numpy.cos(theta) * numpy.array(X) + numpy.sin(theta) * numpy.array(Y))
 
         results_dict = approximate_quantum_error([E0, E1],
                                                  operator_dict={
