@@ -15,6 +15,7 @@ Remap qubits in a NoiseModel.
 """
 
 import logging
+import warnings as warn
 
 from ..noise.noise_model import NoiseModel
 from ..noise.noiseerror import NoiseError
@@ -118,7 +119,11 @@ def remap_noise_model(noise_model, remapping, discard_qubits=False, warnings=Tru
 
     # Update errors and convert back to NoiseModel
     nm_dict['errors'] = new_errors
-    new_noise_model = NoiseModel.from_dict(nm_dict)
+    with warn.catch_warnings():
+        warn.filterwarnings("ignore",
+                            category=DeprecationWarning,
+                            module="qiskit.providers.aer.utils.noise_remapper")
+        new_noise_model = NoiseModel.from_dict(nm_dict)
 
     # Update basis gates from original model
     new_noise_model._basis_gates = noise_model._basis_gates

@@ -824,6 +824,9 @@ class NoiseModel:
         Raises:
             NoiseError: if dict cannot be converted to NoiseModel.
         """
+        warn('from_dict has been deprecated as of qiskit-aer 0.10.0'
+             ' and will be removed no earlier than 3 months from that release date.',
+             DeprecationWarning, stacklevel=2)
         # Return noise model
         noise_model = NoiseModel()
 
