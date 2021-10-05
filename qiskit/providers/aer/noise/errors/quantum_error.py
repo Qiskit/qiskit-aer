@@ -160,7 +160,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
         noise_ops = [(op, prob) for op, prob in noise_ops if prob > 0]
 
         if len(noise_ops) == 0:
-            raise NoiseError("noise_ops must contain at least one operator with non-zero probability")
+            raise NoiseError(
+                "noise_ops must contain at least one operator with non-zero probability"
+            )
 
         ops, probs = zip(*noise_ops)  # unzip
 
@@ -442,7 +444,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 raise QiskitError("Number of items in 'qargs' argument must be the same as"
                                   " number of qubits of the error to be composed.")
             if front:
-                raise QiskitError("QuantumError.compose does not support 'qargs' when 'front=True'.")
+                raise QiskitError(
+                    "QuantumError.compose does not support 'qargs' when 'front=True'."
+                )
 
         circs = [self._compose_circ(lqc, rqc, qubits=qargs, front=front)
                  for lqc in self.circuits

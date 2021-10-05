@@ -46,8 +46,9 @@ def standard_gates_instructions(instructions):
 
     output_instructions = []
     for instruction in instructions:
-         output_instructions += standard_gate_instruction(instruction)
+        output_instructions += standard_gate_instruction(instruction)
     return output_instructions
+
 
 def _standard_gates_instructions(instructions):
     """Temporary function to mimic standard_gates_instructions during deprecation period.
@@ -69,6 +70,7 @@ def _standard_gates_instructions(instructions):
             else:
                 output_instructions.append(instruction)
     return output_instructions
+
 
 # pylint: disable=too-many-return-statements
 def standard_gate_instruction(instruction, ignore_phase=True):
@@ -184,6 +186,7 @@ def standard_gate_instruction(instruction, ignore_phase=True):
 
     # Else return input in
     return [instruction]
+
 
 def _standard_gate_instruction(instruction, ignore_phase=True):
     """Temporary function to mimic standard_gates_instruction during deprecation period.

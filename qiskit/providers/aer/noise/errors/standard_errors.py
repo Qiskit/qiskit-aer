@@ -28,7 +28,6 @@ from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
 from .errorutils import _make_unitary_instruction
-from .errorutils import qubits_from_mat
 from .quantum_error import QuantumError
 from ..noiseerror import NoiseError
 
@@ -303,7 +302,7 @@ def reset_error(prob0, prob1=0):
     Raises:
         NoiseError: If noise parameters are invalid.
     """
-    if prob0 < 0 or prob1 < 0 or prob0 > 1 or prob1 > 1:
+    if prob0 < 0 or prob1 < 0 or prob0 > 1 or prob1 > 1 or (prob0 + prob1) > 1:
         raise NoiseError("Invalid reset probabilities.")
     noise_ops = [
         ([(IGate(), [0])], 1 - prob0 - prob1),
