@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    `optimize_ideal_threshold` and `optimize_noisy_threshold` have been removed
+    from the lists of simulator defaults and the documentation.  These have had
+    no effect since Aer 0.5.1, but these references to them had remained
+    accidentally.
