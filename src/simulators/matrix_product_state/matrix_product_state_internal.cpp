@@ -1398,6 +1398,17 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
   probvector = reverse_all_bits(temp_probvector, num_qubits);
 }
 
+double MPS::get_prob0_single_qubit_internal(uint_t qubit) const {
+  MPS_Tensor qubit_tensor = q_reg_[qubit];
+  if (qubit > 0)
+    qubit_tensor.mul_Gamma_by_left_Lambda(lambda_reg_[qubit-1]);
+  if (qubit < num_qubits_-1)
+    qubit_tensor.mul_Gamma_by_right_Lambda(lambda_reg_[qubit]);
+  double prob0 = 
+    real(AER::Utils::sum( AER::Utils::elementwise_multiplication(qubit_tensor.get_data(0), AER::Utils::conjugate(qubit_tensor.get_data(0))) ));
+  return prob0;
+}
+
 void MPS::get_accumulated_probabilities_vector(rvector_t& acc_probvector, 
 					       reg_t& index_vec,
 					       const reg_t &qubits) const
@@ -1545,10 +1556,8 @@ uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
   reg_t qubits_to_update;
   qubits_to_update.push_back(qubit);
 
-  // step 1 - measure qubit in Z basis
-  double exp_val = real(expectation_value_pauli_internal(qubits_to_update, "Z", qubit, qubit, 0));
-  // step 2 - compute probability for 0 or 1 result
-  double prob0 = (1 + exp_val ) / 2;
+  // compute probability for 0 or 1 result
+  double prob0 = get_prob0_single_qubit_internal(qubit);
   double prob1 = 1 - prob0;
   uint_t measurement;
   cmatrix_t measurement_matrix(2, 2);
@@ -1572,7 +1581,7 @@ uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
 
 void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
 					  uint_t next_measured_qubit) {
-  // step 4 - propagate the changes to all qubits to the right
+  // propagate the changes to all qubits to the right
   for (uint_t i=max_qubit; i<next_measured_qubit; i++) {
     if (lambda_reg_[i].size() == 1) 
       break;   // no need to propagate if no entanglement
