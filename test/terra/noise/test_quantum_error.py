@@ -15,6 +15,7 @@ QuantumError class tests
 
 import unittest
 
+import ddt
 import numpy as np
 from qiskit.circuit import QuantumCircuit, Reset, Measure
 from qiskit.circuit.library.standard_gates import *
@@ -94,18 +95,21 @@ class TestQuantumError(common.QiskitAerTestCase):
     def test_raise_negative_probabilities(self):
         """Test exception is raised for negative probabilities."""
         noise_ops = [((IGate(), [0]), 1.1), ((XGate(), [0]), -0.1)]
-        self.assertRaises(NoiseError, lambda: QuantumError(noise_ops))
+        with self.assertRaises(NoiseError):
+            QuantumError(noise_ops)
 
     def test_raise_unnormalized_probabilities(self):
         """Test exception is raised for probabilities greater than 1."""
         noise_ops = [((IGate(), [0]), 0.9), ((XGate(), [0]), 0.2)]
-        self.assertRaises(NoiseError, lambda: QuantumError(noise_ops))
+        with self.assertRaises(NoiseError):
+            QuantumError(noise_ops)
 
     def test_raise_unnormalized_probabilities_unitary_kraus(self):
         """Test exception is raised for unitary kraus probs greater than 1."""
         a_0 = np.sqrt(0.9) * np.eye(2)
         a_1 = np.sqrt(0.2) * np.diag([1, -1])
-        self.assertRaises(NoiseError, lambda: QuantumError(Kraus([a_0, a_1])))
+        with self.assertRaises(NoiseError):
+            QuantumError(Kraus([a_0, a_1]))
 
     def test_raise_unnormalized_probabilities_nonunitary_kraus(self):
         """Test exception is raised for non-unitary kraus probs greater than 1."""
@@ -113,20 +117,24 @@ class TestQuantumError(common.QiskitAerTestCase):
                                       dtype=complex)
         a_1 = np.sqrt(0.2) * np.array([[0, np.sqrt(0.3)], [0, 0]],
                                       dtype=complex)
-        self.assertRaises(NoiseError, lambda: QuantumError(Kraus([a_0, a_1])))
+        with self.assertRaises(NoiseError):
+            QuantumError(Kraus([a_0, a_1]))
 
     def test_raise_if_construct_with_non_cptp_kraus(self):
         """Test exception is raised for non-CPTP input."""
         a_0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
         a_1 = np.array([[0, 0], [np.sqrt(0.3), 0]], dtype=complex)
-        self.assertRaises(NoiseError, lambda: QuantumError(Kraus([a_0, a_1])))
-        self.assertRaises(NoiseError, lambda: QuantumError(Kraus([a_0])))
+        with self.assertRaises(NoiseError):
+            QuantumError(Kraus([a_0, a_1]))
+        with self.assertRaises(NoiseError):
+            QuantumError(Kraus([a_0]))
 
     def test_raise_if_construct_with_non_multiqubit_kraus(self):
         """Test exception is raised for non-multiqubit input."""
         a_0 = np.sqrt(0.5) * np.diag([1, 1, 1])
         a_1 = np.sqrt(0.5) * np.diag([1, 1, -1])
-        self.assertRaises(NoiseError, lambda: QuantumError(Kraus([a_0, a_1])))
+        with self.assertRaises(NoiseError):
+            QuantumError(Kraus([a_0, a_1]))
 
     def test_ideal(self):
         """Test ideal gates are identified correctly."""
@@ -226,166 +234,166 @@ class TestQuantumError(common.QiskitAerTestCase):
 
 # ================== Tests for old interfaces ================== #
 # TODO: remove after deprecation period
-import warnings
+@ddt.ddt
 class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
     """Testing the deprecating interface of QuantumError class"""
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        # overwrite the filter not to regard DeprecationWarning as error
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
+    def assertKrausWarning(self):
+        return self.assertWarns(
+            DeprecationWarning,
+            msg=r"Constructing QuantumError with list of arrays representing a Kraus channel .* qiskit-aer 0\.10\.0.*",
+        )
 
     def kraus_error(self, param):
-        """Return a Kraus error list"""
-        return [
+        """Return a Kraus class, and the associated QuantumError, constructed by
+        passing the list of operators directly, without first wrapping in the
+        ``Kraus()`` class."""
+        krauses = [
             np.array([[1, 0], [0, np.sqrt(1 - param)]], dtype=complex),
             np.array([[0, 0], [0, np.sqrt(param)]], dtype=complex)
         ]
+        with self.assertKrausWarning():
+            # The point here is to test the path where you construct
+            # QuantumError using a list of Kraus operators, _without_ wrapping
+            # it in the Kraus class first, despite the deprecation.
+            error = QuantumError(krauses)
+        return Kraus(krauses), error
 
-    def mixed_unitary_error(self, probs, labels):
-        """Return a mixed unitary error list"""
-        return [np.sqrt(prob) * standard_gate_unitary(label)
-                for prob, label in zip(probs, labels)]
+    def mixed_unitary_error(self, probs, labels, **kwargs):
+        """Return a Kraus class with the given unitaries (represented by the
+        labels) at the given probabilities, and the same result unitary error list"""
+        with self.assertWarns(
+            DeprecationWarning,
+            msg=r"standard_gate_unitary has been deprecated as of qiskit-aer 0\.10\.0 .*",
+        ):
+            unitaries = [
+                np.sqrt(prob) * standard_gate_unitary(label)
+                for prob, label in zip(probs, labels)
+            ]
+        with self.assertKrausWarning():
+            error = QuantumError(unitaries, **kwargs)
+        return Kraus(unitaries), error
 
-    def depol_error(self, param):
+    def depol_error(self, param, **kwargs):
         """Return depol error unitary list"""
         return self.mixed_unitary_error(
             [1 - param * 0.75, param * 0.25, param * 0.25, param * 0.25],
-            ['id', 'x', 'y', 'z'])
+            ['id', 'x', 'y', 'z'],
+            **kwargs,
+        )
 
     @staticmethod
     def aslist(qargs):
         return [q.index for q in qargs]
 
-    def test_standard_gate_unitary(self):
+    @ddt.data(
+        ('id', np.eye(2)),
+        ('x', np.array([[0, 1], [1, 0]])),
+        ('y', np.array([[0, -1j], [1j, 0]])),
+        ('z', np.array([[1, 0], [0, -1]])),
+        ('h', np.sqrt(0.5) * np.array([[1, 1], [1, -1]])),
+        ('s', np.array([[1, 0], [0, 1j]])),
+        ('sdg', np.array([[1, 0], [0, -1j]])),
+        ('t', np.array([[1, 0], [0, np.sqrt(0.5) * (1 + 1j)]])),
+        ('tdg', np.array([[1, 0], [0, np.sqrt(0.5) * (1 - 1j)]])),
+        (
+            'cx',
+            np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]]),
+        ),
+        ('cz', np.diag([1, 1, 1, -1])),
+        (
+            'swap',
+            np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]),
+        ),
+        (
+            'ccx',
+            np.array([
+                [1, 0, 0, 0, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 1, 0],
+                [0, 0, 0, 1, 0, 0, 0, 0],
+            ]),
+        ),
+    )
+    @ddt.unpack
+    def test_standard_gate_unitary(self, label, matrix):
         """Test standard gates are correct"""
-        def norm(op_a, op_b):
-            return round(np.linalg.norm(op_a - op_b), 15)
-
-        self.assertEqual(norm(standard_gate_unitary('id'), np.eye(2)),
-                         0,
-                         msg="identity matrix")
-        self.assertEqual(norm(standard_gate_unitary('x'),
-                              np.array([[0, 1], [1, 0]])),
-                         0,
-                         msg="Pauli-X matrix")
-        self.assertEqual(norm(standard_gate_unitary('y'),
-                              np.array([[0, -1j], [1j, 0]])),
-                         0,
-                         msg="Pauli-Y matrix")
-        self.assertEqual(norm(standard_gate_unitary('z'), np.diag([1, -1])),
-                         0,
-                         msg="Pauli-Z matrix")
-        self.assertEqual(norm(standard_gate_unitary('h'),
-                              np.array([[1, 1], [1, -1]]) / np.sqrt(2)),
-                         0,
-                         msg="Hadamard gate matrix")
-        self.assertEqual(norm(standard_gate_unitary('s'), np.diag([1, 1j])),
-                         0,
-                         msg="Phase gate matrix")
-        self.assertEqual(norm(standard_gate_unitary('sdg'), np.diag([1, -1j])),
-                         0,
-                         msg="Adjoint phase gate matrix")
-        self.assertEqual(norm(standard_gate_unitary('t'),
-                              np.diag([1, (1 + 1j) / np.sqrt(2)])),
-                         0,
-                         msg="T gate matrix")
-        self.assertEqual(norm(standard_gate_unitary('tdg'),
-                              np.diag([1, (1 - 1j) / np.sqrt(2)])),
-                         0,
-                         msg="Adjoint T gate matrix")
-        self.assertEqual(norm(
-            standard_gate_unitary('cx'),
-            np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0,
-                                                                 0]])),
-                         0,
-                         msg="Controlled-NOT gate matrix")
-        self.assertEqual(norm(standard_gate_unitary('cz'),
-                              np.diag([1, 1, 1, -1])),
-                         0,
-                         msg="Controlled-Z gate matrix")
-        self.assertEqual(norm(
-            standard_gate_unitary('swap'),
-            np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0,
-                                                                 1]])),
-                         0,
-                         msg="SWAP matrix")
-        self.assertEqual(norm(
-            standard_gate_unitary('ccx'),
-            np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
-                      [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1],
-                      [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
-                      [0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 1, 0, 0, 0, 0]])),
-                         0,
-                         msg="Toffoli gate matrix")
+        with self.assertWarns(
+            DeprecationWarning,
+            msg=r"standard_gate_unitary has been deprecated as of qiskit-aer 0\.10\.0.*",
+        ):
+            created = standard_gate_unitary(label)
+        self.assertLess(np.linalg.norm(created - matrix), 1e-15)
 
     def test_raise_probabilities_negative(self):
         """Test exception is raised for negative probabilities."""
-        noise_ops = [([{
-            "name": "id",
-            "qubits": [0]
-        }], 1.1), ([{
-            "name": "x",
-            "qubits": [0]
-        }], -0.1)]
-        self.assertRaises(NoiseError, lambda: QuantumError(noise_ops))
+        noise_ops = [
+            ([{"name": "id", "qubits": [0]}], 1.1),
+            ([{"name": "x", "qubits": [0]}], -0.1),
+        ]
+        with self.assertRaises(NoiseError):
+            QuantumError(noise_ops)
 
     def test_raise_probabilities_normalized_qobj(self):
         """Test exception is raised for qobj probabilities greater than 1."""
-        noise_ops = [([{
-            "name": "id",
-            "qubits": [0]
-        }], 0.9), ([{
-            "name": "x",
-            "qubits": [0]
-        }], 0.2)]
-        self.assertRaises(NoiseError, lambda: QuantumError(noise_ops))
+        noise_ops = [
+            ([{"name": "id", "qubits": [0]}], 0.9),
+            ([{"name": "x", "qubits": [0]}], 0.2),
+        ]
+        with self.assertRaises(NoiseError):
+            QuantumError(noise_ops)
 
     def test_raise_probabilities_normalized_unitary_kraus(self):
         """Test exception is raised for unitary kraus probs greater than 1."""
         a_0 = np.sqrt(0.9) * np.eye(2)
         a_1 = np.sqrt(0.2) * np.diag([1, -1])
-        self.assertRaises(NoiseError, lambda: QuantumError([a_0, a_1]))
+        with self.assertRaises(NoiseError), self.assertKrausWarning():
+                QuantumError([a_0, a_1])
 
     def test_raise_probabilities_normalized_nonunitary_kraus(self):
         """Test exception is raised for non-unitary kraus probs greater than 1."""
-        a_0 = np.sqrt(0.9) * np.array([[1, 0], [0, np.sqrt(1 - 0.3)]],
-                                      dtype=complex)
-        a_1 = np.sqrt(0.2) * np.array([[0, np.sqrt(0.3)], [0, 0]],
-                                      dtype=complex)
-        self.assertRaises(NoiseError, lambda: QuantumError([a_0, a_1]))
+        a_0 = np.sqrt(0.9) * np.array([[1, 0], [0, np.sqrt(1 - 0.3)]])
+        a_1 = np.sqrt(0.2) * np.array([[0, np.sqrt(0.3)], [0, 0]])
+        with self.assertRaises(NoiseError), self.assertKrausWarning():
+            QuantumError([a_0, a_1])
 
     def test_raise_non_cptp_kraus(self):
         """Test exception is raised for non-CPTP input."""
         a_0 = np.array([[1, 0], [0, np.sqrt(1 - 0.3)]], dtype=complex)
         a_1 = np.array([[0, 0], [np.sqrt(0.3), 0]], dtype=complex)
-        self.assertRaises(NoiseError, lambda: QuantumError([a_0, a_1]))
-        self.assertRaises(NoiseError, lambda: QuantumError([a_0]))
+        with self.assertRaises(NoiseError), self.assertKrausWarning():
+            QuantumError([a_0, a_1])
+        with self.assertRaises(NoiseError), self.assertKrausWarning():
+            QuantumError([a_0])
 
     def test_raise_non_multiqubit_kraus(self):
         """Test exception is raised for non-multiqubit input."""
         a_0 = np.sqrt(0.5) * np.diag([1, 1, 1])
         a_1 = np.sqrt(0.5) * np.diag([1, 1, -1])
-        self.assertRaises(NoiseError, lambda: QuantumError([a_0, a_1]))
+        with self.assertRaises(NoiseError), self.assertKrausWarning():
+            QuantumError([a_0, a_1])
 
     def test_pauli_conversion_standard_gates(self):
         """Test conversion of Pauli channel kraus to gates"""
-        error = QuantumError(self.depol_error(1), standard_gates=True)
+        kraus, error = self.depol_error(1, standard_gates=True)
         for j in range(4):
             instr, _ = error.error_term(j)
             self.assertEqual(len(instr), 1)
             self.assertIn(instr[0][0].name, ['x', 'y', 'z', 'id'])
             self.assertEqual(self.aslist(instr[0][1]), [0])
-        target = SuperOp(Kraus(self.depol_error(1)))
+        target = SuperOp(kraus)
         self.assertEqual(target, SuperOp(error))
 
     def test_tensor_both_kraus(self):
         """Test tensor of two kraus errors"""
-        kraus0 = self.kraus_error(0.3)
-        kraus1 = self.kraus_error(0.5)
-        error = QuantumError(kraus0).tensor(QuantumError(kraus1))
-        target = SuperOp(Kraus(kraus0)).tensor(Kraus(kraus1))
+        kraus0, error_kraus0 = self.kraus_error(0.3)
+        kraus1, error_kraus1 = self.kraus_error(0.5)
+        error = error_kraus0.tensor(error_kraus1)
+        target = SuperOp(kraus0).tensor(kraus1)
 
         circ, prob = error.error_term(0)
         self.assertEqual(prob, 1)
@@ -395,12 +403,14 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
 
     def test_tensor_both_unitary_standard_gates(self):
         """Test tensor of two unitary standard gate errors"""
-        unitaries0 = self.mixed_unitary_error([0.9, 0.1], ['z', 's'])
-        unitaries1 = self.mixed_unitary_error([0.6, 0.4], ['x', 'y'])
-        error0 = QuantumError(unitaries0, standard_gates=True)
-        error1 = QuantumError(unitaries1, standard_gates=True)
+        kraus0, error0 = self.mixed_unitary_error(
+            [0.9, 0.1], ['z', 's'], standard_gates=True,
+        )
+        kraus1, error1 = self.mixed_unitary_error(
+            [0.6, 0.4], ['x', 'y'], standard_gates=True,
+        )
         error = error0.tensor(error1)
-        target = SuperOp(Kraus(unitaries0)).tensor(Kraus(unitaries1))
+        target = SuperOp(kraus0).tensor(kraus1)
 
         for j in range(4):
             circ, _ = error.error_term(j)
@@ -412,10 +422,10 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
 
     def test_tensor_kraus_and_unitary(self):
         """Test tensor of a kraus and unitary error."""
-        kraus = self.kraus_error(0.4)
-        unitaries = self.depol_error(0.1)
-        error = QuantumError(kraus).tensor(QuantumError(unitaries))
-        target = SuperOp(Kraus(kraus)).tensor(Kraus(unitaries))
+        kraus, error_kraus = self.kraus_error(0.4)
+        kraus_unitaries, error_unitaries = self.depol_error(0.1)
+        error = error_kraus.tensor(error_unitaries)
+        target = SuperOp(kraus).tensor(kraus_unitaries)
 
         circ, prob = error.error_term(0)
         self.assertEqual(self.aslist(circ.qubits), [0, 1])
@@ -423,10 +433,10 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
 
     def test_tensor_unitary_and_kraus(self):
         """Test tensor of a unitary and kraus error."""
-        kraus = self.kraus_error(0.4)
-        unitaries = self.depol_error(0.1)
-        error = QuantumError(unitaries).tensor(QuantumError(kraus))
-        target = SuperOp(Kraus(unitaries)).tensor(Kraus(kraus))
+        kraus, error_kraus = self.kraus_error(0.4)
+        kraus_unitaries, error_unitaries = self.depol_error(0.1)
+        error = error_unitaries.tensor(error_kraus)
+        target = SuperOp(kraus_unitaries).tensor(kraus)
 
         circ, prob = error.error_term(0)
         self.assertEqual(self.aslist(circ.qubits), [0, 1])
@@ -434,10 +444,10 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
 
     def test_expand_both_kraus(self):
         """Test expand of two kraus errors"""
-        kraus0 = self.kraus_error(0.3)
-        kraus1 = self.kraus_error(0.5)
-        error = QuantumError(kraus0).expand(QuantumError(kraus1))
-        target = SuperOp(Kraus(kraus0)).expand(Kraus(kraus1))
+        kraus0, error0 = self.kraus_error(0.3)
+        kraus1, error1 = self.kraus_error(0.5)
+        error = error0.expand(error1)
+        target = SuperOp(kraus0).expand(kraus1)
 
         circ, prob = error.error_term(0)
         self.assertEqual(prob, 1)
@@ -449,13 +459,14 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
 
     def test_expand_both_unitary_standard_gates(self):
         """Test expand of two unitary standard gate errors"""
-        unitaries0 = self.mixed_unitary_error([0.9, 0.1], ['z', 's'])
-        unitaries1 = self.mixed_unitary_error([0.6, 0.4], ['x', 'y'])
-
-        error0 = QuantumError(unitaries0, standard_gates=True)
-        error1 = QuantumError(unitaries1, standard_gates=True)
+        kraus0, error0 = self.mixed_unitary_error(
+            [0.9, 0.1], ['z', 's'], standard_gates=True,
+        )
+        kraus1, error1 = self.mixed_unitary_error(
+            [0.6, 0.4], ['x', 'y'], standard_gates=True,
+        )
         error = error0.expand(error1)
-        target = SuperOp(Kraus(unitaries0)).expand(Kraus(unitaries1))
+        target = SuperOp(kraus0).expand(kraus1)
 
         for j in range(4):
             circ, _ = error.error_term(j)
@@ -467,10 +478,10 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
 
     def test_expand_kraus_and_unitary(self):
         """Test expand of a kraus and unitary error."""
-        kraus = self.kraus_error(0.4)
-        unitaries = self.depol_error(0.1)
-        error = QuantumError(kraus).expand(QuantumError(unitaries))
-        target = SuperOp(Kraus(kraus)).expand(Kraus(unitaries))
+        kraus, error_kraus = self.kraus_error(0.4)
+        kraus_unitaries, error_unitaries = self.depol_error(0.1)
+        error = error_kraus.expand(error_unitaries)
+        target = SuperOp(kraus).expand(kraus_unitaries)
 
         circ, prob = error.error_term(0)
         # self.assertEqual(prob, 1)
@@ -480,10 +491,10 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
 
     def test_expand_unitary_and_kraus(self):
         """Test expand of a unitary and kraus error."""
-        kraus = self.kraus_error(0.4)
-        unitaries = self.depol_error(0.1)
-        error = QuantumError(unitaries).expand(QuantumError(kraus))
-        target = SuperOp(Kraus(unitaries)).expand(Kraus(kraus))
+        kraus, error_kraus = self.kraus_error(0.4)
+        kraus_unitaries, error_unitaries = self.depol_error(0.1)
+        error = error_unitaries.expand(error_kraus)
+        target = SuperOp(kraus_unitaries).expand(kraus)
 
         circ, prob = error.error_term(0)
         self.assertEqual(self.aslist(circ.qubits), [0, 1])
@@ -491,10 +502,10 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
 
     def test_compose_both_kraus(self):
         """Test compose of two kraus errors"""
-        kraus0 = self.kraus_error(0.3)
-        kraus1 = self.kraus_error(0.5)
-        error = QuantumError(kraus0).compose(QuantumError(kraus1))
-        target = SuperOp(Kraus(kraus0)).compose(Kraus(kraus1))
+        kraus0, error0 = self.kraus_error(0.3)
+        kraus1, error1 = self.kraus_error(0.5)
+        error = error0.compose(error1)
+        target = SuperOp(kraus0).compose(kraus1)
 
         kraus, prob = error.error_term(0)
         self.assertEqual(prob, 1)
@@ -504,12 +515,14 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
 
     def test_compose_both_unitary_standard_gates(self):
         """Test compose of two unitary standard gate errors"""
-        unitaries0 = self.mixed_unitary_error([0.9, 0.1], ['z', 's'])
-        unitaries1 = self.mixed_unitary_error([0.6, 0.4], ['x', 'y'])
-        error0 = QuantumError(unitaries0, standard_gates=True)
-        error1 = QuantumError(unitaries1, standard_gates=True)
+        kraus0, error0 = self.mixed_unitary_error(
+            [0.9, 0.1], ['z', 's'], standard_gates=True,
+        )
+        kraus1, error1 = self.mixed_unitary_error(
+            [0.6, 0.4], ['x', 'y'], standard_gates=True,
+        )
         error = error0.compose(error1)
-        target = SuperOp(Kraus(unitaries0)).compose(Kraus(unitaries1))
+        target = SuperOp(kraus0).compose(kraus1)
 
         for j in range(4):
             circ, _ = error.error_term(j)
@@ -519,10 +532,10 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
 
     def test_compose_kraus_and_unitary(self):
         """Test compose of a kraus and unitary error."""
-        kraus = self.kraus_error(0.4)
-        unitaries = self.depol_error(0.1)
-        error = QuantumError(kraus).compose(QuantumError(unitaries))
-        target = SuperOp(Kraus(kraus)).compose(Kraus(unitaries))
+        kraus, error_kraus = self.kraus_error(0.4)
+        kraus_unitaries, error_unitaries = self.depol_error(0.1)
+        error = error_kraus.compose(error_unitaries)
+        target = SuperOp(kraus).compose(kraus_unitaries)
 
         circ, prob = error.error_term(0)
         # self.assertEqual(prob, 1)
@@ -532,10 +545,10 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
 
     def test_compose_unitary_and_kraus(self):
         """Test compose of a unitary and kraus error."""
-        kraus = self.kraus_error(0.4)
-        unitaries = self.depol_error(0.1)
-        error = QuantumError(unitaries).compose(QuantumError(kraus))
-        target = SuperOp(Kraus(unitaries)).compose(Kraus(kraus))
+        kraus, error_kraus = self.kraus_error(0.4)
+        kraus_unitaries, error_unitaries = self.depol_error(0.1)
+        error = error_unitaries.compose(error_kraus)
+        target = SuperOp(kraus_unitaries).compose(kraus)
 
         circ, prob = error.error_term(0)
         self.assertEqual(self.aslist(circ[0][1]), [0])
@@ -543,10 +556,10 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
 
     def test_dot_both_kraus(self):
         """Test dot of two kraus errors"""
-        kraus0 = self.kraus_error(0.3)
-        kraus1 = self.kraus_error(0.5)
-        error = QuantumError(kraus0).dot(QuantumError(kraus1))
-        target = SuperOp(Kraus(kraus0)).dot(Kraus(kraus1))
+        kraus0, error0 = self.kraus_error(0.3)
+        kraus1, error1 = self.kraus_error(0.5)
+        error = error0.dot(error1)
+        target = SuperOp(kraus0).dot(kraus1)
 
         kraus, prob = error.error_term(0)
         self.assertEqual(prob, 1)
@@ -556,12 +569,14 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
 
     def test_dot_both_unitary_standard_gates(self):
         """Test dot of two unitary standard gate errors"""
-        unitaries0 = self.mixed_unitary_error([0.9, 0.1], ['z', 's'])
-        unitaries1 = self.mixed_unitary_error([0.6, 0.4], ['x', 'y'])
-        error0 = QuantumError(unitaries0, standard_gates=True)
-        error1 = QuantumError(unitaries1, standard_gates=True)
+        kraus0, error0 = self.mixed_unitary_error(
+            [0.9, 0.1], ['z', 's'], standard_gates=True,
+        )
+        kraus1, error1 = self.mixed_unitary_error(
+            [0.6, 0.4], ['x', 'y'], standard_gates=True,
+        )
         error = error0.dot(error1)
-        target = SuperOp(Kraus(unitaries0)).dot(Kraus(unitaries1))
+        target = SuperOp(kraus0).dot(kraus1)
 
         for j in range(4):
             circ, _ = error.error_term(j)
@@ -571,10 +586,10 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
 
     def test_dot_kraus_and_unitary(self):
         """Test dot of a kraus and unitary error."""
-        kraus = self.kraus_error(0.4)
-        unitaries = self.depol_error(0.1)
-        error = QuantumError(kraus).dot(QuantumError(unitaries))
-        target = SuperOp(Kraus(kraus)).dot(Kraus(unitaries))
+        kraus, error_kraus = self.kraus_error(0.4)
+        kraus_unitaries, error_unitaries = self.depol_error(0.1)
+        error = error_kraus.dot(error_unitaries)
+        target = SuperOp(kraus).dot(kraus_unitaries)
 
         circ, prob = error.error_term(0)
         self.assertEqual(self.aslist(circ[0][1]), [0])
@@ -582,10 +597,10 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
 
     def test_dot_unitary_and_kraus(self):
         """Test dot of a unitary and kraus error."""
-        kraus = self.kraus_error(0.4)
-        unitaries = self.depol_error(0.1)
-        error = QuantumError(unitaries).dot(QuantumError(kraus))
-        target = SuperOp(Kraus(unitaries)).dot(Kraus(kraus))
+        kraus, error_kraus = self.kraus_error(0.4)
+        kraus_unitaries, error_unitaries = self.depol_error(0.1)
+        error = error_unitaries.dot(error_kraus)
+        target = SuperOp(kraus_unitaries).dot(kraus)
 
         circ, prob = error.error_term(0)
         # self.assertEqual(prob, 1)
@@ -600,37 +615,49 @@ class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
         b_0 = np.array([[1, 0], [0, np.sqrt(1 - 0.5)]], dtype=complex)
         b_1 = np.array([[0, 0], [0, np.sqrt(0.5)]], dtype=complex)
         target = SuperOp(Kraus([a_0, a_1])).tensor(SuperOp(Kraus([b_0, b_1])))
-        error = QuantumError([a_0, a_1]).tensor(QuantumError([b_0, b_1]))
+        with self.assertWarns(
+            DeprecationWarning,
+            msg=r"Constructing QuantumError .* Kraus channel .* qiskit-aer 0\.10\.0 .*",
+        ):
+            error = QuantumError([a_0, a_1]).tensor(QuantumError([b_0, b_1]))
         self.assertEqual(target, error.to_quantumchannel())
 
     def test_to_quantumchannel_circuit(self):
         """Test to_quantumchannel for circuit inputs."""
-        noise_ops = [([{
-            'name': 'reset',
-            'qubits': [0]
-        }], 0.2), ([{
-            'name': 'reset',
-            'qubits': [1]
-        }], 0.3), ([{
-            'name': 'id',
-            'qubits': [0]
-        }], 0.5)]
-        error = QuantumError(noise_ops)
+        noise_ops = [
+            ([{'name': 'reset', 'qubits': [0]}], 0.2),
+            ([{'name': 'reset', 'qubits': [1]}], 0.3),
+            ([{'name': 'id', 'qubits': [0]}], 0.5),
+        ]
+        with self.assertWarns(
+            DeprecationWarning,
+            msg=r"Constructing QuantumError .* list of dict .* qiskit-aer 0\.10\.0 .*",
+        ):
+            error = QuantumError(noise_ops)
         reset = SuperOp(
-            np.array([[1, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]))
+            np.array([[1, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+        )
         iden = SuperOp(np.eye(4))
-        target = 0.2 * iden.tensor(reset) + 0.3 * reset.tensor(
-            iden) + 0.5 * iden.tensor(iden)
+        target = (
+            0.2 * iden.tensor(reset)
+            + 0.3 * reset.tensor(iden)
+            + 0.5 * iden.tensor(iden)
+        )
         self.assertEqual(target, error.to_quantumchannel())
 
     def test_equal(self):
         """Test two quantum errors are equal"""
-        a_i = np.sqrt(0.25) * standard_gate_unitary('id')
-        a_x = np.sqrt(0.25) * standard_gate_unitary('x')
-        a_y = np.sqrt(0.25) * standard_gate_unitary('y')
-        a_z = np.sqrt(0.25) * standard_gate_unitary('z')
-        error1 = QuantumError([a_i, a_x, a_y, a_z], standard_gates=True)
-        error2 = QuantumError([a_i, a_x, a_y, a_z], standard_gates=False)
+        with self.assertWarns(
+            DeprecationWarning,
+            msg=r"standard_gate_unitary is deprecated as of qiskit-aer 0\.10\.0.*",
+        ):
+            a_i = np.sqrt(0.25) * standard_gate_unitary('id')
+            a_x = np.sqrt(0.25) * standard_gate_unitary('x')
+            a_y = np.sqrt(0.25) * standard_gate_unitary('y')
+            a_z = np.sqrt(0.25) * standard_gate_unitary('z')
+        with self.assertKrausWarning():
+            error1 = QuantumError([a_i, a_x, a_y, a_z], standard_gates=True)
+            error2 = QuantumError([a_i, a_x, a_y, a_z], standard_gates=False)
         self.assertEqual(error1, error2)
 
 

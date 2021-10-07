@@ -15,7 +15,6 @@ Standard error function tests
 """
 
 import unittest
-import warnings
 
 import numpy as np
 from qiskit.quantum_info.operators.pauli import Pauli
@@ -528,12 +527,6 @@ class TestNoise(common.QiskitAerTestCase):
 class TestNoiseOldInterface(common.QiskitAerTestCase):
     """Testing the deprecating interface of standard_error"""
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        # overwrite the filter not to regard DeprecationWarning as error
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-
     def test_pauli_error_1q_unitary_from_pauli(self):
         """Test single-qubit pauli error as unitary qobj from Pauli obj"""
         paulis = [Pauli(s) for s in ['I', 'X', 'Y', 'Z']]
@@ -543,7 +536,9 @@ class TestNoiseOldInterface(common.QiskitAerTestCase):
                             Pauli("Y").to_matrix(),
                             Pauli("Z").to_matrix()]
         target_probs = probs.copy()
-        error = pauli_error(zip(paulis, probs), standard_gates=False)
+
+        with self.assertWarns(DeprecationWarning):
+            error = pauli_error(zip(paulis, probs), standard_gates=False)
 
         for j in range(len(paulis)):
             circ, p = error.error_term(j)
@@ -567,7 +562,9 @@ class TestNoiseOldInterface(common.QiskitAerTestCase):
         target_unitaries = [np.kron(X, Y), np.kron(Y, Z), np.kron(Z, X)]
         target_probs = probs.copy()
 
-        error = pauli_error(zip(paulis, probs), standard_gates=False)
+        with self.assertWarns(DeprecationWarning):
+            error = pauli_error(zip(paulis, probs), standard_gates=False)
+
         for j in range(len(paulis)):
             circ, p = error.error_term(j)
             circ = QuantumError._qc_to_json(circ)

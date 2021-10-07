@@ -15,9 +15,9 @@ NoiseTransformer class tests
 
 import unittest
 import warnings
-from test.terra import common
 
 import numpy
+
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 from qiskit.providers.aer.noise import NoiseModel
@@ -29,11 +29,14 @@ from qiskit.providers.aer.noise.errors.standard_errors import reset_error
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.providers.aer.noise.errors.quantum_error import QuantumError
 
+from test.terra import common
+
 try:
     import cvxpy
     HAS_CVXPY = True
 except ImportError:
     HAS_CVXPY = False
+
 
 @unittest.skipUnless(HAS_CVXPY, 'cvxpy is required to run these tests')
 class TestNoiseTransformer(common.QiskitAerTestCase):
@@ -47,12 +50,6 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
             'S': SGate()
         }
         self.n = NoiseTransformer()
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        # overwrite the filter not to regard DeprecationWarning as error
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
 
     def assertNoiseModelsAlmostEqual(self, lhs, rhs, places=3):
         self.assertNoiseDictsAlmostEqual(
