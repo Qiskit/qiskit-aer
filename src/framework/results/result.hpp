@@ -73,8 +73,12 @@ json_t Result::to_json() {
   js["backend_version"] = backend_version;
   js["date"] = date;
   js["job_id"] = job_id;
-  for (auto& res : results) {
-    js["results"].push_back(res.to_json());
+  if (results.empty()) {
+    js["results"] = json_t::array({});
+  } else {
+      for (auto& res : results) {
+        js["results"].push_back(res.to_json());
+      }
   }
   if (header.empty() == false)
     js["header"] = header;
