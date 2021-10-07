@@ -362,11 +362,6 @@ class AerBackend(Backend, ABC):
         for key, val in run_options.items():
             setattr(qobj.config, key, val)
 
-        # We need to remove the executor from the qobj config
-        # since it can't be serialized though JSON/Pybind.
-        if hasattr(qobj.config, 'executor'):
-            delattr(qobj.config, 'executor')
-
         return qobj
 
     @abstractmethod

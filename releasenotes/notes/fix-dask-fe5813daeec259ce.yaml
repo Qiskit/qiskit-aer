@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes issue where using a Dask Client executor would cause an error at
+    job submission due to the executor Client not being pickleable.
