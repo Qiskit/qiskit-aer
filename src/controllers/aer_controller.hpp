@@ -1727,17 +1727,7 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
     bool superop_enabled = false;
     bool kraus_enabled = false;
     for (const auto& circ: circuits) {
-      Controller::Method method;
-      try {
-        method = automatic_simulation_method(circ, noise_model);
-
-      }
-      // If setting a method for this circuit raised an exception fallback to
-      // a default of statevector. The execution will fail but we will get
-      // partial result generation and generate a user facing error message
-      catch (std::exception &e) {
-        method = Method::statevector;
-      }
+      auto method = automatic_simulation_method(circ, noise_model);
       sim_methods.push_back(method);
       if (!superop_enabled && (method == Method::density_matrix || method == Method::superop)) {
         noise_model.enable_superop_method(max_parallel_threads_);
@@ -1748,9 +1738,7 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
         kraus_enabled = true;
       }
     }
-    if (!sim_methods.empty()) {
-        return sim_methods;
-    }
+    return sim_methods;
   }
 
   // Use non-automatic default method for all circuits
@@ -1800,18 +1788,10 @@ Controller::automatic_simulation_method(const Circuit &circ,
   }
 
   // If we got here, circuit isn't compatible with any of the simulation
-  // methods
-  std::stringstream msg;
-  msg << "AerSimulator: ";
-  if (noise_model.is_ideal()) {
-    msg << "circuit with instructions " << circ.opset();
-  } else {
-    auto opset = circ.opset();
-    opset.insert(noise_model.opset());
-    msg << "circuit and noise model with instructions" << opset;
-  }
-  msg << " is not compatible with any available simulation methods";
-  throw std::runtime_error(msg.str());
+  // method so fallback to a default method of statevector. The execution will
+  // fail but we will get partial result generation and generate a user facing
+  // error message
+  return Method::statevector;
 }
 
 bool Controller::validate_method(Method method,
