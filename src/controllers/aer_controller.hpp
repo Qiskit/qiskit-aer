@@ -1788,18 +1788,10 @@ Controller::automatic_simulation_method(const Circuit &circ,
   }
 
   // If we got here, circuit isn't compatible with any of the simulation
-  // methods
-  std::stringstream msg;
-  msg << "AerSimulator: ";
-  if (noise_model.is_ideal()) {
-    msg << "circuit with instructions " << circ.opset();
-  } else {
-    auto opset = circ.opset();
-    opset.insert(noise_model.opset());
-    msg << "circuit and noise model with instructions" << opset;
-  }
-  msg << " is not compatible with any available simulation methods";
-  throw std::runtime_error(msg.str());
+  // method so fallback to a default method of statevector. The execution will
+  // fail but we will get partial result generation and generate a user facing
+  // error message
+  return Method::statevector;
 }
 
 bool Controller::validate_method(Method method,
