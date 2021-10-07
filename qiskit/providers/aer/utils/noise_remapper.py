@@ -84,47 +84,42 @@ def remap_noise_model(noise_model, remapping, discard_qubits=False, warnings=Tru
     if len(set(new_qubits)) != len(new_qubits):
         raise NoiseError('Duplicate qubits in remapping: {}'.format(inv_map))
 
-    # Convert noise model to dict
-    nm_dict = noise_model.to_dict()
+    # qubits not to be remapped
+    discarded_qubits = set(noise_model.noise_qubits) - set(inv_map.keys())
 
-    # Indexes of errors to keep
-    new_errors = []
-    for error in nm_dict['errors']:
-        keep_error = True
-        gate_qubits = error.get('gate_qubits', [])
-        noise_qubits = error.get('noise_qubits', [])
-        for qubits in gate_qubits + noise_qubits:
-            for qubit in qubits:
-                if qubit not in inv_map:
-                    keep_error = False
-                    break
+    def in_target(qubits):  # check if qubits are to be remapped or not
+        if not discard_qubits:
+            return True
+        for q in noise_model._str2qubits(qubits):
+            if q in discarded_qubits:
+                return False
+        return True
 
-        # If any qubits were not in the full_mapping we discard error
-        if keep_error:
-            new_gate_qubits = gate_qubits
-            for i, qubits in enumerate(gate_qubits):
-                for j, qubit in enumerate(qubits):
-                    new_gate_qubits[i][j] = inv_map[qubit]
+    def remapped(qubits):
+        return tuple(inv_map[q] for q in noise_model._str2qubits(qubits))
 
-            # Otherwise we remap the noise and gate qubits
-            new_noise_qubits = noise_qubits
-            for i, qubits in enumerate(noise_qubits):
-                for j, qubit in enumerate(qubits):
-                    new_noise_qubits[i][j] = inv_map[qubit]
-            if new_gate_qubits:
-                error['gate_qubits'] = new_gate_qubits
-            if new_noise_qubits:
-                error['noise_qubits'] = new_noise_qubits
-            new_errors.append(error)
-
-    # Update errors and convert back to NoiseModel
-    nm_dict['errors'] = new_errors
-    with warn.catch_warnings():
-        warn.filterwarnings("ignore",
-                            category=DeprecationWarning,
-                            module="qiskit.providers.aer.utils.noise_remapper")
-        new_noise_model = NoiseModel.from_dict(nm_dict)
-
-    # Update basis gates from original model
-    new_noise_model._basis_gates = noise_model._basis_gates
-    return new_noise_model
+    # Copy from original noise model
+    new_model = NoiseModel()
+    new_model._basis_gates = noise_model._basis_gates
+    # No remapping for default errors
+    for inst_name, noise in noise_model._default_quantum_errors.items():
+        new_model.add_all_qubit_quantum_error(noise, inst_name)
+    if noise_model._default_readout_error:
+        new_model.add_all_qubit_readout_error(noise_model._default_readout_error)
+    # Remapping
+    for inst_name, noise_dic in noise_model._local_quantum_errors.items():
+        for qubits, noise in noise_dic.items():
+            if in_target(qubits):
+                new_model.add_quantum_error(noise, inst_name, remapped(qubits))
+    for inst_name, outer_dic in noise_model._nonlocal_quantum_errors.items():
+        for qubits, inner_dic in outer_dic.items():
+            if in_target(qubits):
+                for noise_qubits, noise in inner_dic.items():
+                    if in_target(noise_qubits):
+                        new_model.add_nonlocal_quantum_error(
+                            noise, inst_name, remapped(qubits), remapped(noise_qubits)
+                        )
+    for qubits, noise in noise_model._local_readout_errors.items():
+        if in_target(qubits):
+            new_model.add_readout_error(noise, remapped(qubits))
+    return new_model
