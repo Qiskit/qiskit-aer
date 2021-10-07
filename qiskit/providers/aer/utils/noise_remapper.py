@@ -15,7 +15,6 @@ Remap qubits in a NoiseModel.
 """
 
 import logging
-import warnings as warn
 
 from ..noise.noise_model import NoiseModel
 from ..noise.noiseerror import NoiseError
