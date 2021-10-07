@@ -1727,7 +1727,14 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
     bool superop_enabled = false;
     bool kraus_enabled = false;
     for (const auto& circ: circuits) {
-      auto method = automatic_simulation_method(circ, noise_model);
+      Controller::Method method;
+      try {
+        method = automatic_simulation_method(circ, noise_model);
+
+      }
+      catch (std::exception &e) {
+        continue;
+      }
       sim_methods.push_back(method);
       if (!superop_enabled && (method == Method::density_matrix || method == Method::superop)) {
         noise_model.enable_superop_method(max_parallel_threads_);
@@ -1738,7 +1745,9 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
         kraus_enabled = true;
       }
     }
-    return sim_methods;
+    if (!sim_methods.empty()) {
+        return sim_methods;
+    }
   }
 
   // Use non-automatic default method for all circuits
