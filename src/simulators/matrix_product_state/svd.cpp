@@ -132,7 +132,7 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   double new_sum_squares = 0;
   for (uint_t i=0; i<S.size(); i++) 
     new_sum_squares +=std::norm(S[i]);
-  if (!Linalg::almost_equal(new_sum_squares, 1.0, THRESHOLD)) {
+  if (!Linalg::almost_equal(1.0 - new_sum_squares, 0., THRESHOLD)) {
 	double sqrt_sum = std::sqrt(new_sum_squares);
 	for (uint_t i=0; i<S.size(); i++)
 	  S[i] /= sqrt_sum;
