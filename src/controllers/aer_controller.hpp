@@ -1732,8 +1732,11 @@ Controller::simulation_methods(std::vector<Circuit> &circuits,
         method = automatic_simulation_method(circ, noise_model);
 
       }
+      // If setting a method for this circuit raised an exception fallback to
+      // a default of statevector. The execution will fail but we will get
+      // partial result generation and generate a user facing error message
       catch (std::exception &e) {
-        continue;
+        method = Method::statevector;
       }
       sim_methods.push_back(method);
       if (!superop_enabled && (method == Method::density_matrix || method == Method::superop)) {
