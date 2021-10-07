@@ -1,0 +1,10 @@
+---
+
+fixes:
+  - |
+    Slight errors in the computation of lambda may give a norm slightly off 1,
+    even without truncation. During measurement these errors may build up when
+    many qubits are involved, eventually leading to a segmentation fault.
+    Therefore always check its norm, and normalize if needed.
+
+
