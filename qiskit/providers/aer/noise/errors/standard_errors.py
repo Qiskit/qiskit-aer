@@ -518,10 +518,10 @@ def amplitude_damping_error(param_amp,
 
 def phase_damping_error(param_phase, canonical_kraus=True):
     r"""
-    Return a single-qubit combined phase and amplitude damping quantum error channel.
+    Return a single-qubit generalized phase damping quantum error channel.
 
-    The single-qubit combined phase and amplitude damping channel is
-    described by the following Kraus matrices:
+    The single-qubit phase damping channel is described by the
+    following Kraus matrices:
 
     .. code-block:: python
 

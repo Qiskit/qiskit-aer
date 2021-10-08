@@ -13,21 +13,22 @@
 AerSimulator Integration Tests
 """
 
-from ddt import ddt, data
-
-from test.terra.reference import ref_2q_clifford
-from test.terra.reference import ref_non_clifford
-from qiskit.circuit import Reset
-from qiskit.circuit.library.standard_gates import IGate
-from qiskit.quantum_info import Pauli
-from qiskit.providers.aer import QasmSimulator
+from ddt import ddt
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import QuantumError
-from qiskit.providers.aer.noise.errors import pauli_error
-from qiskit.providers.aer.noise.errors import mixed_unitary_error
 from qiskit.providers.aer.noise.errors import amplitude_damping_error
+from qiskit.providers.aer.noise.errors import mixed_unitary_error
+from qiskit.providers.aer.noise.errors import pauli_error
 from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+    SimulatorTestCase)
+from test.terra.reference import ref_2q_clifford
+from test.terra.reference import ref_non_clifford
+
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import Reset
+from qiskit.circuit.library import QuantumVolume
+from qiskit.circuit.library.standard_gates import IGate
+from qiskit.quantum_info import Pauli
 
 SUPPORTED_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
@@ -213,3 +214,20 @@ class TestSimulationMethod(SimulatorTestCase):
         success = getattr(result, 'success', False)
         self.compare_result_metadata(result, circuits, 'method', "density_matrix")
 
+    def test_auto_method_partial_result_a_single_invalid_circuit(self):
+        """Test a partial result is returned with a job with a valid and invalid circuit."""
+        circuits = []
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        qc_2 = QuantumVolume(5)
+        qc_2.measure_all()
+        circuits.append(qc_2)
+        circuits.append(qc)
+        backend = self.backend()
+        shots = 100
+        result = backend.run(circuits, shots=shots).result()
+        self.assertEqual(result.status, 'PARTIAL COMPLETED')
+        self.assertTrue(hasattr(result.results[1].data, 'counts'))
+        self.assertFalse(hasattr(result.results[0].data, 'counts'))
