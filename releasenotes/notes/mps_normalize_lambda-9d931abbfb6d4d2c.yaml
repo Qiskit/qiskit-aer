@@ -2,9 +2,6 @@
 
 fixes:
   - |
-    Slight errors in the computation of lambda may give a norm slightly off 1,
-    even without truncation. During measurement these errors may build up when
-    many qubits are involved, eventually leading to a segmentation fault.
-    Therefore always check its norm, and normalize if needed.
-
-
+    Fixed an issue with the `matrix_product_state` simulation method where
+    the accumulation of small rounding errors during measurement of many
+    quits could sometimes cause a segmentation fault.
