@@ -14,22 +14,23 @@ NoiseTransformer class tests
 """
 
 import unittest
-import warnings
 
 import numpy
-
-from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate
-from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.utils import NoiseTransformer
-from qiskit.providers.aer.utils import approximate_quantum_error
-from qiskit.providers.aer.utils import approximate_noise_model
-from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
-from qiskit.providers.aer.noise.errors.standard_errors import reset_error
-from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.providers.aer.noise.errors.quantum_error import QuantumError
-
+from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
+from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
+from qiskit.providers.aer.noise.errors.standard_errors import reset_error
+from qiskit.providers.aer.noise.noiseerror import NoiseError
+from qiskit.providers.aer.utils import NoiseTransformer
+from qiskit.providers.aer.utils import approximate_noise_model
+from qiskit.providers.aer.utils import approximate_quantum_error
 from test.terra import common
+
+from qiskit.circuit import Reset
+from qiskit.circuit.library.standard_gates import IGate
+from qiskit.circuit.library.standard_gates import XGate, YGate, ZGate, HGate, SGate
+from qiskit.quantum_info.operators.channel import Kraus
 
 try:
     import cvxpy
@@ -49,7 +50,6 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
             'H': HGate(),
             'S': SGate()
         }
-        self.n = NoiseTransformer()
 
     def assertNoiseModelsAlmostEqual(self, lhs, rhs, places=3):
         self.assertNoiseDictsAlmostEqual(
@@ -139,7 +139,7 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
         theta = numpy.pi / 5
         E0 = numpy.sqrt(1 - p) * numpy.array(numpy.eye(2))
         E1 = numpy.sqrt(p) * (numpy.cos(theta) * numpy.array(X) + numpy.sin(theta) * numpy.array(Y))
-        results = approximate_quantum_error([E0, E1],
+        results = approximate_quantum_error(Kraus([E0, E1]),
                                             operator_dict={
                                                 "X": X,
                                                 "Y": Y,
@@ -169,16 +169,16 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
         E0 = numpy.sqrt(1 - p) * numpy.array(numpy.eye(2))
         E1 = numpy.sqrt(p) * (numpy.cos(theta) * numpy.array(X) + numpy.sin(theta) * numpy.array(Y))
 
-        results_dict = approximate_quantum_error([E0, E1],
+        results_dict = approximate_quantum_error(Kraus([E0, E1]),
                                                  operator_dict={
                                                      "X": X,
                                                      "Y": Y,
                                                      "Z": Z})
-        results_string = approximate_quantum_error([E0, E1],
+        results_string = approximate_quantum_error(Kraus([E0, E1]),
                                                    operator_string='pauli')
-        results_list = approximate_quantum_error([E0, E1],
+        results_list = approximate_quantum_error(Kraus([E0, E1]),
                                                  operator_list=[X, Y, Z])
-        results_tuple = approximate_quantum_error([E0, E1],
+        results_tuple = approximate_quantum_error(Kraus([E0, E1]),
                                                   operator_list=(X, Y, Z))
 
         self.assertErrorsAlmostEqual(results_dict, results_string)
@@ -186,12 +186,13 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
         self.assertErrorsAlmostEqual(results_list, results_tuple)
 
     def test_fidelity(self):
-        n = NoiseTransformer()
         expected_fidelity = {'X': 0, 'Y': 0, 'Z': 0, 'H': 0, 'S': 2}
         for key in expected_fidelity:
+            with self.assertWarns(DeprecationWarning):
+                actual_fidelity = NoiseTransformer().fidelity([self.ops[key]])
             self.assertAlmostEqual(
                 expected_fidelity[key],
-                n.fidelity([self.ops[key]]),
+                actual_fidelity,
                 msg="Wrong fidelity for {}".format(key))
 
     def test_approx_noise_model(self):
@@ -246,24 +247,15 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
         # approximating amplitude damping using relaxation operators
         gamma = 0.23
         p = (gamma - numpy.sqrt(1 - gamma) + 1) / 2
-        q = 0
         A0 = [[1, 0], [0, numpy.sqrt(1 - gamma)]]
         A1 = [[0, numpy.sqrt(gamma)], [0, 0]]
-        error_1 = QuantumError([([{'name': 'kraus', 'qubits': [0], 'params': [A0, A1]},
-                                  {'name': 'id', 'qubits': [1]}
-                                  ], 1)])
-        error_2 = QuantumError([([{'name': 'kraus', 'qubits': [1], 'params': [A0, A1]},
-                                  {'name': 'id', 'qubits': [0]}
-                                  ], 1)])
+        error_1 = QuantumError([([(Kraus([A0, A1]), [0]), (IGate(), [1])], 1)])
+        error_2 = QuantumError([([(Kraus([A0, A1]), [1]), (IGate(), [0])], 1)])
 
-        expected_results_1 = QuantumError([
-            ([{'name': 'id', 'qubits': [0]}, {'name': 'id', 'qubits': [1]}], 1-p),
-            ([{'name': 'reset', 'qubits': [0]}, {'name': 'id', 'qubits': [1]}],p),
-        ])
-        expected_results_2 = QuantumError([
-            ([{'name': 'id', 'qubits': [1]}, {'name': 'id', 'qubits': [0]}], 1 - p),
-            ([{'name': 'reset', 'qubits': [1]}, {'name': 'id', 'qubits': [0]}], p),
-        ])
+        expected_results_1 = QuantumError([([(IGate(), [0]), (IGate(), [1])], 1 - p),
+                                           ([(Reset(), [0]), (IGate(), [1])], p)])
+        expected_results_2 = QuantumError([([(IGate(), [1]), (IGate(), [0])], 1 - p),
+                                           ([(Reset(), [1]), (IGate(), [0])], p)])
 
         results_1 = approximate_quantum_error(error_1, operator_string="reset")
         results_2 = approximate_quantum_error(error_2, operator_string="reset")
@@ -287,8 +279,7 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
         with self.assertRaisesRegex(
                 TypeError, "takes 1 positional argument but 2 were given"):
             approximate_quantum_error(error, 7)
-        with self.assertRaisesRegex(RuntimeError,
-                                    "No information about noise type seven"):
+        with self.assertRaises(NoiseError):
             approximate_quantum_error(error, operator_string="seven")
 
 
