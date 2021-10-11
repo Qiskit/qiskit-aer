@@ -529,6 +529,7 @@ class AerSimulator(AerBackend):
             blocking_qubits=None,
             blocking_enable=False,
             batched_shots_optimization=True,
+            batched_shots_optimization_threshold=16,
             memory=None,
             noise_model=None,
             seed_simulator=None,

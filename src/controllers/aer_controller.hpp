@@ -379,6 +379,7 @@ protected:
   uint_t cache_block_qubit_ = 0;
 
   bool batched_shots_optimization_ = true;
+  int_t batched_shots_optimization_threshold_ = 16;
 };
 
 //=========================================================================
@@ -465,6 +466,9 @@ void Controller::set_config(const json_t &config) {
   //enable batched multi-shots/experiments optimization
   if(JSON::check_key("batched_shots_optimization", config)) {
     JSON::get_value(batched_shots_optimization_, "batched_shots_optimization", config);
+  }
+  if(JSON::check_key("batched_shots_optimization_threshold", config)) {
+    JSON::get_value(batched_shots_optimization_threshold_, "batched_shots_optimization_threshold", config);
   }
 
   // Override automatic simulation method with a fixed method
@@ -662,7 +666,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
     // And assign the remaining threads to state update
     int circ_memory_mb =
         required_memory_mb(circ, noise, method) / num_process_per_experiment_;
-    size_t mem_size = (sim_device_ == Device::GPU) ? max_memory_mb_ + max_gpu_memory_mb_ : max_memory_mb_;
+    size_t mem_size = (sim_device_ == Device::GPU) ? max_gpu_memory_mb_ : max_memory_mb_;
     if (mem_size < circ_memory_mb)
       throw std::runtime_error(
           "a circuit requires more memory than max_memory_mb.");
@@ -671,7 +675,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
 
     int shots = circ.shots;
     parallel_shots_ = std::min<int>(
-        {static_cast<int>(max_memory_mb_ / circ_memory_mb), max_shots, shots});
+        {static_cast<int>(mem_size/(circ_memory_mb*2)), max_shots, shots});
   }
   parallel_state_update_ =
       (parallel_shots_ > 1)
@@ -957,7 +961,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     }
     else{
       bool batch_enable = false;
-      if(batched_shots_optimization_){
+      if(batched_shots_optimization_ && batched_shots_optimization_threshold_ >= max_qubits_){
         if(one_method && sim_device_ == Device::GPU && !multi_chunk_req && circuits.size() > num_gpus_ && 
                 max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
           batch_enable = true;
@@ -1857,7 +1861,8 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
     // Perform standard execution if we cannot apply the
     // measurement sampling optimization
 
-    if(batched_shots_optimization_ && sim_device_ == Device::GPU && !cache_blocking && shots > 1 && max_batched_states_ >= num_gpus_){
+    if(batched_shots_optimization_ && batched_shots_optimization_threshold_ >= max_qubits_ 
+          && sim_device_ == Device::GPU && !cache_blocking && shots > 1 && max_batched_states_ >= num_gpus_){
       //apply batched multi-shots optimization on GPU
       Multi::States<State_t> states;
 
@@ -1887,7 +1892,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
       int_t max_bits = get_max_matrix_bits(circ);
 
-#pragma omp parallel for if (parallel_shots_ > 1 && sim_device_ != Device::GPU) num_threads(parallel_shots_)
+#pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
       for (int i = 0; i < parallel_shots_; i++) {
         uint_t i_shot,shot_end;
         i_shot = shots*i/parallel_shots_;

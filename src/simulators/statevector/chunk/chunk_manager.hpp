@@ -187,6 +187,8 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
 
     num_chunks_ = 0;
 
+    uint_t idev_start = 0;
+
     if(chunk_bits == nqubits){
       if(nchunks > 1){  //multi-shot parallelization
         //accumulate number of chunks
@@ -209,6 +211,9 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
         num_places_ = 1;
         num_chunks_ = nchunks;
         multi_shots_ = false;
+
+        //distribute chunk on multiple GPUs when OMP parallel shots are used
+        idev_start = omp_get_thread_num() % num_devices_;
       }
     }
     else{   //multiple-chunk parallelization
@@ -236,7 +241,14 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
     }
 
     nchunks = num_chunks_;
+
+    //allocate chunk container before parallel loop using push_back to store shared pointer
+    for(i=0;i<num_places_;i++){
+      chunks_.push_back(std::make_shared<DeviceChunkContainer<data_t>>());
+    }
+
     num_chunks_ = 0;
+#pragma omp parallel for if(omp_get_num_threads() == 1 && num_places_ > 1) private(is,ie,nc) reduction(+:num_chunks_)
     for(iDev=0;iDev<num_places_;iDev++){
       is = nchunks * (uint_t)iDev / (uint_t)num_places_;
       ie = nchunks * (uint_t)(iDev + 1) / (uint_t)num_places_;
@@ -244,9 +256,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
       if(hybrid){
         nc /= 2;
       }
-
-      chunks_.push_back(std::make_shared<DeviceChunkContainer<data_t>>());
-      num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
+      num_chunks_ += chunks_[iDev]->Allocate((iDev + idev_start)%num_devices_,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
     }
     if(num_chunks_ < nchunks){
       //rest of chunks are stored on host
