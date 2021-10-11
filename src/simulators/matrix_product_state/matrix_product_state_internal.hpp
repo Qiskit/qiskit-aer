@@ -28,7 +28,7 @@ namespace MatrixProductState {
 
 // Allowed gates enum class
 enum Gates {
-  id, h, x, y, z, s, sdg, sx, t, tdg, u1, u2, u3, r, rx, ry, rz, // single qubit
+  id, h, x, y, z, s, sdg, sx, sxdg, t, tdg, u1, u2, u3, r, rx, ry, rz, // single qubit
   cx, cy, cz, cu1, swap, su4, rxx, ryy, rzz, rzx, csx, // two qubit
   ccx, cswap, // three qubit
   pauli
@@ -136,6 +136,7 @@ public:
   //----------------------------------------------------------------
   void apply_h(uint_t index);
   void apply_sx(uint_t index);
+  void apply_sxdg(uint_t index);
   void apply_r(uint_t index, double phi, double lam);
   void apply_rx(uint_t index, double theta);
   void apply_ry(uint_t index, double theta);
@@ -304,6 +305,7 @@ public:
 					   const reg_t &qubits);
 
   reg_t apply_measure(const reg_t &qubits, const rvector_t &rnds);
+  reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
 
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector_internal
@@ -319,6 +321,7 @@ public:
   void reset(const reg_t &qubits, RngEngine &rng);
 
   reg_t get_bond_dimensions() const;
+  void print_bond_dimensions() const;
   uint_t get_max_bond_dimensions() const;
 
   mps_container_t copy_to_mps_container();
@@ -345,6 +348,8 @@ private:
   // if swap_gate==false, this is an internal swap, necessary for
   // some internal algorithm
   void apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate=false);
+  void print_to_log_internal_swap(uint_t qubit0, uint_t qubit1) const;
+
   void apply_2_qubit_gate(uint_t index_A, uint_t index_B, 
 			  Gates gate_type, const cmatrix_t &mat,
 			  bool is_diagonal=false);
@@ -413,10 +418,9 @@ private:
 
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 
-  reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
 
   uint_t apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
-               uint_t next_measured_qubit);
+					     uint_t next_measured_qubit);
 
   reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
 						    const reg_t &qubits) const;

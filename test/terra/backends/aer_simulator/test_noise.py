@@ -10,22 +10,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-QasmSimulator Integration Tests
+AerSimulator Integration Tests
 """
 
 from ddt import ddt
+
+from qiskit import QuantumCircuit
+from qiskit.circuit.library import QFT
+from qiskit.providers.aer.noise import NoiseModel, depolarizing_error
+
+from test.terra.backends.simulator_test_case import (
+    SimulatorTestCase, supported_methods)
 from test.terra.reference import ref_readout_noise
 from test.terra.reference import ref_pauli_noise
 from test.terra.reference import ref_reset_noise
 from test.terra.reference import ref_kraus_noise
-
-from qiskit.compiler import assemble
-from qiskit.providers.aer import QasmSimulator
-from qiskit import execute
-from qiskit.circuit.library import QFT
-import qiskit.quantum_info as qi
-from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
 
 ALL_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
@@ -35,7 +34,17 @@ ALL_METHODS = [
 
 @ddt
 class TestNoise(SimulatorTestCase):
-    """QasmSimulator readout error noise model tests."""
+    """AerSimulator readout error noise model tests."""
+
+    @supported_methods(ALL_METHODS)
+    def test_empty_circuit_noise(self, method, device):
+        """Test simulation with empty circuit and noise model."""
+        backend = self.backend(method=method, device=device)
+        noise_model = NoiseModel()
+        noise_model.add_all_qubit_quantum_error(depolarizing_error(0.1, 1), ['x'])
+        result = backend.run(
+            QuantumCircuit(), shots=1, noise_model=noise_model).result()
+        self.assertSuccess(result)
 
     @supported_methods(ALL_METHODS)
     def test_readout_noise(self, method, device):
@@ -123,7 +132,6 @@ class TestNoise(SimulatorTestCase):
             result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
-
 
     @supported_methods([
         'automatic', 'statevector', 'density_matrix', 'matrix_product_state'])

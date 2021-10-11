@@ -1,8 +1,0 @@
----
-deprecations:
-  - |
-    Adding non-local quantum errors to a
-    :class:`~qiskit.providers.aer.noise.NoiseModel` has been deprecated due to
-    inconsistencies in how this noise is applied to the optimized circuit.
-    Non-local noise should be manually added to a scheduled circuit in Qiskit
-    using a custom transpiler pass before being run on the simulator.

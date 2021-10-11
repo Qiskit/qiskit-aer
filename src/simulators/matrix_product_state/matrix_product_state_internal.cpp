@@ -370,12 +370,13 @@ void MPS::initialize(uint_t num_qubits)
   lambda_reg_.clear();
   complex_t alpha = 1.0f;
   complex_t beta = 0.0f;
-  for(uint_t i = 0; i < num_qubits_-1; i++) {
-      q_reg_.push_back(MPS_Tensor(alpha,beta));
-      lambda_reg_.push_back(rvector_t {1.0});
+
+  for(uint_t i = 0; i < num_qubits_; i++) {
+    q_reg_.push_back(MPS_Tensor(alpha, beta));
   }
-  // need to add one more Gamma tensor, because above loop only initialized up to n-1 
-  q_reg_.push_back(MPS_Tensor(alpha, beta));
+  for (uint_t i = 1; i < num_qubits_; i++) {
+    lambda_reg_.push_back(rvector_t {1.0});
+  }
 
   qubit_ordering_.order_.clear();
   qubit_ordering_.order_.resize(num_qubits);
@@ -412,6 +413,11 @@ void MPS::apply_h(uint_t index)
 void MPS::apply_sx(uint_t index)
 {
   get_qubit(index).apply_matrix(AER::Linalg::Matrix::SX);
+}
+
+void MPS::apply_sxdg(uint_t index)
+{
+  get_qubit(index).apply_matrix(AER::Linalg::Matrix::SXDG);
 }
 
 void MPS::apply_r(uint_t index, double phi, double lam)
@@ -545,6 +551,8 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
     // and the qubit at index_B (or index_A+1) is moved one position 
     //to the left
     std::swap(qubit_ordering_.order_[index_A], qubit_ordering_.order_[index_B]);    
+    // For logging purposes:
+    print_to_log_internal_swap(index_A, index_B);
 
     // update qubit locations after all the swaps
     for (uint_t i=0; i<num_qubits_; i++)
@@ -552,6 +560,23 @@ void MPS::apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate) {
   }
 }
 
+void MPS::print_to_log_internal_swap(uint_t qubit0, uint_t qubit1) const {
+  if (mps_log_data_) {
+    print_to_log("internal_swap on qubits ", qubit0, ",", qubit1);
+  }
+  print_bond_dimensions();
+}
+
+void MPS::print_bond_dimensions() const {
+  print_to_log(", BD=[");
+  reg_t bd = get_bond_dimensions();
+  for (uint_t index=0; index<bd.size(); index++) {
+    print_to_log(bd[index]);
+      if (index < bd.size()-1)
+	print_to_log(" ");
+  }
+  print_to_log("],  ");
+}
 //-------------------------------------------------------------------------
 // MPS::apply_2_qubit_gate - outline of the algorithm
 // 1. Swap qubits A and B until they are consecutive
@@ -635,7 +660,7 @@ void MPS::common_apply_2_qubit_gate(uint_t A,  // the gate is applied to A and A
   MPS_Tensor left_gamma, right_gamma;
   rvector_t lambda;
   double discarded_value = MPS_Tensor::Decompose(temp, left_gamma, lambda, right_gamma);
-  if (discarded_value > 0.0)
+  if (discarded_value > json_chop_threshold_)
     MPS::print_to_log("discarded_value=", discarded_value, ", ");
 
   if (A != 0)
@@ -1516,7 +1541,7 @@ reg_t MPS::apply_measure_internal(const reg_t &sorted_qubits, const rvector_t &r
 }
 
 uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
-    uint_t next_measured_qubit) {
+						uint_t next_measured_qubit) {
   reg_t qubits_to_update;
   qubits_to_update.push_back(qubit);
 
@@ -1538,6 +1563,7 @@ uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
     measurement_matrix = measurement_matrix * (1 / sqrt(prob1));
   }
   apply_matrix_internal(qubits_to_update, measurement_matrix);
+
   if (num_qubits_ > 1)
     propagate_to_neighbors_internal(qubit, qubit, next_measured_qubit);
 

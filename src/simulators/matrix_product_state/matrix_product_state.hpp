@@ -63,7 +63,7 @@ const Operations::OpSet StateOpSet(
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",
-   "sx", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx", "csx", "delay",
+   "sx", "sxdg", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx", "csx", "delay",
    "cswap", "pauli"},
   // Snapshots
   {"statevector", "amplitudes", "memory", "register", "probabilities",
@@ -342,6 +342,7 @@ const stringmap_t<Gates> State::gateset_({
   {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
   {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
   {"sx", Gates::sx},     // Sqrt(X) gate
+  {"sxdg", Gates::sxdg}, // Inverse Sqrt(X) gate
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   {"r", Gates::r},       // R rotation gate
@@ -510,14 +511,7 @@ void State::output_bond_dimensions(const Operations::Op &op) const {
   for (uint_t index=1; index<op.qubits.size(); index++) {
     MPS::print_to_log(",", op.qubits[index]);
   }
-  MPS::print_to_log(", BD=[");
-  reg_t bd = qreg_.get_bond_dimensions();
-  for (uint_t index=0; index<bd.size(); index++) {
-    MPS::print_to_log(bd[index]);
-      if (index < bd.size()-1)
-	MPS::print_to_log(" ");
-  }
-  MPS::print_to_log("],  ");
+  qreg_.print_bond_dimensions();
   instruction_number++;
 }
 
@@ -876,6 +870,9 @@ void State::apply_gate(const Operations::Op &op) {
     case Gates::sx:
       qreg_.apply_sx(op.qubits[0]);
       break;
+    case Gates::sxdg:
+      qreg_.apply_sxdg(op.qubits[0]);
+      break;
     case Gates::t:
       qreg_.apply_t(op.qubits[0]);
       break;
@@ -1084,7 +1081,7 @@ std::vector<reg_t> State::
     #pragma omp for
     for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
       temp.initialize(qreg_);
-      auto single_result = temp.apply_measure(sorted_qubits, rnds_list[i]);
+      auto single_result = temp.apply_measure_internal(sorted_qubits, rnds_list[i]);
       all_samples[i] = single_result;
     }
   }

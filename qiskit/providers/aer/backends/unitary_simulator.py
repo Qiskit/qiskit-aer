@@ -151,10 +151,10 @@ class UnitarySimulator(AerBackend):
         'coupling_map': None,
         'basis_gates': sorted([
             'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
+            'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
+            'cy', 'cz', 'csx', 'cu', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
             'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-            'mcp', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
+            'mcu', 'mcp', 'mcphase', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
             'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
         ]),
         'custom_instructions': sorted(['save_unitary', 'save_state', 'set_unitary']),
@@ -211,8 +211,6 @@ class UnitarySimulator(AerBackend):
             max_parallel_experiments=None,
             max_parallel_shots=None,
             max_memory_mb=None,
-            optimize_ideal_threshold=5,
-            optimize_noise_threshold=12,
             fusion_enable=True,
             fusion_verbose=False,
             fusion_max_qubit=5,
@@ -222,24 +220,21 @@ class UnitarySimulator(AerBackend):
             # statevector options
             statevector_parallel_threshold=14)
 
-    def set_options(self, **fields):
-        if "method" in fields:
+    def set_option(self, key, value):
+        if key == "method":
             # Handle deprecation of method option for device option
             warn("The method option of the `UnitarySimulator` has been"
                  " deprecated as of qiskit-aer 0.9.0. To run a GPU statevector"
                  " simulation use the option `device='GPU'` instead",
                  DeprecationWarning)
-            fields = copy.copy(fields)
-            method = fields["method"]
-            if method in LEGACY_METHOD_MAP:
-                new_method, device = LEGACY_METHOD_MAP[method]
-                fields["method"] = new_method
-                fields["device"] = device
-            if fields["method"] != "unitary":
+            if value in LEGACY_METHOD_MAP:
+                value, device = LEGACY_METHOD_MAP[value]
+                self.set_option("device", device)
+            if value != "unitary":
                 raise AerError(
                     "only the 'unitary' method is supported for the UnitarySimulator")
-            fields.pop("method")
-        super().set_options(**fields)
+            return
+        super().set_option(key, value)
 
     def available_methods(self):
         """Return the available simulation methods."""
