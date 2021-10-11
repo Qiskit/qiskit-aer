@@ -203,16 +203,6 @@ class AerSimulator(AerBackend):
       values (16 Bytes). If set to 0, the maximum will be automatically
       set to the system memory size (Default: 0).
 
-    * ``optimize_ideal_threshold`` (int): Sets the qubit threshold for
-      applying circuit optimization passes on ideal circuits.
-      Passes include gate fusion and truncation of unused qubits
-      (Default: 5).
-
-    * ``optimize_noise_threshold`` (int): Sets the qubit threshold for
-      applying circuit optimization passes on ideal circuits.
-      Passes include gate fusion and truncation of unused qubits
-      (Default: 12).
-
     These backend options only apply when using the ``"statevector"``
     simulation method:
 
@@ -519,8 +509,6 @@ class AerSimulator(AerBackend):
             max_parallel_experiments=None,
             max_parallel_shots=None,
             max_memory_mb=None,
-            optimize_ideal_threshold=5,
-            optimize_noise_threshold=12,
             fusion_enable=True,
             fusion_verbose=False,
             fusion_max_qubit=5,
@@ -637,33 +625,18 @@ class AerSimulator(AerBackend):
         """
         return cpp_execute(self._controller, qobj)
 
-    def set_options(self, **fields):
-        out_options = {}
-        update_basis_gates = False
-        for key, value in fields.items():
-            if key == 'method':
-                if (value is not None and value not in self.available_methods()):
-                    raise AerError(
-                        "Invalid simulation method {}. Available methods"
-                        " are: {}".format(value, self.available_methods()))
-                self._set_method_config(value)
-                update_basis_gates = True
-                out_options[key] = value
-            elif key in ['noise_model', 'basis_gates']:
-                update_basis_gates = True
-                out_options[key] = value
-            elif key == 'device':
-                if value is not None and value not in self._AVAILABLE_DEVICES:
-                    raise AerError(
-                        "Invalid simulation device {}. Available devices"
-                        " are: {}".format(value, self._AVAILABLE_DEVICES))
-                out_options[key] = value
-            elif key == 'custom_instructions':
-                self._set_configuration_option(key, value)
-            else:
-                out_options[key] = value
-        super().set_options(**out_options)
-        if update_basis_gates:
+    def set_option(self, key, value):
+        if key == "custom_instructions":
+            self._set_configuration_option(key, value)
+            return
+        if key == "method":
+            if (value is not None and value not in self.available_methods()):
+                raise AerError(
+                    "Invalid simulation method {}. Available methods"
+                    " are: {}".format(value, self.available_methods()))
+            self._set_method_config(value)
+        super().set_option(key, value)
+        if key in ["method", "noise_model", "basis_gates"]:
             self._cached_basis_gates = self._basis_gates()
 
     def _validate(self, qobj):
@@ -724,7 +697,6 @@ class AerSimulator(AerBackend):
 
     def _set_method_config(self, method=None):
         """Set non-basis gate options when setting method"""
-        super().set_options(method=method)
         # Update configuration description and number of qubits
         if method == 'statevector':
             description = 'A C++ statevector simulator with noise'

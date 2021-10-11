@@ -207,8 +207,6 @@ class StatevectorSimulator(AerBackend):
             max_parallel_experiments=None,
             max_parallel_shots=None,
             max_memory_mb=None,
-            optimize_ideal_threshold=5,
-            optimize_noise_threshold=12,
             seed_simulator=None,
             fusion_enable=True,
             fusion_verbose=False,
@@ -217,24 +215,21 @@ class StatevectorSimulator(AerBackend):
             # statevector options
             statevector_parallel_threshold=14)
 
-    def set_options(self, **fields):
-        if "method" in fields:
+    def set_option(self, key, value):
+        if key == "method":
             # Handle deprecation of method option for device option
             warn("The method option of the `StatevectorSimulator` has been"
                  " deprecated as of qiskit-aer 0.9.0. To run a GPU statevector"
                  " simulation use the option `device='GPU'` instead",
                  DeprecationWarning)
-            fields = copy.copy(fields)
-            method = fields["method"]
-            if method in LEGACY_METHOD_MAP:
-                new_method, device = LEGACY_METHOD_MAP[method]
-                fields["method"] = new_method
-                fields["device"] = device
-            if fields["method"] != "statevector":
+            if value in LEGACY_METHOD_MAP:
+                value, device = LEGACY_METHOD_MAP[value]
+                self.set_option("device", device)
+            if value != "statevector":
                 raise AerError(
                     "only the 'statevector' method is supported for the StatevectorSimulator")
-            fields.pop("method")
-        super().set_options(**fields)
+            return
+        super().set_option(key, value)
 
     def available_methods(self):
         """Return the available simulation methods."""
