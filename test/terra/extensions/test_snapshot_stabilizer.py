@@ -23,6 +23,7 @@ from ..common import QiskitAerTestCase
 class TestSnapshotStabilizerExtension(QiskitAerTestCase):
     """SnapshotStbilizer extension tests"""
 
+    @classmethod
     def setUpClass(cls):
         super().setUpClass()
         filterwarnings(
