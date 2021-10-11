@@ -25,15 +25,15 @@ fixes:
     quits could sometimes cause a segmentation fault.
   - |
     Fixes an unintended change between qiskit-aer 0.8.0 and 0.9.0 where when
-    running a list of circuits with an invalid circuit using the `automatic`
+    running a list of circuits with an invalid circuit using the ``automatic``
     simulation method of the :class:`~qiskit.providers.aer.AerSimulator` or
     :class:`~qiskit.providers.aer.QasmSimulator` would raise an exception
     for an invalid input qobj rather than return partial results for the
     circuits that were valid.
   - |
-    Fixes an issue with the standalone simulator where it would return a schema
-    invalid JSON in the case of partial results where only a subset of
-    circuit simulations failed.
+    Fixes an issue with the standalone simulator where it would return a
+    `IBM Quantum API schema <https://github.com/Qiskit/ibm-quantum-schemas>`__
+    invalid response in the case of an error that prevented the simulation from running.
   - |
     Fixes `#1346 <https://github.com/Qiskit/qiskit-aer/issue/1346>`__
     which was a bug in the handling of the ``parameter_binds`` kwarg of
