@@ -878,7 +878,10 @@ Result Controller::execute(std::vector<Circuit> &circuits,
         multi_chunk[j] = false;
       }
     }
-    num_process_per_experiment_ = num_processes_;
+    if(multi_chunk_req)
+      num_process_per_experiment_ = num_processes_;
+    else
+      num_process_per_experiment_ = 1;
 
     if(max_qubits_ == 0){
       max_qubits_ = 1;
@@ -1591,7 +1594,8 @@ void Controller::run_circuit_helper(const Circuit &circ,
       }
       // General circuit noise sampling
       else {
-        if(batched_shots_optimization_ && sim_device_ == Device::GPU && max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
+        if(batched_shots_optimization_ && batched_shots_optimization_threshold_ >= max_qubits_ && 
+           sim_device_ == Device::GPU && max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
           //for GPU noise sampling is done at runtime
           opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::circuit, true);
           opt_circ.can_sample = false;

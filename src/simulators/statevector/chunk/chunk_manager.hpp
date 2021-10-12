@@ -213,7 +213,8 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
         multi_shots_ = false;
 
         //distribute chunk on multiple GPUs when OMP parallel shots are used
-        idev_start = omp_get_thread_num() % num_devices_;
+        if(num_devices_ > 0)
+          idev_start = omp_get_thread_num() % num_devices_;
       }
     }
     else{   //multiple-chunk parallelization
@@ -256,7 +257,10 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
       if(hybrid){
         nc /= 2;
       }
-      num_chunks_ += chunks_[iDev]->Allocate((iDev + idev_start)%num_devices_,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
+      if(num_devices_ > 0)
+        num_chunks_ += chunks_[iDev]->Allocate((iDev + idev_start)%num_devices_,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
+      else
+        num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
     }
     if(num_chunks_ < nchunks){
       //rest of chunks are stored on host
