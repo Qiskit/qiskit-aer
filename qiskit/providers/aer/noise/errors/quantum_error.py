@@ -424,11 +424,12 @@ class QuantumError(BaseOperator, TolerancesMixin):
         bit_indices = {bit: index for index, bit in enumerate(qc.qubits)}
         ret = []
         for inst, qargs, _ in qc:
-            name = inst.label if isinstance(inst, UnitaryGate) and inst.label else inst.name
-            dic = {'name': name,
-                   'qubits': [bit_indices[q] for q in qargs]}
-            if name in {'kraus', 'unitary'}:
+            # name = inst.label if isinstance(inst, UnitaryGate) and inst.label else inst.name
+            dic = {'name': inst.name, 'qubits': [bit_indices[q] for q in qargs]}
+            if inst.params:
                 dic['params'] = inst.params
+            if inst.label:
+                dic['label'] = inst.label
             ret.append(dic)
         return ret
 
