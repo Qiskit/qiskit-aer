@@ -248,8 +248,8 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
       chunks_.push_back(std::make_shared<DeviceChunkContainer<data_t>>());
     }
 
-    num_chunks_ = 0;
-#pragma omp parallel for if(omp_get_num_threads() == 1 && num_places_ > 1) private(is,ie,nc) reduction(+:num_chunks_)
+    uint_t chunks_allocated = 0;
+#pragma omp parallel for if(omp_get_num_threads() == 1 && num_places_ > 1) private(is,ie,nc) reduction(+:chunks_allocated)
     for(iDev=0;iDev<num_places_;iDev++){
       is = nchunks * (uint_t)iDev / (uint_t)num_places_;
       ie = nchunks * (uint_t)(iDev + 1) / (uint_t)num_places_;
@@ -258,16 +258,16 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
         nc /= 2;
       }
       if(num_devices_ > 0)
-        num_chunks_ += chunks_[iDev]->Allocate((iDev + idev_start)%num_devices_,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
+        chunks_allocated += chunks_[iDev]->Allocate((iDev + idev_start)%num_devices_,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
       else
-        num_chunks_ += chunks_[iDev]->Allocate(iDev,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
+        chunks_allocated += chunks_[iDev]->Allocate(iDev,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
     }
-    if(num_chunks_ < nchunks){
+    if(chunks_allocated < nchunks){
       //rest of chunks are stored on host
       chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
-      chunks_[num_places_]->Allocate(-1,chunk_bits,nqubits,nchunks-num_chunks_,num_buffers,multi_shots_,matrix_bit);
+      chunks_[num_places_]->Allocate(-1,chunk_bits,nqubits,nchunks-chunks_allocated,num_buffers,multi_shots_,matrix_bit);
       num_places_ += 1;
-      num_chunks_ = nchunks;
+      num_chunks_ = chunks_allocated;
     }
 
 #ifdef AER_DISABLE_GDR
