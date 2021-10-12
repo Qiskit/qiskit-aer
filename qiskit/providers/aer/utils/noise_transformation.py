@@ -30,14 +30,15 @@ used in a Clifford simulator.
 import itertools
 import logging
 import warnings
+from typing import Sequence
 
 import numpy
 import sympy
 
 from qiskit.circuit import Reset
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
-from qiskit.quantum_info.operators.channel import Kraus
-from qiskit.quantum_info.operators.channel import SuperOp
+from qiskit.quantum_info.operators.channel import Kraus, SuperOp
+from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from ..noise.errors import QuantumError
 from ..noise.errors.errorutils import _single_qubit_clifford_gates
 from ..noise.errors.errorutils import _single_qubit_clifford_matrix
@@ -57,7 +58,7 @@ def approximate_quantum_error(error, *,
     Currently this is only implemented for 1-qubit QuantumErrors.
 
     Args:
-        error (QuantumError): the error to be approximated.
+        error (QuantumError or QuantumChannel): the error to be approximated.
             The number of qubits must be 1 or 2.
         operator_string (string): a name for a pre-made set of
             building blocks for the output channel (Default: None).
@@ -81,9 +82,9 @@ def approximate_quantum_error(error, *,
         overwritten. Possible values for string are ``'pauli'``, ``'reset'``,
         ``'clifford'``. The ``'clifford'`` does not support 2-qubit errors.
     """
-    if not isinstance(error, (QuantumError, Kraus)):
+    if not isinstance(error, (QuantumError, QuantumChannel)):
         warnings.warn(
-            'Support of types other than QuantumError or Kraus for error'
+            'Support of types other than QuantumError or QuantumChannel for error'
             ' to be approximated has been deprecated as of qiskit-aer 0.10.0'
             ' and will be removed no earlier than 3 months from that release date.',
             DeprecationWarning, stacklevel=2)
@@ -95,7 +96,7 @@ def approximate_quantum_error(error, *,
             # second case for generalized Kraus ([A_i], [B_i])
             error = Kraus(error)
         else:
-            raise NoiseError("Invalid input type: {}".format(error.__class__.__name__))
+            raise NoiseError("Invalid input error type: {}".format(error.__class__.__name__))
 
     if isinstance(error, QuantumError):
         error = Kraus(error)
@@ -118,7 +119,24 @@ def approximate_quantum_error(error, *,
     if operator_dict is not None:
         _, operator_list = zip(*operator_dict.items())
     if operator_list is not None:
-        operator_list = [QuantumError([(op, 1)]) for op in operator_list]
+        if not isinstance(operator_list, Sequence):
+            raise NoiseError("operator_list is not a sequence: {}".format(operator_list))
+        if operator_list and isinstance(operator_list[0], Sequence) and isinstance(
+                operator_list[0][0], numpy.ndarray):
+            warnings.warn(
+                'Accepting a sequence of Kraus matrices (list of numpy arrays)'
+                ' as an operator_list has been deprecated as of qiskit-aer 0.10.0'
+                ' and will be removed no earlier than 3 months from that release date.'
+                ' Please use a sequence of Kraus objects instead.',
+                DeprecationWarning, stacklevel=2)
+            operator_list = [Kraus(op) for op in operator_list]
+
+        try:
+            operator_list = [op if isinstance(op, QuantumChannel) else QuantumError([(op, 1)])
+                             for op in operator_list]
+        except NoiseError:
+            raise NoiseError("Invalid type found in operator list: {}".format(operator_list))
+
         probabilities = _transform_by_operator_list(operator_list, error)
         identity_prob = numpy.round(1 - sum(probabilities), 9)
         if identity_prob < 0 or identity_prob > 1:
@@ -279,7 +297,7 @@ def _transform_by_operator_list(basis_ops, kraus):
     Returns:
         list: A list of amplitudes (probabilities) that define the output channel.
     """
-    basis_ops_mats = [Kraus(op.to_quantumchannel()).data for op in basis_ops]
+    basis_ops_mats = [Kraus(op).data for op in basis_ops]
 
     # prepare channel operator list
     # convert to sympy matrices and verify that each singleton is in a tuple; add identity matrix

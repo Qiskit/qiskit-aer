@@ -150,6 +150,22 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
              ('I', 1 - p)])
         self.assertErrorsAlmostEqual(expected_results, results)
 
+    def test_transformation_by_kraus(self):
+        gamma = 0.23
+        error = amplitude_damping_error(gamma)
+        reset_to_0 = [numpy.array([[1, 0], [0, 0]]), numpy.array([[0, 1], [0, 0]])]
+        reset_to_1 = [numpy.array([[0, 0], [1, 0]]), numpy.array([[0, 0], [0, 1]])]
+        reset_kraus = [Kraus(reset_to_0), Kraus(reset_to_1)]
+
+        actual = approximate_quantum_error(error, operator_list=reset_kraus)
+
+        p = (1 + gamma - numpy.sqrt(1 - gamma)) / 2
+        expected_probs = [1 - p, p]
+        self.assertListAlmostEqual(expected_probs, actual.probabilities)
+
+        with self.assertWarns(DeprecationWarning):
+            approximate_quantum_error(error, operator_list=[reset_to_0, reset_to_1])
+
     def test_reset(self):
         # approximating amplitude damping using relaxation operators
         gamma = 0.23
