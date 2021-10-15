@@ -132,12 +132,12 @@ def approximate_quantum_error(error, *,
             operator_list = [Kraus(op) for op in operator_list]
 
         try:
-            operator_list = [op if isinstance(op, QuantumChannel) else QuantumError([(op, 1)])
-                             for op in operator_list]
+            channel_list = [op if isinstance(op, QuantumChannel) else QuantumError([(op, 1)])
+                            for op in operator_list]  # preserve operator_list
         except NoiseError:
             raise NoiseError("Invalid type found in operator list: {}".format(operator_list))
 
-        probabilities = _transform_by_operator_list(operator_list, error)
+        probabilities = _transform_by_operator_list(channel_list, error)
         identity_prob = numpy.round(1 - sum(probabilities), 9)
         if identity_prob < 0 or identity_prob > 1:
             raise NoiseError("Channel probabilities sum to {}".format(1 - identity_prob))
