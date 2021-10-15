@@ -96,26 +96,26 @@ def approximate_quantum_error(error, *,
             # second case for generalized Kraus ([A_i], [B_i])
             error = Kraus(error)
         else:
-            raise NoiseError("Invalid input error type: {}".format(error.__class__.__name__))
+            raise NoiseError(f"Invalid input error type: {error.__class__.__name__}")
 
     if isinstance(error, QuantumError):
         error = Kraus(error)
     # assert(isinstance(error, Kraus))
 
     if error.num_qubits > 2:
-        raise NoiseError("Only 1-qubit and 2-qubit noises can be converted, {}-qubit "
-                         "noise found in model".format(error.num_qubits))
+        raise NoiseError("Only 1-qubit and 2-qubit noises can be converted, "
+                         f"{error.num_qubits}-qubit noise found in model")
 
     if operator_string is not None:
         valid_operator_strings = _PRESET_OPERATOR_TABLE.keys()
         operator_string = operator_string.lower()
         if operator_string not in valid_operator_strings:
-            raise NoiseError("{} is not a valid operator_string. "
-                             "It must be one of {}".format(operator_string, valid_operator_strings))
+            raise NoiseError(f"{operator_string} is not a valid operator_string. "
+                             f"It must be one of {valid_operator_strings}")
         operator_list = _PRESET_OPERATOR_TABLE[operator_string][error.num_qubits]
         if not operator_list:
-            raise NoiseError("Preset '{}' operators do not support the approximation of"
-                             " errors with {} qubits".format(operator_string, error.num_qubits))
+            raise NoiseError(f"Preset '{operator_string}' operators do not support the "
+                             f"approximation of errors with {error.num_qubits} qubits")
     if operator_dict is not None:
         _, operator_list = zip(*operator_dict.items())
     if operator_list is not None:
@@ -135,12 +135,12 @@ def approximate_quantum_error(error, *,
             channel_list = [op if isinstance(op, QuantumChannel) else QuantumError([(op, 1)])
                             for op in operator_list]  # preserve operator_list
         except NoiseError:
-            raise NoiseError("Invalid type found in operator list: {}".format(operator_list))
+            raise NoiseError(f"Invalid type found in operator list: {operator_list}")
 
         probabilities = _transform_by_operator_list(channel_list, error)
         identity_prob = numpy.round(1 - sum(probabilities), 9)
         if identity_prob < 0 or identity_prob > 1:
-            raise NoiseError("Channel probabilities sum to {}".format(1 - identity_prob))
+            raise NoiseError(f"Channel probabilities sum to {1 - identity_prob}")
         noise_ops = [((IGate(), [0]), identity_prob)]
         for (operator, probability) in zip(operator_list, probabilities):
             noise_ops.append((operator, probability))
@@ -571,11 +571,10 @@ def _solve_quadratic_program(P, q, fidelity_data):
 
     This function solved the quadratic program to minimize the objective function
     f(x) = 1/2(x*P*x)+q*x
-    subject to the additional constraints
-    Gx <= h
+    subject to the additional constraints:
+    sum(x) <= 1, x >= 0 ensuring that x represents a probability vector,
+    (optional) Gx <= h honesty constraint if required
 
-    Where P, q are given and G,h are computed to ensure that x represents
-    a probability vector and subject to honesty constraints if required
     Args:
         P (matrix): A matrix representing the P component of the objective function
         q (list): A vector representing the q component of the objective function
@@ -596,22 +595,16 @@ def _solve_quadratic_program(P, q, fidelity_data):
     P = numpy.array(P).astype(float)
     q = numpy.array(q).astype(float).T
     n = len(q)
-    # G and h constrain:
-    #   1) sum of probs is less then 1
-    #   2) All probs bigger than 0
-    #   3) Honesty (measured using fidelity, if given)
-    G_data = [[1] * n] + [([-1 if i == k else 0 for i in range(n)])
-                          for k in range(n)]
-    h_data = [1] + [0] * n
-    if fidelity_data is not None:
-        G_data.append(fidelity_data['coefficients'])
-        h_data.append(fidelity_data['goal'])
-    G = numpy.array(G_data).astype(float)
-    h = numpy.array(h_data).astype(float)
     x = cvxpy.Variable(n)
+    constraints = [cvxpy.sum(x) <= 1, x >= 0]
+    if fidelity_data is not None:  # Add Honesty constraint if given fidelity_data
+        G = numpy.array(fidelity_data['coefficients']).astype(float)
+        h = numpy.array(fidelity_data['goal']).astype(float)
+        constraints.append(G @ x <= h)
     prob = cvxpy.Problem(
         cvxpy.Minimize((1 / 2) * cvxpy.quad_form(x, P) + q.T @ x),
-        [G @ x <= h])
+        constraints
+    )
     prob.solve()
     return x.value
 
