@@ -298,6 +298,123 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
         with self.assertRaises(NoiseError):
             approximate_quantum_error(error, operator_string="seven")
 
+    def test_approx_random_unitary_channel(self):
+        # run without raising any error
+        noise = Kraus(random_unitary(2, seed=123))
+        for opstr in ['pauli', 'reset', 'clifford']:
+            approximate_quantum_error(noise, operator_string=opstr)
+
+        noise = Kraus(random_unitary(4, seed=123))
+        for opstr in ['pauli', 'reset']:
+            approximate_quantum_error(noise, operator_string=opstr)
+
+    def test_approx_random_mixed_unitary_channel(self):
+        # run without raising any error
+        noise1 = UnitaryGate(random_unitary(2, seed=123))
+        noise2 = UnitaryGate(random_unitary(2, seed=456))
+        noise = QuantumError([(noise1, 0.7), (noise2, 0.3)])
+        for opstr in ['pauli', 'reset']:
+            approximate_quantum_error(noise, operator_string=opstr)
+
+        with self.assertRaises(NoiseError):
+            # QP may produce negative probabilities
+            approximate_quantum_error(noise, operator_string='clifford')
+
+        noise1 = UnitaryGate(random_unitary(4, seed=123))
+        noise2 = UnitaryGate(random_unitary(4, seed=456))
+        noise = QuantumError([(noise1, 0.7), (noise2, 0.3)])
+        for opstr in ['pauli', 'reset']:
+            approximate_quantum_error(noise, operator_string=opstr)
+
+# ================== Tests using old interfaces ================== #
+# TODO: Delete after deprecation of old noise transformer
+import warnings
+from qiskit.extensions import UnitaryGate
+from qiskit.quantum_info.random import random_unitary
+@unittest.skipUnless(HAS_CVXPY, 'cvxpy is required to run these tests')
+class TestCompareOldAndNewNoiseTransformer(common.QiskitAerTestCase):
+    def setUp(self):
+        super().setUp()
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+    @staticmethod
+    def old_approximate_quantum_error(error, *,
+                                      operator_string=None,
+                                      operator_dict=None,
+                                      operator_list=None):
+        if not isinstance(error, QuantumError):
+            error = QuantumError(error)
+        if error.number_of_qubits > 2:
+            raise NoiseError("Only 1-qubit and 2-qubit noises can be converted, {}-qubit "
+                             "noise found in model".format(error.number_of_qubits))
+
+        error_kraus_operators = Kraus(error.to_quantumchannel()).data
+        transformer = NoiseTransformer()
+        if operator_string is not None:
+            no_info_error = "No information about noise type {}".format(operator_string)
+            operator_string = operator_string.lower()
+            if operator_string not in transformer.named_operators.keys():
+                raise RuntimeError(no_info_error)
+            operator_lists = transformer.named_operators[operator_string]
+            if len(operator_lists) < error.number_of_qubits:
+                raise RuntimeError(
+                    no_info_error + " for {} qubits".format(error.number_of_qubits))
+            operator_dict = operator_lists[error.number_of_qubits - 1]
+        if operator_dict is not None:
+            _, operator_list = zip(*operator_dict.items())
+        if operator_list is not None:
+            op_matrix_list = [
+                transformer.operator_matrix(operator) for operator in operator_list
+            ]
+            probabilities = transformer.transform_by_operator_list(
+                op_matrix_list, error_kraus_operators)
+            identity_prob = numpy.round(1 - sum(probabilities), 9)
+            if identity_prob < 0 or identity_prob > 1:
+                raise RuntimeError(
+                    "Channel probabilities sum to {}".format(1 - identity_prob))
+            quantum_error_spec = [([{'name': 'id', 'qubits': [0]}], identity_prob)]
+            op_circuit_list = [
+                transformer.operator_circuit(operator)
+                for operator in operator_list
+            ]
+            for (operator, probability) in zip(op_circuit_list, probabilities):
+                quantum_error_spec.append((operator, probability))
+            return QuantumError(quantum_error_spec)
+
+        raise NoiseError(
+            "Quantum error approximation failed - no approximating operators detected"
+        )
+
+    def test_approx_random_unitary_channel(self):
+        noise = Kraus(random_unitary(2, seed=123))
+        for opstr in ['pauli', 'reset', 'clifford']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertEquals(new_result, old_result)
+
+        noise = Kraus(random_unitary(4, seed=123))
+        for opstr in ['pauli', 'reset']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertEquals(new_result, old_result)
+
+    def test_approx_random_mixed_unitary_channel(self):
+        noise1 = UnitaryGate(random_unitary(2, seed=123))
+        noise2 = UnitaryGate(random_unitary(2, seed=456))
+        noise = QuantumError([(noise1, 0.7), (noise2, 0.3)])
+        for opstr in ['pauli', 'reset']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertEquals(new_result, old_result)
+
+        noise1 = UnitaryGate(random_unitary(4, seed=123))
+        noise2 = UnitaryGate(random_unitary(4, seed=456))
+        noise = QuantumError([(noise1, 0.7), (noise2, 0.3)])
+        for opstr in ['pauli', 'reset']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertEquals(new_result, old_result)
+
 
 if __name__ == '__main__':
     unittest.main()
