@@ -211,11 +211,19 @@ class AerBackend(Backend, ABC):
         if validate:
             self._validate(qobj)
 
+        # Get executor from qobj config and delete attribute so qobj can still be serialized
+        executor = getattr(qobj.config, 'executor', None)
+        if hasattr(qobj.config, 'executor'):
+            delattr(qobj.config, 'executor')
+
         # Optionally split the job
         experiments = split_qobj(qobj, max_size=getattr(qobj.config, 'max_job_size', None))
 
-        # Get the executor
-        executor = self._get_executor(**run_options)
+        # Temporarily remove any executor from options so that job submission
+        # can work with Dask client executors which can't be pickled
+        opts_executor = getattr(self._options, 'executor', None)
+        if hasattr(self._options, 'executor'):
+            self._options.executor = None
 
         # Submit job
         job_id = str(uuid.uuid4())
@@ -224,6 +232,11 @@ class AerBackend(Backend, ABC):
         else:
             aer_job = AerJob(self, job_id, self._run, experiments, executor)
         aer_job.submit()
+
+        # Restore removed executor after submission
+        if hasattr(self._options, 'executor'):
+            self._options.executor = opts_executor
+
         return aer_job
 
     def configuration(self):
@@ -349,19 +362,7 @@ class AerBackend(Backend, ABC):
         for key, val in run_options.items():
             setattr(qobj.config, key, val)
 
-        # We need to remove the executor from the qobj config
-        # since it can't be serialized though JSON/Pybind.
-        if hasattr(qobj.config, 'executor'):
-            delattr(qobj.config, 'executor')
-
         return qobj
-
-    def _get_executor(self, **run_options):
-        """Get the executor"""
-        if 'executor' in run_options:
-            return run_options['executor']
-        else:
-            return getattr(self._options, 'executor', None)
 
     @abstractmethod
     def _execute(self, qobj):
