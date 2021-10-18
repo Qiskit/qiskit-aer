@@ -1347,21 +1347,43 @@ Vector<complex_t> MPS::get_amplitude_vector(const reg_t &base_values) {
 }
 
 complex_t MPS::get_single_amplitude(const std::string &base_value) {
+  cmatrix_t temp_mat;
+  get_single_amplitude_or_probability_internal(base_value, 0, num_qubits_-1, temp_mat);
+  return temp_mat(0, 0);
+}
+
+double MPS::get_single_probability_internal(const std::string &base_value, 
+					    uint_t first_index, uint_t last_index) const {
+  cmatrix_t temp_mat;
+  get_single_amplitude_or_probability_internal(base_value, first_index, last_index, temp_mat);
+  cvector_t diag = AER::Utils::matrix_diagonal(temp_mat);
+  double val = 0.0;
+  for (const auto &v : diag) {
+    val += std::real(v * std::conj(v));
+  }
+  return val;
+}
+
+void MPS::
+get_single_amplitude_or_probability_internal(const std::string &base_value, 
+					     uint_t first_index, uint_t last_index,
+					     cmatrix_t &temp) const {
   // We take the bits of the base value from right to left in order not to expand the 
   // base values to the full width of 2^n
-  // We contract from left to right because the representation in Qiskit is from left 
-  // to right, i.e., 1=1000, 2=0100, ...
+  // We contract from left to right because the representation in Qiskit is from
+  // left to right, i.e., 1=1000, 2=0100, ...
 
   int_t pos = base_value.length()-1;
   uint_t bit = base_value[pos]=='0' ? 0 : 1;
   pos--;
-  cmatrix_t temp = q_reg_[0].get_data(bit);
+  temp = q_reg_[first_index].get_data(bit);
 
-  for (uint_t qubit=0; qubit<num_qubits_-1; qubit++) {
+  for (uint_t qubit=first_index; qubit<last_index; qubit++) {
     if (pos >=0)
       bit = base_value[pos]=='0' ? 0 : 1;
     else
       bit = 0;
+
     for (uint_t row=0; row<temp.GetRows(); row++){
       for (uint_t col=0; col<temp.GetColumns(); col++){
 	temp(row, col) *= lambda_reg_[qubit][col];
@@ -1370,8 +1392,6 @@ complex_t MPS::get_single_amplitude(const std::string &base_value) {
     temp = temp * q_reg_[qubit+1].get_data(bit);
     pos--;
   }
-  
-  return temp(0, 0);
 }
 
 void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const {
@@ -1453,48 +1473,6 @@ double MPS::norm(const reg_t &qubits, const cvector_t &vmat) const {
 double MPS::norm(const reg_t &qubits, const cmatrix_t &mat) const {
     cmatrix_t norm_mat = AER::Utils::dagger(mat) * mat;
     return expectation_value(qubits, norm_mat);
-}
-
-//------------------------------------------------------------------------------
-// Sample measure outcomes - this method is similar to QubitVector::sample_measure, 
-// with 2 differences:
-// 1. We use accumulated probabilities which we prepare in advance, rather than summing up the 
-// probabilites during the algorithm
-// 2. We use binary search to locate the index of rnd, rather than linear search. This is 
-// possible since the accumulated probabilities vector is increasing
-
-//-----------------------------------------------------------------------------
-reg_t MPS::sample_measure_using_probabilities(const rvector_t &rnds, 
-					      const reg_t &qubits) {
-  // since input is always sorted in qasm_controller, we must return the qubits 
-  // to their original location (sorted)
-  move_all_qubits_to_sorted_ordering();
-  return sample_measure_using_probabilities_internal(rnds, qubits);
-}
-
-reg_t MPS::sample_measure_using_probabilities_internal(const rvector_t &rnds, 
-						       const reg_t &qubits) const {
-  const uint_t SHOTS = rnds.size();
-  reg_t samples;
-  samples.assign(SHOTS, 0);
-  rvector_t acc_probvector;
-  reg_t index_vec;
-  get_accumulated_probabilities_vector(acc_probvector, index_vec, qubits);
-
- uint_t accvec_size = acc_probvector.size();
- uint_t rnd_index;
-#pragma omp parallel if (SHOTS > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-    {
-#pragma omp for
-      for (int_t i = 0; i < static_cast<int_t>(SHOTS); ++i) {
-	double rnd = rnds[i];
-	rnd_index = binary_search(acc_probvector, 
-				  0, accvec_size-1, rnd);
-	samples[i] = index_vec[rnd_index];
-      }
-    }// end omp parallel
-    
-    return samples;
 }
 
 reg_t MPS::apply_measure(const reg_t &qubits, const rvector_t &rnds) {
@@ -1584,6 +1562,54 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
       break;   // no need to propagate if no entanglement
     apply_2_qubit_gate(i-1, i, id, cmatrix_t(1, 1));
   }
+}
+
+reg_t MPS::new_sample_measure(const reg_t &qubits, const rvector_t &rnds) const {
+  uint_t size = qubits.size();
+  double prob = 1;
+  char measure_1_qubit = sample_measure_first_qubit(0, rnds[0], prob);
+  std::string current_measure="";
+  current_measure = measure_1_qubit + current_measure;
+
+  for (uint_t i=1; i<size; i++) {
+    measure_1_qubit = sample_measure_single_qubit(i, current_measure, 
+						  prob, rnds[i]);
+    current_measure =  measure_1_qubit + current_measure;
+  }
+  reg_t outcome_vector(size);
+
+  for (uint_t i=0; i<size; i++) {
+    outcome_vector[size-1-i] = (current_measure[i] == '0') ? 0 : 1;
+  }
+  return outcome_vector;
+}
+
+uint_t MPS::sample_measure_first_qubit(uint_t qubit, double rnd, 
+				       double &prob) const {
+  reg_t qubits_to_update;
+  qubits_to_update.push_back(qubit);
+    // step 1 - measure qubit in Z basis
+  double exp_val = real(expectation_value_pauli_internal(qubits_to_update, "Z", qubit, qubit, 0));
+  // step 2 - compute probability for 0 or 1 result
+  double prob0 = (1 + exp_val ) / 2;
+  double prob1 = 1 - prob0;
+  char measurement;
+  measurement = (rnd < prob0) ? '0': '1';
+  prob = (measurement == '0') ? prob0 : prob1;
+  return measurement;
+}
+
+uint_t MPS::sample_measure_single_qubit(uint_t qubit, 
+					std::string &prev_measure, 
+					double &prob, double rnd) const {
+  std::string new_string = '0' + prev_measure;
+  double prob0 = get_single_probability_internal(new_string, 0, qubit);
+  prob0 /= prob;
+  char measurement;
+  measurement = (rnd < prob0) ? '0' : '1';
+  double new_prob = (measurement == '0') ? prob0 : 1-prob0;
+  prob *= new_prob;
+  return measurement;
 }
 
 void MPS::apply_initialize(const reg_t &qubits, 

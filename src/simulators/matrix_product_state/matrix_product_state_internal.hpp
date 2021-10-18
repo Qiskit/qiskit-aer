@@ -224,7 +224,21 @@ public:
   Vector<complex_t> full_statevector();
 
   Vector<complex_t> get_amplitude_vector(const reg_t &base_values);
+
+  //----------------------------------------------------------------
+  // Function name: get_single_amplitude
+  // Description: Returns the amplitude of the input base_value
+  //----------------------------------------------------------------
   complex_t get_single_amplitude(const std::string &base_value);
+
+  //----------------------------------------------------------------
+  // Function name: get_single_probability
+  // Description: Returns the probabilitiy of the input base_value, on all the qubits between
+  //              first_index and last_index.
+  //----------------------------------------------------------------
+  double get_single_probability_internal(const std::string &base_value, 
+					 uint_t first_index, 
+					 uint_t last_index) const;
 
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
@@ -301,11 +315,14 @@ public:
   double norm(const reg_t &qubits, const cvector_t &vmat) const;
   double norm(const reg_t &qubits, const cmatrix_t &mat) const; 
 
-  reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
-					   const reg_t &qubits);
-
   reg_t apply_measure(const reg_t &qubits, const rvector_t &rnds);
   reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
+  reg_t new_sample_measure(const reg_t &qubits, const rvector_t &rnds) const;
+  uint_t sample_measure_first_qubit(uint_t qubit, double rnd,
+				    double &prob) const;
+  uint_t sample_measure_single_qubit(uint_t qubit, 
+				     std::string &prev_measure, 
+				     double &prob, double rnd) const;
 
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector_internal
@@ -418,12 +435,12 @@ private:
 
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 
+  void get_single_amplitude_or_probability_internal(const std::string &base_value, 
+						    uint_t first_index, uint_t last_index,
+						    cmatrix_t &temp) const;
 
   uint_t apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
 					     uint_t next_measured_qubit);
-
-  reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
-						    const reg_t &qubits) const;
 
   //----------------------------------------------------------------
   // Function name: initialize_from_matrix
