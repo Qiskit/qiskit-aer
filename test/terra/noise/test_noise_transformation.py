@@ -160,7 +160,7 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
         actual = approximate_quantum_error(error, operator_list=reset_kraus)
 
         p = (1 + gamma - numpy.sqrt(1 - gamma)) / 2
-        expected_probs = [1 - p, p]
+        expected_probs = [1 - p, p, 0]
         self.assertListAlmostEqual(expected_probs, actual.probabilities)
 
         with self.assertWarns(DeprecationWarning):
@@ -308,18 +308,16 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
         for opstr in ['pauli', 'reset']:
             approximate_quantum_error(noise, operator_string=opstr)
 
-    def test_approx_random_mixed_unitary_channel(self):
+    def test_approx_random_mixed_unitary_channel_1q(self):
         # run without raising any error
         noise1 = UnitaryGate(random_unitary(2, seed=123))
         noise2 = UnitaryGate(random_unitary(2, seed=456))
         noise = QuantumError([(noise1, 0.7), (noise2, 0.3)])
-        for opstr in ['pauli', 'reset']:
+        for opstr in ['pauli', 'reset', 'clifford']:
             approximate_quantum_error(noise, operator_string=opstr)
 
-        with self.assertRaises(NoiseError):
-            # QP may produce negative probabilities
-            approximate_quantum_error(noise, operator_string='clifford')
-
+    def test_approx_random_mixed_unitary_channel_2q(self):
+        # run without raising any error
         noise1 = UnitaryGate(random_unitary(4, seed=123))
         noise2 = UnitaryGate(random_unitary(4, seed=456))
         noise = QuantumError([(noise1, 0.7), (noise2, 0.3)])
@@ -330,6 +328,7 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
 # TODO: Delete after deprecation of old noise transformer
 import warnings
 from qiskit.extensions import UnitaryGate
+from qiskit.quantum_info import process_fidelity
 from qiskit.quantum_info.random import random_unitary
 @unittest.skipUnless(HAS_CVXPY, 'cvxpy is required to run these tests')
 class TestCompareOldAndNewNoiseTransformer(common.QiskitAerTestCase):
@@ -385,35 +384,51 @@ class TestCompareOldAndNewNoiseTransformer(common.QiskitAerTestCase):
             "Quantum error approximation failed - no approximating operators detected"
         )
 
-    def test_approx_random_unitary_channel(self):
+    def test_approx_random_unitary_channel_1q(self):
         noise = Kraus(random_unitary(2, seed=123))
-        for opstr in ['pauli', 'reset', 'clifford']:
-            new_result = approximate_quantum_error(noise, operator_string=opstr)
-            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
-            self.assertEquals(new_result, old_result)
-
-        noise = Kraus(random_unitary(4, seed=123))
         for opstr in ['pauli', 'reset']:
             new_result = approximate_quantum_error(noise, operator_string=opstr)
             old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
-            self.assertEquals(new_result, old_result)
+            self.assertEqual(new_result, old_result)
+        for opstr in ['clifford']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertGreaterEqual(process_fidelity(noise, new_result),
+                                    process_fidelity(noise, old_result))
 
-    def test_approx_random_mixed_unitary_channel(self):
+    def test_approx_random_unitary_channel_2q(self):
+        noise = Kraus(random_unitary(4, seed=123))
+        for opstr in ['pauli']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertEqual(new_result, old_result)
+        for opstr in ['reset']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertGreaterEqual(process_fidelity(noise, new_result),
+                                    process_fidelity(noise, old_result))
+
+    def test_approx_random_mixed_unitary_channel_1q(self):
         noise1 = UnitaryGate(random_unitary(2, seed=123))
         noise2 = UnitaryGate(random_unitary(2, seed=456))
         noise = QuantumError([(noise1, 0.7), (noise2, 0.3)])
         for opstr in ['pauli', 'reset']:
             new_result = approximate_quantum_error(noise, operator_string=opstr)
             old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
-            self.assertEquals(new_result, old_result)
+            self.assertEqual(new_result, old_result)
+        for opstr in ['clifford']:
+            # cannot compare due to error in old implementation
+            with self.assertRaises(NoiseError):
+                self.old_approximate_quantum_error(noise, operator_string=opstr)
 
+    def test_approx_random_mixed_unitary_channel_2q(self):
         noise1 = UnitaryGate(random_unitary(4, seed=123))
         noise2 = UnitaryGate(random_unitary(4, seed=456))
         noise = QuantumError([(noise1, 0.7), (noise2, 0.3)])
-        for opstr in ['pauli', 'reset']:
+        for opstr in ['pauli']:
             new_result = approximate_quantum_error(noise, operator_string=opstr)
             old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
-            self.assertEquals(new_result, old_result)
+            self.assertEqual(new_result, old_result)
 
 
 if __name__ == '__main__':

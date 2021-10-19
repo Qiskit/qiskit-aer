@@ -30,14 +30,14 @@ used in a Clifford simulator.
 import itertools
 import logging
 import warnings
-from typing import Sequence
+from typing import Sequence, List, Union
 
-import numpy
+import numpy as np
 import sympy
 
 from qiskit.circuit import Reset
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
-from qiskit.quantum_info.operators.channel import Kraus, SuperOp
+from qiskit.quantum_info.operators.channel import Kraus, SuperOp, Chi
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from ..noise.errors import QuantumError
 from ..noise.errors.errorutils import _single_qubit_clifford_gates
@@ -88,7 +88,7 @@ def approximate_quantum_error(error, *,
             ' to be approximated has been deprecated as of qiskit-aer 0.10.0'
             ' and will be removed no earlier than 3 months from that release date.',
             DeprecationWarning, stacklevel=2)
-        if isinstance(error, tuple) and isinstance(error[0], numpy.ndarray):
+        if isinstance(error, tuple) and isinstance(error[0], np.ndarray):
             error = list(error)
         if isinstance(error, list) or \
                 (isinstance(error, tuple) and isinstance(error[0], list)):
@@ -122,7 +122,7 @@ def approximate_quantum_error(error, *,
         if not isinstance(operator_list, Sequence):
             raise NoiseError("operator_list is not a sequence: {}".format(operator_list))
         if operator_list and isinstance(operator_list[0], Sequence) and isinstance(
-                operator_list[0][0], numpy.ndarray):
+                operator_list[0][0], np.ndarray):
             warnings.warn(
                 'Accepting a sequence of Kraus matrices (list of numpy arrays)'
                 ' as an operator_list has been deprecated as of qiskit-aer 0.10.0'
@@ -138,7 +138,7 @@ def approximate_quantum_error(error, *,
             raise NoiseError(f"Invalid type found in operator list: {operator_list}")
 
         probabilities = _transform_by_operator_list(channel_list, error)
-        identity_prob = numpy.round(1 - sum(probabilities), 9)
+        identity_prob = np.round(1 - sum(probabilities), 9)
         if identity_prob < 0 or identity_prob > 1:
             raise NoiseError(f"Channel probabilities sum to {1 - identity_prob}")
         noise_ops = [((IGate(), [0]), identity_prob)]
@@ -253,360 +253,90 @@ _PRESET_OPERATOR_TABLE = {
 }
 
 
-def _transform_by_operator_list(basis_ops, kraus):
+def _transform_by_operator_list(basis_ops: Sequence[Union[QuantumChannel, QuantumError]],
+                                target: Union[QuantumChannel, QuantumError]) -> List[float]:
     r"""
-    Transform input Kraus channel.
+    Transform input quantum channel.
 
-    Allows approximating an input Kraus channel as in terms of
-    a different set of Kraus operators (basis_ops).
+    Allows approximating an input quantum channel as in terms of
+    a different set of quantum channel operators (basis_ops).
 
     For example, setting :math:`[X, Y, Z]` allows approximating by a
     Pauli channel, and :math:`[(|0 \langle\rangle 0|,
     |0\langle\rangle 1|), |1\langle\rangle 0|, |1 \langle\rangle 1|)]`
     represents the relaxation channel
 
-    In the case the input is a list :math:`[A_1, A_2, ..., A_n]` of
-    transform matrices and :math:`[E_0, E_1, ..., E_m]` of noise Kraus
-    operators, the output is a list :math:`[p_1, p_2, ..., p_n]` of
-    probabilities such that:
+    In the case the input is a list :math:`[S_1, S_2, ..., S_n]` of
+    channels and the target channel :math:`T`, the output is a list
+    :math:`[p_1, p_2, ..., p_n]` of probabilities such that:
 
     1. :math:`p_i \ge 0`
     2. :math:`p_1 + ... + p_n \le 1`
-    3. :math:`[\sqrt(p_1) A_1, \sqrt(p_2) A_2, ..., \sqrt(p_n) A_n,
-       \sqrt(1-(p_1 + ... + p_n))I]` is a list of Kraus operators that
-       define the output channel (which is "close" to the input channel
-       given by :math:`[E_0, ..., E_m]`.)
+    3. :math:`[\sqrt(p_1) S_1, \sqrt(p_2) S_2, ..., \sqrt(p_n) S_n,
+       \sqrt(1-(p_1 + ... + p_n))I]` is a list of channels that
+       define the output channel (which is "close" to the input channel :math:`T`.)
 
-    This channel can be thought of as choosing the operator :math:`A_i`
+    This channel can be thought of as choosing the operator :math:`S_i`
     in probability :math:`p_i` and applying this operator to the
     quantum state.
 
-    More generally, if the input is a list of tuples (not necessarily
-    of the same size): :math:`[(A_1, B_1, ...), (A_2, B_2, ...),
-    ..., (A_n, B_n, ...)]` then the output is still a list
-    :math:`[p_1, p_2, ..., p_n]` and now the output channel is defined
-    by the operators:
-    :math:`[\sqrt(p_1)A1, \sqrt(p_1)B_1, ..., \sqrt(p_n)A_n,
-    \sqrt(p_n)B_n, ..., \sqrt(1-(p_1 + ... + p_n))I]`
-
     Args:
-        kraus (Kraus): Kraus channel to be transformed.
-        basis_ops (list): a list of QuantumError objects representing Kraus operators
-        that can construct the output channel.
+        target: Quantum channel to be transformed.
+        basis_ops: a list of channel objects constructing the output channel.
 
     Returns:
-        list: A list of amplitudes (probabilities) that define the output channel.
+        list: A list of amplitudes (probabilities) of basis that define the output channel.
     """
-    basis_ops_mats = [Kraus(op).data for op in basis_ops]
-
-    # prepare channel operator list
-    # convert to sympy matrices and verify that each singleton is in a tuple; add identity matrix
-    full_basis_ops_mats = []
-    for ops in basis_ops_mats:
-        if not isinstance(ops, tuple) and not isinstance(ops, list):
-            ops = [ops]
-        full_basis_ops_mats.append([sympy.Matrix(op) for op in ops])
-    n = full_basis_ops_mats[0][0].shape[0]  # grab the dimensions from the first element
-    full_basis_ops_mats = [[sympy.eye(n)]] + full_basis_ops_mats
-
-    channel_matrices, const_channel_matrix = _generate_channel_matrices(full_basis_ops_mats)
-
-    # prepare data to construct honesty constraint
-    def fidelity(channel):
-        return sum([numpy.abs(numpy.trace(E)) ** 2 for E in channel])
-
-    coefficients = [fidelity(ops) for ops in full_basis_ops_mats]
-    fidelity_data = {
-        'goal': fidelity(kraus.data),
-        'coefficients': coefficients[1:]  # coefficients[0] corresponds to I
-    }
-
     # pylint: disable=invalid-name
-    P, q = _create_obj_func_coef(kraus, channel_matrices, const_channel_matrix)
-    probabilities = _solve_quadratic_program(P, q, fidelity_data)
-    return probabilities
+    N = 2 ** basis_ops[0].num_qubits
+    # add identity channel in front
+    basis_ops = [Kraus(np.eye(N))] + basis_ops
 
+    # create objective function coefficients
+    basis_ops_mats = [Chi(op).data for op in basis_ops]
+    T = Chi(target).data
+    n = len(basis_ops_mats)
+    A = np.zeros((n, n))
+    for i, S_i in enumerate(basis_ops_mats):
+        for j, S_j in enumerate(basis_ops_mats):
+            if i < j:
+                A[i][j] = _hs_inner_prod_real(S_i, S_j)
+            elif i > j:
+                A[i][j] = A[j][i]
+            else:  # i==j
+                A[i][j] = _hs_inner_prod(S_i, S_j)
+    b = -2 * np.array([_hs_inner_prod_real(T, S_i) for S_i in basis_ops_mats])
+    # c = _hs_inner_prod(T, T)
 
-# methods relevant to the transformation to quadratic programming instance
-def _generate_channel_matrices(full_basis_ops_mats):
-    r"""
-    Generate symbolic channel matrices.
+    # create honesty constraint coefficients
+    def fidelity(channel):  # fidelity w.r.t. identity omitting the N^-2 factor
+        return float(np.abs(np.trace(SuperOp(channel))))
 
-    Generates a list of 4x4 symbolic matrices describing the channel
-    defined from the given operators. The identity matrix is assumed
-    to be the first element in the list:
+    source_fids = np.array([fidelity(op) for op in basis_ops])
+    target_fid = fidelity(target)
 
-    .. code-block:: python
-
-        [(I, ), (A1, B1, ...), (A2, B2, ...), ..., (An, Bn, ...)]
-
-    E.g. for a Pauli channel, the matrices are:
-
-    .. code-block:: python
-
-        [(I,), (X,), (Y,), (Z,)]
-
-    For relaxation they are:
-
-    .. code-block:: python
-
-        [(I, ), (|0><0|, |0><1|), |1><0|, |1><1|)]
-
-    We consider this input to symbolically represent a channel in the
-    following manner: define indeterminates :math:`x_0, x_1, ..., x_n`
-    which are meant to represent probabilities such that
-    :math:`x_i \ge 0` and :math:`x0 = 1-(x_1 + ... + x_n)`.
-
-    Now consider the quantum channel defined via the Kraus operators
-    :math:`{\sqrt(x_0)I, \sqrt(x_1) A_1, \sqrt(x1) B_1, ...,
-    \sqrt(x_m)A_n, \sqrt(x_n) B_n, ...}`
-    This is the channel C symbolically represented by the operators.
-
-    Args:
-        full_basis_ops_mats (list): A list of tuples of
-            matrices which represent Kraus operators.
-
-    Returns:
-        list: A list of 4x4 complex matrices ``([D1, D2, ..., Dn], E)``
-        such that the matrix :math:`x_1 D_1 + ... + x_n D_n + E`
-        represents the operation of the channel C on the density
-        operator. we find it easier to work with this representation
-        of C when performing the combinatorial optimization.
-    """
-
-    from sympy import symbols as sp_symbols, sqrt
-    symbols_string = " ".join([
-        "x{}".format(i)
-        for i in range(len(full_basis_ops_mats))
-    ])
-    symbols = sp_symbols(symbols_string, real=True, positive=True)
-    exp = symbols[
-        1]  # exp will contain the symbolic expression "x1 +...+ xn"
-    for i in range(2, len(symbols)):
-        exp = symbols[i] + exp
-    # symbolic_operators_list is a list of lists; we flatten it the next line
-    symbolic_operators_list = [[
-        sqrt(symbols[i]) * op for op in ops
-    ] for (i, ops) in enumerate(full_basis_ops_mats)]
-    symbolic_operators = [
-        op for ops in symbolic_operators_list for op in ops
-    ]
-    # channel_matrix_representation() performs the required linear
-    # algebra to find the representing matrices.
-    channel = _channel_matrix_representation(
-        symbolic_operators).subs(symbols[0], 1 - exp)
-    symbols = symbols[1:]
-
-    # pylint: disable=invalid-name
-    def get_matrix_from_channel(channel, symbol):
-        """
-        Extract the numeric parameter matrix.
-
-        Args:
-            channel (matrix): a 4x4 symbolic matrix.
-            symbol (list): a symbol xi
-
-        Returns:
-            matrix: a 4x4 numeric matrix.
-
-        Additional Information:
-            Each entry of the 4x4 symbolic input channel matrix is assumed to
-            be a polynomial of the form a1x1 + ... + anxn + c. The corresponding
-            entry in the output numeric matrix is ai.
-        """
-        n = channel.rows
-        M = numpy.zeros((n, n), dtype=numpy.complex_)
-        for (i, j) in itertools.product(range(n), range(n)):
-            M[i, j] = complex(
-                sympy.Poly(channel[i, j], symbol).coeff_monomial(symbol))
-        return M
-
-    def get_const_matrix_from_channel(channel, symbols):
-        """
-        Extract the numeric constant matrix.
-
-        Args:
-            channel (matrix): a 4x4 symbolic matrix.
-            symbols (list): The full list [x1, ..., xn] of symbols
-                used in the matrix.
-
-        Returns:
-            matrix: a 4x4 numeric matrix.
-
-        Additional Information:
-            Each entry of the 4x4 symbolic input channel matrix is assumed to
-            be a polynomial of the form a1x1 + ... + anxn + c. The corresponding
-            entry in the output numeric matrix is c.
-        """
-        n = channel.rows
-        M = numpy.zeros((n, n), dtype=numpy.complex_)
-        for (i, j) in itertools.product(range(n), range(n)):
-            M[i, j] = complex(
-                sympy.Poly(channel[i, j], symbols).coeff_monomial(1))
-        return M
-
-    Ds = [get_matrix_from_channel(channel, symbol) for symbol in symbols]
-    E = get_const_matrix_from_channel(channel, symbols)
-    return Ds, E
-
-
-def _channel_matrix_representation(operators):
-    """
-    We convert the operators to a matrix by applying the channel to
-    the four basis elements of the 2x2 matrix space representing
-    density operators; this is standard linear algebra
-
-    Args:
-        operators (list): The list of operators to transform into a Matrix
-
-    Returns:
-        sympy.Matrix: The matrx representation of the operators
-    """
-    shape = operators[0].shape
-    standard_base = []
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            basis_element_ij = sympy.zeros(*shape)
-            basis_element_ij[(i, j)] = 1
-            standard_base.append(basis_element_ij)
-
-    def compute_channel_operation(rho, operators):
-        """
-        Given a quantum state's density function rho, the effect of the
-        channel on this state is:
-        rho -> sum_{i=1}^n E_i * rho * E_i^dagger
-
-        Args:
-            rho (number): Density function
-            operators (list): List of operators
-
-        Returns:
-            number: The result of applying the list of operators
-        """
-        return sum([E * rho * E.H for E in operators],
-                   sympy.zeros(operators[0].rows))
-
-    return (sympy.Matrix([
-        list(compute_channel_operation(rho, operators))  # flatten
-        for rho in standard_base
-    ]))
-
-
-def _create_obj_func_coef(kraus,
-                          channel_matrices,
-                          const_channel_matrix):
-    """
-    Transform by by quantum channels.
-
-    This method creates objective function representing the
-    Hilbert-Schmidt norm of the matrix (A-B) obtained
-    as the difference of the input noise channel and the output
-    channel we wish to determine.
-
-    This function is represented by a matrix P and a vector q, such that
-    f(x) = 1/2(x*P*x)+q*x
-    where x is the vector we wish to minimize, where x represents
-    probabilities for the noise operators that construct the output channel
-
-    Args:
-        kraus (Kraus): A kraus to be transformed
-        channel_matrices (list): A list of 4x4 symbolic matrices
-        const_channel_matrix (matrix): a 4x4 constant matrix
-
-    Returns:
-        list: a list of the optimal probabilities for the channel matrices,
-        determined by the quadratic program solver
-    """
-    target_channel = SuperOp(kraus)
-    target_channel_matrix = target_channel._data.T
-
-    const_matrix = const_channel_matrix - target_channel_matrix
-
-    # pylint: disable=invalid-name
-    def _compute_P(As):
-        """
-        This method creates the matrix P in the
-        f(x) = 1/2(x*P*x)+q*x
-        representation of the objective function
-        Args:
-            As (list): list of symbolic matrices representing the channel matrices
-
-        Returns:
-            matrix: The matrix P for the description of the quadatic program
-        """
-        vs = [numpy.array(A).flatten() for A in As]
-        n = len(vs)
-        P = sympy.zeros(n, n)
-        for (i, j) in itertools.product(range(n), range(n)):
-            P[i, j] = 2 * numpy.real(numpy.dot(vs[i], numpy.conj(vs[j])))
-        return P
-
-    def _compute_q(As, C):
-        """
-        This method creates the vector q for the
-        f(x) = 1/2(x*P*x)+q*x
-        representation of the objective function
-        Args:
-            As (list): list of symbolic matrices repersenting the quadratic program
-            C (matrix): matrix representing the the constant channel matrix
-
-        Returns:
-            list: The vector q for the description of the quadaric program
-        """
-        vs = [numpy.array(A).flatten() for A in As]
-        vC = numpy.array(C).flatten()
-        n = len(vs)
-        q = sympy.zeros(1, n)
-        for i in range(n):
-            q[i] = 2 * numpy.real(numpy.dot(numpy.conj(vC), vs[i]))
-        return q
-
-    return _compute_P(channel_matrices), _compute_q(channel_matrices, const_matrix)
-
-
-# pylint: disable=invalid-name
-def _solve_quadratic_program(P, q, fidelity_data):
-    """
-    Solve the quadratic program optimization problem.
-
-    This function solved the quadratic program to minimize the objective function
-    f(x) = 1/2(x*P*x)+q*x
-    subject to the additional constraints:
-    sum(x) <= 1, x >= 0 ensuring that x represents a probability vector,
-    (optional) Gx <= h honesty constraint if required
-
-    Args:
-        P (matrix): A matrix representing the P component of the objective function
-        q (list): A vector representing the q component of the objective function
-        fidelity_data (dict): Fidelity data used to define the honesty constraints
-
-    Returns:
-        list: The solution of the quadratic program (represents probabilities)
-
-    Additional information:
-        This method is the only place in the code where we rely on the cvxpy library
-        should we consider another library, only this method needs to change.
-    """
     try:
         import cvxpy
     except ImportError:
         logger.error("cvxpy module needs to be installed to use this feature.")
-
-    P = numpy.array(P).astype(float)
-    q = numpy.array(q).astype(float).T
-    n = len(q)
+    # create quadratic program
     x = cvxpy.Variable(n)
-    constraints = [cvxpy.sum(x) <= 1, x >= 0]
-    if fidelity_data is not None:  # Add Honesty constraint if given fidelity_data
-        G = numpy.array(fidelity_data['coefficients']).astype(float)
-        h = numpy.array(fidelity_data['goal']).astype(float)
-        constraints.append(G @ x <= h)
     prob = cvxpy.Problem(
-        cvxpy.Minimize((1 / 2) * cvxpy.quad_form(x, P) + q.T @ x),
-        constraints
+        cvxpy.Minimize(cvxpy.quad_form(x, A) + b.T @ x),
+        constraints=[cvxpy.sum(x) <= 1, x >= 0, source_fids.T @ x <= target_fid]
     )
+    # solve quadratic program
     prob.solve()
-    return x.value
+    probabilities = x.value
+    return probabilities[1:]
+
+
+def _hs_inner_prod(A, B):  # pylint: disable=invalid-name
+    return np.trace(np.conj(A).T @ B).real
+
+
+def _hs_inner_prod_real(A, B):  # pylint: disable=invalid-name
+    return np.trace(np.conj(A.T) @ B).real
 
 
 # ================== Deprecated interfaces ================== #
@@ -718,11 +448,11 @@ class NoiseTransformer:
         Returns:
             List: The operator, converted to noise circuit representation.
         """
-        if isinstance(operator, numpy.ndarray):
+        if isinstance(operator, np.ndarray):
             return [{'name': 'unitary', 'qubits': [0], 'params': [operator]}]
 
         if isinstance(operator, list) and isinstance(operator[0],
-                                                     numpy.ndarray):
+                                                     np.ndarray):
             if len(operator) == 1:
                 return [{'name': 'unitary', 'qubits': [0], 'params': operator}]
             else:
@@ -838,7 +568,7 @@ class NoiseTransformer:
     @staticmethod
     def fidelity(channel):
         """ Calculates channel fidelity """
-        return sum([numpy.abs(numpy.trace(E)) ** 2 for E in channel])
+        return sum([np.abs(np.trace(E)) ** 2 for E in channel])
 
     # pylint: disable=invalid-name
     def generate_channel_matrices(self, transform_channel_operators_list):
@@ -1004,7 +734,7 @@ class NoiseTransformer:
         """
         from sympy import Poly
         n = channel.rows
-        M = numpy.zeros((n, n), dtype=numpy.complex_)
+        M = np.zeros((n, n), dtype=np.complex_)
         for (i, j) in itertools.product(range(n), range(n)):
             M[i, j] = complex(
                 Poly(channel[i, j], symbol).coeff_monomial(symbol))
@@ -1030,7 +760,7 @@ class NoiseTransformer:
         """
         from sympy import Poly
         n = channel.rows
-        M = numpy.zeros((n, n), dtype=numpy.complex_)
+        M = np.zeros((n, n), dtype=np.complex_)
         for (i, j) in itertools.product(range(n), range(n)):
             M[i, j] = complex(
                 Poly(channel[i, j], symbols).coeff_monomial(1))
@@ -1079,11 +809,11 @@ class NoiseTransformer:
             matrix: The matrix P for the description of the quadaric program
         """
         from sympy import zeros
-        vs = [numpy.array(A).flatten() for A in As]
+        vs = [np.array(A).flatten() for A in As]
         n = len(vs)
         P = zeros(n, n)
         for (i, j) in itertools.product(range(n), range(n)):
-            P[i, j] = 2 * numpy.real(numpy.dot(vs[i], numpy.conj(vs[j])))
+            P[i, j] = 2 * np.real(np.dot(vs[i], np.conj(vs[j])))
         return P
 
     def compute_q(self, As, C):
@@ -1099,12 +829,12 @@ class NoiseTransformer:
             list: The vector q for the description of the quadaric program
         """
         from sympy import zeros
-        vs = [numpy.array(A).flatten() for A in As]
-        vC = numpy.array(C).flatten()
+        vs = [np.array(A).flatten() for A in As]
+        vC = np.array(C).flatten()
         n = len(vs)
         q = zeros(1, n)
         for i in range(n):
-            q[i] = 2 * numpy.real(numpy.dot(numpy.conj(vC), vs[i]))
+            q[i] = 2 * np.real(np.dot(np.conj(vC), vs[i]))
         return q
 
     def solve_quadratic_program(self, P, q):
@@ -1134,8 +864,8 @@ class NoiseTransformer:
         except ImportError:
             logger.error("cvxpy module needs to be installed to use this feature.")
 
-        P = numpy.array(P).astype(float)
-        q = numpy.array(q).astype(float).T
+        P = np.array(P).astype(float)
+        q = np.array(q).astype(float).T
         n = len(q)
         # G and h constrain:
         #   1) sum of probs is less then 1
@@ -1147,8 +877,8 @@ class NoiseTransformer:
         if self.fidelity_data is not None:
             G_data.append(self.fidelity_data['coefficients'])
             h_data.append(self.fidelity_data['goal'])
-        G = numpy.array(G_data).astype(float)
-        h = numpy.array(h_data).astype(float)
+        G = np.array(G_data).astype(float)
+        h = np.array(h_data).astype(float)
         x = cvxpy.Variable(n)
         prob = cvxpy.Problem(
             cvxpy.Minimize((1 / 2) * cvxpy.quad_form(x, P) + q.T @ x),
