@@ -265,6 +265,13 @@ void Circuit::set_params(bool truncation) {
   size_t last_initialize_pos = 0;
   bool ops_to_remove = false;
 
+  for (size_t i = 0; i < size; ++ i) {
+    if (ops[i].type == OpType::jump) {
+      truncation = false;
+      break;
+    }
+  }
+
   std::unordered_set<uint_t> ancestor_qubits;
   for (size_t i = 0; i < size; ++ i) {
     const size_t rpos = size - i - 1;
@@ -358,7 +365,9 @@ void Circuit::set_params(bool truncation) {
         case OpType::save_stabilizer:
         case OpType::save_unitary:
         case OpType::save_mps:
-        case OpType::save_superop: {
+        case OpType::save_superop:
+        case OpType::jump:
+        case OpType::mark: {
           can_sample = false;
           break;
         }

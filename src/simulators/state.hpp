@@ -344,8 +344,32 @@ void State<state_t>::apply_ops(InputIterator first, InputIterator last,
                                ExperimentResult &result,
                                RngEngine &rng,
                                bool final_ops) {
+
+  std::unordered_map<std::string, InputIterator> marks;
   // Simple loop over vector of input operations
   for (auto it = first; it != last; ++it) {
+    const auto& op = *it;
+    if (op.type == Operations::OpType::mark)
+      marks[op.string_params[0]] = it;
+  }
+
+  // Simple loop over vector of input operations
+  for (auto it = first; it != last; ++it) {
+    if (it->type == Operations::OpType::jump) {
+      if (creg_.check_conditional(*it)) {
+        const auto& mark_name = it->string_params[0];
+        auto mark_it = marks.find(mark_name);
+        if (mark_it == marks.end()) {
+          std::stringstream msg;
+          msg << "Invalid jump destination:\"" << mark_name << "\"." << std::endl;
+          throw std::invalid_argument(msg.str());
+        }
+        it = mark_it->second;
+      }
+      continue;
+    } else if (it->type == Operations::OpType::mark) {
+      continue;
+    }
     apply_op(*it, result, rng, final_ops && (it + 1 == last));
   }
 }
