@@ -16,7 +16,6 @@ NoiseTransformer class tests
 import unittest
 
 import numpy
-import numpy as np
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors.quantum_error import QuantumError
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
@@ -329,6 +328,7 @@ class TestNoiseTransformer(common.QiskitAerTestCase):
 # TODO: Delete after deprecation of old noise transformer
 import warnings
 from qiskit.extensions import UnitaryGate
+from qiskit.quantum_info import process_fidelity
 from qiskit.quantum_info.random import random_unitary
 @unittest.skipUnless(HAS_CVXPY, 'cvxpy is required to run these tests')
 class TestCompareOldAndNewNoiseTransformer(common.QiskitAerTestCase):
@@ -390,6 +390,11 @@ class TestCompareOldAndNewNoiseTransformer(common.QiskitAerTestCase):
             new_result = approximate_quantum_error(noise, operator_string=opstr)
             old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
             self.assertEqual(new_result, old_result)
+        for opstr in ['clifford']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertGreaterEqual(process_fidelity(noise, new_result),
+                                    process_fidelity(noise, old_result))
 
     def test_approx_random_unitary_channel_2q(self):
         noise = Kraus(random_unitary(4, seed=123))
@@ -397,6 +402,11 @@ class TestCompareOldAndNewNoiseTransformer(common.QiskitAerTestCase):
             new_result = approximate_quantum_error(noise, operator_string=opstr)
             old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
             self.assertEqual(new_result, old_result)
+        for opstr in ['reset']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertGreaterEqual(process_fidelity(noise, new_result),
+                                    process_fidelity(noise, old_result))
 
     def test_approx_random_mixed_unitary_channel_1q(self):
         noise1 = UnitaryGate(random_unitary(2, seed=123))
@@ -406,6 +416,10 @@ class TestCompareOldAndNewNoiseTransformer(common.QiskitAerTestCase):
             new_result = approximate_quantum_error(noise, operator_string=opstr)
             old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
             self.assertEqual(new_result, old_result)
+        for opstr in ['clifford']:
+            # cannot compare due to error in old implementation
+            with self.assertRaises(NoiseError):
+                self.old_approximate_quantum_error(noise, operator_string=opstr)
 
     def test_approx_random_mixed_unitary_channel_2q(self):
         noise1 = UnitaryGate(random_unitary(4, seed=123))
