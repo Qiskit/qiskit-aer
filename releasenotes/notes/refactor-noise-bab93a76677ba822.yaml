@@ -1,16 +1,8 @@
 ---
-prelude: >
-    In the 0.10 release, the implementation of the noise module
-    :mod:`~qiskit.providers.aer.noise` is largely updated
-    so that it uses ``QuantumCircuit`` internally instead of ``qobj`` (json).
-    With that, ``QuantumError`` object now can be made as a mixture of circuits
-    (see :ref:`New Features`).
-    In addition, the module is also largely refactored to simplify public interfaces
-    (see :ref:`Upgrade Notes` and :ref:`Deprecation Notes`).
 features:
   - |
     The constructor of ``QunatumError`` now accepts several new types of input
-    as ``noise_ops`` argument, for example::
+    as ``noise_ops`` argument, for example:
 
     .. code-block:: python
 
