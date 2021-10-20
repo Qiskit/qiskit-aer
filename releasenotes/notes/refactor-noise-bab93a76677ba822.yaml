@@ -1,0 +1,82 @@
+---
+prelude: >
+    In the 0.10 release, the implementation of the noise module
+    :mod:`~qiskit.providers.aer.noise` is largely updated
+    so that it uses ``QuantumCircuit`` internally instead of ``qobj`` (json).
+    With that, ``QuantumError`` object now can be made as a mixture of circuits
+    (see :ref:`New Features`).
+    In addition, the module is also largely refactored to simplify public interfaces
+    (see :ref:`Upgrade Notes` and :ref:`Deprecation Notes`).
+features:
+  - |
+    The constructor of ``QunatumError`` now accepts several new types of input
+    as ``noise_ops`` argument, for example::
+
+    .. code-block:: python
+
+      # Quantum channels
+      kraus = Kraus([
+                  np.array([[1, 0], [0, np.sqrt(1 - 0.9)]], dtype=complex),
+                  np.array([[0, 0], [0, np.sqrt(0.9)]], dtype=complex)
+              ])
+      print(QuantumError(kraus))
+
+      # QuantumCircuit
+      qc = QuantumCircuit(2)
+      qc.h(0)
+      qc.cx(0, 1)
+      print(QuantumError(qc))
+
+      # Tuple[Instruction, List[int]]  # List[int] = Qubits
+      print(QuantumError((Reset(), [0])))
+
+      # Iterable[Tuple[Tuple[Instruction, Qubits], float]]  # float = probability
+      print(QuantumError([((IGate(), [0]), 0.9), ((XGate(), [0]), 0.1)]))
+      print(QuantumError([((IGate(), [0]), 0.9), ((XGate(), [1]), 0.1)]))
+
+      # Instruction # short cut using default qubits = list(range(inst.num_qubits))
+      print(QuantumError([(IGate(), 0.9), (XGate(), 0.1)]))
+
+    Note that the original json-based input are deperecated.
+upgrade:
+  - |
+    Change default value of ``standard_gates`` to ``False`` for all functions
+    in :mod:`~qiskit.providers.aer.noise.errors.standard_errors` as
+    those functions are updated so that they use standard gates by default.
+  - |
+    Change to raise a ``NoiseError`` instead of ``RuntimeError``
+    when an unsupported argument is supplied in
+    :func:`approximate_quantum_error`.
+deprecations:
+  - |
+    Deprecate ``number_of_qubits`` option of :meth:`QunatumError.__init__`
+    in favor of automatic determination of the dimension.
+  - |
+    Deprecate ``standard_gates`` option of :meth:`QunatumError.__init__`
+    in favor of externalizing such an basis-change functionality.
+    In many cases, you can transform any error into an error defined
+    only with specific gates using :func:`approximate_quantum_error`.
+  - |
+    Deprecate ``standard_gates`` option of all functions in
+    :mod:`~qiskit.providers.aer.noise.errors.standard_errors`
+    in favor of returning errors in the form of mixture of standard gates
+    as mush as possible by default.
+  - |
+    Deprecate all functions in :mod:`~qiskit.providers.aer.noise.errors.errorutils`
+    because they are helper functions meant to be used only for implementing
+    functions in :mod:`~qiskit.providers.aer.noise.errors.standard_errors` and
+    they should have been provided as private functions.
+  - |
+    Deprecate :meth:`NoiseModel.from_dict` to make the noise model
+    independent of qobj (json) format.
+  - |
+    Deprecate all public vairables/functions/classes in
+    :mod:`~qiskit.providers.aer.noise.utils.noise_transformation` except for
+    :func:`approximate_quantum_error` and :func:`approximate_noise_model`
+    because they are helper functions meant to be used only for implementing
+    ``approximate_*`` functions and
+    they should have been provided as private functions.
+other:
+  - |
+    Changes in the implementation of the function :func:`approximate_quantum_error`
+    may change the resulting approximate error.
