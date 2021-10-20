@@ -429,6 +429,11 @@ class TestCompareOldAndNewNoiseTransformer(common.QiskitAerTestCase):
             new_result = approximate_quantum_error(noise, operator_string=opstr)
             old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
             self.assertEqual(new_result, old_result)
+        for opstr in ['reset']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertGreaterEqual(process_fidelity(noise, new_result),
+                                    process_fidelity(noise, old_result))
 
 
 if __name__ == '__main__':

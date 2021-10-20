@@ -52,10 +52,19 @@ def approximate_quantum_error(error, *,
                               operator_string=None,
                               operator_dict=None,
                               operator_list=None):
-    """
-    Return an approximate QuantumError bases on the Hilbert-Schmidt metric.
+    r"""
+    Return a ``QuantumError`` object that approximates an error
+    as a mixture of specified operators (channels).
 
-    Currently this is only implemented for 1-qubit QuantumErrors.
+    The approximation is done by minimizing the Hilbert-Schmidt distance
+    between the process matrix of the target error channel (:math:`T`) and
+    the process matrix of the output channel (:math:`S = \sum_i{p_i S_i}`),
+    i.e. :math:`Tr[(T-S)^\dagger (T-S)]`,
+    where
+    :math:`[p_1, p_2, ..., p_n]` denote probabilities and
+    :math:`[S_1, S_2, ..., S_n]` denote basis operators (channels).
+
+    See `arXiv:1207.0046 <http://arxiv.org/abs/1207.0046>`_ for the details.
 
     Args:
         error (QuantumError or QuantumChannel): the error to be approximated.
@@ -76,11 +85,13 @@ def approximate_quantum_error(error, *,
     Raises:
         NoiseError: if any invalid argument is specified or approximation failed.
 
-    Additional Information:
-        The operator input precedence is: ``list`` < ``dict`` < ``str``.
-        If a string is given, dict is overwritten; if a dict is given, list is
-        overwritten. Possible values for string are ``'pauli'``, ``'reset'``,
-        ``'clifford'``. The ``'clifford'`` does not support 2-qubit errors.
+    Note:
+        The operator input precedence is: ``list`` < ``dict`` < ``string``.
+        If a ``string`` is given, ``dict`` is overwritten;
+        if a ``dict`` is given, ``list`` is overwritten.
+        The ``string`` supports only 1- or 2-qubit errors and
+        its possible values are ``'pauli'``, ``'reset'``, ``'clifford'``.
+        The ``'clifford'`` does not support 2-qubit errors.
     """
     if not isinstance(error, (QuantumError, QuantumChannel)):
         warnings.warn(
@@ -137,7 +148,7 @@ def approximate_quantum_error(error, *,
         except NoiseError:
             raise NoiseError(f"Invalid type found in operator list: {operator_list}")
 
-        probabilities = _transform_by_operator_list(channel_list, error)
+        probabilities = _transform_by_operator_list(channel_list, error)[1:]
         identity_prob = np.round(1 - sum(probabilities), 9)
         if identity_prob < 0 or identity_prob > 1:
             raise NoiseError(f"Channel probabilities sum to {1 - identity_prob}")
@@ -156,7 +167,8 @@ def approximate_noise_model(model, *,
                             operator_dict=None,
                             operator_list=None):
     """
-    Return an approximate noise model.
+    Replace all noises in a noise model with ones approximated
+    by a mixture of operators (channels).
 
     Args:
         model (NoiseModel): the noise model to be approximated.
@@ -177,11 +189,13 @@ def approximate_noise_model(model, *,
     Raises:
         NoiseError: if any invalid argument is specified or approximation failed.
 
-    Additional Information:
-        The operator input precedence is: ``list`` < ``dict`` < ``str``.
-        If a string is given, dict is overwritten; if a dict is given, list is
-        overwritten. Possible values for string are ``'pauli'``, ``'reset'``,
-        ``'clifford'``. The ``'clifford'`` does not support 2-qubit errors.
+    Note:
+        The operator input precedence is: ``list`` < ``dict`` < ``string``.
+        If a ``string`` is given, ``dict`` is overwritten;
+        if a ``dict`` is given, ``list`` is overwritten.
+        The ``string`` supports only 1- or 2-qubit errors and
+        its possible values are ``'pauli'``, ``'reset'``, ``'clifford'``.
+        The ``'clifford'`` does not support 2-qubit errors.
     """
     def approximated(noise):
         return approximate_quantum_error(
@@ -256,29 +270,25 @@ _PRESET_OPERATOR_TABLE = {
 def _transform_by_operator_list(basis_ops: Sequence[Union[QuantumChannel, QuantumError]],
                                 target: Union[QuantumChannel, QuantumError]) -> List[float]:
     r"""
-    Transform input quantum channel.
+    Transform (or approximate) the target quantum channel into a mixture of
+    basis operators (channels) and return the mixing probabilities.
 
-    Allows approximating an input quantum channel as in terms of
-    a different set of quantum channel operators (basis_ops).
+    The approximate channel is found by minimizing the Hilbert-Schmidt
+    distance between the process matrix of the target channel (:math:`T`) and
+    the process matrix of the output channel (:math:`S = \sum_i{p_i S_i}`),
+    i.e. :math:`Tr[(T-S)^\dagger (T-S)]`,
+    where
+    :math:`[p_1, p_2, ..., p_n]` denote probabilities and
+    :math:`[S_1, S_2, ..., S_n]` denote basis operators (channels).
 
-    For example, setting :math:`[X, Y, Z]` allows approximating by a
-    Pauli channel, and :math:`[(|0 \langle\rangle 0|,
-    |0\langle\rangle 1|), |1\langle\rangle 0|, |1 \langle\rangle 1|)]`
-    represents the relaxation channel
+    Such an optimization can represented as a quadratic program:
+    Minimize :math:`p^T A p + b^T p`,
+    subject to :math:`p \ge 0`, `\sum_i{p_i} = 1`, `\sum_i{p_i} = 1`.
+    The last constraint is for making the approximation conservative by
+    forcing the output channel have more error than the target channel
+    in the sense that a "fidelity" against identity channel should be worse.
 
-    In the case the input is a list :math:`[S_1, S_2, ..., S_n]` of
-    channels and the target channel :math:`T`, the output is a list
-    :math:`[p_1, p_2, ..., p_n]` of probabilities such that:
-
-    1. :math:`p_i \ge 0`
-    2. :math:`p_1 + ... + p_n \le 1`
-    3. :math:`[\sqrt(p_1) S_1, \sqrt(p_2) S_2, ..., \sqrt(p_n) S_n,
-       \sqrt(1-(p_1 + ... + p_n))I]` is a list of channels that
-       define the output channel (which is "close" to the input channel :math:`T`.)
-
-    This channel can be thought of as choosing the operator :math:`S_i`
-    in probability :math:`p_i` and applying this operator to the
-    quantum state.
+    See `arXiv:1207.0046 <http://arxiv.org/abs/1207.0046>`_ for the details.
 
     Args:
         target: Quantum channel to be transformed.
@@ -328,7 +338,7 @@ def _transform_by_operator_list(basis_ops: Sequence[Union[QuantumChannel, Quantu
     # solve quadratic program
     prob.solve()
     probabilities = x.value
-    return probabilities[1:]
+    return probabilities
 
 
 def _hs_inner_prod(A, B):  # pylint: disable=invalid-name
