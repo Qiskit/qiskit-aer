@@ -1354,8 +1354,8 @@ complex_t MPS::get_single_amplitude(const std::string &base_value) {
 
 double MPS::get_single_probability_internal(const std::string &base_value, 
 					    uint_t first_index, uint_t last_index) const {
-  //  std::cout << "base_value = " << base_value << std::endl;
-  //  std::cout << "first = " << first_index << ", last index = " << last_index << std::endl;
+  std::cout << "base_value = " << base_value << std::endl;
+  std::cout << "first = " << first_index << ", last index = " << last_index << std::endl;
   cmatrix_t temp_mat;
   get_single_amplitude_or_probability_internal(base_value, first_index, last_index, temp_mat);
   cvector_t diag = AER::Utils::matrix_diagonal(temp_mat);
@@ -1577,13 +1577,14 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
   }
 }
 
-reg_t MPS::new_sample_measure(const reg_t &qubits, const rvector_t &rnds) const {
+reg_t MPS::new_sample_measure(const reg_t &qubits, const rvector_t &rnds) {
+  move_all_qubits_to_sorted_ordering();
   uint_t size = qubits.size();
   double prob = 1;
   char measure_1_qubit = sample_measure_first_qubit(0, rnds[0], prob);
   std::string current_measure="";
   current_measure = measure_1_qubit + current_measure;
-  //std::cout << "current_measure = " << current_measure << std::endl;
+  std::cout << "current_measure = " << current_measure << std::endl;
 
   for (uint_t i=1; i<size; i++) {
     measure_1_qubit = sample_measure_single_qubit(i, current_measure, 
@@ -1591,7 +1592,7 @@ reg_t MPS::new_sample_measure(const reg_t &qubits, const rvector_t &rnds) const 
     current_measure =  measure_1_qubit + current_measure;
   }
   reg_t outcome_vector(size);
-
+  std::cout<< "final measure = " << current_measure << std::endl<< std::endl;
   for (uint_t i=0; i<size; i++) {
     outcome_vector[size-1-i] = (current_measure[i] == '0') ? 0 : 1;
     //outcome_vector[i] = (current_measure[i] == '0') ? 0 : 1;
@@ -1607,7 +1608,7 @@ uint_t MPS::sample_measure_first_qubit(uint_t qubit, double rnd,
   double exp_val = real(expectation_value_pauli_internal(qubits_to_update, "Z", qubit, qubit, 0));
   // step 2 - compute probability for 0 or 1 result
   double prob0 = (1 + exp_val ) / 2;
-  //  std::cout << "initial prob0 = " << prob0 << std::endl;
+  std::cout << "initial prob0 = " << prob0 << std::endl;
   double prob1 = 1 - prob0;
   char measurement;
   measurement = (rnd < prob0) ? '0': '1';
@@ -1620,14 +1621,14 @@ uint_t MPS::sample_measure_single_qubit(uint_t qubit,
 					double &prob, double rnd) const {
   std::string new_string = '0' + prev_measure;
   double prob0 = get_single_probability_internal(new_string, 0, new_string.length()-1);
-  //  std::cout << "prob0 = " << prob0 << std::endl;
+  std::cout << "prob0 = " << prob0 << std::endl;
 
   prob0 /= prob;
   char measurement;
   measurement = (rnd < prob0) ? '0' : '1';
   double new_prob = (measurement == '0') ? prob0 : 1-prob0;
   prob *= new_prob;
-  //  std::cout << "new prob = " << prob << std::endl<< std::endl;
+  std::cout << "new prob = " << prob << std::endl;
   return measurement;
 }
 

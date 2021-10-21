@@ -317,7 +317,7 @@ public:
 
   reg_t apply_measure(const reg_t &qubits, const rvector_t &rnds);
   reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
-  reg_t new_sample_measure(const reg_t &qubits, const rvector_t &rnds) const;
+  reg_t new_sample_measure(const reg_t &qubits, const rvector_t &rnds);
   uint_t sample_measure_first_qubit(uint_t qubit, double rnd,
 				    double &prob) const;
   uint_t sample_measure_single_qubit(uint_t qubit, 
