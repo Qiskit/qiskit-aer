@@ -109,10 +109,6 @@ def approximate_quantum_error(error, *,
         else:
             raise NoiseError(f"Invalid input error type: {error.__class__.__name__}")
 
-    if isinstance(error, QuantumError):
-        error = Kraus(error)
-    # assert(isinstance(error, Kraus))
-
     if error.num_qubits > 2:
         raise NoiseError("Only 1-qubit and 2-qubit noises can be converted, "
                          f"{error.num_qubits}-qubit noise found in model")
