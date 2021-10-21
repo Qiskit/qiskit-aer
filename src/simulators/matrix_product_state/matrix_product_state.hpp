@@ -1023,7 +1023,6 @@ std::vector<reg_t> State::
   sample_measure_using_apply_measure(const reg_t &qubits, 
 				     uint_t shots, 
 				     RngEngine &rng) {
-
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
   // input is always sorted in qasm_controller, therefore, we must return the qubits 
@@ -1059,7 +1058,6 @@ std::vector<reg_t> State::
 std::vector<reg_t> State::new_sample_measure(const reg_t &qubits, 
 		     uint_t shots, 
 		     RngEngine &rng) {
-
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
   std::vector<rvector_t> rnds_list;
@@ -1074,7 +1072,7 @@ std::vector<reg_t> State::new_sample_measure(const reg_t &qubits,
   #pragma omp parallel if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
   {
     MPS temp;
-    #pragma omp for
+    //    #pragma omp for
     for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
       auto single_result = qreg_.new_sample_measure(qubits, rnds_list[i]);
       all_samples[i] = single_result;
