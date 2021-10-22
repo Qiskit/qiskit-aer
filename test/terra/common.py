@@ -94,7 +94,7 @@ class QiskitAerTestCase(FullQiskitTestCase):
         """
         return os.path.normpath(os.path.join(path.value, filename))
 
-    def assertSuccess(self, result):
+    def assertSuccess(self, result, success=True):
         """Assert that simulation executed without errors"""
         success = getattr(result, 'success', False)
         msg = result.status
@@ -102,7 +102,10 @@ class QiskitAerTestCase(FullQiskitTestCase):
             for i, res in enumerate(getattr(result, 'results', [])):
                 if res.status != 'DONE':
                     msg += ', (Circuit {}) {}'.format(i, res.status)
-        self.assertTrue(success, msg=msg)
+        if success:
+            self.assertTrue(success, msg=msg)
+        else:
+            self.assertFalse(success, msg=msg)
 
     @staticmethod
     def gate_circuits(gate_cls, num_angles=0, has_ctrl_qubits=False,

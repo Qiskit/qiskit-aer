@@ -40,7 +40,9 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::kraus, Operations::OpType::superop,
      Operations::OpType::save_state, Operations::OpType::save_superop,
      Operations::OpType::set_unitary,
-     Operations::OpType::set_superop},
+     Operations::OpType::set_superop,
+     Operations::OpType::jump, Operations::OpType::mark
+    },
     // Gates
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",

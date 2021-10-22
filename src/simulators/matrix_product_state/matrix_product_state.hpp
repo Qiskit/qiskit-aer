@@ -59,7 +59,9 @@ const Operations::OpSet StateOpSet(
    OpType::save_statevec, OpType::save_probs,
    OpType::save_probs_ket, OpType::save_amps,
    OpType::save_amps_sq, OpType::save_mps, OpType::save_state,
-   OpType::set_mps, OpType::set_statevec},
+   OpType::set_mps, OpType::set_statevec,
+   OpType::jump, OpType::mark
+  },
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",

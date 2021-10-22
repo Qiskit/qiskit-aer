@@ -349,8 +349,16 @@ void State<state_t>::apply_ops(InputIterator first, InputIterator last,
   // Simple loop over vector of input operations
   for (auto it = first; it != last; ++it) {
     const auto& op = *it;
-    if (op.type == Operations::OpType::mark)
-      marks[op.string_params[0]] = it;
+    const auto& mark_name = it->string_params[0];
+    if (it->type == Operations::OpType::mark) {
+      auto mark_it = marks.find(mark_name);
+      if (mark_it != marks.end()) {
+        std::stringstream msg;
+        msg << "Duplicated mark names exist:\"" << mark_name << "\"." << std::endl;
+        throw std::runtime_error(msg.str());
+      }
+      marks[mark_name] = it;
+    }
   }
 
   // Simple loop over vector of input operations
@@ -362,7 +370,7 @@ void State<state_t>::apply_ops(InputIterator first, InputIterator last,
         if (mark_it == marks.end()) {
           std::stringstream msg;
           msg << "Invalid jump destination:\"" << mark_name << "\"." << std::endl;
-          throw std::invalid_argument(msg.str());
+          throw std::runtime_error(msg.str());
         }
         it = mark_it->second;
       }

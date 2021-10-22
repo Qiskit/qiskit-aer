@@ -43,7 +43,9 @@ const Operations::OpSet StateOpSet(
      Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::snapshot, Operations::OpType::save_unitary,
-     Operations::OpType::save_state, Operations::OpType::set_unitary},
+     Operations::OpType::save_state, Operations::OpType::set_unitary,
+     Operations::OpType::jump, Operations::OpType::mark
+    },
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
      "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
