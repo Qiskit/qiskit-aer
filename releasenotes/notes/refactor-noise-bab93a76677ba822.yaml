@@ -1,8 +1,8 @@
 ---
 features:
   - |
-    The constructor of ``QunatumError`` now accepts several new types of input
-    as ``noise_ops`` argument, for example:
+    The constructor of :class:`~qiskit.providers.aer.noise.QuantumError` now
+    accepts several new types of input as ``noise_ops`` argument, for example:
 
     .. code-block:: python
 
@@ -41,10 +41,10 @@ upgrade:
     :func:`approximate_quantum_error`.
 deprecations:
   - |
-    Deprecate ``number_of_qubits`` option of :meth:`QunatumError.__init__`
+    Deprecate ``number_of_qubits`` option of :meth:`QuantumError.__init__`
     in favor of automatic determination of the dimension.
   - |
-    Deprecate ``standard_gates`` option of :meth:`QunatumError.__init__`
+    Deprecate ``standard_gates`` option of :meth:`QuantumError.__init__`
     in favor of externalizing such an basis-change functionality.
     In many cases, you can transform any error into an error defined
     only with specific gates using :func:`approximate_quantum_error`.
