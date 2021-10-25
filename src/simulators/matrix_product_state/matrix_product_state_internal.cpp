@@ -1581,12 +1581,13 @@ reg_t MPS::new_sample_measure(const reg_t &qubits, const rvector_t &rnds) {
   move_all_qubits_to_sorted_ordering();
   uint_t size = qubits.size();
   double prob = 1;
-  char measure_1_qubit = sample_measure_first_qubit(0, rnds[0], prob);
-  std::string current_measure="";
-  current_measure = measure_1_qubit + current_measure;
-  std::cout << "current_measure = " << current_measure << std::endl;
 
-  for (uint_t i=1; i<size; i++) {
+  std::string current_measure="";
+  char measure_1_qubit;
+  //  current_measure = measure_1_qubit + current_measure;
+  //  std::cout << "current_measure = " << current_measure << std::endl;
+
+  for (uint_t i=0; i<size; i++) {
     measure_1_qubit = sample_measure_single_qubit(i, current_measure, 
 						  prob, rnds[i]);
     current_measure =  measure_1_qubit + current_measure;
@@ -1595,40 +1596,31 @@ reg_t MPS::new_sample_measure(const reg_t &qubits, const rvector_t &rnds) {
   std::cout<< "final measure = " << current_measure << std::endl<< std::endl;
   for (uint_t i=0; i<size; i++) {
     outcome_vector[size-1-i] = (current_measure[i] == '0') ? 0 : 1;
-    //outcome_vector[i] = (current_measure[i] == '0') ? 0 : 1;
   }
   return outcome_vector;
-}
-
-uint_t MPS::sample_measure_first_qubit(uint_t qubit, double rnd, 
-				       double &prob) const {
-  reg_t qubits_to_update;
-  qubits_to_update.push_back(qubit);
-    // step 1 - measure qubit in Z basis
-  double exp_val = real(expectation_value_pauli_internal(qubits_to_update, "Z", qubit, qubit, 0));
-  // step 2 - compute probability for 0 or 1 result
-  double prob0 = (1 + exp_val ) / 2;
-  std::cout << "initial prob0 = " << prob0 << std::endl;
-  double prob1 = 1 - prob0;
-  char measurement;
-  measurement = (rnd < prob0) ? '0': '1';
-  prob = (measurement == '0') ? prob0 : prob1;
-  return measurement;
 }
 
 uint_t MPS::sample_measure_single_qubit(uint_t qubit, 
 					std::string &prev_measure, 
 					double &prob, double rnd) const {
-  std::string new_string = '0' + prev_measure;
-  double prob0 = get_single_probability_internal(new_string, 0, new_string.length()-1);
-  std::cout << "prob0 = " << prob0 << std::endl;
+  double prob0 = 0;
+  if (prev_measure == "") {   // First qubit measured
+    reg_t qubits_to_update;
+    qubits_to_update.push_back(qubit);
+    // step 1 - measure qubit in Z basis
+    double exp_val = real(expectation_value_pauli_internal(qubits_to_update, "Z", qubit, qubit, 0));
+    // step 2 - compute probability for 0 or 1 result
+    prob0 = (1 + exp_val ) / 2;
+  } else {
+    std::string new_string = '0' + prev_measure;
+    prob0 = get_single_probability_internal(new_string, 0, new_string.length()-1);
+    std::cout << "prob0 = " << prob0 << std::endl;
+    prob0 /= prob;
+  }
 
-  prob0 /= prob;
-  char measurement;
-  measurement = (rnd < prob0) ? '0' : '1';
+  char measurement = (rnd < prob0) ? '0' : '1';
   double new_prob = (measurement == '0') ? prob0 : 1-prob0;
   prob *= new_prob;
-  std::cout << "new prob = " << prob << std::endl;
   return measurement;
 }
 
