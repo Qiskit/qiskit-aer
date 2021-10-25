@@ -37,6 +37,7 @@ import sympy
 
 from qiskit.circuit import Reset
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.quantum_info.operators.channel import Kraus, SuperOp, Chi
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from ..noise.errors import QuantumError
@@ -84,6 +85,7 @@ def approximate_quantum_error(error, *,
 
     Raises:
         NoiseError: if any invalid argument is specified or approximation failed.
+        MissingOptionalLibraryError: if cvxpy is not installed.
 
     Note:
         The operator input precedence is: ``list`` < ``dict`` < ``string``.
@@ -184,6 +186,7 @@ def approximate_noise_model(model, *,
 
     Raises:
         NoiseError: if any invalid argument is specified or approximation failed.
+        MissingOptionalLibraryError: if cvxpy is not installed.
 
     Note:
         The operator input precedence is: ``list`` < ``dict`` < ``string``.
@@ -292,6 +295,9 @@ def _transform_by_operator_list(basis_ops: Sequence[Union[QuantumChannel, Quantu
 
     Returns:
         list: A list of amplitudes (probabilities) of basis that define the output channel.
+
+    Raises:
+        MissingOptionalLibraryError: if cvxpy is not installed.
     """
     # pylint: disable=invalid-name
     N = 2 ** basis_ops[0].num_qubits
@@ -323,8 +329,15 @@ def _transform_by_operator_list(basis_ops: Sequence[Union[QuantumChannel, Quantu
 
     try:
         import cvxpy
-    except ImportError:
+    except ImportError as err:
         logger.error("cvxpy module needs to be installed to use this feature.")
+        raise MissingOptionalLibraryError(
+            libname="cvxpy",
+            name="Transformation/Approximation of noise",
+            pip_install="pip install cvxpy",
+            msg="CVXPY is required to solve an optimization problem of"
+                " approximating a noise channel."
+        ) from err
     # create quadratic program
     x = cvxpy.Variable(n)
     prob = cvxpy.Problem(
