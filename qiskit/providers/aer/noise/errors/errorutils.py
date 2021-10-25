@@ -12,13 +12,16 @@
 """
 Helper functions for noise model creation.
 """
-# pylint: disable=wildcard-import,unused-wildcard-import
 import copy
 import warnings
 
 import numpy as np
+
 from qiskit.circuit import Reset
-from qiskit.circuit.library.standard_gates import *
+from qiskit.circuit.library.standard_gates import (
+    XGate, YGate, ZGate, TGate, TdgGate, CXGate, CZGate, SwapGate,
+    IGate, SGate, SdgGate, HGate, CCXGate
+)
 from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.operator import Operator
@@ -26,7 +29,6 @@ from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.operators.predicates import matrix_equal
-
 from ..noiseerror import NoiseError
 
 
