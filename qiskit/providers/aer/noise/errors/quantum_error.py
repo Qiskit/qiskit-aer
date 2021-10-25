@@ -48,7 +48,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                  noise_ops,
                  number_of_qubits=None,
                  standard_gates=False,
-                 atol=1e-8):
+                 atol=None):
         """
         Create a quantum error for a noise model.
 
@@ -96,7 +96,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
                                     automatically (default None).
             standard_gates (bool): [DEPRECATED] Check if input matrices are standard gates.
             atol (double): [DEPRECATED] Threshold for testing if probabilities are
-                           equal to 0 or 1 (Default: 1e-8).
+                           equal to 0 or 1 (Default: ``QuantumError.atol``).
         Raises:
             NoiseError: If input noise_ops is invalid, e.g. it's not a CPTP map.
         """
@@ -107,12 +107,14 @@ class QuantumError(BaseOperator, TolerancesMixin):
             super().__init__(num_qubits=noise_ops.num_qubits)
             return
 
-        if atol != QuantumError.atol:
+        if atol is not None:
             warnings.warn(
                 '"atol" option in the constructor of QuantumError has been deprecated'
                 ' as of qiskit-aer 0.10.0 and will be removed no earlier than 3 months'
                 ' from that release date. Use QuantumError.atol = value instead.',
                 DeprecationWarning, stacklevel=2)
+        else:
+            atol = QuantumError.atol
 
         # Convert list of arrarys to kraus instruction (for old API support) TODO: to be removed
         if isinstance(noise_ops, (list, tuple)) and \
@@ -153,7 +155,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
             _, p = pair  # pylint: disable=invalid-name
             if not isinstance(p, numbers.Real):
                 raise NoiseError('Invalid type of probability: {}'.format(p))
-            if p < -atol:
+            if p < -1 * atol:
                 raise NoiseError("Negative probability is invalid: {}".format(p))
 
         # Remove zero probability circuits
@@ -424,7 +426,6 @@ class QuantumError(BaseOperator, TolerancesMixin):
         bit_indices = {bit: index for index, bit in enumerate(qc.qubits)}
         ret = []
         for inst, qargs, _ in qc:
-            # name = inst.label if isinstance(inst, UnitaryGate) and inst.label else inst.name
             dic = {'name': inst.name, 'qubits': [bit_indices[q] for q in qargs]}
             if inst.params:
                 dic['params'] = inst.params
