@@ -1069,14 +1069,9 @@ std::vector<reg_t> State::new_sample_measure(const reg_t &qubits,
       rands.push_back(rng.rand(0., 1.));
     rnds_list.push_back(rands);
   }
-  #pragma omp parallel if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
-  {
-    MPS temp;
-    //    #pragma omp for
-    for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
-      auto single_result = qreg_.new_sample_measure(qubits, rnds_list[i]);
-      all_samples[i] = single_result;
-    }
+  for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
+    auto single_result = qreg_.new_sample_measure(qubits, rnds_list[i]);
+    all_samples[i] = single_result;
   }
   return all_samples;
 }
