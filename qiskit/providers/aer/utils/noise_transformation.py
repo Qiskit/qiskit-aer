@@ -41,8 +41,8 @@ from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.quantum_info.operators.channel import Kraus, SuperOp, Chi
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from ..noise.errors import QuantumError
-from ..noise.errors.errorutils import _single_qubit_clifford_gates
-from ..noise.errors.errorutils import _single_qubit_clifford_matrix
+from ..noise.errors.errorutils import _CLIFFORD_GATES
+from ..noise.errors.errorutils import single_qubit_clifford_matrix
 from ..noise.noise_model import NoiseModel
 from ..noise.noiseerror import NoiseError
 
@@ -121,8 +121,9 @@ def approximate_quantum_error(error, *,
         if operator_string not in valid_operator_strings:
             raise NoiseError(f"{operator_string} is not a valid operator_string. "
                              f"It must be one of {valid_operator_strings}")
-        operator_list = _PRESET_OPERATOR_TABLE[operator_string][error.num_qubits]
-        if not operator_list:
+        try:
+            operator_list = _PRESET_OPERATOR_TABLE[operator_string][error.num_qubits]
+        except KeyError:
             raise NoiseError(f"Preset '{operator_string}' operators do not support the "
                              f"approximation of errors with {error.num_qubits} qubits")
     if operator_dict is not None:
@@ -260,8 +261,7 @@ _PRESET_OPERATOR_TABLE = {
         ],
     },
     "clifford": {
-        1: [[(gate, [0]) for gate in _single_qubit_clifford_gates(j)] for j in range(1, 24)],
-        2: []  # not available
+        1: [[(gate, [0]) for gate in _CLIFFORD_GATES[j]] for j in range(1, 24)],
     }
 }
 
@@ -435,7 +435,7 @@ class NoiseTransformer:
         self.named_operators = {
             'pauli': pauli_operators(),
             'reset': reset_operators(),
-            'clifford': [{j: _single_qubit_clifford_matrix(j) for j in range(1, 24)}]
+            'clifford': [{j: single_qubit_clifford_matrix(j) for j in range(1, 24)}]
         }
         self.fidelity_data = None
         self.use_honesty_constraint = True

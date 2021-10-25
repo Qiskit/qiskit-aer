@@ -12,7 +12,6 @@
 """
 Helper functions for noise model creation.
 """
-import copy
 import warnings
 
 import numpy as np
@@ -62,15 +61,11 @@ def _standard_gates_instructions(instructions):
         list: a list of ordinary instructions equivalent to in input instruction.
     """
     output_instructions = []
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore",
-                                category=DeprecationWarning,
-                                module="qiskit.providers.aer.noise.errors.errorutils")
-        for instruction in instructions:
-            if isinstance(instruction, dict):
-                output_instructions += _standard_gate_instruction(instruction)
-            else:
-                output_instructions.append(instruction)
+    for instruction in instructions:
+        if isinstance(instruction, dict):
+            output_instructions += _standard_gate_instruction(instruction)
+        else:
+            output_instructions.append(instruction)
     return output_instructions
 
 
@@ -244,9 +239,9 @@ def _standard_gate_instruction(instruction, ignore_phase=True):
             for j in range(24):
                 if matrix_equal(
                         mat,
-                        _single_qubit_clifford_matrix(j),
+                        single_qubit_clifford_matrix(j),
                         ignore_phase=ignore_phase):
-                    return _single_qubit_clifford_instructions(j, qubit=qubits[0])
+                    return [(gate, [0]) for gate in _CLIFFORD_GATES[j]]
             # Check t gates
             for name in ["t", "tdg"]:
                 if matrix_equal(
@@ -390,25 +385,6 @@ _CLIFFORD_GATES = [
 ]
 
 
-def _single_qubit_clifford_gates(j):
-    """Temporary function to mimic single_qubit_clifford_gates during deprecation period.
-
-    Args:
-        j (int): Clifford index 0, ..., 23.
-
-    Returns:
-        tuple(Gate): The tuple of basis gates.
-
-    Raises:
-        NoiseError: If index is out of range [0, 23].
-    """
-    if not isinstance(j, int) or j < 0 or j > 23:
-        raise NoiseError(
-            "Index {} must be in the range [0, ..., 23]".format(j))
-
-    return copy.deepcopy(_CLIFFORD_GATES[j])
-
-
 def single_qubit_clifford_matrix(j):
     """Return Numpy array for a single qubit Clifford.
     Args:
@@ -442,30 +418,6 @@ def single_qubit_clifford_matrix(j):
     return mat
 
 
-def _single_qubit_clifford_matrix(j):
-    """Temporary function to mimic single_qubit_clifford_matrix during deprecation period.
-
-    Args:
-        j (int): Clifford index 0, ..., 23.
-
-    Returns:
-        np.array: The matrix for the indexed clifford.
-
-    Raises:
-        NoiseError: If index is out of range [0, 23].
-    """
-    if not isinstance(j, int) or j < 0 or j > 23:
-        raise NoiseError(
-            "Index {} must be in the range [0, ..., 23]".format(j))
-
-    mat = np.eye(2)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        for gate in _single_qubit_clifford_gates(j):
-            mat = np.dot(gate.to_matrix(), mat)
-    return mat
-
-
 # pylint: disable=invalid-name
 def single_qubit_clifford_instructions(index, qubit=0):
     """Return a list of qobj instructions for a single qubit Cliffords.
@@ -495,33 +447,6 @@ def single_qubit_clifford_instructions(index, qubit=0):
     instructions = []
     for gate in single_qubit_clifford_gates(index):
         instructions.append({"name": gate, "qubits": [qubit]})
-    return instructions
-
-
-def _single_qubit_clifford_instructions(index, qubit=0):
-    """Temporary function to mimic single_qubit_clifford_instructions during deprecation period.
-
-    Args:
-        index (int): Clifford index 0, ..., 23.
-        qubit (int): the qubit to apply the Clifford to.
-
-    Returns:
-        list(tuple): The list of instructions as (gate, qubits) tuples.
-
-    Raises:
-        NoiseError: If index is out of range [0, 23] or qubit invalid.
-    """
-    if not isinstance(index, int) or index < 0 or index > 23:
-        raise NoiseError(
-            "Index {} must be in the range [0, ..., 23]".format(index))
-    if not isinstance(qubit, int) or qubit < 0:
-        raise NoiseError("qubit position must be positive integer.")
-
-    instructions = []
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        for gate in _single_qubit_clifford_gates(index):
-            instructions.append((gate, [qubit]))
     return instructions
 
 
