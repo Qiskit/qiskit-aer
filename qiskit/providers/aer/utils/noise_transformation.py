@@ -311,14 +311,15 @@ def _transform_by_operator_list(basis_ops: Sequence[Union[QuantumChannel, Quantu
     A = np.zeros((n, n))
     for i, S_i in enumerate(basis_ops_mats):
         for j, S_j in enumerate(basis_ops_mats):
+            # A[i][j] = 1/2 * {Tr(S_i^† S_j) - Tr(S_j^† S_i)} = Re[Tr(S_i^† S_j)]
             if i < j:
                 A[i][j] = _hs_inner_prod_real(S_i, S_j)
             elif i > j:
                 A[i][j] = A[j][i]
             else:  # i==j
-                A[i][j] = _hs_inner_prod(S_i, S_j)
+                A[i][i] = _hs_norm(S_i)
     b = -2 * np.array([_hs_inner_prod_real(T, S_i) for S_i in basis_ops_mats])
-    # c = _hs_inner_prod(T, T)
+    # c = _hs_norm(T)
 
     # create honesty constraint coefficients
     def fidelity(channel):  # fidelity w.r.t. identity omitting the N^-2 factor
@@ -350,11 +351,13 @@ def _transform_by_operator_list(basis_ops: Sequence[Union[QuantumChannel, Quantu
     return probabilities
 
 
-def _hs_inner_prod(A, B):  # pylint: disable=invalid-name
-    return np.trace(np.conj(A).T @ B).real
+def _hs_norm(A):  # pylint: disable=invalid-name
+    # Tr(A^† A)
+    return np.trace(np.conj(A).T @ A).real
 
 
 def _hs_inner_prod_real(A, B):  # pylint: disable=invalid-name
+    # Re[Tr(A^† B)]
     return np.trace(np.conj(A.T) @ B).real
 
 
