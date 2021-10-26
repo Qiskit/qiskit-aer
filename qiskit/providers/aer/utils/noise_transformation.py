@@ -228,16 +228,17 @@ def approximate_noise_model(model, *,
 
 
 # pauli operators
-_ID_Q0 = [(IGate(), [0])]
-_ID_Q1 = [(IGate(), [1])]
 _PAULIS_Q0 = [[(IGate(), [0])], [(XGate(), [0])], [(YGate(), [0])], [(ZGate(), [0])]]
 _PAULIS_Q1 = [[(IGate(), [1])], [(XGate(), [1])], [(YGate(), [1])], [(ZGate(), [1])]]
-_PAULIS_Q0Q1 = [p_q0 + p_q1 for p_q0 in _PAULIS_Q0 for p_q1 in _PAULIS_Q1]
+_PAULIS_Q0Q1 = [op_q0 + op_q1 for op_q0 in _PAULIS_Q0 for op_q1 in _PAULIS_Q1]
 # reset operators
 _RESET_Q0_TO_0 = [(Reset(), [0])]
 _RESET_Q0_TO_1 = [(Reset(), [0]), (XGate(), [0])]
+_RESET_Q0 = [[(IGate(), [0])], _RESET_Q0_TO_0, _RESET_Q0_TO_1]
 _RESET_Q1_TO_0 = [(Reset(), [1])]
 _RESET_Q1_TO_1 = [(Reset(), [1]), (XGate(), [1])]
+_RESET_Q1 = [[(IGate(), [1])], _RESET_Q1_TO_0, _RESET_Q1_TO_1]
+_RESET_Q0Q1 = [op_q0 + op_q1 for op_q0 in _RESET_Q0 for op_q1 in _RESET_Q1]
 # preset operator table
 _PRESET_OPERATOR_TABLE = {
     "pauli": {
@@ -245,20 +246,8 @@ _PRESET_OPERATOR_TABLE = {
         2: _PAULIS_Q0Q1[1:],
     },
     "reset": {
-        1: [
-            _RESET_Q0_TO_0,
-            _RESET_Q0_TO_1,
-        ],
-        2: [
-            _RESET_Q0_TO_0 + _ID_Q1,
-            _RESET_Q0_TO_1 + _ID_Q1,
-            _RESET_Q1_TO_0,
-            _RESET_Q1_TO_1,
-            _RESET_Q0_TO_0 + _RESET_Q1_TO_0,
-            _RESET_Q0_TO_0 + _RESET_Q1_TO_1,
-            _RESET_Q0_TO_1 + _RESET_Q1_TO_0,
-            _RESET_Q0_TO_1 + _RESET_Q1_TO_1,
-        ],
+        1: _RESET_Q0[1:],
+        2: _RESET_Q0Q1[1:],
     },
     "clifford": {
         1: [[(gate, [0]) for gate in _CLIFFORD_GATES[j]] for j in range(1, 24)],
