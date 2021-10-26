@@ -1352,18 +1352,6 @@ complex_t MPS::get_single_amplitude(const std::string &base_value) {
   return temp_mat(0, 0);
 }
 
-double MPS::get_single_probability_internal(const std::string &base_value, 
-					    uint_t first_index, uint_t last_index) const {
-  std::cout << "base_value = " << base_value << std::endl;
-  std::cout << "first = " << first_index << ", last index = " << last_index << std::endl;
-  cmatrix_t temp_mat;
-  get_single_amplitude_or_probability_internal(base_value, first_index, last_index, temp_mat);
-  cvector_t diag = AER::Utils::matrix_diagonal(temp_mat);
-
-  double val = real(AER::Utils::sum( AER::Utils::elementwise_multiplication(temp_mat, AER::Utils::conjugate(temp_mat))));
-  return val;
-}
-
 void MPS::
 get_single_amplitude_or_probability_internal(const std::string &base_value, 
 					     uint_t first_index, uint_t last_index,
@@ -1390,21 +1378,37 @@ get_single_amplitude_or_probability_internal(const std::string &base_value,
     else
       bit = 0;
 
-    for (uint_t row=0; row<temp.GetRows(); row++){
-      for (uint_t col=0; col<temp.GetColumns(); col++){
-	temp(row, col) *= lambda_reg_[qubit][col];
-      }
-    }
+        for (uint_t row=0; row<temp.GetRows(); row++){
+          for (uint_t col=0; col<temp.GetColumns(); col++){
+    	temp(row, col) *= lambda_reg_[qubit][col];
+          }
+        }
     temp = temp * q_reg_[qubit+1].get_data(bit);
     pos--;
   }
   if (last_index != num_qubits_-1) {
-    for (uint_t row=0; row<temp.GetRows(); row++) {
-      for (uint_t col=0; col<temp.GetColumns(); col++) {
-	temp(row, col) *= lambda_reg_[last_index][col];
-	  }
+        for (uint_t row=0; row<temp.GetRows(); row++) {
+         for (uint_t col=0; col<temp.GetColumns(); col++) {
+    	temp(row, col) *= lambda_reg_[last_index][col];
+    	  }
+        }
+  }
+}
+
+double MPS::get_single_probability_internal(uint_t qubit, const cmatrix_t &mat) const {
+  // multiply by the matrix for measurement of 0
+  cmatrix_t temp_mat = mat * q_reg_[qubit].get_data(0);
+
+  if (qubit != num_qubits_-1) {
+    for (uint_t row=0; row<temp_mat.GetRows(); row++) {
+      for (uint_t col=0; col<temp_mat.GetColumns(); col++) {
+	temp_mat(row, col) *= lambda_reg_[qubit][col];
+      }
     }
   }
+  //val = the probablility to measure 0
+  double val = real(AER::Utils::sum( AER::Utils::elementwise_multiplication(temp_mat, AER::Utils::conjugate(temp_mat))));
+  return val;
 }
 
 void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const {
@@ -1577,34 +1581,46 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
   }
 }
 
+// The algorithm implemented here is based on https://arxiv.org/abs/1709.01662.
+// Given a particular base value, e.g., 11010, its probability is computed by contracting
+// the suitable matrices per qubit (from right to left), i.e., mat(0) for qubit 0, mat(1) 
+// for qubit 1, mat(0) for qubit 2, mat(1) for qubit 3, mat(1) for qubit 4.
+// We build the randomly selected base value for every shot as follows:
+// For the first qubit, compute its probability for 0 and then randomly select 
+// the measurement. 'mat' is initialized to the suitable matrix (0 or 1).
+// For qubit i, we store in 'mat'the contraction of the matrices that were selected up to i-1
+// We compute the probability that qubit i is 0 by contracting with matrix 0. 
+// We randomly select a measurement according to this probability. We then update 'mat' 
+// by contracting it with the suitable matrix (0 or 1).
+
 reg_t MPS::new_sample_measure(const reg_t &qubits, const rvector_t &rnds) {
-  move_all_qubits_to_sorted_ordering();
   uint_t size = qubits.size();
   double prob = 1;
-
   std::string current_measure="";
   char measure_1_qubit;
-  //  current_measure = measure_1_qubit + current_measure;
-  //  std::cout << "current_measure = " << current_measure << std::endl;
+  bool is_first_qubit = true;
+  cmatrix_t mat;
 
   for (uint_t i=0; i<size; i++) {
-    measure_1_qubit = sample_measure_single_qubit(i, current_measure, 
-						  prob, rnds[i]);
+    measure_1_qubit = sample_measure_single_qubit(i, is_first_qubit, current_measure, 
+						  prob, rnds[i], mat);
     current_measure =  measure_1_qubit + current_measure;
+    is_first_qubit = false;
   }
   reg_t outcome_vector(size);
-  std::cout<< "final measure = " << current_measure << std::endl<< std::endl;
   for (uint_t i=0; i<size; i++) {
     outcome_vector[size-1-i] = (current_measure[i] == '0') ? 0 : 1;
   }
   return outcome_vector;
 }
 
-uint_t MPS::sample_measure_single_qubit(uint_t qubit, 
+uint_t MPS::sample_measure_single_qubit(uint_t qubit,
+					bool is_first_qubit,
 					std::string &prev_measure, 
-					double &prob, double rnd) const {
+					double &prob, double rnd,
+					cmatrix_t &mat) const {
   double prob0 = 0;
-  if (prev_measure == "") {   // First qubit measured
+  if (is_first_qubit) {
     reg_t qubits_to_update;
     qubits_to_update.push_back(qubit);
     // step 1 - measure qubit in Z basis
@@ -1613,14 +1629,36 @@ uint_t MPS::sample_measure_single_qubit(uint_t qubit,
     prob0 = (1 + exp_val ) / 2;
   } else {
     std::string new_string = '0' + prev_measure;
-    prob0 = get_single_probability_internal(new_string, 0, new_string.length()-1);
-    std::cout << "prob0 = " << prob0 << std::endl;
+    prob0 = get_single_probability_internal(qubit, mat);
     prob0 /= prob;
   }
 
   char measurement = (rnd < prob0) ? '0' : '1';
   double new_prob = (measurement == '0') ? prob0 : 1-prob0;
   prob *= new_prob;
+
+  // Now update mat for the next qubit
+  // mat represents the accumulated product of the matrices of the current
+  // measurement outcome
+  uint_t bit = measurement == '0'? 0 : 1;
+  if (is_first_qubit) {
+    mat = q_reg_[qubit].get_data(bit);
+    if (qubit != 0)  // multiply mat by left lambda
+      for (uint_t col=0; col<mat.GetColumns(); col++) {
+	for (uint_t row=0; row<mat.GetRows(); row++) {
+	  mat(row, col) *= lambda_reg_[qubit-1][row];
+	}
+      }
+  } else {
+    mat = mat * q_reg_[qubit].get_data(bit);
+  }
+  if (qubit != num_qubits_-1) {  // multiply mat by right lambda
+    for (uint_t row=0; row<mat.GetRows(); row++) {
+      for (uint_t col=0; col<mat.GetColumns(); col++) {
+	mat(row, col) *= lambda_reg_[qubit][col];
+	  }
+    }
+  }
   return measurement;
 }
 

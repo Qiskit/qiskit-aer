@@ -236,9 +236,7 @@ public:
   // Description: Returns the probabilitiy of the input base_value, on all the qubits between
   //              first_index and last_index.
   //----------------------------------------------------------------
-  double get_single_probability_internal(const std::string &base_value, 
-					 uint_t first_index, 
-					 uint_t last_index) const;
+  double get_single_probability_internal(uint_t qubit, const cmatrix_t &mat) const;
 
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
@@ -319,8 +317,9 @@ public:
   reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
   reg_t new_sample_measure(const reg_t &qubits, const rvector_t &rnds);
   uint_t sample_measure_single_qubit(uint_t qubit, 
+				     bool first_qubit,
 				     std::string &prev_measure, 
-				     double &prob, double rnd) const;
+				     double &prob, double rnd, cmatrix_t &mat) const;
 
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector_internal
