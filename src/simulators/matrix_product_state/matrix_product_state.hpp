@@ -1058,7 +1058,6 @@ std::vector<reg_t> State::
 std::vector<reg_t> State::new_sample_measure(const reg_t &qubits, 
 		     uint_t shots, 
 		     RngEngine &rng) {
-  qreg_.move_all_qubits_to_sorted_ordering();
   reg_t sorted_qubits = qubits;
   std::sort(sorted_qubits.begin(), sorted_qubits.end());
 

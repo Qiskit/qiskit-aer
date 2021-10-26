@@ -1000,7 +1000,7 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const {
 }
 
 cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
-  reg_t new_qubits;
+  //  reg_t new_qubits;
   MPS temp_MPS;
   temp_MPS.initialize(*this);
   MPS_Tensor psi = temp_MPS.state_vec_as_MPS(qubits);
@@ -1607,11 +1607,14 @@ reg_t MPS::new_sample_measure(const reg_t &qubits, const rvector_t &rnds) {
     current_measure =  measure_1_qubit + current_measure;
     is_first_qubit = false;
   }
-  reg_t outcome_vector(size);
+  reg_t outcome_vector(size), ordered_outcome(size);
   for (uint_t i=0; i<size; i++) {
     outcome_vector[size-1-i] = (current_measure[i] == '0') ? 0 : 1;
   }
-  return outcome_vector;
+  for (uint_t i=0; i<size; i++) {
+    ordered_outcome[qubit_ordering_.order_[i]] = outcome_vector[i];
+  }
+  return ordered_outcome;
 }
 
 uint_t MPS::sample_measure_single_qubit(uint_t qubit,
