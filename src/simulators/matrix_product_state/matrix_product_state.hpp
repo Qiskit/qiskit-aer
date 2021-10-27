@@ -159,7 +159,7 @@ public:
   sample_measure_using_apply_measure(const reg_t &qubits,
 				     uint_t shots,
 				     RngEngine &rng);
-std::vector<reg_t> new_sample_measure(const reg_t &qubits, 
+std::vector<reg_t> sample_measure_all(const reg_t &qubits, 
 				      uint_t shots, 
 				      RngEngine &rng);
   //-----------------------------------------------------------------------
@@ -1014,7 +1014,7 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   // The user can override this by setting the parameter "mps_sample_measure_algorithm"
   if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB && 
       qubits.size() == qreg_.num_qubits()){
-    return new_sample_measure(qubits, shots, rng);
+    return sample_measure_all(qubits, shots, rng);
   }
   return sample_measure_using_apply_measure(qubits, shots, rng);
 }
@@ -1055,7 +1055,7 @@ std::vector<reg_t> State::
   return all_samples;
 }
 
-std::vector<reg_t> State::new_sample_measure(const reg_t &qubits, 
+std::vector<reg_t> State::sample_measure_all(const reg_t &qubits, 
 		     uint_t shots, 
 		     RngEngine &rng) {
   reg_t sorted_qubits = qubits;
@@ -1073,7 +1073,7 @@ std::vector<reg_t> State::new_sample_measure(const reg_t &qubits,
     rnds_list.push_back(rands);
   }
   for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
-    auto single_result = qreg_.new_sample_measure(qubits, rnds_list[i]);
+    auto single_result = qreg_.sample_measure(qubits, rnds_list[i]);
     all_samples[i] = single_result;
   }
   return all_samples;

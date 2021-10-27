@@ -1593,7 +1593,7 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
 // We randomly select a measurement according to this probability. We then update 'mat' 
 // by contracting it with the suitable matrix (0 or 1).
 
-reg_t MPS::new_sample_measure(const reg_t &qubits, const rvector_t &rnds) {
+reg_t MPS::sample_measure(const reg_t &qubits, const rvector_t &rnds) {
   uint_t size = qubits.size();
   double prob = 1;
   std::string current_measure="";
