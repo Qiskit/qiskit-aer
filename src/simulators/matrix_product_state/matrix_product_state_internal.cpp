@@ -1373,22 +1373,6 @@ complex_t MPS::get_single_amplitude(const std::string &base_value) {
   return temp(0, 0);
 }
 
-double MPS::get_single_probability_internal(uint_t qubit, const cmatrix_t &mat) const {
-  // multiply by the matrix for measurement of 0
-  cmatrix_t temp_mat = mat * q_reg_[qubit].get_data(0);
-
-  if (qubit != num_qubits_-1) {
-    for (uint_t row=0; row<temp_mat.GetRows(); row++) {
-      for (uint_t col=0; col<temp_mat.GetColumns(); col++) {
-	temp_mat(row, col) *= lambda_reg_[qubit][col];
-      }
-    }
-  }
-  //val = the probablility to measure 0
-  double val = real(AER::Utils::sum( AER::Utils::elementwise_multiplication(temp_mat, AER::Utils::conjugate(temp_mat))));
-  return val;
-}
-
 void MPS::get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const {
   reg_t internal_qubits = get_internal_qubits(qubits);
   get_probabilities_vector_internal(probvector, internal_qubits);
@@ -1593,25 +1577,6 @@ reg_t MPS::sample_measure_internal(const reg_t &qubits, const rvector_t &rnds) c
   return  create_outcome_vector(qubits, current_measure);
 }
 
-reg_t MPS::create_outcome_vector(const reg_t &qubits, const std::string &current_measure) const {
-  uint_t size = qubits.size();
-  reg_t outcome_vector(size), ordered_outcome(size), final_outcome(size);
-
-  // copy string of outcome to vector while reversing order
-  for (uint_t i=0; i<size; i++) {
-    outcome_vector[size-1-i] = (current_measure[i] == '0') ? 0 : 1;
-  }
-  // Rearrange internal ordering of the qubits to sorted ordering
-  for (uint_t i=0; i<size; i++) {
-    ordered_outcome[qubit_ordering_.order_[i]] = outcome_vector[i];
-  }
-  // Rearrange outcome according to order specified in 'qubits'
-  for (uint_t i=0; i<size; i++) {
-   final_outcome[qubits[i]] = ordered_outcome[i];
-  }
-  return final_outcome;
-}
-
 uint_t MPS::sample_measure_single_qubit(uint_t qubit,
 					bool is_first_qubit,
 					std::string &prev_measure, 
@@ -1642,22 +1607,53 @@ uint_t MPS::sample_measure_single_qubit(uint_t qubit,
   if (is_first_qubit) {
     mat = q_reg_[qubit].get_data(bit);
     if (qubit != 0)  // multiply mat by left lambda
-      for (uint_t col=0; col<mat.GetColumns(); col++) {
-	for (uint_t row=0; row<mat.GetRows(); row++) {
+      for (uint_t col=0; col<mat.GetColumns(); col++)
+	for (uint_t row=0; row<mat.GetRows(); row++)
 	  mat(row, col) *= lambda_reg_[qubit-1][row];
-	}
-      }
   } else {
     mat = mat * q_reg_[qubit].get_data(bit);
   }
   if (qubit != num_qubits_-1) {  // multiply mat by right lambda
-    for (uint_t row=0; row<mat.GetRows(); row++) {
-      for (uint_t col=0; col<mat.GetColumns(); col++) {
+    for (uint_t row=0; row<mat.GetRows(); row++)
+      for (uint_t col=0; col<mat.GetColumns(); col++)
 	mat(row, col) *= lambda_reg_[qubit][col];
-	  }
-    }
   }
   return measurement;
+}
+
+double MPS::get_single_probability_internal(uint_t qubit, const cmatrix_t &mat) const {
+  // multiply by the matrix for measurement of 0
+  cmatrix_t temp_mat = mat * q_reg_[qubit].get_data(0);
+
+  if (qubit != num_qubits_-1) {
+    for (uint_t row=0; row<temp_mat.GetRows(); row++) {
+      for (uint_t col=0; col<temp_mat.GetColumns(); col++) {
+	temp_mat(row, col) *= lambda_reg_[qubit][col];
+      }
+    }
+  }
+  //val = the probability to measure 0
+  double val = real(AER::Utils::sum( AER::Utils::elementwise_multiplication(temp_mat, AER::Utils::conjugate(temp_mat))));
+  return val;
+}
+
+reg_t MPS::create_outcome_vector(const reg_t &qubits, const std::string &current_measure) const {
+  uint_t size = qubits.size();
+  reg_t outcome_vector(size), ordered_outcome(size), final_outcome(size);
+
+  // copy string of outcome to vector while reversing order
+  for (uint_t i=0; i<size; i++) {
+    outcome_vector[size-1-i] = (current_measure[i] == '0') ? 0 : 1;
+  }
+  // Rearrange internal ordering of the qubits to sorted ordering
+  for (uint_t i=0; i<size; i++) {
+    ordered_outcome[qubit_ordering_.order_[i]] = outcome_vector[i];
+  }
+  // Rearrange outcome according to order specified in 'qubits'
+  for (uint_t i=0; i<size; i++) {
+   final_outcome[qubits[i]] = ordered_outcome[i];
+  }
+  return final_outcome;
 }
 
 void MPS::apply_initialize(const reg_t &qubits, 
