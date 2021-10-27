@@ -1000,7 +1000,6 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const {
 }
 
 cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
-  //  reg_t new_qubits;
   MPS temp_MPS;
   temp_MPS.initialize(*this);
   MPS_Tensor psi = temp_MPS.state_vec_as_MPS(qubits);
@@ -1347,52 +1346,31 @@ Vector<complex_t> MPS::get_amplitude_vector(const reg_t &base_values) {
 }
 
 complex_t MPS::get_single_amplitude(const std::string &base_value) {
-  cmatrix_t temp_mat;
-  get_single_amplitude_or_probability_internal(base_value, 0, num_qubits_-1, temp_mat);
-  return temp_mat(0, 0);
-}
-
-void MPS::
-get_single_amplitude_or_probability_internal(const std::string &base_value, 
-					     uint_t first_index, uint_t last_index,
-					     cmatrix_t &temp) const {
   // We take the bits of the base value from right to left in order not to expand the 
   // base values to the full width of 2^n
-  // We contract from left to right because the representation in Qiskit is from
-  // left to right, i.e., 1=1000, 2=0100, ...
+  // We contract from left to right because the representation in Qiskit is from left 
+  // to right, i.e., 1=1000, 2=0100, ...
 
   int_t pos = base_value.length()-1;
   uint_t bit = base_value[pos]=='0' ? 0 : 1;
   pos--;
-  temp = q_reg_[first_index].get_data(bit);
- if (first_index != 0)
-   for (uint_t col=0; col<temp.GetColumns(); col++) {
-      for (uint_t row=0; row<temp.GetRows(); row++) {
-	temp(row, col) *= lambda_reg_[last_index][row];
-	  }
-    }
+  cmatrix_t temp = q_reg_[0].get_data(bit);
 
-  for (uint_t qubit=first_index; qubit<last_index; qubit++) {
+  for (uint_t qubit=0; qubit<num_qubits_-1; qubit++) {
     if (pos >=0)
       bit = base_value[pos]=='0' ? 0 : 1;
     else
       bit = 0;
-
-        for (uint_t row=0; row<temp.GetRows(); row++){
-          for (uint_t col=0; col<temp.GetColumns(); col++){
-    	temp(row, col) *= lambda_reg_[qubit][col];
-          }
-        }
+    for (uint_t row=0; row<temp.GetRows(); row++){
+      for (uint_t col=0; col<temp.GetColumns(); col++){
+	temp(row, col) *= lambda_reg_[qubit][col];
+      }
+    }
     temp = temp * q_reg_[qubit+1].get_data(bit);
     pos--;
   }
-  if (last_index != num_qubits_-1) {
-        for (uint_t row=0; row<temp.GetRows(); row++) {
-         for (uint_t col=0; col<temp.GetColumns(); col++) {
-    	temp(row, col) *= lambda_reg_[last_index][col];
-    	  }
-        }
-  }
+  
+  return temp(0, 0);
 }
 
 double MPS::get_single_probability_internal(uint_t qubit, const cmatrix_t &mat) const {

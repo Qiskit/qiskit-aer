@@ -1058,9 +1058,6 @@ std::vector<reg_t> State::
 std::vector<reg_t> State::sample_measure_all(const reg_t &qubits, 
 		     uint_t shots, 
 		     RngEngine &rng) {
-  reg_t sorted_qubits = qubits;
-  std::sort(sorted_qubits.begin(), sorted_qubits.end());
-
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
   std::vector<rvector_t> rnds_list;
