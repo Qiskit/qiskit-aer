@@ -1641,7 +1641,7 @@ reg_t MPS::create_outcome_vector(const reg_t &qubits, const std::string &current
   uint_t size = qubits.size();
   reg_t outcome_vector(size), ordered_outcome(size), final_outcome(size);
 
-  // copy string of outcome to vector while reversing order
+  // copy string of outcome to vector while reversing the direction of the qubits
   for (uint_t i=0; i<size; i++) {
     outcome_vector[size-1-i] = (current_measure[i] == '0') ? 0 : 1;
   }
@@ -1649,11 +1649,7 @@ reg_t MPS::create_outcome_vector(const reg_t &qubits, const std::string &current
   for (uint_t i=0; i<size; i++) {
     ordered_outcome[qubit_ordering_.order_[i]] = outcome_vector[i];
   }
-  // Rearrange outcome according to order specified in 'qubits'
-  for (uint_t i=0; i<size; i++) {
-   final_outcome[qubits[i]] = ordered_outcome[i];
-  }
-  return final_outcome;
+  return ordered_outcome;
 }
 
 void MPS::apply_initialize(const reg_t &qubits, 
