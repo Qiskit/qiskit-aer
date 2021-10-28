@@ -231,13 +231,6 @@ public:
   //----------------------------------------------------------------
   complex_t get_single_amplitude(const std::string &base_value);
 
-  //----------------------------------------------------------------
-  // Function name: get_single_probability
-  // Description: Returns the probabilitiy of the input base_value, on all the qubits between
-  //              first_index and last_index.
-  //----------------------------------------------------------------
-  double get_single_probability_internal(uint_t qubit, const cmatrix_t &mat) const;
-
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
   //----------------------------------------------------------------
@@ -377,6 +370,13 @@ private:
   void propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit, 
 				       uint_t next_measured_qubit);
 
+  //----------------------------------------------------------------
+  // Function name: get_single_probability0
+  // Description: Returns the probability that `qubit` will measure 0, given all the measurements
+  // of the previous qubits that are accumulated in mat.
+  //----------------------------------------------------------------
+  double get_single_probability0(uint_t qubit, const cmatrix_t &mat) const;
+
   // apply_matrix for more than 2 qubits
   void apply_multi_qubit_gate(const reg_t &qubits,
 			      const cmatrix_t &mat,
@@ -427,10 +427,6 @@ private:
   Vector<complex_t> full_state_vector_internal(const reg_t &qubits) ;
 
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
-
-  void get_single_amplitude_or_probability_internal(const std::string &base_value, 
-						    uint_t first_index, uint_t last_index,
-						    cmatrix_t &temp) const;
 
   uint_t apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
 					     uint_t next_measured_qubit);

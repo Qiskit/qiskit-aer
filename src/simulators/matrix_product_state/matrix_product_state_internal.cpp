@@ -1592,7 +1592,7 @@ uint_t MPS::sample_measure_single_qubit(uint_t qubit,
     prob0 = (1 + exp_val ) / 2;
   } else {
     std::string new_string = '0' + prev_measure;
-    prob0 = get_single_probability_internal(qubit, mat);
+    prob0 = get_single_probability0(qubit, mat);
     prob0 /= prob;
   }
 
@@ -1621,7 +1621,7 @@ uint_t MPS::sample_measure_single_qubit(uint_t qubit,
   return measurement;
 }
 
-double MPS::get_single_probability_internal(uint_t qubit, const cmatrix_t &mat) const {
+double MPS::get_single_probability0(uint_t qubit, const cmatrix_t &mat) const {
   // multiply by the matrix for measurement of 0
   cmatrix_t temp_mat = mat * q_reg_[qubit].get_data(0);
 
@@ -1632,9 +1632,9 @@ double MPS::get_single_probability_internal(uint_t qubit, const cmatrix_t &mat) 
       }
     }
   }
-  //val = the probability to measure 0
-  double val = real(AER::Utils::sum( AER::Utils::elementwise_multiplication(temp_mat, AER::Utils::conjugate(temp_mat))));
-  return val;
+  //prob0 = the probability to measure 0
+  double prob0 = real(AER::Utils::sum( AER::Utils::elementwise_multiplication(temp_mat, AER::Utils::conjugate(temp_mat))));
+  return prob0;
 }
 
 reg_t MPS::create_outcome_vector(const reg_t &qubits, const std::string &current_measure) const {
