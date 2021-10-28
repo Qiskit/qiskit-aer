@@ -52,7 +52,11 @@ def standard_gates_instructions(instructions):
 
 
 def _standard_gates_instructions(instructions):
-    """Temporary function to mimic standard_gates_instructions during deprecation period.
+    """Temporary function to create Instruction objects from json strings,
+    which is necessary for creating a new QuantumError object from deprecated
+    json-based input. Note that the type of returned object is different from
+    standard_gates_instructions.
+    TODO: to be removed after deprecation period.
 
     Args:
         instructions (list): A list of qobj instructions or ordinary instruction.
@@ -186,7 +190,11 @@ def standard_gate_instruction(instruction, ignore_phase=True):
 
 
 def _standard_gate_instruction(instruction, ignore_phase=True):
-    """Temporary function to mimic standard_gates_instruction during deprecation period.
+    """Temporary function to create Instruction objects from a json string,
+    which is necessary for creating a new QuantumError object from deprecated
+    json-based input. Note that the type of returned object is different from
+    the deprecated standard_gate_instruction.
+    TODO: to be removed after deprecation period.
 
     Args:
         instruction (dict): A qobj instruction.
@@ -666,7 +674,11 @@ def make_unitary_instruction(mat, qubits, standard_gates=True):
 
 
 def _make_unitary_instruction(mat, qubits, standard_gates=True):
-    """Temporary function to mimic make_unitary_instruction during deprecation period.
+    """Temporary function to create Instruction objects from a unitary matrix,
+    which is necessary for creating a new QuantumError with the deprecated
+    standard_gates option. Note that the type of returned object is different from
+    the deprecated make_unitary_instruction.
+    TODO: to be removed after deprecation period.
 
     Args:
         mat (matrix): A square or diagonal unitary matrix.
