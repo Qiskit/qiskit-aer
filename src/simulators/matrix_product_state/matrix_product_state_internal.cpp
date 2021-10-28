@@ -1574,6 +1574,12 @@ std::vector<reg_t> MPS::sample_measure_all_shots(const reg_t &qubits,
     MPS temp_MPS;
     temp_MPS.initialize(*this);
     temp_MPS.centralize_qubits(internal_qubits, centralized_qubits);
+
+    std::cout << "centralized qubits = ";
+    for (uint_t i=0; i<centralized_qubits.size(); i++)
+      std::cout << centralized_qubits[i] << " ";
+    std::cout << std::endl;
+
     for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
       single_result = temp_MPS.sample_measure_internal(centralized_qubits, rnds_list[i]);
       all_samples[i] = single_result;
@@ -1615,7 +1621,7 @@ reg_t MPS::sample_measure_internal(const reg_t &qubits, const rvector_t &rnds) c
   std::cout << std::endl;
 
   for (uint_t i=0; i<size; i++) {
-    measure_1_qubit = sample_measure_single_qubit(qubits[i], is_first_qubit, current_measure, 
+    measure_1_qubit = sample_measure_single_qubit(i, is_first_qubit, current_measure, 
 						  prob, rnds[i], mat);
     current_measure =  measure_1_qubit + current_measure;
     is_first_qubit = false;
@@ -1632,13 +1638,7 @@ uint_t MPS::sample_measure_single_qubit(uint_t qubit,
   double prob0 = 0;
   if (is_first_qubit) {
     std::cout << "in is_first_qubit " << qubit << std::endl;
-    reg_t qubits_to_update(1);
-    qubits_to_update[0] = qubit;
-    // step 1 - measure qubit in Z basis
-    double exp_val = real(expectation_value_pauli_internal(qubits_to_update, "Z", qubit, qubit, 0));
-    std::cout <<"expval = " <<exp_val << std::endl;
-    // step 2 - compute probability for 0 or 1 result
-    prob0 = (1 + exp_val ) / 2;
+    prob0 = get_prob0_single_qubit_internal(qubit);
     std::cout << "prob0 = " << prob0 << std::endl;
   } else {
     std::string new_string = '0' + prev_measure;
@@ -1657,14 +1657,17 @@ uint_t MPS::sample_measure_single_qubit(uint_t qubit,
   if (is_first_qubit) {
     std::cout << "first" << std::endl;
     mat = q_reg_[qubit].get_data(bit);
-    if (qubit > 0)  // multiply mat by left lambda
-    std::cout << "greater than 0" << std::endl;
+    std::cout << "2. " << mat<< std::endl;
+    if (qubit > 0) { // multiply mat by left lambda
+      std::cout << "greater than 0" << std::endl;
       for (uint_t col=0; col<mat.GetColumns(); col++)
 	for (uint_t row=0; row<mat.GetRows(); row++)
 	  mat(row, col) *= lambda_reg_[qubit-1][row];
+    }
   } else {
     mat = mat * q_reg_[qubit].get_data(bit);
   }
+  std::cout << "3" << std::endl;
   if (qubit < num_qubits_-1) {  // multiply mat by right lambda
     std::cout << "smaller than max" << std::endl;
     for (uint_t row=0; row<mat.GetRows(); row++)
@@ -1676,6 +1679,7 @@ uint_t MPS::sample_measure_single_qubit(uint_t qubit,
 
 double MPS::get_single_probability0(uint_t qubit, const cmatrix_t &mat) const {
   std::cout << "get_single_probability0" << std::endl;
+  std::cout << mat << std::endl;
   // multiply by the matrix for measurement of 0
   cmatrix_t temp_mat = mat * q_reg_[qubit].get_data(0);
 
