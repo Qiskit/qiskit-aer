@@ -308,6 +308,9 @@ public:
 
   reg_t apply_measure(const reg_t &qubits, const rvector_t &rnds);
   reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
+  std::vector<reg_t> sample_measure_all_shots(const reg_t &qubits, 
+					      uint_t shots, 
+					      RngEngine &rng) const;
   reg_t sample_measure(const reg_t &qubits, const rvector_t &rnds) const;
 
   //----------------------------------------------------------------

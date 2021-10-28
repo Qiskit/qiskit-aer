@@ -1012,8 +1012,7 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   // of qubits,and the number of shots.
   // The parameters used below are based on experimentation.
   // The user can override this by setting the parameter "mps_sample_measure_algorithm"
-  if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB && 
-      qubits.size() == qreg_.num_qubits()){
+  if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB) {
     return sample_measure_all(qubits, shots, rng);
   }
   return sample_measure_using_apply_measure(qubits, shots, rng);
@@ -1056,24 +1055,10 @@ std::vector<reg_t> State::
 }
 
 std::vector<reg_t> State::sample_measure_all(const reg_t &qubits, 
-		     uint_t shots, 
-		     RngEngine &rng) {
-  std::vector<reg_t> all_samples;
-  all_samples.resize(shots);
-  std::vector<rvector_t> rnds_list;
-  rnds_list.reserve(shots);
-  for (int_t i = 0; i < shots; ++i) {
-    rvector_t rands;
-    rands.reserve(qubits.size());
-    for (int_t j = 0; j < qubits.size(); ++j)
-      rands.push_back(rng.rand(0., 1.));
-    rnds_list.push_back(rands);
-  }
-  for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
-    auto single_result = qreg_.sample_measure(qubits, rnds_list[i]);
-    all_samples[i] = single_result;
-  }
-  return all_samples;
+					     uint_t shots, 
+					     RngEngine &rng) {
+
+  return qreg_.sample_measure_all_shots(qubits, shots, rng);
 }
 
 void State::apply_snapshot(const Operations::Op &op, ExperimentResult &result) {
