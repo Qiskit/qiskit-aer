@@ -408,8 +408,6 @@ class TestControlFlow(SimulatorTestCase):
         test_if_true_body_circuit(circ)
         circ.measure_all()
         
-        circ = transpile(AerCompiler().compile_circuit(circ), backend, optimization_level=0)
-        
         result = backend.run(circ, method=method).result()
         self.assertSuccess(result)
         
@@ -435,8 +433,6 @@ class TestControlFlow(SimulatorTestCase):
         circ = QuantumCircuit(4, 1)
         test_if_else_body_circuit(circ)
         circ.measure_all()
-        
-        circ = transpile(AerCompiler().compile_circuit(circ), backend, optimization_level=0)
         
         result = backend.run(circ, method=method).result()
         self.assertSuccess(result)
@@ -469,8 +465,6 @@ class TestControlFlow(SimulatorTestCase):
         circ = QuantumCircuit(5, 0)
         test_for_loop_circuit(circ)
         circ.measure_all()
-        
-        circ = transpile(AerCompiler().compile_circuit(circ), backend, optimization_level=0)
         
         result = backend.run(circ, method=method).result()
         self.assertSuccess(result)
@@ -518,8 +512,6 @@ class TestControlFlow(SimulatorTestCase):
         circ = QuantumCircuit(5, 1)
         test_for_loop_break_circuit(circ)
         circ.measure_all()
-        
-        circ = transpile(AerCompiler().compile_circuit(circ), backend, optimization_level=0)
         
         result = backend.run(circ, method=method).result()
         self.assertSuccess(result)
@@ -583,8 +575,6 @@ class TestControlFlow(SimulatorTestCase):
         test_for_loop_continue_circuit(circ)
         circ.measure_all()
         
-        circ = transpile(AerCompiler().compile_circuit(circ), backend, optimization_level=0)
-        
         result = backend.run(circ, method=method).result()
         self.assertSuccess(result)
         
@@ -606,8 +596,6 @@ class TestControlFlow(SimulatorTestCase):
         circ = QuantumCircuit(1, 1)
         test_while_loop_no_iteration_circuit(circ)
         circ.measure_all()
-        
-        circ = transpile(AerCompiler().compile_circuit(circ), backend, optimization_level=0)
         
         result = backend.run(circ, method=method).result()
         self.assertSuccess(result)
@@ -633,8 +621,6 @@ class TestControlFlow(SimulatorTestCase):
         test_while_loop_single_iteration_circuit(circ)
         circ.measure_all()
         
-        circ = transpile(AerCompiler().compile_circuit(circ), backend, optimization_level=0)
-        
         result = backend.run(circ, method=method).result()
         self.assertSuccess(result)
         
@@ -658,8 +644,6 @@ class TestControlFlow(SimulatorTestCase):
         circ = QuantumCircuit(2, 1)
         test_while_loop_double_iterations_circuit(circ)
         circ.measure_all()
-        
-        circ = transpile(AerCompiler().compile_circuit(circ), backend, optimization_level=0)
         
         result = backend.run(circ, method=method).result()
         self.assertSuccess(result)
@@ -686,8 +670,6 @@ class TestControlFlow(SimulatorTestCase):
         circ = QuantumCircuit(1, 1)
         test_while_loop_continue_circuit(circ)
         circ.measure_all()
-        
-        circ = transpile(AerCompiler().compile_circuit(circ), backend, optimization_level=0)
         
         result = backend.run(circ, method=method).result()
         self.assertSuccess(result)

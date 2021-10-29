@@ -30,8 +30,15 @@ from qiskit.providers.models import BackendStatus
 from qiskit.result import Result
 from qiskit.utils import deprecate_arguments
 from qiskit.qobj import QasmQobj, PulseQobj
-from qiskit.compiler import assemble
+from qiskit.compiler import assemble, transpile
+from qiskit.circuit.controlflow import (
+    WhileLoopOp,
+    ForLoopOp,
+    IfElseOp,
+    BreakLoopOp,
+    ContinueLoopOp)
 
+from .aer_compiler import AerCompiler
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..aererror import AerError
 
@@ -103,6 +110,9 @@ class AerBackend(Backend, ABC):
         # Set options from backend_options dictionary
         if backend_options is not None:
             self.set_options(**backend_options)
+
+        # Compiler for control flow
+        self._compiler = AerCompiler()
 
     def _convert_circuit_binds(self, circuit, binds):
         parameterizations = []
@@ -336,6 +346,22 @@ class AerBackend(Backend, ABC):
 
         return Result.from_dict(output)
 
+    def _is_dynamic(self, circuit):
+        for inst, _, _ in circuit.data:
+            if isinstance(inst, (WhileLoopOp, ForLoopOp, IfElseOp, BreakLoopOp, ContinueLoopOp)):
+                return True
+        return False
+
+    def _compile(self, circuits):
+        if isinstance(circuits, list):
+            return [transpile(self._compiler.compile(circuit), self, optimization_level=0)
+                    if self._is_dynamic(circuit) else circuit for circuit in circuits]
+        else:
+            if self._is_dynamic(circuits):
+                return transpile(self._compiler.compile(circuits), self, optimization_level=0)
+            else:
+                return circuits
+
     def _assemble(self, circuits, parameter_binds=None, **run_options):
         """Assemble one or more Qobj for running on the simulator"""
         # This conditional check can be removed when we remove passing
@@ -348,10 +374,10 @@ class AerBackend(Backend, ABC):
             assemble_binds = []
             assemble_binds.append({param: 1 for bind in parameter_binds for param in bind})
 
-            qobj = assemble(circuits, self, parameter_binds=assemble_binds,
+            qobj = assemble(self._compile(circuits), self, parameter_binds=assemble_binds,
                             parameterizations=parameterizations)
         else:
-            qobj = assemble(circuits, self)
+            qobj = assemble(self._compile(circuits), self)
 
         # Add options
         for key, val in self.options.__dict__.items():

@@ -19,7 +19,6 @@ from qiskit.circuit.controlflow import (
     IfElseOp,
     BreakLoopOp,
     ContinueLoopOp)
-from ..library.default_qubits import default_qubits
 
 
 class AerMark(Instruction):
@@ -34,20 +33,6 @@ class AerMark(Instruction):
         super().__init__("mark", num_qubits, 0, [name])
 
 
-def mark(self, name):
-    """Create a mark instruction which can be a destination of jump instructions.
-
-    Args:
-        name (str): an unique name of this mark instruction in a circuit
-    """
-    qubits = default_qubits(self)
-    instr = AerMark(name,
-                    len(qubits))
-    return self.append(instr, qubits)
-
-QuantumCircuit.mark = mark
-
-
 class AerJump(Instruction):
     """
     Jump instruction
@@ -57,24 +42,6 @@ class AerJump(Instruction):
 
     def __init__(self, jump_to, num_qubits):
         super().__init__("jump", num_qubits, 0, [jump_to])
-
-
-def jump(self, jump_to, clbit=None, value=0):
-    """Create a jump instruction to move a program counter to a named mark.
-
-    Args:
-        jump_to (str): a name of a destination mark instruction
-        clbit (Clbit): a classical bit for a condition
-        value (int): an int value for a condition. if clbit is value, jump is performed.
-    """
-    qubits = default_qubits(self)
-    instr = AerJump(jump_to, len(qubits))
-    if clbit:
-        instr.c_if(clbit, value)
-
-    return self.append(instr, qubits)
-
-QuantumCircuit.jump = jump
 
 
 class AerCompiler:
@@ -223,7 +190,7 @@ class AerCompiler:
 
         return ret
 
-    def compile_circuit(self, circ):
+    def compile(self, circ):
         """
         compile a circuit that have control-flow instructions
         """
