@@ -1557,8 +1557,7 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
 
 reg_t MPS::sample_measure(uint_t shots, RngEngine &rng) const {
   double prob = 1;
-  std::string current_measure="";
-  char measure_1_qubit;
+  reg_t current_measure(num_qubits_);
   bool is_first_qubit = true;
   cmatrix_t mat;
   rvector_t rnds(num_qubits_);
@@ -1566,18 +1565,20 @@ reg_t MPS::sample_measure(uint_t shots, RngEngine &rng) const {
       rnds[i] = rng.rand(0., 1.);
   }
   for (uint_t i=0; i<num_qubits_; i++) {
-    measure_1_qubit = sample_measure_single_qubit(i, is_first_qubit, 
-						  current_measure, 
-						  prob, rnds[i], mat);
-    current_measure =  measure_1_qubit + current_measure;
+    current_measure[i] = sample_measure_single_qubit(i, is_first_qubit, 
+						     prob, rnds[i], mat);
     is_first_qubit = false;
   }
-  return  create_outcome_vector(current_measure);
+  // Rearrange internal ordering of the qubits to sorted ordering
+  reg_t ordered_outcome(num_qubits_);
+  for (uint_t i=0; i<num_qubits_; i++) {
+    ordered_outcome[qubit_ordering_.order_[i]] = current_measure[i];
+  }
+  return ordered_outcome;
 }
 
 uint_t MPS::sample_measure_single_qubit(uint_t qubit,
 					bool is_first_qubit,
-					std::string &prev_measure, 
 					double &prob, double rnd,
 					cmatrix_t &mat) const {
   double prob0 = 0;
@@ -1589,27 +1590,24 @@ uint_t MPS::sample_measure_single_qubit(uint_t qubit,
     // step 2 - compute probability for 0 or 1 result
     prob0 = (1 + exp_val ) / 2;
   } else {
-    std::string new_string = '0' + prev_measure;
     prob0 = get_single_probability0(qubit, mat);
     prob0 /= prob;
   }
-
-  char measurement = (rnd < prob0) ? '0' : '1';
-  double new_prob = (measurement == '0') ? prob0 : 1-prob0;
+  uint_t measurement = (rnd < prob0) ? 0 : 1;
+  double new_prob = (measurement == 0) ? prob0 : 1-prob0;
   prob *= new_prob;
 
   // Now update mat for the next qubit
   // mat represents the accumulated product of the matrices of the current
   // measurement outcome
-  uint_t bit = measurement == '0'? 0 : 1;
   if (is_first_qubit) {
-    mat = q_reg_[qubit].get_data(bit);
+    mat = q_reg_[qubit].get_data(measurement);
     if (qubit != 0)  // multiply mat by left lambda
       for (uint_t col=0; col<mat.GetColumns(); col++)
 	for (uint_t row=0; row<mat.GetRows(); row++)
 	  mat(row, col) *= lambda_reg_[qubit-1][row];
   } else {
-    mat = mat * q_reg_[qubit].get_data(bit);
+    mat = mat * q_reg_[qubit].get_data(measurement);
   }
   if (qubit != num_qubits_-1) {  // multiply mat by right lambda
     for (uint_t row=0; row<mat.GetRows(); row++)
@@ -1633,21 +1631,6 @@ double MPS::get_single_probability0(uint_t qubit, const cmatrix_t &mat) const {
   //prob0 = the probability to measure 0
   double prob0 = real(AER::Utils::sum( AER::Utils::elementwise_multiplication(temp_mat, AER::Utils::conjugate(temp_mat))));
   return prob0;
-}
-
-reg_t MPS::create_outcome_vector(const std::string &current_measure) const {
-  reg_t outcome_vector(num_qubits_), ordered_outcome(num_qubits_), 
-    final_outcome(num_qubits_);
-
-  // copy string of outcome to vector while reversing the direction of the qubits
-  for (uint_t i=0; i<num_qubits_; i++) {
-    outcome_vector[num_qubits_-1-i] = (current_measure[i] == '0') ? 0 : 1;
-  }
-  // Rearrange internal ordering of the qubits to sorted ordering
-  for (uint_t i=0; i<num_qubits_; i++) {
-    ordered_outcome[qubit_ordering_.order_[i]] = outcome_vector[i];
-  }
-  return ordered_outcome;
 }
 
 void MPS::apply_initialize(const reg_t &qubits, 
