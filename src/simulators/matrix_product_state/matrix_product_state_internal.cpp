@@ -1543,11 +1543,6 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
   }
 }
 
-reg_t MPS::sample_measure(const reg_t &qubits, const rvector_t &rnds) const {
-  reg_t internal_qubits = get_internal_qubits(qubits);
-  return sample_measure_internal(internal_qubits, rnds);
-}
-
 // The algorithm implemented here is based on https://arxiv.org/abs/1709.01662.
 // Given a particular base value, e.g., 11010, its probability is computed by contracting
 // the suitable matrices per qubit (from right to left), i.e., mat(0) for qubit 0, mat(1) 
@@ -1560,21 +1555,23 @@ reg_t MPS::sample_measure(const reg_t &qubits, const rvector_t &rnds) const {
 //        We randomly select a measurement according to this probability. We then update 'mat' 
 //        by contracting it with the suitable matrix (0 or 1).
 
-reg_t MPS::sample_measure_internal(const reg_t &qubits, const rvector_t &rnds) const {
-  uint_t size = qubits.size();
+reg_t MPS::sample_measure(uint_t shots, RngEngine &rng) const {
   double prob = 1;
   std::string current_measure="";
   char measure_1_qubit;
   bool is_first_qubit = true;
   cmatrix_t mat;
+  rvector_t rnds(num_qubits_);
+  for (uint_t i = 0; i < num_qubits_; ++i)
+      rnds.push_back(rng.rand(0., 1.));
 
-  for (uint_t i=0; i<size; i++) {
+  for (uint_t i=0; i<num_qubits_; i++) {
     measure_1_qubit = sample_measure_single_qubit(i, is_first_qubit, current_measure, 
 						  prob, rnds[i], mat);
     current_measure =  measure_1_qubit + current_measure;
     is_first_qubit = false;
   }
-  return  create_outcome_vector(qubits, current_measure);
+  return  create_outcome_vector(current_measure);
 }
 
 uint_t MPS::sample_measure_single_qubit(uint_t qubit,
@@ -1637,16 +1634,16 @@ double MPS::get_single_probability0(uint_t qubit, const cmatrix_t &mat) const {
   return prob0;
 }
 
-reg_t MPS::create_outcome_vector(const reg_t &qubits, const std::string &current_measure) const {
-  uint_t size = qubits.size();
-  reg_t outcome_vector(size), ordered_outcome(size), final_outcome(size);
+reg_t MPS::create_outcome_vector(const std::string &current_measure) const {
+  reg_t outcome_vector(num_qubits_), ordered_outcome(num_qubits_), 
+    final_outcome(num_qubits_);
 
   // copy string of outcome to vector while reversing the direction of the qubits
-  for (uint_t i=0; i<size; i++) {
-    outcome_vector[size-1-i] = (current_measure[i] == '0') ? 0 : 1;
+  for (uint_t i=0; i<num_qubits_; i++) {
+    outcome_vector[num_qubits_-1-i] = (current_measure[i] == '0') ? 0 : 1;
   }
   // Rearrange internal ordering of the qubits to sorted ordering
-  for (uint_t i=0; i<size; i++) {
+  for (uint_t i=0; i<num_qubits_; i++) {
     ordered_outcome[qubit_ordering_.order_[i]] = outcome_vector[i];
   }
   return ordered_outcome;
@@ -1811,7 +1808,7 @@ void MPS::reset(const reg_t &qubits, RngEngine &rng) {
 void MPS::reset_internal(const reg_t &qubits, RngEngine &rng) {
   rvector_t rands;
   rands.reserve(qubits.size());
-  for (auto i = 0; i < qubits.size(); ++i)
+  for (uint_t i = 0; i < qubits.size(); ++i)
     rands.push_back(rng.rand(0., 1.));
 
   // note that qubits should be sorted by the caller to this method

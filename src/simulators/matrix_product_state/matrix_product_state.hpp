@@ -159,8 +159,7 @@ public:
   sample_measure_using_apply_measure(const reg_t &qubits,
 				     uint_t shots,
 				     RngEngine &rng);
-std::vector<reg_t> sample_measure_all(const reg_t &qubits, 
-				      uint_t shots, 
+std::vector<reg_t> sample_measure_all(uint_t shots, 
 				      RngEngine &rng);
   //-----------------------------------------------------------------------
   // Additional methods
@@ -1004,8 +1003,8 @@ rvector_t State::measure_probs(const reg_t &qubits) const {
   return probvector;
 }
 
-std::vector<reg_t> State::sample_measure(const reg_t &qubits,
-                                         uint_t shots,
+std::vector<reg_t> State::sample_measure(const reg_t& qubits,
+					 uint_t shots,
                                          RngEngine &rng) {
   // There are two alternative algorithms for sample measure
   // We choose the one that is optimal relative to the total number 
@@ -1014,7 +1013,7 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   // The user can override this by setting the parameter "mps_sample_measure_algorithm"
   if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB && 
       qubits.size() == qreg_.num_qubits()){
-    return sample_measure_all(qubits, shots, rng);
+    return sample_measure_all(shots, rng);
   }
   return sample_measure_using_apply_measure(qubits, shots, rng);
 }
@@ -1055,22 +1054,13 @@ std::vector<reg_t> State::
   return all_samples;
 }
 
-std::vector<reg_t> State::sample_measure_all(const reg_t &qubits, 
-		     uint_t shots, 
-		     RngEngine &rng) {
+std::vector<reg_t> State::sample_measure_all(uint_t shots, 
+					     RngEngine &rng) {
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
-  std::vector<rvector_t> rnds_list;
-  rnds_list.reserve(shots);
-  for (int_t i = 0; i < shots; ++i) {
-    rvector_t rands;
-    rands.reserve(qubits.size());
-    for (int_t j = 0; j < qubits.size(); ++j)
-      rands.push_back(rng.rand(0., 1.));
-    rnds_list.push_back(rands);
-  }
-  for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
-    auto single_result = qreg_.sample_measure(qubits, rnds_list[i]);
+
+  for (uint_t i=0; i<shots;  i++) {
+    auto single_result = qreg_.sample_measure(shots, rng);
     all_samples[i] = single_result;
   }
   return all_samples;
