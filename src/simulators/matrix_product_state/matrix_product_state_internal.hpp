@@ -424,9 +424,8 @@ private:
   uint_t apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
 					     uint_t next_measured_qubit);
 
-  uint_t sample_measure_single_qubit(uint_t qubit, 
-				     bool first_qubit,
-				     double &prob, double rnd, cmatrix_t &mat) const;
+  uint_t sample_measure_single_qubit(uint_t qubit, double &prob, 
+				     double rnd, cmatrix_t &mat) const;
   //----------------------------------------------------------------
   // Function name: get_single_probability0
   // Description: Returns the probability that `qubit` will measure 0, given all the measurements

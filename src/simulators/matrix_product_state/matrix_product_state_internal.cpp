@@ -1565,9 +1565,7 @@ reg_t MPS::sample_measure(uint_t shots, RngEngine &rng) const {
       rnds[i] = rng.rand(0., 1.);
   }
   for (uint_t i=0; i<num_qubits_; i++) {
-    current_measure[i] = sample_measure_single_qubit(i, is_first_qubit, 
-						     prob, rnds[i], mat);
-    is_first_qubit = false;
+    current_measure[i] = sample_measure_single_qubit(i, prob, rnds[i], mat);
   }
   // Rearrange internal ordering of the qubits to sorted ordering
   reg_t ordered_outcome(num_qubits_);
@@ -1578,11 +1576,10 @@ reg_t MPS::sample_measure(uint_t shots, RngEngine &rng) const {
 }
 
 uint_t MPS::sample_measure_single_qubit(uint_t qubit,
-					bool is_first_qubit,
 					double &prob, double rnd,
 					cmatrix_t &mat) const {
   double prob0 = 0;
-  if (is_first_qubit) {
+  if (qubit == 0) {
     reg_t qubits_to_update;
     qubits_to_update.push_back(qubit);
     // step 1 - measure qubit in Z basis
@@ -1600,7 +1597,7 @@ uint_t MPS::sample_measure_single_qubit(uint_t qubit,
   // Now update mat for the next qubit
   // mat represents the accumulated product of the matrices of the current
   // measurement outcome
-  if (is_first_qubit) {
+  if (qubit == 0) {
     mat = q_reg_[qubit].get_data(measurement);
     if (qubit != 0)  // multiply mat by left lambda
       for (uint_t col=0; col<mat.GetColumns(); col++)
