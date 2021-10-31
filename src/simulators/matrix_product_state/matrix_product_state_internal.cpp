@@ -1562,11 +1562,12 @@ reg_t MPS::sample_measure(uint_t shots, RngEngine &rng) const {
   bool is_first_qubit = true;
   cmatrix_t mat;
   rvector_t rnds(num_qubits_);
-  for (uint_t i = 0; i < num_qubits_; ++i)
-      rnds.push_back(rng.rand(0., 1.));
-
+  for (uint_t i = 0; i < num_qubits_; ++i) {
+      rnds[i] = rng.rand(0., 1.);
+  }
   for (uint_t i=0; i<num_qubits_; i++) {
-    measure_1_qubit = sample_measure_single_qubit(i, is_first_qubit, current_measure, 
+    measure_1_qubit = sample_measure_single_qubit(i, is_first_qubit, 
+						  current_measure, 
 						  prob, rnds[i], mat);
     current_measure =  measure_1_qubit + current_measure;
     is_first_qubit = false;
