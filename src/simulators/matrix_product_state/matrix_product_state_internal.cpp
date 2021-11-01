@@ -1553,7 +1553,7 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
   }
 }
 std::vector<reg_t> MPS::sample_measure_all_shots(const reg_t &qubits, 
-						 uint_t shots, 
+						 uint_t shots,
 						 RngEngine &rng) const {
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
@@ -1667,6 +1667,7 @@ uint_t MPS::sample_measure_single_qubit(uint_t qubit,
   } else {
     mat = mat * q_reg_[qubit].get_data(bit);
   }
+  std::cout <<"new mat = " << mat << std::endl;
   std::cout << "3" << std::endl;
   if (qubit < num_qubits_-1) {  // multiply mat by right lambda
     std::cout << "smaller than max" << std::endl;
