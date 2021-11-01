@@ -1587,7 +1587,7 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
       break;   // no need to propagate if no entanglement
     apply_2_qubit_gate(i, i+1, id, cmatrix_t(1, 1));
   }
- // and propagate the changes to all qubits to the left
+ // propagate the changes to all qubits to the left
   for (int_t i=min_qubit; i>0; i--) {
     if (lambda_reg_[i-1].size() == 1) 
       break;   // no need to propagate if no entanglement
