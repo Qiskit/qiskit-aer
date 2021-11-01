@@ -595,9 +595,9 @@ void MPS::apply_2_qubit_gate(uint_t index_A, uint_t index_B,
 			     bool is_diagonal)
 {
   // We first move the two qubits to be in consecutive positions
-  // By default, the right qubit is moved after the left qubit.
-  // However, the user can choose to move the left qubit to be before the 
-  // right qubit by changing the MPS_swap_direction to SWAP_RIGHT.
+  // By default, the right qubit is moved to the position after the left qubit.
+  // However, the user can choose to move the left qubit to be in the position 
+  // before the right qubit by changing the MPS_swap_direction to SWAP_RIGHT.
   // The direction of the swaps may affect performance, depending on the circuit.
 
   bool swapped = false;
