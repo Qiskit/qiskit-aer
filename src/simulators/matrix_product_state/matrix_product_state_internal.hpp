@@ -229,14 +229,20 @@ public:
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
 //----------------------------------------------------------------
-  // Function name: get_prob0_single_qubit_internal
-  // Description: Returns the probability of measuring 0 for a single qubit in 
-  //    the standard basis.
-  //    It does the same as get_probabilities_vector but is faster for a single
-  //    qubit, and is used during measurement.
+  // Function name: get_prob_single_qubit_internal
+  // Description: Returns the probability of measuring outcome 0 (or 1)
+  //   for a single qubit in the standard basis.
+  //   It does the same as get_probabilities_vector but is faster for
+  //   a single qubit, and is used during measurement.
+  // Parameters: qubit - the qubit for which we want the probability
+  //             outcome - probability for 0 or 1
+  //             mat - the matrix computed for the probability. This
+  //                   may be useful for further computations.
+  // Returns: the probability for the given outcome.
   //----------------------------------------------------------------
 
-  double get_prob0_single_qubit_internal(uint_t qubit) const;
+  double get_prob_single_qubit_internal(uint_t qubit, uint_t outcome,
+					cmatrix_t &mat) const;
   //----------------------------------------------------------------
   // Function name: get_accumulated_probabilities_vector
   // Description: Computes the accumulated probabilities from 0

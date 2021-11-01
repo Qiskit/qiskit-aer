@@ -1398,14 +1398,24 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
   probvector = reverse_all_bits(temp_probvector, num_qubits);
 }
 
-double MPS::get_prob0_single_qubit_internal(uint_t qubit) const {
-  MPS_Tensor qubit_tensor = q_reg_[qubit];
-  if (qubit > 0)
-    qubit_tensor.mul_Gamma_by_left_Lambda(lambda_reg_[qubit-1]);
-  if (qubit < num_qubits_-1)
-    qubit_tensor.mul_Gamma_by_right_Lambda(lambda_reg_[qubit]);
+double MPS::get_prob_single_qubit_internal(uint_t qubit, 
+					   uint_t outcome,
+					   cmatrix_t &mat) const {
+  mat = q_reg_[qubit].get_data(outcome);
+  if (qubit > 0) {
+    // Multiply mat by left lambda
+    for (uint_t col=0; col<mat.GetColumns(); col++)
+	for (uint_t row=0; row<mat.GetRows(); row++)
+	  mat(row, col) *= lambda_reg_[qubit-1][row];
+  }
+  if (qubit < num_qubits_-1) {
+    // Multiply mat by right lambda
+    for (uint_t row=0; row<mat.GetRows(); row++)
+      for (uint_t col=0; col<mat.GetColumns(); col++)
+	mat(row, col) *= lambda_reg_[qubit][col];
+  }
   double prob0 = 
-    real(AER::Utils::sum( AER::Utils::elementwise_multiplication(qubit_tensor.get_data(0), AER::Utils::conjugate(qubit_tensor.get_data(0))) ));
+    real(AER::Utils::sum( AER::Utils::elementwise_multiplication(mat, AER::Utils::conjugate(mat)) ));
   return prob0;
 }
 
@@ -1555,9 +1565,9 @@ uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
 						uint_t next_measured_qubit) {
   reg_t qubits_to_update;
   qubits_to_update.push_back(qubit);
-
+  cmatrix_t dummy_mat;
   // compute probability for 0 or 1 result
-  double prob0 = get_prob0_single_qubit_internal(qubit);
+  double prob0 = get_prob_single_qubit_internal(qubit, 0, dummy_mat);
   double prob1 = 1 - prob0;
   uint_t measurement;
   cmatrix_t measurement_matrix(2, 2);
