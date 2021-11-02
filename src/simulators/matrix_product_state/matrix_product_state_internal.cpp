@@ -1555,6 +1555,11 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
 std::vector<reg_t> MPS::sample_measure_all_shots(const reg_t &qubits, 
 						 uint_t shots,
 						 RngEngine &rng) const {
+std::cout << "qubits = ";
+    for (uint_t i=0; i<qubits.size(); i++)
+      std::cout << qubits[i] << " ";
+    std::cout << std::endl;
+
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
   std::vector<rvector_t> rnds_list;
@@ -1570,7 +1575,6 @@ std::vector<reg_t> MPS::sample_measure_all_shots(const reg_t &qubits,
   reg_t centralized_qubits;
   reg_t single_result;
   if (qubits.size() < num_qubits_) {
-    std::cout << "yes" << std::endl;
     MPS temp_MPS;
     temp_MPS.initialize(*this);
     temp_MPS.centralize_qubits(internal_qubits, centralized_qubits);
@@ -1580,12 +1584,17 @@ std::vector<reg_t> MPS::sample_measure_all_shots(const reg_t &qubits,
       std::cout << centralized_qubits[i] << " ";
     std::cout << std::endl;
 
-    for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
+    for (uint_t i=0; i<shots;  i++) {
       single_result = temp_MPS.sample_measure_internal(centralized_qubits, rnds_list[i]);
+      std::cout << "single_result[i]= ";
+      for (uint_t i=0; i<qubits.size(); i++) {
+	std::cout << single_result[i] << " ";
+      }
+      std::cout << std::endl;
       all_samples[i] = single_result;
     }
   } else {
-    for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
+    for (uint_t i=0; i<shots;  i++) {
       single_result = sample_measure_internal(qubits, rnds_list[i]);
       all_samples[i] = single_result;
 
@@ -1609,8 +1618,7 @@ std::vector<reg_t> MPS::sample_measure_all_shots(const reg_t &qubits,
 reg_t MPS::sample_measure_internal(const reg_t &qubits, const rvector_t &rnds) const {
   uint_t size = qubits.size();
   double prob = 1;
-  std::string current_measure="";
-  char measure_1_qubit;
+  reg_t current_measure(num_qubits_);
   bool is_first_qubit = true;
   cmatrix_t mat;
 
@@ -1621,42 +1629,43 @@ reg_t MPS::sample_measure_internal(const reg_t &qubits, const rvector_t &rnds) c
   std::cout << std::endl;
 
   for (uint_t i=0; i<size; i++) {
-    measure_1_qubit = sample_measure_single_qubit(i, is_first_qubit, current_measure, 
+    current_measure[i] = sample_measure_single_qubit(i, is_first_qubit, 
 						  prob, rnds[i], mat);
-    current_measure =  measure_1_qubit + current_measure;
     is_first_qubit = false;
   }
-  return  create_outcome_vector(qubits, current_measure);
+  // Rearrange internal ordering of the qubits to sorted ordering
+  reg_t ordered_outcome(num_qubits_);
+  for (uint_t i=0; i<num_qubits_; i++) {
+    ordered_outcome[qubit_ordering_.order_[i]] = current_measure[i];
+  }
+  return ordered_outcome;
+
 }
 
 uint_t MPS::sample_measure_single_qubit(uint_t qubit,
 					bool is_first_qubit,
-					std::string &prev_measure, 
 					double &prob, double rnd,
 					cmatrix_t &mat) const {
-  std::cout << "sample_measure_single_qubit " << qubit << std::endl;
   double prob0 = 0;
   if (is_first_qubit) {
     std::cout << "in is_first_qubit " << qubit << std::endl;
     prob0 = get_prob0_single_qubit_internal(qubit);
     std::cout << "prob0 = " << prob0 << std::endl;
   } else {
-    std::string new_string = '0' + prev_measure;
     prob0 = get_single_probability0(qubit, mat);
     prob0 /= prob;
   }
 
-  char measurement = (rnd < prob0) ? '0' : '1';
-  double new_prob = (measurement == '0') ? prob0 : 1-prob0;
+  uint_t measurement = (rnd < prob0) ? 0 : 1;
+  double new_prob = (measurement == 0) ? prob0 : 1-prob0;
   prob *= new_prob;
 
   // Now update mat for the next qubit
   // mat represents the accumulated product of the matrices of the current
   // measurement outcome
-  uint_t bit = measurement == '0'? 0 : 1;
   if (is_first_qubit) {
     std::cout << "first" << std::endl;
-    mat = q_reg_[qubit].get_data(bit);
+    mat = q_reg_[qubit].get_data(measurement);
     std::cout << "2. " << mat<< std::endl;
     if (qubit > 0) { // multiply mat by left lambda
       std::cout << "greater than 0" << std::endl;
@@ -1665,7 +1674,7 @@ uint_t MPS::sample_measure_single_qubit(uint_t qubit,
 	  mat(row, col) *= lambda_reg_[qubit-1][row];
     }
   } else {
-    mat = mat * q_reg_[qubit].get_data(bit);
+    mat = mat * q_reg_[qubit].get_data(measurement);
   }
   std::cout <<"new mat = " << mat << std::endl;
   std::cout << "3" << std::endl;
@@ -1708,6 +1717,11 @@ reg_t MPS::create_outcome_vector(const reg_t &qubits, const std::string &current
   for (uint_t i=0; i<size; i++) {
     ordered_outcome[qubit_ordering_.order_[i]] = outcome_vector[i];
   }
+  std::cout << "ordered_outcome[i]= ";
+  for (uint_t i=0; i<size; i++) {
+    std::cout << ordered_outcome[i] << " ";
+  }
+  std::cout << std::endl;
   return ordered_outcome;
 }
 

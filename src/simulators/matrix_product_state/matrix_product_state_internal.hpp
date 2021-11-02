@@ -439,7 +439,6 @@ private:
   reg_t sample_measure_internal(const reg_t &qubits, const rvector_t &rnds) const;
   uint_t sample_measure_single_qubit(uint_t qubit, 
 				     bool first_qubit,
-				     std::string &prev_measure, 
 				     double &prob, double rnd, cmatrix_t &mat) const;
   //----------------------------------------------------------------
   // Function name: get_single_probability0
