@@ -236,8 +236,11 @@ public:
   //   a single qubit, and is used during measurement.
   // Parameters: qubit - the qubit for which we want the probability
   //             outcome - probability for 0 or 1
-  //             mat - the matrix computed for the probability. This
-  //                   may be useful for further computations.
+  //             mat - the '0' (or '1')matrix for the given qubit, multiplied
+  //                   by its left and right lambdas. Contracting it with
+  //                   its conjugate gives the probability for outcome '0' (or '1')
+  //                   It is returned because it may be useful for further 
+  //                   computations.
   // Returns: the probability for the given outcome.
   //----------------------------------------------------------------
 

@@ -1414,9 +1414,9 @@ double MPS::get_prob_single_qubit_internal(uint_t qubit,
       for (uint_t col=0; col<mat.GetColumns(); col++)
 	mat(row, col) *= lambda_reg_[qubit][col];
   }
-  double prob0 = 
+  double prob = 
     real(AER::Utils::sum( AER::Utils::elementwise_multiplication(mat, AER::Utils::conjugate(mat)) ));
-  return prob0;
+  return prob;
 }
 
 void MPS::get_accumulated_probabilities_vector(rvector_t& acc_probvector, 
