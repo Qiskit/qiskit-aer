@@ -159,7 +159,7 @@ public:
   sample_measure_using_apply_measure(const reg_t &qubits,
 				     uint_t shots,
 				     RngEngine &rng);
-std::vector<reg_t> sample_measure_all(const reg_t &qubits, 
+std::vector<reg_t> sample_measure_all(const reg_t &qubits,
 				      uint_t shots, 
 				      RngEngine &rng);
   //-----------------------------------------------------------------------
@@ -1004,8 +1004,8 @@ rvector_t State::measure_probs(const reg_t &qubits) const {
   return probvector;
 }
 
-std::vector<reg_t> State::sample_measure(const reg_t &qubits,
-                                         uint_t shots,
+std::vector<reg_t> State::sample_measure(const reg_t& qubits,
+					 uint_t shots,
                                          RngEngine &rng) {
   // There are two alternative algorithms for sample measure
   // We choose the one that is optimal relative to the total number 
@@ -1057,7 +1057,6 @@ std::vector<reg_t> State::
 std::vector<reg_t> State::sample_measure_all(const reg_t &qubits, 
 					     uint_t shots, 
 					     RngEngine &rng) {
-
   return qreg_.sample_measure_all_shots(qubits, shots, rng);
 }
 

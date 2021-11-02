@@ -329,7 +329,6 @@ public:
   std::vector<reg_t> sample_measure_all_shots(const reg_t &qubits, 
 					      uint_t shots, 
 					      RngEngine &rng) const;
-  reg_t sample_measure(const reg_t &qubits, const rvector_t &rnds) const;
 
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector_internal
@@ -445,10 +444,12 @@ private:
   uint_t apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
 					     uint_t next_measured_qubit);
 
-  reg_t sample_measure_internal(const reg_t &qubits, const rvector_t &rnds) const;
+  reg_t sample_measure_internal(const reg_t &measured_qubits, 
+				const rvector_t &rnds) const;
   uint_t sample_measure_single_qubit(uint_t qubit, 
 				     bool first_qubit,
 				     double &prob, double rnd, cmatrix_t &mat) const;
+
   //----------------------------------------------------------------
   // Function name: get_single_probability0
   // Description: Returns the probability that `qubit` will measure 0, given all the measurements
@@ -456,7 +457,6 @@ private:
   //----------------------------------------------------------------
   double get_single_probability0(uint_t qubit, const cmatrix_t &mat) const;
 
-  reg_t create_outcome_vector(const reg_t &qubits, const std::string &current_measure) const;
   //----------------------------------------------------------------
   // Function name: initialize_from_matrix
   // Description: This method is similar to initialize_from_statevector, only here
