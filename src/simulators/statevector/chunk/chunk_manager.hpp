@@ -213,7 +213,8 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
         multi_shots_ = false;
 
         //distribute chunk on multiple GPUs when OMP parallel shots are used
-        idev_start = omp_get_thread_num() % num_devices_;
+        if(num_devices_ > 0)
+          idev_start = omp_get_thread_num() % num_devices_;
       }
     }
     else{   //multiple-chunk parallelization
@@ -267,12 +268,12 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
                                                                 ncg,num_buffers,multi_shots_,matrix_bit);
       }
     }
-    if(num_chunks_ < nchunks){
+    if(chunks_allocated < nchunks){
       //rest of chunks are stored on host
       chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
-      chunks_[num_places_]->Allocate(-1,chunk_bits,nqubits,nchunks-num_chunks_,num_buffers,multi_shots_,matrix_bit);
+      chunks_[num_places_]->Allocate(-1,chunk_bits,nqubits,nchunks-chunks_allocated,num_buffers,multi_shots_,matrix_bit);
       num_places_ += 1;
-      num_chunks_ = nchunks;
+      num_chunks_ = chunks_allocated;
     }
 
 #ifdef AER_DISABLE_GDR

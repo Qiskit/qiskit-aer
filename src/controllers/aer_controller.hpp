@@ -367,6 +367,7 @@ protected:
   uint_t cache_block_qubit_ = 0;
 
   bool batched_shots_optimization_ = true;
+  int_t batched_shots_optimization_threshold_ = 16;
 };
 
 //=========================================================================
@@ -453,6 +454,9 @@ void Controller::set_config(const json_t &config) {
   //enable batched multi-shots/experiments optimization
   if(JSON::check_key("batched_shots_optimization", config)) {
     JSON::get_value(batched_shots_optimization_, "batched_shots_optimization", config);
+  }
+  if(JSON::check_key("batched_shots_optimization_threshold", config)) {
+    JSON::get_value(batched_shots_optimization_threshold_, "batched_shots_optimization_threshold", config);
   }
 
   // Override automatic simulation method with a fixed method
@@ -862,7 +866,10 @@ Result Controller::execute(std::vector<Circuit> &circuits,
         multi_chunk[j] = false;
       }
     }
-    num_process_per_experiment_ = num_processes_;
+    if(multi_chunk_req)
+      num_process_per_experiment_ = num_processes_;
+    else
+      num_process_per_experiment_ = 1;
 
     if(max_qubits_ == 0){
       max_qubits_ = 1;
@@ -972,7 +979,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     }
     else{
       bool batch_enable = false;
-      if(batched_shots_optimization_){
+      if(batched_shots_optimization_ && batched_shots_optimization_threshold_ >= max_qubits_){
         if(one_method && sim_device_ == Device::GPU && !multi_chunk_req && circuits.size() > num_gpus_ && 
                 max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
           batch_enable = true;
@@ -1429,7 +1436,8 @@ void Controller::run_circuit_helper(const Circuit &circ,
       }
       // General circuit noise sampling
       else {
-        if(batched_shots_optimization_ && sim_device_ == Device::GPU && max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
+        if(batched_shots_optimization_ && batched_shots_optimization_threshold_ >= max_qubits_ && 
+           sim_device_ == Device::GPU && max_batched_states_ > 1 && max_batched_states_ >= num_gpus_){
           //for GPU noise sampling is done at runtime
           opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::circuit, true);
           opt_circ.can_sample = false;
@@ -1991,18 +1999,10 @@ Controller::automatic_simulation_method(const Circuit &circ,
   }
 
   // If we got here, circuit isn't compatible with any of the simulation
-  // methods
-  std::stringstream msg;
-  msg << "AerSimulator: ";
-  if (noise_model.is_ideal()) {
-    msg << "circuit with instructions " << circ.opset();
-  } else {
-    auto opset = circ.opset();
-    opset.insert(noise_model.opset());
-    msg << "circuit and noise model with instructions" << opset;
-  }
-  msg << " is not compatible with any available simulation methods";
-  throw std::runtime_error(msg.str());
+  // method so fallback to a default method of statevector. The execution will
+  // fail but we will get partial result generation and generate a user facing
+  // error message
+  return Method::statevector;
 }
 
 bool Controller::validate_method(Method method,
