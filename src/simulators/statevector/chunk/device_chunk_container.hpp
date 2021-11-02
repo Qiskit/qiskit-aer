@@ -50,13 +50,6 @@ protected:
 
   bool creg_host_update_;
 
-  //for register blocking
-  thrust::host_vector<uint_t>               blocked_qubits_holder_;
-  uint_t max_blocked_gates_;
-  reg_t num_blocked_gates_;
-  reg_t num_blocked_matrix_;
-  reg_t num_blocked_qubits_;
-
 #ifdef AER_THRUST_CUDA
   std::vector<cudaStream_t> stream_;    //asynchronous execution
 #endif
@@ -232,15 +225,6 @@ public:
     cudaStreamSynchronize(stream_[iChunk]);
 #endif
   }
-
-  //set qubits to be blocked
-  void set_blocked_qubits(uint_t iChunk,const reg_t& qubits);
-
-  //do all gates stored in queue
-  void apply_blocked_gates(uint_t iChunk);
-
-  //queue gate for blocked execution
-  void queue_blocked_gate(uint_t iChunk,char gate,uint_t qubit,uint_t mask,const std::complex<double>* pMat = NULL);
 };
 
 template <typename data_t>
@@ -319,8 +303,6 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qu
   }
 #endif
 
-  max_blocked_gates_ = QV_MAX_BLOCKED_GATES;
-
   matrix_buffer_size_ = 0;
   params_buffer_size_ = 0;
   if(matrix_bit > 0)
@@ -356,14 +338,6 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qu
     batched_params_.resize(nc);
 
   uint_t size = num_matrices_ + this->num_buffers_;
-  num_blocked_gates_.resize(size);
-  num_blocked_matrix_.resize(size);
-  num_blocked_qubits_.resize(size);
-  for(i=0;i<size;i++){
-    num_blocked_gates_[i] = 0;
-    num_blocked_matrix_[i] = 0;
-  }
-  blocked_qubits_holder_.resize(QV_MAX_REGISTERS*size);
 
   //allocate chunk classes
   ChunkContainer<data_t>::allocate_chunks();
@@ -407,10 +381,6 @@ void DeviceChunkContainer<data_t>::Deallocate(void)
   cregs_host_.shrink_to_fit();
 
   peer_access_.clear();
-  num_blocked_gates_.clear();
-  num_blocked_matrix_.clear();
-  num_blocked_qubits_.clear();
-  blocked_qubits_holder_.clear();
 
 #ifdef AER_THRUST_CUDA
   uint_t i;
@@ -435,9 +405,6 @@ void DeviceChunkContainer<data_t>::ResizeMatrixBuffers(int bits)
     this->matrix_bits_ = bits;
     size = 1ull << (bits*2);
 
-    if(max_blocked_gates_*4 > size){
-      size = max_blocked_gates_*4;
-    }
     if(size > matrix_buffer_size_){
       matrix_buffer_size_ = size;
       matrix_.resize(n * size);
@@ -448,17 +415,10 @@ void DeviceChunkContainer<data_t>::ResizeMatrixBuffers(int bits)
     params_.resize(n * params_buffer_size_);
   }
   else{
-//    size = 1ull << (bits + 2);
     size = this->num_qubits_ * 4;
-    if(QV_MAX_REGISTERS + max_blocked_gates_*4 > size){
-      size = QV_MAX_REGISTERS + max_blocked_gates_*4;
-    }
-//    if(num_matrices_*size < (1ull << (bits*2))){
-//      size = (1ull << (bits*2))/num_matrices_;
-//    }
     if(size > params_buffer_size_){
       params_buffer_size_ = size;
-      params_.resize(n * size);
+      params_.resize(n * size + 20);
     }
   }
 }
@@ -764,471 +724,6 @@ thrust::complex<double> DeviceChunkContainer<data_t>::norm(uint_t iChunk, uint_t
 #endif
 
   return sum;
-}
-
-
-//set qubits to be blocked
-template <typename data_t>
-void DeviceChunkContainer<data_t>::set_blocked_qubits(uint_t iChunk,const reg_t& qubits)
-{
-  if(num_matrices_ == 1 && iChunk > 1 && iChunk < this->num_chunks_){
-    //only the first chunk can store (multi-chunk mode)
-    return;
-  }
-  uint_t iBlock;
-  if(iChunk >= this->num_chunks_){  //for buffer chunks
-    iBlock = num_matrices_ + iChunk - this->num_chunks_;
-  }
-  else{
-    iBlock = iChunk;
-  }
-
-  if(num_blocked_gates_[iBlock] > 0){
-    apply_blocked_gates(iChunk);
-  }
-
-  auto qubits_sorted = qubits;
-  std::sort(qubits_sorted.begin(), qubits_sorted.end());
-
-  int i;
-  for(i=0;i<qubits.size();i++){
-    blocked_qubits_holder_[iBlock*QV_MAX_REGISTERS + i] = qubits_sorted[i];
-  }
-#ifdef AER_THRUST_CUDA
-  set_device();
-  cudaMemcpyAsync(param_pointer(iChunk),
-                  (uint_t*)&qubits_sorted[0],
-                  qubits.size()*sizeof(uint_t),cudaMemcpyHostToDevice,stream_[iChunk]);
-#endif
-
-  num_blocked_gates_[iBlock] = 0;
-  num_blocked_matrix_[iBlock] = 0;
-  num_blocked_qubits_[iBlock] = qubits.size();
-}
-
-template <typename data_t>
-class GeneralMatrixMult2x2 : public GateFuncBase<data_t>
-{
-protected:
-  thrust::complex<double> m0_,m1_,m2_,m3_;
-  uint_t mask_;
-  uint_t offset_;
-
-public:
-  GeneralMatrixMult2x2(const cvector_t<double>& mat,int q,uint_t mask)
-  {
-    m0_ = mat[0];
-    m1_ = mat[1];
-    m2_ = mat[2];
-    m3_ = mat[3];
-
-    mask_ = mask;
-
-    offset_ = 1ull << q;
-  }
-
-  __host__ __device__ void operator()(const uint_t &i) const
-  {
-    uint_t i0,i1;
-    thrust::complex<data_t> q0,q1;
-    thrust::complex<data_t>* vec;
-
-    vec = this->data_;
-
-    i1 = i & (offset_ - 1);
-    i0 = (i - i1) << 1;
-    i0 += i1;
-    i1 = i0 + offset_;
-
-    q0 = vec[i0];
-    q1 = vec[i1];
-
-    if((i0 & mask_) == mask_)
-      vec[i0] = m0_ * q0 + m2_ * q1;
-    if((i1 & mask_) == mask_)
-      vec[i1] = m1_ * q0 + m3_ * q1;
-  }
-  const char* name(void)
-  {
-    return "general_mult2x2";
-  }
-};
-
-
-//queue gate for blocked execution
-template <typename data_t>
-void DeviceChunkContainer<data_t>::queue_blocked_gate(uint_t iChunk,char gate,uint_t qubit,uint_t mask,const std::complex<double>* pMat)
-{
-  if(num_matrices_ == 1 && iChunk > 1 && iChunk < this->num_chunks_){
-    //only the first chunk can store (multi-chunk mode)
-    return;
-  }
-
-  cvector_t<double> mat(4,0.0);
-  int i;
-  uint_t idx,idxParam,iBlock;
-  if(iChunk >= this->num_chunks_){  //for buffer chunks
-    iBlock = num_matrices_ + iChunk - this->num_chunks_;
-  }
-  else{
-    iBlock = iChunk;
-  }
-
-  if(num_blocked_gates_[iBlock] >= max_blocked_gates_){
-    apply_blocked_gates(iChunk);
-  }
-
-#ifdef AER_THRUST_CUDA
-  BlockedGateParams params;
-
-  params.mask_ = mask;
-  params.gate_ = gate;
-  params.qubit_ = 0;
-  for(i=0;i<num_blocked_qubits_[iBlock];i++){
-    if(blocked_qubits_holder_[iBlock*QV_MAX_REGISTERS + i] == qubit){
-      params.qubit_ = i;
-      break;
-    }
-  }
-  set_device();
-  cudaMemcpyAsync((BlockedGateParams*)(param_pointer(iChunk) + num_blocked_qubits_[iBlock]) + num_blocked_gates_[iBlock],
-                  &params,
-                  sizeof(BlockedGateParams),cudaMemcpyHostToDevice,stream_[iChunk]);
-
-  if(pMat != NULL){
-    if(gate == 'd'){  //diagonal matrix
-      mat[0] = pMat[0];
-      mat[1] = pMat[1];
-      cudaMemcpyAsync(matrix_pointer(iChunk) + num_blocked_matrix_[iBlock],
-                      (thrust::complex<double>*)&mat[0],
-                      2*sizeof(thrust::complex<double>),cudaMemcpyHostToDevice,stream_[iChunk]);
-      num_blocked_matrix_[iBlock] += 2;
-    }
-    else if(gate == 'p'){ //phase
-      mat[0]   = pMat[0];
-      cudaMemcpyAsync(matrix_pointer(iChunk) + num_blocked_matrix_[iBlock],
-                      (thrust::complex<double>*)&mat[0],
-                      1*sizeof(thrust::complex<double>),cudaMemcpyHostToDevice,stream_[iChunk]);
-      num_blocked_matrix_[iBlock] += 1;
-    }
-    else{ //otherwise, 2x2 matrix
-      mat[0] = pMat[0];
-      mat[1] = pMat[2];
-      mat[2] = pMat[3];
-      mat[3] = pMat[1];
-      cudaMemcpyAsync(matrix_pointer(iChunk) + num_blocked_matrix_[iBlock],
-                      (thrust::complex<double>*)&mat[0],
-                      4*sizeof(thrust::complex<double>),cudaMemcpyHostToDevice,stream_[iChunk]);
-      num_blocked_matrix_[iBlock] += 4;
-    }
-  }
-  num_blocked_gates_[iBlock]++;
-
-#else
-  //for statevector_cpu, apply now
-
-  switch(gate){
-  case 'x':
-    mat[1] = 1.0;
-    mat[2] = 1.0;
-    break;
-  case 'y':
-    mat[1] = std::complex<double>(0.0,-1.0);
-    mat[2] = std::complex<double>(0.0,1.0);
-    break;
-  case 'p':
-    if(pMat){
-      mat[0] = pMat[0];
-      mat[3] = pMat[0];
-    }
-    break;
-  case 'd':
-    if(pMat){
-      mat[0] = pMat[0];
-      mat[3] = pMat[1];
-    }
-    break;
-  default:
-    if(pMat){
-      mat[0] = pMat[0];
-      mat[1] = pMat[1];
-      mat[2] = pMat[2];
-      mat[3] = pMat[3];
-    }
-    break;
-  }
-  uint_t count = 1;
-  if(num_matrices_ == 1)
-    count = this->chunk_bits_;
-  this->Execute(GeneralMatrixMult2x2<data_t>(mat,qubit,mask),iChunk,count);
-
-#endif
-
-}
-
-#ifdef AER_THRUST_CUDA
-
-template <typename data_t> __global__
-void dev_apply_register_blocked_gates(thrust::complex<data_t>* data,int num_gates,int num_qubits,int num_matrix,uint_t* qubits,BlockedGateParams* params,thrust::complex<double>* matrix)
-{
-  uint_t i,idx,ii,t,offset;
-  uint_t j,laneID,iPair;
-  thrust::complex<data_t> q,qp,qt;
-  thrust::complex<double> m0,m1;
-  data_t qr,qi;
-  int nElem;
-  thrust::complex<double>* matrix_load;
-
-  i = blockIdx.x * blockDim.x + threadIdx.x;
-  laneID = i & 31;
-
-  //index for this thread
-  idx = 0;
-  ii = i >> num_qubits;
-  for(j=0;j<num_qubits;j++){
-    offset = (1ull << qubits[j]);
-    t = ii & (offset - 1);
-    idx += t;
-    ii = (ii - t) << 1;
-
-    if(((laneID >> j) & 1) != 0){
-      idx += offset;
-    }
-  }
-  idx += ii;
-
-  q = data[idx];
-
-  //prefetch
-  if(threadIdx.x < num_matrix)
-    m0 = matrix[threadIdx.x];
-
-  for(j=0;j<num_gates;j++){
-    iPair = laneID ^ (1ull << params[j].qubit_);
-
-    matrix_load = matrix;
-    nElem = 0;
-
-    switch(params[j].gate_){
-    case 'x':
-      m0 = 0.0;
-      m1 = 1.0;
-      break;
-    case 'y':
-      m0 = 0.0;
-      if(iPair > laneID)
-        m1 = thrust::complex<double>(0.0,-1.0);
-      else
-        m1 = thrust::complex<double>(0.0,1.0);
-      break;
-    case 'p':
-      nElem = 1;
-      matrix += 1;
-      m1 = 0.0;
-      break;
-    case 'd':
-      nElem = 2;
-      matrix += 2;
-      m1 = 0.0;
-      break;
-    default:
-      nElem = 4;
-      matrix += 4;
-      break;
-    }
-
-    if(iPair < laneID){
-      matrix_load += (nElem >> 1);
-    }
-    if(nElem > 0)
-      m0 = *(matrix_load);
-    if(nElem > 2)
-      m1 = *(matrix_load + 1);
-
-    //warp shuffle to get pair amplitude
-    qr = __shfl_sync(0xffffffff,q.real(),iPair,32);
-    qi = __shfl_sync(0xffffffff,q.imag(),iPair,32);
-    qp = thrust::complex<data_t>(qr,qi);
-    qt = m0*q + m1* qp;
-
-    if((idx & params[j].mask_) == params[j].mask_){   //handling control bits
-      q = qt;
-    }
-  }
-
-  data[idx] = q;
-}
-
-
-template <typename data_t> __global__
-void dev_apply_shared_memory_blocked_gates(thrust::complex<data_t>* data,int num_gates,int num_qubits,uint_t* qubits,BlockedGateParams* params,thrust::complex<double>* matrix)
-{
-  __shared__ thrust::complex<data_t> buf[1024];
-  uint_t i,idx,ii,t,offset;
-  uint_t j,laneID,iPair;
-  thrust::complex<data_t> q,qp;
-  thrust::complex<double> m0,m1;
-  data_t qr,qi;
-  int nElem;
-  thrust::complex<double>* matrix_load;
-
-  i = blockIdx.x * blockDim.x + threadIdx.x;
-
-  laneID = threadIdx.x;
-
-  //index for this thread
-  idx = 0;
-  ii = i >> num_qubits;
-  for(j=0;j<num_qubits;j++){
-    offset = (1ull << qubits[j]);
-    t = ii & (offset - 1);
-    idx += t;
-    ii = (ii - t) << 1;
-
-    if(((laneID >> j) & 1) != 0){
-      idx += offset;
-    }
-  }
-  idx += ii;
-
-  q = data[idx];
-
-  for(j=0;j<num_gates;j++){
-    iPair = laneID ^ (1ull << params[j].qubit_);
-
-    if(params[j].qubit_ < 5){
-      //warp shuffle to get pair amplitude
-      qr = q.real();
-      qi = q.imag();
-      qr = __shfl_sync(0xffffffff,qr,iPair & 31,32);
-      qi = __shfl_sync(0xffffffff,qi,iPair & 31,32);
-      qp = thrust::complex<data_t>(qr,qi);
-    }
-    else{
-      __syncthreads();
-      buf[laneID] = q;
-      __syncthreads();
-      qp = buf[iPair];
-    }
-
-    matrix_load = matrix;
-    nElem = 0;
-
-    switch(params[j].gate_){
-    case 'x':
-      m0 = 0.0;
-      m1 = 1.0;
-      break;
-    case 'y':
-      m0 = 0.0;
-      if(iPair > laneID)
-        m1 = thrust::complex<double>(0.0,-1.0);
-      else
-        m1 = thrust::complex<double>(0.0,1.0);
-      break;
-    case 'p':
-      nElem = 1;
-      matrix += 1;
-      m1 = 0.0;
-      break;
-    case 'd':
-      nElem = 2;
-      matrix += 2;
-      m1 = 0.0;
-      break;
-    default:
-      nElem = 4;
-      matrix += 4;
-      break;
-    }
-
-    if(iPair < laneID){
-      matrix_load += (nElem >> 1);
-    }
-    if(nElem > 0)
-      m0 = *(matrix_load);
-    if(nElem > 2)
-      m1 = *(matrix_load + 1);
-
-    if((idx & params[j].mask_) == params[j].mask_){   //handling control bits
-      q = m0*q + m1* qp;
-    }
-  }
-
-  data[idx] = q;
-}
-
-#endif
-
-//do all gates stored in queue
-template <typename data_t>
-void DeviceChunkContainer<data_t>::apply_blocked_gates(uint_t iChunk)
-{
-  if(num_matrices_ == 1 && iChunk > 1 && iChunk < this->num_chunks_){
-    //only the first chunk can apply
-    return;
-  }
-  uint_t iBlock;
-  if(iChunk >= this->num_chunks_){  //for buffer chunks
-    iBlock = num_matrices_ + iChunk - this->num_chunks_;
-  }
-  else{
-    iBlock = iChunk;
-  }
-
-  if(num_blocked_gates_[iBlock] == 0)
-    return;
-
-#ifdef AER_THRUST_CUDA
-
-  uint_t size;
-  uint_t* pQubits;
-  BlockedGateParams* pParams;
-  thrust::complex<double>* pMatrix;
-
-  set_device();
-
-  pQubits = param_pointer(iChunk);
-  pParams = (BlockedGateParams*)(param_pointer(iChunk) + num_blocked_qubits_[iBlock]);
-  pMatrix = matrix_pointer(iChunk);
-
-  if(num_matrices_ == 1){
-    size = this->num_chunks_ << this->chunk_bits_;
-  }
-  else{
-    size = 1ull << this->chunk_bits_;
-  }
-  uint_t nt,nb;
-  nt = size;
-  nb = 1;
-  if(nt > 1024){
-    nb = (nt + 1024 - 1) / 1024;
-    nt = 1024;
-  }
-
-  if(num_blocked_qubits_[iBlock] < 6){
-    //using register blocking (<=5 qubits)
-    dev_apply_register_blocked_gates<data_t><<<nb,nt,num_blocked_matrix_[iChunk]*sizeof(thrust::complex<double>),stream_[iChunk]>>>(
-                                                                          chunk_pointer(iChunk),
-                                                                          num_blocked_gates_[iBlock],
-                                                                          num_blocked_qubits_[iBlock],
-                                                                          num_blocked_matrix_[iBlock],
-                                                                          pQubits,pParams,pMatrix);
-  }
-  else{
-    //using shared memory blocking (<=10 qubits)
-    dev_apply_shared_memory_blocked_gates<data_t><<<nb,nt,1024*sizeof(thrust::complex<data_t>),stream_[iChunk]>>>(
-                                                                          chunk_pointer(iChunk),
-                                                                          num_blocked_gates_[iBlock],
-                                                                          num_blocked_qubits_[iBlock],
-                                                                          pQubits,pParams,pMatrix);
-  }
-
-#endif
-
-  num_blocked_gates_[iBlock] = 0;
-  num_blocked_matrix_[iBlock] = 0;
-
 }
 
 template <typename data_t>

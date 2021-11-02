@@ -120,7 +120,7 @@ public:
                                     const = 0;
 
   //memory allocation (previously called before inisitalize_qreg)
-  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1){return true;}
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1,uint_t num_groups_per_device = 1){return true;}
   virtual bool bind_state(State<state_t>& state,uint_t ishot,bool batch_enable){return true;}
 
 

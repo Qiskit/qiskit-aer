@@ -146,16 +146,20 @@ public:
   void initialize_component(const reg_t &qubits, const cvector_t<double> &state);
 
   //chunk setup
-  bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
+  bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks,uint_t num_groups_per_device);
   bool chunk_setup(QubitVectorThrust<data_t>& base,const uint_t chunk_index);
 
   //cache control for chunks on host
   bool fetch_chunk(void) const;
   void release_chunk(bool write_back = true) const;
 
-  //blocking
-  void enter_register_blocking(const reg_t& qubits);
-  void leave_register_blocking(void);
+  //memory(cache) blocking
+  void enter_memory_blocking(const reg_t& qubits);
+  void leave_memory_blocking(void);
+  void set_memory_blocking_bits(int_t bits)
+  {
+    memory_blocking_bits_ = bits;
+  }
 
   //prepare buffer for MPI send/recv
   thrust::complex<data_t>* send_buffer(uint_t& size_in_byte);
@@ -457,12 +461,19 @@ protected:
   bool multi_shots_;
   bool enable_batch_;
 
-  bool register_blocking_;
-
   uint_t num_creg_bits_;
   uint_t num_cmem_bits_;
 
   int_t max_matrix_bits_ = 0;
+
+  //storage for register blocking
+  bool memory_blocking_;
+  int_t memory_blocking_bits_ = 0;
+  int_t memory_blocking_active_qubits_;
+  std::vector<batched_matrix_params> memory_blocking_params_;
+  reg_t memory_blocking_qubits_;
+  cvector_t<double> memory_blocking_matrix_;
+  reg_t memory_blocking_qubit_map_;
 
   //-----------------------------------------------------------------------
   // Config settings
@@ -618,7 +629,7 @@ QubitVectorThrust<data_t>::QubitVectorThrust(size_t num_qubits) : num_qubits_(0)
   if(num_qubits != 0){
     set_num_qubits(num_qubits);
   }
-  register_blocking_ = false;
+  memory_blocking_ = false;
 }
 
 template <typename data_t>
@@ -968,21 +979,24 @@ void QubitVectorThrust<data_t>::zero()
 
 
 template <typename data_t>
-bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks)
+bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks,uint_t num_groups_per_device)
 {
   //set global chunk ID / shot ID
   chunk_index_ = chunk_index;
 
   if(chunk_manager_){
+    if(chunk_manager_->chunk_bits() == chunk_bits && chunk_manager_->num_qubits() == num_qubits){
+      bool mapped = true;
+      if(!chunk_.is_mapped()){
+        mapped = chunk_manager_->MapChunk(chunk_,0);
+      }
+      chunk_.set_chunk_index(chunk_index_);
+      return mapped;
+    }
+
     if(chunk_.is_mapped()){
       chunk_.unmap();
       chunk_manager_->UnmapChunk(chunk_);
-    }
-
-    if(chunk_manager_->chunk_bits() == chunk_bits && chunk_manager_->num_qubits() == num_qubits){
-      bool mapped = chunk_manager_->MapChunk(chunk_,0);
-      chunk_.set_chunk_index(chunk_index_);
-      return mapped;
     }
     chunk_manager_.reset();
   }
@@ -990,7 +1004,7 @@ bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t
   //only first chunk call allocation function
   if(chunk_bits > 0 && num_qubits > 0){
     chunk_manager_ = std::make_shared<ChunkManager<data_t>>();
-    chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks,max_matrix_bits_);
+    chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks,max_matrix_bits_,num_groups_per_device);
   }
 
   multi_chunk_distribution_ = false;
@@ -1056,7 +1070,8 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   chunk_.set_num_qubits(num_qubits);
   chunk_.enable_omp((omp_get_num_threads() == 1) && (num_qubits_ > omp_threshold_ && omp_threads_ > 1));
 
-  register_blocking_ = false;
+  memory_blocking_ = false;
+  memory_blocking_qubit_map_.resize(num_qubits_);
 
 #ifdef AER_DEBUG
   if(chunk_.pos() == 0){
@@ -1192,20 +1207,6 @@ void QubitVectorThrust<data_t>::release_chunk(bool write_back) const
 
 }
 
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::enter_register_blocking(const reg_t& qubits)
-{
-  register_blocking_ = true;
-  chunk_.set_blocked_qubits(qubits);
-}
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::leave_register_blocking(void)
-{
-  chunk_.apply_blocked_gates();
-  register_blocking_ = false;
-}
 
 
 template <typename data_t>
@@ -1983,7 +1984,7 @@ public:
     ;
   }
 
-  __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
+  __host__ __device__ thrust::complex<data_t> run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache,int_t iter) const
   {
     uint_t j,threadID;
     thrust::complex<data_t> q,r;
@@ -2005,8 +2006,7 @@ public:
 
       r += m*q;
     }
-
-    vec[_idx] = r;
+    return r;
   }
 
   const char* name(void)
@@ -2235,25 +2235,19 @@ public:
 };
 
 
-
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
                                        const cvector_t<double> &mat)
 {
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
-
   const size_t N = qubits.size();
+
   auto qubits_sorted = qubits;
   std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
   if(N == 1){
-    if(register_blocking_){
-      chunk_.queue_blocked_gate('u',qubits[0],0,&mat[0]);
-    }
-    else{
-      apply_function(MatrixMult2x2<data_t>(mat,qubits[0]));
-    }
+    apply_function(MatrixMult2x2<data_t>(mat,qubits[0]));
   }
   else if(N == 2){
     apply_function(MatrixMult4x4<data_t>(mat,qubits[0],qubits[1]));
@@ -2278,8 +2272,111 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
 
     apply_function(f);
   }
-
 }
+
+template <typename data_t>
+class memory_blocking_kernel : public GateFuncWithCache<data_t>
+{
+protected:
+  int num_params_;
+public:
+  memory_blocking_kernel(int nq,int np) : GateFuncWithCache<data_t>(nq)
+  {
+    num_params_ = np;
+  }
+
+  __host__ __device__ int_t num_of_iteration(void)
+  {
+    return num_params_;
+  }
+
+  __host__ __device__ thrust::complex<data_t> run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache,int_t iter) const
+  {
+    int_t ip,j,k;
+    uint_t* qubits;
+    thrust::complex<double>* pMat;
+    uint_t mat_size,irow,ibase,pos;
+    thrust::complex<data_t> q,r;
+    thrust::complex<double> m;
+
+    uint_t cmask = this->batched_params_[iter].control_mask_;
+    uint_t nq = this->batched_params_[iter].num_qubits_;
+    if(nq == 1){
+      pMat = (thrust::complex<double>*)this->batched_params_[iter].matrix2x2_;
+      qubits = &this->batched_params_[iter].qubit_;
+    }
+    else{
+      pMat = this->matrix_ + this->batched_params_[iter].offset_matrix_;
+      qubits = this->params_ + this->batched_params_[iter].offset_qubits_;
+    }
+    mat_size = 1ull << nq;
+
+    irow = 0;
+    ibase = _tid & 1023;
+    for(j=0;j<nq;j++){
+      if(((_tid >> qubits[j]) & 1) == 1){
+        irow += (1ull << j);
+        ibase -= (1ull << qubits[j]);
+      }
+    }
+
+
+    q = 1.0;
+    if((_idx & cmask) == cmask){  //control bits
+      r = 0.0;
+      for(j=0;j<mat_size;j++){
+        m = pMat[irow + mat_size*j];
+        pos = ibase;
+        for(k=0;k<nq;k++){
+          if(((j >> k) & 1) == 1)
+            pos += (1ull << qubits[k]);
+        }
+        q = _cache[pos];
+
+        r += m*q;
+      }
+    }
+    else{
+      r = _cache[_tid & 1023];
+    }
+
+    return r;
+  }
+
+  const char* name(void)
+  {
+    return "memory_blocking";
+  }
+};
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::enter_memory_blocking(const reg_t& qubits)
+{
+  auto qubits_sorted = qubits;
+  std::sort(qubits_sorted.begin(), qubits_sorted.end());
+
+  //mapping qubits for register index
+  for(int_t i=0;i<qubits_sorted.size();i++){
+    memory_blocking_qubit_map_[qubits_sorted[i]] = i;
+  }
+
+  memory_blocking_params_.clear();
+  memory_blocking_qubits_ = qubits_sorted;
+  memory_blocking_qubits_.insert(memory_blocking_qubits_.end(),qubits_sorted.begin(),qubits_sorted.end());
+  memory_blocking_matrix_.clear();
+
+  memory_blocking_active_qubits_ = qubits.size();
+  memory_blocking_ = true;
+}
+
+template <typename data_t>
+void QubitVectorThrust<data_t>::leave_memory_blocking(void)
+{
+  //TO DO: implement memory blocking here (currently disabled, it is not fast as expected...)
+  memory_blocking_active_qubits_ = 0;
+  memory_blocking_ = false;
+}
+
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_multiplexer(const reg_t &control_qubits,
@@ -2490,12 +2587,7 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
   const int_t N = qubits.size();
 
   if(N == 1){
-    if(register_blocking_){
-      chunk_.queue_blocked_gate('d',qubits[0],0,&diag[0]);
-    }
-    else{
-      apply_function(DiagonalMult2x2<data_t>(diag,qubits[0]));
-    }
+    apply_function(DiagonalMult2x2<data_t>(diag,qubits[0]));
   }
   else if(N == 2){
     apply_function(DiagonalMult4x4<data_t>(diag,qubits[0],qubits[1]));
@@ -2684,17 +2776,7 @@ void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits)
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
 
-  if(register_blocking_){
-    int i;
-    uint_t mask = 0;
-    for(i=0;i<qubits.size()-1;i++){
-      mask |= (1ull << qubits[i]);
-    }
-    chunk_.queue_blocked_gate('x',qubits[qubits.size()-1],mask);
-  }
-  else{
-    apply_function(CX_func<data_t>(qubits));
-  }
+  apply_function(CX_func<data_t>(qubits));
 }
 
 
@@ -2767,17 +2849,7 @@ void QubitVectorThrust<data_t>::apply_mcy(const reg_t &qubits)
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
 
-  if(register_blocking_){
-    int i;
-    uint_t mask = 0;
-    for(i=0;i<qubits.size()-1;i++){
-      mask |= (1ull << qubits[i]);
-    }
-    chunk_.queue_blocked_gate('y',qubits[qubits.size()-1],mask);
-  }
-  else{
-    apply_function(CY_func<data_t>(qubits));
-  }
+  apply_function(CY_func<data_t>(qubits));
 }
 
 template <typename data_t>
@@ -3136,17 +3208,7 @@ void QubitVectorThrust<data_t>::apply_mcphase(const reg_t &qubits, const std::co
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
 
-  if(register_blocking_){
-    int i;
-    uint_t mask = 0;
-    for(i=0;i<qubits.size()-1;i++){
-      mask |= (1ull << qubits[i]);
-    }
-    chunk_.queue_blocked_gate('p',qubits[qubits.size()-1],mask,&phase);
-  }
-  else{
-    apply_function(phase_func<data_t>(qubits,*(thrust::complex<double>*)&phase) );
-  }
+  apply_function(phase_func<data_t>(qubits,*(thrust::complex<double>*)&phase) );
 }
 
 template <typename data_t>
@@ -3308,17 +3370,7 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
       return;
     }
     else{
-      if(register_blocking_){
-        int i;
-        uint_t mask = 0;
-        for(i=0;i<qubits.size()-1;i++){
-          mask |= (1ull << qubits[i]);
-        }
-        chunk_.queue_blocked_gate('d',qubits[qubits.size()-1],mask,&diag[0]);
-      }
-      else{
-        apply_function(DiagonalMult2x2Controlled<data_t>(diag,qubits) );
-      }
+      apply_function(DiagonalMult2x2Controlled<data_t>(diag,qubits) );
     }
   }
   else{
@@ -3328,17 +3380,7 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
       return;
     }
     else{
-      if(register_blocking_){
-        int i;
-        uint_t mask = 0;
-        for(i=0;i<qubits.size()-1;i++){
-          mask |= (1ull << qubits[i]);
-        }
-        chunk_.queue_blocked_gate('u',qubits[qubits.size()-1],mask,&mat[0]);
-      }
-      else{
-        apply_function(MatrixMult2x2Controlled<data_t>(mat,qubits) );
-      }
+      apply_function(MatrixMult2x2Controlled<data_t>(mat,qubits) );
     }
   }
 }
@@ -3361,12 +3403,7 @@ void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
     apply_diagonal_matrix(qubit, diag);
     return;
   }
-  if(register_blocking_){
-    chunk_.queue_blocked_gate('u',qubit,0,&mat[0]);
-  }
-  else{
-    apply_function(MatrixMult2x2<data_t>(mat,qubit));
-  }
+  apply_function(MatrixMult2x2<data_t>(mat,qubit));
 }
 
 template <typename data_t>
@@ -3376,13 +3413,8 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const uint_t qubit,
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
 
-  if(register_blocking_){
-    chunk_.queue_blocked_gate('d',qubit,0,&diag[0]);
-  }
-  else{
-    reg_t qubits = {qubit};
-    apply_function(DiagonalMult2x2<data_t>(diag,qubits[0]));
-  }
+  reg_t qubits = {qubit};
+  apply_function(DiagonalMult2x2<data_t>(diag,qubits[0]));
 }
 
 template <typename data_t>
@@ -3416,7 +3448,7 @@ public:
     return idx;
   }
 
-  __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
+  __host__ __device__ thrust::complex<data_t> run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache,int_t iter) const
   {
     uint_t istate = _tid >> num_qubits_state_;
     uint_t cmask = this->batched_params_[istate].control_mask_;
@@ -3440,9 +3472,11 @@ public:
       m = pMat[irow+2];
       q = _cache[(_tid & 1023) - irow+1];
       r += m*q;
-
-      vec[_idx] = r;
     }
+    else{
+      r = _cache[(_tid & 1023)];
+    }
+    return r;
   }
 
   const char* name(void)
@@ -3496,7 +3530,7 @@ public:
     return idx;
   }
 
-  __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
+  __host__ __device__ thrust::complex<data_t> run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache,int_t iter) const
   {
     uint_t istate = _tid >> num_qubits_state_;
     uint_t nq = this->batched_params_[istate].num_qubits_;
@@ -3526,9 +3560,11 @@ public:
 
         r += m*q;
       }
-
-      vec[_idx] = r;
     }
+    else{
+      r = _cache[(_tid & 1023)];
+    }
+    return r;
   }
 
   const char* name(void)
@@ -5271,7 +5307,7 @@ public:
     prob_buf_size_ = prob_size;
   }
 
-  __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
+  __host__ __device__ thrust::complex<data_t> run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache,int_t iter) const
   {
     uint_t j,threadID;
     thrust::complex<data_t> q,r;
@@ -5296,7 +5332,7 @@ public:
       q = _cache[(_tid & 1023) - irow + j];
       r += m*q;
     }
-    vec[_idx] = r*scale;
+    return r*scale;
   }
 
   const char* name(void)

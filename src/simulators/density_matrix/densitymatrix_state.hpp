@@ -142,7 +142,7 @@ public:
   //store asynchronously measured classical bits after batched execution
   virtual void store_measured_cbits(void);
 
-  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1,uint_t num_groups_per_device = 1) override;
   virtual bool bind_state(State<densmat_t>& state,uint_t ishot,bool batch_enable);
 
   virtual void end_of_circuit()
@@ -411,10 +411,10 @@ const stringmap_t<Snapshots> State<densmat_t>::snapshotset_(
 // Initialization
 //-------------------------------------------------------------------------
 template <class densmat_t>
-bool State<densmat_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
+bool State<densmat_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots,uint_t num_groups_per_device)
 {
   BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_bits_);
-  if(BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,num_parallel_shots)){
+  if(BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,num_parallel_shots,num_groups_per_device)){
     BaseState::shot_index_ = 0;
     return true;
   }

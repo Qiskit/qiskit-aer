@@ -373,6 +373,7 @@ States<state_t>::States()
   distributed_group_ = 0;
 
   num_local_states_ = 0;
+  num_groups_ = 0;
 
   gpu_ = false;
 }
@@ -453,7 +454,7 @@ uint_t States<state_t>::allocate_states(uint_t n_states)
     states_.resize(n_states);
 
     states_[0].set_max_matrix_bits(max_matrix_bits_);
-    states_[0].allocate(num_qubits_,num_qubits_,n_states);
+    states_[0].allocate(num_qubits_,num_qubits_,n_states,num_groups_);
     num_allocated = 1;
     for(i=1;i<n_states;i++){
       if(!states_[i].bind_state(states_[0],i,true))
@@ -503,6 +504,10 @@ void States<state_t>::set_config(const json_t &config)
 
   // Load config for memory (creg list data)
   JSON::get_value(save_creg_memory_, "memory", config);
+
+  if(JSON::check_key("batched_shots_optimization_groups_per_device", config)) {
+    JSON::get_value(num_groups_, "batched_shots_optimization_groups_per_device", config);
+  }
 }
 
 

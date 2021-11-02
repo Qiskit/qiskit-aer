@@ -172,7 +172,7 @@ public:
   virtual reg_t batched_sample_measure(const reg_t &qubits,reg_t& shots,std::vector<RngEngine> &rng);
 
 
-  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1,uint_t num_groups_per_device = 1) override;
   virtual bool bind_state(State<statevec_t>& state,uint_t ishot,bool batch_enable);
 
   virtual void end_of_circuit()
@@ -504,10 +504,10 @@ const stringmap_t<Snapshots> State<statevec_t>::snapshotset_(
 // Initialization
 //-------------------------------------------------------------------------
 template <class statevec_t>
-bool State<statevec_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
+bool State<statevec_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots,uint_t num_groups_per_device)
 {
   BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_bits_);
-  bool ret = BaseState::qreg_.chunk_setup(num_qubits,num_qubits,0,num_parallel_shots);
+  bool ret = BaseState::qreg_.chunk_setup(num_qubits,num_qubits,0,num_parallel_shots,num_groups_per_device);
   BaseState::shot_index_ = 0;
 
   return ret;
@@ -628,6 +628,11 @@ void State<statevec_t>::set_config(const json_t &config) {
   if (JSON::get_value(index_size, "statevector_sample_measure_opt", config)) {
     BaseState::qreg_.set_sample_measure_index_size(index_size);
   };
+
+  int_t bits;
+  if (JSON::get_value(bits, "memory_blocking_bits", config)) {
+    BaseState::qreg_.set_memory_blocking_bits(bits);
+  }
 }
 
 template <class statevec_t>
@@ -699,11 +704,11 @@ void State<statevec_t>::apply_op(const Operations::Op &op,
         apply_kraus(op.qubits, op.mats, rng);
         break;
       case OpType::sim_op:
-        if(op.name == "begin_register_blocking"){
-          BaseState::qreg_.enter_register_blocking(op.qubits);
+        if(op.name == "begin_memory_blocking"){
+          BaseState::qreg_.enter_memory_blocking(op.qubits);
         }
-        else if(op.name == "end_register_blocking"){
-          BaseState::qreg_.leave_register_blocking();
+        else if(op.name == "end_memory_blocking"){
+          BaseState::qreg_.leave_memory_blocking();
         }
         break;
       case OpType::set_statevec:
@@ -788,11 +793,11 @@ void State<statevec_t>::apply_op_multi_shots(const Operations::Op &op,
       BaseState::qreg_.apply_batched_kraus(op.qubits, op.mats,rng);
       break;
     case OpType::sim_op:
-      if(op.name == "begin_register_blocking"){
-        BaseState::qreg_.enter_register_blocking(op.qubits);
+      if(op.name == "begin_memory_blocking"){
+        BaseState::qreg_.enter_memory_blocking(op.qubits);
       }
-      else if(op.name == "end_register_blocking"){
-        BaseState::qreg_.leave_register_blocking();
+      else if(op.name == "end_memory_blocking"){
+        BaseState::qreg_.leave_memory_blocking();
       }
       break;
     case OpType::set_statevec:

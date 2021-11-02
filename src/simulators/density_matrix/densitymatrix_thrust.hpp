@@ -964,7 +964,12 @@ public:
     return idx;
   }
 
-  __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
+  __host__ __device__ int_t num_of_iteration(void)
+  {
+    return 2;
+  }
+
+  __host__ __device__ thrust::complex<data_t> run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache,int_t iter) const
   {
     uint_t istate = _tid >> this->chunk_bits_;
     uint_t cmask;
@@ -978,7 +983,8 @@ public:
 
     vec = this->data_;
 
-    if(this->batched_params_[istate].super_op_){
+    r = _cache[(_tid & 1023)];
+    if(iter == 0 && this->batched_params_[istate].super_op_){
       pMat = this->matrix_ + this->batched_params_[istate].offset_matrix_;
       irow = _tid & 3;
 
@@ -994,51 +1000,24 @@ public:
       m = pMat[irow+12];
       q = _cache[(_tid & 1023) - irow+3];
       r += m*q;
-
-      this->sync_threads();
-      this->sync_threads();
-
-      vec[_idx] = r;
     }
     else{
       cmask = this->batched_params_[istate].control_mask_;
       pMat = (thrust::complex<double>*)this->batched_params_[istate].matrix2x2_;
+
+      cmask <<= (num_qubits_state_*iter);    //shift mask bits to get super_op mask bits
       if((_idx & cmask) == cmask){  //control bits
-        irow = _tid & 1;
-
-        m = pMat[irow];
-        q = _cache[(_tid & 1023) - irow];
-        r = m*q;
-        m = pMat[irow+2];
-        q = _cache[(_tid & 1023) - irow+1];
-        r += m*q;
-
-        this->sync_threads();
-        _cache[(_tid & 1023)] = r;
-        this->sync_threads();
-      }
-      else{
-        this->sync_threads();
-        this->sync_threads();
-      }
-
-      cmask <<= num_qubits_state_;    //shift mask bits to get super_op mask bits
-      if((_idx & cmask) == cmask){  //control bits
-        irow = (_tid >> 1) & 1;
+        irow = (_tid >> iter) & 1;
 
         m = thrust::conj(pMat[irow]);
-        q = _cache[(_tid & 1023) - (irow << 1)];
+        q = _cache[(_tid & 1023) - (irow << iter)];
         r = m*q;
         m = thrust::conj(pMat[irow+2]);
-        q = _cache[(_tid & 1023) - (irow << 1) + 2];
+        q = _cache[(_tid & 1023) - (irow << iter) + 2];
         r += m*q;
       }
-      else{
-        r = _cache[(_tid & 1023)];
-      }
-
-      vec[_idx] = r;
     }
+    return r;
   }
 
   const char* name(void)
@@ -1101,7 +1080,12 @@ public:
     return idx;
   }
 
-  __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
+  __host__ __device__ int_t num_of_iteration(void)
+  {
+    return 2;
+  }
+
+  __host__ __device__ thrust::complex<data_t> run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache,int_t iter) const
   {
     uint_t istate = _tid >> this->chunk_bits_;
     uint_t nq = this->batched_params_[istate].num_qubits_;
@@ -1116,7 +1100,8 @@ public:
 
     vec = this->data_;
 
-    if(this->batched_params_[istate].super_op_){
+    r = _cache[(_tid & 1023)];
+    if(iter == 0 && this->batched_params_[istate].super_op_){
       pMat = this->matrix_ + this->batched_params_[istate].offset_matrix_;
 
       mat_size = 1ull << (nq*2);
@@ -1130,9 +1115,6 @@ public:
 
         r += m*q;
       }
-      this->sync_threads();
-      this->sync_threads();
-      vec[_idx] = r;
     }
     else{
       if(nq == 1)
@@ -1141,43 +1123,21 @@ public:
         pMat = this->matrix_ + this->batched_params_[istate].offset_matrix_;
 
       cmask = this->batched_params_[istate].control_mask_;
+
+      cmask <<= (num_qubits_state_*iter);    //shift mask bits to get super_op mask bits
       if((_idx & cmask) == cmask){  //control bits
-        mat_size = 1ull << nq;
-
-        irow = _tid & (mat_size - 1);
-
-        r = 0.0;
-        for(j=0;j<mat_size;j++){
-          m = pMat[irow + mat_size*j];
-          q = _cache[(_tid & 1023) - irow + j];
-
-          r += m*q;
-        }
-        this->sync_threads();
-        _cache[(_tid & 1023)] = r;
-      }
-      else{
-        this->sync_threads();
-      }
-      this->sync_threads();
-
-      cmask <<= num_qubits_state_;    //shift mask bits to get super_op mask bits
-      if((_idx & cmask) == cmask){  //control bits
-        irow = (_tid >> nq) & (mat_size - 1);
+        irow = (_tid >> (nq*iter)) & (mat_size - 1);
 
         r = 0.0;
         for(j=0;j<mat_size;j++){
           m = thrust::conj(pMat[irow + mat_size*j]);
-          q = _cache[(_tid & 1023) - (irow << nq) + (j << nq)];
+          q = _cache[(_tid & 1023) - (irow << (nq*iter)) + (j << (nq*iter))];
 
           r += m*q;
         }
       }
-      else{
-        r = _cache[(_tid & 1023)];
-      }
-      vec[_idx] = r;
     }
+    return r;
   }
 
   const char* name(void)
