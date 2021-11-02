@@ -1,5 +1,6 @@
 include MANIFEST.in
 include README.md
+include pyproject.toml
 recursive-include qiskit *pyx
 recursive-include qiskit *pxd
 recursive-include qiskit *.pxi
