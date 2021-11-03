@@ -1550,7 +1550,7 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
 // We build the randomly selected base value for every shot as follows:
 // For the first qubit, compute its probability for 0 and then randomly select 
 //        the measurement. 'mat' is initialized to the suitable matrix (0 or 1).
-// For qubit i, we store in 'mat'(the contraction of the matrices that were selected up to i-1).
+// For qubit i, we store in 'mat' the contraction of the matrices that were selected up to i-1.
 //        We compute the probability that qubit i is 0 by contracting with matrix 0. 
 //        We randomly select a measurement according to this probability. We then update 'mat' 
 //        by contracting it with the suitable matrix (0 or 1).
