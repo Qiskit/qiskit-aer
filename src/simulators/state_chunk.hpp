@@ -162,7 +162,7 @@ public:
   virtual void store_measured_cbits(void) {}
 
   //memory allocation (previously called before inisitalize_qreg)
-  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1,uint_t num_groups_per_device = 1);
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1);
   virtual bool bind_state(StateChunk<state_t>& state,uint_t ishot,bool batch_enable);
 
   // Initializes the State to the default state.
@@ -214,12 +214,18 @@ public:
                                             uint_t shots,
                                             RngEngine &rng);
 
+  virtual reg_t local_sample_measure(const reg_t &qubits,
+                                            std::vector<double>& rnds)
+  {
+    return reg_t();
+  }
   virtual reg_t batched_sample_measure(const reg_t &qubits,
                                             reg_t& shots,
                                             std::vector<RngEngine> &rng)
   {
     return reg_t();
   }
+  virtual double sum(void){return 1.0;}
 
   //=======================================================================
   // Standard non-virtual methods
@@ -337,6 +343,10 @@ public:
   virtual bool top_of_group()
   {
     return qregs_[0].top_of_group();
+  }
+
+  virtual void set_state_index(uint_t idx)
+  {
   }
 
 protected:
@@ -518,7 +528,7 @@ void StateChunk<state_t>::set_distribution(uint_t nprocs)
 }
 
 template <class state_t>
-bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots,uint_t num_groups_per_device)
+bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
 {
   int_t i;
 
@@ -566,7 +576,7 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
   if(chunk_bits_ < num_qubits_){
     qregs_[0].set_max_matrix_bits(max_matrix_bits_);
 
-    qregs_[0].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),global_chunk_index_,num_local_chunks_,num_groups_per_device);
+    qregs_[0].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),global_chunk_index_,num_local_chunks_);
     for(i=1;i<num_local_chunks_;i++){
       uint_t gid = i + global_chunk_index_;
       qregs_[i].chunk_setup(qregs_[0],gid);
@@ -575,7 +585,7 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
   else{
     if(num_parallel_shots > 0){
       qregs_[0].set_max_matrix_bits(max_matrix_bits_);
-      qregs_[0].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),0,num_parallel_shots,num_groups_per_device);
+      qregs_[0].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),0,num_parallel_shots);
     }
   }
 

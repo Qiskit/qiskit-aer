@@ -168,11 +168,14 @@ public:
   // to the system state
   virtual std::vector<reg_t> sample_measure(const reg_t &qubits, uint_t shots,
                                             RngEngine &rng) override;
+  virtual reg_t local_sample_measure(const reg_t &qubits,
+                                            std::vector<double>& rnds);
 
   virtual reg_t batched_sample_measure(const reg_t &qubits,reg_t& shots,std::vector<RngEngine> &rng);
 
+  virtual double sum(void);
 
-  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1,uint_t num_groups_per_device = 1) override;
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
   virtual bool bind_state(State<statevec_t>& state,uint_t ishot,bool batch_enable);
 
   virtual void end_of_circuit()
@@ -180,6 +183,20 @@ public:
     BaseState::qreg_.end_of_circuit();
   }
   
+  //cache control for chunks on host
+  virtual bool fetch_state(void) const
+  {
+    return BaseState::qreg_.fetch_chunk();
+  }
+  virtual void release_state(bool write_back = true) const
+  {
+    BaseState::qreg_.release_chunk();
+  }
+
+  //swap between state
+  void apply_state_swap(const reg_t &qubits, State<statevec_t> &chunk, bool write_back = true);
+  void apply_state_swap(const reg_t &qubits, uint_t remote_chunk_index);
+
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -504,11 +521,12 @@ const stringmap_t<Snapshots> State<statevec_t>::snapshotset_(
 // Initialization
 //-------------------------------------------------------------------------
 template <class statevec_t>
-bool State<statevec_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots,uint_t num_groups_per_device)
+bool State<statevec_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
 {
   BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_bits_);
-  bool ret = BaseState::qreg_.chunk_setup(num_qubits,num_qubits,0,num_parallel_shots,num_groups_per_device);
-  BaseState::shot_index_ = 0;
+  BaseState::num_qubits_ = num_qubits;
+  BaseState::num_state_qubits_ = block_bits;
+  bool ret = BaseState::qreg_.chunk_setup(block_bits,num_qubits,BaseState::state_index_,num_parallel_shots);
 
   return ret;
 }
@@ -521,7 +539,9 @@ bool State<statevec_t>::bind_state(State<statevec_t>& state,uint_t ishot,bool ba
     BaseState::qreg_.enable_batch(batch_enable);
     state.qreg_.enable_batch(batch_enable);
 
-    BaseState::shot_index_ = ishot;
+    BaseState::state_index_ = ishot;
+    BaseState::num_qubits_ = state.num_qubits_;
+    BaseState::num_state_qubits_ = state.num_state_qubits_;
 
     BaseState::max_matrix_bits_ = state.max_matrix_bits_;
 
@@ -534,7 +554,10 @@ template <class statevec_t>
 void State<statevec_t>::initialize_qreg(uint_t num_qubits) {
   initialize_omp();
   BaseState::qreg_.set_num_qubits(num_qubits);
-  BaseState::qreg_.initialize();
+  if(BaseState::state_index_ == 0)
+    BaseState::qreg_.initialize();
+  else
+    BaseState::qreg_.zero();
   apply_global_phase();
 }
 
@@ -628,11 +651,6 @@ void State<statevec_t>::set_config(const json_t &config) {
   if (JSON::get_value(index_size, "statevector_sample_measure_opt", config)) {
     BaseState::qreg_.set_sample_measure_index_size(index_size);
   };
-
-  int_t bits;
-  if (JSON::get_value(bits, "memory_blocking_bits", config)) {
-    BaseState::qreg_.set_memory_blocking_bits(bits);
-  }
 }
 
 template <class statevec_t>
@@ -704,11 +722,11 @@ void State<statevec_t>::apply_op(const Operations::Op &op,
         apply_kraus(op.qubits, op.mats, rng);
         break;
       case OpType::sim_op:
-        if(op.name == "begin_memory_blocking"){
-          BaseState::qreg_.enter_memory_blocking(op.qubits);
+        if(op.name == "begin_register_blocking"){
+          BaseState::qreg_.enter_register_blocking(op.qubits);
         }
-        else if(op.name == "end_memory_blocking"){
-          BaseState::qreg_.leave_memory_blocking();
+        else if(op.name == "end_register_blocking"){
+          BaseState::qreg_.leave_register_blocking();
         }
         break;
       case OpType::set_statevec:
@@ -793,11 +811,11 @@ void State<statevec_t>::apply_op_multi_shots(const Operations::Op &op,
       BaseState::qreg_.apply_batched_kraus(op.qubits, op.mats,rng);
       break;
     case OpType::sim_op:
-      if(op.name == "begin_memory_blocking"){
-        BaseState::qreg_.enter_memory_blocking(op.qubits);
+      if(op.name == "begin_register_blocking"){
+        BaseState::qreg_.enter_register_blocking(op.qubits);
       }
-      else if(op.name == "end_memory_blocking"){
-        BaseState::qreg_.leave_memory_blocking();
+      else if(op.name == "end_register_blocking"){
+        BaseState::qreg_.leave_register_blocking();
       }
       break;
     case OpType::set_statevec:
@@ -827,6 +845,24 @@ bool State<statevec_t>::batchable_op(const Operations::Op& op,bool single_op)
     return false;   //pauli can be only applied for single_op mode
 
   return true;
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_state_swap(const reg_t &qubits, State<statevec_t> &chunk, bool write_back)
+{
+  if(qubits[0] < BaseState::num_state_qubits_ && qubits[1] < BaseState::num_state_qubits_){
+    //local swap
+    BaseState::qreg_.apply_mcswap(qubits);
+  }
+  else{
+    BaseState::qreg_.apply_chunk_swap(qubits,chunk.qreg_,write_back);
+  }
+}
+
+template <class statevec_t>
+void State<statevec_t>::apply_state_swap(const reg_t &qubits, uint_t remote_chunk_index)
+{
+  BaseState::qreg_.apply_chunk_swap(qubits,remote_chunk_index);
 }
 
 //=========================================================================
@@ -1720,6 +1756,26 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
     all_samples.push_back(sample);
   }
   return all_samples;
+}
+
+template <class statevec_t>
+reg_t State<statevec_t>::local_sample_measure(const reg_t &qubits,
+                                            std::vector<double>& rnds)
+{
+  reg_t samples = BaseState::qreg_.sample_measure(rnds);
+  if(BaseState::state_index_ != 0){
+    for(int_t i=0;i<samples.size();i++){
+      samples[i] += (BaseState::state_index_ << BaseState::num_state_qubits_);
+    }
+  }
+
+  return samples;
+}
+
+template <class statevec_t>
+double State<statevec_t>::sum(void)
+{
+  return BaseState::qreg_.norm();
 }
 
 template <class statevec_t>

@@ -108,7 +108,26 @@ public:
   // Config: {"omp_qubit_threshold": 7}
   virtual void set_config(const json_t &config) override;
 
-  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1,uint_t num_groups_per_device = 1) override;
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
+
+  virtual void end_of_circuit()
+  {
+    BaseState::qreg_.end_of_circuit();
+  }
+
+  //cache control for chunks on host
+  virtual bool fetch_state(void) const
+  {
+    return BaseState::qreg_.fetch_chunk();
+  }
+  virtual void release_state(bool write_back = true) const
+  {
+    BaseState::qreg_.release_chunk();
+  }
+
+  //swap between state
+  void apply_state_swap(const reg_t &qubits, State<unitary_matrix_t> &chunk, bool write_back = true);
+  void apply_state_swap(const reg_t &qubits, uint_t remote_chunk_index);
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -265,10 +284,10 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
 });
 
 template <class unitary_matrix_t>
-bool State<unitary_matrix_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots,uint_t num_groups_per_device)
+bool State<unitary_matrix_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
 {
   BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_bits_);
-  return BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,1,num_groups_per_device);
+  return BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,1);
 }
 
 //============================================================================
@@ -577,6 +596,24 @@ template <class unitary_matrix_t>
 double  State<unitary_matrix_t>::expval_pauli(const reg_t &qubits,
                                               const std::string& pauli) {
   throw std::runtime_error("Unitary simulator does not support Pauli expectation values.");
+}
+
+template <class unitary_matrix_t>
+void State<unitary_matrix_t>::apply_state_swap(const reg_t &qubits, State<unitary_matrix_t> &chunk, bool write_back)
+{
+  if(qubits[0] < BaseState::num_state_qubits_ && qubits[1] < BaseState::num_state_qubits_){
+    //local swap
+    BaseState::qreg_.apply_mcswap(qubits);
+  }
+  else{
+    BaseState::qreg_.apply_chunk_swap(qubits,chunk.qreg_,write_back);
+  }
+}
+
+template <class unitary_matrix_t>
+void State<unitary_matrix_t>::apply_state_swap(const reg_t &qubits, uint_t remote_chunk_index)
+{
+  BaseState::qreg_.apply_chunk_swap(qubits,remote_chunk_index);
 }
 
 //------------------------------------------------------------------------------

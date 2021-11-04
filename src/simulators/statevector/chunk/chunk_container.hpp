@@ -50,8 +50,6 @@ DISABLE_WARNING_POP
 #define QV_PROBABILITY_BUFFER_SIZE 4
 #define QV_NUM_INTERNAL_REGS 4
 
-#define QV_NUM_MEMORY_BLOCK_PARAMS    32
-
 #ifdef AER_THRUST_CUDA
 #define AERDeviceVector thrust::device_vector
 #else
@@ -74,6 +72,12 @@ template <typename data_t> class Chunk;
 template <typename data_t> class DeviceChunkContainer;
 template <typename data_t> class HostChunkContainer;
 
+struct BlockedGateParams
+{
+  uint_t mask_;
+  char gate_;
+  unsigned char qubit_;
+};
 
 //========================================
 //  base class of gate functions
@@ -198,10 +202,9 @@ public:
   {
     return _tid;
   }
-  virtual __host__ __device__ thrust::complex<data_t> run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache,int_t iter) const
+  virtual __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
   {
     //implemente this in the kernel class
-    return 0.0;
   }
   virtual __host__ __device__ double run_with_cache_sum(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
   {
@@ -220,11 +223,6 @@ public:
     i64 = conditional_bit_ >> 6;
     ibit = conditional_bit_ & 63;
     return (((cregs_[iChunk*n64 + i64] >> ibit) & 1) != 0);
-  }
-
-  virtual __host__ __device__ int_t num_of_iteration(void) const
-  {
-    return 1;
   }
 };
 
@@ -247,7 +245,7 @@ public:
     return true;
   }
 
-  __host__ __device__ virtual uint_t thread_to_index(uint_t _tid) const
+    __host__ __device__ virtual uint_t thread_to_index(uint_t _tid) const
   {
     uint_t idx,ii,t,j;
     uint_t* qubits;
@@ -283,10 +281,9 @@ public:
     if(!this->check_conditional(i))
       return;
 
-    uint_t matSize = 1ull << nqubits_;
     thrust::complex<data_t> cache[1024];
-    thrust::complex<data_t> ret[1024];
     uint_t j,idx;
+    uint_t matSize = 1ull << nqubits_;
 
     //load data to cache
     for(j=0;j<matSize;j++){
@@ -294,24 +291,10 @@ public:
       cache[j] = this->data_[idx];
     }
 
-    int_t iter,niter = this->num_of_iteration();
     //execute using cache
-    for(iter=0;iter<niter;iter++){
-      for(j=0;j<matSize;j++){
-        idx = thread_to_index((i << nqubits_) + j);
-        ret[j] = this->run_with_cache(j,idx,cache,iter);
-      }
-      if(iter == niter - 1){
-        for(j=0;j<matSize;j++){
-          idx = thread_to_index((i << nqubits_) + j);
-          this->data_[idx] = ret[j];
-        }
-      }
-      else{
-        for(j=0;j<matSize;j++){
-          cache[j] = ret[j];
-        }
-      }
+    for(j=0;j<matSize;j++){
+      idx = thread_to_index((i << nqubits_) + j);
+      this->run_with_cache(j,idx,cache);
     }
   }
 
@@ -478,6 +461,15 @@ struct complex_less
 }; // end less
 
 
+class HostFuncBase
+{
+protected:
+public:
+  HostFuncBase(){}
+
+  virtual void execute(){}
+};
+
 //============================================================================
 // chunk container base class
 //============================================================================
@@ -491,6 +483,7 @@ protected:
   uint_t num_chunks_;                 //number of chunks in this container
   uint_t num_buffers_;                //number of buffers (buffer chunks) in this container
   uint_t num_chunk_mapped_;           //number of chunks mapped
+  reg_t blocked_qubits_;
   std::vector<bool> chunks_map_;      //chunk mapper
   std::vector<bool> buffers_map_;     //buffer mapper
   bool enable_omp_;                 //disable this when shots are parallelized outside
@@ -660,6 +653,24 @@ public:
     ;
   }
 
+  //set qubits to be blocked
+  virtual void set_blocked_qubits(uint_t iChunk,const reg_t& qubits)
+  {
+    ;
+  }
+
+  //do all gates stored in queue
+  virtual void apply_blocked_gates(uint_t iChunk)
+  {
+    ;
+  }
+
+  //queue gate for blocked execution
+  virtual void queue_blocked_gate(uint_t iChunk,char gate,uint_t qubit,uint_t mask,const std::complex<double>* pMat = NULL)
+  {
+    ;
+  }
+
   virtual double* reduce_buffer(uint_t iChunk) const
   {
     return NULL;
@@ -694,6 +705,18 @@ public:
 
 
 protected:
+  int convert_blocked_qubit(int qubit)
+  {
+    int i;
+    for(i=0;i<blocked_qubits_.size();i++){
+      if(blocked_qubits_[i] == qubit){
+        return i;
+      }
+    }
+    return -1;
+  }
+
+
   //allocate storage for chunk classes
   void allocate_chunks(void);
   void deallocate_chunks(void);
@@ -794,6 +817,7 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
     }
     else{
       nt = count * func.size(chunk_bits_);
+
       if(nt > 0){
         if(nt > QV_CUDA_NUM_THREADS){
           nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
@@ -1131,6 +1155,11 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
 }
 
 
+void host_func_launcher(void* pParam)
+{
+  HostFuncBase* func = reinterpret_cast<HostFuncBase*>(pParam);
+  func->execute();
+}
 
 template <typename data_t>
 void ChunkContainer<data_t>::allocate_chunks(void)

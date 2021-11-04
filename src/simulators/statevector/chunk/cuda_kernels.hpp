@@ -36,35 +36,18 @@ void dev_apply_function_with_cache(kernel_t func)
 {
   __shared__ thrust::complex<data_t> cache[1024];
   uint_t i,idx;
-  thrust::complex<data_t> r;
-  bool cond;
 
   i = blockIdx.x * blockDim.x + threadIdx.x;
 
-  cond = func.check_conditional(i);
-
-  int_t iter,niter = func.num_of_iteration();
+  if(!func.check_conditional(i))
+    return;
 
   idx = func.thread_to_index(i);
 
-  if(cond)
-    cache[threadIdx.x] = func.data()[idx];
+  cache[threadIdx.x] = func.data()[idx];
+  __syncthreads();
 
-  for(iter=0;iter<niter;iter++){
-    __syncthreads();
-    if(cond)
-      r = func.run_with_cache(i,idx,cache,iter);
-
-    if(iter == niter - 1){
-      if(cond)
-        func.data()[idx] = r;
-    }
-    else{
-      __syncthreads();
-      if(cond)
-        cache[threadIdx.x] = r;
-    }
-  }
+  func.run_with_cache(i,idx,cache);
 }
 
 

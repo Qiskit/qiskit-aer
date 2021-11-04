@@ -142,13 +142,27 @@ public:
   //store asynchronously measured classical bits after batched execution
   virtual void store_measured_cbits(void);
 
-  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1,uint_t num_groups_per_device = 1) override;
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
   virtual bool bind_state(State<densmat_t>& state,uint_t ishot,bool batch_enable);
 
   virtual void end_of_circuit()
   {
     BaseState::qreg_.end_of_circuit();
   }
+
+  //cache control for chunks on host
+  virtual bool fetch_state(void) const
+  {
+    return BaseState::qreg_.fetch_chunk();
+  }
+  virtual void release_state(bool write_back = true) const
+  {
+    BaseState::qreg_.release_chunk();
+  }
+
+  //swap between state
+  void apply_state_swap(const reg_t &qubits, State<densmat_t> &chunk, bool write_back = true);
+  void apply_state_swap(const reg_t &qubits, uint_t remote_chunk_index);
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -411,11 +425,12 @@ const stringmap_t<Snapshots> State<densmat_t>::snapshotset_(
 // Initialization
 //-------------------------------------------------------------------------
 template <class densmat_t>
-bool State<densmat_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots,uint_t num_groups_per_device)
+bool State<densmat_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
 {
   BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_bits_);
-  if(BaseState::qreg_.chunk_setup(num_qubits*2,num_qubits*2,0,num_parallel_shots,num_groups_per_device)){
-    BaseState::shot_index_ = 0;
+  BaseState::num_qubits_ = num_qubits;
+  BaseState::num_state_qubits_ = block_bits;
+  if(BaseState::qreg_.chunk_setup(block_bits*2,num_qubits*2,BaseState::state_index_,num_parallel_shots)){
     return true;
   }
   return false;
@@ -429,7 +444,11 @@ bool State<densmat_t>::bind_state(State<densmat_t>& state,uint_t ishot,bool batc
     BaseState::qreg_.enable_batch(batch_enable);
     state.qreg_.enable_batch(batch_enable);
 
-    BaseState::shot_index_ = ishot;
+    BaseState::state_index_ = ishot;
+    BaseState::num_qubits_ = state.num_qubits_;
+    BaseState::num_state_qubits_ = state.num_state_qubits_;
+
+    BaseState::max_matrix_bits_ = state.max_matrix_bits_;
     return true;
   }
   return false;
@@ -686,6 +705,24 @@ bool State<densmat_t>::batchable_op(const Operations::Op& op,bool single_op)
     return false;   //pauli can be only applied for single_op mode
 
   return true;
+}
+
+template <class densmat_t>
+void State<densmat_t>::apply_state_swap(const reg_t &qubits, State<densmat_t> &chunk, bool write_back)
+{
+  if(qubits[0] < BaseState::num_state_qubits_ && qubits[1] < BaseState::num_state_qubits_){
+    //local swap
+    BaseState::qreg_.apply_mcswap(qubits);
+  }
+  else{
+    BaseState::qreg_.apply_chunk_swap(qubits,chunk.qreg_,write_back);
+  }
+}
+
+template <class densmat_t>
+void State<densmat_t>::apply_state_swap(const reg_t &qubits, uint_t remote_chunk_index)
+{
+  BaseState::qreg_.apply_chunk_swap(qubits,remote_chunk_index);
 }
 
 //=========================================================================

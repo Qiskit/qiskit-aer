@@ -84,7 +84,7 @@ public:
   }
 
 
-  void set_2x2matrix(const std::vector<std::complex<double>>& mat)
+  void set_2x2matrix(std::vector<std::complex<double>>& mat)
   {
     matrix2x2_[0] = mat[0];
     matrix2x2_[1] = mat[1];

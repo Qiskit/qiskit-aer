@@ -336,6 +336,8 @@ Circuit NoiseModel::sample_noise_circuit(const Circuit &circ,
     }
     // Update circuit parameters
     noisy_circ.set_params();
+    if(sample_at_runtime)
+      noisy_circ.can_sample = false;
     return noisy_circ;
 }
 

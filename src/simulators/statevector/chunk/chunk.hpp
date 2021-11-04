@@ -320,6 +320,24 @@ public:
     }
   }
 
+  //set qubits to be blocked
+  void set_blocked_qubits(const reg_t& qubits)
+  {
+    chunk_container_.lock()->set_blocked_qubits(chunk_pos_,qubits);
+  }
+
+  //do all gates stored in queue
+  void apply_blocked_gates(void)
+  {
+    chunk_container_.lock()->apply_blocked_gates(chunk_pos_);
+  }
+
+  //queue gate for blocked execution
+  void queue_blocked_gate(char gate,uint_t qubit,uint_t mask,const std::complex<double>* pMat = nullptr)
+  {
+    chunk_container_.lock()->queue_blocked_gate(chunk_pos_,gate,qubit,mask,pMat);
+  }
+
   int measured_cbit(int qubit)
   {
     return chunk_container_.lock()->measured_cbit(chunk_pos_,qubit);
@@ -342,6 +360,7 @@ public:
     if(chunk_pos_ == 0)
       chunk_container_.lock()->keep_conditional(keep);
   }
+
 
 };
 

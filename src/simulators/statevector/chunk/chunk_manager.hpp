@@ -65,7 +65,7 @@ public:
     return chunks_.size();
   }
 
-  uint_t Allocate(int chunk_bits,int nqubits,uint_t nchunks,int matrix_bit,uint_t num_groups_per_device);
+  uint_t Allocate(int chunk_bits,int nqubits,uint_t nchunks,int matrix_bit);
   void Free(void);
 
   int num_devices(void)
@@ -156,10 +156,10 @@ ChunkManager<data_t>::~ChunkManager()
 }
 
 template <typename data_t>
-uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,int matrix_bit,uint_t num_groups_per_device)
+uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,int matrix_bit)
 {
   uint_t num_buffers;
-  int_t iDev;
+  int iDev;
   uint_t is,ie,nc;
   int i;
   char* str;
@@ -241,18 +241,15 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
       num_places_ = num_chunks_;
     }
 
-    if(num_groups_per_device < 1)
-      num_groups_per_device = 1;
-
     nchunks = num_chunks_;
 
     //allocate chunk container before parallel loop using push_back to store shared pointer
-    for(i=0;i<num_places_*num_groups_per_device;i++){
+    for(i=0;i<num_places_;i++){
       chunks_.push_back(std::make_shared<DeviceChunkContainer<data_t>>());
     }
 
-    num_chunks_ = 0;
-#pragma omp parallel for if(omp_get_num_threads() == 1 && num_places_ > 1) private(is,ie,nc,i) reduction(+:num_chunks_)
+    uint_t chunks_allocated = 0;
+#pragma omp parallel for if(omp_get_num_threads() == 1 && num_places_ > 1) private(is,ie,nc) reduction(+:chunks_allocated)
     for(iDev=0;iDev<num_places_;iDev++){
       is = nchunks * (uint_t)iDev / (uint_t)num_places_;
       ie = nchunks * (uint_t)(iDev + 1) / (uint_t)num_places_;
@@ -260,13 +257,10 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
       if(hybrid){
         nc /= 2;
       }
-
-      //allocate groups of chunks on each device
-      for(i=0;i<num_groups_per_device;i++){
-        int_t ncg = (nc*(i+1)/num_groups_per_device) - (nc*i/num_groups_per_device);
-        num_chunks_ += chunks_[iDev + i*num_places_]->Allocate( (iDev + idev_start)%num_devices_,chunk_bits,nqubits,
-                                                                ncg,num_buffers,multi_shots_,matrix_bit);
-      }
+      if(num_devices_ > 0)
+        chunks_allocated += chunks_[iDev]->Allocate((iDev + idev_start)%num_devices_,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
+      else
+        chunks_allocated += chunks_[iDev]->Allocate(iDev,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
     }
     if(chunks_allocated < nchunks){
       //rest of chunks are stored on host

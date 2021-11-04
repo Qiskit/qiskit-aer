@@ -120,7 +120,7 @@ public:
                                     const = 0;
 
   //memory allocation (previously called before inisitalize_qreg)
-  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1,uint_t num_groups_per_device = 1){return true;}
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1){return true;}
   virtual bool bind_state(State<state_t>& state,uint_t ishot,bool batch_enable){return true;}
 
 
@@ -160,6 +160,13 @@ public:
                                             uint_t shots,
                                             RngEngine &rng);
 
+  virtual reg_t local_sample_measure(const reg_t &qubits,
+                                            std::vector<double>& rnds)
+  {
+    reg_t dummy;
+    return dummy;
+  }
+
   virtual reg_t batched_sample_measure(const reg_t &qubits,
                                             reg_t& shots,
                                             std::vector<RngEngine> &rng)
@@ -167,6 +174,8 @@ public:
     reg_t dummy;
     return dummy;
   }
+
+  virtual double sum(void){return 1.0;}
 
   //=======================================================================
   // Standard non-virtual methods
@@ -217,6 +226,10 @@ public:
   }
 
   //for batched apply op
+  virtual void apply_single_ops(const std::vector<Operations::Op> &ops,
+                         ExperimentResult &result,
+                         uint_t rng_seed,
+                         bool final_ops = false){}
   virtual void apply_batched_ops(const std::vector<Operations::Op> &ops){}
   virtual void enable_batch(bool flg){}
   virtual bool batchable_op(const Operations::Op& op,bool single_op = true){return false;}
@@ -228,6 +241,14 @@ public:
                                                std::vector<RngEngine> &rng, reg_t& idx){}
 
   virtual void end_of_circuit(){};
+
+  //cache control for chunks on host
+  virtual bool fetch_state(void) const {}
+  virtual void release_state(bool write_back = true) const {}
+
+  //swap between chunk
+  virtual void apply_state_swap(const reg_t &qubits, State<state_t> &chunk, bool write_back = true){}
+  virtual void apply_state_swap(const reg_t &qubits, uint_t remote_chunk_index){}
 
   //-----------------------------------------------------------------------
   // ClassicalRegister methods
@@ -332,6 +353,10 @@ public:
   //set number of processes to be distributed
   void set_distribution(uint_t nprocs){}
 
+  virtual void set_state_index(uint_t idx)
+  {
+    state_index_ = idx;
+  }
 
 protected:
 
@@ -352,7 +377,9 @@ protected:
   bool has_global_phase_ = false;
   complex_t global_phase_ = 1;
 
-  uint_t shot_index_ = 0;
+  uint_t state_index_ = 0;
+  uint_t num_qubits_;
+  uint_t num_state_qubits_;
 
   int_t max_matrix_bits_ = 0;
 

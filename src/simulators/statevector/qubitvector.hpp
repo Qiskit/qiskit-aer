@@ -134,7 +134,7 @@ public:
   void initialize_component(const reg_t &qubits, const cvector_t<double> &state);
 
   //setup chunk
-  bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks,uint_t num_groups_per_device);
+  bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
   bool chunk_setup(QubitVector<data_t>& base,const uint_t chunk_index);
 
   //cache control for chunks on host
@@ -147,9 +147,12 @@ public:
   }
 
   //blocking
-  void enter_memory_blocking(const reg_t& qubits){}
-  void leave_memory_blocking(void){}
-  void set_memory_blocking_bits(int_t bits){}
+  void enter_register_blocking(const reg_t& qubits)
+  {
+  }
+  void leave_register_blocking(void)
+  {
+  }
 
   //prepare buffer for MPI send/recv
   std::complex<data_t>* send_buffer(uint_t& size_in_byte);
@@ -929,7 +932,7 @@ std::complex<double> QubitVector<data_t>::inner_product() const {
 
 //setup chunk
 template <typename data_t>
-bool QubitVector<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks,uint_t num_groups_per_device)
+bool QubitVector<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks)
 {
   chunk_index_ = chunk_index;
   return true;
