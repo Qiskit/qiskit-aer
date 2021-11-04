@@ -250,7 +250,7 @@ public:
                                                std::vector<RngEngine> &rng, reg_t& idx){}
 
   //cache control for chunks on host
-  virtual bool fetch_state(void) const {}
+  virtual bool fetch_state(void) const {return true;}
   virtual void release_state(bool write_back = true) const {}
 
   //-----------------------------------------------------------------------

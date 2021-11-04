@@ -243,7 +243,7 @@ public:
   virtual void end_of_circuit(){};
 
   //cache control for chunks on host
-  virtual bool fetch_state(void) const {}
+  virtual bool fetch_state(void) const {return true;}
   virtual void release_state(bool write_back = true) const {}
 
   //swap between chunk
