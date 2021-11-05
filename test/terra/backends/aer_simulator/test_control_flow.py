@@ -79,9 +79,28 @@ class CircuitBuilder:
                          f'*{self._orig_circ_name}.cregs)'
                          ).body[0]
     
+    def _build_test_tuple(self, test):
+        if isinstance(test, (ast.Name, ast.Subscript)):
+            return ast.parse(f'({astunparse.unparse(test)}, True)')
+        elif isinstance(test, ast.Compare):
+            lhs = test.left
+            if len(test.comparators) != 1 or len(test.ops) != 1:
+                raise ValueError(f'forbidden test: {astunparse.unparse(test)}, {ast.dump(test)}')
+            rhs = test.comparators[0]
+            op = test.ops[0]
+            if not isinstance(op, ast.Eq):
+                raise ValueError(f'forbidden test: {astunparse.unparse(test)}, {ast.dump(test)}')
+            if isinstance(lhs, (ast.Name, ast.Subscript)):
+                if isinstance(rhs, ast.Constant):
+                    return ast.parse(f'({astunparse.unparse(lhs)}, {astunparse.unparse(rhs)})')
+            elif isinstance(lhs, ast.Constant):
+                if isinstance(rhs, (ast.Name, ast.Subscript)):
+                    return ast.parse(f'({astunparse.unparse(rhs)}, {astunparse.unparse(lhs)})')
+            
+        raise ValueError(f'forbidden test: {astunparse.unparse(test)}, {ast.dump(test)}')
+
     def _build_if(self, new_body, node):
-        if not isinstance(node.test, ast.Name) and not isinstance(node.test, ast.Subscript):
-            raise ValueError(f'forbidden test: {astunparse.unparse(node.test)}')
+        test_tuple = self._build_test_tuple(node.test)
         
         parent_circ_name = self._circ_name
         
@@ -91,7 +110,6 @@ class CircuitBuilder:
         
         self._build_block(new_body, node.body)
         
-        
         if node.orelse:
             this_circ_name_else = '_circ' + str(self._new_circuit_id())
             self._circ_name = this_circ_name_else
@@ -100,20 +118,19 @@ class CircuitBuilder:
             self._build_block(new_body, node.orelse)
 
             new_body.append(ast.parse(f'{parent_circ_name}.append(' + 
-                                      f'IfElseOp({astunparse.unparse(node.test)}, {this_circ_name_true}, {this_circ_name_else}), ' + 
+                                      f'IfElseOp({astunparse.unparse(test_tuple)}, {this_circ_name_true}, {this_circ_name_else}), ' + 
                                       f'range(len({parent_circ_name}.qubits)), ' + 
                                       f'range(len({parent_circ_name}.clbits)))'))
         else:
             new_body.append(ast.parse(f'{parent_circ_name}.append(' + 
-                                      f'IfElseOp({astunparse.unparse(node.test)}, {this_circ_name_true}), ' + 
+                                      f'IfElseOp({astunparse.unparse(test_tuple)}, {this_circ_name_true}), ' + 
                                       f'range(len({parent_circ_name}.qubits)), ' + 
                                       f'range(len({parent_circ_name}.clbits)))'))
         
         self._circ_name = parent_circ_name
     
     def _build_while(self, new_body, node):
-        if not isinstance(node.test, ast.Name) and not isinstance(node.test, ast.Subscript):
-            raise ValueError(f'forbidden test: {astunparse.unparse(node.test)}')
+        test_tuple = self._build_test_tuple(node.test)
         
         parent_circ_name = self._circ_name
         
@@ -124,7 +141,7 @@ class CircuitBuilder:
         self._build_block(new_body, node.body)
         
         new_body.append(ast.parse(f'{parent_circ_name}.append(' + 
-                                  f'WhileLoopOp({astunparse.unparse(node.test)}, {this_circ_name}), ' + 
+                                  f'WhileLoopOp({astunparse.unparse(test_tuple)}, {this_circ_name}), ' + 
                                   f'range(len({parent_circ_name}.qubits)), ' + 
                                   f'range(len({parent_circ_name}.clbits)))'))
         
@@ -196,8 +213,9 @@ class CircuitBuilder:
                 print(child.__class__)
                 raise ValueError(f'forbidden code: {astunparse.unparse(child)}')
 
-    def build(self, function: FunctionType, *args: Any, **kwargs: Any):
+    def _build_code(self, function: FunctionType, *args: Any, **kwargs: Any):
         function_ast = ast.parse(dedent(inspect.getsource(function)))
+        
         function_def = function_ast.body[0]
         
         arguments = { arg.arg: self._argument_type(arg) for arg in function_def.args.args }
@@ -243,9 +261,12 @@ class CircuitBuilder:
         function_def.decorator_list.clear()
         
         # print(astunparse.unparse(function_ast))
-        exec(astunparse.unparse(function_ast))
-        
-        return eval(function_def.name)
+        return function_def.name, astunparse.unparse(function_ast)
+
+    def build(self, function: FunctionType, *args: Any, **kwargs: Any):
+        function_name, function_code = self._build_code(function, *args, **kwargs)
+        exec(function_code)
+        return eval(function_name)
 
 
 @ddt
