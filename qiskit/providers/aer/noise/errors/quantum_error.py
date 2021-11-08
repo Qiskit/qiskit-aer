@@ -122,7 +122,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
             warnings.warn(
                 'Constructing QuantumError with list of arrays representing a Kraus channel'
                 ' has been deprecated as of qiskit-aer 0.10.0 and will be removed no earlier than'
-                ' 3 months from that release date. Use QuantumError(Kraus()) instead.',
+                ' 3 months from that release date. Use QuantumError(Kraus(mats)) instead.',
                 DeprecationWarning, stacklevel=2)
             if standard_gates:
                 with warnings.catch_warnings():
