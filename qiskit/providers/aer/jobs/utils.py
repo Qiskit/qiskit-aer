@@ -61,6 +61,9 @@ def _copy_qobj_for_noise(qobj, max_shot_size, qobj_id):
     num_shot_jobs, shot_mod = divmod(qobj.config.shots, max_shot_size)
     qobj_list = []
 
+    if shot_mod == 0 and num_shot_jobs == 1:
+        return qobj
+
     if shot_mod > 0:
         setattr(qobj.config, "shots", shot_mod)
         for experiment in qobj.experiments:
@@ -143,6 +146,9 @@ def split_qobj(qobj, max_size=None, max_shot_size=None, qobj_id=None):
         max_shot_size (int or None): the maximum number of shots per job. If
             None don't split (Default: None).
         qobj_id (str): Optional, set a fixed qobj ID for all subjob qobjs.
+
+    Raises:
+        JobError : If max_job_size > 1 and seed is set.
 
     Returns:
         List: A list of qobjs.

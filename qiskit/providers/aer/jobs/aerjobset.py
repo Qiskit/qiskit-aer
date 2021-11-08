@@ -181,8 +181,8 @@ class AerJobSet(Job):
                 _res.append(self._get_worker_result(worker_id, timeout))
             res = self._combine_results(_res)
         else:
-            _res = []
             for _worker_id_list in self._combined_result:
+                _res = []
                 for worker_id in _worker_id_list:
                     _res.append(self._get_worker_result(worker_id, timeout))
                 res.append(self._combine_results(_res))
@@ -238,14 +238,11 @@ class AerJobSet(Job):
 
         master_result = result_list[0].to_dict()
         sub_result = result_list[1].to_dict()
-        all_results = master_result["metadata"]["all_results"]
         result_list = []
 
         for (_master_result, _sub_result) in zip(master_result["results"], sub_result["results"]):
             result_list.append(self._merge_exp(_master_result, _sub_result))
         master_result["results"] = result_list
-        master_result["metadata"]["all_results"] = \
-            all_results + sub_result["metadata"]["all_results"]
         return Result.from_dict(master_result)
 
     def _merge_experiments_result(self, results: List[Result]):
@@ -259,7 +256,7 @@ class AerJobSet(Job):
             results: Result list whose experiments will be combined.
 
         Returns:
-            A list of Result: Result list
+            list: Result list
 
         """
         results_list = []
@@ -275,17 +272,13 @@ class AerJobSet(Job):
                     _id = _result["header"]["metadata"]["id"]
                     if master_id == _id:
                         master_result = self._merge_exp(master_result, _result)
-                        if _result == _dict_result["results"][-1]:
-                            _merge_results.append(master_result)
                     else:
-                        if master_result:
-                            _merge_results.append(master_result)
                         master_id = _id
                         master_result = _result
+                        _merge_results.append(master_result)
                 else:
                     _merge_results.append(_result)
             _dict_result["results"] = _merge_results
-            _dict_result["metadata"]["all_results"] = [each_result.to_dict()]
             results_list.append(Result.from_dict(_dict_result))
         return results_list
 

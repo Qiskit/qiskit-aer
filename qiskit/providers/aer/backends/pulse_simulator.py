@@ -202,7 +202,7 @@ class PulseSimulator(AerBackend):
             memory_slots=1,
             max_job_size=None,
             max_shot_size=None)
-      
+
     # pylint: disable=arguments-differ, missing-param-doc
     @deprecate_arguments({'qobj': 'schedules'})
     def run(self,
