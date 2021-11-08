@@ -16,7 +16,7 @@ Qiskit Aer simulator backend utils
 """
 import os
 from math import log2
-from qiskit.util import local_hardware_info
+from qiskit.utils import local_hardware_info
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import assemble
 from qiskit.qobj import QasmQobjInstruction
