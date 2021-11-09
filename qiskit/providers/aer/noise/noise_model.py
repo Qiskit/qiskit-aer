@@ -1077,16 +1077,23 @@ class NoiseModel:
             new_model.add_all_qubit_quantum_error(mapped(noise), inst_name)
         for inst_name, noise_dic in self._local_quantum_errors.items():
             for qubits, noise in noise_dic.items():
-                new_model.add_quantum_error(mapped(noise), inst_name, qubits)
+                new_model.add_quantum_error(mapped(noise), inst_name, self._str2qubits(qubits))
         for inst_name, outer_dic in self._nonlocal_quantum_errors.items():
             for qubits, inner_dic in outer_dic.items():
                 for noise_qubits, noise in inner_dic.items():
-                    new_model.add_nonlocal_quantum_error(
-                        mapped(noise), inst_name, qubits, noise_qubits
-                    )
+                    with catch_warnings():
+                        filterwarnings(
+                            "ignore",
+                            category=DeprecationWarning,
+                            module="qiskit.providers.aer.noise"
+                        )
+                        new_model.add_nonlocal_quantum_error(
+                            mapped(noise), inst_name,
+                            self._str2qubits(qubits), self._str2qubits(noise_qubits)
+                        )
         # No transformation for readout errors
         if self._default_readout_error:
             new_model.add_all_qubit_readout_error(self._default_readout_error)
         for qubits, noise in self._local_readout_errors.items():
-            new_model.add_readout_error(noise, qubits)
+            new_model.add_readout_error(noise, self._str2qubits(qubits))
         return new_model
