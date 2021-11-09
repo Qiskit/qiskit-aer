@@ -290,7 +290,7 @@ protected:
                            const json_t &config) const;
 
   //return maximum number of qubits for matrix
-  int_t get_max_matrix_bits(const Circuit &circ) const;
+  int_t get_max_matrix_qubits(const Circuit &circ) const;
   int_t get_matrix_bits(const Operations::Op& op) const;
 
   //sample noise
