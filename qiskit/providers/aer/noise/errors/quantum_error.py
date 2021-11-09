@@ -20,7 +20,9 @@ from typing import Iterable
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, Instruction, QuantumRegister
+import qiskit.quantum_info as qi
+from qiskit.circuit import QuantumCircuit, Instruction, Gate, QuantumRegister
+from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate
 from qiskit.exceptions import QiskitError
 from qiskit.extensions import UnitaryGate
@@ -251,7 +253,11 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 num_qubits = max([max(qubits) for _, qubits in op]) + 1
                 circ = QuantumCircuit(num_qubits)
                 for inst, qubits in op:
-                    circ.append(inst, qargs=qubits)
+                    if isinstance(inst, Instruction):
+                        circ.append(inst, qargs=qubits)
+                    else:
+                        raise NoiseError("Invalid operation type: {}, it must be Instruction."
+                                         .format(op.__class__.__name__))
                 return circ
             # Support for old-style json-like input TODO: to be removed
             elif all(isinstance(aop, dict) for aop in op):
@@ -372,16 +378,32 @@ class QuantumError(BaseOperator, TolerancesMixin):
         return self._probs
 
     def ideal(self):
-        """Return True if current error object is an identity"""
+        """Return True if this error object is composed only of identity operations.
+        Note that the identity check is best effort and up to global phase."""
         for circ in self.circuits:
-            # check if circ is composed of identity gates up to global phase
-            for gate, _, _ in circ:
-                if not isinstance(gate, IGate) and \
-                    not (isinstance(gate, UnitaryGate) and
-                         is_identity_matrix(gate.to_matrix(),
-                                            ignore_phase=True,
-                                            atol=self.atol, rtol=self.rtol)):
-                    return False
+            # circuit-level check first
+            try:
+                if qi.Clifford(circ) == qi.Clifford(np.eye(2 * circ.num_qubits, dtype=bool)):
+                    continue
+            except QiskitError:
+                pass
+            # component-wise check
+            for op, _, _ in circ:
+                if isinstance(op, IGate):
+                    continue
+                if isinstance(op, PauliGate):
+                    if op.params[0].replace('I', ''):
+                        return False
+                elif isinstance(op, Gate):
+                    if not is_identity_matrix(op.to_matrix(),
+                                              ignore_phase=True,
+                                              atol=self.atol, rtol=self.rtol):
+                        return False
+                elif op.name == "kraus":
+                    if not is_identity_matrix(op.params[0],
+                                              ignore_phase=True,
+                                              atol=self.atol, rtol=self.rtol):
+                        return False
 
         return True
 
