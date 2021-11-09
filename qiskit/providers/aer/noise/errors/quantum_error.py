@@ -404,6 +404,8 @@ class QuantumError(BaseOperator, TolerancesMixin):
                                               ignore_phase=True,
                                               atol=self.atol, rtol=self.rtol):
                         return False
+                elif not op._directive:  # op must be Instruction
+                    return False
 
         return True
 
