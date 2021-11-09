@@ -238,9 +238,6 @@ public:
                        const std::string &memory_hex,
                        const std::string &register_hex);
 
-  //set conditional regisiter
-  virtual void set_conditional(const Operations::Op &op);
-
 protected:
   //-----------------------------------------------------------------------
   // Apply instructions
@@ -664,14 +661,6 @@ void State<statevec_t>::apply_bfunc(const Operations::Op &op)
     BaseState::creg_.apply_bfunc(op);
 }
 
-template <class statevec_t>
-void State<statevec_t>::set_conditional(const Operations::Op &op)
-{
-  if(op.conditional){
-    //conditional execution is set for next operation on qreg
-    BaseState::qreg_.set_conditional(op.conditional_reg);
-  }
-}
 
 //=========================================================================
 // Implementation: apply operations

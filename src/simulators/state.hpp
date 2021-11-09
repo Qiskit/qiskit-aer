@@ -265,9 +265,6 @@ public:
                        const std::string &memory_hex,
                        const std::string &register_hex);
 
-  //set conditional regisiter (if op is conditional)
-  virtual void set_conditional(const Operations::Op &op){}
-
   //-----------------------------------------------------------------------
   // Save result data
   //-----------------------------------------------------------------------
