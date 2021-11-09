@@ -133,7 +133,8 @@ class TestNoise(QiskitAerTestCase):
         """Test two-qubit pauli error as gate qobj from string label"""
         paulis = ['XZ', 'YX', 'ZY']
         probs = [0.5, 0.3, 0.2]
-        error = pauli_error(zip(paulis, probs))
+        with self.assertWarns(DeprecationWarning):
+            error = pauli_error(zip(paulis, probs), standard_gates=True)
 
         target_circs = [[{"name": "z", "qubits": [0]}, {"name": "x", "qubits": [1]}],
                         [{"name": "x", "qubits": [0]}, {"name": "y", "qubits": [1]}],
@@ -152,7 +153,8 @@ class TestNoise(QiskitAerTestCase):
         """Test two-qubit pauli error as gate qobj from string label"""
         paulis = ['XI', 'YI', 'ZI']
         probs = [0.5, 0.3, 0.2]
-        error = pauli_error(zip(paulis, probs))
+        with self.assertWarns(DeprecationWarning):
+            error = pauli_error(zip(paulis, probs), standard_gates=True)
 
         target_circs = [[{"name": "id", "qubits": [0]}, {"name": "x", "qubits": [1]}],
                         [{"name": "id", "qubits": [0]}, {"name": "y", "qubits": [1]}],
@@ -171,7 +173,8 @@ class TestNoise(QiskitAerTestCase):
         """Test two-qubit pauli error as gate qobj from Pauli obj"""
         paulis = [qi.Pauli(s) for s in ['XZ', 'YX', 'ZY']]
         probs = [0.5, 0.3, 0.2]
-        error = pauli_error(zip(paulis, probs))
+        with self.assertWarns(DeprecationWarning):
+            error = pauli_error(zip(paulis, probs), standard_gates=True)
 
         target_circs = [[{"name": "z", "qubits": [0]}, {"name": "x", "qubits": [1]}],
                         [{"name": "x", "qubits": [0]}, {"name": "y", "qubits": [1]}],
@@ -222,7 +225,8 @@ class TestNoise(QiskitAerTestCase):
     def test_depolarizing_error_2q_gate(self):
         """Test 2-qubit depolarizing error as gate qobj"""
         p_depol = 0.3
-        error = depolarizing_error(p_depol, 2, standard_gates=True)
+        with self.assertWarns(DeprecationWarning):
+            error = depolarizing_error(p_depol, 2, standard_gates=True)
         target_circs = [[{"name": "id", "qubits": [0]}, {"name": "id", "qubits": [1]}],
                         [{"name": "x", "qubits": [0]}, {"name": "id", "qubits": [1]}],
                         [{"name": "y", "qubits": [0]}, {"name": "id", "qubits": [1]}],
