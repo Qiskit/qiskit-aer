@@ -34,6 +34,8 @@ from qiskit.compiler import assemble
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
+from ..noise.noiseerror import NoiseError
+from ..utils.noise_transformation import transform_noise_model
 
 
 # Logger
@@ -361,6 +363,15 @@ class AerBackend(Backend, ABC):
         updated_noise = False
         noise_model = run_options.get(
             'noise_model', getattr(self.options, 'noise_model', None))
+
+        if noise_model:
+            try:
+                noise_model = transform_noise_model(noise_model,
+                                                    basis_gates=self.configuration().basis_gates)
+            except NoiseError as err:
+                raise AerError(
+                    "Noise model includes operations unknown to this Aer backend"
+                ) from err
 
         # Check if circuits contain quantum error instructions
         run_circuits = []

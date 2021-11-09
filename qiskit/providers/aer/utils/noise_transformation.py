@@ -37,9 +37,11 @@ import sympy
 
 from qiskit.circuit import Reset
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
+from qiskit.compiler import transpile
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.quantum_info.operators.channel import Kraus, SuperOp, Chi
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
+from qiskit.transpiler.exceptions import TranspilerError
 from ..noise.errors import QuantumError
 from ..noise.errors.errorutils import _CLIFFORD_GATES
 from ..noise.errors.errorutils import single_qubit_clifford_matrix
@@ -47,6 +49,49 @@ from ..noise.noise_model import NoiseModel
 from ..noise.noiseerror import NoiseError
 
 logger = logging.getLogger(__name__)
+
+
+def transform_quantum_error(error: QuantumError, basis_gates=None) -> QuantumError:
+    """
+    Replace all circuits in a quantum error with ones composed only of specified basis gates.
+
+    Args:
+        error: the quantum error to be transformed.
+        basis_gates (list): list of string basis gates.
+
+    Returns:
+        The transformed quantum error.
+
+    Raises:
+        NoiseError: if the transformation failed.
+    """
+    try:
+        transpiled_circs = transpile(error.circuits, basis_gates=basis_gates)
+    except TranspilerError as err:
+        raise NoiseError(
+            f"Failed to transpile circuits in {error} with basis_gates={basis_gates}"
+        ) from err
+    return QuantumError(zip(transpiled_circs, error.probabilities))
+
+
+def transform_noise_model(model: NoiseModel, basis_gates=None) -> NoiseModel:
+    """
+    Replace all noises in a noise model with ones composed only of specified basis gates.
+
+    Args:
+        model: the noise model to be transformed.
+        basis_gates (list): list of string basis gates.
+
+    Returns:
+        The transformed noise model.
+
+    Raises:
+        NoiseError: if the transformation failed.
+    """
+    def transform(noise):
+        return transform_quantum_error(noise, basis_gates=basis_gates)
+
+    return model.map_noise(transform)
 
 
 def approximate_quantum_error(error, *,
@@ -197,34 +242,14 @@ def approximate_noise_model(model, *,
         its possible values are ``'pauli'``, ``'reset'``, ``'clifford'``.
         The ``'clifford'`` does not support 2-qubit errors.
     """
-    def approximated(noise):
+    def approximate(noise):
         return approximate_quantum_error(
             noise,
             operator_string=operator_string,
             operator_dict=operator_dict,
             operator_list=operator_list
         )
-    # Copy from original noise model
-    new_model = NoiseModel()
-    new_model._basis_gates = model._basis_gates
-    # Transformation
-    for inst_name, noise in model._default_quantum_errors.items():
-        new_model.add_all_qubit_quantum_error(approximated(noise), inst_name)
-    for inst_name, noise_dic in model._local_quantum_errors.items():
-        for qubits, noise in noise_dic.items():
-            new_model.add_quantum_error(approximated(noise), inst_name, qubits)
-    for inst_name, outer_dic in model._nonlocal_quantum_errors.items():
-        for qubits, inner_dic in outer_dic.items():
-            for noise_qubits, noise in inner_dic.items():
-                new_model.add_nonlocal_quantum_error(
-                    approximated(noise), inst_name, qubits, noise_qubits
-                )
-    # No transformation for readout errors
-    if model._default_readout_error:
-        new_model.add_all_qubit_readout_error(model._default_readout_error)
-    for qubits, noise in model._local_readout_errors.items():
-        new_model.add_readout_error(noise, qubits)
-    return new_model
+    return model.map_noise(approximate)
 
 
 # pauli operators

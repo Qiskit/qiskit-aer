@@ -1045,3 +1045,48 @@ class NoiseModel:
                     if iinner_dict1[iinner_key] != iinner_dict2[iinner_key]:
                         return False
         return True
+
+    def map_noise(self, func):
+        """Replace all quantum errors in a noise model with ones mapped by `func`.
+        Note that it does not replace readout errors.
+
+        Args:
+            func (Callable): function that maps a noise to another noise.
+
+        Returns:
+            NoiseModel: the mapped noise model.
+
+        Raises:
+            NoiseError: if the mapping failed.
+        """
+        def mapped(noise):
+            try:
+                mapped_noise = func(noise)
+            except Exception as err:
+                raise NoiseError(f"Failed to map noise {noise}") from err
+            if not isinstance(mapped_noise, QuantumError):
+                raise NoiseError(
+                    f"Mapped object ({mapped_noise.__class__.__name__}) is not QuantumError."
+                )
+            return mapped_noise
+        # Copy from original noise model
+        new_model = NoiseModel()
+        new_model._basis_gates = self._basis_gates
+        # Transformation
+        for inst_name, noise in self._default_quantum_errors.items():
+            new_model.add_all_qubit_quantum_error(mapped(noise), inst_name)
+        for inst_name, noise_dic in self._local_quantum_errors.items():
+            for qubits, noise in noise_dic.items():
+                new_model.add_quantum_error(mapped(noise), inst_name, qubits)
+        for inst_name, outer_dic in self._nonlocal_quantum_errors.items():
+            for qubits, inner_dic in outer_dic.items():
+                for noise_qubits, noise in inner_dic.items():
+                    new_model.add_nonlocal_quantum_error(
+                        mapped(noise), inst_name, qubits, noise_qubits
+                    )
+        # No transformation for readout errors
+        if self._default_readout_error:
+            new_model.add_all_qubit_readout_error(self._default_readout_error)
+        for qubits, noise in self._local_readout_errors.items():
+            new_model.add_readout_error(noise, qubits)
+        return new_model
