@@ -207,7 +207,7 @@ class NoiseModel:
                      temperature=0,
                      gate_lengths=None,
                      gate_length_units='ns',
-                     standard_gates=True,
+                     standard_gates=None,
                      warnings=True):
         """Return a noise model derived from a devices backend properties.
 
@@ -285,9 +285,9 @@ class NoiseModel:
             gate_length_units (str): Time units for gate length values in
                                      gate_lengths. Can be 'ns', 'ms', 'us',
                                      or 's' (Default: 'ns').
-            standard_gates (bool): If true return errors as standard
+            standard_gates (bool): DEPRECATED, If true return errors as standard
                                    qobj gates. If false return as unitary
-                                   qobj instructions (Default: True)
+                                   qobj instructions (Default: None)
             warnings (bool): Display warnings (Default: True).
 
         Returns:
@@ -318,16 +318,27 @@ class NoiseModel:
             for qubits, error in basic_device_readout_errors(properties):
                 noise_model.add_readout_error(error, qubits, warnings=warnings)
 
+        if standard_gates is not None:
+            warn(
+                '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
+                ' and will be removed no earlier than 3 months from that release date.',
+                DeprecationWarning, stacklevel=2)
         # Add gate errors
-        gate_errors = basic_device_gate_errors(
-            properties,
-            gate_error=gate_error,
-            thermal_relaxation=thermal_relaxation,
-            gate_lengths=gate_lengths,
-            gate_length_units=gate_length_units,
-            temperature=temperature,
-            standard_gates=standard_gates,
-            warnings=warnings)
+        with catch_warnings():
+            filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                module="qiskit.providers.aer.noise.device.models"
+            )
+            gate_errors = basic_device_gate_errors(
+                properties,
+                gate_error=gate_error,
+                thermal_relaxation=thermal_relaxation,
+                gate_lengths=gate_lengths,
+                gate_length_units=gate_length_units,
+                temperature=temperature,
+                standard_gates=standard_gates,
+                warnings=warnings)
         for name, qubits, error in gate_errors:
             noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
         return noise_model

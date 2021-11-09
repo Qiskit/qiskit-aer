@@ -160,7 +160,7 @@ def pauli_error(noise_ops, standard_gates=None):
         standard_gates (bool): DEPRECATED, if True return the operators as standard qobj
                                Pauli gate instructions. If false return as
                                unitary matrix qobj instructions.
-                               (Default: True)
+                               (Default: None)
 
     Returns:
         QuantumError: The quantum error object.
@@ -234,7 +234,7 @@ def depolarizing_error(param, num_qubits, standard_gates=None):
         num_qubits (int): the number of qubits for the error channel.
         standard_gates (bool): DEPRECATED, if True return the operators as
                                Pauli gates. If false return as unitary gates.
-                               (Default: True)
+                               (Default: None)
 
     Returns:
         QuantumError: The quantum error object.
