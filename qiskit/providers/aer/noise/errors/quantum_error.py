@@ -22,6 +22,7 @@ import numpy as np
 
 import qiskit.quantum_info as qi
 from qiskit.circuit import QuantumCircuit, Instruction, Gate, QuantumRegister
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate
 from qiskit.exceptions import QiskitError
@@ -253,11 +254,11 @@ class QuantumError(BaseOperator, TolerancesMixin):
                 num_qubits = max([max(qubits) for _, qubits in op]) + 1
                 circ = QuantumCircuit(num_qubits)
                 for inst, qubits in op:
-                    if isinstance(inst, Instruction):
+                    try:
                         circ.append(inst, qargs=qubits)
-                    else:
-                        raise NoiseError("Invalid operation type: {}, it must be Instruction."
-                                         .format(op.__class__.__name__))
+                    except CircuitError as err:
+                        raise NoiseError("Invalid operation type: {}, not appendable to circuit."
+                                         .format(inst.__class__.__name__)) from err
                 return circ
             # Support for old-style json-like input TODO: to be removed
             elif all(isinstance(aop, dict) for aop in op):
