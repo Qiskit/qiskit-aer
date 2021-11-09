@@ -15,6 +15,7 @@ Remap qubits in a NoiseModel.
 """
 
 import logging
+from warnings import warn
 
 from ..noise.noise_model import NoiseModel
 from ..noise.noiseerror import NoiseError
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 def remap_noise_model(noise_model, remapping, discard_qubits=False, warnings=True):
-    """Remap qubits in a noise model.
+    """[Deprecated] Remap qubits in a noise model.
 
     This remaps the specified gate qubits for local quantum errors, the gate
     and noise qubits for non-local quantum errors, and the gate qubits for
@@ -56,6 +57,11 @@ def remap_noise_model(noise_model, remapping, discard_qubits=False, warnings=Tru
           specified in the list of old qubits will be added to the remapping as
           a trivial mapping ``(qubit, qubit)``.
     """
+    warn(
+        'The "remap_noise_model" function has been deprecated as of qiskit-aer 0.10.0'
+        ' and will be removed no earlier than 3 months from that release date.',
+        DeprecationWarning, stacklevel=2)
+
     if not isinstance(noise_model, NoiseModel):
         raise NoiseError("Input must be a NoiseModel.")
 
