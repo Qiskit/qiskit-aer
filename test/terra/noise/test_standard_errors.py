@@ -17,7 +17,7 @@ Standard error function tests
 import unittest
 
 import numpy as np
-from qiskit.quantum_info.operators.pauli import Pauli
+import qiskit.quantum_info as qi
 
 from qiskit.providers.aer.noise import QuantumError
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
@@ -30,13 +30,13 @@ from qiskit.providers.aer.noise.errors.standard_errors import phase_amplitude_da
 from qiskit.providers.aer.noise.errors.standard_errors import phase_damping_error
 from qiskit.providers.aer.noise.errors.standard_errors import thermal_relaxation_error
 from qiskit.providers.aer.noise.noiseerror import NoiseError
-from test.terra import common
+from test.terra.common import QiskitAerTestCase
 
 
 # TODO: Test Kraus thermal relaxation error by comparing to amplitude damping channel
 
 
-class TestNoise(common.QiskitAerTestCase):
+class TestNoise(QiskitAerTestCase):
     """Testing Standard Errors package"""
 
     def test_kraus_error(self):
@@ -111,7 +111,7 @@ class TestNoise(common.QiskitAerTestCase):
 
     def test_pauli_error_1q_gate_from_pauli(self):
         """Test single-qubit pauli error as gate qobj from Pauli obj"""
-        paulis = [Pauli(s) for s in ['I', 'X', 'Y', 'Z']]
+        paulis = [qi.Pauli(s) for s in ['I', 'X', 'Y', 'Z']]
         probs = [0.4, 0.3, 0.2, 0.1]
         error = pauli_error(zip(paulis, probs))
 
@@ -169,7 +169,7 @@ class TestNoise(common.QiskitAerTestCase):
 
     def test_pauli_error_2q_gate_from_pauli(self):
         """Test two-qubit pauli error as gate qobj from Pauli obj"""
-        paulis = [Pauli(s) for s in ['XZ', 'YX', 'ZY']]
+        paulis = [qi.Pauli(s) for s in ['XZ', 'YX', 'ZY']]
         probs = [0.5, 0.3, 0.2]
         error = pauli_error(zip(paulis, probs))
 
@@ -393,8 +393,8 @@ class TestNoise(common.QiskitAerTestCase):
         error = phase_damping_error(p_phase, canonical_kraus=True)
         # The canonical form of this channel should be a mixed
         # unitary dephasing channel
-        targets = [Pauli("I").to_matrix(),
-                   Pauli("Z").to_matrix()]
+        targets = [qi.Pauli("I").to_matrix(),
+                   qi.Pauli("Z").to_matrix()]
         self.assertEqual(error.size, 1)
         circ, p = error.error_term(0)
         circ = QuantumError._qc_to_json(circ)
@@ -524,17 +524,17 @@ class TestNoise(common.QiskitAerTestCase):
 
 # ================== Tests for old interfaces ================== #
 # TODO: remove after deprecation period
-class TestNoiseOldInterface(common.QiskitAerTestCase):
+class TestNoiseOldInterface(QiskitAerTestCase):
     """Testing the deprecating interface of standard_error"""
 
     def test_pauli_error_1q_unitary_from_pauli(self):
         """Test single-qubit pauli error as unitary qobj from Pauli obj"""
-        paulis = [Pauli(s) for s in ['I', 'X', 'Y', 'Z']]
+        paulis = [qi.Pauli(s) for s in ['I', 'X', 'Y', 'Z']]
         probs = [0.4, 0.3, 0.2, 0.1]
-        target_unitaries = [Pauli("I").to_matrix(),
-                            Pauli("X").to_matrix(),
-                            Pauli("Y").to_matrix(),
-                            Pauli("Z").to_matrix()]
+        target_unitaries = [qi.Pauli("I").to_matrix(),
+                            qi.Pauli("X").to_matrix(),
+                            qi.Pauli("Y").to_matrix(),
+                            qi.Pauli("Z").to_matrix()]
         target_probs = probs.copy()
 
         with self.assertWarns(DeprecationWarning):
@@ -554,11 +554,11 @@ class TestNoiseOldInterface(common.QiskitAerTestCase):
 
     def test_pauli_error_2q_unitary_from_pauli(self):
         """Test two-qubit pauli error as unitary qobj from Pauli obj"""
-        paulis = [Pauli(s) for s in ['XY', 'YZ', 'ZX']]
+        paulis = [qi.Pauli(s) for s in ['XY', 'YZ', 'ZX']]
         probs = [0.5, 0.3, 0.2]
-        X = Pauli("X").to_matrix()
-        Y = Pauli("Y").to_matrix()
-        Z = Pauli("Z").to_matrix()
+        X = qi.Pauli("X").to_matrix()
+        Y = qi.Pauli("Y").to_matrix()
+        Z = qi.Pauli("Z").to_matrix()
         target_unitaries = [np.kron(X, Y), np.kron(Y, Z), np.kron(Z, X)]
         target_probs = probs.copy()
 

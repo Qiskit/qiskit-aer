@@ -17,18 +17,54 @@ import json
 import logging
 from warnings import warn, catch_warnings, filterwarnings
 
+from numpy import ndarray
+
 from qiskit.circuit import Instruction
 from qiskit.providers import BaseBackend, Backend
 from qiskit.providers.models import BackendProperties
-
-from ..backends.aerbackend import AerJSONEncoder
-from .noiseerror import NoiseError
-from .errors.quantum_error import QuantumError
-from .errors.readout_error import ReadoutError
 from .device.models import basic_device_gate_errors
 from .device.models import basic_device_readout_errors
+from .errors.quantum_error import QuantumError
+from .errors.readout_error import ReadoutError
+from .noiseerror import NoiseError
+from ..backends.backend_utils import BASIS_GATES
 
 logger = logging.getLogger(__name__)
+
+
+class AerJSONEncoder(json.JSONEncoder):
+    """
+    JSON encoder for NumPy arrays and complex numbers.
+
+    This functions as the standard JSON Encoder but adds support
+    for encoding:
+        complex numbers z as lists [z.real, z.imag]
+        ndarrays as nested lists.
+    """
+
+    # pylint: disable=method-hidden,arguments-differ
+    def default(self, obj):
+        if isinstance(obj, ndarray):
+            return obj.tolist()
+        if isinstance(obj, complex):
+            return [obj.real, obj.imag]
+        if hasattr(obj, "to_dict"):
+            return obj.to_dict()
+        return super().default(obj)
+
+
+class QuantumErrorLocation(Instruction):
+    """Instruction for referencing a multi-qubit error in a NoiseModel"""
+
+    _directive = True
+
+    def __init__(self, qerror):
+        """Construct a new quantum error location instruction.
+
+        Args:
+            qerror (QuantumError): the quantum error to reference.
+        """
+        super().__init__("qerror_loc", qerror.num_qubits, 0, [], label=qerror.id)
 
 
 class NoiseModel:
@@ -83,7 +119,6 @@ class NoiseModel:
         print(noise_model)
 
     """
-
     # Checks for standard 1-3 qubit instructions
     _1qubit_instructions = set([
         'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
@@ -407,21 +442,10 @@ class NoiseModel:
             warnings (bool): [DEPRECATED] display warning if instruction is not in
                              QasmSimulator basis_gates (Default: False).
         """
-        # Instead of QasmSimulator._DEFAULT_CONFIGURATION['basis_gates'], which causes cyclic import
-        # TODO: Remove after depecation of "warnings" argument
-        _qasm_simulator_basis_gates = {
-            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
-            'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-            'mcphase', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
-            'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-            'delay', 'pauli', 'mcx_gray'
-        }
         for name, _ in self._instruction_names_labels(instructions):
             # If the instruction is in the default basis gates for the
-            # QasmSimulator we add it to the basis gates.
-            if name in _qasm_simulator_basis_gates:
+            # AerSimulator we add it to the basis gates.
+            if name in BASIS_GATES['automatic']:
                 if name not in ['measure', 'reset', 'initialize',
                                 'kraus', 'superop', 'roerror']:
                     self._basis_gates.add(name)
@@ -431,7 +455,7 @@ class NoiseModel:
                      DeprecationWarning, stacklevel=2)
                 logger.warning(
                     "Warning: Adding a gate \"%s\" to basis_gates which is "
-                    "not in QasmSimulator basis_gates.", name)
+                    "not in AerSimulator basis_gates.", name)
 
     def add_all_qubit_quantum_error(self, error, instructions, warnings=True):
         """
@@ -848,6 +872,7 @@ class NoiseModel:
                                    category=DeprecationWarning,
                                    module="qiskit.providers.aer.noise")
                     qerror = QuantumError(noise_ops)
+                qerror._id = error.get('id', None) or qerror.id
                 if all_gate_qubits is not None:
                     for gate_qubits in all_gate_qubits:
                         # Load non-local quantum error

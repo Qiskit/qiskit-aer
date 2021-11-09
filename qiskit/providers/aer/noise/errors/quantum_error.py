@@ -14,11 +14,13 @@ Quantum error class for Qiskit Aer noise model
 """
 import copy
 import numbers
+import uuid
 import warnings
 from typing import Iterable
 
 import numpy as np
-from qiskit.circuit import QuantumCircuit, Instruction
+
+from qiskit.circuit import QuantumCircuit, Instruction, QuantumRegister
 from qiskit.circuit.library.standard_gates import IGate
 from qiskit.exceptions import QiskitError
 from qiskit.extensions import UnitaryGate
@@ -27,10 +29,9 @@ from qiskit.quantum_info.operators.channel import Kraus, SuperOp
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.mixins import TolerancesMixin
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
-
+from .errorutils import _standard_gates_instructions
 from .errorutils import kraus2instructions
 from .errorutils import standard_gate_unitary
-from .errorutils import _standard_gates_instructions
 from ..noiseerror import NoiseError
 
 
@@ -100,6 +101,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
         Raises:
             NoiseError: If input noise_ops is invalid, e.g. it's not a CPTP map.
         """
+        # Unique ID for QuantumError
+        self._id = uuid.uuid4().hex
+
         # Shallow copy constructor
         if isinstance(noise_ops, QuantumError):
             self._circs = noise_ops.circuits
@@ -309,6 +313,14 @@ class QuantumError(BaseOperator, TolerancesMixin):
             return False
         return self.to_quantumchannel() == other.to_quantumchannel()
 
+    def __hash__(self):
+        return hash(self._id)
+
+    @property
+    def id(self):   # pylint: disable=invalid-name
+        """Return unique ID string for error"""
+        return self._id
+
     def copy(self):
         """Make a copy of current QuantumError."""
         # pylint: disable=no-value-for-parameter
@@ -344,10 +356,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
     def number_of_qubits(self):
         """Return the number of qubits for the error."""
         warnings.warn(
-            '"number_of_qubits" property has been renamed to num_qubits and deprecated as of'
-            ' qiskit-aer 0.10.0, and will be removed no earlier than 3 months'
-            ' from that release date. Use "num_qubits" instead.',
-            DeprecationWarning, stacklevel=2)
+            "The `number_of_qubits` property has been deprecated as of"
+            " qiskit-aer 0.10.0. Use the `num_qubits` property instead.",
+            DeprecationWarning)
         return self.num_qubits
 
     @property
@@ -387,7 +398,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
     def to_instruction(self):
         """Convert the QuantumError to a circuit Instruction."""
-        return self.to_quantumchannel().to_instruction()
+        return QuantumChannelInstruction(self)
 
     def error_term(self, position):
         """
@@ -415,6 +426,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
         """Return the current error as a dictionary."""
         error = {
             "type": "qerror",
+            "id": self.id,
             "operations": [],
             "instructions": [self._qc_to_json(qc) for qc in self.circuits],
             "probabilities": list(self.probabilities)
@@ -437,7 +449,6 @@ class QuantumError(BaseOperator, TolerancesMixin):
     def compose(self, other, qargs=None, front=False):
         if not isinstance(other, QuantumError):
             other = QuantumError(other)
-
         if qargs is not None:
             if self.num_qubits < other.num_qubits:
                 raise QiskitError("Number of qubits of this error must be less than"
@@ -508,3 +519,23 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
     def __neg__(self):
         raise NotImplementedError("'QuantumError' does not support negation.")
+
+
+class QuantumChannelInstruction(Instruction):
+    """Container instruction for adding QuantumError to circuit"""
+
+    def __init__(self, quantum_error):
+        """Initialize a quantum error circuit instruction.
+
+        Args:
+            quantum_error (QuantumError): the error to add as an instruction.
+        """
+        super().__init__("quantum_channel", quantum_error.num_qubits, 0, [])
+        self._quantum_error = quantum_error
+
+    def _define(self):
+        """Allow unrolling to a Kraus instruction"""
+        q = QuantumRegister(self.num_qubits, "q")
+        qc = QuantumCircuit(q, name=self.name)
+        qc._append(Kraus(self._quantum_error).to_instruction(), q, [])
+        self.definition = qc

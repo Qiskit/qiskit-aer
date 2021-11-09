@@ -36,6 +36,7 @@ const Operations::OpSet StateOpSet(
   {Operations::OpType::gate, Operations::OpType::measure,
     Operations::OpType::reset, Operations::OpType::barrier,
     Operations::OpType::roerror, Operations::OpType::bfunc,
+    Operations::OpType::qerror_loc,
     Operations::OpType::snapshot, Operations::OpType::save_statevec,
     }, //Operations::OpType::save_expval, Operations::OpType::save_expval_var},
   // Gates
@@ -445,6 +446,7 @@ void State::apply_ops(InputIterator first, InputIterator last, ExperimentResult 
               apply_reset(op.qubits, rng);
               break;
             case Operations::OpType::barrier:
+            case Operations::OpType::qerror_loc:
               break;
             case Operations::OpType::measure:
               apply_measure(op.qubits, op.memory, op.registers, rng);
@@ -555,6 +557,7 @@ void State::apply_ops_parallel(InputIterator first, InputIterator last, Experime
           apply_gate(*it, rng, i);
           break;
         case Operations::OpType::barrier:
+        case Operations::OpType::qerror_loc:
           break;
         default:
           throw std::invalid_argument("CH::State::apply_ops_parallel does not support operations of the type \'" + 
@@ -582,6 +585,7 @@ void State::apply_stabilizer_circuit(InputIterator first, InputIterator last,
           apply_reset(op.qubits, rng);
           break;
         case Operations::OpType::barrier:
+        case Operations::OpType::qerror_loc:
           break;
         case Operations::OpType::measure:
           apply_measure(op.qubits, op.memory, op.registers, rng);
