@@ -39,7 +39,7 @@ const Operations::OpSet StateOpSet(
      OpType::reset, OpType::snapshot,
      OpType::barrier, OpType::bfunc,
      OpType::roerror, OpType::matrix,
-     OpType::diagonal_matrix, OpType::kraus,
+     OpType::diagonal_matrix, OpType::kraus, OpType::qerror_loc,
      OpType::superop, OpType::set_statevec,
      OpType::set_densmat, OpType::save_expval,
      OpType::save_expval_var, OpType::save_densmat,
@@ -578,6 +578,7 @@ void State<densmat_t>::apply_op_chunk(const int_t iChunk,const Operations::Op &o
   if (BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case Operations::OpType::barrier:
+      case Operations::OpType::qerror_loc:
         break;
       case Operations::OpType::reset:
         apply_reset(iChunk,op.qubits);

@@ -41,6 +41,7 @@ const Operations::OpSet StateOpSet(
     // Op types
     {Operations::OpType::gate, Operations::OpType::barrier,
      Operations::OpType::bfunc, Operations::OpType::roerror,
+     Operations::OpType::qerror_loc,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::snapshot, Operations::OpType::save_unitary,
      Operations::OpType::save_state, Operations::OpType::set_unitary},
@@ -301,6 +302,7 @@ void State<unitary_matrix_t>::apply_op(
   if (BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case Operations::OpType::barrier:
+      case Operations::OpType::qerror_loc:
         break;
       case Operations::OpType::bfunc:
         BaseState::creg_.apply_bfunc(op);

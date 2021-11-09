@@ -49,7 +49,7 @@ const Operations::OpSet StateOpSet(
      OpType::snapshot, OpType::barrier,
      OpType::bfunc, OpType::roerror,
      OpType::matrix, OpType::diagonal_matrix,
-     OpType::multiplexer, OpType::kraus,
+     OpType::multiplexer, OpType::kraus, OpType::qerror_loc,
      OpType::sim_op, OpType::set_statevec,
      OpType::save_expval, OpType::save_expval_var,
      OpType::save_probs, OpType::save_probs_ket,
@@ -686,6 +686,7 @@ void State<statevec_t>::apply_op(const Operations::Op &op,
     switch (op.type) {
       case OpType::barrier:
       case OpType::nop:
+      case OpType::qerror_loc:
         break;
       case OpType::reset:
         apply_reset(op.qubits, rng);

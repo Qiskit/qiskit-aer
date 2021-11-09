@@ -44,7 +44,7 @@ const Operations::OpSet StateOpSet(
      OpType::snapshot, OpType::barrier,
      OpType::bfunc, OpType::roerror,
      OpType::matrix, OpType::diagonal_matrix,
-     OpType::multiplexer, OpType::kraus,
+     OpType::multiplexer, OpType::kraus, OpType::qerror_loc,
      OpType::sim_op, OpType::set_statevec,
      OpType::save_expval, OpType::save_expval_var,
      OpType::save_probs, OpType::save_probs_ket,
@@ -600,6 +600,7 @@ void State<statevec_t>::apply_op_chunk(const int_t iChunk,const Operations::Op &
   if(BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case Operations::OpType::barrier:
+      case Operations::OpType::qerror_loc:
         break;
       case Operations::OpType::reset:
         apply_reset(op.qubits, rng);

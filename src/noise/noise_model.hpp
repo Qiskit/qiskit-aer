@@ -493,12 +493,13 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_helper(const Operations::Op &op,
   // Combine errors
   auto &noise_ops = noise_before;
   noise_ops.reserve(noise_before.size() + noise_after.size() + 1);
-  noise_ops.push_back(op);
+  if (op.type != Operations::OpType::qerror_loc) {
+    noise_ops.push_back(op);
+  }
   noise_ops.insert(noise_ops.end(),
                    std::make_move_iterator(noise_after.begin()),
                    std::make_move_iterator(noise_after.end()));
-  
-  
+
   if (op.type != Operations::OpType::measure &&
       noise_ops.size() == 2 &&
       noise_ops[0].qubits == noise_ops[1].qubits) {

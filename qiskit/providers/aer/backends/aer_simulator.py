@@ -22,7 +22,8 @@ from ..version import __version__
 from .aerbackend import AerBackend, AerError
 from .backend_utils import (cpp_execute, available_methods,
                             available_devices,
-                            MAX_QUBITS_STATEVECTOR)
+                            MAX_QUBITS_STATEVECTOR,
+                            BASIS_GATES)
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import aer_controller_execute
 
@@ -328,100 +329,50 @@ class AerSimulator(AerBackend):
     * ``fusion_threshold`` (int): Threshold that number of qubits must be greater
       than or equal to enable fusion optimization [Default: 14]
     """
-    # Supported basis gates for each simulation method
-    _BASIS_GATES = {
-        'statevector': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
-            'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-            'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
-            'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-            'initialize', 'delay', 'pauli', 'mcx_gray'
-        ]),
-        'density_matrix': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
-            'unitary', 'diagonal', 'delay', 'pauli',
-        ]),
-        'matrix_product_state': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
-            'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay', 'pauli',
-            'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
-            'initialize'
-        ]),
-        'stabilizer': sorted([
-            'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 'cx', 'cy', 'cz',
-            'swap', 'delay', 'pauli'
-        ]),
-        'extended_stabilizer': sorted([
-            'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg',
-            'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay', 'pauli'
-        ]),
-        'unitary': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
-            'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-            'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
-            'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
-        ]),
-        'superop': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy',
-            'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'delay', 'pauli'
-        ])
-    }
-    # Automatic method basis gates are the union of statevector,
-    # density matrix, and stabilizer methods
-    _BASIS_GATES[None] = _BASIS_GATES['automatic'] = sorted(
-        set(_BASIS_GATES['statevector']).union(
-            _BASIS_GATES['stabilizer']).union(
-                _BASIS_GATES['density_matrix']).union(
-                    _BASIS_GATES['matrix_product_state']).union(
-                        _BASIS_GATES['unitary']).union(
-                            _BASIS_GATES['superop']))
+    _BASIS_GATES = BASIS_GATES
 
     _CUSTOM_INSTR = {
         'statevector': sorted([
-            'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
+            'quantum_channel', 'qerror_loc', 'roerror', 'kraus',
+            'snapshot', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_amplitudes', 'save_amplitudes_sq',
             'save_density_matrix', 'save_state', 'save_statevector',
-            'save_statevector_dict', 'set_statevector'
+            'save_statevector_dict', 'set_statevector',
         ]),
         'density_matrix': sorted([
-            'roerror', 'kraus', 'superop', 'snapshot',
+            'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop', 'snapshot',
             'save_state', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
-            'save_density_matrix', 'save_amplitudes_sq',
-            'set_density_matrix'
+            'save_density_matrix', 'save_amplitudes_sq', 'set_density_matrix'
         ]),
         'matrix_product_state': sorted([
-            'roerror', 'snapshot', 'kraus', 'save_expval', 'save_expval_var',
+            'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'kraus',
+            'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_state', 'save_matrix_product_state', 'save_statevector',
             'save_density_matrix', 'save_amplitudes', 'save_amplitudes_sq',
-            'set_matrix_product_state'
+            'set_matrix_product_state',
         ]),
         'stabilizer': sorted([
-            'roerror', 'snapshot', 'save_expval', 'save_expval_var',
+            'quantum_channel', 'qerror_loc', 'roerror', 'snapshot',
+            'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_amplitudes_sq', 'save_state', 'save_stabilizer',
             'set_stabilizer'
         ]),
         'extended_stabilizer': sorted([
-            'roerror', 'snapshot', 'save_statevector'
+            'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'save_statevector'
         ]),
         'unitary': sorted([
             'snapshot', 'save_state', 'save_unitary', 'set_unitary'
         ]),
         'superop': sorted([
-            'kraus', 'superop', 'save_state', 'save_superop', 'set_superop'
+            'quantum_channel', 'qerror_loc', 'kraus', 'superop', 'save_state',
+            'save_superop', 'set_superop'
         ])
     }
+
     # Automatic method custom instructions are the union of statevector,
     # density matrix, and stabilizer methods
     _CUSTOM_INSTR[None] = _CUSTOM_INSTR['automatic'] = sorted(
@@ -445,7 +396,7 @@ class AerSimulator(AerBackend):
         'max_shots': int(1e6),
         'description': 'A C++ QasmQobj simulator with noise',
         'coupling_map': None,
-        'basis_gates': _BASIS_GATES['automatic'],
+        'basis_gates': BASIS_GATES['automatic'],
         'custom_instructions': _CUSTOM_INSTR['automatic'],
         'gates': []
     }

@@ -16,7 +16,7 @@ Qiskit Aer statevector simulator backend.
 import copy
 import logging
 from warnings import warn
-from qiskit.util import local_hardware_info
+from qiskit.utils import local_hardware_info
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
@@ -150,7 +150,7 @@ class StatevectorSimulator(AerBackend):
             'initialize', 'delay', 'pauli'
         ]),
         'custom_instructions': sorted([
-            'kraus', 'roerror',
+            'kraus', 'roerror', 'quantum_channel', 'qerror_loc',
             'save_expval', 'save_density_matrix', 'save_statevector',
             'save_probs', 'save_probs_ket', 'save_amplitudes',
             'save_amplitudes_sq', 'save_state', 'set_statevector'
