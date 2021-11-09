@@ -152,9 +152,11 @@ public:
   virtual void enable_batch(bool flg);
   virtual bool batchable_op(const Operations::Op& op,bool single_op = true){return false;}
 
-  virtual void apply_batched_pauli(const Operations::Op& op,reg_t& params){}
-  virtual void apply_batched_noise_circuits(const Operations::Op &op, ExperimentResult &result,
-                                               std::vector<RngEngine> &rng, reg_t& idx){}
+  //apply runtime sampled noise in case all inserted ops are Pauli gates
+  virtual void apply_batched_pauli(std::vector<std::vector<Operations::Op>> &ops){}
+  //apply runtime sampled noise in case general ops are inserted 
+  virtual void apply_batched_noise_ops(const std::vector<std::vector<Operations::Op>> &op, ExperimentResult &result,
+                                               std::vector<RngEngine> &rng){}
 
   virtual void end_of_circuit();
 

@@ -56,7 +56,6 @@ const Operations::OpSet StateOpSet(
      OpType::save_amps, OpType::save_amps_sq,
      OpType::save_state, OpType::save_statevec,
      OpType::save_statevec_dict, OpType::save_densmat,
-     OpType::runtime_error,
      },
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
@@ -137,9 +136,11 @@ public:
 
   //batched execution
   virtual void apply_batched_ops(const std::vector<Operations::Op> &ops);
-  virtual void apply_batched_pauli(const Operations::Op &op, reg_t& idx);
-  virtual void apply_batched_noise_circuits(const Operations::Op &op, ExperimentResult &result,
-                                               std::vector<RngEngine> &rng, reg_t& idx);
+  //apply runtime sampled noise in case all inserted ops are Pauli gates
+  virtual void apply_batched_pauli(std::vector<std::vector<Operations::Op>> &ops);
+  //apply runtime sampled noise in case general ops are inserted 
+  virtual void apply_batched_noise_ops(const std::vector<std::vector<Operations::Op>> &op, ExperimentResult &result,
+                                               std::vector<RngEngine> &rng);
 
   virtual bool batchable_op(const Operations::Op& op,bool single_op = true);
 
@@ -1551,52 +1552,76 @@ void State<statevec_t>::apply_batched_ops(const std::vector<Operations::Op> &ops
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_batched_pauli(const Operations::Op& op,reg_t& idx)
+void State<statevec_t>::apply_batched_pauli(std::vector<std::vector<Operations::Op>>& ops)
 {
-  BaseState::qreg_.apply_batched_pauli(op,idx);
+  BaseState::qreg_.apply_batched_pauli(ops);
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_batched_noise_circuits(const Operations::Op &op, ExperimentResult &result,
-                                                        std::vector<RngEngine> &rng, reg_t& idx)
+void State<statevec_t>::apply_batched_noise_ops(const std::vector<std::vector<Operations::Op>> &ops, ExperimentResult &result,
+                                                        std::vector<RngEngine> &rng)
 {
-  int_t i,j,count,n;
-  count = idx.size();
+  int_t i,j,k,count,nop,pos = 0;
+  count = ops.size();
 
   reg_t mask(count);
-  for(i=0;i<op.circs.size();i++){
-    if(op.circs[i].size() == 0 || (op.circs[i].size() == 1 && op.circs[i][0].name == "id"))
+  std::vector<bool> finished(count,false);
+  for(i=0;i<count;i++){
+    int_t cond_reg = -1;
+
+    if(finished[i])
       continue;
+    if(ops[i].size() == 0 || (ops[i].size() == 1 && ops[i][0].name == "id")){
+      finished[i] = true;
+      continue;
+    }
+    mask[i] = 1;
 
-    n = 0;
-    for(j=0;j<count;j++){
-      if(idx[j] == i){
-        mask[j] = 1;
-        n++;
-      }
-      else{
+    //find same ops to be exectuted in a batch
+    for(j=i+1;j<count;j++){
+      if(finished[j]){
         mask[j] = 0;
+        continue;
       }
+      if(ops[j].size() == 0 || (ops[j].size() == 1 && ops[j][0].name == "id")){
+        mask[j] = 0;
+        finished[j] = true;
+        continue;
+      }
+
+      if(ops[i].size() != ops[j].size()){
+        mask[j] = 0;
+        continue;
+      }
+
+      mask[j] = true;
+      for(k=0;k<ops[i].size();k++){
+        if(ops[i][k].conditional){
+          cond_reg = ops[i][k].conditional_reg;
+        }
+        if(ops[i][k].type != ops[j][k].type || ops[i][k].name != ops[j][k].name){
+          mask[j] = false;
+          break;
+        }
+      }
+      if(mask[j])
+        finished[j] = true;
     }
-    if(n > 0){
-      int_t cond_reg = -1;
-      int_t sys_reg;
-      if(op.conditional){
-        cond_reg = op.conditional_reg;
-      }
-      //mask conditional register
-      sys_reg = BaseState::qreg_.set_batched_system_conditional(cond_reg,mask);
 
-      for(j=0;j<op.circs[i].size();j++){
-        Operations::Op cop = op.circs[i][j];
+    //mask conditional register
+    int_t sys_reg = BaseState::qreg_.set_batched_system_conditional(cond_reg,mask);
+    //batched execution on same ops
+    for(k=0;k<ops[i].size();k++){
+      Operations::Op cop = ops[i][k];
 
-        //mark op conditional to mask shots
-        cop.conditional = true;
-        cop.conditional_reg = sys_reg;
+      //mark op conditional to mask shots
+      cop.conditional = true;
+      cop.conditional_reg = sys_reg;
 
-        apply_op_multi_shots(cop,result,rng,false);
-      }
+      apply_op_multi_shots(cop,result,rng,false);
     }
+    mask[i] = 0;
+    finished[i] = true;
   }
 }
 

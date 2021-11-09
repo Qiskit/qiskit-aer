@@ -1562,6 +1562,8 @@ Circuit Controller::sample_circuit(const Circuit &circ,
   // Choose execution method based on noise and method
   Circuit opt_circ;
 
+  noise_sampling = false;
+
   // Ideal circuit
   if (noise.is_ideal()) {
     opt_circ = circ;
@@ -1587,8 +1589,8 @@ Circuit Controller::sample_circuit(const Circuit &circ,
   // General circuit noise sampling
   else {
     if(enable_batch_multi_shots_ && !enable_batch_multi_circuits_ && !multi_chunk){
-      //for GPU noise sampling is done at runtime
-      opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::circuit, true);
+      //batched optimization samples noise at runtime
+      opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::circuit,true);
     }
     else{
       opt_circ = circ;
@@ -1682,7 +1684,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
       states.initialize_creg(circ.num_memory, circ.num_registers);
 
-      states.apply_single_ops(circ.ops, result, circ.seed, true);
+      states.apply_single_ops(circ.ops, noise, result, circ.seed, true);
 
       for(uint_t ishot=0;ishot<circ.shots;ishot++){
         save_count_data(result, states.creg(ishot));
@@ -1764,6 +1766,7 @@ void Controller::run_circuit_with_sampled_noise(
 
       // Sample noise using circuit method
       Circuit noise_circ = noise.sample_noise(circ, rng);
+
       noise_circ.shots = 1;
       fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
                                    par_results[i]);
@@ -2108,16 +2111,7 @@ int_t Controller::get_max_matrix_bits(const Circuit &circ) const
 
   for(i=0;i<circ.ops.size();i++){
     int_t bit = 1;
-    if(circ.ops[i].type == Operations::OpType::runtime_error){
-      for(int_t j=0;j<circ.ops[i].circs.size();j++){
-        for(int_t k=0;k<circ.ops[i].circs[j].size();k++){
-          bit = std::max(bit,get_matrix_bits(circ.ops[i].circs[j][k]) );
-        }
-      }
-    }
-    else{
-      bit = get_matrix_bits(circ.ops[i]);
-    }
+    bit = get_matrix_bits(circ.ops[i]);
     max_bits = std::max(max_bits,bit);
   }
   return max_bits;

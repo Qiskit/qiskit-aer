@@ -313,7 +313,7 @@ public:
   virtual int_t set_batched_system_conditional(int_t src_reg, reg_t& mask){return -1;}
 
   //runtime noise sampling
-  virtual void apply_batched_pauli(const Operations::Op &op, reg_t& idx){}
+  virtual void apply_batched_pauli(const std::vector<std::vector<Operations::Op>> &op){}
 
   //Apply Kraus 
   void apply_batched_kraus(const reg_t &qubits,

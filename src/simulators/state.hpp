@@ -236,9 +236,11 @@ public:
 
   virtual bool top_of_group(){return true;}  //check if this register is on the top of group
 
-  virtual void apply_batched_pauli(const Operations::Op &op, reg_t& idx){}
-  virtual void apply_batched_noise_circuits(const Operations::Op &op, ExperimentResult &result,
-                                               std::vector<RngEngine> &rng, reg_t& idx){}
+  //apply runtime sampled noise in case all inserted ops are Pauli gates
+  virtual void apply_batched_pauli(std::vector<std::vector<Operations::Op>> &ops){}
+  //apply runtime sampled noise in case general ops are inserted 
+  virtual void apply_batched_noise_ops(const std::vector<std::vector<Operations::Op>> &op, ExperimentResult &result,
+                                               std::vector<RngEngine> &rng){}
 
   virtual void end_of_circuit(){};
 

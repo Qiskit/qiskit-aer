@@ -40,7 +40,7 @@ enum class OpType {
   gate, measure, reset, bfunc, barrier, qerror_loc, snapshot,
   matrix, diagonal_matrix, multiplexer, initialize, sim_op, nop,
   // Noise instructions
-  kraus, superop, roerror, noise_switch, runtime_error, 
+  kraus, superop, roerror, noise_switch, 
   // Save instructions
   save_state, save_expval, save_expval_var, save_statevec, save_statevec_dict,
   save_densmat, save_probs, save_probs_ket, save_amps, save_amps_sq,
@@ -165,9 +165,6 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   case OpType::noise_switch:
     stream << "noise_switch";
     break;
-  case OpType::runtime_error:
-    stream << "runtime_error";
-    break;
   case OpType::initialize:
     stream << "initialize";
     break;
@@ -220,9 +217,6 @@ struct Op {
   // Set states
   Clifford::Clifford clifford;
   mps_container_t mps;
-
-  //circuits selected by probability (used for runtime_error)
-  std::vector<std::vector<Op>> circs;
 
   // Legacy Snapshots
   DataSubType save_type = DataSubType::single;

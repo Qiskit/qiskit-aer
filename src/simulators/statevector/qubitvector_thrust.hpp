@@ -342,7 +342,7 @@ public:
   virtual void store_cmemory(uint_t qubit,int val);
 
   //runtime noise sampling
-  virtual void apply_batched_pauli(const Operations::Op &op, reg_t& idx);
+  virtual void apply_batched_pauli(const std::vector<std::vector<Operations::Op>> &ops);
 
   //optimized Kraus 
   virtual void apply_batched_kraus(const reg_t &qubits,
@@ -5149,12 +5149,12 @@ public:
 };
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::apply_batched_pauli(const Operations::Op& op,reg_t& idx)
+void QubitVectorThrust<data_t>::apply_batched_pauli(const std::vector<std::vector<Operations::Op>>& ops)
 {
   if(enable_batch_ && chunk_.pos() != 0){
     return;   //first chunk execute all in batch
   }
-  uint_t count = chunk_.container()->num_chunks();
+  uint_t count = ops.size();
   int_t i,j;
 
   reg_t params(4*count);
@@ -5164,18 +5164,21 @@ void QubitVectorThrust<data_t>::apply_batched_pauli(const Operations::Op& op,reg
     uint_t x_mask = 0;
     uint_t z_mask = 0;
 
-    for(j=0;j<op.circs[idx[i]].size();j++){
-      if(op.circs[idx[i]][j].name == "x"){
-        x_mask ^= (1ull << op.circs[idx[i]][j].qubits[0]);
-        x_max = std::max<uint_t>(x_max, (op.circs[idx[i]][j].qubits[0]));
+    for(j=0;j<ops[i].size();j++){
+      if(ops[i][j].conditional)
+        set_conditional(ops[i][j].conditional_reg);
+
+      if(ops[i][j].name == "x"){
+        x_mask ^= (1ull << ops[i][j].qubits[0]);
+        x_max = std::max<uint_t>(x_max, (ops[i][j].qubits[0]));
       }
-      else if(op.circs[idx[i]][j].name == "z"){
-        z_mask ^= (1ull << op.circs[idx[i]][j].qubits[0]);
+      else if(ops[i][j].name == "z"){
+        z_mask ^= (1ull << ops[i][j].qubits[0]);
       }
-      else if(op.circs[idx[i]][j].name == "y"){
-        x_mask ^= (1ull << op.circs[idx[i]][j].qubits[0]);
-        z_mask ^= (1ull << op.circs[idx[i]][j].qubits[0]);
-        x_max = std::max<uint_t>(x_max, (op.circs[idx[i]][j].qubits[0]));
+      else if(ops[i][j].name == "y"){
+        x_mask ^= (1ull << ops[i][j].qubits[0]);
+        z_mask ^= (1ull << ops[i][j].qubits[0]);
+        x_max = std::max<uint_t>(x_max, (ops[i][j].qubits[0]));
         num_y++;
       }
     }
@@ -5184,9 +5187,6 @@ void QubitVectorThrust<data_t>::apply_batched_pauli(const Operations::Op& op,reg
     params[i*4+2] = x_mask;
     params[i*4+3] = z_mask;
   }
-
-  if(op.conditional)
-    set_conditional(op.conditional_reg);
 
   thrust::complex<data_t> coeff(1.0,0.0);
   chunk_.StoreUintParams(params);

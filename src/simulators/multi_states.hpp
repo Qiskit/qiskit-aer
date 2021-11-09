@@ -220,9 +220,10 @@ public:
 
   //for single circuit multiple states
   virtual void apply_single_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         uint_t rng_seed,
-                         bool final_ops = false);
+                                const Noise::NoiseModel &noise,
+                                ExperimentResult &result,
+                                uint_t rng_seed,
+                                bool final_ops = false);
 
   //for multiple circuits multiple states
   virtual void apply_multi_ops(const std::vector<std::vector<Operations::Op>> &ops,
@@ -688,6 +689,7 @@ void MultiStates<state_t>::apply_ops(InputIterator first, InputIterator last,
 
 template <class state_t>
 void MultiStates<state_t>::apply_single_ops(const std::vector<Operations::Op> &ops,
+                         const Noise::NoiseModel &noise,
                          ExperimentResult &result,
                          uint_t rng_seed,
                          bool final_ops)
@@ -734,38 +736,38 @@ void MultiStates<state_t>::apply_single_ops(const std::vector<Operations::Op> &o
       for(iOp=0;iOp<nOp;iOp++){
 //        std::cout << "  op["<<iOp<<"] : " << ops[iOp] << std::endl;
 
-        if(ops[iOp].type == Operations::OpType::runtime_error){
-          //apply error by using multi-circuits op
+        if(ops[iOp].type == Operations::OpType::qerror_loc){
+          //sample error here
           uint_t count = num_states_in_group_[i];
           uint_t max_ops = 0;
           bool pauli_only = true;
+          std::vector<std::vector<Operations::Op>> noise_ops(count);
+          for(uint_t j=0;j<count;j++){
+            noise_ops[j] = noise.sample_noise_loc(ops[iOp],rng[j]);
 
-          reg_t circ_idx(count);
-          for(uint_t j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
-            uint_t idx = rng[j-top_state_of_group_[i]].rand_int(ops[iOp].probs[0]);
-            circ_idx[j - top_state_of_group_[i]] = idx;
-            if(ops[iOp].circs[idx].size() == 0 || (ops[iOp].circs[idx].size() == 1 && ops[iOp].circs[idx][0].name == "id"))
+            if(noise_ops[j].size() == 0 || (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id"))
               continue;
             else{
-              if(max_ops < ops[iOp].circs[idx].size())
-                max_ops = ops[iOp].circs[idx].size();
+              if(max_ops < noise_ops[j].size())
+                max_ops = noise_ops[j].size();
               if(pauli_only){
-                for(int_t k=0;k<ops[iOp].circs[idx].size();k++){
-                  if(ops[iOp].circs[idx][k].name != "x" && ops[iOp].circs[idx][k].name != "y" && ops[iOp].circs[idx][k].name != "z")
+                for(int_t k=0;k<noise_ops[j].size();k++){
+                  if(noise_ops[j][k].name != "x" && noise_ops[j][k].name != "y" && noise_ops[j][k].name != "z" && noise_ops[j][k].name != "id")
                     pauli_only = false;
                 }
               }
             }
           }
+
           if(max_ops == 0){
             continue;   //do nothing
           }
           if(pauli_only){   //batched Pauli can be applied (optimization for Pauli error)
-            states_[istate].apply_batched_pauli(ops[iOp],circ_idx);
+            states_[istate].apply_batched_pauli(noise_ops);
           }
           else{
             //otherwise execute each circuit
-            states_[istate].apply_batched_noise_circuits(ops[iOp],par_results[i],rng,circ_idx);
+            states_[istate].apply_batched_noise_ops(noise_ops,par_results[i],rng);
           }
         }
         else if(states_[istate].batchable_op(ops[iOp],true)){
