@@ -17,7 +17,7 @@ Qiskit Aer Unitary Simulator Backend.
 import copy
 import logging
 from warnings import warn
-from qiskit.util import local_hardware_info
+from qiskit.utils import local_hardware_info
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
