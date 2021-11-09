@@ -166,16 +166,6 @@ class QasmSimulator(AerBackend):
       values (16 Bytes). If set to 0, the maximum will be automatically
       set to the system memory size (Default: 0).
 
-    * ``optimize_ideal_threshold`` (int): Sets the qubit threshold for
-      applying circuit optimization passes on ideal circuits.
-      Passes include gate fusion and truncation of unused qubits
-      (Default: 5).
-
-    * ``optimize_noise_threshold`` (int): Sets the qubit threshold for
-      applying circuit optimization passes on ideal circuits.
-      Passes include gate fusion and truncation of unused qubits
-      (Default: 12).
-
     These backend options only apply when using the ``"statevector"``
     simulation method:
 
@@ -313,12 +303,13 @@ class QasmSimulator(AerBackend):
     ])
 
     _DEFAULT_CUSTOM_INSTR = sorted([
-        'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
+        'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'snapshot',
+        'save_expval', 'save_expval_var',
         'save_probabilities', 'save_probabilities_dict',
         'save_amplitudes', 'save_amplitudes_sq', 'save_state',
         'save_density_matrix', 'save_statevector', 'save_statevector_dict',
         'save_stabilizer', 'set_statevector', 'set_density_matrix',
-        'set_stabilizer'
+        'set_stabilizer',
     ])
 
     _DEFAULT_CONFIGURATION = {
@@ -418,8 +409,6 @@ class QasmSimulator(AerBackend):
             max_parallel_experiments=None,
             max_parallel_shots=None,
             max_memory_mb=None,
-            optimize_ideal_threshold=5,
-            optimize_noise_threshold=12,
             fusion_enable=True,
             fusion_verbose=False,
             fusion_max_qubit=5,
@@ -514,30 +503,21 @@ class QasmSimulator(AerBackend):
         qobj = map_legacy_method_options(qobj)
         return cpp_execute(self._controller, qobj)
 
-    def set_options(self, **fields):
-        out_options = {}
-        update_basis_gates = False
-        for key, value in fields.items():
-            if key == 'method':
-                if value in LEGACY_METHOD_MAP:
-                    value, device = LEGACY_METHOD_MAP[value]
-                    out_options["device"] = device
-                self._set_method_config(value)
-                update_basis_gates = True
-                out_options[key] = value
-                if (value is not None and value not in self.available_methods()):
-                    raise AerError(
-                        "Invalid simulation method {}. Available methods"
-                        " are: {}".format(value, self.available_methods()))
-            elif key in ['noise_model', 'basis_gates']:
-                update_basis_gates = True
-                out_options[key] = value
-            elif key == 'custom_instructions':
-                self._set_configuration_option(key, value)
-            else:
-                out_options[key] = value
-        super().set_options(**out_options)
-        if update_basis_gates:
+    def set_option(self, key, value):
+        if key == "custom_instructions":
+            self._set_configuration_option(key, value)
+            return
+        if key == "method":
+            if value in LEGACY_METHOD_MAP:
+                value, device = LEGACY_METHOD_MAP[value]
+                self.set_option("device", device)
+            if (value is not None and value not in self.available_methods()):
+                raise AerError(
+                    "Invalid simulation method {}. Available methods"
+                    " are: {}".format(value, self.available_methods()))
+            self._set_method_config(value)
+        super().set_option(key, value)
+        if key in ["method", "noise_model", "basis_gates"]:
             self._cached_basis_gates = self._basis_gates()
 
     def _validate(self, qobj):
@@ -637,40 +617,41 @@ class QasmSimulator(AerBackend):
         method = self._options.get('method', None)
         if method in ['statevector', 'statevector_gpu', 'statevector_thrust']:
             return sorted([
-                'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
+                'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'snapshot', 'save_expval',
+                'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_amplitudes', 'save_amplitudes_sq', 'save_state',
                 'save_density_matrix', 'save_statevector', 'save_statevector_dict',
                 'set_statevector'
             ])
         if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
             return sorted([
-                'roerror', 'kraus', 'superop', 'snapshot', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
+                'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop', 'snapshot',
+                'save_expval', 'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_state', 'save_density_matrix', 'save_amplitudes_sq',
                 'set_statevector', 'set_density_matrix'
             ])
         if method == 'matrix_product_state':
             return sorted([
-                'roerror', 'snapshot', 'kraus', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
+                'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'kraus', 'save_expval',
+                'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_density_matrix', 'save_state', 'save_statevector',
                 'save_amplitudes', 'save_amplitudes_sq', 'save_matrix_product_state',
                 'set_matrix_product_state'])
         if method == 'stabilizer':
             return sorted([
-                'roerror', 'snapshot', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
+                'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'save_expval',
+                'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_amplitudes_sq', 'save_state', 'save_stabilizer',
                 'set_stabilizer'
             ])
         if method == 'extended_stabilizer':
-            return sorted(['roerror', 'snapshot', 'save_statevector'])
+            return sorted([
+                'quantum_channel', 'qerror_loc', 'roerror',
+                'snapshot', 'save_statevector'])
         return QasmSimulator._DEFAULT_CUSTOM_INSTR
 
     def _set_method_config(self, method=None):
         """Set non-basis gate options when setting method"""
-        super().set_options(method=method)
         # Update configuration description and number of qubits
         if method in ['statevector', 'statevector_gpu', 'statevector_thrust']:
             description = 'A C++ statevector simulator with noise'

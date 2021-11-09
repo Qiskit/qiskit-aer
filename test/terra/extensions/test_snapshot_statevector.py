@@ -23,6 +23,7 @@ from ..common import QiskitAerTestCase
 class TestSnapshotStatevectorExtension(QiskitAerTestCase):
     """SnapshotStatevector extension tests"""
 
+    @classmethod
     def setUpClass(cls):
         super().setUpClass()
         filterwarnings(

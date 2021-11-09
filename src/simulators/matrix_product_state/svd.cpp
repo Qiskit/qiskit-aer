@@ -127,14 +127,15 @@ double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
     for (uint_t i=new_SV_num; i<SV_num; i++) {
       discarded_value += std::norm(S[i]);
     }
-    // After approximation, we may need to re-normalize the values of S
-    double new_sum_squares = 0;
-    for (uint_t i=0; i<S.size(); i++) 
-      new_sum_squares +=std::norm(S[i]);
-    
-    double sqrt_sum = std::sqrt(new_sum_squares);
-    for (uint_t i=0; i<S.size(); i++)
-      S[i] /= sqrt_sum;
+  }
+  // Check if we need to re-normalize the values of S
+  double new_sum_squares = 0;
+  for (uint_t i=0; i<S.size(); i++) 
+    new_sum_squares +=std::norm(S[i]);
+  if (!Linalg::almost_equal(1.0 - new_sum_squares, 0., THRESHOLD)) {
+	double sqrt_sum = std::sqrt(new_sum_squares);
+	for (uint_t i=0; i<S.size(); i++)
+	  S[i] /= sqrt_sum;
   }
   return discarded_value;
 }

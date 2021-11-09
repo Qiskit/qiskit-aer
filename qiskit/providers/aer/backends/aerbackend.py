@@ -14,16 +14,15 @@ Qiskit Aer qasm simulator backend.
 """
 
 import copy
-import json
 import logging
 import datetime
 import time
 import uuid
 import warnings
 from abc import ABC, abstractmethod
-from numpy import ndarray
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.pulse import Schedule
 from qiskit.circuit import ParameterExpression
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
@@ -32,33 +31,13 @@ from qiskit.utils import deprecate_arguments
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.compiler import assemble
 
-from ..jobs import AerJob, AerJobSet, split_qobj
 from ..aererror import AerError
+from ..jobs import AerJob, AerJobSet, split_qobj
+from ..noise.noise_model import NoiseModel, QuantumErrorLocation
 
 
 # Logger
 logger = logging.getLogger(__name__)
-
-
-class AerJSONEncoder(json.JSONEncoder):
-    """
-    JSON encoder for NumPy arrays and complex numbers.
-
-    This functions as the standard JSON Encoder but adds support
-    for encoding:
-        complex numbers z as lists [z.real, z.imag]
-        ndarrays as nested lists.
-    """
-
-    # pylint: disable=method-hidden,arguments-differ
-    def default(self, obj):
-        if isinstance(obj, ndarray):
-            return obj.tolist()
-        if isinstance(obj, complex):
-            return [obj.real, obj.imag]
-        if hasattr(obj, "to_dict"):
-            return obj.to_dict()
-        return super().default(obj)
 
 
 class AerBackend(Backend, ABC):
@@ -112,6 +91,10 @@ class AerBackend(Backend, ABC):
                     if param in binds:
                         parameterizations.append([[index, bind_pos], binds[param]])
                     elif isinstance(param, ParameterExpression):
+                        # If parameter expression has no unbound parameters
+                        # it's already bound and should be skipped
+                        if not param.parameters:
+                            continue
                         local_binds = {k: v for k, v in binds.items() if k in param.parameters}
                         bind_list = [dict(zip(local_binds, t)) for t in zip(*local_binds.values())]
                         bound_values = [float(param.bind(x)) for x in bind_list]
@@ -207,11 +190,19 @@ class AerBackend(Backend, ABC):
         if validate:
             self._validate(qobj)
 
+        # Get executor from qobj config and delete attribute so qobj can still be serialized
+        executor = getattr(qobj.config, 'executor', None)
+        if hasattr(qobj.config, 'executor'):
+            delattr(qobj.config, 'executor')
+
         # Optionally split the job
         experiments = split_qobj(qobj, max_size=getattr(qobj.config, 'max_job_size', None))
 
-        # Get the executor
-        executor = self._get_executor(**run_options)
+        # Temporarily remove any executor from options so that job submission
+        # can work with Dask client executors which can't be pickled
+        opts_executor = getattr(self._options, 'executor', None)
+        if hasattr(self._options, 'executor'):
+            self._options.executor = None
 
         # Submit job
         job_id = str(uuid.uuid4())
@@ -220,6 +211,11 @@ class AerBackend(Backend, ABC):
         else:
             aer_job = AerJob(self, job_id, self._run, experiments, executor)
         aer_job.submit()
+
+        # Restore removed executor after submission
+        if hasattr(self._options, 'executor'):
+            self._options.executor = opts_executor
+
         return aer_job
 
     def configuration(self):
@@ -321,6 +317,10 @@ class AerBackend(Backend, ABC):
 
     def _assemble(self, circuits, parameter_binds=None, **run_options):
         """Assemble one or more Qobj for running on the simulator"""
+        # Remove quantum error instructions from circuits and add to
+        # run option noise model
+        circuits, run_options = self._assemble_noise_model(circuits, **run_options)
+
         # This conditional check can be removed when we remove passing
         # qobj to run
         if isinstance(circuits, (QasmQobj, PulseQobj)):
@@ -345,12 +345,62 @@ class AerBackend(Backend, ABC):
         for key, val in run_options.items():
             setattr(qobj.config, key, val)
 
-        # We need to remove the executor from the qobj config
-        # since it can't be serialized though JSON/Pybind.
-        if hasattr(qobj.config, 'executor'):
-            delattr(qobj.config, 'executor')
-
         return qobj
+
+    def _assemble_noise_model(self, circuits, **run_options):
+        """Move quantum error instructions from circuits to noise model"""
+        if isinstance(circuits, (QasmQobj, PulseQobj)):
+            return circuits, run_options
+
+        if isinstance(circuits, (QuantumCircuit, Schedule)):
+            circuits = [circuits]
+
+        # Flag for if we need to make a deep copy of the noise model
+        # This avoids unnecessarily copying the noise model for circuits
+        # that do not contain a quantum error
+        updated_noise = False
+        noise_model = run_options.get(
+            'noise_model', getattr(self.options, 'noise_model', None))
+
+        # Check if circuits contain quantum error instructions
+        run_circuits = []
+        for circ in circuits:
+            if isinstance(circ, Schedule):
+                run_circuits.append(circ)
+            else:
+                updated_circ = False
+                new_data = []
+                for inst, qargs, cargs in circ.data:
+                    if inst.name == "quantum_channel":
+                        updated_circ = True
+                        if not updated_noise:
+                            # Deep copy noise model on first update
+                            if noise_model is None:
+                                noise_model = NoiseModel()
+                            else:
+                                noise_model = copy.deepcopy(noise_model)
+                            updated_noise = True
+                        # Extract error and replace with place holder
+                        qerror = inst._quantum_error
+                        new_data.append((QuantumErrorLocation(qerror), qargs, cargs))
+                        # Add error to noise model
+                        if qerror.id not in noise_model._default_quantum_errors:
+                            noise_model.add_all_qubit_quantum_error(qerror, qerror.id)
+                    else:
+                        new_data.append((inst, qargs, cargs))
+                if updated_circ:
+                    new_circ = circ.copy()
+                    new_circ.data = new_data
+                    run_circuits.append(new_circ)
+                else:
+                    run_circuits.append(circ)
+
+        # If we modified the existing noise model, add it to the run options
+        if updated_noise:
+            run_options['noise_model'] = noise_model
+
+        # Return the possibly updated circuits and noise model
+        return run_circuits, run_options
 
     def _get_executor(self, **run_options):
         """Get the executor"""
