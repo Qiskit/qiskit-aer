@@ -1469,7 +1469,7 @@ void Controller::run_circuit_helper(const std::vector<Circuit> &circs,
 
     int_t max_bits = 1;
     for (i_circ=0;i_circ< circs.size(); i_circ++) {
-      max_bits = std::max(max_bits,get_max_matrix_bits(circs[i_circ]) );
+      max_bits = std::max(max_bits,get_max_matrix_qubits(circs[i_circ]) );
     }
     states.set_max_matrix_bits(max_bits);
 
@@ -1646,7 +1646,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
     auto first_meas = circ.first_measure_pos; // Position of first measurement op
     bool final_ops = (first_meas == ops.size());
 
-    state.set_max_matrix_bits(get_max_matrix_bits(circ) );
+    state.set_max_matrix_bits(get_max_matrix_qubits(circ) );
 
     // allocate qubit register
     state.allocate(circ.num_qubits, block_bits);
@@ -1675,7 +1675,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
       states.set_parallelization(max_batched_states_);
 
-      states.set_max_matrix_bits(get_max_matrix_bits(circ) );
+      states.set_max_matrix_bits(get_max_matrix_qubits(circ) );
 
       states.allocate(circ.num_qubits, circ.num_qubits,circ.shots);
 
@@ -1697,7 +1697,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
       // Vector to store parallel thread output data
       std::vector<ExperimentResult> par_results(parallel_shots_);
 
-      int_t max_bits = get_max_matrix_bits(circ);
+      int_t max_bits = get_max_matrix_qubits(circ);
 
 #pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
       for (int i = 0; i < parallel_shots_; i++) {
@@ -1777,7 +1777,7 @@ void Controller::run_circuit_with_sampled_noise(
         block_bits = cache_block_pass.block_bits();
       }
 
-      state.set_max_matrix_bits(get_max_matrix_bits(circ) );
+      state.set_max_matrix_bits(get_max_matrix_qubits(circ) );
       // allocate qubit register
       state.allocate(noise_circ.num_qubits, block_bits);
 
@@ -2104,7 +2104,7 @@ int_t Controller::get_matrix_bits(const Operations::Op& op) const
   return bit;
 }
 
-int_t Controller::get_max_matrix_bits(const Circuit &circ) const
+int_t Controller::get_max_matrix_qubits(const Circuit &circ) const
 {
   int_t max_bits = 0;
   int_t i;
