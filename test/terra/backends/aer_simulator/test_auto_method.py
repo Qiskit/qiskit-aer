@@ -79,7 +79,7 @@ class TestSimulationMethod(SimulatorTestCase):
     def test_auto_method_clifford_circuits_and_pauli_noise(self):
         """Test statevector method is used for Clifford circuit"""
         # Noise Model
-        error = pauli_error([['XX', 0.5], ['II', 0.5]], standard_gates=True)
+        error = pauli_error([['XX', 0.5], ['II', 0.5]])
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error, ['cz', 'cx'])
         backend = self.backend(noise_model=noise_model)
@@ -165,7 +165,7 @@ class TestSimulationMethod(SimulatorTestCase):
     def test_auto_method_nonclifford_circuit_and_pauli_noise(self):
         """Test statevector method is used for Clifford circuit"""
         # Noise Model
-        error = pauli_error([['XX', 0.5], ['II', 0.5]], standard_gates=True)
+        error = pauli_error([['XX', 0.5], ['II', 0.5]])
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error, ['cz', 'cx'])
         backend = self.backend(noise_model=noise_model)
