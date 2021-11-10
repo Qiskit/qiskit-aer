@@ -34,8 +34,6 @@
 
 #include "simulators/statevector/chunk/chunk_manager.hpp"
 
-#include "batched_matrix.hpp"
-
 namespace AER {
 namespace QV {
 
@@ -164,8 +162,6 @@ public:
   void release_send_buffer(void) const;
   void release_recv_buffer(void) const;
 
-  void end_of_circuit();
-
   void set_max_matrix_bits(int_t bits);
 
   //-----------------------------------------------------------------------
@@ -237,8 +233,6 @@ public:
   void apply_permutation_matrix(const reg_t &qubits,
                                 const std::vector<std::pair<uint_t, uint_t>> &pairs);
 
-  //apply matrices to multiple-states
-  virtual void apply_batched_matrix(std::vector<batched_matrix_params>& params,reg_t& qubits,std::vector<std::complex<double>>& matrices);
 
   //-----------------------------------------------------------------------
   // Apply Specialized Gates
@@ -1273,13 +1267,6 @@ void QubitVectorThrust<data_t>::release_recv_buffer(void) const
   if(recv_chunk_.is_mapped()){
     chunk_manager_->UnmapBufferChunk(recv_chunk_);
   }
-}
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::end_of_circuit()
-{
-  if(enable_batch_ && chunk_.pos() != 0)
-    return;   //first chunk execute all in batch
 }
 
 template <typename data_t>
@@ -3368,189 +3355,6 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const uint_t qubit,
   else{
     reg_t qubits = {qubit};
     apply_function(DiagonalMult2x2<data_t>(diag,qubits[0]));
-  }
-}
-
-template <typename data_t>
-class MatrixMult2x2_batched : public GateFuncWithCache<data_t>
-{
-protected:
-  int num_qubits_state_;
-public:
-  MatrixMult2x2_batched(int nqs) : GateFuncWithCache<data_t>(1)
-  {
-    num_qubits_state_ = nqs;
-  }
-
-  __host__ __device__ virtual uint_t thread_to_index(uint_t _tid) const
-  {
-    uint_t istate = _tid >> num_qubits_state_;
-    uint_t qubit = this->batched_params_[istate].qubit_;
-    uint_t idx,ii,t,j,lid;
-
-    lid = _tid - (istate << num_qubits_state_);
-    idx = this->batched_params_[istate].state_index_ << num_qubits_state_;
-    ii = lid >> 1;
-    t = ii & ((1ull << qubit) - 1);
-    idx += t;
-    ii = (ii - t) << 1;
-
-    if((lid & 1) != 0){
-      idx += (1ull << qubit);
-    }
-    idx += ii;
-    return idx;
-  }
-
-  __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
-  {
-    uint_t istate = _tid >> num_qubits_state_;
-    uint_t cmask = this->batched_params_[istate].control_mask_;
-
-    uint_t j;
-    thrust::complex<data_t> q,r;
-    thrust::complex<double> m;
-    uint_t mat_size,irow;
-    thrust::complex<data_t>* vec;
-    thrust::complex<double>* pMat;
-
-    vec = this->data_;
-    pMat = (thrust::complex<double>*)this->batched_params_[istate].matrix2x2_;
-
-    irow = _tid & 1;
-
-    if((_idx & cmask) == cmask){  //control bits
-      m = pMat[irow];
-      q = _cache[(_tid & 1023) - irow];
-      r = m*q;
-      m = pMat[irow+2];
-      q = _cache[(_tid & 1023) - irow+1];
-      r += m*q;
-
-      vec[_idx] = r;
-    }
-  }
-
-  const char* name(void)
-  {
-    return "mult2x2_batched";
-  }
-
-};
-
-template <typename data_t>
-class MatrixMultNxN_batched : public GateFuncWithCache<data_t>
-{
-protected:
-  int num_qubits_state_;
-public:
-  MatrixMultNxN_batched(int nqs) : GateFuncWithCache<data_t>(1)
-  {
-    num_qubits_state_ = nqs;
-  }
-
-  __host__ __device__ virtual uint_t thread_to_index(uint_t _tid) const
-  {
-    uint_t istate = _tid >> num_qubits_state_;
-    uint_t nq = this->batched_params_[istate].num_qubits_;
-    uint_t idx,ii,t,j,lid;
-    uint_t* qubits;
-    uint_t* qubits_sorted;
-
-    if(nq == 1){
-      qubits = &this->batched_params_[istate].qubit_;
-      qubits_sorted = qubits;
-    }
-    else{
-      qubits = this->params_ + this->batched_params_[istate].offset_qubits_;
-      qubits_sorted = qubits + nq;
-    }
-
-    lid = _tid - (istate << num_qubits_state_);
-    idx = this->batched_params_[istate].state_index_ << num_qubits_state_;
-    ii = lid >> nq;
-    for(j=0;j<nq;j++){
-      t = ii & ((1ull << qubits_sorted[j]) - 1);
-      idx += t;
-      ii = (ii - t) << 1;
-
-      if(((lid >> j) & 1) != 0){
-        idx += (1ull << qubits[j]);
-      }
-    }
-    idx += ii;
-    return idx;
-  }
-
-  __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
-  {
-    uint_t istate = _tid >> num_qubits_state_;
-    uint_t nq = this->batched_params_[istate].num_qubits_;
-    uint_t cmask = this->batched_params_[istate].control_mask_;
-
-    uint_t j;
-    thrust::complex<data_t> q,r;
-    thrust::complex<double> m;
-    uint_t mat_size,irow;
-    thrust::complex<data_t>* vec;
-    thrust::complex<double>* pMat;
-
-    vec = this->data_;
-    if(nq == 1)
-      pMat = (thrust::complex<double>*)this->batched_params_[istate].matrix2x2_;
-    else
-      pMat = this->matrix_ + this->batched_params_[istate].offset_matrix_;
-
-    mat_size = 1ull << nq;
-    irow = _tid & (mat_size - 1);
-
-    if((_idx & cmask) == cmask){  //control bits
-      r = 0.0;
-      for(j=0;j<mat_size;j++){
-        m = pMat[irow + mat_size*j];
-        q = _cache[(_tid & 1023) - irow + j];
-
-        r += m*q;
-      }
-
-      vec[_idx] = r;
-    }
-  }
-
-  const char* name(void)
-  {
-    return "multNxN_batched";
-  }
-
-};
-
-template <typename data_t>
-void QubitVectorThrust<data_t>::apply_batched_matrix(std::vector<batched_matrix_params>& params,reg_t& qubits,std::vector<std::complex<double>>& matrices)
-{
-  if((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_){
-    if(chunk_.pos() == 0){
-      uint_t n = params.size();
-      if(n > chunk_.container()->num_chunks())
-        n = chunk_.container()->num_chunks();
-
-      if(n == 0)
-        return;
-
-      if(qubits.size() == 0){ //batched 2x2 matrix 
-        chunk_.StoreBatchedParams(params);
-
-        chunk_.Execute(MatrixMult2x2_batched<data_t>(num_qubits_), n );
-      }
-      else{   //batched NxN matrix
-        if(qubits.size() > 0)
-          chunk_.StoreUintParams(qubits);
-        if(matrices.size() > 0)
-          chunk_.StoreBatchedMatrix(matrices);
-        chunk_.StoreBatchedParams(params);
-
-        chunk_.Execute(MatrixMultNxN_batched<data_t>(num_qubits_), n );
-      }
-    }
   }
 }
 

@@ -34,7 +34,6 @@ protected:
   AERDeviceVector<thrust::complex<data_t>>  data_;    //device vector to chunks and buffers
   AERDeviceVector<thrust::complex<double>>  matrix_;  //storage for large matrix
   mutable AERDeviceVector<uint_t>           params_;  //storage for additional parameters
-  AERDeviceVector<batched_matrix_params>    batched_params_;  //storage for parameters for batched matrix multiplication
   AERDeviceVector<double>                   reduce_buffer_; //buffer for reduction
   AERDeviceVector<double>                   probability_buffer_; //buffer used for measure probability
   AERDeviceVector<uint_t>                   cregs_;
@@ -108,10 +107,8 @@ public:
   void Deallocate(void);
 
   void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk);
-  void StoreBatchedMatrix(const std::vector<std::complex<double>>& mat);
   void StoreMatrix(const std::complex<double>* mat,uint_t iChunk,uint_t size);
   void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk);
-  void StoreBatchedParams(const std::vector<batched_matrix_params>& params);
   void ResizeMatrixBuffers(int bits);
 
   void set_device(void) const
@@ -171,10 +168,6 @@ public:
     else{
       return ((uint_t*)thrust::raw_pointer_cast(params_.data())) + (iChunk * params_buffer_size_);
     }
-  }
-  batched_matrix_params* batched_param_pointer(void) const
-  {
-    return (batched_matrix_params*)thrust::raw_pointer_cast(batched_params_.data());
   }
 
   double* reduce_buffer(uint_t iChunk) const
@@ -352,9 +345,6 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qu
   creg_host_update_ = false;
   this->num_creg_bits_ = num_qubits;
 
-  if(multi_shots)
-    batched_params_.resize(nc);
-
   uint_t size = num_matrices_ + this->num_buffers_;
   num_blocked_gates_.resize(size);
   num_blocked_matrix_.resize(size);
@@ -395,8 +385,6 @@ void DeviceChunkContainer<data_t>::Deallocate(void)
   matrix_.shrink_to_fit();
   params_.clear();
   params_.shrink_to_fit();
-  batched_params_.clear();
-  batched_params_.shrink_to_fit();
   reduce_buffer_.clear();
   reduce_buffer_.shrink_to_fit();
   probability_buffer_.clear();
@@ -484,17 +472,6 @@ void DeviceChunkContainer<data_t>::StoreMatrix(const std::vector<std::complex<do
 #endif
 }
 
-template <typename data_t>
-void DeviceChunkContainer<data_t>::StoreBatchedMatrix(const std::vector<std::complex<double>>& mat)
-{
-  set_device();
-
-#ifdef AER_THRUST_CUDA
-  cudaMemcpyAsync(matrix_pointer(0),&mat[0],mat.size()*sizeof(thrust::complex<double>),cudaMemcpyHostToDevice,stream_[0]);
-#else
-  thrust::copy_n(mat.begin(),mat.size(),matrix_.begin());
-#endif
-}
 
 template <typename data_t>
 void DeviceChunkContainer<data_t>::StoreMatrix(const std::complex<double>* mat,uint_t iChunk,uint_t size)
@@ -535,18 +512,6 @@ void DeviceChunkContainer<data_t>::StoreUintParams(const std::vector<uint_t>& pr
   else
     offset = iChunk * params_buffer_size_;
   thrust::copy_n(prm.begin(),prm.size(),params_.begin() + offset);
-#endif
-}
-
-template <typename data_t>
-void DeviceChunkContainer<data_t>::StoreBatchedParams(const std::vector<batched_matrix_params>& params)
-{
-  set_device();
-
-#ifdef AER_THRUST_CUDA
-  cudaMemcpyAsync(batched_param_pointer(),&params[0],params.size()*sizeof(batched_matrix_params),cudaMemcpyHostToDevice,stream_[0]);
-#else
-  thrust::copy_n(params.begin(),params.size(),batched_params_.begin());
 #endif
 }
 

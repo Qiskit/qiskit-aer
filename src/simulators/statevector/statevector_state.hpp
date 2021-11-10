@@ -28,8 +28,6 @@
 #include "qubitvector_thrust.hpp"
 #endif
 
-#include "batched_matrix.hpp"
-
 namespace AER {
 
 //predefinition of StatevectorChunk::State for friend class declaration to access static members
@@ -134,15 +132,13 @@ public:
                          std::vector<RngEngine>& rng,
                          bool final_ops = false) override;
 
-  //batched execution
-  virtual void apply_batched_ops(const std::vector<Operations::Op> &ops);
   //apply runtime sampled noise in case all inserted ops are Pauli gates
   virtual void apply_batched_pauli(std::vector<std::vector<Operations::Op>> &ops);
   //apply runtime sampled noise in case general ops are inserted 
   virtual void apply_batched_noise_ops(const std::vector<std::vector<Operations::Op>> &op, ExperimentResult &result,
                                                std::vector<RngEngine> &rng);
-
-  virtual bool batchable_op(const Operations::Op& op,bool single_op = true);
+  //check if operation can be applied in a batch or not
+  virtual bool batchable_op(const Operations::Op& op);
 
   //store asynchronously measured classical bits after batched execution
   virtual void store_measured_cbits(void);
@@ -172,18 +168,11 @@ public:
   virtual reg_t local_sample_measure(const reg_t &qubits,
                                             std::vector<double>& rnds);
 
-  virtual reg_t batched_sample_measure(const reg_t &qubits,reg_t& shots,std::vector<RngEngine> &rng);
-
   virtual double sum(void);
 
   virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
   virtual bool bind_state(State<statevec_t>& state,uint_t ishot,bool batch_enable);
 
-  virtual void end_of_circuit()
-  {
-    BaseState::qreg_.end_of_circuit();
-  }
-  
   //cache control for chunks on host
   virtual bool fetch_state(void) const
   {
@@ -193,10 +182,6 @@ public:
   {
     BaseState::qreg_.release_chunk();
   }
-
-  //swap between state
-  void apply_state_swap(const reg_t &qubits, State<statevec_t> &chunk, bool write_back = true);
-  void apply_state_swap(const reg_t &qubits, uint_t remote_chunk_index);
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -521,7 +506,7 @@ const stringmap_t<Snapshots> State<statevec_t>::snapshotset_(
 template <class statevec_t>
 bool State<statevec_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots)
 {
-  BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_bits_);
+  BaseState::qreg_.set_max_matrix_bits(BaseState::max_matrix_qubits_);
   BaseState::num_qubits_ = num_qubits;
   BaseState::num_state_qubits_ = block_bits;
   bool ret = BaseState::qreg_.chunk_setup(block_bits,num_qubits,BaseState::state_index_,num_parallel_shots);
@@ -541,7 +526,7 @@ bool State<statevec_t>::bind_state(State<statevec_t>& state,uint_t ishot,bool ba
     BaseState::num_qubits_ = state.num_qubits_;
     BaseState::num_state_qubits_ = state.num_state_qubits_;
 
-    BaseState::max_matrix_bits_ = state.max_matrix_bits_;
+    BaseState::max_matrix_qubits_ = state.max_matrix_qubits_;
 
     return true;
   }
@@ -765,6 +750,7 @@ void State<statevec_t>::apply_op_multi_shots(const Operations::Op &op,
   switch (op.type) {
     case OpType::barrier:
     case OpType::nop:
+    case OpType::qerror_loc:
       break;
     case OpType::reset:
       BaseState::qreg_.apply_batched_reset(op.qubits,rng);
@@ -816,44 +802,6 @@ void State<statevec_t>::apply_op_multi_shots(const Operations::Op &op,
       throw std::invalid_argument(
           "QubitVector::State::invalid instruction \'" + op.name + "\'.");
   }
-}
-
-template <class statevec_t>
-bool State<statevec_t>::batchable_op(const Operations::Op& op,bool single_op)
-{
-  if(op.type == OpType::set_statevec || op.type == OpType::save_expval || op.type == OpType::save_expval_var ||
-     op.type == OpType::save_densmat || op.type == OpType::save_state || op.type == OpType::save_statevec ||
-     op.type == OpType::save_statevec_dict || op.type == OpType::save_probs || op.type == OpType::save_probs_ket ||
-     op.type == OpType::save_amps || op.type == OpType::save_amps_sq)
-    return false;
-
-  if(single_op)
-    return true;
-
-  if(op.type == OpType::bfunc || op.type == OpType::roerror)
-    return false;
-  if(op.type == OpType::gate && op.name == "pauli")
-    return false;   //pauli can be only applied for single_op mode
-
-  return true;
-}
-
-template <class statevec_t>
-void State<statevec_t>::apply_state_swap(const reg_t &qubits, State<statevec_t> &chunk, bool write_back)
-{
-  if(qubits[0] < BaseState::num_state_qubits_ && qubits[1] < BaseState::num_state_qubits_){
-    //local swap
-    BaseState::qreg_.apply_mcswap(qubits);
-  }
-  else{
-    BaseState::qreg_.apply_chunk_swap(qubits,chunk.qreg_,write_back);
-  }
-}
-
-template <class statevec_t>
-void State<statevec_t>::apply_state_swap(const reg_t &qubits, uint_t remote_chunk_index)
-{
-  BaseState::qreg_.apply_chunk_swap(qubits,remote_chunk_index);
 }
 
 //=========================================================================
@@ -1356,188 +1304,15 @@ void State<statevec_t>::apply_gate(const Operations::Op &op) {
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_batched_ops(const std::vector<Operations::Op> &ops) 
+bool State<statevec_t>::batchable_op(const Operations::Op& op)
 {
-  if(BaseState::qreg_.batched_optimization_supported()){
-    std::vector<QV::batched_matrix_params> params;
-    reg_t qubits;
-    cvector_t matrices;
-    int_t i,j,nqubit;
-    QV::batched_matrix_params param;
+  if(op.type == OpType::set_statevec || op.type == OpType::save_expval || op.type == OpType::save_expval_var ||
+     op.type == OpType::save_densmat || op.type == OpType::save_state || op.type == OpType::save_statevec ||
+     op.type == OpType::save_statevec_dict || op.type == OpType::save_probs || op.type == OpType::save_probs_ket ||
+     op.type == OpType::save_amps || op.type == OpType::save_amps_sq)
+    return false;
 
-    params.reserve(ops.size());
-    qubits.reserve(ops.size());
-    matrices.reserve(ops.size()*4);
-
-    for(i=0;i<ops.size();i++){
-      param.state_index_ = i;
-      param.num_qubits_ = 1;
-      param.offset_qubits_ = qubits.size();
-      param.offset_matrix_ = matrices.size();
-      if(ops[i].type == Operations::OpType::gate){
-        auto it = State<statevec_t>::gateset_.find(ops[i].name);
-        if (it == State<statevec_t>::gateset_.end())
-          throw std::invalid_argument("QubitVectorState::invalid gate instruction \'" + 
-                                      ops[i].name + "\'.");
-        if(it->second != Gates::id && it->second != Gates::pauli){
-          if(it->second == Gates::mcswap){
-            // Includes SWAP, CSWAP, etc
-            param.num_qubits_ = 2;
-            param.set_control_mask(ops[i].qubits);
-            qubits.push_back(ops[i].qubits[ops[i].qubits.size()-2]);
-            qubits.push_back(ops[i].qubits[ops[i].qubits.size()-1]);
-            reg_t qubits_sorted(2);
-            qubits_sorted[0] = ops[i].qubits[ops[i].qubits.size()-2];
-            qubits_sorted[1] = ops[i].qubits[ops[i].qubits.size()-1];
-            std::sort(qubits_sorted.begin(), qubits_sorted.end());
-            qubits.insert(qubits.end(),qubits_sorted.begin(),qubits_sorted.end());
-            params.push_back(param);
-            auto mat = Linalg::VMatrix::SWAP;
-            matrices.insert(matrices.end(),mat.begin(),mat.end());
-          }
-          else{
-            param.set_control_mask(ops[i].qubits);
-            param.qubit_ = ops[i].qubits[ops[i].qubits.size()-1];
-
-            switch (it -> second) {
-              case Gates::mcx: {
-                // Includes X, CX, CCX, etc
-                auto mat = Linalg::VMatrix::X;
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::mcy: {
-                // Includes Y, CY, CCY, etc
-                auto mat = Linalg::VMatrix::Y;
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::mcz: {
-                // Includes Z, CZ, CCZ, etc
-                auto mat = Linalg::VMatrix::Z;
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::mcr: {
-                auto mat = Linalg::VMatrix::r(ops[i].params[0], ops[i].params[1]);
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::mcrx: {
-                auto mat = Linalg::VMatrix::rx(ops[i].params[0]);
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::mcry: {
-                auto mat = Linalg::VMatrix::ry(ops[i].params[0]);
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::mcrz: {
-                auto mat = Linalg::VMatrix::rz(ops[i].params[0]);
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::rxx: {
-                auto mat = Linalg::VMatrix::rxx(ops[i].params[0]);
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::ryy: {
-                auto mat = Linalg::VMatrix::ryy(ops[i].params[0]);
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::rzz: {
-                auto mat = Linalg::VMatrix::rzz(ops[i].params[0]);
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::rzx: {
-                auto mat = Linalg::VMatrix::rzx(ops[i].params[0]);
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::h: {
-                auto mat = Linalg::VMatrix::H;
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::s: {
-                auto mat = Linalg::VMatrix::S;
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::sdg: {
-                auto mat = Linalg::VMatrix::SDG;
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::t: {
-                auto mat = Linalg::VMatrix::T;
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::tdg: {
-                auto mat = Linalg::VMatrix::TDG;
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::mcu3: {
-                // Includes u3, cu3, etc
-                auto mat = Linalg::VMatrix::u3(ops[i].params[0],ops[i].params[1],ops[i].params[2]);
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::mcu2: {
-                // Includes u2, cu2, etc
-                auto mat = Linalg::VMatrix::u2(ops[i].params[0],ops[i].params[1]);
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::mcp: {
-                // Includes u1, cu1, p, cp, mcp etc
-                auto mat = Linalg::VMatrix::phase(ops[i].params[0]);
-                param.set_2x2matrix(mat);
-              } break;
-              case Gates::mcsx: {
-                // Includes sx, csx, mcsx etc
-                auto mat = Linalg::VMatrix::SX;
-                param.set_2x2matrix(mat);
-              } break;
-              default:
-                // We shouldn't reach here unless there is a bug in gateset
-                throw std::invalid_argument("QubitVector::State::invalid gate instruction \'" +
-                                            ops[i].name + "\'.");
-            }
-            params.push_back(param);
-          }
-        }
-      }
-      else if(ops[i].type == Operations::OpType::matrix){
-        param.num_qubits_ = ops[i].qubits.size();
-        auto mat = Utils::vectorize_matrix(ops[i].mats[0]);
-        if(ops[i].qubits.size() > 1){
-          auto qubits_sorted = ops[i].qubits;
-          std::sort(qubits_sorted.begin(), qubits_sorted.end());
-          qubits.insert(qubits.end(),ops[i].qubits.begin(),ops[i].qubits.end());
-          qubits.insert(qubits.end(),qubits_sorted.begin(),qubits_sorted.end());
-          matrices.insert(matrices.end(),mat.begin(),mat.end());
-        }
-        else{
-          param.qubit_ = ops[i].qubits[0];
-          param.set_2x2matrix(mat);
-        }
-        param.control_mask_ = 0;
-        params.push_back(param);
-      }
-      else if(ops[i].type == Operations::OpType::diagonal_matrix){
-        param.num_qubits_ = ops[i].qubits.size();
-        uint_t size = 1ull << ops[i].qubits.size();
-        cvector_t mat(size*size,0.0);
-        for(j=0;j<size;j++){
-          mat[j*(size+1)] = ops[i].params[j];
-        }
-        if(ops[i].qubits.size() > 1){
-          auto qubits_sorted = ops[i].qubits;
-          std::sort(qubits_sorted.begin(), qubits_sorted.end());
-          qubits.insert(qubits.end(),ops[i].qubits.begin(),ops[i].qubits.end());
-          qubits.insert(qubits.end(),qubits_sorted.begin(),qubits_sorted.end());
-          matrices.insert(matrices.end(),mat.begin(),mat.end());
-        }
-        else{
-          param.qubit_ = ops[i].qubits[0];
-          param.set_2x2matrix(mat);
-        }
-        param.control_mask_ = 0;
-        params.push_back(param);
-      }
-    }
-
-    BaseState::qreg_.apply_batched_matrix(params,qubits,matrices);
-  }
+  return true;
 }
 
 template <class statevec_t>
@@ -1794,39 +1569,6 @@ double State<statevec_t>::sum(void)
 }
 
 template <class statevec_t>
-reg_t State<statevec_t>::batched_sample_measure(const reg_t &qubits,reg_t& shots,std::vector<RngEngine> &rng)
-{
-  uint_t i,j,pos,n = shots.size();
-  uint_t total_shots = 0;
-
-  for(i=0;i<n;i++){
-    total_shots += shots[i];
-  }
-  std::vector<double> rnds(total_shots);
-
-  //offset random values
-  pos = 0;
-  for(i=0;i<n;i++){
-    for(j=0;j<shots[i];j++){
-      rnds[pos++] = (double)i + rng[i].rand(0, 1);
-    }
-  }
-
-  auto samples = BaseState::qreg_.sample_measure(rnds);
-
-  //offset sample values
-  pos = 0;
-  for(i=0;i<n;i++){
-    for(j=0;j<shots[i];j++){
-      samples[pos++] -= (i << BaseState::qreg_.num_qubits());
-    }
-  }
-
-  //return raw sample value, convert in multi-states class
-  return samples;
-}
-
-template <class statevec_t>
 void State<statevec_t>::store_measured_cbits(void)
 {
   if(BaseState::qreg_.batched_optimization_supported()){
@@ -1852,7 +1594,6 @@ void State<statevec_t>::store_measured_cbits(void)
     }
   }
 }
-
 
 template <class statevec_t>
 void State<statevec_t>::apply_initialize(const reg_t &qubits,

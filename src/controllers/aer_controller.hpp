@@ -168,9 +168,8 @@ protected:
   // Abstract method for executing a circuit.
   // This method must initialize a state and return output data for
   // the required number of shots.
-  template <class Simulatable_t, class Result_t>
-  void run_circuit(const Simulatable_t &circ, const Noise::NoiseModel &noise,
-                   const Method method,const json_t &config, Result_t &result, bool multi_chunk) const;
+  void run_circuit(const Circuit &circ, const Noise::NoiseModel &noise,
+                   const Method method,const json_t &config, ExperimentResult &result, bool multi_chunk) const;
 
   //----------------------------------------------------------------
   // Run circuit helpers
@@ -181,11 +180,6 @@ protected:
   void run_circuit_helper(const Circuit &circ, const Noise::NoiseModel &noise,
                           const json_t &config, const Method method, 
                           ExperimentResult &result, bool multi_chunk) const;
-
-  template <class State_t>
-  void run_circuit_helper(const std::vector<Circuit> &circs, const Noise::NoiseModel &noise,
-                          const json_t &config, const Method method, 
-                          Result &result, bool multi_chunk) const;
 
   // Execute a single shot a of circuit by initializing the state vector,
   // running all ops in circ, and updating data with
@@ -293,13 +287,6 @@ protected:
   int_t get_max_matrix_qubits(const Circuit &circ) const;
   int_t get_matrix_bits(const Operations::Op& op) const;
 
-  //sample noise
-  Circuit sample_circuit(const Circuit &circ,
-                                   const Noise::NoiseModel &noise,
-                                   RngEngine &rng,
-                                   const Method method,
-                                   ExperimentResult &result,bool multi_chunk,bool &noise_sampling) const;
-
   //-----------------------------------------------------------------------
   // Parallelization Config
   //-----------------------------------------------------------------------
@@ -373,7 +360,6 @@ protected:
 
   uint_t cache_block_qubit_ = 0;
 
-  bool enable_batch_multi_circuits_ = false;
   bool enable_batch_multi_shots_ = false;
 
   bool batched_shots_optimization_ = true;
@@ -580,7 +566,6 @@ void Controller::set_parallelization_experiments(
             std::greater<>());
 
   //set max batchable number of circuits
-  enable_batch_multi_circuits_ = false;
   if(batched_shots_optimization_){
     if(required_memory_mb_list[0] == 0 || max_qubits_ == 0)
       max_batched_states_ = 1;
@@ -590,22 +575,6 @@ void Controller::set_parallelization_experiments(
       }
       else{
         max_batched_states_ = (max_memory_mb_*8/10) / required_memory_mb_list[0];
-      }
-    }
-    //check if batched multi-circuits execution can be applied
-    if(max_batched_states_ > 1 && circuits.size() > num_gpus_ && sim_device_ == Device::GPU){
-      enable_batch_multi_circuits_ = true;
-      for (size_t j = 0; j < circuits.size(); j++) {
-        if(methods[j] != methods[0])
-          enable_batch_multi_circuits_ = false;
-        else if(methods[j] != Method::statevector && methods[j] != Method::density_matrix)
-          enable_batch_multi_circuits_ = false;
-        else if(noise.has_quantum_errors() && methods[j] == Method::statevector)
-          enable_batch_multi_circuits_ = false;
-        else if(!check_measure_sampling_opt(circuits[j], methods[j]))
-          enable_batch_multi_circuits_ = false;
-        if(!enable_batch_multi_circuits_)
-          break;
       }
     }
   }
@@ -965,63 +934,24 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 #endif
 
     const int NUM_RESULTS = result.results.size();
-    bool batch_enable = true;
-
-#pragma omp parallel for if(NUM_RESULTS > 1)
-    for (int j = 0; j < NUM_RESULTS; ++j) {
-      // Initialize circuit json return
-      result.results[j].legacy_data.set_config(config);
-
-      // Output data container
-      result.results[j].set_config(config);
-      result.results[j].metadata.add(method_names_.at(methods[j]), "method");
-      if (methods[j] == Method::statevector || methods[j] == Method::density_matrix ||
-          methods[j] == Method::unitary) {
-        result.results[j].metadata.add(sim_device_name_, "device");
-      } else {
-        result.results[j].metadata.add("CPU", "device");
+    if (parallel_experiments_ > 1) {
+#pragma omp parallel for if (parallel_experiments_ > 1) num_threads(parallel_experiments_)
+      for (int j = 0; j < NUM_RESULTS; ++j) {
+        run_circuit(circuits[j], noise_model,methods[j],
+                    config, result.results[j],multi_chunk[j]);
       }
-      // Add measure sampling to metadata
-      // Note: this will set to `true` if sampling is enabled for the circuit
-      result.results[j].metadata.add(false, "measure_sampling");
-
-      // Circuit qubit metadata
-      result.results[j].metadata.add(circuits[j].num_qubits, "num_qubits");
-      result.results[j].metadata.add(circuits[j].num_memory, "num_clbits");
-      result.results[j].metadata.add(circuits[j].qubits(), "active_input_qubits");
-      result.results[j].metadata.add(circuits[j].qubit_map(), "input_qubit_map");
-      result.results[j].metadata.add(circuits[j].remapped_qubits, "remapped_qubits");
-
-      result.results[j].header = circuits[j].header;
-      result.results[j].shots = circuits[j].shots;
-      result.results[j].seed = circuits[j].seed;
-    }
-
-    if(enable_batch_multi_circuits_ && !multi_chunk_req){
-      //batched execution of multi-circuits
-      run_circuit(circuits, noise_model,methods[0],
-                            config, result, false);
     }
     else{
-      if (parallel_experiments_ > 1) {
-#pragma omp parallel for if (parallel_experiments_ > 1) num_threads(parallel_experiments_)
-        for (int j = 0; j < result.results.size(); ++j) {
-          run_circuit(circuits[j], noise_model,methods[j],
-                      config, result.results[j],multi_chunk[j]);
-        }
-      }
-      else{
-        for (int j = 0; j < result.results.size(); ++j) {
-          set_parallelization_circuit(circuits[j], noise_model, methods[j]);
+      for (int j = 0; j < NUM_RESULTS; ++j) {
+        set_parallelization_circuit(circuits[j], noise_model, methods[j]);
 
-          if(multi_chunk_req){
-            parallel_shots_ = 1;
-            parallel_state_update_ =
-                std::max<int>({1, max_parallel_threads_});
-          }
-          run_circuit(circuits[j], noise_model,methods[j],
-                      config, result.results[j],multi_chunk[j]);
+        if(multi_chunk_req){
+          parallel_shots_ = 1;
+          parallel_state_update_ =
+              std::max<int>({1, max_parallel_threads_});
         }
+        run_circuit(circuits[j], noise_model,methods[j],
+                    config, result.results[j],multi_chunk[j]);
       }
     }
 
@@ -1072,9 +1002,8 @@ void Controller::save_count_data(ExperimentResult &result,
 //-------------------------------------------------------------------------
 // Base class override
 //-------------------------------------------------------------------------
-template <class Simulatable_t, class Result_t>
-void Controller::run_circuit(const Simulatable_t &circ, const Noise::NoiseModel &noise,
-                 const Method method,const json_t &config, Result_t &result, bool multi_chunk) const
+void Controller::run_circuit(const Circuit &circ, const Noise::NoiseModel &noise,
+                 const Method method,const json_t &config, ExperimentResult &result, bool multi_chunk) const
 {
   // Run the circuit
   switch (method) {
@@ -1399,6 +1328,9 @@ void Controller::run_circuit_helper(const Circuit &circ,
   // Start individual circuit timer
   auto timer_start = myclock_t::now(); // state circuit timer
 
+  // Initialize circuit json return
+  result.legacy_data.set_config(config);
+
   // Execute in try block so we can catch errors and return the error message
   // for individual circuit failures.
   try {
@@ -1406,15 +1338,66 @@ void Controller::run_circuit_helper(const Circuit &circ,
     RngEngine rng;
     rng.set_seed(circ.seed);
 
+    // Output data container
+    result.set_config(config);
+    result.metadata.add(method_names_.at(method), "method");
+    if (method == Method::statevector || method == Method::density_matrix ||
+        method == Method::unitary) {
+      result.metadata.add(sim_device_name_, "device");
+    } else {
+      result.metadata.add("CPU", "device");
+    }
+
+    // Circuit qubit metadata
+    result.metadata.add(circ.num_qubits, "num_qubits");
+    result.metadata.add(circ.num_memory, "num_clbits");
+    result.metadata.add(circ.qubits(), "active_input_qubits");
+    result.metadata.add(circ.qubit_map(), "input_qubit_map");
+    result.metadata.add(circ.remapped_qubits, "remapped_qubits");
+
     // Add measure sampling to metadata
     // Note: this will set to `true` if sampling is enabled for the circuit
     result.metadata.add(false, "measure_sampling");
     result.metadata.add(false, "batched_shots_optimization");
 
     if(circ.num_qubits > 0){  //do nothing for query steps
-      bool noise_sampling = false;
       // Choose execution method based on noise and method
-      Circuit opt_circ = sample_circuit(circ,noise,rng,method,result,multi_chunk,noise_sampling);
+      Circuit opt_circ;
+      bool noise_sampling = false;
+
+      // Ideal circuit
+      if (noise.is_ideal()) {
+        opt_circ = circ;
+        result.metadata.add("ideal", "noise");
+      }
+      // Readout error only
+      else if (noise.has_quantum_errors() == false) {
+        opt_circ = noise.sample_noise(circ, rng);
+        result.metadata.add("readout", "noise");
+      }
+      // Superop noise sampling
+      else if (method == Method::density_matrix || method == Method::superop) {
+        // Sample noise using SuperOp method
+        opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::superop);
+        result.metadata.add("superop", "noise");
+      }
+      // Kraus noise sampling
+      else if (noise.opset().contains(Operations::OpType::kraus) ||
+               noise.opset().contains(Operations::OpType::superop)) {
+        opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::kraus);
+        result.metadata.add("kraus", "noise");
+      }
+      // General circuit noise sampling
+      else {
+        if(enable_batch_multi_shots_ && !multi_chunk){
+          //batched optimization samples noise at runtime
+          opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::circuit, true);
+        }
+        else{
+          noise_sampling = true;
+        }
+        result.metadata.add("circuit", "noise");
+      }
 
       if(noise_sampling){
         run_circuit_with_sampled_noise<State_t>(circ, noise, config, method, result);
@@ -1429,6 +1412,9 @@ void Controller::run_circuit_helper(const Circuit &circ,
     result.status = ExperimentResult::Status::completed;
 
     // Pass through circuit header and add metadata
+    result.header = circ.header;
+    result.shots = circ.shots;
+    result.seed = circ.seed;
     result.metadata.add(parallel_shots_, "parallel_shots");
     result.metadata.add(parallel_state_update_, "parallel_state_update");
 
@@ -1446,104 +1432,6 @@ void Controller::run_circuit_helper(const Circuit &circ,
 }
 
 template <class State_t>
-void Controller::run_circuit_helper(const std::vector<Circuit> &circs,
-                                    const Noise::NoiseModel &noise,
-                                    const json_t &config,
-                                    const Method method,
-                                    Result &result, bool multi_chunk) const
-{
-  auto timer_start = myclock_t::now(); // state circuit timer
-
-  // Execute in try block so we can catch errors and return the error message
-  // for individual circuit failures.
-  try {
-    State_t state;
-    Base::MultiStates<State_t> states;
-
-    int_t i_circ;
-
-    std::vector<RngEngine> rng(circs.size());
-    std::vector<std::vector<Operations::Op>> ops(circs.size());
-    std::vector<std::vector<Operations::Op>> meas_roerror_ops(circs.size());
-    std::vector<double> global_phase(circs.size());
-
-    int_t max_bits = 1;
-    for (i_circ=0;i_circ< circs.size(); i_circ++) {
-      max_bits = std::max(max_bits,get_max_matrix_qubits(circs[i_circ]) );
-    }
-    states.set_max_matrix_bits(max_bits);
-
-    states.set_parallelization(max_batched_states_);
-    states.allocate(max_qubits_, max_qubits_,circs.size());
-    states.set_config(config);
-
-#pragma omp parallel for if(circs.size() > 1)
-    for (i_circ=0;i_circ< circs.size(); i_circ++) {
-      rng[i_circ].set_seed(circs[i_circ].seed);
-
-      bool noise_sampling;
-      Circuit circ = sample_circuit(circs[i_circ],noise,rng[i_circ],method,result.results[i_circ],multi_chunk,noise_sampling);
-      if(noise_sampling)
-        throw std::runtime_error("Controller : batched experiments with noise sampling is not supported");
-
-      Noise::NoiseModel dummy_noise;
-      auto fusion_pass = transpile_fusion(method, circ.opset(), config);
-      fusion_pass.optimize_circuit(circ, dummy_noise, state.opset(), result.results[i_circ]);
-
-      auto pos =circ.first_measure_pos; // Position of first measurement op
-      auto it_pos = std::next(circ.ops.begin(), pos);
-      bool final_ops = (pos == circ.ops.size());
-
-      // Get measurement opts
-      std::move(it_pos, circ.ops.end(), std::back_inserter(meas_roerror_ops[i_circ]));
-      circ.ops.resize(pos);
-
-      ops[i_circ] = circ.ops;
-
-      global_phase[i_circ] = circs[i_circ].global_phase_angle;
-      states.creg(i_circ).initialize(circs[i_circ].num_memory, circs[i_circ].num_registers);
-    }
-    states.set_global_phase(global_phase);
-
-    reg_t shots(circs.size());
-    for (i_circ = 0; i_circ < circs.size(); ++i_circ) {
-      shots[i_circ] = circs[i_circ].shots;
-    }
-
-    states.apply_multi_ops(ops, shots, result.results, rng, true);
-
-#pragma omp parallel for if(circs.size() > 1)
-    for (i_circ=0;i_circ< circs.size(); i_circ++) {
-      measure_sampler(meas_roerror_ops[i_circ].begin(),meas_roerror_ops[i_circ].end(),shots[i_circ],states,result.results[i_circ],rng[i_circ],i_circ);
-      // Add measure sampling metadata
-      result.results[i_circ].metadata.add(true, "measure_sampling");
-    }
-  }
-  // If an exception occurs during execution, catch it and pass it to the output
-  catch (std::exception &e) {
-    for (int j = 0; j < circs.size(); ++j){
-      result.results[j].status = ExperimentResult::Status::error;
-      result.results[j].message = e.what();
-    }
-  }
-
-  // Add timer data
-  auto timer_stop = myclock_t::now(); // stop timer
-  double time_taken =
-      std::chrono::duration<double>(timer_stop - timer_start).count();
-
-  for (int j = 0; j < circs.size(); ++j) {
-    // Report success
-    result.results[j].status = ExperimentResult::Status::completed;
-
-    // Pass through circuit header and add metadata
-    result.results[j].metadata.add(parallel_shots_, "parallel_shots");
-    result.results[j].metadata.add(parallel_state_update_, "parallel_state_update");
-    result.results[j].time_taken = time_taken;
-  }
-}
-
-template <class State_t>
 void Controller::run_single_shot(const Circuit &circ, State_t &state,
                                  ExperimentResult &result,
                                  RngEngine &rng) const {
@@ -1551,55 +1439,6 @@ void Controller::run_single_shot(const Circuit &circ, State_t &state,
   state.initialize_creg(circ.num_memory, circ.num_registers);
   state.apply_ops(circ.ops.cbegin(), circ.ops.cend(), result, rng, true);
   save_count_data(result, state.creg());
-}
-
-Circuit Controller::sample_circuit(const Circuit &circ,
-                                   const Noise::NoiseModel &noise,
-                                   RngEngine &rng,
-                                   const Method method,
-                                   ExperimentResult &result,bool multi_chunk,bool &noise_sampling) const
-{
-  // Choose execution method based on noise and method
-  Circuit opt_circ;
-
-  noise_sampling = false;
-
-  // Ideal circuit
-  if (noise.is_ideal()) {
-    opt_circ = circ;
-    result.metadata.add("ideal", "noise");
-  }
-  // Readout error only
-  else if (noise.has_quantum_errors() == false) {
-    opt_circ = noise.sample_noise(circ, rng);
-    result.metadata.add("readout", "noise");
-  }
-  // Superop noise sampling
-  else if (method == Method::density_matrix || method == Method::superop) {
-    // Sample noise using SuperOp method
-    opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::superop);
-    result.metadata.add("superop", "noise");
-  }
-  // Kraus noise sampling
-  else if (noise.opset().contains(Operations::OpType::kraus) ||
-           noise.opset().contains(Operations::OpType::superop)) {
-    opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::kraus);
-    result.metadata.add("kraus", "noise");
-  }
-  // General circuit noise sampling
-  else {
-    if(enable_batch_multi_shots_ && !enable_batch_multi_circuits_ && !multi_chunk){
-      //batched optimization samples noise at runtime
-      opt_circ = noise.sample_noise(circ, rng, Noise::NoiseModel::Method::circuit,true);
-    }
-    else{
-      opt_circ = circ;
-      noise_sampling = true;
-    }
-    result.metadata.add("circuit", "noise");
-  }
-
-  return opt_circ;
 }
 
 template <class State_t>
@@ -1646,7 +1485,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
     auto first_meas = circ.first_measure_pos; // Position of first measurement op
     bool final_ops = (first_meas == ops.size());
 
-    state.set_max_matrix_bits(get_max_matrix_qubits(circ) );
+    state.set_max_matrix_qubits(get_max_matrix_qubits(circ) );
 
     // allocate qubit register
     state.allocate(circ.num_qubits, block_bits);
@@ -1675,7 +1514,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
       states.set_parallelization(max_batched_states_);
 
-      states.set_max_matrix_bits(get_max_matrix_qubits(circ) );
+      states.set_max_matrix_qubits(get_max_matrix_qubits(circ) );
 
       states.allocate(circ.num_qubits, circ.num_qubits,circ.shots);
 
@@ -1684,7 +1523,9 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 
       states.initialize_creg(circ.num_memory, circ.num_registers);
 
-      states.apply_single_ops(circ.ops, noise, result, circ.seed, true);
+      RngEngine rng;
+      rng.set_seed(circ.seed);
+      states.apply_ops(circ.ops.cbegin(), circ.ops.cend(), noise, result, rng, true);
 
       for(uint_t ishot=0;ishot<circ.shots;ishot++){
         save_count_data(result, states.creg(ishot));
@@ -1711,7 +1552,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
         par_state.set_parallelization(parallel_state_update_);
         par_state.set_global_phase(circ.global_phase_angle);
 
-        par_state.set_max_matrix_bits(max_bits );
+        par_state.set_max_matrix_qubits(max_bits );
 
         // allocate qubit register
         par_state.allocate(circ.num_qubits, block_bits);
@@ -1777,7 +1618,7 @@ void Controller::run_circuit_with_sampled_noise(
         block_bits = cache_block_pass.block_bits();
       }
 
-      state.set_max_matrix_bits(get_max_matrix_qubits(circ) );
+      state.set_max_matrix_qubits(get_max_matrix_qubits(circ) );
       // allocate qubit register
       state.allocate(noise_circ.num_qubits, block_bits);
 

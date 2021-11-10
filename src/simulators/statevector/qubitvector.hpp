@@ -36,9 +36,6 @@
 #include "framework/utils.hpp"
 #include "framework/linalg/vector.hpp"
 
-
-#include "simulators/statevector/batched_matrix.hpp"
-
 namespace AER {
 namespace QV {
 template <typename T> using cvector_t = std::vector<std::complex<T>>;
@@ -162,8 +159,6 @@ public:
 
   void set_max_matrix_bits(int_t bits){}
 
-  void end_of_circuit(){}
-
   //-----------------------------------------------------------------------
   // Check point operations
   //-----------------------------------------------------------------------
@@ -225,9 +220,6 @@ public:
   // Swap pairs of indicies in the underlying vector
   void apply_permutation_matrix(const reg_t &qubits,
                                 const std::vector<std::pair<uint_t, uint_t>> &pairs);
-
-  //batched matrix is used for GPU optimization
-  void apply_batched_matrix(std::vector<batched_matrix_params>& params,reg_t& qubits,std::vector<std::complex<double>>& matrices){}
 
   //-----------------------------------------------------------------------
   // Apply Specialized Gates

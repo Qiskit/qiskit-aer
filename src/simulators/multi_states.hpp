@@ -33,7 +33,10 @@ namespace AER {
 namespace Base {
 
 //=========================================================================
-// State interface base class for Qiskit-Aer
+// MultiStates interface base class for Qiskit-Aer
+//
+// This class stores multiple states to be updated in a batch 
+// used to parallelize multiple-shots simulation
 //=========================================================================
 
 template <class state_t>
@@ -46,25 +49,6 @@ public:
   //-----------------------------------------------------------------------
   // Constructors
   //-----------------------------------------------------------------------
-
-  // The constructor arguments are used to initialize the OpSet
-  // for the State class for checking supported simulator Operations
-  //
-  // Standard OpTypes that can be included here are:
-  // - `OpType::gate` if gates are supported
-  // - `OpType::measure` if measure is supported
-  // - `OpType::reset` if reset is supported
-  // - `OpType::snapshot` if any snapshots are supported
-  // - `OpType::barrier` if barrier is supported
-  // - `OpType::matrix` if arbitrary unitary matrices are supported
-  // - `OpType::kraus` if general Kraus noise channels are supported
-  //
-  // For gate ops allowed gates are specified by a set of string names,
-  // for example this could include {"u1", "u2", "u3", "U", "cx", "CX"}
-  //
-  // For snapshot ops allowed snapshots are specified by a set of string names,
-  // For example this could include {"probabilities", "pauli_observable"}
-
   MultiStates();
 
   virtual ~MultiStates();
@@ -162,15 +146,6 @@ public:
     reg_t dummy;
     return dummy;
   }
-
-  virtual reg_t batched_sample_measure(const reg_t &qubits,
-                                            reg_t& shots,
-                                            std::vector<RngEngine> &rng)
-  {
-    reg_t dummy;
-    return dummy;
-  }
-
   virtual double sum(void){return 1.0;}
 
   //=======================================================================
@@ -214,41 +189,27 @@ public:
   template <typename InputIterator>
   void apply_ops(InputIterator first,
                  InputIterator last,
+                 const Noise::NoiseModel &noise,
                  ExperimentResult &result,
                  RngEngine &rng,
                  bool final_ops = false);
 
-  //for single circuit multiple states
-  virtual void apply_single_ops(const std::vector<Operations::Op> &ops,
-                                const Noise::NoiseModel &noise,
-                                ExperimentResult &result,
-                                uint_t rng_seed,
-                                bool final_ops = false);
-
-  //for multiple circuits multiple states
-  virtual void apply_multi_ops(const std::vector<std::vector<Operations::Op>> &ops,
-                         reg_t& shots,
-                         std::vector<ExperimentResult> &result,
-                         std::vector<RngEngine> &rng,
-                         bool final_ops = false);
-
-  virtual void end_of_circuit();
-
-  virtual void set_max_matrix_bits(int_t bits)
+  virtual void set_max_matrix_qubits(int_t bits)
   {
-    max_matrix_bits_ = bits;
+    max_matrix_qubits_ = bits;
   }
 
   //for batched apply op
-  virtual void apply_batched_ops(const std::vector<Operations::Op> &ops){}
   virtual void enable_batch(bool flg){}
-  virtual bool batchable_op(const Operations::Op& op,bool single_op = true){return false;}
 
   virtual bool top_of_group(){return true;}  //check if this register is on the top of group
 
   virtual void apply_batched_pauli(const Operations::Op &op, reg_t& idx){}
   virtual void apply_batched_noise_circuits(const Operations::Op &op, ExperimentResult &result,
                                                std::vector<RngEngine> &rng, reg_t& idx){}
+
+  //check if operation can be applied in a batch or not
+  virtual bool batchable_op(const Operations::Op& op){return false;}
 
   //cache control for chunks on host
   virtual bool fetch_state(void) const {return true;}
@@ -418,7 +379,7 @@ protected:
   uint_t creg_num_memory_;
   uint_t creg_num_register_;
 
-  int_t max_matrix_bits_ = 1;
+  int_t max_matrix_qubits_ = 1;
 
   //stored sampling resuls
   reg_t samples_;
@@ -576,7 +537,7 @@ uint_t MultiStates<state_t>::allocate_states(uint_t n_states)
 
     states_[0].set_config(config_);
     states_[0].set_parallelization(parallel_states_);
-    states_[0].set_max_matrix_bits(max_matrix_bits_);
+    states_[0].set_max_matrix_qubits(max_matrix_qubits_);
     states_[0].set_state_index(state_index_);
     states_[0].allocate(num_qubits_,num_state_qubits_,n_states);
     num_allocated = 1;
@@ -655,43 +616,12 @@ size_t MultiStates<state_t>::required_memory_mb(uint_t num_qubits,
 template <class state_t>
 template <typename InputIterator>
 void MultiStates<state_t>::apply_ops(InputIterator first, InputIterator last,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops)
-{
-  int_t iChunk;
-  uint_t iOp,nOp;
-  std::vector<RngEngine> rngs(1);
-  rngs[0] = rng;
-
-  nOp = std::distance(first, last);
-  iOp = 0;
-  while(iOp < nOp){
-    const Operations::Op op_iOp = *(first + iOp);
-
-    for(iChunk=0;iChunk<num_local_states_;iChunk++){
-      if(states_[iChunk].top_of_group()){
-        if(states_[iChunk].fetch_state()){
-          states_[iChunk].apply_op(op_iOp,result,rng,final_ops && nOp == iOp + 1);
-          states_[iChunk].release_state();
-        }
-      }
-    }
-    iOp++;
-  }
-
-  end_of_circuit();
-
-}
-
-template <class state_t>
-void MultiStates<state_t>::apply_single_ops(const std::vector<Operations::Op> &ops,
                          const Noise::NoiseModel &noise,
                          ExperimentResult &result,
-                         uint_t rng_seed,
+                         RngEngine &rng_shot0,
                          bool final_ops)
 {
-  int_t i,iOp,nOp;
+  int_t i;
   int_t i_begin,n_states;
 
   i_begin = 0;
@@ -706,17 +636,15 @@ void MultiStates<state_t>::apply_single_ops(const std::vector<Operations::Op> &o
     state_index_ = global_state_index_ + i_begin;
     n_states = allocate_states(n_states);
 
-    nOp = ops.size();
-
     std::vector<ExperimentResult> par_results(num_groups_);
 
-#pragma omp parallel for if(num_groups_ > 1) private(iOp)
+#pragma omp parallel for if(num_groups_ > 1) 
     for(i=0;i<num_groups_;i++){
       uint_t istate = top_state_of_group_[i];
       std::vector<RngEngine> rng(num_states_in_group_[i]);
 
       for(uint_t j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
-        rng[j-top_state_of_group_[i]].set_seed(rng_seed + global_state_index_ + i_begin + j);
+        rng[j-top_state_of_group_[i]].set_seed(rng_shot0.seed() + global_state_index_ + i_begin + j);
 
         states_[j].set_config(config_);
 
@@ -730,17 +658,15 @@ void MultiStates<state_t>::apply_single_ops(const std::vector<Operations::Op> &o
         states_[j].initialize_creg(creg_num_memory_, creg_num_register_);
       }
 
-      for(iOp=0;iOp<nOp;iOp++){
-//        std::cout << "  op["<<iOp<<"] : " << ops[iOp] << std::endl;
-
-        if(ops[iOp].type == Operations::OpType::qerror_loc){
+      for (auto op = first; op != last; ++op) {
+        if(op->type == Operations::OpType::qerror_loc){
           //sample error here
           uint_t count = num_states_in_group_[i];
           uint_t max_ops = 0;
           bool pauli_only = true;
           std::vector<std::vector<Operations::Op>> noise_ops(count);
           for(uint_t j=0;j<count;j++){
-            noise_ops[j] = noise.sample_noise_loc(ops[iOp],rng[j]);
+            noise_ops[j] = noise.sample_noise_loc(*op,rng[j]);
 
             if(noise_ops[j].size() == 0 || (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id"))
               continue;
@@ -767,19 +693,18 @@ void MultiStates<state_t>::apply_single_ops(const std::vector<Operations::Op> &o
             states_[istate].apply_batched_noise_ops(noise_ops,par_results[i],rng);
           }
         }
-        else if(states_[istate].batchable_op(ops[iOp],true)){
-          states_[istate].apply_op_multi_shots(ops[iOp],par_results[i],rng,final_ops && nOp == iOp + 1);
+        else if(states_[istate].batchable_op(*op)){
+          states_[istate].apply_op_multi_shots(*op,par_results[i],rng,final_ops && (op + 1 == last));
         }
         else{
           //call apply_op for each state
           for(uint_t j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
             states_[j].enable_batch(false);
-            states_[j].apply_op(ops[iOp],par_results[i],rng[j-top_state_of_group_[i]],final_ops && nOp == iOp + 1);
+            states_[j].apply_op(*op,par_results[i],rng[j-top_state_of_group_[i]],final_ops && (op + 1 == last));
             states_[j].enable_batch(true);
           }
         }
       }
-      states_[istate].end_of_circuit();
     }
     for (auto &res : par_results) {
       result.combine(std::move(res));
@@ -798,149 +723,11 @@ void MultiStates<state_t>::apply_single_ops(const std::vector<Operations::Op> &o
 }
 
 template <class state_t>
-void MultiStates<state_t>::apply_multi_ops(const std::vector<std::vector<Operations::Op>> &ops,
-                         reg_t& shots,
-                         std::vector<ExperimentResult> &result,
-                         std::vector<RngEngine>& rng,
-                         bool final_ops)
-{
-  int_t i;
-  int_t i_begin,n_states;
-  uint_t total_shots = 0;
-  sample_offset_.resize(num_global_states_+1);
-  for(i=0;i<shots.size();i++){
-    sample_offset_[i] = total_shots;
-    total_shots += shots[i];
-  }
-  sample_offset_[i] = total_shots;
-
-  samples_.resize(total_shots);
-  reg_t all_qubits(num_qubits_);
-  for(i=0;i<num_qubits_;i++)
-    all_qubits[i] = i;
-
-  i_begin = 0;
-  while(i_begin<num_local_states_){
-    //loop for states can be stored in available memory
-    n_states = parallel_states_;
-    if(i_begin+n_states > num_local_states_){
-      n_states = num_local_states_ - i_begin;
-    }
-
-    //allocate and initialize states
-    n_states = allocate_states(n_states);
-
-#pragma omp parallel for if(num_groups_ > 1) private(i)
-    for(i=0;i<num_groups_;i++){
-      uint_t j,iOp,istate = top_state_of_group_[i];
-      uint_t num_active;
-      std::vector<Operations::Op> batched_ops(num_states_in_group_[i]);
-      uint_t n_batch;
-
-      for(j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
-        states_[j].set_config(config_);
-        states_[j].set_global_phase(phase_angle_[global_state_index_ + i_begin + j]);
-        states_[j].initialize_qreg(num_qubits_);
-        states_[j].initialize_creg(cregs_[global_state_index_ + i_begin + j].memory_size(),
-                                   cregs_[global_state_index_ + i_begin + j].register_size());
-      }
-
-      iOp = 0;
-      do{
-        n_batch = 0;
-        num_active = 0;
-        for(j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
-          uint_t i_circ = global_state_index_ + i_begin + j;
-          if(iOp < ops[i_circ].size()){
-            batched_ops[j - top_state_of_group_[i]] = ops[i_circ][iOp];
-
-            if(states_[j].batchable_op(ops[i_circ][iOp],false)){
-              n_batch++;
-            }
-            else{
-              states_[j].enable_batch(false);
-              states_[j].apply_op(ops[i_circ][iOp],result[i_circ],rng[i_circ],final_ops && ops[i_circ].size() == iOp + 1);
-              states_[j].enable_batch(true);
-            }
-            num_active++;
-          }
-          else{
-            batched_ops[j - top_state_of_group_[i]].type = Operations::OpType::nop;
-          }
-        }
-
-        if(n_batch > 0){
-          states_[istate].apply_batched_ops(batched_ops);
-        }
-        iOp++;
-      }while(num_active > 0);
-
-      states_[istate].end_of_circuit();
-
-      uint_t gid = global_state_index_ + i_begin;
-      uint_t k;
-
-      reg_t local_shots(shots.begin() + gid + top_state_of_group_[i],shots.begin() + gid + top_state_of_group_[i+1]);
-      std::vector<RngEngine> local_rng(rng.begin() + gid + top_state_of_group_[i],rng.begin() + gid + top_state_of_group_[i+1]);
-
-      auto ret = states_[istate].batched_sample_measure(all_qubits,local_shots,local_rng);
-
-      uint_t sample_idx = 0;
-      for(j=top_state_of_group_[i];j<top_state_of_group_[i+1];j++){
-        states_[j].add_metadata(result[gid + j]);
-
-        for(k=0;k<shots[gid+j];k++){
-          samples_[sample_offset_[gid+j]+k] = ret[sample_idx++];
-        }
-      }
-    }
-
-    //copy memory
-    for(i=0;i<n_states;i++){
-      cregs_[global_state_index_ + i_begin + i].creg_memory() = states_[i].creg().creg_memory();
-    }
-
-    i_begin += n_states;
-  }
-
-  gather_samples();
-  gather_creg_memory();
-}
-
-template <class state_t>
-void MultiStates<state_t>::end_of_circuit()
-{
-  int_t i;
-
-  for(i=0;i<num_local_states_;i++){
-    states_[i].end_of_circuit();
-  }
-}
-
-template <class state_t>
 std::vector<reg_t> MultiStates<state_t>::sample_measure(const reg_t &qubits,
                                                   uint_t shots,
                                                   RngEngine &rng) 
 {
-  //for multi circuits mode
-  //return stored sample value
-  //shots is used for shot index, not number of shots
-
-  if(shots >= sample_offset_.size())
   return std::vector<reg_t>();
-
-  std::vector<reg_t> all_samples;
-  all_samples.reserve(sample_offset_[shots+1] - sample_offset_[shots]);
-  for (uint_t i = sample_offset_[shots];i<sample_offset_[shots+1];i++) {
-    reg_t allbit_sample = Utils::int2reg(samples_[i], 2, num_qubits_);
-    reg_t sample;
-    sample.reserve(qubits.size());
-    for (uint_t qubit : qubits) {
-      sample.push_back(allbit_sample[qubit]);
-    }
-    all_samples.push_back(sample);
-  }
-  return all_samples;
 }
 
 template <class state_t>

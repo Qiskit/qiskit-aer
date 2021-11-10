@@ -33,7 +33,6 @@ protected:
   AERHostVector<thrust::complex<data_t>>  data_;     //host vector for chunks + buffers
   std::vector<thrust::complex<double>*> matrix_;     //pointer to matrix
   std::vector<uint_t*> params_;                      //pointer to additional parameters
-  batched_matrix_params* batched_params_;
 public:
   HostChunkContainer(){}
   ~HostChunkContainer();
@@ -60,10 +59,6 @@ public:
   {
     matrix_[iChunk] = (thrust::complex<double>*)&mat[0];
   }
-  void StoreBatchedMatrix(const std::vector<std::complex<double>>& mat)
-  {
-    matrix_[0] = (thrust::complex<double>*)&mat[0];
-  }
   void StoreMatrix(const std::complex<double>* mat,uint_t iChunk,uint_t size)
   {
     matrix_[iChunk] = (thrust::complex<double>*)mat;
@@ -72,10 +67,6 @@ public:
   void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk)
   {
     params_[iChunk] = (uint_t*)&prm[0];
-  }
-  void StoreBatchedParams(const std::vector<batched_matrix_params>& params)
-  {
-    batched_params_ = (batched_matrix_params*)&params[0];
   }
   void ResizeMatrixBuffers(int bits){}
 

@@ -121,6 +121,8 @@ public:
 
   //memory allocation (previously called before inisitalize_qreg)
   virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1){return true;}
+
+  //bind state to allocated state 
   virtual bool bind_state(State<state_t>& state,uint_t ishot,bool batch_enable){return true;}
 
 
@@ -167,14 +169,6 @@ public:
     return dummy;
   }
 
-  virtual reg_t batched_sample_measure(const reg_t &qubits,
-                                            reg_t& shots,
-                                            std::vector<RngEngine> &rng)
-  {
-    reg_t dummy;
-    return dummy;
-  }
-
   virtual double sum(void){return 1.0;}
 
   //=======================================================================
@@ -196,7 +190,7 @@ public:
                         RngEngine& rng,
                         bool final_op = false) = 0;
 
-  //for multi-shot optimization
+  //apply op to multiple states (shots), only called for top of group
   virtual void apply_op_multi_shots(const Operations::Op &op,
                         ExperimentResult &result,
                         std::vector<RngEngine>& rng,
@@ -220,21 +214,11 @@ public:
                  RngEngine &rng,
                  bool final_ops = false);
 
-  virtual void set_max_matrix_bits(int_t bits)
-  {
-    max_matrix_bits_ = bits;
-  }
-
-  //for batched apply op
-  virtual void apply_single_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         uint_t rng_seed,
-                         bool final_ops = false){}
-  virtual void apply_batched_ops(const std::vector<Operations::Op> &ops){}
+  //enable batched execution used for multi-shot optimization
   virtual void enable_batch(bool flg){}
-  virtual bool batchable_op(const Operations::Op& op,bool single_op = true){return false;}
 
-  virtual bool top_of_group(){return true;}  //check if this register is on the top of group
+  //return if this state is top of the array of group of states (i.e. states are distributed to multiple GPUs as groups)
+  virtual bool top_of_group(){return true;}
 
   //apply runtime sampled noise in case all inserted ops are Pauli gates
   virtual void apply_batched_pauli(std::vector<std::vector<Operations::Op>> &ops){}
@@ -242,15 +226,8 @@ public:
   virtual void apply_batched_noise_ops(const std::vector<std::vector<Operations::Op>> &op, ExperimentResult &result,
                                                std::vector<RngEngine> &rng){}
 
-  virtual void end_of_circuit(){};
-
-  //cache control for chunks on host
-  virtual bool fetch_state(void) const {return true;}
-  virtual void release_state(bool write_back = true) const {}
-
-  //swap between chunk
-  virtual void apply_state_swap(const reg_t &qubits, State<state_t> &chunk, bool write_back = true){}
-  virtual void apply_state_swap(const reg_t &qubits, uint_t remote_chunk_index){}
+  //check if operation can be applied in a batch or not
+  virtual bool batchable_op(const Operations::Op& op){return false;}
 
   //-----------------------------------------------------------------------
   // ClassicalRegister methods
@@ -352,9 +329,16 @@ public:
   //set number of processes to be distributed
   void set_distribution(uint_t nprocs){}
 
+  //set index of state
   virtual void set_state_index(uint_t idx)
   {
     state_index_ = idx;
+  }
+
+  //set maximum number of qubits for matrix multiplication
+  virtual void set_max_matrix_qubits(int_t bits)
+  {
+    max_matrix_qubits_ = bits;
   }
 
 protected:
@@ -376,12 +360,16 @@ protected:
   bool has_global_phase_ = false;
   complex_t global_phase_ = 1;
 
+  //index of this state
   uint_t state_index_ = 0;
+  //number of qubits for the circuit
   uint_t num_qubits_;
+  //number of local qubits for this state
   uint_t num_state_qubits_;
+  //number of maximum qubits used for matrix multiplication
+  int_t max_matrix_qubits_ = 0;
 
-  int_t max_matrix_bits_ = 0;
-
+  //virtual function to apply bfunc operation
   virtual void apply_bfunc(const Operations::Op &op)
   {
     creg_.apply_bfunc(op);

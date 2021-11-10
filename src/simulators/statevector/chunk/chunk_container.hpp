@@ -63,8 +63,6 @@ DISABLE_WARNING_POP
 #include "simulators/statevector/chunk/cuda_kernels.hpp"
 #endif
 
-#include "simulators/statevector/batched_matrix.hpp"
-
 namespace AER {
 namespace QV {
 
@@ -89,7 +87,6 @@ protected:
   thrust::complex<data_t>* data_;   //pointer to state vector buffer
   thrust::complex<double>* matrix_; //storage for matrix on device
   uint_t* params_;                  //storage for additional parameters on device
-  batched_matrix_params* batched_params_; //storage for parameters for batched matrix multiplier on device
   uint_t base_index_;               //start index of state vector 
   uint_t chunk_bits_;
   uint_t* cregs_;
@@ -121,10 +118,6 @@ public:
   void set_params(uint_t* p)
   {
     params_ = p;
-  }
-  void set_batched_params(batched_matrix_params* p)
-  {
-    batched_params_ = p;
   }
   void set_chunk_bits(uint_t bits)
   {
@@ -591,10 +584,8 @@ public:
   virtual thrust::complex<data_t> Get(uint_t i) const = 0;
 
   virtual void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk) = 0;
-  virtual void StoreBatchedMatrix(const std::vector<std::complex<double>>& mat) = 0;
   virtual void StoreMatrix(const std::complex<double>* mat,uint_t iChunk,uint_t size) = 0;
   virtual void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk) = 0;
-  virtual void StoreBatchedParams(const std::vector<batched_matrix_params>& params) = 0;
   virtual void ResizeMatrixBuffers(int bits) = 0;
 
   virtual void CopyIn(Chunk<data_t>& src,uint_t iChunk) = 0;
@@ -641,11 +632,6 @@ public:
   {
     return NULL;
   }
-  virtual batched_matrix_params* batched_param_pointer(void) const
-  {
-    return NULL;
-  }
-
 
 
   virtual void synchronize(uint_t iChunk)
@@ -788,7 +774,6 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
   func.set_data( chunk_pointer(iChunk) );
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
-  func.set_batched_params(batched_param_pointer() );
   func.set_cregs_(creg_buffer(iChunk),num_creg_bits_);
 
   if(iChunk == 0 && conditional_bit_ >= 0){
@@ -862,7 +847,6 @@ void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk
   func.set_data( chunk_pointer(iChunk) );
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
-  func.set_batched_params(batched_param_pointer() );
   func.set_cregs_(creg_buffer(iChunk),num_creg_bits_);
 
   auto ci = thrust::counting_iterator<uint_t>(0);
@@ -986,7 +970,6 @@ void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk
 
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
-  func.set_batched_params(batched_param_pointer() );
 
   uint_t i;
   for(i=0;i<count;i++){
@@ -1032,7 +1015,6 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
   func.set_data( chunk_pointer(iChunk) );
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
-  func.set_batched_params(batched_param_pointer() );
   func.set_cregs_(creg_buffer(iChunk),num_creg_bits_);
 
   auto ci = thrust::counting_iterator<uint_t>(0);
