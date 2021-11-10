@@ -14,29 +14,25 @@ Qiskit Aer qasm simulator backend.
 """
 
 import copy
-import logging
 import datetime
+import logging
 import time
 import uuid
 import warnings
 from abc import ABC, abstractmethod
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.pulse import Schedule
 from qiskit.circuit import ParameterExpression
+from qiskit.circuit import QuantumCircuit
+from qiskit.compiler import assemble
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
+from qiskit.pulse import Schedule
+from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
 from qiskit.utils import deprecate_arguments
-from qiskit.qobj import QasmQobj, PulseQobj
-from qiskit.compiler import assemble
-
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
-from ..noise.noiseerror import NoiseError
-from ..utils.noise_transformation import transform_noise_model
-
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -363,15 +359,6 @@ class AerBackend(Backend, ABC):
         updated_noise = False
         noise_model = run_options.get(
             'noise_model', getattr(self.options, 'noise_model', None))
-
-        if noise_model:
-            try:
-                noise_model = transform_noise_model(noise_model,
-                                                    basis_gates=self.configuration().basis_gates)
-            except NoiseError as err:
-                raise AerError(
-                    "Noise model includes operations unknown to this Aer backend"
-                ) from err
 
         # Check if circuits contain quantum error instructions
         run_circuits = []
