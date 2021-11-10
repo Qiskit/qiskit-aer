@@ -1111,8 +1111,7 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
 
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
-  func.set_batched_params(batched_param_pointer() );
-
+ 
   uint_t i;
   for(i=0;i<count;i++){
     thrust::complex<double> ret,zero = 0.0;
