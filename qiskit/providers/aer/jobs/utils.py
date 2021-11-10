@@ -16,7 +16,7 @@ import copy
 from math import ceil
 from functools import singledispatch, update_wrapper, wraps
 from concurrent.futures import ThreadPoolExecutor
-from qiskit.qobj import QasmQobj
+from qiskit.qobj import QasmQobj, PulseQobj
 
 from qiskit.providers import JobError
 
@@ -172,7 +172,7 @@ def split_qobj(qobj, max_size=None, max_shot_size=None, qobj_id=None):
                 return split_qobj_list
 
     _qobj, _seed = _split_qobj(qobj, max_size, qobj_id, _seed)
-    if isinstance(_qobj, QasmQobj):
+    if isinstance(_qobj, (PulseQobj, QasmQobj)):
         return _qobj
     else:
         split_qobj_list.append(_qobj)
