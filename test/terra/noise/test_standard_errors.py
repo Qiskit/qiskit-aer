@@ -17,8 +17,6 @@ Standard error function tests
 import unittest
 
 import numpy as np
-import qiskit.quantum_info as qi
-
 from qiskit.providers.aer.noise import QuantumError
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit.providers.aer.noise.errors.standard_errors import coherent_unitary_error
@@ -32,6 +30,11 @@ from qiskit.providers.aer.noise.errors.standard_errors import thermal_relaxation
 from qiskit.providers.aer.noise.noiseerror import NoiseError
 from test.terra.common import QiskitAerTestCase
 
+import qiskit.quantum_info as qi
+from qiskit.circuit import QuantumCircuit, Reset
+from qiskit.circuit.library.generalized_gates import PauliGate
+from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
+
 
 # TODO: Test Kraus thermal relaxation error by comparing to amplitude damping channel
 
@@ -43,29 +46,29 @@ class TestNoise(QiskitAerTestCase):
         """Test Kraus error when input is list instead of numpy array"""
         A0 = [[1, 0], [0, np.sqrt(1 - 0.3)]]
         A1 = [[0, 0], [0, np.sqrt(0.3)]]
-        targets = [A0, A1]
-        error = kraus_error(targets)
-        circ, p = error.error_term(0)
+        kraus_mats = [A0, A1]
+        actual = kraus_error(kraus_mats)
+        expected_circ = QuantumCircuit(1)
+        expected_circ.append(qi.Kraus(kraus_mats), [0])
+        circ, p = actual.error_term(0)
+        self.assertEqual(circ, expected_circ)
         self.assertEqual(p, 1)
-        kraus = QuantumError._qc_to_json(circ)[0]
-        self.assertEqual(kraus['name'], 'kraus')
-        self.assertEqual(kraus['qubits'], [0])
-        for actual, expected in zip(kraus['params'], targets):
-            self.assertTrue(np.allclose(actual, expected), msg="Incorrect kraus QuantumError")
 
     def test_mixed_unitary_error_raise_nonunitary(self):
         """Test error is raised if input is not unitary."""
         A0 = [[1, 0], [0, np.sqrt(1 - 0.3)]]
         A1 = [[0, 0], [0, np.sqrt(0.3)]]
         noise_ops = [(A0, 0.5), (A1, 0.5)]
-        self.assertRaises(NoiseError, lambda: mixed_unitary_error(noise_ops))
+        with self.assertRaises(NoiseError):
+            mixed_unitary_error(noise_ops)
 
     def test_mixed_unitary_error_raise_differnt_shape(self):
         """Test error is raised if input matrices different size"""
         unitaries = [np.eye(4), np.eye(2)]
         probs = [0.7, 0.4]
         noise_ops = [(unitaries[0], probs[0]), (unitaries[1], probs[1])]
-        self.assertRaises(NoiseError, lambda: mixed_unitary_error(noise_ops))
+        with self.assertRaises(NoiseError):
+            mixed_unitary_error(noise_ops)
 
     def test_mixed_unitary_error(self):
         """Test construction of mixed unitary error"""
@@ -87,107 +90,64 @@ class TestNoise(QiskitAerTestCase):
 
     def test_pauli_error_raise_invalid(self):
         """Test exception for invalid Pauli string"""
-        self.assertRaises(NoiseError, lambda: pauli_error([('S', 1)]))
+        with self.assertRaises(NoiseError):
+            pauli_error([('S', 1)])
 
     def test_pauli_error_1q_gate_from_string(self):
         """Test single-qubit pauli error as gate qobj from string label"""
         paulis = ['I', 'X', 'Y', 'Z']
         probs = [0.4, 0.3, 0.2, 0.1]
-        error = pauli_error(zip(paulis, probs))
+        actual = pauli_error(zip(paulis, probs))
 
-        target_circs = [[{"name": "id", "qubits": [0]}],
-                        [{"name": "x", "qubits": [0]}],
-                        [{"name": "y", "qubits": [0]}],
-                        [{"name": "z", "qubits": [0]}]]
-        target_probs = probs.copy()
-
-        for j in range(len(paulis)):
-            circ, p = error.error_term(j)
-            circ = QuantumError._qc_to_json(circ)
-            self.remove_if_found(p, target_probs)
-            self.remove_if_found(circ, target_circs)
-        self.assertEqual(target_probs, [], msg="Incorrect probabilities")
-        self.assertEqual(target_circs, [], msg="Incorrect circuits")
+        expected = QuantumError([(IGate(), 0.4), (XGate(), 0.3), (YGate(), 0.2), (ZGate(), 0.1)])
+        for i in range(actual.size):
+            circ, prob = actual.error_term(i)
+            expected_circ, expected_prob = expected.error_term(i)
+            self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_pauli_error_1q_gate_from_pauli(self):
         """Test single-qubit pauli error as gate qobj from Pauli obj"""
         paulis = [qi.Pauli(s) for s in ['I', 'X', 'Y', 'Z']]
         probs = [0.4, 0.3, 0.2, 0.1]
-        error = pauli_error(zip(paulis, probs))
+        actual = pauli_error(zip(paulis, probs))
 
-        target_circs = [[{"name": "id", "qubits": [0]}],
-                        [{"name": "x", "qubits": [0]}],
-                        [{"name": "y", "qubits": [0]}],
-                        [{"name": "z", "qubits": [0]}]]
-        target_probs = probs.copy()
-
-        for j in range(len(paulis)):
-            circ, p = error.error_term(j)
-            circ = QuantumError._qc_to_json(circ)
-            self.remove_if_found(p, target_probs)
-            self.remove_if_found(circ, target_circs)
-        self.assertEqual(target_probs, [], msg="Incorrect probabilities")
-        self.assertEqual(target_circs, [], msg="Incorrect circuits")
+        expected = QuantumError([(IGate(), 0.4), (XGate(), 0.3), (YGate(), 0.2), (ZGate(), 0.1)])
+        for i in range(actual.size):
+            circ, prob = actual.error_term(i)
+            expected_circ, expected_prob = expected.error_term(i)
+            self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_pauli_error_2q_gate_from_string(self):
         """Test two-qubit pauli error as gate qobj from string label"""
         paulis = ['XZ', 'YX', 'ZY']
         probs = [0.5, 0.3, 0.2]
-        with self.assertWarns(DeprecationWarning):
-            error = pauli_error(zip(paulis, probs), standard_gates=True)
+        actual = pauli_error(zip(paulis, probs))
 
-        target_circs = [[{"name": "z", "qubits": [0]}, {"name": "x", "qubits": [1]}],
-                        [{"name": "x", "qubits": [0]}, {"name": "y", "qubits": [1]}],
-                        [{"name": "y", "qubits": [0]}, {"name": "z", "qubits": [1]}]]
-        target_probs = probs.copy()
-
-        for j in range(len(paulis)):
-            circ, p = error.error_term(j)
-            circ = QuantumError._qc_to_json(circ)
-            self.remove_if_found(p, target_probs)
-            self.remove_if_found(circ, target_circs)
-        self.assertEqual(target_probs, [], msg="Incorrect probabilities")
-        self.assertEqual(target_circs, [], msg="Incorrect circuits")
-
-    def test_pauli_error_2q_gate_from_string_1qonly(self):
-        """Test two-qubit pauli error as gate qobj from string label"""
-        paulis = ['XI', 'YI', 'ZI']
-        probs = [0.5, 0.3, 0.2]
-        with self.assertWarns(DeprecationWarning):
-            error = pauli_error(zip(paulis, probs), standard_gates=True)
-
-        target_circs = [[{"name": "id", "qubits": [0]}, {"name": "x", "qubits": [1]}],
-                        [{"name": "id", "qubits": [0]}, {"name": "y", "qubits": [1]}],
-                        [{"name": "id", "qubits": [0]}, {"name": "z", "qubits": [1]}]]
-        target_probs = probs.copy()
-
-        for j in range(len(paulis)):
-            circ, p = error.error_term(j)
-            circ = QuantumError._qc_to_json(circ)
-            self.remove_if_found(p, target_probs)
-            self.remove_if_found(circ, target_circs)
-        self.assertEqual(target_probs, [], msg="Incorrect probabilities")
-        self.assertEqual(target_circs, [], msg="Incorrect circuits")
+        expected = QuantumError(
+            [(PauliGate("XZ"), 0.5), (PauliGate("YX"), 0.3), (PauliGate("ZY"), 0.2)]
+        )
+        for i in range(actual.size):
+            circ, prob = actual.error_term(i)
+            expected_circ, expected_prob = expected.error_term(i)
+            self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_pauli_error_2q_gate_from_pauli(self):
         """Test two-qubit pauli error as gate qobj from Pauli obj"""
         paulis = [qi.Pauli(s) for s in ['XZ', 'YX', 'ZY']]
         probs = [0.5, 0.3, 0.2]
-        with self.assertWarns(DeprecationWarning):
-            error = pauli_error(zip(paulis, probs), standard_gates=True)
+        actual = pauli_error(zip(paulis, probs))
 
-        target_circs = [[{"name": "z", "qubits": [0]}, {"name": "x", "qubits": [1]}],
-                        [{"name": "x", "qubits": [0]}, {"name": "y", "qubits": [1]}],
-                        [{"name": "y", "qubits": [0]}, {"name": "z", "qubits": [1]}]]
-        target_probs = probs.copy()
-
-        for j in range(len(paulis)):
-            circ, p = error.error_term(j)
-            circ = QuantumError._qc_to_json(circ)
-            self.remove_if_found(p, target_probs)
-            self.remove_if_found(circ, target_circs)
-        self.assertEqual(target_probs, [], msg="Incorrect probabilities")
-        self.assertEqual(target_circs, [], msg="Incorrect circuits")
+        expected = QuantumError(
+            [(PauliGate("XZ"), 0.5), (PauliGate("YX"), 0.3), (PauliGate("ZY"), 0.2)]
+        )
+        for i in range(actual.size):
+            circ, prob = actual.error_term(i)
+            expected_circ, expected_prob = expected.error_term(i)
+            self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_depolarizing_error_ideal(self):
         """Test depolarizing error with p=0 (ideal) as gate qobj"""
@@ -205,99 +165,91 @@ class TestNoise(QiskitAerTestCase):
     def test_depolarizing_error_1q_gate(self):
         """Test 1-qubit depolarizing error as gate qobj"""
         p_depol = 0.3
-        error = depolarizing_error(p_depol, 1)
-        target_circs = [[{"name": "id", "qubits": [0]}],
-                        [{"name": "x", "qubits": [0]}],
-                        [{"name": "y", "qubits": [0]}],
-                        [{"name": "z", "qubits": [0]}]]
-        for j in range(4):
-            circ, p = error.error_term(j)
-            circ = QuantumError._qc_to_json(circ)
-            self.assertEqual(circ[0]['qubits'], [0])
-            if circ[0]['name'] == "id":
-                self.assertAlmostEqual(p, 1 - p_depol + p_depol / 4,
-                                       msg="Incorrect identity probability")
-            else:
-                self.assertAlmostEqual(p, p_depol / 4, msg="Incorrect Pauli probability")
-            self.remove_if_found(circ, target_circs)
-        self.assertEqual(target_circs, [], msg="Incorrect unitaries")
+        actual = depolarizing_error(p_depol, 1)
+
+        expected = QuantumError([
+            (IGate(), 1 - p_depol*3/4),
+            (XGate(), p_depol/4),
+            (YGate(), p_depol/4),
+            (ZGate(), p_depol/4)
+        ])
+        for i in range(actual.size):
+            circ, prob = actual.error_term(i)
+            expected_circ, expected_prob = expected.error_term(i)
+            self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_depolarizing_error_2q_gate(self):
         """Test 2-qubit depolarizing error as gate qobj"""
         p_depol = 0.3
-        with self.assertWarns(DeprecationWarning):
-            error = depolarizing_error(p_depol, 2, standard_gates=True)
-        target_circs = [[{"name": "id", "qubits": [0]}, {"name": "id", "qubits": [1]}],
-                        [{"name": "x", "qubits": [0]}, {"name": "id", "qubits": [1]}],
-                        [{"name": "y", "qubits": [0]}, {"name": "id", "qubits": [1]}],
-                        [{"name": "z", "qubits": [0]}, {"name": "id", "qubits": [1]}],
-                        [{"name": "id", "qubits": [0]}, {"name": "x", "qubits": [1]}],
-                        [{"name": "id", "qubits": [0]}, {"name": "y", "qubits": [1]}],
-                        [{"name": "id", "qubits": [0]}, {"name": "z", "qubits": [1]}],
-                        [{"name": "x", "qubits": [0]}, {"name": "x", "qubits": [1]}],
-                        [{"name": "x", "qubits": [0]}, {"name": "y", "qubits": [1]}],
-                        [{"name": "x", "qubits": [0]}, {"name": "z", "qubits": [1]}],
-                        [{"name": "y", "qubits": [0]}, {"name": "x", "qubits": [1]}],
-                        [{"name": "y", "qubits": [0]}, {"name": "y", "qubits": [1]}],
-                        [{"name": "y", "qubits": [0]}, {"name": "z", "qubits": [1]}],
-                        [{"name": "z", "qubits": [0]}, {"name": "x", "qubits": [1]}],
-                        [{"name": "z", "qubits": [0]}, {"name": "y", "qubits": [1]}],
-                        [{"name": "z", "qubits": [0]}, {"name": "z", "qubits": [1]}]]
-        for j in range(16):
-            circ, p = error.error_term(j)
-            circ = QuantumError._qc_to_json(circ)
-            self.remove_if_found(circ, target_circs)
-            if circ == [{"name": "id", "qubits": [0]}, {"name": "id", "qubits": [1]}]:
-                self.assertAlmostEqual(p, 1 - p_depol + p_depol / 16,
-                                       msg="Incorrect identity probability")
-            else:
-                self.assertAlmostEqual(p, p_depol / 16, msg="Incorrect Pauli probability")
-        self.assertEqual(target_circs, [], msg="Incorrect unitaries")
+        actual = depolarizing_error(p_depol, 2)
+
+        expected = QuantumError([
+            (PauliGate("II"), 1 - p_depol * 15 / 16),
+            (PauliGate("IX"), p_depol / 16),
+            (PauliGate("IY"), p_depol / 16),
+            (PauliGate("IZ"), p_depol / 16),
+            (PauliGate("XI"), p_depol / 16),
+            (PauliGate("XX"), p_depol / 16),
+            (PauliGate("XY"), p_depol / 16),
+            (PauliGate("XZ"), p_depol / 16),
+            (PauliGate("YI"), p_depol / 16),
+            (PauliGate("YX"), p_depol / 16),
+            (PauliGate("YY"), p_depol / 16),
+            (PauliGate("YZ"), p_depol / 16),
+            (PauliGate("ZI"), p_depol / 16),
+            (PauliGate("ZX"), p_depol / 16),
+            (PauliGate("ZY"), p_depol / 16),
+            (PauliGate("ZZ"), p_depol / 16),
+        ])
+        for i in range(actual.size):
+            circ, prob = actual.error_term(i)
+            expected_circ, expected_prob = expected.error_term(i)
+            self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_amplitude_damping_error_raises_invalid_amp_param(self):
         """Test phase and amplitude damping error raises for invalid amp_param"""
-        self.assertRaises(NoiseError,
-                          lambda: phase_amplitude_damping_error(-0.5, 0, 0))
-        self.assertRaises(NoiseError,
-                          lambda: phase_amplitude_damping_error(1.1, 0, 0))
+        with self.assertRaises(NoiseError):
+            phase_amplitude_damping_error(-0.5, 0, 0)
+        with self.assertRaises(NoiseError):
+            phase_amplitude_damping_error(1.1, 0, 0)
 
     def test_amplitude_damping_error_raises_invalid_phase_param(self):
         """Test phase and amplitude damping error raises for invalid amp_param"""
-        self.assertRaises(NoiseError,
-                          lambda: phase_amplitude_damping_error(0, -0.5, 0))
-        self.assertRaises(NoiseError,
-                          lambda: phase_amplitude_damping_error(0, 1.1, 0))
+        with self.assertRaises(NoiseError):
+            phase_amplitude_damping_error(0, -0.5, 0)
+        with self.assertRaises(NoiseError):
+            phase_amplitude_damping_error(0, 1.1, 0)
 
     def test_amplitude_damping_error_raises_invalid_excited_state_pop(self):
         """Test phase and amplitude damping error raises for invalid pop"""
-        self.assertRaises(NoiseError,
-                          lambda: phase_amplitude_damping_error(0, 0, -0.5))
-        self.assertRaises(NoiseError,
-                          lambda: phase_amplitude_damping_error(0, 0, 1.1))
+        with self.assertRaises(NoiseError):
+            phase_amplitude_damping_error(0, 0, -0.5)
+        with self.assertRaises(NoiseError):
+            phase_amplitude_damping_error(0, 0, 1.1)
 
     def test_amplitude_damping_error_raises_invalid_combined_params(self):
         """Test phase and amplitude damping error raises for invalid pop"""
-        self.assertRaises(NoiseError,
-                          lambda: phase_amplitude_damping_error(0.5, 0.6, 0))
+        with self.assertRaises(NoiseError):
+            phase_amplitude_damping_error(0.5, 0.6, 0)
 
     def test_phase_amplitude_damping_error_noncanonical(self):
         """Test phase maplitude damping channel has correct number of ops"""
         error = phase_amplitude_damping_error(0.25, 0.5, 0.3, canonical_kraus=False)
         circ, p = error.error_term(0)
-        circ = QuantumError._qc_to_json(circ)
         self.assertEqual(p, 1, msg="Kraus probability")
-        self.assertEqual(circ[0]["qubits"], [0])
-        self.assertEqual(len(circ[0]['params']), 6,
+        self.assertEqual(circ[0][1], [circ.qubits[0]])
+        self.assertEqual(len(circ[0][0].params), 6,
                          msg="Incorrect number of kraus matrices")
 
     def test_phase_amplitude_damping_error_canonical(self):
         """Test phase maplitude damping channel has correct number of ops"""
         error = phase_amplitude_damping_error(0.25, 0.5, 0.3, canonical_kraus=True)
         circ, p = error.error_term(0)
-        circ = QuantumError._qc_to_json(circ)
         self.assertEqual(p, 1, msg="Kraus probability")
-        self.assertEqual(circ[0]["qubits"], [0])
-        self.assertEqual(len(circ[0]['params']), 4,
+        self.assertEqual(circ[0][1], [circ.qubits[0]])
+        self.assertEqual(len(circ[0][0].params), 4,
                          msg="Incorrect number of kraus matrices")
 
     def test_amplitude_damping_error_ideal_canonical(self):
@@ -314,25 +266,19 @@ class TestNoise(QiskitAerTestCase):
                                         canonical_kraus=True)
         targets = [np.diag([1, 0]), np.array([[0, 1], [0, 0]])]
         circ, p = error.error_term(0)
-        circ = QuantumError._qc_to_json(circ)
         self.assertEqual(p, 1, msg="Kraus probability")
-        self.assertEqual(circ[0]["qubits"], [0])
-        for op in circ[0]['params']:
-            self.remove_if_found(op, targets)
-        self.assertEqual(targets, [], msg="Incorrect kraus matrices")
+        self.assertEqual(circ[0][1], [circ.qubits[0]])
+        self.assertTrue(np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices")
 
     def test_amplitude_damping_error_full_1state_canonical(self):
         """Test amplitude damping error with param=1 and canonical kraus"""
         error = amplitude_damping_error(1, excited_state_population=1,
                                         canonical_kraus=True)
-        targets = [np.diag([0, 1]), np.array([[0, 0], [1, 0]])]
+        targets = [np.array([[0, 0], [1, 0]]), np.diag([0, 1])]
         circ, p = error.error_term(0)
-        circ = QuantumError._qc_to_json(circ)
         self.assertEqual(p, 1, msg="Kraus probability")
-        self.assertEqual(circ[0]["qubits"], [0])
-        for op in circ[0]['params']:
-            self.remove_if_found(op, targets)
-        self.assertEqual(targets, [], msg="Incorrect kraus matrices")
+        self.assertEqual(circ[0][1], [circ.qubits[0]])
+        self.assertTrue(np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices")
 
     def test_amplitude_damping_error_full_0state_noncanonical(self):
         """Test amplitude damping error with param=1 and canonical kraus"""
@@ -340,12 +286,9 @@ class TestNoise(QiskitAerTestCase):
                                         canonical_kraus=False)
         targets = [np.diag([1, 0]), np.array([[0, 1], [0, 0]])]
         circ, p = error.error_term(0)
-        circ = QuantumError._qc_to_json(circ)
         self.assertEqual(p, 1, msg="Kraus probability")
-        self.assertEqual(circ[0]["qubits"], [0])
-        for op in circ[0]['params']:
-            self.remove_if_found(op, targets)
-        self.assertEqual(targets, [], msg="Incorrect kraus matrices")
+        self.assertEqual(circ[0][1], [circ.qubits[0]])
+        self.assertTrue(np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices")
 
     def test_amplitude_damping_error_full_1state_noncanonical(self):
         """Test amplitude damping error with param=1 and canonical kraus"""
@@ -353,12 +296,9 @@ class TestNoise(QiskitAerTestCase):
                                         canonical_kraus=False)
         targets = [np.diag([0, 1]), np.array([[0, 0], [1, 0]])]
         circ, p = error.error_term(0)
-        circ = QuantumError._qc_to_json(circ)
         self.assertEqual(p, 1, msg="Kraus probability")
-        self.assertEqual(circ[0]["qubits"], [0])
-        for op in circ[0]['params']:
-            self.remove_if_found(op, targets)
-        self.assertEqual(targets, [], msg="Incorrect kraus matrices")
+        self.assertEqual(circ[0][1], [circ.qubits[0]])
+        self.assertTrue(np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices")
 
     def test_phase_damping_error_ideal(self):
         """Test phase damping error with param=0 (ideal)"""
@@ -371,25 +311,19 @@ class TestNoise(QiskitAerTestCase):
         """Test phase damping error with param=1 and canonical kraus"""
         error = phase_damping_error(1, canonical_kraus=True)
         circ, p = error.error_term(0)
-        circ = QuantumError._qc_to_json(circ)
         targets = [np.diag([1, 0]), np.diag([0, 1])]
         self.assertEqual(p, 1, msg="Kraus probability")
-        self.assertEqual(circ[0]["qubits"], [0])
-        for op in circ[0]['params']:
-            self.remove_if_found(op, targets)
-        self.assertEqual(targets, [], msg="Incorrect kraus matrices")
+        self.assertEqual(circ[0][1], [circ.qubits[0]])
+        self.assertTrue(np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices")
 
     def test_phase_damping_error_full_noncanonical(self):
         """Test phase damping error with param=1 and non-canonical kraus"""
         error = phase_damping_error(1, canonical_kraus=False)
         circ, p = error.error_term(0)
-        circ = QuantumError._qc_to_json(circ)
         targets = [np.diag([1, 0]), np.diag([0, 1])]
         self.assertEqual(p, 1, msg="Kraus probability")
-        self.assertEqual(circ[0]["qubits"], [0])
-        for op in circ[0]['params']:
-            self.remove_if_found(op, targets)
-        self.assertEqual(targets, [], msg="Incorrect kraus matrices")
+        self.assertEqual(circ[0][1], [circ.qubits[0]])
+        self.assertTrue(np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices")
 
     def test_phase_damping_error_canonical(self):
         """Test phase damping error with canonical kraus"""
@@ -401,9 +335,9 @@ class TestNoise(QiskitAerTestCase):
                    qi.Pauli("Z").to_matrix()]
         self.assertEqual(error.size, 1)
         circ, p = error.error_term(0)
-        circ = QuantumError._qc_to_json(circ)
-        self.assertEqual(circ[0]["qubits"], [0])
-        for actual, expected in zip(circ[0]["params"], targets):
+        self.assertEqual(p, 1, msg="Kraus probability")
+        self.assertEqual(circ[0][1], [circ.qubits[0]])
+        for actual, expected in zip(circ[0][0].params, targets):
             self.assertTrue(np.allclose(actual/actual[0][0], expected),
                             msg="Incorrect kraus matrix")
 
@@ -412,118 +346,100 @@ class TestNoise(QiskitAerTestCase):
         p_phase = 0.3
         error = phase_damping_error(0.3, canonical_kraus=False)
         circ, p = error.error_term(0)
-        circ = QuantumError._qc_to_json(circ)
         targets = [np.array([[1, 0], [0, np.sqrt(1 - p_phase)]]),
                    np.array([[0, 0], [0, np.sqrt(p_phase)]])]
         self.assertEqual(p, 1, msg="Kraus probability")
-        self.assertEqual(circ[0]["qubits"], [0])
-        for op in circ[0]['params']:
-            self.remove_if_found(op, targets)
-        self.assertEqual(targets, [], msg="Incorrect kraus matrices")
+        self.assertEqual(circ[0][1], [circ.qubits[0]])
+        self.assertTrue(np.allclose(circ[0][0].params, targets), msg="Incorrect kraus matrices")
 
     def test_thermal_relaxation_error_raises_invalid_t2(self):
         """Test raises error for invalid t2 parameters"""
         # T2 == 0
-        self.assertRaises(NoiseError, lambda: thermal_relaxation_error(1, 0, 0))
+        with self.assertRaises(NoiseError):
+            thermal_relaxation_error(1, 0, 0)
         # T2 < 0
-        self.assertRaises(NoiseError, lambda: thermal_relaxation_error(1, -1, 0))
+        with self.assertRaises(NoiseError):
+            thermal_relaxation_error(1, -1, 0)
 
     def test_thermal_relaxation_error_raises_invalid_t1(self):
         """Test raises error for invalid t1 parameters"""
         # T1 == 0
-        self.assertRaises(NoiseError, lambda: thermal_relaxation_error(0, 0, 0))
+        with self.assertRaises(NoiseError):
+            thermal_relaxation_error(0, 0, 0)
         # T1 < 0
-        self.assertRaises(NoiseError, lambda: thermal_relaxation_error(-0.1, 0.1, 0))
+        with self.assertRaises(NoiseError):
+            thermal_relaxation_error(-0.1, 0.1, 0)
 
     def test_thermal_relaxation_error_raises_invalid_t1_t2(self):
         """Test raises error for invalid t2 > 2 * t1 parameters"""
         # T2 > 2 * T1
-        self.assertRaises(NoiseError, lambda: thermal_relaxation_error(1, 2.1, 0))
+        with self.assertRaises(NoiseError):
+            thermal_relaxation_error(1, 2.1, 0)
 
     def test_thermal_relaxation_error_t1_t2_inf_ideal(self):
         """Test t1 = t2 = inf returns identity channel"""
         error = thermal_relaxation_error(np.inf, np.inf, 0)
-        circ, p = error.error_term(0)
-        circ = QuantumError._qc_to_json(circ)
-        self.assertEqual(p, 1, msg="ideal probability")
-        self.assertEqual(circ[0], {"name": "id", "qubits": [0]},
-                         msg="ideal circuit")
+        self.assertTrue(error.ideal(), msg="Non-identity channel")
 
     def test_thermal_relaxation_error_zero_time_ideal(self):
         """Test gate_time = 0 returns identity channel"""
         error = thermal_relaxation_error(2, 3, 0)
-        _, p = error.error_term(0)
-        self.assertEqual(p, 1, msg="ideal probability")
-        self.assertTrue(error.ideal(), msg="ideal circuit")
+        self.assertTrue(error.ideal(), msg="Non-identity channel")
 
     def test_thermal_relaxation_error_t1_equal_t2_0state(self):
         """Test qobj instructions return for t1=t2"""
-        error = thermal_relaxation_error(1, 1, 1)
-        targets = [[{'name': 'id', 'qubits': [0]}],
-                   [{'name': 'reset', 'qubits': [0]}]]
-        probs = [np.exp(-1), 1 - np.exp(-1)]
-        for j in range(2):
-            circ, p = error.error_term(j)
-            circ = QuantumError._qc_to_json(circ)
-            self.remove_if_found(circ, targets)
-            if circ[0]['name'] == 'id':
-                self.assertAlmostEqual(p, probs[0], msg="identity probability")
-            else:
-                self.assertAlmostEqual(p, probs[1], msg="reset probability")
-        self.assertEqual(targets, [], msg="relaxation circuits")
+        actual = thermal_relaxation_error(1, 1, 1)
+        expected = QuantumError([
+            (IGate(), np.exp(-1)),
+            (Reset(), 1 - np.exp(-1)),
+        ])
+        for i in range(actual.size):
+            circ, prob = actual.error_term(i)
+            expected_circ, expected_prob = expected.error_term(i)
+            self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_thermal_relaxation_error_t1_equal_t2_1state(self):
         """Test qobj instructions return for t1=t2"""
-        error = thermal_relaxation_error(1, 1, 1, 1)
-        targets = [[{'name': 'id', 'qubits': [0]}],
-                   [{'name': 'reset', 'qubits': [0]}, {'name': 'x', 'qubits': [0]}]]
-        probs = [np.exp(-1), 1 - np.exp(-1)]
-        for j in range(2):
-            circ, p = error.error_term(j)
-            circ = QuantumError._qc_to_json(circ)
-            self.remove_if_found(circ, targets)
-            if circ[0]['name'] == 'id':
-                self.assertAlmostEqual(p, probs[0], msg="identity probability")
-            else:
-                self.assertAlmostEqual(p, probs[1], msg="reset probability")
-        self.assertEqual(targets, [], msg="relaxation circuits")
+        actual = thermal_relaxation_error(1, 1, 1, 1)
+        expected = QuantumError([
+            (IGate(), np.exp(-1)),
+            ([(Reset(), [0]), (XGate(), [0])], 1 - np.exp(-1)),
+        ])
+        for i in range(actual.size):
+            circ, prob = actual.error_term(i)
+            expected_circ, expected_prob = expected.error_term(i)
+            self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_thermal_relaxation_error_gate(self):
         """Test qobj instructions return for t2 < t1"""
         t1, t2, time, p1 = (2, 1, 1, 0.3)
-        error = thermal_relaxation_error(t1, t2, time, p1)
-        targets = [[{'name': 'id', 'qubits': [0]}],
-                   [{'name': 'z', 'qubits': [0]}],
-                   [{'name': 'reset', 'qubits': [0]}],
-                   [{'name': 'reset', 'qubits': [0]}, {'name': 'x', 'qubits': [0]}]]
+        actual = thermal_relaxation_error(t1, t2, time, p1)
+
+        p_z = 0.5 * np.exp(-1 / t1) * (1 - np.exp(-(1 / t2 - 1 / t1) * time))
         p_reset0 = (1 - p1) * (1 - np.exp(-1 / t1))
         p_reset1 = p1 * (1 - np.exp(-1 / t1))
-        p_z = 0.5 * np.exp(-1 / t1) * (1 - np.exp(-(1 / t2 - 1 / t1) * time))
-        p_id = 1 - p_z - p_reset0 - p_reset1
-        for j in range(4):
-            circ, p = error.error_term(j)
-            circ = QuantumError._qc_to_json(circ)
-            self.remove_if_found(circ, targets)
-            name = circ[0]['name']
-            if circ[0]['name'] == 'id':
-                self.assertAlmostEqual(p, p_id, msg="identity probability")
-            elif name == 'z':
-                self.assertAlmostEqual(p, p_z, msg="Z error probability")
-            elif len(circ) == 1:
-                self.assertAlmostEqual(p, p_reset0, msg="reset-0 probability")
-            else:
-                self.assertAlmostEqual(p, p_reset1, msg="reset-1 probability")
-        self.assertEqual(targets, [], msg="relaxation circuits")
+        expected = QuantumError([
+            (IGate(), 1 - p_z - p_reset0 - p_reset1),
+            (ZGate(), p_z),
+            (Reset(), p_reset0),
+            ([(Reset(), [0]), (XGate(), [0])], p_reset1),
+        ])
+        for i in range(actual.size):
+            circ, prob = actual.error_term(i)
+            expected_circ, expected_prob = expected.error_term(i)
+            self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
     def test_thermal_relaxation_error_kraus(self):
         """Test non-kraus instructions return for t2 < t1"""
         t1, t2, time, p1 = (1, 2, 1, 0.3)
         error = thermal_relaxation_error(t1, t2, time, p1)
         circ, p = error.error_term(0)
-        circ = QuantumError._qc_to_json(circ)
         self.assertEqual(p, 1)
-        self.assertEqual(circ[0]['name'], 'kraus')
-        self.assertEqual(circ[0]['qubits'], [0])
+        self.assertEqual(circ[0][0].name, 'kraus')
+        self.assertEqual(circ[0][1], [circ.qubits[0]])
 
 
 # ================== Tests for old interfaces ================== #
@@ -533,52 +449,128 @@ class TestNoiseOldInterface(QiskitAerTestCase):
 
     def test_pauli_error_1q_unitary_from_pauli(self):
         """Test single-qubit pauli error as unitary qobj from Pauli obj"""
+        from qiskit.extensions import UnitaryGate
         paulis = [qi.Pauli(s) for s in ['I', 'X', 'Y', 'Z']]
         probs = [0.4, 0.3, 0.2, 0.1]
+        with self.assertWarns(DeprecationWarning):
+            actual = pauli_error(zip(paulis, probs), standard_gates=False)
+
         target_unitaries = [qi.Pauli("I").to_matrix(),
                             qi.Pauli("X").to_matrix(),
                             qi.Pauli("Y").to_matrix(),
                             qi.Pauli("Z").to_matrix()]
-        target_probs = probs.copy()
-
-        with self.assertWarns(DeprecationWarning):
-            error = pauli_error(zip(paulis, probs), standard_gates=False)
-
-        for j in range(len(paulis)):
-            circ, p = error.error_term(j)
-            circ = QuantumError._qc_to_json(circ)
-            name = circ[0]['name']
-            self.assertIn(name, ('unitary', 'id'))
-            self.assertEqual(circ[0]['qubits'], [0])
-            if name == "unitary":
-                self.remove_if_found(p, target_probs)
-                self.remove_if_found(circ[0]['params'][0], target_unitaries)
-        self.assertEqual(target_probs, [], msg="Incorrect probabilities")
-        self.assertEqual(target_unitaries, [], msg="Incorrect unitaries")
+        expected = QuantumError([(UnitaryGate(mat), p) for mat, p in zip(target_unitaries, probs)])
+        for i in range(actual.size):
+            circ, prob = actual.error_term(i)
+            expected_circ, expected_prob = expected.error_term(i)
+            self.assertEqual(circ, expected_circ)
+            self.assertAlmostEqual(prob, expected_prob)
 
     def test_pauli_error_2q_unitary_from_pauli(self):
         """Test two-qubit pauli error as unitary qobj from Pauli obj"""
+        from qiskit.extensions import UnitaryGate
         paulis = [qi.Pauli(s) for s in ['XY', 'YZ', 'ZX']]
         probs = [0.5, 0.3, 0.2]
+        with self.assertWarns(DeprecationWarning):
+            actual = pauli_error(zip(paulis, probs), standard_gates=False)
+
         X = qi.Pauli("X").to_matrix()
         Y = qi.Pauli("Y").to_matrix()
         Z = qi.Pauli("Z").to_matrix()
         target_unitaries = [np.kron(X, Y), np.kron(Y, Z), np.kron(Z, X)]
-        target_probs = probs.copy()
+        expected = QuantumError([(UnitaryGate(mat), p) for mat, p in zip(target_unitaries, probs)])
+        for i in range(actual.size):
+            circ, prob = actual.error_term(i)
+            expected_circ, expected_prob = expected.error_term(i)
+            self.assertEqual(circ, expected_circ)
+            self.assertAlmostEqual(prob, expected_prob)
 
+    def test_pauli_error_2q_gate_from_string(self):
+        """Test two-qubit pauli error as gate qobj from string label"""
+        paulis = ['XZ', 'YX', 'ZY']
+        probs = [0.5, 0.3, 0.2]
         with self.assertWarns(DeprecationWarning):
-            error = pauli_error(zip(paulis, probs), standard_gates=False)
+            actual = pauli_error(zip(paulis, probs), standard_gates=True)
 
-        for j in range(len(paulis)):
-            circ, p = error.error_term(j)
-            circ = QuantumError._qc_to_json(circ)
-            name = circ[0]['name']
-            self.assertIn(name, 'unitary')
-            self.assertEqual(circ[0]['qubits'], [0, 1])
-            self.remove_if_found(p, target_probs)
-            self.remove_if_found(circ[0]['params'][0], target_unitaries)
-        self.assertEqual(target_probs, [], msg="Incorrect probabilities")
-        self.assertEqual(target_unitaries, [], msg="Incorrect unitaries")
+        target_circs = [[{"name": "z", "qubits": [0]}, {"name": "x", "qubits": [1]}],
+                        [{"name": "x", "qubits": [0]}, {"name": "y", "qubits": [1]}],
+                        [{"name": "y", "qubits": [0]}, {"name": "z", "qubits": [1]}]]
+        with self.assertWarns(DeprecationWarning):
+            expected = QuantumError(zip(target_circs, probs), standard_gates=True)
+
+        for i in range(actual.size):
+            circ, prob = actual.error_term(i)
+            expected_circ, expected_prob = expected.error_term(i)
+            self.assertEqual(circ, expected_circ)
+            self.assertAlmostEqual(prob, expected_prob)
+
+    def test_pauli_error_2q_gate_from_string_1qonly(self):
+        """Test two-qubit pauli error as gate qobj from string label"""
+        paulis = ['XI', 'YI', 'ZI']
+        probs = [0.5, 0.3, 0.2]
+        with self.assertWarns(DeprecationWarning):
+            actual = pauli_error(zip(paulis, probs), standard_gates=True)
+
+        target_circs = [[{"name": "id", "qubits": [0]}, {"name": "x", "qubits": [1]}],
+                        [{"name": "id", "qubits": [0]}, {"name": "y", "qubits": [1]}],
+                        [{"name": "id", "qubits": [0]}, {"name": "z", "qubits": [1]}]]
+        with self.assertWarns(DeprecationWarning):
+            expected = QuantumError(zip(target_circs, probs), standard_gates=True)
+
+        for i in range(actual.size):
+            circ, prob = actual.error_term(i)
+            expected_circ, expected_prob = expected.error_term(i)
+            self.assertEqual(circ, expected_circ)
+            self.assertAlmostEqual(prob, expected_prob)
+
+    def test_pauli_error_2q_gate_from_pauli(self):
+        """Test two-qubit pauli error as gate qobj from Pauli obj"""
+        paulis = [qi.Pauli(s) for s in ['XZ', 'YX', 'ZY']]
+        probs = [0.5, 0.3, 0.2]
+        with self.assertWarns(DeprecationWarning):
+            actual = pauli_error(zip(paulis, probs), standard_gates=True)
+
+        target_circs = [[{"name": "z", "qubits": [0]}, {"name": "x", "qubits": [1]}],
+                        [{"name": "x", "qubits": [0]}, {"name": "y", "qubits": [1]}],
+                        [{"name": "y", "qubits": [0]}, {"name": "z", "qubits": [1]}]]
+        with self.assertWarns(DeprecationWarning):
+            expected = QuantumError(zip(target_circs, probs), standard_gates=True)
+
+        for i in range(actual.size):
+            circ, prob = actual.error_term(i)
+            expected_circ, expected_prob = expected.error_term(i)
+            self.assertEqual(circ, expected_circ)
+            self.assertAlmostEqual(prob, expected_prob)
+
+    def test_depolarizing_error_2q_gate(self):
+        """Test 2-qubit depolarizing error as gate qobj"""
+        p_depol = 0.3
+        with self.assertWarns(DeprecationWarning):
+            actual = depolarizing_error(p_depol, 2, standard_gates=True)
+        target_circs = [[{"name": "id", "qubits": [0]}, {"name": "id", "qubits": [1]}],
+                        [{"name": "id", "qubits": [0]}, {"name": "x", "qubits": [1]}],
+                        [{"name": "id", "qubits": [0]}, {"name": "y", "qubits": [1]}],
+                        [{"name": "id", "qubits": [0]}, {"name": "z", "qubits": [1]}],
+                        [{"name": "x", "qubits": [0]}, {"name": "id", "qubits": [1]}],
+                        [{"name": "x", "qubits": [0]}, {"name": "x", "qubits": [1]}],
+                        [{"name": "x", "qubits": [0]}, {"name": "y", "qubits": [1]}],
+                        [{"name": "x", "qubits": [0]}, {"name": "z", "qubits": [1]}],
+                        [{"name": "y", "qubits": [0]}, {"name": "id", "qubits": [1]}],
+                        [{"name": "y", "qubits": [0]}, {"name": "x", "qubits": [1]}],
+                        [{"name": "y", "qubits": [0]}, {"name": "y", "qubits": [1]}],
+                        [{"name": "y", "qubits": [0]}, {"name": "z", "qubits": [1]}],
+                        [{"name": "z", "qubits": [0]}, {"name": "id", "qubits": [1]}],
+                        [{"name": "z", "qubits": [0]}, {"name": "x", "qubits": [1]}],
+                        [{"name": "z", "qubits": [0]}, {"name": "y", "qubits": [1]}],
+                        [{"name": "z", "qubits": [0]}, {"name": "z", "qubits": [1]}]]
+        target_probs = [1 - p_depol * 15 / 16] + [p_depol / 16] * 15
+        with self.assertWarns(DeprecationWarning):
+            expected = QuantumError(zip(target_circs, target_probs), standard_gates=True)
+        for i in range(actual.size):
+            circ, prob = actual.error_term(i)
+            expected_circ, expected_prob = expected.error_term(i)
+            self.assertEqual(circ, expected_circ, msg=f"Incorrect {i}-th circuit")
+            self.assertAlmostEqual(prob, expected_prob, msg=f"Incorrect {i}-th probability")
 
 
 if __name__ == '__main__':
