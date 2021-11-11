@@ -20,11 +20,11 @@ from typing import Iterable
 
 import numpy as np
 
-import qiskit.quantum_info as qi
 from qiskit.circuit import QuantumCircuit, Instruction, Gate, QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate
+from qiskit.compiler import assemble
 from qiskit.exceptions import QiskitError
 from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -32,6 +32,7 @@ from qiskit.quantum_info.operators.channel import Kraus, SuperOp
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.mixins import TolerancesMixin
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
+from qiskit.quantum_info.operators.symplectic import Clifford
 from .errorutils import _standard_gates_instructions
 from .errorutils import kraus2instructions
 from .errorutils import standard_gate_unitary
@@ -385,7 +386,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
         for circ in self.circuits:
             # circuit-level check first
             try:
-                if qi.Clifford(circ) == qi.Clifford(np.eye(2 * circ.num_qubits, dtype=bool)):
+                if Clifford(circ) == Clifford(np.eye(2 * circ.num_qubits, dtype=bool)):
                     continue
             except QiskitError:
                 pass
@@ -450,27 +451,16 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
     def to_dict(self):
         """Return the current error as a dictionary."""
+        qobj = assemble(self.circuits)
+        instructions = [exp.to_dict()['instructions'] for exp in qobj.experiments]
         error = {
             "type": "qerror",
             "id": self.id,
             "operations": [],
-            "instructions": [self._qc_to_json(qc) for qc in self.circuits],
+            "instructions": instructions,
             "probabilities": list(self.probabilities)
         }
         return error
-
-    @staticmethod
-    def _qc_to_json(qc: QuantumCircuit):
-        bit_indices = {bit: index for index, bit in enumerate(qc.qubits)}
-        ret = []
-        for inst, qargs, _ in qc:
-            dic = {'name': inst.name, 'qubits': [bit_indices[q] for q in qargs]}
-            if inst.params:
-                dic['params'] = inst.params
-            if inst.label:
-                dic['label'] = inst.label
-            ret.append(dic)
-        return ret
 
     def compose(self, other, qargs=None, front=False):
         if not isinstance(other, QuantumError):
