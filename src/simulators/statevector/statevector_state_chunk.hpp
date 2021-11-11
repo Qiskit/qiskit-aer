@@ -22,6 +22,7 @@
 #include "framework/utils.hpp"
 #include "framework/json.hpp"
 #include "simulators/state_chunk.hpp"
+#include "simulators/statevector/statevector_state.hpp"
 #include "qubitvector.hpp"
 
 //#include "statevector_state.hpp"
@@ -36,49 +37,17 @@ namespace StatevectorChunk {
 
 using OpType = Operations::OpType;
 
-// OpSet of supported instructions
-const Operations::OpSet StateOpSet(
-    // Op types
-    {OpType::gate, OpType::measure,
-     OpType::reset, OpType::initialize,
-     OpType::snapshot, OpType::barrier,
-     OpType::bfunc, OpType::roerror,
-     OpType::matrix, OpType::diagonal_matrix,
-     OpType::multiplexer, OpType::kraus, OpType::qerror_loc,
-     OpType::sim_op, OpType::set_statevec,
-     OpType::save_expval, OpType::save_expval_var,
-     OpType::save_probs, OpType::save_probs_ket,
-     OpType::save_amps, OpType::save_amps_sq,
-     OpType::save_state, OpType::save_statevec,
-     OpType::save_statevec_dict, OpType::save_densmat
-     },
-    // Gates
-    {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
-     "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
-     "x",      "y",       "z",   "h",    "s",    "sdg",  "t",    "tdg",
-     "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
-     "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
-     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "sxdg",
-     "csx",    "mcsx",    "delay", "pauli", "mcx_gray", "cu", "mcu", "mcp"},
-    // Snapshots
-    {"statevector", "memory", "register", "probabilities",
-     "probabilities_with_variance", "expectation_value_pauli", "density_matrix",
-     "density_matrix_with_variance", "expectation_value_pauli_with_variance",
-     "expectation_value_matrix_single_shot", "expectation_value_matrix",
-     "expectation_value_matrix_with_variance",
-     "expectation_value_pauli_single_shot"});
-
-
 //=========================================================================
 // QubitVector State subclass
 //=========================================================================
 
 template <class statevec_t = QV::QubitVector<double>>
-class State : public Base::StateChunk<statevec_t> {
+class State : public Base::StateChunk<statevec_t>, public Statevector::State<statevec_t> {
 public:
   using BaseState = Base::StateChunk<statevec_t>;
+  using StatevectorState = Statevector::State<statevec_t>;
 
-  State() : BaseState(StateOpSet) {}
+  State() : Base::State<statevec_t>(Statevector::StateOpSet) {}
 
   //-----------------------------------------------------------------------
   // Base class overrides
@@ -114,6 +83,12 @@ public:
   virtual std::vector<reg_t> sample_measure(const reg_t& qubits,
                                             uint_t shots,
                                             RngEngine &rng) override;
+
+  //memory allocation (previously called before inisitalize_qreg)
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1)
+  {
+    return BaseState::allocate_chunks(num_qubits,block_bits,num_parallel_shots);
+  }
 
   //-----------------------------------------------------------------------
   // Additional methods

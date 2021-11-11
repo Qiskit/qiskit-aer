@@ -945,11 +945,6 @@ Result Controller::execute(std::vector<Circuit> &circuits,
       for (int j = 0; j < NUM_RESULTS; ++j) {
         set_parallelization_circuit(circuits[j], noise_model, methods[j]);
 
-        if(multi_chunk_req){
-          parallel_shots_ = 1;
-          parallel_state_update_ =
-              std::max<int>({1, max_parallel_threads_});
-        }
         run_circuit(circuits[j], noise_model,methods[j],
                     config, result.results[j],multi_chunk[j]);
       }
@@ -1474,7 +1469,6 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   if (cache_block_pass.enabled()) {
     block_bits = cache_block_pass.block_bits();
   }
-
   // Check if measure sampling supported
   can_sample &= check_measure_sampling_opt(circ, method);
 
@@ -1535,37 +1529,52 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
       result.metadata.add(true, "batched_shots_optimization");
     }
     else{
-      // Vector to store parallel thread output data
-      std::vector<ExperimentResult> par_results(parallel_shots_);
-
       int_t max_bits = get_max_matrix_qubits(circ);
 
-#pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
-      for (int i = 0; i < parallel_shots_; i++) {
-        uint_t i_shot,shot_end;
-        i_shot = circ.shots*i/parallel_shots_;
-        shot_end = circ.shots*(i+1)/parallel_shots_;
-
-        State_t par_state;
-        // Set state config
-        par_state.set_config(config);
-        par_state.set_parallelization(parallel_state_update_);
-        par_state.set_global_phase(circ.global_phase_angle);
-
-        par_state.set_max_matrix_qubits(max_bits );
+      if(parallel_shots_ == 1){
+        state.set_max_matrix_qubits(max_bits );
 
         // allocate qubit register
-        par_state.allocate(circ.num_qubits, block_bits);
+        state.allocate(circ.num_qubits, block_bits);
 
-        for(;i_shot<shot_end;i_shot++){
+        for (int i = 0; i < circ.shots; i++) {
           RngEngine rng;
-          rng.set_seed(circ.seed + i_shot);
-          run_single_shot(circ, par_state, par_results[i], rng);
+          rng.set_seed(circ.seed + i);
+          run_single_shot(circ, state, result, rng);
         }
-        par_state.add_metadata(par_results[i]);
+        state.add_metadata(result);
       }
-      for (auto &res : par_results) {
-        result.combine(std::move(res));
+      else{
+        // Vector to store parallel thread output data
+        std::vector<ExperimentResult> par_results(parallel_shots_);
+
+#pragma omp parallel for if (parallel_shots_ > 1) num_threads(parallel_shots_)
+        for (int i = 0; i < parallel_shots_; i++) {
+          uint_t i_shot,shot_end;
+          i_shot = circ.shots*i/parallel_shots_;
+          shot_end = circ.shots*(i+1)/parallel_shots_;
+
+          State_t par_state;
+          // Set state config
+          par_state.set_config(config);
+          par_state.set_parallelization(parallel_state_update_);
+          par_state.set_global_phase(circ.global_phase_angle);
+
+          par_state.set_max_matrix_qubits(max_bits );
+
+          // allocate qubit register
+          par_state.allocate(circ.num_qubits, block_bits);
+
+          for(;i_shot<shot_end;i_shot++){
+            RngEngine rng;
+            rng.set_seed(circ.seed + i_shot);
+            run_single_shot(circ, par_state, par_results[i], rng);
+          }
+          par_state.add_metadata(par_results[i]);
+        }
+        for (auto &res : par_results) {
+          result.combine(std::move(res));
+        }
       }
     }
   }

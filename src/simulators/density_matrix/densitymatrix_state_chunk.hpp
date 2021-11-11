@@ -22,6 +22,7 @@
 #include "framework/utils.hpp"
 #include "framework/json.hpp"
 #include "simulators/state_chunk.hpp"
+#include "simulators/density_matrix/densitymatrix_state.hpp"
 #include "densitymatrix.hpp"
 #ifdef AER_THRUST_SUPPORTED
 #include "densitymatrix_thrust.hpp"
@@ -32,41 +33,17 @@ namespace DensityMatrixChunk {
 
 using OpType = Operations::OpType;
 
-// OpSet of supported instructions
-const Operations::OpSet StateOpSet(
-    // Op types
-    {OpType::gate, OpType::measure,
-     OpType::reset, OpType::snapshot,
-     OpType::barrier, OpType::bfunc,
-     OpType::roerror, OpType::matrix,
-     OpType::diagonal_matrix, OpType::kraus, OpType::qerror_loc,
-     OpType::superop, OpType::set_statevec,
-     OpType::set_densmat, OpType::save_expval,
-     OpType::save_expval_var, OpType::save_densmat,
-     OpType::save_probs, OpType::save_probs_ket,
-     OpType::save_amps_sq, OpType::save_state
-     },
-    // Gates
-    {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
-     "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
-     "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
-     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli"},
-    // Snapshots
-    {"density_matrix", "memory", "register", "probabilities",
-     "probabilities_with_variance", "expectation_value_pauli",
-     "expectation_value_pauli_with_variance"});
-
-
 //=========================================================================
 // DensityMatrix State subclass
 //=========================================================================
 
 template <class densmat_t = QV::DensityMatrix<double>>
-class State : public Base::StateChunk<densmat_t> {
+class State : public Base::StateChunk<densmat_t>, public DensityMatrix::State<densmat_t> {
 public:
   using BaseState = Base::StateChunk<densmat_t>;
+  using DensityMatrixState = DensityMatrix::State<densmat_t>;
 
-  State() : BaseState(StateOpSet) {}
+  State() : Base::State<densmat_t>(DensityMatrix::StateOpSet) {}
   virtual ~State() {}
 
   //-----------------------------------------------------------------------
@@ -104,6 +81,12 @@ public:
                          ExperimentResult &result,
                          RngEngine &rng,
                          bool final_ops) override;
+
+  //memory allocation (previously called before inisitalize_qreg)
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1)
+  {
+    return BaseState::allocate_chunks(num_qubits,block_bits,num_parallel_shots);
+  }
 
   //-----------------------------------------------------------------------
   // Additional methods

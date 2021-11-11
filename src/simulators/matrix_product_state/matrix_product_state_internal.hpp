@@ -527,6 +527,11 @@ operator <<(std::ostream& out, MPS& mps)
   return mps.print(out);
 }
 
+
+inline void to_json(json_t &js, const MPS &mps) {
+
+}
+
 //-------------------------------------------------------------------------
 } // end namespace MPS
 //-------------------------------------------------------------------------

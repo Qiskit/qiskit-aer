@@ -22,6 +22,7 @@
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
 #include "simulators/state_chunk.hpp"
+#include "simulators/unitary/unitary_state.hpp"
 #include "unitarymatrix.hpp"
 #ifdef AER_THRUST_SUPPORTED
 #include "unitarymatrix_thrust.hpp"
@@ -30,36 +31,17 @@
 namespace AER {
 namespace QubitUnitaryChunk {
 
-// OpSet of supported instructions
-const Operations::OpSet StateOpSet(
-    // Op types
-    {Operations::OpType::gate, Operations::OpType::barrier,
-     Operations::OpType::bfunc, Operations::OpType::roerror,
-     Operations::OpType::qerror_loc,
-     Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
-     Operations::OpType::snapshot, Operations::OpType::save_unitary,
-     Operations::OpType::save_state, Operations::OpType::set_unitary},
-    // Gates
-    {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
-     "cy",     "cp",      "cu1", "cu2",  "cu3",  "swap", "id",   "p",
-     "x",      "y",       "z",   "h",    "s",    "sdg",  "t",    "tdg",
-     "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
-     "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
-     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "sxdg", "csx",
-     "mcsx", "csxdg", "mcsxdg",  "delay", "pauli", "cu", "mcu", "mcp"},
-    // Snapshots
-    {"unitary"});
-
 //=========================================================================
 // QubitUnitary State subclass
 //=========================================================================
 
 template <class unitary_matrix_t = QV::UnitaryMatrix<double>>
-class State : public Base::StateChunk<unitary_matrix_t> {
+class State : public Base::StateChunk<unitary_matrix_t>, public QubitUnitary::State<unitary_matrix_t> {
 public:
   using BaseState = Base::StateChunk<unitary_matrix_t>;
+  using QubitUnitaryState = QubitUnitary::State<unitary_matrix_t>;
 
-  State() : BaseState(StateOpSet) {}
+  State() : Base::State<unitary_matrix_t>(QubitUnitary::StateOpSet) {}
   virtual ~State() = default;
 
   //-----------------------------------------------------------------------
@@ -92,6 +74,12 @@ public:
                          ExperimentResult &result,
                          RngEngine &rng,
                          bool final_ops = false) override;
+
+  //memory allocation (previously called before inisitalize_qreg)
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1)
+  {
+    return BaseState::allocate_chunks(num_qubits,block_bits,num_parallel_shots);
+  }
 
   //-----------------------------------------------------------------------
   // Additional methods

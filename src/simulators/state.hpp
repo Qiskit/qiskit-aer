@@ -207,9 +207,10 @@ public:
   // The `final_ops` flag indicates no more instructions will be applied
   // to the state after this sequence, so the state can be modified at the
   // end of the instructions.
-  template <typename InputIterator>
-  void apply_ops(InputIterator first,
-                 InputIterator last,
+//  template <typename InputIterator>
+  using OpIterator = std::vector<Operations::Op>::const_iterator;
+  virtual void apply_ops(OpIterator first,
+                 OpIterator last,
                  ExperimentResult &result,
                  RngEngine &rng,
                  bool final_ops = false);
@@ -300,7 +301,7 @@ public:
 
   // Snapshot the current statevector (single-shot)
   // if type_label is the empty string the operation type will be used for the type
-  void snapshot_state(const Operations::Op &op, ExperimentResult &result,
+  virtual void snapshot_state(const Operations::Op &op, ExperimentResult &result,
                       std::string name = "") const;
 
   // Snapshot the classical memory bits state (single-shot)
@@ -327,7 +328,7 @@ public:
   void add_global_phase(double theta);
 
   //set number of processes to be distributed
-  void set_distribution(uint_t nprocs){}
+  virtual void set_distribution(uint_t nprocs){}
 
   //set index of state
   virtual void set_state_index(uint_t idx)
@@ -408,8 +409,8 @@ void State<state_t>::add_global_phase(double theta) {
 }
 
 template <class state_t>
-template <typename InputIterator>
-void State<state_t>::apply_ops(InputIterator first, InputIterator last,
+//template <typename InputIterator>
+void State<state_t>::apply_ops(OpIterator first, OpIterator last,
                                ExperimentResult &result,
                                RngEngine &rng,
                                bool final_ops) {

@@ -30,11 +30,6 @@
 
 namespace AER {
 
-//predefinition of StatevectorChunk::State for friend class declaration to access static members
-namespace StatevectorChunk {
-template <class statevec_t> class State;
-}
-
 namespace Statevector {
 
 using OpType = Operations::OpType;
@@ -104,8 +99,7 @@ enum class SnapshotDataType { average, average_var, pershot };
 //=========================================================================
 
 template <class statevec_t = QV::QubitVector<double>>
-class State : public Base::State<statevec_t> {
-  friend class StatevectorChunk::State<statevec_t>;
+class State : public virtual Base::State<statevec_t> {
 public:
   using BaseState = Base::State<statevec_t>;
 

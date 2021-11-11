@@ -442,7 +442,7 @@ protected:
   mutable Chunk<data_t> buffer_chunk_;
   mutable Chunk<data_t> send_chunk_;
   mutable Chunk<data_t> recv_chunk_;
-  std::shared_ptr<ChunkManager<data_t>> chunk_manager_;
+  std::shared_ptr<ChunkManager<data_t>> chunk_manager_ = nullptr;
 
   mutable thrust::host_vector<thrust::complex<data_t>> checkpoint_;
 
@@ -1414,10 +1414,12 @@ void QubitVectorThrust<data_t>::initialize_from_data(const std::complex<data_t>*
 template <typename data_t>
 void QubitVectorThrust<data_t>::initialize_creg(uint_t num_memory, uint_t num_register)
 {
-  num_creg_bits_ = num_register;
-  num_cmem_bits_ = num_memory;
-  if(chunk_.pos() == 0){
-    chunk_.container()->allocate_creg(num_cmem_bits_,num_creg_bits_);
+  if(chunk_manager_){
+    num_creg_bits_ = num_register;
+    num_cmem_bits_ = num_memory;
+    if(chunk_.pos() == 0){
+      chunk_.container()->allocate_creg(num_cmem_bits_,num_creg_bits_);
+    }
   }
 }
 
@@ -1427,26 +1429,28 @@ void QubitVectorThrust<data_t>::initialize_creg(uint_t num_memory,
                        const std::string &memory_hex,
                        const std::string &register_hex)
 {
-  num_creg_bits_ = num_register;
-  num_cmem_bits_ = num_memory;
-  if(chunk_.pos() == 0){
-    chunk_.container()->allocate_creg(num_cmem_bits_,num_creg_bits_);
+  if(chunk_manager_){
+    num_creg_bits_ = num_register;
+    num_cmem_bits_ = num_memory;
+    if(chunk_.pos() == 0){
+      chunk_.container()->allocate_creg(num_cmem_bits_,num_creg_bits_);
 
-    int_t i;
-    for(i=0;i<num_register;i++){
-      if(register_hex[register_hex.size() - 1 - i] == '0'){
-        store_cregister(i,0);
+      int_t i;
+      for(i=0;i<num_register;i++){
+        if(register_hex[register_hex.size() - 1 - i] == '0'){
+          store_cregister(i,0);
+        }
+        else{
+          store_cregister(i,1);
+        }
       }
-      else{
-        store_cregister(i,1);
-      }
-    }
-    for(i=0;i<num_memory;i++){
-      if(memory_hex[memory_hex.size() - 1 - i] == '0'){
-        store_cregister(i+num_creg_bits_,0);
-      }
-      else{
-        store_cregister(i+num_creg_bits_,1);
+      for(i=0;i<num_memory;i++){
+        if(memory_hex[memory_hex.size() - 1 - i] == '0'){
+          store_cregister(i+num_creg_bits_,0);
+        }
+        else{
+          store_cregister(i+num_creg_bits_,1);
+        }
       }
     }
   }
