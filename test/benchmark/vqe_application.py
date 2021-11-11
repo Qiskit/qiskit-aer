@@ -33,84 +33,66 @@ class UCCSDBenchmarkSuite:
         self.params = ([mol_name for mol_name in self.mol_strings])
         self.param_names = ["mol"]
 
-    def _run_uccsd_vqe(self, mol_string, method, threads):
-        from qiskit import Aer
-        from qiskit.algorithms import VQE
-        from qiskit.algorithms.optimizers import SLSQP
-        from qiskit_nature.circuit.library import HartreeFock
-        from qiskit_nature.components.variational_forms import UCCSD
-        from qiskit_nature.drivers import PySCFDriver, UnitsType
-        from qiskit_nature.mappers.second_quantization import ParityMapper
-        from qiskit_nature.operators.second_quantization.qubit_converter import QubitConverter
-        from qiskit_nature.transformations import (FermionicTransformation,
-                                                   FermionicTransformationType,
-                                                   FermionicQubitMappingType)
+    def _run_uccsd_vqe(self, mol_string, method, simulator, threads):
         
-        driver = PySCFDriver(atom=mol_string,
-                                  unit=UnitsType.ANGSTROM,
-                                  charge=0,
-                                  spin=0,
-                                  basis='sto3g')
-        qubit_converter = QubitConverter(mappers=ParityMapper())
-        fermionic_transformation = \
-            FermionicTransformation(transformation=FermionicTransformationType.FULL,
-                                    qubit_mapping=FermionicQubitMappingType.PARITY,
-                                    two_qubit_reduction=True,
-                                    freeze_core=True,
-                                    orbital_reduction=[])
- 
-        qubit_op, _ = fermionic_transformation.transform(driver)
-             
+        from qiskit_nature.circuit.library import HartreeFock, UCCSD
+        from qiskit_nature.converters.second_quantization import QubitConverter
+        from qiskit_nature.drivers import UnitsType, Molecule
+        from qiskit_nature.drivers.second_quantization.pyscfd import PySCFDriver
+        from qiskit_nature.mappers.second_quantization import JordanWignerMapper, ParityMapper
+        from qiskit_nature.problems.second_quantization import ElectronicStructureProblem
+        
+        driver = PySCFDriver(atom=mol_string, unit=UnitsType.ANGSTROM, basis='sto3g')
+        es_problem = ElectronicStructureProblem(driver)
+        qubit_converter = QubitConverter(JordanWignerMapper())
+        max_evals_grouped = 1024
+        
+        from qiskit.algorithms.optimizers import SLSQP
         optimizer = SLSQP(maxiter=5000)
-         
-        num_spin_orbitals = fermionic_transformation.molecule_info['num_orbitals']
-        num_particles = fermionic_transformation.molecule_info['num_particles']
-        z2_symmetries = fermionic_transformation.molecule_info['z2_symmetries']
-         
-        init_state = HartreeFock(
-            num_spin_orbitals=num_spin_orbitals,
-            num_particles=num_particles,
-            qubit_converter=qubit_converter)
-        var_form = UCCSD(
-            num_orbitals=num_spin_orbitals,
-            num_particles=num_particles,
-            initial_state=initial_state,
-            qubit_mapping=fermionic_transformation._qubit_mapping,
-            two_qubit_reduction=fermionic_transformation._two_qubit_reduction,
-            max_evals_grouped=256,
-            z2_symmetries=z2_symmetries)
-         
-        quantum_instance = QuantumInstance(
-                         backend=Aer.get_backend('statevector_simulator'))
-        quantum_instance.backend_options['backend_options'] = {'max_parallel_experiments':threads, 'method': method}
-         
-        solver = VQE(var_form=var_form,
-                     optimizer=optimizer,
-                     quantum_instance=quantum_instance)
-         
-        gsc = GroundStateEigensolver(self.fermionic_transformation, solver)
-         
-        result = gsc.solve(self.driver)
-
-            
-    def _time_statevector(self, mol_name):
+        
+        from qiskit.utils import QuantumInstance
+        
+        quantum_instance = QuantumInstance(backend=simulator)
+        
+        # import logging
+        # logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s',
+        #                     level=logging.DEBUG,
+        #                     datefmt='%Y-%m-%d %H:%M:%S')
+        
+        from qiskit_nature.algorithms import VQEUCCFactory
+        
+        vqe_solver = VQEUCCFactory(quantum_instance,
+                                   optimizer=optimizer,
+                                   include_custom=True,
+                                   max_evals_grouped=max_evals_grouped)
+        
+        from qiskit_nature.algorithms import GroundStateEigensolver
+        
+        calc = GroundStateEigensolver(qubit_converter, vqe_solver)
+        
+        res = calc.solve(es_problem)
+        
+    def time_statevector(self, mol_name):
+        from qiskit.providers.aer import AerSimulator
         threads = multiprocessing.cpu_count()
         mol_string = self.mol_strings[mol_name][0]
         qubit = self.mol_strings[mol_name][1]
-        self._run_uccsd_vqe(mol_string, 'statevector', threads)
+        self._run_uccsd_vqe(mol_string, 'statevector_cpu', AerSimulator(device='CPU'), threads)
 
-    def _time_statevector_gpu(self, mol_name):
+    def time_statevector_gpu(self, mol_name):
+        from qiskit.providers.aer import AerSimulator
         threads = 1
         mol_string = self.mol_strings[mol_name][0]
         qubit = self.mol_strings[mol_name][1]
-        self._run_uccsd_vqe(mol_string, 'statevector_gpu', threads)
+        self._run_uccsd_vqe(mol_string, 'statevector_gpu', AerSimulator(device='GPU'), threads)
 
     def run_manual(self):
         import timeout_decorator
         @timeout_decorator.timeout(self.timeout)
         def run_with_timeout (suite, method, molstring):
             start = time()
-            return eval(f'suite._time_{method}("{molstring}")')
+            eval(f'suite.time_{method}("{molstring}")')
+            return time() - start
         
         #for runtime in self.runtime_names:
         for method in [ 'statevector' ]:

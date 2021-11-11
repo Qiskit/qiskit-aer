@@ -46,7 +46,7 @@ class CircuitLibraryCircuits():
         return RealAmplitudes(qubit, reps=repeats)
 
     def real_amplitudes_linear(self, qubit, repeats):
-        return RealAmplitudes(qubit, reps=repeats, entanglement='linear'))
+        return RealAmplitudes(qubit, reps=repeats, entanglement='linear')
  
     def efficient_su2(self, qubit, repeats):
         return EfficientSU2(qubit)

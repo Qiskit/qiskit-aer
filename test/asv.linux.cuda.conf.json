@@ -45,6 +45,7 @@
         "pip install git+https://github.com/Qiskit/qiskit-terra",
         "pip install pyscf",
         "pip install matplotlib",
+        "pip install qiskit_nature",
         "python setup.py bdist_wheel --dist-dir={build_cache_dir} -- -DCMAKE_CXX_COMPILER=g++ -DAER_THRUST_BACKEND=CUDA -- -j"
     ],
 
