@@ -205,9 +205,13 @@ def _standard_gate_instruction(instruction, ignore_phase=True):
         list: a list of (instructions, qubits) equivalent to in input instruction.
     """
     gate = {
+        "id": IGate(),
         "x": XGate(),
         "y": YGate(),
         "z": ZGate(),
+        "h": HGate(),
+        "s": SGate(),
+        "sdg": SdgGate(),
         "t": TGate(),
         "tdg": TdgGate(),
         "cx": CXGate(),
@@ -216,11 +220,14 @@ def _standard_gate_instruction(instruction, ignore_phase=True):
     }
 
     name = instruction.get("name", None)
+    qubits = instruction["qubits"]
+    if name in gate:
+        return [(gate[name], qubits)]
+
     if name not in ["mat", "unitary", "kraus"]:
         return [instruction]
-    qubits = instruction["qubits"]
-    params = instruction["params"]
 
+    params = instruction["params"]
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore",
                                 category=DeprecationWarning,
