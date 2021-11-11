@@ -17,19 +17,20 @@ NoiseModel class integration tests
 import unittest
 
 import numpy as np
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler import transpile
 from qiskit.providers.aer.backends import AerSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit.providers.aer.noise.errors.standard_errors import kraus_error
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.providers.aer.noise.errors.standard_errors import reset_error
+from test.terra.common import QiskitAerTestCase
+
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.compiler import transpile
 from qiskit.test import mock
-from test.terra import common
 
 
-class TestNoise(common.QiskitAerTestCase):
+class TestNoiseModel(QiskitAerTestCase):
     """Testing noise model"""
 
     def test_amplitude_damping_error(self):
@@ -225,6 +226,27 @@ class TestNoise(common.QiskitAerTestCase):
         circ = transpile(circ, backend, optimization_level=0)
         result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
+
+    def test_map_noise(self):
+        org_error = reset_error(0.2)
+        new_error = pauli_error([("I", 0.5), ("Z", 0.5)])
+
+        model = NoiseModel()
+        model.add_all_qubit_quantum_error(org_error, ['x'])
+        model.add_quantum_error(org_error, ['sx'], [0])
+        model.add_all_qubit_readout_error([[0.9, 0.1], [0, 1]])
+
+        def map_func(noise):
+            return new_error if noise == org_error else None
+
+        actual = model.map_noise(map_func)
+
+        expected = NoiseModel()
+        expected.add_all_qubit_quantum_error(new_error, ['x'])
+        expected.add_quantum_error(new_error, ['sx'], [0])
+        expected.add_all_qubit_readout_error([[0.9, 0.1], [0, 1]])
+
+        self.assertEqual(actual, expected)
 
 
 if __name__ == '__main__':
