@@ -119,27 +119,27 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
 
         if self.RUNTIME_STATEVECTOR_CPU in runtime_names:
             self.simulators[self.RUNTIME_STATEVECTOR_CPU] = SIMULATOR
-            self.backend_options_list[self.RUNTIME_STATEVECTOR_CPU] = { 'method': self.RUNTIME_STATEVECTOR_CPU }
+            self.backend_options_list[self.RUNTIME_STATEVECTOR_CPU] = { 'method': self.RUNTIME_STATEVECTOR_CPU, 'enable_truncation': False}
             self.backend_qubits[self.RUNTIME_STATEVECTOR_CPU] = self.qubits
         
         if self.RUNTIME_STATEVECTOR_GPU in runtime_names:
             self.simulators[self.RUNTIME_STATEVECTOR_GPU] = SIMULATOR
-            self.backend_options_list[self.RUNTIME_STATEVECTOR_GPU] = { 'method': self.RUNTIME_STATEVECTOR_GPU }
+            self.backend_options_list[self.RUNTIME_STATEVECTOR_GPU] = { 'method': self.RUNTIME_STATEVECTOR_CPU, 'device': 'GPU', 'enable_truncation': False}
             self.backend_qubits[self.RUNTIME_STATEVECTOR_GPU] = self.qubits
         
         if self.RUNTIME_MPS_CPU in runtime_names:
             self.simulators[self.RUNTIME_MPS_CPU] = SIMULATOR
-            self.backend_options_list[self.RUNTIME_MPS_CPU] = { 'method': self.RUNTIME_MPS_CPU }
+            self.backend_options_list[self.RUNTIME_MPS_CPU] = { 'method': self.RUNTIME_MPS_CPU, 'enable_truncation': False}
             self.backend_qubits[self.RUNTIME_MPS_CPU] = self.qubits
         
         if self.RUNTIME_DENSITY_MATRIX_CPU in runtime_names:
             self.simulators[self.RUNTIME_DENSITY_MATRIX_CPU] = SIMULATOR
-            self.backend_options_list[self.RUNTIME_DENSITY_MATRIX_CPU] = { 'method': self.RUNTIME_DENSITY_MATRIX_CPU }
+            self.backend_options_list[self.RUNTIME_DENSITY_MATRIX_CPU] = { 'method': self.RUNTIME_DENSITY_MATRIX_CPU, 'enable_truncation': False}
             self.backend_qubits[self.RUNTIME_DENSITY_MATRIX_CPU] = [qubit for qubit in qubits if qubit <= 15]
         
         if self.RUNTIME_DENSITY_MATRIX_GPU in runtime_names:
             self.simulators[self.RUNTIME_DENSITY_MATRIX_GPU] = SIMULATOR
-            self.backend_options_list[self.RUNTIME_DENSITY_MATRIX_GPU] = { 'method': self.RUNTIME_DENSITY_MATRIX_GPU }
+            self.backend_options_list[self.RUNTIME_DENSITY_MATRIX_GPU] = { 'method': self.RUNTIME_DENSITY_MATRIX_CPU, 'device': 'GPU', 'enable_truncation': False}
             self.backend_qubits[self.RUNTIME_DENSITY_MATRIX_GPU] = [qubit for qubit in qubits if qubit <= 15]
         
     def gen_qobj(self, runtime, app, measure, measure_count, qubit):
