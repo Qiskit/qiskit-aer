@@ -18,10 +18,10 @@ import unittest
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.providers.aer.utils import insert_noise
+from test.terra.common import QiskitAerTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit, transpile
 from qiskit.quantum_info import SuperOp
-from test.terra.common import QiskitAerTestCase
 
 
 class TestNoiseInserter(QiskitAerTestCase):

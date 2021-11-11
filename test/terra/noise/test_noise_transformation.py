@@ -25,7 +25,7 @@ from qiskit.providers.aer.noise.noiseerror import NoiseError
 from qiskit.providers.aer.utils import NoiseTransformer
 from qiskit.providers.aer.utils import approximate_noise_model
 from qiskit.providers.aer.utils import approximate_quantum_error
-from test.terra import common
+from test.terra.common import QiskitAerTestCase
 
 from qiskit.circuit import Reset
 from qiskit.circuit.library.standard_gates import IGate
@@ -40,7 +40,7 @@ except ImportError:
 
 
 @unittest.skipUnless(HAS_CVXPY, 'cvxpy is required to run these tests')
-class TestNoiseTransformer(common.QiskitAerTestCase):
+class TestNoiseTransformer(QiskitAerTestCase):
     def setUp(self):
         super().setUp()
         self.ops = {
@@ -331,7 +331,7 @@ from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info import process_fidelity
 from qiskit.quantum_info.random import random_unitary
 @unittest.skipUnless(HAS_CVXPY, 'cvxpy is required to run these tests')
-class TestCompareOldAndNewNoiseTransformer(common.QiskitAerTestCase):
+class TestCompareOldAndNewNoiseTransformer(QiskitAerTestCase):
     def setUp(self):
         super().setUp()
         warnings.filterwarnings("ignore", category=DeprecationWarning)

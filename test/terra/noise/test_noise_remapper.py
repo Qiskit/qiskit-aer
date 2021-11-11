@@ -3,14 +3,15 @@ NoiseModel class integration tests
 """
 
 import unittest
-from test.terra import common
+
 from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.noise.noiseerror import NoiseError
 from qiskit.providers.aer.noise.errors import depolarizing_error
+from qiskit.providers.aer.noise.noiseerror import NoiseError
 from qiskit.providers.aer.utils import remap_noise_model
+from test.terra.common import QiskitAerTestCase
 
 
-class TestNoiseRemapper(common.QiskitAerTestCase):
+class TestNoiseRemapper(QiskitAerTestCase):
     """Testing remap_noise_model function"""
 
     def test_raises_duplicate_qubits(self):

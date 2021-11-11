@@ -24,10 +24,10 @@ from qiskit.providers.aer.noise import QuantumError
 from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 from qiskit.providers.aer.noise.noiseerror import NoiseError
 from qiskit.quantum_info.operators import SuperOp, Kraus, Pauli
-from test.terra import common
+from test.terra.common import QiskitAerTestCase
 
 
-class TestQuantumError(common.QiskitAerTestCase):
+class TestQuantumError(QiskitAerTestCase):
     """Testing QuantumError class"""
 
     def test_empty(self):
@@ -235,7 +235,7 @@ class TestQuantumError(common.QiskitAerTestCase):
 # ================== Tests for old interfaces ================== #
 # TODO: remove after deprecation period
 @ddt.ddt
-class TestQuantumErrorOldInterface(common.QiskitAerTestCase):
+class TestQuantumErrorOldInterface(QiskitAerTestCase):
     """Testing the deprecating interface of QuantumError class"""
 
     def assertKrausWarning(self):

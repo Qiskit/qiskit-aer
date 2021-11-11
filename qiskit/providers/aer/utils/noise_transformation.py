@@ -33,7 +33,6 @@ import warnings
 from typing import Sequence, List, Union
 
 import numpy as np
-import sympy
 
 from qiskit.circuit import Reset
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
@@ -566,15 +565,16 @@ class NoiseTransformer:
         Returns:
             List: The channel operator list
         """
+        from sympy import Matrix, eye
         # convert to sympy matrices and verify that each singleton is
         # in a tuple; also add identity matrix
         result = []
         for ops in ops_list:
             if not isinstance(ops, tuple) and not isinstance(ops, list):
                 ops = [ops]
-            result.append([sympy.Matrix(op) for op in ops])
+            result.append([Matrix(op) for op in ops])
         n = result[0][0].shape[0]  # grab the dimensions from the first element
-        result = [[sympy.eye(n)]] + result
+        result = [[eye(n)]] + result
         return result
 
     # pylint: disable=invalid-name
