@@ -20,7 +20,7 @@ class CircuitLibraryCircuits():
 
     def _repeat(self, circ, repeats):
         if repeats is not None and repeats > 1:
-            circ = circ.repeat(repeats).decompose()
+            circ = circ.repeat(repeats)
         return circ
     
     def integer_comparator(self, qubit, repeats):
@@ -32,33 +32,33 @@ class CircuitLibraryCircuits():
     def weighted_adder(self, qubit, repeats):
         if qubit > 20:
             raise ValueError('qubit is too big: {0}'.format(qubit))
-        return self._repeat(WeightedAdder(num_state_qubits=qubit).decompose(), repeats)
+        return self._repeat(WeightedAdder(num_state_qubits=qubit), repeats)
     
     def quadratic_form(self, qubit, repeats):
         if qubit < 4:
             raise ValueError('qubit is too small: {0}'.format(qubit))
-        return self._repeat(QuadraticForm(num_result_qubits=(qubit - 3), linear=[1, 1, 1], little_endian=True).decompose(), repeats)
+        return self._repeat(QuadraticForm(num_result_qubits=(qubit - 3), linear=[1, 1, 1], little_endian=True), repeats)
 
     def qft(self, qubit, repeats):
         return self._repeat(QFT(qubit), repeats)
 
     def real_amplitudes(self, qubit, repeats):
-        return self.transpile(RealAmplitudes(qubit, reps=repeats))
+        return RealAmplitudes(qubit, reps=repeats)
 
     def real_amplitudes_linear(self, qubit, repeats):
-        return self.transpile(RealAmplitudes(qubit, reps=repeats, entanglement='linear'))
-    
+        return RealAmplitudes(qubit, reps=repeats, entanglement='linear'))
+ 
     def efficient_su2(self, qubit, repeats):
-        return self.transpile(EfficientSU2(qubit).decompose())
+        return EfficientSU2(qubit)
 
     def efficient_su2_linear(self, qubit, repeats):
-        return self.transpile(EfficientSU2(qubit, reps=repeats, entanglement='linear'))
+        return EfficientSU2(qubit, reps=repeats, entanglement='linear')
     
     def excitation_preserving(self, qubit, repeats):
-        return self.transpile(ExcitationPreserving(qubit, reps=repeats).decompose())
+        return ExcitationPreserving(qubit, reps=repeats)
 
     def excitation_preserving_linear(self, qubit, repeats):
-        return self.transpile(ExcitationPreserving(qubit, reps=repeats, entanglement='linear'))
+        return ExcitationPreserving(qubit, reps=repeats, entanglement='linear')
 
     def fourier_checking(self, qubit, repeats):
         if qubit > 20:
@@ -96,12 +96,12 @@ class CircuitLibraryCircuits():
         for i in range(qubit):
             for j in range(i + 1, qubit):
                 interactions[j][i] = interactions[i][j]
-        return self._repeat(IQP(interactions).decompose(), repeats)
+        return self._repeat(IQP(interactions), repeats)
 
     def quantum_volume(self, qubit, repeats):
-        return self._repeat(QuantumVolume(qubit).decompose(), repeats)
+        return self._repeat(QuantumVolume(qubit), repeats)
 
     def phase_estimation(self, qubit, repeats):
         if qubit < 5:
             raise ValueError('qubit is too small: {0}'.format(qubit))
-        return self._repeat(PhaseEstimation(2, QuantumVolume(qubit - 2).decompose()).decompose(), repeats)
+        return self._repeat(PhaseEstimation(2, QuantumVolume(qubit - 2)), repeats)

@@ -58,10 +58,6 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         RUNTIME_STATEVECTOR_GPU
         ]
     
-    TRANSPLIERS = {
-        RUNTIME_MPS_CPU: 'self.transpile_for_mps'
-        }
-    
     DEFAULT_QUBITS = [10, 15, 20, 25]
     
     MEASUREMENT_SAMPLING = 'sampling'
@@ -118,28 +114,28 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             self.noise_models[self.NOISE_DEPOLARIZING] = noise_model
 
         if self.RUNTIME_STATEVECTOR_CPU in runtime_names:
-            self.simulators[self.RUNTIME_STATEVECTOR_CPU] = SIMULATOR
-            self.backend_options_list[self.RUNTIME_STATEVECTOR_CPU] = { 'method': self.RUNTIME_STATEVECTOR_CPU, 'enable_truncation': False}
+            self.simulators[self.RUNTIME_STATEVECTOR_CPU] = AerSimulator(method='statevector', device='CPU')
+            self.backend_options_list[self.RUNTIME_STATEVECTOR_CPU] = { 'enable_truncation': False}
             self.backend_qubits[self.RUNTIME_STATEVECTOR_CPU] = self.qubits
         
         if self.RUNTIME_STATEVECTOR_GPU in runtime_names:
-            self.simulators[self.RUNTIME_STATEVECTOR_GPU] = SIMULATOR
-            self.backend_options_list[self.RUNTIME_STATEVECTOR_GPU] = { 'method': self.RUNTIME_STATEVECTOR_CPU, 'device': 'GPU', 'enable_truncation': False}
+            self.simulators[self.RUNTIME_STATEVECTOR_GPU] = AerSimulator(method='statevector', device='GPU')
+            self.backend_options_list[self.RUNTIME_STATEVECTOR_GPU] = { 'enable_truncation': False}
             self.backend_qubits[self.RUNTIME_STATEVECTOR_GPU] = self.qubits
         
         if self.RUNTIME_MPS_CPU in runtime_names:
-            self.simulators[self.RUNTIME_MPS_CPU] = SIMULATOR
-            self.backend_options_list[self.RUNTIME_MPS_CPU] = { 'method': self.RUNTIME_MPS_CPU, 'enable_truncation': False}
+            self.simulators[self.RUNTIME_MPS_CPU] = AerSimulator(method='matrix_product_state', device='GPU')
+            self.backend_options_list[self.RUNTIME_MPS_CPU] = { 'enable_truncation': False}
             self.backend_qubits[self.RUNTIME_MPS_CPU] = self.qubits
         
         if self.RUNTIME_DENSITY_MATRIX_CPU in runtime_names:
-            self.simulators[self.RUNTIME_DENSITY_MATRIX_CPU] = SIMULATOR
-            self.backend_options_list[self.RUNTIME_DENSITY_MATRIX_CPU] = { 'method': self.RUNTIME_DENSITY_MATRIX_CPU, 'enable_truncation': False}
+            self.simulators[self.RUNTIME_DENSITY_MATRIX_CPU] = AerSimulator(method='density_matrix', device='CPU')
+            self.backend_options_list[self.RUNTIME_DENSITY_MATRIX_CPU] = { 'enable_truncation': False}
             self.backend_qubits[self.RUNTIME_DENSITY_MATRIX_CPU] = [qubit for qubit in qubits if qubit <= 15]
         
         if self.RUNTIME_DENSITY_MATRIX_GPU in runtime_names:
-            self.simulators[self.RUNTIME_DENSITY_MATRIX_GPU] = SIMULATOR
-            self.backend_options_list[self.RUNTIME_DENSITY_MATRIX_GPU] = { 'method': self.RUNTIME_DENSITY_MATRIX_CPU, 'device': 'GPU', 'enable_truncation': False}
+            self.simulators[self.RUNTIME_DENSITY_MATRIX_GPU] = AerSimulator(method='density_matrix', device='GPU')
+            self.backend_options_list[self.RUNTIME_DENSITY_MATRIX_GPU] = { 'enable_truncation': False}
             self.backend_qubits[self.RUNTIME_DENSITY_MATRIX_GPU] = [qubit for qubit in qubits if qubit <= 15]
         
     def gen_qobj(self, runtime, app, measure, measure_count, qubit):
@@ -167,49 +163,12 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             circuit = circuit.bind_parameters(param_binds)
         
         simulator = self.simulators[runtime]
-        if measure == self.MEASUREMENT_SAMPLING:
-            if runtime in self.TRANSPLIERS:
-                runtime_circuit = eval(self.TRANSPLIERS[runtime])(circuit)
-                if (runtime, app, measure, measure_count, qubit) not in QOBJS:
-                    QOBJS[(runtime, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=measure_count)
-                return QOBJS[(runtime, app, measure, measure_count, qubit)]
-            else:
-                runtime_circuit = circuit
-                if (simulator, app, measure, measure_count, qubit) not in QOBJS:
-                    QOBJS[(simulator, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=measure_count)
-                return QOBJS[(simulator, app, measure, measure_count, qubit)]
-        elif measure == self.MEASUREMENT_EXPVAL:
-            if runtime in self.TRANSPLIERS:
-                runtime_circuit = eval(self.TRANSPLIERS[runtime])(circuit)
-                if (runtime, app, measure, measure_count, qubit) not in QOBJS:
-                    QOBJS[(runtime, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=1)
-                return QOBJS[(runtime, app, measure, measure_count, qubit)]
-            else:
-                runtime_circuit = circuit
-                if (simulator, app, measure, measure_count, qubit) not in QOBJS:
-                    QOBJS[(simulator, app, measure, measure_count, qubit)] = assemble(runtime_circuit, simulator, shots=1)
-                return QOBJS[(simulator, app, measure, measure_count, qubit)]
+        shots = measure_count if measure == self.MEASUREMENT_SAMPLING else 1
         
-    def _transpile(self, circuit, basis_gates):
-        from qiskit import transpile
-        return transpile(circuit, basis_gates=basis_gates)
-
-    def transpile(self, circuit):
-        return self._transpile(circuit, [
-            'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
-            't', 'tdg', 'swap', 'ccx', 'unitary', 'diagonal', 'initialize',
-            'cu1', 'cu2', 'cu3', 'cswap', 'mcx', 'mcy', 'mcz',
-            'mcu1', 'mcu2', 'mcu3', 'mcswap', 'multiplexer', 'kraus', 'roerror'])
-    
-    def transpile_for_mps(self, circuit):
-        return self._transpile(circuit, [
-            'u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
-            't', 'tdg', 'swap', 'ccx'#, 'unitary', 'diagonal', 'initialize',
-            'cu1', #'cu2', 'cu3', 'cswap', 'mcx', 'mcy', 'mcz',
-            #'mcu1', 'mcu2', 'mcu3', 'mcswap', 'multiplexer', 'kraus', 
-            'roerror'
-            ])
-
+        if (simulator, app, measure, measure_count, qubit) not in QOBJS:
+            QOBJS[(runtime, app, measure, measure_count, qubit)] = assemble(transpile(circuit, simulator), simulator, shots=shots)
+        return QOBJS[(runtime, app, measure, measure_count, qubit)]
+        
     def _run(self, runtime, app, measure, measure_count, noise_name, qubit):
         if runtime not in self.simulators or runtime not in self.backend_options_list:
             raise ValueError('unknown runtime: {0}'.format(runtime))
