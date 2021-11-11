@@ -48,20 +48,20 @@ $ python
 ```python
 import qiskit
 from qiskit import IBMQ
-from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer import AerSimulator
 
 # Generate 3-qubit GHZ state
-circ = qiskit.QuantumCircuit(3, 3)
+circ = qiskit.QuantumCircuit(3)
 circ.h(0)
 circ.cx(0, 1)
 circ.cx(1, 2)
-circ.measure([0, 1, 2], [0, 1 ,2])
+circ.measure_all()
 
 # Construct an ideal simulator
-sim = QasmSimulator()
+aersim = AerSimulator()
 
 # Perform an ideal simulation
-result_ideal = qiskit.execute(circ, sim).result()
+result_ideal = qiskit.execute(circ, aersim).result()
 counts_ideal = result_ideal.get_counts(0)
 print('Counts(ideal):', counts_ideal)
 # Counts(ideal): {'000': 493, '111': 531}
@@ -70,11 +70,11 @@ print('Counts(ideal):', counts_ideal)
 # This simulator backend will be automatically configured
 # using the device configuration and noise model 
 provider = IBMQ.load_account()
-vigo_backend = provider.get_backend('ibmq_vigo')
-vigo_sim = QasmSimulator.from_backend(vigo_backend)
+backend = provider.get_backend('ibmq_athens')
+aersim_backend = AerSimulator.from_backend(backend)
 
 # Perform noisy simulation
-result_noise = qiskit.execute(circ, vigo_sim).result()
+result_noise = qiskit.execute(circ, aersim_backend).result()
 counts_noise = result_noise.get_counts(0)
 
 print('Counts(noise):', counts_noise)
@@ -91,7 +91,7 @@ We use [GitHub issues](https://github.com/Qiskit/qiskit-aer/issues) for tracking
 ## Next Steps
 
 Now you're set up and ready to check out some of the other examples from our
-[Qiskit IQX Tutorials](https://github.com/Qiskit/qiskit-iqx-tutorials/tree/master/qiskit/advanced/aer) or [Qiskit Community Tutorials](https://github.com/Qiskit/qiskit-community-tutorials/tree/master/aer) repositories.
+[Qiskit IQX Tutorials](https://github.com/Qiskit/qiskit-tutorials/tree/master/tutorials/simulators) or [Qiskit Community Tutorials](https://github.com/Qiskit/qiskit-community-tutorials/tree/master/aer) repositories.
 
 ## Authors and Citation
 

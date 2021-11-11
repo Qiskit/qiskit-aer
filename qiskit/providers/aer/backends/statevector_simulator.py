@@ -13,17 +13,23 @@
 Qiskit Aer statevector simulator backend.
 """
 
+import copy
 import logging
-from qiskit.util import local_hardware_info
+from warnings import warn
+from qiskit.utils import local_hardware_info
+from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
 from ..aererror import AerError
 from ..version import __version__
 from .aerbackend import AerBackend
-from .backend_utils import (cpp_execute, available_methods,
-                            MAX_QUBITS_STATEVECTOR)
+from .backend_utils import (cpp_execute, available_devices,
+                            MAX_QUBITS_STATEVECTOR,
+                            LEGACY_METHOD_MAP,
+                            add_final_save_instruction,
+                            map_legacy_method_options)
 # pylint: disable=import-error, no-name-in-module
-from .controller_wrappers import statevector_controller_execute
+from .controller_wrappers import aer_controller_execute
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -53,13 +59,27 @@ class StatevectorSimulator(AerBackend):
 
     The following configurable backend options are supported
 
-    * ``method`` (str): Set the simulation method supported methods are
-      ``"statevector"`` for CPU simulation, and ``"statevector_gpu"``
-      for GPU simulation (Default: ``"statevector"``).
+    * ``device`` (str): Set the simulation device (Default: ``"CPU"``).
+      Use :meth:`available_devices` to return a list of devices supported
+      on the current system.
+
+    * ``method`` (str): [DEPRECATED] Set the simulation method supported
+      methods are ``"statevector"`` for CPU simulation, and
+      ``"statevector_gpu"`` for GPU simulation. This option has been
+      deprecated, use the ``device`` option to set "CPU" or "GPU"
+      simulation instead.
 
     * ``precision`` (str): Set the floating point precision for
       certain simulation methods to either ``"single"`` or ``"double"``
       precision (default: ``"double"``).
+
+    * ``executor`` (futures.Executor): Set a custom executor for
+      asynchronous running of simulation jobs (Default: None).
+
+    * ``max_job_size`` (int or None): If the number of run circuits
+      exceeds this value simulation will be run as a set of of sub-jobs
+      on the executor. If ``None`` simulation of all circuits aer submitted
+      to the executor as a single job (Default: None).
 
     * ``zero_threshold`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
@@ -118,25 +138,29 @@ class StatevectorSimulator(AerBackend):
         # so that the default shot value for execute
         # will not raise an error when trying to run
         # a simulation
-        'description': 'A C++ statevector simulator for QASM Qobj files',
+        'description': 'A C++ statevector circuit simulator',
         'coupling_map': None,
-        'basis_gates': [
+        'basis_gates': sorted([
             'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
+            'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
+            'cy', 'cz', 'csx', 'cu', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
             'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-            'mcp', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
+            'mcu', 'mcp', 'mcphase', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
             'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-            'initialize', 'kraus', 'roerror', 'delay', 'pauli',
+            'initialize', 'delay', 'pauli'
+        ]),
+        'custom_instructions': sorted([
+            'kraus', 'roerror', 'quantum_channel', 'qerror_loc',
             'save_expval', 'save_density_matrix', 'save_statevector',
             'save_probs', 'save_probs_ket', 'save_amplitudes',
-            'save_amplitudes_sq', 'save_state'
-        ],
+            'save_amplitudes_sq', 'save_state', 'set_statevector'
+        ]),
         'gates': []
     }
 
-    # Cache available methods
-    _AVAILABLE_METHODS = None
+    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust')
+
+    _AVAILABLE_DEVICES = None
 
     def __init__(self,
                  configuration=None,
@@ -144,23 +168,81 @@ class StatevectorSimulator(AerBackend):
                  provider=None,
                  **backend_options):
 
-        self._controller = statevector_controller_execute()
+        warn('The `StatevectorSimulator` backend will be deprecated in the'
+             ' future. It has been superseded by the `AerSimulator`'
+             ' backend. To obtain legacy functionality initialize with'
+             ' `AerSimulator(method="statevector")` and append run circuits'
+             ' with the `save_state` instruction.', PendingDeprecationWarning)
 
-        if StatevectorSimulator._AVAILABLE_METHODS is None:
-            StatevectorSimulator._AVAILABLE_METHODS = available_methods(
-                self._controller, [
-                    'automatic', 'statevector', 'statevector_gpu',
-                    'statevector_thrust'
-                ])
+        self._controller = aer_controller_execute()
+
+        if StatevectorSimulator._AVAILABLE_DEVICES is None:
+            StatevectorSimulator._AVAILABLE_DEVICES = available_devices(
+                self._controller, StatevectorSimulator._SIMULATION_DEVICES)
+
         if configuration is None:
             configuration = QasmBackendConfiguration.from_dict(
                 StatevectorSimulator._DEFAULT_CONFIGURATION)
+        else:
+            configuration.open_pulse = False
+
         super().__init__(
             configuration,
             properties=properties,
-            available_methods=StatevectorSimulator._AVAILABLE_METHODS,
             provider=provider,
             backend_options=backend_options)
+
+    @classmethod
+    def _default_options(cls):
+        return Options(
+            # Global options
+            shots=1,
+            device="CPU",
+            precision="double",
+            executor=None,
+            max_job_size=None,
+            zero_threshold=1e-10,
+            validation_threshold=None,
+            max_parallel_threads=None,
+            max_parallel_experiments=None,
+            max_parallel_shots=None,
+            max_memory_mb=None,
+            seed_simulator=None,
+            fusion_enable=True,
+            fusion_verbose=False,
+            fusion_max_qubit=5,
+            fusion_threshold=14,
+            # statevector options
+            statevector_parallel_threshold=14)
+
+    def set_option(self, key, value):
+        if key == "method":
+            # Handle deprecation of method option for device option
+            warn("The method option of the `StatevectorSimulator` has been"
+                 " deprecated as of qiskit-aer 0.9.0. To run a GPU statevector"
+                 " simulation use the option `device='GPU'` instead",
+                 DeprecationWarning)
+            if value in LEGACY_METHOD_MAP:
+                value, device = LEGACY_METHOD_MAP[value]
+                self.set_option("device", device)
+            if value != "statevector":
+                raise AerError(
+                    "only the 'statevector' method is supported for the StatevectorSimulator")
+            return
+        super().set_option(key, value)
+
+    def available_methods(self):
+        """Return the available simulation methods."""
+        warn("The `available_methods` method of the StatevectorSimulator"
+             " is deprecated as of qiskit-aer 0.9.0 as this simulator only"
+             " supports a single method. To check if GPU simulation is available"
+             " use the `available_devices` method instead.",
+             DeprecationWarning)
+        return ("statevector",)
+
+    def available_devices(self):
+        """Return the available simulation methods."""
+        return copy.copy(self._AVAILABLE_DEVICES)
 
     def _execute(self, qobj):
         """Execute a qobj on the backend.
@@ -171,6 +253,10 @@ class StatevectorSimulator(AerBackend):
         Returns:
             dict: return a dictionary of results.
         """
+        # Make deepcopy so we don't modify the original qobj
+        qobj = copy.deepcopy(qobj)
+        qobj = add_final_save_instruction(qobj, "statevector")
+        qobj = map_legacy_method_options(qobj)
         return cpp_execute(self._controller, qobj)
 
     def _validate(self, qobj):

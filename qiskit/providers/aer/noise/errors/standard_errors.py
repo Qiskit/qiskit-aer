@@ -17,10 +17,10 @@ import itertools as it
 
 import numpy as np
 
-from qiskit.quantum_info.operators.pauli import Pauli
 from qiskit.quantum_info.operators.channel import Choi, Kraus
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
+from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 
 from ..noiseerror import NoiseError
 from .errorutils import make_unitary_instruction
@@ -590,10 +590,10 @@ def amplitude_damping_error(param_amp,
 
 def phase_damping_error(param_phase, canonical_kraus=True):
     r"""
-    Return a single-qubit combined phase and amplitude damping quantum error channel.
+    Return a single-qubit generalized phase damping quantum error channel.
 
-    The single-qubit combined phase and amplitude damping channel is
-    described by the following Kraus matrices:
+    The single-qubit phase damping channel is described by the
+    following Kraus matrices:
 
     .. code-block:: python
 

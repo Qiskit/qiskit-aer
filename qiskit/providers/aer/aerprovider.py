@@ -10,32 +10,53 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name, bad-continuation
-
+# pylint: disable=invalid-name
 """Provider for Qiskit Aer backends."""
 
-from qiskit.providers import BaseProvider
+from qiskit.providers import ProviderV1 as Provider
 from qiskit.providers.providerutils import filter_backends
 
+from .backends.aer_simulator import AerSimulator
 from .backends.qasm_simulator import QasmSimulator
 from .backends.statevector_simulator import StatevectorSimulator
 from .backends.unitary_simulator import UnitarySimulator
 from .backends.pulse_simulator import PulseSimulator
 
 
-class AerProvider(BaseProvider):
+class AerProvider(Provider):
     """Provider for Qiskit Aer backends."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(args, kwargs)
+    _BACKENDS = None
 
-        # Populate the list of Aer simulator backends.
-        self._backends = [
-            ('qasm_simulator', QasmSimulator),
-            ('statevector_simulator', StatevectorSimulator),
-            ('unitary_simulator', UnitarySimulator),
-            ('pulse_simulator', PulseSimulator)
-        ]
+    def __init__(self):
+        if AerProvider._BACKENDS is None:
+            # Populate the list of Aer simulator backends.
+            methods = AerSimulator().available_methods()
+            devices = AerSimulator().available_devices()
+            backends = []
+            for method in methods:
+                name = 'aer_simulator'
+                if method not in [None, 'automatic']:
+                    name += f'_{method}'
+                device_name = 'CPU'
+                backends.append((name, AerSimulator, method, device_name))
+
+                # Add GPU device backends
+                if method in ['statevector', 'density_matrix', 'unitary']:
+                    for device in devices:
+                        if device != 'CPU':
+                            new_name = f'{name}_{device}'.lower()
+                            device_name = device
+                            backends.append((new_name, AerSimulator, method, device_name))
+
+            # Add legacy backend names
+            backends += [
+                ('qasm_simulator', QasmSimulator, None, None),
+                ('statevector_simulator', StatevectorSimulator, None, None),
+                ('unitary_simulator', UnitarySimulator, None, None),
+                ('pulse_simulator', PulseSimulator, None, None)
+            ]
+            AerProvider._BACKENDS = backends
 
     def get_backend(self, name=None, **kwargs):
         return super().get_backend(name=name, **kwargs)
@@ -45,9 +66,14 @@ class AerProvider(BaseProvider):
         # Instantiate a new backend instance so if config options
         # are set they will only last as long as that backend object exists
         backends = []
-        for backend_name, backend_cls in self._backends:
+        for backend_name, backend_cls, method, device in self._BACKENDS:
+            opts = {'provider': self}
+            if method is not None:
+                opts['method'] = method
+            if device is not None:
+                opts['device'] = device
             if name is None or backend_name == name:
-                backends.append(backend_cls(provider=self))
+                backends.append(backend_cls(**opts))
         return filter_backends(backends, filters=filters)
 
     def __str__(self):

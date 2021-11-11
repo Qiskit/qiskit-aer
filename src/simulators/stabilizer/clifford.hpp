@@ -16,7 +16,7 @@
 #define _clifford_hpp_
 
 #include "pauli.hpp"
-
+#include "../../framework/json_parser.hpp"
 
 namespace Clifford {
 
@@ -105,10 +105,6 @@ public:
   // update the stabilizer to the conditional (post measurement) state if
   // the outcome was random.
   bool measure_and_update(const uint64_t qubit, const uint64_t randint);
-
-  // Return 1 or -1: the expectation value of observable Z on all
-  // the qubits in the parameter `qubits`
-  int64_t expectation_value(const std::vector<uint64_t>& qubits);
 
   //-----------------------------------------------------------------------
   // Configuration settings
@@ -337,36 +333,6 @@ bool Clifford::measure_and_update(const uint64_t qubit, const uint64_t randint) 
   }
 }
 
-int64_t Clifford::expectation_value(const std::vector<uint64_t>& qubits) {
-  // Check if there is a row that anti-commutes with an odd number of qubits
-  // If so expectation value is 0
-  for (uint64_t p = num_qubits_; p < 2 * num_qubits_; p++) {
-    uint64_t num_of_x = 0;
-    for (auto qubit : qubits) {
-      if (table_[p].X[qubit])
-	num_of_x ++;
-    }
-    if(num_of_x % 2 == 1)
-      return 0;
-  }
-
-  // Otherwise the expectation value is +1 or -1
-  uint64_t sum_of_outcomes = 0;
-  for (auto qubit : qubits) {
-    Pauli::Pauli accum(num_qubits_);
-    phase_t outcome = 0;
-    for (uint64_t i = 0; i < num_qubits_; i++) {
-      if (table_[i].X[qubit]) {
-        rowsum_helper(table_[i + num_qubits_], phases_[i + num_qubits_],
-                      accum, outcome);
-      }
-    }
-    sum_of_outcomes += outcome;
-  }
-
-  return (sum_of_outcomes % 2 == 0) ? 1 : -1;
-}
-
 void Clifford::rowsum_helper(const Pauli::Pauli &row, const phase_t row_phase,
                              Pauli::Pauli &accum, phase_t &accum_phase) const {
   int8_t newr = ((2 * row_phase + 2 * accum_phase) +
@@ -407,13 +373,16 @@ inline void to_json(json_t &js, const Clifford &clif) {
   js = clif.json();
 }
 
-inline void from_json(const json_t &js, Clifford &clif) {
-  bool has_keys = JSON::check_keys({"stabilizer", "destabilizer"}, js);
+template <typename inputdata_t>
+void build_from(const inputdata_t& input, Clifford& clif){
+  bool has_keys = AER::Parser<inputdata_t>::check_keys({"stabilizer", "destabilizer"}, input);
   if (!has_keys)
     throw std::invalid_argument("Invalid Clifford JSON.");
 
-  const std::vector<std::string> stab = js["stabilizer"];
-  const std::vector<std::string> destab = js["destabilizer"];
+  std::vector<std::string> stab, destab;
+  AER::Parser<inputdata_t>::get_value(stab, "stabilizer", input);
+  AER::Parser<inputdata_t>::get_value(destab, "destabilizer", input);
+
   const auto nq = stab.size();
   if (nq != destab.size()) {
     throw std::invalid_argument("Invalid Clifford JSON: stabilizer and destabilizer lengths do not match.");
@@ -463,6 +432,9 @@ inline void from_json(const json_t &js, Clifford &clif) {
   }
 }
 
+inline void from_json(const json_t &js, Clifford &clif) {
+    build_from(js, clif);
+}
 
 //------------------------------------------------------------------------------
 } // end namespace Clifford

@@ -42,7 +42,7 @@ After the completion of the tests, you will see the results with a format simila
 · Creating environments
 · Discovering benchmarks
 · Running 3 total benchmarks (1 commit * 1 environment * 3 benchmarks)
-[  0.00%] · For qiskit-aer commit 8b4f4de1 <master>:
+[  0.00%] · For qiskit-aer commit 8b4f4de1 <main>:
 [  0.00%] ·· Benchmarking conda-py3.7
 [ 16.67%] ··· Running (quantum_volume_benchmarks.QuantumVolumeTimeSuite.time_quantum_volume--)..
 [ 50.00%] ··· Running (simple_benchmarks.SimpleU3TimeSuite.time_simple_u3--).

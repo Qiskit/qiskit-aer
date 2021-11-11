@@ -65,7 +65,9 @@ public:
   // The vector can be either a statevector or a vectorized density matrix
   // If the length of the data vector does not match either case for the
   // number of qubits an exception is raised.
-  void initialize_from_vector(const cvector_t<double> &data);
+  template <typename list_t>
+  void initialize_from_vector(const list_t &data);
+
 
   // Returns the number of qubits for the superoperator
   virtual uint_t num_qubits() const override {return BaseMatrix::num_qubits_;}
@@ -180,26 +182,25 @@ void DensityMatrixThrust<data_t>::initialize() {
   BaseVector::zero();
   // Set to be all |0> sate
   std::complex<data_t> one = 1.0;
-  BaseVector::set_state(0,one);
+  BaseVector::set_state(0, one);
 }
 
 template <typename data_t>
-void DensityMatrixThrust<data_t>::initialize_from_vector(const cvector_t<double> &statevec) {
-  if (BaseVector::data_size_ == statevec.size()) {
+template <typename list_t>
+void DensityMatrixThrust<data_t>::initialize_from_vector(const list_t &vec) {
+  if (BaseVector::data_size_ == vec.size()) {
     // Use base class initialize for already vectorized matrix
-    BaseVector::initialize_from_vector(statevec);
-  } else if (BaseVector::data_size_ == statevec.size() * statevec.size()) {
+    BaseVector::initialize_from_vector(vec);
+  } else if (BaseVector::data_size_ == vec.size() * vec.size()) {
     // Convert statevector into density matrix
-    cvector_t<double> densitymat = AER::Utils::tensor_product(AER::Utils::conjugate(statevec),
-                                                      statevec);
-    BaseVector::initialize_from_vector(densitymat);
+    BaseVector::initialize_from_vector(
+      AER::Utils::tensor_product(AER::Utils::conjugate(vec), vec));
 
   } else {
     throw std::runtime_error("DensityMatrixThrust::initialize input vector is incorrect length. Expected: " +
                              std::to_string(BaseVector::data_size_) + " Received: " +
-                             std::to_string(statevec.size()));
+                             std::to_string(vec.size()));
   }
-
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::initialize_from_vector");
 #endif
@@ -317,6 +318,73 @@ public:
 };
 
 template <typename data_t>
+class DensityDiagMatMultNxN : public GateFuncBase<data_t>
+{
+protected:
+  int nqubits_;
+  int total_bits_;
+  int chunk_bits_;
+public:
+  DensityDiagMatMultNxN(const reg_t &qb,int total,int chunk)
+  {
+    nqubits_ = qb.size();
+    total_bits_ = total;
+    chunk_bits_ = chunk;
+  }
+
+  bool is_diagonal(void)
+  {
+    return true;
+  }
+
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    uint_t j,imr,imc;
+    thrust::complex<data_t>* vec;
+    thrust::complex<data_t> q;
+    thrust::complex<double>* pMat;
+    uint_t* qubits;
+    uint_t irow,icol,gid,local_mask;
+    uint_t irow_chunk,icol_chunk;
+
+    vec = this->data_;
+    gid = this->base_index_;
+
+    irow_chunk = ((gid + i) >> (chunk_bits_*2)) >> (total_bits_ - chunk_bits_);
+    icol_chunk = ((gid + i) >> (chunk_bits_*2)) & ((1ull << (total_bits_ - chunk_bits_)-1));
+
+    local_mask = (1ull << (chunk_bits_*2)) - 1;
+    irow = (i & local_mask) >> chunk_bits_;
+    icol = (i & local_mask) & ((1ull << chunk_bits_)-1);
+
+    irow += (irow_chunk << chunk_bits_);
+    icol += (icol_chunk << chunk_bits_);
+
+    pMat = this->matrix_;
+    qubits = this->params_;
+
+    imr = 0;
+    imc = 0;
+    for(j=0;j<nqubits_;j++){
+      if(((irow >> qubits[j]) & 1) != 0){
+        imr += (1 << j);
+      }
+      if(((icol >> qubits[j]) & 1) != 0){
+        imc += (1 << j);
+      }
+    }
+
+    q = vec[i];
+    vec[i] = thrust::conj(pMat[imr])*pMat[imc]*q;
+  }
+  const char* name(void)
+  {
+    return "DensityDiagMatMultNxN";
+  }
+};
+
+
+template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_unitary_matrix(const reg_t &qubits,
                                                  const cvector_t<double> &mat) 
 {
@@ -339,6 +407,11 @@ template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_diagonal_unitary_matrix(const reg_t &qubits,
                                                           const cvector_t<double> &diag) 
 {
+  BaseVector::chunk_->StoreMatrix(diag);
+  BaseVector::chunk_->StoreUintParams(qubits);
+  BaseVector::apply_function(DensityDiagMatMultNxN<data_t>(qubits, BaseVector::chunk_manager_.num_qubits()/2, num_qubits()));
+
+  /*
   if(qubits.size() == 1){
     const reg_t qubits_sp = {{qubits[0], qubits[0] + num_qubits()}};
     BaseVector::apply_function(DensityDiagMatMult2x2<data_t>(diag,qubits[0], num_qubits()));
@@ -347,6 +420,7 @@ void DensityMatrixThrust<data_t>::apply_diagonal_unitary_matrix(const reg_t &qub
     // Apply as single 2N-qubit matrix mult.
     apply_diagonal_superop_matrix(qubits, AER::Utils::tensor_product(AER::Utils::conjugate(diag), diag));
   }
+  */
 }
 
 //-----------------------------------------------------------------------
@@ -442,6 +516,62 @@ template <typename data_t>
 class DensityPhase : public GateFuncBase<data_t>
 {
 protected:
+  thrust::complex<double> phase_;
+  int qubit_;
+  int total_bits_;
+  int chunk_bits_;
+public:
+  DensityPhase(int qubit,thrust::complex<double>* phase,int total,int chunk)
+  {
+    qubit_ = qubit;
+    phase_ = *phase;
+    total_bits_ = total;
+    chunk_bits_ = chunk;
+  }
+
+  bool is_diagonal(void)
+  {
+    return true;
+  }
+
+  __host__ __device__ void operator()(const uint_t &i) const
+  {
+    thrust::complex<data_t>* vec;
+    thrust::complex<data_t> q;
+    uint_t irow,icol,gid,local_mask;
+    uint_t irow_chunk,icol_chunk;
+
+    vec = this->data_;
+    gid = this->base_index_;
+
+    irow_chunk = ((gid + i) >> (chunk_bits_*2)) >> (total_bits_ - chunk_bits_);
+    icol_chunk = ((gid + i) >> (chunk_bits_*2)) & ((1ull << (total_bits_ - chunk_bits_)-1));
+
+    local_mask = (1ull << (chunk_bits_*2)) - 1;
+    irow = (i & local_mask) >> chunk_bits_;
+    icol = (i & local_mask) & ((1ull << chunk_bits_)-1);
+
+    irow += (irow_chunk << chunk_bits_);
+    icol += (icol_chunk << chunk_bits_);
+
+    q = vec[i];
+    if((icol >> qubit_) & 1)
+      q = phase_*q;
+    if((irow >> qubit_) & 1)
+      q = thrust::conj(phase_)*q;
+    vec[i] = q;
+  }
+  const char* name(void)
+  {
+    return "DensityPhase";
+  }
+};
+
+  /*
+template <typename data_t>
+class DensityPhase : public GateFuncBase<data_t>
+{
+protected:
   uint_t offset;
   uint_t offset_sp;
   thrust::complex<double> phase_;
@@ -453,10 +583,11 @@ public:
     phase_ = *phase;
   }
 
-  int qubits_count(void)
+  bool is_diagonal(void)
   {
-    return 2;
+    return true;
   }
+
   __host__ __device__ void operator()(const uint_t &i) const
   {
     uint_t i0,i1,i2;
@@ -489,11 +620,13 @@ public:
     return "DensityPhase";
   }
 };
+  */
 
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_phase(const uint_t q,const complex_t &phase) 
 {
-  BaseVector::apply_function(DensityPhase<data_t>(q, num_qubits(), (thrust::complex<double>*)&phase ));
+  BaseVector::apply_function(DensityPhase<data_t>(q, (thrust::complex<double>*)&phase, BaseVector::chunk_manager_.num_qubits()/2, num_qubits() ));
+//  BaseVector::apply_function(DensityPhase<data_t>(q, num_qubits(), (thrust::complex<double>*)&phase ));
 
 #ifdef AER_DEBUG
 	BaseVector::DebugMsg(" density::apply_phase");

@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes performance issue with how the ``basis_gates`` configuration
+    attribute was set. Previously there were unintended side-effects to the
+    backend class which could cause repeated simulation runtime to
+    incrementally increase. Refer to
+    `#1229 <https://github.com/Qiskit/qiskit-aer/issues/1229>` for more
+    information and examples.

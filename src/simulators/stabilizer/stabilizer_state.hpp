@@ -33,14 +33,15 @@ const Operations::OpSet StateOpSet(
   // Op types
   {OpType::gate, OpType::measure,
     OpType::reset, OpType::snapshot,
-    OpType::barrier, OpType::bfunc,
+    OpType::barrier, OpType::bfunc, OpType::qerror_loc,
     OpType::roerror, OpType::save_expval,
     OpType::save_expval_var, OpType::save_probs,
     OpType::save_probs_ket, OpType::save_amps_sq,
-    OpType::save_stabilizer, OpType::save_state},
+    OpType::save_stabilizer, OpType::save_state,
+    OpType::set_stabilizer},
   // Gates
   {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg",
-   "sx", "delay"},
+   "sx", "sxdg", "delay", "pauli"},
   // Snapshots
   {"stabilizer", "memory", "register", "probabilities",
     "probabilities_with_variance", "expectation_value_pauli",
@@ -48,7 +49,7 @@ const Operations::OpSet StateOpSet(
     "expectation_value_pauli_single_shot"}
 );
 
-enum class Gates {id, x, y, z, h, s, sdg, sx, cx, cy, cz, swap};
+enum class Gates {id, x, y, z, h, s, sdg, sx, sxdg, cx, cy, cz, swap, pauli};
 
 // Allowed snapshots enum class
 enum class Snapshots {
@@ -80,12 +81,12 @@ public:
   // Return the string name of the State class
   virtual std::string name() const override {return "stabilizer";}
 
-  // Apply a sequence of operations by looping over list
-  // If the input is not in allowed_ops an exeption will be raised.
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false) override;
+  // Apply an operation
+  // If the op is not in allowed_ops an exeption will be raised.
+  virtual void apply_op(const Operations::Op &op,
+                        ExperimentResult &result,
+                        RngEngine &rng,
+                        bool final_op = false) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -119,6 +120,10 @@ protected:
   // If the input is not in allowed_gates an exeption will be raised.
   void apply_gate(const Operations::Op &op);
 
+  // Applies a sypported Gate operation to the state class.
+  // If the input is not in allowed_gates an exeption will be raised.
+  void apply_pauli(const reg_t &qubits, const std::string& pauli);
+
   // Measure qubits and return a list of outcomes [q0, q1, ...]
   // If a state subclass supports this function then "measure"
   // should be contained in the set returned by the 'allowed_ops'
@@ -136,6 +141,9 @@ protected:
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
   virtual void apply_snapshot(const Operations::Op &op, ExperimentResult &result);
+
+  // Set the state of the simulator to a given Clifford
+  void apply_set_stabilizer(const Clifford::Clifford &clifford);
 
   //-----------------------------------------------------------------------
   // Save data instructions
@@ -233,12 +241,14 @@ const stringmap_t<Gates> State::gateset_({
   {"sdg", Gates::sdg}, // Conjugate-transpose of Phase gate
   {"h", Gates::h},     // Hadamard gate (X + Z / sqrt(2))
   {"sx", Gates::sx},   // Sqrt X gate.
+  {"sxdg", Gates::sxdg}, // Inverse Sqrt X gate.
   // Two-qubit gates
   {"CX", Gates::cx},    // Controlled-X gate (CNOT)
   {"cx", Gates::cx},    // Controlled-X gate (CNOT),
   {"cy", Gates::cy},    // Controlled-Y gate
   {"cz", Gates::cz},    // Controlled-Z gate
-  {"swap", Gates::swap} // SWAP gate
+  {"swap", Gates::swap},  // SWAP gate
+  {"pauli", Gates::pauli} // Pauli gate
 });
 
 const stringmap_t<Snapshots> State::snapshotset_({
@@ -306,52 +316,53 @@ void State::set_config(const json_t &config) {
 // Implementation: apply operations
 //=========================================================================
 
-void State::apply_ops(const std::vector<Operations::Op> &ops,
-                      ExperimentResult &result,
-                      RngEngine &rng, bool final_ops) {
-  // Simple loop over vector of input operations
-  for (const auto &op: ops) {
-    if(BaseState::creg_.check_conditional(op)) {
-      switch (op.type) {
-        case OpType::barrier:
-          break;
-        case OpType::reset:
-          apply_reset(op.qubits, rng);
-          break;
-        case OpType::measure:
-          apply_measure(op.qubits, op.memory, op.registers, rng);
-          break;
-        case OpType::bfunc:
-          BaseState::creg_.apply_bfunc(op);
-          break;
-        case OpType::roerror:
-          BaseState::creg_.apply_roerror(op, rng);
-          break;
-        case OpType::gate:
-          apply_gate(op);
-          break;
-        case OpType::snapshot:
-          apply_snapshot(op, result);
-          break;
-        case OpType::save_expval:
-        case OpType::save_expval_var:
-          apply_save_expval(op, result);
-          break;
-        case OpType::save_probs:
-        case OpType::save_probs_ket:
-          apply_save_probs(op, result);
-          break;
-        case OpType::save_amps_sq:
-          apply_save_amplitudes_sq(op, result);
-          break;
-        case OpType::save_state:
-        case OpType::save_stabilizer:
-          apply_save_stabilizer(op, result);
-          break;
-        default:
-          throw std::invalid_argument("Stabilizer::State::invalid instruction \'" +
-                                      op.name + "\'.");
-      }
+void State::apply_op(const Operations::Op &op,
+                     ExperimentResult &result,
+                     RngEngine &rng, bool final_op) {
+  if (BaseState::creg_.check_conditional(op)) {
+    switch (op.type) {
+      case OpType::barrier:
+      case OpType::qerror_loc:
+        break;
+      case OpType::reset:
+        apply_reset(op.qubits, rng);
+        break;
+      case OpType::measure:
+        apply_measure(op.qubits, op.memory, op.registers, rng);
+        break;
+      case OpType::bfunc:
+        BaseState::creg_.apply_bfunc(op);
+        break;
+      case OpType::roerror:
+        BaseState::creg_.apply_roerror(op, rng);
+        break;
+      case OpType::gate:
+        apply_gate(op);
+        break;
+      case OpType::snapshot:
+        apply_snapshot(op, result);
+        break;
+      case OpType::set_stabilizer:
+        apply_set_stabilizer(op.clifford);
+        break;
+      case OpType::save_expval:
+      case OpType::save_expval_var:
+        apply_save_expval(op, result);
+        break;
+      case OpType::save_probs:
+      case OpType::save_probs_ket:
+        apply_save_probs(op, result);
+        break;
+      case OpType::save_amps_sq:
+        apply_save_amplitudes_sq(op, result);
+        break;
+      case OpType::save_state:
+      case OpType::save_stabilizer:
+        apply_save_stabilizer(op, result);
+        break;
+      default:
+        throw std::invalid_argument("Stabilizer::State::invalid instruction \'" +
+                                    op.name + "\'.");
     }
   }
 }
@@ -391,6 +402,11 @@ void State::apply_gate(const Operations::Op &op) {
       BaseState::qreg_.append_z(op.qubits[0]);
       BaseState::qreg_.append_s(op.qubits[0]);
       break;
+    case Gates::sxdg:
+      BaseState::qreg_.append_s(op.qubits[0]);
+      BaseState::qreg_.append_h(op.qubits[0]);
+      BaseState::qreg_.append_s(op.qubits[0]);
+      break;
     case Gates::cx:
       BaseState::qreg_.append_cx(op.qubits[0], op.qubits[1]);
       break;
@@ -410,10 +426,35 @@ void State::apply_gate(const Operations::Op &op) {
       BaseState::qreg_.append_cx(op.qubits[1], op.qubits[0]);
       BaseState::qreg_.append_cx(op.qubits[0], op.qubits[1]);
       break;
+    case Gates::pauli:
+      apply_pauli(op.qubits, op.string_params[0]);
+      break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument("Stabilizer::State::invalid gate instruction \'" +
                                   op.name + "\'.");
+  }
+}
+
+void State::apply_pauli(const reg_t &qubits, const std::string& pauli) {
+  const auto size = qubits.size();
+  for (size_t i = 0; i < qubits.size(); ++i) {
+    const auto qubit = qubits[size - 1 - i];
+    switch (pauli[i]) {
+      case 'I':
+        break;
+      case 'X':
+        BaseState::qreg_.append_x(qubit);
+        break;
+      case 'Y':
+        BaseState::qreg_.append_y(qubit);
+        break;
+      case 'Z':
+        BaseState::qreg_.append_z(qubit);
+        break;
+      default:
+        throw std::invalid_argument("invalid Pauli \'" + std::to_string(pauli[i]) + "\'.");
+    }
   }
 }
 
@@ -478,6 +519,17 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   return samples;
 }
 
+void State::apply_set_stabilizer(const Clifford::Clifford &clifford) {
+  if (clifford.num_qubits() != BaseState::qreg_.num_qubits()) {
+    throw std::invalid_argument(
+      "set stabilizer must be defined on full width of qubits (" +
+      std::to_string(clifford.num_qubits()) + " != " +
+      std::to_string(BaseState::qreg_.num_qubits()) + ").");
+  }
+  BaseState::qreg_.table() = clifford.table();
+  BaseState::qreg_.phases() = clifford.phases();
+}
+
 //=========================================================================
 // Implementation: Save data
 //=========================================================================
@@ -540,47 +592,84 @@ void State::apply_save_amplitudes_sq(const Operations::Op &op,
 
 double State::expval_pauli(const reg_t &qubits,
                            const std::string& pauli) {
-  // Compute expval components
-  auto state_cpy = BaseState::qreg_;
-  reg_t measured_qubits;
-  for (uint_t pos = 0; pos < qubits.size(); ++pos) {
-    const auto& qubit = qubits[pos];
-    switch (pauli[pauli.size() - 1 - pos]) {
-      case 'I':
-        break;
+  // Construct Pauli on N-qubits
+  const auto num_qubits = BaseState::qreg_.num_qubits();
+  Pauli::Pauli P(num_qubits);
+  uint_t phase = 0;
+  for (size_t i = 0; i < qubits.size(); ++i) {
+    switch (pauli[pauli.size() - 1 - i]) {
       case 'X':
-        state_cpy.append_h(qubit);
-        measured_qubits.push_back(qubit);
+        P.X.set1(qubits[i]);
         break;
       case 'Y':
-        state_cpy.append_s(qubit);
-        state_cpy.append_z(qubit);
-        state_cpy.append_h(qubit);
-        measured_qubits.push_back(qubit);
+        P.X.set1(qubits[i]);
+        P.Z.set1(qubits[i]);
+        phase += 1;
         break;
       case 'Z':
-        measured_qubits.push_back(qubit);
+        P.Z.set1(qubits[i]);
         break;
-      default: {
-        std::stringstream msg;
-        msg << "Invalid Pauli string \'" << pauli[pos]
-            << "\'.";
-        throw std::invalid_argument(msg.str());
+      default:
+        break;
+    };
+  }
+
+  // Check if there is a stabilizer that anti-commutes with an odd number of qubits
+  // If so expectation value is 0
+  for (size_t i = 0; i < num_qubits; i++) {
+    const auto& stabi = BaseState::qreg_.stabilizer(i);
+    size_t num_anti = 0;
+    for (const auto& qubit : qubits) {
+      if (P.Z[qubit] & stabi.X[qubit]) {
+	      num_anti++;
+      }
+      if (P.X[qubit] & stabi.Z[qubit]) {
+	      num_anti++;
       }
     }
+    if(num_anti % 2 == 1)
+      return 0.0;
   }
-  return state_cpy.expectation_value(measured_qubits);
+
+  // Otherwise P is (-1)^a prod_j S_j^b_j for Clifford stabilizers
+  // If P anti-commutes with D_j then b_j = 1.
+  // Multiply P by stabilizers with anti-commuting destabilizers
+  auto PZ = P.Z; // Make a copy of P.Z 
+  for (size_t i = 0; i < num_qubits; i++) {
+    // Check if destabilizer anti-commutes
+    const auto& destabi = BaseState::qreg_.destabilizer(i);
+    size_t num_anti = 0;
+    for (const auto& qubit : qubits) {
+      if (P.Z[qubit] & destabi.X[qubit]) {
+	      num_anti++;
+      }
+      if (P.X[qubit] & destabi.Z[qubit]) {
+	      num_anti++;
+      }
+    }
+    if (num_anti % 2 == 0) continue;
+
+    // If anti-commutes multiply Pauli by stabilizer
+    const auto& stabi = BaseState::qreg_.stabilizer(i);
+    phase += 2 * BaseState::qreg_.phases()[i + num_qubits];
+    for (size_t k = 0; k < num_qubits; k++) {
+      phase += stabi.Z[k] & stabi.X[k];
+      phase += 2 * (PZ[k] & stabi.X[k]);
+      PZ.setValue(PZ[k] ^ stabi.Z[k], k);
+    }
+  }
+  return (phase % 4) ? -1.0 : 1.0;
 }
 
-void set_value_helper(std::map<std::string, double>& probs,
-                      const std::string &outcome,
-                      double value) {
+static void set_value_helper(std::map<std::string, double>& probs,
+                             const std::string &outcome,
+                             double value) {
   probs[Utils::bin2hex(outcome)] = value;
 }
 
-void set_value_helper(std::vector<double>& probs,
-                      const std::string &outcome,
-                      double value) {
+static void set_value_helper(std::vector<double>& probs,
+                             const std::string &outcome,
+                             double value) {
   probs[std::stoull(outcome, 0, 2)] = value;
 }
 

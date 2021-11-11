@@ -19,19 +19,19 @@ from enum import Enum
 import inspect
 import logging
 import os
-import unittest
 from unittest.util import safe_repr
 from itertools import repeat
 from random import choice, sample
 from math import pi
 import numpy as np
 import fixtures
+import warnings
 
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.providers.aer import __path__ as main_path
-from qiskit.test import QiskitTestCase
+from qiskit.test.base import FullQiskitTestCase
 
 
 class Path(Enum):
@@ -42,7 +42,7 @@ class Path(Enum):
     EXAMPLES = os.path.join(MAIN, '../examples')
 
 
-class QiskitAerTestCase(QiskitTestCase):
+class QiskitAerTestCase(FullQiskitTestCase):
     """Helper class that contains common functionality."""
 
     def setUp(self):
@@ -51,6 +51,14 @@ class QiskitAerTestCase(QiskitTestCase):
 
     @classmethod
     def setUpClass(cls):
+        super().setUpClass()
+        allow_DeprecationWarning_modules = [
+            "cvxpy",
+        ]
+        for mod in allow_DeprecationWarning_modules:
+            warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
+
+
         cls.moduleName = os.path.splitext(inspect.getfile(cls))[0]
         cls.log = logging.getLogger(cls.__name__)
 
@@ -117,7 +125,7 @@ class QiskitAerTestCase(QiskitTestCase):
             params.append(5)
 
         gate = gate_cls(*params)
-        
+
         if basis_states is None:
             basis_states = [bin(i)[2:].zfill(gate.num_qubits) \
                             for i in range(1<<gate.num_qubits)]
@@ -335,7 +343,7 @@ def _is_ci_fork_pull_request():
 
     Returns:
         bool: True if the tests are executed inside a CI tool, and the changes
-            are not against the "master" branch.
+            are not against the "main" branch.
     """
     if os.getenv('TRAVIS'):
         # Using Travis CI.

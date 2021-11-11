@@ -107,6 +107,7 @@ public:
   void apply_swap(uint_t qubit_1, uint_t qubit_2, uint_t rank);
   void apply_h(uint_t qubit, uint_t rank);
   void apply_sx(uint_t qubit, uint_t rank);
+  void apply_sxdg(uint_t qubit, uint_t rank);
   void apply_s(uint_t qubit, uint_t rank);
   void apply_sdag(uint_t qubit, uint_t rank);
   void apply_x(uint_t qubit, uint_t rank);
@@ -142,7 +143,7 @@ public:
   std::vector<uint_t> stabilizer_sampler(uint_t n_shots, AER::RngEngine &rng);
   //Utilities for the state-vector snapshot.
   complex_t amplitude(uint_t x_measure);
-  AER::Vector<complex_t> statevector(uint_t default_samples, uint_t repetitions, AER::RngEngine &rng);
+  AER::Vector<complex_t> statevector();
 
 };
 
@@ -280,6 +281,13 @@ void Runner::apply_sx(uint_t qubit, uint_t rank)
   states_[rank].Sdag(qubit);
   states_[rank].H(qubit);
   states_[rank].Sdag(qubit);
+}
+
+void Runner::apply_sxdg(uint_t qubit, uint_t rank)
+{
+  states_[rank].S(qubit);
+  states_[rank].H(qubit);
+  states_[rank].S(qubit);
 }
 
 void Runner::apply_x(uint_t qubit, uint_t rank)
@@ -719,27 +727,24 @@ complex_t Runner::amplitude(uint_t x_measure)
   return {real_part, imag_part};
 }
 
-AER::Vector<complex_t> Runner::statevector(uint_t default_samples, uint_t repetitions, AER::RngEngine &rng)
+AER::Vector<complex_t> Runner::statevector()
 {
   uint_t ceil = 1ULL << n_qubits_;
-  uint_t n_samples = std::llrint(0.5 * std::pow(n_qubits_, 2));
-  if (n_samples < default_samples)
-  {
-    n_samples = default_samples;
-  }
-
   AER::Vector<complex_t> svector(ceil, false);
 
-  // double norm = 1;
-  double norm = 1;
-  if(num_states_ > 1)
-  {
-    norm = norm_estimation(n_samples, repetitions, rng);
-  }
+  double norm_squared = 0;
+
   for(uint_t i=0; i<ceil; i++)
   {
-    svector[i] = amplitude(i)/std::sqrt(norm);
+    svector[i] = amplitude(i);
+    norm_squared += svector[i].real()*svector[i].real() + svector[i].imag()*svector[i].imag();
   }
+  double norm = std::sqrt(norm_squared);
+  for(uint_t i=0; i<ceil; i++)
+  {
+    svector[i] /= norm;
+  }
+  
   return svector;
 }
 

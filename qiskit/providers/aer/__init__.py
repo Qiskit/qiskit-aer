@@ -31,17 +31,18 @@ Simulator Backends
 .. autosummary::
     :toctree: ../stubs/
 
+    AerSimulator
+    PulseSimulator
+
+Legacy Simulator Backends
+=========================
+
+.. autosummary::
+    :toctree: ../stubs/
+
     QasmSimulator
     StatevectorSimulator
     UnitarySimulator
-    PulseSimulator
-
-Job Class
-=========
-.. autosummary::
-   :toctree: ../stubs/
-
-   AerJob
 
 Exceptions
 ==========
@@ -62,7 +63,7 @@ if platform.system() == "Darwin":
 
 # pylint: disable=wrong-import-position
 from .aerprovider import AerProvider
-from .aerjob import AerJob
+from .jobs import AerJob, AerJobSet
 from .aererror import AerError
 from .backends import *
 from . import library

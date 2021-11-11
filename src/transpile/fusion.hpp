@@ -25,12 +25,6 @@
 namespace AER {
 namespace Transpile {
 
-using uint_t = uint_t;
-using op_t = Operations::Op;
-using optype_t = Operations::OpType;
-using oplist_t = std::vector<op_t>;
-using opset_t = Operations::OpSet;
-using reg_t = std::vector<uint_t>;
 
 class FusionMethod {
 public:
@@ -130,7 +124,7 @@ public:
     // Unitary simulation
     QubitUnitary::State<> unitary_simulator;
     unitary_simulator.initialize_qreg(qubits.size());
-    unitary_simulator.apply_ops(fusioned_ops, dummy_result, dummy_rng);
+    unitary_simulator.apply_ops(fusioned_ops.cbegin(), fusioned_ops.cend(), dummy_result, dummy_rng);
     return Operations::make_unitary(qubits, unitary_simulator.qreg().move_to_matrix(),
                                     std::string("fusion"));
   };
@@ -174,7 +168,7 @@ public:
     // simulator
     QubitSuperoperator::State<> superop_simulator;
     superop_simulator.initialize_qreg(qubits.size());
-    superop_simulator.apply_ops(fusioned_ops, dummy_result, dummy_rng);
+    superop_simulator.apply_ops(fusioned_ops.cbegin(), fusioned_ops.cend(), dummy_result, dummy_rng);
     auto superop = superop_simulator.qreg().move_to_matrix();
 
     return Operations::make_superop(qubits, std::move(superop));
@@ -220,7 +214,7 @@ public:
     // simulator
     QubitSuperoperator::State<> superop_simulator;
     superop_simulator.initialize_qreg(qubits.size());
-    superop_simulator.apply_ops(fusioned_ops, dummy_result, dummy_rng);
+    superop_simulator.apply_ops(fusioned_ops.cbegin(), fusioned_ops.cend(), dummy_result, dummy_rng);
     auto superop = superop_simulator.qreg().move_to_matrix();
 
     // If Kraus method we convert superop to canonical Kraus representation
@@ -309,7 +303,7 @@ void Fuser::allocate_new_operation(oplist_t& ops,
 class CostBasedFusion : public Fuser {
 public:
   CostBasedFusion() {
-    std::fill_n(costs, 64, -1);
+    std::fill_n(costs_, 64, -1);
   };
 
   virtual std::string name() const override { return "cost_base"; };
@@ -338,7 +332,7 @@ private:
 private:
   bool active = true;
   double cost_factor = 1.8;
-  double costs[64];
+  double costs_[64];
 };
 
 template<size_t N>
@@ -487,7 +481,7 @@ private:
 
   int get_next_diagonal_end(const oplist_t& ops, const int from, std::set<uint_t>& fusing_qubits) const;
 
-  const std::shared_ptr<FusionMethod> method;
+  const std::shared_ptr<FusionMethod> method_;
   uint_t min_qubit = 3;
   bool active = true;
 };
@@ -645,22 +639,23 @@ bool DiagonalFusion::aggregate_operations(oplist_t& ops,
 
     auto next_diagonal_start = next_diagonal_end + 1;
 
-    int cnt = 0;
     while (true) {
-      auto next_diagonal_end = get_next_diagonal_end(ops, next_diagonal_start, checking_qubits_set);
-      if (next_diagonal_end < 0)
+      auto nde = get_next_diagonal_end(ops, next_diagonal_start, checking_qubits_set);
+      if (nde < 0)
         break;
       if (checking_qubits_set.size() > max_fused_qubits)
         break;
-      next_diagonal_start = next_diagonal_end + 1;
+      next_diagonal_start = nde + 1;
     }
 
     if (checking_qubits_set.size() < min_qubit)
       continue;
 
     std::vector<uint_t> fusing_op_idxs;
-    for (; op_idx < next_diagonal_start; ++op_idx)
+    while(op_idx < next_diagonal_start && op_idx < fusion_end) {
       fusing_op_idxs.push_back(op_idx);
+      ++op_idx;
+    }
 
     --op_idx;
     allocate_new_operation(ops, op_idx, fusing_op_idxs, method, true);
@@ -909,7 +904,7 @@ void CostBasedFusion::set_config(const json_t &config) {
   for (int i = 0; i < 64; ++i) {
     auto prop_name = "fusion_cost." + std::to_string(i + 1);
     if (JSON::check_key(prop_name, config))
-      JSON::get_value(costs[i], prop_name, config);
+      JSON::get_value(costs_[i], prop_name, config);
   }
 }
 
@@ -1023,7 +1018,7 @@ double CostBasedFusion::estimate_cost(const std::vector<op_t>& ops,
   for (uint_t i = from; i <= until; ++i)
     add_fusion_qubits(fusion_qubits, ops[i]);
 
-  auto configured_cost = costs[fusion_qubits.size() - 1];
+  auto configured_cost = costs_[fusion_qubits.size() - 1];
   if (configured_cost > 0)
     return configured_cost;
 

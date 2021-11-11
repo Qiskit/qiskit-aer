@@ -16,7 +16,6 @@
 #define _aer_controller_execute_hpp_
 
 #include <string>
-#include "framework/json.hpp"
 #include "misc/hacks.hpp"
 #include "framework/results/result.hpp"
 
@@ -26,20 +25,21 @@
 
 namespace AER {
 
-template <class controller_t>
-Result controller_execute(const json_t &qobj_js) {
+template <class controller_t, typename inputdata_t>
+Result controller_execute(const inputdata_t& qobj) {
   controller_t controller;
 
   // Fix for MacOS and OpenMP library double initialization crash.
   // Issue: https://github.com/Qiskit/qiskit-aer/issues/1
-  if (JSON::check_key("config", qobj_js)) {
-    std::string path;
-    JSON::get_value(path, "library_dir", qobj_js["config"]);
-    Hacks::maybe_load_openmp(path);
+  if (Parser<inputdata_t>::check_key("config", qobj)) {
+      std::string path;
+      const auto& config = Parser<inputdata_t>::get_value("config", qobj);
+      Parser<inputdata_t>::get_value(path, "library_dir", config);
+      Hacks::maybe_load_openmp(path);
   }
-
-  return controller.execute(qobj_js);
+  return controller.execute(qobj);
 }
+
 
 } // end namespace AER
 #endif

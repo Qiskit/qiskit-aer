@@ -34,11 +34,12 @@ std::vector<cmatrix_t> reshape_U_after_SVD(cmatrix_t U);
 rvector_t reshape_S_after_SVD(rvector_t S);
 std::vector<cmatrix_t> reshape_V_after_SVD(const cmatrix_t V);
 uint_t num_of_SV(rvector_t S, double threshold);
-void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
+double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
                   uint_t max_bond_dimension, double truncation_threshold);
 status csvd(cmatrix_t &C, cmatrix_t &U,rvector_t &S,cmatrix_t &V);
 void csvd_wrapper(cmatrix_t &C, cmatrix_t &U,rvector_t &S,cmatrix_t &V);
-
+void validate_SVD_result(const cmatrix_t &A, const cmatrix_t &U, 
+			 const rvector_t &S, const cmatrix_t &V);
 
 //-------------------------------------------------------------------------
 } // end namespace AER

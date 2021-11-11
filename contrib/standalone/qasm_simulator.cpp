@@ -22,7 +22,7 @@
 
 #include "version.hpp"
 // Simulator
-#include "controllers/qasm_controller.hpp"
+#include "controllers/aer_controller.hpp"
 
 /*******************************************************************************
  *
@@ -95,10 +95,11 @@ int main(int argc, char **argv) {
   int indent = 4;
   json_t qobj;
   json_t config;
-  int myrank=0,nprocs=1;
+  int myrank=0;
 
 #ifdef AER_MPI
   int prov;
+  int nprocs=1;
   MPI_Init_thread(&argc,&argv,MPI_THREAD_MULTIPLE,&prov);
   MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
@@ -151,8 +152,19 @@ int main(int argc, char **argv) {
     if (!config.empty()) // NOLINT
       config_all.update(config.begin(), config.end());
 
+    // Remap legacy method names
+    std::string method;
+    JSON::get_value(method, "method", config_all);
+    if (method == "statevector_gpu") {
+      config_all["method"] = "statevector";
+      config_all["device"] = "GPU";
+    } else if (method == "density_matrix_gpu") {
+      config_all["method"] = "density_matrix";
+      config_all["device"] = "GPU";
+    }
+
     // Initialize simulator
-    AER::Simulator::QasmController sim;
+    AER::Controller sim;
     auto result = sim.execute(qobj).to_json();
     if(myrank == 0){
       out << result.dump(4) << std::endl;

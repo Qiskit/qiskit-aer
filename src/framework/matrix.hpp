@@ -58,7 +58,7 @@ T* calloc_array(size_t size) {
 
 template <class T> // define a class template
 class matrix {
-  // friend functions get to use the private varibles of the class as well as
+  // friend functions get to use the private variables of the class as well as
   // have different classes as inputs
   template <class S>
   friend std::ostream &
@@ -477,7 +477,8 @@ template <class T> inline std::vector<T> matrix<T>::row_index(size_t row) const 
   ret.reserve(cols_);
   for(size_t i = 0; i < cols_; i++)
     ret.emplace_back(data_[i * rows_ + row]);
-  return std::move(ret);
+  // Allow for Named Return Value Optimization (NRVO) by not using std::move
+  return ret;
 }
 template <class T> inline std::vector<T> matrix<T>::col_index(size_t col) const {
 #ifdef DEBUG
@@ -492,7 +493,8 @@ template <class T> inline std::vector<T> matrix<T>::col_index(size_t col) const 
   // we want the elements for all rows i..rows_ and column col
   for(size_t i = 0; i < rows_; i++)
     ret.emplace_back(data_[col * rows_ + i]);
-  return std::move(ret);
+  // Allow for Named Return Value Optimization (NRVO) by not using std::move
+  return ret;
 }
 
 template <class T> inline size_t matrix<T>::GetRows() const {

@@ -31,6 +31,7 @@
 #include "framework/results/data/mixins/data_cvector.hpp"
 #include "framework/results/data/mixins/data_cdict.hpp"
 #include "framework/results/data/mixins/data_json.hpp"
+#include "framework/results/data/mixins/data_mps.hpp"
 
 namespace AER {
 
@@ -45,7 +46,8 @@ struct Data : public DataCreg,
               public DataCVector,
               public DataCMatrix,
               public DataCDict,
-              public DataJSON {
+              public DataJSON,
+              public DataMPS {
 
   //----------------------------------------------------------------
   // Measurement data
@@ -141,12 +143,13 @@ Data &Data::combine(Data &&other) {
   DataCMatrix::combine(std::move(other));
   DataCDict::combine(std::move(other));
   DataJSON::combine(std::move(other));
+  DataMPS::combine(std::move(other));
   DataCreg::combine(std::move(other));
   return *this;
 }
 
 json_t Data::to_json() {
-  json_t result;
+  json_t result = json_t::object();
   DataRValue::add_to_json(result);
   DataRVector::add_to_json(result);
   DataRDict::add_to_json(result);
@@ -154,6 +157,7 @@ json_t Data::to_json() {
   DataCMatrix::add_to_json(result);
   DataCDict::add_to_json(result);
   DataJSON::add_to_json(result);
+  DataMPS::add_to_json(result);
   DataCreg::add_to_json(result);
   return result;
 }

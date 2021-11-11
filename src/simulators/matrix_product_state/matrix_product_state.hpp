@@ -28,6 +28,7 @@
 #define _matrix_product_state_hpp
 
 #include <algorithm>
+#include <sstream>
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -42,6 +43,8 @@
 namespace AER {
 namespace MatrixProductState {
 
+static uint_t instruction_number = 0;
+
 using OpType = Operations::OpType;
 
 // OpSet of supported instructions
@@ -49,18 +52,19 @@ const Operations::OpSet StateOpSet(
   {OpType::gate, OpType::measure,
    OpType::reset, OpType::initialize,
    OpType::snapshot, OpType::barrier,
-   OpType::bfunc, OpType::roerror,
+   OpType::bfunc, OpType::roerror, OpType::qerror_loc,
    OpType::matrix, OpType::diagonal_matrix,
    OpType::kraus, OpType::save_expval,
    OpType::save_expval_var, OpType::save_densmat,
    OpType::save_statevec, OpType::save_probs,
    OpType::save_probs_ket, OpType::save_amps,
-   OpType::save_amps_sq},
+   OpType::save_amps_sq, OpType::save_mps, OpType::save_state,
+   OpType::set_mps, OpType::set_statevec},
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",
-   "sx", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx", "csx", "delay",
-   "cswap"},
+   "sx", "sxdg", "r", "rx", "ry", "rz", "rxx", "ryy", "rzz", "rzx", "csx", "delay",
+   "cswap", "pauli"},
   // Snapshots
   {"statevector", "amplitudes", "memory", "register", "probabilities",
     "expectation_value_pauli", "expectation_value_pauli_with_variance",
@@ -110,12 +114,12 @@ public:
     return qreg_.empty();
   }
 
-  // Apply a sequence of operations by looping over list
-  // If the input is not in allowed_ops an exception will be raised.
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false) override;
+  // Apply an operation
+  // If the op is not in allowed_ops an exeption will be raised.
+  virtual void apply_op(const Operations::Op &op,
+                        ExperimentResult &result,
+                        RngEngine &rng,
+                        bool final_op = false) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -139,6 +143,9 @@ public:
 
   virtual void add_metadata(ExperimentResult &result) const override;
 
+  // prints the bond dimensions after each instruction to the metadata
+  void output_bond_dimensions(const Operations::Op &op) const;
+
   // Sample n-measurement outcomes without applying the measure operation
   // to the system state
   virtual std::vector<reg_t> sample_measure(const reg_t& qubits,
@@ -158,7 +165,7 @@ public:
   std::vector<reg_t> 
   sample_measure_using_apply_measure(const reg_t &qubits,
 				     uint_t shots,
-				     RngEngine &rng) const;
+				     RngEngine &rng);
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -213,10 +220,18 @@ protected:
                    const std::vector<cmatrix_t> &kmats,
                    RngEngine &rng);
 
+  // Apply multi-qubit Pauli
+  void apply_pauli(const reg_t &qubits, const std::string& pauli);
+
   //-----------------------------------------------------------------------
   // Save data instructions
   //-----------------------------------------------------------------------
 
+  // Save the current state of the simulator
+  void apply_save_mps(const Operations::Op &op,
+                      ExperimentResult &result,
+                      bool last_op);
+                            
   // Compute and save the statevector for the current simulator state
   void apply_save_statevector(const Operations::Op &op,
                               ExperimentResult &result);
@@ -309,7 +324,6 @@ protected:
 
   // Table of allowed snapshot types to enum class members
   const static stringmap_t<Snapshots> snapshotset_;
-
 };
 
 
@@ -328,6 +342,7 @@ const stringmap_t<Gates> State::gateset_({
   {"sdg", Gates::sdg},   // Conjugate-transpose of Phase gate
   {"h", Gates::h},       // Hadamard gate (X + Z / sqrt(2))
   {"sx", Gates::sx},     // Sqrt(X) gate
+  {"sxdg", Gates::sxdg}, // Inverse Sqrt(X) gate
   {"t", Gates::t},       // T-gate (sqrt(S))
   {"tdg", Gates::tdg},   // Conjguate-transpose of T gate
   {"r", Gates::r},       // R rotation gate
@@ -356,7 +371,9 @@ const stringmap_t<Gates> State::gateset_({
   {"rzx", Gates::rzx},   // Pauli-ZX rotation gate
   // Three-qubit gates
   {"ccx", Gates::ccx},   // Controlled-CX gate (Toffoli)
-  {"cswap", Gates::cswap}
+  {"cswap", Gates::cswap},
+  // Pauli
+  {"pauli", Gates::pauli}
 });
 
 const stringmap_t<Snapshots> State::snapshotset_({
@@ -465,12 +482,14 @@ void State::set_config(const json_t &config) {
   if (JSON::get_value(alg, "mps_sample_measure_algorithm", config)) {
     if (alg.compare("mps_probabilities") == 0) {
       MPS::set_sample_measure_alg(Sample_measure_alg::PROB);
-    } else if (alg.compare("mps_apply_measure") == 0) {
+    } else {
       MPS::set_sample_measure_alg(Sample_measure_alg::APPLY_MEASURE);
     }
-  } else {
-    MPS::set_sample_measure_alg(Sample_measure_alg::HEURISTIC);
   }
+  // Set mps_log_data
+  bool mps_log_data;
+  if (JSON::get_value(mps_log_data, "mps_log_data", config))
+    MPS::set_mps_log_data(mps_log_data);
 }
 
 void State::add_metadata(ExperimentResult &result) const {
@@ -483,74 +502,105 @@ void State::add_metadata(ExperimentResult &result) const {
   result.metadata.add(
     MPS::get_sample_measure_alg(),
     "matrix_product_state_sample_measure_algorithm");
+  if (MPS::get_mps_log_data())
+    result.metadata.add("{" + MPS::output_log() + "}", "MPS_log_data");
 } 
+
+void State::output_bond_dimensions(const Operations::Op &op) const {
+  MPS::print_to_log("I", instruction_number, ":", op.name, " on qubits ", op.qubits[0]);
+  for (uint_t index=1; index<op.qubits.size(); index++) {
+    MPS::print_to_log(",", op.qubits[index]);
+  }
+  qreg_.print_bond_dimensions();
+  instruction_number++;
+}
+
 
 //=========================================================================
 // Implementation: apply operations
 //=========================================================================
 
-void State::apply_ops(const std::vector<Operations::Op> &ops,
+void State::apply_op(const Operations::Op &op,
                       ExperimentResult &result,
-                      RngEngine &rng, bool final_ops) {
-
-  // Simple loop over vector of input operations
-  for (const auto &op: ops) {
-    if(BaseState::creg_.check_conditional(op)) {
-      switch (op.type) {
-        case OpType::barrier:
+                      RngEngine &rng, bool final_op) {
+  if (BaseState::creg_.check_conditional(op)) {
+    switch (op.type) {
+      case OpType::barrier:
+      case OpType::qerror_loc:
+        break;
+      case OpType::reset:
+        apply_reset(op.qubits, rng);
+        break;
+      case OpType::initialize:
+        apply_initialize(op.qubits, op.params, rng);
+        break;
+      case OpType::measure:
+        apply_measure(op.qubits, op.memory, op.registers, rng);
+        break;
+      case OpType::bfunc:
+        BaseState::creg_.apply_bfunc(op);
+        break;
+      case OpType::roerror:
+        BaseState::creg_.apply_roerror(op, rng);
+        break;
+      case OpType::gate:
+        apply_gate(op);
+        break;
+      case OpType::snapshot:
+        apply_snapshot(op, result);
+        break;
+      case OpType::matrix:
+        apply_matrix(op.qubits, op.mats[0]);
+        break;
+      case OpType::diagonal_matrix:
+        BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
+        break;
+      case OpType::kraus:
+        apply_kraus(op.qubits, op.mats, rng);
+        break;
+      case OpType::set_statevec: {
+          reg_t all_qubits(qreg_.num_qubits());
+          std::iota(all_qubits.begin(), all_qubits.end(), 0);
+          qreg_.apply_initialize(all_qubits, op.params, rng);
           break;
-        case OpType::reset:
-          apply_reset(op.qubits, rng);
-          break;
-        case OpType::initialize:
-          apply_initialize(op.qubits, op.params, rng);
-          break;
-        case OpType::measure:
-          apply_measure(op.qubits, op.memory, op.registers, rng);
-          break;
-        case OpType::bfunc:
-          BaseState::creg_.apply_bfunc(op);
-          break;
-        case OpType::roerror:
-          BaseState::creg_.apply_roerror(op, rng);
-          break;
-        case OpType::gate:
-          apply_gate(op);
-          break;
-        case OpType::snapshot:
-          apply_snapshot(op, result);
-          break;
-        case OpType::matrix:
-          apply_matrix(op.qubits, op.mats[0]);
-          break;
-        case OpType::diagonal_matrix:
-          BaseState::qreg_.apply_diagonal_matrix(op.qubits, op.params);
-          break;
-        case OpType::kraus:
-          apply_kraus(op.qubits, op.mats, rng);
-          break;
-        case OpType::save_expval:
-        case OpType::save_expval_var:
-          BaseState::apply_save_expval(op, result);
-          break;
-        case OpType::save_densmat:
-          apply_save_density_matrix(op, result);
-          break;
-        case OpType::save_statevec:
-          apply_save_statevector(op, result);
-          break;
-        case OpType::save_probs:
-        case OpType::save_probs_ket:
-          apply_save_probs(op, result);
-          break;
-        case OpType::save_amps:
-        case OpType::save_amps_sq:
-          apply_save_amplitudes(op, result);
-          break;
-        default:
-          throw std::invalid_argument("MatrixProductState::State::invalid instruction \'" +
-                                      op.name + "\'.");
-      }
+        }
+      case OpType::set_mps:
+        qreg_.initialize_from_mps(op.mps);
+        break;
+      case OpType::save_expval:
+      case OpType::save_expval_var:
+        BaseState::apply_save_expval(op, result);
+        break;
+      case OpType::save_densmat:
+        apply_save_density_matrix(op, result);
+        break;
+      case OpType::save_statevec:
+        apply_save_statevector(op, result);
+        break;
+      case OpType::save_state:
+      case OpType::save_mps:
+        apply_save_mps(op, result, final_op);
+        break;
+      case OpType::save_probs:
+      case OpType::save_probs_ket:
+        apply_save_probs(op, result);
+        break;
+      case OpType::save_amps:
+      case OpType::save_amps_sq:
+        apply_save_amplitudes(op, result);
+        break;
+      default:
+        throw std::invalid_argument("MatrixProductState::State::invalid instruction \'" +
+                                    op.name + "\'.");
+    }
+    //qreg_.print(std::cout);
+    // print out bond dimensions only if they may have changed since previous print
+    if (MPS::get_mps_log_data()
+        && (op.type == OpType::gate ||op.type == OpType::measure || 
+            op.type == OpType::initialize || op.type == OpType::reset || 
+            op.type == OpType::matrix) && 
+            op.qubits.size() > 1) {
+      output_bond_dimensions(op);
     }
   }
 }
@@ -558,6 +608,26 @@ void State::apply_ops(const std::vector<Operations::Op> &ops,
 //=========================================================================
 // Implementation: Save data
 //=========================================================================
+
+void State::apply_save_mps(const Operations::Op &op,
+                           ExperimentResult &result,
+                           bool last_op) {
+  if (op.qubits.size() != qreg_.num_qubits()) {
+    throw std::invalid_argument(
+        "Save MPS was not applied to all qubits."
+        " Only the full matrix product state can be saved.");
+  }
+  std::string key = (op.string_params[0] == "_method_")
+                      ? "matrix_product_state"
+                      : op.string_params[0];
+  if (last_op) {
+    BaseState::save_data_pershot(result, key, qreg_.move_to_mps_container(),
+				                         op.save_type);
+  } else {
+    BaseState::save_data_pershot(result, key, qreg_.copy_to_mps_container(),
+                                 op.save_type);
+  }
+}
 
 void State::apply_save_probs(const Operations::Op &op,
                              ExperimentResult &result) {
@@ -607,6 +677,7 @@ void State::apply_save_statevector(const Operations::Op &op,
   BaseState::save_data_pershot(result, op.string_params[0],
                                qreg_.full_statevector(), op.save_type);
 }
+
 
 void State::apply_save_density_matrix(const Operations::Op &op,
                                       ExperimentResult &result) {
@@ -800,6 +871,9 @@ void State::apply_gate(const Operations::Op &op) {
     case Gates::sx:
       qreg_.apply_sx(op.qubits[0]);
       break;
+    case Gates::sxdg:
+      qreg_.apply_sxdg(op.qubits[0]);
+      break;
     case Gates::t:
       qreg_.apply_t(op.qubits[0]);
       break;
@@ -855,10 +929,35 @@ void State::apply_gate(const Operations::Op &op) {
       qreg_.apply_rzx(op.qubits[0], op.qubits[1],
     		      std::real(op.params[0]));
       break;
+    case Gates::pauli:
+      apply_pauli(op.qubits, op.string_params[0]);
+      break;
     default:
       // We shouldn't reach here unless there is a bug in gateset
       throw std::invalid_argument(
         "MatrixProductState::State::invalid gate instruction \'" + op.name + "\'.");
+  }
+}
+
+void State::apply_pauli(const reg_t &qubits, const std::string& pauli) {
+  const auto size = qubits.size();
+  for (size_t i = 0; i < qubits.size(); ++i) {
+    const auto qubit = qubits[size - 1 - i];
+    switch (pauli[i]) {
+      case 'I':
+        break;
+      case 'X':
+        BaseState::qreg_.apply_x(qubit);
+        break;
+      case 'Y':
+        BaseState::qreg_.apply_y(qubit);
+        break;
+      case 'Z':
+        BaseState::qreg_.apply_z(qubit);
+        break;
+      default:
+        throw std::invalid_argument("invalid Pauli \'" + std::to_string(pauli[i]) + "\'.");
+    }
   }
 }
 
@@ -897,7 +996,11 @@ void State::apply_measure(const reg_t &qubits,
                           const reg_t &cmemory,
                           const reg_t &cregister,
                           RngEngine &rng) {
-  reg_t outcome = qreg_.apply_measure(qubits, rng);
+  rvector_t rands;
+  rands.reserve(qubits.size());
+  for (int_t i = 0; i < qubits.size(); ++i)
+    rands.push_back(rng.rand(0., 1.));
+  reg_t outcome = qreg_.apply_measure(qubits, rands);
   creg_.store_measure(outcome, cmemory, cregister);
 }
 
@@ -915,56 +1018,23 @@ std::vector<reg_t> State::sample_measure(const reg_t &qubits,
   // of qubits,and the number of shots.
   // The parameters used below are based on experimentation.
   // The user can override this by setting the parameter "mps_sample_measure_algorithm"
-  uint_t num_qubits = qubits.size();
   if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB){
     return sample_measure_using_probabilities(qubits, shots, rng);
   }
-  if (MPS::get_sample_measure_alg() == Sample_measure_alg::APPLY_MEASURE ||
-      num_qubits >26 )
-     return sample_measure_using_apply_measure(qubits, shots, rng);
-
-  double num_qubits_dbl = static_cast<double>(num_qubits);
-  double shots_dbl = static_cast<double>(shots);
-
-  // Sample_measure_alg::HEURISTIC
-  uint_t max_bond_dim = qreg_.get_max_bond_dimensions();
-
-  if (num_qubits <10)
+  if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB)
     return sample_measure_using_probabilities(qubits, shots, rng);
-  if (max_bond_dim <= 2) {
-    if (shots_dbl < 12.0 * pow(1.85, (num_qubits_dbl-10.0)))
-       return sample_measure_using_apply_measure(qubits, shots, rng);
-    else
-      return sample_measure_using_probabilities(qubits, shots, rng);
-  } else if (max_bond_dim <= 4) {
-    if (shots_dbl < 3.0 * pow(1.75, (num_qubits_dbl-10.0)))
-       return sample_measure_using_apply_measure(qubits, shots, rng);
-    else
-      return sample_measure_using_probabilities(qubits, shots, rng);
-  } else if (max_bond_dim <= 8) {
-    if (shots_dbl < 2.5 * pow(1.65, (num_qubits_dbl-10.0)))
-       return sample_measure_using_apply_measure(qubits, shots, rng);
-    else
-      return sample_measure_using_probabilities(qubits, shots, rng);
-  } else if (max_bond_dim <= 16) {
-    if (shots_dbl < 0.5 * pow(1.75, (num_qubits_dbl-10.0)))
-       return sample_measure_using_apply_measure(qubits, shots, rng);
-    else
-      return sample_measure_using_probabilities(qubits, shots, rng);
-  } 
-  return sample_measure_using_probabilities(qubits, shots, rng);
+  return sample_measure_using_apply_measure(qubits, shots, rng);
 }
 	     
 std::vector<reg_t> State::
 sample_measure_using_probabilities(const reg_t &qubits,
 				   uint_t shots,
 				   RngEngine &rng) {
-
   // Generate flat register for storing
   rvector_t rnds;
   rnds.reserve(shots);
   for (uint_t i = 0; i < shots; ++i)
-    rnds.push_back(rng.rand(0, 1));
+    rnds.push_back(rng.rand(0., 1.));
 
   auto allbit_samples = qreg_.sample_measure_using_probabilities(rnds, qubits);
 
@@ -986,17 +1056,37 @@ sample_measure_using_probabilities(const reg_t &qubits,
 std::vector<reg_t> State::
   sample_measure_using_apply_measure(const reg_t &qubits, 
 				     uint_t shots, 
-				     RngEngine &rng) const {
-  MPS temp;
+				     RngEngine &rng) {
+
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
-  reg_t single_result;
+  // input is always sorted in qasm_controller, therefore, we must return the qubits 
+  // to their original location (sorted)
+  qreg_.move_all_qubits_to_sorted_ordering();
+  reg_t sorted_qubits = qubits;
+  std::sort(sorted_qubits.begin(), sorted_qubits.end());
 
-  for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
-    temp.initialize(qreg_);
-    single_result = temp.apply_measure(qubits, rng);
-    all_samples[i] = single_result;
+  std::vector<rvector_t> rnds_list;
+  rnds_list.reserve(shots);
+  for (int_t i = 0; i < shots; ++i) {
+    rvector_t rands;
+    rands.reserve(qubits.size());
+    for (int_t j = 0; j < qubits.size(); ++j)
+      rands.push_back(rng.rand(0., 1.));
+    rnds_list.push_back(rands);
   }
+
+  #pragma omp parallel if (BaseState::threads_ > 1) num_threads(BaseState::threads_)
+  {
+    MPS temp;
+    #pragma omp for
+    for (int_t i=0; i<static_cast<int_t>(shots);  i++) {
+      temp.initialize(qreg_);
+      auto single_result = temp.apply_measure_internal(sorted_qubits, rnds_list[i]);
+      all_samples[i] = single_result;
+    }
+  }
+
   return all_samples;
 }
 

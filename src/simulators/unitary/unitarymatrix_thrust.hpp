@@ -86,7 +86,9 @@ public:
   // Initializes the vector to a custom initial state.
   // If the length of the statevector does not match the number of qubits
   // an exception is raised.
-  void initialize_from_matrix(const AER::cmatrix_t &mat);
+  template <typename T>
+  void initialize_from_matrix(const matrix<std::complex<T>> &mat);
+  void initialize_from_matrix(const matrix<std::complex<data_t>> &mat);
 
   //-----------------------------------------------------------------------
   // Identity checking
@@ -206,10 +208,7 @@ matrix<std::complex<data_t>> UnitaryMatrixThrust<data_t>::copy_to_matrix() const
   uint_t irow, icol;
 #pragma omp parallel for private(i,irow,icol) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
   for (i = 0; i < csize; i++) {
-    irow = (i >> num_qubits_);
-    icol = i - (irow << num_qubits_);
-
-    ret(icol, irow) = qreg[i];
+    ret[i] = qreg[i];
   }
 	return ret;
 }
@@ -227,22 +226,19 @@ void UnitaryMatrixThrust<data_t>::initialize()
   BaseVector::zero();
   // Set to be identity matrix
 
-  uint_t is,ie,idx;
+  uint_t idx;
   int_t i;
 
-  is = BaseVector::chunk_index_ << BaseVector::num_qubits_;
-  ie = is + (1ull << BaseVector::num_qubits_);
 #pragma omp parallel private(idx) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
   for(i=0;i<nrows;i++){
     idx = i * (nrows + 1);
-    if(idx >= is && idx < ie){
-      BaseVector::set_state(idx-is,one);
-    }
+    BaseVector::set_state(idx,one);
   }
 }
 
 template <class data_t>
-void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &mat)
+template <typename T>
+void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const matrix<std::complex<T>> &mat)
 {
   const int_t nrows = rows_;    // end for k loop
   if (nrows < static_cast<int_t>(mat.GetRows()) ||
@@ -259,16 +255,20 @@ void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const AER::cmatrix_t &m
     );
   }
 
-  cvector_t<data_t> tmp(BaseVector::data_size_);
-  int_t i;
+  matrix<std::complex<data_t>> tmp(nrows,nrows);
 
 #pragma omp parallel for if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
   for (int_t row = 0; row < nrows; ++row)
     for  (int_t col = 0; col < nrows; ++col) {
-      tmp[row + nrows * col] = mat(row, col);
+      tmp(row,col) = mat(row, col);
     }
 
-  BaseVector::chunk_->CopyIn((thrust::complex<data_t>*)&tmp[0], BaseVector::data_size_);
+  BaseVector::initialize_from_data(tmp.data(), tmp.size());
+}
+
+template <class data_t>
+void UnitaryMatrixThrust<data_t>::initialize_from_matrix(const matrix<std::complex<data_t>> &mat) {
+  BaseVector::initialize_from_data(mat.data(), mat.size());
 }
 
 template <class data_t>

@@ -1122,7 +1122,7 @@ def cu1_gate_circuits_nondeterministic(final_measure):
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[1])
     circuit.x(qr[0])
-    circuit.cu1(0, qr[0], qr[1])
+    circuit.cp(0, qr[0], qr[1])
     circuit.x(qr[0])
     circuit.h(qr[1])
 
@@ -1134,7 +1134,7 @@ def cu1_gate_circuits_nondeterministic(final_measure):
     # H^I.CU1(pi,0,1).H^I
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[1])
-    circuit.cu1(np.pi, qr[0], qr[1])
+    circuit.cp(np.pi, qr[0], qr[1])
     circuit.h(qr[1])
 
     if final_measure:
@@ -1146,7 +1146,7 @@ def cu1_gate_circuits_nondeterministic(final_measure):
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[1])
     circuit.x(qr[0])
-    circuit.cu1(np.pi / 4, qr[0], qr[1])
+    circuit.cp(np.pi / 4, qr[0], qr[1])
     circuit.x(qr[0])
     circuit.h(qr[1])
     if final_measure:
@@ -1158,7 +1158,7 @@ def cu1_gate_circuits_nondeterministic(final_measure):
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[1])
     circuit.x(qr[0])
-    circuit.cu1(np.pi / 2, qr[0], qr[1])
+    circuit.cp(np.pi / 2, qr[0], qr[1])
     circuit.x(qr[0])
     circuit.h(qr[1])
     if final_measure:
@@ -1170,7 +1170,7 @@ def cu1_gate_circuits_nondeterministic(final_measure):
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[1])
     circuit.x(qr[0])
-    circuit.cu1(np.pi, qr[0], qr[1])
+    circuit.cp(np.pi, qr[0], qr[1])
     circuit.x(qr[0])
     circuit.h(qr[1])
     if final_measure:
@@ -1182,7 +1182,7 @@ def cu1_gate_circuits_nondeterministic(final_measure):
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[1])
     circuit.h(qr[0])
-    circuit.cu1(0, qr[0], qr[1])
+    circuit.cp(0, qr[0], qr[1])
     circuit.h(qr[0])
     circuit.h(qr[1])
 
@@ -1195,7 +1195,7 @@ def cu1_gate_circuits_nondeterministic(final_measure):
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[1])
     circuit.h(qr[0])
-    circuit.cu1(np.pi / 2, qr[0], qr[1])
+    circuit.cp(np.pi / 2, qr[0], qr[1])
     circuit.h(qr[0])
     circuit.h(qr[1])
     if final_measure:
@@ -1207,7 +1207,7 @@ def cu1_gate_circuits_nondeterministic(final_measure):
     circuit = QuantumCircuit(*regs)
     circuit.h(qr[1])
     circuit.h(qr[0])
-    circuit.cu1(np.pi, qr[0], qr[1])
+    circuit.cp(np.pi, qr[0], qr[1])
     circuit.h(qr[0])
     circuit.h(qr[1])
     if final_measure:
@@ -1355,7 +1355,7 @@ def cu3_gate_circuits_deterministic(final_measure):
     # I^X.CI.I^X
     circuit = QuantumCircuit(*regs)
     circuit.x(qr[0])
-    circuit.cu3(0, 0, 0, qr[0], qr[1])
+    circuit.cu(0, 0, 0, 0, qr[0], qr[1])
     circuit.x(qr[0])
     if final_measure:
         circuit.barrier(qr)
@@ -1364,7 +1364,7 @@ def cu3_gate_circuits_deterministic(final_measure):
 
     # CX
     circuit = QuantumCircuit(*regs)
-    circuit.cu3(np.pi, 0, np.pi, qr[0], qr[1])
+    circuit.cu(np.pi, 0, np.pi, 0, qr[0], qr[1])
     if final_measure:
         circuit.barrier(qr)
         circuit.measure(qr, cr)
@@ -1373,7 +1373,7 @@ def cu3_gate_circuits_deterministic(final_measure):
     # I^X.CX.I^X
     circuit = QuantumCircuit(*regs)
     circuit.x(qr[0])
-    circuit.cu3(np.pi, 0, np.pi, qr[0], qr[1])
+    circuit.cu(np.pi, 0, np.pi, 0, qr[0], qr[1])
     circuit.x(qr[0])
     if final_measure:
         circuit.barrier(qr)
@@ -1383,7 +1383,7 @@ def cu3_gate_circuits_deterministic(final_measure):
     # H^X.CH.I^X
     circuit = QuantumCircuit(*regs)
     circuit.x(qr[0])
-    circuit.cu3(np.pi / 2, 0, np.pi, qr[0], qr[1])
+    circuit.cu(np.pi / 2, 0, np.pi, 0, qr[0], qr[1])
     circuit.x(qr[0])
     circuit.h(qr[1])
     if final_measure:
@@ -1394,7 +1394,7 @@ def cu3_gate_circuits_deterministic(final_measure):
     # I^X.CRX(pi).I^X
     circuit = QuantumCircuit(*regs)
     circuit.x(qr[0])
-    circuit.cu3(np.pi, -np.pi / 2, np.pi / 2, qr[0], qr[1])
+    circuit.cu(np.pi, -np.pi / 2, np.pi / 2, 0, qr[0], qr[1])
     circuit.x(qr[0])
     if final_measure:
         circuit.barrier(qr)
@@ -1404,7 +1404,7 @@ def cu3_gate_circuits_deterministic(final_measure):
     # I^X.CRY(pi).I^X
     circuit = QuantumCircuit(*regs)
     circuit.x(qr[0])
-    circuit.cu3(np.pi, 0, 0, qr[0], qr[1])
+    circuit.cu(np.pi, 0, 0, 0, qr[0], qr[1])
     circuit.x(qr[0])
     if final_measure:
         circuit.barrier(qr)

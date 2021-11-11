@@ -74,6 +74,8 @@ inline bool check_keys(const std::vector<std::string>& keys, const json_t &js);
  */
 template <typename T> bool get_value(T &var, const std::string& key, const json_t &js);
 
+const json_t& get_value(const std::string& key, const json_t &js);
+
 } // end namespace JSON
 
 //============================================================================
@@ -197,6 +199,10 @@ bool JSON::get_value(T &var, const std::string& key, const json_t &js) {
   } else {
     return false;
   }
+}
+
+const json_t& JSON::get_value(const std::string& key, const json_t &js){
+    return js[key];
 }
 
 //------------------------------------------------------------------------------

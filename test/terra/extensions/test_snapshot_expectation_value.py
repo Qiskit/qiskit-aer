@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 import unittest
-
+from warnings import filterwarnings
 
 import numpy
 
@@ -25,6 +25,15 @@ from ..common import QiskitAerTestCase
 
 class TestSnapshotExpectationValueExtension(QiskitAerTestCase):
     """SnapshotExpectationValue extension tests"""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            module=".*snapshot_expectation_value",
+        )
 
     @staticmethod
     def snapshot_circuit_instr(circ_qubits, label, op, qubits, single_shot=False, variance=False):
@@ -43,7 +52,7 @@ class TestSnapshotExpectationValueExtension(QiskitAerTestCase):
 
     def test_snapshot_name(self):
         """Test snapshot instruction has correct name"""
-        for op in [Pauli.from_label('X'), Operator([[0, 1], [1, 0]])]:
+        for op in [Pauli('X'), Operator([[0, 1], [1, 0]])]:
             instrs = [
                 SnapshotExpectationValue('snap', op).assemble(),
                 self.snapshot_circuit_instr(1, 'snap', op, [0])
@@ -54,7 +63,7 @@ class TestSnapshotExpectationValueExtension(QiskitAerTestCase):
 
     def test_snapshot_label(self):
         """Test snapshot instruction has correct label"""
-        for op in [Pauli.from_label('X'), Operator([[0, 1], [1, 0]])]:
+        for op in [Pauli('X'), Operator([[0, 1], [1, 0]])]:
             for label in ['snap0', 'snap1']:
                 instrs = [
                     SnapshotExpectationValue(label, op).assemble(),
@@ -69,7 +78,7 @@ class TestSnapshotExpectationValueExtension(QiskitAerTestCase):
         pauli_ops = [
             [[1, 'I'], [0.5, 'X'], [0.25, 'Y'], [-3, 'Z']],
             [[1j, 'I'], [0.5j, 'X'], [0.25j, 'Y'], [-3j, 'Z']],
-            [[0.5j, Pauli.from_label('X')], [-0.5j, Pauli.from_label('Z')]]
+            [[0.5j, Pauli('X')], [-0.5j, Pauli('Z')]]
         ]
         for op in pauli_ops:
             # standard
@@ -97,14 +106,15 @@ class TestSnapshotExpectationValueExtension(QiskitAerTestCase):
                 self.assertTrue(hasattr(instr, 'snapshot_type'))
                 self.assertEqual(instr.snapshot_type, 'expectation_value_pauli_single_shot')
             # Variance
-            instrs = [
-                SnapshotExpectationValue('snap', op,
-                                         single_shot=False,
-                                         variance=True).assemble(),
-                self.snapshot_circuit_instr(1, 'snap', op, [0],
-                                            single_shot=False,
-                                            variance=True)
-            ]
+            with self.assertWarns(DeprecationWarning):
+                instrs = [
+                    SnapshotExpectationValue('snap', op,
+                                             single_shot=False,
+                                             variance=True).assemble(),
+                    self.snapshot_circuit_instr(1, 'snap', op, [0],
+                                                single_shot=False,
+                                                variance=True)
+                ]
             for instr in instrs:
                 self.assertTrue(hasattr(instr, 'snapshot_type'))
                 self.assertEqual(instr.snapshot_type, 'expectation_value_pauli_with_variance')
@@ -114,7 +124,7 @@ class TestSnapshotExpectationValueExtension(QiskitAerTestCase):
         matrix_ops = [
             numpy.eye(2),
             numpy.array([[0, 1j], [-1j, 0]]),
-            Operator(Pauli.from_label('Z'))
+            Operator(Pauli('Z'))
         ]
         for op in matrix_ops:
             # standard
@@ -142,14 +152,15 @@ class TestSnapshotExpectationValueExtension(QiskitAerTestCase):
                 self.assertTrue(hasattr(instr, 'snapshot_type'))
                 self.assertEqual(instr.snapshot_type, 'expectation_value_matrix_single_shot')
             # Variance
-            instrs = [
-                SnapshotExpectationValue('snap', op,
-                                         single_shot=False,
-                                         variance=True).assemble(),
-                self.snapshot_circuit_instr(1, 'snap', op, [0],
-                                            single_shot=False,
-                                            variance=True)
-            ]
+            with self.assertWarns(DeprecationWarning):
+                instrs = [
+                    SnapshotExpectationValue('snap', op,
+                                             single_shot=False,
+                                             variance=True).assemble(),
+                    self.snapshot_circuit_instr(1, 'snap', op, [0],
+                                                single_shot=False,
+                                                variance=True)
+                ]
             for instr in instrs:
                 self.assertTrue(hasattr(instr, 'snapshot_type'))
                 self.assertEqual(instr.snapshot_type, 'expectation_value_matrix_with_variance')
@@ -157,7 +168,7 @@ class TestSnapshotExpectationValueExtension(QiskitAerTestCase):
     def test_snapshot_specific_qubits(self):
         """Test snapshot instruction has correct qubits."""
         for qubits in [[0], [0, 2], [1, 3, 0]]:
-            pauli = Pauli.from_label(len(qubits) * 'X')
+            pauli = Pauli(len(qubits) * 'X')
             instrs = [
                 self.snapshot_circuit_instr(5, 'snap', pauli, qubits),
                 self.snapshot_circuit_instr(5, 'snap', Operator(pauli), qubits)

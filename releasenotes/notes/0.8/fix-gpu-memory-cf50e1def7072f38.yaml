@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes a bug introduced in 0.8.0 where GPU simulations would allocate
+    unneeded host memory in addition to the GPU memory.

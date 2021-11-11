@@ -1,0 +1,89 @@
+---
+features:
+  - |
+    Adds instructions for saving the state of the simulator in various
+    formats. These instructions are
+    
+    * :class:`qiskit.providers.aer.library.SaveDensityMatrix`
+    * :class:`qiskit.providers.aer.library.SaveMatrixProductState`
+    * :class:`qiskit.providers.aer.library.SaveStabilizer`
+    * :class:`qiskit.providers.aer.library.SaveState`
+    * :class:`qiskit.providers.aer.library.SaveStatevector`
+    * :class:`qiskit.providers.aer.library.SaveStatevectorDict`
+    * :class:`qiskit.providers.aer.library.SaveUnitary`
+
+    These instructions can be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_density_matrix`,
+    :class:`~qiskit.providers.aer.library.save_matrix_product_state`,
+    :class:`~qiskit.providers.aer.library.save_stabilizer`,
+    :class:`~qiskit.providers.aer.library.save_state`,
+    :class:`~qiskit.providers.aer.library.save_statevector`,
+    :class:`~qiskit.providers.aer.library.save_statevector_dict`,
+    :class:`~qiskit.providers.aer.library.save_unitary`
+    circuit methods which are added to ``QuantumCircuit`` when importing Aer.
+
+    See the :mod:`qiskit.providers.aer.library` API documentation
+    for details on method compatibility for each instruction.
+
+    Note that the snapshot instructions
+    :class:`~qiskit.providers.aer.extensions.SnapshotStatevector`,
+    :class:`~qiskit.providers.aer.extensions.SnapshotDensityMatrix`,
+    :class:`~qiskit.providers.aer.extensions.SnapshotStabilizer` are
+    still supported but will be deprecated in a future release.
+  - |  
+    Adds :class:`qiskit.providers.aer.library.SaveExpectationValue` and
+    :class:`qiskit.providers.aer.library.SaveExpectationValueVariance`
+    quantum circuit instructions for saving the expectation value
+    :math:`\langle H\rangle = Tr[H\rho]`, or expectation value and variance
+    :math:`Var(H) = \langle H^2\rangle - \langle H\rangle^2`,
+    of a Hermitian operator :math:`H` for the simulator state :math:`\rho`.
+    These instruction can be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_expectation_value` and
+    :class:`~qiskit.providers.aer.library.save_expectation_value_variance`
+    circuit methods which is added to ``QuantumCircuit`` when importing Aer.
+
+    Note that the snapshot instruction
+    :class:`~qiskit.providers.aer.extensions.SnapshotExpectationValue`,
+    is still supported but will be deprecated in a future release.
+  - |
+    Adds :class:`qiskit.providers.aer.library.SaveProbabilities` and
+    :class:`qiskit.providers.aer.library.SaveProbabilitiesDict` quantum
+    circuit instruction for saving all measurement outcome probabilities for
+    Z-basis measurements of the simualtor state. These instruction can be
+    appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_probabilities` and
+    :class:`~qiskit.providers.aer.library.save_probabilities_dict` circuit
+    methods which is added to ``QuantumCircuit`` when importing Aer.
+
+    Note that the snapshot instruction
+    :class:`~qiskit.providers.aer.extensions.SnapshotProbabilities`,
+    is still supported but will be deprecated in a future release.
+  - |
+    Adds :class:`qiskit.providers.aer.library.SaveAmplitudes` and
+    :class:`qiskit.providers.aer.library.SaveAmplitudesSquared`
+    circuit instructions for saving select complex statevector amplitudes,
+    or select probabilities (amplitudes squared) for supported simulation
+    methods. These instructions can be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.save_amplitudes` and
+    :class:`~qiskit.providers.aer.library.save_amplitudes_squared`circuit
+    methods which is added to ``QuantumCircuit`` when importing Aer.
+  - |
+    Adds instructions for setting the state of the simulators. These
+    instructions must be defined on the full number of qubits in the circuit.
+    They can be applied at any point in a circuit and will override the
+    simulator state with the one specified. Added instructions are
+
+    * :class:`qiskit.providers.aer.library.SetDensityMatrix`
+    * :class:`qiskit.providers.aer.library.SetStabilizer`
+    * :class:`qiskit.providers.aer.library.SetStatevector`
+    * :class:`qiskit.providers.aer.library.SetUnitary`
+    
+    These instruction can be appended to a quantum circuit by using the
+    :class:`~qiskit.providers.aer.library.set_density_matrix`,
+    :class:`~qiskit.providers.aer.library.set_stabilizer`,
+    :class:`~qiskit.providers.aer.library.set_statevector`,
+    :class:`~qiskit.providers.aer.library.set_unitary`
+    circuit methods which are added to ``QuantumCircuit`` when importing Aer.
+
+    See the :mod:`qiskit.providers.aer.library` API documentation
+    for details on method compatibility for each instruction.

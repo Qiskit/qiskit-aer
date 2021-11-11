@@ -1,0 +1,77 @@
+---
+prelude: |
+    The 0.9 release includes new backend options for parallel exeuction
+    of large numbers of circuits on a HPC cluster using a Dask distributed,
+    along with other general performance improvements and bug fixes.
+features:
+  - |
+    Add qiskit library :class:`~qiskit.circuit.library.SXdgGate`
+    and :class:`~qiskit.circuit.library.CUGate` to the supported basis gates for
+    the Aer simulator backends. Note that the :class:`~qiskit.circuit.library.CUGate`
+    gate is only natively
+    supported for the ``statevector`` and ``unitary`` methods. For other simulation
+    methods it must be transpiled to the supported basis gates for that method.
+  - |
+    Adds support for N-qubit Pauli gate (
+    :class:`qiskit.circuit.library.generalized_gates.PauliGate`) to all
+    simulation methods of the
+    :class:`~qiskit.providers.aer.AerSimulator` and
+    :class:`~qiskit.providers.aer.QasmSimulator`.
+deprecations:
+  - |
+    Passing an assembled qobj directly to the
+    :meth:`~qiskit.providers.aer.AerSimulator.run` method of the Aer simulator
+    backends has been deprecated in favor of passing transpiled circuits
+    directly as ``backend.run(circuits, **run_options)``.
+  - |
+    All snapshot instructions in :mod:`qiskit.providers.aer.extensions` have
+    been deprecated. For replacement use the save instructions from the
+    :mod:`qiskit.providers.aer.library` module.
+  - |
+    Adding non-local quantum errors to a
+    :class:`~qiskit.providers.aer.noise.NoiseModel` has been deprecated due to
+    inconsistencies in how this noise is applied to the optimized circuit.
+    Non-local noise should be manually added to a scheduled circuit in Qiskit
+    using a custom transpiler pass before being run on the simulator.
+  - |
+    Use of the ``method`` option of the
+    :class:`~qiskit.providers.aer.StatevectorSimulator`, and 
+    :class:`~qiskit.providers.aer.UnitarySimulator` to run a GPU simulation
+    has been deprecated. To run a GPU simulation on a compatible system
+    use the option ``device='GPU'`` instead.
+upgrade:
+  - |
+    The default basis for the :class:`~qiskit.providers.aer.noise.NoiseModel`
+    class has been changed from ``["id", "u3", "cx"]`` to
+    ``["id", "rz", "sx", "cx"]`` due to the deprecation of the ``u3`` circuit
+    method in qiskit-terra and change of qiskit-ibmq-provider backend basis
+    gates. To use the old basis gates you can initialize a noise model with
+    custom basis gates as ``NoiseModel(basis_gates=["id", "u3", "cx"])``.
+  - |
+    Removed the ``backend_options`` kwarg from the ``run`` methnod of Aer backends
+    that was deprecated in qiskit-aer 0.7. All run options must now be passed as
+    separate kwargs.
+  - |
+    Removed passing ``system_model`` as a positional arg for the ``run`` method of the
+    :class:`~qiskit.providers.aer.PulseSimulator`.
+fixes:
+  - |
+    Fixes bug where the if the required memory is smaller than the system memory the
+    multi-chunk simulation method was enabled and simulation was still started.
+    This case will now throw an insufficient memory exception.
+  - |
+    Fixes issue where setting the ``shots`` option for a backend with
+    ``set_options(shots=k)`` was always running the default number of shots (1024)
+    rather than the specified value.
+  - |
+    Fixes a bug in how the :class:`~qiskit.providers.aer.AerSimulator` handled the
+    option value for ``max_parallel_experiments=1``. Previously this was treated
+    the same as ``max_parallel_experiments=0``.
+  - |
+    Fixes bug in the ``extended_stabilizer`` simulation method where it
+    incorrectly treated qelay gate and multi-qubit Pauli instructions as
+    unsupported.
+  - |
+    Fixes typo in the :class:`~qiskit.providers.aer.AerSimulator` and
+    :class:`~qiskit.providers.aer.QasmSimulator` options for the
+    ``extended_stabilizer_norm_estimation_repetitions`` option.

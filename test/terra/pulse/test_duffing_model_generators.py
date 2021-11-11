@@ -77,8 +77,8 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         # and then parsed
         O0 = self._operator_array_from_str(2, ['I', 'O'])
         O1 = self._operator_array_from_str(2, ['O', 'I'])
-        OO0 = O0@O0
-        OO1 = O1@O1
+        OO0 = O0 & O0
+        OO1 = O1 & O1
         X0 = self._operator_array_from_str(2, ['I', 'X'])
         X1 = self._operator_array_from_str(2, ['X', 'I'])
         exchange = self._operator_array_from_str(2, ['Sm', 'Sp']) + self._operator_array_from_str(2, ['Sp', 'Sm'])
@@ -162,9 +162,9 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         O0 = self._operator_array_from_str(3, ['I', 'I', 'O'])
         O1 = self._operator_array_from_str(3, ['I', 'O', 'I'])
         O2 = self._operator_array_from_str(3, ['O', 'I', 'I'])
-        OO0 = O0@O0
-        OO1 = O1@O1
-        OO2 = O2@O2
+        OO0 = O0 & O0
+        OO1 = O1 & O1
+        OO2 = O2 & O2
         X0 = self._operator_array_from_str(3, ['I', 'I', 'A']) + self._operator_array_from_str(3, ['I', 'I', 'C'])
         X1 = self._operator_array_from_str(3, ['I', 'A', 'I']) + self._operator_array_from_str(3, ['I', 'C', 'I'])
         X2 = self._operator_array_from_str(3, ['A', 'I', 'I']) + self._operator_array_from_str(3, ['C', 'I', 'I'])
@@ -264,10 +264,10 @@ class TestDuffingModelGenerators(QiskitAerTestCase):
         O1 = self._operator_array_from_str(2, ['I', 'I', 'O', 'I'])
         O2 = self._operator_array_from_str(2, ['I', 'O', 'I', 'I'])
         O3 = self._operator_array_from_str(2, ['O', 'I', 'I', 'I'])
-        OO0 = O0@O0
-        OO1 = O1@O1
-        OO2 = O2@O2
-        OO3 = O3@O3
+        OO0 = O0 & O0
+        OO1 = O1 & O1
+        OO2 = O2 & O2
+        OO3 = O3 & O3
         X0 = self._operator_array_from_str(2, ['I','I', 'I', 'A']) + self._operator_array_from_str(2, ['I', 'I', 'I', 'C'])
         X1 = self._operator_array_from_str(2, ['I', 'I', 'A', 'I']) + self._operator_array_from_str(2, ['I', 'I', 'C', 'I'])
         X2 = self._operator_array_from_str(2, ['I', 'A', 'I', 'I']) + self._operator_array_from_str(2, ['I', 'C', 'I', 'I'])

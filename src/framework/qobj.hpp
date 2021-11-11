@@ -38,8 +38,9 @@ class Qobj {
   Qobj() = default;
   virtual ~Qobj() = default;
 
-  // JSON deserialization constructor
-  Qobj(const json_t &js);
+  // Deserialization constructor
+  template <typename inputdata_t>
+  Qobj(const inputdata_t &input, bool truncation = false);
 
   //----------------------------------------------------------------
   // Data
@@ -58,30 +59,31 @@ class Qobj {
 // JSON deserialization
 inline void from_json(const json_t &js, Qobj &qobj) { qobj = Qobj(js); }
 
-Qobj::Qobj(const json_t &js) {
+template <typename inputdata_t>
+Qobj::Qobj(const inputdata_t &input, bool truncation) {
   // Check required fields
-  if (JSON::get_value(id, "qobj_id", js) == false) {
+  if (Parser<inputdata_t>::get_value(id, "qobj_id", input) == false) {
     throw std::invalid_argument(R"(Invalid qobj: no "qobj_id" field)");
   };
-  JSON::get_value(type, "type", js);
+    Parser<inputdata_t>::get_value(type, "type", input);
   if (type != "QASM") {
     throw std::invalid_argument(R"(Invalid qobj: "type" != "QASM".)");
   };
-  if (JSON::check_key("experiments", js) == false) {
+  if (Parser<inputdata_t>::check_key("experiments", input) == false) {
     throw std::invalid_argument(R"(Invalid qobj: no "experiments" field.)");
   }
 
   // Get header and config;
-  JSON::get_value(config, "config", js);
-  JSON::get_value(header, "header", js);
+  Parser<inputdata_t>::get_value(config, "config", input);
+  Parser<inputdata_t>::get_value(header, "header", input);
 
   // Check for fixed simulator seed
   // If simulator seed is set, each experiment will be set to a fixed (but different) seed
   // Otherwise a random seed will be chosen for each experiment
   int_t seed = -1;
   uint_t seed_shift = 0;
-  bool has_simulator_seed = JSON::get_value(seed, "seed_simulator", config);
-  const json_t &circs = js["experiments"];
+  bool has_simulator_seed = Parser<json_t>::get_value(seed, "seed_simulator", config); // config always json
+  const auto& circs = Parser<inputdata_t>::get_list("experiments", input);
   const size_t num_circs = circs.size();
 
   // Check if parameterized qobj
@@ -95,7 +97,7 @@ Qobj::Qobj(const json_t &js) {
   using pos_t = std::pair<uint_t, uint_t>;
   using exp_params_t = std::vector<std::pair<pos_t, std::vector<double>>>;
   std::vector<exp_params_t> param_table;
-  JSON::get_value(param_table, "parameterizations", config);
+  Parser<json_t>::get_value(param_table, "parameterizations", config);
 
   // Validate parameterizations for number of circuis
   if (!param_table.empty() && param_table.size() != num_circs) {
@@ -106,10 +108,10 @@ Qobj::Qobj(const json_t &js) {
   // Load circuits
   for (size_t i=0; i<num_circs; i++) {
     // Get base circuit from qobj
-    Circuit circuit(circs[i], config);
+    Circuit circuit(static_cast<inputdata_t>(circs[i]), config, truncation);
     if (param_table.empty() || param_table[i].empty()) {
       // Non parameterized circuit
-      circuits.push_back(circuit);
+      circuits.push_back(std::move(circuit));
     } else {
       // Load different parameterizations of the initial circuit
       const auto circ_params = param_table[i];
@@ -135,7 +137,7 @@ Qobj::Qobj(const json_t &js) {
           // Update the param
           op.params[param_pos] = params.second[j];
         }
-        circuits.push_back(param_circuit);
+        circuits.push_back(std::move(param_circuit));
       }
     }
   }

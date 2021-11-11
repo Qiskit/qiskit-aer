@@ -16,9 +16,10 @@ Qiskit Aer simulator backend utils
 """
 import os
 from math import log2
-from qiskit.util import local_hardware_info
+from qiskit.utils import local_hardware_info
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import assemble
+from qiskit.qobj import QasmQobjInstruction
 
 # Available system memory
 SYSTEM_MEMORY_GB = local_hardware_info()['memory']
@@ -31,24 +32,83 @@ MAX_QUBITS_STATEVECTOR = int(log2(SYSTEM_MEMORY_GB * (1024**3) / 16))
 # loaded at runtime by the simulator extension
 LIBRARY_DIR = os.path.dirname(__file__)
 
+LEGACY_METHOD_MAP = {
+    "statevector_cpu": ("statevector", "CPU"),
+    "statevector_gpu": ("statevector", "GPU"),
+    "statevector_thrust": ("statevector", "Thrust"),
+    "density_matrix_cpu": ("density_matrix", "CPU"),
+    "density_matrix_gpu": ("density_matrix", "GPU"),
+    "density_matrix_thrust": ("density_matrix", "Thrust"),
+    "unitary_cpu": ("unitary", "CPU"),
+    "unitary_gpu": ("unitary", "GPU"),
+    "unitary_thrust": ("unitary", "Thrust"),
+}
+
+BASIS_GATES = {
+    'statevector': sorted([
+        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
+        'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
+        'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
+        'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
+        'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
+        'initialize', 'delay', 'pauli', 'mcx_gray'
+    ]),
+    'density_matrix': sorted([
+        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
+        'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
+        'unitary', 'diagonal', 'delay', 'pauli',
+    ]),
+    'matrix_product_state': sorted([
+        'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
+        'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay', 'pauli',
+        'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
+        'initialize'
+    ]),
+    'stabilizer': sorted([
+        'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 'cx', 'cy', 'cz',
+        'swap', 'delay', 'pauli'
+    ]),
+    'extended_stabilizer': sorted([
+        'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg',
+        'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay', 'pauli'
+    ]),
+    'unitary': sorted([
+        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
+        'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
+        'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
+        'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
+        'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
+    ]),
+    'superop': sorted([
+        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
+        'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy',
+        'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'delay', 'pauli'
+    ])
+}
+
+# Automatic method basis gates are the union of statevector,
+# density matrix, and stabilizer methods
+BASIS_GATES[None] = BASIS_GATES['automatic'] = sorted(
+    set(BASIS_GATES['statevector']).union(
+        BASIS_GATES['stabilizer']).union(
+            BASIS_GATES['density_matrix']).union(
+                BASIS_GATES['matrix_product_state']).union(
+                    BASIS_GATES['unitary']).union(
+                        BASIS_GATES['superop']))
+
 
 def cpp_execute(controller, qobj):
-    """Execute qobj_dict on C++ controller wrapper"""
-    # Convert qobj to dict
-    qobj_dict = qobj.to_dict()
-
-    # Convert noise model to dict
-    noise_model = qobj_dict['config'].pop('noise_model', None)
-    if noise_model is not None:
-        if not isinstance(noise_model, dict):
-            noise_model = noise_model.to_dict()
-        qobj_dict['config']['noise_model'] = noise_model
+    """Execute qobj on C++ controller wrapper"""
 
     # Location where we put external libraries that will be
     # loaded at runtime by the simulator extension
-    qobj_dict['config']['library_dir'] = LIBRARY_DIR
+    qobj.config.library_dir = LIBRARY_DIR
 
-    return controller(qobj_dict)
+    return controller(qobj)
 
 
 def available_methods(controller, methods):
@@ -66,4 +126,49 @@ def available_methods(controller, methods):
         result = cpp_execute(controller, qobj)
         if result.get('success', False):
             valid_methods.append(method)
-    return valid_methods
+    return tuple(valid_methods)
+
+
+def available_devices(controller, devices):
+    """Check available simulation devices by running a dummy circuit."""
+    # Test methods are available using the controller
+    dummy_circ = QuantumCircuit(1)
+    dummy_circ.i(0)
+
+    valid_devices = []
+    for device in devices:
+        qobj = assemble(dummy_circ,
+                        optimization_level=0,
+                        shots=1,
+                        method="statevector",
+                        device=device)
+        result = cpp_execute(controller, qobj)
+        if result.get('success', False):
+            valid_devices.append(device)
+    return tuple(valid_devices)
+
+
+def add_final_save_instruction(qobj, state):
+    """Add final save state instruction to all experiments in a qobj."""
+
+    def save_inst(num_qubits):
+        """Return n-qubit save statevector inst"""
+        return QasmQobjInstruction(
+            name=f"save_{state}",
+            qubits=list(range(num_qubits)),
+            label=f"{state}",
+            snapshot_type="single")
+
+    for exp in qobj.experiments:
+        num_qubits = exp.config.n_qubits
+        exp.instructions.append(save_inst(num_qubits))
+
+    return qobj
+
+
+def map_legacy_method_options(qobj):
+    """Map legacy method names of qasm simulator to aer simulator options"""
+    method = getattr(qobj.config, "method", None)
+    if method in LEGACY_METHOD_MAP:
+        qobj.config.method, qobj.config.device = LEGACY_METHOD_MAP[method]
+    return qobj

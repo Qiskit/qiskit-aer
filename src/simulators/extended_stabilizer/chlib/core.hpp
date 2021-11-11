@@ -22,6 +22,7 @@
 #include <iostream>
 #include <vector>
 
+#include "framework/utils.hpp"
 
 namespace CHSimulator 
 {
@@ -35,8 +36,6 @@ using int_t = int_fast64_t;
 
 extern const uint_t zer = 0U;
 extern const uint_t one = 1U;
-extern bool (*hamming_parity)(uint_t);
-extern unsigned (*hamming_weight)(uint_t);
 
 struct scalar_t {
   // complex numbers of the form eps * 2^{p/2} * exp(i (pi/4)*e )
@@ -121,6 +120,9 @@ struct scalar_t {
     }
     std::complex<double> mag(std::pow(2, p/(double)2), 0.);
     std::complex<double> phase(RE_PHASE[e], IM_PHASE[e]);
+    if(e % 2){
+      phase /= std::sqrt(2);
+    }
     return mag*phase;
   }
 
@@ -172,78 +174,6 @@ void Print(std::vector<uint_fast64_t> A, unsigned n);// print a binary matrix
 // Implementations                       //
 //---------------------------------------//
 
-#ifdef _MSC_VER
-  #ifdef _WIN64
-    #define POPCNT __popcnt64
-  #else
-    #define POPCNT __popcnt
-  #endif
-  #define INTRINSIC_PARITY 1
-  #include <intrin.h>
-  inline bool _msc_parity(uint_t x)
-  {
-    return (POPCNT(x) & one);
-  }
-  bool (*hamming_parity) (uint_t) = &_msc_parity;
-  inline unsigned _msc_weight(uint_t x)
-  {
-    return (POPCNT(x));
-  }
-  unsigned (*hamming_weight) (uint_t)= &_msc_weight;
-#endif
-#ifdef __GNUC__
-  #define INTRINSIC_PARITY 1
-  inline bool _gcc_parity(uint_t x)
-  {
-    return (__builtin_popcountll(x) & one);
-  }
-  bool (*hamming_parity) (uint_t) = &_gcc_parity;
-  inline unsigned _gcc_weight(uint_t x)
-  {
-    return (__builtin_popcountll(x));
-  }
-  unsigned (*hamming_weight) (uint_t)= &_gcc_weight;
-#endif
-#ifdef _CLANG_
-  #if __has__builtin(__builtin_popcount)
-  #define INTRINSIC_PARITY 1
-    inline bool _clang_parity(uint_t x)
-    {
-      return (__builtin_popcountll(x) & one);
-    }
-    bool (*hamming_parity) (uint_t) = &_clang_parity;
-    inline unsigned _clang_weight(uint_t x)
-    {
-      return (__builtin_popcountll(x));
-    }
-    unsigned (*hamming_weight) (uint_t) = &_clang_weight;
-  #endif
-#endif
-#ifndef INTRINSIC_PARITY
-  // Implementation from http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetKernighan
-  bool _naive_parity(uint_t x)
-  {
-    uint_t c; // c accumulates the total bits set in x
-    for (c = 0; x; c++)
-    {
-      x &= (x - 1); // clear the least significant bit set
-    }
-    return (c&one);
-  }
-  unsigned _naive_weight(uint_t x)
-  {
-    uint_t c; // c accumulates the total bits set in x
-    for (c = 0; x; c++)
-    {
-      x &= (x - 1); // clear the least significant bit set
-    }
-    return c;
-  }
-
-  bool (*hamming_parity) (uint_t) = &_naive_parity;
-  unsigned (*hamming_weight) (uint_t) = &_naive_weight;
-#endif
-
 scalar_t& scalar_t::operator*=(const scalar_t& rhs)
 {
   p += (rhs.p);
@@ -267,7 +197,7 @@ pauli_t::pauli_t(): X(zer), Z(zer) {}
 
 pauli_t& pauli_t::operator*=( const pauli_t& rhs )
 {
-    unsigned overlap=hamming_weight(Z & rhs.X);// commute rhs.X to the left
+    unsigned overlap=AER::Utils::popcount(Z & rhs.X);// commute rhs.X to the left
     X^=rhs.X;
     Z^=rhs.Z;
     e=(e + rhs.e + 2*overlap) % 4;

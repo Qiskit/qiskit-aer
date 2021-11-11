@@ -94,7 +94,7 @@ uint_t num_of_SV(rvector_t S, double threshold)
 	return sum;
 }
 
-void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
+double reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
 		  uint_t max_bond_dimension, double truncation_threshold) {
   uint_t SV_num = num_of_SV(S, CHOP_THRESHOLD);
   uint_t new_SV_num = SV_num;
@@ -103,8 +103,7 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
     // in this case, leave only the first max_bond_dimension
     // values in S, and discard all the rest
     new_SV_num = max_bond_dimension;
-  } 
-
+  }
   // Remove the lowest Schmidt coefficients such that the sum of 
   // their squares is less than trunction_threshold
   double sum_squares = 0;
@@ -120,19 +119,25 @@ void reduce_zeros(cmatrix_t &U, rvector_t &S, cmatrix_t &V,
   S.resize(new_SV_num);
   V.resize(V.GetRows(), new_SV_num);
 
-  // After approximation, we may need to re-normalize the values of S
+  // discarded_value is the sum of the squares of the Schmidt coeffients 
+  // that were discarded by approximation
+  double discarded_value = 0.0;
+
   if (new_SV_num < SV_num) {
-    double sum=0;
-    for (uint_t i=0; i<S.size(); i++) {
-      sum += std::norm(S[i]);
-    }
-    if (1-sum > THRESHOLD) {
-      for (uint_t i=0; i<S.size(); i++) {
-	  double square_i = std::norm(S[i])/sum;
-	  S[i] = sqrt(square_i);
-      }
+    for (uint_t i=new_SV_num; i<SV_num; i++) {
+      discarded_value += std::norm(S[i]);
     }
   }
+  // Check if we need to re-normalize the values of S
+  double new_sum_squares = 0;
+  for (uint_t i=0; i<S.size(); i++) 
+    new_sum_squares +=std::norm(S[i]);
+  if (!Linalg::almost_equal(1.0 - new_sum_squares, 0., THRESHOLD)) {
+	double sqrt_sum = std::sqrt(new_sum_squares);
+	for (uint_t i=0; i<S.size(); i++)
+	  S[i] /= sqrt_sum;
+  }
+  return discarded_value;
 }
 
 void validate_SVD_result(const cmatrix_t &A, const cmatrix_t &U, 

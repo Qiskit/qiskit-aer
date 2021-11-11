@@ -19,6 +19,7 @@ import warnings
 import numpy as np
 from test.terra import common
 
+from qiskit import QuantumCircuit, transpile, schedule
 from qiskit.test.mock.backends.armonk.fake_armonk import FakeArmonk
 from qiskit.test.mock.backends.athens.fake_athens import FakeAthens
 
@@ -28,7 +29,6 @@ from qiskit.pulse import (Schedule, Play, ShiftPhase, SetPhase, Delay, Acquire,
                           AcquireChannel, MemorySlot)
 from qiskit.providers.aer.aererror import AerError
 
-from qiskit.compiler import assemble
 from qiskit.providers.aer.pulse.system_models.pulse_system_model import PulseSystemModel
 from qiskit.providers.aer.pulse.system_models.hamiltonian_model import HamiltonianModel
 from qiskit.providers.models.backendconfiguration import UchannelLO
@@ -57,6 +57,8 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
                 self.assertTrue(sim_dict[key])
             elif key == 'local':
                 self.assertTrue(sim_dict[key])
+            elif key == 'parametric_pulses':
+                self.assertEqual(sim_dict[key], [])
             else:
                 self.assertEqual(sim_dict[key], backend_dict[key])
 
@@ -111,6 +113,39 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         sim_attr = athens_sim.configuration().dt
         model_attr = athens_sim._system_model.dt
         self.assertTrue(sim_attr == set_attr and model_attr == set_attr)
+
+    def test_from_backend_parametric_pulses(self):
+        """Verify that the parametric_pulses parameter is overriden in the PulseSimulator.
+        Results don't matter, just need to check that it runs.
+        """
+
+        backend = PulseSimulator.from_backend(FakeAthens())
+
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(1)
+        qc.measure_all()
+
+        sched = schedule(transpile(qc, backend), backend)
+        res = backend.run(sched).result()
+
+    def test_parametric_pulses_error(self):
+        """Verify error is raised if a parametric pulse makes it into the digest."""
+
+        fake_backend = FakeAthens()
+        backend = PulseSimulator.from_backend(fake_backend)
+
+        # reset parametric_pulses option
+        backend.set_option('parametric_pulses', fake_backend.configuration().parametric_pulses)
+
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(1)
+        qc.measure_all()
+        sched = schedule(transpile(qc, backend), backend)
+
+        with self.assertRaises(AerError):
+            res = backend.run(sched).result()
 
     def test_set_meas_levels(self):
         """Test setting of meas_levels."""
@@ -228,30 +263,24 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         """Test that validation fails if 0 or >1 acquire is given in a schedule."""
 
         test_sim = PulseSimulator.from_backend(FakeArmonk())
+        test_sim.set_options(
+            meas_level=2,
+            qubit_lo_freq=test_sim.defaults().qubit_freq_est,
+            meas_return='single',
+            shots=256
+        )
 
         # check that too many acquires results in an error
-        qobj = assemble([self._1Q_schedule(num_acquires=2)],
-                        backend=test_sim,
-                        meas_level=2,
-                        qubit_lo_freq=[0.],
-                        meas_return='single',
-                        shots=256)
-
+        sched = self._1Q_schedule(num_acquires=2)
         try:
-            test_sim.run(qobj, validate=True).result()
+            test_sim.run(sched, validate=True).result()
         except AerError as error:
             self.assertTrue('does not support multiple Acquire' in error.message)
 
         # check that no acquires results in an error
-        qobj = assemble([self._1Q_schedule(num_acquires=0)],
-                        backend=test_sim,
-                        meas_level=2,
-                        qubit_lo_freq=[0.],
-                        meas_return='single',
-                        shots=256)
-
+        sched = self._1Q_schedule(num_acquires=0)
         try:
-            test_sim.run(qobj, validate=True).result()
+            test_sim.run(sched, validate=True).result()
         except AerError as error:
             self.assertTrue('requires at least one Acquire' in error.message)
 
@@ -271,18 +300,18 @@ class TestConfigPulseSimulator(common.QiskitAerTestCase):
         armonk_backend.configuration().dt = dt
 
         armonk_sim = PulseSimulator.from_backend(armonk_backend)
+        armonk_sim.set_options(
+            meas_level=2,
+            meas_return='single',
+            shots=1
+        )
 
         total_samples = 250
         amp = np.pi / (drive_est * dt * total_samples)
 
         sched = self._1Q_schedule(total_samples, amp)
-        qobj = assemble([sched],
-                        backend=armonk_sim,
-                        meas_level=2,
-                        meas_return='single',
-                        shots=1)
         # run and verify that a pi pulse had been done
-        result = armonk_sim.run(qobj).result()
+        result = armonk_sim.run(sched).result()
         final_vec = result.get_statevector()
         probabilities = np.abs(final_vec)**2
         self.assertTrue(probabilities[0] < 1e-5)
