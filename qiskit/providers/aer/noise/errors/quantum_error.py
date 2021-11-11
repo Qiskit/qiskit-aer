@@ -51,7 +51,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
     def __init__(self,
                  noise_ops,
                  number_of_qubits=None,
-                 standard_gates=False,
+                 standard_gates=None,
                  atol=None):
         """
         Create a quantum error for a noise model.
@@ -175,14 +175,15 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
         ops, probs = zip(*noise_ops)  # unzip
 
-        if standard_gates:
-            if isinstance(ops[0], list):
-                ops = [_standard_gates_instructions(op) for op in ops]
+        if standard_gates is not None:
             warnings.warn(
                 '"standard_gates" option in the constructor of QuantumError has been deprecated'
                 ' as of qiskit-aer 0.10.0 in favor of externalizing such an unrolling functionality'
                 ' and will be removed no earlier than 3 months from that release date.',
                 DeprecationWarning, stacklevel=2)
+            if standard_gates:
+                if isinstance(ops[0], list):
+                    ops = [_standard_gates_instructions(op) for op in ops]
 
         # Initialize internal variables with error checking
         total_probs = sum(probs)
