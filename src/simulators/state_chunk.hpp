@@ -840,7 +840,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
         ub[2] = (q1 - chunk_bits_*qubit_scale()) + 1;
         iu[2] = 0;
       }
-      nPair = 1ull << (num_qubits_*qubit_scale() - chunk_bits_*qubit_scale() - nLarge);
+      nPair = 1ull << (BaseState::num_qubits_*qubit_scale() - chunk_bits_*qubit_scale() - nLarge);
 
       for(iPair=0;iPair<nPair;iPair++){
         //calculate index of pair of chunks
