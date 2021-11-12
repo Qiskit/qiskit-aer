@@ -126,11 +126,11 @@ class TestNoiseInserter(QiskitAerTestCase):
 
         target_circuit = QuantumCircuit(qr)
         target_circuit.x(qr[0])
-        target_circuit.append(error_x.to_instruction(), [qr[0]])
+        target_circuit.append(error_x, [qr[0]])
         target_circuit.y(qr[1])
-        target_circuit.append(error_y.to_instruction(), [qr[1]])
+        target_circuit.append(error_y, [qr[1]])
         target_circuit.z(qr[2])
-        target_basis = ['kraus'] + noise_model.basis_gates
+        target_basis = ['quantum_channel'] + noise_model.basis_gates
         target_circuit = transpile(target_circuit, basis_gates=target_basis)
         result_circuit = insert_noise(circuit, noise_model, transpile=True)
         self.assertEqual(SuperOp(target_circuit), SuperOp(result_circuit))

@@ -33,7 +33,7 @@ const Operations::OpSet StateOpSet(
   // Op types
   {OpType::gate, OpType::measure,
     OpType::reset, OpType::snapshot,
-    OpType::barrier, OpType::bfunc,
+    OpType::barrier, OpType::bfunc, OpType::qerror_loc,
     OpType::roerror, OpType::save_expval,
     OpType::save_expval_var, OpType::save_probs,
     OpType::save_probs_ket, OpType::save_amps_sq,
@@ -322,6 +322,7 @@ void State::apply_op(const Operations::Op &op,
   if (BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case OpType::barrier:
+      case OpType::qerror_loc:
         break;
       case OpType::reset:
         apply_reset(op.qubits, rng);

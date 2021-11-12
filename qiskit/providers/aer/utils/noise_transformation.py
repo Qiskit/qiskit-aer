@@ -77,9 +77,9 @@ def approximate_quantum_error(error, *,
 
     if not isinstance(error, QuantumError):
         error = QuantumError(error)
-    if error.number_of_qubits > 2:
+    if error.num_qubits > 2:
         raise NoiseError("Only 1-qubit and 2-qubit noises can be converted, {}-qubit "
-                         "noise found in model".format(error.number_of_qubits))
+                         "noise found in model".format(error.num_qubits))
 
     error_kraus_operators = Kraus(error.to_quantumchannel()).data
     transformer = NoiseTransformer()
@@ -89,10 +89,10 @@ def approximate_quantum_error(error, *,
         if operator_string not in transformer.named_operators.keys():
             raise RuntimeError(no_info_error)
         operator_lists = transformer.named_operators[operator_string]
-        if len(operator_lists) < error.number_of_qubits:
+        if len(operator_lists) < error.num_qubits:
             raise RuntimeError(
-                no_info_error + " for {} qubits".format(error.number_of_qubits))
-        operator_dict = operator_lists[error.number_of_qubits - 1]
+                no_info_error + " for {} qubits".format(error.num_qubits))
+        operator_dict = operator_lists[error.num_qubits - 1]
     if operator_dict is not None:
         _, operator_list = zip(*operator_dict.items())
     if operator_list is not None:
