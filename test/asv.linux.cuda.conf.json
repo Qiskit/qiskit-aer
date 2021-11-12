@@ -34,15 +34,18 @@
         "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit', True)\"",
         "python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit_aer.egg-info', True)\"",
         "pip install git+https://github.com/Qiskit/qiskit-terra",
+        "pip install qiskit_nature",
         "python -mpip install {wheel_file}"
     ],
     "uninstall_command": [
         "return-code=any python -mpip uninstall -y qiskit-terra",
+        "return-code=any python -mpip uninstall -y qiskit_nature",
         "return-code=any python -mpip uninstall -y {project}"
     ],
     "build_command": [
         "python -mpip install -U scikit-build",
         "pip install git+https://github.com/Qiskit/qiskit-terra",
+        "pip install qiskit_nature",
         "pip install pyscf",
         "pip install matplotlib",
         "pip install qiskit_nature",
