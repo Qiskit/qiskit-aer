@@ -1,0 +1,41 @@
+---
+features:
+  - |
+    Adds ability to add :class:`~qiskit.providers.aer.noise.QuantumError`
+    objects directly to a :class:`~qiskit.QuantumCircuit` without converting
+    to a :class:`~qiskit.quantum_info.Kraus` instruction.
+    
+    Circuits containing quantum errors can now be run on the
+    :class:`~qiskit.providers.aer.AerSimulator` and
+    :class:`~qiskit.providers.aer.QasmSimulator` simulator as an alternative
+    to, or in addition to, building a
+    :class:`~qiskit.providers.aer.noise.NoiseModel` for defining noisy circuit
+    instructions.
+
+    Example:
+
+      .. code-block:: python
+
+        from qiskit import QuantumCircuit
+        from qiskit.providers.aer import AerSimulator
+        from qiskit.providers.aer.noise import pauli_error
+
+        error_h = pauli_error([('I', 0.95), ('X', 0.05)])
+        error_cx = pauli_error([('II', 0.9), ('XX', 0.1)])
+
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.append(error_h, [0])
+        qc.cx(0, 1)
+        qc.append(error_cx, [0, 1])
+        qc.cx(0, 2)
+        qc.append(error_cx, [0, 2])
+        qc.measure_all()
+
+        backend = AerSimulator(method='stabilizer')
+        result = backend.run(qc).result()
+        result.get_counts(0)
+
+    Circuits containing quantum errors can also be evaluated using
+    the :mod:`~qiskit.quantum_info` quantum channel and
+    :class:`~qiskit.quantum_info.DensityMatrix` classes.
