@@ -181,6 +181,39 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
 }
 
 
+inline std::ostream& operator<<(std::ostream& stream, const DataSubType& subtype) {
+  switch (subtype) {
+    case DataSubType::single:
+      stream << "single";
+      break;
+    case DataSubType::c_single:
+      stream << "c_single";
+      break;
+    case DataSubType::list:
+      stream << "list";
+      break;
+    case DataSubType::c_list:
+      stream << "c_list";
+      break;
+    case DataSubType::accum:
+      stream << "accum";
+      break;
+    case DataSubType::c_accum:
+      stream << "c_accum";
+      break;
+    case DataSubType::average:
+      stream << "average";
+      break;
+    case DataSubType::c_average:
+      stream << "c_average";
+      break;
+    default:
+      stream << "unknown";
+  }
+  return stream;
+}
+
+
 //------------------------------------------------------------------------------
 // Op Class
 //------------------------------------------------------------------------------
@@ -493,6 +526,8 @@ inline void from_json(const json_t &js, Op &op) {op = input_to_op(js);}
 
 inline void to_json(json_t &js, const Op &op) { js = op_to_json(op);}
 
+void to_json(json_t &js, const DataSubType& type);
+
 // Standard operations
 template<typename inputdata_t>
 Op input_to_op_gate(const inputdata_t& input);
@@ -680,6 +715,20 @@ json_t op_to_json(const Op &op) {
   if (!op.mats.empty())
     ret["mats"] = op.mats;
   return ret;
+}
+
+
+void to_json(json_t &js, const OpType& type) {
+  std::stringstream ss;
+  ss << type;
+  js = ss.str();
+}
+
+
+void to_json(json_t &js, const DataSubType& subtype) {
+  std::stringstream ss;
+  ss << subtype;
+  js = ss.str();
 }
 
 

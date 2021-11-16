@@ -539,7 +539,7 @@ void State::apply_save_stabilizer(const Operations::Op &op,
   std::string key = (op.string_params[0] == "_method_") ? "stabilizer" : op.string_params[0];
   json_t clifford = BaseState::qreg_;
   BaseState::save_data_pershot(result, key,
-                               std::move(clifford), op.save_type);
+                               std::move(clifford), OpType::save_stabilizer, op.save_type);
 }
 
 void State::apply_save_probs(const Operations::Op &op,
@@ -563,13 +563,13 @@ void State::apply_save_probs(const Operations::Op &op,
     get_probabilities_auxiliary(
         op.qubits, std::string(op.qubits.size(), 'X'), 1, probs);
     BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(probs), op.save_type);
+                                 std::move(probs), op.type, op.save_type);
   } else {
     std::vector<double> probs(1ULL << op.qubits.size(), 0.);
     get_probabilities_auxiliary(
       op.qubits, std::string(op.qubits.size(), 'X'), 1, probs); 
     BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(probs), op.save_type);
+                                 std::move(probs), op.type, op.save_type);
   }
 }
 
@@ -587,7 +587,7 @@ void State::apply_save_amplitudes_sq(const Operations::Op &op,
     amps_sq[i] = get_probability(op.qubits, Utils::int2bin(op.int_params[i], num_qubits));
   }
   BaseState::save_data_average(result, op.string_params[0],
-                               std::move(amps_sq), op.save_type);
+                               std::move(amps_sq), op.type, op.save_type);
 }
 
 double State::expval_pauli(const reg_t &qubits,

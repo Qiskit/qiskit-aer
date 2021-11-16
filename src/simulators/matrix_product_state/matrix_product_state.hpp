@@ -625,10 +625,10 @@ void State::apply_save_mps(const Operations::Op &op,
                       : op.string_params[0];
   if (last_op) {
     BaseState::save_data_pershot(result, key, qreg_.move_to_mps_container(),
-				                         op.save_type);
+				                         OpType::save_mps, op.save_type);
   } else {
     BaseState::save_data_pershot(result, key, qreg_.copy_to_mps_container(),
-                                 op.save_type);
+                                 OpType::save_mps, op.save_type);
   }
 }
 
@@ -639,10 +639,10 @@ void State::apply_save_probs(const Operations::Op &op,
   if (op.type == OpType::save_probs_ket) {
     BaseState::save_data_average(result, op.string_params[0],
                                  Utils::vec2ket(probs, MPS::get_json_chop_threshold(), 16),
-                                 op.save_type);
+                                 op.type, op.save_type);
   } else {
     BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(probs), op.save_type);
+                                 std::move(probs), op.type, op.save_type);
   }
 }
 
@@ -658,10 +658,10 @@ void State::apply_save_amplitudes(const Operations::Op &op,
     std::transform(amps.data(), amps.data() + amps.size(), amps_sq.begin(),
       [](complex_t val) -> double { return pow(abs(val), 2); });
     BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(amps_sq), op.save_type);
+                                 std::move(amps_sq), op.type, op.save_type);
   } else {
     BaseState::save_data_pershot(result, op.string_params[0],
-                                 std::move(amps), op.save_type);
+                                 std::move(amps), op.type, op.save_type);
   }
 }
 
@@ -678,7 +678,7 @@ void State::apply_save_statevector(const Operations::Op &op,
         " Only the full statevector can be saved.");
   }
   BaseState::save_data_pershot(result, op.string_params[0],
-                               qreg_.full_statevector(), op.save_type);
+                               qreg_.full_statevector(), op.type, op.save_type);
 }
 
 
@@ -693,7 +693,7 @@ void State::apply_save_density_matrix(const Operations::Op &op,
   }
 
   BaseState::save_data_average(result, op.string_params[0],
-                               std::move(reduced_state), op.save_type);
+                               std::move(reduced_state), op.type, op.save_type);
 }
 
 //=========================================================================

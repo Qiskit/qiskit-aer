@@ -74,7 +74,7 @@ class TestSaveState(SimulatorTestCase):
             for val, targ in zip(value[1], target[1]):
                 self.assertTrue(np.allclose(val, targ))
         else:
-            self.assertTrue(np.all(value == target))
+            self.assertEqual(value, target)
 
     @supported_methods(['statevector', 'density_matrix'])
     def test_save_state_cache_blocking(self, method, device):
@@ -107,4 +107,4 @@ class TestSaveState(SimulatorTestCase):
         self.assertIn('target', simdata)
         value = simdata[method]
         target = simdata['target']
-        self.assertTrue(np.all(value == target))
+        self.assertEqual(value, target)
