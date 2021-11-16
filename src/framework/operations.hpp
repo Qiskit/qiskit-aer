@@ -44,7 +44,7 @@ enum class OpType {
   // Save instructions
   save_state, save_expval, save_expval_var, save_statevec, save_statevec_dict,
   save_densmat, save_probs, save_probs_ket, save_amps, save_amps_sq,
-  save_stabilizer, save_unitary, save_mps, save_superop,
+  save_stabilizer, save_clifford, save_unitary, save_mps, save_superop,
   // Set instructions
   set_statevec, set_densmat, set_unitary, set_superop,
     set_stabilizer, set_mps
@@ -113,6 +113,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::save_stabilizer:
     stream << "save_stabilizer";
+    break;
+  case OpType::save_clifford:
+    stream << "save_clifford";
     break;
   case OpType::save_unitary:
     stream << "save_unitary";
@@ -642,6 +645,8 @@ Op input_to_op(const inputdata_t& input) {
     return input_to_op_save_default(input, OpType::save_statevec_dict);
   if (name == "save_stabilizer")
     return input_to_op_save_default(input, OpType::save_stabilizer);
+  if (name == "save_clifford")
+    return input_to_op_save_default(input, OpType::save_clifford);
   if (name == "save_unitary")
     return input_to_op_save_default(input, OpType::save_unitary);
   if (name == "save_superop")

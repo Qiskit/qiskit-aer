@@ -356,6 +356,7 @@ void Circuit::set_params(bool truncation) {
         case OpType::save_amps:
         case OpType::save_amps_sq:
         case OpType::save_stabilizer:
+        case OpType::save_clifford:
         case OpType::save_unitary:
         case OpType::save_mps:
         case OpType::save_superop: 
@@ -471,6 +472,7 @@ bool Circuit::check_result_ancestor(const Op& op, std::unordered_set<uint_t>& an
     case OpType::save_amps:
     case OpType::save_amps_sq:
     case OpType::save_stabilizer:
+    case OpType::save_clifford:
     case OpType::save_unitary:
     case OpType::save_mps:
     case OpType::save_superop: {

@@ -22,7 +22,7 @@ from qiskit.compiler import assemble
 from qiskit.qobj import QasmQobjInstruction
 from qiskit.result import ProbDistribution
 from qiskit.quantum_info import (
-    Statevector, DensityMatrix, Operator, Clifford, SuperOp)
+    Statevector, DensityMatrix, StabilizerState, Operator, Clifford, SuperOp)
 
 
 # Available system memory
@@ -185,7 +185,8 @@ def format_save_type(data, save_type, save_subtype):
         "save_density_matrix": DensityMatrix,
         "save_unitary": Operator,
         "save_superop": SuperOp,
-        "save_stabilizer": Clifford.from_dict,
+        "save_stabilizer": (lambda data: StabilizerState(Clifford.from_dict(data))),
+        "save_clifford": Clifford.from_dict,
         "save_probabilities_dict": ProbDistribution,
     }
 

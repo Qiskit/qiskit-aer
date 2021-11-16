@@ -42,7 +42,7 @@ class TestPauliGate(SimulatorTestCase):
             circuit.save_density_matrix(label=label)
             fidelity_fn = qi.state_fidelity
         elif method == 'stabilizer':
-            target = qi.Clifford(circuit)
+            target = qi.StabilizerState(qi.Clifford(circuit))
             circuit.save_stabilizer(label=label)
             fidelity_fn = qi.process_fidelity
         elif method == 'unitary':

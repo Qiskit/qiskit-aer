@@ -37,8 +37,8 @@ const Operations::OpSet StateOpSet(
     OpType::roerror, OpType::save_expval,
     OpType::save_expval_var, OpType::save_probs,
     OpType::save_probs_ket, OpType::save_amps_sq,
-    OpType::save_stabilizer, OpType::save_state,
-    OpType::set_stabilizer},
+    OpType::save_stabilizer, OpType::save_clifford,
+    OpType::save_state, OpType::set_stabilizer},
   // Gates
   {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg",
    "sx", "sxdg", "delay", "pauli"},
@@ -358,6 +358,7 @@ void State::apply_op(const Operations::Op &op,
         break;
       case OpType::save_state:
       case OpType::save_stabilizer:
+      case OpType::save_clifford:
         apply_save_stabilizer(op, result);
         break;
       default:
@@ -536,10 +537,14 @@ void State::apply_set_stabilizer(const Clifford::Clifford &clifford) {
 
 void State::apply_save_stabilizer(const Operations::Op &op,
                                 ExperimentResult &result) {
-  std::string key = (op.string_params[0] == "_method_") ? "stabilizer" : op.string_params[0];
+  std::string key = op.string_params[0];
+  if (key == "_method_") {
+    key = (op.type == OpType::save_clifford) ? "clifford" : "stabilizer";
+  }
+  OpType op_type = (op.type == OpType::save_clifford) ? OpType::save_clifford
+                                                      : OpType::save_stabilizer;
   json_t clifford = BaseState::qreg_;
-  BaseState::save_data_pershot(result, key,
-                               std::move(clifford), OpType::save_stabilizer, op.save_type);
+  BaseState::save_data_pershot(result, key, std::move(clifford), op_type, op.save_type);
 }
 
 void State::apply_save_probs(const Operations::Op &op,

@@ -390,8 +390,8 @@ class AerSimulator(AerBackend):
             'quantum_channel', 'qerror_loc', 'roerror', 'snapshot',
             'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
-            'save_amplitudes_sq', 'save_state', 'save_stabilizer',
-            'set_stabilizer'
+            'save_amplitudes_sq', 'save_state', 'save_clifford',
+            'save_stabilizer', 'set_stabilizer'
         ]),
         'extended_stabilizer': sorted([
             'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'save_statevector'
