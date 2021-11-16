@@ -44,7 +44,7 @@ class TestSetState(SimulatorTestCase):
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
-        value = qi.Clifford.from_dict(simdata[label])
+        value = simdata[label]
         self.assertEqual(value, target)
 
     @supported_methods(['automatic', 'statevector'], [1, 2, 3, 4, 5])
@@ -67,7 +67,7 @@ class TestSetState(SimulatorTestCase):
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
-        value = qi.Statevector(simdata[label])
+        value = simdata[label]
         self.assertEqual(value, target)
 
     @supported_methods(['automatic', 'density_matrix'], [1, 2, 3])
@@ -90,7 +90,7 @@ class TestSetState(SimulatorTestCase):
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
-        value = qi.DensityMatrix(simdata[label])
+        value = simdata[label]
         self.assertEqual(value, target)
 
     @supported_methods(['automatic', 'unitary'], [1, 2, 3])
@@ -113,7 +113,7 @@ class TestSetState(SimulatorTestCase):
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
-        value = qi.Operator(simdata[label])
+        value = simdata[label]
         self.assertEqual(value, target)
 
     @supported_methods(['automatic', 'superop'], [1, 2])
