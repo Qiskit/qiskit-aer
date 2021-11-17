@@ -20,7 +20,7 @@ from typing import Iterable
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, Instruction, Gate, QuantumRegister
+from qiskit.circuit import QuantumCircuit, Instruction, QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate
