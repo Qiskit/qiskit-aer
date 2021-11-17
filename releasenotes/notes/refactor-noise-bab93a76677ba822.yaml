@@ -33,7 +33,7 @@ features:
   - |
     Adds a utility function :func:`qiskit.providers.aer.utils.transform_noise_model`
     for constructing a noise model by applying a supplied function to all
-    :class:`~qiskit.providers.aer.noise.QuantumError`s in the noise model.
+    :class:`~qiskit.providers.aer.noise.QuantumError` in the noise model.
   - |
     Adds two utility functions
     :func:`qiskit.providers.aer.utils.transpile_quantum_error` and
