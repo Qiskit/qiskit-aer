@@ -19,6 +19,7 @@ import unittest
 import numpy as np
 from qiskit.providers.aer.backends import AerSimulator
 from qiskit.providers.aer.noise import NoiseModel
+from qiskit.providers.aer.utils.noise_transformation import transform_noise_model
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit.providers.aer.noise.errors.standard_errors import kraus_error
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
@@ -227,7 +228,7 @@ class TestNoiseModel(QiskitAerTestCase):
         result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
 
-    def test_map_noise(self):
+    def test_transform_noise(self):
         org_error = reset_error(0.2)
         new_error = pauli_error([("I", 0.5), ("Z", 0.5)])
 
@@ -239,7 +240,7 @@ class TestNoiseModel(QiskitAerTestCase):
         def map_func(noise):
             return new_error if noise == org_error else None
 
-        actual = model.map_noise(map_func)
+        actual = transform_noise_model(model, map_func)
 
         expected = NoiseModel()
         expected.add_all_qubit_quantum_error(new_error, ['x'])

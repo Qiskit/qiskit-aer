@@ -31,12 +31,15 @@ features:
 
     Note that the original json-based input are deperecated.
   - |
-    Two functions :func:`transform_quantum_error` and :func:`transform_noise_model` for
-    basis transformation of quantum errors to
-    :mod:`~qiskit.providers.aer.noise.utils.noise_transformation`.
+    Adds a utility function :func:`qiskit.providers.aer.utils.transform_noise_model`
+    for constructing a noise model by applying a supplied function to all
+    :class:`~qiskit.providers.aer.noise.QuantumError`s in the noise model.
   - |
-    Add a :meth:`~qiskit.providers.aer.noise.NoiseModel.map_noise` that applies
-    a function mapping a noise to another for all quantum errors in a noise model.
+    Adds two utility functions
+    :func:`qiskit.providers.aer.utils.transpile_quantum_error` and
+    :func:`qiskit.providers.aer.utils.transpile_noise_model` for transpiling
+    the circuits contained in :class:`~qiskit.providers.aer.noise.QuantumError`,
+    and all errors in a :class:`~qiskit.providers.aer.noise.NoiseModel`.
 upgrade:
   - |
     Change default value of ``standard_gates`` to ``None`` for all functions

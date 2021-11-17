@@ -27,10 +27,11 @@ used in a Clifford simulator.
 """
 # pylint: disable=import-outside-toplevel
 
+import copy
 import itertools
 import logging
 import warnings
-from typing import Sequence, List, Union
+from typing import Sequence, List, Union, Callable
 
 import numpy as np
 
@@ -50,13 +51,53 @@ from ..noise.noiseerror import NoiseError
 logger = logging.getLogger(__name__)
 
 
-def transform_quantum_error(error: QuantumError, basis_gates=None) -> QuantumError:
+def transform_noise_model(noise_model: NoiseModel, func: Callable) -> NoiseModel:
+    """Return a new noise model by applyign a function to all quantum errors.
+
+    This returns a new noise model containing the resulting errors from
+    applying the supplied function to all QuantumErrors in the noise model.
+    This function should have singature `func(error: QuantumError) -> QuantumError`
+    where the returned quantum error is defined on the same number of qubits
+    as the original error.
+
+    Args:
+        noise_model: the noise model to be transformed.
+        func: function for transforming QuantumErrors.
+    Returns:
+        The transpiled noise model.
+
+    Raises:
+        NoiseError: if the transformation failed.
     """
-    Replace all circuits in a quantum error with ones composed only of specified basis gates.
+    # Make a deep copy of the noise model so we can update its
+    # internal dicts without affecting the original model
+    new_noise = copy.deepcopy(noise_model)
+
+    for key, error in new_noise._default_quantum_errors.items():
+        new_noise._default_quantum_errors[key] = func(error)
+
+    for inst_name, noise_dic in new_noise._local_quantum_errors.items():
+        for qubits, error in noise_dic.items():
+            new_noise._local_quantum_errors[inst_name][qubits] = func(error)
+
+    for inst_name, outer_dic in new_noise._nonlocal_quantum_errors.items():
+        for qubits, inner_dic in outer_dic.items():
+            for noise_qubits, error in inner_dic.items():
+                new_noise._nonlocal_quantum_errors[inst_name][qubits][noise_qubits] = func(error)
+
+    return new_noise
+
+
+def transpile_quantum_error(error: QuantumError, **transpile_kwargs) -> QuantumError:
+    """Return a new quantum error containin transpiled circuits.
+
+    This returns a new QuantumError containing the circuits resulting from
+    transpiling all error circuits using :func:`qiskit.transpile` with the
+    passed keyword agruments.
 
     Args:
         error: the quantum error to be transformed.
-        basis_gates (list): list of string basis gates.
+        transpile_kwargs: kwargs for passing to qiskit transpile function.
 
     Returns:
         The transformed quantum error.
@@ -65,32 +106,36 @@ def transform_quantum_error(error: QuantumError, basis_gates=None) -> QuantumErr
         NoiseError: if the transformation failed.
     """
     try:
-        transpiled_circs = transpile(error.circuits, basis_gates=basis_gates)
+        transpiled_circs = transpile(error.circuits, **transpile_kwargs)
     except TranspilerError as err:
         raise NoiseError(
-            f"Failed to transpile circuits in {error} with basis_gates={basis_gates}"
+            f"Failed to transpile circuits in {error} with kwargs {transpile_kwargs}"
         ) from err
     return QuantumError(zip(transpiled_circs, error.probabilities))
 
 
-def transform_noise_model(model: NoiseModel, basis_gates=None) -> NoiseModel:
-    """
-    Replace all noises in a noise model with ones composed only of specified basis gates.
+def transpile_noise_model(noise_model: NoiseModel, **transpile_kwargs) -> NoiseModel:
+    """Return a new noise model with transpiled QuantumErrors.
+
+    This returns a new noise model containing the resulting errors from
+    transpiling all QuantumErrors in the noise model
+    using :func:`transpile_quantum_error` function with the passed
+    keyword agruments.
 
     Args:
-        model: the noise model to be transformed.
-        basis_gates (list): list of string basis gates.
+        noise_model: the noise model to be transformed.
+        transpile_kwargs: kwargs for passing to qiskit transpile function.
 
     Returns:
-        The transformed noise model.
+        The transpiled noise model.
 
     Raises:
         NoiseError: if the transformation failed.
     """
-    def transform(noise):
-        return transform_quantum_error(noise, basis_gates=basis_gates)
+    def func(error):
+        return transpile_quantum_error(error, **transpile_kwargs)
 
-    return model.map_noise(transform)
+    return transform_noise_model(noise_model, func)
 
 
 def approximate_quantum_error(error, *,
@@ -248,7 +293,7 @@ def approximate_noise_model(model, *,
             operator_dict=operator_dict,
             operator_list=operator_list
         )
-    return model.map_noise(approximate)
+    return transform_noise_model(model, approximate)
 
 
 # pauli operators
