@@ -136,11 +136,21 @@ def _split_qobj(qobj, max_size, qobj_id, seed):
     return qobjs, seed
 
 
-def split_qobj(qobj, max_size=None, max_shot_size=None, qobj_id=None):
+def _check_custom_instruction(experiments, custom_instructions):
+    # check if custom instruction exist
+    for exp in experiments:
+        for inst in exp.instructions:
+            if inst.name in custom_instructions:
+                return True
+    return False
+
+
+def split_qobj(qobj, config, max_size=None, max_shot_size=None, qobj_id=None):
     """Split a qobj and return a list of qobjs each with a single experiment.
 
     Args:
         qobj (Qobj): The input qobj object to split
+        config (BackendConfiguration): backend configuration.
         max_size (int or None): the maximum number of circuits per job. If
             None don't split (Default: None).
         max_shot_size (int or None): the maximum number of shots per job. If
@@ -149,11 +159,16 @@ def split_qobj(qobj, max_size=None, max_shot_size=None, qobj_id=None):
 
     Raises:
         JobError : If max_job_size > 1 and seed is set.
+        JobError : If custom instructions exist.
 
     Returns:
         List: A list of qobjs.
     """
     split_qobj_list = []
+    if (max_shot_size is not None and max_shot_size > 0):
+        if _check_custom_instruction(qobj.experiments, config.custom_instructions):
+            raise JobError("cluster backend does not support custom instructions.")
+
     _seed = getattr(qobj.config, "seed_simulator", 0)
     if hasattr(qobj.config, "noise_model"):
         if _seed and max_size is not None and max_size > 1:

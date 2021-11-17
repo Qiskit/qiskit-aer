@@ -197,7 +197,7 @@ class AerBackend(Backend, ABC):
 
         # Optionally split the job
         experiments = split_qobj(
-            qobj, max_size=getattr(qobj.config, 'max_job_size', None),
+            qobj, self._configuration, max_size=getattr(qobj.config, 'max_job_size', None),
             max_shot_size=getattr(qobj.config, 'max_shot_size', None))
 
         # Temporarily remove any executor from options so that job submission
