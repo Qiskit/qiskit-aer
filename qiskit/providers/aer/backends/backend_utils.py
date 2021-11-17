@@ -44,6 +44,62 @@ LEGACY_METHOD_MAP = {
     "unitary_thrust": ("unitary", "Thrust"),
 }
 
+BASIS_GATES = {
+    'statevector': sorted([
+        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
+        'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
+        'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
+        'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
+        'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
+        'initialize', 'delay', 'pauli', 'mcx_gray'
+    ]),
+    'density_matrix': sorted([
+        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
+        'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
+        'unitary', 'diagonal', 'delay', 'pauli',
+    ]),
+    'matrix_product_state': sorted([
+        'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
+        'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay', 'pauli',
+        'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
+        'initialize'
+    ]),
+    'stabilizer': sorted([
+        'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 'cx', 'cy', 'cz',
+        'swap', 'delay', 'pauli'
+    ]),
+    'extended_stabilizer': sorted([
+        'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg',
+        'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay', 'pauli'
+    ]),
+    'unitary': sorted([
+        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
+        'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
+        'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
+        'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
+        'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
+    ]),
+    'superop': sorted([
+        'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
+        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
+        'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy',
+        'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'delay', 'pauli'
+    ])
+}
+
+# Automatic method basis gates are the union of statevector,
+# density matrix, and stabilizer methods
+BASIS_GATES[None] = BASIS_GATES['automatic'] = sorted(
+    set(BASIS_GATES['statevector']).union(
+        BASIS_GATES['stabilizer']).union(
+            BASIS_GATES['density_matrix']).union(
+                BASIS_GATES['matrix_product_state']).union(
+                    BASIS_GATES['unitary']).union(
+                        BASIS_GATES['superop']))
+
 
 def cpp_execute(controller, qobj):
     """Execute qobj on C++ controller wrapper"""
