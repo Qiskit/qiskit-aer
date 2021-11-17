@@ -30,9 +30,16 @@ features:
       print(QuantumError([(IGate(), 0.9), (XGate(), 0.1)]))
 
     Note that the original json-based input are deperecated.
+  - |
+    Two functions :func:`transform_quantum_error` and :func:`transform_noise_model` for
+    basis transformation of quantum errors to
+    :mod:`~qiskit.providers.aer.noise.utils.noise_transformation`.
+  - |
+    Add a :meth:`~qiskit.providers.aer.noise.NoiseModel.map_noise` that applies
+    a function mapping a noise to another for all quantum errors in a noise model.
 upgrade:
   - |
-    Change default value of ``standard_gates`` to ``False`` for all functions
+    Change default value of ``standard_gates`` to ``None`` for all functions
     in :mod:`~qiskit.providers.aer.noise.errors.standard_errors` as
     those functions are updated so that they use standard gates by default.
   - |
@@ -59,6 +66,9 @@ deprecations:
     functions in :mod:`~qiskit.providers.aer.noise.errors.standard_errors` and
     they should have been provided as private functions.
   - |
+    Deprecate ``standard_gates`` option of :meth:`NoiseModel.from_backend`
+    in favor of externalizing such an basis-change functionality.
+  - |
     Deprecate :meth:`NoiseModel.from_dict` to make the noise model
     independent of qobj (json) format.
   - |
@@ -66,8 +76,10 @@ deprecations:
     :mod:`~qiskit.providers.aer.noise.utils.noise_transformation` except for
     :func:`approximate_quantum_error` and :func:`approximate_noise_model`
     because they are helper functions meant to be used only for implementing
-    ``approximate_*`` functions and
-    they should have been provided as private functions.
+    ``approximate_*`` functions and they should have been provided as private functions.
+  - |
+    Deprecate :meth:`~qiskit.providers.aer.noise.utils.noise_remapper.remap_noise_model`
+    since the C++ code now automatically truncates and remaps noise models if it truncates circuits.
 other:
   - |
     Changes in the implementation of the function :func:`approximate_quantum_error`
