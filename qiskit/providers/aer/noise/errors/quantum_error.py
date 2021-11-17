@@ -388,32 +388,29 @@ class QuantumError(BaseOperator, TolerancesMixin):
         """Return True if this error object is composed only of identity operations.
         Note that the identity check is best effort and up to global phase."""
         for circ in self.circuits:
-            # circuit-level check first
             try:
-                if Clifford(circ) == Clifford(np.eye(2 * circ.num_qubits, dtype=bool)):
-                    continue
+                # Circuit-level identity check for clifford Circuits
+                clifford = Clifford(circ)
+                if clifford != Clifford(np.eye(2 * circ.num_qubits, dtype=bool)):
+                    return False
             except QiskitError:
                 pass
-            # component-wise check
+
+            # Component-wise check for non-Clifford circuits
             for op, _, _ in circ:
                 if isinstance(op, IGate):
                     continue
                 if isinstance(op, PauliGate):
                     if op.params[0].replace('I', ''):
                         return False
-                elif isinstance(op, Gate):
-                    if not is_identity_matrix(op.to_matrix(),
-                                              ignore_phase=True,
+                else:
+                    # Convert to Kraus and check if identity
+                    kmats = Kraus(op).data
+                    if len(kmats) > 1:
+                        return False
+                    if not is_identity_matrix(kmats[0], ignore_phase=True,
                                               atol=self.atol, rtol=self.rtol):
                         return False
-                elif op.name == "kraus":
-                    if not is_identity_matrix(op.params[0],
-                                              ignore_phase=True,
-                                              atol=self.atol, rtol=self.rtol):
-                        return False
-                elif not op._directive:  # op must be Instruction
-                    return False
-
         return True
 
     def to_quantumchannel(self):
