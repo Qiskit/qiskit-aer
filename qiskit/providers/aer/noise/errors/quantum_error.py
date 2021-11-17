@@ -159,12 +159,12 @@ class QuantumError(BaseOperator, TolerancesMixin):
         # Input checks
         for pair in noise_ops:
             if not isinstance(pair, tuple) or len(pair) != 2:
-                raise NoiseError("Invalid type of input is found around '{}'".format(pair))
+                raise NoiseError(f"Invalid type of input is found around '{pair}'")
             _, p = pair  # pylint: disable=invalid-name
             if not isinstance(p, numbers.Real):
-                raise NoiseError('Invalid type of probability: {}'.format(p))
+                raise NoiseError(f"Invalid type of probability: {p}")
             if p < -1 * atol:
-                raise NoiseError("Negative probability is invalid: {}".format(p))
+                raise NoiseError(f"Negative probability is invalid: {p}")
 
         # Remove zero probability circuits
         noise_ops = [(op, prob) for op, prob in noise_ops if prob > 0]
@@ -189,7 +189,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
         # Initialize internal variables with error checking
         total_probs = sum(probs)
         if not np.isclose(total_probs - 1, 0, atol=atol):
-            raise NoiseError("Probabilities are not normalized: {} != 1".format(total_probs))
+            raise NoiseError(f"Probabilities are not normalized: {total_probs} != 1")
         # Rescale probabilities if their sum is ok to avoid accumulation of rounding errors
         self._probs = list(np.array(probs) / total_probs)
 
@@ -228,8 +228,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
             return circ
         if isinstance(op, Instruction):
             if op.num_clbits > 0:
-                raise NoiseError("Unable to convert instruction with clbits: "
-                                 "{}".format(op.__class__.__name__))
+                raise NoiseError(
+                    f"Unable to convert instruction with clbits: {op.__class__.__name__}"
+                )
             circ = QuantumCircuit(op.num_qubits)
             circ.append(op, qargs=list(range(op.num_qubits)))
             return circ
@@ -239,18 +240,22 @@ class QuantumError(BaseOperator, TolerancesMixin):
             try:
                 return cls._to_circuit(Kraus(op).to_instruction())
             except QiskitError as err:
-                raise NoiseError("Fail to convert {} to Instruction.".format(
-                    op.__class__.__name__)) from err
+                raise NoiseError(
+                    f"Fail to convert {op.__class__.__name__} to Instruction."
+                ) from err
         if isinstance(op, BaseOperator):
             if hasattr(op, 'to_instruction'):
                 try:
                     return cls._to_circuit(op.to_instruction())
                 except QiskitError as err:
-                    raise NoiseError("Fail to convert {} to Instruction.".format(
-                        op.__class__.__name__)) from err
+                    raise NoiseError(
+                        f"Fail to convert {op.__class__.__name__} to Instruction."
+                    ) from err
             else:
-                raise NoiseError("Unacceptable Operator, not implementing to_instruction: "
-                                 "{}".format(op.__class__.__name__))
+                raise NoiseError(
+                    f"Unacceptable Operator, not implementing to_instruction: "
+                    f"{op.__class__.__name__}"
+                )
         if isinstance(op, list):
             if all(isinstance(aop, tuple) for aop in op):
                 num_qubits = max([max(qubits) for _, qubits in op]) + 1
@@ -259,8 +264,10 @@ class QuantumError(BaseOperator, TolerancesMixin):
                     try:
                         circ.append(inst, qargs=qubits)
                     except CircuitError as err:
-                        raise NoiseError("Invalid operation type: {}, not appendable to circuit."
-                                         .format(inst.__class__.__name__)) from err
+                        raise NoiseError(
+                            f"Invalid operation type: {inst.__class__.__name__},"
+                            f" not appendable to circuit."
+                        ) from err
                 return circ
             # Support for old-style json-like input TODO: to be removed
             elif all(isinstance(aop, dict) for aop in op):
@@ -298,22 +305,19 @@ class QuantumError(BaseOperator, TolerancesMixin):
                                         qargs=dic['qubits'])
                 return circ
             else:
-                raise NoiseError("Invalid type of op list: {}".format(op))
+                raise NoiseError(f"Invalid type of op list: {op}")
 
-        raise NoiseError("Invalid noise op type {}: {}".format(op.__class__.__name__, op))
+        raise NoiseError(f"Invalid noise op type {op.__class__.__name__}: {op}")
 
     def __repr__(self):
         """Display QuantumError."""
-        return "QuantumError({})".format(
-            list(zip(self.circuits, self.probabilities)))
+        return f"QuantumError({list(zip(self.circuits, self.probabilities))})"
 
     def __str__(self):
         """Print error information."""
-        output = "QuantumError on {} qubits. Noise circuits:".format(
-            self.num_qubits)
+        output = f"QuantumError on {self.num_qubits} qubits. Noise circuits:"
         for j, pair in enumerate(zip(self.probabilities, self.circuits)):
-            output += "\n  P({0}) = {1}, Circuit = \n{2}".format(
-                j, pair[0], pair[1])
+            output += f"\n  P({j}) = {pair[0]}, Circuit = \n{pair[1]}"
         return output
 
     def __eq__(self, other):
@@ -446,8 +450,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
         if position < self.size:
             return self.circuits[position], self.probabilities[position]
         else:
-            raise NoiseError("Position {} is greater than the number".format(
-                position) + "of error outcomes {}".format(self.size))
+            raise NoiseError(
+                f"Position {position} is greater than the number of error outcomes {self.size}"
+            )
 
     def to_dict(self):
         """Return the current error as a dictionary."""
@@ -520,8 +525,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
     # Overloads
     def __rmul__(self, other):
-        raise NotImplementedError(
-            "'QuantumError' does not support scalar multiplication.")
+        raise NotImplementedError("'QuantumError' does not support scalar multiplication.")
 
     def __truediv__(self, other):
         raise NotImplementedError("'QuantumError' does not support division.")
@@ -530,8 +534,7 @@ class QuantumError(BaseOperator, TolerancesMixin):
         raise NotImplementedError("'QuantumError' does not support addition.")
 
     def __sub__(self, other):
-        raise NotImplementedError(
-            "'QuantumError' does not support subtraction.")
+        raise NotImplementedError("'QuantumError' does not support subtraction.")
 
     def __neg__(self):
         raise NotImplementedError("'QuantumError' does not support negation.")

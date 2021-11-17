@@ -1047,8 +1047,8 @@ class NoiseModel:
         return True
 
     def map_noise(self, func):
-        """Replace all quantum errors in a noise model with ones mapped by `func`.
-        Note that it does not replace readout errors.
+        """Apply a function that maps a noise to another to all quantum errors in a noise model.
+        Note that it does not touch any readout error.
 
         Args:
             func (Callable): function that maps a noise to another noise.
