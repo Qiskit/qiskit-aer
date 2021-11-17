@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    Performance improvement in measurement in MPS by writing a specific method
+    to compute the probability of measuring 0, without the overhead of 
+    computing the expectation value.
