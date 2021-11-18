@@ -134,7 +134,7 @@ class AerSimulator(AerBackend):
     +--------------------------+---------------+
     | ``stabilizer``           | No            |
     +--------------------------+---------------+
-    | `"matrix_product_state`` | No            |
+    | ``matrix_product_state`` | No            |
     +--------------------------+---------------+
     | ``extended_stabilizer``  | No            |
     +--------------------------+---------------+
@@ -262,7 +262,7 @@ class AerSimulator(AerBackend):
       alongside setting extended_stabilizer_disable_measurement_opt
       to True (Default: 5000).
 
-    * ``"extended_stabilizer_approximation_error"`` (double): Set the error
+    * ``extended_stabilizer_approximation_error`` (double): Set the error
       in the approximation for the extended_stabilizer method. A
       smaller error needs more memory and computational time
       (Default: 0.05).
@@ -287,7 +287,7 @@ class AerSimulator(AerBackend):
       samples used to estimate probabilities in a probabilities snapshot
       (Default: 3000).
 
-    These backend options only apply when using the ``"matrix_product_state"``
+    These backend options only apply when using the ``matrix_product_state``
     simulation method:
 
     * ``matrix_product_state_max_bond_dimension`` (int): Sets a limit
@@ -303,13 +303,13 @@ class AerSimulator(AerBackend):
     * ``mps_sample_measure_algorithm`` (str): Choose which algorithm to use for
       ``"sample_measure"`` (Default: "mps_apply_measure").
 
-      - ``"mps_probabilities"``: This method first constructs the probability
+      - ``mps_probabilities``: This method first constructs the probability
         vector and then generates a sample per shot. It is more efficient for
         a large number of shots and a small number of qubits, with complexity
         O(2^n * n * D^2) to create the vector and O(1) per shot, where n is
         the number of qubits and D is the bond dimension.
 
-      - ``"mps_apply_measure"``: This method creates a copy of the mps structure
+      - ``mps_apply_measure``: This method creates a copy of the mps structure
         and measures directly on it. It is more efficient for a small number of
         shots, and a large number of qubits, with complexity around
         O(n * D^2) per shot.
@@ -317,6 +317,11 @@ class AerSimulator(AerBackend):
     * ``mps_log_data`` (str): if True, output logging data of the MPS
       structure: bond dimensions and values discarded during approximation.
       (Default: False)
+
+    * ``mps_swap_direction`` (str): Determine the direction of swapping the
+      qubits when internal swaps are inserted for a 2-qubit gate.
+      Possible values are "mps_swap_right" and "mps_swap_left".
+      (Default: "mps_swap_left")
 
     These backend options apply in circuit optimization passes:
 
@@ -488,6 +493,7 @@ class AerSimulator(AerBackend):
             matrix_product_state_max_bond_dimension=None,
             mps_sample_measure_algorithm='mps_heuristic',
             mps_log_data=False,
+            mps_swap_direction='mps_swap_left',
             chop_threshold=1e-8,
             mps_parallel_threshold=14,
             mps_omp_threads=1)
