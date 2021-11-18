@@ -1174,7 +1174,6 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
 
 #pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
   {
-    double_tls = reinterpret_cast<std::complex<double>*>(malloc(sizeof(std::complex<double>*)));
 #if !defined(_WIN64) && !defined(_WIN32)
     void* data = nullptr;
     posix_memalign(&data, 64, sizeof(std::complex<double>) * 2);
@@ -1207,10 +1206,8 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
 
   avx_apply_lambda(data_size >> (batch + 1), 1, lambda, omp_threads, input_vec);
 
-#pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
-  for (int i = 0; i < omp_threads; ++i) {
-    free(double_tls);
-  }
+#pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
+  free(double_tls);
 
   return Avx::Applied;
 }
@@ -1267,10 +1264,8 @@ Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
 
   avx_apply_lambda(data_size >> (batch + 2), 1, lambda, omp_threads, input_vec);
 
-#pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
-  for (int i = 0; i < omp_threads; ++i) {
-    free(float_tls);
-  }
+#pragma omp parallel if (omp_threads > 1) num_threads(omp_threads)
+  free(float_tls);
 
   return Avx::Applied;
 }
