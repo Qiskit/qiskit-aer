@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -9,13 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Instructions to support control-flow for the Aer simulator"""
 
-"""
-Aer Provider Simulator Backends
-"""
-
-from .aer_simulator import AerSimulator
-from .qasm_simulator import QasmSimulator
-from .statevector_simulator import StatevectorSimulator
-from .unitary_simulator import UnitarySimulator
-from .pulse_simulator import PulseSimulator
+from .jump import AerJump
+from .mark import AerMark

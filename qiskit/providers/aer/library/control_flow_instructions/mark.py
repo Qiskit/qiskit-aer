@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -9,13 +9,20 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
-Aer Provider Simulator Backends
+Simulator instruction to set a program counter
 """
 
-from .aer_simulator import AerSimulator
-from .qasm_simulator import QasmSimulator
-from .statevector_simulator import StatevectorSimulator
-from .unitary_simulator import UnitarySimulator
-from .pulse_simulator import PulseSimulator
+from qiskit.circuit import Instruction
+
+
+class AerMark(Instruction):
+    """
+    Mark instruction
+
+    This instruction is a destination of jump instruction.
+    Conditional is not allowed in Aer controller.
+    """
+
+    def __init__(self, name, num_qubits):
+        super().__init__("mark", num_qubits, 0, [name])

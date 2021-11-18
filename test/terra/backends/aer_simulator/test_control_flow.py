@@ -10,19 +10,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Integration Tests for AerCompiler and jump/mark instructions
+Integration Tests for jump/mark instructions
 """
 from ddt import ddt, data
 import numpy
 import logging
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
-from qiskit.providers.aer import AerSimulator, AerCompiler
+from qiskit.providers.aer import AerSimulator
 from qiskit import QuantumCircuit, transpile
 from qiskit.circuit import Parameter, Qubit
 from qiskit.circuit.controlflow import *
 from qiskit.providers.aer.library.default_qubits import default_qubits
-from qiskit.providers.aer.backends.aer_compiler import AerMark, AerJump
+from qiskit.providers.aer.library.control_flow_instructions import AerMark, AerJump
 
 import ast
 from types import FunctionType

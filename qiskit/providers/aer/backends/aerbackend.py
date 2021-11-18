@@ -38,8 +38,7 @@ from qiskit.utils import deprecate_arguments
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
-
-from .aer_compiler import AerCompiler
+from ..library.control_flow_instructions import AerMark, AerJump
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -89,7 +88,7 @@ class AerBackend(Backend, ABC):
             self.set_options(**backend_options)
 
         # Compiler for control flow
-        self._compiler = AerCompiler()
+        self._last_flow_id = -1
 
     def _convert_circuit_binds(self, circuit, binds):
         parameterizations = []
@@ -329,13 +328,168 @@ class AerBackend(Backend, ABC):
                 return True
         return False
 
+    def _inline_for_loop_op(self, inst):
+        loop_parameter, indexset, body = inst.params
+
+        self._last_flow_id += 1
+        loop_id = self._last_flow_id
+        loop_name = f'loop_{loop_id}'
+
+        ret = QuantumCircuit()
+        for qr in body.qregs:
+            ret.add_register(qr)
+        for cr in body.cregs:
+            ret.add_register(cr)
+
+        inlined_body = None
+        break_label = f'{loop_name}_end'
+        for index in indexset:
+            continue_label = f'{loop_name}_{index}'
+            inlined_body = self._inline_circuit(body.bind_parameters({loop_parameter: index}),
+                                                continue_label,
+                                                break_label)
+            ret.append(inlined_body,
+                       range(inlined_body.num_qubits),
+                       range(inlined_body.num_clbits))
+            ret.append(AerMark(continue_label, inlined_body.num_qubits),
+                       range(inlined_body.num_qubits), [])
+
+        if inlined_body:
+            ret.append(AerMark(break_label, inlined_body.num_qubits),
+                       range(inlined_body.num_qubits), [])
+        return ret
+
+    def _inline_while_loop_op(self, inst):
+        condition_tuple = inst.condition
+        body, = inst.params
+
+        self._last_flow_id += 1
+        loop_id = self._last_flow_id
+        loop_name = f'while_{loop_id}'
+
+        ret = QuantumCircuit()
+        for qr in body.qregs:
+            ret.add_register(qr)
+        for cr in body.cregs:
+            ret.add_register(cr)
+
+        continue_label = f'{loop_name}_continue'
+        loop_start_label = f'{loop_name}_start'
+        break_label = f'{loop_name}_end'
+        inlined_body = self._inline_circuit(body, continue_label, break_label)
+        ret.append(inlined_body,
+                   range(inlined_body.num_qubits),
+                   range(inlined_body.num_clbits))
+        ret.append(AerJump(continue_label, ret.num_qubits),
+                   range(ret.num_qubits), [])
+        ret.append(AerMark(break_label, inlined_body.num_qubits),
+                   range(inlined_body.num_qubits), [])
+        return condition_tuple, continue_label, loop_start_label, break_label, ret
+
+    def _inline_if_else_op(self, inst, continue_label, break_label):
+        condition_tuple = inst.condition
+        true_body, false_body = inst.params
+
+        self._last_flow_id += 1
+        if_id = self._last_flow_id
+        if_name = f'if_{if_id}'
+
+        ret = QuantumCircuit()
+        for qr in true_body.qregs:
+            ret.add_register(qr)
+        for cr in true_body.cregs:
+            ret.add_register(cr)
+
+        if_true_label = f'{if_name}_true'
+        if_else_label = f'{if_name}_else'
+        if_end_label = f'{if_name}_end'
+
+        ret.append(AerMark(if_true_label, ret.num_qubits),
+                   range(ret.num_qubits), [])
+        ret.append(self._inline_circuit(true_body, continue_label, break_label),
+                   range(ret.num_qubits),
+                   range(ret.num_clbits))
+
+        if false_body:
+            ret.append(AerJump(if_end_label, ret.num_qubits),
+                       range(ret.num_qubits), [])
+
+            ret.append(AerMark(if_else_label, ret.num_qubits),
+                       range(ret.num_qubits), [])
+
+            ret.append(self._inline_circuit(false_body, continue_label, break_label),
+                       range(ret.num_qubits),
+                       range(ret.num_clbits))
+
+        ret.append(AerMark(if_end_label, ret.num_qubits),
+                   range(ret.num_qubits), [])
+
+        return condition_tuple, if_true_label, if_else_label if false_body else if_end_label, ret
+
+    def _convert_c_if_args(self, cond_tuple):
+        return [1 if elem is True else 0 if elem is False else elem for elem in cond_tuple]
+
+    def _inline_circuit(self, circ, continue_label, break_label):
+        ret = QuantumCircuit()
+        for qr in circ.qregs:
+            ret.add_register(qr)
+        for cr in circ.cregs:
+            ret.add_register(cr)
+
+        q2i = {}
+        for q in circ.qubits:
+            q2i[q] = len(q2i)
+        c2i = {}
+        for c in circ.clbits:
+            c2i[c] = len(c2i)
+
+        for inst, qargs, cargs in circ.data:
+            if isinstance(inst, ForLoopOp):
+                ret.append(self._inline_for_loop_op(inst),
+                           [q2i[q] for q in qargs],
+                           [c2i[c] for c in cargs])
+            elif isinstance(inst, WhileLoopOp):
+                (cond_tuple, continue_label,
+                 loop_start_label, break_label, body) = self._inline_while_loop_op(inst)
+                c_if_args = self._convert_c_if_args(cond_tuple)
+                ret.append(AerMark(continue_label, ret.num_qubits),
+                           range(ret.num_qubits), [])
+                ret.append(AerJump(loop_start_label, ret.num_qubits).c_if(*c_if_args),
+                           range(ret.num_qubits), [])
+                ret.append(AerJump(break_label, ret.num_qubits),
+                           range(ret.num_qubits), [])
+                ret.append(AerMark(loop_start_label, ret.num_qubits),
+                           range(ret.num_qubits), [])
+                ret.append(body, [q2i[q] for q in qargs], [c2i[c] for c in cargs])
+            elif isinstance(inst, IfElseOp):
+                cond_tuple, true_label, else_label, body = self._inline_if_else_op(inst,
+                                                                                   continue_label,
+                                                                                   break_label)
+                c_if_args = self._convert_c_if_args(cond_tuple)
+                ret.append(AerJump(true_label, ret.num_qubits).c_if(*c_if_args),
+                           range(ret.num_qubits), [])
+                ret.append(AerJump(else_label, ret.num_qubits),
+                           range(ret.num_qubits), [])
+                ret.append(body, [q2i[q] for q in qargs], [c2i[c] for c in cargs])
+            elif isinstance(inst, BreakLoopOp):
+                ret.append(AerJump(break_label, ret.num_qubits),
+                           range(ret.num_qubits), [])
+            elif isinstance(inst, ContinueLoopOp):
+                ret.append(AerJump(continue_label, ret.num_qubits),
+                           range(ret.num_qubits), [])
+            else:
+                ret.append(inst, qargs, cargs)
+
+        return ret
+
     def _compile(self, circuits):
         if isinstance(circuits, list):
-            return [transpile(self._compiler.compile(circuit), self, optimization_level=0)
+            return [transpile(self._inline_circuit(circuit, None, None), self, optimization_level=0)
                     if self._is_dynamic(circuit) else circuit for circuit in circuits]
         else:
             if self._is_dynamic(circuits):
-                return transpile(self._compiler.compile(circuits), self, optimization_level=0)
+                return transpile(self._inline_circuit(circuits, None, None),
+                                 self, optimization_level=0)
             else:
                 return circuits
 

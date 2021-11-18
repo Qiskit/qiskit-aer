@@ -329,71 +329,8 @@ class AerSimulator(AerBackend):
     * ``fusion_threshold`` (int): Threshold that number of qubits must be greater
       than or equal to enable fusion optimization [Default: 14]
     """
-<<<<<<< HEAD
-    # Supported basis gates for each simulation method
-    _BASIS_GATES = {
-        'statevector': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
-            'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-            'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
-            'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-            'initialize', 'delay', 'pauli', 'mcx_gray',
-            'jump', 'mark'
-        ]),
-        'density_matrix': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
-            'unitary', 'diagonal', 'delay', 'pauli',
-            'jump', 'mark'
-        ]),
-        'matrix_product_state': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
-            'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay', 'pauli',
-            'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
-            'initialize',
-            'jump', 'mark'
-        ]),
-        'stabilizer': sorted([
-            'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 'cx', 'cy', 'cz',
-            'swap', 'delay', 'pauli',
-            'jump', 'mark'
-        ]),
-        'extended_stabilizer': sorted([
-            'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg',
-            'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay', 'pauli'
-        ]),
-        'unitary': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
-            'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-            'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
-            'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
-            'jump', 'mark'
-        ]),
-        'superop': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy',
-            'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'delay', 'pauli',
-            'jump', 'mark'
-        ])
-    }
-    # Automatic method basis gates are the union of statevector,
-    # density matrix, and stabilizer methods
-    _BASIS_GATES[None] = _BASIS_GATES['automatic'] = sorted(
-        set(_BASIS_GATES['statevector']).union(
-            _BASIS_GATES['stabilizer']).union(
-                _BASIS_GATES['density_matrix']).union(
-                    _BASIS_GATES['matrix_product_state']).union(
-                        _BASIS_GATES['unitary']).union(
-                            _BASIS_GATES['superop']))
-=======
+
     _BASIS_GATES = BASIS_GATES
->>>>>>> upstream/main
 
     _CUSTOM_INSTR = {
         'statevector': sorted([
