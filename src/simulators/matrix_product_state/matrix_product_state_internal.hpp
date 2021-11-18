@@ -37,6 +37,7 @@ enum Gates {
   //enum class Direction {RIGHT, LEFT};
 
   enum class Sample_measure_alg {APPLY_MEASURE, PROB, MEASURE_ALL, HEURISTIC};
+  enum class MPS_swap_direction {SWAP_LEFT, SWAP_RIGHT};
 
 //=========================================================================
 // MPS class
@@ -286,6 +287,10 @@ public:
     mps_log_data_ = mps_log_data;
   }
 
+  static void set_mps_swap_direction(MPS_swap_direction direction) {
+    mps_swap_direction_ = direction;
+  }
+
   static uint_t get_omp_threads() {
     return omp_threads_;
   }
@@ -305,6 +310,10 @@ public:
 
   static bool get_mps_log_data() {
     return mps_log_data_;
+  }
+
+  static MPS_swap_direction get_swap_direction() {
+    return mps_swap_direction_;
   }
 
   //----------------------------------------------------------------
@@ -526,6 +535,7 @@ private:
   static bool enable_gate_opt_;      // allow optimizations on gates
   static std::stringstream logging_str_;
   static bool mps_log_data_;
+  static MPS_swap_direction mps_swap_direction_;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
