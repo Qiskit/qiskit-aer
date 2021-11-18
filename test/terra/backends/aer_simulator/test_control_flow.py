@@ -698,3 +698,33 @@ class TestControlFlow(SimulatorTestCase):
         counts = result.get_counts()
         self.assertEqual(len(counts), 1)
         self.assertIn('0 0', counts)
+
+
+    @data('statevector', 'density_matrix', 'matrix_product_state')
+    def test_nested_loop(self, method):
+        backend = self.backend(method=method)
+
+        @dynamic_circuit
+        def test_for_loop_circuit(circ: QuantumCircuit):
+            for a in range(2):
+                for b in range(2):
+                    circ.ry(a * b * numpy.pi, 0)
+                
+            for a in range(3):
+                for b in range(3):
+                    circ.ry(a * b * numpy.pi, 1)
+                    
+            for a in range(4):
+                for b in range(2):
+                    circ.ry(a * b * numpy.pi, 2)
+
+        circ = QuantumCircuit(3, 0)
+        test_for_loop_circuit(circ)
+        circ.measure_all()
+        
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+        
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn('011', counts)

@@ -345,9 +345,10 @@ class AerBackend(Backend, ABC):
         break_label = f'{loop_name}_end'
         for index in indexset:
             continue_label = f'{loop_name}_{index}'
-            inlined_body = self._inline_circuit(body.bind_parameters({loop_parameter: index}),
+            inlined_body = self._inline_circuit(body,
                                                 continue_label,
                                                 break_label)
+            inlined_body = inlined_body.bind_parameters({loop_parameter: index})
             ret.append(inlined_body,
                        range(inlined_body.num_qubits),
                        range(inlined_body.num_clbits))
