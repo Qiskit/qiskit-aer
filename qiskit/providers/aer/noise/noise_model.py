@@ -15,21 +15,56 @@ Noise model class for Qiskit Aer simulators.
 
 import json
 import logging
-from warnings import warn
+from warnings import warn, catch_warnings, filterwarnings
+
+from numpy import ndarray
 
 from qiskit.circuit import Instruction
 from qiskit.providers import BaseBackend, Backend
 from qiskit.providers.models import BackendProperties
-
-from ..backends.aerbackend import AerJSONEncoder
-from ..backends.qasm_simulator import QasmSimulator
-from .noiseerror import NoiseError
-from .errors.quantum_error import QuantumError
-from .errors.readout_error import ReadoutError
 from .device.models import basic_device_gate_errors
 from .device.models import basic_device_readout_errors
+from .errors.quantum_error import QuantumError
+from .errors.readout_error import ReadoutError
+from .noiseerror import NoiseError
+from ..backends.backend_utils import BASIS_GATES
 
 logger = logging.getLogger(__name__)
+
+
+class AerJSONEncoder(json.JSONEncoder):
+    """
+    JSON encoder for NumPy arrays and complex numbers.
+
+    This functions as the standard JSON Encoder but adds support
+    for encoding:
+        complex numbers z as lists [z.real, z.imag]
+        ndarrays as nested lists.
+    """
+
+    # pylint: disable=method-hidden,arguments-differ
+    def default(self, obj):
+        if isinstance(obj, ndarray):
+            return obj.tolist()
+        if isinstance(obj, complex):
+            return [obj.real, obj.imag]
+        if hasattr(obj, "to_dict"):
+            return obj.to_dict()
+        return super().default(obj)
+
+
+class QuantumErrorLocation(Instruction):
+    """Instruction for referencing a multi-qubit error in a NoiseModel"""
+
+    _directive = True
+
+    def __init__(self, qerror):
+        """Construct a new quantum error location instruction.
+
+        Args:
+            qerror (QuantumError): the quantum error to reference.
+        """
+        super().__init__("qerror_loc", qerror.num_qubits, 0, [], label=qerror.id)
 
 
 class NoiseModel:
@@ -84,13 +119,6 @@ class NoiseModel:
         print(noise_model)
 
     """
-
-    # Get the default basis gates for the Qiskit Aer Qasm Simulator
-    # this is used to decide what are instructions for a noise model
-    # and what are labels for other named instructions
-    # NOTE: we exclude kraus, roerror, and initialize instructions here
-    _QASMSIMULATOR_BASIS_GATES = QasmSimulator._DEFAULT_CONFIGURATION['basis_gates']
-
     # Checks for standard 1-3 qubit instructions
     _1qubit_instructions = set([
         'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
@@ -179,7 +207,7 @@ class NoiseModel:
                      temperature=0,
                      gate_lengths=None,
                      gate_length_units='ns',
-                     standard_gates=True,
+                     standard_gates=None,
                      warnings=True):
         """Return a noise model derived from a devices backend properties.
 
@@ -257,9 +285,9 @@ class NoiseModel:
             gate_length_units (str): Time units for gate length values in
                                      gate_lengths. Can be 'ns', 'ms', 'us',
                                      or 's' (Default: 'ns').
-            standard_gates (bool): If true return errors as standard
+            standard_gates (bool): DEPRECATED, If true return errors as standard
                                    qobj gates. If false return as unitary
-                                   qobj instructions (Default: True)
+                                   qobj instructions (Default: None)
             warnings (bool): Display warnings (Default: True).
 
         Returns:
@@ -290,16 +318,27 @@ class NoiseModel:
             for qubits, error in basic_device_readout_errors(properties):
                 noise_model.add_readout_error(error, qubits, warnings=warnings)
 
+        if standard_gates is not None:
+            warn(
+                '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
+                ' and will be removed no earlier than 3 months from that release date.',
+                DeprecationWarning, stacklevel=2)
         # Add gate errors
-        gate_errors = basic_device_gate_errors(
-            properties,
-            gate_error=gate_error,
-            thermal_relaxation=thermal_relaxation,
-            gate_lengths=gate_lengths,
-            gate_length_units=gate_length_units,
-            temperature=temperature,
-            standard_gates=standard_gates,
-            warnings=warnings)
+        with catch_warnings():
+            filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                module="qiskit.providers.aer.noise.device.models"
+            )
+            gate_errors = basic_device_gate_errors(
+                properties,
+                gate_error=gate_error,
+                thermal_relaxation=thermal_relaxation,
+                gate_lengths=gate_lengths,
+                gate_length_units=gate_length_units,
+                temperature=temperature,
+                standard_gates=standard_gates,
+                warnings=warnings)
         for name, qubits, error in gate_errors:
             noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
         return noise_model
@@ -402,7 +441,7 @@ class NoiseModel:
         """Reset the noise model."""
         self.__init__()
 
-    def add_basis_gates(self, instructions, warnings=True):
+    def add_basis_gates(self, instructions, warnings=False):
         """Add additional gates to the noise model basis_gates.
 
         This should be used to add any gates that are identified by a
@@ -411,20 +450,23 @@ class NoiseModel:
         Args:
             instructions (list[str] or
                           list[Instruction]): the instructions error applies to.
-            warnings (bool): display warning if instruction is not in
-                             QasmSimulator basis_gates (Default: True).
+            warnings (bool): [DEPRECATED] display warning if instruction is not in
+                             QasmSimulator basis_gates (Default: False).
         """
         for name, _ in self._instruction_names_labels(instructions):
             # If the instruction is in the default basis gates for the
-            # QasmSimulator we add it to the basis gates.
-            if name in self._QASMSIMULATOR_BASIS_GATES:
+            # AerSimulator we add it to the basis gates.
+            if name in BASIS_GATES['automatic']:
                 if name not in ['measure', 'reset', 'initialize',
                                 'kraus', 'superop', 'roerror']:
                     self._basis_gates.add(name)
             elif warnings:
+                warn('"warnings" option has been deprecated as of qiskit-aer 0.10.0'
+                     ' and will be removed no earlier than 3 months from that release date.',
+                     DeprecationWarning, stacklevel=2)
                 logger.warning(
                     "Warning: Adding a gate \"%s\" to basis_gates which is "
-                    "not in QasmSimulator basis_gates.", name)
+                    "not in AerSimulator basis_gates.", name)
 
     def add_all_qubit_quantum_error(self, error, instructions, warnings=True):
         """
@@ -478,7 +520,7 @@ class NoiseModel:
                         "%s as specific error already exists.", label,
                         local_qubits)
             self._noise_instructions.add(label)
-            self.add_basis_gates(name, warnings=False)
+            self.add_basis_gates(name)
 
     def add_quantum_error(self, error, instructions, qubits, warnings=True):
         """
@@ -527,10 +569,10 @@ class NoiseModel:
 
             # Convert qubits list to hashable string
             qubits_str = self._qubits2str(qubits)
-            if error.number_of_qubits != len(qubits):
+            if error.num_qubits != len(qubits):
                 raise NoiseError("Number of qubits ({}) does not match "
                                  " the error size ({})".format(
-                                     len(qubits), error.number_of_qubits))
+                                     len(qubits), error.num_qubits))
             if qubits_str in qubit_dict:
                 new_error = qubit_dict[qubits_str].compose(error)
                 qubit_dict[qubits_str] = new_error
@@ -552,7 +594,7 @@ class NoiseModel:
                         "on qubits %s overrides previously defined "
                         "all-qubit error for these qubits.", label, qubits)
             self._noise_instructions.add(label)
-            self.add_basis_gates(name, warnings=False)
+            self.add_basis_gates(name)
 
     def add_nonlocal_quantum_error(self,
                                    error,
@@ -817,6 +859,9 @@ class NoiseModel:
         Raises:
             NoiseError: if dict cannot be converted to NoiseModel.
         """
+        warn('from_dict has been deprecated as of qiskit-aer 0.10.0'
+             ' and will be removed no earlier than 3 months from that release date.',
+             DeprecationWarning, stacklevel=2)
         # Return noise model
         noise_model = NoiseModel()
 
@@ -833,7 +878,12 @@ class NoiseModel:
                 instruction_names = error['operations']
                 all_gate_qubits = error.get('gate_qubits', None)
                 all_noise_qubits = error.get('noise_qubits', None)
-                qerror = QuantumError(noise_ops)
+                with catch_warnings():
+                    filterwarnings("ignore",
+                                   category=DeprecationWarning,
+                                   module="qiskit.providers.aer.noise")
+                    qerror = QuantumError(noise_ops)
+                qerror._id = error.get('id', None) or qerror.id
                 if all_gate_qubits is not None:
                     for gate_qubits in all_gate_qubits:
                         # Load non-local quantum error
@@ -907,16 +957,16 @@ class NoiseModel:
         """
 
         def error_message(gate_qubits):
-            msg = "{} qubit QuantumError".format(error.number_of_qubits) + \
+            msg = "{} qubit QuantumError".format(error.num_qubits) + \
                   " cannot be applied to {} qubit".format(gate_qubits) + \
                   " instruction \"{}\".".format(name)
             return msg
 
-        if name in self._1qubit_instructions and error.number_of_qubits != 1:
+        if name in self._1qubit_instructions and error.num_qubits != 1:
             raise NoiseError(error_message(1))
-        if name in self._2qubit_instructions and error.number_of_qubits != 2:
+        if name in self._2qubit_instructions and error.num_qubits != 2:
             raise NoiseError(error_message(2))
-        if name in self._3qubit_instructions and error.number_of_qubits != 3:
+        if name in self._3qubit_instructions and error.num_qubits != 3:
             raise NoiseError(error_message(3))
 
     def _qubits2str(self, qubits):

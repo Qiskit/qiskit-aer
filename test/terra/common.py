@@ -14,23 +14,22 @@
 Shared functionality and helpers for the unit tests.
 """
 
-from enum import Enum
-
 import inspect
 import logging
 import os
-from unittest.util import safe_repr
-from itertools import repeat
-from random import choice, sample
-from math import pi
-import numpy as np
-import fixtures
 import warnings
+from enum import Enum
+from itertools import repeat
+from math import pi
+from random import choice, sample
+from unittest.util import safe_repr
 
-from qiskit.quantum_info import Operator, Statevector
-from qiskit.quantum_info.operators.predicates import matrix_equal
+import fixtures
+import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.providers.aer import __path__ as main_path
+from qiskit.quantum_info import Operator, Statevector
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.test.base import FullQiskitTestCase
 
 
@@ -57,7 +56,6 @@ class QiskitAerTestCase(FullQiskitTestCase):
         ]
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
-
 
         cls.moduleName = os.path.splitext(inspect.getfile(cls))[0]
         cls.log = logging.getLogger(cls.__name__)
