@@ -1409,6 +1409,27 @@ void MPS::get_probabilities_vector_internal(rvector_t& probvector,
   probvector = reverse_all_bits(temp_probvector, num_qubits);
 }
 
+double MPS::get_prob_single_qubit_internal(uint_t qubit, 
+					   uint_t outcome,
+					   cmatrix_t &mat) const {
+  mat = q_reg_[qubit].get_data(outcome);
+  if (qubit > 0) {
+    // Multiply mat by left lambda
+    for (uint_t col=0; col<mat.GetColumns(); col++)
+	for (uint_t row=0; row<mat.GetRows(); row++)
+	  mat(row, col) *= lambda_reg_[qubit-1][row];
+  }
+  if (qubit < num_qubits_-1) {
+    // Multiply mat by right lambda
+    for (uint_t row=0; row<mat.GetRows(); row++)
+      for (uint_t col=0; col<mat.GetColumns(); col++)
+	mat(row, col) *= lambda_reg_[qubit][col];
+  }
+  double prob = 
+    real(AER::Utils::sum( AER::Utils::elementwise_multiplication(mat, AER::Utils::conjugate(mat)) ));
+  return prob;
+}
+
 void MPS::get_accumulated_probabilities_vector(rvector_t& acc_probvector, 
 					       reg_t& index_vec,
 					       const reg_t &qubits) const
@@ -1555,11 +1576,9 @@ uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
 						uint_t next_measured_qubit) {
   reg_t qubits_to_update;
   qubits_to_update.push_back(qubit);
-
-  // step 1 - measure qubit in Z basis
-  double exp_val = real(expectation_value_pauli_internal(qubits_to_update, "Z", qubit, qubit, 0));
-  // step 2 - compute probability for 0 or 1 result
-  double prob0 = (1 + exp_val ) / 2;
+  cmatrix_t dummy_mat;
+  // compute probability for 0 or 1 result
+  double prob0 = get_prob_single_qubit_internal(qubit, 0, dummy_mat);
   double prob1 = 1 - prob0;
   uint_t measurement;
   cmatrix_t measurement_matrix(2, 2);
@@ -1583,13 +1602,13 @@ uint_t MPS::apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
 
 void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
 					  uint_t next_measured_qubit) {
-  // step 4 - propagate the changes to all qubits to the right
+  // propagate the changes to all qubits to the right
   for (uint_t i=max_qubit; i<next_measured_qubit; i++) {
     if (lambda_reg_[i].size() == 1) 
       break;   // no need to propagate if no entanglement
     apply_2_qubit_gate(i, i+1, id, cmatrix_t(1, 1));
   }
- // and propagate the changes to all qubits to the left
+ // propagate the changes to all qubits to the left
   for (int_t i=min_qubit; i>0; i--) {
     if (lambda_reg_[i-1].size() == 1) 
       break;   // no need to propagate if no entanglement
