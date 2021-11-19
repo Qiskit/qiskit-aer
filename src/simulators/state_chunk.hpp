@@ -135,7 +135,7 @@ public:
   // Return the expectation value of a N-qubit Pauli operator
   // If the simulator does not support Pauli expectation value this should
   // raise an exception.
-  double expval_pauli(const reg_t &qubits,const std::string& pauli) override final {}
+  double expval_pauli(const reg_t &qubits,const std::string& pauli) override final {return 0.0;}
 
   virtual double expval_pauli(const reg_t &qubits,
                               const std::string& pauli,const int_t iChunk = 0) = 0;
