@@ -67,7 +67,7 @@ public:
         const stringset_t &snapshots)
     : State(Operations::OpSet(optypes, gates, snapshots)) {};
 
-  virtual ~State() = default;
+  virtual ~State();
 
   //-----------------------------------------------------------------------
   // Data accessors
@@ -78,8 +78,8 @@ public:
   const auto &qreg() const { return qreg_; }
 
   // Return the state creg object
-  auto &creg(uint_t idx=0) { return creg_; }
-  const auto &creg(uint_t idx=0) const { return creg_; }
+  auto &creg() { return creg_; }
+  const auto &creg() const { return creg_; }
 
   // Return the state opset object
   auto &opset() { return opset_; }
@@ -103,9 +103,6 @@ public:
   // Return a string name for the State type
   virtual std::string name() const = 0;
 
-  //store asynchronously measured classical bits after batched execution
-  virtual void store_measured_cbits(void) {}
-
   // Initializes the State to the default state.
   // Typically this is the n-qubit all |0> state
   virtual void initialize_qreg(uint_t num_qubits) = 0;
@@ -121,10 +118,6 @@ public:
 
   //memory allocation (previously called before inisitalize_qreg)
   virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1){return true;}
-
-  //bind state to allocated state 
-  virtual bool bind_state(State<state_t>& state,uint_t ishot,bool batch_enable){return true;}
-
 
   // Return the expectation value of a N-qubit Pauli operator
   // If the simulator does not support Pauli expectation value this should
@@ -162,15 +155,6 @@ public:
                                             uint_t shots,
                                             RngEngine &rng);
 
-  virtual reg_t local_sample_measure(const reg_t &qubits,
-                                            std::vector<double>& rnds)
-  {
-    reg_t dummy;
-    return dummy;
-  }
-
-  virtual double sum(void){return 1.0;}
-
   //=======================================================================
   // Standard non-virtual methods
   //
@@ -190,14 +174,6 @@ public:
                         RngEngine& rng,
                         bool final_op = false) = 0;
 
-  //apply op to multiple states (shots), only called for top of group
-  virtual void apply_op_multi_shots(const Operations::Op &op,
-                        ExperimentResult &result,
-                        std::vector<RngEngine>& rng,
-                        bool final_op = false)
-  {
-    apply_op(op,result,rng[0],final_op);
-  }
 
   // Apply a sequence of operations to the current state of the State class.
   // It is up to the State subclass to decide how this sequence should be
@@ -207,28 +183,25 @@ public:
   // The `final_ops` flag indicates no more instructions will be applied
   // to the state after this sequence, so the state can be modified at the
   // end of the instructions.
-//  template <typename InputIterator>
-  using OpIterator = std::vector<Operations::Op>::const_iterator;
-  virtual void apply_ops(OpIterator first,
-                 OpIterator last,
+  template <typename InputIterator>
+  void apply_ops(InputIterator first,
+                 InputIterator last,
                  ExperimentResult &result,
                  RngEngine &rng,
                  bool final_ops = false);
 
-  //enable batched execution used for multi-shot optimization
-  virtual void enable_batch(bool flg){}
-
-  //return if this state is top of the array of group of states (i.e. states are distributed to multiple GPUs as groups)
-  virtual bool top_of_group(){return true;}
-
-  //apply runtime sampled noise in case all inserted ops are Pauli gates
-  virtual void apply_batched_pauli(std::vector<std::vector<Operations::Op>> &ops){}
-  //apply runtime sampled noise in case general ops are inserted 
-  virtual void apply_batched_noise_ops(const std::vector<std::vector<Operations::Op>> &op, ExperimentResult &result,
-                                               std::vector<RngEngine> &rng){}
-
-  //check if operation can be applied in a batch or not
-  virtual bool batchable_op(const Operations::Op& op){return false;}
+  //apply ops to multiple shots
+  //this function should be separately defined since apply_ops is called in quantum_error
+  template <typename InputIterator>
+  void apply_ops_multi_shots(InputIterator first,
+                 InputIterator last,
+                 const Noise::NoiseModel &noise,
+                 ExperimentResult &result,
+                 uint_t rng_seed,
+                 bool final_ops = false)
+  {
+    throw std::invalid_argument("apply_ops_multi_shots is not supported in State " + name());
+  }
 
   //-----------------------------------------------------------------------
   // ClassicalRegister methods
@@ -288,6 +261,10 @@ public:
                          const std::string &key, T&& datum,
                          DataSubType type = DataSubType::list) const;
 
+
+  //save creg as count data 
+  virtual void save_count_data(ExperimentResult& result,bool save_memory);
+
   //-----------------------------------------------------------------------
   // Common instructions
   //-----------------------------------------------------------------------
@@ -319,7 +296,7 @@ public:
 
   // Sets the number of threads available to the State implementation
   // If negative there is no restriction on the backend
-  inline void set_parallelization(int n) {threads_ = n;}
+  virtual inline void set_parallelization(int n) {threads_ = n;}
 
   // Set a complex global phase value exp(1j * theta) for the state
   void set_global_phase(double theta);
@@ -330,17 +307,19 @@ public:
   //set number of processes to be distributed
   virtual void set_distribution(uint_t nprocs){}
 
-  //set index of state
-  virtual void set_state_index(uint_t idx)
-  {
-    state_index_ = idx;
-  }
-
   //set maximum number of qubits for matrix multiplication
   virtual void set_max_matrix_qubits(int_t bits)
   {
     max_matrix_qubits_ = bits;
   }
+
+  //set max number of shots to execute in a batch (used in StateChunk class)
+  virtual void set_max_bached_shots(uint_t shots){}
+
+  //Does this state support multi-chunk distribution?
+  virtual bool multi_chunk_distribution_supported(void){return false;}
+  //Does this state support multi-shot parallelization?
+  virtual bool multi_shot_parallelization_supported(void){return false;}
 
 protected:
 
@@ -361,26 +340,18 @@ protected:
   bool has_global_phase_ = false;
   complex_t global_phase_ = 1;
 
-  //index of this state
-  uint_t state_index_ = 0;
-  //number of qubits for the circuit
-  uint_t num_qubits_;
-  //number of local qubits for this state
-  uint_t num_state_qubits_;
-  //number of maximum qubits used for matrix multiplication
   int_t max_matrix_qubits_ = 0;
-
-  //virtual function to apply bfunc operation
-  virtual void apply_bfunc(const Operations::Op &op)
-  {
-    creg_.apply_bfunc(op);
-  }
 };
 
 
 //=========================================================================
 // Implementations
 //=========================================================================
+
+template <class state_t>
+State<state_t>::~State(void)
+{
+}
 
 template <class state_t>
 void State<state_t>::set_config(const json_t &config) {
@@ -409,8 +380,8 @@ void State<state_t>::add_global_phase(double theta) {
 }
 
 template <class state_t>
-//template <typename InputIterator>
-void State<state_t>::apply_ops(OpIterator first, OpIterator last,
+template <typename InputIterator>
+void State<state_t>::apply_ops(InputIterator first, InputIterator last,
                                ExperimentResult &result,
                                RngEngine &rng,
                                bool final_ops) {
@@ -648,6 +619,17 @@ void State<state_t>::apply_save_expval(const Operations::Op &op,
   }
 }
 
+template <class state_t>
+void State<state_t>::save_count_data(ExperimentResult& result,bool save_memory)
+{
+  if (creg_.memory_size() > 0) {
+    std::string memory_hex = creg_.memory_hex();
+    result.data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
+    if(save_memory) {
+      result.data.add_list(std::move(memory_hex), "memory");
+    }
+  }
+}
 
 //-------------------------------------------------------------------------
 } // end namespace Base

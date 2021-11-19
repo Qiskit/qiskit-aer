@@ -335,10 +335,13 @@ public:
   virtual void copy_cregister(uint_t dest,uint_t src);
   virtual void store_cmemory(uint_t qubit,int val);
 
-  //runtime noise sampling
-  virtual void apply_batched_pauli(const std::vector<std::vector<Operations::Op>> &ops);
+  //copy classical register stored on qreg 
+  void get_creg(ClassicalRegister& creg);
 
-  //optimized Kraus 
+  //apply Pauli ops to multiple-shots (apply sampled Pauli noises)
+  virtual void apply_batched_pauli_ops(const std::vector<std::vector<Operations::Op>> &ops);
+
+  //Apply Kraus to multiple-shots
   virtual void apply_batched_kraus(const reg_t &qubits,
                    const std::vector<cmatrix_t> &kmats,
                    std::vector<RngEngine>& rng);
@@ -4265,6 +4268,31 @@ int QubitVectorThrust<data_t>::measured_cmemory(uint_t qubit)
 }
 
 template <typename data_t>
+void QubitVectorThrust<data_t>::get_creg(ClassicalRegister& creg)
+{
+  uint_t i;
+  reg_t pos(1);
+  reg_t dummy_pos;
+
+  for(i=0;i<creg.memory_size();i++){
+    int bit = chunk_.measured_cbit(i + num_creg_bits_);
+    if(bit >= 0){
+      const reg_t outcome = Utils::int2reg(bit, 2, 1);
+      pos[0] = i;
+      creg.store_measure(outcome, pos , dummy_pos);
+    }
+  }
+  for(i=0;i<creg.register_size();i++){
+    int bit = chunk_.measured_cbit(i);
+    if(bit >= 0){
+      const reg_t outcome = Utils::int2reg(bit, 2, 1);
+      pos[0] = i;
+      creg.store_measure(outcome, dummy_pos, pos);
+    }
+  }
+}
+
+template <typename data_t>
 class set_creg_func : public GateFuncBase<data_t>
 {
 protected:
@@ -4957,7 +4985,7 @@ public:
 };
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::apply_batched_pauli(const std::vector<std::vector<Operations::Op>>& ops)
+void QubitVectorThrust<data_t>::apply_batched_pauli_ops(const std::vector<std::vector<Operations::Op>>& ops)
 {
   if(enable_batch_ && chunk_.pos() != 0){
     return;   //first chunk execute all in batch

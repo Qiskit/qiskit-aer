@@ -23,6 +23,13 @@
 #include "framework/rng.hpp"
 #include "framework/circuit.hpp"
 #include "framework/linalg/matrix_utils.hpp"
+
+namespace AER {
+namespace Noise {
+//predifine NoiseModel here for passing noise model to State::apply_ops
+class NoiseModel;
+}}
+
 #include "noise/quantum_error.hpp"
 #include "noise/readout_error.hpp"
 

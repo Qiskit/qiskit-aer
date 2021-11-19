@@ -365,14 +365,6 @@ bool CacheBlocking::block_circuit(Circuit& circ,bool doSwap) const
   std::vector<Operations::Op> queue_next;
   bool crossQubits = false;
 
-#if 0
-  std::cout << " === before cache block ===" << std::endl;
-  for(i=0;i<circ.ops.size();i++){
-    std::cout << "[" << i << "] " << circ.ops[i] << std::endl;
-  }
-  std::cout << " ==========================" << std::endl;
-#endif
-
   n = add_ops(circ.ops,out,queue,doSwap,true,crossQubits);
   while(queue.size() > 0){
     n = add_ops(queue,out,queue_next,doSwap,false,crossQubits);
@@ -397,14 +389,6 @@ bool CacheBlocking::block_circuit(Circuit& circ,bool doSwap) const
     restore_qubits_order(out);
 
   circ.ops = out;
-
-#if 0
-  std::cout << " === after cache block ===" << std::endl;
-  for(i=0;i<circ.ops.size();i++){
-    std::cout << "[" << i << "] " << circ.ops[i] << std::endl;
-  }
-  std::cout << " ==========================" << std::endl;
-#endif
 
   return true;
 }
