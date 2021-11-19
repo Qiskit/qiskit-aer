@@ -434,6 +434,7 @@ protected:
   void recv_data(data_t* pRecv, uint_t size, uint_t myid,uint_t pairid);
 
   //reduce values over processes
+  void reduce_sum(reg_t& sum) const;
   void reduce_sum(rvector_t& sum) const;
   void reduce_sum(complex_t& sum) const;
   void reduce_sum(double& sum) const;
@@ -1796,6 +1797,21 @@ void StateChunk<state_t>::recv_data(data_t* pRecv, uint_t size, uint_t myid,uint
 }
 
 template <class state_t>
+void StateChunk<state_t>::reduce_sum(reg_t& sum) const
+{
+#ifdef AER_MPI
+  if(distributed_procs_ > 1){
+    uint_t i,n = sum.size();
+    reg_t tmp(n);
+    MPI_Allreduce(&sum[0],&tmp[0],n,MPI_UINT64_T,MPI_SUM,distributed_comm_);
+    for(i=0;i<n;i++){
+      sum[i] = tmp[i];
+    }
+  }
+#endif
+}
+
+template <class state_t>
 void StateChunk<state_t>::reduce_sum(rvector_t& sum) const
 {
 #ifdef AER_MPI
@@ -1952,7 +1968,7 @@ void StateChunk<state_t>::gather_creg_memory(void)
 
   if(distributed_procs_ == 1)
     return;
-  if(creg_.memory_size() == 0)
+  if(cregs_[0].memory_size() == 0)
     return;
 
   //number of 64-bit integers per memory
