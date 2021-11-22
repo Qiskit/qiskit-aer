@@ -54,11 +54,6 @@ class UCCSDBenchmarkSuite:
         
         quantum_instance = QuantumInstance(backend=simulator)
         
-        # import logging
-        # logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s',
-        #                     level=logging.DEBUG,
-        #                     datefmt='%Y-%m-%d %H:%M:%S')
-        
         from qiskit_nature.algorithms import VQEUCCFactory
         
         vqe_solver = VQEUCCFactory(quantum_instance,
@@ -109,6 +104,6 @@ class UCCSDBenchmarkSuite:
                     print ('unknown error')
 
 if __name__ == "__main__":
-    benrhmarks = [ UCCSDBenchmarkSuite() ]
-    for benrhmark in benrhmarks:
-        benrhmark.run_manual()
+    benchmarks = [ UCCSDBenchmarkSuite() ]
+    for benchmark in benchmarks:
+        benchmark.run_manual()

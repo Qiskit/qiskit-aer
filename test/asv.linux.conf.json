@@ -39,7 +39,7 @@
     ],
     "uninstall_command": [
         "return-code=any python -mpip uninstall -y qiskit-terra",
-        "pip uninstall qiskit_nature",
+        "return-code=any python -mpip uninstall -y qiskit_nature",
         "return-code=any python -mpip uninstall -y {project}"
     ],
     "build_command": [

@@ -166,7 +166,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         shots = measure_count if measure == self.MEASUREMENT_SAMPLING else 1
         
         if (simulator, app, measure, measure_count, qubit) not in QOBJS:
-            QOBJS[(runtime, app, measure, measure_count, qubit)] = assemble(transpile(circuit, simulator), simulator, shots=shots)
+            QOBJS[(runtime, app, measure, measure_count, qubit)] = simulator._assemble(transpile(circuit, simulator), shots=shots)
         return QOBJS[(runtime, app, measure, measure_count, qubit)]
         
     def _run(self, runtime, app, measure, measure_count, noise_name, qubit):
@@ -184,7 +184,7 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             raise ValueError('no qobj: measure={0}:{1}, qubit={2}'.format(measure, measure_count, qubit))
 
         start = time()
-        result = simulator.run(qobj, noise_model=noise_model, **backend_options).result()
+        result = simulator._run(qobj, noise_model=noise_model, **backend_options)
         if result.status != 'COMPLETED':
             try:
                 reason = None

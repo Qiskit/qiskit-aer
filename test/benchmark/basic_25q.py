@@ -121,6 +121,6 @@ class ParticularQuantumCircuits(BasicSimulatorBenchmarkSuite):
                          noise_model_names=noise_model_names)
 
 if __name__ == "__main__":
-    benrhmarks = [ ArithmeticCircuits(), BasicChangeCircuits(), NLocalCircuits(), ParticularQuantumCircuits() ]
-    for benrhmark in benrhmarks:
-        benrhmark.run_manual()
+    benchmarks = [ ArithmeticCircuits(), BasicChangeCircuits(), NLocalCircuits(), ParticularQuantumCircuits() ]
+    for benchmark in benchmarks:
+        benchmark.run_manual()
