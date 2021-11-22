@@ -392,6 +392,13 @@ protected:
                  RngEngine &rng,
                  bool final_ops = false);
 
+  //apply cache blocked ops in each chunk
+  template <typename InputIterator>
+  void apply_cache_blocking_ops(InputIterator first,
+                 InputIterator last,
+                 ExperimentResult &result,
+                 RngEngine &rng, const int_t iChunk);
+
   //apply op to multiple shots , return flase if op is not supported to execute in a batch
   virtual bool apply_batched_op(const Operations::Op &op,
                                 ExperimentResult &result,
@@ -703,30 +710,26 @@ void StateChunk<state_t>::apply_ops_chunks(InputIterator first, InputIterator la
       }
 
       uint_t iOpBegin = iOp + 1;
-#pragma omp parallel for if(num_groups_ > 1 && chunk_omp_parallel_) num_threads(num_groups_)
-      for(int_t ig=0;ig<num_groups_;ig++){
-        uint_t istate = top_chunk_of_group_[ig];
-        uint_t iOpBlock = iOpBegin;
-        //fecth chunk in cache
-        if(qregs_[istate].fetch_chunk()){
-          while(iOpBlock < iOpEnd){
-            apply_op(*(first + iOpBlock),result,rng,final_ops, istate);
-            iOpBlock++;
-          }
-          //release chunk from cache
-          qregs_[istate].release_chunk();
-        }
+      if(num_groups_ > 1 && chunk_omp_parallel_){
+#pragma omp parallel for  num_threads(num_groups_)
+        for(int_t ig=0;ig<num_groups_;ig++)
+          apply_cache_blocking_ops(first + iOpBegin, first + iOpEnd, result, rng, top_chunk_of_group_[ig]);
+      }
+      else{
+        for(int_t ig=0;ig<num_groups_;ig++)
+          apply_cache_blocking_ops(first + iOpBegin, first + iOpEnd, result, rng, top_chunk_of_group_[ig]);
       }
       iOp = iOpEnd;
     }
     else if(is_applied_to_each_chunk(op_iOp)){
+      if(num_groups_ > 1 && chunk_omp_parallel_){
 #pragma omp parallel for if(num_groups_ > 1 && chunk_omp_parallel_) num_threads(num_groups_)
-      for(int_t ig=0;ig<num_groups_;ig++){
-        uint_t istate = top_chunk_of_group_[ig];
-        if(qregs_[istate].fetch_chunk()){
-          apply_op(op_iOp,result,rng,final_ops && nOp == iOp + 1, istate);
-          qregs_[istate].release_chunk();
-        }
+        for(int_t ig=0;ig<num_groups_;ig++)
+          apply_cache_blocking_ops(first + iOp, first + iOp+1, result, rng, top_chunk_of_group_[ig]);
+      }
+      else{
+        for(int_t ig=0;ig<num_groups_;ig++)
+          apply_cache_blocking_ops(first + iOp, first + iOp+1, result, rng, top_chunk_of_group_[ig]);
       }
     }
     else{
@@ -734,6 +737,23 @@ void StateChunk<state_t>::apply_ops_chunks(InputIterator first, InputIterator la
       apply_op(op_iOp,result,rng,final_ops && nOp == iOp + 1, STATE_APPLY_TO_ALL_CHUNKS);
     }
     iOp++;
+  }
+}
+
+template <class state_t>
+template <typename InputIterator>
+void StateChunk<state_t>::apply_cache_blocking_ops(InputIterator first,
+               InputIterator last,
+               ExperimentResult &result,
+               RngEngine &rng, const int_t iChunk)
+{
+  //fecth chunk in cache
+  if(qregs_[iChunk].fetch_chunk()){
+    for (auto it = first; it != last; ++it) {
+      apply_op(*it, result, rng, false, iChunk);
+    }
+    //release chunk from cache
+    qregs_[iChunk].release_chunk();
   }
 }
 
