@@ -3,24 +3,29 @@ NoiseModel class integration tests
 """
 
 import unittest
-from test.terra import common
+
 from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.noise.noiseerror import NoiseError
 from qiskit.providers.aer.noise.errors import depolarizing_error
+from qiskit.providers.aer.noise.noiseerror import NoiseError
 from qiskit.providers.aer.utils import remap_noise_model
+from test.terra.common import QiskitAerTestCase
 
 
-class TestNoiseRemapper(common.QiskitAerTestCase):
+class TestNoiseRemapper(QiskitAerTestCase):
     """Testing remap_noise_model function"""
 
     def test_raises_duplicate_qubits(self):
         """Test duplicate qubits raises exception"""
         model = NoiseModel()
-        self.assertRaises(NoiseError, remap_noise_model, model, [[0, 1], [2, 1]], warnings=False)
+        with self.assertRaises(NoiseError):
+            with self.assertWarns(DeprecationWarning):
+                remap_noise_model(model, [[0, 1], [2, 1]], warnings=False)
         model = NoiseModel()
         error = depolarizing_error(0.5, 1)
         model.add_quantum_error(error, ['u3'], [2], False)
-        self.assertRaises(NoiseError, remap_noise_model, model, [[3, 2]], warnings=False)
+        with self.assertRaises(NoiseError):
+            with self.assertWarns(DeprecationWarning):
+                remap_noise_model(model, [[3, 2]], warnings=False)
 
     def test_remap_all_qubit_quantum_errors(self):
         """Test remapper doesn't effect all-qubit quantum errors."""
@@ -30,7 +35,8 @@ class TestNoiseRemapper(common.QiskitAerTestCase):
         model.add_all_qubit_quantum_error(error1, ['u3'], False)
         model.add_all_qubit_quantum_error(error2, ['cx'], False)
 
-        remapped_model = remap_noise_model(model, [[0, 1], [1, 0]], warnings=False)
+        with self.assertWarns(DeprecationWarning):
+            remapped_model = remap_noise_model(model, [[0, 1], [1, 0]], warnings=False)
         self.assertEqual(model, remapped_model)
 
     def test_remap_quantum_errors(self):
@@ -41,7 +47,8 @@ class TestNoiseRemapper(common.QiskitAerTestCase):
         model.add_quantum_error(error1, ['u3'], [0], False)
         model.add_quantum_error(error2, ['cx'], [1, 2], False)
 
-        remapped_model = remap_noise_model(model, [[0, 1], [1, 2], [2, 0]], warnings=False)
+        with self.assertWarns(DeprecationWarning):
+            remapped_model = remap_noise_model(model, [[0, 1], [1, 2], [2, 0]], warnings=False)
         target = NoiseModel()
         target.add_quantum_error(error1, ['u3'], [1], False)
         target.add_quantum_error(error2, ['cx'], [2, 0], False)
@@ -67,7 +74,8 @@ class TestNoiseRemapper(common.QiskitAerTestCase):
         error1 = [[0.9, 0.1], [0.5, 0.5]]
         model.add_all_qubit_readout_error(error1, False)
 
-        remapped_model = remap_noise_model(model, [[0, 1], [1, 2], [2, 0]], warnings=False)
+        with self.assertWarns(DeprecationWarning):
+            remapped_model = remap_noise_model(model, [[0, 1], [1, 2], [2, 0]], warnings=False)
         self.assertEqual(remapped_model, model)
 
     def test_remap_readout_errors(self):
@@ -78,7 +86,8 @@ class TestNoiseRemapper(common.QiskitAerTestCase):
         model.add_readout_error(error1, [1], False)
         model.add_readout_error(error2, [0, 2], False)
 
-        remapped_model = remap_noise_model(model, [[0, 1], [1, 2], [2, 0]], warnings=False)
+        with self.assertWarns(DeprecationWarning):
+            remapped_model = remap_noise_model(model, [[0, 1], [1, 2], [2, 0]], warnings=False)
         target = NoiseModel()
         target.add_readout_error(error1, [2], False)
         target.add_readout_error(error2, [1, 0], False)
@@ -99,7 +108,8 @@ class TestNoiseRemapper(common.QiskitAerTestCase):
         model.add_all_qubit_readout_error(roerror1, False)
         model.add_readout_error(roerror2, [0, 2], False)
 
-        remapped_model = remap_noise_model(model, [0, 1, 2], discard_qubits=True, warnings=False)
+        with self.assertWarns(DeprecationWarning):
+            remapped_model = remap_noise_model(model, [0, 1, 2], discard_qubits=True, warnings=False)
         target = NoiseModel()
         target.add_all_qubit_quantum_error(error1, ['u3'], False)
         target.add_quantum_error(error1, ['u3'], [1], False)
@@ -122,7 +132,8 @@ class TestNoiseRemapper(common.QiskitAerTestCase):
         model.add_all_qubit_readout_error(roerror1, False)
         model.add_readout_error(roerror2, [0, 2], False)
 
-        remapped_model = remap_noise_model(model, [2, 0, 1], discard_qubits=True, warnings=False)
+        with self.assertWarns(DeprecationWarning):
+            remapped_model = remap_noise_model(model, [2, 0, 1], discard_qubits=True, warnings=False)
         target = NoiseModel()
         target.add_all_qubit_quantum_error(error1, ['u3'], False)
         target.add_quantum_error(error1, ['u3'], [2], False)

@@ -13,19 +13,22 @@
 AerSimulator Integration Tests
 """
 
-from ddt import ddt, data
-
-from test.terra.reference import ref_2q_clifford
-from test.terra.reference import ref_non_clifford
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import QuantumVolume
-from qiskit.providers.aer import QasmSimulator
+from ddt import ddt
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.errors import QuantumError
-from qiskit.providers.aer.noise.errors import pauli_error
 from qiskit.providers.aer.noise.errors import amplitude_damping_error
+from qiskit.providers.aer.noise.errors import mixed_unitary_error
+from qiskit.providers.aer.noise.errors import pauli_error
 from test.terra.backends.simulator_test_case import (
-    SimulatorTestCase, supported_methods)
+    SimulatorTestCase)
+from test.terra.reference import ref_2q_clifford
+from test.terra.reference import ref_non_clifford
+
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import Reset
+from qiskit.circuit.library import QuantumVolume
+from qiskit.circuit.library.standard_gates import IGate
+from qiskit.quantum_info import Pauli
 
 SUPPORTED_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
@@ -56,13 +59,7 @@ class TestSimulationMethod(SimulatorTestCase):
     def test_auto_method_clifford_circuits_and_reset_noise(self):
         """Test statevector method is used for Clifford circuit"""
         # Test noise model
-        noise_circs = [[{
-            "name": "reset",
-            "qubits": [0]
-        }], [{
-            "name": "id",
-            "qubits": [0]
-        }]]
+        noise_circs = [Reset(), IGate()]
         noise_probs = [0.5, 0.5]
         error = QuantumError(zip(noise_circs, noise_probs))
         noise_model = NoiseModel()
@@ -82,7 +79,7 @@ class TestSimulationMethod(SimulatorTestCase):
     def test_auto_method_clifford_circuits_and_pauli_noise(self):
         """Test statevector method is used for Clifford circuit"""
         # Noise Model
-        error = pauli_error([['XX', 0.5], ['II', 0.5]], standard_gates=True)
+        error = pauli_error([['XX', 0.5], ['II', 0.5]])
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error, ['cz', 'cx'])
         backend = self.backend(noise_model=noise_model)
@@ -99,7 +96,10 @@ class TestSimulationMethod(SimulatorTestCase):
     def test_auto_method_clifford_circuits_and_unitary_noise(self):
         """Test statevector method is used for Clifford circuit"""
         # Noise Model
-        error = pauli_error([['XX', 0.5], ['II', 0.5]], standard_gates=False)
+        error = mixed_unitary_error([
+            (Pauli('XX').to_matrix(), 0.5),
+            (Pauli('II').to_matrix(), 0.5)
+        ])
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error, ['cz', 'cx'])
         backend = self.backend(noise_model=noise_model)
@@ -146,13 +146,7 @@ class TestSimulationMethod(SimulatorTestCase):
     def test_auto_method_nonclifford_circuit_and_reset_noise(self):
         """Test statevector method is used for Clifford circuit"""
         # Test noise model
-        noise_circs = [[{
-            "name": "reset",
-            "qubits": [0]
-        }], [{
-            "name": "id",
-            "qubits": [0]
-        }]]
+        noise_circs = [Reset(), IGate()]
         noise_probs = [0.5, 0.5]
         error = QuantumError(zip(noise_circs, noise_probs))
         noise_model = NoiseModel()
@@ -171,7 +165,7 @@ class TestSimulationMethod(SimulatorTestCase):
     def test_auto_method_nonclifford_circuit_and_pauli_noise(self):
         """Test statevector method is used for Clifford circuit"""
         # Noise Model
-        error = pauli_error([['XX', 0.5], ['II', 0.5]], standard_gates=True)
+        error = pauli_error([['XX', 0.5], ['II', 0.5]])
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error, ['cz', 'cx'])
         backend = self.backend(noise_model=noise_model)
@@ -187,7 +181,10 @@ class TestSimulationMethod(SimulatorTestCase):
     def test_auto_method_nonclifford_circuit_and_unitary_noise(self):
         """Test statevector method is used for Clifford circuit"""
         # Noise Model
-        error = pauli_error([['XX', 0.5], ['II', 0.5]], standard_gates=False)
+        error = mixed_unitary_error([
+            (Pauli('XX').to_matrix(), 0.5),
+            (Pauli('II').to_matrix(), 0.5)
+        ])
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(error, ['cz', 'cx'])
         backend = self.backend(noise_model=noise_model)

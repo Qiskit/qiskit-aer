@@ -14,18 +14,18 @@ AerSimulator Integration Tests
 """
 
 from ddt import ddt
-
-from qiskit import QuantumCircuit
-from qiskit.circuit.library import QFT
-import qiskit.quantum_info as qi
 from qiskit.providers.aer import noise
 
+import qiskit.quantum_info as qi
+from qiskit.circuit import QuantumCircuit, Reset
+from qiskit.circuit.library import QFT
+from qiskit.circuit.library.standard_gates import IGate, HGate
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
-from test.terra.reference import ref_readout_noise
-from test.terra.reference import ref_pauli_noise
-from test.terra.reference import ref_reset_noise
 from test.terra.reference import ref_kraus_noise
+from test.terra.reference import ref_pauli_noise
+from test.terra.reference import ref_readout_noise
+from test.terra.reference import ref_reset_noise
 
 ALL_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
@@ -172,16 +172,15 @@ class TestNoise(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         shots = 1000
         error1 = noise.QuantumError([
-            ([{"name": "id", "qubits": [0]}], 0.8),
-            ([{"name": "reset", "qubits": [0]}], 0.1),
-            ([{"name": "h", "qubits": [0]}], 0.1)])
+            ([(IGate(), [0])], 0.8),
+            ([(Reset(), [0])], 0.1),
+            ([(HGate(), [0])], 0.1)])
 
         error2 = noise.QuantumError([
-            ([{"name": "id", "qubits": [0]}], 0.75),
-            ([{"name": "reset", "qubits": [0]}], 0.1),
-            ([{"name": "reset", "qubits": [1]}], 0.1),
-            ([{"name": "reset", "qubits": [0]},
-              {"name": "reset", "qubits": [1]}], 0.05)])
+            ([(IGate(), [0])], 0.75),
+            ([(Reset(), [0])], 0.1),
+            ([(Reset(), [1])], 0.1),
+            ([(Reset(), [0]), (Reset(), [1])], 0.05)])
 
         qc = QuantumCircuit(2)
         qc.h(0)
