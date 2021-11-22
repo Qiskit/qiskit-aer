@@ -328,6 +328,29 @@ class AerBackend(Backend, ABC):
                 return True
         return False
 
+    def _decompose_subcircuits(self, circuit, basis_gates=None):
+        if circuit is None:
+            return None
+        if basis_gates is None:
+            basis_gates = self.configuration().basis_gates
+            for control_op in ('for_loop', 'while_loop', 'if_else', 'break_loop', 'continue_loop'):
+                basis_gates.append(control_op)
+        circuit = circuit.copy()
+        for inst, _, _ in circuit.data:
+            if isinstance(inst, WhileLoopOp):
+                body, = inst.params
+                inst.params = (self._decompose_subcircuits(body, basis_gates),)
+            elif isinstance(inst, ForLoopOp):
+                loop_parameter, indexset, body = inst.params
+                inst.params = (loop_parameter, indexset,
+                               self._decompose_subcircuits(body, basis_gates))
+            elif isinstance(inst, IfElseOp):
+                true_body, false_body = inst.params
+                inst.params = (self._decompose_subcircuits(true_body, basis_gates),
+                               self._decompose_subcircuits(false_body, basis_gates))
+        circuit = transpile(circuit, basis_gates=basis_gates, optimization_level=0)
+        return circuit
+
     def _inline_for_loop_op(self, inst):
         loop_parameter, indexset, body = inst.params
 
@@ -340,6 +363,10 @@ class AerBackend(Backend, ABC):
             ret.add_register(qr)
         for cr in body.cregs:
             ret.add_register(cr)
+        if len(ret.clbits) == 0:
+            ret.add_bits(body.clbits)
+        if len(ret.qubits) == 0:
+            ret.add_bits(body.qubits)
 
         inlined_body = None
         break_label = f'{loop_name}_end'
@@ -373,6 +400,10 @@ class AerBackend(Backend, ABC):
             ret.add_register(qr)
         for cr in body.cregs:
             ret.add_register(cr)
+        if len(ret.clbits) == 0:
+            ret.add_bits(body.clbits)
+        if len(ret.qubits) == 0:
+            ret.add_bits(body.qubits)
 
         continue_label = f'{loop_name}_continue'
         loop_start_label = f'{loop_name}_start'
@@ -400,6 +431,10 @@ class AerBackend(Backend, ABC):
             ret.add_register(qr)
         for cr in true_body.cregs:
             ret.add_register(cr)
+        if len(ret.clbits) == 0:
+            ret.add_bits(true_body.clbits)
+        if len(ret.qubits) == 0:
+            ret.add_bits(true_body.qubits)
 
         if_true_label = f'{if_name}_true'
         if_else_label = f'{if_name}_else'
@@ -431,17 +466,14 @@ class AerBackend(Backend, ABC):
         return [1 if elem is True else 0 if elem is False else elem for elem in cond_tuple]
 
     def _inline_circuit(self, circ, continue_label, break_label):
-        ret = QuantumCircuit()
-        for qr in circ.qregs:
-            ret.add_register(qr)
-        for cr in circ.cregs:
-            ret.add_register(cr)
+        ret = circ.copy()
+        ret.data = []
 
         q2i = {}
-        for q in circ.qubits:
+        for q in ret.qubits:
             q2i[q] = len(q2i)
         c2i = {}
-        for c in circ.clbits:
+        for c in ret.clbits:
             c2i[c] = len(c2i)
 
         for inst, qargs, cargs in circ.data:
@@ -485,11 +517,14 @@ class AerBackend(Backend, ABC):
 
     def _compile(self, circuits):
         if isinstance(circuits, list):
-            return [transpile(self._inline_circuit(circuit, None, None), self, optimization_level=0)
+            return [transpile(self._inline_circuit(self._decompose_subcircuits(circuit),
+                                                   None, None),
+                              self, optimization_level=0)
                     if self._is_dynamic(circuit) else circuit for circuit in circuits]
         else:
             if self._is_dynamic(circuits):
-                return transpile(self._inline_circuit(circuits, None, None),
+                return transpile(self._inline_circuit(self._decompose_subcircuits(circuits),
+                                                      None, None),
                                  self, optimization_level=0)
             else:
                 return circuits
