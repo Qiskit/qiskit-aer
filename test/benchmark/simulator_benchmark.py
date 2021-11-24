@@ -22,7 +22,6 @@ from qiskit.providers.aer.noise import NoiseModel, amplitude_damping_error, depo
 from benchmark.circuit_library_circuits import CircuitLibraryCircuits
 
 QOBJS = {}
-SIMULATOR = AerSimulator()
 
 class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
 
@@ -93,8 +92,6 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
 
         self.params = (self.apps, self.measures, self.measure_counts, self.noise_model_names, self.qubits)
         self.param_names = ["application", "measure_method", "measure_counts", "noise", "qubit"]
-        
-        all_simulators = [ SIMULATOR ]
         
         self.simulators = {}
         self.backend_options_list = {}
