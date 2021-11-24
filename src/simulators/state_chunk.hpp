@@ -23,6 +23,14 @@
 
 #include "noise/noise_model.hpp"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+#ifdef AER_MPI
+#include <mpi.h>
+#endif
+
 namespace AER {
 
 namespace Base {
@@ -137,8 +145,8 @@ public:
   // raise an exception.
   double expval_pauli(const reg_t &qubits,const std::string& pauli) override final {return 0.0;}
 
-  virtual double expval_pauli(const reg_t &qubits,
-                              const std::string& pauli,const int_t iChunk = 0) = 0;
+  virtual double expval_pauli(const int_t iChunk, const reg_t &qubits,
+                              const std::string& pauli) = 0;
 
   //-----------------------------------------------------------------------
   // Optional: Load config settings
@@ -192,10 +200,10 @@ public:
                       bool final_op = false) override final {}
 
   //so this one is used
-  virtual void apply_op(const Operations::Op &op,
+  virtual void apply_op(const int_t iChunk, const Operations::Op &op,
                         ExperimentResult &result,
                         RngEngine& rng,
-                        bool final_op = false, const int_t iChunk = 0) = 0;
+                        bool final_op = false) = 0;
 
 
   // Apply a sequence of operations to the current state of the StateChunk class.
@@ -227,10 +235,10 @@ public:
   // Initialization
   //-----------------------------------------------------------------------
   template <typename list_t>
-  void initialize_from_vector(const list_t &vec, const int_t iChunk = 0);
+  void initialize_from_vector(const int_t iChunk, const list_t &vec);
 
   template <typename list_t>
-  void initialize_from_matrix(const list_t &mat, const int_t iChunk = 0);
+  void initialize_from_matrix(const int_t iChunk, const list_t &mat);
 
   //-----------------------------------------------------------------------
   // ClassicalRegister methods
@@ -252,10 +260,10 @@ public:
   // Save current value of all classical registers to result
   // This supports DataSubTypes: c_accum (counts), list (memory)
   // TODO: Make classical data allow saving only subset of specified clbit values
-  void save_creg(ExperimentResult &result,
+  void save_creg(const int_t iChunk, ExperimentResult &result,
                  const std::string &key,
-                 DataSubType type = DataSubType::c_accum, const int_t iChunk = 0) const;
-              
+                 DataSubType type = DataSubType::c_accum) const;
+
   // Save single shot data type. Typically this will be the value for the
   // last shot of the simulation
   template <class T>
@@ -269,26 +277,26 @@ public:
   // Save data type which can be averaged over all shots.
   // This supports DataSubTypes: list, c_list, accum, c_accum, average, c_average
   template <class T>
-  void save_data_average(ExperimentResult &result,
+  void save_data_average(const int_t iChunk, ExperimentResult &result,
                          const std::string &key, const T& datum,
-                         DataSubType type = DataSubType::average, const int_t iChunk = 0) const;
+                         DataSubType type = DataSubType::average) const;
 
   template <class T>
-  void save_data_average(ExperimentResult &result,
+  void save_data_average(const int_t iChunk, ExperimentResult &result,
                          const std::string &key, T&& datum,
-                         DataSubType type = DataSubType::average, const int_t iChunk = 0) const;
+                         DataSubType type = DataSubType::average) const;
   
   // Save data type which is pershot and does not support accumulator or average
   // This supports DataSubTypes: single, c_single, list, c_list
   template <class T>
-  void save_data_pershot(ExperimentResult &result,
+  void save_data_pershot(const int_t iChunk, ExperimentResult &result,
                          const std::string &key, const T& datum,
-                         DataSubType type = DataSubType::list, const int_t iChunk = 0) const;
+                         DataSubType type = DataSubType::list) const;
 
   template <class T>
-  void save_data_pershot(ExperimentResult &result,
+  void save_data_pershot(const int_t iChunk, ExperimentResult &result,
                          const std::string &key, T&& datum,
-                         DataSubType type = DataSubType::list, const int_t iChunk = 0) const;
+                         DataSubType type = DataSubType::list) const;
 
 
   //save creg as count data 
@@ -299,7 +307,7 @@ public:
   //-----------------------------------------------------------------------
  
   // Apply a save expectation value instruction
-  void apply_save_expval(const Operations::Op &op, ExperimentResult &result, const int_t iChunk = 0);
+  void apply_save_expval(const int_t iChunk, const Operations::Op &op, ExperimentResult &result);
 
   //-----------------------------------------------------------------------
   // Standard snapshots
@@ -359,6 +367,7 @@ protected:
   uint_t global_chunk_index_;   //beginning chunk index for this process
   reg_t chunk_index_begin_;     //beginning chunk index for each process
   reg_t chunk_index_end_;       //ending chunk index for each process
+  uint_t local_shot_index_;    //local shot ID of current batch loop
 
   uint_t myrank_;               //process ID
   uint_t nprocs_;               //number of processes
@@ -394,16 +403,16 @@ protected:
 
   //apply cache blocked ops in each chunk
   template <typename InputIterator>
-  void apply_cache_blocking_ops(InputIterator first,
+  void apply_cache_blocking_ops(const int_t iChunk, InputIterator first,
                  InputIterator last,
                  ExperimentResult &result,
-                 RngEngine &rng, const int_t iChunk);
+                 RngEngine &rng);
 
   //apply op to multiple shots , return flase if op is not supported to execute in a batch
-  virtual bool apply_batched_op(const Operations::Op &op,
+  virtual bool apply_batched_op(const int_t iChunk, const Operations::Op &op,
                                 ExperimentResult &result,
                                 std::vector<RngEngine> &rng,
-                                bool final_op = false, const int_t iChunk = 0){return false;}
+                                bool final_op = false){return false;}
 
   //apply sampled noise to multiple-shots (this is used for ops contains non-Pauli operators)
   void apply_batched_noise_ops(const int_t i_group, const std::vector<std::vector<Operations::Op>> &ops, 
@@ -411,7 +420,7 @@ protected:
                                std::vector<RngEngine> &rng);
 
   //check conditional
-  bool check_conditional(const Operations::Op &op, const int_t iChunk = 0);
+  bool check_conditional(const int_t iChunk, const Operations::Op &op);
 
   virtual int qubit_scale(void)
   {
@@ -474,6 +483,12 @@ protected:
 
   //check if the operator should be applied to each chunk
   virtual bool is_applied_to_each_chunk(const Operations::Op &op);
+
+  //return global shot index for the chunk
+  inline int_t get_global_shot_index(const int_t iChunk) const
+  {
+    return multi_shots_parallelization_ ? (iChunk + local_shot_index_ + global_chunk_index_) : 0;
+  }
 
 #ifdef AER_MPI
   //communicator group to simulate a circuit (for multi-experiments)
@@ -578,6 +593,7 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
 
   num_local_chunks_ = chunk_index_end_[distributed_rank_] - chunk_index_begin_[distributed_rank_];
   global_chunk_index_ = chunk_index_begin_[distributed_rank_];
+  local_shot_index_ = 0;
 
   if(multi_shots_parallelization_){
     allocate_qregs(std::min(num_local_chunks_,max_batched_shots_));
@@ -624,11 +640,12 @@ bool StateChunk<state_t>::allocate_qregs(uint_t num_chunks)
   qregs_.resize(num_chunks);
 
   //allocate qregs
+  uint_t chunk_id = multi_chunk_distribution_ ? global_chunk_index_ : 0;
   bool ret = true;
   qregs_[0].set_max_matrix_bits(BaseState::max_matrix_qubits_);
-  ret &= qregs_[0].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),global_chunk_index_,num_chunks);
+  ret &= qregs_[0].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),chunk_id,num_chunks);
   for(i=1;i<num_chunks;i++){
-    uint_t gid = i + global_chunk_index_;
+    uint_t gid = i + chunk_id;
     ret &= qregs_[i].chunk_setup(qregs_[0],gid);
   }
 
@@ -675,7 +692,7 @@ void StateChunk<state_t>::apply_ops(InputIterator first, InputIterator last,
 
   // Simple loop over vector of input operations
   for (auto it = first; it != last; ++it) {
-    apply_op(*it, result, rng, final_ops && (it + 1 == last), 0);
+    apply_op(0, *it, result, rng, final_ops && (it + 1 == last) );
   }
 }
 
@@ -713,11 +730,11 @@ void StateChunk<state_t>::apply_ops_chunks(InputIterator first, InputIterator la
       if(num_groups_ > 1 && chunk_omp_parallel_){
 #pragma omp parallel for  num_threads(num_groups_)
         for(int_t ig=0;ig<num_groups_;ig++)
-          apply_cache_blocking_ops(first + iOpBegin, first + iOpEnd, result, rng, top_chunk_of_group_[ig]);
+          apply_cache_blocking_ops(top_chunk_of_group_[ig], first + iOpBegin, first + iOpEnd, result, rng);
       }
       else{
         for(int_t ig=0;ig<num_groups_;ig++)
-          apply_cache_blocking_ops(first + iOpBegin, first + iOpEnd, result, rng, top_chunk_of_group_[ig]);
+          apply_cache_blocking_ops(top_chunk_of_group_[ig], first + iOpBegin, first + iOpEnd, result, rng);
       }
       iOp = iOpEnd;
     }
@@ -725,16 +742,16 @@ void StateChunk<state_t>::apply_ops_chunks(InputIterator first, InputIterator la
       if(num_groups_ > 1 && chunk_omp_parallel_){
 #pragma omp parallel for if(num_groups_ > 1 && chunk_omp_parallel_) num_threads(num_groups_)
         for(int_t ig=0;ig<num_groups_;ig++)
-          apply_cache_blocking_ops(first + iOp, first + iOp+1, result, rng, top_chunk_of_group_[ig]);
+          apply_cache_blocking_ops(top_chunk_of_group_[ig], first + iOp, first + iOp+1, result, rng);
       }
       else{
         for(int_t ig=0;ig<num_groups_;ig++)
-          apply_cache_blocking_ops(first + iOp, first + iOp+1, result, rng, top_chunk_of_group_[ig]);
+          apply_cache_blocking_ops(top_chunk_of_group_[ig], first + iOp, first + iOp+1, result, rng);
       }
     }
     else{
       //parallelize inside state implementations
-      apply_op(op_iOp,result,rng,final_ops && nOp == iOp + 1, STATE_APPLY_TO_ALL_CHUNKS);
+      apply_op(STATE_APPLY_TO_ALL_CHUNKS, op_iOp,result,rng,final_ops && nOp == iOp + 1);
     }
     iOp++;
   }
@@ -742,15 +759,15 @@ void StateChunk<state_t>::apply_ops_chunks(InputIterator first, InputIterator la
 
 template <class state_t>
 template <typename InputIterator>
-void StateChunk<state_t>::apply_cache_blocking_ops(InputIterator first,
+void StateChunk<state_t>::apply_cache_blocking_ops(const int_t iChunk, InputIterator first,
                InputIterator last,
                ExperimentResult &result,
-               RngEngine &rng, const int_t iChunk)
+               RngEngine &rng)
 {
   //fecth chunk in cache
   if(qregs_[iChunk].fetch_chunk()){
     for (auto it = first; it != last; ++it) {
-      apply_op(*it, result, rng, false, iChunk);
+      apply_op(iChunk, *it, result, rng, false);
     }
     //release chunk from cache
     qregs_[iChunk].release_chunk();
@@ -769,7 +786,7 @@ bool StateChunk<state_t>::is_applied_to_each_chunk(const Operations::Op &op)
 }
 
 template <class state_t>
-bool StateChunk<state_t>::check_conditional(const Operations::Op &op, const int_t iChunk)
+bool StateChunk<state_t>::check_conditional(const int_t iChunk, const Operations::Op &op)
 {
   if(multi_shots_parallelization_){
     //multi-shots parallelization
@@ -796,6 +813,8 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
 
   i_begin = 0;
   while(i_begin<num_local_chunks_){
+    local_shot_index_ = i_begin;
+
     //loop for states can be stored in available memory
     n_shots = qregs_.size();
     if(i_begin+n_shots > num_local_chunks_){
@@ -804,7 +823,6 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
       allocate_qregs(n_shots);
     }
     std::vector<ExperimentResult> par_results(num_groups_);
-
     //initialization (equivalent to initialize_qreg + initialize_creg)
 #pragma omp parallel for if(num_groups_ > 1) 
     for(i=0;i<num_groups_;i++){
@@ -869,11 +887,11 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
           }
         }
         else{
-          if(!apply_batched_op(*op,par_results[i],rng,final_ops && (op + 1 == last), istate)){
+          if(!apply_batched_op(istate, *op,par_results[i],rng,final_ops && (op + 1 == last))){
             //call apply_op for each state
             for(uint_t j=top_chunk_of_group_[i];j<top_chunk_of_group_[i+1];j++){
               qregs_[j].enable_batch(false);
-              apply_op(*op,par_results[i],rng[j-top_chunk_of_group_[i]],final_ops && (op + 1 == last), j);
+              apply_op(j, *op,par_results[i],rng[j-top_chunk_of_group_[i]],final_ops && (op + 1 == last) );
               qregs_[j].enable_batch(true);
             }
           }
@@ -959,11 +977,11 @@ void StateChunk<state_t>::apply_batched_noise_ops(const int_t i_group, const std
       cop.conditional = true;
       cop.conditional_reg = sys_reg;
 
-      if(!apply_batched_op(cop, result,rng, false, istate)){
+      if(!apply_batched_op(istate, cop, result,rng, false)){
         //call apply_op for each state
         for(uint_t j=top_chunk_of_group_[i_group];j<top_chunk_of_group_[i_group+1];j++){
           qregs_[j].enable_batch(false);
-          apply_op(cop, result ,rng[j-top_chunk_of_group_[i_group]],false, j);
+          apply_op(j, cop, result ,rng[j-top_chunk_of_group_[i_group]],false);
           qregs_[j].enable_batch(true);
         }
       }
@@ -1003,11 +1021,11 @@ void StateChunk<state_t>::initialize_creg(uint_t num_memory,
 }
 
 template <class state_t>
-void StateChunk<state_t>::save_creg(ExperimentResult &result,
+void StateChunk<state_t>::save_creg(const int_t iChunk, ExperimentResult &result,
                                const std::string &key,
-                               DataSubType type, const int_t iChunk) const 
+                               DataSubType type) const 
 {
-  int_t ishot = multi_shots_parallelization_ ? iChunk : 0;
+  int_t ishot = get_global_shot_index(iChunk);
   if (cregs_[ishot].memory_size() == 0)
     return;
   switch (type) {
@@ -1024,12 +1042,12 @@ void StateChunk<state_t>::save_creg(ExperimentResult &result,
 
 template <class state_t>
 template <class T>
-void StateChunk<state_t>::save_data_average(ExperimentResult &result,
+void StateChunk<state_t>::save_data_average(const int_t iChunk, ExperimentResult &result,
                                        const std::string &key,
                                        const T& datum,
-                                       DataSubType type, const int_t iChunk) const 
+                                       DataSubType type) const 
 {
-  int_t ishot = multi_shots_parallelization_ ? iChunk : 0;
+  int_t ishot = get_global_shot_index(iChunk);
   switch (type) {
     case DataSubType::list:
       result.data.add_list(datum, key);
@@ -1056,12 +1074,12 @@ void StateChunk<state_t>::save_data_average(ExperimentResult &result,
 
 template <class state_t>
 template <class T>
-void StateChunk<state_t>::save_data_average(ExperimentResult &result,
+void StateChunk<state_t>::save_data_average(const int_t iChunk, ExperimentResult &result,
                                        const std::string &key,
                                        T&& datum,
-                                       DataSubType type, const int_t iChunk) const 
+                                       DataSubType type) const 
 {
-  int_t ishot = multi_shots_parallelization_ ? iChunk : 0;
+  int_t ishot = get_global_shot_index(iChunk);
   switch (type) {
     case DataSubType::list:
       result.data.add_list(std::move(datum), key);
@@ -1088,12 +1106,12 @@ void StateChunk<state_t>::save_data_average(ExperimentResult &result,
 
 template <class state_t>
 template <class T>
-void StateChunk<state_t>::save_data_pershot(ExperimentResult &result,
+void StateChunk<state_t>::save_data_pershot(const int_t iChunk, ExperimentResult &result,
                                        const std::string &key,
                                        const T& datum,
-                                       DataSubType type, const int_t iChunk) const 
+                                       DataSubType type) const 
 {
-  int_t ishot = multi_shots_parallelization_ ? iChunk : 0;
+  int_t ishot = get_global_shot_index(iChunk);
   switch (type) {
   case DataSubType::single:
     result.data.add_single(datum, key);
@@ -1114,12 +1132,12 @@ void StateChunk<state_t>::save_data_pershot(ExperimentResult &result,
 
 template <class state_t>
 template <class T>
-void StateChunk<state_t>::save_data_pershot(ExperimentResult &result, 
+void StateChunk<state_t>::save_data_pershot(const int_t iChunk, ExperimentResult &result, 
                                        const std::string &key,
                                        T&& datum,
-                                       DataSubType type, const int_t iChunk) const 
+                                       DataSubType type) const 
 {
-  int_t ishot = multi_shots_parallelization_ ? iChunk : 0;
+  int_t ishot = get_global_shot_index(iChunk);
   switch (type) {
     case DataSubType::single:
       result.data.add_single(std::move(datum), key);
@@ -1169,7 +1187,7 @@ void StateChunk<state_t>::snapshot_creg_memory(const int_t iChunk, const Operati
                                           ExperimentResult &result,
                                           std::string name) const 
 {
-  int_t ishot = multi_shots_parallelization_ ? iChunk : 0;
+  int_t ishot = get_global_shot_index(iChunk);
   result.legacy_data.add_pershot_snapshot(name,
                                op.string_params[0],
                                cregs_[ishot].memory_hex());
@@ -1181,7 +1199,7 @@ void StateChunk<state_t>::snapshot_creg_register(const int_t iChunk, const Opera
                                             ExperimentResult &result,
                                             std::string name) const 
 {
-  int_t ishot = multi_shots_parallelization_ ? iChunk : 0;
+  int_t ishot = get_global_shot_index(iChunk);
   result.legacy_data.add_pershot_snapshot(name,
                                op.string_params[0],
                                cregs_[ishot].register_hex());
@@ -1189,8 +1207,8 @@ void StateChunk<state_t>::snapshot_creg_register(const int_t iChunk, const Opera
 
 
 template <class state_t>
-void StateChunk<state_t>::apply_save_expval(const Operations::Op &op,
-                                       ExperimentResult &result, const int_t iChunk){
+void StateChunk<state_t>::apply_save_expval(const int_t iChunk, const Operations::Op &op,
+                                       ExperimentResult &result){
   // Check empty edge case
   if (op.expval_params.empty()) {
     throw std::invalid_argument(
@@ -1204,7 +1222,7 @@ void StateChunk<state_t>::apply_save_expval(const Operations::Op &op,
 
   for (const auto &param : op.expval_params) {
     // param is tuple (pauli, coeff, sq_coeff)
-    const auto val = expval_pauli(op.qubits, std::get<0>(param),iChunk);
+    const auto val = expval_pauli(iChunk, op.qubits, std::get<0>(param));
     expval += std::get<1>(param) * val;
     if (variance) {
       sq_expval += std::get<2>(param) * val;
@@ -1214,9 +1232,9 @@ void StateChunk<state_t>::apply_save_expval(const Operations::Op &op,
     std::vector<double> expval_var(2);
     expval_var[0] = expval;  // mean
     expval_var[1] = sq_expval - expval * expval;  // variance
-    save_data_average(result, op.string_params[0], expval_var, op.save_type);
+    save_data_average(iChunk, result, op.string_params[0], expval_var, op.save_type);
   } else {
-    save_data_average(result, op.string_params[0], expval, op.save_type);
+    save_data_average(iChunk, result, op.string_params[0], expval, op.save_type);
   }
 }
 
@@ -1294,7 +1312,7 @@ void StateChunk<state_t>::qubits_inout(const reg_t& qubits, reg_t& qubits_in,reg
 
 template <class state_t>
 template <typename list_t>
-void StateChunk<state_t>::initialize_from_vector(const list_t &vec, const int_t iChunkIn)
+void StateChunk<state_t>::initialize_from_vector(const int_t iChunkIn, const list_t &vec)
 {
   int_t iChunk;
 
@@ -1321,7 +1339,7 @@ void StateChunk<state_t>::initialize_from_vector(const list_t &vec, const int_t 
 
 template <class state_t>
 template <typename list_t>
-void StateChunk<state_t>::initialize_from_matrix(const list_t &mat, const int_t iChunkIn)
+void StateChunk<state_t>::initialize_from_matrix(const int_t iChunkIn, const list_t &mat)
 {
   int_t iChunk;
   if(multi_chunk_distribution_){

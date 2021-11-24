@@ -115,10 +115,10 @@ public:
 
   // Apply an operation
   // If the op is not in allowed_ops an exeption will be raised.
-  void apply_op(const Operations::Op &op,
+  void apply_op(const int_t iChunk, const Operations::Op &op,
                         ExperimentResult &result,
                         RngEngine& rng,
-                        bool final_op = false, const int_t iChunk = 0) override;
+                        bool final_op = false) override;
 
   // Initializes an n-qubit state to the all |0> state
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -153,72 +153,72 @@ public:
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
 
-  auto move_to_vector(const int_t iChunk = 0);
-  auto copy_to_vector(const int_t iChunk = 0);
+  auto move_to_vector(const int_t iChunk);
+  auto copy_to_vector(const int_t iChunk);
 
 protected:
   //-----------------------------------------------------------------------
   // Apply instructions
   //-----------------------------------------------------------------------
   //apply op to multiple shots , return flase if op is not supported to execute in a batch
-  bool apply_batched_op(const Operations::Op &op,
+  bool apply_batched_op(const int_t iChunk, const Operations::Op &op,
                                 ExperimentResult &result,
                                 std::vector<RngEngine> &rng,
-                                bool final_op = false, const int_t iChunk = 0) override;
+                                bool final_op = false) override;
 
 
   // Applies a sypported Gate operation to the state class.
   // If the input is not in allowed_gates an exeption will be raised.
-  void apply_gate(const Operations::Op &op, const int_t iChunk = 0);
+  void apply_gate(const int_t iChunk, const Operations::Op &op);
 
   // Measure qubits and return a list of outcomes [q0, q1, ...]
   // If a state subclass supports this function it then "measure"
   // should be contained in the set returned by the 'allowed_ops'
   // method.
-  virtual void apply_measure(const reg_t &qubits, const reg_t &cmemory,
-                             const reg_t &cregister, RngEngine &rng, const int_t iChunk = 0);
+  virtual void apply_measure(const int_t iChunk, const reg_t &qubits, const reg_t &cmemory,
+                             const reg_t &cregister, RngEngine &rng);
 
   // Reset the specified qubits to the |0> state by simulating
   // a measurement, applying a conditional x-gate if the outcome is 1, and
   // then discarding the outcome.
-  void apply_reset(const reg_t &qubits, RngEngine &rng, const int_t iChunk = 0);
+  void apply_reset(const int_t iChunk, const reg_t &qubits, RngEngine &rng);
 
   // Initialize the specified qubits to a given state |psi>
   // by applying a reset to the these qubits and then
   // computing the tensor product with the new state |psi>
   // /psi> is given in params
-  void apply_initialize(const reg_t &qubits, const cvector_t &params,
-                        RngEngine &rng, const int_t iChunk = 0);
+  void apply_initialize(const int_t iChunk, const reg_t &qubits, const cvector_t &params,
+                        RngEngine &rng);
 
-  void initialize_from_vector(const cvector_t &params, const int_t iChunk = 0);
+  void initialize_from_vector(const int_t iChunk, const cvector_t &params);
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const Operations::Op &op, ExperimentResult &result, bool last_op = false, const int_t iChunk = 0);
+  virtual void apply_snapshot(const int_t iChunk, const Operations::Op &op, ExperimentResult &result, bool last_op = false);
 
   // Apply a matrix to given qubits (identity on all other qubits)
-  void apply_matrix(const Operations::Op &op, const int_t iChunk = 0);
+  void apply_matrix(const int_t iChunk, const Operations::Op &op);
 
   // Apply a vectorized matrix to given qubits (identity on all other qubits)
-  void apply_matrix(const reg_t &qubits, const cvector_t &vmat, const int_t iChunk = 0);
+  void apply_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t &vmat);
 
   //apply diagonal matrix
-  void apply_diagonal_matrix(const reg_t &qubits, const cvector_t & diag, const int_t iChunk = 0); 
+  void apply_diagonal_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & diag); 
 
   // Apply a vector of control matrices to given qubits (identity on all other
   // qubits)
-  void apply_multiplexer(const reg_t &control_qubits,
+  void apply_multiplexer(const int_t iChunk, const reg_t &control_qubits,
                          const reg_t &target_qubits,
-                         const std::vector<cmatrix_t> &mmat, const int_t iChunk = 0);
+                         const std::vector<cmatrix_t> &mmat);
 
   // Apply stacked (flat) version of multiplexer matrix to target qubits (using
   // control qubits to select matrix instance)
-  void apply_multiplexer(const reg_t &control_qubits,
-                         const reg_t &target_qubits, const cmatrix_t &mat, const int_t iChunk = 0);
+  void apply_multiplexer(const int_t iChunk, const reg_t &control_qubits,
+                         const reg_t &target_qubits, const cmatrix_t &mat);
 
   // Apply a Kraus error operation
-  void apply_kraus(const reg_t &qubits, const std::vector<cmatrix_t> &krausops,
-                   RngEngine &rng, const int_t iChunk = 0);
+  void apply_kraus(const int_t iChunk, const reg_t &qubits, const std::vector<cmatrix_t> &krausops,
+                   RngEngine &rng);
 
   //-----------------------------------------------------------------------
   // Save data instructions
@@ -228,29 +228,29 @@ protected:
   // If `last_op` is True this will use move semantics to move the simulator
   // state to the results, otherwise it will use copy semantics to leave
   // the current simulator state unchanged.
-  void apply_save_statevector(const Operations::Op &op,
+  void apply_save_statevector(const int_t iChunk, const Operations::Op &op,
                               ExperimentResult &result,
-                              bool last_op, const int_t iChunk = 0);
+                              bool last_op);
 
   // Save the current state of the statevector simulator as a ket-form map.
-  void apply_save_statevector_dict(const Operations::Op &op,
-                                  ExperimentResult &result, const int_t iChunk = 0);
+  void apply_save_statevector_dict(const int_t iChunk, const Operations::Op &op,
+                                  ExperimentResult &result);
 
   // Save the current density matrix or reduced density matrix
-  void apply_save_density_matrix(const Operations::Op &op,
-                                 ExperimentResult &result, const int_t iChunk = 0);
+  void apply_save_density_matrix(const int_t iChunk, const Operations::Op &op,
+                                 ExperimentResult &result);
 
   // Helper function for computing expectation value
-  void apply_save_probs(const Operations::Op &op,
-                        ExperimentResult &result, const int_t iChunk = 0);
+  void apply_save_probs(const int_t iChunk, const Operations::Op &op,
+                        ExperimentResult &result);
 
   // Helper function for saving amplitudes and amplitudes squared
-  void apply_save_amplitudes(const Operations::Op &op,
-                             ExperimentResult &result, const int_t iChunk = 0);
+  void apply_save_amplitudes(const int_t iChunk, const Operations::Op &op,
+                             ExperimentResult &result);
 
   // Helper function for computing expectation value
-  virtual double expval_pauli(const reg_t &qubits,
-                              const std::string& pauli, const int_t iChunk = 0) override;
+  virtual double expval_pauli(const int_t iChunk, const reg_t &qubits,
+                              const std::string& pauli) override;
   //-----------------------------------------------------------------------
   // Measurement Helpers
   //-----------------------------------------------------------------------
@@ -260,7 +260,7 @@ protected:
   // should be contained in the set returned by the 'allowed_ops'
   // method.
   // TODO: move to private (no longer part of base class)
-  rvector_t measure_probs(const reg_t &qubits, const int_t iChunk = 0) const;
+  rvector_t measure_probs(const int_t iChunk, const reg_t &qubits) const;
 
   // Sample the measurement outcome for qubits
   // return a pair (m, p) of the outcome m, and its corresponding
@@ -270,12 +270,12 @@ protected:
   // 1 -> |q1 = 0, q0 = 1> state
   // 2 -> |q1 = 1, q0 = 0> state
   // 3 -> |q1 = 1, q0 = 1> state
-  std::pair<uint_t, double> sample_measure_with_prob(const reg_t &qubits,
-                                                     RngEngine &rng, const int_t iChunk = 0);
+  std::pair<uint_t, double> sample_measure_with_prob(const int_t iChunk, const reg_t &qubits,
+                                                     RngEngine &rng);
 
-  void measure_reset_update(const std::vector<uint_t> &qubits,
+  void measure_reset_update(const int_t iChunk, const std::vector<uint_t> &qubits,
                             const uint_t final_state, const uint_t meas_state,
-                            const double meas_prob, const int_t iChunk = 0);
+                            const double meas_prob);
 
   //-----------------------------------------------------------------------
   // Special snapshot types
@@ -287,23 +287,23 @@ protected:
   //-----------------------------------------------------------------------
 
   // Snapshot current qubit probabilities for a measurement (average)
-  void snapshot_probabilities(const Operations::Op &op, ExperimentResult &result,
-                              SnapshotDataType type, const int_t iChunk = 0);
+  void snapshot_probabilities(const int_t iChunk, const Operations::Op &op, ExperimentResult &result,
+                              SnapshotDataType type);
 
   // Snapshot the expectation value of a Pauli operator
-  void snapshot_pauli_expval(const Operations::Op &op, ExperimentResult &result,
-                             SnapshotDataType type, const int_t iChunk = 0);
+  void snapshot_pauli_expval(const int_t iChunk, const Operations::Op &op, ExperimentResult &result,
+                             SnapshotDataType type);
 
   // Snapshot the expectation value of a matrix operator
-  void snapshot_matrix_expval(const Operations::Op &op, ExperimentResult &result,
-                              SnapshotDataType type, const int_t iChunk = 0);
+  void snapshot_matrix_expval(const int_t iChunk, const Operations::Op &op, ExperimentResult &result,
+                              SnapshotDataType type);
 
   // Snapshot reduced density matrix
-  void snapshot_density_matrix(const Operations::Op &op, ExperimentResult &result,
-                               SnapshotDataType type, const int_t iChunk = 0);
+  void snapshot_density_matrix(const int_t iChunk, const Operations::Op &op, ExperimentResult &result,
+                               SnapshotDataType type);
 
   // Return the reduced density matrix for the simulator
-  cmatrix_t density_matrix(const reg_t &qubits, const int_t iChunk = 0);
+  cmatrix_t density_matrix(const int_t iChunk, const reg_t &qubits);
 
   // Helper function to convert a vector to a reduced density matrix
   template <class T> cmatrix_t vec2density(const reg_t &qubits, const T &vec);
@@ -313,7 +313,7 @@ protected:
   //-----------------------------------------------------------------------
 
   // Optimize phase gate with diagonal [1, phase]
-  void apply_gate_phase(const uint_t qubit, const complex_t phase, const int_t iChunk = 0);
+  void apply_gate_phase(const int_t iChunk, const uint_t qubit, const complex_t phase);
 
   //-----------------------------------------------------------------------
   // Multi-controlled u3
@@ -322,9 +322,9 @@ protected:
   // Apply N-qubit multi-controlled single qubit gate specified by
   // 4 parameters u4(theta, phi, lambda, gamma)
   // NOTE: if N=1 this is just a regular u4 gate.
-  void apply_gate_mcu(const reg_t &qubits, const double theta,
+  void apply_gate_mcu(const int_t iChunk, const reg_t &qubits, const double theta,
                       const double phi, const double lambda,
-                      const double gamma, const int_t iChunk = 0);
+                      const double gamma);
 
   //-----------------------------------------------------------------------
   // Config Settings
@@ -527,7 +527,7 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
     BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
   }
 
-  initialize_from_vector(state,STATE_APPLY_TO_ALL_CHUNKS);
+  initialize_from_vector(iChunk, state);
 
   apply_global_phase();
 }
@@ -658,25 +658,25 @@ auto State<statevec_t>::copy_to_vector(const int_t iChunkIn)
 // Implementation: apply operations
 //=========================================================================
 template <class statevec_t>
-void State<statevec_t>::apply_op(const Operations::Op &op,
+void State<statevec_t>::apply_op(const int_t iChunk, const Operations::Op &op,
                         ExperimentResult &result,
                         RngEngine& rng,
-                        bool final_op, const int_t iChunk)
+                        bool final_op)
 {
-  if(BaseState::check_conditional(op, iChunk)) {
+  if(BaseState::check_conditional(iChunk, op)) {
     switch (op.type) {
       case OpType::barrier:
       case OpType::nop:
       case OpType::qerror_loc:
         break;
       case OpType::reset:
-        apply_reset(op.qubits, rng, iChunk);
+        apply_reset(iChunk, op.qubits, rng);
         break;
       case OpType::initialize:
-        apply_initialize(op.qubits, op.params, rng, iChunk);
+        apply_initialize(iChunk, op.qubits, op.params, rng);
         break;
       case OpType::measure:
-        apply_measure(op.qubits, op.memory, op.registers, rng, iChunk);
+        apply_measure(iChunk, op.qubits, op.memory, op.registers, rng);
         break;
       case OpType::bfunc:
         BaseState::cregs_[0].apply_bfunc(op);
@@ -685,23 +685,23 @@ void State<statevec_t>::apply_op(const Operations::Op &op,
         BaseState::cregs_[0].apply_roerror(op, rng);
         break;
       case OpType::gate:
-        apply_gate(op, iChunk);
+        apply_gate(iChunk, op);
         break;
       case OpType::snapshot:
-        apply_snapshot(op, result, final_op, iChunk);
+        apply_snapshot(iChunk, op, result, final_op);
         break;
       case OpType::matrix:
-        apply_matrix(op, iChunk);
+        apply_matrix(iChunk, op);
         break;
       case OpType::diagonal_matrix:
-        apply_diagonal_matrix(op.qubits, op.params, iChunk);
+        apply_diagonal_matrix(iChunk, op.qubits, op.params);
         break;
       case OpType::multiplexer:
-        apply_multiplexer(op.regs[0], op.regs[1],
-                          op.mats, iChunk); // control qubits ([0]) & target qubits([1])
+        apply_multiplexer(iChunk, op.regs[0], op.regs[1],
+                          op.mats); // control qubits ([0]) & target qubits([1])
         break;
       case OpType::kraus:
-        apply_kraus(op.qubits, op.mats, rng, iChunk);
+        apply_kraus(iChunk, op.qubits, op.mats, rng);
         break;
       case OpType::sim_op:
         if(op.name == "begin_register_blocking"){
@@ -712,29 +712,29 @@ void State<statevec_t>::apply_op(const Operations::Op &op,
         }
         break;
       case OpType::set_statevec:
-        initialize_from_vector(op.params,iChunk);
+        initialize_from_vector(iChunk, op.params);
         break;
       case OpType::save_expval:
       case OpType::save_expval_var:
-        BaseState::apply_save_expval(op, result, iChunk);
+        BaseState::apply_save_expval(iChunk, op, result);
         break;
       case OpType::save_densmat:
-        apply_save_density_matrix(op, result, iChunk);
+        apply_save_density_matrix(iChunk, op, result);
         break;
       case OpType::save_state:
       case OpType::save_statevec:
-        apply_save_statevector(op, result, final_op, iChunk);
+        apply_save_statevector(iChunk, op, result, final_op);
         break;
       case OpType::save_statevec_dict:
-        apply_save_statevector_dict(op, result, iChunk);
+        apply_save_statevector_dict(iChunk, op, result);
         break;
       case OpType::save_probs:
       case OpType::save_probs_ket:
-        apply_save_probs(op, result, iChunk);
+        apply_save_probs(iChunk, op, result);
         break;
       case OpType::save_amps:
       case OpType::save_amps_sq:
-        apply_save_amplitudes(op, result, iChunk);
+        apply_save_amplitudes(iChunk, op, result);
         break;
       default:
         throw std::invalid_argument(
@@ -744,11 +744,11 @@ void State<statevec_t>::apply_op(const Operations::Op &op,
 }
 
 template <class statevec_t>
-bool State<statevec_t>::apply_batched_op(
+bool State<statevec_t>::apply_batched_op(const int_t iChunk, 
                                   const Operations::Op &op,
                                   ExperimentResult &result,
                                   std::vector<RngEngine> &rng,
-                                  bool final_op, const int_t iChunk) 
+                                  bool final_op) 
 {
   if(op.conditional){
     BaseState::qregs_[iChunk].set_conditional(op.conditional_reg);
@@ -776,17 +776,17 @@ bool State<statevec_t>::apply_batched_op(
       BaseState::qregs_[iChunk].apply_roerror(op, rng);
       break;
     case OpType::gate:
-      apply_gate(op, iChunk);
+      apply_gate(iChunk, op);
       break;
     case OpType::matrix:
-      apply_matrix(op, iChunk);
+      apply_matrix(iChunk, op);
       break;
     case OpType::diagonal_matrix:
       BaseState::qregs_[iChunk].apply_diagonal_matrix(op.qubits, op.params);
       break;
     case OpType::multiplexer:
-      apply_multiplexer(op.regs[0], op.regs[1],
-                        op.mats, iChunk); // control qubits ([0]) & target qubits([1])
+      apply_multiplexer(iChunk, op.regs[0], op.regs[1],
+                        op.mats); // control qubits ([0]) & target qubits([1])
       break;
     case OpType::kraus:
       BaseState::qregs_[iChunk].apply_batched_kraus(op.qubits, op.mats,rng);
@@ -818,40 +818,26 @@ bool State<statevec_t>::apply_batched_op(
 //=========================================================================
 
 template <class statevec_t>
-void State<statevec_t>::apply_save_probs(const Operations::Op &op,
-                                         ExperimentResult &result, const int_t iChunk) 
+void State<statevec_t>::apply_save_probs(const int_t iChunk, const Operations::Op &op,
+                                         ExperimentResult &result) 
 {
   // get probs as hexadecimal
-  if(BaseState::multi_chunk_distribution_){
-    auto probs = measure_probs(op.qubits, iChunk);
-    if (op.type == Operations::OpType::save_probs_ket) {
-      // Convert to ket dict
-      BaseState::save_data_average(result, op.string_params[0],
-                                   Utils::vec2ket(probs, json_chop_threshold_, 16),
-                                   op.save_type, iChunk);
-    } else {
-      BaseState::save_data_average(result, op.string_params[0],
-                                   std::move(probs), op.save_type, iChunk);
-    }
-  }
-  else{
-    auto probs = BaseState::qregs_[iChunk].probabilities(op.qubits);
-    if (op.type == Operations::OpType::save_probs_ket) {
-      // Convert to ket dict
-      BaseState::save_data_average(result, op.string_params[0],
-                                   Utils::vec2ket(probs, json_chop_threshold_, 16),
-                                   op.save_type, iChunk);
-    } else {
-      BaseState::save_data_average(result, op.string_params[0],
-                                   std::move(probs), op.save_type, iChunk);
-    }
+  auto probs = measure_probs(iChunk, op.qubits);
+  if (op.type == Operations::OpType::save_probs_ket) {
+    // Convert to ket dict
+    BaseState::save_data_average(iChunk, result, op.string_params[0],
+                                 Utils::vec2ket(probs, json_chop_threshold_, 16),
+                                 op.save_type);
+  } else {
+    BaseState::save_data_average(iChunk, result, op.string_params[0],
+                                 std::move(probs), op.save_type);
   }
 }
 
 
 template <class statevec_t>
-double State<statevec_t>::expval_pauli(const reg_t &qubits,
-                                       const std::string& pauli, const int_t iChunk) 
+double State<statevec_t>::expval_pauli(const int_t iChunk, const reg_t &qubits,
+                                       const std::string& pauli) 
 {
   if(!BaseState::multi_chunk_distribution_)
     return BaseState::qregs_[iChunk].expval_pauli(qubits, pauli);
@@ -963,9 +949,9 @@ double State<statevec_t>::expval_pauli(const reg_t &qubits,
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_save_statevector(const Operations::Op &op,
+void State<statevec_t>::apply_save_statevector(const int_t iChunk, const Operations::Op &op,
                                                ExperimentResult &result,
-                                               bool last_op, const int_t iChunk) 
+                                               bool last_op) 
 {
   if (op.qubits.size() != BaseState::num_qubits_) {
     throw std::invalid_argument(
@@ -977,15 +963,15 @@ void State<statevec_t>::apply_save_statevector(const Operations::Op &op,
                       : op.string_params[0];
 
   if (last_op) {
-    BaseState::save_data_pershot(result, key, move_to_vector(iChunk), op.save_type, iChunk);
+    BaseState::save_data_pershot(iChunk, result, key, move_to_vector(iChunk), op.save_type);
   } else {
-    BaseState::save_data_pershot(result, key, copy_to_vector(iChunk), op.save_type, iChunk);
+    BaseState::save_data_pershot(iChunk, result, key, copy_to_vector(iChunk), op.save_type);
   }
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_save_statevector_dict(const Operations::Op &op,
-                                                   ExperimentResult &result, const int_t iChunk) 
+void State<statevec_t>::apply_save_statevector_dict(const int_t iChunk, const Operations::Op &op,
+                                                   ExperimentResult &result) 
 {
   if (op.qubits.size() != BaseState::num_qubits_) {
     throw std::invalid_argument(
@@ -993,7 +979,7 @@ void State<statevec_t>::apply_save_statevector_dict(const Operations::Op &op,
         " Only the full statevector can be saved.");
   }
   if(BaseState::multi_chunk_distribution_){
-    auto vec = copy_to_vector();
+    auto vec = copy_to_vector(iChunk);
     std::map<std::string, complex_t> result_state_ket;
     for (size_t k = 0; k < vec.size(); ++k) {
       if (std::abs(vec[k]) >= json_chop_threshold_){
@@ -1001,8 +987,8 @@ void State<statevec_t>::apply_save_statevector_dict(const Operations::Op &op,
         result_state_ket.insert({key, vec[k]});
       }
     }
-    BaseState::save_data_pershot(result, op.string_params[0],
-                                 std::move(result_state_ket), op.save_type, iChunk);
+    BaseState::save_data_pershot(iChunk, result, op.string_params[0],
+                                 std::move(result_state_ket), op.save_type);
   }
   else{
     auto state_ket = BaseState::qregs_[iChunk].vector_ket(json_chop_threshold_);
@@ -1010,14 +996,14 @@ void State<statevec_t>::apply_save_statevector_dict(const Operations::Op &op,
     for (auto const& it : state_ket){
       result_state_ket[it.first] = it.second;
     }
-    BaseState::save_data_pershot(result, op.string_params[0],
-                                 std::move(result_state_ket), op.save_type, iChunk);
+    BaseState::save_data_pershot(iChunk, result, op.string_params[0],
+                                 std::move(result_state_ket), op.save_type);
   }
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_save_density_matrix(const Operations::Op &op,
-                                                  ExperimentResult &result, const int_t iChunk) 
+void State<statevec_t>::apply_save_density_matrix(const int_t iChunk, const Operations::Op &op,
+                                                  ExperimentResult &result) 
 {
   cmatrix_t reduced_state;
 
@@ -1040,16 +1026,16 @@ void State<statevec_t>::apply_save_density_matrix(const Operations::Op &op,
       reduced_state[0] = sum;
     }
   } else {
-    reduced_state = density_matrix(op.qubits,iChunk);
+    reduced_state = density_matrix(iChunk, op.qubits);
   }
 
-  BaseState::save_data_average(result, op.string_params[0],
-                               std::move(reduced_state), op.save_type, iChunk);
+  BaseState::save_data_average(iChunk, result, op.string_params[0],
+                               std::move(reduced_state), op.save_type);
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_save_amplitudes(const Operations::Op &op,
-                                              ExperimentResult &result, const int_t iChunkIn) 
+void State<statevec_t>::apply_save_amplitudes(const int_t iChunkIn, const Operations::Op &op,
+                                              ExperimentResult &result) 
 {
   if (op.int_params.empty()) {
     throw std::invalid_argument("Invalid save_amplitudes instructions (empty params).");
@@ -1077,7 +1063,7 @@ void State<statevec_t>::apply_save_amplitudes(const Operations::Op &op,
 #endif
       }
     }
-    BaseState::save_data_pershot(result, op.string_params[0],
+    BaseState::save_data_pershot(iChunkIn, result, op.string_params[0],
                                  std::move(amps), op.save_type);
   }
   else{
@@ -1099,8 +1085,8 @@ void State<statevec_t>::apply_save_amplitudes(const Operations::Op &op,
       BaseState::reduce_sum(amps_sq);
 #endif
     }
-    BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(amps_sq), op.save_type, iChunkIn);
+    BaseState::save_data_average(iChunkIn, result, op.string_params[0],
+                                 std::move(amps_sq), op.save_type);
   }
 }
 
@@ -1109,9 +1095,9 @@ void State<statevec_t>::apply_save_amplitudes(const Operations::Op &op,
 //=========================================================================
 
 template <class statevec_t>
-void State<statevec_t>::apply_snapshot(const Operations::Op &op,
+void State<statevec_t>::apply_snapshot(const int_t iChunk, const Operations::Op &op,
                                        ExperimentResult &result,
-                                       bool last_op, const int_t iChunk) {
+                                       bool last_op) {
 
   // Look for snapshot type in snapshotset
   auto it = snapshotset_.find(op.name);
@@ -1136,35 +1122,35 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
       break;
     case Snapshots::probs: {
       // get probs as hexadecimal
-      snapshot_probabilities(op, result, SnapshotDataType::average, iChunk);
+      snapshot_probabilities(iChunk, op, result, SnapshotDataType::average);
     } break;
     case Snapshots::densmat: {
-      snapshot_density_matrix(op, result, SnapshotDataType::average, iChunk);
+      snapshot_density_matrix(iChunk, op, result, SnapshotDataType::average);
     } break;
     case Snapshots::expval_pauli: {
-      snapshot_pauli_expval(op, result, SnapshotDataType::average, iChunk);
+      snapshot_pauli_expval(iChunk, op, result, SnapshotDataType::average);
     } break;
     case Snapshots::expval_matrix: {
-      snapshot_matrix_expval(op, result, SnapshotDataType::average, iChunk);
+      snapshot_matrix_expval(iChunk, op, result, SnapshotDataType::average);
     } break;
     case Snapshots::probs_var: {
       // get probs as hexadecimal
-      snapshot_probabilities(op, result, SnapshotDataType::average_var, iChunk);
+      snapshot_probabilities(iChunk, op, result, SnapshotDataType::average_var);
     } break;
     case Snapshots::densmat_var: {
-      snapshot_density_matrix(op, result, SnapshotDataType::average_var, iChunk);
+      snapshot_density_matrix(iChunk, op, result, SnapshotDataType::average_var);
     } break;
     case Snapshots::expval_pauli_var: {
-      snapshot_pauli_expval(op, result, SnapshotDataType::average_var, iChunk);
+      snapshot_pauli_expval(iChunk, op, result, SnapshotDataType::average_var);
     } break;
     case Snapshots::expval_matrix_var: {
-      snapshot_matrix_expval(op, result, SnapshotDataType::average_var, iChunk);
+      snapshot_matrix_expval(iChunk, op, result, SnapshotDataType::average_var);
     } break;
     case Snapshots::expval_pauli_shot: {
-      snapshot_pauli_expval(op, result, SnapshotDataType::pershot, iChunk);
+      snapshot_pauli_expval(iChunk, op, result, SnapshotDataType::pershot);
     } break;
     case Snapshots::expval_matrix_shot: {
-      snapshot_matrix_expval(op, result, SnapshotDataType::pershot, iChunk);
+      snapshot_matrix_expval(iChunk, op, result, SnapshotDataType::pershot);
     } break;
     default:
       // We shouldn't get here unless there is a bug in the snapshotset
@@ -1175,18 +1161,15 @@ void State<statevec_t>::apply_snapshot(const Operations::Op &op,
 }
 
 template <class statevec_t>
-void State<statevec_t>::snapshot_probabilities(const Operations::Op &op,
+void State<statevec_t>::snapshot_probabilities(const int_t iChunk, const Operations::Op &op,
                                                ExperimentResult &result,
-                                               SnapshotDataType type, const int_t iChunk) 
+                                               SnapshotDataType type) 
 {
   // get probs as hexadecimal
-  int_t ishot = BaseState::multi_shots_parallelization_ ? iChunk : 0;
+  int_t ishot = BaseState::get_global_shot_index(iChunk);
 
-  iChunk;
-  if(iChunk == STATE_APPLY_TO_ALL_CHUNKS)
-    ishot = 0;
   auto probs =
-      Utils::vec2ket(measure_probs(op.qubits, iChunk), json_chop_threshold_, 16);
+      Utils::vec2ket(measure_probs(iChunk, op.qubits), json_chop_threshold_, 16);
   bool variance = type == SnapshotDataType::average_var;
   result.legacy_data.add_average_snapshot("probabilities", op.string_params[0],
                                    BaseState::cregs_[ishot].memory_hex(),
@@ -1194,23 +1177,23 @@ void State<statevec_t>::snapshot_probabilities(const Operations::Op &op,
 }
 
 template <class statevec_t>
-void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
+void State<statevec_t>::snapshot_pauli_expval(const int_t iChunk, const Operations::Op &op,
                                               ExperimentResult &result,
-                                              SnapshotDataType type, const int_t iChunk) 
+                                              SnapshotDataType type) 
 {
   // Check empty edge case
   if (op.params_expval_pauli.empty()) {
     throw std::invalid_argument(
         "Invalid expval snapshot (Pauli components are empty).");
   }
-  int_t ishot = BaseState::multi_shots_parallelization_ ? iChunk : 0;
+  int_t ishot = BaseState::get_global_shot_index(iChunk);
 
   // Accumulate expval components
   complex_t expval(0., 0.);
   for (const auto &param : op.params_expval_pauli) {
     const auto &coeff = param.first;
     const auto &pauli = param.second;
-    expval += coeff * expval_pauli(op.qubits, pauli,iChunk);
+    expval += coeff * expval_pauli(iChunk, op.qubits, pauli);
   }
 
   // Add to snapshot
@@ -1232,16 +1215,16 @@ void State<statevec_t>::snapshot_pauli_expval(const Operations::Op &op,
 }
 
 template <class statevec_t>
-void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
+void State<statevec_t>::snapshot_matrix_expval(const int_t iChunk, const Operations::Op &op,
                                                ExperimentResult &result,
-                                               SnapshotDataType type, const int_t iChunk) 
+                                               SnapshotDataType type) 
 {
   // Check empty edge case
   if (op.params_expval_matrix.empty()) {
     throw std::invalid_argument(
         "Invalid matrix snapshot (components are empty).");
   }
-  int_t ishot = BaseState::multi_shots_parallelization_ ? iChunk : 0;
+  int_t ishot = BaseState::get_global_shot_index(iChunk);
 
   reg_t qubits = op.qubits;
   // Cache the current quantum state
@@ -1287,11 +1270,11 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
 
       if (vmat.size() == 1ULL << qubits.size()) {
         if(!BaseState::multi_chunk_distribution_)
-          apply_diagonal_matrix(sub_qubits, vmat, iChunk);
+          apply_diagonal_matrix(iChunk, sub_qubits, vmat);
         else{
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) 
           for(int_t i=0;i<BaseState::qregs_.size();i++)
-            apply_diagonal_matrix(sub_qubits, vmat, i);
+            apply_diagonal_matrix(i, sub_qubits, vmat);
         }
       } else {
         if(!BaseState::multi_chunk_distribution_)
@@ -1353,11 +1336,11 @@ void State<statevec_t>::snapshot_matrix_expval(const Operations::Op &op,
 }
 
 template <class statevec_t>
-void State<statevec_t>::snapshot_density_matrix(const Operations::Op &op,
+void State<statevec_t>::snapshot_density_matrix(const int_t iChunk, const Operations::Op &op,
                                                 ExperimentResult &result,
-                                                SnapshotDataType type, const int_t iChunk) {
+                                                SnapshotDataType type) {
   cmatrix_t reduced_state;
-  int_t ishot = BaseState::multi_shots_parallelization_ ? iChunk : 0;
+  int_t ishot = BaseState::get_global_shot_index(iChunk);
 
   // Check if tracing over all qubits
   if (op.qubits.empty()) {
@@ -1377,7 +1360,7 @@ void State<statevec_t>::snapshot_density_matrix(const Operations::Op &op,
       reduced_state[0] = sum;
     }
   } else {
-    reduced_state = density_matrix(op.qubits, iChunk);
+    reduced_state = density_matrix(iChunk, op.qubits);
   }
 
   // Add density matrix to result data
@@ -1400,7 +1383,7 @@ void State<statevec_t>::snapshot_density_matrix(const Operations::Op &op,
 }
 
 template <class statevec_t>
-cmatrix_t State<statevec_t>::density_matrix(const reg_t &qubits, const int_t iChunk) 
+cmatrix_t State<statevec_t>::density_matrix(const int_t iChunk, const reg_t &qubits) 
 {
   return vec2density(qubits, copy_to_vector(iChunk));
 }
@@ -1455,7 +1438,7 @@ cmatrix_t State<statevec_t>::vec2density(const reg_t &qubits, const T &vec) {
 //=========================================================================
 
 template <class statevec_t>
-void State<statevec_t>::apply_gate(const Operations::Op &op, const int_t iChunk) {
+void State<statevec_t>::apply_gate(const int_t iChunk, const Operations::Op &op) {
   // Look for gate name in gateset
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
@@ -1501,21 +1484,21 @@ void State<statevec_t>::apply_gate(const Operations::Op &op, const int_t iChunk)
     case Gates::id:
       break;
     case Gates::h:
-      apply_gate_mcu(op.qubits, M_PI / 2., 0., M_PI, 0., iChunk);
+      apply_gate_mcu(iChunk, op.qubits, M_PI / 2., 0., M_PI, 0.);
       break;
     case Gates::s:
-      apply_gate_phase(op.qubits[0], complex_t(0., 1.), iChunk);
+      apply_gate_phase(iChunk, op.qubits[0], complex_t(0., 1.));
       break;
     case Gates::sdg:
-      apply_gate_phase(op.qubits[0], complex_t(0., -1.), iChunk);
+      apply_gate_phase(iChunk, op.qubits[0], complex_t(0., -1.));
       break;
     case Gates::t: {
       const double isqrt2{1. / std::sqrt(2)};
-      apply_gate_phase(op.qubits[0], complex_t(isqrt2, isqrt2), iChunk);
+      apply_gate_phase(iChunk, op.qubits[0], complex_t(isqrt2, isqrt2));
     } break;
     case Gates::tdg: {
       const double isqrt2{1. / std::sqrt(2)};
-      apply_gate_phase(op.qubits[0], complex_t(isqrt2, -isqrt2), iChunk);
+      apply_gate_phase(iChunk, op.qubits[0], complex_t(isqrt2, -isqrt2));
     } break;
     case Gates::mcswap:
       // Includes SWAP, CSWAP, etc
@@ -1523,18 +1506,18 @@ void State<statevec_t>::apply_gate(const Operations::Op &op, const int_t iChunk)
       break;
     case Gates::mcu3:
       // Includes u3, cu3, etc
-      apply_gate_mcu(op.qubits, std::real(op.params[0]), std::real(op.params[1]),
-                     std::real(op.params[2]), 0., iChunk);
+      apply_gate_mcu(iChunk, op.qubits, std::real(op.params[0]), std::real(op.params[1]),
+                     std::real(op.params[2]), 0.);
       break;
     case Gates::mcu:
       // Includes u3, cu3, etc
-      apply_gate_mcu(op.qubits, std::real(op.params[0]), std::real(op.params[1]),
-                      std::real(op.params[2]), std::real(op.params[3]), iChunk);
+      apply_gate_mcu(iChunk, op.qubits, std::real(op.params[0]), std::real(op.params[1]),
+                      std::real(op.params[2]), std::real(op.params[3]));
       break;
     case Gates::mcu2:
       // Includes u2, cu2, etc
-      apply_gate_mcu(op.qubits, M_PI / 2., std::real(op.params[0]),
-                     std::real(op.params[1]), 0., iChunk);
+      apply_gate_mcu(iChunk, op.qubits, M_PI / 2., std::real(op.params[0]),
+                     std::real(op.params[1]), 0.);
       break;
     case Gates::mcp:
       // Includes u1, cu1, p, cp, mcp etc
@@ -1559,9 +1542,9 @@ void State<statevec_t>::apply_gate(const Operations::Op &op, const int_t iChunk)
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits,
+void State<statevec_t>::apply_multiplexer(const int_t iChunk, const reg_t &control_qubits,
                                           const reg_t &target_qubits,
-                                          const cmatrix_t &mat, const int_t iChunk) 
+                                          const cmatrix_t &mat) 
 {
   if (control_qubits.empty() == false && target_qubits.empty() == false &&
       mat.size() > 0) {
@@ -1571,11 +1554,11 @@ void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits,
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_matrix(const Operations::Op &op, const int_t iChunk) 
+void State<statevec_t>::apply_matrix(const int_t iChunk, const Operations::Op &op) 
 {
   if (op.qubits.empty() == false && op.mats[0].size() > 0) {
     if (Utils::is_diagonal(op.mats[0], .0)) {
-      apply_diagonal_matrix(op.qubits, Utils::matrix_diagonal(op.mats[0]), iChunk);
+      apply_diagonal_matrix(iChunk, op.qubits, Utils::matrix_diagonal(op.mats[0]));
     } else {
       BaseState::qregs_[iChunk].apply_matrix(op.qubits,
                                     Utils::vectorize_matrix(op.mats[0]));
@@ -1584,19 +1567,19 @@ void State<statevec_t>::apply_matrix(const Operations::Op &op, const int_t iChun
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_matrix(const reg_t &qubits,
-                                     const cvector_t &vmat, const int_t iChunk) 
+void State<statevec_t>::apply_matrix(const int_t iChunk, const reg_t &qubits,
+                                     const cvector_t &vmat) 
 {
   // Check if diagonal matrix
   if (vmat.size() == 1ULL << qubits.size()) {
-    apply_diagonal_matrix(qubits, vmat, iChunk);
+    apply_diagonal_matrix(iChunk, qubits, vmat);
   } else {
     BaseState::qregs_[iChunk].apply_matrix(qubits, vmat);
   }
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_diagonal_matrix(const reg_t &qubits, const cvector_t & diag, const int_t iChunk)
+void State<statevec_t>::apply_diagonal_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & diag)
 {
   if(BaseState::thrust_optimization_ || !BaseState::multi_chunk_distribution_){
     //GPU computes all chunks in one kernel, so pass qubits and diagonal matrix as is
@@ -1612,17 +1595,17 @@ void State<statevec_t>::apply_diagonal_matrix(const reg_t &qubits, const cvector
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_gate_mcu(const reg_t &qubits, double theta,
-                                       double phi, double lambda, double gamma, const int_t iChunk) 
+void State<statevec_t>::apply_gate_mcu(const int_t iChunk, const reg_t &qubits, double theta,
+                                       double phi, double lambda, double gamma) 
 {
   BaseState::qregs_[iChunk].apply_mcu(qubits, Linalg::VMatrix::u4(theta, phi, lambda, gamma));
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_gate_phase(uint_t qubit, complex_t phase, const int_t iChunk) 
+void State<statevec_t>::apply_gate_phase(const int_t iChunk, uint_t qubit, complex_t phase) 
 {
   cvector_t diag = {{1., phase}};
-  apply_diagonal_matrix(reg_t({qubit}), diag, iChunk);
+  apply_diagonal_matrix(iChunk, reg_t({qubit}), diag);
 }
 
 //=========================================================================
@@ -1630,20 +1613,20 @@ void State<statevec_t>::apply_gate_phase(uint_t qubit, complex_t phase, const in
 //=========================================================================
 
 template <class statevec_t>
-void State<statevec_t>::apply_measure(const reg_t &qubits, const reg_t &cmemory,
-                                      const reg_t &cregister, RngEngine &rng, const int_t iChunk) 
+void State<statevec_t>::apply_measure(const int_t iChunk, const reg_t &qubits, const reg_t &cmemory,
+                                      const reg_t &cregister, RngEngine &rng) 
 {
-  int_t ishot = BaseState::multi_shots_parallelization_ ? iChunk : 0;
+  int_t ishot = BaseState::get_global_shot_index(iChunk);
   // Actual measurement outcome
-  const auto meas = sample_measure_with_prob(qubits, rng, iChunk);
+  const auto meas = sample_measure_with_prob(iChunk, qubits, rng);
   // Implement measurement update
-  measure_reset_update(qubits, meas.first, meas.first, meas.second, iChunk);
+  measure_reset_update(iChunk, qubits, meas.first, meas.first, meas.second);
   const reg_t outcome = Utils::int2reg(meas.first, 2, qubits.size());
   BaseState::cregs_[ishot].store_measure(outcome, cmemory, cregister);
 }
 
 template <class statevec_t>
-rvector_t State<statevec_t>::measure_probs(const reg_t &qubits, const int_t iChunk) const 
+rvector_t State<statevec_t>::measure_probs(const int_t iChunk, const reg_t &qubits) const 
 {
   if(!BaseState::multi_chunk_distribution_)
     return BaseState::qregs_[iChunk].probabilities(qubits);
@@ -1709,28 +1692,28 @@ rvector_t State<statevec_t>::measure_probs(const reg_t &qubits, const int_t iChu
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_reset(const reg_t &qubits, RngEngine &rng, const int_t iChunk) {
+void State<statevec_t>::apply_reset(const int_t iChunk, const reg_t &qubits, RngEngine &rng) {
   // Simulate unobserved measurement
-  const auto meas = sample_measure_with_prob(qubits, rng, iChunk);
+  const auto meas = sample_measure_with_prob(iChunk, qubits, rng);
   // Apply update to reset state
-  measure_reset_update(qubits, 0, meas.first, meas.second, iChunk);
+  measure_reset_update(iChunk, qubits, 0, meas.first, meas.second);
 }
 
 template <class statevec_t>
 std::pair<uint_t, double>
-State<statevec_t>::sample_measure_with_prob(const reg_t &qubits,
-                                            RngEngine &rng, const int_t iChunk) {
-  rvector_t probs = measure_probs(qubits, iChunk);
+State<statevec_t>::sample_measure_with_prob(const int_t iChunk, const reg_t &qubits,
+                                            RngEngine &rng) {
+  rvector_t probs = measure_probs(iChunk, qubits);
   // Randomly pick outcome and return pair
   uint_t outcome = rng.rand_int(probs);
   return std::make_pair(outcome, probs[outcome]);
 }
 
 template <class statevec_t>
-void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
+void State<statevec_t>::measure_reset_update(const int_t iChunk, const std::vector<uint_t> &qubits,
                                              const uint_t final_state,
                                              const uint_t meas_state,
-                                             const double meas_prob, const int_t iChunk) 
+                                             const double meas_prob) 
 {
   // Update a state vector based on an outcome pair [m, p] from
   // sample_measure_with_prob function, and a desired post-measurement
@@ -1748,7 +1731,7 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_ && BaseState::num_groups_ > 1) 
       for(int_t ig=0;ig<BaseState::num_groups_;ig++){
         uint_t istate = BaseState::top_chunk_of_group_[ig];
-        apply_diagonal_matrix(qubits, mdiag, istate);
+        apply_diagonal_matrix(istate, qubits, mdiag);
       }
     }
 
@@ -1773,7 +1756,7 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_ && BaseState::num_groups_ > 1) 
       for(int_t ig=0;ig<BaseState::num_groups_;ig++){
         uint_t istate = BaseState::top_chunk_of_group_[ig];
-        apply_diagonal_matrix(qubits, mdiag, istate);
+        apply_diagonal_matrix(istate, qubits, mdiag);
       }
     }
 
@@ -1785,7 +1768,7 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
 
       BaseState::qubits_inout(qubits,qubits_in_chunk,qubits_out_chunk);
 
-      if(qubits_in_chunk.size() == qubits.size()){   //all bits are inside chunk
+      if(!BaseState::multi_chunk_distribution_ || qubits_in_chunk.size() == qubits.size()){   //all bits are inside chunk
         // build vectorized permutation matrix
         cvector_t perm(dim * dim, 0.);
         perm[final_state * dim + meas_state] = 1.;
@@ -1795,7 +1778,7 @@ void State<statevec_t>::measure_reset_update(const std::vector<uint_t> &qubits,
             perm[j * dim + j] = 1.;
         }
         // apply permutation to swap state
-        apply_matrix(qubits, perm, iChunk);
+        apply_matrix(iChunk, qubits, perm);
       }
       else{
         for(int_t i=0;i<qubits.size();i++){
@@ -1905,9 +1888,9 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_initialize(const reg_t &qubits,
+void State<statevec_t>::apply_initialize(const int_t iChunk, const reg_t &qubits,
                                          const cvector_t &params,
-                                         RngEngine &rng, const int_t iChunk) 
+                                         RngEngine &rng) 
 {
   auto sorted_qubits = qubits;
   std::sort(sorted_qubits.begin(), sorted_qubits.end());
@@ -1915,12 +1898,12 @@ void State<statevec_t>::apply_initialize(const reg_t &qubits,
     // If qubits is all ordered qubits in the statevector
     // we can just initialize the whole state directly
     if (qubits == sorted_qubits) {
-      initialize_from_vector(params, iChunk);
+      initialize_from_vector(iChunk, params);
       return;
     }
   }
   // Apply reset to qubits
-  apply_reset(qubits, rng, iChunk);
+  apply_reset(iChunk, qubits, rng);
 
   // Apply initialize_component
   if(!BaseState::multi_chunk_distribution_)
@@ -1948,7 +1931,7 @@ void State<statevec_t>::apply_initialize(const reg_t &qubits,
 
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_)
         for(int_t i=0;i<BaseState::qregs_.size();i++)
-          apply_matrix(qubits_in_chunk, perm, i);
+          apply_matrix(i, qubits_in_chunk, perm );
       }
       if(qubits_out_chunk.size() > 0){
         //then scatter outside chunk
@@ -1997,14 +1980,14 @@ void State<statevec_t>::apply_initialize(const reg_t &qubits,
       //initialize by params
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) 
       for(int_t i=0;i<BaseState::qregs_.size();i++){
-        apply_diagonal_matrix(qubits,params, i);
+        apply_diagonal_matrix(i, qubits,params );
       }
     }
   }
 }
 
 template <class statevec_t>
-void State<statevec_t>::initialize_from_vector(const cvector_t &params, const int_t iChunk)
+void State<statevec_t>::initialize_from_vector(const int_t iChunk, const cvector_t &params)
 {
   if(!BaseState::multi_chunk_distribution_)
     BaseState::qregs_[iChunk].initialize_from_vector(params);
@@ -2028,24 +2011,24 @@ void State<statevec_t>::initialize_from_vector(const cvector_t &params, const in
 //=========================================================================
 
 template <class statevec_t>
-void State<statevec_t>::apply_multiplexer(const reg_t &control_qubits,
+void State<statevec_t>::apply_multiplexer(const int_t iChunk, const reg_t &control_qubits,
                                           const reg_t &target_qubits,
-                                          const std::vector<cmatrix_t> &mmat, const int_t iChunk) {
+                                          const std::vector<cmatrix_t> &mmat) {
   // (1) Pack vector of matrices into single (stacked) matrix ... note: matrix
   // dims: rows = DIM[qubit.size()] columns = DIM[|target bits|]
   cmatrix_t multiplexer_matrix = Utils::stacked_matrix(mmat);
 
   // (2) Treat as single, large(r), chained/batched matrix operator
-  apply_multiplexer(control_qubits, target_qubits, multiplexer_matrix, iChunk);
+  apply_multiplexer(iChunk, control_qubits, target_qubits, multiplexer_matrix);
 }
 
 //=========================================================================
 // Implementation: Kraus Noise
 //=========================================================================
 template <class statevec_t>
-void State<statevec_t>::apply_kraus(const reg_t &qubits,
+void State<statevec_t>::apply_kraus(const int_t iChunk, const reg_t &qubits,
                                     const std::vector<cmatrix_t> &kmats,
-                                    RngEngine &rng, const int_t iChunk) 
+                                    RngEngine &rng) 
 {
   // Check edge case for empty Kraus set (this shouldn't happen)
   if (kmats.empty())
@@ -2091,12 +2074,12 @@ void State<statevec_t>::apply_kraus(const reg_t &qubits,
       Utils::scalar_multiply_inplace(vmat, 1 / std::sqrt(p));
       // apply Kraus projection operator
       if(!BaseState::multi_chunk_distribution_)
-        apply_matrix(qubits, vmat, iChunk);
+        apply_matrix(iChunk, qubits, vmat);
       else{
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_ && BaseState::num_groups_ > 1) 
         for(int_t ig=0;ig<BaseState::num_groups_;ig++){
           uint_t istate = BaseState::top_chunk_of_group_[ig];
-          apply_matrix(qubits, vmat, istate);
+          apply_matrix(istate, qubits, vmat);
         }
       }
       complete = true;
@@ -2110,12 +2093,12 @@ void State<statevec_t>::apply_kraus(const reg_t &qubits,
     complex_t renorm = 1 / std::sqrt(1. - accum);
     auto vmat = Utils::vectorize_matrix(renorm * kmats.back());
     if(!BaseState::multi_chunk_distribution_)
-      apply_matrix(qubits, vmat, iChunk);
+      apply_matrix(iChunk, qubits, vmat);
     else{
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_ && BaseState::num_groups_ > 1) 
       for(int_t ig=0;ig<BaseState::num_groups_;ig++){
         uint_t istate = BaseState::top_chunk_of_group_[ig];
-        apply_matrix(qubits, vmat, istate);
+        apply_matrix(istate, qubits, vmat);
       }
     }
   }
