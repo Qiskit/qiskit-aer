@@ -37,6 +37,7 @@ enum Gates {
   //enum class Direction {RIGHT, LEFT};
 
   enum class Sample_measure_alg {APPLY_MEASURE, PROB, MEASURE_ALL, HEURISTIC};
+  enum class MPS_swap_direction {SWAP_LEFT, SWAP_RIGHT};
 
 //=========================================================================
 // MPS class
@@ -233,6 +234,24 @@ public:
 
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
+//----------------------------------------------------------------
+  // Function name: get_prob_single_qubit_internal
+  // Description: Returns the probability of measuring outcome 0 (or 1)
+  //   for a single qubit in the standard basis.
+  //   It does the same as get_probabilities_vector but is faster for
+  //   a single qubit, and is used during measurement.
+  // Parameters: qubit - the qubit for which we want the probability
+  //             outcome - probability for 0 or 1
+  //             mat - the '0' (or '1')matrix for the given qubit, multiplied
+  //                   by its left and right lambdas. Contracting it with
+  //                   its conjugate gives the probability for outcome '0' (or '1')
+  //                   It is returned because it may be useful for further 
+  //                   computations.
+  // Returns: the probability for the given outcome.
+  //----------------------------------------------------------------
+
+  double get_prob_single_qubit_internal(uint_t qubit, uint_t outcome,
+					cmatrix_t &mat) const;
   //----------------------------------------------------------------
   // Function name: get_accumulated_probabilities_vector
   // Description: Computes the accumulated probabilities from 0
@@ -273,6 +292,10 @@ public:
     mps_log_data_ = mps_log_data;
   }
 
+  static void set_mps_swap_direction(MPS_swap_direction direction) {
+    mps_swap_direction_ = direction;
+  }
+
   static uint_t get_omp_threads() {
     return omp_threads_;
   }
@@ -292,6 +315,10 @@ public:
 
   static bool get_mps_log_data() {
     return mps_log_data_;
+  }
+
+  static MPS_swap_direction get_swap_direction() {
+    return mps_swap_direction_;
   }
 
   //----------------------------------------------------------------
@@ -516,6 +543,7 @@ private:
   static bool enable_gate_opt_;      // allow optimizations on gates
   static std::stringstream logging_str_;
   static bool mps_log_data_;
+  static MPS_swap_direction mps_swap_direction_;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {

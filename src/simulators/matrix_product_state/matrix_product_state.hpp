@@ -52,7 +52,7 @@ const Operations::OpSet StateOpSet(
   {OpType::gate, OpType::measure,
    OpType::reset, OpType::initialize,
    OpType::snapshot, OpType::barrier,
-   OpType::bfunc, OpType::roerror,
+   OpType::bfunc, OpType::roerror, OpType::qerror_loc,
    OpType::matrix, OpType::diagonal_matrix,
    OpType::kraus, OpType::save_expval,
    OpType::save_expval_var, OpType::save_densmat,
@@ -484,6 +484,15 @@ void State::set_config(const json_t &config) {
   bool mps_log_data;
   if (JSON::get_value(mps_log_data, "mps_log_data", config))
     MPS::set_mps_log_data(mps_log_data);
+
+// Set the direction for the internal swaps
+  std::string direction;
+  if (JSON::get_value(direction, "mps_swap_direction", config)) {
+    if (direction.compare("mps_swap_right") == 0)
+      MPS::set_mps_swap_direction(MPS_swap_direction::SWAP_RIGHT);
+    else
+      MPS::set_mps_swap_direction(MPS_swap_direction::SWAP_LEFT);
+  }
 }
 
 void State::add_metadata(ExperimentResult &result) const {
@@ -520,6 +529,7 @@ void State::apply_op(const Operations::Op &op,
   if (BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case OpType::barrier:
+      case OpType::qerror_loc:
         break;
       case OpType::reset:
         apply_reset(op.qubits, rng);
