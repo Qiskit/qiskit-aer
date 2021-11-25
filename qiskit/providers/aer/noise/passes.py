@@ -12,7 +12,7 @@
 """
 Noise addition passes.
 """
-from typing import Optional, Union, Sequence, Callable, List
+from typing import Optional, Union, Sequence, Callable, List, Iterable
 
 import numpy as np
 
@@ -56,7 +56,7 @@ class LocalNoisePass(TransformationPass):
     def __init__(
             self,
             fn: Callable[[Instruction, Sequence[int]], InstructionLike],
-            ops: Optional[Union[Instruction, Sequence[Instruction]]] = None,
+            ops: Optional[Union[Instruction, Iterable[Instruction]]] = None,
             method: str = 'append'
     ):
         """Initialize noise pass.
@@ -193,3 +193,17 @@ class RelaxationNoisePass(LocalNoisePass):
             noise.append(error, [qubit])
 
         return noise
+
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
+        """Run the RelaxationNoisePass pass on `dag`.
+        Args:
+            dag: DAG to be changed.
+        Returns:
+            A changed DAG.
+        Raises:
+            TranspilerError: if failed to insert noises to the dag.
+        """
+        if dag.duration is None:
+            raise TranspilerError("This pass accepts only scheduled circuits")
+
+        return super().run(dag)

@@ -28,6 +28,7 @@ from test.terra.common import QiskitAerTestCase
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import transpile
+from qiskit.transpiler import TranspilerError
 from qiskit.test import mock
 
 
@@ -248,6 +249,27 @@ class TestNoiseModel(QiskitAerTestCase):
         expected.add_all_qubit_readout_error([[0.9, 0.1], [0, 1]])
 
         self.assertEqual(actual, expected)
+
+    def test_delay_noise(self):
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.measure_all()
+
+        backend = mock.FakeLagos()
+        noise_model = NoiseModel.from_backend(backend, delay_noise=True)
+        qc = transpile(circ, backend, scheduling_method="alap")
+        result = AerSimulator().run(qc, noise_model=noise_model).result()
+        self.assertTrue(result.success)
+        # test another path
+        noisy_sim = AerSimulator().from_backend(backend, delay_noise=True)
+        qc = transpile(circ, noisy_sim, scheduling_method="alap")
+        result = noisy_sim.run(qc).result()
+        self.assertTrue(result.success)
+        # raise an error if circuit is not scheduled
+        with self.assertRaises(TranspilerError):
+            qc = transpile(circ, backend)
+            AerSimulator().run(qc, noise_model=noise_model)
 
 
 if __name__ == '__main__':

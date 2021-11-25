@@ -15,6 +15,7 @@ Noise model class for Qiskit Aer simulators.
 
 import json
 import logging
+from typing import Optional
 from warnings import warn, catch_warnings, filterwarnings
 
 from numpy import ndarray
@@ -22,11 +23,13 @@ from numpy import ndarray
 from qiskit.circuit import Instruction
 from qiskit.providers import BaseBackend, Backend
 from qiskit.providers.models import BackendProperties
+from qiskit.transpiler import PassManager
 from .device.models import basic_device_gate_errors
 from .device.models import basic_device_readout_errors
 from .errors.quantum_error import QuantumError
 from .errors.readout_error import ReadoutError
 from .noiseerror import NoiseError
+from .passes import RelaxationNoisePass, LocalNoisePass
 from ..backends.backend_utils import BASIS_GATES
 
 logger = logging.getLogger(__name__)
@@ -182,6 +185,8 @@ class NoiseModel:
         # dict(str: ReadoutError)
         # where the dict keys are the gate qubits.
         self._local_readout_errors = {}
+        # Custom noise passes
+        self._custom_noise_passes = []
 
     @property
     def basis_gates(self):
@@ -208,7 +213,8 @@ class NoiseModel:
                      gate_lengths=None,
                      gate_length_units='ns',
                      standard_gates=None,
-                     warnings=True):
+                     warnings=True,
+                     delay_noise=False):
         """Return a noise model derived from a devices backend properties.
 
         This function generates a noise model based on:
@@ -275,7 +281,7 @@ class NoiseModel:
             gate_error (bool): Include depolarizing gate errors (Default: True).
             readout_error (Bool): Include readout errors in model
                                   (Default: True).
-            thermal_relaxation (Bool): Include thermal relaxation errors
+            thermal_relaxation (Bool): Include thermal relaxation errors on gates
                                        (Default: True).
             temperature (double): qubit temperature in milli-Kelvin (mK) for
                                   thermal relaxation errors (Default: 0).
@@ -289,6 +295,7 @@ class NoiseModel:
                                    qobj gates. If false return as unitary
                                    qobj instructions (Default: None)
             warnings (bool): Display warnings (Default: True).
+            delay_noise (bool): Add thermal relaxation errors on delays (Default: False).
 
         Returns:
             NoiseModel: An approximate noise model for the device backend.
@@ -341,6 +348,15 @@ class NoiseModel:
                 warnings=warnings)
         for name, qubits, error in gate_errors:
             noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
+        # Add delay errors
+        if delay_noise:
+            delay_pass = RelaxationNoisePass(
+                t1s=[backend.properties().t1(q) for q in range(backend.configuration().num_qubits)],
+                t2s=[backend.properties().t2(q) for q in range(backend.configuration().num_qubits)],
+                dt=backend.configuration().dt,
+                ops="delay",
+            )
+            noise_model._custom_noise_passes.append(delay_pass)
         return noise_model
 
     def is_ideal(self):
@@ -355,6 +371,8 @@ class NoiseModel:
         if self._local_readout_errors:
             return False
         if self._nonlocal_quantum_errors:
+            return False
+        if self._custom_noise_passes:
             return False
         return True
 
@@ -1045,3 +1063,34 @@ class NoiseModel:
                     if iinner_dict1[iinner_key] != iinner_dict2[iinner_key]:
                         return False
         return True
+
+    def pass_manager(self, only_custom: bool = False) -> Optional[PassManager]:
+        """Return the pass manager that builds noisy circuits based on this noise model."""
+        passes = []
+        if not only_custom:
+            noise_model_pass = LocalNoisePass(self._noise_model_fn, self._noise_instructions)
+            passes.append(noise_model_pass)
+        passes.extend(self._custom_noise_passes)
+        if len(passes) > 0:
+            return PassManager(passes)
+        return None
+
+    def _noise_model_fn(self, inst, qubits):
+        qubits = self._qubits2str(qubits)
+        # Quantum errors
+        local_errors = self._local_quantum_errors
+        default_errors = self._default_quantum_errors
+        if inst in local_errors and qubits in local_errors[inst]:
+            return local_errors[inst][qubits]
+        elif inst in default_errors:
+            return default_errors[inst]
+
+        # Readout errors
+        if inst == "measure":
+            if qubits in self._local_readout_errors:
+                return local_errors[inst][qubits]
+            else:
+                return self._default_readout_errors
+
+        # Default case
+        return None
