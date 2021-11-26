@@ -359,7 +359,7 @@ class NoiseModel:
             noise_model._custom_noise_passes.append(delay_pass)
         return noise_model
 
-    def is_ideal(self):
+    def is_ideal(self):  # pylint: disable=too-many-return-statements
         """Return True if the noise model has no noise terms."""
         # Get default errors
         if self._default_quantum_errors:
@@ -1090,7 +1090,7 @@ class NoiseModel:
             if qubits in self._local_readout_errors:
                 return local_errors[inst][qubits]
             else:
-                return self._default_readout_errors
+                return self._default_readout_error
 
         # Default case
         return None

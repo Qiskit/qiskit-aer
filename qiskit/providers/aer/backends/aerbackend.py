@@ -182,10 +182,7 @@ class AerBackend(Backend, ABC):
                         run_options[key] = value
             qobj = self._assemble(circuits, **run_options)
         else:
-            if "noise_model" in run_options:
-                noise_model = run_options["noise_model"]
-            else:
-                noise_model = self.options.get("noise_model")
+            noise_model = run_options.get("noise_model", self.options.get("noise_model"))
             if noise_model:
                 npm = noise_model.pass_manager(only_custom=True)
                 if npm is not None:
