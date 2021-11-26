@@ -740,7 +740,7 @@ void StateChunk<state_t>::apply_ops_chunks(InputIterator first, InputIterator la
     }
     else if(is_applied_to_each_chunk(op_iOp)){
       if(num_groups_ > 1 && chunk_omp_parallel_){
-#pragma omp parallel for if(num_groups_ > 1 && chunk_omp_parallel_) num_threads(num_groups_)
+#pragma omp parallel for num_threads(num_groups_)
         for(int_t ig=0;ig<num_groups_;ig++)
           apply_cache_blocking_ops(top_chunk_of_group_[ig], first + iOp, first + iOp+1, result, rng);
       }
@@ -1471,11 +1471,15 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
   }
 
   if(q1 < chunk_bits_*qubit_scale()){
-    //device
-#pragma omp parallel for if(chunk_omp_parallel_ && num_groups_ > 1) 
-    for(int_t ig=0;ig<num_groups_;ig++){
-      uint_t istate = top_chunk_of_group_[ig];
-      qregs_[istate].apply_mcswap(qubits);
+    //inside chunk
+    if(chunk_omp_parallel_ && num_groups_ > 1){
+#pragma omp parallel for num_threads(num_groups_) 
+      for(int_t ig=0;ig<num_groups_;ig++)
+        qregs_[top_chunk_of_group_[ig]].apply_mcswap(qubits);
+    }
+    else{
+      for(int_t ig=0;ig<num_groups_;ig++)
+        qregs_[top_chunk_of_group_[ig]].apply_mcswap(qubits);
     }
   }
   else{ //swap over chunks
@@ -1512,25 +1516,48 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
         nPair = num_local_chunks_ >> 2;
       }
 
-#pragma omp parallel for if(chunk_omp_parallel_) private(iPair,baseChunk,iChunk1,iChunk2)
-      for(iPair=0;iPair<nPair;iPair++){
-        if(q0 < chunk_bits_*qubit_scale()){
-          baseChunk = iPair & (mask1-1);
-          baseChunk += ((iPair - baseChunk) << 1);
-        }
-        else{
-          uint_t t0,t1;
-          t0 = iPair & (mask0-1);
-          baseChunk = (iPair - t0) << 1;
-          t1 = baseChunk & (mask1-1);
-          baseChunk = (baseChunk - t1) << 1;
-          baseChunk += t0 + t1;
-        }
+      if(chunk_omp_parallel_){
+#pragma omp parallel for private(iPair,baseChunk,iChunk1,iChunk2)
+        for(iPair=0;iPair<nPair;iPair++){
+          if(q0 < chunk_bits_*qubit_scale()){
+            baseChunk = iPair & (mask1-1);
+            baseChunk += ((iPair - baseChunk) << 1);
+          }
+          else{
+            uint_t t0,t1;
+            t0 = iPair & (mask0-1);
+            baseChunk = (iPair - t0) << 1;
+            t1 = baseChunk & (mask1-1);
+            baseChunk = (baseChunk - t1) << 1;
+            baseChunk += t0 + t1;
+          }
 
-        iChunk1 = baseChunk | mask0;
-        iChunk2 = baseChunk | mask1;
+          iChunk1 = baseChunk | mask0;
+          iChunk2 = baseChunk | mask1;
 
-        qregs_[iChunk1].apply_chunk_swap(qubits,qregs_[iChunk2],true);
+          qregs_[iChunk1].apply_chunk_swap(qubits,qregs_[iChunk2],true);
+        }
+      }
+      else{
+        for(iPair=0;iPair<nPair;iPair++){
+          if(q0 < chunk_bits_*qubit_scale()){
+            baseChunk = iPair & (mask1-1);
+            baseChunk += ((iPair - baseChunk) << 1);
+          }
+          else{
+            uint_t t0,t1;
+            t0 = iPair & (mask0-1);
+            baseChunk = (iPair - t0) << 1;
+            t1 = baseChunk & (mask1-1);
+            baseChunk = (baseChunk - t1) << 1;
+            baseChunk += t0 + t1;
+          }
+
+          iChunk1 = baseChunk | mask0;
+          iChunk2 = baseChunk | mask1;
+
+          qregs_[iChunk1].apply_chunk_swap(qubits,qregs_[iChunk2],true);
+        }
       }
     }
 #ifdef AER_MPI

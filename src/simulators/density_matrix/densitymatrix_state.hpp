@@ -391,13 +391,25 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits)
   }
 
   if(BaseState::multi_chunk_distribution_){
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) 
-    for(int_t i=0;i<BaseState::qregs_.size();i++){
-      if(BaseState::global_chunk_index_ + i == 0){
-        BaseState::qregs_[i].initialize();
+    if(BaseState::chunk_omp_parallel_){
+#pragma omp parallel for 
+      for(int_t i=0;i<BaseState::qregs_.size();i++){
+        if(BaseState::global_chunk_index_ + i == 0){
+          BaseState::qregs_[i].initialize();
+        }
+        else{
+          BaseState::qregs_[i].zero();
+        }
       }
-      else{
-        BaseState::qregs_[i].zero();
+    }
+    else{
+      for(int_t i=0;i<BaseState::qregs_.size();i++){
+        if(BaseState::global_chunk_index_ + i == 0){
+          BaseState::qregs_[i].initialize();
+        }
+        else{
+          BaseState::qregs_[i].zero();
+        }
       }
     }
   }
@@ -1628,15 +1640,28 @@ std::vector<reg_t> State<densmat_t>::sample_measure(const reg_t &qubits,
     std::vector<double> chunkSum(BaseState::qregs_.size()+1,0);
     double sum,localSum;
    //calculate per chunk sum
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
-    for(i=0;i<BaseState::qregs_.size();i++){
-      uint_t irow,icol;
-      irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
-      icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
-      if(irow == icol)   //only diagonal chunk has probabilities
-        chunkSum[i] = std::real( BaseState::qregs_[i].trace() );
-      else
-        chunkSum[i] = 0.0;
+    if(BaseState::chunk_omp_parallel_){
+#pragma omp parallel for private(i) 
+      for(i=0;i<BaseState::qregs_.size();i++){
+        uint_t irow,icol;
+        irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
+        icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
+        if(irow == icol)   //only diagonal chunk has probabilities
+          chunkSum[i] = std::real( BaseState::qregs_[i].trace() );
+        else
+          chunkSum[i] = 0.0;
+      }
+    }
+    else{
+      for(i=0;i<BaseState::qregs_.size();i++){
+        uint_t irow,icol;
+        irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
+        icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
+        if(irow == icol)   //only diagonal chunk has probabilities
+          chunkSum[i] = std::real( BaseState::qregs_[i].trace() );
+        else
+          chunkSum[i] = 0.0;
+      }
     }
     localSum = 0.0;
     for(i=0;i<BaseState::qregs_.size();i++){

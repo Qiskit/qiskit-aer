@@ -436,14 +436,10 @@ void DeviceChunkContainer<data_t>::ResizeMatrixBuffers(int bits)
     params_.resize(n * params_buffer_size_);
   }
   else{
-//    size = 1ull << (bits + 2);
     size = this->num_qubits_ * 4;
     if(QV_MAX_REGISTERS + max_blocked_gates_*4 > size){
       size = QV_MAX_REGISTERS + max_blocked_gates_*4;
     }
-//    if(num_matrices_*size < (1ull << (bits*2))){
-//      size = (1ull << (bits*2))/num_matrices_;
-//    }
     if(size > params_buffer_size_){
       params_buffer_size_ = size;
       params_.resize(n * size);

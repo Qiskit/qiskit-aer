@@ -461,13 +461,25 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits)
   }
 
   if(BaseState::multi_chunk_distribution_){
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
-    for(i=0;i<BaseState::qregs_.size();i++){
-      if(BaseState::global_chunk_index_ + i == 0 || this->num_qubits_ == this->chunk_bits_){
-        BaseState::qregs_[i].initialize();
+    if(BaseState::chunk_omp_parallel_){
+#pragma omp parallel for private(i) 
+      for(i=0;i<BaseState::qregs_.size();i++){
+        if(BaseState::global_chunk_index_ + i == 0 || this->num_qubits_ == this->chunk_bits_){
+          BaseState::qregs_[i].initialize();
+        }
+        else{
+          BaseState::qregs_[i].zero();
+        }
       }
-      else{
-        BaseState::qregs_[i].zero();
+    }
+    else{
+      for(i=0;i<BaseState::qregs_.size();i++){
+        if(BaseState::global_chunk_index_ + i == 0 || this->num_qubits_ == this->chunk_bits_){
+          BaseState::qregs_[i].initialize();
+        }
+        else{
+          BaseState::qregs_[i].zero();
+        }
       }
     }
   }
@@ -497,9 +509,14 @@ void State<statevec_t>::initialize_qreg(uint_t num_qubits,
 
   if(BaseState::multi_chunk_distribution_){
     uint_t local_offset = BaseState::global_chunk_index_ << BaseState::chunk_bits_;
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
-    for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
-      BaseState::qregs_[iChunk].initialize_from_data(state.data() + local_offset + (iChunk << BaseState::chunk_bits_), 1ull << BaseState::chunk_bits_);
+    if(BaseState::chunk_omp_parallel_){
+#pragma omp parallel for private(iChunk) 
+      for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++)
+        BaseState::qregs_[iChunk].initialize_from_data(state.data() + local_offset + (iChunk << BaseState::chunk_bits_), 1ull << BaseState::chunk_bits_);
+    }
+    else{
+      for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++)
+        BaseState::qregs_[iChunk].initialize_from_data(state.data() + local_offset + (iChunk << BaseState::chunk_bits_), 1ull << BaseState::chunk_bits_);
     }
   }
   else{
@@ -553,9 +570,14 @@ void State<statevec_t>::apply_global_phase()
 {
   if (BaseState::has_global_phase_) {
     int_t i;
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
-    for(i=0;i<BaseState::qregs_.size();i++){
-      BaseState::qregs_[i].apply_diagonal_matrix({0}, {BaseState::global_phase_, BaseState::global_phase_});
+    if(BaseState::chunk_omp_parallel_){
+#pragma omp parallel for private(i) 
+      for(i=0;i<BaseState::qregs_.size();i++)
+        BaseState::qregs_[i].apply_diagonal_matrix({0}, {BaseState::global_phase_, BaseState::global_phase_});
+    }
+    else{
+      for(i=0;i<BaseState::qregs_.size();i++)
+        BaseState::qregs_[i].apply_diagonal_matrix({0}, {BaseState::global_phase_, BaseState::global_phase_});
     }
   }
 }
@@ -1811,9 +1833,14 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
     std::vector<double> chunkSum(BaseState::qregs_.size()+1,0);
     double sum,localSum;
     //calculate per chunk sum
+    if(BaseState::chunk_omp_parallel_){
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
-    for(i=0;i<BaseState::qregs_.size();i++){
-      chunkSum[i] = BaseState::qregs_[i].norm();
+      for(i=0;i<BaseState::qregs_.size();i++)
+        chunkSum[i] = BaseState::qregs_[i].norm();
+    }
+    else{
+      for(i=0;i<BaseState::qregs_.size();i++)
+        chunkSum[i] = BaseState::qregs_[i].norm();
     }
 
     localSum = 0.0;

@@ -99,6 +99,11 @@ public:
 
   void UnmapChunk(Chunk<data_t>& chunk);
   void UnmapBufferChunk(Chunk<data_t>& buffer);
+
+  //execute a kernel on all the chunks
+  template <typename Function>
+  void execute_on_device(Function func,const std::vector<std::complex<double>>& mat,const std::vector<uint_t>& prm);
+
 };
 
 template <typename data_t>
@@ -264,9 +269,16 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
     }
     if(chunks_allocated < nchunks){
       //rest of chunks are stored on host
-      chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
-      chunks_[num_places_]->Allocate(-1,chunk_bits,nqubits,nchunks-chunks_allocated,num_buffers,multi_shots_,matrix_bit);
-      num_places_ += 1;
+      for(iDev=0;iDev<num_places_;iDev++){
+        is = (nchunks - chunks_allocated) * (uint_t)iDev / (uint_t)num_places_;
+        ie = (nchunks - chunks_allocated) * (uint_t)(iDev + 1) / (uint_t)num_places_;
+        nc = ie - is;
+        if(nc > 0){
+          chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
+          chunks_[num_places_]->Allocate(-1,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
+          num_places_ += 1;
+        }
+      }
       num_chunks_ = chunks_allocated;
     }
 
@@ -353,6 +365,25 @@ template <typename data_t>
 void ChunkManager<data_t>::UnmapBufferChunk(Chunk<data_t>& buffer)
 {
   chunks_[buffer.place()]->UnmapBuffer(buffer);
+}
+
+template <typename data_t>
+template <typename Function>
+void ChunkManager<data_t>::execute_on_device(Function func,const std::vector<std::complex<double>>& mat,const std::vector<uint_t>& prm)
+{
+#pragma omp parallel num_threads(num_devices_)
+  {
+    int_t place = omp_get_thread_num();
+
+    //store matrix and params if exist
+    if(mat.size() > 0)
+      chunks_[place]->StoreMatrix(mat,0);
+    if(prm.size() > 0)
+      chunks_[place]->StoreUintParams(prm,0);
+
+    //execute a kernel
+    chunks_[place]->Execute(func,0);
+  }
 }
 
 
