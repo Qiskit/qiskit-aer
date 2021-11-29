@@ -254,7 +254,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
     }
 
     uint_t chunks_allocated = 0;
-#pragma omp parallel for if(omp_get_num_threads() == 1 && num_places_ > 1) private(is,ie,nc) reduction(+:chunks_allocated)
+#pragma omp parallel for if(num_places_ > 1) private(is,ie,nc) reduction(+:chunks_allocated)
     for(iDev=0;iDev<num_places_;iDev++){
       is = nchunks * (uint_t)iDev / (uint_t)num_places_;
       ie = nchunks * (uint_t)(iDev + 1) / (uint_t)num_places_;

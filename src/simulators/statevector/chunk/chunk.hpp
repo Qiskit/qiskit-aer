@@ -131,10 +131,6 @@ public:
   {
     chunk_index_ = id;
   }
-  void enable_omp(bool flg)
-  {
-    chunk_container_.lock()->enable_omp(flg);
-  }
 
   uint_t matrix_bits(void)
   {

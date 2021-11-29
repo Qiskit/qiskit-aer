@@ -617,12 +617,7 @@ void DeviceChunkContainer<data_t>::Zero(uint_t iChunk,uint_t count)
 #ifdef AER_THRUST_CUDA
   thrust::fill_n(thrust::cuda::par.on(stream_[iChunk]),data_.begin() + (iChunk << this->chunk_bits_),count,0.0);
 #else
-  if(ChunkContainer<data_t>::enable_omp_)
-    thrust::fill_n(thrust::device,data_.begin() + (iChunk << this->chunk_bits_),count,0.0);
-  else{
-    //disable nested OMP parallelization when shots are parallelized
-    thrust::fill_n(thrust::seq,data_.begin() + (iChunk << this->chunk_bits_),count,0.0);
-  }
+  thrust::fill_n(thrust::device,data_.begin() + (iChunk << this->chunk_bits_),count,0.0);
 #endif
 }
 
@@ -670,24 +665,12 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
   cudaStreamSynchronize(stream_[iChunk]);
 
 #else
+  if(dot)
+    thrust::transform_inclusive_scan(thrust::device,iter.begin(),iter.end(),iter.begin(),complex_dot_scan<data_t>(),thrust::plus<thrust::complex<data_t>>());
+  else
+    thrust::inclusive_scan(thrust::device,iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
 
-  if(ChunkContainer<data_t>::enable_omp_){
-    if(dot)
-      thrust::transform_inclusive_scan(thrust::device,iter.begin(),iter.end(),iter.begin(),complex_dot_scan<data_t>(),thrust::plus<thrust::complex<data_t>>());
-    else
-      thrust::inclusive_scan(thrust::device,iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
-
-    thrust::lower_bound(thrust::device, iter.begin(), iter.end(), rnds.begin(), rnds.begin() + SHOTS, samples.begin() ,complex_less<data_t>());
-  }
-  else{
-    //disable nested OMP parallelization when shots are parallelized
-    if(dot)
-      thrust::transform_inclusive_scan(thrust::seq,iter.begin(),iter.end(),iter.begin(),complex_dot_scan<data_t>(),thrust::plus<thrust::complex<data_t>>());
-    else
-      thrust::inclusive_scan(thrust::seq,iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
-
-    thrust::lower_bound(thrust::seq, iter.begin(), iter.end(), rnds.begin(), rnds.begin() + SHOTS, samples.begin() ,complex_less<data_t>());
-  }
+  thrust::lower_bound(thrust::device, iter.begin(), iter.end(), rnds.begin(), rnds.begin() + SHOTS, samples.begin() ,complex_less<data_t>());
 #endif
 
   return samples;
@@ -708,20 +691,10 @@ thrust::complex<double> DeviceChunkContainer<data_t>::norm(uint_t iChunk, uint_t
   else
     sum = thrust::reduce(thrust::device, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
 #else
-  if(ChunkContainer<data_t>::enable_omp_){
-    if(dot)
-      sum = thrust::transform_reduce(thrust::device, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
-    else
-      sum = thrust::reduce(thrust::device, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
-  }
-  else{
-    //disable nested OMP parallelization when shots are parallelized
-    if(dot)
-      sum = thrust::transform_reduce(thrust::seq, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
-    else
-      sum = thrust::reduce(thrust::seq, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
-  }
-
+  if(dot)
+    sum = thrust::transform_reduce(thrust::device, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
+  else
+    sum = thrust::reduce(thrust::device, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
 #endif
 
   return sum;

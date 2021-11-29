@@ -605,10 +605,12 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
   thrust_optimization_ = false;
   chunk_omp_parallel_ = false;
   if(qregs_[0].name().find("gpu") != std::string::npos){
+#ifdef _OPENMP
     if(multi_chunk_distribution_){
       if(omp_get_num_threads() == 1)
         chunk_omp_parallel_ = true;
     }
+#endif
     thrust_optimization_ = true;
   }
   else if(qregs_[0].name().find("thrust") != std::string::npos){

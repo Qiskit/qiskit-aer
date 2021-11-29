@@ -479,7 +479,6 @@ protected:
   reg_t blocked_qubits_;
   std::vector<bool> chunks_map_;      //chunk mapper
   std::vector<bool> buffers_map_;     //buffer mapper
-  bool enable_omp_;                 //disable this when shots are parallelized outside
   mutable reg_t reduced_queue_begin_;
   mutable reg_t reduced_queue_end_;
   uint_t matrix_bits_;                //max matrix bits
@@ -496,7 +495,6 @@ public:
     num_chunks_ = 0;
     num_buffers_ = 0;
     num_chunk_mapped_ = 0;
-    enable_omp_ = false;
     conditional_bit_ = -1;
     keep_conditional_bit_ = false;
     matrix_bits_ = AER_DEFAULT_MATRIX_BITS;
@@ -530,10 +528,6 @@ public:
   uint_t num_chunk_mapped(void)
   {
     return num_chunk_mapped_;
-  }
-  void enable_omp(bool flg)
-  {
-    enable_omp_ = flg;
   }
   uint_t matrix_bits(void)
   {
@@ -826,10 +820,7 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
 #else
   uint_t size = count * func.size(chunk_bits_);
   auto ci = thrust::counting_iterator<uint_t>(0);
-  if(enable_omp_)
-    thrust::for_each_n(thrust::device, ci , size, func);
-  else
-    thrust::for_each_n(thrust::seq, ci , size, func);  //disable nested OMP parallelization when shots are parallelized
+  thrust::for_each_n(thrust::device, ci , size, func);
 #endif
 
 }
@@ -980,10 +971,7 @@ void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk
     auto ci = thrust::counting_iterator<uint_t>(0);
 
     double sum;
-    if(enable_omp_)
-      sum = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<double>());
-    else
-      sum = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<double>());  //disable nested OMP parallelization when shots are parallelized
+    sum = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<double>());
     if(count == 1 && pSum){
       *pSum = sum;
     }
@@ -1120,10 +1108,7 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
 
     auto ci = thrust::counting_iterator<uint_t>(0);
 
-    if(enable_omp_)
-      ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,zero,complex_sum());
-    else
-      ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,zero,complex_sum());  //disable nested OMP parallelization when shots are parallelized
+    ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,zero,complex_sum());
 
     if(count == 1 && pSum){
       *((thrust::complex<double>*)pSum) = ret;

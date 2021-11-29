@@ -1046,13 +1046,10 @@ void QubitVectorThrust<data_t>::set_max_matrix_bits(int_t bits)
 template <typename data_t>
 void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 {
-  int nid = omp_get_num_threads();
-
   num_qubits_ = num_qubits;
   data_size_ = 1ull << num_qubits;
 
   chunk_.set_num_qubits(num_qubits);
-  chunk_.enable_omp((omp_get_num_threads() == 1) && (num_qubits_ > omp_threshold_ && omp_threads_ > 1));
 
   register_blocking_ = false;
 

@@ -176,22 +176,7 @@ void HostChunkContainer<data_t>::CopyIn(Chunk<data_t>& src,uint_t iChunk)
   else{
     auto src_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(src.container());
 
-    if(omp_get_num_threads() > 1){  //in parallel region
-      thrust::copy_n(src_cont->vector().begin() + (src.pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
-    }
-    else{
-#pragma omp parallel
-      {
-        int nid = omp_get_num_threads();
-        int tid = omp_get_thread_num();
-        uint_t is,ie;
-
-        is = (uint_t)(tid) * size / (uint_t)(nid);
-        ie = (uint_t)(tid + 1) * size / (uint_t)(nid);
-
-        thrust::copy_n(src_cont->vector().begin() + (src.pos() << this->chunk_bits_) + is,ie - is,data_.begin() + (iChunk << this->chunk_bits_) + is);
-      }
-    }
+    thrust::copy_n(src_cont->vector().begin() + (src.pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));
   }
 }
 
@@ -207,21 +192,7 @@ void HostChunkContainer<data_t>::CopyOut(Chunk<data_t>& dest,uint_t iChunk)
   else{
     auto dest_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(dest.container());
 
-    if(omp_get_num_threads() > 1){  //in parallel region
-      thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest_cont->vector().begin() + (dest.pos() << this->chunk_bits_));
-    }
-    else{
-#pragma omp parallel
-      {
-        int nid = omp_get_num_threads();
-        int tid = omp_get_thread_num();
-        uint_t is,ie;
-
-        is = (uint_t)(tid) * size / (uint_t)(nid);
-        ie = (uint_t)(tid + 1) * size / (uint_t)(nid);
-        thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_)+is,ie-is,dest_cont->vector().begin() + (dest.pos() << this->chunk_bits_)+is);
-      }
-    }
+    thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest_cont->vector().begin() + (dest.pos() << this->chunk_bits_));
   }
 }
 
@@ -261,21 +232,7 @@ void HostChunkContainer<data_t>::Swap(Chunk<data_t>& src,uint_t iChunk)
   else{
     auto src_cont = std::static_pointer_cast<HostChunkContainer<data_t>>(src.container());
 
-    if(omp_get_num_threads() > 1){  //in parallel region
-      thrust::swap_ranges(thrust::host,data_.begin() + (iChunk << this->chunk_bits_),data_.begin() + (iChunk << this->chunk_bits_) + size,src_cont->vector().begin() + (src.pos() << this->chunk_bits_));
-    }
-    else{
-#pragma omp parallel
-      {
-        int nid = omp_get_num_threads();
-        int tid = omp_get_thread_num();
-        uint_t is,ie;
-
-        is = (uint_t)(tid) * size / (uint_t)(nid);
-        ie = (uint_t)(tid + 1) * size / (uint_t)(nid);
-        thrust::swap_ranges(thrust::host,data_.begin() + (iChunk << this->chunk_bits_) + is,data_.begin() + (iChunk << this->chunk_bits_) + ie,src_cont->vector().begin() + (src.pos() << this->chunk_bits_) + is);
-      }
-    }
+    thrust::swap_ranges(thrust::omp::par,data_.begin() + (iChunk << this->chunk_bits_),data_.begin() + (iChunk << this->chunk_bits_) + size,src_cont->vector().begin() + (src.pos() << this->chunk_bits_));
   }
 }
 
@@ -283,21 +240,7 @@ void HostChunkContainer<data_t>::Swap(Chunk<data_t>& src,uint_t iChunk)
 template <typename data_t>
 void HostChunkContainer<data_t>::Zero(uint_t iChunk,uint_t count)
 {
-  if(omp_get_num_threads() > 1){  //in parallel region
-    thrust::fill_n(thrust::host,data_.begin() + (iChunk << this->chunk_bits_),count,0.0);
-  }
-  else{
-#pragma omp parallel
-    {
-      int nid = omp_get_num_threads();
-      int tid = omp_get_thread_num();
-      uint_t is,ie;
-
-      is = (uint_t)(tid) * count / (uint_t)(nid);
-      ie = (uint_t)(tid + 1) * count / (uint_t)(nid);
-      thrust::fill_n(thrust::host,data_.begin() + (iChunk << this->chunk_bits_) + is,ie-is,0.0);
-    }
-  }
+  thrust::fill_n(thrust::omp::par,data_.begin() + (iChunk << this->chunk_bits_),count,0.0);
 }
 
 template <typename data_t>
@@ -310,20 +253,11 @@ reg_t HostChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vector
 
   strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+count), stride);
 
-  if(omp_get_num_threads() == 1){
-    if(dot)
-      thrust::transform_inclusive_scan(thrust::omp::par,iter.begin(),iter.end(),iter.begin(),complex_dot_scan<data_t>(),thrust::plus<thrust::complex<data_t>>());
-    else
-      thrust::inclusive_scan(thrust::omp::par,iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
-    thrust::lower_bound(thrust::omp::par, iter.begin(), iter.end(), rnds.begin(), rnds.begin() + SHOTS, vSmp.begin() ,complex_less<data_t>());
-  }
-  else{
-    if(dot)
-      thrust::transform_inclusive_scan(thrust::seq,iter.begin(),iter.end(),iter.begin(),complex_dot_scan<data_t>(),thrust::plus<thrust::complex<data_t>>());
-    else
-      thrust::inclusive_scan(thrust::seq,iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
-    thrust::lower_bound(thrust::seq, iter.begin(), iter.end(), rnds.begin(), rnds.begin() + SHOTS, vSmp.begin() ,complex_less<data_t>());
-  }
+  if(dot)
+    thrust::transform_inclusive_scan(thrust::omp::par,iter.begin(),iter.end(),iter.begin(),complex_dot_scan<data_t>(),thrust::plus<thrust::complex<data_t>>());
+  else
+    thrust::inclusive_scan(thrust::omp::par,iter.begin(),iter.end(),iter.begin(),thrust::plus<thrust::complex<data_t>>());
+  thrust::lower_bound(thrust::omp::par, iter.begin(), iter.end(), rnds.begin(), rnds.begin() + SHOTS, vSmp.begin() ,complex_less<data_t>());
 
   for(i=0;i<SHOTS;i++){
     samples[i] = vSmp[i];
@@ -340,18 +274,10 @@ thrust::complex<double> HostChunkContainer<data_t>::norm(uint_t iChunk, uint_t c
 
   strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+count), stride);
 
-  if(omp_get_num_threads() == 1){
-    if(dot)
-      sum = thrust::transform_reduce(thrust::omp::par, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
-    else
-      sum = thrust::reduce(thrust::omp::par, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
-  }
-  else{
-    if(dot)
-      sum = thrust::transform_reduce(thrust::seq, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
-    else
-      sum = thrust::reduce(thrust::seq, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
-  }
+  if(dot)
+    sum = thrust::transform_reduce(thrust::omp::par, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
+  else
+    sum = thrust::reduce(thrust::omp::par, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
 
   return sum;
 }
