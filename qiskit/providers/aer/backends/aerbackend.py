@@ -332,9 +332,9 @@ class AerBackend(Backend, ABC):
         if circuit is None:
             return None
         if basis_gates is None:
-            basis_gates = self.configuration().basis_gates
-            for control_op in ('for_loop', 'while_loop', 'if_else', 'break_loop', 'continue_loop'):
-                basis_gates.append(control_op)
+            basis_gates = self.configuration().basis_gates + ['for_loop', 'while_loop',
+                                                              'if_else', 'break_loop',
+                                                              'continue_loop']
         circuit = circuit.copy()
         for inst, _, _ in circuit.data:
             if isinstance(inst, WhileLoopOp):
@@ -517,17 +517,19 @@ class AerBackend(Backend, ABC):
 
     def _compile(self, circuits):
         if isinstance(circuits, list):
+            all_static = all([not self._is_dynamic(circuit) for circuit in circuits])
+            if all_static:
+                return circuits
+            basis_gates = self.configuration().basis_gates + ['mark', 'jump']
             return [transpile(self._inline_circuit(self._decompose_subcircuits(circuit),
                                                    None, None),
-                              self, optimization_level=0)
-                    if self._is_dynamic(circuit) else circuit for circuit in circuits]
+                              basis_gates=basis_gates) if self._is_dynamic(circuit)
+                    else circuit for circuit in circuits]
         else:
-            if self._is_dynamic(circuits):
-                return transpile(self._inline_circuit(self._decompose_subcircuits(circuits),
-                                                      None, None),
-                                 self, optimization_level=0)
-            else:
-                return circuits
+            return (transpile(self._inline_circuit(self._decompose_subcircuits(circuits),
+                                                   None, None),
+                              basis_gates=basis_gates) if self._is_dynamic(circuits)
+                    else circuits)
 
     def _assemble(self, circuits, parameter_binds=None, **run_options):
         """Assemble one or more Qobj for running on the simulator"""

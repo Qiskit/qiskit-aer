@@ -52,23 +52,23 @@ BASIS_GATES = {
         'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
         'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
         'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-        'initialize', 'delay', 'pauli', 'mcx_gray', 'jump', 'mark'
+        'initialize', 'delay', 'pauli', 'mcx_gray'
     ]),
     'density_matrix': sorted([
         'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
         'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
         'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
-        'unitary', 'diagonal', 'delay', 'pauli', 'jump', 'mark'
+        'unitary', 'diagonal', 'delay', 'pauli'
     ]),
     'matrix_product_state': sorted([
         'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
         'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay', 'pauli',
         'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
-        'initialize', 'jump', 'mark'
+        'initialize'
     ]),
     'stabilizer': sorted([
         'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 'cx', 'cy', 'cz',
-        'swap', 'delay', 'pauli', 'jump', 'mark'
+        'swap', 'delay', 'pauli'
     ]),
     'extended_stabilizer': sorted([
         'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg',
@@ -80,15 +80,13 @@ BASIS_GATES = {
         'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
         'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
         'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
-        'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
-        'jump', 'mark'
+        'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli'
     ]),
     'superop': sorted([
         'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
         'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
         'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy',
-        'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'delay', 'pauli',
-        'jump', 'mark'
+        'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'delay', 'pauli'
     ])
 }
 
