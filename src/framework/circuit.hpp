@@ -265,13 +265,6 @@ void Circuit::set_params(bool truncation) {
   size_t last_initialize_pos = 0;
   bool ops_to_remove = false;
 
-  for (size_t i = 0; i < size; ++ i) {
-    if (ops[i].type == OpType::jump) {
-      truncation = false;
-      break;
-    }
-  }
-
   std::unordered_set<uint_t> ancestor_qubits;
   for (size_t i = 0; i < size; ++ i) {
     const size_t rpos = size - i - 1;
@@ -365,9 +358,7 @@ void Circuit::set_params(bool truncation) {
         case OpType::save_stabilizer:
         case OpType::save_unitary:
         case OpType::save_mps:
-        case OpType::save_superop:
-        case OpType::jump:
-        case OpType::mark: {
+        case OpType::save_superop: {
           can_sample = false;
           break;
         }
@@ -390,6 +381,8 @@ void Circuit::set_params(bool truncation) {
   // Counter for current position in ops as we shuffle ops
   size_t op_idx = 0;
   size_t head_end = 0;
+  std::set<std::string> marks;
+  std::set<std::string> dests;
   if (has_measure && can_sample) {
     head_end = first_measure_pos;
   } else if (num_ancestors > 0) {
@@ -406,10 +399,23 @@ void Circuit::set_params(bool truncation) {
     if (pos != op_idx) {
       ops[op_idx] = std::move(ops[pos]);
     }
+    if (ops[op_idx].type == OpType::jump) {
+      dests.insert(ops[op_idx].string_params[0]);
+    } else if (ops[op_idx].type == OpType::mark) {
+      marks.insert(ops[op_idx].string_params[0]);
+    }
     if (pos == first_measure_pos) {
       first_measure_pos = op_idx;
     }
     op_idx++;
+  }
+
+  for (auto dest : dests) {
+    if (marks.find(dest) == marks.end()) {
+      std::stringstream msg;
+      msg << "Invalid jump destination:\"" << dest << "\"." << std::endl;
+      throw std::runtime_error(msg.str());
+    }
   }
 
   if (has_measure && can_sample) {

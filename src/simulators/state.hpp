@@ -348,20 +348,6 @@ void State<state_t>::apply_ops(InputIterator first, InputIterator last,
   std::unordered_map<std::string, InputIterator> marks;
   // Simple loop over vector of input operations
   for (auto it = first; it != last; ++it) {
-    const auto& mark_name = it->string_params[0];
-    if (it->type == Operations::OpType::mark) {
-      auto mark_it = marks.find(mark_name);
-      if (mark_it != marks.end()) {
-        std::stringstream msg;
-        msg << "Duplicated mark names exist:\"" << mark_name << "\"." << std::endl;
-        throw std::runtime_error(msg.str());
-      }
-      marks[mark_name] = it;
-    }
-  }
-
-  // Simple loop over vector of input operations
-  for (auto it = first; it != last; ++it) {
     switch (it->type) {
     case Operations::OpType::mark: {
       marks[it->string_params[0]] = it;

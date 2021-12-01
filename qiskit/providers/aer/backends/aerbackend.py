@@ -323,6 +323,8 @@ class AerBackend(Backend, ABC):
         return Result.from_dict(output)
 
     def _is_dynamic(self, circuit):
+        if not isinstance(circuit, QuantumCircuit):
+            return False
         for inst, _, _ in circuit.data:
             if isinstance(inst, (WhileLoopOp, ForLoopOp, IfElseOp, BreakLoopOp, ContinueLoopOp)):
                 return True
