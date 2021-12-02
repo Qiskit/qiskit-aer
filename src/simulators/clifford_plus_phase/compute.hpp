@@ -67,7 +67,7 @@ public:
 private:  
   const static stringmap_t<Gates> gateset_;
   size_t num_code_qubits; //out AG state has code+magic qubits
-  double compute_probability(std::vector<size_t> measured_qubits, std::vector<uint_t> outcomes);
+  double compute_probability(std::vector<uint_t> measured_qubits, std::vector<uint_t> outcomes);
 };
 
 
@@ -193,8 +193,8 @@ double compute_algorithm_all_phases_T(AGState &state){
     size_t bit_to_flip = 0;
     for(size_t j = 0; j < state.num_stabilizers; j++){
       if((mask_with_bit_to_flip >> j) & ONE){
-	bit_to_flip = j;
-	break;
+        bit_to_flip = j;
+        break;
       }
     }
 
@@ -211,22 +211,22 @@ double compute_algorithm_all_phases_T(AGState &state){
       //    ICount += 1;
       //}
       if(row.X[j] && !row.Z[j]){
-	XCount += 1;
+        XCount += 1;
       }
       if(!row.X[j] && row.Z[j]){
-	ZCount += 1;
-	break;
+        ZCount += 1;
+        break;
       }
       if(row.X[j] && row.Z[j]){
-	YCount += 1;
+        YCount += 1;
       }
     }
     
     if(ZCount == 0){
       if(((phase + YCount) % 2) == 0){
-	acc += powl(1./2., (XCount + YCount)/2.);;
+        acc += powl(1./2., (XCount + YCount)/2.);;
       }else{
-	acc -= powl(1./2., (XCount + YCount)/2.);;
+        acc -= powl(1./2., (XCount + YCount)/2.);;
       }
     }      
   }
@@ -251,8 +251,8 @@ double compute_algorithm_arbitrary_phases(AGState &state){
     size_t bit_to_flip = 0;
     for(size_t j = 0; j < state.num_stabilizers; j++){
       if((mask_with_bit_to_flip >> j) & ONE){
-	bit_to_flip = j;
-	break;
+        bit_to_flip = j;
+        break;
       }
     }
     
@@ -265,14 +265,14 @@ double compute_algorithm_arbitrary_phases(AGState &state){
       //    ICount += 1;
       //}
       if(row.X[j] && !row.Z[j]){
-	prod *= cos(state.magic_phases[j]);
+        prod *= cos(state.magic_phases[j]);
       }
       if(!row.X[j] && row.Z[j]){
-	prod = 0.;
-	break;
+        prod = 0.;
+        break;
       }
       if(row.X[j] && row.Z[j]){
-	prod *= -sin(state.magic_phases[j]);
+        prod *= -sin(state.magic_phases[j]);
       }
     }
     if(phase){
@@ -289,33 +289,33 @@ double compute_algorithm_arbitrary_phases(AGState &state){
 }
 
 
-double State::compute_probability(std::vector<size_t> measured_qubits, std::vector<uint_t> outcomes){
+double State::compute_probability(std::vector<uint_t> measured_qubits, std::vector<uint_t> outcomes){
 
   AGState copied_ag(this->qreg_); //copy constructor TODO check this
 
   //first reorder things so the first w qubits are measured
-  std::vector<size_t> measured_qubits_sorted(measured_qubits);
+  std::vector<uint_t> measured_qubits_sorted(measured_qubits);
 
-  std::vector<size_t> qubit_indexes;
-  for(size_t i = 0; i < this->qreg_.num_qubits; i++){
+  std::vector<uint_t> qubit_indexes;
+  for(uint_t i = 0; i < this->qreg_.num_qubits; i++){
     qubit_indexes.push_back(i);
   }  
   std::sort(measured_qubits_sorted.begin(), measured_qubits_sorted.end());
   
-  for(size_t i = 0; i < measured_qubits.size(); i++){
-    size_t w = measured_qubits_sorted[i];    
-    size_t idx1 = 0;
-    size_t idx2 = 0;
-    for(size_t j = 0; j < qubit_indexes.size(); j++){
+  for(uint_t i = 0; i < measured_qubits.size(); i++){
+    uint_t w = measured_qubits_sorted[i];
+    uint_t idx1 = 0;
+    uint_t idx2 = 0;
+    for(uint_t j = 0; j < qubit_indexes.size(); j++){
       if(qubit_indexes[j] == w){
-	idx1 = j;
-	break;
+        idx1 = j;
+        break;
       }
     }
-    for(size_t j = 0; j < measured_qubits.size(); j++){
+    for(uint_t j = 0; j < measured_qubits.size(); j++){
       if(measured_qubits[j] == w){
-	idx2 = j;
-	break;
+        idx2 = j;
+        break;
       }
     }
     
@@ -328,29 +328,29 @@ double State::compute_probability(std::vector<size_t> measured_qubits, std::vect
   //from this point on we will assume we're looking for the measurement outcome 0 on all measured qubits
   //so apply X gates to measured qubits where we're looking for outcome 1 to correct this
   //now all the measured qubits are at the start and the magic qubits are at the end
-  for(size_t i = 0; i < outcomes.size(); i++){
+  for(uint_t i = 0; i < outcomes.size(); i++){
     if(outcomes[i] == 1){
       copied_ag.applyX(i);
     }
   }
 
-  size_t w = measured_qubits.size();
-  size_t t = copied_ag.magic_phases.size();
+  uint_t w = measured_qubits.size();
+  uint_t t = copied_ag.magic_phases.size();
 
   //now all the measured qubits are at the start and the magic qubits are at the end
 
-  std::pair<bool, size_t> v_pair = copied_ag.apply_constraints(w, t);
+  std::pair<bool, uint_t> v_pair = copied_ag.apply_constraints(w, t);
   if(!v_pair.first){
     return 0.;
   }
-  size_t v = v_pair.second;
+  uint_t v = v_pair.second;
 
   //at this point we can delete all the non-magic qubits
-  for(size_t q = 0; q < t; q++){
+  for(uint_t q = 0; q < t; q++){
     copied_ag.applySwap(q, q+(copied_ag.num_qubits - t));
   }
   
-  for(size_t s = 0; s < copied_ag.num_stabilizers; s++){
+  for(uint_t s = 0; s < copied_ag.num_stabilizers; s++){
     copied_ag.table[s].X.resize(t);
     copied_ag.table[s].Z.resize(t);
   }
@@ -362,7 +362,7 @@ double State::compute_probability(std::vector<size_t> measured_qubits, std::vect
   //we can make the compute algorithm much faster if all of our non-Clifford gates are in fact T gates (pi/4 rotations)
 
   bool all_phases_are_T = true;
-  for(size_t i = 0; i < copied_ag.num_qubits; i++){
+  for(uint_t i = 0; i < copied_ag.num_qubits; i++){
     if(fabs(copied_ag.magic_phases[i] - T_ANGLE) > AG_CHOP_THRESHOLD){
       all_phases_are_T  = false;
       break;
