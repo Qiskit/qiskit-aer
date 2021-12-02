@@ -48,9 +48,7 @@ public:
 
   std::string name() const override {return "clifford_phase_compute";}
 
-  //Apply a sequence of operations to the cicuit.
-  //We just store these operations in _circuit because we can't implement them
-  //until we know how many non-Clifford gates and what the measurements are
+  //Apply a sequence of operations to the cicuit
   virtual void apply_ops(const std::vector<Operations::Op> &ops,
                          ExperimentResult &result,
                          RngEngine &rng,
@@ -66,7 +64,7 @@ public:
   double expval_pauli(const reg_t &qubits, const std::string& pauli);
 private:  
   const static stringmap_t<Gates> gateset_;
-  size_t num_code_qubits; //out AG state has code+magic qubits
+  size_t num_code_qubits; //our AG state has code+magic qubits
   double compute_probability(std::vector<size_t> measured_qubits, std::vector<uint_t> outcomes);
 };
 
