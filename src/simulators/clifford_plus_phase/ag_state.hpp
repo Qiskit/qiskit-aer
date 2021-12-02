@@ -108,7 +108,7 @@ public:
    */
   std::pair<bool, size_t> apply_constraints(size_t w, size_t t);
   size_t apply_T_constraints();
-  /*	
+  /*
    * Go through our stabilizer table and delete every qubit for which every stabilizer is the identity on that qubit
    * In other words delete every column from the X and Z matrices if both are 0 for every element in that column
    * intended only for use when we have restricted our table to only have magic qubits
@@ -311,7 +311,7 @@ void AGState::delete_identity_magic_qubits(){
     size_t non_identity_paulis = 0;
     for(size_t s = 0; (s < this->num_stabilizers) && (non_identity_paulis == 0); s++){
       if(this->table[s].X[q] || this->table[s].Z[q]){
-	non_identity_paulis += 1;
+        non_identity_paulis += 1;
       }
     }
     if(non_identity_paulis == 0){
@@ -320,11 +320,11 @@ void AGState::delete_identity_magic_qubits(){
       qubits_deleted += 1;
     }else{
       if(qubits_deleted > 0){
-	for(size_t s = 0; s < this->num_stabilizers; s++){
-	  this->table[s].X.setValue(this->table[s].X[q], q-qubits_deleted);
-	  this->table[s].Z.setValue(this->table[s].Z[q], q-qubits_deleted);
-	}
-	magic_phases[q - qubits_deleted] = magic_phases[q];
+        for(size_t s = 0; s < this->num_stabilizers; s++){
+          this->table[s].X.setValue(this->table[s].X[q], q-qubits_deleted);
+          this->table[s].Z.setValue(this->table[s].Z[q], q-qubits_deleted);
+        }
+        magic_phases[q - qubits_deleted] = magic_phases[q];
       }
     }
   }
@@ -433,13 +433,13 @@ std::vector<Operations::Op> AGState::simplifying_unitary(){
     }else{
       size_t pivot = poss_pivot.second; //now known to exist
       if(pivot != h){
-	//swap rows h and pivot of the table
-	this->swap_rows(h,pivot);
+        //swap rows h and pivot of the table
+        this->swap_rows(h,pivot);
       }
       for(size_t j = 0; j < this->num_stabilizers; j++){
-	if((j != h) && this->table[j].X[k]){
-	  this->rowsum(j,h);
-	}
+        if((j != h) && this->table[j].X[k]){
+          this->rowsum(j,h);
+        }
       }
       h += 1;
       k += 1;
@@ -468,8 +468,8 @@ std::vector<Operations::Op> AGState::simplifying_unitary(){
   for(size_t r = 0; r < this->num_stabilizers; r++){
     for(size_t col = this->num_stabilizers; col < this->num_qubits; col++){
       if(this->table[r].X[col]){
-	this->applyCX(r, col);
-	circuit.push_back(make_CX(r,col));
+        this->applyCX(r, col);
+        circuit.push_back(make_CX(r,col));
       }
     }
   }
@@ -486,8 +486,8 @@ std::vector<Operations::Op> AGState::simplifying_unitary(){
   for(size_t col = this->num_stabilizers; col < this->num_qubits; col++){
     for(size_t r = 0; r < this->num_stabilizers; r++){
       if(this->table[r].Z[col]){
-	this->applyCZ(r, col);
-	circuit.push_back(make_CZ(r, col));
+        this->applyCZ(r, col);
+        circuit.push_back(make_CZ(r, col));
       }
     }
   }
@@ -496,8 +496,8 @@ std::vector<Operations::Op> AGState::simplifying_unitary(){
   for(size_t col = 0; col < this->num_stabilizers; col++){
     for(size_t r = 0; r < col; r++){
       if(this->table[r].Z[col]){
-	this->applyCZ(r, col);
-	circuit.push_back(make_CZ(r, col));
+        this->applyCZ(r, col);
+        circuit.push_back(make_CZ(r, col));
       }
     }
   }
@@ -576,37 +576,37 @@ bool AGState::independence_test(int q){
     
     if(x.first){
       if(x.second != a){
-	this->swap_rows(a, x.second);
+        this->swap_rows(a, x.second);
       }
       if(z.first && (z.second == a)){
-	z = x;
+        z = x;
       }
       for(size_t j = 0; j < this->num_stabilizers; j++){
-	if((j != a) && this->table[j].X[b]){
-	  this->rowsum(j,a);
-	}
+        if((j != a) && this->table[j].X[b]){
+          this->rowsum(j,a);
+        }
       }
       a += 1;
     }
     if(y.first){
       if(y.second != a){
-	this->swap_rows(a,y.second);
+        this->swap_rows(a,y.second);
       }
       for(size_t j = 0; j < this->num_stabilizers; j++){
-	if((j != a) && this->table[j].X[b] && this->table[j].Z[b]){
-	  this->rowsum(j,a);
-	}
+        if((j != a) && this->table[j].X[b] && this->table[j].Z[b]){
+          this->rowsum(j,a);
+        }
       }
       a += 1;
     }
     if(z.first){
       if(z.second != a){
-	this->swap_rows(a,z.second);
+        this->swap_rows(a,z.second);
       }
       for(size_t j = 0; j < this->num_stabilizers; j++){
-	if((j != a) && this->table[j].Z[b]){
-	  this->rowsum(j,a);
-	}
+        if((j != a) && this->table[j].Z[b]){
+          this->rowsum(j,a);
+        }
       }
       a += 1;
     }
@@ -643,16 +643,16 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
     for(size_t s=0; s < this->num_stabilizers && (((!y_stab.first) + (!x_stab.first) + (!z_stab.first)) > 1); s++){//iterate over all stabilisers and find interesting stabilisers
       
       if(this->table[s].X[q] && this->table[s].Z[q]){
-	y_stab.first = true;
-	y_stab.second = s;
+        y_stab.first = true;
+        y_stab.second = s;
       }
       if(this->table[s].X[q] && !this->table[s].Z[q]){
-	x_stab.first = true;
-	x_stab.second = s;
+        x_stab.first = true;
+        x_stab.second = s;
       }
       if(!this->table[s].X[q] && this->table[s].Z[q]){
-	z_stab.first = true;
-	z_stab.second = s;
+        z_stab.first = true;
+        z_stab.second = s;
       }
     }
     //there are several cases here
@@ -662,15 +662,15 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
     //put things in standard form (first stab is x then z)    
     if((y_stab.first + x_stab.first + z_stab.first) >= 2){ //we have at least two of the set
       if(!x_stab.first){//we don't have a generator for x alone, but we can make one
-	this->rowsum(y_stab.second, z_stab.second);
-	//now we have a z and an x but not a y
-	x_stab = y_stab;
-	y_stab = std::pair<bool, size_t>(false,0);
+        this->rowsum(y_stab.second, z_stab.second);
+        //now we have a z and an x but not a y
+        x_stab = y_stab;
+        y_stab = std::pair<bool, size_t>(false,0);
       }else if(!z_stab.first){//we don't have a generator for z alone, but we can make one
-	this->rowsum(y_stab.second, x_stab.second);
-	//now we have a z and an x but not a y
-	z_stab = y_stab;
-	y_stab = std::pair<bool, size_t>(false,0);
+        this->rowsum(y_stab.second, x_stab.second);
+        //now we have a z and an x but not a y
+        z_stab = y_stab;
+        y_stab = std::pair<bool, size_t>(false,0);
       }
     }
     
@@ -683,17 +683,17 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
     //zero everything else on this qubit
     for(size_t s = 0; s < this->num_stabilizers; s++){
       if((!y_stab.first || s != y_stab.second) && (!x_stab.first || s != x_stab.second) && (!z_stab.first || s != z_stab.second)){
-	if(this->table[s].X[q] && this->table[s].Z[q] && y_stab.first){
-	  this->rowsum(s, y_stab.second);
-	}
-	
-	if(this->table[s].X[q]){
-	  this->rowsum(s, x_stab.second);
-	}
-	
-	if(this->table[s].Z[q]){
-	  this->rowsum(s, z_stab.second);
-	}
+        if(this->table[s].X[q] && this->table[s].Z[q] && y_stab.first){
+          this->rowsum(s, y_stab.second);
+        }
+
+        if(this->table[s].X[q]){
+          this->rowsum(s, x_stab.second);
+        }
+
+        if(this->table[s].Z[q]){
+          this->rowsum(s, z_stab.second);
+        }
       }
     }
 
@@ -714,17 +714,17 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
       bool independent = this->independence_test(q);
       
       if(!independent){
-	if(this->phases[this->num_stabilizers-1] == 0){
-	  // +Z_q
-	  v += 1;
-	  this->delete_last_row();
-	}else{
-	  //our chosen measurement outcome is impossible	  
-	  return std::pair<bool, size_t>(false,0);
-	}
+        if(this->phases[this->num_stabilizers-1] == 0){
+          // +Z_q
+          v += 1;
+          this->delete_last_row();
+        }else{
+          //our chosen measurement outcome is impossible
+          return std::pair<bool, size_t>(false,0);
+        }
       }else{
-	//if we get here there has been an error
-	//TODO decide if we're going to throw an exception or print an error message here
+        //if we get here there has been an error
+        //TODO decide if we're going to throw an exception or print an error message here
       }
     }
   }
@@ -737,16 +737,16 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
 
     for(size_t s=0; s < this->num_stabilizers && (((!y_stab.first) + (!x_stab.first) + (!z_stab.first)) > 1); s++){//iterate over all stabilisers and find interesting stabilisers
       if(this->table[s].X[q] && this->table[s].Z[q]){
-	y_stab.first = true;
-	y_stab.second = s;
+        y_stab.first = true;
+        y_stab.second = s;
       }
       if(this->table[s].X[q] && !this->table[s].Z[q]){
-	x_stab.first = true;
-	x_stab.second = s;
+        x_stab.first = true;
+        x_stab.second = s;
       }
       if(!this->table[s].X[q] && this->table[s].Z[q]){
-	z_stab.first = true;
-	z_stab.second = s;
+        z_stab.first = true;
+        z_stab.second = s;
       }
     }
 
@@ -757,15 +757,15 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
     //put things in standard form (first stab is x then z)    
     if((y_stab.first + x_stab.first + z_stab.first) >= 2){ //we have at least two of the set
       if(!x_stab.first){//we don't have a generator for x alone, but we can make one
-	this->rowsum(y_stab.second, z_stab.second);
-	//now we have a z and an x but not a y
-	x_stab = y_stab;
-	y_stab = std::pair<bool, size_t>(false,0);
+        this->rowsum(y_stab.second, z_stab.second);
+        //now we have a z and an x but not a y
+        x_stab = y_stab;
+        y_stab = std::pair<bool, size_t>(false,0);
       }else if(!z_stab.first){//we don't have a generator for z alone, but we can make one
-	this->rowsum(y_stab.second, x_stab.second);
-	//now we have a z and an x but not a y
-	z_stab = y_stab;
-	y_stab = std::pair<bool, size_t>(false,0);
+        this->rowsum(y_stab.second, x_stab.second);
+        //now we have a z and an x but not a y
+        z_stab = y_stab;
+        y_stab = std::pair<bool, size_t>(false,0);
       }
     }
     
@@ -778,17 +778,17 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
     //zero everything else on this qubit
     for(size_t s = 0; s < this->num_stabilizers; s++){
       if((!y_stab.first || s != y_stab.second) && (!x_stab.first || s != x_stab.second) && (!z_stab.first || s != z_stab.second)){
-	if(this->table[s].X[q] && this->table[s].Z[q] && y_stab.first){
-	  this->rowsum(s, y_stab.second);
-	}
-	
-	if(this->table[s].X[q]){
-	  this->rowsum(s, x_stab.second);
-	}
-	
-	if(this->table[s].Z[q]){
-	  this->rowsum(s, z_stab.second);
-	}
+        if(this->table[s].X[q] && this->table[s].Z[q] && y_stab.first){
+          this->rowsum(s, y_stab.second);
+        }
+
+        if(this->table[s].X[q]){
+          this->rowsum(s, x_stab.second);
+        }
+
+        if(this->table[s].Z[q]){
+          this->rowsum(s, z_stab.second);
+        }
       }
     }
     
@@ -800,15 +800,15 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
       num_to_delete += 1;
     }else{
       if(x_stab.first){
-	this->swap_rows(x_stab.second, this->num_stabilizers-1);
-	if(z_stab.first && (this->num_stabilizers - 1 == z_stab.second)){
-	  z_stab = x_stab;
-	}
-	num_to_delete += 1;
+        this->swap_rows(x_stab.second, this->num_stabilizers-1);
+        if(z_stab.first && (this->num_stabilizers - 1 == z_stab.second)){
+          z_stab = x_stab;
+        }
+        num_to_delete += 1;
       }
       if(z_stab.first){
-	this->swap_rows(z_stab.second, this->num_stabilizers-1-num_to_delete);
-	num_to_delete += 1;
+        this->swap_rows(z_stab.second, this->num_stabilizers-1-num_to_delete);
+        num_to_delete += 1;
       }
     }
 
@@ -839,19 +839,19 @@ size_t AGState::apply_T_constraints(){
       std::pair<bool, size_t> x_stab = std::pair<bool, size_t>(false,0); //store the index of the first stab we come to with x=1, z=0
       std::pair<bool, size_t> z_stab = std::pair<bool, size_t>(false,0); //store the index of the first stab we come to with z=1, x=0
       
-      for(size_t s=0; s < this->num_stabilizers && (((!y_stab.first) + (!x_stab.first) + (!z_stab.first)) > 1); s++){//iterate over all stabilisers and find interesting stabi	lisers
-	if(this->table[s].X[q] && this->table[s].Z[q]){
-	  y_stab.first = true;
-	  y_stab.second = s;
+      for(size_t s=0; s < this->num_stabilizers && (((!y_stab.first) + (!x_stab.first) + (!z_stab.first)) > 1); s++){//iterate over all stabilisers and find interesting stabi        lisers
+        if(this->table[s].X[q] && this->table[s].Z[q]){
+          y_stab.first = true;
+          y_stab.second = s;
       }
-	if(this->table[s].X[q] && !this->table[s].Z[q]){
-	  x_stab.first = true;
-	  x_stab.second = s;
-	}
-	if(!this->table[s].X[q] && this->table[s].Z[q]){
-	  z_stab.first = true;
-	  z_stab.second = s;
-	}
+        if(this->table[s].X[q] && !this->table[s].Z[q]){
+          x_stab.first = true;
+          x_stab.second = s;
+        }
+        if(!this->table[s].X[q] && this->table[s].Z[q]){
+          z_stab.first = true;
+          z_stab.second = s;
+        }
       }
       
       //there are several cases here
@@ -860,38 +860,38 @@ size_t AGState::apply_T_constraints(){
       //case 1) we generate the whole group
       //put things in standard form (first stab is x then z)    
       if((y_stab.first + x_stab.first + z_stab.first) >= 2){ //we have at least two of the set
-	if(!x_stab.first){//we don't have a generator for x alone, but we can make one
-	  this->rowsum(y_stab.second, z_stab.second);
-	  //now we have a z and an x but not a y
-	  x_stab = y_stab;
-	  y_stab = std::pair<bool, size_t>(false,0);
-	}else if(!z_stab.first){//we don't have a generator for z alone, but we can make one
-	  this->rowsum(y_stab.second, x_stab.second);
-	  //now we have a z and an x but not a y
-	  z_stab = y_stab;
-	  y_stab = std::pair<bool, size_t>(false,0);
-	}
+        if(!x_stab.first){//we don't have a generator for x alone, but we can make one
+          this->rowsum(y_stab.second, z_stab.second);
+          //now we have a z and an x but not a y
+          x_stab = y_stab;
+          y_stab = std::pair<bool, size_t>(false,0);
+        }else if(!z_stab.first){//we don't have a generator for z alone, but we can make one
+          this->rowsum(y_stab.second, x_stab.second);
+          //now we have a z and an x but not a y
+          z_stab = y_stab;
+          y_stab = std::pair<bool, size_t>(false,0);
+        }
       }
       
       if(y_stab.first && x_stab.first && z_stab.first){ //we have all 3
-	//ignore the y one if we have all 3
-	y_stab = std::pair<bool, size_t>(false,0);
+        //ignore the y one if we have all 3
+        y_stab = std::pair<bool, size_t>(false,0);
       }
       
       if(z_stab.first && !x_stab.first){
-	//kill all other z stuff on this qubit	
-	for(size_t s = 0; s < this->num_stabilizers; s++){
-	  if((s != z_stab.second) && this->table[s].Z[q]){
-	    this->rowsum(s, z_stab.second);
-	  }
-	}
-	//now delete the z guy
+        //kill all other z stuff on this qubit
+        for(size_t s = 0; s < this->num_stabilizers; s++){
+          if((s != z_stab.second) && this->table[s].Z[q]){
+            this->rowsum(s, z_stab.second);
+          }
+        }
+        //now delete the z guy
 
-	if(z_stab.second != this->num_stabilizers-1){
-	  this->swap_rows(z_stab.second, this->num_stabilizers-1);
-	}
-	this->delete_last_row();
-	deleted_rows += 1;
+        if(z_stab.second != this->num_stabilizers-1){
+          this->swap_rows(z_stab.second, this->num_stabilizers-1);
+        }
+        this->delete_last_row();
+        deleted_rows += 1;
       }
     }
   }
