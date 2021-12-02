@@ -61,13 +61,6 @@ following ``QuantumCircuit`` methods which are patched when importing Aer.
 Saving Simulator Data
 =====================
 
-.. note ::
-    Each save instruction has a default label for accessing from the
-    circuit result data, however duplicate labels in results will result
-    in an exception being raised. If you use more than 1 instance of a
-    specific save instruction you must set a custom label for the
-    additional instructions.
-
 Simulator State Save Instruction Classes
 ----------------------------------------
 
@@ -94,6 +87,14 @@ for density matrix method etc.).
     reduced densit matrix of a subset of qubits for supported simulation
     methods, however all other save state instructions must be applied
     to all qubits in a run circuit.
+
+.. note::
+    The :class:`~qiskit.providers.aer.StatevectorSimulator` (and
+    :class:`~qiskit.providers.aer.UnitarySimulator`) backend automatically
+    append every run circuit with the a :func:`SaveStatevector``
+    (:func:`SaveUnitary``) instruction using the default label. Hence adding
+    any additional save instructions of that type will require specifying a
+    custom label for those instructions.
 
 Simulator Derived Data Save Instruction Classes
 -----------------------------------------------
@@ -136,6 +137,13 @@ QuantumCircuit Methods
 
 The save instructions can also be added to circuits by using the
 following ``QuantumCircuit`` methods which are patched when importing Aer.
+
+.. note ::
+    Each save method has a default label for accessing from the
+    circuit result data, however duplicate labels in results will result
+    in an exception being raised. If you use more than 1 instance of a
+    specific save instruction you must set a custom label for the
+    additional instructions.
 
 .. autosummary::
     :toctree: ../stubs/

@@ -4,6 +4,9 @@ on:
     branches: [main, 'stable/*']
   pull_request:
     branches: [main, 'stable/*']
+concurrency:
+  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
+  cancel-in-progress: true
 jobs:
   lint:
     runs-on: macOS-latest
@@ -42,7 +45,7 @@ jobs:
     needs: ["lint"]
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9]
         platform: [
           { os: "macOS-latest",   python-architecture: "x64"},
         ]
@@ -80,7 +83,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9]
         os: ["macOS-latest"]
     env:
       AER_THRUST_BACKEND: OMP

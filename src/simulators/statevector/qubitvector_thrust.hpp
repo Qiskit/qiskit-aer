@@ -645,18 +645,16 @@ AER::Vector<std::complex<data_t>> QubitVectorThrust<data_t>::copy_to_vector() co
 template <typename data_t>
 AER::Vector<std::complex<data_t>> QubitVectorThrust<data_t>::move_to_vector() 
 {
-  std::complex<data_t>* pRet;
-  pRet = reinterpret_cast<std::complex<data_t>*>(malloc(sizeof(std::complex<data_t>) * data_size_));
-
-  chunk_->CopyOut((thrust::complex<data_t>*)pRet, data_size_);
-
-  const auto vec = AER::Vector<std::complex<data_t>>::move_from_buffer(data_size_, pRet);
+  cvector_t<data_t> ret(data_size_, 0.);
 
 #ifdef AER_DEBUG
-  DebugMsg("move_to_vector");
+  DebugMsg("move_to_vector", ret[0]);
+  DebugDump();
 #endif
 
-  return vec;
+  chunk_->CopyOut((thrust::complex<data_t>*)&ret[0], data_size_);
+
+  return AER::Vector<std::complex<data_t>>::copy_from_buffer(data_size_, &ret[0]);
 }
 
 //------------------------------------------------------------------------------
@@ -3920,14 +3918,23 @@ void QubitVectorThrust<data_t>::DebugMsg(const char* str,const std::vector<doubl
 template <typename data_t>
 void QubitVectorThrust<data_t>::DebugDump(void) const
 {
-  if(num_qubits_ < 6){
-    thrust::complex<data_t> t;
-    uint_t i;
+  thrust::complex<data_t> t;
+  uint_t i,idx,n;
 
-    for(i=0;i<data_size_;i++){
-      t = chunk_->Get(i);
-      spdlog::debug("   {0:05b} | {1:e}, {2:e}",i,t.real(),t.imag());
-    }
+  chunk_->synchronize();
+
+  n = 16;
+  if(n > data_size_)
+    n = data_size_;
+  for(i=0;i<n;i++){
+    idx = i*data_size_/n;
+    t = chunk_->Get(idx);
+    spdlog::debug("   {0:05b} | {1:e}, {2:e}",idx,t.real(),t.imag());
+  }
+  if(n < data_size_){
+    idx = data_size_-1;
+    t = chunk_->Get(idx);
+    spdlog::debug("   {0:05b} | {1:e}, {2:e}",idx,t.real(),t.imag());
   }
 }
 

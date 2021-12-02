@@ -55,24 +55,20 @@ public:
   // standard: each noisy op will be returned along with additional noise ops
   // superop: each noisy gate or reset will be returned as a single superop 
   Circuit sample_noise(const Circuit &circ,
-                       RngEngine &rng) const;
+                       RngEngine &rng,
+                       const Method method = Method::circuit) const;
 
-  // Set sample mode to circuit
-  // This is the default method for noise sampling that can work for
-  // any simulator that supports the sampled noise instructions
-  void activate_circuit_method();
-
-  // Set sample mode to superoperator
+  // Enable superop sampling method
   // This will cause all QuantumErrors stored in the noise model
   // to calculate their superoperator representations and raise
   // an exception if they cannot be converted.
-  void activate_superop_method();
+  void enable_superop_method(int num_threads=1);
 
-  // Set sample mode to kraus
+  // Enable kraus sampling method
   // This will cause all QuantumErrors stored in the noise model
   // to calculate their canonical Kraus representations and raise
   // an exception if they cannot be converted.
-  void activate_kraus_method();
+  void enable_kraus_method(int num_threads=1);
 
   //-----------------------------------------------------------------------
   // Checking if errors types are in noise model
@@ -124,49 +120,50 @@ public:
   // Utils
   //-----------------------------------------------------------------------
 
-  // Remap the qubits in the noise model.
-  // A remapping is entered as a map {old: new}
-  // Any qubits not in the mapping are assumed to be mapped to themselves.
-  // Hence the sets of all keys and all values of the map must be equal.
-  void remap_qubits(const std::unordered_map<uint_t, uint_t> &mapping);
-
   // Return vector of noise qubits for non local error on specified label and qubits
   // If no nonlocal error exists an empty set is returned.
   std::set<uint_t> nonlocal_noise_qubits(const std::string label, const reg_t &qubits) const;
-
-  // Set threshold for applying u1 rotation angles.
-  // an Op for u1(theta) will only be added if |theta| > 0 and |theta - 2*pi| > 0
-  inline void set_u1_threshold(double threshold) {
-    u1_threshold_ = threshold;
-  }
 
   // Return the opset for the noise model
   inline const Operations::OpSet& opset() const {return opset_;}
 
 private:
 
+  Circuit sample_noise_circuit(const Circuit &circ,
+                               RngEngine &rng,
+                               const Method method) const;
+
   // Sample noise for the current operation.
-  NoiseOps sample_noise(const Operations::Op &op,
-                        RngEngine &rng) const;
+  NoiseOps sample_noise_op(const Operations::Op &op,
+                           RngEngine &rng,
+                           const Method method,
+                           const reg_t &mapping) const;
 
   // Sample noise for the current operation
   void sample_readout_noise(const Operations::Op &op,
                             NoiseOps &noise_after,
-                            RngEngine &rng)  const;
+                            RngEngine &rng,
+                            const reg_t &mapping)  const;
 
   void sample_local_quantum_noise(const Operations::Op &op,
                                   NoiseOps &noise_before,
                                   NoiseOps &noise_after,
-                                  RngEngine &rng)  const;
+                                  RngEngine &rng,
+                                  const Method method,
+                                  const reg_t &mapping)  const;
 
   void sample_nonlocal_quantum_noise(const Operations::Op &op,
                                      NoiseOps &noise_ops,
                                      NoiseOps &noise_after,
-                                     RngEngine &rng) const;
+                                     RngEngine &rng,
+                                     const Method method,
+                                     const reg_t &mapping) const;
 
   // Sample noise for the current operation
   NoiseOps sample_noise_helper(const Operations::Op &op,
-                               RngEngine &rng) const;
+                               RngEngine &rng,
+                               const Method method,
+                               const reg_t &mapping) const;
 
   // Add a local quantum error to the noise model for specific qubits
   void add_local_quantum_error(const QuantumError &error,
@@ -208,8 +205,9 @@ private:
   // Helper function to convert reg to string for key of unordered maps/sets
   std::string reg2string(const reg_t &reg) const;
   reg_t string2reg(std::string s) const;
-  std::string remap_string(const std::string key,
-                           const std::unordered_map<uint_t, uint_t> &mapping) const;
+
+  // Remap op qubits to different noise qubits as supplied by a mapping
+  reg_t remap_reg(const reg_t &reg, const reg_t &mapping = reg_t()) const;
 
   // Helper function to try and convert an instruction to superop matrix
   // If conversion isn't possible this returns an empty matrix
@@ -219,22 +217,15 @@ private:
   // If conversion isn't possible this returns an empty matrix
   cmatrix_t op2unitary(const Operations::Op &op) const;
 
-  // Lookup table for gate strings to enum
-  enum class WaltzGate {id, x, y, z, h, s, sdg, t, tdg, u0, u1, u2, u3};
-  const static stringmap_t<WaltzGate> waltz_gate_table_;
-
   // Parameterized Gates
-  enum class ParamGate {u1, u2, u3, r, rx, ry, rz, rxx, ryy, rzz, rzx, cp};
+  enum class ParamGate {u1, u2, u3, r, rx, ry, rz, rxx, ryy, rzz, rzx, cp, cu};
   const static stringmap_t<ParamGate> param_gate_table_;
-
-  // waltz threshold for applying u1 rotations if |theta - 2n*pi | > threshold
-  double u1_threshold_ = 1e-10;
 
   // Joint OpSet of all errors
   Operations::OpSet opset_;
 
-  // Sampling method
-  Method method_ = Method::circuit;
+  // Allowed sampling methods
+  std::unordered_set<Method> enabled_methods_ = std::unordered_set<Method>({Method::circuit});
 };
 
 //=========================================================================
@@ -257,7 +248,8 @@ NoiseModel::param_gate_table_ = {
   {"rzx", ParamGate::rzx},
   {"p", ParamGate::u1},
   {"cp", ParamGate::cp},
-  {"cu1", ParamGate::cp}
+  {"cu1", ParamGate::cp},
+  {"cu", ParamGate::cu},
 };
 
 
@@ -265,25 +257,24 @@ NoiseModel::param_gate_table_ = {
 // Noise sampling
 //=========================================================================
 
-NoiseModel::NoiseOps NoiseModel::sample_noise(const Operations::Op &op,
-                                              RngEngine &rng) const {
-  // Noise operations
-  NoiseOps noise_ops = sample_noise_helper(op, rng);
-
-  // If original op is conditional, make all the noise operations also conditional
-  if (op.conditional) {
-    for (auto& noise_op : noise_ops) {
-      noise_op.conditional = op.conditional;
-      noise_op.conditional_reg = op.conditional_reg;
-      noise_op.bfunc = op.bfunc;
-    }
+Circuit NoiseModel::sample_noise(const Circuit &circ,
+                                 RngEngine &rng,
+                                 const Method method) const {
+  // Check edge case of empty circuit
+  if (circ.ops.empty()) {
+    return circ;
   }
-  return noise_ops;
+  // Check if sampling method is enabled
+  if (enabled_methods_.find(method) == enabled_methods_.end()) {
+    throw std::runtime_error(
+      "Kraus or superoperator noise sampling method has not been enabled.");
+  }
+  return sample_noise_circuit(circ, rng, method);                   
 }
 
-
-Circuit NoiseModel::sample_noise(const Circuit &circ,
-                                 RngEngine &rng) const {
+Circuit NoiseModel::sample_noise_circuit(const Circuit &circ,
+                                         RngEngine &rng,
+                                         const Method method) const {
     bool noise_active = true; // set noise active to on-state
     Circuit noisy_circ;
     // Copy metadata
@@ -293,6 +284,11 @@ Circuit NoiseModel::sample_noise(const Circuit &circ,
 
     // Reserve double length of ops just to be safe
     noisy_circ.ops.reserve(2 * circ.ops.size());
+
+    // Qubit mapping
+    reg_t mapping;
+    if (circ.remapped_qubits)
+      mapping = reg_t(circ.qubits().cbegin(), circ.qubits().cend());
 
     // Sample a noisy realization of the circuit
     for (const auto &op: circ.ops) {
@@ -322,7 +318,7 @@ Circuit NoiseModel::sample_noise(const Circuit &circ,
           break;
         default:
           if (noise_active) {
-            NoiseOps noisy_op = sample_noise(op, rng);
+            NoiseOps noisy_op = sample_noise_op(op, rng, method, mapping);
             noisy_circ.ops.insert(noisy_circ.ops.end(), noisy_op.begin(), noisy_op.end());
           }
           break;
@@ -333,26 +329,44 @@ Circuit NoiseModel::sample_noise(const Circuit &circ,
     return noisy_circ;
 }
 
-void NoiseModel::activate_circuit_method() {
-  method_ = Method::circuit;
+
+NoiseModel::NoiseOps NoiseModel::sample_noise_op(const Operations::Op &op,
+                                                 RngEngine &rng,
+                                                 const Method method,
+                                                 const reg_t &mapping) const {
+  // Noise operations
+  NoiseOps noise_ops = sample_noise_helper(op, rng, method, mapping);
+
+  // If original op is conditional, make all the noise operations also conditional
+  if (op.conditional) {
+    for (auto& noise_op : noise_ops) {
+      noise_op.conditional = op.conditional;
+      noise_op.conditional_reg = op.conditional_reg;
+      noise_op.bfunc = op.bfunc;
+    }
+  }
+  return noise_ops;
 }
 
-void NoiseModel::activate_superop_method() {
-  // Set internal sampling method
-  method_ = Method::superop;
-  // Compute superoperators
-  for (auto& qerror : quantum_errors_) {
-    qerror.compute_superoperator();
+
+void NoiseModel::enable_superop_method(int num_threads) {
+  if (enabled_methods_.find(Method::superop) == enabled_methods_.end()) {
+    #pragma omp parallel for if (num_threads > 1 && quantum_errors_.size() > 10) num_threads(num_threads)
+    for (int i=0; i < quantum_errors_.size(); i++)  {
+      quantum_errors_[i].compute_superoperator();
+    }
+    enabled_methods_.insert(Method::superop);
   }
 }
 
 
-void NoiseModel::activate_kraus_method() {
-  // Set internal sampling method
-  method_ = Method::kraus;
-  // Compute kraus
-  for (auto& qerror : quantum_errors_) {
-    qerror.compute_kraus();
+void NoiseModel::enable_kraus_method(int num_threads) {
+  if (enabled_methods_.find(Method::kraus) == enabled_methods_.end()) {
+    #pragma omp parallel for if (num_threads > 1 && quantum_errors_.size() > 10) num_threads(num_threads)
+    for (int i=0; i < quantum_errors_.size(); i++)  {
+      quantum_errors_[i].compute_kraus();
+    }
+    enabled_methods_.insert(Method::kraus);
   }
 }
 
@@ -449,28 +463,31 @@ void NoiseModel::add_nonlocal_quantum_error(const QuantumError &error,
 
 
 NoiseModel::NoiseOps NoiseModel::sample_noise_helper(const Operations::Op &op,
-                                                     RngEngine &rng) const {                                                
+                                                     RngEngine &rng,
+                                                     const Method method,
+                                                     const reg_t &mapping) const {                                                
   // Return operator set
   NoiseOps noise_before;
   NoiseOps noise_after;
   // Apply local errors first
-  sample_local_quantum_noise(op, noise_before, noise_after, rng);
+  sample_local_quantum_noise(op, noise_before, noise_after, rng, method, mapping);
   // Apply nonlocal errors second
-  sample_nonlocal_quantum_noise(op, noise_before, noise_after, rng);
+  sample_nonlocal_quantum_noise(op, noise_before, noise_after, rng, method, mapping);
   // Apply readout error to measure ops
   if (op.type == Operations::OpType::measure) {
-    sample_readout_noise(op, noise_after, rng);
+    sample_readout_noise(op, noise_after, rng, mapping);
   }
 
   // Combine errors
   auto &noise_ops = noise_before;
   noise_ops.reserve(noise_before.size() + noise_after.size() + 1);
-  noise_ops.push_back(op);
+  if (op.type != Operations::OpType::qerror_loc) {
+    noise_ops.push_back(op);
+  }
   noise_ops.insert(noise_ops.end(),
                    std::make_move_iterator(noise_after.begin()),
                    std::make_move_iterator(noise_after.end()));
-  
-  
+
   if (op.type != Operations::OpType::measure &&
       noise_ops.size() == 2 &&
       noise_ops[0].qubits == noise_ops[1].qubits) {
@@ -518,7 +535,8 @@ NoiseModel::NoiseOps NoiseModel::sample_noise_helper(const Operations::Op &op,
 
 void NoiseModel::sample_readout_noise(const Operations::Op &op,
                                       NoiseOps &noise_after,
-                                      RngEngine &rng) const {
+                                      RngEngine &rng,
+                                      const reg_t &mapping) const {
   // If no readout errors are defined pass
   if (readout_errors_.empty()) {
     return;
@@ -527,8 +545,10 @@ void NoiseModel::sample_readout_noise(const Operations::Op &op,
   // We will use the same error model for both memory and registers
   bool has_registers = !op.registers.empty();
   
-  //
-  std::string op_qubits = reg2string(op.qubits);
+  // Optional remap circuit qubits to noise model qubits
+  const auto op_qubits = remap_reg(op.qubits, mapping);
+
+  std::string op_qubits_key = reg2string(op_qubits);
 
   // Check if the qubits are listed in the readout error model
   auto iter_default = readout_error_table_.find(std::string());
@@ -536,12 +556,12 @@ void NoiseModel::sample_readout_noise(const Operations::Op &op,
   // Format qubit sets
   std::vector<std::string> qubit_keys;
   std::vector<reg_t> memory_sets, registers_sets;
-  if (readout_error_table_.find(op_qubits) == readout_error_table_.end()) {
+  if (readout_error_table_.find(op_qubits_key) == readout_error_table_.end()) {
     // Since measure can be defined on multiple qubits
     // but error model may be specified only on single qubits we add
     // each one separately. If a multi-qubit model is found for specified
     // qubits however, that will be used instead.
-    for (const auto &q : op.qubits) {
+    for (const auto &q : op_qubits) {
       qubit_keys.push_back(std::to_string(q));
     }
     // Add the classical register sets for measure ops
@@ -555,7 +575,7 @@ void NoiseModel::sample_readout_noise(const Operations::Op &op,
     }
   } else {
     // for gate operations we use the qubits as specified
-    qubit_keys.push_back(op_qubits);
+    qubit_keys.push_back(op_qubits_key);
     memory_sets.push_back(op.memory);
     if (has_registers)
       registers_sets.push_back(op.registers);
@@ -587,7 +607,9 @@ void NoiseModel::sample_readout_noise(const Operations::Op &op,
 void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
                                             NoiseOps &noise_before,
                                             NoiseOps &noise_after,
-                                            RngEngine &rng) const {
+                                            RngEngine &rng,
+                                            const Method method,
+                                            const reg_t &mapping) const {
   
   // If no errors are defined pass
   if (local_quantum_errors_ == false)
@@ -603,8 +625,11 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
   bool is_measure_or_reset = (op.type == Operations::OpType::measure ||
                               op.type == Operations::OpType::reset);
 
+  // Optional remap circuit qubits to noise model qubits
+  const auto remapped_op_qubits = remap_reg(op.qubits, mapping);
+
   // Convert qubits to string for table lookup
-  std::string op_qubits = reg2string(op.qubits);
+  std::string op_qubits_key = reg2string(remapped_op_qubits);
 
   // Get the qubit error map for gate name
   auto iter = local_quantum_error_table_.find(name);
@@ -616,19 +641,24 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
     auto iter_default = qubit_map.find(std::string());
     // Format qubit sets
     std::vector<std::string> qubit_keys;
-    if (is_measure_or_reset && qubit_map.find(op_qubits) == qubit_map.end()) {
+    std::vector<reg_t> original_qubits;
+    if (is_measure_or_reset && qubit_map.find(op_qubits_key) == qubit_map.end()) {
       // Since measure and reset ops can be defined on multiple qubits
       // but error model may be specified only on single qubits we add
       // each one separately. If a multi-qubit model is found for specified
       // qubits however, that will be used instead.
-      for (const auto &q : op.qubits) {
-        qubit_keys.push_back(std::to_string(q) + std::string(","));
+      for (size_t i=0; i < remapped_op_qubits.size(); ++i) {
+        qubit_keys.push_back(std::to_string(remapped_op_qubits[i]) + std::string(","));
+        original_qubits.push_back(reg_t({op.qubits[i]}));
       }
     } else {
       // for gate operations we use the qubits as specified
-      qubit_keys.push_back(op_qubits);
+      qubit_keys.push_back(op_qubits_key);
+      original_qubits.push_back(op.qubits);
     }
-    for(auto qubit_key: qubit_keys){
+    for(size_t i=0; i < qubit_keys.size(); ++i){
+      const auto& op_qubits = original_qubits[i];
+      const auto& qubit_key = qubit_keys[i];
       auto iter_qubits = qubit_map.find(qubit_key);
       if (iter_qubits != qubit_map.end() ||
           iter_default != qubit_map.end()) {
@@ -636,7 +666,7 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
           ? iter_qubits->second
           : iter_default->second;
         for (auto &pos : error_positions) {
-          auto noise_ops = quantum_errors_[pos].sample_noise(string2reg(qubit_key), rng, method_);
+          auto noise_ops = quantum_errors_[pos].sample_noise(op_qubits, rng, method);
           // Duplicate same sampled error operations
           if (quantum_errors_[pos].errors_after())
             noise_after.insert(noise_after.end(), noise_ops.begin(), noise_ops.end());
@@ -652,7 +682,9 @@ void NoiseModel::sample_local_quantum_noise(const Operations::Op &op,
 void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
                                                NoiseOps &noise_before,
                                                NoiseOps &noise_after,
-                                               RngEngine &rng) const {
+                                               RngEngine &rng,
+                                               const Method method,
+                                               const reg_t &mapping) const {
   
   // If no errors are defined pass
   if (nonlocal_quantum_errors_ == false)
@@ -663,6 +695,10 @@ void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
                       op.type == Operations::OpType::gate)
     ? op.string_params[0]
     : op.name;
+
+  if (!mapping.empty()) {
+    throw std::invalid_argument("Non-local noise model cannot be used with a qubit mapping.");
+  }
 
   // Convert qubits to string for table lookup
   std::string qubits_str = reg2string(op.qubits);
@@ -679,8 +715,9 @@ void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
       // but error model may be specified only on single qubits we add
       // each one separately. If a multi-qubit model is found for specified
       // qubits however, that will be used instead.
-      for (const auto &q : op.qubits)
+      for (const auto &q : op.qubits) {
         qubit_keys.push_back(std::to_string(q));
+      }
     } else {
       // for gate operations we use the qubits as specified
       qubit_keys.push_back(reg2string(op.qubits));
@@ -694,7 +731,7 @@ void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
           auto &error_positions = target_pair.second;
           for (auto &pos : error_positions) {
             auto ops = quantum_errors_[pos].sample_noise(string2reg(target_qubits), rng,
-                                                         method_);
+                                                         method);
             if (quantum_errors_[pos].errors_after())
               noise_after.insert(noise_after.end(), ops.begin(), ops.end());
             else
@@ -705,15 +742,6 @@ void NoiseModel::sample_nonlocal_quantum_noise(const Operations::Op &op,
     }
   }
 }
-
-
-const stringmap_t<NoiseModel::WaltzGate>
-NoiseModel::waltz_gate_table_ = {
-  {"u3", WaltzGate::u3}, {"u2", WaltzGate::u2}, {"u1", WaltzGate::u1}, {"u0", WaltzGate::u0},
-  {"id", WaltzGate::id}, {"x", WaltzGate::x}, {"y", WaltzGate::y}, {"z", WaltzGate::z},
-  {"h", WaltzGate::h}, {"s", WaltzGate::s}, {"sdg", WaltzGate::sdg},
-  {"t", WaltzGate::t}, {"tdg", WaltzGate::tdg}
-};
 
 
 cmatrix_t NoiseModel::op2superop(const Operations::Op &op) const {
@@ -756,6 +784,8 @@ cmatrix_t NoiseModel::op2superop(const Operations::Op &op) const {
             return Linalg::SMatrix::rzx(op.params[0]);
           case ParamGate::cp:
             return Linalg::SMatrix::cphase(op.params[0]);
+          case ParamGate::cu:
+            return Linalg::SMatrix::cu(op.params[0], op.params[1], op.params[2], op.params[3]);
         }
       } else {
         // Check if we can convert this gate to a standard superoperator matrix
@@ -861,93 +891,16 @@ std::set<uint_t> NoiseModel::nonlocal_noise_qubits(const std::string label,
   return all_noise_qubits;
 }
 
-
-std::string NoiseModel::remap_string(const std::string key,
-                                     const std::unordered_map<uint_t, uint_t> &mapping) const{
-  reg_t qubits = string2reg(key);
-  for (size_t j=0; j<qubits.size(); j++)
-    qubits[j] = mapping.at(qubits[j]);
-  return reg2string(qubits);
+reg_t NoiseModel::remap_reg(const reg_t &reg, const reg_t &mapping) const {
+  if (mapping.empty()) {
+    return reg;
+  }
+  reg_t ret(reg.size());
+  for (size_t i = 0; i < reg.size(); ++i) {
+    ret[i] = mapping[reg[i]];
+  }
+  return ret;
 }
-
-
-void NoiseModel::remap_qubits(const std::unordered_map<uint_t, uint_t> &mapping) {
-
-  // If noise model is ideal we have no need to remap
-  if (is_ideal())
-    return;
-
-  // We only need the mapping for qubits in the noise model.
-  // We add qubits not specified in the mapping as trivial mapping to themselves
-  // We also validate the mapping while building the full mapping
-  std::unordered_map<uint_t, uint_t> full_mapping = mapping;
-  // Add noise qubits not specified in mapping
-  for (const auto &qubit : noise_qubits_) {
-    if (full_mapping.find(qubit) == full_mapping.end()) {
-      full_mapping[qubit] = qubit;
-    }
-  }
-
-  // Check mapping is valid
-  std::set<uint_t> qubits_in;
-  std::set<uint_t> qubits_out;
-  for (const auto &pair: full_mapping) {
-    qubits_in.insert(pair.first);
-    qubits_out.insert(pair.second);
-  }
-  if (qubits_in != qubits_out) {
-    std::stringstream msg;
-    msg << "NoiseModel: invalid qubit re-mapping " << full_mapping;
-    throw std::invalid_argument(msg.str());
-  }
-
-  // Remap readout error
-  if (has_readout_errors()) {
-    inner_table_t new_readout_error_table;
-    for (const auto &pair : readout_error_table_) {
-      new_readout_error_table[remap_string(pair.first, full_mapping)] = pair.second;
-    }
-    readout_error_table_ = new_readout_error_table;
-    new_readout_error_table.clear();
-  }
-
-  // Remap local quantum error
-  if (has_local_quantum_errors()) {
-    for (auto& outer_pair : local_quantum_error_table_) {
-      // Get reference to the inner table we need to change the keys for
-      auto& inner_table = outer_pair.second;
-      // Make a temporary table to store remapped table
-      inner_table_t new_table;
-      for (const auto &inner_pair : inner_table) {
-        new_table[remap_string(inner_pair.first, full_mapping)] = inner_pair.second;
-      }
-      // Replace inner table with the remapped table
-      inner_table = new_table;
-    }
-  }
-
-  // Remap nonlocal quantum error
-  if (has_nonlocal_quantum_errors()) {
-    for (auto& pair : nonlocal_quantum_error_table_) {
-      // Get reference to the middle table we need to change the keys for
-      auto& outer_table = pair.second;
-      // Make a temporary table to store remapped outer table
-      outer_table_t new_outer_table;
-      for (auto& outer_pair : outer_table) {
-        // Remap inner table
-        auto& inner_table = outer_pair.second;
-        inner_table_t new_inner_table;
-        for (const auto &inner_pair : inner_table) {
-          new_inner_table[remap_string(inner_pair.first, full_mapping)] = inner_pair.second;
-        }
-        // Update outer table with remapped inner table
-        new_outer_table[remap_string(outer_pair.first, full_mapping)] = new_inner_table;
-      }
-      outer_table = new_outer_table;
-    }
-  }
-}
-
 
 //=========================================================================
 // JSON Conversion

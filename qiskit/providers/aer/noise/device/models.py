@@ -16,6 +16,7 @@ Simplified noise models for devices backends.
 """
 
 import logging
+from warnings import warn, catch_warnings, filterwarnings
 
 from numpy import inf, exp, allclose
 
@@ -57,7 +58,7 @@ def basic_device_gate_errors(properties,
                              gate_lengths=None,
                              gate_length_units='ns',
                              temperature=0,
-                             standard_gates=True,
+                             standard_gates=None,
                              warnings=True):
     """
     Return QuantumErrors derived from a devices BackendProperties.
@@ -80,9 +81,9 @@ def basic_device_gate_errors(properties,
                                  Can be 'ns', 'ms', 'us', or 's' (Default: 'ns').
         temperature (double): qubit temperature in milli-Kelvin (mK)
                               (Default: 0).
-        standard_gates (bool): If true return errors as standard
+        standard_gates (bool): DEPRECATED, If true return errors as standard
                                qobj gates. If false return as unitary
-                               qobj instructions (Default: True).
+                               qobj instructions (Default: None).
         warnings (bool): Display warnings (Default: True).
 
     Returns:
@@ -90,6 +91,11 @@ def basic_device_gate_errors(properties,
         with non-zero quantum error terms, where `label` is the label of the
         noisy gate, `qubits` is the list of qubits for the gate.
     """
+    if standard_gates is not None:
+        warn(
+            '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
+            ' and will be removed no earlier than 3 months from that release date.',
+            DeprecationWarning, stacklevel=2)
     # Initilize empty errors
     depol_error = None
     relax_error = None
@@ -135,8 +141,14 @@ def basic_device_gate_errors(properties,
 
         # Get depolarizing error channel
         if gate_error:
-            depol_error = _device_depolarizing_error(
-                qubits, error_param, relax_error, standard_gates, warnings=warnings)
+            with catch_warnings():
+                filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    module="qiskit.providers.aer.noise.errors.errorutils"
+                )
+                depol_error = _device_depolarizing_error(
+                    qubits, error_param, relax_error, standard_gates, warnings=warnings)
 
         # Combine errors
         if depol_error is None and relax_error is None:

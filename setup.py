@@ -68,21 +68,22 @@ from skbuild import setup
 # of requirements
 common_requirements = [
     'numpy>=1.16.3',
-    'scipy>=1.0',
-    'pybind11>=2.6'  # This isn't really an install requirement,
-                     # Pybind11 is required to be pre-installed for
-                     # CMake to successfully find header files.
-                     # This should be fixed in the CMake build files.
 ]
 
 setup_requirements = common_requirements + [
     'scikit-build>=0.11.0',
     'cmake!=3.17,!=3.17.0',
+    'pybind11>=2.6',
 ]
+
+extras_requirements = {
+    "dask": ["dask", "distributed"]
+}
+
 if not _DISABLE_CONAN:
     setup_requirements.append('conan>=1.22.2')
 
-requirements = common_requirements + ['qiskit-terra>=0.17.0']
+requirements = common_requirements + ['qiskit-terra>=0.17.0', 'scipy>=1.0']
 
 if not hasattr(setuptools,
                'find_namespace_packages') or not inspect.ismethod(
@@ -103,7 +104,7 @@ with open(README_PATH) as readme_file:
     README = readme_file.read()
 
 
-cmake_args = ["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9"]
+cmake_args = []
 is_win_32_bit = (platform.system() == 'Windows' and platform.architecture()[0] == "32bit")
 if is_win_32_bit:
     cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")
@@ -140,6 +141,7 @@ setup(
     install_requires=requirements,
     setup_requires=setup_requirements,
     include_package_data=True,
+    extras_require=extras_requirements,
     cmake_args=cmake_args,
     keywords="qiskit aer simulator quantum addon backend",
     zip_safe=False

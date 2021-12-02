@@ -18,7 +18,7 @@ import unittest
 import multiprocessing
 
 from qiskit import QuantumCircuit, execute
-from qiskit.providers.aer import AerProvider, QasmSimulator
+from qiskit.providers.aer import AerProvider, AerSimulator
 
 
 # Backwards compatibility for Terra <= 0.13
@@ -62,7 +62,7 @@ def requires_omp(test_item):
         callable: the decorated function.
     """
     # Run dummy circuit to check OpenMP status
-    result = execute(QuantumCircuit(1), QasmSimulator()).result()
+    result = AerSimulator().run(QuantumCircuit(1)).result()
     omp_enabled = result.metadata.get('omp_enabled', False)
     skip = not omp_enabled
     reason = 'OpenMP not available, skipping test'

@@ -22,7 +22,8 @@ from ..version import __version__
 from .aerbackend import AerBackend, AerError
 from .backend_utils import (cpp_execute, available_methods,
                             available_devices,
-                            MAX_QUBITS_STATEVECTOR)
+                            MAX_QUBITS_STATEVECTOR,
+                            BASIS_GATES)
 # pylint: disable=import-error, no-name-in-module
 from .controller_wrappers import aer_controller_execute
 
@@ -133,7 +134,7 @@ class AerSimulator(AerBackend):
     +--------------------------+---------------+
     | ``stabilizer``           | No            |
     +--------------------------+---------------+
-    | `"matrix_product_state`` | No            |
+    | ``matrix_product_state`` | No            |
     +--------------------------+---------------+
     | ``extended_stabilizer``  | No            |
     +--------------------------+---------------+
@@ -151,12 +152,27 @@ class AerSimulator(AerBackend):
     The following simulator specific backend options are supported
 
     * ``method`` (str): Set the simulation method (Default: ``"automatic"``).
+      Use :meth:`available_methods` to return a list of all availabe methods.
 
     * ``device`` (str): Set the simulation device (Default: ``"CPU"``).
+      Use :meth:`available_devices` to return a list of devices supported
+      on the current system.
 
     * ``precision`` (str): Set the floating point precision for
       certain simulation methods to either ``"single"`` or ``"double"``
       precision (default: ``"double"``).
+
+    * ``executor`` (futures.Executor or None): Set a custom executor for
+      asynchronous running of simulation jobs (Default: None).
+
+    * ``max_job_size`` (int or None): If the number of run circuits
+      exceeds this value simulation will be run as a set of of sub-jobs
+      on the executor. If ``None`` simulation of all circuits are submitted
+      to the executor as a single job (Default: None).
+
+    * ``enable_truncation`` (bool): If set to True this removes unnecessary
+      qubits which do not affect the simulation outcome from the simulated
+      circuits (Default: True).
 
     * ``zero_threshold`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
@@ -188,16 +204,6 @@ class AerSimulator(AerBackend):
       values (16 Bytes). If set to 0, the maximum will be automatically
       set to the system memory size (Default: 0).
 
-    * ``optimize_ideal_threshold`` (int): Sets the qubit threshold for
-      applying circuit optimization passes on ideal circuits.
-      Passes include gate fusion and truncation of unused qubits
-      (Default: 5).
-
-    * ``optimize_noise_threshold`` (int): Sets the qubit threshold for
-      applying circuit optimization passes on ideal circuits.
-      Passes include gate fusion and truncation of unused qubits
-      (Default: 12).
-
     These backend options only apply when using the ``"statevector"``
     simulation method:
 
@@ -225,26 +231,26 @@ class AerSimulator(AerBackend):
     These backend options only apply when using the ``"extended_stabilizer"``
     simulation method:
 
-    * ``extended_stabilizer_sampling_methid`` (string): Choose how to simulate
+    * ``extended_stabilizer_sampling_method`` (string): Choose how to simulate
       measurements on qubits. The performance of the simulator depends
       significantly on this choice. In the following, let n be the number of
       qubits in the circuit, m the number of qubits measured, and S be the
-      number of shots. (Default: resampled_metropolis)
+      number of shots (Default: resampled_metropolis).
 
-      * ``"metropolis"``: Use a Monte-Carlo method to sample many output
+      - ``"metropolis"``: Use a Monte-Carlo method to sample many output
         strings from the simulator at once. To be accurate, this method
         requires that all the possible output strings have a non-zero
         probability. It will give inaccurate results on cases where
         the circuit has many zero-probability outcomes.
         This method has an overall runtime that scales as n^{2} + (S-1)n.
 
-      * ``"resampled_metropolis"``: A variant of the metropolis method,
+      - ``"resampled_metropolis"``: A variant of the metropolis method,
         where the Monte-Carlo method is reinitialised for every shot. This
         gives better results for circuits where some outcomes have zero
         probability, but will still fail if the output distribution
         is sparse. The overall runtime scales as Sn^{2}.
 
-      * ``"norm_estimation"``: An alternative sampling method using
+      - ``"norm_estimation"``: An alternative sampling method using
         random state inner products to estimate outcome probabilites. This
         method requires twice as much memory, and significantly longer
         runtimes, but gives accurate results on circuits with sparse
@@ -256,7 +262,7 @@ class AerSimulator(AerBackend):
       alongside setting extended_stabilizer_disable_measurement_opt
       to True (Default: 5000).
 
-    * ``"extended_stabilizer_approximation_error"`` (double): Set the error
+    * ``extended_stabilizer_approximation_error`` (double): Set the error
       in the approximation for the extended_stabilizer method. A
       smaller error needs more memory and computational time
       (Default: 0.05).
@@ -281,7 +287,7 @@ class AerSimulator(AerBackend):
       samples used to estimate probabilities in a probabilities snapshot
       (Default: 3000).
 
-    These backend options only apply when using the ``"matrix_product_state"``
+    These backend options only apply when using the ``matrix_product_state``
     simulation method:
 
     * ``matrix_product_state_max_bond_dimension`` (int): Sets a limit
@@ -294,18 +300,28 @@ class AerSimulator(AerBackend):
       their squares is smaller than this threshold.
       (Default: 1e-16).
 
-    * ``mps_sample_measure_algorithm`` (str):
-      Choose which algorithm to use for ``"sample_measure"``. ``"mps_probabilities"``
-      means all state probabilities are computed and measurements are based on them.
-      It is more efficient for a large number of shots, small number of qubits and low
-      entanglement. ``"mps_apply_measure"`` creates a copy of the mps structure and
-      makes a measurement on it. It is more effients for a small number of shots, high
-      number of qubits, and low entanglement. If the user does not specify the algorithm,
-      a heuristic algorithm is used to select between the two algorithms.
-      (Default: "mps_heuristic").
+    * ``mps_sample_measure_algorithm`` (str): Choose which algorithm to use for
+      ``"sample_measure"`` (Default: "mps_apply_measure").
+
+      - ``mps_probabilities``: This method first constructs the probability
+        vector and then generates a sample per shot. It is more efficient for
+        a large number of shots and a small number of qubits, with complexity
+        O(2^n * n * D^2) to create the vector and O(1) per shot, where n is
+        the number of qubits and D is the bond dimension.
+
+      - ``mps_apply_measure``: This method creates a copy of the mps structure
+        and measures directly on it. It is more efficient for a small number of
+        shots, and a large number of qubits, with complexity around
+        O(n * D^2) per shot.
+
     * ``mps_log_data`` (str): if True, output logging data of the MPS
       structure: bond dimensions and values discarded during approximation.
       (Default: False)
+
+    * ``mps_swap_direction`` (str): Determine the direction of swapping the
+      qubits when internal swaps are inserted for a 2-qubit gate.
+      Possible values are "mps_swap_right" and "mps_swap_left".
+      (Default: "mps_swap_left")
 
     These backend options apply in circuit optimization passes:
 
@@ -318,96 +334,40 @@ class AerSimulator(AerBackend):
     * ``fusion_threshold`` (int): Threshold that number of qubits must be greater
       than or equal to enable fusion optimization [Default: 14]
     """
-    # Supported basis gates for each simulation method
-    _BASIS_GATES = {
-        'statevector': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
-            'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-            'mcphase', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
-            'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
-            'initialize', 'delay', 'pauli', 'mcx_gray'
-        ]),
-        'density_matrix': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
-            'unitary', 'diagonal', 'delay', 'pauli',
-        ]),
-        'matrix_product_state': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
-            'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay', 'pauli',
-            'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
-            'initialize'
-        ]),
-        'stabilizer': sorted([
-            'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'cx', 'cy', 'cz',
-            'swap', 'delay', 'pauli'
-        ]),
-        'extended_stabilizer': sorted([
-            'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx',
-            'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay', 'pauli'
-        ]),
-        'clifford_phase_compute': sorted([
-            'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg',
-            'swap', 't', 'tdg', 'delay', 'p', 'u1', 'rz'
-        ]),
-        'unitary': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
-            'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-            'mcp', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
-            'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer', 'delay', 'pauli',
-        ]),
-        'superop': sorted([
-            'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-            'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
-            'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy',
-            'rzz', 'rzx', 'ccx', 'unitary', 'diagonal', 'delay', 'pauli'
-        ])
-    }
-    # Automatic method basis gates are the union of statevector,
-    # density matrix, and stabilizer methods
-    _BASIS_GATES[None] = _BASIS_GATES['automatic'] = sorted(
-        set(_BASIS_GATES['statevector']).union(
-            _BASIS_GATES['stabilizer']).union(
-                _BASIS_GATES['density_matrix']).union(
-                    _BASIS_GATES['matrix_product_state']).union(
-                        _BASIS_GATES['unitary']).union(
-                            _BASIS_GATES['superop']))
+    _BASIS_GATES = BASIS_GATES
 
     _CUSTOM_INSTR = {
         'statevector': sorted([
-            'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
+            'quantum_channel', 'qerror_loc', 'roerror', 'kraus',
+            'snapshot', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_amplitudes', 'save_amplitudes_sq',
             'save_density_matrix', 'save_state', 'save_statevector',
-            'save_statevector_dict', 'set_statevector'
+            'save_statevector_dict', 'set_statevector',
         ]),
         'density_matrix': sorted([
-            'roerror', 'kraus', 'superop', 'snapshot',
+            'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop', 'snapshot',
             'save_state', 'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
-            'save_density_matrix', 'save_amplitudes_sq',
-            'set_density_matrix'
+            'save_density_matrix', 'save_amplitudes_sq', 'set_density_matrix'
         ]),
         'matrix_product_state': sorted([
-            'roerror', 'snapshot', 'kraus', 'save_expval', 'save_expval_var',
+            'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'kraus',
+            'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_state', 'save_matrix_product_state', 'save_statevector',
             'save_density_matrix', 'save_amplitudes', 'save_amplitudes_sq',
-            'set_matrix_product_state'
+            'set_matrix_product_state',
         ]),
         'stabilizer': sorted([
-            'roerror', 'snapshot', 'save_expval', 'save_expval_var',
+            'quantum_channel', 'qerror_loc', 'roerror', 'snapshot',
+            'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
             'save_amplitudes_sq', 'save_state', 'save_stabilizer',
             'set_stabilizer'
         ]),
         'extended_stabilizer': sorted([
-            'roerror', 'snapshot', 'save_statevector'
+            'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'save_statevector'
         ]),
         'clifford_phase_compute': sorted([
             'save_specific_probability'
@@ -416,9 +376,11 @@ class AerSimulator(AerBackend):
             'snapshot', 'save_state', 'save_unitary', 'set_unitary'
         ]),
         'superop': sorted([
-            'kraus', 'superop', 'save_state', 'save_superop', 'set_superop'
+            'quantum_channel', 'qerror_loc', 'kraus', 'superop', 'save_state',
+            'save_superop', 'set_superop'
         ])
     }
+
     # Automatic method custom instructions are the union of statevector,
     # density matrix, and stabilizer methods
     _CUSTOM_INSTR[None] = _CUSTOM_INSTR['automatic'] = sorted(
@@ -442,7 +404,7 @@ class AerSimulator(AerBackend):
         'max_shots': int(1e6),
         'description': 'A C++ QasmQobj simulator with noise',
         'coupling_map': None,
-        'basis_gates': _BASIS_GATES['automatic'],
+        'basis_gates': BASIS_GATES['automatic'],
         'custom_instructions': _CUSTOM_INSTR['automatic'],
         'gates': []
     }
@@ -455,7 +417,7 @@ class AerSimulator(AerBackend):
 
     _AVAILABLE_METHODS = None
 
-    _SIMULATION_DEVICES = ['CPU', 'GPU', 'Thrust']
+    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust')
 
     _AVAILABLE_DEVICES = None
 
@@ -486,7 +448,6 @@ class AerSimulator(AerBackend):
 
         super().__init__(configuration,
                          properties=properties,
-                         available_methods=AerSimulator._AVAILABLE_METHODS,
                          provider=provider,
                          backend_options=backend_options)
 
@@ -498,14 +459,15 @@ class AerSimulator(AerBackend):
             method='automatic',
             device='CPU',
             precision="double",
+            executor=None,
+            max_job_size=None,
+            enable_truncation=True,
             zero_threshold=1e-10,
             validation_threshold=None,
             max_parallel_threads=None,
             max_parallel_experiments=None,
             max_parallel_shots=None,
             max_memory_mb=None,
-            optimize_ideal_threshold=5,
-            optimize_noise_threshold=12,
             fusion_enable=True,
             fusion_verbose=False,
             fusion_max_qubit=5,
@@ -526,7 +488,7 @@ class AerSimulator(AerBackend):
             extended_stabilizer_metropolis_mixing_time=5000,
             extended_stabilizer_approximation_error=0.05,
             extended_stabilizer_norm_estimation_samples=100,
-            extended_stabilizer_norm_estimation_repitions=3,
+            extended_stabilizer_norm_estimation_repetitions=3,
             extended_stabilizer_parallel_threshold=100,
             extended_stabilizer_probabilities_snapshot_samples=3000,
             # MPS options
@@ -534,6 +496,7 @@ class AerSimulator(AerBackend):
             matrix_product_state_max_bond_dimension=None,
             mps_sample_measure_algorithm='mps_heuristic',
             mps_log_data=False,
+            mps_swap_direction='mps_swap_left',
             chop_threshold=1e-8,
             mps_parallel_threshold=14,
             mps_omp_threads=1)
@@ -585,9 +548,13 @@ class AerSimulator(AerBackend):
                   **options)
         return sim
 
+    def available_methods(self):
+        """Return the available simulation methods."""
+        return copy.copy(self._AVAILABLE_METHODS)
+
     def available_devices(self):
         """Return the available simulation methods."""
-        return self._AVAILABLE_DEVICES
+        return copy.copy(self._AVAILABLE_DEVICES)
 
     def configuration(self):
         """Return the simulator backend configuration.
@@ -618,29 +585,18 @@ class AerSimulator(AerBackend):
         """
         return cpp_execute(self._controller, qobj)
 
-    def set_options(self, **fields):
-        out_options = {}
-        update_basis_gates = False
-        for key, value in fields.items():
-            if key == 'method':
-                self._set_method_config(value)
-                update_basis_gates = True
-                out_options[key] = value
-            elif key in ['noise_model', 'basis_gates']:
-                update_basis_gates = True
-                out_options[key] = value
-            elif key == 'device':
-                if value is not None and value not in self._AVAILABLE_DEVICES:
-                    raise AerError(
-                        "Invalid simulation device {}. Available devices"
-                        " are: {}".format(value, self._AVAILABLE_DEVICES))
-                out_options[key] = value
-            elif key == 'custom_instructions':
-                self._set_configuration_option(key, value)
-            else:
-                out_options[key] = value
-        super().set_options(**out_options)
-        if update_basis_gates:
+    def set_option(self, key, value):
+        if key == "custom_instructions":
+            self._set_configuration_option(key, value)
+            return
+        if key == "method":
+            if (value is not None and value not in self.available_methods()):
+                raise AerError(
+                    "Invalid simulation method {}. Available methods"
+                    " are: {}".format(value, self.available_methods()))
+            self._set_method_config(value)
+        super().set_option(key, value)
+        if key in ["method", "noise_model", "basis_gates"]:
             self._cached_basis_gates = self._basis_gates()
 
     def _validate(self, qobj):
@@ -701,7 +657,6 @@ class AerSimulator(AerBackend):
 
     def _set_method_config(self, method=None):
         """Set non-basis gate options when setting method"""
-        super().set_options(method=method)
         # Update configuration description and number of qubits
         if method == 'statevector':
             description = 'A C++ statevector simulator with noise'

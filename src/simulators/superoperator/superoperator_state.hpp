@@ -35,6 +35,7 @@ const Operations::OpSet StateOpSet(
     // Op types
     {Operations::OpType::gate, Operations::OpType::reset,
      Operations::OpType::snapshot, Operations::OpType::barrier,
+     Operations::OpType::qerror_loc,
      Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::kraus, Operations::OpType::superop,
@@ -45,13 +46,13 @@ const Operations::OpSet StateOpSet(
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
      "tdg",  "ccx", "r",  "rx",  "ry", "rz",  "rxx",  "ryy", "rzz",
-     "rzx",  "p",   "cp", "cu1", "sx", "x90", "delay", "pauli"},
+     "rzx",  "p",   "cp", "cu1", "sx", "sxdg", "x90", "delay", "pauli"},
     // Snapshots
     {"superop"});
 
 // Allowed gates enum class
 enum class Gates {
-  u2, u1, u3, id, x, y, z, h, s, sdg, sx, t, tdg, r, rx, ry, rz,
+  u2, u1, u3, id, x, y, z, h, s, sdg, sx, sxdg, t, tdg, r, rx, ry, rz,
   cx, cy, cz, cp, swap, rxx, ryy, rzz, rzx, ccx, pauli
 };
 
@@ -77,12 +78,12 @@ public:
   // Return the string name of the State class
   virtual std::string name() const override { return "superop"; }
 
-  // Apply a sequence of operations by looping over list
-  // If the input is not in allowed_ops an exeption will be raised.
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false) override;
+  // Apply an operation
+  // If the op is not in allowed_ops an exeption will be raised.
+  virtual void apply_op(const Operations::Op &op,
+                        ExperimentResult &result,
+                        RngEngine &rng,
+                        bool final_op = false) override;
 
   // Initializes an n-qubit unitary to the identity matrix
   virtual void initialize_qreg(uint_t num_qubits) override;
@@ -206,6 +207,7 @@ const stringmap_t<Gates> State<data_t>::gateset_({
     {"tdg", Gates::tdg}, // Conjguate-transpose of T gate
     {"x90", Gates::sx},  // Pi/2 X (equiv to Sqrt(X) gate)
     {"sx", Gates::sx},   // Sqrt(X) gate
+    {"sxdg", Gates::sxdg},// Sqrt(X)^hc gate
     {"r", Gates::r},     // R rotation gate
     {"rx", Gates::rx},   // Pauli-X rotation gate
     {"ry", Gates::ry},   // Pauli-Y rotation gate
@@ -239,20 +241,17 @@ const stringmap_t<Gates> State<data_t>::gateset_({
 //============================================================================
 
 template <class data_t>
-void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
-                              ExperimentResult &result,
-                              RngEngine &rng,
-                              bool final_ops) {
-  // Simple loop over vector of input operations
-  for (size_t i = 0; i < ops.size(); ++i) {
-    const auto& op = ops[i];
+void State<data_t>::apply_op(const Operations::Op &op,
+                             ExperimentResult &result,
+                             RngEngine &rng,
+                             bool final_op) {
+  if (BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case Operations::OpType::barrier:
+      case Operations::OpType::qerror_loc:
         break;
       case Operations::OpType::gate:
-        // Note conditionals will always fail since no classical registers
-        if (BaseState::creg_.check_conditional(op))
-          apply_gate(op);
+        apply_gate(op);
         break;
       case Operations::OpType::bfunc:
           BaseState::creg_.apply_bfunc(op);
@@ -285,7 +284,7 @@ void State<data_t>::apply_ops(const std::vector<Operations::Op> &ops,
         break;
       case Operations::OpType::save_state:
       case Operations::OpType::save_superop:
-        apply_save_state(op, result, final_ops && ops.size() == i + 1);
+        apply_save_state(op, result, final_op);
         break;
       default:
         throw std::invalid_argument(
@@ -467,6 +466,9 @@ void State<data_t>::apply_gate(const Operations::Op &op) {
       break;
     case Gates::sx:
       BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::SX);
+      break;
+    case Gates::sxdg:
+      BaseState::qreg_.apply_unitary_matrix(op.qubits, Linalg::VMatrix::SXDG);
       break;
     case Gates::t: {
       const double isqrt2{1. / std::sqrt(2)};

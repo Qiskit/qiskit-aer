@@ -28,7 +28,7 @@ namespace MatrixProductState {
 
 // Allowed gates enum class
 enum Gates {
-  id, h, x, y, z, s, sdg, sx, t, tdg, u1, u2, u3, r, rx, ry, rz, // single qubit
+  id, h, x, y, z, s, sdg, sx, sxdg, t, tdg, u1, u2, u3, r, rx, ry, rz, // single qubit
   cx, cy, cz, cu1, swap, su4, rxx, ryy, rzz, rzx, csx, // two qubit
   ccx, cswap, // three qubit
   pauli
@@ -37,6 +37,7 @@ enum Gates {
   //enum class Direction {RIGHT, LEFT};
 
   enum class Sample_measure_alg {APPLY_MEASURE, PROB, MEASURE_ALL, HEURISTIC};
+  enum class MPS_swap_direction {SWAP_LEFT, SWAP_RIGHT};
 
 //=========================================================================
 // MPS class
@@ -119,7 +120,10 @@ public:
     else
       return "";
   }
-  
+
+  //----------------------------------------------------------------
+  void move_all_qubits_to_sorted_ordering();
+
 
   /////////////////////////////////////////////////////////////////
   // API functions
@@ -133,6 +137,7 @@ public:
   //----------------------------------------------------------------
   void apply_h(uint_t index);
   void apply_sx(uint_t index);
+  void apply_sxdg(uint_t index);
   void apply_r(uint_t index, double phi, double lam);
   void apply_rx(uint_t index, double theta);
   void apply_ry(uint_t index, double theta);
@@ -224,6 +229,24 @@ public:
 
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
+//----------------------------------------------------------------
+  // Function name: get_prob_single_qubit_internal
+  // Description: Returns the probability of measuring outcome 0 (or 1)
+  //   for a single qubit in the standard basis.
+  //   It does the same as get_probabilities_vector but is faster for
+  //   a single qubit, and is used during measurement.
+  // Parameters: qubit - the qubit for which we want the probability
+  //             outcome - probability for 0 or 1
+  //             mat - the '0' (or '1')matrix for the given qubit, multiplied
+  //                   by its left and right lambdas. Contracting it with
+  //                   its conjugate gives the probability for outcome '0' (or '1')
+  //                   It is returned because it may be useful for further 
+  //                   computations.
+  // Returns: the probability for the given outcome.
+  //----------------------------------------------------------------
+
+  double get_prob_single_qubit_internal(uint_t qubit, uint_t outcome,
+					cmatrix_t &mat) const;
   //----------------------------------------------------------------
   // Function name: get_accumulated_probabilities_vector
   // Description: Computes the accumulated probabilities from 0
@@ -264,6 +287,10 @@ public:
     mps_log_data_ = mps_log_data;
   }
 
+  static void set_mps_swap_direction(MPS_swap_direction direction) {
+    mps_swap_direction_ = direction;
+  }
+
   static uint_t get_omp_threads() {
     return omp_threads_;
   }
@@ -285,6 +312,10 @@ public:
     return mps_log_data_;
   }
 
+  static MPS_swap_direction get_swap_direction() {
+    return mps_swap_direction_;
+  }
+
   //----------------------------------------------------------------
   // Function name: norm
   // Description: the norm is defined as <psi|A^dagger . A|psi>.
@@ -300,7 +331,8 @@ public:
   reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
 					   const reg_t &qubits);
 
-  reg_t apply_measure(const reg_t &qubits, RngEngine &rng);
+  reg_t apply_measure(const reg_t &qubits, const rvector_t &rnds);
+  reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
 
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector_internal
@@ -316,6 +348,7 @@ public:
   void reset(const reg_t &qubits, RngEngine &rng);
 
   reg_t get_bond_dimensions() const;
+  void print_bond_dimensions() const;
   uint_t get_max_bond_dimensions() const;
 
   mps_container_t copy_to_mps_container();
@@ -342,6 +375,8 @@ private:
   // if swap_gate==false, this is an internal swap, necessary for
   // some internal algorithm
   void apply_swap_internal(uint_t index_A, uint_t index_B, bool swap_gate=false);
+  void print_to_log_internal_swap(uint_t qubit0, uint_t qubit1) const;
+
   void apply_2_qubit_gate(uint_t index_A, uint_t index_B, 
 			  Gates gate_type, const cmatrix_t &mat,
 			  bool is_diagonal=false);
@@ -357,7 +392,7 @@ private:
   // Certain local operations need to be propagated to the neighboring qubits. 
   // Such operations include apply_measure and apply_kraus
   void propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit, 
-				       bool measure_all=false);
+				       uint_t next_measured_qubit);
 
   // apply_matrix for more than 2 qubits
   void apply_multi_qubit_gate(const reg_t &qubits,
@@ -410,11 +445,9 @@ private:
 
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 
-  reg_t apply_measure_internal(const reg_t &qubits,
-			       RngEngine &rng);
 
-  uint_t apply_measure_internal_single_qubit(uint_t qubit, RngEngine &rng, 
-					     bool measure_all=false);
+  uint_t apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
+					     uint_t next_measured_qubit);
 
   reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
 						    const reg_t &qubits) const;
@@ -465,10 +498,6 @@ private:
   void move_qubits_to_centralized_indices(const reg_t &sorted_indices,
 					  const reg_t &centralized_qubits);
 
-  //----------------------------------------------------------------
-  void move_all_qubits_to_sorted_ordering();
-
-
   // Function name: change_position
   // Description: Move qubit from src to dst in the MPS. Used only
   //   for expectation value calculations. Similar to swap, but doesn't
@@ -506,6 +535,7 @@ private:
   static bool enable_gate_opt_;      // allow optimizations on gates
   static std::stringstream logging_str_;
   static bool mps_log_data_;
+  static MPS_swap_direction mps_swap_direction_;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
