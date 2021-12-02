@@ -43,7 +43,7 @@ const Operations::OpSet StateOpSet(
      OpType::snapshot, OpType::barrier,
      OpType::bfunc, OpType::roerror,
      OpType::matrix, OpType::diagonal_matrix,
-     OpType::multiplexer, OpType::kraus,
+     OpType::multiplexer, OpType::kraus, OpType::qerror_loc,
      OpType::sim_op, OpType::set_statevec,
      OpType::save_expval, OpType::save_expval_var,
      OpType::save_probs, OpType::save_probs_ket,
@@ -57,8 +57,8 @@ const Operations::OpSet StateOpSet(
      "x",      "y",       "z",   "h",    "s",    "sdg",  "t",    "tdg",
      "r",      "rx",      "ry",  "rz",   "rxx",  "ryy",  "rzz",  "rzx",
      "ccx",    "cswap",   "mcx", "mcy",  "mcz",  "mcu1", "mcu2", "mcu3",
-     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "csx",
-     "mcsx",   "delay", "pauli", "mcx_gray"},
+     "mcswap", "mcphase", "mcr", "mcrx", "mcry", "mcry", "sx",   "sxdg",
+     "csx",    "mcsx",    "delay", "pauli", "mcx_gray", "cu", "mcu", "mcp"},
     // Snapshots
     {"statevector", "memory", "register", "probabilities",
      "probabilities_with_variance", "expectation_value_pauli", "density_matrix",
@@ -290,10 +290,11 @@ protected:
   // Apply N-qubit multi-controlled single qubit waltz gate specified by
   // parameters u3(theta, phi, lambda)
   // NOTE: if N=1 this is just a regular u3 gate.
-  void apply_gate_mcu3(const uint_t iChunk, const reg_t& qubits,
+  void apply_gate_mcu(const uint_t iChunk, const reg_t& qubits,
                        const double theta,
                        const double phi,
-                       const double lambda);
+                       const double lambda,
+                       const double gamma);
 
   void apply_gate_mcphase(const int_t iChunk, const reg_t& qubits, const complex_t phase);
 
@@ -593,6 +594,7 @@ void State<statevec_t>::apply_op(const int_t iChunk,const Operations::Op &op,
   if(BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case Operations::OpType::barrier:
+      case Operations::OpType::qerror_loc:
         break;
       case Operations::OpType::reset:
         apply_reset(op.qubits, rng);
@@ -1257,7 +1259,7 @@ void State<statevec_t>::apply_gate(const uint_t iChunk, const Operations::Op &op
     case Statevector::Gates::id:
       break;
     case Statevector::Gates::h:
-      apply_gate_mcu3(iChunk,op.qubits, M_PI / 2., 0., M_PI);
+      apply_gate_mcu(iChunk,op.qubits, M_PI / 2., 0., M_PI, 0.);
       break;
     case Statevector::Gates::s:
       apply_gate_phase(iChunk,op.qubits[0], complex_t(0., 1.));
@@ -1279,17 +1281,27 @@ void State<statevec_t>::apply_gate(const uint_t iChunk, const Operations::Op &op
       break;
     case Statevector::Gates::mcu3:
       // Includes u3, cu3, etc
-      apply_gate_mcu3(iChunk,op.qubits,
-                      std::real(op.params[0]),
-                      std::real(op.params[1]),
-                      std::real(op.params[2]));
+      apply_gate_mcu(iChunk,op.qubits,
+                     std::real(op.params[0]),
+                     std::real(op.params[1]),
+                     std::real(op.params[2]),
+                     0.);
+      break;
+    case Statevector::Gates::mcu:
+      // Includes u3, cu3, etc
+      apply_gate_mcu(iChunk,op.qubits,
+                     std::real(op.params[0]),
+                     std::real(op.params[1]),
+                     std::real(op.params[2]),
+                     std::real(op.params[3]));
       break;
     case Statevector::Gates::mcu2:
       // Includes u2, cu2, etc
-      apply_gate_mcu3(iChunk,op.qubits,
-                      M_PI / 2.,
-                      std::real(op.params[0]),
-                      std::real(op.params[1]));
+      apply_gate_mcu(iChunk,op.qubits,
+                     M_PI / 2.,
+                     std::real(op.params[0]),
+                     std::real(op.params[1]),
+                     0.);
       break;
     case Statevector::Gates::mcp:
       // Includes u1, cu1, p, cp, mcp etc
@@ -1298,6 +1310,10 @@ void State<statevec_t>::apply_gate(const uint_t iChunk, const Operations::Op &op
     case Statevector::Gates::mcsx:
       // Includes sx, csx, mcsx etc
       BaseState::qregs_[iChunk].apply_mcu(op.qubits, Linalg::VMatrix::SX);
+      break;
+    case Statevector::Gates::mcsxdg:
+      // Includes sxdg, csxdg, mcsxdg etc
+      BaseState::qregs_[iChunk].apply_mcu(op.qubits, Linalg::VMatrix::SXDG);
       break;
     case Statevector::Gates::pauli:
         BaseState::qregs_[iChunk].apply_pauli(op.qubits, op.string_params[0]);
@@ -1359,12 +1375,13 @@ void State<statevec_t>::apply_diagonal_matrix(const int_t iChunk, const reg_t &q
 }
 
 template <class statevec_t>
-void State<statevec_t>::apply_gate_mcu3(const uint_t iChunk, const reg_t& qubits,
-                                        double theta,
-                                        double phi,
-                                        double lambda) 
+void State<statevec_t>::apply_gate_mcu(const uint_t iChunk, const reg_t& qubits,
+                                       double theta,
+                                       double phi,
+                                       double lambda,
+                                       double gamma) 
 {
-  BaseState::qregs_[iChunk].apply_mcu(qubits, Linalg::VMatrix::u3(theta, phi, lambda));
+  BaseState::qregs_[iChunk].apply_mcu(qubits, Linalg::VMatrix::u4(theta, phi, lambda, gamma));
 }
 
 template <class statevec_t>

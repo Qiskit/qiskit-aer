@@ -25,12 +25,6 @@
 namespace AER {
 namespace Transpile {
 
-using uint_t = uint_t;
-using op_t = Operations::Op;
-using optype_t = Operations::OpType;
-using oplist_t = std::vector<op_t>;
-using opset_t = Operations::OpSet;
-using reg_t = std::vector<uint_t>;
 
 class FusionMethod {
 public:
@@ -130,7 +124,7 @@ public:
     // Unitary simulation
     QubitUnitary::State<> unitary_simulator;
     unitary_simulator.initialize_qreg(qubits.size());
-    unitary_simulator.apply_ops(fusioned_ops, dummy_result, dummy_rng);
+    unitary_simulator.apply_ops(fusioned_ops.cbegin(), fusioned_ops.cend(), dummy_result, dummy_rng);
     return Operations::make_unitary(qubits, unitary_simulator.qreg().move_to_matrix(),
                                     std::string("fusion"));
   };
@@ -174,7 +168,7 @@ public:
     // simulator
     QubitSuperoperator::State<> superop_simulator;
     superop_simulator.initialize_qreg(qubits.size());
-    superop_simulator.apply_ops(fusioned_ops, dummy_result, dummy_rng);
+    superop_simulator.apply_ops(fusioned_ops.cbegin(), fusioned_ops.cend(), dummy_result, dummy_rng);
     auto superop = superop_simulator.qreg().move_to_matrix();
 
     return Operations::make_superop(qubits, std::move(superop));
@@ -220,7 +214,7 @@ public:
     // simulator
     QubitSuperoperator::State<> superop_simulator;
     superop_simulator.initialize_qreg(qubits.size());
-    superop_simulator.apply_ops(fusioned_ops, dummy_result, dummy_rng);
+    superop_simulator.apply_ops(fusioned_ops.cbegin(), fusioned_ops.cend(), dummy_result, dummy_rng);
     auto superop = superop_simulator.qreg().move_to_matrix();
 
     // If Kraus method we convert superop to canonical Kraus representation
@@ -658,8 +652,10 @@ bool DiagonalFusion::aggregate_operations(oplist_t& ops,
       continue;
 
     std::vector<uint_t> fusing_op_idxs;
-    for (; op_idx < next_diagonal_start; ++op_idx)
+    while(op_idx < next_diagonal_start && op_idx < fusion_end) {
       fusing_op_idxs.push_back(op_idx);
+      ++op_idx;
+    }
 
     --op_idx;
     allocate_new_operation(ops, op_idx, fusing_op_idxs, method, true);

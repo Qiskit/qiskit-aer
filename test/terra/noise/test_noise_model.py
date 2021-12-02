@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,22 +15,23 @@ NoiseModel class integration tests
 """
 
 import unittest
-from test.terra import common
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler import assemble, transpile
-from qiskit.providers.aer.backends import QasmSimulator
+
+import numpy as np
+from qiskit.providers.aer.backends import AerSimulator
 from qiskit.providers.aer.noise import NoiseModel
+from qiskit.providers.aer.utils.noise_transformation import transform_noise_model
+from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
+from qiskit.providers.aer.noise.errors.standard_errors import kraus_error
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.providers.aer.noise.errors.standard_errors import reset_error
-from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
+from test.terra.common import QiskitAerTestCase
+
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.compiler import transpile
 from qiskit.test import mock
 
-# Backwards compatibility for Terra <= 0.13
-if not hasattr(QuantumCircuit, 'i'):
-    QuantumCircuit.i = QuantumCircuit.iden
 
-
-class TestNoise(common.QiskitAerTestCase):
+class TestNoiseModel(QiskitAerTestCase):
     """Testing noise model"""
 
     def test_amplitude_damping_error(self):
@@ -46,7 +47,7 @@ class TestNoise(common.QiskitAerTestCase):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
         shots = 4000
-        backend = QasmSimulator()
+        backend = AerSimulator()
         # test noise model
         error = amplitude_damping_error(0.75, 0.25)
         noise_model = NoiseModel()
@@ -54,8 +55,7 @@ class TestNoise(common.QiskitAerTestCase):
         # Execute
         target = {'0x0': 3 * shots / 4, '0x1': shots / 4}
         circuit = transpile(circuit, basis_gates=noise_model.basis_gates, optimization_level=0)
-        qobj = assemble([circuit], backend, shots=shots)
-        result = backend.run(qobj, noise_model=noise_model).result()
+        result = backend.run(circuit, shots=shots, noise_model=noise_model).result()
         self.assertSuccess(result)
         self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
@@ -142,7 +142,8 @@ class TestNoise(common.QiskitAerTestCase):
 
         # Check adding a non-local error adds to noise qubits
         model = NoiseModel()
-        model.add_nonlocal_quantum_error(pauli_error([['XX', 1]]), ['label'], [0], [1, 2], False)
+        with self.assertWarns(DeprecationWarning):
+            model.add_nonlocal_quantum_error(pauli_error([['XX', 1]]), ['label'], [0], [1, 2], False)
         target = sorted([0, 1, 2])
         self.assertEqual(model.noise_qubits, target)
 
@@ -161,20 +162,22 @@ class TestNoise(common.QiskitAerTestCase):
     def test_noise_models_equal(self):
         """Test two noise models are Equal"""
         roerror = [[0.9, 0.1], [0.5, 0.5]]
-        error1 = pauli_error([['X', 1]], standard_gates=False)
-        error2 = pauli_error([['X', 1]], standard_gates=True)
+        error1 = kraus_error([np.diag([1, 0]), np.diag([0, 1])])
+        error2 = pauli_error([("I", 0.5), ("Z", 0.5)])
 
         model1 = NoiseModel()
         model1.add_all_qubit_quantum_error(error1, ['u3'], False)
         model1.add_quantum_error(error1, ['u3'], [2], False)
-        model1.add_nonlocal_quantum_error(error1, ['cx'], [0, 1], [3], False)
+        with self.assertWarns(DeprecationWarning):
+            model1.add_nonlocal_quantum_error(error1, ['cx'], [0, 1], [3], False)
         model1.add_all_qubit_readout_error(roerror, False)
         model1.add_readout_error(roerror, [0], False)
 
         model2 = NoiseModel()
         model2.add_all_qubit_quantum_error(error2, ['u3'], False)
         model2.add_quantum_error(error2, ['u3'], [2], False)
-        model2.add_nonlocal_quantum_error(error2, ['cx'], [0, 1], [3], False)
+        with self.assertWarns(DeprecationWarning):
+            model2.add_nonlocal_quantum_error(error2, ['cx'], [0, 1], [3], False)
         model2.add_all_qubit_readout_error(roerror, False)
         model2.add_readout_error(roerror, [0], False)
         self.assertEqual(model1, model2)
@@ -197,9 +200,8 @@ class TestNoise(common.QiskitAerTestCase):
 
         backend = mock.FakeSingapore()
         noise_model = NoiseModel.from_backend(backend)
-        qobj = assemble(transpile(circ, backend, optimization_level=0), backend)
-        sim = QasmSimulator()
-        result = sim.run(qobj, noise_model=noise_model).result()
+        circ = transpile(circ, backend, optimization_level=0)
+        result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
 
     def test_noise_model_from_backend_almaden(self):
@@ -210,9 +212,8 @@ class TestNoise(common.QiskitAerTestCase):
 
         backend = mock.FakeAlmaden()
         noise_model = NoiseModel.from_backend(backend)
-        qobj = assemble(transpile(circ, backend, optimization_level=0), backend)
-        sim = QasmSimulator()
-        result = sim.run(qobj, noise_model=noise_model).result()
+        circ = transpile(circ, backend, optimization_level=0)
+        result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
 
     def test_noise_model_from_rochester(self):
@@ -223,10 +224,30 @@ class TestNoise(common.QiskitAerTestCase):
 
         backend = mock.FakeRochester()
         noise_model = NoiseModel.from_backend(backend)
-        qobj = assemble(transpile(circ, backend, optimization_level=0), backend)
-        sim = QasmSimulator()
-        result = sim.run(qobj, noise_model=noise_model).result()
+        circ = transpile(circ, backend, optimization_level=0)
+        result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
+
+    def test_transform_noise(self):
+        org_error = reset_error(0.2)
+        new_error = pauli_error([("I", 0.5), ("Z", 0.5)])
+
+        model = NoiseModel()
+        model.add_all_qubit_quantum_error(org_error, ['x'])
+        model.add_quantum_error(org_error, ['sx'], [0])
+        model.add_all_qubit_readout_error([[0.9, 0.1], [0, 1]])
+
+        def map_func(noise):
+            return new_error if noise == org_error else None
+
+        actual = transform_noise_model(model, map_func)
+
+        expected = NoiseModel()
+        expected.add_all_qubit_quantum_error(new_error, ['x'])
+        expected.add_quantum_error(new_error, ['sx'], [0])
+        expected.add_all_qubit_readout_error([[0.9, 0.1], [0, 1]])
+
+        self.assertEqual(actual, expected)
 
 
 if __name__ == '__main__':

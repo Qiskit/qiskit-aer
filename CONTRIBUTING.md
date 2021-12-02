@@ -737,8 +737,6 @@ dict = result.to_dict()
 meta = dict['metadata']
 myrank = meta['mpi_rank']
 ```
-
-
 ### Building a statically linked wheel
 
 If you encounter an error similar to the following, you may are likely in the need of compiling a

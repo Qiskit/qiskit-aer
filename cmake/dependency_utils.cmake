@@ -36,7 +36,7 @@ macro(_use_system_libraries)
 	endif()
 
 	if(BUILD_TESTS)
-		_import_aer_system_dependency(Catch2 2.12.1)
+		_import_aer_system_dependency(Catch2 2.13.6)
 	endif()
 
 	if(APPLE)

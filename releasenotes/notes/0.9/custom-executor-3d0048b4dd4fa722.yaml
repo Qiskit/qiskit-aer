@@ -1,0 +1,30 @@
+---
+features:
+  - |
+    Adds the ability to set a custom executor and configure job splitting for
+    executing multiple circuits in parallel on a HPC clustor. A custom
+    executor can be set using the ``executor`` option, and job splitting is
+    configured by using the ``max_job_size`` option.
+    
+    For example configuring a backend and executing using
+
+    .. code-block:: python
+
+       backend = AerSimulator(max_job_size=1, executor=custom_executor)
+       job = backend.run(circuits)
+    
+    will split the exection into multiple jobs each containing a single
+    circuit. If job splitting is enabled the ``run`` method will return a
+    :class:`~qiskit.providers.aer.jobs.AerJobSet` object containing all the
+    individual :class:`~qiskit.providers.aer.jobs.AerJob` classes. After all
+    individual jobs finish running the job results are automatically combined
+    into a single Result object that is returned by ``job.result()``.
+
+    Supported executors include those in the Python ``concurrent.futures``
+    `module <https://docs.python.org/3/library/concurrent.futures.html>`__
+    (eg. ``ThreadPoolExecutor``, ``ProcessPoolExecutor``), and
+    `Dask <http://dask.org>`__ distributed  Client executors if the optional
+    dask library is installed. Using a Dask executor allows configuring parallel
+    execution of multiple circuits on HPC clusters. See the 
+    Dask executor :ref:`API Documentation <dask>` for additional details
+    on using Dask executors for HPC simulation.

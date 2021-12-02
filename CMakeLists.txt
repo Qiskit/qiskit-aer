@@ -88,10 +88,9 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	# In order to build for MacOSX 10.9 and above with Clang, we need to force the "deployment target" to 10.9
-	# and force using libc++ instead of the default for this target: libstdc++ otherwise we could not
-	# use C++11/14
-	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "" FORCE)
+	# In order to build for MacOSX 10.9 and above with Clang, we need to
+	# force using libc++ instead of the default for this target: libstdc++
+	# otherwise we could not use C++11/14
 	enable_cxx_compiler_flag_if_supported("-stdlib=libc++")
 endif()
 

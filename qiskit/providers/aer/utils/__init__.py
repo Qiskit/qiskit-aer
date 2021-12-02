@@ -37,6 +37,9 @@ Functions
 .. autosummary::
     :toctree: ../stubs/
 
+    transform_noise_model
+    transpile_noise_model
+    transpile_quantum_error
     remap_noise_model
     insert_noise
     approximate_quantum_error
@@ -44,6 +47,9 @@ Functions
 """
 
 from .noise_remapper import remap_noise_model
+from .noise_transformation import transform_noise_model
+from .noise_transformation import transpile_noise_model
+from .noise_transformation import transpile_quantum_error
 from .noise_transformation import NoiseTransformer
 from .noise_transformation import approximate_quantum_error
 from .noise_transformation import approximate_noise_model

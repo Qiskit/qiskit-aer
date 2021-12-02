@@ -14,8 +14,7 @@
 Simulator command to snapshot internal simulator representation.
 """
 
-import warnings
-
+from warnings import warn
 from qiskit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction
@@ -44,7 +43,17 @@ class Snapshot(Instruction):
 
         Raises:
             ExtensionError: if snapshot label is invalid.
+
+        .. deprecated:: 0.9.0
+
+            This instruction has been deprecated and will be removed no earlier
+            than 3 months from the 0.9.0 release date. It has been superseded by
+            the save instructions in
+            :mod:`qiskit.providers.aer.library` module.
         """
+        warn('The `Snapshot` instruction will be deprecated in the'
+             ' future. It has been superseded by the `SaveStatevector`'
+             ' instructions.', DeprecationWarning, stacklevel=2)
         if not isinstance(label, str):
             raise ExtensionError('Snapshot label must be a string.')
         if params is None:
@@ -74,7 +83,7 @@ class Snapshot(Instruction):
         """Defines qubits to snapshot for all snapshot methods"""
         # Convert label to string for backwards compatibility
         if label is not None:
-            warnings.warn(
+            warn(
                 "The 'label' arg of `define_snapshot_register` has been deprecated"
                 "as of qiskit-aer 0.7.0.", DeprecationWarning)
         # If no qubits are specified we add all qubits so it acts as a barrier
@@ -139,6 +148,10 @@ def snapshot(self,
     Raises:
         ExtensionError: malformed command
     """
+    warn('The Aer `snapshot` circuit method has been deprecated as of'
+         ' qiskit-aer 0.9 and will be removed in a future release.'
+         ' It has been superseded by the various `save_*`'
+         ' circuit methods.', DeprecationWarning, stacklevel=2)
     snapshot_register = Snapshot.define_snapshot_register(self, qubits=qubits)
 
     return self.append(

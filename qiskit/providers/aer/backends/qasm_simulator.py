@@ -20,11 +20,14 @@ from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
 
 from ..version import __version__
+from ..aererror import AerError
 from .aerbackend import AerBackend
 from .backend_utils import (cpp_execute, available_methods,
-                            MAX_QUBITS_STATEVECTOR)
+                            MAX_QUBITS_STATEVECTOR,
+                            LEGACY_METHOD_MAP,
+                            map_legacy_method_options)
 # pylint: disable=import-error, no-name-in-module
-from .controller_wrappers import qasm_controller_execute
+from .controller_wrappers import aer_controller_execute
 
 logger = logging.getLogger(__name__)
 
@@ -111,10 +114,27 @@ class QasmSimulator(AerBackend):
     The following simulator specific backend options are supported
 
     * ``method`` (str): Set the simulation method (Default: ``"automatic"``).
+      Use :meth:`available_methods` to return a list of all availabe methods.
+
+    * ``device`` (str): Set the simulation device (Default: ``"CPU"``).
+      Use :meth:`available_devices` to return a list of devices supported
+      on the current system.
 
     * ``precision`` (str): Set the floating point precision for
       certain simulation methods to either ``"single"`` or ``"double"``
       precision (default: ``"double"``).
+
+    * ``executor`` (futures.Executor): Set a custom executor for
+      asynchronous running of simulation jobs (Default: None).
+
+    * ``max_job_size`` (int or None): If the number of run circuits
+      exceeds this value simulation will be run as a set of of sub-jobs
+      on the executor. If ``None`` simulation of all circuits are submitted
+      to the executor as a single job (Default: None).
+
+    * ``enable_truncation`` (bool): If set to True this removes unnecessary
+      qubits which do not affect the simulation outcome from the simulated
+      circuits (Default: True).
 
     * ``zero_threshold`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
@@ -146,16 +166,6 @@ class QasmSimulator(AerBackend):
       values (16 Bytes). If set to 0, the maximum will be automatically
       set to the system memory size (Default: 0).
 
-    * ``optimize_ideal_threshold`` (int): Sets the qubit threshold for
-      applying circuit optimization passes on ideal circuits.
-      Passes include gate fusion and truncation of unused qubits
-      (Default: 5).
-
-    * ``optimize_noise_threshold`` (int): Sets the qubit threshold for
-      applying circuit optimization passes on ideal circuits.
-      Passes include gate fusion and truncation of unused qubits
-      (Default: 12).
-
     These backend options only apply when using the ``"statevector"``
     simulation method:
 
@@ -183,26 +193,26 @@ class QasmSimulator(AerBackend):
     These backend options only apply when using the ``"extended_stabilizer"``
     simulation method:
 
-    * ``extended_stabilizer_sampling_methid`` (string): Choose how to simulate
+    * ``extended_stabilizer_sampling_method`` (string): Choose how to simulate
       measurements on qubits. The performance of the simulator depends
       significantly on this choice. In the following, let n be the number of
       qubits in the circuit, m the number of qubits measured, and S be the
-      number of shots. (Default: resampled_metropolis)
+      number of shots (Default: resampled_metropolis).
 
-      * ``"metropolis"``: Use a Monte-Carlo method to sample many output
+      - ``"metropolis"``: Use a Monte-Carlo method to sample many output
         strings from the simulator at once. To be accurate, this method
         requires that all the possible output strings have a non-zero
         probability. It will give inaccurate results on cases where
         the circuit has many zero-probability outcomes.
         This method has an overall runtime that scales as n^{2} + (S-1)n.
 
-      * ``"resampled_metropolis"``: A variant of the metropolis method,
+      - ``"resampled_metropolis"``: A variant of the metropolis method,
         where the Monte-Carlo method is reinitialised for every shot. This
         gives better results for circuits where some outcomes have zero
         probability, but will still fail if the output distribution
         is sparse. The overall runtime scales as Sn^{2}.
 
-      * ``"norm_estimation"``: An alternative sampling method using
+      - ``"norm_estimation"``: An alternative sampling method using
         random state inner products to estimate outcome probabilites. This
         method requires twice as much memory, and significantly longer
         runtimes, but gives accurate results on circuits with sparse
@@ -252,15 +262,20 @@ class QasmSimulator(AerBackend):
       their squares is smaller than this threshold.
       (Default: 1e-16).
 
-    * ``mps_sample_measure_algorithm`` (str):
-      Choose which algorithm to use for ``"sample_measure"``. ``"mps_probabilities"``
-      means all state probabilities are computed and measurements are based on them.
-      It is more efficient for a large number of shots, small number of qubits and low
-      entanglement. ``"mps_apply_measure"`` creates a copy of the mps structure and
-      makes a measurement on it. It is more effients for a small number of shots, high
-      number of qubits, and low entanglement. If the user does not specify the algorithm,
-      a heuristic algorithm is used to select between the two algorithms.
-      (Default: "mps_heuristic").
+    * ``mps_sample_measure_algorithm`` (str): Choose which algorithm to use for
+      ``"sample_measure"`` (Default: "mps_apply_measure").
+
+      - ``"mps_probabilities"``: This method first constructs the probability
+        vector and then generates a sample per shot. It is more efficient for
+        a large number of shots and a small number of qubits, with complexity
+        O(2^n * n * D^2) to create the vector and O(1) per shot, where n is
+        the number of qubits and D is the bond dimension.
+
+      - ``"mps_apply_measure"``: This method creates a copy of the mps structure
+        and measures directly on it. It is more efficient for a small number of
+        shots, and a large number of qubits, with complexity around
+        O(n * D^2) per shot.
+
     * ``mps_log_data`` (str): if True, output logging data of the MPS
       structure: bond dimensions and values discarded during approximation.
       (Default: False)
@@ -279,21 +294,22 @@ class QasmSimulator(AerBackend):
 
     _DEFAULT_BASIS_GATES = sorted([
         'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-        'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
-        'cy', 'cz', 'csx', 'cp', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
+        'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
+        'cy', 'cz', 'csx', 'cp', 'cu', 'cu1', 'cu2', 'cu3', 'rxx', 'ryy',
         'rzz', 'rzx', 'ccx', 'cswap', 'mcx', 'mcy', 'mcz', 'mcsx',
-        'mcphase', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
+        'mcp', 'mcphase', 'mcu', 'mcu1', 'mcu2', 'mcu3', 'mcrx', 'mcry', 'mcrz',
         'mcr', 'mcswap', 'unitary', 'diagonal', 'multiplexer',
         'initialize', 'delay', 'pauli', 'mcx_gray'
     ])
 
     _DEFAULT_CUSTOM_INSTR = sorted([
-        'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
+        'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'snapshot',
+        'save_expval', 'save_expval_var',
         'save_probabilities', 'save_probabilities_dict',
         'save_amplitudes', 'save_amplitudes_sq', 'save_state',
         'save_density_matrix', 'save_statevector', 'save_statevector_dict',
         'save_stabilizer', 'set_statevector', 'set_density_matrix',
-        'set_stabilizer'
+        'set_stabilizer',
     ])
 
     _DEFAULT_CONFIGURATION = {
@@ -323,6 +339,10 @@ class QasmSimulator(AerBackend):
 
     _AVAILABLE_METHODS = None
 
+    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust')
+
+    _AVAILABLE_DEVICES = None
+
     def __init__(self,
                  configuration=None,
                  properties=None,
@@ -333,7 +353,7 @@ class QasmSimulator(AerBackend):
              ' future. It has been superseded by the `AerSimulator`'
              ' backend.', PendingDeprecationWarning)
 
-        self._controller = qasm_controller_execute()
+        self._controller = aer_controller_execute()
 
         # Update available methods for class
         if QasmSimulator._AVAILABLE_METHODS is None:
@@ -353,7 +373,6 @@ class QasmSimulator(AerBackend):
 
         super().__init__(configuration,
                          properties=properties,
-                         available_methods=QasmSimulator._AVAILABLE_METHODS,
                          provider=provider,
                          backend_options=backend_options)
 
@@ -379,15 +398,17 @@ class QasmSimulator(AerBackend):
             # Global options
             shots=1024,
             method=None,
+            device="CPU",
             precision="double",
+            executor=None,
+            max_job_size=None,
+            enable_truncation=True,
             zero_threshold=1e-10,
             validation_threshold=None,
             max_parallel_threads=None,
             max_parallel_experiments=None,
             max_parallel_shots=None,
             max_memory_mb=None,
-            optimize_ideal_threshold=5,
-            optimize_noise_threshold=12,
             fusion_enable=True,
             fusion_verbose=False,
             fusion_max_qubit=5,
@@ -408,7 +429,7 @@ class QasmSimulator(AerBackend):
             extended_stabilizer_metropolis_mixing_time=5000,
             extended_stabilizer_approximation_error=0.05,
             extended_stabilizer_norm_estimation_samples=100,
-            extended_stabilizer_norm_estimation_repitions=3,
+            extended_stabilizer_norm_estimation_repetitions=3,
             extended_stabilizer_parallel_threshold=100,
             extended_stabilizer_probabilities_snapshot_samples=3000,
             # MPS options
@@ -462,6 +483,14 @@ class QasmSimulator(AerBackend):
         config.basis_gates = self._cached_basis_gates + config.custom_instructions
         return config
 
+    def available_methods(self):
+        """Return the available simulation methods."""
+        return copy.copy(self._AVAILABLE_METHODS)
+
+    def available_devices(self):
+        """Return the available simulation methods."""
+        return copy.copy(self._AVAILABLE_DEVICES)
+
     def _execute(self, qobj):
         """Execute a qobj on the backend.
 
@@ -471,25 +500,24 @@ class QasmSimulator(AerBackend):
         Returns:
             dict: return a dictionary of results.
         """
+        qobj = map_legacy_method_options(qobj)
         return cpp_execute(self._controller, qobj)
 
-    def set_options(self, **fields):
-        out_options = {}
-        update_basis_gates = False
-        for key, value in fields.items():
-            if key == 'method':
-                self._set_method_config(value)
-                update_basis_gates = True
-                out_options[key] = value
-            elif key in ['noise_model', 'basis_gates']:
-                update_basis_gates = True
-                out_options[key] = value
-            elif key == 'custom_instructions':
-                self._set_configuration_option(key, value)
-            else:
-                out_options[key] = value
-        super().set_options(**out_options)
-        if update_basis_gates:
+    def set_option(self, key, value):
+        if key == "custom_instructions":
+            self._set_configuration_option(key, value)
+            return
+        if key == "method":
+            if value in LEGACY_METHOD_MAP:
+                value, device = LEGACY_METHOD_MAP[value]
+                self.set_option("device", device)
+            if (value is not None and value not in self.available_methods()):
+                raise AerError(
+                    "Invalid simulation method {}. Available methods"
+                    " are: {}".format(value, self.available_methods()))
+            self._set_method_config(value)
+        super().set_option(key, value)
+        if key in ["method", "noise_model", "basis_gates"]:
             self._cached_basis_gates = self._basis_gates()
 
     def _validate(self, qobj):
@@ -557,25 +585,25 @@ class QasmSimulator(AerBackend):
         if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
             return sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
-                'y', 'z', 'h', 's', 'sdg', 'sx', 't', 'tdg', 'swap', 'cx',
+                'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
                 'cy', 'cz', 'cp', 'cu1', 'rxx', 'ryy', 'rzz', 'rzx', 'ccx',
                 'unitary', 'diagonal', 'delay', 'pauli'
             ])
         if method == 'matrix_product_state':
             return sorted([
-                'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x', 'y', 'z', 'h', 's',
-                'sdg', 'sx', 't', 'tdg', 'swap', 'ccx', 'unitary', 'roerror', 'delay', 'pauli',
-                'r', 'rx', 'ry', 'rz', 'rxx', 'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal',
-                'initialize'
+                'u1', 'u2', 'u3', 'u', 'p', 'cp', 'cx', 'cy', 'cz', 'id', 'x',
+                'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'ccx',
+                'unitary', 'roerror', 'delay', 'pauli', 'r', 'rx', 'ry', 'rz', 'rxx',
+                'ryy', 'rzz', 'rzx', 'csx', 'cswap', 'diagonal', 'initialize'
             ])
         if method == 'stabilizer':
             return sorted([
-                'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'cx', 'cy', 'cz',
+                'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 'cx', 'cy', 'cz',
                 'swap', 'delay', 'pauli'
             ])
         if method == 'extended_stabilizer':
             return sorted([
-                'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx',
+                'cx', 'cz', 'id', 'x', 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg',
                 'swap', 'u0', 't', 'tdg', 'u1', 'p', 'ccx', 'ccz', 'delay', 'pauli'
             ])
         return QasmSimulator._DEFAULT_BASIS_GATES
@@ -589,40 +617,41 @@ class QasmSimulator(AerBackend):
         method = self._options.get('method', None)
         if method in ['statevector', 'statevector_gpu', 'statevector_thrust']:
             return sorted([
-                'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
+                'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'snapshot', 'save_expval',
+                'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_amplitudes', 'save_amplitudes_sq', 'save_state',
                 'save_density_matrix', 'save_statevector', 'save_statevector_dict',
                 'set_statevector'
             ])
         if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
             return sorted([
-                'roerror', 'kraus', 'superop', 'snapshot', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
+                'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop', 'snapshot',
+                'save_expval', 'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_state', 'save_density_matrix', 'save_amplitudes_sq',
                 'set_statevector', 'set_density_matrix'
             ])
         if method == 'matrix_product_state':
             return sorted([
-                'roerror', 'snapshot', 'kraus', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
+                'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'kraus', 'save_expval',
+                'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_density_matrix', 'save_state', 'save_statevector',
                 'save_amplitudes', 'save_amplitudes_sq', 'save_matrix_product_state',
                 'set_matrix_product_state'])
         if method == 'stabilizer':
             return sorted([
-                'roerror', 'snapshot', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
+                'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'save_expval',
+                'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_amplitudes_sq', 'save_state', 'save_stabilizer',
                 'set_stabilizer'
             ])
         if method == 'extended_stabilizer':
-            return sorted(['roerror', 'snapshot', 'save_statevector'])
+            return sorted([
+                'quantum_channel', 'qerror_loc', 'roerror',
+                'snapshot', 'save_statevector'])
         return QasmSimulator._DEFAULT_CUSTOM_INSTR
 
     def _set_method_config(self, method=None):
         """Set non-basis gate options when setting method"""
-        super().set_options(method=method)
         # Update configuration description and number of qubits
         if method in ['statevector', 'statevector_gpu', 'statevector_thrust']:
             description = 'A C++ statevector simulator with noise'
