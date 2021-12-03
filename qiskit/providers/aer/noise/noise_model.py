@@ -1064,33 +1064,14 @@ class NoiseModel:
                         return False
         return True
 
-    def pass_manager(self, only_custom: bool = False) -> Optional[PassManager]:
-        """Return the pass manager that builds noisy circuits based on this noise model."""
+    def _pass_manager(self) -> Optional[PassManager]:
+        """
+        Return the pass manager that add custom noises defined as noise passes
+        (stored in the _custom_noise_passes field). Note that the pass manager
+        does not include passes to add other noises (stored in the different field).
+        """
         passes = []
-        if not only_custom:
-            noise_model_pass = LocalNoisePass(self._noise_model_fn, self._noise_instructions)
-            passes.append(noise_model_pass)
         passes.extend(self._custom_noise_passes)
         if len(passes) > 0:
             return PassManager(passes)
-        return None
-
-    def _noise_model_fn(self, inst, qubits):
-        qubits = self._qubits2str(qubits)
-        # Quantum errors
-        local_errors = self._local_quantum_errors
-        default_errors = self._default_quantum_errors
-        if inst in local_errors and qubits in local_errors[inst]:
-            return local_errors[inst][qubits]
-        elif inst in default_errors:
-            return default_errors[inst]
-
-        # Readout errors
-        if inst == "measure":
-            if qubits in self._local_readout_errors:
-                return local_errors[inst][qubits]
-            else:
-                return self._default_readout_error
-
-        # Default case
         return None
