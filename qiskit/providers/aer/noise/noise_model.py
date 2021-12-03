@@ -29,7 +29,7 @@ from .device.models import basic_device_readout_errors
 from .errors.quantum_error import QuantumError
 from .errors.readout_error import ReadoutError
 from .noiseerror import NoiseError
-from .passes import RelaxationNoisePass, LocalNoisePass
+from .passes import RelaxationNoisePass
 from ..backends.backend_utils import BASIS_GATES
 
 logger = logging.getLogger(__name__)
