@@ -295,7 +295,7 @@ class NoiseModel:
                                    qobj gates. If false return as unitary
                                    qobj instructions (Default: None)
             warnings (bool): Display warnings (Default: True).
-            delay_noise (bool): Add thermal relaxation errors on delays (Default: False).
+            delay_noise (bool): Include delay instructions in the noise model (Default: True).
 
         Returns:
             NoiseModel: An approximate noise model for the device backend.
