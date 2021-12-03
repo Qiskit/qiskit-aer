@@ -349,7 +349,7 @@ class NoiseModel:
         for name, qubits, error in gate_errors:
             noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
         # Add delay errors
-        if delay_noise:
+        if thermal_relaxation and delay_noise:
             delay_pass = RelaxationNoisePass(
                 t1s=[backend.properties().t1(q) for q in range(backend.configuration().num_qubits)],
                 t2s=[backend.properties().t2(q) for q in range(backend.configuration().num_qubits)],
