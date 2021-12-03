@@ -540,15 +540,16 @@ class NoiseModel:
         Additional Information:
             If the error object is ideal it will not be added to the model.
         """
-        if not isinstance(qubits, (list, tuple)):
-            raise NoiseError("Qubits must be a list of integers.")
-        qubits = tuple(qubits)
         # Error checking
         if not isinstance(error, QuantumError):
             try:
                 error = QuantumError(error)
             except NoiseError:
                 raise NoiseError("Input is not a valid quantum error.")
+        try:
+            qubits = tuple(qubits)
+        except TypeError as ex:
+            raise NoiseError("Qubits must be convertible to a tuple of integers") from ex
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
             return
@@ -635,18 +636,17 @@ class NoiseModel:
              ' a circuit you should write a custom qiskit transpiler pass.',
              DeprecationWarning)
 
-        if not isinstance(noise_qubits, (list, tuple)):
-            raise NoiseError("Noise qubits must be a list of integers.")
         # Error checking
         if not isinstance(error, QuantumError):
             try:
                 error = QuantumError(error)
             except NoiseError:
                 raise NoiseError("Input is not a valid quantum error.")
-        if not isinstance(qubits, (list, tuple)):
-            raise NoiseError("Qubits must be a list of integers.")
-        noise_qubits = tuple(noise_qubits)
-        qubits = tuple(qubits)
+        try:
+            qubits = tuple(qubits)
+            noise_qubits = tuple(noise_qubits)
+        except TypeError as ex:
+            raise NoiseError("Qubits must be convertible to a tuple of integers") from ex
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
             return
@@ -753,9 +753,10 @@ class NoiseModel:
                 error = ReadoutError(error)
             except NoiseError:
                 raise NoiseError("Input is not a valid readout error.")
-        if not isinstance(qubits, (list, tuple)):
-            raise NoiseError("Qubits must be a list of integers.")
-        qubits = tuple(qubits)
+        try:
+            qubits = tuple(qubits)
+        except TypeError as ex:
+            raise NoiseError("Qubits must be convertible to a tuple of integers") from ex
 
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
