@@ -530,7 +530,7 @@ class NoiseModel:
             instructions (str or list[str] or
                           Instruction or
                           list[Instruction]): the instructions error applies to.
-            qubits (list[int] or tuple[int]): qubits instruction error applies to.
+            qubits (Sequence[int]): qubits instruction error applies to.
             warnings (bool): Display warning if appending to an instruction that
                              already has an error (Default: True).
 
@@ -616,8 +616,8 @@ class NoiseModel:
             instructions (str or list[str] or
                           Instruction or
                           list[Instruction]): the instructions error applies to.
-            qubits (list[int] or tuple[int]): qubits instruction error applies to.
-            noise_qubits (list[int] or tuple[int]): Specify the exact qubits the error
+            qubits (Sequence[int]): qubits instruction error applies to.
+            noise_qubits (Sequence[int]): Specify the exact qubits the error
                                       should be applied to if different
                                       to the instruction qubits.
             warnings (bool): Display warning if appending to an instruction that

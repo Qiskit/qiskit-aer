@@ -56,8 +56,7 @@ def insert_noise(circuits, noise_model, transpile=False):
             # Priority for error model used:
             # nonlocal error > local error > default error
             if inst.name in nonlocal_errors and qubits in nonlocal_errors[inst.name]:
-                for noise_qubits in nonlocal_errors[inst.name][qubits].keys():
-                    error = nonlocal_errors[inst.name][qubits][noise_qubits]
+                for noise_qubits, error in nonlocal_errors[inst.name][qubits].items():
                     result_circuit.append(error.to_instruction(), noise_qubits)
             elif inst.name in local_errors and qubits in local_errors[inst.name]:
                 error = local_errors[inst.name][qubits]
