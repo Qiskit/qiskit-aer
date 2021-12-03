@@ -182,11 +182,6 @@ class AerBackend(Backend, ABC):
                         run_options[key] = value
             qobj = self._assemble(circuits, **run_options)
         else:
-            noise_model = run_options.get("noise_model", self.options.get("noise_model"))
-            if noise_model:
-                npm = noise_model._pass_manager()
-                if npm is not None:
-                    circuits = npm.run(circuits)
             qobj = self._assemble(circuits, parameter_binds=parameter_binds, **run_options)
 
         # Optional validation
@@ -364,6 +359,14 @@ class AerBackend(Backend, ABC):
         updated_noise = False
         noise_model = run_options.get(
             'noise_model', getattr(self.options, 'noise_model', None))
+
+        # Add custom pass noise only to QuantumCircuit objects
+        if noise_model and all(isinstance(circ, QuantumCircuit) for circ in circuits):
+            npm = noise_model._pass_manager()
+            if npm is not None:
+                circuits = npm.run(circuits)
+                if isinstance(circuits, QuantumCircuit):
+                    circuits = [circuits]
 
         # Check if circuits contain quantum error instructions
         run_circuits = []
