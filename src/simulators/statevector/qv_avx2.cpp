@@ -1163,6 +1163,11 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
                                       const double* vec_,
                                       const size_t omp_threads) {
 
+#if defined(_WIN64) || defined(_WIN32)
+  //temporally disable windows
+  return Avx::NotApplied;
+#else
+
   auto qv_data = _to_complex(qv_data_);
   const auto input_vec = _to_complex(vec_);
 
@@ -1208,6 +1213,7 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
   free(double_tmp);
 
   return Avx::Applied;
+#endif
 }
 
 template <>
@@ -1218,6 +1224,10 @@ Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
                                      const float* vec_,
                                      const size_t omp_threads) {
 
+#if defined(_WIN64) || defined(_WIN32)
+  //temporally disable windows
+  return Avx::NotApplied;
+#else
   if (data_size < (1UL << 2))
     return Avx::NotApplied;
 
@@ -1270,6 +1280,7 @@ Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
   free(float_tmp);
 
   return Avx::Applied;
+#endif
 }
 
 } /* End namespace QV */
