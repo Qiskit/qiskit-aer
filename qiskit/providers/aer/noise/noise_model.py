@@ -812,7 +812,7 @@ class NoiseModel:
             for qubits, error in qubit_dict.items():
                 error_dict = error.to_dict()
                 error_dict["operations"] = [name]
-                error_dict["gate_qubits"] = [list(qubits)]
+                error_dict["gate_qubits"] = [qubits]
                 error_list.append(error_dict)
 
         # Add non-local errors
@@ -821,8 +821,8 @@ class NoiseModel:
                 for noise_qubits, error in noise_qubit_dict.items():
                     error_dict = error.to_dict()
                     error_dict["operations"] = [name]
-                    error_dict["gate_qubits"] = [list(qubits)]
-                    error_dict["noise_qubits"] = [list(noise_qubits)]
+                    error_dict["gate_qubits"] = [qubits]
+                    error_dict["noise_qubits"] = [noise_qubits]
                     error_list.append(error_dict)
 
         # Add default readout error
@@ -833,7 +833,7 @@ class NoiseModel:
         # Add local readout error
         for qubits, error in self._local_readout_errors.items():
             error_dict = error.to_dict()
-            error_dict["gate_qubits"] = [list(qubits)]
+            error_dict["gate_qubits"] = [qubits]
             error_list.append(error_dict)
 
         ret = {"errors": error_list}
