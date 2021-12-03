@@ -281,7 +281,7 @@ class NoiseModel:
             gate_error (bool): Include depolarizing gate errors (Default: True).
             readout_error (Bool): Include readout errors in model
                                   (Default: True).
-            thermal_relaxation (Bool): Include thermal relaxation errors on gates
+            thermal_relaxation (Bool): Include thermal relaxation errors
                                        (Default: True).
             temperature (double): qubit temperature in milli-Kelvin (mK) for
                                   thermal relaxation errors (Default: 0).
@@ -295,7 +295,7 @@ class NoiseModel:
                                    qobj gates. If false return as unitary
                                    qobj instructions (Default: None)
             warnings (bool): Display warnings (Default: True).
-            delay_noise (bool): Include delay instructions in the noise model (Default: True).
+            delay_noise (bool): Include delay instructions in the noise model (Default: False).
 
         Returns:
             NoiseModel: An approximate noise model for the device backend.
