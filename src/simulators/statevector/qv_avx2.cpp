@@ -1168,11 +1168,15 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
 
   // conservatively allocate temporal thread-local memory
   // some omp implementation does not correctly manage threadprivate
-#if defined(_OPENMP) && !defined(_WIN64) && !defined(_WIN32)
-  void* data = nullptr;
+#if defined(_OPENMP)
   auto omp_max_threads = omp_get_max_threads();
+#if !defined(_WIN64) && !defined(_WIN32)
+  void* data = nullptr;
   posix_memalign(&data, 64, sizeof(std::complex<double>) * omp_max_threads * 2);
   auto double_tmp = reinterpret_cast<std::complex<double>*>(data);
+#else
+  auto double_tmp = reinterpret_cast<std::complex<double>*>(malloc(sizeof(std::complex<double>) * omp_max_threads * 2));
+#endif
 #else
   auto double_tmp = reinterpret_cast<std::complex<double>*>(malloc(sizeof(std::complex<double>) * 2));
 #endif
@@ -1188,7 +1192,7 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
   const auto batch = (data_size <= (1UL << 5) ? 0 : 4);
 
   auto lambda = [&](const uint64_t i_, const std::complex<double>* in_vec) -> void {
-#if defined(_OPENMP) && !defined(_WIN64) && !defined(_WIN32)
+#if defined(_OPENMP)
       auto tmp_idx = omp_get_thread_num();
 #else
       auto tmp_idx = 0;
@@ -1226,11 +1230,15 @@ Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
 
   // conservatively allocate temporal thread-local memory
   // some omp implementation does not correctly manage threadprivate
-#if defined(_OPENMP) && !defined(_WIN64) && !defined(_WIN32)
+#if defined(_OPENMP)
   auto omp_max_threads = omp_get_max_threads();
+#if !defined(_WIN64) && !defined(_WIN32)
   void* data = nullptr;
   posix_memalign(&data, 64, sizeof(std::complex<float>) * omp_max_threads * 4);
   auto float_tmp = reinterpret_cast<std::complex<float>*>(data);
+#else
+  auto float_tmp = reinterpret_cast<std::complex<float>*>(malloc(sizeof(std::complex<float>) * omp_max_threads * 4));
+#endif
 #else
   auto float_tmp = reinterpret_cast<std::complex<float>*>(malloc(sizeof(std::complex<float>) * 4));
 #endif
@@ -1250,7 +1258,7 @@ Avx apply_diagonal_matrix_avx<float>(float* qv_data_,
   const auto batch = (data_size <= (1UL << 6) ? 0 : 4);
 
   auto lambda = [&](const uint64_t i_, const std::complex<float>* in_vec) -> void {
-#if defined(_OPENMP) && !defined(_WIN64) && !defined(_WIN32)
+#if defined(_OPENMP)
       auto tmp_idx = omp_get_thread_num();
 #else
       auto tmp_idx = 0;
