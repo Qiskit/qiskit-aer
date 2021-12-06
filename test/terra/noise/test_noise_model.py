@@ -262,7 +262,7 @@ class TestNoiseModel(QiskitAerTestCase):
         result = AerSimulator().run(qc, noise_model=noise_model).result()
         self.assertTrue(result.success)
         # test another path
-        noisy_sim = AerSimulator().from_backend(backend, delay_noise=True)
+        noisy_sim = AerSimulator().from_backend(backend)
         qc = transpile(circ, noisy_sim, scheduling_method="alap")
         result = noisy_sim.run(qc).result()
         self.assertTrue(result.success)

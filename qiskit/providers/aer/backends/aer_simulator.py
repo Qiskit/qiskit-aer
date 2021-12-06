@@ -535,11 +535,9 @@ class AerSimulator(AerBackend):
             # Avoid cyclic import
             from ..noise.noise_model import NoiseModel
 
-            if 'delay_noise' in options:
-                noise_model = NoiseModel.from_backend(backend, delay_noise=options['delay_noise'])
-                del options['delay_noise']
-                if not noise_model.is_ideal():
-                    options['noise_model'] = noise_model
+            noise_model = NoiseModel.from_backend(backend)
+            if not noise_model.is_ideal():
+                options['noise_model'] = noise_model
 
         # Initialize simulator
         sim = cls(configuration=configuration,
