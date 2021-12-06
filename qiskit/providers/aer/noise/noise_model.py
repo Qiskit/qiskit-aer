@@ -23,6 +23,7 @@ from numpy import ndarray
 from qiskit.circuit import Instruction
 from qiskit.providers import BaseBackend, Backend
 from qiskit.providers.models import BackendProperties
+from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler import PassManager
 from .device.models import basic_device_gate_errors
 from .device.models import basic_device_readout_errors
@@ -353,7 +354,7 @@ class NoiseModel:
             delay_pass = RelaxationNoisePass(
                 t1s=[backend.properties().t1(q) for q in range(backend.configuration().num_qubits)],
                 t2s=[backend.properties().t2(q) for q in range(backend.configuration().num_qubits)],
-                dt=backend.configuration().dt,
+                instruction_durations=InstructionDurations.from_backend(backend),
                 ops="delay",
             )
             noise_model._custom_noise_passes.append(delay_pass)

@@ -250,7 +250,7 @@ class TestNoiseModel(QiskitAerTestCase):
 
         self.assertEqual(actual, expected)
 
-    def test_delay_noise(self):
+    def test_can_run_circuits_with_delay_noise(self):
         circ = QuantumCircuit(2)
         circ.h(0)
         circ.cx(0, 1)
@@ -258,18 +258,21 @@ class TestNoiseModel(QiskitAerTestCase):
 
         backend = mock.FakeLagos()
         noise_model = NoiseModel.from_backend(backend, delay_noise=True)
+
         qc = transpile(circ, backend, scheduling_method="alap")
         result = AerSimulator().run(qc, noise_model=noise_model).result()
         self.assertTrue(result.success)
+
         # test another path
         noisy_sim = AerSimulator().from_backend(backend)
         qc = transpile(circ, noisy_sim, scheduling_method="alap")
         result = noisy_sim.run(qc).result()
         self.assertTrue(result.success)
-        # raise an error if circuit is not scheduled
-        with self.assertRaises(TranspilerError):
-            qc = transpile(circ, backend)
-            AerSimulator().run(qc, noise_model=noise_model)
+
+        # no scheduling = no delay noise
+        qc = transpile(circ, backend)
+        result = AerSimulator().run(qc, noise_model=noise_model).result()
+        self.assertTrue(result.success)
 
 
 if __name__ == '__main__':

@@ -19,6 +19,7 @@ from test.terra.common import QiskitAerTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.test.mock import FakeLagos
+from qiskit.transpiler import InstructionDurations
 
 
 class TestRelaxationNoisePass(QiskitAerTestCase):
@@ -38,7 +39,7 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
         delay_pass = RelaxationNoisePass(
             t1s=[backend.properties().t1(q) for q in range(backend.configuration().num_qubits)],
             t2s=[backend.properties().t2(q) for q in range(backend.configuration().num_qubits)],
-            dt=backend.configuration().dt
+            instruction_durations=InstructionDurations.from_backend(backend)
         )
         noisy_circ = delay_pass(sched_circ)
         self.assertEqual(9, noisy_circ.count_ops()["quantum_channel"])
@@ -57,7 +58,7 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
         delay_pass = RelaxationNoisePass(
             t1s=[backend.properties().t1(q) for q in range(backend.configuration().num_qubits)],
             t2s=[backend.properties().t2(q) for q in range(backend.configuration().num_qubits)],
-            dt=backend.configuration().dt,
+            instruction_durations=InstructionDurations.from_backend(backend),
             ops="delay",
         )
         noisy_circ = delay_pass(sched_circ)

@@ -17,8 +17,7 @@ from typing import Optional, Union, Sequence, List
 import numpy as np
 
 from qiskit.circuit import Instruction, QuantumCircuit
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler import InstructionDurations
 from .local_noise_pass import LocalNoisePass
 from ..errors.standard_errors import thermal_relaxation_error
 
@@ -30,7 +29,7 @@ class RelaxationNoisePass(LocalNoisePass):
             self,
             t1s: List[float],
             t2s: List[float],
-            dt: float,
+            instruction_durations: InstructionDurations,
             ops: Optional[Union[Instruction, Sequence[Instruction]]] = None,
             excited_state_populations: Optional[List[float]] = None,
     ):
@@ -39,7 +38,7 @@ class RelaxationNoisePass(LocalNoisePass):
         Args:
             t1s: List of T1 times in seconds for each qubit.
             t2s: List of T2 times in seconds for each qubit.
-            dt: ...
+            instruction_durations: ...
             ops: Optional, the operations to add relaxation to. If None
                  relaxation will be added to all operations.
             excited_state_populations: Optional, list of excited state populations
@@ -52,7 +51,7 @@ class RelaxationNoisePass(LocalNoisePass):
             self._p1s = np.asarray(excited_state_populations)
         else:
             self._p1s = np.zeros(len(t1s))
-        self._dt = dt
+        self._durations = instruction_durations
         super().__init__(self._thermal_relaxation_error, ops=ops, method="append")
 
     def _thermal_relaxation_error(
@@ -60,13 +59,12 @@ class RelaxationNoisePass(LocalNoisePass):
             op: Instruction,
             qubits: Sequence[int]
     ):
-        """Return thermal relaxation error on each gate qubit"""
-        duration = op.duration
+        """Return thermal relaxation error on each operand qubit"""
+        # convert time unit in seconds
+        duration = self._durations.get(op, qubits, unit="s")
+
         if duration == 0:
             return None
-
-        # convert time unit in seconds
-        duration = duration * self._dt
 
         t1s = self._t1s[qubits]
         t2s = self._t2s[qubits]
@@ -86,20 +84,6 @@ class RelaxationNoisePass(LocalNoisePass):
                 # No relaxation on this qubit
                 continue
             error = thermal_relaxation_error(t1, t2, duration, p1)
-            noise.append(error, [qubit])
+            noise.append(error.to_instruction(), [qubit])
 
         return noise
-
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the RelaxationNoisePass pass on `dag`.
-        Args:
-            dag: DAG to be changed.
-        Returns:
-            A changed DAG.
-        Raises:
-            TranspilerError: if failed to insert noises to the dag.
-        """
-        if dag.duration is None:
-            raise TranspilerError("This pass accepts only scheduled circuits")
-
-        return super().run(dag)
