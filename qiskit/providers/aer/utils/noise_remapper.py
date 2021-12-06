@@ -95,13 +95,13 @@ def remap_noise_model(noise_model, remapping, discard_qubits=False, warnings=Tru
     def in_target(qubits):  # check if qubits are to be remapped or not
         if not discard_qubits:
             return True
-        for q in noise_model._str2qubits(qubits):
+        for q in qubits:
             if q in discarded_qubits:
                 return False
         return True
 
     def remapped(qubits):
-        return tuple(inv_map[q] for q in noise_model._str2qubits(qubits))
+        return tuple(inv_map[q] for q in qubits)
 
     # Copy from original noise model
     new_model = NoiseModel()
