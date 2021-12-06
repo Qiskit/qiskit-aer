@@ -14,27 +14,25 @@ Qiskit Aer qasm simulator backend.
 """
 
 import copy
-import logging
 import datetime
+import logging
 import time
 import uuid
 import warnings
 from abc import ABC, abstractmethod
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.pulse import Schedule
 from qiskit.circuit import ParameterExpression
+from qiskit.circuit import QuantumCircuit
+from qiskit.compiler import assemble
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
+from qiskit.pulse import Schedule
+from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
 from qiskit.utils import deprecate_arguments
-from qiskit.qobj import QasmQobj, PulseQobj
-from qiskit.compiler import assemble
-
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
-
 
 # Logger
 logger = logging.getLogger(__name__)

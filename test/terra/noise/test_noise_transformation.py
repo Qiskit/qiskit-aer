@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2018, 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,18 +14,23 @@ NoiseTransformer class tests
 """
 
 import unittest
-from ..common import QiskitAerTestCase
 
 import numpy
-from qiskit.providers.aer.noise.errors.errorutils import standard_gate_unitary
 from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.utils import NoiseTransformer
-from qiskit.providers.aer.utils import approximate_quantum_error
-from qiskit.providers.aer.utils import approximate_noise_model
-from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
-from qiskit.providers.aer.noise.errors.standard_errors import reset_error
-from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.providers.aer.noise.errors.quantum_error import QuantumError
+from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
+from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
+from qiskit.providers.aer.noise.errors.standard_errors import reset_error
+from qiskit.providers.aer.noise.noiseerror import NoiseError
+from qiskit.providers.aer.utils import NoiseTransformer
+from qiskit.providers.aer.utils import approximate_noise_model
+from qiskit.providers.aer.utils import approximate_quantum_error
+from test.terra.common import QiskitAerTestCase
+
+from qiskit.circuit import Reset
+from qiskit.circuit.library.standard_gates import IGate
+from qiskit.circuit.library.standard_gates import XGate, YGate, ZGate, HGate, SGate
+from qiskit.quantum_info.operators.channel import Kraus
 
 try:
     import cvxpy
@@ -33,18 +38,18 @@ try:
 except ImportError:
     HAS_CVXPY = False
 
+
 @unittest.skipUnless(HAS_CVXPY, 'cvxpy is required to run these tests')
 class TestNoiseTransformer(QiskitAerTestCase):
     def setUp(self):
         super().setUp()
         self.ops = {
-            'X': standard_gate_unitary('x'),
-            'Y': standard_gate_unitary('y'),
-            'Z': standard_gate_unitary('z'),
-            'H': standard_gate_unitary('h'),
-            'S': standard_gate_unitary('s')
+            'X': XGate(),
+            'Y': YGate(),
+            'Z': ZGate(),
+            'H': HGate(),
+            'S': SGate()
         }
-        self.n = NoiseTransformer()
 
     def assertNoiseModelsAlmostEqual(self, lhs, rhs, places=3):
         self.assertNoiseDictsAlmostEqual(
@@ -126,7 +131,6 @@ class TestNoiseTransformer(QiskitAerTestCase):
                         lhs, rhs, x, y))
 
     def test_transformation_by_pauli(self):
-        n = NoiseTransformer()
         # polarization in the XY plane; we represent via Kraus operators
         X = self.ops['X']
         Y = self.ops['Y']
@@ -134,8 +138,8 @@ class TestNoiseTransformer(QiskitAerTestCase):
         p = 0.22
         theta = numpy.pi / 5
         E0 = numpy.sqrt(1 - p) * numpy.array(numpy.eye(2))
-        E1 = numpy.sqrt(p) * (numpy.cos(theta) * X + numpy.sin(theta) * Y)
-        results = approximate_quantum_error((E0, E1),
+        E1 = numpy.sqrt(p) * (numpy.cos(theta) * numpy.array(X) + numpy.sin(theta) * numpy.array(Y))
+        results = approximate_quantum_error(Kraus([E0, E1]),
                                             operator_dict={
                                                 "X": X,
                                                 "Y": Y,
@@ -146,14 +150,21 @@ class TestNoiseTransformer(QiskitAerTestCase):
              ('I', 1 - p)])
         self.assertErrorsAlmostEqual(expected_results, results)
 
-        # now try again without fidelity; should be the same
-        n.use_honesty_constraint = False
-        results = approximate_quantum_error((E0, E1),
-                                            operator_dict={
-                                                "X": X,
-                                                "Y": Y,
-                                                "Z": Z})
-        self.assertErrorsAlmostEqual(expected_results, results)
+    def test_transformation_by_kraus(self):
+        gamma = 0.23
+        error = amplitude_damping_error(gamma)
+        reset_to_0 = [numpy.array([[1, 0], [0, 0]]), numpy.array([[0, 1], [0, 0]])]
+        reset_to_1 = [numpy.array([[0, 0], [1, 0]]), numpy.array([[0, 0], [0, 1]])]
+        reset_kraus = [Kraus(reset_to_0), Kraus(reset_to_1)]
+
+        actual = approximate_quantum_error(error, operator_list=reset_kraus)
+
+        p = (1 + gamma - numpy.sqrt(1 - gamma)) / 2
+        expected_probs = [1 - p, p, 0]
+        self.assertListAlmostEqual(expected_probs, actual.probabilities)
+
+        with self.assertWarns(DeprecationWarning):
+            approximate_quantum_error(error, operator_list=[reset_to_0, reset_to_1])
 
     def test_reset(self):
         # approximating amplitude damping using relaxation operators
@@ -172,18 +183,18 @@ class TestNoiseTransformer(QiskitAerTestCase):
         p = 0.34
         theta = numpy.pi / 7
         E0 = numpy.sqrt(1 - p) * numpy.array(numpy.eye(2))
-        E1 = numpy.sqrt(p) * (numpy.cos(theta) * X + numpy.sin(theta) * Y)
+        E1 = numpy.sqrt(p) * (numpy.cos(theta) * numpy.array(X) + numpy.sin(theta) * numpy.array(Y))
 
-        results_dict = approximate_quantum_error((E0, E1),
+        results_dict = approximate_quantum_error(Kraus([E0, E1]),
                                                  operator_dict={
                                                      "X": X,
                                                      "Y": Y,
                                                      "Z": Z})
-        results_string = approximate_quantum_error((E0, E1),
+        results_string = approximate_quantum_error(Kraus([E0, E1]),
                                                    operator_string='pauli')
-        results_list = approximate_quantum_error((E0, E1),
+        results_list = approximate_quantum_error(Kraus([E0, E1]),
                                                  operator_list=[X, Y, Z])
-        results_tuple = approximate_quantum_error((E0, E1),
+        results_tuple = approximate_quantum_error(Kraus([E0, E1]),
                                                   operator_list=(X, Y, Z))
 
         self.assertErrorsAlmostEqual(results_dict, results_string)
@@ -191,12 +202,13 @@ class TestNoiseTransformer(QiskitAerTestCase):
         self.assertErrorsAlmostEqual(results_list, results_tuple)
 
     def test_fidelity(self):
-        n = NoiseTransformer()
         expected_fidelity = {'X': 0, 'Y': 0, 'Z': 0, 'H': 0, 'S': 2}
         for key in expected_fidelity:
+            with self.assertWarns(DeprecationWarning):
+                actual_fidelity = NoiseTransformer().fidelity([self.ops[key]])
             self.assertAlmostEqual(
                 expected_fidelity[key],
-                n.fidelity([self.ops[key]]),
+                actual_fidelity,
                 msg="Wrong fidelity for {}".format(key))
 
     def test_approx_noise_model(self):
@@ -251,24 +263,15 @@ class TestNoiseTransformer(QiskitAerTestCase):
         # approximating amplitude damping using relaxation operators
         gamma = 0.23
         p = (gamma - numpy.sqrt(1 - gamma) + 1) / 2
-        q = 0
         A0 = [[1, 0], [0, numpy.sqrt(1 - gamma)]]
         A1 = [[0, numpy.sqrt(gamma)], [0, 0]]
-        error_1 = QuantumError([([{'name': 'kraus', 'qubits': [0], 'params': [A0, A1]},
-                                  {'name': 'id', 'qubits': [1]}
-                                  ], 1)])
-        error_2 = QuantumError([([{'name': 'kraus', 'qubits': [1], 'params': [A0, A1]},
-                                  {'name': 'id', 'qubits': [0]}
-                                  ], 1)])
+        error_1 = QuantumError([([(Kraus([A0, A1]), [0]), (IGate(), [1])], 1)])
+        error_2 = QuantumError([([(Kraus([A0, A1]), [1]), (IGate(), [0])], 1)])
 
-        expected_results_1 = QuantumError([
-            ([{'name': 'id', 'qubits': [0]}, {'name': 'id', 'qubits': [1]}], 1-p),
-            ([{'name': 'reset', 'qubits': [0]}, {'name': 'id', 'qubits': [1]}],p),
-        ])
-        expected_results_2 = QuantumError([
-            ([{'name': 'id', 'qubits': [1]}, {'name': 'id', 'qubits': [0]}], 1 - p),
-            ([{'name': 'reset', 'qubits': [1]}, {'name': 'id', 'qubits': [0]}], p),
-        ])
+        expected_results_1 = QuantumError([([(IGate(), [0]), (IGate(), [1])], 1 - p),
+                                           ([(Reset(), [0]), (IGate(), [1])], p)])
+        expected_results_2 = QuantumError([([(IGate(), [1]), (IGate(), [0])], 1 - p),
+                                           ([(Reset(), [1]), (IGate(), [0])], p)])
 
         results_1 = approximate_quantum_error(error_1, operator_string="reset")
         results_2 = approximate_quantum_error(error_2, operator_string="reset")
@@ -292,9 +295,145 @@ class TestNoiseTransformer(QiskitAerTestCase):
         with self.assertRaisesRegex(
                 TypeError, "takes 1 positional argument but 2 were given"):
             approximate_quantum_error(error, 7)
-        with self.assertRaisesRegex(RuntimeError,
-                                    "No information about noise type seven"):
+        with self.assertRaises(NoiseError):
             approximate_quantum_error(error, operator_string="seven")
+
+    def test_approx_random_unitary_channel(self):
+        # run without raising any error
+        noise = Kraus(random_unitary(2, seed=123))
+        for opstr in ['pauli', 'reset', 'clifford']:
+            approximate_quantum_error(noise, operator_string=opstr)
+
+        noise = Kraus(random_unitary(4, seed=123))
+        for opstr in ['pauli', 'reset']:
+            approximate_quantum_error(noise, operator_string=opstr)
+
+    def test_approx_random_mixed_unitary_channel_1q(self):
+        # run without raising any error
+        noise1 = UnitaryGate(random_unitary(2, seed=123))
+        noise2 = UnitaryGate(random_unitary(2, seed=456))
+        noise = QuantumError([(noise1, 0.7), (noise2, 0.3)])
+        for opstr in ['pauli', 'reset', 'clifford']:
+            approximate_quantum_error(noise, operator_string=opstr)
+
+    def test_approx_random_mixed_unitary_channel_2q(self):
+        # run without raising any error
+        noise1 = UnitaryGate(random_unitary(4, seed=123))
+        noise2 = UnitaryGate(random_unitary(4, seed=456))
+        noise = QuantumError([(noise1, 0.7), (noise2, 0.3)])
+        for opstr in ['pauli', 'reset']:
+            approximate_quantum_error(noise, operator_string=opstr)
+
+# ================== Tests using old interfaces ================== #
+# TODO: Delete after deprecation of old noise transformer
+import warnings
+from qiskit.extensions import UnitaryGate
+from qiskit.quantum_info import process_fidelity
+from qiskit.quantum_info.random import random_unitary
+@unittest.skipUnless(HAS_CVXPY, 'cvxpy is required to run these tests')
+class TestCompareOldAndNewNoiseTransformer(QiskitAerTestCase):
+    def setUp(self):
+        super().setUp()
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+    @staticmethod
+    def old_approximate_quantum_error(error, *,
+                                      operator_string=None,
+                                      operator_dict=None,
+                                      operator_list=None):
+        if not isinstance(error, QuantumError):
+            error = QuantumError(error)
+        if error.number_of_qubits > 2:
+            raise NoiseError("Only 1-qubit and 2-qubit noises can be converted, {}-qubit "
+                             "noise found in model".format(error.number_of_qubits))
+
+        error_kraus_operators = Kraus(error.to_quantumchannel()).data
+        transformer = NoiseTransformer()
+        if operator_string is not None:
+            no_info_error = "No information about noise type {}".format(operator_string)
+            operator_string = operator_string.lower()
+            if operator_string not in transformer.named_operators.keys():
+                raise RuntimeError(no_info_error)
+            operator_lists = transformer.named_operators[operator_string]
+            if len(operator_lists) < error.number_of_qubits:
+                raise RuntimeError(
+                    no_info_error + " for {} qubits".format(error.number_of_qubits))
+            operator_dict = operator_lists[error.number_of_qubits - 1]
+        if operator_dict is not None:
+            _, operator_list = zip(*operator_dict.items())
+        if operator_list is not None:
+            op_matrix_list = [
+                transformer.operator_matrix(operator) for operator in operator_list
+            ]
+            probabilities = transformer.transform_by_operator_list(
+                op_matrix_list, error_kraus_operators)
+            identity_prob = numpy.round(1 - sum(probabilities), 9)
+            if identity_prob < 0 or identity_prob > 1:
+                raise RuntimeError(
+                    "Channel probabilities sum to {}".format(1 - identity_prob))
+            quantum_error_spec = [([{'name': 'id', 'qubits': [0]}], identity_prob)]
+            op_circuit_list = [
+                transformer.operator_circuit(operator)
+                for operator in operator_list
+            ]
+            for (operator, probability) in zip(op_circuit_list, probabilities):
+                quantum_error_spec.append((operator, probability))
+            return QuantumError(quantum_error_spec)
+
+        raise NoiseError(
+            "Quantum error approximation failed - no approximating operators detected"
+        )
+
+    def test_approx_random_unitary_channel_1q(self):
+        noise = Kraus(random_unitary(2, seed=123))
+        for opstr in ['pauli', 'reset']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertEqual(new_result, old_result)
+        for opstr in ['clifford']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertGreaterEqual(process_fidelity(noise, new_result),
+                                    process_fidelity(noise, old_result))
+
+    def test_approx_random_unitary_channel_2q(self):
+        noise = Kraus(random_unitary(4, seed=123))
+        for opstr in ['pauli']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertEqual(new_result, old_result)
+        for opstr in ['reset']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertGreaterEqual(process_fidelity(noise, new_result),
+                                    process_fidelity(noise, old_result))
+
+    def test_approx_random_mixed_unitary_channel_1q(self):
+        noise1 = UnitaryGate(random_unitary(2, seed=123))
+        noise2 = UnitaryGate(random_unitary(2, seed=456))
+        noise = QuantumError([(noise1, 0.7), (noise2, 0.3)])
+        for opstr in ['pauli', 'reset']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertEqual(new_result, old_result)
+        for opstr in ['clifford']:
+            # cannot compare due to error in old implementation
+            with self.assertRaises(NoiseError):
+                self.old_approximate_quantum_error(noise, operator_string=opstr)
+
+    def test_approx_random_mixed_unitary_channel_2q(self):
+        noise1 = UnitaryGate(random_unitary(4, seed=123))
+        noise2 = UnitaryGate(random_unitary(4, seed=456))
+        noise = QuantumError([(noise1, 0.7), (noise2, 0.3)])
+        for opstr in ['pauli']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertEqual(new_result, old_result)
+        for opstr in ['reset']:
+            new_result = approximate_quantum_error(noise, operator_string=opstr)
+            old_result = self.old_approximate_quantum_error(noise, operator_string=opstr)
+            self.assertGreaterEqual(process_fidelity(noise, new_result),
+                                    process_fidelity(noise, old_result))
 
 
 if __name__ == '__main__':
