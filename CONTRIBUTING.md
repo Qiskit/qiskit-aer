@@ -652,14 +652,8 @@ To use MPI support, any MPI library (i.e. OpenMPI) should be installed and confi
 Qiskit Aer supports MPI both with and without GPU support. Currently following simulation methods are supported to be parallelized by MPI.
 
  - statevector
- - statevector_thrust_gpu
- - statevector_thrust_cpu
  - density_matrix
- - density_matrix_thrust_gpu
- - density_matrix_thrust_cpu
- - unitary_cpu
- - unitary_thrust_gpu
- - unitary_thrust_cpu
+ - unitary
 
 To enable MPI support, the following flag is needed for build system based on CMake.
 
@@ -710,11 +704,18 @@ So to simulate by using multiple GPUs or multiple nodes on the cluster, followin
 Here is an example how we parallelize simulation with multiple GPUs.
 
 ```
+sim = AerSimulator(method='statevector', device='GPU')
 circ = transpile(QuantumVolume(qubit, 10, seed = 0))
 circ.measure_all()
-qobj = assemble(circ, shots=shots)
-result = sim.run(qobj, method="statevector_gpu", blocking_enable=True, blocking_qubits=23).result()
+result = execute(circ, sim, shots=100, blocking_enable=True, blocking_qubits=23).result()
 ```
+
+Qiskit Aer 0.10 supports multiple shots optimization on GPU. Simulating with noise models or intermediate measurements require running each shot independently. 
+For GPU, running large number of shots independently is no efficient bacause of CUDA overheads and lower parallelism. 
+Now Qiskit Aer supports simulating multiple shots at the same time in a batch. To enable multi-shots optimization set the `option batched_shots_optimization` and `batched_shots_optimization_threshold`.
+By default, `batched_shots_optimization` is set to `True` and only enabled when `device=GPU` is specified, `batched_shots_optimization_threshold` is set to `16` and enabled if qubits of circuit is less than this option.
+Because for large number of qubits we experienced disabling multi-shots optimization makes better performance. 
+
 
 To run Qiskit Aer with Python script with MPI parallelization, MPI executer such as mpirun should be used to submit a job on the cluster. Following example shows how to run Python script using 4 processes by using mpirun.
 
@@ -732,11 +733,17 @@ Following metadatas are useful to find on which process is this script running.
 Here is an example how to get my rank.
 
 ```
-result = sim.run(qobj, method="statevector_gpu", blocking_enable=True, blocking_qubits=23).result()
+sim = AerSimulator(method='statevector', device='GPU')
+result = execute(circuit, sim, blocking_enable=True, blocking_qubits=23).result()
 dict = result.to_dict()
 meta = dict['metadata']
 myrank = meta['mpi_rank']
 ```
+
+
+Multiple shots are also distributed to multiple nodes when setting `device=GPU` and `batched_shots_optimization=True`. The results are distributed to each processes.
+
+
 ### Building a statically linked wheel
 
 If you encounter an error similar to the following, you may are likely in the need of compiling a
