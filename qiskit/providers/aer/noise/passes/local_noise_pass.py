@@ -47,6 +47,7 @@ class LocalNoisePass(TransformationPass):
     * ``"append"``: add the return of the callable after the instruction.
     * ``"prepend"``: add the return of the callable before the instruction.
     * ``"replace"``: replace the instruction with the return of the callable.
+        If the return is None, the instruction will be removed.
 
     """
 
@@ -100,6 +101,8 @@ class LocalNoisePass(TransformationPass):
             qubits = [qubit_indices[q] for q in node.qargs]
             new_op = self._func(node.op, qubits)
             if new_op is None:
+                if self._method == "replace":
+                    dag.remove_op_node(node)
                 continue
             if not isinstance(new_op, Instruction):
                 try:

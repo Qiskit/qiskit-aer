@@ -13,13 +13,79 @@
 Noise pass classes tests
 """
 
+from qiskit.providers.aer.noise.passes import LocalNoisePass
 from qiskit.providers.aer.noise.passes import RelaxationNoisePass
 from test.terra.common import QiskitAerTestCase
 
 from qiskit.circuit import QuantumCircuit, Delay
+from qiskit.circuit.library.standard_gates import SXGate, HGate
 from qiskit.compiler import transpile
 from qiskit.test.mock import FakeLagos
 from qiskit.transpiler import InstructionDurations, TranspilerError
+
+
+class TestLocalNoisePass(QiskitAerTestCase):
+    """Testing LocalNoisePass class"""
+
+    def test_append_noise(self):
+        qc = QuantumCircuit(2)
+        qc.sx(0)
+        qc.sx(1)
+
+        def func(op, qubits):
+            if tuple(qubits) == (1,):
+                return HGate()
+            return None
+
+        noise_pass = LocalNoisePass(func=func, op_types=SXGate, method="append")
+        actual = noise_pass(qc)
+
+        expected = QuantumCircuit(2)
+        expected.sx(0)  # do nothing for sx(0)
+        expected.sx(1)
+        expected.h(1)  # add H after sx(1)
+
+        self.assertEqual(expected, actual)
+
+    def test_prepend_noise(self):
+        qc = QuantumCircuit(2)
+        qc.sx(0)
+        qc.sx(1)
+
+        def func(op, qubits):
+            # return H for qubit 1 and None for the other qubits
+            if tuple(qubits) == (1,):
+                return HGate()
+            return None
+
+        noise_pass = LocalNoisePass(func=func, op_types=SXGate, method="prepend")
+        actual = noise_pass(qc)
+
+        expected = QuantumCircuit(2)
+        expected.sx(0)  # do nothing for sx(0)
+        expected.h(1)  # add H before sx(1)
+        expected.sx(1)
+
+        self.assertEqual(expected, actual)
+
+    def test_replace_noise(self):
+        qc = QuantumCircuit(2)
+        qc.sx(0)
+        qc.sx(1)
+
+        def func(op, qubits):
+            if tuple(qubits) == (1,):
+                return HGate()
+            return None
+
+        noise_pass = LocalNoisePass(func=func, op_types=SXGate, method="replace")
+        actual = noise_pass(qc)
+
+        expected = QuantumCircuit(2)
+        # sx(0) is removed since func returns None for sx(0)
+        expected.h(1)  # sx(1) is replaced with h(1)
+
+        self.assertEqual(expected, actual)
 
 
 class TestRelaxationNoisePass(QiskitAerTestCase):
