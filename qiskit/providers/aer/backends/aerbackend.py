@@ -354,7 +354,7 @@ class AerBackend(Backend, ABC):
         return circuit
 
     def _inline_for_loop_op(self, inst):
-        loop_parameter, indexset, body = inst.params
+        indexset, loop_parameter, body = inst.params
 
         self._last_flow_id += 1
         loop_id = self._last_flow_id

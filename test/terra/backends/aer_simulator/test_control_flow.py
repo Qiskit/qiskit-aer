@@ -172,7 +172,7 @@ class CircuitBuilder:
         self._build_block(new_body, node.body)
         
         new_body.append(ast.parse(f'{parent_circ_name}.append(' + 
-                                      f'ForLoopOp({param_name}, {astunparse.unparse(node.iter)}, {this_circ_name}), ' + 
+                                      f'ForLoopOp({astunparse.unparse(node.iter)}, {param_name}, {this_circ_name}), ' + 
                                       f'range(len({parent_circ_name}.qubits)), ' + 
                                       f'range(len({parent_circ_name}.clbits)))'))
         
@@ -719,6 +719,7 @@ class TestControlFlow(SimulatorTestCase):
                     circ.ry(a * b * numpy.pi, 2)
 
         circ = QuantumCircuit(3, 0)
+
         test_for_loop_circuit(circ)
         circ.measure_all()
         
