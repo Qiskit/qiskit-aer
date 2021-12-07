@@ -27,6 +27,7 @@ from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler import PassManager
 from .device.models import basic_device_gate_errors
 from .device.models import basic_device_readout_errors
+from .device.models import _excited_population
 from .errors.quantum_error import QuantumError
 from .errors.readout_error import ReadoutError
 from .noiseerror import NoiseError
@@ -351,11 +352,18 @@ class NoiseModel:
             noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
         # Add delay errors
         if thermal_relaxation and delay_noise:
+            qubits = list(range(backend.configuration().num_qubits))
             delay_pass = RelaxationNoisePass(
-                t1s=[backend.properties().t1(q) for q in range(backend.configuration().num_qubits)],
-                t2s=[backend.properties().t2(q) for q in range(backend.configuration().num_qubits)],
+                t1s=[backend.properties().t1(q) for q in qubits],
+                t2s=[backend.properties().t2(q) for q in qubits],
                 instruction_durations=InstructionDurations.from_backend(backend),
                 op_types=Delay,
+                excited_state_populations=[
+                    _excited_population(
+                        freq=backend.properties().frequency(q),
+                        temperature=temperature
+                    ) for q in qubits
+                ]
             )
             noise_model._custom_noise_passes.append(delay_pass)
         return noise_model
