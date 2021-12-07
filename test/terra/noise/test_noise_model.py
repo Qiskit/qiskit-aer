@@ -257,7 +257,7 @@ class TestNoiseModel(QiskitAerTestCase):
         circ.measure_all()
 
         backend = mock.FakeLagos()
-        noise_model = NoiseModel.from_backend(backend, delay_noise=True)
+        noise_model = NoiseModel.from_backend(backend)
 
         qc = transpile(circ, backend, scheduling_method="alap")
         result = AerSimulator().run(qc, noise_model=noise_model).result()

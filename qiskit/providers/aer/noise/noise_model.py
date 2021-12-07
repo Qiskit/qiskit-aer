@@ -215,8 +215,7 @@ class NoiseModel:
                      gate_lengths=None,
                      gate_length_units='ns',
                      standard_gates=None,
-                     warnings=True,
-                     delay_noise=False):
+                     warnings=True):
         """Return a noise model derived from a devices backend properties.
 
         This function generates a noise model based on:
@@ -297,7 +296,6 @@ class NoiseModel:
                                    qobj gates. If false return as unitary
                                    qobj instructions (Default: None)
             warnings (bool): Display warnings (Default: True).
-            delay_noise (bool): Include delay instructions in the noise model (Default: False).
 
         Returns:
             NoiseModel: An approximate noise model for the device backend.
@@ -351,7 +349,7 @@ class NoiseModel:
         for name, qubits, error in gate_errors:
             noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
         # Add delay errors
-        if thermal_relaxation and delay_noise:
+        if thermal_relaxation:
             qubits = list(range(backend.configuration().num_qubits))
             delay_pass = RelaxationNoisePass(
                 t1s=[backend.properties().t1(q) for q in qubits],
