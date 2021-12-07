@@ -59,7 +59,7 @@ public:
     initial_seed_ = seed;
   }
 
-  size_t seed(void)
+  size_t initial_seed(void)
   {
     return initial_seed_;
   }
