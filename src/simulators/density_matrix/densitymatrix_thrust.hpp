@@ -1438,7 +1438,8 @@ public:
           ii += (1ull << (qubits[k]+qubit_sp_));
         }
       }
-      q += vec[ii];
+      if((j & ((1ull << num_qubits_) - 1)) == (j >> num_qubits_))
+        q += vec[ii];
       vec[ii] = 0.0;
     }
     vec[idx] = q;
