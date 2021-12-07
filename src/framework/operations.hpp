@@ -33,7 +33,7 @@ namespace Operations {
 // Comparisons enum class used for Boolean function operation.
 // these are used to compare two hexadecimal strings and return a bool
 // for now we only have one comparison Equal, but others will be added
-enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqual, Nop};
+enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqual};
 
 // Enum class for operation types
 enum class OpType {

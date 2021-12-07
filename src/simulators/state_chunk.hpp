@@ -422,6 +422,7 @@ protected:
   //check conditional
   bool check_conditional(const int_t iChunk, const Operations::Op &op);
 
+  //this function is used to scale chunk qubits for multi-chunk distribution
   virtual int qubit_scale(void)
   {
     return 1;     //scale of qubit number (x2 for density and unitary matrices)

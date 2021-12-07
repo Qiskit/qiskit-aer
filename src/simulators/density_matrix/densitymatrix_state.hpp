@@ -301,7 +301,8 @@ protected:
   const static stringmap_t<Snapshots> snapshotset_;
 
   //scale for density matrix = 2
-  virtual int qubit_scale(void)
+  //this function is used in the base class to scale chunk qubits for multi-chunk distribution
+  int qubit_scale(void) override
   {
     return 2;
   }
@@ -1504,12 +1505,7 @@ rvector_t State<densmat_t>::measure_probs(const int_t iChunk, const reg_t &qubit
 template <class densmat_t>
 void State<densmat_t>::apply_reset(const int_t iChunk, const reg_t &qubits) 
 {
-  // TODO: This can be more efficient by adding reset
-  // to base class rather than doing a matrix multiplication
-  // where all but 1 row is zeros.
-  const auto reset_op = Linalg::SMatrix::reset(1ULL << qubits.size());
-  BaseState::qregs_[iChunk].apply_superop_matrix(qubits,
-                                        Utils::vectorize_matrix(reset_op));
+  BaseState::qregs_[iChunk].apply_reset(qubits);
 }
 
 template <class densmat_t>

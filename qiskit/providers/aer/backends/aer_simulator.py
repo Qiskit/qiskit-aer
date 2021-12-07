@@ -470,14 +470,12 @@ class AerSimulator(AerBackend):
             fusion_max_qubit=5,
             fusion_threshold=14,
             accept_distributed_results=None,
-            blocking_qubits=None,
-            blocking_enable=False,
-            memory_blocking_bits=0,
-            batched_shots_optimization=True,
-            batched_shots_optimization_threshold=16,
             memory=None,
             noise_model=None,
             seed_simulator=None,
+            # cache blocking for multi-GPUs/MPI options
+            blocking_qubits=None,
+            blocking_enable=False,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,

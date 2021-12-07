@@ -195,7 +195,8 @@ protected:
   const static stringmap_t<Gates> gateset_;
 
   //scale for unitary = 2
-  virtual int qubit_scale(void)
+  //this function is used in the base class to scale chunk qubits for multi-chunk distribution
+  int qubit_scale(void) override
   {
     return 2;
   }

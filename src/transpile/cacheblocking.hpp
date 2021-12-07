@@ -85,7 +85,7 @@ protected:
   mutable bool blocking_enabled_;
   mutable bool sample_measure_ = false;
   mutable bool save_state_ = false;
-  int memory_blocking_bits_;
+  int memory_blocking_bits_ = 0;
   bool density_matrix_ = false;
 
   bool block_circuit(Circuit& circ,bool doSwap) const;

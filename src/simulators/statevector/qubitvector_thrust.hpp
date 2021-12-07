@@ -1154,7 +1154,6 @@ std::complex<double> QubitVectorThrust<data_t>::inner_product() const
 template <typename data_t>
 bool QubitVectorThrust<data_t>::fetch_chunk(void) const
 {
-  int tid,nid;
   int idev;
 
   if(chunk_.device() < 0){ //on host

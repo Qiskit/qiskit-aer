@@ -129,7 +129,7 @@ public:
   virtual double probability(const uint_t outcome) const override;
 
 
-  virtual void apply_reset(const reg_t& qubits){}
+  void apply_reset(const reg_t& qubits);
 
   //-----------------------------------------------------------------------
   // Expectation Values
@@ -458,6 +458,17 @@ template <typename data_t>
 double DensityMatrix<data_t>::probability(const uint_t outcome) const {
   const auto shift = BaseMatrix::num_rows() + 1;
   return std::real(BaseVector::data_[outcome * shift]);
+}
+
+
+template <typename data_t>
+void DensityMatrix<data_t>::apply_reset(const reg_t& qubits)
+{
+  // TODO: This can be more efficient by adding reset
+  // to base class rather than doing a matrix multiplication
+  // where all but 1 row is zeros.
+  const auto reset_op = Linalg::SMatrix::reset(1ULL << qubits.size());
+  apply_superop_matrix(qubits, Utils::vectorize_matrix(reset_op));
 }
 
 //------------------------------------------------------------------------------
