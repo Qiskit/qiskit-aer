@@ -365,7 +365,7 @@ protected:
 
   //config setting for multi-shot parallelization
   bool batched_shots_optimization_ = true;
-  int_t batched_shots_optimization_threshold_ = 16;   //multi-shot parallelization is applied if qubits is less than threshold
+  int_t batched_shots_optimization_max_qubits_ = 16;   //multi-shot parallelization is applied if qubits is less than max qubits
   bool enable_batch_multi_shots_ = false;   //multi-shot parallelization can be applied
 
 };
@@ -455,8 +455,8 @@ void Controller::set_config(const json_t &config) {
   if(JSON::check_key("batched_shots_optimization", config)) {
     JSON::get_value(batched_shots_optimization_, "batched_shots_optimization", config);
   }
-  if(JSON::check_key("batched_shots_optimization_threshold", config)) {
-    JSON::get_value(batched_shots_optimization_threshold_, "batched_shots_optimization_threshold", config);
+  if(JSON::check_key("batched_shots_optimization_max_qubits", config)) {
+    JSON::get_value(batched_shots_optimization_max_qubits_, "batched_shots_optimization_max_qubits", config);
   }
 
   // Override automatic simulation method with a fixed method
@@ -630,7 +630,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
 {
   enable_batch_multi_shots_ = false;
   if(batched_shots_optimization_ && sim_device_ == Device::GPU && circ.shots > 1 && max_batched_states_ >= num_gpus_ && 
-              batched_shots_optimization_threshold_ >= circ.num_qubits ){
+              batched_shots_optimization_max_qubits_ >= circ.num_qubits ){
     enable_batch_multi_shots_ = true;
   }
 
