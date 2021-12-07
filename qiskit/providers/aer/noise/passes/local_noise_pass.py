@@ -30,7 +30,7 @@ class LocalNoisePass(TransformationPass):
 
     .. code:: python
 
-            def fn(
+            def func(
                 inst: Instruction,
                 qubits: Optional[List[int]] = None
             ) -> InstructionLike:
@@ -53,14 +53,14 @@ class LocalNoisePass(TransformationPass):
     def __init__(
             self,
             func: Callable[[Instruction, Sequence[int]], InstructionLike],
-            ops: Optional[Union[Instruction, Iterable[Instruction]]] = None,
+            op_types: Optional[Union[type, Iterable[type]]] = None,
             method: str = 'append'
     ):
         """Initialize noise pass.
 
         Args:
-            func: noise function `fn(inst, qubits) -> InstructionLike`.
-            ops: Optional, single or list of instructions to apply the
+            func: noise function `func(inst, qubits) -> InstructionLike`.
+            op_types: Optional, single or list of instruction types to apply the
                 noise function to. If None the noise function will be
                 applied to all instructions in the circuit.
             method: method for inserting noise. Allow methods are
@@ -72,12 +72,16 @@ class LocalNoisePass(TransformationPass):
             raise TranspilerError(
                 f'Invalid method: {method}, it must be "append", "prepend" or "replace"'
             )
-        if isinstance(ops, str):
-            ops = [ops]
+        if isinstance(op_types, type):
+            op_types = (op_types,)
         super().__init__()
         self._func = func
-        self._ops = set(ops) if ops else {}
+        self._ops = tuple(op_types) if op_types else tuple()
         self._method = method
+        if not all(isinstance(op, type) for op in self._ops):
+            raise TranspilerError(
+                f"Invalid ops: '{op_types}', expecting single or list of operation types (or None)"
+            )
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the LocalNoisePass pass on `dag`.
@@ -90,7 +94,7 @@ class LocalNoisePass(TransformationPass):
         """
         qubit_indices = {qubit: idx for idx, qubit in enumerate(dag.qubits)}
         for node in dag.topological_op_nodes():
-            if self._ops and node.op.name not in self._ops:
+            if self._ops and not isinstance(node.op, self._ops):
                 continue
 
             qubits = [qubit_indices[q] for q in node.qargs]

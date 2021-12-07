@@ -355,7 +355,7 @@ class NoiseModel:
                 t1s=[backend.properties().t1(q) for q in range(backend.configuration().num_qubits)],
                 t2s=[backend.properties().t2(q) for q in range(backend.configuration().num_qubits)],
                 instruction_durations=InstructionDurations.from_backend(backend),
-                ops="delay",
+                op_types="delay",
             )
             noise_model._custom_noise_passes.append(delay_pass)
         return noise_model

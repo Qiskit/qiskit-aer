@@ -30,7 +30,7 @@ class RelaxationNoisePass(LocalNoisePass):
             t1s: List[float],
             t2s: List[float],
             instruction_durations: InstructionDurations,
-            ops: Optional[Union[Instruction, Sequence[Instruction]]] = None,
+            op_types: Optional[Union[type, Sequence[type]]] = None,
             excited_state_populations: Optional[List[float]] = None,
     ):
         """Initialize RelaxationNoisePass.
@@ -39,8 +39,8 @@ class RelaxationNoisePass(LocalNoisePass):
             t1s: List of T1 times in seconds for each qubit.
             t2s: List of T2 times in seconds for each qubit.
             instruction_durations: ...
-            ops: Optional, the operations to add relaxation to. If None
-                 relaxation will be added to all operations.
+            op_types: Optional, the operation types to add relaxation to. If None
+                relaxation will be added to all operations.
             excited_state_populations: Optional, list of excited state populations
                 for each qubit at thermal equilibrium. If not supplied or obtained
                 from the backend this will be set to 0 for each qubit.
@@ -52,7 +52,7 @@ class RelaxationNoisePass(LocalNoisePass):
         else:
             self._p1s = np.zeros(len(t1s))
         self._durations = instruction_durations
-        super().__init__(self._thermal_relaxation_error, ops=ops, method="append")
+        super().__init__(self._thermal_relaxation_error, op_types=op_types, method="append")
 
     def _thermal_relaxation_error(
             self,
@@ -60,7 +60,7 @@ class RelaxationNoisePass(LocalNoisePass):
             qubits: Sequence[int]
     ):
         """Return thermal relaxation error on each operand qubit"""
-        # convert time unit in seconds
+        # get duration in seconds
         duration = self._durations.get(op, qubits, unit="s")
 
         if duration == 0:
