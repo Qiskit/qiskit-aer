@@ -184,7 +184,6 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
 //------------------------------------------------------------------------------
 // Op Class
 //------------------------------------------------------------------------------
-struct Op;
 
 struct Op {
   // General Operations
