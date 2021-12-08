@@ -18,7 +18,7 @@ from qiskit.circuit import Instruction
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from ..errors import QuantumError
+from ..errors import QuantumError, ReadoutError
 
 InstructionLike = Union[Instruction, QuantumError]
 
@@ -104,6 +104,8 @@ class LocalNoisePass(TransformationPass):
                 if self._method == "replace":
                     dag.remove_op_node(node)
                 continue
+            if isinstance(new_op, ReadoutError):
+                raise TranspilerError("Insertions of ReadoutError is not yet supported.")
             if not isinstance(new_op, Instruction):
                 try:
                     new_op = new_op.to_instruction()

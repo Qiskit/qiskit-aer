@@ -15,6 +15,7 @@ Noise pass classes tests
 
 from qiskit.providers.aer.noise.passes import LocalNoisePass
 from qiskit.providers.aer.noise.passes import RelaxationNoisePass
+from qiskit.providers.aer.noise.errors import ReadoutError
 from test.terra.common import QiskitAerTestCase
 
 from qiskit.circuit import QuantumCircuit, Delay
@@ -86,6 +87,17 @@ class TestLocalNoisePass(QiskitAerTestCase):
         expected.h(1)  # sx(1) is replaced with h(1)
 
         self.assertEqual(expected, actual)
+
+    def test_append_readout_error(self):
+        qc = QuantumCircuit(1)
+        qc.h(0)
+
+        def out_readout_error(op, qubits):
+            return ReadoutError([[1, 0], [0, 1]])
+
+        noise_pass = LocalNoisePass(func=out_readout_error, op_types=HGate)
+        with self.assertRaises(TranspilerError):
+            noise_pass(qc)
 
 
 class TestRelaxationNoisePass(QiskitAerTestCase):
