@@ -710,13 +710,6 @@ circ.measure_all()
 result = execute(circ, sim, shots=100, blocking_enable=True, blocking_qubits=23).result()
 ```
 
-Qiskit Aer 0.10 supports multiple shots optimization on GPU. Simulating with noise models or intermediate measurements require running each shot independently. 
-For GPU, running large number of shots independently is no efficient bacause of CUDA overheads and lower parallelism. 
-Now Qiskit Aer supports simulating multiple shots at the same time in a batch. To enable multi-shots optimization set the `option batched_shots_optimization` and `batched_shots_optimization_max_qubits`.
-By default, `batched_shots_optimization` is set to `True` and only enabled when `device=GPU` is specified, `batched_shots_optimization_max_qubits` is set to `16` and enabled if qubits of circuit is less than this option.
-Because for large number of qubits we experienced disabling multi-shots optimization makes better performance. 
-
-
 To run Qiskit Aer with Python script with MPI parallelization, MPI executer such as mpirun should be used to submit a job on the cluster. Following example shows how to run Python script using 4 processes by using mpirun.
 
 ```
@@ -741,7 +734,7 @@ myrank = meta['mpi_rank']
 ```
 
 
-Multiple shots are also distributed to multiple nodes when setting `device=GPU` and `batched_shots_optimization=True`. The results are distributed to each processes.
+Multiple shots are also distributed to multiple nodes when setting `device=GPU` and `batched_shots_gpu=True`. The results are distributed to each processes.
 
 
 ### Building a statically linked wheel
