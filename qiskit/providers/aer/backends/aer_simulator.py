@@ -204,36 +204,36 @@ class AerSimulator(AerBackend):
       values (16 Bytes). If set to 0, the maximum will be automatically
       set to the system memory size (Default: 0).
 
-    * ``blocking_enable`` (bool): This option enables parallelization 
+    * ``blocking_enable`` (bool): This option enables parallelization
        with multiple GPUs or multiple processes with MPI (CPU/GPU).
-       This option is only available for 
+       This option is only available for
        ``"statevector"``, ``"density_matrix"`` and ``"unitary"``
        (Default: False).
 
-    * ``blocking_qubits`` (int): Sets the number of qubits of chunk size 
+    * ``blocking_qubits`` (int): Sets the number of qubits of chunk size
        used for parallelizing with multiple GPUs or multiple processes with MPI (CPU/GPU).
        16*2^blocking_qubits should be less than 1/4 of the GPU memory in double precision.
-       This option is only available for 
+       This option is only available for
        ``"statevector"``, ``"density_matrix"`` and ``"unitary"``
        This option should be set with ``blocking_enable``
        (Default: 0).
 
-    * ``batched_shots_optimization`` (bool): This option enables multiple shots 
+    * ``batched_shots_optimization`` (bool): This option enables multiple shots
        optimization for GPU.
-       If the input circuit does not allow sampling measurment and requires multiple shots 
-       (with noise models or intermediate measurements) 
+       If the input circuit does not allow sampling measurment and requires multiple shots
+       (with noise models or intermediate measurements)
        this option can highly accelerate with GPUs.
-       This option is only available for 
+       This option is only available for
        ``"statevector"``, ``"density_matrix"`` and ``"unitary"``
        and only available for ``device="GPU"``.
        If there are multiple GPUs on the system, shots are distributed automatically on GPUs.
        Also this option distributes multiple shots to parallel processes of MPI.
        (Default: True).
 
-    * ``batched_shots_optimization_max_qubits`` (int): This option sets 
+    * ``batched_shots_optimization_max_qubits`` (int): This option sets
        the maximum number of qubits that enables multiple shots optimization for GPU.
        Multiple shots optimization improves performance well for small number of qubits.
-       This option is only available for 
+       This option is only available for
        ``"statevector"``, ``"density_matrix"`` and ``"unitary"``
        and only available for ``device="GPU"``.
        Also this option distributes multiple shots to parallel processes of MPI.
