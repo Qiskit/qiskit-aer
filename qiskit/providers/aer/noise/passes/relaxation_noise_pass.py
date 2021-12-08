@@ -38,8 +38,8 @@ class RelaxationNoisePass(LocalNoisePass):
         Args:
             t1s: List of T1 times in seconds for each qubit.
             t2s: List of T2 times in seconds for each qubit.
-            dt: Backend sample time (resolution) in seconds,
-                the time unit used in instruction durations of a scheduled circuit.
+            dt: Backend sample time (resolution) in seconds. This is used as the time
+                unit when converting scheduled circuit op durations to times.
             op_types: Optional, the operation types to add relaxation to. If None
                 relaxation will be added to all operations.
             excited_state_populations: Optional, list of excited state populations

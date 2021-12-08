@@ -312,17 +312,18 @@ class NoiseModel:
                                  'BackendProperties'.format(backend))
         elif isinstance(backend, BackendProperties):
             warn(
-                'Accepting BackendProperties object for "backend" option'
-                ' has been deprecated as of qiskit-aer 0.10.0 and'
-                ' will be removed no earlier than 3 months from that release date.',
-                DeprecationWarning, stacklevel=2)
+                'Passing BackendProperties instead of a "backend" object '
+                'has been deprecated as of qiskit-aer 0.10.0 and will be '
+                'removed no earlier than 3 months from that release date. '
+                'Duration dependent delay relaxation noise requires a '
+                'backend object.', DeprecationWarning, stacklevel=2)
             properties = backend
             basis_gates = set()
             for prop in properties.gates:
                 basis_gates.add(prop.gate)
             basis_gates = list(basis_gates)
             num_qubits = len(properties.qubits)
-            dt = 1  # dummy value (may cause unrealistic noises)
+            dt = 0  # disable delay noise if dt is unknown
         else:
             raise NoiseError('{} is not a Qiskit backend or'
                              ' BackendProperties'.format(backend))
