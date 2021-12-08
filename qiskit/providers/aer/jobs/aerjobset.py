@@ -236,7 +236,7 @@ class AerJobSet(Job):
         if len(result_list) == 1:
             return result_list[0]
 
-        master_result = result_list[0].to_dict()
+        master_result = result_list[0]
         sub_result = result_list[1].to_dict()
         result_list = []
 
