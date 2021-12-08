@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    Add two transpiler passes for inserting instruction-dependent noises:
+    :class:`~qiskit.providers.aer.noise.passes.LocalNoisePass` and
+    :class:`~qiskit.providers.aer.noise.passes.RelaxationNoisePass`.
+    The former inserts noises to the specified place in a circuit.
+    The latter inserts thermal relaxation noises depending on the durations
+    of instructions to which the noises are added.
+upgrade:
+  - |
+    Upgrade :meth:`NoiseModel.from_backend` so that it adds relaxation noises
+    to delays by default. As a result, the default noise model requires scheduled
+    circuits to which noises are added. This is expected to improve the behavior
+    of default noisy simulators against circuits with delays such as T1 experiments.
+    Previously, simulation with default noise model produces the same
+    :math:`|1\rangle` probabilities unexpectedly because it adds noises
+    only on X gates and measurements and does not add any noises on the delays.
+    After this PR, the default noisy simulator will expectedly produce different
+    :math:`|1\rangle` probabilities depending the duration of delays.
+deprecations:
+  - |
+    Deprecate acceting `BackendProperties` for `backend` option in
+    :meth:`NoiseModel.from_backend` in favor of accepting `Backend` only.
