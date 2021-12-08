@@ -12,12 +12,12 @@
 """
 Thermal relaxation noise pass.
 """
+import warnings
 from typing import Optional, Union, Sequence, List
 
 import numpy as np
 
 from qiskit.circuit import Instruction, QuantumCircuit
-from qiskit.transpiler import InstructionDurations
 from .local_noise_pass import LocalNoisePass
 from ..errors.standard_errors import thermal_relaxation_error
 
@@ -29,7 +29,7 @@ class RelaxationNoisePass(LocalNoisePass):
             self,
             t1s: List[float],
             t2s: List[float],
-            instruction_durations: InstructionDurations,
+            dt: float,
             op_types: Optional[Union[type, Sequence[type]]] = None,
             excited_state_populations: Optional[List[float]] = None,
     ):
@@ -38,7 +38,8 @@ class RelaxationNoisePass(LocalNoisePass):
         Args:
             t1s: List of T1 times in seconds for each qubit.
             t2s: List of T2 times in seconds for each qubit.
-            instruction_durations: ...
+            dt: Backend sample time (resolution) in seconds,
+                the time unit used in instruction durations of a scheduled circuit.
             op_types: Optional, the operation types to add relaxation to. If None
                 relaxation will be added to all operations.
             excited_state_populations: Optional, list of excited state populations
@@ -51,7 +52,7 @@ class RelaxationNoisePass(LocalNoisePass):
             self._p1s = np.asarray(excited_state_populations)
         else:
             self._p1s = np.zeros(len(t1s))
-        self._durations = instruction_durations
+        self._dt = dt
         super().__init__(self._thermal_relaxation_error, op_types=op_types, method="append")
 
     def _thermal_relaxation_error(
@@ -60,11 +61,14 @@ class RelaxationNoisePass(LocalNoisePass):
             qubits: Sequence[int]
     ):
         """Return thermal relaxation error on each operand qubit"""
-        # get duration in seconds
-        duration = self._durations.get(op, qubits, unit="s")
-
-        if duration == 0:
+        if not op.duration:
+            if op.duration is None:
+                warnings.warn("RelaxationNoisePass ignores instructions without duration,"
+                              " you may need to schedule circuit in advance.", UserWarning)
             return None
+
+        # convert duration in seconds
+        duration = op.duration * self._dt
 
         t1s = self._t1s[qubits]
         t2s = self._t2s[qubits]
