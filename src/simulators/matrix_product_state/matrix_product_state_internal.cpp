@@ -1011,7 +1011,6 @@ cmatrix_t MPS::density_matrix(const reg_t &qubits) const {
 }
 
 cmatrix_t MPS::density_matrix_internal(const reg_t &qubits) const {
-  reg_t new_qubits;
   MPS temp_MPS;
   temp_MPS.initialize(*this);
   MPS_Tensor psi = temp_MPS.state_vec_as_MPS(qubits);
@@ -1487,48 +1486,6 @@ double MPS::norm(const reg_t &qubits, const cmatrix_t &mat) const {
     return expectation_value(qubits, norm_mat);
 }
 
-//------------------------------------------------------------------------------
-// Sample measure outcomes - this method is similar to QubitVector::sample_measure, 
-// with 2 differences:
-// 1. We use accumulated probabilities which we prepare in advance, rather than summing up the 
-// probabilites during the algorithm
-// 2. We use binary search to locate the index of rnd, rather than linear search. This is 
-// possible since the accumulated probabilities vector is increasing
-
-//-----------------------------------------------------------------------------
-reg_t MPS::sample_measure_using_probabilities(const rvector_t &rnds, 
-					      const reg_t &qubits) {
-  // since input is always sorted in qasm_controller, we must return the qubits 
-  // to their original location (sorted)
-  move_all_qubits_to_sorted_ordering();
-  return sample_measure_using_probabilities_internal(rnds, qubits);
-}
-
-reg_t MPS::sample_measure_using_probabilities_internal(const rvector_t &rnds, 
-						       const reg_t &qubits) const {
-  const uint_t SHOTS = rnds.size();
-  reg_t samples;
-  samples.assign(SHOTS, 0);
-  rvector_t acc_probvector;
-  reg_t index_vec;
-  get_accumulated_probabilities_vector(acc_probvector, index_vec, qubits);
-
- uint_t accvec_size = acc_probvector.size();
- uint_t rnd_index;
-#pragma omp parallel if (SHOTS > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-    {
-#pragma omp for
-      for (int_t i = 0; i < static_cast<int_t>(SHOTS); ++i) {
-	double rnd = rnds[i];
-	rnd_index = binary_search(acc_probvector, 
-				  0, accvec_size-1, rnd);
-	samples[i] = index_vec[rnd_index];
-      }
-    }// end omp parallel
-    
-    return samples;
-}
-
 reg_t MPS::apply_measure(const reg_t &qubits, const rvector_t &rnds) {
   // since input is always sorted in qasm_controller, therefore, we must return the qubits 
   // to their original location (sorted)
@@ -1614,6 +1571,93 @@ void MPS::propagate_to_neighbors_internal(uint_t min_qubit, uint_t max_qubit,
       break;   // no need to propagate if no entanglement
     apply_2_qubit_gate(i-1, i, id, cmatrix_t(1, 1));
   }
+}
+
+// The algorithm implemented here is based on https://arxiv.org/abs/1709.01662.
+// Given a particular base value, e.g., 11010, its probability is computed by contracting
+// the suitable matrices per qubit (from right to left), i.e., mat(0) for qubit 0, mat(1) 
+// for qubit 1, mat(0) for qubit 2, mat(1) for qubit 3, mat(1) for qubit 4.
+// We build the randomly selected base value for every shot as follows:
+// For the first qubit, compute its probability for 0 and then randomly select 
+//        the measurement. 'mat' is initialized to the suitable matrix (0 or 1).
+// For qubit i, we store in 'mat' the contraction of the matrices that were selected up to i-1.
+//        We compute the probability that qubit i is 0 by contracting with matrix 0. 
+//        We randomly select a measurement according to this probability. We then update 'mat' 
+//        by contracting it with the suitable matrix (0 or 1).
+
+reg_t MPS::sample_measure(uint_t shots, RngEngine &rng) const {
+  double prob = 1;
+  reg_t current_measure(num_qubits_);
+  bool is_first_qubit = true;
+  cmatrix_t mat;
+  rvector_t rnds(num_qubits_);
+  for (uint_t i = 0; i < num_qubits_; ++i) {
+      rnds[i] = rng.rand(0., 1.);
+  }
+  for (uint_t i=0; i<num_qubits_; i++) {
+    current_measure[i] = sample_measure_single_qubit(i, prob, rnds[i], mat);
+  }
+  // Rearrange internal ordering of the qubits to sorted ordering
+  reg_t ordered_outcome(num_qubits_);
+  for (uint_t i=0; i<num_qubits_; i++) {
+    ordered_outcome[qubit_ordering_.order_[i]] = current_measure[i];
+  }
+  return ordered_outcome;
+}
+
+uint_t MPS::sample_measure_single_qubit(uint_t qubit,
+					double &prob, double rnd,
+					cmatrix_t &mat) const {
+  double prob0 = 0;
+  if (qubit == 0) {
+    reg_t qubits_to_update;
+    qubits_to_update.push_back(qubit);
+    // step 1 - measure qubit in Z basis
+    double exp_val = real(expectation_value_pauli_internal(qubits_to_update, "Z", qubit, qubit, 0));
+    // step 2 - compute probability for 0 or 1 result
+    prob0 = (1 + exp_val ) / 2;
+  } else {
+    prob0 = get_single_probability0(qubit, mat);
+    prob0 /= prob;
+  }
+  uint_t measurement = (rnd < prob0) ? 0 : 1;
+  double new_prob = (measurement == 0) ? prob0 : 1-prob0;
+  prob *= new_prob;
+
+  // Now update mat for the next qubit
+  // mat represents the accumulated product of the matrices of the current
+  // measurement outcome
+  if (qubit == 0) {
+    mat = q_reg_[qubit].get_data(measurement);
+    if (qubit != 0)  // multiply mat by left lambda
+      for (uint_t col=0; col<mat.GetColumns(); col++)
+	for (uint_t row=0; row<mat.GetRows(); row++)
+	  mat(row, col) *= lambda_reg_[qubit-1][row];
+  } else {
+    mat = mat * q_reg_[qubit].get_data(measurement);
+  }
+  if (qubit != num_qubits_-1) {  // multiply mat by right lambda
+    for (uint_t row=0; row<mat.GetRows(); row++)
+      for (uint_t col=0; col<mat.GetColumns(); col++)
+	mat(row, col) *= lambda_reg_[qubit][col];
+  }
+  return measurement;
+}
+
+double MPS::get_single_probability0(uint_t qubit, const cmatrix_t &mat) const {
+  // multiply by the matrix for measurement of 0
+  cmatrix_t temp_mat = mat * q_reg_[qubit].get_data(0);
+
+  if (qubit != num_qubits_-1) {
+    for (uint_t row=0; row<temp_mat.GetRows(); row++) {
+      for (uint_t col=0; col<temp_mat.GetColumns(); col++) {
+	temp_mat(row, col) *= lambda_reg_[qubit][col];
+      }
+    }
+  }
+  //prob0 = the probability to measure 0
+  double prob0 = real(AER::Utils::sum( AER::Utils::elementwise_multiplication(temp_mat, AER::Utils::conjugate(temp_mat))));
+  return prob0;
 }
 
 void MPS::apply_initialize(const reg_t &qubits, 
@@ -1775,7 +1819,7 @@ void MPS::reset(const reg_t &qubits, RngEngine &rng) {
 void MPS::reset_internal(const reg_t &qubits, RngEngine &rng) {
   rvector_t rands;
   rands.reserve(qubits.size());
-  for (auto i = 0; i < qubits.size(); ++i)
+  for (uint_t i = 0; i < qubits.size(); ++i)
     rands.push_back(rng.rand(0., 1.));
 
   // note that qubits should be sorted by the caller to this method
