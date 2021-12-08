@@ -65,7 +65,7 @@ def _copy_qobj_for_noise(qobj, max_shot_size, qobj_id):
         return qobj
 
     if shot_mod > 0:
-        setattr(qobj.config, "shots", shot_mod)
+        qobj.config.shots = shot_mod
         for experiment in qobj.experiments:
             _id = str(uuid.uuid4())
             setattr(experiment.header, "metadata", {"id": _id})
