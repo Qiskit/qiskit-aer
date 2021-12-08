@@ -217,13 +217,13 @@ class TestNoiseModel(QiskitAerTestCase):
         result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
 
-    def test_noise_model_from_rochester(self):
+    def test_noise_model_from_mumbai(self):
         circ = QuantumCircuit(2)
         circ.x(0)
         circ.x(1)
         circ.measure_all()
 
-        backend = mock.FakeRochester()
+        backend = mock.FakeMumbai()
         noise_model = NoiseModel.from_backend(backend)
         circ = transpile(circ, backend, optimization_level=0)
         result = AerSimulator().run(circ, noise_model=noise_model).result()

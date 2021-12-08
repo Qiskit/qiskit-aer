@@ -278,7 +278,7 @@ class NoiseModel:
         If non-default values are used gate_lengths should be a list
 
         Args:
-            backend (Backend or BackendProperties): backend properties.
+            backend (Backend): backend.
             gate_error (bool): Include depolarizing gate errors (Default: True).
             readout_error (Bool): Include readout errors in model
                                   (Default: True).
@@ -306,15 +306,24 @@ class NoiseModel:
         if isinstance(backend, (BaseBackend, Backend)):
             properties = backend.properties()
             basis_gates = backend.configuration().basis_gates
+            num_qubits = backend.configuration().num_qubits
+            dt = backend.configuration().dt
             if not properties:
                 raise NoiseError('Qiskit backend {} does not have a '
                                  'BackendProperties'.format(backend))
         elif isinstance(backend, BackendProperties):
+            warn(
+                'Accepting BackendProperties object for "backend" option'
+                ' has been deprecated as of qiskit-aer 0.10.0 and'
+                ' will be removed no earlier than 3 months from that release date.',
+                DeprecationWarning, stacklevel=2)
             properties = backend
             basis_gates = set()
             for prop in properties.gates:
                 basis_gates.add(prop.gate)
             basis_gates = list(basis_gates)
+            num_qubits = len(properties.qubits)
+            dt = 1  # dummy value (may cause unrealistic noises)
         else:
             raise NoiseError('{} is not a Qiskit backend or'
                              ' BackendProperties'.format(backend))
@@ -350,17 +359,16 @@ class NoiseModel:
             noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
         # Add delay errors
         if thermal_relaxation:
-            qubits = list(range(backend.configuration().num_qubits))
             delay_pass = RelaxationNoisePass(
-                t1s=[backend.properties().t1(q) for q in qubits],
-                t2s=[backend.properties().t2(q) for q in qubits],
-                instruction_durations=InstructionDurations.from_backend(backend),
+                t1s=[properties.t1(q) for q in range(num_qubits)],
+                t2s=[properties.t2(q) for q in range(num_qubits)],
+                instruction_durations=InstructionDurations(dt=dt),
                 op_types=Delay,
                 excited_state_populations=[
                     _excited_population(
-                        freq=backend.properties().frequency(q),
+                        freq=properties.frequency(q),
                         temperature=temperature
-                    ) for q in qubits
+                    ) for q in range(num_qubits)
                 ]
             )
             noise_model._custom_noise_passes.append(delay_pass)
