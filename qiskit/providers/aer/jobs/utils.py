@@ -167,7 +167,7 @@ def split_qobj(qobj, config, max_size=None, max_shot_size=None, qobj_id=None):
     split_qobj_list = []
     if (max_shot_size is not None and max_shot_size > 0):
         if _check_custom_instruction(qobj.experiments, config.custom_instructions):
-            raise JobError("cluster backend does not support custom instructions.")
+            raise JobError("`max_shot_size` option cannot be used with circuits containing save instructions.")
 
     _seed = getattr(qobj.config, "seed_simulator", 0)
     if hasattr(qobj.config, "noise_model"):
