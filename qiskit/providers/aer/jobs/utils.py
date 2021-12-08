@@ -65,22 +65,23 @@ def _copy_qobj_for_noise(qobj, max_shot_size, qobj_id):
         return qobj
 
     if shot_mod > 0:
-        setattr(qobj.config, "shots", shot_mod)
+        qobj.config.shots = shot_mod
         for experiment in qobj.experiments:
             _id = str(uuid.uuid4())
-            setattr(experiment.header, "metadata", {"id": _id})
+            experiment.header.metadata["id"] = _id
         qobj_list.append(qobj)
 
     if num_shot_jobs > 1:
         _qid = qobj_id or str(uuid.uuid4())
-        _config = copy.deepcopy(qobj.config)
+        _config = copy.copy(qobj.config)
         setattr(_config, "shots", max_shot_size)
         experiment_list = []
         for experiment in qobj.experiments:
             _id = str(uuid.uuid4())
             for _ in range(num_shot_jobs):
-                cpy_exp = copy.deepcopy(experiment)
-                setattr(cpy_exp.header, "metadata", {"id": _id})
+                cpy_exp = copy.copy(experiment)
+                cpy_exp.header = copy.copy(experiment.header)
+                cpy_exp.header.metadata["id"] = _id
                 experiment_list.append(cpy_exp)
         qobj_list.append(QasmQobj(_qid, _config, experiment_list, qobj.header))
 
@@ -90,20 +91,16 @@ def _copy_qobj_for_noise(qobj, max_shot_size, qobj_id):
 def _split_qobj(qobj, max_size, qobj_id, seed):
     # Check if we don't need to split
     if max_size is None or not max_size > 0:
-        return qobj, seed
+        return qobj
 
     num_jobs = ceil(len(qobj.experiments) / max_size)
     if num_jobs == 1:
-        return qobj, seed
+        return qobj
 
     qobjs = []
     # Check for parameterizations
     params = getattr(qobj.config, 'parameterizations', None)
 
-    exp_id = None
-    shift_index = 0
-    seed_shift = 256
-    _seed = 0
     for i in range(num_jobs):
         sub_id = qobj_id or str(uuid.uuid4())
         indices = slice(i * max_size, (i + 1) * max_size)
@@ -115,42 +112,43 @@ def _split_qobj(qobj, max_size, qobj_id, seed):
             sub_config = copy.copy(qobj.config)
 
         if seed > 0:
-            id_dat = getattr(sub_exp[0].header, "metadata", None)
-            if id_dat is not None and "id" in id_dat:
-                _id = id_dat["id"]
-                if _id == exp_id:
-                    shift_index = shift_index + 1
-                else:
-                    exp_id = _id
-                    shift_index = 0
-                _seed = seed + seed_shift * shift_index
             if sub_config is qobj.config:
                 sub_config = copy.copy(qobj.config)
-            setattr(sub_config, "seed_simulator", _seed)
 
         qobjs.append(type(qobj)(sub_id, sub_config, sub_exp, qobj.header))
 
-    if seed > 0:
-        seed = _seed + seed_shift
-
-    return qobjs, seed
+    return qobjs
 
 
-def _check_custom_instruction(experiments, custom_instructions):
-    # check if custom instruction exist
+def _check_custom_instruction(experiments):
+
+    # check if save instruction exist
     for exp in experiments:
         for inst in exp.instructions:
-            if inst.name in custom_instructions:
+            if "save" in inst.name:
                 return True
     return False
 
 
-def split_qobj(qobj, config, max_size=None, max_shot_size=None, qobj_id=None):
+def _set_seed(qobj_list, seed):
+
+    # set seed number to each qobj
+    seed_shift = 256
+
+    if seed == 0:
+        return
+
+    for _each_qobj_list in qobj_list:
+        for _each_qobj in _each_qobj_list:
+            _each_qobj.config.seed_simulator = seed
+            seed = seed + seed_shift
+
+
+def split_qobj(qobj, max_size=None, max_shot_size=None, qobj_id=None):
     """Split a qobj and return a list of qobjs each with a single experiment.
 
     Args:
         qobj (Qobj): The input qobj object to split
-        config (BackendConfiguration): backend configuration.
         max_size (int or None): the maximum number of circuits per job. If
             None don't split (Default: None).
         max_shot_size (int or None): the maximum number of shots per job. If
@@ -166,8 +164,9 @@ def split_qobj(qobj, config, max_size=None, max_shot_size=None, qobj_id=None):
     """
     split_qobj_list = []
     if (max_shot_size is not None and max_shot_size > 0):
-        if _check_custom_instruction(qobj.experiments, config.custom_instructions):
-            raise JobError("cluster backend does not support custom instructions.")
+        if _check_custom_instruction(qobj.experiments):
+            raise JobError("`max_shot_size` option cannot"
+                           "be used with circuits containing save instructions.")
 
     _seed = getattr(qobj.config, "seed_simulator", 0)
     if hasattr(qobj.config, "noise_model"):
@@ -179,16 +178,19 @@ def split_qobj(qobj, config, max_size=None, max_shot_size=None, qobj_id=None):
             _qobj = _copy_qobj_for_noise(qobj, max_shot_size, qobj_id)
             if isinstance(_qobj, list):
                 for each_qobj in _qobj:
-                    _split, _seed = _split_qobj(each_qobj, max_size, qobj_id, _seed)
+                    _split = _split_qobj(each_qobj, max_size, qobj_id, _seed)
                     if isinstance(_split, QasmQobj):
                         split_qobj_list.append([_split])
                     else:
                         split_qobj_list.append(_split)
+                _set_seed(split_qobj_list, _seed)
                 return split_qobj_list
 
-    _qobj, _seed = _split_qobj(qobj, max_size, qobj_id, _seed)
+    _qobj = _split_qobj(qobj, max_size, qobj_id, _seed)
     if isinstance(_qobj, (PulseQobj, QasmQobj)):
         return _qobj
     else:
         split_qobj_list.append(_qobj)
+
+    _set_seed(split_qobj_list, _seed)
     return split_qobj_list

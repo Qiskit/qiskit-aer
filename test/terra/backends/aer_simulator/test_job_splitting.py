@@ -58,7 +58,7 @@ class TestJobSplitting(SimulatorTestCase):
         else:
             qobjs = [assemble(c, qobj_id='testing') for c in circs]
 
-        test_qobjs = split_qobj(qobj, backend._configuration, max_size=1, qobj_id='testing')
+        test_qobjs = split_qobj(qobj, max_size=1, qobj_id='testing')
         self.assertEqual(len(test_qobjs[0]), len(qobjs))
         for ref, test in zip(qobjs, test_qobjs[0]):
             self.assertEqual(ref, test)
@@ -69,7 +69,7 @@ class TestJobSplitting(SimulatorTestCase):
         circ.save_statevector()
         circ = transpile(circ, backend)
         qobj = assemble(circ)
-        split_qobj(qobj, backend._configuration, max_size=1, max_shot_size=1, qobj_id='testing')
+        split_qobj(qobj, max_size=1, max_shot_size=1, qobj_id='testing')
 
     def test_split(self):
         """Circuits split test"""

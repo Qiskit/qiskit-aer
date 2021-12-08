@@ -81,9 +81,12 @@ class StatevectorSimulator(AerBackend):
       on the executor. If ``None`` simulation of all circuits aer submitted
       to the executor as a single job (Default: None).
 
-    * ``max_shot_size`` (int or None): If the number of shots with
-      a noise model exceeds this value, simulation will split the experiments into
-      sub experiments in the qobj. If ``None``  simulator does nothing (Default: None).
+    * ``max_shot_size`` (int or None): If the number of shots of a noisy
+      circuit exceeds this value simulation will be split into multi
+      circuits for execution and the results accumulated. If ``None``
+      circuits will not be split based on shots. When splitting circuits
+      use the ``max_job_size`` option to control how these split circuits
+      should be submitted to the executor (Default: None).
 
     * ``zero_threshold`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
