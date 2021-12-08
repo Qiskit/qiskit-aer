@@ -97,6 +97,9 @@ public:
   // Returns required memory
   size_t required_memory_mb(uint_t num_qubits) const;
 
+  //check if this register is on the top of array (always true if array is allocated independently)
+  bool top_of_group(){ return true;}
+
   // Returns a copy of the underlying data_t data as a complex vector
   cvector_t<data_t> vector() const;
 
@@ -128,7 +131,8 @@ public:
   void initialize_component(const reg_t &qubits, const cvector_t<double> &state);
 
   //setup chunk
-  void chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
+  bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
+  bool chunk_setup(QubitVector<data_t>& base,const uint_t chunk_index);
 
   //cache control for chunks on host
   bool fetch_chunk(void) const
@@ -152,6 +156,8 @@ public:
   std::complex<data_t>* recv_buffer(uint_t& size_in_byte);
   void release_send_buffer(void) const;
   void release_recv_buffer(void) const;
+
+  void set_max_matrix_bits(int_t bits){}
 
   //-----------------------------------------------------------------------
   // Check point operations
@@ -185,6 +191,15 @@ public:
   // Initializes the vector to a custom initial state.
   // If num_states does not match the number of qubits an exception is raised.
   void initialize_from_data(const std::complex<data_t>* data, const size_t num_states);
+
+  // Initialize classical memory and register to default value (all-0)
+  virtual void initialize_creg(uint_t num_memory, uint_t num_register) {}
+
+  // Initialize classical memory and register to specific values
+  virtual void initialize_creg(uint_t num_memory,
+                       uint_t num_register,
+                       const std::string &memory_hex,
+                       const std::string &register_hex) {}
 
   //-----------------------------------------------------------------------
   // Apply Matrices
@@ -268,6 +283,35 @@ public:
   // The input is a length M list of random reals between [0, 1) used for
   // generating samples.
   virtual reg_t sample_measure(const std::vector<double> &rnds) const;
+
+
+  //-----------------------------------------------------------------------
+  // for batched optimization (Implement them if CPU simulator supports multi-shots)
+  //-----------------------------------------------------------------------
+  virtual bool batched_optimization_supported(void)
+  {
+    return false;
+  }
+  virtual void apply_bfunc(const Operations::Op &op){}
+  virtual void set_conditional(int_t reg){}
+  virtual void apply_roerror(const Operations::Op &op, std::vector<RngEngine> &rng){}
+
+  //optimized batched measure/reset
+  virtual void apply_batched_measure(const reg_t& qubits,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs){}
+  virtual void apply_batched_reset(const reg_t& qubits,std::vector<RngEngine>& rng){}
+
+  //copy classical register stored on qreg 
+  void get_creg(ClassicalRegister& creg){}
+
+  virtual int_t set_batched_system_conditional(int_t src_reg, reg_t& mask){return -1;}
+
+  //apply Pauli ops to multiple-shots (apply sampled Pauli noises)
+  virtual void apply_batched_pauli_ops(const std::vector<std::vector<Operations::Op>> &op){}
+
+  //Apply Kraus to multiple-shots
+  void apply_batched_kraus(const reg_t &qubits,
+                   const std::vector<cmatrix_t> &kmats,
+                   std::vector<RngEngine>& rng){}
 
   //-----------------------------------------------------------------------
   // Norms
@@ -354,6 +398,11 @@ public:
 
   // Get the sample_measure index size
   int get_sample_measure_index_size() {return sample_measure_index_size_;}
+
+  virtual bool enable_batch(bool flg)
+  {
+    return false;
+  }
 
 protected:
 
@@ -876,9 +925,17 @@ std::complex<double> QubitVector<data_t>::inner_product() const {
 
 //setup chunk
 template <typename data_t>
-void QubitVector<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks)
+bool QubitVector<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks)
 {
   chunk_index_ = chunk_index;
+  return true;
+}
+
+template <typename data_t>
+bool QubitVector<data_t>::chunk_setup(QubitVector<data_t>& base,const uint_t chunk_index)
+{
+  chunk_index_ = chunk_index;
+  return true;
 }
 
 //prepare buffer for MPI send/recv
@@ -1857,6 +1914,7 @@ std::vector<double> QubitVector<data_t>::probabilities(const reg_t &qubits) cons
   return probs;
 }
 
+
 //------------------------------------------------------------------------------
 // Sample measure outcomes
 //------------------------------------------------------------------------------
@@ -2135,6 +2193,7 @@ void QubitVector<data_t>::apply_pauli(const reg_t &qubits, const std::string &pa
   };
   apply_lambda(lambda, (size_t) 0, (data_size_ >> 1));
 }
+
 
 //------------------------------------------------------------------------------
 } // end namespace QV

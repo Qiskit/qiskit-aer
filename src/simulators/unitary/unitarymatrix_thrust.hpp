@@ -185,7 +185,7 @@ json_t UnitaryMatrixThrust<data_t>::json() const
 //------------------------------------------------------------------------------
 
 template <class data_t>
-UnitaryMatrixThrust<data_t>::UnitaryMatrixThrust(size_t num_qubits) {
+UnitaryMatrixThrust<data_t>::UnitaryMatrixThrust(size_t num_qubits) : QubitVectorThrust<data_t>(num_qubits) {
 	if(num_qubits > 0){
 		set_num_qubits(num_qubits);
 	}
@@ -280,12 +280,54 @@ void UnitaryMatrixThrust<data_t>::set_num_qubits(size_t num_qubits) {
   BaseVector::set_num_qubits(2 * num_qubits);
 }
 
+template <typename data_t>
+class trace_func : public GateFuncBase<data_t>
+{
+protected:
+  uint_t rows_;
+public:
+  trace_func(uint_t nrow)
+  {
+    rows_ = nrow;
+  }
+  bool is_diagonal(void)
+  {
+    return true;
+  }
+  uint_t size(int num_qubits)
+  {
+    this->chunk_bits_ = num_qubits;
+    return rows_;
+  }
+
+  __host__ __device__ double operator()(const uint_t &i) const
+  {
+    thrust::complex<data_t> q;
+    thrust::complex<data_t>* vec;
+
+    uint_t iChunk = (i / rows_);
+    uint_t lid = i - (iChunk * rows_);
+    uint_t idx = (iChunk << this->chunk_bits_) + lid*(rows_ + 1);
+
+    vec = this->data_;
+    q = vec[idx];
+    return q.real();
+  }
+
+  const char* name(void)
+  {
+    return "trace";
+  }
+};
+
 template <class data_t>
 std::complex<double> UnitaryMatrixThrust<data_t>::trace() const 
 {
   thrust::complex<double> sum;
+  double ret;
 
-  sum = BaseVector::chunk_->norm(rows_ + 1,false);
+  BaseVector::apply_function_sum(&ret,trace_func<data_t>(rows_),false);
+  sum = ret;
 
 #ifdef AER_DEBUG
   BaseVector::DebugMsg("trace",sum);
@@ -322,7 +364,7 @@ std::pair<bool, double> UnitaryMatrixThrust<data_t>::check_identity() const {
 	uint_t csize = BaseVector::data_size_;
 	cvector_t<data_t> tmp(csize);
 
-  BaseVector::chunk_->CopyOut((thrust::complex<data_t>*)&tmp[0]);
+  BaseVector::chunk_.CopyOut((thrust::complex<data_t>*)&tmp[0]);
 
   uint_t offset = BaseVector::chunk_index_ << BaseVector::num_qubits_;
   uint_t err_count = 0;
