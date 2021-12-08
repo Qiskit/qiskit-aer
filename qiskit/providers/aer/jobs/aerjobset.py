@@ -237,7 +237,6 @@ class AerJobSet(Job):
             return result_list[0]
 
         master_result = result_list[0]
-        sub_result = result_list[1].to_dict()
         result_list = []
 
         for (_master_result, _sub_result) in zip(master_result["results"], sub_result["results"]):
