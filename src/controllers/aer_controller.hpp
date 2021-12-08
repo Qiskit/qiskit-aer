@@ -364,8 +364,8 @@ protected:
   bool multi_chunk_required_ = false;
 
   //config setting for multi-shot parallelization
-  bool batched_shots_optimization_ = true;
-  int_t batched_shots_optimization_max_qubits_ = 16;   //multi-shot parallelization is applied if qubits is less than max qubits
+  bool batched_shots_gpu_ = true;
+  int_t batched_shots_gpu_max_qubits_ = 16;   //multi-shot parallelization is applied if qubits is less than max qubits
   bool enable_batch_multi_shots_ = false;   //multi-shot parallelization can be applied
 
 };
@@ -452,11 +452,11 @@ void Controller::set_config(const json_t &config) {
   }
 
   //enable batched multi-shots/experiments optimization
-  if(JSON::check_key("batched_shots_optimization", config)) {
-    JSON::get_value(batched_shots_optimization_, "batched_shots_optimization", config);
+  if(JSON::check_key("batched_shots_gpu", config)) {
+    JSON::get_value(batched_shots_gpu_, "batched_shots_gpu", config);
   }
-  if(JSON::check_key("batched_shots_optimization_max_qubits", config)) {
-    JSON::get_value(batched_shots_optimization_max_qubits_, "batched_shots_optimization_max_qubits", config);
+  if(JSON::check_key("batched_shots_gpu_max_qubits", config)) {
+    JSON::get_value(batched_shots_gpu_max_qubits_, "batched_shots_gpu_max_qubits", config);
   }
 
   // Override automatic simulation method with a fixed method
@@ -570,7 +570,7 @@ void Controller::set_parallelization_experiments(
             std::greater<>());
 
   //set max batchable number of circuits
-  if(batched_shots_optimization_){
+  if(batched_shots_gpu_){
     if(required_memory_mb_list[0] == 0 || max_qubits_ == 0)
       max_batched_states_ = 1;
     else{
@@ -629,8 +629,8 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
                                              const Method method)  
 {
   enable_batch_multi_shots_ = false;
-  if(batched_shots_optimization_ && sim_device_ == Device::GPU && circ.shots > 1 && max_batched_states_ >= num_gpus_ && 
-              batched_shots_optimization_max_qubits_ >= circ.num_qubits ){
+  if(batched_shots_gpu_ && sim_device_ == Device::GPU && circ.shots > 1 && max_batched_states_ >= num_gpus_ && 
+              batched_shots_gpu_max_qubits_ >= circ.num_qubits ){
     enable_batch_multi_shots_ = true;
   }
 

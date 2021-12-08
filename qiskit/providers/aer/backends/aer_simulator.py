@@ -204,41 +204,32 @@ class AerSimulator(AerBackend):
       values (16 Bytes). If set to 0, the maximum will be automatically
       set to the system memory size (Default: 0).
 
-    * ``blocking_enable`` (bool): This option enables parallelization
-       with multiple GPUs or multiple processes with MPI (CPU/GPU).
-       This option is only available for
-       ``"statevector"``, ``"density_matrix"`` and ``"unitary"``
-       (Default: False).
+    * ``blocking_enable`` (bool): This option enables parallelization with
+      multiple GPUs or multiple processes with MPI (CPU/GPU). This option
+      is only available for ``"statevector"``, ``"density_matrix"`` and
+      ``"unitary"`` (Default: False).
 
     * ``blocking_qubits`` (int): Sets the number of qubits of chunk size
-       used for parallelizing with multiple GPUs or multiple processes with MPI (CPU/GPU).
-       16*2^blocking_qubits should be less than 1/4 of the GPU memory in double precision.
-       This option is only available for
-       ``"statevector"``, ``"density_matrix"`` and ``"unitary"``
-       This option should be set with ``blocking_enable``
-       (Default: 0).
+      used for parallelizing with multiple GPUs or multiple processes with
+      MPI (CPU/GPU). 16*2^blocking_qubits should be less than 1/4 of the GPU
+      memory in double precision. This option is only available for
+      ``"statevector"``, ``"density_matrix"`` and ``"unitary"``.
+      This option should be set when using option ``blocking_enable=True``
+      (Default: 0).
 
-    * ``batched_shots_optimization`` (bool): This option enables multiple shots
-       optimization for GPU.
-       If the input circuit does not allow sampling measurment and requires multiple shots
-       (with noise models or intermediate measurements)
-       this option can highly accelerate with GPUs.
-       This option is only available for
-       ``"statevector"``, ``"density_matrix"`` and ``"unitary"``
-       and only available for ``device="GPU"``.
-       If there are multiple GPUs on the system, shots are distributed automatically on GPUs.
-       Also this option distributes multiple shots to parallel processes of MPI.
-       (Default: True).
+    * ``batched_shots_gpu`` (bool): This option enables batched execution
+      of multiple shot simulations on GPU devices for GPU enabled simulation
+      methods. This optimization is intended for statevector simulations with
+      noise models, or statevecor and density matrix simulations with
+      intermediate measurements and can greatly accelerate simulation time
+      on GPUs. If there are multiple GPUs on the system, shots are distributed
+      automatically across available GPUs. Also this option distributes multiple
+      shots to parallel processes of MPI (Default: True).
 
-    * ``batched_shots_optimization_max_qubits`` (int): This option sets
-       the maximum number of qubits that enables multiple shots optimization for GPU.
-       Multiple shots optimization improves performance well for small number of qubits.
-       This option is only available for
-       ``"statevector"``, ``"density_matrix"`` and ``"unitary"``
-       and only available for ``device="GPU"``.
-       Also this option distributes multiple shots to parallel processes of MPI.
-       (Default: True).
-
+    * ``batched_shots_gpu_max_qubits`` (int): This option sets the maximum
+      number of qubits for enabling the ``batched_shots_gpu`` option. If the
+      number of active circuit qubits is greater than this value batching of
+      simulation shots will not be used. (Default: 16).
 
     These backend options only apply when using the ``"statevector"``
     simulation method:
@@ -513,8 +504,8 @@ class AerSimulator(AerBackend):
             blocking_qubits=None,
             blocking_enable=False,
             # multi-shots optimization options (GPU only)
-            batched_shots_optimization=True,
-            batched_shots_optimization_max_qubits_=16,
+            batched_shots_gpu=True,
+            batched_shots_gpu_max_qubits=16,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,
