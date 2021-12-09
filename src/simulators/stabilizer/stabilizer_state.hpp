@@ -538,11 +538,26 @@ void State::apply_set_stabilizer(const Clifford::Clifford &clifford) {
 void State::apply_save_stabilizer(const Operations::Op &op,
                                 ExperimentResult &result) {
   std::string key = op.string_params[0];
-  if (key == "_method_") {
-    key = (op.type == OpType::save_clifford) ? "clifford" : "stabilizer";
+  OpType op_type = op.type;
+  switch (op_type) {
+    case OpType::save_clifford: {
+      if (key == "_method_") {
+        key = "clifford";
+      }
+      break;
+    }
+    case OpType::save_stabilizer:
+    case OpType::save_state: {
+      if (key == "_method_") {
+        key = "stabilizer";
+      }
+      op_type = OpType::save_stabilizer;
+      break;
+    }
+    default:
+      // We shouldn't ever reach here...
+      throw std::invalid_argument("Invalid save state instruction for stabilizer");
   }
-  OpType op_type = (op.type == OpType::save_clifford) ? OpType::save_clifford
-                                                      : OpType::save_stabilizer;
   json_t clifford = BaseState::qreg_;
   BaseState::save_data_pershot(result, key, std::move(clifford), op_type, op.save_type);
 }

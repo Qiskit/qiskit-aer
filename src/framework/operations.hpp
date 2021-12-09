@@ -59,6 +59,7 @@ static const std::unordered_set<OpType> SAVE_TYPES = {
   OpType::save_statevec, OpType::save_statevec_dict,
   OpType::save_densmat, OpType::save_probs, OpType::save_probs_ket,
   OpType::save_amps, OpType::save_amps_sq, OpType::save_stabilizer,
+  OpType::save_clifford,
   OpType::save_unitary, OpType::save_mps, OpType::save_superop
 };
 
