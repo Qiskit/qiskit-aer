@@ -225,6 +225,11 @@ public:
   Vector<complex_t> full_statevector();
 
   Vector<complex_t> get_amplitude_vector(const reg_t &base_values);
+
+  //----------------------------------------------------------------
+  // Function name: get_single_amplitude
+  // Description: Returns the amplitude of the input base_value
+  //----------------------------------------------------------------
   complex_t get_single_amplitude(const std::string &base_value);
 
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
@@ -328,11 +333,9 @@ public:
   double norm(const reg_t &qubits, const cvector_t &vmat) const;
   double norm(const reg_t &qubits, const cmatrix_t &mat) const; 
 
-  reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
-					   const reg_t &qubits);
-
   reg_t apply_measure(const reg_t &qubits, const rvector_t &rnds);
   reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
+  reg_t sample_measure(uint_t shots, RngEngine &rng) const;
 
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector_internal
@@ -445,12 +448,17 @@ private:
 
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 
-
   uint_t apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
 					     uint_t next_measured_qubit);
 
-  reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
-						    const reg_t &qubits) const;
+  uint_t sample_measure_single_qubit(uint_t qubit, double &prob, 
+				     double rnd, cmatrix_t &mat) const;
+  //----------------------------------------------------------------
+  // Function name: get_single_probability0
+  // Description: Returns the probability that `qubit` will measure 0, given all the measurements
+  // of the previous qubits that are accumulated in mat.
+  //----------------------------------------------------------------
+  double get_single_probability0(uint_t qubit, const cmatrix_t &mat) const;
 
   //----------------------------------------------------------------
   // Function name: initialize_from_matrix
@@ -553,6 +561,11 @@ inline std::ostream&
 operator <<(std::ostream& out, MPS& mps)
 {
   return mps.print(out);
+}
+
+
+inline void to_json(json_t &js, const MPS &mps) {
+
 }
 
 //-------------------------------------------------------------------------

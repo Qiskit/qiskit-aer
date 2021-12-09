@@ -204,6 +204,33 @@ class AerSimulator(AerBackend):
       values (16 Bytes). If set to 0, the maximum will be automatically
       set to the system memory size (Default: 0).
 
+    * ``blocking_enable`` (bool): This option enables parallelization with
+      multiple GPUs or multiple processes with MPI (CPU/GPU). This option
+      is only available for ``"statevector"``, ``"density_matrix"`` and
+      ``"unitary"`` (Default: False).
+
+    * ``blocking_qubits`` (int): Sets the number of qubits of chunk size
+      used for parallelizing with multiple GPUs or multiple processes with
+      MPI (CPU/GPU). 16*2^blocking_qubits should be less than 1/4 of the GPU
+      memory in double precision. This option is only available for
+      ``"statevector"``, ``"density_matrix"`` and ``"unitary"``.
+      This option should be set when using option ``blocking_enable=True``
+      (Default: 0).
+
+    * ``batched_shots_gpu`` (bool): This option enables batched execution
+      of multiple shot simulations on GPU devices for GPU enabled simulation
+      methods. This optimization is intended for statevector simulations with
+      noise models, or statevecor and density matrix simulations with
+      intermediate measurements and can greatly accelerate simulation time
+      on GPUs. If there are multiple GPUs on the system, shots are distributed
+      automatically across available GPUs. Also this option distributes multiple
+      shots to parallel processes of MPI (Default: True).
+
+    * ``batched_shots_gpu_max_qubits`` (int): This option sets the maximum
+      number of qubits for enabling the ``batched_shots_gpu`` option. If the
+      number of active circuit qubits is greater than this value batching of
+      simulation shots will not be used. (Default: 16).
+
     These backend options only apply when using the ``"statevector"``
     simulation method:
 
@@ -471,11 +498,15 @@ class AerSimulator(AerBackend):
             fusion_max_qubit=5,
             fusion_threshold=14,
             accept_distributed_results=None,
-            blocking_qubits=None,
-            blocking_enable=False,
             memory=None,
             noise_model=None,
             seed_simulator=None,
+            # cache blocking for multi-GPUs/MPI options
+            blocking_qubits=None,
+            blocking_enable=False,
+            # multi-shots optimization options (GPU only)
+            batched_shots_gpu=True,
+            batched_shots_gpu_max_qubits=16,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,
@@ -522,10 +553,6 @@ class AerSimulator(AerBackend):
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
-        # pylint: disable=import-outside-toplevel
-        # Avoid cyclic import
-        from ..noise.noise_model import NoiseModel
-
         # Get configuration and properties from backend
         configuration = copy.copy(backend.configuration())
         properties = copy.copy(backend.properties())
@@ -536,6 +563,10 @@ class AerSimulator(AerBackend):
 
         # Use automatic noise model if none is provided
         if 'noise_model' not in options:
+            # pylint: disable=import-outside-toplevel
+            # Avoid cyclic import
+            from ..noise.noise_model import NoiseModel
+
             noise_model = NoiseModel.from_backend(backend)
             if not noise_model.is_ideal():
                 options['noise_model'] = noise_model

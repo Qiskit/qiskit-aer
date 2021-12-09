@@ -21,6 +21,8 @@
 #include "framework/creg.hpp"
 #include "framework/results/experiment_result.hpp"
 
+#include "noise/noise_model.hpp"
+
 namespace AER {
 
 namespace Base {
@@ -65,7 +67,7 @@ public:
         const stringset_t &snapshots)
     : State(Operations::OpSet(optypes, gates, snapshots)) {};
 
-  virtual ~State() = default;
+  virtual ~State();
 
   //-----------------------------------------------------------------------
   // Data accessors
@@ -115,7 +117,7 @@ public:
                                     const = 0;
 
   //memory allocation (previously called before inisitalize_qreg)
-  virtual void allocate(uint_t num_qubits,uint_t block_bits) {}
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1){return true;}
 
   // Return the expectation value of a N-qubit Pauli operator
   // If the simulator does not support Pauli expectation value this should
@@ -169,9 +171,10 @@ public:
   // end of the instructions.
   virtual void apply_op(const Operations::Op &op,
                         ExperimentResult &result,
-                        RngEngine &rng,
+                        RngEngine& rng,
                         bool final_op = false) = 0;
-  
+
+
   // Apply a sequence of operations to the current state of the State class.
   // It is up to the State subclass to decide how this sequence should be
   // executed (ie in sequence, or some other execution strategy.)
@@ -187,15 +190,28 @@ public:
                  RngEngine &rng,
                  bool final_ops = false);
 
+  //apply ops to multiple shots
+  //this function should be separately defined since apply_ops is called in quantum_error
+  template <typename InputIterator>
+  void apply_ops_multi_shots(InputIterator first,
+                 InputIterator last,
+                 const Noise::NoiseModel &noise,
+                 ExperimentResult &result,
+                 uint_t rng_seed,
+                 bool final_ops = false)
+  {
+    throw std::invalid_argument("apply_ops_multi_shots is not supported in State " + name());
+  }
+
   //-----------------------------------------------------------------------
   // ClassicalRegister methods
   //-----------------------------------------------------------------------
 
   // Initialize classical memory and register to default value (all-0)
-  void initialize_creg(uint_t num_memory, uint_t num_register);
+  virtual void initialize_creg(uint_t num_memory, uint_t num_register);
 
   // Initialize classical memory and register to specific values
-  void initialize_creg(uint_t num_memory,
+  virtual void initialize_creg(uint_t num_memory,
                        uint_t num_register,
                        const std::string &memory_hex,
                        const std::string &register_hex);
@@ -245,6 +261,10 @@ public:
                          const std::string &key, T&& datum,
                          DataSubType type = DataSubType::list) const;
 
+
+  //save creg as count data 
+  virtual void save_count_data(ExperimentResult& result,bool save_memory);
+
   //-----------------------------------------------------------------------
   // Common instructions
   //-----------------------------------------------------------------------
@@ -258,7 +278,7 @@ public:
 
   // Snapshot the current statevector (single-shot)
   // if type_label is the empty string the operation type will be used for the type
-  void snapshot_state(const Operations::Op &op, ExperimentResult &result,
+  virtual void snapshot_state(const Operations::Op &op, ExperimentResult &result,
                       std::string name = "") const;
 
   // Snapshot the classical memory bits state (single-shot)
@@ -276,7 +296,7 @@ public:
 
   // Sets the number of threads available to the State implementation
   // If negative there is no restriction on the backend
-  inline void set_parallalization(int n) {threads_ = n;}
+  virtual inline void set_parallelization(int n) {threads_ = n;}
 
   // Set a complex global phase value exp(1j * theta) for the state
   void set_global_phase(double theta);
@@ -285,7 +305,21 @@ public:
   void add_global_phase(double theta);
 
   //set number of processes to be distributed
-  void set_distribution(uint_t nprocs){}
+  virtual void set_distribution(uint_t nprocs){}
+
+  //set maximum number of qubits for matrix multiplication
+  virtual void set_max_matrix_qubits(int_t bits)
+  {
+    max_matrix_qubits_ = bits;
+  }
+
+  //set max number of shots to execute in a batch (used in StateChunk class)
+  virtual void set_max_bached_shots(uint_t shots){}
+
+  //Does this state support multi-chunk distribution?
+  virtual bool multi_chunk_distribution_supported(void){return false;}
+  //Does this state support multi-shot parallelization?
+  virtual bool multi_shot_parallelization_supported(void){return false;}
 
 protected:
 
@@ -305,12 +339,19 @@ protected:
   // Set a global phase exp(1j * theta) for the state
   bool has_global_phase_ = false;
   complex_t global_phase_ = 1;
+
+  int_t max_matrix_qubits_ = 0;
 };
 
 
 //=========================================================================
 // Implementations
 //=========================================================================
+
+template <class state_t>
+State<state_t>::~State(void)
+{
+}
 
 template <class state_t>
 void State<state_t>::set_config(const json_t &config) {
@@ -395,7 +436,8 @@ std::vector<reg_t> State<state_t>::sample_measure(const reg_t &qubits,
 
 
 template <class state_t>
-void State<state_t>::initialize_creg(uint_t num_memory, uint_t num_register) {
+void State<state_t>::initialize_creg(uint_t num_memory, uint_t num_register) 
+{
   creg_.initialize(num_memory, num_register);
 }
 
@@ -611,6 +653,17 @@ void State<state_t>::apply_save_expval(const Operations::Op &op,
   }
 }
 
+template <class state_t>
+void State<state_t>::save_count_data(ExperimentResult& result,bool save_memory)
+{
+  if (creg_.memory_size() > 0) {
+    std::string memory_hex = creg_.memory_hex();
+    result.data.add_accum(static_cast<uint_t>(1ULL), "counts", memory_hex);
+    if(save_memory) {
+      result.data.add_list(std::move(memory_hex), "memory");
+    }
+  }
+}
 
 //-------------------------------------------------------------------------
 } // end namespace Base
