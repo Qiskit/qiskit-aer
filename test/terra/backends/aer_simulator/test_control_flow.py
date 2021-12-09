@@ -13,13 +13,14 @@
 Integration Tests for jump/mark instructions
 """
 from ddt import ddt, data
+import unittest
 import numpy
 import logging
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
 from qiskit.providers.aer import AerSimulator
 from qiskit import QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit
+from qiskit.circuit import Parameter, Qubit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.controlflow import *
 from qiskit.providers.aer.library.default_qubits import default_qubits
 from qiskit.providers.aer.library.control_flow_instructions import AerMark, AerJump
@@ -436,6 +437,31 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn('0001 1', counts)
 
+    @unittest.skip('builder is not ready')
+    @data('statevector', 'density_matrix', 'matrix_product_state')
+    def test_if_true_body_builder(self, method):
+        backend = self.backend(method=method)
+
+        qreg = QuantumRegister(4)
+        creg = ClassicalRegister(1)
+        circ = QuantumCircuit(qreg, creg)
+        circ.y(0)
+        circ.h(circ.qubits[1:4])
+        circ.barrier()
+        circ.measure(0, 0)
+        
+        with circ.if_test((creg, 1)):
+            circ.h(circ.qubits[1:4])
+        
+        circ.measure_all()
+        
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+        
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn('0001 1', counts)
+
     @data('statevector', 'density_matrix', 'matrix_product_state')
     def test_if_else_body(self, method):
         backend = self.backend(method=method)
@@ -453,6 +479,32 @@ class TestControlFlow(SimulatorTestCase):
 
         circ = QuantumCircuit(4, 1)
         test_if_else_body_circuit(circ)
+        circ.measure_all()
+        
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+        
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn('0000 0', counts)
+
+    @unittest.skip('builder is not ready')
+    @data('statevector', 'density_matrix', 'matrix_product_state')
+    def test_if_else_body_builder(self, method):
+        backend = self.backend(method=method)
+
+        qreg = QuantumRegister(4)
+        creg = ClassicalRegister(1)
+        circ = QuantumCircuit(qreg, creg)
+        circ.h(circ.qubits[1:4])
+        circ.barrier()
+        circ.measure(0, 0)
+        
+        with circ.if_test((creg, 1)) as else_:
+            pass
+        with else_:
+            circ.h(circ.qubits[1:4])
+
         circ.measure_all()
         
         result = backend.run(circ, method=method).result()
@@ -494,6 +546,34 @@ class TestControlFlow(SimulatorTestCase):
         self.assertEqual(len(counts), 1)
         self.assertIn('01100', counts)
 
+    @unittest.skip('builder is not ready')
+    @data('statevector', 'density_matrix', 'matrix_product_state')
+    def test_for_loop_builder(self, method):
+        backend = self.backend(method=method)
+
+        circ = QuantumCircuit(5, 0)
+        
+        with circ.for_loop(range(0)) as a:
+            circ.ry(a * numpy.pi, 0)
+        with circ.for_loop(range(1)) as a:
+            circ.ry(a * numpy.pi, 1)
+        with circ.for_loop(range(2)) as a:
+            circ.ry(a * numpy.pi, 2)
+        with circ.for_loop(range(3)) as a:
+            circ.ry(a * numpy.pi, 3)
+        with circ.for_loop(range(4)) as a:
+            circ.ry(a * numpy.pi, 4)
+
+        circ.measure_all()
+        
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+        
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn('01100', counts)
+
+
     @data('statevector', 'density_matrix', 'matrix_product_state')
     def test_for_loop_break(self, method):
         backend = self.backend(method=method)
@@ -534,6 +614,51 @@ class TestControlFlow(SimulatorTestCase):
         test_for_loop_break_circuit(circ)
         circ.measure_all()
         
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+        
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn('11100 1', counts)
+
+    @unittest.skip('builder is not ready')
+    @data('statevector', 'density_matrix', 'matrix_product_state')
+    def test_for_loop_break_builder(self, method):
+        backend = self.backend(method=method)
+
+        qreg = QuantumRegister(5)
+        creg = ClassicalRegister(1)
+        circ = QuantumCircuit(qreg, creg)
+        
+        with circ.for_loop(range(0)) as a:
+            circ.ry(a * numpy.pi, 0)
+            circ.measure(0, 0)
+            with circ.if_test((creg, 1)):
+                circ.break_loop()
+        print(circ.data[0][0].params[2])
+        with circ.for_loop(range(1)) as a:
+            circ.ry(a * numpy.pi, 1)
+            circ.measure(1, 0)
+            with circ.if_test((creg, 1)):
+                circ.break_loop()
+        with circ.for_loop(range(2)) as a:
+            circ.ry(a * numpy.pi, 2)
+            circ.measure(2, 0)
+            with circ.if_test((creg, 1)):
+                circ.break_loop()
+        with circ.for_loop(range(3)) as a:
+            circ.ry(a * numpy.pi, 3)
+            circ.measure(3, 0)
+            with circ.if_test((creg, 1)):
+                circ.break_loop()
+        with circ.for_loop(range(4)) as a:
+            circ.ry(a * numpy.pi, 4)
+            circ.measure(4, 0)
+            with circ.if_test((creg, 1)):
+                circ.break_loop()
+
+        circ.measure_all()
+
         result = backend.run(circ, method=method).result()
         self.assertSuccess(result)
         
