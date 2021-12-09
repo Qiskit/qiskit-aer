@@ -360,6 +360,14 @@ class AerBackend(Backend, ABC):
         noise_model = run_options.get(
             'noise_model', getattr(self.options, 'noise_model', None))
 
+        # Add custom pass noise only to QuantumCircuit objects
+        if noise_model and all(isinstance(circ, QuantumCircuit) for circ in circuits):
+            npm = noise_model._pass_manager()
+            if npm is not None:
+                circuits = npm.run(circuits)
+                if isinstance(circuits, QuantumCircuit):
+                    circuits = [circuits]
+
         # Check if circuits contain quantum error instructions
         run_circuits = []
         for circ in circuits:

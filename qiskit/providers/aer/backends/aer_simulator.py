@@ -552,10 +552,6 @@ class AerSimulator(AerBackend):
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
-        # pylint: disable=import-outside-toplevel
-        # Avoid cyclic import
-        from ..noise.noise_model import NoiseModel
-
         # Get configuration and properties from backend
         configuration = copy.copy(backend.configuration())
         properties = copy.copy(backend.properties())
@@ -566,6 +562,10 @@ class AerSimulator(AerBackend):
 
         # Use automatic noise model if none is provided
         if 'noise_model' not in options:
+            # pylint: disable=import-outside-toplevel
+            # Avoid cyclic import
+            from ..noise.noise_model import NoiseModel
+
             noise_model = NoiseModel.from_backend(backend)
             if not noise_model.is_ideal():
                 options['noise_model'] = noise_model
