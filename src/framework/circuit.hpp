@@ -358,7 +358,8 @@ void Circuit::set_params(bool truncation) {
         case OpType::save_stabilizer:
         case OpType::save_unitary:
         case OpType::save_mps:
-        case OpType::save_superop: {
+        case OpType::save_superop: 
+        {
           can_sample = false;
           break;
         }
