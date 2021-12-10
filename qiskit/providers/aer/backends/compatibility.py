@@ -25,11 +25,18 @@ import numpy as np
 import qiskit.quantum_info as qi
 
 
+def _forward_attr(attr):
+    """Return True if attribute should be passed to legacy class"""
+    if attr[:2] == '__' or attr in ['_data', '_op_shape']:
+        return False
+    return True
+
+
 class Statevector(qi.Statevector):
     """Aer result backwards compatibility wrapper for qiskit Statevector."""
 
     def __getattr__(self, attr):
-        if hasattr(self.data, attr):
+        if _forward_attr(attr) and hasattr(self._data, attr):
             warnings.warn(
                 "The return type of saved statevectors has been changed from"
                 " a `numpy.ndarray` to a `qiskit.quantum_info.Statevector` as"
@@ -52,7 +59,7 @@ class DensityMatrix(qi.DensityMatrix):
     """Aer result backwards compatibility wrapper for qiskit DensityMatrix."""
 
     def __getattr__(self, attr):
-        if hasattr(self.data, attr):
+        if _forward_attr(attr) and hasattr(self._data, attr):
             warnings.warn(
                 "The return type of saved density matrices has been changed from"
                 " a `numpy.ndarray` to a `qiskit.quantum_info.DensityMatrix` as"
@@ -75,7 +82,7 @@ class Operator(qi.Operator):
     """Aer result backwards compatibility wrapper for qiskit Operator."""
 
     def __getattr__(self, attr):
-        if hasattr(self.data, attr):
+        if _forward_attr(attr) and hasattr(self._data, attr):
             warnings.warn(
                 "The return type of saved unitaries has been changed from"
                 " a `numpy.ndarray` to a `qiskit.quantum_info.Operator` as"
@@ -98,7 +105,7 @@ class SuperOp(qi.SuperOp):
     """Aer result backwards compatibility wrapper for qiskit SuperOp."""
 
     def __getattr__(self, attr):
-        if hasattr(self.data, attr):
+        if _forward_attr(attr) and hasattr(self._data, attr):
             warnings.warn(
                 "The return type of saved superoperators has been changed from"
                 " a `numpy.ndarray` to a `qiskit.quantum_info.SuperOp` as"
@@ -121,7 +128,7 @@ class StabilizerState(qi.StabilizerState):
     """Aer result backwards compatibility wrapper for qiskit StabilizerState."""
 
     def __getattr__(self, attr):
-        if hasattr(dict, attr):
+        if _forward_attr(attr) and hasattr(dict, attr):
             warnings.warn(
                 "The return type of saved stabilizers has been changed from"
                 " a `dict` to a `qiskit.quantum_info.StabilizerState` as of qiskit-aer 0.10."
@@ -129,7 +136,7 @@ class StabilizerState(qi.StabilizerState):
                 " error in a future release. Use the `.clifford.to_dict()` methods to access "
                 " the stored Clifford operator and convert to a dictionary.",
                 DeprecationWarning, stacklevel=2)
-            return getattr(self.clifford.to_dict(), attr)
+            return getattr(self._data.to_dict(), attr)
         return getattr(super(), attr)
 
     def __getitem__(self, item):
@@ -141,7 +148,7 @@ class StabilizerState(qi.StabilizerState):
                 " error in a future release. Use the `.clifford.to_dict()` methods to access "
                 " the stored Clifford operator and convert to a dictionary.",
                 DeprecationWarning, stacklevel=2)
-            return self.clifford.to_dict()[item]
+            return self._data.to_dict()[item]
         raise TypeError("'StabilizerState object is not subscriptable'")
 
     def _add(self, other):

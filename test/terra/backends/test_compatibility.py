@@ -14,6 +14,7 @@ Tests if quantum info result compatibility classes.
 These can be removed when this deprecation period is finished.
 """
 
+import copy
 from test.terra.common import QiskitAerTestCase
 
 import numpy as np
@@ -37,6 +38,17 @@ class TestResultCompatibility(QiskitAerTestCase):
         self.assertEqual(type(value), np.ndarray)
         self.assertTrue(np.all(value == np.array([1, 0])))
 
+    def test_statevector_copy(self):
+        compat = cqi.Statevector([1, 1e-10])
+        cpy = copy.copy(compat)
+        self.assertEqual(cpy, compat)
+
+    def test_statevector_linop(self):
+        orig = qi.random_statevector(4, seed=10)
+        compat = cqi.Statevector(orig.data)
+        self.assertEqual(2 * compat - orig, orig)
+        self.assertEqual(2 * orig - compat, orig)
+
     def test_density_matrix_eq(self):
         orig = qi.random_density_matrix(4, seed=10)
         compat = cqi.DensityMatrix(orig.data)
@@ -50,18 +62,40 @@ class TestResultCompatibility(QiskitAerTestCase):
         self.assertEqual(type(value), np.ndarray)
         self.assertTrue(np.all(value == np.array([[1, 0], [0, 0]])))
 
-    def test_operator_eq(self):
+    def test_density_matrix_copy(self):
+        compat = cqi.DensityMatrix([[1, 0], [0, 1e-10]])
+        cpy = copy.copy(compat)
+        self.assertEqual(cpy, compat)
+
+    def test_density_matrix_linop(self):
+        orig = qi.random_density_matrix(4, seed=10)
+        compat = cqi.DensityMatrix(orig.data)
+        self.assertEqual(2 * compat - orig, orig)
+        self.assertEqual(2 * orig - compat, orig)
+
+    def test_unitary_eq(self):
         orig = qi.random_unitary(4, seed=10)
         compat = cqi.Operator(orig.data)
         self.assertEqual(compat, orig)
         self.assertEqual(orig, compat)
 
-    def test_operator_getattr(self):
+    def test_unitary_getattr(self):
         compat = cqi.Operator([[1, 0], [1e-10, 1]])
         with self.assertWarns(DeprecationWarning):
             value = compat.round(5)
         self.assertEqual(type(value), np.ndarray)
         self.assertTrue(np.all(value == np.eye(2)))
+
+    def test_unitary_copy(self):
+        compat = cqi.Operator([[1, 0], [1e-10, 1]])
+        cpy = copy.copy(compat)
+        self.assertEqual(cpy, compat)
+
+    def test_unitary_linop(self):
+        orig = qi.random_unitary(4, seed=10)
+        compat = cqi.Operator(orig.data)
+        self.assertEqual(2 * compat - orig, orig)
+        self.assertEqual(2 * orig - compat, orig)
 
     def test_superop_eq(self):
         orig = qi.SuperOp(qi.random_quantum_channel(4, seed=10))
@@ -75,6 +109,17 @@ class TestResultCompatibility(QiskitAerTestCase):
             value = compat.round(5)
         self.assertEqual(type(value), np.ndarray)
         self.assertTrue(np.all(value == np.eye(4)))
+
+    def test_superop_copy(self):
+        compat = cqi.SuperOp(np.eye(4))
+        cpy = copy.copy(compat)
+        self.assertEqual(cpy, compat)
+
+    def test_superop_linop(self):
+        orig = qi.SuperOp(qi.random_quantum_channel(4, seed=10))
+        compat = cqi.SuperOp(orig.data)
+        self.assertEqual(2 * compat - orig, orig)
+        self.assertEqual(2 * orig - compat, orig)
 
     def test_stabilizer_eq(self):
         orig = qi.StabilizerState(qi.random_clifford(4, seed=10))
@@ -99,3 +144,9 @@ class TestResultCompatibility(QiskitAerTestCase):
         with self.assertWarns(DeprecationWarning):
             destabs = compat['destabilizer']
         self.assertEqual(destabs, cliff_dict['destabilizer'])
+
+    def test_stabilizer_copy(self):
+        clifford = qi.random_clifford(4, seed=10)
+        compat = cqi.StabilizerState(clifford)
+        cpy = copy.copy(compat)
+        self.assertEqual(cpy, compat)
