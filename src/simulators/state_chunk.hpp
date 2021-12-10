@@ -47,8 +47,9 @@ class StateChunk : public State<state_t> {
 
 public:
   using ignore_argument = void;
-  using DataSubType = Operations::DataSubType;
   using BaseState = State<state_t>;
+  using DataSubType = Operations::DataSubType;
+  using OpType = Operations::OpType;
 
   //-----------------------------------------------------------------------
   // Constructors
@@ -262,41 +263,41 @@ public:
   // TODO: Make classical data allow saving only subset of specified clbit values
   void save_creg(const int_t iChunk, ExperimentResult &result,
                  const std::string &key,
-                 DataSubType type = DataSubType::c_accum) const;
+                 DataSubType subtype = DataSubType::c_accum) const;
 
   // Save single shot data type. Typically this will be the value for the
   // last shot of the simulation
   template <class T>
   void save_data_single(ExperimentResult &result,
-                        const std::string &key, const T& datum) const;
+                        const std::string &key, const T& datum, OpType type) const;
 
   template <class T>
   void save_data_single(ExperimentResult &result,
-                        const std::string &key, T&& datum) const;
+                        const std::string &key, T&& datum, OpType type) const;
 
   // Save data type which can be averaged over all shots.
   // This supports DataSubTypes: list, c_list, accum, c_accum, average, c_average
   template <class T>
   void save_data_average(const int_t iChunk, ExperimentResult &result,
                          const std::string &key, const T& datum,
-                         DataSubType type = DataSubType::average) const;
+                         OpType type, DataSubType subtype = DataSubType::average) const;
 
   template <class T>
   void save_data_average(const int_t iChunk, ExperimentResult &result,
                          const std::string &key, T&& datum,
-                         DataSubType type = DataSubType::average) const;
+                         OpType type, DataSubType subtype = DataSubType::average) const;
   
   // Save data type which is pershot and does not support accumulator or average
   // This supports DataSubTypes: single, c_single, list, c_list
   template <class T>
   void save_data_pershot(const int_t iChunk, ExperimentResult &result,
                          const std::string &key, const T& datum,
-                         DataSubType type = DataSubType::list) const;
+                         OpType type, DataSubType subtype = DataSubType::list) const;
 
   template <class T>
   void save_data_pershot(const int_t iChunk, ExperimentResult &result,
                          const std::string &key, T&& datum,
-                         DataSubType type = DataSubType::list) const;
+                         OpType type, DataSubType subtype = DataSubType::list) const;
 
 
   //save creg as count data 
@@ -1026,32 +1027,34 @@ void StateChunk<state_t>::initialize_creg(uint_t num_memory,
 template <class state_t>
 void StateChunk<state_t>::save_creg(const int_t iChunk, ExperimentResult &result,
                                const std::string &key,
-                               DataSubType type) const 
+                               DataSubType subtype) const 
 {
   int_t ishot = get_global_shot_index(iChunk);
   if (cregs_[ishot].memory_size() == 0)
     return;
-  switch (type) {
+  switch (subtype) {
     case DataSubType::list:
       result.data.add_list(cregs_[ishot].memory_hex(), key);
+      result.metadata.add("creg", "result_types", key);
       break;
     case DataSubType::c_accum:
       result.data.add_accum(1ULL, key, cregs_[ishot].memory_hex());
+      result.metadata.add("creg", "result_types", key);
       break;
     default:
       throw std::runtime_error("Invalid creg data subtype for data key: " + key);
   }
+  result.metadata.add(subtype, "result_subtypes", key);
 }
 
 template <class state_t>
 template <class T>
 void StateChunk<state_t>::save_data_average(const int_t iChunk, ExperimentResult &result,
                                        const std::string &key,
-                                       const T& datum,
-                                       DataSubType type) const 
-{
+                                       const T& datum, OpType type,
+                                       DataSubType subtype) const {
   int_t ishot = get_global_shot_index(iChunk);
-  switch (type) {
+  switch (subtype) {
     case DataSubType::list:
       result.data.add_list(datum, key);
       break;
@@ -1073,17 +1076,18 @@ void StateChunk<state_t>::save_data_average(const int_t iChunk, ExperimentResult
     default:
       throw std::runtime_error("Invalid average data subtype for data key: " + key);
   }
+  result.metadata.add(type, "result_types", key);
+  result.metadata.add(subtype, "result_subtypes", key);
 }
 
 template <class state_t>
 template <class T>
 void StateChunk<state_t>::save_data_average(const int_t iChunk, ExperimentResult &result,
                                        const std::string &key,
-                                       T&& datum,
-                                       DataSubType type) const 
-{
+                                       T&& datum, OpType type,
+                                       DataSubType subtype) const {
   int_t ishot = get_global_shot_index(iChunk);
-  switch (type) {
+  switch (subtype) {
     case DataSubType::list:
       result.data.add_list(std::move(datum), key);
       break;
@@ -1105,17 +1109,18 @@ void StateChunk<state_t>::save_data_average(const int_t iChunk, ExperimentResult
     default:
       throw std::runtime_error("Invalid average data subtype for data key: " + key);
   }
+  result.metadata.add(type, "result_types", key);
+  result.metadata.add(subtype, "result_subtypes", key);
 }
 
 template <class state_t>
 template <class T>
 void StateChunk<state_t>::save_data_pershot(const int_t iChunk, ExperimentResult &result,
                                        const std::string &key,
-                                       const T& datum,
-                                       DataSubType type) const 
-{
+                                       const T& datum, OpType type,
+                                       DataSubType subtype) const {
   int_t ishot = get_global_shot_index(iChunk);
-  switch (type) {
+  switch (subtype) {
   case DataSubType::single:
     result.data.add_single(datum, key);
     break;
@@ -1131,17 +1136,18 @@ void StateChunk<state_t>::save_data_pershot(const int_t iChunk, ExperimentResult
   default:
     throw std::runtime_error("Invalid pershot data subtype for data key: " + key);
   }
+  result.metadata.add(type, "result_types", key);
+  result.metadata.add(subtype, "result_subtypes", key);
 }
 
 template <class state_t>
 template <class T>
 void StateChunk<state_t>::save_data_pershot(const int_t iChunk, ExperimentResult &result, 
                                        const std::string &key,
-                                       T&& datum,
-                                       DataSubType type) const 
-{
+                                       T&& datum, OpType type,
+                                       DataSubType subtype) const {
   int_t ishot = get_global_shot_index(iChunk);
-  switch (type) {
+  switch (subtype) {
     case DataSubType::single:
       result.data.add_single(std::move(datum), key);
       break;
@@ -1157,22 +1163,28 @@ void StateChunk<state_t>::save_data_pershot(const int_t iChunk, ExperimentResult
     default:
       throw std::runtime_error("Invalid pershot data subtype for data key: " + key);
   }
+  result.metadata.add(type, "result_types", key);
+  result.metadata.add(subtype, "result_subtypes", key);
 }
 
 template <class state_t>
 template <class T>
 void StateChunk<state_t>::save_data_single(ExperimentResult &result,
                                       const std::string &key,
-                                      const T& datum) const {
+                                      const T& datum, OpType type) const {
   result.data.add_single(datum, key);
+  result.metadata.add(type, "result_types", key);
+  result.metadata.add(DataSubType::single, "result_subtypes", key);
 }
 
 template <class state_t>
 template <class T>
 void StateChunk<state_t>::save_data_single(ExperimentResult &result,
                                       const std::string &key,
-                                      T&& datum) const {
+                                      T&& datum, OpType type) const {
   result.data.add_single(std::move(datum), key);
+  result.metadata.add(type, "result_types", key);
+  result.metadata.add(DataSubType::single, "result_subtypes", key);
 }
 
 template <class state_t>
@@ -1235,9 +1247,9 @@ void StateChunk<state_t>::apply_save_expval(const int_t iChunk, const Operations
     std::vector<double> expval_var(2);
     expval_var[0] = expval;  // mean
     expval_var[1] = sq_expval - expval * expval;  // variance
-    save_data_average(iChunk, result, op.string_params[0], expval_var, op.save_type);
+    save_data_average(iChunk, result, op.string_params[0], expval_var, op.type, op.save_type);
   } else {
-    save_data_average(iChunk, result, op.string_params[0], expval, op.save_type);
+    save_data_average(iChunk, result, op.string_params[0], expval, op.type, op.save_type);
   }
 }
 

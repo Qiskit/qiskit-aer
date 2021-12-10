@@ -37,6 +37,7 @@ class State {
 public:
   using ignore_argument = void;
   using DataSubType = Operations::DataSubType;
+  using OpType = Operations::OpType;
 
   //-----------------------------------------------------------------------
   // Constructors
@@ -225,41 +226,41 @@ public:
   // TODO: Make classical data allow saving only subset of specified clbit values
   void save_creg(ExperimentResult &result,
                  const std::string &key,
-                 DataSubType type = DataSubType::c_accum) const;
+                 DataSubType subtype = DataSubType::c_accum) const;
               
   // Save single shot data type. Typically this will be the value for the
   // last shot of the simulation
   template <class T>
   void save_data_single(ExperimentResult &result,
-                        const std::string &key, const T& datum) const;
+                        const std::string &key, const T& datum, OpType type) const;
 
   template <class T>
   void save_data_single(ExperimentResult &result,
-                        const std::string &key, T&& datum) const;
+                        const std::string &key, T&& datum, OpType type) const;
 
   // Save data type which can be averaged over all shots.
   // This supports DataSubTypes: list, c_list, accum, c_accum, average, c_average
   template <class T>
   void save_data_average(ExperimentResult &result,
-                         const std::string &key, const T& datum,
-                         DataSubType type = DataSubType::average) const;
+                         const std::string &key, const T& datum, OpType type,
+                         DataSubType subtype = DataSubType::average) const;
 
   template <class T>
   void save_data_average(ExperimentResult &result,
-                         const std::string &key, T&& datum,
-                         DataSubType type = DataSubType::average) const;
+                         const std::string &key, T&& datum, OpType type,
+                         DataSubType subtype = DataSubType::average) const;
   
   // Save data type which is pershot and does not support accumulator or average
   // This supports DataSubTypes: single, c_single, list, c_list
   template <class T>
   void save_data_pershot(ExperimentResult &result,
-                         const std::string &key, const T& datum,
-                         DataSubType type = DataSubType::list) const;
+                         const std::string &key, const T& datum, OpType type,
+                         DataSubType subtype = DataSubType::list) const;
 
   template <class T>
   void save_data_pershot(ExperimentResult &result,
-                         const std::string &key, T&& datum,
-                         DataSubType type = DataSubType::list) const;
+                         const std::string &key, T&& datum, OpType type,
+                         DataSubType subtype = DataSubType::list) const;
 
 
   //save creg as count data 
@@ -419,28 +420,31 @@ void State<state_t>::initialize_creg(uint_t num_memory,
 template <class state_t>
 void State<state_t>::save_creg(ExperimentResult &result,
                                const std::string &key,
-                               DataSubType type) const {
+                               DataSubType subtype) const {
   if (creg_.memory_size() == 0)
     return;
-  switch (type) {
+  switch (subtype) {
     case DataSubType::list:
       result.data.add_list(creg_.memory_hex(), key);
+      result.metadata.add("creg", "result_types", key);
       break;
     case DataSubType::c_accum:
       result.data.add_accum(1ULL, key, creg_.memory_hex());
+      result.metadata.add("creg", "result_types", key);
       break;
     default:
       throw std::runtime_error("Invalid creg data subtype for data key: " + key);
   }
+  result.metadata.add(subtype, "result_subtypes", key);
 }
 
 template <class state_t>
 template <class T>
 void State<state_t>::save_data_average(ExperimentResult &result,
                                        const std::string &key,
-                                       const T& datum,
-                                       DataSubType type) const {
-  switch (type) {
+                                       const T& datum, OpType type,
+                                       DataSubType subtype) const {
+  switch (subtype) {
     case DataSubType::list:
       result.data.add_list(datum, key);
       break;
@@ -462,15 +466,17 @@ void State<state_t>::save_data_average(ExperimentResult &result,
     default:
       throw std::runtime_error("Invalid average data subtype for data key: " + key);
   }
+  result.metadata.add(type, "result_types", key);
+  result.metadata.add(subtype, "result_subtypes", key);
 }
 
 template <class state_t>
 template <class T>
 void State<state_t>::save_data_average(ExperimentResult &result,
                                        const std::string &key,
-                                       T&& datum,
-                                       DataSubType type) const {
-  switch (type) {
+                                       T&& datum, OpType type,
+                                       DataSubType subtype) const {
+  switch (subtype) {
     case DataSubType::list:
       result.data.add_list(std::move(datum), key);
       break;
@@ -492,15 +498,17 @@ void State<state_t>::save_data_average(ExperimentResult &result,
     default:
       throw std::runtime_error("Invalid average data subtype for data key: " + key);
   }
+  result.metadata.add(type, "result_types", key);
+  result.metadata.add(subtype, "result_subtypes", key);
 }
 
 template <class state_t>
 template <class T>
 void State<state_t>::save_data_pershot(ExperimentResult &result,
                                        const std::string &key,
-                                       const T& datum,
-                                       DataSubType type) const {
-  switch (type) {
+                                       const T& datum, OpType type,
+                                       DataSubType subtype) const {
+  switch (subtype) {
   case DataSubType::single:
     result.data.add_single(datum, key);
     break;
@@ -516,15 +524,17 @@ void State<state_t>::save_data_pershot(ExperimentResult &result,
   default:
     throw std::runtime_error("Invalid pershot data subtype for data key: " + key);
   }
+  result.metadata.add(type, "result_types", key);
+  result.metadata.add(subtype, "result_subtypes", key);
 }
 
 template <class state_t>
 template <class T>
 void State<state_t>::save_data_pershot(ExperimentResult &result, 
                                        const std::string &key,
-                                       T&& datum,
-                                       DataSubType type) const {
-  switch (type) {
+                                       T&& datum, OpType type,
+                                       DataSubType subtype) const {
+  switch (subtype) {
     case DataSubType::single:
       result.data.add_single(std::move(datum), key);
       break;
@@ -540,22 +550,28 @@ void State<state_t>::save_data_pershot(ExperimentResult &result,
     default:
       throw std::runtime_error("Invalid pershot data subtype for data key: " + key);
   }
+  result.metadata.add(type, "result_types", key);
+  result.metadata.add(subtype, "result_subtypes", key);
 }
 
 template <class state_t>
 template <class T>
 void State<state_t>::save_data_single(ExperimentResult &result,
                                       const std::string &key,
-                                      const T& datum) const {
+                                      const T& datum, OpType type) const {
   result.data.add_single(datum, key);
+  result.metadata.add(type, "result_types", key);
+  result.metadata.add(DataSubType::single, "result_subtypes", key);
 }
 
 template <class state_t>
 template <class T>
 void State<state_t>::save_data_single(ExperimentResult &result,
                                       const std::string &key,
-                                      T&& datum) const {
+                                      T&& datum, OpType type) const {
   result.data.add_single(std::move(datum), key);
+  result.metadata.add(type, "result_types", key);
+  result.metadata.add(DataSubType::single, "result_subtypes", key);
 }
 
 template <class state_t>
@@ -595,7 +611,7 @@ void State<state_t>::apply_save_expval(const Operations::Op &op,
     throw std::invalid_argument(
         "Invalid save expval instruction (Pauli components are empty).");
   }
-  bool variance = (op.type == Operations::OpType::save_expval_var);
+  bool variance = (op.type == OpType::save_expval_var);
 
   // Accumulate expval components
   double expval(0.);
@@ -613,9 +629,9 @@ void State<state_t>::apply_save_expval(const Operations::Op &op,
     std::vector<double> expval_var(2);
     expval_var[0] = expval;  // mean
     expval_var[1] = sq_expval - expval * expval;  // variance
-    save_data_average(result, op.string_params[0], expval_var, op.save_type);
+    save_data_average(result, op.string_params[0], expval_var, op.type, op.save_type);
   } else {
-    save_data_average(result, op.string_params[0], expval, op.save_type);
+    save_data_average(result, op.string_params[0], expval, op.type, op.save_type);
   }
 }
 
