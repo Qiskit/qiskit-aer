@@ -94,7 +94,6 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         self.param_names = ["application", "measure_method", "measure_counts", "noise", "qubit"]
         
         self.simulators = {}
-        self.backend_options_list = {}
         self.backend_qubits = {}
 
         self.noise_models = {}
@@ -112,30 +111,25 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
 
         if self.RUNTIME_STATEVECTOR_CPU in runtime_names:
             self.simulators[self.RUNTIME_STATEVECTOR_CPU] = AerSimulator(method='statevector', device='CPU')
-            self.backend_options_list[self.RUNTIME_STATEVECTOR_CPU] = { 'enable_truncation': False}
             self.backend_qubits[self.RUNTIME_STATEVECTOR_CPU] = self.qubits
         
         if self.RUNTIME_STATEVECTOR_GPU in runtime_names:
             self.simulators[self.RUNTIME_STATEVECTOR_GPU] = AerSimulator(method='statevector', device='GPU')
-            self.backend_options_list[self.RUNTIME_STATEVECTOR_GPU] = { 'enable_truncation': False}
             self.backend_qubits[self.RUNTIME_STATEVECTOR_GPU] = self.qubits
         
         if self.RUNTIME_MPS_CPU in runtime_names:
             self.simulators[self.RUNTIME_MPS_CPU] = AerSimulator(method='matrix_product_state', device='GPU')
-            self.backend_options_list[self.RUNTIME_MPS_CPU] = { 'enable_truncation': False}
             self.backend_qubits[self.RUNTIME_MPS_CPU] = self.qubits
         
         if self.RUNTIME_DENSITY_MATRIX_CPU in runtime_names:
             self.simulators[self.RUNTIME_DENSITY_MATRIX_CPU] = AerSimulator(method='density_matrix', device='CPU')
-            self.backend_options_list[self.RUNTIME_DENSITY_MATRIX_CPU] = { 'enable_truncation': False}
             self.backend_qubits[self.RUNTIME_DENSITY_MATRIX_CPU] = [qubit for qubit in qubits if qubit <= 15]
         
         if self.RUNTIME_DENSITY_MATRIX_GPU in runtime_names:
             self.simulators[self.RUNTIME_DENSITY_MATRIX_GPU] = AerSimulator(method='density_matrix', device='GPU')
-            self.backend_options_list[self.RUNTIME_DENSITY_MATRIX_GPU] = { 'enable_truncation': False}
             self.backend_qubits[self.RUNTIME_DENSITY_MATRIX_GPU] = [qubit for qubit in qubits if qubit <= 15]
         
-    def gen_qobj(self, runtime, app, measure, measure_count, qubit):
+    def gen_qobj(self, runtime, app, measure, measure_count, qubit, noise_name):
         
         def add_measure_all(base):
             circuit = base.copy()
@@ -153,6 +147,8 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
             circuit.snapshot_expectation_value('expval', pauli_op, range(qubit))        
         
         circuit = eval('self.{0}'.format(app))(qubit, None if app not in self.app2rep else self.app2rep[app])
+        noise_model = self.noise_models[noise_name]
+
         if len(circuit.parameters) > 0:
             param_binds = {}
             for param in circuit.parameters:
@@ -163,25 +159,21 @@ class SimulatorBenchmarkSuite(CircuitLibraryCircuits):
         shots = measure_count if measure == self.MEASUREMENT_SAMPLING else 1
         
         if (simulator, app, measure, measure_count, qubit) not in QOBJS:
-            QOBJS[(runtime, app, measure, measure_count, qubit)] = simulator._assemble(transpile(circuit, simulator), shots=shots)
-        return QOBJS[(runtime, app, measure, measure_count, qubit)]
+            QOBJS[(runtime, app, measure, measure_count, qubit, noise_name)] = simulator._assemble(transpile(circuit, simulator), shots=shots, noise_model=noise_model, enable_truncation=False)
+        return QOBJS[(runtime, app, measure, measure_count, qubit, noise_name)]
         
     def _run(self, runtime, app, measure, measure_count, noise_name, qubit):
-        if runtime not in self.simulators or runtime not in self.backend_options_list:
-            raise ValueError('unknown runtime: {0}'.format(runtime))
         simulator = self.simulators[runtime]
-        backend_options = self.backend_options_list[runtime]
-        noise_model = self.noise_models[noise_name]
         
         if qubit not in self.backend_qubits[runtime]:
             raise ValueError('out of qubit range: qubit={0}, list={1}'.format(qubit, self.backend_qubits[runtime]))
         
-        qobj = self.gen_qobj(runtime, app, measure, measure_count, qubit)
+        qobj = self.gen_qobj(runtime, app, measure, measure_count, qubit, noise_name)
         if qobj is None:
             raise ValueError('no qobj: measure={0}:{1}, qubit={2}'.format(measure, measure_count, qubit))
 
         start = time()
-        result = simulator._run(qobj, noise_model=noise_model, **backend_options)
+        result = simulator._run(qobj)
         if result.status != 'COMPLETED':
             try:
                 reason = None
