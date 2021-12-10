@@ -143,3 +143,9 @@ class StabilizerState(qi.StabilizerState):
                 DeprecationWarning, stacklevel=2)
             return self.clifford.to_dict()[item]
         raise TypeError("'StabilizerState object is not subscriptable'")
+
+    def _add(self, other):
+        raise NotImplementedError(f"{type(self)} does not support addition")
+
+    def _multiply(self, other):
+        raise NotImplementedError(f"{type(self)} does not support scalar multiplication")
