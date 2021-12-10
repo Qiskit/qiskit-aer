@@ -42,7 +42,7 @@ class Statevector(qi.Statevector):
 
     def __eq__(self, other):
         return (
-            isinstance(self, type(self)) and
+            isinstance(self, type(other)) and
             self._op_shape == other._op_shape and
             np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
@@ -65,7 +65,7 @@ class DensityMatrix(qi.DensityMatrix):
 
     def __eq__(self, other):
         return (
-            isinstance(self, type(self)) and
+            isinstance(self, type(other)) and
             self._op_shape == other._op_shape and
             np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
@@ -84,11 +84,11 @@ class Operator(qi.Operator):
                 " property to access the the stored ndarray for the Operator.",
                 DeprecationWarning, stacklevel=2)
             return getattr(self.data, attr)
-        return super().__getattribute__(attr)
+        return getattr(super(), attr)
 
     def __eq__(self, other):
         return (
-            isinstance(self, type(self)) and
+            isinstance(self, type(other)) and
             self._op_shape == other._op_shape and
             np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
@@ -107,11 +107,11 @@ class SuperOp(qi.SuperOp):
                 " property to access the the stored ndarray for the SuperOp.",
                 DeprecationWarning, stacklevel=2)
             return getattr(self.data, attr)
-        return super().__getattribute__(attr)
+        return getattr(super(), attr)
 
     def __eq__(self, other):
         return (
-            isinstance(self, type(self)) and
+            isinstance(self, type(other)) and
             self._op_shape == other._op_shape and
             np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
@@ -130,7 +130,7 @@ class StabilizerState(qi.StabilizerState):
                 " the stored Clifford operator and convert to a dictionary.",
                 DeprecationWarning, stacklevel=2)
             return getattr(self.clifford.to_dict(), attr)
-        return super().__getattribute__(attr)
+        return getattr(super(), attr)
 
     def __getitem__(self, item):
         if item in ["stabilizer", "destabilizer"]:
