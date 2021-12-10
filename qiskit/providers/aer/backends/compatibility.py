@@ -38,7 +38,7 @@ class Statevector(qi.Statevector):
                 " property to access the the stored ndarray for the Statevector.",
                 DeprecationWarning, stacklevel=2)
             return getattr(self.data, attr)
-        return super().__getattribute__(attr)
+        return getattr(super(), attr)
 
     def __eq__(self, other):
         return (
@@ -61,7 +61,7 @@ class DensityMatrix(qi.DensityMatrix):
                 " property to access the the stored ndarray for the DensityMatrix.",
                 DeprecationWarning, stacklevel=2)
             return getattr(self.data, attr)
-        return super().__getattribute__(attr)
+        return getattr(super(), attr)
 
     def __eq__(self, other):
         return (
