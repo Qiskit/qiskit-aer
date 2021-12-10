@@ -26,6 +26,7 @@ import qiskit.quantum_info as qi
 
 
 class Statevector(qi.Statevector):
+    """Aer result backwards compatibility wrapper for qiskit Statevector."""
 
     def __getattr__(self, attr):
         if hasattr(self.data, attr):
@@ -41,13 +42,14 @@ class Statevector(qi.Statevector):
 
     def __eq__(self, other):
         return (
-            isinstance(self, type(self))
-            and self._op_shape == other._op_shape
-            and np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
+            isinstance(self, type(self)) and
+            self._op_shape == other._op_shape and
+            np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
 
 
 class DensityMatrix(qi.DensityMatrix):
+    """Aer result backwards compatibility wrapper for qiskit DensityMatrix."""
 
     def __getattr__(self, attr):
         if hasattr(self.data, attr):
@@ -63,13 +65,14 @@ class DensityMatrix(qi.DensityMatrix):
 
     def __eq__(self, other):
         return (
-            isinstance(self, type(self))
-            and self._op_shape == other._op_shape
-            and np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
+            isinstance(self, type(self)) and
+            self._op_shape == other._op_shape and
+            np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
 
 
 class Operator(qi.Operator):
+    """Aer result backwards compatibility wrapper for qiskit Operator."""
 
     def __getattr__(self, attr):
         if hasattr(self.data, attr):
@@ -85,13 +88,14 @@ class Operator(qi.Operator):
 
     def __eq__(self, other):
         return (
-            isinstance(self, type(self))
-            and self._op_shape == other._op_shape
-            and np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
+            isinstance(self, type(self)) and
+            self._op_shape == other._op_shape and
+            np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
 
 
 class SuperOp(qi.SuperOp):
+    """Aer result backwards compatibility wrapper for qiskit SuperOp."""
 
     def __getattr__(self, attr):
         if hasattr(self.data, attr):
@@ -107,13 +111,14 @@ class SuperOp(qi.SuperOp):
 
     def __eq__(self, other):
         return (
-            isinstance(self, type(self))
-            and self._op_shape == other._op_shape
-            and np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
+            isinstance(self, type(self)) and
+            self._op_shape == other._op_shape and
+            np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
 
 
 class StabilizerState(qi.StabilizerState):
+    """Aer result backwards compatibility wrapper for qiskit StabilizerState."""
 
     def __getattr__(self, attr):
         if hasattr(dict, attr):
