@@ -77,10 +77,16 @@ class UnitarySimulator(AerBackend):
     * ``executor`` (futures.Executor): Set a custom executor for
       asynchronous running of simulation jobs (Default: None).
 
-    * ``max_job_size`` (int or None): If the number of run circuits
-      exceeds this value simulation will be run as a set of of sub-jobs
-      on the executor. If ``None`` simulation of all circuits are submitted
-      to the executor as a single job (Default: None).
+    * ``max_shot_size`` (int or None): If the number of shots of a noisy
+      circuit exceeds this value simulation will be split into multi
+      circuits for execution and the results accumulated. If ``None``
+      circuits will not be split based on shots. When splitting circuits
+      use the ``max_job_size`` option to control how these split circuits
+      should be submitted to the executor (Default: None).
+
+    * ``max_shot_size`` (int or None): If the number of shots with
+      a noise model exceeds this value, simulation will split the experiments into
+      sub experiments in the qobj. If ``None``  simulator does nothing (Default: None).
 
     * ``"initial_unitary"`` (matrix_like): Sets a custom initial unitary
       matrix for the simulation instead of identity (Default: None).
@@ -199,6 +205,7 @@ class UnitarySimulator(AerBackend):
             precision="double",
             executor=None,
             max_job_size=None,
+            max_shot_size=None,
             zero_threshold=1e-10,
             seed_simulator=None,
             validation_threshold=None,

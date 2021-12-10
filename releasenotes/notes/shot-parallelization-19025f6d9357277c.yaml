@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Adds the new option ``max_shot_size`` option to a cutom executor for
+    run multiple shots execution of a noisy circuit in parallel. 
+
+    For example configuring ``max_shot_size`` with a custom executor 
+
+    .. code-block:: python
+
+       backend = AerSimulator(max_shot_size = 1, max_job_size=1, executor=custom_executor)
+       job = backend.run(circuits)
+
+    will split the shots of a noisy circuit into multiple circuits.
+    After all individual shot's execution finish running the job results 
+    are automatically combined into a single Result object that is 
+    returned by ``job.result()``.

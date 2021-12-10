@@ -22,6 +22,7 @@ import logging
 import copy
 import datetime
 import uuid
+from collections import Counter
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.pulse import Schedule
@@ -70,6 +71,7 @@ class AerJobSet(Job):
         self._executor = executor or DEFAULT_EXECUTOR
         self._start_time = None
         self._end_time = None
+        self._combined_result = []
 
     def submit(self):
         """Execute this set of jobs on an executor.
@@ -82,14 +84,20 @@ class AerJobSet(Job):
                 'The jobs for this managed job set have already been submitted.')
 
         self._future = True
+        worker_id = 0
         self._start_time = datetime.datetime.now()
-        for i, exp in enumerate(self._experiments):
-            job_id = str(uuid.uuid4())
-            logger.debug("Job %s submitted", i + 1)
-            aer_job = AerJob(self._backend, job_id, self._fn, exp, self._executor)
-            aer_job.submit()
-            aer_job._future.add_done_callback(self._set_end_time)
-            self._futures.append(aer_job)
+        for experiments in self._experiments:
+            _worker_id_list = []
+            for exp in experiments:
+                job_id = str(uuid.uuid4())
+                logger.debug("Job %s submitted", worker_id)
+                aer_job = AerJob(self._backend, job_id, self._fn, exp, self._executor)
+                aer_job.submit()
+                aer_job._future.add_done_callback(self._set_end_time)
+                self._futures.append(aer_job)
+                _worker_id_list.append(worker_id)
+                worker_id = worker_id + 1
+            self._combined_result.append(_worker_id_list)
 
     @requires_submit
     def status(self, worker: Union[None, int, Iterable[int]]
@@ -104,7 +112,7 @@ class AerJobSet(Job):
         """
         if isinstance(worker, int):
             aer_job = self._futures[worker]
-            return aer_job.satus()
+            return aer_job.status()
         elif isinstance(worker, Iterable):
             job_list = []
             for worker_id in worker:
@@ -135,7 +143,7 @@ class AerJobSet(Job):
 
         """
         res = self.worker_results(worker=None, timeout=timeout)
-        return self._combine_results(res)
+        return res
 
     @requires_submit
     def worker_results(self,
@@ -166,15 +174,21 @@ class AerJobSet(Job):
         res = []
 
         if isinstance(worker, int):
-            return self._get_worker_result(worker, timeout)
+            res = self._get_worker_result(worker, timeout)
         elif isinstance(worker, Iterable):
+            _res = []
             for worker_id in worker:
-                res.append(self._get_worker_result(worker_id, timeout))
-            return res
+                _res.append(self._get_worker_result(worker_id, timeout))
+            res = self._combine_results(_res)
         else:
-            for worker_id in range(len(self._futures)):
-                res.append(self._get_worker_result(worker_id, timeout))
-            return res
+            for _worker_id_list in self._combined_result:
+                _res = []
+                for worker_id in _worker_id_list:
+                    _res.append(self._get_worker_result(worker_id, timeout))
+                res.append(self._combine_results(_res))
+
+        res = self._accumulate_experiment_results(res)
+        return self._combine_job_results(res)
 
     def _get_worker_result(self, worker: int, timeout: Optional[float] = None):
         """Return the result of the jobs specified with worker_id.
@@ -218,6 +232,70 @@ class AerJobSet(Job):
                     "Timeout while waiting for JobSet results")
         return result
 
+    def _combine_job_results(self, result_list: List[Result]):
+        if len(result_list) == 1:
+            return result_list[0]
+
+        master_result = result_list[0]
+        _merge_result_list = []
+
+        for _result in result_list[1:]:
+            for (_master_result, _sub_result) in zip(master_result.results, _result.results):
+                _merge_result_list.append(self._merge_exp(_master_result, _sub_result))
+        master_result.results = _merge_result_list
+        return master_result
+
+    def _accumulate_experiment_results(self, results: List[Result]):
+        """Merge all experiments into a single in a`Result`
+
+        this function merges the counts and the number of shots
+        from each experiment in a `Result` for a noise simulation
+        if `id` in metadata field is the same.
+
+        Args:
+            results: Result list whose experiments will be combined.
+
+        Returns:
+            list: Result list
+
+        Raises:
+            JobError: If results do not have count or memory data
+        """
+        results_list = []
+        for each_result in results:
+            _merge_results = []
+            master_id = None
+            master_result = None
+
+            for _result in each_result.results:
+                if not hasattr(_result.data, "counts") and not hasattr(_result.data, "memory"):
+                    raise JobError(
+                        "Results do not include counts or memory data")
+                meta_data = getattr(_result.header, "metadata", None)
+                if meta_data and "id" in meta_data:
+                    _id = meta_data["id"]
+                    if master_id == _id:
+                        master_result = self._merge_exp(master_result, _result)
+                    else:
+                        master_id = _id
+                        master_result = _result
+                        _merge_results.append(master_result)
+                else:
+                    _merge_results.append(_result)
+            each_result.results = _merge_results
+            results_list.append(each_result)
+        return results_list
+
+    def _merge_exp(self, master: Result, sub: Result):
+        master.shots = master.shots + sub.shots
+        if hasattr(master.data, "counts"):
+            master.data.counts = Counter(master.data.counts) + Counter(sub.data.counts)
+
+        if hasattr(master.data, "memory"):
+            master.data.memory = master.data.memory + sub.data.memory
+
+        return master
+
     def _combine_results(self,
                          results: List[Union[Result, None]] = None
                          ) -> Result:
@@ -242,7 +320,7 @@ class AerJobSet(Job):
         # find first non-null result and copy it's config
         _result = next((r for r in results if r is not None), None)
         if _result:
-            combined_result = copy.deepcopy(_result)
+            combined_result = copy.copy(_result)
             combined_result.results = []
         else:
             raise JobError(
@@ -252,19 +330,16 @@ class AerJobSet(Job):
             if each_result is not None:
                 combined_result.results.extend(each_result.results)
 
-        combined_result_dict = combined_result.to_dict()
-
         if self._end_time is None:
             self._end_time = datetime.datetime.now()
 
         if self._start_time:
             _time_taken = self._end_time - self._start_time
-            combined_result_dict["time_taken"] = _time_taken.total_seconds()
+            combined_result.time_taken = _time_taken.total_seconds()
         else:
-            combined_result_dict["time_taken"] = 0
+            combined_result.time_taken = 0
 
-        combined_result_dict["date"] = datetime.datetime.isoformat(self._end_time)
-        combined_result = Result.from_dict(combined_result_dict)
+        combined_result.date = datetime.datetime.isoformat(self._end_time)
         return combined_result
 
     @requires_submit
