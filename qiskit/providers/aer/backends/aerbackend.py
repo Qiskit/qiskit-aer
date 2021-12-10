@@ -194,7 +194,9 @@ class AerBackend(Backend, ABC):
             delattr(qobj.config, 'executor')
 
         # Optionally split the job
-        experiments = split_qobj(qobj, max_size=getattr(qobj.config, 'max_job_size', None))
+        experiments = split_qobj(
+            qobj, max_size=getattr(qobj.config, 'max_job_size', None),
+            max_shot_size=getattr(qobj.config, 'max_shot_size', None))
 
         # Temporarily remove any executor from options so that job submission
         # can work with Dask client executors which can't be pickled
