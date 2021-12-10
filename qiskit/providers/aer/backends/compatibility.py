@@ -44,7 +44,7 @@ class Statevector(qi.Statevector):
                 " and will result in an error in a future release. Use the `.data`"
                 " property to access the the stored ndarray for the Statevector.",
                 DeprecationWarning, stacklevel=2)
-            return getattr(self.data, attr)
+            return getattr(self._data, attr)
         return getattr(super(), attr)
 
     def __eq__(self, other):
@@ -67,7 +67,7 @@ class DensityMatrix(qi.DensityMatrix):
                 " and will result in an error in a future release. Use the `.data`"
                 " property to access the the stored ndarray for the DensityMatrix.",
                 DeprecationWarning, stacklevel=2)
-            return getattr(self.data, attr)
+            return getattr(self._data, attr)
         return getattr(super(), attr)
 
     def __eq__(self, other):
@@ -90,7 +90,7 @@ class Operator(qi.Operator):
                 " and will result in an error in a future release. Use the `.data`"
                 " property to access the the stored ndarray for the Operator.",
                 DeprecationWarning, stacklevel=2)
-            return getattr(self.data, attr)
+            return getattr(self._data, attr)
         return getattr(super(), attr)
 
     def __eq__(self, other):
@@ -113,7 +113,7 @@ class SuperOp(qi.SuperOp):
                 " and will result in an error in a future release. Use the `.data`"
                 " property to access the the stored ndarray for the SuperOp.",
                 DeprecationWarning, stacklevel=2)
-            return getattr(self.data, attr)
+            return getattr(self._data, attr)
         return getattr(super(), attr)
 
     def __eq__(self, other):
