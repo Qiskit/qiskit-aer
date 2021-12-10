@@ -44,7 +44,7 @@ enum class OpType {
   // Save instructions
   save_state, save_expval, save_expval_var, save_statevec, save_statevec_dict,
   save_densmat, save_probs, save_probs_ket, save_amps, save_amps_sq,
-  save_stabilizer, save_unitary, save_mps, save_superop,
+  save_stabilizer, save_clifford, save_unitary, save_mps, save_superop,
   // Set instructions
   set_statevec, set_densmat, set_unitary, set_superop,
     set_stabilizer, set_mps
@@ -59,6 +59,7 @@ static const std::unordered_set<OpType> SAVE_TYPES = {
   OpType::save_statevec, OpType::save_statevec_dict,
   OpType::save_densmat, OpType::save_probs, OpType::save_probs_ket,
   OpType::save_amps, OpType::save_amps_sq, OpType::save_stabilizer,
+  OpType::save_clifford,
   OpType::save_unitary, OpType::save_mps, OpType::save_superop
 };
 
@@ -113,6 +114,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::save_stabilizer:
     stream << "save_stabilizer";
+    break;
+  case OpType::save_clifford:
+    stream << "save_clifford";
     break;
   case OpType::save_unitary:
     stream << "save_unitary";
@@ -176,6 +180,39 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   default:
     stream << "unknown";
+  }
+  return stream;
+}
+
+
+inline std::ostream& operator<<(std::ostream& stream, const DataSubType& subtype) {
+  switch (subtype) {
+    case DataSubType::single:
+      stream << "single";
+      break;
+    case DataSubType::c_single:
+      stream << "c_single";
+      break;
+    case DataSubType::list:
+      stream << "list";
+      break;
+    case DataSubType::c_list:
+      stream << "c_list";
+      break;
+    case DataSubType::accum:
+      stream << "accum";
+      break;
+    case DataSubType::c_accum:
+      stream << "c_accum";
+      break;
+    case DataSubType::average:
+      stream << "average";
+      break;
+    case DataSubType::c_average:
+      stream << "c_average";
+      break;
+    default:
+      stream << "unknown";
   }
   return stream;
 }
@@ -493,6 +530,8 @@ inline void from_json(const json_t &js, Op &op) {op = input_to_op(js);}
 
 inline void to_json(json_t &js, const Op &op) { js = op_to_json(op);}
 
+void to_json(json_t &js, const DataSubType& type);
+
 // Standard operations
 template<typename inputdata_t>
 Op input_to_op_gate(const inputdata_t& input);
@@ -607,6 +646,8 @@ Op input_to_op(const inputdata_t& input) {
     return input_to_op_save_default(input, OpType::save_statevec_dict);
   if (name == "save_stabilizer")
     return input_to_op_save_default(input, OpType::save_stabilizer);
+  if (name == "save_clifford")
+    return input_to_op_save_default(input, OpType::save_clifford);
   if (name == "save_unitary")
     return input_to_op_save_default(input, OpType::save_unitary);
   if (name == "save_superop")
@@ -680,6 +721,20 @@ json_t op_to_json(const Op &op) {
   if (!op.mats.empty())
     ret["mats"] = op.mats;
   return ret;
+}
+
+
+void to_json(json_t &js, const OpType& type) {
+  std::stringstream ss;
+  ss << type;
+  js = ss.str();
+}
+
+
+void to_json(json_t &js, const DataSubType& subtype) {
+  std::stringstream ss;
+  ss << subtype;
+  js = ss.str();
 }
 
 

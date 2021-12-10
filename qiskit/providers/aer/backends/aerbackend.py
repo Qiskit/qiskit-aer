@@ -33,6 +33,7 @@ from qiskit.utils import deprecate_arguments
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
+from .backend_utils import format_save_type
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -281,7 +282,7 @@ class AerBackend(Backend, ABC):
             pending_jobs=0,
             status_msg='')
 
-    def _run(self, qobj, job_id=''):
+    def _run(self, qobj, job_id='', format_result=True):
         """Run a job"""
         # Start timer
         start = time.time()
@@ -312,7 +313,21 @@ class AerBackend(Backend, ABC):
             if "status" in output:
                 msg += f" and returned the following error message:\n{output['status']}"
             logger.warning(msg)
+        if format_result:
+            return self._format_results(output)
+        return output
 
+    @staticmethod
+    def _format_results(output):
+        """Format C++ simulator output for constructing Result"""
+        for result in output["results"]:
+            data = result.get("data", {})
+            metadata = result.get("metadata", {})
+            save_types = metadata.get("result_types", {})
+            save_subtypes = metadata.get("result_subtypes", {})
+            for key, val in data.items():
+                if key in save_types:
+                    data[key] = format_save_type(val, save_types[key], save_subtypes[key])
         return Result.from_dict(output)
 
     def _assemble(self, circuits, parameter_binds=None, **run_options):

@@ -849,10 +849,10 @@ void State<statevec_t>::apply_save_probs(const int_t iChunk, const Operations::O
     // Convert to ket dict
     BaseState::save_data_average(iChunk, result, op.string_params[0],
                                  Utils::vec2ket(probs, json_chop_threshold_, 16),
-                                 op.save_type);
+                                 op.type, op.save_type);
   } else {
     BaseState::save_data_average(iChunk, result, op.string_params[0],
-                                 std::move(probs), op.save_type);
+                                 std::move(probs), op.type, op.save_type);
   }
 }
 
@@ -985,9 +985,11 @@ void State<statevec_t>::apply_save_statevector(const int_t iChunk, const Operati
                       : op.string_params[0];
 
   if (last_op) {
-    BaseState::save_data_pershot(iChunk, result, key, move_to_vector(iChunk), op.save_type);
+    BaseState::save_data_pershot(iChunk, result, key, move_to_vector(iChunk),
+                                 OpType::save_statevec, op.save_type);
   } else {
-    BaseState::save_data_pershot(iChunk, result, key, copy_to_vector(iChunk), op.save_type);
+    BaseState::save_data_pershot(iChunk, result, key, copy_to_vector(iChunk),
+                                 OpType::save_statevec, op.save_type);
   }
 }
 
@@ -1010,7 +1012,7 @@ void State<statevec_t>::apply_save_statevector_dict(const int_t iChunk, const Op
       }
     }
     BaseState::save_data_pershot(iChunk, result, op.string_params[0],
-                                 std::move(result_state_ket), op.save_type);
+                                 std::move(result_state_ket), op.type, op.save_type);
   }
   else{
     auto state_ket = BaseState::qregs_[iChunk].vector_ket(json_chop_threshold_);
@@ -1019,7 +1021,7 @@ void State<statevec_t>::apply_save_statevector_dict(const int_t iChunk, const Op
       result_state_ket[it.first] = it.second;
     }
     BaseState::save_data_pershot(iChunk, result, op.string_params[0],
-                                 std::move(result_state_ket), op.save_type);
+                                 std::move(result_state_ket), op.type, op.save_type);
   }
 }
 
@@ -1052,7 +1054,7 @@ void State<statevec_t>::apply_save_density_matrix(const int_t iChunk, const Oper
   }
 
   BaseState::save_data_average(iChunk, result, op.string_params[0],
-                               std::move(reduced_state), op.save_type);
+                               std::move(reduced_state), op.type, op.save_type);
 }
 
 template <class statevec_t>
@@ -1086,7 +1088,7 @@ void State<statevec_t>::apply_save_amplitudes(const int_t iChunkIn, const Operat
       }
     }
     BaseState::save_data_pershot(iChunkIn, result, op.string_params[0],
-                                 std::move(amps), op.save_type);
+                                 std::move(amps), op.type, op.save_type);
   }
   else{
     rvector_t amps_sq(size,0);
@@ -1108,7 +1110,7 @@ void State<statevec_t>::apply_save_amplitudes(const int_t iChunkIn, const Operat
 #endif
     }
     BaseState::save_data_average(iChunkIn, result, op.string_params[0],
-                                 std::move(amps_sq), op.save_type);
+                                 std::move(amps_sq), op.type, op.save_type);
   }
 }
 
