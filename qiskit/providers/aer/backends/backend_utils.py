@@ -21,8 +21,9 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import assemble
 from qiskit.qobj import QasmQobjInstruction
 from qiskit.result import ProbDistribution
-from qiskit.quantum_info import (
-    Statevector, DensityMatrix, StabilizerState, Operator, Clifford, SuperOp)
+from qiskit.quantum_info import Clifford
+from .compatibility import (
+    Statevector, DensityMatrix, StabilizerState, Operator, SuperOp)
 
 
 # Available system memory
