@@ -635,7 +635,6 @@ class TestControlFlow(SimulatorTestCase):
             circ.measure(0, 0)
             with circ.if_test((creg, 1)):
                 circ.break_loop()
-        print(circ.data[0][0].params[2])
         with circ.for_loop(range(1)) as a:
             circ.ry(a * numpy.pi, 1)
             circ.measure(1, 0)
@@ -724,6 +723,69 @@ class TestControlFlow(SimulatorTestCase):
         result = backend.run(circ, method=method).result()
         self.assertSuccess(result)
         
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn('11110 01000', counts)
+
+    @unittest.skip('builder is not ready')
+    @data('statevector', 'density_matrix', 'matrix_product_state')
+    def test_for_loop_continue_builder(self, method):
+        backend = self.backend(method=method)
+
+        qreg = QuantumRegister(5)
+        creg = ClassicalRegister(5)
+        circ = QuantumCircuit(qreg, creg)
+
+        with circ.for_loop(range(0)) as a:
+            circ.ry(a * numpy.pi, 0)  # dead code
+            circ.measure(0, 0)  # dead code
+            with circ.if_test((circ.clbits[0], 1)):
+                circ.continue_loop()  # dead code
+            circ.y(0)  # dead code
+            # 1st cbit -> 0
+            # 1st meas cbit -> 0
+
+        with circ.for_loop(range(1)) as a:
+            circ.ry(a * numpy.pi, 1)
+            circ.measure(1, 1)
+            with circ.if_test((circ.clbits[1], 1)):
+                circ.continue_loop()  # dead code
+            circ.y(1)
+            # 2nd cbit -> 0
+            # 2nd meas cbit -> 1
+
+        with circ.for_loop(range(2)) as a:
+            circ.ry(a * numpy.pi, 2)
+            circ.measure(2, 2)
+            with circ.if_test((circ.clbits[2], 1)):
+                circ.continue_loop()
+            circ.y(2)
+            # 3rd cbit -> 0
+            # 3rd meas cbit -> 1
+
+        with circ.for_loop(range(3)) as a:
+            circ.ry(a * numpy.pi, 3)
+            circ.measure(3, 3)
+            with circ.if_test((circ.clbits[3], 1)):
+                circ.continue_loop()
+            circ.y(3)
+            # 4th cbit -> 1
+            # 4th meas cbit -> 1
+
+        with circ.for_loop(range(4)) as a:
+            circ.ry(a * numpy.pi, 4)
+            circ.measure(4, 4)
+            with circ.if_test((circ.clbits[4], 1)):
+                circ.continue_loop()
+            circ.y(4)
+            # 5th cbit -> 0
+            # 5th meas cbit -> 1
+
+        circ.measure_all()
+
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+
         counts = result.get_counts()
         self.assertEqual(len(counts), 1)
         self.assertIn('11110 01000', counts)
