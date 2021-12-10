@@ -49,6 +49,23 @@ class TestResultCompatibility(QiskitAerTestCase):
         self.assertEqual(2 * compat - orig, orig)
         self.assertEqual(2 * orig - compat, orig)
 
+    def test_statevector_tensor(self):
+        orig = qi.random_statevector(2, seed=10)
+        compat = cqi.Statevector(orig.data)
+        target = orig.tensor(orig)
+        self.assertEqual(compat.tensor(orig), target)
+        self.assertEqual(orig.tensor(compat), target)
+
+    def test_statevector_evolve(self):
+        orig = qi.random_statevector(2, seed=10)
+        compat = cqi.Statevector(orig.data)
+        orig_op = qi.random_unitary(2, seed=10)
+        compat_op = cqi.Operator(orig_op.data)
+        target = orig.evolve(orig_op)
+        self.assertEqual(orig.evolve(compat_op), target)
+        self.assertEqual(compat.evolve(orig_op), target)
+        self.assertEqual(compat.evolve(compat_op), target)
+
     def test_density_matrix_eq(self):
         orig = qi.random_density_matrix(4, seed=10)
         compat = cqi.DensityMatrix(orig.data)
@@ -73,6 +90,23 @@ class TestResultCompatibility(QiskitAerTestCase):
         self.assertEqual(2 * compat - orig, orig)
         self.assertEqual(2 * orig - compat, orig)
 
+    def test_density_matrix_tensor(self):
+        orig = qi.random_density_matrix(2, seed=10)
+        compat = cqi.DensityMatrix(orig.data)
+        target = orig.tensor(orig)
+        self.assertEqual(compat.tensor(orig), target)
+        self.assertEqual(orig.tensor(compat), target)
+
+    def test_density_matrix_evolve(self):
+        orig = qi.random_density_matrix(2, seed=10)
+        compat = cqi.DensityMatrix(orig.data)
+        orig_op = qi.random_unitary(2, seed=10)
+        compat_op = cqi.Operator(orig_op.data)
+        target = orig.evolve(orig_op)
+        self.assertEqual(orig.evolve(compat_op), target)
+        self.assertEqual(compat.evolve(orig_op), target)
+        self.assertEqual(compat.evolve(compat_op), target)
+
     def test_unitary_eq(self):
         orig = qi.random_unitary(4, seed=10)
         compat = cqi.Operator(orig.data)
@@ -96,6 +130,27 @@ class TestResultCompatibility(QiskitAerTestCase):
         compat = cqi.Operator(orig.data)
         self.assertEqual(2 * compat - orig, orig)
         self.assertEqual(2 * orig - compat, orig)
+
+    def test_unitary_tensor(self):
+        orig = qi.random_unitary(2, seed=10)
+        compat = cqi.Operator(orig.data)
+        target = orig.tensor(orig)
+        self.assertEqual(compat.tensor(orig), target)
+        self.assertEqual(orig.tensor(compat), target)
+
+    def test_unitary_compose(self):
+        orig = qi.random_unitary(2, seed=10)
+        compat = cqi.Operator(orig.data)
+        target = orig.compose(orig)
+        self.assertEqual(compat.compose(orig), target)
+        self.assertEqual(orig.compose(compat), target)
+
+    def test_unitary_evolve(self):
+        orig = qi.random_unitary(2, seed=10)
+        compat = cqi.Operator(orig.data)
+        state = qi.random_statevector(2, seed=10)
+        target = state.evolve(orig)
+        self.assertEqual(state.evolve(compat), target)
 
     def test_superop_eq(self):
         orig = qi.SuperOp(qi.random_quantum_channel(4, seed=10))
