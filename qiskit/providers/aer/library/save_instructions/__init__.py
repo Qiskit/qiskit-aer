@@ -25,6 +25,7 @@ from .save_density_matrix import SaveDensityMatrix, save_density_matrix
 from .save_amplitudes import (SaveAmplitudes, save_amplitudes,
                               SaveAmplitudesSquared, save_amplitudes_squared)
 from .save_stabilizer import (SaveStabilizer, save_stabilizer)
+from .save_clifford import (SaveClifford, save_clifford)
 from .save_unitary import (SaveUnitary, save_unitary)
 from .save_matrix_product_state import (
     SaveMatrixProductState, save_matrix_product_state)

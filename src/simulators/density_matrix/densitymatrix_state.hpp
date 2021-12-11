@@ -778,17 +778,16 @@ void State<densmat_t>::apply_save_probs(const int_t iChunk, const Operations::Op
   if (op.type == OpType::save_probs_ket) {
     BaseState::save_data_average(iChunk, result, op.string_params[0],
                                  Utils::vec2ket(probs, json_chop_threshold_, 16),
-                                 op.save_type);
+                                 op.type, op.save_type);
   } else {
     BaseState::save_data_average(iChunk, result, op.string_params[0],
-                                 std::move(probs), op.save_type);
+                                 std::move(probs), op.type, op.save_type);
   }
 }
 
 template <class densmat_t>
 void State<densmat_t>::apply_save_amplitudes_sq(const int_t iChunkIn, const Operations::Op &op,
-                                                ExperimentResult &result) 
-{
+                                                ExperimentResult &result) {
   if (op.int_params.empty()) {
     throw std::invalid_argument("Invalid save_amplitudes_sq instructions (empty params).");
   }
@@ -827,13 +826,12 @@ void State<densmat_t>::apply_save_amplitudes_sq(const int_t iChunkIn, const Oper
     }
   }
   BaseState::save_data_average(iChunkIn, result, op.string_params[0],
-                               std::move(amps_sq), op.save_type);
+                               std::move(amps_sq), op.type, op.save_type);
 }
 
 template <class densmat_t>
 double State<densmat_t>::expval_pauli(const int_t iChunk, const reg_t &qubits,
-                                      const std::string& pauli) 
-{
+                                      const std::string& pauli)  {
   if(!BaseState::multi_chunk_distribution_)
     return BaseState::qregs_[iChunk].expval_pauli(qubits, pauli);
 
@@ -923,11 +921,10 @@ double State<densmat_t>::expval_pauli(const int_t iChunk, const reg_t &qubits,
 template <class densmat_t>
 void State<densmat_t>::apply_save_density_matrix(const int_t iChunk, const Operations::Op &op,
                                                  ExperimentResult &result,
-                                                 bool last_op) 
-{
+                                                 bool last_op) {
   BaseState::save_data_average(iChunk, result, op.string_params[0],
                                reduced_density_matrix(iChunk, op.qubits, last_op),
-                               op.save_type);
+                               op.type, op.save_type);
 }
 
 template <class densmat_t>
@@ -958,13 +955,11 @@ void State<densmat_t>::apply_save_state(const int_t iChunk, const Operations::Op
                       ? "density_matrix"
                       : op.string_params[0];
   if (last_op) {
-    BaseState::save_data_average(iChunk, result, key,
-                                 move_to_matrix(iChunk),
-                                 save_type);
+    BaseState::save_data_average(iChunk, result, key, move_to_matrix(iChunk),
+                                 OpType::save_densmat, save_type);
   } else {
-    BaseState::save_data_average(iChunk, result, key,
-                                 copy_to_matrix(iChunk),
-                                 save_type);
+    BaseState::save_data_average(iChunk, result, key, copy_to_matrix(iChunk),
+                                 OpType::save_densmat, save_type);
   }
 }
 

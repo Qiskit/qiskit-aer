@@ -35,3 +35,6 @@ test/.asv
 docs/_build/
 docs/stubs/
 docs/api/
+
+# Ignore DASK temporary files
+dask-worker-space/*

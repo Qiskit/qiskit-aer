@@ -18,20 +18,17 @@ from .save_data import SaveSingleData
 from ..default_qubits import default_qubits
 
 
-class SaveStabilizer(SaveSingleData):
-    """Save Stabilizer instruction"""
-    def __init__(self, num_qubits, label="stabilizer",
-                 pershot=False, conditional=False):
-        """Create new instruction to save the stabilizer simulator state as a StabilizerState.
+class SaveClifford(SaveSingleData):
+    """Save Clifford instruction"""
+    def __init__(self, num_qubits, label="clifford", pershot=False):
+        """Create new instruction to save the stabilizer simulator state as a Clifford.
 
         Args:
             num_qubits (int): the number of qubits of the
             label (str): the key for retrieving saved data from results.
-            pershot (bool): if True save a list of StabilizerStates for each
+            pershot (bool): if True save a list of Cliffords for each
                             shot of the simulation rather than a single
                             statevector [Default: False].
-            conditional (bool): if True save data conditional on the current
-                                classical register values [Default: False].
 
         .. note::
 
@@ -39,21 +36,16 @@ class SaveStabilizer(SaveSingleData):
             qubits in a circuit, otherwise an exception will be raised during
             simulation.
         """
-        super().__init__('save_stabilizer', num_qubits, label,
-                         pershot=pershot,
-                         conditional=conditional)
+        super().__init__('save_clifford', num_qubits, label, pershot=pershot)
 
 
-def save_stabilizer(self, label="stabilizer", pershot=False, conditional=False):
-    """Save the current stabilizer simulator quantum state as a StabilizerState.
+def save_clifford(self, label="clifford", pershot=False):
+    """Save the current stabilizer simulator quantum state as a Clifford.
 
     Args:
         label (str): the key for retrieving saved data from results.
-        pershot (bool): if True save a list of StabilizerStates for each
+        pershot (bool): if True save a list of Cliffords for each
                         shot of the simulation [Default: False].
-        conditional (bool): if True save pershot data conditional on the
-                            current classical register values
-                            [Default: False].
 
     Returns:
         QuantumCircuit: with attached instruction.
@@ -63,11 +55,8 @@ def save_stabilizer(self, label="stabilizer", pershot=False, conditional=False):
         This instruction is always defined across all qubits in a circuit.
     """
     qubits = default_qubits(self)
-    instr = SaveStabilizer(len(qubits),
-                           label=label,
-                           pershot=pershot,
-                           conditional=conditional)
+    instr = SaveClifford(len(qubits), label=label, pershot=pershot)
     return self.append(instr, qubits)
 
 
-QuantumCircuit.save_stabilizer = save_stabilizer
+QuantumCircuit.save_clifford = save_clifford
