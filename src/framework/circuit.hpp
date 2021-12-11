@@ -403,7 +403,13 @@ void Circuit::set_params(bool truncation) {
     if (ops[op_idx].type == OpType::jump) {
       dests.insert(ops[op_idx].string_params[0]);
     } else if (ops[op_idx].type == OpType::mark) {
-      marks.insert(ops[op_idx].string_params[0]);
+      auto& mark_name = ops[op_idx].string_params[0];
+      if (marks.find(mark_name) != marks.end()) {
+        std::stringstream msg;
+        msg << "Duplicated mark destination:\"" << mark_name << "\"." << std::endl;
+        throw std::runtime_error(msg.str());
+      }
+      marks.insert(mark_name);
     }
     if (pos == first_measure_pos) {
       first_measure_pos = op_idx;

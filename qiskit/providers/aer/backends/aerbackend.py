@@ -32,7 +32,7 @@ from qiskit.utils import deprecate_arguments
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
-from .aer_compiler import compile
+from .aer_compiler import compile_circuit
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -329,10 +329,12 @@ class AerBackend(Backend, ABC):
             assemble_binds = []
             assemble_binds.append({param: 1 for bind in parameter_binds for param in bind})
 
-            qobj = assemble(compile(circuits, self), self, parameter_binds=assemble_binds,
+            qobj = assemble(compile_circuit(circuits, self.configuration().basis_gates),
+                            self,
+                            parameter_binds=assemble_binds,
                             parameterizations=parameterizations)
         else:
-            qobj = assemble(compile(circuits, self), self)
+            qobj = assemble(compile_circuit(circuits, self.configuration().basis_gates), self)
 
         # Add options
         for key, val in self.options.__dict__.items():

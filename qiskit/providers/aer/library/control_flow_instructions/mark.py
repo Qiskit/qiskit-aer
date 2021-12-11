@@ -24,5 +24,7 @@ class AerMark(Instruction):
     Conditional is not allowed in Aer controller.
     """
 
+    _directive = True
+
     def __init__(self, name, num_qubits):
         super().__init__("mark", num_qubits, 0, [name])

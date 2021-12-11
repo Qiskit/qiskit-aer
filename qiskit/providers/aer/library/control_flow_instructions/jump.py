@@ -23,5 +23,7 @@ class AerJump(Instruction):
     This instruction sets a program counter to specified mark instruction.
     """
 
+    _directive = True
+
     def __init__(self, jump_to, num_qubits):
         super().__init__("jump", num_qubits, 0, [jump_to])

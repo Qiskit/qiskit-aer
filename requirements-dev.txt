@@ -13,4 +13,3 @@ sphinx-automodapi
 jupyter-sphinx;python_version<'3.8'
 reno>=3.4.0
 ddt>=1.2.0,!=1.4.0
-astunparse
