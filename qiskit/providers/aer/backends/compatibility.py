@@ -27,9 +27,25 @@ import qiskit.quantum_info as qi
 
 def _forward_attr(attr):
     """Return True if attribute should be passed to legacy class"""
+    # Pass Iterable magic methods on to the Numpy array.  We can't pass
+    # `__getitem__` (and consequently `__setitem__`, `__delitem__`) on because
+    # `Statevector` implements them itself.
     if attr[:2] == '__' or attr in ['_data', '_op_shape']:
         return False
     return True
+
+
+def _deprecation_warning(instance, instances_name):
+    class_name = instance.__class__.__name__
+    warnings.warn(
+        f"The return type of saved {instances_name} has been changed from"
+        f" a `numpy.ndarray` to a `qiskit.quantum_info.{class_name}` as"
+        "of qiskit-aer 0.10. Accessing numpy array attributes is deprecated"
+        " and will result in an error in a future release. Use the `.data`"
+        " property to access the the stored ndarray.",
+        DeprecationWarning,
+        stacklevel=3,
+    )
 
 
 class Statevector(qi.Statevector):
@@ -37,13 +53,7 @@ class Statevector(qi.Statevector):
 
     def __getattr__(self, attr):
         if _forward_attr(attr) and hasattr(self._data, attr):
-            warnings.warn(
-                "The return type of saved statevectors has been changed from"
-                " a `numpy.ndarray` to a `qiskit.quantum_info.Statevector` as"
-                "of qiskit-aer 0.10. Accessing numpy array attributes is deprecated"
-                " and will result in an error in a future release. Use the `.data`"
-                " property to access the the stored ndarray for the Statevector.",
-                DeprecationWarning, stacklevel=2)
+            _deprecation_warning(self, "statevectors")
             return getattr(self._data, attr)
         return getattr(super(), attr)
 
@@ -53,6 +63,32 @@ class Statevector(qi.Statevector):
             self._op_shape == other._op_shape and
             np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
+
+    def __bool__(self):
+        # Explicit override to the default behaviour for Python objects to
+        # prevent the new `__len__` from messing with it.
+        return True
+
+    # Magic methods for the iterable/collection interface that need forwarding,
+    # but bypass `__getattr__`.  `__getitem__` is defined by `Statevector`, so
+    # that can't be forwarded (and consequently neither can `__setitem__`
+    # without introducing an inconsistency).
+
+    def __len__(self):
+        _deprecation_warning(self, "statevectors")
+        return self._data.__len__()
+
+    def __iter__(self):
+        _deprecation_warning(self, "statevectors")
+        return self._data.__iter__()
+
+    def __contains__(self, value):
+        _deprecation_warning(self, "statevectors")
+        return self._data.__contains__(value)
+
+    def __reversed__(self):
+        _deprecation_warning(self, "statevectors")
+        return self._data.__reversed__()
 
 
 class DensityMatrix(qi.DensityMatrix):
@@ -60,13 +96,7 @@ class DensityMatrix(qi.DensityMatrix):
 
     def __getattr__(self, attr):
         if _forward_attr(attr) and hasattr(self._data, attr):
-            warnings.warn(
-                "The return type of saved density matrices has been changed from"
-                " a `numpy.ndarray` to a `qiskit.quantum_info.DensityMatrix` as"
-                "of qiskit-aer 0.10. Accessing numpy array attributes is deprecated"
-                " and will result in an error in a future release. Use the `.data`"
-                " property to access the the stored ndarray for the DensityMatrix.",
-                DeprecationWarning, stacklevel=2)
+            _deprecation_warning(self, "density matrices")
             return getattr(self._data, attr)
         return getattr(super(), attr)
 
@@ -76,6 +106,30 @@ class DensityMatrix(qi.DensityMatrix):
             self._op_shape == other._op_shape and
             np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
+
+    def __len__(self):
+        _deprecation_warning(self, "density matrices")
+        return self._data.__len__()
+
+    def __iter__(self):
+        _deprecation_warning(self, "density matrices")
+        return self._data.__iter__()
+
+    def __contains__(self, value):
+        _deprecation_warning(self, "density matrices")
+        return self._data.__contains__(value)
+
+    def __reversed__(self):
+        _deprecation_warning(self, "density matrices")
+        return self._data.__reversed__()
+
+    def __getitem__(self, key):
+        _deprecation_warning(self, "density matrices")
+        return self._data.__getitem__(key)
+
+    def __setitem__(self, key, value):
+        _deprecation_warning(self, "density matrices")
+        return self._data.__setitem__(key, value)
 
 
 class Operator(qi.Operator):
@@ -83,13 +137,7 @@ class Operator(qi.Operator):
 
     def __getattr__(self, attr):
         if _forward_attr(attr) and hasattr(self._data, attr):
-            warnings.warn(
-                "The return type of saved unitaries has been changed from"
-                " a `numpy.ndarray` to a `qiskit.quantum_info.Operator` as"
-                "of qiskit-aer 0.10. Accessing numpy array attributes is deprecated"
-                " and will result in an error in a future release. Use the `.data`"
-                " property to access the the stored ndarray for the Operator.",
-                DeprecationWarning, stacklevel=2)
+            _deprecation_warning(self, "unitaries")
             return getattr(self._data, attr)
         return getattr(super(), attr)
 
@@ -99,6 +147,35 @@ class Operator(qi.Operator):
             self._op_shape == other._op_shape and
             np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
+
+    def __bool__(self):
+        # Explicit override to the default behaviour for Python objects to
+        # prevent the new `__len__` from messing with it.
+        return True
+
+    def __len__(self):
+        _deprecation_warning(self, "unitaries")
+        return self._data.__len__()
+
+    def __iter__(self):
+        _deprecation_warning(self, "unitaries")
+        return self._data.__iter__()
+
+    def __contains__(self, value):
+        _deprecation_warning(self, "unitaries")
+        return self._data.__contains__(value)
+
+    def __reversed__(self):
+        _deprecation_warning(self, "unitaries")
+        return self._data.__reversed__()
+
+    def __getitem__(self, key):
+        _deprecation_warning(self, "unitaries")
+        return self._data.__getitem__(key)
+
+    def __setitem__(self, key, value):
+        _deprecation_warning(self, "unitaries")
+        return self._data.__setitem__(key, value)
 
 
 class SuperOp(qi.SuperOp):
@@ -106,13 +183,7 @@ class SuperOp(qi.SuperOp):
 
     def __getattr__(self, attr):
         if _forward_attr(attr) and hasattr(self._data, attr):
-            warnings.warn(
-                "The return type of saved superoperators has been changed from"
-                " a `numpy.ndarray` to a `qiskit.quantum_info.SuperOp` as"
-                "of qiskit-aer 0.10. Accessing numpy array attributes is deprecated"
-                " and will result in an error in a future release. Use the `.data`"
-                " property to access the the stored ndarray for the SuperOp.",
-                DeprecationWarning, stacklevel=2)
+            _deprecation_warning(self, "superoperators")
             return getattr(self._data, attr)
         return getattr(super(), attr)
 
@@ -123,19 +194,53 @@ class SuperOp(qi.SuperOp):
             np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
 
+    def __bool__(self):
+        # Explicit override to the default behaviour for Python objects to
+        # prevent the new `__len__` from messing with it.
+        return True
+
+    def __len__(self):
+        _deprecation_warning(self, "superoperators")
+        return self._data.__len__()
+
+    def __iter__(self):
+        _deprecation_warning(self, "superoperators")
+        return self._data.__iter__()
+
+    def __contains__(self, value):
+        _deprecation_warning(self, "superoperators")
+        return self._data.__contains__(value)
+
+    def __reversed__(self):
+        _deprecation_warning(self, "superoperators")
+        return self._data.__reversed__()
+
+    def __getitem__(self, key):
+        _deprecation_warning(self, "superoperators")
+        return self._data.__getitem__(key)
+
+    def __setitem__(self, key, value):
+        _deprecation_warning(self, "superoperators")
+        return self._data.__setitem__(key, value)
+
 
 class StabilizerState(qi.StabilizerState):
     """Aer result backwards compatibility wrapper for qiskit StabilizerState."""
 
+    def __deprecation_warning(self):
+        warnings.warn(
+            "The return type of saved stabilizers has been changed from"
+            " a `dict` to a `qiskit.quantum_info.StabilizerState` as of qiskit-aer 0.10."
+            " Accessing dict attributes is deprecated and will result in an"
+            " error in a future release. Use the `.clifford.to_dict()` methods to access "
+            " the stored Clifford operator and convert to a dictionary.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+
     def __getattr__(self, attr):
         if _forward_attr(attr) and hasattr(dict, attr):
-            warnings.warn(
-                "The return type of saved stabilizers has been changed from"
-                " a `dict` to a `qiskit.quantum_info.StabilizerState` as of qiskit-aer 0.10."
-                " Accessing dict attributes is deprecated and will result in an"
-                " error in a future release. Use the `.clifford.to_dict()` methods to access "
-                " the stored Clifford operator and convert to a dictionary.",
-                DeprecationWarning, stacklevel=2)
+            self.__deprecation_warning()
             return getattr(self._data.to_dict(), attr)
         return getattr(super(), attr)
 
@@ -150,6 +255,27 @@ class StabilizerState(qi.StabilizerState):
                 DeprecationWarning, stacklevel=2)
             return self._data.to_dict()[item]
         raise TypeError("'StabilizerState object is not subscriptable'")
+
+    def __bool__(self):
+        # Explicit override to the default behaviour for Python objects to
+        # prevent the new `__len__` from messing with it.
+        return True
+
+    def __len__(self):
+        self.__deprecation_warning()
+        return self._data.to_dict().__len__()
+
+    def __iter__(self):
+        self.__deprecation_warning()
+        return self._data.to_dict().__iter__()
+
+    def __contains__(self, value):
+        self.__deprecation_warning()
+        return self._data.to_dict().__contains__(value)
+
+    def __reversed__(self):
+        self.__deprecation_warning()
+        return self._data.to_dict().__reversed__()
 
     def _add(self, other):
         raise NotImplementedError(f"{type(self)} does not support addition")
