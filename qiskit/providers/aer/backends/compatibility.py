@@ -64,6 +64,11 @@ class Statevector(qi.Statevector):
             np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
 
+    def __bool__(self):
+        # Explicit override to the default behaviour for Python objects to
+        # prevent the new `__len__` from messing with it.
+        return True
+
     # Magic methods for the iterable/collection interface that need forwarding,
     # but bypass `__getattr__`.  `__getitem__` is defined by `Statevector`, so
     # that can't be forwarded (and consequently neither can `__setitem__`
@@ -143,6 +148,11 @@ class Operator(qi.Operator):
             np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
 
+    def __bool__(self):
+        # Explicit override to the default behaviour for Python objects to
+        # prevent the new `__len__` from messing with it.
+        return True
+
     def __len__(self):
         _deprecation_warning(self, "unitaries")
         return self._data.__len__()
@@ -183,6 +193,11 @@ class SuperOp(qi.SuperOp):
             self._op_shape == other._op_shape and
             np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
         )
+
+    def __bool__(self):
+        # Explicit override to the default behaviour for Python objects to
+        # prevent the new `__len__` from messing with it.
+        return True
 
     def __len__(self):
         _deprecation_warning(self, "superoperators")
@@ -240,6 +255,11 @@ class StabilizerState(qi.StabilizerState):
                 DeprecationWarning, stacklevel=2)
             return self._data.to_dict()[item]
         raise TypeError("'StabilizerState object is not subscriptable'")
+
+    def __bool__(self):
+        # Explicit override to the default behaviour for Python objects to
+        # prevent the new `__len__` from messing with it.
+        return True
 
     def __len__(self):
         self.__deprecation_warning()
