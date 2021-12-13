@@ -66,6 +66,22 @@ class TestResultCompatibility(QiskitAerTestCase):
         self.assertEqual(compat.evolve(orig_op), target)
         self.assertEqual(compat.evolve(compat_op), target)
 
+    def test_statevector_iterable_methods(self):
+        """Test that the iterable magic methods and related Numpy properties
+        work on the compatibility classes."""
+        compat = cqi.Statevector([0.5, 0.5j, -0.5, 0.5j])
+        compat_data = compat.data
+
+        with self.assertWarns(DeprecationWarning):
+            compat_len = len(compat)
+        self.assertEqual(compat_len, len(compat_data))
+        with self.assertWarns(DeprecationWarning):
+            compat_shape = compat.shape
+        self.assertEqual(compat_shape, compat_data.shape)
+        with self.assertWarns(DeprecationWarning):
+            compat_iter = tuple(compat)
+        self.assertEqual(compat_iter, tuple(compat.data))
+
     def test_density_matrix_eq(self):
         orig = qi.random_density_matrix(4, seed=10)
         compat = cqi.DensityMatrix(orig.data)
@@ -106,6 +122,22 @@ class TestResultCompatibility(QiskitAerTestCase):
         self.assertEqual(orig.evolve(compat_op), target)
         self.assertEqual(compat.evolve(orig_op), target)
         self.assertEqual(compat.evolve(compat_op), target)
+
+    def test_density_matrix_iterable_methods(self):
+        """Test that the iterable magic methods and related Numpy properties
+        work on the compatibility classes."""
+        compat = cqi.DensityMatrix([[0.5, 0.5j], [-0.5j, 0.5]])
+        compat_data = compat.data
+
+        with self.assertWarns(DeprecationWarning):
+            compat_len = len(compat)
+        self.assertEqual(compat_len, len(compat_data))
+        with self.assertWarns(DeprecationWarning):
+            compat_shape = compat.shape
+        self.assertEqual(compat_shape, compat_data.shape)
+        with self.assertWarns(DeprecationWarning):
+            compat_iter = tuple(compat)
+        np.testing.assert_array_equal(compat_iter, compat.data)
 
     def test_unitary_eq(self):
         orig = qi.random_unitary(4, seed=10)
@@ -152,6 +184,22 @@ class TestResultCompatibility(QiskitAerTestCase):
         target = state.evolve(orig)
         self.assertEqual(state.evolve(compat), target)
 
+    def test_unitary_iterable_methods(self):
+        """Test that the iterable magic methods and related Numpy properties
+        work on the compatibility classes."""
+        compat = cqi.Operator(qi.random_unitary(2, seed=10))
+        compat_data = compat.data
+
+        with self.assertWarns(DeprecationWarning):
+            compat_len = len(compat)
+        self.assertEqual(compat_len, len(compat_data))
+        with self.assertWarns(DeprecationWarning):
+            compat_shape = compat.shape
+        self.assertEqual(compat_shape, compat_data.shape)
+        with self.assertWarns(DeprecationWarning):
+            compat_iter = tuple(compat)
+        np.testing.assert_array_equal(compat_iter, compat.data)
+
     def test_superop_eq(self):
         orig = qi.SuperOp(qi.random_quantum_channel(4, seed=10))
         compat = cqi.SuperOp(orig.data)
@@ -175,6 +223,22 @@ class TestResultCompatibility(QiskitAerTestCase):
         compat = cqi.SuperOp(orig.data)
         self.assertEqual(2 * compat - orig, orig)
         self.assertEqual(2 * orig - compat, orig)
+
+    def test_superop_iterable_methods(self):
+        """Test that the iterable magic methods and related Numpy properties
+        work on the compatibility classes."""
+        compat = cqi.SuperOp(np.eye(4))
+        compat_data = compat.data
+
+        with self.assertWarns(DeprecationWarning):
+            compat_len = len(compat)
+        self.assertEqual(compat_len, len(compat_data))
+        with self.assertWarns(DeprecationWarning):
+            compat_shape = compat.shape
+        self.assertEqual(compat_shape, compat_data.shape)
+        with self.assertWarns(DeprecationWarning):
+            compat_iter = tuple(compat)
+        np.testing.assert_array_equal(compat_iter, compat.data)
 
     def test_stabilizer_eq(self):
         orig = qi.StabilizerState(qi.random_clifford(4, seed=10))
@@ -205,3 +269,26 @@ class TestResultCompatibility(QiskitAerTestCase):
         compat = cqi.StabilizerState(clifford)
         cpy = copy.copy(compat)
         self.assertEqual(cpy, compat)
+
+    def test_stabilizer_iterable_methods(self):
+        """Test that the iterable magic methods and related dict properties
+        work on the compatibility classes."""
+        clifford = qi.random_clifford(4, seed=10)
+        cliff_dict = clifford.to_dict()
+        compat = cqi.StabilizerState(clifford)
+
+        with self.assertWarns(DeprecationWarning):
+            compat_keys = compat.keys()
+        self.assertEqual(compat_keys, cliff_dict.keys())
+
+        with self.assertWarns(DeprecationWarning):
+            compat_iter = set(compat)
+        self.assertEqual(compat_iter, set(cliff_dict))
+
+        with self.assertWarns(DeprecationWarning):
+            compat_items = compat.items()
+        self.assertEqual(sorted(compat_items), sorted(cliff_dict.items()))
+
+        with self.assertWarns(DeprecationWarning):
+            compat_len = len(compat)
+        self.assertEqual(compat_len, len(cliff_dict))
