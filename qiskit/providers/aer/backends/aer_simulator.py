@@ -147,6 +147,11 @@ class AerSimulator(AerBackend):
     initialization or with :meth:`set_options`. The list of supported devices
     for the current system can be returned using :meth:`available_devices`.
 
+    If AerSimulator is built with cuQuantum support, cuQuantum APIs are enabled
+    by using ``device="cuStateVec"``. This is experimental implementation
+    for cuQuantum Beta 1. All the calculations of gates that can be executed by 
+    multiplying matrices will be done by cuStateVec matrix API.
+
     **Additional Backend Options**
 
     The following simulator specific backend options are supported
@@ -441,7 +446,7 @@ class AerSimulator(AerBackend):
 
     _AVAILABLE_METHODS = None
 
-    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust')
+    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust', 'cuStateVec')
 
     _AVAILABLE_DEVICES = None
 

@@ -131,7 +131,7 @@ public:
   void initialize_component(const reg_t &qubits, const cvector_t<double> &state);
 
   //setup chunk
-  bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
+  bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks, std::string& device_name);
   bool chunk_setup(QubitVector<data_t>& base,const uint_t chunk_index);
 
   //cache control for chunks on host
@@ -925,7 +925,7 @@ std::complex<double> QubitVector<data_t>::inner_product() const {
 
 //setup chunk
 template <typename data_t>
-bool QubitVector<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks)
+bool QubitVector<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks, std::string& device_name)
 {
   chunk_index_ = chunk_index;
   return true;

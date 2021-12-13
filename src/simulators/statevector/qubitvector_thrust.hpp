@@ -142,7 +142,7 @@ public:
   void initialize_component(const reg_t &qubits, const cvector_t<double> &state);
 
   //chunk setup
-  bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
+  bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks, std::string& device_name);
   bool chunk_setup(QubitVectorThrust<data_t>& base,const uint_t chunk_index);
 
   //cache control for chunks on host
@@ -451,6 +451,7 @@ protected:
   bool multi_chunk_distribution_;
   bool multi_shots_;
   bool enable_batch_;
+  bool enable_cuStatevec_ = false;
 
   bool register_blocking_;
 
@@ -966,10 +967,15 @@ void QubitVectorThrust<data_t>::zero()
 
 
 template <typename data_t>
-bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks)
+bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks, std::string& device_name)
 {
   //set global chunk ID / shot ID
   chunk_index_ = chunk_index;
+
+  //check device name if cuStateVec is specified
+  if(device_name == "cuStateVec"){
+    enable_cuStatevec_ = true;
+  }
 
   if(chunk_manager_){
     if(chunk_.is_mapped()){
@@ -988,7 +994,7 @@ bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t
   //only first chunk call allocation function
   if(chunk_bits > 0 && num_qubits > 0){
     chunk_manager_ = std::make_shared<ChunkManager<data_t>>();
-    chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks,max_matrix_bits_);
+    chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks,max_matrix_bits_, enable_cuStatevec_);
   }
 
   multi_chunk_distribution_ = false;
@@ -1020,6 +1026,7 @@ bool QubitVectorThrust<data_t>::chunk_setup(QubitVectorThrust<data_t>& base,cons
       base.multi_shots_ = true;
     }
   }
+  enable_cuStatevec_ = base.enable_cuStatevec_;
 
   //set global chunk ID / shot ID
   chunk_index_ = chunk_index;
@@ -2269,6 +2276,10 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
 
+  if(enable_cuStatevec_){
+    return chunk_.apply_matrix(qubits,0,mat,chunk_.container()->num_chunks());
+  }
+
   const size_t N = qubits.size();
   auto qubits_sorted = qubits;
   std::sort(qubits_sorted.begin(), qubits_sorted.end());
@@ -2513,6 +2524,10 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const reg_t &qubits,
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
 
+  if(enable_cuStatevec_){
+    return chunk_.apply_diagonal_matrix(qubits,0,diag,chunk_.container()->num_chunks());
+  }
+
   const int_t N = qubits.size();
 
   if(N == 1){
@@ -2710,6 +2725,11 @@ void QubitVectorThrust<data_t>::apply_mcx(const reg_t &qubits)
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
 
+  if(enable_cuStatevec_){
+    //TO DO: implement MCX specific function for cuStatevec
+    return chunk_.apply_matrix(qubits,qubits.size()-1,Linalg::VMatrix::X,chunk_.container()->num_chunks());
+  }
+
   if(register_blocking_){
     int i;
     uint_t mask = 0;
@@ -2792,6 +2812,11 @@ void QubitVectorThrust<data_t>::apply_mcy(const reg_t &qubits)
 {
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
+
+  if(enable_cuStatevec_){
+    //TO DO: implement MCY specific function for cuStatevec
+    return chunk_.apply_matrix(qubits,qubits.size()-1,Linalg::VMatrix::Y,chunk_.container()->num_chunks());
+  }
 
   if(register_blocking_){
     int i;
@@ -2889,7 +2914,15 @@ public:
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcswap(const reg_t &qubits)
 {
-  apply_function(CSwap_func<data_t>(qubits));
+  if(enable_cuStatevec_){
+    if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
+      return;   //first chunk execute all in batch
+
+    chunk_.apply_matrix(qubits,qubits.size()-2,Linalg::VMatrix::SWAP,chunk_.container()->num_chunks());
+  }
+  else{
+    apply_function(CSwap_func<data_t>(qubits));
+  }
 }
 
 
@@ -3148,6 +3181,9 @@ void QubitVectorThrust<data_t>::apply_mcphase(const reg_t &qubits, const std::co
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
 
+  if(enable_cuStatevec_)
+    return chunk_.apply_matrix(qubits,qubits.size()-1,Linalg::VMatrix::phase(phase),chunk_.container()->num_chunks());
+
   if(register_blocking_){
     int i;
     uint_t mask = 0;
@@ -3299,6 +3335,9 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
 
+  if(enable_cuStatevec_){
+    return chunk_.apply_matrix(qubits,qubits.size()-1,mat,chunk_.container()->num_chunks());
+  }
   // Calculate the permutation positions for the last qubit.
   const size_t N = qubits.size();
 
@@ -3367,6 +3406,11 @@ void QubitVectorThrust<data_t>::apply_matrix(const uint_t qubit,
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
 
+  if(enable_cuStatevec_){
+    reg_t qubits(1,qubit);
+    return chunk_.apply_matrix(qubits,0,mat,chunk_.container()->num_chunks());
+  }
+
   // Check if matrix is diagonal and if so use optimized lambda
   if (mat[1] == 0.0 && mat[2] == 0.0) {
     const std::vector<std::complex<double>> diag = {{mat[0], mat[3]}};
@@ -3387,6 +3431,11 @@ void QubitVectorThrust<data_t>::apply_diagonal_matrix(const uint_t qubit,
 {
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
+
+  if(enable_cuStatevec_){
+    reg_t qubits(1,qubit);
+    return chunk_.apply_diagonal_matrix(qubits,0,diag,chunk_.container()->num_chunks());
+  }
 
   if(register_blocking_){
     chunk_.queue_blocked_gate('d',qubit,0,&diag[0]);

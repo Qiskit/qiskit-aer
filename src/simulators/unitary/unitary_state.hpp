@@ -671,7 +671,7 @@ void State<unitary_matrix_t>::apply_matrix(const int_t iChunk, const reg_t &qubi
 template <class unitary_matrix_t>
 void State<unitary_matrix_t>::apply_diagonal_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t &diag)
 {
-  if(BaseState::thrust_optimization_){
+  if(BaseState::thrust_optimization_ || !BaseState::multi_chunk_distribution_){
     //GPU computes all chunks in one kernel, so pass qubits and diagonal matrix as is
     reg_t qubits_chunk = qubits;
     for(uint_t i;i<qubits.size();i++){

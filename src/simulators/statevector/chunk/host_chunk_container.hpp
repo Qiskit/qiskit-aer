@@ -52,7 +52,7 @@ public:
     return data_[i];
   }
 
-  uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit);
+  uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit,bool enable_cuStatevec = false);
   void Deallocate(void);
 
   void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk)
@@ -124,7 +124,7 @@ HostChunkContainer<data_t>::~HostChunkContainer(void)
 }
 
 template <typename data_t>
-uint_t HostChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit)
+uint_t HostChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit, bool enable_cuStatevec)
 {
   uint_t nc = chunks;
   uint_t i;

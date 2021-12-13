@@ -49,6 +49,8 @@ protected:
 
   int iplace_host_;            //chunk container for host memory
   bool multi_shots_;
+
+  bool enable_cuStatevec_;
 public:
   ChunkManager();
 
@@ -65,7 +67,7 @@ public:
     return chunks_.size();
   }
 
-  uint_t Allocate(int chunk_bits,int nqubits,uint_t nchunks,int matrix_bit);
+  uint_t Allocate(int chunk_bits,int nqubits,uint_t nchunks,int matrix_bit,bool enable_cuStatevec);
   void Free(void);
 
   int num_devices(void)
@@ -161,7 +163,7 @@ ChunkManager<data_t>::~ChunkManager()
 }
 
 template <typename data_t>
-uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,int matrix_bit)
+uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,int matrix_bit, bool enable_cuStatevec)
 {
   uint_t num_buffers;
   int iDev;
@@ -182,7 +184,8 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
     hybrid = true;
   }
   //---
-
+  enable_cuStatevec_ = enable_cuStatevec;
+  
   if(num_qubits_ != nqubits || chunk_bits_ != chunk_bits || nchunks > num_chunks_){
     //free previous allocation
     Free();
@@ -263,9 +266,9 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
         nc /= 2;
       }
       if(num_devices_ > 0)
-        chunks_allocated += chunks_[iDev]->Allocate((iDev + idev_start)%num_devices_,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
+        chunks_allocated += chunks_[iDev]->Allocate((iDev + idev_start)%num_devices_,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit,enable_cuStatevec_);
       else
-        chunks_allocated += chunks_[iDev]->Allocate(iDev,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
+        chunks_allocated += chunks_[iDev]->Allocate(iDev,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit,enable_cuStatevec_);
     }
     if(chunks_allocated < nchunks){
       //rest of chunks are stored on host

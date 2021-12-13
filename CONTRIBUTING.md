@@ -643,6 +643,26 @@ Few notes on GPU builds:
 3. We don't need NVIDIA® drivers for building, but we need them for running simulations
 4. Only Linux platforms are supported
 
+Qiskit Aer now supports cuQuantum optimized Quantum computing APIs from NVIDIA®.
+cuStateVec APIs can be exploited to accelerate statevector and density_matrix methods.
+Because cuQuantum is beta version, usage of cuStateVec is limited to matrix multiplications.
+Some gate operations that can be applied by matrix multiplication are accelerated.
+
+To build Qiskit Aer with cuStateVec support, please set the path to cuQuantum root directory to CUSTATEVEC_ROOT as following.
+
+For example,
+
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DCUSTATEVEC_ROOT=path_to_cuQuantum
+
+To run with cuStateVec, set the simulator device argument to cuStateVec as following.
+
+
+```
+sim = AerSimulator(method='statevector', device='cuStateVec')
+```
+
+
+
 ### Building with MPI support
 
 Qiskit Aer can parallelize its simulation on the cluster systems by using MPI. 

@@ -571,7 +571,7 @@ public:
 
   virtual thrust::complex<data_t>& operator[](uint_t i) = 0;
 
-  virtual uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,bool multi_shots = false,int matrix_bit = AER_DEFAULT_MATRIX_BITS) = 0;
+  virtual uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,bool multi_shots = false,int matrix_bit = AER_DEFAULT_MATRIX_BITS, bool enable_cuStatevec = false) = 0;
   virtual void Deallocate(void) = 0;
 
   virtual void Set(uint_t i,const thrust::complex<data_t>& t) = 0;
@@ -683,6 +683,9 @@ public:
   }
   virtual void request_creg_update(void){}
 
+  //apply matrix using cuStatevec
+  virtual void apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count){}
+  virtual void apply_diagonal_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t count){}
 
 protected:
   int convert_blocked_qubit(int qubit)

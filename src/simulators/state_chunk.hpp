@@ -408,6 +408,15 @@ protected:
                  ExperimentResult &result,
                  RngEngine &rng);
 
+  //apply ops for multi-shots to one group
+  template <typename InputIterator>
+  void apply_ops_multi_shots_for_group(int_t i_group, 
+                               InputIterator first, InputIterator last,
+                               const Noise::NoiseModel &noise,
+                               ExperimentResult &result,
+                               uint_t rng_seed,
+                               bool final_ops);
+
   //apply op to multiple shots , return flase if op is not supported to execute in a batch
   virtual bool apply_batched_op(const int_t iChunk, const Operations::Op &op,
                                 ExperimentResult &result,
@@ -516,8 +525,9 @@ StateChunk<state_t>::~StateChunk(void)
 }
 
 template <class state_t>
-void StateChunk<state_t>::set_config(const json_t &config) {
-  (ignore_argument)config;
+void StateChunk<state_t>::set_config(const json_t &config) 
+{
+  BaseState::set_config(config);
 }
 
 template <class state_t>
@@ -607,12 +617,14 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
   chunk_omp_parallel_ = false;
   if(qregs_[0].name().find("gpu") != std::string::npos){
 #ifdef _OPENMP
-    if(multi_chunk_distribution_){
-      if(omp_get_num_threads() == 1)
-        chunk_omp_parallel_ = true;
-    }
+    if(omp_get_num_threads() == 1)
+      chunk_omp_parallel_ = true;
 #endif
-    thrust_optimization_ = true;
+
+    if(BaseState::sim_device_name_ == "cuStateVec")
+      chunk_omp_parallel_ = false;    //because cuQuantum Beta 1 is not thread safe (TODO: check if cuQuantum will be updated)
+    else
+      thrust_optimization_ = true;    //cuStateVec does not handle global chunk index for diagonal matrix
   }
   else if(qregs_[0].name().find("thrust") != std::string::npos){
     thrust_optimization_ = true;
@@ -646,7 +658,7 @@ bool StateChunk<state_t>::allocate_qregs(uint_t num_chunks)
   uint_t chunk_id = multi_chunk_distribution_ ? global_chunk_index_ : 0;
   bool ret = true;
   qregs_[0].set_max_matrix_bits(BaseState::max_matrix_qubits_);
-  ret &= qregs_[0].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),chunk_id,num_chunks);
+  ret &= qregs_[0].chunk_setup(chunk_bits_*qubit_scale(), num_qubits_*qubit_scale(), chunk_id, num_chunks, BaseState::sim_device_name_);
   for(i=1;i<num_chunks;i++){
     uint_t gid = i + chunk_id;
     ret &= qregs_[i].chunk_setup(qregs_[0],gid);
@@ -825,84 +837,57 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
       //resize qregs
       allocate_qregs(n_shots);
     }
-    std::vector<ExperimentResult> par_results(num_groups_);
     //initialization (equivalent to initialize_qreg + initialize_creg)
-#pragma omp parallel for if(num_groups_ > 1) 
-    for(i=0;i<num_groups_;i++){
-      uint_t istate = top_chunk_of_group_[i];
+    if(num_groups_ > 1 && chunk_omp_parallel_){
+#pragma omp parallel for 
+      for(i=0;i<num_groups_;i++){
+        uint_t istate = top_chunk_of_group_[i];
 
-      for(uint_t j=top_chunk_of_group_[i];j<top_chunk_of_group_[i+1];j++){
-        //enabling batch shots optimization
-        qregs_[j].enable_batch(true);
+        for(uint_t j=top_chunk_of_group_[i];j<top_chunk_of_group_[i+1];j++){
+          //enabling batch shots optimization
+          qregs_[j].enable_batch(true);
 
-        //initialize qreg here
-        qregs_[j].set_num_qubits(chunk_bits_);
-        qregs_[j].initialize();
+          //initialize qreg here
+          qregs_[j].set_num_qubits(chunk_bits_);
+          qregs_[j].initialize();
 
-        //initialize creg here
-        qregs_[j].initialize_creg(cregs_[0].memory_size(), cregs_[0].register_size());
+          //initialize creg here
+          qregs_[j].initialize_creg(cregs_[0].memory_size(), cregs_[0].register_size());
+        }
+      }
+    }
+    else{
+      for(i=0;i<num_groups_;i++){
+        uint_t istate = top_chunk_of_group_[i];
+
+        for(uint_t j=top_chunk_of_group_[i];j<top_chunk_of_group_[i+1];j++){
+          //enabling batch shots optimization
+          qregs_[j].enable_batch(true);
+
+          //initialize qreg here
+          qregs_[j].set_num_qubits(chunk_bits_);
+          qregs_[j].initialize();
+
+          //initialize creg here
+          qregs_[j].initialize_creg(cregs_[0].memory_size(), cregs_[0].register_size());
+        }
       }
     }
     apply_global_phase(); //this is parallelized in StateChunk sub-classes
 
     //apply ops to multiple-shots
-#pragma omp parallel for if(num_groups_ > 1) 
-    for(i=0;i<num_groups_;i++){
-      uint_t istate = top_chunk_of_group_[i];
-      std::vector<RngEngine> rng(num_chunks_in_group_[i]);
+    if(num_groups_ > 1 && chunk_omp_parallel_){
+      std::vector<ExperimentResult> par_results(num_groups_);
+#pragma omp parallel for
+      for(i=0;i<num_groups_;i++)
+        apply_ops_multi_shots_for_group(i, first, last, noise, par_results[i], rng_seed, final_ops);
 
-      for(uint_t j=top_chunk_of_group_[i];j<top_chunk_of_group_[i+1];j++)
-        rng[j-top_chunk_of_group_[i]].set_seed(rng_seed + global_chunk_index_ + i_begin + j);
-
-      for (auto op = first; op != last; ++op) {
-        if(op->type == Operations::OpType::qerror_loc){
-          //sample error here
-          uint_t count = num_chunks_in_group_[i];
-          uint_t max_ops = 0;
-          bool pauli_only = true;
-          std::vector<std::vector<Operations::Op>> noise_ops(count);
-          for(uint_t j=0;j<count;j++){
-            noise_ops[j] = noise.sample_noise_loc(*op,rng[j]);
-
-            if(noise_ops[j].size() == 0 || (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id"))
-              continue;
-            else{
-              if(max_ops < noise_ops[j].size())
-                max_ops = noise_ops[j].size();
-              if(pauli_only){
-                for(int_t k=0;k<noise_ops[j].size();k++){
-                  if(noise_ops[j][k].name != "x" && noise_ops[j][k].name != "y" && noise_ops[j][k].name != "z" && noise_ops[j][k].name != "id")
-                    pauli_only = false;
-                }
-              }
-            }
-          }
-
-          if(max_ops == 0){
-            continue;   //do nothing
-          }
-          if(pauli_only){   //batched Pauli can be applied (optimization for Pauli error)
-            qregs_[istate].apply_batched_pauli_ops(noise_ops);
-          }
-          else{
-            //otherwise execute each circuit
-            apply_batched_noise_ops(i, noise_ops,par_results[i],rng);
-          }
-        }
-        else{
-          if(!apply_batched_op(istate, *op,par_results[i],rng,final_ops && (op + 1 == last))){
-            //call apply_op for each state
-            for(uint_t j=top_chunk_of_group_[i];j<top_chunk_of_group_[i+1];j++){
-              qregs_[j].enable_batch(false);
-              apply_op(j, *op,par_results[i],rng[j-top_chunk_of_group_[i]],final_ops && (op + 1 == last) );
-              qregs_[j].enable_batch(true);
-            }
-          }
-        }
-      }
+      for (auto &res : par_results)
+        result.combine(std::move(res));
     }
-    for (auto &res : par_results) {
-      result.combine(std::move(res));
+    else{
+      for(i=0;i<num_groups_;i++)
+        apply_ops_multi_shots_for_group(i, first, last, noise, result, rng_seed, final_ops);
     }
 
     //collect measured bits and copy memory
@@ -914,6 +899,69 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
   }
 
   gather_creg_memory();
+}
+
+template <class state_t>
+template <typename InputIterator>
+void StateChunk<state_t>::apply_ops_multi_shots_for_group(int_t i_group, 
+                               InputIterator first, InputIterator last,
+                               const Noise::NoiseModel &noise,
+                               ExperimentResult &result,
+                               uint_t rng_seed,
+                               bool final_ops) 
+{
+  uint_t istate = top_chunk_of_group_[i_group];
+  std::vector<RngEngine> rng(num_chunks_in_group_[i_group]);
+
+  for(uint_t j=top_chunk_of_group_[i_group];j<top_chunk_of_group_[i_group+1];j++)
+    rng[j-top_chunk_of_group_[i_group]].set_seed(rng_seed + global_chunk_index_ + local_shot_index_ + j);
+
+  for (auto op = first; op != last; ++op) {
+    if(op->type == Operations::OpType::qerror_loc){
+      //sample error here
+      uint_t count = num_chunks_in_group_[i_group];
+      uint_t max_ops = 0;
+      bool pauli_only = true;
+      std::vector<std::vector<Operations::Op>> noise_ops(count);
+      for(uint_t j=0;j<count;j++){
+        noise_ops[j] = noise.sample_noise_loc(*op,rng[j]);
+
+        if(noise_ops[j].size() == 0 || (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id"))
+          continue;
+        else{
+          if(max_ops < noise_ops[j].size())
+            max_ops = noise_ops[j].size();
+          if(pauli_only){
+            for(int_t k=0;k<noise_ops[j].size();k++){
+              if(noise_ops[j][k].name != "x" && noise_ops[j][k].name != "y" && noise_ops[j][k].name != "z" && noise_ops[j][k].name != "id")
+                pauli_only = false;
+            }
+          }
+        }
+      }
+
+      if(max_ops == 0){
+        continue;   //do nothing
+      }
+      if(pauli_only){   //batched Pauli can be applied (optimization for Pauli error)
+        qregs_[istate].apply_batched_pauli_ops(noise_ops);
+      }
+      else{
+        //otherwise execute each circuit
+        apply_batched_noise_ops(i_group, noise_ops,result, rng);
+      }
+    }
+    else{
+      if(!apply_batched_op(istate, *op, result, rng, final_ops && (op + 1 == last))){
+        //call apply_op for each state
+        for(uint_t j=top_chunk_of_group_[i_group];j<top_chunk_of_group_[i_group+1];j++){
+          qregs_[j].enable_batch(false);
+          apply_op(j, *op, result, rng[j-top_chunk_of_group_[i_group]], final_ops && (op + 1 == last) );
+          qregs_[j].enable_batch(true);
+        }
+      }
+    }
+  }
 }
 
 template <class state_t>

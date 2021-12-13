@@ -1348,7 +1348,7 @@ void State<densmat_t>::apply_gate_u3(const int_t iChunk, uint_t qubit, double th
 template <class densmat_t>
 void State<densmat_t>::apply_diagonal_unitary_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t & diag)
 {
-  if(BaseState::thrust_optimization_){
+  if(BaseState::thrust_optimization_ || !BaseState::multi_chunk_distribution_){
     //GPU computes all chunks in one kernel, so pass qubits and diagonal matrix as is
     BaseState::qregs_[iChunk].apply_diagonal_unitary_matrix(qubits,diag);
   }
