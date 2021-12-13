@@ -13,8 +13,7 @@
 LocalNoisePass class tests
 """
 
-from qiskit.providers.aer.noise.errors import ReadoutError
-from qiskit.providers.aer.noise.passes import LocalNoisePass
+from qiskit.providers.aer.noise import ReadoutError, LocalNoisePass
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import SXGate, HGate
