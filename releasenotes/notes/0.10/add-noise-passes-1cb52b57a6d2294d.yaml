@@ -4,10 +4,10 @@ features:
     Add two transpiler passes for inserting instruction-dependent quantum
     errors into circuits
     
-    * :class:`qiskit.providers.aer.noise.passes.LocalNoisePass`
-    * :class:`qiskit.providers.aer.noise.passes.RelaxationNoisePass`
+    * :class:`qiskit.providers.aer.noise.LocalNoisePass`
+    * :class:`qiskit.providers.aer.noise.RelaxationNoisePass`
 
-    The :class:`~qiskit.providers.aer.noise.passes.LocalNoisePass` pass can
+    The :class:`~qiskit.providers.aer.noise.LocalNoisePass` pass can
     be used to implement custom parameterized noise models by defining a
     noise generating function of the form
   
@@ -24,12 +24,12 @@ features:
 
     This function can be applied to all instructions in a circuit, or a
     specified subset (See
-    :class:`~qiskit.providers.aer.noise.passes.LocalNoisePass` documentation
+    :class:`~qiskit.providers.aer.noise.LocalNoisePass` documentation
     for additional details.)
 
-    The :class:`~qiskit.providers.aer.noise.passes.RelaxationNoisePass`
+    The :class:`~qiskit.providers.aer.noise.RelaxationNoisePass`
     is a special case of the
-    :class:`~qiskit.providers.aer.noise.passes.LocalNoisePass` using a
+    :class:`~qiskit.providers.aer.noise.LocalNoisePass` using a
     predefined noise function that returns a tensor product of
     :func:`~qiskit.providers.aer.noise.thermal_relaxation_error` on each
     qubit in an instruction dependent on the instructions duration and
@@ -41,7 +41,7 @@ features:
     :meth:`qiskit.providers.aer.AerSimulator.from_backend` has been
     upgraded to allow adding duration dependent relaxation error on
     circuit delay gates using the
-    :class:`~qiskit.providers.aer.noise.passes.RelaxationNoisePass`.
+    :class:`~qiskit.providers.aer.noise.RelaxationNoisePass`.
 
     To enable this noise when running noisy simulations you must first
     schedule your circuit to insert scheduled delay instructions as
