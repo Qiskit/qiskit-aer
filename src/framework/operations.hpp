@@ -47,7 +47,9 @@ enum class OpType {
   save_stabilizer, save_clifford, save_unitary, save_mps, save_superop,
   // Set instructions
   set_statevec, set_densmat, set_unitary, set_superop,
-    set_stabilizer, set_mps
+  set_stabilizer, set_mps,
+  // Control Flow
+  jump, mark
 };
 
 enum class DataSubType {
@@ -177,6 +179,12 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
     break;
   case OpType::nop:
     stream << "nop";
+    break;
+  case OpType::mark:
+    stream << "mark";
+    break;
+  case OpType::jump:
+    stream << "jump";
     break;
   default:
     stream << "unknown";
@@ -579,6 +587,12 @@ Op input_to_op_snapshot_matrix(const inputdata_t& input);
 template<typename inputdata_t>
 Op input_to_op_snapshot_pauli(const inputdata_t& input);
 
+// Control-Flow
+template<typename inputdata_t>
+Op input_to_op_jump(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_mark(const inputdata_t& input);
+
 // Matrices
 template<typename inputdata_t>
 Op input_to_op_unitary(const inputdata_t& input);
@@ -697,6 +711,12 @@ Op input_to_op(const inputdata_t& input) {
     return input_to_op_roerror(input);
   if (name == "pauli")
     return input_to_op_pauli(input);
+
+  //Control-flow
+  if (name == "jump")
+    return input_to_op_jump(input);
+  if (name == "mark")
+    return input_to_op_mark(input);
   // Default assume gate
   return input_to_op_gate(input);
 }
@@ -1350,6 +1370,39 @@ Op input_to_op_snapshot_matrix(const inputdata_t& input) {
   }
   return op;
 }
+
+template<typename inputdata_t>
+Op input_to_op_jump(const inputdata_t &input) {
+  Op op;
+  op.type = OpType::jump;
+  op.name = "jump";
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  Parser<inputdata_t>::get_value(op.string_params, "params", input);
+  if (op.string_params.empty())
+    throw std::invalid_argument(std::string("Invalid jump (\"params\" field missing)."));
+
+  // Conditional
+  add_conditional(Allowed::Yes, op, input);
+
+  return op;
+}
+
+template<typename inputdata_t>
+Op input_to_op_mark(const inputdata_t &input) {
+  Op op;
+  op.type = OpType::mark;
+  op.name = "mark";
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  Parser<inputdata_t>::get_value(op.string_params, "params", input);
+  if (op.string_params.empty())
+    throw std::invalid_argument(std::string("Invalid mark (\"params\" field missing)."));
+
+  // Conditional
+  add_conditional(Allowed::No, op, input);
+
+  return op;
+}
+
 
 //------------------------------------------------------------------------------
 } // end namespace Operations
