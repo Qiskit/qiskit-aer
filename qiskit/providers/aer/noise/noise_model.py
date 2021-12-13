@@ -21,7 +21,7 @@ from warnings import warn, catch_warnings, filterwarnings
 from numpy import ndarray
 
 from qiskit.circuit import Instruction, Delay
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import BaseBackend, BackendV1, BackendV2
 from qiskit.providers.models import BackendProperties
 from qiskit.transpiler import PassManager
 from .device.models import _excited_population
@@ -277,7 +277,7 @@ class NoiseModel:
         If non-default values are used gate_lengths should be a list
 
         Args:
-            backend (Backend): backend.
+            backend (BackendV1): backend.
             gate_error (bool): Include depolarizing gate errors (Default: True).
             readout_error (Bool): Include readout errors in model
                                   (Default: True).
@@ -302,11 +302,15 @@ class NoiseModel:
         Raises:
             NoiseError: If the input backend is not valid.
         """
-        if isinstance(backend, (BaseBackend, Backend)):
+        if isinstance(backend, BackendV2):
+            raise NoiseError(
+                "V2 Backends are not yet supported by `NoiseModel.from_backend`")
+        if isinstance(backend, (BaseBackend, BackendV1)):
             properties = backend.properties()
-            basis_gates = backend.configuration().basis_gates
-            num_qubits = backend.configuration().num_qubits
-            dt = backend.configuration().dt
+            configuration = backend.configuration()
+            basis_gates = configuration.basis_gates
+            num_qubits = configuration.num_qubits
+            dt = getattr(configuration, "dt", 0)
             if not properties:
                 raise NoiseError('Qiskit backend {} does not have a '
                                  'BackendProperties'.format(backend))
@@ -358,18 +362,21 @@ class NoiseModel:
         for name, qubits, error in gate_errors:
             noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
         # Add delay errors
-        if thermal_relaxation:
+        if thermal_relaxation and hasattr(properties, "t1") and hasattr(properties, "t2"):
+            if hasattr(properties, "frequency"):
+                excited_state_populations = [
+                    _excited_population(
+                        freq=properties.frequency(q), temperature=temperature
+                    ) for q in range(num_qubits)]
+            else:
+                excited_state_populations = None
+
             delay_pass = RelaxationNoisePass(
                 t1s=[properties.t1(q) for q in range(num_qubits)],
                 t2s=[properties.t2(q) for q in range(num_qubits)],
                 dt=dt,
                 op_types=Delay,
-                excited_state_populations=[
-                    _excited_population(
-                        freq=properties.frequency(q),
-                        temperature=temperature
-                    ) for q in range(num_qubits)
-                ]
+                excited_state_populations=excited_state_populations
             )
             noise_model._custom_noise_passes.append(delay_pass)
         return noise_model

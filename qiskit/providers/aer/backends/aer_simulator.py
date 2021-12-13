@@ -15,8 +15,10 @@ Qiskit Aer qasm simulator backend.
 
 import copy
 import logging
+import warnings
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
+from qiskit.providers.backend import BackendV2
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
@@ -565,6 +567,10 @@ class AerSimulator(AerBackend):
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
+        if isinstance(backend, BackendV2):
+            raise AerError(
+                "AerSimulator.from_backend is not yet supported for V2 Backends."
+            )
         # Get configuration and properties from backend
         configuration = copy.copy(backend.configuration())
         properties = copy.copy(backend.properties())
