@@ -49,6 +49,7 @@ const Operations::OpSet StateOpSet(
      OpType::save_amps, OpType::save_amps_sq,
      OpType::save_state, OpType::save_statevec,
      OpType::save_statevec_dict, OpType::save_densmat,
+     OpType::jump, OpType::mark
      },
     // Gates
     {"u1",     "u2",      "u3",  "u",    "U",    "CX",   "cx",   "cz",
