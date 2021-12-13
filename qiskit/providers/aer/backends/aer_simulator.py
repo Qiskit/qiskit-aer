@@ -372,6 +372,7 @@ class AerSimulator(AerBackend):
     * ``fusion_threshold`` (int): Threshold that number of qubits must be greater
       than or equal to enable fusion optimization [Default: 14]
     """
+
     _BASIS_GATES = BASIS_GATES
 
     _CUSTOM_INSTR = {
