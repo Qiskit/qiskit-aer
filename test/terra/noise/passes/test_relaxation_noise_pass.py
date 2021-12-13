@@ -13,8 +13,7 @@
 RelaxationNoisePass class tests
 """
 
-from qiskit.providers.aer.noise.errors import thermal_relaxation_error
-from qiskit.providers.aer.noise.passes import RelaxationNoisePass
+from qiskit.providers.aer.noise import thermal_relaxation_error, RelaxationNoisePass
 
 import qiskit.quantum_info as qi
 from qiskit.circuit import QuantumCircuit, Delay
