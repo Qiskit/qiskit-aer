@@ -10,12 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Instruction to set the state simulator state to a matrix.
+Instruction to set the simulator state to a stabilizer state.
 """
 
 from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.extensions.exceptions import ExtensionError
-from qiskit.quantum_info import Clifford
+from qiskit.quantum_info import StabilizerState, Clifford
 from ..default_qubits import default_qubits
 
 
@@ -28,7 +28,7 @@ class SetStabilizer(Instruction):
         """Create new instruction to set the Clifford stabilizer state of the simulator.
 
         Args:
-            state (Clifford): A clifford operator.
+            state (StabilizerState or Clifford): A clifford operator.
 
         .. note::
 
@@ -36,7 +36,9 @@ class SetStabilizer(Instruction):
             qubits in a circuit, otherwise an exception will be raised during
             simulation.
         """
-        if not isinstance(state, Clifford):
+        if isinstance(state, StabilizerState):
+            state = state.clifford
+        elif not isinstance(state, Clifford):
             state = Clifford(state)
         super().__init__('set_stabilizer', state.num_qubits, 0, [state.to_dict()])
 
@@ -59,6 +61,8 @@ def set_stabilizer(self, state):
         This instruction is always defined across all qubits in a circuit.
     """
     qubits = default_qubits(self)
+    if isinstance(state, StabilizerState):
+        state = state.clifford
     if not isinstance(state, Clifford):
         state = Clifford(state)
     if state.num_qubits != len(qubits):

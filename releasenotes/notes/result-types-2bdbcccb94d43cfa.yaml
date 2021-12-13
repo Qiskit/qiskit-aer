@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    Adds a :class:`~qiskit.providers.aer.library.SaveClifford` instruction for
+    saving the state of the stabilizer simulation method as a
+    :class:`~qiskit.quantum_info.Clifford` object.
+
+    Note that this instruction is essentially equivalent to the
+    :class:`~qiskit.providers.aer.library.SaveStabilizer` instruction, however
+    that instruction will return the saved state as a
+    :class:`~qiskit.quantum_info.StabilizerState` object instead of a
+    :class:`~qiskit.quantum_info.Clifford` object.
+upgrade:
+  - |
+    The return type of several save instructions have been changed to be the
+    corresponding `qiskit-terra` classes rather than raw numpy arrays or
+    dictionaries. The types that have changed are
+
+    * ``save_statvector`` now returns as a :class:`qiskit.quantum_info.Statevector`
+    * ``save_density_matrix`` now returns as a :class:`qiskit.quantum_info.DensityMatrix`
+    * ``save_stabilizer`` now returns as :class:`qiskit.quantum_info.StabilizerState`
+    * ``save_unitary`` now returns as :class:`qiskit.quantum_info.Operator`
+    * ``save_superop`` now returns as :class:`qiskit.quantum_info.SuperOp`
+    * ``save_probabilities_dict`` now returns as a :class:`qiskit.result.ProbDistribution`

@@ -558,10 +558,12 @@ void State<statevec_t>::apply_save_state(const Operations::Op &op,
   if (last_op) {
     BaseState::save_data_pershot(result, key,
                                  BaseState::qreg_.move_to_matrix(),
+                                 Operations::OpType::save_superop,
                                  op.save_type);
   } else {
     BaseState::save_data_pershot(result, key,
                                  BaseState::qreg_.copy_to_matrix(),
+                                 Operations::OpType::save_superop,
                                  op.save_type);
   }
 }

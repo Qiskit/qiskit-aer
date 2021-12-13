@@ -20,6 +20,11 @@ from qiskit.utils import local_hardware_info
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import assemble
 from qiskit.qobj import QasmQobjInstruction
+from qiskit.result import ProbDistribution
+from qiskit.quantum_info import Clifford
+from .compatibility import (
+    Statevector, DensityMatrix, StabilizerState, Operator, SuperOp)
+
 
 # Available system memory
 SYSTEM_MEMORY_GB = local_hardware_info()['memory']
@@ -172,3 +177,33 @@ def map_legacy_method_options(qobj):
     if method in LEGACY_METHOD_MAP:
         qobj.config.method, qobj.config.device = LEGACY_METHOD_MAP[method]
     return qobj
+
+
+def format_save_type(data, save_type, save_subtype):
+    """Format raw simulator result data based on save type."""
+    init_fns = {
+        "save_statevector": Statevector,
+        "save_density_matrix": DensityMatrix,
+        "save_unitary": Operator,
+        "save_superop": SuperOp,
+        "save_stabilizer": (lambda data: StabilizerState(Clifford.from_dict(data))),
+        "save_clifford": Clifford.from_dict,
+        "save_probabilities_dict": ProbDistribution,
+    }
+
+    # Non-handled cases return raw data
+    if save_type not in init_fns:
+        return data
+
+    if save_subtype in ["list", "c_list"]:
+        def func(data):
+            init_fn = init_fns[save_type]
+            return [init_fn(i) for i in data]
+    else:
+        func = init_fns[save_type]
+
+    # Conditional save
+    if save_subtype[:2] == "c_":
+        return {key: func(val) for key, val in data.items()}
+
+    return func(data)

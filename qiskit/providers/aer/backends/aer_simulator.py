@@ -175,9 +175,20 @@ class AerSimulator(AerBackend):
       on the executor. If ``None`` simulation of all circuits are submitted
       to the executor as a single job (Default: None).
 
+    * ``max_shot_size`` (int or None): If the number of shots of a noisy
+      circuit exceeds this value simulation will be split into multi
+      circuits for execution and the results accumulated. If ``None``
+      circuits will not be split based on shots. When splitting circuits
+      use the ``max_job_size`` option to control how these split circuits
+      should be submitted to the executor (Default: None).
+
+      a noise model exceeds this value simulation will be splitted into
+      sub-circuits. If ``None``  simulator does noting (Default: None).
+
     * ``enable_truncation`` (bool): If set to True this removes unnecessary
       qubits which do not affect the simulation outcome from the simulated
       circuits (Default: True).
+
 
     * ``zero_threshold`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
@@ -395,8 +406,8 @@ class AerSimulator(AerBackend):
             'quantum_channel', 'qerror_loc', 'roerror', 'snapshot',
             'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
-            'save_amplitudes_sq', 'save_state', 'save_stabilizer',
-            'set_stabilizer'
+            'save_amplitudes_sq', 'save_state', 'save_clifford',
+            'save_stabilizer', 'set_stabilizer'
         ]),
         'extended_stabilizer': sorted([
             'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'save_statevector'
@@ -490,6 +501,7 @@ class AerSimulator(AerBackend):
             precision="double",
             executor=None,
             max_job_size=None,
+            max_shot_size=None,
             enable_truncation=True,
             zero_threshold=1e-10,
             validation_threshold=None,
