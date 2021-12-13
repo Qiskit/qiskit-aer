@@ -149,7 +149,7 @@ class AerSimulator(AerBackend):
 
     If AerSimulator is built with cuQuantum support, cuQuantum APIs are enabled
     by using ``device="cuStateVec"``. This is experimental implementation
-    for cuQuantum Beta 1. All the calculations of gates that can be executed by 
+    for cuQuantum Beta 1. All the calculations of gates that can be executed by
     multiplying matrices will be done by cuStateVec matrix API.
 
     **Additional Backend Options**
