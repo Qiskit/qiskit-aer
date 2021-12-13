@@ -1,12 +1,13 @@
 ---
 prelude: >
     The Qiskit Aer 0.10 release includes several performance and noise model
-    improvements. Some highlights are improved performance for parallel shot
-    GPU and HPC simulations; support for simulation of circuits
-    containing QASM 3.0 control-flow instructions; support for relaxation noise
-    on scheduled circuits in backend noise models; support of user created
-    transpiler passes for defining custom gate errors and noise models and inserting
-    them into circuits.
+    improvements. Some highlights are 
+    
+    * Improved performance for parallel shot GPU and HPC simulations
+    * Support for simulation of circuits containing QASM 3.0 control-flow instructions
+    * Support for relaxation noise on scheduled circuits in backend noise models
+    * Support of user created transpiler passes for defining custom gate errors and
+      noise models and inserting them into circuits.
 features:
   - |
     Adds support of QASM 3.0 control-flow instructions introduced in Qiskit-Terra
@@ -98,31 +99,3 @@ deprecations:
     return types. Partial backwards compatability with treating these objects as
     numpy arrays is implemented by forwarding methods to the internal numpy arrays
     during the deprecation period.
-critical:
-  - |
-    Add critical notes here, or remove this section.  All of the list items in
-    this section are combined when the release notes are rendered, so the text
-    needs to be worded so that it does not depend on any information only
-    available in another section, such as the prelude. This may mean repeating
-    some details.
-security:
-  - |
-    Add security notes here, or remove this section.  All of the list items in
-    this section are combined when the release notes are rendered, so the text
-    needs to be worded so that it does not depend on any information only
-    available in another section, such as the prelude. This may mean repeating
-    some details.
-fixes:
-  - |
-    Add normal bug fixes here, or remove this section.  All of the list items
-    in this section are combined when the release notes are rendered, so the
-    text needs to be worded so that it does not depend on any information only
-    available in another section, such as the prelude. This may mean repeating
-    some details.
-other:
-  - |
-    Add other notes here, or remove this section.  All of the list items in
-    this section are combined when the release notes are rendered, so the text
-    needs to be worded so that it does not depend on any information only
-    available in another section, such as the prelude. This may mean repeating
-    some details.
