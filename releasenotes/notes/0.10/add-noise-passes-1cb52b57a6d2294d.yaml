@@ -34,7 +34,6 @@ features:
     :func:`~qiskit.providers.aer.noise.thermal_relaxation_error` on each
     qubit in an instruction dependent on the instructions duration and
     the supplied relaxation time constant parameters of the pass.
-
   - |
     The basic device noise model implemented by
     :meth:`qiskit.providers.aer.noise.NoiseModel.from_backend` and

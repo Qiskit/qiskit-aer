@@ -1,8 +1,7 @@
 ---
 prelude: >
     The Qiskit Aer 0.10 release includes several performance and noise model
-    improvements. Some highlights are 
-    
+    improvements. Some highlights are
     * Improved performance for parallel shot GPU and HPC simulations
     * Support for simulation of circuits containing QASM 3.0 control-flow instructions
     * Support for relaxation noise on scheduled circuits in backend noise models
