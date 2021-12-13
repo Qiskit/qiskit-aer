@@ -304,7 +304,7 @@ class NoiseModel:
         """
         if isinstance(backend, BackendV2):
             raise NoiseError(
-                "V2 Backends are not yet supported by `NoiseModel.from_backend`")
+                "NoiseModel.from_backend does not currently support V2 Backends.")
         if isinstance(backend, (BaseBackend, BackendV1)):
             properties = backend.properties()
             configuration = backend.configuration()
