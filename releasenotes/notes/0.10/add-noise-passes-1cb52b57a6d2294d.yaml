@@ -1,29 +1,29 @@
 ---
 features:
   - |
-    Add two transpiler passes for inserting instruction-dependent quantum
-    errors into circuits
-    
+    Added two transpiler passes for inserting instruction-dependent quantum
+    errors into circuits:
+
     * :class:`qiskit.providers.aer.noise.LocalNoisePass`
     * :class:`qiskit.providers.aer.noise.RelaxationNoisePass`
 
     The :class:`~qiskit.providers.aer.noise.LocalNoisePass` pass can
     be used to implement custom parameterized noise models by defining a
     noise generating function of the form
-  
+
     .. code-block:: python
-        
+
             def fn(
                 inst: Instruction,
                 qubits: Optional[List[int]] = None,
             ) -> InstructionLike
 
-    which returns a noise instruction (eg. a QuantumError or other instruction)
+    which returns a noise instruction (eg. a :class:`.QuantumError` or other instruction)
     that can depend on any properties or parameters of the instruction and
     qubit arguements.
 
     This function can be applied to all instructions in a circuit, or a
-    specified subset (See
+    specified subset (See the
     :class:`~qiskit.providers.aer.noise.LocalNoisePass` documentation
     for additional details.)
 
@@ -32,13 +32,13 @@ features:
     :class:`~qiskit.providers.aer.noise.LocalNoisePass` using a
     predefined noise function that returns a tensor product of
     :func:`~qiskit.providers.aer.noise.thermal_relaxation_error` on each
-    qubit in an instruction dependent on the instructions duration and
+    qubit in an instruction, dependent on the instruction's duration and
     the supplied relaxation time constant parameters of the pass.
   - |
     The basic device noise model implemented by
-    :meth:`qiskit.providers.aer.noise.NoiseModel.from_backend` and
-    :meth:`qiskit.providers.aer.AerSimulator.from_backend` has been
-    upgraded to allow adding duration dependent relaxation error on
+    :meth:`.NoiseModel.from_backend` and
+    :meth:`.AerSimulator.from_backend` has been
+    upgraded to allow adding duration-dependent relaxation errors on
     circuit delay gates using the
     :class:`~qiskit.providers.aer.noise.RelaxationNoisePass`.
 
@@ -61,7 +61,7 @@ features:
     duration as obtained from the backend properties.
 deprecations:
   - |
-    Passing in a `BackendProperties` object for the `backend` argument of
-    :meth:`qiskit.provider.aer.noise.NoiseModel.from_backend` has been
-    deprecated as it is incompatible with duration dependent delay noises.
-    Pass in a qiskit ``Backend`` object instead.
+    Passing in a :class:`.BackendProperties` object for the ``backend`` argument of
+    :meth:`.NoiseModel.from_backend` has been deprecated, as it is incompatible
+    with duration dependent delay noises, and will be removed in a future release.
+    Pass in a Qiskit Terra :class:`.BackendV1` object instead.

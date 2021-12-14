@@ -78,6 +78,7 @@ for density matrix method etc.).
     SaveStatevectorDict
     SaveDensityMatrix
     SaveMatrixProductState
+    SaveClifford
     SaveStabilizer
     SaveSuperOp
     SaveUnitary
@@ -150,6 +151,7 @@ following ``QuantumCircuit`` methods which are patched when importing Aer.
 
     save_amplitudes
     save_amplitudes_squared
+    save_clifford
     save_density_matrix
     save_expectation_value
     save_expectation_value_variance
@@ -160,6 +162,7 @@ following ``QuantumCircuit`` methods which are patched when importing Aer.
     save_state
     save_statevector
     save_statevector_dict
+    save_superop
     save_unitary
 
 Method Compatibility
@@ -176,6 +179,7 @@ which simulation methods
 __all__ = [
     'SaveAmplitudes',
     'SaveAmplitudesSquared',
+    'SaveClifford',
     'SaveDensityMatrix',
     'SaveExpectationValue',
     'SaveExpectationValueVariance',
