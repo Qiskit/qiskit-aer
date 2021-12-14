@@ -38,7 +38,9 @@ const Operations::OpSet StateOpSet(
     OpType::save_expval_var, OpType::save_probs,
     OpType::save_probs_ket, OpType::save_amps_sq,
     OpType::save_stabilizer, OpType::save_clifford,
-    OpType::save_state, OpType::set_stabilizer},
+    OpType::save_state, OpType::set_stabilizer,
+    OpType::jump, OpType::mark
+  },
   // Gates
   {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg",
    "sx", "sxdg", "delay", "pauli"},

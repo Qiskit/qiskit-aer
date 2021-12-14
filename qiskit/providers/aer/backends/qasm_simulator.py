@@ -18,6 +18,7 @@ import logging
 from warnings import warn
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
+from qiskit.providers.backend import BackendV2
 
 from ..version import __version__
 from ..aererror import AerError
@@ -452,6 +453,10 @@ class QasmSimulator(AerBackend):
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
+        if isinstance(backend, BackendV2):
+            raise AerError(
+                "QasmSimulator.from_backend does not currently support V2 Backends."
+            )
         # pylint: disable=import-outside-toplevel
         # Avoid cyclic import
         from ..noise.noise_model import NoiseModel

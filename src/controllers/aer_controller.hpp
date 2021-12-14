@@ -184,6 +184,17 @@ protected:
   void run_single_shot(const Circuit &circ, State_t &state,
                        ExperimentResult &result, RngEngine &rng) const;
 
+  // Execute a single shot a of circuit by initializing the state vector,
+  // running all ops in circ, and updating data with
+  // simulation output.
+  template <class State_t>
+  void run_with_sampling(const Circuit &circ,
+                         State_t &state,
+                         ExperimentResult &result,
+                         RngEngine &rng,
+                         const uint_t block_bits,
+                         const uint_t shots) const;
+
   // Execute multiple shots a of circuit by initializing the state vector,
   // running all ops in circ, and updating data with
   // simulation output. Will use measurement sampling if possible
@@ -1394,6 +1405,30 @@ void Controller::run_single_shot(const Circuit &circ, State_t &state,
 }
 
 template <class State_t>
+void Controller::run_with_sampling(const Circuit &circ,
+                                   State_t &state,
+                                   ExperimentResult &result,
+                                   RngEngine &rng,
+                                   const uint_t block_bits,
+                                   const uint_t shots) const {
+  auto& ops = circ.ops;
+  auto first_meas = circ.first_measure_pos; // Position of first measurement op
+  bool final_ops = (first_meas == ops.size());
+
+  // allocate qubit register
+  state.allocate(circ.num_qubits, block_bits);
+
+  // Run circuit instructions before first measure
+  state.initialize_qreg(circ.num_qubits);
+  state.initialize_creg(circ.num_memory, circ.num_registers);
+
+  state.apply_ops(ops.cbegin(), ops.cbegin() + first_meas, result, rng, final_ops);
+
+  // Get measurement operations and set of measured qubits
+  measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(), shots, state, result, rng);
+}
+
+template <class State_t>
 void Controller::run_circuit_without_sampled_noise(Circuit &circ,
                                                    const Noise::NoiseModel &noise,
                                                    const json_t &config,
@@ -1430,32 +1465,48 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   }
   // Check if measure sampling supported
   can_sample &= check_measure_sampling_opt(circ, method);
+  auto max_bits = get_max_matrix_qubits(circ);
 
   // Check if measure sampler and optimization are valid
   if (can_sample) {
     // Implement measure sampler
-    auto& ops = circ.ops;
-    auto first_meas = circ.first_measure_pos; // Position of first measurement op
-    bool final_ops = (first_meas == ops.size());
+    if (parallel_shots_ <= 1) {
+      state.set_max_matrix_qubits(max_bits);
+      RngEngine rng;
+      rng.set_seed(circ.seed);
+      run_with_sampling(circ, state, result, rng, block_bits, circ.shots);
+    } else {
+      // Vector to store parallel thread output data
+      std::vector<ExperimentResult> par_results(parallel_shots_);
 
-    state.set_max_matrix_qubits(get_max_matrix_qubits(circ) );
+#pragma omp parallel for num_threads(parallel_shots_)
+      for (int i = 0; i < parallel_shots_; i++) {
+        uint_t i_shot = circ.shots*i/parallel_shots_;
+        uint_t shot_end = circ.shots*(i+1)/parallel_shots_;
+        uint_t this_shot = shot_end - i_shot;
 
-    // allocate qubit register
-    state.allocate(circ.num_qubits, block_bits);
+        State_t shot_state;
+        // Set state config
+        shot_state.set_config(config);
+        shot_state.set_parallelization(parallel_state_update_);
+        shot_state.set_global_phase(circ.global_phase_angle);
 
-    // Run circuit instructions before first measure
-    state.initialize_qreg(circ.num_qubits);
-    state.initialize_creg(circ.num_memory, circ.num_registers);
+        state.set_max_matrix_qubits(max_bits);
 
-    RngEngine rng;
-    rng.set_seed(circ.seed);
-    state.apply_ops(ops.cbegin(), ops.cbegin() + first_meas, result, rng, final_ops);
+        RngEngine rng;
+        rng.set_seed(circ.seed + i);
 
-    // Get measurement operations and set of measured qubits
-    measure_sampler(circ.ops.begin() + first_meas, circ.ops.end(), circ.shots, state, result, rng);
+        run_with_sampling(circ, shot_state, par_results[i], rng, block_bits, this_shot);
 
+        shot_state.add_metadata(par_results[i]);
+      }
+      for (auto &res : par_results) {
+        result.combine(std::move(res));
+      }
+    }
     // Add measure sampling metadata
     result.metadata.add(true, "measure_sampling");
+
   }
   else{
     // Perform standard execution if we cannot apply the
@@ -1464,7 +1515,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
     if(block_bits == circ.num_qubits && enable_batch_multi_shots_ && state.multi_shot_parallelization_supported()){
       //apply batched multi-shots optimization (currenly only on GPU)
       state.set_max_bached_shots(max_batched_states_);
-      state.set_max_matrix_qubits(get_max_matrix_qubits(circ) );
+      state.set_max_matrix_qubits(max_bits);
       state.allocate(circ.num_qubits, circ.num_qubits, circ.shots);    //allocate multiple-shots
 
       //qreg is initialized inside state class
@@ -1478,8 +1529,6 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
       result.metadata.add(true, "batched_shots_optimization");
     }
     else{
-      int_t max_bits = get_max_matrix_qubits(circ);
-
       //if parallel_shots is disabled or multi-chunk distribution is used, disable shot parallelization here
       //to avoid nested omp that decreases performance
       //(DO NOT use if statement in #pragma omp)
@@ -1670,7 +1719,9 @@ bool Controller::check_measure_sampling_opt(const Circuit &circ,
   // * Resets should be allowed if applied to |0> state (no gates before).
   if (circ.opset().contains(Operations::OpType::reset) ||
       circ.opset().contains(Operations::OpType::kraus) ||
-      circ.opset().contains(Operations::OpType::superop)) {
+      circ.opset().contains(Operations::OpType::superop) ||
+      circ.opset().contains(Operations::OpType::jump) ||
+      circ.opset().contains(Operations::OpType::mark )) {
     return false;
   }
   // Otherwise true

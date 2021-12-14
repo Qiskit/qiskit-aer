@@ -17,6 +17,7 @@ import copy
 import logging
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
+from qiskit.providers.backend import BackendV2
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
@@ -377,6 +378,7 @@ class AerSimulator(AerBackend):
     * ``fusion_threshold`` (int): Threshold that number of qubits must be greater
       than or equal to enable fusion optimization [Default: 14]
     """
+
     _BASIS_GATES = BASIS_GATES
 
     _CUSTOM_INSTR = {
@@ -569,6 +571,10 @@ class AerSimulator(AerBackend):
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
+        if isinstance(backend, BackendV2):
+            raise AerError(
+                "AerSimulator.from_backend does not currently support V2 Backends."
+            )
         # Get configuration and properties from backend
         configuration = copy.copy(backend.configuration())
         properties = copy.copy(backend.properties())
