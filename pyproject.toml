@@ -2,7 +2,7 @@
 requires = [
   "setuptools",
   "wheel",
-  "conan>=1.31.2",
+  "conan>=1.40",
   "scikit-build>=0.11.0",
   "cmake!=3.17.1,!=3.17.0",
   "ninja",
