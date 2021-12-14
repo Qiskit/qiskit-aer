@@ -628,6 +628,8 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
     }
     case Method::extended_stabilizer:
       break;
+    case Method::clifford_phase_compute:
+      break;
     default:
       throw std::invalid_argument("Cannot set parallelization for unresolved method.");
   }
@@ -1306,199 +1308,6 @@ void Controller::run_circuit(const Circuit &circ,
 //-------------------------------------------------------------------------
 // Utility methods
 //-------------------------------------------------------------------------
-<<<<<<< HEAD
-Controller::Method
-Controller::simulation_method(const Circuit &circ,
-                              const Noise::NoiseModel &noise_model,
-                              bool validate) const {
-  // Check simulation method and validate state
-  switch (sim_method_) {
-  case Method::statevector: {
-    if (validate) {
-      if (sim_device_ == Device::CPU) {
-        if (sim_precision_ == Precision::Single) {
-          Statevector::State<QV::QubitVector<float>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        } else {
-          Statevector::State<QV::QubitVector<double>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        }
-      } else {
-#ifdef AER_THRUST_SUPPORTED
-        if (sim_precision_ == Precision::Single) {
-          Statevector::State<QV::QubitVectorThrust<float>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        } else {
-          Statevector::State<QV::QubitVectorThrust<>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        }
-#endif
-      }
-    }
-    return Method::statevector;
-  }
-  case Method::density_matrix: {
-    if (validate) {
-      if (sim_device_ == Device::CPU) {
-        if (sim_precision_ == Precision::Single) {
-          DensityMatrix::State<QV::DensityMatrix<float>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        } else {
-          DensityMatrix::State<QV::DensityMatrix<double>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        }
-      } else {
-#ifdef AER_THRUST_SUPPORTED
-        if (sim_precision_ == Precision::Single) {
-          DensityMatrix::State<QV::DensityMatrixThrust<float>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        } else {
-          DensityMatrix::State<QV::DensityMatrixThrust<double>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        }
-#endif
-      }
-    }
-    return Method::density_matrix;
-  }
-  case Method::unitary: {
-    if (validate) {
-      if (sim_device_ == Device::CPU) {
-        if (sim_precision_ == Precision::Single) {
-          QubitUnitary::State<QV::UnitaryMatrix<float>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        } else {
-          QubitUnitary::State<QV::UnitaryMatrix<double>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        }
-      } else {
-#ifdef AER_THRUST_SUPPORTED
-        if (sim_precision_ == Precision::Single) {
-          QubitUnitary::State<QV::UnitaryMatrixThrust<float>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        } else {
-          QubitUnitary::State<QV::UnitaryMatrixThrust<double>> state;
-          validate_state(state, circ, noise_model, true);
-          validate_memory_requirements(state, circ, true);
-        }
-#endif
-      }
-    }
-    return Method::unitary;
-  }
-  case Method::superop: {
-    if (validate) {
-      if (sim_precision_ == Precision::Single) {
-        QubitSuperoperator::State<QV::Superoperator<float>> state;
-        validate_state(state, circ, noise_model, true);
-        validate_memory_requirements(state, circ, true);
-      } else {
-        QubitSuperoperator::State<QV::Superoperator<double>> state;
-        validate_state(state, circ, noise_model, true);
-        validate_memory_requirements(state, circ, true);
-      }
-    }
-    return Method::superop;
-  }
-  case Method::stabilizer: {
-    if (validate) {
-      Stabilizer::State state;
-      validate_state(Stabilizer::State(), circ, noise_model, true);
-      validate_memory_requirements(state, circ, true);
-    }
-    return Method::stabilizer;
-  }
-  case Method::extended_stabilizer: {
-    if (validate) {
-      ExtendedStabilizer::State state;
-      validate_state(state, circ, noise_model, true);
-      validate_memory_requirements(ExtendedStabilizer::State(), circ, true);
-    }
-    return Method::extended_stabilizer;
-  }
-  case Method::matrix_product_state: {
-    if (validate) {
-      MatrixProductState::State state;
-      validate_state(state, circ, noise_model, true);
-      validate_memory_requirements(state, circ, true);
-    }
-    return Method::matrix_product_state;
-  }
-  case Method::clifford_phase_compute: {
-    if (validate) {
-      CliffPhaseCompute::State state;
-      validate_state(state, circ, noise_model, true);
-      validate_memory_requirements(CliffPhaseCompute::State(), circ, true);
-    }
-    return Method::clifford_phase_compute;
-  }
-  case Method::automatic: {
-    // If circuit and noise model are Clifford run on Stabilizer simulator
-    if (validate_state(Stabilizer::State(), circ, noise_model, false)) {
-      return Method::stabilizer;
-    }
-    // For noisy simulations we enable the density matrix method if
-    // shots > 2 ** num_qubits. This is based on a rough estimate that
-    // a single shot of the density matrix simulator is approx 2 ** nq
-    // times slower than a single shot of statevector due the increased
-    // dimension
-    if (noise_model.has_quantum_errors() &&
-        circ.shots > (1ULL << circ.num_qubits) &&
-        validate_memory_requirements(DensityMatrix::State<>(), circ, false) &&
-        validate_state(DensityMatrix::State<>(), circ, noise_model, false) &&
-        check_measure_sampling_opt(circ, Method::density_matrix)) {
-      return Method::density_matrix;
-    }
-  
-    // If the special conditions for stabilizer or density matrix are
-    // not satisfied we choose simulation method based on supported
-    // operations only with preference given by memory requirements
-    // statevector > density matrix > matrix product state > unitary > superop
-    // typically any save state instructions will decide the method.
-    if (validate_state(Statevector::State<>(), circ, noise_model, false)) {
-      return Method::statevector;
-    }
-    if (validate_state(DensityMatrix::State<>(), circ, noise_model, false)) {
-      return Method::density_matrix;
-    }
-    if (validate_state(MatrixProductState::State(), circ, noise_model, false)) {
-      return Method::matrix_product_state;
-    }
-    if (validate_state(QubitUnitary::State<>(), circ, noise_model, false)) {
-      return Method::unitary;
-    }
-    if (validate_state(QubitSuperoperator::State<>(), circ, noise_model, false)) {
-      return Method::superop;
-    }
-    // If we got here, circuit isn't compatible with any of the simulation
-    // methods
-    std::stringstream msg;
-    msg << "AerSimulator: ";
-    if (noise_model.is_ideal()) {
-      msg << "circuit with instructions " << circ.opset();
-    } else {
-      auto opset = circ.opset();
-      opset.insert(noise_model.opset());
-      msg << "circuit and noise model with instructions" << opset;
-    }
-    msg << " is not compatible with any of the automatic simulation methods";
-    throw std::runtime_error(msg.str());
-  }}
-}
-=======
->>>>>>> 8ac51d88def7e406bd77f5f96879ba3443cca5e2
-
 size_t Controller::required_memory_mb(const Circuit &circ,
                                       const Noise::NoiseModel &noise,
                                       const Method method) const {
@@ -2014,6 +1823,8 @@ bool Controller::validate_method(Method method,
       return validate_state(Stabilizer::State(), circ, noise_model, throw_except);
     case Method::extended_stabilizer:
       return validate_state(ExtendedStabilizer::State(), circ, noise_model, throw_except);
+    case Method::clifford_phase_compute:
+      return validate_state(CliffPhaseCompute::State(), circ, noise_model, throw_except);
     case Method::matrix_product_state:
       return validate_state(MatrixProductState::State(), circ, noise_model, throw_except);
     case Method::statevector:

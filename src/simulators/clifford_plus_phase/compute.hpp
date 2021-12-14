@@ -49,10 +49,16 @@ public:
   std::string name() const override {return "clifford_phase_compute";}
 
   //Apply a sequence of operations to the cicuit
-  virtual void apply_ops(const std::vector<Operations::Op> &ops,
-                         ExperimentResult &result,
-                         RngEngine &rng,
-                         bool final_ops = false) override;
+  template <typename InputIterator>
+  void apply_ops(InputIterator first, InputIterator last,
+		 ExperimentResult &result,
+		 RngEngine &rng,
+		 bool final_ops = false);
+  
+  virtual void apply_op(const Operations::Op &op,
+		ExperimentResult &result,
+		RngEngine &rng,
+		bool final_op = false) override;
   
   void apply_gate(const Operations::Op &op);
 
@@ -94,24 +100,29 @@ const stringmap_t<Gates> State::gateset_({
   // Three-qubit gates
 });
 
-
-void State::apply_ops(const std::vector<Operations::Op> &ops, ExperimentResult &result, RngEngine &rng, bool final_ops){
-
-  for(const auto &op: ops){
-    switch(op.type){
-    case Operations::OpType::gate:
-      this->apply_gate(op);
-      break;
-    case Operations::OpType::save_specific_prob:
-      this->apply_save_specific_prob(op, result);
-      break;
-    default:
-      throw std::invalid_argument("Compute::State::invalid instruction \'" + op.name + "\'.");  
-    } 
+template <typename InputIterator>
+void State::apply_ops(InputIterator first, InputIterator last, ExperimentResult &result, RngEngine &rng, bool final_ops){
+  for(auto it = first; it != last; ++it){
+    apply_op(*it, result, rng, final_ops);
   }
 }
 
-void State::apply_gate(const Operations::Op &op){  
+void State::apply_op(const Operations::Op &op, ExperimentResult &result,
+                     RngEngine &rng, bool final_op) {
+  switch(op.type){
+  case Operations::OpType::gate:
+    this->apply_gate(op);
+    break;
+  case Operations::OpType::save_specific_prob:
+    this->apply_save_specific_prob(op, result);
+    break;
+  default:
+    throw std::invalid_argument("Compute::State::invalid instruction \'" + op.name + "\'.");  
+  }
+}
+
+
+void State::apply_gate(const Operations::Op &op){
   auto it = gateset_.find(op.name);
   if (it == gateset_.end())
   {
@@ -162,7 +173,7 @@ void State::apply_gate(const Operations::Op &op){
   }
 }
 
-void State::apply_save_specific_prob(const Operations::Op &op, ExperimentResult &result){  
+void State::apply_save_specific_prob(const Operations::Op &op, ExperimentResult &result){
   std::vector<double> v;
   double p = this->compute_probability(op.qubits, op.int_params);
   v.push_back(p);
