@@ -28,6 +28,7 @@ from test.terra.common import QiskitAerTestCase
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import transpile
+from qiskit.transpiler import TranspilerError
 from qiskit.test import mock
 
 
@@ -216,13 +217,13 @@ class TestNoiseModel(QiskitAerTestCase):
         result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
 
-    def test_noise_model_from_rochester(self):
+    def test_noise_model_from_mumbai(self):
         circ = QuantumCircuit(2)
         circ.x(0)
         circ.x(1)
         circ.measure_all()
 
-        backend = mock.FakeRochester()
+        backend = mock.FakeMumbai()
         noise_model = NoiseModel.from_backend(backend)
         circ = transpile(circ, backend, optimization_level=0)
         result = AerSimulator().run(circ, noise_model=noise_model).result()
@@ -248,6 +249,30 @@ class TestNoiseModel(QiskitAerTestCase):
         expected.add_all_qubit_readout_error([[0.9, 0.1], [0, 1]])
 
         self.assertEqual(actual, expected)
+
+    def test_can_run_circuits_with_delay_noise(self):
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.measure_all()
+
+        backend = mock.FakeLagos()
+        noise_model = NoiseModel.from_backend(backend)
+
+        qc = transpile(circ, backend, scheduling_method="alap")
+        result = AerSimulator().run(qc, noise_model=noise_model).result()
+        self.assertTrue(result.success)
+
+        # test another path
+        noisy_sim = AerSimulator().from_backend(backend)
+        qc = transpile(circ, noisy_sim, scheduling_method="alap")
+        result = noisy_sim.run(qc).result()
+        self.assertTrue(result.success)
+
+        # no scheduling = no delay noise
+        qc = transpile(circ, backend)
+        result = AerSimulator().run(qc, noise_model=noise_model).result()
+        self.assertTrue(result.success)
 
 
 if __name__ == '__main__':

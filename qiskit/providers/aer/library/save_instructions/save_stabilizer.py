@@ -22,12 +22,12 @@ class SaveStabilizer(SaveSingleData):
     """Save Stabilizer instruction"""
     def __init__(self, num_qubits, label="stabilizer",
                  pershot=False, conditional=False):
-        """Create new instruction to save the stabilizer simulator state.
+        """Create new instruction to save the stabilizer simulator state as a StabilizerState.
 
         Args:
             num_qubits (int): the number of qubits of the
             label (str): the key for retrieving saved data from results.
-            pershot (bool): if True save a list of Cliffords for each
+            pershot (bool): if True save a list of StabilizerStates for each
                             shot of the simulation rather than a single
                             statevector [Default: False].
             conditional (bool): if True save data conditional on the current
@@ -45,11 +45,11 @@ class SaveStabilizer(SaveSingleData):
 
 
 def save_stabilizer(self, label="stabilizer", pershot=False, conditional=False):
-    """Save the current stabilizer simulator quantum state as a Clifford.
+    """Save the current stabilizer simulator quantum state as a StabilizerState.
 
     Args:
         label (str): the key for retrieving saved data from results.
-        pershot (bool): if True save a list of Cliffords for each
+        pershot (bool): if True save a list of StabilizerStates for each
                         shot of the simulation [Default: False].
         conditional (bool): if True save pershot data conditional on the
                             current classical register values

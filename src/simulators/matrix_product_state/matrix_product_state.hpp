@@ -59,7 +59,9 @@ const Operations::OpSet StateOpSet(
    OpType::save_statevec, OpType::save_probs,
    OpType::save_probs_ket, OpType::save_amps,
    OpType::save_amps_sq, OpType::save_mps, OpType::save_state,
-   OpType::set_mps, OpType::set_statevec},
+   OpType::set_mps, OpType::set_statevec,
+   OpType::jump, OpType::mark
+  },
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",
@@ -152,13 +154,6 @@ public:
                                             uint_t shots,
                                             RngEngine &rng) override;
 
-  // Computes sample_measure by first computing the probabilities and then
-  // randomly chooses measurement outcomes based on the probability weights
-  std::vector<reg_t> 
-  sample_measure_using_probabilities(const reg_t &qubits,
-				     uint_t shots,
-				     RngEngine &rng);
-
   // Computes sample_measure by copying the MPS to a temporary structure, and
   // applying a measurement on the temporary MPS. This is done for every shot,
   // so is not efficient for a large number of shots
@@ -166,7 +161,8 @@ public:
   sample_measure_using_apply_measure(const reg_t &qubits,
 				     uint_t shots,
 				     RngEngine &rng);
-
+std::vector<reg_t> sample_measure_all(uint_t shots, 
+				      RngEngine &rng);
   //-----------------------------------------------------------------------
   // Additional methods
   //-----------------------------------------------------------------------
@@ -631,10 +627,10 @@ void State::apply_save_mps(const Operations::Op &op,
                       : op.string_params[0];
   if (last_op) {
     BaseState::save_data_pershot(result, key, qreg_.move_to_mps_container(),
-				                         op.save_type);
+				                         OpType::save_mps, op.save_type);
   } else {
     BaseState::save_data_pershot(result, key, qreg_.copy_to_mps_container(),
-                                 op.save_type);
+                                 OpType::save_mps, op.save_type);
   }
 }
 
@@ -645,10 +641,10 @@ void State::apply_save_probs(const Operations::Op &op,
   if (op.type == OpType::save_probs_ket) {
     BaseState::save_data_average(result, op.string_params[0],
                                  Utils::vec2ket(probs, MPS::get_json_chop_threshold(), 16),
-                                 op.save_type);
+                                 op.type, op.save_type);
   } else {
     BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(probs), op.save_type);
+                                 std::move(probs), op.type, op.save_type);
   }
 }
 
@@ -664,10 +660,10 @@ void State::apply_save_amplitudes(const Operations::Op &op,
     std::transform(amps.data(), amps.data() + amps.size(), amps_sq.begin(),
       [](complex_t val) -> double { return pow(abs(val), 2); });
     BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(amps_sq), op.save_type);
+                                 std::move(amps_sq), op.type, op.save_type);
   } else {
     BaseState::save_data_pershot(result, op.string_params[0],
-                                 std::move(amps), op.save_type);
+                                 std::move(amps), op.type, op.save_type);
   }
 }
 
@@ -684,7 +680,7 @@ void State::apply_save_statevector(const Operations::Op &op,
         " Only the full statevector can be saved.");
   }
   BaseState::save_data_pershot(result, op.string_params[0],
-                               qreg_.full_statevector(), op.save_type);
+                               qreg_.full_statevector(), op.type, op.save_type);
 }
 
 
@@ -699,7 +695,7 @@ void State::apply_save_density_matrix(const Operations::Op &op,
   }
 
   BaseState::save_data_average(result, op.string_params[0],
-                               std::move(reduced_state), op.save_type);
+                               std::move(reduced_state), op.type, op.save_type);
 }
 
 //=========================================================================
@@ -1019,54 +1015,25 @@ rvector_t State::measure_probs(const reg_t &qubits) const {
   return probvector;
 }
 
-std::vector<reg_t> State::sample_measure(const reg_t &qubits,
-                                         uint_t shots,
+std::vector<reg_t> State::sample_measure(const reg_t& qubits,
+					 uint_t shots,
                                          RngEngine &rng) {
   // There are two alternative algorithms for sample measure
   // We choose the one that is optimal relative to the total number 
   // of qubits,and the number of shots.
   // The parameters used below are based on experimentation.
   // The user can override this by setting the parameter "mps_sample_measure_algorithm"
-  if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB){
-    return sample_measure_using_probabilities(qubits, shots, rng);
+  if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB && 
+      qubits.size() == qreg_.num_qubits()){
+    return sample_measure_all(shots, rng);
   }
-  if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB)
-    return sample_measure_using_probabilities(qubits, shots, rng);
   return sample_measure_using_apply_measure(qubits, shots, rng);
 }
 	     
 std::vector<reg_t> State::
-sample_measure_using_probabilities(const reg_t &qubits,
-				   uint_t shots,
-				   RngEngine &rng) {
-  // Generate flat register for storing
-  rvector_t rnds;
-  rnds.reserve(shots);
-  for (uint_t i = 0; i < shots; ++i)
-    rnds.push_back(rng.rand(0., 1.));
-
-  auto allbit_samples = qreg_.sample_measure_using_probabilities(rnds, qubits);
-
-  // Convert to reg_t format
-  std::vector<reg_t> all_samples;
-  all_samples.reserve(shots);
-  for (int_t val : allbit_samples) {
-    reg_t allbit_sample = Utils::int2reg(val, 2, qubits.size());
-    reg_t sample;
-    sample.reserve(qubits.size());
-    for (uint_t j=0; j<qubits.size(); j++){
-      sample.push_back(allbit_sample[j]);
-    }
-    all_samples.push_back(sample);
-  }
-  return all_samples;
-}
-
-std::vector<reg_t> State::
   sample_measure_using_apply_measure(const reg_t &qubits, 
 				     uint_t shots, 
 				     RngEngine &rng) {
-
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
   // input is always sorted in qasm_controller, therefore, we must return the qubits 
@@ -1096,6 +1063,18 @@ std::vector<reg_t> State::
     }
   }
 
+  return all_samples;
+}
+
+std::vector<reg_t> State::sample_measure_all(uint_t shots, 
+					     RngEngine &rng) {
+  std::vector<reg_t> all_samples;
+  all_samples.resize(shots);
+
+  for (uint_t i=0; i<shots;  i++) {
+    auto single_result = qreg_.sample_measure(shots, rng);
+    all_samples[i] = single_result;
+  }
   return all_samples;
 }
 

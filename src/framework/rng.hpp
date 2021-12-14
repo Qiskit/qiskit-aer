@@ -53,8 +53,17 @@ public:
   }
 
   // Set a fixed seed for the RNG engine
-  void set_seed(size_t seed) { rng.seed(seed); }
-  
+  void set_seed(size_t seed)
+  {
+    rng.seed(seed); 
+    initial_seed_ = seed;
+  }
+
+  size_t initial_seed(void)
+  {
+    return initial_seed_;
+  }
+
   //-----------------------------------------------------------------------
   // Sampling methods
   //-----------------------------------------------------------------------
@@ -95,6 +104,7 @@ public:
 
 private:
   std::mt19937_64 rng; // Mersenne twister rng engine
+  size_t initial_seed_; //save seed used to initialize rng engine 
 };
 
 //------------------------------------------------------------------------------

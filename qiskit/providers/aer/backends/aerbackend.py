@@ -21,18 +21,19 @@ import uuid
 import warnings
 from abc import ABC, abstractmethod
 
-from qiskit.circuit import ParameterExpression
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, ParameterExpression
 from qiskit.compiler import assemble
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
 from qiskit.utils import deprecate_arguments
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
+from .aer_compiler import compile_circuit
+from .backend_utils import format_save_type
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -194,7 +195,9 @@ class AerBackend(Backend, ABC):
             delattr(qobj.config, 'executor')
 
         # Optionally split the job
-        experiments = split_qobj(qobj, max_size=getattr(qobj.config, 'max_job_size', None))
+        experiments = split_qobj(
+            qobj, max_size=getattr(qobj.config, 'max_job_size', None),
+            max_shot_size=getattr(qobj.config, 'max_shot_size', None))
 
         # Temporarily remove any executor from options so that job submission
         # can work with Dask client executors which can't be pickled
@@ -279,7 +282,7 @@ class AerBackend(Backend, ABC):
             pending_jobs=0,
             status_msg='')
 
-    def _run(self, qobj, job_id=''):
+    def _run(self, qobj, job_id='', format_result=True):
         """Run a job"""
         # Start timer
         start = time.time()
@@ -310,7 +313,21 @@ class AerBackend(Backend, ABC):
             if "status" in output:
                 msg += f" and returned the following error message:\n{output['status']}"
             logger.warning(msg)
+        if format_result:
+            return self._format_results(output)
+        return output
 
+    @staticmethod
+    def _format_results(output):
+        """Format C++ simulator output for constructing Result"""
+        for result in output["results"]:
+            data = result.get("data", {})
+            metadata = result.get("metadata", {})
+            save_types = metadata.get("result_types", {})
+            save_subtypes = metadata.get("result_subtypes", {})
+            for key, val in data.items():
+                if key in save_types:
+                    data[key] = format_save_type(val, save_types[key], save_subtypes[key])
         return Result.from_dict(output)
 
     def _assemble(self, circuits, parameter_binds=None, **run_options):
@@ -329,10 +346,12 @@ class AerBackend(Backend, ABC):
             assemble_binds = []
             assemble_binds.append({param: 1 for bind in parameter_binds for param in bind})
 
-            qobj = assemble(circuits, self, parameter_binds=assemble_binds,
+            qobj = assemble(compile_circuit(circuits, self.configuration().basis_gates),
+                            self,
+                            parameter_binds=assemble_binds,
                             parameterizations=parameterizations)
         else:
-            qobj = assemble(circuits, self)
+            qobj = assemble(compile_circuit(circuits, self.configuration().basis_gates), self)
 
         # Add options
         for key, val in self.options.__dict__.items():
@@ -350,7 +369,7 @@ class AerBackend(Backend, ABC):
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             return circuits, run_options
 
-        if isinstance(circuits, (QuantumCircuit, Schedule)):
+        if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
             circuits = [circuits]
 
         # Flag for if we need to make a deep copy of the noise model
@@ -360,10 +379,18 @@ class AerBackend(Backend, ABC):
         noise_model = run_options.get(
             'noise_model', getattr(self.options, 'noise_model', None))
 
+        # Add custom pass noise only to QuantumCircuit objects
+        if noise_model and all(isinstance(circ, QuantumCircuit) for circ in circuits):
+            npm = noise_model._pass_manager()
+            if npm is not None:
+                circuits = npm.run(circuits)
+                if isinstance(circuits, QuantumCircuit):
+                    circuits = [circuits]
+
         # Check if circuits contain quantum error instructions
         run_circuits = []
         for circ in circuits:
-            if isinstance(circ, Schedule):
+            if isinstance(circ, (Schedule, ScheduleBlock)):
                 run_circuits.append(circ)
             else:
                 updated_circ = False

@@ -102,6 +102,12 @@ class QiskitAerTestCase(FullQiskitTestCase):
                     msg += ', (Circuit {}) {}'.format(i, res.status)
         self.assertTrue(success, msg=msg)
 
+    def assertNotSuccess(self, result):
+        """Assert that simulation executed with errors"""
+        success = getattr(result, 'success', False)
+        msg = result.status
+        self.assertFalse(success, msg=msg)
+
     @staticmethod
     def gate_circuits(gate_cls, num_angles=0, has_ctrl_qubits=False,
                       rng=None, basis_states=None):
