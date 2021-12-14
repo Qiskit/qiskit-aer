@@ -174,10 +174,9 @@ void State::apply_gate(const Operations::Op &op){
 }
 
 void State::apply_save_specific_prob(const Operations::Op &op, ExperimentResult &result){
-  std::vector<double> v;
+  std::cout << op.type << std::endl;
   double p = this->compute_probability(op.qubits, op.int_params);
-  v.push_back(p);
-  BaseState::save_data_average(result, op.string_params[0], std::move(v), Operations::DataSubType::list);
+  save_data_average(result, op.string_params[0], p, op.type, op.save_type);
 }
 
 // This function converts an unsigned binary number to reflected binary Gray code.

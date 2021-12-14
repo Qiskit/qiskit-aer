@@ -898,6 +898,12 @@ size_t AGState::apply_T_constraints(){
   return deleted_rows;
 }
 
+inline void to_json(json_t &js, const AGState &state)
+{
+  js["num_qubits"] = state.num_qubits;
+  js["num_stabilizers"] = state.num_stabilizers;
+}
+
 }
 }
 #endif
