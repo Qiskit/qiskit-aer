@@ -27,12 +27,12 @@ const uint_t ONE = 1u;
 class AGState{
 public:
   //initialize such that the jth stabilizer is the Pauli Z_j
-  AGState(uint_t num_qubits, uint_t num_stabilizers) : num_qubits(num_qubits), num_stabilizers(num_stabilizers) {};
+  AGState(uint_t qubits, uint_t stabilizers) : num_qubits(qubits), num_stabilizers(stabilizers) {};
   AGState() : num_qubits(0), num_stabilizers(0) {};
-  AGState(uint_t num_qubits) : num_qubits(num_qubits), num_stabilizers(num_qubits) {};
+  AGState(uint_t qubits) : num_qubits(qubits), num_stabilizers(qubits) {};
 
   void initialize();
-  void initialize(uint_t num_qubits);
+  void initialize(uint_t qubits);
   
   size_t num_qubits;
   size_t num_stabilizers; //we can represent mixed states so we may have fewer stabilizers than qubits
@@ -131,10 +131,10 @@ void AGState::initialize()
 }
 
 // Implementation
-void AGState::initialize(uint_t num_qubits)
+void AGState::initialize(uint_t qubits)
 {
-  this->num_qubits = num_qubits;
-  this->num_stabilizers = num_qubits;
+  this->num_qubits = qubits;
+  this->num_stabilizers = qubits;
   this->initialize();
 }
 
@@ -450,7 +450,7 @@ std::vector<Operations::Op> AGState::simplifying_unitary(){
   
   //we swap columns (using CX) to make the X part into a kxk identity followed by a "junk" block
   
-  for(int r = 0; r < this->num_stabilizers; r++){
+  for(size_t r = 0; r < this->num_stabilizers; r++){
     if(!this->table[r].X[r]){
       size_t col = this->first_non_zero_in_row(r, 0).second;
       
@@ -793,7 +793,7 @@ std::pair<bool, size_t> AGState::apply_constraints(size_t w, size_t t){
     }
     
     //now we just delete the non-identity guys on this qubit    
-    int num_to_delete = 0;
+    uint_t num_to_delete = 0;
     if(y_stab.first){
       //if we have a Y stab we don't have either of the others
       this->swap_rows(y_stab.second, this->num_stabilizers-1);
