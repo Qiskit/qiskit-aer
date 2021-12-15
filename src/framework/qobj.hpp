@@ -41,7 +41,7 @@ class Qobj {
 
   // Deserialization constructor
   template <typename inputdata_t>
-  Qobj(const inputdata_t &input, bool truncation = false);
+  Qobj(const inputdata_t &input);
 
   //----------------------------------------------------------------
   // Data
@@ -62,7 +62,7 @@ class Qobj {
 inline void from_json(const json_t &js, Qobj &qobj) { qobj = Qobj(js); }
 
 template <typename inputdata_t>
-Qobj::Qobj(const inputdata_t &input, bool truncation) {
+Qobj::Qobj(const inputdata_t &input) {
   // Check required fields
   if (Parser<inputdata_t>::get_value(id, "qobj_id", input) == false) {
     throw std::invalid_argument(R"(Invalid qobj: no "qobj_id" field)");
@@ -75,14 +75,20 @@ Qobj::Qobj(const inputdata_t &input, bool truncation) {
     throw std::invalid_argument(R"(Invalid qobj: no "experiments" field.)");
   }
 
-  // Get config
+  // Apply qubit truncation
+  bool truncation = true;
+
+  // Parse config
   if (Parser<inputdata_t>::get_value(config, "config", input)) {
-    // Parse noise model
-    Parser<json_t>::get_value(noise_model, "noise_model", config);
-    
-    // If noise model has non-local errors disable trunction
-    if (noise_model.has_nonlocal_quantum_errors()) {
-      truncation = false;
+    // Check for truncation option
+    Parser<json_t>::get_value(truncation, "enable_truncation", config);
+
+    // Load noise model
+    if (Parser<json_t>::get_value(noise_model, "noise_model", config)) {
+      // If noise model has non-local errors disable trunction
+      if (noise_model.has_nonlocal_quantum_errors()) {
+        truncation = false;
+      }
     }
   } else {
     config = json_t::object();

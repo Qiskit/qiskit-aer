@@ -332,8 +332,6 @@ protected:
     }
     return max_memory_mb_;
   }
-  // Truncate and remap input qubits
-  bool enable_truncation_ = true;
 
   // The maximum number of threads to use for various levels of parallelization
   int max_parallel_threads_;
@@ -390,8 +388,6 @@ protected:
 //-------------------------------------------------------------------------
 
 void Controller::set_config(const json_t &config) {
-  // Load validation threshold
-  JSON::get_value(enable_truncation_, "enable_truncation", config);
 
   // Load validation threshold
   JSON::get_value(validation_threshold_, "validation_threshold", config);
@@ -847,7 +843,7 @@ Result Controller::execute(const inputdata_t &input_qobj) {
     auto timer_start = myclock_t::now();
 
     // Initialize QOBJ
-    Qobj qobj(input_qobj, enable_truncation_);
+    Qobj qobj(input_qobj);
     auto qobj_time_taken =
         std::chrono::duration<double>(myclock_t::now() - timer_start).count();
 
