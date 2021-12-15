@@ -482,6 +482,9 @@ void Controller::set_config(const json_t &config) {
     }
   }
 
+  if(method_ == Method::density_matrix || method_ == Method::unitary)
+    batched_shots_gpu_max_qubits_ /= 2;
+
   // Override automatic simulation method with a fixed method
   if (JSON::get_value(sim_device_name_, "device", config)) {
     if (sim_device_name_ == "CPU") {
@@ -648,9 +651,9 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
                                              const Method method)  
 {
   enable_batch_multi_shots_ = false;
-  if(batched_shots_gpu_ && (sim_device_ == Device::GPU || sim_device_ == Device::cuStateVec) && 
+  if(batched_shots_gpu_ && sim_device_ == Device::GPU && 
      circ.shots > 1 && max_batched_states_ >= num_gpus_ && 
-     batched_shots_gpu_max_qubits_ >= circ.num_qubits ){
+     batched_shots_gpu_max_qubits_ >= circ.num_qubits ){  //cuStateVec is not supported currently
     enable_batch_multi_shots_ = true;
   }
 
