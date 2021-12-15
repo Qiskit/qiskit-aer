@@ -21,18 +21,18 @@ import uuid
 import warnings
 from abc import ABC, abstractmethod
 
-from qiskit.circuit import ParameterExpression
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, ParameterExpression
 from qiskit.compiler import assemble
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
 from qiskit.utils import deprecate_arguments
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
+from .aer_compiler import compile_circuit
 from .backend_utils import format_save_type
 
 # Logger
@@ -346,10 +346,12 @@ class AerBackend(Backend, ABC):
             assemble_binds = []
             assemble_binds.append({param: 1 for bind in parameter_binds for param in bind})
 
-            qobj = assemble(circuits, self, parameter_binds=assemble_binds,
+            qobj = assemble(compile_circuit(circuits, self.configuration().basis_gates),
+                            self,
+                            parameter_binds=assemble_binds,
                             parameterizations=parameterizations)
         else:
-            qobj = assemble(circuits, self)
+            qobj = assemble(compile_circuit(circuits, self.configuration().basis_gates), self)
 
         # Add options
         for key, val in self.options.__dict__.items():
@@ -367,7 +369,7 @@ class AerBackend(Backend, ABC):
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             return circuits, run_options
 
-        if isinstance(circuits, (QuantumCircuit, Schedule)):
+        if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
             circuits = [circuits]
 
         # Flag for if we need to make a deep copy of the noise model
@@ -388,7 +390,7 @@ class AerBackend(Backend, ABC):
         # Check if circuits contain quantum error instructions
         run_circuits = []
         for circ in circuits:
-            if isinstance(circ, Schedule):
+            if isinstance(circ, (Schedule, ScheduleBlock)):
                 run_circuits.append(circ)
             else:
                 updated_circ = False

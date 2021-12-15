@@ -23,6 +23,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import schedule
 from qiskit.providers.options import Options
 from qiskit.providers.models import BackendConfiguration, PulseDefaults
+from qiskit.providers.backend import BackendV2
 from qiskit.utils import deprecate_arguments
 
 from ..version import __version__
@@ -247,6 +248,10 @@ class PulseSimulator(AerBackend):
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
+        if isinstance(backend, BackendV2):
+            raise AerError(
+                "PulseSimulator.from_backend does not currently support V2 Backends."
+            )
         configuration = copy.copy(backend.configuration())
         defaults = copy.copy(backend.defaults())
         properties = copy.copy(backend.properties())
