@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "framework/circuit.hpp"
+#include "noise/noise_model.hpp"
 
 namespace AER {
 
@@ -50,6 +51,7 @@ class Qobj {
   std::vector<Circuit> circuits;  // List of circuits
   json_t header;                  // (optional) passed through to result
   json_t config;                  // (optional) qobj level config data
+  Noise::NoiseModel noise_model;  // (optional) noise model
 };
 
 //============================================================================
@@ -73,9 +75,23 @@ Qobj::Qobj(const inputdata_t &input, bool truncation) {
     throw std::invalid_argument(R"(Invalid qobj: no "experiments" field.)");
   }
 
-  // Get header and config;
-  Parser<inputdata_t>::get_value(config, "config", input);
-  Parser<inputdata_t>::get_value(header, "header", input);
+  // Get config
+  if (Parser<inputdata_t>::get_value(config, "config", input)) {
+    // Parse noise model
+    Parser<json_t>::get_value(noise_model, "noise_model", config);
+    
+    // If noise model has non-local errors disable trunction
+    if (noise_model.has_nonlocal_quantum_errors()) {
+      truncation = false;
+    }
+  } else {
+    config = json_t::object();
+  }
+
+  // Parse header
+  if (!Parser<inputdata_t>::get_value(header, "header", input)) {
+    header = json_t::object();
+  }
 
   // Check for fixed simulator seed
   // If simulator seed is set, each experiment will be set to a fixed (but different) seed
