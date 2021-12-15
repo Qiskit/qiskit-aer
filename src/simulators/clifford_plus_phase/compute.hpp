@@ -72,7 +72,7 @@ private:
   const static stringmap_t<Gates> gateset_;
 
   size_t num_code_qubits; //our AG state has code+magic qubits
-  double compute_probability(std::vector<size_t> measured_qubits, std::vector<uint_t> outcomes);
+  double compute_probability(std::vector<uint_t> measured_qubits, std::vector<uint_t> outcomes);
 };
 
 
@@ -174,7 +174,6 @@ void State::apply_gate(const Operations::Op &op){
 }
 
 void State::apply_save_specific_prob(const Operations::Op &op, ExperimentResult &result){
-  std::cout << op.type << std::endl;
   double p = this->compute_probability(op.qubits, op.int_params);
   save_data_average(result, op.string_params[0], p, op.type, op.save_type);
 }
