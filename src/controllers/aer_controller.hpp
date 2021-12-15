@@ -668,6 +668,11 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
     enable_batch_multi_shots_ = true;
   }
 
+  if(sim_device_ == Device::cuStateVec){
+    parallel_shots_ = 1;    //cuStateVec beta 1 is not thread safe
+    return;
+  }
+
   if(explicit_parallelization_)
     return;
 

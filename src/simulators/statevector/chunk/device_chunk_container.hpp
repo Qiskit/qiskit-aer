@@ -264,8 +264,8 @@ public:
   void queue_blocked_gate(uint_t iChunk,char gate,uint_t qubit,uint_t mask,const std::complex<double>* pMat = NULL);
 
   //apply matrix using cuStatevec
-  void apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count);
-  void apply_diagonal_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t count);
+  void apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count) override;
+  void apply_diagonal_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t count) override;
 };
 
 template <typename data_t>
@@ -1280,14 +1280,14 @@ void DeviceChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const reg_t&
 
   thrust::complex<double>* pMat;
 
-  if(count == this->num_chunks_ && iChunk == 0){
+//  if(count == this->num_chunks_ && iChunk == 0){
     StoreMatrix(mat,iChunk);
     pMat = matrix_pointer(iChunk);
-  }
-  else{
+//  }
+//  else{
     //if operation is not batchable, use host memory
-    pMat = (thrust::complex<double>*)&mat[0];
-  }
+//    pMat = (thrust::complex<double>*)&mat[0];
+//  }
 
   std::vector<int32_t> qubits32(qubits.size());
   for(int_t i=0;i<qubits.size();i++)

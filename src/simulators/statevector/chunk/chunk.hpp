@@ -356,7 +356,7 @@ public:
   }
   void apply_diagonal_matrix(const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t count)
   {
-    chunk_container_.lock()->apply_matrix(chunk_pos_,qubits,control_bits,diag,count);
+    chunk_container_.lock()->apply_diagonal_matrix(chunk_pos_,qubits,control_bits,diag,count);
   }
 };
 

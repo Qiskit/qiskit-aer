@@ -3181,8 +3181,12 @@ void QubitVectorThrust<data_t>::apply_mcphase(const reg_t &qubits, const std::co
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
 
-  if(enable_cuStatevec_)
-    return chunk_.apply_matrix(qubits,qubits.size()-1,Linalg::VMatrix::phase(phase),chunk_.container()->num_chunks());
+  if(enable_cuStatevec_){
+    cvector_t<double> diag(2);
+    diag[0] = 1.0;
+    diag[1] = phase;
+    return chunk_.apply_diagonal_matrix(qubits,qubits.size()-1,diag,chunk_.container()->num_chunks());
+  }
 
   if(register_blocking_){
     int i;
