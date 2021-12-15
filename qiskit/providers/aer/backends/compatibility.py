@@ -40,9 +40,10 @@ def _deprecation_warning(instance, instances_name):
     warnings.warn(
         f"The return type of saved {instances_name} has been changed from"
         f" a `numpy.ndarray` to a `qiskit.quantum_info.{class_name}` as"
-        "of qiskit-aer 0.10. Accessing numpy array attributes is deprecated"
-        " and will result in an error in a future release. Use the `.data`"
-        " property to access the the stored ndarray.",
+        " of qiskit-aer 0.10. Accessing numpy array attributes is deprecated"
+        " and will result in an error in a future release. To continue using"
+        " saved result objects as arrays you can explicitly cast them using "
+        " `np.asarray(object)`.",
         DeprecationWarning,
         stacklevel=3,
     )

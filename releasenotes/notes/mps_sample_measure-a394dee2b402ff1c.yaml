@@ -1,6 +1,0 @@
-
-other:
-  - |
-    Implemented new algorithm for MPS::sample_measure. Currently this algorithm
-    is used only when all qubits are measured and when 
-    "mps_sample_measure_algorithm" is set to "mps_probabilities".

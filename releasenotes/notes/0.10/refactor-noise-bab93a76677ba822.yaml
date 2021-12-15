@@ -1,0 +1,137 @@
+---
+features:
+  - |
+    The constructor of :class:`~qiskit.providers.aer.noise.QuantumError` now
+    accepts several new types of input as ``noise_ops`` argument, for example:
+
+    .. code-block:: python
+
+      import numpy as np
+
+      from qiskit import QuantumCircuit
+      from qiskit.circuit.library import IGate, XGate, Reset
+      from qiskit.quantum_info import Kraus
+      from qiskit.providers.aer.noise import QuantumError
+
+      # Quantum channels
+      kraus = Kraus([
+          np.array([[1, 0], [0, np.sqrt(1 - 0.9)]], dtype=complex),
+          np.array([[0, 0], [0, np.sqrt(0.9)]], dtype=complex)
+      ])
+      print(QuantumError(kraus))
+
+      # Construction from a QuantumCircuit
+      qc = QuantumCircuit(2)
+      qc.h(0)
+      qc.cx(0, 1)
+      error = QuantumError(qc)
+
+      # Construction from a tuple of (Instruction, List[int]), where the list of
+      # integers represents the qubits.
+      error = QuantumError((Reset(), [0]))
+
+      # Construction from an iterable of objects in the same form as above, but
+      # where each also has an associated probability.
+      error = QuantumError([
+          ((IGate(), [0]), 0.9),
+          ((XGate(), [0]), 0.1),
+      ])
+
+      # A short-hand for the iterable form above, where the qubits are implicit,
+      # and each instruction is over all qubits.
+      error = QuantumError([(IGate(), 0.9), (XGate(), 0.1)])
+
+    Note that the original JSON-based input format is deperecated.
+  - |
+    Added a utility function :func:`qiskit.providers.aer.utils.transform_noise_model`
+    for constructing a noise model by applying a supplied function to all
+    :class:`~qiskit.providers.aer.noise.QuantumError`\ s in the noise model.
+  - |
+    Added two utility functions
+    :func:`qiskit.providers.aer.utils.transpile_quantum_error` and
+    :func:`qiskit.providers.aer.utils.transpile_noise_model` for transpiling
+    the circuits contained in :class:`~qiskit.providers.aer.noise.QuantumError`,
+    and all errors in a :class:`~qiskit.providers.aer.noise.NoiseModel`.
+  - |
+    Added the ability to add :class:`~qiskit.providers.aer.noise.QuantumError`
+    objects directly to a :class:`.QuantumCircuit` without converting
+    to a :class:`~qiskit.quantum_info.Kraus` instruction.
+
+    Circuits containing quantum errors can now be run on the
+    :class:`~qiskit.providers.aer.AerSimulator` and
+    :class:`~qiskit.providers.aer.QasmSimulator` simulators as an alternative
+    to, or in addition to, building a
+    :class:`~qiskit.providers.aer.noise.NoiseModel` for defining noisy circuit
+    instructions.
+
+    Example::
+
+        from qiskit import QuantumCircuit
+        from qiskit.providers.aer import AerSimulator
+        from qiskit.providers.aer.noise import pauli_error
+
+        error_h = pauli_error([('I', 0.95), ('X', 0.05)])
+        error_cx = pauli_error([('II', 0.9), ('XX', 0.1)])
+
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.append(error_h, [0])
+        qc.cx(0, 1)
+        qc.append(error_cx, [0, 1])
+        qc.cx(0, 2)
+        qc.append(error_cx, [0, 2])
+        qc.measure_all()
+
+        backend = AerSimulator(method='stabilizer')
+        result = backend.run(qc).result()
+        result.get_counts(0)
+
+    Circuits containing quantum errors can also be evaluated using
+    the :mod:`~qiskit.quantum_info` quantum channel and
+    :class:`~qiskit.quantum_info.DensityMatrix` classes.
+upgrade:
+  - |
+    Changed the default value of ``standard_gates`` to ``None`` for all functions
+    in :mod:`qiskit.providers.aer.noise.errors.standard_errors` as
+    those functions are updated so that they use standard gates by default.
+  - |
+    When an unsupported argument is supplied to :func:`.approximate_quantum_error`,
+    it will now raise a :class:`.NoiseError` instead of a ``RuntimeError``.
+deprecations:
+  - |
+    Deprecated the ``number_of_qubits`` option of the :class:`.QuantumError`
+    constructor in favor of automatic determination of the dimension.
+  - |
+    Deprecated the ``standard_gates`` option of the :class:`.QuantumError`
+    constructor in favor of externalizing such basis-change functionality.
+    In many cases, you can transform any error into an error defined
+    only with specific gates using :func:`.approximate_quantum_error`.
+  - |
+    Deprecated the ``standard_gates`` option of all functions in
+    :mod:`qiskit.providers.aer.noise.errors.standard_errors`
+    in favor of returning errors in the form of a mixture of standard gates
+    as much as possible by default.
+  - |
+    Deprecated all functions in :mod:`~qiskit.providers.aer.noise.errors.errorutils`
+    because they are helper functions meant to be used only for implementing
+    functions in :mod:`qiskit.providers.aer.noise.errors.standard_errors` and
+    they should have been provided as private functions.
+  - |
+    Deprecated the ``standard_gates`` option of :meth:`.NoiseModel.from_backend`
+    in favor of externalizing such basis-change functionality.
+  - |
+    Deprecated :meth:`.NoiseModel.from_dict` to make the noise model
+    independent of Qobj (JSON) format.
+  - |
+    Deprecated all public variables, functions and classes in
+    :mod:`qiskit.providers.aer.noise.utils.noise_transformation` except for
+    :func:`.approximate_quantum_error` and :func:`.approximate_noise_model`,
+    because they are helper functions meant to be used only for implementing the
+    ``approximate_*`` functions and they should have been provided as private functions.
+  - |
+    Deprecated :func:`.remap_noise_model` since the C++ code now automatically
+    truncates and remaps noise models if it truncates circuits.
+other:
+  - |
+    Changes in the implementation of the function :func:`.approximate_quantum_error`
+    may change the resulting approximate error compared to Qiskit Aer 0.9.
