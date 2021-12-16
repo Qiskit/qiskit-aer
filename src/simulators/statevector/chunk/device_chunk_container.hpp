@@ -317,6 +317,7 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qu
 #endif
 
 #ifdef AER_CUSTATEVEC
+  custatevec_handle_ = nullptr;
   if(enable_cuStatevec_){
     //initialize custatevevtor handle
     custatevecStatus_t err;
@@ -486,10 +487,10 @@ void DeviceChunkContainer<data_t>::Deallocate(void)
   blocked_qubits_holder_.clear();
 
 #ifdef AER_CUSTATEVEC
-  if(enable_cuStatevec_){
-    custatevec_work_.clear();
-    custatevec_work_.shrink_to_fit();
-
+  custatevec_work_.clear();
+  custatevec_work_.shrink_to_fit();
+  if(custatevec_handle_){
+    custatevecSetStream(custatevec_handle_,nullptr);
     custatevecDestroy(custatevec_handle_);
   }
 #endif

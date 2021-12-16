@@ -44,6 +44,7 @@ public:
     num_qubits_ = 0;
     chunk_index_ = 0;
     mapped_ = false;
+    cache_ = nullptr;
   }
 
   Chunk(std::weak_ptr<ChunkContainer<data_t>> cc,uint_t pos)
@@ -54,6 +55,7 @@ public:
     num_qubits_ = 0;
     chunk_index_ = 0;
     mapped_ = false;
+    cache_ = nullptr;
   }
   Chunk(Chunk<data_t>& chunk)   //map chunk from exisiting chunk (used fo cache chunk)
   {
@@ -63,9 +65,12 @@ public:
     num_qubits_ = chunk.num_qubits_;
     chunk_index_ = chunk.chunk_index_;
     mapped_ = true;
+    cache_ = nullptr;
   }
   ~Chunk()
   {
+    if(cache_)
+      cache_.reset();
   }
 
   void set_device(void) const
