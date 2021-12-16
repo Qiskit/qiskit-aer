@@ -162,9 +162,17 @@ def split_qobj(qobj, max_size=None, max_shot_size=None, qobj_id=None):
     Returns:
         List: A list of qobjs.
     """
+    optypes = getattr(qobj.config, 'optypes', None)
     split_qobj_list = []
     if (max_shot_size is not None and max_shot_size > 0):
-        if _check_custom_instruction(qobj.experiments):
+        contains_saves = False
+        if optypes is None:
+            contains_saves = _check_custom_instruction(qobj.experiments)
+        else:
+            contains_saves = any(
+                "save" in name for optype in optypes for name in optype
+            )
+        if contains_saves:
             raise JobError("`max_shot_size` option cannot"
                            "be used with circuits containing save instructions.")
 
