@@ -1,4 +1,7 @@
 ---
+prelude: >
+    The Qiskit Aer 0.10.1 patch fixes performance regressions introduced in
+    Qiskit Aer 0.10.0.
 fixes:
   - |
     Fix performance regression in noisy simulations due to large increase in
