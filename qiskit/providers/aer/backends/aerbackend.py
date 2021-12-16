@@ -338,7 +338,7 @@ class AerBackend(Backend, ABC):
         else:
             # Generate optypes for circuit
             # Generate opsets of instructions
-            if not isinstance(circuits,list):
+            if not isinstance(circuits, list):
                 circuits = [circuits]
             optypes = [circuit_optypes(circ) for circ in circuits]
 
