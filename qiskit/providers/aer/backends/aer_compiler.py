@@ -20,6 +20,7 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     ContinueLoopOp)
 from qiskit.compiler import transpile
+from .backend_utils import circuit_optypes
 from ..library.control_flow_instructions import AerMark, AerJump
 
 
@@ -40,27 +41,29 @@ class AerCompiler:
                             (default: None).
 
         Returns:
-            QuantumCircuit or list: QuantumCircuit (or list
-                of QuantumCircuit objects) without control-flow instructions
+            tuple: Typle of list QuantumCircuit without control-flow
+                   instructions and list of optypes for each circuit.
         """
-        if isinstance(circuits, QuantumCircuit):
+        if not isinstance(circuits, list):
             circuits = [circuits]
+        if optypes is None:
+            optypes = len(circuits) * [None]
         if isinstance(circuits, list):
             basis_gates = basis_gates + ['mark', 'jump']
             compiled_circuits = []
             for idx, circuit in enumerate(circuits):
-                optype = optypes[idx] if optypes else None
-                if isinstance(circuit, QuantumCircuit) and self._is_dynamic(
-                        circuit, optype):
+                if self._is_dynamic(circuit, optypes[idx]):
                     compiled_circ = transpile(
                         self._inline_circuit(circuit, None, None),
                         basis_gates=basis_gates
                     )
                     compiled_circuits.append(compiled_circ)
+                    # Recompute optype for compiled circuit
+                    optypes[idx] = circuit_optypes(compiled_circ)
                 else:
                     compiled_circuits.append(circuit)
-            return compiled_circuits
-        return circuits
+            return compiled_circuits, optypes
+        return circuits, optypes
 
     @staticmethod
     def _is_dynamic(circuit, optype=None):

@@ -34,7 +34,7 @@ from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
 from ..noise.errors.quantum_error import QuantumChannelInstruction
 from .aer_compiler import compile_circuit
-from .backend_utils import format_save_type
+from .backend_utils import format_save_type, circuit_optypes
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -331,53 +331,46 @@ class AerBackend(Backend, ABC):
                     data[key] = format_save_type(val, save_types[key], save_subtypes[key])
         return Result.from_dict(output)
 
-    @staticmethod
-    def _circuit_optypes(circuit):
-        """Retur set of all operation names in a circuit"""
-        if not isinstance(circuit, QuantumCircuit):
-            return set()
-        optypes = set()
-        for instr, _, _ in circuit._data:
-            optypes.add(type(instr))
-        return optypes
-
     def _assemble(self, circuits, parameter_binds=None, **run_options):
         """Assemble one or more Qobj for running on the simulator"""
-        # Remove quantum error instructions from circuits and add to
-        # run option noise model
-        circuits, optypes, run_options = self._assemble_noise_model(circuits, **run_options)
-
-        # This conditional check can be removed when we remove passing
-        # qobj to run
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             qobj = circuits
-        elif parameter_binds:
-            # Handle parameter binding
-            parameterizations = self._convert_binds(circuits, parameter_binds)
-            assemble_binds = []
-            assemble_binds.append({param: 1 for bind in parameter_binds for param in bind})
-
-            qobj = assemble(
-                compile_circuit(
-                    circuits,
-                    basis_gates=self.configuration().basis_gates,
-                    optypes=optypes),
-                self,
-                parameter_binds=assemble_binds,
-                parameterizations=parameterizations)
         else:
-            qobj = assemble(
-                compile_circuit(
-                    circuits,
-                    basis_gates=self.configuration().basis_gates,
-                    optypes=optypes),
-                self)
+            # Generate optypes for circuit
+            # Generate opsets of instructions
+            if not isinstance(circuits,list):
+                circuits = [circuits]
+            optypes = [circuit_optypes(circ) for circ in circuits]
 
-        # Add optypes to qobj
-        # We convert to strings to avoid pybinding of types
-        qobj.config.optypes = [
-            [i.__name__ for i in optype] if optype else [] for optype in optypes
-        ]
+            # Compile Qasm3 instructions
+            circuits, optypes = compile_circuit(
+                circuits,
+                basis_gates=self.configuration().basis_gates,
+                optypes=optypes)
+
+            # run option noise model
+            circuits, optypes, run_options = self._assemble_noise_model(
+                circuits, optypes, **run_options)
+
+            if parameter_binds:
+                # Handle parameter binding
+                parameterizations = self._convert_binds(circuits, parameter_binds)
+                assemble_binds = []
+                assemble_binds.append({param: 1 for bind in parameter_binds for param in bind})
+
+                qobj = assemble(
+                    circuits,
+                    backend=self,
+                    parameter_binds=assemble_binds,
+                    parameterizations=parameterizations)
+            else:
+                qobj = assemble(circuits, backend=self)
+
+            # Add optypes to qobj
+            # We convert to strings to avoid pybinding of types
+            qobj.config.optypes = [
+                [i.__name__ for i in optype] if optype else []
+                for optype in optypes]
 
         # Add options
         for key, val in self.options.__dict__.items():
@@ -390,20 +383,13 @@ class AerBackend(Backend, ABC):
 
         return qobj
 
-    def _assemble_noise_model(self, circuits, **run_options):
+    def _assemble_noise_model(self, circuits, optypes, **run_options):
         """Move quantum error instructions from circuits to noise model"""
-        if isinstance(circuits, (QasmQobj, PulseQobj)):
-            optypes = [set() for _ in range(len(circuits.experiments))]
-            return circuits, optypes, run_options
-
         if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
             run_circuits = [circuits]
         else:
             # Make a shallow copy so we can modify list elements if required
             run_circuits = copy.copy(circuits)
-
-        # Generate opsets of instructions
-        optypes = [self._circuit_optypes(circ) for circ in run_circuits]
 
         # Flag for if we need to make a deep copy of the noise model
         # This avoids unnecessarily copying the noise model for circuits
@@ -420,7 +406,7 @@ class AerBackend(Backend, ABC):
             if npm is not None:
                 # Get indicies of circuits that need noise transpiling
                 transpile_idxs = [
-                    idx for idx, opset in enumerate(optypes) if Delay in opset
+                    idx for idx, optype in enumerate(optypes) if Delay in optype
                 ]
 
                 # Transpile only the required circuits
@@ -431,7 +417,7 @@ class AerBackend(Backend, ABC):
                 # Update the circuits with transpiled ones
                 for idx, circ in zip(transpile_idxs, transpiled_circuits):
                     run_circuits[idx] = circ
-                    optypes[idx] = self._circuit_optypes(circ)
+                    optypes[idx] = circuit_optypes(circ)
 
         # Check if circuits contain quantum error instructions
         for idx, circ in enumerate(run_circuits):
@@ -463,8 +449,7 @@ class AerBackend(Backend, ABC):
                     new_circ = circ.copy()
                     new_circ.data = new_data
                     run_circuits[idx] = new_circ
-                    if QuantumChannelInstruction in optypes[idx]:
-                        optypes[idx].remove(QuantumChannelInstruction)
+                    optypes[idx].discard(QuantumChannelInstruction)
 
         # If we modified the existing noise model, add it to the run options
         if updated_noise:

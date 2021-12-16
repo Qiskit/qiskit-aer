@@ -207,3 +207,14 @@ def format_save_type(data, save_type, save_subtype):
         return {key: func(val) for key, val in data.items()}
 
     return func(data)
+
+
+def circuit_optypes(circuit):
+    """Return set of all operation names in a circuit"""
+    if not isinstance(circuit, QuantumCircuit):
+        return set()
+    optypes = set()
+    for inst, _, _ in circuit._data:
+        optypes.update(type(inst).mro())
+    optypes.discard(object)
+    return optypes
