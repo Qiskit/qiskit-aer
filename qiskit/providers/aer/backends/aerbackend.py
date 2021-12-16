@@ -21,7 +21,7 @@ import uuid
 import warnings
 from abc import ABC, abstractmethod
 
-from qiskit.circuit import QuantumCircuit, ParameterExpression
+from qiskit.circuit import QuantumCircuit, ParameterExpression, Delay
 from qiskit.compiler import assemble
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
@@ -379,8 +379,16 @@ class AerBackend(Backend, ABC):
         noise_model = run_options.get(
             'noise_model', getattr(self.options, 'noise_model', None))
 
-        # Add custom pass noise only to QuantumCircuit objects
-        if noise_model and all(isinstance(circ, QuantumCircuit) for circ in circuits):
+        # Add custom pass noise only to QuantumCircuit objects with no delays
+        def _contains_delay(circuit):
+            for op, _, _ in circuit.data:
+                if isinstance(op, Delay):
+                    return True
+            return False
+
+        if (noise_model and
+                all(isinstance(circ, QuantumCircuit) for circ in circuits) and
+                any(_contains_delay(circ) for circ in circuits)):
             npm = noise_model._pass_manager()
             if npm is not None:
                 circuits = npm.run(circuits)
