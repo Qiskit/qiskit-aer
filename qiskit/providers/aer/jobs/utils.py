@@ -121,23 +121,19 @@ def _split_qobj(qobj, max_size, qobj_id, seed):
 
 
 def _check_custom_instruction(experiments, optypes=None):
-
-    def _check_not_allowed(inst_name):
-        for not_allowed in ["Save", "Snapshot"]:
-            if not_allowed in inst_name:
-                return True
-        return False
-
+    """Return True if circuits contain instructions that cant be split"""
     # Check via optype list if available
     if optypes is not None:
+        # Optypes store class names as strings
         return any(
-            _check_not_allowed(name)
-            for optype in optypes for name in optype)
-
+            "Save"  in name or "Snapshot" in name
+            for optype in optypes for name in optype
+        )
     # Otherwise iterate over instructions
     return any(
-        _check_not_allowed(inst.name)
-        for exp in experiments for inst in exp.instructions)
+        "save"  in inst.name or "snapshot" in inst.name
+        for exp in experiments for inst in exp.instructions
+    )
 
 
 def _set_seed(qobj_list, seed):
