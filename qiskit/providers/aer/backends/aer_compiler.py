@@ -76,8 +76,8 @@ class AerCompiler:
         )
 
         # Check via optypes
-        if isinstance(optype, set) and optype.intersection(controlflow_types):
-            return True
+        if isinstance(optype, set):
+            return bool(optype.intersection(controlflow_types))
 
         # Check via iteration
         for inst, _, _ in circuit.data:
