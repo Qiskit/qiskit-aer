@@ -125,7 +125,7 @@ def _check_custom_instruction(experiments):
     # check if save instruction exist
     for exp in experiments:
         for inst in exp.instructions:
-            if "save" in inst.name:
+            if "Save" in inst.name or "Snapshot" in inst.name:
                 return True
     return False
 
