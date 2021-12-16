@@ -13,6 +13,7 @@
 Compier to convert Qiskit control-flow to Aer backend.
 """
 from qiskit.circuit import QuantumCircuit
+from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.circuit.controlflow import (
     WhileLoopOp,
     ForLoopOp,
@@ -41,28 +42,39 @@ class AerCompiler:
                             (default: None).
 
         Returns:
-            tuple: Typle of list QuantumCircuit without control-flow
-                   instructions and list of optypes for each circuit.
+            list: A list QuantumCircuit without control-flow
+                  if optypes is None.
+            tuple: A tuple of a list of quantum circuits and list of
+                   compiled circuit optypes for each circuit if
+                   optypes kwarg is not None.
         """
-        if not isinstance(circuits, list):
+        if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
             circuits = [circuits]
         if optypes is None:
-            optypes = len(circuits) * [None]
+            compiled_optypes = len(circuits) * [None]
+        else:
+            # Make a shallow copy incase we modify it
+            compiled_optypes = list(optypes)
         if isinstance(circuits, list):
             basis_gates = basis_gates + ['mark', 'jump']
             compiled_circuits = []
             for idx, circuit in enumerate(circuits):
-                if self._is_dynamic(circuit, optypes[idx]):
+                if self._is_dynamic(circuit, compiled_optypes[idx]):
                     compiled_circ = transpile(
                         self._inline_circuit(circuit, None, None),
                         basis_gates=basis_gates
                     )
                     compiled_circuits.append(compiled_circ)
                     # Recompute optype for compiled circuit
-                    optypes[idx] = circuit_optypes(compiled_circ)
+                    compiled_optypes[idx] = circuit_optypes(compiled_circ)
                 else:
                     compiled_circuits.append(circuit)
-            return compiled_circuits, optypes
+            if optypes is None:
+                return compiled_circuits
+            return compiled_circuits, compiled_optypes
+
+        if optypes is None:
+            return circuits
         return circuits, optypes
 
     @staticmethod

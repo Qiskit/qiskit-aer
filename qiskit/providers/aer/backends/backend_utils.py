@@ -210,7 +210,7 @@ def format_save_type(data, save_type, save_subtype):
 
 
 def circuit_optypes(circuit):
-    """Return set of all operation names in a circuit"""
+    """Return set of all operation types and parent types in a circuit."""
     if not isinstance(circuit, QuantumCircuit):
         return set()
     optypes = set()

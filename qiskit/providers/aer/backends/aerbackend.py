@@ -338,7 +338,7 @@ class AerBackend(Backend, ABC):
         else:
             # Generate optypes for circuit
             # Generate opsets of instructions
-            if not isinstance(circuits, list):
+            if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
                 circuits = [circuits]
             optypes = [circuit_optypes(circ) for circ in circuits]
 
@@ -369,7 +369,7 @@ class AerBackend(Backend, ABC):
             # Add optypes to qobj
             # We convert to strings to avoid pybinding of types
             qobj.config.optypes = [
-                [i.__name__ for i in optype] if optype else []
+                set(i.__name__ for i in optype) if optype else set()
                 for optype in optypes]
 
         # Add options
