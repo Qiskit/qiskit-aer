@@ -13,6 +13,7 @@
 Compier to convert Qiskit control-flow to Aer backend.
 """
 from qiskit.circuit import QuantumCircuit
+from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.circuit.controlflow import (
     WhileLoopOp,
     ForLoopOp,
@@ -20,6 +21,7 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     ContinueLoopOp)
 from qiskit.compiler import transpile
+from .backend_utils import circuit_optypes
 from ..library.control_flow_instructions import AerMark, AerJump
 
 
@@ -29,37 +31,71 @@ class AerCompiler:
     def __init__(self):
         self._last_flow_id = -1
 
-    def compile(self, circuits, basis_gates=None):
+    def compile(self, circuits, basis_gates=None, optypes=None):
         """compile a circuit that have control-flow instructions.
 
         Args:
-            circuits (QuantumCircuit or list): The QuantumCircuit (or list
-                of QuantumCircuit objects) to be compiled
-            basis_gates (list): basis gates to decompose sub-circuits(default: None).
+            circuits (QuantumCircuit or list): The QuantumCircuits to be compiled
+            basis_gates (list): basis gates to decompose sub-circuits
+                                (default: None).
+            optypes (list): list of instruction type sets for each circuit
+                            (default: None).
 
         Returns:
-            QuantumCircuit or list: QuantumCircuit (or list
-                of QuantumCircuit objects) without control-flow instructions
+            list: A list QuantumCircuit without control-flow
+                  if optypes is None.
+            tuple: A tuple of a list of quantum circuits and list of
+                   compiled circuit optypes for each circuit if
+                   optypes kwarg is not None.
         """
-        if basis_gates:
-            basis_gates = basis_gates + ['mark', 'jump']
-        if isinstance(circuits, list):
-            return [transpile(self._inline_circuit(circ, None, None),
-                              basis_gates=basis_gates) if self._is_dynamic(circ)
-                    else circ for circ in circuits]
+        if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
+            circuits = [circuits]
+        if optypes is None:
+            compiled_optypes = len(circuits) * [None]
         else:
-            return (transpile(self._inline_circuit(circuits, None, None),
-                              basis_gates=basis_gates) if self._is_dynamic(circuits)
-                    else circuits)
+            # Make a shallow copy incase we modify it
+            compiled_optypes = list(optypes)
+        if isinstance(circuits, list):
+            basis_gates = basis_gates + ['mark', 'jump']
+            compiled_circuits = []
+            for idx, circuit in enumerate(circuits):
+                if self._is_dynamic(circuit, compiled_optypes[idx]):
+                    compiled_circ = transpile(
+                        self._inline_circuit(circuit, None, None),
+                        basis_gates=basis_gates
+                    )
+                    compiled_circuits.append(compiled_circ)
+                    # Recompute optype for compiled circuit
+                    compiled_optypes[idx] = circuit_optypes(compiled_circ)
+                else:
+                    compiled_circuits.append(circuit)
+            if optypes is None:
+                return compiled_circuits
+            return compiled_circuits, compiled_optypes
 
-    def _is_dynamic(self, circuit):
-        """check whether a circuit contains control-flow instructions
-        """
+        if optypes is None:
+            return circuits
+        return circuits, optypes
+
+    @staticmethod
+    def _is_dynamic(circuit, optype=None):
+        """check whether a circuit contains control-flow instructions"""
         if not isinstance(circuit, QuantumCircuit):
             return False
+
+        controlflow_types = (
+            WhileLoopOp, ForLoopOp, IfElseOp, BreakLoopOp, ContinueLoopOp
+        )
+
+        # Check via optypes
+        if isinstance(optype, set):
+            return bool(optype.intersection(controlflow_types))
+
+        # Check via iteration
         for inst, _, _ in circuit.data:
-            if isinstance(inst, (WhileLoopOp, ForLoopOp, IfElseOp, BreakLoopOp, ContinueLoopOp)):
+            if isinstance(inst, controlflow_types):
                 return True
+
         return False
 
     def _inline_circuit(self, circ, continue_label, break_label):
@@ -187,8 +223,8 @@ class AerCompiler:
         parent.append(AerMark(if_end_label, true_body.num_qubits), qargs, [])
 
 
-def compile_circuit(circuits, basis_gates=None):
+def compile_circuit(circuits, basis_gates=None, optypes=None):
     """
     compile a circuit that have control-flow instructions
     """
-    return AerCompiler().compile(circuits, basis_gates)
+    return AerCompiler().compile(circuits, basis_gates, optypes)
