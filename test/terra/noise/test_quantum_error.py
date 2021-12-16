@@ -283,8 +283,9 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
         )
 
     @staticmethod
-    def aslist(qargs):
-        return [q.index for q in qargs]
+    def qubits_list(circ, qargs):
+        qubit_map = {qubit: i for i, qubit in enumerate(circ.qubits)}
+        return [qubit_map[q] for q in qargs]
 
     @ddt.data(
         ('id', np.eye(2)),
@@ -384,7 +385,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
             instr, _ = error.error_term(j)
             self.assertEqual(len(instr), 1)
             self.assertIn(instr[0][0].name, ['x', 'y', 'z', 'id'])
-            self.assertEqual(self.aslist(instr[0][1]), [0])
+            self.assertEqual(self.qubits_list(instr, instr[0][1]), [0])
         target = SuperOp(kraus)
         self.assertEqual(target, SuperOp(error))
 
@@ -398,7 +399,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
         circ, prob = error.error_term(0)
         self.assertEqual(prob, 1)
         self.assertEqual(circ[0][0].name, 'kraus')
-        self.assertEqual(self.aslist(circ.qubits), [0, 1])
+        self.assertEqual(self.qubits_list(circ, circ.qubits), [0, 1])
         self.assertEqual(target, SuperOp(error), msg="Incorrect tensor kraus")
 
     def test_tensor_both_unitary_standard_gates(self):
@@ -417,7 +418,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
             self.assertEqual(len(circ), 2)
             for instr, qargs, _ in circ:
                 self.assertIn(instr.name, ['s', 'x', 'y', 'z'])
-                self.assertIn(self.aslist(qargs), [[0], [1]])
+                self.assertIn(self.qubits_list(circ, qargs), [[0], [1]])
         self.assertEqual(SuperOp(error), target)
 
     def test_tensor_kraus_and_unitary(self):
@@ -428,7 +429,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
         target = SuperOp(kraus).tensor(kraus_unitaries)
 
         circ, prob = error.error_term(0)
-        self.assertEqual(self.aslist(circ.qubits), [0, 1])
+        self.assertEqual(self.qubits_list(circ, circ.qubits), [0, 1])
         self.assertEqual(target, SuperOp(error))
 
     def test_tensor_unitary_and_kraus(self):
@@ -439,7 +440,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
         target = SuperOp(kraus_unitaries).tensor(kraus)
 
         circ, prob = error.error_term(0)
-        self.assertEqual(self.aslist(circ.qubits), [0, 1])
+        self.assertEqual(self.qubits_list(circ, circ.qubits), [0, 1])
         self.assertEqual(target, SuperOp(error))
 
     def test_expand_both_kraus(self):
@@ -453,8 +454,8 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
         self.assertEqual(prob, 1)
         self.assertEqual(circ[0][0].name, 'kraus')
         self.assertEqual(circ[1][0].name, 'kraus')
-        self.assertEqual(self.aslist(circ[0][1]), [0])
-        self.assertEqual(self.aslist(circ[1][1]), [1])
+        self.assertEqual(self.qubits_list(circ, circ[0][1]), [0])
+        self.assertEqual(self.qubits_list(circ, circ[1][1]), [1])
         self.assertEqual(target, SuperOp(error))
 
     def test_expand_both_unitary_standard_gates(self):
@@ -473,7 +474,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
             self.assertEqual(len(circ), 2)
             for instr, qargs, _ in circ:
                 self.assertIn(instr.name, ['s', 'x', 'y', 'z'])
-                self.assertIn(self.aslist(qargs), [[0], [1]])
+                self.assertIn(self.qubits_list(circ, qargs), [[0], [1]])
         self.assertEqual(SuperOp(error), target)
 
     def test_expand_kraus_and_unitary(self):
@@ -486,7 +487,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
         circ, prob = error.error_term(0)
         # self.assertEqual(prob, 1)
         self.assertEqual(circ[0][0].name, 'kraus')
-        self.assertEqual(self.aslist(circ.qubits), [0, 1])
+        self.assertEqual(self.qubits_list(circ, circ.qubits), [0, 1])
         self.assertEqual(target, SuperOp(error))
 
     def test_expand_unitary_and_kraus(self):
@@ -497,7 +498,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
         target = SuperOp(kraus_unitaries).expand(kraus)
 
         circ, prob = error.error_term(0)
-        self.assertEqual(self.aslist(circ.qubits), [0, 1])
+        self.assertEqual(self.qubits_list(circ, circ.qubits), [0, 1])
         self.assertEqual(target, SuperOp(error))
 
     def test_compose_both_kraus(self):
@@ -510,7 +511,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
         kraus, prob = error.error_term(0)
         self.assertEqual(prob, 1)
         self.assertEqual(kraus[0][0].name, 'kraus')
-        self.assertEqual(self.aslist(kraus[0][1]), [0])
+        self.assertEqual(self.qubits_list(kraus, kraus[0][1]), [0])
         self.assertEqual(target, SuperOp(error), msg="Incorrect tensor kraus")
 
     def test_compose_both_unitary_standard_gates(self):
@@ -527,7 +528,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
         for j in range(4):
             circ, _ = error.error_term(j)
             self.assertIn(circ[0][0].name, ['s', 'x', 'y', 'z'])
-            self.assertEqual(self.aslist(circ[0][1]), [0])
+            self.assertEqual(self.qubits_list(circ, circ[0][1]), [0])
         self.assertEqual(SuperOp(error), target)
 
     def test_compose_kraus_and_unitary(self):
@@ -540,7 +541,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
         circ, prob = error.error_term(0)
         # self.assertEqual(prob, 1)
         self.assertEqual(circ[0][0].name, 'kraus')
-        self.assertEqual(self.aslist(circ[0][1]), [0])
+        self.assertEqual(self.qubits_list(circ, circ[0][1]), [0])
         self.assertEqual(target, SuperOp(error))
 
     def test_compose_unitary_and_kraus(self):
@@ -551,7 +552,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
         target = SuperOp(kraus_unitaries).compose(kraus)
 
         circ, prob = error.error_term(0)
-        self.assertEqual(self.aslist(circ[0][1]), [0])
+        self.assertEqual(self.qubits_list(circ, circ[0][1]), [0])
         self.assertEqual(target, SuperOp(error))
 
     def test_dot_both_kraus(self):
@@ -564,7 +565,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
         kraus, prob = error.error_term(0)
         self.assertEqual(prob, 1)
         self.assertEqual(kraus[0][0].name, 'kraus')
-        self.assertEqual(self.aslist(kraus[0][1]), [0])
+        self.assertEqual(self.qubits_list(kraus, kraus[0][1]), [0])
         self.assertEqual(target, SuperOp(error), msg="Incorrect dot kraus")
 
     def test_dot_both_unitary_standard_gates(self):
@@ -581,7 +582,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
         for j in range(4):
             circ, _ = error.error_term(j)
             self.assertIn(circ[0][0].name, ['s', 'x', 'y', 'z'])
-            self.assertEqual(self.aslist(circ[0][1]), [0])
+            self.assertEqual(self.qubits_list(circ, circ[0][1]), [0])
         self.assertEqual(SuperOp(error), target)
 
     def test_dot_kraus_and_unitary(self):
@@ -592,7 +593,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
         target = SuperOp(kraus).dot(kraus_unitaries)
 
         circ, prob = error.error_term(0)
-        self.assertEqual(self.aslist(circ[0][1]), [0])
+        self.assertEqual(self.qubits_list(circ, circ[0][1]), [0])
         self.assertEqual(target, SuperOp(error))
 
     def test_dot_unitary_and_kraus(self):
@@ -605,7 +606,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
         circ, prob = error.error_term(0)
         # self.assertEqual(prob, 1)
         self.assertEqual(circ[0][0].name, 'kraus')
-        self.assertEqual(self.aslist(circ[0][1]), [0])
+        self.assertEqual(self.qubits_list(circ, circ[0][1]), [0])
         self.assertEqual(target, SuperOp(error))
 
     def test_to_quantumchannel_kraus(self):
