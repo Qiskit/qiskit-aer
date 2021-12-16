@@ -126,12 +126,12 @@ def _check_custom_instruction(experiments, optypes=None):
     if optypes is not None:
         # Optypes store class names as strings
         return any(
-            "Save"  in name or "Snapshot" in name
+            "Save" in name or "Snapshot" in name
             for optype in optypes for name in optype
         )
     # Otherwise iterate over instructions
     return any(
-        "save"  in inst.name or "snapshot" in inst.name
+        "save" in inst.name or "snapshot" in inst.name
         for exp in experiments for inst in exp.instructions
     )
 
