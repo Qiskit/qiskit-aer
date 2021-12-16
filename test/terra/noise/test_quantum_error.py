@@ -284,8 +284,7 @@ class TestQuantumErrorOldInterface(QiskitAerTestCase):
 
     @staticmethod
     def qubits_list(circ, qargs):
-        qubit_map = {qubit: i for i, qubit in enumerate(circ.qubits)}
-        return [qubit_map[q] for q in qargs]
+        return [circ.find_bit(q).index for q in qargs]
 
     @ddt.data(
         ('id', np.eye(2)),
