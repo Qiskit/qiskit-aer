@@ -40,7 +40,7 @@ class TestTruncateQubits(SimulatorTestCase):
         circuit.measure(1, 1)
         return circuit
 
-    def deveice_backend(self):
+    def device_backend(self):
         return mock.FakeQuito()
 
     def test_truncate_ideal_sparse_circuit(self):
@@ -65,7 +65,7 @@ class TestTruncateQubits(SimulatorTestCase):
             [0, 1], [1, 2], [2, 3], [3, 4], [4, 5],
             [5, 6], [6, 7], [7, 8], [8, 9], [9, 0]
         ]
-        noise_model = NoiseModel.from_backend(self.deveice_backend())
+        noise_model = NoiseModel.from_backend(self.device_backend())
         backend = self.backend(noise_model=noise_model)
         circuit = transpile(
             self.create_circuit_for_truncate(),
@@ -78,7 +78,7 @@ class TestTruncateQubits(SimulatorTestCase):
 
     def test_truncate_non_measured_qubits(self):
         """Test truncation of non-measured uncoupled qubits."""
-        noise_model = NoiseModel.from_backend(self.deveice_backend())
+        noise_model = NoiseModel.from_backend(self.device_backend())
         backend = self.backend(noise_model=noise_model)
         circuit = transpile(
             self.create_circuit_for_truncate(),
@@ -95,7 +95,7 @@ class TestTruncateQubits(SimulatorTestCase):
             [0, 1], [1, 2], [2, 3], [3, 4], [4, 5],
             [5, 6], [6, 7], [7, 8], [8, 9], [9, 0]
         ]
-        noise_model = NoiseModel.from_backend(self.deveice_backend())
+        noise_model = NoiseModel.from_backend(self.device_backend())
         backend = self.backend(noise_model=noise_model, enable_truncation=False)
         circuit = transpile(
             self.create_circuit_for_truncate(),
