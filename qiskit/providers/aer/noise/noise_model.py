@@ -22,6 +22,7 @@ from numpy import ndarray
 
 from qiskit.circuit import Instruction, Delay
 from qiskit.providers import BaseBackend, BackendV1, BackendV2
+from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.providers.models import BackendProperties
 from qiskit.transpiler import PassManager
 from .device.models import _excited_population
@@ -361,24 +362,30 @@ class NoiseModel:
                 warnings=warnings)
         for name, qubits, error in gate_errors:
             noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
-        # Add delay errors
-        if thermal_relaxation and hasattr(properties, "t1") and hasattr(properties, "t2"):
-            if hasattr(properties, "frequency"):
+
+        if thermal_relaxation:
+            # Add delay errors via RelaxationNiose pass
+            try:
                 excited_state_populations = [
                     _excited_population(
                         freq=properties.frequency(q), temperature=temperature
                     ) for q in range(num_qubits)]
-            else:
+            except BackendPropertyError:
                 excited_state_populations = None
+            try:
+                delay_pass = RelaxationNoisePass(
+                    t1s=[properties.t1(q) for q in range(num_qubits)],
+                    t2s=[properties.t2(q) for q in range(num_qubits)],
+                    dt=dt,
+                    op_types=Delay,
+                    excited_state_populations=excited_state_populations
+                )
+                noise_model._custom_noise_passes.append(delay_pass)
+            except BackendPropertyError:
+                # Device does not have the required T1 or T2 information
+                # in its properties
+                pass
 
-            delay_pass = RelaxationNoisePass(
-                t1s=[properties.t1(q) for q in range(num_qubits)],
-                t2s=[properties.t2(q) for q in range(num_qubits)],
-                dt=dt,
-                op_types=Delay,
-                excited_state_populations=excited_state_populations
-            )
-            noise_model._custom_noise_passes.append(delay_pass)
         return noise_model
 
     def is_ideal(self):  # pylint: disable=too-many-return-statements

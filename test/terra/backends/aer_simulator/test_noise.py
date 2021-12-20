@@ -17,9 +17,11 @@ from ddt import ddt
 from qiskit.providers.aer import noise
 
 import qiskit.quantum_info as qi
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Reset
 from qiskit.circuit.library import QFT
 from qiskit.circuit.library.standard_gates import IGate, HGate
+from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
 from test.terra.reference import ref_kraus_noise
@@ -156,15 +158,35 @@ class TestNoise(SimulatorTestCase):
     def test_kraus_gate_noise_on_QFT(self, method, device):
         """Test Kraus noise on a QFT circuit"""
         shots = 10000
-        noise_model = ref_kraus_noise.kraus_gate_error_noise_models_full()
+
+        # Build noise model
+        error1 = noise.amplitude_damping_error(0.2)
+        error2 = error1.tensor(error1)
+        noise_model = noise.NoiseModel()
+        noise_model.add_all_qubit_quantum_error(error1, ['h'])
+        noise_model.add_all_qubit_quantum_error(error2, ['cp', 'swap'])
+
         backend = self.backend(
             method=method, device=device, noise_model=noise_model)
-        circuit = QFT(3).decompose()
-        circuit.measure_all()
-        ref_target = ref_kraus_noise.kraus_gate_error_counts_on_QFT(shots)
-        result = backend.run(circuit, shots=shots).result()
+        ideal_circuit = transpile(QFT(3), backend)
+
+        # manaully build noise circuit
+        noise_circuit = QuantumCircuit(3)
+        for inst, qargs, cargs in ideal_circuit.data:
+            noise_circuit.append(inst, qargs, cargs)
+            if inst.name == "h":
+                noise_circuit.append(error1, qargs)
+            elif inst.name in ["cp", "swap"]:
+                noise_circuit.append(error2, qargs)
+        # compute target counts
+        noise_state = DensityMatrix(noise_circuit)
+        ref_target = {i: shots * p for i, p in noise_state.probabilities_dict().items()}
+
+        # Run sim
+        ideal_circuit.measure_all()
+        result = backend.run(ideal_circuit, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, [circuit], [ref_target], delta=0.1 * shots)
+        self.compare_counts(result, [ideal_circuit], [ref_target], hex_counts=False, delta=0.1 * shots)
 
     @supported_methods(ALL_METHODS)
     def test_clifford_circuit_noise(self, method, device):
