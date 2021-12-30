@@ -52,14 +52,16 @@ const Operations::OpSet StateOpSet(
   {OpType::gate, OpType::measure,
    OpType::reset, OpType::initialize,
    OpType::snapshot, OpType::barrier,
-   OpType::bfunc, OpType::roerror,
+   OpType::bfunc, OpType::roerror, OpType::qerror_loc,
    OpType::matrix, OpType::diagonal_matrix,
    OpType::kraus, OpType::save_expval,
    OpType::save_expval_var, OpType::save_densmat,
    OpType::save_statevec, OpType::save_probs,
    OpType::save_probs_ket, OpType::save_amps,
    OpType::save_amps_sq, OpType::save_mps, OpType::save_state,
-   OpType::set_mps, OpType::set_statevec},
+   OpType::set_mps, OpType::set_statevec,
+   OpType::jump, OpType::mark
+  },
   // Gates
   {"id", "x",  "y", "z", "s",  "sdg", "h",  "t",   "tdg",  "p", "u1",
    "u2", "u3", "u", "U", "CX", "cx",  "cy", "cz", "cp", "cu1", "swap", "ccx",
@@ -159,6 +161,7 @@ public:
   sample_measure_using_apply_measure(const reg_t &qubits,
 				     uint_t shots,
 				     RngEngine &rng);
+
 std::vector<reg_t> sample_measure_all(const reg_t &qubits,
 				      uint_t shots, 
 				      RngEngine &rng);
@@ -485,6 +488,15 @@ void State::set_config(const json_t &config) {
   bool mps_log_data;
   if (JSON::get_value(mps_log_data, "mps_log_data", config))
     MPS::set_mps_log_data(mps_log_data);
+
+// Set the direction for the internal swaps
+  std::string direction;
+  if (JSON::get_value(direction, "mps_swap_direction", config)) {
+    if (direction.compare("mps_swap_right") == 0)
+      MPS::set_mps_swap_direction(MPS_swap_direction::SWAP_RIGHT);
+    else
+      MPS::set_mps_swap_direction(MPS_swap_direction::SWAP_LEFT);
+  }
 }
 
 void State::add_metadata(ExperimentResult &result) const {
@@ -521,6 +533,7 @@ void State::apply_op(const Operations::Op &op,
   if (BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case OpType::barrier:
+      case OpType::qerror_loc:
         break;
       case OpType::reset:
         apply_reset(op.qubits, rng);
@@ -616,10 +629,10 @@ void State::apply_save_mps(const Operations::Op &op,
                       : op.string_params[0];
   if (last_op) {
     BaseState::save_data_pershot(result, key, qreg_.move_to_mps_container(),
-				                         op.save_type);
+				                         OpType::save_mps, op.save_type);
   } else {
     BaseState::save_data_pershot(result, key, qreg_.copy_to_mps_container(),
-                                 op.save_type);
+                                 OpType::save_mps, op.save_type);
   }
 }
 
@@ -630,10 +643,10 @@ void State::apply_save_probs(const Operations::Op &op,
   if (op.type == OpType::save_probs_ket) {
     BaseState::save_data_average(result, op.string_params[0],
                                  Utils::vec2ket(probs, MPS::get_json_chop_threshold(), 16),
-                                 op.save_type);
+                                 op.type, op.save_type);
   } else {
     BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(probs), op.save_type);
+                                 std::move(probs), op.type, op.save_type);
   }
 }
 
@@ -649,10 +662,10 @@ void State::apply_save_amplitudes(const Operations::Op &op,
     std::transform(amps.data(), amps.data() + amps.size(), amps_sq.begin(),
       [](complex_t val) -> double { return pow(abs(val), 2); });
     BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(amps_sq), op.save_type);
+                                 std::move(amps_sq), op.type, op.save_type);
   } else {
     BaseState::save_data_pershot(result, op.string_params[0],
-                                 std::move(amps), op.save_type);
+                                 std::move(amps), op.type, op.save_type);
   }
 }
 
@@ -669,7 +682,7 @@ void State::apply_save_statevector(const Operations::Op &op,
         " Only the full statevector can be saved.");
   }
   BaseState::save_data_pershot(result, op.string_params[0],
-                               qreg_.full_statevector(), op.save_type);
+                               qreg_.full_statevector(), op.type, op.save_type);
 }
 
 
@@ -684,7 +697,7 @@ void State::apply_save_density_matrix(const Operations::Op &op,
   }
 
   BaseState::save_data_average(result, op.string_params[0],
-                               std::move(reduced_state), op.save_type);
+                               std::move(reduced_state), op.type, op.save_type);
 }
 
 //=========================================================================

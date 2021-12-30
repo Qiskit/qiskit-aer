@@ -18,6 +18,7 @@ import logging
 from warnings import warn
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
+from qiskit.providers.backend import BackendV2
 
 from ..version import __version__
 from ..aererror import AerError
@@ -131,6 +132,13 @@ class QasmSimulator(AerBackend):
       exceeds this value simulation will be run as a set of of sub-jobs
       on the executor. If ``None`` simulation of all circuits are submitted
       to the executor as a single job (Default: None).
+
+    * ``max_shot_size`` (int or None): If the number of shots of a noisy
+      circuit exceeds this value simulation will be split into multi
+      circuits for execution and the results accumulated. If ``None``
+      circuits will not be split based on shots. When splitting circuits
+      use the ``max_job_size`` option to control how these split circuits
+      should be submitted to the executor (Default: None).
 
     * ``enable_truncation`` (bool): If set to True this removes unnecessary
       qubits which do not affect the simulation outcome from the simulated
@@ -303,12 +311,13 @@ class QasmSimulator(AerBackend):
     ])
 
     _DEFAULT_CUSTOM_INSTR = sorted([
-        'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
+        'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'snapshot',
+        'save_expval', 'save_expval_var',
         'save_probabilities', 'save_probabilities_dict',
         'save_amplitudes', 'save_amplitudes_sq', 'save_state',
         'save_density_matrix', 'save_statevector', 'save_statevector_dict',
         'save_stabilizer', 'set_statevector', 'set_density_matrix',
-        'set_stabilizer'
+        'set_stabilizer',
     ])
 
     _DEFAULT_CONFIGURATION = {
@@ -401,6 +410,7 @@ class QasmSimulator(AerBackend):
             precision="double",
             executor=None,
             max_job_size=None,
+            max_shot_size=None,
             enable_truncation=True,
             zero_threshold=1e-10,
             validation_threshold=None,
@@ -443,6 +453,10 @@ class QasmSimulator(AerBackend):
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
+        if isinstance(backend, BackendV2):
+            raise AerError(
+                "QasmSimulator.from_backend does not currently support V2 Backends."
+            )
         # pylint: disable=import-outside-toplevel
         # Avoid cyclic import
         from ..noise.noise_model import NoiseModel
@@ -616,35 +630,37 @@ class QasmSimulator(AerBackend):
         method = self._options.get('method', None)
         if method in ['statevector', 'statevector_gpu', 'statevector_thrust']:
             return sorted([
-                'roerror', 'kraus', 'snapshot', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
+                'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'snapshot', 'save_expval',
+                'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_amplitudes', 'save_amplitudes_sq', 'save_state',
                 'save_density_matrix', 'save_statevector', 'save_statevector_dict',
                 'set_statevector'
             ])
         if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
             return sorted([
-                'roerror', 'kraus', 'superop', 'snapshot', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
+                'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop', 'snapshot',
+                'save_expval', 'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_state', 'save_density_matrix', 'save_amplitudes_sq',
                 'set_statevector', 'set_density_matrix'
             ])
         if method == 'matrix_product_state':
             return sorted([
-                'roerror', 'snapshot', 'kraus', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
+                'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'kraus', 'save_expval',
+                'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_density_matrix', 'save_state', 'save_statevector',
                 'save_amplitudes', 'save_amplitudes_sq', 'save_matrix_product_state',
                 'set_matrix_product_state'])
         if method == 'stabilizer':
             return sorted([
-                'roerror', 'snapshot', 'save_expval', 'save_expval_var',
-                'save_probabilities', 'save_probabilities_dict',
+                'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'save_expval',
+                'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
                 'save_amplitudes_sq', 'save_state', 'save_stabilizer',
                 'set_stabilizer'
             ])
         if method == 'extended_stabilizer':
-            return sorted(['roerror', 'snapshot', 'save_statevector'])
+            return sorted([
+                'quantum_channel', 'qerror_loc', 'roerror',
+                'snapshot', 'save_statevector'])
         return QasmSimulator._DEFAULT_CUSTOM_INSTR
 
     def _set_method_config(self, method=None):

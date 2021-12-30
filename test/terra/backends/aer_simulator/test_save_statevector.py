@@ -50,7 +50,7 @@ class TestSaveStatevector(SimulatorTestCase):
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
-        value = qi.Statevector(simdata[label])
+        value = simdata[label]
         self.assertEqual(value, target)
 
     @supported_methods(['automatic', 'statevector', 'matrix_product_state',
@@ -82,7 +82,7 @@ class TestSaveStatevector(SimulatorTestCase):
         self.assertIn(label, simdata)
         for key, vec in simdata[label].items():
             self.assertIn(key, target)
-            self.assertEqual(qi.Statevector(vec), target[key])
+            self.assertEqual(vec, target[key])
 
     @supported_methods(['automatic', 'statevector', 'matrix_product_state',
                         'extended_stabilizer'])
@@ -114,7 +114,7 @@ class TestSaveStatevector(SimulatorTestCase):
         value = simdata[label]
         self.assertEqual(len(value), shots)
         for vec in value:
-            self.assertEqual(qi.Statevector(vec), target)
+            self.assertEqual(vec, target)
 
     @supported_methods(['automatic', 'statevector', 'matrix_product_state',
                         'extended_stabilizer'])
@@ -149,7 +149,7 @@ class TestSaveStatevector(SimulatorTestCase):
         self.assertIn('0x0', value)
         self.assertEqual(len(value['0x0']), shots)
         for vec in value['0x0']:
-            self.assertEqual(qi.Statevector(vec), target)
+            self.assertEqual(vec, target)
 
     @supported_methods(['statevector'])
     def test_save_statevector_cache_blocking(self, method, device):
@@ -177,5 +177,5 @@ class TestSaveStatevector(SimulatorTestCase):
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
-        value = qi.Statevector(simdata[label])
+        value = simdata[label]
         self.assertEqual(value, target)

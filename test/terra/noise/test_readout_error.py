@@ -14,7 +14,7 @@ ReadoutError class tests
 """
 
 import unittest
-from test.terra import common
+from test.terra.common import QiskitAerTestCase
 
 import numpy as np
 
@@ -22,7 +22,7 @@ from qiskit.providers.aer.noise.noiseerror import NoiseError
 from qiskit.providers.aer.noise.errors.readout_error import ReadoutError
 
 
-class TestReadoutError(common.QiskitAerTestCase):
+class TestReadoutError(QiskitAerTestCase):
     """Testing ReadoutError class"""
     def test_probabilities_normalized_exception(self):
         """Test exception is raised for probabilities greater than 1."""

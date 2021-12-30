@@ -35,12 +35,15 @@ const Operations::OpSet StateOpSet(
     // Op types
     {Operations::OpType::gate, Operations::OpType::reset,
      Operations::OpType::snapshot, Operations::OpType::barrier,
+     Operations::OpType::qerror_loc,
      Operations::OpType::bfunc, Operations::OpType::roerror,
      Operations::OpType::matrix, Operations::OpType::diagonal_matrix,
      Operations::OpType::kraus, Operations::OpType::superop,
      Operations::OpType::save_state, Operations::OpType::save_superop,
      Operations::OpType::set_unitary,
-     Operations::OpType::set_superop},
+     Operations::OpType::set_superop,
+     Operations::OpType::jump, Operations::OpType::mark
+    },
     // Gates
     {"U",    "CX",  "u1", "u2",  "u3", "u",   "cx",   "cy",  "cz",
      "swap", "id",  "x",  "y",   "z",  "h",   "s",    "sdg", "t",
@@ -103,7 +106,7 @@ public:
   // Config: {"omp_qubit_threshold": 3}
   virtual void set_config(const json_t &config) override;
 
-  virtual void allocate(uint_t num_qubits,uint_t block_bits) override;
+  virtual bool allocate(uint_t num_qubits,uint_t block_bits,uint_t num_parallel_shots = 1) override;
 
   //-----------------------------------------------------------------------
   // Additional methods
@@ -247,6 +250,7 @@ void State<data_t>::apply_op(const Operations::Op &op,
   if (BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case Operations::OpType::barrier:
+      case Operations::OpType::qerror_loc:
         break;
       case Operations::OpType::gate:
         apply_gate(op);
@@ -354,8 +358,9 @@ template <class data_t> void State<data_t>::initialize_omp() {
 }
 
 template <class data_t>
-void State<data_t>::allocate(uint_t num_qubits, uint_t block_bits){
-    BaseState::qreg_.chunk_setup(num_qubits * 4, num_qubits * 4, 0, 1);
+bool State<data_t>::allocate(uint_t num_qubits, uint_t block_bits,uint_t num_parallel_shots)
+{
+  return BaseState::qreg_.chunk_setup(num_qubits * 4, num_qubits * 4, 0, 1);
 }
 
 //=========================================================================
@@ -555,10 +560,12 @@ void State<statevec_t>::apply_save_state(const Operations::Op &op,
   if (last_op) {
     BaseState::save_data_pershot(result, key,
                                  BaseState::qreg_.move_to_matrix(),
+                                 Operations::OpType::save_superop,
                                  op.save_type);
   } else {
     BaseState::save_data_pershot(result, key,
                                  BaseState::qreg_.copy_to_matrix(),
+                                 Operations::OpType::save_superop,
                                  op.save_type);
   }
 }

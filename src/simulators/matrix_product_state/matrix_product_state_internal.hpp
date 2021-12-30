@@ -37,6 +37,7 @@ enum Gates {
   //enum class Direction {RIGHT, LEFT};
 
   enum class Sample_measure_alg {APPLY_MEASURE, PROB, MEASURE_ALL, HEURISTIC};
+  enum class MPS_swap_direction {SWAP_LEFT, SWAP_RIGHT};
 
 //=========================================================================
 // MPS class
@@ -291,6 +292,10 @@ public:
     mps_log_data_ = mps_log_data;
   }
 
+  static void set_mps_swap_direction(MPS_swap_direction direction) {
+    mps_swap_direction_ = direction;
+  }
+
   static uint_t get_omp_threads() {
     return omp_threads_;
   }
@@ -312,6 +317,10 @@ public:
     return mps_log_data_;
   }
 
+  static MPS_swap_direction get_swap_direction() {
+    return mps_swap_direction_;
+  }
+
   //----------------------------------------------------------------
   // Function name: norm
   // Description: the norm is defined as <psi|A^dagger . A|psi>.
@@ -326,6 +335,7 @@ public:
 
   reg_t apply_measure(const reg_t &qubits, const rvector_t &rnds);
   reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
+
   std::vector<reg_t> sample_measure_all_shots(const reg_t &qubits, 
 					      uint_t shots, 
 					      RngEngine &rng) const;
@@ -540,6 +550,7 @@ private:
   static bool enable_gate_opt_;      // allow optimizations on gates
   static std::stringstream logging_str_;
   static bool mps_log_data_;
+  static MPS_swap_direction mps_swap_direction_;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
@@ -557,6 +568,11 @@ inline std::ostream&
 operator <<(std::ostream& out, MPS& mps)
 {
   return mps.print(out);
+}
+
+
+inline void to_json(json_t &js, const MPS &mps) {
+
 }
 
 //-------------------------------------------------------------------------

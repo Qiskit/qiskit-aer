@@ -13,15 +13,15 @@
 noise_model_inserter module tests
 """
 
-from qiskit import QuantumRegister, QuantumCircuit, transpile
-from qiskit.quantum_info import SuperOp
-from qiskit.providers.aer.utils import insert_noise
-from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
-from qiskit.qasm import pi
 import unittest
 
-from ..common import QiskitAerTestCase
+from qiskit.providers.aer.noise import NoiseModel
+from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
+from qiskit.providers.aer.utils import insert_noise
+from test.terra.common import QiskitAerTestCase
+
+from qiskit import QuantumRegister, QuantumCircuit, transpile
+from qiskit.quantum_info import SuperOp
 
 
 class TestNoiseInserter(QiskitAerTestCase):
@@ -126,11 +126,11 @@ class TestNoiseInserter(QiskitAerTestCase):
 
         target_circuit = QuantumCircuit(qr)
         target_circuit.x(qr[0])
-        target_circuit.append(error_x.to_instruction(), [qr[0]])
+        target_circuit.append(error_x, [qr[0]])
         target_circuit.y(qr[1])
-        target_circuit.append(error_y.to_instruction(), [qr[1]])
+        target_circuit.append(error_y, [qr[1]])
         target_circuit.z(qr[2])
-        target_basis = ['kraus'] + noise_model.basis_gates
+        target_basis = ['quantum_channel'] + noise_model.basis_gates
         target_circuit = transpile(target_circuit, basis_gates=target_basis)
         result_circuit = insert_noise(circuit, noise_model, transpile=True)
         self.assertEqual(SuperOp(target_circuit), SuperOp(result_circuit))

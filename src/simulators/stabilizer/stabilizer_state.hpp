@@ -33,12 +33,14 @@ const Operations::OpSet StateOpSet(
   // Op types
   {OpType::gate, OpType::measure,
     OpType::reset, OpType::snapshot,
-    OpType::barrier, OpType::bfunc,
+    OpType::barrier, OpType::bfunc, OpType::qerror_loc,
     OpType::roerror, OpType::save_expval,
     OpType::save_expval_var, OpType::save_probs,
     OpType::save_probs_ket, OpType::save_amps_sq,
-    OpType::save_stabilizer, OpType::save_state,
-    OpType::set_stabilizer},
+    OpType::save_stabilizer, OpType::save_clifford,
+    OpType::save_state, OpType::set_stabilizer,
+    OpType::jump, OpType::mark
+  },
   // Gates
   {"CX", "cx", "cy", "cz", "swap", "id", "x", "y", "z", "h", "s", "sdg",
    "sx", "sxdg", "delay", "pauli"},
@@ -322,6 +324,7 @@ void State::apply_op(const Operations::Op &op,
   if (BaseState::creg_.check_conditional(op)) {
     switch (op.type) {
       case OpType::barrier:
+      case OpType::qerror_loc:
         break;
       case OpType::reset:
         apply_reset(op.qubits, rng);
@@ -357,6 +360,7 @@ void State::apply_op(const Operations::Op &op,
         break;
       case OpType::save_state:
       case OpType::save_stabilizer:
+      case OpType::save_clifford:
         apply_save_stabilizer(op, result);
         break;
       default:
@@ -535,10 +539,29 @@ void State::apply_set_stabilizer(const Clifford::Clifford &clifford) {
 
 void State::apply_save_stabilizer(const Operations::Op &op,
                                 ExperimentResult &result) {
-  std::string key = (op.string_params[0] == "_method_") ? "stabilizer" : op.string_params[0];
+  std::string key = op.string_params[0];
+  OpType op_type = op.type;
+  switch (op_type) {
+    case OpType::save_clifford: {
+      if (key == "_method_") {
+        key = "clifford";
+      }
+      break;
+    }
+    case OpType::save_stabilizer:
+    case OpType::save_state: {
+      if (key == "_method_") {
+        key = "stabilizer";
+      }
+      op_type = OpType::save_stabilizer;
+      break;
+    }
+    default:
+      // We shouldn't ever reach here...
+      throw std::invalid_argument("Invalid save state instruction for stabilizer");
+  }
   json_t clifford = BaseState::qreg_;
-  BaseState::save_data_pershot(result, key,
-                               std::move(clifford), op.save_type);
+  BaseState::save_data_pershot(result, key, std::move(clifford), op_type, op.save_type);
 }
 
 void State::apply_save_probs(const Operations::Op &op,
@@ -562,13 +585,13 @@ void State::apply_save_probs(const Operations::Op &op,
     get_probabilities_auxiliary(
         op.qubits, std::string(op.qubits.size(), 'X'), 1, probs);
     BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(probs), op.save_type);
+                                 std::move(probs), op.type, op.save_type);
   } else {
     std::vector<double> probs(1ULL << op.qubits.size(), 0.);
     get_probabilities_auxiliary(
       op.qubits, std::string(op.qubits.size(), 'X'), 1, probs); 
     BaseState::save_data_average(result, op.string_params[0],
-                                 std::move(probs), op.save_type);
+                                 std::move(probs), op.type, op.save_type);
   }
 }
 
@@ -586,7 +609,7 @@ void State::apply_save_amplitudes_sq(const Operations::Op &op,
     amps_sq[i] = get_probability(op.qubits, Utils::int2bin(op.int_params[i], num_qubits));
   }
   BaseState::save_data_average(result, op.string_params[0],
-                               std::move(amps_sq), op.save_type);
+                               std::move(amps_sq), op.type, op.save_type);
 }
 
 double State::expval_pauli(const reg_t &qubits,

@@ -37,17 +37,19 @@ enum class RegComparison {Equal, NotEqual, Less, LessEqual, Greater, GreaterEqua
 
 // Enum class for operation types
 enum class OpType {
-  gate, measure, reset, bfunc, barrier, snapshot,
+  gate, measure, reset, bfunc, barrier, qerror_loc, snapshot,
   matrix, diagonal_matrix, multiplexer, initialize, sim_op, nop,
   // Noise instructions
   kraus, superop, roerror, noise_switch,
   // Save instructions
   save_state, save_expval, save_expval_var, save_statevec, save_statevec_dict,
   save_densmat, save_probs, save_probs_ket, save_amps, save_amps_sq,
-  save_stabilizer, save_unitary, save_mps, save_superop,
+  save_stabilizer, save_clifford, save_unitary, save_mps, save_superop,
   // Set instructions
   set_statevec, set_densmat, set_unitary, set_superop,
-    set_stabilizer, set_mps
+  set_stabilizer, set_mps,
+  // Control Flow
+  jump, mark
 };
 
 enum class DataSubType {
@@ -59,6 +61,7 @@ static const std::unordered_set<OpType> SAVE_TYPES = {
   OpType::save_statevec, OpType::save_statevec_dict,
   OpType::save_densmat, OpType::save_probs, OpType::save_probs_ket,
   OpType::save_amps, OpType::save_amps_sq, OpType::save_stabilizer,
+  OpType::save_clifford,
   OpType::save_unitary, OpType::save_mps, OpType::save_superop
 };
 
@@ -114,6 +117,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   case OpType::save_stabilizer:
     stream << "save_stabilizer";
     break;
+  case OpType::save_clifford:
+    stream << "save_clifford";
+    break;
   case OpType::save_unitary:
     stream << "save_unitary";
     break;
@@ -159,6 +165,9 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   case OpType::roerror:
     stream << "roerror";
     break;
+  case OpType::qerror_loc:
+    stream << "qerror_loc";
+    break;
   case OpType::noise_switch:
     stream << "noise_switch";
     break;
@@ -171,8 +180,47 @@ inline std::ostream& operator<<(std::ostream& stream, const OpType& type) {
   case OpType::nop:
     stream << "nop";
     break;
+  case OpType::mark:
+    stream << "mark";
+    break;
+  case OpType::jump:
+    stream << "jump";
+    break;
   default:
     stream << "unknown";
+  }
+  return stream;
+}
+
+
+inline std::ostream& operator<<(std::ostream& stream, const DataSubType& subtype) {
+  switch (subtype) {
+    case DataSubType::single:
+      stream << "single";
+      break;
+    case DataSubType::c_single:
+      stream << "c_single";
+      break;
+    case DataSubType::list:
+      stream << "list";
+      break;
+    case DataSubType::c_list:
+      stream << "c_list";
+      break;
+    case DataSubType::accum:
+      stream << "accum";
+      break;
+    case DataSubType::c_accum:
+      stream << "c_accum";
+      break;
+    case DataSubType::average:
+      stream << "average";
+      break;
+    case DataSubType::c_average:
+      stream << "c_average";
+      break;
+    default:
+      stream << "unknown";
   }
   return stream;
 }
@@ -490,6 +538,8 @@ inline void from_json(const json_t &js, Op &op) {op = input_to_op(js);}
 
 inline void to_json(json_t &js, const Op &op) { js = op_to_json(op);}
 
+void to_json(json_t &js, const DataSubType& type);
+
 // Standard operations
 template<typename inputdata_t>
 Op input_to_op_gate(const inputdata_t& input);
@@ -537,6 +587,12 @@ Op input_to_op_snapshot_matrix(const inputdata_t& input);
 template<typename inputdata_t>
 Op input_to_op_snapshot_pauli(const inputdata_t& input);
 
+// Control-Flow
+template<typename inputdata_t>
+Op input_to_op_jump(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_mark(const inputdata_t& input);
+
 // Matrices
 template<typename inputdata_t>
 Op input_to_op_unitary(const inputdata_t& input);
@@ -550,6 +606,8 @@ template<typename inputdata_t>
 Op input_to_op_kraus(const inputdata_t& input);
 template<typename inputdata_t>
 Op input_to_op_noise_switch(const inputdata_t& input);
+template<typename inputdata_t>
+Op input_to_op_qerror_loc(const inputdata_t& input);
 
 // Classical bits
 template<typename inputdata_t>
@@ -602,6 +660,8 @@ Op input_to_op(const inputdata_t& input) {
     return input_to_op_save_default(input, OpType::save_statevec_dict);
   if (name == "save_stabilizer")
     return input_to_op_save_default(input, OpType::save_stabilizer);
+  if (name == "save_clifford")
+    return input_to_op_save_default(input, OpType::save_clifford);
   if (name == "save_unitary")
     return input_to_op_save_default(input, OpType::save_unitary);
   if (name == "save_superop")
@@ -641,14 +701,22 @@ Op input_to_op(const inputdata_t& input) {
   // Noise functions
   if (name == "noise_switch")
     return input_to_op_noise_switch(input);
+  if (name == "qerror_loc")
+    return input_to_op_qerror_loc(input);
   if (name == "multiplexer")
     return input_to_op_multiplexer(input);
   if (name == "kraus")
     return input_to_op_kraus(input);
   if (name == "roerror")
     return input_to_op_roerror(input);
-   if (name == "pauli")
+  if (name == "pauli")
     return input_to_op_pauli(input);
+
+  //Control-flow
+  if (name == "jump")
+    return input_to_op_jump(input);
+  if (name == "mark")
+    return input_to_op_mark(input);
   // Default assume gate
   return input_to_op_gate(input);
 }
@@ -673,6 +741,20 @@ json_t op_to_json(const Op &op) {
   if (!op.mats.empty())
     ret["mats"] = op.mats;
   return ret;
+}
+
+
+void to_json(json_t &js, const OpType& type) {
+  std::stringstream ss;
+  ss << type;
+  js = ss.str();
+}
+
+
+void to_json(json_t &js, const DataSubType& subtype) {
+  std::stringstream ss;
+  ss << subtype;
+  js = ss.str();
 }
 
 
@@ -724,6 +806,16 @@ Op input_to_op_gate(const inputdata_t& input) {
     check_length_params(op, 2);
   else if (op.name == "u3")
     check_length_params(op, 3);
+  return op;
+}
+
+template<typename inputdata_t>
+Op input_to_op_qerror_loc(const inputdata_t& input) {
+  Op op;
+  op.type = OpType::qerror_loc;
+  Parser<inputdata_t>::get_value(op.name, "label", input);
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  add_conditional(Allowed::Yes, op, input);
   return op;
 }
 
@@ -1278,6 +1370,39 @@ Op input_to_op_snapshot_matrix(const inputdata_t& input) {
   }
   return op;
 }
+
+template<typename inputdata_t>
+Op input_to_op_jump(const inputdata_t &input) {
+  Op op;
+  op.type = OpType::jump;
+  op.name = "jump";
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  Parser<inputdata_t>::get_value(op.string_params, "params", input);
+  if (op.string_params.empty())
+    throw std::invalid_argument(std::string("Invalid jump (\"params\" field missing)."));
+
+  // Conditional
+  add_conditional(Allowed::Yes, op, input);
+
+  return op;
+}
+
+template<typename inputdata_t>
+Op input_to_op_mark(const inputdata_t &input) {
+  Op op;
+  op.type = OpType::mark;
+  op.name = "mark";
+  Parser<inputdata_t>::get_value(op.qubits, "qubits", input);
+  Parser<inputdata_t>::get_value(op.string_params, "params", input);
+  if (op.string_params.empty())
+    throw std::invalid_argument(std::string("Invalid mark (\"params\" field missing)."));
+
+  // Conditional
+  add_conditional(Allowed::No, op, input);
+
+  return op;
+}
+
 
 //------------------------------------------------------------------------------
 } // end namespace Operations
