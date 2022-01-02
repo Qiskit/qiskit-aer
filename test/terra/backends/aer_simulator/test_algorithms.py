@@ -103,7 +103,7 @@ class TestAlgorithms(SimulatorTestCase):
         )
 
         shots = 100
-        nqubits = 5
+        nqubits = 2
         circ = QuantumCircuit(nqubits)
         circ.h(0)
         circ.t(0)
@@ -114,9 +114,9 @@ class TestAlgorithms(SimulatorTestCase):
         circ = transpile(circ, backend)
 
         target = {
-            '0x0': shots * (0.5 + sqrt(2)/4.),
-            '0x1f': shots * (0.5 - sqrt(2)/4.)
+            nqubits * "0": shots * (0.5 + sqrt(2)/4.),
+            nqubits * "1": shots * (0.5 - sqrt(2)/4.)
         }
         result = backend.run(circ, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, [circ], [target], delta=0.1 * shots)
+        self.compare_counts(result, [circ], [target], hex_counts=False, delta=0.1 * shots)

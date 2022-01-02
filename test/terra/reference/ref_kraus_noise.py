@@ -60,15 +60,6 @@ def kraus_gate_error_noise_models():
 
     return noise_models
 
-def kraus_gate_error_noise_models_full():
-    """Kraus gate error noise models on many gate types"""
-
-    # Amplitude damping error on "u1", "u2", "u3", "cx"
-    error = amplitude_damping_error(0.2)
-    noise_model = NoiseModel()
-    noise_model.add_all_qubit_quantum_error(error, ['h'])
-    noise_model.add_all_qubit_quantum_error(error.tensor(error), ['cp', 'swap'])
-    return noise_model
 
 def kraus_gate_error_counts(shots, hex_counts=True):
     """Kraus gate error circuits reference counts"""
@@ -80,13 +71,3 @@ def kraus_gate_error_counts(shots, hex_counts=True):
 
     # Convert to counts dict
     return [list2dict(i, hex_counts) for i in counts_lists]
-
-def kraus_gate_error_counts_on_QFT(shots, hex_counts=False):
-    """Kraus gate error QFT circuits reference counts"""
-
-    # Kraus error on all kinds of gates - the results are highly dependent on the
-    # specific circuit and therefore are hardcoded
-    counts = {'0x0':370*shots/1000, '0x1':175*shots/1000, '0x2':170*shots/1000,
-              '0x3':75*shots/1000,  '0x4':100*shots/1000,  '0x5':45*shots/1000,
-              '0x6':45*shots/1000,  '0x7':20*shots/1000}
-    return counts

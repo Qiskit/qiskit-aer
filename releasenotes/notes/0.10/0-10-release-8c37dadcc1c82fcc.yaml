@@ -1,0 +1,99 @@
+---
+prelude: |
+    The Qiskit Aer 0.10 release includes several performance and noise model
+    improvements. Some highlights are:
+
+    * Improved performance for parallel shot GPU and HPC simulations
+    * Support for simulation of circuits containing QASM 3.0 control-flow instructions
+    * Support for relaxation noise on scheduled circuits in backend noise models
+    * Support of user-created transpiler passes for defining custom gate errors and
+      noise models, and inserting them into circuits.
+
+features:
+  - |
+    Added support of QASM 3.0 control-flow instructions introduced in Qiskit-Terra
+    0.19.0. Supported instructions are :class:`~qiskit.circuit.ForLoopOp`,
+    :class:`~qiskit.circuit.WhileLoopOp`, :class:`~qiskit.circuit.ContinueLoopOp`,
+    :class:`~qiskit.circuit.BreakLoopOp`, :class:`~qiskit.circuit.IfElseOp`.
+  - |
+    Added a batched-shot simulation optimization for GPU simulations. This
+    optional feature will use available memory on 1 or more GPUs to run multiple
+    simulation shots in parallel for greatly improved performance on
+    multi-shot simulations with noise models and/or intermediate measurements.
+
+    This option is enabled by default when using ``device="GPU"`` and a
+    simulation ``method`` of either ``"statevector"`` or ``"density_matrix"``
+    with the :class:`~qiskit.providers.aer.AerSimulator`.  It can be disabled by
+    setting ``batched_shots_gpu=False`` in the simulator options.
+
+    This optimization is most beneficial for small to medium numbers of qubits
+    where there is sufficient GPU memory to run multiple simulations in
+    parallel. The maximum number of active circuit qubits for enabling this
+    optimization can be configured using the ``batch_shots_gpu_max_qubits``
+    simulator option. The default value of this option is 16.
+  - |
+    Added the new ``max_shot_size`` option to a custom executor for
+    running multiple shots of a noisy circuit in parallel.
+
+    For example configuring ``max_shot_size`` with a custom executor::
+
+       backend = AerSimulator(
+          max_shot_size=1, max_job_size=1, executor=custom_executor)
+       job = backend.run(circuits)
+
+    will split the shots of a noisy circuit into multiple circuits.
+    After all individual shots have finished executing, the job results
+    are automatically combined into a single :class:`~qiskit.result.Result`
+    object that is returned by ``job.result()``.
+  - |
+    Added the ``mps_swap_direction`` simulator option that allows the user to determine
+    the direction of internal swaps, when they are inserted for a
+    2-qubit gate. Possible values are ``"mps_swap_right"`` and ``"mps_swap_left"``.
+    The direction of the swaps may affect performance, depending on the circuit.
+  - |
+    Implemented a new measurement sampling optimization for the
+    ``"matrix_product_state"`` simulation method of the
+    :class:`~qiskit.providers.aer.AerSimulator`. Currently this algorithm
+    is used only when all qubits are measured and when the simulator
+    ``mps_sample_measure_algorithm`` simulator option is set to ``"mps_probabilities"``.
+  - |
+    Improved the performance of the measure instruction for the ``"matrix_product_state"``
+    simulation method of the :class:`~qiskit.providers.aer.AerSimulator`.
+  - |
+    Added a :class:`~qiskit.providers.aer.library.SaveClifford` instruction for
+    saving the state of the stabilizer simulation method as a
+    :class:`~qiskit.quantum_info.Clifford` object.
+
+    Note that this instruction is essentially equivalent to the
+    :class:`~qiskit.providers.aer.library.SaveStabilizer` instruction, however
+    that instruction will return the saved state as a
+    :class:`~qiskit.quantum_info.StabilizerState` object instead of a
+    :class:`~qiskit.quantum_info.Clifford` object.
+upgrade:
+  - |
+    The return type of several save instructions have been changed to be the
+    corresponding Qiskit Terra classes rather than raw NumPy arrays or
+    dictionaries. The types that have changed are
+
+    * :func:`.save_statevector` now returns as a
+      :class:`~qiskit.quantum_info.Statevector`
+    * :func:`.save_density_matrix` now returns as a
+      :class:`~qiskit.quantum_info.DensityMatrix`
+    * :func:`.save_stabilizer` now returns as
+      :class:`~qiskit.quantum_info.StabilizerState`
+    * :func:`.save_unitary` now returns as
+      :class:`~qiskit.quantum_info.Operator`
+    * :func:`.save_superop` now returns as
+      :class:`~qiskit.quantum_info.SuperOp`
+    * :func:`.save_probabilities_dict` now returns as a
+      :class:`~qiskit.result.ProbDistribution`
+deprecations:
+  - |
+    Using NumPy ``ndarray`` methods and attributes on the return type of
+    :func:`.save_statevector`, :func:`.save_density_matrix`,
+    :func:`.save_unitary`, and :func:`.save_superop` has been deprecated, and
+    will stop working in a future release.
+    These instructions now return :mod:`qiskit.quantum_info` classes for their
+    return types. Partial backwards compatability with treating these objects as
+    NumPy arrays is implemented by forwarding methods to the internal array
+    during the deprecation period.
