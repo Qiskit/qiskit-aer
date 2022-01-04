@@ -227,23 +227,41 @@ class TestNoise(SimulatorTestCase):
         error1 = noise.amplitude_damping_error(0.15)
         error01 = error1.tensor(error0)
 
-        # Target Circuit
-        tc = QuantumCircuit(2)
-        tc.h(1)
-        tc.append(qi.Kraus(error0), [1])
-        tc.cx(1, 0)
-        tc.append(qi.Kraus(error01), [1, 0])
-        target_probs = qi.DensityMatrix(tc).probabilities_dict()
+        # Target Circuit 0
+        tc0 = QuantumCircuit(2)
+        tc0.h(0)
+        tc0.append(qi.Kraus(error0), [0])
+        tc0.cx(0, 1)
+        tc0.append(qi.Kraus(error01), [0, 1])
+        target_probs0 = qi.DensityMatrix(tc0).probabilities_dict()
 
-        # Sim circuit
-        qc = QuantumCircuit(2)
-        qc.h(1)
-        qc.append(error0, [1])
-        qc.cx(1, 0)
-        qc.append(error01, [1, 0])
-        qc.measure_all()
+        # Sim circuit 0
+        qc0 = QuantumCircuit(2)
+        qc0.h(0)
+        qc0.append(error0, [0])
+        qc0.cx(0, 1)
+        qc0.append(error01, [0, 1])
+        qc0.measure_all()
 
-        result = backend.run(qc, shots=shots).result()
+        # Target Circuit 1
+        tc1 = QuantumCircuit(2)
+        tc1.h(1)
+        tc1.append(qi.Kraus(error0), [1])
+        tc1.cx(1, 0)
+        tc1.append(qi.Kraus(error01), [1, 0])
+        target_probs1 = qi.DensityMatrix(tc1).probabilities_dict()
+
+        # Sim circuit 1
+        qc1 = QuantumCircuit(2)
+        qc1.h(1)
+        qc1.append(error0, [1])
+        qc1.cx(1, 0)
+        qc1.append(error01, [1, 0])
+        qc1.measure_all()
+
+        result = backend.run([qc0, qc1], shots=shots).result()
         self.assertSuccess(result)
-        probs = {key: val / shots for key, val in result.get_counts(0).items()}
-        self.assertDictAlmostEqual(target_probs, probs, delta=0.1)
+        probs = [{key: val / shots for key, val in result.get_counts(i).items()}
+                 for i in range(2)]
+        self.assertDictAlmostEqual(target_probs0, probs[0], delta=0.1)
+        self.assertDictAlmostEqual(target_probs1, probs[1], delta=0.1)
