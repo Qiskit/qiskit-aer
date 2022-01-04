@@ -229,18 +229,18 @@ class TestNoise(SimulatorTestCase):
 
         # Target Circuit
         tc = QuantumCircuit(2)
-        tc.h(0)
-        tc.append(qi.Kraus(error0), [0])
-        tc.cx(0, 1)
-        tc.append(qi.Kraus(error01), [0, 1])
+        tc.h(1)
+        tc.append(qi.Kraus(error0), [1])
+        tc.cx(1, 0)
+        tc.append(qi.Kraus(error01), [1, 0])
         target_probs = qi.DensityMatrix(tc).probabilities_dict()
 
         # Sim circuit
         qc = QuantumCircuit(2)
-        qc.h(0)
-        qc.append(error0, [0])
-        qc.cx(0, 1)
-        qc.append(error01, [0, 1])
+        qc.h(1)
+        qc.append(error0, [1])
+        qc.cx(1, 0)
+        qc.append(error01, [1, 0])
         qc.measure_all()
 
         result = backend.run(qc, shots=shots).result()

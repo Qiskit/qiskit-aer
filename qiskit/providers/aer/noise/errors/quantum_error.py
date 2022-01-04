@@ -456,9 +456,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
         instructions = []
         for circ in self._circs:
             circ_inst = []
-            for inst, qregs, _ in circ.data:
+            for inst, qargs, _ in circ.data:
                 qobj_inst = inst.assemble()
-                qobj_inst.qubits = [circ.find_bit(q).index for q in qregs]
+                qobj_inst.qubits = [circ.find_bit(q).index for q in qargs]
                 circ_inst.append(qobj_inst.to_dict())
             instructions.append(circ_inst)
         # Construct error dict
