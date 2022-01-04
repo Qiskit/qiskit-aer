@@ -223,18 +223,26 @@ class TestNoise(SimulatorTestCase):
         """Test simulation with Kraus quantum errors in circuit."""
         backend = self.backend(method=method, device=device)
         shots = 1000
-        error1 = noise.amplitude_damping_error(0.05)
-        error2 = error1.tensor(error1)
+        error0 = noise.amplitude_damping_error(0.05)
+        error1 = noise.amplitude_damping_error(0.15)
+        error01 = error1.tensor(error0)
 
+        # Target Circuit
+        tc = QuantumCircuit(2)
+        tc.h(0)
+        tc.append(qi.Kraus(error0), [0])
+        tc.cx(0, 1)
+        tc.append(qi.Kraus(error01), [0, 1])
+        target_probs = qi.DensityMatrix(tc).probabilities_dict()
+
+        # Sim circuit
         qc = QuantumCircuit(2)
         qc.h(0)
-        qc.append(error1, [0])
+        qc.append(error0, [0])
         qc.cx(0, 1)
-        qc.append(error2, [0, 1])
-        target_probs = qi.DensityMatrix(qc).probabilities_dict()
-
-        # Add measurement
+        qc.append(error01, [0, 1])
         qc.measure_all()
+
         result = backend.run(qc, shots=shots).result()
         self.assertSuccess(result)
         probs = {key: val / shots for key, val in result.get_counts(0).items()}
