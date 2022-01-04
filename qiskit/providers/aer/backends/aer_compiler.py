@@ -159,7 +159,8 @@ class AerCompiler:
             inlined_body = self._inline_circuit(body,
                                                 continue_label,
                                                 break_label)
-            inlined_body = inlined_body.bind_parameters({loop_parameter: index})
+            if loop_parameter is not None:
+                inlined_body = inlined_body.bind_parameters({loop_parameter: index})
             parent.append(inlined_body, qargs, cargs)
             parent.append(AerMark(continue_label, inlined_body.num_qubits), qargs, [])
 
