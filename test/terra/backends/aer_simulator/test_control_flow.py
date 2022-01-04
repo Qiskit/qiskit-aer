@@ -243,6 +243,32 @@ class TestControlFlow(SimulatorTestCase):
         self.assertIn('01100', counts)
 
     @data('statevector', 'density_matrix', 'matrix_product_state')
+    def test_for_loop_builder_no_loop_variable(self, method):
+        backend = self.backend(method=method)
+
+        circ = QuantumCircuit(5, 0)
+
+        with circ.for_loop(range(0)):
+            circ.x(0)
+        with circ.for_loop(range(1)):
+            circ.x(1)
+        with circ.for_loop(range(2)):
+            circ.x(2)
+        with circ.for_loop(range(3)):
+            circ.x(3)
+        with circ.for_loop(range(4)):
+            circ.x(4)
+
+        circ.measure_all()
+
+        result = backend.run(circ, method=method).result()
+        self.assertSuccess(result)
+
+        counts = result.get_counts()
+        self.assertEqual(len(counts), 1)
+        self.assertIn('01010', counts)
+
+    @data('statevector', 'density_matrix', 'matrix_product_state')
     def test_for_loop_break_builder(self, method):
         backend = self.backend(method=method)
 
