@@ -332,8 +332,6 @@ protected:
     }
     return max_memory_mb_;
   }
-  // Truncate and remap input qubits
-  bool enable_truncation_ = true;
 
   // The maximum number of threads to use for various levels of parallelization
   int max_parallel_threads_;
@@ -390,8 +388,6 @@ protected:
 //-------------------------------------------------------------------------
 
 void Controller::set_config(const json_t &config) {
-  // Load validation threshold
-  JSON::get_value(enable_truncation_, "enable_truncation", config);
 
   // Load validation threshold
   JSON::get_value(validation_threshold_, "validation_threshold", config);
@@ -876,37 +872,30 @@ Result Controller::execute(const inputdata_t &input_qobj) {
     // Start QOBJ timer
     auto timer_start = myclock_t::now();
 
-    Noise::NoiseModel noise_model;
-    json_t config;
+    // Initialize QOBJ
+    Qobj qobj(input_qobj);
+    auto qobj_time_taken =
+        std::chrono::duration<double>(myclock_t::now() - timer_start).count();
 
-    // Check for config
-    if (Parser<inputdata_t>::get_value(config, "config", input_qobj)) {
-      // Set config
-      set_config(config);
-      // Load noise model
-      Parser<json_t>::get_value(noise_model, "noise_model", config);
-    }
+    // Set config
+    set_config(qobj.config);
 
-    // Initialize qobj
-    Qobj qobj;
-    if (noise_model.has_nonlocal_quantum_errors()) {
-       // Non-local noise does not work with optimized initialization
-       qobj = Qobj(input_qobj, false);
-    } else {
-      qobj = Qobj(input_qobj, enable_truncation_);
-    }
+    // Run qobj circuits
+    auto result = execute(qobj.circuits, qobj.noise_model, qobj.config);
 
-    auto result = execute(qobj.circuits, noise_model, config);
+    // Add QOBJ loading time
+    result.metadata.add(qobj_time_taken, "time_taken_load_qobj");
+
     // Get QOBJ id and pass through header to result
     result.qobj_id = qobj.id;
     if (!qobj.header.empty()) {
       result.header = qobj.header;
     }
+
     // Stop the timer and add total timing data including qobj parsing
-    auto timer_stop = myclock_t::now();
     auto time_taken =
-        std::chrono::duration<double>(timer_stop - timer_start).count();
-    result.metadata.add(time_taken, "time_taken_qobj");
+        std::chrono::duration<double>(myclock_t::now() - timer_start).count();
+    result.metadata.add(time_taken, "time_taken");
     return result;
   } catch (std::exception &e) {
     // qobj was invalid, return valid output containing error message
@@ -1037,7 +1026,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     auto timer_stop = myclock_t::now();
     auto time_taken =
         std::chrono::duration<double>(timer_stop - timer_start).count();
-    result.metadata.add(time_taken, "time_taken");
+    result.metadata.add(time_taken, "time_taken_execute");
   }
   // If execution failed return valid output reporting error
   catch (std::exception &e) {

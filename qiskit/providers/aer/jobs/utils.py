@@ -120,14 +120,21 @@ def _split_qobj(qobj, max_size, qobj_id, seed):
     return qobjs
 
 
-def _check_custom_instruction(experiments):
+def _check_custom_instruction(experiments, optypes=None):
+    """Return True if circuits contain instructions that cant be split"""
+    # Check via optype list if available
+    if optypes is not None:
+        # Optypes store class names as strings
+        return any(
+            {"SaveData", "Snapshot"}.intersection(optype)
+            for optype in optypes
+        )
 
-    # check if save instruction exist
-    for exp in experiments:
-        for inst in exp.instructions:
-            if "save" in inst.name:
-                return True
-    return False
+    # Otherwise iterate over instruction names
+    return any(
+        "save_" in inst.name or "snapshot" in inst.name
+        for exp in experiments for inst in exp.instructions
+    )
 
 
 def _set_seed(qobj_list, seed):
@@ -162,11 +169,13 @@ def split_qobj(qobj, max_size=None, max_shot_size=None, qobj_id=None):
     Returns:
         List: A list of qobjs.
     """
+    optypes = getattr(qobj.config, 'optypes', None)
     split_qobj_list = []
     if (max_shot_size is not None and max_shot_size > 0):
-        if _check_custom_instruction(qobj.experiments):
-            raise JobError("`max_shot_size` option cannot"
-                           "be used with circuits containing save instructions.")
+        if _check_custom_instruction(qobj.experiments, optypes):
+            raise JobError(
+                "`max_shot_size` option cannot be used with circuits"
+                " containing save or snapshot instructions.")
 
     _seed = getattr(qobj.config, "seed_simulator", 0)
     if hasattr(qobj.config, "noise_model"):

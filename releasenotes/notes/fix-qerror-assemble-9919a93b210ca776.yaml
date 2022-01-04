@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fix performance regression in noisy simulations due to large increase in
+    serialization overhead for loading noise models from Python into C++
+    resulting from unintended nested Python multiprocessing calls.
+    See `issue 1407 <https://github.com/Qiskit/qiskit-aer/issues/1407>`__
+    for details.
