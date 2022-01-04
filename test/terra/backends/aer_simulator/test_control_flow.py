@@ -243,7 +243,7 @@ class TestControlFlow(SimulatorTestCase):
         self.assertIn('01100', counts)
 
     @data('statevector', 'density_matrix', 'matrix_product_state')
-    def test_for_loop_builder(self, method):
+    def test_for_loop_builder_no_loop_variable(self, method):
         backend = self.backend(method=method)
 
         circ = QuantumCircuit(5, 0)
