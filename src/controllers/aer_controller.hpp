@@ -531,6 +531,7 @@ void Controller::set_config(const json_t &config) {
           throw std::runtime_error("No CUDA device available!");
       }
       sim_device_ = Device::cuStateVec;
+
       //initialize custatevevtor handle once before actual calculation (takes long time at first call)
       custatevecStatus_t err;
       custatevecHandle_t stHandle;
@@ -664,12 +665,12 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
   enable_batch_multi_shots_ = false;
   if(batched_shots_gpu_ && sim_device_ == Device::GPU && 
      circ.shots > 1 && max_batched_states_ >= num_gpus_ && 
-     batched_shots_gpu_max_qubits_ >= circ.num_qubits ){  //cuStateVec is not supported currently
+     batched_shots_gpu_max_qubits_ >= circ.num_qubits ){  //cuStateVec is not supported currently, because cuStateVec does not handle conditional functions
     enable_batch_multi_shots_ = true;
   }
 
   if(sim_device_ == Device::cuStateVec){
-    parallel_shots_ = 1;    //cuStateVec beta 1 is not thread safe
+    parallel_shots_ = 1;    //cuStateVec is not thread safe
     return;
   }
 
@@ -1478,7 +1479,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   // Check if measure sampler and optimization are valid
   if (can_sample) {
     // Implement measure sampler
-    if (parallel_shots_ <= 1) {
+    if (parallel_shots_ <= 1 || (sim_device_ == Device::GPU || sim_device_ == Device::cuStateVec)) {
       state.set_max_matrix_qubits(max_bits);
       RngEngine rng;
       rng.set_seed(circ.seed);
@@ -1499,7 +1500,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
         shot_state.set_parallelization(parallel_state_update_);
         shot_state.set_global_phase(circ.global_phase_angle);
 
-        state.set_max_matrix_qubits(max_bits);
+        shot_state.set_max_matrix_qubits(max_bits);
 
         RngEngine rng;
         rng.set_seed(circ.seed + i);

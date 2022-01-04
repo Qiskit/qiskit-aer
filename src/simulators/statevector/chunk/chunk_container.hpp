@@ -487,6 +487,7 @@ protected:
   uint_t num_cmemory_;
   mutable int_t conditional_bit_;
   bool keep_conditional_bit_;         //keep conditional bit alive
+  int_t num_pow2_qubits_;             //largest number of qubits that meets num_chunks_ = m*(2^num_pow2_qubits_)
 public:
   ChunkContainer()
   {
@@ -533,6 +534,12 @@ public:
   {
     return matrix_bits_;
   }
+
+  int_t num_pow2_qubits(void)
+  {
+    return num_pow2_qubits_;
+  }
+  void update_pow2_qubits(void);
 
   virtual void set_device(void) const
   {
@@ -1149,6 +1156,17 @@ void ChunkContainer<data_t>::deallocate_chunks(void)
 
   reduced_queue_begin_.clear();
   reduced_queue_end_.clear();
+}
+
+template <typename data_t>
+void ChunkContainer<data_t>::update_pow2_qubits(void)
+{
+  uint_t n = num_chunks_;
+  num_pow2_qubits_ = chunk_bits_;
+  while((n & 1) == 0){
+    num_pow2_qubits_++;
+    n >>= 1;
+  }
 }
 
 //------------------------------------------------------------------------------

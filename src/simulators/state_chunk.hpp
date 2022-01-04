@@ -623,7 +623,7 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
 #endif
 
     if(BaseState::sim_device_name_ == "cuStateVec")
-      chunk_omp_parallel_ = false;    //because cuQuantum Beta 1 is not thread safe (TODO: check if cuQuantum will be updated)
+      chunk_omp_parallel_ = false;    //because cuStateVec is not thread safe 
     else
       thrust_optimization_ = true;    //cuStateVec does not handle global chunk index for diagonal matrix
   }
@@ -967,8 +967,10 @@ void StateChunk<state_t>::apply_ops_multi_shots_for_group(int_t i_group,
             max_ops = noise_ops[j].size();
           if(pauli_only){
             for(int_t k=0;k<noise_ops[j].size();k++){
-              if(noise_ops[j][k].name != "x" && noise_ops[j][k].name != "y" && noise_ops[j][k].name != "z" && noise_ops[j][k].name != "id")
+              if(noise_ops[j][k].name != "x" && noise_ops[j][k].name != "y" && noise_ops[j][k].name != "z" 
+                                             && noise_ops[j][k].name != "pauli" && noise_ops[j][k].name != "id"){
                 pauli_only = false;
+              }
             }
           }
         }

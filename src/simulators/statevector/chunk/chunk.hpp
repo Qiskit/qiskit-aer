@@ -363,6 +363,14 @@ public:
   {
     chunk_container_.lock()->apply_diagonal_matrix(chunk_pos_,qubits,control_bits,diag,count);
   }
+
+  //largest number of qubits that meets num_chunks_ = m*(2^num_pow2_qubits_)
+  uint_t num_pow2_qubits(void)
+  {
+    chunk_container_.lock()->num_pow2_qubits();
+  }
+
+
 };
 
 //------------------------------------------------------------------------------

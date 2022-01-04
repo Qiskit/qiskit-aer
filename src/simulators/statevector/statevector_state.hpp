@@ -1835,6 +1835,7 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
   else{
     std::vector<double> chunkSum(BaseState::qregs_.size()+1,0);
     double sum,localSum;
+
     //calculate per chunk sum
     if(BaseState::chunk_omp_parallel_){
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
