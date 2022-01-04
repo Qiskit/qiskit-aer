@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes a bug in :meth:`.QuantumError.to_dict` where N-qubit circuit
+    instructions where the assembled instruction always applied to
+    qubits ``[0, ..., N-1]`` rather than the instruction qubits. This
+    bug also affected device and fake backend noise models.
+
+    See `Issue 1415 <https://github.com/Qiskit/qiskit-aer/issues/1415>`__
+    for details.
