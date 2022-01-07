@@ -15,6 +15,7 @@ AerSimulator Integration Tests
 # pylint: disable=no-member
 import copy
 import numpy as np
+import math
 from ddt import ddt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import QuantumVolume, QFT, RealAmplitudes
@@ -454,6 +455,7 @@ class TestGateFusion(SimulatorTestCase):
         circuit = RealAmplitudes(num_qubits=num_qubits, entanglement='linear', reps=reps)
         circuit.measure_all()
 
+        np.random.seed(12345)
         param_binds = {}
         for param in circuit.parameters:
             param_binds[param] = np.random.random()
@@ -511,3 +513,46 @@ class TestGateFusion(SimulatorTestCase):
             if op_name == 'measure':
                 break
             self.assertEqual(op_name, 'diagonal')
+
+
+    def test_parallel_fusion_diagonal(self):
+        """Test diagonal fusion with parallelization"""
+        backend = self.backend(method="statevector")
+        
+        num_of_qubits = 10
+        circuit = QuantumCircuit(num_of_qubits)
+        size = 3
+        
+        for q in range(num_of_qubits):
+            circuit.h(q)
+        
+        np.random.seed(12345)
+        for qubit in range(num_of_qubits):
+            for q in range(size):
+                ctrl = (qubit + q) % num_of_qubits
+                tgt = (ctrl + 1) % num_of_qubits
+                circuit.cx(ctrl, tgt)
+        
+            circuit.p(np.random.random(), tgt)
+        
+            for q in range(size):
+                ctrl = (qubit + size - q - 1) % num_of_qubits
+                tgt = (ctrl + 1) % num_of_qubits
+                circuit.cx(ctrl, tgt)
+                
+        circuit.save_statevector()
+        
+        thread = 8
+        result = backend.run(circuit,
+                               fusion_threshold=1,
+                               **{'fusion_enable.diagonal': True,
+                                  'fusion_enable.cost_based': False,
+                                  'fusion_enable.n_qubits': False},
+                               fusion_parallelization_threshold=3,
+                               max_parallel_threads=thread).result()
+        actual = result.get_statevector(0)
+        
+        result = backend.run(circuit, fusion_enable=False).result()
+        expected = result.get_statevector(0)
+        
+        self.assertEqual(actual, expected)
