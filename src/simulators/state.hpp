@@ -279,7 +279,7 @@ public:
 
   // Snapshot the current statevector (single-shot)
   // if type_label is the empty string the operation type will be used for the type
-  virtual void snapshot_state(const Operations::Op &op, ExperimentResult &result,
+  void snapshot_state(const Operations::Op &op, ExperimentResult &result,
                       std::string name = "") const;
 
   // Snapshot the classical memory bits state (single-shot)
