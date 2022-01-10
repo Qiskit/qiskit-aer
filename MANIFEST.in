@@ -1,16 +1,10 @@
 include MANIFEST.in
 include README.md
 include pyproject.toml
-recursive-include qiskit *pyx
-recursive-include qiskit *pxd
-recursive-include qiskit *.pxi
-recursive-include qiskit *cpp
-recursive-include qiskit *hpp
+recursive-include qiskit *.pxd
 graft src
 graft contrib
-include qiskit/providers/aer/backends/wrappers/CMakeLists.txt
-include qiskit/providers/aer/backends/wrappers/bindings.cc
-include qiskit/providers/aer/pulse/qutip_extra_lite/cy/CMakeLists.txt
+graft qiskit/providers/aer/backends/wrappers
 include qiskit/providers/aer/VERSION.txt
 include qiskit/providers/aer/library/instructions_table.csv
 include CMakeLists.txt
