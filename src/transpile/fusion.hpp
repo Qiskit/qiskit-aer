@@ -283,6 +283,8 @@ public:
                                       const std::vector<uint_t>& fusioned_ops_idxs,
                                       const FusionMethod& method,
                                       const bool diagonal = false) const;
+
+  virtual ~Fuser() = default;
 };
 
 void Fuser::allocate_new_operation(oplist_t& ops,
