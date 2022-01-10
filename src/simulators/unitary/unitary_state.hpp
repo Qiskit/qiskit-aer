@@ -447,9 +447,8 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
       uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1));
 
       //copy part of state for this chunk
-      uint_t i,row,col;
       cvector_t tmp(1ull << BaseState::chunk_bits_);
-      for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
+      for(uint_t i=0; i< (1ull << BaseState::chunk_bits_); i++){
         uint_t icol = i >> (BaseState::chunk_bits_);
         uint_t irow = i & mask;
         uint_t idx = ((icol+(irow_chunk << BaseState::chunk_bits_)) << (BaseState::num_qubits_)) + (icol_chunk << BaseState::chunk_bits_) + irow;
@@ -495,9 +494,8 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
       uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1));
 
       //copy part of state for this chunk
-      uint_t i,row,col;
       cvector_t tmp(1ull << BaseState::chunk_bits_);
-      for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
+      for(uint_t i=0; i < (1ull << BaseState::chunk_bits_); i++) {
         uint_t icol = i >> (BaseState::chunk_bits_);
         uint_t irow = i & mask;
         uint_t idx = ((icol+(irow_chunk << BaseState::chunk_bits_)) << (BaseState::num_qubits_)) + (icol_chunk << BaseState::chunk_bits_) + irow;
@@ -676,7 +674,7 @@ void State<unitary_matrix_t>::apply_diagonal_matrix(const int_t iChunk, const re
   if(BaseState::thrust_optimization_){
     //GPU computes all chunks in one kernel, so pass qubits and diagonal matrix as is
     reg_t qubits_chunk = qubits;
-    for(uint_t i;i<qubits.size();i++){
+    for(uint_t i = 0; i < qubits.size(); i++) {
       if(qubits_chunk[i] >= BaseState::chunk_bits_){
         qubits_chunk[i] += BaseState::chunk_bits_;
       }

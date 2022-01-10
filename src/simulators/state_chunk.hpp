@@ -872,8 +872,6 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
     if(num_groups_ > 1 && chunk_omp_parallel_){
 #pragma omp parallel for 
       for(i=0;i<num_groups_;i++){
-        uint_t istate = top_chunk_of_group_[i];
-
         for(uint_t j=top_chunk_of_group_[i];j<top_chunk_of_group_[i+1];j++){
           //enabling batch shots optimization
           qregs_[j].enable_batch(true);
@@ -889,8 +887,6 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
     }
     else{
       for(i=0;i<num_groups_;i++){
-        uint_t istate = top_chunk_of_group_[i];
-
         for(uint_t j=top_chunk_of_group_[i];j<top_chunk_of_group_[i+1];j++){
           //enabling batch shots optimization
           qregs_[j].enable_batch(true);
@@ -1002,13 +998,12 @@ void StateChunk<state_t>::apply_batched_noise_ops(const int_t i_group, const std
                              ExperimentResult &result,
                              std::vector<RngEngine> &rng)
 {
-  int_t i,j,k,count,nop,pos = 0;
   uint_t istate = top_chunk_of_group_[i_group];
-  count = ops.size();
+  int_t count = ops.size();
 
   reg_t mask(count);
   std::vector<bool> finished(count,false);
-  for(i=0;i<count;i++){
+  for(int_t i = 0; i < count; i++) {
     int_t cond_reg = -1;
 
     if(finished[i])
@@ -1020,7 +1015,7 @@ void StateChunk<state_t>::apply_batched_noise_ops(const int_t i_group, const std
     mask[i] = 1;
 
     //find same ops to be exectuted in a batch
-    for(j=i+1;j<count;j++){
+    for(int_t j = i+1; j < count; j++){
       if(finished[j]){
         mask[j] = 0;
         continue;
@@ -1037,7 +1032,7 @@ void StateChunk<state_t>::apply_batched_noise_ops(const int_t i_group, const std
       }
 
       mask[j] = true;
-      for(k=0;k<ops[i].size();k++){
+      for(int_t k=0;k<ops[i].size();k++){
         if(ops[i][k].conditional){
           cond_reg = ops[i][k].conditional_reg;
         }
@@ -1054,7 +1049,7 @@ void StateChunk<state_t>::apply_batched_noise_ops(const int_t i_group, const std
     int_t sys_reg = qregs_[istate].set_batched_system_conditional(cond_reg, mask);
 
     //batched execution on same ops
-    for(k=0;k<ops[i].size();k++){
+    for(int_t k = 0; k < ops[i].size(); k++) {
       Operations::Op cop = ops[i][k];
 
       //mark op conditional to mask shots
@@ -1063,9 +1058,9 @@ void StateChunk<state_t>::apply_batched_noise_ops(const int_t i_group, const std
 
       if(!apply_batched_op(istate, cop, result,rng, false)){
         //call apply_op for each state
-        for(uint_t j=top_chunk_of_group_[i_group];j<top_chunk_of_group_[i_group+1];j++){
+        for(uint_t j = top_chunk_of_group_[i_group]; j < top_chunk_of_group_[i_group+1]; j++) {
           qregs_[j].enable_batch(false);
-          apply_op(j, cop, result ,rng[j-top_chunk_of_group_[i_group]],false);
+          apply_op(j, cop, result, rng[j-top_chunk_of_group_[i_group]], false);
           qregs_[j].enable_batch(true);
         }
       }
@@ -1445,8 +1440,7 @@ void StateChunk<state_t>::initialize_from_matrix(const int_t iChunkIn, const lis
       uint_t icol_chunk = ((iChunk + global_chunk_index_) & ((1ull << ((num_qubits_ - chunk_bits_)))-1)) << (chunk_bits_);
 
       //copy part of state for this chunk
-      uint_t i,row,col;
-      for(i=0;i<(1ull << (chunk_bits_*qubit_scale()));i++){
+      for(int_t i = 0; i < (1ull << (chunk_bits_ * qubit_scale())); i++) {
         uint_t icol = i & ((1ull << chunk_bits_)-1);
         uint_t irow = i >> chunk_bits_;
         tmp[i] = mat[icol_chunk + icol + ((irow_chunk + irow) << num_qubits_)];
@@ -1550,9 +1544,7 @@ uint_t StateChunk<state_t>::mapped_index(const uint_t idx)
 template <class state_t>
 void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 {
-  uint_t nLarge = 1;
   uint_t q0,q1;
-  int_t iChunk;
 
   q0 = qubits[qubits.size() - 2];
   q1 = qubits[qubits.size() - 1];
@@ -1581,11 +1573,6 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
     int_t iPair;
     uint_t nPair,mask0,mask1;
     uint_t baseChunk,iChunk1,iChunk2;
-
-    if(q0 < chunk_bits_*qubit_scale())
-      nLarge = 1;
-    else
-      nLarge = 2;
 
     mask0 = (1ull << q0);
     mask1 = (1ull << q1);
@@ -1662,6 +1649,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
       uint_t ub[3];
       uint_t iu[3];
       uint_t add;
+      uint_t nLarge;
       uint_t iLocalChunk,iRemoteChunk,iProc;
       int i;
 
@@ -1755,10 +1743,6 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
 template <class state_t>
 void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
 {
-  int_t iChunk;
-  uint_t nLarge = 1;
-
-
   if(qubit < chunk_bits_*qubit_scale()){
     reg_t qubits(1,qubit);
 #pragma omp parallel for if(chunk_omp_parallel_ && num_groups_ > 1) 
@@ -1810,6 +1794,7 @@ void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
       uint_t ub[3];
       uint_t iu[3];
       uint_t add;
+      uint_t nLarge;
       uint_t iLocalChunk,iRemoteChunk,iProc;
       int i;
 

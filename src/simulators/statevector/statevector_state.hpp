@@ -859,11 +859,11 @@ void State<statevec_t>::apply_save_probs(const int_t iChunk, const Operations::O
 
 
 template <class statevec_t>
-double State<statevec_t>::expval_pauli(const int_t iChunk, const reg_t &qubits,
+double State<statevec_t>::expval_pauli(const int_t iChunk_, const reg_t &qubits,
                                        const std::string& pauli) 
 {
   if(!BaseState::multi_chunk_distribution_)
-    return BaseState::qregs_[iChunk].expval_pauli(qubits, pauli);
+    return BaseState::qregs_[iChunk_].expval_pauli(qubits, pauli);
 
   //multi-chunk distribution
   reg_t qubits_in_chunk;

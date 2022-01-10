@@ -449,9 +449,8 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits,
       uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
 
       //copy part of state for this chunk
-      uint_t i,row,col;
       cvector_t tmp(1ull << (BaseState::chunk_bits_*2));
-      for(i=0;i<(1ull << (BaseState::chunk_bits_*2));i++){
+      for(int_t i=0;i<(1ull << (BaseState::chunk_bits_*2));i++){
         uint_t icol = i & ((1ull << (BaseState::chunk_bits_))-1);
         uint_t irow = i >> (BaseState::chunk_bits_);
         tmp[i] = input[icol_chunk + icol + ((irow_chunk + irow) << (BaseState::num_qubits_))];
@@ -491,9 +490,8 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits,
       uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
 
       //copy part of state for this chunk
-      uint_t i,row,col;
       cvector_t tmp(1ull << (BaseState::chunk_bits_*2));
-      for(i=0;i<(1ull << (BaseState::chunk_bits_*2));i++){
+      for(int_t i = 0; i < (1ull << (BaseState::chunk_bits_*2)); i++) {
         uint_t icol = i & ((1ull << (BaseState::chunk_bits_))-1);
         uint_t irow = i >> (BaseState::chunk_bits_);
         tmp[i] = state[icol_chunk + icol + ((irow_chunk + irow) << (BaseState::num_qubits_))];
@@ -532,9 +530,8 @@ void State<densmat_t>::initialize_qreg(uint_t num_qubits,
       uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
 
       //copy part of state for this chunk
-      uint_t i,row,col;
       cvector_t tmp(1ull << (BaseState::chunk_bits_*2));
-      for(i=0;i<(1ull << (BaseState::chunk_bits_*2));i++){
+      for(uint_t i=0;i < (1ull << (BaseState::chunk_bits_*2)); i++) {
         uint_t icol = i & ((1ull << (BaseState::chunk_bits_))-1);
         uint_t irow = i >> (BaseState::chunk_bits_);
         tmp[i] = state[icol_chunk + icol + ((irow_chunk + irow) << (BaseState::num_qubits_))];
@@ -575,11 +572,10 @@ void State<densmat_t>::initialize_from_vector(const int_t iChunkIn, const list_t
         uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1)) << (BaseState::chunk_bits_);
 
         //copy part of state for this chunk
-        uint_t i,row,col;
         list_t vec1(1ull << BaseState::chunk_bits_);
         list_t vec2(1ull << BaseState::chunk_bits_);
 
-        for(i=0;i<(1ull << BaseState::chunk_bits_);i++){
+        for(uint_t i = 0; i < (1ull << BaseState::chunk_bits_); i++) {
           vec1[i] = vec[(irow_chunk << BaseState::chunk_bits_) + i];
           vec2[i] = std::conj(vec[(icol_chunk << BaseState::chunk_bits_) + i]);
         }
@@ -830,21 +826,20 @@ void State<densmat_t>::apply_save_amplitudes_sq(const int_t iChunkIn, const Oper
 }
 
 template <class densmat_t>
-double State<densmat_t>::expval_pauli(const int_t iChunk, const reg_t &qubits,
+double State<densmat_t>::expval_pauli(const int_t iChunk_, const reg_t &qubits,
                                       const std::string& pauli)  {
   if(!BaseState::multi_chunk_distribution_)
-    return BaseState::qregs_[iChunk].expval_pauli(qubits, pauli);
+    return BaseState::qregs_[iChunk_].expval_pauli(qubits, pauli);
 
   reg_t qubits_in_chunk;
   reg_t qubits_out_chunk;
   std::string pauli_in_chunk;
   std::string pauli_out_chunk;
-  int_t i,n;
+  int_t n = pauli.size();
   double expval(0.);
 
   //get inner/outer chunk pauli string
-  n = pauli.size();
-  for(i=0;i<n;i++){
+  for(int_t i = 0; i < n; i++) {
     if(qubits[i] < BaseState::chunk_bits_){
       qubits_in_chunk.push_back(qubits[i]);
       pauli_in_chunk.push_back(pauli[n-i-1]);
@@ -876,8 +871,8 @@ double State<densmat_t>::expval_pauli(const int_t iChunk, const reg_t &qubits,
       const uint_t mask_u = ~((1ull << (x_max + 1)) - 1);
       const uint_t mask_l = (1ull << x_max) - 1;
 
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) reduction(+:expval)
-      for(i=0;i<nrows/2;i++){
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) reduction(+:expval)
+      for(uint_t i = 0; i < nrows/2; i++) {
         uint_t irow = ((i << 1) & mask_u) | (i & mask_l);
         uint_t iChunk = (irow ^ x_mask) + irow * nrows;
 
@@ -890,8 +885,8 @@ double State<densmat_t>::expval_pauli(const int_t iChunk, const reg_t &qubits,
       }
     }
     else{
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) reduction(+:expval)
-      for(i=0;i<nrows;i++){
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) reduction(+:expval)
+      for(uint_t i = 0; i < nrows; i++) {
         uint_t iChunk = i * (nrows+1);
         if(BaseState::chunk_index_begin_[BaseState::distributed_rank_] <= iChunk && BaseState::chunk_index_end_[BaseState::distributed_rank_] > iChunk){  //on this process
           double sign = 1.0;
@@ -903,8 +898,8 @@ double State<densmat_t>::expval_pauli(const int_t iChunk, const reg_t &qubits,
     }
   }
   else{ //all bits are inside chunk
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) reduction(+:expval)
-    for(i=0;i<nrows;i++){
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_) reduction(+:expval)
+    for(uint_t i = 0; i < nrows; i++) {
       uint_t iChunk = i * (nrows+1);
       if(BaseState::chunk_index_begin_[BaseState::distributed_rank_] <= iChunk && BaseState::chunk_index_end_[BaseState::distributed_rank_] > iChunk){  //on this process
         expval += BaseState::qregs_[iChunk-BaseState::global_chunk_index_].expval_pauli(qubits, pauli,1.0);

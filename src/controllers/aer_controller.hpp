@@ -899,7 +899,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
   // Execute each circuit in a try block
   try {
     //check if multi-chunk distribution is required
-    bool multi_chunk_required_ = false;
+    multi_chunk_required_ = false;
     for (size_t j = 0; j < circuits.size(); j++){
       if(circuits[j].num_qubits > 0){
         if(multiple_chunk_required(circuits[j], noise_model, methods[j]))
