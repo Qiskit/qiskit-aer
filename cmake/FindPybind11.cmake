@@ -43,8 +43,8 @@ function(basic_pybind11_add_module target_name)
     add_library(${target_name} ${lib_type} ${exclude_from_all} ${ARG_UNPARSED_ARGUMENTS})
 
     # This sets various properties (python include dirs) and links to python libs
-    target_include_directories(${target_name} PRIVATE ${PYTHON_INCLUDE_DIRS})
-    target_include_directories(${target_name} PRIVATE ${PYBIND_INCLUDE_DIRS})
+    target_include_directories(${target_name} SYSTEM PRIVATE ${PYTHON_INCLUDE_DIRS})
+    target_include_directories(${target_name} SYSTEM PRIVATE ${PYBIND_INCLUDE_DIRS})
 
     if(WIN32 OR CYGWIN)
         # Link against the Python shared library on Windows
