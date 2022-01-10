@@ -185,7 +185,7 @@ protected:
   //-----------------------------------------------------------------------
 
   // Apply the global phase
-  void apply_global_phase();
+  void apply_global_phase() override;
 
   // OpenMP qubit threshold
   int omp_qubit_threshold_ = 6;

@@ -144,7 +144,7 @@ public:
   // Return the expectation value of a N-qubit Pauli operator
   // If the simulator does not support Pauli expectation value this should
   // raise an exception.
-  double expval_pauli(const reg_t &qubits,const std::string& pauli) override final {return 0.0;}
+  double expval_pauli(const reg_t &qubits,const std::string& pauli) final {return 0.0;}
 
   virtual double expval_pauli(const int_t iChunk, const reg_t &qubits,
                               const std::string& pauli) = 0;
@@ -198,7 +198,7 @@ public:
   void apply_op(const Operations::Op &op,
                       ExperimentResult &result,
                       RngEngine& rng,
-                      bool final_op = false) override final {}
+                      bool final_op = false) final {}
 
   //so this one is used
   virtual void apply_op(const int_t iChunk, const Operations::Op &op,
