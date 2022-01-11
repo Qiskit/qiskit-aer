@@ -26,7 +26,7 @@ namespace QV {
 // chunk class
 //============================================================================
 template <typename data_t>
-class Chunk 
+class Chunk
 {
 protected:
   mutable std::weak_ptr<ChunkContainer<data_t>> chunk_container_;   //pointer to chunk container
@@ -111,7 +111,7 @@ public:
     cache_->unmap();
     cache_.reset();
   }
-  
+
   bool is_mapped(void)
   {
     return mapped_;
@@ -326,9 +326,9 @@ public:
     chunk_container_.lock()->queue_blocked_gate(chunk_pos_,gate,qubit,mask,pMat);
   }
 
-  int measured_cbit(int qubit)
+  uint_t measured_cbit(uint_t qubit)
   {
-    return chunk_container_.lock()->measured_cbit(chunk_pos_,qubit);
+    return chunk_container_.lock()->measured_cbit(chunk_pos_, qubit);
   }
 
 

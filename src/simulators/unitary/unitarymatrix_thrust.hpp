@@ -143,21 +143,19 @@ template <class data_t>
 json_t UnitaryMatrixThrust<data_t>::json() const 
 {
   const int_t nrows = rows_;
-  int iPlace;
-  int_t i, irow, icol;
   uint_t csize = BaseVector::data_size_;
   cvector_t<data_t> tmp(csize);
 
   const json_t ZERO = std::complex < data_t > (0.0, 0.0);
   json_t js = json_t(nrows, json_t(nrows, ZERO));
 
-#pragma omp parallel private(i,irow,icol) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+#pragma omp parallel if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
   {
     if (BaseVector::json_chop_threshold_ > 0) {
 #pragma omp for
-      for (i = 0; i < csize; i++) {
-        irow = (i >> num_qubits_);
-        icol = i - (irow << num_qubits_);
+      for (uint_t i = 0; i < csize; i++) {
+        uint_t irow = (i >> num_qubits_);
+        uint_t icol = i - (irow << num_qubits_);
 
         if (std::abs(tmp[i].real()) > BaseVector::json_chop_threshold_)
           js[icol][irow][0] = tmp[i].real();
@@ -166,9 +164,9 @@ json_t UnitaryMatrixThrust<data_t>::json() const
       }
     } else {
 #pragma omp for
-      for (i = 0; i < csize; i++) {
-        irow = (i >> num_qubits_);
-        icol = i - (irow << num_qubits_);
+      for (uint_t i = 0; i < csize; i++) {
+        uint_t irow = (i >> num_qubits_);
+        uint_t icol = i - (irow << num_qubits_);
 
         js[icol][irow][0] = tmp[i].real();
         js[icol][irow][1] = tmp[i].imag();
@@ -204,10 +202,8 @@ matrix<std::complex<data_t>> UnitaryMatrixThrust<data_t>::copy_to_matrix() const
 
   cvector_t<data_t> qreg = BaseVector::vector();
 
-  int_t i;
-  uint_t irow, icol;
-#pragma omp parallel for private(i,irow,icol) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
-  for (i = 0; i < csize; i++) {
+#pragma omp parallel for if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+  for (uint_t i = 0; i < csize; i++) {
     ret[i] = qreg[i];
   }
 	return ret;
@@ -358,9 +354,6 @@ std::pair<bool, double> UnitaryMatrixThrust<data_t>::check_identity() const {
 
   // Check conditions 2 and 3
   double delta = 0.;
-	int iPlace;
-	uint_t i,irow,icol,ic,nc;
-	uint_t pos = 0;
 	uint_t csize = BaseVector::data_size_;
 	cvector_t<data_t> tmp(csize);
 
@@ -368,10 +361,10 @@ std::pair<bool, double> UnitaryMatrixThrust<data_t>::check_identity() const {
 
   uint_t offset = BaseVector::chunk_index_ << BaseVector::num_qubits_;
   uint_t err_count = 0;
-#pragma omp parallel for private(i,irow,icol) reduction(+:delta,err_count) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
-  for(i=0;i<csize;i++){
-    irow = ((i + offset) >> num_qubits_);
-    icol = (i + offset) - (irow << num_qubits_);
+#pragma omp parallel for reduction(+:delta,err_count) if (BaseVector::num_qubits_ > BaseVector::omp_threshold_ && BaseVector::omp_threads_ > 1) num_threads(BaseVector::omp_threads_)
+  for (uint_t i = 0; i < csize; i++) {
+    uint_t irow = ((i + offset) >> num_qubits_);
+    uint_t icol = (i + offset) - (irow << num_qubits_);
 
     auto val = (irow==icol) ? std::norm(tmp[i] - u00)
                             : std::norm(tmp[i]);

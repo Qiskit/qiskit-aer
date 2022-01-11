@@ -87,7 +87,7 @@ protected:
   thrust::complex<data_t>* data_;   //pointer to state vector buffer
   thrust::complex<double>* matrix_; //storage for matrix on device
   uint_t* params_;                  //storage for additional parameters on device
-  uint_t base_index_;               //start index of state vector 
+  uint_t base_index_;               //start index of state vector
   uint_t chunk_bits_;
   uint_t* cregs_;
   uint_t num_creg_bits_;
@@ -154,15 +154,15 @@ public:
   {
     return false;
   }
-  virtual int qubits_count(void)
+  virtual uint_t qubits_count(void)
   {
     return 1;
   }
-  virtual int num_control_bits(void)
+  virtual uint_t num_control_bits(void)
   {
     return 0;
   }
-  virtual int control_mask(void)
+  virtual uint_t control_mask(void)
   {
     return 1;
   }
@@ -226,7 +226,7 @@ template <typename data_t>
 class GateFuncWithCache : public GateFuncBase<data_t>
 {
 protected:
-  int nqubits_;
+  uint_t nqubits_;
 public:
   GateFuncWithCache(uint_t nq)
   {
@@ -240,7 +240,7 @@ public:
 
     __host__ __device__ virtual uint_t thread_to_index(uint_t _tid) const
   {
-    uint_t idx,ii,t,j;
+    uint_t idx,ii,t;
     uint_t* qubits;
     uint_t* qubits_sorted;
 
@@ -249,7 +249,7 @@ public:
 
     idx = 0;
     ii = _tid >> nqubits_;
-    for(j=0;j<nqubits_;j++){
+    for (uint_t j = 0; j < nqubits_; j++) {
       t = ii & ((1ull << qubits_sorted[j]) - 1);
       idx += t;
       ii = (ii - t) << 1;
@@ -291,7 +291,7 @@ public:
     }
   }
 
-  virtual int qubits_count(void)
+  virtual uint_t qubits_count(void)
   {
     return nqubits_;
   }
@@ -301,7 +301,7 @@ template <typename data_t>
 class GateFuncSumWithCache : public GateFuncBase<data_t>
 {
 protected:
-  int nqubits_;
+  uint_t nqubits_;
 public:
   GateFuncSumWithCache(uint_t nq)
   {
@@ -316,7 +316,7 @@ public:
 
   __host__ __device__ virtual uint_t thread_to_index(uint_t _tid) const
   {
-    uint_t idx,ii,t,j;
+    uint_t idx,ii,t;
     uint_t* qubits;
     uint_t* qubits_sorted;
 
@@ -325,7 +325,7 @@ public:
 
     idx = 0;
     ii = _tid >> nqubits_;
-    for(j=0;j<nqubits_;j++){
+    for (uint_t j = 0; j < nqubits_; j++) {
       t = ii & ((1ull << qubits_sorted[j]) - 1);
       idx += t;
       ii = (ii - t) << 1;
@@ -362,7 +362,7 @@ public:
     return sum;
   }
 
-  virtual int qubits_count(void)
+  virtual uint_t qubits_count(void)
   {
     return nqubits_;
   }
@@ -408,7 +408,7 @@ class strided_range
   // construct strided_range for the range [first,last)
   strided_range(Iterator first, Iterator last, difference_type stride)
       : first(first), last(last), stride(stride) {}
- 
+
   iterator begin(void) const
   {
     return PermutationIterator(first, TransformIterator(CountingIterator(0), stride_functor(stride)));
@@ -422,7 +422,7 @@ class strided_range
     //density matrix
     return begin() + (last - first) / (stride-1);
   }
-  
+
   protected:
   Iterator first;
   Iterator last;
@@ -672,7 +672,7 @@ public:
 
   //classical register to store measured bits/used for bfunc operations
   virtual void allocate_creg(uint_t num_mem,uint_t num_reg){}
-  virtual int measured_cbit(uint_t iChunk,int qubit)
+  virtual uint_t measured_cbit(uint_t iChunk, uint_t qubit)
   {
     return 0;
   }
@@ -729,9 +729,7 @@ void ChunkContainer<data_t>::UnmapChunk(Chunk<data_t>& chunk)
 template <typename data_t>
 bool ChunkContainer<data_t>::MapBufferChunk(Chunk<data_t>& chunk)
 {
-  uint_t i,pos;
-
-  for(i=0;i<num_buffers_;i++){
+  for (uint_t i = 0; i < num_buffers_; i++) {
     if(!buffers_map_[i]){
       buffers_map_[i] = true;
       chunk.map(this->shared_from_this(),num_chunks_+i);
@@ -751,10 +749,9 @@ void ChunkContainer<data_t>::UnmapBuffer(Chunk<data_t>& buf)
 template <typename data_t>
 void ChunkContainer<data_t>::unmap_all(void)
 {
-  int_t i;
-  for(i=0;i<chunks_map_.size();i++)
+  for (uint_t i = 0; i < chunks_map_.size(); i++)
     chunks_map_[i] = false;
-  for(i=0;i<buffers_map_.size();i++)
+  for (uint_t i = 0; i < buffers_map_.size(); i++)
     buffers_map_[i] = false;
   num_chunk_mapped_ = 0;
 }
@@ -1099,7 +1096,7 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
 
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
- 
+
   uint_t i;
   for(i=0;i<count;i++){
     thrust::complex<double> ret,zero = 0.0;
@@ -1130,7 +1127,6 @@ void host_func_launcher(void* pParam)
 template <typename data_t>
 void ChunkContainer<data_t>::allocate_chunks(void)
 {
-  uint_t i;
   chunks_map_.resize(num_chunks_,false);
   buffers_map_.resize(num_buffers_,false);
 

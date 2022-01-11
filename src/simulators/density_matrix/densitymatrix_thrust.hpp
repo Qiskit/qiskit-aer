@@ -57,7 +57,7 @@ public:
 #else
   static std::string name() {return "density_matrix_thrust";}
 #endif
-  virtual bool is_density_matrix(void) {return true;}
+  virtual bool is_density_matrix(void) override {return true;}
 
   // Initializes the current vector so that all qubits are in the |0> state.
   void initialize();
@@ -140,7 +140,7 @@ public:
   virtual reg_t sample_measure(const std::vector<double> &rnds) const override;
 
   //optimized 1 qubit measure (async)
-  virtual void apply_batched_measure(const reg_t& qubits,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs);
+  virtual void apply_batched_measure(const reg_t& qubits,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs) override;
 
 
   virtual void apply_reset(const reg_t& qubits);
@@ -280,7 +280,7 @@ public:
     offset_sp_ = 1ull << qubit_sp;
   }
 
-  int qubits_count(void)
+  uint_t qubits_count(void)
   {
     return 2;
   }
@@ -379,7 +379,7 @@ public:
     m0 = mat[0];
     m1 = mat[1];
   }
-  int qubits_count(void)
+  uint_t qubits_count(void)
   {
     return 2;
   }
@@ -432,11 +432,11 @@ template <typename data_t>
 class DensityDiagMatMultNxN : public GateFuncBase<data_t>
 {
 protected:
-  int nqubits_;
-  int total_bits_;
-  int chunk_bits_;
+  uint_t nqubits_;
+  uint_t total_bits_;
+  uint_t chunk_bits_;
 public:
-  DensityDiagMatMultNxN(const reg_t &qb,int total,int chunk)
+  DensityDiagMatMultNxN(const reg_t &qb, uint_t total, uint_t chunk)
   {
     nqubits_ = qb.size();
     total_bits_ = total;
@@ -527,7 +527,7 @@ public:
     cmask = 1ull << qc;
     cmask_sp = 1ull << (qc + qs);
   }
-  int qubits_count(void)
+  uint_t qubits_count(void)
   {
     return 2;
   }
@@ -683,7 +683,7 @@ public:
     phase_ = phase;
   }
 
-  int qubits_count(void)
+  uint_t qubits_count(void)
   {
     return 2;
   }
@@ -762,7 +762,7 @@ protected:
   uint_t offset1;
 
 public:
-  DensityX(int q0,int q1)
+  DensityX(uint_t q0, uint_t q1)
   {
     offset0 = 1ull << q0;
     offset1 = 1ull << q1;
@@ -775,7 +775,7 @@ public:
       mask1 = (1ull << q0) - 1;
     }
   }
-  int qubits_count(void)
+  uint_t qubits_count(void)
   {
     return 2;
   }
@@ -838,7 +838,7 @@ protected:
   uint_t offset1;
 
 public:
-  DensityY(int q0,int q1)
+  DensityY(uint_t q0, uint_t q1)
   {
     offset0 = 1ull << q0;
     offset1 = 1ull << q1;
@@ -851,7 +851,7 @@ public:
       mask1 = (1ull << q0) - 1;
     }
   }
-  int qubits_count(void)
+  uint_t qubits_count(void)
   {
     return 2;
   }
@@ -1315,8 +1315,8 @@ public:
 template <typename data_t>
 void DensityMatrixThrust<data_t>::apply_batched_measure(const reg_t& qubits,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs)
 {
-  const int_t DIM = 1 << qubits.size();
-  uint_t i,count = 1;
+  const uint_t DIM = 1ull << qubits.size();
+  uint_t count = 1;
   if(BaseVector::enable_batch_){
     if(BaseVector::chunk_.pos() != 0){
       return;   //first chunk execute all in batch
@@ -1330,20 +1330,20 @@ void DensityMatrixThrust<data_t>::apply_batched_measure(const reg_t& qubits,std:
                                                                            BaseVector::chunk_.reduce_buffer(),BaseVector::chunk_.reduce_buffer_size()) );
 
   reg_t params(qubits.size() + cmemory.size() + cregs.size());
-  for(i=0;i<qubits.size();i++){
+  for (uint_t i = 0;i<qubits.size(); i++) {
     params[i] = qubits[i];
   }
-  for(i=0;i<cmemory.size();i++){
+  for (uint_t i = 0; i < cmemory.size(); i++) {
     params[i+qubits.size()] = cmemory[i] + BaseVector::num_creg_bits_;
   }
-  for(i=0;i<cregs.size();i++){
+  for (uint_t i = 0; i < cregs.size(); i++) {
     params[cmemory.size()+qubits.size()+i] = cregs[i];
   }
   BaseVector::chunk_.StoreUintParams(params);
 
   //probability
   std::vector<double> r(count);
-  for(i=0;i<count;i++){
+  for (uint_t i = 0; i < count; i++) {
     r[i] = rng[i].rand();
   }
   BaseVector::chunk_.container()->copy_to_probability_buffer(r,QV_RESET_TARGET_PROB);
@@ -1353,7 +1353,7 @@ void DensityMatrixThrust<data_t>::apply_batched_measure(const reg_t& qubits,std:
   BaseVector::store_cregister(system_reg,1);
   BaseVector::chunk_.keep_conditional(true);
 
-  for(i=0;i<DIM-1;i++){
+  for (uint_t i = 0; i < DIM - 1; i++) {
     BaseVector::chunk_.set_conditional(system_reg);
     BaseVector::apply_function_sum(nullptr,density_probability_func<data_t>(qubits,i,num_qubits()),true);
 
@@ -1459,7 +1459,7 @@ void DensityMatrixThrust<data_t>::apply_reset(const reg_t& qubits)
   auto qubits_sorted = qubits;
   std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
-  for(int_t i=0;i<qubits.size();i++){
+  for (uint_t i = 0; i < qubits.size(); i++) {
     qubits_sorted.push_back(qubits[i]);
   }
   BaseVector::chunk_.StoreUintParams(qubits_sorted);

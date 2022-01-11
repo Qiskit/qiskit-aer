@@ -31,16 +31,16 @@ namespace QV {
 // this is static class, there is only 1 manager class
 //============================================================================
 template <typename data_t>
-class ChunkManager 
+class ChunkManager
 {
 protected:
   std::vector<std::shared_ptr<ChunkContainer<data_t>>> chunks_;         //chunk containers for each device and host
 
-  int num_devices_;            //number of devices
-  int num_places_;             //number of places (devices + host)
+  uint_t num_devices_;            //number of devices
+  uint_t num_places_;             //number of places (devices + host)
 
-  int chunk_bits_;             //number of qubits of chunk
-  int num_qubits_;             //number of global qubits
+  uint_t chunk_bits_;             //number of qubits of chunk
+  uint_t num_qubits_;             //number of global qubits
 
   uint_t num_chunks_;          //number of chunks on this process
 
@@ -65,14 +65,14 @@ public:
     return chunks_.size();
   }
 
-  uint_t Allocate(int chunk_bits,int nqubits,uint_t nchunks,int matrix_bit);
+  uint_t Allocate(uint_t chunk_bits, uint_t nqubits, uint_t nchunks, uint_t matrix_bit);
   void Free(void);
 
-  int num_devices(void)
+  uint_t num_devices(void)
   {
     return num_devices_;
   }
-  int num_places(void)
+  uint_t num_places(void)
   {
     return num_places_;
   }
@@ -84,11 +84,11 @@ public:
   {
     return num_chunks_;
   }
-  int chunk_bits(void)
+  uint_t chunk_bits(void)
   {
     return chunk_bits_;
   }
-  int num_qubits(void)
+  uint_t num_qubits(void)
   {
     return num_qubits_;
   }
@@ -109,7 +109,6 @@ public:
 template <typename data_t>
 ChunkManager<data_t>::ChunkManager()
 {
-  int i,j;
   num_places_ = 1;
   chunk_bits_ = 0;
   num_chunks_ = 0;
@@ -161,12 +160,9 @@ ChunkManager<data_t>::~ChunkManager()
 }
 
 template <typename data_t>
-uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,int matrix_bit)
+uint_t ChunkManager<data_t>::Allocate(uint_t chunk_bits, uint_t nqubits, uint_t nchunks, uint_t matrix_bit)
 {
   uint_t num_buffers;
-  int iDev;
-  uint_t is,ie,nc;
-  int i;
   char* str;
   bool multi_gpu = false;
   bool hybrid = false;
@@ -249,16 +245,16 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
     nchunks = num_chunks_;
 
     //allocate chunk container before parallel loop using push_back to store shared pointer
-    for(i=0;i<num_places_;i++){
+    for(uint_t i = 0; i < num_places_; i++) {
       chunks_.push_back(std::make_shared<DeviceChunkContainer<data_t>>());
     }
 
     uint_t chunks_allocated = 0;
-#pragma omp parallel for if(num_places_ > 1) private(is,ie,nc) reduction(+:chunks_allocated)
-    for(iDev=0;iDev<num_places_;iDev++){
-      is = nchunks * (uint_t)iDev / (uint_t)num_places_;
-      ie = nchunks * (uint_t)(iDev + 1) / (uint_t)num_places_;
-      nc = ie - is;
+#pragma omp parallel for if(num_places_ > 1) reduction(+:chunks_allocated)
+    for(uint_t iDev = 0; iDev < num_places_; iDev++) {
+      uint_t is = nchunks * iDev / num_places_;
+      uint_t ie = nchunks * (iDev + 1) / num_places_;
+      uint_t nc = ie - is;
       if(hybrid){
         nc /= 2;
       }
@@ -269,10 +265,10 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
     }
     if(chunks_allocated < nchunks){
       //rest of chunks are stored on host
-      for(iDev=0;iDev<num_places_;iDev++){
-        is = (nchunks - chunks_allocated) * (uint_t)iDev / (uint_t)num_places_;
-        ie = (nchunks - chunks_allocated) * (uint_t)(iDev + 1) / (uint_t)num_places_;
-        nc = ie - is;
+      for(uint_t iDev = 0; iDev < num_places_; iDev++) {
+        uint_t is = (nchunks - chunks_allocated) * iDev / num_places_;
+        uint_t ie = (nchunks - chunks_allocated) * (iDev + 1) / num_places_;
+        uint_t nc = ie - is;
         if(nc > 0){
           chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
           chunks_[num_places_]->Allocate(-1,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
@@ -290,7 +286,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
 #endif
   }
   else{
-    for(iDev=0;iDev<chunks_.size();iDev++){
+    for(uint_t iDev=0; iDev < chunks_.size(); iDev++) {
       chunks_[iDev]->unmap_all();
     }
   }
@@ -301,9 +297,7 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
 template <typename data_t>
 void ChunkManager<data_t>::Free(void)
 {
-  int i;
-
-  for(i=0;i<chunks_.size();i++){
+  for(uint_t i = 0; i < chunks_.size(); i++) {
     chunks_[i]->Deallocate();
     chunks_[i].reset();
   }
@@ -319,9 +313,7 @@ void ChunkManager<data_t>::Free(void)
 template <typename data_t>
 bool ChunkManager<data_t>::MapChunk(Chunk<data_t>& chunk,int iplace)
 {
-  int i;
-
-  for(i=0;i<num_places_;i++){
+  for(uint_t i = 0; i < num_places_; i++) {
     if(chunks_[(iplace + i) % num_places_]->MapChunk(chunk)){
       chunk.set_place((iplace + i) % num_places_);
       break;
@@ -334,8 +326,7 @@ template <typename data_t>
 bool ChunkManager<data_t>::MapBufferChunk(Chunk<data_t>& out,int idev)
 {
   if(idev < 0){
-    int i;
-    for(i=0;i<num_devices_;i++){
+    for (uint_t i=0; i < num_devices_; i++){
       if(chunks_[i]->MapBufferChunk(out))
         break;
     }

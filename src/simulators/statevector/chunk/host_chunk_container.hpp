@@ -127,7 +127,6 @@ template <typename data_t>
 uint_t HostChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit)
 {
   uint_t nc = chunks;
-  uint_t i;
 
   ChunkContainer<data_t>::chunk_bits_ = chunk_bits;
   ChunkContainer<data_t>::num_qubits_ = num_qubits;
@@ -201,7 +200,7 @@ void HostChunkContainer<data_t>::CopyIn(thrust::complex<data_t>* src,uint_t iChu
 {
   uint_t this_size = 1ull << this->chunk_bits_;
   if(this_size < size) throw std::runtime_error("CopyIn chunk size is less than provided size");
-  
+
   thrust::copy_n(src,size,data_.begin() + (iChunk << this->chunk_bits_));
 }
 
@@ -210,7 +209,7 @@ void HostChunkContainer<data_t>::CopyOut(thrust::complex<data_t>* dest,uint_t iC
 {
   uint_t this_size = 1ull << this->chunk_bits_;
   if(this_size < size) throw std::runtime_error("CopyIn chunk size is less than provided size");
-  
+
   thrust::copy_n(data_.begin() + (iChunk << this->chunk_bits_),size,dest);
 }
 
@@ -223,7 +222,7 @@ void HostChunkContainer<data_t>::Swap(Chunk<data_t>& src,uint_t iChunk)
 
     AERHostVector<thrust::complex<data_t>> tmp1(size);
     auto src_cont = std::static_pointer_cast<DeviceChunkContainer<data_t>>(src.container());
-    
+
     thrust::copy_n(thrust::omp::par,data_.begin() + (iChunk << this->chunk_bits_),size,tmp1.begin());
 
     thrust::copy_n(src_cont->vector().begin() + (src.pos() << this->chunk_bits_),size,data_.begin() + (iChunk << this->chunk_bits_));

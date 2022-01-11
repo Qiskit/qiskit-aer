@@ -39,7 +39,7 @@ protected:
   AERDeviceVector<uint_t>                   cregs_;
   AERHostVector<uint_t>                     cregs_host_;
   int device_id_;                     //device index
-  std::vector<bool> peer_access_;     //to which device accepts peer access 
+  std::vector<bool> peer_access_;     //to which device accepts peer access
   uint_t matrix_buffer_size_;         //matrix buffer size per chunk
   uint_t params_buffer_size_;         //params buffer size per chunk
   uint_t num_matrices_;               //number of matrices for chunks (1 shared matrix for multi-chunk execution)
@@ -186,7 +186,7 @@ public:
   void copy_to_probability_buffer(std::vector<double>& buf,int pos);
 
   void allocate_creg(uint_t num_mem,uint_t num_reg);
-  int measured_cbit(uint_t iChunk,int qubit)
+  uint_t measured_cbit(uint_t iChunk,uint_t qubit)
   {
     uint_t n64,i64,ibit;
     if(qubit >= this->num_creg_bits_)
@@ -373,7 +373,7 @@ void DeviceChunkContainer<data_t>::allocate_creg(uint_t num_mem,uint_t num_reg)
   cregs_.resize(num_matrices_*n64);
   cregs_host_.resize(num_matrices_*n64);
 }
-  
+
 template <typename data_t>
 void DeviceChunkContainer<data_t>::Deallocate(void)
 {
@@ -724,8 +724,7 @@ void DeviceChunkContainer<data_t>::set_blocked_qubits(uint_t iChunk,const reg_t&
   auto qubits_sorted = qubits;
   std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
-  int i;
-  for(i=0;i<qubits.size();i++){
+  for (uint_t i = 0; i < qubits.size(); i++) {
     blocked_qubits_holder_[iBlock*QV_MAX_REGISTERS + i] = qubits_sorted[i];
   }
 #ifdef AER_THRUST_CUDA
@@ -799,8 +798,7 @@ void DeviceChunkContainer<data_t>::queue_blocked_gate(uint_t iChunk,char gate,ui
   }
 
   cvector_t<double> mat(4,0.0);
-  int i;
-  uint_t idx,idxParam,iBlock;
+  uint_t iBlock;
   if(iChunk >= this->num_chunks_){  //for buffer chunks
     iBlock = num_matrices_ + iChunk - this->num_chunks_;
   }
