@@ -157,11 +157,11 @@ public:
   // Computes sample_measure by copying the MPS to a temporary structure, and
   // applying a measurement on the temporary MPS. This is done for every shot,
   // so is not efficient for a large number of shots
-  std::vector<reg_t> 
+  std::vector<reg_t>
   sample_measure_using_apply_measure(const reg_t &qubits,
 				     uint_t shots,
 				     RngEngine &rng);
-std::vector<reg_t> sample_measure_all(uint_t shots, 
+std::vector<reg_t> sample_measure_all(uint_t shots,
 				      RngEngine &rng);
   //-----------------------------------------------------------------------
   // Additional methods
@@ -227,7 +227,7 @@ protected:
   void apply_save_mps(const Operations::Op &op,
                       ExperimentResult &result,
                       bool last_op);
-                            
+
   // Compute and save the statevector for the current simulator state
   void apply_save_statevector(const Operations::Op &op,
                               ExperimentResult &result);
@@ -447,7 +447,7 @@ void State::set_config(const json_t &config) {
     MPS_Tensor::set_truncation_threshold(1e-16);
 
   uint_t max_bond_dimension;
-  if (JSON::get_value(max_bond_dimension, "matrix_product_state_max_bond_dimension", config)) 
+  if (JSON::get_value(max_bond_dimension, "matrix_product_state_max_bond_dimension", config))
     MPS_Tensor::set_max_bond_dimension(max_bond_dimension);
   else
     MPS_Tensor::set_max_bond_dimension(UINT64_MAX);
@@ -509,7 +509,7 @@ void State::add_metadata(ExperimentResult &result) const {
     "matrix_product_state_sample_measure_algorithm");
   if (MPS::get_mps_log_data())
     result.metadata.add("{" + MPS::output_log() + "}", "MPS_log_data");
-} 
+}
 
 void State::output_bond_dimensions(const Operations::Op &op) const {
   MPS::print_to_log("I", instruction_number, ":", op.name, " on qubits ", op.qubits[0]);
@@ -601,9 +601,9 @@ void State::apply_op(const Operations::Op &op,
     //qreg_.print(std::cout);
     // print out bond dimensions only if they may have changed since previous print
     if (MPS::get_mps_log_data()
-        && (op.type == OpType::gate ||op.type == OpType::measure || 
-            op.type == OpType::initialize || op.type == OpType::reset || 
-            op.type == OpType::matrix) && 
+        && (op.type == OpType::gate ||op.type == OpType::measure ||
+            op.type == OpType::initialize || op.type == OpType::reset ||
+            op.type == OpType::matrix) &&
             op.qubits.size() > 1) {
       output_bond_dimensions(op);
     }
@@ -788,7 +788,7 @@ void State::snapshot_probabilities(const Operations::Op &op,
   auto probs = Utils::vec2ket(prob_vector, MPS::get_json_chop_threshold(), 16);
 
   bool variance = type == SnapshotDataType::average_var;
-  result.legacy_data.add_average_snapshot("probabilities", op.string_params[0], 
+  result.legacy_data.add_average_snapshot("probabilities", op.string_params[0],
   			    BaseState::creg_.memory_hex(), probs, variance);
 
 }
@@ -886,20 +886,20 @@ void State::apply_gate(const Operations::Op &op) {
       qreg_.apply_tdg(op.qubits[0]);
       break;
     case Gates::r:
-      qreg_.apply_r(op.qubits[0], 
+      qreg_.apply_r(op.qubits[0],
 		    std::real(op.params[0]),
 		    std::real(op.params[1]));
       break;
     case Gates::rx:
-      qreg_.apply_rx(op.qubits[0], 
+      qreg_.apply_rx(op.qubits[0],
 		     std::real(op.params[0]));
       break;
     case Gates::ry:
-      qreg_.apply_ry(op.qubits[0], 
+      qreg_.apply_ry(op.qubits[0],
 		     std::real(op.params[0]));
       break;
     case Gates::rz:
-      qreg_.apply_rz(op.qubits[0], 
+      qreg_.apply_rz(op.qubits[0],
 		     std::real(op.params[0]));
       break;
     case Gates::swap:
@@ -1003,7 +1003,7 @@ void State::apply_measure(const reg_t &qubits,
                           RngEngine &rng) {
   rvector_t rands;
   rands.reserve(qubits.size());
-  for (int_t i = 0; i < qubits.size(); ++i)
+  for (uint_t i = 0; i < qubits.size(); ++i)
     rands.push_back(rng.rand(0., 1.));
   reg_t outcome = qreg_.apply_measure(qubits, rands);
   creg_.store_measure(outcome, cmemory, cregister);
@@ -1019,24 +1019,24 @@ std::vector<reg_t> State::sample_measure(const reg_t& qubits,
 					 uint_t shots,
                                          RngEngine &rng) {
   // There are two alternative algorithms for sample measure
-  // We choose the one that is optimal relative to the total number 
+  // We choose the one that is optimal relative to the total number
   // of qubits,and the number of shots.
   // The parameters used below are based on experimentation.
   // The user can override this by setting the parameter "mps_sample_measure_algorithm"
-  if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB && 
+  if (MPS::get_sample_measure_alg() == Sample_measure_alg::PROB &&
       qubits.size() == qreg_.num_qubits()){
     return sample_measure_all(shots, rng);
   }
   return sample_measure_using_apply_measure(qubits, shots, rng);
 }
-	     
+
 std::vector<reg_t> State::
-  sample_measure_using_apply_measure(const reg_t &qubits, 
-				     uint_t shots, 
+  sample_measure_using_apply_measure(const reg_t &qubits,
+				     uint_t shots,
 				     RngEngine &rng) {
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);
-  // input is always sorted in qasm_controller, therefore, we must return the qubits 
+  // input is always sorted in qasm_controller, therefore, we must return the qubits
   // to their original location (sorted)
   qreg_.move_all_qubits_to_sorted_ordering();
   reg_t sorted_qubits = qubits;
@@ -1044,10 +1044,10 @@ std::vector<reg_t> State::
 
   std::vector<rvector_t> rnds_list;
   rnds_list.reserve(shots);
-  for (int_t i = 0; i < shots; ++i) {
+  for (uint_t i = 0; i < shots; ++i) {
     rvector_t rands;
     rands.reserve(qubits.size());
-    for (int_t j = 0; j < qubits.size(); ++j)
+    for (uint_t j = 0; j < qubits.size(); ++j)
       rands.push_back(rng.rand(0., 1.));
     rnds_list.push_back(rands);
   }
@@ -1066,7 +1066,7 @@ std::vector<reg_t> State::
   return all_samples;
 }
 
-std::vector<reg_t> State::sample_measure_all(uint_t shots, 
+std::vector<reg_t> State::sample_measure_all(uint_t shots,
 					     RngEngine &rng) {
   std::vector<reg_t> all_samples;
   all_samples.resize(shots);

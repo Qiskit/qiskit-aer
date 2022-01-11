@@ -18,7 +18,7 @@
 The input 3 qubits circuit is transpiled with cache blocking 2 qbuits
 
 0 --H--.--H-----------O--H--
-       |              |   
+       |              |
 1 -----O--H--.--H--O--.--H--
              |     |
 2------------O--H--.--------
@@ -26,7 +26,7 @@ The input 3 qubits circuit is transpiled with cache blocking 2 qbuits
 The output circuit, 2 (noiseless) swap gates are inserted and there is no gate on qubit 2
 
 0 --H--.--H--x--O--H--.--x--O--H--
-       |     |  |     |  |     |   
+       |     |  |     |  |     |
 1 -----O--H--|--.--H--O--|--.--H--
              |           |
 2------------x-----------x--------
@@ -78,14 +78,14 @@ public:
   void set_blocking(int bits, size_t min_memory, uint_t n_place, const size_t complex_size, bool is_matrix = false);
 
 protected:
-  mutable int block_bits_;    //qubits less than this will be blocked
-  mutable int qubits_;
+  mutable uint_t block_bits_;    //qubits less than this will be blocked
+  mutable uint_t qubits_;
   mutable reg_t qubitMap_;
   mutable reg_t qubitSwapped_;
   mutable bool blocking_enabled_;
   mutable bool sample_measure_ = false;
   mutable bool save_state_ = false;
-  int memory_blocking_bits_ = 0;
+  uint_t memory_blocking_bits_ = 0;
   bool density_matrix_ = false;
 
   bool block_circuit(Circuit& circ,bool doSwap) const;
@@ -204,7 +204,7 @@ void CacheBlocking::insert_sim_op(std::vector<Operations::Op>& ops, std::string 
 void CacheBlocking::optimize_circuit(Circuit& circ,
                                 Noise::NoiseModel& noise,
                                 const opset_t &allowed_opset,
-                                ExperimentResult &result) const 
+                                ExperimentResult &result) const
 {
   if(!blocking_enabled_ && memory_blocking_bits_ == 0){
     return;
@@ -263,7 +263,7 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
 void CacheBlocking::define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t& blockedQubits,bool crossQubitOnly) const
 {
   uint_t i,j,iq;
-  int nq;
+  uint_t nq;
   bool exist;
   for(i=0;i<ops.size();i++){
     if(blockedQubits.size() >= block_bits_)
@@ -478,7 +478,7 @@ void CacheBlocking::restore_qubits_order(std::vector<Operations::Op>& ops) const
 
 bool CacheBlocking::is_blockable_operation(Operations::Op& op) const
 {
-  if(op.type == Operations::OpType::gate || op.type == Operations::OpType::matrix || 
+  if(op.type == Operations::OpType::gate || op.type == Operations::OpType::matrix ||
      op.type == Operations::OpType::diagonal_matrix || op.type == Operations::OpType::multiplexer ||
      op.type == Operations::OpType::superop){
     return true;
@@ -495,7 +495,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
   uint_t i,j,iq;
 
   reg_t blockedQubits;
-  int nq;
+  uint_t nq;
   uint_t pos_begin,num_gates_added;
   bool end_block_inserted;
 
@@ -633,7 +633,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
             //currently sampling should be done with original qubit mapping (TO DO : sampling without inserting swaps)
             restore_qubits = true;
           }
-          else if(ops[i].type != Operations::OpType::measure && ops[i].type != Operations::OpType::reset && 
+          else if(ops[i].type != Operations::OpType::measure && ops[i].type != Operations::OpType::reset &&
                   ops[i].type != Operations::OpType::save_amps && ops[i].type != Operations::OpType::save_amps_sq &&
                   ops[i].type != Operations::OpType::save_densmat){
             if(!(ops[i].type == Operations::OpType::snapshot && ops[i].name == "density_matrix")){
@@ -754,17 +754,16 @@ bool CacheBlocking::split_pauli(const Operations::Op& op,const reg_t blockedQubi
   reg_t qubits_out_chunk;
   std::string pauli_in_chunk;
   std::string pauli_out_chunk;
-  int_t i,j,n;
+  uint_t n = op.qubits.size();
   bool inside;
 
   //get inner/outer chunk pauli string
-  n = op.qubits.size();
-  for(i=0;i<n;i++){
+  for(uint_t i = 0; i < n; i++) {
     if(op.string_params[0][n - 1 - i] == 'I')
       continue;   //remove I
 
     inside = false;
-    for(j=0;j<blockedQubits.size();j++){
+    for(uint_t j = 0; j < blockedQubits.size(); j++) {
       if(op.qubits[i] == blockedQubits[j]){
         inside = true;
         break;
@@ -788,7 +787,7 @@ bool CacheBlocking::split_pauli(const Operations::Op& op,const reg_t blockedQubi
   if(qubits_in_chunk.size() > 0){
     std::reverse(pauli_in_chunk.begin(),pauli_in_chunk.end());
     //mapping swapped qubits
-    for(i=0;i<qubits_in_chunk.size();i++){
+    for(uint_t i = 0; i < qubits_in_chunk.size(); i++) {
       qubits_in_chunk[i] = qubitMap_[qubits_in_chunk[i]];
     }
     insert_pauli(out,qubits_in_chunk,pauli_in_chunk);
@@ -803,13 +802,12 @@ bool CacheBlocking::split_op(const Operations::Op& op,const reg_t blockedQubits,
 {
   reg_t qubits_in_chunk;
   reg_t qubits_out_chunk;
-  int_t i,j,n;
+  uint_t n = op.qubits.size();
   bool inside;
 
-  n = op.qubits.size();
-  for(i=0;i<n;i++){
+  for(uint_t i = 0; i < n; i++) {
     inside = false;
-    for(j=0;j<blockedQubits.size();j++){
+    for(uint_t j = 0; j < blockedQubits.size(); j++) {
       if(op.qubits[i] == blockedQubits[j]){
         inside = true;
         break;
@@ -832,7 +830,7 @@ bool CacheBlocking::split_op(const Operations::Op& op,const reg_t blockedQubits,
   if(qubits_in_chunk.size() > 0){
     Operations::Op op_in = op;
     //mapping swapped qubits
-    for(i=0;i<qubits_in_chunk.size();i++){
+    for(uint_t i = 0; i < qubits_in_chunk.size(); i++) {
       qubits_in_chunk[i] = qubitMap_[qubits_in_chunk[i]];
     }
     op_in.qubits = qubits_in_chunk;

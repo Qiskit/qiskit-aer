@@ -285,7 +285,7 @@ void std::from_json(const json_t &js, py::object &o) {
         o = py::str(js.get<nl::json::string_t>());
     } else if (js.is_array()) {
         std::vector<py::object> obj(js.size());
-        for (auto i = 0; i < js.size(); i++)
+        for (unsigned i = 0; i < js.size(); i++)
         {
             py::object tmp;
             from_json(js[i], tmp);

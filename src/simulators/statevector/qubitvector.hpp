@@ -35,6 +35,9 @@
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
 #include "framework/linalg/vector.hpp"
+#include "framework/operations.hpp"
+#include "framework/rng.hpp"
+#include "framework/creg.hpp"
 
 namespace AER {
 namespace QV {
@@ -58,8 +61,8 @@ public:
   QubitVector();
   explicit QubitVector(size_t num_qubits);
   virtual ~QubitVector();
-  QubitVector(const QubitVector& obj) {};
-  QubitVector &operator=(const QubitVector& obj) {};
+  QubitVector(const QubitVector&) {};
+  QubitVector& operator= (const QubitVector&) {};
 
   //-----------------------------------------------------------------------
   // Data access
@@ -300,7 +303,7 @@ public:
   virtual void apply_batched_measure(const reg_t& qubits,std::vector<RngEngine>& rng,const reg_t& cmemory,const reg_t& cregs){}
   virtual void apply_batched_reset(const reg_t& qubits,std::vector<RngEngine>& rng){}
 
-  //copy classical register stored on qreg 
+  //copy classical register stored on qreg
   void get_creg(ClassicalRegister& creg){}
 
   virtual int_t set_batched_system_conditional(int_t src_reg, reg_t& mask){return -1;}
@@ -358,7 +361,7 @@ public:
   double expval_pauli(const reg_t &qubits, const std::string &pauli,const complex_t initial_phase=1.0) const;
   //for multi-chunk inter chunk expectation
   double expval_pauli(const reg_t &qubits, const std::string &pauli,
-                      const QubitVector<data_t>& pair_chunk, 
+                      const QubitVector<data_t>& pair_chunk,
                       const uint_t z_count,
                       const uint_t z_count_pair,const complex_t initial_phase=1.0) const;
 
@@ -1197,7 +1200,7 @@ void QubitVector<data_t>::apply_multiplexer(const reg_t &control_qubits,
 	  data_[inds[i+b*columns]] += _mat[i+b*columns + DIM * j] * cache[b*columns+j];
 	}
   };
-  
+
   // Use the lambda function
   auto qubits = target_qubits;
   for (const auto &q : control_qubits) {qubits.push_back(q);}
@@ -1593,13 +1596,13 @@ void QubitVector<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVector<data
   if(q0 >= num_qubits_){  //exchange whole of chunk each other
     if(write_back){
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-      for (int_t k = 0; k < data_size_; ++k) {
+      for (uint_t k = 0; k < data_size_; ++k) {
         std::swap(data_[k],src.data_[k]);
       }
     }
     else{
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-      for (int_t k = 0; k < data_size_; ++k) {
+      for (uint_t k = 0; k < data_size_; ++k) {
         data_[k] = src.data_[k];
       }
     }
@@ -1631,7 +1634,7 @@ void QubitVector<data_t>::apply_chunk_swap(const reg_t &qubits, uint_t remote_ch
 
   if(q0 >= num_qubits_){  //exchange whole of chunk each other
 #pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-    for (int_t k = 0; k < data_size_; ++k) {
+    for (uint_t k = 0; k < data_size_; ++k) {
       data_[k] = recv_buffer_[k];
     }
   }
@@ -2116,7 +2119,7 @@ template <typename data_t>
 double QubitVector<data_t>::expval_pauli(const reg_t &qubits,
                                          const std::string &pauli,
                                          const QubitVector<data_t>& pair_chunk,
-                                         const uint_t z_count,const uint_t z_count_pair,const complex_t initial_phase) const 
+                                         const uint_t z_count,const uint_t z_count_pair,const complex_t initial_phase) const
 {
 
   uint_t x_mask, z_mask, num_y, x_max;

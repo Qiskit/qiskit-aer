@@ -165,6 +165,19 @@ long get_value(type<long> _, PyObject * value){
 }
 
 template<>
+unsigned long get_value(type<unsigned long> _, PyObject * value) {
+    if (!check_is_integer(value))
+        throw std::invalid_argument("PyObject is not a long!");
+    unsigned long c_value = PyLong_AsUnsignedLong(value);
+    if (c_value == (unsigned long) -1) {
+        auto ex = PyErr_Occurred();
+        if (ex)
+            throw ex;
+    }
+    return c_value;
+}
+
+template<>
 double get_value(type<double> _, PyObject * value){
     if(!check_is_floating_point(value)){
         // it's not a floating point, but maybe an integer?

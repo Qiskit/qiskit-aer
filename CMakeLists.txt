@@ -119,6 +119,7 @@ if(NOT MSVC)
 	# Warnings and Errors
 	enable_cxx_compiler_flag_if_supported("-pedantic")
 	enable_cxx_compiler_flag_if_supported("-Wall")
+	enable_cxx_compiler_flag_if_supported("-Wsign-compare")
 	enable_cxx_compiler_flag_if_supported("-Wfloat-equal")
 	enable_cxx_compiler_flag_if_supported("-Wundef")
 	enable_cxx_compiler_flag_if_supported("-Wcast-align")

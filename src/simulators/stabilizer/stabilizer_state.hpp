@@ -178,7 +178,7 @@ protected:
 	                            const std::string &outcome,
                               std::string &outcome_carry,
                               double &prob_carry);
-  
+
   //-----------------------------------------------------------------------
   // Measurement Helpers
   //-----------------------------------------------------------------------
@@ -197,7 +197,7 @@ protected:
   // Snapshot the stabilizer state of the simulator.
   // This returns a list of stabilizer generators
   void snapshot_stabilizer(const Operations::Op &op, ExperimentResult &result);
-                            
+
   // Snapshot current qubit probabilities for a measurement (average)
   void snapshot_probabilities(const Operations::Op &op,
                               ExperimentResult &result,
@@ -259,7 +259,7 @@ const stringmap_t<Snapshots> State::snapshotset_({
   {"register", Snapshots::cregister},
   {"probabilities", Snapshots::probs},
   {"probabilities_with_variance", Snapshots::probs_var},
-  {"expectation_value_pauli", Snapshots::expval_pauli}, 
+  {"expectation_value_pauli", Snapshots::expval_pauli},
   {"expectation_value_pauli_with_variance", Snapshots::expval_pauli_var},
   {"expectation_value_pauli_single_shot", Snapshots::expval_pauli_shot}
 });
@@ -589,7 +589,7 @@ void State::apply_save_probs(const Operations::Op &op,
   } else {
     std::vector<double> probs(1ULL << op.qubits.size(), 0.);
     get_probabilities_auxiliary(
-      op.qubits, std::string(op.qubits.size(), 'X'), 1, probs); 
+      op.qubits, std::string(op.qubits.size(), 'X'), 1, probs);
     BaseState::save_data_average(result, op.string_params[0],
                                  std::move(probs), op.type, op.save_type);
   }
@@ -656,7 +656,7 @@ double State::expval_pauli(const reg_t &qubits,
   // Otherwise P is (-1)^a prod_j S_j^b_j for Clifford stabilizers
   // If P anti-commutes with D_j then b_j = 1.
   // Multiply P by stabilizers with anti-commuting destabilizers
-  auto PZ = P.Z; // Make a copy of P.Z 
+  auto PZ = P.Z; // Make a copy of P.Z
   for (size_t i = 0; i < num_qubits; i++) {
     // Check if destabilizer anti-commutes
     const auto& destabi = BaseState::qreg_.destabilizer(i);
@@ -700,7 +700,8 @@ void State::get_probabilities_auxiliary(const reg_t &qubits,
                                         std::string outcome,
                                         double outcome_prob,
                                         T &probs) {
-  uint_t qubit_for_branching = -1;
+  uint_t qubit_for_branching;
+  bool found_branching_qubit = false;
   for (uint_t i = 0; i < qubits.size(); ++i) {
     uint_t qubit = qubits[qubits.size() - i - 1];
     if (outcome[i] == 'X') {
@@ -714,11 +715,12 @@ void State::get_probabilities_auxiliary(const reg_t &qubits,
         }
       } else {
         qubit_for_branching = i;
+        found_branching_qubit = true;
       }
     }
   }
 
-  if (qubit_for_branching == -1) {
+  if (!found_branching_qubit) {
     set_value_helper(probs, outcome, outcome_prob);
     return;
   }
@@ -751,7 +753,8 @@ void State::get_probability_helper(const reg_t &qubits,
                                    const std::string &outcome,
                                    std::string &outcome_carry,
                                    double &prob_carry) {
-  uint_t qubit_for_branching = -1;
+  uint_t qubit_for_branching;
+  bool found_branching_qubit = false;
   for (uint_t i = 0; i < qubits.size(); ++i) {
     uint_t qubit = qubits[qubits.size() - i - 1];
     if (outcome_carry[i] == 'X') {
@@ -769,10 +772,11 @@ void State::get_probability_helper(const reg_t &qubits,
         }
       } else {
         qubit_for_branching = i;
+        found_branching_qubit = true;
       }
     }
   }
-  if (qubit_for_branching == -1) {
+  if (!found_branching_qubit) {
     return;
   }
   outcome_carry[qubit_for_branching] = outcome[qubit_for_branching];
@@ -795,7 +799,7 @@ void State::apply_snapshot(const Operations::Op &op,
 // Look for snapshot type in snapshotset
   auto it = snapshotset_.find(op.name);
   if (it == snapshotset_.end())
-    throw std::invalid_argument("Stabilizer::State::invalid snapshot instruction \'" + 
+    throw std::invalid_argument("Stabilizer::State::invalid snapshot instruction \'" +
                                 op.name + "\'.");
   switch (it->second) {
     case Snapshots::stabilizer:

@@ -174,7 +174,7 @@ protected:
   // Execute n-shots of a circuit on the input state
   template <class State_t>
   void run_circuit_helper(const Circuit &circ, const Noise::NoiseModel &noise,
-                          const json_t &config, const Method method, 
+                          const json_t &config, const Method method,
                           ExperimentResult &result) const;
 
   // Execute a single shot a of circuit by initializing the state vector,
@@ -247,7 +247,7 @@ protected:
                        const Circuit &circ,
                        const Noise::NoiseModel &noise,
                        bool throw_except = false) const;
-                            
+
   template <class state_t>
   bool validate_state(const state_t &state, const Circuit &circ,
                       const Noise::NoiseModel &noise,
@@ -261,7 +261,7 @@ protected:
   //----------------------------------------------------------------
   // Utility functions
   //----------------------------------------------------------------
-  
+
   // Return a vector of simulation methods for each circuit.
   // If the default method is automatic this will be computed based on the
   // circuit and noise model.
@@ -291,8 +291,8 @@ protected:
                            const json_t &config) const;
 
   //return maximum number of qubits for matrix
-  int_t get_max_matrix_qubits(const Circuit &circ) const;
-  int_t get_matrix_bits(const Operations::Op& op) const;
+  uint_t get_max_matrix_qubits(const Circuit &circ) const;
+  uint_t get_matrix_bits(const Operations::Op& op) const;
 
   //-----------------------------------------------------------------------
   // Parallelization Config
@@ -357,7 +357,7 @@ protected:
   int max_batched_states_;
 
   // max number of qubits in given circuits
-  int max_qubits_;
+  uint_t max_qubits_;
 
   // results are stored independently in each process if true
   bool accept_distributed_results_ = true;
@@ -374,7 +374,7 @@ protected:
 
   //config setting for multi-shot parallelization
   bool batched_shots_gpu_ = true;
-  int_t batched_shots_gpu_max_qubits_ = 16;   //multi-shot parallelization is applied if qubits is less than max qubits
+  uint_t batched_shots_gpu_max_qubits_ = 16;   //multi-shot parallelization is applied if qubits is less than max qubits
   bool enable_batch_multi_shots_ = false;   //multi-shot parallelization can be applied
 
 };
@@ -564,7 +564,7 @@ void Controller::clear_parallelization() {
 void Controller::set_parallelization_experiments(
     const std::vector<Circuit> &circuits,
     const Noise::NoiseModel &noise,
-    const std::vector<Method> &methods) 
+    const std::vector<Method> &methods)
 {
   std::vector<size_t> required_memory_mb_list(circuits.size());
   max_qubits_ = 0;
@@ -633,10 +633,10 @@ void Controller::set_parallelization_experiments(
 
 void Controller::set_parallelization_circuit(const Circuit &circ,
                                              const Noise::NoiseModel &noise,
-                                             const Method method)  
+                                             const Method method)
 {
   enable_batch_multi_shots_ = false;
-  if(batched_shots_gpu_ && sim_device_ == Device::GPU && circ.shots > 1 && max_batched_states_ >= num_gpus_ && 
+  if(batched_shots_gpu_ && sim_device_ == Device::GPU && circ.shots > 1 && max_batched_states_ >= num_gpus_ &&
               batched_shots_gpu_max_qubits_ >= circ.num_qubits ){
     enable_batch_multi_shots_ = true;
   }
@@ -679,7 +679,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
 
   // Use a local variable to not override stored maximum based
   // on currently executed circuits
-  const auto max_shots =
+  const size_t max_shots =
       (max_parallel_shots_ > 0)
           ? std::min({max_parallel_shots_, max_parallel_threads_})
           : max_parallel_threads_;
@@ -692,18 +692,17 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
     // Parallel shots is > 1
     // Limit parallel shots by available memory and number of shots
     // And assign the remaining threads to state update
-    int circ_memory_mb =
+    size_t circ_memory_mb =
         required_memory_mb(circ, noise, method) / num_process_per_experiment_;
     size_t mem_size = (sim_device_ == Device::GPU) ? max_gpu_memory_mb_ : max_memory_mb_;
     if (mem_size < circ_memory_mb)
       throw std::runtime_error(
           "a circuit requires more memory than max_memory_mb.");
     // If circ memory is 0, set it to 1 so that we don't divide by zero
-    circ_memory_mb = std::max<int>({1, circ_memory_mb});
+    circ_memory_mb = std::max<size_t>({1, circ_memory_mb});
 
-    int shots = circ.shots;
-    parallel_shots_ = std::min<int>(
-        {static_cast<int>(mem_size/(circ_memory_mb*2)), max_shots, shots});
+    size_t shots = circ.shots;
+    parallel_shots_ = std::min({mem_size/(circ_memory_mb*2), max_shots, shots});
   }
   parallel_state_update_ =
       (parallel_shots_ > 1)
@@ -713,7 +712,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
 
 bool Controller::multiple_chunk_required(const Circuit &circ,
                                          const Noise::NoiseModel &noise,
-                                         const Method method) const 
+                                         const Method method) const
 {
   if (circ.num_qubits < 3)
     return false;
@@ -736,7 +735,7 @@ bool Controller::multiple_chunk_required(const Circuit &circ,
 
 bool Controller::multiple_shots_required(const Circuit &circ,
                                          const Noise::NoiseModel &noise,
-                                         const Method method) const 
+                                         const Method method) const
 {
   if (circ.shots < 2)
     return false;
@@ -755,7 +754,7 @@ bool Controller::multiple_shots_required(const Circuit &circ,
   return true;
 }
 
-size_t Controller::get_system_memory_mb() 
+size_t Controller::get_system_memory_mb()
 {
   size_t total_physical_memory = Utils::get_system_memory_mb();
 #ifdef AER_MPI
@@ -866,7 +865,7 @@ Result Controller::execute(const inputdata_t &input_qobj) {
     auto time_taken =
         std::chrono::duration<double>(myclock_t::now() - timer_start).count();
     result.metadata.add(time_taken, "time_taken");
-    
+
     return result;
   } catch (std::exception &e) {
     // qobj was invalid, return valid output containing error message
@@ -884,7 +883,7 @@ Result Controller::execute(const inputdata_t &input_qobj) {
 
 Result Controller::execute(std::vector<Circuit> &circuits,
                            Noise::NoiseModel &noise_model,
-                           const json_t &config) 
+                           const json_t &config)
 {
   // Start QOBJ timer
   auto timer_start = myclock_t::now();
@@ -1402,7 +1401,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
                                                    const Noise::NoiseModel &noise,
                                                    const json_t &config,
                                                    const Method method,
-                                                   ExperimentResult &result) const 
+                                                   ExperimentResult &result) const
 {
   State_t state;
 
@@ -1507,7 +1506,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
         // allocate qubit register
         state.allocate(circ.num_qubits, block_bits);
 
-        for (int i = 0; i < circ.shots; i++) {
+        for (uint_t i = 0; i < circ.shots; i++) {
           RngEngine rng;
           rng.set_seed(circ.seed + i);
           run_single_shot(circ, state, result, rng);
@@ -1554,7 +1553,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
 template <class State_t>
 void Controller::run_circuit_with_sampled_noise(
     const Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
-    const Method method, ExperimentResult &result) const 
+    const Method method, ExperimentResult &result) const
 {
   //following looks very similar but we have to separate them to avoid omp nested loops that causes performance degradation
   //(DO NOT use if statement in #pragma omp)
@@ -1575,7 +1574,7 @@ void Controller::run_circuit_with_sampled_noise(
     auto fusion_pass = transpile_fusion(method, circ.opset(), config);
     auto cache_block_pass = transpile_cache_blocking(method, circ, noise, config);
 
-    for(int_t i_shot=0;i_shot<circ.shots;i_shot++){
+    for(uint_t i_shot=0;i_shot<circ.shots;i_shot++){
       RngEngine rng;
       rng.set_seed(circ.seed + i_shot);
 
@@ -1674,7 +1673,7 @@ bool Controller::check_measure_sampling_opt(const Circuit &circ,
       method == Method::unitary) {
     return true;
   }
-  
+
   // If circuit contains a non-initial initialize that is not a full width
   // instruction we can't sample
   if (circ.can_sample_initialize == false) {
@@ -1700,7 +1699,7 @@ bool Controller::check_measure_sampling_opt(const Circuit &circ,
 template <typename InputIterator, class State_t>
 void Controller::measure_sampler(
     InputIterator first_meas, InputIterator last_meas, uint_t shots,
-    State_t &state, ExperimentResult &result, RngEngine &rng, int_t shot_index) const 
+    State_t &state, ExperimentResult &result, RngEngine &rng, int_t shot_index) const
 {
   // Check if meas_circ is empty, and if so return initial creg
   if (first_meas == last_meas) {
@@ -1875,7 +1874,7 @@ Controller::automatic_simulation_method(const Circuit &circ,
 }
 
 bool Controller::validate_method(Method method,
-                                 const Circuit &circ, 
+                                 const Circuit &circ,
                                  const Noise::NoiseModel &noise_model,
                                  bool throw_except) const {
   // Switch wrapper for templated function validate_state
@@ -1927,7 +1926,7 @@ bool Controller::validate_state(const state_t &state, const Circuit &circ,
   // Validate memory requirements
   bool memory_valid = true;
   if (max_memory_mb_ > 0) {
-    size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) / num_process_per_experiment_;                                        
+    size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) / num_process_per_experiment_;
     size_t mem_size = (sim_device_ == Device::GPU) ? max_memory_mb_ + max_gpu_memory_mb_ : max_memory_mb_;
     memory_valid = (required_mb <= mem_size);
   }
@@ -1957,9 +1956,9 @@ void Controller::save_exception_to_results(Result &result,
   }
 }
 
-int_t Controller::get_matrix_bits(const Operations::Op& op) const
+uint_t Controller::get_matrix_bits(const Operations::Op& op) const
 {
-  int_t bit = 1;
+  uint_t bit = 1;
   if(op.type == Operations::OpType::matrix || op.type == Operations::OpType::diagonal_matrix || op.type == Operations::OpType::initialize)
     bit = op.qubits.size();
   else if(op.type == Operations::OpType::kraus || op.type == Operations::OpType::superop){
@@ -1971,15 +1970,11 @@ int_t Controller::get_matrix_bits(const Operations::Op& op) const
   return bit;
 }
 
-int_t Controller::get_max_matrix_qubits(const Circuit &circ) const
+uint_t Controller::get_max_matrix_qubits(const Circuit &circ) const
 {
-  int_t max_bits = 0;
-  int_t i;
-
-  for(i=0;i<circ.ops.size();i++){
-    int_t bit = 1;
-    bit = get_matrix_bits(circ.ops[i]);
-    max_bits = std::max(max_bits,bit);
+  uint_t max_bits = 0;
+  for (uint_t i = 0; i < circ.ops.size(); i++) {
+    max_bits = std::max(max_bits, get_matrix_bits(circ.ops[i]));
   }
   return max_bits;
 }

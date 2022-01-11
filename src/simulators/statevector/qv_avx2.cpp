@@ -43,7 +43,7 @@ namespace {
 /** Remember we cannot use STL (or memcpy) **/
 template <typename T, typename U>
 void copy(T dest, const U orig, size_t size) {
-  for (auto i = 0; i < size; ++i)
+  for (size_t i = 0; i < size; ++i)
     dest[i] = orig[i];
 }
 
@@ -162,7 +162,7 @@ void avx_apply_lambda(const uint64_t data_size,
                       const size_t omp_threads,
                       const param_t& params) {
 #pragma omp parallel for if (omp_threads > 1) num_threads(omp_threads)
-  for (int64_t k = 0; k < data_size; k += skip) {
+  for (uint64_t k = 0; k < data_size; k += skip) {
     std::forward<Lambda>(func)(k, params);
   }
 }
@@ -1182,7 +1182,7 @@ Avx apply_diagonal_matrix_avx<double>(double* qv_data_,
 #endif
 
   size_t q0_mask_ = 0;
-  for (int i = 0; i < qregs_size; ++i) {
+  for (size_t i = 0; i < qregs_size; ++i) {
     if (qregs[i] == 0) {
       q0_mask_ = 1UL << i;
       break;

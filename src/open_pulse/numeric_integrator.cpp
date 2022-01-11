@@ -132,7 +132,7 @@ struct RhsData {
       systems = get_value<std::vector<TermExpression>>(py_system);
       vars = get_vec_from_dict_item<double>(py_global_data, "vars");
       vars_names = get_vec_from_dict_item<std::string>(py_global_data, "vars_names");
-      num_h_terms = get_value_from_dict_item<long>(py_global_data, "num_h_terms");
+      num_h_terms = get_value_from_dict_item<unsigned long>(py_global_data, "num_h_terms");
       auto tmp_datas = get_vec_from_dict_item<NpArray<complex_t>>(py_global_data, "h_ops_data");
       for (const auto& data: tmp_datas){
           auto datas_back = datas.emplace(datas.end());
@@ -163,7 +163,7 @@ struct RhsData {
   std::vector<TermExpression> systems;
   std::vector<double> vars;
   std::vector<std::string> vars_names;
-  long num_h_terms;
+  unsigned long num_h_terms;
   std::vector<std::vector<complex_t>> datas;
   std::vector<std::vector<int>> idxs;
   std::vector<std::vector<int>> ptrs;
@@ -202,7 +202,7 @@ py::array_t <complex_t> inner_ode_rhs(double t,
     }
 
     // 4. Eval the time-dependent terms and do SPMV.
-    for (int h_idx = 0; h_idx < rhs_data.num_h_terms; h_idx++) {
+    for (uint h_idx = 0; h_idx < rhs_data.num_h_terms; h_idx++) {
         // TODO: Refactor
         std::string term;
         if (h_idx == rhs_data.systems.size() && rhs_data.num_h_terms > rhs_data.systems.size()) {

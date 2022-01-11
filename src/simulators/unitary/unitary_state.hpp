@@ -81,7 +81,7 @@ public:
 
   // Apply an operation
   // If the op is not in allowed_ops an exeption will be raised.
-  virtual void apply_op(const int_t iChunk, const Operations::Op &op,
+  virtual void apply_op(const uint_t iChunk, const Operations::Op &op,
                         ExperimentResult &result,
                         RngEngine &rng,
                         bool final_op = false) override;
@@ -115,14 +115,14 @@ public:
   // Initialize OpenMP settings for the underlying QubitVector class
   void initialize_omp();
 
-  auto move_to_matrix(const int_t iChunk);
-  auto copy_to_matrix(const int_t iChunk);
+  auto move_to_matrix(const uint_t iChunk);
+  auto copy_to_matrix(const uint_t iChunk);
 protected:
   //-----------------------------------------------------------------------
   // Apply Instructions
   //-----------------------------------------------------------------------
   //apply op to multiple shots , return flase if op is not supported to execute in a batch
-  bool apply_batched_op(const int_t iChunk, const Operations::Op &op,
+  bool apply_batched_op(const uint_t iChunk, const Operations::Op &op,
                                 ExperimentResult &result,
                                 std::vector<RngEngine> &rng,
                                 bool final_op = false) override;
@@ -130,20 +130,20 @@ protected:
   // Applies a Gate operation to the state class.
   // This should support all and only the operations defined in
   // allowed_operations.
-  void apply_gate(const int_t iChunk, const Operations::Op &op);
+  void apply_gate(const uint_t iChunk, const Operations::Op &op);
 
   // Apply a supported snapshot instruction
   // If the input is not in allowed_snapshots an exeption will be raised.
-  virtual void apply_snapshot(const int_t iChunk, const Operations::Op &op, ExperimentResult &result);
+  virtual void apply_snapshot(const uint_t iChunk, const Operations::Op &op, ExperimentResult &result);
 
   // Apply a matrix to given qubits (identity on all other qubits)
-  void apply_matrix(const int_t iChunk, const reg_t &qubits, const cmatrix_t &mat);
+  void apply_matrix(const uint_t iChunk, const reg_t &qubits, const cmatrix_t &mat);
 
   // Apply a matrix to given qubits (identity on all other qubits)
-  void apply_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t &vmat);
+  void apply_matrix(const uint_t iChunk, const reg_t &qubits, const cvector_t &vmat);
 
   // Apply a diagonal matrix
-  void apply_diagonal_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t &diag);
+  void apply_diagonal_matrix(const uint_t iChunk, const reg_t &qubits, const cvector_t &diag);
 
   //swap between chunks
   virtual void apply_chunk_swap(const reg_t &qubits) override;
@@ -153,9 +153,9 @@ protected:
   //-----------------------------------------------------------------------
 
   // Optimize phase gate with diagonal [1, phase]
-  void apply_gate_phase(const int_t iChunk, const uint_t qubit, const complex_t phase);
+  void apply_gate_phase(const uint_t iChunk, const uint_t qubit, const complex_t phase);
 
-  void apply_gate_phase(const int_t iChunk, const reg_t& qubits, const complex_t phase);
+  void apply_gate_phase(const uint_t iChunk, const reg_t& qubits, const complex_t phase);
 
   //-----------------------------------------------------------------------
   // Multi-controlled u
@@ -164,7 +164,7 @@ protected:
   // Apply N-qubit multi-controlled single qubit gate specified by
   // 4 parameters u4(theta, phi, lambda, gamma)
   // NOTE: if N=1 this is just a regular u4 gate.
-  void apply_gate_mcu(const int_t iChunk, const reg_t &qubits, double theta,
+  void apply_gate_mcu(const uint_t iChunk, const reg_t &qubits, double theta,
                       double phi, double lambda, double gamma);
 
   //-----------------------------------------------------------------------
@@ -172,12 +172,12 @@ protected:
   //-----------------------------------------------------------------------
 
   // Save the unitary matrix for the simulator
-  void apply_save_unitary(const int_t iChunk, const Operations::Op &op,
+  void apply_save_unitary(const uint_t iChunk, const Operations::Op &op,
                           ExperimentResult &result,
                           bool last_op);
 
   // Helper function for computing expectation value
-  virtual double expval_pauli(const int_t iChunk, const reg_t &qubits,
+  virtual double expval_pauli(const uint_t iChunk, const reg_t &qubits,
                               const std::string& pauli) override;
 
   //-----------------------------------------------------------------------
@@ -230,7 +230,7 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"ry", Gates::mcry}, // Pauli-Y rotation gate
     {"rz", Gates::mcrz}, // Pauli-Z rotation gate
     // Waltz Gates
-    {"p", Gates::mcp},   // Parameterized phase gate 
+    {"p", Gates::mcp},   // Parameterized phase gate
     {"u1", Gates::mcp}, // zero-X90 pulse waltz gate
     {"u2", Gates::mcu2}, // single-X90 pulse waltz gate
     {"u3", Gates::mcu3}, // two X90 pulse waltz gate
@@ -241,12 +241,12 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"cx", Gates::mcx},      // Controlled-X gate (CNOT)
     {"cy", Gates::mcy},      // Controlled-Z gate
     {"cz", Gates::mcz},      // Controlled-Z gate
-    {"cp", Gates::mcp},      // Controlled-Phase gate 
+    {"cp", Gates::mcp},      // Controlled-Phase gate
     {"cu1", Gates::mcp},     // Controlled-u1 gate
     {"cu2", Gates::mcu2},    // Controlled-u2 gate
     {"cu3", Gates::mcu3},    // Controlled-u3 gate
     {"cu", Gates::mcu},      // Controlled-u4 gate
-    {"cp", Gates::mcp},      // Controlled-Phase gate 
+    {"cp", Gates::mcp},      // Controlled-Phase gate
     {"swap", Gates::mcswap}, // SWAP gate
     {"rxx", Gates::rxx},     // Pauli-XX rotation gate
     {"ryy", Gates::ryy},     // Pauli-YY rotation gate
@@ -265,12 +265,12 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
     {"mcrx", Gates::mcrx},    // Multi-controlled X-rotation gate
     {"mcry", Gates::mcry},    // Multi-controlled Y-rotation gate
     {"mcrz", Gates::mcrz},    // Multi-controlled Z-rotation gate
-    {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate 
+    {"mcphase", Gates::mcp},  // Multi-controlled-Phase gate
     {"mcu1", Gates::mcp},    // Multi-controlled-u1
     {"mcu2", Gates::mcu2},    // Multi-controlled-u2
     {"mcu3", Gates::mcu3},    // Multi-controlled-u3
     {"mcu", Gates::mcu},      // Multi-controlled-u4
-    {"mcp", Gates::mcp},      // Multi-controlled-Phase gate 
+    {"mcp", Gates::mcp},      // Multi-controlled-Phase gate
     {"mcswap", Gates::mcswap},// Multi-controlled SWAP gate
     {"mcsx", Gates::mcsx},    // Multi-controlled-Sqrt(X) gate
     {"mcsxdg", Gates::mcsxdg},    // Multi-controlled-Sqrt(X)dg gate
@@ -282,7 +282,7 @@ const stringmap_t<Gates> State<unitary_matrix_t>::gateset_({
 //============================================================================
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_op(const int_t iChunk, 
+void State<unitary_matrix_t>::apply_op(const uint_t iChunk,
     const Operations::Op &op, ExperimentResult &result,
     RngEngine &rng, bool final_op)
 {
@@ -324,10 +324,10 @@ void State<unitary_matrix_t>::apply_op(const int_t iChunk,
 }
 
 template <class densmat_t>
-bool State<densmat_t>::apply_batched_op(const int_t iChunk, const Operations::Op &op,
+bool State<densmat_t>::apply_batched_op(const uint_t iChunk, const Operations::Op &op,
                                   ExperimentResult &result,
                                   std::vector<RngEngine> &rng,
-                                  bool final_ops) 
+                                  bool final_ops)
 {
   if(op.conditional)
     BaseState::qregs_[iChunk].set_conditional(op.conditional_reg);
@@ -372,7 +372,7 @@ size_t State<unitary_matrix_t>::required_memory_mb(
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::set_config(const json_t &config) 
+void State<unitary_matrix_t>::set_config(const json_t &config)
 {
   BaseState::set_config(config);
 
@@ -382,29 +382,27 @@ void State<unitary_matrix_t>::set_config(const json_t &config)
   // Set threshold for truncating snapshots
   JSON::get_value(json_chop_threshold_, "zero_threshold", config);
 
-  for(int_t i=0;i<BaseState::qregs_.size();i++)
+  for (uint_t i = 0; i < BaseState::qregs_.size(); i++)
     BaseState::qregs_[i].set_json_chop_threshold(json_chop_threshold_);
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits) 
+void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits)
 {
   if(BaseState::qregs_.size() == 0)
     BaseState::allocate(num_qubits,num_qubits,1);
 
   initialize_omp();
 
-  int_t iChunk;
-  for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
+  for (uint_t iChunk = 0; iChunk < BaseState::qregs_.size(); iChunk++) {
     BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
   }
 
   if(BaseState::multi_chunk_distribution_){
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
-    for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
-      uint_t irow,icol;
-      irow = (BaseState::global_chunk_index_ + iChunk) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
-      icol = (BaseState::global_chunk_index_ + iChunk) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_)
+    for (uint_t iChunk = 0; iChunk < BaseState::qregs_.size(); iChunk++) {
+      uint_t irow = (BaseState::global_chunk_index_ + iChunk) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
+      uint_t icol = (BaseState::global_chunk_index_ + iChunk) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
       if(irow == icol)
         BaseState::qregs_[iChunk].initialize();
       else
@@ -412,7 +410,7 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits)
     }
   }
   else{
-    for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
+    for (uint_t iChunk = 0; iChunk < BaseState::qregs_.size(); iChunk++) {
       BaseState::qregs_[iChunk].initialize();
     }
   }
@@ -421,7 +419,7 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits)
 
 template <class unitary_matrix_t>
 void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
-                                              const unitary_matrix_t &unitary) 
+                                              const unitary_matrix_t &unitary)
 {
   // Check dimension of state
   if (unitary.num_qubits() != num_qubits) {
@@ -433,16 +431,15 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
     BaseState::allocate(num_qubits,num_qubits,1);
   initialize_omp();
 
-  int_t iChunk;
-  for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++)
+  for (uint_t iChunk = 0; iChunk < BaseState::qregs_.size(); iChunk++)
     BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
 
   if(BaseState::multi_chunk_distribution_){
     auto input = unitary.copy_to_matrix();
     uint_t mask = (1ull << (BaseState::chunk_bits_)) - 1;
 
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
-    for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_)
+    for (uint_t iChunk = 0; iChunk < BaseState::qregs_.size(); iChunk++) {
       uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
       uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1));
 
@@ -458,14 +455,15 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
     }
   }
   else{
-    BaseState::qregs_[iChunk].initialize_from_data(unitary.data(), 1ULL << 2 * num_qubits);
+    for (uint_t iChunk = 0; iChunk < BaseState::qregs_.size(); iChunk++)
+      BaseState::qregs_[iChunk].initialize_from_data(unitary.data(), 1ULL << 2 * num_qubits);
   }
   apply_global_phase();
 }
 
 template <class unitary_matrix_t>
 void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
-                                              const cmatrix_t &unitary) 
+                                              const cmatrix_t &unitary)
 {
   // Check dimension of unitary
   if (unitary.size() != 1ULL << (2 * num_qubits)) {
@@ -477,19 +475,18 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
     BaseState::allocate(num_qubits,num_qubits,1);
   initialize_omp();
 
-  int_t iChunk;
-  for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++)
+  for (uint_t iChunk = 0; iChunk < BaseState::qregs_.size(); iChunk++)
     BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
 
   if(BaseState::multi_chunk_distribution_){
     uint_t mask = (1ull << (BaseState::chunk_bits_)) - 1;
-    for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
+    for (uint_t iChunk = 0; iChunk < BaseState::qregs_.size(); iChunk++) {
       //this function should be called in-order
       BaseState::qregs_[iChunk].set_num_qubits(BaseState::chunk_bits_);
     }
 
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(iChunk) 
-    for(iChunk=0;iChunk<BaseState::qregs_.size();iChunk++){
+#pragma omp parallel for if(BaseState::chunk_omp_parallel_)
+    for (uint_t iChunk = 0; iChunk < BaseState::qregs_.size(); iChunk++) {
       uint_t irow_chunk = ((iChunk + BaseState::global_chunk_index_) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
       uint_t icol_chunk = ((iChunk + BaseState::global_chunk_index_) & ((1ull << ((BaseState::num_qubits_ - BaseState::chunk_bits_)))-1));
 
@@ -505,13 +502,13 @@ void State<unitary_matrix_t>::initialize_qreg(uint_t num_qubits,
     }
   }
   else{
-    BaseState::qregs_[iChunk].initialize_from_matrix(unitary);
+    BaseState::qregs_[0].initialize_from_matrix(unitary);
   }
   apply_global_phase();
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::initialize_omp() 
+void State<unitary_matrix_t>::initialize_omp()
 {
   uint_t i;
   for(i=0;i<BaseState::qregs_.size();i++){
@@ -522,7 +519,7 @@ void State<unitary_matrix_t>::initialize_omp()
 }
 
 template <class unitary_matrix_t>
-auto State<unitary_matrix_t>::move_to_matrix(const int_t iChunk)
+auto State<unitary_matrix_t>::move_to_matrix(const uint_t iChunk)
 {
   if(!BaseState::multi_chunk_distribution_)
     return BaseState::qregs_[iChunk].move_to_matrix();
@@ -530,7 +527,7 @@ auto State<unitary_matrix_t>::move_to_matrix(const int_t iChunk)
 }
 
 template <class unitary_matrix_t>
-auto State<unitary_matrix_t>::copy_to_matrix(const int_t iChunk)
+auto State<unitary_matrix_t>::copy_to_matrix(const uint_t iChunk)
 {
   if(!BaseState::multi_chunk_distribution_)
     return BaseState::qregs_[iChunk].copy_to_matrix();
@@ -542,7 +539,7 @@ auto State<unitary_matrix_t>::copy_to_matrix(const int_t iChunk)
 //=========================================================================
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_gate(const int_t iChunk, const Operations::Op &op) 
+void State<unitary_matrix_t>::apply_gate(const uint_t iChunk, const Operations::Op &op)
 {
   // Look for gate name in gateset
   auto it = gateset_.find(op.name);
@@ -648,8 +645,8 @@ void State<unitary_matrix_t>::apply_gate(const int_t iChunk, const Operations::O
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_matrix(const int_t iChunk, const reg_t &qubits,
-                                           const cmatrix_t &mat) 
+void State<unitary_matrix_t>::apply_matrix(const uint_t iChunk, const reg_t &qubits,
+                                           const cmatrix_t &mat)
 {
   if (qubits.empty() == false && mat.size() > 0) {
     apply_matrix(iChunk, qubits, Utils::vectorize_matrix(mat));
@@ -657,8 +654,8 @@ void State<unitary_matrix_t>::apply_matrix(const int_t iChunk, const reg_t &qubi
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_matrix(const int_t iChunk, const reg_t &qubits,
-                                           const cvector_t &vmat) 
+void State<unitary_matrix_t>::apply_matrix(const uint_t iChunk, const reg_t &qubits,
+                                           const cvector_t &vmat)
 {
   // Check if diagonal matrix
   if (vmat.size() == 1ULL << qubits.size()) {
@@ -669,7 +666,7 @@ void State<unitary_matrix_t>::apply_matrix(const int_t iChunk, const reg_t &qubi
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_diagonal_matrix(const int_t iChunk, const reg_t &qubits, const cvector_t &diag)
+void State<unitary_matrix_t>::apply_diagonal_matrix(const uint_t iChunk, const reg_t &qubits, const cvector_t &diag)
 {
   if(BaseState::thrust_optimization_){
     //GPU computes all chunks in one kernel, so pass qubits and diagonal matrix as is
@@ -691,7 +688,7 @@ void State<unitary_matrix_t>::apply_diagonal_matrix(const int_t iChunk, const re
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_gate_phase(const int_t iChunk, uint_t qubit, complex_t phase) 
+void State<unitary_matrix_t>::apply_gate_phase(const uint_t iChunk, uint_t qubit, complex_t phase)
 {
   cvector_t diag(2);
   diag[0] = 1.0;
@@ -700,7 +697,7 @@ void State<unitary_matrix_t>::apply_gate_phase(const int_t iChunk, uint_t qubit,
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_gate_phase(const int_t iChunk, const reg_t& qubits, complex_t phase)
+void State<unitary_matrix_t>::apply_gate_phase(const uint_t iChunk, const reg_t& qubits, complex_t phase)
 {
   cvector_t diag((1 << qubits.size()),1.0);
   diag[(1 << qubits.size()) - 1] = phase;
@@ -708,16 +705,16 @@ void State<unitary_matrix_t>::apply_gate_phase(const int_t iChunk, const reg_t& 
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_gate_mcu(const int_t iChunk, const reg_t &qubits, double theta,
-                                              double phi, double lambda, double gamma) 
+void State<unitary_matrix_t>::apply_gate_mcu(const uint_t iChunk, const reg_t &qubits, double theta,
+                                              double phi, double lambda, double gamma)
 {
   const auto u4 = Linalg::Matrix::u4(theta, phi, lambda, gamma);
   BaseState::qregs_[iChunk].apply_mcu(qubits, Utils::vectorize_matrix(u4));
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_snapshot(const int_t iChunk, const Operations::Op &op,
-                                             ExperimentResult &result) 
+void State<unitary_matrix_t>::apply_snapshot(const uint_t iChunk, const Operations::Op &op,
+                                             ExperimentResult &result)
 {
   // Look for snapshot type in snapshotset
   if (op.name == "unitary" || op.name == "state") {
@@ -731,20 +728,20 @@ void State<unitary_matrix_t>::apply_snapshot(const int_t iChunk, const Operation
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_global_phase() 
+void State<unitary_matrix_t>::apply_global_phase()
 {
   if (BaseState::has_global_phase_) {
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_)
-    for(int_t i=0;i<BaseState::qregs_.size();i++){
+    for (uint_t i = 0; i < BaseState::qregs_.size(); i++) {
       apply_diagonal_matrix(i, {0}, {BaseState::global_phase_, BaseState::global_phase_});
     }
   }
 }
 
 template <class unitary_matrix_t>
-void State<unitary_matrix_t>::apply_save_unitary(const int_t iChunk, const Operations::Op &op,
+void State<unitary_matrix_t>::apply_save_unitary(const uint_t iChunk, const Operations::Op &op,
                                                  ExperimentResult &result,
-                                                 bool last_op) 
+                                                 bool last_op)
 {
   if (op.qubits.size() != BaseState::num_qubits_) {
     throw std::invalid_argument(
@@ -765,8 +762,8 @@ void State<unitary_matrix_t>::apply_save_unitary(const int_t iChunk, const Opera
 }
 
 template <class unitary_matrix_t>
-double  State<unitary_matrix_t>::expval_pauli(const int_t iChunk, const reg_t &qubits,
-                                              const std::string& pauli) 
+double  State<unitary_matrix_t>::expval_pauli(const uint_t iChunk, const reg_t &qubits,
+                                              const std::string& pauli)
 {
   throw std::runtime_error("Unitary simulator does not support Pauli expectation values.");
 }

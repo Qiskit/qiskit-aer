@@ -63,9 +63,9 @@ void write_shots_memory(py::array_t<unsigned char> mem,
 // Parameters:
 // A (list): A nested-list of [re, im] pairs.
 // B(ndarray): Array for storing complex numbers from list A.
-// start_idx (int): The starting index at which to insert elements.
+// start_idx (size_t): The starting index at which to insert elements.
 //============================================================================
-void oplist_to_array(py::list A, py::array_t<complex_t> B, int start_idx);
+void oplist_to_array(py::list A, py::array_t<complex_t> B, size_t start_idx);
 
 
 //============================================================================

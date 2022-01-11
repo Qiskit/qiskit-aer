@@ -28,11 +28,11 @@ complex_t internal_expect_psi(const py::array_t<complex_t>& data,
                               const py::array_t<complex_t>& vec) {
     auto data_raw = data.unchecked<2>();
     auto vec_raw = vec.unchecked<1>();
-    
+
     auto nrows = data.shape(0);
     auto ncols = data.shape(1);
     complex_t temp, expt = 0;
-    
+
     for (decltype(nrows) i = 0; i < nrows; i++) {
         temp = 0;
         auto vec_conj = std::conj(vec_raw[i]);
@@ -78,7 +78,7 @@ py::array_t<double> occ_probabilities(py::array_t<int> qubits,
         auto data = meas_ops[i].attr("data").attr("data").cast<py::array_t<complex_t>>();
         probs_raw[i] = std::real(internal_expect_psi(data, state));
     }
-    
+
     return probs;
 }
 
@@ -107,10 +107,10 @@ void write_shots_memory(py::array_t<unsigned char> mem,
     }
 }
 
-void oplist_to_array(py::list A, py::array_t<complex_t> B, int start_idx)
+void oplist_to_array(py::list A, py::array_t<complex_t> B, size_t start_idx)
 {
     auto lenA = A.size();
-    if((start_idx+lenA) > B.shape(0)) {
+    if((start_idx+lenA) > (size_t) B.shape(0)) {
         throw std::runtime_error(std::string("Input list does not fit into array if start_idx is ") + std::to_string(start_idx) + ".");
     }
 
@@ -153,10 +153,10 @@ py::array_t<complex_t> spmv(py::array_t<complex_t> data,
 {
     auto data_raw = get_raw_data(data);
     auto vec_raw = get_raw_data(vec);
-    
+
     auto num_columns = data.shape(0);
     auto num_rows = data.shape(1);
-    
+
     py::array_t<complex_t> out(num_rows);
     auto out_raw = get_raw_data(out);
     memset(&out_raw[0], 0, num_rows * sizeof(complex_t));
@@ -167,6 +167,6 @@ py::array_t<complex_t> spmv(py::array_t<complex_t> data,
             out_raw[row] += data_raw[row*num_columns + jj]*vec_raw[jj];
         }
     }
-    
+
     return out;
 }

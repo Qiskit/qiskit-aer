@@ -273,8 +273,8 @@ public:
   virtual void set_metadata(ExperimentResult &result) const { }; //nop
 
   virtual bool aggregate_operations(oplist_t& ops,
-                                    const int fusion_start,
-                                    const int fusion_end,
+                                    const uint_t fusion_start,
+                                    const uint_t fusion_end,
                                     const uint_t max_fused_qubits,
                                     const FusionMethod& method) const = 0;
 
@@ -315,8 +315,8 @@ public:
   virtual void set_metadata(ExperimentResult &result) const override;
 
   virtual bool aggregate_operations(oplist_t& ops,
-                                    const int fusion_start,
-                                    const int fusion_end,
+                                    const uint_t fusion_start,
+                                    const uint_t fusion_end,
                                     const uint_t max_fused_qubits,
                                     const FusionMethod& method) const override;
 
@@ -351,8 +351,8 @@ public:
   };
 
   virtual bool aggregate_operations(oplist_t& ops,
-                                    const int fusion_start,
-                                    const int fusion_end,
+                                    const uint_t fusion_start,
+                                    const uint_t fusion_end,
                                     const uint_t max_fused_qubits,
                                     const FusionMethod& method) const override;
 
@@ -394,8 +394,8 @@ bool NQubitFusion<N>::exclude_escaped_qubits(std::vector<uint_t>& fusing_qubits,
 
 template<size_t N>
 bool NQubitFusion<N>::aggregate_operations(oplist_t& ops,
-                                           const int fusion_start,
-                                           const int fusion_end,
+                                           const uint_t fusion_start,
+                                           const uint_t fusion_end,
                                            const uint_t max_fused_qubits,
                                            const FusionMethod& method) const {
   if (!active)
@@ -419,7 +419,12 @@ bool NQubitFusion<N>::aggregate_operations(oplist_t& ops,
     fusing_qubits.insert(fusing_qubits.end(), ops[op_idx].qubits.begin(), ops[op_idx].qubits.end());
 
     // 2. fuse operations with backwarding
-    for (int fusing_op_idx = op_idx - 1; fusing_op_idx >= fusion_start; --fusing_op_idx) {
+    for (uint_t fusing_op_idx_ = op_idx; fusing_op_idx_ > fusion_start; --fusing_op_idx_) {
+      // We have to be a little careful with comparisons in the loop, since
+      // all paramters are unsigned, and so are defined to wrap around rather
+      // than going below zero - `for (unsigned x = n; x >= 0; x--);` is an
+      // infinite loop.
+      auto fusing_op_idx = fusing_op_idx_ - 1;
       auto& tgt_op = ops[fusing_op_idx];
       if (tgt_op.type == optype_t::nop)
         continue;
@@ -437,7 +442,7 @@ bool NQubitFusion<N>::aggregate_operations(oplist_t& ops,
     fusing_qubits.insert(fusing_qubits.end(), ops[op_idx].qubits.begin(), ops[op_idx].qubits.end());
 
     // 3. fuse operations with forwarding
-    for (int fusing_op_idx = op_idx + 1; fusing_op_idx < fusion_end; ++fusing_op_idx) {
+    for (uint_t fusing_op_idx = op_idx + 1; fusing_op_idx < fusion_end; ++fusing_op_idx) {
       auto& tgt_op = ops[fusing_op_idx];
       if (tgt_op.type == optype_t::nop)
         continue;
@@ -473,15 +478,15 @@ public:
   virtual void set_config(const json_t &config) override;
 
   virtual bool aggregate_operations(oplist_t& ops,
-                                    const int fusion_start,
-                                    const int fusion_end,
+                                    const uint_t fusion_start,
+                                    const uint_t fusion_end,
                                     const uint_t max_fused_qubits,
                                     const FusionMethod& method) const override;
 
 private:
   bool is_diagonal_op(const op_t& op) const;
 
-  int get_next_diagonal_end(const oplist_t& ops, const int from, std::set<uint_t>& fusing_qubits) const;
+  int get_next_diagonal_end(const oplist_t& ops, const uint_t from, std::set<uint_t>& fusing_qubits) const;
 
   const std::shared_ptr<FusionMethod> method_;
   uint_t min_qubit = 3;
@@ -514,7 +519,7 @@ bool DiagonalFusion::is_diagonal_op(const op_t& op) const {
 }
 
 int DiagonalFusion::get_next_diagonal_end(const oplist_t& ops,
-                                          const int from,
+                                          const uint_t from,
                                           std::set<uint_t>& fusing_qubits) const {
 
   if (is_diagonal_op(ops[from])) {
@@ -619,8 +624,8 @@ int DiagonalFusion::get_next_diagonal_end(const oplist_t& ops,
 }
 
 bool DiagonalFusion::aggregate_operations(oplist_t& ops,
-                                          const int fusion_start,
-                                          const int fusion_end,
+                                          const uint_t fusion_start,
+                                          const uint_t fusion_end,
                                           const uint_t max_fused_qubits,
                                           const FusionMethod& method) const {
 
@@ -628,7 +633,7 @@ bool DiagonalFusion::aggregate_operations(oplist_t& ops,
     return false;
 
   // current impl is sensitive to ordering of gates
-  for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx) {
+  for (uint_t op_idx = fusion_start; op_idx < fusion_end; ++op_idx) {
 
     std::set<uint_t> checking_qubits_set;
     auto next_diagonal_end = get_next_diagonal_end(ops, op_idx, checking_qubits_set);
@@ -639,7 +644,7 @@ bool DiagonalFusion::aggregate_operations(oplist_t& ops,
     if (checking_qubits_set.size() > max_fused_qubits)
       continue;
 
-    auto next_diagonal_start = next_diagonal_end + 1;
+    uint_t next_diagonal_start = next_diagonal_end + 1;
 
     while (true) {
       auto nde = get_next_diagonal_end(ops, next_diagonal_start, checking_qubits_set);
@@ -683,7 +688,7 @@ public:
    *       gate [Default: 1.8]
    */
   Fusion();
-  
+
   void set_config(const json_t &config) override;
 
   virtual void set_parallelization(uint_t num) { parallelization_ = num; };
@@ -829,14 +834,14 @@ void Fusion::optimize_circuit(Circuit& circ,
       result.metadata.add(1, "fusion", "parallelization");
     } else {
       // determine unit for each OMP thread
-      int_t unit = circ.ops.size() / parallelization_;
+      uint_t unit = circ.ops.size() / parallelization_;
       if (circ.ops.size() % parallelization_)
         ++unit;
 
 #pragma omp parallel for if (parallelization_ > 1) num_threads(parallelization_)
-      for (int_t i = 0; i < parallelization_; i++) {
-        int_t start = unit * i;
-        int_t end = std::min(start + unit, (int_t) circ.ops.size());
+      for (uint_t i = 0; i < parallelization_; i++) {
+        uint_t start = unit * i;
+        uint_t end = std::min(start + unit, (uint_t) circ.ops.size());
         optimize_circuit(circ, noise, allowed_opset, start, end, fuser, method);
       }
       result.metadata.add(parallelization_, "fusion", "parallelization");
@@ -911,8 +916,8 @@ void CostBasedFusion::set_config(const json_t &config) {
 }
 
 bool CostBasedFusion::aggregate_operations(oplist_t& ops,
-                                  const int fusion_start,
-                                  const int fusion_end,
+                                  const uint_t fusion_start,
+                                  const uint_t fusion_end,
                                   const uint_t max_fused_qubits,
                                   const FusionMethod& method) const {
   if (!active)
@@ -921,7 +926,7 @@ bool CostBasedFusion::aggregate_operations(oplist_t& ops,
   // costs[i]: estimated cost to execute from 0-th to i-th in original.ops
   std::vector<double> costs;
   // fusion_to[i]: best path to i-th in original.ops
-  std::vector<int> fusion_to;
+  std::vector<uint_t> fusion_to;
 
   // set costs and fusion_to of fusion_start
   fusion_to.push_back(fusion_start);
@@ -929,20 +934,20 @@ bool CostBasedFusion::aggregate_operations(oplist_t& ops,
 
   bool applied = false;
   // calculate the minimal path to each operation in the circuit
-  for (int i = fusion_start + 1; i < fusion_end; ++i) {
+  for (uint_t i = fusion_start + 1; i < fusion_end; ++i) {
     // init with fusion from i-th to i-th
     fusion_to.push_back(i);
     costs.push_back(costs[i - fusion_start - 1] + (method.can_ignore(ops[i])? .0 : cost_factor));
 
-    for (int num_fusion = 2; num_fusion <=  static_cast<int> (max_fused_qubits); ++num_fusion) {
+    for (uint_t num_fusion = 2; num_fusion <= max_fused_qubits; ++num_fusion) {
       // calculate cost if {num_fusion}-qubit fusion is applied
       reg_t fusion_qubits;
       add_fusion_qubits(fusion_qubits, ops[i]);
 
-      for (int j = i - 1; j >= fusion_start; --j) {
+      for (uint_t j = i - 1; j >= fusion_start; --j) {
         add_fusion_qubits(fusion_qubits, ops[j]);
 
-        if (static_cast<int> (fusion_qubits.size()) > num_fusion) // exceed the limit of fusion
+        if (fusion_qubits.size() > num_fusion) // exceed the limit of fusion
           break;
 
         // calculate a new cost of (i-th) by adding
@@ -963,11 +968,11 @@ bool CostBasedFusion::aggregate_operations(oplist_t& ops,
     return false;
 
   // generate a new circuit with the minimal path to the last operation in the circuit
-  for (int i = fusion_end - 1; i >= fusion_start;) {
-    int to = fusion_to[i - fusion_start];
+  for (uint_t i = fusion_end - 1; i >= fusion_start;) {
+    uint_t to = fusion_to[i - fusion_start];
     if (to != i) {
       std::vector<uint_t> fusing_op_idxs;
-      for (int j = to; j <= i; ++j)
+      for (uint_t j = to; j <= i; ++j)
         fusing_op_idxs.push_back(j);
       if (!fusing_op_idxs.empty())
         allocate_new_operation(ops, i, fusing_op_idxs, method, false);
