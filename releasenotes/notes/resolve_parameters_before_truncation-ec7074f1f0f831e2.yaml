@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes a bug to truncate qubits of circuits in parameterized QObj. 
+    Previously parameters of parameterized QObj can be wrongly resolved
+    if unused qubits of their circuits are truncated because indices of
+    the parameters are not maintained even though instructions for the
+    unused qubits are reduced.
+
+    See `Issue 1427 <https://github.com/Qiskit/qiskit-aer/issues/1427>`__
+    for details. 
