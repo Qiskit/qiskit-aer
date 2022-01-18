@@ -1803,15 +1803,17 @@ template <typename data_t>
 double QubitVectorThrust<data_t>::norm() const
 {
   double ret;
+  uint_t count = 1;
 
 #ifdef AER_THRUST_CUDA
   if((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_){
     if(chunk_.pos() != 0)
       return 0.0;   //first chunk execute all in batch
+    count = chunk_.container()->num_chunks();
   }
 #endif
 
-  ret = chunk_.norm(chunk_.container()->num_chunks());
+  ret = chunk_.norm(count);
 
 #ifdef AER_DEBUG
   DebugMsg("norm",ret);

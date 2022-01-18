@@ -619,6 +619,7 @@ void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk
 #else
   uint_t size = func.size(chunk_bits_);
 
+  func.set_base_index((chunk_index_ + iChunk) << chunk_bits_);
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
 
@@ -758,6 +759,7 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
 #else
   uint_t size = func.size(chunk_bits_);
 
+  func.set_base_index((chunk_index_ + iChunk) << chunk_bits_);
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
  
