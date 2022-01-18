@@ -228,7 +228,7 @@ message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
 if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
     if(APPLE OR UNIX)
-        if(NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+        if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
             set(SIMD_FLAGS_LIST "-mfma;-mavx2")
 	        enable_cxx_compiler_flag_if_supported("-mpopcnt")
         endif()
