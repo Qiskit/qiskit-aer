@@ -229,6 +229,7 @@ message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
     if(APPLE OR UNIX)
         if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+            message(STATUS "avx flags set")
             set(SIMD_FLAGS_LIST "-mfma;-mavx2")
 	        enable_cxx_compiler_flag_if_supported("-mpopcnt")
         endif()
@@ -327,6 +328,7 @@ else() # Standalone build
       if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
           # We build SIMD filed separately, because they will be reached only if the
           # machine running the code has SIMD support
+          message(STATUS "building avx files")
           set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
       endif()
   endif()
