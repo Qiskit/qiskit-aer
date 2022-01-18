@@ -1,7 +1,7 @@
 /**
  * This code is part of Qiskit.
  *
- * (C) Copyright IBM 2018, 2019, 2020.
+ * (C) Copyright IBM 2018, 2019, 2020, 2021, 2022.
  *
  * This code is licensed under the Apache License, Version 2.0. You may
  * obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,10 +17,6 @@
 #define _qv_device_chunk_container_hpp_
 
 #include "simulators/statevector/chunk/chunk_container.hpp"
-
-#ifdef AER_CUSTATEVEC
-#include "custatevec.h"
-#endif
 
 namespace AER {
 namespace QV {
@@ -51,8 +47,6 @@ protected:
 
   bool creg_host_update_;
 
-  bool enable_cuStatevec_;
-
   //for register blocking
   thrust::host_vector<uint_t>               blocked_qubits_holder_;
   uint_t max_blocked_gates_;
@@ -62,15 +56,6 @@ protected:
 
 #ifdef AER_THRUST_CUDA
   std::vector<cudaStream_t> stream_;    //asynchronous execution
-
-#ifdef AER_CUSTATEVEC
-  //for cuStatevec
-  std::vector<custatevecHandle_t> custatevec_handle_;                       //cuStatevec handle for this chunk container
-  AERDeviceVector<unsigned char>            custatevec_work_;  //work buffer for cuStatevec
-  uint_t                                    custatevec_work_size_;    //buffer size
-  uint_t                                    custatevec_chunk_total_qubits_;   //total qubits of statevector passed to ApplyMatrix
-  uint_t                                    custatevec_chunk_count_;          //number of counts for all chunks
-#endif
 #endif
 
 public:
@@ -117,13 +102,13 @@ public:
     return raw_reference_cast(data_[i]);
   }
 
-  uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit,bool enable_cuStatevec);
-  void Deallocate(void);
+  uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit) override;
+  void Deallocate(void) override;
 
-  void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk);
-  void StoreMatrix(const std::complex<double>* mat,uint_t iChunk,uint_t size);
-  void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk);
-  void ResizeMatrixBuffers(int bits);
+  void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk) override;
+  void StoreMatrix(const std::complex<double>* mat,uint_t iChunk,uint_t size) override;
+  void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk) override;
+  void ResizeMatrixBuffers(int bits) override;
 
   void set_device(void) const
   {
@@ -137,20 +122,6 @@ public:
   {
     return stream_[iChunk];
   }
-
-#ifdef AER_CUSTATEVEC
-  unsigned char* custatevec_work_pointer(uint_t iChunk) const
-  {
-    if(custatevec_work_size_ == 0)
-      return nullptr;
-    if(iChunk >= this->num_chunks_){  //for buffer chunks
-      return ((unsigned char*)thrust::raw_pointer_cast(custatevec_work_.data())) + ((num_matrices_ + iChunk - this->num_chunks_) * custatevec_work_size_);
-    }
-    else{
-      return ((unsigned char*)thrust::raw_pointer_cast(custatevec_work_.data())) + ((iChunk % num_matrices_) * custatevec_work_size_);
-    }
-  }
-#endif
 #endif
 
   void Set(uint_t i,const thrust::complex<data_t>& t)
@@ -162,16 +133,15 @@ public:
     return data_[i];
   }
 
-  void CopyIn(Chunk<data_t>& src,uint_t iChunk);
-  void CopyOut(Chunk<data_t>& src,uint_t iChunk);
-  void CopyIn(thrust::complex<data_t>* src,uint_t iChunk, uint_t size);
-  void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk, uint_t size);
-  void Swap(Chunk<data_t>& src,uint_t iChunk);
+  void CopyIn(Chunk<data_t>& src,uint_t iChunk) override;
+  void CopyOut(Chunk<data_t>& src,uint_t iChunk) override;
+  void CopyIn(thrust::complex<data_t>* src,uint_t iChunk, uint_t size) override;
+  void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk, uint_t size) override;
+  void Swap(Chunk<data_t>& src,uint_t iChunk) override;
 
-  void Zero(uint_t iChunk,uint_t count);
+  void Zero(uint_t iChunk,uint_t count) override;
 
-  reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true,uint_t count = 1) const;
-  thrust::complex<double> norm(uint_t iChunk,uint_t count,uint_t stride = 1,bool dot = true) const;
+  reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true,uint_t count = 1) const override;
 
   thrust::complex<data_t>* chunk_pointer(uint_t iChunk) const
   {
@@ -262,10 +232,6 @@ public:
 
   //queue gate for blocked execution
   void queue_blocked_gate(uint_t iChunk,char gate,uint_t qubit,uint_t mask,const std::complex<double>* pMat = NULL);
-
-  //apply matrix using cuStatevec
-  void apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count) override;
-  void apply_diagonal_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t count) override;
 };
 
 template <typename data_t>
@@ -275,7 +241,7 @@ DeviceChunkContainer<data_t>::~DeviceChunkContainer(void)
 }
 
 template <typename data_t>
-uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit,bool enable_cuStatevec)
+uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit)
 {
   uint_t nc = chunks;
   uint_t i;
@@ -286,8 +252,6 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qu
 
   device_id_ = idev;
   set_device();
-
-  enable_cuStatevec_ = enable_cuStatevec;
 
 #ifdef AER_THRUST_CUDA
   if(!multi_shots){
@@ -374,69 +338,6 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qu
   reduce_buffer_size_ = 1;
 #endif
 
-#ifdef AER_CUSTATEVEC
-  if(enable_cuStatevec_){
-    //initialize custatevevtor handle
-    custatevecStatus_t err;
-
-    custatevec_handle_.resize(nc + buffers);
-    for(i=0;i<nc + buffers;i++){
-      err = custatevecCreate(&custatevec_handle_[i]);
-      if(err != CUSTATEVEC_STATUS_SUCCESS){
-        std::stringstream str;
-        str << "DeviceChunkContainer::allocate : " << custatevecGetErrorString(err);
-        throw std::runtime_error(str.str());
-      }
-
-      //set stream to custatevec handle
-      err = custatevecSetStream(custatevec_handle_[i],stream_[i]);
-      if(err != CUSTATEVEC_STATUS_SUCCESS){
-        std::stringstream str;
-        str << "DeviceChunkContainer::allocate : " << custatevecGetErrorString(err);
-        throw std::runtime_error(str.str());
-      }
-    }
-
-    //allocate extra workspace for custatevec
-    std::vector<std::complex<double>> mat(1ull << (matrix_bit*2));
-
-    //count bits for multi-chunks
-    custatevec_chunk_total_qubits_ = this->num_pow2_qubits_;
-    custatevec_chunk_count_ = this->num_chunks_ >> (this->num_pow2_qubits_ - this->chunk_bits_);
-
-    //matrix
-    err = custatevecApplyMatrix_bufferSize(
-                    custatevec_handle_[0], CUDA_C_64F, custatevec_chunk_total_qubits_ , &mat[0], CUDA_C_64F, CUSTATEVEC_MATRIX_LAYOUT_COL,
-                    0, matrix_bit, 0, CUSTATEVEC_COMPUTE_64F, &custatevec_work_size_);
-    if(err != CUSTATEVEC_STATUS_SUCCESS){
-      std::stringstream str;
-      str << "DeviceChunkContainer::ResizeMatrixBuffers : " << custatevecGetErrorString(err);
-      throw std::runtime_error(str.str());
-    }
-
-    //diagonal matrix
-    size_t diag_size;
-    std::vector<custatevecIndex_t> perm(matrix_bit);
-    std::vector<int32_t> basis(matrix_bit);
-    for(i=0;i<matrix_bit;i++){
-      perm[i] = i;
-      basis[i] = i;
-    }
-    err = custatevecApplyGeneralizedPermutationMatrix_bufferSize(
-                    custatevec_handle_[0], CUDA_C_64F, custatevec_chunk_total_qubits_ , &perm[0], &mat[0], CUDA_C_64F,
-                    &basis[0], matrix_bit, 0, &diag_size);
-    if(err != CUSTATEVEC_STATUS_SUCCESS){
-      std::stringstream str;
-      str << "DeviceChunkContainer::ResizeMatrixBuffers : " << custatevecGetErrorString(err);
-      throw std::runtime_error(str.str());
-    }
-    if(custatevec_work_size_ < diag_size)
-      custatevec_work_size_ = diag_size;
-    if(custatevec_work_size_ > 0)
-      custatevec_work_.resize(custatevec_work_size_*num_matrices_);
-  }
-#endif
-
   reduce_buffer_size_ *= 2;
   reduce_buffer_.resize(reduce_buffer_size_*nc);
   probability_buffer_.resize(nc*QV_PROBABILITY_BUFFER_SIZE);
@@ -498,15 +399,6 @@ void DeviceChunkContainer<data_t>::Deallocate(void)
   num_blocked_matrix_.clear();
   num_blocked_qubits_.clear();
   blocked_qubits_holder_.clear();
-
-#ifdef AER_CUSTATEVEC
-  custatevec_work_.clear();
-  custatevec_work_.shrink_to_fit();
-  for(int_t i=0;i<custatevec_handle_.size();i++){
-    custatevecDestroy(custatevec_handle_[i]);
-  }
-  custatevec_handle_.clear();
-#endif
 
 #ifdef AER_THRUST_CUDA
   for(int_t i=0;i<stream_.size();i++){
@@ -737,68 +629,6 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
 
   set_device();
 
-#ifdef AER_CUSTATEVEC
-  if(enable_cuStatevec_ && count == (1ull << (this->num_qubits_ - this->chunk_bits_))){
-    //custatevecSampler_sample only can be applied to whole statevector
-    custatevecStatus_t err;
-    custatevecSamplerDescriptor_t sampler;
-    size_t extSize;
-
-    cudaStreamSynchronize(stream_[iChunk]);
-
-    cudaDataType_t state_type;
-    if(sizeof(data_t) == sizeof(double))
-      state_type = CUDA_C_64F;
-    else
-      state_type = CUDA_C_32F;
-
-    err = custatevecSampler_create(custatevec_handle_[iChunk], chunk_pointer(iChunk), state_type, this->num_qubits_, &sampler, SHOTS, &extSize);
-    if(err != CUSTATEVEC_STATUS_SUCCESS){
-      std::stringstream str;
-      str << "DeviceChunkContainer::sample_measure : custatevecSampler_create " << custatevecGetErrorString(err);
-      throw std::runtime_error(str.str());
-    }
-
-    AERDeviceVector<unsigned char> extBuf;
-    void* pExtBuf = nullptr;
-    if(extSize > 0){
-      extBuf.resize(extSize);
-      pExtBuf = thrust::raw_pointer_cast(extBuf.data());
-    }
-
-    err = custatevecSampler_preprocess(custatevec_handle_[iChunk],&sampler,pExtBuf,extSize);
-    if(err != CUSTATEVEC_STATUS_SUCCESS){
-      std::stringstream str;
-      str << "DeviceChunkContainer::sample_measure : custatevecSampler_preprocess " << custatevecGetErrorString(err);
-      throw std::runtime_error(str.str());
-    }
-
-    std::vector<custatevecIndex_t> bitStr(SHOTS);
-    std::vector<int> bitOrdering(this->num_qubits_);
-    for(int_t i=0;i<this->num_qubits_;i++){
-      bitOrdering[i] = i;
-    }
-
-    err = custatevecSampler_sample(custatevec_handle_[iChunk], &sampler, &bitStr[0], &bitOrdering[0], this->num_qubits_, &rnds[0], SHOTS,
-                    CUSTATEVEC_SAMPLER_OUTPUT_RANDNUM_ORDER ) ;
-    if(err != CUSTATEVEC_STATUS_SUCCESS){
-      std::stringstream str;
-      str << "DeviceChunkContainer::sample_measure : custatevecSampler_sample " << custatevecGetErrorString(err);
-      throw std::runtime_error(str.str());
-    }
-
-    for(int_t i=0;i<SHOTS;i++){
-      samples[i] = bitStr[i];
-    }
-
-    if(extSize > 0){
-      extBuf.clear();
-      extBuf.shrink_to_fit();
-    }
-    return samples;
-  }
-#endif
-
   strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+count), stride);
 
 #ifdef AER_THRUST_CUDA
@@ -842,30 +672,6 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
 #endif
 
   return samples;
-}
-
-template <typename data_t>
-thrust::complex<double> DeviceChunkContainer<data_t>::norm(uint_t iChunk, uint_t count, uint_t stride, bool dot) const
-{
-  thrust::complex<double> sum,zero(0.0,0.0);
-  set_device();
-
-  strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+count), stride);
-
-#ifdef AER_THRUST_CUDA
-  cudaStreamSynchronize(stream_[iChunk]);
-  if(dot)
-    sum = thrust::transform_reduce(thrust::device, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
-  else
-    sum = thrust::reduce(thrust::device, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
-#else
-  if(dot)
-    sum = thrust::transform_reduce(thrust::device, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
-  else
-    sum = thrust::reduce(thrust::device, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
-#endif
-
-  return sum;
 }
 
 
@@ -1343,152 +1149,6 @@ void DeviceChunkContainer<data_t>::copy_to_probability_buffer(std::vector<double
   thrust::copy_n(buf.begin(),buf.size(),probability_buffer_.begin());
 #endif
 
-}
-
-template <typename data_t>
-void DeviceChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count)
-{
-#ifdef AER_CUSTATEVEC
-  if(!enable_cuStatevec_)
-    return;
-
-  thrust::complex<double>* pMat;
-  int_t num_qubits = qubits.size()-control_bits;
-
-  if((matrix_buffer_size_  >= (1ull << (num_qubits*2))) && ((count == this->num_chunks_ && iChunk == 0) || num_matrices_ > 1)){
-    StoreMatrix(mat,iChunk);
-    pMat = matrix_pointer(iChunk);
-  }
-  else{
-    //if operation is not batchable, use host memory
-    pMat = (thrust::complex<double>*)&mat[0];
-    set_device();
-  }
-
-  std::vector<int32_t> qubits32(qubits.size());
-  for(int_t i=0;i<qubits.size();i++)
-    qubits32[i] = qubits[i];
-
-  int32_t* pQubits = &qubits32[control_bits];
-  int32_t* pControl = nullptr;
-  if(control_bits > 0)
-    pControl = &qubits32[0];
-
-  uint_t bits;
-  uint_t nc;
-  if(count == this->num_chunks_){
-    bits = custatevec_chunk_total_qubits_;
-    nc = custatevec_chunk_count_;
-  }
-  else{
-    nc = count;
-    bits = this->chunk_bits_;
-    if(nc > 0){
-      while((nc & 1) == 0){
-        nc >>= 1;
-        bits++;
-      }
-    }
-  }
-  cudaDataType_t state_type;
-  custatevecComputeType_t comp_type;
-  if(sizeof(data_t) == sizeof(double)){
-    state_type = CUDA_C_64F;
-    comp_type = CUSTATEVEC_COMPUTE_64F;
-  }
-  else{
-    state_type = CUDA_C_32F;
-    comp_type = CUSTATEVEC_COMPUTE_32F;
-  }
-
-  custatevecStatus_t err;
-  for(int_t i=0;i<nc;i++){
-    err = custatevecApplyMatrix(custatevec_handle_[iChunk], chunk_pointer(iChunk) + (i << bits), state_type, bits, pMat, CUDA_C_64F,
-                          CUSTATEVEC_MATRIX_LAYOUT_COL, 0, pQubits, num_qubits, pControl, control_bits, 
-                          nullptr, comp_type, custatevec_work_pointer(iChunk), custatevec_work_size_);
-    if(err != CUSTATEVEC_STATUS_SUCCESS){
-      std::stringstream str;
-      str << "DeviceChunkContainer::apply_matrix : " << custatevecGetErrorString(err);
-      throw std::runtime_error(str.str());
-    }
-  }
-#endif
-}
-
-template <typename data_t>
-void DeviceChunkContainer<data_t>::apply_diagonal_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t count)
-{
-#ifdef AER_CUSTATEVEC
-  if(!enable_cuStatevec_)
-    return;
-
-  thrust::complex<double>* pMat;
-  int_t num_qubits = qubits.size()-control_bits;
-
-  if(control_bits > 0){
-    //custatevecApplyGeneralizedPermutationMatrix does not support control bits???
-    cvector_t<double> mat(diag.size()*diag.size(),0.0);
-    for(int_t i=0;i<diag.size();i++){
-      mat[i*(diag.size()+1)] = diag[i];
-    }
-    return apply_matrix(iChunk, qubits, control_bits, mat, count);
-  }
-
-  if((matrix_buffer_size_  >= (1ull << num_qubits)) && ((count == this->num_chunks_ && iChunk == 0) || num_matrices_ > 1)){
-    StoreMatrix(diag,iChunk);
-    pMat = matrix_pointer(iChunk);
-  }
-  else{
-    //if operation is not batchable, use host memory
-    pMat = (thrust::complex<double>*)&diag[0];
-    set_device();
-  }
-
-  std::vector<int32_t> qubits32(qubits.size());
-  for(int_t i=0;i<qubits.size();i++)
-    qubits32[i] = qubits[i];
-
-  int32_t* pQubits = &qubits32[control_bits];
-  int32_t* pControl = nullptr;
-  if(control_bits > 0)
-    pControl = &qubits32[0];
-
-  uint_t bits;
-  uint_t nc;
-  if(count == this->num_chunks_){
-    bits = custatevec_chunk_total_qubits_;
-    nc = custatevec_chunk_count_;
-  }
-  else{
-    nc = count;
-    bits = this->chunk_bits_;
-    if(nc > 0){
-      while((nc & 1) == 0){
-        nc >>= 1;
-        bits++;
-      }
-    }
-  }
-
-  cudaDataType_t state_type;
-  if(sizeof(data_t) == sizeof(double))
-    state_type = CUDA_C_64F;
-  else
-    state_type = CUDA_C_32F;
-
-  custatevecStatus_t err;
-  for(int_t i=0;i<nc;i++){
-    err = custatevecApplyGeneralizedPermutationMatrix(custatevec_handle_[iChunk], chunk_pointer(iChunk) + (i << bits), state_type, bits, 
-                          nullptr, pMat, CUDA_C_64F, 0, pQubits, num_qubits, nullptr, nullptr, 0, 
-                          custatevec_work_pointer(iChunk), custatevec_work_size_);
-    if(err != CUSTATEVEC_STATUS_SUCCESS){
-      std::stringstream str;
-      str << "DeviceChunkContainer::apply_diagonal_matrix : " << custatevecGetErrorString(err);
-      throw std::runtime_error(str.str());
-    }
-  }
-
-#endif
 }
 
 

@@ -18,6 +18,11 @@
 #include "simulators/statevector/chunk/device_chunk_container.hpp"
 #include "simulators/statevector/chunk/host_chunk_container.hpp"
 
+#ifdef AER_CUSTATEVEC
+#include "simulators/statevector/chunk/cuStateVec_chunk_container.hpp"
+#endif
+
+
 namespace AER {
 namespace QV {
 
@@ -261,9 +266,13 @@ public:
     return chunk_container_.lock()->sample_measure(chunk_pos_,rnds,stride,dot,count);
   }
 
-  thrust::complex<double> norm(uint_t count=1,uint_t stride = 1,bool dot = true) const
+  double norm(uint_t count) const
   {
-    return chunk_container_.lock()->norm(chunk_pos_,count,stride,dot);
+    return chunk_container_.lock()->norm(chunk_pos_,count);
+  }
+  double trace(uint_t row, uint_t count) const
+  {
+    return chunk_container_.lock()->trace(chunk_pos_,row,count);
   }
 
 #ifdef AER_THRUST_CUDA
@@ -354,16 +363,54 @@ public:
       chunk_container_.lock()->keep_conditional(keep);
   }
 
-  //apply matrix using cuStatevec
+  //apply matrix
   void apply_matrix(const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count)
   {
     chunk_container_.lock()->apply_matrix(chunk_pos_,qubits,control_bits,mat,count);
   }
+  //apply diagonal matrix
   void apply_diagonal_matrix(const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t count)
   {
     chunk_container_.lock()->apply_diagonal_matrix(chunk_pos_,qubits,control_bits,diag,count);
   }
+  //apply (controlled) X
+  void apply_X(const reg_t& qubits,const uint_t count)
+  {
+    chunk_container_.lock()->apply_X(chunk_pos_,qubits,count);
+  }
+  //apply (controlled) Y
+  void apply_Y(const reg_t& qubits,const uint_t count)
+  {
+    chunk_container_.lock()->apply_Y(chunk_pos_,qubits,count);
+  }
+  //apply (controlled) phase
+  void apply_phase(const reg_t& qubits,const int_t control_bits,const std::complex<double> phase,const uint_t count)
+  {
+    chunk_container_.lock()->apply_phase(chunk_pos_,qubits,control_bits,phase,count);
+  }
+  //apply (controlled) swap gate
+  void apply_swap(const reg_t& qubits,const int_t control_bits,const uint_t count)
+  {
+    chunk_container_.lock()->apply_swap(chunk_pos_,qubits,control_bits,count);
+  }
+  //apply permutation
+  void apply_permutation(const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t count)
+  {
+    chunk_container_.lock()->apply_permutation(chunk_pos_,qubits,pairs,count);
+  }
 
+  //get probabilities of chunk
+  void probabilities(std::vector<double>& probs, const reg_t& qubits) const
+  {
+    chunk_container_.lock()->probabilities(probs, chunk_pos_,qubits);
+  }
+  //Pauli expectation values
+  double expval_pauli(const reg_t& qubits,const std::string &pauli,const complex_t initial_phase) const
+  {
+    return chunk_container_.lock()->expval_pauli(chunk_pos_,qubits,pauli,initial_phase);
+  }
+
+  
   //largest number of qubits that meets num_chunks_ = m*(2^num_pow2_qubits_)
   uint_t num_pow2_qubits(void)
   {

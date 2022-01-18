@@ -1,7 +1,7 @@
 /**
  * This code is part of Qiskit.
  *
- * (C) Copyright IBM 2018, 2019, 2020.
+ * (C) Copyright IBM 2018, 2019, 2020, 2021, 2022.
  *
  * This code is licensed under the Apache License, Version 2.0. You may
  * obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -43,6 +43,7 @@ protected:
   int num_qubits_;             //number of global qubits
 
   uint_t num_chunks_;          //number of chunks on this process
+  uint_t chunk_index_;         //global chunk index for the first chunk
 
   int i_dev_map_;              //device index chunk to be mapped
   int idev_buffer_map_;        //device index buffer to be mapped
@@ -67,7 +68,7 @@ public:
     return chunks_.size();
   }
 
-  uint_t Allocate(int chunk_bits,int nqubits,uint_t nchunks,int matrix_bit,bool enable_cuStatevec);
+  uint_t Allocate(int chunk_bits,int nqubits,uint_t nchunks,uint_t chunk_index,int matrix_bit,bool enable_cuStatevec);
   void Free(void);
 
   int num_devices(void)
@@ -115,6 +116,7 @@ ChunkManager<data_t>::ChunkManager()
   num_places_ = 1;
   chunk_bits_ = 0;
   num_chunks_ = 0;
+  chunk_index_ = 0;
   num_qubits_ = 0;
   multi_shots_ = false;
 
@@ -163,7 +165,7 @@ ChunkManager<data_t>::~ChunkManager()
 }
 
 template <typename data_t>
-uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,int matrix_bit, bool enable_cuStatevec)
+uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,uint_t chunk_index,int matrix_bit, bool enable_cuStatevec)
 {
   uint_t num_buffers;
   int iDev;
@@ -185,7 +187,9 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
   }
   //---
   enable_cuStatevec_ = enable_cuStatevec;
-  
+
+  chunk_index_ = chunk_index;
+
   if(num_qubits_ != nqubits || chunk_bits_ != chunk_bits || nchunks > num_chunks_){
     //free previous allocation
     Free();
@@ -249,40 +253,45 @@ uint_t ChunkManager<data_t>::Allocate(int chunk_bits,int nqubits,uint_t nchunks,
       num_places_ = num_chunks_;
     }
 
-    nchunks = num_chunks_;
-
     //allocate chunk container before parallel loop using push_back to store shared pointer
     for(i=0;i<num_places_;i++){
+#ifdef AER_CUSTATEVEC
+      if(enable_cuStatevec_){   //allocate cuStateVec chunk
+        chunks_.push_back(std::make_shared<cuStateVecChunkContainer<data_t>>());
+        continue;
+      }
+#endif
       chunks_.push_back(std::make_shared<DeviceChunkContainer<data_t>>());
     }
 
     uint_t chunks_allocated = 0;
 #pragma omp parallel for if(num_places_ > 1) private(is,ie,nc) reduction(+:chunks_allocated)
     for(iDev=0;iDev<num_places_;iDev++){
-      is = nchunks * (uint_t)iDev / (uint_t)num_places_;
-      ie = nchunks * (uint_t)(iDev + 1) / (uint_t)num_places_;
+      is = num_chunks_ * (uint_t)iDev / (uint_t)num_places_;
+      ie = num_chunks_ * (uint_t)(iDev + 1) / (uint_t)num_places_;
       nc = ie - is;
       if(hybrid){
         nc /= 2;
       }
+      chunks_[iDev]->set_chunk_index(chunk_index_ + chunks_allocated);  //set first chunk index for the container
       if(num_devices_ > 0)
-        chunks_allocated += chunks_[iDev]->Allocate((iDev + idev_start)%num_devices_,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit,enable_cuStatevec_);
+        chunks_allocated += chunks_[iDev]->Allocate((iDev + idev_start)%num_devices_,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
       else
-        chunks_allocated += chunks_[iDev]->Allocate(iDev,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit,enable_cuStatevec_);
+        chunks_allocated += chunks_[iDev]->Allocate(iDev,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
     }
-    if(chunks_allocated < nchunks){
+    if(chunks_allocated < num_chunks_){
       //rest of chunks are stored on host
       for(iDev=0;iDev<num_places_;iDev++){
-        is = (nchunks - chunks_allocated) * (uint_t)iDev / (uint_t)num_places_;
-        ie = (nchunks - chunks_allocated) * (uint_t)(iDev + 1) / (uint_t)num_places_;
+        is = (num_chunks_ - chunks_allocated) * (uint_t)iDev / (uint_t)num_places_;
+        ie = (num_chunks_ - chunks_allocated) * (uint_t)(iDev + 1) / (uint_t)num_places_;
         nc = ie - is;
         if(nc > 0){
+          chunks_[num_places_]->set_chunk_index(chunk_index_ + chunks_allocated + is);  //set first chunk index for the container
           chunks_.push_back(std::make_shared<HostChunkContainer<data_t>>());
           chunks_[num_places_]->Allocate(-1,chunk_bits,nqubits,nc,num_buffers,multi_shots_,matrix_bit);
           num_places_ += 1;
         }
       }
-      num_chunks_ = chunks_allocated;
     }
 
 #ifdef AER_DISABLE_GDR

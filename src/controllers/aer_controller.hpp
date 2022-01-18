@@ -666,7 +666,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
   }
 
   if(sim_device_ == Device::cuStateVec){
-    parallel_shots_ = 1;    //cuStateVec is not thread safe
+    parallel_shots_ = 1;    //cuStateVec is currently not thread safe
     return;
   }
 
