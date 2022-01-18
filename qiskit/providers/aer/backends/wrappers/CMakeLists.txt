@@ -11,7 +11,7 @@ if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR 
     if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
       # We build SIMD filed separately, because they will be reached only if the
       # machine running the code has SIMD support
-      set(SIMD_SOURCE_FILE "../../../../../src/simulators/statevector/qv_avx2.cpp")
+      set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
     endif()
 endif()
 
