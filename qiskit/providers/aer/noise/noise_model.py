@@ -15,18 +15,23 @@ Noise model class for Qiskit Aer simulators.
 
 import json
 import logging
+from typing import Optional
 from warnings import warn, catch_warnings, filterwarnings
 
 from numpy import ndarray
 
-from qiskit.circuit import Instruction
-from qiskit.providers import BaseBackend, Backend
+from qiskit.circuit import Instruction, Delay
+from qiskit.providers import BaseBackend, BackendV1, BackendV2
+from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.providers.models import BackendProperties
+from qiskit.transpiler import PassManager
+from .device.models import _excited_population
 from .device.models import basic_device_gate_errors
 from .device.models import basic_device_readout_errors
 from .errors.quantum_error import QuantumError
 from .errors.readout_error import ReadoutError
 from .noiseerror import NoiseError
+from .passes import RelaxationNoisePass
 from ..backends.backend_utils import BASIS_GATES
 
 logger = logging.getLogger(__name__)
@@ -182,6 +187,8 @@ class NoiseModel:
         # dict(tuple: ReadoutError)
         # where the dict keys are the gate qubits.
         self._local_readout_errors = {}
+        # Custom noise passes
+        self._custom_noise_passes = []
 
     @property
     def basis_gates(self):
@@ -271,7 +278,7 @@ class NoiseModel:
         If non-default values are used gate_lengths should be a list
 
         Args:
-            backend (Backend or BackendProperties): backend properties.
+            backend (BackendV1): backend.
             gate_error (bool): Include depolarizing gate errors (Default: True).
             readout_error (Bool): Include readout errors in model
                                   (Default: True).
@@ -296,18 +303,32 @@ class NoiseModel:
         Raises:
             NoiseError: If the input backend is not valid.
         """
-        if isinstance(backend, (BaseBackend, Backend)):
+        if isinstance(backend, BackendV2):
+            raise NoiseError(
+                "NoiseModel.from_backend does not currently support V2 Backends.")
+        if isinstance(backend, (BaseBackend, BackendV1)):
             properties = backend.properties()
-            basis_gates = backend.configuration().basis_gates
+            configuration = backend.configuration()
+            basis_gates = configuration.basis_gates
+            num_qubits = configuration.num_qubits
+            dt = getattr(configuration, "dt", 0)
             if not properties:
                 raise NoiseError('Qiskit backend {} does not have a '
                                  'BackendProperties'.format(backend))
         elif isinstance(backend, BackendProperties):
+            warn(
+                'Passing BackendProperties instead of a "backend" object '
+                'has been deprecated as of qiskit-aer 0.10.0 and will be '
+                'removed no earlier than 3 months from that release date. '
+                'Duration dependent delay relaxation noise requires a '
+                'backend object.', DeprecationWarning, stacklevel=2)
             properties = backend
             basis_gates = set()
             for prop in properties.gates:
                 basis_gates.add(prop.gate)
             basis_gates = list(basis_gates)
+            num_qubits = len(properties.qubits)
+            dt = 0  # disable delay noise if dt is unknown
         else:
             raise NoiseError('{} is not a Qiskit backend or'
                              ' BackendProperties'.format(backend))
@@ -341,9 +362,33 @@ class NoiseModel:
                 warnings=warnings)
         for name, qubits, error in gate_errors:
             noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
+
+        if thermal_relaxation:
+            # Add delay errors via RelaxationNiose pass
+            try:
+                excited_state_populations = [
+                    _excited_population(
+                        freq=properties.frequency(q), temperature=temperature
+                    ) for q in range(num_qubits)]
+            except BackendPropertyError:
+                excited_state_populations = None
+            try:
+                delay_pass = RelaxationNoisePass(
+                    t1s=[properties.t1(q) for q in range(num_qubits)],
+                    t2s=[properties.t2(q) for q in range(num_qubits)],
+                    dt=dt,
+                    op_types=Delay,
+                    excited_state_populations=excited_state_populations
+                )
+                noise_model._custom_noise_passes.append(delay_pass)
+            except BackendPropertyError:
+                # Device does not have the required T1 or T2 information
+                # in its properties
+                pass
+
         return noise_model
 
-    def is_ideal(self):
+    def is_ideal(self):  # pylint: disable=too-many-return-statements
         """Return True if the noise model has no noise terms."""
         # Get default errors
         if self._default_quantum_errors:
@@ -355,6 +400,8 @@ class NoiseModel:
         if self._local_readout_errors:
             return False
         if self._nonlocal_quantum_errors:
+            return False
+        if self._custom_noise_passes:
             return False
         return True
 
@@ -1034,3 +1081,15 @@ class NoiseModel:
                     if iinner_dict1[iinner_key] != iinner_dict2[iinner_key]:
                         return False
         return True
+
+    def _pass_manager(self) -> Optional[PassManager]:
+        """
+        Return the pass manager that add custom noises defined as noise passes
+        (stored in the _custom_noise_passes field). Note that the pass manager
+        does not include passes to add other noises (stored in the different field).
+        """
+        passes = []
+        passes.extend(self._custom_noise_passes)
+        if len(passes) > 0:
+            return PassManager(passes)
+        return None

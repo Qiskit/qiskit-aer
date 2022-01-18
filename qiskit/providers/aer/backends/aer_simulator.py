@@ -17,6 +17,7 @@ import copy
 import logging
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
+from qiskit.providers.backend import BackendV2
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
@@ -170,9 +171,20 @@ class AerSimulator(AerBackend):
       on the executor. If ``None`` simulation of all circuits are submitted
       to the executor as a single job (Default: None).
 
+    * ``max_shot_size`` (int or None): If the number of shots of a noisy
+      circuit exceeds this value simulation will be split into multi
+      circuits for execution and the results accumulated. If ``None``
+      circuits will not be split based on shots. When splitting circuits
+      use the ``max_job_size`` option to control how these split circuits
+      should be submitted to the executor (Default: None).
+
+      a noise model exceeds this value simulation will be splitted into
+      sub-circuits. If ``None``  simulator does noting (Default: None).
+
     * ``enable_truncation`` (bool): If set to True this removes unnecessary
       qubits which do not affect the simulation outcome from the simulated
       circuits (Default: True).
+
 
     * ``zero_threshold`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
@@ -203,6 +215,33 @@ class AerSimulator(AerBackend):
       is thrown. In general, a state vector of n-qubits uses 2^n complex
       values (16 Bytes). If set to 0, the maximum will be automatically
       set to the system memory size (Default: 0).
+
+    * ``blocking_enable`` (bool): This option enables parallelization with
+      multiple GPUs or multiple processes with MPI (CPU/GPU). This option
+      is only available for ``"statevector"``, ``"density_matrix"`` and
+      ``"unitary"`` (Default: False).
+
+    * ``blocking_qubits`` (int): Sets the number of qubits of chunk size
+      used for parallelizing with multiple GPUs or multiple processes with
+      MPI (CPU/GPU). 16*2^blocking_qubits should be less than 1/4 of the GPU
+      memory in double precision. This option is only available for
+      ``"statevector"``, ``"density_matrix"`` and ``"unitary"``.
+      This option should be set when using option ``blocking_enable=True``
+      (Default: 0).
+
+    * ``batched_shots_gpu`` (bool): This option enables batched execution
+      of multiple shot simulations on GPU devices for GPU enabled simulation
+      methods. This optimization is intended for statevector simulations with
+      noise models, or statevecor and density matrix simulations with
+      intermediate measurements and can greatly accelerate simulation time
+      on GPUs. If there are multiple GPUs on the system, shots are distributed
+      automatically across available GPUs. Also this option distributes multiple
+      shots to parallel processes of MPI (Default: True).
+
+    * ``batched_shots_gpu_max_qubits`` (int): This option sets the maximum
+      number of qubits for enabling the ``batched_shots_gpu`` option. If the
+      number of active circuit qubits is greater than this value batching of
+      simulation shots will not be used. (Default: 16).
 
     These backend options only apply when using the ``"statevector"``
     simulation method:
@@ -334,6 +373,7 @@ class AerSimulator(AerBackend):
     * ``fusion_threshold`` (int): Threshold that number of qubits must be greater
       than or equal to enable fusion optimization [Default: 14]
     """
+
     _BASIS_GATES = BASIS_GATES
 
     _CUSTOM_INSTR = {
@@ -363,8 +403,8 @@ class AerSimulator(AerBackend):
             'quantum_channel', 'qerror_loc', 'roerror', 'snapshot',
             'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
-            'save_amplitudes_sq', 'save_state', 'save_stabilizer',
-            'set_stabilizer'
+            'save_amplitudes_sq', 'save_state', 'save_clifford',
+            'save_stabilizer', 'set_stabilizer'
         ]),
         'extended_stabilizer': sorted([
             'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'save_statevector'
@@ -458,6 +498,7 @@ class AerSimulator(AerBackend):
             precision="double",
             executor=None,
             max_job_size=None,
+            max_shot_size=None,
             enable_truncation=True,
             zero_threshold=1e-10,
             validation_threshold=None,
@@ -470,11 +511,15 @@ class AerSimulator(AerBackend):
             fusion_max_qubit=5,
             fusion_threshold=14,
             accept_distributed_results=None,
-            blocking_qubits=None,
-            blocking_enable=False,
             memory=None,
             noise_model=None,
             seed_simulator=None,
+            # cache blocking for multi-GPUs/MPI options
+            blocking_qubits=None,
+            blocking_enable=False,
+            # multi-shots optimization options (GPU only)
+            batched_shots_gpu=True,
+            batched_shots_gpu_max_qubits=16,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,
@@ -521,10 +566,10 @@ class AerSimulator(AerBackend):
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
-        # pylint: disable=import-outside-toplevel
-        # Avoid cyclic import
-        from ..noise.noise_model import NoiseModel
-
+        if isinstance(backend, BackendV2):
+            raise AerError(
+                "AerSimulator.from_backend does not currently support V2 Backends."
+            )
         # Get configuration and properties from backend
         configuration = copy.copy(backend.configuration())
         properties = copy.copy(backend.properties())
@@ -535,6 +580,10 @@ class AerSimulator(AerBackend):
 
         # Use automatic noise model if none is provided
         if 'noise_model' not in options:
+            # pylint: disable=import-outside-toplevel
+            # Avoid cyclic import
+            from ..noise.noise_model import NoiseModel
+
             noise_model = NoiseModel.from_backend(backend)
             if not noise_model.is_ideal():
                 options['noise_model'] = noise_model

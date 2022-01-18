@@ -24,7 +24,6 @@ from qiskit.circuit import QuantumCircuit, Instruction, QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.circuit.library.standard_gates import IGate
-from qiskit.compiler import assemble
 from qiskit.exceptions import QiskitError
 from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -453,8 +452,16 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
     def to_dict(self):
         """Return the current error as a dictionary."""
-        qobj = assemble(self.circuits)
-        instructions = [exp.to_dict()['instructions'] for exp in qobj.experiments]
+        # Assemble noise circuits
+        instructions = []
+        for circ in self._circs:
+            circ_inst = []
+            for inst, qargs, _ in circ.data:
+                qobj_inst = inst.assemble()
+                qobj_inst.qubits = [circ.find_bit(q).index for q in qargs]
+                circ_inst.append(qobj_inst.to_dict())
+            instructions.append(circ_inst)
+        # Construct error dict
         error = {
             "type": "qerror",
             "id": self.id,

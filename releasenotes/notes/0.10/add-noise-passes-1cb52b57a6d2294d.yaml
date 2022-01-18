@@ -1,0 +1,67 @@
+---
+features:
+  - |
+    Added two transpiler passes for inserting instruction-dependent quantum
+    errors into circuits:
+
+    * :class:`qiskit.providers.aer.noise.LocalNoisePass`
+    * :class:`qiskit.providers.aer.noise.RelaxationNoisePass`
+
+    The :class:`~qiskit.providers.aer.noise.LocalNoisePass` pass can
+    be used to implement custom parameterized noise models by defining a
+    noise generating function of the form
+
+    .. code-block:: python
+
+            def fn(
+                inst: Instruction,
+                qubits: Optional[List[int]] = None,
+            ) -> InstructionLike
+
+    which returns a noise instruction (eg. a :class:`.QuantumError` or other instruction)
+    that can depend on any properties or parameters of the instruction and
+    qubit arguements.
+
+    This function can be applied to all instructions in a circuit, or a
+    specified subset (See the
+    :class:`~qiskit.providers.aer.noise.LocalNoisePass` documentation
+    for additional details.)
+
+    The :class:`~qiskit.providers.aer.noise.RelaxationNoisePass`
+    is a special case of the
+    :class:`~qiskit.providers.aer.noise.LocalNoisePass` using a
+    predefined noise function that returns a tensor product of
+    :func:`~qiskit.providers.aer.noise.thermal_relaxation_error` on each
+    qubit in an instruction, dependent on the instruction's duration and
+    the supplied relaxation time constant parameters of the pass.
+  - |
+    The basic device noise model implemented by
+    :meth:`.NoiseModel.from_backend` and
+    :meth:`.AerSimulator.from_backend` has been
+    upgraded to allow adding duration-dependent relaxation errors on
+    circuit delay gates using the
+    :class:`~qiskit.providers.aer.noise.RelaxationNoisePass`.
+
+    To enable this noise when running noisy simulations you must first
+    schedule your circuit to insert scheduled delay instructions as
+    follows:
+
+    .. code-block:: python
+
+      backend = AerSimulator.from_backend(ibmq_backend)
+      scheduled_circuit = qiskit.transpile(
+          circuit, backend=backend, scheduling_method='asap')
+      result = backend.run(scheduled_circuit).result()
+
+    If the circuit is transpiled without being scheduled (and also
+    contains no delay instructions) the noisy simulation will not include
+    the effect of delay relaxation errors. In this case the simulation
+    will be equivalent to the previous qiskit-aer 0.9 simulation where
+    relaxation noise is only added to gate instructions based on their
+    duration as obtained from the backend properties.
+deprecations:
+  - |
+    Passing in a :class:`.BackendProperties` object for the ``backend`` argument of
+    :meth:`.NoiseModel.from_backend` has been deprecated, as it is incompatible
+    with duration dependent delay noises, and will be removed in a future release.
+    Pass in a Qiskit Terra :class:`.BackendV1` object instead.

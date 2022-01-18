@@ -157,6 +157,19 @@ The following functions can be used to generate many common types of
     kraus_error
 
 
+Noise Transpiler Passes
+=======================
+
+These transpiler passes can be used to build noise models that can be applied
+to circuits via transpilation.
+
+.. autosummary::
+    :toctree: ../stubs/
+
+    LocalNoisePass
+    RelaxationNoisePass
+
+
 Device Noise Parameters
 =======================
 
@@ -191,6 +204,10 @@ from .errors import thermal_relaxation_error
 from .errors import phase_amplitude_damping_error
 from .errors import amplitude_damping_error
 from .errors import phase_damping_error
+
+# Transpiler Passes
+from .passes import LocalNoisePass
+from .passes import RelaxationNoisePass
 
 # Submodules
 from . import errors

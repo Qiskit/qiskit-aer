@@ -21,18 +21,20 @@ import uuid
 import warnings
 from abc import ABC, abstractmethod
 
-from qiskit.circuit import ParameterExpression
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, ParameterExpression, Delay
 from qiskit.compiler import assemble
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers.models import BackendStatus
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.result import Result
 from qiskit.utils import deprecate_arguments
 from ..aererror import AerError
 from ..jobs import AerJob, AerJobSet, split_qobj
 from ..noise.noise_model import NoiseModel, QuantumErrorLocation
+from ..noise.errors.quantum_error import QuantumChannelInstruction
+from .aer_compiler import compile_circuit
+from .backend_utils import format_save_type, circuit_optypes
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -194,7 +196,9 @@ class AerBackend(Backend, ABC):
             delattr(qobj.config, 'executor')
 
         # Optionally split the job
-        experiments = split_qobj(qobj, max_size=getattr(qobj.config, 'max_job_size', None))
+        experiments = split_qobj(
+            qobj, max_size=getattr(qobj.config, 'max_job_size', None),
+            max_shot_size=getattr(qobj.config, 'max_shot_size', None))
 
         # Temporarily remove any executor from options so that job submission
         # can work with Dask client executors which can't be pickled
@@ -279,7 +283,7 @@ class AerBackend(Backend, ABC):
             pending_jobs=0,
             status_msg='')
 
-    def _run(self, qobj, job_id=''):
+    def _run(self, qobj, job_id='', format_result=True):
         """Run a job"""
         # Start timer
         start = time.time()
@@ -310,29 +314,63 @@ class AerBackend(Backend, ABC):
             if "status" in output:
                 msg += f" and returned the following error message:\n{output['status']}"
             logger.warning(msg)
+        if format_result:
+            return self._format_results(output)
+        return output
 
+    @staticmethod
+    def _format_results(output):
+        """Format C++ simulator output for constructing Result"""
+        for result in output["results"]:
+            data = result.get("data", {})
+            metadata = result.get("metadata", {})
+            save_types = metadata.get("result_types", {})
+            save_subtypes = metadata.get("result_subtypes", {})
+            for key, val in data.items():
+                if key in save_types:
+                    data[key] = format_save_type(val, save_types[key], save_subtypes[key])
         return Result.from_dict(output)
 
     def _assemble(self, circuits, parameter_binds=None, **run_options):
         """Assemble one or more Qobj for running on the simulator"""
-        # Remove quantum error instructions from circuits and add to
-        # run option noise model
-        circuits, run_options = self._assemble_noise_model(circuits, **run_options)
-
-        # This conditional check can be removed when we remove passing
-        # qobj to run
         if isinstance(circuits, (QasmQobj, PulseQobj)):
             qobj = circuits
-        elif parameter_binds:
-            # Handle parameter binding
-            parameterizations = self._convert_binds(circuits, parameter_binds)
-            assemble_binds = []
-            assemble_binds.append({param: 1 for bind in parameter_binds for param in bind})
-
-            qobj = assemble(circuits, self, parameter_binds=assemble_binds,
-                            parameterizations=parameterizations)
         else:
-            qobj = assemble(circuits, self)
+            # Generate optypes for circuit
+            # Generate opsets of instructions
+            if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
+                circuits = [circuits]
+            optypes = [circuit_optypes(circ) for circ in circuits]
+
+            # Compile Qasm3 instructions
+            circuits, optypes = compile_circuit(
+                circuits,
+                basis_gates=self.configuration().basis_gates,
+                optypes=optypes)
+
+            # run option noise model
+            circuits, optypes, run_options = self._assemble_noise_model(
+                circuits, optypes, **run_options)
+
+            if parameter_binds:
+                # Handle parameter binding
+                parameterizations = self._convert_binds(circuits, parameter_binds)
+                assemble_binds = []
+                assemble_binds.append({param: 1 for bind in parameter_binds for param in bind})
+
+                qobj = assemble(
+                    circuits,
+                    backend=self,
+                    parameter_binds=assemble_binds,
+                    parameterizations=parameterizations)
+            else:
+                qobj = assemble(circuits, backend=self)
+
+            # Add optypes to qobj
+            # We convert to strings to avoid pybinding of types
+            qobj.config.optypes = [
+                set(i.__name__ for i in optype) if optype else set()
+                for optype in optypes]
 
         # Add options
         for key, val in self.options.__dict__.items():
@@ -345,13 +383,13 @@ class AerBackend(Backend, ABC):
 
         return qobj
 
-    def _assemble_noise_model(self, circuits, **run_options):
+    def _assemble_noise_model(self, circuits, optypes, **run_options):
         """Move quantum error instructions from circuits to noise model"""
-        if isinstance(circuits, (QasmQobj, PulseQobj)):
-            return circuits, run_options
-
-        if isinstance(circuits, (QuantumCircuit, Schedule)):
-            circuits = [circuits]
+        if isinstance(circuits, (QuantumCircuit, Schedule, ScheduleBlock)):
+            run_circuits = [circuits]
+        else:
+            # Make a shallow copy so we can modify list elements if required
+            run_circuits = copy.copy(circuits)
 
         # Flag for if we need to make a deep copy of the noise model
         # This avoids unnecessarily copying the noise model for circuits
@@ -360,16 +398,35 @@ class AerBackend(Backend, ABC):
         noise_model = run_options.get(
             'noise_model', getattr(self.options, 'noise_model', None))
 
+        # Add custom pass noise only to QuantumCircuit objects that contain delay
+        # instructions since this is the only instruction handled by the noise pass
+        # at present
+        if noise_model and all(isinstance(circ, QuantumCircuit) for circ in run_circuits):
+            npm = noise_model._pass_manager()
+            if npm is not None:
+                # Get indicies of circuits that need noise transpiling
+                transpile_idxs = [
+                    idx for idx, optype in enumerate(optypes) if Delay in optype
+                ]
+
+                # Transpile only the required circuits
+                transpiled_circuits = npm.run([run_circuits[i] for i in transpile_idxs])
+                if isinstance(transpiled_circuits, QuantumCircuit):
+                    transpiled_circuits = [transpiled_circuits]
+
+                # Update the circuits with transpiled ones
+                for idx, circ in zip(transpile_idxs, transpiled_circuits):
+                    run_circuits[idx] = circ
+                    optypes[idx] = circuit_optypes(circ)
+
         # Check if circuits contain quantum error instructions
-        run_circuits = []
-        for circ in circuits:
-            if isinstance(circ, Schedule):
-                run_circuits.append(circ)
-            else:
+        for idx, circ in enumerate(run_circuits):
+            if QuantumChannelInstruction in optypes[idx] and not isinstance(
+                    circ, (Schedule, ScheduleBlock)):
                 updated_circ = False
                 new_data = []
                 for inst, qargs, cargs in circ.data:
-                    if inst.name == "quantum_channel":
+                    if isinstance(inst, QuantumChannelInstruction):
                         updated_circ = True
                         if not updated_noise:
                             # Deep copy noise model on first update
@@ -380,7 +437,9 @@ class AerBackend(Backend, ABC):
                             updated_noise = True
                         # Extract error and replace with place holder
                         qerror = inst._quantum_error
-                        new_data.append((QuantumErrorLocation(qerror), qargs, cargs))
+                        qerror_loc = QuantumErrorLocation(qerror)
+                        new_data.append((qerror_loc, qargs, cargs))
+                        optypes[idx].add(QuantumErrorLocation)
                         # Add error to noise model
                         if qerror.id not in noise_model._default_quantum_errors:
                             noise_model.add_all_qubit_quantum_error(qerror, qerror.id)
@@ -389,16 +448,15 @@ class AerBackend(Backend, ABC):
                 if updated_circ:
                     new_circ = circ.copy()
                     new_circ.data = new_data
-                    run_circuits.append(new_circ)
-                else:
-                    run_circuits.append(circ)
+                    run_circuits[idx] = new_circ
+                    optypes[idx].discard(QuantumChannelInstruction)
 
         # If we modified the existing noise model, add it to the run options
         if updated_noise:
             run_options['noise_model'] = noise_model
 
         # Return the possibly updated circuits and noise model
-        return run_circuits, run_options
+        return run_circuits, optypes, run_options
 
     def _get_executor(self, **run_options):
         """Get the executor"""

@@ -50,7 +50,7 @@ class QasmSaveDensityMatrixTests(SimulatorTestCase):
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
-        value = qi.DensityMatrix(simdata[label])
+        value = simdata[label]
         self.assertEqual(value, target)
 
     @supported_methods(['automatic', 'statevector', 'density_matrix',
@@ -168,5 +168,5 @@ class QasmSaveDensityMatrixTests(SimulatorTestCase):
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
-        value = qi.DensityMatrix(simdata[label])
+        value = simdata[label]
         self.assertEqual(value, target)
