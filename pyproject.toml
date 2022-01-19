@@ -15,7 +15,7 @@ build-backend = "setuptools.build_meta"
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2010"
 manylinux-i686-image = "manylinux2010"
-skip = "pp* cp36-* cp310-*"
+skip = "pp* cp36-* cp310-* *musllinux*"
 test-command = "python {project}/tools/verify_wheels.py"
 
 [tool.cibuildwheel.linux]
