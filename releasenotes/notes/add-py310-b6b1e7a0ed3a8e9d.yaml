@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added support for running with Python 3.10. This includes publishing
+    precompiled binaries to PyPI for Python 3.10 on supported platforms.
