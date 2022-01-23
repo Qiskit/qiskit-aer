@@ -130,6 +130,56 @@ jobs:
           pip check
           stestr run --slowest
         shell: bash
+  tests-mpi:
+    runs-on: ${{ matrix.os }}
+    needs: [sdist, lint]
+    timeout-minutes: 120
+    strategy:
+      matrix:
+        python-version: [3.9]
+        os: ["ubuntu-latest"]
+    env:
+      AER_THRUST_BACKEND: OMP
+      QISKIT_TEST_CAPTURE_STREAMS: 1
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Pip cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
+            ${{ runner.os }}-${{ matrix.python-version}}-pip-
+            ${{ runner.os }}-${{ matrix.python-version}}-
+      - name: Install Deps
+        run: |
+          python -m venv mpi_tests
+          mpi_tests/bin/python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel git+https://github.com/Qiskit/qiskit-terra
+        shell: bash
+      - name: Install openblas and openmpi
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev openmpi-bin libopenmpi-dev
+        shell: bash
+      - name: Install Aer
+        run: |
+          set -e
+          mpi_tests/bin/python setup.py bdist_wheel -- -DAER_MPI=True
+          mpi_tests/bin/pip install --find-links=dist qiskit-aer
+      - name: Run Tests
+        env:
+          QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
+        run: |
+          set -e
+          pip check
+          /usr/bin/mpirun.openmpi -host localhost:2 -np 2 mpi_tests/bin/python -m unittest discover ./test/terra
+        shell: bash
   tests-json-input:
     runs-on: ${{ matrix.os }}
     needs: [sdist, lint]
