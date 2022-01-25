@@ -305,6 +305,14 @@ class AerBackend(Backend, ABC):
         output["backend_name"] = self.name()
         output["backend_version"] = self.configuration().backend_version
 
+        # Copy experiment headers
+        if output["results"] and len(output["results"]) == len(qobj.experiments):
+            for result, experiment in zip(output["results"], qobj.experiments):
+                qobj_header = experiment.header.to_dict()
+                if "header" in result and "name" in result["header"]:
+                    if result["header"]["name"] == qobj_header["name"]:
+                        result["header"] = qobj_header
+
         # Add execution time
         output["time_taken"] = time.time() - start
 

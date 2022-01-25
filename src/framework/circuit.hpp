@@ -49,6 +49,7 @@ public:
                                      // and it is the first instruction in the circuit
 
   // Circuit metadata constructed from json QobjExperiment
+  std::string name;
   uint_t shots = 1;
   uint_t seed;
   json_t header;
@@ -160,11 +161,15 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool trunca
       config[it.key()] = it.value(); // overwrite circuit level config values
     }
   }
-  
+
   // Load metadata
-  Parser<inputdata_t>::get_value(header, "header", circ);
   Parser<json_t>::get_value(shots, "shots", config);
-  Parser<json_t>::get_value(global_phase_angle, "global_phase", header);
+  inputdata_t input_header;
+  Parser<inputdata_t>::get_value(input_header, "header", circ);
+  Parser<inputdata_t>::get_value(name, "name", input_header);
+  Parser<inputdata_t>::get_value(global_phase_angle, "global_phase", input_header);
+  header["name"] = name;
+  header["global_phase"] = global_phase_angle;
 
   // Load instructions
   if (Parser<inputdata_t>::check_key("instructions", circ) == false) {
