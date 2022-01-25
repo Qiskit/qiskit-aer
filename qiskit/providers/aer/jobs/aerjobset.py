@@ -335,9 +335,9 @@ class AerJobSet(Job):
 
         if self._start_time:
             _time_taken = self._end_time - self._start_time
-            combined_result.time_taken = _time_taken.total_seconds()
+            combined_result._metadata["time_taken"] = _time_taken.total_seconds()
         else:
-            combined_result.time_taken = 0
+            combined_result._metadata["time_taken"] = 0
 
         combined_result.date = datetime.datetime.isoformat(self._end_time)
         return combined_result
