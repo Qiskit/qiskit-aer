@@ -115,7 +115,7 @@ protected:
     superop
   };
 
-  enum class Device { CPU, GPU, ThrustCPU, cuStateVec };
+  enum class Device { CPU, GPU, ThrustCPU };
 
   // Simulation precision
   enum class Precision { Double, Single };
@@ -327,7 +327,7 @@ protected:
   size_t get_gpu_memory_mb();
 
   size_t get_min_memory_mb() const {
-    if ((sim_device_ == Device::GPU || sim_device_ == Device::cuStateVec) && num_gpus_ > 0) {
+    if (sim_device_ == Device::GPU && num_gpus_ > 0) {
       return max_gpu_memory_mb_ / num_gpus_; // return per GPU memory size
     }
     return max_memory_mb_;
@@ -377,6 +377,9 @@ protected:
   int_t batched_shots_gpu_max_qubits_ = 16;   //multi-shot parallelization is applied if qubits is less than max qubits
   bool enable_batch_multi_shots_ = false;   //multi-shot parallelization can be applied
 
+  //settings for cuStateVec
+  bool cuStateVec_enable_ = false;
+  int cuStateVec_threshold_ = 22;
 };
 
 //=========================================================================
@@ -466,6 +469,16 @@ void Controller::set_config(const json_t &config) {
     JSON::get_value(batched_shots_gpu_max_qubits_, "batched_shots_gpu_max_qubits", config);
   }
 
+#ifdef AER_CUSTATEVEC
+  //cuStateVec configs
+  if(JSON::check_key("cuStateVec_enable", config)) {
+    JSON::get_value(cuStateVec_enable_, "cuStateVec_enable", config);
+  }
+  if(JSON::check_key("cuStateVec_threshold", config)) {
+    JSON::get_value(cuStateVec_threshold_, "cuStateVec_threshold", config);
+  }
+#endif
+
   // Override automatic simulation method with a fixed method
   std::string method;
   if (JSON::get_value(method, "method", config)) {
@@ -514,27 +527,18 @@ void Controller::set_config(const json_t &config) {
           throw std::runtime_error("No CUDA device available!");
       }
       sim_device_ = Device::GPU;
-#endif
-    }
-    else if(sim_device_name_ == "cuStateVec"){
-#ifndef AER_CUSTATEVEC
-      throw std::runtime_error(
-          "Simulation device \"cuStateVec\" is not supported on this system");
-#else
-      int nDev;
-      if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
-          cudaGetLastError();
-          throw std::runtime_error("No CUDA device available!");
-      }
-      sim_device_ = Device::cuStateVec;
 
-      //initialize custatevevtor handle once before actual calculation (takes long time at first call)
-      custatevecStatus_t err;
-      custatevecHandle_t stHandle;
-      err = custatevecCreate(&stHandle);
-      if(err == CUSTATEVEC_STATUS_SUCCESS){
-        custatevecDestroy(stHandle);
+#ifdef AER_CUSTATEVEC
+      if(cuStateVec_enable_){
+        //initialize custatevevtor handle once before actual calculation (takes long time at first call)
+        custatevecStatus_t err;
+        custatevecHandle_t stHandle;
+        err = custatevecCreate(&stHandle);
+        if(err == CUSTATEVEC_STATUS_SUCCESS){
+          custatevecDestroy(stHandle);
+        }
       }
+#endif
 #endif
     }
     else {
@@ -661,11 +665,15 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
   enable_batch_multi_shots_ = false;
   if(batched_shots_gpu_ && sim_device_ == Device::GPU && 
      circ.shots > 1 && max_batched_states_ >= num_gpus_ && 
-     batched_shots_gpu_max_qubits_ >= circ.num_qubits ){  //cuStateVec is not supported currently, because cuStateVec does not handle conditional functions
-    enable_batch_multi_shots_ = true;
+     batched_shots_gpu_max_qubits_ >= circ.num_qubits ){
+    //cuStateVec is not supported currently, because cuStateVec does not handle conditional functions
+    if(cuStateVec_enable_ && circ.num_qubits >= cuStateVec_threshold_)
+      enable_batch_multi_shots_ = false;
+    else
+      enable_batch_multi_shots_ = true;
   }
 
-  if(sim_device_ == Device::cuStateVec){
+  if(cuStateVec_enable_ && circ.num_qubits >= cuStateVec_threshold_){
     parallel_shots_ = 1;    //cuStateVec is currently not thread safe
     return;
   }
@@ -723,7 +731,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
     // And assign the remaining threads to state update
     int circ_memory_mb =
         required_memory_mb(circ, noise, method) / num_process_per_experiment_;
-    size_t mem_size = (sim_device_ == Device::GPU || sim_device_ == Device::cuStateVec) ? max_gpu_memory_mb_ : max_memory_mb_;
+    size_t mem_size = (sim_device_ == Device::GPU) ? max_gpu_memory_mb_ : max_memory_mb_;
     if (mem_size < circ_memory_mb)
       throw std::runtime_error(
           "a circuit requires more memory than max_memory_mb.");
@@ -749,12 +757,12 @@ bool Controller::multiple_chunk_required(const Circuit &circ,
   if (cache_block_qubit_ >= 2 && cache_block_qubit_ < circ.num_qubits)
     return true;
 
-  if(num_process_per_experiment_ == 1 && (sim_device_ == Device::GPU || sim_device_ == Device::cuStateVec) && num_gpus_ > 0){
+  if(num_process_per_experiment_ == 1 && sim_device_ == Device::GPU && num_gpus_ > 0){
     return (max_gpu_memory_mb_ / num_gpus_ < required_memory_mb(circ, noise, method));
   }
   if(num_process_per_experiment_ > 1){
     size_t total_mem = max_memory_mb_;
-    if(sim_device_ == Device::GPU || sim_device_ == Device::cuStateVec)
+    if(sim_device_ == Device::GPU)
       total_mem += max_gpu_memory_mb_;
     if(total_mem*num_process_per_experiment_ > required_memory_mb(circ, noise, method))
       return true;
@@ -847,7 +855,7 @@ Controller::transpile_cache_blocking(Controller::Method method, const Circuit &c
     // if blocking is not set by config, automatically set if required
     if (multiple_chunk_required(circ, noise, method)) {
       int nplace = num_process_per_experiment_;
-      if((sim_device_ == Device::GPU || sim_device_ == Device::cuStateVec) && num_gpus_ > 0)
+      if(sim_device_ == Device::GPU && num_gpus_ > 0)
         nplace *= num_gpus_;
       cache_block_pass.set_blocking(circ.num_qubits, get_min_memory_mb() << 20,
                                     nplace, complex_size, is_matrix);
@@ -1468,7 +1476,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   // Check if measure sampler and optimization are valid
   if (can_sample) {
     // Implement measure sampler
-    if (parallel_shots_ <= 1 || (sim_device_ == Device::GPU || sim_device_ == Device::cuStateVec)) {
+    if (parallel_shots_ <= 1 || sim_device_ == Device::GPU) {
       state.set_max_matrix_qubits(max_bits);
       RngEngine rng;
       rng.set_seed(circ.seed);
@@ -1765,7 +1773,12 @@ void Controller::measure_sampler(
     shots_or_index = shots;
   else
     shots_or_index = shot_index;
+
+  auto timer_start = myclock_t::now();
   auto all_samples = state.sample_measure(meas_qubits, shots_or_index, rng);
+  auto time_taken =
+      std::chrono::duration<double>(myclock_t::now() - timer_start).count();
+  result.metadata.add(time_taken, "sample_measure_time");
 
   // Make qubit map of position in vector of measured qubits
   std::unordered_map<uint_t, uint_t> qubit_map;
@@ -1957,7 +1970,7 @@ bool Controller::validate_state(const state_t &state, const Circuit &circ,
   bool memory_valid = true;
   if (max_memory_mb_ > 0) {
     size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) / num_process_per_experiment_;                                        
-    size_t mem_size = (sim_device_ == Device::GPU || sim_device_ == Device::cuStateVec) ? max_memory_mb_ + max_gpu_memory_mb_ : max_memory_mb_;
+    size_t mem_size = (sim_device_ == Device::GPU) ? max_memory_mb_ + max_gpu_memory_mb_ : max_memory_mb_;
     memory_valid = (required_mb <= mem_size);
   }
   if (throw_except && !memory_valid) {

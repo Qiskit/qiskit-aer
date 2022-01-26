@@ -148,10 +148,9 @@ class AerSimulator(AerBackend):
     initialization or with :meth:`set_options`. The list of supported devices
     for the current system can be returned using :meth:`available_devices`.
 
-    If AerSimulator is built with cuQuantum support, cuQuantum APIs are enabled
-    by using ``device="cuStateVec"``. This is experimental implementation
-    for cuQuantum Beta 1. All the calculations of gates that can be executed by
-    multiplying matrices will be done by cuStateVec matrix API.
+    If AerSimulator is built with cuStateVec support, cuStateVec APIs are enabled
+    by setting ``cuStateVec_enable=True``. This is experimental implementation
+    based on cuQuantum Beta 2. 
 
     **Additional Backend Options**
 
@@ -220,6 +219,19 @@ class AerSimulator(AerBackend):
       is thrown. In general, a state vector of n-qubits uses 2^n complex
       values (16 Bytes). If set to 0, the maximum will be automatically
       set to the system memory size (Default: 0).
+
+    * ``cuStateVec_enable`` (bool): This option enables accelerating by
+      cuStateVec library of cuQuantum from NVIDIA, that has highly optimized
+      kernels for GPUs. This option is enabled when the number of qubits of
+      the input circuit is equal or greater than ``cuStateVec_threshold``.
+      Currently this option only works well for large number of qubits.
+      Also this option will be disabled for noise simulation
+      (Default: True).
+
+    * ``cuStateVec_threshold`` (int): This option sets the threshold
+      number of qubits to enable ``cuStateVec_enable`` option.
+      cuStateVec is enabled when the number of qubits is equal or greater
+      than this option (Default: 22).
 
     * ``blocking_enable`` (bool): This option enables parallelization with
       multiple GPUs or multiple processes with MPI (CPU/GPU). This option
@@ -459,7 +471,7 @@ class AerSimulator(AerBackend):
 
     _AVAILABLE_METHODS = None
 
-    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust', 'cuStateVec')
+    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust')
 
     _AVAILABLE_DEVICES = None
 
@@ -519,6 +531,9 @@ class AerSimulator(AerBackend):
             memory=None,
             noise_model=None,
             seed_simulator=None,
+            # cuStateVec (cuQuantum) options
+            cuStateVec_enable=True,
+            cuStateVec_threshold=22,
             # cache blocking for multi-GPUs/MPI options
             blocking_qubits=None,
             blocking_enable=False,

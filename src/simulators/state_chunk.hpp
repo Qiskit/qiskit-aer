@@ -391,6 +391,10 @@ protected:
   reg_t top_chunk_of_group_;
   reg_t num_chunks_in_group_;
 
+  //cuStateVec settings
+  bool cuStateVec_enable_ = false;
+  int cuStateVec_threshold_ = 22;
+
   //-----------------------------------------------------------------------
   // Apply circuits and ops
   //-----------------------------------------------------------------------
@@ -529,6 +533,16 @@ template <class state_t>
 void StateChunk<state_t>::set_config(const json_t &config) 
 {
   BaseState::set_config(config);
+
+#ifdef AER_CUSTATEVEC
+  //cuStateVec configs
+  if(JSON::check_key("cuStateVec_enable", config)) {
+    JSON::get_value(cuStateVec_enable_, "cuStateVec_enable", config);
+  }
+  if(JSON::check_key("cuStateVec_threshold", config)) {
+    JSON::get_value(cuStateVec_threshold_, "cuStateVec_threshold", config);
+  }
+#endif
 }
 
 template <class state_t>
@@ -622,10 +636,20 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
       chunk_omp_parallel_ = true;
 #endif
 
-    if(BaseState::sim_device_name_ == "cuStateVec")
+#ifdef AER_CUSTATEVEC
+    //set cuStateVec_enable_ 
+    if(cuStateVec_enable_){
+      if(num_qubits_ < cuStateVec_threshold_)
+        cuStateVec_enable_ = false;   //disable if number of qubits is smaller than threshold
+      else if(multi_shots_parallelization_)
+        cuStateVec_enable_ = false;   //multi-shots parallelization is not supported for cuStateVec
+    }
+
+    if(cuStateVec_enable_)
       chunk_omp_parallel_ = false;    //because cuStateVec is not thread safe 
     else
       thrust_optimization_ = true;    //cuStateVec does not handle global chunk index for diagonal matrix
+#endif
   }
   else if(qregs_[0].name().find("thrust") != std::string::npos){
     thrust_optimization_ = true;
@@ -659,7 +683,8 @@ bool StateChunk<state_t>::allocate_qregs(uint_t num_chunks)
   uint_t chunk_id = multi_chunk_distribution_ ? global_chunk_index_ : 0;
   bool ret = true;
   qregs_[0].set_max_matrix_bits(BaseState::max_matrix_qubits_);
-  ret &= qregs_[0].chunk_setup(chunk_bits_*qubit_scale(), num_qubits_*qubit_scale(), chunk_id, num_chunks, BaseState::sim_device_name_);
+  qregs_[0].cuStateVec_enable(cuStateVec_enable_);
+  ret &= qregs_[0].chunk_setup(chunk_bits_*qubit_scale(), num_qubits_*qubit_scale(), chunk_id, num_chunks);
   for(i=1;i<num_chunks;i++){
     uint_t gid = i + chunk_id;
     ret &= qregs_[i].chunk_setup(qregs_[0],gid);
@@ -743,6 +768,12 @@ void StateChunk<state_t>::apply_ops(InputIterator first, InputIterator last,
     }
     }
   }
+
+  qregs_[0].synchronize();
+
+#ifdef AER_CUSTATEVEC
+  result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
+#endif
 }
 
 template <class state_t>
@@ -804,6 +835,11 @@ void StateChunk<state_t>::apply_ops_chunks(InputIterator first, InputIterator la
     }
     iOp++;
   }
+
+  qregs_[0].synchronize();
+#ifdef AER_CUSTATEVEC
+  result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
+#endif
 }
 
 template <class state_t>

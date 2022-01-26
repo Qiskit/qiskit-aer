@@ -131,7 +131,7 @@ public:
   void initialize_component(const reg_t &qubits, const cvector_t<double> &state);
 
   //setup chunk
-  bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks, std::string& device_name);
+  bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
   bool chunk_setup(QubitVector<data_t>& base,const uint_t chunk_index);
 
   //cache control for chunks on host
@@ -158,6 +158,8 @@ public:
   void release_recv_buffer(void) const;
 
   void set_max_matrix_bits(int_t bits){}
+
+  void synchronize(void){}
 
   //-----------------------------------------------------------------------
   // Check point operations
@@ -388,6 +390,11 @@ public:
 
   // Get the qubit threshold for activating OpenMP.
   uint_t get_omp_threshold() {return omp_threshold_;}
+
+  //cuStateVec
+  void cuStateVec_enable(bool flg)
+  {
+  }
 
   //-----------------------------------------------------------------------
   // Optimization configuration settings
@@ -925,7 +932,7 @@ std::complex<double> QubitVector<data_t>::inner_product() const {
 
 //setup chunk
 template <typename data_t>
-bool QubitVector<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks, std::string& device_name)
+bool QubitVector<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks)
 {
   chunk_index_ = chunk_index;
   return true;

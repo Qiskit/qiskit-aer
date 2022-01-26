@@ -142,7 +142,7 @@ public:
   void initialize_component(const reg_t &qubits, const cvector_t<double> &state);
 
   //chunk setup
-  bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks, std::string& device_name);
+  bool chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks);
   bool chunk_setup(QubitVectorThrust<data_t>& base,const uint_t chunk_index);
 
   //cache control for chunks on host
@@ -161,6 +161,11 @@ public:
   void release_recv_buffer(void) const;
 
   void set_max_matrix_bits(int_t bits);
+
+  void synchronize(void)
+  {
+    chunk_.synchronize();
+  }
 
   //-----------------------------------------------------------------------
   // Check point operations
@@ -420,6 +425,12 @@ public:
   // Get the qubit threshold for activating OpenMP.
   uint_t get_omp_threshold() {return omp_threshold_;}
 
+  //cuStateVec
+  void cuStateVec_enable(bool flg)
+  {
+    cuStateVec_enable_ = flg;
+  }
+
   //-----------------------------------------------------------------------
   // Optimization configuration settings
   //-----------------------------------------------------------------------
@@ -429,7 +440,6 @@ public:
 
   // Get the sample_measure index size
   int get_sample_measure_index_size() {return sample_measure_index_size_;}
-
 
 protected:
 
@@ -451,7 +461,7 @@ protected:
   bool multi_chunk_distribution_;
   bool multi_shots_;
   bool enable_batch_;
-  bool enable_cuStatevec_ = false;
+  bool cuStateVec_enable_ = false;
 
   bool register_blocking_;
 
@@ -792,15 +802,10 @@ void QubitVectorThrust<data_t>::zero()
 }
 
 template <typename data_t>
-bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks, std::string& device_name)
+bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t chunk_index,uint_t num_local_chunks)
 {
   //set global chunk ID / shot ID
   chunk_index_ = chunk_index;
-
-  //check device name if cuStateVec is specified
-  if(device_name == "cuStateVec"){
-    enable_cuStatevec_ = true;
-  }
 
   if(chunk_manager_){
     if(chunk_.is_mapped()){
@@ -819,7 +824,7 @@ bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t
   //only first chunk call allocation function
   if(chunk_bits > 0 && num_qubits > 0){
     chunk_manager_ = std::make_shared<ChunkManager<data_t>>();
-    chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks,chunk_index_,max_matrix_bits_, enable_cuStatevec_);
+    chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks,chunk_index_,max_matrix_bits_, cuStateVec_enable_);
   }
 
   multi_chunk_distribution_ = false;
@@ -851,7 +856,7 @@ bool QubitVectorThrust<data_t>::chunk_setup(QubitVectorThrust<data_t>& base,cons
       base.multi_shots_ = true;
     }
   }
-  enable_cuStatevec_ = base.enable_cuStatevec_;
+  cuStateVec_enable_ = base.cuStateVec_enable_;
 
   //set global chunk ID / shot ID
   chunk_index_ = chunk_index;
