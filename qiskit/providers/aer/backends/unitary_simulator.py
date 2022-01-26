@@ -163,7 +163,7 @@ class UnitarySimulator(AerBackend):
         'gates': []
     }
 
-    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust', 'cuStateVec')
+    _SIMULATION_DEVICES = ('CPU', 'GPU', 'Thrust')
 
     _AVAILABLE_DEVICES = None
 

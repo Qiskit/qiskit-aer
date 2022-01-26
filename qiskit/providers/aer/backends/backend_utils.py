@@ -40,15 +40,12 @@ LIBRARY_DIR = os.path.dirname(__file__)
 LEGACY_METHOD_MAP = {
     "statevector_cpu": ("statevector", "CPU"),
     "statevector_gpu": ("statevector", "GPU"),
-    "statevector_custatevec": ("statevector", "cuStateVec"),
     "statevector_thrust": ("statevector", "Thrust"),
     "density_matrix_cpu": ("density_matrix", "CPU"),
     "density_matrix_gpu": ("density_matrix", "GPU"),
-    "density_matrix_custatevec": ("density_matrix", "cuStateVec"),
     "density_matrix_thrust": ("density_matrix", "Thrust"),
     "unitary_cpu": ("unitary", "CPU"),
     "unitary_gpu": ("unitary", "GPU"),
-    "unitary_custatevec": ("unitary", "cuStateVec"),
     "unitary_thrust": ("unitary", "Thrust"),
 }
 
