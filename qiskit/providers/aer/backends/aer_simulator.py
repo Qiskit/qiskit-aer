@@ -150,7 +150,7 @@ class AerSimulator(AerBackend):
 
     If AerSimulator is built with cuStateVec support, cuStateVec APIs are enabled
     by setting ``cuStateVec_enable=True``. This is experimental implementation
-    based on cuQuantum Beta 2. 
+    based on cuQuantum Beta 2.
 
     **Additional Backend Options**
 
