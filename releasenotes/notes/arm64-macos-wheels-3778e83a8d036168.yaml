@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added support for M1 macOS systems. Precompiled binaries for supported
+    Python versions >=3.8 on arm64 macOS will now be published on PyPI for this
+    and future releases.
