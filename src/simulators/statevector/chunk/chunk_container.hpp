@@ -477,7 +477,11 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
     thrust::for_each_n(thrust::seq, ci , size, func);
   }
 #else
-  uint_t size = count * func.size(chunk_bits_);
+  uint_t size;
+  if(func.use_cache())
+    size = count << (chunk_bits_ - func.qubits_count());
+  else
+    size = count * func.size(chunk_bits_);
   auto ci = thrust::counting_iterator<uint_t>(0);
   thrust::for_each_n(thrust::device, ci , size, func);
 #endif
@@ -826,8 +830,6 @@ template <typename data_t>
 void ChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count)
 {
   const size_t N = qubits.size() - control_bits;
-  auto qubits_sorted = qubits;
-  std::sort(qubits_sorted.begin(), qubits_sorted.end());
 
   if(N == 1){
     if(control_bits == 0)
@@ -839,7 +841,21 @@ void ChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const reg_t& qubit
     Execute(MatrixMult4x4<data_t>(mat,qubits[0],qubits[1]), iChunk, count);
   }
   else{
+    auto qubits_sorted = qubits;
+    std::sort(qubits_sorted.begin(), qubits_sorted.end());
+#ifndef AER_THRUST_CUDA
+    if(N == 3){
+      StoreMatrix(mat, iChunk);
+      Execute(MatrixMult8x8<data_t>(qubits,qubits_sorted), iChunk, count);
+    }
+    else if(N == 4){
+      StoreMatrix(mat, iChunk);
+      Execute(MatrixMult16x16<data_t>(qubits,qubits_sorted), iChunk, count);
+    }
+    else if(N <= 10){
+#else
     if(N <= 10){
+#endif
       int i;
       for(i=0;i<N;i++){
         qubits_sorted.push_back(qubits[i]);
