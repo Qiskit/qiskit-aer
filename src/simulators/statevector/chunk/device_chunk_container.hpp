@@ -20,6 +20,7 @@
 
 namespace AER {
 namespace QV {
+namespace Chunk {
 
 
 //============================================================================
@@ -320,7 +321,13 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qu
   this->num_chunks_ = nc;
   data_.resize((nc+buffers) << chunk_bits);
 
-  this->update_pow2_qubits();
+  //init number of bits for chunk count
+  uint_t nc_tmp = this->num_chunks_;
+  this->num_pow2_qubits_ = this->chunk_bits_;
+  while((nc_tmp & 1) == 0){
+    this->num_pow2_qubits_++;
+    nc_tmp >>= 1;
+  }
 
 #ifdef AER_THRUST_CUDA
   stream_.resize(nc + buffers);
@@ -1153,6 +1160,7 @@ void DeviceChunkContainer<data_t>::copy_to_probability_buffer(std::vector<double
 
 
 //------------------------------------------------------------------------------
+} // end namespace Chunk
 } // end namespace QV
 } // end namespace AER
 //------------------------------------------------------------------------------

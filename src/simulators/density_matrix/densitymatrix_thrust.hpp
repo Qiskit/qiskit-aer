@@ -262,7 +262,7 @@ void DensityMatrixThrust<data_t>::apply_diagonal_superop_matrix(const reg_t &qub
 
 
 template <typename data_t>
-class DensityMatrixUnitary2x2 : public GateFuncBase<data_t>
+class DensityMatrixUnitary2x2 : public Chunk::GateFuncBase<data_t>
 {
 protected:
   thrust::complex<double> m0,m1,m2,m3;
@@ -364,7 +364,7 @@ void DensityMatrixThrust<data_t>::apply_unitary_matrix(const reg_t &qubits,
 }
 
 template <typename data_t>
-class DensityDiagMatMult2x2 : public GateFuncBase<data_t>
+class DensityDiagMatMult2x2 : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t offset;
@@ -429,7 +429,7 @@ public:
 };
 
 template <typename data_t>
-class DensityDiagMatMultNxN : public GateFuncBase<data_t>
+class DensityDiagMatMultNxN : public Chunk::GateFuncBase<data_t>
 {
 protected:
   int nqubits_;
@@ -512,7 +512,7 @@ void DensityMatrixThrust<data_t>::apply_diagonal_unitary_matrix(const reg_t &qub
 // Apply Specialized Gates
 //-----------------------------------------------------------------------
 template <typename data_t>
-class DensityCX : public GateFuncBase<data_t>
+class DensityCX : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t offset;
@@ -599,7 +599,7 @@ void DensityMatrixThrust<data_t>::apply_cnot(const uint_t qctrl, const uint_t qt
 }
 
 template <typename data_t>
-class DensityPhase : public GateFuncBase<data_t>
+class DensityPhase : public Chunk::GateFuncBase<data_t>
 {
 protected:
   thrust::complex<double> phase_;
@@ -665,7 +665,7 @@ void DensityMatrixThrust<data_t>::apply_phase(const uint_t q,const complex_t &ph
 }
 
 template <typename data_t>
-class DensityCPhase : public GateFuncBase<data_t>
+class DensityCPhase : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t offset;
@@ -753,7 +753,7 @@ void DensityMatrixThrust<data_t>::apply_swap(const uint_t q0, const uint_t q1) {
 }
 
 template <typename data_t>
-class DensityX : public GateFuncBase<data_t>
+class DensityX : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t mask0;
@@ -829,7 +829,7 @@ void DensityMatrixThrust<data_t>::apply_x(const uint_t qubit)
 }
 
 template <typename data_t>
-class DensityY : public GateFuncBase<data_t>
+class DensityY : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t mask0;
@@ -929,7 +929,7 @@ void DensityMatrixThrust<data_t>::apply_toffoli(const uint_t qctrl0,
 
 //special case Z only
 template <typename data_t>
-class expval_pauli_Z_func_dm : public GateFuncBase<data_t>
+class expval_pauli_Z_func_dm : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t z_mask_;
@@ -966,7 +966,7 @@ public:
     ret = q0.real();
 
     if(z_mask_ != 0){
-      if(pop_count_kernel(i & z_mask_) & 1)
+      if(Chunk::pop_count_kernel(i & z_mask_) & 1)
         ret = -ret;
     }
 
@@ -979,7 +979,7 @@ public:
 };
 
 template <typename data_t>
-class expval_pauli_XYZ_func_dm : public GateFuncBase<data_t>
+class expval_pauli_XYZ_func_dm : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t x_mask_;
@@ -1026,7 +1026,7 @@ public:
     q0 = 2 * phase_ * q0;
     ret = q0.real();
     if(z_mask_ != 0){
-      if(pop_count_kernel(idx_vec & z_mask_) & 1)
+      if(Chunk::pop_count_kernel(idx_vec & z_mask_) & 1)
         ret = -ret;
     }
     return ret;
@@ -1067,7 +1067,7 @@ double DensityMatrixThrust<data_t>::expval_pauli(const reg_t &qubits,
 }
 
 template <typename data_t>
-class expval_pauli_XYZ_func_dm_non_diagonal : public GateFuncBase<data_t>
+class expval_pauli_XYZ_func_dm_non_diagonal : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t x_mask_;
@@ -1108,7 +1108,7 @@ public:
     q0 = phase_ * q0;
     ret = q0.real();
     if(z_mask_ != 0){
-      if(pop_count_kernel(i & z_mask_) & 1)
+      if(Chunk::pop_count_kernel(i & z_mask_) & 1)
         ret = -ret;
     }
     return ret;
@@ -1151,7 +1151,7 @@ double DensityMatrixThrust<data_t>::probability(const uint_t outcome) const
 
 
 template <typename data_t>
-class density_probability_func : public GateFuncBase<data_t>
+class density_probability_func : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t qubit_sp_;
@@ -1257,7 +1257,7 @@ reg_t DensityMatrixThrust<data_t>::sample_measure(const std::vector<double> &rnd
 }
 
 template <typename data_t>
-class density_reset_after_measure_func : public GateFuncBase<data_t>
+class density_reset_after_measure_func : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t num_qubits_;
@@ -1325,7 +1325,7 @@ void DensityMatrixThrust<data_t>::apply_batched_measure(const reg_t& qubits,std:
   count = BaseVector::chunk_.container()->num_chunks();
 
   //total probability
-  BaseVector::apply_function_sum(nullptr,trace_func<data_t>(BaseMatrix::rows_),true);
+  BaseVector::apply_function_sum(nullptr,Chunk::trace_func<data_t>(BaseMatrix::rows_),true);
   BaseVector::apply_function(set_probability_buffer_for_reset_func<data_t>(BaseVector::chunk_.probability_buffer(),BaseVector::chunk_.container()->num_chunks(),
                                                                            BaseVector::chunk_.reduce_buffer(),BaseVector::chunk_.reduce_buffer_size()) );
 
@@ -1374,7 +1374,7 @@ void DensityMatrixThrust<data_t>::apply_batched_measure(const reg_t& qubits,std:
 }
 
 template <typename data_t>
-class density_reset_func : public GateFuncBase<data_t>
+class density_reset_func : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t num_qubits_;

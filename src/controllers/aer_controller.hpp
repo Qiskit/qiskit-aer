@@ -666,10 +666,6 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
   if(batched_shots_gpu_ && sim_device_ == Device::GPU && 
      circ.shots > 1 && max_batched_states_ >= num_gpus_ && 
      batched_shots_gpu_max_qubits_ >= circ.num_qubits ){
-    //cuStateVec is not supported currently, because cuStateVec does not handle conditional functions
-    if(cuStateVec_enable_ && circ.num_qubits >= cuStateVec_threshold_)
-      enable_batch_multi_shots_ = false;
-    else
       enable_batch_multi_shots_ = true;
   }
 

@@ -67,6 +67,7 @@ DISABLE_WARNING_POP
 
 namespace AER {
 namespace QV {
+namespace Chunk {
 
 template <typename data_t> class Chunk;
 template <typename data_t> class DeviceChunkContainer;
@@ -153,12 +154,6 @@ public:
   {
     return matrix_bits_;
   }
-
-  int_t num_pow2_qubits(void)
-  {
-    return num_pow2_qubits_;
-  }
-  void update_pow2_qubits(void);
 
   virtual void set_device(void) const
   {
@@ -816,17 +811,6 @@ void ChunkContainer<data_t>::deallocate_chunks(void)
 }
 
 template <typename data_t>
-void ChunkContainer<data_t>::update_pow2_qubits(void)
-{
-  uint_t n = num_chunks_;
-  num_pow2_qubits_ = chunk_bits_;
-  while((n & 1) == 0){
-    num_pow2_qubits_++;
-    n >>= 1;
-  }
-}
-
-template <typename data_t>
 void ChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count)
 {
   const size_t N = qubits.size() - control_bits;
@@ -1004,6 +988,7 @@ double ChunkContainer<data_t>::expval_pauli(const uint_t iChunk,const reg_t& qub
 
 
 //------------------------------------------------------------------------------
+} // end namespace Chunk
 } // end namespace QV
 } // end namespace AER
 //------------------------------------------------------------------------------

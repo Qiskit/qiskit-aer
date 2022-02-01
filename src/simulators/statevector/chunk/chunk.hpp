@@ -25,6 +25,7 @@
 
 namespace AER {
 namespace QV {
+namespace Chunk {
 
 
 //============================================================================
@@ -410,17 +411,11 @@ public:
     return chunk_container_.lock()->expval_pauli(chunk_pos_,qubits,pauli,initial_phase);
   }
 
-  
-  //largest number of qubits that meets num_chunks_ = m*(2^num_pow2_qubits_)
-  uint_t num_pow2_qubits(void)
-  {
-    chunk_container_.lock()->num_pow2_qubits();
-  }
-
 
 };
 
 //------------------------------------------------------------------------------
+}  // end namespace Chunk
 } // end namespace QV
 } // end namespace AER
 //------------------------------------------------------------------------------

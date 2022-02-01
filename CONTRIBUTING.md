@@ -664,6 +664,13 @@ sim = AerSimulator(method='statevector', device='GPU')
 results = execute(circuit,sim,cuStateVec_enable=True,cuStateVec_threshold=10).result()
 ```
 
+Also you can accelrate density matrix simulation as well.
+Following example shows how to enable cuStateVec for 5 or more qubits circuit on density matrix method
+```
+sim = AerSimulator(method='density_matrix', device='GPU')
+results = execute(circuit,sim,cuStateVec_enable=True,cuStateVec_threshold=5).result()
+```
+
 
 
 ### Building with MPI support

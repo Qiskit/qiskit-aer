@@ -449,11 +449,11 @@ protected:
   size_t num_qubits_;
   size_t data_size_;
 
-  mutable Chunk<data_t> chunk_;
-  mutable Chunk<data_t> buffer_chunk_;
-  mutable Chunk<data_t> send_chunk_;
-  mutable Chunk<data_t> recv_chunk_;
-  std::shared_ptr<ChunkManager<data_t>> chunk_manager_ = nullptr;
+  mutable Chunk::Chunk<data_t> chunk_;
+  mutable Chunk::Chunk<data_t> buffer_chunk_;
+  mutable Chunk::Chunk<data_t> send_chunk_;
+  mutable Chunk::Chunk<data_t> recv_chunk_;
+  std::shared_ptr<Chunk::ChunkManager<data_t>> chunk_manager_ = nullptr;
 
   mutable thrust::host_vector<thrust::complex<data_t>> checkpoint_;
 
@@ -758,7 +758,7 @@ template <typename data_t>
 void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const cvector_t<double> &state0) 
 {
   if(qubits.size() == 1){
-      apply_function(initialize_component_1qubit_func<data_t>(qubits[0],state0[0],state0[1]) );
+      apply_function(Chunk::initialize_component_1qubit_func<data_t>(qubits[0],state0[0],state0[1]) );
   }
   else if(qubits.size() <= chunk_.container()->matrix_bits()){
     auto qubits_sorted = qubits;
@@ -772,14 +772,14 @@ void QubitVectorThrust<data_t>::initialize_component(const reg_t &qubits, const 
 //    chunk_.StoreMatrix(state0);
 //    chunk_.StoreUintParams(qubits_param);
 
-    apply_function(initialize_component_func<data_t>(state0,qubits_sorted), state0, qubits_param );
+    apply_function(Chunk::initialize_component_func<data_t>(state0,qubits_sorted), state0, qubits_param );
   }
   else{
     //if initial state is larger that matrix buffer, set one by one.
     uint_t DIM = 1ull << qubits.size();
     uint_t i;
     for(i=0;i<DIM;i++){
-        apply_function(initialize_large_component_func<data_t>(state0[i],qubits,i) );
+        apply_function(Chunk::initialize_large_component_func<data_t>(state0[i],qubits,i) );
     }
   }
 }
@@ -794,7 +794,7 @@ void QubitVectorThrust<data_t>::zero()
   DebugMsg("zero");
 #endif
 
-  apply_function(ZeroClear<data_t>(), cvector_t<double>(), reg_t());
+  apply_function(Chunk::ZeroClear<data_t>(), cvector_t<double>(), reg_t());
 
 #ifdef AER_DEBUG
   DebugMsg("zero done");
@@ -823,7 +823,7 @@ bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t
 
   //only first chunk call allocation function
   if(chunk_bits > 0 && num_qubits > 0){
-    chunk_manager_ = std::make_shared<ChunkManager<data_t>>();
+    chunk_manager_ = std::make_shared<Chunk::ChunkManager<data_t>>();
     chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks,chunk_index_,max_matrix_bits_, cuStateVec_enable_);
   }
 
@@ -1134,7 +1134,7 @@ void QubitVectorThrust<data_t>::initialize()
 
   if(multi_chunk_distribution_){
     if(chunk_index_ == 0){
-      apply_function(initialize_kernel<data_t>(t,chunk_manager_->chunk_bits(),(1ull << chunk_manager_->num_qubits())));
+      apply_function(Chunk::initialize_kernel<data_t>(t,chunk_manager_->chunk_bits(),(1ull << chunk_manager_->num_qubits())));
     }
     else{
       zero();
@@ -1142,7 +1142,7 @@ void QubitVectorThrust<data_t>::initialize()
     chunk_.synchronize();
   }
   else{
-    apply_function(initialize_kernel<data_t>(t,chunk_manager_->chunk_bits(),(1ull << chunk_manager_->chunk_bits())));
+    apply_function(Chunk::initialize_kernel<data_t>(t,chunk_manager_->chunk_bits(),(1ull << chunk_manager_->chunk_bits())));
   }
 
 #ifdef AER_DEBUG
@@ -1550,7 +1550,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
 
   thrust::complex<data_t>* pChunk0;
   thrust::complex<data_t>* pChunk1;
-  Chunk<data_t> bufferChunk;
+  Chunk::Chunk<data_t> bufferChunk;
   bool exec_on_src = false;
 
   if(chunk_.device() >= 0){
@@ -1594,13 +1594,13 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
   }
 
   if(exec_on_src){
-    src.apply_function(CSwapChunk_func<data_t>(qubits,num_qubits_,pChunk0,pChunk1,true));
+    src.apply_function(Chunk::CSwapChunk_func<data_t>(qubits,num_qubits_,pChunk0,pChunk1,true));
     src.chunk_.synchronize();    //should be synchronized here
     if(bufferChunk.is_mapped())
       bufferChunk.CopyOut(chunk_);
   }
   else{
-    apply_function(CSwapChunk_func<data_t>(qubits,num_qubits_,pChunk0,pChunk1,true));
+    apply_function(Chunk::CSwapChunk_func<data_t>(qubits,num_qubits_,pChunk0,pChunk1,true));
     chunk_.synchronize();    //should be synchronized here
     if(bufferChunk.is_mapped())
       bufferChunk.CopyOut(src.chunk_);
@@ -1632,7 +1632,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, uint_t rem
   else{
     thrust::complex<data_t>* pLocal;
     thrust::complex<data_t>* pRemote;
-    Chunk<data_t> buffer;
+    Chunk::Chunk<data_t> buffer;
 
 #ifdef AER_DISABLE_GDR
     if(chunk_.device() >= 0){    //if there is no GPUDirectRDMA support, copy chunk from CPU
@@ -1657,7 +1657,7 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, uint_t rem
     DebugMsg("chunk swap (process)",qubits);
 #endif
 
-    chunk_.Execute(CSwapChunk_func<data_t>(qubits,num_qubits_,pLocal,pRemote,false),1);
+    chunk_.Execute(Chunk::CSwapChunk_func<data_t>(qubits,num_qubits_,pLocal,pRemote,false),1);
     chunk_.synchronize();    //should be synchronized here
 
     if(buffer.is_mapped()){
@@ -1847,7 +1847,7 @@ double QubitVectorThrust<data_t>::norm(const reg_t &qubits, const cvector_t<doub
     chunk_.StoreUintParams(qubits_sorted);
 
     double ret;
-    apply_function_sum(&ret,NormMatrixMultNxN<data_t>(N));
+    apply_function_sum(&ret,Chunk::NormMatrixMultNxN<data_t>(N));
     return ret;
   }
 }
@@ -1866,7 +1866,7 @@ double QubitVectorThrust<data_t>::norm_diagonal(const reg_t &qubits, const cvect
     chunk_.StoreUintParams(qubits);
 
     double ret;
-    apply_function_sum(&ret,NormDiagonalMultNxN<data_t>(qubits) );
+    apply_function_sum(&ret,Chunk::NormDiagonalMultNxN<data_t>(qubits) );
     return ret;
   }
 }
@@ -1878,7 +1878,7 @@ template <typename data_t>
 double QubitVectorThrust<data_t>::norm(const uint_t qubit, const cvector_t<double> &mat) const
 {
   double ret;
-  apply_function_sum(&ret,NormMatrixMult2x2<data_t>(mat,qubit));
+  apply_function_sum(&ret,Chunk::NormMatrixMult2x2<data_t>(mat,qubit));
 
   return ret;
 }
@@ -1887,7 +1887,7 @@ template <typename data_t>
 double QubitVectorThrust<data_t>::norm_diagonal(const uint_t qubit, const cvector_t<double> &mat) const
 {
   double ret;
-  apply_function_sum(&ret,NormDiagonalMult2x2<data_t>(mat,qubit));
+  apply_function_sum(&ret,Chunk::NormDiagonalMult2x2<data_t>(mat,qubit));
 
   return ret;
 }
@@ -1949,7 +1949,7 @@ std::vector<double> QubitVectorThrust<data_t>::probabilities(const reg_t &qubits
 #define QV_RESET_TARGET_PROB    3
 
 template <typename data_t>
-class reset_after_measure_func : public GateFuncBase<data_t>
+class reset_after_measure_func : public Chunk::GateFuncBase<data_t>
 {
 protected:
   int num_qubits_;
@@ -2001,7 +2001,7 @@ public:
 };
 
 template <typename data_t>
-class set_probability_buffer_for_reset_func : public GateFuncBase<data_t>
+class set_probability_buffer_for_reset_func : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t reduce_buf_size_;
@@ -2042,7 +2042,7 @@ public:
 };
 
 template <typename data_t>
-class check_measure_probability_func : public GateFuncBase<data_t>
+class check_measure_probability_func : public Chunk::GateFuncBase<data_t>
 {
 protected:
   int num_qubits_;
@@ -2184,7 +2184,7 @@ void QubitVectorThrust<data_t>::apply_batched_measure(const reg_t& qubits,std::v
   chunk_.keep_conditional(true);
 
   //total probability
-  apply_function_sum(nullptr,norm_func<data_t>(),true);
+  apply_function_sum(nullptr,Chunk::norm_func<data_t>(),true);
   apply_function(set_probability_buffer_for_reset_func<data_t>(chunk_.probability_buffer(),chunk_.container()->num_chunks(),
                                                                chunk_.reduce_buffer(),chunk_.reduce_buffer_size()) );
 
@@ -2210,7 +2210,7 @@ void QubitVectorThrust<data_t>::apply_batched_measure(const reg_t& qubits,std::v
   //loop for probability
   for(i=0;i<DIM-1;i++){
     chunk_.set_conditional(system_reg);
-    apply_function_sum(nullptr,probability_func<data_t>(qubits,i),true);
+    apply_function_sum(nullptr,Chunk::probability_func<data_t>(qubits,i),true);
 
     apply_function(check_measure_probability_func<data_t>(qubits.size(),chunk_.probability_buffer(),chunk_.container()->num_chunks(),
                                                                         chunk_.reduce_buffer(),chunk_.reduce_buffer_size(),
@@ -2229,7 +2229,7 @@ void QubitVectorThrust<data_t>::apply_batched_measure(const reg_t& qubits,std::v
 }
 
 template <typename data_t>
-class reset_func : public GateFuncBase<data_t>
+class reset_func : public Chunk::GateFuncBase<data_t>
 {
 protected:
   int num_qubits_;
@@ -2322,7 +2322,7 @@ void QubitVectorThrust<data_t>::apply_batched_reset(const reg_t& qubits,std::vec
   chunk_.keep_conditional(true);
 
   //total probability
-  apply_function_sum(nullptr,norm_func<data_t>(),true);
+  apply_function_sum(nullptr,Chunk::norm_func<data_t>(),true);
   apply_function(set_probability_buffer_for_reset_func<data_t>(chunk_.probability_buffer(),chunk_.container()->num_chunks(),
                                                                chunk_.reduce_buffer(),chunk_.reduce_buffer_size()) );
 
@@ -2336,7 +2336,7 @@ void QubitVectorThrust<data_t>::apply_batched_reset(const reg_t& qubits,std::vec
   chunk_.StoreUintParams(qubits);
   for(i=0;i<DIM-1;i++){
     chunk_.set_conditional(system_reg);
-    apply_function_sum(nullptr,probability_func<data_t>(qubits,i),true);
+    apply_function_sum(nullptr,Chunk::probability_func<data_t>(qubits,i),true);
 
     apply_function(check_measure_probability_func<data_t>(qubits.size(),chunk_.probability_buffer(),chunk_.container()->num_chunks(),
                                                                         chunk_.reduce_buffer(),chunk_.reduce_buffer_size(),
@@ -2393,7 +2393,7 @@ void QubitVectorThrust<data_t>::get_creg(ClassicalRegister& creg)
 }
 
 template <typename data_t>
-class set_creg_func : public GateFuncBase<data_t>
+class set_creg_func : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t reg_set_;
@@ -2443,7 +2443,7 @@ void QubitVectorThrust<data_t>::store_cmemory(uint_t qubit,int val)
 }
 
 template <typename data_t>
-class set_batched_creg_func : public GateFuncBase<data_t>
+class set_batched_creg_func : public Chunk::GateFuncBase<data_t>
 {
 protected:
   int_t reg_set_;
@@ -2505,7 +2505,7 @@ int_t QubitVectorThrust<data_t>::set_batched_system_conditional(int_t src_reg, r
 }
 
 template <typename data_t>
-class copy_creg_func : public GateFuncBase<data_t>
+class copy_creg_func : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t reg_dest_;
@@ -2603,7 +2603,7 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
   double ret;
   // specialize x_max == 0
   if(x_mask == 0) {
-    apply_function_sum(&ret, expval_pauli_Z_func<data_t>(z_mask) );
+    apply_function_sum(&ret, Chunk::expval_pauli_Z_func<data_t>(z_mask) );
     return ret;
   }
 
@@ -2611,7 +2611,7 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
   // This is (-1j) ** number of Y terms modulo 4
   auto phase = std::complex<data_t>(initial_phase);
   add_y_phase(num_y, phase);
-  apply_function_sum(&ret, expval_pauli_XYZ_func<data_t>(x_mask, z_mask, x_max, phase) );
+  apply_function_sum(&ret, Chunk::expval_pauli_XYZ_func<data_t>(x_mask, z_mask, x_max, phase) );
   return ret;
 }
 
@@ -2628,7 +2628,7 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
   //get pointer to pairing chunk (copy if needed)
   double ret;
   thrust::complex<data_t>* pair_ptr;
-  Chunk<data_t> buffer;
+  Chunk::Chunk<data_t> buffer;
 
   if(pair_chunk.data() == this->data()){
 #ifdef AER_DISABLE_GDR
@@ -2676,7 +2676,7 @@ double QubitVectorThrust<data_t>::expval_pauli(const reg_t &qubits,
   auto phase = std::complex<data_t>(initial_phase);
   add_y_phase(num_y, phase);
 
-  apply_function_sum(&ret, expval_pauli_inter_chunk_func<data_t>(x_mask, z_mask, phase, pair_ptr,z_count,z_count_pair) );
+  apply_function_sum(&ret, Chunk::expval_pauli_inter_chunk_func<data_t>(x_mask, z_mask, phase, pair_ptr,z_count,z_count_pair) );
 
   if(buffer.is_mapped()){
     chunk_manager_->UnmapBufferChunk(buffer);
@@ -2716,16 +2716,16 @@ void QubitVectorThrust<data_t>::apply_pauli(const reg_t &qubits,
   add_y_phase(num_y, phase);
 
   if(x_mask == 0){
-    apply_function(multi_pauli_Z_func<data_t>(z_mask, phase));
+    apply_function(Chunk::multi_pauli_Z_func<data_t>(z_mask, phase));
   }
   else{
-    apply_function(multi_pauli_func<data_t>(x_mask, z_mask, x_max, phase) );
+    apply_function(Chunk::multi_pauli_func<data_t>(x_mask, z_mask, x_max, phase) );
   }
 }
 
 //batched Pauli operation used for Pauli noise
 template <typename data_t>
-class batched_pauli_func : public GateFuncBase<data_t>
+class batched_pauli_func : public Chunk::GateFuncBase<data_t>
 {
 protected:
   thrust::complex<data_t> coeff_;
@@ -2783,10 +2783,10 @@ public:
       phase = thrust::complex<data_t>(-coeff_.imag(),coeff_.real());
 
     if(z_mask_ != 0){
-      if(pop_count_kernel(idx0 & z_mask_) & 1)
+      if(Chunk::pop_count_kernel(idx0 & z_mask_) & 1)
         q0 *= -1;
 
-      if(pop_count_kernel(idx1 & z_mask_) & 1)
+      if(Chunk::pop_count_kernel(idx1 & z_mask_) & 1)
         q1 *= -1;
     }
     if(x_mask_ == 0){
@@ -2859,7 +2859,7 @@ void QubitVectorThrust<data_t>::apply_batched_pauli_ops(const std::vector<std::v
 }
 
 template <typename data_t>
-class MatrixMult2x2_conditional : public GateFuncBase<data_t>
+class MatrixMult2x2_conditional : public Chunk::GateFuncBase<data_t>
 {
 protected:
   thrust::complex<double> m0,m1,m2,m3;
@@ -2910,13 +2910,13 @@ public:
 };
 
 template <typename data_t>
-class MatrixMultNxN_conditional : public GateFuncWithCache<data_t>
+class MatrixMultNxN_conditional : public Chunk::GateFuncWithCache<data_t>
 {
 protected:
   uint_t prob_buf_size_;
   double* probs_;
 public:
-  MatrixMultNxN_conditional(uint_t nq,double* probs,uint_t prob_size) : GateFuncWithCache<data_t>(nq)
+  MatrixMultNxN_conditional(uint_t nq,double* probs,uint_t prob_size) : Chunk::GateFuncWithCache<data_t>(nq)
   {
     probs_ = probs;
     prob_buf_size_ = prob_size;
@@ -2957,7 +2957,7 @@ public:
 };
 
 template <typename data_t>
-class check_kraus_probability_func : public GateFuncBase<data_t>
+class check_kraus_probability_func : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t reduce_buf_size_;
@@ -3065,7 +3065,7 @@ void QubitVectorThrust<data_t>::apply_batched_kraus(const reg_t &qubits,
       cvector_t<double> vmat = Utils::vectorize_matrix(kmats[i]);
 
       chunk_.set_conditional(system_reg);
-      apply_function_sum(nullptr,NormMatrixMult2x2<data_t>(vmat,qubits[0]),true);
+      apply_function_sum(nullptr,Chunk::NormMatrixMult2x2<data_t>(vmat,qubits[0]),true);
 
       apply_function(check_kraus_probability_func<data_t>(chunk_.probability_buffer(),chunk_.container()->num_chunks(),
                                                           chunk_.reduce_buffer(),chunk_.reduce_buffer_size() ) );
@@ -3087,7 +3087,7 @@ void QubitVectorThrust<data_t>::apply_batched_kraus(const reg_t &qubits,
       chunk_.set_conditional(system_reg);
 
       chunk_.StoreMatrix(Utils::vectorize_matrix(kmats[i]));
-      apply_function_sum(nullptr,NormMatrixMultNxN<data_t>(N),true);
+      apply_function_sum(nullptr,Chunk::NormMatrixMultNxN<data_t>(N),true);
 
       apply_function(check_kraus_probability_func<data_t>(chunk_.probability_buffer(),chunk_.container()->num_chunks(),
                                                           chunk_.reduce_buffer(),chunk_.reduce_buffer_size() ) );
@@ -3103,7 +3103,7 @@ void QubitVectorThrust<data_t>::apply_batched_kraus(const reg_t &qubits,
 }
 
 template <typename data_t>
-class bfunc_kernel : public GateFuncBase<data_t>
+class bfunc_kernel : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t bfunc_num_regs_;
@@ -3229,7 +3229,7 @@ void QubitVectorThrust<data_t>::apply_bfunc(const Operations::Op &op)
 }
 
 template <typename data_t>
-class roerror_kernel : public GateFuncBase<data_t>
+class roerror_kernel : public Chunk::GateFuncBase<data_t>
 {
 protected:
   uint_t num_regs_;

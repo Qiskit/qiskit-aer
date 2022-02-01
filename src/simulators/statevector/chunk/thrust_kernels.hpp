@@ -45,6 +45,7 @@ DISABLE_WARNING_POP
 
 namespace AER {
 namespace QV {
+namespace Chunk {
 
 //========================================
 //  base class of gate functions
@@ -2689,6 +2690,7 @@ public:
 
 
 //------------------------------------------------------------------------------
+} // end namespace Chunk
 } // end namespace QV
 } // end namespace AER
 //------------------------------------------------------------------------------

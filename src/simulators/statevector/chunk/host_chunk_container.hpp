@@ -21,6 +21,7 @@
 
 namespace AER {
 namespace QV {
+namespace Chunk {
 
 
 //============================================================================
@@ -268,6 +269,7 @@ reg_t HostChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vector
 
 
 //------------------------------------------------------------------------------
+} // end namespace Chunk
 } // end namespace QV
 } // end namespace AER
 //------------------------------------------------------------------------------

@@ -226,12 +226,14 @@ class AerSimulator(AerBackend):
       the input circuit is equal or greater than ``cuStateVec_threshold``.
       Currently this option only works well for large number of qubits.
       Also this option will be disabled for noise simulation
-      (Default: True).
+      (Default: True). This option will be ignored
+      if AerSimulator is not built with cuStateVec support.
 
     * ``cuStateVec_threshold`` (int): This option sets the threshold
       number of qubits to enable ``cuStateVec_enable`` option.
       cuStateVec is enabled when the number of qubits is equal or greater
-      than this option (Default: 22).
+      than this option (Default: 22). This option will be ignored
+      if AerSimulator is not built with cuStateVec support.
 
     * ``blocking_enable`` (bool): This option enables parallelization with
       multiple GPUs or multiple processes with MPI (CPU/GPU). This option

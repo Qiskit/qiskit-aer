@@ -25,6 +25,8 @@
 
 namespace AER {
 namespace QV {
+namespace Chunk {
+
 
 //============================================================================
 // chunk manager class
@@ -400,6 +402,7 @@ void ChunkManager<data_t>::execute_on_device(Function func,const std::vector<std
 
 
 //------------------------------------------------------------------------------
+} //end namespace Chunk
 } // end namespace QV
 } // end namespace AER
 //------------------------------------------------------------------------------

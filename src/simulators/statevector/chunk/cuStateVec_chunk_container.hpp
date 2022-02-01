@@ -22,6 +22,7 @@
 
 namespace AER {
 namespace QV {
+namespace Chunk {
 
 
 //============================================================================
@@ -255,16 +256,16 @@ void cuStateVecChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const re
 {
   thrust::complex<double>* pMat;
   int_t num_qubits = qubits.size()-control_bits;
-
+/*
   if((BaseContainer::matrix_buffer_size_  >= (1ull << (num_qubits*2))) && ((count == this->num_chunks_ && iChunk == 0) || BaseContainer::num_matrices_ > 1)){
     BaseContainer::StoreMatrix(mat,iChunk);
     pMat = BaseContainer::matrix_pointer(iChunk);
   }
-  else{
+  else{*/
     //if operation is not batchable, use host memory
     pMat = (thrust::complex<double>*)&mat[0];
     BaseContainer::set_device();
-  }
+//  }
 
   std::vector<int32_t> qubits32(qubits.size());
   for(int_t i=0;i<qubits.size();i++)
@@ -334,15 +335,16 @@ void cuStateVecChunkContainer<data_t>::apply_diagonal_matrix(const uint_t iChunk
     return apply_diagonal_matrix(iChunk, qubits, 0, diag_ctrl, count);
   }
 
+  /*
   if((BaseContainer::matrix_buffer_size_  >= (1ull << num_qubits)) && ((count == this->num_chunks_ && iChunk == 0) || BaseContainer::num_matrices_ > 1)){
     BaseContainer::StoreMatrix(diag,iChunk);
     pMat = BaseContainer::matrix_pointer(iChunk);
   }
-  else{
+  else{*/
     //if operation is not batchable, use host memory
     pMat = (thrust::complex<double>*)&diag[0];
     BaseContainer::set_device();
-  }
+//  }
 
   std::vector<int32_t> qubits32(qubits.size());
   for(int_t i=0;i<qubits.size();i++)
@@ -764,6 +766,7 @@ double cuStateVecChunkContainer<data_t>::expval_pauli(const uint_t iChunk,const 
 
 
 //------------------------------------------------------------------------------
+} // end namespace Chunk
 } // end namespace QV
 } // end namespace AER
 //------------------------------------------------------------------------------
