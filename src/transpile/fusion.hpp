@@ -479,7 +479,7 @@ public:
 private:
   bool is_diagonal_op(const op_t& op) const;
 
-  int get_next_diagonal_end(const oplist_t& ops, const int from, std::set<uint_t>& fusing_qubits) const;
+  int get_next_diagonal_end(const oplist_t& ops, const int from, const int end, std::set<uint_t>& fusing_qubits) const;
 
   const std::shared_ptr<FusionMethod> method_;
   uint_t min_qubit = 3;
@@ -511,8 +511,13 @@ bool DiagonalFusion::is_diagonal_op(const op_t& op) const {
   return false;
 }
 
+// Returns an index in `ops` or `-1`.
+// If gates from `from` to the returned index are fused to a gate, the fused gate is a diagonal gate.
+// The returned index is equal or more than `from` and is lower than `end`.
+// If -1 is returned, no pattern to generate a diagonal gate is identified from `from`.
 int DiagonalFusion::get_next_diagonal_end(const oplist_t& ops,
                                           const int from,
+                                          const int end,
                                           std::set<uint_t>& fusing_qubits) const {
 
   if (is_diagonal_op(ops[from])) {
@@ -537,11 +542,11 @@ int DiagonalFusion::get_next_diagonal_end(const oplist_t& ops,
   //        ■ [from,pos]
 
   // find first cx list
-  for (; pos < ops.size(); ++pos)
+  for (; pos < end; ++pos)
     if (ops[from].type != Operations::OpType::gate || ops[pos].name != "cx")
       break;
 
-  if (pos == from || pos == ops.size())
+  if (pos == from || pos == end)
     return -1;
 
   auto cx_end = pos - 1;
@@ -558,7 +563,7 @@ int DiagonalFusion::get_next_diagonal_end(const oplist_t& ops,
 
   bool found = false;
   // find diagonals
-  for (; pos < ops.size(); ++pos)
+  for (; pos < end; ++pos)
     if (is_diagonal_op(ops[pos]))
       found = true;
     else
@@ -567,7 +572,7 @@ int DiagonalFusion::get_next_diagonal_end(const oplist_t& ops,
   if (!found)
     return -1;
 
-  if (pos == ops.size())
+  if (pos == end)
     return -1;
 
   auto u1_end = pos;
@@ -583,7 +588,7 @@ int DiagonalFusion::get_next_diagonal_end(const oplist_t& ops,
   //             ■ [cx_end]
 
   // find second cx list that is the reverse of the first
-  for (; pos < ops.size(); ++pos) {
+  for (; pos < end; ++pos) {
     if (ops[pos].type == Operations::OpType::gate
         && ops[pos].name == ops[cx_end].name
         && ops[pos].qubits == ops[cx_end].qubits) {
@@ -595,7 +600,7 @@ int DiagonalFusion::get_next_diagonal_end(const oplist_t& ops,
     }
   }
 
-  if (pos == ops.size())
+  if (pos == end)
     return -1;
 
   //      ┌───┐                                   ┌───┐
@@ -628,8 +633,9 @@ bool DiagonalFusion::aggregate_operations(oplist_t& ops,
   // current impl is sensitive to ordering of gates
   for (int op_idx = fusion_start; op_idx < fusion_end; ++op_idx) {
 
+    // find instructions to generate a diagonal gate from op_idx
     std::set<uint_t> checking_qubits_set;
-    auto next_diagonal_end = get_next_diagonal_end(ops, op_idx, checking_qubits_set);
+    auto next_diagonal_end = get_next_diagonal_end(ops, op_idx, fusion_end, checking_qubits_set);
 
     if (next_diagonal_end < 0)
       continue;
@@ -637,13 +643,12 @@ bool DiagonalFusion::aggregate_operations(oplist_t& ops,
     if (checking_qubits_set.size() > max_fused_qubits)
       continue;
 
+    // find instructions to generate the next diagonal gates
     auto next_diagonal_start = next_diagonal_end + 1;
 
     while (true) {
-      auto nde = get_next_diagonal_end(ops, next_diagonal_start, checking_qubits_set);
-      if (nde < 0)
-        break;
-      if (checking_qubits_set.size() > max_fused_qubits)
+      auto nde = get_next_diagonal_end(ops, next_diagonal_start, fusion_end, checking_qubits_set);
+      if (nde < 0 || checking_qubits_set.size() > max_fused_qubits)
         break;
       next_diagonal_start = nde + 1;
     }
@@ -652,7 +657,7 @@ bool DiagonalFusion::aggregate_operations(oplist_t& ops,
       continue;
 
     std::vector<uint_t> fusing_op_idxs;
-    while(op_idx < next_diagonal_start && op_idx < fusion_end) {
+    while(op_idx < next_diagonal_start) {
       fusing_op_idxs.push_back(op_idx);
       ++op_idx;
     }
