@@ -8,9 +8,11 @@ find_package(Pybind11 REQUIRED)
 string(REPLACE " -static " "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
-  # We build SIMD filed separately, because they will be reached only if the
-  # machine running the code has SIMD support
-  set(SIMD_SOURCE_FILE "../../../../../src/simulators/statevector/qv_avx2.cpp")
+    if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+      # We build SIMD filed separately, because they will be reached only if the
+      # machine running the code has SIMD support
+      set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+    endif()
 endif()
 
 set(AER_SIMULATOR_SOURCES "bindings.cc" "${SIMD_SOURCE_FILE}")
