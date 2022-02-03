@@ -30,6 +30,9 @@ class TestQasmSimulator(SimulatorTestCase):
     def test_legacy_methods(self, method, device):
         """Test legacy device method options."""
         backend = self.backend()
+        # GPU_cuStateVec is converted to GPU
+        if device == "GPU_cuStateVec":
+            device = "GPU"
         legacy_method = f"{method}_{device.lower()}"
         backend.set_options(method=legacy_method)
         self.assertEqual(backend.options.method, method)

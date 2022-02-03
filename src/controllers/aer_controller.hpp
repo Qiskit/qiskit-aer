@@ -379,7 +379,6 @@ protected:
 
   //settings for cuStateVec
   bool cuStateVec_enable_ = false;
-  int cuStateVec_threshold_ = 22;
 };
 
 //=========================================================================
@@ -469,15 +468,11 @@ void Controller::set_config(const json_t &config) {
     JSON::get_value(batched_shots_gpu_max_qubits_, "batched_shots_gpu_max_qubits", config);
   }
 
-#ifdef AER_CUSTATEVEC
   //cuStateVec configs
+  cuStateVec_enable_ = false;
   if(JSON::check_key("cuStateVec_enable", config)) {
     JSON::get_value(cuStateVec_enable_, "cuStateVec_enable", config);
   }
-  if(JSON::check_key("cuStateVec_threshold", config)) {
-    JSON::get_value(cuStateVec_threshold_, "cuStateVec_threshold", config);
-  }
-#endif
 
   // Override automatic simulation method with a fixed method
   std::string method;
@@ -521,6 +516,14 @@ void Controller::set_config(const json_t &config) {
       throw std::runtime_error(
           "Simulation device \"GPU\" is not supported on this system");
 #else
+
+#ifndef AER_CUSTATEVEC
+      if(cuStateVec_enable_){
+        //Aer is not built for cuStateVec
+        throw std::runtime_error(
+            "Simulation device \"GPU\" does not supported cuStateVec on this system");
+      }
+#endif
       int nDev;
       if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
           cudaGetLastError();
@@ -669,7 +672,8 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
       enable_batch_multi_shots_ = true;
   }
 
-  if(cuStateVec_enable_ && circ.num_qubits >= cuStateVec_threshold_){
+  if(cuStateVec_enable_){
+    enable_batch_multi_shots_ = false;    //cuStateVec does not support batch execution of multi-shots
     parallel_shots_ = 1;    //cuStateVec is currently not thread safe
     return;
   }

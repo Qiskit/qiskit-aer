@@ -653,22 +653,20 @@ For example,
 
     qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DCUSTATEVEC_ROOT=path_to_cuQuantum
 
-To run with cuStateVec, set `device='GPU'` to AerSimulator option and cuStateVec is enabled 
-if the number of qubits of input circuit is equal or greater than 22 qubits by default.
-This threshold can be modified by setting `cuStateVec_threshold` option.
-By setting `cuStateVec_enable=False` to disable using cuStateVec. 
-Following example shows how you accelerate 10 or more qubits simulations using cuStateVec.
+if you want to link cuQuantum library statically, set `CUSTATEVEC_STATIC` to setup.py. 
+Otherwise you also have to set environmental variable LD_LIBRARY_PATH to indicate path to the cuQuantum libraries.
+
+To run with cuStateVec, set `device='GPU'` to AerSimulator option and set `cuStateVec_enable=True` to option in execute method.
 
 ```
 sim = AerSimulator(method='statevector', device='GPU')
-results = execute(circuit,sim,cuStateVec_enable=True,cuStateVec_threshold=10).result()
+results = execute(circuit,sim,cuStateVec_enable=True).result()
 ```
 
-Also you can accelrate density matrix simulation as well.
-Following example shows how to enable cuStateVec for 5 or more qubits circuit on density matrix method
+Also you can accelrate density matrix and unitary matrix simulations as well.
 ```
 sim = AerSimulator(method='density_matrix', device='GPU')
-results = execute(circuit,sim,cuStateVec_enable=True,cuStateVec_threshold=5).result()
+results = execute(circuit,sim,cuStateVec_enable=True).result()
 ```
 
 

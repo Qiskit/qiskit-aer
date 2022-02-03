@@ -222,17 +222,7 @@ class AerSimulator(AerBackend):
 
     * ``cuStateVec_enable`` (bool): This option enables accelerating by
       cuStateVec library of cuQuantum from NVIDIA, that has highly optimized
-      kernels for GPUs. This option is enabled when the number of qubits of
-      the input circuit is equal or greater than ``cuStateVec_threshold``.
-      Currently this option only works well for large number of qubits.
-      Also this option will be disabled for noise simulation
-      (Default: True). This option will be ignored
-      if AerSimulator is not built with cuStateVec support.
-
-    * ``cuStateVec_threshold`` (int): This option sets the threshold
-      number of qubits to enable ``cuStateVec_enable`` option.
-      cuStateVec is enabled when the number of qubits is equal or greater
-      than this option (Default: 22). This option will be ignored
+      kernels for GPUs (Default: False). This option will be ignored
       if AerSimulator is not built with cuStateVec support.
 
     * ``blocking_enable`` (bool): This option enables parallelization with
@@ -533,9 +523,8 @@ class AerSimulator(AerBackend):
             memory=None,
             noise_model=None,
             seed_simulator=None,
-            # cuStateVec (cuQuantum) options
-            cuStateVec_enable=True,
-            cuStateVec_threshold=22,
+            # cuStateVec (cuQuantum) option
+            cuStateVec_enable=False,
             # cache blocking for multi-GPUs/MPI options
             blocking_qubits=None,
             blocking_enable=False,

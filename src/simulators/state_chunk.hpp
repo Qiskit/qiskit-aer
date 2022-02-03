@@ -393,7 +393,6 @@ protected:
 
   //cuStateVec settings
   bool cuStateVec_enable_ = false;
-  int cuStateVec_threshold_ = 22;
 
   //-----------------------------------------------------------------------
   // Apply circuits and ops
@@ -539,9 +538,6 @@ void StateChunk<state_t>::set_config(const json_t &config)
   if(JSON::check_key("cuStateVec_enable", config)) {
     JSON::get_value(cuStateVec_enable_, "cuStateVec_enable", config);
   }
-  if(JSON::check_key("cuStateVec_threshold", config)) {
-    JSON::get_value(cuStateVec_threshold_, "cuStateVec_threshold", config);
-  }
 #endif
 }
 
@@ -639,9 +635,7 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
 #ifdef AER_CUSTATEVEC
     //set cuStateVec_enable_ 
     if(cuStateVec_enable_){
-      if(num_qubits_ < cuStateVec_threshold_)
-        cuStateVec_enable_ = false;   //disable if number of qubits is smaller than threshold
-      else if(multi_shots_parallelization_)
+      if(multi_shots_parallelization_)
         cuStateVec_enable_ = false;   //multi-shots parallelization is not supported for cuStateVec
     }
 
