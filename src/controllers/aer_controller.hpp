@@ -672,7 +672,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
       enable_batch_multi_shots_ = true;
   }
 
-  if(cuStateVec_enable_){
+  if(sim_device_ == Device::GPU && cuStateVec_enable_){
     enable_batch_multi_shots_ = false;    //cuStateVec does not support batch execution of multi-shots
     parallel_shots_ = 1;    //cuStateVec is currently not thread safe
     return;
@@ -996,7 +996,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     const int NUM_RESULTS = result.results.size();
     //following looks very similar but we have to separate them to avoid omp nested loops that causes performance degradation
     //(DO NOT use if statement in #pragma omp)
-    if (parallel_experiments_ == 1) {
+    if (parallel_experiments_ == 1 || sim_device_ == Device::ThrustCPU) {
       for (int j = 0; j < NUM_RESULTS; ++j) {
         set_parallelization_circuit(circuits[j], noise_model, methods[j]);
         run_circuit(circuits[j], noise_model,methods[j],
@@ -1476,7 +1476,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   // Check if measure sampler and optimization are valid
   if (can_sample) {
     // Implement measure sampler
-    if (parallel_shots_ <= 1 || sim_device_ == Device::GPU) {
+    if (parallel_shots_ <= 1 || sim_device_ == Device::GPU || sim_device_ == Device::ThrustCPU) {
       state.set_max_matrix_qubits(max_bits);
       RngEngine rng;
       rng.set_seed(circ.seed);
