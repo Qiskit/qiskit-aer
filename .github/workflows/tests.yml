@@ -251,6 +251,8 @@ jobs:
             ${{ runner.os }}-${{ matrix.python-version}}-
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.2
+      - name: Install Deps
+        run: python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel
       - name: Install Aer Windows
         run: |
           set -e
