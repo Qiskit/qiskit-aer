@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   lint:
-    runs-on: windows-latest
+    runs-on: windows-2019
     strategy:
       matrix:
         python-version: [3.8]
@@ -45,10 +45,10 @@ jobs:
     needs: ["lint"]
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9, "3.10"]
         platform: [
-          { os: "windows-latest",   python-architecture: "x64"},
-          { os: "windows-latest",   python-architecture: "x86"},
+          { os: "windows-2019",   python-architecture: "x64"},
+          { os: "windows-2019",   python-architecture: "x86"},
         ]
     steps:
       - uses: actions/checkout@v2
@@ -89,8 +89,8 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
-        os: ["windows-latest"]
+        python-version: [3.7, 3.8, 3.9, "3.10"]
+        os: ["windows-2019"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
@@ -138,7 +138,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9]
-        os: ["windows-latest"]
+        os: ["windows-2019"]
     env:
       AER_THRUST_BACKEND: OMP
       QISKIT_TEST_CAPTURE_STREAMS: 1
