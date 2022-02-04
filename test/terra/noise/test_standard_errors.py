@@ -511,9 +511,10 @@ class TestNoiseOldInterface(QiskitAerTestCase):
         with self.assertWarns(DeprecationWarning):
             actual = pauli_error(zip(paulis, probs), standard_gates=True)
 
-        target_circs = [[{"name": "id", "qubits": [0]}, {"name": "x", "qubits": [1]}],
-                        [{"name": "id", "qubits": [0]}, {"name": "y", "qubits": [1]}],
-                        [{"name": "id", "qubits": [0]}, {"name": "z", "qubits": [1]}]]
+        target_circs = [[{"name": "x", "qubits": [1]}],
+                        [{"name": "y", "qubits": [1]}],
+                        [{"name": "z", "qubits": [1]}]]
+
         with self.assertWarns(DeprecationWarning):
             expected = QuantumError(zip(target_circs, probs), standard_gates=True)
 
