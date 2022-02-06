@@ -1,4 +1,4 @@
-name: Tests Windows
+name: Tests
 on:
   push:
     branches: [main, 'stable/*']
@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   lint:
-    runs-on: windows-2019
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: [3.8]
@@ -22,7 +22,7 @@ jobs:
       - name: Pip cache
         uses: actions/cache@v2
         with:
-          path: ~\AppData\Local\pip\Cache
+          path: ~/.cache/pip
           key: ${{ runner.os }}-${{ matrix.python-version}}-pip-lint-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.python-version}}-pip-lint-
@@ -31,24 +31,22 @@ jobs:
       - name: Install deps
         run: |
           set -e
-          pip install -U -c constraints.txt git+https://github.com/Qiskit/qiskit-terra
-          pip install -U -c constraints.txt -r requirements-dev.txt
+          pip install -U pip wheel
+          pip install -U -c constraints.txt -r requirements-dev.txt qiskit-terra numpy scipy
         shell: bash
       - name: Run Lint
         run: |
           set -e
           pycodestyle --ignore=E402,W504 --max-line-length=100 qiskit/providers/aer
           pylint -j 2 -rn qiskit/providers/aer
-        shell: bash
   sdist:
     runs-on: ${{ matrix.platform.os }}
     needs: ["lint"]
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9, "3.10"]
         platform: [
-          { os: "windows-2019",   python-architecture: "x64"},
-          { os: "windows-2019",   python-architecture: "x86"},
+          { os: "ubuntu-latest", python-architecture: "x64" },
         ]
     steps:
       - uses: actions/checkout@v2
@@ -56,7 +54,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-          architecture: ${{ matrix.python-architecture }}
       - name: Pip cache
         uses: actions/cache@v2
         with:
@@ -66,30 +63,156 @@ jobs:
             ${{ runner.os }}-${{ matrix.python-version}}-pip-sdist-
             ${{ runner.os }}-${{ matrix.python-version}}-pip-
             ${{ runner.os }}-${{ matrix.python-version}}-
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.0.2
       - name: Install Deps
         run: python -m pip install -U setuptools wheel virtualenv
+      - name: Install openblas
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev
+        shell: bash
       - name: Build Sdist
         run: python setup.py sdist
       - name: Install from sdist and test
         run: |
           set -e
           mkdir out; cd out; virtualenv aer-test
-          aer-test/Scripts/pip install --find-links ../dist qiskit-aer
-          aer-test/Scripts/pip install -c ../constraints.txt git+https://github.com/Qiskit/qiskit-terra
-          aer-test/Scripts/python ../tools/verify_wheels.py
-          aer-test/Scripts/pip check
+          aer-test/bin/pip install ../dist/*tar.gz
+          aer-test/bin/python ../tools/verify_wheels.py
+          aer-test/bin/pip check
         shell: bash
-        env:
-          CMAKE_GENERATOR: 'Visual Studio 16 2019'
-  tests:
+  tests_linux:
     runs-on: ${{ matrix.os }}
-    needs: ["lint"]
+    needs: [sdist, lint]
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.6, 3.7, 3.8, 3.9, "3.10"]
+        os: ["ubuntu-latest"]
+    env:
+      AER_THRUST_BACKEND: OMP
+      QISKIT_TEST_CAPTURE_STREAMS: 1
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Pip cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
+            ${{ runner.os }}-${{ matrix.python-version}}-pip-
+            ${{ runner.os }}-${{ matrix.python-version}}-
+      - name: Install Deps
+        run: python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel
+      - name: Install openblas
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev
+        shell: bash
+      - name: Install Aer
+        run: python -m pip install -U .
+      - name: Run Tests
+        run: |
+          set -e
+          pip check
+          stestr run --slowest
+        shell: bash
+  tests-json-input:
+    runs-on: ${{ matrix.os }}
+    needs: [sdist, lint]
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        python-version: [3.9]
+        os: ["ubuntu-latest"]
+    env:
+      AER_THRUST_BACKEND: OMP
+      QISKIT_TEST_CAPTURE_STREAMS: 1
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Pip cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
+            ${{ runner.os }}-${{ matrix.python-version}}-pip-
+            ${{ runner.os }}-${{ matrix.python-version}}-
+      - name: Install Deps
+        run: python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel
+      - name: Install openblas
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev
+        shell: bash
+      - name: Install Aer
+        run: |
+          set -e
+          python setup.py bdist_wheel -- -DTEST_JSON=1
+          pip install --find-links=dist qiskit-aer
+      - name: Run Tests
+        run: |
+          set -e
+          pip check
+          stestr run --slowest
+        shell: bash
+  tests_macos:
+    runs-on: ${{ matrix.os }}
+    needs: [sdist, lint]
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9, "3.10"]
+        os: ["macOS-latest"]
+    env:
+      AER_THRUST_BACKEND: OMP
+      QISKIT_TEST_CAPTURE_STREAMS: 1
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Pip cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
+            ${{ runner.os }}-${{ matrix.python-version}}-pip-
+            ${{ runner.os }}-${{ matrix.python-version}}-
+      - name: Install Deps
+        run: |
+          set -e
+          pip install -U -c constraints.txt -r requirements-dev.txt
+      - name: Install Aer
+        run: python -m pip install -U .
+      - name: Run Tests
+        run: |
+          set -e
+          pip check
+          stestr run --slowest
+        shell: bash
+  tests_windows:
+    runs-on: ${{ matrix.os }}
+    needs: ["lint", "sdist"]
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9, "3.10"]
         os: ["windows-2019"]
     env:
       AER_THRUST_BACKEND: OMP
@@ -112,7 +235,7 @@ jobs:
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.2
       - name: Install Deps
-        run: python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel git+https://github.com/Qiskit/qiskit-terra
+        run: python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel
       - name: Install Aer Windows
         run: |
           set -e
@@ -121,60 +244,11 @@ jobs:
         shell: bash
       - name: Run Tests
         env:
-          QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
           LANG: 'C.UTF-8'
           PYTHONIOENCODING: 'utf-8:backslashreplace'
         run: |
           set -e
           chcp.com 65001
           pip check
-          stestr run --slowest
-        shell: bash
-
-  tests-json-input:
-    runs-on: ${{ matrix.os }}
-    needs: ["lint"]
-    timeout-minutes: 60
-    strategy:
-      matrix:
-        python-version: [3.9]
-        os: ["windows-2019"]
-    env:
-      AER_THRUST_BACKEND: OMP
-      QISKIT_TEST_CAPTURE_STREAMS: 1
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Pip cache
-        uses: actions/cache@v2
-        with:
-          path: ~\AppData\Local\pip\Cache
-          key: ${{ runner.os }}-${{ matrix.python-version}}-pip-test-${{ hashFiles('setup.py','requirements-dev.txt','constraints.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version}}-pip-test-
-            ${{ runner.os }}-${{ matrix.python-version}}-pip-
-            ${{ runner.os }}-${{ matrix.python-version}}-
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.0.2
-      - name: Install Deps
-        run: python -m pip install -U -c constraints.txt -r requirements-dev.txt wheel git+https://github.com/Qiskit/qiskit-terra
-      - name: Install Aer Windows
-        run: |
-          set -e
-          python setup.py bdist_wheel -- -DTEST_JSON=1 -G 'Visual Studio 16 2019'
-          pip install --find-links=dist qiskit-aer
-        shell: bash
-      - name: Run Tests
-        env:
-          QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
-          LANG: 'C.UTF-8'
-          PYTHONIOENCODING: 'utf-8:backslashreplace'
-        run: |
-          set -e
-          pip check
-          chcp.com 65001
           stestr run --slowest
         shell: bash
