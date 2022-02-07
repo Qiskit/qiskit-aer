@@ -136,11 +136,6 @@ class LocalNoisePass(TransformationPass):
                     f"Number of qubits of generated op {new_op.num_qubits} != "
                     f"{len(node.qargs)} that of a reference op {node.name}"
                 )
-            if new_op.num_clbits != len(node.cargs):
-                raise TranspilerError(
-                    f"Number of clbits of generated op {new_op.num_clbits} != "
-                    f"{len(node.cargs)} that of a reference op {node.name}"
-                )
 
             # Add the noise op returned by the function
             if isinstance(new_op, QuantumCircuit):
