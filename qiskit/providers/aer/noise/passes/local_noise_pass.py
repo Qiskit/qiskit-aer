@@ -130,7 +130,7 @@ class LocalNoisePass(TransformationPass):
                         "Function must return an object implementing 'to_instruction' method."
                     ) from att_err
 
-            # Valide the instruciton matches the number of qubits and clbits of the node
+            # Validate the instruction matches the number of qubits and clbits of the node
             if new_op.num_qubits != len(node.qargs):
                 raise TranspilerError(
                     f"Number of qubits of generated op {new_op.num_qubits} != "
