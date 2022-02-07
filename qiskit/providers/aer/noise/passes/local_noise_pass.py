@@ -14,13 +14,14 @@ Local noise addition pass.
 """
 from typing import Optional, Union, Sequence, Callable, Iterable
 
-from qiskit.circuit import Instruction
+from qiskit.circuit import Instruction, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from ..errors import QuantumError, ReadoutError
 
-InstructionLike = Union[Instruction, QuantumError]
+InstructionLike = Union[Instruction, QuantumError, QuantumCircuit]
 
 
 class LocalNoisePass(TransformationPass):
@@ -100,31 +101,57 @@ class LocalNoisePass(TransformationPass):
 
             qubits = [qubit_indices[q] for q in node.qargs]
             new_op = self._func(node.op, qubits)
+
             if new_op is None:
+                # Edge case where we are replacing a node with nothing (removing node)
                 if self._method == "replace":
                     dag.remove_op_node(node)
                 continue
+
             if isinstance(new_op, ReadoutError):
                 raise TranspilerError("Insertions of ReadoutError is not yet supported.")
-            if not isinstance(new_op, Instruction):
+
+            # Initialize new node dag
+            new_dag = DAGCircuit()
+            new_dag.add_qubits(node.qargs)
+            new_dag.add_clbits(node.cargs)
+
+            # If appending re-apply original op node first
+            if self._method == "append":
+                new_dag.apply_operation_back(node.op, qargs=node.qargs)
+
+            # If the new op is not a QuantumCircuit or Instruction, attempt
+            # to conver to an Instruction
+            if not isinstance(new_op, (QuantumCircuit, Instruction)):
                 try:
                     new_op = new_op.to_instruction()
                 except AttributeError as att_err:
                     raise TranspilerError(
                         "Function must return an object implementing 'to_instruction' method."
                     ) from att_err
+
+            # Valide the instruciton matches the number of qubits and clbits of the node
             if new_op.num_qubits != len(node.qargs):
                 raise TranspilerError(
                     f"Number of qubits of generated op {new_op.num_qubits} != "
                     f"{len(node.qargs)} that of a reference op {node.name}"
                 )
+            if new_op.num_clbits != len(node.cargs):
+                raise TranspilerError(
+                    f"Number of clbits of generated op {new_op.num_clbits} != "
+                    f"{len(node.cargs)} that of a reference op {node.name}"
+                )
 
-            new_dag = DAGCircuit()
-            new_dag.add_qubits(node.qargs)
-            new_dag.add_clbits(node.cargs)
-            if self._method == "append":
-                new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
-            new_dag.apply_operation_back(new_op, qargs=node.qargs)
+            # Add the noise op returned by the function
+            if isinstance(new_op, QuantumCircuit):
+                # If the new op is a quantum circuit, compose its DAG with the new dag
+                # so that it is unrolled rather than added as an opaque instruction
+                new_dag.compose(circuit_to_dag(new_op), qubits=node.qargs, clbits=node.cargs)
+            else:
+                # Otherwise append the instruction returned by the function
+                new_dag.apply_operation_back(new_op, qargs=node.qargs, cargs=node.cargs)
+
+            # If prepending reapply original op node last
             if self._method == "prepend":
                 new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
 
