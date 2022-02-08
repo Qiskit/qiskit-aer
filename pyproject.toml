@@ -27,7 +27,7 @@ before-test = "pip install --only-binary=numpy,scipy numpy scipy"
 [tool.cibuildwheel.linux]
 before-all = "yum install -y openblas-devel"
 
-[tool.cibuildwheel.environment]
+[tool.cibuildwheel.windows]
 environment = "CMAKE_GENERATOR='Visual Studio 16 2019'"
 
 # For older Pythons we maintain our manylinux2010 support.
