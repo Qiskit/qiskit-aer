@@ -650,7 +650,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
     case Method::stabilizer:
     case Method::unitary:
     case Method::matrix_product_state: {
-      if (circ.shots == 1 ||
+      if (circ.shots == 1 || num_process_per_experiment_ > 1 ||
           (!noise.has_quantum_errors() &&
           check_measure_sampling_opt(circ, method))) {
         parallel_shots_ = 1;
@@ -662,7 +662,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
     }
     case Method::density_matrix:
     case Method::superop: {
-      if (circ.shots == 1 ||
+      if (circ.shots == 1 || num_process_per_experiment_ > 1 ||
           check_measure_sampling_opt(circ, method)) {
         parallel_shots_ = 1;
         parallel_state_update_ =
@@ -1461,7 +1461,6 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
         shot_state.set_parallelization(parallel_state_update_);
         shot_state.set_global_phase(circ.global_phase_angle);
 
-        shot_state.set_distribution(num_process_per_experiment_);
         shot_state.set_max_matrix_qubits(max_bits);
 
         RngEngine rng;
@@ -1533,7 +1532,6 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
           par_state.set_parallelization(parallel_state_update_);
           par_state.set_global_phase(circ.global_phase_angle);
 
-          par_state.set_distribution(num_process_per_experiment_);
           par_state.set_max_matrix_qubits(max_bits );
 
           // allocate qubit register
@@ -1619,8 +1617,6 @@ void Controller::run_circuit_with_sampled_noise(
       state.set_config(config);
       state.set_parallelization(parallel_state_update_);
       state.set_global_phase(circ.global_phase_angle);
-
-      state.set_distribution(num_process_per_experiment_);
 
       // Transpilation for circuit noise method
       auto fusion_pass = transpile_fusion(method, circ.opset(), config);
