@@ -107,6 +107,10 @@ class TestLocalNoisePass(QiskitAerTestCase):
 
         noise_pass = LocalNoisePass(func=composite_error, op_types=CXGate)
         noise_qc = noise_pass(qc)
-        self.assertEqual(len(noise_qc.data), 3)
-        self.assertEqual(noise_qc.data[1][0].name, "x")
-        self.assertEqual(noise_qc.data[2][0].name, "x")
+
+        expected = QuantumCircuit(2)
+        expected.cx(0, 1)
+        expected.x(0)
+        expected.x(1)
+
+        self.assertEqual(expected, noise_qc)
