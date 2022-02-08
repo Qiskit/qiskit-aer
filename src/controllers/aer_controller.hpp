@@ -1440,6 +1440,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   if (can_sample) {
     // Implement measure sampler
     if (parallel_shots_ <= 1) {
+      state.set_distribution(num_process_per_experiment_);
       state.set_max_matrix_qubits(max_bits);
       RngEngine rng;
       rng.set_seed(circ.seed);
@@ -1460,7 +1461,8 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
         shot_state.set_parallelization(parallel_state_update_);
         shot_state.set_global_phase(circ.global_phase_angle);
 
-        state.set_max_matrix_qubits(max_bits);
+        shot_state.set_distribution(num_process_per_experiment_);
+        shot_state.set_max_matrix_qubits(max_bits);
 
         RngEngine rng;
         rng.set_seed(circ.seed + i);
@@ -1484,6 +1486,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
     if(block_bits == circ.num_qubits && enable_batch_multi_shots_ && state.multi_shot_parallelization_supported()){
       //apply batched multi-shots optimization (currenly only on GPU)
       state.set_max_bached_shots(max_batched_states_);
+      state.set_distribution(num_processes_);
       state.set_max_matrix_qubits(max_bits);
       state.allocate(circ.num_qubits, circ.num_qubits, circ.shots);    //allocate multiple-shots
 
@@ -1530,6 +1533,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
           par_state.set_parallelization(parallel_state_update_);
           par_state.set_global_phase(circ.global_phase_angle);
 
+          par_state.set_distribution(num_process_per_experiment_);
           par_state.set_max_matrix_qubits(max_bits );
 
           // allocate qubit register
@@ -1590,6 +1594,7 @@ void Controller::run_circuit_with_sampled_noise(
          block_bits = cache_block_pass.block_bits();
         }
       }
+      state.set_distribution(num_process_per_experiment_);
       state.set_max_matrix_qubits(get_max_matrix_qubits(circ) );
       // allocate qubit register
       state.allocate(noise_circ.num_qubits, block_bits);
@@ -1614,6 +1619,8 @@ void Controller::run_circuit_with_sampled_noise(
       state.set_config(config);
       state.set_parallelization(parallel_state_update_);
       state.set_global_phase(circ.global_phase_angle);
+
+      state.set_distribution(num_process_per_experiment_);
 
       // Transpilation for circuit noise method
       auto fusion_pass = transpile_fusion(method, circ.opset(), config);
