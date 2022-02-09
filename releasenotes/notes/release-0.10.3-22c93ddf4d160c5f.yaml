@@ -1,0 +1,7 @@
+---
+prelude: |
+  Qiskit Aer 0.10.3 is mainly a bugfix release, fixing several bugs that
+  have been discovered since the 0.10.2 release. Howver, this release also
+  introduces support for running with Python 3.10 including precompiled
+  binary wheels on all major platforms. This release also includes precompiled
+  binary wheels for arm64 on macOS.
