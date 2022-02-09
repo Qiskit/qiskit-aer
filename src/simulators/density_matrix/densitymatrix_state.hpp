@@ -1441,51 +1441,99 @@ rvector_t State<densmat_t>::measure_probs(const int_t iChunk, const reg_t &qubit
     }
   }
 
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i,j,k) 
-  for(i=0;i<BaseState::qregs_.size();i++){
-    uint_t irow,icol;
-    irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
-    icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
+  if(BaseState::chunk_omp_parallel_){
+#pragma omp parallel for private(i,j,k) 
+    for(i=0;i<BaseState::qregs_.size();i++){
+      uint_t irow,icol;
+      irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
+      icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
 
-    if(irow == icol){   //diagonal chunk
-      if(qubits_in_chunk.size() > 0){
-        auto chunkSum = BaseState::qregs_[i].probabilities(qubits_in_chunk);
-        if(qubits_in_chunk.size() == qubits.size()){
-          for(j=0;j<dim;j++){
+      if(irow == icol){   //diagonal chunk
+        if(qubits_in_chunk.size() > 0){
+          auto chunkSum = BaseState::qregs_[i].probabilities(qubits_in_chunk);
+          if(qubits_in_chunk.size() == qubits.size()){
+            for(j=0;j<dim;j++){
 #pragma omp atomic
-            sum[j] += chunkSum[j];
+              sum[j] += chunkSum[j];
+            }
           }
-        }
-        else{
-          for(j=0;j<chunkSum.size();j++){
-            int idx = 0;
-            int i_in = 0;
-            for(k=0;k<qubits.size();k++){
-              if(qubits[k] < (BaseState::chunk_bits_)){
-                idx += (((j >> i_in) & 1) << k);
-                i_in++;
-              }
-              else{
-                if((((i + BaseState::global_chunk_index_) << (BaseState::chunk_bits_)) >> qubits[k]) & 1){
-                  idx += 1ull << k;
+          else{
+            for(j=0;j<chunkSum.size();j++){
+              int idx = 0;
+              int i_in = 0;
+              for(k=0;k<qubits.size();k++){
+                if(qubits[k] < (BaseState::chunk_bits_)){
+                  idx += (((j >> i_in) & 1) << k);
+                  i_in++;
+                }
+                else{
+                  if((((i + BaseState::global_chunk_index_) << (BaseState::chunk_bits_)) >> qubits[k]) & 1){
+                    idx += 1ull << k;
+                  }
                 }
               }
-            }
 #pragma omp atomic
-            sum[idx] += chunkSum[j];
+              sum[idx] += chunkSum[j];
+            }
           }
+        }
+        else{ //there is no bit in chunk
+          auto tr = std::real(BaseState::qregs_[i].trace());
+          int idx = 0;
+          for(k=0;k<qubits_out_chunk.size();k++){
+            if((((i + BaseState::global_chunk_index_) << (BaseState::chunk_bits_)) >> qubits_out_chunk[k]) & 1){
+              idx += 1ull << k;
+            }
+          }
+#pragma omp atomic
+          sum[idx] += tr;
         }
       }
-      else{ //there is no bit in chunk
-        auto tr = std::real(BaseState::qregs_[i].trace());
-        int idx = 0;
-        for(k=0;k<qubits_out_chunk.size();k++){
-          if((((i + BaseState::global_chunk_index_) << (BaseState::chunk_bits_)) >> qubits_out_chunk[k]) & 1){
-            idx += 1ull << k;
+    }
+  }
+  else{
+    for(i=0;i<BaseState::qregs_.size();i++){
+      uint_t irow,icol;
+      irow = (BaseState::global_chunk_index_ + i) >> ((BaseState::num_qubits_ - BaseState::chunk_bits_));
+      icol = (BaseState::global_chunk_index_ + i) - (irow << ((BaseState::num_qubits_ - BaseState::chunk_bits_)));
+
+      if(irow == icol){   //diagonal chunk
+        if(qubits_in_chunk.size() > 0){
+          auto chunkSum = BaseState::qregs_[i].probabilities(qubits_in_chunk);
+          if(qubits_in_chunk.size() == qubits.size()){
+            for(j=0;j<dim;j++){
+              sum[j] += chunkSum[j];
+            }
+          }
+          else{
+            for(j=0;j<chunkSum.size();j++){
+              int idx = 0;
+              int i_in = 0;
+              for(k=0;k<qubits.size();k++){
+                if(qubits[k] < (BaseState::chunk_bits_)){
+                  idx += (((j >> i_in) & 1) << k);
+                  i_in++;
+                }
+                else{
+                  if((((i + BaseState::global_chunk_index_) << (BaseState::chunk_bits_)) >> qubits[k]) & 1){
+                    idx += 1ull << k;
+                  }
+                }
+              }
+              sum[idx] += chunkSum[j];
+            }
           }
         }
-#pragma omp atomic
-        sum[idx] += tr;
+        else{ //there is no bit in chunk
+          auto tr = std::real(BaseState::qregs_[i].trace());
+          int idx = 0;
+          for(k=0;k<qubits_out_chunk.size();k++){
+            if((((i + BaseState::global_chunk_index_) << (BaseState::chunk_bits_)) >> qubits_out_chunk[k]) & 1){
+              idx += 1ull << k;
+            }
+          }
+          sum[idx] += tr;
+        }
       }
     }
   }
@@ -1531,9 +1579,14 @@ void State<densmat_t>::measure_reset_update(const int_t iChunk, const reg_t &qub
     if(!BaseState::multi_chunk_distribution_)
       apply_diagonal_unitary_matrix(iChunk, qubits, mdiag);
     else{
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_)
-      for(int_t i=0;i<BaseState::qregs_.size();i++){
-        apply_diagonal_unitary_matrix(i, qubits, mdiag);
+      if(BaseState::chunk_omp_parallel_){
+#pragma omp parallel for 
+        for(int_t i=0;i<BaseState::qregs_.size();i++)
+          apply_diagonal_unitary_matrix(i, qubits, mdiag);
+      }
+      else{
+        for(int_t i=0;i<BaseState::qregs_.size();i++)
+          apply_diagonal_unitary_matrix(i, qubits, mdiag);
       }
     }
 
@@ -1543,9 +1596,14 @@ void State<densmat_t>::measure_reset_update(const int_t iChunk, const reg_t &qub
         BaseState::qregs_[iChunk].apply_x(qubits[0]);
       else{
         if(qubits[0] < BaseState::chunk_bits_){
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_)
-          for(int_t i=0;i<BaseState::qregs_.size();i++){
-            BaseState::qregs_[i].apply_x(qubits[0]);
+          if(BaseState::chunk_omp_parallel_){
+#pragma omp parallel for 
+            for(int_t i=0;i<BaseState::qregs_.size();i++)
+              BaseState::qregs_[i].apply_x(qubits[0]);
+          }
+          else{
+            for(int_t i=0;i<BaseState::qregs_.size();i++)
+              BaseState::qregs_[i].apply_x(qubits[0]);
           }
         }
         else{
@@ -1564,9 +1622,14 @@ void State<densmat_t>::measure_reset_update(const int_t iChunk, const reg_t &qub
     if(!BaseState::multi_chunk_distribution_)
       apply_diagonal_unitary_matrix(iChunk, qubits, mdiag);
     else{
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_)
-      for(int_t i=0;i<BaseState::qregs_.size();i++){
-        apply_diagonal_unitary_matrix(i, qubits, mdiag);
+      if(BaseState::chunk_omp_parallel_){
+#pragma omp parallel for 
+        for(int_t i=0;i<BaseState::qregs_.size();i++)
+          apply_diagonal_unitary_matrix(i, qubits, mdiag);
+      }
+      else{
+        for(int_t i=0;i<BaseState::qregs_.size();i++)
+          apply_diagonal_unitary_matrix(i, qubits, mdiag);
       }
     }
 
@@ -1597,9 +1660,14 @@ void State<densmat_t>::measure_reset_update(const int_t iChunk, const reg_t &qub
           }
         }
         if(qubits_in_chunk.size() > 0){   //in chunk exchange
-#pragma omp parallel for if(BaseState::chunk_omp_parallel_)
-          for(int_t i=0;i<BaseState::qregs_.size();i++){
-            BaseState::qregs_[i].apply_unitary_matrix(qubits, perm);
+          if(BaseState::chunk_omp_parallel_){
+#pragma omp parallel for 
+            for(int_t i=0;i<BaseState::qregs_.size();i++)
+              BaseState::qregs_[i].apply_unitary_matrix(qubits, perm);
+          }
+          else{
+            for(int_t i=0;i<BaseState::qregs_.size();i++)
+              BaseState::qregs_[i].apply_unitary_matrix(qubits, perm);
           }
         }
         if(qubits_out_chunk.size() > 0){  //out of chunk exchange
