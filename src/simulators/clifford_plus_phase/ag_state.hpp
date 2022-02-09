@@ -4,7 +4,7 @@
 #include <vector>
 #include <utility>
 #include <algorithm>
-
+#include <cmath>
 #include "framework/types.hpp"
 #include "framework/operations.hpp"
 #include "simulators/stabilizer/pauli.hpp"
@@ -195,7 +195,7 @@ void AGState::applyH(size_t a){
 
 void AGState::applyS(size_t a){
   for(size_t i = 0; i < this->num_stabilizers; i++){
-    this->phases[i] ^= this->table[i].X[a] & this->table[i].Z[a];
+    this->phases[i] ^= (this->table[i].X[a] & this->table[i].Z[a]);
     this->table[i].Z.xorAt(this->table[i].X[a], a);
   }
 }
@@ -224,49 +224,52 @@ void AGState::applyZ(size_t a){
 }
 
 void AGState::gadgetized_phase_gate(size_t a, double phase){
-  for(size_t i = 0; i < this->num_stabilizers; i++){
-    this->table[i].X.resize(this->num_qubits + 1);
-    this->table[i].Z.resize(this->num_qubits + 1);
+  //phase = fmod(phase , M_PI*2);
+  while(phase > (M_PI*2)){
+   phase -= (M_PI*2);
   }
-  this->table.push_back(Pauli::Pauli(this->num_qubits + 1));
-  this->table[this->num_stabilizers].Z.set1(this->num_qubits);
-  this->phases.push_back(0);
-  this->num_stabilizers += 1;
-  this->num_qubits += 1;
-
+  while(phase < 0){
+   phase += (M_PI*2);
+  }
   
-
-  phase = fmod(phase , M_PI*2);
-  if(phase < 0){
-    phase += M_PI*2;
-  }
-
   //now phase is in [0, 2*pi)
-  while(phase > M_PI/2){
-    phase -= M_PI/2;
-    this->applyS(a);      
+  while(phase > M_PI/2.){
+    phase -= (M_PI/2.);
+    this->applyS(a);
   }
-  //now phase is in [0, M_PI/2.]
 
+  //now phase is in [0, M_PI/2.]
   if(fabs(phase) < AG_CHOP_THRESHOLD){
     //phase on gate is zero so it is an identity
   }else if(fabs(phase - M_PI/2.) < AG_CHOP_THRESHOLD){
     //phase on gate is pi/2 so it is an S
     this->applyS(a);
-    this->applyCX(a, this->num_stabilizers-1);
+    
   }else{
     //its actually non-Clifford
+    for(size_t i = 0; i < this->num_stabilizers; i++){
+      this->table[i].X.resize(this->num_qubits + 1);
+      this->table[i].Z.resize(this->num_qubits + 1);
+    }
+    this->table.push_back(Pauli::Pauli(this->num_qubits + 1));
+    this->table[this->num_stabilizers].Z.set0(this->num_qubits);
+    this->table[this->num_stabilizers].Z.set1(this->num_qubits);
+    this->phases.push_back(0);
+    this->num_stabilizers += 1;
+    this->num_qubits += 1;      
+    
     //we want our phases to be in [0, pi/4]
     if(phase > T_ANGLE){
-      phase -= M_PI/2 - phase;
+      phase = M_PI/2 - phase;
+      this->applyS(a);
       this->applyX(a);
-      this->applyCX(a, this->num_stabilizers-1);
+      this->applyCX(a, this->num_qubits-1);
       this->applyX(a);
     }else{
-      this->applyCX(a, this->num_stabilizers-1);
-    }
-  }  
-  this->magic_phases.push_back(phase);  
+      this->applyCX(a, this->num_qubits-1);
+    }   
+    this->magic_phases.push_back(phase);
+  }
 }
 
 void AGState::rowsum(size_t h, size_t i){
@@ -902,6 +905,8 @@ inline void to_json(json_t &js, const AGState &state)
 {
   js["num_qubits"] = state.num_qubits;
   js["num_stabilizers"] = state.num_stabilizers;
+  js["phases"] = state.phases;  
+  js["magic_phases"] = state.magic_phases;
 }
 
 }
