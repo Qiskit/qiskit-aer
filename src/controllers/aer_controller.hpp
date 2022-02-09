@@ -931,6 +931,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 
     // store rank and number of processes, if no distribution rank=0 procs=1 is
     // set
+    result.metadata.add(num_process_per_experiment_, "num_processes_per_experiments");
     result.metadata.add(num_processes_, "num_mpi_processes");
     result.metadata.add(myrank_, "mpi_rank");
 
@@ -1505,6 +1506,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
       //(DO NOT use if statement in #pragma omp)
       if(parallel_shots_ == 1 || block_bits != circ.num_qubits){
         state.set_max_matrix_qubits(max_bits );
+        state.set_distribution(num_process_per_experiment_);
 
         // allocate qubit register
         state.allocate(circ.num_qubits, block_bits);
