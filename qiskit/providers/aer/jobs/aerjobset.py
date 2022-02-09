@@ -19,7 +19,6 @@
 from typing import List, Optional, Union, Tuple, Iterable
 import time
 import logging
-import copy
 import datetime
 import uuid
 from collections import Counter
@@ -319,28 +318,40 @@ class AerJobSet(Job):
 
         # find first non-null result and copy it's config
         _result = next((r for r in results if r is not None), None)
+
         if _result:
-            combined_result = copy.copy(_result)
-            combined_result.results = []
+            combined_result = {
+                "backend_name": _result.backend_name,
+                "backend_version": _result.backend_version,
+                "qobj_id": _result.qobj_id,
+                "job_id": _result.job_id,
+                "success": _result.success,
+            }
+            combined_result["results"] = []
+            if hasattr(_result, "status"):
+                combined_result["status"] = _result.status
+            if hasattr(_result, "header"):
+                combined_result["header"] = _result.header.to_dict()
+            combined_result.update(_result._metadata)
         else:
             raise JobError(
                 "Results cannot be combined - no results.")
 
         for each_result in results:
             if each_result is not None:
-                combined_result.results.extend(each_result.results)
+                combined_result["results"].extend(x.to_dict() for x in each_result.results)
 
         if self._end_time is None:
             self._end_time = datetime.datetime.now()
 
         if self._start_time:
             _time_taken = self._end_time - self._start_time
-            combined_result.time_taken = _time_taken.total_seconds()
+            combined_result["time_taken"] = _time_taken.total_seconds()
         else:
-            combined_result.time_taken = 0
+            combined_result["time_taken"] = 0
 
-        combined_result.date = datetime.datetime.isoformat(self._end_time)
-        return combined_result
+        combined_result["date"] = datetime.datetime.isoformat(self._end_time)
+        return Result.from_dict(combined_result)
 
     @requires_submit
     def cancel(self) -> None:
