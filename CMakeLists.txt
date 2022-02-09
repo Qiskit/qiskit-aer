@@ -227,9 +227,11 @@ endif()
 message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
 if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
-	if(APPLE OR UNIX)
-		set(SIMD_FLAGS_LIST "-mfma;-mavx2")
-		enable_cxx_compiler_flag_if_supported("-mpopcnt")
+    if(APPLE OR UNIX)
+        if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+            set(SIMD_FLAGS_LIST "-mfma;-mavx2")
+	        enable_cxx_compiler_flag_if_supported("-mpopcnt")
+        endif()
 	elseif(MSVC)
 		set(SIMD_FLAGS_LIST "/arch:AVX2")
 	endif()
@@ -321,10 +323,12 @@ if(SKBUILD) # Terra Addon build
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
 
-	if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
-	  # We build SIMD filed separately, because they will be reached only if the
-	  # machine running the code has SIMD support
-	  set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
+      if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+          # We build SIMD filed separately, because they will be reached only if the
+          # machine running the code has SIMD support
+          set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+      endif()
   endif()
 
 	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
