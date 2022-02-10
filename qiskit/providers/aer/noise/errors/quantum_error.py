@@ -452,12 +452,21 @@ class QuantumError(BaseOperator, TolerancesMixin):
 
     def to_dict(self):
         """Return the current error as a dictionary."""
+        # Assemble noise circuits
+        instructions = []
+        for circ in self._circs:
+            circ_inst = []
+            for inst, qargs, _ in circ.data:
+                qobj_inst = inst.assemble()
+                qobj_inst.qubits = [circ.find_bit(q).index for q in qargs]
+                circ_inst.append(qobj_inst.to_dict())
+            instructions.append(circ_inst)
+        # Construct error dict
         error = {
             "type": "qerror",
             "id": self.id,
             "operations": [],
-            "instructions": [[op[0].assemble().to_dict() for op in circ.data]
-                             for circ in self._circs],
+            "instructions": instructions,
             "probabilities": list(self.probabilities)
         }
         return error

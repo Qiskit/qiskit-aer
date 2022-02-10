@@ -223,19 +223,45 @@ class TestNoise(SimulatorTestCase):
         """Test simulation with Kraus quantum errors in circuit."""
         backend = self.backend(method=method, device=device)
         shots = 1000
-        error1 = noise.amplitude_damping_error(0.05)
-        error2 = error1.tensor(error1)
+        error0 = noise.amplitude_damping_error(0.05)
+        error1 = noise.amplitude_damping_error(0.15)
+        error01 = error1.tensor(error0)
 
-        qc = QuantumCircuit(2)
-        qc.h(0)
-        qc.append(error1, [0])
-        qc.cx(0, 1)
-        qc.append(error2, [0, 1])
-        target_probs = qi.DensityMatrix(qc).probabilities_dict()
+        # Target Circuit 0
+        tc0 = QuantumCircuit(2)
+        tc0.h(0)
+        tc0.append(qi.Kraus(error0), [0])
+        tc0.cx(0, 1)
+        tc0.append(qi.Kraus(error01), [0, 1])
+        target_probs0 = qi.DensityMatrix(tc0).probabilities_dict()
 
-        # Add measurement
-        qc.measure_all()
-        result = backend.run(qc, shots=shots).result()
+        # Sim circuit 0
+        qc0 = QuantumCircuit(2)
+        qc0.h(0)
+        qc0.append(error0, [0])
+        qc0.cx(0, 1)
+        qc0.append(error01, [0, 1])
+        qc0.measure_all()
+
+        # Target Circuit 1
+        tc1 = QuantumCircuit(2)
+        tc1.h(1)
+        tc1.append(qi.Kraus(error0), [1])
+        tc1.cx(1, 0)
+        tc1.append(qi.Kraus(error01), [1, 0])
+        target_probs1 = qi.DensityMatrix(tc1).probabilities_dict()
+
+        # Sim circuit 1
+        qc1 = QuantumCircuit(2)
+        qc1.h(1)
+        qc1.append(error0, [1])
+        qc1.cx(1, 0)
+        qc1.append(error01, [1, 0])
+        qc1.measure_all()
+
+        result = backend.run([qc0, qc1], shots=shots).result()
         self.assertSuccess(result)
-        probs = {key: val / shots for key, val in result.get_counts(0).items()}
-        self.assertDictAlmostEqual(target_probs, probs, delta=0.1)
+        probs = [{key: val / shots for key, val in result.get_counts(i).items()}
+                 for i in range(2)]
+        self.assertDictAlmostEqual(target_probs0, probs[0], delta=0.1)
+        self.assertDictAlmostEqual(target_probs1, probs[1], delta=0.1)

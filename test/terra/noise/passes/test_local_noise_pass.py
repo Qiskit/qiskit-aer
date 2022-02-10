@@ -16,7 +16,7 @@ LocalNoisePass class tests
 from qiskit.providers.aer.noise import ReadoutError, LocalNoisePass
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates import SXGate, HGate
+from qiskit.circuit.library.standard_gates import SXGate, HGate, CXGate
 from qiskit.transpiler import TranspilerError
 from test.terra.common import QiskitAerTestCase
 
@@ -94,3 +94,23 @@ class TestLocalNoisePass(QiskitAerTestCase):
         noise_pass = LocalNoisePass(func=out_readout_error, op_types=HGate)
         with self.assertRaises(TranspilerError):
             noise_pass(qc)
+
+    def test_append_circuit(self):
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+
+        def composite_error(op, qubits):
+            circ = QuantumCircuit(2)
+            for q in qubits:
+                circ.x(q)
+            return circ
+
+        noise_pass = LocalNoisePass(func=composite_error, op_types=CXGate)
+        noise_qc = noise_pass(qc)
+
+        expected = QuantumCircuit(2)
+        expected.cx(0, 1)
+        expected.x(0)
+        expected.x(1)
+
+        self.assertEqual(expected, noise_qc)
