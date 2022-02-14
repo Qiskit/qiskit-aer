@@ -13,6 +13,7 @@
 RelaxationNoisePass class tests
 """
 
+import ddt
 from qiskit.providers.aer.noise import thermal_relaxation_error, RelaxationNoisePass
 
 import qiskit.quantum_info as qi
@@ -22,6 +23,7 @@ from qiskit.transpiler import TranspilerError
 from test.terra.common import QiskitAerTestCase
 
 
+@ddt.ddt
 class TestRelaxationNoisePass(QiskitAerTestCase):
     """Testing RelaxationNoisePass class"""
 
@@ -113,3 +115,21 @@ class TestRelaxationNoisePass(QiskitAerTestCase):
         expected.measure([0, 1], [0, 1])
 
         self.assertEqual(expected, noisy_circ)
+
+    @ddt.data((1e5, 'dt'), (1e4, 'ns'), (1e1, 'us'), (1e-2, 'ms'), (1e-5, 's'))
+    @ddt.unpack
+    def test_delay_units(self, duration, unit):
+        """Test un-scheduled delay with different units."""
+        t1 = 0.004
+        t2 = 0.008
+        dt = 1e-10  # 0.1 ns
+        target_duration = 1e-5
+
+        qc = QuantumCircuit(1)
+        qc.delay(duration, 0, unit=unit)
+
+        
+        relax_pass = RelaxationNoisePass(t1s=[t1], t2s=[t2], dt=dt)
+        actual = qi.SuperOp(relax_pass(qc))
+        expected = qi.SuperOp(thermal_relaxation_error(t1, t2, target_duration))
+        self.assertEqual(expected, actual)

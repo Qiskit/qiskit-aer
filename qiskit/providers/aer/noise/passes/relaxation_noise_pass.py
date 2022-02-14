@@ -18,8 +18,10 @@ from typing import Optional, Union, Sequence, List
 import numpy as np
 
 from qiskit.circuit import Instruction, QuantumCircuit
+from qiskit.utils.units import apply_prefix
 from .local_noise_pass import LocalNoisePass
 from ..errors.standard_errors import thermal_relaxation_error
+from ..noiseerror import NoiseError
 
 
 class RelaxationNoisePass(LocalNoisePass):
@@ -29,7 +31,7 @@ class RelaxationNoisePass(LocalNoisePass):
             self,
             t1s: List[float],
             t2s: List[float],
-            dt: float,
+            dt: Optional[float] = None,
             op_types: Optional[Union[type, Sequence[type]]] = None,
             excited_state_populations: Optional[List[float]] = None,
     ):
@@ -38,8 +40,8 @@ class RelaxationNoisePass(LocalNoisePass):
         Args:
             t1s: List of T1 times in seconds for each qubit.
             t2s: List of T2 times in seconds for each qubit.
-            dt: Backend sample time (resolution) in seconds. This is used as the time
-                unit when converting scheduled circuit op durations to times.
+            dt: Backend sample time (resolution) in seconds. This is required
+                for converting dt-unit op durations to times in scheduled circuits.
             op_types: Optional, the operation types to add relaxation to. If None
                 relaxation will be added to all operations.
             excited_state_populations: Optional, list of excited state populations
@@ -67,8 +69,15 @@ class RelaxationNoisePass(LocalNoisePass):
                               " you may need to schedule circuit in advance.", UserWarning)
             return None
 
-        # convert duration in seconds
-        duration = op.duration * self._dt
+        # Convert op duration to seconds
+        if op.unit == 'dt':
+            if self._dt is None:
+                raise NoiseError(
+                    "RelaxationNoisePass cannot apply noise to a 'dt' unit duration"
+                    " without a dt time set.")
+            duration = op.duration * self._dt
+        else:
+            duration = apply_prefix(op.duration, op.unit)
 
         t1s = self._t1s[qubits]
         t2s = self._t2s[qubits]

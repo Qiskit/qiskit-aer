@@ -118,6 +118,16 @@ class TestDaskExecutor(CBFixture):
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
+    @supported_methods(['statevector'], [None, 1, 2, 3])
+    def test_result_time_val(self, method, device, max_job_size):
+        """Test random circuits with custom executor."""
+        shots = 4000
+        backend = self.backend(
+            method=method, device=device, max_job_size=max_job_size)
+        result, _, _ = run_random_circuits(backend, shots=shots)    
+        self.assertSuccess(result)
+        self.assertGreaterEqual(result.time_taken, 0)
+
 @ddt
 class TestThreadPoolExecutor(CBFixture):
     """Tests of ThreadPool executor"""
@@ -153,3 +163,13 @@ class TestThreadPoolExecutor(CBFixture):
             result = backend.run(circuit, shots=shots).result()
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
+
+    @supported_methods(['statevector'], [None, 1, 2, 3])
+    def test_result_time_val(self, method, device, max_job_size):
+        """Test random circuits with custom executor."""
+        shots = 4000
+        backend = self.backend(
+            method=method, device=device, max_job_size=max_job_size)
+        result, _, _ = run_random_circuits(backend, shots=shots)    
+        self.assertSuccess(result)
+        self.assertGreaterEqual(result.time_taken, 0)
