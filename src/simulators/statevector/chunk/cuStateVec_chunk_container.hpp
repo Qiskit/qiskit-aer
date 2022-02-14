@@ -85,6 +85,9 @@ public:
   //apply permutation
   void apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t count) override;
 
+  //apply rotation around axis
+  void apply_rotation(const uint_t iChunk,const reg_t &qubits, const Rotation r, const double theta, const uint_t count) override;
+
   //get probabilities of chunk
   void probabilities(std::vector<double>& probs, const uint_t iChunk, const reg_t& qubits) const override;
 
@@ -616,6 +619,102 @@ void cuStateVecChunkContainer<data_t>::apply_permutation(const uint_t iChunk,con
       throw std::runtime_error(str.str());
     }
   }
+}
+
+template <typename data_t>
+void cuStateVecChunkContainer<data_t>::apply_rotation(const uint_t iChunk,const reg_t &qubits, const Rotation r, const double theta, const uint_t count)
+{
+  custatevecPauli_t pauli[2];
+  int nPauli = 1;
+
+  BaseContainer::set_device();
+  custatevecSetStream(custatevec_handle_,BaseContainer::stream_[iChunk]);
+
+  int control_bits = qubits.size() - 1;
+
+  switch(r){
+    case Rotation::x:
+      pauli[0] = CUSTATEVEC_PAULI_X;
+      break;
+    case Rotation::y:
+      pauli[0] = CUSTATEVEC_PAULI_Y;
+      break;
+    case Rotation::z:
+      pauli[0] = CUSTATEVEC_PAULI_Z;
+      break;
+    case Rotation::xx:
+      pauli[0] = CUSTATEVEC_PAULI_X;
+      pauli[1] = CUSTATEVEC_PAULI_X;
+      nPauli = 2;
+      control_bits--;
+      break;
+    case Rotation::yy:
+      pauli[0] = CUSTATEVEC_PAULI_Y;
+      pauli[1] = CUSTATEVEC_PAULI_Y;
+      nPauli = 2;
+      control_bits--;
+      break;
+    case Rotation::zz:
+      pauli[0] = CUSTATEVEC_PAULI_Z;
+      pauli[1] = CUSTATEVEC_PAULI_Z;
+      nPauli = 2;
+      control_bits--;
+      break;
+    case Rotation::zx:
+      pauli[0] = CUSTATEVEC_PAULI_Z;
+      pauli[1] = CUSTATEVEC_PAULI_X;
+      nPauli = 2;
+      control_bits--;
+      break;
+    default:
+      throw std::invalid_argument(
+          "QubitVectorThrust::invalid rotation axis.");
+  }
+
+  std::vector<int32_t> qubits32(qubits.size());
+  for(int_t i=0;i<qubits.size();i++)
+    qubits32[i] = qubits[i];
+
+  int32_t* pQubits = &qubits32[control_bits];
+  int32_t* pControl = nullptr;
+  if(control_bits > 0)
+    pControl = &qubits32[0];
+
+  uint_t bits;
+  uint_t nc;
+  if(count == this->num_chunks_){
+    bits = custatevec_chunk_total_qubits_;
+    nc = custatevec_chunk_count_;
+  }
+  else{
+    nc = count;
+    bits = this->chunk_bits_;
+    if(nc > 0){
+      while((nc & 1) == 0){
+        nc >>= 1;
+        bits++;
+      }
+    }
+  }
+
+  cudaDataType_t state_type;
+  if(sizeof(data_t) == sizeof(double))
+    state_type = CUDA_C_64F;
+  else
+    state_type = CUDA_C_32F;
+
+  custatevecStatus_t err;
+  for(int_t i=0;i<nc;i++){
+    err = custatevecApplyExp(custatevec_handle_, BaseContainer::chunk_pointer(iChunk) + (i << bits) , state_type, bits,
+      -0.5*theta, &pauli[0], pQubits, qubits.size() - control_bits, pControl, nullptr, control_bits);
+    if(err != CUSTATEVEC_STATUS_SUCCESS){
+      std::stringstream str;
+      str << "cuStateVecChunkContainer::apply_rotation : " << custatevecGetErrorString(err);
+      throw std::runtime_error(str.str());
+    }
+  }
+  
+
 }
 
 template <typename data_t>

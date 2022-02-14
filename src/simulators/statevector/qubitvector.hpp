@@ -41,6 +41,12 @@ namespace QV {
 template <typename T> using cvector_t = std::vector<std::complex<T>>;
 template <typename T> using cdict_t = std::map<std::string, std::complex<T>>;
 
+enum class Rotation {
+  x, y, z,
+  xx, yy, zz,
+  zx,
+};
+
 //============================================================================
 // QubitVector class
 //============================================================================
@@ -257,6 +263,9 @@ public:
   // If N=2 this implements an optimized SWAP  gate
   // If N=3 this implements an optimized Fredkin gate
   void apply_mcswap(const reg_t &qubits);
+
+  //apply rotation around axis
+  void apply_rotation(const reg_t &qubits, const Rotation r, const double theta);
 
   //swap between chunk
   void apply_chunk_swap(const reg_t &qubits, QubitVector<data_t> &chunk, bool write_back = true);
@@ -1581,6 +1590,37 @@ void QubitVector<data_t>::apply_mcu(const reg_t &qubits,
       return;
     }
   } // end switch
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_rotation(const reg_t &qubits, const Rotation r, const double theta)
+{
+  switch(r){
+    case Rotation::x:
+      apply_mcu(qubits, Linalg::VMatrix::rx(theta));
+      break;
+    case Rotation::y:
+      apply_mcu(qubits, Linalg::VMatrix::ry(theta));
+      break;
+    case Rotation::z:
+      apply_mcu(qubits, Linalg::VMatrix::rz(theta));
+      break;
+    case Rotation::xx:
+      apply_matrix(qubits, Linalg::VMatrix::rxx(theta));
+      break;
+    case Rotation::yy:
+      apply_matrix(qubits, Linalg::VMatrix::ryy(theta));
+      break;
+    case Rotation::zz:
+      apply_diagonal_matrix(qubits, Linalg::VMatrix::rzz_diag(theta));
+      break;
+    case Rotation::zx:
+      apply_matrix(qubits, Linalg::VMatrix::rzx(theta));
+      break;
+    default:
+      throw std::invalid_argument(
+          "QubitVector::invalid rotation axis.");
+  }
 }
 
 template <typename data_t>

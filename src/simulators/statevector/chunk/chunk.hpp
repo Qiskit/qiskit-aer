@@ -400,6 +400,12 @@ public:
     chunk_container_.lock()->apply_permutation(chunk_pos_,qubits,pairs,count);
   }
 
+  //apply rotation around axis
+  void apply_rotation(const reg_t &qubits, const Rotation r, const double theta, const uint_t count)
+  {
+    chunk_container_.lock()->apply_rotation(chunk_pos_,qubits,r,theta,count);
+  }
+
   //get probabilities of chunk
   void probabilities(std::vector<double>& probs, const reg_t& qubits) const
   {

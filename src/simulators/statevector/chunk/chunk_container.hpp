@@ -331,6 +331,9 @@ public:
   //apply permutation
   virtual void apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t count);
 
+  //apply rotation around axis
+  virtual void apply_rotation(const uint_t iChunk,const reg_t &qubits, const Rotation r, const double theta, const uint_t count);
+
   //get probabilities of chunk
   virtual void probabilities(std::vector<double>& probs, const uint_t iChunk, const reg_t& qubits) const;
 
@@ -921,6 +924,38 @@ void ChunkContainer<data_t>::apply_permutation(const uint_t iChunk,const reg_t& 
   StoreUintParams(params, iChunk);
 
   Execute(f, iChunk, count);
+}
+
+template <typename data_t>
+void ChunkContainer<data_t>::apply_rotation(const uint_t iChunk,const reg_t &qubits, const Rotation r, const double theta, const uint_t count)
+{
+  int control_bits = qubits.size() - 1;
+  switch(r){
+    case Rotation::x:
+      apply_matrix(iChunk, qubits, control_bits, Linalg::VMatrix::rx(theta), count);
+      break;
+    case Rotation::y:
+      apply_matrix(iChunk, qubits, control_bits, Linalg::VMatrix::ry(theta), count);
+      break;
+    case Rotation::z:
+      apply_diagonal_matrix(iChunk, qubits, control_bits, Linalg::VMatrix::rz_diag(theta), count);
+      break;
+    case Rotation::xx:
+      apply_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::rxx(theta), count);
+      break;
+    case Rotation::yy:
+      apply_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::ryy(theta), count);
+      break;
+    case Rotation::zz:
+      apply_diagonal_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::rzz_diag(theta), count);
+      break;
+    case Rotation::zx:
+      apply_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::rzx(theta), count);
+      break;
+    default:
+      throw std::invalid_argument(
+          "QubitVectorThrust::invalid rotation axis.");
+  }
 }
 
 template <typename data_t>

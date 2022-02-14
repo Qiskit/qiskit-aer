@@ -272,6 +272,9 @@ public:
   // If N=3 this implements an optimized Fredkin gate
   void apply_mcswap(const reg_t &qubits);
 
+  //apply rotation around axis
+  void apply_rotation(const reg_t &qubits, const Rotation r, const double theta);
+
   //swap between chunk
   void apply_chunk_swap(const reg_t &qubits, QubitVectorThrust<data_t> &chunk, bool write_back = true);
   void apply_chunk_swap(const reg_t &qubits, uint_t remote_chunk_index);
@@ -1405,11 +1408,7 @@ void QubitVectorThrust<data_t>::apply_matrix(const reg_t &qubits,
   if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
     return;   //first chunk execute all in batch
 
-  const size_t N = qubits.size();
-  auto qubits_sorted = qubits;
-  std::sort(qubits_sorted.begin(), qubits_sorted.end());
-
-  if(N == 1 && register_blocking_)
+  if(qubits.size() == 1 && register_blocking_)
     chunk_.queue_blocked_gate('u',qubits[0],0,&mat[0]);
   else
     chunk_.apply_matrix(qubits,0,mat,chunk_.container()->num_chunks());
@@ -1756,6 +1755,14 @@ void QubitVectorThrust<data_t>::apply_mcu(const reg_t &qubits,
   }
 }
 
+template <typename data_t>
+void QubitVectorThrust<data_t>::apply_rotation(const reg_t &qubits, const Rotation r, const double theta)
+{
+  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
+    return;   //first chunk execute all in batch
+
+  chunk_.apply_rotation(qubits,r,theta,chunk_.container()->num_chunks());
+}
 
 //------------------------------------------------------------------------------
 // Single-qubit matrices

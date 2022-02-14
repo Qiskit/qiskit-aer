@@ -1551,25 +1551,25 @@ void State<statevec_t>::apply_gate(const int_t iChunk, const Operations::Op &op)
       BaseState::qregs_[iChunk].apply_mcu(op.qubits, Linalg::VMatrix::r(op.params[0], op.params[1]));
       break;
     case Gates::mcrx:
-      BaseState::qregs_[iChunk].apply_mcu(op.qubits, Linalg::VMatrix::rx(op.params[0]));
+      BaseState::qregs_[iChunk].apply_rotation(op.qubits, QV::Rotation::x, std::real(op.params[0]));
       break;
     case Gates::mcry:
-      BaseState::qregs_[iChunk].apply_mcu(op.qubits, Linalg::VMatrix::ry(op.params[0]));
+      BaseState::qregs_[iChunk].apply_rotation(op.qubits, QV::Rotation::y, std::real(op.params[0]));
       break;
     case Gates::mcrz:
-      BaseState::qregs_[iChunk].apply_mcu(op.qubits, Linalg::VMatrix::rz(op.params[0]));
+      BaseState::qregs_[iChunk].apply_rotation(op.qubits, QV::Rotation::z, std::real(op.params[0]));
       break;
     case Gates::rxx:
-      BaseState::qregs_[iChunk].apply_matrix(op.qubits, Linalg::VMatrix::rxx(op.params[0]));
+      BaseState::qregs_[iChunk].apply_rotation(op.qubits, QV::Rotation::xx, std::real(op.params[0]));
       break;
     case Gates::ryy:
-      BaseState::qregs_[iChunk].apply_matrix(op.qubits, Linalg::VMatrix::ryy(op.params[0]));
+      BaseState::qregs_[iChunk].apply_rotation(op.qubits, QV::Rotation::yy, std::real(op.params[0]));
       break;
     case Gates::rzz:
-      BaseState::qregs_[iChunk].apply_diagonal_matrix(op.qubits, Linalg::VMatrix::rzz_diag(op.params[0]));
+      BaseState::qregs_[iChunk].apply_rotation(op.qubits, QV::Rotation::zz, std::real(op.params[0]));
       break;
     case Gates::rzx:
-      BaseState::qregs_[iChunk].apply_matrix(op.qubits, Linalg::VMatrix::rzx(op.params[0]));
+      BaseState::qregs_[iChunk].apply_rotation(op.qubits, QV::Rotation::zx, std::real(op.params[0]));
       break;
     case Gates::id:
       break;
