@@ -30,6 +30,7 @@ from test.terra.reference.ref_save_expval import (
     save_expval_circuit_parameterized,
     save_expval_final_statevecs,
 )
+from qiskit.providers.aer.library import SaveStatevector
 from qiskit.providers.aer import AerSimulator, AerError
 
 
@@ -295,6 +296,37 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         with self.assertRaises(AerError):
             backend.run([circuit]*3, shots=shots, parameter_binds=[parameter_binds]).result()
 
+    def test_run_path_with_truncation(self):
+        """Test parameterized circuits with truncation"""
+        backend = AerSimulator(method='statevector')
+        theta = Parameter('theta')
+        circuit = QuantumCircuit(5, 2)
+        for q in range(5):
+            circuit.ry(theta, q)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+        for q in range(5):
+            circuit.ry(theta, q)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+        circuit.append(SaveStatevector(3, label='sv', pershot=False, conditional=False), range(3))
+        
+        param_map = {theta: [0.1 * i for i in range(3)]}
+        param_sets = [{theta: 0.1 * i} for i in range(3)]
+
+        resolved_circuits = [circuit.bind_parameters(param_set) for param_set in param_sets]
+
+        result = backend.run(circuit, parameter_binds=[param_map]).result()
+        self.assertSuccess(result)
+
+        result_without_parameters = backend.run(resolved_circuits).result()
+        self.assertSuccess(result_without_parameters)
+
+        for actual_result in result.results:
+            metadata = actual_result.metadata
+            self.assertEqual(metadata["active_input_qubits"], [q for q in range(3)])
+        for i in range(3):
+            self.assertEqual(result.data(i)['sv'], result_without_parameters.data(i)['sv'])
 
 
 if __name__ == '__main__':
