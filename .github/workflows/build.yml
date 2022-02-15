@@ -150,10 +150,9 @@ jobs:
         with:
           python-version: 3.8
       - name: Install deps
-        run: python -m pip install -U cibuildwheel==2.1.2
+        run: python -m pip install -U cibuildwheel==2.2.2
       - name: Build Wheels
         env:
-          CIBW_SKIP: "cp310-* pp*"
           CIBW_ARCHS_MACOS: arm64
         run: cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v2

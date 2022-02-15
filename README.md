@@ -8,13 +8,13 @@ Qiskit is made up of elements that each work together to enable quantum computin
 
 ## Installation
 
-We encourage installing Qiskit via the PIP tool (a python package manager), which installs all Qiskit elements, including this one.
+We encourage installing Qiskit via the pip tool (a python package manager). The following command installs the core Qiskit components, including Aer.
 
 ```bash
 pip install qiskit
 ```
 
-PIP will handle all dependencies automatically for us and you will always install the latest (and well-tested) version.
+Pip will handle all dependencies automatically for us and you will always install the latest (and well-tested) version.
 
 To install from source, follow the instructions in the [contribution guidelines](https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md).
 
