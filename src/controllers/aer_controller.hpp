@@ -1218,7 +1218,6 @@ Transpile::Fusion Controller::transpile_fusion(Method method,
   }
   switch (method) {
   case Method::density_matrix:
-  case Method::unitary:
   case Method::superop: {
     // Halve the default threshold and max fused qubits for density matrix
     fusion_pass.threshold /= 2;
@@ -1234,6 +1233,11 @@ Transpile::Fusion Controller::transpile_fusion(Method method,
       // Halve default max fused qubits for Kraus noise fusion
       fusion_pass.max_qubit /= 2;
     }
+    break;
+  }
+  case Method::unitary: {
+    // max_qubit is the same with statevector
+    fusion_pass.threshold /= 2;
     break;
   }
   default: {
