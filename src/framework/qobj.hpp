@@ -129,12 +129,14 @@ Qobj::Qobj(const inputdata_t &input) {
 
   // Load circuits
   for (size_t i=0; i<num_circs; i++) {
-    // Get base circuit from qobj
-    Circuit circuit(static_cast<inputdata_t>(circs[i]), config, truncation);
     if (param_table.empty() || param_table[i].empty()) {
+      // Get base circuit from qobj
+      Circuit circuit(static_cast<inputdata_t>(circs[i]), config, truncation);
       // Non parameterized circuit
       circuits.push_back(std::move(circuit));
     } else {
+      // Get base circuit from qobj without truncation
+      Circuit circuit(static_cast<inputdata_t>(circs[i]), config, false);
       // Load different parameterizations of the initial circuit
       const auto circ_params = param_table[i];
       const size_t num_params = circ_params[0].second.size();
@@ -159,6 +161,12 @@ Qobj::Qobj(const inputdata_t &input) {
           // Update the param
           op.params[param_pos] = params.second[j];
         }
+        // Run truncation.
+        // TODO: Truncation should be performed and parameters should be resolved after it.
+        // However, parameters are associated with indices of instructions, which can be changed in truncation.
+        // Therefore, current implementation performs truncation for each parameter set.
+        if (truncation)
+          param_circuit.set_params(true);
         circuits.push_back(std::move(param_circuit));
       }
     }
