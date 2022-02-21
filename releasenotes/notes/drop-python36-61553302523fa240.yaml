@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Running qiskit-aer with Python 3.6 is no longer supported. Python >= 3.7
+    is now required to install and run qiskit-aer.
