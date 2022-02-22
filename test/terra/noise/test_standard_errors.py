@@ -18,6 +18,7 @@ import unittest
 
 import numpy as np
 from qiskit.providers.aer.noise import QuantumError
+from qiskit.providers.aer.backends import AerSimulator
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit.providers.aer.noise.errors.standard_errors import coherent_unitary_error
 from qiskit.providers.aer.noise.errors.standard_errors import depolarizing_error
@@ -511,9 +512,9 @@ class TestNoiseOldInterface(QiskitAerTestCase):
         with self.assertWarns(DeprecationWarning):
             actual = pauli_error(zip(paulis, probs), standard_gates=True)
 
-        target_circs = [[{"name": "x", "qubits": [1]}],
-                        [{"name": "y", "qubits": [1]}],
-                        [{"name": "z", "qubits": [1]}]]
+        target_circs = [[{"name": "id", "qubits": [0]}, {"name": "x", "qubits": [1]}],
+                        [{"name": "id", "qubits": [0]}, {"name": "y", "qubits": [1]}],
+                        [{"name": "id", "qubits": [0]}, {"name": "z", "qubits": [1]}]]
 
         with self.assertWarns(DeprecationWarning):
             expected = QuantumError(zip(target_circs, probs), standard_gates=True)
@@ -521,7 +522,15 @@ class TestNoiseOldInterface(QiskitAerTestCase):
         for i in range(actual.size):
             circ, prob = actual.error_term(i)
             expected_circ, expected_prob = expected.error_term(i)
-            self.assertEqual(circ, expected_circ)
+            circ.save_unitary(label="unitary")
+            expected_circ.save_unitary(label="unitary")
+
+            circ_result = AerSimulator().run(circ, shots=1).result()
+            expected_result = AerSimulator().run(expected_circ, shots=1).result()
+            circ_value = circ_result.data(0)["unitary"]
+            expected_value = expected_result.data(0)["unitary"]
+
+            self.assertEqual(circ_value, expected_value)
             self.assertAlmostEqual(prob, expected_prob)
 
     def test_pauli_error_2q_gate_from_pauli(self):
