@@ -18,7 +18,6 @@ import unittest
 
 import numpy as np
 from qiskit.providers.aer.noise import QuantumError
-from qiskit.providers.aer.backends import AerSimulator
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit.providers.aer.noise.errors.standard_errors import coherent_unitary_error
 from qiskit.providers.aer.noise.errors.standard_errors import depolarizing_error
@@ -515,14 +514,12 @@ class TestNoiseOldInterface(QiskitAerTestCase):
         target_circs = [[{"name": "id", "qubits": [0]}, {"name": "x", "qubits": [1]}],
                         [{"name": "id", "qubits": [0]}, {"name": "y", "qubits": [1]}],
                         [{"name": "id", "qubits": [0]}, {"name": "z", "qubits": [1]}]]
-
         with self.assertWarns(DeprecationWarning):
             expected = QuantumError(zip(target_circs, probs), standard_gates=True)
 
         for i in range(actual.size):
             circ, prob = actual.error_term(i)
             expected_circ, expected_prob = expected.error_term(i)
-
             self.assertEqual(qi.Operator(circ), qi.Operator(expected_circ))
             self.assertAlmostEqual(prob, expected_prob)
 
