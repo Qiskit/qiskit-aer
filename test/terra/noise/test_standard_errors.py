@@ -522,15 +522,8 @@ class TestNoiseOldInterface(QiskitAerTestCase):
         for i in range(actual.size):
             circ, prob = actual.error_term(i)
             expected_circ, expected_prob = expected.error_term(i)
-            circ.save_unitary(label="unitary")
-            expected_circ.save_unitary(label="unitary")
 
-            circ_result = AerSimulator().run(circ, shots=1).result()
-            expected_result = AerSimulator().run(expected_circ, shots=1).result()
-            circ_value = circ_result.data(0)["unitary"]
-            expected_value = expected_result.data(0)["unitary"]
-
-            self.assertEqual(circ_value, expected_value)
+            self.assertEqual(qi.Operator(circ), qi.Operator(expected_circ))
             self.assertAlmostEqual(prob, expected_prob)
 
     def test_pauli_error_2q_gate_from_pauli(self):
