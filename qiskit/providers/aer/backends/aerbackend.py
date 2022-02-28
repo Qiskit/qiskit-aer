@@ -288,8 +288,20 @@ class AerBackend(Backend, ABC):
         # Start timer
         start = time.time()
 
+        # Take metadata for JSON serialization
+        metadata_list = []
+        for expr in qobj.experiments:
+            if hasattr(expr.header, 'metadata'):
+                metadata_list.append(expr.header.metadata)
+                del expr.header.metadata
+            else:
+                metadata_list.append(None)
+
         # Run simulation
         output = self._execute(qobj)
+        for expr, metadata in zip(qobj.experiments, metadata_list):
+            if metadata:
+                expr.header.metadata = metadata
 
         # Validate output
         if not isinstance(output, dict):
