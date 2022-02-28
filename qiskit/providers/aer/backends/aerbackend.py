@@ -306,7 +306,17 @@ class AerBackend(Backend, ABC):
         output["backend_version"] = self.configuration().backend_version
 
         # Copy experiment headers
-        if output["results"] and len(output["results"]) == len(qobj.experiments):
+        if hasattr(qobj.config, 'parameterizations'):
+            result_idx = 0
+            expr_idx = 0
+            for parameterization in qobj.config.parameterizations:
+                qobj_header = qobj.experiments[expr_idx].header.to_dict()
+                param_len = 1 if len(parameterization) == 0 else len(parameterization[0][1])
+                for _ in range(param_len):
+                    output["results"][result_idx]["header"] = qobj_header
+                    result_idx += 1
+                expr_idx += 1
+        else:
             for result, experiment in zip(output["results"], qobj.experiments):
                 qobj_header = experiment.header.to_dict()
                 if "header" in result and "name" in result["header"]:
