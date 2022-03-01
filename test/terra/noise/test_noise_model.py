@@ -229,6 +229,55 @@ class TestNoiseModel(QiskitAerTestCase):
         result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
 
+    def test_noise_model_from_invalid_t2_backend(self):
+        """Test if issue user warning when creating a noise model from invalid t2 backend"""
+        from qiskit.providers.models.backendproperties import BackendProperties, Gate, Nduv
+        import datetime
+
+        class InvalidT2Fake1Q(mock.FakeBackend):
+            def __init__(self):
+                mock_time = datetime.datetime.now()
+                dt = 1.3333
+                configuration = BackendProperties(
+                    backend_name="invalid_t2",
+                    backend_version="0.0.0",
+                    num_qubits=1,
+                    basis_gates=["u3"],
+                    qubits=[
+                        [
+                            Nduv(date=mock_time, name="T1", unit="µs", value=71.9500421005539),
+                            Nduv(date=mock_time, name="T2", unit="µs", value=200),
+                            Nduv(date=mock_time, name="frequency", unit="MHz", value=4919.96800692),
+                        ],
+                    ],
+                    gates=[
+                        Gate(
+                            gate="u3",
+                            name="u3_0",
+                            qubits=[0],
+                            parameters=[
+                                Nduv(date=mock_time, name="gate_error", unit="", value=0.001),
+                                Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
+                            ],
+                        ),
+                    ],
+                    last_update_date=mock_time,
+                    general=[],
+                )
+                super().__init__(configuration)
+
+            def defaults(self):
+                """defaults == configuration"""
+                return self._configuration
+
+            def properties(self):
+                """properties == configuration"""
+                return self._configuration
+
+        backend = InvalidT2Fake1Q()
+        with self.assertWarns(UserWarning):
+            NoiseModel.from_backend(backend)
+
     def test_transform_noise(self):
         org_error = reset_error(0.2)
         new_error = pauli_error([("I", 0.5), ("Z", 0.5)])
