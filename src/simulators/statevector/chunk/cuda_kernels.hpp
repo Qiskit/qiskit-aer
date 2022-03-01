@@ -18,6 +18,7 @@
 
 namespace AER {
 namespace QV {
+namespace Chunk {
 
 
 template <typename data_t,typename kernel_t> __global__
@@ -339,6 +340,7 @@ __global__ void dev_reduce_sum_uint(uint_t *pReduceBuffer,uint_t n,uint_t buf_si
 
 
 //------------------------------------------------------------------------------
+} // end namespace Chunk
 } // end namespace QV
 } // end namespace AER
 //------------------------------------------------------------------------------
