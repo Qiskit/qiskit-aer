@@ -1,7 +1,7 @@
 /**
  * This code is part of Qiskit.
  *
- * (C) Copyright IBM 2018, 2019, 2020.
+ * (C) Copyright IBM 2018, 2019, 2020, 2021, 2022.
  *
  * This code is licensed under the Apache License, Version 2.0. You may
  * obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,6 +21,7 @@
 
 namespace AER {
 namespace QV {
+namespace Chunk {
 
 
 //============================================================================
@@ -52,44 +53,44 @@ public:
     return data_[i];
   }
 
-  uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit);
-  void Deallocate(void);
+  uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit) override;
+  void Deallocate(void) override;
 
-  void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk)
+  void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk) override
   {
     matrix_[iChunk] = (thrust::complex<double>*)&mat[0];
   }
-  void StoreMatrix(const std::complex<double>* mat,uint_t iChunk,uint_t size)
+  void StoreMatrix(const std::complex<double>* mat,uint_t iChunk,uint_t size) override
   {
     matrix_[iChunk] = (thrust::complex<double>*)mat;
   }
 
-  void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk)
+  void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk) override
   {
     params_[iChunk] = (uint_t*)&prm[0];
   }
   void ResizeMatrixBuffers(int bits){}
 
-  void Set(uint_t i,const thrust::complex<data_t>& t)
+  void Set(uint_t i,const thrust::complex<data_t>& t) override
   {
     data_[i] = t;
   }
-  thrust::complex<data_t> Get(uint_t i) const
+  thrust::complex<data_t> Get(uint_t i) const override
   {
     return data_[i];
   }
 
-  thrust::complex<data_t>* chunk_pointer(uint_t iChunk) const
+  thrust::complex<data_t>* chunk_pointer(uint_t iChunk) const override
   {
     return (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data()) + (iChunk << this->chunk_bits_);
   }
 
-  thrust::complex<double>* matrix_pointer(uint_t iChunk) const
+  thrust::complex<double>* matrix_pointer(uint_t iChunk) const override
   {
     return matrix_[iChunk];
   }
 
-  uint_t* param_pointer(uint_t iChunk) const
+  uint_t* param_pointer(uint_t iChunk) const override
   {
     return params_[iChunk];
   }
@@ -104,16 +105,15 @@ public:
 #endif
   }
 
-  void CopyIn(Chunk<data_t>& src,uint_t iChunk);
-  void CopyOut(Chunk<data_t>& src,uint_t iChunk);
-  void CopyIn(thrust::complex<data_t>* src,uint_t iChunk, uint_t size);
-  void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk, uint_t size);
-  void Swap(Chunk<data_t>& src,uint_t iChunk);
+  void CopyIn(Chunk<data_t>& src,uint_t iChunk) override;
+  void CopyOut(Chunk<data_t>& src,uint_t iChunk) override;
+  void CopyIn(thrust::complex<data_t>* src,uint_t iChunk, uint_t size) override;
+  void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk, uint_t size) override;
+  void Swap(Chunk<data_t>& src,uint_t iChunk) override;
 
-  void Zero(uint_t iChunk,uint_t count);
+  void Zero(uint_t iChunk,uint_t count) override;
 
-  reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true,uint_t count = 1) const;
-  thrust::complex<double> norm(uint_t iChunk,uint_t count,uint_t stride = 1,bool dot = true) const;
+  reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true,uint_t count = 1) const override;
 
 };
 
@@ -267,22 +267,9 @@ reg_t HostChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vector
   return samples;
 }
 
-template <typename data_t>
-thrust::complex<double> HostChunkContainer<data_t>::norm(uint_t iChunk, uint_t count, uint_t stride, bool dot) const
-{
-  thrust::complex<double> sum,zero(0.0,0.0);
-
-  strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+count), stride);
-
-  if(dot)
-    sum = thrust::transform_reduce(thrust::omp::par, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
-  else
-    sum = thrust::reduce(thrust::omp::par, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
-
-  return sum;
-}
 
 //------------------------------------------------------------------------------
+} // end namespace Chunk
 } // end namespace QV
 } // end namespace AER
 //------------------------------------------------------------------------------
