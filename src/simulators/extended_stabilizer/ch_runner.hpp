@@ -664,11 +664,7 @@ void Runner::metropolis_step(AER::RngEngine &rng)
   }
   complex_t ampsum(real_part, imag_part);
   double p_threshold = std::norm(ampsum)/std::norm(old_ampsum_);
-  #ifdef  __FAST_MATH__ //isnan doesn't behave well under fastmath, so use absolute tolerance check instead
-  if(std::isinf(p_threshold) || std::abs(std::norm(old_ampsum_)-0.) < 1e-8)
-  #else
   if(std::isinf(p_threshold) || std::isnan(p_threshold))
-  #endif
   {
     accept_ = true;
     old_ampsum_ = ampsum;
