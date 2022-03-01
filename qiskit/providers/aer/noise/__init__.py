@@ -146,7 +146,6 @@ The following functions can be used to generate many common types of
 
     pauli_error
     depolarizing_error
-    pauli_error
     mixed_unitary_error
     coherent_unitary_error
     reset_error
