@@ -19,17 +19,18 @@ import unittest
 import numpy as np
 from qiskit.providers.aer.backends import AerSimulator
 from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.utils.noise_transformation import transform_noise_model
+from qiskit.providers.aer.noise.device.models import _excited_population
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit.providers.aer.noise.errors.standard_errors import kraus_error
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
 from qiskit.providers.aer.noise.errors.standard_errors import reset_error
-from test.terra.common import QiskitAerTestCase
+from qiskit.providers.aer.noise.errors.standard_errors import thermal_relaxation_error
+from qiskit.providers.aer.utils.noise_transformation import transform_noise_model
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.transpiler import TranspilerError
 from qiskit.test import mock
+from test.terra.common import QiskitAerTestCase
 
 
 class TestNoiseModel(QiskitAerTestCase):
@@ -234,6 +235,10 @@ class TestNoiseModel(QiskitAerTestCase):
         from qiskit.providers.models.backendproperties import BackendProperties, Gate, Nduv
         import datetime
 
+        t1_ns, invalid_t2_ns = 75_1000, 200_1000
+        u3_time_ns = 320
+        frequency = 4919.96800692
+
         class InvalidT2Fake1Q(mock.FakeBackend):
             def __init__(self):
                 mock_time = datetime.datetime.now()
@@ -245,9 +250,9 @@ class TestNoiseModel(QiskitAerTestCase):
                     basis_gates=["u3"],
                     qubits=[
                         [
-                            Nduv(date=mock_time, name="T1", unit="µs", value=71.9500421005539),
-                            Nduv(date=mock_time, name="T2", unit="µs", value=200),
-                            Nduv(date=mock_time, name="frequency", unit="MHz", value=4919.96800692),
+                            Nduv(date=mock_time, name="T1", unit="µs", value=t1_ns/1000),
+                            Nduv(date=mock_time, name="T2", unit="µs", value=invalid_t2_ns/1000),
+                            Nduv(date=mock_time, name="frequency", unit="MHz", value=frequency),
                         ],
                     ],
                     gates=[
@@ -257,7 +262,7 @@ class TestNoiseModel(QiskitAerTestCase):
                             qubits=[0],
                             parameters=[
                                 Nduv(date=mock_time, name="gate_error", unit="", value=0.001),
-                                Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
+                                Nduv(date=mock_time, name="gate_length", unit="ns", value=u3_time_ns),
                             ],
                         ),
                     ],
@@ -276,7 +281,14 @@ class TestNoiseModel(QiskitAerTestCase):
 
         backend = InvalidT2Fake1Q()
         with self.assertWarns(UserWarning):
-            NoiseModel.from_backend(backend)
+            noise_model = NoiseModel.from_backend(backend, gate_error=False)
+            expected = thermal_relaxation_error(
+                t1=t1_ns,
+                t2=2*t1_ns,
+                time=u3_time_ns,
+                excited_state_population=_excited_population(frequency, temperature=0)
+            )
+            self.assertEqual(expected, noise_model._local_quantum_errors["u3"][(0, )])
 
     def test_transform_noise(self):
         org_error = reset_error(0.2)
