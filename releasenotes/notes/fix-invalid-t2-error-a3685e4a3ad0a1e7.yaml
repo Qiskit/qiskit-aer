@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixes a bug in ``NoiseModel.from_backend()`` that raised an error when
+    T2 value greater than 2 * T1 was supplied by the backend.
+    After this fix, it becomes to truncate T2 value up to 2 * T1 and
+    issue a user warning if truncates.
+    The bug was introduced at #1391 and, before that, ``NoiseModel.from_backend()`` had
+    truncated the T2 value up to 2 * T1 silently.
+
+    See `Issue 1464 <https://github.com/Qiskit/qiskit-aer/issues/1464>`__
+    for details.
