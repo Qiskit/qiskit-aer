@@ -91,7 +91,9 @@ class TestOptions(SimulatorTestCase):
 
         result = backend.run(qc).result()
         value = result.results[0].metadata.get('device', None)
-        self.assertEqual(value, device)
+        # device = 'GPU_cuStateVec' when cuStateVec is enabled
+        # so check if 'GPU' is included in value from result
+        self.assertTrue((value in device))
 
     @data('automatic', 'statevector', 'density_matrix', 'stabilizer',
           'matrix_product_state', 'extended_stabilizer')

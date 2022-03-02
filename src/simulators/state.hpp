@@ -355,8 +355,9 @@ State<state_t>::~State(void)
 }
 
 template <class state_t>
-void State<state_t>::set_config(const json_t &config) {
-  (ignore_argument)config;
+void State<state_t>::set_config(const json_t &config) 
+{
+
 }
 
 template <class state_t>

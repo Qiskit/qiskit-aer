@@ -339,9 +339,9 @@ class QasmSimulator(AerBackend):
     }
 
     _SIMULATION_METHODS = [
-        'automatic', 'statevector', 'statevector_gpu',
+        'automatic', 'statevector', 'statevector_gpu', 'statevector_custatevec',
         'statevector_thrust', 'density_matrix',
-        'density_matrix_gpu', 'density_matrix_thrust',
+        'density_matrix_gpu', 'density_matrix_custatevec', 'density_matrix_thrust',
         'stabilizer', 'matrix_product_state', 'extended_stabilizer'
     ]
 
@@ -595,7 +595,8 @@ class QasmSimulator(AerBackend):
     def _method_basis_gates(self):
         """Return method basis gates and custom instructions"""
         method = self._options.get('method', None)
-        if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
+        if method in ['density_matrix', 'density_matrix_gpu',
+                      'density_matrix_custatevec', 'density_matrix_thrust']:
             return sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
                 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
@@ -628,7 +629,8 @@ class QasmSimulator(AerBackend):
             return self._options_configuration['custom_instructions']
 
         method = self._options.get('method', None)
-        if method in ['statevector', 'statevector_gpu', 'statevector_thrust']:
+        if method in ['statevector', 'statevector_gpu',
+                      'statevector_custatevec', 'statevector_thrust']:
             return sorted([
                 'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'snapshot', 'save_expval',
                 'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
@@ -636,7 +638,8 @@ class QasmSimulator(AerBackend):
                 'save_density_matrix', 'save_statevector', 'save_statevector_dict',
                 'set_statevector'
             ])
-        if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
+        if method in ['density_matrix', 'density_matrix_gpu',
+                      'density_matrix_custatevec', 'density_matrix_thrust']:
             return sorted([
                 'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop', 'snapshot',
                 'save_expval', 'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
@@ -666,10 +669,12 @@ class QasmSimulator(AerBackend):
     def _set_method_config(self, method=None):
         """Set non-basis gate options when setting method"""
         # Update configuration description and number of qubits
-        if method in ['statevector', 'statevector_gpu', 'statevector_thrust']:
+        if method in ['statevector', 'statevector_gpu',
+                      'statevector_custatevec', 'statevector_thrust']:
             description = 'A C++ statevector simulator with noise'
             n_qubits = MAX_QUBITS_STATEVECTOR
-        elif method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
+        elif method in ['density_matrix', 'density_matrix_gpu',
+                        'density_matrix_custatevec', 'density_matrix_thrust']:
             description = 'A C++ density matrix simulator with noise'
             n_qubits = MAX_QUBITS_STATEVECTOR // 2
         elif method == 'matrix_product_state':
