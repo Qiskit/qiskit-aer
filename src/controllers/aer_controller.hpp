@@ -1538,54 +1538,39 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
       result.metadata.add(true, "batched_shots_optimization");
     }
     else{
-      //if parallel_shots is disabled or multi-chunk distribution is used, disable shot parallelization here
-      //to avoid nested omp that decreases performance
-      //(DO NOT use if statement in #pragma omp)
-      if(parallel_shots_ == 1 || block_bits != circ.num_qubits){
-        state.set_max_matrix_qubits(max_bits );
-        state.set_distribution(num_process_per_experiment_);
+      std::vector<ExperimentResult> par_results(parallel_shots_);
+      int_t par_shots = parallel_shots_;
+      if(block_bits != circ.num_qubits)
+        par_shots = 1;
+
+      auto run_circuit_without_sampled_noise_lambda = [this,&par_results,circ,noise,config,method,block_bits,max_bits,par_shots](int_t i){
+        uint_t i_shot,shot_end;
+        i_shot = circ.shots*i/par_shots;
+        shot_end = circ.shots*(i+1)/par_shots;
+
+        State_t par_state;
+        // Set state config
+        par_state.set_config(config);
+        par_state.set_parallelization(parallel_state_update_);
+        par_state.set_global_phase(circ.global_phase_angle);
+
+        par_state.set_distribution(num_process_per_experiment_);
+        par_state.set_max_matrix_qubits(max_bits );
 
         // allocate qubit register
-        state.allocate(circ.num_qubits, block_bits);
+        par_state.allocate(circ.num_qubits, block_bits);
 
-        for (int i = 0; i < circ.shots; i++) {
+        for(;i_shot<shot_end;i_shot++){
           RngEngine rng;
-          rng.set_seed(circ.seed + i);
-          run_single_shot(circ, state, result, rng);
+          rng.set_seed(circ.seed + i_shot);
+          run_single_shot(circ, par_state, par_results[i], rng);
         }
-        state.add_metadata(result);
-      }
-      else{
-        // Vector to store parallel thread output data
-        std::vector<ExperimentResult> par_results(parallel_shots_);
+        par_state.add_metadata(par_results[i]);
+      };
+      Utils::apply_omp_parallel_for((par_shots > 1),0,par_shots,run_circuit_without_sampled_noise_lambda);
 
-#pragma omp parallel for num_threads(parallel_shots_)
-        for (int i = 0; i < parallel_shots_; i++) {
-          uint_t i_shot,shot_end;
-          i_shot = circ.shots*i/parallel_shots_;
-          shot_end = circ.shots*(i+1)/parallel_shots_;
-
-          State_t par_state;
-          // Set state config
-          par_state.set_config(config);
-          par_state.set_parallelization(parallel_state_update_);
-          par_state.set_global_phase(circ.global_phase_angle);
-
-          par_state.set_max_matrix_qubits(max_bits );
-
-          // allocate qubit register
-          par_state.allocate(circ.num_qubits, block_bits);
-
-          for(;i_shot<shot_end;i_shot++){
-            RngEngine rng;
-            rng.set_seed(circ.seed + i_shot);
-            run_single_shot(circ, par_state, par_results[i], rng);
-          }
-          par_state.add_metadata(par_results[i]);
-        }
-        for (auto &res : par_results) {
-          result.combine(std::move(res));
-        }
+      for (auto &res : par_results) {
+        result.combine(std::move(res));
       }
     }
   }
@@ -1597,12 +1582,12 @@ void Controller::run_circuit_with_sampled_noise(
     const Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
     const Method method, ExperimentResult &result) const 
 {
-  //following looks very similar but we have to separate them to avoid omp nested loops that causes performance degradation
-  //(DO NOT use if statement in #pragma omp)
-  if(parallel_shots_ == 1){
-    Noise::NoiseModel dummy_noise;
+  std::vector<ExperimentResult> par_results(parallel_shots_);
 
+  auto run_circuit_with_sampled_noise_lambda = [this,&par_results,circ,noise,config,method](int_t i){
     State_t state;
+    uint_t i_shot,shot_end;
+    Noise::NoiseModel dummy_noise;
 
     // Validate gateset and memory requirements, raise exception if they're exceeded
     validate_state(state, circ, noise, true);
@@ -1616,85 +1601,41 @@ void Controller::run_circuit_with_sampled_noise(
     auto fusion_pass = transpile_fusion(method, circ.opset(), config);
     auto cache_block_pass = transpile_cache_blocking(method, circ, noise, config);
 
-    for(int_t i_shot=0;i_shot<circ.shots;i_shot++){
+    i_shot = circ.shots*i/parallel_shots_;
+    shot_end = circ.shots*(i+1)/parallel_shots_;
+
+    for(;i_shot<shot_end;i_shot++){
       RngEngine rng;
       rng.set_seed(circ.seed + i_shot);
 
       // Sample noise using circuit method
       Circuit noise_circ = noise.sample_noise(circ, rng);
+
       noise_circ.shots = 1;
-      fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),result);
+      fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
+                                   par_results[i]);
       uint_t block_bits = circ.num_qubits;
       if(state.multi_chunk_distribution_supported()){
-        cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),result);
+        cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
+                                          par_results[i]);
        if (cache_block_pass.enabled()) {
          block_bits = cache_block_pass.block_bits();
         }
       }
+
       state.set_distribution(num_process_per_experiment_);
       state.set_max_matrix_qubits(get_max_matrix_qubits(circ) );
       // allocate qubit register
       state.allocate(noise_circ.num_qubits, block_bits);
 
-      run_single_shot(noise_circ, state, result, rng);
+      run_single_shot(noise_circ, state, par_results[i], rng);
     }
-    state.add_metadata(result);
-  }
-  else{
-    // Vector to store parallel thread output data
-    std::vector<ExperimentResult> par_results(parallel_shots_);
-#pragma omp parallel for num_threads(parallel_shots_)
-    for (int i = 0; i < parallel_shots_; i++) {
-      State_t state;
-      uint_t i_shot,shot_end;
-      Noise::NoiseModel dummy_noise;
+    state.add_metadata(par_results[i]);
+  };
+  Utils::apply_omp_parallel_for((parallel_shots_ > 1),0,parallel_shots_,run_circuit_with_sampled_noise_lambda);
 
-      // Validate gateset and memory requirements, raise exception if they're exceeded
-      validate_state(state, circ, noise, true);
-
-      // Set state config
-      state.set_config(config);
-      state.set_parallelization(parallel_state_update_);
-      state.set_global_phase(circ.global_phase_angle);
-
-      // Transpilation for circuit noise method
-      auto fusion_pass = transpile_fusion(method, circ.opset(), config);
-      auto cache_block_pass = transpile_cache_blocking(method, circ, noise, config);
-
-      i_shot = circ.shots*i/parallel_shots_;
-      shot_end = circ.shots*(i+1)/parallel_shots_;
-
-      for(;i_shot<shot_end;i_shot++){
-        RngEngine rng;
-        rng.set_seed(circ.seed + i_shot);
-
-        // Sample noise using circuit method
-        Circuit noise_circ = noise.sample_noise(circ, rng);
-
-        noise_circ.shots = 1;
-        fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
-                                     par_results[i]);
-        uint_t block_bits = circ.num_qubits;
-        if(state.multi_chunk_distribution_supported()){
-          cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
-                                            par_results[i]);
-         if (cache_block_pass.enabled()) {
-           block_bits = cache_block_pass.block_bits();
-          }
-        }
-
-        state.set_max_matrix_qubits(get_max_matrix_qubits(circ) );
-        // allocate qubit register
-        state.allocate(noise_circ.num_qubits, block_bits);
-
-        run_single_shot(noise_circ, state, par_results[i], rng);
-      }
-      state.add_metadata(par_results[i]);
-    }
-
-    for (auto &res : par_results) {
-      result.combine(std::move(res));
-    }
+  for (auto &res : par_results) {
+    result.combine(std::move(res));
   }
 }
 

@@ -510,13 +510,6 @@ protected:
 #endif
 
   uint_t mapped_index(const uint_t idx);
-
-  //apply OpenMP parallelization to loop with lambda function if OpenMP can be applied
-  template<typename Lambda>
-  void apply_omp_parallel(bool enabled, int_t i_begin, int_t i_end, Lambda& func);
-
-  template<typename Lambda>
-  double apply_omp_parallel_reduction(bool enabled, int_t i_begin, int_t i_end, Lambda& func);
 };
 
 
@@ -572,38 +565,6 @@ void StateChunk<state_t>::set_distribution(uint_t nprocs)
     distributed_comm_ = MPI_COMM_WORLD;
   }
 #endif
-}
-
-template <class state_t>
-template<typename Lambda>
-void StateChunk<state_t>::apply_omp_parallel(bool enabled, int_t i_begin, int_t i_end, Lambda& func)
-{
-  if(enabled){
-#pragma omp parallel for
-    for(int_t i=i_begin;i<i_end;i++)
-      func(i);
-  }
-  else{
-    for(int_t i=i_begin;i<i_end;i++)
-      func(i);
-  }
-}
-
-template <class state_t>
-template<typename Lambda>
-double StateChunk<state_t>::apply_omp_parallel_reduction(bool enabled, int_t i_begin, int_t i_end, Lambda& func)
-{
-  double val = 0.0;
-  if(enabled){
-#pragma omp parallel for reduction(+:val)
-    for(int_t i=i_begin;i<i_end;i++)
-      val += func(i);
-  }
-  else{
-    for(int_t i=i_begin;i<i_end;i++)
-      val += func(i);
-  }
-  return val;
 }
 
 template <class state_t>
@@ -954,7 +915,7 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
         qregs_[j].initialize_creg(cregs_[0].memory_size(), cregs_[0].register_size());
       }
     };
-    apply_omp_parallel((num_groups_ > 1 && chunk_omp_parallel_),0,num_groups_,init_group);
+    Utils::apply_omp_parallel_for((num_groups_ > 1 && chunk_omp_parallel_),0,num_groups_,init_group);
 
     apply_global_phase(); //this is parallelized in StateChunk sub-classes
 
@@ -1711,7 +1672,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
         uint_t iChunk2 = baseChunk | mask1;
         qregs_[iChunk1].apply_chunk_swap(qubits,qregs_[iChunk2],true);
       };
-      apply_omp_parallel(chunk_omp_parallel_, 0, nPair, apply_chunk_swap);
+      Utils::apply_omp_parallel_for(chunk_omp_parallel_, 0, nPair, apply_chunk_swap);
     }
 #ifdef AER_MPI
     else{
@@ -1824,7 +1785,7 @@ void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
       uint_t istate = top_chunk_of_group_[ig];
       qregs_[istate].apply_mcx(qubits);
     };
-    apply_omp_parallel((chunk_omp_parallel_ && num_groups_ > 1),0,num_groups_,apply_mcx);
+    Utils::apply_omp_parallel_for((chunk_omp_parallel_ && num_groups_ > 1),0,num_groups_,apply_mcx);
   }
   else{ //exchange over chunks
     int_t iPair;
@@ -1861,7 +1822,7 @@ void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
 
         qregs_[iChunk1].apply_chunk_swap(qubits,qregs_[iChunk2],true);
       };
-      apply_omp_parallel(chunk_omp_parallel_,0, nPair, apply_chunk_swap);
+      Utils::apply_omp_parallel_for(chunk_omp_parallel_,0, nPair, apply_chunk_swap);
     }
 #ifdef AER_MPI
     else{
