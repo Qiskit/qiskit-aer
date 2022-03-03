@@ -148,6 +148,10 @@ class AerSimulator(AerBackend):
     initialization or with :meth:`set_options`. The list of supported devices
     for the current system can be returned using :meth:`available_devices`.
 
+    If AerSimulator is built with cuStateVec support, cuStateVec APIs are enabled
+    by setting ``cuStateVec_enable=True``. This is experimental implementation
+    based on cuQuantum Beta 2.
+
     **Additional Backend Options**
 
     The following simulator specific backend options are supported
@@ -215,6 +219,11 @@ class AerSimulator(AerBackend):
       is thrown. In general, a state vector of n-qubits uses 2^n complex
       values (16 Bytes). If set to 0, the maximum will be automatically
       set to the system memory size (Default: 0).
+
+    * ``cuStateVec_enable`` (bool): This option enables accelerating by
+      cuStateVec library of cuQuantum from NVIDIA, that has highly optimized
+      kernels for GPUs (Default: False). This option will be ignored
+      if AerSimulator is not built with cuStateVec support.
 
     * ``blocking_enable`` (bool): This option enables parallelization with
       multiple GPUs or multiple processes with MPI (CPU/GPU). This option
@@ -534,6 +543,8 @@ class AerSimulator(AerBackend):
             memory=None,
             noise_model=None,
             seed_simulator=None,
+            # cuStateVec (cuQuantum) option
+            cuStateVec_enable=False,
             # cache blocking for multi-GPUs/MPI options
             blocking_qubits=None,
             blocking_enable=False,

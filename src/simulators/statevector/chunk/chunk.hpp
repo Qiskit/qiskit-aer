@@ -18,8 +18,14 @@
 #include "simulators/statevector/chunk/device_chunk_container.hpp"
 #include "simulators/statevector/chunk/host_chunk_container.hpp"
 
+#ifdef AER_CUSTATEVEC
+#include "simulators/statevector/chunk/cuStateVec_chunk_container.hpp"
+#endif
+
+
 namespace AER {
 namespace QV {
+namespace Chunk {
 
 
 //============================================================================
@@ -44,6 +50,7 @@ public:
     num_qubits_ = 0;
     chunk_index_ = 0;
     mapped_ = false;
+    cache_ = nullptr;
   }
 
   Chunk(std::weak_ptr<ChunkContainer<data_t>> cc,uint_t pos)
@@ -54,6 +61,7 @@ public:
     num_qubits_ = 0;
     chunk_index_ = 0;
     mapped_ = false;
+    cache_ = nullptr;
   }
   Chunk(Chunk<data_t>& chunk)   //map chunk from exisiting chunk (used fo cache chunk)
   {
@@ -63,9 +71,12 @@ public:
     num_qubits_ = chunk.num_qubits_;
     chunk_index_ = chunk.chunk_index_;
     mapped_ = true;
+    cache_ = nullptr;
   }
   ~Chunk()
   {
+    if(cache_)
+      cache_.reset();
   }
 
   void set_device(void) const
@@ -256,9 +267,13 @@ public:
     return chunk_container_.lock()->sample_measure(chunk_pos_,rnds,stride,dot,count);
   }
 
-  thrust::complex<double> norm(uint_t count=1,uint_t stride = 1,bool dot = true) const
+  double norm(uint_t count) const
   {
-    return chunk_container_.lock()->norm(chunk_pos_,count,stride,dot);
+    return chunk_container_.lock()->norm(chunk_pos_,count);
+  }
+  double trace(uint_t row, uint_t count) const
+  {
+    return chunk_container_.lock()->trace(chunk_pos_,row,count);
   }
 
 #ifdef AER_THRUST_CUDA
@@ -349,10 +364,64 @@ public:
       chunk_container_.lock()->keep_conditional(keep);
   }
 
+  //apply matrix
+  void apply_matrix(const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count)
+  {
+    chunk_container_.lock()->apply_matrix(chunk_pos_,qubits,control_bits,mat,count);
+  }
+  //apply diagonal matrix
+  void apply_diagonal_matrix(const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t count)
+  {
+    chunk_container_.lock()->apply_diagonal_matrix(chunk_pos_,qubits,control_bits,diag,count);
+  }
+  //apply (controlled) X
+  void apply_X(const reg_t& qubits,const uint_t count)
+  {
+    chunk_container_.lock()->apply_X(chunk_pos_,qubits,count);
+  }
+  //apply (controlled) Y
+  void apply_Y(const reg_t& qubits,const uint_t count)
+  {
+    chunk_container_.lock()->apply_Y(chunk_pos_,qubits,count);
+  }
+  //apply (controlled) phase
+  void apply_phase(const reg_t& qubits,const int_t control_bits,const std::complex<double> phase,const uint_t count)
+  {
+    chunk_container_.lock()->apply_phase(chunk_pos_,qubits,control_bits,phase,count);
+  }
+  //apply (controlled) swap gate
+  void apply_swap(const reg_t& qubits,const int_t control_bits,const uint_t count)
+  {
+    chunk_container_.lock()->apply_swap(chunk_pos_,qubits,control_bits,count);
+  }
+  //apply permutation
+  void apply_permutation(const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t count)
+  {
+    chunk_container_.lock()->apply_permutation(chunk_pos_,qubits,pairs,count);
+  }
+
+  //apply rotation around axis
+  void apply_rotation(const reg_t &qubits, const Rotation r, const double theta, const uint_t count)
+  {
+    chunk_container_.lock()->apply_rotation(chunk_pos_,qubits,r,theta,count);
+  }
+
+  //get probabilities of chunk
+  void probabilities(std::vector<double>& probs, const reg_t& qubits) const
+  {
+    chunk_container_.lock()->probabilities(probs, chunk_pos_,qubits);
+  }
+  //Pauli expectation values
+  double expval_pauli(const reg_t& qubits,const std::string &pauli,const complex_t initial_phase) const
+  {
+    return chunk_container_.lock()->expval_pauli(chunk_pos_,qubits,pauli,initial_phase);
+  }
+
 
 };
 
 //------------------------------------------------------------------------------
+}  // end namespace Chunk
 } // end namespace QV
 } // end namespace AER
 //------------------------------------------------------------------------------
