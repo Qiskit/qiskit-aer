@@ -377,6 +377,8 @@ protected:
   int_t batched_shots_gpu_max_qubits_ = 16;   //multi-shot parallelization is applied if qubits is less than max qubits
   bool enable_batch_multi_shots_ = false;   //multi-shot parallelization can be applied
 
+  //settings for cuStateVec
+  bool cuStateVec_enable_ = false;
 };
 
 //=========================================================================
@@ -466,6 +468,12 @@ void Controller::set_config(const json_t &config) {
     JSON::get_value(batched_shots_gpu_max_qubits_, "batched_shots_gpu_max_qubits", config);
   }
 
+  //cuStateVec configs
+  cuStateVec_enable_ = false;
+  if(JSON::check_key("cuStateVec_enable", config)) {
+    JSON::get_value(cuStateVec_enable_, "cuStateVec_enable", config);
+  }
+
   // Override automatic simulation method with a fixed method
   std::string method;
   if (JSON::get_value(method, "method", config)) {
@@ -489,6 +497,9 @@ void Controller::set_config(const json_t &config) {
     }
   }
 
+  if(method_ == Method::density_matrix || method_ == Method::unitary)
+    batched_shots_gpu_max_qubits_ /= 2;
+
   // Override automatic simulation method with a fixed method
   if (JSON::get_value(sim_device_name_, "device", config)) {
     if (sim_device_name_ == "CPU") {
@@ -502,18 +513,37 @@ void Controller::set_config(const json_t &config) {
 #endif
     } else if (sim_device_name_ == "GPU") {
 #ifndef AER_THRUST_CUDA
-        throw std::runtime_error(
-            "Simulation device \"GPU\" is not supported on this system");
+      throw std::runtime_error(
+          "Simulation device \"GPU\" is not supported on this system");
 #else
-        int nDev;
-        if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
-            cudaGetLastError();
-            throw std::runtime_error("No CUDA device available!");
-        }
 
-        sim_device_ = Device::GPU;
-#endif
+#ifndef AER_CUSTATEVEC
+      if(cuStateVec_enable_){
+        //Aer is not built for cuStateVec
+        throw std::runtime_error(
+            "Simulation device \"GPU\" does not supported cuStateVec on this system");
       }
+#endif
+      int nDev;
+      if (cudaGetDeviceCount(&nDev) != cudaSuccess) {
+          cudaGetLastError();
+          throw std::runtime_error("No CUDA device available!");
+      }
+      sim_device_ = Device::GPU;
+
+#ifdef AER_CUSTATEVEC
+      if(cuStateVec_enable_){
+        //initialize custatevevtor handle once before actual calculation (takes long time at first call)
+        custatevecStatus_t err;
+        custatevecHandle_t stHandle;
+        err = custatevecCreate(&stHandle);
+        if(err == CUSTATEVEC_STATUS_SUCCESS){
+          custatevecDestroy(stHandle);
+        }
+      }
+#endif
+#endif
+    }
     else {
       throw std::runtime_error(std::string("Invalid simulation device (\"") +
                                sim_device_name_ + std::string("\")."));
@@ -636,9 +666,16 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
                                              const Method method)  
 {
   enable_batch_multi_shots_ = false;
-  if(batched_shots_gpu_ && sim_device_ == Device::GPU && circ.shots > 1 && max_batched_states_ >= num_gpus_ && 
-              batched_shots_gpu_max_qubits_ >= circ.num_qubits ){
-    enable_batch_multi_shots_ = true;
+  if(batched_shots_gpu_ && sim_device_ == Device::GPU && 
+     circ.shots > 1 && max_batched_states_ >= num_gpus_ && 
+     batched_shots_gpu_max_qubits_ >= circ.num_qubits ){
+      enable_batch_multi_shots_ = true;
+  }
+
+  if(sim_device_ == Device::GPU && cuStateVec_enable_){
+    enable_batch_multi_shots_ = false;    //cuStateVec does not support batch execution of multi-shots
+    parallel_shots_ = 1;    //cuStateVec is currently not thread safe
+    return;
   }
 
   if(explicit_parallelization_)
@@ -785,6 +822,7 @@ size_t Controller::get_gpu_memory_mb() {
   }
   num_gpus_ = nDev;
 #endif
+
 #ifdef AER_MPI
   // get minimum memory size per process
   uint64_t locMem, minMem;
@@ -866,7 +904,6 @@ Result Controller::execute(const inputdata_t &input_qobj) {
     auto time_taken =
         std::chrono::duration<double>(myclock_t::now() - timer_start).count();
     result.metadata.add(time_taken, "time_taken");
-    
     return result;
   } catch (std::exception &e) {
     // qobj was invalid, return valid output containing error message
@@ -960,7 +997,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
     const int NUM_RESULTS = result.results.size();
     //following looks very similar but we have to separate them to avoid omp nested loops that causes performance degradation
     //(DO NOT use if statement in #pragma omp)
-    if (parallel_experiments_ == 1) {
+    if (parallel_experiments_ == 1 || sim_device_ == Device::ThrustCPU) {
       for (int j = 0; j < NUM_RESULTS; ++j) {
         set_parallelization_circuit(circuits[j], noise_model, methods[j]);
         run_circuit(circuits[j], noise_model,methods[j],
@@ -1741,7 +1778,12 @@ void Controller::measure_sampler(
     shots_or_index = shots;
   else
     shots_or_index = shot_index;
+
+  auto timer_start = myclock_t::now();
   auto all_samples = state.sample_measure(meas_qubits, shots_or_index, rng);
+  auto time_taken =
+      std::chrono::duration<double>(myclock_t::now() - timer_start).count();
+  result.metadata.add(time_taken, "sample_measure_time");
 
   // Make qubit map of position in vector of measured qubits
   std::unordered_map<uint_t, uint_t> qubit_map;
