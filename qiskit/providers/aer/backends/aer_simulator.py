@@ -378,9 +378,29 @@ class AerSimulator(AerBackend):
     * ``fusion_verbose`` (bool): Output gates generated in fusion optimization
       into metadata [Default: False]
     * ``fusion_max_qubit`` (int): Maximum number of qubits for a operation generated
-      in a fusion optimization [Default: 5]
+      in a fusion optimization. A default value (``None``) automatically sets a value
+      depending on the simulation method: [Default: None]
     * ``fusion_threshold`` (int): Threshold that number of qubits must be greater
-      than or equal to enable fusion optimization [Default: 14]
+      than or equal to enable fusion optimization. A default value automatically sets
+      a value depending on the simulation method [Default: None]
+
+    ``fusion_enable`` and ``fusion_threshold`` are set as follows if their default
+    values (``None``) are configured:
+
+    +--------------------------+----------------------+----------------------+
+    | Method                   | ``fusion_max_qubit`` | ``fusion_threshold`` |
+    +==========================+======================+======================+
+    | ``statevector``          | 5                    | 14                   |
+    +--------------------------+----------------------+----------------------+
+    | ``density_matrix``       | 2                    | 7                    |
+    +--------------------------+----------------------+----------------------+
+    | ``unitary``              | 5                    | 7                    |
+    +--------------------------+----------------------+----------------------+
+    | ``superop``              | 2                    | 7                    |
+    +--------------------------+----------------------+----------------------+
+    | other methods            | 5                    | 14                   |
+    +--------------------------+----------------------+----------------------+
+
     """
 
     _BASIS_GATES = BASIS_GATES
@@ -517,8 +537,8 @@ class AerSimulator(AerBackend):
             max_memory_mb=None,
             fusion_enable=True,
             fusion_verbose=False,
-            fusion_max_qubit=5,
-            fusion_threshold=14,
+            fusion_max_qubit=None,
+            fusion_threshold=None,
             accept_distributed_results=None,
             memory=None,
             noise_model=None,
