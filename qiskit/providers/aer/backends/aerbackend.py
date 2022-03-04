@@ -288,20 +288,22 @@ class AerBackend(Backend, ABC):
         # Start timer
         start = time.time()
 
-        # Take metadata for JSON serialization
+        # Take metadata from headers of experiments
         metadata_list = []
         for expr in qobj.experiments:
             if hasattr(expr.header, 'metadata'):
-                metadata_list.append(expr.header.metadata)
-                del expr.header.metadata
+                metadata_list.append(expr.header.metadata.copy())
+                expr.header.metadata.clear()
             else:
                 metadata_list.append(None)
 
         # Run simulation
         output = self._execute(qobj)
+
+        # Recover metadata
         for expr, metadata in zip(qobj.experiments, metadata_list):
             if metadata:
-                expr.header.metadata = metadata
+                expr.header.metadata.update(metadata)
 
         # Validate output
         if not isinstance(output, dict):
@@ -317,23 +319,14 @@ class AerBackend(Backend, ABC):
         output["backend_name"] = self.name()
         output["backend_version"] = self.configuration().backend_version
 
-        # Copy experiment headers
-        if hasattr(qobj.config, 'parameterizations'):
-            result_idx = 0
-            expr_idx = 0
-            for parameterization in qobj.config.parameterizations:
-                qobj_header = qobj.experiments[expr_idx].header.to_dict()
-                param_len = 1 if len(parameterization) == 0 else len(parameterization[0][1])
-                for _ in range(param_len):
-                    output["results"][result_idx]["header"] = qobj_header
-                    result_idx += 1
-                expr_idx += 1
-        else:
-            for result, experiment in zip(output["results"], qobj.experiments):
-                qobj_header = experiment.header.to_dict()
-                if "header" in result and "name" in result["header"]:
-                    if result["header"]["name"] == qobj_header["name"]:
-                        result["header"] = qobj_header
+        # Push metadata to experiment headers
+        for result in output["results"]:
+            if "header" in result:
+                circuit_index = result["header"]["circuit_index"]
+                if metadata_list[circuit_index]:
+                    if "metadata" not in result["header"] or not result["header"]["metadata"]:
+                        result["header"]["metadata"] = {}
+                result["header"]["metadata"].update(metadata_list[circuit_index])
 
         # Add execution time
         output["time_taken"] = time.time() - start

@@ -1905,7 +1905,8 @@ bool Controller::validate_state(const state_t &state, const Circuit &circ,
                                 const Noise::NoiseModel &noise,
                                 bool throw_except) const {
   std::stringstream error_msg;
-  std::string circ_name = circ.name;
+  std::string circ_name;
+  JSON::get_value(circ_name, "name", circ.header);
 
   // Check if a circuit is valid for state ops
   bool circ_valid = state.opset().contains(circ.opset());

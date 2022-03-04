@@ -312,6 +312,7 @@ Circuit NoiseModel::sample_noise_circuit(const Circuit &circ,
     // Copy metadata
     noisy_circ.seed = circ.seed;
     noisy_circ.shots = circ.shots;
+    noisy_circ.header = circ.header;
 
     // Reserve double length of ops just to be safe
     noisy_circ.ops.reserve(2 * circ.ops.size());

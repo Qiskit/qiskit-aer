@@ -132,6 +132,8 @@ Qobj::Qobj(const inputdata_t &input) {
     if (param_table.empty() || param_table[i].empty()) {
       // Get base circuit from qobj
       Circuit circuit(static_cast<inputdata_t>(circs[i]), config, truncation);
+      // Set circuit index
+      circuit.header["circuit_index"] = i;
       // Non parameterized circuit
       circuits.push_back(std::move(circuit));
     } else {
@@ -167,6 +169,8 @@ Qobj::Qobj(const inputdata_t &input) {
         // Therefore, current implementation performs truncation for each parameter set.
         if (truncation)
           param_circuit.set_params(true);
+        // Set circuit index
+        param_circuit.header["circuit_index"] = i;
         circuits.push_back(std::move(param_circuit));
       }
     }
