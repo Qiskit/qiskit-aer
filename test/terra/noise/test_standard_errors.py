@@ -520,7 +520,7 @@ class TestNoiseOldInterface(QiskitAerTestCase):
         for i in range(actual.size):
             circ, prob = actual.error_term(i)
             expected_circ, expected_prob = expected.error_term(i)
-            self.assertEqual(circ, expected_circ)
+            self.assertTrue(qi.Operator(circ).equiv(qi.Operator(expected_circ)))
             self.assertAlmostEqual(prob, expected_prob)
 
     def test_pauli_error_2q_gate_from_pauli(self):

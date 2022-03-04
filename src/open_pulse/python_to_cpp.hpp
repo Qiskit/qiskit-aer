@@ -227,9 +227,6 @@ std::vector<T> get_value(type<std::vector<T>> _, PyObject * value){
     return vector;
 }
 
-/* WARNING: There's no support for variadic templates in Cython, so
-   we use a std::pair because there's no more than two types in the Python
-   tuples so far, so as we are fine for now... */
 template<typename T, typename U>
 std::pair<T, U> get_value(type<std::pair<T, U>> _, PyObject * value){
     if(!check_is_tuple(value))
