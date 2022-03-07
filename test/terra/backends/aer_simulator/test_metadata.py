@@ -35,7 +35,7 @@ class TestMetadata(SimulatorTestCase):
         circuit = QuantumCircuit(1, name='circ0', metadata=metadata)
         result = backend.run(circuit).result()
         self.assertSuccess(result)
-        self.assertEqual(result.results[0].header.metadata, metadata)
+        self.assertIsNone(result.results[0].header.metadata)
 
     @supported_methods(
         ['automatic', 'statevector', 'density_matrix',
@@ -56,9 +56,9 @@ class TestMetadata(SimulatorTestCase):
         result = backend.run([circuit0, circuit1, circuit2]).result()
         self.assertSuccess(result)
         self.assertEqual(len(result.results), 3)
-        self.assertEqual(result.results[0].header.metadata, metadata0)
-        self.assertEqual(result.results[1].header.metadata, metadata1)
-        self.assertEqual(result.results[2].header.metadata, metadata2)
+        self.assertIsNone(result.results[0].header.metadata)
+        self.assertIsNone(result.results[1].header.metadata)
+        self.assertIsNone(result.results[2].header.metadata)
 
     @supported_methods(
         ['automatic', 'statevector', 'density_matrix', 'matrix_product_state'])
@@ -89,9 +89,9 @@ class TestMetadata(SimulatorTestCase):
                              parameterizations=parameterizations).result()
         self.assertSuccess(result)
         self.assertEqual(len(result.results), 6)
-        self.assertEqual(result.results[0].header.metadata, metadata0)
-        self.assertEqual(result.results[1].header.metadata, metadata0)
-        self.assertEqual(result.results[2].header.metadata, metadata1)
-        self.assertEqual(result.results[3].header.metadata, metadata1)
-        self.assertEqual(result.results[4].header.metadata, metadata1)
-        self.assertEqual(result.results[5].header.metadata, metadata2)
+        self.assertIsNone(result.results[0].header.metadata)
+        self.assertIsNone(result.results[1].header.metadata)
+        self.assertIsNone(result.results[2].header.metadata)
+        self.assertIsNone(result.results[3].header.metadata)
+        self.assertIsNone(result.results[4].header.metadata)
+        self.assertIsNone(result.results[5].header.metadata)

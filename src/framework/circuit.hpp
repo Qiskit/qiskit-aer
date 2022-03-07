@@ -160,7 +160,7 @@ Circuit::Circuit(const inputdata_t &circ, const json_t &qobj_config, bool trunca
       config[it.key()] = it.value(); // overwrite circuit level config values
     }
   }
-
+  
   // Load metadata
   Parser<inputdata_t>::get_value(header, "header", circ);
   Parser<json_t>::get_value(shots, "shots", config);

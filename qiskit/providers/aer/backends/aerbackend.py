@@ -288,22 +288,8 @@ class AerBackend(Backend, ABC):
         # Start timer
         start = time.time()
 
-        # Take metadata from headers of experiments
-        metadata_list = []
-        for expr in qobj.experiments:
-            if hasattr(expr.header, 'metadata'):
-                metadata_list.append(expr.header.metadata.copy())
-                expr.header.metadata.clear()
-            else:
-                metadata_list.append(None)
-
         # Run simulation
         output = self._execute(qobj)
-
-        # Recover metadata
-        for expr, metadata in zip(qobj.experiments, metadata_list):
-            if metadata:
-                expr.header.metadata.update(metadata)
 
         # Validate output
         if not isinstance(output, dict):
@@ -318,15 +304,6 @@ class AerBackend(Backend, ABC):
         output["date"] = datetime.datetime.now().isoformat()
         output["backend_name"] = self.name()
         output["backend_version"] = self.configuration().backend_version
-
-        # Push metadata to experiment headers
-        for result in output["results"]:
-            if "header" in result:
-                circuit_index = result["header"]["circuit_index"]
-                if metadata_list[circuit_index]:
-                    if "metadata" not in result["header"] or not result["header"]["metadata"]:
-                        result["header"]["metadata"] = {}
-                result["header"]["metadata"].update(metadata_list[circuit_index])
 
         # Add execution time
         output["time_taken"] = time.time() - start
@@ -375,6 +352,12 @@ class AerBackend(Backend, ABC):
             circuits, optypes, run_options = self._assemble_noise_model(
                 circuits, optypes, **run_options)
 
+            # Remove metadata from circuits
+            metadata_list = [circuit.metadata for circuit in circuits]
+            for circuit in circuits:
+                if circuit.metadata:
+                    circuit.metadata.clear()
+
             if parameter_binds:
                 # Handle parameter binding
                 parameterizations = self._convert_binds(circuits, parameter_binds)
@@ -388,6 +371,11 @@ class AerBackend(Backend, ABC):
                     parameterizations=parameterizations)
             else:
                 qobj = assemble(circuits, backend=self)
+
+            # Recover metadata of circuits
+            for circuit, metadata in zip(circuits, metadata_list):
+                if metadata:
+                    circuit.metadata.update(metadata)
 
             # Add optypes to qobj
             # We convert to strings to avoid pybinding of types
