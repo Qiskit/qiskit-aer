@@ -36,6 +36,7 @@ class TestMetadata(SimulatorTestCase):
         result = backend.run(circuit).result()
         self.assertSuccess(result)
         self.assertIsNone(result.results[0].header.metadata)
+        self.assertEqual(circuit.metadata, {1: object})
 
     @supported_methods(
         ['automatic', 'statevector', 'density_matrix',
@@ -59,9 +60,9 @@ class TestMetadata(SimulatorTestCase):
         self.assertIsNone(result.results[0].header.metadata)
         self.assertIsNone(result.results[1].header.metadata)
         self.assertIsNone(result.results[2].header.metadata)
-        self.assertEqual(circuit0.metadata, metadata0)
-        self.assertEqual(circuit1.metadata, metadata1)
-        self.assertEqual(circuit2.metadata, metadata2)
+        self.assertEqual(circuit0.metadata, {0: object})
+        self.assertEqual(circuit1.metadata, {1: object})
+        self.assertEqual(circuit2.metadata, {2: object})
 
     @supported_methods(
         ['automatic', 'statevector', 'density_matrix', 'matrix_product_state'])
@@ -98,6 +99,6 @@ class TestMetadata(SimulatorTestCase):
         self.assertIsNone(result.results[3].header.metadata)
         self.assertIsNone(result.results[4].header.metadata)
         self.assertIsNone(result.results[5].header.metadata)
-        self.assertEqual(circuit0.metadata, metadata0)
-        self.assertEqual(circuit1.metadata, metadata1)
-        self.assertEqual(circuit2.metadata, metadata2)
+        self.assertEqual(circuit0.metadata, {0: object})
+        self.assertEqual(circuit1.metadata, {1: object})
+        self.assertEqual(circuit2.metadata, {2: object})

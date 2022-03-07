@@ -356,7 +356,7 @@ class AerBackend(Backend, ABC):
             metadata_list = [circuit.metadata for circuit in circuits]
             for circuit in circuits:
                 if circuit.metadata:
-                    circuit.metadata.clear()
+                    circuit.metadata = None
 
             if parameter_binds:
                 # Handle parameter binding
@@ -375,7 +375,7 @@ class AerBackend(Backend, ABC):
             # Recover metadata of circuits
             for circuit, metadata in zip(circuits, metadata_list):
                 if metadata:
-                    circuit.metadata.update(metadata)
+                    circuit.metadata = metadata
 
             # Add optypes to qobj
             # We convert to strings to avoid pybinding of types
