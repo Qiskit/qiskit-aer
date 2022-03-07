@@ -110,7 +110,6 @@ if(STATIC_LINKING)
 endif()
 
 if(NOT MSVC)
-	enable_cxx_compiler_flag_if_supported("-ffast-math")
 	if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le")
 		# PowerPC builds are not meant to be redistributable, we build them
 		# in place, so we can have CPU = native.
@@ -257,6 +256,15 @@ if(AER_THRUST_SUPPORTED)
 
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDENT_LIBS "")
+		if(CUSTATEVEC_ROOT)
+			set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_CUSTATEVEC)
+			set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} -I${CUSTATEVEC_ROOT}/include")
+            if(CUSTATEVEC_STATIC)
+				set(THRUST_DEPENDANT_LIBS "-L${CUSTATEVEC_ROOT}/lib -L${CUSTATEVEC_ROOT}/lib64 -lcustatevec_static -L${CUDA_TOOLKIT_ROOT_DIR}/lib64 -lcublas")
+			else()
+				set(THRUST_DEPENDANT_LIBS "-L${CUSTATEVEC_ROOT}/lib -L${CUSTATEVEC_ROOT}/lib64 -lcustatevec")
+			endif()
+		endif()
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
 		message(STATUS "TBB Support found!")
 		set(THRUST_DEPENDENT_LIBS AER_DEPENDENCY_PKG::tbb)

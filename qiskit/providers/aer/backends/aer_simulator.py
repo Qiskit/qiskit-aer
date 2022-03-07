@@ -148,6 +148,10 @@ class AerSimulator(AerBackend):
     initialization or with :meth:`set_options`. The list of supported devices
     for the current system can be returned using :meth:`available_devices`.
 
+    If AerSimulator is built with cuStateVec support, cuStateVec APIs are enabled
+    by setting ``cuStateVec_enable=True``. This is experimental implementation
+    based on cuQuantum Beta 2.
+
     **Additional Backend Options**
 
     The following simulator specific backend options are supported
@@ -215,6 +219,11 @@ class AerSimulator(AerBackend):
       is thrown. In general, a state vector of n-qubits uses 2^n complex
       values (16 Bytes). If set to 0, the maximum will be automatically
       set to the system memory size (Default: 0).
+
+    * ``cuStateVec_enable`` (bool): This option enables accelerating by
+      cuStateVec library of cuQuantum from NVIDIA, that has highly optimized
+      kernels for GPUs (Default: False). This option will be ignored
+      if AerSimulator is not built with cuStateVec support.
 
     * ``blocking_enable`` (bool): This option enables parallelization with
       multiple GPUs or multiple processes with MPI (CPU/GPU). This option
@@ -369,9 +378,29 @@ class AerSimulator(AerBackend):
     * ``fusion_verbose`` (bool): Output gates generated in fusion optimization
       into metadata [Default: False]
     * ``fusion_max_qubit`` (int): Maximum number of qubits for a operation generated
-      in a fusion optimization [Default: 5]
+      in a fusion optimization. A default value (``None``) automatically sets a value
+      depending on the simulation method: [Default: None]
     * ``fusion_threshold`` (int): Threshold that number of qubits must be greater
-      than or equal to enable fusion optimization [Default: 14]
+      than or equal to enable fusion optimization. A default value automatically sets
+      a value depending on the simulation method [Default: None]
+
+    ``fusion_enable`` and ``fusion_threshold`` are set as follows if their default
+    values (``None``) are configured:
+
+    +--------------------------+----------------------+----------------------+
+    | Method                   | ``fusion_max_qubit`` | ``fusion_threshold`` |
+    +==========================+======================+======================+
+    | ``statevector``          | 5                    | 14                   |
+    +--------------------------+----------------------+----------------------+
+    | ``density_matrix``       | 2                    | 7                    |
+    +--------------------------+----------------------+----------------------+
+    | ``unitary``              | 5                    | 7                    |
+    +--------------------------+----------------------+----------------------+
+    | ``superop``              | 2                    | 7                    |
+    +--------------------------+----------------------+----------------------+
+    | other methods            | 5                    | 14                   |
+    +--------------------------+----------------------+----------------------+
+
     """
 
     _BASIS_GATES = BASIS_GATES
@@ -508,12 +537,14 @@ class AerSimulator(AerBackend):
             max_memory_mb=None,
             fusion_enable=True,
             fusion_verbose=False,
-            fusion_max_qubit=5,
-            fusion_threshold=14,
+            fusion_max_qubit=None,
+            fusion_threshold=None,
             accept_distributed_results=None,
             memory=None,
             noise_model=None,
             seed_simulator=None,
+            # cuStateVec (cuQuantum) option
+            cuStateVec_enable=False,
             # cache blocking for multi-GPUs/MPI options
             blocking_qubits=None,
             blocking_enable=False,

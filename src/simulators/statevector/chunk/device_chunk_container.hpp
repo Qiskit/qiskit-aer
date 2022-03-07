@@ -1,7 +1,7 @@
 /**
  * This code is part of Qiskit.
  *
- * (C) Copyright IBM 2018, 2019, 2020.
+ * (C) Copyright IBM 2018, 2019, 2020, 2021, 2022.
  *
  * This code is licensed under the Apache License, Version 2.0. You may
  * obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,10 +18,9 @@
 
 #include "simulators/statevector/chunk/chunk_container.hpp"
 
-
-
 namespace AER {
 namespace QV {
+namespace Chunk {
 
 
 //============================================================================
@@ -59,6 +58,7 @@ protected:
 #ifdef AER_THRUST_CUDA
   std::vector<cudaStream_t> stream_;    //asynchronous execution
 #endif
+
 public:
   DeviceChunkContainer()
   {
@@ -103,13 +103,13 @@ public:
     return raw_reference_cast(data_[i]);
   }
 
-  uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit);
-  void Deallocate(void);
+  uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit) override;
+  void Deallocate(void) override;
 
-  void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk);
-  void StoreMatrix(const std::complex<double>* mat,uint_t iChunk,uint_t size);
-  void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk);
-  void ResizeMatrixBuffers(int bits);
+  void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk) override;
+  void StoreMatrix(const std::complex<double>* mat,uint_t iChunk,uint_t size) override;
+  void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk) override;
+  void ResizeMatrixBuffers(int bits) override;
 
   void set_device(void) const
   {
@@ -134,16 +134,15 @@ public:
     return data_[i];
   }
 
-  void CopyIn(Chunk<data_t>& src,uint_t iChunk);
-  void CopyOut(Chunk<data_t>& src,uint_t iChunk);
-  void CopyIn(thrust::complex<data_t>* src,uint_t iChunk, uint_t size);
-  void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk, uint_t size);
-  void Swap(Chunk<data_t>& src,uint_t iChunk);
+  void CopyIn(Chunk<data_t>& src,uint_t iChunk) override;
+  void CopyOut(Chunk<data_t>& src,uint_t iChunk) override;
+  void CopyIn(thrust::complex<data_t>* src,uint_t iChunk, uint_t size) override;
+  void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk, uint_t size) override;
+  void Swap(Chunk<data_t>& src,uint_t iChunk) override;
 
-  void Zero(uint_t iChunk,uint_t count);
+  void Zero(uint_t iChunk,uint_t count) override;
 
-  reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true,uint_t count = 1) const;
-  thrust::complex<double> norm(uint_t iChunk,uint_t count,uint_t stride = 1,bool dot = true) const;
+  reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true,uint_t count = 1) const override;
 
   thrust::complex<data_t>* chunk_pointer(uint_t iChunk) const
   {
@@ -322,6 +321,14 @@ uint_t DeviceChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qu
   this->num_chunks_ = nc;
   data_.resize((nc+buffers) << chunk_bits);
 
+  //init number of bits for chunk count
+  uint_t nc_tmp = this->num_chunks_;
+  this->num_pow2_qubits_ = this->chunk_bits_;
+  while((nc_tmp & 1) == 0){
+    this->num_pow2_qubits_++;
+    nc_tmp >>= 1;
+  }
+
 #ifdef AER_THRUST_CUDA
   stream_.resize(nc + buffers);
   for(i=0;i<nc + buffers;i++){
@@ -401,8 +408,7 @@ void DeviceChunkContainer<data_t>::Deallocate(void)
   blocked_qubits_holder_.clear();
 
 #ifdef AER_THRUST_CUDA
-  uint_t i;
-  for(i=0;i<stream_.size();i++){
+  for(int_t i=0;i<stream_.size();i++){
     cudaStreamDestroy(stream_[i]);
   }
   stream_.clear();
@@ -634,7 +640,6 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
 
 #ifdef AER_THRUST_CUDA
 
-//  cudaGetLastError();
   if(dot)
     thrust::transform_inclusive_scan(thrust::cuda::par.on(stream_[iChunk]),iter.begin(),iter.end(),iter.begin(),complex_dot_scan<data_t>(),thrust::plus<thrust::complex<data_t>>());
   else
@@ -674,30 +679,6 @@ reg_t DeviceChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vect
 #endif
 
   return samples;
-}
-
-template <typename data_t>
-thrust::complex<double> DeviceChunkContainer<data_t>::norm(uint_t iChunk, uint_t count, uint_t stride, bool dot) const
-{
-  thrust::complex<double> sum,zero(0.0,0.0);
-  set_device();
-
-  strided_range<thrust::complex<data_t>*> iter(chunk_pointer(iChunk), chunk_pointer(iChunk+count), stride);
-
-#ifdef AER_THRUST_CUDA
-  cudaStreamSynchronize(stream_[iChunk]);
-  if(dot)
-    sum = thrust::transform_reduce(thrust::device, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
-  else
-    sum = thrust::reduce(thrust::device, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
-#else
-  if(dot)
-    sum = thrust::transform_reduce(thrust::device, iter.begin(),iter.end(),complex_norm<data_t>() ,zero,thrust::plus<thrust::complex<double>>());
-  else
-    sum = thrust::reduce(thrust::device, iter.begin(),iter.end(),zero,thrust::plus<thrust::complex<double>>());
-#endif
-
-  return sum;
 }
 
 
@@ -1177,7 +1158,9 @@ void DeviceChunkContainer<data_t>::copy_to_probability_buffer(std::vector<double
 
 }
 
+
 //------------------------------------------------------------------------------
+} // end namespace Chunk
 } // end namespace QV
 } // end namespace AER
 //------------------------------------------------------------------------------

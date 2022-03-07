@@ -391,6 +391,9 @@ protected:
   reg_t top_chunk_of_group_;
   reg_t num_chunks_in_group_;
 
+  //cuStateVec settings
+  bool cuStateVec_enable_ = false;
+
   //-----------------------------------------------------------------------
   // Apply circuits and ops
   //-----------------------------------------------------------------------
@@ -508,6 +511,12 @@ protected:
 
   uint_t mapped_index(const uint_t idx);
 
+  //apply OpenMP parallelization if enabled
+  template<typename Lambda>
+  void apply_omp_parallel(bool enabled, int_t i_begin, int_t i_end, Lambda& func);
+
+  template<typename Lambda>
+  double apply_omp_parallel_reduction(bool enabled, int_t i_begin, int_t i_end, Lambda& func);
 };
 
 
@@ -526,8 +535,16 @@ StateChunk<state_t>::~StateChunk(void)
 }
 
 template <class state_t>
-void StateChunk<state_t>::set_config(const json_t &config) {
-  (ignore_argument)config;
+void StateChunk<state_t>::set_config(const json_t &config) 
+{
+  BaseState::set_config(config);
+
+#ifdef AER_CUSTATEVEC
+  //cuStateVec configs
+  if(JSON::check_key("cuStateVec_enable", config)) {
+    JSON::get_value(cuStateVec_enable_, "cuStateVec_enable", config);
+  }
+#endif
 }
 
 template <class state_t>
@@ -555,6 +572,38 @@ void StateChunk<state_t>::set_distribution(uint_t nprocs)
     distributed_comm_ = MPI_COMM_WORLD;
   }
 #endif
+}
+
+template <class state_t>
+template<typename Lambda>
+void StateChunk<state_t>::apply_omp_parallel(bool enabled, int_t i_begin, int_t i_end, Lambda& func)
+{
+  if(enabled){
+#pragma omp parallel for
+    for(int_t i=i_begin;i<i_end;i++)
+      func(i);
+  }
+  else{
+    for(int_t i=i_begin;i<i_end;i++)
+      func(i);
+  }
+}
+
+template <class state_t>
+template<typename Lambda>
+double StateChunk<state_t>::apply_omp_parallel_reduction(bool enabled, int_t i_begin, int_t i_end, Lambda& func)
+{
+  double val = 0.0;
+  if(enabled){
+#pragma omp parallel for reduction(+:val)
+    for(int_t i=i_begin;i<i_end;i++)
+      val += func(i);
+  }
+  else{
+    for(int_t i=i_begin;i<i_end;i++)
+      val += func(i);
+  }
+  return val;
 }
 
 template <class state_t>
@@ -617,15 +666,26 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
   chunk_omp_parallel_ = false;
   if(qregs_[0].name().find("gpu") != std::string::npos){
 #ifdef _OPENMP
-    if(multi_chunk_distribution_){
-      if(omp_get_num_threads() == 1)
-        chunk_omp_parallel_ = true;
-    }
+    if(omp_get_num_threads() == 1)
+      chunk_omp_parallel_ = true;
 #endif
-    thrust_optimization_ = true;
+
+#ifdef AER_CUSTATEVEC
+    //set cuStateVec_enable_ 
+    if(cuStateVec_enable_){
+      if(multi_shots_parallelization_)
+        cuStateVec_enable_ = false;   //multi-shots parallelization is not supported for cuStateVec
+    }
+
+    if(cuStateVec_enable_)
+      chunk_omp_parallel_ = false;    //because cuStateVec is not thread safe 
+    else
+      thrust_optimization_ = true;    //cuStateVec does not handle global chunk index for diagonal matrix
+#endif
   }
   else if(qregs_[0].name().find("thrust") != std::string::npos){
     thrust_optimization_ = true;
+    chunk_omp_parallel_ = false;
   }
 
 
@@ -656,7 +716,8 @@ bool StateChunk<state_t>::allocate_qregs(uint_t num_chunks)
   uint_t chunk_id = multi_chunk_distribution_ ? global_chunk_index_ : 0;
   bool ret = true;
   qregs_[0].set_max_matrix_bits(BaseState::max_matrix_qubits_);
-  ret &= qregs_[0].chunk_setup(chunk_bits_*qubit_scale(),num_qubits_*qubit_scale(),chunk_id,num_chunks);
+  qregs_[0].cuStateVec_enable(cuStateVec_enable_);
+  ret &= qregs_[0].chunk_setup(chunk_bits_*qubit_scale(), num_qubits_*qubit_scale(), chunk_id, num_chunks);
   for(i=1;i<num_chunks;i++){
     uint_t gid = i + chunk_id;
     ret &= qregs_[i].chunk_setup(qregs_[0],gid);
@@ -740,6 +801,12 @@ void StateChunk<state_t>::apply_ops(InputIterator first, InputIterator last,
     }
     }
   }
+
+  qregs_[0].synchronize();
+
+#ifdef AER_CUSTATEVEC
+  result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
+#endif
 }
 
 template <class state_t>
@@ -801,6 +868,11 @@ void StateChunk<state_t>::apply_ops_chunks(InputIterator first, InputIterator la
     }
     iOp++;
   }
+
+  qregs_[0].synchronize();
+#ifdef AER_CUSTATEVEC
+  result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
+#endif
 }
 
 template <class state_t>
@@ -868,42 +940,23 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
       //resize qregs
       allocate_qregs(n_shots);
     }
+
     //initialization (equivalent to initialize_qreg + initialize_creg)
-    if(num_groups_ > 1 && chunk_omp_parallel_){
-#pragma omp parallel for 
-      for(i=0;i<num_groups_;i++){
-        uint_t istate = top_chunk_of_group_[i];
+    auto init_group = [this](int_t ig){
+      for(uint_t j=top_chunk_of_group_[ig];j<top_chunk_of_group_[ig+1];j++){
+        //enabling batch shots optimization
+        qregs_[j].enable_batch(true);
 
-        for(uint_t j=top_chunk_of_group_[i];j<top_chunk_of_group_[i+1];j++){
-          //enabling batch shots optimization
-          qregs_[j].enable_batch(true);
+        //initialize qreg here
+        qregs_[j].set_num_qubits(chunk_bits_);
+        qregs_[j].initialize();
 
-          //initialize qreg here
-          qregs_[j].set_num_qubits(chunk_bits_);
-          qregs_[j].initialize();
-
-          //initialize creg here
-          qregs_[j].initialize_creg(cregs_[0].memory_size(), cregs_[0].register_size());
-        }
+        //initialize creg here
+        qregs_[j].initialize_creg(cregs_[0].memory_size(), cregs_[0].register_size());
       }
-    }
-    else{
-      for(i=0;i<num_groups_;i++){
-        uint_t istate = top_chunk_of_group_[i];
+    };
+    apply_omp_parallel((num_groups_ > 1 && chunk_omp_parallel_),0,num_groups_,init_group);
 
-        for(uint_t j=top_chunk_of_group_[i];j<top_chunk_of_group_[i+1];j++){
-          //enabling batch shots optimization
-          qregs_[j].enable_batch(true);
-
-          //initialize qreg here
-          qregs_[j].set_num_qubits(chunk_bits_);
-          qregs_[j].initialize();
-
-          //initialize creg here
-          qregs_[j].initialize_creg(cregs_[0].memory_size(), cregs_[0].register_size());
-        }
-      }
-    }
     apply_global_phase(); //this is parallelized in StateChunk sub-classes
 
     //apply ops to multiple-shots
@@ -1412,13 +1465,24 @@ void StateChunk<state_t>::initialize_from_vector(const int_t iChunkIn, const lis
   int_t iChunk;
 
   if(multi_chunk_distribution_){
-#pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
-    for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
-      list_t tmp(1ull << (chunk_bits_*qubit_scale()));
-      for(int_t i=0;i<(1ull << (chunk_bits_*qubit_scale()));i++){
-        tmp[i] = vec[((global_chunk_index_ + iChunk) << (chunk_bits_*qubit_scale())) + i];
+    if(chunk_omp_parallel_){
+#pragma omp parallel for private(iChunk) 
+      for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
+        list_t tmp(1ull << (chunk_bits_*qubit_scale()));
+        for(int_t i=0;i<(1ull << (chunk_bits_*qubit_scale()));i++){
+          tmp[i] = vec[((global_chunk_index_ + iChunk) << (chunk_bits_*qubit_scale())) + i];
+        }
+        qregs_[iChunk].initialize_from_vector(tmp);
       }
-      qregs_[iChunk].initialize_from_vector(tmp);
+    }
+    else{
+      for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
+        list_t tmp(1ull << (chunk_bits_*qubit_scale()));
+        for(int_t i=0;i<(1ull << (chunk_bits_*qubit_scale()));i++){
+          tmp[i] = vec[((global_chunk_index_ + iChunk) << (chunk_bits_*qubit_scale())) + i];
+        }
+        qregs_[iChunk].initialize_from_vector(tmp);
+      }
     }
   }
   else{
@@ -1438,20 +1502,38 @@ void StateChunk<state_t>::initialize_from_matrix(const int_t iChunkIn, const lis
 {
   int_t iChunk;
   if(multi_chunk_distribution_){
-#pragma omp parallel for if(chunk_omp_parallel_) private(iChunk) 
-    for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
-      list_t tmp(1ull << (chunk_bits_),1ull << (chunk_bits_));
-      uint_t irow_chunk = ((iChunk + global_chunk_index_) >> ((num_qubits_ - chunk_bits_))) << (chunk_bits_);
-      uint_t icol_chunk = ((iChunk + global_chunk_index_) & ((1ull << ((num_qubits_ - chunk_bits_)))-1)) << (chunk_bits_);
+    if(chunk_omp_parallel_){
+#pragma omp parallel for private(iChunk) 
+      for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
+        list_t tmp(1ull << (chunk_bits_),1ull << (chunk_bits_));
+        uint_t irow_chunk = ((iChunk + global_chunk_index_) >> ((num_qubits_ - chunk_bits_))) << (chunk_bits_);
+        uint_t icol_chunk = ((iChunk + global_chunk_index_) & ((1ull << ((num_qubits_ - chunk_bits_)))-1)) << (chunk_bits_);
 
-      //copy part of state for this chunk
-      uint_t i,row,col;
-      for(i=0;i<(1ull << (chunk_bits_*qubit_scale()));i++){
-        uint_t icol = i & ((1ull << chunk_bits_)-1);
-        uint_t irow = i >> chunk_bits_;
-        tmp[i] = mat[icol_chunk + icol + ((irow_chunk + irow) << num_qubits_)];
+        //copy part of state for this chunk
+        uint_t i,row,col;
+        for(i=0;i<(1ull << (chunk_bits_*qubit_scale()));i++){
+          uint_t icol = i & ((1ull << chunk_bits_)-1);
+          uint_t irow = i >> chunk_bits_;
+          tmp[i] = mat[icol_chunk + icol + ((irow_chunk + irow) << num_qubits_)];
+        }
+        qregs_[iChunk].initialize_from_matrix(tmp);
       }
-      qregs_[iChunk].initialize_from_matrix(tmp);
+    }
+    else{
+      for(iChunk=0;iChunk<num_local_chunks_;iChunk++){
+        list_t tmp(1ull << (chunk_bits_),1ull << (chunk_bits_));
+        uint_t irow_chunk = ((iChunk + global_chunk_index_) >> ((num_qubits_ - chunk_bits_))) << (chunk_bits_);
+        uint_t icol_chunk = ((iChunk + global_chunk_index_) & ((1ull << ((num_qubits_ - chunk_bits_)))-1)) << (chunk_bits_);
+
+        //copy part of state for this chunk
+        uint_t i,row,col;
+        for(i=0;i<(1ull << (chunk_bits_*qubit_scale()));i++){
+          uint_t icol = i & ((1ull << chunk_bits_)-1);
+          uint_t irow = i >> chunk_bits_;
+          tmp[i] = mat[icol_chunk + icol + ((irow_chunk + irow) << num_qubits_)];
+        }
+        qregs_[iChunk].initialize_from_matrix(tmp);
+      }
     }
   }
   else{
@@ -1611,49 +1693,26 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
         nPair = num_local_chunks_ >> 2;
       }
 
-      if(chunk_omp_parallel_){
-#pragma omp parallel for private(iPair,baseChunk,iChunk1,iChunk2)
-        for(iPair=0;iPair<nPair;iPair++){
-          if(q0 < chunk_bits_*qubit_scale()){
-            baseChunk = iPair & (mask1-1);
-            baseChunk += ((iPair - baseChunk) << 1);
-          }
-          else{
-            uint_t t0,t1;
-            t0 = iPair & (mask0-1);
-            baseChunk = (iPair - t0) << 1;
-            t1 = baseChunk & (mask1-1);
-            baseChunk = (baseChunk - t1) << 1;
-            baseChunk += t0 + t1;
-          }
-
-          iChunk1 = baseChunk | mask0;
-          iChunk2 = baseChunk | mask1;
-
-          qregs_[iChunk1].apply_chunk_swap(qubits,qregs_[iChunk2],true);
+      auto apply_chunk_swap = [this, mask0, mask1, q0, q1, qubits](int_t iPair)
+      {
+        uint_t baseChunk;
+        if(q0 < chunk_bits_*qubit_scale()){
+          baseChunk = iPair & (mask1-1);
+          baseChunk += ((iPair - baseChunk) << 1);
         }
-      }
-      else{
-        for(iPair=0;iPair<nPair;iPair++){
-          if(q0 < chunk_bits_*qubit_scale()){
-            baseChunk = iPair & (mask1-1);
-            baseChunk += ((iPair - baseChunk) << 1);
-          }
-          else{
-            uint_t t0,t1;
-            t0 = iPair & (mask0-1);
-            baseChunk = (iPair - t0) << 1;
-            t1 = baseChunk & (mask1-1);
-            baseChunk = (baseChunk - t1) << 1;
-            baseChunk += t0 + t1;
-          }
-
-          iChunk1 = baseChunk | mask0;
-          iChunk2 = baseChunk | mask1;
-
-          qregs_[iChunk1].apply_chunk_swap(qubits,qregs_[iChunk2],true);
+        else{
+          uint_t t0,t1;
+          t0 = iPair & (mask0-1);
+          baseChunk = (iPair - t0) << 1;
+          t1 = baseChunk & (mask1-1);
+          baseChunk = (baseChunk - t1) << 1;
+          baseChunk += t0 + t1;
         }
-      }
+        uint_t iChunk1 = baseChunk | mask0;
+        uint_t iChunk2 = baseChunk | mask1;
+        qregs_[iChunk1].apply_chunk_swap(qubits,qregs_[iChunk2],true);
+      };
+      apply_omp_parallel(chunk_omp_parallel_, 0, nPair, apply_chunk_swap);
     }
 #ifdef AER_MPI
     else{
@@ -1760,12 +1819,13 @@ void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
 
 
   if(qubit < chunk_bits_*qubit_scale()){
-    reg_t qubits(1,qubit);
-#pragma omp parallel for if(chunk_omp_parallel_ && num_groups_ > 1) 
-    for(int_t ig=0;ig<num_groups_;ig++){
+    auto apply_mcx = [this, qubit](int_t ig)
+    {
+      reg_t qubits(1,qubit);
       uint_t istate = top_chunk_of_group_[ig];
       qregs_[istate].apply_mcx(qubits);
-    }
+    };
+    apply_omp_parallel((chunk_omp_parallel_ && num_groups_ > 1),0,num_groups_,apply_mcx);
   }
   else{ //exchange over chunks
     int_t iPair;
@@ -1792,16 +1852,17 @@ void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
     if(distributed_procs_ == 1 || (proc_bits >= 0 && qubit < (num_qubits_*qubit_scale() - proc_bits))){   //no data transfer between processes is needed
       nPair = num_local_chunks_ >> 1;
 
-#pragma omp parallel for if(chunk_omp_parallel_) private(iPair,baseChunk,iChunk1,iChunk2)
-      for(iPair=0;iPair<nPair;iPair++){
-        baseChunk = iPair & (mask-1);
+      auto apply_chunk_swap = [this, mask, qubits](int_t iPair)
+      {
+        int_t baseChunk = iPair & (mask-1);
         baseChunk += ((iPair - baseChunk) << 1);
 
-        iChunk1 = baseChunk;
-        iChunk2 = baseChunk | mask;
+        int_t iChunk1 = baseChunk;
+        int_t iChunk2 = baseChunk | mask;
 
         qregs_[iChunk1].apply_chunk_swap(qubits,qregs_[iChunk2],true);
-      }
+      };
+      apply_omp_parallel(chunk_omp_parallel_,0, nPair, apply_chunk_swap);
     }
 #ifdef AER_MPI
     else{

@@ -203,6 +203,40 @@ class TestGateFusion(SimulatorTestCase):
             # Assert verbose meta data not in output
             self.assertNotIn('output_ops', meta)
 
+    @supported_methods(["statevector", "density_matrix", "unitary", "superop"])
+    def test_fusion_default(self, method, device):
+        """Test fusion threshsold"""
+        shots = 100
+        num_qubits = 5
+        backend = self.backend(method=method, device=device)
+        circuit = transpile(QFT(num_qubits), backend, optimization_level=0)
+        if method == "unitary":
+            circuit.save_unitary()
+        elif method == "superop":
+            circuit.save_superop()
+        else:
+            circuit.measure_all()
+
+        backend.set_options(
+            **self.fusion_options(enabled=True))
+        result = backend.run(circuit, shots=shots).result()
+
+        expected_max_qubits = 5
+        expected_threshold = 14
+        if method == "density_matrix":
+            expected_max_qubits = 2
+            expected_threshold = 7
+        elif method == "unitary":
+            expected_max_qubits = 5
+            expected_threshold = 7
+        elif method == "superop":
+            expected_max_qubits = 2
+            expected_threshold = 7
+        
+        meta = result.results[0].metadata.get('fusion', None)
+        self.assertEqual(meta.get('max_fused_qubits', None), expected_max_qubits)
+        self.assertEqual(meta.get('threshold', None), expected_threshold)
+
     @supported_methods(["statevector", "density_matrix"])
     def test_kraus_noise_fusion(self, method, device):
         """Test Fusion with kraus noise model option"""
