@@ -59,6 +59,9 @@ class TestMetadata(SimulatorTestCase):
         self.assertIsNone(result.results[0].header.metadata)
         self.assertIsNone(result.results[1].header.metadata)
         self.assertIsNone(result.results[2].header.metadata)
+        self.assertEqual(circuit0.metadata, metadata0)
+        self.assertEqual(circuit1.metadata, metadata1)
+        self.assertEqual(circuit2.metadata, metadata2)
 
     @supported_methods(
         ['automatic', 'statevector', 'density_matrix', 'matrix_product_state'])
@@ -95,3 +98,6 @@ class TestMetadata(SimulatorTestCase):
         self.assertIsNone(result.results[3].header.metadata)
         self.assertIsNone(result.results[4].header.metadata)
         self.assertIsNone(result.results[5].header.metadata)
+        self.assertEqual(circuit0.metadata, metadata0)
+        self.assertEqual(circuit1.metadata, metadata1)
+        self.assertEqual(circuit2.metadata, metadata2)
