@@ -25,7 +25,7 @@ from qiskit.providers import BaseBackend, BackendV1, BackendV2
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.providers.models import BackendProperties
 from qiskit.transpiler import PassManager
-from .device.models import _excited_population
+from .device.models import _excited_population, _truncate_t2_value
 from .device.models import basic_device_gate_errors
 from .device.models import basic_device_readout_errors
 from .errors.quantum_error import QuantumError
@@ -373,9 +373,11 @@ class NoiseModel:
             except BackendPropertyError:
                 excited_state_populations = None
             try:
+                t1s = [properties.t1(q) for q in range(num_qubits)]
+                t2s = [properties.t2(q) for q in range(num_qubits)]
                 delay_pass = RelaxationNoisePass(
-                    t1s=[properties.t1(q) for q in range(num_qubits)],
-                    t2s=[properties.t2(q) for q in range(num_qubits)],
+                    t1s=t1s,
+                    t2s=[_truncate_t2_value(t1, t2) for t1, t2 in zip(t1s, t2s)],
                     dt=dt,
                     op_types=Delay,
                     excited_state_populations=excited_state_populations
