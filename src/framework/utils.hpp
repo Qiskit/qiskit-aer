@@ -1289,6 +1289,38 @@ size_t get_system_memory_mb()
   return total_physical_memory >> 20;
 }
 
+//apply OpenMP parallel loop to lambda function if enabled
+template<typename Lambda>
+void apply_omp_parallel_for(bool enabled, int_t i_begin, int_t i_end, Lambda& func)
+{
+  if(enabled){
+#pragma omp parallel for
+    for(int_t i=i_begin;i<i_end;i++)
+      func(i);
+  }
+  else{
+    for(int_t i=i_begin;i<i_end;i++)
+      func(i);
+  }
+}
+
+//apply OpenMP parallel loop to lambda function and return reduced double if enabled
+template<typename Lambda>
+double apply_omp_parallel_for_reduction(bool enabled, int_t i_begin, int_t i_end, Lambda& func)
+{
+  double val = 0.0;
+  if(enabled){
+#pragma omp parallel for reduction(+:val)
+    for(int_t i=i_begin;i<i_end;i++)
+      val += func(i);
+  }
+  else{
+    for(int_t i=i_begin;i<i_end;i++)
+      val += func(i);
+  }
+  return val;
+}
+
 
 //------------------------------------------------------------------------------
 } // end namespace Utils

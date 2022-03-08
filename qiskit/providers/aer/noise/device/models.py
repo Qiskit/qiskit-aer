@@ -245,6 +245,7 @@ def _device_thermal_relaxation_error(qubits,
     error = None
     for qubit in qubits:
         t1, t2, freq = relax_params[qubit]
+        t2 = _truncate_t2_value(t1, t2)
         population = _excited_population(freq, temperature)
         if first:
             error = thermal_relaxation_error(t1, t2, gate_time, population)
@@ -253,6 +254,17 @@ def _device_thermal_relaxation_error(qubits,
             single = thermal_relaxation_error(t1, t2, gate_time, population)
             error = error.expand(single)
     return error
+
+
+def _truncate_t2_value(t1, t2):
+    """Return t2 value truncated to 2 * t1 (for t2 > 2 * t1)"""
+    new_t2 = t2
+    if t2 > 2 * t1:
+        new_t2 = 2 * t1
+        warn("Device model returned an invalid T_2 relaxation time greater than"
+             f" the theoretical maximum value 2 * T_1 ({t2} > 2 * {t1})."
+             " Truncating to maximum value.", UserWarning)
+    return new_t2
 
 
 def _excited_population(freq, temperature):
