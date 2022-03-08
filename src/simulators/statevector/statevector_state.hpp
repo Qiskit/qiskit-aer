@@ -946,7 +946,7 @@ double State<statevec_t>::expval_pauli(const int_t iChunk, const reg_t &qubits,
         }
         return expval;
       };
-      expval += BaseState::apply_omp_parallel_reduction((BaseState::chunk_omp_parallel_ && on_same_process),0,BaseState::num_global_chunks_/2,apply_expval_pauli_chunk);
+      expval += Utils::apply_omp_parallel_for_reduction((BaseState::chunk_omp_parallel_ && on_same_process),0,BaseState::num_global_chunks_/2,apply_expval_pauli_chunk);
     }
     else{ //no exchange between chunks
       z_mask >>= BaseState::chunk_bits_;
