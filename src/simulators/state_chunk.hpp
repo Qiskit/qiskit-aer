@@ -968,7 +968,11 @@ void StateChunk<state_t>::apply_ops_multi_shots_for_group(int_t i_group,
 {
   uint_t istate = top_chunk_of_group_[i_group];
   std::vector<RngEngine> rng(num_chunks_in_group_[i_group]);
-  int num_inner_threads = ::omp_get_max_threads() / ::omp_get_num_threads();
+#ifdef _OPENMP
+  int num_inner_threads = omp_get_max_threads() / omp_get_num_threads();
+#else
+  int num_inner_threads = 1;
+#endif
 
   for(uint_t j=top_chunk_of_group_[i_group];j<top_chunk_of_group_[i_group+1];j++)
     rng[j-top_chunk_of_group_[i_group]].set_seed(rng_seed + global_chunk_index_ + local_shot_index_ + j);
