@@ -86,7 +86,7 @@ class Benchmark(_Base):
         """simulation time of QuantumVolume"""
         return self._track(QuantumVolume(qubit))
 
-    track_qv.unit = "ms"
+    track_qv.unit = "s"
 
     def track_qft(self, qubit):
         """simulation time of QFT"""
@@ -143,7 +143,7 @@ class ExpVal(_Base):
 
         return end_ts - start_ts
 
-    track_expval.unit = "ms"
+    track_expval.unit = "s"
 
     def track_expval_var(self, qubit):
         """track only time to calculate expectation value variances of RealAmplitudes with 100 pauli-strings"""
@@ -173,7 +173,7 @@ class ExpVal(_Base):
             raise ValueError(result.status)
         return end_ts - start_ts
 
-    track_expval_var.unit = "ms"
+    track_expval_var.unit = "s"
 
 
 class Noise(_Base):
@@ -202,7 +202,7 @@ class Noise(_Base):
 
         return end_ts - start_ts
 
-    track_depolarizing_error.unit = "ms"
+    track_depolarizing_error.unit = "s"
 
     def track_amplitude_damping_error(self, qubit):
         """track only time to simulate quantum volume transpiled with basis gates U and CX with amplitude damping error"""
@@ -225,7 +225,7 @@ class Noise(_Base):
 
         return end_ts - start_ts
 
-    track_amplitude_damping_error.unit = "ms"
+    track_amplitude_damping_error.unit = "s"
 
     def track_readout_error(self, qubit):
         """track only time to simulate quantum volume transpiled with basis gates U and CX with amplitude damping error"""
@@ -248,7 +248,7 @@ class Noise(_Base):
 
         return end_ts - start_ts
 
-    track_readout_error.unit = "ms"
+    track_readout_error.unit = "s"
 
 
 class ParameterizedCircuit(_Base):
@@ -278,4 +278,4 @@ class ParameterizedCircuit(_Base):
 
         return end_ts - start_ts
 
-    track_parameterized_circuits.unit = "ms"
+    track_parameterized_circuits.unit = "s"
