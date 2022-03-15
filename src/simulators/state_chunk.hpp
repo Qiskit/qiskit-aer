@@ -390,6 +390,7 @@ protected:
   uint_t num_groups_;            //number of groups of chunks
   reg_t top_chunk_of_group_;
   reg_t num_chunks_in_group_;
+  int num_threads_per_group_;   //number of outer threads per group
 
   //cuStateVec settings
   bool cuStateVec_enable_ = false;
@@ -419,7 +420,8 @@ protected:
                                const Noise::NoiseModel &noise,
                                ExperimentResult &result,
                                uint_t rng_seed,
-                               bool final_ops);
+                               bool final_ops,
+                               bool pauli_only);
 
   //apply op to multiple shots , return flase if op is not supported to execute in a batch
   virtual bool apply_batched_op(const int_t iChunk, const Operations::Op &op,
@@ -532,6 +534,11 @@ void StateChunk<state_t>::set_config(const json_t &config)
 {
   BaseState::set_config(config);
 
+  num_threads_per_group_ = 1;
+  if(JSON::check_key("num_threads_per_group", config)) {
+    JSON::get_value(num_threads_per_group_, "num_threads_per_group", config);
+  }
+
 #ifdef AER_CUSTATEVEC
   //cuStateVec configs
   if(JSON::check_key("cuStateVec_enable", config)) {
@@ -616,16 +623,9 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
   global_chunk_index_ = chunk_index_begin_[distributed_rank_];
   local_shot_index_ = 0;
 
-  if(multi_shots_parallelization_){
-    allocate_qregs(std::min(num_local_chunks_,max_batched_shots_));
-  }
-  else{
-    allocate_qregs(num_local_chunks_);
-  }
-
   thrust_optimization_ = false;
   chunk_omp_parallel_ = false;
-  if(qregs_[0].name().find("gpu") != std::string::npos){
+  if(BaseState::sim_device_name_ == "GPU"){
 #ifdef _OPENMP
     if(omp_get_num_threads() == 1)
       chunk_omp_parallel_ = true;
@@ -644,9 +644,16 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
       thrust_optimization_ = true;    //cuStateVec does not handle global chunk index for diagonal matrix
 #endif
   }
-  else if(qregs_[0].name().find("thrust") != std::string::npos){
+  else if(BaseState::sim_device_name_ == "Thrust"){
     thrust_optimization_ = true;
     chunk_omp_parallel_ = false;
+  }
+
+  if(multi_shots_parallelization_){
+    allocate_qregs(std::min(num_local_chunks_,max_batched_shots_));
+  }
+  else{
+    allocate_qregs(num_local_chunks_);
   }
 
 
@@ -677,11 +684,13 @@ bool StateChunk<state_t>::allocate_qregs(uint_t num_chunks)
   uint_t chunk_id = multi_chunk_distribution_ ? global_chunk_index_ : 0;
   bool ret = true;
   qregs_[0].set_max_matrix_bits(BaseState::max_matrix_qubits_);
+  qregs_[0].set_num_threads_per_group(num_threads_per_group_);
   qregs_[0].cuStateVec_enable(cuStateVec_enable_);
   ret &= qregs_[0].chunk_setup(chunk_bits_*qubit_scale(), num_qubits_*qubit_scale(), chunk_id, num_chunks);
   for(i=1;i<num_chunks;i++){
     uint_t gid = i + chunk_id;
     ret &= qregs_[i].chunk_setup(qregs_[0],gid);
+    qregs_[i].set_num_threads_per_group(num_threads_per_group_);
   }
 
   //initialize groups
@@ -890,6 +899,8 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
   int_t i;
   int_t i_begin,n_shots;
 
+  bool pauli_only = noise.pauli_only();
+
   i_begin = 0;
   while(i_begin<num_local_chunks_){
     local_shot_index_ = i_begin;
@@ -901,6 +912,7 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
       //resize qregs
       allocate_qregs(n_shots);
     }
+
     //initialization (equivalent to initialize_qreg + initialize_creg)
     auto init_group = [this](int_t ig){
       for(uint_t j=top_chunk_of_group_[ig];j<top_chunk_of_group_[ig+1];j++){
@@ -917,21 +929,22 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
     };
     Utils::apply_omp_parallel_for((num_groups_ > 1 && chunk_omp_parallel_),0,num_groups_,init_group);
 
+
     apply_global_phase(); //this is parallelized in StateChunk sub-classes
 
     //apply ops to multiple-shots
     if(num_groups_ > 1 && chunk_omp_parallel_){
       std::vector<ExperimentResult> par_results(num_groups_);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(num_groups_)
       for(i=0;i<num_groups_;i++)
-        apply_ops_multi_shots_for_group(i, first, last, noise, par_results[i], rng_seed, final_ops);
+        apply_ops_multi_shots_for_group(i, first, last, noise, par_results[i], rng_seed, final_ops, pauli_only);
 
       for (auto &res : par_results)
         result.combine(std::move(res));
     }
     else{
       for(i=0;i<num_groups_;i++)
-        apply_ops_multi_shots_for_group(i, first, last, noise, result, rng_seed, final_ops);
+        apply_ops_multi_shots_for_group(i, first, last, noise, result, rng_seed, final_ops, pauli_only);
     }
 
     //collect measured bits and copy memory
@@ -952,10 +965,12 @@ void StateChunk<state_t>::apply_ops_multi_shots_for_group(int_t i_group,
                                const Noise::NoiseModel &noise,
                                ExperimentResult &result,
                                uint_t rng_seed,
-                               bool final_ops) 
+                               bool final_ops,
+                               bool pauli_only)
 {
   uint_t istate = top_chunk_of_group_[i_group];
   std::vector<RngEngine> rng(num_chunks_in_group_[i_group]);
+  int num_inner_threads = omp_get_max_threads() / omp_get_num_threads();
 
   for(uint_t j=top_chunk_of_group_[i_group];j<top_chunk_of_group_[i_group+1];j++)
     rng[j-top_chunk_of_group_[i_group]].set_seed(rng_seed + global_chunk_index_ + local_shot_index_ + j);
@@ -964,32 +979,31 @@ void StateChunk<state_t>::apply_ops_multi_shots_for_group(int_t i_group,
     if(op->type == Operations::OpType::qerror_loc){
       //sample error here
       uint_t count = num_chunks_in_group_[i_group];
-      uint_t max_ops = 0;
-      bool pauli_only = true;
       std::vector<std::vector<Operations::Op>> noise_ops(count);
-      for(uint_t j=0;j<count;j++){
-        noise_ops[j] = noise.sample_noise_loc(*op,rng[j]);
 
-        if(noise_ops[j].size() == 0 || (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id"))
-          continue;
-        else{
-          if(max_ops < noise_ops[j].size())
-            max_ops = noise_ops[j].size();
-          if(pauli_only){
-            for(int_t k=0;k<noise_ops[j].size();k++){
-              if(noise_ops[j][k].name != "x" && noise_ops[j][k].name != "y" && noise_ops[j][k].name != "z" 
-                                             && noise_ops[j][k].name != "pauli" && noise_ops[j][k].name != "id"){
-                pauli_only = false;
-              }
-            }
-          }
+      uint_t count_ops = 0;
+      if(num_inner_threads > 1){
+#pragma omp parallel for reduction(+: count_ops) num_threads(num_inner_threads)
+        for(int_t j=0;j<count;j++){
+          noise_ops[j] = noise.sample_noise_loc(*op,rng[j]);
+
+          if(!(noise_ops[j].size() == 0 || (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id")))
+            count_ops++;
+        }
+      }
+      else{
+        for(int_t j=0;j<count;j++){
+          noise_ops[j] = noise.sample_noise_loc(*op,rng[j]);
+
+          if(!(noise_ops[j].size() == 0 || (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id")))
+            count_ops++;
         }
       }
 
-      if(max_ops == 0){
+      if(count_ops == 0){
         continue;   //do nothing
       }
-      if(pauli_only){   //batched Pauli can be applied (optimization for Pauli error)
+      if(pauli_only){   //ptimization for Pauli error
         qregs_[istate].apply_batched_pauli_ops(noise_ops);
       }
       else{

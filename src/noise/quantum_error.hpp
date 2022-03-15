@@ -105,6 +105,9 @@ public:
   // Set threshold for checking probabilities and matrices
   void set_threshold(double);
 
+  //return if noise model only contains Pauli operations or not
+  bool pauli_only(void) const;
+
 protected:
   // Number of qubits sthe error applies to
   uint_t num_qubits_ = 0;
@@ -385,6 +388,20 @@ void QuantumError::load_from_json(const json_t &js) {
   std::vector<NoiseOps> circuits;
   JSON::get_value(circuits, "instructions", js);
   set_circuits(circuits, probs);
+}
+
+
+bool QuantumError::pauli_only(void) const 
+{
+  for(int_t i=0;i<circuits_.size();i++){
+    for (auto op = circuits_[i].begin(); op != circuits_[i].end(); ++op) {
+      if(op->name != "x" && op->name != "y" && op->name != "z" 
+                                             && op->name != "pauli" && op->name != "id"){
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 //-------------------------------------------------------------------------

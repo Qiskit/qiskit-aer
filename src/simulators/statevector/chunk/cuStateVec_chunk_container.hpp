@@ -46,7 +46,7 @@ public:
   }
   ~cuStateVecChunkContainer();
 
-  uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit) override;
+  uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit,bool density_matrix) override;
   void Deallocate(void) override;
 
   unsigned char* custatevec_work_pointer(uint_t iChunk) const
@@ -102,10 +102,10 @@ cuStateVecChunkContainer<data_t>::~cuStateVecChunkContainer(void)
 }
 
 template <typename data_t>
-uint_t cuStateVecChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit)
+uint_t cuStateVecChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit,bool density_matrix)
 {
   uint_t nc;
-  nc = BaseContainer::Allocate(idev,chunk_bits,num_qubits,chunks,buffers,multi_shots,matrix_bit);
+  nc = BaseContainer::Allocate(idev,chunk_bits,num_qubits,chunks,buffers,multi_shots,matrix_bit,density_matrix);
 
   //initialize custatevevtor handle
   custatevecStatus_t err;
@@ -171,19 +171,20 @@ void cuStateVecChunkContainer<data_t>::Deallocate(void)
 template <typename data_t>
 reg_t cuStateVecChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride, bool dot,uint_t count) const
 {
-  if(count == (1ull << (this->num_qubits_ - this->chunk_bits_))){
+  if(stride == 1 && count == (1ull << (this->num_qubits_ - this->chunk_bits_))){
     //custatevecSampler_sample only can be applied to whole statevector
+    //also density_matrix is not supported (stride != 1)
     const int_t SHOTS = rnds.size();
     reg_t samples(SHOTS,0);
 
     BaseContainer::set_device();
-    custatevecSetStream(custatevec_handle_,BaseContainer::stream_[iChunk]);
+    custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
     custatevecStatus_t err;
     custatevecSamplerDescriptor_t sampler;
     size_t extSize;
 
-    cudaStreamSynchronize(BaseContainer::stream_[iChunk]);
+    cudaStreamSynchronize(BaseContainer::stream_);
 
     cudaDataType_t state_type;
     if(sizeof(data_t) == sizeof(double))
@@ -249,7 +250,7 @@ void cuStateVecChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const re
 
   pMat = (thrust::complex<double>*)&mat[0];
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_[iChunk]);
+  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   std::vector<int32_t> qubits32(qubits.size());
   for(int_t i=0;i<qubits.size();i++)
@@ -321,7 +322,7 @@ void cuStateVecChunkContainer<data_t>::apply_diagonal_matrix(const uint_t iChunk
 
   pMat = (thrust::complex<double>*)&diag[0];
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_[iChunk]);
+  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   std::vector<int32_t> qubits32(qubits.size());
   for(int_t i=0;i<qubits.size();i++)
@@ -374,7 +375,7 @@ void cuStateVecChunkContainer<data_t>::apply_X(const uint_t iChunk,const reg_t& 
   int_t num_qubits = qubits.size();
 
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_[iChunk]);
+  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   uint_t perm_size = 1ull << num_qubits;
   std::vector<custatevecIndex_t> perm(perm_size);
@@ -434,7 +435,7 @@ void cuStateVecChunkContainer<data_t>::apply_Y(const uint_t iChunk,const reg_t& 
   int_t num_qubits = qubits.size();
 
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_[iChunk]);
+  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   uint_t perm_size = 1ull << num_qubits;
   cvector_t<double> diag(perm_size);
@@ -511,7 +512,7 @@ void cuStateVecChunkContainer<data_t>::apply_swap(const uint_t iChunk,const reg_
   int_t num_qubits = qubits.size();
 
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_[iChunk]);
+  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   uint_t perm_size = 1ull << num_qubits;
   std::vector<custatevecIndex_t> swap(perm_size);
@@ -570,7 +571,7 @@ template <typename data_t>
 void cuStateVecChunkContainer<data_t>::apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t count)
 {
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_[iChunk]);
+  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   int_t size = 1ull << qubits.size();
   custatevecIndex_t perm[size];
@@ -628,7 +629,7 @@ void cuStateVecChunkContainer<data_t>::apply_rotation(const uint_t iChunk,const 
   int nPauli = 1;
 
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_[iChunk]);
+  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   int control_bits = qubits.size() - 1;
 
@@ -721,7 +722,7 @@ template <typename data_t>
 double cuStateVecChunkContainer<data_t>::norm(uint_t iChunk,uint_t count) const 
 {
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_[iChunk]);
+  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   double ret = 0.0;
   uint_t bits;
@@ -767,7 +768,7 @@ template <typename data_t>
 void cuStateVecChunkContainer<data_t>::probabilities(std::vector<double>& probs, const uint_t iChunk, const reg_t& qubits) const
 {
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_[iChunk]);
+  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   cudaDataType_t state_type;
   if(sizeof(data_t) == sizeof(double))
@@ -808,7 +809,7 @@ double cuStateVecChunkContainer<data_t>::expval_pauli(const uint_t iChunk,const 
     return BaseContainer::expval_pauli(iChunk, qubits, pauli, initial_phase);
   }
   BaseContainer::set_device();
-  custatevecSetStream(custatevec_handle_,BaseContainer::stream_[iChunk]);
+  custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
 
   cudaDataType_t state_type;
   if(sizeof(data_t) == sizeof(double))
