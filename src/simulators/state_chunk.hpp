@@ -912,7 +912,6 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
       //resize qregs
       allocate_qregs(n_shots);
     }
-
     //initialization (equivalent to initialize_qreg + initialize_creg)
     auto init_group = [this](int_t ig){
       for(uint_t j=top_chunk_of_group_[ig];j<top_chunk_of_group_[ig+1];j++){
@@ -928,7 +927,6 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
       }
     };
     Utils::apply_omp_parallel_for((num_groups_ > 1 && chunk_omp_parallel_),0,num_groups_,init_group);
-
 
     apply_global_phase(); //this is parallelized in StateChunk sub-classes
 
