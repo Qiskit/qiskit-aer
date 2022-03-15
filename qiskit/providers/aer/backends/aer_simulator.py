@@ -255,8 +255,7 @@ class AerSimulator(AerBackend):
     * ``num_threads_per_group`` (int): This option sets the number of
       threads per group. For GPU simulation, this value sets number of
       threads per GPU. This parameter is used to optimize Pauli noise
-      simulation with multiple-GPUs.
-       (Default: 1).
+      simulation with multiple-GPUs (Default: 1).
 
     These backend options only apply when using the ``"statevector"``
     simulation method:
