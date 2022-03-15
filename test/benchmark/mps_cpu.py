@@ -22,7 +22,7 @@ class MatrixProductStateCPU:
         try:
             from qiskit.providers.aer import AerSimulator
             self._simulator = AerSimulator(method='matrix_product_state', device='CPU')
-        except:
+        except ImportError:
             from qiskit.providers.aer import QasmSimulator
             self._simulator = QasmSimulator(method='matrix_product_state')
         return self._simulator

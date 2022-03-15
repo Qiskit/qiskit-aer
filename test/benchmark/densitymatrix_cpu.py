@@ -22,7 +22,7 @@ class DensitymatrixCPU:
         try:
             from qiskit.providers.aer import AerSimulator
             self._simulator = AerSimulator(method='density_matrix', device='CPU')
-        except:
+        except ImportError:
             from qiskit.providers.aer import QasmSimulator
             self._simulator = QasmSimulator(method='density_matrix')
         return self._simulator

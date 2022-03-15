@@ -24,6 +24,7 @@ class _Base(ABC):
                  qubits=[5, 15, 25]):
 
         self._simulator = None
+        self.qubits = qubits
         self.params = (qubits)
         self.param_names = ["qubits"]
         
@@ -33,18 +34,22 @@ class _Base(ABC):
         try:
             from qiskit.providers.aer import AerSimulator
             self._simulator = AerSimulator()
-        except:
+        except ImportError:
             from qiskit.providers.aer import QasmSimulator
             self._simulator = QasmSimulator()
         return self._simulator
 
     def _run(self, circuit, *args, **kwargs):
         if self.simulator().__class__.__name__ == 'AerSimulator':
-            return self.simulator().run(circuit, *args, **kwargs).result()
+            result = self.simulator().run(circuit, *args, **kwargs).result()
+            if not result.success:
+                raise ValueError(result.status)            
         elif self.simulator().__class__.__name__ in ('QasmSimulator', 'UnitarySimulator'):
             from qiskit import assemble
             circuit = assemble(circuit, self.simulator())
-            return self.simulator().run(circuit, *args, **kwargs).result()
+            result = self.simulator().run(circuit, *args, **kwargs).result()
+            if not result.success:
+                raise ValueError(result.status)            
         else:
             raise ValueError(f'unknown simulator class: {self._simulator.__class__.__name__}')
 
@@ -55,57 +60,38 @@ class Benchmark(_Base):
                  qubits=[5, 15, 25]):
         
         super().__init__(qubits)
+        self._qv_circs = {qubit: self._setup_circuit(QuantumVolume(qubit)) for qubit in qubits}
+        self._qft_circs = {qubit: self._setup_circuit(QFT(qubit)) for qubit in qubits}
+        self._ra_circs = {qubit: self._setup_circuit(RealAmplitudes(qubit)) for qubit in qubits}
+        self._ra_full_circs = {qubit: self._setup_circuit(RealAmplitudes(qubit, entanglement='full')) for qubit in qubits}
 
-    def _track(self, circuit):
-        """track only simulation time of given circuit"""
-
+    def _setup_circuit(self, circuit):
         self.add_measure(circuit)
-
         circuit = transpile(circuit, self.simulator())
-
         if circuit.num_parameters > 0:
             params = [ np.random.random() for _ in range(circuit.num_parameters) ]
             circuit = circuit.bind_parameters(params)
-
-        # benchmark start
-        start_ts = time()
-        result = self._run(circuit)
-        end_ts = time()
-        # benchmark end
-
-        if result.success:
-            return end_ts - start_ts
-        else:
-            raise ValueError(result.status)
+        return circuit
 
     def add_measure(self, circuit):
         """append measurement"""
         circuit.measure_all()
 
-    def track_qv(self, qubit):
+    def time_qv(self, qubit):
         """simulation time of QuantumVolume"""
-        return self._track(QuantumVolume(qubit))
-
-    track_qv.unit = "s"
-
-    def track_qft(self, qubit):
+        self._run(self._qv_circs[qubit])
+    
+    def time_qft(self, qubit):
         """simulation time of QFT"""
-        return self._track(QFT(qubit))
+        self._run(self._qft_circs[qubit])
 
-    track_qft.unit = 'ms'
-
-    def track_real_amplitudes(self, qubit):
+    def time_real_amplitudes(self, qubit):
         """simulation time of RealAmplitudes"""
-        return self._track(RealAmplitudes(qubit))
+        self._run(self._ra_circs[qubit])
 
-    track_real_amplitudes.unit = 'ms'
-
-    def track_real_amplitudes_full(self, qubit):
+    def time_real_amplitudes_full(self, qubit):
         """simulation time of RealAmplitudes"""
-        return self._track(RealAmplitudes(qubit, entanglement='full'))
-
-    track_real_amplitudes_full.unit = 'ms'
-
+        self._run(self._ra_full_circs[qubit])
 
 class ExpVal(_Base):
 
@@ -113,9 +99,10 @@ class ExpVal(_Base):
                  qubits=[10, 15, 25]):
 
         super().__init__(qubits)
+        self._expval_circs = { qubit: self.expval_circuit(qubit) for qubit in qubits } 
+        self._expval_var_circs = { qubit: self.expval_var_circuit(qubit) for qubit in qubits } 
 
-    def track_expval(self, qubit):
-        """track only time to calculate expectation values of RealAmplitudes with 1K pauli-strings"""
+    def expval_circuit(self, qubit):
         terms = 1000
         circuit = QuantumCircuit(qubit)
         for i in range(qubit):
@@ -131,23 +118,16 @@ class ExpVal(_Base):
                 else:
                     op += 1 / terms * qi.SparsePauliOp(pauli_string)
             circuit.save_expectation_value(op, range(qubit))
-        except:
+        except ImportError:
             from qiskit.providers.aer.extensions import snapshot_expectation_value
             circuit.snapshot_expectation_value('expval', [(1/terms, pauli) for pauli in pauli_strings], range(qubit))   
+        return circuit
 
-        start_ts = time()
-        result = self._run(circuit)
-        end_ts = time()
-        if not result.success:
-            raise ValueError(result.status)
+    def time_expval(self, qubit):
+        """time to calculate expectation values with 1K pauli-strings"""
+        self._run(self._expval_circs[qubit])
 
-        return end_ts - start_ts
-
-    track_expval.unit = "s"
-
-    def track_expval_var(self, qubit):
-        """track only time to calculate expectation value variances of RealAmplitudes with 100 pauli-strings"""
-
+    def expval_var_circuit(self, qubit):
         terms = 100
         circuit = QuantumCircuit(qubit)
         for i in range(qubit):
@@ -163,18 +143,14 @@ class ExpVal(_Base):
                 else:
                     op += rng.random() * qi.SparsePauliOp(pauli_string)
             circuit.save_expectation_value_variance(op, range(qubit))
-        except:
+        except ImportError:
             raise ValueError('no save_expectation_value_variance')
 
-        start_ts = time()
-        result = self._run(circuit)
-        end_ts = time()
-        if not result.success:
-            raise ValueError(result.status)
-        return end_ts - start_ts
+        return circuit
 
-    track_expval_var.unit = "s"
-
+    def time_expval_var(self, qubit):
+        """time to calculate expectation value variances with 100 pauli-strings"""
+        self._run(self._expval_var_circs[qubit])
 
 class Noise(_Base):
 
@@ -182,100 +158,71 @@ class Noise(_Base):
                  qubits=[10, 15]):
 
         super().__init__(qubits)
+        self._circuits = {qubit: self.quantum_volume(qubit) for qubit in qubits}
+        self._depolar_noise = self.depolarizing_error_model()
+        self._damping_noise = self.amplitude_damping_error_model()
+        self._roerror_noise = self.readout_error_model()
 
-    def track_depolarizing_error(self, qubit):
-        """track only time to simulate quantum volume transpiled with basis gates U and CX with depolarizing error"""
-        circuit = QuantumVolume(qubit)
-        circuit.measure_all()
-
-        circuit = transpile(circuit, self.simulator(), basis_gates=['u', 'cx'])
-
+    def depolarizing_error_model(self):
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(depolarizing_error(1e-3, 1), ['u'])
         noise_model.add_all_qubit_quantum_error(depolarizing_error(1e-2, 2), ['cx'])
+        return noise_model
 
-        start_ts = time()
-        result = self._run(circuit, noise_model=noise_model)
-        end_ts = time()
-        if not result.success:
-            raise ValueError(result.status)
-
-        return end_ts - start_ts
-
-    track_depolarizing_error.unit = "s"
-
-    def track_amplitude_damping_error(self, qubit):
-        """track only time to simulate quantum volume transpiled with basis gates U and CX with amplitude damping error"""
-        circuit = QuantumVolume(qubit)
-        circuit.measure_all()
-
-        circuit = transpile(circuit, self.simulator(), basis_gates=['u', 'cx'])
-
+    def amplitude_damping_error_model(self):
         noise_model = NoiseModel()
         noise_model.add_all_qubit_quantum_error(amplitude_damping_error(1e-3), 'u')
         cx_error = amplitude_damping_error(1e-2)
         cx_error = cx_error.tensor(cx_error)
         noise_model.add_all_qubit_quantum_error(cx_error, 'cx')
+        return noise_model
 
-        start_ts = time()
-        result = self._run(circuit, noise_model=noise_model)
-        end_ts = time()
-        if not result.success:
-            raise ValueError(result.status)
-
-        return end_ts - start_ts
-
-    track_amplitude_damping_error.unit = "s"
-
-    def track_readout_error(self, qubit):
-        """track only time to simulate quantum volume transpiled with basis gates U and CX with amplitude damping error"""
-        circuit = QuantumVolume(qubit)
-        circuit.measure_all()
-
-        circuit = transpile(circuit, self.simulator())
-
+    def readout_error_model(self):
         readout_error = [0.01, 0.1]
         noise_model = NoiseModel()
         readout = [[1.0 - readout_error[0], readout_error[0]],
                    [readout_error[1], 1.0 - readout_error[1]]]
         noise_model.add_all_qubit_readout_error(ReadoutError(readout))
+        return noise_model
 
-        start_ts = time()
-        result = self._run(circuit, noise_model=noise_model)
-        end_ts = time()
-        if not result.success:
-            raise ValueError(result.status)
+    def quantum_volume(self, qubit):
+        circuit = QuantumVolume(qubit)
+        circuit.measure_all()
+        circuit = transpile(circuit, self.simulator(), basis_gates=['u', 'cx'])
+        return circuit
 
-        return end_ts - start_ts
+    def time_depolarizing_error(self, qubit):
+        """time to simulate quantum volume transpiled with basis gates U and CX with depolarizing error"""
+        self._run(self._circuits[qubit], noise_model=self._depolar_noise)
 
-    track_readout_error.unit = "s"
+    def time_amplitude_damping_error(self, qubit):
+        """time to simulate quantum volume transpiled with basis gates U and CX with amplitude damping error"""
+        self._run(self._circuits[qubit], noise_model=self._damping_noise)
 
+    def time_readout_error(self, qubit):
+        self._run(self._circuits[qubit], noise_model=self._roerror_noise)
 
 class ParameterizedCircuit(_Base):
 
-    def __init__(self):
+    def __init__(self, qubits=[15]):
+        super().__init__(qubits)
+        self._circuits = {qubit: self.parameterized_circuits(qubit) for qubit in qubits}
+        self._param_maps = {qubit: self.parameter_map(self._circuits[qubit]) for qubit in qubits}
 
-        super().__init__([15])
-
-    def track_parameterized_circuits(self, qubit):
-        """track parameterized circuits: 100 sets x 1000 parameters"""
+    def parameterized_circuits(self, qubit):
         circuit = RealAmplitudes(qubit, reps=100)
         circuit.measure_all()
-        
         circuit = transpile(circuit, self.simulator())
+        return circuit
 
+    def parameter_map(self, circuit):
         num_of_params = 10
         param_map = {}
         for param in circuit.parameters:
             param_values = [ np.random.random() for _ in range(num_of_params) ]
             param_map[param] = param_values
+        return param_map
 
-        start_ts = time()
-        result = self._run(circuit, parameter_binds=[param_map])
-        end_ts = time()
-        if not result.success:
-            raise ValueError(result.status)
-
-        return end_ts - start_ts
-
-    track_parameterized_circuits.unit = "s"
+    def time_parameterized_circuits(self, qubit):
+        """simulate parameterized circuits: 100 sets x 1000 parameters"""
+        self._run(self._circuits[qubit], parameter_binds=[self._param_maps[qubit]])

@@ -22,7 +22,7 @@ class StatevectorGPU:
         try:
             from qiskit.providers.aer import AerSimulator
             self._simulator = AerSimulator(method='statevector', device='GPU')
-        except:
+        except ImportError:
             from qiskit.providers.aer import QasmSimulator
             self._simulator = QasmSimulator(method='statevector_gpu')
         return self._simulator

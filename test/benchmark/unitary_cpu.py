@@ -22,7 +22,7 @@ class UnitaryCPU:
         try:
             from qiskit.providers.aer import AerSimulator
             self._simulator = AerSimulator(method='unitary', device='CPU')
-        except:
+        except ImportError:
             from qiskit.providers.aer import UnitarySimulator
             self._simulator = UnitarySimulator(method='unitary')
         return self._simulator

@@ -22,7 +22,7 @@ class DensitymatrixGPU:
         try:
             from qiskit.providers.aer import AerSimulator
             self._simulator = AerSimulator(method='density_matrix', device='GPU')
-        except:
+        except ImportError:
             from qiskit.providers.aer import QasmSimulator
             self._simulator = QasmSimulator(method='density_matrix_gpu')
         return self._simulator
