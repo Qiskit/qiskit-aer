@@ -68,7 +68,9 @@ public:
     num_matrices_ = 1;
     multi_shots_ = false;
     creg_host_update_ = true;
+#ifdef AER_THRUST_CUDA
     stream_ = nullptr;
+#endif
   }
   ~DeviceChunkContainer();
 
