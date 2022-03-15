@@ -180,11 +180,6 @@ def thermal_relaxation_values(properties):
                 # Convert to Gigahertz
                 freq *= _GHZ_UNITS.get(freq_params.unit, 1)
 
-        # NOTE: T2 cannot be larger than 2 * T1 for a physical noise
-        # channel, however if a backend erroneously reports such a value we
-        # truncated it here:
-        t2 = min(2 * t1, t2)
-
         values.append((t1, t2, freq))
     return values
 

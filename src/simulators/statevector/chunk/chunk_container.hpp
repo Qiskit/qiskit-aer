@@ -43,10 +43,12 @@ DISABLE_WARNING_POP
 #define AER_MAX_BUFFERS       4
 #define AER_DUMMY_BUFFERS     4     //reserved storage for parameters
 
-#define QV_CUDA_NUM_THREADS 512
+#define QV_CUDA_NUM_THREADS 1024
 #define QV_MAX_REGISTERS 10
 #define QV_MAX_BLOCKED_GATES 64
 
+#define QV_PROBABILITY_BUFFER_SIZE 4
+#define QV_NUM_INTERNAL_REGS 4
 
 #ifdef AER_THRUST_CUDA
 #define AERDeviceVector thrust::device_vector
@@ -57,8 +59,15 @@ DISABLE_WARNING_POP
 
 #include "framework/utils.hpp"
 
+#ifdef AER_THRUST_CUDA
+#include "simulators/statevector/chunk/cuda_kernels.hpp"
+#endif
+
+#include "simulators/statevector/chunk/thrust_kernels.hpp"
+
 namespace AER {
 namespace QV {
+namespace Chunk {
 
 template <typename data_t> class Chunk;
 template <typename data_t> class DeviceChunkContainer;
@@ -71,236 +80,6 @@ struct BlockedGateParams
   unsigned char qubit_;
 };
 
-//========================================
-//  base class of gate functions
-//========================================
-template <typename data_t>
-class GateFuncBase
-{
-protected:
-  thrust::complex<data_t>* data_;   //pointer to state vector buffer
-  thrust::complex<double>* matrix_; //storage for matrix on device
-  uint_t* params_;                  //storage for additional parameters on device
-  uint_t base_index_;               //start index of state vector 
-public:
-  GateFuncBase()
-  {
-    data_ = NULL;
-    base_index_ = 0;
-  }
-  virtual __host__ __device__ ~GateFuncBase(){}
-
-  virtual void set_data(thrust::complex<data_t>* p)
-  {
-    data_ = p;
-  }
-  void set_matrix(thrust::complex<double>* mat)
-  {
-    matrix_ = mat;
-  }
-  void set_params(uint_t* p)
-  {
-    params_ = p;
-  }
-  void set_base_index(uint_t i)
-  {
-    base_index_ = i;
-  }
-  __host__ __device__ thrust::complex<data_t>* data(void)
-  {
-    return data_;
-  }
-
-  virtual bool is_diagonal(void)
-  {
-    return false;
-  }
-  virtual int qubits_count(void)
-  {
-    return 1;
-  }
-  virtual int num_control_bits(void)
-  {
-    return 0;
-  }
-  virtual int control_mask(void)
-  {
-    return 1;
-  }
-  virtual bool use_cache(void)
-  {
-    return false;
-  }
-  virtual bool batch_enable(void)
-  {
-    return true;
-  }
-
-  virtual const char* name(void)
-  {
-    return "base function";
-  }
-  virtual uint_t size(int num_qubits)
-  {
-    if(is_diagonal()){
-      return (1ull << num_qubits);
-    }
-    else{
-      return (1ull << (num_qubits - (qubits_count() - num_control_bits())));
-    }
-  }
-
-  virtual __host__ __device__ uint_t thread_to_index(uint_t _tid) const
-  {
-    return _tid;
-  }
-  virtual __host__ __device__ void run_with_cache(uint_t _tid,uint_t _idx,thrust::complex<data_t>* _cache) const
-  {
-    //implemente this in the kernel class
-  }
-};
-
-//========================================
-  //  gate functions with cache
-//========================================
-template <typename data_t>
-class GateFuncWithCache : public GateFuncBase<data_t>
-{
-protected:
-  int nqubits_;
-public:
-  GateFuncWithCache(uint_t nq)
-  {
-    nqubits_ = nq;
-  }
-
-  bool use_cache(void)
-  {
-    return true;
-  }
-
-  __host__ __device__ uint_t thread_to_index(uint_t _tid) const
-  {
-    uint_t idx,ii,t,j;
-    uint_t* qubits;
-    uint_t* qubits_sorted;
-
-    qubits_sorted = this->params_;
-    qubits = qubits_sorted + nqubits_;
-
-    idx = 0;
-    ii = _tid >> nqubits_;
-    for(j=0;j<nqubits_;j++){
-      t = ii & ((1ull << qubits_sorted[j]) - 1);
-      idx += t;
-      ii = (ii - t) << 1;
-
-      if(((_tid >> j) & 1) != 0){
-        idx += (1ull << qubits[j]);
-      }
-    }
-    idx += ii;
-    return idx;
-  }
-
-  __host__ __device__ void operator()(const uint_t &i) const
-  {
-    thrust::complex<data_t> cache[1024];
-    uint_t j,idx;
-    uint_t matSize = 1ull << nqubits_;
-
-    //load data to cache
-    for(j=0;j<matSize;j++){
-      idx = thread_to_index((i << nqubits_) + j);
-      cache[j] = this->data_[idx];
-    }
-
-    //execute using cache
-    for(j=0;j<matSize;j++){
-      idx = thread_to_index((i << nqubits_) + j);
-      this->run_with_cache(j,idx,cache);
-    }
-  }
-
-  virtual int qubits_count(void)
-  {
-    return nqubits_;
-  }
-};
-
-//stridded iterator to access diagonal probabilities
-template <typename Iterator>
-class strided_range
-{
-  public:
-
-  typedef typename thrust::iterator_difference<Iterator>::type difference_type;
-
-  struct stride_functor : public thrust::unary_function<difference_type,difference_type>
-  {
-    difference_type stride;
-
-    stride_functor(difference_type stride)
-        : stride(stride) {}
-
-    __host__ __device__
-    difference_type operator()(const difference_type& i) const
-    {
-      return stride * i;
-    }
-  };
-
-  typedef typename thrust::counting_iterator<difference_type>                   CountingIterator;
-  typedef typename thrust::transform_iterator<stride_functor, CountingIterator> TransformIterator;
-  typedef typename thrust::permutation_iterator<Iterator,TransformIterator>     PermutationIterator;
-
-  // type of the strided_range iterator
-  typedef PermutationIterator iterator;
-
-  // construct strided_range for the range [first,last)
-  strided_range(Iterator first, Iterator last, difference_type stride)
-      : first(first), last(last), stride(stride) {}
- 
-  iterator begin(void) const
-  {
-    return PermutationIterator(first, TransformIterator(CountingIterator(0), stride_functor(stride)));
-  }
-
-  iterator end(void) const
-  {
-    return begin() + ((last - first) + (stride - 1)) / stride;
-  }
-  
-  protected:
-  Iterator first;
-  Iterator last;
-  difference_type stride;
-};
-
-template <typename data_t>
-struct complex_dot_scan : public thrust::unary_function<thrust::complex<data_t>,thrust::complex<data_t>>
-{
-  __host__ __device__
-  thrust::complex<data_t> operator()(thrust::complex<data_t> x) { return thrust::complex<data_t>(x.real()*x.real()+x.imag()*x.imag(),0); }
-};
-
-template <typename data_t>
-struct complex_norm : public thrust::unary_function<thrust::complex<data_t>,thrust::complex<data_t>>
-{
-  __host__ __device__
-  thrust::complex<double> operator()(thrust::complex<data_t> x) { return thrust::complex<double>((double)x.real()*(double)x.real(),(double)x.imag()*(double)x.imag()); }
-};
-
-template<typename data_t>
-struct complex_less
-{
-  typedef thrust::complex<data_t> first_argument_type;
-  typedef thrust::complex<data_t> second_argument_type;
-  typedef bool result_type;
-  __thrust_exec_check_disable__
-    __host__ __device__ bool operator()(const thrust::complex<data_t> &lhs, const thrust::complex<data_t> &rhs) const {return lhs.real() < rhs.real();}
-}; // end less
-
 
 //============================================================================
 // chunk container base class
@@ -309,31 +88,41 @@ template <typename data_t>
 class ChunkContainer : public std::enable_shared_from_this<ChunkContainer<data_t>>
 {
 protected:
-  int chunk_bits_;                    //number of qubits for a chunk
+  int_t chunk_bits_;                  //number of qubits for a chunk
+  int_t num_qubits_;                  //total qubits
   int place_id_;                      //index of a container (device index + host)
   uint_t num_chunks_;                 //number of chunks in this container
+  uint_t chunk_index_;                //global chunk index for the first chunk in this container
   uint_t num_buffers_;                //number of buffers (buffer chunks) in this container
-  uint_t num_checkpoint_;             //number of checkpoint buffers in this container
   uint_t num_chunk_mapped_;           //number of chunks mapped
   reg_t blocked_qubits_;
-  std::vector<std::shared_ptr<Chunk<data_t>>> chunks_;         //chunk storage
-  std::vector<std::shared_ptr<Chunk<data_t>>> buffers_;        //buffer storage
-  std::vector<std::shared_ptr<Chunk<data_t>>> checkpoints_;    //checkpoint storage
-  bool enable_omp_;                 //disable this when shots are parallelized outside
+  std::vector<bool> chunks_map_;      //chunk mapper
+  std::vector<bool> buffers_map_;     //buffer mapper
+  mutable reg_t reduced_queue_begin_;
+  mutable reg_t reduced_queue_end_;
+  uint_t matrix_bits_;                //max matrix bits
+  uint_t num_creg_bits_;              //number of cregs
+  uint_t num_cregisters_;
+  uint_t num_cmemory_;
+  mutable int_t conditional_bit_;
+  bool keep_conditional_bit_;         //keep conditional bit alive
+  int_t num_pow2_qubits_;             //largest number of qubits that meets num_chunks_ = m*(2^num_pow2_qubits_)
 public:
   ChunkContainer()
   {
     chunk_bits_ = 0;
     place_id_ = 0;
     num_chunks_ = 0;
+    chunk_index_ = 0;
     num_buffers_ = 0;
-    num_checkpoint_ = 0;
     num_chunk_mapped_ = 0;
-    enable_omp_ = true;
+    conditional_bit_ = -1;
+    keep_conditional_bit_ = false;
+    matrix_bits_ = AER_DEFAULT_MATRIX_BITS;
   }
   virtual ~ChunkContainer(){}
 
-  int chunk_bits(void)
+  int_t chunk_bits(void)
   {
     return chunk_bits_;
   }
@@ -353,10 +142,6 @@ public:
   {
     return num_buffers_;
   }
-  uint_t num_checkpoint(void)
-  {
-    return num_checkpoint_;
-  }
   uint_t chunk_size(void)
   {
     return (1ull << chunk_bits_);
@@ -365,12 +150,9 @@ public:
   {
     return num_chunk_mapped_;
   }
-  void enable_omp(bool flg)
+  uint_t matrix_bits(void)
   {
-#pragma omp critical
-    {
-      enable_omp_ = flg;
-    }
+    return matrix_bits_;
   }
 
   virtual void set_device(void) const
@@ -395,23 +177,42 @@ public:
     return false;
   }
 
+  void set_conditional(int_t reg)
+  {
+    conditional_bit_ = reg;
+  }
+  int_t get_conditional(void)
+  {
+    return conditional_bit_;
+  }
+  void keep_conditional(bool keep)
+  {
+    keep_conditional_bit_ = keep;
+  }
+
+  void set_chunk_index(uint_t chunk_index)
+  {
+    chunk_index_ = chunk_index;
+  }
+
   virtual thrust::complex<data_t>& operator[](uint_t i) = 0;
 
-  virtual uint_t Allocate(int idev,int bits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,uint_t checkpoint = 0) = 0;
+  virtual uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,bool multi_shots = false,int matrix_bit = AER_DEFAULT_MATRIX_BITS) = 0;
   virtual void Deallocate(void) = 0;
-  virtual uint_t Resize(uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,uint_t checkpoint = 0) = 0;
 
   virtual void Set(uint_t i,const thrust::complex<data_t>& t) = 0;
   virtual thrust::complex<data_t> Get(uint_t i) const = 0;
 
   virtual void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk) = 0;
+  virtual void StoreMatrix(const std::complex<double>* mat,uint_t iChunk,uint_t size) = 0;
   virtual void StoreUintParams(const std::vector<uint_t>& prm,uint_t iChunk) = 0;
+  virtual void ResizeMatrixBuffers(int bits) = 0;
 
-  virtual void CopyIn(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk) = 0;
-  virtual void CopyOut(std::shared_ptr<Chunk<data_t>> dest,uint_t iChunk) = 0;
+  virtual void CopyIn(Chunk<data_t>& src,uint_t iChunk) = 0;
+  virtual void CopyOut(Chunk<data_t>& dest,uint_t iChunk) = 0;
   virtual void CopyIn(thrust::complex<data_t>* src,uint_t iChunk, uint_t size) = 0;
   virtual void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk, uint_t size) = 0;
-  virtual void Swap(std::shared_ptr<Chunk<data_t>> src,uint_t iChunk) = 0;
+  virtual void Swap(Chunk<data_t>& src,uint_t iChunk) = 0;
 
   virtual void Zero(uint_t iChunk,uint_t count) = 0;
 
@@ -419,10 +220,14 @@ public:
   void Execute(Function func,uint_t iChunk,uint_t count);
 
   template <typename Function>
-  double ExecuteSum(Function func,uint_t iChunk,uint_t count) const;
+  void ExecuteSum(double* pSum,Function func,uint_t iChunk,uint_t count) const;
 
-  virtual reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true) const = 0;
-  virtual thrust::complex<double> norm(uint_t iChunk,uint_t stride = 1,bool dot = true) const = 0;
+  template <typename Function>
+  void ExecuteSum2(double* pSum,Function func,uint_t iChunk,uint_t count) const;
+
+  virtual reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true,uint_t count = 1) const = 0;
+  virtual double norm(uint_t iChunk,uint_t count) const;
+  virtual double trace(uint_t iChunk,uint_t row,uint_t count) const;
 
 
   size_t size_of_complex(void)
@@ -430,12 +235,11 @@ public:
     return sizeof(thrust::complex<data_t>);
   }
 
-  std::shared_ptr<Chunk<data_t>> MapChunk(void);
-  std::shared_ptr<Chunk<data_t>> MapBufferChunk(void);
-  std::shared_ptr<Chunk<data_t>> MapCheckpoint(int_t iChunk = -1);
-  void UnmapChunk(std::shared_ptr<Chunk<data_t>> chunk);
-  void UnmapBuffer(std::shared_ptr<Chunk<data_t>> buf);
-  void UnmapCheckpoint(std::shared_ptr<Chunk<data_t>> buf);
+  bool MapChunk(Chunk<data_t>& chunk);
+  bool MapBufferChunk(Chunk<data_t>& chunk);
+  void UnmapChunk(Chunk<data_t>& chunk);
+  void UnmapBuffer(Chunk<data_t>& chunk);
+  void unmap_all(void);
 
   virtual thrust::complex<data_t>* chunk_pointer(uint_t iChunk) const
   {
@@ -449,6 +253,7 @@ public:
   {
     return NULL;
   }
+
 
   virtual void synchronize(uint_t iChunk)
   {
@@ -473,6 +278,68 @@ public:
     ;
   }
 
+  virtual double* reduce_buffer(uint_t iChunk) const
+  {
+    return NULL;
+  }
+  virtual uint_t reduce_buffer_size() const
+  {
+    return 1;
+  }
+  virtual double* condition_buffer(uint_t iChunk) const
+  {
+    return NULL;
+  }
+  virtual double* probability_buffer(uint_t iChunk) const
+  {
+    return NULL;
+  }
+
+  virtual void copy_to_probability_buffer(std::vector<double>& buf,int pos){}
+
+  //classical register to store measured bits/used for bfunc operations
+  virtual void allocate_creg(uint_t num_mem,uint_t num_reg){}
+  virtual int measured_cbit(uint_t iChunk,int qubit)
+  {
+    return 0;
+  }
+
+  virtual uint_t* creg_buffer(uint_t iChunk) const
+  {
+    return NULL;
+  }
+  virtual void request_creg_update(void){}
+
+  //apply matrix 
+  virtual void apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count);
+
+  //apply diagonal matrix
+  virtual void apply_diagonal_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t count);
+
+  //apply (controlled) X
+  virtual void apply_X(const uint_t iChunk,const reg_t& qubits,const uint_t count);
+
+  //apply (controlled) Y
+  virtual void apply_Y(const uint_t iChunk,const reg_t& qubits,const uint_t count);
+
+  //apply (controlled) phase
+  virtual void apply_phase(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const std::complex<double> phase,const uint_t count);
+
+  //apply (controlled) swap gate
+  virtual void apply_swap(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const uint_t count);
+
+  //apply permutation
+  virtual void apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t count);
+
+  //apply rotation around axis
+  virtual void apply_rotation(const uint_t iChunk,const reg_t &qubits, const Rotation r, const double theta, const uint_t count);
+
+  //get probabilities of chunk
+  virtual void probabilities(std::vector<double>& probs, const uint_t iChunk, const reg_t& qubits) const;
+
+  //Pauli expectation values
+  virtual double expval_pauli(const uint_t iChunk,const reg_t& qubits,const std::string &pauli,const complex_t initial_phase) const;
+
 protected:
   int convert_blocked_qubit(int qubit)
   {
@@ -485,138 +352,68 @@ protected:
     return -1;
   }
 
+
   //allocate storage for chunk classes
   void allocate_chunks(void);
   void deallocate_chunks(void);
 };
 
 template <typename data_t>
-std::shared_ptr<Chunk<data_t>> ChunkContainer<data_t>::MapChunk(void)
+bool ChunkContainer<data_t>::MapChunk(Chunk<data_t>& chunk)
 {
-  uint_t i,pos,idx;
-  pos = num_chunks_;
-
-#pragma omp critical
-  {
-    for(i=0;i<num_chunks_;i++){
-      idx = (num_chunk_mapped_ + i) % num_chunks_;
-      if(!chunks_[idx]->is_mapped()){
-        chunks_[idx]->map();
-        pos = idx;
-        num_chunk_mapped_++;
-        break;
-      }
-    }
-  }
-
-  if(pos < num_chunks_)
-    return chunks_[pos];
-  return nullptr;
-}
-
-template <typename data_t>
-void ChunkContainer<data_t>::UnmapChunk(std::shared_ptr<Chunk<data_t>> chunk)
-{
-  chunk->unmap();
-}
-
-template <typename data_t>
-std::shared_ptr<Chunk<data_t>> ChunkContainer<data_t>::MapBufferChunk(void)
-{
-  uint_t i,pos;
-  std::shared_ptr<Chunk<data_t>> ret = nullptr;
-
-#pragma omp critical
-  {
-    for(i=0;i<num_buffers_;i++){
-      if(!buffers_[i]->is_mapped()){
-        buffers_[i]->map();
-        ret = buffers_[i];
-        break;
-      }
-    }
-  }
-
-  return ret;
-}
-
-template <typename data_t>
-void ChunkContainer<data_t>::UnmapBuffer(std::shared_ptr<Chunk<data_t>> buf)
-{
-#pragma omp critical
-  {
-    buf->unmap();
-  }
-}
-
-template <typename data_t>
-std::shared_ptr<Chunk<data_t>> ChunkContainer<data_t>::MapCheckpoint(int_t iChunk)
-{
-  if(iChunk >= 0 && num_checkpoint_ == num_chunks_){   //checkpoint buffers are reserved for all chunks
-    if(iChunk < num_checkpoint_)
-      return checkpoints_[iChunk];
-    return nullptr;
-  }
-  else{
-    uint_t i,pos;
-    pos = num_checkpoint_;
-#pragma omp critical
-    {
-      for(i=0;i<num_checkpoint_;i++){
-        if(!checkpoints_[i]->is_mapped()){
-          checkpoints_[i]->map();
-          pos = i;
-          break;
-        }
-      }
-    }
-
-    if(pos < num_checkpoint_)
-      return checkpoints_[pos];
-    return nullptr;
-  }
-}
-
-template <typename data_t>
-void ChunkContainer<data_t>::UnmapCheckpoint(std::shared_ptr<Chunk<data_t>> buf)
-{
-  if(num_checkpoint_ != num_chunks_){
-#pragma omp critical
-    {
-      buf->unmap();
-    }
-  }
-}
-
-#ifdef AER_THRUST_CUDA
-
-template <typename data_t,typename kernel_t> __global__
-void dev_apply_function(kernel_t func)
-{
-  uint_t i;
-
-  i = blockIdx.x * blockDim.x + threadIdx.x;
-
-  func(i);
-}
-
-template <typename data_t,typename kernel_t> __global__
-void dev_apply_function_with_cache(kernel_t func)
-{
-  __shared__ thrust::complex<data_t> cache[1024];
   uint_t i,idx;
 
-  i = blockIdx.x * blockDim.x + threadIdx.x;
-
-  idx = func.thread_to_index(i);
-
-  cache[threadIdx.x] = func.data()[idx];
-  __syncthreads();
-
-  func.run_with_cache(threadIdx.x,idx,cache);
+  for(i=0;i<num_chunks_;i++){
+    idx = (num_chunk_mapped_ + i) % num_chunks_;
+    if(!chunks_map_[idx]){
+      chunks_map_[idx] = true;
+      num_chunk_mapped_++;
+      chunk.map(this->shared_from_this(),idx);
+      break;
+    }
+  }
+  return chunk.is_mapped();
 }
 
-#endif
+template <typename data_t>
+void ChunkContainer<data_t>::UnmapChunk(Chunk<data_t>& chunk)
+{
+  chunks_map_[chunk.pos()] = false;
+  chunk.unmap();
+}
+
+template <typename data_t>
+bool ChunkContainer<data_t>::MapBufferChunk(Chunk<data_t>& chunk)
+{
+  uint_t i,pos;
+
+  for(i=0;i<num_buffers_;i++){
+    if(!buffers_map_[i]){
+      buffers_map_[i] = true;
+      chunk.map(this->shared_from_this(),num_chunks_+i);
+      break;
+    }
+  }
+  return chunk.is_mapped();
+}
+
+template <typename data_t>
+void ChunkContainer<data_t>::UnmapBuffer(Chunk<data_t>& buf)
+{
+  buffers_map_[buf.pos()-num_chunks_] = false;
+  buf.unmap();
+}
+
+template <typename data_t>
+void ChunkContainer<data_t>::unmap_all(void)
+{
+  int_t i;
+  for(i=0;i<chunks_map_.size();i++)
+    chunks_map_[i] = false;
+  for(i=0;i<buffers_map_.size();i++)
+    buffers_map_[i] = false;
+  num_chunk_mapped_ = 0;
+}
 
 template <typename data_t>
 template <typename Function>
@@ -624,9 +421,17 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
 {
   set_device();
 
+  func.set_base_index((chunk_index_ + iChunk) << chunk_bits_);
   func.set_data( chunk_pointer(iChunk) );
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
+  func.set_cregs_(creg_buffer(iChunk),num_creg_bits_);
+
+  if(iChunk == 0 && conditional_bit_ >= 0){
+    func.set_conditional(conditional_bit_);
+    if(!keep_conditional_bit_)
+      conditional_bit_ = -1;  //reset conditional
+  }
 
 #ifdef AER_THRUST_CUDA
   cudaStream_t strm = stream(iChunk);
@@ -635,21 +440,33 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
     nb = 1;
 
     if(func.use_cache()){
-      nt = count << chunk_bits_;
+      func.set_chunk_bits(chunk_bits_);
 
-      if(nt > 1024){
-        nb = (nt + 1024 - 1) / 1024;
-        nt = 1024;
+      nt = count << chunk_bits_;
+      if(nt > 0){
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dev_apply_function_with_cache<data_t,Function><<<nb,nt,0,strm>>>(func);
       }
-      dev_apply_function_with_cache<data_t,Function><<<nb,nt,0,strm>>>(func);
     }
     else{
       nt = count * func.size(chunk_bits_);
-      if(nt > QV_CUDA_NUM_THREADS){
-        nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
-        nt = QV_CUDA_NUM_THREADS;
+
+      if(nt > 0){
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dev_apply_function<data_t,Function><<<nb,nt,0,strm>>>(func);
       }
-      dev_apply_function<data_t,Function><<<nb,nt,0,strm>>>(func);
+    }
+    cudaError_t err = cudaGetLastError();
+    if(err != cudaSuccess){
+      std::stringstream str;
+      str << "ChunkContainer::Execute in " << func.name() << " : " << cudaGetErrorName(err);
+      throw std::runtime_error(str.str());
     }
   }
   else{ //if no stream returned, run on host
@@ -658,104 +475,555 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
     thrust::for_each_n(thrust::seq, ci , size, func);
   }
 #else
-  uint_t size = count * func.size(chunk_bits_);
-  auto ci = thrust::counting_iterator<uint_t>(0);
-  if(enable_omp_)
-    thrust::for_each_n(thrust::device, ci , size, func);
+  uint_t size;
+  if(func.use_cache())
+    size = count << (chunk_bits_ - func.qubits_count());
   else
-    thrust::for_each_n(thrust::seq, ci , size, func);  //disable nested OMP parallelization when shots are parallelized
+    size = count * func.size(chunk_bits_);
+  auto ci = thrust::counting_iterator<uint_t>(0);
+  thrust::for_each_n(thrust::device, ci , size, func);
 #endif
 
 }
 
 template <typename data_t>
 template <typename Function>
-double ChunkContainer<data_t>::ExecuteSum(Function func,uint_t iChunk,uint_t count) const
+void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk,uint_t count) const
 {
-  double ret;
+
+#ifdef AER_THRUST_CUDA
   uint_t size = count * func.size(chunk_bits_);
 
   set_device();
 
+  func.set_base_index((chunk_index_ + iChunk) << chunk_bits_);
   func.set_data( chunk_pointer(iChunk) );
   func.set_matrix( matrix_pointer(iChunk) );
   func.set_params( param_pointer(iChunk) );
+  func.set_cregs_(creg_buffer(iChunk),num_creg_bits_);
 
   auto ci = thrust::counting_iterator<uint_t>(0);
 
-#ifdef AER_THRUST_CUDA
   cudaStream_t strm = stream(iChunk);
   if(strm){
-    ret = thrust::transform_reduce(thrust::cuda::par.on(strm), ci, ci + size, func,0.0,thrust::plus<double>());
+    uint_t buf_size;
+    double* buf = reduce_buffer(iChunk);
+
+    if(pSum){   //sum for all chunks are gathered and stored to pSum
+      buf_size = 0;
+      uint_t n,nt,nb;
+      nb = 1;
+
+      if(func.use_cache()){
+        nt = count << chunk_bits_;
+        if(nt > 0){
+          if(nt > QV_CUDA_NUM_THREADS){
+            nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+            nt = QV_CUDA_NUM_THREADS;
+          }
+          dev_apply_function_sum_with_cache<data_t,Function><<<nb,nt,0,strm>>>(buf,func,buf_size);
+        }
+      }
+      else{
+        nt = size;
+        if(nt > 0){
+          if(nt > QV_CUDA_NUM_THREADS){
+            nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+            nt = QV_CUDA_NUM_THREADS;
+          }
+          dev_apply_function_sum<data_t,Function><<<nb,nt,0,strm>>>(buf,func,buf_size);
+        }
+      }
+      cudaError_t err = cudaGetLastError();
+      if(err != cudaSuccess){
+        std::stringstream str;
+        str << "ChunkContainer::ExecuteSum in " << func.name() << " : " << cudaGetErrorName(err);
+        throw std::runtime_error(str.str());
+      }
+
+      while(nb > 1){
+        n = nb;
+        nt = nb;
+        nb = 1;
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dev_reduce_sum<<<nb,nt,0,strm>>>(buf,n,buf_size);
+
+        cudaError_t err = cudaGetLastError();
+        if(err != cudaSuccess){
+          std::stringstream str;
+          str << "ChunkContainer::ExecuteSum in " << func.name() << " :: " << cudaGetErrorName(err);
+          throw std::runtime_error(str.str());
+        }
+      }
+      cudaMemcpyAsync(pSum,buf,sizeof(double),cudaMemcpyDeviceToHost,strm);
+    }
+    else{
+      buf_size = reduce_buffer_size();
+
+      uint_t n,nt,nb;
+      nb = 1;
+
+      if(func.use_cache()){
+        nt = 1ull << chunk_bits_;
+        if(nt > 0){
+          if(nt > QV_CUDA_NUM_THREADS){
+            nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+            nt = QV_CUDA_NUM_THREADS;
+          }
+          dim3 grid(nb,count,1);
+          dev_apply_function_sum_with_cache<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
+        }
+      }
+      else{
+        nt = func.size(chunk_bits_);
+        if(nt > 0){
+          if(nt > QV_CUDA_NUM_THREADS){
+            nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+            nt = QV_CUDA_NUM_THREADS;
+          }
+          dim3 grid(nb,count,1);
+          dev_apply_function_sum<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
+        }
+      }
+      cudaError_t err = cudaGetLastError();
+      if(err != cudaSuccess){
+        std::stringstream str;
+        str << "ChunkContainer::ExecuteSum in " << func.name() << " : " << cudaGetErrorName(err);
+        throw std::runtime_error(str.str());
+      }
+
+      while(nb > 1){
+        n = nb;
+        nt = nb;
+        nb = 1;
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dim3 grid(nb,count,1);
+        dev_reduce_sum<<<grid,nt,0,strm>>>(buf,n,buf_size);
+
+        cudaError_t err = cudaGetLastError();
+        if(err != cudaSuccess){
+          std::stringstream str;
+          str << "ChunkContainer::ExecuteSum in " << func.name() << " :: " << cudaGetErrorName(err);
+          throw std::runtime_error(str.str());
+        }
+      }
+    }
   }
   else{ //if no stream returned, run on host
-    ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<double>());
+    *pSum = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<double>());
   }
 #else
-  if(enable_omp_)
-    ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<double>());
-  else
-    ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<double>());  //disable nested OMP parallelization when shots are parallelized
-#endif
+  uint_t size = func.size(chunk_bits_);
 
-  return ret;
+  func.set_base_index((chunk_index_ + iChunk) << chunk_bits_);
+  func.set_matrix( matrix_pointer(iChunk) );
+  func.set_params( param_pointer(iChunk) );
+
+  uint_t i;
+  for(i=0;i<count;i++){
+
+    func.set_data( chunk_pointer(iChunk + i) );
+    func.set_index_offset(iChunk << chunk_bits_);
+
+    auto ci = thrust::counting_iterator<uint_t>(0);
+
+    double sum;
+    sum = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<double>());
+    if(count == 1 && pSum){
+      *pSum = sum;
+    }
+    else{
+      *(reduce_buffer(iChunk + i)) = sum;
+    }
+  }
+#endif
 }
 
+struct complex_sum
+{
+  __host__ __device__ thrust::complex<double> operator()(const thrust::complex<double>& a,const thrust::complex<double>& b)
+  {
+    return a+b;
+  }
+};
+
+template <typename data_t>
+template <typename Function>
+void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChunk,uint_t count) const
+{
+
+#ifdef AER_THRUST_CUDA
+  uint_t size = count * func.size(chunk_bits_);
+
+  set_device();
+
+  func.set_base_index((chunk_index_ + iChunk) << chunk_bits_);
+  func.set_data( chunk_pointer(iChunk) );
+  func.set_matrix( matrix_pointer(iChunk) );
+  func.set_params( param_pointer(iChunk) );
+  func.set_cregs_(creg_buffer(iChunk),num_creg_bits_);
+
+  auto ci = thrust::counting_iterator<uint_t>(0);
+
+  cudaStream_t strm = stream(iChunk);
+  if(strm){
+    uint_t buf_size;
+    uint_t n,nt,nb;
+    nb = 1;
+    nt = func.size(chunk_bits_);
+    thrust::complex<double>* buf = (thrust::complex<double>*)reduce_buffer(iChunk);
+
+    if(pSum){   //sum for all chunks are gathered and stored to pSum
+      buf_size = 0;
+      nt = size;
+      if(nt > 0){
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dev_apply_function_sum_complex<data_t,Function><<<nb,nt,0,strm>>>(buf,func,buf_size);
+      }
+      cudaError_t err = cudaGetLastError();
+      if(err != cudaSuccess){
+        std::stringstream str;
+        str << "ChunkContainer::ExecuteSum2 in " << func.name() << " : " << cudaGetErrorName(err);
+        throw std::runtime_error(str.str());
+      }
+
+      while(nb > 1){
+        n = nb;
+        nt = nb;
+        nb = 1;
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dev_reduce_sum_complex<<<nb,nt,0,strm>>>(buf,n,buf_size);
+
+        cudaError_t err = cudaGetLastError();
+        if(err != cudaSuccess){
+          std::stringstream str;
+          str << "ChunkContainer::ExecuteSum2 in " << func.name() << " :: " << cudaGetErrorName(err);
+          throw std::runtime_error(str.str());
+        }
+      }
+      cudaMemcpyAsync(pSum,buf,sizeof(double)*2,cudaMemcpyDeviceToHost,strm);
+    }
+    else{
+      buf_size = reduce_buffer_size()/2;
+
+      if(nt > 0){
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dim3 grid(nb,count,1);
+        dev_apply_function_sum_complex<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
+      }
+      cudaError_t err = cudaGetLastError();
+      if(err != cudaSuccess){
+        std::stringstream str;
+        str << "ChunkContainer::ExecuteSum2 in " << func.name() << " : " << cudaGetErrorName(err);
+        throw std::runtime_error(str.str());
+      }
+
+      while(nb > 1){
+        n = nb;
+        nt = nb;
+        nb = 1;
+        if(nt > QV_CUDA_NUM_THREADS){
+          nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
+          nt = QV_CUDA_NUM_THREADS;
+        }
+        dim3 grid(nb,count,1);
+        dev_reduce_sum_complex<<<grid,nt,0,strm>>>(buf,n,buf_size);
+
+        cudaError_t err = cudaGetLastError();
+        if(err != cudaSuccess){
+          std::stringstream str;
+          str << "ChunkContainer::ExecuteSum2 in " << func.name() << " :: " << cudaGetErrorName(err);
+          throw std::runtime_error(str.str());
+        }
+      }
+    }
+  }
+  else{ //if no stream returned, run on host
+    thrust::complex<double> ret,zero = 0.0;
+    ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,zero,complex_sum());
+    *((thrust::complex<double>*)pSum) = ret;
+  }
+#else
+  uint_t size = func.size(chunk_bits_);
+
+  func.set_base_index((chunk_index_ + iChunk) << chunk_bits_);
+  func.set_matrix( matrix_pointer(iChunk) );
+  func.set_params( param_pointer(iChunk) );
+ 
+  uint_t i;
+  for(i=0;i<count;i++){
+    thrust::complex<double> ret,zero = 0.0;
+    func.set_data( chunk_pointer(iChunk + i) );
+    func.set_index_offset(iChunk << chunk_bits_);
+
+    auto ci = thrust::counting_iterator<uint_t>(0);
+
+    ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,zero,complex_sum());
+
+    if(count == 1 && pSum){
+      *((thrust::complex<double>*)pSum) = ret;
+    }
+    else{
+      *((thrust::complex<double>*)reduce_buffer(iChunk + i)) = ret;
+    }
+  }
+#endif
+}
+
+
+void host_func_launcher(void* pParam)
+{
+  HostFuncBase* func = reinterpret_cast<HostFuncBase*>(pParam);
+  func->execute();
+}
 
 template <typename data_t>
 void ChunkContainer<data_t>::allocate_chunks(void)
 {
   uint_t i;
-  chunks_.resize(num_chunks_);
-  buffers_.resize(num_buffers_);
-  checkpoints_.resize(num_checkpoint_);
+  chunks_map_.resize(num_chunks_,false);
+  buffers_map_.resize(num_buffers_,false);
 
-  if(num_chunks_ > 0){
-    chunks_.resize(num_chunks_);
-    for(i=0;i<num_chunks_;i++){
-      chunks_[i] = std::make_shared<Chunk<data_t>>(this->shared_from_this(),i);
-    }
-  }
-  if(num_buffers_ > 0){
-    buffers_.resize(num_buffers_);
-    for(i=0;i<num_buffers_;i++){
-      buffers_[i] = std::make_shared<Chunk<data_t>>(this->shared_from_this(),num_chunks_+i);
-    }
-  }
-  if(num_checkpoint_ > 0){
-    checkpoints_.resize(num_checkpoint_);
-    for(i=0;i<num_checkpoint_;i++){
-      checkpoints_[i] = std::make_shared<Chunk<data_t>>(this->shared_from_this(),num_chunks_+num_buffers_+i);
-    }
-  }
+  reduced_queue_begin_.resize(num_chunks_,0);
+  reduced_queue_end_.resize(num_chunks_,0);
 }
 
 template <typename data_t>
 void ChunkContainer<data_t>::deallocate_chunks(void)
 {
-  uint_t i;
+  chunks_map_.clear();
+  buffers_map_.clear();
 
-  if(num_chunks_ > 0){
-    for(i=0;i<num_chunks_;i++){
-      chunks_[i].reset();
-    }
-    chunks_.clear();
+  reduced_queue_begin_.clear();
+  reduced_queue_end_.clear();
+}
+
+template <typename data_t>
+void ChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &mat,const uint_t count)
+{
+  const size_t N = qubits.size() - control_bits;
+
+  if(N == 1){
+    if(control_bits == 0)
+      Execute(MatrixMult2x2<data_t>(mat,qubits[0]), iChunk, count);
+    else  //2x2 matrix with control bits
+      Execute(MatrixMult2x2Controlled<data_t>(mat,qubits), iChunk, count);
   }
-  if(num_buffers_ > 0){
-    for(i=0;i<num_buffers_;i++){
-      buffers_[i].reset();
-    }
-    buffers_.clear();
+  else if(N == 2){
+    Execute(MatrixMult4x4<data_t>(mat,qubits[0],qubits[1]), iChunk, count);
   }
-  if(num_checkpoint_ > 0){
-    for(i=0;i<num_checkpoint_;i++){
-      checkpoints_[i].reset();
+  else{
+    auto qubits_sorted = qubits;
+    std::sort(qubits_sorted.begin(), qubits_sorted.end());
+#ifndef AER_THRUST_CUDA
+    if(N == 3){
+      StoreMatrix(mat, iChunk);
+      Execute(MatrixMult8x8<data_t>(qubits,qubits_sorted), iChunk, count);
     }
-    checkpoints_.clear();
+    else if(N == 4){
+      StoreMatrix(mat, iChunk);
+      Execute(MatrixMult16x16<data_t>(qubits,qubits_sorted), iChunk, count);
+    }
+    else if(N <= 10){
+#else
+    if(N <= 10){
+#endif
+      int i;
+      for(i=0;i<N;i++){
+        qubits_sorted.push_back(qubits[i]);
+      }
+      StoreMatrix(mat, iChunk);
+      StoreUintParams(qubits_sorted, iChunk);
+
+      Execute(MatrixMultNxN<data_t>(N), iChunk, count);
+    }
+    else{
+      cvector_t<double> matLU;
+      reg_t params;
+      MatrixMultNxN_LU<data_t> f(mat,qubits_sorted,matLU,params);
+
+      StoreMatrix(matLU, iChunk);
+      StoreUintParams(params, iChunk);
+
+      Execute(f, iChunk, count);
+    }
   }
 }
 
+template <typename data_t>
+void ChunkContainer<data_t>::apply_diagonal_matrix(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const cvector_t<double> &diag,const uint_t count)
+{
+  const size_t N = qubits.size() - control_bits;
+
+  if(N == 1){
+    if(control_bits == 0)
+      Execute(DiagonalMult2x2<data_t>(diag,qubits[0]), iChunk, count);
+    else
+      Execute(DiagonalMult2x2Controlled<data_t>(diag,qubits), iChunk, count);
+  }
+  else if(N == 2){
+    Execute(DiagonalMult4x4<data_t>(diag,qubits[0],qubits[1]), iChunk, count);
+  }
+  else{
+    StoreMatrix(diag, iChunk);
+    StoreUintParams(qubits, iChunk);
+
+    Execute(DiagonalMultNxN<data_t>(qubits), iChunk, count);
+  }
+}
+
+template <typename data_t>
+void ChunkContainer<data_t>::apply_X(const uint_t iChunk,const reg_t& qubits,const uint_t count)
+{
+  Execute(CX_func<data_t>(qubits), iChunk, count);
+}
+
+template <typename data_t>
+void ChunkContainer<data_t>::apply_Y(const uint_t iChunk,const reg_t& qubits,const uint_t count)
+{
+  Execute(CY_func<data_t>(qubits), iChunk, count);
+}
+
+template <typename data_t>
+void ChunkContainer<data_t>::apply_phase(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const std::complex<double> phase,const uint_t count)
+{
+  Execute(phase_func<data_t>(qubits,*(thrust::complex<double>*)&phase), iChunk, count );
+}
+
+template <typename data_t>
+void ChunkContainer<data_t>::apply_swap(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const uint_t count)
+{
+  Execute(CSwap_func<data_t>(qubits), iChunk, count);
+}
+
+template <typename data_t>
+void ChunkContainer<data_t>::apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t count)
+{
+  const size_t N = qubits.size();
+  auto qubits_sorted = qubits;
+  std::sort(qubits_sorted.begin(), qubits_sorted.end());
+
+  reg_t params;
+  Permutation<data_t> f(qubits_sorted,qubits,pairs,params);
+
+  StoreUintParams(params, iChunk);
+
+  Execute(f, iChunk, count);
+}
+
+template <typename data_t>
+void ChunkContainer<data_t>::apply_rotation(const uint_t iChunk,const reg_t &qubits, const Rotation r, const double theta, const uint_t count)
+{
+  int control_bits = qubits.size() - 1;
+  switch(r){
+    case Rotation::x:
+      apply_matrix(iChunk, qubits, control_bits, Linalg::VMatrix::rx(theta), count);
+      break;
+    case Rotation::y:
+      apply_matrix(iChunk, qubits, control_bits, Linalg::VMatrix::ry(theta), count);
+      break;
+    case Rotation::z:
+      apply_diagonal_matrix(iChunk, qubits, control_bits, Linalg::VMatrix::rz_diag(theta), count);
+      break;
+    case Rotation::xx:
+      apply_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::rxx(theta), count);
+      break;
+    case Rotation::yy:
+      apply_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::ryy(theta), count);
+      break;
+    case Rotation::zz:
+      apply_diagonal_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::rzz_diag(theta), count);
+      break;
+    case Rotation::zx:
+      apply_matrix(iChunk, qubits, control_bits-1, Linalg::VMatrix::rzx(theta), count);
+      break;
+    default:
+      throw std::invalid_argument(
+          "QubitVectorThrust::invalid rotation axis.");
+  }
+}
+
+template <typename data_t>
+void ChunkContainer<data_t>::probabilities(std::vector<double>& probs, const uint_t iChunk, const reg_t& qubits) const
+{
+  const size_t N = qubits.size();
+  const int_t DIM = 1 << N;
+  probs.resize(DIM);
+
+  if(N == 1){ //special case for 1 qubit (optimized for measure)
+    ExecuteSum2(&probs[0],probability_1qubit_func<data_t>(qubits[0]), iChunk, 1);
+  }
+  else{
+    for(int_t i=0;i<DIM;i++){
+      ExecuteSum(&probs[i],probability_func<data_t>(qubits,i), iChunk, 1);
+    }
+  }
+}
+
+template <typename data_t>
+double ChunkContainer<data_t>::norm(uint_t iChunk,uint_t count) const
+{
+  double ret;
+  ExecuteSum(&ret,norm_func<data_t>(), iChunk, count);
+
+  return ret;
+}
+
+template <typename data_t>
+double ChunkContainer<data_t>::trace(uint_t iChunk,uint_t row,uint_t count) const
+{
+  double ret;
+  ExecuteSum(&ret,trace_func<data_t>(row), iChunk, count);
+
+  return ret;
+}
+
+template <typename data_t>
+double ChunkContainer<data_t>::expval_pauli(const uint_t iChunk,const reg_t& qubits,const std::string &pauli,const complex_t initial_phase) const
+{
+  uint_t x_mask, z_mask, num_y, x_max;
+  std::tie(x_mask, z_mask, num_y, x_max) = pauli_masks_and_phase(qubits, pauli);
+
+  // Special case for only I Paulis
+  if (x_mask + z_mask == 0) {
+    thrust::complex<double> ret = norm(iChunk, 1);
+    return ret.real() + ret.imag();
+  }
+  double ret;
+  // specialize x_max == 0
+  if(x_mask == 0) {
+    ExecuteSum(&ret, expval_pauli_Z_func<data_t>(z_mask), iChunk,  1 );
+    return ret;
+  }
+
+  // Compute the overall phase of the operator.
+  // This is (-1j) ** number of Y terms modulo 4
+  auto phase = std::complex<data_t>(initial_phase);
+  add_y_phase(num_y, phase);
+  ExecuteSum(&ret, expval_pauli_XYZ_func<data_t>(x_mask, z_mask, x_max, phase), iChunk, 1 );
+  return ret;
+}
+
+
+
+
 //------------------------------------------------------------------------------
+} // end namespace Chunk
 } // end namespace QV
 } // end namespace AER
 //------------------------------------------------------------------------------

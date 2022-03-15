@@ -83,7 +83,7 @@ extras_requirements = {
 if not _DISABLE_CONAN:
     setup_requirements.append('conan>=1.22.2')
 
-requirements = common_requirements + ['qiskit-terra>=0.17.0', 'scipy>=1.0']
+requirements = common_requirements + ['qiskit-terra>=0.19.1', 'scipy>=1.0']
 
 if not hasattr(setuptools,
                'find_namespace_packages') or not inspect.ismethod(
@@ -104,7 +104,7 @@ with open(README_PATH) as readme_file:
     README = readme_file.read()
 
 
-cmake_args = ["-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.9"]
+cmake_args = []
 is_win_32_bit = (platform.system() == 'Windows' and platform.architecture()[0] == "32bit")
 if is_win_32_bit:
     cmake_args.append("-DCMAKE_GENERATOR_PLATFORM=Win32")
@@ -131,13 +131,13 @@ setup(
         "Operating System :: POSIX :: Linux",
         "Programming Language :: C++",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Topic :: Scientific/Engineering",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=requirements,
     setup_requires=setup_requirements,
     include_package_data=True,

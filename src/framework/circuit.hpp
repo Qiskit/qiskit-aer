@@ -356,9 +356,11 @@ void Circuit::set_params(bool truncation) {
         case OpType::save_amps:
         case OpType::save_amps_sq:
         case OpType::save_stabilizer:
+        case OpType::save_clifford:
         case OpType::save_unitary:
         case OpType::save_mps:
-        case OpType::save_superop: {
+        case OpType::save_superop: 
+        {
           can_sample = false;
           break;
         }
@@ -381,6 +383,8 @@ void Circuit::set_params(bool truncation) {
   // Counter for current position in ops as we shuffle ops
   size_t op_idx = 0;
   size_t head_end = 0;
+  std::set<std::string> marks;
+  std::set<std::string> dests;
   if (has_measure && can_sample) {
     head_end = first_measure_pos;
   } else if (num_ancestors > 0) {
@@ -397,10 +401,29 @@ void Circuit::set_params(bool truncation) {
     if (pos != op_idx) {
       ops[op_idx] = std::move(ops[pos]);
     }
+    if (ops[op_idx].type == OpType::jump) {
+      dests.insert(ops[op_idx].string_params[0]);
+    } else if (ops[op_idx].type == OpType::mark) {
+      auto& mark_name = ops[op_idx].string_params[0];
+      if (marks.find(mark_name) != marks.end()) {
+        std::stringstream msg;
+        msg << "Duplicated mark destination:\"" << mark_name << "\"." << std::endl;
+        throw std::runtime_error(msg.str());
+      }
+      marks.insert(mark_name);
+    }
     if (pos == first_measure_pos) {
       first_measure_pos = op_idx;
     }
     op_idx++;
+  }
+
+  for (auto dest : dests) {
+    if (marks.find(dest) == marks.end()) {
+      std::stringstream msg;
+      msg << "Invalid jump destination:\"" << dest << "\"." << std::endl;
+      throw std::runtime_error(msg.str());
+    }
   }
 
   if (has_measure && can_sample) {
@@ -470,6 +493,7 @@ bool Circuit::check_result_ancestor(const Op& op, std::unordered_set<uint_t>& an
     case OpType::save_amps:
     case OpType::save_amps_sq:
     case OpType::save_stabilizer:
+    case OpType::save_clifford:
     case OpType::save_unitary:
     case OpType::save_mps:
     case OpType::save_superop: {

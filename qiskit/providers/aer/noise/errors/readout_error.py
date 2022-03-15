@@ -17,12 +17,10 @@ import copy
 
 import numpy as np
 from numpy.linalg import norm
-
 from qiskit.circuit import Instruction
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 from ..noiseerror import NoiseError
-from .errorutils import qubits_from_mat
 
 
 class ReadoutError:
@@ -68,10 +66,15 @@ class ReadoutError:
             probabilities (matrix): List of outcome assignment probabilities.
             atol (double): Threshold for checking probabilities are normalized
                            (Default: 1e-8).
+
+        Raises:
+            NoiseError: if an invalid argument is provided
         """
         self._check_probabilities(probabilities, atol)
         self._probabilities = np.array(probabilities, dtype=float)
-        self._number_of_qubits = qubits_from_mat(probabilities)
+        self._number_of_qubits = int(np.log2(self._probabilities.shape[0]))
+        if self._probabilities.shape != (2**self._number_of_qubits, 2**self._number_of_qubits):
+            raise NoiseError("Input readout error probabilities is not a 2^N by 2^N matrix.")
 
     def __repr__(self):
         """Display ReadoutError."""

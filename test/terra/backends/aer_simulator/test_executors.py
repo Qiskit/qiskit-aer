@@ -20,6 +20,7 @@ from ddt import ddt
 from qiskit import QuantumCircuit, transpile
 from qiskit.circuit.random import random_circuit
 from qiskit.quantum_info import Statevector
+from test.terra.reference import ref_kraus_noise
 from qiskit.providers.aer.jobs import AerJob, AerJobSet
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
@@ -100,6 +101,33 @@ class TestDaskExecutor(CBFixture):
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0.05 * shots)
 
+    @supported_methods(['statevector'], [None, 1, 1, 1], [None, 100, 500, 1000])
+    def test_noise_circuits_job(self, method, device, max_job_size, max_shot_size):
+        """Test random circuits with custom executor."""
+        shots = 4000
+        backend = self.backend(
+            method=method, device=device, max_job_size=max_job_size, max_shot_size=max_shot_size)
+
+        circuits = ref_kraus_noise.kraus_gate_error_circuits()
+        noise_models = ref_kraus_noise.kraus_gate_error_noise_models()
+        targets = ref_kraus_noise.kraus_gate_error_counts(shots)
+    
+        for circuit, noise_model, target in zip(circuits, noise_models, targets):
+            backend.set_options(noise_model=noise_model)
+            result = backend.run(circuit, shots=shots).result()
+            self.assertSuccess(result)
+            self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
+
+    @supported_methods(['statevector'], [None, 1, 2, 3])
+    def test_result_time_val(self, method, device, max_job_size):
+        """Test random circuits with custom executor."""
+        shots = 4000
+        backend = self.backend(
+            method=method, device=device, max_job_size=max_job_size)
+        result, _, _ = run_random_circuits(backend, shots=shots)    
+        self.assertSuccess(result)
+        self.assertGreaterEqual(result.time_taken, 0)
+
 @ddt
 class TestThreadPoolExecutor(CBFixture):
     """Tests of ThreadPool executor"""
@@ -118,3 +146,30 @@ class TestThreadPoolExecutor(CBFixture):
         result, circuits, targets = run_random_circuits(backend, shots=shots)    
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, hex_counts=False, delta=0.05 * shots)   
+
+    @supported_methods(['statevector'], [None, 1, 1, 1], [None, 100, 500, 1000])
+    def test_noise_circuits_job(self, method, device, max_job_size, max_shot_size):
+        """Test random circuits with custom executor."""
+        shots = 4000
+        backend = self.backend(
+            method=method, device=device, max_job_size=max_job_size, max_shot_size=max_shot_size)
+
+        circuits = ref_kraus_noise.kraus_gate_error_circuits()
+        noise_models = ref_kraus_noise.kraus_gate_error_noise_models()
+        targets = ref_kraus_noise.kraus_gate_error_counts(shots)
+    
+        for circuit, noise_model, target in zip(circuits, noise_models, targets):
+            backend.set_options(noise_model=noise_model)
+            result = backend.run(circuit, shots=shots).result()
+            self.assertSuccess(result)
+            self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
+
+    @supported_methods(['statevector'], [None, 1, 2, 3])
+    def test_result_time_val(self, method, device, max_job_size):
+        """Test random circuits with custom executor."""
+        shots = 4000
+        backend = self.backend(
+            method=method, device=device, max_job_size=max_job_size)
+        result, _, _ = run_random_circuits(backend, shots=shots)    
+        self.assertSuccess(result)
+        self.assertGreaterEqual(result.time_taken, 0)

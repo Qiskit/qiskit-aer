@@ -185,7 +185,7 @@ json_t UnitaryMatrixThrust<data_t>::json() const
 //------------------------------------------------------------------------------
 
 template <class data_t>
-UnitaryMatrixThrust<data_t>::UnitaryMatrixThrust(size_t num_qubits) {
+UnitaryMatrixThrust<data_t>::UnitaryMatrixThrust(size_t num_qubits) : QubitVectorThrust<data_t>(num_qubits) {
 	if(num_qubits > 0){
 		set_num_qubits(num_qubits);
 	}
@@ -280,12 +280,13 @@ void UnitaryMatrixThrust<data_t>::set_num_qubits(size_t num_qubits) {
   BaseVector::set_num_qubits(2 * num_qubits);
 }
 
+
 template <class data_t>
 std::complex<double> UnitaryMatrixThrust<data_t>::trace() const 
 {
   thrust::complex<double> sum;
 
-  sum = BaseVector::chunk_->norm(rows_ + 1,false);
+  sum = BaseVector::chunk_.trace(rows_, 1);
 
 #ifdef AER_DEBUG
   BaseVector::DebugMsg("trace",sum);
@@ -322,7 +323,7 @@ std::pair<bool, double> UnitaryMatrixThrust<data_t>::check_identity() const {
 	uint_t csize = BaseVector::data_size_;
 	cvector_t<data_t> tmp(csize);
 
-  BaseVector::chunk_->CopyOut((thrust::complex<data_t>*)&tmp[0]);
+  BaseVector::chunk_.CopyOut((thrust::complex<data_t>*)&tmp[0]);
 
   uint_t offset = BaseVector::chunk_index_ << BaseVector::num_qubits_;
   uint_t err_count = 0;

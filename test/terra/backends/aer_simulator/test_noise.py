@@ -14,18 +14,20 @@ AerSimulator Integration Tests
 """
 
 from ddt import ddt
-
-from qiskit import QuantumCircuit
-from qiskit.circuit.library import QFT
-import qiskit.quantum_info as qi
 from qiskit.providers.aer import noise
 
+import qiskit.quantum_info as qi
+from qiskit import transpile
+from qiskit.circuit import QuantumCircuit, Reset
+from qiskit.circuit.library import QFT
+from qiskit.circuit.library.standard_gates import IGate, HGate
+from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
-from test.terra.reference import ref_readout_noise
-from test.terra.reference import ref_pauli_noise
-from test.terra.reference import ref_reset_noise
 from test.terra.reference import ref_kraus_noise
+from test.terra.reference import ref_pauli_noise
+from test.terra.reference import ref_readout_noise
+from test.terra.reference import ref_reset_noise
 
 ALL_METHODS = [
     'automatic', 'stabilizer', 'statevector', 'density_matrix',
@@ -156,15 +158,35 @@ class TestNoise(SimulatorTestCase):
     def test_kraus_gate_noise_on_QFT(self, method, device):
         """Test Kraus noise on a QFT circuit"""
         shots = 10000
-        noise_model = ref_kraus_noise.kraus_gate_error_noise_models_full()
+
+        # Build noise model
+        error1 = noise.amplitude_damping_error(0.2)
+        error2 = error1.tensor(error1)
+        noise_model = noise.NoiseModel()
+        noise_model.add_all_qubit_quantum_error(error1, ['h'])
+        noise_model.add_all_qubit_quantum_error(error2, ['cp', 'swap'])
+
         backend = self.backend(
             method=method, device=device, noise_model=noise_model)
-        circuit = QFT(3).decompose()
-        circuit.measure_all()
-        ref_target = ref_kraus_noise.kraus_gate_error_counts_on_QFT(shots)
-        result = backend.run(circuit, shots=shots).result()
+        ideal_circuit = transpile(QFT(3), backend)
+
+        # manaully build noise circuit
+        noise_circuit = QuantumCircuit(3)
+        for inst, qargs, cargs in ideal_circuit.data:
+            noise_circuit.append(inst, qargs, cargs)
+            if inst.name == "h":
+                noise_circuit.append(error1, qargs)
+            elif inst.name in ["cp", "swap"]:
+                noise_circuit.append(error2, qargs)
+        # compute target counts
+        noise_state = DensityMatrix(noise_circuit)
+        ref_target = {i: shots * p for i, p in noise_state.probabilities_dict().items()}
+
+        # Run sim
+        ideal_circuit.measure_all()
+        result = backend.run(ideal_circuit, shots=shots).result()
         self.assertSuccess(result)
-        self.compare_counts(result, [circuit], [ref_target], delta=0.1 * shots)
+        self.compare_counts(result, [ideal_circuit], [ref_target], hex_counts=False, delta=0.1 * shots)
 
     @supported_methods(ALL_METHODS)
     def test_clifford_circuit_noise(self, method, device):
@@ -172,16 +194,15 @@ class TestNoise(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
         shots = 1000
         error1 = noise.QuantumError([
-            ([{"name": "id", "qubits": [0]}], 0.8),
-            ([{"name": "reset", "qubits": [0]}], 0.1),
-            ([{"name": "h", "qubits": [0]}], 0.1)])
+            ([(IGate(), [0])], 0.8),
+            ([(Reset(), [0])], 0.1),
+            ([(HGate(), [0])], 0.1)])
 
         error2 = noise.QuantumError([
-            ([{"name": "id", "qubits": [0]}], 0.75),
-            ([{"name": "reset", "qubits": [0]}], 0.1),
-            ([{"name": "reset", "qubits": [1]}], 0.1),
-            ([{"name": "reset", "qubits": [0]},
-              {"name": "reset", "qubits": [1]}], 0.05)])
+            ([(IGate(), [0])], 0.75),
+            ([(Reset(), [0])], 0.1),
+            ([(Reset(), [1])], 0.1),
+            ([(Reset(), [0]), (Reset(), [1])], 0.05)])
 
         qc = QuantumCircuit(2)
         qc.h(0)
@@ -202,19 +223,45 @@ class TestNoise(SimulatorTestCase):
         """Test simulation with Kraus quantum errors in circuit."""
         backend = self.backend(method=method, device=device)
         shots = 1000
-        error1 = noise.amplitude_damping_error(0.05)
-        error2 = error1.tensor(error1)
+        error0 = noise.amplitude_damping_error(0.05)
+        error1 = noise.amplitude_damping_error(0.15)
+        error01 = error1.tensor(error0)
 
-        qc = QuantumCircuit(2)
-        qc.h(0)
-        qc.append(error1, [0])
-        qc.cx(0, 1)
-        qc.append(error2, [0, 1])
-        target_probs = qi.DensityMatrix(qc).probabilities_dict()
+        # Target Circuit 0
+        tc0 = QuantumCircuit(2)
+        tc0.h(0)
+        tc0.append(qi.Kraus(error0), [0])
+        tc0.cx(0, 1)
+        tc0.append(qi.Kraus(error01), [0, 1])
+        target_probs0 = qi.DensityMatrix(tc0).probabilities_dict()
 
-        # Add measurement
-        qc.measure_all()
-        result = backend.run(qc, shots=shots).result()
+        # Sim circuit 0
+        qc0 = QuantumCircuit(2)
+        qc0.h(0)
+        qc0.append(error0, [0])
+        qc0.cx(0, 1)
+        qc0.append(error01, [0, 1])
+        qc0.measure_all()
+
+        # Target Circuit 1
+        tc1 = QuantumCircuit(2)
+        tc1.h(1)
+        tc1.append(qi.Kraus(error0), [1])
+        tc1.cx(1, 0)
+        tc1.append(qi.Kraus(error01), [1, 0])
+        target_probs1 = qi.DensityMatrix(tc1).probabilities_dict()
+
+        # Sim circuit 1
+        qc1 = QuantumCircuit(2)
+        qc1.h(1)
+        qc1.append(error0, [1])
+        qc1.cx(1, 0)
+        qc1.append(error01, [1, 0])
+        qc1.measure_all()
+
+        result = backend.run([qc0, qc1], shots=shots).result()
         self.assertSuccess(result)
-        probs = {key: val / shots for key, val in result.get_counts(0).items()}
-        self.assertDictAlmostEqual(target_probs, probs, delta=0.1)
+        probs = [{key: val / shots for key, val in result.get_counts(i).items()}
+                 for i in range(2)]
+        self.assertDictAlmostEqual(target_probs0, probs[0], delta=0.1)
+        self.assertDictAlmostEqual(target_probs1, probs[1], delta=0.1)

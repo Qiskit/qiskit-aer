@@ -37,6 +37,7 @@ enum Gates {
   //enum class Direction {RIGHT, LEFT};
 
   enum class Sample_measure_alg {APPLY_MEASURE, PROB, MEASURE_ALL, HEURISTIC};
+  enum class MPS_swap_direction {SWAP_LEFT, SWAP_RIGHT};
 
 //=========================================================================
 // MPS class
@@ -224,10 +225,33 @@ public:
   Vector<complex_t> full_statevector();
 
   Vector<complex_t> get_amplitude_vector(const reg_t &base_values);
+
+  //----------------------------------------------------------------
+  // Function name: get_single_amplitude
+  // Description: Returns the amplitude of the input base_value
+  //----------------------------------------------------------------
   complex_t get_single_amplitude(const std::string &base_value);
 
   void get_probabilities_vector(rvector_t& probvector, const reg_t &qubits) const;
 
+//----------------------------------------------------------------
+  // Function name: get_prob_single_qubit_internal
+  // Description: Returns the probability of measuring outcome 0 (or 1)
+  //   for a single qubit in the standard basis.
+  //   It does the same as get_probabilities_vector but is faster for
+  //   a single qubit, and is used during measurement.
+  // Parameters: qubit - the qubit for which we want the probability
+  //             outcome - probability for 0 or 1
+  //             mat - the '0' (or '1')matrix for the given qubit, multiplied
+  //                   by its left and right lambdas. Contracting it with
+  //                   its conjugate gives the probability for outcome '0' (or '1')
+  //                   It is returned because it may be useful for further 
+  //                   computations.
+  // Returns: the probability for the given outcome.
+  //----------------------------------------------------------------
+
+  double get_prob_single_qubit_internal(uint_t qubit, uint_t outcome,
+					cmatrix_t &mat) const;
   //----------------------------------------------------------------
   // Function name: get_accumulated_probabilities_vector
   // Description: Computes the accumulated probabilities from 0
@@ -268,6 +292,10 @@ public:
     mps_log_data_ = mps_log_data;
   }
 
+  static void set_mps_swap_direction(MPS_swap_direction direction) {
+    mps_swap_direction_ = direction;
+  }
+
   static uint_t get_omp_threads() {
     return omp_threads_;
   }
@@ -289,6 +317,10 @@ public:
     return mps_log_data_;
   }
 
+  static MPS_swap_direction get_swap_direction() {
+    return mps_swap_direction_;
+  }
+
   //----------------------------------------------------------------
   // Function name: norm
   // Description: the norm is defined as <psi|A^dagger . A|psi>.
@@ -301,11 +333,9 @@ public:
   double norm(const reg_t &qubits, const cvector_t &vmat) const;
   double norm(const reg_t &qubits, const cmatrix_t &mat) const; 
 
-  reg_t sample_measure_using_probabilities(const rvector_t &rnds, 
-					   const reg_t &qubits);
-
   reg_t apply_measure(const reg_t &qubits, const rvector_t &rnds);
   reg_t apply_measure_internal(const reg_t &qubits, const rvector_t &rands);
+  reg_t sample_measure(uint_t shots, RngEngine &rng) const;
 
   //----------------------------------------------------------------
   // Function name: initialize_from_statevector_internal
@@ -418,12 +448,17 @@ private:
 
   void get_probabilities_vector_internal(rvector_t& probvector, const reg_t &qubits) const;
 
-
   uint_t apply_measure_internal_single_qubit(uint_t qubit, const double rnd,
 					     uint_t next_measured_qubit);
 
-  reg_t sample_measure_using_probabilities_internal(const rvector_t &rnds, 
-						    const reg_t &qubits) const;
+  uint_t sample_measure_single_qubit(uint_t qubit, double &prob, 
+				     double rnd, cmatrix_t &mat) const;
+  //----------------------------------------------------------------
+  // Function name: get_single_probability0
+  // Description: Returns the probability that `qubit` will measure 0, given all the measurements
+  // of the previous qubits that are accumulated in mat.
+  //----------------------------------------------------------------
+  double get_single_probability0(uint_t qubit, const cmatrix_t &mat) const;
 
   //----------------------------------------------------------------
   // Function name: initialize_from_matrix
@@ -508,6 +543,7 @@ private:
   static bool enable_gate_opt_;      // allow optimizations on gates
   static std::stringstream logging_str_;
   static bool mps_log_data_;
+  static MPS_swap_direction mps_swap_direction_;
 };
 
 inline std::ostream &operator<<(std::ostream &out, const rvector_t &vec) {
@@ -525,6 +561,11 @@ inline std::ostream&
 operator <<(std::ostream& out, MPS& mps)
 {
   return mps.print(out);
+}
+
+
+inline void to_json(json_t &js, const MPS &mps) {
+
 }
 
 //-------------------------------------------------------------------------

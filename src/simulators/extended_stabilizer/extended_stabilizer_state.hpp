@@ -829,7 +829,7 @@ void State::apply_save_statevector(const Operations::Op &op,
   BaseState::save_data_pershot(
     result, op.string_params[0],
     std::move(statevec),
-    op.save_type);
+    op.type, op.save_type);
 }
 
 void State::apply_save_expval(const Operations::Op &op,
@@ -858,9 +858,9 @@ void State::apply_save_expval(const Operations::Op &op,
     std::vector<double> expval_var(2);
     expval_var[0] = expval;  // mean
     expval_var[1] = sq_expval - expval * expval;  // variance
-    save_data_average(result, op.string_params[0], expval_var, op.save_type);
+    save_data_average(result, op.string_params[0], expval_var, op.type, op.save_type);
   } else {
-    save_data_average(result, op.string_params[0], expval, op.save_type);
+    save_data_average(result, op.string_params[0], expval, op.type, op.save_type);
   }
 }
 

@@ -643,6 +643,34 @@ Few notes on GPU builds:
 3. We don't need NVIDIA® drivers for building, but we need them for running simulations
 4. Only Linux platforms are supported
 
+Qiskit Aer now supports cuQuantum optimized Quantum computing APIs from NVIDIA®.
+cuStateVec APIs can be exploited to accelerate statevector, density_matrix and unitary methods.
+Because cuQuantum is beta version currently, some of the operations are not accelerated by cuStateVec.
+
+To build Qiskit Aer with cuStateVec support, please set the path to cuQuantum root directory to CUSTATEVEC_ROOT as following.
+
+For example,
+
+    qiskit-aer$ python ./setup.py bdist_wheel -- -DAER_THRUST_BACKEND=CUDA -DCUSTATEVEC_ROOT=path_to_cuQuantum
+
+if you want to link cuQuantum library statically, set `CUSTATEVEC_STATIC` to setup.py. 
+Otherwise you also have to set environmental variable LD_LIBRARY_PATH to indicate path to the cuQuantum libraries.
+
+To run with cuStateVec, set `device='GPU'` to AerSimulator option and set `cuStateVec_enable=True` to option in execute method.
+
+```
+sim = AerSimulator(method='statevector', device='GPU')
+results = execute(circuit,sim,cuStateVec_enable=True).result()
+```
+
+Also you can accelrate density matrix and unitary matrix simulations as well.
+```
+sim = AerSimulator(method='density_matrix', device='GPU')
+results = execute(circuit,sim,cuStateVec_enable=True).result()
+```
+
+
+
 ### Building with MPI support
 
 Qiskit Aer can parallelize its simulation on the cluster systems by using MPI. 
@@ -652,14 +680,8 @@ To use MPI support, any MPI library (i.e. OpenMPI) should be installed and confi
 Qiskit Aer supports MPI both with and without GPU support. Currently following simulation methods are supported to be parallelized by MPI.
 
  - statevector
- - statevector_thrust_gpu
- - statevector_thrust_cpu
  - density_matrix
- - density_matrix_thrust_gpu
- - density_matrix_thrust_cpu
- - unitary_cpu
- - unitary_thrust_gpu
- - unitary_thrust_cpu
+ - unitary
 
 To enable MPI support, the following flag is needed for build system based on CMake.
 
@@ -710,10 +732,10 @@ So to simulate by using multiple GPUs or multiple nodes on the cluster, followin
 Here is an example how we parallelize simulation with multiple GPUs.
 
 ```
+sim = AerSimulator(method='statevector', device='GPU')
 circ = transpile(QuantumVolume(qubit, 10, seed = 0))
 circ.measure_all()
-qobj = assemble(circ, shots=shots)
-result = sim.run(qobj, method="statevector_gpu", blocking_enable=True, blocking_qubits=23).result()
+result = execute(circ, sim, shots=100, blocking_enable=True, blocking_qubits=23).result()
 ```
 
 To run Qiskit Aer with Python script with MPI parallelization, MPI executer such as mpirun should be used to submit a job on the cluster. Following example shows how to run Python script using 4 processes by using mpirun.
@@ -732,11 +754,17 @@ Following metadatas are useful to find on which process is this script running.
 Here is an example how to get my rank.
 
 ```
-result = sim.run(qobj, method="statevector_gpu", blocking_enable=True, blocking_qubits=23).result()
+sim = AerSimulator(method='statevector', device='GPU')
+result = execute(circuit, sim, blocking_enable=True, blocking_qubits=23).result()
 dict = result.to_dict()
 meta = dict['metadata']
 myrank = meta['mpi_rank']
 ```
+
+
+Multiple shots are also distributed to multiple nodes when setting `device=GPU` and `batched_shots_gpu=True`. The results are distributed to each processes.
+
+
 ### Building a statically linked wheel
 
 If you encounter an error similar to the following, you may are likely in the need of compiling a

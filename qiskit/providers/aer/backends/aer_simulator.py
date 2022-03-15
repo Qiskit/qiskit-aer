@@ -17,6 +17,7 @@ import copy
 import logging
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
+from qiskit.providers.backend import BackendV2
 
 from ..version import __version__
 from .aerbackend import AerBackend, AerError
@@ -134,7 +135,7 @@ class AerSimulator(AerBackend):
     +--------------------------+---------------+
     | ``stabilizer``           | No            |
     +--------------------------+---------------+
-    | `"matrix_product_state`` | No            |
+    | ``matrix_product_state`` | No            |
     +--------------------------+---------------+
     | ``extended_stabilizer``  | No            |
     +--------------------------+---------------+
@@ -146,6 +147,10 @@ class AerSimulator(AerBackend):
     Running a GPU simulation is done using ``device="GPU"`` kwarg during
     initialization or with :meth:`set_options`. The list of supported devices
     for the current system can be returned using :meth:`available_devices`.
+
+    If AerSimulator is built with cuStateVec support, cuStateVec APIs are enabled
+    by setting ``cuStateVec_enable=True``. This is experimental implementation
+    based on cuQuantum Beta 2.
 
     **Additional Backend Options**
 
@@ -170,9 +175,20 @@ class AerSimulator(AerBackend):
       on the executor. If ``None`` simulation of all circuits are submitted
       to the executor as a single job (Default: None).
 
+    * ``max_shot_size`` (int or None): If the number of shots of a noisy
+      circuit exceeds this value simulation will be split into multi
+      circuits for execution and the results accumulated. If ``None``
+      circuits will not be split based on shots. When splitting circuits
+      use the ``max_job_size`` option to control how these split circuits
+      should be submitted to the executor (Default: None).
+
+      a noise model exceeds this value simulation will be splitted into
+      sub-circuits. If ``None``  simulator does noting (Default: None).
+
     * ``enable_truncation`` (bool): If set to True this removes unnecessary
       qubits which do not affect the simulation outcome from the simulated
       circuits (Default: True).
+
 
     * ``zero_threshold`` (double): Sets the threshold for truncating
       small values to zero in the result data (Default: 1e-10).
@@ -203,6 +219,38 @@ class AerSimulator(AerBackend):
       is thrown. In general, a state vector of n-qubits uses 2^n complex
       values (16 Bytes). If set to 0, the maximum will be automatically
       set to the system memory size (Default: 0).
+
+    * ``cuStateVec_enable`` (bool): This option enables accelerating by
+      cuStateVec library of cuQuantum from NVIDIA, that has highly optimized
+      kernels for GPUs (Default: False). This option will be ignored
+      if AerSimulator is not built with cuStateVec support.
+
+    * ``blocking_enable`` (bool): This option enables parallelization with
+      multiple GPUs or multiple processes with MPI (CPU/GPU). This option
+      is only available for ``"statevector"``, ``"density_matrix"`` and
+      ``"unitary"`` (Default: False).
+
+    * ``blocking_qubits`` (int): Sets the number of qubits of chunk size
+      used for parallelizing with multiple GPUs or multiple processes with
+      MPI (CPU/GPU). 16*2^blocking_qubits should be less than 1/4 of the GPU
+      memory in double precision. This option is only available for
+      ``"statevector"``, ``"density_matrix"`` and ``"unitary"``.
+      This option should be set when using option ``blocking_enable=True``
+      (Default: 0).
+
+    * ``batched_shots_gpu`` (bool): This option enables batched execution
+      of multiple shot simulations on GPU devices for GPU enabled simulation
+      methods. This optimization is intended for statevector simulations with
+      noise models, or statevecor and density matrix simulations with
+      intermediate measurements and can greatly accelerate simulation time
+      on GPUs. If there are multiple GPUs on the system, shots are distributed
+      automatically across available GPUs. Also this option distributes multiple
+      shots to parallel processes of MPI (Default: True).
+
+    * ``batched_shots_gpu_max_qubits`` (int): This option sets the maximum
+      number of qubits for enabling the ``batched_shots_gpu`` option. If the
+      number of active circuit qubits is greater than this value batching of
+      simulation shots will not be used. (Default: 16).
 
     These backend options only apply when using the ``"statevector"``
     simulation method:
@@ -262,7 +310,7 @@ class AerSimulator(AerBackend):
       alongside setting extended_stabilizer_disable_measurement_opt
       to True (Default: 5000).
 
-    * ``"extended_stabilizer_approximation_error"`` (double): Set the error
+    * ``extended_stabilizer_approximation_error`` (double): Set the error
       in the approximation for the extended_stabilizer method. A
       smaller error needs more memory and computational time
       (Default: 0.05).
@@ -287,7 +335,7 @@ class AerSimulator(AerBackend):
       samples used to estimate probabilities in a probabilities snapshot
       (Default: 3000).
 
-    These backend options only apply when using the ``"matrix_product_state"``
+    These backend options only apply when using the ``matrix_product_state``
     simulation method:
 
     * ``matrix_product_state_max_bond_dimension`` (int): Sets a limit
@@ -303,13 +351,13 @@ class AerSimulator(AerBackend):
     * ``mps_sample_measure_algorithm`` (str): Choose which algorithm to use for
       ``"sample_measure"`` (Default: "mps_apply_measure").
 
-      - ``"mps_probabilities"``: This method first constructs the probability
+      - ``mps_probabilities``: This method first constructs the probability
         vector and then generates a sample per shot. It is more efficient for
         a large number of shots and a small number of qubits, with complexity
         O(2^n * n * D^2) to create the vector and O(1) per shot, where n is
         the number of qubits and D is the bond dimension.
 
-      - ``"mps_apply_measure"``: This method creates a copy of the mps structure
+      - ``mps_apply_measure``: This method creates a copy of the mps structure
         and measures directly on it. It is more efficient for a small number of
         shots, and a large number of qubits, with complexity around
         O(n * D^2) per shot.
@@ -318,6 +366,11 @@ class AerSimulator(AerBackend):
       structure: bond dimensions and values discarded during approximation.
       (Default: False)
 
+    * ``mps_swap_direction`` (str): Determine the direction of swapping the
+      qubits when internal swaps are inserted for a 2-qubit gate.
+      Possible values are "mps_swap_right" and "mps_swap_left".
+      (Default: "mps_swap_left")
+
     These backend options apply in circuit optimization passes:
 
     * ``fusion_enable`` (bool): Enable fusion optimization in circuit
@@ -325,10 +378,31 @@ class AerSimulator(AerBackend):
     * ``fusion_verbose`` (bool): Output gates generated in fusion optimization
       into metadata [Default: False]
     * ``fusion_max_qubit`` (int): Maximum number of qubits for a operation generated
-      in a fusion optimization [Default: 5]
+      in a fusion optimization. A default value (``None``) automatically sets a value
+      depending on the simulation method: [Default: None]
     * ``fusion_threshold`` (int): Threshold that number of qubits must be greater
-      than or equal to enable fusion optimization [Default: 14]
+      than or equal to enable fusion optimization. A default value automatically sets
+      a value depending on the simulation method [Default: None]
+
+    ``fusion_enable`` and ``fusion_threshold`` are set as follows if their default
+    values (``None``) are configured:
+
+    +--------------------------+----------------------+----------------------+
+    | Method                   | ``fusion_max_qubit`` | ``fusion_threshold`` |
+    +==========================+======================+======================+
+    | ``statevector``          | 5                    | 14                   |
+    +--------------------------+----------------------+----------------------+
+    | ``density_matrix``       | 2                    | 7                    |
+    +--------------------------+----------------------+----------------------+
+    | ``unitary``              | 5                    | 7                    |
+    +--------------------------+----------------------+----------------------+
+    | ``superop``              | 2                    | 7                    |
+    +--------------------------+----------------------+----------------------+
+    | other methods            | 5                    | 14                   |
+    +--------------------------+----------------------+----------------------+
+
     """
+
     _BASIS_GATES = BASIS_GATES
 
     _CUSTOM_INSTR = {
@@ -358,8 +432,8 @@ class AerSimulator(AerBackend):
             'quantum_channel', 'qerror_loc', 'roerror', 'snapshot',
             'save_expval', 'save_expval_var',
             'save_probabilities', 'save_probabilities_dict',
-            'save_amplitudes_sq', 'save_state', 'save_stabilizer',
-            'set_stabilizer'
+            'save_amplitudes_sq', 'save_state', 'save_clifford',
+            'save_stabilizer', 'set_stabilizer'
         ]),
         'extended_stabilizer': sorted([
             'quantum_channel', 'qerror_loc', 'roerror', 'snapshot', 'save_statevector'
@@ -453,6 +527,7 @@ class AerSimulator(AerBackend):
             precision="double",
             executor=None,
             max_job_size=None,
+            max_shot_size=None,
             enable_truncation=True,
             zero_threshold=1e-10,
             validation_threshold=None,
@@ -462,14 +537,20 @@ class AerSimulator(AerBackend):
             max_memory_mb=None,
             fusion_enable=True,
             fusion_verbose=False,
-            fusion_max_qubit=5,
-            fusion_threshold=14,
+            fusion_max_qubit=None,
+            fusion_threshold=None,
             accept_distributed_results=None,
-            blocking_qubits=None,
-            blocking_enable=False,
             memory=None,
             noise_model=None,
             seed_simulator=None,
+            # cuStateVec (cuQuantum) option
+            cuStateVec_enable=False,
+            # cache blocking for multi-GPUs/MPI options
+            blocking_qubits=None,
+            blocking_enable=False,
+            # multi-shots optimization options (GPU only)
+            batched_shots_gpu=True,
+            batched_shots_gpu_max_qubits=16,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,
@@ -488,6 +569,7 @@ class AerSimulator(AerBackend):
             matrix_product_state_max_bond_dimension=None,
             mps_sample_measure_algorithm='mps_heuristic',
             mps_log_data=False,
+            mps_swap_direction='mps_swap_left',
             chop_threshold=1e-8,
             mps_parallel_threshold=14,
             mps_omp_threads=1)
@@ -515,10 +597,10 @@ class AerSimulator(AerBackend):
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
-        # pylint: disable=import-outside-toplevel
-        # Avoid cyclic import
-        from ..noise.noise_model import NoiseModel
-
+        if isinstance(backend, BackendV2):
+            raise AerError(
+                "AerSimulator.from_backend does not currently support V2 Backends."
+            )
         # Get configuration and properties from backend
         configuration = copy.copy(backend.configuration())
         properties = copy.copy(backend.properties())
@@ -529,6 +611,10 @@ class AerSimulator(AerBackend):
 
         # Use automatic noise model if none is provided
         if 'noise_model' not in options:
+            # pylint: disable=import-outside-toplevel
+            # Avoid cyclic import
+            from ..noise.noise_model import NoiseModel
+
             noise_model = NoiseModel.from_backend(backend)
             if not noise_model.is_ideal():
                 options['noise_model'] = noise_model

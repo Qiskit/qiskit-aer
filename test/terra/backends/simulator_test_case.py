@@ -18,6 +18,10 @@ import ddt
 import itertools as it
 from qiskit.providers.aer import AerSimulator
 from test.terra.common import QiskitAerTestCase
+from qiskit.circuit import QuantumCircuit
+from qiskit.compiler import assemble
+from qiskit.providers.aer.backends.backend_utils import cpp_execute
+from qiskit.providers.aer.backends.controller_wrappers import aer_controller_execute
 
 
 class SimulatorTestCase(QiskitAerTestCase):
@@ -30,7 +34,11 @@ class SimulatorTestCase(QiskitAerTestCase):
         """Return AerSimulator backend using current class options"""
         sim_options = self.OPTIONS.copy()
         for key, val in options.items():
-            sim_options[key] = val
+            if 'device' == key and 'cuStateVec' in val:
+                sim_options['device'] = 'GPU'
+                sim_options['cuStateVec_enable'] = True
+            else:
+                sim_options[key] = val
         return self.BACKEND(**sim_options)
 
 
@@ -66,12 +74,39 @@ def _method_device(methods):
     if not methods:
         methods = AerSimulator().available_methods()
     available_devices = AerSimulator().available_devices()
+    #add special test device for cuStateVec if available
+    cuStateVec = check_cuStateVec(available_devices)
+
     gpu_methods = ['statevector', 'density_matrix', 'unitary']
     data_args = []
     for method in methods:
         if method in gpu_methods:
             for device in available_devices:
                 data_args.append((method, device))
+            #add test cases for cuStateVec if available using special device = 'GPU_cuStateVec'
+            #'GPU_cuStateVec' is used only inside tests not available in Aer
+            #and this is converted to "device='GPU'" and option "cuStateVec_enalbe = True" is added
+            if cuStateVec:
+                data_args.append((method, 'GPU_cuStateVec'))
         else:
             data_args.append((method, 'CPU'))
     return data_args
+
+def check_cuStateVec(devices):
+    """Return if the system supports cuStateVec or not"""
+    if 'GPU' in devices:
+        dummy_circ = QuantumCircuit(1)
+        dummy_circ.i(0)
+        qobj = assemble(dummy_circ,
+                        optimization_level=0,
+                        shots=1,
+                        method="statevector",
+                        device="GPU",
+                        cuStateVec_enable=True)
+        #run dummy circuit to check if Aer is built with cuStateVec
+        result = cpp_execute(aer_controller_execute(), qobj)
+        return result.get('success', False)
+    else:
+        return False
+
+

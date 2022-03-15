@@ -8,7 +8,7 @@ jobs:
     name: Build qiskit-aer wheels
     strategy:
       matrix:
-        os: ["macOS-latest", "ubuntu-latest", "windows-latest"]
+        os: ["macOS-latest", "ubuntu-latest", "windows-2019"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -18,15 +18,9 @@ jobs:
           python-version: '3.7'
       - name: Install cibuildwheel
         run: |
-          python -m pip install cibuildwheel==2.1.2
+          python -m pip install cibuildwheel==2.2.2
       - name: Build wheels
-        env:
-          CIBW_BEFORE_ALL_LINUX: "yum install -y openblas-devel"
-          CIBW_SKIP: "cp310-* pp*"
-          CIBW_TEST_COMMAND: "python {project}/tools/verify_wheels.py"
-          CIBW_ENVIRONMENT_WINDOWS: "CMAKE_GENERATOR='Visual Studio 16 2019'"
-        run: |
-          python -m cibuildwheel --output-dir wheelhouse
+        run: python -m cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
@@ -59,15 +53,39 @@ jobs:
           platforms: all
       - name: Install cibuildwheel
         run: |
-          python -m pip install cibuildwheel==2.1.2 twine
+          python -m pip install cibuildwheel==2.2.2 twine
       - name: Build wheels
         run: |
           python -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_BEFORE_ALL_LINUX: "yum install -y https://dl.fedoraproject.org/pub/epel/7/aarch64/Packages/e/epel-release-7-12.noarch.rpm && yum install -y openblas-devel"
-          CIBW_SKIP: "cp310-* pp*"
-          CIBW_TEST_COMMAND: "python {project}/tools/verify_wheels.py"
           CIBW_ARCHS_LINUX: aarch64
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+      - name: Upload to PyPI
+        run: twine upload ./wheelhouse/*.whl
+        env:
+          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+          TWINE_USERNAME: qiskit
+  wheel-arm64-macos:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["macOS-latest"]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install deps
+        run: python -m pip install -U cibuildwheel==2.2.2 twine
+      - name: Build Wheels
+        env:
+          CIBW_ARCHS_MACOS: arm64
+        run: cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
@@ -113,13 +131,44 @@ jobs:
         if: runner.os == 'Windows'
       - name: Install cibuildwheel
         run: |
-          python -m pip install cibuildwheel==2.1.2
+          python -m pip install cibuildwheel==2.2.2
       - name: Build wheels
         env:
-          CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget https://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda-repo-rhel6-10-1-local-10.1.243-418.87.00-1.0-1.x86_64.rpm && rpm -i cuda-repo-rhel6-10-1-local-10.1.243-418.87.00-1.0-1.x86_64.rpm && yum clean all && yum -y install cuda-10-1 openblas-devel"
-          CIBW_SKIP: "cp310-* *-manylinux_i686 pp*"
+          CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget -q https://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda-repo-rhel6-10-1-local-10.1.243-418.87.00-1.0-1.x86_64.rpm && rpm -i cuda-repo-rhel6-10-1-local-10.1.243-418.87.00-1.0-1.x86_64.rpm && yum clean all && yum -y install cuda-10-1 openblas-devel"
+          CIBW_SKIP: "*-manylinux_i686 cp310* pp* cp36* *musllinux*"
           CIBW_ENVIRONMENT: QISKIT_AER_PACKAGE_NAME=qiskit-aer-gpu AER_THRUST_BACKEND=CUDA CUDACXX=/usr/local/cuda/bin/nvcc
-          CIBW_TEST_COMMAND: "python {project}/tools/verify_wheels.py"
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+      - name: Publish Wheels
+        env:
+          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+          TWINE_USERNAME: qiskit
+        run : |
+          pip install -U twine
+          twine upload wheelhouse/*
+  gpu-build-310:
+    name: Build qiskit-aer-gpu wheels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.7'
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.0.2
+        if: runner.os == 'Windows'
+      - name: Install cibuildwheel
+        run: |
+          python -m pip install cibuildwheel==2.2.2
+      - name: Build wheels
+        env:
+          CIBW_BEFORE_ALL: "yum install -y yum-utils wget && wget -q https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda-repo-rhel7-10-1-local-10.1.105-418.39-1.0-1.x86_64.rpm && rpm -i cuda-repo-rhel7-10-1-local-10.1.105-418.39-1.0-1.x86_64.rpm && yum clean all && yum -y install cuda-10-1 openblas-devel"
+          CIBW_BUILD: "cp310-manylinux_x86_64"
+          CIBW_ENVIRONMENT: QISKIT_AER_PACKAGE_NAME=qiskit-aer-gpu AER_THRUST_BACKEND=CUDA CUDACXX=/usr/local/cuda/bin/nvcc
         run: |
           python -m cibuildwheel --output-dir wheelhouse
       - uses: actions/upload-artifact@v2

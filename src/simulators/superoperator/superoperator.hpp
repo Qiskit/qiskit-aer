@@ -46,8 +46,8 @@ public:
 
   Superoperator() : Superoperator(0) {};
   explicit Superoperator(size_t num_qubits);
-  Superoperator(const Superoperator& obj) = delete;
-  Superoperator &operator=(const Superoperator& obj) = delete;
+  Superoperator(const Superoperator& obj) {};
+  Superoperator &operator=(const Superoperator& obj) {};
 
   //-----------------------------------------------------------------------
   // Utility functions

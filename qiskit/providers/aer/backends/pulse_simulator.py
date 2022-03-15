@@ -23,6 +23,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import schedule
 from qiskit.providers.options import Options
 from qiskit.providers.models import BackendConfiguration, PulseDefaults
+from qiskit.providers.backend import BackendV2
 from qiskit.utils import deprecate_arguments
 
 from ..version import __version__
@@ -124,6 +125,12 @@ class PulseSimulator(AerBackend):
       exceeds this value simulation will be run as a set of of sub-jobs
       on the executor. If ``None`` simulation of all schedules are submitted
       to the executor as a single job (Default: None).
+    * ``max_shot_size`` (int or None): If the number of shots of a noisy
+      circuit exceeds this value simulation will be split into multi
+      circuits for execution and the results accumulated. If ``None``
+      circuits will not be split based on shots. When splitting circuits
+      use the ``max_job_size`` option to control how these split circuits
+      should be submitted to the executor (Default: None).
 
       jobs (Default: None).
 
@@ -197,7 +204,8 @@ class PulseSimulator(AerBackend):
             initial_state=None,
             executor=None,
             memory_slots=1,
-            max_job_size=None)
+            max_job_size=None,
+            max_shot_size=None)
 
     # pylint: disable=arguments-differ, missing-param-doc
     @deprecate_arguments({'qobj': 'schedules'})
@@ -240,6 +248,10 @@ class PulseSimulator(AerBackend):
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
+        if isinstance(backend, BackendV2):
+            raise AerError(
+                "PulseSimulator.from_backend does not currently support V2 Backends."
+            )
         configuration = copy.copy(backend.configuration())
         defaults = copy.copy(backend.defaults())
         properties = copy.copy(backend.properties())

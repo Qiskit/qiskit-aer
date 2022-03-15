@@ -13,7 +13,7 @@ macro(setup_conan)
     set(REQUIREMENTS nlohmann_json/3.1.1 spdlog/1.5.0)
     list(APPEND AER_CONAN_LIBS nlohmann_json spdlog)
     if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set(REQUIREMENTS ${REQUIREMENTS} llvm-openmp/8.0.1)
+        set(REQUIREMENTS ${REQUIREMENTS} llvm-openmp/12.0.1)
         list(APPEND AER_CONAN_LIBS llvm-openmp)
         if(SKBUILD)
             set(CONAN_OPTIONS ${CONAN_OPTIONS} "llvm-openmp:shared=True")
@@ -39,17 +39,28 @@ macro(setup_conan)
     endif()
 
     if(BUILD_TESTS)
-        set(REQUIREMENTS ${REQUIREMENTS} catch2/2.12.1)
+        set(REQUIREMENTS ${REQUIREMENTS} catch2/2.13.6)
         list(APPEND AER_CONAN_LIBS catch2)
     endif()
-
-    conan_cmake_run(REQUIRES ${REQUIREMENTS}
-                    OPTIONS ${CONAN_OPTIONS}
-                    ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
-                    BASIC_SETUP
-                    CMAKE_TARGETS
-                    KEEP_RPATHS
-                    BUILD missing)
+    if (CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+        conan_cmake_run(REQUIRES ${REQUIREMENTS}
+                        OPTIONS ${CONAN_OPTIONS}
+                        ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
+                        BASIC_SETUP
+                        CMAKE_TARGETS
+                        KEEP_RPATHS
+                        ARCH armv8
+                        SETTINGS arch_build=armv8
+                        BUILD missing)
+    else()
+        conan_cmake_run(REQUIRES ${REQUIREMENTS}
+                        OPTIONS ${CONAN_OPTIONS}
+                        ENV CONAN_CMAKE_PROGRAM=${CMAKE_COMMAND}
+                        BASIC_SETUP
+                        CMAKE_TARGETS
+                        KEEP_RPATHS
+                        BUILD missing)
+    endif()
 
     # Headers includes
     if(AER_THRUST_BACKEND AND NOT AER_THRUST_BACKEND STREQUAL "CUDA")

@@ -88,10 +88,9 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	# In order to build for MacOSX 10.9 and above with Clang, we need to force the "deployment target" to 10.9
-	# and force using libc++ instead of the default for this target: libstdc++ otherwise we could not
-	# use C++11/14
-	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "" FORCE)
+	# In order to build for MacOSX 10.9 and above with Clang, we need to
+	# force using libc++ instead of the default for this target: libstdc++
+	# otherwise we could not use C++11/14
 	enable_cxx_compiler_flag_if_supported("-stdlib=libc++")
 endif()
 
@@ -111,7 +110,6 @@ if(STATIC_LINKING)
 endif()
 
 if(NOT MSVC)
-	enable_cxx_compiler_flag_if_supported("-ffast-math")
 	if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le")
 		# PowerPC builds are not meant to be redistributable, we build them
 		# in place, so we can have CPU = native.
@@ -228,9 +226,11 @@ endif()
 message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
 
 if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
-	if(APPLE OR UNIX)
-		set(SIMD_FLAGS_LIST "-mfma;-mavx2")
-		enable_cxx_compiler_flag_if_supported("-mpopcnt")
+    if(APPLE OR UNIX)
+        if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+            set(SIMD_FLAGS_LIST "-mfma;-mavx2")
+	        enable_cxx_compiler_flag_if_supported("-mpopcnt")
+        endif()
 	elseif(MSVC)
 		set(SIMD_FLAGS_LIST "/arch:AVX2")
 	endif()
@@ -256,6 +256,15 @@ if(AER_THRUST_SUPPORTED)
 
 		set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} THRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA)
 		set(THRUST_DEPENDENT_LIBS "")
+		if(CUSTATEVEC_ROOT)
+			set(AER_COMPILER_DEFINITIONS ${AER_COMPILER_DEFINITIONS} AER_CUSTATEVEC)
+			set(AER_COMPILER_FLAGS "${AER_COMPILER_FLAGS} -I${CUSTATEVEC_ROOT}/include")
+            if(CUSTATEVEC_STATIC)
+				set(THRUST_DEPENDANT_LIBS "-L${CUSTATEVEC_ROOT}/lib -L${CUSTATEVEC_ROOT}/lib64 -lcustatevec_static -L${CUDA_TOOLKIT_ROOT_DIR}/lib64 -lcublas")
+			else()
+				set(THRUST_DEPENDANT_LIBS "-L${CUSTATEVEC_ROOT}/lib -L${CUSTATEVEC_ROOT}/lib64 -lcustatevec")
+			endif()
+		endif()
 	elseif(AER_THRUST_BACKEND STREQUAL "TBB")
 		message(STATUS "TBB Support found!")
 		set(THRUST_DEPENDENT_LIBS AER_DEPENDENCY_PKG::tbb)
@@ -322,10 +331,12 @@ if(SKBUILD) # Terra Addon build
 	add_subdirectory(src/open_pulse)
 else() # Standalone build
 
-	if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
-	  # We build SIMD filed separately, because they will be reached only if the
-	  # machine running the code has SIMD support
-	  set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
+      if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+          # We build SIMD filed separately, because they will be reached only if the
+          # machine running the code has SIMD support
+          set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
+      endif()
   endif()
 
 	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")

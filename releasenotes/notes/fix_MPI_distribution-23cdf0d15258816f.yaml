@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    This is a fix of MPI parallelization for multi-chunk parallelization and
+    multi-shot distribution over parallel processes. There were missing
+    distribution configuration that prevents MPI distribution, is now fixed.

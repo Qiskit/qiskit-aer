@@ -18,6 +18,7 @@ import logging
 from warnings import warn
 from qiskit.providers.options import Options
 from qiskit.providers.models import QasmBackendConfiguration
+from qiskit.providers.backend import BackendV2
 
 from ..version import __version__
 from ..aererror import AerError
@@ -131,6 +132,13 @@ class QasmSimulator(AerBackend):
       exceeds this value simulation will be run as a set of of sub-jobs
       on the executor. If ``None`` simulation of all circuits are submitted
       to the executor as a single job (Default: None).
+
+    * ``max_shot_size`` (int or None): If the number of shots of a noisy
+      circuit exceeds this value simulation will be split into multi
+      circuits for execution and the results accumulated. If ``None``
+      circuits will not be split based on shots. When splitting circuits
+      use the ``max_job_size`` option to control how these split circuits
+      should be submitted to the executor (Default: None).
 
     * ``enable_truncation`` (bool): If set to True this removes unnecessary
       qubits which do not affect the simulation outcome from the simulated
@@ -331,9 +339,9 @@ class QasmSimulator(AerBackend):
     }
 
     _SIMULATION_METHODS = [
-        'automatic', 'statevector', 'statevector_gpu',
+        'automatic', 'statevector', 'statevector_gpu', 'statevector_custatevec',
         'statevector_thrust', 'density_matrix',
-        'density_matrix_gpu', 'density_matrix_thrust',
+        'density_matrix_gpu', 'density_matrix_custatevec', 'density_matrix_thrust',
         'stabilizer', 'matrix_product_state', 'extended_stabilizer'
     ]
 
@@ -402,6 +410,7 @@ class QasmSimulator(AerBackend):
             precision="double",
             executor=None,
             max_job_size=None,
+            max_shot_size=None,
             enable_truncation=True,
             zero_threshold=1e-10,
             validation_threshold=None,
@@ -444,6 +453,10 @@ class QasmSimulator(AerBackend):
     @classmethod
     def from_backend(cls, backend, **options):
         """Initialize simulator from backend."""
+        if isinstance(backend, BackendV2):
+            raise AerError(
+                "QasmSimulator.from_backend does not currently support V2 Backends."
+            )
         # pylint: disable=import-outside-toplevel
         # Avoid cyclic import
         from ..noise.noise_model import NoiseModel
@@ -582,7 +595,8 @@ class QasmSimulator(AerBackend):
     def _method_basis_gates(self):
         """Return method basis gates and custom instructions"""
         method = self._options.get('method', None)
-        if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
+        if method in ['density_matrix', 'density_matrix_gpu',
+                      'density_matrix_custatevec', 'density_matrix_thrust']:
             return sorted([
                 'u1', 'u2', 'u3', 'u', 'p', 'r', 'rx', 'ry', 'rz', 'id', 'x',
                 'y', 'z', 'h', 's', 'sdg', 'sx', 'sxdg', 't', 'tdg', 'swap', 'cx',
@@ -615,7 +629,8 @@ class QasmSimulator(AerBackend):
             return self._options_configuration['custom_instructions']
 
         method = self._options.get('method', None)
-        if method in ['statevector', 'statevector_gpu', 'statevector_thrust']:
+        if method in ['statevector', 'statevector_gpu',
+                      'statevector_custatevec', 'statevector_thrust']:
             return sorted([
                 'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'snapshot', 'save_expval',
                 'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
@@ -623,7 +638,8 @@ class QasmSimulator(AerBackend):
                 'save_density_matrix', 'save_statevector', 'save_statevector_dict',
                 'set_statevector'
             ])
-        if method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
+        if method in ['density_matrix', 'density_matrix_gpu',
+                      'density_matrix_custatevec', 'density_matrix_thrust']:
             return sorted([
                 'quantum_channel', 'qerror_loc', 'roerror', 'kraus', 'superop', 'snapshot',
                 'save_expval', 'save_expval_var', 'save_probabilities', 'save_probabilities_dict',
@@ -653,10 +669,12 @@ class QasmSimulator(AerBackend):
     def _set_method_config(self, method=None):
         """Set non-basis gate options when setting method"""
         # Update configuration description and number of qubits
-        if method in ['statevector', 'statevector_gpu', 'statevector_thrust']:
+        if method in ['statevector', 'statevector_gpu',
+                      'statevector_custatevec', 'statevector_thrust']:
             description = 'A C++ statevector simulator with noise'
             n_qubits = MAX_QUBITS_STATEVECTOR
-        elif method in ['density_matrix', 'density_matrix_gpu', 'density_matrix_thrust']:
+        elif method in ['density_matrix', 'density_matrix_gpu',
+                        'density_matrix_custatevec', 'density_matrix_thrust']:
             description = 'A C++ density matrix simulator with noise'
             n_qubits = MAX_QUBITS_STATEVECTOR // 2
         elif method == 'matrix_product_state':

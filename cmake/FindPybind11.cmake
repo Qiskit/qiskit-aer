@@ -1,4 +1,3 @@
-find_package(PythonExtensions REQUIRED)
 find_package(PythonLibs REQUIRED)
 
 message(STATUS ${PYTHON_INCLUDE_DIRS})
@@ -23,6 +22,11 @@ else()
     set(PYBIND_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS})
 endif()
 message(STATUS "PYBIND INCLUDES: ${PYBIND_INCLUDE_DIRS}")
+
+if (NOT DEFINED PYTHON_EXTENSION_MODULE_SUFFIX)
+    execute_process(COMMAND "${PYTHON_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'), end='')"
+                    OUTPUT_VARIABLE PYTHON_EXTENSION_MODULE_SUFFIX)
+endif()
 
 function(basic_pybind11_add_module target_name)
     set(options MODULE SHARED EXCLUDE_FROM_ALL NO_EXTRAS SYSTEM THIN_LTO)

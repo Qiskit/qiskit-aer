@@ -46,7 +46,7 @@ namespace Transpile {
 
 class CacheBlocking : public CircuitOptimization {
 public:
-  CacheBlocking() : block_bits_(22), blocking_enabled_(false), gpu_blocking_bits_(0) {}
+  CacheBlocking() : block_bits_(0), blocking_enabled_(false), memory_blocking_bits_(0) {}
   ~CacheBlocking(){}
 
   void optimize_circuit(Circuit& circ,
@@ -85,7 +85,7 @@ protected:
   mutable bool blocking_enabled_;
   mutable bool sample_measure_ = false;
   mutable bool save_state_ = false;
-  int gpu_blocking_bits_;
+  int memory_blocking_bits_ = 0;
   bool density_matrix_ = false;
 
   bool block_circuit(Circuit& circ,bool doSwap) const;
@@ -120,16 +120,17 @@ void CacheBlocking::set_config(const json_t &config)
 {
   CircuitOptimization::set_config(config);
 
-  if (JSON::check_key("blocking_enable", config_))
-    JSON::get_value(blocking_enabled_, "blocking_enable", config_);
-
   if (JSON::check_key("blocking_qubits", config_))
     JSON::get_value(block_bits_, "blocking_qubits", config_);
 
-  if (JSON::check_key("gpu_blocking_bits", config_)){
-    JSON::get_value(gpu_blocking_bits_, "gpu_blocking_bits", config_);
-    if(gpu_blocking_bits_ >= 10){   //blocking qubit should be <=10
-      gpu_blocking_bits_ = 10;
+  if(block_bits_ >= 2){
+    blocking_enabled_ = true;
+  }
+
+  if (JSON::check_key("memory_blocking_bits", config_)){
+    JSON::get_value(memory_blocking_bits_, "memory_blocking_bits", config_);
+    if(memory_blocking_bits_ >= 10){   //blocking qubit should be <=10
+      memory_blocking_bits_ = 10;
     }
   }
 
@@ -206,13 +207,26 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
                                 const opset_t &allowed_opset,
                                 ExperimentResult &result) const 
 {
-  if(!blocking_enabled_ && gpu_blocking_bits_ == 0){
+  if(!blocking_enabled_ && memory_blocking_bits_ == 0){
     return;
   }
 
   if(blocking_enabled_){
     qubits_ = circ.num_qubits;
-    if(block_bits_ >= qubits_ || block_bits_ < 2){
+
+    //loop over operations to find max number of parameters for cross-qubits operations
+    int_t max_params = 1;
+    for(uint_t i=0;i<circ.ops.size();i++){
+      if(is_cross_qubits_op(circ.ops[i])){
+        if(circ.ops[i].qubits.size() > max_params)
+          max_params = circ.ops[i].qubits.size();
+      }
+    }
+    if(block_bits_ < max_params){
+      block_bits_ = max_params;   //change blocking qubits so that we can put op with many params
+    }
+
+    if(block_bits_ >= qubits_){
       blocking_enabled_ = false;
       return;
     }
@@ -233,8 +247,28 @@ void CacheBlocking::optimize_circuit(Circuit& circ,
     }
   }
 
-  if(gpu_blocking_bits_ > 0){
+  if(memory_blocking_bits_ > 0){
+    if(memory_blocking_bits_ >= qubits_){
+      return;
+    }
+
+    qubitMap_.resize(qubits_);
+    qubitSwapped_.resize(qubits_);
+
+    for(uint_t i=0;i<qubits_;i++){
+      qubitMap_[i] = i;
+      qubitSwapped_[i] = i;
+    }
+
+    uint_t bit_backup = block_bits_;
+    block_bits_ = memory_blocking_bits_;
+
     block_circuit(circ,false);
+
+    block_bits_ = bit_backup;
+
+    result.metadata.add(true, "gpu_blocking", "enabled");
+    result.metadata.add(memory_blocking_bits_, "gpu_blocking", "gpu_block_bits");
   }
 
   circ.set_params();
@@ -248,6 +282,9 @@ void CacheBlocking::define_blocked_qubits(std::vector<Operations::Op>& ops,reg_t
   for(i=0;i<ops.size();i++){
     if(blockedQubits.size() >= block_bits_)
       break;
+
+    if(!is_blockable_operation(ops[i]))
+      continue;
 
     if(is_cross_qubits_op(ops[i])){
       reg_t blockedQubits_add;
@@ -361,7 +398,7 @@ bool CacheBlocking::block_circuit(Circuit& circ,bool doSwap) const
     return false;
   }
 
-  if(save_state_)
+  if(doSwap && save_state_)
     restore_qubits_order(out);
 
   circ.ops = out;
@@ -481,9 +518,9 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
   pos_begin = out.size();
   num_gates_added = 0;
 
-  if(doSwap){
+//  if(doSwap){
     //find qubits to be blocked
-    if(first){
+    if(first && doSwap){
       //use lower bits for initialization
       for(i=0;i<block_bits_;i++){
         blockedQubits.push_back(i);
@@ -506,48 +543,53 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
     pos_begin = out.size();
     num_gates_added = 0;
 
-    //insert swap gates to block operations
-    reg_t swap(block_bits_);
-    std::vector<bool> mapped(block_bits_,false);
-    nq = blockedQubits.size();
-    for(i=0;i<nq;i++){
-      swap[i] = qubits_;  //not defined
-      for(j=0;j<block_bits_;j++){
-        if(blockedQubits[i] == qubitSwapped_[j]){
-          swap[i] = j;
-          mapped[j] = true;
-          break;
-        }
-      }
-    }
-    for(i=0;i<nq;i++){
-      if(swap[i] == qubits_){
+    if(doSwap){
+      //insert swap gates to block operations
+      reg_t swap(block_bits_);
+      std::vector<bool> mapped(block_bits_,false);
+      nq = blockedQubits.size();
+      for(i=0;i<nq;i++){
+        swap[i] = qubits_;  //not defined
         for(j=0;j<block_bits_;j++){
-          if(!mapped[j]){
+          if(blockedQubits[i] == qubitSwapped_[j]){
             swap[i] = j;
             mapped[j] = true;
             break;
           }
         }
       }
-    }
-    for(i=0;i<nq;i++){
-      if(qubitSwapped_[swap[i]] != blockedQubits[i]){ //need swap gate
-        if(!first){   //swap gate is not required for initial state
-          insert_swap(out,swap[i],qubitMap_[blockedQubits[i]],true);
+      for(i=0;i<nq;i++){
+        if(swap[i] == qubits_){
+          for(j=0;j<block_bits_;j++){
+            if(!mapped[j]){
+              swap[i] = j;
+              mapped[j] = true;
+              break;
+            }
+          }
         }
+      }
+      for(i=0;i<nq;i++){
+        if(qubitSwapped_[swap[i]] != blockedQubits[i]){ //need swap gate
+          if(!first){   //swap gate is not required for initial state
+            insert_swap(out,swap[i],qubitMap_[blockedQubits[i]],true);
+          }
 
-        //swap map
-        j = qubitMap_[blockedQubits[i]];
-        qubitMap_[qubitSwapped_[swap[i]]] = j;
-        qubitMap_[blockedQubits[i]] = swap[i];
+          //swap map
+          j = qubitMap_[blockedQubits[i]];
+          qubitMap_[qubitSwapped_[swap[i]]] = j;
+          qubitMap_[blockedQubits[i]] = swap[i];
 
-        qubitSwapped_[j] = qubitSwapped_[swap[i]];
-        qubitSwapped_[swap[i]] = blockedQubits[i];
+          qubitSwapped_[j] = qubitSwapped_[swap[i]];
+          qubitSwapped_[swap[i]] = blockedQubits[i];
+        }
       }
     }
 
-    insert_sim_op(out,"begin_blocking",blockedQubits);
+    if(doSwap)
+      insert_sim_op(out,"begin_blocking",blockedQubits);
+    else
+      insert_sim_op(out,"begin_memory_blocking",blockedQubits);
     end_block_inserted = false;
 
     //gather blocked gates
@@ -616,18 +658,22 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
           }
 
           if(num_gates_added > 0 && !end_block_inserted){  //insert end of block to synchronize chunks
-            insert_sim_op(out,"end_blocking",blockedQubits);
+            if(doSwap)
+              insert_sim_op(out,"end_blocking",blockedQubits);
+            else
+              insert_sim_op(out,"end_memory_blocking",blockedQubits);
           }
           else if(!end_block_inserted){
             out.pop_back();
           }
-
-          if(restore_qubits)
+          if(restore_qubits && doSwap)
             restore_qubits_order(out);
 
           //mapping swapped qubits
-          for(iq=0;iq<ops[i].qubits.size();iq++){
-            ops[i].qubits[iq] = qubitMap_[ops[i].qubits[iq]];
+          if(doSwap){
+            for(iq=0;iq<ops[i].qubits.size();iq++){
+              ops[i].qubits[iq] = qubitMap_[ops[i].qubits[iq]];
+            }
           }
 
           out.push_back(ops[i]);
@@ -642,7 +688,10 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
 
     if(!end_block_inserted){
       if(num_gates_added > 0){
-        insert_sim_op(out,"end_blocking",blockedQubits);
+        if(doSwap)
+          insert_sim_op(out,"end_blocking",blockedQubits);
+        else
+          insert_sim_op(out,"end_memory_blocking",blockedQubits);
       }
       else{
         //pop unnecessary operations
@@ -651,7 +700,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
         }
       }
     }
-  }
+/*  }
   else{
     i = 0;
     //add chunk swap and block ops (if blocking is enabled)
@@ -699,7 +748,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
                 num_gates_added++;
               }
               else{
-                if(nq == gpu_blocking_bits_){
+                if(nq == memory_blocking_bits_){
                   queue.push_back(ops[i]);
                 }
                 else{
@@ -728,7 +777,7 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
     else{
       out.pop_back();
     }
-  }
+  }*/
 
   return num_gates_added;
 }

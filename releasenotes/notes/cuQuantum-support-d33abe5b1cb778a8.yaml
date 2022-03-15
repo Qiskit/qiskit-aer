@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Added support for cuQuantum, NVIDIA's APIs for quantum computing,
+    to accelerate statevector, density matrix and unitary simulators
+    by using GPUs.
+    This is experiemental implementation for cuQuantum Beta 2. (0.1.0)
+    cuStateVec APIs are enabled to accelerate instead of Aer's implementations
+    by building Aer by setting path of cuQuantum to ``CUSTATEVEC_ROOT``.
+    (binary distribution is not available currently.)
+    cuStateVector is enabled by setting ``device='GPU'`` and 
+    ``cuStateVec_threshold`` options. cuStateVec is enabled when number of
+    qubits of input circuit is equal or greater than ``cuStateVec_threshold``.

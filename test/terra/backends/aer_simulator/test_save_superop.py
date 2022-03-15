@@ -46,5 +46,5 @@ class TestSaveSuperOp(SimulatorTestCase):
         self.assertTrue(result.success)
         simdata = result.data(0)
         self.assertIn(label, simdata)
-        value = qi.SuperOp(simdata[label])
+        value = simdata[label]
         self.assertEqual(value, target)

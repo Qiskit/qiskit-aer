@@ -121,27 +121,22 @@ class TestGates(SimulatorTestCase):
             if method == 'density_matrix':
                 target = qi.DensityMatrix(circuit)
                 circuit.save_density_matrix(label=label)
-                state_fn = qi.DensityMatrix
                 fidelity_fn = qi.state_fidelity
             elif method == 'stabilizer':
-                target = qi.Clifford(circuit)
+                target = qi.StabilizerState(qi.Clifford(circuit))
                 circuit.save_stabilizer(label=label)
-                state_fn = qi.Clifford.from_dict
                 fidelity_fn = qi.process_fidelity
             elif method == 'unitary':
                 target = qi.Operator(circuit)
                 circuit.save_unitary(label=label)
-                state_fn = qi.Operator
                 fidelity_fn = qi.process_fidelity
             elif method == 'superop':
                 target = qi.SuperOp(circuit)
                 circuit.save_superop(label=label)
-                state_fn = qi.SuperOp
                 fidelity_fn = qi.process_fidelity
             else:
                 target = qi.Statevector(circuit)
                 circuit.save_statevector(label=label)
-                state_fn = qi.Statevector
                 fidelity_fn = qi.state_fidelity
 
             result = backend.run(transpile(
@@ -152,7 +147,7 @@ class TestGates(SimulatorTestCase):
             self.assertTrue(success)
             data = result.data(0)
             self.assertIn(label, data)
-            value = state_fn(data[label])
+            value = data[label]
             fidelity = fidelity_fn(target, value)
             self.assertGreater(fidelity, 0.9999)
 
