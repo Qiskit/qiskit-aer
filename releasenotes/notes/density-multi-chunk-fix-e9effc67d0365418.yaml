@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fix cache blocking transpiler to recognize superop to be cache blocked.
+    This is fix for
+    `issue 1479 <https://github.com/Qiskit/qiskit-aer/issues/1479>`
+    now density_matrix with noise models can be parallelized.
+
