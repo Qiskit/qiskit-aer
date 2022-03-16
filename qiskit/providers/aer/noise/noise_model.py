@@ -12,7 +12,7 @@
 """
 Noise model class for Qiskit Aer simulators.
 """
-
+import copy
 import json
 import logging
 from typing import Optional
@@ -21,6 +21,7 @@ from warnings import warn, catch_warnings, filterwarnings
 from numpy import ndarray
 
 from qiskit.circuit import Instruction, Delay
+from qiskit.providers import QubitProperties
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.providers.models import BackendProperties
 from qiskit.transpiler import PassManager
@@ -277,7 +278,8 @@ class NoiseModel:
         If non-default values are used gate_lengths should be a list
 
         Args:
-            backend (BackendV1): backend.
+            backend (Backend): backend. For BackendV2, `standard_gates` and `warnings`
+                               options are ignored, and their default values are used.
             gate_error (bool): Include depolarizing gate errors (Default: True).
             readout_error (Bool): Include readout errors in model
                                   (Default: True).
@@ -294,7 +296,7 @@ class NoiseModel:
             standard_gates (bool): DEPRECATED, If true return errors as standard
                                    qobj gates. If false return as unitary
                                    qobj instructions (Default: None)
-            warnings (bool): Display warnings (Default: True).
+            warnings (bool): PLAN TO BE DEPRECATED, Display warnings (Default: True).
 
         Returns:
             NoiseModel: An approximate noise model for the device backend.
@@ -302,23 +304,18 @@ class NoiseModel:
         Raises:
             NoiseError: If the input backend is not valid.
         """
+        if standard_gates is not None:
+            warn(
+                '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
+                ' and will be removed no earlier than 3 months from that release date.',
+                DeprecationWarning, stacklevel=2)
+
         backend_interface_version = getattr(backend, "version", None)
         if not isinstance(backend_interface_version, int):
             backend_interface_version = 0
 
-        if backend_interface_version == 2:
-            raise NoiseError(
-                "NoiseModel.from_backend does not currently support V2 Backends.")
-        if backend_interface_version <= 1:
-            properties = backend.properties()
-            configuration = backend.configuration()
-            basis_gates = configuration.basis_gates
-            num_qubits = configuration.num_qubits
-            dt = getattr(configuration, "dt", 0)
-            if not properties:
-                raise NoiseError('Qiskit backend {} does not have a '
-                                 'BackendProperties'.format(backend))
-        elif isinstance(backend, BackendProperties):
+        target = None
+        if isinstance(backend, BackendProperties):
             warn(
                 'Passing BackendProperties instead of a "backend" object '
                 'has been deprecated as of qiskit-aer 0.10.0 and will be '
@@ -331,22 +328,54 @@ class NoiseModel:
                 basis_gates.add(prop.gate)
             basis_gates = list(basis_gates)
             num_qubits = len(properties.qubits)
+            all_qubit_properties = [QubitProperties(t1=properties.t1(q),
+                                                    t2=properties.t2(q),
+                                                    frequency=properties.frequency(q))
+                                    for q in range(num_qubits)]
             dt = 0  # disable delay noise if dt is unknown
+        elif backend_interface_version == 2:
+            if standard_gates is not None or not warnings:
+                warn("When a BackendV2 is supplied, `standard_gates` and `warnings`"
+                     " are ignored, and their default values are used.", UserWarning)
+            properties = None
+            basis_gates = backend.operation_names
+            target = backend.target
+            if gate_lengths:
+                from .device.parameters import _NANOSECOND_UNITS
+                # Update target based on gate_lengths and gate_length_units
+                target = copy.deepcopy(target)
+                for op_name, qubits, value in gate_lengths:
+                    prop = target[op_name][qubits]
+                    prop.duration = value * _NANOSECOND_UNITS[gate_length_units]
+                    target.update_instruction_properties(op_name, qubits, prop)
+            all_qubit_properties = backend.target.qubit_properties
+            if not all_qubit_properties:
+                warn(f"Qiskit backend {backend} has no QubitProperties, so the resulting"
+                     " noise model will not include any thermal relaxation errors.", UserWarning)
+            dt = backend.dt
+        elif backend_interface_version <= 1:
+            properties = backend.properties()
+            configuration = backend.configuration()
+            basis_gates = configuration.basis_gates
+            all_qubit_properties = [QubitProperties(t1=properties.t1(q),
+                                                    t2=properties.t2(q),
+                                                    frequency=properties.frequency(q))
+                                    for q in range(configuration.num_qubits)]
+            dt = getattr(configuration, "dt", 0)
+            if not properties:
+                raise NoiseError('Qiskit backend {} does not have a '
+                                 'BackendProperties'.format(backend))
         else:
             raise NoiseError('{} is not a Qiskit backend or'
                              ' BackendProperties'.format(backend))
+
         noise_model = NoiseModel(basis_gates=basis_gates)
 
         # Add single-qubit readout errors
         if readout_error:
-            for qubits, error in basic_device_readout_errors(properties):
+            for qubits, error in basic_device_readout_errors(properties, target=target):
                 noise_model.add_readout_error(error, qubits, warnings=warnings)
 
-        if standard_gates is not None:
-            warn(
-                '"standard_gates" option has been deprecated as of qiskit-aer 0.10.0'
-                ' and will be removed no earlier than 3 months from that release date.',
-                DeprecationWarning, stacklevel=2)
         # Add gate errors
         with catch_warnings():
             filterwarnings(
@@ -362,25 +391,27 @@ class NoiseModel:
                 gate_length_units=gate_length_units,
                 temperature=temperature,
                 standard_gates=standard_gates,
-                warnings=warnings)
+                warnings=warnings,
+                target=target,
+            )
         for name, qubits, error in gate_errors:
             noise_model.add_quantum_error(error, name, qubits, warnings=warnings)
 
-        if thermal_relaxation:
+        if thermal_relaxation and all_qubit_properties:
             # Add delay errors via RelaxationNiose pass
             try:
                 excited_state_populations = [
                     _excited_population(
-                        freq=properties.frequency(q), temperature=temperature
-                    ) for q in range(num_qubits)]
+                        freq=q.frequency, temperature=temperature
+                    ) for q in all_qubit_properties]
             except BackendPropertyError:
                 excited_state_populations = None
             try:
-                t1s = [properties.t1(q) for q in range(num_qubits)]
-                t2s = [properties.t2(q) for q in range(num_qubits)]
+                t1s = [prop.t1 for prop in all_qubit_properties]
+                t2s = [_truncate_t2_value(prop.t1, prop.t2) for prop in all_qubit_properties]
                 delay_pass = RelaxationNoisePass(
                     t1s=t1s,
-                    t2s=[_truncate_t2_value(t1, t2) for t1, t2 in zip(t1s, t2s)],
+                    t2s=t2s,
                     dt=dt,
                     op_types=Delay,
                     excited_state_populations=excited_state_populations

@@ -230,6 +230,18 @@ class TestNoiseModel(QiskitAerTestCase):
         result = AerSimulator().run(circ, noise_model=noise_model).result()
         self.assertTrue(result.success)
 
+    def test_noise_model_from_backend_v2(self):
+        circ = QuantumCircuit(2)
+        circ.x(0)
+        circ.x(1)
+        circ.measure_all()
+
+        backend = mock.FakeBackendV2()
+        noise_model = NoiseModel.from_backend(backend)
+        circ = transpile(circ, backend, optimization_level=0)
+        result = AerSimulator().run(circ, noise_model=noise_model).result()
+        self.assertTrue(result.success)
+
     def test_noise_model_from_invalid_t2_backend(self):
         """Test if issue user warning when creating a noise model from invalid t2 backend"""
         from qiskit.providers.models.backendproperties import BackendProperties, Gate, Nduv
