@@ -153,10 +153,7 @@ class TestNoise(SimulatorTestCase):
             self.assertSuccess(result)
             self.compare_counts(result, [circuit], [target], delta=0.05 * shots)
 
-    @supported_methods([
-        'automatic', 'statevector', 'density_matrix', 'matrix_product_state'])
-    def test_kraus_gate_noise_on_QFT(self, method, device):
-        """Test Kraus noise on a QFT circuit"""
+    def _test_kraus_gate_noise_on_QFT(self, **options):
         shots = 10000
 
         # Build noise model
@@ -166,8 +163,7 @@ class TestNoise(SimulatorTestCase):
         noise_model.add_all_qubit_quantum_error(error1, ['h'])
         noise_model.add_all_qubit_quantum_error(error2, ['cp', 'swap'])
 
-        backend = self.backend(
-            method=method, device=device, noise_model=noise_model)
+        backend = self.backend(**options, noise_model=noise_model)
         ideal_circuit = transpile(QFT(3), backend)
 
         # manaully build noise circuit
@@ -187,6 +183,20 @@ class TestNoise(SimulatorTestCase):
         result = backend.run(ideal_circuit, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, [ideal_circuit], [ref_target], hex_counts=False, delta=0.1 * shots)
+
+    @supported_methods([
+        'automatic', 'statevector', 'density_matrix', 'matrix_product_state'])
+    def test_kraus_gate_noise_on_QFT(self, method, device):
+        """Test Kraus noise on a QFT circuit"""
+        self._test_kraus_gate_noise_on_QFT(
+            method=method, device=device)
+
+    @supported_methods([
+        'statevector', 'density_matrix'])
+    def test_kraus_gate_noise_on_QFT_cache_blocking(self, method, device):
+        """Test Kraus noise on a QFT circuit with caceh blocking"""
+        self._test_kraus_gate_noise_on_QFT(
+            method=method, device=device, blocking_qubits=2)
 
     @supported_methods(ALL_METHODS)
     def test_clifford_circuit_noise(self, method, device):

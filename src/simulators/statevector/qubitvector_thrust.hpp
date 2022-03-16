@@ -320,7 +320,7 @@ public:
 #endif
   }
 
-  bool enable_batch(bool flg);
+  bool enable_batch(bool flg) const;
 
   virtual void apply_bfunc(const Operations::Op &op);
   virtual void set_conditional(int_t reg);
@@ -463,7 +463,7 @@ protected:
   uint_t chunk_index_;
   bool multi_chunk_distribution_;
   bool multi_shots_;
-  bool enable_batch_;
+  mutable bool enable_batch_;
   bool cuStateVec_enable_ = false;
 
   bool register_blocking_;
@@ -1114,7 +1114,7 @@ void QubitVectorThrust<data_t>::set_conditional(int_t reg)
 }
 
 template <typename data_t>
-bool QubitVectorThrust<data_t>::enable_batch(bool flg)
+bool QubitVectorThrust<data_t>::enable_batch(bool flg) const
 {
   bool prev = enable_batch_;
 
@@ -1329,6 +1329,8 @@ void QubitVectorThrust<data_t>::apply_function_sum(double* pSum,Function func,bo
   if(func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0 && num_qubits_ == num_qubits()) || (enable_batch_))){
     if(chunk_.pos() != 0){
       //only first chunk on device calculates all the chunks
+      if(pSum)
+        *pSum = 0.0;
       return;
     }
     count = chunk_.container()->num_chunks();
@@ -1354,6 +1356,10 @@ void QubitVectorThrust<data_t>::apply_function_sum2(double* pSum,Function func,b
   if(func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0 && num_qubits_ == num_qubits()) || (enable_batch_))){
     if(chunk_.pos() != 0){
       //only first chunk on device calculates all the chunks
+      if(pSum){
+        pSum[0] = 0.0;
+        pSum[1] = 0.0;
+      }
       return;
     }
     count = chunk_.container()->num_chunks();
@@ -1818,7 +1824,7 @@ double QubitVectorThrust<data_t>::norm() const
   uint_t count = 1;
 
 #ifdef AER_THRUST_CUDA
-  if((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_){
+  if(enable_batch_ && ((multi_chunk_distribution_ && chunk_.device() >= 0) || !multi_chunk_distribution_)){
     if(chunk_.pos() != 0)
       return 0.0;   //first chunk execute all in batch
     count = chunk_.container()->num_chunks();
