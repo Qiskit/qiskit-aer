@@ -1,8 +1,8 @@
 ---
 fixes:
   - |
-    Reduce metadata of circuits in Qobj before simulation and Aer returns
-    results without metadata in ```header``` of ```ExperimentResult```. 
+    Reduce metadata of circuits in Qobj before simulation and set the metadata
+    to ```header``` of ```ExperimentResult``` in python. 
     Previously, metadata is serialized with JSON format and copied to
     the result even though metadata is not used in simulation. If metadata
     can not be serizalized, simulation was failed. This fix works around

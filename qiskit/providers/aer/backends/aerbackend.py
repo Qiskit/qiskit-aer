@@ -288,8 +288,29 @@ class AerBackend(Backend, ABC):
         # Start timer
         start = time.time()
 
+        # Take metadata from headers of experiments to work around JSON serialization error
+        metadata_list = []
+        metadata_index = 0
+        for expr in qobj.experiments:
+            if hasattr(expr.header, "metadata"):
+                metadata_copy = expr.header.metadata.copy()
+                metadata_list.append(metadata_copy)
+                expr.header.metadata.clear()
+                if "id" in metadata_copy:
+                    expr.header.metadata["id"] = metadata_copy["id"]
+                expr.header.metadata["metadata_index"] = metadata_index
+                metadata_index += 1
+
         # Run simulation
         output = self._execute(qobj)
+
+        # Recover metadata
+        metadata_index = 0
+        for expr in qobj.experiments:
+            if hasattr(expr.header, "metadata"):
+                expr.header.metadata.clear()
+                expr.header.metadata.update(metadata_list[metadata_index])
+                metadata_index += 1
 
         # Validate output
         if not isinstance(output, dict):
@@ -304,6 +325,14 @@ class AerBackend(Backend, ABC):
         output["date"] = datetime.datetime.now().isoformat()
         output["backend_name"] = self.name()
         output["backend_version"] = self.configuration().backend_version
+
+        # Push metadata to experiment headers
+        for result in output["results"]:
+            if ("header" in result and
+                    "metadata" in result["header"] and
+                    "metadata_index" in result["header"]["metadata"]):
+                metadata_index = result["header"]["metadata"]["metadata_index"]
+                result["header"]["metadata"] = metadata_list[metadata_index]
 
         # Add execution time
         output["time_taken"] = time.time() - start
@@ -352,11 +381,6 @@ class AerBackend(Backend, ABC):
             circuits, optypes, run_options = self._assemble_noise_model(
                 circuits, optypes, **run_options)
 
-            # Remove metadata from circuits
-            metadata_list = [circuit.metadata for circuit in circuits]
-            for circuit in circuits:
-                circuit.metadata = None
-
             if parameter_binds:
                 # Handle parameter binding
                 parameterizations = self._convert_binds(circuits, parameter_binds)
@@ -370,10 +394,6 @@ class AerBackend(Backend, ABC):
                     parameterizations=parameterizations)
             else:
                 qobj = assemble(circuits, backend=self)
-
-            # Recover metadata of circuits
-            for circuit, metadata in zip(circuits, metadata_list):
-                circuit.metadata = metadata
 
             # Add optypes to qobj
             # We convert to strings to avoid pybinding of types

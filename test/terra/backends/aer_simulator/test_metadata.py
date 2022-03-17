@@ -32,11 +32,11 @@ class TestMetadata(SimulatorTestCase):
         """Test circuits with object metadata."""
         backend = self.backend(method=method, device=device)
         metadata = {1: object}
-        circuit = QuantumCircuit(1, name='circ0', metadata=metadata)
+        circuit = QuantumCircuit(1, name='circ0', metadata=metadata.copy())
         result = backend.run(circuit).result()
         self.assertSuccess(result)
-        self.assertIsNone(result.results[0].header.metadata)
-        self.assertEqual(circuit.metadata, {1: object})
+        self.assertEqual(result.results[0].header.metadata, metadata)
+        self.assertEqual(circuit.metadata, metadata)
 
     @supported_methods(
         ['automatic', 'statevector', 'density_matrix',
@@ -46,23 +46,23 @@ class TestMetadata(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
 
         metadata0 = {0: object}
-        circuit0 = QuantumCircuit(1, name='circ0', metadata=metadata0)
+        circuit0 = QuantumCircuit(1, name='circ0', metadata=metadata0.copy())
         
         metadata1 = {1: object}
-        circuit1 = QuantumCircuit(1, name='circ1', metadata=metadata1)
+        circuit1 = QuantumCircuit(1, name='circ1', metadata=metadata1.copy())
 
         metadata2 = {2: object}
-        circuit2 = QuantumCircuit(1, name='circ2', metadata=metadata2)
+        circuit2 = QuantumCircuit(1, name='circ2', metadata=metadata2.copy())
         
         result = backend.run([circuit0, circuit1, circuit2]).result()
         self.assertSuccess(result)
         self.assertEqual(len(result.results), 3)
-        self.assertIsNone(result.results[0].header.metadata)
-        self.assertIsNone(result.results[1].header.metadata)
-        self.assertIsNone(result.results[2].header.metadata)
-        self.assertEqual(circuit0.metadata, {0: object})
-        self.assertEqual(circuit1.metadata, {1: object})
-        self.assertEqual(circuit2.metadata, {2: object})
+        self.assertEqual(result.results[0].header.metadata, metadata0)
+        self.assertEqual(result.results[1].header.metadata, metadata1)
+        self.assertEqual(result.results[2].header.metadata, metadata2)
+        self.assertEqual(circuit0.metadata, metadata0)
+        self.assertEqual(circuit1.metadata, metadata1)
+        self.assertEqual(circuit2.metadata, metadata2)
 
     @supported_methods(
         ['automatic', 'statevector', 'density_matrix', 'matrix_product_state'])
@@ -71,17 +71,17 @@ class TestMetadata(SimulatorTestCase):
         backend = self.backend(method=method, device=device)
 
         metadata0 = {0: object}
-        circuit0 = QuantumCircuit(1, name='circ0', metadata=metadata0)
+        circuit0 = QuantumCircuit(1, name='circ0', metadata=metadata0.copy())
         circuit0.ry(0.1, 0)
         circuit0.measure_all()
         
         metadata1 = {1: object}
-        circuit1 = QuantumCircuit(1, name='circ1', metadata=metadata1)
+        circuit1 = QuantumCircuit(1, name='circ1', metadata=metadata1.copy())
         circuit1.ry(0.1, 0)
         circuit1.measure_all()
 
         metadata2 = {2: object}
-        circuit2 = QuantumCircuit(1, name='circ2', metadata=metadata2)
+        circuit2 = QuantumCircuit(1, name='circ2', metadata=metadata2.copy())
         circuit2.ry(0.1, 0)
         circuit2.measure_all()
         
@@ -93,12 +93,12 @@ class TestMetadata(SimulatorTestCase):
                              parameterizations=parameterizations).result()
         self.assertSuccess(result)
         self.assertEqual(len(result.results), 6)
-        self.assertIsNone(result.results[0].header.metadata)
-        self.assertIsNone(result.results[1].header.metadata)
-        self.assertIsNone(result.results[2].header.metadata)
-        self.assertIsNone(result.results[3].header.metadata)
-        self.assertIsNone(result.results[4].header.metadata)
-        self.assertIsNone(result.results[5].header.metadata)
-        self.assertEqual(circuit0.metadata, {0: object})
-        self.assertEqual(circuit1.metadata, {1: object})
-        self.assertEqual(circuit2.metadata, {2: object})
+        self.assertEqual(result.results[0].header.metadata, metadata0)
+        self.assertEqual(result.results[1].header.metadata, metadata0)
+        self.assertEqual(result.results[2].header.metadata, metadata1)
+        self.assertEqual(result.results[3].header.metadata, metadata1)
+        self.assertEqual(result.results[4].header.metadata, metadata1)
+        self.assertEqual(result.results[5].header.metadata, metadata2)
+        self.assertEqual(circuit0.metadata, metadata0)
+        self.assertEqual(circuit1.metadata, metadata1)
+        self.assertEqual(circuit2.metadata, metadata2)
