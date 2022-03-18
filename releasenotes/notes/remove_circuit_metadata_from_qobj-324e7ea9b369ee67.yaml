@@ -1,9 +1,13 @@
 ---
 fixes:
   - |
-    Reduce metadata of circuits in Qobj before simulation and set the metadata
-    to ```header``` of ```ExperimentResult``` in python. 
-    Previously, metadata is serialized with JSON format and copied to
-    the result even though metadata is not used in simulation. If metadata
-    can not be serizalized, simulation was failed. This fix works around
-    this issue.
+    Fixed a potential issue with running simulations on circuits that have the
+    :attr:`.QuantumCircuit.metadata` attribute set. The :attr:`~.QuantumCircuit.metadata`
+    attribute can be any python dictionary and previously qiskit-aer would attempt to
+    JSON serialize the contents of the attribute to process it with the rest of the rest
+    of the circuit input, even if the contents were not JSON serializable. This no longer
+    occurs as the :attr:`.QuantumCircuit.metadata`  attribute is not used to run the
+    simulation so now the contents are no serialized and instead are directly attached
+    to the :class:`qiskit.result.Result` object without attempting to JSON serialize
+    the contents.
+    Fixed `#1435 <https://github.com/Qiskit/qiskit-aer/issues/1435>`__
