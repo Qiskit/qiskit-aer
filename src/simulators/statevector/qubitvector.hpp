@@ -415,7 +415,7 @@ public:
   // Get the sample_measure index size
   int get_sample_measure_index_size() {return sample_measure_index_size_;}
 
-  virtual bool enable_batch(bool flg)
+  virtual bool enable_batch(bool flg) const
   {
     return false;
   }
