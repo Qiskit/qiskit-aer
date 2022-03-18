@@ -1963,12 +1963,18 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
     //calculate per chunk sum
     if(BaseState::chunk_omp_parallel_){
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
-      for(i=0;i<BaseState::qregs_.size();i++)
+      for(i=0;i<BaseState::qregs_.size();i++){
+        bool batched = BaseState::qregs_[i].enable_batch(true);   //return sum of all chunks in group
         chunkSum[i] = BaseState::qregs_[i].norm();
+        BaseState::qregs_[i].enable_batch(batched);
+      }
     }
     else{
-      for(i=0;i<BaseState::qregs_.size();i++)
+      for(i=0;i<BaseState::qregs_.size();i++){
+        bool batched = BaseState::qregs_[i].enable_batch(true);   //return sum of all chunks in group
         chunkSum[i] = BaseState::qregs_[i].norm();
+        BaseState::qregs_[i].enable_batch(batched);
+      }
     }
 
     localSum = 0.0;
