@@ -20,8 +20,6 @@
 
 #include "custatevec.h"
 
-#define SUPPORTS_MEMORY_POOL ( __CUDACC_VER_MAJOR__ > 11 || (__CUDACC_VER_MAJOR__ == 11 && __CUDACC_VER_MINOR__ >= 2))
-
 namespace AER {
 namespace QV {
 namespace Chunk {
@@ -35,16 +33,11 @@ class cuStateVecChunkContainer : public DeviceChunkContainer<data_t>
 {
 protected:
   custatevecHandle_t custatevec_handle_;                       //cuStatevec handle for this chunk container
-  AERDeviceVector<unsigned char>            custatevec_work_;  //work buffer for cuStatevec
-  uint_t                                    custatevec_work_size_;    //buffer size
-  uint_t                                    custatevec_chunk_total_qubits_;   //total qubits of statevector passed to ApplyMatrix
-  uint_t                                    custatevec_chunk_count_;          //number of counts for all chunks
+  uint_t             custatevec_chunk_total_qubits_;   //total qubits of statevector passed to ApplyMatrix
+  uint_t                                  custatevec_chunk_count_;          //number of counts for all chunks
 
   custatevecDeviceMemHandler_t              custatevec_mem_handler_;
-  bool                                      use_mem_pool_ = false;
-#if SUPPORTS_MEMORY_POOL
   cudaMemPool_t                             memory_pool_;
-#endif
 public:
   using BaseContainer = DeviceChunkContainer<data_t>;
 
@@ -55,18 +48,6 @@ public:
 
   uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit) override;
   void Deallocate(void) override;
-
-  unsigned char* custatevec_work_pointer(uint_t iChunk) const
-  {
-    if(custatevec_work_size_ == 0)
-      return nullptr;
-    if(iChunk >= this->num_chunks_){  //for buffer chunks
-      return ((unsigned char*)thrust::raw_pointer_cast(custatevec_work_.data())) + ((BaseContainer::num_matrices_ + iChunk - this->num_chunks_) * custatevec_work_size_);
-    }
-    else{
-      return ((unsigned char*)thrust::raw_pointer_cast(custatevec_work_.data())) + ((iChunk % BaseContainer::num_matrices_) * custatevec_work_size_);
-    }
-  }
 
   reg_t sample_measure(uint_t iChunk,const std::vector<double> &rnds, uint_t stride = 1, bool dot = true,uint_t count = 1) const override;
   double norm(uint_t iChunk,uint_t count) const override;
@@ -102,8 +83,6 @@ public:
   double expval_pauli(const uint_t iChunk,const reg_t& qubits,const std::string &pauli,const complex_t initial_phase) const override;
 };
 
-#if SUPPORTS_MEMORY_POOL
-
 int cuStateVecChunkContainer_MemPoolAlloc(void* ctx, void** ptr, size_t size, cudaStream_t stream) 
 {
   cudaMemPool_t& pool = *static_cast<cudaMemPool_t*>(ctx);
@@ -117,7 +96,6 @@ int cuStateVecChunkContainer_MemPoolFree(void* ctx, void* ptr, size_t size, cuda
   cudaError_t status = cudaFreeAsync(ptr, stream);
   return (int)status;
 }
-#endif
 
 
 template <typename data_t>
@@ -149,75 +127,39 @@ uint_t cuStateVecChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int nu
     throw std::runtime_error(str.str());
   }
 
-  use_mem_pool_ = false;
-#if SUPPORTS_MEMORY_POOL
+  //setup memory pool
   cudaError_t status;
   int isMemPoolSupported;
   status = cudaDeviceGetAttribute(&isMemPoolSupported, cudaDevAttrMemoryPoolsSupported, idev);
-  if(status == cudaSuccess && isMemPoolSupported){
-    cudaDeviceGetDefaultMemPool(&memory_pool_, idev);
-    uint64_t threshold = UINT64_MAX;
-    status = cudaMemPoolSetAttribute(memory_pool_, cudaMemPoolAttrReleaseThreshold, &threshold);
-    if(status != cudaSuccess){
-      std::stringstream str;
-      str << "cuStateVecChunkContainer::cudaMemPoolSetAttribute : " << cudaGetErrorString(status);
-      throw std::runtime_error(str.str());
-    }
-
-    custatevec_mem_handler_.ctx = &memory_pool_;
-    custatevec_mem_handler_.device_alloc = cuStateVecChunkContainer_MemPoolAlloc;
-    custatevec_mem_handler_.device_free = cuStateVecChunkContainer_MemPoolFree;
-    strcpy(custatevec_mem_handler_.name, "mempool");
-    err = custatevecSetDeviceMemHandler(custatevec_handle_, &custatevec_mem_handler_);
-    if(err != CUSTATEVEC_STATUS_SUCCESS){
-      std::stringstream str;
-      str << "cuStateVecChunkContainer::custatevecSetDeviceMemHandler : " << custatevecGetErrorString(err);
-      throw std::runtime_error(str.str());
-    }
-    use_mem_pool_ = true;
-    custatevec_work_size_ = 0;
+  if(status != cudaSuccess || !isMemPoolSupported){
+    std::stringstream str;
+    str << "cuStateVecChunkContainer : cuStateVec support requires memory pool on GPU device. " << cudaGetErrorString(status);
+    throw std::runtime_error(str.str());
   }
-#endif
+
+  cudaDeviceGetDefaultMemPool(&memory_pool_, idev);
+  uint64_t threshold = UINT64_MAX;
+  status = cudaMemPoolSetAttribute(memory_pool_, cudaMemPoolAttrReleaseThreshold, &threshold);
+  if(status != cudaSuccess){
+    std::stringstream str;
+    str << "cuStateVecChunkContainer::cudaMemPoolSetAttribute : " << cudaGetErrorString(status);
+    throw std::runtime_error(str.str());
+  }
+
+  custatevec_mem_handler_.ctx = &memory_pool_;
+  custatevec_mem_handler_.device_alloc = cuStateVecChunkContainer_MemPoolAlloc;
+  custatevec_mem_handler_.device_free = cuStateVecChunkContainer_MemPoolFree;
+  strcpy(custatevec_mem_handler_.name, "mempool");
+  err = custatevecSetDeviceMemHandler(custatevec_handle_, &custatevec_mem_handler_);
+  if(err != CUSTATEVEC_STATUS_SUCCESS){
+    std::stringstream str;
+    str << "cuStateVecChunkContainer::custatevecSetDeviceMemHandler : " << custatevecGetErrorString(err);
+    throw std::runtime_error(str.str());
+  }
 
   //count bits for multi-chunks
   custatevec_chunk_total_qubits_ = this->num_pow2_qubits_;
   custatevec_chunk_count_ = this->num_chunks_ >> (this->num_pow2_qubits_ - this->chunk_bits_);
-
-  if(!use_mem_pool_){
-    //allocate extra workspace for custatevec
-    std::vector<std::complex<double>> mat(1ull << (matrix_bit*2));
-
-    //matrix
-    err = custatevecApplyMatrixGetWorkspaceSize(
-                    custatevec_handle_, CUDA_C_64F, custatevec_chunk_total_qubits_ , &mat[0], CUDA_C_64F, CUSTATEVEC_MATRIX_LAYOUT_COL,
-                    0, matrix_bit, 0, CUSTATEVEC_COMPUTE_64F, &custatevec_work_size_);
-    if(err != CUSTATEVEC_STATUS_SUCCESS){
-      std::stringstream str;
-      str << "cuStateVecChunkContainer::ResizeMatrixBuffers : " << custatevecGetErrorString(err);
-      throw std::runtime_error(str.str());
-    }
-
-    //diagonal matrix
-    size_t diag_size;
-    std::vector<custatevecIndex_t> perm(matrix_bit);
-    std::vector<int32_t> basis(matrix_bit);
-    for(int_t i=0;i<matrix_bit;i++){
-      perm[i] = i;
-      basis[i] = i;
-    }
-    err = custatevecApplyGeneralizedPermutationMatrixGetWorkspaceSize(
-                    custatevec_handle_, CUDA_C_64F, custatevec_chunk_total_qubits_ , &perm[0], &mat[0], CUDA_C_64F,
-                    &basis[0], matrix_bit, 0, &diag_size);
-    if(err != CUSTATEVEC_STATUS_SUCCESS){
-      std::stringstream str;
-      str << "cuStateVecChunkContainer::ResizeMatrixBuffers : " << custatevecGetErrorString(err);
-      throw std::runtime_error(str.str());
-    }
-    if(custatevec_work_size_ < diag_size)
-      custatevec_work_size_ = diag_size;
-    if(custatevec_work_size_ > 0)
-      custatevec_work_.resize(custatevec_work_size_*BaseContainer::num_matrices_);
-  }
 
   return nc;
 }
@@ -227,10 +169,6 @@ void cuStateVecChunkContainer<data_t>::Deallocate(void)
 {
   BaseContainer::Deallocate();
 
-  if(!use_mem_pool_){
-    custatevec_work_.clear();
-    custatevec_work_.shrink_to_fit();
-  }
   custatevecDestroy(custatevec_handle_);
 }
 
@@ -357,7 +295,7 @@ void cuStateVecChunkContainer<data_t>::apply_matrix(const uint_t iChunk,const re
   for(int_t i=0;i<nc;i++){
     err = custatevecApplyMatrix(custatevec_handle_, BaseContainer::chunk_pointer(iChunk) + (i << bits), state_type, bits, pMat, CUDA_C_64F,
                           CUSTATEVEC_MATRIX_LAYOUT_COL, 0, pQubits, num_qubits, pControl, nullptr, control_bits, 
-                          comp_type, custatevec_work_pointer(iChunk), custatevec_work_size_);
+                          comp_type, nullptr, 0);
     if(err != CUSTATEVEC_STATUS_SUCCESS){
       std::stringstream str;
       str << "cuStateVecChunkContainer::apply_matrix : " << custatevecGetErrorString(err);
@@ -424,7 +362,7 @@ void cuStateVecChunkContainer<data_t>::apply_diagonal_matrix(const uint_t iChunk
   for(int_t i=0;i<nc;i++){
     err = custatevecApplyGeneralizedPermutationMatrix(custatevec_handle_, BaseContainer::chunk_pointer(iChunk) + (i << bits), state_type, bits, 
                           nullptr, pMat, CUDA_C_64F, 0, pQubits, num_qubits, nullptr, nullptr, 0, 
-                          custatevec_work_pointer(iChunk), custatevec_work_size_);
+                          nullptr, 0);
     if(err != CUSTATEVEC_STATUS_SUCCESS){
       std::stringstream str;
       str << "cuStateVecChunkContainer::apply_diagonal_matrix : " << custatevecGetErrorString(err);
@@ -483,7 +421,7 @@ void cuStateVecChunkContainer<data_t>::apply_X(const uint_t iChunk,const reg_t& 
   for(int_t i=0;i<nc;i++){
     err = custatevecApplyGeneralizedPermutationMatrix(custatevec_handle_, BaseContainer::chunk_pointer(iChunk) + (i << bits), state_type, bits, 
                           &perm[0], nullptr, CUDA_C_64F, 0, pQubits, num_qubits, nullptr, nullptr, 0, 
-                          custatevec_work_pointer(iChunk), custatevec_work_size_);
+                          nullptr, 0);
     if(err != CUSTATEVEC_STATUS_SUCCESS){
       std::stringstream str;
       str << "cuStateVecChunkContainer::apply_X : " << custatevecGetErrorString(err);
@@ -547,7 +485,7 @@ void cuStateVecChunkContainer<data_t>::apply_Y(const uint_t iChunk,const reg_t& 
   for(int_t i=0;i<nc;i++){
     err = custatevecApplyGeneralizedPermutationMatrix(custatevec_handle_, BaseContainer::chunk_pointer(iChunk) + (i << bits), state_type, bits, 
                           &perm[0], &diag[0], CUDA_C_64F, 0, pQubits, num_qubits, nullptr, nullptr, 0, 
-                          custatevec_work_pointer(iChunk), custatevec_work_size_);
+                          nullptr, 0);
     if(err != CUSTATEVEC_STATUS_SUCCESS){
       std::stringstream str;
       str << "cuStateVecChunkContainer::apply_Y : " << custatevecGetErrorString(err);
@@ -619,7 +557,7 @@ void cuStateVecChunkContainer<data_t>::apply_swap(const uint_t iChunk,const reg_
   for(int_t i=0;i<nc;i++){
     err = custatevecApplyGeneralizedPermutationMatrix(custatevec_handle_, BaseContainer::chunk_pointer(iChunk) + (i << bits), state_type, bits, 
                           &swap[0], nullptr, CUDA_C_64F, 0, pQubits, num_qubits, nullptr, nullptr, 0, 
-                          custatevec_work_pointer(iChunk), custatevec_work_size_);
+                          nullptr, 0);
     if(err != CUSTATEVEC_STATUS_SUCCESS){
       std::stringstream str;
       str << "cuStateVecChunkContainer::apply_swap : " << custatevecGetErrorString(err);
@@ -673,7 +611,7 @@ void cuStateVecChunkContainer<data_t>::apply_permutation(const uint_t iChunk,con
   for(int_t i=0;i<nc;i++){
     err = custatevecApplyGeneralizedPermutationMatrix(custatevec_handle_, BaseContainer::chunk_pointer(iChunk) + (i << bits), state_type, bits, 
                           perm, nullptr, CUDA_C_64F, 0, pQubits, qubits.size(), nullptr, nullptr, 0, 
-                          custatevec_work_pointer(iChunk), custatevec_work_size_);
+                          nullptr, 0);
     if(err != CUSTATEVEC_STATUS_SUCCESS){
       std::stringstream str;
       str << "cuStateVecChunkContainer::apply_permutation : " << custatevecGetErrorString(err);
