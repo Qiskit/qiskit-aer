@@ -204,8 +204,7 @@ reg_t cuStateVecChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::
     AERDeviceVector<unsigned char> extBuf;
     void* pExtBuf = nullptr;
     if(extSize > 0){
-      extBuf.resize(extSize);
-      pExtBuf = thrust::raw_pointer_cast(extBuf.data());
+      cudaMalloc(&pExtBuf, extSize);
     }
 
     err = custatevecSamplerPreprocess(custatevec_handle_,sampler,pExtBuf,extSize);
@@ -233,9 +232,8 @@ reg_t cuStateVecChunkContainer<data_t>::sample_measure(uint_t iChunk,const std::
       samples[i] = bitStr[i];
     }
 
-    if(extSize > 0){
-      extBuf.clear();
-      extBuf.shrink_to_fit();
+    if(pExtBuf){
+      cudaFree(pExtBuf);
     }
 
     custatevecSamplerDestroy(sampler);
