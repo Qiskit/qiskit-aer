@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    This is the fix for cuStateVec support, fix for build error
+    because of specification change of some APIs of cuStateVec
+    from cuQuantum version 0.40.
+    
