@@ -420,8 +420,7 @@ protected:
                                const Noise::NoiseModel &noise,
                                ExperimentResult &result,
                                uint_t rng_seed,
-                               bool final_ops,
-                               bool pauli_only);
+                               bool final_ops);
 
   //apply op to multiple shots , return flase if op is not supported to execute in a batch
   virtual bool apply_batched_op(const int_t iChunk, const Operations::Op &op,
@@ -535,8 +534,8 @@ void StateChunk<state_t>::set_config(const json_t &config)
   BaseState::set_config(config);
 
   num_threads_per_group_ = 1;
-  if(JSON::check_key("num_threads_per_group", config)) {
-    JSON::get_value(num_threads_per_group_, "num_threads_per_group", config);
+  if(JSON::check_key("num_threads_per_device", config)) {
+    JSON::get_value(num_threads_per_group_, "num_threads_per_device", config);
   }
 
 #ifdef AER_CUSTATEVEC
@@ -899,8 +898,6 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
   int_t i;
   int_t i_begin,n_shots;
 
-  bool pauli_only = noise.pauli_only();
-
   i_begin = 0;
   while(i_begin<num_local_chunks_){
     local_shot_index_ = i_begin;
@@ -935,14 +932,14 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
       std::vector<ExperimentResult> par_results(num_groups_);
 #pragma omp parallel for num_threads(num_groups_)
       for(i=0;i<num_groups_;i++)
-        apply_ops_multi_shots_for_group(i, first, last, noise, par_results[i], rng_seed, final_ops, pauli_only);
+        apply_ops_multi_shots_for_group(i, first, last, noise, par_results[i], rng_seed, final_ops);
 
       for (auto &res : par_results)
         result.combine(std::move(res));
     }
     else{
       for(i=0;i<num_groups_;i++)
-        apply_ops_multi_shots_for_group(i, first, last, noise, result, rng_seed, final_ops, pauli_only);
+        apply_ops_multi_shots_for_group(i, first, last, noise, result, rng_seed, final_ops);
     }
 
     //collect measured bits and copy memory
@@ -963,8 +960,7 @@ void StateChunk<state_t>::apply_ops_multi_shots_for_group(int_t i_group,
                                const Noise::NoiseModel &noise,
                                ExperimentResult &result,
                                uint_t rng_seed,
-                               bool final_ops,
-                               bool pauli_only)
+                               bool final_ops)
 {
   uint_t istate = top_chunk_of_group_[i_group];
   std::vector<RngEngine> rng(num_chunks_in_group_[i_group]);
@@ -984,28 +980,43 @@ void StateChunk<state_t>::apply_ops_multi_shots_for_group(int_t i_group,
       std::vector<std::vector<Operations::Op>> noise_ops(count);
 
       uint_t count_ops = 0;
+      uint_t non_pauli_gate_count = 0;
       if(num_inner_threads > 1){
-#pragma omp parallel for reduction(+: count_ops) num_threads(num_inner_threads)
+#pragma omp parallel for reduction(+: count_ops,non_pauli_gate_count) num_threads(num_inner_threads)
         for(int_t j=0;j<count;j++){
           noise_ops[j] = noise.sample_noise_loc(*op,rng[j]);
 
-          if(!(noise_ops[j].size() == 0 || (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id")))
+          if(!(noise_ops[j].size() == 0 || (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id"))){
             count_ops++;
+            for(int_t k=0;k<noise_ops[j].size();k++){
+              if(noise_ops[j][k].name != "id" && noise_ops[j][k].name != "x" && noise_ops[j][k].name != "y" && noise_ops[j][k].name != "z" && noise_ops[j][k].name != "pauli"){
+                non_pauli_gate_count++;
+                break;
+              }
+            }
+          }
         }
       }
       else{
         for(int_t j=0;j<count;j++){
           noise_ops[j] = noise.sample_noise_loc(*op,rng[j]);
 
-          if(!(noise_ops[j].size() == 0 || (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id")))
+          if(!(noise_ops[j].size() == 0 || (noise_ops[j].size() == 1 && noise_ops[j][0].name == "id"))){
             count_ops++;
+            for(int_t k=0;k<noise_ops[j].size();k++){
+              if(noise_ops[j][k].name != "id" && noise_ops[j][k].name != "x" && noise_ops[j][k].name != "y" && noise_ops[j][k].name != "z" && noise_ops[j][k].name != "pauli"){
+                non_pauli_gate_count++;
+                break;
+              }
+            }
+          }
         }
       }
 
       if(count_ops == 0){
         continue;   //do nothing
       }
-      if(pauli_only){   //ptimization for Pauli error
+      if(non_pauli_gate_count == 0){   //ptimization for Pauli error
         qregs_[istate].apply_batched_pauli_ops(noise_ops);
       }
       else{

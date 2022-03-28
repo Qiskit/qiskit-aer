@@ -108,9 +108,6 @@ public:
     return !has_readout_errors() && !has_quantum_errors();
   }
 
-  //return if noise model only contains Pauli operations or not
-  bool pauli_only(void) const;
-
   //-----------------------------------------------------------------------
   // Add errors to noise model
   //-----------------------------------------------------------------------
@@ -1048,18 +1045,6 @@ void NoiseModel::load_from_json(const json_t &js) {
 
 inline void from_json(const json_t &js, NoiseModel &model) {
   model = NoiseModel(js);
-}
-
-bool NoiseModel::pauli_only(void) const
-{
-  if(has_quantum_errors()){
-    for(int_t i=0;i<quantum_errors_.size();i++){
-      if(!quantum_errors_[i].pauli_only())
-        return false;
-    }
-    return true;
-  }
-  return false;
 }
 
 

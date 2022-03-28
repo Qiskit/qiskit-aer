@@ -252,8 +252,8 @@ class AerSimulator(AerBackend):
       number of active circuit qubits is greater than this value batching of
       simulation shots will not be used. (Default: 16).
 
-    * ``num_threads_per_group`` (int): This option sets the number of
-      threads per group. For GPU simulation, this value sets number of
+    * ``num_threads_per_device`` (int): This option sets the number of
+      threads per device. For GPU simulation, this value sets number of
       threads per GPU. This parameter is used to optimize Pauli noise
       simulation with multiple-GPUs (Default: 1).
 
@@ -556,7 +556,7 @@ class AerSimulator(AerBackend):
             # multi-shots optimization options (GPU only)
             batched_shots_gpu=True,
             batched_shots_gpu_max_qubits=16,
-            num_threads_per_group=1,
+            num_threads_per_device=1,
             # statevector options
             statevector_parallel_threshold=14,
             statevector_sample_measure_opt=10,
