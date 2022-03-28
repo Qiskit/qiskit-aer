@@ -1925,9 +1925,9 @@ bool Controller::validate_state(const state_t &state, const Circuit &circ,
     if (throw_except && !memory_valid) {
       error_msg << "Insufficient memory to run circuit " << circ_name;
       error_msg << " using the " << state.name() << " simulator.";
-      error_msg << " required_memory_mb=" << required_mb << ", max_memory_mb=" << max_memory_mb_;
+      error_msg << " Required memory: " << required_mb << "M, max memory: " << max_memory_mb_ << "M";
       if (sim_device_ == Device::GPU) {
-        error_msg << " (Host) + " << max_gpu_memory_mb_ << " (GPU)";
+        error_msg << " (Host) + " << max_gpu_memory_mb_ << "M (GPU)";
       }
     }
   }
