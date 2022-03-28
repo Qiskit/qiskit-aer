@@ -1922,10 +1922,14 @@ bool Controller::validate_state(const state_t &state, const Circuit &circ,
     size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) / num_process_per_experiment_;                                        
     size_t mem_size = (sim_device_ == Device::GPU) ? max_memory_mb_ + max_gpu_memory_mb_ : max_memory_mb_;
     memory_valid = (required_mb <= mem_size);
-  }
-  if (throw_except && !memory_valid) {
-    error_msg << "Insufficient memory to run circuit " << circ_name;
-    error_msg << " using the " << state.name() << " simulator.";
+    if (throw_except && !memory_valid) {
+      error_msg << "Insufficient memory to run circuit " << circ_name;
+      error_msg << " using the " << state.name() << " simulator.";
+      error_msg << " required_memory_mb=" << required_mb << ", max_memory_mb=" << max_memory_mb_;
+      if (sim_device_ == Device::GPU) {
+        error_msg << " (Host) + " << max_gpu_memory_mb_ << " (GPU)";
+      }
+    }
   }
 
   if (noise_valid && circ_valid && memory_valid) {
