@@ -149,8 +149,10 @@ def thermal_relaxation_values(properties):
         value of ``Numpy.inf`` will be used.
 
     Additional Information:
-        :math:`T_1` and :math:`T_2` values are returned in microsecond
-        (µs) units. Frequency is returned in gigahertz (GHz) units.
+        :math:`T_1` and :math:`T_2` values are returned in nanosecond
+        (ns) units and frequency is returned in gigahertz (GHz) units
+        if ``unit`` for each ``value`` is provided in ``properties``.
+        Otherwise, the raw values (in unknown original units) are returned.
     """
     values = []
     for qubit_props in properties.qubits:
