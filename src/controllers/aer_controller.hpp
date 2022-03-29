@@ -978,19 +978,13 @@ Result Controller::execute(std::vector<Circuit> &circuits,
         parallel_experiments_ < max_parallel_threads_) {
       // Nested parallel experiments
       parallel_nested_ = true;
-#ifdef _WIN32
-      omp_set_nested(1);
-#else
-      omp_set_max_active_levels(3);
-#endif
+
+      //nested should be set to zero if num_threads clause will be used
+      omp_set_nested(0);
+
       result.metadata.add(parallel_nested_, "omp_nested");
     } else {
       parallel_nested_ = false;
-#ifdef _WIN32
-      omp_set_nested(0);
-#else
-      omp_set_max_active_levels(1);
-#endif
     }
 #endif
 

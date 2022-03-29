@@ -701,7 +701,9 @@ size_t State<densmat_t>::required_memory_mb(
 }
 
 template <class densmat_t>
-void State<densmat_t>::set_config(const json_t &config) {
+void State<densmat_t>::set_config(const json_t &config) 
+{
+  BaseState::set_config(config);
 
   // Set threshold for truncating snapshots
   JSON::get_value(json_chop_threshold_, "chop_threshold", config);
