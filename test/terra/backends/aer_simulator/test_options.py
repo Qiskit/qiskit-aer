@@ -188,3 +188,31 @@ class TestOptions(SimulatorTestCase):
         # Check that the approximated result is not identical to the exact
         # result, because that could mean there was actually no approximation
         self.assertLessEqual(state_fidelity(sv_left, sv_approx), 0.999)
+
+    def test_statevector_memory(self):
+        """Test required memory is correctly checked in statevector"""
+        method = "statevector"
+        backend = self.backend(method=method)
+
+        # attempt to simulate a circuit with too many qubits
+        n = 50
+        circuit = QuantumCircuit(n)
+        for q in range(n):
+            circuit.h(q)
+        circuit.measure_all()
+        result = backend.run(circuit).result()
+        self.assertNotSuccess(result)
+        self.assertTrue('Insufficient memory' in result.results[0].status)
+        self.assertTrue('Required memory: {}'.format(2**(n-20)*16) in result.results[0].status)
+
+        n = 30
+        max_memory_mb = 16
+        circuit = QuantumCircuit(n)
+        for q in range(n):
+            circuit.h(q)
+        circuit.measure_all()
+        result = backend.run(circuit, max_memory_mb=max_memory_mb).result()
+        self.assertNotSuccess(result)
+        self.assertTrue('Insufficient memory' in result.results[0].status)
+        self.assertTrue('Required memory: {}'.format(2**(n-20)*16) in result.results[0].status)
+        self.assertTrue('max memory: {}'.format(max_memory_mb) in result.results[0].status)

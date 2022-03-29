@@ -387,6 +387,8 @@ void QuantumError::load_from_json(const json_t &js) {
   set_circuits(circuits, probs);
 }
 
+
+
 //-------------------------------------------------------------------------
 } // end namespace Noise
 //-------------------------------------------------------------------------
