@@ -428,6 +428,12 @@ public:
   // Get the qubit threshold for activating OpenMP.
   uint_t get_omp_threshold() {return omp_threshold_;}
 
+  //set number of threads per group(GPU)
+  void set_num_threads_per_group(int n)
+  {
+    num_threads_per_group_ = n;
+  }
+
   //cuStateVec
   void cuStateVec_enable(bool flg)
   {
@@ -481,6 +487,7 @@ protected:
   int sample_measure_index_size_ = 1; // Sample measure indexing qubit size
   double json_chop_threshold_ = 0;  // Threshold for choping small values
                                     // in JSON serialization
+  int num_threads_per_group_ = 1;   //number of threads per GPU for multi-chunks/shots
 
   //-----------------------------------------------------------------------
   // Error Messages
@@ -827,7 +834,8 @@ bool QubitVectorThrust<data_t>::chunk_setup(int chunk_bits,int num_qubits,uint_t
   //only first chunk call allocation function
   if(chunk_bits > 0 && num_qubits > 0){
     chunk_manager_ = std::make_shared<Chunk::ChunkManager<data_t>>();
-    chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks,chunk_index_,max_matrix_bits_, cuStateVec_enable_);
+    chunk_manager_->set_num_threads_per_group(num_threads_per_group_);
+    chunk_manager_->Allocate(chunk_bits,num_qubits,num_local_chunks,chunk_index_,max_matrix_bits_, is_density_matrix(), cuStateVec_enable_);
   }
 
   multi_chunk_distribution_ = false;
@@ -997,7 +1005,7 @@ bool QubitVectorThrust<data_t>::fetch_chunk(void) const
   int idev;
 
   if(chunk_.device() < 0){ //on host
-    idev = chunk_.place() % chunk_manager_->num_devices();
+    idev = chunk_.place() % chunk_manager_->num_places();
     do{
       chunk_manager_->MapBufferChunk(buffer_chunk_, idev);
     }while(!buffer_chunk_.is_mapped());
@@ -1118,9 +1126,9 @@ bool QubitVectorThrust<data_t>::enable_batch(bool flg) const
 {
   bool prev = enable_batch_;
 
-  if(flg != prev){
-    chunk_.synchronize();
-  }
+//  if(flg != prev){
+//    chunk_.synchronize();
+//  }
   enable_batch_ = flg;
 
   return prev;
@@ -2824,10 +2832,13 @@ void QubitVectorThrust<data_t>::apply_batched_pauli_ops(const std::vector<std::v
     return;   //first chunk execute all in batch
   }
   uint_t count = ops.size();
-  int_t i,j,k;
+  int num_inner_threads = omp_get_max_threads() / num_threads_per_group_;
+  int_t i;
 
   reg_t params(4*count);
-  for(i=0;i<count;i++){
+
+  auto count_paulis = [this,&params,ops](int_t i){
+    int_t j;
     uint_t x_max = 0;
     uint_t num_y = 0;
     uint_t x_mask = 0;
@@ -2864,7 +2875,8 @@ void QubitVectorThrust<data_t>::apply_batched_pauli_ops(const std::vector<std::v
     params[i*4+1] = num_y % 4;
     params[i*4+2] = x_mask;
     params[i*4+3] = z_mask;
-  }
+  };
+  Utils::apply_omp_parallel_for((num_inner_threads > 1),0,count,count_paulis,num_inner_threads);
 
   thrust::complex<data_t> coeff(1.0,0.0);
   chunk_.StoreUintParams(params);

@@ -1291,12 +1291,19 @@ size_t get_system_memory_mb()
 
 //apply OpenMP parallel loop to lambda function if enabled
 template<typename Lambda>
-void apply_omp_parallel_for(bool enabled, int_t i_begin, int_t i_end, Lambda& func)
+void apply_omp_parallel_for(bool enabled, int_t i_begin, int_t i_end, Lambda& func, int nthreads = 0)
 {
   if(enabled){
+    if(nthreads > 0){
+#pragma omp parallel for num_threads(nthreads)
+      for(int_t i=i_begin;i<i_end;i++)
+        func(i);
+    }
+    else{
 #pragma omp parallel for
-    for(int_t i=i_begin;i<i_end;i++)
-      func(i);
+      for(int_t i=i_begin;i<i_end;i++)
+        func(i);
+    }
   }
   else{
     for(int_t i=i_begin;i<i_end;i++)
@@ -1306,13 +1313,20 @@ void apply_omp_parallel_for(bool enabled, int_t i_begin, int_t i_end, Lambda& fu
 
 //apply OpenMP parallel loop to lambda function and return reduced double if enabled
 template<typename Lambda>
-double apply_omp_parallel_for_reduction(bool enabled, int_t i_begin, int_t i_end, Lambda& func)
+double apply_omp_parallel_for_reduction(bool enabled, int_t i_begin, int_t i_end, Lambda& func, int nthreads = 0)
 {
   double val = 0.0;
   if(enabled){
+    if(nthreads > 0){
+#pragma omp parallel for reduction(+:val) num_threads(nthreads)
+      for(int_t i=i_begin;i<i_end;i++)
+        val += func(i);
+    }
+    else{
 #pragma omp parallel for reduction(+:val)
-    for(int_t i=i_begin;i<i_end;i++)
-      val += func(i);
+      for(int_t i=i_begin;i<i_end;i++)
+        val += func(i);
+    }
   }
   else{
     for(int_t i=i_begin;i<i_end;i++)

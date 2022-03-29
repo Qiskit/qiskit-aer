@@ -53,7 +53,7 @@ public:
     return data_[i];
   }
 
-  uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit) override;
+  uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit, bool density_matrix) override;
   void Deallocate(void) override;
 
   void StoreMatrix(const std::vector<std::complex<double>>& mat,uint_t iChunk) override
@@ -124,13 +124,14 @@ HostChunkContainer<data_t>::~HostChunkContainer(void)
 }
 
 template <typename data_t>
-uint_t HostChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit)
+uint_t HostChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers,bool multi_shots,int matrix_bit, bool density_matrix)
 {
   uint_t nc = chunks;
   uint_t i;
 
   ChunkContainer<data_t>::chunk_bits_ = chunk_bits;
   ChunkContainer<data_t>::num_qubits_ = num_qubits;
+  ChunkContainer<data_t>::density_matrix_ = density_matrix;
 
   ChunkContainer<data_t>::num_buffers_ = buffers;
   ChunkContainer<data_t>::num_chunks_ = nc;

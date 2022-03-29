@@ -107,6 +107,7 @@ protected:
   mutable int_t conditional_bit_;
   bool keep_conditional_bit_;         //keep conditional bit alive
   int_t num_pow2_qubits_;             //largest number of qubits that meets num_chunks_ = m*(2^num_pow2_qubits_)
+  bool density_matrix_;
 public:
   ChunkContainer()
   {
@@ -119,6 +120,7 @@ public:
     conditional_bit_ = -1;
     keep_conditional_bit_ = false;
     matrix_bits_ = AER_DEFAULT_MATRIX_BITS;
+    density_matrix_ = false;
   }
   virtual ~ChunkContainer(){}
 
@@ -197,7 +199,7 @@ public:
 
   virtual thrust::complex<data_t>& operator[](uint_t i) = 0;
 
-  virtual uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,bool multi_shots = false,int matrix_bit = AER_DEFAULT_MATRIX_BITS) = 0;
+  virtual uint_t Allocate(int idev,int chunk_bits,int num_qubits,uint_t chunks,uint_t buffers = AER_MAX_BUFFERS,bool multi_shots = false,int matrix_bit = AER_DEFAULT_MATRIX_BITS, bool density_matrix = false) = 0;
   virtual void Deallocate(void) = 0;
 
   virtual void Set(uint_t i,const thrust::complex<data_t>& t) = 0;
@@ -444,22 +446,24 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
 
       nt = count << chunk_bits_;
       if(nt > 0){
+        uint_t ntotal = nt;
         if(nt > QV_CUDA_NUM_THREADS){
           nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
           nt = QV_CUDA_NUM_THREADS;
         }
-        dev_apply_function_with_cache<data_t,Function><<<nb,nt,0,strm>>>(func);
+        dev_apply_function_with_cache<data_t,Function><<<nb,nt,0,strm>>>(func,ntotal);
       }
     }
     else{
       nt = count * func.size(chunk_bits_);
 
       if(nt > 0){
+        uint_t ntotal = nt;
         if(nt > QV_CUDA_NUM_THREADS){
           nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
           nt = QV_CUDA_NUM_THREADS;
         }
-        dev_apply_function<data_t,Function><<<nb,nt,0,strm>>>(func);
+        dev_apply_function<data_t,Function><<<nb,nt,0,strm>>>(func,ntotal);
       }
     }
     cudaError_t err = cudaGetLastError();
@@ -517,21 +521,23 @@ void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk
       if(func.use_cache()){
         nt = count << chunk_bits_;
         if(nt > 0){
+          uint_t ntotal = nt;
           if(nt > QV_CUDA_NUM_THREADS){
             nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
             nt = QV_CUDA_NUM_THREADS;
           }
-          dev_apply_function_sum_with_cache<data_t,Function><<<nb,nt,0,strm>>>(buf,func,buf_size);
+          dev_apply_function_sum_with_cache<data_t,Function><<<nb,nt,0,strm>>>(buf,func,buf_size,ntotal);
         }
       }
       else{
         nt = size;
         if(nt > 0){
+          uint_t ntotal = nt;
           if(nt > QV_CUDA_NUM_THREADS){
             nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
             nt = QV_CUDA_NUM_THREADS;
           }
-          dev_apply_function_sum<data_t,Function><<<nb,nt,0,strm>>>(buf,func,buf_size);
+          dev_apply_function_sum<data_t,Function><<<nb,nt,0,strm>>>(buf,func,buf_size,ntotal);
         }
       }
       cudaError_t err = cudaGetLastError();
@@ -569,23 +575,25 @@ void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk
       if(func.use_cache()){
         nt = 1ull << chunk_bits_;
         if(nt > 0){
+          uint_t ntotal = nt*count;
           if(nt > QV_CUDA_NUM_THREADS){
             nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
             nt = QV_CUDA_NUM_THREADS;
           }
           dim3 grid(nb,count,1);
-          dev_apply_function_sum_with_cache<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
+          dev_apply_function_sum_with_cache<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size,ntotal);
         }
       }
       else{
         nt = func.size(chunk_bits_);
         if(nt > 0){
+          uint_t ntotal = nt*count;
           if(nt > QV_CUDA_NUM_THREADS){
             nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
             nt = QV_CUDA_NUM_THREADS;
           }
           dim3 grid(nb,count,1);
-          dev_apply_function_sum<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
+          dev_apply_function_sum<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size,ntotal);
         }
       }
       cudaError_t err = cudaGetLastError();
@@ -683,11 +691,12 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
       buf_size = 0;
       nt = size;
       if(nt > 0){
+        uint_t ntotal = nt;
         if(nt > QV_CUDA_NUM_THREADS){
           nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
           nt = QV_CUDA_NUM_THREADS;
         }
-        dev_apply_function_sum_complex<data_t,Function><<<nb,nt,0,strm>>>(buf,func,buf_size);
+        dev_apply_function_sum_complex<data_t,Function><<<nb,nt,0,strm>>>(buf,func,buf_size,ntotal);
       }
       cudaError_t err = cudaGetLastError();
       if(err != cudaSuccess){
@@ -719,12 +728,13 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
       buf_size = reduce_buffer_size()/2;
 
       if(nt > 0){
+        uint_t ntotal = nt*count;
         if(nt > QV_CUDA_NUM_THREADS){
           nb = (nt + QV_CUDA_NUM_THREADS - 1) / QV_CUDA_NUM_THREADS;
           nt = QV_CUDA_NUM_THREADS;
         }
         dim3 grid(nb,count,1);
-        dev_apply_function_sum_complex<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size);
+        dev_apply_function_sum_complex<data_t,Function><<<grid,nt,0,strm>>>(buf,func,buf_size,ntotal);
       }
       cudaError_t err = cudaGetLastError();
       if(err != cudaSuccess){
