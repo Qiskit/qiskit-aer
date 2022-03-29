@@ -7,3 +7,8 @@ scipy>=1.0
 # with modern importlib-metadata (4.8.1). importlib-metadata is only needed on
 # Python <3.8.
 importlib-metadata==4.6.4
+
+# Jinja2 3.1.0 is incompatible with sphinx and/or jupyter until they are updated
+# to work with the new jinja version (the jinja maintainers aren't going to
+# fix things) pin to the previous working version.
+jinja2==3.0.3

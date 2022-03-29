@@ -978,19 +978,13 @@ Result Controller::execute(std::vector<Circuit> &circuits,
         parallel_experiments_ < max_parallel_threads_) {
       // Nested parallel experiments
       parallel_nested_ = true;
-#ifdef _WIN32
-      omp_set_nested(1);
-#else
-      omp_set_max_active_levels(3);
-#endif
+
+      //nested should be set to zero if num_threads clause will be used
+      omp_set_nested(0);
+
       result.metadata.add(parallel_nested_, "omp_nested");
     } else {
       parallel_nested_ = false;
-#ifdef _WIN32
-      omp_set_nested(0);
-#else
-      omp_set_max_active_levels(1);
-#endif
     }
 #endif
 
@@ -1922,10 +1916,14 @@ bool Controller::validate_state(const state_t &state, const Circuit &circ,
     size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) / num_process_per_experiment_;                                        
     size_t mem_size = (sim_device_ == Device::GPU) ? max_memory_mb_ + max_gpu_memory_mb_ : max_memory_mb_;
     memory_valid = (required_mb <= mem_size);
-  }
-  if (throw_except && !memory_valid) {
-    error_msg << "Insufficient memory to run circuit " << circ_name;
-    error_msg << " using the " << state.name() << " simulator.";
+    if (throw_except && !memory_valid) {
+      error_msg << "Insufficient memory to run circuit " << circ_name;
+      error_msg << " using the " << state.name() << " simulator.";
+      error_msg << " Required memory: " << required_mb << "M, max memory: " << max_memory_mb_ << "M";
+      if (sim_device_ == Device::GPU) {
+        error_msg << " (Host) + " << max_gpu_memory_mb_ << "M (GPU)";
+      }
+    }
   }
 
   if (noise_valid && circ_valid && memory_valid) {

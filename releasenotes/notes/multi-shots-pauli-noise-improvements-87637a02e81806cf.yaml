@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fix performance issue in multi-shots batched optimization for GPU when
+    using Pauli noise. This fix allows multi-threading to runtime noise
+    sampling, and uses nested OpenMP parallelization when using multiple GPUs.
+    This is fix for
+    `issue 1473 <https://github.com/Qiskit/qiskit-aer/issues/1473>`
