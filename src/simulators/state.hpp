@@ -342,6 +342,8 @@ protected:
   complex_t global_phase_ = 1;
 
   int_t max_matrix_qubits_ = 0;
+
+  std::string sim_device_name_ = "CPU";
 };
 
 
@@ -357,7 +359,7 @@ State<state_t>::~State(void)
 template <class state_t>
 void State<state_t>::set_config(const json_t &config) 
 {
-
+  JSON::get_value(sim_device_name_, "device", config);
 }
 
 template <class state_t>

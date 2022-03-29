@@ -400,6 +400,9 @@ public:
   // Get the qubit threshold for activating OpenMP.
   uint_t get_omp_threshold() {return omp_threshold_;}
 
+  //set number of threads per group(GPU)
+  void set_num_threads_per_group(int n){}
+
   //cuStateVec
   void cuStateVec_enable(bool flg)
   {
