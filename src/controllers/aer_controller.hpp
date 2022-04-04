@@ -687,7 +687,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
     case Method::stabilizer:
     case Method::unitary:
     case Method::matrix_product_state: {
-      if (circ.shots == 1 ||
+      if (circ.shots == 1 || num_process_per_experiment_ > 1 ||
           (!noise.has_quantum_errors() &&
           check_measure_sampling_opt(circ, method))) {
         parallel_shots_ = 1;
@@ -699,7 +699,7 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
     }
     case Method::density_matrix:
     case Method::superop: {
-      if (circ.shots == 1 ||
+      if (circ.shots == 1 || num_process_per_experiment_ > 1 ||
           check_measure_sampling_opt(circ, method)) {
         parallel_shots_ = 1;
         parallel_state_update_ =
@@ -968,6 +968,7 @@ Result Controller::execute(std::vector<Circuit> &circuits,
 
     // store rank and number of processes, if no distribution rank=0 procs=1 is
     // set
+    result.metadata.add(num_process_per_experiment_, "num_processes_per_experiments");
     result.metadata.add(num_processes_, "num_mpi_processes");
     result.metadata.add(myrank_, "mpi_rank");
 
@@ -977,19 +978,13 @@ Result Controller::execute(std::vector<Circuit> &circuits,
         parallel_experiments_ < max_parallel_threads_) {
       // Nested parallel experiments
       parallel_nested_ = true;
-#ifdef _WIN32
-      omp_set_nested(1);
-#else
-      omp_set_max_active_levels(3);
-#endif
+
+      //nested should be set to zero if num_threads clause will be used
+      omp_set_nested(0);
+
       result.metadata.add(parallel_nested_, "omp_nested");
     } else {
       parallel_nested_ = false;
-#ifdef _WIN32
-      omp_set_nested(0);
-#else
-      omp_set_max_active_levels(1);
-#endif
     }
 #endif
 
@@ -1255,7 +1250,6 @@ Transpile::Fusion Controller::transpile_fusion(Method method,
   }
   switch (method) {
   case Method::density_matrix:
-  case Method::unitary:
   case Method::superop: {
     // Halve the default threshold and max fused qubits for density matrix
     fusion_pass.threshold /= 2;
@@ -1271,6 +1265,11 @@ Transpile::Fusion Controller::transpile_fusion(Method method,
       // Halve default max fused qubits for Kraus noise fusion
       fusion_pass.max_qubit /= 2;
     }
+    break;
+  }
+  case Method::unitary: {
+    // max_qubit is the same with statevector
+    fusion_pass.threshold /= 2;
     break;
   }
   default: {
@@ -1476,7 +1475,8 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
   // Check if measure sampler and optimization are valid
   if (can_sample) {
     // Implement measure sampler
-    if (parallel_shots_ <= 1 || sim_device_ == Device::GPU || sim_device_ == Device::ThrustCPU) {
+    if (parallel_shots_ <= 1) {
+      state.set_distribution(num_process_per_experiment_);
       state.set_max_matrix_qubits(max_bits);
       RngEngine rng;
       rng.set_seed(circ.seed);
@@ -1521,6 +1521,7 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
     if(block_bits == circ.num_qubits && enable_batch_multi_shots_ && state.multi_shot_parallelization_supported()){
       //apply batched multi-shots optimization (currenly only on GPU)
       state.set_max_bached_shots(max_batched_states_);
+      state.set_distribution(num_processes_);
       state.set_max_matrix_qubits(max_bits);
       state.allocate(circ.num_qubits, circ.num_qubits, circ.shots);    //allocate multiple-shots
 
@@ -1535,53 +1536,39 @@ void Controller::run_circuit_without_sampled_noise(Circuit &circ,
       result.metadata.add(true, "batched_shots_optimization");
     }
     else{
-      //if parallel_shots is disabled or multi-chunk distribution is used, disable shot parallelization here
-      //to avoid nested omp that decreases performance
-      //(DO NOT use if statement in #pragma omp)
-      if(parallel_shots_ == 1 || block_bits != circ.num_qubits){
-        state.set_max_matrix_qubits(max_bits );
+      std::vector<ExperimentResult> par_results(parallel_shots_);
+      int_t par_shots = parallel_shots_;
+      if(block_bits != circ.num_qubits)
+        par_shots = 1;
+
+      auto run_circuit_without_sampled_noise_lambda = [this,&par_results,circ,noise,config,method,block_bits,max_bits,par_shots](int_t i){
+        uint_t i_shot,shot_end;
+        i_shot = circ.shots*i/par_shots;
+        shot_end = circ.shots*(i+1)/par_shots;
+
+        State_t par_state;
+        // Set state config
+        par_state.set_config(config);
+        par_state.set_parallelization(parallel_state_update_);
+        par_state.set_global_phase(circ.global_phase_angle);
+
+        par_state.set_distribution(num_process_per_experiment_);
+        par_state.set_max_matrix_qubits(max_bits );
 
         // allocate qubit register
-        state.allocate(circ.num_qubits, block_bits);
+        par_state.allocate(circ.num_qubits, block_bits);
 
-        for (int i = 0; i < circ.shots; i++) {
+        for(;i_shot<shot_end;i_shot++){
           RngEngine rng;
-          rng.set_seed(circ.seed + i);
-          run_single_shot(circ, state, result, rng);
+          rng.set_seed(circ.seed + i_shot);
+          run_single_shot(circ, par_state, par_results[i], rng);
         }
-        state.add_metadata(result);
-      }
-      else{
-        // Vector to store parallel thread output data
-        std::vector<ExperimentResult> par_results(parallel_shots_);
+        par_state.add_metadata(par_results[i]);
+      };
+      Utils::apply_omp_parallel_for((par_shots > 1),0,par_shots,run_circuit_without_sampled_noise_lambda);
 
-#pragma omp parallel for num_threads(parallel_shots_)
-        for (int i = 0; i < parallel_shots_; i++) {
-          uint_t i_shot,shot_end;
-          i_shot = circ.shots*i/parallel_shots_;
-          shot_end = circ.shots*(i+1)/parallel_shots_;
-
-          State_t par_state;
-          // Set state config
-          par_state.set_config(config);
-          par_state.set_parallelization(parallel_state_update_);
-          par_state.set_global_phase(circ.global_phase_angle);
-
-          par_state.set_max_matrix_qubits(max_bits );
-
-          // allocate qubit register
-          par_state.allocate(circ.num_qubits, block_bits);
-
-          for(;i_shot<shot_end;i_shot++){
-            RngEngine rng;
-            rng.set_seed(circ.seed + i_shot);
-            run_single_shot(circ, par_state, par_results[i], rng);
-          }
-          par_state.add_metadata(par_results[i]);
-        }
-        for (auto &res : par_results) {
-          result.combine(std::move(res));
-        }
+      for (auto &res : par_results) {
+        result.combine(std::move(res));
       }
     }
   }
@@ -1593,12 +1580,12 @@ void Controller::run_circuit_with_sampled_noise(
     const Circuit &circ, const Noise::NoiseModel &noise, const json_t &config,
     const Method method, ExperimentResult &result) const 
 {
-  //following looks very similar but we have to separate them to avoid omp nested loops that causes performance degradation
-  //(DO NOT use if statement in #pragma omp)
-  if(parallel_shots_ == 1){
-    Noise::NoiseModel dummy_noise;
+  std::vector<ExperimentResult> par_results(parallel_shots_);
 
+  auto run_circuit_with_sampled_noise_lambda = [this,&par_results,circ,noise,config,method](int_t i){
     State_t state;
+    uint_t i_shot,shot_end;
+    Noise::NoiseModel dummy_noise;
 
     // Validate gateset and memory requirements, raise exception if they're exceeded
     validate_state(state, circ, noise, true);
@@ -1612,84 +1599,41 @@ void Controller::run_circuit_with_sampled_noise(
     auto fusion_pass = transpile_fusion(method, circ.opset(), config);
     auto cache_block_pass = transpile_cache_blocking(method, circ, noise, config);
 
-    for(int_t i_shot=0;i_shot<circ.shots;i_shot++){
+    i_shot = circ.shots*i/parallel_shots_;
+    shot_end = circ.shots*(i+1)/parallel_shots_;
+
+    for(;i_shot<shot_end;i_shot++){
       RngEngine rng;
       rng.set_seed(circ.seed + i_shot);
 
       // Sample noise using circuit method
       Circuit noise_circ = noise.sample_noise(circ, rng);
+
       noise_circ.shots = 1;
-      fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),result);
+      fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
+                                   par_results[i]);
       uint_t block_bits = circ.num_qubits;
       if(state.multi_chunk_distribution_supported()){
-        cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),result);
+        cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
+                                          par_results[i]);
        if (cache_block_pass.enabled()) {
          block_bits = cache_block_pass.block_bits();
         }
       }
+
+      state.set_distribution(num_process_per_experiment_);
       state.set_max_matrix_qubits(get_max_matrix_qubits(circ) );
       // allocate qubit register
       state.allocate(noise_circ.num_qubits, block_bits);
 
-      run_single_shot(noise_circ, state, result, rng);
+      run_single_shot(noise_circ, state, par_results[i], rng);
     }
-    state.add_metadata(result);
-  }
-  else{
-    // Vector to store parallel thread output data
-    std::vector<ExperimentResult> par_results(parallel_shots_);
-#pragma omp parallel for num_threads(parallel_shots_)
-    for (int i = 0; i < parallel_shots_; i++) {
-      State_t state;
-      uint_t i_shot,shot_end;
-      Noise::NoiseModel dummy_noise;
+    state.add_metadata(par_results[i]);
+  };
+  Utils::apply_omp_parallel_for((parallel_shots_ > 1),0,parallel_shots_,run_circuit_with_sampled_noise_lambda);
 
-      // Validate gateset and memory requirements, raise exception if they're exceeded
-      validate_state(state, circ, noise, true);
-
-      // Set state config
-      state.set_config(config);
-      state.set_parallelization(parallel_state_update_);
-      state.set_global_phase(circ.global_phase_angle);
-
-      // Transpilation for circuit noise method
-      auto fusion_pass = transpile_fusion(method, circ.opset(), config);
-      auto cache_block_pass = transpile_cache_blocking(method, circ, noise, config);
-
-      i_shot = circ.shots*i/parallel_shots_;
-      shot_end = circ.shots*(i+1)/parallel_shots_;
-
-      for(;i_shot<shot_end;i_shot++){
-        RngEngine rng;
-        rng.set_seed(circ.seed + i_shot);
-
-        // Sample noise using circuit method
-        Circuit noise_circ = noise.sample_noise(circ, rng);
-
-        noise_circ.shots = 1;
-        fusion_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
-                                     par_results[i]);
-        uint_t block_bits = circ.num_qubits;
-        if(state.multi_chunk_distribution_supported()){
-          cache_block_pass.optimize_circuit(noise_circ, dummy_noise, state.opset(),
-                                            par_results[i]);
-         if (cache_block_pass.enabled()) {
-           block_bits = cache_block_pass.block_bits();
-          }
-        }
-
-        state.set_max_matrix_qubits(get_max_matrix_qubits(circ) );
-        // allocate qubit register
-        state.allocate(noise_circ.num_qubits, block_bits);
-
-        run_single_shot(noise_circ, state, par_results[i], rng);
-      }
-      state.add_metadata(par_results[i]);
-    }
-
-    for (auto &res : par_results) {
-      result.combine(std::move(res));
-    }
+  for (auto &res : par_results) {
+    result.combine(std::move(res));
   }
 }
 
@@ -1972,10 +1916,14 @@ bool Controller::validate_state(const state_t &state, const Circuit &circ,
     size_t required_mb = state.required_memory_mb(circ.num_qubits, circ.ops) / num_process_per_experiment_;                                        
     size_t mem_size = (sim_device_ == Device::GPU) ? max_memory_mb_ + max_gpu_memory_mb_ : max_memory_mb_;
     memory_valid = (required_mb <= mem_size);
-  }
-  if (throw_except && !memory_valid) {
-    error_msg << "Insufficient memory to run circuit " << circ_name;
-    error_msg << " using the " << state.name() << " simulator.";
+    if (throw_except && !memory_valid) {
+      error_msg << "Insufficient memory to run circuit " << circ_name;
+      error_msg << " using the " << state.name() << " simulator.";
+      error_msg << " Required memory: " << required_mb << "M, max memory: " << max_memory_mb_ << "M";
+      if (sim_device_ == Device::GPU) {
+        error_msg << " (Host) + " << max_gpu_memory_mb_ << "M (GPU)";
+      }
+    }
   }
 
   if (noise_valid && circ_valid && memory_valid) {

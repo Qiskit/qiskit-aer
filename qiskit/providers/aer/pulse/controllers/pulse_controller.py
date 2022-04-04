@@ -292,9 +292,7 @@ def format_exp_results(exp_results, exp_times, pulse_sim_desc):
                 memory = [np.mean(memory, 0)]
 
             # convert into the right [real, complex] pair form for json
-            # this should be cython?
             results['data']['memory'] = []
-
             for mem_shot in memory:
                 results['data']['memory'].append([])
                 for mem_slot in mem_shot:

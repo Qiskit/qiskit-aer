@@ -288,8 +288,29 @@ class AerBackend(Backend, ABC):
         # Start timer
         start = time.time()
 
+        # Take metadata from headers of experiments to work around JSON serialization error
+        metadata_list = []
+        metadata_index = 0
+        for expr in qobj.experiments:
+            if hasattr(expr.header, "metadata"):
+                metadata_copy = expr.header.metadata.copy()
+                metadata_list.append(metadata_copy)
+                expr.header.metadata.clear()
+                if "id" in metadata_copy:
+                    expr.header.metadata["id"] = metadata_copy["id"]
+                expr.header.metadata["metadata_index"] = metadata_index
+                metadata_index += 1
+
         # Run simulation
         output = self._execute(qobj)
+
+        # Recover metadata
+        metadata_index = 0
+        for expr in qobj.experiments:
+            if hasattr(expr.header, "metadata"):
+                expr.header.metadata.clear()
+                expr.header.metadata.update(metadata_list[metadata_index])
+                metadata_index += 1
 
         # Validate output
         if not isinstance(output, dict):
@@ -304,6 +325,14 @@ class AerBackend(Backend, ABC):
         output["date"] = datetime.datetime.now().isoformat()
         output["backend_name"] = self.name()
         output["backend_version"] = self.configuration().backend_version
+
+        # Push metadata to experiment headers
+        for result in output["results"]:
+            if ("header" in result and
+                    "metadata" in result["header"] and
+                    "metadata_index" in result["header"]["metadata"]):
+                metadata_index = result["header"]["metadata"]["metadata_index"]
+                result["header"]["metadata"] = metadata_list[metadata_index]
 
         # Add execution time
         output["time_taken"] = time.time() - start

@@ -946,7 +946,7 @@ double State<statevec_t>::expval_pauli(const int_t iChunk, const reg_t &qubits,
         }
         return expval;
       };
-      expval += BaseState::apply_omp_parallel_reduction((BaseState::chunk_omp_parallel_ && on_same_process),0,BaseState::num_global_chunks_/2,apply_expval_pauli_chunk);
+      expval += Utils::apply_omp_parallel_for_reduction((BaseState::chunk_omp_parallel_ && on_same_process),0,BaseState::num_global_chunks_/2,apply_expval_pauli_chunk);
     }
     else{ //no exchange between chunks
       z_mask >>= BaseState::chunk_bits_;
@@ -1963,12 +1963,18 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
     //calculate per chunk sum
     if(BaseState::chunk_omp_parallel_){
 #pragma omp parallel for if(BaseState::chunk_omp_parallel_) private(i) 
-      for(i=0;i<BaseState::qregs_.size();i++)
+      for(i=0;i<BaseState::qregs_.size();i++){
+        bool batched = BaseState::qregs_[i].enable_batch(true);   //return sum of all chunks in group
         chunkSum[i] = BaseState::qregs_[i].norm();
+        BaseState::qregs_[i].enable_batch(batched);
+      }
     }
     else{
-      for(i=0;i<BaseState::qregs_.size();i++)
+      for(i=0;i<BaseState::qregs_.size();i++){
+        bool batched = BaseState::qregs_[i].enable_batch(true);   //return sum of all chunks in group
         chunkSum[i] = BaseState::qregs_[i].norm();
+        BaseState::qregs_[i].enable_batch(batched);
+      }
     }
 
     localSum = 0.0;

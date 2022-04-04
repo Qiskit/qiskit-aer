@@ -645,7 +645,7 @@ Few notes on GPU builds:
 
 Qiskit Aer now supports cuQuantum optimized Quantum computing APIs from NVIDIA®.
 cuStateVec APIs can be exploited to accelerate statevector, density_matrix and unitary methods.
-Because cuQuantum is beta version currently, some of the operations are not accelerated by cuStateVec.
+Supported version of cuQuantum is 0.40 or higher and required version of CUDA toolkit is 11.2 or higher.
 
 To build Qiskit Aer with cuStateVec support, please set the path to cuQuantum root directory to CUSTATEVEC_ROOT as following.
 
