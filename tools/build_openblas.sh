@@ -15,9 +15,9 @@ SOURCE_URL="https://github.com/xianyi/OpenBLAS/releases/download/v0.3.20/OpenBLA
 
 pushd /tmp
 curl -L $SOURCE_URL -o openblas.tar.gz
-tar xzvf openblas.tar.gz
+tar xzf openblas.tar.gz
 pushd OpenBLAS-0.3.20
-DYNAMIC_ARCH=1 make
-sudo make install
+DYNAMIC_ARCH=1 USE_OPENMP=1 NUM_THREADS=128 make
+make install
 popd
 popd
