@@ -17,7 +17,7 @@ pushd /tmp
 curl -L $SOURCE_URL -o openblas.tar.gz
 tar xzf openblas.tar.gz
 pushd OpenBLAS-0.3.20
-DYNAMIC_ARCH=1 USE_OPENMP=1 NUM_THREADS=128 make
-make install
+PREFIX="/usr/local" DYNAMIC_ARCH=1 USE_OPENMP=1 NUM_THREADS=128 make libs netlib shared
+PREFIX="/usr/local" make install
 popd
 popd
