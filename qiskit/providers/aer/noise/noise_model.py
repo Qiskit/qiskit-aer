@@ -21,7 +21,6 @@ from warnings import warn, catch_warnings, filterwarnings
 from numpy import ndarray
 
 from qiskit.circuit import Instruction, Delay
-from qiskit.providers import BaseBackend, BackendV1, BackendV2
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.providers.models import BackendProperties
 from qiskit.transpiler import PassManager
@@ -303,10 +302,14 @@ class NoiseModel:
         Raises:
             NoiseError: If the input backend is not valid.
         """
-        if isinstance(backend, BackendV2):
+        backend_interface_version = getattr(backend, "version", None)
+        if not isinstance(backend_interface_version, int):
+            backend_interface_version = 0
+
+        if backend_interface_version == 2:
             raise NoiseError(
                 "NoiseModel.from_backend does not currently support V2 Backends.")
-        if isinstance(backend, (BaseBackend, BackendV1)):
+        if backend_interface_version <= 1:
             properties = backend.properties()
             configuration = backend.configuration()
             basis_gates = configuration.basis_gates
