@@ -1,7 +1,7 @@
 /**
  * This code is part of Qiskit.
  *
- * (C) Copyright IBM 2018, 2019.
+ * (C) Copyright IBM 2018, 2019, 2022.
  *
  * This code is licensed under the Apache License, Version 2.0. You may
  * obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -332,13 +332,9 @@ bool CacheBlocking::can_reorder(Operations::Op& op,std::vector<Operations::Op>& 
   //check if the operation can be reordered in front of waiting queue
   uint_t j,iq,jq;
 
-  //only gate and matrix can be reordered
-  if(op.type != Operations::OpType::gate && op.type != Operations::OpType::matrix && op.type != Operations::OpType::diagonal_matrix){
-    //except for reset for density matrix
-    if(!density_matrix_ || op.type != Operations::OpType::reset){
-      return false;
-    }
-  }
+  //only blockable ops can be reordered
+  if(!is_blockable_operation(op))
+    return false;
 
   for(j=0;j<waiting_ops.size();j++){
     if(is_blockable_operation(waiting_ops[j])){
@@ -505,266 +501,187 @@ uint_t CacheBlocking::add_ops(std::vector<Operations::Op>& ops,std::vector<Opera
   pos_begin = out.size();
   num_gates_added = 0;
 
-//  if(doSwap){
-    //find qubits to be blocked
-    if(first && doSwap){
-      //use lower bits for initialization
-      for(i=0;i<block_bits_;i++){
-        blockedQubits.push_back(i);
-      }
+  //find qubits to be blocked
+  if(first && doSwap){
+    //use lower bits for initialization
+    for(i=0;i<block_bits_;i++){
+      blockedQubits.push_back(i);
+    }
+  }
+  else{
+    if(crossQubitOnly){
+      //add multi-qubits gate at first
+      define_blocked_qubits(ops,blockedQubits,true);
+
+      //not enough qubits are blocked, then add one qubit gate
+      if(blockedQubits.size() < block_bits_)
+        define_blocked_qubits(ops,blockedQubits,false);
     }
     else{
-      if(crossQubitOnly){
-        //add multi-qubits gate at first
-        define_blocked_qubits(ops,blockedQubits,true);
+      define_blocked_qubits(ops,blockedQubits,false);
+    }
+  }
 
-        //not enough qubits are blocked, then add one qubit gate
-        if(blockedQubits.size() < block_bits_)
-          define_blocked_qubits(ops,blockedQubits,false);
-      }
-      else{
-        define_blocked_qubits(ops,blockedQubits,false);
+  pos_begin = out.size();
+  num_gates_added = 0;
+
+  if(doSwap){
+    //insert swap gates to block operations
+    reg_t swap(block_bits_);
+    std::vector<bool> mapped(block_bits_,false);
+    nq = blockedQubits.size();
+    for(i=0;i<nq;i++){
+      swap[i] = qubits_;  //not defined
+      for(j=0;j<block_bits_;j++){
+        if(blockedQubits[i] == qubitSwapped_[j]){
+          swap[i] = j;
+          mapped[j] = true;
+          break;
+        }
       }
     }
-
-    pos_begin = out.size();
-    num_gates_added = 0;
-
-    if(doSwap){
-      //insert swap gates to block operations
-      reg_t swap(block_bits_);
-      std::vector<bool> mapped(block_bits_,false);
-      nq = blockedQubits.size();
-      for(i=0;i<nq;i++){
-        swap[i] = qubits_;  //not defined
+    for(i=0;i<nq;i++){
+      if(swap[i] == qubits_){
         for(j=0;j<block_bits_;j++){
-          if(blockedQubits[i] == qubitSwapped_[j]){
+          if(!mapped[j]){
             swap[i] = j;
             mapped[j] = true;
             break;
           }
         }
       }
-      for(i=0;i<nq;i++){
-        if(swap[i] == qubits_){
-          for(j=0;j<block_bits_;j++){
-            if(!mapped[j]){
-              swap[i] = j;
-              mapped[j] = true;
-              break;
+    }
+    for(i=0;i<nq;i++){
+      if(qubitSwapped_[swap[i]] != blockedQubits[i]){ //need swap gate
+        if(!first){   //swap gate is not required for initial state
+          insert_swap(out,swap[i],qubitMap_[blockedQubits[i]],true);
+        }
+
+        //swap map
+        j = qubitMap_[blockedQubits[i]];
+        qubitMap_[qubitSwapped_[swap[i]]] = j;
+        qubitMap_[blockedQubits[i]] = swap[i];
+
+        qubitSwapped_[j] = qubitSwapped_[swap[i]];
+        qubitSwapped_[swap[i]] = blockedQubits[i];
+      }
+    }
+  }
+
+  if(doSwap)
+    insert_sim_op(out,"begin_blocking",blockedQubits);
+  else
+    insert_sim_op(out,"begin_memory_blocking",blockedQubits);
+  end_block_inserted = false;
+
+  //gather blocked gates
+  for(i=0;i<ops.size();i++){
+    if(is_blockable_operation(ops[i])){
+      if(!end_block_inserted){
+        if(is_diagonal_op(ops[i]) || can_block(ops[i],blockedQubits)){
+          if(can_reorder(ops[i],queue)){
+            //mapping swapped qubits
+            for(iq=0;iq<ops[i].qubits.size();iq++){
+              ops[i].qubits[iq] = qubitMap_[ops[i].qubits[iq]];
             }
+            out.push_back(ops[i]);
+            num_gates_added++;
+            continue;
           }
         }
-      }
-      for(i=0;i<nq;i++){
-        if(qubitSwapped_[swap[i]] != blockedQubits[i]){ //need swap gate
-          if(!first){   //swap gate is not required for initial state
-            insert_swap(out,swap[i],qubitMap_[blockedQubits[i]],true);
+        else if(ops[i].name == "pauli"){
+          if(can_reorder(ops[i],queue)){
+            if(split_pauli(ops[i],blockedQubits,out,queue))
+              num_gates_added++;
+            continue;
           }
-
-          //swap map
-          j = qubitMap_[blockedQubits[i]];
-          qubitMap_[qubitSwapped_[swap[i]]] = j;
-          qubitMap_[blockedQubits[i]] = swap[i];
-
-          qubitSwapped_[j] = qubitSwapped_[swap[i]];
-          qubitSwapped_[swap[i]] = blockedQubits[i];
+        }
+        else if(ops[i].type == Operations::OpType::reset){    //reset for density matrix can be cache blocked
+          if(can_reorder(ops[i],queue)){
+            if(split_op(ops[i],blockedQubits,out,queue))
+              num_gates_added++;
+            continue;
+          }
         }
       }
     }
-
-    if(doSwap)
-      insert_sim_op(out,"begin_blocking",blockedQubits);
-    else
-      insert_sim_op(out,"begin_memory_blocking",blockedQubits);
-    end_block_inserted = false;
-
-    //gather blocked gates
-    for(i=0;i<ops.size();i++){
-      if(is_blockable_operation(ops[i])){
-        if(!end_block_inserted){
-          if(is_diagonal_op(ops[i]) || can_block(ops[i],blockedQubits)){
-            if(can_reorder(ops[i],queue)){
-              //mapping swapped qubits
-              for(iq=0;iq<ops[i].qubits.size();iq++){
-                ops[i].qubits[iq] = qubitMap_[ops[i].qubits[iq]];
-              }
-              out.push_back(ops[i]);
-              num_gates_added++;
-              continue;
-            }
+    else{
+      if(queue.size() == 0){          //if queue is empty, apply op here
+        bool restore_qubits = false;
+        if(ops[i].type == Operations::OpType::kraus){
+          if(ops[i].qubits.size() > block_bits_){
+            throw std::runtime_error("CacheBlocking : Kraus operator, number of qubits should be smaller than chunk qubit size");
+            break;
           }
-          else if(ops[i].name == "pauli"){
-            if(can_reorder(ops[i],queue)){
-              if(split_pauli(ops[i],blockedQubits,out,queue))
-                num_gates_added++;
-              continue;
-            }
-          }
-          else if(ops[i].type == Operations::OpType::reset){    //reset for density matrix can be cache blocked
-            if(can_reorder(ops[i],queue)){
-              if(split_op(ops[i],blockedQubits,out,queue))
-                num_gates_added++;
-              continue;
-            }
+          if(!can_block(ops[i],blockedQubits)){  //if some qubits are out of chunk, queued for next step
+            queue.push_back(ops[i]);
+            continue;
           }
         }
-      }
-      else{
-        if(queue.size() == 0){          //if queue is empty, apply op here
-          bool restore_qubits = false;
-          if(ops[i].type == Operations::OpType::kraus){
-            if(ops[i].qubits.size() > block_bits_){
-              throw std::runtime_error("CacheBlocking : Kraus operator, number of qubits should be smaller than chunk qubit size");
-              break;
-            }
+        else if(ops[i].type == Operations::OpType::initialize){
+          if(ops[i].qubits.size() <= block_bits_){
             if(!can_block(ops[i],blockedQubits)){  //if some qubits are out of chunk, queued for next step
               queue.push_back(ops[i]);
               continue;
             }
           }
-          else if(ops[i].type == Operations::OpType::initialize){
-            if(ops[i].qubits.size() <= block_bits_){
-              if(!can_block(ops[i],blockedQubits)){  //if some qubits are out of chunk, queued for next step
-                queue.push_back(ops[i]);
-                continue;
-              }
-            }
-            //otherwise StateChunk have to parallelize initialize operation
-          }
-          else if(sample_measure_ && ops[i].type == Operations::OpType::measure){
-            //currently sampling should be done with original qubit mapping (TO DO : sampling without inserting swaps)
+          //otherwise StateChunk have to parallelize initialize operation
+        }
+        else if(sample_measure_ && ops[i].type == Operations::OpType::measure){
+          //currently sampling should be done with original qubit mapping (TO DO : sampling without inserting swaps)
+          restore_qubits = true;
+        }
+        else if(ops[i].type != Operations::OpType::measure && ops[i].type != Operations::OpType::reset && 
+                ops[i].type != Operations::OpType::save_amps && ops[i].type != Operations::OpType::save_amps_sq &&
+                ops[i].type != Operations::OpType::save_densmat){
+          if(!(ops[i].type == Operations::OpType::snapshot && ops[i].name == "density_matrix")){
             restore_qubits = true;
           }
-          else if(ops[i].type != Operations::OpType::measure && ops[i].type != Operations::OpType::reset && 
-                  ops[i].type != Operations::OpType::save_amps && ops[i].type != Operations::OpType::save_amps_sq &&
-                  ops[i].type != Operations::OpType::save_densmat){
-            if(!(ops[i].type == Operations::OpType::snapshot && ops[i].name == "density_matrix")){
-              restore_qubits = true;
-            }
-          }
-
-          if(num_gates_added > 0 && !end_block_inserted){  //insert end of block to synchronize chunks
-            if(doSwap)
-              insert_sim_op(out,"end_blocking",blockedQubits);
-            else
-              insert_sim_op(out,"end_memory_blocking",blockedQubits);
-          }
-          else if(!end_block_inserted){
-            out.pop_back();
-          }
-          if(restore_qubits && doSwap)
-            restore_qubits_order(out);
-
-          //mapping swapped qubits
-          if(doSwap){
-            for(iq=0;iq<ops[i].qubits.size();iq++){
-              ops[i].qubits[iq] = qubitMap_[ops[i].qubits[iq]];
-            }
-          }
-
-          out.push_back(ops[i]);
-          num_gates_added++;
-
-          end_block_inserted = true;
-          continue;
         }
-      }
-      queue.push_back(ops[i]);
-    }
 
-    if(!end_block_inserted){
-      if(num_gates_added > 0){
-        if(doSwap)
-          insert_sim_op(out,"end_blocking",blockedQubits);
-        else
-          insert_sim_op(out,"end_memory_blocking",blockedQubits);
-      }
-      else{
-        //pop unnecessary operations
-        while(out.size() > pos_begin){
+        if(num_gates_added > 0 && !end_block_inserted){  //insert end of block to synchronize chunks
+          if(doSwap)
+            insert_sim_op(out,"end_blocking",blockedQubits);
+          else
+            insert_sim_op(out,"end_memory_blocking",blockedQubits);
+        }
+        else if(!end_block_inserted){
           out.pop_back();
         }
-      }
-    }
-/*  }
-  else{
-    i = 0;
-    //add chunk swap and block ops (if blocking is enabled)
-    if(blocking_enabled_){
-      while(i <ops.size()){
-        if(ops[i].type == Operations::OpType::sim_op){
-          out.push_back(ops[i]);
-        }
-        else if(ops[i].type == Operations::OpType::gate && ops[i].name == "swap_chunk"){
-          out.push_back(ops[i]);
-        }
-        else{
-          break;
-        }
-        i++;
-      }
-    }
+        if(restore_qubits && doSwap)
+          restore_qubits_order(out);
 
-    insert_sim_op(out,"begin_register_blocking",blockedQubits);
-    //gather blocked gates
-    while(i < ops.size()){
-      if(ops[i].type == Operations::OpType::gate || ops[i].type == Operations::OpType::matrix){
-        if((ops[i].qubits.size() > 1 && ops[i].type == Operations::OpType::matrix) || ops[i].name == "pauli"){
-          queue.push_back(ops[i]);
-        }
-        else{
-          if(can_reorder(ops[i],queue)){
-            if(is_diagonal_op(ops[i])){
-              //diagonal gate can be applied
-              out.push_back(ops[i]);
-              num_gates_added++;
-            }
-            else{
-              exist = false;
-              iq = ops[i].qubits[ops[i].qubits.size()-1]; //block target bit
-              nq = blockedQubits.size();
-              for(j=0;j<nq;j++){
-                if(iq == blockedQubits[j]){
-                  exist = true;
-                  break;
-                }
-              }
-              if(exist){
-                out.push_back(ops[i]);
-                num_gates_added++;
-              }
-              else{
-                if(nq == memory_blocking_bits_){
-                  queue.push_back(ops[i]);
-                }
-                else{
-                  blockedQubits.push_back(iq);
-                  out.push_back(ops[i]);
-                  num_gates_added++;
-                }
-              }
-            }
-          }
-          else{
-            queue.push_back(ops[i]);
+        //mapping swapped qubits
+        if(doSwap){
+          for(iq=0;iq<ops[i].qubits.size();iq++){
+            ops[i].qubits[iq] = qubitMap_[ops[i].qubits[iq]];
           }
         }
-      }
-      else{
-        queue.push_back(ops[i]);
-      }
-      i++;
-    }
 
-    if(out.size() > pos_begin + 1){
-      out[pos_begin].qubits = blockedQubits;  //store qubits to be blocked in the sim_op::begin_register_blocking
-      insert_sim_op(out,"end_register_blocking",blockedQubits);
+        out.push_back(ops[i]);
+        num_gates_added++;
+
+        end_block_inserted = true;
+        continue;
+      }
+    }
+    queue.push_back(ops[i]);
+  }
+
+  if(!end_block_inserted){
+    if(num_gates_added > 0){
+      if(doSwap)
+        insert_sim_op(out,"end_blocking",blockedQubits);
+      else
+        insert_sim_op(out,"end_memory_blocking",blockedQubits);
     }
     else{
-      out.pop_back();
+      //pop unnecessary operations
+      while(out.size() > pos_begin){
+        out.pop_back();
+      }
     }
-  }*/
+  }
 
   return num_gates_added;
 }

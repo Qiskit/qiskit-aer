@@ -21,11 +21,10 @@ from warnings import warn, catch_warnings, filterwarnings
 from numpy import ndarray
 
 from qiskit.circuit import Instruction, Delay
-from qiskit.providers import BaseBackend, BackendV1, BackendV2
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.providers.models import BackendProperties
 from qiskit.transpiler import PassManager
-from .device.models import _excited_population
+from .device.models import _excited_population, _truncate_t2_value
 from .device.models import basic_device_gate_errors
 from .device.models import basic_device_readout_errors
 from .errors.quantum_error import QuantumError
@@ -303,10 +302,14 @@ class NoiseModel:
         Raises:
             NoiseError: If the input backend is not valid.
         """
-        if isinstance(backend, BackendV2):
+        backend_interface_version = getattr(backend, "version", None)
+        if not isinstance(backend_interface_version, int):
+            backend_interface_version = 0
+
+        if backend_interface_version == 2:
             raise NoiseError(
                 "NoiseModel.from_backend does not currently support V2 Backends.")
-        if isinstance(backend, (BaseBackend, BackendV1)):
+        if backend_interface_version <= 1:
             properties = backend.properties()
             configuration = backend.configuration()
             basis_gates = configuration.basis_gates
@@ -373,9 +376,11 @@ class NoiseModel:
             except BackendPropertyError:
                 excited_state_populations = None
             try:
+                t1s = [properties.t1(q) for q in range(num_qubits)]
+                t2s = [properties.t2(q) for q in range(num_qubits)]
                 delay_pass = RelaxationNoisePass(
-                    t1s=[properties.t1(q) for q in range(num_qubits)],
-                    t2s=[properties.t2(q) for q in range(num_qubits)],
+                    t1s=t1s,
+                    t2s=[_truncate_t2_value(t1, t2) for t1, t2 in zip(t1s, t2s)],
                     dt=dt,
                     op_types=Delay,
                     excited_state_populations=excited_state_populations

@@ -34,6 +34,11 @@
 
 #include "simulators/statevector/chunk/chunk_manager.hpp"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+
 namespace AER {
 namespace QV {
 
@@ -312,7 +317,7 @@ public:
 #endif
   }
 
-  bool enable_batch(bool flg);
+  bool enable_batch(bool flg) const;
 
   virtual void apply_bfunc(const Operations::Op &op);
   virtual void set_conditional(int_t reg);
@@ -450,7 +455,7 @@ protected:
   uint_t chunk_index_;
   bool multi_chunk_distribution_;
   bool multi_shots_;
-  bool enable_batch_;
+  mutable bool enable_batch_;
 
   bool register_blocking_;
 
@@ -463,7 +468,7 @@ protected:
   // Config settings
   //----------------------------------------------------------------------- 
   uint_t omp_threads_ = 1;     // Disable multithreading by default
-  uint_t omp_threshold_ = 1;  // Qubit threshold for multithreading when enabled
+  uint_t omp_threshold_ = 14;  // Qubit threshold for multithreading when enabled
   int sample_measure_index_size_ = 1; // Sample measure indexing qubit size
   double json_chop_threshold_ = 0;  // Threshold for choping small values
                                     // in JSON serialization
@@ -1053,6 +1058,10 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
 
   register_blocking_ = false;
 
+  //set OpenMP threads for ThrustCPU
+  if(num_qubits_ > omp_threshold_ && omp_threads_ > 1)
+    chunk_.container()->set_omp_threads(omp_threads_);
+
 #ifdef AER_DEBUG
   if(chunk_.pos() == 0){
     spdlog::debug(" ==== Thrust qubit vector initialization {} qubits ====",num_qubits_);
@@ -1274,7 +1283,7 @@ void QubitVectorThrust<data_t>::set_conditional(int_t reg)
 }
 
 template <typename data_t>
-bool QubitVectorThrust<data_t>::enable_batch(bool flg)
+bool QubitVectorThrust<data_t>::enable_batch(bool flg) const
 {
   bool prev = enable_batch_;
 
@@ -1530,6 +1539,8 @@ void QubitVectorThrust<data_t>::apply_function_sum(double* pSum,Function func,bo
   if(func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0 && num_qubits_ == num_qubits()) || (enable_batch_))){
     if(chunk_.pos() != 0){
       //only first chunk on device calculates all the chunks
+      if(pSum)
+        *pSum = 0.0;
       return;
     }
     count = chunk_.container()->num_chunks();
@@ -1555,6 +1566,10 @@ void QubitVectorThrust<data_t>::apply_function_sum2(double* pSum,Function func,b
   if(func.batch_enable() && ((multi_chunk_distribution_ && chunk_.device() >= 0 && num_qubits_ == num_qubits()) || (enable_batch_))){
     if(chunk_.pos() != 0){
       //only first chunk on device calculates all the chunks
+      if(pSum){
+        pSum[0] = 0.0;
+        pSum[1] = 0.0;
+      }
       return;
     }
     count = chunk_.container()->num_chunks();
@@ -1578,9 +1593,16 @@ void QubitVectorThrust<data_t>::apply_function_sum2(double* pSum,Function func,b
  ******************************************************************************/
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::set_omp_threads(int n) {
+void QubitVectorThrust<data_t>::set_omp_threads(int n) 
+{
   if (n > 0)
     omp_threads_ = n;
+
+#ifdef _OPENMP
+  //disable nested parallel for ThrustCPU
+  if(omp_get_num_threads() > 1)
+    omp_threads_ = 1;
+#endif
 }
 
 template <typename data_t>
@@ -3439,7 +3461,7 @@ double QubitVectorThrust<data_t>::norm() const
 {
   double ret;
 #ifdef AER_THRUST_CUDA
-  if((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_){
+  if(enable_batch_ && ((multi_chunk_distribution_ && chunk_.device() >= 0) || !multi_chunk_distribution_)){
     if(chunk_.pos() != 0)
       return 0.0;   //first chunk execute all in batch
   }
