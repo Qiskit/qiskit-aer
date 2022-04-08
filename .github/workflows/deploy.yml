@@ -206,6 +206,7 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
+          CIBW_BEFORE_ALL: "yum install -y epel-release && yum install -y openblas-devel"
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
@@ -241,6 +242,7 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
+          CIBW_BEFORE_ALL: "yum install -y epel-release && yum install -y openblas-devel"
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
