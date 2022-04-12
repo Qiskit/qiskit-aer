@@ -75,51 +75,16 @@ class matrix {
   friend matrix<S1>
   operator*(const S2 &beta,
             const matrix<S1> &A); // multiplication by a scalar beta*A
+
   template <class S1, class S2>
   friend matrix<S1>
   operator*(const matrix<S1> &A,
             const S2 &beta); // multiplication by a scalar A*beta
-  // Single-Precison Matrix Multiplication
-  friend matrix<float>
-  operator*(const matrix<float> &A,
-            const matrix<float> &B); // real matrix multiplication A*B
-  friend matrix<std::complex<float>> operator*(
-      const matrix<std::complex<float>> &A,
-      const matrix<std::complex<float>> &B); // complex matrix multplication A*B
-  friend matrix<std::complex<float>>
-  operator*(const matrix<float> &A,
-            const matrix<std::complex<float>>
-                &B); // real-complex matrix multplication A*B
-  friend matrix<std::complex<float>>
-  operator*(const matrix<std::complex<float>> &A,
-            const matrix<float> &B); // real-complex matrix multplication A*B
-  // Double-Precision Matrix Multiplication
-  friend matrix<double>
-  operator*(const matrix<double> &A,
-            const matrix<double> &B); // real matrix multiplication A*B
-  friend matrix<std::complex<double>>
-  operator*(const matrix<std::complex<double>> &A,
-            const matrix<std::complex<double>>
-                &B); // complex matrix multplication A*B
-  friend matrix<std::complex<double>>
-  operator*(const matrix<double> &A,
-            const matrix<std::complex<double>>
-                &B); // real-complex matrix multplication A*B
-  friend matrix<std::complex<double>>
-  operator*(const matrix<std::complex<double>> &A,
-            const matrix<double> &B); // real-complex matrix multplication A*B
-  // Single-Precision Matrix-Vector Multiplication
-  friend std::vector<float> operator*(const matrix<float> &A,
-                                      const std::vector<float> &v);
-  friend std::vector<std::complex<float>>
-  operator*(const matrix<std::complex<float>> &A,
-            const std::vector<std::complex<float>> &v);
-  // Double-Precision Matrix-Vector Multiplication
-  friend std::vector<double> operator*(const matrix<double> &A,
-                                       const std::vector<double> &v);
-  friend std::vector<std::complex<double>>
-  operator*(const matrix<std::complex<double>> &A,
-            const std::vector<std::complex<double>> &v);
+
+  template <class S>
+  friend matrix<S>
+  operator*(const matrix<S> &A,
+            const matrix<S> &B); // real matrix multiplication A*B
 
 public:
   //-----------------------------------------------------------------------
@@ -670,164 +635,21 @@ matrix<S1> operator*(const S2 &beta, const matrix<S1> &A) {
   return temp;
 }
 
-// Operator overloading with BLAS functions
-inline matrix<double> operator*(const matrix<double> &A,
-                                const matrix<double> &B) {
-  // overloads A*B for real matricies and uses the blas dgemm routine
-  // cblas_dgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
-  // C-> alpha*op(A)*op(B) +beta C
-  matrix<double> C(A.rows_, B.cols_);
-  double alpha = 1.0, beta = 0.0;
-  dgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
-         &A.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
-  // cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, B.cols_,
-  // A.cols_, 1.0, A.data_, A.LD_, B.data_, B.LD_, 0.0, C.data_, C.LD_);
-  return C;
+template <class S>
+inline matrix<S> operator*(const matrix<S> &A,
+                           const matrix<S> &B) {
+  size_t rows1 = A.rows_, cols1 = A.cols_;
+  size_t cols2 = B.cols_;
+  matrix<S> temp(rows1, cols2);
+  for (size_t i = 0; i < rows1; i++) {
+    for (size_t j = 0; j < cols2; j++) {
+      for (size_t k = 0; k < cols1; k++) {
+        temp(i, j) += A(i, k) * B(k, j);
+      }
+    }
+  }
+  return temp;
 }
-inline matrix<float> operator*(const matrix<float> &A, const matrix<float> &B) {
-  // overloads A*B for real matricies and uses the blas sgemm routine
-  // cblas_sgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
-  // C-> alpha*op(A)*op(B) +beta C
-  matrix<float> C(A.rows_, B.cols_);
-  float alpha = 1.0, beta = 0.0;
-  sgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
-         &A.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
-  // cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, B.cols_,
-  // A.cols_, 1.0, A.data_, A.LD_, B.data_, B.LD_, 0.0, C.data_, C.LD_);
-  return C;
-}
-inline matrix<std::complex<float>>
-operator*(const matrix<std::complex<float>> &A,
-          const matrix<std::complex<float>> &B) {
-  // overloads A*B for complex matricies and uses the blas zgemm routine
-  // cblas_zgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
-  // C-> alpha*op(A)*op(B) +beta C
-  matrix<std::complex<float>> C(A.rows_, B.cols_);
-  std::complex<float> alpha = 1.0, beta = 0.0;
-  cgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
-         &A.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
-  // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, B.cols_,
-  // A.cols_, &alpha, A.data_, A.LD_, B.data_, B.LD_, &beta, C.data_, C.LD_);
-  return C;
-}
-inline matrix<std::complex<double>>
-operator*(const matrix<std::complex<double>> &A,
-          const matrix<std::complex<double>> &B) {
-  // overloads A*B for complex matricies and uses the blas zgemm routine
-  // cblas_zgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
-  // C-> alpha*op(A)*op(B) +beta C
-  matrix<std::complex<double>> C(A.rows_, B.cols_);
-  std::complex<double> alpha = 1.0, beta = 0.0;
-  zgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &A.rows_, &B.cols_, &A.cols_, &alpha, A.data_,
-         &A.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
-  // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, B.cols_,
-  // A.cols_, &alpha, A.data_, A.LD_, B.data_, B.LD_, &beta, C.data_, C.LD_);
-  return C;
-}
-inline matrix<std::complex<float>>
-operator*(const matrix<float> &A, const matrix<std::complex<float>> &B) {
-  // overloads A*B for complex matricies and uses the blas zgemm routine
-  // cblas_zgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
-  // C-> alpha*op(A)*op(B) +beta C
-  matrix<std::complex<float>> C(A.rows_, B.cols_), Ac(A.rows_, A.cols_);
-  Ac = A;
-  std::complex<float> alpha = 1.0, beta = 0.0;
-  cgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &Ac.rows_, &B.cols_, &Ac.cols_, &alpha, Ac.data_,
-         &Ac.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
-  // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, Ac.rows_, B.cols_,
-  // Ac.cols_, &alpha, Ac.data_, Ac.LD_, B.data_, B.LD_, &beta, C.data_, C.LD_);
-  return C;
-}
-inline matrix<std::complex<double>>
-operator*(const matrix<double> &A, const matrix<std::complex<double>> &B) {
-  // overloads A*B for complex matricies and uses the blas zgemm routine
-  // cblas_zgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
-  // C-> alpha*op(A)*op(B) +beta C
-  matrix<std::complex<double>> C(A.rows_, B.cols_), Ac(A.rows_, A.cols_);
-  Ac = A;
-  std::complex<double> alpha = 1.0, beta = 0.0;
-  zgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &Ac.rows_, &B.cols_, &Ac.cols_, &alpha, Ac.data_,
-         &Ac.LD_, B.data_, &B.LD_, &beta, C.data_, &C.LD_);
-  // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, Ac.rows_, B.cols_,
-  // Ac.cols_, &alpha, Ac.data_, Ac.LD_, B.data_, B.LD_, &beta, C.data_, C.LD_);
-  return C;
-}
-inline matrix<std::complex<float>>
-operator*(const matrix<std::complex<float>> &A, const matrix<float> &B) {
-  // overloads A*B for complex matricies and uses the blas zgemm routine
-  // cblas_zgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
-  // C-> alpha*op(A)*op(B) +beta C
-  matrix<std::complex<float>> C(A.rows_, B.cols_), Bc(B.rows_, B.cols_);
-  Bc = B;
-  std::complex<float> alpha = 1.0, beta = 0.0;
-  cgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &A.rows_, &Bc.cols_, &A.cols_, &alpha, A.data_,
-         &A.LD_, Bc.data_, &Bc.LD_, &beta, C.data_, &C.LD_);
-  // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, Bc.cols_,
-  // A.cols_, &alpha, A.data_, A.LD_, Bc.data_, Bc.LD_, &beta, C.data_, C.LD_);
-  return C;
-}
-inline matrix<std::complex<double>>
-operator*(const matrix<std::complex<double>> &A, const matrix<double> &B) {
-  // overloads A*B for complex matricies and uses the blas zgemm routine
-  // cblas_zgemm(CblasXMajor,op,op,N,M,K,alpha,A,LDA,B,LDB,beta,C,LDC)
-  // C-> alpha*op(A)*op(B) +beta C
-  matrix<std::complex<double>> C(A.rows_, B.cols_), Bc(B.rows_, B.cols_);
-  Bc = B;
-  std::complex<double> alpha = 1.0, beta = 0.0;
-  zgemm_(&AerBlas::Trans[0], &AerBlas::Trans[0], &A.rows_, &Bc.cols_, &A.cols_, &alpha, A.data_,
-         &A.LD_, Bc.data_, &Bc.LD_, &beta, C.data_, &C.LD_);
-  // cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, A.rows_, Bc.cols_,
-  // A.cols_, &alpha, A.data_, A.LD_, Bc.data_, Bc.LD_, &beta, C.data_, C.LD_);
-  return C;
-}
-
-// Single-Precision Real
-inline std::vector<float> operator*(const matrix<float> &A,
-                                    const std::vector<float> &x) {
-  // overload A*v for complex matrixies and will used a blas function
-  std::vector<float> y(A.rows_);
-  float alpha = 1.0, beta = 0.0;
-  const size_t incx = 1, incy = 1;
-  sgemv_(&AerBlas::Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
-         &beta, y.data(), &incy);
-  return y;
-}
-// Double-Precision Real
-inline std::vector<double> operator*(const matrix<double> &A,
-                                     const std::vector<double> &x) {
-  // overload A*v for complex matrixies and will used a blas function
-  std::vector<double> y(A.rows_);
-  double alpha = 1.0, beta = 0.0;
-  const size_t incx = 1, incy = 1;
-  dgemv_(&AerBlas::Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
-         &beta, y.data(), &incy);
-  return y;
-}
-// Single-Precision Complex
-inline std::vector<std::complex<float>>
-operator*(const matrix<std::complex<float>> &A,
-          const std::vector<std::complex<float>> &x) {
-  // overload A*v for complex matrixies and will used a blas function
-  std::vector<std::complex<float>> y(A.rows_);
-  std::complex<float> alpha = 1.0, beta = 0.0;
-  const size_t incx = 1, incy = 1;
-  cgemv_(&AerBlas::Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
-         &beta, y.data(), &incy);
-  return y;
-}
-// Double-Precision Complex
-inline std::vector<std::complex<double>>
-operator*(const matrix<std::complex<double>> &A,
-          const std::vector<std::complex<double>> &x) {
-  // overload A*v for complex matrixies and will used a blas function
-  std::vector<std::complex<double>> y(A.rows_);
-  std::complex<double> alpha = 1.0, beta = 0.0;
-  const size_t incx = 1, incy = 1;
-  zgemv_(&AerBlas::Trans[0], &A.rows_, &A.cols_, &alpha, A.data_, &A.LD_, x.data(), &incx,
-         &beta, y.data(), &incy);
-  return y;
-}
-
 //------------------------------------------------------------------------------
 // end _matrix_h_
 //------------------------------------------------------------------------------
