@@ -13,8 +13,8 @@
 """
 Test circuits and reference outputs for multiplexer gates.
 """
-
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+import numpy as np
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from test.terra.utils.multiplexer import multiplexer_multi_controlled_x
 from test.terra.reference.ref_2q_clifford import (cx_gate_counts_nondeterministic,
                                                   cx_gate_counts_deterministic)
@@ -283,3 +283,14 @@ def multiplexer_ccx_gate_counts_deterministic(shots, hex_counts=True):
 def multiplexer_ccx_gate_counts_nondeterministic(shots, hex_counts=True):
     """ The counts are exactly the same as the ccx gate """
     return ccx_gate_counts_nondeterministic(shots, hex_counts)
+
+def multiplexer_no_control_qubits(final_measure=True):
+    qc = QuantumCircuit(1,1)
+    vector = [0.2, 0.1]
+    vector_circuit = QuantumCircuit(1)
+    vector_circuit.isometry(vector / np.linalg.norm(vector), [0], None)
+    vector_circuit = vector_circuit.inverse()
+    qc.append(vector_circuit, [0])
+    if final_measure:
+      qc.measure(0,0)
+    return [transpile(qc, basis_gates=['multiplexer', 'measure'])]

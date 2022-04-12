@@ -13,6 +13,7 @@
 AerSimulator Integration Tests
 """
 
+from qiskit import transpile
 from test.terra.reference import ref_multiplexer
 from test.terra.backends.simulator_test_case import (
     SimulatorTestCase, supported_methods)
@@ -72,3 +73,17 @@ class TestMultiplexer(SimulatorTestCase):
         result = backend.run(circuits, shots=shots).result()
         self.assertSuccess(result)
         self.compare_counts(result, circuits, targets, delta=0.05 * shots)
+
+    def test_multiplexer_without_control_qubits(self):
+        """Test multiplexer without control qubits """
+        backend = self.backend()
+        shots = 4000
+        circuits = ref_multiplexer.multiplexer_no_control_qubits(final_measure=True)
+        target_circuits = transpile(circuits, basis_gates=['u', 'measure'])
+        result = backend.run(circuits, shots=shots).result()
+        counts = [result.get_counts(circuit) for circuit in circuits]
+        target_results = backend.run(target_circuits, shots=shots).result()
+        targets = [target_results.get_counts(target_circuit) for target_circuit in target_circuits]
+        self.assertSuccess(result)
+        for actual, target in zip(counts, targets):
+            self.assertDictAlmostEqual(actual, target, delta=0.05 * shots)
