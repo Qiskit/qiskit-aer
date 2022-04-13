@@ -120,7 +120,7 @@ uint_t cuStateVecChunkContainer<data_t>::Allocate(int idev,int chunk_bits,int nu
     throw std::runtime_error(str.str());
   }
 
-  err = custatevecSetStream(custatevec_handle_,BaseContainer::stream_[0]);
+  err = custatevecSetStream(custatevec_handle_,BaseContainer::stream_);
   if(err != CUSTATEVEC_STATUS_SUCCESS){
     std::stringstream str;
     str << "cuStateVecChunkContainer::allocate::custatevecSetStream : " << custatevecGetErrorString(err);
