@@ -1636,7 +1636,8 @@ void State<statevec_t>::apply_multiplexer(const int_t iChunk, const reg_t &contr
                                           const reg_t &target_qubits,
                                           const cmatrix_t &mat) 
 {
-  if (target_qubits.empty() == false && mat.size() > 0) {
+  if (control_qubits.empty() == false && target_qubits.empty() == false &&
+      mat.size() > 0) {
     cvector_t vmat = Utils::vectorize_matrix(mat);
     BaseState::qregs_[iChunk].apply_multiplexer(control_qubits, target_qubits, vmat);
   }
