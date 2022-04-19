@@ -353,7 +353,9 @@ class TestNoiseModel(QiskitAerTestCase):
             noise_model.add_quantum_error(QuantumError(noise_ops_1q, 1), 'h', [1])
             noise_model.add_quantum_error(QuantumError(noise_ops_2q, 2), 'cx', [0, 1])
             noise_model.add_quantum_error(QuantumError(noise_ops_2q, 2), 'cx', [1, 0])
-            noise_model.from_dict(noise_model.to_dict())
+            deserialized = NoiseModel.from_dict(noise_model.to_dict())
+            self.assertEqual(noise_model, deserialized)
+
 
 if __name__ == '__main__':
     unittest.main()
