@@ -35,11 +35,10 @@ logger = logging.getLogger(__name__)
 
 def basic_device_readout_errors(properties, target=None):
     """
-    Return readout error parameters from a devices Target or BackendProperties.
+    Return readout error parameters from either of device Target or BackendProperties.
 
-    If ``target`` is supplied, ``properties`` will not be used.
-    And return no errors if the target has no qubit properties or each qubit properties
-    does not have ``"prob_meas1_prep0"`` and ``"prob_meas0_prep1"`` attributes.
+    If ``properties`` is supplied, ``target`` will be ignored.
+    If ``target`` is supplied, ``properties`` will be ignored.
 
     Args:
         properties (BackendProperties): device backend properties
@@ -126,12 +125,12 @@ def basic_device_gate_errors(properties,
 
     if target is not None:
         if not standard_gates or not warnings:
-            warn("When 'target' is supplied, `standard_gates` and `warnings` are ignored,"
+            warn("When `target` is supplied, `standard_gates` and `warnings` are ignored,"
                  " and their default values are always used.", UserWarning)
 
         if gate_lengths:
-            raise NoiseError("When 'target' is supplied, `gate_lengths` option is disabled."
-                             "Use `duration` property in InstructionProperties in 'target' instead.")
+            raise NoiseError("When `target` is supplied, `gate_lengths` option is disabled."
+                             "Use `duration` property in target's InstructionProperties instead.")
 
         return _basic_device_target_gate_errors(
             target=target,

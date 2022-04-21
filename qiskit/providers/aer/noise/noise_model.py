@@ -28,6 +28,7 @@ from qiskit.transpiler import PassManager
 from .device.models import _excited_population, _truncate_t2_value
 from .device.models import basic_device_gate_errors
 from .device.models import basic_device_readout_errors
+from .device.parameters import _NANOSECOND_UNITS
 from .errors.quantum_error import QuantumError
 from .errors.readout_error import ReadoutError
 from .noiseerror import NoiseError
@@ -341,7 +342,6 @@ class NoiseModel:
             basis_gates = backend.operation_names
             target = backend.target
             if gate_lengths:
-                from .device.parameters import _NANOSECOND_UNITS
                 # Update target based on gate_lengths and gate_length_units
                 target = copy.deepcopy(target)
                 for op_name, qubits, value in gate_lengths:
@@ -572,8 +572,8 @@ class NoiseModel:
         if not isinstance(error, QuantumError):
             try:
                 error = QuantumError(error)
-            except NoiseError:
-                raise NoiseError("Input is not a valid quantum error.")
+            except NoiseError as ex:
+                raise NoiseError("Input is not a valid quantum error.") from ex
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
             return
@@ -627,8 +627,8 @@ class NoiseModel:
         if not isinstance(error, QuantumError):
             try:
                 error = QuantumError(error)
-            except NoiseError:
-                raise NoiseError("Input is not a valid quantum error.")
+            except NoiseError as ex:
+                raise NoiseError("Input is not a valid quantum error.") from ex
         try:
             qubits = tuple(qubits)
         except TypeError as ex:
@@ -723,8 +723,8 @@ class NoiseModel:
         if not isinstance(error, QuantumError):
             try:
                 error = QuantumError(error)
-            except NoiseError:
-                raise NoiseError("Input is not a valid quantum error.")
+            except NoiseError as ex:
+                raise NoiseError("Input is not a valid quantum error.") from ex
         try:
             qubits = tuple(qubits)
             noise_qubits = tuple(noise_qubits)
@@ -784,8 +784,8 @@ class NoiseModel:
         if not isinstance(error, ReadoutError):
             try:
                 error = ReadoutError(error)
-            except NoiseError:
-                raise NoiseError("Input is not a valid readout error.")
+            except NoiseError as ex:
+                raise NoiseError("Input is not a valid readout error.") from ex
 
         # Check if error is ideal and if so don't add to the noise model
         if error.ideal():
@@ -834,8 +834,8 @@ class NoiseModel:
         if not isinstance(error, ReadoutError):
             try:
                 error = ReadoutError(error)
-            except NoiseError:
-                raise NoiseError("Input is not a valid readout error.")
+            except NoiseError as ex:
+                raise NoiseError("Input is not a valid readout error.") from ex
         try:
             qubits = tuple(qubits)
         except TypeError as ex:
