@@ -1,0 +1,5 @@
+fixes:
+  - |
+    Handles a multiplexer gate as a unitary gate if it has no control qubits.
+    Previously, if a multiplexer gate does not have control qubits, quantum state
+    was not updated.
