@@ -174,11 +174,12 @@ Qobj::Qobj(const inputdata_t &input) {
   // Override random seed with fixed seed if set
   // We shift the seed for each successive experiment
   // So that results aren't correlated between experiments
-  if (has_simulator_seed) {
-    for (auto& circuit : circuits) {
-      circuit.seed = seed + seed_shift;
-      seed_shift += 2113;  // Shift the seed
-    }
+  if (!has_simulator_seed) {
+    seed = circuits[0].seed;
+  }
+  for (auto& circuit : circuits) {
+    circuit.seed = seed + seed_shift;
+    seed_shift += 2113;  // Shift the seed
   }
 }
 
