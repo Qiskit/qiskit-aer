@@ -20,6 +20,7 @@ import numpy as np
 from qiskit.providers.aer.backends import AerSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.providers.aer.noise.device.models import _excited_population
+from qiskit.providers.aer.noise.errors import QuantumError
 from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
 from qiskit.providers.aer.noise.errors.standard_errors import kraus_error
 from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
@@ -28,6 +29,8 @@ from qiskit.providers.aer.noise.errors.standard_errors import thermal_relaxation
 from qiskit.providers.aer.utils.noise_transformation import transform_noise_model
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit.library.generalized_gates import PauliGate
+from qiskit.circuit.library.standard_gates import IGate, XGate
 from qiskit.compiler import transpile
 from qiskit.test import mock
 from test.terra.common import QiskitAerTestCase
@@ -346,6 +349,24 @@ class TestNoiseModel(QiskitAerTestCase):
         qc = transpile(circ, backend)
         result = AerSimulator().run(qc, noise_model=noise_model).result()
         self.assertTrue(result.success)
+
+    def test_from_dict(self):
+        noise_ops_1q = [((IGate(), [0]), 0.9),
+                     ((XGate(), [0]), 0.1)]
+
+        noise_ops_2q = [((PauliGate('II'), [0, 1]), 0.9),
+                     ((PauliGate('IX'), [0, 1]), 0.045),
+                     ((PauliGate('XI'), [0, 1]), 0.045),
+                     ((PauliGate('XX'), [0, 1]), 0.01)]
+
+        noise_model = NoiseModel()
+        with self.assertWarns(DeprecationWarning):
+            noise_model.add_quantum_error(QuantumError(noise_ops_1q, 1), 'h', [0])
+            noise_model.add_quantum_error(QuantumError(noise_ops_1q, 1), 'h', [1])
+            noise_model.add_quantum_error(QuantumError(noise_ops_2q, 2), 'cx', [0, 1])
+            noise_model.add_quantum_error(QuantumError(noise_ops_2q, 2), 'cx', [1, 0])
+            deserialized = NoiseModel.from_dict(noise_model.to_dict())
+            self.assertEqual(noise_model, deserialized)
 
 
 if __name__ == '__main__':
