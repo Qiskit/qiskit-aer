@@ -292,6 +292,9 @@ class QuantumError(BaseOperator, TolerancesMixin):
                     elif dic['name'] == 'unitary':
                         circ.append(UnitaryGate(data=dic['params'][0]),
                                     qargs=dic['qubits'])
+                    elif dic['name'] == 'pauli':
+                        circ.append(PauliGate(dic['params'][0]),
+                                    qargs=dic['qubits'])
                     else:
                         with warnings.catch_warnings():
                             warnings.filterwarnings(
