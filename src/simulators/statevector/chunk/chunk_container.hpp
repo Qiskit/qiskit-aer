@@ -109,6 +109,8 @@ protected:
   bool keep_conditional_bit_;         //keep conditional bit alive
   int_t num_pow2_qubits_;             //largest number of qubits that meets num_chunks_ = m*(2^num_pow2_qubits_)
   bool density_matrix_;
+
+  int_t omp_threads_;                 //number of threads can be used for parallelization on CPU
 public:
   ChunkContainer()
   {
@@ -122,6 +124,7 @@ public:
     keep_conditional_bit_ = false;
     matrix_bits_ = AER_DEFAULT_MATRIX_BITS;
     density_matrix_ = false;
+    omp_threads_ = 1;
   }
   virtual ~ChunkContainer(){}
 
@@ -197,6 +200,11 @@ public:
   void set_chunk_index(uint_t chunk_index)
   {
     chunk_index_ = chunk_index;
+  }
+
+  void set_omp_threads(int_t nthreads)
+  {
+    omp_threads_ = nthreads;
   }
 
   virtual thrust::complex<data_t>& operator[](uint_t i) = 0;
@@ -497,7 +505,10 @@ void ChunkContainer<data_t>::Execute(Function func,uint_t iChunk,uint_t count)
   else
     size = count * func.size(chunk_bits_);
   auto ci = thrust::counting_iterator<uint_t>(0);
-  thrust::for_each_n(thrust::device, ci , size, func);
+  if(omp_threads_ > 1)
+    thrust::for_each_n(thrust::device, ci , size, func);
+  else
+    thrust::for_each_n(thrust::seq, ci , size, func);
 #endif
 
 }
@@ -654,7 +665,10 @@ void ChunkContainer<data_t>::ExecuteSum(double* pSum,Function func,uint_t iChunk
     auto ci = thrust::counting_iterator<uint_t>(0);
 
     double sum;
-    sum = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<double>());
+    if(omp_threads_ > 1)
+      sum = thrust::transform_reduce(thrust::device, ci, ci + size, func,0.0,thrust::plus<double>());
+    else
+      sum = thrust::transform_reduce(thrust::seq, ci, ci + size, func,0.0,thrust::plus<double>());
     if(count == 1 && pSum){
       *pSum = sum;
     }
@@ -795,7 +809,10 @@ void ChunkContainer<data_t>::ExecuteSum2(double* pSum,Function func,uint_t iChun
 
     auto ci = thrust::counting_iterator<uint_t>(0);
 
-    ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,zero,complex_sum());
+    if(omp_threads_ > 1)
+      ret = thrust::transform_reduce(thrust::device, ci, ci + size, func,zero,complex_sum());
+    else
+      ret = thrust::transform_reduce(thrust::seq, ci, ci + size, func,zero,complex_sum());
 
     if(count == 1 && pSum){
       *((thrust::complex<double>*)pSum) = ret;

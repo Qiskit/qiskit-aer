@@ -34,6 +34,11 @@
 
 #include "simulators/statevector/chunk/chunk_manager.hpp"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+
 namespace AER {
 namespace QV {
 
@@ -489,7 +494,7 @@ protected:
   // Config settings
   //----------------------------------------------------------------------- 
   uint_t omp_threads_ = 1;     // Disable multithreading by default
-  uint_t omp_threshold_ = 1;  // Qubit threshold for multithreading when enabled
+  uint_t omp_threshold_ = 14;  // Qubit threshold for multithreading when enabled
   int sample_measure_index_size_ = 1; // Sample measure indexing qubit size
   double json_chop_threshold_ = 0;  // Threshold for choping small values
                                     // in JSON serialization
@@ -906,6 +911,10 @@ void QubitVectorThrust<data_t>::set_num_qubits(size_t num_qubits)
   chunk_.set_num_qubits(num_qubits);
 
   register_blocking_ = false;
+
+  //set OpenMP threads for ThrustCPU
+  if(num_qubits_ > omp_threshold_ && omp_threads_ > 1)
+    chunk_.container()->set_omp_threads(omp_threads_);
 
 #ifdef AER_DEBUG
   if(chunk_.pos() == 0){
@@ -1402,9 +1411,16 @@ void QubitVectorThrust<data_t>::apply_function_sum2(double* pSum,Function func,b
  ******************************************************************************/
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::set_omp_threads(int n) {
+void QubitVectorThrust<data_t>::set_omp_threads(int n) 
+{
   if (n > 0)
     omp_threads_ = n;
+
+#ifdef _OPENMP
+  //disable nested parallel for ThrustCPU
+  if(omp_get_num_threads() > 1)
+    omp_threads_ = 1;
+#endif
 }
 
 template <typename data_t>
