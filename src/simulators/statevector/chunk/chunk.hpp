@@ -172,6 +172,10 @@ public:
   {
     return chunk_container_.lock()->chunk_pointer(chunk_pos_);
   }
+  thrust::complex<data_t>* buffer_pointer(void)
+  {
+    return chunk_container_.lock()->buffer_pointer();
+  }
 
   void StoreMatrix(const std::vector<std::complex<double>>& mat)
   {
@@ -224,9 +228,9 @@ public:
   {
     chunk_container_.lock()->CopyOut(dest, chunk_pos_, size);
   }
-  void Swap(Chunk<data_t>& src)
+  void Swap(Chunk<data_t>& src, uint_t dest_offset = 0, uint_t src_offset = 0, uint_t size = 0, bool write_back = true)
   {
-    chunk_container_.lock()->Swap(src,chunk_pos_);
+    chunk_container_.lock()->Swap(src,chunk_pos_, dest_offset, src_offset, size, write_back);
   }
 
   template <typename Function>
@@ -393,6 +397,11 @@ public:
   void apply_swap(const reg_t& qubits,const int_t control_bits,const uint_t count)
   {
     chunk_container_.lock()->apply_swap(chunk_pos_,qubits,control_bits,count);
+  }
+  //apply multiple swap gates
+  void apply_multi_swaps(const reg_t& qubits,const uint_t count)
+  {
+    chunk_container_.lock()->apply_multi_swaps(chunk_pos_,qubits,count);
   }
   //apply permutation
   void apply_permutation(const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t count)
