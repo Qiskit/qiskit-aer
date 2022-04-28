@@ -1882,20 +1882,25 @@ void StateChunk<state_t>::apply_multi_chunk_swap(const reg_t &qubits)
   reg_t chunk_procs(nchunk);
   reg_t chunk_offset(nchunk);
 
+  if(qubit_scale() == 1){
+    for(int_t i=0;i<nswap;i++)
+      std::swap(qubit_map_[qubits[i*2]],qubit_map_[qubits[i*2]+1]);
+  }
+
   //define local swaps
   for(int_t i=0;i<nswap;i++){
-    if(qubits[i*2] >= chunk_bits_ - nswap)  //no swap required
-      chunk_shuffle_qubits[qubits[i*2] + nswap - chunk_bits_] = qubits[i*2 + 1];
+    if(qubits[i*2] >= chunk_bits_*qubit_scale() - nswap)  //no swap required
+      chunk_shuffle_qubits[qubits[i*2] + nswap - chunk_bits_*qubit_scale()] = qubits[i*2 + 1];
   }
   int_t pos = 0;
   for(int_t i=0;i<nswap;i++){
-    if(qubits[i*2] < chunk_bits_ - nswap){  //local swap required
+    if(qubits[i*2] < chunk_bits_*qubit_scale() - nswap){  //local swap required
       //find empty position
       while(pos < nswap){
-        if(chunk_shuffle_qubits[pos] < chunk_bits_){
+        if(chunk_shuffle_qubits[pos] < chunk_bits_*qubit_scale()){
           chunk_shuffle_qubits[pos] = qubits[i*2 + 1];
           local_swaps.push_back(qubits[i*2]);
-          local_swaps.push_back(chunk_bits_ - nswap + pos);
+          local_swaps.push_back(chunk_bits_*qubit_scale() - nswap + pos);
           pos++;
           break;
         }
@@ -1904,7 +1909,7 @@ void StateChunk<state_t>::apply_multi_chunk_swap(const reg_t &qubits)
     }
   }
   for(int_t i=0;i<nswap;i++)
-    chunk_shuffle_qubits[i] -= chunk_bits_;
+    chunk_shuffle_qubits[i] -= chunk_bits_*qubit_scale();
 
   //swap inside chunks to prepare for all-to-all shuffle
   if(num_groups_ > 1){
@@ -1973,8 +1978,8 @@ void StateChunk<state_t>::apply_multi_chunk_swap(const reg_t &qubits)
           continue;   //swap while data is exchanged between processes
         }
 #ifdef AER_MPI
-        uint_t offset1 = i1 << (chunk_bits_ - nswap);
-        uint_t offset2 = i2 << (chunk_bits_ - nswap);
+        uint_t offset1 = i1 << (chunk_bits_*qubit_scale() - nswap);
+        uint_t offset2 = i2 << (chunk_bits_*qubit_scale() - nswap);
         uint_t iChunk1 = baseChunk + chunk_offset[i1] - global_chunk_index_;
         uint_t iChunk2 = baseChunk + chunk_offset[i2] - global_chunk_index_;
 
@@ -2009,11 +2014,11 @@ void StateChunk<state_t>::apply_multi_chunk_swap(const reg_t &qubits)
           if(iProc1 != distributed_rank_ && iProc2 != distributed_rank_)
             continue;
           if(iProc1 == iProc2){  //on the same process
-            uint_t offset1 = i1 << (chunk_bits_ - nswap);
-            uint_t offset2 = i2 << (chunk_bits_ - nswap);
+            uint_t offset1 = i1 << (chunk_bits_*qubit_scale() - nswap);
+            uint_t offset2 = i2 << (chunk_bits_*qubit_scale() - nswap);
             uint_t iChunk1 = baseChunk + chunk_offset[i1] - global_chunk_index_;
             uint_t iChunk2 = baseChunk + chunk_offset[i2] - global_chunk_index_;
-            qregs_[iChunk1].apply_chunk_swap(qregs_[iChunk2],offset2,offset1,(1ull << (chunk_bits_ - nswap)) );
+            qregs_[iChunk1].apply_chunk_swap(qregs_[iChunk2],offset2,offset1,(1ull << (chunk_bits_*qubit_scale() - nswap)) );
           }
         }
       }
@@ -2031,14 +2036,14 @@ void StateChunk<state_t>::apply_multi_chunk_swap(const reg_t &qubits)
           continue;
         }
         uint_t iChunk1 = baseChunk + chunk_offset[i1] - global_chunk_index_;
-        uint_t offset2 = i2 << (chunk_bits_ - nswap);
+        uint_t offset2 = i2 << (chunk_bits_*qubit_scale() - nswap);
 
         MPI_Status st;
         MPI_Wait(&reqSend[i2],&st);
         MPI_Wait(&reqRecv[i2],&st);
 
         //copy states from recv buffer to chunk
-        qregs_[iChunk1].apply_chunk_swap(qregs_[iChunk1],offset2,offset2,(1ull << (chunk_bits_ - nswap)) );
+        qregs_[iChunk1].apply_chunk_swap(qregs_[iChunk1],offset2,offset2,(1ull << (chunk_bits_*qubit_scale() - nswap)) );
       }
 #endif
     }
