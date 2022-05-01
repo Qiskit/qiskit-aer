@@ -175,7 +175,7 @@ it has been tagged::
 At release time, ``reno report`` is used to generate the release notes for the
 release and the output will be submitted as a pull request to the documentation
 repository's [release notes file](
-https://github.com/Qiskit/qiskit/blob/master/docs/release_notes.rst)
+https://github.com/Qiskit/qiskit/blob/main/docs/release_notes.rst)
 
 #### Building release notes locally
 
