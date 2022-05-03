@@ -19,7 +19,7 @@
  * This is some sort of "black magic" to solve a problem we have with OpenMP libraries on Mac.
  * The problem is actually in the library itself, but it's out of our control, so we had to
  * fix it this way.
- * Symbol signatures are taken from: https://github.com/llvm/llvm-project/blob/master/openmp/runtime/src/kmp.h
+ * Symbol signatures are taken from: https://github.com/llvm/llvm-project/blob/main/openmp/runtime/src/kmp.h
  */
 
 #include <dlfcn.h>
