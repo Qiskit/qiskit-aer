@@ -1,0 +1,47 @@
+queue_reules:
+  - name: automerge
+    conditions:
+      - check-success=lint
+      - check-success=sdist
+      - check-success=tests_linux
+      - check-success=tests_macos
+      - check-success=tests_windows
+      - check-success=tests-json-input
+      - check-success=standalone
+      - check-success=mpi_standalone
+      - check-success=wheel-arm64
+      - check-success=wheel
+      - check-success=docs
+      - check-success=tutorials
+      - or:
+        - check-success=license/cla
+        - check-neutral=license/cla
+        - check-skipped=license/cla
+
+pull_request_rules:
+  - name: automatic merge on CI success and review
+    conditions:
+      - base=main
+      - "#approved-reviews-by>=1"
+      - label=automerge
+      - label!=on hold
+      - check-success=lint
+      - check-success=sdist
+      - check-success=tests_linux
+      - check-success=tests_macos
+      - check-success=tests_windows
+      - check-success=tests-json-input
+      - check-success=standalone
+      - check-success=mpi_standalone
+      - check-success=wheel-arm64
+      - check-success=wheel
+      - check-success=docs
+      - check-success=tutorials
+      - or:
+        - check-success=license/cla
+        - check-neutral=license/cla
+        - check-skipped=license/cla
+    actions:
+      queue:
+        name: automerge
+        method: squash
