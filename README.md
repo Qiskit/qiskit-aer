@@ -16,7 +16,7 @@ pip install qiskit
 
 Pip will handle all dependencies automatically for us and you will always install the latest (and well-tested) version.
 
-To install from source, follow the instructions in the [contribution guidelines](https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md).
+To install from source, follow the instructions in the [contribution guidelines](CONTRIBUTING.md).
 
 ## Installing GPU support
 
@@ -35,7 +35,7 @@ ability to run the GPU supported simulators: statevector, density matrix, and un
 
 **Note**: This package is only available on x86_64 Linux. For other platforms
 that have CUDA support you will have to build from source. You can refer to
-the [contributing guide](https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md#building-with-gpu-support)
+the [contributing guide](CONTRIBUTING.md#building-with-gpu-support)
 for instructions on doing this.
 
 ## Simulating your first quantum program with Qiskit Aer
@@ -84,7 +84,7 @@ print('Counts(noise):', counts_noise)
 ## Contribution Guidelines
 
 If you'd like to contribute to Qiskit, please take a look at our
-[contribution guidelines](https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md). This project adheres to Qiskit's [code of conduct](https://github.com/Qiskit/qiskit-aer/blob/master/CODE_OF_CONDUCT.md). By participating, you are expect to uphold to this code.
+[contribution guidelines](CONTRIBUTING.md). This project adheres to Qiskit's [code of conduct](CODE_OF_CONDUCT.md). By participating, you are expect to uphold to this code.
 
 We use [GitHub issues](https://github.com/Qiskit/qiskit-aer/issues) for tracking requests and bugs. Please use our [slack](https://qiskit.slack.com) for discussion and simple questions. To join our Slack community use the [link](https://qiskit.slack.com/join/shared_invite/zt-fybmq791-hYRopcSH6YetxycNPXgv~A#/). For questions that are more suited for a forum we use the Qiskit tag in the [Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
 
