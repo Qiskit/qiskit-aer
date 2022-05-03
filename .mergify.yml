@@ -1,22 +1,6 @@
-queue_reules:
+queue_rules:
   - name: automerge
-    conditions:
-      - check-success=lint
-      - check-success=sdist
-      - check-success=tests_linux
-      - check-success=tests_macos
-      - check-success=tests_windows
-      - check-success=tests-json-input
-      - check-success=standalone
-      - check-success=mpi_standalone
-      - check-success=wheel-arm64
-      - check-success=wheel
-      - check-success=docs
-      - check-success=tutorials
-      - or:
-        - check-success=license/cla
-        - check-neutral=license/cla
-        - check-skipped=license/cla
+    conditions: []  # No additional rules, because branch-protection does them.
 
 pull_request_rules:
   - name: automatic merge on CI success and review
@@ -25,22 +9,14 @@ pull_request_rules:
       - "#approved-reviews-by>=1"
       - label=automerge
       - label!=on hold
-      - check-success=lint
-      - check-success=sdist
-      - check-success=tests_linux
-      - check-success=tests_macos
-      - check-success=tests_windows
-      - check-success=tests-json-input
-      - check-success=standalone
-      - check-success=mpi_standalone
-      - check-success=wheel-arm64
-      - check-success=wheel
-      - check-success=docs
-      - check-success=tutorials
+      # GitHub branch-protection rules are automatically applied by mergify, so
+      # the queue can't actually merge things unless _all_ statuses are passed.
+      # This section is just a sanity check before the PR can enter the main
+      # queue.
       - or:
-        - check-success=license/cla
-        - check-neutral=license/cla
-        - check-skipped=license/cla
+        - check-success=tests_linux (3.10, ubuntu-latest)
+        - check-neutral=tests_linux (3.10, ubuntu-latest)
+        - check-skipped=tests_linux (3.10, ubuntu-latest)
     actions:
       queue:
         name: automerge
