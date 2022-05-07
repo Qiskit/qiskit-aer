@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Because a seed was randomly assigned to each circuit if seed_simulator is not set,
+    multi-circuit simulation was not reproducible with another multi-circuit simulation.
+    Users needed to run multiple single-circuit simulation with the seed_simulator which
+    is randomly assigned in the multi-circuit simulation. This fix allows users to reproduce
+    multi-circuit simulation with another multi-circuit simulation by setting seed_simulator
+    of the first circuit in the first multi-circuit simulation. This fix also resolve an
+    issue reported in https://github.com/Qiskit/qiskit-aer/issues/1511, where simulation
+    with parameter-binds returns identical results for each circuit instance.
