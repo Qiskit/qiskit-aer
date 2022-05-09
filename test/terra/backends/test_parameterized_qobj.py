@@ -30,8 +30,8 @@ from test.terra.reference.ref_save_expval import (
     save_expval_circuit_parameterized,
     save_expval_final_statevecs,
 )
-from qiskit.providers.aer.library import SaveStatevector
-from qiskit.providers.aer import AerSimulator, AerError
+from qiskit_aer.library import SaveStatevector
+from qiskit_aer import AerSimulator, AerError
 
 
 class TestParameterizedQobj(common.QiskitAerTestCase):

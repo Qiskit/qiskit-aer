@@ -37,8 +37,8 @@ jobs:
       - name: Run Lint
         run: |
           set -e
-          pycodestyle --ignore=E402,W504 --max-line-length=100 qiskit/providers/aer
-          pylint -j 2 -rn qiskit/providers/aer
+          pycodestyle --ignore=E402,W504 --max-line-length=100 qiskit_aer
+          pylint -j 2 -rn qiskit_aer
   sdist:
     runs-on: ${{ matrix.platform.os }}
     needs: ["lint"]

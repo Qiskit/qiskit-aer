@@ -18,7 +18,7 @@ import unittest
 import multiprocessing
 
 from qiskit import QuantumCircuit, execute
-from qiskit.providers.aer import AerProvider, AerSimulator
+from qiskit_aer import AerProvider, AerSimulator
 
 
 # Backwards compatibility for Terra <= 0.13

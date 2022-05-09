@@ -17,9 +17,9 @@ from ddt import ddt
 from test.terra.reference import ref_measure
 from qiskit import QuantumCircuit
 from qiskit import transpile
-from qiskit.providers.aer import QasmSimulator
-from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.noise.errors import ReadoutError, depolarizing_error
+from qiskit_aer import QasmSimulator
+from qiskit_aer.noise import NoiseModel
+from qiskit_aer.noise.errors import ReadoutError, depolarizing_error
 from qiskit.circuit.library import QuantumVolume
 from qiskit.quantum_info.random import random_unitary
 from test.terra.backends.simulator_test_case import (

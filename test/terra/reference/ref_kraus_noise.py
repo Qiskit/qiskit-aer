@@ -17,8 +17,8 @@ AerSimulator kraus error NoiseModel integration tests
 from test.terra.utils.utils import list2dict
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.noise.errors.standard_errors import amplitude_damping_error
+from qiskit_aer.noise import NoiseModel
+from qiskit_aer.noise.errors.standard_errors import amplitude_damping_error
 
 # Backwards compatibility for Terra <= 0.13
 if not hasattr(QuantumCircuit, 'i'):
