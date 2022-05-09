@@ -12,12 +12,12 @@ features:
   - |
     This release includes support for building qiskit-aer with MPI support to
     run large simulations on a distributed computing environment. See the
-    `contributing guide <https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md#building-with-mpi-support>`__
+    `contributing guide <https://github.com/Qiskit/qiskit-aer/blob/main/CONTRIBUTING.md#building-with-mpi-support>`__
     for instructions on building and running in an MPI environment.
   - |
     It is now possible to build qiskit-aer with CUDA enabled in Windows.
     See the
-    `contributing guide <https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md#building-with-gpu-support>`__
+    `contributing guide <https://github.com/Qiskit/qiskit-aer/blob/main/CONTRIBUTING.md#building-with-gpu-support>`__
     for instructions on building from source with GPU support.
   - |
     When building the qiskit-aer Python extension from source several build
