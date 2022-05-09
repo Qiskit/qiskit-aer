@@ -328,6 +328,23 @@ class TestParameterizedQobj(common.QiskitAerTestCase):
         for i in range(3):
             self.assertEqual(result.data(i)['sv'], result_without_parameters.data(i)['sv'])
 
+    def test_different_seed(self):
+        """Test parameterized circuits have different seeds"""
+        shots = 1000
+        backend = AerSimulator()
+        circuit = QuantumCircuit(2)
+        theta = Parameter('theta')
+        circuit.rx(theta, 0)
+        circuit.cx(0, 1)
+        circuit.measure_all()
+        parameter_binds = [{theta: [0, pi, 2 * pi]}]
+        res = backend.run(circuit, shots=shots, parameter_binds=parameter_binds).result()
+        seed_simulator_list = [ result.seed_simulator for result in res.results ]
+        self.assertEqual(len(seed_simulator_list), len(np.unique(seed_simulator_list)))
+
+        res2 = backend.run(circuit, shots=shots, parameter_binds=parameter_binds, seed_simulator=seed_simulator_list[0]).result()
+        self.assertEqual(seed_simulator_list, [ result.seed_simulator for result in res2.results ])
+
 
 if __name__ == '__main__':
     unittest.main()
