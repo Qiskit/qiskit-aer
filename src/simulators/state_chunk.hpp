@@ -1735,18 +1735,7 @@ void StateChunk<state_t>::apply_chunk_swap(const reg_t &qubits)
     mask0 >>= (chunk_bits_*qubit_scale());
     mask1 >>= (chunk_bits_*qubit_scale());
 
-    int proc_bits = 0;
-    uint_t procs = distributed_procs_;
-    while(procs > 1){
-      if((procs & 1) != 0){
-        proc_bits = -1;
-        break;
-      }
-      proc_bits++;
-      procs >>= 1;
-    }
-
-    if(distributed_procs_ == 1 || (proc_bits >= 0 && q1 < (num_qubits_*qubit_scale() - proc_bits))){   //no data transfer between processes is needed
+    if(distributed_procs_ == 1 || (distributed_proc_bits_ >= 0 && q1 < (num_qubits_*qubit_scale() - distributed_proc_bits_))){   //no data transfer between processes is needed
       if(q0 < chunk_bits_*qubit_scale()){
         nPair = num_local_chunks_ >> 1;
       }
@@ -2091,18 +2080,7 @@ void StateChunk<state_t>::apply_chunk_x(const uint_t qubit)
     mask = (1ull << qubit);
     mask >>= (chunk_bits_*qubit_scale());
 
-    int proc_bits = 0;
-    uint_t procs = distributed_procs_;
-    while(procs > 1){
-      if((procs & 1) != 0){
-        proc_bits = -1;
-        break;
-      }
-      proc_bits++;
-      procs >>= 1;
-    }
-
-    if(distributed_procs_ == 1 || (proc_bits >= 0 && qubit < (num_qubits_*qubit_scale() - proc_bits))){   //no data transfer between processes is needed
+    if(distributed_procs_ == 1 || (distributed_proc_bits_ >= 0 && qubit < (num_qubits_*qubit_scale() - distributed_proc_bits_))){   //no data transfer between processes is needed
       nPair = num_local_chunks_ >> 1;
 
       auto apply_chunk_swap = [this, mask, qubits](int_t iPair)

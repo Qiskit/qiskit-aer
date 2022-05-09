@@ -98,7 +98,6 @@ protected:
   uint_t num_chunk_mapped_;           //number of chunks mapped
   reg_t blocked_qubits_;
   std::vector<bool> chunks_map_;      //chunk mapper
-  std::vector<bool> buffers_map_;     //buffer mapper
   mutable reg_t reduced_queue_begin_;
   mutable reg_t reduced_queue_end_;
   uint_t matrix_bits_;                //max matrix bits
@@ -404,17 +403,6 @@ void ChunkContainer<data_t>::UnmapChunk(Chunk<data_t>& chunk)
 template <typename data_t>
 bool ChunkContainer<data_t>::MapBufferChunk(Chunk<data_t>& chunk)
 {
-  /*
-  uint_t i,pos;
-
-  for(i=0;i<num_buffers_;i++){
-    if(!buffers_map_[i]){
-      buffers_map_[i] = true;
-      chunk.map(this->shared_from_this(),num_chunks_+i);
-      break;
-    }
-  }
-  */
   chunk.map(this->shared_from_this(),num_chunks_);
   return chunk.is_mapped();
 }
@@ -422,7 +410,6 @@ bool ChunkContainer<data_t>::MapBufferChunk(Chunk<data_t>& chunk)
 template <typename data_t>
 void ChunkContainer<data_t>::UnmapBuffer(Chunk<data_t>& buf)
 {
-//  buffers_map_[buf.pos()-num_chunks_] = false;
   buf.unmap();
 }
 
@@ -432,8 +419,6 @@ void ChunkContainer<data_t>::unmap_all(void)
   int_t i;
   for(i=0;i<chunks_map_.size();i++)
     chunks_map_[i] = false;
-  for(i=0;i<buffers_map_.size();i++)
-    buffers_map_[i] = false;
   num_chunk_mapped_ = 0;
 }
 
@@ -836,7 +821,6 @@ void ChunkContainer<data_t>::allocate_chunks(void)
 {
   uint_t i;
   chunks_map_.resize(num_chunks_,false);
-  buffers_map_.resize(num_buffers_,false);
 
   reduced_queue_begin_.resize(num_chunks_,0);
   reduced_queue_end_.resize(num_chunks_,0);
@@ -846,7 +830,6 @@ template <typename data_t>
 void ChunkContainer<data_t>::deallocate_chunks(void)
 {
   chunks_map_.clear();
-  buffers_map_.clear();
 
   reduced_queue_begin_.clear();
   reduced_queue_end_.clear();
