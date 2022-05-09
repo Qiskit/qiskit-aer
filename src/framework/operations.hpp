@@ -491,6 +491,9 @@ inline Op make_multiplexer(const reg_t &qubits,
   if (1ULL << num_controls != num_mats) {
     throw std::invalid_argument("invalid number of multiplexer matrices.");
   }
+  if (num_controls == 0) { // mats.size() must be 1
+    return make_unitary(qubits, mats[0]);
+  }
   // Check number of targets and controls matches qubits
   if (num_controls + num_targets != qubits.size()) {
     throw std::invalid_argument("multiplexer qubits don't match parameters.");
