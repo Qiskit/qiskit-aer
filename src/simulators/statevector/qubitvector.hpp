@@ -31,6 +31,7 @@
 #include "simulators/statevector/indexes.hpp"
 #include "simulators/statevector/transformer.hpp"
 #include "simulators/statevector/transformer_avx2.hpp"
+#include "simulators/statevector/sampling.hpp"
 #include "framework/avx2_detect.hpp"
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
@@ -1971,79 +1972,17 @@ std::vector<double> QubitVector<data_t>::probabilities(const reg_t &qubits) cons
 template <typename data_t>
 reg_t QubitVector<data_t>::sample_measure(const std::vector<double> &rnds) const {
 
-  const int_t END = 1LL << num_qubits();
-  const int_t SHOTS = rnds.size();
-  reg_t samples;
-  samples.assign(SHOTS, 0);
+  auto lambda = [&](const int_t outcome)->double {
+    return probability(outcome);
+  };
 
-  const int INDEX_SIZE = sample_measure_index_size_;
-  const int_t INDEX_END = BITS[INDEX_SIZE];
-  // Qubit number is below index size, loop over shots
-  if (END < INDEX_END) {
-    #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-    {
-      #pragma omp for
-      for (int_t i = 0; i < SHOTS; ++i) {
-        double rnd = rnds[i];
-        double p = .0;
-        int_t sample;
-        for (sample = 0; sample < END - 1; ++sample) {
-          p += probability(sample);
-          if (rnd < p)
-            break;
-        }
-        samples[i] = sample;
-      }
-    } // end omp parallel
-  }
-  // Qubit number is above index size, loop over index blocks
-  else {
-    // Initialize indexes
-    std::vector<double> idxs;
-    idxs.assign(INDEX_END, 0.0);
-    uint_t loop = (END >> INDEX_SIZE);
-    #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-    {
-      #pragma omp for
-      for (int_t i = 0; i < INDEX_END; ++i) {
-        uint_t base = loop * i;
-        double total = .0;
-        double p = .0;
-        for (uint_t j = 0; j < loop; ++j) {
-          uint_t k = base | j;
-          p = probability(k);
-          total += p;
-        }
-        idxs[i] = total;
-      }
-    } // end omp parallel
+  reg_t ret;
+  if (sample_measure_index_size_ >= num_qubits())
+    ret = sample_with_binary_search(rnds, num_qubits(), lambda, omp_threads_managed());
+  else
+    ret = sample_with_iterative_search(rnds, num_qubits(), sample_measure_index_size_, lambda, omp_threads_managed());
 
-    #pragma omp parallel if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
-    {
-      #pragma omp for
-      for (int_t i = 0; i < SHOTS; ++i) {
-        double rnd = rnds[i];
-        double p = .0;
-        int_t sample = 0;
-        for (uint_t j = 0; j < idxs.size(); ++j) {
-          if (rnd < (p + idxs[j])) {
-            break;
-          }
-          p += idxs[j];
-          sample += loop;
-        }
-
-        for (; sample < END - 1; ++sample) {
-          p += probability(sample);
-          if (rnd < p){
-            break;
-          }
-        }
-        samples[i] = sample;
-      }
-    } // end omp parallel
-  }
-  return samples;
+  return ret;
 }
 
 /*******************************************************************************
