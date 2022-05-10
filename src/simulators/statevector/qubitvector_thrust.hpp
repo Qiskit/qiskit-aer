@@ -347,7 +347,7 @@ public:
   virtual void store_cmemory(uint_t qubit,int val);
 
   //copy classical register stored on qreg 
-  void get_creg(ClassicalRegister& creg);
+  void read_measured_data(ClassicalRegister& creg);
 
   //apply Pauli ops to multiple-shots (apply sampled Pauli noises)
   virtual void apply_batched_pauli_ops(const std::vector<std::vector<Operations::Op>> &ops);
@@ -2405,7 +2405,7 @@ int QubitVectorThrust<data_t>::measured_cmemory(uint_t qubit)
 }
 
 template <typename data_t>
-void QubitVectorThrust<data_t>::get_creg(ClassicalRegister& creg)
+void QubitVectorThrust<data_t>::read_measured_data(ClassicalRegister& creg)
 {
   uint_t i;
   reg_t pos(1);
