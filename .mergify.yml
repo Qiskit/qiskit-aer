@@ -1,0 +1,23 @@
+queue_rules:
+  - name: automerge
+    conditions: []  # No additional rules, because branch-protection does them.
+
+pull_request_rules:
+  - name: automatic merge on CI success and review
+    conditions:
+      - base=main
+      - "#approved-reviews-by>=1"
+      - label=automerge
+      - label!=on hold
+      # GitHub branch-protection rules are automatically applied by mergify, so
+      # the queue can't actually merge things unless _all_ statuses are passed.
+      # This section is just a sanity check before the PR can enter the main
+      # queue.
+      - or:
+        - check-success=tests_linux (3.10, ubuntu-latest)
+        - check-neutral=tests_linux (3.10, ubuntu-latest)
+        - check-skipped=tests_linux (3.10, ubuntu-latest)
+    actions:
+      queue:
+        name: automerge
+        method: squash
