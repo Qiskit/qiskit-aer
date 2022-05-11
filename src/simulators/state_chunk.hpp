@@ -910,6 +910,14 @@ void StateChunk<state_t>::apply_ops_chunks(InputIterator first, InputIterator la
 #ifdef AER_CUSTATEVEC
   result.metadata.add(cuStateVec_enable_, "cuStateVec_enable");
 #endif
+
+#ifdef AER_MPI
+  result.metadata.add(multi_chunk_swap_enable_,"cacheblocking", "multiple_chunk_swaps_enable");
+  if(multi_chunk_swap_enable_){
+    result.metadata.add(chunk_swap_buffer_qubits_,"cacheblocking", "multiple_chunk_swaps_buffer_qubits");
+    result.metadata.add(max_multi_swap_,"cacheblocking", "max_multiple_chunk_swaps");
+  }
+#endif
 }
 
 template <class state_t>
