@@ -277,12 +277,18 @@ public:
   // If N=3 this implements an optimized Fredkin gate
   void apply_mcswap(const reg_t &qubits);
 
+  //apply multiple swap gates
+  // qubits is a list of pair of swaps
+  void apply_multi_swaps(const reg_t &qubits);
+
   //apply rotation around axis
   void apply_rotation(const reg_t &qubits, const Rotation r, const double theta);
 
   //swap between chunk
   void apply_chunk_swap(const reg_t &qubits, QubitVectorThrust<data_t> &chunk, bool write_back = true);
   void apply_chunk_swap(const reg_t &qubits, uint_t remote_chunk_index);
+
+  void apply_chunk_swap(QubitVectorThrust<data_t> &chunk, uint_t dest_offset, uint_t src_offset, uint_t size);
 
   void apply_pauli(const reg_t &qubits, const std::string &pauli,
                    const complex_t &coeff = 1);
@@ -1079,6 +1085,7 @@ thrust::complex<data_t>* QubitVectorThrust<data_t>::send_buffer(uint_t& size_in_
 #else
   pRet = chunk_.pointer();
 #endif
+  chunk_.synchronize();
 
   size_in_byte = (uint_t)sizeof(thrust::complex<data_t>) << num_qubits_;
   return pRet;
@@ -1096,11 +1103,13 @@ thrust::complex<data_t>* QubitVectorThrust<data_t>::recv_buffer(uint_t& size_in_
     chunk_manager_->MapBufferChunkOnHost(recv_chunk_);
   }
 #else
-  chunk_manager_->MapBufferChunk(recv_chunk_,chunk_.place());
+  if(!recv_chunk_.is_mapped())
+    chunk_manager_->MapBufferChunk(recv_chunk_,chunk_.place());
 #endif
   if(!recv_chunk_.is_mapped()){
     throw std::runtime_error("QubitVectorThrust: receive buffer can not be allocated");
   }
+  chunk_.synchronize();
 
   size_in_byte = (uint_t)sizeof(thrust::complex<data_t>) << num_qubits_;
   return recv_chunk_.pointer();
@@ -1113,6 +1122,8 @@ void QubitVectorThrust<data_t>::release_send_buffer(void) const
   if(send_chunk_.is_mapped()){
     chunk_manager_->UnmapBufferChunk(send_chunk_);
   }
+#else
+  chunk_.synchronize();
 #endif
 }
 
@@ -1564,6 +1575,14 @@ void QubitVectorThrust<data_t>::apply_mcswap(const reg_t &qubits)
 }
 
 template <typename data_t>
+void QubitVectorThrust<data_t>::apply_multi_swaps(const reg_t &qubits)
+{
+  if(((multi_chunk_distribution_ && chunk_.device() >= 0) || enable_batch_) && chunk_.pos() != 0)
+    return;   //first chunk execute all in batch
+  chunk_.apply_multi_swaps(qubits,chunk_.container()->num_chunks());
+}
+
+template <typename data_t>
 void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVectorThrust<data_t> &src, bool write_back)
 {
   int q0,q1,t;
@@ -1630,9 +1649,9 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, QubitVecto
   }
   else{
     apply_function(Chunk::CSwapChunk_func<data_t>(qubits,num_qubits_,pChunk0,pChunk1,true));
-    chunk_.synchronize();    //should be synchronized here
     if(bufferChunk.is_mapped())
       bufferChunk.CopyOut(src.chunk_);
+    chunk_.synchronize();    //should be synchronized here
   }
   if(bufferChunk.is_mapped())
     chunk_manager_->UnmapBufferChunk(bufferChunk);
@@ -1701,6 +1720,15 @@ void QubitVectorThrust<data_t>::apply_chunk_swap(const reg_t &qubits, uint_t rem
 #endif
 }
 
+//swap part of chunks
+template <typename data_t>
+void QubitVectorThrust<data_t>::apply_chunk_swap(QubitVectorThrust<data_t> &src, uint_t dest_offset, uint_t src_offset, uint_t size)
+{
+  if(src.chunk_index_ == chunk_index_)   //save swapped 
+    chunk_.Swap(src.recv_chunk_,dest_offset,src_offset,size, false);
+  else
+    chunk_.Swap(src.chunk_,dest_offset,src_offset,size);
+}
 
 template <typename data_t>
 void QubitVectorThrust<data_t>::apply_mcphase(const reg_t &qubits, const std::complex<double> phase)
