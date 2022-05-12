@@ -1020,7 +1020,7 @@ void StateChunk<state_t>::apply_ops_multi_shots(InputIterator first, InputIterat
 
     //collect measured bits and copy memory
     for(i=0;i<n_shots;i++){
-      qregs_[i].get_creg(cregs_[global_chunk_index_ + i_begin + i]);
+      qregs_[i].read_measured_data(cregs_[global_chunk_index_ + i_begin + i]);
     }
 
     i_begin += n_shots;

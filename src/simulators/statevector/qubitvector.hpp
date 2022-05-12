@@ -31,9 +31,12 @@
 #include "simulators/statevector/indexes.hpp"
 #include "simulators/statevector/transformer.hpp"
 #include "simulators/statevector/transformer_avx2.hpp"
+#include "framework/operations.hpp"
+#include "framework/rng.hpp"
 #include "framework/avx2_detect.hpp"
 #include "framework/json.hpp"
 #include "framework/utils.hpp"
+#include "framework/linalg/matrix_utils/vmatrix_defs.hpp"
 #include "framework/linalg/vector.hpp"
 
 namespace AER {
@@ -318,7 +321,8 @@ public:
   virtual void apply_batched_reset(const reg_t& qubits,std::vector<RngEngine>& rng){}
 
   //copy classical register stored on qreg 
-  void get_creg(ClassicalRegister& creg){}
+  template <typename storage_t>
+  void read_measured_data(storage_t& creg){}
 
   virtual int_t set_batched_system_conditional(int_t src_reg, reg_t& mask){return -1;}
 
