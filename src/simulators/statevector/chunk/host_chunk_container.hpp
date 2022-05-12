@@ -84,6 +84,10 @@ public:
   {
     return (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data()) + (iChunk << this->chunk_bits_);
   }
+  thrust::complex<data_t>* buffer_pointer(void) const
+  {
+    return (thrust::complex<data_t>*)thrust::raw_pointer_cast(data_.data()) + (this->num_chunks_ << this->chunk_bits_);
+  }
 
   thrust::complex<double>* matrix_pointer(uint_t iChunk) const override
   {
@@ -109,7 +113,7 @@ public:
   void CopyOut(Chunk<data_t>& src,uint_t iChunk) override;
   void CopyIn(thrust::complex<data_t>* src,uint_t iChunk, uint_t size) override;
   void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk, uint_t size) override;
-  void Swap(Chunk<data_t>& src,uint_t iChunk) override;
+  void Swap(Chunk<data_t>& src,uint_t iChunk, uint_t dest_offset = 0, uint_t src_offset = 0, uint_t size = 0, bool write_back = true) override;
 
   void Zero(uint_t iChunk,uint_t count) override;
 
@@ -216,7 +220,7 @@ void HostChunkContainer<data_t>::CopyOut(thrust::complex<data_t>* dest,uint_t iC
 }
 
 template <typename data_t>
-void HostChunkContainer<data_t>::Swap(Chunk<data_t>& src,uint_t iChunk)
+void HostChunkContainer<data_t>::Swap(Chunk<data_t>& src,uint_t iChunk, uint_t dest_offset, uint_t src_offset, uint_t size_in, bool write_back)
 {
   uint_t size = 1ull << this->chunk_bits_;
   if(src.device() >= 0){

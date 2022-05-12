@@ -40,7 +40,7 @@ DISABLE_WARNING_POP
 #define AER_DEFAULT_MATRIX_BITS   6
 
 #define AER_CHUNK_BITS        21
-#define AER_MAX_BUFFERS       4
+#define AER_MAX_BUFFERS       1
 #define AER_DUMMY_BUFFERS     4     //reserved storage for parameters
 
 #define QV_CUDA_NUM_THREADS 1024
@@ -90,14 +90,14 @@ class ChunkContainer : public std::enable_shared_from_this<ChunkContainer<data_t
 protected:
   int_t chunk_bits_;                  //number of qubits for a chunk
   int_t num_qubits_;                  //total qubits
-  int place_id_;                      //index of a container (device index + host)
+  int_t place_id_;                    //index of a container (device index + host)
+  int_t num_places_;
   uint_t num_chunks_;                 //number of chunks in this container
   uint_t chunk_index_;                //global chunk index for the first chunk in this container
   uint_t num_buffers_;                //number of buffers (buffer chunks) in this container
   uint_t num_chunk_mapped_;           //number of chunks mapped
   reg_t blocked_qubits_;
   std::vector<bool> chunks_map_;      //chunk mapper
-  std::vector<bool> buffers_map_;     //buffer mapper
   mutable reg_t reduced_queue_begin_;
   mutable reg_t reduced_queue_end_;
   uint_t matrix_bits_;                //max matrix bits
@@ -131,13 +131,14 @@ public:
   {
     return chunk_bits_;
   }
-  int place(void)
+  int_t place(void)
   {
     return place_id_;
   }
-  void set_place(int id)
+  void set_place(int_t id,int_t n)
   {
     place_id_ = id;
+    num_places_ = n;
   }
   uint_t num_chunks(void)
   {
@@ -222,7 +223,7 @@ public:
   virtual void CopyOut(Chunk<data_t>& dest,uint_t iChunk) = 0;
   virtual void CopyIn(thrust::complex<data_t>* src,uint_t iChunk, uint_t size) = 0;
   virtual void CopyOut(thrust::complex<data_t>* dest,uint_t iChunk, uint_t size) = 0;
-  virtual void Swap(Chunk<data_t>& src,uint_t iChunk) = 0;
+  virtual void Swap(Chunk<data_t>& src,uint_t iChunk, uint_t dest_offset = 0, uint_t src_offset = 0, uint_t size = 0, bool write_back = true) = 0;
 
   virtual void Zero(uint_t iChunk,uint_t count) = 0;
 
@@ -252,6 +253,10 @@ public:
   void unmap_all(void);
 
   virtual thrust::complex<data_t>* chunk_pointer(uint_t iChunk) const
+  {
+    return NULL;
+  }
+  virtual thrust::complex<data_t>* buffer_pointer(void) const
   {
     return NULL;
   }
@@ -338,6 +343,9 @@ public:
   //apply (controlled) swap gate
   virtual void apply_swap(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const uint_t count);
 
+  //apply multiple swap gates
+  virtual void apply_multi_swaps(const uint_t iChunk,const reg_t& qubits,const uint_t count);
+
   //apply permutation
   virtual void apply_permutation(const uint_t iChunk,const reg_t& qubits,const std::vector<std::pair<uint_t, uint_t>> &pairs, const uint_t count);
 
@@ -395,22 +403,13 @@ void ChunkContainer<data_t>::UnmapChunk(Chunk<data_t>& chunk)
 template <typename data_t>
 bool ChunkContainer<data_t>::MapBufferChunk(Chunk<data_t>& chunk)
 {
-  uint_t i,pos;
-
-  for(i=0;i<num_buffers_;i++){
-    if(!buffers_map_[i]){
-      buffers_map_[i] = true;
-      chunk.map(this->shared_from_this(),num_chunks_+i);
-      break;
-    }
-  }
+  chunk.map(this->shared_from_this(),num_chunks_);
   return chunk.is_mapped();
 }
 
 template <typename data_t>
 void ChunkContainer<data_t>::UnmapBuffer(Chunk<data_t>& buf)
 {
-  buffers_map_[buf.pos()-num_chunks_] = false;
   buf.unmap();
 }
 
@@ -420,8 +419,6 @@ void ChunkContainer<data_t>::unmap_all(void)
   int_t i;
   for(i=0;i<chunks_map_.size();i++)
     chunks_map_[i] = false;
-  for(i=0;i<buffers_map_.size();i++)
-    buffers_map_[i] = false;
   num_chunk_mapped_ = 0;
 }
 
@@ -824,7 +821,6 @@ void ChunkContainer<data_t>::allocate_chunks(void)
 {
   uint_t i;
   chunks_map_.resize(num_chunks_,false);
-  buffers_map_.resize(num_buffers_,false);
 
   reduced_queue_begin_.resize(num_chunks_,0);
   reduced_queue_end_.resize(num_chunks_,0);
@@ -834,7 +830,6 @@ template <typename data_t>
 void ChunkContainer<data_t>::deallocate_chunks(void)
 {
   chunks_map_.clear();
-  buffers_map_.clear();
 
   reduced_queue_begin_.clear();
   reduced_queue_end_.clear();
@@ -936,6 +931,25 @@ template <typename data_t>
 void ChunkContainer<data_t>::apply_swap(const uint_t iChunk,const reg_t& qubits,const int_t control_bits,const uint_t count)
 {
   Execute(CSwap_func<data_t>(qubits), iChunk, count);
+}
+
+
+template <typename data_t>
+void ChunkContainer<data_t>::apply_multi_swaps(const uint_t iChunk,const reg_t& qubits,const uint_t count)
+{
+  //max 5 swaps can be applied at once using GPU's shared memory
+  for(int_t i=0;i<qubits.size();i+=10){
+    int_t n = 10;
+    if(i + n > qubits.size())
+      n = qubits.size() - i;
+
+    reg_t qubits_swap(qubits.begin() + i,qubits.begin() + i + n);
+    std::sort(qubits_swap.begin(), qubits_swap.end());
+    qubits_swap.insert(qubits_swap.end(), qubits.begin() + i,qubits.begin() + i + n);
+
+    StoreUintParams(qubits_swap, iChunk);
+    Execute(MultiSwap_func<data_t>(n), iChunk, count);
+  }
 }
 
 template <typename data_t>

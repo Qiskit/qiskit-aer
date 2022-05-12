@@ -267,12 +267,18 @@ public:
   // If N=3 this implements an optimized Fredkin gate
   void apply_mcswap(const reg_t &qubits);
 
+  //apply multiple swap gates
+  // qubits is a list of pair of swaps
+  void apply_multi_swaps(const reg_t &qubits);
+
   //apply rotation around axis
   void apply_rotation(const reg_t &qubits, const Rotation r, const double theta);
 
   //swap between chunk
   void apply_chunk_swap(const reg_t &qubits, QubitVector<data_t> &chunk, bool write_back = true);
   void apply_chunk_swap(const reg_t &qubits, uint_t remote_chunk_index);
+  void apply_chunk_swap(QubitVector<data_t> &chunk, uint_t dest_offset, uint_t src_offset, uint_t size);
+
   void apply_pauli(const reg_t &qubits, const std::string &pauli,
                    const complex_t &coeff = 1);
 
@@ -1697,6 +1703,56 @@ void QubitVector<data_t>::apply_chunk_swap(const reg_t &qubits, uint_t remote_ch
       std::swap(data_[inds[first_idx]], recv_buffer_[inds[second_idx]]);
     };
     apply_lambda(lambda, areg_t<1>({{q0}}));
+  }
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_chunk_swap(QubitVector<data_t> &src, uint_t dest_offset, uint_t src_offset, uint_t size)
+{
+  if(src.chunk_index_ == chunk_index_){
+#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    for (int_t k = 0; k < size; ++k) {
+      data_[dest_offset + k] = src.recv_buffer_[src_offset + k];
+    }
+  }
+  else{
+#pragma omp parallel for if (num_qubits_ > omp_threshold_ && omp_threads_ > 1) num_threads(omp_threads_)
+    for (int_t k = 0; k < size; ++k) {
+      std::swap(data_[dest_offset + k], src.data_[src_offset + k]);
+    }
+  }
+}
+
+template <typename data_t>
+void QubitVector<data_t>::apply_multi_swaps(const reg_t &qubits)
+{
+  for(int_t i=0;i<qubits.size();i+=10){
+    int_t n = 10;
+    if(i + n > qubits.size())
+      n = qubits.size() - i;
+
+    reg_t qubits_swap(qubits.begin() + i,qubits.begin() + i + n);
+
+    uint_t nq = qubits_swap.size();
+    uint_t size = 1ull << nq;
+
+    auto lambda = [&](const indexes_t &inds)->void 
+    {
+      cvector_t<data_t> cache(size);
+      for(int_t i=0;i<size;i++)
+        cache[i] = data_[inds[i]];
+
+      for(int_t i=0;i<size;i++){
+        uint_t pos = i;
+        for(int_t j=0;j<nq;j+=2){
+          if((((pos >> j) & 1) ^ ((pos >> (j+1)) & 1)) != 0){
+            pos ^= ((1ull << j) | (1ull << (j+1)));
+          }
+        }
+        data_[inds[i]] = cache[pos];
+      }
+    };
+    apply_lambda(lambda, qubits_swap);
   }
 }
 
