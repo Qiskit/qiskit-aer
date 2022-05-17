@@ -21,9 +21,8 @@ from qiskit.circuit import QuantumCircuit, Reset
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.exceptions import QiskitError
 from qiskit.extensions import UnitaryGate
-from qiskit.quantum_info.operators import Operator
+from qiskit.quantum_info.operators import Operator, Pauli
 from qiskit.quantum_info.operators.channel import Choi, Kraus
-from qiskit.quantum_info.operators.pauli import Pauli
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
