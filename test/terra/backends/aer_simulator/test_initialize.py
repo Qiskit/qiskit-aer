@@ -14,7 +14,6 @@ AerSimulator Integration Tests
 """
 from ddt import ddt
 from qiskit import QuantumCircuit
-from qiskit.quantum_info import Statevector
 from test.terra.reference import ref_initialize
 
 import numpy as np
@@ -153,16 +152,14 @@ class TestInitialize(SimulatorTestCase):
         """Test sampling optimization"""
         backend = self.backend(method=method, device=device)
 
-        #expected
-        circ = QuantumCircuit(4)
-        circ.initialize(Statevector.from_label('+-rl'))
-        circ.save_statevector()
-        expected = backend.run(circ).result().get_statevector(circ)
-
-        #actual
         circ = QuantumCircuit(4)
         circ.initialize('+-rl')
         circ.save_statevector()
         actual = backend.run(circ).result().get_statevector(circ)
 
-        self.assertAlmostEqual(actual, expected)
+        for q4, p4 in enumerate([1, 1]):
+            for q3, p3 in enumerate([1, -1]):
+                for q2, p2 in enumerate([1, 1j]):
+                    for q1, p1 in enumerate([1, -1j]):
+                        index = int('{}{}{}{}'.format(q4, q3, q2, q1), 2)
+                        self.assertAlmostEqual(actual[index], 0.25*p1*p2*p3*p4)

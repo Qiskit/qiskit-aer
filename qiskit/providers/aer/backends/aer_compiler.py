@@ -98,7 +98,7 @@ class AerCompiler:
                 # Assume that the decomposed circuit of inst.definition consists of basis gates
                 new_circ.compose(inst.definition.decompose(), qargs, cargs, inplace=True)
             else:
-                new_circ.data.append((inst, qargs, cargs))
+                new_circ._append(inst, qargs, cargs)
 
         return new_circ
 
