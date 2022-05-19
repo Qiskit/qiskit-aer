@@ -54,7 +54,6 @@ endif()
 include(CTest)
 include(compiler_utils)
 include(Linter)
-include(findBLASInSpecificPath)
 include(dependency_utils)
 
 # Get version information
@@ -191,40 +190,6 @@ if(STATIC_LINKING)
 	set(BLA_STATIC TRUE)
 endif()
 
-if(AER_BLAS_LIB_PATH)
-	find_BLAS_in_specific_path(${AER_BLAS_LIB_PATH})
-else()
-	if(APPLE)
-		message(STATUS  "Looking for Apple BLAS & Lapack library...")
-		set(BLA_VENDOR "Apple")
-	else()
-		message(STATUS "Looking for OpenBLAS library...")
-		set(BLA_VENDOR "OpenBLAS")
-	endif()
-	if(WIN32)
-		message(STATUS "Uncompressing OpenBLAS static library...")
-		set(WIN_ARCH "win64" )
-		if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4") # Checking if win32 build
-			set(WIN_ARCH "win32")
-		endif()
-		execute_process(COMMAND ${CMAKE_COMMAND} -E tar "xvfj" "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/openblas.7z" WORKING_DIRECTORY  "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/")
-		set(BACKEND_REDIST_DEPS ${BACKEND_REDIST_DEPS} "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll")
-		set(BLAS_LIBRARIES "${AER_SIMULATOR_CPP_SRC_DIR}/third-party/${WIN_ARCH}/lib/libopenblas.dll.a") # Seems CMake is unable to find it on its own
-		set(BLAS_FOUND True)
-	else()
-		find_package(BLAS QUIET)
-	endif()
-	if(NOT BLAS_FOUND)
-		message(STATUS "OpenBLAS not found. Looking for any other BLAS & Lapack libraries...")
-		unset(BLA_VENDOR)
-		find_package(BLAS REQUIRED)
-		find_package(LAPACK REQUIRED)
-		set(BLAS_LIBRARIES "${BLAS_LIBRARIES};${LAPACK_LIBRARIES}")
-	endif()
-endif()
-
-message(STATUS "BLAS library found: ${BLAS_LIBRARIES}")
-
 if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "AMD64")
     if(APPLE OR UNIX)
         if (NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
@@ -316,9 +281,10 @@ endif()
 # Set dependent libraries
 set(AER_LIBRARIES
 	${AER_LIBRARIES}
-	${BLAS_LIBRARIES}
 	AER_DEPENDENCY_PKG::nlohmann_json
 	AER_DEPENDENCY_PKG::spdlog
+	AER_DEPENDENCY_PKG::openblas
+	${CONAN_PKG_LIBS_OPENBLAS}
 	Threads::Threads
 	${CMAKE_DL_LIBS}
 	${THRUST_DEPENDANT_LIBS}
@@ -337,7 +303,7 @@ else() # Standalone build
           # machine running the code has SIMD support
           set(SIMD_SOURCE_FILE "${PROJECT_SOURCE_DIR}/src/simulators/statevector/qv_avx2.cpp")
       endif()
-  endif()
+    endif()
 
 	set(AER_SIMULATOR_SOURCES "${PROJECT_SOURCE_DIR}/contrib/standalone/qasm_simulator.cpp")
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)

@@ -21,13 +21,6 @@ jobs:
           python-version: 3.7
       - name: Install deps
         run: pip install "conan>=1.31.2"
-      - name: Install openblas
-        run: |
-          set -e
-          sudo apt-get update
-          sudo apt-get install -y libopenblas-dev
-        shell: bash
-        if: runner.os == 'Linux'
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.2
         if: runner.os == 'Windows'
@@ -80,11 +73,11 @@ jobs:
           python-version: 3.7
       - name: Install deps
         run: pip install "conan>=1.31.2"
-      - name: Install openblas and mpi
+      - name: Install mpi
         run: |
           set -e
           sudo apt-get update
-          sudo apt-get install -y libopenblas-dev openmpi-bin libopenmpi-dev
+          sudo apt-get install -y openmpi-bin libopenmpi-dev
         shell: bash
       - name: Compile Standalone
         run: |

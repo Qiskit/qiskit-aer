@@ -19,7 +19,6 @@
 #include "framework/blas_protos.hpp"
 #include "framework/matrix.hpp"
 
-
 /**
  * Returns the eigenvalues and eigenvectors
  * of a Hermitian matrix.

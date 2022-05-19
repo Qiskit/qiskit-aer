@@ -36,7 +36,6 @@ Multiplication is done with the C wrapper of the fortran blas library.
 #include <vector>
 #include <array>
 
-#include "framework/blas_protos.hpp"
 #include "framework/linalg/enable_if_numeric.hpp"
 
 /*******************************************************************************
