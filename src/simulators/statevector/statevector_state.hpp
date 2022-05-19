@@ -2045,6 +2045,7 @@ std::vector<reg_t> State<statevec_t>::sample_measure(const reg_t &qubits,
     }
     all_samples.push_back(sample);
   }
+
   return all_samples;
 }
 
@@ -2301,6 +2302,7 @@ void State<statevec_t>::apply_kraus(const int_t iChunk, const reg_t &qubits,
     }
   }
 }
+
 
 //-------------------------------------------------------------------------
 } // namespace Statevector

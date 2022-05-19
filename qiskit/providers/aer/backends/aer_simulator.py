@@ -238,6 +238,13 @@ class AerSimulator(AerBackend):
       This option should be set when using option ``blocking_enable=True``
       (Default: 0).
 
+    * ``chunk_swap_buffer_qubits`` (int): Sets the number of qubits of
+      maximum buffer size (=2^chunk_swap_buffer_qubits) used for multiple
+      chunk-swaps over MPI processes. This parameter should be smaller than
+      ``blocking_qubits`` otherwise multiple chunk-swaps is disabled.
+      ``blocking_qubits`` - ``chunk_swap_buffer_qubits`` swaps are applied
+      at single all-to-all communication. (Default: 15).
+
     * ``batched_shots_gpu`` (bool): This option enables batched execution
       of multiple shot simulations on GPU devices for GPU enabled simulation
       methods. This optimization is intended for statevector simulations with
@@ -553,6 +560,7 @@ class AerSimulator(AerBackend):
             # cache blocking for multi-GPUs/MPI options
             blocking_qubits=None,
             blocking_enable=False,
+            chunk_swap_buffer_qubits=None,
             # multi-shots optimization options (GPU only)
             batched_shots_gpu=True,
             batched_shots_gpu_max_qubits=16,
