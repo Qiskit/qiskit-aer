@@ -146,3 +146,20 @@ class TestInitialize(SimulatorTestCase):
         self.assertSuccess(result)
         sampling = result.results[0].metadata.get('measure_sampling', None)
         self.assertFalse(sampling)
+
+    @supported_methods(SUPPORTED_METHODS)
+    def test_initialize_with_labels(self, method, device):
+        """Test sampling optimization"""
+        backend = self.backend(method=method, device=device)
+
+        circ = QuantumCircuit(4)
+        circ.initialize('+-rl')
+        circ.save_statevector()
+        actual = backend.run(circ).result().get_statevector(circ)
+
+        for q4, p4 in enumerate([1, 1]):
+            for q3, p3 in enumerate([1, -1]):
+                for q2, p2 in enumerate([1, 1j]):
+                    for q1, p1 in enumerate([1, -1j]):
+                        index = int('{}{}{}{}'.format(q4, q3, q2, q1), 2)
+                        self.assertAlmostEqual(actual[index], 0.25*p1*p2*p3*p4)
