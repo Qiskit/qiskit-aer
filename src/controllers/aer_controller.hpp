@@ -531,7 +531,7 @@ void Controller::set_config(const json_t &config) {
       }
       sim_device_ = Device::GPU;
 
-#ifdef AER_CUSTATEVEC
+#ifdef AER_CUSTATEVEC_
       if(cuStateVec_enable_){
         //initialize custatevevtor handle once before actual calculation (takes long time at first call)
         custatevecStatus_t err;
@@ -674,7 +674,6 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
 
   if(sim_device_ == Device::GPU && cuStateVec_enable_){
     enable_batch_multi_shots_ = false;    //cuStateVec does not support batch execution of multi-shots
-    parallel_shots_ = 1;    //cuStateVec is currently not thread safe
     return;
   }
 
