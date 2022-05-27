@@ -530,18 +530,6 @@ void Controller::set_config(const json_t &config) {
           throw std::runtime_error("No CUDA device available!");
       }
       sim_device_ = Device::GPU;
-
-#ifdef AER_CUSTATEVEC_
-      if(cuStateVec_enable_){
-        //initialize custatevevtor handle once before actual calculation (takes long time at first call)
-        custatevecStatus_t err;
-        custatevecHandle_t stHandle;
-        err = custatevecCreate(&stHandle);
-        if(err == CUSTATEVEC_STATUS_SUCCESS){
-          custatevecDestroy(stHandle);
-        }
-      }
-#endif
 #endif
     }
     else {
