@@ -530,18 +530,6 @@ void Controller::set_config(const json_t &config) {
           throw std::runtime_error("No CUDA device available!");
       }
       sim_device_ = Device::GPU;
-
-#ifdef AER_CUSTATEVEC
-      if(cuStateVec_enable_){
-        //initialize custatevevtor handle once before actual calculation (takes long time at first call)
-        custatevecStatus_t err;
-        custatevecHandle_t stHandle;
-        err = custatevecCreate(&stHandle);
-        if(err == CUSTATEVEC_STATUS_SUCCESS){
-          custatevecDestroy(stHandle);
-        }
-      }
-#endif
 #endif
     }
     else {
@@ -674,7 +662,6 @@ void Controller::set_parallelization_circuit(const Circuit &circ,
 
   if(sim_device_ == Device::GPU && cuStateVec_enable_){
     enable_batch_multi_shots_ = false;    //cuStateVec does not support batch execution of multi-shots
-    parallel_shots_ = 1;    //cuStateVec is currently not thread safe
     return;
   }
 

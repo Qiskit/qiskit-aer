@@ -663,9 +663,7 @@ bool StateChunk<state_t>::allocate(uint_t num_qubits,uint_t block_bits,uint_t nu
         cuStateVec_enable_ = false;   //multi-shots parallelization is not supported for cuStateVec
     }
 
-    if(cuStateVec_enable_)
-      chunk_omp_parallel_ = false;    //because cuStateVec is not thread safe 
-    else
+    if(!cuStateVec_enable_)
       thrust_optimization_ = true;    //cuStateVec does not handle global chunk index for diagonal matrix
 #endif
   }
